@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -46,11 +46,11 @@ September 1996 Claudia Freundorfer
 December 20, 1996 RHG Changed definition of procedure ~OutObject~.
 
 May 15, 1998 RHG Added treatment of models, especially functions
-~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~. 
+~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~.
 
 May 2002 Ulrich Telle Port to C++
 
-May 2004 M. Spiekermann. Support for system reserved identifiers and derived objects added. 
+May 2004 M. Spiekermann. Support for system reserved identifiers and derived objects added.
 The new private member ~sysObjNames~ and the methods ~IsSystemObj~ and ~AddSystemObjName~ were
 introduced. To avoid saving derived objects (for further Information see DerivedObj.h) the
 method ~ListObjectsFull~ was modified.
@@ -67,7 +67,7 @@ relation should be created on the fly by calling ~InObject~.
 
 This module defines the module ~SecondoCatalog~. It manages a set of
 named types, a set of objects with given type name or type expressions
-for a database. Persistency is implemented by the ~Storage Management 
+for a database. Persistency is implemented by the ~Storage Management
 Interface~.
 
 Modifications to the catalog by the methods of this module are registered
@@ -75,9 +75,9 @@ in temporary data structures in memory and written to disk on completion
 of the enclosing transaction.
 
 1.2 Interface methods
-    
+
 The class ~SecondoCatalog~ provides the following methods:
-  
+
 [23]    Catalog and Types     & Object Values            & Type Constructors / Operators \\
         [--------]
         SecondoCatalog        & ListObjects              & ListTypeConstructors \\
@@ -85,7 +85,7 @@ The class ~SecondoCatalog~ provides the following methods:
         Open                  & CreateObject             & GetTypeId            \\
         Close                 & InsertObject             & GetTypeName          \\
         CleanUp               & DeleteObject             & GetTypeDS            \\
-                              & KillObject               &   \\  
+                              & KillObject               &   \\
                               & InObject                 &   \\
                               & GetObjectValue           &   \\
                               & OutObject                &   \\
@@ -98,9 +98,9 @@ The class ~SecondoCatalog~ provides the following methods:
         MemberType            & GetObjectType            & GetOperatorName      \\
         LookUpTypeExpr        & GetObjectTypeExpr        &   \\
         GetTypeExpr           & CloseObject              &   \\
-        NumericType           &                          &   \\
-        ExpandedType          &                          &   \\
-        KindCorrect           &                          &   \\
+        NumericType           & IsReservedName           &   \\
+        ExpandedType          & IsSymbolString           &   \\
+        KindCorrect           & IsValidIdentifier        &   \\
                               &                          &   \\
 
 1.4 Imports
@@ -140,29 +140,32 @@ no database is open.
 class SecondoCatalog
 {
  public:
-  SecondoCatalog();
 /*
 Creates a new catalog.
 
 */
-  virtual ~SecondoCatalog();
+  SecondoCatalog();
+
 /*
 Destroys a catalog.
 
 */
-  bool Open();
+  virtual ~SecondoCatalog();
+
 /*
 Opens the catalog for operation. Returns "true"[4] if the catalog could be
 opened successfully, otherwise "false"[4].
 
 */
-  bool Close();
+  bool Open();
+
 /*
 Closes the catalog. Returns "true"[4] if the catalog could be
 closed successfully, otherwise "false"[4].
 
 */
-  bool CleanUp( const bool revert );
+  bool Close();
+
 /*
 Cleans up the memory representation when a transaction is completed.
 The switch ~revert~ has to be set to "true"[4] if the enclosing transaction
@@ -170,44 +173,45 @@ is aborted.
 
 */
 
-/*
-3.2.2 Database Types   
+  bool CleanUp( const bool revert );
 
-*/
-  ListExpr ListTypes();
 /*
+3.2.2 Database Types
+
 Returns a list of types of the whole database in the following format:
 
-----  (TYPES 
-        (TYPE <type name><type expression>)* 
-      )
+----  (TYPES
+(TYPE <type name><type expression>)*
+)
 ----
+
+*/
+
+  ListExpr ListTypes();
+/*
+Inserts a new type with identifier ~typeName~ defined by a list
+~typeExpr~ of already existing types in the database. Returns "false"[4],
+if the name was already defined.
 
 */
   bool InsertType( const string& typeName,
                    ListExpr typeExpr );
+
 /*
-Inserts a new type with identifier ~typeName~ defined by a list
-~typeExpr~ of already existing types in the database. Returns "false"[4],
-if the name was already defined. 
+Deletes a type with identifier ~typename~ in the database. Returns error
+1 if type is used by an object, error 2, if ~typename~ is not known.
 
 */
   int DeleteType( const string& typeName );
+
 /*
-Deletes a type with identifier ~typename~ in the database. Returns error
-1 if type is used by an object, error 2, if ~typename~ is not known. 
+Returns "true"[4], if type with name ~typename~ is member of the actually
+open database.
 
 */
   bool MemberType( const string& typeName );
-/*                  
-Returns "true"[4], if type with name ~typename~ is member of the actually
-open database. 
 
-*/                          
-  bool LookUpTypeExpr( const ListExpr typeExpr,
-                       string& typeName,
-                       int& algebraId, int& typeId );
-/*                        
+/*
 Returns the algebra identifier ~algebraId~ and the type identifier
 ~opId~ and the name ~typeName~ of the outermost type constructor for a
 given type expression ~typeExpr~, if it exists, otherwise an empty
@@ -215,112 +219,137 @@ string as ~typeName~ and value 0 for the identifiers, and the methods
 return value is set to "false"[4].
 
 */
+  bool LookUpTypeExpr( const ListExpr typeExpr,
+                       string& typeName,
+                       int& algebraId, int& typeId );
 
 
-  bool DeleteObj(const ListExpr type, Word& obj);
+
 /*
 Deletes the object with type described in __type__ stored in
 __obj__.
 
 */
 
+  bool DeleteObj(const ListExpr type, Word& obj);
 
 
-  ListExpr GetTypeExpr( const string& typeName );
-/*                        
+/*
 Returns a type expression for a given type name ~typename~,
-if exists. 
+if exists.
 
 *Precondition*: "MemberType( typeName ) == true"[4].
 
 */
-  ListExpr NumericType( const ListExpr type );
+  ListExpr GetTypeExpr( const string& typeName );
+
 /*
 Transforms a given type expression into a list structure where each type
 constructor has been replaced by the corresponding pair (algebraId,
-typeId). For example, 
+typeId). For example,
 
 ----  int -> (1 1)
 
-      (rel (tuple ((name string) (age int)))
+(rel (tuple ((name string) (age int)))
 
-      ->  ((2 1) ((2 2) ((name (1 4)) (age (1 1))))
+->  ((2 1) ((2 2) ((name (1 4)) (age (1 1))))
 ----
 
 Identifiers such as ~name~, ~age~ are moved unchanged into the result
 list. If a type expression contains other constants that are not
 symbols, e.g. integer constants as in (array 10 real), they are also
-moved unchanged into the result list. 
+moved unchanged into the result list.
 
 The resulting form of the type expression is useful for calling the type
-specific ~In~ and ~Out~ procedures. 
+specific ~In~ and ~Out~ procedures.
 
 */
-  ListExpr ExpandedType ( const ListExpr type );
+  ListExpr NumericType( const ListExpr type );
+
 /*
 Transforms a given type definition (a type expression possibly
 containing type names, or just a single type name) into the
 corresponding type expression where all names have been replaced by
-their defining expressions. 
+their defining expressions.
 
+*/
+
+  ListExpr ExpandedType ( const ListExpr type );
+/*
 3.1.1 Kind Checking
 
-*/
-  bool KindCorrect ( const ListExpr type, ListExpr& errorInfo );
-/*
 Here ~type~ is a type expression. ~KindCorrect~ does the kind checking;
 if there are errors, they are reported in the list ~errorInfo~, and
-"false"[4] is returned. ~errorInfo~ is a list whose entries are again
-lists, the first element of an entry is an error code number. For
-example, an entry 
+  "false"[4] is returned. ~errorInfo~ is a list whose entries are again
+  lists, the first element of an entry is an error code number. For
+  example, an entry
 
-----  (1 DATA (hello world))
-----
+  ----  (1 DATA (hello world))
+  ----
 
-says that kind ~DATA~ does not match the type expression ~(hello
-world)~. This is the meaning of the general error code 1. The other
-error codes are type-constructor specific. 
+  says that kind ~DATA~ does not match the type expression ~(hello
+  world)~. This is the meaning of the general error code 1. The other
+  error codes are type-constructor specific.
 
 */
 
-/*
-3.2.3 Database Objects 
+  bool KindCorrect ( const ListExpr type, ListExpr& errorInfo );
 
-*/                                
-  ListExpr ListObjects();
+/*
+3.2.3 Database Objects
+
+*/
+
 /*
 Returns a list of ~objects~ of the whole database in the same format that is used in the procedures ~SaveDatabase~ and ~RestoreDatabase~:
 
-----  (OBJECTS 
-        (OBJECT <object name>(<type name>) <type expression>)* 
-      )
+----  (OBJECTS
+(OBJECT <object name>(<type name>) <type expression>)*
+)
 ----
 
-For each object the *value* component is missing, otherwise the whole database 
+For each object the *value* component is missing, otherwise the whole database
 would be returned.
 
 */
-  ListExpr ListObjectsFull(const DerivedObj& derivedObjs);
+  ListExpr ListObjects();
+
 /*
 Returns a list of ~objects~ of the whole database in the following format:
 
----- (OBJECTS 
-       (OBJECT <object name>(<type name>) <type expression>
-                                          <value>)*
-     )
+---- (OBJECTS
+(OBJECT <object name>(<type name>) <type expression>
+<value>)*
+)
 ----
 Derived objects (see class DerivedObj) are not contained in this list.
+
+*/
+  ListExpr ListObjectsFull(const DerivedObj& derivedObjs);
+
+
+/*
+Creates a new object with identifier ~objectName~ defined with type name
+~typeName~ (can be empty) and type ~typeExpr~. The value is not yet
+defined, and no memory is allocated. Returns "false"[4], if the object name
+is defined already.
 
 */
   bool CreateObject( const string& objectName,
                      const string& typeName,
                      const ListExpr typeExpr,
                      const int sizeOfComponents );
+
 /*
-Creates a new object with identifier ~objectName~ defined with type name
-~typeName~ (can be empty) and type ~typeExpr~. The value is not yet
-defined, and no memory is allocated. Returns "false"[4], if the object name
-is defined already. 
+Inserts a new object with identifier ~objectName~ and value ~valueWord~
+defined by type name ~typeName~ or by a list ~typeExpr~ of already
+existing types (which always exists) into the database catalog.
+Parameter ~defined~ tells, whether ~valueWord~ actually contains a defined
+value. If the object name already exists, the procedure has no effect.
+Returns "false"[4] if the ~objectName~ is already in use.
+
+When the given object has no type name, it is mandatory, that ~typeName~
+is an empty string.
 
 */
   bool InsertObject( const string& objectName,
@@ -328,89 +357,116 @@ is defined already.
                      const ListExpr typeExpr,
                      const Word valueWord,
                      const bool defined );
-/*
-Inserts a new object with identifier ~objectName~ and value ~valueWord~
-defined by type name ~typeName~ or by a list ~typeExpr~ of already
-existing types (which always exists) into the database catalog.
-Parameter ~defined~ tells, whether ~valueWord~ actually contains a defined
-value. If the object name already exists, the procedure has no effect. 
-Returns "false"[4] if the ~objectName~ is already in use.
 
-When the given object has no type name, it is mandatory, that ~typeName~
-is an empty string.
+/*
+Deletes an object with identifier ~objectName~ in the database. Returns
+"false"[4] if the object does not exist.
 
 */
   bool DeleteObject( const string& objectName );
-/*
-Deletes an object with identifier ~objectName~ in the database. Returns
-"false"[4] if the object does not exist. 
 
-*/
-  bool KillObject( const string& objectName );
+
 /*
 Kills an object with identifier ~objectName~ in the database. Returns
 "false"[4] if the object does not exist. This function differs from
 ~DeleteObject~ because it is more drastic, i.e., it only deletes the
-entry for the object in the Secondo catalog. It can be used for 
-objects in corrupted states that cannot be opened for destruction. 
+entry for the object in the Secondo catalog. It can be used for
+objects in corrupted states that cannot be opened for destruction.
 
 */
+  bool KillObject( const string& objectName );
 
-  Word InObject( const ListExpr typeExpr,
-                 const ListExpr valueList,
-                 const int errorPos,
-                 ListExpr& errorInfo,
-                 bool& correct );
 /*
 Converts an object of the type given by ~typeExpr~ and the value given
 as a nested list into a ~Word~ representation which is returned. Any
 errors found are returned together with the given ~errorPos~ in the list
 ~errorInfo~. ~correct~ is set to "true"[4] if a value was created (which
-means that the input was at least partially correct). 
+means that the input was at least partially correct).
 
 */
-  ListExpr GetObjectValue( const string& objectName );
+Word InObject( const ListExpr typeExpr,
+                 const ListExpr valueList,
+                 const int errorPos,
+                 ListExpr& errorInfo,
+                 bool& correct );
+
 /*
 Returns the value of a locally stored database object with identifier
 ~objectName~ as list expression to show the value to the database
-user. If the value is undefined, an empty list is returned. 
+user. If the value is undefined, an empty list is returned.
 
 */
-  ListExpr OutObject( const ListExpr type,
-                      const Word object );
+ListExpr GetObjectValue( const string& objectName );
+
 /*
 Returns for a given ~object~ of type ~type~ its value in nested list
-representation. 
+representation.
 
 */
-  void CloseObject( const ListExpr type,
-                    const Word object );
+ListExpr OutObject( const ListExpr type,
+                      const Word object );
 /*
 Closes a given ~object~ of type ~type~.
 
 */
-  bool IsObjectName( const string& objectName );
+void CloseObject( const ListExpr type,
+                    const Word object );
 /*
 Checks whether ~objectName~ is a valid object name.
 
 */
-  bool GetObject( const string& objectName,
-                  Word& word, bool& defined );
+bool IsObjectName( const string& objectName );
+
+/*
+Checks whether ~keywordName~ is a reserved word
+(like 'const', 'query', 'type', 'value' etc.).
+
+*/
+bool IsReservedName( const string& keywordName );
+
+
+/*
+Tests whether ~str~ is a valid symbol, i.e. has length 1-48, does contain only
+characters (\[a-z\] | \[A-Z\] |\[0-9\], and the underscore (\_) and starts with a
+letter (\[a-z\] | \[A-Z\]).
+
+*/
+bool IsSymbolString(const string& str);
+
+
+/*
+Tests whether ~str~ is a valid symbol, is not a operator or type name or a reserved
+word (and if ~checkUsedAsObject~ is ~true~, whether the name is not currently registered
+as the name for a database object with the catalog.
+
+*/
+bool IsValidIdentifier(const string& str, const bool checkUsedAsObject = false);
+
+
+/*
+Tests whether ~str~ is a valid symbol, is not a operator or type name or a reserved
+word (and if ~checkUsedAsObject~ is ~true~, whether the name is not currently registered
+as the name for a database object with the catalog.
+
+Returns a string ~errorMessage~ explaining the cause of the problem.
+
+*/
+bool IsValidIdentifier(const string& str, string& errorMessage,
+                       const bool checkUsedAsObject = false);
+
 /*
 Returns the value ~word~ of an object with identifier ~objectName~.
-~defined~ tells whether the word contains a meaningful value. 
+~defined~ tells whether the word contains a meaningful value.
 
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
-  bool GetObjectExpr( const string& objectName,
-                      string& typeName,
-                      ListExpr& typeExpr,
-                      Word& value,
-                      bool& defined,
-                      bool& hasTypeName );
+
+bool GetObject( const string& objectName,
+                  Word& word, bool& defined );
+
 /*
-Returns the value ~value~, the type name ~typeName~, and the type 
+Returns the value ~value~, the type name ~typeName~, and the type
 expression ~typeExpr~ of an object with identifier ~objectName~.
 ~defined~ tells whether ~value~ contains a defined value. If object has
 no type name the variable ~hasTypeName~ is set to "false"[4] and the
@@ -419,38 +475,48 @@ procedure returns an empty string as ~typeName~.
 *Precondition*: "IsObjectName(objectName) == true"[4].
 
 */
+  bool GetObjectExpr( const string& objectName,
+                      string& typeName,
+                      ListExpr& typeExpr,
+                      Word& value,
+                      bool& defined,
+                      bool& hasTypeName );
+
+/*
+Returns the type name ~typeName~ of an object with identifier
+~objectName~, if the type name exists and an empty string otherwise.
+
+*Precondition*: "IsObjectName( objectName ) == true"[4].
+
+*/
   bool GetObjectType( const string& objectName,
                       string& typeName );
-/* 
-Returns the type name ~typeName~ of an object with identifier
-~objectName~, if the type name exists and an empty string otherwise. 
+
+/*
+Returns the type expression of an object with identifier
+~objectName~.
 
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
   ListExpr GetObjectTypeExpr( const string& objectName );
-/* 
-Returns the type expression of an object with identifier
-~objectName~. 
 
-*Precondition*: "IsObjectName( objectName ) == true"[4].
+/*
+Overwrites the value of the object with identifier ~objectName~ with a
+new value ~word~. Returns "false"[4] if object does not exist.
 
 */
   bool UpdateObject( const string& objectName,
                      const Word word );
+
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
-new value ~word~. Returns "false"[4] if object does not exist. 
+new value cloned from ~word~. Returns "false"[4] if object does not exist.
 
 */
   bool CloneObject( const string& objectName,
                     const Word word );
-/*
-Overwrites the value of the object with identifier ~objectName~ with a
-new value cloned from ~word~. Returns "false"[4] if object does not exist. 
 
-*/
-  bool ModifyObject( const string& objectName, const Word word );
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
 new value ~word~. Returns "false"[4] if object does not exist.
@@ -458,16 +524,32 @@ The difference between this function and ~UpdateObject~ is that the
 second opens the old object for deletion. This one assumes that the
 object is only modified, so that no deletion function is necessary.
 
+*/
+
+  bool ModifyObject( const string& objectName, const Word word );
+/*
 3.2.4 Algebra Type Constructors
 
 */
-  ListExpr ListTypeConstructors();
+
 /*
 Returns a list of type constructors of the actually load
-algebras in the following format: 
+algebras in the following format:
 
 ----  (
-        (<type constructor name> (<arg 1>..<arg n>) <result>) * 
+(<type constructor name> (<arg 1>..<arg n>) <result>) *
+)
+----
+
+*/
+  ListExpr ListTypeConstructors();
+
+/*
+Returns the list of type constructors defined by the algebra with Id algebraId
+in the following format:
+
+----  (
+        (<type constructor name> (<arg 1>..<arg n>) <result>) *
       )
 ----
 
@@ -477,130 +559,135 @@ algebras in the following format:
   void InitTypeConstructors();
 
   void Initialize(TypeInfoRel* r);
-  void Initialize(OperatorInfoRel* r);
 /*
-Returns a list of type constructors of the algebra with Id algebraId
-in the following format: 
-
-----  (
-        (<type constructor name> (<arg 1>..<arg n>) <result>) * 
-      )
-----
+Returns the list of operators defined by the algebra with Id algebraId.
 
 */
+  void Initialize(OperatorInfoRel* r);
 
-  bool IsTypeName( const string& typeName );
+
 /*
 Checks whether ~typeName~ is a valid name for an algebra type
-constructor or a database type. 
+constructor or a database type.
 
 */
-  bool GetTypeId( const string& typeName,
-                  int& algebraId, int& typeId );
+  bool IsTypeName( const string& typeName );
+
 /*
 Returns the algebra identifier ~algebraId~ and the type identifier
 ~opId~ of an existing type constructor or database type with name
-~typeName~. 
+~typeName~.
 
 *Precondition*: "IsTypeName( typeName ) == true"[4].
 
 */
-  string GetTypeName( const int algebraId, const int typeId );
+  bool GetTypeId( const string& typeName,
+                  int& algebraId, int& typeId );
+
 /*
 Looks up the name of a type constructor defined by the algebra
-identifier ~algebraId~ and the type identifier ~opId~. 
+identifier ~algebraId~ and the type identifier ~opId~.
 
 */
-  ListExpr GetTypeDS( const int algebraId, const int typeId );
+  string GetTypeName( const int algebraId, const int typeId );
+
 /*
 Looks up the properties of a type constructor defined by the
-algebra identifier ~algebraId~ and the type identifier ~opId~. 
+algebra identifier ~algebraId~ and the type identifier ~opId~.
 
 3.2.5 Algebra Operators
 
 */
-  ListExpr ListOperators();
+  ListExpr GetTypeDS( const int algebraId, const int typeId );
+
 /*
-Returns a list of operators specifications in the following format: 
+Returns a list of operators specifications in the following format:
 
 ----
-      (  
-        ( <operator name>   
-          (<arg type spec 1>..<arg type spec n>)
-          <result type spec>
-          <syntax>
-          <variable defs>
-          <formula>
-          <explaining text>
-        )*
-      ) 
+(
+( <operator name>
+(<arg type spec 1>..<arg type spec n>)
+<result type spec>
+<syntax>
+<variable defs>
+<formula>
+<explaining text>
+)*
+)
 ----
 This format is based on the formal definition of the syntax of operator
-specifications from [BeG95b, Section3.1]. 
+specifications from [BeG95b, Section3.1].
+
+*/
+  ListExpr ListOperators();
+
+/*
+Returns a list of type constructors of the algebra with Id algebraId
+in the following format:
+
+----  (
+(<type constructor name> (<arg 1>..<arg n>) <result>) *
+)
+----
 
 */
   ListExpr ListOperators( int algebraId );
-/*
-Returns a list of type constructors of the algebra with Id algebraId
-in the following format: 
 
-----  (
-        (<type constructor name> (<arg 1>..<arg n>) <result>) * 
-      )
-----
 
-*/
-
-  bool IsOperatorName( const string& opName );
 /*
 Checks whether ~opName~ is a valid operator name.
 
 */
-  ListExpr GetOperatorIds( const string& opName );
+  bool IsOperatorName( const string& opName );
 
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
 ~opId~ for all operators called ~opName~ in list format like below
 
-( (alId1 opId1) ... (alIdN opIdN) )  
+( (alId1 opId1) ... (alIdN opIdN) )
 
 *Precondition*: "IsOperatorName( opName ) == true"[4].
 
 */
-  string GetOperatorName( const int algebraId,
-                          const int opId );
+  ListExpr GetOperatorIds( const string& opName );
+
+
 /*
 Looks for the name of an operator defined by the algebra identifier ~algebraId~ and the operator ~opId~.
 
-*/ 
-  ListExpr GetOperatorSpec( const int algebraId,
-                            const int opId );
+*/
+  string GetOperatorName( const int algebraId,
+                          const int opId );
+
 /*
 Returns the operator specification of an operator defined by the
 algebra identifier ~algebraId~ and the operator identifier ~opId~ in the
-following format: 
+following format:
 
-----  ( <operator name>   
-        (<arg type spec 1>..<arg type spec n>)
-        <result type spec>
-        <syntax>
-        <variable defs>
-        <formula>
-        <explaining text>
-      )
+----  ( <operator name>
+(<arg type spec 1>..<arg type spec n>)
+<result type spec>
+<syntax>
+<variable defs>
+<formula>
+<explaining text>
+)
 ----
 
 The function below test if a name is reserved for system use.
 
 */
-  
+
+  ListExpr GetOperatorSpec( const int algebraId,
+                            const int opId );
+
   inline bool IsSystemObject(const string& s) {
     return (GetSystemTable(s) != 0);
   }
 
   SmiRecordFile* GetFlobFile() {
     return &flobFile;
-  }	  
+  }
 
  protected:
   bool TypeUsedByObject( const string& typeName );
@@ -628,16 +715,16 @@ The function below test if a name is reserved for system use.
     string     typeExpr;
     EntryState state;
 
-    TypesCatalogEntry() : 
+    TypesCatalogEntry() :
       algebraId(0), typeId(0), typeExpr(""), state(Undefined) {}
 
     ostream& print(ostream& os) const {
-      os << "algId  :" << algebraId << endl;    
-      os << "typId  :" << typeId << endl;    
-      os << "typExpr:" << typeExpr << endl;    
-      os << "state  :" << state << endl;    
+      os << "algId  :" << algebraId << endl;
+      os << "typId  :" << typeId << endl;
+      os << "typExpr:" << typeExpr << endl;
+      os << "state  :" << state << endl;
       return os;
-    }    
+    }
 
   };
   typedef map<string,TypesCatalogEntry> TypesCatalog;
@@ -655,22 +742,22 @@ The function below test if a name is reserved for system use.
     SmiRecordId valueRecordId;
     EntryState  state;
 
-    ObjectsCatalogEntry() : 
-      algebraId(0), typeId(0), typeName(""), typeExpr(""), 
-      value(SetWord(Address(0))), valueDefined(false), valueRecordId(0), 
+    ObjectsCatalogEntry() :
+      algebraId(0), typeId(0), typeName(""), typeExpr(""),
+      value(SetWord(Address(0))), valueDefined(false), valueRecordId(0),
       state(Undefined) {}
 
     ostream& print(ostream& os) const {
-      os << "algId       :" << algebraId << endl;    
-      os << "typId       :" << typeId << endl;    
-      os << "typName     :" << typeName << endl;    
-      os << "typExpr     :" << typeExpr << endl;    
-      os << "value       :" << (void*) value.addr << endl;    
-      os << "valueDefined:" << valueDefined << endl;    
-      os << "valueRecId  :" << valueRecordId << endl;    
-      os << "state       :" << state << endl;    
+      os << "algId       :" << algebraId << endl;
+      os << "typId       :" << typeId << endl;
+      os << "typName     :" << typeName << endl;
+      os << "typExpr     :" << typeExpr << endl;
+      os << "value       :" << (void*) value.addr << endl;
+      os << "valueDefined:" << valueDefined << endl;
+      os << "valueRecId  :" << valueRecordId << endl;
+      os << "state       :" << state << endl;
       return os;
-    }    
+    }
   };
 
   typedef map<string,ObjectsCatalogEntry> ObjectsCatalog;
@@ -679,7 +766,6 @@ The function below test if a name is reserved for system use.
   SmiRecordFile  objValueFile;
   SmiRecordFile  flobFile;
 
-  bool testMode;
 /*
 If ~testMode~ is set some preconditions are tested. If an error occurs,
 "exit"[4] is called.
@@ -690,8 +776,10 @@ an error it should always be reported to the client.
 
 
 */
-  
-  // check if name is a sytem table 
+
+  bool testMode;
+
+  // check if name is a sytem table
   const SystemInfoRel* GetSystemTable(const string& name) const;
 
   // create a ~trel~ object representing a system table.

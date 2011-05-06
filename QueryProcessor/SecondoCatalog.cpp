@@ -114,7 +114,6 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "TypeConstructor.h"
 #include "Environment.h"
 
-
 using namespace std;
 
 const string InfoTuple::sep("|");
@@ -1419,6 +1418,112 @@ Precondition: dbState = dbOpen.
   }
   return (found);
 }
+
+
+bool SecondoCatalog::IsReservedName( const string& keywordName )
+{
+/*
+Checks whether ~keywordName~ is a reserved word
+(like 'const', 'query', 'type', 'value' etc.).
+
+*/
+  static const char* keywords[] = {
+    "abort",
+    "algebra",
+    "algebras",
+    "begin",
+    "beginseq",
+    "close",
+    "commit",
+    "const",
+    "constructors",
+    "counters",
+    "create",
+    "database",
+    "databases",
+    "delete",
+    "derive",
+    "do",
+    "else",
+    "endif",
+    "endseq",
+    "endwhile",
+    "from",
+    "if",
+    "inquiry",
+    "kill",
+    "let",
+    "list",
+    "objects",
+    "open",
+    "operators",
+    "query",
+    "restore"
+    "save",
+    "set",
+    "then",
+    "to",
+    "trasaction",
+    "type",
+    "types",
+    "update",
+    "value",
+    "while",
+    0};
+
+  for(int i=0; keywords[i]; i++){
+    if(keywordName==string(keywords[i])){
+      return true;
+    }
+  }
+  return false;
+}
+
+bool SecondoCatalog::IsSymbolString(const string& str){
+  int len = str.length();
+  if( (len<1) || (len>MAX_STRINGSIZE) ) return false;
+  if( str.find_first_of("abcdefghijklmnopqrstuvwxyz"
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != 0 ) return false;
+  if( str.find_first_not_of("abcdefghijklmnopqrstuvwxyz"
+                            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                            "0123456789_") != string::npos) return false;
+  return true;
+}
+
+
+bool SecondoCatalog::IsValidIdentifier(const string& str,
+                                       const bool checkUsedAsObject /*=false*/){
+  string dummy;
+  return IsValidIdentifier(str, dummy, checkUsedAsObject);
+}
+
+bool SecondoCatalog::IsValidIdentifier(const string& str,
+                                       string& errorMessage,
+                                       const bool checkUsedAsObject /*=false*/){
+  if(!IsSymbolString(str)){
+    errorMessage = "'"+str+"' is not a valid symbol";
+    return false;
+  }
+  if(IsReservedName(str)){
+    errorMessage = "'"+str+"' is a reserved keyword";
+  return false;
+  }
+  if(IsTypeName(str)){
+    errorMessage = "'"+str+"' is a registered type name";
+  return false;
+  }
+  if(IsOperatorName(str)){
+    errorMessage = "'"+str+"' is a registered operator name";
+  return false;
+  }
+  if(checkUsedAsObject && IsObjectName(str)){
+    return false;
+    errorMessage ="'"+str+"' is an object name registered with this database";
+  }
+  errorMessage = "'"+str+"' is a valid identifier";
+  return true;
+}
+
 
 
   const SystemInfoRel* SecondoCatalog::GetSystemTable(const string& name) const
