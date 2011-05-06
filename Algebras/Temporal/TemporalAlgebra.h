@@ -2715,6 +2715,8 @@ It contains a database array of temporal units. For that, ~Unit~ must implement
 the class ~TemporalUnit~ or ~ConstTemporalUnit~, because functions of these classes will be used.
 
 */
+bool IsMaximumPeriods(const Periods& p);
+
 template <class Unit, class Alpha>
 class Mapping : public Attribute
 {
@@ -6093,6 +6095,11 @@ void Mapping<Unit, Alpha>::AtPeriods( const Periods& periods,
   if( IsEmpty() || periods.IsEmpty() )
     return;
 
+  if( IsMaximumPeriods(periods) )
+  { // p is [begin of time, end of time]. Copy the input into result.
+    result.CopyFrom(this);
+    return;
+  }
   result.StartBulkLoad();
 
   Unit unit;

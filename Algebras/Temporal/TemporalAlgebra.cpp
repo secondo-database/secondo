@@ -145,6 +145,13 @@ string int2string(const int& number)
   return oss.str();
 }
 
+bool IsMaximumPeriods(const Periods& p)
+{
+  if(p.GetNoComponents() != 1) return false;
+  Interval<Instant> I;
+  p.Get(0, I);
+  return (I.start.IsMinimum() && I.end.IsMaximum());
+}
 /*
 1.1 Definition of some constants
 
@@ -4539,7 +4546,11 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
     } else if( IsEmpty() || p.IsEmpty())
     { // result is defined but empty
       result.SetDefined(true);
-    } else
+    } else if( IsMaximumPeriods(p) )
+    { // p is [begin of time, end of time]. Copy the input into result.
+      result.CopyFrom(this);
+    }
+    else
     { // compute result
       assert( IsOrdered() );
       assert( p.IsOrdered() );
