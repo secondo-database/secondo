@@ -3746,22 +3746,29 @@ bool arelTypeEqual (NList& t1, NList& t2)
   }
 }
 
-template<bool expectIntArgument, int dummy>
+template<bool OptionalIntAllowed, int defaultValue>
 ListExpr JoinTypeMap (ListExpr args)
 {
-  int expLength = 4;
   string err = "stream(tuple[y1 : d1, ..., yn : dn]) x "
                "stream(tuple[z1 : e1, ..., zn : en]) x di x e1 ";
 
-  if(expectIntArgument){
-    expLength++;
-    err += " x int ";
+
+
+  if(OptionalIntAllowed){
+    err += " [ x int]";
   }
-  err += " expected";
-  if(nl->ListLength(args)!=expLength){
-    return listutils::typeError(err + "(wrong number of args)");
+  
+  int len = nl->ListLength(args);
+
+  // check for correct number of arguments
+  if( (len!=4) && (len!=5)){
+     return listutils::typeError(err);
+  }
+  if((len==5) && !OptionalIntAllowed){
+     return listutils::typeError(err);
   }
 
+  // check the first 4 arguments stream x stream x attrname x attrname
   ListExpr stream1 = nl->First(args);
   ListExpr stream2 = nl->Second(args);
   ListExpr attr1 = nl->Third(args);
@@ -3773,18 +3780,21 @@ ListExpr JoinTypeMap (ListExpr args)
     return listutils::typeError(err);
   }
 
-  if(expectIntArgument){
-   ListExpr size = nl->Fifth(args);
-   if(!listutils::isSymbol(size,INT)){
-     return listutils::typeError(err + "(last arg is not an int");
-   }
+  // check the last element if present
+  if(len==5){
+     ListExpr size = nl->Fifth(args);
+     if(!listutils::isSymbol(size,CcInt::BasicType())){
+       return listutils::typeError(err + "(last arg is not an int");
+     }
   }
 
+  // check for correct naming of attributes
   ListExpr list1 = nl->Second(nl->Second(stream1));
   ListExpr list2 = nl->Second(nl->Second(stream2));
   if(!listutils::disjointAttrNames(list1,list2)){
     return listutils::typeError("Attribute lists are not disjoint");
   }
+
 
   ListExpr list = ConcatLists(list1, list2);
   ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -3823,8 +3833,16 @@ ListExpr JoinTypeMap (ListExpr args)
     }
   }
 
-  ListExpr joinAttrDescription =
-    nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
+  ListExpr joinAttrDescription;
+
+  if(!OptionalIntAllowed || len == 5){
+      joinAttrDescription  = nl->TwoElemList(nl->IntAtom(attrAIndex), 
+                                             nl->IntAtom(attrBIndex));
+  } else { // additionally add the default value
+      joinAttrDescription = nl->ThreeElemList( nl->IntAtom(defaultValue),
+                                               nl->IntAtom(attrAIndex),
+                                               nl->IntAtom(attrBIndex));
+  }
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               joinAttrDescription, outlist);
 }
@@ -3836,11 +3854,11 @@ outside of the implementation file.
 */
 
 template ListExpr
-JoinTypeMap<false, 1>(ListExpr args);
+JoinTypeMap<false,0>(ListExpr args);
 
 
 template ListExpr
-JoinTypeMap<true, 1>(ListExpr args);
+JoinTypeMap<true,0>(ListExpr args);
 
 
 
@@ -3888,7 +3906,7 @@ Operator extrelmergejoin(
          MergeJoinSpec,           // specification
          mergejoin_vm<true>,      // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         JoinTypeMap<false, 1>    // type mapping
+         JoinTypeMap<false,0>    // type mapping
 );
 
 /*
@@ -3923,7 +3941,7 @@ Operator extrelsortmergejoin(
          SortMergeJoinSpec,          // specification
          mergejoin_vm<false>,        // value mapping
          Operator::SimpleSelect,     // trivial selection function
-         JoinTypeMap<false, 1>       // type mapping
+         JoinTypeMap<false,0>       // type mapping
 );
 
 /*
@@ -3939,14 +3957,16 @@ const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                              "\"Meaning\" \"Example\" \"Remark\" ) "
                           "( <text>((stream (tuple ((x1 t1) ... "
                           "(xn tn)))) (stream (tuple ((y1 d1) ... "
-                          "(ym dm)))) xi yj nbuckets) -> (stream "
+                          "(ym dm)))) xi yj [nbuckets]) -> (stream "
                           "(tuple ((x1 t1) ... (xn tn) (y1 d1) ..."
                           " (ym dm))))</text--->"
                           "<text> _ _ hashjoin [ _ , _ , _ ]"
                           "</text--->"
                           "<text>Computes the equijoin two streams "
                           "via a hash join. The number of hash buckets"
-                          " is given by the parameter nBuckets."
+                          " is given by the parameter nBuckets. If the number"
+                          " of buckets is omitted, a default value of 99997"
+                          " is used"
                           "</text--->"
                           "<text>query Employee feed Dept feed "
                           "rename[A] hashjoin[DeptNr, DeptNr_A, 17] "
@@ -3972,7 +3992,7 @@ Operator extrelhashjoin(
          HashJoinSpec,     // specification
          HashJoin,         // value mapping
          Operator::SimpleSelect,          // trivial selection function
-         JoinTypeMap<true, 1>   // type mapping
+         JoinTypeMap<true, 99997>   // type mapping
 );
 
 

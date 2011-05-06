@@ -88,6 +88,13 @@ Example  : query Orte feed {o} plz feed {p} hashjoin[Ort_o, Ort_p, 99997] count
 Result   : 10052
 
 
+Operator : hashjoin
+Number   : 2
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed {o} plz feed {p} hashjoin[Ort_o, Ort_p] count
+Result   : 10052
+
+
 Operator : head
 Number   : 1
 Signature: stream(T) x int -> stream(T)
