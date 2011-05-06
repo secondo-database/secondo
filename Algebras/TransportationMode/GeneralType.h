@@ -918,6 +918,18 @@ struct GenMObject{
                           vector<RefBuild>& build_id1_list,
                           vector<RefBuild>& build_id2_list, int no, 
                           MaxRect* maxrect);
+  /////////////////////////////////////////////////////////////////////////
+  ////////////////////  Indoor Walk Bus   /////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+  void GenerateGenMO6(Space* sp, IndoorInfra* i_infra, Periods* peri, 
+                      int mo_no, int type, Relation* rel1, Relation* rel2,
+                      R_Tree<2,TupleId>* rtree);
+  void GenerateIndoorMovementToExit2(IndoorInfra* i_infra, 
+                                    GenMO* genmo, MPoint* mo, 
+                                    Instant& start_time, Point loc,
+                                    int entrance_index, int reg_id,
+                                    MaxRect* maxrect, Periods* peri,
+                                     MPoint3D*);
   
 };
 

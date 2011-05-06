@@ -954,6 +954,12 @@ Signature: space x indoorinfra x periods x real x int x rel x btree x rel -> (st
 Example  : query generate_genmo5(space_1, indoorinfra1, TwoDays, 20.0, 13, dg_node_rid, btree_dg_rid, streets_speed) count; 
 Result   : 20
 
+Operator : generate_genmo6
+Number   : 1
+Signature: space x indoorinfra x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo6(space_1, indoorinfra1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave) count; 
+Result   : 20
+
 
 Operator : navigation1
 Number   : 1
