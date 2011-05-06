@@ -100,3 +100,8 @@ operator logB alias LOGB pattern op ( _ , _ )
 operator pow alias POW pattern op ( _ , _ )
 operator dms2deg alias DMS2DEG pattern op ( _ , _ , _ , _ )
 
+operator ifthenelse2 alias IFTHENELSE2 pattern op( _, _, _ )
+operator length alias LENGTH pattern op( _ )
+operator randmax alias RANDMAX pattern op( _ )
+operator seqinit alias SEQINIT pattern op( _ )
+operator seqnext alias SEQNEXT pattern op( _ )
