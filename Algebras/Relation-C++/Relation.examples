@@ -198,3 +198,9 @@ Number   : 1
 Signature: stream(tuple(a1 : t1, a2 : t2 ...)) x (a_i : b_i, ...) -> stream(tuple( a_1 : t1 , ... , b_i : t_i , ...))
 Example  : query plz feed renameattr[Plz : PLZ, Ortsname : Ort] count = plz count
 Result   : TRUE
+
+Operator : renameattr
+Number   : 2
+Signature: stream(tuple(a1 : t1, a2 : t2 ...)) x (a_i : b_i, ...) -> stream(tuple( a_1 : t1 , ... , b_i : t_i , ...))
+Example  : query plz feed renameattr[Plz : PLZ, Ortsname : "Ort"] count = plz count
+Result   : TRUE

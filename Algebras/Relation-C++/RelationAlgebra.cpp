@@ -5186,40 +5186,80 @@ ListExpr RenameAttrTypeMap(ListExpr args){
 
 
   if(nl->ListLength(args)!=2){
-     return listutils::typeError("two arguments expected");
+     return listutils::typeError("Two arguments expected.");
   }
 
-  ListExpr stream = nl->First(args);
+  cerr << __PRETTY_FUNCTION__ << ": args = " << nl->ToString(args) << endl;
+
+  ListExpr firstarg = nl->First(args);
+  if(nl->ListLength(firstarg) !=2){
+    return listutils::typeError("First argument must consists of 2 parts.");
+  }
+
+  ListExpr stream = nl->First(firstarg);
   if(!listutils::isTupleStream(stream)){
-    return listutils::typeError("first argument must be a tuple stream");
+    return listutils::typeError("First argument must be a tuple stream.");
   }
 
+  ListExpr secondarg = nl->Second(args);
+  if(nl->ListLength(secondarg) !=2){
+    return listutils::typeError("Second argument must consists of 2 parts.");
+  }
 
   map<string,string> renameMap;
-  ListExpr renames = nl->Second(args);
+  ListExpr renamesTypes  = nl->First(secondarg);  // get type list!
+  ListExpr renamesValues = nl->Second(secondarg); // get value list!
   ListExpr attrList = nl->Second(nl->Second(stream));
 
- if(nl->AtomType(renames)!=NoAtom){
-    return listutils::typeError("second argument must be a list of renamings");
- }
+  if(nl->AtomType(renamesTypes)!=NoAtom){
+    return listutils::typeError("Second argument must be a list of renamings.");
+  }
+  if(nl->AtomType(renamesValues)!=NoAtom){
+    return listutils::typeError("Second argument must be a list of renamings.");
+  }
 
-  while(!nl->IsEmpty(renames)){
-    ListExpr rename = nl->First(renames);
-    renames = nl->Rest(renames);
-    if(nl->ListLength(rename)!=2){
-      return listutils::typeError("each rename must consist of the "
-                                  "old and the new name");
+  while(!nl->IsEmpty(renamesTypes) && !nl->IsEmpty(renamesValues)){
+    ListExpr renameType = nl->First(renamesTypes);
+    renamesTypes = nl->Rest(renamesTypes);
+    ListExpr renameValue = nl->First(renamesValues);
+    renamesValues = nl->Rest(renamesValues);
+    if(nl->ListLength(renameType)!=2){
+      return listutils::typeError("Each rename must consist of the "
+                                  "old and the new attribute name.");
     }
-    if(!listutils::isSymbol(nl->First(rename)) ||
-       !listutils::isSymbol(nl->Second(rename))){
-      return listutils::typeError("invalid attribute name detected");
+    if(nl->ListLength(renameValue)!=2){
+      return listutils::typeError("Each rename must consist of the "
+      "old and the new attribute name.");
     }
-    string newname = nl->SymbolValue(nl->First(rename));
-    string oldname = nl->SymbolValue(nl->Second(rename));
+    // determine NewAttrName
+    string newname = "";
+    if(listutils::isSymbol(nl->First(renameType),CcString::BasicType())){
+      newname = nl->StringValue(nl->First(renameValue));
+    } else if(listutils::isSymbol(nl->First(renameType))) {
+      newname = nl->SymbolValue(nl->First(renameType));
+    }
+    // determine OldAttrName
+    string oldname = "";
+    if(listutils::isSymbol(nl->Second(renameType),CcString::BasicType())){
+      oldname = nl->StringValue(nl->Second(renameValue));
+    } else if(listutils::isSymbol(nl->Second(renameType))) {
+      oldname = nl->SymbolValue(nl->Second(renameType));
+    }
+
+    // check if new name is a usuable identifier
+    if( (oldname=="") || (newname=="") ){
+      return listutils::typeError("Empty attribute name detected!");
+    }
+    string idcheckmsg = "";
+    if( !SecondoSystem::GetCatalog()
+                                ->IsValidIdentifier(newname,idcheckmsg,true) ) {
+      return listutils::typeError("New attribute name "+idcheckmsg+".");
+    }
     if(renameMap.find(oldname)!=renameMap.end()){
-       return listutils::typeError("attribute name renamed twice");
+      return listutils::typeError(  "Attribute name '"
+                                   +oldname+"' renamed twice.");
     } else {
-        renameMap[oldname] = newname;
+      renameMap[oldname] = newname;
     }
   }
 
@@ -5238,9 +5278,8 @@ ListExpr RenameAttrTypeMap(ListExpr args){
 5.12.2 Value mapping function of operator ~rename~
 
 */
-int
-Rename(Word* args, Word& result, int message,
-       Word& local, Supplier s)
+int Rename(Word* args, Word& result, int message,
+           Word& local, Supplier s)
 {
   Word t;
   Tuple* tuple;
@@ -5318,12 +5357,15 @@ const string RenameSpec  =
 const string RenameAttrSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> stream(tuple) x (name newname)* -> stream(tuple)"
+  "( <text> stream(tuple) x (NAME NEWNAME)* -> stream(tuple), "
+  "where NAME and NEWNAME in {ident, string}"
   "</text--->"
-  "<text>_ renameattr [ newname1 : oldname1 , .... ] "
+  "<text>_ renameattr [ Newname1 : Oldname1 , .... ] "
   "</text--->"
-  "<text>Renames the specified attributes"
-  "</text--->"
+  "<text>Renames the specified attributes. If string type is used for one of "
+  "the NAME or NEWNAME, it must be a constant or database object! This allows "
+  "for renaming attributes with forbidden names, such as operator names, type "
+  "names or reserved word, as 'value' or 'type'.</text--->"
   "<text>query ten feed renameattr [ No : no ] consume "
   "</text--->"
   ") )";
@@ -5836,6 +5878,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);
     AddOperator(&relalgrenameattr);
+    relalgrenameattr.SetUsesArgsInTypeMapping();
     AddOperator(&relalgbuffer);
     AddOperator(&relalgbuffer2);
     AddOperator(&relalggetfileinfo);
