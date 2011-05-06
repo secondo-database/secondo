@@ -67,6 +67,22 @@ be returned.
 
   RefinementStream(const Mapping1* m1, const Mapping2* m2);
 
+  RefinementStream(const Unit1* _u1, const Mapping2* _m2):
+    m1(0), m2(_m2), unit1(_u1), unit2(0) {
+    reset();
+  }
+
+  RefinementStream(const Mapping1* _m1, const Unit2* _u2):
+    m1(_m1), m2(0), unit1(0), unit2(_u2)
+  {
+    reset();
+  }
+
+  RefinementStream(const Unit1* _u1, const Unit2* _u2):
+     m1(0), m2(0), unit1(_u1), unit2(_u2){
+     reset();
+  }
+
 
 /*
 1.2 ~Reset~
@@ -129,6 +145,8 @@ private:
 
   const Mapping1*  m1;
   const Mapping2*  m2;
+  const Unit1* unit1;
+  const Unit2* unit2;
   int        pos1;
   int        pos2;
   bool       done;
@@ -143,9 +161,19 @@ private:
        assert(pos1>=0);
        pos1++;
     }
-    if(pos1< m1->GetNoComponents()){
+    int noComps1;
+    if(m1){
+      noComps1 = m1->GetNoComponents();
+    } else {
+      noComps1 = unit1->IsDefined()?1:0;
+    }
+    if(pos1< noComps1){
       Unit1 u1;
-      m1->Get(pos1,u1);
+      if(m1){
+         m1->Get(pos1,u1);
+      } else {
+         u1 = *unit1;
+      }
       iv1 = u1.timeInterval;
     } else {
       pos1 = -1;
@@ -160,19 +188,26 @@ private:
       assert(pos2>=0);
       pos2++;
     }
-    if(pos2< m2->GetNoComponents()){
+    int noComps2;
+    if(m2){
+      noComps2 = m2->GetNoComponents();
+    } else {
+      noComps2 = unit2->IsDefined()?1:0;
+    }
+
+    if(pos2< noComps2){
       Unit2 u2;
-      m2->Get(pos2,u2);
+      if(m2){
+         m2->Get(pos2,u2);
+      } else {
+         u2 = *unit2;
+      }
       iv2 = u2.timeInterval;
     } else {
       pos2 = -1;
       done = pos1 <0;
     }
   }
-
-  bool check(); // check again the old implementation
-
-
 
 };
 
@@ -184,23 +219,28 @@ private:
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::RefinementStream(
-       const Mapping1* _m1, const Mapping2* _m2): m1(_m1), m2(_m2){
+       const Mapping1* _m1, const Mapping2* _m2): 
+          m1(_m1), m2(_m2), unit1(0), unit2(0)    {
    reset();
 }
 
 
 template<class Mapping1, class Mapping2, class Unit1, class Unit2>
 void RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::reset(){
-   if(!m1 || !m2){   // null parameter
+   if((!m1 && !unit1) || (!m2 && !unit2)){   // null parameter
      done = true;
      return;
    }
-   if(!m1->IsDefined()){
+
+   if( (m1 && !m1->IsDefined())  ||     // arg1 has elements
+       (unit1 && !unit1->IsDefined()) ) {
       pos1 = -1;
    }  else {
       loadNext1(true); 
    }
-   if(!m2->IsDefined()){
+
+   if( (m2 && !m2->IsDefined()) ||
+       (unit2 && !unit2->IsDefined())){
      pos2 = -1;
    } else {
       loadNext2(true);
@@ -240,7 +280,7 @@ bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::getNext(
 
   // both arguments have units
   if(iv1.start < iv2.start){
-    _iv = iv1;  // can be cahnged later, but start properties are equal
+    _iv = iv1;  // can be changed later, but start properties are equal
     _pos1 = pos1;
     _pos2 = -1;
     if(iv1.end < iv2.start){ // iv1 before iv2
@@ -357,64 +397,6 @@ bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::getNext(
 } // getNext(...)
 
 
-template<class Mapping1, class Mapping2, class Unit1, class Unit2>
-bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::check(){
-
-
-
-  bool ok = true;
-
-  RefinementPartition<Mapping1, Mapping2, Unit1, Unit2> rp(*m1, *m2);
-
-  int rp_pos1, rp_pos2;
-  Interval<Instant> rp_iv;
-
-  int my_pos1, my_pos2;
-  Interval<Instant> my_iv;  
-
-  unsigned int pos = 0;
-  while(hasNext() && pos < rp.Size()){
-
-     cout << "checkPos " << pos << "/" << rp.Size() << endl; 
-
-     getNext(my_iv, my_pos1, my_pos2);
-     rp.Get(pos,rp_iv,rp_pos1, rp_pos2);
-
-     if(my_iv!=rp_iv){
-        cout << "different intervals at element " << pos << endl;
-        cout << "rp: " << rp_iv << endl;
-        cout << "my: " << my_iv << endl;
-        ok = false;
-     }
-     if(my_pos1!=rp_pos1){
-        cout << "different pos1 at element " << pos << endl;
-        cout << "rp: " << rp_pos1 << endl;
-        cout << "my: " << my_pos1 << endl;
-        ok = false;
-     }
-     if(my_pos2!=rp_pos2){
-        cout << "different pos2 at element " << pos << endl;
-        cout << "rp: " << rp_pos2 << endl;
-        cout << "my: " << my_pos2 << endl;
-        ok = false;
-     }
-     pos++;
- }
-
- if(hasNext() || pos!=rp.Size()){
-   cout << "different numbers of elements" << endl;
-   cout << "rp:" << rp.Size() << endl;
-   cout << "hasNext = " << hasNext() << endl;
-   ok = false;
- }
- cout << " check : " << ok << endl;
- 
-
- return ok;
-
-  
-
-}
 
 #endif
 
