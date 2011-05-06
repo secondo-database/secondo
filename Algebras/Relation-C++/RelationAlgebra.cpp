@@ -2045,12 +2045,12 @@ ListExpr FilterTypeMap(ListExpr args)
 
   }
   ListExpr map = nl->First(nl->Second(args));
-  if(!listutils::isMap<1>(map)){
+  if(nl->IsAtom(map) || !nl->IsEqual(nl->First(map), "map") ){
      ErrorReporter::ReportError("map expected as the second argument");
      return nl->TypeError();
   }
 
-  ListExpr mapres = nl->Third(map);
+  ListExpr mapres = nl->Nth(nl->ListLength(map), map);
   if(!nl->IsEqual(mapres,"bool")){
     ErrorReporter::ReportError("map is not a predicate");
     return nl->TypeError();
