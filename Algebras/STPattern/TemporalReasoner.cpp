@@ -24,34 +24,44 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include<TemporalReasoner.h>
 
+namespace STP{
+
 PointAlgebraReasoner::PointAlgebraReasoner(){
 }
 
 PointAlgebraReasoner::PointAlgebraReasoner(unsigned int _n):
     n(_n),
-    plusTable(
-    {{lss,lss,inc,inc,inc,lss,lss},
-     {lss,leq,inc,eql,eql,lss,leq},
-     {inc,inc,grt,grt,inc,grt,grt},
-     {inc,eql,grt,geq,eql,grt,geq},
-     {inc,eql,inc,eql,eql,inc,eql},
-     {lss,lss,grt,grt,inc,neq,neq},
-     {lss,leq,grt,geq,eql,neq,uni}}),
-   multTable(
-    {{lss,lss,uni,uni,lss,uni,uni},
-     {lss,leq,uni,uni,leq,uni,uni},
-     {uni,uni,grt,grt,grt,uni,uni},
-     {uni,uni,grt,geq,geq,uni,uni},
-     {lss,leq,grt,geq,eql,neq,uni},
-     {uni,uni,uni,uni,neq,uni,uni},
-     {uni,uni,uni,uni,uni,uni,uni}
-     }),
-   Table(_n)
+    Table(_n)
 {
   for(unsigned int i=0; i<_n; ++i)
   {
     Table[i].resize(_n, uni);
     Table[i][i] = eql;
+  }
+  PARelation _plusTable[49]=
+  {lss,lss,inc,inc,inc,lss,lss,
+   lss,leq,inc,eql,eql,lss,leq,
+   inc,inc,grt,grt,inc,grt,grt,
+   inc,eql,grt,geq,eql,grt,geq,
+   inc,eql,inc,eql,eql,inc,eql,
+   lss,lss,grt,grt,inc,neq,neq,
+   lss,leq,grt,geq,eql,neq,uni};
+
+  PARelation _multTable[49]=
+  {lss,lss,uni,uni,lss,uni,uni,
+   lss,leq,uni,uni,leq,uni,uni,
+   uni,uni,grt,grt,grt,uni,uni,
+   uni,uni,grt,geq,geq,uni,uni,
+   lss,leq,grt,geq,eql,neq,uni,
+   uni,uni,uni,uni,neq,uni,uni,
+   uni,uni,uni,uni,uni,uni,uni};
+
+  int j,k;
+  for(int i=0; i<49; ++i)
+  {
+    j= i/7; k= i%7;
+    plusTable[j][k]= _plusTable[i];
+    multTable[j][k]= _multTable[i];
   }
 }
 PointAlgebraReasoner::~PointAlgebraReasoner(){}
@@ -132,4 +142,9 @@ ostream& PointAlgebraReasoner::Print(ostream& os)
   }
   return os;
 }
+vector<PARelation>& PointAlgebraReasoner::GetRelations(int varIndex)
+{
+  return Table[varIndex];
 
+}
+};

@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include<set>
 #include<ostream>
 using namespace std;
+
+namespace STP{
 enum PARelation{
   lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7, unknown=8};
 class PointAlgebraReasoner
@@ -48,6 +50,7 @@ public:
   bool Close();
   bool Propagate(int i, int j);
   ostream& Print(ostream& os);
+  vector<PARelation>& GetRelations(int varIndex);
 };
-
+};
 #endif //TEMPORAL_REASONER_H
