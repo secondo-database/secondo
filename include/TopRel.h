@@ -498,9 +498,10 @@ an attribute type within secondo relations.
 2.1.21 CompareTo function
 
 */
-       bool CompareTo(const Int9M M2) const{
-          if(!IsDefined() && !M2.IsDefined())
-            return true;
+       int CompareTo(const Int9M& M2) const{
+          if(!IsDefined() && !M2.IsDefined()){
+            return 0;
+          }
           if(!IsDefined()) return -1;
           if(!M2.IsDefined()) return 1;
           if(value>M2.value) return 1;
@@ -520,7 +521,7 @@ an attribute type within secondo relations.
 2.1.23 Unequal operator
 
 */
-       bool operator!=(const Int9M I2) const{
+       bool operator!=(const Int9M& I2) const{
           return CompareTo(I2)!=0;
        }
        
@@ -1092,6 +1093,9 @@ clusters.
 */
       bool operator<(const Cluster C2)const;
       bool operator==(const Cluster& C2)const;
+      bool operator!=(const Cluster& C2) const{
+        return !operator==(C2);
+      }
       bool operator>(const Cluster C2)const;
 
       Cluster& operator=(const Cluster& arg){
@@ -1223,6 +1227,10 @@ predicate cluster will be the same like this one of the argument.
 
 */
    bool operator==(const PredicateGroup& p2) const;
+
+   bool operator!=(const PredicateGroup& p2) const{
+      return !operator==(p2);
+   }
 
 
 /*
