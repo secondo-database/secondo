@@ -1816,7 +1816,8 @@ ListExpr strequalTM(ListExpr args){
 
 This operator splits a text at delimiters. The mapping is:
 
-   text x string -> stream(text)
+---- text x string -> stream(text)
+----
 
 */
 ListExpr tokenizeTM(ListExpr args){
@@ -1895,6 +1896,26 @@ ListExpr sendtextstreamTCP_TM (ListExpr args ){
   return resType.listExpr();
 }
 
+
+/*
+2.62 ~Int2Text\_TM~
+
+For operator ~charToText~.
+
+---- int -> text
+----
+
+*/
+ListExpr Int2Text_TM( ListExpr args ){
+  int noargs = nl->ListLength(args);
+  if( (noargs != 1) ){
+    return listutils::typeError("Expected (int).");
+  }
+  if(!listutils::isSymbol(nl->First(args),CcInt::BasicType())){
+    return listutils::typeError("Expected (int).");
+  }
+  return nl->SymbolAtom(FText::BasicType());
+}
 
 /*
 3.3 Value Mapping Functions
@@ -5809,11 +5830,37 @@ int sendtextstream_Select(ListExpr args) {
 
 
 /*
-3.4 Definition of Operators
+4.25 Operator ~charToText~
 
 */
+int charToTextFun( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText* res = static_cast<FText*>(result.addr);
+  const CcInt* Cccode = static_cast<const CcInt*>(args[0].addr);
+
+  int code = 0;
+  if ( !Cccode->IsDefined() ){
+    res->SetDefined( false );
+    return 0;
+  }
+  code = Cccode->GetIntval();
+  if ( (code<0) || (code>255) ) {
+    // illegal code --> return undef
+    res->Set( false , "");
+    return 0;
+  }
+  char ch = (char) code;
+  ostringstream os;
+  os << ch;
+  res->Set( true, os.str() );
+  return 0;
+}
 
 /*
+3.4 Definition of Operators
+
 Used to explain signature, syntax and meaning of the operators of the type ~text~.
 
 */
@@ -6496,6 +6543,16 @@ const string sendtextstreamTCP_Spec =
     ", 3] count = 0</text--->"
     ") )";
 
+const string charToText_Spec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> int -> text </text--->"
+    "<text> charToText( Code ) </text--->"
+    "<text>Creates a 1-character text with the symbol according to "
+    "ASCII-code Code."
+    " </text--->"
+    "<text>query 'Hello' + charToText( 10 ) + 'world!'</text--->"
+    ") )";
+
 /*
 Operator Definitions
 
@@ -7060,6 +7117,16 @@ Operator sendtextstreamTCP
  sendtextstreamTCP_TM
 );
 
+
+Operator charToText
+(
+"charToText",
+ charToText_Spec,
+ charToTextFun,
+ Operator::SimpleSelect,
+ Int2Text_TM
+ );
+
 /*
 5 Creating the algebra
 
@@ -7138,6 +7205,7 @@ public:
     AddOperator( &strequal);
     AddOperator( &tokenize);
     AddOperator( &sendtextstreamTCP);
+    AddOperator( &charToText);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

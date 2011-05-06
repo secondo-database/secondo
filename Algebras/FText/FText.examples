@@ -852,3 +852,9 @@ Signature: stream({string|text}) x {string|text} x {string|text} x {int|real} x 
 Example  : query plz feed head[3] getValueNL sendtextstreamTCP['localhost',"2134",1,1] count
 Result   : 0
 Remark   : No maeningful test with only 1 terminal!
+
+Operator : charToText
+Number   : 1
+Signature: int -> text
+Example  : query ('Hello' + charToText( 32 ) + 'world!')
+Result   : (text 'Hello world!')

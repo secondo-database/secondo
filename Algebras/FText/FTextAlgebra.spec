@@ -74,5 +74,12 @@ operator checkpw alias CHECKPW pattern op(_,_)
 operator crypt alias Crypt pattern op(_)
 operator blowfish_encode alias BLOWFISH_ENCODE pattern op(_,_)
 operator blowfish_decode alias BLOWFISH_DECODE pattern op(_,_)
+operator charToText alias CHARTOTEXT pattern op(_)
 
+operator checkOperatorTypeMap alias CHECKOPERATORTYPEMAP pattern op( _, _ )
+operator checkOperatorTypeMap2 alias CHECKOPERATORTYPEMAP2 pattern op( _, _ )
+operator strequal alias STREQUAL pattern op( _, _, _ )
+operator svg2text alias SVG2TEXT pattern op( _ )
+operator text2svg alias TEXT2SVG pattern op( _ )
+operator tokenize alias TOKENIZE pattern op( _, _ )
 
