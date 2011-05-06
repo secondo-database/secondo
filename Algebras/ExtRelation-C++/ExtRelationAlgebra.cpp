@@ -4060,10 +4060,9 @@ ListExpr ExtendTypeMap( ListExpr args )
        return nl->TypeError();
     }
 
-    if(SecondoSystem::GetCatalog()->IsTypeName(namestr)){
-       ErrorReporter::ReportError("attribute name "+ namestr +
-                                  " is known as a type");
-       return nl->TypeError();
+    string symcheckmsg = "";
+    if(!SecondoSystem::GetCatalog()->IsValidIdentifier(namestr,symcheckmsg)){
+      return listutils::typeError("attribute name "+ symcheckmsg +".");
     }
 
     if(nl->ListLength(map)!=3){
@@ -9641,16 +9640,13 @@ if(nl->AtomType(nameL)!=SymbolType){
 }
 string name = nl->SymbolValue(nameL);
  // check for usualibity
-if(SecondoSystem::GetCatalog()->IsTypeName(name)){
-   ErrorReporter::ReportError(""+name+" is a type and can't be "
-                              "used as an attribute name ");
-   return nl->TypeError();
+
+string symcheckmsg = "";
+if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
+  return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
 }
-if(SecondoSystem::GetCatalog()->IsOperatorName(name)){
-   ErrorReporter::ReportError(""+name+" is an operator and can't be "
-                              "used as an attribute name ");
-   return nl->TypeError();
-}
+
+
 // check streamlist
 if(nl->ListLength(stream)!=2 ||
    !nl->IsEqual(nl->First(stream),"stream")){
@@ -9966,7 +9962,7 @@ class ExtRelationAlgebra : public Algebra
 
     AddOperator(&extrelsortmergejoin);
 		AddOperator(&extrelsmouterjoin);
-     AddOperator(&extrelhashjoin);
+    AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
