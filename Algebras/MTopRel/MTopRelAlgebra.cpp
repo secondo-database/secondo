@@ -108,7 +108,11 @@ interval.
 
 */
 ListExpr toprelseqTM(ListExpr args){
-  string err = "expected point x upoint | point x mpoint ";
+  string err = "expected point x upoint | "
+                " point x mpoint | "
+                " upoint x upoint |" 
+                " upoint x mpoint |" 
+                " mpoint x mpoint"; 
   int len = nl->ListLength(args);
   if((len!=2) ){
       return listutils::typeError(err);
@@ -121,6 +125,15 @@ ListExpr toprelseqTM(ListExpr args){
               listutils::isSymbol(arg2, UPoint::BasicType()));
 
   ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
   if(ok){
     ListExpr attrList = nl->FiveElemList( 
@@ -150,7 +163,11 @@ ListExpr toprelseqTM(ListExpr args){
 const string toprelseqSpec = 
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
-        "( <text>point x {upoint, mpoint} -> stream(tuple(Start "
+        "( <text>point x {upoint, mpoint}  | "
+        "        upoint x upoint  | "
+        "        upoint x mpoint  | "
+        "        mpoint x mpoint   "
+        "-> stream(tuple(Start "
         "instant, End instant, "
         "LeftClosed bool, RightClosed bool, TopRel int9m))  </text--->"
        "<text>toprelseq(_,_)</text--->"
@@ -234,6 +251,18 @@ int toprelseqSelect(ListExpr args){
      listutils::isSymbol(arg2, MPoint::BasicType())){
      return 1;
   }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, UPoint::BasicType())){
+     return 2;
+  }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, MPoint::BasicType())){
+     return 3;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, MPoint::BasicType())){
+     return 4;
+  }
 
   return -1; 
 
@@ -278,14 +307,17 @@ int toprelseq_fun(Word* args, Word& result, int message,
 
 
 
-ValueMapping toprelseqVM[] = {toprelseq_fun<Point, UPoint, MTopRelAlg_PUP>,
-                              toprelseq_fun<Point, MPoint, MTopRelAlg_PMP> };
+ValueMapping toprelseqVM[] = {toprelseq_fun<Point,  UPoint, MTopRelAlg_PUP>,
+                              toprelseq_fun<Point,  MPoint, MTopRelAlg_PMP>, 
+                              toprelseq_fun<UPoint, UPoint, MTopRelAlg_UPUP>,
+                              toprelseq_fun<UPoint, MPoint, MTopRelAlg_UPMP>,
+                              toprelseq_fun<MPoint, MPoint, MTopRelAlg_MPMP> };
 
 
 Operator toprelseq(
            "toprelseq",
            toprelseqSpec,
-           2,
+           5,
            toprelseqVM,
            toprelseqSelect,
            toprelseqTM);
@@ -299,7 +331,10 @@ Operator toprelseq(
 */
 
 ListExpr clusterseqTM(ListExpr args){
-  string err = "expected point x {upoint, mpoint} x predicategroup ";
+  string err = "expected point x {upoint, mpoint} x predicategroup  | "
+               " upoint x upoint x predicategroup | "
+               " upoint x mpoint x predicategroup |"
+               " mpoint x mpoint x predicategroup";
   int len = nl->ListLength(args);
   if((len!=3) ){
       return listutils::typeError(err);
@@ -318,6 +353,16 @@ ListExpr clusterseqTM(ListExpr args){
 
   ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+
   if(ok){
     ListExpr attrList = nl->FiveElemList( 
                nl->TwoElemList( nl->SymbolAtom("Start"), 
@@ -391,8 +436,12 @@ value mapping array is defined.
 
 */
 
-ValueMapping clusterseqVM[] = {clusterseq_fun<Point, UPoint, MTopRelAlg_PUP>,
-                               clusterseq_fun<Point, MPoint, MTopRelAlg_PMP> };
+ValueMapping clusterseqVM[] = {
+      clusterseq_fun<Point, UPoint, MTopRelAlg_PUP>,
+      clusterseq_fun<Point, MPoint, MTopRelAlg_PMP>,
+      clusterseq_fun<UPoint, UPoint, MTopRelAlg_UPUP>, 
+      clusterseq_fun<UPoint, MPoint, MTopRelAlg_UPMP>,
+      clusterseq_fun<MPoint, MPoint, MTopRelAlg_MPMP> };
 
 
 /*
@@ -404,7 +453,11 @@ ValueMapping clusterseqVM[] = {clusterseq_fun<Point, UPoint, MTopRelAlg_PUP>,
 const string clusterseqSpec = 
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
-        "( <text>point x upoint x predicategroup -> "
+        "( <text>point x {upoint, mpoint} x predicategroup | "
+        "         upoint x upoint x predicategroup  | "
+        " upoint x mpoint x predicategroup | "
+        " mpoint x mpoint x predicategroup"
+        " -> "
         "stream(tuple(Start instant, End instant,"
         " LeftClosed bool, RightClosed bool, TopRel cluster))  </text--->"
        "<text>toprelseq(_,_)</text--->"
@@ -421,7 +474,7 @@ const string clusterseqSpec =
 Operator clusterseq(
            "clusterseq",
            clusterseqSpec,
-           2,
+           4,
            clusterseqVM,
            toprelseqSelect,
            clusterseqTM);

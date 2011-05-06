@@ -106,8 +106,8 @@ Returns the next cluster with its corresponding time interval.
       unsigned int currentIndexCluster;
 
 
-      void init( const Point& p, const UPoint& up, 
-                 const toprel::PredicateGroup& pg);
+      void init( const Point* p, const UPoint* up, 
+                 const toprel::PredicateGroup* pg);
 
 };
 
@@ -184,7 +184,6 @@ Returns the next cluster with its corresponding time interval.
      int32_t posCluster;            // position in mpoint
      const Point* p;                       // the point
      const MPoint* mp;                     // the mpoint
-     bool ownPredicateGroup;         // own created predicategroup ?
      const toprel::PredicateGroup* pg;             // used predicategroup
 
 
@@ -210,12 +209,251 @@ Returns the next cluster with its corresponding time interval.
 
       void computeNextCluster();
 
+};
 
-     
+
+
+
+/*
+2 Computing topological relationship between two UPoint values
+
+If the time intervals are not equal, the topological relationship
+will be undefined for such time intervals where only one of the
+upoints is defined. The complete result is computed in the constructor
+and stored within a vector. This is possible, because the maximum number
+of resulting relationships is 5 ( 2 undefined plus three for the common 
+time interval).
+
+
+*/
+class MTopRelAlg_UPUP {
+
+   public:
+
+/*
+1.1 Constructors
+
+
+*/
+      MTopRelAlg_UPUP(const UPoint* up1, const UPoint* up2);
+
+      MTopRelAlg_UPUP(const UPoint* up1, const UPoint* up2, 
+                     const toprel::PredicateGroup* pg);
+
+      ~MTopRelAlg_UPUP() {}
+
+
+/*
+1.2 hasNext
+
+Checks whether more topological relationships are available.
+
+
+*/
+
+      bool hasNext() const;
+
+
+/*
+1.3 next
+
+Precondition: hasNext()
+
+Returns the next element of the result. The result consists of a time interval
+and the corresponding topological relationship between the time interval.
+
+*/
+      pair<Interval<Instant>, toprel::Int9M> next();
+
+
+/*
+1.4 hasNextCluster
+
+Checks whether at least one more cluster is available in the result.
+
+*/
+      bool hasNextCluster() const;
+
+/*
+1.5 nextCluster
+
+Precondition: hasNextCluster
+
+Returns the next cluster with its corresponding time interval.
+
+*/
+      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+
+   private:
+      vector< pair<Interval<Instant>, toprel::Int9M> > toprels;
+      vector< pair<Interval<Instant>, toprel::Cluster> > clusters;
+      uint8_t toprelPos;
+      uint8_t clusterPos;
+      
+
+      void init( const UPoint* up1, const UPoint* up2, 
+                 const toprel::PredicateGroup* pg);
+
+      void computeClustersFromTopRels( const toprel::PredicateGroup* pg);
+
+};
+
+
+
+
+/*
+2 Computing topological relationship between a upoint and an mpoint
+
+
+*/
+class MTopRelAlg_UPMP {
+
+   public:
+
+/*
+1.1 Constructors
+
+
+*/
+      MTopRelAlg_UPMP(const UPoint* up, const MPoint* mp);
+
+      MTopRelAlg_UPMP(const UPoint* up, const MPoint* mp, 
+                     const toprel::PredicateGroup* pg);
+
+      ~MTopRelAlg_UPMP() {}
+
+
+/*
+1.2 hasNext
+
+Checks whether more topological relationships are available.
+
+
+*/
+
+      bool hasNext() const;
+
+
+/*
+1.3 next
+
+Precondition: hasNext()
+
+Returns the next element of the result. The result consists of a time interval
+and the corresponding topological relationship between the time interval.
+
+*/
+      pair<Interval<Instant>, toprel::Int9M> next();
+
+
+/*
+1.4 hasNextCluster
+
+Checks whether at least one more cluster is available in the result.
+
+*/
+      bool hasNextCluster() const;
+
+/*
+1.5 nextCluster
+
+Precondition: hasNextCluster
+
+Returns the next cluster with its corresponding time interval.
+
+*/
+      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+
+   private:
+       const UPoint* up;
+       const MPoint* mp;
+       RefinementStream<MPoint, MPoint, UPoint, UPoint> toprelRefinement; 
+       RefinementStream<MPoint, MPoint, UPoint, UPoint> clusterRefinement; 
+       const toprel::PredicateGroup* pg;
+       queue< pair<Interval<Instant> , toprel::Int9M> > toprelqueue;
+       queue< pair<Interval<Instant> , toprel::Cluster> > clusterqueue;
+
+       void init();
+       void computeNextTopRel();
+       void computeNextCluster();
+
+
 };
 
 
 
 
 
+class MTopRelAlg_MPMP {
 
+   public:
+
+/*
+1.1 Constructors
+
+
+*/
+      MTopRelAlg_MPMP(const MPoint* mp1, const MPoint* mp2);
+
+      MTopRelAlg_MPMP(const MPoint* mp1, const MPoint* mp2, 
+                     const toprel::PredicateGroup* pg);
+
+      ~MTopRelAlg_MPMP() {}
+
+
+/*
+1.2 hasNext
+
+Checks whether more topological relationships are available.
+
+
+*/
+
+      bool hasNext() const;
+
+
+/*
+1.3 next
+
+Precondition: hasNext()
+
+Returns the next element of the result. The result consists of a time interval
+and the corresponding topological relationship between the time interval.
+
+*/
+      pair<Interval<Instant>, toprel::Int9M> next();
+
+
+/*
+1.4 hasNextCluster
+
+Checks whether at least one more cluster is available in the result.
+
+*/
+      bool hasNextCluster() const;
+
+/*
+1.5 nextCluster
+
+Precondition: hasNextCluster
+
+Returns the next cluster with its corresponding time interval.
+
+*/
+      pair<Interval<Instant>, toprel::Cluster> nextCluster();
+
+   private:
+       const MPoint* mp1;
+       const MPoint* mp2;
+       RefinementStream<MPoint, MPoint, UPoint, UPoint> toprelRefinement; 
+       RefinementStream<MPoint, MPoint, UPoint, UPoint> clusterRefinement; 
+       const toprel::PredicateGroup* pg;
+       queue< pair<Interval<Instant> , toprel::Int9M> > toprelqueue;
+       queue< pair<Interval<Instant> , toprel::Cluster> > clusterqueue;
+
+       void init();
+       void computeNextTopRel();
+       void computeNextCluster();
+
+
+};
