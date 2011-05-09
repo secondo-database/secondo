@@ -339,6 +339,8 @@ bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::getNext(
         _pos2 = -1;
         if(iv1.start==iv1.end){
            loadNext1();
+        } else {
+          iv1.lc = false;
         }
         return true;
       } else { // start belongs to iv2
@@ -349,6 +351,8 @@ bool RefinementStream<Mapping1, Mapping2, Unit1, Unit2>::getNext(
        _pos2 = pos2;
        if(iv2.start == iv2.end){
          loadNext2();
+       } else {
+          iv2.lc = false;
        }
        return true;
       }
