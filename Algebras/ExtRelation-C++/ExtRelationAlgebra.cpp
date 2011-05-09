@@ -3854,11 +3854,11 @@ outside of the implementation file.
 */
 
 template ListExpr
-JoinTypeMap<false,0>(ListExpr args);
+JoinTypeMap<false,1>(ListExpr args);
 
 
 template ListExpr
-JoinTypeMap<true,0>(ListExpr args);
+JoinTypeMap<true,1>(ListExpr args);
 
 
 
