@@ -3162,33 +3162,33 @@ const string SpatialSpecGenerateGMO3TMList =
 
 const string SpatialSpecGenerateGMO4TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> space x indoorinfra x periods x real x int x rel "
+"( <text> space x periods x real x int x rel "
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>generate_genmo4 (space, indoorinfra, periods, real, int, rel) </text--->"
+"<text>generate_genmo4 (space, periods, real, int, rel) </text--->"
 "<text>generate generic moving objects </text--->"
-"<text>query generate_genmo4(space_1, indoorinfra1, TwoDays, 30.0, 4,"
-"tri_reg_new) </text---> ) )";
+"<text>query generate_genmo4(space_1, TwoDays, 30.0, 4, tri_reg_new)"
+" </text---> ) )";
 
 
 const string SpatialSpecGenerateGMO5TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> space x indoorinfra x periods x real x int x rel x btree x rel"
+"( <text> space x periods x real x int x rel x btree x rel"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>generate_genmo5 (space, indoorinfra, periods, real, int, rel, "
+"<text>generate_genmo5 (space, periods, real, int, rel, "
 "btree, rel) </text--->"
 "<text>generate generic moving objects </text--->"
-"<text>query generate_genmo5(space_1, indoorinfra1, TwoDays, 30.0, 13,"
+"<text>query generate_genmo5(space_1, TwoDays, 30.0, 13,"
 "dg_node_rid, btree_dg_rid, streets_speed) </text---> ) )";
 
 
 const string SpatialSpecGenerateGMO6TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> space x indoorinfra x periods x real x int x rel x btree x rtree"
+"( <text> space x  periods x real x int x rel x btree x rtree"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>generate_genmo6 (space, indoorinfra, periods, real, int, rel, "
+"<text>generate_genmo6 (space, periods, real, int, rel, "
 "btree, rtree) </text--->"
 "<text>generate generic moving objects </text--->"
-"<text>query generate_genmo6(space_1, indoorinfra1, TwoDays, 30.0, 13,"
+"<text>query generate_genmo6(space_1, TwoDays, 30.0, 13,"
 "tri_reg_new, bs_pave_sort, rtree_bs_pave) </text---> ) )";
 
 
@@ -3626,7 +3626,7 @@ int GenRangeVisibleValueMap(Word* args, Word& result, int message,
                           return CANCEL;
           Tuple* tuple = new Tuple(mo->resulttype);
           tuple->PutAttribute(0, new Line(mo->line_list1[mo->count]));
-          tuple->PutAttribute(1, new Line3D(mo->line3d_list[mo->count]));
+//          tuple->PutAttribute(1, new Line3D(mo->line3d_list[mo->count]));
 
           result.setAddr(tuple);
           mo->count++;
@@ -4011,6 +4011,44 @@ int PutInfraBNValueMap(Word* args, Word& result, int message,
   
 }
 
+
+/*
+add indoor infrastructure to the space 
+
+*/
+int PutInfraIndoorValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Space* space = (Space*)args[0].addr;
+            IndoorInfra* indoor_infra = (IndoorInfra*)args[1].addr; 
+            space->AddIndoorInfra(indoor_infra);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
+            t->PutAttribute(1, new CcInt(true, indoor_infra->GetId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
 /*
 get network infrastructure from the space 
 
@@ -4265,17 +4303,16 @@ int GenerateGMO4ListValueMap(Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         Space* sp = (Space*)args[0].addr; 
-        IndoorInfra* i_infra = (IndoorInfra*)args[1].addr;
-        Periods* peri = (Periods*)args[2].addr;
-        int mo_no = (int)((CcReal*)args[3].addr)->GetRealval();
-        int type = ((CcInt*)args[4].addr)->GetIntval();
-        Relation* rel = (Relation*)args[5].addr;
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        int type = ((CcInt*)args[3].addr)->GetIntval();
+        Relation* rel = (Relation*)args[4].addr;
 
         mo = new GenMObject();
         mo->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        mo->GenerateGenMO4(sp, i_infra, peri, mo_no, type, rel);
+        mo->GenerateGenMO4(sp, peri, mo_no, type, rel);
         local.setAddr(mo);
 
         return 0;
@@ -4333,19 +4370,18 @@ int GenerateGMO5ListValueMap(Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         Space* sp = (Space*)args[0].addr; 
-        IndoorInfra* i_infra = (IndoorInfra*)args[1].addr;
-        Periods* peri = (Periods*)args[2].addr;
-        int mo_no = (int)((CcReal*)args[3].addr)->GetRealval();
-        int type = ((CcInt*)args[4].addr)->GetIntval();
-        Relation* rel1 = (Relation*)args[5].addr;
-        BTree* btree = (BTree*)args[6].addr;
-        Relation* rel2 = (Relation*)args[7].addr;
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        int type = ((CcInt*)args[3].addr)->GetIntval();
+        Relation* rel1 = (Relation*)args[4].addr;
+        BTree* btree = (BTree*)args[5].addr;
+        Relation* rel2 = (Relation*)args[6].addr;
 
         mo = new GenMObject();
         mo->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        mo->GenerateGenMO5(sp, i_infra, peri, mo_no, type, rel1, btree, rel2);
+        mo->GenerateGenMO5(sp, peri, mo_no, type, rel1, btree, rel2);
         local.setAddr(mo);
 
         return 0;
@@ -4411,19 +4447,18 @@ int GenerateGMO6ListValueMap(Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         Space* sp = (Space*)args[0].addr; 
-        IndoorInfra* i_infra = (IndoorInfra*)args[1].addr;
-        Periods* peri = (Periods*)args[2].addr;
-        int mo_no = (int)((CcReal*)args[3].addr)->GetRealval();
-        int type = ((CcInt*)args[4].addr)->GetIntval();
-        Relation* rel1 = (Relation*)args[5].addr;
-        Relation* rel2 = (Relation*)args[6].addr;
-        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[7].addr;
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        int type = ((CcInt*)args[3].addr)->GetIntval();
+        Relation* rel1 = (Relation*)args[4].addr;
+        Relation* rel2 = (Relation*)args[5].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[6].addr;
 
         mo = new GenMObject();
         mo->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        mo->GenerateGenMO6(sp, i_infra, peri, mo_no, type, rel1, rel2, rtree);
+        mo->GenerateGenMO6(sp, peri, mo_no, type, rel1, rel2, rtree);
         local.setAddr(mo);
 
         return 0;
@@ -5098,8 +5133,8 @@ TypeMap function for operator generate genmo4
 */
 ListExpr GenerateGMO4ListTypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 6){
-      string err = "six input parameters expected";
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5109,34 +5144,34 @@ ListExpr GenerateGMO4ListTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
 
+//   ListExpr arg2 = nl->Second(args);
+//   if(!nl->IsEqual(arg2, "indoorinfra")){
+//       string err = "the second parameter should be indoor infra";
+//       return listutils::typeError(err);
+//   }
+
   ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2, "indoorinfra")){
-      string err = "the second parameter should be indoor infra";
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
-  if(!nl->IsEqual(arg3, "periods")){
-      string err = "the third parameter should be periods";
-      return listutils::typeError(err);
-  }
-
   ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fifth(args);
 
-  if(!(nl->IsEqual(arg4, "real") && nl->IsEqual(arg5, "int"))){
-      string err = "the 4 parameter should be real and 5 parameter be int";
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 parameter should be real and 4 parameter be int";
       return listutils::typeError(err);
   }
  
-  ListExpr arg6 = nl->Sixth(args);
-  if (!(listutils::isRelDescription(arg6)))
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType;
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType);
 
-  if(!(CompareSchemas(arg6, xType)))
+  if(!(CompareSchemas(arg5, xType)))
     return nl->SymbolAtom ( "typeerror" );
   
 
@@ -5220,8 +5255,8 @@ TypeMap function for operator generate genmo5
 */
 ListExpr GenerateGMO5ListTypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 8){
-      string err = "six input parameters expected";
+  if(nl->ListLength(args) != 7){
+      string err = "seven input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5231,48 +5266,48 @@ ListExpr GenerateGMO5ListTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
 
+//   ListExpr arg2 = nl->Second(args);
+//   if(!nl->IsEqual(arg2, "indoorinfra")){
+//       string err = "the second parameter should be indoor infra";
+//       return listutils::typeError(err);
+//   }
+
   ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2, "indoorinfra")){
-      string err = "the second parameter should be indoor infra";
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
-  if(!nl->IsEqual(arg3, "periods")){
-      string err = "the third parameter should be periods";
-      return listutils::typeError(err);
-  }
-
   ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fifth(args);
 
-  if(!(nl->IsEqual(arg4, "real") && nl->IsEqual(arg5, "int"))){
-      string err = "the 4 parameter should be real and 5 parameter be int";
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 parameter should be real and 4 parameter be int";
       return listutils::typeError(err);
   }
  
-  ListExpr arg6 = nl->Sixth(args);
-  if (!(listutils::isRelDescription(arg6)))
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType1;
   nl->ReadFromString(DualGraph::NodeTypeInfo, xType1);
 
-  if(!(CompareSchemas(arg6, xType1)))
+  if(!(CompareSchemas(arg5, xType1)))
     return nl->SymbolAtom ( "typeerror" );
 
-  ListExpr arg7 = nl->Nth(7, args);
-  if(!listutils::isBTreeDescription(arg7))
+  ListExpr arg6 = nl->Sixth(args);
+  if(!listutils::isBTreeDescription(arg6))
     return listutils::typeError("para7 should be a btree");
 
-  ListExpr arg8 = nl->Nth(8, args);
-  if (!(listutils::isRelDescription(arg8)))
+  ListExpr arg7 = nl->Nth(7, args);
+  if (!(listutils::isRelDescription(arg7)))
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType2;
   nl->ReadFromString(GenMObject::StreetSpeedInfo, xType2);
 
-  if(!(CompareSchemas(arg8, xType2)))
+  if(!(CompareSchemas(arg7, xType2)))
     return nl->SymbolAtom ( "typeerror" );
   
 
@@ -5341,8 +5376,8 @@ TypeMap function for operator generate genmo6
 */
 ListExpr GenerateGMO6ListTypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 8){
-      string err = "six input parameters expected";
+  if(nl->ListLength(args) != 7){
+      string err = "seven input parameters expected";
       return listutils::typeError(err);
   }
 
@@ -5352,51 +5387,51 @@ ListExpr GenerateGMO6ListTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
 
+//   ListExpr arg2 = nl->Second(args);
+//   if(!nl->IsEqual(arg2, "indoorinfra")){
+//       string err = "the second parameter should be indoor infra";
+//       return listutils::typeError(err);
+//   }
+
   ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2, "indoorinfra")){
-      string err = "the second parameter should be indoor infra";
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
       return listutils::typeError(err);
   }
 
   ListExpr arg3 = nl->Third(args);
-  if(!nl->IsEqual(arg3, "periods")){
-      string err = "the third parameter should be periods";
-      return listutils::typeError(err);
-  }
-
   ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fifth(args);
 
-  if(!(nl->IsEqual(arg4, "real") && nl->IsEqual(arg5, "int"))){
-      string err = "the 4 parameter should be real and 5 parameter be int";
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 parameter should be real and 4 parameter be int";
       return listutils::typeError(err);
   }
  
-  ListExpr arg6 = nl->Sixth(args);
-  if (!(listutils::isRelDescription(arg6)))
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType1;
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType1);
 
-  if(!(CompareSchemas(arg6, xType1)))
+  if(!(CompareSchemas(arg5, xType1)))
     return nl->SymbolAtom ( "typeerror" );
 
 
-  ListExpr arg7 = nl->Nth(7, args);
-  if (!(listutils::isRelDescription(arg7)))
+  ListExpr arg6 = nl->Sixth(args);
+  if (!(listutils::isRelDescription(arg6)))
     return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType2;
   nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType2);
 
-  if(!(CompareSchemas(arg7, xType2)))
+  if(!(CompareSchemas(arg6, xType2)))
     return nl->SymbolAtom ( "typeerror" );
 
 
-  ListExpr arg8 = nl->Nth(8, args);
-  if(!listutils::isRTreeDescription(arg8))
-      return listutils::typeError("para8 should be a rtree");
+  ListExpr arg7 = nl->Nth(7, args);
+  if(!listutils::isRTreeDescription(arg7))
+      return listutils::typeError("para7 should be a rtree");
 
 
 //     ListExpr result =
@@ -5716,20 +5751,33 @@ ListExpr GenRangeVisibleTypeMap(ListExpr args)
   ListExpr arg2 = nl->Second(args);
   
   if(nl->IsEqual(arg1, "genrange") && nl->IsEqual(arg2, "space")){
+//       ListExpr res = 
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->TwoElemList(
+//                       nl->TwoElemList(nl->SymbolAtom("Path1"),
+//                                     nl->SymbolAtom("line")),
+//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
+//                                     nl->SymbolAtom("line3d"))
+//                   )
+//                 )
+//           );
+
       ListExpr res = 
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
-                      nl->TwoElemList(nl->SymbolAtom("Path1"),
-                                    nl->SymbolAtom("line")),
-                        nl->TwoElemList(nl->SymbolAtom("Path2"),
-                                    nl->SymbolAtom("line3d"))
-                  )
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line")))
                 )
           );
+
       return res;
   }
 
@@ -5943,6 +5991,24 @@ ListExpr PutInfraTypeMap(ListExpr args)
       );
     return reslist;
   }
+  
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "indoorinfra")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("space id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("indoorinfra id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
   return nl->SymbolAtom("typeerror");
 }
 
@@ -6023,7 +6089,8 @@ put infrastructures to the space
 ValueMapping PutInfraValueMapVM[]={
   PutInfraRNValueMap,
   PutInfraPaveValueMap,
-  PutInfraBNValueMap
+  PutInfraBNValueMap,
+  PutInfraIndoorValueMap
 };
 
 int PutInfraOpSelect(ListExpr args)
@@ -6039,12 +6106,15 @@ int PutInfraOpSelect(ListExpr args)
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "busnetwork"))
     return 2;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "indoorinfra"))
+    return 3;
   return -1;
 }
 
 Operator putinfra("putinfra",
     SpatialSpecPutInfra,
-    3,
+    4,
     PutInfraValueMapVM,
     PutInfraOpSelect,
     PutInfraTypeMap

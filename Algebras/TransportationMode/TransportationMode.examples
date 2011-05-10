@@ -943,21 +943,22 @@ Result   : 10
 
 Operator : generate_genmo4
 Number   : 1
-Signature: space x indoorinfra x periods x real x int x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo4(space_1, indoorinfra1, TwoDays, 20.0, 9, tri_reg_new) count; 
+Signature: space x periods x real x int x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo4(space_1, TwoDays, 20.0, 9, tri_reg_new) count; 
 Result   : 20
 
 
 Operator : generate_genmo5
 Number   : 1
-Signature: space x indoorinfra x periods x real x int x rel x btree x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo5(space_1, indoorinfra1, TwoDays, 20.0, 13, dg_node_rid, btree_dg_rid, streets_speed) count; 
+Signature: space x periods x real x int x rel x btree x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo5(space_1, TwoDays, 20.0, 13, dg_node_rid, btree_dg_rid, streets_speed) count; 
 Result   : 20
+
 
 Operator : generate_genmo6
 Number   : 1
-Signature: space x indoorinfra x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo6(space_1, indoorinfra1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave) count; 
+Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo6(space_1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave) count; 
 Result   : 20
 
 

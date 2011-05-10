@@ -882,8 +882,9 @@ struct GenMObject{
   /////////////////////////////////////////////////////////////////////////
   //////////////////////Indoor Walk////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO4(Space* sp, IndoorInfra* i_infra,Periods* peri, int mo_no,
-                      int type, Relation*);
+  void GenerateGenMO4(Space* sp, Periods* peri, int mo_no,int type, Relation*);
+
+  
   void CreateBuildingPair(IndoorInfra* i_infra, 
                           vector<RefBuild>& build_id1_list,
                           vector<RefBuild>& build_id2_list, int no, 
@@ -907,7 +908,7 @@ struct GenMObject{
   /////////////////////////////////////////////////////////////////////////
   ////////////////////  Indoor Walk Car(Taxi) /////////////////////////////
   /////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO5(Space* sp, IndoorInfra* i_infra, Periods* peri, 
+  void GenerateGenMO5(Space* sp, Periods* peri, 
                       int mo_no, int type, Relation* rel1, BTree* btree, 
                       Relation* rel2);
   void GenerateGenMO_IndoorWalkCarTaxi(Space* sp, IndoorInfra* i_infra, 
@@ -921,8 +922,8 @@ struct GenMObject{
   /////////////////////////////////////////////////////////////////////////
   ////////////////////  Indoor Walk Bus   /////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO6(Space* sp, IndoorInfra* i_infra, Periods* peri, 
-                      int mo_no, int type, Relation* rel1, Relation* rel2,
+  void GenerateGenMO6(Space* sp, Periods* peri, int mo_no, int type, 
+                      Relation* rel1, Relation* rel2,
                       R_Tree<2,TupleId>* rtree);
   void GenerateIndoorMovementToExit2(IndoorInfra* i_infra, 
                                     GenMO* genmo, MPoint* mo, 
@@ -1058,9 +1059,17 @@ class Space:public Attribute{
   void CloseBusNetwork(BusNetwork* bn);
 
 
+  void AddIndoorInfra(IndoorInfra* indoor);
+  IndoorInfra* LoadIndoorInfra(int type);
+  void CloseIndoorInfra(IndoorInfra*);
+  
+
+  ////////////get a specific infrastructure////////////////////
   int GetInfraType(int oid);
+  /////////////open and close all infrastructures////////////////
   void OpenInfra(vector<void*>&);
   void CloseInfra(vector<void*>&);
+  
   
   int MaxRefId();
   //////////////////////////////////////////////////////////////////////////

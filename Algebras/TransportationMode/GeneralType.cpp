@@ -3978,9 +3978,9 @@ create generic moving objects with indoor + walk
 
 */
 
-void GenMObject::GenerateGenMO4(Space* sp, IndoorInfra* i_infra, 
-                                Periods* peri, int mo_no, int type, 
-                                Relation* tri_rel)
+void GenMObject::GenerateGenMO4(Space* sp,
+                                 Periods* peri, int mo_no, int type, 
+                                 Relation* tri_rel)
 {
 
   if(mo_no < 1){
@@ -3990,6 +3990,13 @@ void GenMObject::GenerateGenMO4(Space* sp, IndoorInfra* i_infra,
   if(!(0 <= type && type < int(ARR_SIZE(genmo_tmlist)))){
     cout<<" invalid type value "<<type<<endl;
   }
+
+  IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
+  if(i_infra == NULL){
+    cout<<"indoor infrastructure does not exist "<<endl;
+    return;
+  }
+
   ////////////////////////////////////////////////////////////////
   //////////////////////Initialization/////////////////////////////
   ////////////////////////////////////////////////////////////////
@@ -4217,7 +4224,7 @@ void GenMObject::GenerateGenMO4(Space* sp, IndoorInfra* i_infra,
   pm->CloseDualGraph(dg);
   pm->CloseVisualGraph(vg);
   sp->ClosePavement(pm);
-
+  sp->CloseIndoorInfra(i_infra);
 
 }
 
@@ -4492,7 +4499,7 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
 create generic moving objects with modes: walk + indoor + car (taxi)
 
 */
-void GenMObject::GenerateGenMO5(Space* sp, IndoorInfra* i_infra, Periods* peri,
+void GenMObject::GenerateGenMO5(Space* sp, Periods* peri,
                       int mo_no, int type, Relation* rel1, BTree* btree, 
                       Relation* rel2)
 {
@@ -4502,6 +4509,13 @@ void GenMObject::GenerateGenMO5(Space* sp, IndoorInfra* i_infra, Periods* peri,
   }
   if(!(0 <= type && type < int(ARR_SIZE(genmo_tmlist)))){
     cout<<" invalid type value "<<type<<endl;
+    return; 
+  }
+
+  IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
+  if(i_infra == NULL){
+    cout<<"indoor infrastructure does not exist "<<endl;
+    return;
   }
 
   switch(type){
@@ -4518,6 +4532,9 @@ void GenMObject::GenerateGenMO5(Space* sp, IndoorInfra* i_infra, Periods* peri,
       assert(false);
       break;  
   }
+
+  sp->CloseIndoorInfra(i_infra);
+
 }
 
 /*
@@ -4840,10 +4857,27 @@ void GenMObject::CreateBuildingPair2(IndoorInfra* i_infra,
 generic moving objects with modes: indoor walk bus
 
 */
-void GenMObject::GenerateGenMO6(Space* sp, IndoorInfra* i_infra, Periods* peri,
+void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
                       int mo_no, int type, Relation* rel1, Relation* rel2,
                       R_Tree<2,TupleId>* rtree)
 {
+
+  if(mo_no < 1){
+    cout<<" invalid number of moving objects "<<mo_no<<endl;
+    return;
+  }
+  if(!(0 <= type && type < int(ARR_SIZE(genmo_tmlist)))){
+    cout<<" invalid type value "<<type<<endl;
+    return; 
+  }
+  
+  IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
+  if(i_infra == NULL){
+    cout<<"indoor infrastructure does not exist "<<endl;
+    return;
+  }
+
+
   ////////////////////////////////////////////////////////////////
   //////////////////////Initialization/////////////////////////////
   ////////////////////////////////////////////////////////////////
@@ -5115,6 +5149,8 @@ void GenMObject::GenerateGenMO6(Space* sp, IndoorInfra* i_infra, Periods* peri,
 //   cout<<trip1_list.size()<<" "<<trip2_list.size()
 //       <<" "<<indoor_mo_list1.size()<<" "<<build_type_list1.size()
 //       <<" "<<indoor_mo_list2.size()<<" "<<build_type_list2.size()<<endl;
+
+  sp->CloseIndoorInfra(i_infra);
 
 }
 
@@ -6033,7 +6069,7 @@ void Space::AddPavement(Pavement* pn)
       inf_ref.Print(); 
       Add(inf_ref); 
   }else{
-    cout<<"insert infrastructure wroing"<<endl; 
+    cout<<"insert infrastructure wrong"<<endl; 
     cout<<"infrastructure exists already or wrong oid"<<endl; 
   }
 }
@@ -6215,6 +6251,117 @@ void Space::CloseBusNetwork(BusNetwork* bn)
 
 
 /*
+add indoor infrastructure to the space 
+
+*/
+void Space::AddIndoorInfra(IndoorInfra* indoor)
+{
+//  cout<<"AddIndoorInfra "<<endl;
+
+  InfraRef inf_ref; 
+  if(!indoor->IsDefined()){
+    cout<<"indoor infrastructure is not defined"<<endl;
+    return; 
+  }
+  inf_ref.infra_id = indoor->GetId();
+  inf_ref.infra_type = GetSymbol("GROOM"); 
+  int min_id = numeric_limits<int>::max();
+  int max_id = numeric_limits<int>::min();
+  Relation* build_type_rel = indoor->BuildingType_Rel();
+  
+  for(int i = 1;i <= build_type_rel->GetNoTuples();i++){
+    Tuple* build_tuple = build_type_rel->GetTuple(i, false);
+    int build_id = ((CcInt*)build_tuple->GetAttribute(IndoorInfra::
+                                           INDOORIF_BUILD_ID))->GetIntval();
+    if(build_id < min_id) min_id = build_id;
+    if(build_id > max_id) max_id = build_id; 
+
+    build_tuple->DeleteIfAllowed(); 
+  }
+
+  inf_ref.ref_id_low = min_id;
+  inf_ref.ref_id_high = max_id;
+
+  if(CheckExist(inf_ref) == false){
+      inf_ref.Print(); 
+      Add(inf_ref); 
+  }else{
+    cout<<"insert infrastructure wrong"<<endl; 
+    cout<<"infrastructure exists already or wrong oid"<<endl; 
+  }
+
+}
+
+
+/*
+load indoor infrastructure 
+
+*/
+IndoorInfra* Space::LoadIndoorInfra(int type)
+{
+//  cout<<"loadindoorinfra"<<endl; 
+  
+  InfraRef rn_ref; 
+  bool found = false; 
+  for(int i = 0;i < infra_list.Size();i++){
+    InfraRef elem;
+    infra_list.Get(i, elem); 
+    if(elem.infra_type == type){
+       rn_ref = elem; 
+       found = true;
+       break; 
+    }
+  }
+  if(found){
+      ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+      xObjectList = nl->Rest(xObjectList);
+      while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+          ListExpr xCurrent = nl->First(xObjectList);
+          xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+          ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+          if(nl->IsAtom(xObjectType) &&
+              nl->SymbolValue(xObjectType) == "indoorinfra"){
+            // Get name of the bus graph 
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the pavement
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            IndoorInfra* indoor_infra = (IndoorInfra*)xValue.addr;
+            if((int)indoor_infra->GetId() == rn_ref.infra_id){
+            // This is the indoor infrastructure we have been looking for
+              return indoor_infra;
+            }
+          }
+      }
+  }
+  return NULL;
+
+}
+
+void Space::CloseIndoorInfra(IndoorInfra* indoor_infra)
+{
+//  cout<<"close indoorinfra"<<endl; 
+  
+  if(indoor_infra == NULL) return; 
+    Word xValue;
+    xValue.addr = indoor_infra;
+    SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "indoorinfra"),
+                                           xValue);
+}
+
+
+/*
 open all infrastructures
 "BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
 "REGION", "LINE", "FREESPACE"
@@ -6227,25 +6374,30 @@ void Space::OpenInfra(vector<void*>& infra_pointer)
   infra_pointer.push_back(NULL);//bus route
   infra_pointer.push_back(NULL);//mpptn
   infra_pointer.push_back(LoadBusNetwork(IF_BUSNETWORK));//bus network
-  infra_pointer.push_back(NULL);// current NULL for Indoor 
+//  infra_pointer.push_back(NULL);// current NULL for Indoor
+  infra_pointer.push_back(LoadIndoorInfra(IF_GROOM));
   infra_pointer.push_back(LoadPavement(IF_REGION));// region based outdoor
   infra_pointer.push_back(LoadRoadNetwork(IF_LINE));// road netowrk
   infra_pointer.push_back(NULL);// free space
-  
-  
+
+
   if((BusNetwork*)infra_pointer[IF_BUSNETWORK] == NULL){
     cerr<<__FILE__<<__LINE__<<"bus network can not be opend"<<endl;
   }
-  
+
   if((Network*)infra_pointer[IF_LINE] == NULL){
     cerr<<__FILE__<<__LINE__<<"road network can not be opend"<<endl;
   }
-  
-  
+
+
   if((Pavement*)infra_pointer[IF_REGION] == NULL){
     cerr<<__FILE__<<__LINE__<<"pavement can not be opend"<<endl;
   }
-  
+
+  if((IndoorInfra*)infra_pointer[IF_GROOM] == NULL){
+    cerr<<__FILE__<<__LINE__<<"indoor infrastructure can not be opend"<<endl;
+  }
+
 }
 
 /*
@@ -6257,9 +6409,8 @@ void Space::CloseInfra(vector<void*>& infra_pointer)
   if(infra_pointer[IF_BUSNETWORK] != NULL)
     CloseBusNetwork((BusNetwork*)infra_pointer[IF_BUSNETWORK]);
 
-   ////////not implemented//////////////////////
-//   if(infra_pointer[IF_GROOM] != NULL)
-//     CloseIndoor(infra_pointer[IF_GROOM]);
+   if(infra_pointer[IF_GROOM] != NULL)
+     CloseIndoorInfra((IndoorInfra*)infra_pointer[IF_GROOM]);
 
 
   if(infra_pointer[IF_REGION] != NULL)
@@ -6520,10 +6671,34 @@ void Space::GetLineInBusNetwork(int& oid, Line* l, BusNetwork* bn,
 
 /*
 get the sub movement in indoor environment
+be careful with the movement inside an elevator or on a staircase 
+the movement in an office room, corridor or bath room is clear 
 
 */
 void Space::GetLineInGRoom(int oid, GenLoc gl1, GenLoc gl2, Line* l)
 {
-  cout<<"indoor not implemented"<<endl;
+//  cout<<"indoor not implemented"<<endl;
+  ////////////if the room is a staircase, then l is empty////////////////
+  ////////       Loc loc_1(p1.GetZ(), -1);  //////////////////////////
+  /////////////  Loc loc_2(p2.GetZ(), -1); ///////////////////////////
+  ////////////////////////////////////////////////////////////////////
+  if(gl1.GetLoc().loc2 < 0.0 && gl2.GetLoc().loc2 < 0.0){
+//    cout<<"movement inside an elevator 2d line is empty"<<endl;
+
+  }else{
+//    cout<<"not inside an elevator "<<endl;
+
+    Point p1(true, gl1.GetLoc().loc1, gl1.GetLoc().loc2);
+    Point p2(true, gl2.GetLoc().loc1, gl2.GetLoc().loc2);
+
+    if(AlmostEqual(p1, p2)) return; 
+
+    HalfSegment hs(true, p1, p2);
+    hs.attr.edgeno = 0;
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+
+  }
 
 }

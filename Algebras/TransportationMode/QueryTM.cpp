@@ -123,10 +123,11 @@ void QueryTM::GetLineInRoad(int oid, Line* l, Space* sp)
   newl->EndBulkLoad();
   
   line_list1.push_back(*newl);
-  Line3D* l3d = new Line3D(0);
-  line3d_list.push_back(*l3d);
-  delete l3d;
   delete newl;
+
+/*  Line3D* l3d = new Line3D(0);
+  line3d_list.push_back(*l3d);
+  delete l3d;*/
 
 }
 
@@ -165,10 +166,12 @@ void QueryTM::GetLineInRegion(int oid, Line* l, Space* sp)
   newl->EndBulkLoad();
   
   line_list1.push_back(*newl);
-  Line3D* l3d = new Line3D(0);
-  line3d_list.push_back(*l3d);
-  delete l3d;
   delete newl;
+
+//   Line3D* l3d = new Line3D(0);
+//   line3d_list.push_back(*l3d);
+//   delete l3d;
+
 }
 
 /*
@@ -178,9 +181,11 @@ get the overall line in free space
 void QueryTM::GetLineInFreeSpace(Line* l)
 {
   line_list1.push_back(*l);
-  Line3D* l3d = new Line3D(0);
-  line3d_list.push_back(*l3d);
-  delete l3d;
+
+//   Line3D* l3d = new Line3D(0);
+//   line3d_list.push_back(*l3d);
+//   delete l3d;
+
 }
 
 /*
@@ -214,10 +219,11 @@ void QueryTM::GetLineInBusNetwork(int oid, Line* l, BusNetwork* bn)
   newl->EndBulkLoad();
 
   line_list1.push_back(*newl);
-  Line3D* l3d = new Line3D(0);
-  line3d_list.push_back(*l3d);
-  delete l3d;
   delete newl;
+
+/*  Line3D* l3d = new Line3D(0);
+  line3d_list.push_back(*l3d);
+  delete l3d;*/
 
 }
 
@@ -228,6 +234,7 @@ get the overall line for indoor environment (line3D)
 */
 void QueryTM::GetLineInGRoom(int oid, Line* l, Space* sp)
 {
-  cout<<"indoor not implemented"<<endl;
+//  cout<<"indoor not implemented"<<endl;
 
 }
+

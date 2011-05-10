@@ -7107,7 +7107,7 @@ building id.finally the reference id is: buildingid + roomid
 void IndoorNav::ToGenLoc2(MPoint3D* mp3d, 
                           R_Tree<3,TupleId>* rtree, int build_id, GenMO* genmo)
 {
-  
+//  cout<<"ToGenLoc2 "<<endl; 
   for(int i = 0;i < mp3d->GetNoComponents();i++){
       UPoint3D unit;
       mp3d->Get(i, unit); 
@@ -7145,52 +7145,89 @@ void IndoorNav::Get_GenLoc(Point3D p1, Point3D p2,
   assert(tid_list2.size() > 0);
 
   int tid1, tid2; 
+  bool found = false;
   for(unsigned int i = 0;i < tid_list1.size();i++){
     tid1 = tid_list1[i];
     for(unsigned int j = 0;j < tid_list2.size();j++){
       tid2 = tid_list2[j]; 
       if(tid1 == tid2){
-//        cout<<"find "<<endl; 
+        found = true;
         break; 
-      }  
+      }
     }
+    if(found) break; 
   }
-  if(tid1 != tid2){
+
+/*  if(tid1 != tid2){
     cout<<"do not find the same groom for two locations"<<endl; 
     assert(false); 
-  }
+  }*/
+
  /////////////////////////////////////////////////////////////////////////
+  if(found){
+ 
+    Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+    GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+    int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+    Rectangle<2> bbox = groom->BoundingBox(); 
+    groom_tuple->DeleteIfAllowed();
 
-  Tuple* groom_tuple = rel1->GetTuple(tid1, false);
-  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
-  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
-  int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
-  Rectangle<2> bbox = groom->BoundingBox(); 
-  groom_tuple->DeleteIfAllowed();
+    if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR || 
+      GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
+      Loc loc_1(p1.GetX() - bbox.MinD(0), p1.GetY() - bbox.MinD(1)); 
+      Loc loc_2(p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1)); 
 
-  if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR || 
-     GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
-    Loc loc_1(p1.GetX() - bbox.MinD(0), p1.GetY() - bbox.MinD(1)); 
-    Loc loc_2(p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1)); 
+      loc1.SetValue(oid, loc_1);
+      loc2.SetValue(oid, loc_2);
+    }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
+      Loc loc_1(p1.GetZ(), -1); 
+      Loc loc_2(p2.GetZ(), -1); 
 
-    loc1.SetValue(oid, loc_1);
-    loc2.SetValue(oid, loc_2);
-  }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
-    Loc loc_1(p1.GetZ(), -1); 
-    Loc loc_2(p2.GetZ(), -1); 
-
-    loc1.SetValue(oid, loc_1);
-    loc2.SetValue(oid, loc_2);
+      loc1.SetValue(oid, loc_1);
+      loc2.SetValue(oid, loc_2);
+    }else{
+      cout<<"should not be here"<<endl;
+      assert(false); 
+    }
   }else{
-    cout<<"should not be here"<<endl;
-    assert(false); 
+    unsigned int i = 0;
+    for(;i < tid_list1.size();i++){
+      tid1 = tid_list1[i];
+      Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+      string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+      if(GetRoomEnum(type) == EL)break; 
+      groom_tuple->DeleteIfAllowed();
+    }
+    assert(i < tid_list1.size());
+    Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+    GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+    int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+
+    ///////////////////////////////////////////////////////////////////////
+    Rectangle<2> bbox = groom->BoundingBox(); 
+    groom_tuple->DeleteIfAllowed();
+  
+    if(GetRoomEnum(type) == EL){
+//      cout<<"elevator2 "<<endl;
+      Loc loc_1(p1.GetZ(), -1.0); 
+      Loc loc_2(p2.GetZ(), -1.0); 
+
+      loc1.SetValue(oid, loc_1);
+      loc2.SetValue(oid, loc_2);
+    }else{
+      cout<<"should not be here"<<endl;
+      assert(false); 
+    }
+
   }
   
 
 }
 
 /*
-the two genloc should have the same oid 
+the two genlocs should have the same oid 
 the reference id is building id + room id
 
 */
@@ -7198,12 +7235,15 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
                            GenLoc& loc1, GenLoc& loc2, 
                             R_Tree<3,TupleId>* rtree, int build_id)
 {
+//  cout<<"Get_GenLoc2 "<<endl; 
+  
   SmiRecordId adr = rtree->RootRecordId();
 
   vector<int> tid_list1;
   vector<int> tid_list2; 
   DFTraverse(rtree, adr, p1, tid_list1);
-  DFTraverse(rtree, adr, p1, tid_list2); 
+//  DFTraverse(rtree, adr, p1, tid_list2);
+  DFTraverse(rtree, adr, p2, tid_list2); 
 
 // cout<<"p3d_1 "<<p1<<" p3d_2"<<p2<<endl;
 
@@ -7211,62 +7251,118 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
   assert(tid_list2.size() > 0);
 
   int tid1, tid2; 
+  bool found = false;
   for(unsigned int i = 0;i < tid_list1.size();i++){
     tid1 = tid_list1[i];
+//    cout<<"tid1 "<<tid1<<endl; 
     for(unsigned int j = 0;j < tid_list2.size();j++){
       tid2 = tid_list2[j]; 
+//      cout<<"tid2 "<<tid2<<endl; 
       if(tid1 == tid2){
-//        cout<<"find "<<endl; 
+        found = true;
         break; 
-      }  
+      }
     }
+    if(found) break; 
   }
-  if(tid1 != tid2){
-    cout<<"do not find the same groom for two locations"<<endl; 
-    assert(false); 
-  }
+
+//   if(tid1 != tid2){ 
+//     cout<<"do not find the same groom for two locations"<<endl; 
+//     assert(false); 
+//   }
+
+
+  if(found){
  /////////////////////////////////////////////////////////////////////////
 
-  Tuple* groom_tuple = rel1->GetTuple(tid1, false);
-  GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
-  string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
-  int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
-  //////////////////////////////////////////////////////////////////////
-  //////////reset the oid by plus building id for the first six numbers/
-  /////////////////////////////////////////////////////////////////////
-  char buffer1[64];
-  sprintf(buffer1, "%d", oid);
-  char buffer2[64];
-  sprintf(buffer2, "%d", build_id);
+    Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+    GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+    int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+    //////////////////////////////////////////////////////////////////////
+    //////////reset the oid by plus building id for the first six numbers/
+    /////////////////////////////////////////////////////////////////////
+    char buffer1[64];
+    sprintf(buffer1, "%d", oid);
+    char buffer2[64];
+    sprintf(buffer2, "%d", build_id);
   
-  strcat(buffer2, buffer1);
+    strcat(buffer2, buffer1);
 //  cout<<"building id "<<build_id<< " old oid "<<oid<<endl;
-  int new_oid;
-  sscanf(buffer2, "%d", &new_oid);
+    int new_oid;
+    sscanf(buffer2, "%d", &new_oid);
 //  cout<<"new oid "<<new_oid<<endl;
-  oid = new_oid;//////////building id + room id///////////////
+    oid = new_oid;//////////building id + room id///////////////
 
   ///////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
-  Rectangle<2> bbox = groom->BoundingBox(); 
-  groom_tuple->DeleteIfAllowed();
+    Rectangle<2> bbox = groom->BoundingBox(); 
+    groom_tuple->DeleteIfAllowed();
 
-  if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR || 
-     GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
-    Loc loc_1(p1.GetX() - bbox.MinD(0), p1.GetY() - bbox.MinD(1)); 
-    Loc loc_2(p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1)); 
+    if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR || 
+      GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
+      Loc loc_1(p1.GetX() - bbox.MinD(0), p1.GetY() - bbox.MinD(1)); 
+      Loc loc_2(p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1)); 
 
-    loc1.SetValue(oid, loc_1);
-    loc2.SetValue(oid, loc_2);
-  }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
-    Loc loc_1(p1.GetZ(), -1); 
-    Loc loc_2(p2.GetZ(), -1); 
+      loc1.SetValue(oid, loc_1);
+      loc2.SetValue(oid, loc_2);
+    }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
+//      cout<<"elevator1 "<<endl;
+      Loc loc_1(p1.GetZ(), -1.0); 
+      Loc loc_2(p2.GetZ(), -1.0); 
 
-    loc1.SetValue(oid, loc_1);
-    loc2.SetValue(oid, loc_2);
-  }else{
-    cout<<"should not be here"<<endl;
-    assert(false); 
+      loc1.SetValue(oid, loc_1);
+      loc2.SetValue(oid, loc_2);
+    }else{
+      cout<<"should not be here"<<endl;
+      assert(false); 
+    }
+  }else{//////////vertical movement in an elevator 
+  
+    unsigned int i = 0;
+    for(;i < tid_list1.size();i++){
+      tid1 = tid_list1[i];
+      Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+      string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+      if(GetRoomEnum(type) == EL)break; 
+      groom_tuple->DeleteIfAllowed();
+    }
+    assert(i < tid_list1.size());
+    Tuple* groom_tuple = rel1->GetTuple(tid1, false);
+    GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room); 
+    string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
+    int oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval(); 
+    //////////////////////////////////////////////////////////////////////
+    //////////reset the oid by plus building id for the first six numbers/
+    /////////////////////////////////////////////////////////////////////
+    char buffer1[64];
+    sprintf(buffer1, "%d", oid);
+    char buffer2[64];
+    sprintf(buffer2, "%d", build_id);
+  
+    strcat(buffer2, buffer1);
+//  cout<<"building id "<<build_id<< " old oid "<<oid<<endl;
+    int new_oid;
+    sscanf(buffer2, "%d", &new_oid);
+//  cout<<"new oid "<<new_oid<<endl;
+    oid = new_oid;//////////building id + room id///////////////
+
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+    Rectangle<2> bbox = groom->BoundingBox(); 
+    groom_tuple->DeleteIfAllowed();
+  
+    if(GetRoomEnum(type) == EL){
+//      cout<<"elevator2 "<<endl;
+      Loc loc_1(p1.GetZ(), -1.0); 
+      Loc loc_2(p2.GetZ(), -1.0); 
+
+      loc1.SetValue(oid, loc_1);
+      loc2.SetValue(oid, loc_2);
+    }else{
+      cout<<"should not be here"<<endl;
+      assert(false); 
+    }
   }
 
 }
