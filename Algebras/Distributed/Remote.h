@@ -36,7 +36,7 @@ RelationWriter and DServerCreator
 
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
-
+ 
 
 #include "StandardTypes.h"
 #include "SocketIO.h"
@@ -67,13 +67,21 @@ public:
                                    // the worker
                  
   };
+
+  static Word ms_emptyWord;
+
+  static void Debug(const string&, const string&);
+
   DServer(string,int,string,ListExpr);
+  virtual ~DServer();
+
   void Terminate();
   bool connectToWorker();
 
   void setCmd(CmdType inCmdType,
-              list<int>* inArgs, 
-              vector<Word>* inElements = 0);
+              const list<int>* inIndex, 
+              vector<Word>* inElements = 0,
+              vector<string>* inFromNames = 0);
 
   void run();
                           
@@ -82,35 +90,58 @@ public:
   void DestroyChilds();
             
   int status;
-  int getNumChilds() { return m_childs.size();}
+  int getNumChilds() const { return m_numChilds;}
       
+  bool checkServer() const;
   string getErrorText() { return errorText; }
-         
+
 private:
   class RemoteCommand
   {
   public:
-    explicit RemoteCommand(CmdType inCmdType,
-                           list<int>* inArgs, 
-                           vector<Word>* inElements)
+    enum RunType { RC_NONE, RC_PARALEL, RC_SEQUENTIELL };
+   
+    RemoteCommand(CmdType inCmdType,
+                  const list<int>* inDarrayIndex,
+                  vector<Word>* inElements,
+                  vector<string>* inFromNames)
       : m_cmdType( inCmdType )
-      , m_args( inArgs )
-      , m_elements( inElements ) {}
+      , m_elements( inElements )
+      , m_runType( RC_NONE) 
+    {
+      if (inDarrayIndex != 0)
+        m_darrayIndex = *inDarrayIndex;
 
-    CmdType       getCmdType() const { return m_cmdType; }
-    list<int>*    getArgs() const { return m_args; }
+      if (inFromNames != 0)
+        m_fromNames = *inFromNames;
+    }
+
+    CmdType getCmdType() const { return m_cmdType; }
+    list<int>* getDArrayIndex() { return &m_darrayIndex; }
     vector<Word>* getElements() const { return m_elements; }
+    const vector<string>& getFromNames() const { return m_fromNames; }
 
   private:
-    // methods
-    RemoteCommand() {} // no to be used!
-    RemoteCommand(const RemoteCommand&) {} // not to be used!
+    RemoteCommand(const RemoteCommand&) {} 
+    RemoteCommand() 
+      : m_cmdType( DS_CMD_NONE )
+      , m_elements( NULL )
+      , m_runType( RC_NONE ) {}
+
+    RunType getRunType() const { return m_runType; }
 
     // members
     CmdType m_cmdType;
-    list<int>* m_args;
+    list<int> m_darrayIndex;
     vector<Word>* m_elements;
+    vector<string> m_fromNames;
+    RunType m_runType;
   };
+public:
+  
+  friend ostream& operator << (ostream&, RemoteCommand&) ;
+
+private:
 
   string host,name;
 
@@ -123,7 +154,10 @@ private:
          
   Socket* cbworker;
 
+  FILE *m_fs;
+
   vector<DServer*> m_childs;
+  int m_numChilds;
                   
   bool rel_open;
    
@@ -136,29 +170,83 @@ class DServerManager
       DServerManager(ListExpr serverlist_n, 
                               string name_n, ListExpr type, int sizeofarray);
       ~DServerManager();
-      DServer* getServerByIndex(int index) const;
-      DServer* getServerbyID(int id) const;
-     
-      int getMultipleServerIndex(int index);
-                
+  
+/*
 
-      list<int>* getIndexList(int id);
+2.1 getServerByIndex
+
+returns a pointer to the DServer that holds a certain element of the
+underlying distributed array
+
+*/
+
+  DServer* getServerByIndex(int index) const 
+    { return m_serverlist[index % size]; }
+  
+/*
+
+2.2 getServerbyID
+
+returns the pointer to a DServer
+
+*/
+
+  DServer* getServerbyID(int id) const { return m_serverlist[id]; }
+     
+/*
+
+2.3 getMultipleServerIndex
+
+returns -1, if the parent DServer is the appropriate object for the element
+
+*/
+
+  int getMultipleServerIndex(int index) const {  return (index / size) - 1; }
+                
+/*
+
+2.4 getIndexList
+
+returns a list of indices that correspond to the elements of the underlying
+distributed array, which are controlled by the DServer with the given index
+
+*/
+
+  list<int>& getIndexList(int id) { return m_idIndexMap[id]; }
         
-      int getNoOfServers();
-   
-      const string& getErrorText() const { return errorText; }
+/*
+
+2.5 getNoOfServers
+
+returns the number of DServer-Objects controlled by the DServerManager
+
+*/
+     
+  int getNoOfServers() const { return size; }
+
+/*
+2.6 checkServers
+
+returns false, if server were not created correctly
+
+*/   
+  bool checkServers() const;
+
+  const string& getErrorText() const { return errorText; }
   void  setErrorText( const string& txt) { errorText = txt; }
      
         
-   private:
+private:
                 
   vector<DServer*> m_serverlist;
-
-      int size;
-      int array_size;
-      string name;
-   
-      string errorText;
+  
+  int size;
+  int array_size;
+  string name;
+  
+  string errorText;
+  map<int, list<int> > m_idIndexMap;
+  
 };
 
 class DServerExecutor : public ZThread::Runnable
@@ -223,7 +311,6 @@ class RelationWriter : public ZThread::Runnable
      
                   
                   
-                  
-
+ostream& operator << (ostream &out, DServer::RemoteCommand& rc);
 
 #endif

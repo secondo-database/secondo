@@ -95,21 +95,27 @@ class DArray
   bool initialize(ListExpr, string,int,ListExpr);
          
    //Returns the content of m_elements[int]
-   Word get(int);
+   const Word& get(int);
    //Sets m_elements[int] and sends the object to the respective worker
    void set(Word,int);
-         
-   int getSize();
-   int getAlgID();
-   int getTypID();
-         
-   DServerManager* getServerManager();
-   ListExpr getServerList();
-  const vector<Word>& getElements() const;
-         
-   bool isDefined();
-   string getName();
-   ListExpr getType();
+                           
+  int getAlgID() const { return alg_id; }
+  int getTypID() const { return typ_id; }
+  ListExpr getType() const { return type; }
+
+  ListExpr getServerList() const { return serverlist; }
+
+  string getName() const { return name; }
+
+  bool isDefined() const { return defined; }
+
+  int getSize() const { return size; }
+
+  DServerManager* getServerManager() const {return manager;}
+
+  //Is needed to provide DServer-objects with a pointer to the elements-array
+  const vector<Word>& getElements() const {return m_elements;}
+  
          
    //Retrieves the element int/all elements from the worker
    //refresh must be called before calling get()

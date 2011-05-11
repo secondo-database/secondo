@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 */
 
-
 /*
 [1] DistributedAlgebra
 
@@ -279,7 +278,8 @@ void DArray::remove()
       {
          DServer* server = manager->getServerbyID(i);
          server->setCmd(DServer::DS_CMD_DELETE,
-                        manager->getIndexList(i),&m_elements);
+                        &(manager->getIndexList(i)),
+                        &m_elements);
          DServerExecutor* server_ex = new DServerExecutor(server);
          exec.execute(server_ex);
       }
@@ -293,8 +293,8 @@ void DArray::remove()
 void DArray::refresh(int i)
 {
    DServer* server = manager->getServerByIndex(i);
-   list<int>* l = new list<int>;
-   l->push_front(i);
+   list<int> l;
+   l.push_front(i);
    
    if(isRelation)
    {
@@ -303,13 +303,13 @@ void DArray::refresh(int i)
          (am->DeleteObj(alg_id,typ_id))(type,m_elements[i]);
       
       m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
-      server->setCmd(DServer::DS_CMD_READ_REL,l,&m_elements);
+      server->setCmd(DServer::DS_CMD_READ_REL,&l,&m_elements);
       server->run();
    }
    
    else
    {
-     server->setCmd(DServer::DS_CMD_READ,l,&m_elements);
+     server->setCmd(DServer::DS_CMD_READ,&l,&m_elements);
       server->run();
    }
    
@@ -326,11 +326,15 @@ void DArray::refresh()
    //If the darray has a relation-type new relations must be created
    for(int i=0;i<size;i++)
    {
-      if(m_present[i])
+     if(m_present[i])
+       {
          (am->DeleteObj(alg_id,typ_id))(type,m_elements[i]);
+       }
       
       if(isRelation) 
-         m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
+        {
+          m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(type).addr;
+        }
    }
      
    //elements are read, the DServer run as threads
@@ -340,12 +344,14 @@ void DArray::refresh()
       if(isRelation)
       {
         server->setCmd(DServer::DS_CMD_READ_REL,
-                       manager->getIndexList(i),&m_elements);
+                       &(manager->getIndexList(i)),
+                       &m_elements);
       }
       else
       {
         server->setCmd(DServer::DS_CMD_READ,
-                       manager->getIndexList(i),&m_elements);
+                       &(manager->getIndexList(i)),
+                       &m_elements);
       }
           
       server_ex = new DServerExecutor(server);
@@ -400,7 +406,8 @@ bool DArray::initialize(ListExpr n_type,
          {
            DServer* server = manager->getServerbyID(i);
            server->setCmd(DServer::DS_CMD_WRITE,
-                          manager->getIndexList(i),&m_elements);
+                          &(manager->getIndexList(i)),
+                          &m_elements);
            DServerExecutor* server_exec = new DServerExecutor(server);
            exec.execute(server_exec);
          }
@@ -412,7 +419,7 @@ bool DArray::initialize(ListExpr n_type,
            RelationWriter* write = 
              new RelationWriter(manager->getServerbyID(i),
                                 &m_elements,
-                                manager->getIndexList(i));
+                                &(manager->getIndexList(i)));
            exec.execute(write);
          }
      }
@@ -466,7 +473,7 @@ bool DArray::initialize(ListExpr n_type, string n,
 }
 
 
-Word DArray::get(int i) 
+const Word& DArray::get(int i) 
 { 
    //returns an element of the elements-array
    if(defined && m_present[i]) 
@@ -483,7 +490,7 @@ Word DArray::get(int i)
 
      cout << " (Index: " << i << ")" << endl; 
      
-     return new Word(); 
+     return DServer::ms_emptyWord; 
    } 
 }
 
@@ -491,8 +498,8 @@ void DArray::set(Word n_elem, int i)
 { 
    //sets an element of the array
    //the element is subsequently written to the corresponding worker
-   list<int>* l = new list<int>;
-   l->push_front(i);
+   list<int> l;
+   l.push_front(i);
    
    if(defined) 
    {
@@ -502,7 +509,7 @@ void DArray::set(Word n_elem, int i)
       {
          DServer* server = manager->getServerByIndex(i);
          server->setCmd(DServer::DS_CMD_WRITE,
-                        l,&m_elements);
+                        &l,&m_elements);
          server->run();
       }
       else
@@ -512,27 +519,6 @@ void DArray::set(Word n_elem, int i)
       m_present[i] = 1; //true
    }
 }
-
-         
-int DArray::getAlgID() { return alg_id; }
-
-int DArray::getTypID() { return typ_id; }
-
-ListExpr DArray::getType() { return type; }
-
-ListExpr DArray::getServerList() { return serverlist; }
-
-string DArray::getName() { return name; }
-
-bool DArray::isDefined() { return defined; }
-
-int DArray::getSize() { return size; }
-
-DServerManager* DArray::getServerManager() {return manager;}
-
-//Is needed to provide DServer-objects with a pointer to the elements-array
-const vector<Word>& DArray::getElements() const {return m_elements;}
-
 
 void DArray::WriteRelation(int index)
 {
@@ -546,8 +532,8 @@ void DArray::WriteRelation(int index)
      
    Tuple* t;
    
-   list<int>* l = new list<int>;
-   l->push_front(index);
+   list<int> l;
+   l.push_front(index);
      
      
    vector<Word> word(1);
@@ -555,8 +541,8 @@ void DArray::WriteRelation(int index)
    //open tuple stream to worker
    t = iter->GetNextTuple();
    word[0].addr = t;
-   worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL
-                  ,l,&word);
+   worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL,
+                  &l,&word);
    worker->run();
      
    //send each tuple
@@ -651,6 +637,7 @@ ListExpr DArray::Out( ListExpr typeInfo, Word value )
          element = ((am->OutObj(a->getAlgID(),a->getTypID()))
                   (nl->Second(typeInfo),
                    a->get(i)));
+
          last=nl->Append(last,element);
        }
      }
@@ -711,15 +698,15 @@ Word DArray::Clone( const ListExpr typeInfo, const Word& w )
    for(int i =0;i<alt->getSize();i++)
    {
       
-      list<int>* l = new list<int>;
-      l->push_front(i);
+      list<int> l;
+      l.push_front(i);
       
       string to = neu->getName();
       vector<Word> w(1);
       w[0].addr = &to;
 
       alt->getServerManager()->getServerByIndex(i)
-        ->setCmd(DServer::DS_CMD_COPY,l,&w);
+        ->setCmd(DServer::DS_CMD_COPY,&l,&w);
       
       alt->getServerManager()->getServerByIndex(i)->run();
    }
@@ -1155,14 +1142,14 @@ static int putFun( Word* args,
       if(j!=i)
       {
          
-         list<int>* l = new list<int>;
-         l->push_front(j);
+         list<int> l;
+         l.push_front(j);
          
          
          array_alt-> 
          getServerManager() -> 
          getServerByIndex(j) -> 
-           setCmd(DServer::DS_CMD_COPY,l,&w);
+           setCmd(DServer::DS_CMD_COPY,&l,&w);
          
          array_alt->getServerManager()->getServerByIndex(j)->run();
       }
@@ -1352,7 +1339,6 @@ Operator sendA(
 
 
 /* 
-
 5.5 Operator receive
 
 Internal Usage for Data Transfer between Master and Worker
@@ -1921,36 +1907,56 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    int server_no = man->getNoOfServers();
    int rel_server = (size / server_no);
    
-   ZThread::ThreadedExecutor ex;
-   cout << "Multiplying worker connections... (Servers:" 
-        << server_no << "/" << rel_server << ")" << endl;
-   for(int i = 0; i<server_no;i++)
-   {
-      server = man->getServerbyID(i);
-      DServerMultiplyer* mult = new DServerMultiplyer(server,
-                                                      rel_server);
-      ex.execute(mult);
-   }
-   ex.wait();
-     
-   for(int i = 0; i < size; i++)
-   {
-      server = man->getServerByIndex(i);
-      int child = man->getMultipleServerIndex(i);
-      
-      if(child > -1)
-         server = (server->getChilds())[child];
-          
-      list<int>* l = new list<int>;
-      l->push_front(i);
-          
-      server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, l);
-      DServerExecutor* run = new DServerExecutor(server);
-      ex.execute(run);      
-//server->run();
-   }
-   ex.wait();  
 
+   ZThread::ThreadedExecutor ex;
+   try 
+     {   
+       cout << "Multiplying worker connections... (Servers:" 
+            << server_no << "/" << rel_server << ")" << endl;
+       for(int i = 0; i<server_no;i++)
+         {
+           server = man->getServerbyID(i);
+           DServerMultiplyer* mult = new DServerMultiplyer(server,
+                                                           rel_server);
+           ex.execute(mult);
+         }
+       ex.wait();
+     }
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       cerr << "Could not multiply  DServers!" << endl;
+       cerr << e.what() << endl;
+       return 1;
+     }
+
+   try 
+     {
+       for(int i = 0; i < size; i++)
+         {
+           server = man->getServerByIndex(i);
+           int child = man->getMultipleServerIndex(i);
+      
+           if(child > -1)
+             server = (server->getChilds())[child];
+          
+           list<int> l;
+           l.push_front(i);
+          
+           server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l);
+           DServerExecutor* run = new DServerExecutor(server);
+           ex.execute(run);      
+           //server->run();
+         }
+       ex.wait();  
+
+     }
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       cerr << "Could not initiate ddistibute command!" << endl;
+       cerr << e.what() << endl;
+       return 1;
+     }
+   
    int number = 0;               
      
    ListExpr tupleType = nl->Second(restype);
@@ -1960,66 +1966,86 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    qp->Request(args[0].addr,current);
      
    
+   try
+     {
      
-   while(qp->Received(args[0].addr))
-   {
-      Tuple* tuple1 = (Tuple*)current.addr;
-      Tuple* tuple2 = new Tuple(tupleType);
+       while(qp->Received(args[0].addr))
+         {
+           Tuple* tuple1 = (Tuple*)current.addr;
+           Tuple* tuple2 = new Tuple(tupleType);
 
           
-      int j = 0;
-      for(int i = 0; i < tuple1->GetNoAttributes(); i++)
-      {
-         if(i != attrIndex)
-            tuple2->CopyAttribute(i,tuple1,j++);
-      }
+           int j = 0;
+           for(int i = 0; i < tuple1->GetNoAttributes(); i++)
+             {
+               if(i != attrIndex)
+                 tuple2->CopyAttribute(i,tuple1,j++);
+             }
 
-      int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
-      tuple1->DeleteIfAllowed();
+           int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
+           tuple1->DeleteIfAllowed();
           
-      index = index % size;
-      int child = man->getMultipleServerIndex(index);
-      server = man->getServerByIndex(index);
+           index = index % size;
+           int child = man->getMultipleServerIndex(index);
+           server = man->getServerByIndex(index);
       
-      if(child > -1) 
-         server = (server->getChilds())[child];
+           if(child > -1) 
+             server = (server->getChilds())[child];
           
-      vector<Word> *w = new vector<Word> (1);
-      (*w)[0] = SetWord(tuple2);tuple2->IncReference();
+           vector<Word> *w = new vector<Word> (1);
+           (*w)[0] = SetWord(tuple2);tuple2->IncReference();
 
-      while(server->status != 0) 
-         ZThread::Thread::yield();
+           while(server->status != 0) 
+             ZThread::Thread::yield();
       
-      server->status = 1;
-      server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
-      DServerExecutor* exec = new DServerExecutor(server);
+           server->status = 1;
+           server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
+           DServerExecutor* exec = new DServerExecutor(server);
       
-      ex.execute(exec);
+           ex.execute(exec);
 
-      tuple2->DeleteIfAllowed();
+           tuple2->DeleteIfAllowed();
           
-      qp->Request(args[0].addr,current);
+           qp->Request(args[0].addr,current);
           
-      number++; 
-      if ( number % 1000 == 0 )
-        {
-          cout << toString_d(number) << " tuples sent!" << endl;
-        }
-   }
+           number++; 
+           if ( number % 1000 == 0 )
+             {
+               cout << toString_d(number) << " tuples sent!" << endl;
+             }
+         } // while (...)
      
-   ex.wait();     
-     
-   for(int i = 0; i < size; i++)
-   {
-      server = man->getServerByIndex(i);
-      int child = man->getMultipleServerIndex(i);
-      if(child > -1)
-         server = (server->getChilds())[child];
+       ex.wait();   
+
+     }
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       cerr << "Could not distibute data!" << endl;
+       cerr << e.what() << endl;
+       return 1;
+     }
+
+   try 
+     {
+       for(int i = 0; i < size; i++)
+         {
+           server = man->getServerByIndex(i);
+           int child = man->getMultipleServerIndex(i);
+           if(child > -1)
+             server = (server->getChilds())[child];
           
-      server->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
-      server->run();
-   }
+           server->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
+           server->run();
+         }
      
+     }
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       cerr << "Could not finalize ddistribute!" << endl;
+       cerr << e.what() << endl;
+       return 1;
+     }
+   
    for(int i = 0; i<server_no;i++)
    {
       server = man->getServerbyID(i);
@@ -2045,7 +2071,7 @@ const string distributeSpec =
       "<text>_ ddistribute [ _ , _ , _]</text--->"
       "<text>Distributes a stream of tuples" 
      "into a darray of relations.</text--->"
-      "<text>let prel = plz feed ddistribute [pkg,3,server_rel]</text--->))";
+      "<text>plz feed ddistribute [pkg,3,server_rel]</text--->))";
 
 Operator distributeA (
       "ddistribute",
@@ -2059,78 +2085,128 @@ Operator distributeA (
 5.9 Operator loop
 
 */
-
+template< int dim>
 static ListExpr loopTypeMap(ListExpr args)
 {
+  ListExpr errRes = nl->SymbolAtom("typeerror");
 
- 
-   if(nl->ListLength(args) == 2)
-   {
-      ListExpr array = nl->First(nl->First(args));
-      ListExpr map = nl->First(nl->Second(args));
+  NList m_args(args);
+  NList params;
+
+   if(m_args.length() == dim + 1)
+    {
+      NList mapdesc = m_args.elem(dim + 1);
+     
+      if (mapdesc.first().length() != dim + 2 )
+        {
+          return  errRes;
+        }
+
+      if (mapdesc.first().first() != NList("map"))
+        {
+          return  errRes;
+        }
+      if (mapdesc.first().elem(dim+2) == NList("typeerror"))
+        {
+          return  errRes;
+        }
+
+      params = NList(dim).enclose();
+
+      params.append(NList(NList(NList(mapdesc.
+                                      second().
+                                      elem(dim + 2).
+                                      convertToString(), 
+                                      true, true))));
+
+      for (unsigned int i = 0; i < dim; ++i)
+        {
+          NList darraydesc = m_args.elem(i + 1);
           
-      if(nl->ListLength(array) == 2 &&
-         nl->ListLength(map) == 3)
-      {
-         if(nl->IsEqual(nl->First(array),"darray") &&
-            nl->IsEqual(nl->First(map),"map") &&
-            !nl->IsEqual(nl->Third(map),"typeerror"))
-         {
-           if(nl->Equal(nl->Second(array),nl->Second(map)))
-             {
-             ListExpr res =  
-               nl->ThreeElemList(
-                   nl->SymbolAtom("APPEND"),
-                   nl->TwoElemList(nl->TextAtom(nl->ToString(
-                   nl->Third(nl->Second(nl->Second(args))))),
-                   nl->StringAtom(nl->ToString(
-                   nl->First(nl->Second(nl->Second(nl->Second(args))))))),
-                   nl->TwoElemList(
-                               nl->SymbolAtom("darray"),
-                               nl->Third(map)));
+          // check for correct types
+          if (darraydesc.length() != 2)
+            {
+              return  errRes;
+            }
+          if(darraydesc.first() == ("darray"))
+            {
+              return  errRes;
+            }
+ 
+          //check, if darray and map are equal
+          if (darraydesc.first().second() != mapdesc.first().elem(i + 2))
+            {
+              return  errRes;
+            }
+          params.append(NList
+                        (NList
+                         (mapdesc.second().
+                          elem(i + 2).first().convertToString(), true)));
+        }
+      
+      NList res =  
+        NList(NList(Symbols::APPEND()),
+              params,
+
+              NList(NList("darray"),
+                    mapdesc.first().elem(dim + 2)));
              
-             return res;
-             }
-         }
-      }
-   }
-   ListExpr errRes = nl->SymbolAtom("typeerror");
+      return res.listExpr();
+    }
+
    return errRes;
 }
 
+template< int dim>
 static int loopValueMap
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-   DArray* alt = (DArray*)args[0].addr;
-     
+   int dloopCnt = dim;
    result = qp->ResultStorage(s);
      
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
-   string command = ((FText*)args[2].addr)->GetValue();
-   string elementname = ((CcString*)(args[3].addr))->GetValue();
-   command = stringutils::replaceAll(command, elementname, "!");
-  
-     
+   string command = ((FText*)args[dim + 2].addr)->GetValue();
+
    ZThread::ThreadedExecutor exec;DServer* server;
    DServerExecutor* ex;
    
-   int size = alt->getSize();
+   int size = 0;
+   ListExpr serverList;
+   vector<string> from;
+   
+   string rpl = "!";
+   for (int i = 0; i < dim; i ++)
+     {
+       DArray* alt = (DArray*)args[i].addr;
+       if (size == 0)
+         {
+           size = alt -> getSize();
+         }
 
-   vector<Word>* w = new vector<Word> (2);
-   //string to = ((DArray*)(result.addr))->getName();
+       size = min(size, alt -> getSize());
+       serverList = alt->getServerList();
+
+       from.push_back(alt->getName());
+       // TODO: need to compare server lists!
+
+       string elementname = ((CcString*)args[i+ dim + 3].addr) -> GetValue();
+       command = stringutils::replaceAll(command, elementname, rpl);
+       rpl += "!";
+     }
+
    string name = getArrayName(DArray::no);
-   string to = name;
-   (*w)[0].addr = &to;
-   (*w)[1].addr = &command;
+   vector<Word>* w = new vector<Word> (2);
+   (*w)[0].addr = &command;
+   (*w)[1].addr = &name;
    
    bool rc = ((DArray*)(result.addr))->initialize(type,
                                                   name,
-                                                  alt->getSize(),
-                                                  alt->getServerList());   
+                                                  size,
+                                                  serverList);   
                                                       
-   DServerManager* man = alt->getServerManager();
-   //DServer* server = 0;
+   //DServerManager* man = alt->getServerManager();
+   DServerManager* man = ((DArray*)(result.addr)) -> getServerManager();
           
    //Multiply worker connections
    int server_no = man->getNoOfServers();
@@ -2138,41 +2214,55 @@ static int loopValueMap
    
    cout << "Multiplying worker connections...(Servers:" 
         << server_no << "/" << rel_server  << ")" << endl;
+   try
+     {
+       for(int i = 0; i<server_no;i++)
+         {
+           server = man->getServerbyID(i);
+           DServerMultiplyer* mult = new DServerMultiplyer(server,rel_server); 
+           exec.execute(mult);
+         }
+       exec.wait();
+     }
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       cerr << "Could not multiply  DServers!" << endl;
+       cerr << e.what() << endl;
+       return 1;
+     }
 
-   for(int i = 0; i<server_no;i++)
-   {
-      server = man->getServerbyID(i);
-      DServerMultiplyer* mult = new DServerMultiplyer(server,rel_server);
-      exec.execute(mult);
-   }
-   exec.wait();
-   
-   /* Old Version
-   for(int i=0; i < alt->getServerManager()->getNoOfServers(); i++)
-   {
-      server = alt->getServerManager()->getServerbyID(i);
-      server->setCmd("execute",alt->getServerManager()->getIndexList(i),w);
-          
-      ex = new DServerExecutor(server);
-      exec.execute(ex);
-   }*/
-   
-   for(int i=0; i < size; i++)
-   {
-      server = man->getServerByIndex(i);
-      int child = man->getMultipleServerIndex(i);
-      if(child > -1)
-         server = (server->getChilds())[child];
-      
-      list<int>* l = new list<int>; l->push_front(i);
-      server->setCmd(DServer::DS_CMD_EXEC, l, w);
-      ex = new DServerExecutor(server);
-      exec.execute(ex);
-   }
+   if (!man -> checkServers())
+     {
+       cerr << "Check workers failed!" << endl;
+       cerr << man -> getErrorText() << endl;
+       return 1;
+     }
 
+   try
+     {
+       for(int i=0; i < size; i++)
+         {
+           server = man->getServerByIndex(i);
+           int child = man->getMultipleServerIndex(i);
+           if(child > -1)
+             server = (server->getChilds())[child];
+           
+           list<int> l;
+           l.push_front(i);
+           server->setCmd(DServer::DS_CMD_EXEC, &l, w, &from);
+           ex = new DServerExecutor(server);
+           exec.execute(ex);
+         }
+       exec.wait();     
+     }
 
-   exec.wait();     
-   
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       cerr << "Could not execute command on workers!" << endl;
+       cerr << e.what() << endl;
+       return 1;
+     }
+
    //Close additional connections
    
    for(int i = 0; i<server_no;i++)
@@ -2180,9 +2270,6 @@ static int loopValueMap
       server = man->getServerbyID(i);
       server->DestroyChilds();
    }
- 
-     
-
 
    return 0;
      
@@ -2190,24 +2277,37 @@ static int loopValueMap
 
 const string loopSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>((darray t) (map t u) text) -> darray u</text--->"
-      "<text>_ dloop [ _ , _ ]</text--->"
+    "( <text>((darray t) (map t u)) -> (darray u)</text--->"
+      "<text>_ dloop [ fun ]</text--->"
       "<text>Evaluates each element with a function, that needs to be given"
-      "as paremeter function an as a text value (where ! represents "
-      "the element)</text--->"
-      "<text>query plz_a20 dloop[. feed count,'! feed count']</text--->))";
+      "as paremeter function </text--->"
+      "<text>query plz_a20 dloop[. count]</text--->))";
+struct loopaSpec : OperatorInfo {
+  loopaSpec() : OperatorInfo() {
+    name = "dloopa";
+    signature = "((darray t) (darray u) (map t u r)) -> (darray r)";
+    syntax = "_ _ dloopa [ fun ]";
+    meaning = 
+      "Evaluates each element of each darray with a function, "
+      "that needs to be given as paremeter function";
+  }
+};
 
 
 Operator loopA (
       "dloop",
       loopSpec,
-      loopValueMap,
+      loopValueMap<1>,
       Operator::SimpleSelect,
-      loopTypeMap );
+      loopTypeMap <1>);
 
+Operator dloopA (loopaSpec(),
+                 loopValueMap<2>,
+                 loopTypeMap <2>);
+ 
 /*
 
-5.10 Type Operator DELEMENT 
+5.10.1 Type Operator DELEMENT 
 (derived from Operator ELEMENT of the ArrayAlgebra)
 
 */
@@ -2242,6 +2342,43 @@ Operator dElementA (
       0,
       Operator::SimpleSelect,
       delementTypeMap );
+
+/*
+
+5.10.2 Type Operator DELEMENT2
+
+*/
+
+ListExpr delement2TypeMap( ListExpr args )
+{
+   if(nl->ListLength(args) >= 2)
+   {
+      ListExpr second = nl->Second(args);
+      if (nl->ListLength(second) == 2)
+      {
+         if (nl->IsEqual(nl->First(second), "darray")) 
+         {
+            return nl->Second(second);
+         }
+      } 
+   }
+   return nl->SymbolAtom("typeerror");
+}
+
+const string DELEMENT2Spec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>((array t) ... ) -> t</text--->"
+      "<text>type operator</text--->"
+      "<text>Extracts the type of the elements from a darray type given "
+      "as the second argument.</text--->"
+      "<text>not for use with sos-syntax</text---> ))";
+
+Operator dElementA2 (
+      "DELEMENT2",
+      DELEMENT2Spec,
+      0,
+      Operator::SimpleSelect,
+      delement2TypeMap );
 
 /*
 5.11 Operator ~dtie~
@@ -2545,7 +2682,9 @@ class DistributedAlgebra : public Algebra
          AddOperator( &sendrelA);
          AddOperator( &distributeA);
          AddOperator( &loopA); loopA.SetUsesArgsInTypeMapping();
+         AddOperator( &dloopA); dloopA.SetUsesArgsInTypeMapping();
          AddOperator( &dElementA);
+         AddOperator( &dElementA2);
          AddOperator( &dtie);
          AddOperator( &dsummarize );
       }

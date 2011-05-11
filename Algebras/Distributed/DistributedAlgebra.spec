@@ -41,6 +41,9 @@ operator ddistribute alias DDISTRIBUTE pattern _ op [_, _]
 operator dloop alias DLOOP pattern _ op [ fun ]
 implicit parameter element type DELEMENT
 
+operator dloopa alias DLOOPA pattern _ _ op [ fun ] 
+         implicit parameters first, second types DELEMENT, DELEMENT2
+
 operator dtie alias DTIE pattern _ op [ fun ] 
          implicit parameters first, second types DELEMENT, DELEMENT 
 

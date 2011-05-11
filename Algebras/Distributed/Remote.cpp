@@ -33,6 +33,7 @@ DServerCreator, DServerExecutor and RelationWriter
 
 #include "Remote.h"
 #include "SocketIO.h"
+#include "Processes.h"
 #include "RelationAlgebra.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
@@ -67,11 +68,20 @@ A TCP-connection to the corresponding worker ist opened
 
 */
 
+//#define DEBUG_DISTRIBUTE 1
+
+Word DServer::ms_emptyWord;
+
+void DServer::Debug(const string& tag, const string& out)
+{
+#if defined (DEBUG_DISTRIBUTE)
+  cout << tag << ": " << out << endl;
+#endif
+}
+
 
 DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
 {
-  // cout << "DServer created:" << n_host 
-  //     << ":" << n_port << "  " << n_name << endl;
    host = n_host;
    port = n_port;
    name = n_name;
@@ -81,48 +91,229 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
    
    rel_open = false;
    m_cmd = NULL;
+   m_fs = NULL;
+   m_numChilds = 0;
 }
 
 bool
 DServer::connectToWorker()
 {        
-   string line;
-        
-   server = Socket::Connect( host, toString_d(port), 
-                             Socket::SockGlobalDomain );
-   
-   if(server!=0 && server->IsOk())
-   {
-     //cout << "  starting ..." << endl;
-      iostream& iosock = server->GetSocketStream();
+  bool tryAgain = false;
+  string line;
+  do 
+    {
+      
+      server = Socket::Connect( host, toString_d(port), 
+                                Socket::SockGlobalDomain,
+                                5,
+                                1);
+      
+      if(server!=0 && server->IsOk())
+        {
+          DServer::Debug("DS-Conn", "starting ...");
 
-      getline( iosock, line );
-                
-      if(line=="<SecondoOk/>")
-      {
-         iosock << "<Connect>" << endl << endl 
+          iostream& iosock = server->GetSocketStream();
+          
+          if (!server -> IsOk())
+            {
+              cout << "Error: Faild to establish socket for host " 
+                   << host << ":" << port << "!" << endl;
+            }
+          
+          do
+            {
+              getline( iosock, line );
+              
+              DServer::Debug("DSConn-Rec1", line);
+            } while (line.empty());
+ 
+          if (!server -> IsOk())
+            {
+              cout << "Error: Faild to establish socket for connection"
+                   << " to host " << host << ":" << port << "!" << endl;
+            }
+          
+          if(line=="<SecondoOk/>")
+            {
+              iosock << "<Connect>" << endl << endl 
                      << endl << "</Connect>" << endl;
-         
-         getline( iosock, line );
-                        
-         if( line == "<SecondoIntro>")
-         {
-            do
-               getline( iosock, line);
-            while(line != "</SecondoIntro>");
-                                   
-         }
-         else 
-            errorText = "Unexpected response from worker (No <SecondoIntro/>)";
-      }
+              
+              getline( iosock, line );
+              
+              DServer::Debug("DSConn-Rec2", line);
+              if( line == "<SecondoIntro>")
+                {
+                  do
+                    {
+                      getline( iosock, line);
+                      
+                      DServer::Debug("DSConn-Rec3", line);
+
+                    }  while(line != "</SecondoIntro>");
+
+                  tryAgain = false;
+                  DServer::Debug("DSConn", "... done.");
+                  
+                }
+              else 
+                errorText = 
+                  "Unexpected response from worker (No <SecondoIntro/>)";
+            }
+          else 
+            errorText = "Unexpected response from worker (No <SecondoOk/>)";
+        }
       else 
-         errorText = "Unexpected response from worker (No <SecondoOk/>)";
-   }
-   else 
-      errorText = "Connection to the worker couldn't be established!";
+        errorText = "Connection to the worker couldn't be established!";
         
-   //cout << "  .. done:" << errorText << endl;
-   //cout << "  open db ..." << endl;
+      if (server == 0)
+        {
+          // should never happen
+          // Socket::Connect always returns a pointer!
+          assert(0);
+          return false;
+        }
+      
+      if (!(server -> IsOk()))
+        { 
+          cout << "Cannot Connect to Server:" 
+               << host << ":" << toString_d(port) << endl;
+          cout << server -> GetErrorText() << endl;
+
+          if (!tryAgain)
+            {
+              errorText = "OK";
+              tryAgain = true;
+              
+              bool sd = server -> ShutDown();
+              delete server;
+              server = 0;
+              //cout << "Shutting down connection:" << sd << endl;
+              
+              //delete server;
+              //server = 0;
+            }
+          else
+            {
+              delete server;
+              server = 0;
+
+              return false;
+            }
+        } // if (!(server -> IsOk()))
+
+      if (tryAgain)
+        {
+          cout << "Automatic start of SecondoMonitor NOT supported!" << endl;
+          cout << "Please start SecondoMonitor on host " 
+               << host << " by hand!" << endl;
+          return false;
+
+          cout << "Starting SecondoMonitor ...." << endl; 
+          bool secondoMonitorRunning = false;
+
+#if 1     // testing run script "startRemote"
+          // if set to 0, testing popen
+
+          // --- Start up process factory
+          if ( !ProcessFactory::StartUp() )
+            {
+              return false;
+            }
+
+          int pidMonitor;
+          string dir = "/home/achmann/secondo/bin/";
+          string startRemoteDir = "/home/achmann/secondo/Algebras/Distributed/";
+          string secMonitorLog = "~/log.txt";
+          string secMonitor = startRemoteDir + "startRemote";
+          string secMonitorArgs = "-d "+ dir +
+            " -s "
+            //-l " + secMonitorLog 
+            + "-h localhost \"SecondoMonitor -s\"";
+
+          DServer::Debug("DSConn","Starting: " + secMonitor + " " +
+                         secMonitorArgs);
+
+          if ( !ProcessFactory::SpawnProcess( secMonitor, secMonitorArgs,
+                                              pidMonitor , true) )
+            {
+              cout << " ... failed" << endl;
+            }
+          else
+            {
+              cout << " ... running" << endl;
+              secondoMonitorRunning = true;
+            }
+
+          //sleep (20);
+          WinUnix::sleep( 20 );
+        
+               
+    
+#else // testing popen
+
+          char qBuf[1024];
+          memset(qBuf, '\0', sizeof(qBuf));
+          string qStr;
+          
+          qStr = 
+            "ssh localhost bash -c \\\"cd /home/achmann/secondo/bin;\
+             nohup SecondoMonitor -s < /dev/null & \\\"  ";
+
+          DServer::Debug("DSConn-Run", qStr);
+
+          m_fs = popen(qStr.c_str(), "r");
+
+          //sleep(15); // wait for starting
+          
+          if (m_fs != NULL)
+            {
+              secondoMonitorRunning = true;
+              bool startingSecondoMonitor = true;
+              while (startingSecondoMonitor)
+                {
+                  if (fgets(qBuf, sizeof(qBuf), m_fs) != NULL)
+                    {
+                      string line (qBuf);
+                      DServer::Debug("DSConn-RET1", qBuf);
+                      if (line.find("SecondoListener") != -1)
+                        {
+                          bool findCompleted = false;
+                          do {
+                            if (fgets(qBuf, sizeof(qBuf), m_fs) != NULL)
+                              {
+                                string line2 (qBuf);
+                                DServer::Debug("DSConn-RET2", line2);
+                                if (line. find("completed"))
+                                  findCompleted = true;
+                              }
+                            else
+                              startingSecondoMonitor = false;
+
+                          } while (!findCompleted && startingSecondoMonitor);
+                          startingSecondoMonitor = false;
+                        }
+                    }
+                  else
+                    {
+                      startingSecondoMonitor = false;
+                    }
+                }
+                  
+            }
+          else
+            {
+              cout << "Error starting Secondo Monitor!" << endl;
+            }
+#endif
+
+          if (!secondoMonitorRunning)
+            {
+              cout << "SecondoMonitor on " << host 
+                   << " is  NOT running !" << endl;
+            }
+        }
+} while(tryAgain);
+
 
    iostream& iosock = server->GetSocketStream();
    
@@ -150,8 +341,6 @@ DServer::connectToWorker()
       errorText = "Unexpected response from worker (No <SecondoResponse>)";
         
 
-   //cout << "   ... done:" << errorText << endl;
-
    HostIP = server->GetSocketAddress();
    HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
@@ -171,12 +360,32 @@ void DServer::Terminate()
 {
    if(server != 0)
    {
-      iostream& iosock = server->GetSocketStream();
-      iosock << "<Disconnect/>" << endl;
-      server->Close();
-      delete server;
-      server=0;
+     if (!(server->IsOk()))
+       {
+         cout << "Error: Cannot close connection to " << host << "!" << endl;
+         cout << server -> GetErrorText() << endl;
+       }
+     else
+       {
+         iostream& iosock = server->GetSocketStream();
+         iosock << "<Disconnect/>" << endl;
+         if (m_fs == NULL)
+           {
+             server->Close();
+           }
+         else
+           {
+             cout << "DST-Shutdown!" << endl;
+             server->Close();
+           }
+       }
+     delete server;
+     server=0;
    }
+   else
+     {
+       cout << "Error: No Server Running!" << endl;
+     }
 
    if (m_cmd != NULL)
      delete m_cmd;
@@ -192,12 +401,16 @@ Sets new paramaters that are needed for the run-method
 */
 
 void DServer::setCmd(CmdType inCmdType, 
-                     list<int>* inArgs,
-                     vector<Word>* inElements)
+                     const list<int>* inIndex,
+                     vector<Word>* inElements,
+                     vector<string>* inFromNames)
 {
   assert(m_cmd == NULL);
   
-  m_cmd =  new RemoteCommand(inCmdType, inArgs, inElements);
+  m_cmd =  new RemoteCommand(inCmdType, inIndex, 
+                             inElements, inFromNames);
+
+  //cout << (*m_cmd) << endl;
 }
 
 /*
@@ -212,7 +425,8 @@ void DServer::run()
 {
   assert(m_cmd != NULL);
     
-   int arg2;
+  int arg2;
+  string sendCmd;
 
    if(m_cmd -> getCmdType() == DS_CMD_WRITE)
    {
@@ -226,11 +440,11 @@ void DServer::run()
                 
       TypeConstructor* t = am->GetTC(algID,typID);
       
-      while(!m_cmd -> getArgs() ->empty())
+      while(!m_cmd -> getDArrayIndex() -> empty())
       {
 
-         arg2 = m_cmd -> getArgs() ->front();
-         m_cmd -> getArgs() ->pop_front();
+         arg2 = m_cmd -> getDArrayIndex() ->front();
+         m_cmd -> getDArrayIndex() ->pop_front();
         
          iostream& iosock = server->GetSocketStream();
          string port =toString_d((1800+arg2)); 
@@ -384,153 +598,175 @@ void DServer::run()
    if(m_cmd -> getCmdType() == DS_CMD_READ)
    {
       if(rel_open) return;
+
       int algID,typID;
       extractIds(type,algID,typID);
                 
       string daten;
                 
-      while(!m_cmd -> getArgs() ->empty())
-      {
-
-         arg2 = m_cmd -> getArgs() ->front();
-         m_cmd -> getArgs() ->pop_front();
-         string port =toString_d((1500+arg2));
-         
-         //The sendD-operator on the worker is started       
-         iostream& iosock = server->GetSocketStream();
-         iosock << "<Secondo>" << endl << "1" << endl 
-                  << "query sendD (" << HostIP_ << ",p" << port << ",r" 
-                  << name << toString_d(arg2) << ")" <<  endl 
-                  << "</Secondo>" << endl;
-                
+ 
+      while(!m_cmd -> getDArrayIndex() -> empty())
+        {
+          arg2 = m_cmd -> getDArrayIndex() -> front();
+          m_cmd -> getDArrayIndex() -> pop_front();
+          string port =toString_d((1500+arg2));
           
-         //Callback-connection is received
-         Socket* gate = Socket::CreateGlobal( HostIP, port);
+          //The sendD-operator on the worker is started       
+          iostream& iosock = server->GetSocketStream();
+          
+          DServer::Debug("DSR-READ send iosock",  "<Secondo> 1 query sendD (" + 
+                         HostIP_ + ",p" + port + ",r" + name +
+                         toString_d(arg2) + ") </Secondo>");
 
-         Socket* worker = gate->Accept();
-         gate->Close();delete gate;gate=0;
+          iosock << "<Secondo>" << endl << "1" << endl 
+                 << "query sendD (" << HostIP_ << ",p" << port << ",r" 
+                 << name << toString_d(arg2) << ")" <<  endl 
+                 << "</Secondo>" << endl;
+      
+          
+          //Callback-connection is received
+          Socket* gate = Socket::CreateGlobal( HostIP, port);
+          
+          Socket* worker = gate->Accept();
+          gate->Close();delete gate;gate=0;
+          
+          iostream& cbsock = worker->GetSocketStream();
+          cbsock << "<TYPE>" << endl << nl->ToString(type)
+                 << endl << "</TYPE>" << endl;
+          
+          DServer::Debug("DSR-READ send cbsock","<TYPE>" + 
+                         nl->ToString(type) + "</TYPE>");
+          DServer::Debug("DSR-READ"," ... done");
 
-         iostream& cbsock = worker->GetSocketStream();
-         cbsock << "<TYPE>" << endl << nl->ToString(type)
-                     << endl << "</TYPE>" << endl;
-                             
-         string line;
-         getline(cbsock,line);
-                
-         if(line=="<SIZE>")
-         {
-            //Size of binary data is received
-            getline(cbsock,line);
-            int size = atoi(line.data());
-            getline(cbsock,line);
+          string line;
+          getline(cbsock,line);
+          
+          DServer::Debug( "DSR-READ1", line);
 
-             //The actual data is received...       
-            char* buffer = new char[size];
-            memset(buffer,0,size);
-            cbsock.read(buffer,size);
-            
-            //... and converted back to a secondo-object
-            SmiRecordFile recF(false,0);
-            SmiRecord rec;
-            SmiRecordId recID;
-                     
-            recF.Open("rec");
-            recF.AppendRecord(recID,rec);
-            rec.Write(buffer,size,0);
-            
-            size_t s = 0;
-            am->OpenObj(algID,typID,rec,s,type,
-                        (*(m_cmd -> getElements()))[arg2]);
-               
-            recF.DeleteRecord(recID);
-            recF.Close();
-            
-            delete buffer;
-            
-            getline(cbsock,line);
-            
-            int flobs=0;
-            
-            //The threads must not write a flob on the same time
-            Flob_Mutex.acquire();
-           
-            while(line=="<FLOB>")
-            { 
-               getline(cbsock,line);
-               if(line!="<SIZE>")
-                  errorText = (string)"Unexpected Response from" 
-                                 + " worker (<SIZE> expected)!";
-               
-               //Size of the flob is received
-               getline(cbsock,line);
-               SmiSize si = atoi(line.data());
-               getline(cbsock,line);
-               
-               if(line!="</SIZE>")
-                  errorText = (string)"Unexpected Response from " 
-                                 + "worker (</SIZE> expected)!";
-            
-               int n_blocks = si / 1024 + 1;
-               
-               //Data of the flob is received
-               char* buf = new char[n_blocks*1024];
-               memset(buf,0,1024*n_blocks);
-               
-               for(int i = 0; i< n_blocks; i++)
-                  cbsock.read(buf+1024*i,1024);
-            
-               Attribute* a = static_cast<Attribute*>
-             ((am->Cast(algID,typID))((*(m_cmd -> getElements()))[arg2].addr));
-            
-               //Flob data is written
-               Flob*  f = a->GetFLOB(flobs);
-               f->write(buf,si,0);
-            
-            
-               delete buf;
-            
-               getline(cbsock,line);
-               if(line!="</FLOB>") 
-                  errorText = (string)"Unexpected Response from " 
-                                    + "worker (</SIZE> expected)!";
-            
-               getline(cbsock,line);
-               flobs++;
+          if(line=="<SIZE>")
+            {
+              //Size of binary data is received
+              getline(cbsock,line);
+              DServer::Debug("DSR-READ2", line);
+              int size = atoi(line.data());
+              getline(cbsock,line);
+              
+              DServer::Debug("DSR-READ3", line);
+              //The actual data is received...       
+              char* buffer = new char[size];
+              memset(buffer,0,size);
+              cbsock.read(buffer,size);
+              
+              //... and converted back to a secondo-object
+              SmiRecordFile recF(false,0);
+              SmiRecord rec;
+              SmiRecordId recID;
+              
+              recF.Open("rec");
+              recF.AppendRecord(recID,rec);
+              rec.Write(buffer,size,0);
+              
+              size_t s = 0;
+              am->OpenObj(algID,typID,rec,s,type,
+                          (*(m_cmd -> getElements()))[arg2]);
+              
+              recF.DeleteRecord(recID);
+              recF.Close();
+              
+              delete buffer;
+              
+              getline(cbsock,line);
+              
+              DServer::Debug("DSR-READ4", line);
+              int flobs=0;
+              
+              //The threads must not write a flob on the same time
+              Flob_Mutex.acquire();
+              
+              while(line=="<FLOB>")
+                { 
+                  getline(cbsock,line);
+                  DServer::Debug("DSR-READ5", line);
+                  if(line!="<SIZE>")
+                    errorText = (string)"Unexpected Response from" 
+                      + " worker (<SIZE> expected)!";
+                  
+                  //Size of the flob is received
+                  getline(cbsock,line);
+                  DServer::Debug("DSR-READ6", line);
+                  SmiSize si = atoi(line.data());
+                  getline(cbsock,line);
+                  
+                  DServer::Debug("DSR-READ7", line);
+                  if(line!="</SIZE>")
+                    errorText = (string)"Unexpected Response from " 
+                      + "worker (</SIZE> expected)!";
+                  
+                  int n_blocks = si / 1024 + 1;
+                  
+                  //Data of the flob is received
+                  char* buf = new char[n_blocks*1024];
+                  memset(buf,0,1024*n_blocks);
+                  
+                  for(int i = 0; i< n_blocks; i++)
+                    cbsock.read(buf+1024*i,1024);
+                  
+                  Attribute* a = static_cast<Attribute*>
+                    ((am->Cast(algID,typID))
+                     ((*(m_cmd -> getElements()))[arg2].addr));
+                  
+                  //Flob data is written
+                  Flob*  f = a->GetFLOB(flobs);
+                  f->write(buf,si,0);
+                  
+                  
+                  delete buf;
+                  
+                  getline(cbsock,line);
+                  DServer::Debug("DSR-READ8", line);
+                  if(line!="</FLOB>") 
+                    errorText = (string)"Unexpected Response from " 
+                      + "worker (</SIZE> expected)!";
+                  
+                  getline(cbsock,line);
+                  DServer::Debug("DSR-READ9", line);
+                  flobs++;
+                }
+              
+              Flob_Mutex.release();
+              
+              if(line!="<CLOSE>")
+                errorText = (string)"Unexpected Response from " 
+                  + "worker (<CLOSE> expected)!";
+              
+              iosock << "<FINISH>" << endl;
+              
+              worker->Close();delete worker;worker=0;
+              
             }
-            
-            Flob_Mutex.release();
-         
-            if(line!="<CLOSE>")
-               errorText = (string)"Unexpected Response from " 
-                                 + "worker (<CLOSE> expected)!";
-                         
-            iosock << "<FINISH>" << endl;
-         
-            worker->Close();delete worker;worker=0;
-
-         }
-         else
+          else
             errorText = "Unexpected response from worker (<SIZE> expected)!";
-                
-         do
-         {
-            getline(iosock,line);
-            if(line.find("error") != string::npos) 
-               errorText = "Worker reports error on sending an element!";
-         }
-         while(line.find("</SecondoResponse>") == string::npos);
-
-      }
-
+      
+          do
+            {
+              getline(iosock,line);
+              DServer::Debug("DSR-READ10", line);
+              if(line.find("error") != string::npos) 
+                errorText = "Worker reports error on sending an element!";
+            }
+          while(line.find("</SecondoResponse>") == string::npos);
+          
+        }
+   
    }
-        
    if(m_cmd -> getCmdType() == DS_CMD_DELETE)
    {
       if(rel_open) return;
-      while(!m_cmd -> getArgs() ->empty())
+
+      while(!m_cmd -> getDArrayIndex() ->empty())
       {
-         arg2 = m_cmd -> getArgs() ->front();
-         m_cmd -> getArgs() ->pop_front();
+         arg2 = m_cmd -> getDArrayIndex() ->front();
+         m_cmd -> getDArrayIndex() ->pop_front();
          
          //Element is deleted on the worker
          string line;
@@ -559,10 +795,10 @@ void DServer::run()
 
       string to = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
                
-      while(!m_cmd -> getArgs() -> empty())
+      while(!m_cmd -> getDArrayIndex() -> empty())
       {
-         arg2 = m_cmd -> getArgs() ->front();
-         m_cmd -> getArgs() ->pop_front();
+         arg2 = m_cmd -> getDArrayIndex() ->front();
+         m_cmd -> getDArrayIndex() ->pop_front();
          
          //Element is copied on the worker
          string cmd;
@@ -589,25 +825,39 @@ void DServer::run()
       if(rel_open) return;
       string line;
       iostream& iosock = server->GetSocketStream();
-      string to = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
-      string com = ((string*)((*(m_cmd -> getElements()))[1].addr))->data();
 
-      while(!m_cmd -> getArgs() ->empty())
+      string com = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
+      string name = ((string*)((*(m_cmd -> getElements()))[1].addr))->data();
+      vector<string> froms = m_cmd -> getFromNames();
+      
+      while(!m_cmd -> getDArrayIndex() ->empty())
       {
-         arg2 = m_cmd -> getArgs() ->front();
-         m_cmd -> getArgs() ->pop_front();
+         arg2 = m_cmd -> getDArrayIndex() ->front();
+         m_cmd -> getDArrayIndex() ->pop_front();
          
-         string com_a = stringutils::replaceAll(com,"!","r" +
-                                        name + toString_d(arg2));
+         string com_a = com;
+         for (int i = froms.size(); i-- > 0;)
+           {
+             // setup replace string
+             string rpl = "!";
+             for (int k =0; k < i; ++k)
+               rpl += "!";
+
+             com_a = stringutils::replaceAll(com_a, rpl,
+                                             "r" +
+                                             froms[i] + toString_d(arg2));
+           }
          
          //A command is executed on the worker
          string cmd;
-         cmd = "(let r" + to + toString_d(arg2) + " = " + com_a + ")";
+         cmd = "(let r" + name + toString_d(arg2) + " = " + com_a + ")";
          
          
+         DServer::Debug("DSR-EXEC", cmd);
+
          iosock << "<Secondo>" << endl << "0" << endl 
                      << cmd<< endl << "</Secondo>" << endl;
-
+         
          do
          {
             getline(iosock,line);
@@ -622,6 +872,7 @@ void DServer::run()
    
    if(m_cmd -> getCmdType() == DS_CMD_OPEN_WRITE_REL)
    {
+     assert(server != 0);
       if(rel_open) return;
       //Initializes the writing of a tuple-stream, 
       //the d_receive_rel operator is started on the remote worker
@@ -629,7 +880,7 @@ void DServer::run()
       string line;
       iostream& iosock = server->GetSocketStream();
               
-      int arg2 = m_cmd -> getArgs() ->front();
+      int arg2 = m_cmd -> getDArrayIndex() ->front();
       
       string port =toString_d((1800+arg2)); 
       string com = "let r" + name + toString_d(arg2) + 
@@ -767,11 +1018,11 @@ void DServer::run()
       int algID,typID;
       extractIds(type,algID,typID);
           
-      while(!m_cmd -> getArgs() ->empty())
+      while(!m_cmd -> getDArrayIndex() ->empty())
       {
        
-         arg2 = m_cmd -> getArgs() ->front();
-         m_cmd -> getArgs() ->pop_front();
+         arg2 = m_cmd -> getDArrayIndex() ->front();
+         m_cmd -> getDArrayIndex() ->pop_front();
          
          string line;        
          string port =toString_d((1300+arg2));
@@ -847,7 +1098,6 @@ void DServer::run()
           
    }
 
-   delete m_cmd -> getArgs();
    delete m_cmd;
 
    m_cmd = NULL;
@@ -872,14 +1122,15 @@ bool DServer::Multiply(int count)
 
   if(count < 1) return true;
 
-  int num_childs = count - 1;
-     
-   for(int i = 0;i<num_childs;i++)
+  m_numChilds = count - 1;
+   for(int i = 0;i<m_numChilds;i++)
    {
      m_childs.push_back( new DServer(host,port,name,type) );
       try
         {
-          m_childs.back() -> connectToWorker();
+          if (!(m_childs.back() -> connectToWorker()))
+            return false;
+              
         }
       catch(const exception &e)
         {
@@ -888,7 +1139,7 @@ bool DServer::Multiply(int count)
           return false;
         }
    }
-   
+
    return true;
      
 }
@@ -908,11 +1159,39 @@ void DServer::DestroyChilds()
       m_childs[i]->Terminate();
       delete m_childs[i];
    }
-
+  m_numChilds = 0;
   m_childs.clear();
 }
+/*
 
+1.7 Destructor
 
+delete pipe to SecondoMonitor, if it exists
+
+*/
+
+DServer::~DServer()
+{
+  if (m_fs != NULL)
+    pclose(m_fs);
+
+  m_fs = NULL;
+}
+
+bool
+DServer::checkServer() const
+{
+  if (server == 0)
+    return false;
+
+  if(!(server->IsOk()))
+    return false;
+
+  if (getNumChilds() != m_childs.size())
+    return false;
+
+  return true;
+}
 /*
 
 2 Implementation of the class DServerManager
@@ -925,9 +1204,9 @@ All DServer-Obects are created
 */
 
 DServerManager::DServerManager(ListExpr serverlist_n, 
-                                                      string name_n, 
-                                                      ListExpr type,
-                                                      int sizeofarray)
+                               string name_n, 
+                               ListExpr type,
+                               int sizeofarray)
 {
    cout << "Connecting to Workers..." << endl;
    
@@ -942,31 +1221,51 @@ DServerManager::DServerManager(ListExpr serverlist_n,
    ListExpr elem = nl->First(serverlist_n);
    serverlist_n = nl->Rest(serverlist_n);
         
-   ZThread::ThreadedExecutor exec;
-   //create DServer-objects
-   for(int i = 0; i<size; i++)
-   {
-      DServerCreator* c = new DServerCreator( nl->StringValue(nl->First(elem)),
-                                              nl->IntValue(nl->Second(elem)), 
-                                              name,
-                                              type);
+   try
+     {
+       ZThread::ThreadedExecutor exec;
+       //create DServer-objects
+       for(int i = 0; i<size; i++)
+         {
+           DServerCreator* c = 
+             new DServerCreator( nl->StringValue(nl->First(elem)),
+                                 nl->IntValue(nl->Second(elem)), 
+                                 name,
+                                 type);
 
-      m_serverlist.push_back( c -> createServer() );
+           m_serverlist.push_back( c -> createServer() );
 
-      exec.execute(c);
+           exec.execute(c);
       
-      if(i < size-1)
-      {
-         elem = nl->First(serverlist_n);
-         serverlist_n = nl->Rest(serverlist_n);
-      }
+           if(i < size-1)
+             {
+               elem = nl->First(serverlist_n);
+               serverlist_n = nl->Rest(serverlist_n);
+             }
    
-   }
+         }
 
-   exec.wait();
-   
+       exec.wait();
+     } 
+   catch(ZThread::Synchronization_Exception& e) 
+     {
+       errorText = string("Could not create DServers!\nError:") + 
+         string(e.what());
+       cerr << e.what() << endl;
+       return;
+     }
+
    for(int i = 0; i< size; i++)
       errorText = m_serverlist[i]->getErrorText();
+
+   
+   for (int id = 0; id < size; ++id)
+     {
+       list<int> insertList;
+       for(int i = id; i<array_size; i+=size)
+         insertList.push_front(i);
+       m_idIndexMap[id] = insertList;
+     }
 }
 
 /*
@@ -987,78 +1286,30 @@ DServerManager::~DServerManager()
    }
         
    m_serverlist.clear();
+   m_idIndexMap.clear();
 }
 
 /*
+2.6 checkServers
 
-2.3 getServerbyID
+returns false, if server were not created correctly
 
-returns the pointer to a DServer
+*/ 
+bool 
+DServerManager::checkServers() const
+{ 
+  if (m_serverlist.size() != size)
+    return false;
 
-*/
-
-DServer* DServerManager::getServerbyID(int id) const
-{
-   return m_serverlist[id];
+  for(int i = 0; i<size; i++)
+    {
+      if (!m_serverlist[i]->checkServer())
+        {
+          return false;
+        }
+    }
+  return true;
 }
-
-/*
-
-2.4 getServerByIndex
-
-returns a pointer to the DServer that holds a certain element of the
-underlying distributed array
-
-*/
-
-DServer* DServerManager::getServerByIndex(int index) const
-{
-   return m_serverlist[index % size];
-}
-
-/*
-
-2.5 getIndexList
-
-returns a list of indices that correspond to the elements of the underlying
-distributed array, which are controlled by the DServer with the given index
-
-*/
-
-list<int>* DServerManager::getIndexList(int id)
-{
-   list<int>* res = new list<int>;
-   
-   for(int i = id; i<array_size; i+=size)
-      res->push_front(i);
-
-   return res;
-}
-
-/*
-
-2.6 getNoOfServers
-
-returns the number of DServer-Objects controlled by the DServerManager
-
-*/
-                
-        
-int DServerManager::getNoOfServers() {return size;}
-
-/*
-
-2.7 getMultipleServerIndex
-
-returns -1, if the parent DServer is the appropriate object for the element
-
-*/
-
-int DServerManager::getMultipleServerIndex(int index)
-{
-     return (index / size) - 1;
-}
-
 
 /*
 
@@ -1160,5 +1411,58 @@ DServerCreator::createServer()
 
 void DServerCreator::run()
 {
-   m_server -> connectToWorker();
+  m_server -> connectToWorker();
 }
+
+                  
+ostream& operator << (ostream &out, DServer::RemoteCommand& rc)
+{
+  out << "RC:";
+  switch (rc.getCmdType())
+    { 
+    case DServer::DS_CMD_NONE:      // undefined
+      out << " NONE";
+      break;
+    case DServer::DS_CMD_WRITE:     // writes an element to the worker
+      out << " WRITE";
+      break;
+    case DServer::DS_CMD_READ:      // reads an element from the worker
+      out << " READ";
+      break;
+    case DServer::DS_CMD_DELETE:    // deletes an element on the worker
+      out << " DELETE";
+      break;
+    case DServer::DS_CMD_COPY:      // copies an element on the worker
+      out << " COPY";
+      break;
+    case DServer::DS_CMD_EXEC:      // exectues a command on each 
+                                    // element on the worker
+      out << " EXECUTE";
+      break;
+    case DServer::DS_CMD_OPEN_WRITE_REL: // opens a relation on 
+                                         // the worker to add elements
+      out << " OPEN WRITE RELATION";
+      break;
+    case DServer::DS_CMD_WRITE_REL: // writes a singel tuple to a 
+                                    // relation on the worker
+      out << " WRTIE RELATION";
+      break;
+    case DServer::DS_CMD_CLOSE_WRITE_REL: // closes a relation on the worker
+      out << " CLOSE WRITE RELATION";
+      break;
+    case DServer::DS_CMD_READ_REL:  // reads a tuple from a relation 
+                                    // on the worker
+      out << " READ RELATION";
+      break;
+    default:
+      out << " ERROR (undefined)";
+      break;
+    }
+  out <<"  L:";
+  for (list<int>::const_iterator idx = rc.getDArrayIndex() -> begin();
+       idx != rc.getDArrayIndex() -> end(); ++idx)
+    out << *idx << " ";
+  out << " W:" << rc.getElements() -> size();
+  return out;
+}
+
