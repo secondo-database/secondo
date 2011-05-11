@@ -1,0 +1,96 @@
+#!/bin/bash
+ usage ()
+{
+    echo " USAGE: startRemote <options> <executable>"
+    echo "   starts <executable> on a remote host <host>"
+    echo "OPTIONS:"
+    echo "-s:"
+    echo "   use ssh to connect to <host>"
+#    echo "-r:"
+#    echo "   use rsh to connect to <host>"
+    echo "-h <host>:"
+    echo "   connect to host"
+    echo "-d <dir>:"
+    echo "   use <dir> on host <host> to run <executable>"
+    ehco "-l <logfile>"
+    echo "   use <logfile> for piped output"
+    echo "   of <executable> (default: /dev/null)"
+    echo "-?:"
+    echo "   help"
+    exit 0
+}
+
+USE_SSH=0;
+USE_RSH=0;
+HOST="";
+SSHCOMMAND="";
+COMMAND="";
+LOGFILE="/dev/null"
+
+while getopts sr?h:d:l: option
+do
+   case $option in
+      \?)
+         usage
+      ;;
+      s)
+         USE_SSH=1
+         USE_RSH=0
+         SSHCOMMAND="ssh"
+      ;;
+      r)
+         USE_SSH=0
+         USE_RSH=1
+         SSHCOMMAND="rsh"
+      ;;
+      h)
+         HOST=$OPTARG
+      ;;
+      d)
+         DIR=$OPTARG
+      ;;
+      l)
+         LOGFILE=$OPTARG
+      ;;
+   esac
+done
+
+shift `expr $OPTIND - 1`
+
+if [ $USE_RSH -eq 0 ] && [ $USE_SSH -eq 0 ]; then
+    echo "Error: Please specify either -r or -s flag!";
+    echo "";
+    usage;
+fi
+
+if [ $USE_RSH -eq 1 ]; then
+    echo "Error: RSH is not supported yet!";
+    echo "";
+    usage;
+fi
+
+if [ "x${HOST}" == "x" ]; then
+    echo "Error: Please specify host";
+    echo "";
+    usage;
+fi
+
+SSHCOMMAND="${SSHCOMMAND} ${HOST}";
+DIRCOMMAND="";
+
+if [ -n "${DIR}" ]; then
+    DIRCOMMAND="cd ${DIR}; ";
+fi
+
+#working:
+COMMAND="${SSHCOMMAND} bash -c \"${DIRCOMMAND} nohup $1 > ${LOGFILE} 2>&1 < /dev/null &\" "
+
+#testing:
+#COMMAND="${SSHCOMMAND} ${DIRCOMMAND} $1 > /dev/null 2>&1 ";
+#COMMAND="${SSHCOMMAND} bash -c \"${DIRCOMMAND} nohup $1 > ${LOGFILE} 2>&1 < /dev/null &\" "
+
+
+#echo "Run: ${COMMAND}";
+$COMMAND;
+
+exit 0;
