@@ -275,6 +275,22 @@ Return the intersection of this interval and ~i~ into ~result~.
 
 */
 
+  void Union(const Interval<Alpha>& iv, Interval<Alpha> result);
+/*
+Constructs the mininum interval containing both, this interval and iv.
+
+*/
+
+int Minus(const Interval<Alpha>& iv, 
+          Interval<Alpha>& res1, 
+          Interval<Alpha>& res2);
+/*
+Remove iv from this interval. The result(s) are stored in res1 and res2.
+The number of results is returned. 
+
+*/
+
+
   int CompareTo(const Interval<Alpha>& i) const;
 /*
 Compares this and the argument;
@@ -569,6 +585,7 @@ Is true, iff both arguments are undefined or both are defined and contain the sa
 
 */
     bool Intersects( const Range<Alpha>& r ) const;
+    bool Intersects( const Interval<Alpha>& iv ) const;
 
 /*
 3.3.5.4 Operation ~inside~
@@ -586,6 +603,7 @@ Is true, iff both arguments are undefined or both are defined and contain the sa
 
 */
     bool Inside( const Range<Alpha>& r ) const;
+    bool Inside( const Interval<Alpha>& iv ) const;
 
 /*
 3.3.5.5 Operation ~contains~
@@ -618,6 +636,7 @@ Is true, iff both arguments are undefined or both are defined and contain the sa
 
 */
     bool Before( const Range<Alpha>& r ) const;
+    bool Before( const Interval<Alpha>& iv ) const;
 
 /*
 3.3.5.7 Operation ~before~ (with ~BASE~ type)
@@ -667,6 +686,10 @@ before on a contrary order, i.e., ~x before Y~.
     void Intersection( const Range<Alpha>& r, Range<Alpha>& result ) const;
 
 
+    void Intersection(const Interval<Alpha>& r, Range<Alpha>& result) const;
+
+
+
 /*
 3.3.5.10 Operation ~union~
 
@@ -678,6 +701,7 @@ before on a contrary order, i.e., ~x before Y~.
 
 */
     void Union( const Range<Alpha>& r, Range<Alpha>& result ) const;
+    void Union( const Interval<Alpha>& iv, Range<Alpha>& result ) const;
 
 /*
 3.3.5.11 Operation ~minus~
@@ -690,6 +714,8 @@ before on a contrary order, i.e., ~x before Y~.
 
 */
     void Minus( const Range<Alpha>& r, Range<Alpha>& result ) const;
+    
+    void Minus( const Interval<Alpha>& r, Range<Alpha>& result ) const;
 
 /*
 3.3.5.12 Operation ~max~
@@ -3955,6 +3981,85 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
   }
 }
 
+template<class Alpha>
+void Interval<Alpha>::Union(const Interval<Alpha>& iv, Interval<Alpha> result){
+
+   // set start
+   if(start<iv.start){
+       result.start = start;
+       result.lc = lc;
+    } else if(start > iv.start){
+       result.start = iv.start;
+       result.lc = iv.lc;
+    } else {  // start == iv.start
+      result.start = start;
+      result.lc = lc || iv.lc;
+    }
+
+    // set end
+    if(end>iv.end){
+      result.end = end;
+      result.rc = rc;
+    } else if(end<iv.end){
+       result.end = iv.end;
+       result.rc = iv.rc;
+    } else {
+        result.end = end;
+        result.rc = rc || iv.rc;
+    }
+}
+
+template<class Alpha>
+int Interval<Alpha>::Minus(const Interval<Alpha>& iv, 
+                           Interval<Alpha>& res1, 
+                           Interval<Alpha>& res2){
+
+    if(iv.Before(*this)){
+        res1 = *this;
+        return 1;
+    }
+    if(iv.After(*this)){
+      res1=*this;
+      return 1;
+    }
+
+    int no = 0;
+    // check for an interval left of iv
+    if( (start < iv.start) || ((start==iv.start) && lc && !iv.lc)){
+       no++;
+       res1 = *this;
+       if(end > iv.start){
+          res1.end = iv.start;
+          res1.rc = !iv.lc;
+       } else if(end == iv.start){
+          res1.rc = rc && !iv.lv;
+       }
+    }
+
+    // check for an remaining interval right of iv
+    if( (end > iv.end) ||  ((end==iv.end) && rc && !iv.rc)){
+        no++;
+        Interval<Alpha> 
+        res = *this;
+        if(start < iv.end){
+          res.start = iv.end;
+          res.lc = !iv.rc;
+        } else if(start == iv.end) {
+          res.lc = lc && !iv.rc;
+        }
+        if(no==1){
+          res1 = res;
+        } else {
+          res2 = res;
+        }
+    }
+    return  no; 
+}
+
+
+
+
+
 template <class Alpha>
 int  Interval<Alpha>::CompareTo( const Interval<Alpha>& i) const{
   int cmp = start.Compare( &(i.start) );
@@ -4338,6 +4443,26 @@ bool Range<Alpha>::Intersects( const Range<Alpha>& r ) const
 }
 
 template <class Alpha>
+bool Range<Alpha>::Intersects( const Interval<Alpha>& iv ) const
+{
+    if(IsEmpty()){
+       return;
+    }
+
+    // TODO: Use binary search to accelerate computations
+
+    Interval<Alpha> this_iv;
+    for(int i=0;i<GetNoComponents();i++){
+        Get(i,this_iv);
+        if(iv.intersects(this_iv)){
+          return true;
+        }
+    }
+    return false;
+}
+
+
+template <class Alpha>
 bool Range<Alpha>::Inside( const Range<Alpha>& r ) const
 {
   assert( IsDefined() );
@@ -4390,6 +4515,21 @@ bool Range<Alpha>::Inside( const Range<Alpha>& r ) const
   return result;
 }
 
+
+template <class Alpha>
+bool Range<Alpha>::Inside( const Interval<Alpha>& iv ) const
+{
+  if(IsEmpty()){
+     return true;
+  }
+  Interval<Alpha> first;
+  Interval<Alpha> last;
+  Get(0,first);
+  Get(GetNoComponents()-1,last);
+  return iv.Contains(first) && iv.Contains(last);
+}
+
+
 template <class Alpha>
 bool Range<Alpha>::Contains( const Alpha& a ) const
 {
@@ -4428,6 +4568,7 @@ bool Range<Alpha>::Contains( const Alpha& a ) const
   return result;
 }
 
+
 template <class Alpha>
 bool Range<Alpha>::Before( const Range<Alpha>& r ) const
 {
@@ -4443,6 +4584,19 @@ bool Range<Alpha>::Before( const Range<Alpha>& r ) const
   r.Get( 0, interval );
 
   return thisInterval.Before( interval );
+}
+
+
+template <class Alpha>
+bool Range<Alpha>::Before( const Interval<Alpha>& iv ) const
+{
+   if(IsEmpty()){
+      return false;
+   }
+   Interval<Alpha> last;
+   Get(GetNoComponents()-1,last);
+   return last.Before(iv);
+
 }
 
 template <class Alpha>
@@ -4602,6 +4756,25 @@ void Range<Alpha>::Intersection( const Range<Alpha>& r,
     }
   }
   result.EndBulkLoad( false );
+}
+
+
+template <class Alpha>
+void Range<Alpha>::Intersection( const Interval<Alpha>& iv,
+                                 Range<Alpha>& result ) const
+{
+   Interval<Alpha> tiv;
+   result.Clear();
+   result.StartBulkLoad();
+   for(int i=0;i<GetNoComponents(); i++){
+      Get(i,tiv);
+      if(tiv.Intersects(iv)){
+         Interval<Alpha> res;
+         tiv.Intersection(iv, res);
+         result.Add(res);
+      }
+   }
+   result.EndBulkLoad();
 }
 
 template <class Alpha>
@@ -4905,6 +5078,36 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
   }
   result.EndBulkLoad( false );
 }
+
+
+template <class Alpha>
+void Range<Alpha>::Union( const Interval<Alpha>& iv, 
+                          Range<Alpha>& result ) const
+{
+  Interval<Alpha> enlargedInterval(iv);
+  Interval<Alpha> tiv;
+  bool done = false;
+
+  result.Clear();
+  for(int i=0;i< GetNoComponents;i++){
+     Get(i,tiv); 
+     if(tiv.Before(iv) ){
+        result.Add(tiv);       
+     } else if(tiv.After(enlargedInterval)){
+        if(!done){
+           result.Add(enlargedInterval);
+           done = true;
+        }
+        result.Add(tiv);
+     } else {
+       enlargedInterval = enlargedInterval.Union(tiv); 
+     }
+  }
+  if(!done){
+    result.Add(enlargedInterval);
+  }
+}
+
 
 template <class Alpha>
 void Range<Alpha>::Minus( const Range<Alpha>& r, Range<Alpha>& result ) const
@@ -5272,6 +5475,35 @@ void Range<Alpha>::Minus( const Range<Alpha>& r, Range<Alpha>& result ) const
   }
   result.EndBulkLoad( false );
 }
+
+
+template <class Alpha>
+void Range<Alpha>::Minus( const Interval<Alpha>& iv, 
+                          Range<Alpha>& result ) const
+{
+   Interval<Alpha> tiv;
+   Interval<Alpha> iv_1;
+   Interval<Alpha> iv_2;
+   result.Clear();
+   for(int i=0;i<GetNoComponents(); i++){
+      Get(i,tiv);
+      if(tiv.Before(iv)){
+         result.Add(tiv);
+      } else if(tiv.After(iv)){
+         result.Add(tiv);
+      } else {
+         int num = tiv.Minus(iv,iv_1,iv_2);
+         if(num>0){
+            result.Add(iv_1);
+         } 
+         if(num>1){
+            result.Add(iv_2);
+         }
+      }
+   }
+}
+
+
 
 template <class Alpha>
 void Range<Alpha>::Maximum( Alpha& result ) const
