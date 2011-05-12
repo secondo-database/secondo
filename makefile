@@ -168,7 +168,7 @@ optimizer: optimizer2 optserver update-config
 
 .PHONY: optimizer2
 optimizer2: makedirs buildlibs buildAlgebras
-	$(MAKE) -C UserInterfaces optimizer
+	$(MAKE) -C Optimizer optimizer
 
 
 .PHONY: optserver
