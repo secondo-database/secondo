@@ -263,7 +263,9 @@ Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise
 */
 
   bool Before( const Alpha& a ) const;
+  
   bool After( const Alpha& a ) const;
+  bool After( const Interval<Alpha>& iv ) const;
 /*
 Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherwise.
 
@@ -275,11 +277,19 @@ Return the intersection of this interval and ~i~ into ~result~.
 
 */
 
-  void Union(const Interval<Alpha>& iv, Interval<Alpha> result);
+  void Union(const Interval<Alpha>& iv, Interval<Alpha> result) const;
 /*
 Constructs the mininum interval containing both, this interval and iv.
 
 */
+  void Union(const Interval<Alpha>& iv);
+/*
+Changes this interval to be the union of this is iv. gaps between the 
+intervals are included in the result.
+
+*/
+
+
 
 int Minus(const Interval<Alpha>& iv, 
           Interval<Alpha>& res1, 
@@ -3887,7 +3897,7 @@ bool Interval<Alpha>::StartsBefore( const Interval<Alpha>& i ) const
 {
   assert( IsValid() && i.IsValid() );
 
-  return ( start < i.start || ( (start == i.start) && lc && !i.lc ));
+  return ( (start < i.start) || ( (start == i.start) && lc && !i.lc ));
 }
 
 template <class Alpha>
@@ -3927,6 +3937,18 @@ bool Interval<Alpha>::After( const Alpha& a ) const
   return ( start.Compare( &a ) > 0 ||
            ( start.Compare( &a ) == 0 && lc == false ) );
 }
+
+
+template <class Alpha>
+bool Interval<Alpha>::After( const Interval<Alpha>& iv ) const
+{
+  assert( IsValid() && iv.IsValid() );
+
+  return (iv.end < start) ||
+         ((iv.end == start) && (!iv.rc || !lc));
+}
+
+
 
 template <class Alpha>
 void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
@@ -3982,7 +4004,8 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
 }
 
 template<class Alpha>
-void Interval<Alpha>::Union(const Interval<Alpha>& iv, Interval<Alpha> result){
+void Interval<Alpha>::Union(const Interval<Alpha>& iv, 
+                            Interval<Alpha> result) const{
 
    // set start
    if(start<iv.start){
@@ -4010,6 +4033,28 @@ void Interval<Alpha>::Union(const Interval<Alpha>& iv, Interval<Alpha> result){
 }
 
 template<class Alpha>
+void Interval<Alpha>::Union(const Interval<Alpha>& iv) {
+
+     if(iv.start < this->start){
+        this->start = iv.start;
+        this->lc = iv.lc;
+     } else if(iv.start == this->start){
+         this->lc = this->lc || iv.lc;
+     }
+
+    if(this->end < iv.end){
+        this->end = iv.end;
+        this->rc = iv.rc;
+    } else if(iv.end == this->end){
+        this->rc = this->rc || iv.rc;
+    }
+}
+
+
+
+
+
+template<class Alpha>
 int Interval<Alpha>::Minus(const Interval<Alpha>& iv, 
                            Interval<Alpha>& res1, 
                            Interval<Alpha>& res2){
@@ -4032,7 +4077,7 @@ int Interval<Alpha>::Minus(const Interval<Alpha>& iv,
           res1.end = iv.start;
           res1.rc = !iv.lc;
        } else if(end == iv.start){
-          res1.rc = rc && !iv.lv;
+          res1.rc = rc && !iv.lc;
        }
     }
 
@@ -4777,307 +4822,121 @@ void Range<Alpha>::Intersection( const Interval<Alpha>& iv,
    result.EndBulkLoad();
 }
 
-template <class Alpha>
-void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
-{
-  assert( IsValid() );
-  assert( r.IsValid() );
+/*
+1.1 Auxiliary class ParallelRangeScan
 
-  result.Clear();
-  if( !IsDefined() || !r.IsDefined() ){
-    result.SetDefined( false );
-    return;
-  }
-  result.SetDefined( true );
+This class makes an parallel Scan over two range values.
+The returned intevals are sorted by their starting time and 
+leftClosed properties. If two intervals start at the same
+time, the interval of r1 is the next result.
 
-  Interval<Alpha> thisInterval, interval;
-  result.StartBulkLoad();
-  int i = 0, j = 0;
 
-  if( !IsEmpty() ) {
-    Get( i, thisInterval );
-  }
-  if( !r.IsEmpty() ) {
-    r.Get( j, interval );
-  }
+*/
+template<class Alpha>
+class ParallelRangeScan{
+  public:
+/*
+1.1.1 Constructor
 
-  if( !IsEmpty() && !r.IsEmpty() ) {
-    Alpha *start = NULL, *end = NULL;
-    bool lc = false, rc = false;
+Both Ranges must be defined.
 
-    while( i < GetNoComponents() && j < r.GetNoComponents() ) {
-      if( thisInterval.start.Compare( &interval.start ) == 0 &&
-          thisInterval.end.Compare( &interval.end ) == 0 ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 1 (equal intervals)" << endl;
-        Interval<Alpha> newInterval( thisInterval.start, thisInterval.end,
-                                     thisInterval.lc || interval.lc,
-                                     thisInterval.rc || interval.rc );
-        result.Add( newInterval );
 
-        if( ++i < GetNoComponents() )
-          Get( i, thisInterval );
+*/
 
-        if( ++j < r.GetNoComponents() )
-          r.Get( j, interval );
-      } else if( interval.Inside( thisInterval ) ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 2 (iv inside thisiv)" << endl;
-        if( ++j < r.GetNoComponents() )
-          r.Get( j, interval );
-      } else if( thisInterval.Inside( interval ) ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 3 (thisiv inside iv" << endl;
-        if( ++i < GetNoComponents() )
-          Get( i, thisInterval );
-      } else if( !thisInterval.Intersects( interval ) ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 4 (no intersection of iv and thisiv)" << endl;
-        if( thisInterval.end.Compare( &interval.start ) < 0 ) {
-          if( thisInterval.Adjacent( interval ) ) {
-            if( start != NULL && end != NULL ) {
-              delete end; end = NULL;
-            } else {
-              assert( start == NULL );
-              start = thisInterval.start.Clone();
-              lc = thisInterval.lc;
-            }
-            assert( end == NULL );
-            end = interval.end.Clone();
-            rc = interval.rc;
-          } else {
-            if( start != NULL && end != NULL ) {
-              Interval<Alpha> newInterval( *start, *end, lc, rc );
-              result.Add( newInterval );
-              delete start; start = NULL;
-              delete end; end = NULL;
-              lc = false; rc = false;
-            } else {
-              result.Add( thisInterval );
-            }
-          }
+     ParallelRangeScan(const Range<Alpha>* _r1, const Range<Alpha>* _r2):
+        r1(_r1), r2(_r2), pos1(0), pos2(0){
+      assert(r1->IsDefined());
+      assert(r2->IsDefined());
+    }
 
-          if( ++i < GetNoComponents() ) {
-            Get( i, thisInterval );
-          }
-        } else if( thisInterval.start.Compare( &interval.end ) > 0 ) {
-          if( thisInterval.Adjacent( interval ) ) {
-            if( start != NULL && end != NULL ) {
-              delete end;
-            } else {
-              assert( start == NULL );
-              start = interval.start.Clone();
-              lc = interval.lc;
-            }
-            assert( end == NULL );
-            end = thisInterval.end.Clone();
-            rc = thisInterval.rc;
-          } else {
-            if( start != NULL && end != NULL ) {
-              Interval<Alpha> newInterval( *start, *end, lc, rc );
-              result.Add( newInterval );
-              delete start; start = NULL;
-              delete end; end = NULL;
-              lc = false; rc = false;
-            } else {
-              Interval<Alpha> newInterval( interval );
-              result.Add( newInterval );
-            }
-          }
+/*
+1.1.2 ~next~
 
-          if( ++j < r.GetNoComponents() ) {
-            r.Get( j, interval );
-          }
-        } else if( thisInterval.start.Compare( &interval.end ) == 0 ) {
-          if( !thisInterval.lc && !interval.rc ) {
-            if( start != NULL && end != NULL ) {
-              Interval<Alpha> newInterval( *start, *end, lc, rc );
-              result.Add( newInterval );
-              delete start; start = NULL;
-              delete end; end = NULL;
-              lc = false; rc = false;
-            } else {
-              result.Add( interval );
-            }
-          } else {
-            if( start != NULL && end != NULL ) {
-              if( end->Compare( &thisInterval.end ) < 0 ) {
-                delete end;
-                end = thisInterval.end.Clone();
-                rc = thisInterval.rc;
-              } else if( end->Compare( &thisInterval.end ) == 0 ) {
-                rc = rc || thisInterval.rc;
-              }
-            } else {
-              assert( start == NULL );
-              start = interval.start.Clone();
-              lc = interval.lc;
-              assert( end == NULL );
-              end = thisInterval.end.Clone();
-              rc = thisInterval.rc;
-            }
-          }
+If there is a next interval, it's returned using the parameter. In this case, the 
+result will be true. If both ranges are exhausted, the parameter is not changed 
+and the result of this function is false
 
-          if( ++j < r.GetNoComponents() ) {
-            r.Get( j, interval );
-          }
-        } else if( interval.start.Compare( &thisInterval.end ) == 0 ) {
-          if( !interval.lc && !thisInterval.rc ) {
-            if( start != NULL && end != NULL ) {
-              Interval<Alpha> newInterval( *start, *end, lc, rc );
-              result.Add( newInterval );
-              delete start; start = NULL;
-              delete end; end = NULL;
-              lc = false; rc = false;
-            } else {
-              result.Add( thisInterval );
-            }
-          } else {
-            if( start != NULL && end != NULL ) {
-              if( end->Compare( &interval.end ) < 0 ) {
-                delete end;
-                end = interval.end.Clone();
-                rc = interval.rc;
-              } else if( end->Compare( &interval.end ) == 0 ) {
-                rc = rc || interval.rc;
-              }
-            } else {
-              assert( start == NULL );
-              start = thisInterval.start.Clone();
-              lc = thisInterval.lc;
-              assert( end == NULL );
-              end = interval.end.Clone();
-              rc = interval.rc;
-            }
-          }
+*/
 
-          if( ++i < GetNoComponents() ) {
-            Get( i, thisInterval );
-          }
-        }
-      } else if( thisInterval.start.Compare( &interval.start ) < 0 ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 5 (intersection - thisiv.start < iv.start)" << endl;
-        if( start == NULL && end == NULL ) {
-          start = thisInterval.start.Clone();
-          lc = thisInterval.lc;
-          end = interval.end.Clone();
-          rc = interval.rc;
-        } else {
-          if( end->Compare( &interval.end ) < 0 ) {
-            assert( end == NULL );
-            end = interval.end.Clone();
-            rc = interval.rc;
-          }
-          if( end->Compare( &interval.end ) == 0 ) {
-            rc = rc || interval.rc;
-          }
-        }
+     bool next(Interval<Alpha>& nextInterval){
+       if( (pos1>=r1->GetNoComponents() ) && (pos2>=r2->GetNoComponents())){
+         return false;
+       }
+       if(pos1>=r1->GetNoComponents()){
+          r2->Get(pos2, nextInterval);
+          pos2++;
+          return true;
+       }
+       if(pos2>=r2->GetNoComponents()){
+          r1->Get(pos1, nextInterval);
+          pos1++;
+          return true;
+       }
+       // both ranges have more entries
+       Interval<Alpha> iv1;
+       Interval<Alpha> iv2;
+       r1->Get(pos1, iv1);
+       r2->Get(pos2,iv2);
+       if(iv2.StartsBefore(iv1)){
+          nextInterval = iv2;
+          pos2++;
+       } else {
+          nextInterval = iv1;
+          pos1++;
+       }
+       return true;
+     }
 
-        if( ++i < GetNoComponents() ) {
-          Get( i, thisInterval );
-        }
-      } else if( interval.start.Compare( &thisInterval.start ) < 0 ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 6 (intersection - iv.start < thisiv.start)" << endl;
-        if( start == NULL && end == NULL ) {
-          start = interval.start.Clone();
-          lc = interval.lc;
-          end = thisInterval.end.Clone();
-          rc = thisInterval.rc;
-        } else {
-          if( end->Compare( &thisInterval.end ) < 0 ) {
-            assert( end == NULL );
-            end = thisInterval.end.Clone();
-            rc = thisInterval.rc;
-          }
-          if( end->Compare( &thisInterval.end ) == 0 ) {
-            rc = rc || thisInterval.rc;
-          }
-        }
+  private:
+     const Range<Alpha>* r1;
+     const Range<Alpha>* r2;
+     int pos1;
+     int pos2;
+};
 
-        if( ++j < r.GetNoComponents() ) {
-          r.Get( j, interval );
-        }
-      } else if( thisInterval.start.Compare( &interval.start ) == 0 ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 7 thisiv.start == iv.start" << endl;
-        assert( start == NULL && end == NULL );
-        start = thisInterval.start.Clone();
-        lc = thisInterval.lc || interval.lc;
-        if( thisInterval.end.Compare( &interval.end ) < 0 ) {
-          end = interval.end.Clone();
-          rc = interval.rc;
 
-          if( ++i < GetNoComponents() ) {
-            Get( i, thisInterval );
-          }
-        } else {
-          end = thisInterval.end.Clone();
-          rc = thisInterval.rc;
 
-          if( ++j < r.GetNoComponents() ) {
-            r.Get( j, interval );
-          }
-        }
-      } else if( thisInterval.end.Compare( &interval.end ) == 0 ) {
-//         cout << "<<<< " << __PRETTY_FUNCTION__
-//              << "CASE 8 (thisiv.end == iv.end)" << endl;
-        assert( start != NULL && end != NULL );
-        rc = thisInterval.rc || interval.rc;
+template<class Alpha>
+void Range<Alpha>::Union(const Range<Alpha>& r, Range<Alpha>& result) const{
 
-        Interval<Alpha> newInterval( *start, *end, lc, rc );
-        result.Add( newInterval );
-        delete start; start = NULL;
-        delete end; end = NULL;
-        lc = false; rc = false;
-
-        if( ++i < GetNoComponents() ) {
-          Get( i, thisInterval );
-        }
-
-        if( ++j < r.GetNoComponents() ) {
-          r.Get( j, interval );
-        }
-      } // end while( i < GetNoComponents() && j < r.GetNoComponents() )
-    } // end if( !IsEmpty() && !r.IsEmpty() )
-
-    if( start != NULL && end != NULL ) {
-      Interval<Alpha> newInterval( *start, *end, lc, rc );
-      result.Add( newInterval );
-      delete start; start = NULL;
-      delete end; end = NULL;
-      lc = rc = false;
-
-      if( j >= r.GetNoComponents() ) {
-        if( ++i < GetNoComponents() )
-          Get( i, thisInterval );
-      } else if( i >= GetNoComponents() ) {
-        if( ++j < r.GetNoComponents() )
-          r.Get( j, interval );
+   assert(IsValid());
+   assert(r.IsValid());
+   result.Clear();
+   if(!IsDefined() || !r.IsDefined()){
+      result.SetDefined(false);
+      return;
+   }
+   result.SetDefined(true);
+   if(IsEmpty()){
+     result.CopyFrom(&r);
+     return;
+   }  
+   if(r.IsEmpty()){
+      result.CopyFrom(this);
+      return;
+   }
+  
+   // both ranges have elements
+   Interval<Alpha> ivUnion; // current interval union
+   Interval<Alpha> nextInterval;
+   ParallelRangeScan<Alpha> scan(this, &r);
+   // we already know that both intervals have entries, so
+   // the first call of scan.next must return true
+   bool ok = scan.next(ivUnion);
+   assert(ok);
+   while(scan.next(nextInterval)){
+      if(nextInterval.Intersects(ivUnion)){
+        ivUnion.Union(nextInterval);  
+      } else {
+         result.MergeAdd(ivUnion);
+         ivUnion = nextInterval;
       }
-    }
-    assert( start == NULL && end == NULL );
-  }
 
-  while( i < GetNoComponents() ) {
-    result.Add( thisInterval );
-
-    if( ++i < GetNoComponents() ) {
-      Get( i, thisInterval );
-    }
-  }
-
-  while( j < r.GetNoComponents() )
-  {
-    result.Add( interval );
-
-    if( ++j < r.GetNoComponents() ) {
-      r.Get( j, interval );
-    }
-  }
-  result.EndBulkLoad( false );
+   }
+   result.MergeAdd(ivUnion);
 }
+
+
 
 
 template <class Alpha>
