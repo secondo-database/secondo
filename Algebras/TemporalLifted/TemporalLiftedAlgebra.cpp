@@ -3761,6 +3761,7 @@ void MovingAddMRMR(MReal* op1, MReal* op2, MReal* result,int op)
   }
   result->SetDefined( true );
   UReal uReal(true);  //part of the Result
+  uReal.r= false;
 
   RefinementPartition<MReal, MReal, UReal, UReal> rp(*op1, *op2);
 
