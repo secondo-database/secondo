@@ -19,11 +19,17 @@
 
 operator vec alias CREATESTVECTOR pattern op(_)
 operator stpattern alias STPATTERN pattern _ op[funlist;list]
+operator stpattern2 alias STPATTERN2 pattern _ _ op[funlist;list]
 operator stpatternex alias STPATTERNEX pattern _ op[funlist;list;_]
+operator stpatternex2 alias STPATTERNEX2 pattern _ _ op[funlist;list;_]
 operator stpatternextend alias STPATTERNEXTEND pattern _ op[funlist;list] implicit parameter streamelem type STREAMELEM
+operator stpatternextend2 alias STPATTERNEXTEND2 pattern _ op[funlist;list] implicit parameter streamelem type STREAMELEM
 operator stpatternexextend alias STPATTERNEXEXTEND pattern _ op[funlist;list;fun] implicit parameter streamelem type STREAMELEM
+operator stpatternexextend2 alias STPATTERNEXEXTEND2 pattern _ op[funlist;list;fun] implicit parameter streamelem type STREAMELEM
 operator stpatternextendstream alias STPATTERNEXTENDSTREAM pattern _ op[funlist;list] implicit parameter streamelem type STREAMELEM
+operator stpatternextendstream2 alias STPATTERNEXTENDSTREAM2 pattern _ op[funlist;list] implicit parameter streamelem type STREAMELEM
 operator stpatternexextendstream alias STPATTERNEXEXTENDSTREAM pattern _ op[funlist;list;fun] implicit parameter streamelem type STREAMELEM
+operator stpatternexextendstream2 alias STPATTERNEXEXTENDSTREAM2 pattern _ op[funlist;list;fun] implicit parameter streamelem type STREAMELEM
 operator stconstraint alias STCONSTRAINT pattern op(_,_,_)
 operator end alias END pattern op(_)
 operator start alias START pattern op(_)

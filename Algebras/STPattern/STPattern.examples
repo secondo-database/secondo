@@ -8,16 +8,34 @@ Signature: tuple(x) X namedFunlist X constraintList -> bool
 Example  : query Trains feed filter[. stpattern[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ]] count
 Result   : 14
 
+Operator : stpattern2
+Number   : 1
+Signature: tuple(x) X periods X namedFunlist X constraintList -> bool
+Example  : query Trains feed filter[fun(t: TUPLE, p: periods) t p stpattern2[insnow: (attr(t,Trip) atperiods p) inside msnow, isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0, isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ]] count
+Result   : 14
+
 Operator : stpatternextend
 Number   : 1
 Signature: stream(tuple(x)) X namedFunlist X constraintList -> stream(tuple(x, funListNames))
 Example  : query Trains feed stpatternextend[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ] filter[isdefined(.isclose)] count
 Result   : 14
 
+Operator : stpatternextend2
+Number   : 1
+Signature: stream(tuple(x)) X namedFunlist X constraintList -> stream(tuple(x, funListNames))
+Example  : query Trains feed  stpatternextend2[insnow: fun(t1: TUPLE, p1: periods) (attr(t1, Trip) atperiods p1) inside msnow, isclose: fun(t2: TUPLE, p2: periods) distance(attr(t2, Trip) atperiods p2, mehringdamm)<10.0,    isfast: fun(t3: TUPLE, p3: periods) speed( attr(t3, Trip) atperiods p3) >8.0 ;  stconstraint("insnow","isclose",vec("aabb")),    stconstraint("isclose","isfast",vec("bbaa"))  ] filter[isdefined(.isclose)] count
+Result   : 14
+
 Operator : stpatternextendstream
 Number   : 1
 Signature: stream(tuple(x)) X namedFunlist X constraintList -> stream(tuple(x, funListNames))
 Example  : query Trains feed stpatternextendstream[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ] filter[isdefined(.isclose)] count
+Result   : 368
+
+Operator : stpatternextendstream2
+Number   : 1
+Signature: stream(tuple(x)) X namedFunlist X constraintList -> stream(tuple(x, funListNames))
+Example  : query Trains feed  stpatternextendstream2[insnow: fun(t1: TUPLE, p1: periods) (attr(t1, Trip) atperiods p1) inside msnow, isclose: fun(t2: TUPLE, p2: periods) distance(attr(t2, Trip) atperiods p2, mehringdamm)<10.0,    isfast: fun(t3: TUPLE, p3: periods) speed( attr(t3, Trip) atperiods p3) >8.0 ;  stconstraint("insnow","isclose",vec("aabb")),    stconstraint("isclose","isfast",vec("bbaa"))  ] filter[isdefined(.isclose)] count
 Result   : 368
 
 Operator : vec
@@ -32,16 +50,35 @@ Signature: tuple(x) X namedFunlist X constraintList X bool -> bool
 Example  : query Trains feed filter[. stpatternex[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"));  (end("isclose") - start("insnow")) < [const duration value (1 0)] ]] count
 Result   : 14
 
+Operator : stpatternex2
+Number   : 1
+Signature: tuple(x) X periods X namedFunlist X constraintList X bool -> bool
+Example  : query Trains feed  filter[fun(t: TUPLE, p: periods)    t p stpatternex2[insnow: (attr(t,Trip) atperiods p) inside msnow,    isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0,    isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("insnow","isclose",vec("aabb")),    stconstraint("isclose","isfast",vec("aabb"));  (end("isclose") - start("insnow")) < [const duration value (1 0)]  ]] count
+Result   : 14
+
+
 Operator : stpatternexextend
 Number   : 1
 Signature: stream(tuple(x)) X namedFunlist X constraintList X (fun -> bool) -> stream(tuple(x,funListNames))
 Example  : query Trains feed stpatternexextend[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa")); (end("isclose") - start("insnow")) < [const duration value (1 0)]  ] filter[isdefined(.isclose)] count
 Result   : 14
 
+Operator : stpatternexextend2
+Number   : 1
+Signature: stream(tuple(x)) X namedFunlist X constraintList X (fun -> bool) -> stream(tuple(x,funListNames))
+Example  : query Trains feed  stpatternexextend2[insnow: fun(t1: TUPLE, p1: periods) (attr(t1, Trip) atperiods p1) inside msnow, isclose: fun(t2: TUPLE, p2: periods) distance(attr(t2, Trip) atperiods p2, mehringdamm)<10.0,    isfast: fun(t3: TUPLE, p3: periods) speed( attr(t3, Trip) atperiods p3) >8.0 ;  stconstraint("insnow","isclose",vec("aabb")),    stconstraint("isclose","isfast",vec("bbaa")) ; (end("isclose") - start("insnow")) < [const duration value (1 0)]  ] filter[isdefined(.isclose)] count
+Result   : 14
+
 Operator : stpatternexextendstream
 Number   : 1
 Signature: stream(tuple(x)) X namedFunlist X constraintList X (fun -> bool) -> stream(tuple(x,funListNames))
 Example  : query Trains feed stpatternexextendstream[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa")); (end("isclose") - start("insnow")) < [const duration value (1 0)]  ] filter[isdefined(.isclose)] count
+Result   : 368
+
+Operator : stpatternexextendstream2
+Number   : 1
+Signature: stream(tuple(x)) X namedFunlist X constraintList X (fun -> bool) -> stream(tuple(x,funListNames))
+Example  : query Trains feed stpatternexextendstream2[insnow: fun(t1: TUPLE, p1: periods) (attr(t1, Trip) atperiods p1) inside msnow, isclose: fun(t2: TUPLE, p2: periods) distance(attr(t2, Trip) atperiods p2, mehringdamm)<10.0,    isfast: fun(t3: TUPLE, p3: periods) speed( attr(t3, Trip) atperiods p3) >8.0 ;  stconstraint("insnow","isclose",vec("aabb")),    stconstraint("isclose","isfast",vec("bbaa")) ; (end("isclose") - start("insnow")) < [const duration value (1 0)]  ] filter[isdefined(.isclose)] count
 Result   : 368
 
 Operator : stconstraint

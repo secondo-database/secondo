@@ -28,7 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include<vector>
 #include<set>
 #include<ostream>
+#include "NestedList.h"
 using namespace std;
+extern NestedList *nl;
 
 namespace STP{
 enum PARelation{
@@ -51,6 +53,10 @@ public:
   bool Propagate(int i, int j);
   ostream& Print(ostream& os);
   vector<PARelation>& GetRelations(int varIndex);
+  void Clear();
+  ListExpr ExportToNestedList();
+  bool ImportFromNestedList(ListExpr& args);
+  bool ImportFromArray(int* args);
 };
 };
 #endif //TEMPORAL_REASONER_H

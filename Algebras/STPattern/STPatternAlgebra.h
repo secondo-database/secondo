@@ -136,7 +136,7 @@ enum SimpleConnector {
   a_a_b_b=16777216,
   b_ba_a=33554432
 };
-enum ClosureResult{inconsistent, consistent, notPA};
+enum ClosureResult{inconsistent=0, consistent=1, notPA=2};
 
 
 
@@ -253,6 +253,7 @@ able to convert one term only.
 */
   bool Simple2PARelations(int simple, int rels[12]);
 
+  void Clear();
   
 /*  
 Secondo framework support functions
@@ -334,7 +335,7 @@ make sure that the network is consistent, and to help restrict the
 trajectories.
 
 */
-  PointAlgebraReasoner* PAReasoner;
+
   ClosureResult closureRes;
   
 public:
@@ -403,8 +404,9 @@ computes the closure of the PA network. The return codes are: 0 for inconsistent
 network, 1 for consistent network, and 2 if the IA not convertible into PA.
 
 */
-  int ComputeClosure();
-
+//  int ComputeClosure();
+  void SetConsistentPeriods(
+      int varIndex, Periods* periodsArg, PointAlgebraReasoner* paReasoner);
   
 /*
 The Solve function. It implements the Solve Pattern algorithm in the paper.
@@ -412,6 +414,7 @@ The Solve function. It implements the Solve Pattern algorithm in the paper.
 */
   
   bool Solve();
+  bool Solve(Periods* periodsArg, PointAlgebraReasoner* paReasoner);
   
 /*
 The MoveNext function. It is used to iterate over the SA list. The function is

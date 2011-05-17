@@ -66,6 +66,15 @@ PointAlgebraReasoner::PointAlgebraReasoner(unsigned int _n):
 }
 PointAlgebraReasoner::~PointAlgebraReasoner(){}
 
+void PointAlgebraReasoner::Clear()
+{
+  this->n=0;
+  this->Table.clear();
+  this->Intervals.clear();
+  while(!this->Queue.empty())
+    this->Queue.pop();
+}
+
 void PointAlgebraReasoner::Add(int i, int j, PARelation Rij)
 {
   PARelation oldRij= Table[i][j],
@@ -147,4 +156,66 @@ vector<PARelation>& PointAlgebraReasoner::GetRelations(int varIndex)
   return Table[varIndex];
 
 }
+
+ListExpr PointAlgebraReasoner::ExportToNestedList()
+{
+/*
+Yields a nested list with the format
+(n Table[0][0],..., Table[0][n-1], Table[1][0],..., Table[n-1][n-1])
+
+*/
+  ListExpr list;
+  ListExpr last;
+  list= nl->OneElemList(nl->IntAtom(n));
+  last= list;
+  for(unsigned int i=0; i< this->n; ++i)
+    for(unsigned int j=0; j<this->n; ++j)
+      last= nl->Append(last, nl->IntAtom(static_cast<int>(Table[i][j])));
+  return list;
+}
+
+bool PointAlgebraReasoner::ImportFromNestedList(ListExpr& args)
+{
+/*
+Yields a nested list with the format
+(n Table[0][0],..., Table[0][n-1], Table[1][0],..., Table[n-1][n-1])
+
+*/
+//  Clear();
+//  this->n = nl->First(args);
+//  ListExpr list= nl->Rest(args);
+//  if(n == 0) return false;
+//
+//  assert(nl->ListLength(list) == n * n);
+//  for(unsigned int i=0; i<n; ++i)
+//  {
+//    for(unsigned int j=0; j<n; ++j)
+//    {
+//      Table[i][j]= static_cast<PARelation>(nl->IntValue(nl->First(list)));
+//      list= nl->Rest(list);
+//    }
+//  }
+  return true;
+}
+
+bool PointAlgebraReasoner::ImportFromArray(int* args)
+{
+/*
+Yields a nested list with the format
+(n Table[0][0],..., Table[0][n-1], Table[1][0],..., Table[n-1][n-1])
+
+*/
+  if(args[0] == 0) return false;
+//  Clear();
+//  this->n = args[0];
+//  Table.resize(this->n);
+//  for(unsigned int i=0; i<this->n; ++i)
+//    Table[i].resize(this->n);
+
+  for(unsigned int i=0; i<n; ++i)
+    for(unsigned int j=0; j<n; ++j)
+      Table[i][j]= static_cast<PARelation>(args[i*n + j +1]);
+  return true;
+}
 };
+
