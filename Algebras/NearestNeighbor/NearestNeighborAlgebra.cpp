@@ -11929,7 +11929,7 @@ class NearestNeighborAlgebra : public Algebra
 //    AddOperator( &gnuplotnode);
     AddOperator( &isknn);
     AddOperator( &mergertree);
-    AddOperator( &mergecov);
+//    AddOperator( &mergecov);
     AddOperator( &mergecov2);
     
     AddOperator( &knearest_dist);//return the k th nearghbor distance 
