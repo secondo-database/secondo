@@ -1486,7 +1486,7 @@ bool DateTime::LessThanZero()const{
 
 SmiSize DateTime::SizeOfChars() const
 {
-  return ToString().length();
+  return ToString().length()+1;
 }
 
 void DateTime::WriteTo( char *dest ) const
