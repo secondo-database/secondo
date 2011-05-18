@@ -17,6 +17,9 @@
 #undef NULL
 #define NULL -1
 
+
+extern void yyerror(const char* msg);
+
 #define STRINGMAX 300000
 /*
 Maximal number of characters in buffer ~text~.
@@ -60,7 +63,7 @@ int atom(char *string, int length)
     /* put string into text buffer: */
 
     	if (first_free_char + length > STRINGMAX)
-	    {fprintf(stderr, "Error: too many characters.\n"); exit(1);}
+	    {fprintf(stderr, "Error: too many characters.\n"); yyerror("too many characters");exit(1);}
 
     	for (i = 0; i< length; i++)
 	    text[first_free_char + i] = string[i];
@@ -70,7 +73,7 @@ int atom(char *string, int length)
     	newnode = first_free_node++;
 	
     	if (first_free_node > NODESMAX)
-	    {fprintf(stderr, "Error: too many nodes!!!!.\n");show_storage(); exit(1);}
+	    {fprintf(stderr, "Error: too many nodes!!!!.\n");show_storage(); yyerror("too many nodes"); exit(1);}
 
    	nodespace[newnode].left = NULL;
   	nodespace[newnode].right = NULL;
@@ -106,7 +109,7 @@ int concat(int list1, int list2)
     newnode = first_free_node++;
 
     if (first_free_node > NODESMAX)
-	{fprintf(stderr, "Error: too many nodes.\n"); exit(1);}
+	{fprintf(stderr, "Error: too many nodes.\n"); yyerror("too many nodes");exit(1);}
 
     nodespace[newnode].left = list1;
     nodespace[newnode].right = list2;
@@ -168,6 +171,7 @@ int copylist(int list, char *target, int lengthlimit)
 	    }
 	else
 	    {fprintf(stderr, "Error in copylist: too long text.\n"); print(list);
+       yyerror("too long text");
 	    exit(1);
 	    }
     else
