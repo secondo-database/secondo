@@ -1612,11 +1612,24 @@ Returns the MBR of this SimpleLine object.
 
 */
   inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
-    if(geoid){
-      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-      << endl;
-      assert( !geoid ); // TODO: implement spherical geometry case
-    }
+    if(geoid){ // spherical geometry case:
+      if(!geoid->IsDefined() || !IsDefined()){
+        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+      }
+      Rectangle<2> geobbox = Rectangle<2>(false);
+      for (int i=0; i<Size() ;i++){
+        HalfSegment hs;
+        Get( i, hs );
+        if( hs.IsLeftDomPoint() ){
+          if(!geobbox.IsDefined()){
+            geobbox = hs.BoundingBox(geoid);
+          } else {
+            geobbox = geobbox.Union(hs.BoundingBox(geoid));
+          }
+        } // else: ignore inverse HalfSegments
+      } // end for
+      return geobbox;
+    } // else: euclidean MBR
     return bbox;
   }
 
@@ -2041,6 +2054,12 @@ dominating point are copied.
     Region( const Rectangle<2>& r );
 /*
 Creates a rectangular region from a rect2 objects.
+
+*/
+
+    Region( const Point& p1, const Point& p2, const Point& p3 );
+/*
+Creates a triangular region from three Point objects.
 
 */
 
@@ -3229,25 +3248,23 @@ inline Point::Point( const Point& p ) :
 
 inline const Rectangle<2> Point::BoundingBox(const Geoid* geoid /*=0*/) const
 {
-  if(geoid){
-    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-    << endl;
-    assert( !geoid ); // TODO: implement spherical geometry case
-  }
   assert( IsDefined() );
   if( IsDefined() ) {
-    return Rectangle<2>( true,
-                        x - ApplyFactor(x),
-                        x + ApplyFactor(x),
-                        y - ApplyFactor(y),
-                        y + ApplyFactor(y) );
-  } else {
-    return Rectangle<2>( false,
-                         0.0,
-                         0.0,
-                         0.0,
-                         0.0);
-  }
+    if( geoid && geoid->IsDefined() ){ // spherical case
+      return Rectangle<2>( true,
+                           MAX(-180.0,x - ApplyFactor(x)),
+                           MIN(+180.0,x + ApplyFactor(x)),
+                           MAX(- 90.0,y - ApplyFactor(y)),
+                           MIN(+ 90.0,y + ApplyFactor(y)) );
+    } else if(!geoid){
+      return Rectangle<2>( true,
+                          x - ApplyFactor(x),
+                          x + ApplyFactor(x),
+                          y - ApplyFactor(y),
+                          y + ApplyFactor(y) );
+    }
+  } // else:
+  return Rectangle<2>( false, 0.0, 0.0, 0.0, 0.0 );
 }
 
 inline void Point::Set( const Coord& x, const Coord& y )
@@ -3408,11 +3425,7 @@ ordered( true )
 
 inline const Rectangle<2> Points::BoundingBox(const Geoid* geoid /*=0*/) const
 {
-  if(geoid){
-    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-    << endl;
-    assert( !geoid ); // TODO: implement spherical geometry case
-  }
+  // no special implementation for spherical geometry required!
   return bbox;
 }
 
@@ -3547,23 +3560,6 @@ inline void Line::Destroy()
   line.Destroy();
 }
 
-  /*
-   // unsave code
-
-inline void Line::SetNoComponents( int noComponents )
-{
-  this->noComponents = noComponents;
-}
-
-inline void Line::SetLength( double length )
-{
-  this->length = length;
-}
-
-
- */
-
-
 inline double Line::Length() const
 {
   assert( IsDefined() );
@@ -3573,22 +3569,26 @@ inline double Line::Length() const
 
 inline const Rectangle<2> Line::BoundingBox(const Geoid* geoid /*=0*/) const
 {
-  if(geoid){
-    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-    << endl;
-    assert( !geoid ); // TODO: implement spherical geometry case
-  }
+  if(geoid){ // spherical geometry case:
+    if(!geoid->IsDefined() || !IsDefined()){
+      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    }
+    Rectangle<2> geobbox = Rectangle<2>(false);
+    for(int i=0; i<Size() ;i++){
+      HalfSegment hs;
+      Get( i, hs );
+      if( hs.IsLeftDomPoint() ){
+        if(!geobbox.IsDefined()){
+          geobbox = hs.BoundingBox(geoid);
+        } else {
+          geobbox = geobbox.Union(hs.BoundingBox(geoid));
+        }
+      } // else: ignore inverse HalfSegments
+    } // end for
+    return geobbox;
+  } // else: euclidean MBR
   return bbox;
 }
-
-  /*
-  // unsave code
-
-  inline void Line::SetBoundingBox( const Rectangle<2>& bbox )
-  {
-    this->bbox = bbox;
-  }
-  */
 
 inline bool Line::IsOrdered() const
 {
@@ -3679,11 +3679,23 @@ inline void Region::Destroy()
 
 inline const Rectangle<2> Region::BoundingBox(const Geoid* geoid /*=0*/) const
 {
-  if(geoid){
-    cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-    << endl;
-    assert( !geoid ); // TODO: implement spherical geometry case
-  }
+  if(geoid){ // spherical geometry case:
+    if(!geoid->IsDefined() || !IsDefined()){
+      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+    }
+    Rectangle<2> geobbox = Rectangle<2>(false);
+    for (int i=0; i<Size() ;i++){
+      HalfSegment hs;
+      Get( i, hs );
+      if( hs.IsLeftDomPoint() ){
+        if(!geobbox.IsDefined()){
+          geobbox = hs.BoundingBox(geoid);
+        } else {
+          geobbox = geobbox.Union(hs.BoundingBox(geoid));
+        }
+      } // else: ignore inverse HalfSegments
+    } // endfor
+  } // else: euclidean case
   return bbox;
 }
 

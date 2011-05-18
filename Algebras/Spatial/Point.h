@@ -53,6 +53,15 @@ Convert a standard aviation heading 0<h<=360 to a standard angle 0<=a<360.
 */
 inline double headingToDirection( const double head );
 
+/*
+Corrected modulo function ( '%' has problems with negative values).
+
+fmod(y,x) is the remainder on dividing y by x and always lies in the range
+$0<=mod<x$. For instance: mod(2.3,2.)=0.3 and mod(-2.3,2.)=1.7
+
+*/
+double fmod2(const double &y, const double &x);
+
 class Point: public StandardSpatialAttribute<2>
 {
   public:
@@ -106,7 +115,7 @@ Returns the ~y~-coordinate. For geographic coordinates: the LATitude
       return y;
     }
 /*
-Returns the point bounding box which is also a point.
+Returns the point's bounding box which is a rectangle with (almost) no extension.
 
 */
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
@@ -376,9 +385,30 @@ to true.
                                bool& valid) const;
 
 /*
-4.1.2
+Distance between two points given in geodetic (Lon,Lat)-coordinates.
+The distance is measured along a geoid passed as an argument.
+
+If an undefined Point or a Point with an invalid geographic coordinate is used,
+~valid~ is set to false, otherwise the result is calculated and ~valid~ is set
+to true.
+
+The distance is computed iteratively. A precision may be specified by ~epsilon~.
+In addition to the great circle distance, the initial and final bearing
+(heading, in degrees, true north=0, east=90, etc.) from THIS Point to the
+~other~ Point are returned.
+
+If THIS and ~p~ are AlmostEqual, the distance is 0 and negative value -666.666 is
+returned for both ~initialBearingDEG~ and ~finalBearingDEG~ to indicate invalid
+headings.
 
 */
+    double DistanceOrthodromePrecise( const Point& p,
+                                      const Geoid& g,
+                                      bool& valid,
+                                      double& initialBearingDEG,
+                                      double& finalBearingDEG,
+                                      const bool epsilon = 1e-12 ) const;
+
 
 /*
 4.3.15 Operation ~translate~
@@ -451,6 +481,7 @@ with a degree of alpha. The result is stored in res.
 
   inline bool IsEmpty()const{ return !IsDefined(); }
 
+
 /*
 4.3.16 Operation ~toString~
 
@@ -460,6 +491,57 @@ coord-pair string is returned.
 
 */
   string toString(const Geoid* geoid = 0) const;
+
+/*
+4.3.16 Operation ~GeographicBBox~
+
+Returns the MBR (bounding box) containing the shortest orthodrome path for THIS
+Point and the ~other~ Point.
+
+The Geographic MBR is different from the euclidean one, since the orthodrome may
+exceed the two points extreme LATitude coordinates.
+
+*/
+
+  Rectangle<2> GeographicBBox(const Point &other, const Geoid &geoid) const;
+
+/*
+Returns the vertex, i.e. the southernmost/northernmost point of the great circle
+starting at THIS with course ~rcourseDEG~ (in degree). If an ivalid coordinate
+is found or not 0<=~rcourseDEG~<=360, the result is UNDEFINED.
+
+*/
+  Point orthodromeVertex(const double& rcourseDEG) const;
+
+
+/*
+Returns the number of intersections of the great circle on which both Points
+THIS and ~other~ lie with the great circle of latitude ~latitudeDEG~.
+There may be 0, 1 or 2 intersections with any given circle of latitude.
+The according minimumn and maximum longitudes are returned in parameters
+~lonMinDEG~ and ~lonMaxDEG~.
+
+If an error occurs, the return value is 0.
+
+*/
+int orthodromeAtLatitude( const Point &other, const double& latitudeDEG,
+                            double& lonMinDEG, double lonMaxDEG) const;
+
+/*
+4.3.17 Operation ~orthodromeExtremeLatitudes~
+
+Computes the extreme LATitude coordinates traversed by the orthodrome from
+~this~ Point to the ~other~ Point.
+
+If any Point is UNDEFINED or not a valid geographic coordinate, or the ~geoid~
+is UNDEFINED, the result is ~false~ and the output parameters are set to invalid
+values, otherwise the result is ~true~.
+
+
+*/
+
+  bool orthodromeExtremeLatitudes(const Point &other, const Geoid &geoid,
+                                          double &minLat, double &maxLat) const;
 
 /*
 4.4 Functions needed to import the the ~point~ data type to tuple

@@ -50,74 +50,74 @@ A half segment is composed by two points which are called ~left point~ (~lp~) an
 $lp < rp$, and a flag ~ldp~ (~left dominating point~) which tells whether the left point is the dominating
 point.
 
-*/
-    inline HalfSegment() {}
-/*
-This constructor should not be used.
+This constructor should not be used:
 
 */
-    inline HalfSegment( bool ldp, const Point& lp, const Point& rp );
+
+    inline HalfSegment() {}
 /*
 Creates a half segment receiving all attributes as arguments. The order between the left
 and right points is not important. If ~lp~ is bigger than ~rp~ their values are changed.
 
 */
-    inline HalfSegment( const HalfSegment& hs );
+
+    inline HalfSegment( bool ldp, const Point& lp, const Point& rp );
 /*
 Creates a half segment copying the values from ~hs~.
 
 */
-    inline ~HalfSegment() {}
+
+    inline HalfSegment( const HalfSegment& hs );
 /*
 The destructor.
 
+*/
+    inline ~HalfSegment() {}
+/*
 5.2 Member Functions
+
+Returns the left point of the half segment.
 
 */
     inline const Point& GetLeftPoint() const;
 /*
-Returns the left point of the half segment.
+Returns the right point of the half segment.
 
 */
     inline const Point& GetRightPoint() const;
 /*
-Returns the right point of the half segment.
+Returns the dominating point of the half segment.
 
 */
     inline const Point& GetDomPoint() const;
 /*
-Returns the dominating point of the half segment.
+Returns the secondary point of the half segment.
 
 */
     inline const Point& GetSecPoint() const;
 /*
-Returns the secondary point of the half segment.
+Returns the boolean flag which indicates whether the dominating point is on the left side.
 
 */
     inline bool IsLeftDomPoint() const;
 /*
-Returns the boolean flag which indicates whether the dominating point is on the left side.
+Returns the bounding box of the half segment. If ~geoid~ is not NULL, the geographic
+MBR is returned. If ~geoid~ is UNDEFINED, the result is UNDEFINED.
 
 */
-    inline const Rectangle<2> BoundingBox() const;
-/*
-Returns the bounding box of the half segment.
-
-*/
-    inline const AttrType& GetAttr() const;
+    inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the "attr" value associated with a half segment. The "attr" value is useful when we
 process region values.
 
 */
-    inline double Length(const Geoid* geoid=0) const;
+    inline const AttrType& GetAttr() const;
 /*
 Returns the length of the half segmtent, i.e., the distance between the left point to the
 right point.
 
 */
-
-    inline double LengthOrthodrome(const Geoid& g, bool& valid) const;
+    inline double Length(const Geoid* geoid=0) const;
 /*
 Returns the length of the orthodrome defined by the half segment's end points
 with respect to the provided geoid.
@@ -129,33 +129,39 @@ If an undefined Point or a Point with an invalid geographic coordinate is used,
 to true.
 
 */
-    inline Point AtPosition( double pos, const Geoid* geoid=0 ) const;
+
+    inline double LengthOrthodrome(const Geoid& g, bool& valid) const;
 /*
 Returns the point at relative position ~pos~.
 
 */
-    inline double AtPoint( const Point& p ) const;
+    inline Point AtPosition( double pos, const Geoid* geoid=0 ) const;
 /*
 Returns the relative position of the point ~p~.
+
+*/
+    inline double AtPoint( const Point& p ) const;
+/*
+Returns the sub half segment trimmed by ~pos1~ and ~pos2~.
 
 */
     inline bool SubHalfSegment( double pos1, double pos2,
                                 HalfSegment& result ) const;
 /*
-Returns the sub half segment trimmed by ~pos1~ and ~pos2~.
+Sets the value of a half segment. The parameters ~lp~ and ~rp~ can ignore the order, and the
+function will compare the parameter points and put the smaller one to ~lp~ and larger one to ~rp~.
 
 */
     void Set( bool ldp, const Point& lp, const Point& rp );
 /*
-Sets the value of a half segment. The parameters ~lp~ and ~rp~ can ignore the order, and the
-function will compare the parameter points and put the smaller one to ~lp~ and larger one to ~rp~.
+Translates the half segment by adding the coordinates ~x~ and ~y~ (which can be negative) to both
+~lp~ and ~rp~ points.
 
 */
     void Translate( const Coord& x, const Coord& y );
 
 /*
-Translates the half segment by adding the coordinates ~x~ and ~y~ (which can be negative) to both
-~lp~ and ~rp~ points.
+Scales the half segment given a factor ~f~.
 
 */
 
@@ -165,17 +171,17 @@ Translates the half segment by adding the coordinates ~x~ and ~y~ (which can be 
       rp.Scale( f );
     }
 /*
-Scales the half segment given a factor ~f~.
+Sets the value of the "attr" attribute of a half segment.
 
 */
     inline void SetAttr( AttrType& attr );
 /*
-Sets the value of the "attr" attribute of a half segment.
+Sets the value of the dominating point flag of a half segment.
 
 */
     inline void SetLeftDomPoint( bool ldp );
 /*
-Sets the value of the dominating point flag of a half segment.
+Checks whethet the HalsSegment is vertical
 
 */
 
@@ -223,16 +229,13 @@ Prints out this segments as a nested list reprenting a line.
 /*
 Operator redefinitions.
 
-*/
-    int Compare( const HalfSegment& hs ) const;
-/*
 This function make comparison between two halfsegments. The rule of the
 comparison is specified in the ROSE Algebra paper. That is:  the half sgenments
 will be ordered according to the following values:
 dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 
 */
-    bool Intersects( const HalfSegment& hs, const Geoid* geoid = 0 ) const;
+    int Compare( const HalfSegment& hs ) const;
 /*
 Decides whether two half segments intersect with each other with any kind of
 intersection.
@@ -240,22 +243,20 @@ Applies spherical geometry, iff ~geoid~ ist not NULL. If invalid coordinates
 are found, ~false~ is returned.
 
 */
-    bool InnerIntersects( const HalfSegment& hs, const Geoid* geoid=0 ) const;
+    bool Intersects( const HalfSegment& hs, const Geoid* geoid = 0 ) const;
 /*
 Decides whether two half segments intersect in the following manner: a point of
 the first segment and an
 innerpoint of the second segment are the same.
 
 */
-    bool Crosses( const HalfSegment& hs, const Geoid* geoid=0 ) const;
+    bool InnerIntersects( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
 Computes whether two half segments intersect in their mid-points. Endpoints are
 not considered in computing the results.
 
 */
-
-    bool Intersection( const HalfSegment& hs, Point& p,
-                       const Geoid* geoid = 0 ) const;
+    bool Crosses( const HalfSegment& hs, const Geoid* geoid=0 ) const;
 /*
 This function computes whether two half segments cross each other and returns
 the crossing point ~p~.
@@ -263,7 +264,8 @@ Applies spherical geometry, iff ~geoid~ ist not NULL. If invalid coordinates are
 found, ~false~ is returned and ~p~ is set to UNDEFINED.
 
 */
-    bool Intersection( const HalfSegment& hs, HalfSegment& reshs,
+
+    bool Intersection( const HalfSegment& hs, Point& p,
                        const Geoid* geoid = 0 ) const;
 /*
 This function computes whether two half segments intersect each other and
@@ -272,13 +274,23 @@ Applies spherical geometry, iff ~geoid~ ist not NULL. If invalid coordinates are
 found, ~false~ is returned .
 
 */
+    bool Intersection( const HalfSegment& hs, HalfSegment& reshs,
+                       const Geoid* geoid = 0 ) const;
+/*
+Implements the Cohen and Sutherland algorithm for clipping a segment to a clipping window.
+
+*/
    void CohenSutherlandLineClipping( const Rectangle<2> &window,
                                      double &x0, double &y0,
                                      double &x1, double &y1,
                                      bool &accept,
                                      const Geoid* geoid=0) const;
 /*
-Implements the Cohen and Sutherland algorithm for clipping a segment to a clipping window.
+Computes the part of the segment that is inside the rectangle ~window~, if
+it exists. The ~inside~ parameter is set to true if there is a partion of the segment
+inside the window. The ~isIntersectionPoint~ parameter is set to true if the intersection
+part of the segment is a point instead of a segment, and if so, ~intersectionPoint~
+receives the intersection point.
 
 */
    void WindowClippingIn( const Rectangle<2> &window,
@@ -288,35 +300,29 @@ Implements the Cohen and Sutherland algorithm for clipping a segment to a clippi
                           Point &intersectionPoint,
                           const Geoid* geoid=0) const;
 /*
-Computes the part of the segment that is inside the rectangle ~window~, if
-it exists. The ~inside~ parameter is set to true if there is a partion of the segment
-inside the window. The ~isIntersectionPoint~ parameter is set to true if the intersection
-part of the segment is a point instead of a segment, and if so, ~intersectionPoint~
-receives the intersection point.
-
-*/
-bool Inside( const HalfSegment& hs, const Geoid* geoid=0 ) const ;
-/*
 Computes whether the half segment is inside the one in ~hs~.
 
 */
-    bool Contains( const Point& p, const Geoid* geoid=0 ) const;
+    bool Inside( const HalfSegment& hs, const Geoid* geoid=0 ) const ;
 /*
 Computes whether the point ~p~ is contained in the half segment.
 Uses the ~AlmostEqual~ function.
 
 */
-    bool RayAbove( const Point& p, double &abovey0 ) const;
+    bool Contains( const Point& p, const Geoid* geoid=0 ) const;
 /*
 Decides whether a half segment is above a point. This is useful when we want to decide
 whether a point is inside a region.
 
 */
+    bool RayAbove( const Point& p, double &abovey0 ) const;
+/*
+Decides whether a half segment is below a point. This is useful when we want to decide
+whether a point is inside a region.
+
+*/
 
     bool RayDown(const Point& p, double &yIntersection) const;
-
-
-    double Distance( const Point& p, const Geoid* geoid = 0 ) const;
 
 /*
 Computes the distance from the half segment to the point ~p~.
@@ -329,8 +335,8 @@ geographic ccordinates).
 
 */
 
+    double Distance( const Point& p, const Geoid* geoid = 0 ) const;
 
-    double Distance( const HalfSegment& hs, const Geoid* geoid = 0 ) const;
 /*
 Computes the minimum distance from two half segments.
 If ~geoid~ is not NULL, it is used to compute the minimun distance
@@ -341,18 +347,22 @@ A negative result means, that an error occured during computation (e.g. invalid
 geographic ccordinates).
 
 */
+    double Distance( const HalfSegment& hs, const Geoid* geoid = 0 ) const;
+/*
+Compares two half segments according to their attribute values (~attr~).
+
+*/
 
     double Distance(const Rectangle<2>& rect, const Geoid* geoid=0) const;
     double MaxDistance(const Rectangle<2>& rect, const Geoid* geoid=0) const;
     int LogicCompare( const HalfSegment& hs ) const;
 /*
-Compares two half segments according to their attribute values (~attr~).
+Used in the Plane Sweep Algebra
 
 */
     bool innerInter( const HalfSegment& chs,  Point& resp,
                      HalfSegment& rchs, bool& first, bool& second ) const;
 /*
-Used in the Plane Sweep Algebra
 
 */
 
@@ -361,26 +371,27 @@ Used in the Plane Sweep Algebra
 /*
 5.13 Attributes
 
+Indicates which is the dominating point: the left or the right point.
+
 */
     bool ldp;
 /*
-Indicates which is the dominating point: the left or the right point.
+These two attributes give the left and right point of the half segment.
 
 */
     Point lp;
     Point rp;
 /*
-These two attributes give the left and right point of the half segment.
 
 */
   public:
-
-    AttrType attr;
 /*
 This ~attribute~ property is useful if we process region values in the way indicated in the ROSE
 paper.
 
 */
+
+    AttrType attr;
 };
 
 /*
@@ -464,8 +475,20 @@ inline bool HalfSegment::IsVertical()const{
 
 
 inline const Rectangle<2>
-HalfSegment::BoundingBox() const
+HalfSegment::BoundingBox(const Geoid* geoid /*=0*/) const
 {
+  if(geoid){ // spherical geometry case
+    Rectangle<2> geobbox = lp.GeographicBBox(rp, *geoid); // handles UNDEFINED
+    double minx = geobbox.MinD(0) - ApplyFactor(geobbox.MinD(0));
+    double maxx = geobbox.MaxD(0) + ApplyFactor(geobbox.MaxD(0));
+    double miny = geobbox.MinD(1) - ApplyFactor(geobbox.MinD(1));
+    double maxy = geobbox.MaxD(1) + ApplyFactor(geobbox.MaxD(1));
+    return Rectangle<2>( true,
+                         (minx>=-180.0)?minx:-180.0,
+                         (maxx<= 180.0)?maxx: 180.0,
+                         (miny>=-90.0)?miny:-90.0,
+                         (maxy<= 90.0)?maxy: 90.0);
+  } // else: euclidean case
   double minx = MIN( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          maxx = MAX( GetLeftPoint().GetX(), GetRightPoint().GetX() ),
          miny = MIN( GetLeftPoint().GetY(), GetRightPoint().GetY() ),
@@ -499,7 +522,10 @@ HalfSegment::Length(const Geoid* geoid /*=0*/) const
 inline double
 HalfSegment::LengthOrthodrome(const Geoid& g, bool& valid) const
 {
-  return rp.DistanceOrthodrome( lp, g, valid );
+  double bearInitial = 0, bearFinal = 0;
+  double d = rp.DistanceOrthodromePrecise(lp, g, valid, bearInitial, bearFinal);
+  return d;
+  // return rp.DistanceOrthodrome( lp, g, valid );
 }
 
 
