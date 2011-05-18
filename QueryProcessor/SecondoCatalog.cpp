@@ -1463,7 +1463,7 @@ Checks whether ~keywordName~ is a reserved word
     "set",
     "then",
     "to",
-    "trasaction",
+    "transaction",
     "type",
     "types",
     "update",
