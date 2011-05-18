@@ -195,6 +195,12 @@ Returns ~true~ if this interval is different to the interval ~i~ and ~false~ if 
 
 */
 
+  bool operator<(const Interval<Alpha>& i) const;
+  bool operator>(const Interval<Alpha>& i) const;
+
+
+
+
   bool R_Disjoint( const Interval<Alpha>& i ) const;
 /*
 Returns ~true~ if this interval is r-disjoint with the interval ~i~ and ~false~ otherwise.
@@ -225,14 +231,19 @@ Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise
 
 */
 
-  bool Contains( const Alpha& a ) const;
+  bool Contains( const Alpha& a, 
+                 const bool ignoreCloseness = false ) const;
 /*
 Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
+If ignoreCloseness is set to be true, the return value will also be true, if
+a is one of the borders of this interval regardless of the closeness at this
+point.
 
 *Precondition:* ~a.IsDefined()~
 
 */
-  bool Contains(const Interval<Alpha>& i) const;
+  bool Contains(const Interval<Alpha>& i, 
+                const bool ignoreCloseness = false) const;
 
 
 
@@ -272,6 +283,7 @@ Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherw
 */
 
   void Intersection( const Interval<Alpha>& i, Interval<Alpha>& result ) const;
+  void IntersectionWith( const Interval<Alpha>& i);
 /*
 Return the intersection of this interval and ~i~ into ~result~.
 
@@ -440,6 +452,9 @@ The simple constructor. This constructor should not be used.
 The constructor. Initializes space for ~n~ elements.
 
 */
+
+    Range(const Range<Alpha>& src);
+
 
     ~Range();
 /*
@@ -616,6 +631,18 @@ Is true, iff both arguments are undefined or both are defined and contain the sa
     bool Inside( const Interval<Alpha>& iv ) const;
 
 /*
+3.3.5.4 Operation ~GetIndexOf~
+
+This function returns the index of the interval within this periods value containing
+the given Alpha. If the parameter ignoreCloseness is set to be true, the index of
+the interval is also returned, iff alpha is a border of the interval regardless 
+of the closeness of the interval. If no interval exist containing alpha, -1 is returned.
+
+*/
+   int GetIndexOf(const Alpha& alpha,const bool ignoreCloseness = false) const;
+
+
+/*
 3.3.5.5 Operation ~contains~
 
 *Precondition:* ~IsDefined() == true~
@@ -630,6 +657,8 @@ Is true, iff both arguments are undefined or both are defined and contain the sa
 
 */
     bool Contains( const Alpha& a ) const;
+    bool Contains( const Interval<Alpha>& iv, 
+                   const bool ignoreCloseness = false ) const;
 
 /*
 3.3.5.6 Operation ~before~ (with ~range~)
@@ -722,10 +751,28 @@ before on a contrary order, i.e., ~x before Y~.
 
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
+
+Note, it's not allowed to use ([*]this) as the result of this operation. This will result in
+an empty result. To do so, please use the variant without result parameter.
+
+
 */
     void Minus( const Range<Alpha>& r, Range<Alpha>& result ) const;
     
     void Minus( const Interval<Alpha>& r, Range<Alpha>& result ) const;
+
+
+/*
+Changes this Range value to contain the current intervals without the given ones.
+
+*/
+   void Minus(const Range<Alpha>& r);
+
+   void Minus( const Interval<Alpha>& r);
+
+
+
+
 
 /*
 3.3.5.12 Operation ~max~
@@ -2739,6 +2786,18 @@ Attention: UNDEFINED units my be appended!
   static const string BasicType(){ return "upoint"; }
 
 /*
+~IsStatic~
+
+Returns true, iff this unit is defined and not moving during its definition time.
+
+*/
+   bool IsStatic() const{
+
+      return IsDefined() && AlmostEqual(p0,p1);
+
+   }
+
+/*
 3.8.4 Attributes
 
 */
@@ -3808,6 +3867,21 @@ bool Interval<Alpha>::operator!=( const Interval<Alpha>& i ) const
   return !( *this == i );
 }
 
+
+template <class Alpha>
+bool Interval<Alpha>::operator<( const Interval<Alpha>& i ) const
+{
+   return CompareTo(i) <0;
+}
+
+
+template <class Alpha>
+bool Interval<Alpha>::operator>( const Interval<Alpha>& i ) const
+{
+   return CompareTo(i) >0;
+}
+
+
 template <class Alpha>
 bool Interval<Alpha>::R_Disjoint( const Interval<Alpha>& i ) const
 {
@@ -3854,11 +3928,14 @@ bool Interval<Alpha>::Inside( const Interval<Alpha>& i ) const
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Contains( const Alpha& a ) const
+bool Interval<Alpha>::Contains( const Alpha& a, 
+                                const bool ignoreCloseness /* = false */ ) const
 {
   assert(this->IsValid());
   assert(a.IsDefined());
 
+  bool lc = this->lc || ignoreCloseness;
+  bool rc = this->rc || ignoreCloseness; 
   return ( ( start.Compare( &a ) < 0 ||
              ( start.Compare( &a ) == 0 && lc ) ) &&
            ( end.Compare( &a ) > 0 ||
@@ -3867,21 +3944,22 @@ bool Interval<Alpha>::Contains( const Alpha& a ) const
 
 
 template <class Alpha>
-bool Interval<Alpha>::Contains( const Interval<Alpha>& i ) const
+bool Interval<Alpha>::Contains( const Interval<Alpha>& i, 
+                                const bool ignoreCloseness /* = false */ ) const
 {
   int cmp1 = start.CompareTo(&(i.start));
   int cmp2 = end.CompareTo(&(i.end));
   if(cmp1>0) {    // i starts before this
     return false;
   }
-  if((cmp1==0) && !lc && i.lc){ // i starts before this
+  if((cmp1==0) &&  !lc && i.lc && !ignoreCloseness){ // i starts before this
     return false;
   }
   // start is ok
   if(cmp2<0){ // this ends before i
     return false;
   }
-  if(cmp2==0 && !rc && i.rc){
+  if(cmp2==0 && !rc && i.rc && !ignoreCloseness){
      return false;
   }
   return true;
@@ -3899,6 +3977,9 @@ bool Interval<Alpha>::Intersects( const Interval<Alpha>& i ) const
           );
 
 }
+
+
+
 
 template <class Alpha>
 bool Interval<Alpha>::StartsBefore( const Interval<Alpha>& i ) const
@@ -4010,6 +4091,31 @@ void Interval<Alpha>::Intersection( const Interval<Alpha>& i,
     }
   }
 }
+
+template<class Alpha>
+void Interval<Alpha>::IntersectionWith( const Interval<Alpha>& i){
+  assert(this->IsValid());
+  assert(i.IsValid());
+  assert(this->Intersects(i));
+  if(start < i.start){
+      start = i.start;
+      lc = i.lc;
+  }else if(start==i.start){
+    lc = lc && i.lc;
+  }
+
+  if(i.end < end){
+     end = i.end;
+     rc = i.rc;
+  } else if(end == i.end){
+     rc = rc && i.rc; 
+  }
+  
+
+
+}
+
+
 
 template<class Alpha>
 void Interval<Alpha>::Union(const Interval<Alpha>& iv, 
@@ -4155,6 +4261,18 @@ Range<Alpha>::Range( const int n ):
   del.SetDelete();
   del.isDefined=true;
 }
+
+template<class Alpha>
+Range<Alpha>::Range(const Range<Alpha>& src):
+   Attribute(src),
+   canDestroy(false),
+   ordered(src.ordered),
+   intervals(src.intervals.Size()){
+   intervals.copyFrom(src.intervals);
+}
+
+
+
 
 template <class Alpha>
 void Range<Alpha>::Destroy()
@@ -4583,43 +4701,65 @@ bool Range<Alpha>::Inside( const Interval<Alpha>& iv ) const
 }
 
 
-template <class Alpha>
-bool Range<Alpha>::Contains( const Alpha& a ) const
-{
+/*
+Returns the index of the interval containing a, or -1 if not found
+
+*/
+template<class Alpha>
+int Range<Alpha>::GetIndexOf(const Alpha& alpha, 
+                             const bool ignoreCloseness /* = false */) const{
+  
   assert( IsDefined() );
   assert( IsValid() );
-  assert( a.IsDefined() );
+  assert( alpha.IsDefined() );
 
-  if( IsEmpty() )
-    return false;
+  if( IsEmpty() ){
+    return -1;
+  }
 
-  bool result = false;
   Interval<Alpha> midInterval;
 
-  int first = 0, last = GetNoComponents() - 1;
+  int first = 0;
+  int  last = GetNoComponents() - 1;
 
   while (first <= last)
   {
     int mid = ( first + last ) / 2;
     Get( mid, midInterval );
-    if( midInterval.Contains( a ) )
+    if( midInterval.Contains( alpha, ignoreCloseness ) )
     {
-      result = true;
-      break;
-    }
-    else if( midInterval.Before( a ) )
+      return mid;
+    } else if( midInterval.Before( alpha ) ){
       first = mid + 1;
-    else if( midInterval.After( a ) )
+    } else if( midInterval.After( alpha ) ) {
       last = mid - 1;
-    else
-    {
-      result = true;
-      break;
+    } else {
+      return mid; 
     }
   }
-
-  return result;
+  return -1;
 }
+
+template <class Alpha>
+bool Range<Alpha>::Contains( const Alpha& a ) const
+{
+   return GetIndexOf(a) >=0;
+}
+
+template<class Alpha>
+bool Range<Alpha>::Contains(const Interval<Alpha>&  iv, 
+                            const bool ignoreCloseness /* = false */) const {
+   int index = GetIndexOf(iv.start, ignoreCloseness);
+   if(index < 0){
+      return false;
+   }
+   Interval<Alpha> miv;
+   Get(index,miv);
+   return  miv.Contains(iv, ignoreCloseness);
+}
+
+
+
 
 
 template <class Alpha>
@@ -5369,6 +5509,25 @@ void Range<Alpha>::Minus( const Interval<Alpha>& iv,
       }
    }
 }
+
+
+template <class Alpha>
+void Range<Alpha>::Minus(const Range<Alpha>& r){
+   // TODO: improve this naive implementation to avoid a lot of work
+   Range<Alpha> tmp(*this);
+   tmp.Minus(r, *this);
+   tmp.Destroy();
+}
+
+
+template <class Alpha>
+void Range<Alpha>::Minus(const Interval<Alpha>& i){
+   // TODO: improve this naive implementation to avoid a lot of work
+   Range<Alpha> tmp(*this);
+   tmp.Minus(i, *this);
+   tmp.Destroy();
+}
+
 
 
 
