@@ -1585,6 +1585,7 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
   OrderedRelation* r;
   switch(message) {
     case OPEN: {
+
       CompositeKey fromKey;
       CompositeKey toKey;
       int l1 = 0;
@@ -1706,11 +1707,19 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
           linfo->Card = (int)(linfo->total*(1-toRange.greater));
         }
       }
-
+      if(linfo->iter){
+        delete linfo->iter;
+      }
       linfo->iter = orel->MakeRangeScan(linfo->fromKey,linfo->toKey);
       return 0;
     }
     case REQUEST:
+      if(!linfo){
+        return CANCEL;
+      }
+      if(!linfo->iter){
+        return CANCEL;
+      }
       Tuple* t;
       if((t = linfo->iter->GetNextTuple())) {
         linfo->returned++;
@@ -1721,7 +1730,10 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
 
     case CLOSE:
       if(linfo) {
-        delete linfo->iter;
+        if(linfo->iter){
+           delete linfo->iter;
+           linfo->iter=0;
+        }
         linfo->completeCalls++;
         linfo->completeReturned += linfo->returned;
         linfo->returned = 0;
@@ -1752,6 +1764,10 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
     }
     case CLOSEPROGRESS:
       if(linfo) {
+        if(linfo->iter){
+           delete linfo->iter;
+           linfo->iter = 0;
+        }
         delete linfo;
         local = SetWord(Address(0));
       }
