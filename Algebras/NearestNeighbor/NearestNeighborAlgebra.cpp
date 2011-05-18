@@ -566,20 +566,20 @@ ListExpr knearestdistTypeMap( ListExpr args )
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
 
-                nl->TwoElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("KNeighbor"),
-                        nl->SymbolAtom("upoint")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Dist"),
-                        nl->SymbolAtom("mreal"))
-                    )));
-
-//                   nl->OneElemList(
+//                 nl->TwoElemList(
 //                     nl->TwoElemList(
 //                         nl->SymbolAtom("KNeighbor"),
-//                         nl->SymbolAtom("upoint"))
+//                         nl->SymbolAtom("upoint")),
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("Dist"),
+//                         nl->SymbolAtom("mreal"))
 //                     )));
+
+                  nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("KNeighbor"),
+                        nl->SymbolAtom("upoint"))
+                    )));
 
   }
     if(nl->IsEqual(card,"int")){
@@ -3840,7 +3840,7 @@ int newknearestFun (Word* args, Word& result, int message,
 }
 
 /*
-return kth neighbor and the distance of 
+return kth neighbor 
 
 */
 
@@ -3961,6 +3961,8 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                       if(localInfo->AddNewUnit(up) == false)
                           localInfo->up_list.push_back(*up);
 
+                      delete cloneTuple;
+  
                     }
                 }
 
@@ -4041,6 +4043,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                       if(localInfo->AddNewUnit(up) == false)
                         localInfo->up_list.push_back(*up);
 
+                      delete cloneTuple;
                     }
                 }
 
@@ -4123,6 +4126,8 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 
                       if(localInfo->AddNewUnit(up) == false)
                         localInfo->up_list.push_back(*up);
+                      
+                      delete cloneTuple;
 
                     }
                 }
@@ -4230,7 +4235,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 
       }
         /////////////calculate the distance//////////////////////////////
-          int mpos = 0;
+/*          int mpos = 0;
           for(unsigned int i = 0;i < localInfo->up_list.size();i++){
              MReal* mr = new MReal(0);
              GetDistance( mp, &localInfo->up_list[i], mpos, mr);
@@ -4244,7 +4249,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 //             cout<<*mr<<endl;
             localInfo->dist_list.push_back(*mr);
              delete mr;
-          }
+          } */
 
          local = SetWord(localInfo);
       }
@@ -4277,8 +4282,8 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 
           tuple->PutAttribute(0, 
                               new UPoint(localInfo->up_list[localInfo->count]));
-          tuple->PutAttribute(1, 
-                          new MReal(localInfo->dist_list[localInfo->count]));
+/*          tuple->PutAttribute(1, 
+                          new MReal(localInfo->dist_list[localInfo->count]));*/
           result.setAddr(tuple);
           localInfo->count++;
           return YIELD;
@@ -4421,6 +4426,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                       if(localInfo->AddNewUnit(up) == false)
                           localInfo->up_list.push_back(*up);
 
+                      delete cloneTuple;
                     }
                 }
 
@@ -4500,6 +4506,8 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
 
                       if(localInfo->AddNewUnit(up) == false)
                         localInfo->up_list.push_back(*up);
+                      
+                      delete cloneTuple;
 
                     }
                 }
@@ -4584,6 +4592,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                       if(localInfo->AddNewUnit(up) == false)
                         localInfo->up_list.push_back(*up);
 
+                      delete cloneTuple;
                     }
                 }
 
@@ -4705,6 +4714,9 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
           delete mr;
       }
       presult->EndBulkLoad( false, false );
+      
+      delete localInfo;
+      
       qp->Close(args[0].addr);
       return 0;
 }
