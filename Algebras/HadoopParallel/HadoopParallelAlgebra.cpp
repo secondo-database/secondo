@@ -833,8 +833,8 @@ struct TUPSTREAM3Info : OperatorInfo
 ListExpr TUPSTREAM3Type( ListExpr args)
 {
   ListExpr third;
-  CHECK_COND(nl->ListLength(args) >= 1,
-      "Expect one argument at least");
+  CHECK_COND(nl->ListLength(args) >= 3,
+      "Expect 3 arguments at least");
   third = nl->Third(args);
   CHECK_COND(listutils::isRelDescription(third),
       "rel(tuple(...)) expected");
