@@ -58,9 +58,28 @@ Result   : file
 
 Operator : bbox
 Number   : 1
-Signature: (point||points||line||region) -> rect
+Signature: (point||points||line||region) [x geoid] -> rect
 Example  : query bbox(tiergarten)
 Result   : (rect (5659.99999999 8571.00000001 11434.99999999 12795.00000001))
+
+Operator : bbox
+Number   : 2
+Signature: (point||points||line||region) [x geoid] -> rect
+Example  : query bbox(makeline(makepoint(7.563333333333333,51.29166666666666),makepoint(-74.0,40.71666666666667)),create_geoid("WGS1984"))
+Result   : (rect (-74.00000001999999 7.5633334846 40.71666664666667 54.87868544808553))
+
+Operator : bbox
+Number   : 3
+Signature: (point||points||line||region) [x geoid] -> rect
+Example  : query bbox(makeline(makepoint(-43.2,-22.9),makepoint(151.2,-33.85)),create_geoid("WGS1984"))
+Result   : (rect (-43.20000002 151.20000002 -77.05451120443344 -22.89999998))
+
+Operator : bbox
+Number   : 4
+Signature: (point||points||line||region) [x geoid] -> rect
+Example  : query bbox(makeline(makepoint(7.563333333333333,51.29166666666666),makepoint(-43.2,-22.9)),create_geoid("WGS1984"))
+Result   : (rect (-43.20000002 7.5633334846 -22.90000002 51.29166668666666))
+
 
 Operator : boundary
 Number   : 1
@@ -115,9 +134,16 @@ Remark   : some points are in the result which are not crossings of streets
 
 Operator : direction
 Number   : 1
-Signature: (point x point) -> real
+Signature: (point x point [x geoid]) -> real
 Example  : query direction(mehringdamm, alexanderplatz)
 Result   : 61.061353020685345
+
+
+Operator : direction
+Number   : 2
+Signature: (point x point [x geoid]) -> real
+Example  : query direction(makepoint(7.56333,51.2917),makepoint(-74,40.7167),create_geoid("WGS1984"))
+Result   : 156.8391714352
 
 
 Operator : distance
@@ -779,17 +805,27 @@ Example   : query size(strassen feed sortby[geoData] projectextend[;g: fromline(
 Result    : (real undef)
 Tolerance : 0.5
 
-
 Operator : makepoint
 Number   : 1
-Signature: int x int -> point
+Signature: {int|real} x {int|real} -> point
 Example  : query makepoint (5,5)
 Result   : (point (5.0 5.0))
 
-
 Operator : makepoint
 Number   : 2
-Signature: real x real -> point
+Signature: {int|real} x {int|real} -> point
+Example  : query makepoint (5,5.0)
+Result   : (point (5.0 5.0))
+
+Operator : makepoint
+Number   : 3
+Signature: {int|real} x {int|real} -> point
+Example  : query makepoint (5.0,5)
+Result   : (point (5.0 5.0))
+
+Operator : makepoint
+Number   : 4
+Signature: {int|real} x {int|real} -> point
 Example  : query makepoint (5.0,5.0)
 Result   : (point (5.0 5.0))
 
@@ -917,6 +953,13 @@ Signature : point x point -> real
 Example   : query heading(makepoint(0,0), makepoint(20,0));
 Result    : 90.0
 
+Operator  : heading
+Number    : 2
+Signature : (point x point [x geoid]) -> real
+Example   : query heading(makepoint(7.56333,51.2917),makepoint(-74,40.7167),create_geoid("WGS1984"))
+Result    : 293.1608285648
+
+
 Operator  : point2string
 Number    : 1
 Signature : point [x geoid] -> string
@@ -941,3 +984,9 @@ Number    : 1
 Signature : real ->  real
 Example   : query heading2direction(275.0)
 Result    : 175.0
+
+Operator  : create_triangle
+Number    : 1
+Signature : point x point x point -> region
+Example   : query create_triangle(makepoint(0,0),makepoint(10,10),makepoint(10,-10))
+Result    : (region ((( (10.0 -10.0) (0.0 0.0) (10.0 10.0)))))
