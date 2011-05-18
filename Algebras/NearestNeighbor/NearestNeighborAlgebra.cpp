@@ -4325,6 +4325,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
         MReal* res = new MReal(0);
         *presult = *res;
         delete res;
+        qp->Close(args[0].addr);
         return 0;
       } 
 
@@ -4704,6 +4705,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
           delete mr;
       }
       presult->EndBulkLoad( false, false );
+      qp->Close(args[0].addr);
       return 0;
 }
 
