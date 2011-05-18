@@ -242,6 +242,18 @@ the parameters ~x~ and ~y~ are set to the intersection point.
 
 
 /*
+~commonPoint~
+
+This function checks whether this AVLSegment and s have exactly one
+common point. If so, the coordinates of this point are returned in
+(x,y). 
+
+*/
+ bool commonPoint(const AVLSegment& s,double& x, double& y) const;
+
+
+
+/*
 ~innerBoxContains~
 
 chesks whether (x,y) is not an endpoint and within the 

@@ -470,6 +470,42 @@ the parameters ~x~ and ~y~ are set to the intersection point.
     return res;
 }
 
+bool avlseg::AVLSegment::commonPoint(const AVLSegment& s, 
+                                     double&x, double& y)const{
+    bool res = crosses(s,x,y);
+    if(res){
+      return res;
+    }
+    if(overlaps(s)){ // more than one common point
+       return false;
+    }
+    if(contains(s.getX1(), s.getY1())){
+       x = s.getX1();
+       y = s.getY1();
+       return true;
+    }
+    if(contains(s.getX2(), s.getY2())){
+       x = s.getX2();
+       y = s.getY2();
+       return true;
+    }
+    if(s.contains(getX1(), getY1())){
+       x = getX1();
+       y = getY1();
+       return true;
+    }
+    if(s.contains(getX2(), getY2())){
+       x = getX2();
+       y = getY2();
+       return true;
+    }
+    return false;
+     
+}
+
+
+
+
 
 /*
 ~extends~
