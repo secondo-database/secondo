@@ -48,12 +48,12 @@ operator theRange alias THERANGE pattern op( _ , _, _, _ )
 operator equal alias EQUAL pattern _ infixop _
 operator nonequal alias NONEQUAL pattern _ infixop _
 
-operator bbox alias BBOX pattern op ( _ )
+operator bbox alias BBOX pattern op ( _, _ )
 operator mbrange alias MBRANGE pattern op ( _ )
 operator box2d alias BOX2D pattern op ( _ )
-operator bbox2d alias BBOX2D pattern op ( _ )
-operator bboxold alias BBOXOLD pattern op ( _ )
-operator simplify alias SIMPLIFY pattern op (_,_)
+operator bbox2d alias BBOX2D pattern op ( _, _ )
+operator bboxold alias BBOXOLD pattern op ( _, _ )
+operator simplify alias SIMPLIFY pattern op (_, _)
 operator breakpoints alias BREAKPOINTS pattern op(_,_)
 operator integrate alias INTEGRATE pattern op(_)
 operator minimum alias MINIMUM pattern op(_)
