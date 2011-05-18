@@ -26,7 +26,7 @@ operator csatisfy alias CSATISFY pattern  op ( _ )
 operator coverlaps alias COVERLAPS pattern _ infixop _
 operator no_tuples alias NO_TUPLES pattern  op ( _ )
 operator no_constraints alias NO_TUPLES pattern  op ( _ )
-operator bbox alias BBOX pattern op ( _ )
+operator bbox alias BBOX pattern op ( _, _ )
 operator triangulate alias TRIANGULATE pattern _ op
 operator point2constraint alias POINT2CONSTRAINT pattern  op ( _ )
 operator points2constraint alias POINTS2CONSTRAINT pattern  op ( _ )
