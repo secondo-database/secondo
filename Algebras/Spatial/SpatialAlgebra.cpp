@@ -1053,7 +1053,8 @@ double Point::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
     bool ok = false;
-    double d = DistanceOrthodrome(p,geoid,ok);
+    double bearInitial = 0, bearFinal = 0;
+    double d = DistanceOrthodromePrecise(p,geoid,ok,bearInitial,bearFinal);
     if(ok){
       return d;
     } else{
@@ -1112,7 +1113,7 @@ double Point::calcEnclosedAngle( const Point &a,
     double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
     cosb = max(cosb, -1.0);
     cosb = min(cosb, 1.0);
-    beta = acos ( cosb ) * 180.0 / M_PI;
+    beta = radToDeg( acos(cosb) );
     assert(errno == 0);
   } else { // use euclidean geometry
     double la = b.Distance(c);
@@ -1121,7 +1122,7 @@ double Point::calcEnclosedAngle( const Point &a,
     double cosb = (la*la + lc*lc - lb*lb) / (2*la*lc);
     cosb = max(cosb, -1.0);
     cosb = min(cosb, 1.0);
-    beta = acos ( cosb ) * 180.0 / M_PI;
+    beta = radToDeg( acos(cosb) );
     assert(errno == 0);
   }
   return beta;
@@ -1170,62 +1171,210 @@ double Point::Direction(const Point& p ,
       cerr << __PRETTY_FUNCTION__ << ": Numerical error in euclidean." << endl;
       return -1.0;
     }
+    // normalize return value:
+    if(returnHeading){ // return result as standard heading
+      direction = directionToHeading(direction); // already normalized
+    } else { // return result as standard direction: Normalize to 0<=DIR<360
+      direction = AlmostEqual(direction,360.0)?0.0:direction;
+    }
+    return direction;
   } else {// spherical geometry
-    double f_a = GetY()*M_PI/180.0;
-    double f_b = p.GetY()*M_PI/180.0;
-
-    double sin_f_b = sin(f_b);
-    double sin_f_a = sin(f_a);
-    double cos_f_a = cos(f_a);
-    if(errno!=0){
-      cerr << __PRETTY_FUNCTION__ << ": Numerical error in spherical 1."
-           << endl;
+    double tc1=0.0, tc2=0.0; // true course at *this, p
+    bool valid = true;
+    double d = DistanceOrthodromePrecise(p, *geoid, valid, tc1, tc2);
+    if(!valid || (d<0)){
       return -1.0;
     }
-
-    double cos_zeta;
-    double zeta;
-    double sin_zeta;
-    bool ok;
-    double zeta1 = this->DistanceOrthodrome(p, *geoid, ok);
-    if(!ok){
-      cerr << __PRETTY_FUNCTION__ << ": Error in DistanceOrthodrome." << endl;
-      return -1.0;
-    }
-    zeta = zeta1 / geoid->getR();
-    cos_zeta = cos(zeta);
-    sin_zeta = sin(zeta);
-
-    double cos_alpha;
-    if(fabs(sin_f_a) > fabs(cos_f_a)){
-      cos_alpha = ( (sin_f_b - sin_f_a*cos_zeta) / (sin_f_a*sin_zeta));
+    if(returnHeading){
+      return tc1;
     } else {
-      cos_alpha = ((sin_f_b - sin_f_a*cos_zeta) / (cos_f_a*sin_zeta));
-    }
-    if(cos_alpha < -1.0){ // correct rounding errors
-      cos_alpha = -1.0;
-    }
-    if(cos_alpha > 1.0){
-        cos_alpha = 1.0;
-    }
-    double alpha = acos(cos_alpha);
-
-    direction =  alpha*180.0/M_PI;
-    if(errno!=0){
-      cerr << __PRETTY_FUNCTION__ << ": Numerical error in spherical 2."
-           << endl;
-      return -1.0;
+      return headingToDirection(tc1);
     }
   }
-  // normalize return value:
-  if(returnHeading){ // return result as standard heading
-    direction = directionToHeading(direction); // already normalized,0<HEAD<=360
-  } else { // return result as standard direction: Normalize to 0<=DIR<360
-    direction = AlmostEqual(direction,360.0)?0.0:direction;
-  }
-  return direction;
 }
 
+// Returns the vertex, i.e. the southernmost/northernmost point
+// of the orthodrome *this -> p
+Point Point::orthodromeVertex(const double& rcourseDEG) const {
+  if( !checkGeographicCoord() || (rcourseDEG<0) || (rcourseDEG>360) ){
+    return Point(false, 0.0, 0.0);
+  }
+  double Latv = 0;
+  double Lov = 0;
+  // Latitude Latv of Vertex
+  double rcourse = directionToHeading(rcourseDEG); // orthodr. course in degree
+  double cosLatv = cos(degToRad(this->GetY()))*sin(degToRad(rcourse));
+  Latv = radToDeg(acos(cosLatv));
+  if (AlmostEqual(rcourse,0) || AlmostEqual(rcourse,180)){
+    Latv = 90;
+  }
+  if (Latv > 90){
+    Latv = 180 - Latv;
+  }
+  if (this->GetY()<0){
+    Latv = - Latv;
+  }
+  // Longitude Lov of Vertex
+  if (!AlmostEqual(Latv,0)){
+    double sinDlov = cos(degToRad(rcourse))/sin(degToRad(Latv));
+    double Dlov = radToDeg(asin(sinDlov));
+    if (rcourse > 180){
+      Dlov = -Dlov;
+    }
+    Lov = Dlov + this->GetX();
+  } else {
+    Lov = 0;
+  }
+  return Point(true, Lov, Latv);
+}
+
+int Point::orthodromeAtLatitude( const Point &other, const double& latitudeDEG,
+                          double& lonMinDEG, double lonMaxDEG) const{
+  if(    !checkGeographicCoord() || !other.checkGeographicCoord()
+      || AlmostEqual(*this,other)
+      || (latitudeDEG<-90) || (latitudeDEG>90) ){
+    return 0;
+  }
+  double lon1 = degToRad(GetX());
+  double lat1 = degToRad(GetY());
+  double lon2 = degToRad(other.GetX());
+  double lat2 = degToRad(other.GetY());
+  double lat3 = degToRad(latitudeDEG);
+  double l12 = lon1-lon2;
+  double A = sin(lat1)*cos(lat2)*cos(lat3)*sin(l12);
+  double B =   sin(lat1)*cos(lat2)*cos(lat3)*cos(l12)
+             - cos(lat1)*sin(lat2)*cos(lat3);
+  double C = cos(lat1)*cos(lat2)*sin(lat3)*sin(l12);
+  double lon = atan2(B,A);
+  if(fabs(C) <= sqrt(A*A + B*B)){
+    double dlon = acos(C/sqrt(A*A+B*B));
+    double lon3_1=fmod2(lon1+dlon+lon+M_PI, 2*M_PI) - M_PI;
+    double lon3_2=fmod2(lon1-dlon+lon+M_PI, 2*M_PI) - M_PI;
+    lonMinDEG = radToDeg(MIN(lon3_1,lon3_2));
+    lonMaxDEG = radToDeg(MAX(lon3_1,lon3_2));
+    if(AlmostEqual(lon3_1,lon3_2)){
+      return 1;
+    }
+    return 2;
+  }
+  return 0;
+}
+
+bool isBetween(const double value, const double bound1, const double bound2){
+  return ( (MIN(bound1,bound2)<=value) && (value<=MAX(bound1,bound2)) );
+}
+
+bool Point::orthodromeExtremeLatitudes(const Point &other, const Geoid &geoid,
+                                double &minLat, double &maxLat) const
+{
+  if(!checkGeographicCoord() || !other.checkGeographicCoord()
+                             || !geoid.IsDefined() ){
+    minLat =  1000.0;
+    maxLat = -1000.0;
+//     cerr << __PRETTY_FUNCTION__ << ": Invalid parameter." << endl;
+    return false;
+  }
+  if(AlmostEqual(*this,other)){
+//     cerr << __PRETTY_FUNCTION__ << ": *this == other." << endl;
+    minLat=MIN(this->GetY(),other.GetY());
+    maxLat=MAX(this->GetY(),other.GetY());
+//     cerr << __PRETTY_FUNCTION__ << ": minLat=" << minLat << endl;
+//     cerr << __PRETTY_FUNCTION__ << ": maxLat=" << maxLat << endl;
+    return true;
+  }
+  double trueCourse = Direction(other,false,&geoid);
+  if(AlmostEqual(trueCourse,0) || AlmostEqual(trueCourse,180)){
+//     cerr << __PRETTY_FUNCTION__ << ": Polar course." << endl;
+    minLat=MIN(this->GetY(),other.GetY());
+    maxLat=MAX(this->GetY(),other.GetY());
+//     cerr << __PRETTY_FUNCTION__ << ": minLat=" << minLat << endl;
+//     cerr << __PRETTY_FUNCTION__ << ": maxLat=" << maxLat << endl;
+    return true;
+  }
+  Point vertex = orthodromeVertex(trueCourse);
+  if(!vertex.IsDefined()){
+//     cerr << __PRETTY_FUNCTION__ << ": Cannot compute vertex." << endl;
+    minLat=MIN(this->GetY(),other.GetY());
+    maxLat=MAX(this->GetY(),other.GetY());
+//     cerr << __PRETTY_FUNCTION__ << ": minLat=" << minLat << endl;
+//     cerr << __PRETTY_FUNCTION__ << ": maxLat=" << maxLat << endl;
+    return false;
+  }
+//   cerr << __PRETTY_FUNCTION__ << ": vertex=" << vertex << endl;
+
+  double vertexReachedLonMin =  6666.6666;
+  double vertexReachedLonMax = -6666.6666;
+  int notransgressions = orthodromeAtLatitude(other,vertex.GetY(),
+                                              vertexReachedLonMin,
+                                              vertexReachedLonMax);
+  if(notransgressions == 0){ // vertex not passed, should not happen
+    cerr << __PRETTY_FUNCTION__ << ": Vertex not passed, should not happen."
+         << endl;
+    assert(false);
+    return false;
+  } else if(notransgressions == 1) { // vertex passed once.
+    vertexReachedLonMax = vertexReachedLonMin; //
+  } // else: vertex passed twice
+  if(    (    isBetween(directionToHeading(trueCourse),0.0,180.0)
+           && (    (vertexReachedLonMin<MIN(GetX(),other.GetX()))
+                || (vertexReachedLonMax>MAX(GetX(),other.GetX())) ) )
+      || (    isBetween(directionToHeading(trueCourse),180.0,360.0)
+           && !(   (vertexReachedLonMin<MIN(GetX(),other.GetX()))
+                 ||(vertexReachedLonMax>MAX(GetX(),other.GetX())) ) ) ){
+    // vertex is not reached by this orthodrome
+//     cerr << __PRETTY_FUNCTION__ << ": Vertex not passed." << endl;
+    minLat = MIN(GetY(),other.GetY());
+    maxLat = MAX(GetY(),other.GetY());
+  } else if( (GetY()>=0) && (other.GetY()>=0) ){// both in northern hemissphere
+    // vertex may be north of this and p
+//     cerr << __PRETTY_FUNCTION__ << ": Both northern hemissphere." << endl;
+    minLat = MIN(GetY(),other.GetY());
+    maxLat = MAX(vertex.GetY(),MAX(GetY(),other.GetY()));
+  } else if( (GetY()<0) && (other.GetY()<0) ){// both in southern hemissphere
+    // vertex may be south of this and p
+//     cerr << __PRETTY_FUNCTION__ << ": Both southern hemissphere." << endl;
+    minLat = MIN(vertex.GetY(),MIN(GetY(),other.GetY()));
+    maxLat = MAX(GetY(),other.GetY());
+  } else { // both in different hemisspheres
+    // vertex is either this or p
+//     cerr << __PRETTY_FUNCTION__ << ": Both in different hemisspheres."<<endl;
+    minLat = MIN(vertex.GetY(),MIN(GetY(),other.GetY()));
+    maxLat = MAX(vertex.GetY(),MAX(GetY(),other.GetY()));
+  }
+//   cerr << __PRETTY_FUNCTION__ << ": minLat=" << minLat << endl;
+//   cerr << __PRETTY_FUNCTION__ << ": maxLat=" << maxLat << endl;
+  return true;
+}
+
+Rectangle<2> Point::GeographicBBox(const Point &other, const Geoid &geoid) const
+{
+  if(!checkGeographicCoord() || !other.checkGeographicCoord()
+    || !geoid.IsDefined())
+  {
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+  }
+  double northmostLAT;
+  double southmostLAT;
+  orthodromeExtremeLatitudes(other, geoid, southmostLAT, northmostLAT);
+//   cerr << __PRETTY_FUNCTION__ << ": northmostLAT = " << northmostLAT << endl;
+//   cerr << __PRETTY_FUNCTION__ << ": southmostLAT = " << southmostLAT << endl;
+//   cerr << __PRETTY_FUNCTION__ << ": GetX()=" << GetX() << endl;
+//   cerr << __PRETTY_FUNCTION__ << ": other.GetX()=" << other.GetX() << endl;
+//   cerr << __PRETTY_FUNCTION__ << ": MIN(GetX(),other.GetX()) = "
+//        << MIN(GetX(),other.GetX()) << endl;
+//   cerr << __PRETTY_FUNCTION__ << ": MAX(GetX(),other.GetX()) = "
+//        << MAX(GetX(),other.GetX()) << endl;
+
+  Point p1( true, MIN(GetX(),other.GetX()), southmostLAT );
+  Point p2( true, MAX(GetX(),other.GetX()), northmostLAT );
+//   cerr << __PRETTY_FUNCTION__ << "p1=" << p1 << ", bbox="
+///       << p1.BoundingBox() << endl;
+//   cerr << __PRETTY_FUNCTION__ << "p2=" << p2 << ", bbox="
+//        << p2.BoundingBox() << endl;
+//   cerr << __PRETTY_FUNCTION__ << "res="
+//        << p1.BoundingBox().Union(p2.BoundingBox()) << endl;
+  return p1.BoundingBox().Union(p2.BoundingBox());
+}
 
 void Point::Rotate(const Coord& x, const Coord& y,
                           const double alpha, Point& res) const{
@@ -1331,6 +1480,168 @@ double Point::DistanceOrthodrome( const Point& p,
   assert( s >= 0 );
   return s;
 }
+
+
+double Point::DistanceOrthodromePrecise( const Point& p,
+                                         const Geoid& g,
+                                         bool& valid,
+                                         double& initialBearingDEG,
+                                         double& finalBearingDEG,
+                                         const bool epsilon /* = 1e-12 */) const
+{
+ /*
+  * Vincenty Inverse Solution of Geodesics on the Ellipsoid
+  *
+  * from: Vincenty inverse formula - T Vincenty, "Direct and Inverse Solutions
+  *       of Geodesics on the Ellipsoid with application of nested equations",
+  *       Survey Review, vol XXII no 176, 1975
+  *       http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf
+  * Calculates geodetic distance between two points specified by
+  * latitude/longitude using Vincenty inverse formula for ellipsoids
+  *
+  */
+
+  valid =    this->checkGeographicCoord() && p.checkGeographicCoord()
+          && g.IsDefined();
+  if(!valid){
+    cout << __PRETTY_FUNCTION__ << ": Invalid parameter." << endl;
+    return-666.666;
+  }
+  initialBearingDEG = -666.666;
+  finalBearingDEG   = -666.666;
+  if(AlmostEqual(*this,p)){
+    return 0;
+  }
+  errno = 0;
+  double lat1 = GetY();
+  double lon1 = GetX();
+  double lat2 = p.GetY();
+  double lon2 = p.GetX();
+  double a = g.getR();// = 6378137
+  double f = g.getF();// = 1/298.257223563
+  double b = (1-f)*a; // = 6356752.314245
+  double L = degToRad(lon2-lon1);
+  double U1 = atan( (1-f)*tan(degToRad(lat1)) );
+  double U2 = atan( (1-f)*tan(degToRad(lat2)) );
+  double sinU1 = sin(U1);
+  double cosU1 = cos(U1);
+  double sinU2 = sin(U2);
+  double cosU2 = cos(U2);
+  if(errno!=0){
+    cout << __PRETTY_FUNCTION__ << ": Error at (1)." << endl;
+    valid = false;
+    return -666.666;
+  }
+
+  double lambda = L;
+  double lambdaP;
+  int iterLimit = 100;
+  int iter = 1;
+  double sinLambda, cosLambda,
+         sinSigma, cosSigma, sigma,
+         sinAlpha, cosSqAlpha,
+         cos2SigmaM, C;
+  do{
+    sinLambda = sin(lambda);
+    cosLambda = cos(lambda);
+    sinSigma = sqrt(
+              (cosU2*sinLambda)
+            * (cosU2*sinLambda)
+        +     (cosU1*sinU2-sinU1*cosU2*cosLambda)
+            * (cosU1*sinU2-sinU1*cosU2*cosLambda));
+    if (sinSigma==0){ // co-incident points
+      valid = false;
+      cout << __PRETTY_FUNCTION__ << ": Error: Co-incident points: *this="
+           << *this << ", p=" << p << endl;
+      valid = false;
+      return -666.666;
+    }
+    if(errno!=0){
+      cout << __PRETTY_FUNCTION__ << ": Error (1) in iteration " <<iter<< endl;
+      valid = false;
+      return -666.666;
+    }
+    cosSigma = sinU1*sinU2 + cosU1*cosU2*cosLambda;
+    sigma = atan2(sinSigma, cosSigma);
+    sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
+    cosSqAlpha = 1 - sinAlpha*sinAlpha;
+    cos2SigmaM = cosSigma - 2*sinU1*sinU2/cosSqAlpha;
+    if(cos2SigmaM!=cos2SigmaM){ // i.e.(cos2SigmaM == nan)||(cos2SigmaM == -nan)
+      // equatorial line: cosSqAlpha=0 (§6)
+      cos2SigmaM = 0;
+      errno = 0;
+    }
+    C = f/16*cosSqAlpha*(4+f*(4-3*cosSqAlpha));
+    lambdaP = lambda;
+    lambda = L + (1-C) * f * sinAlpha *
+      (   sigma
+        + C*sinSigma*(cos2SigmaM+C*cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)) );
+    if(errno!=0){
+      cout << __PRETTY_FUNCTION__ << ": Error (2) in iteration " <<iter<< endl;
+      valid = false;
+      return -666.666;
+    }
+  } while( (fabs(lambda-lambdaP) > epsilon) && (iter++<iterLimit) );
+  if(iter>iterLimit) { // formula failed to converge
+    cout << __PRETTY_FUNCTION__ << ": Formula failed to converge after "
+         << iter << " iterations. Delta=" << fabs(lambda-lambdaP)
+         << " > epsilon=" << epsilon << "." << endl;
+    valid = false;
+    return -666.666;
+  }
+  double uSq = cosSqAlpha * (a*a - b*b) / (b*b);
+  double A = 1 + uSq/16384*(4096+uSq*(-768+uSq*(320-175*uSq)));
+  double B = uSq/1024 * (256+uSq*(-128+uSq*(74-47*uSq)));
+  double deltaSigma = B*sinSigma*(cos2SigmaM
+      +(B/4)*(cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)-
+       (B/6)*cos2SigmaM*(-3+4*sinSigma*sinSigma)*(-3+4*cos2SigmaM*cos2SigmaM)));
+  double s = b*A*(sigma-deltaSigma);
+  if(errno!=0){
+    cout << __PRETTY_FUNCTION__ << ": Error (3) " << iter << endl;
+    valid = false;
+    return -666.666;
+  }
+
+  // calculate initial/final bearings in addition to distance
+  double fwdAz = atan2(cosU2*sinLambda,  cosU1*sinU2-sinU1*cosU2*cosLambda);
+  double revAz = atan2(cosU1*sinLambda, -sinU1*cosU2+cosU1*sinU2*cosLambda);
+  initialBearingDEG = radToDeg(fwdAz);
+  finalBearingDEG   = radToDeg(revAz);
+  // normalize heading results to 0<x<=360
+  while( initialBearingDEG<0.0 ) {
+    initialBearingDEG += 360.0;
+  }
+  if(initialBearingDEG > 360.0){
+    initialBearingDEG = fmod(initialBearingDEG,360.0);
+  }
+  if( AlmostEqual(initialBearingDEG,0.0) ){
+    initialBearingDEG = 360.0; // Map NORTH to heading 360, not to 0
+  }
+
+  while( finalBearingDEG<0.0 ){
+    finalBearingDEG += 360.0;
+  }
+  if(finalBearingDEG > 360.0){
+    finalBearingDEG = fmod(finalBearingDEG,360.0);
+  }
+  if( AlmostEqual(finalBearingDEG,0.0) ){
+    finalBearingDEG = 360.0; // Map NORTH to heading 360, not to 0
+  }
+
+  if(errno!=0){
+    cout << __PRETTY_FUNCTION__ << ": Error (4) " << iter << endl;
+    valid = false;
+    return -666.666;
+  }
+//   cout << __PRETTY_FUNCTION__ << ": After " << iter
+//        << " Iterations: Distance[m]=" << s
+//        << ", initialBearingDEG=" << initialBearingDEG
+//        << ", finalBearingDEG=" << finalBearingDEG << endl;
+  valid = true;
+  return s;
+}
+
+
 
 Point Point::MidpointTo(const Point& p, const Geoid* geoid /* = 0 */ ) const
 {
@@ -3548,7 +3859,7 @@ bool HalfSegment::InnerIntersects( const HalfSegment& hs,
 
 
 // corrected modulo function ( '%' has problems with negative values)
-double fmod2(const double &x, const double &y) {
+double fmod2(const double &y, const double &x) {
   return y - x*floor(y/x);
 }
 
@@ -4020,6 +4331,7 @@ bool HalfSegment::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const{
   if(geoid){
     cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
     << endl;
+    assert(!geoid);
   }
   if( AlmostEqual( p, lp ) ||
       AlmostEqual( p, rp ) ){
@@ -4125,7 +4437,9 @@ double HalfSegment::Distance( const Point& p,
       }
     }
     return result;
-  } // else: spherical geometry
+  }
+
+  // else: spherical geometry
   bool ok = true;
   double d13 = p.DistanceOrthodrome(GetLeftPoint(),*geoid,ok);
   // initial bearing from LeftPoint to p
@@ -5098,14 +5412,20 @@ double Line::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const {
   assert( IsOrdered() );
   HalfSegment hs;
   double result = numeric_limits<double>::max();
-
+  double segDistance = -666.666;
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs );
     if( hs.IsLeftDomPoint() ){
-      if( hs.Contains( p ) ){
+      if( !geoid && hs.Contains( p ) ){
         return 0.0;
       }
-      result = MIN( result, hs.Distance( p, geoid ) );
+      segDistance = hs.Distance( p, geoid );
+      if(geoid && AlmostEqual(segDistance,0.0)){
+        return 0.0;
+      }
+      if(segDistance>=0.0){
+        result = MIN( result, segDistance );
+      }
     }
   }
   return result;
@@ -5121,11 +5441,15 @@ double Line::MaxDistance( const Point& p, const Geoid* geoid /* = 0 */ ) const {
   assert( IsOrdered() );
   HalfSegment hs;
   double result = 0;
+  double segDistance = -666.666;
 
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs );
     if( hs.IsLeftDomPoint() )  {
-      result = MAX( result, hs.Distance( p, geoid ) );
+      segDistance = hs.Distance( p, geoid );
+      if(segDistance>=0.0){
+        result = MAX( result, segDistance );
+      }
     }
   }
   return result;
@@ -5143,15 +5467,22 @@ double Line::Distance( const Points& ps, const Geoid* geoid /* = 0 */ ) const {
   HalfSegment hs;
   Point p;
   double result = numeric_limits<double>::max();
+  double segDistance = -666.666;
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs );
     if( hs.IsLeftDomPoint() ){
       for( int j = 0; j < ps.Size(); j++ ){
         ps.Get( j, p );
-        if( hs.Contains( p, geoid ) ){
-          return 0;
+        if(!geoid && hs.Contains( p, geoid ) ){
+          return 0.0;
         }
-        result = MIN( result, hs.Distance( p, geoid ) );
+        segDistance = hs.Distance( p, geoid );
+        if(geoid && AlmostEqual(segDistance,0.0)){
+          return 0.0;
+        }
+        if(segDistance>=0.0){
+          result = MIN( result, segDistance );
+        }
       }
     }
   }
@@ -5170,6 +5501,7 @@ double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
   assert( l.IsOrdered() );
   HalfSegment hs1, hs2;
   double result = numeric_limits<double>::max();
+  double segDistance = -666.666;
   for( int i = 0; i < Size(); i++ ){
     Get( i, hs1 );
     if( hs1.IsLeftDomPoint() ) {
@@ -5178,7 +5510,13 @@ double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
         if( hs1.Intersects( hs2, geoid ) ){
           return 0.0;
         }
-        result = MIN( result, hs1.Distance( hs2, geoid ) );
+        segDistance = hs1.Distance( hs2, geoid );
+        if(geoid && AlmostEqual(segDistance,0.0)){
+          return 0.0;
+        }
+        if(segDistance>=0.0){
+          result = MIN( result, segDistance );
+        }
       }
     }
   }
@@ -7666,6 +8004,65 @@ Region::Region( const Rectangle<2>& r ):region(8)
     else {
       SetDefined( false );
     }
+}
+
+bool IsInsideAbove(const HalfSegment& hs,
+                   const Point& thirdPoint){
+  if(AlmostEqual(hs.GetLeftPoint().GetX(),hs.GetRightPoint().GetX())){
+    // vertical segment
+    return
+    (MIN(hs.GetLeftPoint().GetX(),hs.GetRightPoint().GetX())<thirdPoint.GetX());
+  }
+  return
+    (MIN(hs.GetLeftPoint().GetY(),hs.GetRightPoint().GetY())<thirdPoint.GetY());
+}
+
+Region::Region( const Point& p1, const Point& p2, const Point& p3 ):region(6)
+{
+  Clear();
+  if( !p1.IsDefined() || !p2.IsDefined() || !p3.IsDefined() ){
+    SetDefined(false); // UNDEFINED region
+  } else if(AlmostEqual(p1,p2) || AlmostEqual(p2,p3) || AlmostEqual(p3,p1) ){
+    SetDefined(true);  // EMPTY region
+  } else {             // triangular region
+    SetDefined(true);
+    StartBulkLoad();
+
+    HalfSegment hs;
+    int edgecnt = 0;
+
+    hs.Set(true,p1,p2);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = edgecnt;
+    hs.attr.partnerno = edgecnt++;
+    hs.attr.insideAbove = IsInsideAbove(hs,p3);
+    *this += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *this += hs;
+
+    hs.Set(true,p2,p3);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = edgecnt;
+    hs.attr.partnerno = edgecnt++;
+    hs.attr.insideAbove = IsInsideAbove(hs,p1);
+    *this += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *this += hs;
+
+    hs.Set(true,p3,p1);
+    hs.attr.faceno = 0;         // only one face
+    hs.attr.cycleno = 0;        // only one cycle
+    hs.attr.edgeno = edgecnt;
+    hs.attr.partnerno = edgecnt++;
+    hs.attr.insideAbove = IsInsideAbove(hs,p2);
+    *this += hs;
+    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+    *this += hs;
+
+    EndBulkLoad();
+  }
 }
 
 void Region::StartBulkLoad()
@@ -12884,19 +13281,26 @@ computes the bbox of a region, which is a ~rect~ (see RectangleAlgebra).
 ListExpr
 SpatialBBoxMap( ListExpr args )
 {
+  int noargs = nl->ListLength( args );
+  string errmsg = "Expected T [x geoid], T in {region, point, line, sline, "
+                  "points}.";
   ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion ||
-         SpatialTypeOfSymbol( arg1 ) == stpoint ||
-         SpatialTypeOfSymbol( arg1 ) == stline ||
-         SpatialTypeOfSymbol( arg1 ) == stpoints ||
-         SpatialTypeOfSymbol( arg1 ) == stsline )
-      return (nl->SymbolAtom( "rect" ));
+  if ( (noargs<1) || (noargs >2) ){
+    return listutils::typeError(errmsg);
   }
-  return listutils::typeError("");
+  arg1 = nl->First( args );
+  if ( SpatialTypeOfSymbol( arg1 ) != stregion &&
+       SpatialTypeOfSymbol( arg1 ) != stpoint &&
+       SpatialTypeOfSymbol( arg1 ) != stline &&
+       SpatialTypeOfSymbol( arg1 ) != stpoints &&
+       SpatialTypeOfSymbol( arg1 ) != stsline ){
+    return listutils::typeError(errmsg);
+  }
+  if( (noargs == 2) &&
+      !listutils::isSymbol(nl->Second(args),Geoid::BasicType()) ) {
+    return listutils::typeError(errmsg);
+  }
+  return (nl->SymbolAtom( "rect" ));
 }
 
 /*
@@ -13230,6 +13634,26 @@ ListExpr
       return (nl->SymbolAtom( Region::BasicType() ));
   }
   return listutils::typeError("");
+}
+
+/*
+10.1.7 Type mapping function for the operator ~create_triangle~
+
+---- point x point x point --> region
+----
+
+*/
+ListExpr SpatialCreateTriangleTM( ListExpr args ){
+  string errmsg = "Expected (point x point x point).";
+  if( nl->ListLength( args ) != 3 ){
+    return listutils::typeError(errmsg);
+  }
+  if( listutils::isSymbol(nl->First(args),Point::BasicType()) &&
+      listutils::isSymbol(nl->Second(args),Point::BasicType()) &&
+      listutils::isSymbol(nl->Third(args),Point::BasicType()) ){
+    return (nl->SymbolAtom( Region::BasicType() ));
+  }
+  return listutils::typeError(errmsg);
 }
 
 /*
@@ -14761,18 +15185,16 @@ SpatialSingle_ps( Word* args, Word& result, int message,
 10.4.20 Value mapping functions of operator ~distance~
 
 */
-template<class A, class B,bool symm>
+template<class A, class B, bool symm>
 int SpatialDistance( Word* args, Word& result, int message,
                      Word& local, Supplier s ){
 
    result = qp->ResultStorage( s );
    CcReal* res = static_cast<CcReal*>(result.addr);
+   const Geoid* geoid =
+                    (qp->GetNoSons(s) ==3)?static_cast<Geoid*>(args[2].addr):0;
    A* arg1=0;
    B* arg2=0;
-   Geoid* geoid = 0;
-   if(qp->GetNoSons(s) ==3){
-    geoid = static_cast<Geoid*>(args[2].addr);
-   }
    if(symm){
      arg1 = static_cast<A*>(args[1].addr);
      arg2 = static_cast<B*>(args[0].addr);
@@ -14822,7 +15244,7 @@ SpatialNoComponents_ps( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Points* ps = static_cast<Points*>(args[0].addr);
+  const Points* ps = static_cast<const Points*>(args[0].addr);
   if( ps->IsDefined() )
     ((CcInt *)result.addr)->Set( true, ps->Size() );
   else
@@ -14835,7 +15257,7 @@ SpatialNoComponents_l( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line* l = static_cast<Line*>(args[0].addr);
+  const Line* l = static_cast<const Line*>(args[0].addr);
   if( l->IsDefined() )
     ((CcInt *)result.addr)->Set( true, l->NoComponents() );
   else
@@ -14848,7 +15270,7 @@ SpatialNoComponents_r( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Region* r = static_cast<Region*>(args[0].addr);
+  const Region* r = static_cast<const Region*>(args[0].addr);
   if( r->IsDefined() )
     ((CcInt *)result.addr)->Set( true, r->NoComponents() );
   else
@@ -14866,7 +15288,7 @@ SpatialNoSegments( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  T *cl=((T*)args[0].addr);
+  const T *cl=((const T*)args[0].addr);
   if( cl->IsDefined() ) {
     assert( cl->Size() % 2 == 0 );
     ((CcInt *)result.addr)->Set( true, cl->Size() / 2 );
@@ -14887,11 +15309,13 @@ int SpatialBBox(Word* args, Word& result, int message,
 
   result = qp->ResultStorage( s );
   Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
-  T* arg = static_cast<T*>(args[0].addr);
-  if(!arg->IsDefined()){
+  const T* arg = static_cast<const T*>(args[0].addr);
+  const Geoid* geoid =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
+  if(!arg->IsDefined() || (geoid && !geoid->IsDefined()) ){
     box->SetDefined(false);
   } else {
-    (*box) = arg->BoundingBox();
+    (*box) = arg->BoundingBox(geoid);
   }
   return 0;
 }
@@ -14902,19 +15326,19 @@ int SpatialBBox(Word* args, Word& result, int message,
 
 */
 template<class T>
-int
-SpatialSize( Word* args, Word& result, int message,
-               Word& local, Supplier s )
+int SpatialSize( Word* args, Word& result, int message,
+                 Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   CcReal* res = static_cast<CcReal*>(result.addr);
-  T* a = (static_cast<T*>(args[0].addr));
+  const T*  a = static_cast<const T*>(args[0].addr);
+  const Geoid* g =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
   if(!a->IsDefined()){
     res->SetDefined(false);
     return 0;
   }
-  if(qp->GetNoSons(s)==2){ // variant using (LON,LAT)-coordinates
-    Geoid* g = static_cast<Geoid*>(args[1].addr);
+  if(g){ // variant using (LON,LAT)-coordinates
     if(!g->IsDefined()){
       res->Set(false, 0.0);
       return 0;
@@ -14932,35 +15356,32 @@ SpatialSize( Word* args, Word& result, int message,
 10.4.24 Value mapping functions of operator ~touchpoints~
 
 */
-int
-SpatialTouchPoints_lr( Word* args, Word& result, int message,
-                       Word& local, Supplier s )
+int SpatialTouchPoints_lr( Word* args, Word& result, int message,
+                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line *l = ((Line*)args[0].addr);
-  Region *r = ((Region*)args[1].addr);
+  const Line *l = ((const Line*)args[0].addr);
+  const Region *r = ((const Region*)args[1].addr);
   r->TouchPoints( *l, *((Points *)result.addr) );
   return 0;
 }
 
-int
-SpatialTouchPoints_rl( Word* args, Word& result, int message,
-                       Word& local, Supplier s )
+int SpatialTouchPoints_rl( Word* args, Word& result, int message,
+                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line *l = ((Line*)args[1].addr);
-  Region *r = ((Region*)args[0].addr);
+  const Region *r = ((const Region*)args[0].addr);
+  const Line   *l = ((const Line*)args[1].addr);
   r->TouchPoints( *l, *((Points *)result.addr) );
   return 0;
 }
 
-int
-SpatialTouchPoints_rr( Word* args, Word& result, int message,
-                       Word& local, Supplier s )
+int SpatialTouchPoints_rr( Word* args, Word& result, int message,
+                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Region *r1 = ((Region*)args[0].addr),
-         *r2 = ((Region*)args[1].addr);
+  const Region *r1 = ((const Region*)args[0].addr),
+               *r2 = ((const Region*)args[1].addr);
   r1->TouchPoints( *r2, *((Points *)result.addr) );
   return 0;
 }
@@ -14979,14 +15400,13 @@ ostream& operator<<(ostream& o,const SimplePoint& p) {
 
 */
 
-int
-SpatialCommonBorder_rr( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
+int SpatialCommonBorder_rr( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Line *l = (Line*)result.addr;
-  Region *cr1 = ((Region*)args[0].addr),
-         *cr2 = ((Region*)args[1].addr);
+  const Region *cr1 = ((const Region*)args[0].addr),
+               *cr2 = ((const Region*)args[1].addr);
   cr1->CommonBorder( *cr2, *l );
 
   return 0;
@@ -14996,13 +15416,12 @@ SpatialCommonBorder_rr( Word* args, Word& result, int message,
 10.4.26 Value mapping functions of operator ~translate~
 
 */
-int
-SpatialTranslate_p( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
+int SpatialTranslate_p( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   Point *res = static_cast<Point*>(result.addr);
-  const Point *p= (Point*)args[0].addr;
+  const Point *p= (const Point*)args[0].addr;
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
@@ -15022,13 +15441,12 @@ SpatialTranslate_p( Word* args, Word& result, int message,
   return 0;
 }
 
-int
-SpatialTranslate_ps( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
+int SpatialTranslate_ps( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
-  const Points *ps = (Points*)args[0].addr;
+  const Points *ps = (const Points*)args[0].addr;
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
@@ -15049,14 +15467,13 @@ SpatialTranslate_ps( Word* args, Word& result, int message,
   return 0;
 }
 
-int
-SpatialTranslate_l( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
+int SpatialTranslate_l( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
   Line *cl = (Line *)args[0].addr,
-        *pResult = (Line *)result.addr;
+       *pResult = (Line *)result.addr;
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   Word t;
@@ -15145,6 +15562,22 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
   Region *res = (Region*)result.addr;
   *res = Region( *rect );
+  return 0;
+}
+
+/*
+10.4.29 Value mapping function of operator ~create_triangle~
+
+*/
+
+int SpatialCreateTriangleVM( Word* args, Word& result, int message,
+                           Word& local, Supplier s ){
+  result = qp->ResultStorage( s );
+  Region* res = static_cast<Region*>(result.addr);
+  const Point* p1 = static_cast<const Point*>(args[0].addr);
+  const Point* p2 = static_cast<const Point*>(args[1].addr);
+  const Point* p3 = static_cast<const Point*>(args[2].addr);
+  *res = Region(*p1, *p2, *p3);
   return 0;
 }
 
@@ -17413,10 +17846,11 @@ const string SpatialSpecNoSegments  =
 
 const string SpatialSpecBbox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region||sline) -> rect</text--->"
-  "<text> bbox( _ )</text--->"
-  "<text>return the bounding box of a spatial type.</text--->"
-  "<text>query bbox(region)</text--->"
+  "( <text>(point||points||line||region||sline) [x geoid]-> rect</text--->"
+  "<text> bbox( Obj [, Geoid ] )</text--->"
+  "<text>Returns the bounding box of a spatial object Obj. If Geoid is passed, "
+  "the geographical bounding box is computed.</text--->"
+  "<text>query bbox(tiergarten)</text--->"
   ") )";
 
 const string SpatialSpecSize  =
@@ -17607,6 +18041,18 @@ const string SpatialSpecRect2Region  =
     "<text>_ rect2region</text--->"
     "<text>Converts a rect object to a region object.</text--->"
     "<text> query </text--->"
+    ") )";
+
+const string SpatialSpecCreateTriangle  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>point x poin x point -> region</text--->"
+    "<text>create_triangle( P1, P2, P3 )</text--->"
+    "<text>Creates a triangular region with vertexes P1, P2, P3. If Any two "
+    "points are equal, the result is empty. If any point is undefined, the "
+    "result is undefined. Use operators such as 'convexhull', 'union', and "
+    "'minus' to compose more complex regions.</text--->"
+    "<text> query create_triangle(makepoint(0,0),makepoint(0,10),"
+    "makepoint(0,-10))</text--->"
     ") )";
 
 const string SpatialSpecArea  =
@@ -18181,11 +18627,18 @@ Operator spatialline2region (
   SpatialLine2RegionMap );
 
 Operator spatialrect2region (
-    "rect2region",
+  "rect2region",
   SpatialSpecRect2Region,
   SpatialRect2Region,
   Operator::SimpleSelect,
   SpatialRect2RegionMap );
+
+Operator spatialCreateTriangle (
+  "create_triangle",
+  SpatialSpecCreateTriangle,
+  SpatialCreateTriangleVM,
+  Operator::SimpleSelect,
+  SpatialCreateTriangleTM );
 
 Operator spatialarea (
     "area",
@@ -18389,70 +18842,53 @@ Operator spatial_create_sline (
 
 5.15.1 Type Mapping for ~makepoint~
 
+---- {int|real} x {int|real} --> point
+----
+
 */
 ListExpr
 TypeMapMakepoint( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if( nl->IsEqual( arg1, CcInt::BasicType() ) &&
-      nl->IsEqual( arg2, CcInt::BasicType() ) )
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-               nl->OneElemList(nl->IntAtom(0)),
-                               nl->SymbolAtom(Point::BasicType()) );
-
-    if( nl->IsEqual( arg1, CcReal::BasicType() ) &&
-      nl->IsEqual( arg2, CcReal::BasicType() ) )
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-               nl->OneElemList(nl->IntAtom(1)),
-                               nl->SymbolAtom(Point::BasicType()) );
+  if( ( nl->ListLength( args ) == 2)
+      && listutils::isNumericType(nl->First(args))
+      && listutils::isNumericType(nl->Second(args))){
+    return nl->SymbolAtom(Point::BasicType());
   }
-  return listutils::typeError("");
+  return listutils::typeError("Expected ({int|real} x {int|real}).");
 }
 
 /*
 5.15.2 Value Mapping for ~makepoint~
 
 */
+template<class T1, class T2>
 int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  CcInt* value1=0, *value2=0;
-  CcReal* value3, *value4;
-  bool paramtype;
-
+  const T1* value1 = static_cast<const T1*>(args[0].addr);
+  const T2* value2 = static_cast<const T2*>(args[1].addr);
   result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[2].addr)->GetIntval() == 0 )
-  {
-    paramtype = false;
-    value1 = (CcInt*)args[0].addr;
-    value2 = (CcInt*)args[1].addr;
-  }
+  Point* res = static_cast<Point*>(result.addr);
 
-  if ( ((CcInt*)args[2].addr)->GetIntval() == 1 )
-  {
-    paramtype = true;
-    value3 = (CcReal*)args[0].addr;
-    value4 = (CcReal*)args[1].addr;
+  if(!value1->IsDefined() || !value2->IsDefined()){
+    res->SetDefined(false);
+    return 0;
   }
-  if (paramtype)
-  {
-   if( !value3->IsDefined() || !value4->IsDefined() )
-    ((Point*)result.addr)->SetDefined( false );
-   else
-     ((Point*)result.addr)->Set(value3->GetRealval(),value4->GetRealval() );
-  }
-  else
-  {
-   if( !value1->IsDefined() || !value2->IsDefined() )
-    ((Point*)result.addr)->SetDefined( false );
-   else
-     ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
-  }
+  res->Set(value1->GetValue(), value2->GetValue()); // also sets to DEFINED
   return 0;
+}
+
+ValueMapping VM_MakePoint[] = {
+  MakePoint<CcInt,CcInt>,
+  MakePoint<CcInt,CcReal>,
+  MakePoint<CcReal,CcInt>,
+  MakePoint<CcReal,CcReal>
+};
+
+int SelectMakepoint( ListExpr args ){
+  int res = 0;
+  if(listutils::isSymbol(nl->First(args) ,CcReal::BasicType())) res+=2;
+  if(listutils::isSymbol(nl->Second(args),CcReal::BasicType())) res+=1;
+  return res;
 }
 
 /*
@@ -18462,7 +18898,7 @@ int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 const string
 SpatialSpecMakePoint =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>int x int -> point, real x real -> point</text--->"
+"( <text>{real|int} x {real|int} -> point</text--->"
 "<text>makepoint ( _, _ ) </text--->"
 "<text>create a point from two "
 "given real or integer coordinates.</text--->"
@@ -18481,8 +18917,9 @@ Not necessary.
 */
 Operator spatialmakepoint( "makepoint",
                             SpatialSpecMakePoint,
-                            MakePoint,
-                            Operator::SimpleSelect,
+                            4,
+                            VM_MakePoint,
+                            SelectMakepoint,
                             TypeMapMakepoint);
 
 
@@ -18641,7 +19078,7 @@ const string
 halfSegmentsSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> {line,region} -> stream(tuple(faceno, cycleno,...))</text--->"
-"<text>halfSegements(_) </text--->"
+"<text>halfSegments(_) </text--->"
 "<text>Gives the values of the halfsegment into a tuple stream  "
 "</text--->"
 "<text>query halfSegments(zoogarten) count</text---> ) )";
@@ -19068,6 +19505,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialmidpointbetween );
     AddOperator( &spatialDirectionToHeading );
     AddOperator( &spatialHeadingToDirection );
+    AddOperator( &spatialCreateTriangle );
   }
   ~SpatialAlgebra() {};
 };
