@@ -29,12 +29,12 @@ operator entries alias ENTRIES pattern op ( _ )
 operator treeheight alias TREEHEIGHT pattern op ( _ )
 operator no_nodes alias NO_NODES pattern op ( _ )
 operator no_entries alias NO_ENTRIES pattern op ( _ )
-operator bbox alias BBOX pattern op ( _ )
+operator bbox alias BBOX pattern op ( _, _ )
 operator getFileInfo alias GETFILEINFO pattern op ( _ )
 operator updatebulkloadrtree alias UPDATEBULKLOADRTREE pattern _ _ op [ _]
 operator getRootNode alias GETROOTNODE pattern op ( _ )
 operator getNodeInfo alias GETNODEINFO pattern op ( _ , _ )
 operator getNodeSons alias GETNODESONS pattern op ( _ , _ )
 operator getLeafEntries alias GETLEAFENTRIES pattern op ( _ , _ )
-operator cyclicbulkload alias CYCLICBULKLOAD pattern _  op [ _, _, _, _ ] 
+operator cyclicbulkload alias CYCLICBULKLOAD pattern _  op [ _, _, _, _ ]
 
