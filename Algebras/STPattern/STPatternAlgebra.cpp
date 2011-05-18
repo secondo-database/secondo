@@ -38,6 +38,7 @@ evaluating the spatiotemporal pattern predicates (STP).
 
 */
 #include "STPatternAlgebra.h"
+#include <limits>
 namespace STP{
 
 /*
@@ -160,7 +161,13 @@ bool STVector::Add(string simple)
   v = v|vec;
   return true;
 }
+/*
+The Add function. Used to add a simple temporal connector to "this".
+Input: a string representation for the simple connector.
+Process: translates the string into integer and adds it to the STVector.
+Output: none.
 
+*/
 bool STVector::Add(int simple)
 {
   if(simple <=  b_ba_a && Count(simple)==1) 
@@ -186,7 +193,15 @@ bool STVector::ApplyVector(Interval<CcReal>& p1, Interval<CcReal>& p2)
   }
   return false;
 }
+/*
+The ApplySimple function. Checks whether a simple temporal connector is
+fulfilled by two time intervals.
+Input: two time intervals. Note that Interval<CcReal> are used to speed up the
+processing but they represent Interval<Instant>
+Process: checks the simple connectors.
+Output: fulfilled or not.
 
+*/
 bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
     int simple)
 { 
@@ -276,15 +291,32 @@ bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2,
     assert(0); //illegal simple temporal connector
   }
 }
+/*
+The Vector2PARelations function converts the IA relation represented in the
+vector into a set of PA relations among the end points of the two intervals.
+The function returns false if the conversion is not possible (i.e., the IA
+relation does not belong to the continuous point algebra. That is, it cannot be
+represented as point relations unless the != relation is used).
+
+The output PA relations are reported in the rels argument. It has 10 places for
+the relations aA ab aB ba bA bB Ab AB Ba BA Aa Bb in order. Each array elem has
+the value 0 (relation not specified), or 1-7 (<, =, >, <=, >=, !=, ?). As
+indicated above, if an elem in rels has the value 6 (!=), the function yields
+false.
+
+*/
 
 bool STVector::Vector2PARelations(int rels[12])
 {
-  bool debugme= true;
+  bool debugme= false;
   enum relIndex{
     aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
-//defined in TemporalReasoner.h
-//enum PARelation{
-//  lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7, unknown=8};
+/*
+defined in TemporalReasoner.h
+enum PARelation{
+lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7, unknown=8};
+
+*/
   PARelation orTable[][9]=
     {{lss,leq,neq,uni,leq,neq,uni,inc,lss},
      {leq,leq,uni,uni,leq,uni,uni,inc,leq},
@@ -328,7 +360,12 @@ bool STVector::Vector2PARelations(int rels[12])
   }
   return true;
 }
+/*
+The Simple2PARelations function converts an IA simple relation (i.e., one term)
+into a set of PA relations. It works similar to Vectore2PARelations, yet it is
+able to convert one term only.
 
+*/
 bool STVector::Simple2PARelations(int simple, int rels[12])
 {
   enum relIndex{
@@ -453,6 +490,16 @@ bool STVector::Simple2PARelations(int simple, int rels[12])
   return true;
 }
 
+void STVector::Clear()
+{
+  this->count= 0;
+  this->v= 0;
+}
+/*
+Secondo framework support functions
+
+*/
+
 Word STVector::In( const ListExpr typeInfo, const ListExpr instance,
     const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -519,7 +566,10 @@ bool STVector::Save( SmiRecord& valueRecord, size_t& offset,
   offset += size;  
   return ok;
 } 
+/*
+Secondo framework support functions
 
+*/
 void STVector::Close( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<STVector*>( w.addr );
@@ -536,7 +586,10 @@ int STVector::SizeOfObj()
 {
   return sizeof(STVector);
 }
+/*
+Secondo framework support functions
 
+*/
 ListExpr STVector::Property()
 {
   return (nl->TwoElemList(
@@ -565,13 +618,12 @@ void IntervalInstant2IntervalCcReal(const Interval<Instant>& in,
 }
 
 
-CSP::CSP(): PAReasoner(0), count(0),iterator(-1),
+CSP::CSP(): closureRes(notPA), count(0),iterator(-1),
 nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
 {}
 
 CSP::~CSP()
 {
-  if(PAReasoner != 0) delete PAReasoner;
 }
 
 void CSP::IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
@@ -595,10 +647,6 @@ void CSP::IntervalCcReal2IntervalInstant(const Interval<CcReal>& in,
 /*
 3.2 Class CSP 
 
-
-*/
-
-/*
 The MBool2Vec function is called first thing within the extend function. It
 converts the time intervals for the true units from Interval<Instant> into
 Interval<CcReal>. This is done for the sake of performance since the Instant 
@@ -808,91 +856,11 @@ int CSP::PickVariable()
   return index;
 }
 
-int CSP::ComputeClosure()
-{
-  bool debugme= true;
-  if(PAReasoner != 0)
-    delete PAReasoner;
-  unsigned int numIntervals= VarAliasMap.size();
-  Supplier IAVectorSupplier;
-  STVector* IAVector;
-  Word Value;
-  enum relIndex{
-    aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
-//defined in TemporalReasoner.h
-//enum PARelation{lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7};
-  PARelation PARels[12];
-  int aIndex, AIndex, bIndex, BIndex;
-  PAReasoner = new PointAlgebraReasoner(numIntervals * 2);
+/*
+The function AddVaraible inserts one variable into the CSP, and reserves place
+for it in the ConstraintGraph
 
-  for(unsigned int i=0; i< numIntervals; ++i)
-  {
-    for(unsigned int j=0; j< numIntervals; ++j)
-    {
-      if(! ConstraintGraph[i][j].empty())
-      {
-        //cannot express conjunctive constraints on the same pair of variables
-        if(ConstraintGraph[i][j].size() > 1)
-        {
-          SetClosureResult(notPA);
-          return 2;
-        }
-        IAVectorSupplier= ConstraintGraph[i][j][0];
-        qp->Request(IAVectorSupplier, Value);
-        IAVector = static_cast<STVector*>(Value.addr);
-        if(! IAVector->Vector2PARelations((int*)PARels))
-        {
-          SetClosureResult(notPA);
-          return 2;
-        }
-        aIndex= i*2; AIndex= (i*2)+1; bIndex= j*2; BIndex= (j*2)+1;
-        for(int k=0; k<12; ++k)
-        {
-          if(PARels[k] == unknown) continue;
-          switch(k)
-          {
-          case aA: PAReasoner->Add(aIndex, AIndex, PARels[k]);
-          break;
-          case ab: PAReasoner->Add(aIndex, bIndex, PARels[k]);
-          break;
-          case aB: PAReasoner->Add(aIndex, BIndex, PARels[k]);
-          break;
-          case ba: PAReasoner->Add(bIndex, aIndex, PARels[k]);
-          break;
-          case bA: PAReasoner->Add(bIndex, AIndex, PARels[k]);
-          break;
-          case bB: PAReasoner->Add(bIndex, BIndex, PARels[k]);
-          break;
-          case Ab: PAReasoner->Add(AIndex, bIndex, PARels[k]);
-          break;
-          case AB: PAReasoner->Add(AIndex, BIndex, PARels[k]);
-          break;
-          case Ba: PAReasoner->Add(BIndex, aIndex, PARels[k]);
-          break;
-          case BA: PAReasoner->Add(BIndex, AIndex, PARels[k]);
-          break;
-          case Aa: PAReasoner->Add(AIndex, aIndex, PARels[k]);
-          break;
-          case Bb: PAReasoner->Add(BIndex, bIndex, PARels[k]);
-          break;
-          default: assert(0);
-          }
-        }
-      }
-    }
-  }
-  if(debugme)
-    PAReasoner->Print(cerr);
-  bool isConsistent= PAReasoner->Close();
-  if(isConsistent)
-    SetClosureResult(consistent);
-  else
-    SetClosureResult(inconsistent);
-  if(debugme && isConsistent)
-    PAReasoner->Print(cerr);
-  return isConsistent?1:0;
-}
-
+*/
 int CSP::AddVariable(string alias, Supplier handle)
 {
   Agenda.push_back(handle);
@@ -905,6 +873,10 @@ int CSP::AddVariable(string alias, Supplier handle)
   return 0;
 }
 
+/*
+The function AddConstraint inserts one binary constraint into the CSP.
+
+*/
 int CSP::AddConstraint(string alias1, string alias2, Supplier handle)
 {
   int index1=-1, index2=-1;
@@ -922,6 +894,11 @@ int CSP::AddConstraint(string alias1, string alias2, Supplier handle)
   return 0;
 }
 
+/*
+The first variant of the CSP::Solve function. This variant computes the
+supported assignments without performing temporal reasoning.
+
+*/
 bool CSP::Solve()
 {
   bool debugme=false;
@@ -943,6 +920,173 @@ bool CSP::Solve()
   return true;
 }
 
+/*
+The SetConsistentPeriods is a helper function, used by the CSP::Solve as a part
+of the temporal reasoning.
+
+*/
+void CSP::SetConsistentPeriods(
+    int varIndex, Periods* periodsArg, PointAlgebraReasoner* paReasoner)
+{
+  bool debugme= false;
+  Periods* consistentPeriods= periodsArg;
+  consistentPeriods->Clear();
+
+  unsigned int SASize= SA.size();
+  if(SASize == 0)
+  {
+    Instant t1(instanttype), t2(instanttype);
+    t1.ToMinimum(); t2.ToMaximum();
+    Interval<Instant> I(t1, t2, false, false);
+    consistentPeriods->Add(I);
+    return;
+  }
+
+  vector<Interval<CcReal> > sa(count);
+  double MAXDOUBLE= numeric_limits<double>::max();
+  pair<double, double> bounds(-1, MAXDOUBLE);
+  Range<CcReal> consistentPeriodsReal(0);
+  vector<PARelation> PARels;
+  vector<int> PAVarIndexes(0), lowerBoundIndexes(0), upperBoundIndexes(0);
+  vector<double> lowerBounds(0), upperBounds(0);
+  DateTime tenmilli(0,10, instanttype);
+  double epslon= tenmilli.ToDouble();
+  int curPAVarIndex, IAVar;
+  double lowerBound, upperBound;
+  CcReal t1(true, -1), t2(true, MAXDOUBLE);
+  Interval<CcReal> I(t1, t2, false, false);
+  Range<CcReal> p(0), unionp(0);
+
+  for(vector<int>::iterator it= assignedVars.begin();
+      it!=assignedVars.end(); ++it)
+  {
+    IAVar= *it;
+    if(IAVar == varIndex) continue;
+    PAVarIndexes.push_back(IAVar * 2);
+    PAVarIndexes.push_back((IAVar * 2) + 1 );
+  }
+
+  int varStartIndex= varIndex*2, varEndIndex= (varIndex*2) +1;
+  PARels= paReasoner->GetRelations(varStartIndex);
+  for(unsigned int j= 0; j<PAVarIndexes.size(); ++j)
+  {
+    if(PARels[PAVarIndexes[j]] == grt || PARels[PAVarIndexes[j]] == geq ||
+       PARels[PAVarIndexes[j]] == eql )
+      lowerBoundIndexes.push_back(PAVarIndexes[j]);
+  }
+
+  PARels= paReasoner->GetRelations(varEndIndex);
+  for(unsigned int j= 0; j<PAVarIndexes.size(); ++j)
+  {
+    if(PARels[PAVarIndexes[j]] == lss || PARels[PAVarIndexes[j]] == leq ||
+       PARels[PAVarIndexes[j]] == eql )
+      upperBoundIndexes.push_back(PAVarIndexes[j]);
+  }
+
+  if(lowerBoundIndexes.empty() && upperBoundIndexes.empty())
+  {
+    Instant t1(instanttype), t2(instanttype);
+    t1.ToMinimum(); t2.ToMaximum();
+    Interval<Instant> I(t1, t2, false, false);
+    consistentPeriods->Add(I);
+    return;
+  }
+
+  for(unsigned int i=0; i<SASize; i++)
+  {
+    sa= SA[i];
+    bounds= make_pair<double,double>(-1, MAXDOUBLE);
+    if(!lowerBoundIndexes.empty())
+    {
+      //find the maximum lower bound
+      for(unsigned int j=0; j<lowerBoundIndexes.size(); ++j)
+      {
+        curPAVarIndex = lowerBoundIndexes[j];
+        lowerBound= (curPAVarIndex % 2)?
+            sa[(curPAVarIndex / 2)].end.GetRealval():
+            sa[(curPAVarIndex / 2)].start.GetRealval();
+        if(bounds.first < lowerBound)
+          bounds.first = lowerBound;
+      }
+    }
+
+
+    if(!upperBoundIndexes.empty())
+    {
+      //find the minimum upper bound
+      for(unsigned int j=0; j<upperBoundIndexes.size(); ++j)
+      {
+        curPAVarIndex = upperBoundIndexes[j];
+        if(debugme)
+          sa[(curPAVarIndex / 2)].Print(cerr);
+        upperBound= (curPAVarIndex % 2)?
+            sa[(curPAVarIndex / 2)].end.GetRealval():
+            sa[(curPAVarIndex / 2)].start.GetRealval();
+        if(bounds.second > upperBound)
+          bounds.second = upperBound;
+      }
+    }
+
+    //expand the bounds with epslon
+    if(bounds.first != -1)
+      bounds.first-= epslon;
+    if(bounds.second != MAXDOUBLE)
+      bounds.second+= epslon;
+
+    //union the bounds with the consistentPeriods
+    I.start.Set(true, bounds.first);
+    I.end.Set(true, bounds.second);
+    p.Clear();    p.Add(I);
+    p.Union(consistentPeriodsReal, unionp);
+    consistentPeriodsReal.CopyFrom(&unionp);
+  }
+
+  //convert consistentPeriodsReal into time periods
+  Instant t(instanttype);
+  Interval<Instant> IT(t,t,true,true);
+  for(int i=0; i< consistentPeriodsReal.GetNoComponents(); ++i)
+  {
+    consistentPeriodsReal.Get(i, I);
+    IT.start.ToMinimum(); IT.end.ToMaximum();
+    if(I.start.GetRealval() != -1)
+      IT.start.ReadFrom(I.start.GetRealval());
+    if(I.end.GetRealval() != MAXDOUBLE)
+      IT.end.ReadFrom(I.end.GetRealval());
+    consistentPeriods->Add(IT);
+  }
+}
+
+/*
+The second variant of the CSP::Solve function. This variant performs temporal
+reasoning to compute the supported assignments efficiently.
+
+*/
+bool CSP::Solve(Periods* periodsArg, PointAlgebraReasoner* paReasoner)
+{
+  bool debugme=false;
+  int varIndex;
+  Word Value;
+  vector<Interval<CcReal> > domain(0);
+  while( (varIndex= PickVariable()) != -1)
+  {
+    if(GetClosureResult() == consistent )
+      SetConsistentPeriods(varIndex, periodsArg, paReasoner);
+    if(debugme)
+      if(!IsMaximumPeriods(*periodsArg)) periodsArg->Print(cerr);
+    qp->Request(Agenda[varIndex], Value);
+    UsedAgendaVars[varIndex]= true;
+    MBool2Vec((MBool*)Value.addr, domain);
+    if(domain.size()==0) {SA.clear(); return false;}
+    if(Extend(varIndex, domain)!= 0) return false;
+    if(SA.size()==0) return false;
+  }
+  return true;
+}
+
+/*
+The MoveNext function is used to iterate over the supported assignments.
+
+*/
 bool CSP::MoveNext()
 {
   if(iterator < (signed int)SA.size()-1)
@@ -998,7 +1142,10 @@ bool CSP::AppendUnDefsToTuple(Tuple* oldTup, Tuple* resTup)
 
   return true;
 }
+/*
+The GetStart function. It is the impelementation of the "start" operator.
 
+*/
 bool CSP::GetStart(string alias, Instant& result)
 {
   map<string, int>::iterator it;
@@ -1040,6 +1187,7 @@ void CSP::Print()
 
 int CSP::Clear()
 {
+  closureRes= notPA;
   SA.clear();
   Agenda.clear();
   UsedAgendaVars.clear();
@@ -1050,7 +1198,12 @@ int CSP::Clear()
   iterator=-1;
   return 0;
 }
+/*
+The ResetTuple function. It is used to reset the CSP before evaluating it for
+a new tuple. The Agenda, and the ConstraintGraph are kept. Other members
+related to the evaluation are reset.
 
+*/
 int CSP::ResetTuple()
 {
   SA.clear();
@@ -1131,10 +1284,438 @@ void RandomDelay(const MPoint* actual, const Instant* threshold, MPoint& res)
   }
   return;
 }
+/*
+Auxiliary functions
+
+*/
+bool IsSimplePredicateList(ListExpr args, bool WithUserArgs=false)
+{
+  if(nl->IsAtom(args)) return false;
+
+  ListExpr NamedPredListRest = WithUserArgs? nl->First(args): args;
+  ListExpr NamedPred;
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+
+    if(!(nl->ListLength(NamedPred) == 2 && nl->IsAtom(nl->First(NamedPred))&&
+        nl->IsAtom(nl->Second(NamedPred))&&
+        nl->SymbolValue(nl->Second(NamedPred))== "mbool"))
+      return false;
+  }
+  return true;
+}
+/*
+Auxiliary functions
+
+*/
+bool IsMapTuplePredicateList(ListExpr args, bool WithUserArgs=false)
+{
+  if(nl->IsAtom(args)) return false;
+
+  ListExpr NamedPredListRest = WithUserArgs? nl->First(args): args;
+  ListExpr NamedPred, Map;
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+    Map= nl->Second(NamedPred);
+    if(nl->ListLength(NamedPred) != 2 || !nl->IsAtom(nl->First(NamedPred)) ||
+      !listutils::isMap<1>(Map)||
+      !nl->IsEqual(nl->Nth(nl->ListLength(Map), Map), "mbool"))
+      return false;
+    if(!nl->IsEqual(nl->First(nl->Second(Map)), "tuple"))
+      return false;
+  }
+  return true;
+}
+
+bool IsMapTuplePeriodsPredicateList(ListExpr args, bool WithUserArgs=false)
+{
+  if(nl->IsAtom(args)) return false;
+
+  ListExpr NamedPredListRest = WithUserArgs? nl->First(args): args;
+  ListExpr NamedPred, Map;
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+    Map= nl->Second(NamedPred);
+    if(nl->ListLength(NamedPred) != 2 || !nl->IsAtom(nl->First(NamedPred)) ||
+      !listutils::isMap<2>(Map)||
+      !nl->IsEqual(nl->Nth(nl->ListLength(Map), Map), "mbool"))
+      return false;
+    if(!nl->IsEqual(nl->First(nl->Second(Map)), "tuple") ||
+       !nl->IsEqual(nl->Third(Map), "periods") )
+      return false;
+  }
+  return true;
+}
 
 /*
-4 Algebra Types and Operators 
+Helper Type Map functions
 
+*/
+
+bool IsConstraintList(ListExpr args, bool WithUserArgs=false)
+{
+  if(nl->IsAtom(args)) return false;
+
+  ListExpr ConstraintListRest = WithUserArgs? nl->First(args): args;
+  ListExpr STConstraint;
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+
+    if(!((nl->IsAtom(STConstraint)&& nl->SymbolValue(STConstraint)== "bool")))
+      return false;
+  }
+  return true;
+}
+
+bool IsTupleExpr(ListExpr args, bool WithUserArgs=false)
+{
+  ListExpr tuple = WithUserArgs? nl->First(args): args;
+  return ((nl->ListLength(tuple) == 2) &&
+       nl->IsEqual(nl->First(tuple), "tuple"));
+}
+
+bool IsTupleStream(ListExpr args, bool WithUserArgs=false)
+{
+  ListExpr stream = WithUserArgs? nl->First(args): args;
+  return (nl->ListLength(stream)== 2 &&
+      listutils::isTupleStream(stream));
+}
+bool IsBoolExpr(ListExpr args, bool WithUserArgs=false)
+{
+  ListExpr boolExpr = WithUserArgs? nl->First(args): args;
+  return (nl->IsAtom(boolExpr) && nl->IsEqual(boolExpr, "bool"));
+}
+/*
+Auxiliary functions
+
+*/
+bool IsBoolMap(ListExpr args, bool WithUserArgs=false)
+{
+  ListExpr boolExpr = WithUserArgs? nl->First(args): args;
+  if(nl->IsAtom(args)) return false;
+
+  ListExpr Map = nl->First(boolExpr),
+      MapReturn= nl->Nth(nl->ListLength(boolExpr), boolExpr);
+  if(nl->ListLength(boolExpr) < 3 || !nl->IsEqual(Map, "map") ||
+    !nl->IsEqual(MapReturn, "bool"))
+      return false;
+  return true;
+}
+
+bool IsPeriodsExpr(ListExpr args, bool WithUserArgs=false)
+{
+  ListExpr periodsExpr = WithUserArgs? nl->First(args): args;
+  return (nl->IsAtom(periodsExpr) && nl->IsEqual(periodsExpr, "periods"));
+}
+
+bool IsAliasInCatalog(set<string>& aliases)
+{
+  for(set<string>::iterator it= aliases.begin(); it!= aliases.end(); ++it)
+    if(SecondoSystem::GetCatalog()->IsTypeName(*it)) return true;
+  return false;
+}
+/*
+Auxiliary functions
+
+*/
+bool IsAliasInAttributeNames(ListExpr AttrList,set<string>& aliases)
+{
+  ListExpr typeList;
+  for(set<string>::iterator it= aliases.begin(); it!= aliases.end(); ++it)
+    if(FindAttribute(AttrList, *it, typeList) != 0) return true;
+  return false;
+}
+
+void ExtractPredAliasesFromPredList(ListExpr args, set<string>& aliases)
+{
+  ListExpr NamedPredListRest = nl->First(args);
+  ListExpr NamedPred;
+  string alias;
+
+  aliases.clear();
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+
+    alias= nl->ToString(nl->First(NamedPred));
+    aliases.insert(alias);
+  }
+}
+void ExtractPredAliasesFromPredList(ListExpr args, vector<string>& aliases)
+{
+  ListExpr NamedPredListRest = nl->First(args);
+  ListExpr NamedPred;
+  string alias;
+
+  aliases.clear();
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+
+    alias= nl->ToString(nl->First(NamedPred));
+    aliases.push_back(alias);
+  }
+}
+void ExtractPredAliasesFromConstraintList(ListExpr args, set<string>& aliases)
+{
+  ListExpr ConstraintListRest = nl->Second(args);
+  ListExpr STConstraint;
+  string alias;
+
+  aliases.clear();
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+
+    alias= nl->StringValue(nl->Second(STConstraint));
+    aliases.insert(alias);
+
+    alias= nl->StringValue(nl->Third(STConstraint));
+    aliases.insert(alias);
+  }
+}
+
+/*
+Computes the closure within the Type Map
+
+*/
+ListExpr ComputeClosure(ListExpr ConstraintList, vector<string> IntervalVars)
+{
+  bool debugme= false;
+
+  if(debugme)
+  {
+    string cList= nl->ToString(ConstraintList);
+    cerr<<endl<<cList<<endl;
+    for(vector<string>::iterator it= IntervalVars.begin(); it!=
+        IntervalVars.end(); ++it)
+      cerr<<*it<<'\t';
+  }
+
+  enum relIndex{
+    aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
+//defined in TemporalReasoner.h
+//enum PARelation{lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7};
+  PARelation PARels[12];
+  int aIndex, AIndex, bIndex, BIndex;
+  unsigned int numIntervals= 2 * IntervalVars.size();
+  PointAlgebraReasoner PAReasoner(numIntervals);
+  map<string, int> alias2IAIndex;
+  ListExpr ConstraintListRest = nl->Second(ConstraintList);
+  ListExpr STConstraint;
+  ListExpr IARelListRest;
+  STVector IAVector(0);
+  string alias, IARel;
+  set<pair<int, int> > relatedPairs;
+  int i=-1, j;
+
+  for(vector<string>::iterator
+      it=IntervalVars.begin(); it< IntervalVars.end(); ++it)
+    assert(alias2IAIndex.insert(pair<string, int>(*it, ++i)).second);
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+
+    alias= nl->StringValue(nl->Second(STConstraint));
+    i= alias2IAIndex[alias];
+
+    alias= nl->StringValue(nl->Third(STConstraint));
+    j= alias2IAIndex[alias];
+
+    if(! relatedPairs.insert(make_pair<int,int>(i,j)).second)
+      return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
+
+    IAVector.Clear();
+    IARelListRest= nl->Fourth(STConstraint); //(vec "aabb"  "abab" ...)
+    IARelListRest= nl->Rest(IARelListRest);  //("aabb"  "abab" ...)
+    while( !nl->IsEmpty(IARelListRest) )
+    {
+      IARel= nl->StringValue(nl->First(IARelListRest));
+      IARelListRest= nl->Rest(IARelListRest);
+      IAVector.Add(IARel);
+    }
+    if(! IAVector.Vector2PARelations((int*)PARels))
+      return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
+    aIndex= i*2; AIndex= (i*2)+1; bIndex= j*2; BIndex= (j*2)+1;
+    for(int k=0; k<12; ++k)
+    {
+      if(PARels[k] == unknown) continue;
+      switch(k)
+      {
+      case aA: PAReasoner.Add(aIndex, AIndex, PARels[k]);
+      break;
+      case ab: PAReasoner.Add(aIndex, bIndex, PARels[k]);
+      break;
+      case aB: PAReasoner.Add(aIndex, BIndex, PARels[k]);
+      break;
+      case ba: PAReasoner.Add(bIndex, aIndex, PARels[k]);
+      break;
+      case bA: PAReasoner.Add(bIndex, AIndex, PARels[k]);
+      break;
+      case bB: PAReasoner.Add(bIndex, BIndex, PARels[k]);
+      break;
+      case Ab: PAReasoner.Add(AIndex, bIndex, PARels[k]);
+      break;
+      case AB: PAReasoner.Add(AIndex, BIndex, PARels[k]);
+      break;
+      case Ba: PAReasoner.Add(BIndex, aIndex, PARels[k]);
+      break;
+      case BA: PAReasoner.Add(BIndex, AIndex, PARels[k]);
+      break;
+      case Aa: PAReasoner.Add(AIndex, aIndex, PARels[k]);
+      break;
+      case Bb: PAReasoner.Add(BIndex, bIndex, PARels[k]);
+      break;
+      default: assert(0);
+      }
+    }
+  }
+
+  if(debugme)
+    PAReasoner.Print(cerr);
+  bool isConsistent= PAReasoner.Close();
+  if(!isConsistent)
+    return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(inconsistent));
+  if(debugme)
+    PAReasoner.Print(cerr);
+  return PAReasoner.ExportToNestedList();
+}
+
+/*
+This function is used to import the PointAlgebraReasoner in the value mapping.
+
+*/
+ClosureResult ImportPAReasonerFromArgs(
+    Supplier TRTable, PointAlgebraReasoner*& paReasoner)
+{
+  Word value;
+  Supplier son= qp->GetSon(TRTable, 0);
+  qp->Request(son, value);
+  int PAReasonerN= static_cast<CcInt*>(value.addr)->GetValue();
+  ClosureResult res= consistent;
+  if(PAReasonerN != 0)
+  {
+    paReasoner= new PointAlgebraReasoner(PAReasonerN);
+    int *Table= new int[PAReasonerN * PAReasonerN + 1];
+    Table[0]= PAReasonerN;
+    for(int i=1; i<= PAReasonerN * PAReasonerN; ++i)
+    {
+      son= qp->GetSon(TRTable, i);
+      qp->Request(son, value);
+      Table[i]= static_cast<CcInt*>(value.addr)->GetIntval();
+    }
+    paReasoner->ImportFromArray(Table);
+    delete[] Table;
+  }
+  else
+  {
+    son= qp->GetSon(TRTable, 1);
+    qp->Request(son, value);
+    res= static_cast<ClosureResult>(
+        static_cast<CcInt*>(value.addr)->GetIntval());
+  }
+  return res;
+}
+
+Periods* CreateMaximalPeriods()
+{
+  Instant i1(instanttype);    i1.ToMinimum();
+  Instant i2(instanttype);    i2.ToMaximum();
+  Interval<Instant> I(i1, i2, true, true);
+  Periods* periods= new Periods(0);
+  periods->Add(I);
+  return periods;
+}
+
+void CSPAddPredicates(Supplier& namedpredlist)
+{
+  Supplier namedpred,alias, pred;
+  string aliasstr;
+  int noofpreds= qp->GetNoSons(namedpredlist);
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(namedpredlist, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    aliasstr= nl->ToString(qp->GetType(alias));
+    csp.AddVariable(aliasstr,pred);
+  }
+}
+void CSPAddConstraints(Supplier& constraintlist)
+{
+  Supplier constraint, alias1, alias2, stvector;
+  Word Value;
+  string alias1str, alias2str;
+  int noofconstraints= qp->GetNoSons(constraintlist);
+
+  for(int i=0; i< noofconstraints; i++)
+  {
+    constraint = qp->GetSupplierSon(constraintlist, i);
+    alias1= qp->GetSupplierSon(constraint, 0);
+    alias2= qp->GetSupplierSon(constraint, 1);
+    stvector= qp->GetSupplierSon(constraint, 2);
+
+    qp->Request(alias1, Value);
+    alias1str= ((CcString*) Value.addr)->GetValue();
+    qp->Request(alias2, Value);
+    alias2str= ((CcString*) Value.addr)->GetValue();
+    csp.AddConstraint(alias1str,alias2str, stvector);
+  }
+
+}
+/*
+Auxiliary functions
+
+*/
+bool CSPSetPredsArgs(Supplier predList, Tuple* tup)
+{
+
+  ArgVectorPointer funargs;
+  Supplier namedpred,alias,pred;
+  int noofpreds= qp->GetNoSons(predList);
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(predList, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    funargs = qp->Argument(pred);
+    ((*funargs)[0]).setAddr(tup);
+  }
+  return true;
+}
+
+bool CSPSetPredsArgs(Supplier predList, Tuple* tup, Periods* periods)
+{
+  ArgVectorPointer funargs;
+  Supplier namedpred,alias,pred;
+  int noofpreds= qp->GetNoSons(predList);
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(predList, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    funargs = qp->Argument(pred);
+    ((*funargs)[0]).setAddr(tup);
+    ((*funargs)[1]).setAddr(periods);
+  }
+  return true;
+}
+
+/*
+4 Algebra Types and Operators
+4.1 Type Map Functions
 
 */
 
@@ -1157,7 +1738,7 @@ ListExpr CreateSTVectorTM(ListExpr args)
   //  bool debugme= false;
   string argstr;
   ListExpr rest= args, first;
-  while (!nl->IsEmpty(rest)) 
+  while (!nl->IsEmpty(rest))
   {
     first = nl->First(rest);
     rest = nl->Rest(rest);
@@ -1169,444 +1750,352 @@ ListExpr CreateSTVectorTM(ListExpr args)
   return nl->SymbolAtom("stvector");
 }
 
+template<bool extended>
 ListExpr STPatternTM(ListExpr args)
 {
   bool debugme= false;
 
+  string opName= extended? "stpatternex": "stpattern";
   string argstr;
-
   if(debugme)
   {
     cout<<endl<< nl->ToString(args)<<endl;
     cout.flush();
   }
 
-
   nl->WriteToString(argstr, args);
-
-  //  //checking for the first parameter tuple(x)
-  if(nl->ListLength(args) != 3)
+  if((!extended && nl->ListLength(args) != 3) ||
+      (extended && nl->ListLength(args) != 4))
   {
-    ErrorReporter::ReportError("Operator stpattern: expects 3 arguments\n"
-        "But got '" + argstr + "'.");
+    ErrorReporter::ReportError("Operator "+ opName +": expects " +
+        int2string(3 + extended) + "arguments\nBut got '" + argstr + "'.");
     return nl->SymbolAtom("typeerror");
-  };
+  }
 
-  ListExpr tupleExpr = nl->First(args),   //tuple(x)
-  NamedPredList  = nl->Second(args),  //named predicate list
-  ConstraintList = nl->Third(args);    //STConstraint list
+  ListExpr tupleExpr = nl->First(args),
+      NamedPredList  = nl->Second(args),
+      ConstraintList = nl->Third(args);
 
   nl->WriteToString(argstr, tupleExpr);
-
-  //  //checking for the first parameter tuple(x)
-  if(!((nl->ListLength(tupleExpr) == 2) &&
-      (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple)))
+  if(!IsTupleExpr(tupleExpr, true))
   {
-    ErrorReporter::ReportError("Operator stpattern: expects as first "
+    ErrorReporter::ReportError("Operator "+ opName +": expects "
         "argument a list with structure (tuple ((a1 t1)...(an tn))).\n"
         "But got '" + argstr + "'.");
     return nl->SymbolAtom("typeerror");
-  };
-
-  //  //checking ofr the second parameter predicatelist
-  nl->WriteToString(argstr, NamedPredList);
-  if(!(! nl->IsAtom(NamedPredList)))
-  {
-    ErrorReporter::ReportError("Operator stpattern expects as second "
-        "argument a list of aliased lifted predicates.\n"
-        "But got '" + argstr + "'.\n");
-    return nl->SymbolAtom("typeerror");
-  };
-  ListExpr NamedPredListRest = NamedPredList;
-  ListExpr NamedPred;
-  while( !nl->IsEmpty(NamedPredListRest) )
-  {
-    NamedPred = nl->First(NamedPredListRest);
-    NamedPredListRest = nl->Rest(NamedPredListRest);
-    nl->WriteToString(argstr, NamedPred);
-
-    if(!((nl->ListLength(NamedPred) == 2 &&
-        nl->IsAtom(nl->First(NamedPred))&&
-        nl->IsAtom(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Second(NamedPred))== "mbool")))
-    {
-      ErrorReporter::ReportError("Operator stpattern: expects a list of "
-          "aliased predicates. \nBut got '" + argstr + "'.");
-      return nl->SymbolAtom("typeerror");
-    };
   }
 
-  ListExpr ConstraintListRest = ConstraintList;
-  ListExpr STConstraint;
-  while( !nl->IsEmpty(ConstraintListRest) )
+  nl->WriteToString(argstr, NamedPredList);
+  if(! IsSimplePredicateList(NamedPredList, true))
   {
-    STConstraint = nl->First(ConstraintListRest);
-    ConstraintListRest = nl->Rest(ConstraintListRest);
-    nl->WriteToString(argstr, STConstraint);
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "aliased predicates. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
 
-    if(!((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool")))
+  nl->WriteToString(argstr, ConstraintList);
+  if(!IsConstraintList(ConstraintList, true))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "temporal connectors. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  set<string> predAliases1, predAliases2;
+  ExtractPredAliasesFromPredList(NamedPredList, predAliases1);
+  ExtractPredAliasesFromConstraintList(ConstraintList, predAliases2);
+
+  if(debugme)
+  {
+    set<string>::iterator it1= predAliases1.begin(), it2= predAliases2.begin();
+    cerr<<endl;
+    while(it1 != predAliases1.end())
+      cerr<<*it1++<< '\t';
+    cerr<<endl;
+    while(it2 != predAliases2.end())
+      cerr<<*it2++<< '\t';
+  }
+  if((predAliases1.size() != predAliases2.size()) ||
+   !std::equal(predAliases1.begin(), predAliases1.end(), predAliases2.begin()))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": unknown alises in "
+        "temporal constraints.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  if(extended)
+  {
+    ListExpr boolExpr= nl->Fourth(args);
+    nl->WriteToString(argstr, boolExpr);
+    if(!IsBoolExpr(boolExpr, true))
     {
-      ErrorReporter::ReportError("Operator stpattern: expects a list of "
-          "temporal connectors. \nBut got '" + argstr + "'.");
+      ErrorReporter::ReportError("Operator "+ opName +": expects a boolean "
+          "expression. \nBut got '" + argstr + "'.");
       return nl->SymbolAtom("typeerror");
-    };
+    }
   }
 
   ListExpr result = nl->SymbolAtom("bool");
   if(debugme)
   {
-    cout<<endl<<endl<<"Operator stpattern accepted the input";
+    cout<<endl<<endl<<"Operator "+ opName +" accepted the input";
     cout.flush();
   }
   return result;
 }
 
-ListExpr STPatternExTM(ListExpr args)
+/*
+Type Map for STPattern2 and STPatternex2
+
+*/
+template<bool extended>
+ListExpr STPattern2TM(ListExpr args)
 {
   bool debugme= false;
 
+  string opName= "stpattern2";
   string argstr;
-
   if(debugme)
   {
     cout<<endl<< nl->ToString(args)<<endl;
     cout.flush();
   }
 
-  if(nl->ListLength(args) != 4)
+  nl->WriteToString(argstr, args);
+  if((!extended && nl->ListLength(args) != 4) ||
+     (extended && nl->ListLength(args) != 5))
   {
-    ErrorReporter::ReportError("Operator stpatternex: expects 4 arguments\n"
+    ErrorReporter::ReportError("Operator "+ opName +": expects " +
+        int2string(4 + extended) + "arguments\nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr tupleExpr = nl->First(args),
+      periodsExpr    = nl->Second(args),
+      NamedPredList  = nl->Third(args),
+      ConstraintList = nl->Fourth(args);
+
+  nl->WriteToString(argstr, tupleExpr);
+  if(!IsTupleExpr(tupleExpr, true))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects "
+        "argument a list with structure (tuple ((a1 t1)...(an tn))).\n"
         "But got '" + argstr + "'.");
     return nl->SymbolAtom("typeerror");
   }
 
-  ListExpr tupleExpr = nl->First(args),   //tuple(x)
-  NamedPredList  = nl->Second(args),  //named predicate list
-  ConstraintList = nl->Third(args),    //STConstraint list
-  FilterExpr= nl->Fourth(args);
-
-  nl->WriteToString(argstr, tupleExpr);
-
-  //  //checking for the first parameter tuple(x)
-  if(!((nl->ListLength(tupleExpr) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple)))
+  nl->WriteToString(argstr, periodsExpr);
+  if(!IsPeriodsExpr(periodsExpr, true))
   {
-    ErrorReporter::ReportError("Operator stpatternex: expects as first "
-      "argument a list with structure (tuple ((a1 t1)...(an tn))).\n"
-      "But got '" + argstr + "'.");
+    ErrorReporter::ReportError("Operator "+ opName +": expects periods.\n"
+        "But got '" + argstr + "'.");
     return nl->SymbolAtom("typeerror");
   }
 
-  //  //checking ofr the second parameter predicatelist
   nl->WriteToString(argstr, NamedPredList);
-  if(nl->IsAtom(NamedPredList))
+  if(! IsSimplePredicateList(NamedPredList, true))
   {
-    ErrorReporter::ReportError("Operator  stpatternex expects as second "
-        "argument a list of aliased lifted predicates.\n"
-        "But got '" + argstr + "'.\n");
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "aliased predicates. \nBut got '" + argstr + "'.");
     return nl->SymbolAtom("typeerror");
   }
 
-  ListExpr NamedPredListRest = NamedPredList;
-  ListExpr NamedPred;
-  while( !nl->IsEmpty(NamedPredListRest) )
+  nl->WriteToString(argstr, ConstraintList);
+  if(!IsConstraintList(ConstraintList, true))
   {
-    NamedPred = nl->First(NamedPredListRest);
-    NamedPredListRest = nl->Rest(NamedPredListRest);
-    nl->WriteToString(argstr, NamedPred);
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "temporal connectors. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
 
-    if(!((nl->ListLength(NamedPred) == 2 &&
-        nl->IsAtom(nl->First(NamedPred))&&
-        nl->IsAtom(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Second(NamedPred))== "mbool")))
+  vector<string> predAliases1Unsorted;
+  set<string> predAliases1, predAliases2;
+  ExtractPredAliasesFromPredList(NamedPredList, predAliases1Unsorted);
+  ExtractPredAliasesFromConstraintList(ConstraintList, predAliases2);
+  predAliases1.insert(predAliases1Unsorted.begin(), predAliases1Unsorted.end());
+  if((predAliases1.size() != predAliases2.size()) ||
+   !std::equal(predAliases1.begin(), predAliases1.end(), predAliases2.begin()))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": unknown alises in "
+        "temporal constraints.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  if(extended)
+  {
+    ListExpr boolExpr= nl->Fifth(args);
+    nl->WriteToString(argstr, boolExpr);
+    if(!IsBoolExpr(boolExpr, true))
     {
-      ErrorReporter::ReportError("Operator stpatternex: expects a list of "
-          "aliased predicates. But got '" + argstr + "'.");
+      ErrorReporter::ReportError("Operator "+ opName +": expects a boolean "
+          "expression. \nBut got '" + argstr + "'.");
       return nl->SymbolAtom("typeerror");
     }
   }
 
-  ListExpr ConstraintListRest = ConstraintList;
-  ListExpr STConstraint;
-  while( !nl->IsEmpty(ConstraintListRest) )
-  {
-    STConstraint = nl->First(ConstraintListRest);
-    ConstraintListRest = nl->Rest(ConstraintListRest);
-    nl->WriteToString(argstr, STConstraint);
+  ListExpr PAReasoner= ComputeClosure(ConstraintList, predAliases1Unsorted);
+  ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      nl->OneElemList(PAReasoner), nl->SymbolAtom("bool"));
 
-    if(!((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool")))
-    {
-      ErrorReporter::ReportError("Operator stpatternex: expects a list of "
-          "temporal constraints. But got '" + argstr + "'.");
-      return nl->SymbolAtom("typeerror");
-    }
-  }
-
-  if(!((nl->IsAtom(FilterExpr)&&
-      nl->SymbolValue(FilterExpr)== "bool")))
-  {
-    ErrorReporter::ReportError("Operator stpatternex: expects a bool as last "
-        "argument, but got '" + argstr + "'.");
-    return nl->SymbolAtom("typeerror");
-  };
-
-  ListExpr result = nl->SymbolAtom("bool");
   if(debugme)
   {
-    cout<<endl<<endl<<"Operator stpattern accepted the input";
+    cout<<endl<<endl<<"Operator "+ opName +" accepted the input";
+    nl->WriteToString(argstr, result);
+    cout<<endl<<"Output is:"<<argstr;
     cout.flush();
   }
   return result;
 }
 
+/*
+4.1 Type Mapping for STPatternExtend, STPatternEXExtend,
+                 STPatternExtendStream, STPatternExExtendStream,
+                 STPatternExtend2, STPatternExExtend2,
+                 STPatternExtendStream2, STPatternExExtendStream2
+
+*/
+template<bool extended, bool enableTemporalReasoner, bool extendstream>
 ListExpr STPatternExtendTM(ListExpr args)
 {
   bool debugme= false;
+  string opName;
+  if(extended && enableTemporalReasoner && extendstream)
+    opName= "stpatternexextendstream2";
+  else if(!extended && enableTemporalReasoner && extendstream)
+    opName= "stpatternextendstream2";
+  else if(extended && !enableTemporalReasoner && extendstream)
+    opName= "stpatternextendstream";
+  else if(extended && enableTemporalReasoner && !extendstream)
+    opName= "stpatternexextend2";
+  else if(!extended && !enableTemporalReasoner && extendstream)
+    opName= "stpatternextendstream";
+  else if(!extended && enableTemporalReasoner && !extendstream)
+    opName= "stpatternextend2";
+  else if(extended && !enableTemporalReasoner && !extendstream)
+    opName= "stpatternexextend";
+  else if(!extended && !enableTemporalReasoner && !extendstream)
+    opName= "stpatternextend";
 
   string argstr;
-
   if(debugme)
   {
     cout<<endl<< nl->ToString(args)<<endl;
     cout.flush();
   }
 
-  if(nl->ListLength(args) != 3)
+  nl->WriteToString(argstr, args);
+  if((!extended && nl->ListLength(args) != 3) ||
+      (extended && nl->ListLength(args) != 4))
   {
-    ErrorReporter::ReportError("Operator stpatternextend: expects 4 "
-        "arguments.\nBut got '" + argstr + "'.");
+    ErrorReporter::ReportError("Operator "+ opName +": expects " +
+        int2string(3 + extended) + "arguments\nBut got '" + argstr + "'.");
     return nl->SymbolAtom("typeerror");
-  };
+  }
 
-  ListExpr StreamExpr = nl->First(args),   //tuple(x)
-  NamedPredList  = nl->Second(args),  //named predicate list
-  ConstraintList = nl->Third(args);    //STConstraint list
+  ListExpr StreamExpr = nl->First(args),   //stream(tuple(x))
+      NamedPredList  = nl->Second(args),  //named predicate list
+      ConstraintList = nl->Third(args);    //STConstraint list
+
 
   nl->WriteToString(argstr, StreamExpr);
-
-  //  //checking for the first parameter tuple(x)
-  if(!(nl->ListLength(StreamExpr)== 2 && listutils::isTupleStream(StreamExpr)))
+  if(!IsTupleStream(StreamExpr, true))
   {
-    ErrorReporter::ReportError("Operator stpatternextend: expects as first "
-        "argument a list with structure (stream(tuple ((a1 t1)...(an tn)))).\n"
+    ErrorReporter::ReportError("Operator "+ opName+ ": expects "
+        "a list with structure (stream(tuple ((a1 t1)...(an tn)))).\n"
         "But got '" + argstr + "'.");
     return nl->TypeError();
   };
 
-  ListExpr TupleExpr = nl->Second(StreamExpr);   //tuple(x)
-  ListExpr AttrList = nl->Second(TupleExpr);
-  ListExpr NewAttrList = nl->OneElemList(nl->First(AttrList));
-  ListExpr lastlistn = NewAttrList;
-  AttrList = nl->Rest(AttrList);
-  while (!(nl->IsEmpty(AttrList)))
-  {
-     lastlistn = nl->Append(lastlistn,nl->First(AttrList));
-     AttrList = nl->Rest(AttrList);
-  }
 
-  //  //checking ofr the second parameter predicatelist
   nl->WriteToString(argstr, NamedPredList);
-  if(!(! nl->IsAtom(NamedPredList)))
+  if((enableTemporalReasoner &&
+      !IsMapTuplePeriodsPredicateList(NamedPredList, true))||
+     (!enableTemporalReasoner &&
+      !IsMapTuplePredicateList(NamedPredList, true)))
   {
-    ErrorReporter::ReportError("Operator stpatternextend expects as second "
-        "argument a list of aliased lifted predicates.\n"
-        "But got '" + argstr + "'.\n");
-    return nl->TypeError();
-  };
-  ListExpr NamedPredListRest = NamedPredList;
-  ListExpr NamedPred;
-  while( !nl->IsEmpty(NamedPredListRest) )
-  {
-    NamedPred = nl->First(NamedPredListRest);
-    NamedPredListRest = nl->Rest(NamedPredListRest);
-    nl->WriteToString(argstr, NamedPred);
-
-    if(!((nl->ListLength(NamedPred) == 2 &&
-        nl->IsAtom(nl->First(NamedPred))&&
-        listutils::isMap<1>(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Third(nl->Second(NamedPred)))== "mbool")))
-    {
-      ErrorReporter::ReportError("Operator stpatternextend: expects a list of "
-          "aliased predicates. \nBut got '" + argstr + "'.");
-      return nl->TypeError();
-    };
-
-    string aliasStr = nl->SymbolValue(nl->First(NamedPred));
-    ListExpr typeList;
-    int pos = FindAttribute(AttrList, aliasStr, typeList);
-    if(pos!=0){
-       ErrorReporter::ReportError("Operator stpatternextend: the alias" +
-           aliasStr + " is already an attribute name in the input stream");
-       return nl->TypeError();
-    }
-
-    if(SecondoSystem::GetCatalog()->IsTypeName(aliasStr)){
-       ErrorReporter::ReportError("Operator stpatternextend: the alias" +
-           aliasStr + " is known as a DB type");
-       return nl->TypeError();
-    }
-    lastlistn = nl->Append(lastlistn,
-        (nl->TwoElemList(nl->First(NamedPred), nl->SymbolAtom("periods"))));
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "aliased predicates. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
   }
 
-  ListExpr ConstraintListRest = ConstraintList;
-  ListExpr STConstraint;
-  while( !nl->IsEmpty(ConstraintListRest) )
+  nl->WriteToString(argstr, ConstraintList);
+  if(!IsConstraintList(ConstraintList, true))
   {
-    STConstraint = nl->First(ConstraintListRest);
-    ConstraintListRest = nl->Rest(ConstraintListRest);
-    nl->WriteToString(argstr, STConstraint);
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "temporal connectors. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
 
-    if(!((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool")))
-    {
-      ErrorReporter::ReportError("Operator stpatternextend: expects a list of "
-          "temporal connectors. \nBut got '" + argstr + "'.");
-      return nl->TypeError();
-    };
+  set<string> predAliases1, predAliases2;
+  ListExpr TupleExpr = nl->Second(nl->First(StreamExpr));   //tuple(x)
+  ListExpr AttrList = nl->Second(TupleExpr);
+  ExtractPredAliasesFromPredList(NamedPredList, predAliases1);
+  ExtractPredAliasesFromConstraintList(ConstraintList, predAliases2);
+
+  if(IsAliasInAttributeNames(AttrList, predAliases1))
+  {
+     ErrorReporter::ReportError("Operator "+ opName +": alias"
+         " is already an attribute name in the input stream");
+     return nl->TypeError();
+  }
+  if(IsAliasInCatalog(predAliases1))
+  {
+     ErrorReporter::ReportError("Operator "+ opName +": alias"
+         " is a known DB type");
+     return nl->TypeError();
+  }
+  if((predAliases1.size() != predAliases2.size()) ||
+   !std::equal(predAliases1.begin(), predAliases1.end(), predAliases2.begin()))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": unknown aliases in "
+        "temporal constraints.");
+    return nl->SymbolAtom("typeerror");
   }
 
 
+  vector<string> aliases;
+  ExtractPredAliasesFromPredList(NamedPredList, aliases);
+  ListExpr resAttrlist= nl->OneElemList(nl->TwoElemList(
+      nl->First(nl->First(AttrList)), nl->Second(nl->First(AttrList)))),
+      last= resAttrlist;
+  int n= 1;
+  while(n < nl->ListLength(AttrList))
+    last= nl->Append(last, nl->Nth(++n, AttrList));
+  for(vector<string>::iterator it= aliases.begin(); it!=aliases.end(); ++it)
+    last= nl->Append(last,
+        nl->TwoElemList(nl->SymbolAtom(*it), nl->SymbolAtom("periods")));
 
-  ListExpr result= nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),NewAttrList));
+  if(extended)
+  {
+    ListExpr boolExpr= nl->Fourth(args);
+    nl->WriteToString(argstr, boolExpr);
+    if(!IsBoolMap(boolExpr, true))
+    {
+      ErrorReporter::ReportError("Operator "+ opName +": expects a boolean "
+          "expression. \nBut got '" + argstr + "'.");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+
+  ListExpr result,
+    resStream= nl->TwoElemList(nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("tuple"),resAttrlist));
+  if(enableTemporalReasoner)
+  {
+    ListExpr PAReasoner= ComputeClosure(ConstraintList, aliases);
+    result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+        nl->OneElemList(PAReasoner), resStream);
+
+  }
+  else
+    result= resStream;
 
   if(debugme)
   {
-    cout<<endl<<endl<<"Operator stpatternextend accepted the input";
+    cout<<endl<<endl<<"Operator "+ opName + " accepted the input";
     cout<<endl<< nl->ToString(result);
     cout.flush();
-  }
-  return result;
-}
-
-ListExpr STPatternExExtendTM(ListExpr args)
-{
-  bool debugme= false;
-
-  string argstr;
-
-  if(debugme)
-  {
-    cout<<endl<< nl->ToString(args)<<endl;
-    cout.flush();
-  }
-
-  if(nl->ListLength(args) != 4)
-  {
-    ErrorReporter::ReportError("Operator stpatternexextend: expects 4 "
-        "arguments.\nBut got '" + argstr + "'.");
-    return nl->SymbolAtom("typeerror");
-  };
-
-  ListExpr StreamExpr = nl->First(args),   //tuple(x)
-  NamedPredList  = nl->Second(args),  //named predicate list
-  ConstraintList = nl->Third(args),    //STConstraint list
-  FilterExpr= nl->Fourth(args);
-
-  nl->WriteToString(argstr, StreamExpr);
-
-  //  //checking for the first parameter tuple(x)
-  if(!(nl->ListLength(StreamExpr)== 2 && listutils::isTupleStream(StreamExpr)))
-  {
-    ErrorReporter::ReportError("Operator stpatternexextend: expects as first "
-        "argument a list with structure (stream(tuple ((a1 t1)...(an tn)))).\n"
-        "But got '" + argstr + "'.");
-    return nl->TypeError();
-  };
-
-  ListExpr TupleExpr = nl->Second(StreamExpr);   //tuple(x)
-  ListExpr AttrList = nl->Second(TupleExpr);
-  ListExpr NewAttrList = nl->OneElemList(nl->First(AttrList));
-  ListExpr lastlistn = NewAttrList;
-  AttrList = nl->Rest(AttrList);
-  while (!(nl->IsEmpty(AttrList)))
-  {
-     lastlistn = nl->Append(lastlistn,nl->First(AttrList));
-     AttrList = nl->Rest(AttrList);
-  }
-
-  //  //checking ofr the second parameter predicatelist
-  nl->WriteToString(argstr, NamedPredList);
-  if(!(! nl->IsAtom(NamedPredList)))
-  {
-    ErrorReporter::ReportError("Operator stpatternexextend expects as second "
-        "argument a list of aliased lifted predicates.\n"
-        "But got '" + argstr + "'.\n");
-    return nl->TypeError();
-  };
-  ListExpr NamedPredListRest = NamedPredList;
-  ListExpr NamedPred;
-  while( !nl->IsEmpty(NamedPredListRest) )
-  {
-    NamedPred = nl->First(NamedPredListRest);
-    NamedPredListRest = nl->Rest(NamedPredListRest);
-    nl->WriteToString(argstr, NamedPred);
-
-    if(!((nl->ListLength(NamedPred) == 2 &&
-        nl->IsAtom(nl->First(NamedPred))&&
-        listutils::isMap<1>(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Third(nl->Second(NamedPred)))== "mbool")))
-    {
-      ErrorReporter::ReportError("Operator stpatternexextend: expects a "
-          "list of aliased predicates. \nBut got '" + argstr + "'.");
-      return nl->TypeError();
-    };
-
-    string aliasStr = nl->SymbolValue(nl->First(NamedPred));
-    ListExpr typeList;
-    int pos = FindAttribute(AttrList, aliasStr, typeList);
-    if(pos!=0){
-       ErrorReporter::ReportError("Operator stpatternexextend: the alias" +
-           aliasStr + " is already an attribute name in the input stream");
-       return nl->TypeError();
-    }
-
-    if(SecondoSystem::GetCatalog()->IsTypeName(aliasStr)){
-       ErrorReporter::ReportError("Operator stpatternexextend: the alias" +
-           aliasStr + " is known as a DB type");
-       return nl->TypeError();
-    }
-    lastlistn = nl->Append(lastlistn,
-        (nl->TwoElemList(nl->First(NamedPred), nl->SymbolAtom("periods"))));
-  }
-
-  ListExpr ConstraintListRest = ConstraintList;
-  ListExpr STConstraint;
-  while( !nl->IsEmpty(ConstraintListRest) )
-  {
-    STConstraint = nl->First(ConstraintListRest);
-    ConstraintListRest = nl->Rest(ConstraintListRest);
-    nl->WriteToString(argstr, STConstraint);
-
-    if(!((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool")))
-    {
-      ErrorReporter::ReportError("Operator stpatternexextend: expects a "
-          "list of temporal connectors. \nBut got '" + argstr + "'.");
-      return nl->TypeError();
-    };
-  }
-
-  nl->WriteToString(argstr, FilterExpr);
-  if(! listutils::isMap<1>(FilterExpr) ||
-      nl->ToString(nl->Third(FilterExpr))!= "bool")
-  {
-    ErrorReporter::ReportError("Operator stpatternexextend: expects a "
-        "map(tuple) -> bool as last argument, but got '" + argstr + "'.");
-    return nl->SymbolAtom("typeerror");
-  };
-
-  ListExpr result= nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),NewAttrList));
-
-  if(debugme)
-  {
-    cout<<endl<<endl<<"Operator stpatternexextend accepted the input";
-    cout<<endl<< nl->ToString(result);
-    cout.flush();
+    //return nl->SymbolAtom("typeerror");
   }
   return result;
 }
@@ -1658,6 +2147,10 @@ ListExpr STConstraintTM(ListExpr args)
   return result;
 }
 
+/*
+Type Mapping for start() and end() operators.
+
+*/
 ListExpr StartEndTM(ListExpr args)
 {
   bool debugme=false;
@@ -1698,7 +2191,7 @@ ListExpr RandomMBoolTM(ListExpr args)
 /*
 
 The passmbool operator is used for experimental evaluation. We use it to 
-mimic lifted predicates in the first experiment in the technical report.
+mimic time-dependent predicates in the first experiment in the technical report.
 
 */
 ListExpr PassMBoolTM(ListExpr args)
@@ -1731,61 +2224,38 @@ ListExpr RandomDelayTM( ListExpr typeList )
 }
 
 
-void CSPAddPredicates(Supplier& namedpredlist)
+/*
+
+Type Operator ~TUPLESTREAM~
+
+Type mapping function of operator ~TUPLESTREAM~
+
+Passes forward a stream(tuple) type.
+
+----    (stream (tuple x))          ->  (stream (tuple x))
+----
+
+*/
+ListExpr TUPLESTREAMTypeMap(ListExpr args)
 {
-  Supplier namedpred,alias, pred;
-  string aliasstr;
-  int noofpreds= qp->GetNoSons(namedpredlist);
-
-  for(int i=0; i< noofpreds; i++)
+  ListExpr stream, tuple;
+  if(nl->ListLength(args) == 2)
   {
-    namedpred= qp->GetSupplierSon(namedpredlist, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
-    pred = qp->GetSupplierSon(namedpred, 1);
-    aliasstr= nl->ToString(qp->GetType(alias));
-    csp.AddVariable(aliasstr,pred);
+    stream = nl->First(args);
+    if(nl->IsEqual(stream, "stream"))
+    {
+      tuple = nl->First(stream);
+      if(nl->IsEqual(tuple, "tuple"))
+        return args;
+    }
   }
-}
-void CSPAddContraints(Supplier& constraintlist)
-{
-  Supplier constraint, alias1, alias2, stvector;
-  Word Value;
-  string alias1str, alias2str;
-  int noofconstraints= qp->GetNoSons(constraintlist);
-
-  for(int i=0; i< noofconstraints; i++)
-  {
-    constraint = qp->GetSupplierSon(constraintlist, i);
-    alias1= qp->GetSupplierSon(constraint, 0);
-    alias2= qp->GetSupplierSon(constraint, 1);
-    stvector= qp->GetSupplierSon(constraint, 2);
-
-    qp->Request(alias1, Value);
-    alias1str= ((CcString*) Value.addr)->GetValue();
-    qp->Request(alias2, Value);
-    alias2str= ((CcString*) Value.addr)->GetValue();
-    csp.AddConstraint(alias1str,alias2str, stvector);
-  }
-
+  return nl->SymbolAtom("typeerror");
 }
 
-bool CSPSetPredsArgs(Supplier predList, Tuple* tup)
-{
+/*
+4.2 Value Map Functions
 
-  ArgVectorPointer funargs;
-  Supplier namedpred,alias,pred;
-  int noofpreds= qp->GetNoSons(predList);
-  for(int i=0; i< noofpreds; i++)
-  {
-    namedpred= qp->GetSupplierSon(predList, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
-    pred = qp->GetSupplierSon(namedpred, 1);
-    funargs = qp->Argument(pred);
-    ((*funargs)[0]).setAddr(tup);
-  }
-  return true;
-}
-
+*/
 int CreateSTVectorVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1802,68 +2272,28 @@ int CreateSTVectorVM
   return 0;
 }
 
+template<bool extended>
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme=false;
-  Supplier namedpredlist, constraintlist;
+  Word Value;
+  Supplier namedpredlist, constraintlist, filter;
   result = qp->ResultStorage( s );
   namedpredlist = args[1].addr;
   constraintlist= args[2].addr;
 
   csp.Clear();
   CSPAddPredicates(namedpredlist);
-  CSPAddContraints(constraintlist);
-  //int closureRes= csp.ComputeClosure();
+  CSPAddConstraints(constraintlist);
+
   bool hasSolution= false;
-  //if(closureRes != 0 )
-    hasSolution=csp.Solve();
+  hasSolution=csp.Solve();
 
   ((CcBool*)result.addr)->Set(true, hasSolution);
-  if(debugme)
-  {
-    //cout<< "tuple "<<tupleno++ ;
-    if(hasSolution) cout<<" accepted\n"; cout<<" rejected\n";
-    csp.Print();
-    cout.flush();
-  }
-  return 0;
-}
-
-int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
-{
-  bool debugme=false;
-  Supplier namedpredlist, constraintlist, filter;
-  Word Value;
-
-  if(debugme)
-  {
-    cout<<" Inside STPatternEXVM\n";
-    cout.flush();
-  }
-
-  result = qp->ResultStorage( s );
-  namedpredlist = args[1].addr;
-  constraintlist= args[2].addr;
-  filter= args[3].addr;
-
-  csp.Clear();
-  CSPAddPredicates(namedpredlist);
-  CSPAddContraints(constraintlist);
-  bool hasSolution=csp.Solve();
-
-  if(!hasSolution)
-  {
-    ((CcBool*)result.addr)->Set(true,hasSolution);
-    if(debugme)
-    {
-      //cout<< "tuple "<<tupleno++ ;
-      if(hasSolution) cout<<" part1 accepted\t";else cout<<" rejected\n";
-      csp.Print();
-      cout.flush();
-    }
+  if(!hasSolution || !extended)
     return 0;
-  }
 
+//if extended
+  filter= args[3].addr;
   bool Part2=false;
   while(!Part2 && csp.MoveNext())
   {
@@ -1871,16 +2301,67 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
     Part2= ((CcBool*)Value.addr)->GetValue();
   }
   ((CcBool*)result.addr)->Set(true,Part2);
-  if(debugme)
-  {
-    //cout<< "tuple "<<tupleno++ ;
-    if(Part2) cout<<" part2 accepted\n"; else cout<<" part2 rejected\n";
-    csp.Print();
-    cout.flush();
-  }
   return 0;
 }
 
+/*
+Value Map for STPattern2 and STPatternEx2
+
+*/
+
+template<bool extended>
+int STPattern2VM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Supplier namedpredlist, constraintlist, filter, TRTable;
+  result = qp->ResultStorage( s );
+  namedpredlist = args[2].addr;
+  constraintlist= args[3].addr;
+  if(extended)
+  {
+    filter= args[4].addr;
+    TRTable= args[5].addr;
+  }
+  else
+    TRTable= args[4].addr;
+  Word value;
+
+  PointAlgebraReasoner* paReasoner= 0;
+  ClosureResult closureRes= ImportPAReasonerFromArgs(TRTable, paReasoner);
+  csp.Clear();
+  csp.SetClosureResult(closureRes);
+  if(closureRes == inconsistent)
+  {
+    ((CcBool*)result.addr)->Set(true, false);
+    return 0;
+  }
+
+  CSPAddPredicates(namedpredlist);
+  CSPAddConstraints(constraintlist);
+
+  bool hasSolution= false;
+  Periods* periods= CreateMaximalPeriods();
+  ArgVectorPointer funargs;
+  funargs = qp->Argument(s);
+  ((*funargs)[1]).setAddr(periods);
+  hasSolution=csp.Solve(periods, paReasoner);
+  delete periods;
+  delete paReasoner;
+
+  ((CcBool*)result.addr)->Set(true, hasSolution);
+  if(!hasSolution || !extended)
+    return 0;
+
+  bool Part2=false;
+  while(!Part2 && csp.MoveNext())
+  {
+    qp->Request(filter, value);
+    Part2= ((CcBool*)value.addr)->GetValue();
+  }
+  ((CcBool*)result.addr)->Set(true,Part2);
+  return 0;
+}
+
+template<bool extended>
 int STPatternExtendVM(
     Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1900,89 +2381,10 @@ int STPatternExtendVM(
       stream = args[0].addr;
       namedpredlist = args[1].addr;
       constraintlist= args[2].addr;
-
       qp->Open(stream);
       csp.Clear();
-
       CSPAddPredicates(namedpredlist);
-      CSPAddContraints(constraintlist);
-
-      resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      local.setAddr( resultTupleType );
-      return 0;
-    }break;
-
-    case REQUEST :
-    {
-      Supplier stream, namedpredlist;
-      resultTupleType = (TupleType *)local.addr;
-      stream= args[0].addr;
-      qp->Request(stream ,t);
-      if (qp->Received(stream))
-      {
-        tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( resultTupleType );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
-          //cout << (void*) tup << endl;
-          newTuple->CopyAttribute( i, tup, i );
-        }
-
-        csp.ResetTuple();
-        namedpredlist = args[1].addr;
-        CSPSetPredsArgs(namedpredlist, tup);
-        csp.Solve();
-        csp.AppendSolutionToTuple(0, tup, newTuple);
-
-        tup->DeleteIfAllowed();
-        result.setAddr(newTuple);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-    }break;
-    case CLOSE :
-    {
-      if(local.addr)
-      {
-         ((TupleType *)local.addr)->DeleteIfAllowed();
-         local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      csp.Clear();
-    }break;
-    default:
-      assert( 0);
-  }
-  return 0;
-}
-
-int STPatternExExtendVM(
-    Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  bool debugme=false;
-
-  Word t, Value;
-  Tuple* tup;
-  TupleType *resultTupleType;
-  ListExpr resultType;
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      Supplier stream, namedpredlist, constraintlist;
-
-      stream = args[0].addr;
-      namedpredlist = args[1].addr;
-      constraintlist= args[2].addr;
-
-      qp->Open(stream);
-      csp.Clear();
-
-      CSPAddPredicates(namedpredlist);
-      CSPAddContraints(constraintlist);
-
+      CSPAddConstraints(constraintlist);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
       local.setAddr( resultTupleType );
@@ -1999,41 +2401,35 @@ int STPatternExExtendVM(
       {
         tup = (Tuple*)t.addr;
         Tuple *newTuple = new Tuple( resultTupleType );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
-          //cout << (void*) tup << endl;
+        for( int i = 0; i < tup->GetNoAttributes(); ++i )
           newTuple->CopyAttribute( i, tup, i );
-        }
 
         csp.ResetTuple();
         namedpredlist = args[1].addr;
-        filter= args[3].addr;
         CSPSetPredsArgs(namedpredlist, tup);
         bool hasSolution= csp.Solve();
-        if(!hasSolution)
-          csp.AppendSolutionToTuple(0, tup, newTuple); //Append undef periods
-        else
+        if(!hasSolution || !extended)
         {
-          bool Part2=false;
-          ArgVectorPointer funargs= qp->Argument(filter);
-          ((*funargs)[0]).setAddr(tup);
-          while(!Part2 && csp.MoveNext())
-          {
-            qp->Request(filter, Value);
-            Part2= ((CcBool*)Value.addr)->GetValue();
-          }
-
-          if(Part2)
-            csp.AppendSolutionToTuple(csp.iterator, tup, newTuple);
-          else
-            csp.AppendUnDefsToTuple(tup, newTuple);
-
-          if(debugme)
-          {
-            if(Part2) cout<<" part2 accepted\n"; else cout<<" part2 rejected\n";
-            csp.Print();
-            cout.flush();
-          }
+          csp.AppendSolutionToTuple(0, tup, newTuple);
+          tup->DeleteIfAllowed();
+          result.setAddr(newTuple);
+          return YIELD;
         }
+//IF !extended
+        filter= args[3].addr;
+        bool Part2=false;
+        ArgVectorPointer funargs= qp->Argument(filter);
+        ((*funargs)[0]).setAddr(tup);
+        while(!Part2 && csp.MoveNext())
+        {
+          qp->Request(filter, value);
+          Part2= ((CcBool*)value.addr)->GetValue();
+        }
+        if(Part2)
+          csp.AppendSolutionToTuple(csp.iterator, tup, newTuple);
+        else
+          csp.AppendUnDefsToTuple(tup, newTuple);
+
         tup->DeleteIfAllowed();
         result.setAddr(newTuple);
         return YIELD;
@@ -2052,6 +2448,133 @@ int STPatternExExtendVM(
       csp.Clear();
     }break;
     default:
+      assert(0);
+  }
+  return 0;
+}
+
+struct STPatternExtendLocalInfo
+{
+public:
+  STPatternExtendLocalInfo(): resultTupleType(0), paReasoner(0){}
+  TupleType* resultTupleType;
+  PointAlgebraReasoner* paReasoner;
+};
+
+/*
+Value Map for STPatternExtend2 and STPatternExExtend2
+
+*/
+template<bool extended>
+int STPatternExtend2VM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  //bool debugme=false;
+
+  Word t, value;
+  Tuple* tup;
+  STPatternExtendLocalInfo *localInfo;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist, filter, TRTable;
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+      if(extended)
+      {
+        filter= args[3].addr;
+        TRTable= args[4].addr;
+      }
+      else
+        TRTable= args[3].addr;
+      Word value;
+
+      localInfo= new STPatternExtendLocalInfo();
+      resultType = GetTupleResultType( s );
+      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+
+      ClosureResult closureRes=
+          ImportPAReasonerFromArgs(TRTable, localInfo->paReasoner);
+      csp.Clear();
+      csp.SetClosureResult(closureRes);
+      qp->Open(stream);
+      CSPAddPredicates(namedpredlist);
+      CSPAddConstraints(constraintlist);
+      local.setAddr(localInfo);
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      if(csp.GetClosureResult() == inconsistent) return CANCEL;
+      Periods* periods= CreateMaximalPeriods();
+      Supplier stream, namedpredlist, filter;
+      localInfo= static_cast<STPatternExtendLocalInfo*>(local.addr);
+      stream= args[0].addr;
+      qp->Request(stream ,t);
+      if (qp->Received(stream))
+      {
+        tup = (Tuple*)t.addr;
+        Tuple *newTuple = new Tuple( localInfo->resultTupleType );
+        for( int i = 0; i < tup->GetNoAttributes(); i++ )
+          newTuple->CopyAttribute( i, tup, i );
+        csp.ResetTuple();
+        namedpredlist = args[1].addr;
+        CSPSetPredsArgs(namedpredlist, tup, periods);
+        bool hasSolution= csp.Solve(periods, localInfo->paReasoner);
+        if(!hasSolution || !extended)
+        {
+          csp.AppendSolutionToTuple(0, tup, newTuple);
+          tup->DeleteIfAllowed();
+          result.setAddr(newTuple);
+          delete periods;
+          return YIELD;
+        }
+//IF extended
+        bool Part2=false;
+        filter= args[3].addr;
+        ArgVectorPointer funargs= qp->Argument(filter);
+        ((*funargs)[0]).setAddr(tup);
+        while(!Part2 && csp.MoveNext())
+        {
+          qp->Request(filter, value);
+          Part2= ((CcBool*)value.addr)->GetValue();
+        }
+        if(Part2)
+          csp.AppendSolutionToTuple(csp.iterator, tup, newTuple);
+        else
+          csp.AppendUnDefsToTuple(tup, newTuple);
+        tup->DeleteIfAllowed();
+        result.setAddr(newTuple);
+        delete periods;
+        return YIELD;
+      }
+      else
+      {
+        delete periods;
+        return CANCEL;
+      }
+    }break;
+    case CLOSE :
+    {
+      if(local.addr != 0)
+      {
+        localInfo= static_cast<STPatternExtendLocalInfo*>(local.addr);
+        if(localInfo->resultTupleType != 0)
+          localInfo->resultTupleType->DeleteIfAllowed();
+        if(localInfo->paReasoner != 0)
+          delete localInfo->paReasoner;
+        delete localInfo;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
       assert( 0);
   }
   return 0;
@@ -2061,6 +2584,7 @@ struct STPExtendStreamInfo
 {
   TupleType *resultTupleType;
   Tuple* tup;
+  PointAlgebraReasoner* paReasoner;
 };
 
 int STPatternExtendStreamVM(
@@ -2086,7 +2610,7 @@ int STPatternExtendStreamVM(
       csp.Clear();
 
       CSPAddPredicates(namedpredlist);
-      CSPAddContraints(constraintlist);
+      CSPAddConstraints(constraintlist);
 
       localInfo= new STPExtendStreamInfo();
       resultType = GetTupleResultType( s );
@@ -2098,7 +2622,7 @@ int STPatternExtendStreamVM(
 
     case REQUEST :
     {
-      Supplier stream, namedpredlist;
+      Supplier stream, namedpredlist, filter;
       localInfo= (STPExtendStreamInfo*) local.addr;
       stream= args[0].addr;
 
@@ -2155,6 +2679,113 @@ int STPatternExtendStreamVM(
   return 0;
 }
 
+/*
+4.2 Value Map for STPatternExtendStream2
+
+*/
+int STPatternExtendStream2VM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme= false;
+
+  Word t, value;
+  STPExtendStreamInfo *localInfo;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist, TRTable;
+
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+      TRTable= args[3].addr;
+
+      localInfo= new STPExtendStreamInfo();
+      resultType = GetTupleResultType( s );
+      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+      localInfo->tup=0;
+      ClosureResult closureRes=
+          ImportPAReasonerFromArgs(TRTable, localInfo->paReasoner);
+      csp.Clear();
+      csp.SetClosureResult(closureRes);
+      qp->Open(stream);
+      CSPAddPredicates(namedpredlist);
+      CSPAddConstraints(constraintlist);
+      local.setAddr( localInfo );
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      if(csp.GetClosureResult() == inconsistent) return CANCEL;
+      Periods* periods= CreateMaximalPeriods();
+      Supplier stream, namedpredlist;
+      localInfo= static_cast<STPExtendStreamInfo*>(local.addr);
+      stream= args[0].addr;
+      bool hasMoreSol= csp.MoveNext();
+      while(csp.SA.empty()|| !hasMoreSol)
+      {
+        if(localInfo->tup != 0)
+        {
+          localInfo->tup->DeleteIfAllowed();
+          localInfo->tup= 0;
+        }
+        qp->Request(stream ,t);
+        if (qp->Received(stream))
+          localInfo->tup = (Tuple*)t.addr;
+        else
+        {
+          delete periods;
+          return CANCEL;
+        }
+        csp.ResetTuple();
+        namedpredlist = args[1].addr;
+        CSPSetPredsArgs(namedpredlist, localInfo->tup, periods);
+        if(csp.Solve(periods, localInfo->paReasoner))
+        {
+          hasMoreSol= csp.MoveNext();
+          if(debugme)
+            cerr<< csp.SA.size() << " + ";
+        }
+      }
+
+      if(debugme && 0)
+        cerr<< "\nsa "<<csp.iterator + 1 << "/"<<csp.SA.size();
+
+      Tuple *newTuple = new Tuple( localInfo->resultTupleType );
+      for( int i = 0; i < localInfo->tup->GetNoAttributes(); i++ )
+        newTuple->CopyAttribute( i, localInfo->tup, i );
+
+      csp.AppendSolutionToTuple(csp.iterator, localInfo->tup, newTuple);
+      result.setAddr(newTuple);
+      delete periods;
+      return YIELD;
+    }break;
+
+    case CLOSE :
+    {
+      if(local.addr != 0)
+      {
+        localInfo= static_cast<STPExtendStreamInfo*>(local.addr);
+        if(localInfo->resultTupleType != 0)
+          localInfo->resultTupleType->DeleteIfAllowed();
+        if(localInfo->paReasoner != 0)
+          delete localInfo->paReasoner;
+        delete localInfo;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
+      assert( 0);
+  }
+  return 0;
+}
+
 int STPatternExExtendStreamVM(
     Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -2178,7 +2809,7 @@ int STPatternExExtendStreamVM(
       csp.Clear();
 
       CSPAddPredicates(namedpredlist);
-      CSPAddContraints(constraintlist);
+      CSPAddConstraints(constraintlist);
 
       resultType = GetTupleResultType( s );
       localInfo= new STPExtendStreamInfo();
@@ -2253,6 +2884,131 @@ int STPatternExExtendStreamVM(
       {
         ((STPExtendStreamInfo*)local.addr)->resultTupleType->DeleteIfAllowed();
         delete (STPExtendStreamInfo*)local.addr;
+        local.setAddr(0);
+      }
+      qp->Close(args[0].addr);
+      csp.Clear();
+    }break;
+    default:
+      assert( 0);
+  }
+  return 0;
+}
+
+/*
+STPatternExExtendStream2VM
+
+*/
+int STPatternExExtendStream2VM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme=false;
+
+  Word t, Value;
+  STPExtendStreamInfo *localInfo;
+  ListExpr resultType;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      Supplier stream, namedpredlist, constraintlist, TRTable;
+
+      stream = args[0].addr;
+      namedpredlist = args[1].addr;
+      constraintlist= args[2].addr;
+      TRTable= args[4].addr;
+
+      localInfo= new STPExtendStreamInfo();
+      resultType = GetTupleResultType( s );
+      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+      localInfo->tup= 0;
+      ClosureResult closureRes=
+          ImportPAReasonerFromArgs(TRTable, localInfo->paReasoner);
+      csp.Clear();
+      csp.SetClosureResult(closureRes);
+      qp->Open(stream);
+      CSPAddPredicates(namedpredlist);
+      CSPAddConstraints(constraintlist);
+      local.setAddr(localInfo );
+      return 0;
+    }break;
+
+    case REQUEST :
+    {
+      if(csp.GetClosureResult() == inconsistent) return CANCEL;
+      Periods* periods= CreateMaximalPeriods();
+      Supplier stream, namedpredlist, filter;
+      localInfo= static_cast<STPExtendStreamInfo*>(local.addr);
+      filter= args[3].addr;
+      stream= args[0].addr;
+
+      while(true)
+      {
+        bool hasMoreSol= csp.MoveNext();
+        while(csp.SA.empty() || !hasMoreSol)
+        {
+          if(localInfo->tup != 0)
+          {
+            localInfo->tup->DeleteIfAllowed();
+            localInfo->tup= 0;
+          }
+          qp->Request(stream ,t);
+          if (qp->Received(stream))
+            localInfo->tup = (Tuple*)t.addr;
+          else
+          {
+            delete periods;
+            return CANCEL;
+          }
+          csp.ResetTuple();
+          namedpredlist = args[1].addr;
+          CSPSetPredsArgs(namedpredlist, localInfo->tup, periods);
+          if(csp.Solve(periods, localInfo->paReasoner))
+          {
+            hasMoreSol= csp.MoveNext();
+            if(debugme)
+              cerr<< csp.SA.size() << " + ";
+          }
+        }
+
+        if(debugme)
+          cerr<< "\nsa "<<csp.iterator + 1 << "/"<<csp.SA.size();
+
+        bool Part2=false;
+        ArgVectorPointer funargs= qp->Argument(filter);
+        ((*funargs)[0]).setAddr(localInfo->tup);
+        qp->Request(filter, Value);
+        Part2= ((CcBool*)Value.addr)->GetValue();
+        while(!Part2 && csp.MoveNext())
+        {
+          qp->Request(filter, Value);
+          Part2= ((CcBool*)Value.addr)->GetValue();
+        }
+        if(Part2)
+        {
+          if(debugme)
+            cerr<< "\nsa "<<csp.iterator + 1 << "/"<<csp.SA.size();
+          Tuple *newTuple = new Tuple( localInfo->resultTupleType );
+          for( int i = 0; i < localInfo->tup->GetNoAttributes(); i++ )
+            newTuple->CopyAttribute( i, localInfo->tup, i );
+          csp.AppendSolutionToTuple(csp.iterator, localInfo->tup, newTuple);
+          result.setAddr(newTuple);
+          delete periods;
+          return YIELD;
+        }
+      }
+    }break;
+    case CLOSE :
+    {
+      if(local.addr != 0)
+      {
+        localInfo= static_cast<STPExtendStreamInfo*>(local.addr);
+        if(localInfo->resultTupleType != 0)
+          localInfo->resultTupleType->DeleteIfAllowed();
+        if(localInfo->paReasoner != 0)
+          delete localInfo->paReasoner;
+        delete localInfo;
         local.setAddr(0);
       }
       qp->Close(args[0].addr);
@@ -2399,6 +3155,11 @@ int RandomDelayVM(ArgVector args, Word& result,
   return 0;
 }
 
+/*
+4.3 Operator Specifications
+
+*/
+
 const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stringlist) -> stvector</text--->"
@@ -2419,12 +3180,46 @@ const string STPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "stconstraint(\"b\",\"c\",vec(\"bbaa\"))  ]] count </text--->"
   ") )";
 
+const string STPattern2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>tuple(x) X periods X namedFunlist X constraintList -> bool</text--->"
+  "<text>_  _ stpattern2[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator is an optimized version of the stpattern Predicate. It "
+  "reasons over the temporal constraints and allows the user to restrict "
+  "the trajecotries based on the reasoning results.</text--->"
+  "<text>query Trains feed "
+  "filter[fun(t: TUPLE, p: periods)"
+  "  t p stpattern2[insnow: (attr(t,Trip) atperiods p) inside msnow,"
+  "  isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0,"
+  "  isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("
+  " \"insnow\", \"isclose\",vec(\"aabb\")),"
+  "  stconstraint(\"isclose\",\"isfast\",vec(\"aabb\"))  ]] count </text--->"
+  ") )";
+
 const string STPatternExSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>tuple(x) X namedFunlist X constraintList X bool -> bool</text--->"
   "<text>_ stpatternex[ namedFunlist;  constraintList; bool ]</text--->"
   "<text>The operator implements the Extended Spatiotemporal Pattern Predicate."
   "</text--->"
+  "<text>query Trains feed filter[. stpatternex[a: .Trip inside msnow, "
+  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  "
+  "stconstraint(\"a\",\"b\",vec(\"aabb\")),  "
+  "stconstraint(\"b\",\"c\",vec(\"bbaa\"));  (end(\"b\") - start(\"a\")) < "
+  "[const duration value (1 0)] ]] count  </text--->"
+  ") )";
+
+/*
+4.3 Operator Specifications
+
+*/
+const string STPatternEx2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>tuple(x) X namedFunlist X constraintList X bool -> bool</text--->"
+  "<text>_ stpatternex2[ namedFunlist;  constraintList; bool ]</text--->"
+  "<text>The operator is an optimized version of the stpatternex Predicate. It"
+  " reasons over the temporal constraints and allows the user to restrict "
+  "the trajecotries based on the reasoning results.</text--->"
   "<text>query Trains feed filter[. stpatternex[a: .Trip inside msnow, "
   "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  "
   "stconstraint(\"a\",\"b\",vec(\"aabb\")),  "
@@ -2444,7 +3239,28 @@ const string STPatternExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
   "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"))  ]] count </text--->"
   ") )";
+/*
+4.3 Operator Specifications
 
+*/
+const string STPatternExtend2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList -> "
+  "stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternextend2[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator extends the input stream with the first supported "
+  "assignment. Tuples that doesn't fulfill the pattern are extended with "
+  "undef values. It is an optimized version of the stpatternextend operator. It"
+  " reasons over the temporal constraints and allows the user to restrict "
+  "the trajecotries based on the reasoning results.</text--->"
+  "<text>query Trains feed stpatternextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"))  ]] count </text--->"
+  ") )";
+/*
+4.3 Operator Specifications
+
+*/
 const string STPatternExExtendSpec = "( (\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList "
   "X bool-> stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
@@ -2459,6 +3275,32 @@ const string STPatternExExtendSpec = "( (\"Signature\" \"Syntax\" \"Meaning\" "
   "start(\"a\")) < [const duration value (1 0)]  ]] count </text--->"
   ") )";
 
+/*
+4.4 Operator Specifications
+
+*/
+
+const string STPatternExExtend2Spec = "( (\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList "
+  "X bool-> stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternexextend2[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator extends the input stream with the first supported "
+  "assignment. Tuples that doesn't fulfill the pattern are extended with "
+  "undef values. This operator is an optimized version of the "
+  "stpatternexextend operator. It reasons over the temporal constraints and "
+  "allows the user to restrict the trajecotries based on the reasoning "
+  "results.</text--->"
+  "<text>query Trains feed stpatternexextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"));  (end(\"b\") - "
+  "start(\"a\")) < [const duration value (1 0)]  ]] count </text--->"
+  ") )";
+
+/*
+4.3 Operator Specifications
+
+*/
 const string STPatternExtendStreamSpec  = "( ( \"Signature\" \"Syntax\" "
   "\"Meaning\" "
   "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList -> "
@@ -2473,6 +3315,23 @@ const string STPatternExtendStreamSpec  = "( ( \"Signature\" \"Syntax\" "
   "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"))  ]] count </text--->"
   ") )";
 
+const string STPatternExtendStream2Spec  = "( ( \"Signature\" \"Syntax\" "
+  "\"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList -> "
+  "stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternextend2[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator extends each tuple in the input stream with all the "
+  "supported assignemts (i.e. periods that fulfill the pattern). Tuples that "
+  "doesn't fulfill the pattern don't appear in the results. This operator is "
+  "an optimized version of the stpatternextendstream operator. It reasons over "
+  "the temporal constraints and allows the user to restrict the trajecotries "
+  "based on the reasoning results.</text--->"
+  "<text>query Trains feed stpatternextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"))  ]] count </text--->"
+  ") )";
+
 const string STPatternExExtendStreamSpec = "( (\"Signature\" \"Syntax\" "
   "\"Meaning\" "
   "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList "
@@ -2481,6 +3340,24 @@ const string STPatternExExtendStreamSpec = "( (\"Signature\" \"Syntax\" "
     "<text>The operator extends each tuple in the input stream with all the "
     "supported assignemts (i.e. periods that fulfill the pattern). Tuples that "
     "doesn't fulfill the pattern don't appear in the results.</text--->"
+  "<text>query Trains feed stpatternexextend[insnow: .Trip inside msnow,"
+  "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
+  "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
+  "stconstraint(\"isclose\",\"fast\",vec(\"bbaa\"));  (end(\"b\") - "
+  "start(\"a\")) < [const duration value (1 0)]  ]] count </text--->"
+  ") )";
+
+const string STPatternExExtendStream2Spec = "( (\"Signature\" \"Syntax\" "
+  "\"Meaning\" "
+  "\"Example\" ) ( <text>stream(tuple(x)) X namedFunlist X constraintList "
+  "X bool-> stream(tuple(x,alias1:Periods,...,alias1:Periods))</text--->"
+  "<text>_ stpatternexextend[ namedFunlist;  constraintList ]</text--->"
+    "<text>The operator extends each tuple in the input stream with all the "
+    "supported assignemts (i.e. periods that fulfill the pattern). Tuples that "
+    "doesn't fulfill the pattern don't appear in the results. This operator is "
+    "an optimized version of the stpatternexextendstream operator. It reasons "
+    "over the temporal constraints and allows the user to restrict the "
+    "trajecotries based on the reasoning results.</text--->"
   "<text>query Trains feed stpatternexextend[insnow: .Trip inside msnow,"
   "isclose: distance(.Trip, mehringdamm)<10.0, fast: speed(.Trip)>8.0 ;"
   "stconstraint(\"insnow\",\"isclose\",vec(\"aabb\")), "
@@ -2530,11 +3407,15 @@ const string RandomMBoolSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "<text>let mb1 = randommbool(now())</text--->"
   ") )";
 
+/*
+4.3 Operator Specifications
+
+*/
 const string PassMBoolSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>mbool -> mbool</text--->"
   "<text>passmbool( _ )</text--->"
-  "<text>Mimics a lifted predicate. The operator takes the name"
+  "<text>Mimics a time-dependent predicate. The operator takes the name"
   "of an mbool dbobject and return the object itself. The operator is "
   "used for testing purposes.</text--->"
   "<text>let mb2= passmbool(mb1)</text--->"
@@ -2551,7 +3432,25 @@ const string RandomDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "<text>query randomdelay(train7)</text--->"
   ") )";
 
+const string TUPLESTREAMSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Remarks\" ) "
+  "( <text><text>(stream (tuple x)) -> (stream (tuple x)) </text--->"
+  "<text>type operator</text--->"
+  "<text>Pass forward a stream(tuple) type.</text--->"
+  "<text>not for use with sos-syntax</text--->"
+  ") )";
 
+
+int TypeOperatorSelect(ListExpr args)
+{
+  return -1;
+}
+
+/*
+4.4 Operators
+
+*/
 Operator createstvector (
     "vec",    //name
     CreateSTVectorSpec,     //specification
@@ -2563,33 +3462,65 @@ Operator createstvector (
 Operator stpattern (
     "stpattern",    //name
     STPatternSpec,     //specification
-    STPatternVM,       //value mapping
+    STPatternVM<false>,       //value mapping
     Operator::SimpleSelect, //trivial selection function
-    STPatternTM        //type mapping
+    STPatternTM<false>        //type mapping
+);
+
+Operator stpattern2 (
+    "stpattern2",    //name
+    STPattern2Spec,     //specification
+    STPattern2VM<false>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPattern2TM<false>        //type mapping
 );
 
 Operator stpatternex (
     "stpatternex",    //name
     STPatternExSpec,     //specification
-    STPatternExVM,       //value mapping
+    STPatternVM<true>,       //value mapping
     Operator::SimpleSelect, //trivial selection function
-    STPatternExTM        //type mapping
+    STPatternTM<true>        //type mapping
+);
+
+Operator stpatternex2 (
+    "stpatternex2",    //name
+    STPatternEx2Spec,     //specification
+    STPattern2VM<true>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPattern2TM<true>        //type mapping
 );
 
 Operator stpatternextend (
     "stpatternextend",    //name
     STPatternExtendSpec,     //specification
-    STPatternExtendVM,       //value mapping
+    STPatternExtendVM<false>,       //value mapping
     Operator::SimpleSelect, //trivial selection function
-    STPatternExtendTM        //type mapping
+    STPatternExtendTM<false, false, false>        //type mapping
+);
+
+Operator stpatternextend2 (
+    "stpatternextend2",    //name
+    STPatternExtend2Spec,     //specification
+    STPatternExtend2VM<false>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExtendTM<false, true, false>        //type mapping
 );
 
 Operator stpatternexextend (
     "stpatternexextend",    //name
     STPatternExExtendSpec,     //specification
-    STPatternExExtendVM,       //value mapping
+    STPatternExtendVM<true>,       //value mapping
     Operator::SimpleSelect, //trivial selection function
-    STPatternExExtendTM        //type mapping
+    STPatternExtendTM<true, false, false>        //type mapping
+);
+
+Operator stpatternexextend2 (
+    "stpatternexextend2",    //name
+    STPatternExExtend2Spec,     //specification
+    STPatternExtend2VM<true>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExtendTM<true, true, false>        //type mapping
 );
 
 Operator stpatternextendstream (
@@ -2597,7 +3528,15 @@ Operator stpatternextendstream (
     STPatternExtendStreamSpec,     //specification
     STPatternExtendStreamVM,       //value mapping
     Operator::SimpleSelect, //trivial selection function
-    STPatternExtendTM        //type mapping
+    STPatternExtendTM<false, false, true>        //type mapping
+);
+
+Operator stpatternextendstream2 (
+    "stpatternextendstream2",    //name
+    STPatternExtendStream2Spec,     //specification
+    STPatternExtendStream2VM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExtendTM<false, true, true>        //type mapping
 );
 
 Operator stpatternexextendstream (
@@ -2605,7 +3544,15 @@ Operator stpatternexextendstream (
     STPatternExExtendStreamSpec,     //specification
     STPatternExExtendStreamVM,       //value mapping
     Operator::SimpleSelect, //trivial selection function
-    STPatternExExtendTM        //type mapping
+    STPatternExtendTM<true, false, true>        //type mapping
+);
+
+Operator stpatternexextendstream2 (
+    "stpatternexextendstream2",    //name
+    STPatternExExtendStream2Spec,     //specification
+    STPatternExExtendStream2VM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExtendTM<true, true, true>        //type mapping
 );
 
 Operator stconstraint (
@@ -2656,8 +3603,18 @@ Operator randomdelay (
     RandomDelayTM          // type mapping
 );
 
+Operator TUPLESTREAM (
+         "TUPLESTREAM",             // name
+         TUPLESTREAMSpec,           // specification
+         0,                    // no value mapping
+         TypeOperatorSelect,   // trivial selection function
+         TUPLESTREAMTypeMap         // type mapping
+);
 
+/*
+4.5 Algebra Declaration
 
+*/
 class STPatternAlgebra : public Algebra
 {
 public:
@@ -2671,24 +3628,51 @@ The spattern and stpatternex operators are registered as lazy variables.
 
 */
     stpattern.SetRequestsArguments();
+    stpattern2.SetRequestsArguments();
     stpatternex.SetRequestsArguments();
+    stpatternex2.SetRequestsArguments();
     stpatternextend.SetRequestsArguments();
+    stpatternextend2.SetRequestsArguments();
     stpatternexextend.SetRequestsArguments();
+    stpatternexextend2.SetRequestsArguments();
     stpatternextendstream.SetRequestsArguments();
+    stpatternextendstream2.SetRequestsArguments();
     stpatternexextendstream.SetRequestsArguments();
+    stpatternexextendstream2.SetRequestsArguments();
+
+    stpattern.SetUsesArgsInTypeMapping();
+    stpattern2.SetUsesArgsInTypeMapping();
+    stpatternex.SetUsesArgsInTypeMapping();
+    stpatternex2.SetUsesArgsInTypeMapping();
+    stpatternextend.SetUsesArgsInTypeMapping();
+    stpatternextend2.SetUsesArgsInTypeMapping();
+    stpatternexextend.SetUsesArgsInTypeMapping();
+    stpatternexextend2.SetUsesArgsInTypeMapping();
+    stpatternextendstream.SetUsesArgsInTypeMapping();
+    stpatternextendstream2.SetUsesArgsInTypeMapping();
+    stpatternexextendstream.SetUsesArgsInTypeMapping();
+    stpatternexextendstream2.SetUsesArgsInTypeMapping();
+
     AddOperator(&STP::createstvector);
     AddOperator(&STP::stpattern);
+    AddOperator(&STP::stpattern2);
     AddOperator(&STP::stconstraint);
     AddOperator(&STP::stpatternex);
+    AddOperator(&STP::stpatternex2);
     AddOperator(&STP::stpatternextend);
+    AddOperator(&STP::stpatternextend2);
     AddOperator(&STP::stpatternexextend);
+    AddOperator(&STP::stpatternexextend2);
     AddOperator(&STP::stpatternextendstream);
+    AddOperator(&STP::stpatternextendstream2);
     AddOperator(&STP::stpatternexextendstream);
+    AddOperator(&STP::stpatternexextendstream2);
     AddOperator(&STP::start);
     AddOperator(&STP::end);
     AddOperator(&randommbool);
     AddOperator(&passmbool);
     AddOperator(&randomdelay);
+    AddOperator(&TUPLESTREAM);
   }
   ~STPatternAlgebra() {};
 };
