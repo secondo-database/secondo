@@ -12,7 +12,7 @@ operator nohalfseg alias NOHALFSEG pattern  op ( _ )
 operator size alias SIZE pattern  op ( _ )
 operator touchpoints alias TOUCHPOINTS pattern  op ( _, _ )
 operator commonborder alias COMMONBORDER pattern  op ( _, _ )
-operator bbox alias BBOX pattern  op ( _ )
+operator bbox alias BBOX pattern  op ( _, _ )
 operator insidepathlength alias INSIDEPATHLENGTH pattern  _ infixop _
 operator insidescanned alias INSIDESCANNED pattern  _ infixop _
 operator insideold alias INSIDEOLD pattern  _ infixop _
@@ -70,3 +70,14 @@ operator point2string alias POINT2STRING pattern op( _ , _ )
 operator midpointBetween alias MIDPOINTBETWEEN pattern op( _, _, _, _ )
 operator direction2heading alias DIRECTION2HEADING pattern op( _ )
 operator heading2direction alias HEADING2DIRECTION pattern op( _ )
+operator fromline alias FROMLINE pattern op( _ )
+operator gk alias GK pattern op( _, _ )
+
+operator halfSegments alias HALFSEGMENTS pattern op( _ )
+operator heading alias HEADING pattern op( _, _ )
+operator iscycle alias ISCYCLE pattern op( _ )
+operator reverseGk alias REVERSEGK pattern op( _ )
+operator toline alias TOLINE pattern op( _ )
+operator utm alias UTM pattern op( _ )
+operator scale alias SCALE pattern _ op [ _, _ ]
+operator create_triangle alias CREATE_TRIANGLE pattern op(_, _, _)
