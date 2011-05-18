@@ -2601,10 +2601,27 @@ Computes all events created by a UPoint moving across a regular grid.
   virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const
   {
     if(geoid){
-      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-      << endl;
-      assert( !geoid ); // TODO: implement spherical geometry case
-    }
+      if(!geoid->IsDefined() || !IsDefined()){
+        return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+      }
+      Rectangle<2> geobbox(false);
+      if(AlmostEqual(p0,p1)){
+        Rectangle<2> geobbox = p0.GeographicBBox(p1, *geoid);
+        return Rectangle<3>( true, geobbox.MinD(0),
+                             geobbox.MaxD(0),
+                             geobbox.MinD(1),
+                             geobbox.MaxD(1),
+                             timeInterval.start.ToDouble(),
+                             timeInterval.end.ToDouble() );
+      } // else: use HalfSegment::BoundingBox(...)
+      geobbox = HalfSegment(true,p0,p1).BoundingBox(geoid);
+      return Rectangle<3>( true, geobbox.MinD(0),
+                                 geobbox.MaxD(0),
+                                 geobbox.MinD(1),
+                                 geobbox.MaxD(1),
+                                 timeInterval.start.ToDouble(),
+                                 timeInterval.end.ToDouble() );
+    } // else: euclidean geometry
     if(this->IsDefined()){
       return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
                                  MAX( p0.GetX(), p1.GetX() ),
@@ -2620,16 +2637,12 @@ Computes all events created by a UPoint moving across a regular grid.
   virtual const Rectangle<3> BoundingBox(const double scaleTime,
                                          const Geoid* geoid = 0) const
   {
-    if(geoid){
-      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-      << endl;
-      assert( !geoid ); // TODO: implement spherical geometry case
-    }
-    if(this->IsDefined()){
-      return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
-                                 MAX( p0.GetX(), p1.GetX() ),
-                                 MIN( p0.GetY(), p1.GetY() ),
-                                 MAX( p0.GetY(), p1.GetY() ),
+    Rectangle<3> bbx = this->BoundingBox(geoid);
+    if(bbx.IsDefined()){
+      return Rectangle<3>( true, bbx.MinD(0),
+                                 bbx.MaxD(0),
+                                 bbx.MinD(1),
+                                 bbx.MaxD(1),
                                  timeInterval.start.ToDouble()*scaleTime,
                                  timeInterval.end.ToDouble()*scaleTime );
     } else {
@@ -2639,16 +2652,12 @@ Computes all events created by a UPoint moving across a regular grid.
 
   const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const
   {
-    if(geoid){
-      cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-      << endl;
-      assert( !geoid ); // TODO: implement spherical geometry case
-    }
-    if(this->IsDefined()){
-      return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() ),
-                                 MAX( p0.GetX(), p1.GetX() ),
-                                 MIN( p0.GetY(), p1.GetY() ),
-                                 MAX( p0.GetY(), p1.GetY() ));
+    Rectangle<3> bbx = this->BoundingBox(geoid);
+    if(bbx.IsDefined()){
+      return Rectangle<2>( true, bbx.MinD(0),
+                           bbx.MaxD(0),
+                           bbx.MinD(1),
+                           bbx.MaxD(1) );
     } else {
       return Rectangle<2>( false );
     }
@@ -2728,8 +2737,6 @@ Attention: UNDEFINED units my be appended!
                   const double epsilon  = 0.0000001) const;
 
   static const string BasicType(){ return "upoint"; }
-
-
 
 /*
 3.8.4 Attributes
@@ -3641,14 +3648,15 @@ false, the return value will be negative.
 /*
 3.10.5.11 ~BoundingBox~
 
-Returns the MPoint's minimum bounding rectangle
+Returns the MPoint's minimum bounding rectangle. If geoid is NULL, euclidean
+geometry is used, otherwise spherical geometry is applied.
 
 */
   // return the stored bbox
-  Rectangle<3> BoundingBox() const;
+  Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
   // return the spatial bounding box (2D: X/Y)
-  const Rectangle<2> BoundingBoxSpatial() const;
+  const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const;
 
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);

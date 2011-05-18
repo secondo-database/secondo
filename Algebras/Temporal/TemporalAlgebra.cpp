@@ -4683,18 +4683,36 @@ void MPoint::RestoreBoundingBox(const bool force)
 }
 
 // Class functions
-Rectangle<3u> MPoint::BoundingBox() const
+Rectangle<3u> MPoint::BoundingBox(const Geoid* geoid /*=0*/) const
 {
+  if(geoid){ // spherical geometry case:
+    if(!IsDefined() || (GetNoComponents()<=0) ){
+      return Rectangle<3>(false);
+    }
+    UPoint u;
+    Rectangle<3> bbx(false);
+    for(int i=0; i<GetNoComponents(); i++){
+      Get(i,u);
+      assert( u.IsDefined() );
+      if(bbx.IsDefined()){
+        bbx.Union(u.BoundingBox(geoid));
+      } else {
+        bbx = u.BoundingBox(geoid);
+      }
+    }
+    return bbx;
+  } // else: euclidean case
   return bbox;
 }
 
 // return the spatial bounding box (2D: X/Y)
-const Rectangle<2> MPoint::BoundingBoxSpatial() const {
+const Rectangle<2> MPoint::BoundingBoxSpatial(const Geoid* geoid) const {
   Rectangle<2u> result(false,0.0,0.0,0.0,0.0);
-  if(!IsDefined()){
+  if(!IsDefined() || (GetNoComponents()<=0) ){
     return result;
   } else {
-    result = bbox.Project2D(0,1); // project to X/Y
+    Rectangle<3> bbx = this->BoundingBox(geoid);
+    result = bbx.Project2D(0,1); // project to X/Y
     return result;
   }
 };
@@ -9801,29 +9819,33 @@ For operator ~bbox~
 
 ListExpr TemporalBBoxTypeMap( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-
-    if( nl->IsEqual( arg1, UPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect3" ));
-
-    if( nl->IsEqual( arg1, MPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect3" ));
-
-    if( nl->IsEqual( arg1, "ipoint" ) )
-      return (nl->SymbolAtom( "rect3" ));
-
-    if( nl->IsEqual( arg1, "periods" ) )
-      return (nl->SymbolAtom( "rect3" ));
-
-    if( nl->IsEqual( arg1, "instant" ) )
-      return (nl->SymbolAtom( "rect3" ));
-
-
+  int noargs = nl->ListLength( args );
+  string errmsg = "Expected (M [x geoid]) OR (T), where M in {upoint, mpoint, "
+                  "ipoint}, T in {instant,periods}.";
+  if ( (noargs<1) || (noargs>2) ){
+    return listutils::typeError(errmsg);
   }
-  return nl->SymbolAtom( "typeerror" );
+  if( (noargs==2) && !listutils::isSymbol(nl->Second(args),Geoid::BasicType())){
+    return listutils::typeError(errmsg);
+  }
+  ListExpr arg1 = nl->First( args );
+
+  if( listutils::isSymbol( arg1, UPoint::BasicType() ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+  if( listutils::isSymbol( arg1, MPoint::BasicType() ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+  if( listutils::isSymbol( arg1, "ipoint" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+  if( (noargs==1) && listutils::isSymbol( arg1, "periods" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+  if( (noargs==1) && listutils::isSymbol( arg1, "instant" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+  return listutils::typeError(errmsg);
 }
 
 /*
@@ -9865,24 +9887,28 @@ For operator ~bbox2d~
 
 */
 
-    ListExpr TemporalBBox2dTypeMap( ListExpr args )
+ListExpr TemporalBBox2dTypeMap( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-
-    if( nl->IsEqual( arg1, UPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect" ));
-
-    if( nl->IsEqual( arg1, MPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect" ));
-
-    if( nl->IsEqual( arg1, "ipoint" ) )
-      return (nl->SymbolAtom( "rect" ));
-
+  int noargs =  nl->ListLength( args );
+  string errmsg = "Expected (T [x geoid]), where T in {upoint,mpoint,ipoint}";
+  if( (noargs<1) || (noargs>2) ){
+    return listutils::typeError(errmsg);
   }
-  return nl->SymbolAtom( "typeerror" );
+  if( (noargs == 2) &&
+                    !listutils::isSymbol(nl->Second(args),Geoid::BasicType()) ){
+    return listutils::typeError(errmsg);
+  }
+  ListExpr arg1 = nl->First( args );
+  if( listutils::isSymbol( arg1, UPoint::BasicType() ) )
+      return (nl->SymbolAtom( "rect" ));
+
+  if( listutils::isSymbol( arg1, MPoint::BasicType() ) )
+      return (nl->SymbolAtom( "rect" ));
+
+  if( listutils::isSymbol( arg1, "ipoint" ) )
+      return (nl->SymbolAtom( "rect" ));
+
+  return listutils::typeError(errmsg);
 }
 
 /*
@@ -12207,17 +12233,19 @@ int IPointBBox(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<3>  *res = (Rectangle<3>*)  result.addr;
-  Intime<Point> *arg = (Intime<Point>*) args[0].addr;
+  const Intime<Point> *arg = static_cast<const Intime<Point>*>(args[0].addr);
+  const Geoid*  geoid =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
   Rectangle<2> pbox;
   double min[3], max[3];
 
-  if( !arg->IsDefined() )
+  if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )
   {
     res->SetDefined(false);
   }
   else
   {
-    pbox = arg->value.BoundingBox();
+    pbox = arg->value.BoundingBox(geoid);
     if( !pbox.IsDefined() || !arg->instant.IsDefined() )
     {
       res->SetDefined(false);
@@ -12247,14 +12275,16 @@ int MPointBBox(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<3>* res = (Rectangle<3>*) result.addr;
-  MPoint*       arg = (MPoint*)       args[0].addr;
+  const MPoint* arg = static_cast<const MPoint*>(args[0].addr);
+  const Geoid*  geoid =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
 
   if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
   { // empty/undefined MPoint --> undef
     res->SetDefined(false);
   }
   else { // return MBR
-    *res = arg->BoundingBox();
+    *res = arg->BoundingBox(geoid);
   }
   return 0;
 }
@@ -12264,12 +12294,15 @@ int MPointBBoxOld(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<3>* res = (Rectangle<3>*) result.addr;
-  MPoint*       arg = (MPoint*)       args[0].addr;
+  const MPoint* arg = static_cast<const MPoint*>(args[0].addr);
+  const Geoid*  geoid =
+            (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
   UPoint uPoint;
   double min[3], max[3];
   Rectangle<3> accubbox;
 
-  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
+  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) ||
+                                              (geoid && !geoid->IsDefined()) )
   {
     res->SetDefined(false);
   }
@@ -12281,7 +12314,7 @@ int MPointBBoxOld(Word* args, Word& result, int message, Word& local,
     for( int i = 1; i < arg->GetNoComponents(); i++ )
     { // calculate spatial bbox
       arg->Get( i, uPoint );
-      accubbox = accubbox.Union( uPoint.BoundingBox() );
+      accubbox = accubbox.Union( uPoint.BoundingBox(geoid) );
     }
     max[2] = uPoint.timeInterval.end.ToDouble(); // maxtime
     min[0] = accubbox.MinD(0); // minX
@@ -12298,14 +12331,16 @@ int UPointBBox(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<3>* res = (Rectangle<3>*) result.addr;
-  UPoint*       arg = (UPoint*)       args[0].addr;
-  if( !arg->IsDefined() )
+  const UPoint* arg = static_cast<const UPoint*>(args[0].addr);
+  const Geoid*  geoid =
+              (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
+  if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )
   {
     res->SetDefined(false);
   }
   else
   {
-    *res = arg->BoundingBox();
+    *res = arg->BoundingBox(geoid);
   }
   return 0;
 }
@@ -12388,15 +12423,17 @@ int IPointBBox2d(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<2>  *res = (Rectangle<2>*)  result.addr;
-  Intime<Point> *arg = (Intime<Point>*) args[0].addr;
+  const Intime<Point> *arg = static_cast<const Intime<Point>*>(args[0].addr);
+  const Geoid*  geoid =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
 
-  if( !arg->IsDefined() )
+  if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )
   {
     res->SetDefined(false);
   }
   else
   {
-    *res = arg->value.BoundingBox();
+    *res = arg->value.BoundingBox(geoid);
   }
   return 0;
 }
@@ -12406,8 +12443,10 @@ int MPointBBox2d(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
-  MPoint*       arg = (MPoint*)       args[0].addr;
-  Rectangle<3> accubbox = arg->BoundingBox();
+  const MPoint* arg = static_cast<const MPoint*>(args[0].addr);
+  const Geoid*  geoid =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
+  Rectangle<3> accubbox = arg->BoundingBox(geoid);
   if( accubbox.IsDefined() )
   {
     double min[2], max[2];
@@ -12428,17 +12467,19 @@ int UPointBBox2d(Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
-  UPoint*       arg = (UPoint*)       args[0].addr;
+  const UPoint* arg = static_cast<const UPoint*>(args[0].addr);
+  const Geoid*  geoid =
+                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
   Rectangle<3>  tmp;
   double min[2], max[2];
 
-  if( !arg->IsDefined() )
+  if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )
   {
     res->SetDefined(false);
   }
   else
   {
-    tmp = arg->BoundingBox();
+    tmp = arg->BoundingBox(geoid);
     min[0] = tmp.MinD(0); // minX
     max[0] = tmp.MaxD(0); // maxX
     min[1] = tmp.MinD(1); // minY
@@ -15125,15 +15166,15 @@ const string TemporalSpecGetUnit  =
 
 const string TemporalSpecBBox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>upoint -> rect3,\n"
-  "mpoint -> rect3,\n"
-  "ipoint -> rect3,\n"
+  "( <text>upoint [x geoid] -> rect3,\n"
+  "mpoint [x geoid] -> rect3,\n"
+  "ipoint [x geoid] -> rect3,\n"
   "instant -> rect3,\n"
   "periods -> rect3</text--->"
-  "<text>bbox ( _ )</text--->"
-  "<text>Returns the 3d bounding box of the spatio-temporal object, \n"
+  "<text>bbox ( Obj [, Geoid])</text--->"
+  "<text>Returns the 3d bounding box of the spatio-temporal object Obj, \n"
   "resp. the universe restricted to the definition time of the instant/\n"
-  "period value.</text--->"
+  "period value. If Geoid is passed, the geographic MBR is computed.</text--->"
   "<text>query bbox( upoint1 )</text--->"
   ") )";
 
@@ -15148,26 +15189,27 @@ const string TemporalSpecMBRange  =
 
 const string TemporalSpecBBoxOld  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>upoint -> rect3,\n"
-    "mpoint -> rect3,\n"
-    "ipoint -> rect3,\n"
+    "( <text>upoint [x geoid] -> rect3,\n"
+    "mpoint [x geoid] -> rect3,\n"
+    "ipoint [x geoid] -> rect3,\n"
     "rT -> rT</text--->"
-    "<text>bboxOld ( _ )</text--->"
-    "<text>Returns the 3d bounding box of the spatio-temporal object, \n"
+    "<text>bboxOld ( Obj [, Geoid] )</text--->"
+    "<text>Returns the 3d bounding box of the spatio-temporal object Obj, \n"
     "resp. the range value with the smallest closed interval that contains "
-    "all intervals of a range-value (for range-value).</text--->"
+    "all intervals of a range-value (for range-value). If Geoid is passed, the "
+    "geographic MBR is returned.</text--->"
     "<text>query bbox( upoint1 )</text--->"
     ") )";
 
 const string TemporalSpecBBox2d  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>upoint -> rect,\n"
-    "mpoint -> rect,\n"
-    "ipoint -> rect"
+    "( <text>upoint [x geoid] -> rect,\n"
+    "mpoint [x geoid] -> rect,\n"
+    "ipoint [x geoid] -> rect"
     "</text--->"
-    "<text>bbox2d( _ )</text--->"
-    "<text>Returns the 2d bounding box of the spatio-temporal object."
-    "</text--->"
+    "<text>bbox2d( Obj [, Geoid] )</text--->"
+    "<text>Returns the 2d bounding box of the spatio-temporal object Obj."
+    " If Geoid is passed, the geographic MBR is returned.</text--->"
     "<text>query bbox2d( upoint1 )</text--->"
     ") )";
 
