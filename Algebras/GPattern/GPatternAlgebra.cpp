@@ -1572,8 +1572,8 @@ Evaluating the gpattern results
       mbool = static_cast<MBool*>(value.addr);
       if (mbool->IsDefined())
       {
-        //bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
-        bool inc= accumlator.Buffer(*mbool, tupleCnt);
+        bool inc= accumlator.Buffer(*mbool, tupleCnt, d);
+        //bool inc= accumlator.Buffer(*mbool, tupleCnt);
         //GPatternHelper::removeShortUnits(*mbool, d);
         //accumlator2.Union(*mbool, tupleCnt);
         if(inc) 
@@ -1608,7 +1608,9 @@ Evaluating the gpattern results
       //changed= GPatternHelper::RemoveUnitsHavingFewNodes(accumlator, ids, n);
 
       //accumlator2.RemoveShortElemParts(d);
-      //changed= (accumlator.RemoveShortElemParts(d) || changed );  
+      //This function removes short edges. This is incorrect. It should instead
+      //remove short nodes
+      //changed= (accumlator.RemoveShortElemParts(d) || changed );
     }
     
     if(debugme)

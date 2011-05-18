@@ -50,7 +50,6 @@ JAN, 2010 Mahmoud Sakr
 #include "STPatternAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "MSet.h"
-#include "igraph/igraph.h"
 #include <map>
 #include <functional>
 #include <algorithm>
@@ -137,7 +136,7 @@ static bool RemoveShortNodeMembership(
     CompressedInMemMSet& Accumlator,
     vector<pair<int, int> >& ids, double d)
 {
-  bool debugme= true;
+  bool debugme= false;
   if(debugme)
     Accumlator.Print(cerr);
   bool changed=false;
@@ -344,7 +343,7 @@ static void FindSubGraphs(MSetClass& Accumlator,
     vector<pair<int,int> >& ids, double d, int n, string& qts, 
     list<CompressedMSet*>*& finalResStream, int depth)
 {
-  bool debugme= true;
+  bool debugme= false;
   IteratorClass cur= begin;
   set<int> s;
   list<CompressedMSet*>* resStream= 0, *localResStream= 0;
@@ -368,7 +367,7 @@ static void FindSubGraphs(MSetClass& Accumlator,
     if(debugme)
       curInMemMSet->Print(cerr);
     locallyChanged=true; globallyChanged= false;
-    while(locallyChanged)
+    while(locallyChanged && 0)
     {
       locallyChanged= GPatternHelper::RemoveShortNodeMembership(
           *curInMemMSet, ids, d);
@@ -496,8 +495,8 @@ static void FindDynamicComponents(CompressedInMemMSet& Accumlator,
     cerr<< "\nfinalResStream contains "<< 
       finalResStream->size() << " results\n";
     for(list<CompressedMSet*>::iterator 
-        it= finalResStream->begin(); it != finalResStream->end(); ++it)
-      (*it)->Print(cerr);
+        it= finalResStream->begin(); it != finalResStream->end(); ++it);
+      //(*it)->Print(cerr);
   }
   for(list<Component*>::iterator it= components->begin(); it!= 
     components->end(); ++it)
@@ -707,8 +706,9 @@ static void UpdateRemove(LWGraph* graph, list<Component*>* components,
         splitComponent= &(*splitComponents.begin());
         assert((*affectedComponentIt)->UpdateMessage(Component::RemovedNodes));
         vector<int> removedNodes(
-            (*affectedComponentIt)->nodes.size()- (*splitComponent).size());
-        set_difference(
+            (*affectedComponentIt)->nodes.size()- (*splitComponent).size()+1);
+        vector<int>::iterator removedNodesEndIt=
+          set_difference(
             (*affectedComponentIt)->nodes.begin(), 
             (*affectedComponentIt)->nodes.end(),
             (*splitComponent).begin(), (*splitComponent).end(), 
@@ -719,7 +719,7 @@ static void UpdateRemove(LWGraph* graph, list<Component*>* components,
         set< pair<int, int> >* curNodeNeighbors;
         
         for(vector<int>::iterator rn= removedNodes.begin(); rn!= 
-          removedNodes.end(); ++rn)
+          removedNodesEndIt; ++rn)
         {
           curNode= *rn;
           (*affectedComponentIt)->nodes.erase(curNode);
@@ -999,7 +999,7 @@ static void DynamicGraphAppend(LWGraph* graph, list<Component*>* components,
     int n, string& qts, int& NextComponentLabel, 
     list<CompressedMSet*>*& resStream, list<CompressedMSet*>*& finalResStream)
 {
-  bool debugme= true;
+  bool debugme= false;
    
   if(debugme)
     graph->print(cerr);
