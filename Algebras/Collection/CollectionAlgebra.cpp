@@ -1083,11 +1083,11 @@ cout << "SortMerge" << endl;
       pointer3++;
     }
     delete[] help;
-    if(elem1){ 
-       elem1->DeleteIfAllowed(true); 
+    if(elem1){
+       elem1->DeleteIfAllowed(true);
     }
-    if(elem2){ 
-      elem2->DeleteIfAllowed(true); 
+    if(elem2){
+      elem2->DeleteIfAllowed(true);
     }
   }
 
@@ -1189,8 +1189,8 @@ cout << "RestoreComponent" << endl;
 
     std::vector<Flob> ff; /* freshflobs */
     for(int i=0;i<elem->NumOfFLOBs();i++) {
-      ff.push_back( *elem->GetFLOB(i) );   
-    }	    
+      ff.push_back( *elem->GetFLOB(i) );
+    }
 
     size_t offset = (size_t)(pos*(am->SizeOfObj(elemAlgId, elemTypeId))());
     elements.read((char*)(elem), elem->Sizeof(), offset);
@@ -1199,7 +1199,7 @@ cout << "RestoreComponent" << endl;
     for(int i=0;i<elem->NumOfFLOBs();i++) {
       SmiSize fs = elem->GetFLOB(i)->getSize();
       *elem->GetFLOB(i) = ff[i];
-      elem->GetFLOB(i)->resize(fs);   
+      elem->GetFLOB(i)->resize(fs);
     }
     size_t temp = 0;
     elemFLOBDataOffset.Get(pos, &temp);
@@ -1208,7 +1208,7 @@ cout << "RestoreComponent" << endl;
       Flob* tempFLOB = elem->GetFLOB(i);
       size_t size = tempFLOB->getSize();
 
-//#define X1_DEBUG      
+//#define X1_DEBUG
 #ifdef X1_DEBUG
 cout << "  offset: " << offset << endl;
 cout << "  size(" << i << "): " << size << endl;
@@ -2093,8 +2093,8 @@ cout << "DeleteTypeMap" << endl;
         if(componentCount > 0){
           resColl->Insert(elem, componentCount);
         }
-        if(elem) { 
-           elem->DeleteIfAllowed(true); 
+        if(elem) {
+           elem->DeleteIfAllowed(true);
         }
       }
       resColl->Finish();
@@ -2368,11 +2368,11 @@ cout << "MathSetTypeMap" << endl;
         elem2 = 0;
       }
     }
-    if(elem1) { 
-       elem1->DeleteIfAllowed(true); 
+    if(elem1) {
+       elem1->DeleteIfAllowed(true);
     }
-    if(elem2) { 
-       elem2->DeleteIfAllowed(true); 
+    if(elem2) {
+       elem2->DeleteIfAllowed(true);
     }
     for(int iCnt1 = elementIdx1;
                             iCnt1 < coll1->GetNoUniqueComponents(); iCnt1++){
@@ -2705,52 +2705,6 @@ struct geInfo : OperatorInfo {
 };
 
 /*
-4.12 Implementation of operator is\_defined
-
-*/
-int isdefFun(Word* args, Word& result, int message, Word& local, Supplier s){
-  bool r = false;
-  Collection* co = (Collection*)args[0].addr;
-  result = qp->ResultStorage(s);
-  if(co->IsDefined())
-    r = true;
-  ((CcBool*)result.addr)->Set(true, r);
-  return 0;
-}
-
-ListExpr isdefTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-
-    if (!nl->IsAtom(arg1) && (nl->IsEqual(nl->First(arg1),
-        "set") || nl->IsEqual(nl->First(arg1), "multiset")
-        || nl->IsEqual(nl->First(arg1), "vector"))) {
-      return nl->SymbolAtom("bool");
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
-
-struct isdefInfo : OperatorInfo {
-
-  isdefInfo() : OperatorInfo()
-  {
-    name      = ISDEF;
-    signature = SET +  " -> " + BOOL;
-    appendSignature(MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " -> " + BOOL);
-    syntax    = " _ " + ISDEF;
-    meaning   = "isdefined wird abgefragt";
-  }
-
-};
-
-
-/*
 5 Implementation of class CollectionAlgebra, registration of TypeConstructors
 and operators
 
@@ -2807,7 +2761,6 @@ class CollectionAlgebra : public Algebra {
       AddOperator( geInfo(), geFun, compareTypeMap );
       AddOperator( leInfo(), leFun, compareTypeMap );
       AddOperator( neInfo(), neFun, compareTypeMap );
-      AddOperator( isdefInfo(), isdefFun, isdefTypeMap);
 
     }
     ~CollectionAlgebra() {};

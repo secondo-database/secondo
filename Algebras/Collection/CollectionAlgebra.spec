@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -40,5 +40,4 @@ operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator = alias EQ pattern _ infixop _
 operator # alias NE pattern _ infixop _
-operator is_defined alias ISDEF pattern _ op
 operator size alias SIZE pattern op ( _ )
