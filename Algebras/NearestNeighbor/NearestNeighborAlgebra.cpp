@@ -2690,7 +2690,7 @@ IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg,
     if( ii == k){
       dist_k = CalcDistance(testit->distance, t_point, slope);
       erg = true;
-      return testit; 
+      break;
     }
   }
   
@@ -2703,6 +2703,9 @@ IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg,
 //     }
 //     break;
 //   }
+
+//  if(erg)
+//     cout<<"k neighbor "<<testit->tuple->GetTupleId()<<endl;
 
   return testit;
 }
@@ -3062,8 +3065,9 @@ struct KnearestLocalInfo
   Instant startTime, endTime;
   NNTree< ActiveElem > activeLine;
   
-  
+
   bool AddNewUnit(UPoint* up);
+  void MergeUnit(UPoint* up);
   unsigned int count;
   vector<UPoint> up_list;
   vector<MReal> dist_list; 
@@ -3154,6 +3158,28 @@ bool KnearestLocalInfo::AddNewUnit(UPoint* up)
     }
     return false;
 
+}
+
+void KnearestLocalInfo::MergeUnit(UPoint* up)
+{
+      UPoint last_up = up_list[up_list.size() - 1];
+
+      Point p1_1 = last_up.p0;
+      Point p1_2 = last_up.p1;
+
+      Point p2_1 = up->p0;
+      Point p2_2 = up->p1; 
+
+      Interval<Instant> iv( last_up.timeInterval.start, 
+                              up->timeInterval.end, 
+                              last_up.timeInterval.lc, 
+                              up->timeInterval.rc);
+
+      UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(), 
+                                          p2_2.GetX(), p2_2.GetY());
+
+      up_list[up_list.size() - 1] = *temp_up;
+      delete temp_up;
 }
 
 /*
@@ -3879,6 +3905,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
          localInfo->resulttype =
             new TupleType(nl->Second(GetTupleResultType(s)));
 
+         unsigned int last_result_tid = 0;
          ////////////////first calculate the result/////////////////////////
          while ( !localInfo->eventQueue.empty() ){
             EventElem elem = localInfo->eventQueue.top();
@@ -3928,6 +3955,11 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                 IT posK = getKNeighbor(localInfo->activeLine,
                                localInfo->k, KNeighbor, elem.pointInTime);
                 if(KNeighbor){
+                    if(localInfo->up_list.size() == 0){
+                      last_result_tid = posK->tuple->GetTupleId();
+//                      cout<<"start "<<last_result_tid<<endl;
+                    }
+
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
@@ -3958,12 +3990,24 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                     if(cloneTuple != NULL){
                       int pos = localInfo->eventQueue.GetPos();
                       UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
-                      if(localInfo->AddNewUnit(up) == false)
-                          localInfo->up_list.push_back(*up);
+
+//                       if(localInfo->AddNewUnit(up) == false)
+//                           localInfo->up_list.push_back(*up);
+                      if(localInfo->up_list.size() > 0 &&
+                        last_result_tid == posK->tuple->GetTupleId())
+                        localInfo->MergeUnit(up);
+                      else
+                        localInfo->up_list.push_back(*up);
 
                       delete cloneTuple;
-  
+
+                      ////////////record when the unit changes /////////////
+                      if(posK->tuple->GetTupleId() != last_result_tid){
+//                      cout<<"left "<<last_result_tid<<endl;
+                        last_result_tid = posK->tuple->GetTupleId();
+                      }
                     }
+
                 }
 
                  posAfterK->start = elem.pointInTime;
@@ -4010,6 +4054,9 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                 IT posK = getKNeighbor(localInfo->activeLine,
                                localInfo->k, KNeighbor, elem.pointInTime);
                 if(KNeighbor){
+                  if(localInfo->up_list.size() == 0)
+                      last_result_tid = posK->tuple->GetTupleId();
+
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
@@ -4040,11 +4087,26 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                       int pos = localInfo->eventQueue.GetPos();
                       UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
 
-                      if(localInfo->AddNewUnit(up) == false)
+//                       if(localInfo->AddNewUnit(up) == false)
+//                         localInfo->up_list.push_back(*up);
+
+                      if(localInfo->up_list.size() > 0 &&
+                        last_result_tid == posK->tuple->GetTupleId())
+                        localInfo->MergeUnit(up);
+                      else
                         localInfo->up_list.push_back(*up);
 
                       delete cloneTuple;
+
+                     ////////////record when the unit changes /////////////
+                      if(posK->tuple->GetTupleId() != last_result_tid){
+//                      cout<<"right "<<last_result_tid<<endl;
+                        last_result_tid = posK->tuple->GetTupleId();
+                      }
                     }
+
+ 
+
                 }
 
               //now calculate the intersection of the neighbors
@@ -4094,6 +4156,9 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                 IT posK = getKNeighbor(localInfo->activeLine,
                                localInfo->k, KNeighbor, elem.pointInTime);
                 if(KNeighbor){
+                   if(localInfo->up_list.size() == 0)
+                      last_result_tid = posK->tuple->GetTupleId();
+
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
@@ -4124,12 +4189,25 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                       int pos = localInfo->eventQueue.GetPos();
                       UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
 
-                      if(localInfo->AddNewUnit(up) == false)
+//                       if(localInfo->AddNewUnit(up) == false)
+//                         localInfo->up_list.push_back(*up);
+
+                      if(localInfo->up_list.size() > 0 &&
+                         last_result_tid == posK->tuple->GetTupleId())
+                        localInfo->MergeUnit(up);
+                      else
                         localInfo->up_list.push_back(*up);
-                      
+
                       delete cloneTuple;
 
+                      ////////////record when the unit changes /////////////
+                      if(posK->tuple->GetTupleId() != last_result_tid){
+                        last_result_tid = posK->tuple->GetTupleId();
+  //                      cout<<"intersect "<<last_result_tid<<endl;
+                      }
+
                     }
+
                 }
 
           //check if the first of the inters.-tuples is the k. and give it out
@@ -4322,10 +4400,10 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
       int attrPos = (static_cast<CcInt*>(args[4].addr))->GetIntval() - 1;
       int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
 
-      
+
       result = qp->ResultStorage(s);
       MReal* presult = (MReal*)result.addr; 
-      
+
       if(!mp->IsDefined() || mp->IsEmpty() || k->GetIntval() < 1){
         MReal* res = new MReal(0);
         *presult = *res;
@@ -4342,8 +4420,8 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
          localInfo->startTime = up1.timeInterval.start;
          localInfo->endTime = up2.timeInterval.end;
 
-         localInfo->count = 0;
-
+        ////////////////first calculate the result/////////////////////////
+        unsigned int last_result_tid = 0;
          ////////////////first calculate the result/////////////////////////
          while ( !localInfo->eventQueue.empty() ){
             EventElem elem = localInfo->eventQueue.top();
@@ -4358,7 +4436,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
         switch ( elem.type ){
           case E_LEFT:
           {
-//            cout<<"left "<<elem.pointInTime<<endl;
+ //           cout<<"left "<<elem.pointInTime<<endl;
             bool lc = elem.pointInTime >= localInfo->startTime
               ? elem.up->timeInterval.lc : false;
             ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime,
@@ -4393,6 +4471,11 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                 IT posK = getKNeighbor(localInfo->activeLine,
                                localInfo->k, KNeighbor, elem.pointInTime);
                 if(KNeighbor){
+                    if(localInfo->up_list.size() == 0){
+                      last_result_tid = posK->tuple->GetTupleId();
+//                      cout<<"start "<<last_result_tid<<endl;
+                    }
+
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
@@ -4423,11 +4506,24 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                     if(cloneTuple != NULL){
                       int pos = localInfo->eventQueue.GetPos();
                       UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
-                      if(localInfo->AddNewUnit(up) == false)
-                          localInfo->up_list.push_back(*up);
+
+//                       if(localInfo->AddNewUnit(up) == false)
+//                           localInfo->up_list.push_back(*up);
+                      if(localInfo->up_list.size() > 0 &&
+                        last_result_tid == posK->tuple->GetTupleId())
+                        localInfo->MergeUnit(up);
+                      else
+                        localInfo->up_list.push_back(*up);
 
                       delete cloneTuple;
+
+                      ////////////record when the unit changes /////////////
+                      if(posK->tuple->GetTupleId() != last_result_tid){
+//                      cout<<"left "<<last_result_tid<<endl;
+                        last_result_tid = posK->tuple->GetTupleId();
+                      }
                     }
+
                 }
 
                  posAfterK->start = elem.pointInTime;
@@ -4468,12 +4564,13 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                 }
               }
 
-
-
                 bool KNeighbor = false;
                 IT posK = getKNeighbor(localInfo->activeLine,
                                localInfo->k, KNeighbor, elem.pointInTime);
                 if(KNeighbor){
+                  if(localInfo->up_list.size() == 0)
+                      last_result_tid = posK->tuple->GetTupleId();
+
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
@@ -4504,11 +4601,22 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                       int pos = localInfo->eventQueue.GetPos();
                       UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
 
-                      if(localInfo->AddNewUnit(up) == false)
+//                       if(localInfo->AddNewUnit(up) == false)
+//                         localInfo->up_list.push_back(*up);
+
+                      if(localInfo->up_list.size() > 0 &&
+                        last_result_tid == posK->tuple->GetTupleId())
+                        localInfo->MergeUnit(up);
+                      else
                         localInfo->up_list.push_back(*up);
-                      
+
                       delete cloneTuple;
 
+                     ////////////record when the unit changes /////////////
+                      if(posK->tuple->GetTupleId() != last_result_tid){
+//                      cout<<"right "<<last_result_tid<<endl;
+                        last_result_tid = posK->tuple->GetTupleId();
+                      }
                     }
                 }
 
@@ -4555,10 +4663,13 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
             else
               posSec = posNext;
 
-              bool KNeighbor = false;
+                bool KNeighbor = false;
                 IT posK = getKNeighbor(localInfo->activeLine,
                                localInfo->k, KNeighbor, elem.pointInTime);
                 if(KNeighbor){
+                   if(localInfo->up_list.size() == 0)
+                      last_result_tid = posK->tuple->GetTupleId();
+
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
@@ -4589,10 +4700,23 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                       int pos = localInfo->eventQueue.GetPos();
                       UPoint* up = (UPoint*)cloneTuple->GetAttribute(pos);
 
-                      if(localInfo->AddNewUnit(up) == false)
+//                       if(localInfo->AddNewUnit(up) == false)
+//                         localInfo->up_list.push_back(*up);
+
+                      if(localInfo->up_list.size() > 0 &&
+                         last_result_tid == posK->tuple->GetTupleId())
+                        localInfo->MergeUnit(up);
+                      else
                         localInfo->up_list.push_back(*up);
 
                       delete cloneTuple;
+
+                      ////////////record when the unit changes /////////////
+                      if(posK->tuple->GetTupleId() != last_result_tid){
+                        last_result_tid = posK->tuple->GetTupleId();
+  //                      cout<<"intersect "<<last_result_tid<<endl;
+                      }
+
                     }
                 }
 
@@ -4697,7 +4821,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
           }
         }
 
-        }
+      }
 
       /////////////calculate the distance//////////////////////////////
       int mpos = 0;
@@ -4714,9 +4838,9 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
           delete mr;
       }
       presult->EndBulkLoad( false, false );
-      
+
       delete localInfo;
-      
+
       qp->Close(args[0].addr);
       return 0;
 }
