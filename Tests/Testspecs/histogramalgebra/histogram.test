@@ -184,7 +184,7 @@ query testrelSH feed projecttransformstream[Attr3] set_histogram1d;
 #yields (histogram1d((0.0 2.0 4.0 6.0 8.0 10.0)(0.0 0.0 0.0 0.0 0.0)))
 query realstream(0.0, 10.0, 2.0) set_histogram1d;
 
-# 1.000.000 calls: to execute, remove the blanks after the '#' characters 
+# 1.000.000 calls: to execute, remove the blanks after the '#' characters
 # testcase h1dSetHistogramLoadTestcase
 # yields success
 # query realstream(0.0, 100000.0, 0.1) set_histogram1d;
@@ -241,33 +241,6 @@ query realstream(-1.0, 2.0, 1.0) realstream(8.0, 9.0, 0.5) set_histogram2d;
 # yields success
 # query realstream(0.0, 100000.0, 10.0) realstream(0.0, 20000.0, 10.0) set_histogram2d;
 
-# *
-# * is_undefined
-# *
-
-#testcase h1dIsUndefinedTrueTestcase
-#yields (bool TRUE)
-query is_undefined(realstream(1.0, -1.0, 100.0) set_histogram1d);
-
-#testcase h1dIsUndefinedFalseTestcase
-#yields (bool FALSE)
-query is_undefined(realstream(-100.0, 100.0, 10.0) set_histogram1d);
-
-#testcase h1dIsUndefinedListLength2
-#yields error
-query is_undefined(realstream(-100.0, 100.0, 10.0), realstream(-120.0, 100.0, 11.0));
-
-#testcase h1dIsUndefinedWrongObject
-#yields error
-query is_undefined(realstream(-100.0, 100.0, 10.0));
-
-#testcase h2dIsUndefinedTrueTestcase
-#yields (bool TRUE)
-query is_undefined(realstream(1.0, -1.0, 100.0) realstream(10043.0, 3500.0, -10.0) set_histogram2d);
-
-#testcase h2dIsUndefinedFalseTestcase
-#yields (bool FALSE)
-query is_undefined(realstream(-100.0, 1000.0, 14.3) realstream(-1000.2, 123.3, 19.2) set_histogram2d);
 
 # *
 # * is_refinement
@@ -397,7 +370,7 @@ query h100 = h1undef;
 #yields (bool FALSE)
 query histfine1d = h100;
 
-#testcase h1dEqualFalse5Testcase 
+#testcase h1dEqualFalse5Testcase
 #yields (bool FALSE)
 query histfine1d = histcoarse1d;
 
@@ -421,7 +394,7 @@ query h200 = h2undef;
 #yields (bool FALSE)
 query histfine2d = h200;
 
-#testcase h2dEqualFalse5Testcase 
+#testcase h2dEqualFalse5Testcase
 #yields (bool FALSE)
 query histfine2d = histcoarse2d;
 
@@ -649,7 +622,7 @@ query h100 < h200
 
 #testcase h2dLessThanTestcase
 #yields (bool TRUE)
-query realstream(-124.0, 125.3, 2.43) transformstream {a} realstream(-124.0, 125.3, 2.43) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5] < realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {a} realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5] 
+query realstream(-124.0, 125.3, 2.43) transformstream {a} realstream(-124.0, 125.3, 2.43) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5] < realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {a} realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
 
 #testcase h2dLessThanTestcase
 #yields (bool FALSE)
@@ -768,7 +741,7 @@ query h1use h1use usehistogram2[; fun(r1: real) 0.0]
 #yields error
 query h1use h1use usehistogram2[; funr(r1: real, r2: real, r3: real) 0.0]
 
-#testcase h2dUse2Tescase 
+#testcase h2dUse2Tescase
 #yields (histogram2d ((-10.0 -3.5 2.3 4.5)(-4.5 -2.3 3.5 10.0)(4.0 4.0 4.0 4.0 4.0 4.0 4.0 4.0 4.0)))
 query h2use h2use usehistogram2[;fun(r1: real, r2: real) r1 + r2]
 
@@ -2722,7 +2695,7 @@ query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstre
 #yields (bool TRUE)
 query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram1d_equicount[elem, 1000] variance - (-7.5 * -7.5)) < 1
 
-#testcase VarianceUndefTestcase 
+#testcase VarianceUndefTestcase
 #yields (real undef)
 query h1undef variance
 
@@ -2750,7 +2723,7 @@ query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstre
 #yields (bool TRUE)
 query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[elem, elem, 333, 333] varianceX - (-7.5 * -7.5)) < 2
 
-#testcase VarianceXUndefTestcase 
+#testcase VarianceXUndefTestcase
 #yields (real undef)
 query h2undef varianceX
 
@@ -2778,7 +2751,7 @@ query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstre
 #yields (bool TRUE)
 query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[elem, elem, 333, 333] varianceY - (-7.5 * -7.5)) < 10
 
-#testcase VarianceYUndefTestcase 
+#testcase VarianceYUndefTestcase
 #yields (real undef)
 query h2undef varianceY
 

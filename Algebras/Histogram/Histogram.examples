@@ -1,4 +1,4 @@
-Database: opt	
+Database: opt
 Restore: NO
 
 Operator : set_histogram1d
@@ -50,24 +50,11 @@ Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x (aj real) x int x i
 Example  : query realstream(0.0, 15.0, 0.1) transformstream {a} realstream(6.0, 18.0, 1.0) transformstream {b} symmproduct create_histogram2d_equicount[elem_a, elem_b, 3, 4];
 Result   : (histogram2d((0.0 5.1 10.2 15.00000001)(6.0 10.0 14.0 18.0 18.00000001)(204.0 204.0 204.0 51.0 204.0 204.0 204.0 51.0 196.0 196.0 196.0 49.0)))
 
-
-Operator : is_undefined
-Number   : 1
-Signature: histogram1d -> bool
-Example  : query is_undefined ([const histogram1d value ((0.0 1.0)(5.0))]);
-Result   : FALSE
-
-Operator : is_undefined
-Number   : 2
-Signature: histogram2d -> bool
-Example  : query is_undefined ([const histogram2d value ((0.0 1.0)(0.0 1.0)(5.0))]);
-Result   : FALSE
-
 Operator : no_components
 Number   : 1
 Signature: histogram1d -> int
 Example  : query no_components ([const histogram1d value ((-1.5 0.4 1.9 2.0)(5.0 7.8 5.5))]);
-Result   : 3 
+Result   : 3
 
 Operator : binsX
 Number   : 1
@@ -121,7 +108,7 @@ Operator : getcount1d
 Number   : 1
 Signature: histogram1d x int -> real
 Example  : query getcount1d ([const histogram1d value ((0.0 1.0 2.0)(5.0 5.5))], 1);
-Result   : 5.5 
+Result   : 5.5
 
 Operator : getcount2d
 Number   : 2
@@ -132,14 +119,14 @@ Result   : 5.0
 Operator : findbin
 Number   : 1
 Signature: histogram1d x real -> int
-Example  : query findbin ([const histogram1d value ((0.0 1.0 2.0)(5.0 5.5))], 1.1); 
-Result   : 1 
+Example  : query findbin ([const histogram1d value ((0.0 1.0 2.0)(5.0 5.5))], 1.1);
+Result   : 1
 
 Operator : findbinX
 Number   : 1
 Signature: histogram2d x real -> int
 Example  : query findbinX ([const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(0.0 5.0))], -0.5);
-Result   : 0 
+Result   : 0
 
 Operator : findbinY
 Number   : 1
@@ -157,7 +144,7 @@ Operator : is_refinement
 Number   : 2
 Signature: histogram2d x histogram2d -> bool
 Example  : query is_refinement ([const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(0.0 5.0))], [const histogram2d value ((-0.8 1.0)(0.0 1.0)(5.0))]);
-Result   : TRUE 
+Result   : TRUE
 
 Operator : <
 Number   : 1
@@ -169,25 +156,25 @@ Operator : <
 Number   : 2
 Signature: histogram2d x histogram2d -> bool
 Example  : query [const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(-1.5 3.7))] < [const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(-1.0 4.0))];
-Result   : TRUE 
+Result   : TRUE
 
 Operator : =
 Number   : 1
 Signature: histogram1d x histogram1d -> bool
 Example  : query [const histogram1d value ((0.0 1.0 2.0)(4.9 5.4))] = [const histogram1d value ((0.0 1.0 2.0)(4.9 5.4))]
-Result   : TRUE 
+Result   : TRUE
 
 Operator : =
 Number   : 2
 Signature: histogram2d x histogram2d -> bool
-Example  : query [const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(0.0 5.0))] = [const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(0.0 5.0))]; 
-Result   : TRUE 
+Example  : query [const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(0.0 5.0))] = [const histogram2d value ((-0.8 0.0 1.0)(0.0 1.0)(0.0 5.0))];
+Result   : TRUE
 
 Operator : find_minbin
 Number   : 1
 Signature: histogram1d -> (stream int)
 Example  : query [const histogram1d value ((-1.4 0.0 1.0 2.0)(5.0 4.0 5.5))] find_minbin aggregateS[ fun(i1:int, i2:int) i1+i2 ; 0];
-Result   : 1 
+Result   : 1
 
 Operator : find_minbin
 Number   : 2
@@ -200,7 +187,7 @@ Operator : find_maxbin
 Number   : 1
 Signature: histogram1d -> (stream int)
 Example  : query [const histogram1d value ((-1.4 0.0 1.0 2.0)(5.0 4.0 5.5))] find_maxbin aggregateS[ fun(i1:int, i2:int) i1+i2 ; 0];
-Result   : 2 
+Result   : 2
 
 Operator : find_maxbin
 Number   : 2
@@ -224,7 +211,7 @@ Operator : meanY
 Number   : 1
 Signature: histogram2d -> real
 Example  : query [const histogram2d value ((0.5 1.5 2.5 3.5) (1.0 2.0 3.0) (1.0 1.0 1.0 1.0 1.0 1.0))] meanY;
-Result   : 2.0 
+Result   : 2.0
 
 Operator : variance
 Number   : 1
@@ -248,7 +235,7 @@ Operator : covariance
 Number   : 1
 Signature: histogram2d -> real
 Example  : query [const histogram2d value ((0.5 1.5 2.5 3.5) (1.0 2.0 3.0) (1.0 1.0 1.0 1.0 1.0 1.0))] covariance < 0.0001;
-Result   : TRUE 
+Result   : TRUE
 
 Operator : distance
 Number   : 1
@@ -344,7 +331,7 @@ Result   : (histogram1d((-1.4 0.0 1.0 2.0)(1.0 6.0 2.0)))
 Operator : insert1d
 Number   : 1
 Signature: histogram1d x real -> histogram1d
-Example  : query insert1d( [const histogram1d value ((-1.4 0.0 1.0 2.0)(1.0 4.0 2.0))], 0.2 ); 
+Example  : query insert1d( [const histogram1d value ((-1.4 0.0 1.0 2.0)(1.0 4.0 2.0))], 0.2 );
 Result   : (histogram1d((-1.4 0.0 1.0 2.0)(1.0 5.0 2.0)))
 
 Operator : insert2dvalue
@@ -356,6 +343,6 @@ Result   : (histogram2d((-1.4 0.0 1.0)(1.0 2.0 4.0)(10.0 0.0 3.0 4.0)))
 Operator : insert2d
 Number   : 1
 Signature: histogram2d x real x real -> histogram2d
-Example  : query  insert2d( [const histogram2d value ((-1.4 0.0 1.0)(1.0 2.0 4.0)(7.0 0.0 3.0 4.0))], -1.0, 1.5 ); 
+Example  : query  insert2d( [const histogram2d value ((-1.4 0.0 1.0)(1.0 2.0 4.0)(7.0 0.0 3.0 4.0))], -1.0, 1.5 );
 Result   : (histogram2d((-1.4 0.0 1.0)(1.0 2.0 4.0)(8.0 0.0 3.0 4.0)))
 

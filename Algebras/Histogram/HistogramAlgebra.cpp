@@ -76,14 +76,6 @@ namespace hgr
   AddOperator(CreateHistogram2dEquicountInfo(),
       CreateHistogram2dEquicountFun, CreateHistogram2dEquicountTypeMap);
 
-  ValueMapping is_undefinedFuns[] =
-  {
-    is_undefined1dFun, is_undefined2dFun, 0
-  };
-
-  AddOperator(is_undefinedInfo(), is_undefinedFuns,
-              is_undefinedSelect, is_undefinedTypeMap);
-
   AddOperator(NoComponentsInfo(), NoComponentsFun, NoComponentsTypeMap);
 
   AddOperator(BinsXInfo(), BinsXFun, BinsXYTypeMap);

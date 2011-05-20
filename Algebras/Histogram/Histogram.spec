@@ -11,8 +11,6 @@ operator create_histogram2d_equiwidth alias CREATE_HISTOGRAM2D_EQUIWIDTH pattern
 operator create_histogram1d_equicount alias CREATE_HISTOGRAM1D_EQUICOUNT pattern _ op[_,_]
 operator create_histogram2d_equicount alias CREATE_HISTOGRAM2D_EQUICOUNT pattern _ op[_,_,_,_]
 
-operator is_undefined alias IS_UNDEFINED pattern op (_)
-
 operator no_components alias NO_COMPONENTS pattern op(_)
 
 operator binsX alias BINSX pattern op(_)
@@ -53,13 +51,13 @@ operator distance alias DISTANCE pattern op(_,_)
 
 operator translatehistogram alias TRANSLATEHISTOGRAM pattern _ op[_]
 
-operator usehistogram alias USEHISTOGRAM pattern _ op[ list; fun ] 
+operator usehistogram alias USEHISTOGRAM pattern _ op[ list; fun ]
     implicit parameter element type ELEMENT
-operator usehistogram2 alias USEHISTOGRAM2 pattern _ _ op[ list; fun ] 
+operator usehistogram2 alias USEHISTOGRAM2 pattern _ _ op[ list; fun ]
     implicit parameters element1, element2 types ELEMENT, ELEMENT
 
 operator fold alias FOLD pattern _ op [ _; _ ]
- 
+
 operator shrink_eager alias SHRINK_EAGER pattern op(_, _, _)
 operator shrink_eager2 alias SHRINK_EAGER2 pattern op(_, _, _, _, _)
 
