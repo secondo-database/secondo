@@ -297,7 +297,7 @@ is applied during spherical geometric calculation.
 4.3.13 Operation ~Direction~
 
 Computes the direction or heading (resp. direction/heading on a sphere) between
-~Tthis~ point and point ~p~, where both points have coordinates (X,Y), resp.
+~This~ point and point ~p~, where both points have coordinates (X,Y), resp.
 (LON, LAT). The result will be in range 0..360
 if both points are defined and not equal.
 
@@ -309,32 +309,40 @@ direction of the Y-axis).
 If ~geoid~ is NULL, euclidean geometry is used, otherwise the geoid object
 is applied during spherical geometric calculation.
 
+The returned direction is measured at the starting point, which is ~THIS~, if
+~atEndpoint~ is ~false~ (default). If ~atEndpoint~ is ~true~, the direction
+arriving at the endpoint is returned.
+
 In any error case, the result is negative (-1.0).
 
 */
   double Direction(const Point& p,
                    const bool returnHeading,
-                   const Geoid* geoid) const;
+                   const Geoid* geoid,
+                   const bool atEndpoint = false) const;
 
 /*
 An alias for backward compatibility
 
 */
-  double Direction(const Point& p, const Geoid* geoid = 0 ) const{
+  double Direction(const Point& p, const Geoid* geoid = 0,
+                   const bool atEndpoint = false ) const{
     cerr << __PRETTY_FUNCTION__ << ": WARNING - this function is deprecated!"
          << endl;
-    return Direction(p, false, geoid);
+    return Direction(p, false, geoid, atEndpoint);
   }
 
 /*
 An alias for backward compatibility
 
 */
-  double Heading(const Point& p, const Geoid* geoid = 0) const {
+  double Heading(const Point& p, const Geoid* geoid = 0,
+                 const bool atEndpoint = false) const {
     cerr << __PRETTY_FUNCTION__ << ": WARNING - this function is deprecated!"
          << endl;
-    return Direction(p, true, geoid);
+    return Direction(p, true, geoid, atEndpoint);
   }
+
 
 /*
 
@@ -407,7 +415,7 @@ headings.
                                       bool& valid,
                                       double& initialBearingDEG,
                                       double& finalBearingDEG,
-                                      const bool epsilon = 1e-12 ) const;
+                                      const bool epsilon = 0.00001 ) const;
 
 
 /*

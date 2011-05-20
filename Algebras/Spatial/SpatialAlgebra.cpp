@@ -1129,9 +1129,11 @@ double Point::calcEnclosedAngle( const Point &a,
 }
 
 
+// return the direction at starting point ~this~
 double Point::Direction(const Point& p ,
                         const bool returnHeading,
-                        const Geoid* geoid        ) const{
+                        const Geoid* geoid,
+                        const bool atEndpoint /*=false*/ ) const{
 
   if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return -1.0;
@@ -1186,9 +1188,9 @@ double Point::Direction(const Point& p ,
       return -1.0;
     }
     if(returnHeading){
-      return tc1;
+      return (atEndpoint)?tc2:tc1;
     } else {
-      return headingToDirection(tc1);
+      return headingToDirection((atEndpoint)?tc2:tc1);
     }
   }
 }

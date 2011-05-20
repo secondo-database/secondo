@@ -2630,18 +2630,27 @@ MovingRExtTypeMapBool( ListExpr args )
 
 It is for the operators ~speed~, ~direction~, and ~heading~
 
+---- mpoint [ x geoid [ x real ] ] --> mreal
+----
+
 */
 ListExpr
 MovingPointExtTypeMapMReal( ListExpr args )
 {
-    if ( nl->ListLength( args ) == 1 )
-    {
-        ListExpr arg1 = nl->First( args );
-
-        if( nl->IsEqual( arg1, "mpoint" ) )
-            return nl->SymbolAtom( "mreal" );
-    }
-    return nl->SymbolAtom( "typeerror" );
+  int noargs = nl->ListLength( args );
+  if ( (noargs<1) || (noargs>3) ){
+    return listutils::typeError("Expecting 1 or 2 arguments.");
+  }
+  if(!listutils::isSymbol(nl->First( args ),MPoint::BasicType())){
+    return listutils::typeError("Expecting mpoint as 1st argument.");
+  }
+  if((noargs>=2) && !listutils::isSymbol(nl->Second(args),Geoid::BasicType())){
+    return listutils::typeError("Expecting geoid as 2nd argument.");
+  }
+  if((noargs==3) && !listutils::isSymbol(nl->Second(args),Geoid::BasicType())){
+    return listutils::typeError("Expecting real as 3rd argument.");
+  }
+  return nl->SymbolAtom( "mreal" );
 }
 
 
@@ -4509,12 +4518,25 @@ int MovingMDirectionExt( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    MReal* pResult = ((MReal*)result.addr);
+    MReal* pResult = static_cast<MReal*>(result.addr);
 
-    const MPointExt* m = static_cast<const MPointExt*>(args[0].addr);
+    MPoint* m = static_cast<MPoint*>(args[0].addr);
     const Geoid* geoid =
-      (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-    double epsilon = 0.0000001;
+      (qp->GetNoSons(s)>=2)?static_cast<const Geoid*>(args[1].addr):0;
+    const CcReal* eps =
+      (qp->GetNoSons(s)==3)?static_cast<const CcReal*>(args[2].addr):0;
+    double epsilon = 0.00001;
+    if(eps){
+      if(!eps->IsDefined()){
+        m->SetDefined(false);
+        return 0;
+      }
+      epsilon = eps->GetValue();
+      if(eps <= 0){
+        m->SetDefined(false);
+        return 0;
+      }
+    }
     m->Direction( pResult, useHeading, geoid, epsilon );
     return 0;
 }
@@ -5059,21 +5081,27 @@ const string GlobalSpecUnitOfDistanceExt  =
 
 const string TemporalSpecMDirectionExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>mpoint -> mreal</text--->"
-    "<text>direction ( Obj )</text--->"
+    "( <text>mpoint [ x geoid [ x real ] ] -> mreal</text--->"
+    "<text>direction ( Obj [, Geoid [, Precision] ] )</text--->"
     "<text>Compute the direction of the object Obj's movement as a temporal "
     "function. Result unit is degree [°]. 0<=direction<360, counterclockwise "
-    "orientation, starting with 0° along the positive X-halfaxis.</text--->"
+    "orientation, starting with 0° along the positive X-halfaxis. If Geoid is "
+    "passed, computations use great circle navigation with the given presision "
+    "(deafults to 0.00001). Non-positive Precision results in UNDEFINED."
+    "</text--->"
     "<text>query direction ( train7 )</text--->"
     ") )";
 
 const string TemporalSpecMHeadingExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>mpoint -> mreal</text--->"
-    "<text>heading ( Obj )</text--->"
+    "( <text>mpoint [ x geoid [ x real ] ] -> mreal</text--->"
+    "<text>heading ( Obj [, Geoid [, Precision] ] )</text--->"
     "<text>Compute the heading of the object Obj as a temporal function. "
     "Result unit is degree [°]. 0<heading<=360, NORTH = 360°, clockwise "
-    "orientation.</text--->"
+    "orientation. If Geoid is passed, computations use great circle navigation "
+    "with the given presision (deafults to 0.00001). Non-positive Precision "
+    "results in UNDEFINED."
+    "</text--->"
     "<text>query heading ( train7 )</text--->"
     ") )";
 

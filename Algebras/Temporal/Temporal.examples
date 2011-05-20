@@ -620,7 +620,7 @@ Result    : (int 185)
 
 Operator  : gridcellevents
 Number    : 1
-Signature : mpoint x real x real xreal x real x int  -> stream(tuple(Cell int, TimeEntered: instant, TimeLeft: instant, CellPrevious: int, CellNext: int))
+Signature : mpoint x real x real x real x real x int  -> stream(tuple(Cell int, TimeEntered: instant, TimeLeft: instant, CellPrevious: int, CellNext: int))
 Example   : query gridcellevents(train7, -4000.0, 1000.0, 1000.0, 1000.0, 25) count
 Result    : (int 38)
 

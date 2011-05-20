@@ -4926,7 +4926,7 @@ const string CCarctanSpec =
 
 const string CCarctan2Spec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> real -> real </text--->"
+    "( <text> real x real -> real </text--->"
     "<text>arctan2( dy, dx )</text--->"
     "<text>Returns the principal value of the arc tangent of y/x, "
     "expressed in radians, in the interval [-pi,+pi] radians.</text--->"

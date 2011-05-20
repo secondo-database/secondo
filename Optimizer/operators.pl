@@ -721,14 +721,17 @@ opSignature(distance, spatial, ArgList,real,[comm]) :-
   memberchk(T1,[point,points,line,sline,region,rect]),
   memberchk(T2,[point,points,line,sline,region,rect]),!.
 opSignature(direction, spatial, [point,point],real,[]).
+opSignature(direction, spatial, [point,point,geoid],real,[]).
+opSignature(heading, spatial, [point,point],real,[]).
+opSignature(heading, spatial, [point,point,geoid],real,[]).
 opSignature(no_components, spatial, [T],int,[]) :-
   memberchk(T,[points,line,region,rect]),!.
 opSignature(no_segments, spatial, [T],int,[]) :-
   memberchk(T,[line,sline,region]),!.
 opSignature(size, spatial, [T],real,[]) :-
   memberchk(T,[line,sline,region]),!.
-opSignature(size, spatial, [T],real,[]) :-
-  memberchk(T,[point,points,line,sline,region]),!.
+opSignature(size, spatial, [T,geoid],real,[]) :-
+  memberchk(T,[line,sline]),!.
 opSignature(translate, spatial, [T,real,real],T,[]) :-
   memberchk(T,[point,points,line,region]),!.
 opSignature(rotate, spatial, [T,real,real,real],T,[]) :-
@@ -797,7 +800,6 @@ opSignature(getRadius, spatial, [geoid],real,[]).
 opSignature(getFlattening, spatial, [geoid],real,[]).
 opSignature(distanceOrthodrome, spatial, [point, point],real,[]).
 opSignature(distanceOrthodrome, spatial, [point, point, geoid],real,[]).
-
 opSignature(point2string, spatial, [point],string,[]).
 opSignature(point2string, spatial, [point, geoid],string,[]).
 opSignature(midpointBetween, spatial, [point, point],point,[]).
@@ -926,12 +928,18 @@ opSignature(units, temporal, [T],[stream,UT],[]) :-
 opSignature(bbox, temporal, [T],rect3,[]) :-
   memberchk(T,[mpoint,movingregion,upoint,uregion,
                ipoint,intimeregion,instant,periods]),!.
+opSignature(bbox, temporal, [T,geoid],rect3,[]) :-
+  memberchk(T,[upoint,mpoint,ipoint]),!.
 opSignature(mbrange, temporal, [T],T,[exp]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(bbox2d, temporal, [T],rect,[]) :-
   memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
+opSignature(bbox2d, temporal, [T,geoid],rect,[]) :-
+  memberchk(T,[upoint,mpoint,ipoint]),!.
 opSignature(bboxold, temporal, [T],rect3,[]) :-
   memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
+opSignature(bboxold, temporal, [T,geoid],rect3,[]) :-
+  memberchk(T,[mpoint,upoint,ipoint]),!.
 opSignature(bboxold, temporal, [T],T,[]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(at, temporal, [T1,T2],T1,[exp]) :-
@@ -999,8 +1007,8 @@ opSignature(avespeed, temporal, [mpoint],real,[]).
 opSignature(submove, temporal, [mpoint,real],mpoint,[exp]).
 opSignature(uval, temporal, [uint], int,[]).
 opSignature(distancetraversed, temporal, [mpoint], mreal,[exp]).
-opSignature(delay, temporal, [mpoint, mpoint], mreal,[exp]).
-
+opSignature(delay, temporal, [mpoint,mpoint], mreal,[exp]).
+opSignature(delay, temporal, [mpoint,mpoint,geoid], mreal,[exp]).
 opSignature(distancetraversed, temporal, [mpoint],mreal,[]).
 opSignature(distancetraversed, temporal, [mpoint,geoid],mreal,[]).
 opSignature(turns, temporal, [mpoint,real,real],[stream,[tuple,
@@ -1066,8 +1074,14 @@ opSignature(val, temporal, [istring],string,[]).
 opSignature(derivative_new, temporalext, [mreal],mreal,[]).
 opSignature(derivable_new, temporalext, [mreal],mbool,[]).
 opSignature(speed_new, temporalext, [mpoint],mreal,[]).
+opSignature(speed_new, temporalext, [mpoint,geoid],mreal,[]).
 opSignature(velocity_new, temporalext, [mpoint],mpoint,[]).
-opSignature(mdirection, temporalext, [mpoint],mreal,[]).
+opSignature(direction, temporalext, [mpoint],mreal,[]).
+opSignature(direction, temporalext, [mpoint,geoid],mreal,[]).
+opSignature(direction, temporalext, [mpoint,geoid,real],mreal,[]).
+opSignature(heading, temporalext, [mpoint],mreal,[]).
+opSignature(heading, temporalext, [mpoint,geoid],mreal,[]).
+opSignature(heading, temporalext, [mpoint,geoid,real],mreal,[]).
 opSignature(locations, temporalext, [mpoint],points,[exp]).
 opSignature(atmin, temporalext, [T],T,[exp]) :-
   memberchk(T,[mint,mbool,mreal,mstring]),!.
@@ -1280,6 +1294,8 @@ opSignature(abs, temporalunit, [uint],uint,[]).
 opSignature(abs, temporalunit, [ureal],[stream,ureal],[]).
 opSignature(speed, temporalunit, [mpoint],mreal,[]).
 opSignature(speed, temporalunit, [upoint],ureal,[]).
+opSignature(speed, temporalunit, [mpoint,geoid],mreal,[]).
+opSignature(speed, temporalunit, [upoint,geoid],ureal,[]).
 opSignature(velocity, temporalunit, [mpoint],mpoint,[]).
 opSignature(velocity, temporalunit, [upoint],upoint,[]).
 opSignature(derivable, temporalunit, [ureal],ubool,[]).
@@ -1345,6 +1361,7 @@ opSignature(the_ivalue, temporalunit, [instant,T1],T2,[]) :-
   memberchk((T1,T2),[(bool,ibool),(int,iint),(real,ireal),(string,istring),
                      (point,ipoint),(region,intimeregion)]), !.
 opSignature(length, temporalunit, [upoint],real,[]).
+opSignature(length, temporalunit, [upoint,geoid],real,[]).
 
 
 /*
@@ -1766,16 +1783,20 @@ opSignature(sim_set_event_params, simulation, [real,real,real,real], bool,
 opSignature(sim_set_dest_params, simulation, [real,real,real,real,real,real,
         real,real,real,real,real,real,real,real],bool,[sidefx]).
 opSignature(sim_create_trip, simulation, [[stream,[tuple,AttrList]],A1,A2,
-      instant,point],mpoint,[block,sidefx]) :-
+      instant,point,real],mpoint,[block,sidefx]) :-
   memberchk([A1,line],AttrList),member([A2,real],AttrList),!.
 opSignature(sim_create_trip, simulation, [[stream,[tuple,AttrList]],A1,A2,
-      instant,point,real],mpoint,[block,sidefx]) :-
+      instant,point,real,real],mpoint,[block,sidefx]) :-
+  memberchk([A1,line],AttrList),member([A2,real],AttrList),!.
+opSignature(sim_create_trip, simulation, [[stream,[tuple,AttrList]],A1,A2,
+      instant,point,real,real,geoid],mpoint,[block,sidefx]) :-
   memberchk([A1,line],AttrList),member([A2,real],AttrList),!.
 opSignature(sim_print_params, simulation, [],bool,[sidefx]).
 opSignature(sim_fillup_mpoint, simulation, [mpoint,instant,instant,bool,bool,
                                             bool],mpoint,[]).
 opSignature(sim_trips, simulation, [mpoint,duration],[stream,mpoint],[]).
 opSignature(sim_trips, simulation, [mpoint,duration,real],[stream,mpoint],[]).
+opSignature(sim_trips, simulation, [mpoint,duration,real,geoid],[stream,mpoint],[]).
 
 
 /*

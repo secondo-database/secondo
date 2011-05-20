@@ -197,7 +197,7 @@ Result   : (points((9396.0 9871.0)))
 
 Operator : direction
 Number   : 1
-Signature: mpoint -> mreal
+Signature: mpoint [ x geoid [ x real ] ] -> mreal
 Example  : query direction([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
 Result   : (mreal((("2003-10-10" "2003-10-20" TRUE TRUE)(0.0 0.0 45.0 FALSE))))
 Tolerance: 0.001
@@ -205,7 +205,7 @@ Tolerance: 0.001
 
 Operator : heading
 Number   : 1
-Signature: mpoint -> mreal
+Signature: mpoint [ x geoid [ x real ] ] -> mreal
 Example  : query heading([const mpoint value((("2003-10-10" "2003-10-20" TRUE TRUE)(2.0 2.0 3.0 3.0)))])
 Result   : (mreal((("2003-10-10" "2003-10-20" TRUE TRUE)(0.0 0.0 45.0 FALSE))))
 Tolerance: 0.001

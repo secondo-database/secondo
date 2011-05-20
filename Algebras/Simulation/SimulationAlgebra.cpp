@@ -878,7 +878,7 @@ const string sim_create_trip_Spec  =
     "x real [x real [x geoid] ] -> mpoint,\n"
     "for ti = line, tj = real, tk = point</text--->"
     "<text>_ sim_create_trip [LineAttr, VmaxAttr, StartInst, StartPoint, "
-    ", Vtop [, Vstart [, Geoid] ]</text--->"
+    "Vtop [, Vstart [, Geoid] ]</text--->"
     "<text>Creates a mpoint value representing a simulated vehicle, "
     "starting at instant 'StartInst' and 'StartPoint' and moving along a "
     "trajectory formed by the stream of lines received from the stream "

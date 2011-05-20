@@ -2115,11 +2115,22 @@ void UPoint::Length( const Geoid& g, CcReal& result ) const
 void UPoint::Direction( vector<UReal> &result,
                         const bool useHeading /*= false*/,
                         const Geoid* geoid    /*= 0*/,
-                        const double epsilon  /*= 0.0000001*/) const
+                        const double epsilon  /*= 0.00001*/) const
 {
   UReal uresult(true);
   if( !IsDefined() || (geoid && ( (epsilon<=0.0) || !geoid->IsDefined()) ) ) {
     return; // no result
+  }
+  if( (timeInterval.end == timeInterval.start) || AlmostEqual(p0,p1) ){
+    // undefined result!
+    uresult.a = 0.;
+    uresult.b = 0.;
+    uresult.c = 0.;
+    uresult.r = false;
+    uresult.timeInterval = timeInterval;
+    uresult.SetDefined(false);
+    result.push_back(uresult);
+    return;
   }
   if(!geoid) { // euclidean case
     uresult.a = 0.;
@@ -2132,9 +2143,58 @@ void UPoint::Direction( vector<UReal> &result,
     return;
   }
   // spherical case:
-  cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-       << endl;
-  assert( !geoid );
+  assert(epsilon > 0);
+  //compute directions at start/end point
+
+  bool valid = false;
+  double head0, head1;
+  p0.DistanceOrthodromePrecise( p1, geoid, valid, head0, head1);
+  if( !valid || (head0<0) || (head1<0) ){ // ERROR!
+    cerr << __PRETTY_FUNCTION__ << ": Error computing directions." << endl;
+    assert(false);
+    return;
+  }
+  if(!useHeading){
+    head0 = headingToDirection(head0);
+    head1 = headingToDirection(head1);
+  }
+  cout << __PRETTY_FUNCTION__ << ": head0 = " << head0 << endl;
+  cout << __PRETTY_FUNCTION__ << ": head1 = " << head0 << endl;
+  double deltaHead = head1 - head0;
+  cout << __PRETTY_FUNCTION__ << ": deltaHead = " << deltaHead << endl;
+  if( (fabs(deltaHead)<=epsilon) ){ // sufficiently precise
+    DateTime dt = timeInterval.end - timeInterval.start;
+    uresult.a = 0.;
+    uresult.b = deltaHead/dt.ToDouble();
+    uresult.c = head0;
+    uresult.r = false;
+    uresult.timeInterval = timeInterval;
+    uresult.SetDefined( true );
+    result.push_back(uresult);
+  } else { // preciseness not yet reached
+    // split the unit, recurse into both parts. append the resulting
+    // unit vectors to result.
+    Instant t0(timeInterval.start);
+    Instant t1(timeInterval.end);
+    Instant t05 = t0+((t1-t0)/2);
+    if( (t0==t05) || (t1==t05) ){ // invalid interval -> cannot split!
+      uresult.a = 0.;
+      uresult.b = deltaHead/(t1-t0).ToDouble();
+      uresult.c = head0;
+      uresult.r = false;
+      uresult.timeInterval = timeInterval;
+      uresult.SetDefined( true );
+      result.push_back(uresult);
+      return;
+    }
+    Interval<Instant> iv0(t0,t05,timeInterval.lc,false);
+    Interval<Instant> iv1(t05,t1,true,timeInterval.rc);
+    UPoint up0(false), up1(false);
+    AtInterval(iv0,up0);
+    AtInterval(iv1,up1);
+    up0.Direction(result,useHeading,geoid,epsilon); // append results
+    up1.Direction(result,useHeading,geoid,epsilon); // append results
+  }
   return;
 }
 
@@ -5290,15 +5350,6 @@ void MPoint::Direction( MReal* result,
     result->SetDefined(false);
     return;
   }
-
-  if(geoid){ // TODO: implement spherical geometry case
-    cerr << __PRETTY_FUNCTION__ << ": sperical geometry not implemented."
-    << endl;
-    assert(!geoid);
-    result->SetDefined(false);
-    return;
-  }
-
   vector<UReal> resvector(GetNoComponents());
   UPoint unitin;
   for(int i=0;i<GetNoComponents();i++) {
@@ -10447,36 +10498,86 @@ ListExpr DistanceTraversedOperatorTypeMapping( ListExpr args )
 The signature is:
 
 ----
-    mpoint x real x real [ x duration] --> stream(tuple((TimeOld instant)
-                                                        (TimeNew instant)
-                                                        (PosOld point)
-                                                        (PosNew point)
-                                                        (HeadingOld real)
-                                                        (HeadingNew real)
-                                                        (HeadingDiff real)))
+    mpoint x real x real [ x duration] [ x bool] [ x geoid]
+                                   --> stream(tuple((TimeOld instant)
+                                                    (TimeNew instant)
+                                                    (PosOld point)
+                                                    (PosNew point)
+                                                    (HeadingOld real)
+                                                    (HeadingNew real)
+                                                    (HeadingDiff real)))
+                                                    @int
 ----
+
+The appended int argument encodes the usage of optional parameters as a sum of
+1: duration present, 2: bool present, 4: geoid present. Valid values are 0-7;
 
 
 */
 
-ListExpr TurnsOperatorTypeMapping( ListExpr typeList ){
-  NList l(typeList);
-  int len = l.length();
-  if( (len != 3) && (len != 4) ){
-    return l.typeError("Operator 'turns' expects 3 or 4 arguments.");
+ListExpr TurnsOperatorTypeMapping( ListExpr args ){
+  int noargs = nl->ListLength(args);
+  bool durationPassed = false;
+  bool boolPassed = false;
+  bool geoidPassed = false;
+  if( (noargs < 3) || (noargs > 6) ){
+    return listutils::typeError("Expecting 3, 4, 5 or 6 arguments.");
   }
-  if( !(l.elem(1).isSymbol(symbols::MPOINT)) ){
-    return l.typeError("Operator 'turns' expects an 'mpoint' as 1st argument.");
+  if( !listutils::isSymbol(nl->First(args),MPoint::BasicType()) ){
+    return listutils::typeError("Expecting 'mpoint' as 1st argument.");
   }
-  if( !(l.elem(2).isSymbol(symbols::REAL)) ){
-    return l.typeError("Operator 'turns' expects a 'real' as 2nd argument.");
+  if( !listutils::isSymbol(nl->Second(args),CcReal::BasicType()) ){
+    return listutils::typeError("Expecting 'real' as 2nd argument.");
   }
-  if( !(l.elem(3).isSymbol(symbols::REAL)) ){
-    return l.typeError("Operator 'turns' expects a 'real' as 3rd argument.");
+  if( !listutils::isSymbol(nl->Third(args),CcReal::BasicType()) ){
+    return listutils::typeError("Expecting 'real' as 3rd argument.");
   }
-  if( len==4 && !(l.elem(4).isSymbol(symbols::DURATION)) ){
-    return l.typeError("Operator 'turns' expects 'duration' as 4th argument.");
+  if( noargs>=4 ){ // 4th argument (duratiopn OR bool OR geoid)
+    if( listutils::isSymbol(nl->Fourth(args),"duration") ){
+      durationPassed = true;
+    } else if( listutils::isSymbol(nl->Fourth(args),CcBool::BasicType()) ){
+      boolPassed = true;
+    } else if( listutils::isSymbol(nl->Fourth(args),Geoid::BasicType()) ){
+      geoidPassed = true;
+    } else {
+      return listutils::typeError("Expecting T in {duration, bool, geoid} as "
+                                 "4th argument.");
+    }
   }
+  if( noargs >= 5 ){ // 5th argument (bool or geoid)
+    if( listutils::isSymbol(nl->Fifth(args),CcBool::BasicType()) ){
+      boolPassed = true;
+    } else if( listutils::isSymbol(nl->Fifth(args),Geoid::BasicType()) ){
+      geoidPassed = true;
+    } else {
+      return listutils::typeError("Expecting T in {bool, geoid} as "
+      "5th argument.");
+    }
+    if( nl->Equal(nl->Fourth(args),nl->Fifth(args)) ){
+      return listutils::typeError("Expecting different types for 4th and 5th "
+                                 "argument.");
+    }
+  }
+  if( noargs == 6 ){ // 6th argument (geoid)
+    if( listutils::isSymbol(nl->Sixth(args),Geoid::BasicType()) ){
+      geoidPassed = true;
+    } else {
+      return listutils::typeError("Expecting geoid as 6th argument.");
+    }
+    if( nl->Equal(nl->Fourth(args),nl->Sixth(args)) ){
+      return listutils::typeError("Expecting different types for 4th and 6th "
+      "argument.");
+    }
+    if( nl->Equal(nl->Fifth(args),nl->Sixth(args)) ){
+      return listutils::typeError("Expecting different types for 5th and 6th "
+      "argument.");
+    }
+  }
+  int paramcode = 0;
+  paramcode += durationPassed?1:0;
+  paramcode += boolPassed?2:0;
+  paramcode += geoidPassed?4:0;
+
   NList resTupleType =NList(NList("TimeOld"),NList(symbols::INSTANT)).enclose();
   resTupleType.append(NList(NList("TimeNew"),NList(symbols::INSTANT)));
   resTupleType.append(NList(NList("PosOld"),NList(symbols::POINT)));
@@ -10486,7 +10587,10 @@ ListExpr TurnsOperatorTypeMapping( ListExpr typeList ){
   resTupleType.append(NList(NList("HeadingDiff"),NList(symbols::REAL)));
   NList resType =
         NList(NList(symbols::STREAM),NList(NList(symbols::TUPLE),resTupleType));
-  return resType.listExpr();
+
+  return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+                            nl->OneElemList(nl->IntAtom(paramcode)),
+                            resType.listExpr());
 }
 
 /*
@@ -13875,15 +13979,33 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
     TurnsLocalInfo *li = static_cast<TurnsLocalInfo*>(local.addr);
     UPoint u(false);
 
-    MPoint* m = static_cast<MPoint*>(args[0].addr);
-    CcReal* minDiff = static_cast<CcReal*>(args[1].addr);
-    CcReal* maxDiff = static_cast<CcReal*>(args[2].addr);
-    Geoid* geoid = 0; // TODO: implement spherical geometry case!
-    DateTime *maxDur = 0;
+    // extract appended parameter encoding optional parameter info
     int no_args = qp->GetNoSons(s);
+    const CcInt* ccArgcode = static_cast<const CcInt*>(args[no_args-1].addr);
+    assert(ccArgcode && ccArgcode->IsDefined());
+    int argcode = ccArgcode->GetIntval();
+    assert( (argcode>=0) && (argcode<=7) );
+    // determine presence and location of optional parameters
+    int iDuration = ((argcode==1)||(argcode==3)||(argcode==5)||(argcode==7))?
+                                                                          3:-1;
+    int iBool     = (argcode==0)?-1:(((argcode==2)||(argcode==6))?
+                                        3:(((argcode==3)||(argcode==7))?4:-1));
+    int iGeoid    = (argcode<=0)?-1:((argcode==4)?
+                        3:(((argcode==5)||(argcode==6))?4:((argcode==7)?5:-1)));
+    // extract parameters
+    const MPoint* m = static_cast<const MPoint*>(args[0].addr);
+    const CcReal* minDiff = static_cast<const CcReal*>(args[1].addr);
+    const CcReal* maxDiff = static_cast<const CcReal*>(args[2].addr);
+    DateTime* maxDur   = (iDuration>=0)?
+                          static_cast<DateTime*>(args[iDuration].addr):0;
+    const CcBool* useHeading = (iBool>=0)?
+                          static_cast<const CcBool*>(args[iBool].addr):0;
+    const Geoid* geoid       = (iGeoid>=0)?
+                          static_cast<const Geoid*>(args[iGeoid].addr):0;
     bool deleteMaxDur = false;
-    bool useHead = false; // TODO: Using direction (false) or heading (true)
+    bool useHead = useHeading && useHeading->GetBoolval();
 
+    // initialize result attributes
     double lastHead = 0.0, currHead = 0.0, diffHead = 0.0;
     Point *lastPos=0, *currPos=0;
     DateTime *lastTime = 0, *currTime=0;
@@ -13894,13 +14016,11 @@ int TurnsOperatorValueMapping( Word* args, Word& result, int message,
     switch( message )
     {
       case OPEN:
-        if(no_args==3){
+        if(!maxDur){
           maxDur = new DateTime(-9999,-9999,durationtype);
           maxDur->SetDefined(true);
           deleteMaxDur = true;
-        } else { // no_args==4
-          maxDur = static_cast<DateTime*>(args[3].addr);
-        }
+        } // else maxDur already passed as parameter
         li = new TurnsLocalInfo(*m, *minDiff, *maxDiff, *maxDur);
         local.addr = li;
         if(!li->resultTupleType){
@@ -15546,25 +15666,30 @@ OperatorInfo DistanceTraversedOperatorInfo( "distancetraversed",
   "");
 
 OperatorInfo TurnsOperatorInfo( "turns",
-  "mpoint x real x real [ x duration ] -> stream(tuple(TimeOld instant, "
-  "TimeNew instant, PosOld point, PosNew point, HeadingOld real, "
-  "HeadingNew real, HeadingDiff real))",
-  "turns( mp, mindiff, maxdiff [, maxdur ] )",
-  "Given a mpoint 'mp' the operator will return a stream of tuples describing "
-  "all the object's turns where the heading changes by at least 'mindiff' and "
-  "at most 'maxdiff' degrees (both parameters absolute values are used)."
-  "The optional parameter 'maxdur' specifies a maximum duration of definition "
+  "mpoint x real x real [ x duration ] [ x bool] [ x geoid ] -> stream(tuple("
+  "TimeOld instant, TimeNew instant, PosOld point, PosNew point, HeadingOld "
+  "real, HeadingNew real, HeadingDiff real))",
+  "turns( MP, MinDiff, MaxDiff [, MaxDur ] [, UseHeading] [, Geoid] )",
+  "Given a mpoint MP the operator will return a stream of tuples describing "
+  "all the object's turns where the heading changes by at least MinDiff and "
+  "at most MaxDiff' degrees (both parameters' absolute values are used)."
+  "The optional parameter MaxDur' specifies a maximum duration of definition "
   "gaps of the object, that will be ignored (negative durations or missing "
   "parameter are handled as 'don't care about temporal distance at all'). "
   "Static periods (where the object does not move) are considered like "
   "undefined periods. Positive 'HeadingDiff' indicates a counterclockwise "
   "rotation, negative 'HeadingDiff' indicates clockwise rotation. "
-  "'HeadingDiff' is always in range ]-180.0,180.0]",
+  "'HeadingDiff' is always in range ]-180.0,180.0]. If an optional Geoid is "
+  "passed, MP is expected to use geographic (LON.LAT) coordinates, otherwise "
+  "euclidean coordinates (X,Y) are assumed. If optional boolean parameter "
+  "UseHeading is TRUE (default is FALSE) the semantic of result attributes "
+  "HeadingOld and HeadingNew is 'heading' (navigational angles), otherwise "
+  "'direction' (mathematical angles))",
   "");
 
 OperatorInfo GridCellEventsOperatorInfo( "gridcellevents",
-  "{upoint,mpoint} -> stream(tuple(Cell int, TimeEntered: instant, "
-  "TimeLeft: instant, CellPrevious: int, CellNext: int))",
+  "{upoint,mpoint} x real x real x real x real x int -> stream(tuple(Cell int, "
+  "TimeEntered: instant, TimeLeft: instant, CellPrevious: int, CellNext: int))",
   "gridcellevents( o, x0, y0, wx, wy, nx )",
   "Given an object 'o' and a regular spatial grid specified by the remaining "
   "parameters (see operators 'cellnumber' and 'gridintersects'), report all "
@@ -16690,7 +16815,7 @@ OperatorInfo GetRefinementPartitionOperatorInfo(
 "indexes of the according original units within M1 (UnitNo1), M2 (UnitNo2). "
 "If for a given interval one of the arguments is not defined, the according "
 "result unit is set to UNDEFINED. If one argument is UNDEFINED, the result "
-"contains the original units of the other, defined,argument. If M1 and M2 are "
+"contains the original units of the other, defined, argument. If M1 and M2 are "
 "both undefined, or both are empty (do not contain any unit) the result stream "
 "is empty.",
 "query getRefinementPartion(train1, train5) count"
