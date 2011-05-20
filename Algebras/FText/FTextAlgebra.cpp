@@ -1917,6 +1917,21 @@ ListExpr Int2Text_TM( ListExpr args ){
   return nl->SymbolAtom(FText::BasicType());
 }
 
+
+ListExpr attr2textTM(ListExpr args){
+   string err = "DATA expected";
+   if(nl->ListLength(args)!=1){
+     return listutils::typeError(err);
+   }
+
+   if(listutils::isDATA(nl->First(args))){
+      return nl->SymbolAtom(FText::BasicType());
+   }
+   return listutils::typeError(err);
+}
+
+
+
 /*
 3.3 Value Mapping Functions
 
@@ -5859,6 +5874,23 @@ int charToTextFun( Word* args, Word& result, int message,
 }
 
 /*
+4.26 Operator ~attr2text~
+
+*/
+int attr2textVM( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText* res = static_cast<FText*>(result.addr);
+
+  Attribute* attr = static_cast<Attribute*>(args[0].addr);
+  
+  stringstream ss;
+  attr->Print(ss);
+  res->Set(true,ss.str());
+  return 0;
+}
+/*
 3.4 Definition of Operators
 
 Used to explain signature, syntax and meaning of the operators of the type ~text~.
@@ -6553,6 +6585,15 @@ const string charToText_Spec =
     "<text>query 'Hello' + charToText( 10 ) + 'world!'</text--->"
     ") )";
 
+const string attr2textSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> DATA -> text </text--->"
+    "<text> attr2text(_) </text--->"
+    "<text>Creates a string representation of an attribute "
+    " type using its Print function."
+    " </text--->"
+    "<text>query attr2text(32) </text--->"
+    ") )";
 /*
 Operator Definitions
 
@@ -7127,6 +7168,20 @@ Operator charToText
  Int2Text_TM
  );
 
+
+Operator attr2text(
+ "attr2text",
+ attr2textSpec,
+ attr2textVM,
+ Operator::SimpleSelect,
+ attr2textTM
+ );
+
+
+
+
+
+
 /*
 5 Creating the algebra
 
@@ -7206,6 +7261,7 @@ public:
     AddOperator( &tokenize);
     AddOperator( &sendtextstreamTCP);
     AddOperator( &charToText);
+    AddOperator( &attr2text);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

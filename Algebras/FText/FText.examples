@@ -858,3 +858,11 @@ Number   : 1
 Signature: int -> text
 Example  : query ('Hello' + charToText( 32 ) + 'world!')
 Result   : (text 'Hello world!')
+
+Operator  : attr2text
+Number    : 1
+Signature : DATA -> text
+Example   : query attr2text(32)
+Result    : (text '32')
+
+
