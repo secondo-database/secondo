@@ -52,13 +52,13 @@ Result: 11
 Operator : fconsume
 Number   : 1
 Signature: stream(tuple(...)) x string x text x [int] x [string] x [string] x [ array(string) x int x int x int] -> bool
-Example  : query plz feed fconsume["plzComp", '', 1]
+Example  : query plz feed fconsume["plzComp", '', 1;;]
 Result   : TRUE
 
 Operator : ffeed
 Number   : 1
 Signature: string x string x [int] x [string] x [array(string) x int x int] -> rel(tuple(...))
-Example  : query ffeed("plzComp",'',1) count
+Example  : query "plzComp" ffeed[,'',1;;] count
 Result   : 41267
 
 Operator : hadoopjoin
@@ -70,5 +70,5 @@ Result   : '(stream (tuple ((mIndex int) (pIndex int))))'
 Operator : fdistribute
 Number   : 1
 Signature: stream(tuple((a1 t1) ... (ai ti) ... (an tm))) x string x text x ai x int -> stream(tuple((sufix int) (ai ti))) 
-Example  : query plz feed fdistribute["plz_dis", '', PLZ,50,TRUE] loopsel[ffeed("plz_dis",'',.suffix)] count
+Example  : query plz feed fdistribute["plz_dis", '', PLZ,50,TRUE] loopsel["plz_dis" ffeed['',.suffix;;]] count
 Result   : 41267
