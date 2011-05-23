@@ -40,7 +40,8 @@ level remains. Models are also removed from type constructors.
 
 1 Preliminaries
 
-This algebra provides one type constructor ~date~, and seven operators: \verb+<+ , = , \verb+>+, ~year[_]of~, ~month[_]of~, ~day[_]of~, and ~thedate~.
+This algebra provides one type constructor ~date~, and seven operators: 
+\verb+<+ , = , \verb+>+, ~year[_]of~, ~month[_]of~, ~day[_]of~, and ~thedate~.
 
 Signatures of these operators are listed below:
 
@@ -62,11 +63,14 @@ Signatures of these operators are listed below:
 
 ----    int x int x int -> date
 ----
-        generates a date according to the specified year, month, and day information
+        generates a date according to the specified year, month, 
+        and day information
 
 
-The algebra provides basic checks on the validity of a date. For instance, Fabruary in leap years
-(every 4 years except 100th year, and every 400th year) has 29 days, and Fabruary in normal years only
+The algebra provides basic checks on the validity of a date. 
+For instance, Fabruary in leap years
+(every 4 years except 100th year, and every 400th year) has 
+29 days, and Fabruary in normal years only
 has 28 days.
 
 
@@ -83,6 +87,8 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
+#include "StringUtils.h"
+#include "ListUtils.h"
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -95,7 +101,8 @@ extern AlgebraManager *am;
 
 1.2 Date Validating Function
 
-This function checks whether an input date is valid. The month and the day must be within valid
+This function checks whether an input date is valid. The month 
+and the day must be within valid
 boundaries. However, the year can be any integer. For instance, -100 represents
 the year of 100BC.
 
@@ -137,7 +144,8 @@ bool isdate(int  Day, int Month, int Year)
 
 2.1 Data Structure - Class ~Date~
 
-In order to use ~date~ as an attribute type in tuple definitions, we must derive the class ~Date~ from ~Attribute~.
+In order to use ~date~ as an attribute type in tuple definitions, 
+we must derive the class ~Date~ from ~Attribute~.
 
 */
 
@@ -154,6 +162,35 @@ class Date: public Attribute
   void     SetMonth( int Yonth);
   void     SetYear( int Year);
   void     Set(bool Defined,  int Day, int Month, int Year);
+/*
+~readFrom~
+
+Sets this date value to the given string. accepted formats are
+yyy-mm-dd and dd.mm.yyyy where leading zeros can be ommitted.
+If the string  does not represent a valid day, this Date value 
+remains unchanged and false is returned.
+
+*/  
+  bool     readFrom(string& d);
+
+/*
+~ReadFromString~
+
+works similar to the readFrom function. In contrast to that function,
+this Date is set to be false in the string does not represent a
+valid date.
+
+*/
+ virtual  void ReadFromString(string d);
+/*
+getCsvStr
+
+Returns a string represnetation of this date value.
+
+*/  
+
+  virtual string getCsvStr() const;
+
   void     successor(const Date *d, Date *s) const;
 /*************************************************************************
 
@@ -172,6 +209,10 @@ class Date: public Attribute
   bool     Adjacent(const Attribute * arg) const;
   Date*    Clone() const;
   ostream& Print( ostream &os ) const;
+  static const string BasicType(){
+      return "date";
+  }
+
 
  private:
   int day;
@@ -213,9 +254,109 @@ void Date::Set(bool Defined, int Day, int Month, int Year)
     year = Year;
 }
 
+bool Date::readFrom(string& s){
+
+  stringutils::trim(s);
+
+  if(s.length()>99){
+    return false;
+  }
+ 
+  char *i, *j;
+  int dot = 0;
+  int hyphen = 0;
+  int Year;
+  int Month;
+  int Day;
+  char buf[100];
+  const char* c_string = s.c_str();
+  
+  if (strcmp(c_string,"-")==0)  //"-" undefined value
+  {
+    Set(false, 0,0,0);
+    return true;
+  }
+
+   //"1998-02-01" or "1999-2-1" or "1.2.1998" or "02.01.1999"
+  strcpy(buf, c_string);
+  int bufLen=strlen(buf);
+
+
+  //basic check on date format
+  for ( i=buf; i<buf+bufLen; i++) {
+     if (*i=='.') dot++;
+     if (*i=='-') hyphen++;
+     if ((*i!='.') && (*i!='-') && ((*i<'0') || (*i>'9'))) {
+        // invalid character
+          return false;
+      }
+   }
+
+
+    if ((hyphen == 2) && (dot == 0)) //format is "1998-02-01"
+    {
+      //extract the year, month, day information from the date
+      i=buf; j=i;
+      while ((*j!='-') && (j<buf+bufLen))  j++;
+      *j=0;
+      Year=atoi(i);
+
+      i=j+1; j=i;
+      while ((*j!='-') && (j<buf+bufLen))  j++;
+      *j=0;
+      Month=atoi(i);
+
+      i=j+1; j=i;
+      while ((*j!='-') && (j<buf+bufLen))  j++;
+      *j=0;
+      Day=atoi(i);
+    } else if ((hyphen == 0) && (dot == 2)) { //format is "1.2.1998"
+      
+        //extract the year, month, day information from the date
+        i=buf; j=i;
+        while ((*j!='.') && (j<buf+bufLen))  j++;
+        *j=0;
+        Day=atoi(i);
+
+        i=j+1; j=i;
+        while ((*j!='.') && (j<buf+bufLen))  j++;
+        *j=0;
+        Month=atoi(i);
+
+        i=j+1; j=i;
+        while ((*j!='.') && (j<buf+bufLen))  j++;
+        *j=0;
+        Year=atoi(i);
+   } else {
+        return false;
+   }
+
+   if (isdate(Day, Month, Year)) {
+       Set(true, Day, Month, Year);
+       return true;
+   } else {
+       return false;
+   }
+}
+
+void Date::ReadFromString(string s){
+   if(!readFrom(s)){
+      SetDefined(false);
+   }
+}
+
+string Date::getCsvStr() const{
+  stringstream ss;
+  Print(ss);
+  return ss.str();
+}
+
+
+
 /*************************************************************************
 
-  In the following, we give the definitions of the 9 virtual functions which are needed
+  In the following, we give the definitions of the 9 virtual functions 
+  which are needed
   if we want to use ~date~ as an attribute type in tuple definitions.
 
 *************************************************************************/
@@ -398,114 +539,26 @@ Word
 InDate( const ListExpr typeInfo, const ListExpr instance, 
         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Date* newdate;
-  string inputStr;
-  char *i, *j;
-  int dot = 0;
-  int hyphen = 0;
-  int Year;
-  int Month;
-  int Day;
-  char buf[100];
-
-  if (nl->IsAtom(instance) && nl->AtomType(instance)==StringType)
-      inputStr= nl->StringValue( instance);
-  else
-  {      cout <<">>>invalid date - not a string type!<<<"<<endl;
-         correct = false;
-         return SetWord(Address(0));
+  if(nl->AtomType(instance)!=StringType){
+     correct = false;
+     return SetWord(Address(0));
   }
-  const char* c_string = inputStr.c_str();
-  if (strcmp(c_string,"-")==0)  //"-"
-  {
-    correct = true;
-    newdate = new Date(false, 0, 0, 0);
-    return SetWord(newdate);
+  Date* date = new Date(false,0,0,0);
+  string s = nl->StringValue(instance);
+  if(!date->readFrom(s)){
+    delete date;
+    correct = false;
+    return SetWord(Address(0));
   }
-  else   //"1998-02-01" or "1999-2-1" or "1.2.1998" or "02.01.1999"
-  {
-    strcpy(buf, c_string);
-    int bufLen=strlen(buf);
-
-
-    //basic check on date format
-    for ( i=buf; i<buf+bufLen; i++)
-    {
-        if (*i=='.') dot++;
-        if (*i=='-') hyphen++;
-
-        if ((*i!='.') && (*i!='-') && ((*i<'0') || (*i>'9')))
-        {
-            cout <<">>>invalid date!<<<"<<endl;
-            correct = false;
-            return SetWord(Address(0));
-        }
-    }
-
-
-    if ((hyphen == 2) && (dot == 0)) //format is "1998-02-01"
-    {
-      //extract the year, month, day information from the date
-      i=buf; j=i;
-      while ((*j!='-') && (j<buf+bufLen))  j++;
-      *j=0;
-      Year=atoi(i);
-
-      i=j+1; j=i;
-      while ((*j!='-') && (j<buf+bufLen))  j++;
-      *j=0;
-      Month=atoi(i);
-
-      i=j+1; j=i;
-      while ((*j!='-') && (j<buf+bufLen))  j++;
-      *j=0;
-      Day=atoi(i);
-    }
-    else 
-      if ((hyphen == 0) && (dot == 2)) //format is "1.2.1998"
-      {
-        //extract the year, month, day information from the date
-        i=buf; j=i;
-        while ((*j!='.') && (j<buf+bufLen))  j++;
-        *j=0;
-        Day=atoi(i);
-
-        i=j+1; j=i;
-        while ((*j!='.') && (j<buf+bufLen))  j++;
-        *j=0;
-        Month=atoi(i);
-
-        i=j+1; j=i;
-        while ((*j!='.') && (j<buf+bufLen))  j++;
-        *j=0;
-        Year=atoi(i);
-      }
-      else
-      {
-         cout <<">>>invalid date!<<<"<<endl;
-         correct = false;
-         return SetWord(Address(0));
-      }
-
-
-    if (isdate(Day, Month, Year))
-    {
-         correct = true;
-         newdate = new Date(true, Day, Month, Year);
-         return SetWord(newdate);
-    }
-    else
-    {
-         cout <<">>>invalid date!<<<"<<endl;
-         correct = false;
-         return SetWord(Address(0));
-     }
-  }
+  correct = true;
+  return SetWord(date);
+ 
 }
 
 /***********************************************************************
 
-The following 5 functions must be defined if we want to use ~date~ as an attribute type in tuple definitions.
+The following 5 functions must be defined if we want to use ~date~ as 
+an attribute type in tuple definitions.
 
 ************************************************************************/
 
@@ -665,6 +718,20 @@ IntIntIntDate( ListExpr args )
 }
 
 
+ListExpr str2dateTM(ListExpr args){
+  string err = " string expected";
+  if(nl->ListLength(args)!=1){
+     return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!listutils::isSymbol(arg1,CcString::BasicType())){
+     return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(Date::BasicType());
+
+}
+
+
 /*
 3.3 Value Mapping Functions
 
@@ -817,8 +884,23 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (isdate(Day, Month, Year)) {
       res->Set(true, Day, Month, Year);
   } else {
-       cout <<"   >>>invalid date, replaced by UNDEFINED!<<<" << endl;
        res->Set(false, 0, 0, 0);
+  }
+  return 0;
+}
+
+
+int
+str2dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  Date* res = static_cast<Date*>(result.addr);
+  CcString* str = static_cast<CcString*>(args[0].addr);
+  if(!str->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    string st = str->GetValue();
+    res->ReadFromString(st);
   }
   return 0;
 }
@@ -889,8 +971,21 @@ const string DateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "<text>let date1 = thedate(5,4,2003)</text--->"
                               ") )";
 
+const string str2dateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" )"
+    "( <text>string -> date</text--->"
+    "<text> str2date(_)"
+    "</text--->"
+    "<text>Converts a string to a date. If the string is undefined "
+    "or is not a valid date, the result will be undefined. "
+    "Allowed formats are dd.mm.yyyy and yyyy-mm-dd where leading zeros "
+    " can be omitted."
+    ".</text--->"
+    "<text>query str2date(\"2011-05-23\") = str2date(\"23.5.2011\")</text--->"
+     ") )";
 /*
-The above strings are used to explain the signature and the meaning of operators.
+The above strings are used to explain the signature and the 
+meaning of operators.
 
 */
 
@@ -949,6 +1044,16 @@ Operator thedate (
         Operator::SimpleSelect,    //trivial selection function
         IntIntIntDate              //type mapping
 );
+
+
+Operator str2date (
+        "str2date",                 //name
+        str2dateSpec,                  //specification
+        str2dateFun,                   //value mapping
+        Operator::SimpleSelect,    //trivial selection function
+        str2dateTM              //type mapping
+);
+
 /*
 
 4 Creating the Algebra
@@ -963,6 +1068,8 @@ class DateAlgebra : public Algebra
     AddTypeConstructor( &date );
 
     date.AssociateKind("DATA");
+    date.AssociateKind("CSVIMPORTABLE");
+    date.AssociateKind("CSVEXPORTABLE");
 
     AddOperator( &day );
     AddOperator( &month );
@@ -971,6 +1078,7 @@ class DateAlgebra : public Algebra
     AddOperator( &opequal);
     AddOperator( &later );
     AddOperator( &thedate );
+    AddOperator( &str2date );
   }
   ~DateAlgebra() {};
 };
@@ -1012,7 +1120,8 @@ InitializeDateAlgebra( NestedList* nlRef,
 
 6.1 Syntax Specification
 
-We need to write the following DateAlgebra.spec file to indicate the syntax of the operations in the date algebra:
+We need to write the following DateAlgebra.spec file to indicate the syntax 
+of the operations in the date algebra:
 
 ----    operator year[_]of alias YEAR[_]OF pattern op ( _ )
         operator month[_]of alias MONTH[_]OF pattern op ( _ )
@@ -1024,7 +1133,8 @@ We need to write the following DateAlgebra.spec file to indicate the syntax of t
 
 6.2 Display Function
 
-We need to add the following display function into DisplayTTY.h and DisplayTTY.cpp
+We need to add the following display function into DisplayTTY.h and 
+DisplayTTY.cpp
 (under the secondo/UserInterface/ subdirectary) to display date correctly:
 
 ----    void
