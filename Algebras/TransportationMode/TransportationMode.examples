@@ -587,6 +587,33 @@ Example  : query refmo2genmo("Metro", Trains, ubahn_line, btree_ub_line) count;
 Result   : 562 
 
 
+Operator : themetronetwork
+Number   : 2
+Signature: int x rel x rel x rel-> metronetwork
+Example  : query ref_id(themetronetwork(2, stops_rel, routes_rel, metros_rel));
+Result   : 2
+
+
+Operator : ms_neighbors1
+Number   : 2
+Signature: rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query ms_neighbors1(metro_stops) count;
+Result   : 534
+
+
+Operator : ms_neighbors2
+Number   : 2
+Signature: metronetwork x rel x btree x rel x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query ms_neighbors2(mn, train_time_table_compact, btree_time_table, genmo_metros, btree_metro) count;
+Result   : 364
+
+Operator : createmgraph
+Number   : 2
+Signature: int x rel1 x rel2 x rel3 -> metrograph
+Example  : query createmgraph(1, node_rel, edge_rel1, edge_rel2);
+Result   : file_platform
+
+
 Operator : thefloor
 Number   : 1
 Signature: float x region -> floor3d

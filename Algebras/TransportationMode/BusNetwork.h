@@ -382,7 +382,6 @@ struct Pos_Speed{
   }
 };
 
-class Bus_Stop; 
 
 struct RoadDenstiy{
   Network* n;
@@ -1227,6 +1226,44 @@ struct UBhan_Id_Geo{
   }
 };
 
+/*
+metro stop data
+
+*/
+struct UBahn_Stop{
+  int line_id;
+  Point loc;
+  int stop_id;
+  bool d;
+  int tid;
+  UBahn_Stop(){}
+  UBahn_Stop(int l, Point& p, int s, bool dir, int id):
+  line_id(l), loc(p), stop_id(s), d(dir), tid(id){}
+  UBahn_Stop(const UBahn_Stop& ub_stop):
+  line_id(ub_stop.line_id), loc(ub_stop.loc), 
+  stop_id(ub_stop.stop_id), d(ub_stop.d), tid(ub_stop.tid){}
+  UBahn_Stop& operator=(const UBahn_Stop& ub_stop)
+  {
+    line_id = ub_stop.line_id;
+    loc = ub_stop.loc;
+    stop_id = ub_stop.stop_id;
+    d = ub_stop.d;
+    tid = ub_stop.tid;
+    return *this;
+  }
+  bool operator<(const UBahn_Stop& ub_stop) const
+  {
+    return loc < ub_stop.loc;
+  }
+  void Print()
+  {
+    cout<<"line id "<<line_id<<" stop id "<<stop_id<<" dir "<<d
+        <<" loc "<<loc<<" tid "<<tid<<endl;
+  }
+
+};
+
+class MetroNetwork;
 
 struct UBTrain{
   Relation* rel1;
@@ -1255,9 +1292,21 @@ struct UBTrain{
   vector<MPoint> mp_list;
   vector<int> br_id_list;
   
+
+  vector<int> ms_tid_list1;
+  vector<int> ms_tid_list2;
+  vector<Periods> period_list;
+  vector<double> time_cost_list;
+  
+  
   static string TrainsTypeInfo;
   static string UBahnLineInfo;
-  
+  static string UBahnTrainsTypeInfo; 
+  static string TrainsStopTypeInfo;
+  static string TrainsStopExtTypeInfo; 
+  static string UBahnTrainsTimeTable;
+
+
   UBTrain(){count = 0;resulttype = NULL;}
   UBTrain(Relation* r):rel1(r),count(0),resulttype(NULL){}
   UBTrain(Relation* r1,Relation* r2,BTree* b):
@@ -1267,14 +1316,19 @@ struct UBTrain{
   //////////    for UBahn Trips ///////////////////////////////////////
   enum UBAHN_TRAIN{T_ID,T_LINE,T_UP,T_TRIP,T_SCHEDULE};
   /////////////// Train Stops ///////////////////////////////////////
-  enum UBAHN_STOP{T_LINEID,T_STOP_LOC,T_STOP_ID}; 
-  
+  enum UBAHN_STOP{T_LINEID,T_STOP_LOC,T_STOP_ID};
+
+  enum UBAHN_STOP_EXT{T_LINEID_EXT, T_STOP_LOC_EXT,
+                      T_STOP_ID_EXT, T_DIRECTION};
+
   //////////////////// Trains and UBahn Line////////////////////
   ///////////////////convert trains to genmo///////////////////////
-  enum UBAHN_TRAINS{TRAIN_LINE_ID = 0, TRAIN_TRIP};
-  enum UBAHN_LINE{UB_LINE_ID = 0, UB_LINE_GEODATA}; 
-  
-  
+  enum UBAHN_TRAINS{TRAIN_LINE_ID = 0, TRAIN_LINE_DIR, TRAIN_TRIP};
+  enum UBAHN_LINE{UB_LINE_ID = 0, UB_LINE_OID, UB_LINE_GEODATA}; 
+  enum UBAHN_TIMETABLE{UB_STATION_LOC_T,UB_LINE_ID_T, UB_STOP_ID_T,
+                       UB_DIR_T,UB_PERIODS_T,UB_INTERVAL_T,UB_LOC_ID_T};
+
+
   unsigned int count;
   TupleType* resulttype;
 
@@ -1291,6 +1345,7 @@ struct UBTrain{
                               int count_id);
   void TimeTableCompact(vector<MPoint>&,Point,int,int,bool,int);
   void GetTimeInstantStop(MPoint& mo, Point loc, Instant& st);
+  
  ////////////////////////////////////////////////////////////////////////////
  ////////////////// covert berlin trains to generic moving objects//////////
  //////////////////////////////////////////////////////////////////////////
@@ -1298,6 +1353,187 @@ struct UBTrain{
  void AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines); 
  void TrainsToGenMO(); 
  void MPToGenMO(MPoint* mp, GenMO* mo, int l_id); 
+ 
+ /////////////////////////////////////////////////////////////////////
+ ////////////////create stops and routes relation////////////////////
+ /////////////////////////////////////////////////////////////////////
+ void MsNeighbors1(Relation* r);
+ void MsNeighbors2(MetroNetwork* mn, Relation* timetable, BTree* btree1,
+                   Relation* metrotrip, BTree* btree2);
+ void ConnectionOneRoute(UBahn_Stop* ms_stop, Relation* timetable, 
+                         BTree* btree1, Relation* metrotrip, 
+                         BTree* btree2, int Neighbor_tid, Point* Neighbor_loc);
+ 
+};
+
+/*
+metro network: underground trains 
+
+*/
+class MetroNetwork{
+  public:
+    MetroNetwork();
+    MetroNetwork(bool d, unsigned int i);
+    MetroNetwork(SmiRecord& valueRecord, size_t& offset, 
+                 const ListExpr typeInfo);
+    ~MetroNetwork();
+
+    bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+    static MetroNetwork* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+
+    bool IsDefined() const { return def;}
+    unsigned int GetId() const {return mn_id;}
+    Relation* GetMS_Rel(){return stops_rel;}
+    Relation* GetMR_Rel(){return routes_rel;}
+
+    static void* Cast(void* addr);
+    void Load(unsigned int i, Relation* r1, Relation* r2, Relation* r3); 
+    void LoadStops(Relation* r);
+    void LoadRoutes(Relation* r);
+    void LoadMetros(Relation* r);
+    double GetMaxSpeed(){return max_metro_speed;}
+    int GetMS_Stop_Neighbor(UBahn_Stop* ms_stop);
+
+    R_Tree<2,TupleId>* GetMS_RTree() { return rtree_bs;}
+    void SetGraphId(int g_id);
+
+
+
+    bool IsGraphInit(){return graph_init;}
+    unsigned int GraphId(){return graph_id;}
+  
+    static string UBAHNStopsTypeInfo;
+    static string UBAHNStopsBTreeTypeInfo;
+    static string UBAHNStopsRTreeTypeInfo;
+
+    static string UBAHNRoutesTypeInfo;
+    static string UBAHNRotuesBTreeTypeInfo;
+    
+    static string UBAHNMetroTripTypeInfo;
+    static string UBAHNMetroBTreeTypeInfo;
+
+    enum UBAHN_STOP_INFO{UB_LINEID, UB_STOP_LOC,UB_STOP_ID, UB_DIRECTION};
+    enum UBAHN_ROUTE_INFO{UB_LINEID2, UB_LINE_OID, UB_L_GEODATA};
+    enum UBAHN_METRO_INFO{UB_TRIP1_GENMO, UB_TRIP2_MO,
+                          UB_M_LINE_ID, UB_M_LINE_DIR, UB_TRIP_OID};
+
+  private:
+
+    bool def;
+    unsigned int mn_id;/////metro network id
+    bool graph_init; 
+    unsigned int graph_id; 
+    double max_metro_speed;//maximum speed of all moving buses (heuristic value)
+    unsigned int min_mr_oid;//smallest metro route oid
+    unsigned int min_mt_oid; //smallest metro trip oid 
+
+    Relation* stops_rel; //a relation for metro stops
+    BTree* btree_bs; //a btree on metro stops on line id 
+    R_Tree<2,TupleId>* rtree_bs; //an rtree on metro stops
+
+    Relation* routes_rel;  //a relaton for metro routes
+    BTree* btree_br; //a btree on metro routes line id
+    BTree* btree_br_uoid; //a btree on metro routes for unique oid 
+
+
+    Relation* metrotrips_rel; //a relation for moving buses 
+    BTree* btree_trip_br_id; //a btree on metro trips on metro route linid 
+    BTree* btree_trip_oid;  //a btree on metro trips on unique oid 
+
+};
+
+bool SaveMetroNetwork(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+bool OpenMetroNetwork(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value);
+ListExpr MetroNetworkProperty();
+Word InMetroNetwork( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutMetroNetwork( ListExpr typeInfo, Word value );
+Word CreateMetroNetwork(const ListExpr typeInfo);
+void DeleteMetroNetwork(const ListExpr typeInfo, Word& w);
+void CloseMetroNetwork( const ListExpr typeInfo, Word& w );
+Word CloneMetroNetwork( const ListExpr typeInfo, const Word& w );
+int SizeOfMetroNetwork();
+bool CheckMetroNetwork( ListExpr type, ListExpr& errorInfo );
+
+
+/*
+metro graph. 
+nodes correspond to metro stops 
+there are two kinds of edges: 
+(1) two metro stops have the same spatial location in space
+(2) two consequent metro stops are connected by moving metros
+this graph is similar as bus graph
+
+metro graph edges stores node tuple id 
+
+*/
+class MetroGraph{
+  public:
+
+    MetroGraph();
+    MetroGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect);
+    MetroGraph(SmiRecord&, size_t&, const ListExpr);
+    ~MetroGraph();
+
+    static string MGNodeTypeInfo;
+    static string MGNodeBTreeTypeInfo; 
+    static string MGEdge1TypeInfo;
+    static string MGEdge2TypeInfo;
+
+    enum MG_NODE_INFO{MG_NODE_LINE_ID,MG_NODE_LOC,MG_NODE_STOP_ID,MG_NODE_UP};
+    enum MG_EDGE1_INFO{MG_EDGE1_TID1, MG_EDGE1_TID2};
+    enum MG_EDGE2_INFO{MG_EDGE2_TID1, MG_EDGE2_TID2, MG_EDGE2_PERI,
+                       MG_EDGE2_SCHED, MG_EDGE2_PATH, MG_EDGE2_TIME_COST};
+
+    static ListExpr MetroGraphProp();
+    static bool CheckMetroGraph(ListExpr type, ListExpr& errorInfo);
+    static int SizeOfMetroGraph();
+    static void* CastMetroGraph(void* addr);
+    static Word CloneMetroGraph(const ListExpr typeInfo, const Word& w); 
+    static void CloseMetroGraph(const ListExpr typeInfo, Word& w);
+    static Word CreateMetroGraph(const ListExpr typeInfo);
+    static void DeleteMetroGraph(const ListExpr typeInfo, Word& w);
+    static Word InMetroGraph(ListExpr in_xTypeInfo,
+                            ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect);
+    static ListExpr OutMetroGraph(ListExpr typeInfo, Word value); 
+    ListExpr Out(ListExpr typeInfo); 
+    static bool SaveMetroGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+    bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo);
+    static bool OpenMetroGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value); 
+    static MetroGraph* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+    unsigned int GetG_ID(){return mg_id;}
+
+    void Load(int, Relation*, Relation*, Relation*);
+    void LoadEdge1(Relation* edge1); 
+    void LoadEdge2(Relation* edge2); 
+
+
+  private:
+    unsigned int mg_id;
+    double min_t; //minimum time of all metro stops time duration 
+
+    Relation* node_rel;
+    BTree* btree_node; //btree on metro stop line id 
+
+    Relation* edge_rel1;//edges: with the same spatial location 
+    DbArray<int> adj_list1;
+    DbArray<ListEntry> entry_adj_list1;
+
+    Relation* edge_rel2;//edges: connected by moving metros 
+    DbArray<int> adj_list2;
+    DbArray<ListEntry> entry_adj_list2;
+
 };
 
 #endif

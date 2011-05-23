@@ -6444,7 +6444,7 @@ bool BusNetwork::Save(SmiRecord& valueRecord, size_t& offset,
 store bus stops relation and the index
 
 */
-void BusNetwork:: LoadStops(Relation* r1)
+void BusNetwork::LoadStops(Relation* r1)
 {
   ListExpr xTypeInfo;
   nl->ReadFromString(BusStopsInternalTypeInfo, xTypeInfo);
@@ -8248,10 +8248,8 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
     assert(count == 1);*/
 
     table_tuple->DeleteIfAllowed();
-    
+
   }
-
-
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -8978,13 +8976,13 @@ void BusGraph::LoadEdge3(Relation* e_rel)
   assert(QueryExecuted);
   edge_rel3 = (Relation*)xResult.addr;
 //  Relation* edge_rel3 = (Relation*)xResult.addr;
-  
+
   GenericRelationIterator* edgeiter = edge_rel3->MakeScan();
   Tuple* edge_tuple; 
-  
+
   min_t = numeric_limits<double>::max(); 
-  
-  
+
+
   while((edge_tuple = edgeiter->GetNextTuple()) != 0){
      Periods* peri = (Periods*)edge_tuple->GetAttribute(BG_LIFETIME);
     Interval<Instant> periods;
@@ -9048,7 +9046,8 @@ void BusGraph::LoadEdge3(Relation* e_rel)
     BTreeIterator* btree_iter = btree->ExactMatch(nodeid);
     int start = adj_list3.Size();
     while(btree_iter->Next()){
-      Tuple* edge_tuple = edge_rel2->GetTuple(btree_iter->GetId(), false);
+//      Tuple* edge_tuple = edge_rel2->GetTuple(btree_iter->GetId(), false);
+      Tuple* edge_tuple = edge_rel3->GetTuple(btree_iter->GetId(), false);
 
       adj_list3.Append(edge_tuple->GetTupleId());//get the edge tuple id 
 
@@ -9066,7 +9065,7 @@ void BusGraph::LoadEdge3(Relation* e_rel)
   }
 
   delete btree;
-  
+
 }
 
 
@@ -10402,13 +10401,13 @@ for the start bus stop, it does not consider the walk segment connection
 */
 void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 {
-  
+
   BusGraph* bg = bn->GetBusGraph(); 
   if(bg == NULL){
     cout<<"bus graph is invalid"<<endl; 
     return;
   }
-  
+
   if(!bs1->IsDefined() || !bs2->IsDefined()){
    cout<<" bus stops are not defined"<<endl;
    return; 
@@ -10430,7 +10429,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
   bg_min.ReadFrom(bg->min_t); 
 
   assert(bg_min.GetWeekday() == 6);//start from Sunday 
-  
+
   if(qt->GetWeekday() == 6){
     new_st.Set(bg_min.GetYear(),bg_min.GetMonth(),bg_min.GetGregDay(),
            qt->GetHour(), qt->GetMinute(), qt->GetSecond(),
@@ -10501,7 +10500,8 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         if(top.tm == TM_BUS){
           bool search_flag = true;
           BNPath_elem temp_elem = top;
-          while(dest.prev_index != -1){
+//          while(dest.prev_index != -1){
+          while(temp_elem.prev_index != -1){
             if(temp_elem.tm == TM_BUS){
               break;
             }
@@ -11942,7 +11942,8 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         ////////////////////////////////////////////////////
           bool search_flag = true;
           BNPath_elem2 temp_elem = top;
-          while(dest.prev_index != -1){
+//          while(dest.prev_index != -1){
+          while(temp_elem.prev_index != -1){
             if(temp_elem.tm == TM_BUS){
               break;
             }
@@ -13277,10 +13278,24 @@ void UBTrain::AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines)
 }
 
 string UBTrain::TrainsTypeInfo = 
-"(rel (tuple ((lineid int) (Trip mpoint))))"; 
+"(rel (tuple ((lineid int) (Up bool) (Trip mpoint))))"; 
 
 string UBTrain::UBahnLineInfo = 
-"(rel (tuple ((oid int) (geoData sline))))";
+"(rel (tuple ((lineid int) (oid int) (geoData sline))))";
+
+string UBTrain:: UBahnTrainsTypeInfo =
+"(rel (tuple ((Id int) (Line int) (Up bool) (Trip mpoint) (schedule_id int))))";
+
+string UBTrain::TrainsStopTypeInfo = 
+"(rel (tuple ((LineId int) (loc point) (stop_id int))))"; 
+
+string UBTrain::TrainsStopExtTypeInfo = 
+"(rel (tuple ((LineId int) (loc point) (stop_id int) (Up bool))))";
+
+string UBTrain::UBahnTrainsTimeTable =
+"(rel (tuple ((station_loc point) (line_id int) (stop_id int)\
+(train_direction bool) (whole_time periods) (schedule_interval real)\
+(loc_id int))))";
 
 /*
 convert berlintest trains to generic moving objects 
@@ -13292,15 +13307,18 @@ void UBTrain::TrainsToGenMO()
     Tuple* train_tuple = rel1->GetTuple(i, false); 
     int line_id = 
        ((CcInt*)train_tuple->GetAttribute(TRAIN_LINE_ID))->GetIntval();
+    bool dir = 
+        ((CcBool*)train_tuple->GetAttribute(TRAIN_LINE_DIR))->GetBoolval();
     MPoint* mp = ((MPoint*)train_tuple->GetAttribute(TRAIN_TRIP)); 
-    
+
     GenMO* genmo = new GenMO(0); 
-    
+
     MPToGenMO(mp, genmo, line_id); 
 
     genmo_list.push_back(*genmo);
     mp_list.push_back(*mp);
     br_id_list.push_back(line_id);
+    direction_list.push_back(dir);
 
     delete genmo; 
     train_tuple->DeleteIfAllowed(); 
@@ -13316,6 +13334,8 @@ convert a moving point to a generic moving object
 */
 void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id)
 {
+//    cout<<"line id "<<l_id<<endl;
+
     mo->StartBulkLoad(); 
     CcInt* search_id = new CcInt(true, l_id);
     BTreeIterator* btree_iter = btree1->ExactMatch(search_id);
@@ -13331,14 +13351,17 @@ void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id)
     delete btree_iter;
     delete search_id;
     assert(ub_line_id == l_id); 
-//    cout<<"line length "<<sl->Length()<<endl; 
-    
+
+//  cout<<"line length "<<sl->Length()<<endl;
+
     for(int i = 0;i < mp->GetNoComponents();i++){
       UPoint unit1;
       mp->Get(i, unit1); 
       double pos1;
       double pos2;
-      ////////////////////the same when we convert it back////////////////
+      ////////////////////////////////////////////////////////////////////
+      //////////////the same when we convert it back  (TRUE) /////////////
+      ////////////////////////////////////////////////////////////////////
       assert(sl->AtPoint(unit1.p0, true, pos1));
       assert(sl->AtPoint(unit1.p1, true, pos2));
 //      cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
@@ -13355,12 +13378,1557 @@ void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id)
 //      if(i %2 == 0) //for debuging time intervals are not consequent 
         mo->Add(*unit2); 
       delete unit2; 
-      
+
     }
+
     delete sl; 
-    
+
     mo->EndBulkLoad();
 }
 
 
+/*
+create one kind of edges for metro graph where two metro stops have the same
+spatial location
+
+*/
+void UBTrain::MsNeighbors1(Relation* r)
+{
+//   cout<<"MsNeighbors1"<<endl;
+   vector<UBahn_Stop> ub_stop_list;
+   for(int i = 1;i <= r->GetNoTuples();i++){
+      Tuple* ub_tuple = r->GetTuple(i, false);
+      int line_id = ((CcInt*)ub_tuple->GetAttribute(T_LINEID_EXT))->GetIntval();
+      Point* loc = (Point*)ub_tuple->GetAttribute(T_STOP_LOC_EXT);
+      int stop_id = 
+        ((CcInt*)ub_tuple->GetAttribute(T_STOP_ID_EXT))->GetIntval();
+      bool dir = ((CcBool*)ub_tuple->GetAttribute(T_DIRECTION))->GetBoolval();
+      UBahn_Stop ub_stop(line_id, *loc, stop_id, dir, ub_tuple->GetTupleId());
+      ub_stop_list.push_back(ub_stop);
+      ub_tuple->DeleteIfAllowed();
+   }
+
+//   cout<<ub_stop_list.size()<<endl;
+//  sort(ub_stop_list.begin(), ub_stop_list.end());
+
+  const double delta_dist = 0.01;
+  for(unsigned int i = 0; i < ub_stop_list.size();i++){
+  
+    for(unsigned int j = 0; j < ub_stop_list.size();j++){
+      if(i != j){
+        if(ub_stop_list[i].loc.Distance(ub_stop_list[j].loc) < delta_dist){
+            ms_tid_list1.push_back(ub_stop_list[i].tid);
+            ms_tid_list2.push_back(ub_stop_list[j].tid);
+        }
+      }
+    }
+  }
+
+
+}
+
+/*
+create edges for metro graph where two metro stops are connected by moving
+metros
+
+*/
+void UBTrain::MsNeighbors2(MetroNetwork* mn, Relation* timetable, BTree* btree1,
+                   Relation* metrotrip, BTree* btree2)
+{
+//  cout<<"MsNeighbors2 "<<endl;
+  Relation* ms_rel = mn->GetMS_Rel();
+  for(int i = 1;i <= ms_rel->GetNoTuples();i++){
+    Tuple* ms_tuple = ms_rel->GetTuple(i, false);
+    int line_id = ((CcInt*)ms_tuple->GetAttribute(T_LINEID_EXT))->GetIntval();
+    Point *loc = (Point*)ms_tuple->GetAttribute(T_STOP_LOC_EXT);
+    int stop_id = ((CcInt*)ms_tuple->GetAttribute(T_STOP_ID_EXT))->GetIntval();
+    bool dir = ((CcBool*)ms_tuple->GetAttribute(T_DIRECTION))->GetBoolval();
+    UBahn_Stop ms_stop(line_id, *loc, stop_id, dir, ms_tuple->GetTupleId());
+
+    int neighbor_tid = mn->GetMS_Stop_Neighbor(&ms_stop);
+
+    if(neighbor_tid > 0){
+//      ms_stop.Print();
+      Tuple* ms_tuple2 = ms_rel->GetTuple(neighbor_tid, false);
+      Point *loc2 = (Point*)ms_tuple2->GetAttribute(T_STOP_LOC_EXT);
+
+      ConnectionOneRoute(&ms_stop, timetable, btree1, 
+                         metrotrip, btree2, neighbor_tid, loc2);
+
+      ms_tuple2->DeleteIfAllowed();
+
+      ms_tid_list1.push_back(ms_tuple->GetTupleId());
+      ms_tid_list2.push_back(neighbor_tid);
+    }
+
+    ms_tuple->DeleteIfAllowed();
+
+/*if(neighbor_tid > 0){
+      Tuple* ms_tuple2 = ms_rel->GetTuple(neighbor_tid, false);
+    int line_id2 = ((CcInt*)ms_tuple2->GetAttribute(T_LINEID_EXT))->GetIntval();
+      Point *loc2 = (Point*)ms_tuple2->GetAttribute(T_STOP_LOC_EXT);
+   int stop_id2 = ((CcInt*)ms_tuple2->GetAttribute(T_STOP_ID_EXT))->GetIntval();
+      bool dir2 = ((CcBool*)ms_tuple2->GetAttribute(T_DIRECTION))->GetBoolval();
+  UBahn_Stop ms_stop2(line_id2, *loc2, stop_id2, dir2, ms_tuple2->GetTupleId());
+
+      ms_tuple2->DeleteIfAllowed();
+      ms_stop2.Print();
+      cout<<endl;
+    }else
+      cout<<"no neighbor "<<endl; */
+
+  }
+
+}
+
+/*
+build the connection for a metro stop in one route, to its next stop
+
+*/
+void UBTrain::ConnectionOneRoute(UBahn_Stop* ms_stop, Relation* timetable, 
+                         BTree* btree1, Relation* metrotrip, 
+                                 BTree* btree2, 
+                                 int Neighbor_tid, Point* Neighbor_loc)
+{
+
+    ///////////////////////////////////////////////////////////////
+    //////////////////find the periods and schedule ///////////////
+    ///////////////////////////////////////////////////////////////
+    CcInt* search_cell_id1 = new CcInt(true, ms_stop->line_id);
+    BTreeIterator* btree_iter1 = btree1->ExactMatch(search_cell_id1);
+    while(btree_iter1->Next()){
+        Tuple* tuple = timetable->GetTuple(btree_iter1->GetId(), false);
+        int l_id = ((CcInt*)tuple->GetAttribute(UB_LINE_ID_T))->GetIntval();
+        assert(l_id == ms_stop->line_id);
+        int s_id = ((CcInt*)tuple->GetAttribute(UB_STOP_ID_T))->GetIntval();
+        bool dir = ((CcBool*)tuple->GetAttribute(UB_DIR_T))->GetBoolval();
+        if(s_id == ms_stop->stop_id && dir == ms_stop->d){
+          Periods* peri = (Periods*)tuple->GetAttribute(UB_PERIODS_T);
+          double sche_int = 
+            ((CcReal*)tuple->GetAttribute(UB_INTERVAL_T))->GetRealval();
+//          cout<<"periods "<<*peri<<" interval "<<sche_int*86400.0<<endl; 
+
+          period_list.push_back(*peri);
+          schedule_interval.push_back(sche_int);
+
+        }
+
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+    delete search_cell_id1;
+
+    ////////////////////////////////////////////////////////////////
+    //////////////////find the trip connecting two metro stops /////
+    ////////////////////////////////////////////////////////////////
+    CcInt* search_cell_id2 = new CcInt(true, ms_stop->line_id);
+    BTreeIterator* btree_iter2 = btree2->ExactMatch(search_cell_id2);
+    bool found = false;
+    while(btree_iter2->Next()){
+      Tuple* tuple = metrotrip->GetTuple(btree_iter2->GetId(), false);
+      int l_id = 
+        ((CcInt*)tuple->GetAttribute(MetroNetwork::UB_M_LINE_ID))->GetIntval();
+      assert(l_id == ms_stop->line_id);
+      bool dir = 
+      ((CcBool*)tuple->GetAttribute(MetroNetwork::UB_M_LINE_DIR))->GetBoolval();
+//      cout<<"l_id "<<l_id<<" dir "<<dir<<endl;
+      if(dir == ms_stop->d){
+        const double delta_dist = 0.01;
+        MPoint* mo = (MPoint*)tuple->GetAttribute(MetroNetwork::UB_TRIP2_MO);
+        ///////////////////////////////////////////////////////////
+        ///////////////find the stop units////////////////////////
+        /////////////////////////////////////////////////////////
+        int j = 0;
+        for(;j < mo->GetNoComponents();j++){
+          UPoint up;
+          mo->Get(j, up);
+          Point lp = up.p0;
+          Point rp = up.p1;
+          if(ms_stop->loc.Distance(lp) < delta_dist && 
+             ms_stop->loc.Distance(rp) < delta_dist){
+//              cout<<"find the stop "<<endl;
+              break;
+          }
+        }
+        assert(j < mo->GetNoComponents());
+        if(j == mo->GetNoComponents() - 1){//last stop, need not process 
+
+        }else{
+          MPoint sub_move(0);
+          sub_move.StartBulkLoad();
+          double time_move = 0.0;
+          for(j++;j < mo->GetNoComponents();j++){//start from next unit
+            UPoint up;
+            mo->Get(j, up);
+            Point lp = up.p0;
+            Point rp = up.p1;
+            if(lp.Distance(rp) < delta_dist && 
+               Neighbor_loc->Distance(lp) < delta_dist){ //next bus stop
+              break;
+            }else{
+              sub_move.Add(up);
+              time_move += up.timeInterval.end.ToDouble() - 
+                           up.timeInterval.start.ToDouble();
+            }
+          }
+          sub_move.EndBulkLoad();
+//          cout<<" time cost  "<<time_move*86400.0<<endl;
+          Line traj(0);
+          sub_move.Trajectory(traj);
+          SimpleLine sl_traj(0);
+          sl_traj.fromLine(traj);
+
+          geodata.push_back(sl_traj);
+          time_cost_list.push_back(time_move);
+
+        }
+
+        found = true;
+      }
+      tuple->DeleteIfAllowed();
+
+      if(found)break;
+    }
+    delete btree_iter2;
+    delete search_cell_id2;
+    
+    assert(found);
+
+}
+
+///////////////////////////////////////////////////////////////
+//////////////////// metro network/////////////////////////////
+///////////////////////////////////////////////////////////////
+string MetroNetwork::UBAHNStopsTypeInfo =
+"(rel (tuple ((LineId int) (loc point) (stop_id int) (Up bool))))";
+
+string MetroNetwork::UBAHNStopsBTreeTypeInfo =
+"(btree (tuple ((LineId int) (loc point) (stop_id int) (Up bool))) int)";
+
+string MetroNetwork::UBAHNStopsRTreeTypeInfo = "(rtree (tuple ((LineId int)\
+(loc point) (stop_id int) (Up bool))) point FALSE)";
+
+string MetroNetwork::UBAHNRoutesTypeInfo = "(rel (tuple ((lineid int)\
+(oid int) (geoData sline))))";
+
+string MetroNetwork::UBAHNRotuesBTreeTypeInfo = "(rel (tuple ((lineid int)\
+(oid int) (geoData sline))) int)";
+
+string MetroNetwork::UBAHNMetroTripTypeInfo = "(rel (tuple ((metrotrip1 genmo)\
+(metrotrip2 mpoint) (br_id int) (br_dir bool) (oid int))))";
+
+string MetroNetwork::UBAHNMetroBTreeTypeInfo = 
+"(btree (tuple ((metrotrip1 genmo)(metrotrip2 mpoint) (br_id int)\
+(br_dir bool) (oid int))) int)";
+
+
+ListExpr MetroNetworkProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("metronetwork"),
+         nl->StringAtom("((def, id))"),
+           nl->StringAtom("((TRUE 1))"))));
+}
+
+/*
+In function. there is not nested list expression here.
+
+*/
+Word InMetroNetwork( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 2){
+      cout<<"length should be 2"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+
+    if(!nl->IsAtom(first) || nl->AtomType(first) != BoolType){
+      cout<< "busnetwork(): definition must be bool type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool d = nl->BoolValue(first);
+
+
+    if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
+      cout<< "metronetwork(): metro network id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int id = nl->IntValue(second);
+
+    MetroNetwork* mn = new MetroNetwork(d, id); 
+
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    return SetWord(mn);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+output the metro network 
+
+*/
+ListExpr OutMetroNetwork( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutMetroNetwork"<<endl; 
+  MetroNetwork* mn = (MetroNetwork*)(value.addr);
+  if(!mn->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->TwoElemList(
+               nl->StringAtom("Metro Network Id:"), 
+               nl->IntAtom(mn->GetId()));
+
+//  return nl->OneElemList(list1);
+
+  ////////////////out put bus stops relation////////////////////////////////
+  ListExpr bs_list = nl->TheEmptyList();
+  Relation* bs_rel = mn->GetMS_Rel();
+  
+  if(bs_rel != NULL){
+      bool bFirst = true;
+      ListExpr xNext = nl->TheEmptyList();
+      ListExpr xLast = nl->TheEmptyList();
+      for(int i = 1;i <= bs_rel->GetNoTuples();i++){
+        Tuple* node_tuple = bs_rel->GetTuple(i, false);
+        int line_id = 
+       ((CcInt*)node_tuple->GetAttribute(MetroNetwork::UB_LINEID))->GetIntval();
+        int stop_id = 
+      ((CcInt*)node_tuple->GetAttribute(MetroNetwork::UB_STOP_ID))->GetIntval();
+        bool direction = ((CcBool*)node_tuple->GetAttribute(MetroNetwork::
+                         UB_DIRECTION))->GetBoolval();
+
+       Point* loc = (Point*)node_tuple->GetAttribute(MetroNetwork::UB_STOP_LOC);
+
+        ListExpr stop_list = nl->FourElemList(
+           nl->IntAtom(line_id), nl->IntAtom(stop_id), 
+           nl-> BoolAtom(direction), 
+           OutPoint( nl->TheEmptyList(), SetWord(loc) ));
+
+        xNext  = stop_list;
+        if(bFirst){
+          bs_list = nl->OneElemList(xNext);
+          xLast = bs_list;
+          bFirst = false;
+        }else
+            xLast = nl->Append(xLast,xNext);
+        node_tuple->DeleteIfAllowed();
+      }
+  }
+
+//  return nl->TwoElemList(list1, bs_list);
+
+
+ //////////////////////output metro routes relation///////////////////////////
+  ListExpr br_list = nl->TheEmptyList();
+  Relation* br_rel = mn->GetMR_Rel();
+
+  if(br_rel != NULL){
+      bool bFirst = true;
+      ListExpr xNext = nl->TheEmptyList();
+      ListExpr xLast = nl->TheEmptyList();
+      for(int i = 1;i <= br_rel->GetNoTuples();i++){
+        Tuple* node_tuple = br_rel->GetTuple(i, false);
+        SimpleLine* mr = 
+              (SimpleLine*)node_tuple->GetAttribute(MetroNetwork::UB_L_GEODATA);
+        int lineid = 
+      ((CcInt*)node_tuple->GetAttribute(MetroNetwork::UB_LINEID2))->GetIntval();
+
+        ListExpr route_list = nl->TwoElemList(
+           nl->IntAtom(lineid), 
+           OutSimpleLine( nl->TheEmptyList(), SetWord(mr)));
+
+        xNext  = route_list;
+        if(bFirst){
+          br_list = nl->OneElemList(xNext);
+          xLast = br_list;
+          bFirst = false;
+        }else
+            xLast = nl->Append(xLast,xNext);
+        node_tuple->DeleteIfAllowed();
+      }
+  }
+  ////////////////////////////////////////////////////////////////////////
+  ////////////////no output bus trips relation: too much data///////////////
+  //////////////////////////////////////////////////////////////////////////
+  return nl->ThreeElemList(list1, bs_list, br_list);
+
+}
+
+bool SaveMetroNetwork(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  MetroNetwork* mn = (MetroNetwork*)value.addr;
+  return mn->Save(valueRecord, offset, typeInfo);
+}
+
+bool OpenMetroNetwork(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  value.addr = MetroNetwork::Open(valueRecord, offset, typeInfo);
+  return value.addr != NULL; 
+}
+
+MetroNetwork* MetroNetwork::Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo)
+{
+  return new MetroNetwork(valueRecord, offset, typeInfo); 
+
+}
+
+
+Word CreateMetroNetwork(const ListExpr typeInfo)
+{
+// cout<<"CreateMetroNetwork()"<<endl;
+  return SetWord (new MetroNetwork());
+}
+
+
+void DeleteMetroNetwork(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteMetroNetwork()"<<endl;
+  MetroNetwork* mn = (MetroNetwork*)w.addr;
+  delete mn;
+   w.addr = NULL;
+}
+
+
+void CloseMetroNetwork( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"CloseMetroNetwork"<<endl; 
+  delete static_cast<MetroNetwork*>(w.addr); 
+  w.addr = 0;
+}
+
+Word CloneMetroNetwork( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneMetroNetwork"<<endl; 
+  return SetWord( new Address(0));
+}
+
+void* MetroNetwork::Cast(void* addr)
+{
+  return NULL;
+}
+
+int SizeOfMetroNetwork()
+{
+//  cout<<"SizeOfMetroNetwork"<<endl; 
+  return sizeof(MetroNetwork);
+}
+
+bool CheckMetroNetwork( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckMetroNetwork"<<endl; 
+  return (nl->IsEqual( type, "metronetwork" ));
+}
+
+
+MetroNetwork::MetroNetwork():
+def(false), mn_id(0), graph_init(false), graph_id(0), max_metro_speed(0),
+min_mr_oid(0), min_mt_oid(0), 
+stops_rel(NULL), btree_bs(NULL), rtree_bs(NULL),
+routes_rel(NULL), btree_br(NULL), btree_br_uoid(NULL),
+metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
+{
+
+
+}
+
+MetroNetwork::MetroNetwork(bool d, unsigned int i): def(d), mn_id(i), 
+graph_init(false), graph_id(0), max_metro_speed(0),
+min_mr_oid(0), min_mt_oid(0),
+stops_rel(NULL), btree_bs(NULL), rtree_bs(NULL),
+routes_rel(NULL), btree_br(NULL), btree_br_uoid(NULL),
+metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
+{
+
+
+}
+
+/*
+read the data from record 
+
+*/
+MetroNetwork::MetroNetwork(SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo):
+def(false), mn_id(0), graph_init(false), graph_id(0), max_metro_speed(0),
+min_mr_oid(0), min_mt_oid(0),
+stops_rel(NULL), btree_bs(NULL), rtree_bs(NULL),
+routes_rel(NULL), btree_br(NULL), btree_br_uoid(NULL),
+metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
+{
+  valueRecord.Read(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&mn_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Read(&graph_init, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&graph_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Read(&max_metro_speed, sizeof(double), offset);
+  offset += sizeof(double);
+
+  valueRecord.Read(&min_mr_oid, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Read(&min_mt_oid, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  ////////////////Open relation for metro stops///////////////////////
+  nl->ReadFromString(UBAHNStopsTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  stops_rel = Relation::Open(valueRecord, offset, xNumericType);
+  if(!stops_rel) {
+    return;
+  }
+
+  ///////////////////btree on metro stops on brid///////////////////////////////
+  nl->ReadFromString(UBAHNStopsBTreeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_bs = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_bs) {
+    stops_rel->Delete(); 
+   return;
+  }
+
+  ///////////////////rtree on metro stops //////////////////////////////
+  Word xValue;
+  if(!(rtree_bs->Open(valueRecord,offset, UBAHNStopsRTreeTypeInfo,xValue))){
+    stops_rel->Delete(); 
+    delete btree_bs;
+    return;
+  }
+
+  rtree_bs = ( R_Tree<2,TupleId>* ) xValue.addr;
+
+ ///////////////////////////////Open relation for metroroutes///////////////
+  nl->ReadFromString(UBAHNRoutesTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  routes_rel = Relation::Open(valueRecord, offset, xNumericType);
+  if(!routes_rel) {
+    stops_rel->Delete();
+    delete btree_bs;
+    delete rtree_bs;
+    return;
+  }
+
+  ///////////////////btree on metro routes//////////////////////////////////
+  nl->ReadFromString(UBAHNRotuesBTreeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_br = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_br) {
+    stops_rel->Delete(); 
+    delete btree_bs;
+    delete rtree_bs;
+    routes_rel->Delete();
+    return;
+  }
+
+   ///////////////////btree on metro routes unique oid///////////////////////
+  nl->ReadFromString(UBAHNRotuesBTreeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_br_uoid = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_br_uoid) {
+    stops_rel->Delete(); 
+    delete btree_bs;
+    routes_rel->Delete();
+    delete btree_br; 
+    delete rtree_bs; 
+    return;
+  }
+
+  ///////////////open relation storing metro trips//////////////////////
+  nl->ReadFromString(UBAHNMetroTripTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  metrotrips_rel = Relation::Open(valueRecord, offset, xNumericType);
+  if(!metrotrips_rel) {
+    stops_rel->Delete(); 
+    delete btree_bs;
+    routes_rel->Delete();
+    delete btree_br; 
+    delete rtree_bs; 
+    delete btree_br_uoid;
+    return;
+  }
+
+  ///////////////////btree on metro trips bus route id///////////////////////
+  nl->ReadFromString(UBAHNMetroBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_trip_br_id = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_trip_br_id) {
+    stops_rel->Delete(); 
+    delete btree_bs;
+    routes_rel->Delete();
+    delete btree_br; 
+    delete rtree_bs; 
+    delete btree_br_uoid;
+    metrotrips_rel->Delete();
+    return;
+  }
+  
+  ///////////////////btree on metro trips unique id////////////////////////////
+  nl->ReadFromString(UBAHNMetroBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_trip_oid = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_trip_oid) {
+    stops_rel->Delete();
+    delete btree_bs;
+    routes_rel->Delete();
+    delete btree_br;
+    delete rtree_bs;
+    delete btree_br_uoid;
+    metrotrips_rel->Delete();
+    delete btree_trip_br_id;
+    return;
+  }
+
+}
+
+MetroNetwork::~MetroNetwork()
+{
+  if(stops_rel != NULL) stops_rel->Close();
+  if(btree_bs != NULL) delete btree_bs;
+  if(rtree_bs != NULL) delete rtree_bs; 
+  if(routes_rel != NULL) routes_rel->Close();
+  if(btree_br != NULL) delete btree_br;
+  if(btree_br_uoid != NULL) delete btree_br_uoid;
+  if(metrotrips_rel != NULL) metrotrips_rel->Close();
+  if(btree_trip_br_id != NULL) delete btree_trip_br_id;
+  if(btree_trip_oid != NULL) delete btree_trip_oid;
+}
+
+bool MetroNetwork::Save(SmiRecord& valueRecord, size_t& offset, 
+                      const ListExpr typeInfo)
+{
+  
+//  cout<<"MetroNetwork::Save"<<endl; 
+
+  valueRecord.Write(&def, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&mn_id, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
+
+  valueRecord.Write(&graph_init, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&graph_id, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
+
+  valueRecord.Write(&max_metro_speed, sizeof(double), offset);
+  offset += sizeof(double); 
+
+  valueRecord.Write(&min_mr_oid, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
+
+  valueRecord.Write(&min_mt_oid, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
+
+  ListExpr xType;
+  ListExpr xNumericType;
+
+  ////////////////////metro stops relation/////////////////////////////
+  nl->ReadFromString(UBAHNStopsTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!stops_rel->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  
+  /////////////////////btree on metro stops on lineid/////////////////////////
+  nl->ReadFromString(UBAHNStopsBTreeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_bs->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  ///////////////////////rtree on metro stops ///////////////////////
+  if(!rtree_bs->Save(valueRecord, offset)){
+    return false;
+  }
+  
+   ///////////////////metro routes relation///////////////////////////
+  nl->ReadFromString(UBAHNRoutesTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!routes_rel->Save(valueRecord,offset,xNumericType))
+      return false;
+  
+  ///////////////////////btree on metro routes////////////////////////////
+  nl->ReadFromString(UBAHNRotuesBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_br->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  ///////////////////////btree on bus routes on unique id///////////////////
+  nl->ReadFromString(UBAHNRotuesBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_br_uoid->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  ///////////////////metro trips relation/////////////////////////////
+  nl->ReadFromString(UBAHNMetroTripTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!metrotrips_rel->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  //////////////////btree on metro trips on metro route id/////////////////
+  nl->ReadFromString(UBAHNMetroBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_trip_br_id->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  ///////////////////////btree on metro trips on unique id///////////////////
+  nl->ReadFromString(UBAHNMetroBTreeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_trip_oid->Save(valueRecord,offset,xNumericType))
+      return false;
+
+  return true; 
+}
+
+/*
+load stops, routes, and moving metros relation 
+
+*/
+void MetroNetwork::Load(unsigned int i, Relation* r1, Relation* r2, 
+                        Relation* r3)
+{
+
+  if(i < 1){
+    def = false;
+    return;
+  }
+  mn_id = i; 
+
+  LoadStops(r1);  /////to get 2D points in space  
+  LoadRoutes(r2); //first load bus routes because bus stops access bus routes
+  LoadMetros(r3); //load moving metros 
+
+  def = true; 
+}
+
+/*
+load metro stops relation 
+
+*/
+void MetroNetwork::LoadStops(Relation* r)
+{
+
+  ostringstream xStopsStream;
+  xStopsStream << (long)r;
+  string strQuery = "(consume(feed(" + UBAHNStopsTypeInfo +
+                "(ptr " + xStopsStream.str() + "))))";
+ 
+//  cout<<strQuery<<endl; 
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  stops_rel = (Relation*)xResult.addr; 
+  
+  
+  //////////////////////////////////////////////////////////////////
+  //////////////////////btree on metro stops line id/////////////////////
+  ///////////////////////////////////////////////////////////////////
+  ostringstream xNodeOidPtrStream;
+  xNodeOidPtrStream << (long)stops_rel;
+  strQuery = "(createbtree (" + UBAHNStopsTypeInfo +
+             "(ptr " + xNodeOidPtrStream.str() + "))" + "LineId)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_bs = (BTree*)xResult.addr;
+
+
+  //////////////////////rtree on metro stops//////////////////////////
+  ostringstream xMetroStopsRtree;
+  xMetroStopsRtree << ( long ) stops_rel;
+
+  strQuery = "(bulkloadrtree(sortby(addid(feed (" + UBAHNStopsTypeInfo +
+         " (ptr " + xMetroStopsRtree.str() + "))))((loc asc))) loc)";
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  rtree_bs = ( R_Tree<2,TupleId>* ) xResult.addr;
+
+}
+
+/*
+load metro routes relation 
+
+*/
+void MetroNetwork::LoadRoutes(Relation* r2)
+{
+    ostringstream xRoutesStream;
+    xRoutesStream << (long)r2;
+    string strQuery = "(consume(feed(" + UBAHNRoutesTypeInfo +
+                "(ptr " + xRoutesStream.str() + "))))";
+
+//  cout<<strQuery<<endl; 
+
+    Word xResult;
+    int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+    assert(QueryExecuted);
+    routes_rel = (Relation*)xResult.addr; 
+
+  ///////////////////get the minimum metro route oid////////////////////////
+  int temp_id = numeric_limits<int>::max(); 
+  for(int i = 1;i <= routes_rel->GetNoTuples();i++){
+    Tuple* mr_tuple = routes_rel->GetTuple(i, false);
+    int id = ((CcInt*)mr_tuple->GetAttribute(UB_LINE_OID))->GetIntval();
+    if(id < temp_id) temp_id = id;
+    mr_tuple->DeleteIfAllowed(); 
+  }
+  min_mr_oid = temp_id;
+  
+//  cout<<"min mr oid "<<min_mr_oid<<endl; 
+  
+   //////////////////////////////////////////////////////////////////
+  //////////////////////btree on metro routes lineid/////////////////////
+  //////////////////////////////////////////////////////////////////
+  ostringstream xEdgeOidPtrStream;
+  xEdgeOidPtrStream << (long)routes_rel;
+  strQuery = "(createbtree (" + UBAHNRoutesTypeInfo +
+             "(ptr " + xEdgeOidPtrStream.str() + "))" + "lineid)";
+//  cout<<strQuery<<endl; 
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_br = (BTree*)xResult.addr;
+
+
+   //////////////////////////////////////////////////////////////////
+  //////////////////////btree on metro routes unique oid///////////////
+  //////////////////////////////////////////////////////////////////
+  ostringstream xEdgeOidPtrStream2;
+  xEdgeOidPtrStream2 << (long)routes_rel;
+  strQuery = "(createbtree (" + UBAHNRoutesTypeInfo +
+             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_br_uoid = (BTree*)xResult.addr;
+
+}
+
+/*
+load moving metros 
+
+*/
+void MetroNetwork::LoadMetros(Relation* r3)
+{
+  ostringstream xRoutesStream;
+  xRoutesStream << (long)r3;
+  string strQuery = "(consume(feed(" + UBAHNMetroTripTypeInfo +
+                "(ptr " + xRoutesStream.str() + "))))";
+
+//  cout<<strQuery<<endl; 
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  metrotrips_rel = (Relation*)xResult.addr; 
+
+//  cout<<"metro trips size "<<metrotrips_rel->GetNoTuples()<<endl; 
+
+ //////////////////////////////////////////////////////////////////////
+ //////////////////////set maximum bus speed///////////////////////////
+ /////////////////////////////////////////////////////////////////////
+ int temp_id = numeric_limits<int>::max();
+ for(int i = 1;i <= metrotrips_rel->GetNoTuples();i++){
+  Tuple* metro_tuple = metrotrips_rel->GetTuple(i, false);
+  GenMO* mo = (GenMO*)metro_tuple->GetAttribute(UB_TRIP1_GENMO);
+
+  for( int j = 0; j < mo->GetNoComponents(); j++ ){
+      UGenLoc unit;
+      mo->Get( j, unit );
+      double pos1 = unit.gloc1.GetLoc().loc1;
+      double pos2 = unit.gloc2.GetLoc().loc1;
+      if(fabs(pos1 - pos2) > 1.0){
+          double t = 
+              unit.timeInterval.end.ToDouble()*86400.0 -
+              unit.timeInterval.start.ToDouble()*86400.0;
+          double speed = fabs(pos1 - pos2)/t; 
+//          cout<<"dist "<<fabs(pos1 - pos2)<<" t "<<t
+//               <<" speed "<<speed<<endl;
+          if(speed > max_metro_speed){
+            max_metro_speed = speed; 
+          }
+      }
+  }
+    int id = ((CcInt*)metro_tuple->GetAttribute(UB_TRIP_OID))->GetIntval();
+    if(id < temp_id) temp_id = id;
+
+    metro_tuple->DeleteIfAllowed();
+ }
+
+
+    min_mt_oid = temp_id;
+// cout<<"max metro speed "<<max_metro_speed*60*60/1000.0<<"km/h "<<endl;
+// cout<<"min metro trip oid "<<min_mt_oid<<endl;
+
+
+  ////////////////btree on metro trips metro route id ///////////////////////
+  ostringstream xEdgeOidPtrStream3;
+  xEdgeOidPtrStream3 << (long)metrotrips_rel;
+  strQuery = "(createbtree (" + UBAHNMetroTripTypeInfo +
+             "(ptr " + xEdgeOidPtrStream3.str() + "))" + "br_id)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_trip_br_id = (BTree*)xResult.addr; 
+
+  ////////////////btree on metro trips oid///////////////////////////
+
+  ostringstream xEdgeOidPtrStream2;
+  xEdgeOidPtrStream2 << (long)metrotrips_rel;
+  strQuery = "(createbtree (" + UBAHNMetroTripTypeInfo +
+             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_trip_oid = (BTree*)xResult.addr;
+
+}
+
+/*
+given a metro stop, find its neighbor stop, i.e., the one after it
+
+*/
+int MetroNetwork::GetMS_Stop_Neighbor(UBahn_Stop* ms_stop )
+{
+  int line_id = ms_stop->line_id;
+  int stop_id = ms_stop->stop_id;
+  bool dir = ms_stop->d;
+
+  CcInt* search_cell_id = new CcInt(true, line_id);
+  BTreeIterator* btree_iter = btree_bs->ExactMatch(search_cell_id);
+
+  int neighbor_tid = 0;
+  bool found = false;
+  while(btree_iter->Next()){
+        Tuple* tuple = stops_rel->GetTuple(btree_iter->GetId(), false);
+
+        int l_id = ((CcInt*)tuple->GetAttribute(UB_LINEID))->GetIntval();
+        assert(l_id == line_id);
+        bool d = ((CcBool*)tuple->GetAttribute(UB_DIRECTION))->GetBoolval();
+        if(dir == d){
+          int s_id = ((CcInt*)tuple->GetAttribute(UB_STOP_ID))->GetIntval();
+          if(dir){
+            if(s_id == stop_id + 1){
+              neighbor_tid = tuple->GetTupleId();
+              found = true;
+            }
+          }else{
+            if(s_id == stop_id - 1){
+              neighbor_tid = tuple->GetTupleId();
+              found = true;
+            }
+          }
+        }
+        tuple->DeleteIfAllowed();
+        if(found)break;
+  }
+  delete btree_iter;
+  delete search_cell_id;
+
+  return neighbor_tid; 
+}
+
+/*
+set the metro graph id 
+
+*/
+void MetroNetwork::SetGraphId(int g_id)
+{
+  graph_id = g_id; 
+  graph_init = true; 
+}
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////metro graph/////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+string MetroGraph::MGNodeTypeInfo =
+"(rel (tuple ((LineId int) (loc point) (stop_id int) (Up bool))))";
+
+string MetroGraph::MGEdge1TypeInfo =
+"(rel (tuple ((ms_stop1_tid int) (ms_stop2_tid int))))";
+
+string MetroGraph::MGEdge2TypeInfo = "(rel (tuple ((ms_stop1_tid int)\
+(ms_stop2_tid int) (whole_time periods)(schedule_interval real)\
+(Path sline) (TimeCost real))))";
+
+string MetroGraph::MGNodeBTreeTypeInfo = 
+"(btree (tuple ((LineId int) (loc point) (stop_id int) (Up bool))) int)";
+
+
+ListExpr MetroGraph::MetroGraphProp()
+{
+    ListExpr examplelist = nl->TextAtom();
+    nl->AppendText(examplelist,
+               "createmetrograph(<id>,<edge-relation>,<node-relation>)");
+    return nl->TwoElemList(
+             nl->TwoElemList(nl->StringAtom("Creation"),
+                              nl->StringAtom("Example Creation")),
+             nl->TwoElemList(examplelist,
+                   nl->StringAtom("let mg=createmetrograph(id,e-rel,n-rel)")));
+}
+
+
+bool MetroGraph::CheckMetroGraph(ListExpr type, ListExpr& errorInfo)
+{
+//  cout<<"CheckMetroGraph()"<<endl;
+  return nl->IsEqual(type, "metrograph");
+}
+
+int MetroGraph::SizeOfMetroGraph()
+{
+//  cout<<"SizeOfMetroGraph()"<<endl;
+  return 0;
+}
+
+void* MetroGraph::CastMetroGraph(void* addr)
+{
+//  cout<<"CastMetroGraph()"<<endl;
+  return 0;
+}
+Word MetroGraph::CloneMetroGraph(const ListExpr typeInfo, const Word& w)
+{
+//  cout<<"CloneMetroGraph()"<<endl;
+  return SetWord(Address(0));
+}
+
+void MetroGraph::CloseMetroGraph(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"CloseMetroGraph()"<<endl;
+  delete static_cast<MetroGraph*> (w.addr);
+  w.addr = NULL;
+}
+
+Word MetroGraph::CreateMetroGraph(const ListExpr typeInfo)
+{
+//  cout<<"MetroMetroGraph()"<<endl;
+  return SetWord(new MetroGraph());
+}
+
+void MetroGraph::DeleteMetroGraph(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"DeleteMetroGraph()"<<endl;
+  MetroGraph* mg = (MetroGraph*)w.addr;
+  delete mg;
+  w.addr = NULL;
+}
+
+/*
+input metro network graph 
+
+*/
+Word MetroGraph::InMetroGraph(ListExpr in_xTypeInfo,
+                            ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect)
+{
+//  cout<<"InMetroGraph()"<<endl;
+  MetroGraph* mg = new MetroGraph(in_xValue, in_iErrorPos, inout_xErrorInfo,
+                                inout_bCorrect);
+  if(inout_bCorrect) return SetWord(mg);
+  else{
+    delete mg;
+    return SetWord(Address(0));
+  }
+}
+
+ListExpr MetroGraph::OutMetroGraph(ListExpr typeInfo, Word value)
+{
+//  cout<<"OutMetroGraph()"<<endl;
+  MetroGraph* mg = (MetroGraph*)value.addr;
+  return mg->Out(typeInfo);
+}
+
+ListExpr MetroGraph::Out(ListExpr typeInfo)
+{
+//  cout<<"Out()"<<endl;
+  ListExpr xNode = nl->TheEmptyList();
+  ListExpr xLast = nl->TheEmptyList();
+  ListExpr xNext = nl->TheEmptyList();
+
+  bool bFirst = true;
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+      Tuple* node_tuple = node_rel->GetTuple(i, false);
+      int l_id = 
+        ((CcInt*)node_tuple->GetAttribute(MG_NODE_LINE_ID))->GetIntval();
+      Point* loc = (Point*)node_tuple->GetAttribute(MG_NODE_LOC);
+      int stop_id = 
+        ((CcInt*)node_tuple->GetAttribute(MG_NODE_STOP_ID))->GetIntval();
+      bool dir = 
+        ((CcBool*)node_tuple->GetAttribute(MG_NODE_UP))->GetBoolval();
+      
+
+      xNext = nl->FourElemList(
+           nl->IntAtom(l_id), nl->IntAtom(stop_id), 
+           nl-> BoolAtom(dir), 
+           OutPoint( nl->TheEmptyList(), SetWord(loc) ));
+
+      if(bFirst){
+        xNode = nl->OneElemList(xNext);
+        xLast = xNode;
+        bFirst = false;
+      }else
+          xLast = nl->Append(xLast,xNext);
+      node_tuple->DeleteIfAllowed();
+  }
+  return nl->TwoElemList(nl->IntAtom(mg_id),xNode);
+
+//  return nl->OneElemList(nl->IntAtom(mg_id));
+
+}
+
+bool MetroGraph::SaveMetroGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveMetroGraph()"<<endl;
+  MetroGraph* mg = (MetroGraph*)value.addr;
+  bool result = mg->Save(valueRecord, offset, typeInfo);
+
+  return result;
+}
+
+bool MetroGraph::OpenMetroGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenMetroGraph()"<<endl;
+  value.addr = MetroGraph::Open(valueRecord, offset, typeInfo);
+  bool result = (value.addr != NULL);
+
+  return result;
+}
+
+MetroGraph* MetroGraph::Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo)
+{
+  return new MetroGraph(valueRecord,offset,typeInfo);
+}
+
+
+MetroGraph::MetroGraph():mg_id(0), min_t(0),
+node_rel(NULL), btree_node(NULL),
+edge_rel1(NULL), adj_list1(0), entry_adj_list1(0),
+edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
+{
+//  cout<<"BusGraph::BusGraph()"<<endl;
+}
+
+MetroGraph::~MetroGraph()
+{
+   if(node_rel != NULL) node_rel->Close();
+   if(btree_node != NULL) delete btree_node; 
+   if(edge_rel1 != NULL) edge_rel1->Close(); 
+   if(edge_rel2 != NULL) edge_rel2->Close(); 
+
+}
+
+MetroGraph::MetroGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect):
+mg_id(0), min_t(0),
+node_rel(NULL), btree_node(NULL),
+edge_rel1(NULL), adj_list1(0), entry_adj_list1(0),
+edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
+{
+//  cout<<"MetroGraph::MetroGraph(ListExpr)"<<endl;
+}
+
+MetroGraph::MetroGraph(SmiRecord& in_xValueRecord, size_t& inout_iOffset,
+const ListExpr in_xTypeInfo):mg_id(0), min_t(0),
+node_rel(NULL), btree_node(NULL),
+edge_rel1(NULL), adj_list1(0), entry_adj_list1(0),
+edge_rel2(NULL), adj_list2(0), entry_adj_list2(0)
+{
+  in_xValueRecord.Read(&mg_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+  in_xValueRecord.Read(&min_t,sizeof(double),inout_iOffset);
+  inout_iOffset += sizeof(double);
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  ///////////////////Open relation for node////////////////////////////
+  nl->ReadFromString(MGNodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  node_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!node_rel) {
+    return;
+  }
+
+  ///////////////////open btree built on nodes//////////////////////////
+   nl->ReadFromString(MGNodeBTreeTypeInfo,xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_node = BTree::Open(in_xValueRecord, inout_iOffset, xNumericType);
+   if(!btree_node) {
+     node_rel->Delete();
+     return;
+   }
+
+  ///////////////////////Open relation for edge1///////////////////////////
+  nl->ReadFromString(MGEdge1TypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel1 = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel1) {
+    node_rel->Delete();
+    delete btree_node; 
+    return;
+  }
+
+  /////////////////open adjacency list1////////////////////////////////
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   SmiSize offset = 0;
+   char* buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list1.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list1.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+  ///////////////////////Open relation for edge2//////////////////////////
+  nl->ReadFromString(MGEdge2TypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel2 = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel2) {
+    node_rel->Delete();
+    delete btree_node; 
+    edge_rel1->Delete(); 
+    adj_list1.clean();
+    entry_adj_list1.clean(); 
+    return;
+  }
+
+  /////////////////open adjacency list2////////////////////////////////
+   bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list2.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list2.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+}
+
+
+bool MetroGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo)
+{
+
+  //  cout<<"save "<<endl; 
+  in_xValueRecord.Write(&mg_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+  in_xValueRecord.Write(&min_t,sizeof(double),inout_iOffset);
+  inout_iOffset += sizeof(double);
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  ///////////////////////////save node/////////////////////////////
+  nl->ReadFromString(MGNodeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!node_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+  
+  ////////////////save btree on nodes///////////////////////////
+   nl->ReadFromString(MGNodeBTreeTypeInfo, xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType); 
+   if(!btree_node->Save(in_xValueRecord, inout_iOffset, xNumericType))
+     return false; 
+
+  /////////////////////save edge1/////////////////////////////
+  nl->ReadFromString(MGEdge1TypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel1->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+  /////////////////adjacency list 1//////////////////////////////
+   SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
+   SmiRecordFile *rf = ctlg->GetFlobFile();
+
+
+   adj_list1.saveToFile(rf, adj_list1);
+   SmiSize offset = 0;
+   size_t bufsize = adj_list1.headerSize()+ 2*sizeof(int);
+   char* buf = (char*) malloc(bufsize);
+   adj_list1.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list1.saveToFile(rf, entry_adj_list1);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list1.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+
+  ///////////////////////save edge2/////////////////////////////////////
+  nl->ReadFromString(MGEdge2TypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel2->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+  /////////////////adjacency list 2//////////////////////////////////
+
+   adj_list2.saveToFile(rf, adj_list2);
+   offset = 0;
+   bufsize = adj_list2.headerSize()+ 2*sizeof(int);
+   buf = (char*) malloc(bufsize);
+   adj_list2.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list2.saveToFile(rf, entry_adj_list2);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list2.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+   return true; 
+
+
+}
+
+/*
+load metro graph from input relations 
+
+*/
+
+void MetroGraph::Load(int g_id, Relation* r1, Relation* edge1, Relation* edge2)
+{
+  if(g_id <= 0){
+    cout<<"invalid graph id "<<g_id<<endl;
+    return;
+  }
+  mg_id = g_id;
+
+  //////////////////node relation////////////////////
+
+  ostringstream xNodePtrStream;
+  xNodePtrStream<<(long)r1;
+
+  string strQuery = "(consume(feed(" + MGNodeTypeInfo +
+                "(ptr " + xNodePtrStream.str() + "))))";
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  node_rel = (Relation*)xResult.addr;
+
+//  cout<<"nodes size "<<node_rel->GetNoTuples()<<endl;
+
+  ///////////////////////////btree on nodes///////////////////////////
+  ostringstream xNodeOidPtrStream2;
+  xNodeOidPtrStream2<< (long)node_rel;
+  strQuery = "(createbtree (" + MGNodeTypeInfo +
+             "(ptr " + xNodeOidPtrStream2.str() + "))" + "LineId)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  btree_node = (BTree*)xResult.addr;
+
+
+//  cout<<edge1->GetNoTuples()<<" "<<edge2->GetNoTuples()<<endl;
+
+  LoadEdge1(edge1);
+  LoadEdge2(edge2);
+
+}
+
+/*
+metro graph edges: two metro stops have the same spatial location in space
+
+*/
+void MetroGraph::LoadEdge1(Relation* edge1)
+{
+
+  ostringstream xEdgePtrStream;
+  xEdgePtrStream<<(long)edge1;
+
+  string strQuery = "(consume(feed(" + MGEdge1TypeInfo +
+                "(ptr " + xEdgePtrStream.str() + "))))";
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel1 = (Relation*)xResult.addr;
+
+  //////////////////create adjacency list////////////////////////////////////
+  ostringstream xNodeOidPtrStream1;
+  xNodeOidPtrStream1 << (long)edge_rel1;
+  strQuery = "(createbtree (" + MGEdge1TypeInfo +
+             "(ptr " + xNodeOidPtrStream1.str() + "))" + "ms_stop1_tid)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree = (BTree*)xResult.addr;
+
+  /////////////////////////////////////////////////////////////////////////
+  /////////the adjacent list here is different from dual graph and 
+  ////// visibility graph. it is the same as indoor and bus graph //////////
+  //////////in dual graph and visibility graph, we store the node id/////
+  /////////now we store the edge id because the weight, path is stored
+  ////////in the edge relation ////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    Tuple* ms_tuple = node_rel->GetTuple(i, false);
+
+    CcInt* nodeid = new CcInt(true, ms_tuple->GetTupleId());
+    BTreeIterator* btree_iter = btree->ExactMatch(nodeid);
+    int start = adj_list1.Size();
+    while(btree_iter->Next()){
+      Tuple* edge_tuple = edge_rel1->GetTuple(btree_iter->GetId(), false);
+
+      adj_list1.Append(edge_tuple->GetTupleId());//get the edge tuple id 
+
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+
+    int end = adj_list1.Size();
+    entry_adj_list1.Append(ListEntry(start, end));
+
+   //cout<<"start "<<start<<" end "<<end<<endl;
+
+    delete nodeid;
+
+    ms_tuple->DeleteIfAllowed();
+
+  }
+
+  delete btree;
+}
+
+/*
+metro graph edges: two metro stops are connected by moving metros
+
+*/
+void MetroGraph::LoadEdge2(Relation* edge2)
+{
+
+  ostringstream xEdgePtrStream;
+  xEdgePtrStream<<(long)edge2;
+
+  string strQuery = "(consume(feed(" + MGEdge2TypeInfo +
+                "(ptr " + xEdgePtrStream.str() + "))))";
+
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel2 = (Relation*)xResult.addr;
+
+
+  min_t = numeric_limits<double>::max();
+
+  for(int i = 1;i <= edge_rel2->GetNoTuples();i++){
+    Tuple* edge_tuple = edge_rel2->GetTuple(i, false);
+
+    Periods* peri = (Periods*)edge_tuple->GetAttribute(MG_EDGE2_PERI);
+    Interval<Instant> periods;
+    peri->Get(0, periods);
+    double t = periods.start.ToDouble();
+    if(t < min_t) min_t = t; 
+
+    edge_tuple->DeleteIfAllowed();
+
+  }
+
+//    Instant min_time(instanttype);
+//    min_time.ReadFrom(min_t);
+//    printf("%.10f\n",min_t); 
+//    cout<<min_time<<endl; 
+
+
+ //////////////////create adjacency list////////////////////////////////////
+  ostringstream xNodeOidPtrStream1;
+  xNodeOidPtrStream1 << (long)edge_rel2;
+  strQuery = "(createbtree (" + MGEdge2TypeInfo +
+             "(ptr " + xNodeOidPtrStream1.str() + "))" + "ms_stop1_tid)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree = (BTree*)xResult.addr;
+
+  /////////////////////////////////////////////////////////////////////////
+  /////////the adjacent list here is different from dual graph and 
+  ///// visibility graph. it is the same as indoor and bus graph /////////
+  //////////in dual graph and visibility graph, we store the node id/////
+  /////////now we store the edge id because the weight, path is stored
+  ////////in the edge relation ////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    Tuple* ms_tuple = node_rel->GetTuple(i, false);
+
+    CcInt* nodeid = new CcInt(true, ms_tuple->GetTupleId());
+    BTreeIterator* btree_iter = btree->ExactMatch(nodeid);
+    int start = adj_list2.Size();
+    while(btree_iter->Next()){
+      Tuple* edge_tuple = edge_rel2->GetTuple(btree_iter->GetId(), false);
+      adj_list2.Append(edge_tuple->GetTupleId());//get the edge tuple id 
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+
+    int end = adj_list2.Size();
+    entry_adj_list2.Append(ListEntry(start, end));
+
+    delete nodeid;
+
+    ms_tuple->DeleteIfAllowed();
+
+  }
+
+  delete btree;
+
+}
 
