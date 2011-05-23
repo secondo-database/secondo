@@ -24,3 +24,18 @@ Example  : query clusterseq( makepoint(5,5) , the_unit(makepoint(0,0), makepoint
 Result   : (int 3)
 
 
+Operator : checkTopRel 
+Number   : 1
+Signature: stream(cluster) x mtoprel -> bool
+Example  : query clusterseq(thecenter, train7,stdpgroup()) projecttransformstream[Cluster] checkTopRel[ createDfa(stdpgroup(), 'disjoint meet .* disjoint')]
+Result   : TRUE
+
+
+Operator : mtoppred 
+Number   : 1
+Signature: point x upoint x mtoprel -> bool | ....
+Example  : query mtoppred(thecenter, train7, createDfa(stdpgroup(), 'disjoint meet .*'))
+Result   : TRUE
+
+
+

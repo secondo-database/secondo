@@ -362,7 +362,18 @@ Brings the dfa into its initial state.
 
   void start() {
     currentState = startState;
-  }  
+  } 
+
+
+/*
+~getStartState~
+
+returns the starte state (usual 0)
+
+*/
+  int getStartState(){
+    return startState;
+  }
 
 
 /*
@@ -380,6 +391,26 @@ Checks whether the dfa is in a final state.
     finalStates.Get(currentState, isFinal);
     return isFinal;
   }
+
+  bool isFinal(const set<int>& states){
+    if(states.empty()){
+      return false;
+    }
+    bool isFinal;
+    set<int>::iterator it;
+    for(it=states.begin(); it!=states.end(); it++){
+      if(*it>=0 && *it<finalStates.Size()){
+         finalStates.Get(*it, isFinal);
+         if(isFinal){
+           return true;
+         }
+      }
+    }
+    return false;
+
+  }
+
+
 
 /*
 ~acceptsAll~
@@ -401,6 +432,7 @@ transistions for all elements of sigma ends in the current state.
           return false;
         }
      } 
+     return true;
    }
 
 
@@ -424,11 +456,14 @@ Goes into the next state depending on the input.
 
 */
 
-  bool next(int clusternum){
+  bool next(const int clusternum){
      if((currentState < 0) || (startState<0)){
         return false;
      }
      int symbol;
+     if( (clusternum <0) || (clusternum >= cluster2Symbol.Size())){
+       return false;
+     }
      cluster2Symbol.Get(clusternum,symbol);
      int index = numOfSymbols*currentState + symbol;
      transitions.Get(index,currentState);
@@ -438,20 +473,125 @@ Goes into the next state depending on the input.
 /*
 ~next~
 
+Tghe following next() function simulates an nondeterministic automaton. 
+states is an input output parameter. The problem in simulating a topological
+relationship are multiple occurences of the same cluster within a chain.
+For example the automaton defined by ("disjoint disjoint disjoint") should 
+accept all moving relationships with a duration of more than an instant 
+with value disjoint. The set must be initilized with the start state. 
+Values wtihin the set outside the available states are ignored. If tep is set to be
+true, 
+
+*/
+
+
+
+  bool next(const int clusternum, set<int>& states, const bool step){
+    // check
+    if(startState < 0 || states.empty()){
+       return false;
+    } 
+    // compute the symbol from clusternum
+    if( (clusternum <0) || (clusternum >= cluster2Symbol.Size())){
+        return false;
+    }
+    int symbol;
+    cluster2Symbol.Get(clusternum,symbol);
+
+    set<int> newStates;
+    set<int>::iterator it;
+   for(it=states.begin(); it!=states.end(); it++){
+      int index = numOfSymbols*(*it) + symbol;
+      int nextState;
+      transitions.Get(index, nextState);
+      if(nextState>=0){
+         newStates.insert(nextState);
+      }
+    }
+    states = newStates;
+    if(step){
+      return  newStates.size() > 0;
+    }
+    // iterative enlarge states until no more changes occur 
+    while(newStates.size()>0){
+      newStates.clear();
+      for(it=states.begin(); it!=states.end(); it++){
+        int index = numOfSymbols*(*it) + symbol;
+        int nextState;
+        transitions.Get(index, nextState);
+        if(nextState>=0 && states.find(nextState)==states.end()){
+           newStates.insert(nextState);
+        }
+      }
+      states.insert(newStates.begin(), newStates.end());
+    }
+
+    return states.size() > 0;
+
+  }
+
+
+
+/*
+~next~
+
 make the transition for the given name of the cluster. Returns 
 true iff successful.
 
 */
-  bool next(string clusterName){
+  bool next(const string& clusterName){
      if(currentState < 0){
         return false;
      }
      return next(predicateGroup.getClusterNumber(clusterName));
   }
 
+  bool next(const string& clusterName, set<int>& states, const bool step){
+     return next(predicateGroup.getClusterNumber(clusterName), states, step);
+  }
 
 
 
+
+/*
+~next~
+
+go to the next state by giving an Int9M value 
+
+*/
+  bool next(const toprel::Int9M& toprel){
+     return next(predicateGroup.getClusterNumber(toprel));
+  }
+
+  bool next(const toprel::Int9M& toprel, set<int>& states, const bool step){
+     return next(predicateGroup.getClusterNumber(toprel), states, step);
+  }
+
+
+/*
+~next~
+
+Make a transition based on a cluster (only the name of the cluster is used.
+
+*/  
+   bool next(const toprel::Cluster& cluster){
+      return next(cluster.GetName());
+   } 
+
+   bool next(const toprel::Cluster& cluster, set<int>& states, const bool step){
+      return next(cluster.GetName(), states, step);
+   } 
+
+/*
+~getPredicateGroup~
+
+Returns a pointer to the managed predicategroup. Note that this pointer becomes
+invalid after destroying this object
+
+*/
+  const toprel::PredicateGroup* getPredicateGroup(){
+     return &predicateGroup;
+  }
 
 
 /*

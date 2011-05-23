@@ -513,6 +513,356 @@ Operator clusterseq(
 
 
 
+
+/*
+4 Operator checkTopRel
+
+4.1 Type Mapping
+
+The type mapping is stream(cluster) x dfa -> bool
+
+*/
+
+ListExpr checkTopRelTM(ListExpr args){
+  string err = "stream(cluster) x dfa expected";
+  if(nl->ListLength(args)!=2){
+     return listutils::typeError(err);
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr dfa = nl->Second(args);
+  if((nl->ListLength(stream) != 2) ||  
+     !listutils::isSymbol(nl->First(stream), symbols::STREAM) ||
+     !listutils::isSymbol(nl->Second(stream), toprel::Cluster::BasicType())){
+     return listutils::typeError(err);
+  }
+  if(!listutils::isSymbol(dfa,TopRelDfa::BasicType())){
+     return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+4.2 Value Mapping
+
+*/
+
+int checkTopRelVM(Word* args, Word& result, int message,
+           Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = static_cast<CcBool*>(result.addr);
+
+   TopRelDfa* dfa = static_cast<TopRelDfa*>(args[1].addr);
+
+   if(!dfa->isUsuable()){
+     res->Set(false,false);
+     return 0;
+   }
+
+   bool done = false;
+   qp->Open(args[0].addr);
+   Word clusterW;
+
+   dfa->start();
+
+   qp->Request(args[0].addr,clusterW);
+   while(qp->Received(args[0].addr) && !done){
+      toprel::Cluster* c =  static_cast<toprel::Cluster*>(clusterW.addr);
+      done = !dfa->next(*c);
+      if(!done){
+         done = dfa->isError() || dfa->acceptsAll();
+      }
+      c->DeleteIfAllowed();
+      if(!done){
+        qp->Request(args[0].addr,clusterW);
+      }
+   }
+
+
+   res->Set(true, dfa->isFinal());
+   qp->Close(args[0].addr);
+   return 0;
+}
+
+/*
+4.3 Specification
+
+*/
+
+const string checkTopRelSpec = 
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+           "\"Example\" )"
+        "( <text>"
+        "   stream(cluster) x dfa -> bool "
+        " </text--->"
+       "<text> _ checktoprel[_] </text--->"
+       "<text>Checks whether the finite automaton  "
+       "accepts the stream of clusters</text--->"
+       "<text>query clusterseq(thecenter, train7,stdpgroup())"
+       " projecttransformstream[Cluster] checkTopRel[ createDfa(stdpgroup(),"
+       " 'disjoint meet .* disjoint')]</text--->"
+       ") )";
+
+/*
+4.4 Operator instance
+
+*/
+
+Operator checkTopRel(
+           "checkTopRel",
+           checkTopRelSpec,
+           checkTopRelVM,
+           Operator::SimpleSelect,
+           checkTopRelTM);
+
+
+
+/*
+5 Operator ~mtoppred~
+
+This operator gets two objects (spatial, at least one moving and 
+an TopRelDfa and checks whether the dfa accepts the topological
+relationships between these objects. If one of the arguments is
+undefined, also the result is undefined.
+
+
+5.1 Type Mapping
+
+*/
+ListExpr mtoppredTM(ListExpr args){
+  string err = "expected "
+               " point x upoint x mtoprel  [x bool] | "
+               " point x mpoint x mtoprel  [x bool] | " 
+               " upoint x upoint x mtoprel [x bool] | "
+               " upoint x mpoint x mtoprel [x bool] |"
+               " mpoint x mpoint x mtoprel [x bool] |"
+               " region x upoint x mtoprel [x bool] |"
+               " region x mpoint x mtoprel";
+  int len = nl->ListLength(args);
+  if((len!=3) && (len!=4) ){
+      return listutils::typeError(err);
+  }
+
+  if((len==4) && !listutils::isSymbol(nl->Fourth(args),CcBool::BasicType())){
+      return listutils::typeError(err);
+  }
+
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  // the third argument must be a predicategroup
+  if(!listutils::isSymbol(arg3,TopRelDfa::BasicType())){
+      return listutils::typeError(err);
+  }
+
+  bool ok = false;
+  ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
+              listutils::isSymbol(arg2, MPoint::BasicType()));
+  if(ok){
+     return nl->SymbolAtom(CcBool::BasicType());
+  }
+
+  return listutils::typeError(err);
+}
+
+
+/*
+5.2 Value Mapping
+
+5.2.1 Value Mapping function
+
+*/
+template<class T1, class T2, class Proc>
+int mtoppredFun(Word* args, Word& result, int message,
+           Word& local, Supplier s){
+
+    result = qp->ResultStorage(s);
+    CcBool* res = static_cast<CcBool*>(result.addr);
+
+    T1* arg1 = static_cast<T1*>(args[0].addr);
+    T2* arg2 = static_cast<T2*>(args[1].addr);
+    TopRelDfa* dfa = static_cast<TopRelDfa*>(args[2].addr);
+
+    if(!arg1->IsDefined() || !arg2->IsDefined() || !dfa->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+    }
+    bool iter = false;
+    bool step = false;
+    if(qp->GetNoSons(s)==4){
+      iter = true;
+      CcBool* arg4 = static_cast<CcBool*>(args[3].addr);
+      if(!arg4->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+      } else {
+        step = arg4->GetBoolval();
+      }
+    }
+
+    if(!dfa->isUsuable()){
+       res->SetDefined(false);
+       return 0;
+    }
+
+    Proc proc(arg1, arg2, dfa->getPredicateGroup());
+    pair<Interval<Instant>, toprel::Cluster> 
+             p(Interval<Instant>(), toprel::Cluster(1));
+    if(!iter){
+       dfa->start();
+       bool done = dfa->acceptsAll() || dfa->isError();
+       while(proc.hasNextCluster() && !done){
+           p = proc.nextCluster();
+           done = ! dfa->next(p.second);
+          if(!done){
+              done = dfa->acceptsAll() || dfa->isError();
+          }
+       }
+       res->Set(true,dfa->isFinal());
+       return 0;
+    } else {
+      set<int> states;
+      states.insert(dfa->getStartState());
+      bool done = false;
+      while(proc.hasNextCluster() && !done){
+        p = proc.nextCluster();
+        done = ! dfa->next(p.second, states, 
+                           step && (p.first.start == p.first.end));
+       }
+       res->Set(true,dfa->isFinal(states));
+       return 0;
+    }
+}
+
+/*
+5.2.2 Value Mapping Array
+
+*/
+
+ValueMapping mtoppredVM[] = {mtoppredFun<Point,  UPoint, MTopRelAlg_PUP>,
+                             mtoppredFun<Point,  MPoint, MTopRelAlg_PMP>, 
+                             mtoppredFun<UPoint, UPoint, MTopRelAlg_UPUP>,
+                             mtoppredFun<UPoint, MPoint, MTopRelAlg_UPMP>,
+                             mtoppredFun<MPoint, MPoint, MTopRelAlg_MPMP>, 
+                             mtoppredFun<Region, UPoint, MTopRelAlg_RUP>,
+                             mtoppredFun<Region, MPoint, MTopRelAlg_RMP> };
+
+/*
+5.3 Selection Function
+
+*/
+int mtoppredSelect(ListExpr args){
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(listutils::isSymbol(arg1, Point::BasicType()) &&
+     listutils::isSymbol(arg2, UPoint::BasicType())){
+     return 0;
+  }
+  if(listutils::isSymbol(arg1, Point::BasicType()) &&
+     listutils::isSymbol(arg2, MPoint::BasicType())){
+     return 1;
+  }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, UPoint::BasicType())){
+     return 2;
+  }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, MPoint::BasicType())){
+     return 3;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, MPoint::BasicType())){
+     return 4;
+  }
+  if(listutils::isSymbol(arg1, Region::BasicType()) &&
+     listutils::isSymbol(arg2, UPoint::BasicType())){
+     return 5;
+  }
+  if(listutils::isSymbol(arg1, Region::BasicType()) &&
+     listutils::isSymbol(arg2, MPoint::BasicType())){
+     return 6;
+  }
+  return -1; 
+}
+
+
+/*
+
+5.4 Specification
+
+*/
+const string mtoppredSpec = 
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+           "\"Example\" )"
+        "( <text>"
+        " point x upoint x mtoprel  x bool | "
+        " point x mpoint x mtoprel  x bool | "
+        " upoint x upoint x mtoprel x bool | "
+        " upoint x mpoint x mtoprel x bool | "
+        " mpoint x mpoint x mtoprel x bool |"
+        " region x upoint x mtoprel x bool |"
+        " region x mpoint x mtoprel x bool"
+        " ->  bool "
+        "</text--->"
+       "<text> mtoppred(_,_,_) </text--->"
+       "<text>Checks whether the first two parameters "
+       " have one of  moving topological relationship as "
+       " defined in the third argument."
+       "If the boolean parameter is omittet, the automaton works like an "
+       "usual deterministic automaton. So a moving point defined for "
+       "a connected interval witch is disjoint over its lifespan, will "
+       "not be accepted by an automaton defined by 'disjoint disjoint'."
+       "If the boolean parameter is present and set to be FALSE, "
+       "The automaton works like an non-deterministic automaton. "
+       "For an transition all states are the new states which are reachable "
+       "by a sequence of simple transitions using the current symbol."
+       "If the boolean parameter is set to be TRUE, the automaton works "
+       "similar to a FALSE value of this argument. The only difference is "
+       "that such sequence transistions are only made, if the interval of "
+       "where the topological relationship holds is longer than a single "
+       "instant."
+       "</text--->"
+       "<text> query mtoppred(thecenter, train7, "
+       "createDfa(stdpgroup(), 'disjoint meet .*'))</text--->"
+       ") )";
+
+
+/*
+3.5 Operator instance
+
+*/
+
+Operator mtoppred(
+           "mtoppred",
+           mtoppredSpec,
+           7,
+           mtoppredVM,
+           mtoppredSelect,
+           mtoppredTM);
+
+
+
+
+
 /*
 3 Algebra definition
 
@@ -529,6 +879,8 @@ class MTopRelAlgebra: public Algebra{
        AddOperator(&createDfa);
        AddOperator(&toprelseq);
        AddOperator(&clusterseq);
+       AddOperator(&checkTopRel);
+       AddOperator(&mtoppred);
 
     }
     
