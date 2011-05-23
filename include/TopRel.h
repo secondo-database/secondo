@@ -1441,6 +1441,7 @@ by this function.
        assert(false); // should never be reached
     }
 
+
 /*
 2.3.11 GetClusterOf
 
@@ -1470,6 +1471,23 @@ int getClusterNumber(const string& name)const{
    }
    return -1;
 }
+
+int getClusterNumber(const Int9M& toprel) const{
+       if(unSpecified.Contains(toprel)){
+          return theClusters.Size();
+       }
+       int s = theClusters.Size();
+       Cluster C;
+       for(int i=0;i<s;i++){
+           theClusters.Get(i,C);
+           if(C.Contains(toprel)){
+               return i;
+           }
+       }
+
+}
+
+
 
 bool getCluster(const int index, Cluster& result) const{
    if(index<0){
