@@ -1792,9 +1792,164 @@ int add0TupleValueMap(Word* args, Word& result,
 }
 
 
-
 /*
-5.15 Operator ~fconsume~
+7 Implementation of clusterInfo class
+
+The clusterInfo class is used to read two line-based text files that
+describe the distribution of a cluster.
+The locations of these two files are denoted by two environment
+variables: PARALLEL\_SECONDO\_MASTER and PARALLEL\_SECONDO\_SLAVES.
+The first one is used to describe the master node of the cluster,
+and can only contains one line.
+The second one lists all possible locations within the cluster that
+can hold type and data files, which can be written and read by
+fconsume and ffeed operators respectively.
+
+Each line of the files are composed by three parts, which are separated
+by colons:
+
+----
+IP:location:port
+----
+
+The IP indicates the network position of a node inside the cluster,
+and the location which must be a absolute path, describes the disk
+position of the files.
+The port is used to tell through which port to access to the Secondo
+monitor that is allocated with this file location.
+
+Each Secondo monitor reads its configurations from a file
+that is denoted by SECONDO\_CONFIG, which also describes above three
+parameters. And all functions inside this class of getting local
+information like ~getLocalIP~ reads the configuration from this file.
+In principle, the information of the config file should be
+in conformity with the list files, or else operators like ~fconsume~
+may goes wrong.
+
+*/
+clusterInfo::clusterInfo(bool _im) :
+    ps_master("PARALLEL_SECONDO_MASTER"),
+    ps_slaves("PARALLEL_SECONDO_SLAVES"),
+    isMaster(_im), localNode(-1)
+{
+  if (isMaster)
+    fileName = string(getenv(ps_master.c_str()));
+  else
+    fileName = string(getenv(ps_slaves.c_str()));
+
+  ok = false;
+  if (fileName.length() == 0)
+    cerr << "Environment variable "
+         << (isMaster ? ps_master : ps_slaves)
+         << " is not defined." << endl;
+  if (!FileSystem::FileOrFolderExists(fileName))
+    cerr << "File (" << fileName << ") is not exist." << endl;
+  if (FileSystem::IsDirectory(fileName))
+    cerr << fileName << " is a directory" << endl;
+
+  ifstream fin(fileName.c_str());
+  string line;
+  disks = new vector<pair<string, pair<string, int> > >();
+  while (getline(fin, line))
+  {
+    istringstream iss(line);
+    string ipAddr, cfPath, sport;
+    getline(iss, ipAddr, ':');
+    getline(iss, cfPath, ':');
+    getline(iss, sport, ':');
+    if ((ipAddr.length() == 0) ||
+        (cfPath.length() == 0) ||
+        (sport.length() == 0))
+    {
+      cerr << "Format in file " << fileName << " is not correct.\n";
+      break;
+    }
+    int port = atoi(sport.c_str());
+    disks->push_back(pair<string, pair<string, int> >(
+        ipAddr, pair<string, int>(cfPath, port)));
+  }
+  fin.close();
+  if (disks->size() > 0)
+  {
+    ok = true;
+    if (isMaster && (disks->size() > 1))
+      cerr << "Master list can only have one line" << endl;
+  }
+}
+
+string clusterInfo::getPath(size_t loc, bool round, bool withIP)
+{
+  if (!round)
+  {
+    assert(loc <= disks->size());
+    loc -= 1;
+  }
+  else
+    loc = (loc - 1) % disks->size();
+
+  if (withIP)
+    return ((*disks)[loc].first + ":" +
+            (*disks)[loc].second.first);
+  else
+    return (*disks)[loc].second.first;
+}
+
+string clusterInfo::getIP(size_t loc, bool round)
+{
+  if (!round)
+  {
+    assert(loc <= disks->size());
+    loc -= 1;
+  }
+  else
+    loc = (loc - 1) % disks->size();
+
+  return (*disks)[loc].first;
+}
+
+int clusterInfo::searchLocalNode()
+{
+  string localPath = getLocalPath();
+  string localIP = getLocalIP();
+
+  int local = -1, cnt = 1;
+  if (localIP.length() != 0 &&
+      localPath.length() != 0)
+  {
+    vector<diskDesc>::iterator iter;
+    for (iter = disks->begin(); iter != disks->end(); iter++, cnt++)
+    {
+      if ((localIP.compare((*iter).first) == 0) &&
+          (localPath.compare((*iter).second.first)) == 0)
+      {
+        local = cnt;
+        break;
+      }
+    }
+  }
+
+  return local;
+}
+
+void clusterInfo::print()
+{
+  if (ok)
+  {
+    int counter = 1;
+    cout << "\n-------- PARALLEL_SECONDO_SLAVES list --------" << endl;
+    vector<diskDesc>::iterator iter;
+    for (iter = disks->begin(); iter != disks->end();
+        iter++, counter++)
+    {
+      cout << counter << ":\t" << iter->first
+          << "\t" << iter->second.first
+          << "\t" << iter->second.second << endl;
+    }
+    cout << "-------- PARALLEL_SECONDO_SLAVES ends --------\n" << endl;
+  }
+}
+/*
+5 Operator ~fconsume~
 
 This operator maps
 
@@ -1879,223 +2034,273 @@ If the nodes specified by ~target index~ and ~duplicate times~
 don't contain the local node,
 then the produced binary file will be removed after the replication.
 
+5.1 Update the format of fconsume
 
-5.15.0 Specification
+In 14/05/2011, remove the machine array parameter of in data remote mode,
+as building a Secondo array object that describes the whole structure
+of the cluster in every database, limits the flexibility of the whole system.
+Therefore, we use a text file list that is denoted by \$PARALLEL\_SECONDO\_SLAVES
+to take the place of the machine array.
+
+In both type remote and data remote modes, target nodes that are
+used to backup type file and data files must be registered
+in the node list file specified by \$PARALLEL\_SECONDO\_SLAVES.
+
+Now the operator maps
+
+---- (stream(tuple(...))
+      x fileName x filePath x [fileSuffix]
+      x [typeLoc1] x [typeLoc2]
+      x [targetLoc x dupTimes])
+     -> bool
+----
+
+Besides the input tuple stream, all the left parameters are divided
+into three parts, separated by semicolons, and correspond to the
+three modes of the operator.
+
+The basic functions of the operator and its different modes don't
+change, only the locations of remote type nodes and remote data nodes
+are not given by users explicitly, but are denoted by giving
+serial numbers of the \$PARALLEL\_SECONDO\_SLAVES.
+The format of the list file is described in the ~clusterInfo~ section.
+
+Besides, during the data remote mode, the operator should knows
+the serial number of the current location before duplicating files,
+which requires the operator to get to know the current IP address.
+However, I didn't a suitable method to get the local IP address
+in different platforms, therefore this IP address must be set inside
+the configure file denoted by \$SECONDO\_CONFIG, as localIP value.
+
+The location of the files is also set up inside the configure file,
+as SecondoFilePath, in case the \$PARALLEL\_SECONDO\_SLAVES is not
+required within an individual computer.
+
+5.2 Specification
 
 */
 
 struct FConsumeInfo : OperatorInfo {
-
   FConsumeInfo() : OperatorInfo()
   {
     name =      "fconsume";
-    signature = "stream(tuple(...)) x fileName x path "
-        "x [fileIndex] x [typeNode1] x [typeNode2] "
-        "x [ array(string) x selfIndex "
-        "x targetIndex x dupTimes ] -> bool";
-    syntax =    "_ fconsume[ _ , _ , _ , _ , _ , _, _, _, _ ]";
+    signature = "stream(tuple(...)) "
+        "x fileName x path x {fileIndex} "
+        "x {typeNode1} x {typeNode2} "
+        "x { selfIndex x targetIndex x dupTimes } "
+        "-> bool";
+    syntax =    "_ fconsume[ basic; remote type; remote data]";
     meaning =   "Export a stream of tuples into a file, "
         "and may duplicate the file to some remote machines.\n"
         "The number of arguments are changed "
         "along with different mode.";
   }
-
 };
 
 /*
-5.14.1 Type mapping
+5.3 Type mapping
 
 */
 ListExpr FConsumeTypeMap(ListExpr args)
 {
   NList l(args);
-  string lengthErr = "operator fconsume expects 3 ~ 10 arguments";
-  string typeErr = "operator fconsume expects "
-               "(stream(tuple(...)) string text "
-               "[int] [string] [string] "
-               " [ array(string) x int x int x int] )";
-  string err1 = "The file name should NOT be empty!";
-  string err2 = "ERROR!The file path doesn't exist. \n";
-  string err3 = "ERROR!Infeasible evaluation in TM for attribute ";
+  string lengthErr = "ERROR!Operator fconsume expects 4 parameter parts, "
+      "separated by semicolons";
+  string typeErr = "ERROR!Operator fconsume expects "
+               "(stream(tuple(...)) "
+               "fileName: string, filePath: text, {fileSuffix: int};"
+               "{typeNodeIndex: int} {typeNodeIndex2: int}; "
+               "{targetNodeIndex: int, duplicateTimes: int})";
+  string typeErr2 =
+      "ERROR!The basic parameters expects "
+      "{fileName: string, filePath: text, {fileSuffix: int}}";
+  string typeErr3 = "ERROR!Type remote nodes expects "
+      "{{typeNodeIndex: int}, {typeNodeIndex2: int}}";
+  string typeErr4 = "ERROR!Data remote nodes expects "
+      "{targetNode:int, duplicateTimes: int}";
+  string err1 = "ERROR!The file name should NOT be empty!";
+  string err2 = "ERROR!Cannot create type file: \n";
+  string err3 = "ERROR!Infeasible evaluation in TM for attribute: ";
+  string err4 = "ERROR!Expect the file name and path.";
+  string err5 = "ERROR!Expect the file suffix.";
+  string err6 = "ERROR!Expect the target index and dupTimes.";
+  string err7 = "ERROR!Expect the remote type node indices.";
+  string err8 = "ERROR!Remote node for type file is out of range";
+  string err9 = "ERROR!The slave list file does not exist."
+      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
 
-  //all possible argument length: 3|4|5|6| 7|8|9|10
   int len = l.length();
-
-  //If the data remote mode exists, then the array object
-  //is the ~drmPos~ argument.
-  int drmPos = (len - 4);
-
-  //First type mapping the operator without considering data remote
-  if (drmPos > 2)
-    len -= 4;
-
-  if (len < 3 || len > 6)
+  if ( len != 4)
     return l.typeError(lengthErr);
 
+  string fileName, filePath;
+  bool haveIndex, trMode, drMode;
+  haveIndex = drMode = trMode = false;
+  int tNode[2] = {-1, -1};
+
+  NList tsList = l.first(); //input tuple stream
+  NList bsList = l.second(); //basic parameters
+  NList trList = l.third();  //type remote parameters
+  NList drList = l.fourth(); //data remote parameters
+
+  //Basic parameters
   NList attr;
-  if(!l.first().first().checkStreamTuple(attr) )
+  if(!tsList.first().checkStreamTuple(attr) )
     return l.typeError(typeErr);
 
-  if (!l.second().first().isSymbol(symbols::STRING) )
-    return l.typeError(typeErr);
-  NList fnList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fnList))
-    return l.typeError(err3 + "fileName");
-  string fileName = fnList.str();
-
-  if (0 == fileName.length())
-    return l.typeError(err1);
-
-  if (!l.third().first().isSymbol(symbols::TEXT) )
-    return l.typeError(typeErr);
-
-  //Create the type file.
-  //If path is not specified, then use the default path
-  //\$SECONDO\_BUILD\_DIR/bin/parallel/ .
-  //And the specified path must be an absolute path
-  string typeFileName = fileName + "_type";
-  NList fpList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.third().second(), fpList))
-    return l.typeError(err3 + "filePath");
-  string filePath = fpList.str();
-  if (0 == filePath.length())
+  //The first list contains all parameters' types
+  NList pType = bsList.first();
+  //The second list contains all parameter's values
+  NList pValue = bsList.second();
+  if (pType.length() < 2 || pType.length() > 3)
+    return l.typeError(typeErr2);
+  if (pType.first().isSymbol(STRING) &&
+      pType.second().isSymbol(TEXT))
   {
-    filePath = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(filePath, "parallel");
-  }
-  FileSystem::AppendItem(filePath, typeFileName);
-  ofstream typeFile(filePath.c_str());
-  NList resultList = NList(NList("rel"),
-                           l.first().first().second());
-  if (!typeFile.good())
-  {
-    return l.typeError(err2 + filePath);
+    if (pType.length() == 3)
+      haveIndex = true;
+    if (haveIndex && !pType.third().isSymbol(INT))
+     return l.typeError(err5);
+    NList fnList;
+    if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
+      return l.typeError(err3 + "fileName");
+    fileName = fnList.str();
+    if (0 == fileName.length())
+      return l.typeError(err1);
+    NList fpList;
+    if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
+      return l.typeError(err3 + "filePath");
+    filePath = fpList.str();
   }
   else
+    return l.typeError(err4);
+
+  pType = trList.first();
+  if (!pType.isEmpty())
+  {
+    if (pType.length() > 2)
+      return l.typeError(err7);
+    while (!pType.isEmpty())
+    {
+      if (!pType.first().isSymbol(INT))
+        return l.typeError(typeErr3);
+      pType.rest();
+    }
+
+    pValue = trList.second();
+    trMode = true;
+    int cnt = 0;
+    while (!pValue.isEmpty())
+    {
+      NList nList;
+      if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
+        return l.typeError(err3 + " type node index");
+      tNode[cnt++] = nList.intval();
+      pValue.rest();
+    }
+  }
+
+  pType = drList.first();
+  if (!pType.isEmpty())
+  {
+    if (pType.length() != 2)
+      return l.typeError(err6);
+    if (!pType.first().isSymbol(INT) ||
+        !pType.second().isSymbol(INT))
+      return l.typeError(typeErr4);
+    drMode = true;
+  }
+
+  //Type Checking is done, create the type file.
+  string typeFileName = fileName + "_type";
+  filePath = getFilePath(filePath, typeFileName);
+  ofstream typeFile(filePath.c_str());
+  NList resultList = NList(NList("rel"), tsList.first().second());
+  if (typeFile.good())
   {
     typeFile << resultList.convertToString() << endl;
     typeFile.close();
-    cerr << "Created type file " << filePath << endl;
+    cerr << "Type file: " << filePath << " is created. " << endl;
   }
+  else
+    return l.typeError(err2 + filePath);
 
-  // Optional Arguments ...
-  bool haveIndex = false;
-  if (len > 3)
+  //Verify the existence of the PARALLEL\_SECONDO\_SLAVES file
+  if (trMode || drMode)
   {
-    int nodeArgLoc[2] = {-1 , -1 };
-    if (l.fourth().first().isSymbol(symbols::INT))
-      haveIndex = true;
-    else if (l.fourth().first().isSymbol(symbols::STRING))
-      nodeArgLoc[0] = 4;
-    else
-      return l.typeError(typeErr);
-
-    switch(len)
+    clusterInfo *ci = new clusterInfo();
+    if (!ci->isOK())
+      return l.typeError(err9);
+    int sLen = ci->getLines();
+    //Copy type files to remote location
+    for (int i = 0; i < 2; i++)
     {
-      case 4:
-          break;
-      case 5:
-        if (l.fifth().first().isSymbol(symbols::STRING)){
-          if (haveIndex)
-            nodeArgLoc[0] = 5;
-          else
-            nodeArgLoc[1] = 5;
-          break;
-        }
-      case 6:
-        if ((l.fifth().first().isSymbol(symbols::STRING)
-            && l.sixth().first().isSymbol(symbols::STRING))){
-          nodeArgLoc[0] = 5;
-          nodeArgLoc[1] = 6;
-        break;
-        }
-      default:
-        return l.typeError(typeErr);
-    }
-
-    //Copy the type file to remote nodes if asked
-    for(int i = 0; i < 2; i++)
-    {
-      if (nodeArgLoc[i] > 0)
+      if (tNode[i] > 0)
       {
-        NList nnList;
-        if (!QueryProcessor::GetNLArgValueInTM(
-                l.elem(nodeArgLoc[i]).second(), nnList))
-          return l.typeError(err3 + " for node " + int2string(i) );
-        string nodeName = nnList.str();
-        system(("scp " + filePath + " "
-            + nodeName + rmDefaultPath).c_str());
+        if (tNode[i] > sLen)
+        {
+          ci->print();
+          return l.typeError(err8);
+        }
+        string rPath = ci->getPath(tNode[i]);
+        cerr << "Copy the type file to -> " << "\t" << rPath << endl;
+        system(("scp " + filePath + " " + rPath).c_str());
       }
     }
   }
 
-  //Second consider the situation with data remote mode
-  if( drmPos > 2 )
-  {
-    NList arrayList= l.elem(++drmPos).first();
-    NList siList = l.elem(++drmPos).first();
-    NList tiList = l.elem(++drmPos).first();
-    NList dtList = l.elem(++drmPos).first();
-
-    if (!(arrayList.first().isSymbol("array")
-        && arrayList.second().isSymbol(symbols::STRING)))
-      return l.typeError(typeErr);
-
-    if (!( siList.isSymbol(symbols::INT)
-        && tiList.isSymbol(symbols::INT)
-        && dtList.isSymbol(symbols::INT)))
-      return l.typeError(typeErr);
-  }
-
-  NList appList;
-  appList.append(NList(haveIndex));
-
-  return NList(NList("APPEND"), appList,
-               NList(symbols::BOOL)).listExpr();
+  return NList(NList(symbols::BOOL)).listExpr();
 }
 
 
 /*
-5.14.2 Value mapping
+5.4 Value mapping
 
 */
 int FConsumeValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  fconsumeLocalInfo* fcli;
+  fconsumeLocalInfo* fcli = 0;
 
   if ( message <= CLOSE)
   {
     result = qp->ResultStorage(s);
-
-    string relName, path;
-    bool haveIndex = false;
+    Supplier bspList = args[1].addr,
+             drpList = args[3].addr;
+    string relName, filePath;
     int fileIndex = -1;
-//    string typeNode[2] = {"",""};  //two remote sftp server name
-    Array *machines = 0;
-    int si = -1, ti = -1, dt = -1;
+
+    relName = ((CcString*)
+        qp->Request(qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
+    filePath = ((FText*)
+        qp->Request(qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
+    int bspLen = qp->GetNoSons(bspList);
+    if (bspLen == 3)
+      fileIndex = ((CcInt*)
+          qp->Request(qp->GetSupplier(bspList, 2)).addr)->GetValue();
+
+    int ti = -1, dt = -1;
     bool drMode = false;
 
-    relName = ((CcString*)args[1].addr)->GetValue();
-    path = ((FText*)args[2].addr)->GetValue();
-
-    int len = qp->GetNoSons(s);
-    drMode = (len > 8) ? true : false;  //data remote mode
-    haveIndex = ((CcBool*) args[len - 1].addr)->GetValue();
-
-    if (haveIndex)
-      fileIndex = ((CcInt*) args[3].addr)->GetValue();
-
-
-    //optional argument number (fileIndex and type nodes)
-    //remove top three necessary arguments and the last haveIndex
-    if (drMode)
+    int drpLen = qp->GetNoSons(drpList);
+    if (drpLen == 2)
     {
-      int drmPos = len - 5;
-      machines = (Array*)args[drmPos++].addr;
-      si = ((CcInt*)args[drmPos++].addr)->GetValue();
-      ti = ((CcInt*)args[drmPos++].addr)->GetValue();
-      dt = ((CcInt*)args[drmPos].addr)->GetValue();
+      drMode = true;
+      ti = ((CcInt*)
+          qp->Request(qp->GetSupplier(drpList, 0)).addr)->GetValue();
+      dt = ((CcInt*)
+          qp->Request(qp->GetSupplier(drpList, 1)).addr)->GetValue();
+    }
+
+    //Check whether the duplicate parameters are available
+    clusterInfo *ci = new clusterInfo();
+    if (drMode && (ti > ci->getLines()))
+    {
+      ci->print();
+      cerr << "ERROR!The first target node for back up duplicate files "
+          "is out of the range of the slave list." << endl;
+      ((CcBool*)(result.addr))->Set(true, false);
+      return 0;
     }
 
     fcli = (fconsumeLocalInfo*) local.addr;
@@ -2108,24 +2313,14 @@ int FConsumeValueMap(Word* args, Word& result,
 
     //Write complete tuples into a binary file.
     if (fileIndex >= 0)
-    {
-      stringstream ss;
-      ss << relName << "_" << fileIndex;
-      relName = ss.str();
-    }
+      relName = addFileIndex(relName, fileIndex);
 
     //create a path for this file.
-    string blockFileName = path;
-    if (0 == blockFileName.length())
-    {
-      blockFileName = FileSystem::GetCurrentFolder();
-      FileSystem::AppendItem(blockFileName, "parallel");
-    }
-    FileSystem::AppendItem(blockFileName, relName);
-    ofstream blockFile(blockFileName.c_str(), ios::binary);
+    filePath = getFilePath(filePath, relName);
+    ofstream blockFile(filePath.c_str(), ios::binary);
     if (!blockFile.good())
     {
-      cerr << "Create file " << blockFileName << " error!" << endl;
+      cerr << "ERROR!Create file " << filePath << " fail!" << endl;
       ((CcBool*)(result.addr))->Set(true, false);
       return 0;
     }
@@ -2192,44 +2387,57 @@ int FConsumeValueMap(Word* args, Word& result,
 
     qp->Close(args[0].addr);
     blockFile.close();
-    cout << "\nCreated block fileName: " << blockFileName << endl;
+    cout << "\nBlockFile: " << filePath << " is created" << endl;
 
     if (drMode)
     {
-      int aSize = machines->getSize();
-      bool dupliMachines[aSize];
       bool keepLocal = false;
-      memset(dupliMachines, 0, aSize);
-
-      //Mark the machines need to be copied
-      for(int i = 0; i < dt; i++)
-        dupliMachines[((ti - 1 + i) % aSize)] = true;
-
-      if (dupliMachines[(si -1)])
+      int localNode = ci->getLocalNode();
+      if (localNode < 1)
       {
-        keepLocal = true;
-        dupliMachines[(si -1)] = false;
+        cerr << "ERROR! Cannot find the local position " << endl
+            << ci->getLocalIP() << ":" << ci->getLocalPath() << endl
+            << "in the slave list, backup files fail. " << endl;
+        ci->print();
+
+        ((CcBool*) (result.addr))->Set(true, false);
+        return 0;
       }
 
-      string sName =
-      ((CcString*)(machines->getElement(si - 1)).addr)->GetValue();
-      for(int i = 0; i < aSize; i++)
-      {
-        if (dupliMachines[i])
-          system(("scp " + blockFileName + " " +
-           ((CcString*)(machines->getElement(i)).addr)->GetValue()
-           + rmDefaultPath + relName + "_" + sName ).c_str());
-      }
+      string cName = ci->getIP(localNode, true);
+      string newFileName = "/" + relName + "_" + cName;
 
+      //Avoid copying file to a same node repeatedly
+      bool copyList[ci->getLines() + 1];
+      memset(copyList, false, sizeof(copyList));
+      for (int i = 0; i < dt; i++, ti++)
+        copyList[ti] = true;
+
+      for (int i = 1; i <= ci->getLines(); i++)
+      {
+        if (copyList[i])
+        {
+          if (localNode == i)
+          {
+            keepLocal = true;
+            continue;
+          }
+          else
+          {
+            string rPath = ci->getPath(i, true);
+            system(("scp " + filePath + " "
+              + rPath + newFileName).c_str());
+            cerr << "Copy " << filePath << " \t-> " << rPath << newFileName
+                << endl;
+          }
+        }
+      }
       if (!keepLocal)
       {
-        system(("rm " + blockFileName).c_str());
-        cerr << "Local file '" + blockFileName
-            + "' is removed" << endl;
+        system(("rm " + filePath).c_str());
+        cerr << "Local file '" + filePath + "' is deleted." << endl;
       }
-
     }
-
     ((CcBool*)(result.addr))->Set(true, true);
     fcli->state = 1;
     return 0;
@@ -2306,7 +2514,7 @@ Operator fconsumeOp(FConsumeInfo(),
     FConsumeValueMap, FConsumeTypeMap);
 
 /*
-5.15 Operator ~ffeed~
+6 Operator ~ffeed~
 
 This operator maps
 
@@ -2356,8 +2564,29 @@ from the node which ~targetIndex~ point to, then it tries to read the
 file from the next node (~targetIndex~ + 1),
 until the following ~attemptTimes~ nodes are all tried.
 
+6.1 Update the format of ffeed
 
-5.15.0 Specification
+In 18/05/2011, adjust ~ffeed~ operator to read the remote locations
+from list files, not from the string array.
+
+Now the operator maps
+
+----
+fileName x path x [fileIndex] x [typeNodeIndex]
+x [targetNodeIndex x attemptTimes]
+->stream(tuple(...))
+----
+
+Similar as the ~fconsume~ operator, parameters of this operator
+are also divided into three parts, and are separated by semicolons.
+Because of that, we change ~ffeed~ from a prefix operator to
+a post operator, since the prefix operators don't accept semicolons.
+The prefix parameter is the file name of string type.
+
+The typeNodeIndex and targetNodeIndex also refers to the serial
+numbers inside the \$PARALLEL\_SECONDO\_SLAVES file.
+
+6.2 Specification
 
 */
 
@@ -2366,136 +2595,142 @@ struct FFeedInfo : OperatorInfo {
   FFeedInfo() : OperatorInfo()
   {
     name =      "ffeed";
-    signature = "fileName x path x [fileIndex] x [typeNode]"
-                "x [ machineArray x targetIndex x attemptTimes]"
+    signature = "fileName x path x {fileSuffix} x {typeNodeIndex}"
+                "x { targetIndex x attemptTimes}"
                 "-> stream(tuple(...))";
-    syntax =    "ffeed( _, _, _ , _, _, _, _)";
+    syntax =    "_ ffeed[ basic; remote type; remote data]";
     meaning =   "restore a relation from a binary file"
                 "created by ~fconsume~ operator.";
   }
 };
 
 /*
-5.15.1 Type mapping
+6.3 Type mapping
 
 */
 
 ListExpr FFeedTypeMap(ListExpr args)
 {
   NList l(args);
-  string typeErr = "ffeed expects(string, text, [int], [string]"
-      "[(array string), int, int])";
+  NList pType, pValue;
+  bool haveIndex, trMode, drMode;
+  haveIndex = trMode = drMode = false;
+
+  string lenErr = "ERROR! Operator ffeed expects "
+      "four parts parameters, separated by semicolons";
+  string typeErr = "ERROR! Operator ffeed expects "
+      "fileName: string, filePath: text, {fileSuffix: int};"
+      "{typeNodeIndex: int}; "
+      "{targetNodeIndex: int, attemptTimes: int}";
   string err1 = "ERROR! File name should NOT be empty!";
-  string err2 = "ERROR! Type file NOT exist!\n";
+  string err2 = "ERROR! Type file is NOT exist!\n";
   string err3 = "ERROR! A tuple relation type list is "
       "NOT contained in file: ";
-  string err4 ="ERROR! Infeasible evaluation in TM for attribute ";
+  string err4 = "ERROR! Infeasible evaluation in TM for attribute ";
+  string err5 = "ERROR! Prefix parameter expects fileName: string";
+  string err6 = "ERROR! Basic parameters expect "
+      "filePath: text, {fileSuffix: int}";
+  string err7 = "ERROR! Type remote parameter expects "
+      "{typeNodeIndex: int}";
+  string err8 = "ERROR! Remote node for type file is out of range.";
+  string err9 = "ERROR! Data remote parameters expect "
+      "{targetNodeIndex: int, attemptTimes: int}";
+  string err10 = "ERROR!The slave list file does not exist."
+      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
 
-  //operator only accept 2|3|4|5|6|7 arguments
-  int len = l.length();
 
-  if ( len < 2 || len > 7)
-    return l.typeError(typeErr);
+  if (l.length() != 4)
+    return l.typeError(lenErr);
 
-  bool drMode = (len > 4) ? true : false;  //data remote mode
-
-  if (!l.first().first().isSymbol(symbols::STRING))
-    return l.typeError(typeErr);
+  NList fn = l.first();
+  pType = fn.first();
+  pValue = fn.second();
+  if (!pType.isSymbol(STRING))
+    return l.typeError(err5);
   NList fnList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.first().second(), fnList))
+  if (!QueryProcessor::GetNLArgValueInTM(pValue, fnList))
     return l.typeError(err4 + "fileName");
   string fileName = fnList.str();
-
   if (0 == fileName.length())
     return l.typeError(err1);
 
-  //only for test the getNLArgValueInTM
-  if (!l.second().first().isSymbol(symbols::TEXT))
-    return l.typeError(typeErr);
+  NList bp = l.second();  //basic parameters
+  pType = bp.first();
+  pValue = bp.second();
+  int bpLen = pType.length();
+  if (bpLen < 1 || bpLen > 2)
+    return l.typeError(err6);
+  else if (bpLen == 2)
+    haveIndex = true;
+  if (!pType.first().isSymbol(TEXT))
+    return l.typeError(err6);
+  if (haveIndex)
+    if (!pType.second().isSymbol(INT))
+      return l.typeError(err6);
   NList fpList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fpList))
+  if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
     return l.typeError(err4 + "filePath");
   string filePath = fpList.str();
+  filePath = getFilePath(filePath, fileName + "_type");
 
-  if (0 == filePath.length())
+  NList tr = l.third();
+  pType = tr.first();
+  int tnIndex = -1;
+  if (!pType.isEmpty())
   {
-    filePath = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(filePath, "parallel");
+    if (pType.length() > 1 ||
+        !pType.first().isSymbol(INT))
+      return l.typeError(err7);
+    trMode = true;
+    pValue = tr.second();
+    tnIndex = pValue.first().intval();
   }
-  FileSystem::AppendItem(filePath, fileName + "_type");
 
-  //Check the file index and the remote type node
-  int argNum = drMode ? (len - 3) : len;
-  bool haveIndex = false;
-  int rtnPos = -1;  //RTN: remote type node
-  switch(argNum)
+  NList dr = l.fourth();
+  pType = dr.first();
+  if (!pType.isEmpty())
   {
-    case 2:
-      break;
-    case 3:{
-      if (l.third().first().isSymbol(symbols::INT))
-        haveIndex = true;
-      else if (l.third().first().isSymbol(symbols::STRING))
-        rtnPos = 3;
-      else
-        return l.typeError(typeErr);
-      break;
+    if (pType.length() != 2)
+      return l.typeError(err9);
+    if (!pType.first().isSymbol(INT) ||
+        !pType.second().isSymbol(INT))
+      return l.typeError(err9);
+    drMode = true;
+  }
+
+  if (tnIndex > 0)
+  {
+    //copy the type file from remote to here
+    clusterInfo *ci = new clusterInfo();
+    if (!ci->isOK())
+      return l.typeError(err10);
+
+    int sLen = ci->getLines();
+    if (tnIndex > sLen)
+    {
+      ci->print();
+      return l.typeError(err8);
     }
-    case 4:{
-      if (!(l.third().first().isSymbol(symbols::INT)
-          && l.fourth().first().isSymbol(symbols::STRING)))
-        return l.typeError(typeErr);
-      haveIndex = true;
-      rtnPos = 4;
-      break;
-    }
-    default:
-      return l.typeError(typeErr);
+    string rPath = ci->getPath(tnIndex);
+    FileSystem::AppendItem(rPath, fileName + "_type");
+    cerr << "Copy the type file from <-" << "\t" << rPath << endl;
+    system(("scp " + rPath + " " + filePath).c_str());
   }
-  if (rtnPos > 0)
-  {
-    //copy the type file from the remote machine
-    NList nnList;
-    if (!QueryProcessor::GetNLArgValueInTM(l.elem(rtnPos).second(), nnList))
-      return l.typeError(err3 + "node name");
-    string nodeName = nnList.str();
 
-    //!!!we assume in every node's home directory, where the sftp
-    //server start, exists a link to its \$SECONDO\_BUILD\_DIR !!!
-    system(("scp "
-        + nodeName + rmDefaultPath + fileName + "_type" + " "
-        + filePath).c_str());
-  }
   ListExpr relType;
-  if(!nl->ReadFromFile(filePath, relType))
+  if (!nl->ReadFromFile(filePath, relType))
     return l.typeError(err2 + filePath);
-  if(!listutils::isRelDescription(relType))
+  if (!listutils::isRelDescription(relType))
     return l.typeError(err3 + filePath);
-  if (drMode)
-  {
-    //remote mode
-    int drmPos = len - 3 + 1;  //Three arguments from the end
-    if (!(l.elem(drmPos).first().first().isSymbol("array")
-        && l.elem(drmPos).first().
-           second().isSymbol(symbols::STRING)))
-      return l.typeError(typeErr);
-    if (!l.elem(++drmPos).first().isSymbol(symbols::INT))
-      return l.typeError(typeErr);
-    if(!l.elem(++drmPos).first().isSymbol(symbols::INT))
-      return l.typeError(typeErr);
-  }
   NList streamType =
       NList(NList(symbols::STREAM),
       NList(NList(relType).second()));
 
-  return NList(NList("APPEND"),
-               NList(NList(haveIndex),
-                     NList(fileName, true)),
-               streamType).listExpr();
+  return streamType.listExpr();
 }
 
 /*
-5.15.2 Value mapping
+6.4 Value mapping
 
 */
 int FFeedValueMap(Word* args, Word& result,
@@ -2505,59 +2740,59 @@ int FFeedValueMap(Word* args, Word& result,
   string relName, path;
   FFeedLocalInfo* ffli = 0;
   Supplier sonOfFeed;
-  Array *machines = 0;
-  int mIndex = -1;
-  int attemptTime = 0;
+  int tgtIndex = -1;
+  int attTimes = 0;
 
   switch(message)
   {
     case OPEN: {
-      path = ((FText*)args[1].addr)->GetValue();
-      int len = qp->GetNoSons(s);
-      int pos = len;
+      relName = ((CcString*)args[0].addr)->GetValue();
+      Supplier bspList = args[1].addr,
+               drpList = args[3].addr;
+      path =  ((FText*)
+          qp->Request(qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
+      if (qp->GetNoSons(bspList) == 2)
+        index = ((CcInt*)
+            qp->Request(qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
 
-      relName = ((CcString*)args[(--pos)].addr)->GetValue();
-      bool haveIndex = ((CcBool*)args[(--pos)].addr)->GetValue();
-
-      if (haveIndex)
-        index = ((CcInt*)args[2].addr)->GetIntval();
-
-      if ((pos - 4) > 0)
+      if (qp->GetNoSons(drpList) == 2)
       {
-        attemptTime = ((CcInt*)args[(--pos)].addr)->GetIntval();
-        mIndex = ((CcInt*)args[(--pos)].addr)->GetIntval() - 1;
-        machines = (Array*)args[(--pos)].addr;
+        tgtIndex = ((CcInt*)
+            qp->Request(qp->GetSupplierSon(drpList, 0)).addr)->GetValue();
+        attTimes = ((CcInt*)
+            qp->Request(qp->GetSupplierSon(drpList, 1)).addr)->GetValue();
       }
 
       if(index >= 0)
-      {
-        stringstream ss;
-        ss << relName << "_" << index;
-        relName = ss.str();
-      }
+        relName = addFileIndex(relName, index);
 
       string filePath = path;
-      if (0 == path.length())
-      {
-        filePath = FileSystem::GetCurrentFolder();
-        FileSystem::AppendItem(filePath, "parallel");
-      }
-      FileSystem::AppendItem(filePath, relName);
+      filePath = getFilePath(filePath, relName, false);
 
       ffli = (FFeedLocalInfo*) local.addr;
       if (ffli) delete ffli;
       ffli = new FFeedLocalInfo(qp->GetType(s));
 
-      ffli->fetchBlockFile(
-          relName, filePath, machines, mIndex, attemptTime);
-      ffli->returned = 0;
-      local.setAddr(ffli);
+      if (ffli->fetchBlockFile(
+          relName, filePath, tgtIndex, attTimes))
+      {
+        ffli->returned = 0;
+        local.setAddr(ffli);
+        return 0;
+      }
+      else
+      {
+        delete ffli;
+        local.setAddr(0);
+        return CLOSE;
+      }
 
-      return 0;
     }
     case REQUEST: {
       ffli = (FFeedLocalInfo*)local.addr;
-      Tuple *t = ffli->getNextTuple();
+      Tuple *t = 0;
+      if (ffli)
+        t = ffli->getNextTuple();
       if (0 == t)
         return CANCEL;
       else
@@ -2570,10 +2805,12 @@ int FFeedValueMap(Word* args, Word& result,
     }
     case CLOSE: {
       ffli = (FFeedLocalInfo*)local.addr;
-      if (ffli->tupleBlockFile){
-        ffli->tupleBlockFile->close();
-        delete ffli->tupleBlockFile;
-        ffli->tupleBlockFile = 0;
+      if (ffli){
+        if (ffli->tupleBlockFile){
+          ffli->tupleBlockFile->close();
+          delete ffli->tupleBlockFile;
+          ffli->tupleBlockFile = 0;
+        }
       }
       return 0;  //must return
     }
@@ -2629,7 +2866,209 @@ therefore it doesn't have any son operator.
 Operator ffeedOp(FFeedInfo(), FFeedValueMap, FFeedTypeMap);
 
 /*
-5.16 Operator ~hadoopjoin~
+6.5 Implementation of FFeedLocalInfo methods
+
+*/
+
+bool FFeedLocalInfo::isLocalFileExist(string fp)
+{
+  if (fp.length() != 0)
+  {
+    if (FileSystem::IsDirectory(fp))
+    {
+      cerr << "ERROR!The denoted file is a directory." << endl;
+      return false;
+    }
+    return FileSystem::FileOrFolderExists(fp);
+  }
+  return false;
+}
+
+
+bool FFeedLocalInfo::fetchBlockFile(
+    string fileName, string filePath, int tgtIndex, int att)
+{
+  //Fetch the binary file from remote machine.
+  bool fileFound = false;
+  string hostIP = "", tgtIP = "";
+  clusterInfo *ci = 0;
+
+  string localFilePath = filePath;
+  FileSystem::AppendItem(localFilePath, fileName);
+
+/*
+Detect whether the file is exist or not.
+if the file is exist, fileFound is true, and the filePath contains
+the complete local path of the file. Or else, the fileFound is false.
+
+*/
+  if (tgtIndex < 0)
+  {
+    //Fetch the file in the local machine
+    fileFound = isLocalFileExist(localFilePath);
+  }
+  else
+  {
+    //Fetch the file in a remote machine
+    ci = new clusterInfo();
+    if(!ci->isOK())
+    {
+      cerr << "ERROR!The PARALLEL_SECONDO_SLAVES list is not "
+          "correctly set up." << endl;
+      return false;
+    }
+    if (tgtIndex > ci->getLines())
+    {
+      cerr << "ERROR!The first target's index is out of "
+          "the range of the slave list." << endl;
+      ci->print();
+      return false;
+    }
+
+    tgtIP = ci->getIP(tgtIndex);
+    hostIP = ci->getLocalIP();
+    string rFileName = "";
+
+    while (!fileFound && (att-- > 0))
+    {
+/*
+In case the duplicated file's name conflicts with files produced
+locally by the remote machine itself,
+duplicated files' names are ended with its host's IP address.
+When feeding the file from the target node, i.e. at the first attempt,
+the file's name is the same as the given fileName.
+Then in the following attempts, the fileName has to be extended with
+the target's IP address.
+
+*/
+      if (rFileName.length() == 0)
+        rFileName = fileName;
+      else
+        rFileName += ("_" + tgtIP);
+
+      string nodeIP, rFilePath;
+      nodeIP = ci->getIP(tgtIndex, true);
+      rFilePath = ci->getPath(tgtIndex, true, false);
+      FileSystem::AppendItem(rFilePath, rFileName);
+      int detectTimes = MAX_COPYTIMES;
+      string qStr = "ssh " + nodeIP +
+          " ls " + rFilePath + " 2>/dev/null";
+      while (!fileFound && (detectTimes-- > 0))
+      {
+/*
+We detect the remote file through a shell ssh command,
+and the command may fail if the network is too busy.
+Therefore we have to try several times.
+
+*/
+        FILE *fs;
+        char qBuf[1024];
+        memset(qBuf, '\0', sizeof(qBuf));
+        fs = popen(qStr.c_str(), "r");
+/*
+popen function is not a standard C function, and it may return
+a NULL value because of the failure of allocating memory.
+Some systems have a limitation of opened files simultaneously.
+
+*/
+        if (fs == NULL)
+          perror(("popen fail! Detecting the remote file: "
+              + nodeIP + ":" + rFilePath ).c_str());
+        else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+        {
+          fileFound = true;
+          pclose(fs);
+        }
+      }
+
+      if (!fileFound)
+      {
+        cerr << "Warning! Cannot detect the file "
+            << nodeIP << ":" << rFilePath << endl;
+        tgtIndex++;
+        continue;
+      }
+      else
+      {
+        //Delete the local file if it exists,
+        //and copy the file to the local node
+        if (isLocalFileExist(localFilePath))
+        {
+          cerr << "Delete the local exist file with the same name\n";
+          FileSystem::DeleteFileOrFolder(localFilePath);
+        }
+        int copyTimes = MAX_COPYTIMES;
+        do{
+          system(("scp " + nodeIP + ":" + rFilePath +
+              " " + localFilePath).c_str());
+        }while ((--copyTimes > 0) &&
+            !FileSystem::FileOrFolderExists(localFilePath));
+        if (copyTimes < 0)
+        {
+          cerr << "Warning! Cannot copy the remote file: "
+              << rFilePath << endl;
+          fileFound = false;
+        }
+      }
+    }
+  }
+
+  if (!fileFound)
+  {
+    cerr << "\nERROR! File " << localFilePath
+         << " is not exist and cannot be remotely fetched.\n\n\n";
+    return false;
+  }
+
+  tupleBlockFile = new ifstream(localFilePath.c_str(), ios::binary);
+  if (!tupleBlockFile->good())
+  {
+    cerr << "ERROR! Read file " << localFilePath << " fail.\n\n\n";
+    tupleBlockFile = 0;
+    return false;
+  }
+
+  //Catch the file, and read the description list
+  u_int32_t descSize;
+  size_t fileLength;
+  tupleBlockFile->seekg(0, ios::end);
+  fileLength = tupleBlockFile->tellg();
+  tupleBlockFile->seekg(
+      (fileLength - sizeof(descSize)), ios::beg);
+  tupleBlockFile->read((char*)&descSize, sizeof(descSize));
+
+  char descStr[descSize];
+  tupleBlockFile->seekg(
+      (fileLength - (descSize + sizeof(descSize))), ios::beg);
+  tupleBlockFile->read(descStr, descSize);
+  tupleBlockFile->seekg(0, ios::beg);
+
+  NList descList = NList(binDecode(string(descStr)));
+
+  //Initialize the sizes of progress local info
+  noAttrs = tupleType->GetNoAttributes();
+  total = descList.first().intval();
+  attrSize = new double[noAttrs];
+  attrSizeExt = new double[noAttrs];
+  for(int i = 0; i < noAttrs; i++)
+  {
+    attrSizeExt[i] =
+        descList.elem(4 + i*2).realval() / total;
+    attrSize[i] =
+        descList.elem(4 + (i*2 + 1)).realval() / total;
+
+    SizeExt += attrSizeExt[i]; //average sizeExt of a tuple
+    Size += attrSize[i];
+  }
+
+  sizesInitialized = true;
+  sizesChanged = true;
+
+  return true;
+}
+
+/*
+7 Operator ~hadoopjoin~
 
 This operator carries out a Hadoop join operation in Secondo.
 
@@ -2652,7 +3091,7 @@ struct HdpJoinInfo : OperatorInfo {
 };
 
 /*
-5.16.1 Type mapping
+7.1 Type mapping
 
 The operator maps:
 
@@ -2821,7 +3260,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
 }
 
 /*
-5.16.2 Value mapping
+7.2 Value mapping
 
 Operator takes the first array parameter,
 filter out the master node by the second masterIndex parameter,
@@ -2910,20 +3349,21 @@ int hdpJoinValueMap(Word* args, Word& result,
       char buf[MAX_STRINGSIZE];
 //      fs = popen("cat pjResult", "r");
       fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
-
-      while(fgets(buf, sizeof(buf), fs))
+      if (NULL != fs)
       {
-        stringstream ss;
-        ss << buf;
-        istringstream iss(ss.str());
-        int mIndex, pIndex;
-        iss >> pIndex >> mIndex;
-        hjli->insertPair(make_pair(mIndex, pIndex));
+        while(fgets(buf, sizeof(buf), fs))
+        {
+          stringstream ss;
+          ss << buf;
+          istringstream iss(ss.str());
+          int mIndex, pIndex;
+          iss >> pIndex >> mIndex;
+          hjli->insertPair(make_pair(mIndex, pIndex));
+        }
+        pclose(fs);
+        hjli->setIterator();
+        local.setAddr(hjli);
       }
-      pclose(fs);
-      hjli->setIterator();
-      local.setAddr(hjli);
-
       return 0;
     }
     case REQUEST:{
@@ -2956,7 +3396,7 @@ Operator hadoopjoinOp(HdpJoinInfo(),
                       hdpJoinTypeMap);
 
 /*
-5.16 Operator ~fdistribute~
+8 Operator ~fdistribute~
 
 ~fdistribute~ partitions a tuple stream into several binary files
 based on a specific attribute value, along with a linear scan.
@@ -2984,7 +3424,12 @@ just like what the ~distribute~ operator does.
 But if it's set to be true, then the key attribute will
 stay in the result files.
 
-5.16.0 Specification
+In 13/5/2011, enable ~fdistribute~ operation with duplication function.
+As we reply on ~fdistribute~ in generic hadoop operation's map step,
+it's necessary to use ~fdistribute~ operator to duplicate its result
+files into candidate nodes.
+
+8.0 Specification
 
 */
 
@@ -3012,7 +3457,7 @@ struct FDistributeInfo : OperatorInfo {
 };
 
 /*
-5.16.1 Type mapping
+8.1 Type mapping
 
 */
 ListExpr FDistributeTypeMap(ListExpr args)
@@ -3020,7 +3465,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   NList l(args);
   string lenErr = "operator fdistribute expects 4/5/6 arguments.";
   string tpeErr = "operator fdistribute expects "
-      "(stream(tuple)) x string x text x symbol x [int]";
+      "(stream(tuple)) x string x text x symbol x [int] x [bool]";
   string attErr = "operator fdistribute cannot find the "
       "basis partition attribute: ";
   string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
@@ -3135,7 +3580,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
 }
 
 /*
-5.16.2 Value mapping
+8.2 Value mapping
 
 */
 int FDistributeValueMap(Word* args, Word& result,
@@ -3236,6 +3681,11 @@ int FDistributeValueMap(Word* args, Word& result,
   return 0;
 }
 
+/*
+8.3 Implementation of FDistributeLocalInfo methods
+
+*/
+
 FDistributeLocalInfo::FDistributeLocalInfo(
     string _bn, string _pt, int _nb, int _ai, bool _kpa,
     ListExpr _rtl, ListExpr _itl)
@@ -3334,6 +3784,513 @@ Operator fdistributeOp(FDistributeInfo(),
                        FDistributeTypeMap);
 
 /*
+9 Data Type fList
+
+During the parallel processing, we need to indicate Secondo objects
+distributed in slave nodes of the cluster. There are two situations
+need to be considered:
+
+  * Object's pieces are kept in Secondo databases, with a same name.
+
+  * Object's pieces are kept in a series of binary files, start with a same name.
+
+The fList is used to negotiate the second situation.
+
+Assume a Secondo relation is divided to ~n~ * ~p~ files,
+here ~n~ is the number of slave nodes of the cluster,
+and ~p~ is the number of partitions that this object is divided to
+on each slave node.
+The complete set of these files are called as a matrix-file,
+each file is called as a cell file,
+and each slave node keeps a row of this matrix, i.e. ~p~ cell files.
+
+During the MapReduce parallel processing involving fList,
+each map or reduce task process one column cell files of the matrix file,
+and produce one row cell files of a new matrix file to the local node.
+
+To describe the distribution of a Secondo object, following attributes
+are required in the fList:
+
+  * objectName
+
+  * objectType
+
+  * nodesList
+
+  * fileLocList
+
+  * duplicateTimes
+
+  * Available
+
+The ~objectName~ is the name of the Secondo object,
+also the prefix name of all cell files.
+The ~objectType~ describes the schema of the Secondo object.
+At present, the type must be a tuple relation.
+The ~nodesList~ contains the IP addresses of all nodes in the cluster,
+and the first node is viewed as the master node.
+The ~fileLocList~ indicates the location of the cell files.
+It uses slaves' indices in above ~nodesList~ as the indicator.
+In some cases, a cell file may be duplicated into several nodes,
+and the parameter ~duplicateTimes~ denotes the times of the duplication,
+which must not be less than 1.
+The last attribute is ~Available~, which denotes whether the last
+operator which created this list is successfully performed.
+
+*/
+fList::fList(string _on, NList _tl, NList _nl,
+    NList _fll, size_t _dp, bool _ia):
+    objName(_on), objectType(_tl),
+    nodesList(_nl), fileLocList(_fll),
+    dupTimes(_dp), isAvailable(_ia),
+    mrNum(0), mcNum(-1)
+{
+  if (isAvailable)
+    verifyLocList();
+}
+
+fList::fList(fList& rhg):
+    objName(rhg.getObjName()),
+    objectType(rhg.getTypeList()),
+    nodesList(rhg.getNodeList()),
+    fileLocList(rhg.getLocList()),
+    dupTimes(rhg.getDupTimes()),
+    isAvailable(rhg.isAvailable),
+    mrNum(rhg.getMtxRowNum()),
+    mcNum(rhg.getMtxColNum())
+
+{ }
+
+fList::~fList()
+{ }
+
+/*
+9.1 fList::In Function
+
+The ~In~ function accepts following parameters
+
+  * A Secondo object name.
+This is a string value express the name of an exist Secondo object.
+We use it to get the ~objectName~ and its type expression.
+In some cases, the object may not exist, then there should be a text
+file that contains the type expression exists in the local *parallel* directory.
+If both the object and the type file don't exist,
+then set the ~correct~ as FALSE.
+
+  * A nodesList.
+This is a list of string values, each specifies a IP address of
+a node in the cluster. And the first one is viewed as the master
+node by default.
+
+  * A fileLocLMatrix
+This is a nested list that composed by integer numbers,
+which denotes the matrix of cell files
+E.g., it may looks like this:
+
+---- (  (1 ( 1 2 3 4 5))
+        (2 ( 1 2 3 4 5))
+        (3 ( 1 2 3 4 5))
+        (4 ( 1 2 3 4 5)) )
+----
+
+The above example shows that a Secondo objects is divided into
+a 4x5 matrix file, and is distributed to a cluster with 4 nodes.
+Each node, including the master node, contains five cell files.
+
+  * A duplicate times
+This is a integer number used to tell how many duplications of a
+cell file are kept inside the cluster.
+At present, we adopt a simple chained declustering mechanism to
+backup the duplications of the cell files.
+Besides the primary node that is denoted in the fileLoc matrix,
+it will be copied to (~dupTimes~ - 1) nodes that are listed after
+the primary node within the nodesList.
+
+
+*/
+Word fList::In(const ListExpr typeInfo, const ListExpr instance,
+            const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  Word result = SetWord(Address(0));
+  string typeErr = "expect (objectName nodesList fileLocList).";
+  string flocErr = "improper file location list, "
+      "refer to source document.";
+
+  NList il(instance);
+  correct = false;
+  if (4 == il.length())
+  {
+    NList onl = il.first();  //object name
+    NList nll = il.second(); //node list
+    NList fml = il.third();  //fileloc list
+    NList dpl = il.fourth(); //duplicate times
+
+    //Check Object Type
+    string objName = "";
+    ListExpr objType;
+    if (onl.isString())
+    {
+      correct = true;
+      objName = onl.str();
+      if (0 == objName.length())
+      {
+        cmsg.inFunError("Object Name cannot be empty.");
+      }
+      else
+      {
+        //Read the object from current database
+        SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+        if (ctlg->IsSystemObject(objName))
+        {
+          correct = false;
+          cmsg.inFunError("Cannot distribute system object.");
+        } else if (ctlg->IsObjectName(objName))
+        {
+          objType = ctlg->GetObjectTypeExpr(objName);
+        } else
+        {
+/*
+If the object doesn't exist in the database,
+then its schema file must be kept in master node's parallel directory.
+The schema file is further explained in ~ffeed~ and ~fconsume~ operators.
+
+*/
+          string filePath = getFilePath("", objName + "_type");
+          if (!FileSystem::FileOrFolderExists(filePath))
+          {
+            correct = false;
+            cmsg.inFunError(
+                "Object " + objName + " doesn't exist");
+          }
+          else if (!(nl->ReadFromFile(filePath, objType)))
+          {
+            correct = false;
+            cmsg.inFunError(
+                "Incorrect nested list in file " + filePath );
+          }
+        }
+        if (correct && !listutils::isRelDescription(objType))
+        {
+          correct = false;
+          cmsg.inFunError(
+              "Expect a relation object. ");
+        }
+      }
+    }
+
+    //Check nodes list
+    if (correct)
+    {
+      //Read the nodeList
+      NList nodes = nll;
+      while (!nodes.isEmpty())
+      {
+        NList addr = nodes.first();
+        if (!addr.isString())
+        {
+          correct = false;
+          cmsg.inFunError(
+              "Expect string list of IP addresses.");
+          break;
+        }
+        nodes.rest();
+      }
+    }
+
+    //Check the type of fileLocList
+    if (correct)
+    {
+      bool isOK = false;
+      NList rows = fml;
+      while (!rows.isEmpty())
+      {
+        NList aRow = rows.first();
+        if (2 == aRow.length())
+        {
+          if (aRow.first().isInt())
+          {
+            NList CFs = aRow.second();
+            while(!CFs.isEmpty())
+            {
+              NList aCF = CFs.first();
+              if (aCF.isInt())
+                isOK = true;
+              else
+                isOK = false;
+
+              if (!isOK)
+                break;
+              CFs.rest();
+            }
+          }
+          else
+            isOK = false;
+        }
+        else
+          isOK = false;
+
+        if (!isOK)
+          break;
+        rows.rest();
+      }
+
+      if (!isOK)
+      {
+        correct = false;
+        cmsg.inFunError(flocErr);
+      }
+    }
+
+    //Check the duplicate times
+    size_t dpTime = 0;
+    if (correct)
+    {
+      if (dpl.isInt())
+      {
+        dpTime = dpl.intval();
+        if (dpTime < 1)
+          correct = false;
+      }
+      else
+        correct = false;
+
+      if (!correct)
+        cmsg.inFunError(
+            "Expect a positive integer duplicate times value.");
+    }
+
+    if (correct)
+    {
+      fList *FLL = new fList(objName, NList(objType),
+          nll, fml, dpTime, true);
+      if(FLL->isOK())
+        return SetWord(FLL);
+      else
+        correct = false;
+    }
+  }
+  else
+    cmsg.inFunError(typeErr);
+
+  assert(!correct);
+  return SetWord(Address(0));
+}
+
+ListExpr fList::Out(ListExpr typeInfo, Word value)
+{
+  if (value.addr)
+  {
+    fList* fl = static_cast<fList*>(value.addr);
+
+    return nl->FiveElemList(
+        NList(fl->getObjName(), true, false).listExpr(),
+        fl->getTypeList().listExpr(),
+        fl->getNodeList().listExpr(),
+        fl->getLocList().listExpr(),
+        NList(fl->getDupTimes()).listExpr() );
+  }
+  else
+    return nl->SymbolAtom("undef");
+}
+
+Word fList::Create(const ListExpr typeInfo)
+{
+  cerr << "In Create" << endl;
+  return SetWord(new fList("", NList(), NList(), NList(), 1));
+}
+
+void fList::Delete(const ListExpr typeInfo, Word& w)
+{
+  cerr << "In Delete" << endl;
+  delete (fList*)w.addr;
+  w.addr = 0;
+}
+
+void fList::Close(const ListExpr typeInfo, Word& w)
+{
+  cerr << "In Close" << endl;
+  delete (fList*)w.addr;
+  w.addr = 0;
+}
+
+
+Word fList::Clone(const ListExpr typeInfo, const Word& w)
+{
+  cerr << "In Clone" << endl;
+  return SetWord(new fList(*(fList*)w.addr));
+}
+
+bool fList::Save(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& w)
+{
+  bool ok = true;
+
+  ListExpr valueList = Out(typeInfo, w);
+  valueList = nl->OneElemList(valueList);
+  string valueStr;
+  nl->WriteToString(valueStr, valueList);
+  int valueLength = valueStr.length();
+  ok = ok && valueRecord.Write(&valueLength, sizeof(int), offset);
+  offset += sizeof(int);
+  ok = ok && valueRecord.Write(valueStr.data(), valueLength, offset);
+  offset += valueLength;
+
+  return ok;
+}
+
+bool fList::Open(SmiRecord& valueRecord,
+                 size_t& offset,
+                 const ListExpr typeInfo,
+                 Word& value)
+{
+  int valueLength;
+  string valueStr = "";
+  ListExpr valueList = 0;
+  char *buf = 0;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERRORS"));
+  bool correct;
+
+  bool ok = true;
+  ok = ok && valueRecord.Read(&valueLength, sizeof(int), offset);
+  offset += sizeof(int);
+  buf = new char[valueLength];
+  ok = ok && valueRecord.Read(buf, valueLength, offset);
+  offset += valueLength;
+  valueStr.assign(buf, valueLength);
+  delete []buf;
+  nl->ReadFromString(valueStr, valueList);
+
+  value = RestoreFromList(typeInfo, nl->First(valueList),
+      1, errorInfo, correct);
+
+  if (errorInfo != 0)
+    nl->Destroy(errorInfo);
+  nl->Destroy(valueList);
+  return ok;
+}
+
+Word fList::RestoreFromList(
+    const ListExpr typeInfo, const ListExpr instance,
+    const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  NList il = NList(instance);
+  string objName = il.first().str();
+  NList typeList = il.second();
+  NList nodeList = il.third();
+  NList locList = il.fourth();
+  size_t dupTimes = il.fifth().intval();
+
+  fList* fl = new fList(objName, typeList, nodeList,
+      locList, dupTimes, true);
+  correct = fl->isOK();
+  if (correct)
+    return SetWord(fl);
+  else
+    return SetWord(Address(0));
+
+}
+
+/*
+As in ~In~ function, the type of the fileLocList is already checked,
+it's not necessary to check the type here again.
+However, it's still necessary to check whether the value of the list
+is available.
+During the check period, following conditions are required:
+
+  * row number of the matrix is limited in [ 1 .. nodesNum ]
+
+  * column number is larger than 1
+
+  * duplicate number is limited in [ 1 .. nodesNum ]
+
+  * a cell file can be duplicated on each slave at most once.
+
+*/
+void fList::verifyLocList()
+{
+  if (fileLocList.isEmpty())
+    isAvailable = false;
+  else
+  {
+    mrNum = 0;
+    mcNum = -1;
+
+    NList fll = fileLocList;
+    while (!fll.isEmpty())
+    {
+      NList aRow = fll.first();
+      mrNum++;
+      int nodeNum = aRow.first().intval();
+      if (nodeNum > getNodesNum())
+      {
+        cerr << "Improper matrix row number : "
+            << nodeNum << endl;
+        isAvailable = false;
+        break;
+      }
+      NList cfList = aRow.second();
+      while (!cfList.isEmpty())
+      {
+        NList aCF = cfList.first();
+        int cellNum = aCF.intval();
+        if (cellNum < 1)
+        {
+          cerr << "Negative matrix column number : "
+              << cellNum << endl;
+          isAvailable = false;
+          break;
+        }
+        mcNum = (cellNum > mcNum) ? cellNum : mcNum;
+
+        if (!isAvailable)
+          break;
+        cfList.rest();
+      }
+      if (!isAvailable)
+        break;
+      fll.rest();
+    }
+  }
+}
+
+struct fListInfo: ConstructorInfo
+{
+  fListInfo()
+  {
+    name = "flist";
+    signature = "-> " + SIMPLE;
+    typeExample = "flist";
+    listRep = "(<objName> <nodeList> <fileLocList><dupTimes>)";
+    valueExample =
+        "(\"plz\" (\"10.10.10.10\" \"10.10.10.11\")"
+        " ( ( (1 (1 2)) (2 (1 2)) ) ) 2) ";
+    remarks = "";
+  }
+};
+struct fListFunctions: ConstructorFunctions<fList>
+{
+  fListFunctions()
+  {
+    in = fList::In;
+    out = fList::Out;
+
+    create = fList::Create;
+    deletion = fList::Delete;
+    close = fList::Close;
+    clone = fList::Clone;
+    kindCheck = fList::CheckFList;
+
+    restoreFromList = fList::RestoreFromList;
+    save = fList::Save;
+    open = fList::Open;
+  }
+};
+
+fListInfo fli;
+fListFunctions flf;
+TypeConstructor flTC(fli, flf);
+
+/*
 6 Auxiliary functions
 
 */
@@ -3364,18 +4321,72 @@ string tranStr(const string& s,
   return result;
 }
 
-string getFilePath(string path, const string fileName)
+/*
+The ~getFilePath~ function is used to set the path of the type and
+data files produced by ~fconsume~, ~ffeed~ and ~fdistribute~ operators.
+
+If a specified file path is not given, then it reads the
+~SecondoFilePath~ variable set in the SecondoConfig.ini that is
+denoted by ~SECONDO\_CONFIG~ parameter.
+And the path must be an absoloute path.
+
+However, the ~SecondoFilePath~ is may be replaced by
+its environment variable ~SECONDO\_PARAM\_SecondoFilePath~,
+and may contains several paths that are divided by ':'.
+In this case, the ~SecondoFilePath~ will be viewed as empty.
+
+By default, the path will be set to SECONDO\_BUILD\_DIR/bin/parallel
+
+*/
+string getFilePath(string path, const string fileName, bool extendPath)
 {
   if (0 == path.length())
   {
-    path = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(path, "parallel");
+    string confPath = string(getenv("SECONDO_CONFIG"));
+    path = SmiProfile::GetParameter("ParallelSecondo",
+        "SecondoFilePath","", confPath);
+
+    const char sep = ':';
+    size_t p = path.find_first_of(sep);
+    if (p != string::npos)
+    {
+      cerr << "The SecondoFilePath " << path
+           << " set in " << confPath
+           << " is not available" << endl;
+
+      path = FileSystem::GetCurrentFolder();
+      FileSystem::AppendItem(path, "parallel");
+      cerr << "The default path is used: " << path << endl;
+    }
   }
-  FileSystem::AppendItem(path, fileName);
-  return path;
+  bool isFolderExist = true;
+  if (!FileSystem::FileOrFolderExists(path))
+  {
+    cerr << "File path " << path << " is not exist. \n";
+    if (FileSystem::CreateFolder(path))
+      cerr << "File path " << path << " is created. \n";
+    else
+    {
+      cerr << "Create file path " << path << " fail. \n";
+      isFolderExist = false;
+    }
+  }
+  if(isFolderExist)
+  {
+    if (extendPath)
+      FileSystem::AppendItem(path, fileName);
+    return path;
+  }
+  else
+    return "";
 }
 
-
+string addFileIndex(string fileName, int index)
+{
+  stringstream ss;
+  ss << fileName << "_" << index;
+  return ss.str();
+}
 /*
 3 Class ~HadoopParallelAlgebra~
 
@@ -3395,6 +4406,8 @@ public:
   HadoopParallelAlgebra() :
     Algebra()
   {
+    AddTypeConstructor(&flTC);
+
     AddOperator(doubleExportInfo(),
         doubleExportValueMap, doubleExportTypeMap);
     AddOperator(paraHashJoinInfo(),

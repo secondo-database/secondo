@@ -58,15 +58,16 @@ And includes one method:
 #include "Progress.h"
 #include "FileSystem.h"
 #include "../Array/ArrayAlgebra.h"
+#include "Profiles.h"
 
-const string rmDefaultPath = ":secondo/bin/parallel/";
 const int MAX_COPYTIMES = 5;
 const size_t MAX_FILEHANDLENUM = 100;
 
 string
 tranStr(const string& s, const string& from, const string& to);
 string
-getFilePath(string path, const string fileName);
+getFilePath(string path, const string fileName, bool extendPath = true);
+string addFileIndex(string fileName, int index);
 
 /*
 1.1 deLocalInfo Class
@@ -405,6 +406,71 @@ struct a0tLocalInfo
   }
 };
 
+/*
+1.6 clusterInfo
+
+We define two list files in all nodes involved in a parallel Secondo.
+These files lists all nodes' ip adresses, cell file locations,
+and Secondo Monitor's access ports.
+
+These two files are separated to master and slaves list.
+The master list only have one line, and the slave list have lines of
+as same as the disks of the slaves.
+These two files are specified in nodes, by setting their
+PARALLEL\_SECONDO\_MASTER and PARALLEL\_SECONDO\_SLAVES
+environment virables.
+
+This class is used to verify these two files.
+
+*/
+class clusterInfo
+{
+public:
+  clusterInfo(bool _isMaster = false);
+
+  string getPath(size_t loc, bool round = false, bool withIP = true);
+  string getIP(size_t loc, bool round = false);
+
+  inline int getLocalNode(){
+    if (localNode < 0)
+      localNode = searchLocalNode();
+    return localNode;
+  }
+
+  inline string getLocalIP(){
+    string confPath = string(getenv("SECONDO_CONFIG"));
+    return SmiProfile::GetParameter("ParallelSecondo",
+          "localIP","", confPath);
+  }
+
+  inline string getLocalPath(){
+    string confPath = string(getenv("SECONDO_CONFIG"));
+    return SmiProfile::GetParameter("ParallelSecondo",
+          "SecondoFilePath","", confPath);
+  }
+
+  inline bool isOK(){  return ok;  }
+  inline int getLines(){
+    if (disks)
+      return disks->size();
+    else
+      return 0;
+  }
+
+  void print();
+
+private:
+  string ps_master;
+  string ps_slaves;
+  bool isMaster;
+  string fileName;
+  typedef pair<string, pair<string, int> > diskDesc;
+  vector<diskDesc> *disks;
+  bool ok;
+  int localNode;
+
+  int searchLocalNode();
+};
 
 /*
 1.4 FFeedLocalInfo Class
@@ -437,8 +503,8 @@ public:
   }
 
   bool fetchBlockFile(string relName, string filePath,
-      Array* machines = 0, int servIndex = -1, int att = -1)
-  {
+                      int servIndex = -1, int att = -1);
+/*  {
     //Fetch binary file from remote machine.
     bool fileFound = false;
     bool isLocal = false;
@@ -491,9 +557,21 @@ public:
                  " ls " + rmDefaultPath.substr(1) + rFileName +
                  " 2>/dev/null";
         fs = popen(qStr.c_str(), "r");
-        if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+
+
+popen function is not a standard C function, and it may return
+a NULL value because of the failure of allocating memory.
+Some systems have a limitation of opened files simultaneously.
+
+
+
+        if (fs == NULL)
+          perror("popen fail! Can't search the remote file: ");
+        else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+        {
           fileFound = true;
-        pclose(fs);
+          pclose(fs);
+        }
       }
       if (!fileFound)
       {
@@ -514,14 +592,16 @@ public:
       //Found the file on the local or remote node
       if (!isLocal && (0 != servName.compare(hostName)))
       {
-/*
+
+
 Find the file on the remote node, attempt to copy it to local node.
 The file that ~filePath~ point to is assumed as an old file,
 and is deleted before the copy starts.
 If the copy doesn't work for MAX\_COPYTIMES times,
 then try the next possible candidate node.
 
-*/
+
+
         int copyTimes = MAX_COPYTIMES;
         filePath += ("_" + targetName);
         FileSystem::DeleteFileOrFolder(filePath);
@@ -589,7 +669,7 @@ then try the next possible candidate node.
     }
 
     return true;
-  }
+  }*/
 
   Tuple* getNextTuple(){
     if (0 == tupleBlockFile )
@@ -614,6 +694,9 @@ then try the next possible candidate node.
 
   ifstream *tupleBlockFile;
   TupleType* tupleType;
+
+private:
+  bool isLocalFileExist(string filePath);
 
 };
 
@@ -869,7 +952,10 @@ public:
 class fList
 {
 public:
-  fList(NList typeList, string fileName);
+  fList(string objectName, NList typeList,
+        NList nodeList, NList fileLocList,
+        size_t dupTime, bool isAvailable = false);
+  fList(fList& rhg);
   ~fList();
 
   static Word In(const ListExpr typeInfo,
@@ -884,11 +970,16 @@ public:
   static bool Open(SmiRecord& valueRecord,
                    size_t& offset,
                    const ListExpr typeInfo,
-                   Word& value);  //Unnecessary
+                   Word& value);
   static bool Save(SmiRecord& valueRecord,
                    size_t& offset,
                    const ListExpr typeInfo,
                    Word& w);
+
+  static ListExpr SaveToList(ListExpr typeInfo, Word value);
+  static Word RestoreFromList(
+      const ListExpr typeInfo, const ListExpr instance,
+      const int errorPos, ListExpr& errorInfo, bool& correct );
 
   static void Close(const ListExpr typeInfo, Word& w);
   static Word Create(const ListExpr typeInfo);
@@ -903,33 +994,33 @@ public:
 
   //Auxiliary methods
   int SizeOfObj();
+  inline bool isOK() { return isAvailable; }
 
   //Get the next possible location of a cell file
-  int getNextLoc(int rowNum, int columnNum);
+  size_t getNextLoc(size_t rowNum, size_t columnNum);
 private:
   fList() {}
 
-  NList *objectType;
-  vector< vector< vector<int> > > *fileLocList;
+  string objName;
+  NList objectType;
+  NList nodesList;
+  NList fileLocList;
 
-  //partition number, maximum node number, maximum candidate number
-  int partNum, mrNum, mnNum, mcNum;
-  string fileName;
+  size_t dupTimes; // duplicate times
   bool isAvailable;
+  int mrNum, // matrix row number,
+      mcNum; // matrix column number,
 
   bool setLocList(NList fllist);
-
-  inline string getFileName(){
-    return fileName;
-  }
-  inline int getPartNum() { return partNum; }
-  inline int getMaxRowNum() { return mrNum; }
-  inline int getMaxNodeNum() { return mnNum; }
-  inline int getMaxCandidateNum() { return mcNum; }
-  inline vector< vector< vector<int> > >* getLocList(){
-    return fileLocList;
-  }
-
+  void verifyLocList();
+  inline string getObjName(){ return objName; }
+  inline int getNodesNum()  { return nodesList.length(); }
+  inline int getMtxRowNum() { return mrNum; }
+  inline int getMtxColNum() { return mcNum; }
+  inline int getDupTimes() { return dupTimes; }
+  inline NList getTypeList() { return objectType; }
+  inline NList getNodeList() { return nodesList; }
+  inline NList getLocList() { return fileLocList; }
 
   friend class ConstructorFunctions<fList>;
 };
