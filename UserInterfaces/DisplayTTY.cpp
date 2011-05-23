@@ -2733,6 +2733,72 @@ struct DisplayCellgrid2D : DisplayFunction {
 };
 
 
+/*
+Display Hadoop file list
+
+*/
+struct DisplayFileList : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    if (nl->IsEqual(value, "undef")){
+      cout << "UNDEFINED";
+    }
+    else {
+      string objName = nl->StringValue(nl->First(value));
+      ListExpr objType = nl->Second(value);
+      ListExpr nodeList = nl->Third(value);
+      ListExpr locList = nl->Fourth(value);
+      size_t dupTimes = nl->IntValue(nl->Fifth(value));
+
+      cout << "Name : " << objName << endl;
+      string typeStr;
+      nl->WriteToString(typeStr, objType);
+      cout << "Type : " << typeStr << endl;
+
+      int nlLen = nl->ListLength(nodeList);
+      cout << "Cluster with total " << nlLen << " nodes.\n";
+      cout << " - Master: \n  1.  "
+          << nl->StringValue(nl->First(nodeList)) << endl;
+      cout << " - Slaves: \n";
+      ListExpr rest = nl->Rest(nodeList);
+      int idx = 2;
+      while (!nl->IsEmpty(rest))
+      {
+        cout <<"  " << (idx++) << ".  "
+            << nl->StringValue(nl->First(rest)) << endl;
+        rest = nl->Rest(rest);
+      }
+
+      cout << "nodeNo.\tsuffix\tdupNodes" << endl;
+      while (!nl->IsEmpty(locList))
+      {
+        ListExpr aRow = nl->First(locList);
+        size_t pnIdx = nl->IntValue(nl->First(aRow));
+        //primary node index
+        cout << pnIdx << ".";
+        ListExpr cfs = nl->Second(aRow);
+
+        stringstream cnList; //candidate nodes
+        for (size_t i = 0; i < dupTimes; i++)
+        {
+          int idx = ((pnIdx + 1 ) % nlLen) + 1;
+          cnList << nl->StringValue(nl->Nth(idx, nodeList)) << " / ";
+          pnIdx++;
+        }
+
+        while (!nl->IsEmpty(cfs))
+        {
+          ListExpr aCF = nl->First(cfs);
+          cout << "\t_" << nl->IntValue(aCF)
+              << "\t" << cnList.str() << endl;
+          cfs = nl->Rest(cfs);
+        }
+        locList = nl->Rest(locList);
+      }
+
+    }
+  }
+};
 
 /*
 4 Initialization
@@ -2792,6 +2858,8 @@ DisplayTTY::Initialize()
   d.Insert( "histogram2d", new DisplayHistogram2d() );
 
   d.Insert( "cellgrid2d", new DisplayCellgrid2D() );
+
+  d.Insert( "flist", new DisplayFileList() );
 
   // Chess Algebra 07/08
 #ifndef ChessB
