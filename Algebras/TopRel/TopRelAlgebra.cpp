@@ -2072,12 +2072,12 @@ int PWDisjoint_Cluster_Fun(Word* args, Word& result, int message,
          res->SetDefined(false);
          return 0;
       }
-      if(All.Intersects((Cluster*)args[i].addr)){
+      if(All.Intersects(c)){
          resvalue=false;
       }
-      All.Union((Cluster*)args[i].addr);
+      All.Union(c);
    }
-   res->Set(true,res);
+   res->Set(true,resvalue);
    return 0;
 }
 
