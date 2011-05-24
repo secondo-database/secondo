@@ -114,7 +114,12 @@ ListExpr toprelseqTM(ListExpr args){
                 " upoint x mpoint |" 
                 " mpoint x mpoint |"
                 " region x upoint |"  
-                " region x mpoint " ; 
+                " region x mpoint |" 
+                " upoint x point  |" 
+                " mpoint x point  |"  
+                " mpoint x upoint |"  
+                " upoint x region |"  
+                " mpoint x region " ;
   int len = nl->ListLength(args);
   if((len!=2) ){
       return listutils::typeError(err);
@@ -143,6 +148,24 @@ ListExpr toprelseqTM(ListExpr args){
   
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Point::BasicType()));
+  
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Point::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Region::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Region::BasicType()));
+
+
+
   if(ok){
     ListExpr attrList = nl->FiveElemList( 
                nl->TwoElemList( nl->SymbolAtom("Start"), 
@@ -176,7 +199,12 @@ const string toprelseqSpec =
         "        upoint x mpoint  | "
         "        mpoint x mpoint  | "
         "        region x upoint  | "
-        "        region x point   "
+        "        region x point   |"
+        "        upoint x point   |"
+        "        mpoint x point   |"
+        "        mpoint x upoint  |"
+        "        upoint x region  |"
+        "        mpoint x region  "
         "-> stream(tuple(Start "
         "instant, End instant, "
         "LeftClosed bool, RightClosed bool, TopRel int9m))  </text--->"
@@ -281,13 +309,34 @@ int toprelseqSelect(ListExpr args){
      listutils::isSymbol(arg2, MPoint::BasicType())){
      return 6;
   }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Point::BasicType())){
+     return 7;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Point::BasicType())){
+     return 8;
+  }
 
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, UPoint::BasicType())){
+     return 9;
+  }
+
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Region::BasicType())){
+     return 10;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Region::BasicType())){
+     return 11;
+  }
   return -1; 
 
 }
 
 
-template<class A1, class A2, class Proc>
+template<class A1, class A2, class Proc, bool sym>
 int toprelseq_fun(Word* args, Word& result, int message,
            Word& local, Supplier s){
   switch(message){
@@ -297,8 +346,15 @@ int toprelseq_fun(Word* args, Word& result, int message,
                  static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
           delete li;
        }
-       const A1* a1 = static_cast<const A1*>(args[0].addr);
-       const A2* a2 = static_cast<const A2*>(args[1].addr);
+       const A1* a1;
+       const A2* a2;
+       if(!sym){ 
+          a1 = static_cast<const A1*>(args[0].addr);
+          a2 = static_cast<const A2*>(args[1].addr);
+       } else {
+          a1 = static_cast<const A1*>(args[1].addr);
+          a2 = static_cast<const A2*>(args[0].addr);
+       }
        ListExpr tt = GetTupleResultType(s);
        local.addr = new toprelseq_LocalInfo<A1,A2,Proc>(a1,a2,nl->Second(tt));
        return 0;
@@ -325,19 +381,26 @@ int toprelseq_fun(Word* args, Word& result, int message,
 
 
 
-ValueMapping toprelseqVM[] = {toprelseq_fun<Point,  UPoint, MTopRelAlg_PUP>,
-                              toprelseq_fun<Point,  MPoint, MTopRelAlg_PMP>, 
-                              toprelseq_fun<UPoint, UPoint, MTopRelAlg_UPUP>,
-                              toprelseq_fun<UPoint, MPoint, MTopRelAlg_UPMP>,
-                              toprelseq_fun<MPoint, MPoint, MTopRelAlg_MPMP>, 
-                              toprelseq_fun<Region, UPoint, MTopRelAlg_RUP>,
-                              toprelseq_fun<Region, MPoint, MTopRelAlg_RMP> };
+ValueMapping toprelseqVM[] = {
+                toprelseq_fun<Point,   UPoint, MTopRelAlg_PUP, false>,
+                toprelseq_fun<Point,   MPoint, MTopRelAlg_PMP, false>, 
+                toprelseq_fun<UPoint,  UPoint, MTopRelAlg_UPUP, false>,
+                toprelseq_fun<UPoint,  MPoint, MTopRelAlg_UPMP, false>,
+                toprelseq_fun<MPoint,  MPoint, MTopRelAlg_MPMP, false>, 
+                toprelseq_fun<Region,  UPoint, MTopRelAlg_RUP, false>,
+                toprelseq_fun<Region,  MPoint, MTopRelAlg_RMP, false>,
+                toprelseq_fun<Point,   UPoint, MTopRelAlg_UPP, true>,
+                toprelseq_fun<Point,   MPoint, MTopRelAlg_MPP, true>,
+                toprelseq_fun<UPoint,  MPoint, MTopRelAlg_MPUP, true>,
+                toprelseq_fun<Region,  UPoint, MTopRelAlg_UPR, true>,
+                toprelseq_fun<Region,  MPoint, MTopRelAlg_MPR, true>
+            };
 
 
 Operator toprelseq(
            "toprelseq",
            toprelseqSpec,
-           7,
+           12,
            toprelseqVM,
            toprelseqSelect,
            toprelseqTM);
@@ -356,7 +419,12 @@ ListExpr clusterseqTM(ListExpr args){
                " upoint x mpoint x predicategroup |"
                " mpoint x mpoint x predicategroup |"
                " region x upoint x predicategroup |"
-               " region x mpoint x predicategroup";
+               " region x mpoint x predicategroup |"
+               " upoint x point  x predicategroup |"
+               " mpoint x point  x predicategroup |"
+               " mpoint x upoint x predicategroup |"
+               " upoint x region x predicategroup |"
+               " mpoint x region x predicategroup ";
   int len = nl->ListLength(args);
   if((len!=3) ){
       return listutils::typeError(err);
@@ -390,6 +458,22 @@ ListExpr clusterseqTM(ListExpr args){
   
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Point::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Point::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Region::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Region::BasicType()));
+
   if(ok){
     ListExpr attrList = nl->FiveElemList( 
                nl->TwoElemList( nl->SymbolAtom("Start"), 
@@ -417,7 +501,7 @@ We use the localInfo of the topredseq value mapping function.
 
 */
 
-template<class A1, class A2, class Proc>
+template<class A1, class A2, class Proc, bool sym>
 int clusterseq_fun(Word* args, Word& result, int message,
            Word& local, Supplier s){
   switch(message){
@@ -427,8 +511,15 @@ int clusterseq_fun(Word* args, Word& result, int message,
                       static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
           delete li;
        }
-       const A1* a1 = static_cast<const A1*>(args[0].addr);
-       const A2* a2 = static_cast<const A2*>(args[1].addr);
+       const A1* a1;
+       const A2* a2;
+       if(!sym){
+         a1 = static_cast<const A1*>(args[0].addr);
+         a2 = static_cast<const A2*>(args[1].addr);
+       } else {
+         a1 = static_cast<const A1*>(args[1].addr);
+         a2 = static_cast<const A2*>(args[0].addr);
+       }
        const toprel::PredicateGroup* pg= 
                  static_cast<const toprel::PredicateGroup*>(args[2].addr);
        ListExpr tt = GetTupleResultType(s);
@@ -464,13 +555,19 @@ value mapping array is defined.
 */
 
 ValueMapping clusterseqVM[] = {
-      clusterseq_fun<Point, UPoint, MTopRelAlg_PUP>,
-      clusterseq_fun<Point, MPoint, MTopRelAlg_PMP>,
-      clusterseq_fun<UPoint, UPoint, MTopRelAlg_UPUP>, 
-      clusterseq_fun<UPoint, MPoint, MTopRelAlg_UPMP>,
-      clusterseq_fun<MPoint, MPoint, MTopRelAlg_MPMP>,
-      clusterseq_fun<Region, UPoint, MTopRelAlg_RUP>,
-      clusterseq_fun<Region, MPoint, MTopRelAlg_RMP> };
+      clusterseq_fun<Point,  UPoint, MTopRelAlg_PUP,  false>,
+      clusterseq_fun<Point,  MPoint, MTopRelAlg_PMP,  false>,
+      clusterseq_fun<UPoint, UPoint, MTopRelAlg_UPUP, false>, 
+      clusterseq_fun<UPoint, MPoint, MTopRelAlg_UPMP, false>,
+      clusterseq_fun<MPoint, MPoint, MTopRelAlg_MPMP, false>,
+      clusterseq_fun<Region, UPoint, MTopRelAlg_RUP,  false>,
+      clusterseq_fun<Region, MPoint, MTopRelAlg_RMP,  false>, 
+      clusterseq_fun<Point,  UPoint, MTopRelAlg_UPP,  true>,
+      clusterseq_fun<Point,  MPoint, MTopRelAlg_MPP,  true>,
+      clusterseq_fun<UPoint, MPoint, MTopRelAlg_MPUP, true>,
+      clusterseq_fun<Region, UPoint, MTopRelAlg_UPR, true>,
+      clusterseq_fun<Region, MPoint, MTopRelAlg_MPR, true>,
+   };
 
 
 /*
@@ -487,7 +584,12 @@ const string clusterseqSpec =
         " upoint x mpoint x predicategroup | "
         " mpoint x mpoint x predicategroup |"
         " region x upoint x predicategroup |"
-        " region x mpoint x predicategroup"
+        " region x mpoint x predicategroup |"
+        " upoint x point  x predicategroup |"
+        " mpoint x point  x predicategroup |"
+        " mpoint x upoint x predicategroup |"
+        " upoint x region x predicategroup |"
+        " mpoint x region x predicategroup"
         " -> "
         "stream(tuple(Start instant, End instant,"
         " LeftClosed bool, RightClosed bool, TopRel cluster))  </text--->"
@@ -505,7 +607,7 @@ const string clusterseqSpec =
 Operator clusterseq(
            "clusterseq",
            clusterseqSpec,
-           7,
+           12,
            clusterseqVM,
            toprelseqSelect,
            clusterseqTM);
@@ -631,13 +733,18 @@ undefined, also the result is undefined.
 */
 ListExpr mtoppredTM(ListExpr args){
   string err = "expected "
-               " point x upoint x mtoprel  [x bool] | "
-               " point x mpoint x mtoprel  [x bool] | " 
+               " point  x upoint x mtoprel [x bool] | "
+               " point  x mpoint x mtoprel [x bool] | " 
                " upoint x upoint x mtoprel [x bool] | "
                " upoint x mpoint x mtoprel [x bool] |"
                " mpoint x mpoint x mtoprel [x bool] |"
                " region x upoint x mtoprel [x bool] |"
-               " region x mpoint x mtoprel";
+               " region x mpoint x mtoprel |x bool] |"
+               " upoint x point  x mtoprel [x bool] | "
+               " mpoint x point  x mtoprel [x bool] | " 
+               " mpoint x upoint x mtoprel [x bool] | " 
+               " upoint x region x mtoprel [x bool] | " 
+               " mpoint x region x mtoprel [x bool] | " ;
   int len = nl->ListLength(args);
   if((len!=3) && (len!=4) ){
       return listutils::typeError(err);
@@ -677,6 +784,23 @@ ListExpr mtoppredTM(ListExpr args){
   
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
+
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Point::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Point::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, UPoint::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Region::BasicType()));
+
+  ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
+              listutils::isSymbol(arg2, Region::BasicType()));
+
   if(ok){
      return nl->SymbolAtom(CcBool::BasicType());
   }
@@ -691,15 +815,22 @@ ListExpr mtoppredTM(ListExpr args){
 5.2.1 Value Mapping function
 
 */
-template<class T1, class T2, class Proc>
+template<class T1, class T2, class Proc, bool sym>
 int mtoppredFun(Word* args, Word& result, int message,
            Word& local, Supplier s){
 
     result = qp->ResultStorage(s);
     CcBool* res = static_cast<CcBool*>(result.addr);
+    const T1* arg1;
+    const T2* arg2;
+    if(!sym){
+      arg1 = static_cast<T1*>(args[0].addr);
+      arg2 = static_cast<T2*>(args[1].addr);
+    } else {
+      arg1 = static_cast<T1*>(args[1].addr);
+      arg2 = static_cast<T2*>(args[0].addr);
+    }
 
-    T1* arg1 = static_cast<T1*>(args[0].addr);
-    T2* arg2 = static_cast<T2*>(args[1].addr);
     TopRelDfa* dfa = static_cast<TopRelDfa*>(args[2].addr);
 
     if(!arg1->IsDefined() || !arg2->IsDefined() || !dfa->IsDefined()){
@@ -758,13 +889,20 @@ int mtoppredFun(Word* args, Word& result, int message,
 
 */
 
-ValueMapping mtoppredVM[] = {mtoppredFun<Point,  UPoint, MTopRelAlg_PUP>,
-                             mtoppredFun<Point,  MPoint, MTopRelAlg_PMP>, 
-                             mtoppredFun<UPoint, UPoint, MTopRelAlg_UPUP>,
-                             mtoppredFun<UPoint, MPoint, MTopRelAlg_UPMP>,
-                             mtoppredFun<MPoint, MPoint, MTopRelAlg_MPMP>, 
-                             mtoppredFun<Region, UPoint, MTopRelAlg_RUP>,
-                             mtoppredFun<Region, MPoint, MTopRelAlg_RMP> };
+ValueMapping mtoppredVM[] = {
+            mtoppredFun<Point,  UPoint, MTopRelAlg_PUP, false>,
+            mtoppredFun<Point,  MPoint, MTopRelAlg_PMP, false >, 
+            mtoppredFun<UPoint, UPoint, MTopRelAlg_UPUP, false >,
+            mtoppredFun<UPoint, MPoint, MTopRelAlg_UPMP, false >,
+            mtoppredFun<MPoint, MPoint, MTopRelAlg_MPMP, false >, 
+            mtoppredFun<Region, UPoint, MTopRelAlg_RUP, false>,
+            mtoppredFun<Region, MPoint, MTopRelAlg_RMP, false>, 
+            mtoppredFun<Point,  UPoint, MTopRelAlg_UPP, true>,
+            mtoppredFun<Point,  MPoint, MTopRelAlg_MPP, true>,
+            mtoppredFun<UPoint, MPoint, MTopRelAlg_MPUP, true>,
+            mtoppredFun<Region, UPoint, MTopRelAlg_UPR, true>,
+            mtoppredFun<Region, MPoint, MTopRelAlg_MPR, true>
+        };
 
 /*
 5.3 Selection Function
@@ -801,6 +939,26 @@ int mtoppredSelect(ListExpr args){
      listutils::isSymbol(arg2, MPoint::BasicType())){
      return 6;
   }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Point::BasicType())){
+     return 7;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Point::BasicType())){
+     return 8;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, UPoint::BasicType())){
+     return 9;
+  }
+  if(listutils::isSymbol(arg1, UPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Region::BasicType())){
+     return 10;
+  }
+  if(listutils::isSymbol(arg1, MPoint::BasicType()) &&
+     listutils::isSymbol(arg2, Region::BasicType())){
+     return 11;
+  }
   return -1; 
 }
 
@@ -814,13 +972,18 @@ const string mtoppredSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
         "( <text>"
-        " point x upoint x mtoprel  x bool | "
-        " point x mpoint x mtoprel  x bool | "
-        " upoint x upoint x mtoprel x bool | "
-        " upoint x mpoint x mtoprel x bool | "
-        " mpoint x mpoint x mtoprel x bool |"
-        " region x upoint x mtoprel x bool |"
-        " region x mpoint x mtoprel x bool"
+        " point  x upoint x mtoprel [x bool] | "
+        " point  x mpoint x mtoprel [x bool] | "
+        " upoint x upoint x mtoprel [x bool] | "
+        " upoint x mpoint x mtoprel [x bool] | "
+        " mpoint x mpoint x mtoprel [x bool] |"
+        " region x upoint x mtoprel [x bool] |"
+        " region x mpoint x mtoprel [x bool] |"
+        " upoint x point  x mtoprel [x bool] |"
+        " mpoint x point  x mtoprel [x bool] |"
+        " mpoint x upoint x mtoprel [x bool] |"
+        " upoint x region x mtoprel [x bool] |"
+        " mpoint x region x mtoprel [x bool]"
         " ->  bool "
         "</text--->"
        "<text> mtoppred(_,_,_) </text--->"
@@ -854,7 +1017,7 @@ const string mtoppredSpec =
 Operator mtoppred(
            "mtoppred",
            mtoppredSpec,
-           7,
+           12,
            mtoppredVM,
            mtoppredSelect,
            mtoppredTM);
