@@ -988,8 +988,12 @@ the given value.
 This function returns the name of this cluster.
 
 */
-      void GetName(STRING_T& res) const { 
-           strcpy(res, name);
+      void GetName(STRING_T& res) const {
+           if(IsDefined()){ 
+              strcpy(res, name);
+           } else {
+              strcpy(res, "undefined");
+           }
       } 
 
 /*
