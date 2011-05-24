@@ -876,8 +876,10 @@ int mtoppredFun(Word* args, Word& result, int message,
       bool done = false;
       while(proc.hasNextCluster() && !done){
         p = proc.nextCluster();
-        done = ! dfa->next(p.second, states, 
+        if(p.second.IsDefined()){ // ignore undefined clusters
+          done = ! dfa->next(p.second, states, 
                            step && (p.first.start == p.first.end));
+        }
        }
        res->Set(true,dfa->isFinal(states));
        return 0;
