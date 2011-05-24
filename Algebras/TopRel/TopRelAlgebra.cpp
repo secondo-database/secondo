@@ -1952,8 +1952,12 @@ int Transpose_Int9M_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Int9M* a = (Int9M*) args[0].addr;
   Int9M* res = (Int9M*) result.addr;
-  res->Equalize(a);
-  res->Transpose();
+  if(res->IsDefined()){
+    res->Equalize(a);
+    res->Transpose();
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -1963,9 +1967,13 @@ int Transpose_Cluster_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   CcString* b = (CcString*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  res->Equalize(a);
-  res->Transpose();
-  res->SetName(b->GetStringval());
+  if(a->IsDefined() && b->IsDefined()){
+    res->Equalize(a);
+    res->Transpose();
+    res->SetName(b->GetStringval());
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -1974,8 +1982,12 @@ int Invert_Int9M_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Int9M* a = (Int9M*) args[0].addr;
   Int9M* res = (Int9M*) result.addr;
-  res->Equalize(a);
-  res->Invert();
+  if(a->IsDefined()){
+    res->Equalize(a);
+    res->Invert();
+  } else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -1985,8 +1997,12 @@ int Union_Int9M_Int9M_Fun(Word* args, Word& result, int message,
   Int9M* a = (Int9M*) args[0].addr;
   Int9M* b = (Int9M*) args[1].addr;
   Int9M* res = (Int9M*) result.addr;
-  res->Equalize(a);
-  res->Union(b);
+  if(a->IsDefined() && b->IsDefined()){
+    res->Equalize(a);
+    res->Union(b);
+  } else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -1995,10 +2011,20 @@ int MultiIntersection_Int9M_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Int9M* a = (Int9M*) args[0].addr;
   Int9M* res = (Int9M*) result.addr;
-  res->Equalize(a);
-  int sons = qp->GetNoSons(s);
-  for(int i=1;i<sons;i++)
-      res->Intersection((Int9M*)args[i].addr);
+  if(a->IsDefined()){
+    res->Equalize(a);
+    int sons = qp->GetNoSons(s);
+    for(int i=1;i<sons;i++){
+      a = static_cast<Int9M*>(args[i].addr);
+      if(!a->IsDefined()){
+         res->SetDefined(false);
+         return 0;
+      }
+      res->Intersection(a);
+    }
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2006,9 +2032,14 @@ int Intersection_Int9M_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
   Int9M* a = (Int9M*) args[0].addr;
+  Int9M* b = (Int9M*) args[1].addr;
   Int9M* res = (Int9M*) result.addr;
-  res->Equalize(a);
-  res->Intersection((Int9M*)args[1].addr);
+  if(a->IsDefined() && b->IsDefined()){
+    res->Equalize(a);
+    res->Intersection(b);
+  } else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2018,7 +2049,11 @@ int Disjoint_Cluster_Cluster_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Cluster* b = (Cluster*) args[1].addr;
   CcBool* res = (CcBool*) result.addr;
-  res->Set(true,a->Disjoint(b));
+  if(a->IsDefined() && a->IsDefined()){
+     res->Set(true,a->Disjoint(b));
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2028,13 +2063,21 @@ int PWDisjoint_Cluster_Fun(Word* args, Word& result, int message,
    int sons = qp->GetNoSons(s);
    Cluster All;
    All.MakeEmpty();
-   int res = true;
-   for(int i=0;i<sons && res ;i++){
-      if(All.Intersects((Cluster*)args[i].addr))
-         res=false;
+   CcBool* res = static_cast<CcBool*>(result.addr);
+
+   bool resvalue = true;
+   for(int i=0;i<sons && resvalue ;i++){
+      Cluster* c = static_cast<Cluster*>(args[i].addr);
+      if(!c->IsDefined()){
+         res->SetDefined(false);
+         return 0;
+      }
+      if(All.Intersects((Cluster*)args[i].addr)){
+         resvalue=false;
+      }
       All.Union((Cluster*)args[i].addr);
    }
-   ((CcBool*)result.addr)->Set(true,res);
+   res->Set(true,res);
    return 0;
 }
 
@@ -2045,9 +2088,13 @@ int Add_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Int9M* b = (Int9M*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  unsigned short number = b->GetNumber();
-  res->Equalize(a);
-  res->SetValueAt(number,true);
+  if(a->IsDefined() && b->IsDefined()){
+    unsigned short number = b->GetNumber();
+    res->Equalize(a);
+    res->SetValueAt(number,true);
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2057,9 +2104,13 @@ int Remove_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Int9M* b = (Int9M*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  unsigned short number = b->GetNumber();
-  res->Equalize(a);
-  res->SetValueAt(number,false);
+  if(a->IsDefined() && b->IsDefined()){
+    unsigned short number = b->GetNumber();
+    res->Equalize(a);
+    res->SetValueAt(number,false);
+  } else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2068,7 +2119,11 @@ int NumberOf_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Int9M* a = (Int9M*) args[0].addr;
   CcInt* res = (CcInt*) result.addr;
-  res->Set(true,a->GetNumber());
+  if(a->IsDefined()){
+     res->Set(true,a->GetNumber());
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2077,9 +2132,13 @@ int NameOf_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
   CcString* res = (CcString*) result.addr;
-  STRING_T name;
-  a->GetName(name);
-  res->Set(true,name);
+  if(a->IsDefined()){
+     STRING_T name;
+     a->GetName(name);
+     res->Set(true,name);
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2089,8 +2148,12 @@ int Rename_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   CcString* b = (CcString*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  res->Equalize(a);
-  res->SetName(b->GetStringval());
+  if(a->IsDefined() && b->IsDefined()){
+    res->Equalize(a);
+    res->SetName(b->GetStringval());
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2100,7 +2163,11 @@ int Contains_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Int9M* b = (Int9M*) args[1].addr;
   CcBool* res = (CcBool*) result.addr;
-  res->Set(true,a->ValueAt(b->GetNumber()));
+  if(a->IsDefined() && b->IsDefined()){
+     res->Set(true,a->ValueAt(b->GetNumber()));
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2110,8 +2177,12 @@ int Union_Cluster_Cluster_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Cluster* b = (Cluster*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  res->Equalize(a);
-  res->Union(b);
+  if(a->IsDefined() && b->IsDefined()){
+    res->Equalize(a);
+    res->Union(b);
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2120,10 +2191,20 @@ int MultiIntersection_Cluster_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
   Cluster* res = (Cluster*) result.addr;
+  if(!a->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
   res->Equalize(a);
   int sons = qp->GetNoSons(s);
-  for(int i=1;i<sons;i++)
-      res->Intersection((Cluster*)args[i].addr);
+  for(int i=1;i<sons;i++){
+      a = static_cast<Cluster*>(args[i].addr);
+      if(!a->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+      }
+      res->Intersection(a);
+  }
   return 0;
 }
 
@@ -2131,9 +2212,14 @@ int Intersection_Cluster_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
+  Cluster* b = (Cluster*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  res->Equalize(a);
-  res->Intersection((Cluster*)args[1].addr);
+  if(a->IsDefined() && b->IsDefined()){
+     res->Equalize(a);
+     res->Intersection(b);
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2143,8 +2229,12 @@ int Minus_Cluster_Cluster_Fun(Word* args, Word& result, int message,
   Cluster* a = (Cluster*) args[0].addr;
   Cluster* b = (Cluster*) args[1].addr;
   Cluster* res = (Cluster*) result.addr;
-  res->Equalize(a);
-  res->Minus(b);
+  if(a->IsDefined() && b->IsDefined()){
+    res->Equalize(a);
+    res->Minus(b);
+  } else {
+     res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2153,59 +2243,51 @@ int Invert_Cluster_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
   Cluster* res = (Cluster*) result.addr;
-  res->Equalize(a);
-  res->Invert();
+  if(a->IsDefined()){
+    res->Equalize(a);
+    res->Invert();
+  } else {
+    res->SetDefined(false);
+  }
   return 0;
 }
 
-int Restrict_Cluster_String_Fun(Word* args, Word& result, int message,
+template<class T>
+int Restrict_Cluster_T_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
     result = qp->ResultStorage(s);
     Cluster* cluster = (Cluster*) args[0].addr;
-    CcString* cond = (CcString*) args[1].addr;
-    const STRING_T* cond_c = cond->GetStringval();
-    string cond_s(*cond_c);
+    T* cond = (T*) args[1].addr;
     Cluster* res = (Cluster*) result.addr;
-    res->Equalize(cluster);
-    res->Restrict(cond_s);
+
+    if(cluster->IsDefined() && cond->IsDefined()){
+       string cond_s = cond->GetValue();
+       res->Equalize(cluster);
+       res->Restrict(cond_s);
+    }else {
+       res->SetDefined(false);
+    }
     return 0;
 }
 
-int Restrict_Cluster_Text_Fun(Word* args, Word& result, int message,
+template<class T>
+int Relax_Cluster_T_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
     result = qp->ResultStorage(s);
     Cluster* cluster = (Cluster*) args[0].addr;
-    FText* cond = (FText*) args[1].addr;
-    string cond_s = cond->GetValue();
+    T* cond = (T*) args[1].addr;
     Cluster* res = (Cluster*) result.addr;
-    res->Equalize(cluster);
-    res->Restrict(cond_s);
+
+    if(cluster->IsDefined() && cond->IsDefined()){
+       string cond_s = cond->GetValue();
+       res->Equalize(cluster);
+       res->Relax(cond_s);
+    } else {
+       res->SetDefined(false);
+    }
     return 0;
 }
 
-int Relax_Cluster_String_Fun(Word* args, Word& result, int message,
-                 Word& local, Supplier s){
-    result = qp->ResultStorage(s);
-    Cluster* cluster = (Cluster*) args[0].addr;
-    CcString* cond = (CcString*) args[1].addr;
-    string cond_s(*(cond->GetStringval()));
-    Cluster* res = (Cluster*) result.addr;
-    res->Equalize(cluster);
-    res->Relax(cond_s);
-    return 0;
-}
-
-int Relax_Cluster_Text_Fun(Word* args, Word& result, int message,
-                 Word& local, Supplier s){
-    result = qp->ResultStorage(s);
-    Cluster* cluster = (Cluster*) args[0].addr;
-    FText* cond = (FText*) args[1].addr;
-    string cond_s = (cond->GetValue());
-    Cluster* res = (Cluster*) result.addr;
-    res->Equalize(cluster);
-    res->Relax(cond_s);
-    return 0;
-}
 
 int CreatePGroup_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
@@ -2216,36 +2298,45 @@ int CreatePGroup_Fun(Word* args, Word& result, int message,
  res->MakeEmpty();
  bool error = false;
  for(int i=0;i<arg_count && ! error; i++){
-    error = !res->Add((Cluster*)(args[i].addr));
+    Cluster* c = static_cast<Cluster*>(args[i].addr);
+    if(!c->IsDefined()){
+       res->SetDefined(false);
+       return false;
+    }
+    error = !res->Add(c);
  }
  if(error){
    res->SetDefined(false);
-   ErrorReporter::ReportError("The given clusters overlaps ");
    return 0;
- }
- else
+ } else {
    res->SetDefined(true);
+ }
  return 0;
 }
 
 int CreatePriorityPGroup_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
-  result = qp->ResultStorage(s);
+ 
+   result = qp->ResultStorage(s);
   PredicateGroup* res = (PredicateGroup*) result.addr;
- //get the number of arguments
- int arg_count = qp->GetNoSons(s);
- res->MakeEmpty();
- bool error = false;
- for(int i=0;i<arg_count && ! error; i++){
-    error = !res->AddWithPriority((Cluster*)(args[i].addr));
- }
- if(error){
-   res->SetDefined(false);
-   ErrorReporter::ReportError("The given clusters overlaps ");
-   return 0;
- }
- else
-   res->SetDefined(true);
+  //get the number of arguments
+   int arg_count = qp->GetNoSons(s);
+   res->MakeEmpty();
+   bool error = false;
+   for(int i=0;i<arg_count && ! error; i++){
+    Cluster* c = static_cast<Cluster*>(args[i].addr);
+    if(!c->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+    }
+    error = !res->AddWithPriority(c);
+   }
+   if(error){
+     res->SetDefined(false);
+     return 0;
+   } else {
+     res->SetDefined(true);
+   }
  return 0;
 }
 
@@ -2254,24 +2345,33 @@ int CreateValidPGroup_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   PredicateGroup* res = (PredicateGroup*) result.addr;
   Cluster* Valid = (Cluster*)args[0].addr;
- //get the number of arguments
- int arg_count = qp->GetNoSons(s);
- res->MakeEmpty();
- bool error = false;
- Cluster* Current;
- for(int i=1;i<arg_count && ! error; i++){
-    Current = (Cluster*) args[i].addr;
-    Current->Intersection(Valid);
-    error = !res->Add(Current);
- }
- if(error){
-   res->SetDefined(false);
-   ErrorReporter::ReportError("The given clusters overlaps ");
+
+  if(!Valid->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+
+   //get the number of arguments
+   int arg_count = qp->GetNoSons(s);
+   res->MakeEmpty();
+   bool error = false;
+   Cluster* Current;
+   for(int i=1;i<arg_count && ! error; i++){
+      Current = (Cluster*) args[i].addr;
+      if(!Current->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+      }
+      Current->Intersection(Valid);
+      error = !res->Add(Current);
+   }
+   if(error){
+     res->SetDefined(false);
+     return 0;
+   } else {
+     res->SetDefined(true);
+   }
    return 0;
- }
- else
-   res->SetDefined(true);
- return 0;
 }
 
 int ClusterNameOf_Fun(Word* args, Word& result, int message,
@@ -2280,9 +2380,13 @@ int ClusterNameOf_Fun(Word* args, Word& result, int message,
     PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     CcString* res = (CcString*) result.addr;
-    STRING_T name;
-    PG->GetNameOf(IM, name);
-    res->Set(true, name);
+    if(PG->IsDefined() && IM->IsDefined()){
+      STRING_T name;
+      PG->GetNameOf(IM, name);
+      res->Set(true, name);
+    } else {
+      res->SetDefined(false);
+    }
     return 0;
 }
 
@@ -2292,6 +2396,11 @@ int ClusterOf_Fun(Word* args, Word& result, int message,
     PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     Cluster* res = (Cluster*) result.addr;
+
+    if(!IM->IsDefined() || !PG->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+    }
     Cluster* tmp = PG->GetClusterOf(*IM);
     if(!tmp){
        res->SetDefined(false);
@@ -2326,58 +2435,37 @@ int GetCluster_Fun(Word* args, Word& result, int message,
     delete tmp;
     return 0;
 }
-int SizeOfCluster_Fun(Word* args, Word& result, int message,
+
+template<class T>
+int SizeOf_T_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
-    Cluster* arg = (Cluster*) args[0].addr;
-    ((CcInt*)result.addr)->Set(true,arg->Size());
+    T* arg = (T*) args[0].addr;
+    CcInt* res = static_cast<CcInt*>(result.addr);
+    if(arg->IsDefined()){
+       res->Set(true,arg->Size());
+    } else {
+       res->SetDefined(false);
+    }
     return 0;
 }
 
-int SizeOfPredicateGroup_Fun(Word* args, Word& result, int message,
-                Word& local, Supplier s){
-    result = qp->ResultStorage(s);
-    PredicateGroup* arg = (PredicateGroup*) args[0].addr;
-    ((CcInt*)result.addr)->Set(true,arg->Size());
-    return 0;
-}
-
-int CreateCluster_string_Fun(Word* args, Word& result, int message,
+template<class T>
+int CreateCluster_T_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   CcString* arg1 = (CcString*) args[0].addr;
-   CcString*  arg2 = (CcString*) args[1].addr;
    Cluster* res = (Cluster*) result.addr;
-   const STRING_T* cond;
-   cond  = arg2->GetStringval();
-   struct tree* t=0;
-   if(!parseString((char*)cond,&t)){
-      ErrorReporter::ReportError("Error in parsing condition\n");
-      char* Emsg = GetLastMessage();
-      ErrorReporter::ReportError(string(Emsg)+"\n");
-      free(Emsg);
+   CcString* arg1 = (CcString*) args[0].addr; // name
+   T*  arg2 = (T*) args[1].addr;              // description
+
+   if(!arg1->IsDefined() || !arg2->IsDefined()){
       res->SetDefined(false);
       return 0;
    }
-   // parsing successful
-   res->SetName(arg1->GetStringval());
-   res->MakeEmpty();
-   for(unsigned short i=0;i<512;i++)
-      if(evalTree(t,i))
-          res->SetValueAt(i,true);
-   destroyTree(t);
-   return 0;
-}
 
-int CreateCluster_text_Fun(Word* args, Word& result, int message,
-                Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   CcString* arg1 = (CcString*) args[0].addr;
-   FText*  arg2 = (FText*) args[1].addr;
    string cond = arg2->GetValue();
    struct tree* t=0;
    if(!parseString(cond.c_str(),&t)){
-      ErrorReporter::ReportError("Error in parsing condition\n");
       char* Emsg = GetLastMessage();
       ErrorReporter::ReportError(string(Emsg)+"\n");
       free(Emsg);
@@ -2385,12 +2473,13 @@ int CreateCluster_text_Fun(Word* args, Word& result, int message,
       return 0;
    }
    // parsing successful
-   Cluster* res = (Cluster*) result.addr;
    res->SetName(arg1->GetStringval());
    res->MakeEmpty();
-   for(unsigned short i=0;i<512;i++)
-      if(evalTree(t,i))
+   for(unsigned short i=0;i<512;i++){
+      if(evalTree(t,i)){
           res->SetValueAt(i,true);
+       }
+   }
    destroyTree(t);
    return 0;
 }
@@ -2399,7 +2488,12 @@ int IsComplete_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
    result = qp->ResultStorage(s);
    PredicateGroup* arg = (PredicateGroup*) args[0].addr;
-   ((CcBool*)result.addr)->Set(true,arg->IsComplete());
+   CcBool* res = static_cast<CcBool*>(result.addr);
+   if(arg->IsDefined()){
+       res->Set(true,arg->IsComplete());
+   } else {
+       res->SetDefined(false);
+   }
    return 0;
 }
 
@@ -2408,14 +2502,18 @@ int UnSpecified_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
    result = qp->ResultStorage(s);
    PredicateGroup* PG = (PredicateGroup*) args[0].addr;
-   ((Cluster*)result.addr)->Equalize(PG->GetUnspecified());
+   Cluster* res = static_cast<Cluster*>(result.addr);
+   if(PG->IsDefined()){
+        res->Equalize(PG->GetUnspecified());
+   } else {
+        res->SetDefined(false);
+   }
    return 0;
 }
 
 
 int StdPGroup_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
-
      result= qp->ResultStorage(s);
      ((PredicateGroup*) result.addr)->SetToDefault();
      return 0;
@@ -2692,17 +2790,17 @@ ValueMapping MultiIntersectionMap[] = { MultiIntersection_Int9M_Fun,
 ValueMapping IntersectionMap[] = { Intersection_Int9M_Fun,
                                    Intersection_Cluster_Fun };
 
-ValueMapping SizeOfMap[] = { SizeOfCluster_Fun,
-                             SizeOfPredicateGroup_Fun};
+ValueMapping SizeOfMap[] = { SizeOf_T_Fun<Cluster>,
+                             SizeOf_T_Fun<PredicateGroup>};
 
-ValueMapping CreateClusterMap[] = { CreateCluster_string_Fun,
-                                    CreateCluster_text_Fun};
+ValueMapping CreateClusterMap[] = { CreateCluster_T_Fun<CcString>,
+                                    CreateCluster_T_Fun<FText>};
 
-ValueMapping RestrictMap[] = { Restrict_Cluster_String_Fun,
-                               Restrict_Cluster_Text_Fun};
+ValueMapping RestrictMap[] = { Restrict_Cluster_T_Fun<CcString>,
+                               Restrict_Cluster_T_Fun<FText>};
 
-ValueMapping RelaxMap[] = { Relax_Cluster_String_Fun,
-                            Relax_Cluster_Text_Fun};
+ValueMapping RelaxMap[] = { Relax_Cluster_T_Fun<CcString>,
+                            Relax_Cluster_T_Fun<FText>};
 
 ValueMapping TopRelEqualsMap[] = { TopRelEqualsFun<Int9M>,
                                    TopRelEqualsFun<Cluster>,
