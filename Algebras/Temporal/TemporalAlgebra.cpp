@@ -1445,35 +1445,39 @@ void UPoint::TemporalFunction( const Instant& t,
                                Point& result,
                                bool ignoreLimits ) const
 {
-  if( !IsDefined() ||
-      !t.IsDefined() ||
-      (!timeInterval.Contains( t ) && !ignoreLimits) )
-    {
-      result.SetDefined(false);
-    }
-  else if( t == timeInterval.start )
-    {
-      result = p0;
-      result.SetDefined(true);
-    }
-  else if( t == timeInterval.end )
-    {
-      result = p1;
-      result.SetDefined(true);
-    }
-  else
-    {
-      Instant t0 = timeInterval.start;
-      Instant t1 = timeInterval.end;
-
-      double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
-      double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
-
-      result.Set( x, y );
-      result.SetDefined(true);
-    }
+  TemporalFunction(t, result, 0, ignoreLimits);
 }
 
+void UPoint::TemporalFunction( const Instant& t,
+                                       Point& result,
+                                       const Geoid* geoid,
+                                       bool ignoreLimits /*=false*/) const
+{
+  if( !IsDefined() ||
+    !t.IsDefined() ||
+    (geoid && !geoid->IsDefined()) ||
+    (!timeInterval.Contains( t ) && !ignoreLimits) ){
+    result.SetDefined(false);
+  } else if( t == timeInterval.start ){
+    result = p0;
+    result.SetDefined(true);
+  } else if( t == timeInterval.end ){
+    result = p1;
+    result.SetDefined(true);
+  } else if(geoid){ // spherical geometry case
+    Instant t0 = timeInterval.start;
+    Instant t1 = timeInterval.end;
+    Coord f = ((t-t0)/(t1-t0));
+    result = p0.MidpointTo(p1, f, geoid);
+  } else {// euclidean geometry cases
+    Instant t0 = timeInterval.start;
+    Instant t1 = timeInterval.end;
+    double x = ((p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0))) + p0.GetX();
+    double y = ((p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0))) + p0.GetY();
+    result.Set( x, y );
+    result.SetDefined(true);
+  }
+}
 
 bool UPoint::Passes( const Point& p ) const
 {
@@ -1524,6 +1528,16 @@ would then be very hard to return a true for this function.
   return false;
 }
 
+bool UPoint::Passes( const Point& val, const Geoid* geoid ) const {
+  if(!geoid){
+    return Passes( val );
+  } else {
+    UPoint result(false);
+    bool retval = At( val, result, geoid );
+    return retval && result.IsDefined();
+  }
+}
+
 bool UPoint::Passes( const Region& r ) const
 {
   assert( IsDefined() );
@@ -1567,99 +1581,147 @@ bool UPoint::Passes( const Rectangle<2> &rect  ) const
 }
 
 bool UPoint::At( const Point& p, TemporalUnit<Point>& res ) const {
+  return At(p, res, 0);
+}
+
+bool UPoint::At( const Point& p,
+                 TemporalUnit<Point>& res,
+                 const Geoid* geoid ) const {
 
   assert(p.IsDefined());
   assert(this->IsDefined());
+  assert( !geoid || geoid->IsDefined() );
 
   UPoint* result = static_cast<UPoint*>(&res);
   *result = *this;
 
-  // special case: static unit
-  if(AlmostEqual(p0,p1)){
+  Instant t0 = timeInterval.start,
+          t1 = timeInterval.end;
+
+  if(AlmostEqual(p0,p1)){// special case: static unit
      if(AlmostEqual(p,p0) || AlmostEqual(p,p1)){
+        result->SetDefined(true);
+        result->timeInterval = timeInterval;
+        result->p0 = p0;
+        result->p1 = p1;
         return true;
      } else {
         result->SetDefined(false);
         return false;
      }
   }
-  // special case p on p0
-  if(AlmostEqual(p0,p)){
+  if(AlmostEqual(p0,p)){// special case p on p0
     if(!timeInterval.lc){
        result->SetDefined(false);
       return false;
     } else {
-       result->p1 = result->p0;
-       result->timeInterval.rc = true;
-       result->timeInterval.end = timeInterval.start;
-       return true;
+      result->SetDefined(true);
+      result->p0 = p0;
+      result->p1 = p0;
+      result->timeInterval.lc = true;
+      result->timeInterval.rc = true;
+      result->timeInterval.start = t0;
+      result->timeInterval.end   = t0;
+      return true;
     }
   }
-  // special case p on p1
-  if(AlmostEqual(p,p1)){
+  if(AlmostEqual(p,p1)){// special case p on p1
     if(!timeInterval.rc){
       result->SetDefined(false);
       return false;
     } else {
-      result->p0 = result->p1;
+      result->SetDefined(true);
+      result->p0 = p1;
+      result->p1 = p1;
       result->timeInterval.lc = true;
-      result->timeInterval.start = timeInterval.end;
+      result->timeInterval.rc = true;
+      result->timeInterval.start = t1;
+      result->timeInterval.end   = t1;
       return true;
     }
   }
 
-
-
-  double d_x = p1.GetX() - p0.GetX();
-  double d_y = p1.GetY() - p0.GetY();
-  double delta;
-  bool useX;
-
-  if(fabs(d_x)> fabs(d_y)){
-     delta = (p.GetX()-p0.GetX() ) / d_x;
-     useX = true;
-  } else {
-     delta = (p.GetY()-p0.GetY() ) / d_y;
-     useX = false;
-  }
-
-  if(AlmostEqual(delta,0)){
-    delta = 0;
-  }
-  if(AlmostEqual(delta,1)){
-    delta = 1;
-  }
-
-  if( (delta<0) || (delta>1)){
-    result->SetDefined(false);
-    return false;
-  }
-
-  if(useX){ // check y-value
-    double y = p0.GetY() + delta*d_y;
-    if(!AlmostEqual(y,p.GetY())){
-       result->SetDefined(false);
-       return false;
+  if(!geoid){// euclidean geometry case:
+    double d_x = p1.GetX() - p0.GetX();
+    double d_y = p1.GetY() - p0.GetY();
+    double delta;
+    bool useX;
+    if(fabs(d_x)> fabs(d_y)){
+      delta = (p.GetX()-p0.GetX() ) / d_x;
+      useX = true;
+    } else {
+      delta = (p.GetY()-p0.GetY() ) / d_y;
+      useX = false;
     }
-  } else { // check x-value
-    double x = p0.GetX() + delta*d_x;
-    if(!AlmostEqual(x,p.GetX())){
-       result->SetDefined(false);
-       return false;
+    if(AlmostEqual(delta,0)){
+      delta = 0;
     }
+    if(AlmostEqual(delta,1)){
+      delta = 1;
+    }
+    if( (delta<0) || (delta>1)){
+      result->SetDefined(false);
+      return false;
+    }
+    if(useX){ // check y-value
+      double y = p0.GetY() + delta*d_y;
+      if(!AlmostEqual(y,p.GetY())){
+        result->SetDefined(false);
+        return false;
+      }
+    } else { // check x-value
+      double x = p0.GetX() + delta*d_x;
+      if(!AlmostEqual(x,p.GetX())){
+        result->SetDefined(false);
+        return false;
+      }
+    }
+    Instant time = t0+(t1-t0)*delta;
+    result->SetDefined(true);
+    result->p0 = p;
+    result->p1 = p;
+    result->timeInterval.lc = true;
+    result->timeInterval.rc = true;
+    result->timeInterval.start = time;
+    result->timeInterval.end = time;
+    return true;
+  } else { // spherical geometry case:
+    // get possible LON for given LAT
+    double lonMinDEG = -1,  lonMaxDEG = -1;
+    int numCross = p0.orthodromeAtLatitude( p1, p.GetY(),lonMinDEG, lonMaxDEG);
+    if(numCross<1){ // no crossing with given LON
+      result->SetDefined(false);
+      return false;
+    }
+    double dist01 = p0.Distance(p1, geoid);
+    double dist0cross  = -1;
+    Instant tcross1(instanttype);
+    tcross1.SetDefined(false);
+    if(AlmostEqual(lonMinDEG,p.GetX())){ // calculate instant
+      dist0cross = p0.Distance(Point(true, lonMinDEG, p.GetX()),geoid);
+      tcross1 = t0 + (t1-t0)*(dist0cross/dist01);
+      tcross1.SetDefined(timeInterval.Contains(tcross1));
+    }
+    Instant tcross2(instanttype);
+    tcross2.SetDefined(false);
+    if( ( numCross>=2) && AlmostEqual(lonMinDEG,p.GetX()) ){
+      dist0cross = p0.Distance(Point(true, lonMaxDEG, p.GetX()),geoid);
+      tcross2 = t0 + (t1-t0)*(dist0cross/dist01);
+      tcross2.SetDefined(timeInterval.Contains(tcross2));
+    }
+    if( !tcross1.IsDefined() && !tcross2.IsDefined()){
+      result->SetDefined(false);
+      return false;
+    }
+    result->SetDefined(true);
+    result->p0 = p;
+    result->p1 = p;
+    result->timeInterval.lc = true;
+    result->timeInterval.rc = true;
+    result->timeInterval.start = tcross1.IsDefined()?tcross1:tcross2;
+    result->timeInterval.end   = tcross1.IsDefined()?tcross1:tcross2;
+    return true;
   }
-
-
-  Instant time = timeInterval.start +
-                 (timeInterval.end-timeInterval.start)*delta;
-
-  result->p0 = p;
-  result->p1 = p;
-  result->timeInterval.lc = true;
-  result->timeInterval.rc = true;
-  result->timeInterval.start = time;
-  result->timeInterval.end = time;
-  return true;
 }
 
 
@@ -1820,8 +1882,16 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
 void UPoint::AtInterval( const Interval<Instant>& i,
                          TemporalUnit<Point>& result ) const
 {
+  AtInterval( i, result, 0);
+}
+
+void UPoint::AtInterval( const Interval<Instant>& i,
+                         TemporalUnit<Point>& result,
+                         const Geoid* geoid) const
+{
   assert( IsDefined() );
   assert( i.IsValid() );
+  assert( !geoid || geoid->IsDefined() );
 
   TemporalUnit<Point>::AtInterval( i, result );
 
@@ -1832,33 +1902,127 @@ void UPoint::AtInterval( const Interval<Instant>& i,
     return;
   }
 
-  if( timeInterval.start == result.timeInterval.start )
-    {
-      pResult->p0 = p0;
-      pResult->timeInterval.start = timeInterval.start;
-      pResult->timeInterval.lc = (pResult->timeInterval.lc && timeInterval.lc);
-    }
-  else
-    TemporalFunction( result.timeInterval.start, pResult->p0 );
-
-  if( timeInterval.end == result.timeInterval.end )
-    {
-      pResult->p1 = p1;
-      pResult->timeInterval.end = timeInterval.end;
-      pResult->timeInterval.rc = (pResult->timeInterval.rc && timeInterval.rc);
-    }
-  else
-    TemporalFunction( result.timeInterval.end, pResult->p1 );
+  if( timeInterval.start == result.timeInterval.start ){
+    pResult->p0 = p0;
+    pResult->timeInterval.start = timeInterval.start;
+    pResult->timeInterval.lc = (pResult->timeInterval.lc && timeInterval.lc);
+  } else {
+    TemporalFunction( result.timeInterval.start, pResult->p0, geoid );
+  }
+  if( timeInterval.end == result.timeInterval.end ){
+    pResult->p1 = p1;
+    pResult->timeInterval.end = timeInterval.end;
+    pResult->timeInterval.rc = (pResult->timeInterval.rc && timeInterval.rc);
+  } else {
+    TemporalFunction( result.timeInterval.end, pResult->p1, geoid );
+  }
 }
 
-void UPoint::Distance( const Point& p, UReal& result, const Geoid* geoid ) const
-{
-  bool ok = true; // error flag for spherical geometry operations
-  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
-      result.SetDefined(false);
-  } else {
-    result.timeInterval = timeInterval;
+void UPoint::Distance( const Point& p, UReal& result ) const {
+  result.SetDefined(false);
+  vector<UReal> resvector(1);
+  resvector.clear();
+  Distance( p, resvector );
+  for(vector<UReal>::iterator i=resvector.begin(); i!=resvector.end(); i++){
+    if(i->IsDefined()){
+      result = *i;
+      return;
+    }
+  }
+}
 
+void UPoint::DistanceOrthodrome( const Point& p,
+                                 vector<UReal>& result,
+                                 const Geoid geoid,
+                                 const double epsilon,  /*=  0.00001 */
+                                 const Instant* tMin,   /*=  0       */
+                                 const double distMin,  /*= -666.666 */
+                                 const double distStart,/*= -666.666 */
+                                 const double distEnd   /*= -666.666 */) const {
+  UReal resunit(true);
+  bool ok(false);
+  resunit.timeInterval = timeInterval;
+  if(  !IsDefined() || !p.IsDefined() || !geoid.IsDefined() ) {
+    resunit.SetDefined(false);
+    result.push_back(resunit);
+    return;
+  }
+  DateTime DT = timeInterval.end - timeInterval.start;
+  double dt = DT.ToDouble();
+  if ( AlmostEqual(dt, 0.0) || AlmostEqual(p0,p1)) { // constant/instant unit
+    resunit.a = 0;
+    resunit.b = 0;
+    resunit.c = p.DistanceOrthodrome(p0,geoid,ok);
+    resunit.c *= resunit.c;
+    resunit.r = true; // draw square root
+    resunit.SetDefined(ok);
+    result.push_back(resunit);
+    return;
+  }
+  double d0 = distStart;
+  if(d0<0){ // need to calculate distance to p at start of unit
+    d0 = p0.DistanceOrthodrome(p, geoid, ok);
+    assert(ok);
+  }
+  double d1 = distEnd;
+  if(d1<0){ // need to calculate distance to p at end of unit
+    d1 = p1.DistanceOrthodrome(p, geoid, ok);
+    assert(ok);
+  }
+  if(fabs(d1-d0)<epsilon){ // precision reached --> return single constant unit
+    resunit.a = 0;
+    resunit.b = 0;
+    resunit.c = d0;
+    resunit.c *= resunit.c;
+    resunit.r = true; // draw square root
+    resunit.SetDefined(ok);
+    result.push_back(resunit);
+    return;
+  } // else: precision not yet reached --> refine
+  // choose split point for refinement
+  double dMin = distMin;
+  Instant iMin(0.0);
+  if(tMin){
+    iMin = *tMin;
+  } else {
+    iMin.SetDefined(false);
+  }
+  Instant iSplit(instanttype);
+  iSplit.SetDefined(false);
+  if( (dMin<0) || !iMin.IsDefined() ){ // need to calculate minimum distance
+    HalfSegment hs(true, p0, p1);
+    dMin = hs.Distance( p, &geoid );
+    assert(dMin>=0);
+    // compute instant of nearest approach
+    // TODO
+  }
+  if( (iMin>timeInterval.start) && (iMin<timeInterval.end) ){ //use minInstant
+    iSplit = iMin;
+  } else { // use middle of interval
+    iSplit = timeInterval.start + (timeInterval.end - timeInterval.start)/2;
+  }
+  // recursive call to refine (start,splitpoint)
+  Interval<Instant> i0(timeInterval.start,iSplit,timeInterval.lc,false);
+  Interval<Instant> i1(iSplit,timeInterval.end,true,timeInterval.rc);
+  UPoint u0(false);
+  AtInterval(i0,u0);
+  u0.DistanceOrthodrome( p,result,geoid,epsilon,&iMin,dMin,d0,d1 );
+  // recursive call to refine (splitpoint,end)
+  UPoint u1(false);
+  AtInterval(i1,u1);
+  u1.DistanceOrthodrome( p,result,geoid,epsilon,&iMin,dMin,d0,d1 );
+}
+
+void UPoint::Distance( const Point& p,
+                       vector<UReal>& result,
+                       const Geoid* geoid /*=0*/,
+                       const double epsilon /*=0.00001*/) const
+{
+  if( !IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ) {
+    UReal resunit(false);
+    result.push_back(resunit);
+  } else {
+    UReal resunit(false);
     DateTime DT = timeInterval.end - timeInterval.start;
     double dt = DT.ToDouble();
     double
@@ -1866,32 +2030,35 @@ void UPoint::Distance( const Point& p, UReal& result, const Geoid* geoid ) const
       x1 = p1.GetX(), y1 = p1.GetY(),
       x  =  p.GetX(), y  =  p.GetY();
 
-    if ( AlmostEqual(dt, 0.0) ) { // single point unit
-      result.a = 0.0;
-      result.b = 0.0;
+    if ( AlmostEqual(dt, 0.0) || AlmostEqual(p0,p1)) {
+      // single-instant or constant unit
+      resunit.SetDefined(true);
+      resunit.timeInterval = timeInterval;
+      resunit.a = 0.0;
+      resunit.b = 0.0;
       if(geoid){  // spherical distance squared
-        result.c = p.DistanceOrthodrome(p0,*geoid,ok);
-        result.c *= result.c;
+        bool ok=false;
+        resunit.c = p.DistanceOrthodrome(p0,*geoid,ok);
+        resunit.c *= resunit.c;
       } else {    // euclidean distance squared
-        result.c = (pow(x0-x,2) + pow(y0-y,2));
+        resunit.c = (pow(x0-x,2) + pow(y0-y,2));
       }
-    } else { // linear unit
+      resunit.r = true; // draw square root
+      result.push_back(resunit);
+    } else { // non-constant, non-instant unit
       if(geoid){  // spherical distance squared
-        result.a = 0;
-        result.b = 0;
-        result.c = 0;
-        cerr << "Spherical distance not implemented." << endl;
-        assert(false);
+        DistanceOrthodrome( p, result, *geoid, epsilon );
       } else {    // euclidean distance squared
-        result.a = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
-        result.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
-        result.c = pow(x0-x,2)+pow(y0-y,2);
+        resunit.SetDefined(true);
+        resunit.timeInterval = timeInterval;
+        resunit.a = pow((x1-x0)/dt,2)+pow((y1-y0)/dt,2);
+        resunit.b = 2*((x1-x0)*(x0-x)+(y1-y0)*(y0-y))/dt;
+        resunit.c = pow(x0-x,2)+pow(y0-y,2);
+        resunit.r = true; // draw square root
+        result.push_back(resunit);
       }
     }
   }
-  result.r = true; // draw square root
-  result.SetDefined(ok);
-  return;
 }
 
 double UPoint::Distance(const Rectangle<3>& rect,
@@ -1903,15 +2070,22 @@ double UPoint::Distance(const Rectangle<3>& rect,
   return BoundingBox().Distance(rect,geoid);
 }
 
-void UPoint::Distance( const UPoint& up, UReal& result,
+void UPoint::Distance( const UPoint& up,
+                       UReal& result,
                        const Geoid* geoid ) const
 {
   assert( IsDefined() );
   assert( up.IsDefined() );
   if(geoid){
     assert( geoid->IsDefined() );
-    cerr << "Spherical diestance computation not implemented!" << endl;
+    cerr << "Spherical distance computation not implemented!" << endl;
     assert( false ); // TODO: implement spherical geometry
+
+    // use HalfSegment::Distance(HalfSegment) to find DISTmin
+    // use UPoint::AtValue(VALUEmin) to get Tmin
+    // approximate the distance function by binary splits
+    // TODO: implementation
+
   }
   assert( timeInterval.Intersects(up.timeInterval) );
 
@@ -4858,20 +5032,16 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
   }
   result.SetDefined( true );
   UPoint uPoint;
-  UReal uReal(true);
   result.Resize(GetNoComponents());
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    uPoint.Distance( p, uReal, geoid );
-    if ( uReal.IsDefined() ) {
-      result.MergeAdd( uReal );
-    } else if(geoid){
-      cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord found!" << endl;
-      result.EndBulkLoad( false, false );
-      result.Clear();
-      result.SetDefined(false);
-      return;
+    vector<UReal> resvec(1);
+    uPoint.Distance( p, resvec, geoid );
+    for(vector<UReal>::iterator it=resvec.begin(); it!=resvec.end(); it++ ){
+      if(it->IsDefined()){
+        result.MergeAdd( *it );
+      }
     }
   }
   result.EndBulkLoad( false, false );
@@ -4887,23 +5057,19 @@ void MPoint::SquaredDistance( const Point& p, MReal& result,
   }
   result.SetDefined( true );
   UPoint uPoint;
-  UReal uReal(true);
   result.Resize(GetNoComponents());
   result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    uPoint.Distance( p, uReal, geoid );
-    if ( uReal.IsDefined() )
-    {
-      assert(uReal.r);
-      uReal.r= false;
-      result.MergeAdd( uReal );
-    } else {
-      cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord found!" << endl;
-      result.EndBulkLoad( false, false );
-      result.Clear();
-      result.SetDefined(false);
-      return;
+    vector<UReal> resvec(1);
+    uPoint.Distance( p, resvec, geoid );
+    for(vector<UReal>::iterator it(resvec.begin()); it!=resvec.end(); it++ ){
+      if(it->IsDefined()){
+        UReal resunit(*it);
+        assert( resunit.r );
+        resunit.r = false;
+        result.MergeAdd( resunit );
+      }
     }
   }
   result.EndBulkLoad( false, false );
@@ -7272,7 +7438,7 @@ RangeIntProperty()
 bool
 CheckRangeInt( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rint" ));
+  return (nl->IsEqual( type, RInt::BasicType() ));
 }
 
 /*
@@ -7280,7 +7446,7 @@ CheckRangeInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangeint(
-        "rint",             //name
+        RInt::BasicType(),             //name
         RangeIntProperty,   //property function describing signature
         OutRange<CcInt, OutCcInt>,
         InRange<CcInt, InCcInt>,                 //Out and In functions
@@ -7341,7 +7507,7 @@ RangeRealProperty()
 bool
 CheckRangeReal( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rreal" ));
+  return (nl->IsEqual( type, RReal::BasicType() ));
 }
 
 /*
@@ -7349,7 +7515,7 @@ CheckRangeReal( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangereal(
-        "rreal",              //name
+        RReal::BasicType(),              //name
         RangeRealProperty,   //property function describing signature
         OutRange<CcReal, OutCcReal>,
         InRange<CcReal, InCcReal>,   //Out and In functions
@@ -7410,7 +7576,7 @@ PeriodsProperty()
 bool
 CheckPeriods( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "periods" ));
+  return (nl->IsEqual( type, Periods::BasicType() ));
 }
 
 /*
@@ -7418,7 +7584,7 @@ CheckPeriods( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor periods(
-        "periods",         //name
+        Periods::BasicType(),         //name
         PeriodsProperty,  //property function describing signature
         OutRange<Instant, OutDateTime>,
         InRange<Instant, InInstant>, //Out and In functions
@@ -7472,7 +7638,7 @@ IntimeBoolProperty()
 bool
 CheckIntimeBool( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "ibool" ));
+  return (nl->IsEqual( type, IBool::BasicType() ));
 }
 
 /*
@@ -7480,7 +7646,7 @@ CheckIntimeBool( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor intimebool(
-        "ibool",                   //name
+        IBool::BasicType(),    //name
         IntimeBoolProperty,             //property function describing signature
         OutIntime<CcBool, OutCcBool>,
         InIntime<CcBool, InCcBool>,     //Out and In functions
@@ -7537,7 +7703,7 @@ IntimeIntProperty()
 bool
 CheckIntimeInt( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "iint" ));
+  return (nl->IsEqual( type, IInt::BasicType() ));
 }
 
 /*
@@ -7545,7 +7711,7 @@ CheckIntimeInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor intimeint(
-        "iint",                   //name
+        IInt::BasicType(),                   //name
         IntimeIntProperty,             //property function describing signature
         OutIntime<CcInt, OutCcInt>,
         InIntime<CcInt, InCcInt>,      //Out and In functions
@@ -7604,7 +7770,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckIntimeReal( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "ireal" ));
+  return (nl->IsEqual( type, IReal::BasicType() ));
 }
 
 /*
@@ -7612,7 +7778,7 @@ CheckIntimeReal( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor intimereal(
-        "ireal",              //name
+        IReal::BasicType(),              //name
         IntimeRealProperty,   //property function describing signature
         OutIntime<CcReal, OutCcReal>,
         InIntime<CcReal, InCcReal>,        //Out and In functions
@@ -7669,7 +7835,7 @@ IntimePointProperty()
 bool
 CheckIntimePoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "ipoint" ));
+  return (nl->IsEqual( type, IPoint::BasicType() ));
 }
 
 /*
@@ -7677,7 +7843,7 @@ CheckIntimePoint( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor intimepoint(
-        "ipoint",                    //name
+        IPoint::BasicType(),                    //name
         IntimePointProperty,  //property function describing signature
         OutIntime<Point, OutPoint>,
         InIntime<Point, InPoint>,         //Out and In functions
@@ -7734,7 +7900,7 @@ UBoolProperty()
 bool
 CheckUBool( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "ubool" ));
+  return (nl->IsEqual( type, UBool::BasicType() ));
 }
 
 /*
@@ -7742,7 +7908,7 @@ CheckUBool( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor unitbool(
-        "ubool",        //name
+        UBool::BasicType(),   //name
         UBoolProperty,    //property function describing signature
         OutConstTemporalUnit<CcBool, OutCcBool>,
         InConstTemporalUnit<CcBool, InCcBool>,    //Out and In functions
@@ -7798,7 +7964,7 @@ UIntProperty()
 bool
 CheckUInt( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "uint" ));
+  return (nl->IsEqual( type, UInt::BasicType() ));
 }
 
 /*
@@ -7806,7 +7972,7 @@ CheckUInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor unitint(
-        "uint",     //name
+        UInt::BasicType(),     //name
         UIntProperty, //property function describing signature
         OutConstTemporalUnit<CcInt, OutCcInt>,
         InConstTemporalUnit<CcInt, InCcInt>, //Out and In functions
@@ -8383,7 +8549,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckMBool( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "mbool" ));
+  return (nl->IsEqual( type, MBool::BasicType() ));
 }
 
 /*
@@ -8391,7 +8557,7 @@ CheckMBool( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingbool(
-        "mbool", //name
+        MBool::BasicType(), //name
         MBoolProperty,  //property function describing signature
         OutMapping<MBool, UBool, OutConstTemporalUnit<CcBool, OutCcBool> >,
         InMapping<MBool, UBool, InConstTemporalUnit<CcBool, InCcBool> >,
@@ -8456,7 +8622,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckMInt( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "mint" ));
+  return (nl->IsEqual( type, MInt::BasicType() ));
 }
 
 /*
@@ -8464,7 +8630,7 @@ CheckMInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingint(
-        "mint",               //name
+        MInt::BasicType(),               //name
         MIntProperty,   //property function describing signature
         OutMapping<MInt, UInt, OutConstTemporalUnit<CcInt, OutCcInt> >,
         InMapping<MInt, UInt, InConstTemporalUnit<CcInt, InCcInt> >,
@@ -8657,22 +8823,22 @@ TemporalTypeMapBool( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "instant" ) ||
-        nl->IsEqual( arg1, "rint" ) ||
-        nl->IsEqual( arg1, "rreal" ) ||
-        nl->IsEqual( arg1, "periods" ) ||
-        nl->IsEqual( arg1, "ubool" ) ||
-        nl->IsEqual( arg1, "uint" ) ||
+    if( nl->IsEqual( arg1, Instant::BasicType() ) ||
+        nl->IsEqual( arg1, RInt::BasicType() ) ||
+        nl->IsEqual( arg1, RReal::BasicType() ) ||
+        nl->IsEqual( arg1, Periods::BasicType() ) ||
+        nl->IsEqual( arg1, UBool::BasicType() ) ||
+        nl->IsEqual( arg1, UInt::BasicType() ) ||
         nl->IsEqual( arg1, UReal::BasicType() ) ||
         nl->IsEqual( arg1, UPoint::BasicType() ) ||
-//        nl->IsEqual( arg1, "mbool" ) ||
-//        nl->IsEqual( arg1, "mint" ) ||
+//        nl->IsEqual( arg1, MBool::BasicType() ) ||
+//        nl->IsEqual( arg1, MInt::BasicType() ) ||
 //        nl->IsEqual( arg1, MReal::BasicType() ) ||
 //        nl->IsEqual( arg1, MPoint::BasicType() ) ||
-        nl->IsEqual( arg1, "ibool" ) ||
-        nl->IsEqual( arg1, "iint" ) ||
-        nl->IsEqual( arg1, "ireal" ) ||
-        nl->IsEqual( arg1, "ipoint" ))
+        nl->IsEqual( arg1, IBool::BasicType() ) ||
+        nl->IsEqual( arg1, IInt::BasicType() ) ||
+        nl->IsEqual( arg1, IReal::BasicType() ) ||
+        nl->IsEqual( arg1, IPoint::BasicType() ))
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8692,14 +8858,22 @@ TemporalTemporalTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( (nl->IsEqual( arg1, "instant" ) && nl->IsEqual( arg2, "instant" )) ||
-        (nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" )) ||
-        (nl->IsEqual( arg1, "rreal" ) && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" )) ||
-        (nl->IsEqual( arg1, "ibool" ) && nl->IsEqual( arg2, "ibool" )) ||
-        (nl->IsEqual( arg1, "iint" ) && nl->IsEqual( arg2, "iint" )) ||
-        (nl->IsEqual( arg1, "ireal" ) && nl->IsEqual( arg2, "ireal" )) ||
-        (nl->IsEqual( arg1, "ipoint" ) && nl->IsEqual( arg2, "ipoint" )))
+    if( (nl->IsEqual( arg1, Instant::BasicType() )
+      && nl->IsEqual( arg2, Instant::BasicType() )) ||
+        (nl->IsEqual( arg1, RInt::BasicType() )
+        && nl->IsEqual( arg2, RInt::BasicType() )) ||
+        (nl->IsEqual( arg1, RReal::BasicType() )
+        && nl->IsEqual( arg2, RReal::BasicType() )) ||
+        (nl->IsEqual( arg1, Periods::BasicType() )
+        && nl->IsEqual( arg2, Periods::BasicType() )) ||
+        (nl->IsEqual( arg1, IBool::BasicType() )
+        && nl->IsEqual( arg2, IBool::BasicType() )) ||
+        (nl->IsEqual( arg1, IInt::BasicType() )
+        && nl->IsEqual( arg2, IInt::BasicType() )) ||
+        (nl->IsEqual( arg1, IReal::BasicType() )
+        && nl->IsEqual( arg2, IReal::BasicType() )) ||
+        (nl->IsEqual( arg1, IPoint::BasicType() )
+        && nl->IsEqual( arg2, IPoint::BasicType() )))
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8713,8 +8887,10 @@ TemporalTemporalTypeMapBool2( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if(  (nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "mbool" )) ||
-        (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "mint" )) ||
+    if(  (nl->IsEqual( arg1, MBool::BasicType() )
+      && nl->IsEqual( arg2, MBool::BasicType() )) ||
+        (nl->IsEqual( arg1, MInt::BasicType() )
+        && nl->IsEqual( arg2, MInt::BasicType() )) ||
         (nl->IsEqual( arg1, MReal::BasicType() )
         && nl->IsEqual( arg2, MReal::BasicType() )) ||
         (nl->IsEqual( arg1, MPoint::BasicType() )
@@ -8733,8 +8909,8 @@ ListExpr TemporalMBool2MInt(ListExpr args){
     ErrorReporter::ReportError("Single argument expected");
     return nl->SymbolAtom( "typeerror" );
   }
-  if(nl->IsEqual(nl->First(args),"mbool")){
-    return   nl->SymbolAtom("mint");
+  if(nl->IsEqual(nl->First(args),MBool::BasicType())){
+    return   nl->SymbolAtom(MInt::BasicType());
   }
   ErrorReporter::ReportError("mbool expected");
   return nl->SymbolAtom( "typeerror" );
@@ -8749,8 +8925,8 @@ ListExpr TemporalMInt2MBool(ListExpr args){
     ErrorReporter::ReportError("Single argument expected");
     return nl->SymbolAtom( "typeerror" );
   }
-  if(nl->IsEqual(nl->First(args),"mint")){
-    return   nl->SymbolAtom("mbool");
+  if(nl->IsEqual(nl->First(args),MInt::BasicType())){
+    return   nl->SymbolAtom(MBool::BasicType());
   }
   ErrorReporter::ReportError("mint expected");
   return nl->SymbolAtom( "typeerror" );
@@ -8765,7 +8941,7 @@ ListExpr TemporalMInt2MReal(ListExpr args){
     ErrorReporter::ReportError("Single argument expected");
     return nl->SymbolAtom( "typeerror" );
   }
-  if(nl->IsEqual(nl->First(args),"mint")){
+  if(nl->IsEqual(nl->First(args),MInt::BasicType())){
     return   nl->SymbolAtom(MReal::BasicType());
   }
   ErrorReporter::ReportError("mint expected");
@@ -8789,8 +8965,10 @@ ListExpr ExtDeftimeTypeMap(ListExpr args){
   }
   string sarg1 = nl->SymbolValue(arg1);
   string sarg2 = nl->SymbolValue(arg2);
-  if( (sarg1=="mint" && sarg2=="uint" ) ||
-      (sarg1=="mbool" && sarg2=="ubool") ){
+  if( (sarg1==MInt::BasicType()
+    && sarg2==UInt::BasicType() ) ||
+      (sarg1==MBool::BasicType()
+      && sarg2==UBool::BasicType()) ){
      return nl->SymbolAtom(sarg1);
   }
   ErrorReporter::ReportError("(mint x uint)  or (mbool x ubool) needed");
@@ -8812,7 +8990,8 @@ InstantInstantTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "instant" ) && nl->IsEqual( arg2, "instant" ) )
+    if( nl->IsEqual( arg1, Instant::BasicType() )
+      && nl->IsEqual( arg2, Instant::BasicType() ) )
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8833,9 +9012,12 @@ RangeRangeTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( (nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" )) ||
-        (nl->IsEqual( arg1, "rreal" ) && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" )) )
+    if( (nl->IsEqual( arg1, RInt::BasicType() )
+      && nl->IsEqual( arg2, RInt::BasicType() )) ||
+        (nl->IsEqual( arg1, RReal::BasicType() )
+        && nl->IsEqual( arg2, RReal::BasicType() )) ||
+        (nl->IsEqual( arg1, Periods::BasicType() )
+        && nl->IsEqual( arg2, Periods::BasicType() )) )
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8856,17 +9038,18 @@ RangeBaseTypeMapBool1( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( (nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" )) ||
-        (nl->IsEqual( arg1, "rreal" )
-        && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "periods" )
-        && nl->IsEqual( arg2, "periods" )) ||
+    if( (nl->IsEqual( arg1, RInt::BasicType() )
+      && nl->IsEqual( arg2, RInt::BasicType() )) ||
+        (nl->IsEqual( arg1, RReal::BasicType() )
+        && nl->IsEqual( arg2, RReal::BasicType() )) ||
+        (nl->IsEqual( arg1, Periods::BasicType() )
+        && nl->IsEqual( arg2, Periods::BasicType() )) ||
         (nl->IsEqual( arg1, CcInt::BasicType() )
-        && nl->IsEqual( arg2, "rint" )) ||
+        && nl->IsEqual( arg2, RInt::BasicType() )) ||
         (nl->IsEqual( arg1, CcReal::BasicType() )
-        && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "instant" )
-        && nl->IsEqual( arg2, "periods" )) )
+        && nl->IsEqual( arg2, RReal::BasicType() )) ||
+        (nl->IsEqual( arg1, Instant::BasicType() )
+        && nl->IsEqual( arg2, Periods::BasicType() )) )
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8887,24 +9070,24 @@ RangeBaseTypeMapBool2( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( (nl->IsEqual( arg1, "rint" )
-      && nl->IsEqual( arg2, "rint" )) ||
-        (nl->IsEqual( arg1, "rreal" )
-        && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "periods" )
-        && nl->IsEqual( arg2, "periods" )) ||
+    if( (nl->IsEqual( arg1, RInt::BasicType() )
+      && nl->IsEqual( arg2, RInt::BasicType() )) ||
+        (nl->IsEqual( arg1, RReal::BasicType() )
+        && nl->IsEqual( arg2, RReal::BasicType() )) ||
+        (nl->IsEqual( arg1, Periods::BasicType() )
+        && nl->IsEqual( arg2, Periods::BasicType() )) ||
         (nl->IsEqual( arg1, CcInt::BasicType() )
-        && nl->IsEqual( arg2, "rint" )) ||
+        && nl->IsEqual( arg2, RInt::BasicType() )) ||
         (nl->IsEqual( arg1, CcReal::BasicType() )
-        && nl->IsEqual( arg2, "rreal" )) ||
-        (nl->IsEqual( arg1, "instant" )
-        && nl->IsEqual( arg2, "periods" )) ||
-        (nl->IsEqual( arg1, "rint" )
+        && nl->IsEqual( arg2, RReal::BasicType() )) ||
+        (nl->IsEqual( arg1, Instant::BasicType() )
+        && nl->IsEqual( arg2, Periods::BasicType() )) ||
+        (nl->IsEqual( arg1, RInt::BasicType() )
         && nl->IsEqual( arg2, CcInt::BasicType() )) ||
-        (nl->IsEqual( arg1, "rreal" )
+        (nl->IsEqual( arg1, RReal::BasicType() )
         && nl->IsEqual( arg2, CcReal::BasicType() )) ||
-        (nl->IsEqual( arg1, "periods" )
-        && nl->IsEqual( arg2, "instant" )) )
+        (nl->IsEqual( arg1, Periods::BasicType() )
+        && nl->IsEqual( arg2, Instant::BasicType() )) )
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8925,14 +9108,17 @@ RangeRangeTypeMapRange( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" ) )
-      return nl->SymbolAtom( "rint" );
+    if( nl->IsEqual( arg1, RInt::BasicType() )
+      && nl->IsEqual( arg2, RInt::BasicType() ) )
+      return nl->SymbolAtom( RInt::BasicType() );
 
-    if( nl->IsEqual( arg1, "rreal" ) && nl->IsEqual( arg2, "rreal" ) )
-      return nl->SymbolAtom( "rreal" );
+    if( nl->IsEqual( arg1, RReal::BasicType() )
+      && nl->IsEqual( arg2, RReal::BasicType() ) )
+      return nl->SymbolAtom( RReal::BasicType() );
 
-    if( nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" ) )
-      return nl->SymbolAtom( "periods" );
+    if( nl->IsEqual( arg1, Periods::BasicType() )
+      && nl->IsEqual( arg2, Periods::BasicType() ) )
+      return nl->SymbolAtom( Periods::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -8952,14 +9138,14 @@ RangeTypeMapBase( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "rint" ) )
+    if( nl->IsEqual( arg1, RInt::BasicType() ) )
       return nl->SymbolAtom( CcInt::BasicType() );
 
-    if( nl->IsEqual( arg1, "rreal" ) )
+    if( nl->IsEqual( arg1, RReal::BasicType() ) )
       return nl->SymbolAtom( CcReal::BasicType() );
 
-    if( nl->IsEqual( arg1, "periods" ) )
-      return nl->SymbolAtom( "instant" );
+    if( nl->IsEqual( arg1, Periods::BasicType() ) )
+      return nl->SymbolAtom( Instant::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -8977,11 +9163,11 @@ TemporalSetValueTypeMapInt( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "rint" ) ||
-        nl->IsEqual( arg1, "rreal" ) ||
-        nl->IsEqual( arg1, "periods" ) ||
-        nl->IsEqual( arg1, "mbool" ) ||
-        nl->IsEqual( arg1, "mint" ) ||
+    if( nl->IsEqual( arg1, RInt::BasicType() ) ||
+        nl->IsEqual( arg1, RReal::BasicType() ) ||
+        nl->IsEqual( arg1, Periods::BasicType() ) ||
+        nl->IsEqual( arg1, MBool::BasicType() ) ||
+        nl->IsEqual( arg1, MInt::BasicType() ) ||
         nl->IsEqual( arg1, MReal::BasicType() ) ||
         nl->IsEqual( arg1, MPoint::BasicType() ) )
       return nl->SymbolAtom( CcInt::BasicType() );
@@ -9002,16 +9188,16 @@ IntimeTypeMapBase( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "ibool" ) )
+    if( nl->IsEqual( arg1, IBool::BasicType() ) )
       return nl->SymbolAtom( CcBool::BasicType() );
 
-    if( nl->IsEqual( arg1, "iint" ) )
+    if( nl->IsEqual( arg1, IInt::BasicType() ) )
       return nl->SymbolAtom( CcInt::BasicType() );
 
-    if( nl->IsEqual( arg1, "ireal" ) )
+    if( nl->IsEqual( arg1, IReal::BasicType() ) )
       return nl->SymbolAtom( CcReal::BasicType() );
 
-    if( nl->IsEqual( arg1, "ipoint" ) )
+    if( nl->IsEqual( arg1, IPoint::BasicType() ) )
       return nl->SymbolAtom( Point::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -9030,7 +9216,7 @@ UIntimeTypeMapBase( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "uint" ) )
+    if( nl->IsEqual( arg1, UInt::BasicType() ) )
       return nl->SymbolAtom( CcInt::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -9049,11 +9235,11 @@ IntimeTypeMapInstant( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "ibool" ) ||
-        nl->IsEqual( arg1, "iint" ) ||
-        nl->IsEqual( arg1, "ireal" ) ||
-        nl->IsEqual( arg1, "ipoint" ) )
-      return nl->SymbolAtom( "instant" );
+    if( nl->IsEqual( arg1, IBool::BasicType() ) ||
+        nl->IsEqual( arg1, IInt::BasicType() ) ||
+        nl->IsEqual( arg1, IReal::BasicType() ) ||
+        nl->IsEqual( arg1, IPoint::BasicType() ) )
+      return nl->SymbolAtom( Instant::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -9072,19 +9258,19 @@ MovingInstantTypeMapIntime( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) )
+    if( nl->IsEqual( arg2, Instant::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "mbool" ) )
-        return nl->SymbolAtom( "ibool" );
+      if( nl->IsEqual( arg1, MBool::BasicType() ) )
+        return nl->SymbolAtom( IBool::BasicType() );
 
-      if( nl->IsEqual( arg1, "mint" ) )
-        return nl->SymbolAtom( "iint" );
+      if( nl->IsEqual( arg1, MInt::BasicType() ) )
+        return nl->SymbolAtom( IInt::BasicType() );
 
       if( nl->IsEqual( arg1, MReal::BasicType() ) )
-        return nl->SymbolAtom( "ireal" );
+        return nl->SymbolAtom( IReal::BasicType() );
 
       if( nl->IsEqual( arg1, MPoint::BasicType() ) )
-        return nl->SymbolAtom( "ipoint" );
+        return nl->SymbolAtom( IPoint::BasicType() );
     }
   }
   return nl->SymbolAtom( "typeerror" );
@@ -9104,13 +9290,13 @@ MovingPeriodsTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "periods" ) )
+    if( nl->IsEqual( arg2, Periods::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "mbool" ) )
-        return nl->SymbolAtom( "mbool" );
+      if( nl->IsEqual( arg1, MBool::BasicType() ) )
+        return nl->SymbolAtom( MBool::BasicType() );
 
-      if( nl->IsEqual( arg1, "mint" ) )
-        return nl->SymbolAtom( "mint" );
+      if( nl->IsEqual( arg1, MInt::BasicType() ) )
+        return nl->SymbolAtom( MInt::BasicType() );
 
       if( nl->IsEqual( arg1, MReal::BasicType() ) )
         return nl->SymbolAtom( MReal::BasicType() );
@@ -9135,11 +9321,11 @@ MovingTypeMapPeriods( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "mbool" ) ||
-        nl->IsEqual( arg1, "mint" ) ||
+    if( nl->IsEqual( arg1, MBool::BasicType() ) ||
+        nl->IsEqual( arg1, MInt::BasicType() ) ||
         nl->IsEqual( arg1, MReal::BasicType() ) ||
         nl->IsEqual( arg1, MPoint::BasicType() ) )
-      return nl->SymbolAtom( "periods" );
+      return nl->SymbolAtom( Periods::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -9177,11 +9363,11 @@ MovingInstantPeriodsTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) ||
-        nl->IsEqual( arg2, "periods" ) )
+    if( nl->IsEqual( arg2, Instant::BasicType() ) ||
+        nl->IsEqual( arg2, Periods::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "mbool" ) ||
-          nl->IsEqual( arg1, "mint" ) ||
+      if( nl->IsEqual( arg1, MBool::BasicType() ) ||
+          nl->IsEqual( arg1, MInt::BasicType() ) ||
           nl->IsEqual( arg1, MReal::BasicType() ) ||
           nl->IsEqual( arg1, MPoint::BasicType() ) )
         return nl->SymbolAtom( CcBool::BasicType() );
@@ -9205,9 +9391,9 @@ MovingBaseTypeMapBool( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( (nl->IsEqual( arg1, "mbool" )
+    if( (nl->IsEqual( arg1, MBool::BasicType() )
       && nl->IsEqual( arg2, CcBool::BasicType() )) ||
-        (nl->IsEqual( arg1, "mint" )
+        (nl->IsEqual( arg1, MInt::BasicType() )
         && nl->IsEqual( arg2, CcInt::BasicType() )) ||
         (nl->IsEqual( arg1, MReal::BasicType() )
         && nl->IsEqual( arg2, CcReal::BasicType() )) ||
@@ -9216,7 +9402,7 @@ MovingBaseTypeMapBool( ListExpr args )
         (nl->IsEqual( arg1, MPoint::BasicType() )
         && nl->IsEqual( arg2, "region" )) ||
         (nl->IsEqual( arg1, MPoint::BasicType() )
-        && nl->IsEqual( arg2, "rect" )) )
+        && nl->IsEqual( arg2, Rectangle<2>::BasicType() )) )
       return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -9237,13 +9423,13 @@ MovingBaseTypeMapMoving( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mbool" )
+    if( nl->IsEqual( arg1, MBool::BasicType() )
       && nl->IsEqual( arg2, CcBool::BasicType() ) )
-      return nl->SymbolAtom( "mbool" );
+      return nl->SymbolAtom( MBool::BasicType() );
 
-    if( nl->IsEqual( arg1, "mint" )
+    if( nl->IsEqual( arg1, MInt::BasicType() )
       && nl->IsEqual( arg2, CcInt::BasicType() ) )
-      return nl->SymbolAtom( "mint" );
+      return nl->SymbolAtom( MInt::BasicType() );
 
    if( nl->IsEqual( arg1, MReal::BasicType() )
      && nl->IsEqual( arg2, CcReal::BasicType() ) )
@@ -9269,17 +9455,17 @@ MovingTypeMapIntime( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "mbool" ) )
-      return nl->SymbolAtom( "ibool" );
+    if( nl->IsEqual( arg1, MBool::BasicType() ) )
+      return nl->SymbolAtom( IBool::BasicType() );
 
-    if( nl->IsEqual( arg1, "mint" ) )
-      return nl->SymbolAtom( "iint" );
+    if( nl->IsEqual( arg1, MInt::BasicType() ) )
+      return nl->SymbolAtom( IInt::BasicType() );
 
     if( nl->IsEqual( arg1, MReal::BasicType() ) )
-      return nl->SymbolAtom( "ireal" );
+      return nl->SymbolAtom( IReal::BasicType() );
 
     if( nl->IsEqual( arg1, MPoint::BasicType() ) )
-      return nl->SymbolAtom( "ipoint" );
+      return nl->SymbolAtom( IPoint::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -9325,11 +9511,13 @@ ListExpr MovingTypeMapUnits( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "mbool" ) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("ubool"));
+    if( nl->IsEqual( arg1, MBool::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                      nl->SymbolAtom(UBool::BasicType()));
 
-    if( nl->IsEqual( arg1, "mint" ) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("uint"));
+    if( nl->IsEqual( arg1, MInt::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                      nl->SymbolAtom(UInt::BasicType()));
 
     if( nl->IsEqual( arg1, MReal::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -9363,11 +9551,11 @@ ListExpr MovingTypeMapGetUnit( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "mbool" ) )
-      return nl->SymbolAtom("ubool");
+    if( nl->IsEqual( arg1, MBool::BasicType() ) )
+      return nl->SymbolAtom(UBool::BasicType());
 
-    if( nl->IsEqual( arg1, "mint" ) )
-      return nl->SymbolAtom("uint");
+    if( nl->IsEqual( arg1, MInt::BasicType() ) )
+      return nl->SymbolAtom(UInt::BasicType());
 
     if( nl->IsEqual( arg1, MReal::BasicType() ) )
       return nl->SymbolAtom(UReal::BasicType());
@@ -9398,7 +9586,7 @@ ListExpr MovingTypeMapSimplify(ListExpr args){
            return nl->SymbolAtom(MPoint::BasicType());
         } else { // check the third argument
           ListExpr arg3 = nl->Third(args);
-          if(nl->IsEqual(arg3,"duration")){
+          if(nl->IsEqual(arg3,Duration::BasicType())){
              return nl->SymbolAtom(MPoint::BasicType());
           }
         }
@@ -9427,8 +9615,8 @@ ListExpr MovingTypeMapBreakPoints(ListExpr args){
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(nl->IsEqual(arg1,MPoint::BasicType()) &&
-      nl->IsEqual(arg2,"duration")){
-       return nl->SymbolAtom("points");
+      nl->IsEqual(arg2,Duration::BasicType())){
+       return nl->SymbolAtom(Points::BasicType());
    }
    ErrorReporter::ReportError("mpoint x duration expected");
    return nl->SymbolAtom("typeerror");
@@ -9500,7 +9688,7 @@ ListExpr MovingTypeMapVertices(ListExpr args){
    }
    ListExpr arg1 = nl->First(args);
    if(nl->IsEqual(arg1,MPoint::BasicType())){
-       return nl->SymbolAtom("points");
+       return nl->SymbolAtom(Points::BasicType());
    }
    ErrorReporter::ReportError("mpoint expected");
    return nl->TypeError();
@@ -9543,7 +9731,9 @@ ListExpr TypeMapMinMax(ListExpr args){
    }
    else
    {
-     if (nl->IsEqual(arg,"mint")) return nl->SymbolAtom(CcInt::BasicType());
+     if (nl->IsEqual(arg,MInt::BasicType())){
+       return nl->SymbolAtom(CcInt::BasicType());
+     }
    }
    ErrorReporter::ReportError(UReal::BasicType()+" or "
                               +MReal::BasicType()+" expected");
@@ -9609,12 +9799,12 @@ ListExpr TypeMapApproximate(ListExpr args){
   // check the last (optional) parameter
   if(len==4){
      ListExpr fourth = nl->Fourth(args);
-     if(!listutils::isSymbol(fourth,"duration") &&
+     if(!listutils::isSymbol(fourth,Duration::BasicType()) &&
         !listutils::isSymbol(fourth,CcBool::BasicType())){
         return listutils::typeError("4th parameter must be of type "
                                      "'duration' or 'bool'");
      }
-     if(listutils::isSymbol(fourth,"duration")){
+     if(listutils::isSymbol(fourth,Duration::BasicType())){
          durindex = 4;
      }
   }
@@ -9623,7 +9813,7 @@ ListExpr TypeMapApproximate(ListExpr args){
     ListExpr fourth = nl->Fourth(args);
     ListExpr fifth = nl->Fifth(args);
     if(!listutils::isSymbol(fourth,CcBool::BasicType()) ||
-      !listutils::isSymbol(fifth,"duration")){
+      !listutils::isSymbol(fifth,Duration::BasicType())){
       return listutils::typeError("4th parameter must be of type 'bool' and"
                                   " the 5th one must be of type 'duration'");
     }
@@ -9656,7 +9846,7 @@ ListExpr TypeMapApproximate(ListExpr args){
     return listutils::typeError("attribute name " + name +
                                 " unknown in tuple stream");
   }
-  if(!listutils::isSymbol(type,"instant")){
+  if(!listutils::isSymbol(type,Instant::BasicType())){
     return listutils::typeError("attribute '" + name +
     "' must be of type 'instant'");
   }
@@ -9676,11 +9866,11 @@ ListExpr TypeMapApproximate(ListExpr args){
   }  else if (listutils::isSymbol(type,CcReal::BasicType())){
      restype = MReal::BasicType();
   }else if (listutils::isSymbol(type,CcInt::BasicType())){
-    restype = "mint";
+    restype = MInt::BasicType();
   } else if (listutils::isSymbol(type,CcBool::BasicType())){
-    restype = "mbool";
+    restype = MBool::BasicType();
   }else if (listutils::isSymbol(type,CcString::BasicType())){
-    restype = "mstring";
+    restype = MString::BasicType();
   } else {
     return listutils::typeError("third argument is not an allowed type "
                                  "(point, real, int, bool, string)");
@@ -9756,7 +9946,7 @@ IntSetTypeMapPeriods( ListExpr args )
   }
 
   if( correct )
-    return nl->SymbolAtom( "periods" );
+    return nl->SymbolAtom( Periods::BasicType() );
 
   return nl->SymbolAtom("typeerror");
 }
@@ -9775,8 +9965,9 @@ PeriodsPeriodsTypeMapPeriods( ListExpr args )
     ListExpr arg1 = nl->First(args),
              arg2 = nl->Second(args);
 
-    if( nl->IsEqual( arg1, "periods" ) && nl->IsEqual( arg2, "periods" ) )
-      return nl->SymbolAtom( "periods" );
+    if( nl->IsEqual( arg1, Periods::BasicType() )
+      && nl->IsEqual( arg2, Periods::BasicType() ) )
+      return nl->SymbolAtom( Periods::BasicType() );
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -9797,7 +9988,7 @@ ListExpr MPointTypeMapTranslate( ListExpr args )
     arg2 = nl->Second( args );
 
     if( nl->IsEqual( arg1, MPoint::BasicType() ) &&
-        nl->IsEqual(nl->First( arg2 ), "duration") &&
+        nl->IsEqual(nl->First( arg2 ), Duration::BasicType()) &&
         nl->IsEqual(nl->Second( arg2 ), CcReal::BasicType()) &&
         nl->IsEqual(nl->Third( arg2 ), CcReal::BasicType())) {
       return (nl->SymbolAtom( MPoint::BasicType() )); }
@@ -9814,17 +10005,19 @@ ListExpr Box3dTypeMap(ListExpr args){
   if(len==2){
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if(nl->IsEqual(arg1,"rect")){
-       if(nl->IsEqual(arg2,"instant") || nl->IsEqual(arg2,"periods"))
-         return nl->SymbolAtom("rect3");
+    if(nl->IsEqual(arg1,Rectangle<2>::BasicType())){
+       if(nl->IsEqual(arg2,Instant::BasicType())
+         || nl->IsEqual(arg2,Periods::BasicType()))
+         return nl->SymbolAtom(Rectangle<3>::BasicType());
     }
     ErrorReporter::ReportError(" rect x {instant, periods } expected\n");
     return nl->SymbolAtom("typeerror");
   } else if(len==1){
     ListExpr arg = nl->First(args);
-    if(nl->IsEqual(arg,"rect") || (nl->IsEqual(arg,"instant") ||
-       nl->IsEqual(arg,"periods")))
-        return nl->SymbolAtom("rect3");
+    if(nl->IsEqual(arg,Rectangle<2>::BasicType())
+      || (nl->IsEqual(arg,Instant::BasicType()) ||
+       nl->IsEqual(arg,Periods::BasicType())))
+        return nl->SymbolAtom(Rectangle<3>::BasicType());
     ErrorReporter::ReportError("rect, instant, or periods required\n");
     return nl->SymbolAtom("typeerror" );
   }
@@ -9846,17 +10039,17 @@ ListExpr Box2dTypeMap(ListExpr args)
   {
     arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "rect" ) )
-      return nl->SymbolAtom( "rect" );
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
 
-    if( nl->IsEqual( arg1, "rect3" ) )
-      return nl->SymbolAtom( "rect" );
+    if( nl->IsEqual( arg1, Rectangle<3>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
 
-    if( nl->IsEqual( arg1, "rect4" ) )
-      return nl->SymbolAtom( "rect" );
+    if( nl->IsEqual( arg1, Rectangle<4>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
 
-    if( nl->IsEqual( arg1, "rect8" ) )
-      return nl->SymbolAtom( "rect" );
+    if( nl->IsEqual( arg1, Rectangle<8>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -9882,19 +10075,19 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
   ListExpr arg1 = nl->First( args );
 
   if( listutils::isSymbol( arg1, UPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect3" ));
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
   if( listutils::isSymbol( arg1, MPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect3" ));
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
-  if( listutils::isSymbol( arg1, "ipoint" ) )
-      return (nl->SymbolAtom( "rect3" ));
+  if( listutils::isSymbol( arg1, IPoint::BasicType() ) )
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
-  if( (noargs==1) && listutils::isSymbol( arg1, "periods" ) )
-      return (nl->SymbolAtom( "rect3" ));
+  if( (noargs==1) && listutils::isSymbol( arg1, Periods::BasicType() ) )
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
-  if( (noargs==1) && listutils::isSymbol( arg1, "instant" ) )
-      return (nl->SymbolAtom( "rect3" ));
+  if( (noargs==1) && listutils::isSymbol( arg1, Instant::BasicType() ) )
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
   return listutils::typeError(errmsg);
 }
@@ -9913,20 +10106,20 @@ ListExpr TemporalMBRangeTypeMap( ListExpr args )
   {
     arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "rint" )  )
-      return (nl->SymbolAtom( "rint" ));
+    if( nl->IsEqual( arg1, RInt::BasicType() )  )
+      return (nl->SymbolAtom( RInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "rreal" ) )
-      return (nl->SymbolAtom( "rreal" ));
+    if( nl->IsEqual( arg1, RReal::BasicType() ) )
+      return (nl->SymbolAtom( RReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "rbool" ) )
-      return (nl->SymbolAtom( "rreal" ));
+    if( nl->IsEqual( arg1, RBool::BasicType() ) )
+      return (nl->SymbolAtom( RReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "rstring" ) )
-      return (nl->SymbolAtom( "rstring" ));
+    if( nl->IsEqual( arg1, RString::BasicType() ) )
+      return (nl->SymbolAtom( RString::BasicType() ));
 
-    if( nl->IsEqual( arg1, "periods" ) )
-      return (nl->SymbolAtom( "periods" ));
+    if( nl->IsEqual( arg1, Periods::BasicType() ) )
+      return (nl->SymbolAtom( Periods::BasicType() ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -9951,13 +10144,13 @@ ListExpr TemporalBBox2dTypeMap( ListExpr args )
   }
   ListExpr arg1 = nl->First( args );
   if( listutils::isSymbol( arg1, UPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect" ));
+      return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
 
   if( listutils::isSymbol( arg1, MPoint::BasicType() ) )
-      return (nl->SymbolAtom( "rect" ));
+      return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
 
-  if( listutils::isSymbol( arg1, "ipoint" ) )
-      return (nl->SymbolAtom( "rect" ));
+  if( listutils::isSymbol( arg1, IPoint::BasicType() ) )
+      return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
 
   return listutils::typeError(errmsg);
 }
@@ -9996,20 +10189,20 @@ ListExpr TemporalTheRangeTM( ListExpr args )
           + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
-    if( nl->IsEqual( arg1, "instant" ) )
-      return (nl->SymbolAtom( "periods" ));
+    if( nl->IsEqual( arg1, Instant::BasicType() ) )
+      return (nl->SymbolAtom( Periods::BasicType() ));
 
     if( nl->IsEqual( arg1, CcInt::BasicType() ) )
-      return (nl->SymbolAtom( "rint" ));
+      return (nl->SymbolAtom( RInt::BasicType() ));
 
     if( nl->IsEqual( arg1, CcBool::BasicType() ) )
-      return (nl->SymbolAtom( "rbool" ));
+      return (nl->SymbolAtom( RBool::BasicType() ));
 
     if( nl->IsEqual( arg1, CcReal::BasicType() ) )
-      return (nl->SymbolAtom( "rreal" ));
+      return (nl->SymbolAtom( RReal::BasicType() ));
 
     if( nl->IsEqual( arg1, CcString::BasicType() ) )
-      return (nl->SymbolAtom( "rstring" ));
+      return (nl->SymbolAtom( RString::BasicType() ));
 
     ErrorReporter::ReportError("Operator theRange expects as first and "
         "second argument one of {instant, int, bool, real, string}, but "
@@ -10029,7 +10222,7 @@ ListExpr TranslateAppendTM(ListExpr args){
   }
   if(nl->IsEqual(nl->First(args),MPoint::BasicType()) &&
      nl->IsEqual(nl->Second(args),MPoint::BasicType()) &&
-     nl->IsEqual(nl->Third(args),"duration")){
+     nl->IsEqual(nl->Third(args),Duration::BasicType())){
      return nl->SymbolAtom(MPoint::BasicType());
   }
   ErrorReporter::ReportError("mpoint x mpoint x duration expected");
@@ -10067,7 +10260,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
       return nl->SymbolAtom("typeerror");
   }
   // check the third argument to be of type duration
-  if(!nl->IsEqual(nl->Third(args),"duration")){
+  if(!nl->IsEqual(nl->Third(args),Duration::BasicType())){
     ErrorReporter::ReportError("the third argument has to be a duration");
     return nl->SymbolAtom("typeerror");
   }
@@ -10101,7 +10294,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
   ListExpr ttype = nl->Second(stype);
 
   if((nl->ListLength(ttype)!=2) ||
-     (!nl->IsEqual(nl->First(ttype),"tuple" ))){
+     (!nl->IsEqual(nl->First(ttype),Tuple::BasicType() ))){
      ErrorReporter::ReportError("stream(tuple(...))"
                                 " expected as the first argument");
      return nl->SymbolAtom("typeerror");
@@ -10174,7 +10367,7 @@ ListExpr SampleMPointTypeMap(ListExpr args){
     return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),MPoint::BasicType()) ||
-     !nl->IsEqual(nl->Second(args),"duration")){
+     !nl->IsEqual(nl->Second(args),Duration::BasicType())){
      ErrorReporter::ReportError(" mpoint x durationi"
                                 " [ x bool [x bool]] expected");
      return nl->TypeError();
@@ -10215,7 +10408,7 @@ ListExpr GPSTypeMap(ListExpr args){
     return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),MPoint::BasicType()) ||
-     !nl->IsEqual(nl->Second(args),"duration")){
+     !nl->IsEqual(nl->Second(args),Duration::BasicType())){
      ErrorReporter::ReportError(" mpoint x duration expected");
      return nl->TypeError();
   }
@@ -10223,11 +10416,11 @@ ListExpr GPSTypeMap(ListExpr args){
   return nl->TwoElemList(
              nl->SymbolAtom("stream"),
              nl->TwoElemList(
-                 nl->SymbolAtom("tuple"),
+                 nl->SymbolAtom(Tuple::BasicType()),
                  nl->TwoElemList(
                      nl->TwoElemList(
                          nl->SymbolAtom("Time"),
-                         nl->SymbolAtom("instant")
+                         nl->SymbolAtom(Instant::BasicType())
                      ),
                      nl->TwoElemList(
                          nl->SymbolAtom("Position"),
@@ -10337,8 +10530,8 @@ ListExpr MIntHatTypeMap(ListExpr args){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
    }
-   if(nl->IsEqual(nl->First(args),"mint"))
-         return nl->SymbolAtom("mint");
+   if(nl->IsEqual(nl->First(args),MInt::BasicType()))
+         return nl->SymbolAtom(MInt::BasicType());
    ErrorReporter::ReportError(err);
    return nl->TypeError();
 }
@@ -10358,7 +10551,7 @@ ListExpr restrictTM(ListExpr args){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(args),"mint")){
+  if(!nl->IsEqual(nl->First(args),MInt::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
@@ -10366,7 +10559,7 @@ ListExpr restrictTM(ListExpr args){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
-  return nl->SymbolAtom("mint");
+  return nl->SymbolAtom(MInt::BasicType());
 }
 
 /*
@@ -10430,8 +10623,8 @@ ListExpr Mp2OneMpTypeMap(ListExpr args){
   }
 
  if(nl->IsEqual(nl->First(args),MPoint::BasicType()) &&
-    nl->IsEqual(nl->Second(args),"instant") &&
-    nl->IsEqual(nl->Third(args),"instant")){
+    nl->IsEqual(nl->Second(args),Instant::BasicType()) &&
+    nl->IsEqual(nl->Third(args),Instant::BasicType())){
       return nl->SymbolAtom(MPoint::BasicType());
   }
   ErrorReporter::ReportError(err);
@@ -10454,8 +10647,8 @@ ListExpr P2MpTypeMap(ListExpr args){
   }
 
  if(nl->IsEqual(nl->First(args),Point::BasicType()) &&
-    nl->IsEqual(nl->Second(args),"instant") &&
-    nl->IsEqual(nl->Third(args),"instant") &&
+    nl->IsEqual(nl->Second(args),Instant::BasicType()) &&
+    nl->IsEqual(nl->Third(args),Instant::BasicType()) &&
     nl->IsEqual(nl->Fourth(args),CcInt::BasicType())){
       return nl->SymbolAtom(MPoint::BasicType());
   }
@@ -10533,7 +10726,7 @@ ListExpr TurnsOperatorTypeMapping( ListExpr args ){
     return listutils::typeError("Expecting 'real' as 3rd argument.");
   }
   if( noargs>=4 ){ // 4th argument (duratiopn OR bool OR geoid)
-    if( listutils::isSymbol(nl->Fourth(args),"duration") ){
+    if( listutils::isSymbol(nl->Fourth(args),Duration::BasicType()) ){
       durationPassed = true;
     } else if( listutils::isSymbol(nl->Fourth(args),CcBool::BasicType()) ){
       boolPassed = true;
@@ -10607,13 +10800,13 @@ MappingTimeShiftTM( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "duration" ) )
+    if( nl->IsEqual( arg2, Duration::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "mbool" ) )
-        return nl->SymbolAtom( "mbool" );
+      if( nl->IsEqual( arg1, MBool::BasicType() ) )
+        return nl->SymbolAtom( MBool::BasicType() );
 
-      if( nl->IsEqual( arg1, "mint" ) )
-        return nl->SymbolAtom( "mint" );
+      if( nl->IsEqual( arg1, MInt::BasicType() ) )
+        return nl->SymbolAtom( MInt::BasicType() );
 
       if( nl->IsEqual( arg1, MReal::BasicType() ) )
         return nl->SymbolAtom( MReal::BasicType() );
@@ -10757,13 +10950,13 @@ RangeSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType() )
     return 2;
 
   return -1; // This point should never be reached
@@ -10782,38 +10975,40 @@ RangeDualSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "rint" && nl->SymbolValue( arg2 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType()
+    && nl->SymbolValue( arg2 ) == RInt::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" && nl->SymbolValue( arg2 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType()
+    && nl->SymbolValue( arg2 ) == RReal::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue
-  ( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType()
+    && nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 2;
 
   if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
-    && nl->SymbolValue( arg2 ) == "rint" )
+    && nl->SymbolValue( arg2 ) == RInt::BasicType() )
     return 3;
 
   if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
-    && nl->SymbolValue( arg2 ) == "rreal" )
+    && nl->SymbolValue( arg2 ) == RReal::BasicType() )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "instant" && nl->SymbolValue
-  ( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Instant::BasicType()
+    && nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == "rint"
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType()
     && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "rreal"
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType()
     && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 7;
 
-  if( nl->SymbolValue( arg1 ) == "periods" && nl->SymbolValue
-  ( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType()
+    && nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 8;
 
   return -1; // This point should never be reached
@@ -10830,22 +11025,22 @@ TemporalSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == Instant::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "ubool" )
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType() )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "uint" )
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() )
     return 5;
 
   if( nl->SymbolValue( arg1 ) == UReal::BasicType() )
@@ -10854,10 +11049,10 @@ TemporalSimpleSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == UPoint::BasicType() )
     return 7;
 
-//  if( nl->SymbolValue( arg1 ) == "mbool" )
+//  if( nl->SymbolValue( arg1 ) == MBool::BasicType() )
 //    return 8;
 
-//  if( nl->SymbolValue( arg1 ) == "mint" )
+//  if( nl->SymbolValue( arg1 ) == MInt::BasicType() )
 //    return 9;
 
 //  if( nl->SymbolValue( arg1 ) == MReal::BasicType() )
@@ -10866,16 +11061,16 @@ TemporalSimpleSelect( ListExpr args )
 //  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
 //    return 11;
 
-  if( nl->SymbolValue( arg1 ) == "ibool" )
+  if( nl->SymbolValue( arg1 ) == IBool::BasicType() )
     return 8;
 
-  if( nl->SymbolValue( arg1 ) == "iint" )
+  if( nl->SymbolValue( arg1 ) == IInt::BasicType() )
     return 9;
 
-  if( nl->SymbolValue( arg1 ) == "ireal" )
+  if( nl->SymbolValue( arg1 ) == IReal::BasicType() )
     return 10;
 
-  if( nl->SymbolValue( arg1 ) == "ipoint" )
+  if( nl->SymbolValue( arg1 ) == IPoint::BasicType() )
     return 11;
 
   return (-1); // This point should never be reached
@@ -10893,32 +11088,36 @@ TemporalDualSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "instant" &&
-    nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == Instant::BasicType() &&
+    nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rint" && nl->SymbolValue( arg2 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType()
+    && nl->SymbolValue( arg2 ) == RInt::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" && nl->SymbolValue( arg2 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType()
+    && nl->SymbolValue( arg2 ) == RReal::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "periods" &&
-    nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType() &&
+    nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "ibool" &&
-      nl->SymbolValue( arg2 ) == "ibool" )
+  if( nl->SymbolValue( arg1 ) == IBool::BasicType() &&
+      nl->SymbolValue( arg2 ) == IBool::BasicType() )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "iint" && nl->SymbolValue( arg2 ) == "iint" )
+  if( nl->SymbolValue( arg1 ) == IInt::BasicType()
+    && nl->SymbolValue( arg2 ) == IInt::BasicType() )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == "ireal" && nl->SymbolValue( arg2 ) == "ireal" )
+  if( nl->SymbolValue( arg1 ) == IReal::BasicType()
+    && nl->SymbolValue( arg2 ) == IReal::BasicType() )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "ipoint" &&
-      nl->SymbolValue( arg2 ) == "ipoint" )
+  if( nl->SymbolValue( arg1 ) == IPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == IPoint::BasicType() )
     return 7;
 
   return -1; // This point should never be reached
@@ -10930,10 +11129,12 @@ TemporalDualSelect2( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+    && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+    && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 1;
 
   if( nl->SymbolValue( arg1 ) == MReal::BasicType()
@@ -10958,19 +11159,19 @@ TemporalSetValueSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType() )
     return 4;
 
   if( nl->SymbolValue( arg1 ) == MReal::BasicType() )
@@ -10993,16 +11194,16 @@ IntimeSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "ibool" )
+  if( nl->SymbolValue( arg1 ) == IBool::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "iint" )
+  if( nl->SymbolValue( arg1 ) == IInt::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "ireal" )
+  if( nl->SymbolValue( arg1 ) == IReal::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "ipoint" )
+  if( nl->SymbolValue( arg1 ) == IPoint::BasicType() )
     return 3;
 
   return -1; // This point should never be reached
@@ -11019,7 +11220,7 @@ UIntimeSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "uint" )
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() )
     return 0;
 
   return -1; // This point should never be reached
@@ -11037,10 +11238,10 @@ MovingSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType() )
     return 1;
 
   if( nl->SymbolValue( arg1 ) == MReal::BasicType() )
@@ -11064,36 +11265,36 @@ MovingInstantPeriodsSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue
-  ( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+    && nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue
-  ( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+    && nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == MReal::BasicType() && nl->SymbolValue
-  ( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+    && nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() && nl->SymbolValue
-  ( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+    && nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue
-  ( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+    && nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue
-  ( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+    && nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == MReal::BasicType() && nl->SymbolValue
-  ( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+    && nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() && nl->SymbolValue
-  ( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+    && nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 7;
 
   return -1; // This point should never be reached
@@ -11111,11 +11312,11 @@ MovingBaseSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool" &&
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType() &&
       nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" &&
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType() &&
       nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 1;
 
@@ -11132,7 +11333,7 @@ MovingBaseSelect( ListExpr args )
     return 4;
 
   if( nl->SymbolValue( arg1 ) == MPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == "rect" )
+      nl->SymbolValue( arg2 ) == Rectangle<2>::BasicType() )
     return 5;
 
   return -1; // This point should never be reached
@@ -11148,19 +11349,19 @@ int Box3dSelect(ListExpr args){
   int len = nl->ListLength(args);
   if(len==1){
     ListExpr arg = nl->First(args);
-    if(nl->IsEqual(arg,"rect"))
+    if(nl->IsEqual(arg,Rectangle<2>::BasicType()))
         return 0;
-    if(nl->IsEqual(arg,"instant"))
+    if(nl->IsEqual(arg,Instant::BasicType()))
         return 1;
-    if(nl->IsEqual(arg,"periods"))
+    if(nl->IsEqual(arg,Periods::BasicType()))
         return 3;
   }
   if(len==2){
-     if(nl->IsEqual(nl->First(args),"rect")){
+     if(nl->IsEqual(nl->First(args),Rectangle<2>::BasicType())){
          ListExpr arg2 = nl->Second(args);
-         if(nl->IsEqual(arg2,"instant"))
+         if(nl->IsEqual(arg2,Instant::BasicType()))
             return 2;
-         if(nl->IsEqual(arg2,"periods"))
+         if(nl->IsEqual(arg2,Periods::BasicType()))
             return 4;
      }
   }
@@ -11183,13 +11384,13 @@ int TemporalBBoxSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "ipoint" )
+  if( nl->SymbolValue( arg1 ) == IPoint::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == Instant::BasicType() )
     return 4;
 
   return -1; // This point should never be reached
@@ -11204,19 +11405,19 @@ int TemporalMBRangeSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == RInt::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == RReal::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == Periods::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "rbool" )
+  if( nl->SymbolValue( arg1 ) == RBool::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "rstring" )
+  if( nl->SymbolValue( arg1 ) == RString::BasicType() )
   return 4;
 
 return -1; // This point should never be reached
@@ -11237,7 +11438,7 @@ int TemporalBBox2dSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "ipoint" )
+  if( nl->SymbolValue( arg1 ) == IPoint::BasicType() )
     return 2;
 
   return -1; // This point should never be reached
@@ -11251,16 +11452,16 @@ int TemporalBox2dSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "rect" )
+  if( nl->SymbolValue( arg1 ) == Rectangle<2>::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rect3" )
+  if( nl->SymbolValue( arg1 ) == Rectangle<3>::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "rect4" )
+  if( nl->SymbolValue( arg1 ) == Rectangle<4>::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "rect8" )
+  if( nl->SymbolValue( arg1 ) == Rectangle<8>::BasicType() )
     return 3;
 
   return -1; // This point should never be reached
@@ -11275,9 +11476,9 @@ int ExtDeftimeSelect(ListExpr args){
    // the selection is only dependend on the type of the
    // first argument
    ListExpr arg = nl->First(args);
-   if(nl->IsEqual(arg,"mbool"))
+   if(nl->IsEqual(arg,MBool::BasicType()))
       return 0;
-   if(nl->IsEqual(arg,"mint"))
+   if(nl->IsEqual(arg,MInt::BasicType()))
       return 1;
    return -1;
 }
@@ -11344,11 +11545,11 @@ int ApproximateSelect(ListExpr args){
      return 0;
   } else if(type == MReal::BasicType()){
      return 1;
-  } else if(type == "mint"){
+  } else if(type == MInt::BasicType()){
      return 2;
-  } else if(type == "mbool"){
+  } else if(type == MBool::BasicType()){
     return 3;
-  } else if(type == "mstring"){
+  } else if(type == MString::BasicType()){
     return 4;
   }
   return -1;
@@ -11366,7 +11567,7 @@ int MinMaxSelect(ListExpr args){
    if(nl->IsEqual(arg,MReal::BasicType())){
        return 1;
    }
-   if(nl->IsEqual(arg,"mint")){
+   if(nl->IsEqual(arg,MInt::BasicType())){
      return 2;
    }
    return -1; // should never occur
@@ -11380,7 +11581,7 @@ int TemporalTheRangeSelect(ListExpr args)
 {
   ListExpr arg = nl->First(args);
 
-  if(nl->IsEqual(arg,"instant"))
+  if(nl->IsEqual(arg,Instant::BasicType()))
     return 0;
   if(nl->IsEqual(arg,CcInt::BasicType()))
     return 1;
@@ -15609,10 +15810,10 @@ const string avg_speedSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint [ x string ] -> real </text---> "
     "<text> avg_speed ( M [, GeoidName] ) </text--->"
-    "<text>Query the average speed of the moving point M in unit/s. If the "
-    "optional string parameter is not used, coordinates in M are metric (X,Y)-"
-    "pairs. Otherwise, GeoidName specifies a geoid to use for orthodrome-based "
-    "speed calculation (valid GeoidNames are: " + Geoid::getGeoIdNames() +
+    "<text>Query the average speed over ground of the moving point M in unit/s."
+    "If the optional string parameter is not used, coordinates in M are metric "
+    "(X,Y)-pairs. Otherwise, GeoidName specifies a geoid to use for orthodrome-"
+    "based speed calculation (valid GeoidNames are: " + Geoid::getGeoIdNames() +
     ") and coordinates in M must be valid geographic coordinates (LON,LAT)."
     "For an invalid GeoidName or invalid geographic coordinates in M, UNDEF is "
     "returned.</text--->"
@@ -16412,14 +16613,14 @@ ListExpr GetRefinementPartitionTypeMapping(ListExpr args){
   set<string> supportedArgTypes;
   supportedArgTypes.insert(MPoint::BasicType());
   supportedArgTypes.insert(MReal::BasicType());
-  supportedArgTypes.insert("mint");
-  supportedArgTypes.insert("mbool");
-  supportedArgTypes.insert("mstring");
+  supportedArgTypes.insert(MInt::BasicType());
+  supportedArgTypes.insert(MBool::BasicType());
+  supportedArgTypes.insert(MString::BasicType());
   supportedArgTypes.insert(UPoint::BasicType());
   supportedArgTypes.insert(UReal::BasicType());
-  supportedArgTypes.insert("uint");
-  supportedArgTypes.insert("ubool");
-  supportedArgTypes.insert("ustring");
+  supportedArgTypes.insert(UInt::BasicType());
+  supportedArgTypes.insert(UBool::BasicType());
+  supportedArgTypes.insert(UString::BasicType());
 
   // MRegion not supported due to problems with handling URegionEmb/URegion
 
@@ -16434,14 +16635,14 @@ ListExpr GetRefinementPartitionTypeMapping(ListExpr args){
   map<string,string> tm;
   tm.insert(pair<string,string>(MPoint::BasicType(),UPoint::BasicType()));
   tm.insert(pair<string,string>(MReal::BasicType(),UReal::BasicType()));
-  tm.insert(pair<string,string>("mint","uint"));
-  tm.insert(pair<string,string>("mbool","ubool"));
-  tm.insert(pair<string,string>("mstring","ustring"));
+  tm.insert(pair<string,string>(MInt::BasicType(),UInt::BasicType()));
+  tm.insert(pair<string,string>(MBool::BasicType(),UBool::BasicType()));
+  tm.insert(pair<string,string>(MString::BasicType(),UString::BasicType()));
   tm.insert(pair<string,string>(UPoint::BasicType(),UPoint::BasicType()));
   tm.insert(pair<string,string>(UReal::BasicType(),UReal::BasicType()));
-  tm.insert(pair<string,string>("uint","uint"));
-  tm.insert(pair<string,string>("ubool","ubool"));
-  tm.insert(pair<string,string>("ustring","ustring"));
+  tm.insert(pair<string,string>(UInt::BasicType(),UInt::BasicType()));
+  tm.insert(pair<string,string>(UBool::BasicType(),UBool::BasicType()));
+  tm.insert(pair<string,string>(UString::BasicType(),UString::BasicType()));
   // MRegion not supported due to problems with handling URegionEmb/URegion
 
   string t1; nl->WriteToString(t1, first);
@@ -16771,28 +16972,47 @@ ValueMapping GetRefinementPartitionValueMapping[] = {
 int GetRefinementPartitionSelect( ListExpr args ) {
   int res = 0;
   // first arg type
-  if(listutils::isSymbol(nl->First(args),MPoint::BasicType())) { res+=0; }
-  else if(listutils::isSymbol(nl->First(args),MReal::BasicType())) { res+=10; }
-  else if(listutils::isSymbol(nl->First(args),"mint")) { res+=20; }
-  else if(listutils::isSymbol(nl->First(args),"mbool")) { res+=30; }
-  else if(listutils::isSymbol(nl->First(args),"mstring")) { res+=40; }
-  else if(listutils::isSymbol(nl->First(args),UPoint::BasicType())) { res+=50; }
-  else if(listutils::isSymbol(nl->First(args),UReal::BasicType())) { res+=60; }
-  else if(listutils::isSymbol(nl->First(args),"uint")) { res+=70; }
-  else if(listutils::isSymbol(nl->First(args),"ubool")) { res+=80; }
-  else if(listutils::isSymbol(nl->First(args),"ustring")) { res+=90; }
+  if(listutils::isSymbol(nl->First(args),
+    MPoint::BasicType())) { res+=0; }
+  else if(listutils::isSymbol(nl->First(args),
+    MReal::BasicType())) { res+=10; }
+  else if(listutils::isSymbol(nl->First(args),
+    MInt::BasicType()))  { res+=20; }
+  else if(listutils::isSymbol(nl->First(args),
+    MBool::BasicType())) { res+=30; }
+  else if(listutils::isSymbol(nl->First(args),
+    MString::BasicType())) { res+=40; }
+  else if(listutils::isSymbol(nl->First(args),
+    UPoint::BasicType())) { res+=50; }
+  else if(listutils::isSymbol(nl->First(args),
+    UReal::BasicType())) { res+=60; }
+  else if(listutils::isSymbol(nl->First(args),
+    UInt::BasicType())) { res+=70; }
+  else if(listutils::isSymbol(nl->First(args),
+    UBool::BasicType())) { res+=80; }
+  else if(listutils::isSymbol(nl->First(args),
+    UString::BasicType())) { res+=90; }
   else {res+= -9999999; }
   // second arg type
   if(listutils::isSymbol(nl->Second(args),MPoint::BasicType())) { res+=0; }
-  else if(listutils::isSymbol(nl->Second(args),MReal::BasicType())) { res+=1; }
-  else if(listutils::isSymbol(nl->Second(args),"mint")) { res+=2; }
-  else if(listutils::isSymbol(nl->Second(args),"mbool")) { res+=3; }
-  else if(listutils::isSymbol(nl->Second(args),"mstring")) { res+=4; }
-  else if(listutils::isSymbol(nl->Second(args),UPoint::BasicType())) { res+=5; }
-  else if(listutils::isSymbol(nl->Second(args),UReal::BasicType())) { res+=6; }
-  else if(listutils::isSymbol(nl->Second(args),"uint")) { res+=7; }
-  else if(listutils::isSymbol(nl->Second(args),"ubool")) { res+=8; }
-  else if(listutils::isSymbol(nl->Second(args),"ustring")) { res+=9; }
+  else if(listutils::isSymbol(nl->Second(args),
+    MReal::BasicType())) { res+=1; }
+  else if(listutils::isSymbol(nl->Second(args),
+    MInt::BasicType())) { res+=2; }
+  else if(listutils::isSymbol(nl->Second(args),
+    MBool::BasicType())) { res+=3; }
+  else if(listutils::isSymbol(nl->Second(args),
+    MString::BasicType())) { res+=4; }
+  else if(listutils::isSymbol(nl->Second(args),
+    UPoint::BasicType())) { res+=5; }
+  else if(listutils::isSymbol(nl->Second(args),
+    UReal::BasicType())) { res+=6; }
+  else if(listutils::isSymbol(nl->Second(args),
+    UInt::BasicType())) { res+=7; }
+  else if(listutils::isSymbol(nl->Second(args),
+    UBool::BasicType())) { res+=8; }
+  else if(listutils::isSymbol(nl->Second(args),
+    UString::BasicType())) { res+=9; }
   else {res+= -9999999; }
 
   return (((res>=0)&&(res<=99))?res:-1);

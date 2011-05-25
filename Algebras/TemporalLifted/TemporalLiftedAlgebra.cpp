@@ -2262,7 +2262,7 @@ void MovingRegionCompareMS( MRegion *mr, const Region *r, MBool *result,
         <<uBool.timeInterval.lc<<" "<<uBool.timeInterval.rc<<"]"<<endl;}
       result->MergeAdd(uBool);
     }
-    else{ //the complicate way with not static movingregions
+    else{ //the complicate way with not static mregions
       HalfSegment chs;
       Periods* period  = new Periods(0);
       Periods* between = new Periods(0);
@@ -4689,7 +4689,7 @@ void copyMRegion(const MRegion& res, MRegion& result) {
 /*
 1.1 Method ~copyRegionMPoint~
 
-Transform the region to a movingregion and restrics it to deftime(mpoint).
+Transform the region to a mregion and restrics it to deftime(mpoint).
 
 */
 
@@ -4776,8 +4776,8 @@ ListExpr MBoolTypeMapMBool( ListExpr args )
   {
     arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -4796,15 +4796,15 @@ ListExpr AndOrTypeMapMBool( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mbool" )
-    && nl->IsEqual( arg2, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mbool" )
-    && nl->IsEqual( arg2, "bool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "bool" )
-    && nl->IsEqual( arg2, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+    && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+    && nl->IsEqual( arg2, CcBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcBool::BasicType() )
+    && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -4825,60 +4825,60 @@ ListExpr MovingEqualTypeMapMBool( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "bool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "bool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "string" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "string" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "point" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "point" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "movingregion" )
-     && nl->IsEqual( arg2, "region" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "region" )
-     && nl->IsEqual( arg2, "movingregion" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "movingregion" )
-     && nl->IsEqual( arg2, "movingregion" ) )
-      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, CcBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, CcString::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, Point::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, Point::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MRegion::BasicType() )
+     && nl->IsEqual( arg2, Region::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, Region::BasicType() )
+     && nl->IsEqual( arg2, MRegion::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MRegion::BasicType() )
+     && nl->IsEqual( arg2, MRegion::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
 
   }
   return nl->SymbolAtom( "typeerror" );
@@ -4898,42 +4898,42 @@ ListExpr MovingCompareTypeMapMBool( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "bool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "bool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "string" ) )
-      return (nl->SymbolAtom( "mbool" ));
-    if( nl->IsEqual( arg1, "string" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return (nl->SymbolAtom( "mbool" ));
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, CcBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, CcString::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
+    if( nl->IsEqual( arg1, CcString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return (nl->SymbolAtom( MBool::BasicType() ));
 
   }
   return nl->SymbolAtom( "typeerror" );
@@ -4954,53 +4954,53 @@ ListExpr MovingAddTypeMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mint" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mint" ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mint" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5020,49 +5020,49 @@ ListExpr MovingMultiplyTypeMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mint" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mint" ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mint" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MInt::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5082,37 +5082,37 @@ ListExpr MovingDivideTypeMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "int" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
 
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return (nl->SymbolAtom( "mreal" ));
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return (nl->SymbolAtom( MReal::BasicType() ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5132,18 +5132,18 @@ MovingDistanceTypeMapMReal( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return nl->SymbolAtom( "mreal" );
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
 
   }
   return nl->SymbolAtom( "typeerror" );
@@ -5163,57 +5163,57 @@ MovingIntersectionTypeMap( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return nl->SymbolAtom( "mbool" );
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "bool" ) )
-      return nl->SymbolAtom( "mbool" );
-    if( nl->IsEqual( arg1, "bool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return nl->SymbolAtom( "mbool" );
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return nl->SymbolAtom( "mint" );
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return nl->SymbolAtom( "mint" );
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return nl->SymbolAtom( "mint" );
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "points" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "line" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "points" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "line" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return nl->SymbolAtom( "mstring" );
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "string" ) )
-      return nl->SymbolAtom( "mstring" );
-    if( nl->IsEqual( arg1, "string" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return nl->SymbolAtom( "mstring" );
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return nl->SymbolAtom( MBool::BasicType() );
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, CcBool::BasicType() ) )
+      return nl->SymbolAtom( MBool::BasicType() );
+    if( nl->IsEqual( arg1, CcBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return nl->SymbolAtom( MBool::BasicType() );
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return nl->SymbolAtom( MInt::BasicType() );
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return nl->SymbolAtom( MInt::BasicType() );
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return nl->SymbolAtom( MInt::BasicType() );
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, Points::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, Line::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, Points::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, Line::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return nl->SymbolAtom( MString::BasicType() );
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, CcString::BasicType() ) )
+      return nl->SymbolAtom( MString::BasicType() );
+    if( nl->IsEqual( arg1, CcString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return nl->SymbolAtom( MString::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5232,66 +5232,66 @@ MovingMinusTypeMap( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return nl->SymbolAtom( "mbool" );
-    if( nl->IsEqual( arg1, "mbool" )
-     && nl->IsEqual( arg2, "bool" ) )
-      return nl->SymbolAtom( "mbool" );
-    if( nl->IsEqual( arg1, "bool" )
-     && nl->IsEqual( arg2, "mbool" ) )
-      return nl->SymbolAtom( "mbool" );
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return nl->SymbolAtom( "mint" );
-    if( nl->IsEqual( arg1, "mint" )
-     && nl->IsEqual( arg2, "int" ) )
-      return nl->SymbolAtom( "mint" );
-    if( nl->IsEqual( arg1, "int" )
-     && nl->IsEqual( arg2, "mint" ) )
-      return nl->SymbolAtom( "mint" );
-    if( nl->IsEqual( arg1, "mreal" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "mreal" )
-    && nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "real" )
-     && nl->IsEqual( arg2, "mreal" ) )
-      return nl->SymbolAtom( "mreal" );
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "mpoint" )
-     && nl->IsEqual( arg2, "point" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if( nl->IsEqual( arg1, "point" )
-     && nl->IsEqual( arg2, "mpoint" ) )
-      return nl->SymbolAtom( "mpoint" );
-    if(nl->IsEqual(nl->First(args), "region")
-     && nl->IsEqual(nl->Second(args), "mpoint"))
-      return nl->SymbolAtom("movingregion");
-    if(nl->IsEqual(nl->First(args), "movingregion")
-     && nl->IsEqual(nl->Second(args), "point"))
-      return nl->SymbolAtom("movingregion");
-    if(nl->IsEqual(nl->First(args), "movingregion")
-     && nl->IsEqual(nl->Second(args), "mpoint"))
-      return nl->SymbolAtom("movingregion");
-    if(nl->IsEqual(nl->First(args), "movingregion")
-     && nl->IsEqual(nl->Second(args), "points"))
-      return nl->SymbolAtom("movingregion");
-    if(nl->IsEqual(nl->First(args), "movingregion")
-     && nl->IsEqual(nl->Second(args), "line"))
-      return nl->SymbolAtom("movingregion");
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return nl->SymbolAtom( "mstring" );
-    if( nl->IsEqual( arg1, "mstring" )
-     && nl->IsEqual( arg2, "string" ) )
-      return nl->SymbolAtom( "mstring" );
-    if( nl->IsEqual( arg1, "string" )
-     && nl->IsEqual( arg2, "mstring" ) )
-      return nl->SymbolAtom( "mstring" );
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return nl->SymbolAtom( MBool::BasicType() );
+    if( nl->IsEqual( arg1, MBool::BasicType() )
+     && nl->IsEqual( arg2, CcBool::BasicType() ) )
+      return nl->SymbolAtom( MBool::BasicType() );
+    if( nl->IsEqual( arg1, CcBool::BasicType() )
+     && nl->IsEqual( arg2, MBool::BasicType() ) )
+      return nl->SymbolAtom( MBool::BasicType() );
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return nl->SymbolAtom( MInt::BasicType() );
+    if( nl->IsEqual( arg1, MInt::BasicType() )
+     && nl->IsEqual( arg2, CcInt::BasicType() ) )
+      return nl->SymbolAtom( MInt::BasicType() );
+    if( nl->IsEqual( arg1, CcInt::BasicType() )
+     && nl->IsEqual( arg2, MInt::BasicType() ) )
+      return nl->SymbolAtom( MInt::BasicType() );
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, MReal::BasicType() )
+    && nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, CcReal::BasicType() )
+     && nl->IsEqual( arg2, MReal::BasicType() ) )
+      return nl->SymbolAtom( MReal::BasicType() );
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, MPoint::BasicType() )
+     && nl->IsEqual( arg2, Point::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if( nl->IsEqual( arg1, Point::BasicType() )
+     && nl->IsEqual( arg2, MPoint::BasicType() ) )
+      return nl->SymbolAtom( MPoint::BasicType() );
+    if(nl->IsEqual(nl->First(args), Region::BasicType())
+     && nl->IsEqual(nl->Second(args), MPoint::BasicType()))
+      return nl->SymbolAtom(MRegion::BasicType());
+    if(nl->IsEqual(nl->First(args), MRegion::BasicType())
+     && nl->IsEqual(nl->Second(args), Point::BasicType()))
+      return nl->SymbolAtom(MRegion::BasicType());
+    if(nl->IsEqual(nl->First(args), MRegion::BasicType())
+     && nl->IsEqual(nl->Second(args), MPoint::BasicType()))
+      return nl->SymbolAtom(MRegion::BasicType());
+    if(nl->IsEqual(nl->First(args), MRegion::BasicType())
+     && nl->IsEqual(nl->Second(args), Points::BasicType()))
+      return nl->SymbolAtom(MRegion::BasicType());
+    if(nl->IsEqual(nl->First(args), MRegion::BasicType())
+     && nl->IsEqual(nl->Second(args), Line::BasicType()))
+      return nl->SymbolAtom(MRegion::BasicType());
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return nl->SymbolAtom( MString::BasicType() );
+    if( nl->IsEqual( arg1, MString::BasicType() )
+     && nl->IsEqual( arg2, CcString::BasicType() ) )
+      return nl->SymbolAtom( MString::BasicType() );
+    if( nl->IsEqual( arg1, CcString::BasicType() )
+     && nl->IsEqual( arg2, MString::BasicType() ) )
+      return nl->SymbolAtom( MString::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5310,19 +5310,19 @@ InsideTypeMapMBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-      if ((nl->IsEqual( arg1, "mpoint" )
-       && nl->IsEqual( arg2, "points" )))
-        return nl->SymbolAtom( "mbool" );
-      if ((nl->IsEqual( arg1, "mpoint" )
-       && nl->IsEqual( arg2, "line" )))
-        return nl->SymbolAtom( "mbool" );
+      if ((nl->IsEqual( arg1, MPoint::BasicType() )
+       && nl->IsEqual( arg2, Points::BasicType() )))
+        return nl->SymbolAtom( MBool::BasicType() );
+      if ((nl->IsEqual( arg1, MPoint::BasicType() )
+       && nl->IsEqual( arg2, Line::BasicType() )))
+        return nl->SymbolAtom( MBool::BasicType() );
 
-      if(nl->IsEqual( arg1, "movingregion")
-       && nl->IsEqual( arg2, "points"))
-         return nl->SymbolAtom("mbool");
-      if(nl->IsEqual( arg1, "movingregion")
-       && nl->IsEqual( arg2, "line"))
-         return nl->SymbolAtom("mbool");
+      if(nl->IsEqual( arg1, MRegion::BasicType())
+       && nl->IsEqual( arg2, Points::BasicType()))
+         return nl->SymbolAtom(MBool::BasicType());
+      if(nl->IsEqual( arg1, MRegion::BasicType())
+       && nl->IsEqual( arg2, Line::BasicType()))
+         return nl->SymbolAtom(MBool::BasicType());
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5336,8 +5336,8 @@ Used by ~perimeter~ and ~area~
 static ListExpr PerimeterTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1
-     && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("mreal");
+     && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(MReal::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5351,8 +5351,8 @@ Used by ~rough\_center~
 static ListExpr RCenterTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1
-     && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("mpoint");
+     && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(MPoint::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5366,8 +5366,8 @@ Used by ~no\_components~
 static ListExpr NComponentsTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1
-     && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("mint");
+     && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(MInt::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5381,15 +5381,15 @@ Used by ~union~:
 static ListExpr UnionTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 2){
-      if(nl->IsEqual(nl->First(args), "mpoint")
-         && nl->IsEqual(nl->Second(args), "region"))
-         return nl->SymbolAtom("movingregion");
-      if(nl->IsEqual(nl->First(args), "mpoint")
-         && nl->IsEqual(nl->Second(args), "movingregion"))
-         return nl->SymbolAtom("movingregion");
-      if(nl->IsEqual(nl->First(args), "point")
-         && nl->IsEqual(nl->Second(args), "movingregion"))
-         return nl->SymbolAtom("movingregion");
+      if(nl->IsEqual(nl->First(args), MPoint::BasicType())
+         && nl->IsEqual(nl->Second(args), Region::BasicType()))
+         return nl->SymbolAtom(MRegion::BasicType());
+      if(nl->IsEqual(nl->First(args), MPoint::BasicType())
+         && nl->IsEqual(nl->Second(args), MRegion::BasicType()))
+         return nl->SymbolAtom(MRegion::BasicType());
+      if(nl->IsEqual(nl->First(args), Point::BasicType())
+         && nl->IsEqual(nl->Second(args), MRegion::BasicType()))
+         return nl->SymbolAtom(MRegion::BasicType());
 
       else
         return nl->SymbolAtom("typeerror");
@@ -5407,18 +5407,18 @@ Used by ~isempty~:
 static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1){
-      if(nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("mbool");
-     if(nl->IsEqual(nl->First(args), "mbool"))
-        return nl->SymbolAtom("mbool");
-     if(nl->IsEqual(nl->First(args), "mint"))
-        return nl->SymbolAtom("mbool");
-     if(nl->IsEqual(nl->First(args), "mreal"))
-        return nl->SymbolAtom("mbool");
-     if(nl->IsEqual(nl->First(args), "mpoint"))
-        return nl->SymbolAtom("mbool");
-     if(nl->IsEqual(nl->First(args), "mstring"))
-        return nl->SymbolAtom("mbool");
+      if(nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
+     if(nl->IsEqual(nl->First(args), MBool::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
+     if(nl->IsEqual(nl->First(args), MInt::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
+     if(nl->IsEqual(nl->First(args), MReal::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
+     if(nl->IsEqual(nl->First(args), MPoint::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
+     if(nl->IsEqual(nl->First(args), MString::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
 
      else
         return nl->SymbolAtom("typeerror");
@@ -5437,7 +5437,7 @@ static ListExpr TemporalMIntTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 1
         && nl->IsEqual(nl->First(args), "periods"))
-        return nl->SymbolAtom("mint");
+        return nl->SymbolAtom(MInt::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5451,9 +5451,9 @@ Used by ~+~:
 static ListExpr TemporalPlusTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "mint")
-        && nl->IsEqual(nl->Second(args), "mint"))
-        return nl->SymbolAtom("mint");
+        && nl->IsEqual(nl->First(args), MInt::BasicType())
+        && nl->IsEqual(nl->Second(args), MInt::BasicType()))
+        return nl->SymbolAtom(MInt::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5467,7 +5467,7 @@ Used by ~zero~:
 static ListExpr TemporalZeroTypeMap(ListExpr args) {;
 
     if (nl->ListLength(args) == 0)
-        return nl->SymbolAtom("mint");
+        return nl->SymbolAtom(MInt::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5481,9 +5481,9 @@ Used by ~concat~:
 static ListExpr TemporalConcatTypeMap(ListExpr args) {
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "mpoint")
-        && nl->IsEqual(nl->Second(args), "mpoint") )
-        return nl->SymbolAtom("mpoint");
+        && nl->IsEqual(nl->First(args), MPoint::BasicType())
+        && nl->IsEqual(nl->Second(args), MPoint::BasicType()) )
+        return nl->SymbolAtom(MPoint::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -5501,8 +5501,8 @@ ABSTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "mreal" ))
-      return nl->SymbolAtom( "mreal" );
+    if( nl->IsEqual( arg1, MReal::BasicType() ))
+      return nl->SymbolAtom( MReal::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -5521,14 +5521,14 @@ MovingAndOrSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "bool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "bool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == CcBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 2;
 
   return -1; // This point should never be reached
@@ -5546,59 +5546,59 @@ MovingEqualSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "bool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "bool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == CcBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "string" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == CcString::BasicType() )
     return 7;
-  if( nl->SymbolValue( arg1 ) == "string"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == CcString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 8;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 9;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 10;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 11;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 12;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 13;
-  if( nl->SymbolValue( arg1 ) == "point"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == Point::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 14;
-  if( nl->SymbolValue( arg1 ) == "movingregion"
-   && nl->SymbolValue( arg2 ) == "region" )
+  if( nl->SymbolValue( arg1 ) == MRegion::BasicType()
+   && nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 15;
-  if( nl->SymbolValue( arg1 ) == "region"
-   && nl->SymbolValue( arg2 ) == "movingregion" )
+  if( nl->SymbolValue( arg1 ) == Region::BasicType()
+   && nl->SymbolValue( arg2 ) == MRegion::BasicType() )
     return 16;
-  if( nl->SymbolValue( arg1 ) == "movingregion"
-   && nl->SymbolValue( arg2 ) == "movingregion" )
+  if( nl->SymbolValue( arg1 ) == MRegion::BasicType()
+   && nl->SymbolValue( arg2 ) == MRegion::BasicType() )
     return 17;
 
   return -1; // This point should never be reached
@@ -5615,41 +5615,41 @@ MovingCompareSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "bool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "bool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == CcBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 7;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 8;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 9;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "string" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == CcString::BasicType() )
     return 10;
-  if( nl->SymbolValue( arg1 ) == "string"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == CcString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 11;
 
   return -1; // This point should never be reached
@@ -5666,41 +5666,41 @@ MovingAddSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 7;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 8;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 9;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 10;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 11;
 
   return -1; // This point should never be reached
@@ -5717,38 +5717,38 @@ MovingMultiplySelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 7;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 8;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 9;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 10;
 
   return -1; // This point should never be reached
@@ -5765,29 +5765,29 @@ MovingDivideSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 7;
 
   return -1; // This point should never be reached
@@ -5804,17 +5804,17 @@ MovingDistanceSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-  && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+  && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 3;
 
   return -1; // This point should never be reached
@@ -5831,56 +5831,56 @@ int MovingIntersectionSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "bool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "bool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == CcBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 7;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 8;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "points" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == Points::BasicType() )
     return 9;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "line" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == Line::BasicType() )
     return 10;
-  if( nl->SymbolValue( arg1 ) == "points"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == Points::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 11;
-  if( nl->SymbolValue( arg1 ) == "line"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == Line::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 12;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 13;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "string" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == CcString::BasicType() )
     return 14;
-  if( nl->SymbolValue( arg1 ) == "string"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == CcString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 15;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 16;
 
   return -1; // This point should never be reached
@@ -5900,65 +5900,65 @@ int MovingMinusSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "mbool"
-   && nl->SymbolValue( arg2 ) == "bool" )
+  if( nl->SymbolValue( arg1 ) == MBool::BasicType()
+   && nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 1;
-  if( nl->SymbolValue( arg1 ) == "bool"
-   && nl->SymbolValue( arg2 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == CcBool::BasicType()
+   && nl->SymbolValue( arg2 ) == MBool::BasicType() )
     return 2;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 3;
-  if( nl->SymbolValue( arg1 ) == "mint"
-   && nl->SymbolValue( arg2 ) == "int" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType()
+   && nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 4;
-  if( nl->SymbolValue( arg1 ) == "int"
-   && nl->SymbolValue( arg2 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == CcInt::BasicType()
+   && nl->SymbolValue( arg2 ) == MInt::BasicType() )
     return 5;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 6;
-  if( nl->SymbolValue( arg1 ) == "mreal"
-   && nl->SymbolValue( arg2 ) == "real" )
+  if( nl->SymbolValue( arg1 ) == MReal::BasicType()
+   && nl->SymbolValue( arg2 ) == CcReal::BasicType() )
     return 7;
-  if( nl->SymbolValue( arg1 ) == "real"
-   && nl->SymbolValue( arg2 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == CcReal::BasicType()
+   && nl->SymbolValue( arg2 ) == MReal::BasicType() )
     return 8;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 9;
-  if( nl->SymbolValue( arg1 ) == "mpoint"
-   && nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+   && nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 10;
-  if( nl->SymbolValue( arg1 ) == "point"
-   && nl->SymbolValue( arg2 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == Point::BasicType()
+   && nl->SymbolValue( arg2 ) == MPoint::BasicType() )
     return 11;
-  if(nl->SymbolValue(nl->First(args)) == "region"
-   && nl->SymbolValue(nl->Second(args)) == "mpoint")
+  if(nl->SymbolValue(nl->First(args)) == Region::BasicType()
+   && nl->SymbolValue(nl->Second(args)) == MPoint::BasicType())
     return 12;
-  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-   && nl->SymbolValue(nl->Second(args)) == "point")
+  if  (nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+   && nl->SymbolValue(nl->Second(args)) == Point::BasicType())
     return 13;
-  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-   && nl->SymbolValue(nl->Second(args)) == "mpoint")
+  if  (nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+   && nl->SymbolValue(nl->Second(args)) == MPoint::BasicType())
     return 14;
-  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-   && nl->SymbolValue(nl->Second(args)) == "points")
+  if  (nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+   && nl->SymbolValue(nl->Second(args)) == Points::BasicType())
     return 15;
-  if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-   && nl->SymbolValue(nl->Second(args)) == "line")
+  if  (nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+   && nl->SymbolValue(nl->Second(args)) == Line::BasicType())
     return 16;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 17;
-  if( nl->SymbolValue( arg1 ) == "mstring"
-   && nl->SymbolValue( arg2 ) == "string" )
+  if( nl->SymbolValue( arg1 ) == MString::BasicType()
+   && nl->SymbolValue( arg2 ) == CcString::BasicType() )
     return 18;
-  if( nl->SymbolValue( arg1 ) == "string"
-   && nl->SymbolValue( arg2 ) == "mstring" )
+  if( nl->SymbolValue( arg1 ) == CcString::BasicType()
+   && nl->SymbolValue( arg2 ) == MString::BasicType() )
     return 19;
 
   return -1; // This point should never be reached
@@ -5977,17 +5977,17 @@ InsideSelect( ListExpr args )
            arg2 = nl->Second( args );
   if (nl->ListLength(args) == 2){
 
-    if( nl->SymbolValue( arg1 ) == "mpoint"
-     && nl->SymbolValue( arg2 ) == "points" )
+    if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+     && nl->SymbolValue( arg2 ) == Points::BasicType() )
       return 0;
-    if( nl->SymbolValue( arg1 ) == "mpoint"
-     && nl->SymbolValue( arg2 ) == "line" )
+    if( nl->SymbolValue( arg1 ) == MPoint::BasicType()
+     && nl->SymbolValue( arg2 ) == Line::BasicType() )
       return 1;
-    if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-     && nl->SymbolValue(nl->Second(args)) == "points")
+    if  (nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+     && nl->SymbolValue(nl->Second(args)) == Points::BasicType())
       return 2;
-    if  (nl->SymbolValue(nl->First(args)) == "movingregion"
-     && nl->SymbolValue(nl->Second(args)) == "line")
+    if  (nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+     && nl->SymbolValue(nl->Second(args)) == Line::BasicType())
       return 3;
 
     return -1; // This point should never be reached
@@ -6005,14 +6005,14 @@ Is used for the ~union~ operation.
 static int UnionSelect(ListExpr args) {
 
     if (nl->ListLength(args) == 2){
-      if(nl->SymbolValue(nl->First(args)) == "mpoint"
-       && nl->SymbolValue(nl->Second(args)) == "region")
+      if(nl->SymbolValue(nl->First(args)) == MPoint::BasicType()
+       && nl->SymbolValue(nl->Second(args)) == Region::BasicType())
         return 0;
-      else if  (nl->SymbolValue(nl->First(args)) == "mpoint"
-       && nl->SymbolValue(nl->Second(args)) == "movingregion")
+      else if  (nl->SymbolValue(nl->First(args)) == MPoint::BasicType()
+       && nl->SymbolValue(nl->Second(args)) == MRegion::BasicType())
         return 1;
-      else if  (nl->SymbolValue(nl->First(args)) == "point"
-       && nl->SymbolValue(nl->Second(args)) == "movingregion")
+      else if  (nl->SymbolValue(nl->First(args)) == Point::BasicType()
+       && nl->SymbolValue(nl->Second(args)) == MRegion::BasicType())
         return 2;
 
       else
@@ -6031,17 +6031,17 @@ Is used for the ~isempty~ operation.
 static int TemporalLiftIsemptySelect(ListExpr args) {
 
     if (nl->ListLength(args) == 1){
-      if(nl->SymbolValue(nl->First(args)) == "movingregion")
+      if(nl->SymbolValue(nl->First(args)) == MRegion::BasicType())
         return 0;
-      else if  (nl->SymbolValue(nl->First(args)) == "mbool")
+      else if  (nl->SymbolValue(nl->First(args)) == MBool::BasicType())
         return 1;
-      else if  (nl->SymbolValue(nl->First(args)) == "mint")
+      else if  (nl->SymbolValue(nl->First(args)) == MInt::BasicType())
         return 2;
-      else if  (nl->SymbolValue(nl->First(args)) == "mreal")
+      else if  (nl->SymbolValue(nl->First(args)) == MReal::BasicType())
         return 3;
-      else if  (nl->SymbolValue(nl->First(args)) == "mpoint")
+      else if  (nl->SymbolValue(nl->First(args)) == MPoint::BasicType())
         return 4;
-      else if  (nl->SymbolValue(nl->First(args)) == "mstring")
+      else if  (nl->SymbolValue(nl->First(args)) == MString::BasicType())
         return 5;
 
       else
@@ -6173,7 +6173,7 @@ int TemporalSMPointCompare( Word* args, Word& result, int message,
 }
 
 /*
-16.3 Value mapping functions of operator ~=~ and ~\#~ for movingregion/region
+16.3 Value mapping functions of operator ~=~ and ~\#~ for mregion/region
 
 */
 template<int op>
@@ -6189,7 +6189,7 @@ int TemporalMSRegionCompare( Word* args, Word& result, int message,
 }
 
 /*
-16.3 Value mapping functions of operator ~=~ and ~\#~ for region/movingregion
+16.3 Value mapping functions of operator ~=~ and ~\#~ for region/mregion
 
 */
 template<int op>
@@ -6205,7 +6205,7 @@ int TemporalSMRegionCompare( Word* args, Word& result, int message,
 }
 
 /*
-16.3 Value mapping functions of operator ~=~ and ~\#~ for movingregion/movingregion
+16.3 Value mapping functions of operator ~=~ and ~\#~ for mregion/mregion
 
 */
 template<int op>
@@ -6605,7 +6605,7 @@ int TemporalMIMIDivide( Word* args, Word& result, int message,
 
 /*
 1.1 ValueMapping of operator ~isempty~ for mbool, mint, mreal, mpoint
-and movingregion
+and mregion
 
 */
 template<class Mapping1, class Unit1>
@@ -6736,10 +6736,10 @@ int MPointLineInside( Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping ~MFalseValueMap~ is used in ~inside~ with movingregion x points
+1.1 ValueMapping ~MFalseValueMap~ is used in ~inside~ with mregion x points
 / line
 
-Creates a FALSE-unit for every defined interval within the movingregion.
+Creates a FALSE-unit for every defined interval within the mregion.
 
 */
 int MFalseValueMap(Word* args, Word& result, int message,
@@ -7293,7 +7293,7 @@ int TemporalSMPointIntercept( Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~rough\_center~ for movingregion
+1.1 ValueMapping of operator ~rough\_center~ for mregion
 
 */
 int RCenterValueMap(Word* args, Word& result, int message,
@@ -7343,7 +7343,7 @@ int MRMPMinusValueMap(Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~no\_components~ for movingregion
+1.1 ValueMapping of operator ~no\_components~ for mregion
 
 */
 int NComponentsValueMap(Word* args, Word& result, int message,
@@ -7355,7 +7355,7 @@ int NComponentsValueMap(Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~perimeter~ for movingregion
+1.1 ValueMapping of operator ~perimeter~ for mregion
 
 */
 int PerimeterValueMap(Word* args, Word& result, int message,
@@ -7367,7 +7367,7 @@ int PerimeterValueMap(Word* args, Word& result, int message,
 }
 
 /*
-1.1 ValueMapping of operator ~area~ for movingregion
+1.1 ValueMapping of operator ~area~ for mregion
 
 */
 int AreaValueMap(Word* args, Word& result, int message,
@@ -8145,8 +8145,8 @@ const string TemporalLiftSpecInside
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
             "\"Example\" ) "
             "( <text>mpoint x points -> mbool,"
-            " mpoint x line -> mbool, movingregion x points ->"
-            " mbool, movingregion x line -> mbool</text--->"
+            " mpoint x line -> mbool, mregion x points ->"
+            " mbool, mregion x line -> mbool</text--->"
             "<text>_ inside _</text--->"
             "<text>Inside.</text--->"
             "<text>query mp1 inside pts1</text--->"
@@ -8189,7 +8189,7 @@ const string TemporalLiftSpecMinus
 const string rcenterspec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
-             "( <text>movingregion -> mpoint</text--->"
+             "( <text>mregion -> mpoint</text--->"
              "<text>rough_center ( _ )</text--->"
              "<text>Calculates an approach to the"
              "center of gravity of a moving Region.</text--->"
@@ -8198,7 +8198,7 @@ const string rcenterspec
 const string ncomponentsspec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
-             "( <text>movingregion -> mint</text--->"
+             "( <text>mregion -> mint</text--->"
              "<text>no_components ( _ )</text--->"
              "<text>Calculates the number of faces of "
              "a moving Region.</text--->"
@@ -8207,7 +8207,7 @@ const string ncomponentsspec
 const string perimeterspec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
-             "( <text>movingregion -> mreal</text--->"
+             "( <text>mregion -> mreal</text--->"
              "<text>perimeter ( _ )</text--->"
              "<text>Calculates the perimeter of a moving Region.</text--->"
              "<text>mraperimeter(mrg1)</text---> ) )";
@@ -8215,7 +8215,7 @@ const string perimeterspec
 const string areaspec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
-             "( <text>movingregion -> mreal</text--->"
+             "( <text>mregion -> mreal</text--->"
              "<text>area ( _ )</text--->"
              "<text>Calculates the area of a moving Region.</text--->"
              "<text>area(mrg1)</text---> ) )";

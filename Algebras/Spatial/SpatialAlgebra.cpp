@@ -121,7 +121,7 @@ SpatialTypeOfSymbol( ListExpr symbol )
     if ( s == Points::BasicType() ) return (stpoints);
     if ( s == Line::BasicType()   ) return (stline);
     if ( s == Region::BasicType() ) return (stregion);
-    if ( s == "rect"   ) return (stbox);
+    if ( s == Rectangle<2>::BasicType()   ) return (stbox);
     if ( s == SimpleLine::BasicType()  ) return (stsline);
   }
   return (sterror);
@@ -13302,7 +13302,7 @@ SpatialBBoxMap( ListExpr args )
       !listutils::isSymbol(nl->Second(args),Geoid::BasicType()) ) {
     return listutils::typeError(errmsg);
   }
-  return (nl->SymbolAtom( "rect" ));
+  return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
 }
 
 /*

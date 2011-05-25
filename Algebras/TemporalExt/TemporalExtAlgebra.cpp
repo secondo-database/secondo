@@ -2017,7 +2017,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckIntimeString( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "istring" ));
+  return (nl->IsEqual( type, Intime<CcString>::BasicType() ));
 }
 
 /*
@@ -2025,7 +2025,7 @@ CheckIntimeString( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor intimestring(
-        "istring",  //name
+        Intime<CcString>::BasicType(),  //name
         IntimeStringProperty,   //property function describing signature
         OutIntime<CcString, OutCcString>,
         InIntime<CcString, InCcString>,     //Out and In functions
@@ -2083,7 +2083,7 @@ UStringProperty()
 bool
 CheckUString( ListExpr type, ListExpr& errorInfo )
 {
-    return (nl->IsEqual( type, "ustring" ));
+    return (nl->IsEqual( type, UString::BasicType() ));
 }
 
 /*
@@ -2091,7 +2091,7 @@ CheckUString( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor unitstring(
-        "ustring",  //name
+        UString::BasicType(),  //name
         UStringProperty,    //property function describing signature
         OutConstTemporalUnit<CcString, OutCcString>,
         InConstTemporalUnit<CcString, InCcString>,  //Out and In functions
@@ -2156,7 +2156,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckMString( ListExpr type, ListExpr& errorInfo )
 {
-    return (nl->IsEqual( type, "mstring" ));
+    return (nl->IsEqual( type, MString::BasicType() ));
 }
 
 /*
@@ -2164,7 +2164,7 @@ CheckMString( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor movingstring(
-    "mstring",  //name
+    MString::BasicType(),  //name
     MStringProperty,    //property function describing signature
     //Out and In functions
     OutMapping<MString, UString, OutConstTemporalUnit<CcString, OutCcString> >,
@@ -2235,7 +2235,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckRBool( ListExpr type, ListExpr& errorInfo )
 {
-    return (nl->IsEqual( type, "rbool" ));
+    return (nl->IsEqual( type, RBool::BasicType() ));
 }
 
 /*
@@ -2243,7 +2243,7 @@ CheckRBool( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangebool(
-    "rbool",  //name
+    RBool::BasicType(),  //name
      RangeBoolProperty,   //property function describing signature
      OutRange<CcBool, OutCcBool>,
      InRange<CcBool, InCcBool>,                 //Out and In functions
@@ -2309,7 +2309,7 @@ This function checks whether the type constructor is applied correctly.
 bool
 CheckRString( ListExpr type, ListExpr& errorInfo )
 {
-    return (nl->IsEqual( type, "rstring" ));
+    return (nl->IsEqual( type, RString::BasicType() ));
 }
 
 /*
@@ -2317,7 +2317,7 @@ CheckRString( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangestring(
-    "rstring",  //name
+    RString::BasicType(),  //name
      RangeStringProperty,   //property function describing signature
      OutRange<CcString, OutCcString>,
      InRange<CcString, InCcString>,                 //Out and In functions
@@ -2352,10 +2352,10 @@ MovingInstantExtTypeMapIntime( ListExpr args )
         ListExpr arg1 = nl->First( args ),
         arg2 = nl->Second( args );
 
-        if( nl->IsEqual( arg2, "instant" ) )
+        if( nl->IsEqual( arg2, Instant::BasicType() ) )
         {
-            if( nl->IsEqual( arg1, "mstring" ) )
-                return nl->SymbolAtom( "istring" );
+            if( nl->IsEqual( arg1, MString::BasicType() ) )
+                return nl->SymbolAtom( Intime<CcString>::BasicType() );
         }
     }
     return nl->SymbolAtom( "typeerror" );
@@ -2375,13 +2375,13 @@ MovingPeriodsExtTypeMapMoving( ListExpr args )
         ListExpr arg1 = nl->First( args ),
         arg2 = nl->Second( args );
 
-        if( nl->IsEqual( arg2, "periods" ) )
+        if( nl->IsEqual( arg2, Periods::BasicType() ) )
         {
-            if( nl->IsEqual( arg1, "mstring" ) )
-                return nl->SymbolAtom( "mstring" );
+            if( nl->IsEqual( arg1, MString::BasicType() ) )
+                return nl->SymbolAtom( MString::BasicType() );
 
-            if( nl->IsEqual( arg1, "movingregion" ) )
-                return nl->SymbolAtom( "movingregion" );
+            if( nl->IsEqual( arg1, MRegion::BasicType() ) )
+                return nl->SymbolAtom( MRegion::BasicType() );
         }
     }
     return nl->SymbolAtom( "typeerror" );
@@ -2400,8 +2400,8 @@ MovingExtTypeMapIntime( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mstring" ) )
-            return nl->SymbolAtom( "istring" );
+        if( nl->IsEqual( arg1, MString::BasicType() ) )
+            return nl->SymbolAtom( Intime<CcString>::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2420,11 +2420,11 @@ MovingInstantPeriodsExtTypeMapBool( ListExpr args )
         ListExpr arg1 = nl->First( args ),
         arg2 = nl->Second( args );
 
-        if( nl->IsEqual( arg2, "instant" ) ||
-          nl->IsEqual( arg2, "periods" ) )
+        if( nl->IsEqual( arg2, Instant::BasicType() ) ||
+          nl->IsEqual( arg2, Periods::BasicType() ) )
         {
-            if( nl->IsEqual( arg1, "mstring" ))
-                return nl->SymbolAtom( "bool" );
+            if( nl->IsEqual( arg1, MString::BasicType() ))
+                return nl->SymbolAtom( CcBool::BasicType() );
         }
     }
     return nl->SymbolAtom( "typeerror" );
@@ -2445,41 +2445,41 @@ MovingBaseExtTypeMapMoving( ListExpr args )
         arg1 = nl->First( args );
         arg2 = nl->Second( args );
 
-        if( nl->IsEqual( arg1, "mreal" )
-            && nl->IsEqual( arg2, "real" ) )
-            return nl->SymbolAtom( "mreal" );
+        if( nl->IsEqual( arg1, MReal::BasicType() )
+            && nl->IsEqual( arg2, CcReal::BasicType() ) )
+            return nl->SymbolAtom( MReal::BasicType() );
 
-        if( nl->IsEqual( arg1, "mstring" )
-            && nl->IsEqual( arg2, "string" ) )
-            return nl->SymbolAtom( "mstring" );
+        if( nl->IsEqual( arg1, MString::BasicType() )
+            && nl->IsEqual( arg2, CcString::BasicType() ) )
+            return nl->SymbolAtom( MString::BasicType() );
 
-        if( nl->IsEqual( arg1, "mbool" )
-            && nl->IsEqual( arg2, "rbool" ) )
-            return nl->SymbolAtom( "mbool" );
+        if( nl->IsEqual( arg1, MBool::BasicType() )
+            && nl->IsEqual( arg2, RBool::BasicType() ) )
+            return nl->SymbolAtom( MBool::BasicType() );
 
-        if( nl->IsEqual( arg1, "mint" )
-            && nl->IsEqual( arg2, "rint" ) )
-            return nl->SymbolAtom( "mint" );
+        if( nl->IsEqual( arg1, MInt::BasicType() )
+            && nl->IsEqual( arg2, RInt::BasicType() ) )
+            return nl->SymbolAtom( MInt::BasicType() );
 
-        if( nl->IsEqual( arg1, "mstring" )
-            && nl->IsEqual( arg2, "rstring" ) )
-            return nl->SymbolAtom( "mstring" );
+        if( nl->IsEqual( arg1, MString::BasicType() )
+            && nl->IsEqual( arg2, RString::BasicType() ) )
+            return nl->SymbolAtom( MString::BasicType() );
 
-        if( nl->IsEqual( arg1, "mreal" )
-            && nl->IsEqual( arg2, "rreal" ) )
-            return nl->SymbolAtom( "mreal" );
+        if( nl->IsEqual( arg1, MReal::BasicType() )
+            && nl->IsEqual( arg2, RReal::BasicType() ) )
+            return nl->SymbolAtom( MReal::BasicType() );
 
-        if( nl->IsEqual( arg1, "mpoint" )
-            && nl->IsEqual( arg2, "points" ) )
-            return nl->SymbolAtom( "mpoint" );
+        if( nl->IsEqual( arg1, MPoint::BasicType() )
+            && nl->IsEqual( arg2, Points::BasicType() ) )
+            return nl->SymbolAtom( MPoint::BasicType() );
 
-        if( nl->IsEqual( arg1, "mpoint" )
-            && nl->IsEqual( arg2, "line" ) )
-            return nl->SymbolAtom( "mpoint" );
+        if( nl->IsEqual( arg1, MPoint::BasicType() )
+            && nl->IsEqual( arg2, Line::BasicType() ) )
+            return nl->SymbolAtom( MPoint::BasicType() );
 
-        if( nl->IsEqual( arg1, "movingregion" )
-            && nl->IsEqual( arg2, "point" ) )
-            return nl->SymbolAtom( "mpoint" );
+        if( nl->IsEqual( arg1, MRegion::BasicType() )
+            && nl->IsEqual( arg2, Point::BasicType() ) )
+            return nl->SymbolAtom( MPoint::BasicType() );
     }
 
     return nl->SymbolAtom( "typeerror" );
@@ -2500,25 +2500,25 @@ MovingBaseExtTypeMapBool( ListExpr args )
         arg1 = nl->First( args );
         arg2 = nl->Second( args );
 
-        if( (nl->IsEqual( arg1, "mreal" )
-                && nl->IsEqual( arg2, "real" ))
+        if( (nl->IsEqual( arg1, MReal::BasicType() )
+                && nl->IsEqual( arg2, CcReal::BasicType() ))
              ||
-            (nl->IsEqual( arg1, "mstring" )
-                && nl->IsEqual( arg2, "string" ))
+            (nl->IsEqual( arg1, MString::BasicType() )
+                && nl->IsEqual( arg2, CcString::BasicType() ))
              ||
-             (nl->IsEqual( arg1, "mpoint" )
-                && nl->IsEqual( arg2, "points" ))
+             (nl->IsEqual( arg1, MPoint::BasicType() )
+                && nl->IsEqual( arg2, Points::BasicType() ))
              ||
-             (nl->IsEqual( arg1, "mpoint" )
-                && nl->IsEqual( arg2, "line" ))
+             (nl->IsEqual( arg1, MPoint::BasicType() )
+                && nl->IsEqual( arg2, Line::BasicType() ))
              ||
-            (nl->IsEqual( arg1, "movingregion" )
-                && nl->IsEqual( arg2, "point" ))
+            (nl->IsEqual( arg1, MRegion::BasicType() )
+                && nl->IsEqual( arg2, Point::BasicType() ))
              ||
-            (nl->IsEqual( arg1, "movingregion" )
-                && nl->IsEqual( arg2, "points" ))
+            (nl->IsEqual( arg1, MRegion::BasicType() )
+                && nl->IsEqual( arg2, Points::BasicType() ))
           )
-            return nl->SymbolAtom( "bool" );
+            return nl->SymbolAtom( CcBool::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2536,9 +2536,9 @@ MovingExtTypeMapPeriods( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mstring" ))
+        if( nl->IsEqual( arg1, MString::BasicType() ))
 
-            return nl->SymbolAtom( "periods" );
+            return nl->SymbolAtom( Periods::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2556,11 +2556,11 @@ IntimeExtTypeMapInstant( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "istring" ))
-            return nl->SymbolAtom( "instant" );
+        if( nl->IsEqual( arg1, Intime<CcString>::BasicType() ))
+            return nl->SymbolAtom( Instant::BasicType() );
 
-        if( nl->IsEqual( arg1, "intimeregion" ))
-            return nl->SymbolAtom( "instant" );
+        if( nl->IsEqual( arg1, IRegion::BasicType() ))
+            return nl->SymbolAtom( Instant::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2578,11 +2578,11 @@ IntimeExtTypeMapBase( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "istring" ) )
-            return nl->SymbolAtom( "string" );
+        if( nl->IsEqual( arg1, Intime<CcString>::BasicType() ) )
+            return nl->SymbolAtom( CcString::BasicType() );
 
-        if( nl->IsEqual( arg1, "intimeregion" ) )
-            return nl->SymbolAtom( "region" );
+        if( nl->IsEqual( arg1, IRegion::BasicType() ) )
+            return nl->SymbolAtom( Region::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2600,8 +2600,8 @@ MovingRExtTypeMapMovingR( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mreal" ) )
-            return nl->SymbolAtom( "mreal" );
+        if( nl->IsEqual( arg1, MReal::BasicType() ) )
+            return nl->SymbolAtom( MReal::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2619,8 +2619,8 @@ MovingRExtTypeMapBool( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mreal" ) )
-            return nl->SymbolAtom( "mbool" );
+        if( nl->IsEqual( arg1, MReal::BasicType() ) )
+            return nl->SymbolAtom( MBool::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2650,7 +2650,7 @@ MovingPointExtTypeMapMReal( ListExpr args )
   if((noargs==3) && !listutils::isSymbol(nl->Second(args),Geoid::BasicType())){
     return listutils::typeError("Expecting real as 3rd argument.");
   }
-  return nl->SymbolAtom( "mreal" );
+  return nl->SymbolAtom( MReal::BasicType() );
 }
 
 
@@ -2691,17 +2691,17 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mbool" ) )
-            return nl->SymbolAtom( "rbool" );
+        if( nl->IsEqual( arg1, MBool::BasicType() ) )
+            return nl->SymbolAtom( RBool::BasicType() );
 
-        if( nl->IsEqual( arg1, "mint" ) )
-            return nl->SymbolAtom( "rint" );
+        if( nl->IsEqual( arg1, MInt::BasicType() ) )
+            return nl->SymbolAtom( RInt::BasicType() );
 
-        if( nl->IsEqual( arg1, "mstring" ) )
-            return nl->SymbolAtom( "rstring" );
+        if( nl->IsEqual( arg1, MString::BasicType() ) )
+            return nl->SymbolAtom( RString::BasicType() );
 
-        if( nl->IsEqual( arg1, "mreal" ) )
-            return nl->SymbolAtom( "rreal" );
+        if( nl->IsEqual( arg1, MReal::BasicType() ) )
+            return nl->SymbolAtom( RReal::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2719,8 +2719,8 @@ MovingSANExtTypeMap( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mbool" ) )
-            return nl->SymbolAtom( "bool" );
+        if( nl->IsEqual( arg1, MBool::BasicType() ) )
+            return nl->SymbolAtom( CcBool::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2738,8 +2738,8 @@ MPointExtTypeMapMPoint( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mpoint" ) )
-            return nl->SymbolAtom( "mpoint" );
+        if( nl->IsEqual( arg1, MPoint::BasicType() ) )
+            return nl->SymbolAtom( MPoint::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2757,8 +2757,8 @@ RealPhysicalUnitsExtTypeMap( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "real" ) )
-            return nl->SymbolAtom( "real" );
+        if( nl->IsEqual( arg1, CcReal::BasicType() ) )
+            return nl->SymbolAtom( CcReal::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2776,8 +2776,8 @@ MovingPointExtTypeMapPoints( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mpoint" ) )
-            return nl->SymbolAtom( "points" );
+        if( nl->IsEqual( arg1, MPoint::BasicType() ) )
+            return nl->SymbolAtom( Points::BasicType() );
     }
     return nl->SymbolAtom( "typeerror" );
 }
@@ -2795,14 +2795,14 @@ MovingExtTypeMapMoving( ListExpr args )
     {
         ListExpr arg1 = nl->First( args );
 
-        if( nl->IsEqual( arg1, "mint" ) )
-            return nl->SymbolAtom( "mint" );
-        if( nl->IsEqual( arg1, "mbool" ) )
-            return nl->SymbolAtom( "mbool" );
-        if( nl->IsEqual( arg1, "mstring" ) )
-            return nl->SymbolAtom( "mstring" );
-        if( nl->IsEqual( arg1, "mreal" ) )
-            return nl->SymbolAtom( "mreal" );
+        if( nl->IsEqual( arg1, MInt::BasicType() ) )
+            return nl->SymbolAtom( MInt::BasicType() );
+        if( nl->IsEqual( arg1, MBool::BasicType() ) )
+            return nl->SymbolAtom( MBool::BasicType() );
+        if( nl->IsEqual( arg1, MString::BasicType() ) )
+            return nl->SymbolAtom( MString::BasicType() );
+        if( nl->IsEqual( arg1, MReal::BasicType() ) )
+            return nl->SymbolAtom( MReal::BasicType() );
 
     }
     return nl->SymbolAtom( "typeerror" );
@@ -2826,7 +2826,7 @@ ConcatSTypeMap(ListExpr args){
      return nl->TypeError();
   }
   if(len==2){
-    if(!nl->IsEqual(nl->Second(args),"int")){
+    if(!nl->IsEqual(nl->Second(args),CcInt::BasicType())){
        ErrorReporter::ReportError("stream(mpoint) or "
                                   "stream(mpoint) x int required");
        return nl->TypeError();
@@ -2835,11 +2835,11 @@ ConcatSTypeMap(ListExpr args){
   ListExpr stream = nl->First(args);
   if(  nl->ListLength(stream)!=2  ||
        !nl->IsEqual(nl->First(stream),"stream") ||
-       !nl->IsEqual(nl->Second(stream),"mpoint")){
+       !nl->IsEqual(nl->Second(stream),MPoint::BasicType())){
      ErrorReporter::ReportError("stream(mpoint) expected.");
      return nl->TypeError();
   }
-  return nl->SymbolAtom("mpoint");
+  return nl->SymbolAtom(MPoint::BasicType());
 }
 
 
@@ -2877,9 +2877,9 @@ ListExpr InsideTypeMapMPR(ListExpr args){
      return nl->TypeError();
   }
 
- if(nl->IsEqual(nl->First(args),"mpoint") &&
-     nl->IsEqual(nl->Second(args),"region")){
-      return nl->SymbolAtom("mbool");
+ if(nl->IsEqual(nl->First(args),MPoint::BasicType()) &&
+     nl->IsEqual(nl->Second(args),Region::BasicType())){
+      return nl->SymbolAtom(MBool::BasicType());
   }
   ErrorReporter::ReportError(err);
   return nl->TypeError();
@@ -2909,7 +2909,7 @@ MovingExtSimpleSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "mstring" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() )
         return 0;
 
     return -1; // This point should never be reached
@@ -2927,12 +2927,12 @@ MovingExtInstantPeriodsSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "instant" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() &&
+        nl->SymbolValue( arg2 ) == Instant::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "periods" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() &&
+        nl->SymbolValue( arg2 ) == Periods::BasicType() )
         return 1;
 
     return -1; // This point should never be reached
@@ -2950,40 +2950,40 @@ MovingExtBaseRangeSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-    if( nl->SymbolValue( arg1 ) == "mreal" &&
-        nl->SymbolValue( arg2 ) == "real" )
+    if( nl->SymbolValue( arg1 ) == MReal::BasicType() &&
+        nl->SymbolValue( arg2 ) == CcReal::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "string" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() &&
+        nl->SymbolValue( arg2 ) == CcString::BasicType() )
         return 1;
 
-    if( nl->SymbolValue( arg1 ) == "mbool" &&
-        nl->SymbolValue( arg2 ) == "rbool" )
+    if( nl->SymbolValue( arg1 ) == MBool::BasicType() &&
+        nl->SymbolValue( arg2 ) == RBool::BasicType() )
         return 2;
 
-    if( nl->SymbolValue( arg1 ) == "mint" &&
-        nl->SymbolValue( arg2 ) == "rint" )
+    if( nl->SymbolValue( arg1 ) == MInt::BasicType() &&
+        nl->SymbolValue( arg2 ) == RInt::BasicType() )
         return 3;
 
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "rstring" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() &&
+        nl->SymbolValue( arg2 ) == RString::BasicType() )
         return 4;
 
-    if( nl->SymbolValue( arg1 ) == "mreal" &&
-        nl->SymbolValue( arg2 ) == "rreal")
+    if( nl->SymbolValue( arg1 ) == MReal::BasicType() &&
+        nl->SymbolValue( arg2 ) == RReal::BasicType())
         return 5;
 
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "points")
+    if( nl->SymbolValue( arg1 ) == MPoint::BasicType() &&
+        nl->SymbolValue( arg2 ) == Points::BasicType())
         return 6;
 
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "line")
+    if( nl->SymbolValue( arg1 ) == MPoint::BasicType() &&
+        nl->SymbolValue( arg2 ) == Line::BasicType())
         return 7;
 
-    if( nl->SymbolValue( arg1 ) == "movingregion" &&
-        nl->SymbolValue( arg2 ) == "point")
+    if( nl->SymbolValue( arg1 ) == MRegion::BasicType() &&
+        nl->SymbolValue( arg2 ) == Point::BasicType())
         return 8;
 
     return -1; // This point should never be reached
@@ -3001,28 +3001,28 @@ MovingExtBaseSelect( ListExpr args )
     ListExpr arg1 = nl->First( args ),
     arg2 = nl->Second( args );
 
-    if( nl->SymbolValue( arg1 ) == "mreal" &&
-        nl->SymbolValue( arg2 ) == "real" )
+    if( nl->SymbolValue( arg1 ) == MReal::BasicType() &&
+        nl->SymbolValue( arg2 ) == CcReal::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "mstring" &&
-        nl->SymbolValue( arg2 ) == "string" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() &&
+        nl->SymbolValue( arg2 ) == CcString::BasicType() )
         return 1;
 
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "points")
+    if( nl->SymbolValue( arg1 ) == MPoint::BasicType() &&
+        nl->SymbolValue( arg2 ) == Points::BasicType())
         return 2;
 
-    if( nl->SymbolValue( arg1 ) == "mpoint" &&
-        nl->SymbolValue( arg2 ) == "line")
+    if( nl->SymbolValue( arg1 ) == MPoint::BasicType() &&
+        nl->SymbolValue( arg2 ) == Line::BasicType())
         return 3;
 
-    if( nl->SymbolValue( arg1 ) == "movingregion" &&
-        nl->SymbolValue( arg2 ) == "point" )
+    if( nl->SymbolValue( arg1 ) == MRegion::BasicType() &&
+        nl->SymbolValue( arg2 ) == Point::BasicType() )
         return 4;
 
-    if( nl->SymbolValue( arg1 ) == "movingregion" &&
-           nl->SymbolValue( arg2 ) == "points" )
+    if( nl->SymbolValue( arg1 ) == MRegion::BasicType() &&
+           nl->SymbolValue( arg2 ) == Points::BasicType() )
         return 5;
 
     return -1; // This point should never be reached
@@ -3039,10 +3039,10 @@ IntimeExtSimpleSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "istring" )
+    if( nl->SymbolValue( arg1 ) == Intime<CcString>::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "intimeregion" )
+    if( nl->SymbolValue( arg1 ) == IRegion::BasicType() )
         return 1;
 
     return -1; // This point should never be reached
@@ -3059,16 +3059,16 @@ RangeRangevaluesExtBaseSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "mbool" )
+    if( nl->SymbolValue( arg1 ) == MBool::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "mint" )
+    if( nl->SymbolValue( arg1 ) == MInt::BasicType() )
         return 1;
 
-    if( nl->SymbolValue( arg1 ) == "mstring" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() )
         return 2;
 
-    if( nl->SymbolValue( arg1 ) == "mreal" )
+    if( nl->SymbolValue( arg1 ) == MReal::BasicType() )
         return 3;
 
     return -1; // This point should never be reached
@@ -3085,10 +3085,10 @@ MovingPeriodsSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "mstring" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "movingregion" )
+    if( nl->SymbolValue( arg1 ) == MRegion::BasicType() )
         return 1;
 
     return -1; // This point should never be reached
@@ -3105,16 +3105,16 @@ MovingAtMinMaxSelect( ListExpr args )
 {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->SymbolValue( arg1 ) == "mbool" )
+    if( nl->SymbolValue( arg1 ) == MBool::BasicType() )
         return 0;
 
-    if( nl->SymbolValue( arg1 ) == "mint" )
+    if( nl->SymbolValue( arg1 ) == MInt::BasicType() )
         return 1;
 
-    if( nl->SymbolValue( arg1 ) == "mstring" )
+    if( nl->SymbolValue( arg1 ) == MString::BasicType() )
         return 2;
 
-    if( nl->SymbolValue( arg1 ) == "mreal" )
+    if( nl->SymbolValue( arg1 ) == MReal::BasicType() )
         return 3;
 
     return -1; // This point should never be reached
@@ -4692,11 +4692,13 @@ static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist,
   for(int i = 0; i< arg1->GetNoComponents(); i++){
     UPoint upoint;
     arg1->Get(i, upoint);
-    UReal ureal(false);
-    upoint.Distance(*arg0, ureal, geoid);
+    vector<UReal> resvec(1);
+    upoint.Distance(*arg0, resvec, geoid);
     bool correct = false;
-    if( ureal.Min(correct) < dist && correct ){
-      return true;
+    for(vector<UReal>::iterator it(resvec.begin()); it!=resvec.end(); it++){
+      if(it->IsDefined() && ( it->Min(correct) < dist && correct )){
+        return true;
+      }
     }
   }
   return false;
@@ -4938,7 +4940,7 @@ const string TemporalSpecAtExt =
     "mT x rT -> mT;\n"
     "T in {points, line},\n"
     "mpoint x T -> mpoint\n"
-    "movingregion x point -> mpoint**\n"
+    "mregion x point -> mpoint**\n"
     "(*) Not yet implemented for this type constructor.\n"
     "(**) Operator signature is not implemented yet.</text--->"
     "<text> _ at _ </text--->"
@@ -4954,7 +4956,7 @@ const string TemporalSpecPassesExt =
     "T in {points, line},\n"
     "mpoint x T -> bool\n"
     "T in {point, points},\n"
-    "movingregion x T -> bool</text--->"
+    "mregion x T -> bool</text--->"
     "<text>_ passes _ </text--->"
     "<text>whether the object passes the given value.</text--->"
     "<text>mpoint1 passes point1</text--->"
@@ -5012,8 +5014,8 @@ const string TemporalSpecSpeedExt  =
     "<text>Query the scalar velocity of the moving point M in unit/s as a mreal"
     ". If the optional string parameter is not used, coordinates in M are "
     "metric (X,Y)-pairs. Otherwise, Geoid specifies a geoid to use for "
-    "orthodrome-based speed calculation and coordinates in M must be valid "
-    "geographic coordinates (LON,LAT).</text--->"
+    "orthodrome-based speed-over-ground calculation and coordinates in M must "
+    "be validgeographic coordinates (LON,LAT).</text--->"
     "<text>speed_new ( mp1 )</text--->"
     ") )";
 

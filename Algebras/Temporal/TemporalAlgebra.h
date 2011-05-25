@@ -96,6 +96,7 @@ The type system of the Temporal Algebra can be seen below.
 #include "DateTime.h"
 #include "AlmostEqual.h"
 #include "Geoid.h"
+#include "../../include/CharTransform.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -231,7 +232,7 @@ Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise
 
 */
 
-  bool Contains( const Alpha& a, 
+  bool Contains( const Alpha& a,
                  const bool ignoreCloseness = false ) const;
 /*
 Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
@@ -242,7 +243,7 @@ point.
 *Precondition:* ~a.IsDefined()~
 
 */
-  bool Contains(const Interval<Alpha>& i, 
+  bool Contains(const Interval<Alpha>& i,
                 const bool ignoreCloseness = false) const;
 
 
@@ -274,7 +275,7 @@ Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise
 */
 
   bool Before( const Alpha& a ) const;
-  
+
   bool After( const Alpha& a ) const;
   bool After( const Interval<Alpha>& iv ) const;
 /*
@@ -296,19 +297,19 @@ Constructs the mininum interval containing both, this interval and iv.
 */
   void Union(const Interval<Alpha>& iv);
 /*
-Changes this interval to be the union of this is iv. gaps between the 
+Changes this interval to be the union of this is iv. gaps between the
 intervals are included in the result.
 
 */
 
 
 
-int Minus(const Interval<Alpha>& iv, 
-          Interval<Alpha>& res1, 
+int Minus(const Interval<Alpha>& iv,
+          Interval<Alpha>& res1,
           Interval<Alpha>& res2);
 /*
 Remove iv from this interval. The result(s) are stored in res1 and res2.
-The number of results is returned. 
+The number of results is returned.
 
 */
 
@@ -328,15 +329,15 @@ Compares this and the argument;
 
 
 
-/* 
+/*
 ~SplitAround~
 
 Divides this interval into several pieces around the given __value__.
-If the value is not included in the interval, the result will only 
+If the value is not included in the interval, the result will only
 consists of the original interval itself. If the __value__ is one of the
 borders of the interval, the result will hav two entries. One entry consists
 of an interval containing only __value__, the other entry is the remaining
-interval. If __value__ is located inside the interval, the result will have 
+interval. If __value__ is located inside the interval, the result will have
 three entries.
 
 */
@@ -356,7 +357,7 @@ vector<Interval<Alpha> > splitAround(Alpha value) const{
     if(end>start){ // there is a remaining interval
        Interval<Alpha> i2(start,end,false,rc);
        result.push_back(i2);
-    } 
+    }
     return result;
   }
   if(value==end && !rc){
@@ -635,7 +636,7 @@ Is true, iff both arguments are undefined or both are defined and contain the sa
 
 This function returns the index of the interval within this periods value containing
 the given Alpha. If the parameter ignoreCloseness is set to be true, the index of
-the interval is also returned, iff alpha is a border of the interval regardless 
+the interval is also returned, iff alpha is a border of the interval regardless
 of the closeness of the interval. If no interval exist containing alpha, -1 is returned.
 
 */
@@ -657,7 +658,7 @@ of the closeness of the interval. If no interval exist containing alpha, -1 is r
 
 */
     bool Contains( const Alpha& a ) const;
-    bool Contains( const Interval<Alpha>& iv, 
+    bool Contains( const Interval<Alpha>& iv,
                    const bool ignoreCloseness = false ) const;
 
 /*
@@ -758,7 +759,7 @@ an empty result. To do so, please use the variant without result parameter.
 
 */
     void Minus( const Range<Alpha>& r, Range<Alpha>& result ) const;
-    
+
     void Minus( const Interval<Alpha>& r, Range<Alpha>& result ) const;
 
 
@@ -839,6 +840,17 @@ is defined and all the following conditions are true:
     make sure that the interval is not left-closed or the interval before
     is not right-closed
 
+*/
+
+  inline static const string BasicType()
+  {
+    if(Alpha::BasicType()==DateTime::BasicType()){
+      return "periods";
+    } else {
+      return "r"+Alpha::BasicType();
+    }
+  }
+/*
 3.3.7 Attributes
 
 */
@@ -950,7 +962,7 @@ The second constructor.
 
   ostream& Print( ostream &os ) const
   {
-    os << "intime: (";
+    os << Intime<Alpha>::BasicType() << ": (";
     if ( IsDefined() )
     {
       instant.Print(os);
@@ -996,6 +1008,13 @@ The second constructor.
     return (Compare((Attribute*) (&other) ) != 0);
   }
 
+  // type name used in Secondo:
+  inline static const string BasicType()
+  {
+    return "i"+Alpha::BasicType();
+  }
+
+
 /*
 3.4.3 Attributes:
 
@@ -1013,6 +1032,13 @@ The $\alpha$ value.
 */
 
 };
+
+typedef Intime<CcBool> IBool;
+typedef Intime<CcInt> IInt;
+typedef Intime<CcReal> IReal;
+typedef Intime<CcString> IString;
+typedef Intime<Point> IPoint;
+
 
 /*
 3.5 TemporalUnit
@@ -1232,6 +1258,14 @@ Equality is computed with respect to temporal evolution.
   }
 
 /*
+Type name used in Secondo
+
+*/
+  inline static const string BasicType()
+  {
+    return "u"+Alpha::BasicType();
+  }
+/*
 Tries to merge the other unit into this unit. Returns ~true~ iff this was
 successful (and this unit was modified).
 
@@ -1327,13 +1361,13 @@ The destructor.
     {
       if( IsDefined() )
         {
-          os << "TemporalUnit: ( ";
+          os << StandardTemporalUnit<Alpha>::BasicType() << ": ( ";
           TemporalUnit<Alpha>::timeInterval.Print(os);
-          os << ", NO SPECIFIC Print()-Method! ) ";
+          os << ", NO SPECIFIC Print()-Method for this StandardTemporalUnit! )";
           return os;
         }
       else
-        return os << "TemporalUnit: (undef) ";
+        return os << StandardTemporalUnit<Alpha>::BasicType() <<": (undef) ";
     }
 
     virtual size_t HashValue() const
@@ -1348,6 +1382,11 @@ The destructor.
     virtual StandardTemporalUnit<Alpha>* Clone() const = 0;
     virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
+
+    inline static const string BasicType()
+    {
+      return "u"+Alpha::BasicType();
+    }
 
 };
 
@@ -1432,15 +1471,15 @@ The destructor.
     {
       if( this->del.isDefined )
         {
-          os << "SpatialTemporalUnit: " << "( ";
+          os << SpatialTemporalUnit<Alpha,dim>::BasicType() << ": " << "( ";
           TemporalUnit<Alpha>::timeInterval.Print(os);
           os << ", ";
           // print specific stuff:
-          os << " NO SPECIFIC Print()-Method! ) ";
+          os << " NO SPECIFIC Print()-Method for this SpatioTemporalUnit! ) ";
           return os;
         }
       else
-      return os << "SpatialTemporalUnit: (undef) ";
+        return os << SpatialTemporalUnit<Alpha,dim>::BasicType() <<": (undef) ";
     }
 
     virtual size_t HashValue() const
@@ -1456,6 +1495,11 @@ The destructor.
     virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
     virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;
+
+    inline static const string BasicType()
+    {
+      return "u"+Alpha::BasicType();
+    }
 };
 
 /*
@@ -1738,7 +1782,7 @@ not modify this unit and return ~false~.
   {
     if( this->IsDefined() )
       {
-        os << "ConstUnit: ( ";
+        os << ConstTemporalUnit<Alpha>::BasicType() << ": ( ";
         TemporalUnit<Alpha>::timeInterval.Print(os);
         os << ", ";
         constValue.Print(os);
@@ -1746,7 +1790,7 @@ not modify this unit and return ~false~.
         return os;
       }
     else
-      return os << "ConstUnit: (undef) ";
+      return os << ConstTemporalUnit<Alpha>::BasicType()<<": (undef) ";
   }
 
   virtual size_t HashValue() const
@@ -1769,6 +1813,12 @@ not modify this unit and return ~false~.
     this->SetDefined(i->IsDefined());
     this->timeInterval.CopyFrom( i->timeInterval );
     constValue.CopyFrom( &(i->constValue) );
+  }
+
+  // type name used in Secondo
+  inline static const string BasicType()
+  {
+    return "u"+Alpha::BasicType();
   }
 
 /*
@@ -2378,14 +2428,14 @@ templates using UPoint and MPoint.
   int GetNoComponents() const{
      return 1;
   }
-  
+
 
 /*
 ~Get~
 
 
 */
-   
+
     void Get( const int i, UPoint& upi ) const{
       assert(i==0);
       upi = *this;
@@ -2430,24 +2480,88 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void TemporalFunction( const Instant& t,
                                  Point& result,
                                  bool ignoreLimits = false ) const;
+  void TemporalFunction( const Instant& t,
+                         Point& result,
+                         const Geoid* geoid,
+                         bool ignoreLimits = false) const;
   virtual bool Passes( const Point& val ) const;
+  bool Passes( const Point& val, const Geoid* geoid ) const;
   bool Passes( const Region& val ) const;
   bool Passes( const Rectangle<2>& rect ) const;
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
+  bool At( const Point& val, TemporalUnit<Point>& result,
+           const Geoid* geoid ) const;
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
+  void AtInterval( const Interval<Instant>& i,
+                   TemporalUnit<Point>& result,
+                   const Geoid* geoid ) const;
   void At(const Rectangle<2>& rect, UPoint& result) const;
-  void Distance( const Point& p, UReal& result, const Geoid* geoid = 0 ) const;
-  //  void UTrajectory( UPoint& unit,Line& line ) const;
+
+/*
+Computes the temporal distance to a Point ~p~. Result is a single unit.
+
+Only to be used with euclidean coordinate data!
+
+*/
+  void Distance( const Point& p, UReal& result ) const;
+
+
+/*
+Computes the temporal distance to a Point ~p~. All result units will be appended
+to the ~result~ vector of UReal values. If ~geoid~ in NULL, euclidean geometry is
+applied and only a single result unit is appended. Otherwise, spherical geometry
+is used ~result~ is appended with a series uf UReal units approximating the
+actual moving distance.
+
+UNDEFINED UReal values may be appended!.
+
+*/
+  void Distance( const Point& p, vector<UReal>& result,
+                 const Geoid* geoid = 0, const double epsilon = 0.00001 ) const;
+
+/*
+Computes the temporal distance to a Point ~p~ using an iterative method. The
+result is passed in output parameter ~result~. The vector may contain UNDEFINED
+units.
+
+The function works recursively. It is possible to pass down pre-computed data
+using parameters ~tMin~ (instant of nearest approach), ~distMin~ (distance at
+nearest approach), ~distStart~ (distance at initial instant of THIS unit),
+~distEnd~ (distance at final instant of THIS unit). Doing so avoids repeated
+calculation of these values. The default parameters make sure, that the values
+will be computed once.
+
+Computation stops, once the absolute distance difference between consecutive
+steps drops below ~epsilon~.
+
+*/
+  void DistanceOrthodrome( const Point& p, vector<UReal>& result,
+                           const Geoid geoid,
+                           const double epsilon  = 0.00001,
+                           const Instant* tMin   = 0,
+                           const double distMin  =-666.666,
+                           const double distStart=-666.666,
+                           const double distEnd  =-666.666            ) const;
+/*
+Computes the spatial projection of THIS UPoint.
+
+*/
   void UTrajectory( Line& line ) const;
 
-  // The scalar velocity as a temporal function
-  // If geoid = 0, metric (X.Y)-coordinates are used within the UPoint.
-  // If geoid points to a valid Geoid object, geografic coordinates (LON,LAT)
-  // are used within the UPoint.
+/*
+The scalar velocity as a temporal function
+If geoid = 0, metric (X,Y)-coordinates are used within the UPoint.
+If geoid points to a valid Geoid object, geografic coordinates (LON,LAT)
+are used within the UPoint. Speed is interpreted as speed over ground!
+
+*/
   void USpeed( UReal& result, const Geoid* geoid = 0 ) const;
 
-  // The vectorial velocity --- (X,Y)-components --- as temporal function
+/*
+The vectorial velocity --- (X,Y)-components --- as temporal function
+
+*/
   void UVelocity( UPoint& result ) const;
   void Intersection(const UPoint &other, UPoint &result) const;
 
@@ -3195,6 +3309,14 @@ ConstTempralUnit - Mappings.
 */
     void ExtendDefTime(Unit u, Mapping<Unit, Alpha>& result);
 
+/*
+type name used in Secondo
+
+*/
+  inline static const string BasicType()
+  {
+    return "m"+Alpha::BasicType();
+  }
 
 /*
 3.10.7 Attributes
@@ -3215,6 +3337,7 @@ array of intervals.
 A flag indicating whether the unit set is ordered or not.
 
 */
+
   protected:
     DbArray< Unit > units;
 /*
@@ -3551,7 +3674,7 @@ using a check on bbox.
   // The scalar velocity as a temporal function
   // If geoid = 0, metric (X.Y)-coordinates are used within the MPoint.
   // If geoid points to a valid Geoid object, geografic coordinates (LON,LAT)
-  // are used within the MPoint.
+  // are used within the MPoint (speed over ground).
   void MSpeed(  MReal& result, const Geoid* geoid = 0 ) const;
 
   // The vectorial velocity --- (X,Y)-components --- as temporal function
@@ -3954,14 +4077,14 @@ bool Interval<Alpha>::Inside( const Interval<Alpha>& i ) const
 }
 
 template <class Alpha>
-bool Interval<Alpha>::Contains( const Alpha& a, 
+bool Interval<Alpha>::Contains( const Alpha& a,
                                 const bool ignoreCloseness /* = false */ ) const
 {
   assert(this->IsValid());
   assert(a.IsDefined());
 
   bool lc = this->lc || ignoreCloseness;
-  bool rc = this->rc || ignoreCloseness; 
+  bool rc = this->rc || ignoreCloseness;
   return ( ( start.Compare( &a ) < 0 ||
              ( start.Compare( &a ) == 0 && lc ) ) &&
            ( end.Compare( &a ) > 0 ||
@@ -3970,7 +4093,7 @@ bool Interval<Alpha>::Contains( const Alpha& a,
 
 
 template <class Alpha>
-bool Interval<Alpha>::Contains( const Interval<Alpha>& i, 
+bool Interval<Alpha>::Contains( const Interval<Alpha>& i,
                                 const bool ignoreCloseness /* = false */ ) const
 {
   int cmp1 = start.CompareTo(&(i.start));
@@ -4134,9 +4257,9 @@ void Interval<Alpha>::IntersectionWith( const Interval<Alpha>& i){
      end = i.end;
      rc = i.rc;
   } else if(end == i.end){
-     rc = rc && i.rc; 
+     rc = rc && i.rc;
   }
-  
+
 
 
 }
@@ -4144,7 +4267,7 @@ void Interval<Alpha>::IntersectionWith( const Interval<Alpha>& i){
 
 
 template<class Alpha>
-void Interval<Alpha>::Union(const Interval<Alpha>& iv, 
+void Interval<Alpha>::Union(const Interval<Alpha>& iv,
                             Interval<Alpha> result) const{
 
    // set start
@@ -4195,8 +4318,8 @@ void Interval<Alpha>::Union(const Interval<Alpha>& iv) {
 
 
 template<class Alpha>
-int Interval<Alpha>::Minus(const Interval<Alpha>& iv, 
-                           Interval<Alpha>& res1, 
+int Interval<Alpha>::Minus(const Interval<Alpha>& iv,
+                           Interval<Alpha>& res1,
                            Interval<Alpha>& res2){
 
     if(iv.Before(*this)){
@@ -4224,7 +4347,7 @@ int Interval<Alpha>::Minus(const Interval<Alpha>& iv,
     // check for an remaining interval right of iv
     if( (end > iv.end) ||  ((end==iv.end) && rc && !iv.rc)){
         no++;
-        Interval<Alpha> 
+        Interval<Alpha>
         res = *this;
         if(start < iv.end){
           res.start = iv.end;
@@ -4238,7 +4361,7 @@ int Interval<Alpha>::Minus(const Interval<Alpha>& iv,
           res2 = res;
         }
     }
-    return  no; 
+    return  no;
 }
 
 
@@ -4491,7 +4614,7 @@ inline Range<Alpha>* Range<Alpha>::Clone() const
 template <class Alpha>
 inline ostream& Range<Alpha>::Print( ostream &os ) const
 {
-  os << "Rangetype: ";
+  os << Range<Alpha>::BasicType()<<": ";
   if( !IsDefined() ){
     os << "UNDEFINED.";
   } else {
@@ -4732,9 +4855,9 @@ Returns the index of the interval containing a, or -1 if not found
 
 */
 template<class Alpha>
-int Range<Alpha>::GetIndexOf(const Alpha& alpha, 
+int Range<Alpha>::GetIndexOf(const Alpha& alpha,
                              const bool ignoreCloseness /* = false */) const{
-  
+
   assert( IsDefined() );
   assert( IsValid() );
   assert( alpha.IsDefined() );
@@ -4760,7 +4883,7 @@ int Range<Alpha>::GetIndexOf(const Alpha& alpha,
     } else if( midInterval.After( alpha ) ) {
       last = mid - 1;
     } else {
-      return mid; 
+      return mid;
     }
   }
   return -1;
@@ -4773,7 +4896,7 @@ bool Range<Alpha>::Contains( const Alpha& a ) const
 }
 
 template<class Alpha>
-bool Range<Alpha>::Contains(const Interval<Alpha>&  iv, 
+bool Range<Alpha>::Contains(const Interval<Alpha>&  iv,
                             const bool ignoreCloseness /* = false */) const {
    int index = GetIndexOf(iv.start, ignoreCloseness);
    if(index < 0){
@@ -5000,7 +5123,7 @@ void Range<Alpha>::Intersection( const Interval<Alpha>& iv,
 1.1 Auxiliary class ParallelRangeScan
 
 This class makes an parallel Scan over two range values.
-The returned intevals are sorted by their starting time and 
+The returned intevals are sorted by their starting time and
 leftClosed properties. If two intervals start at the same
 time, the interval of r1 is the next result.
 
@@ -5026,8 +5149,8 @@ Both Ranges must be defined.
 /*
 1.1.2 ~next~
 
-If there is a next interval, it's returned using the parameter. In this case, the 
-result will be true. If both ranges are exhausted, the parameter is not changed 
+If there is a next interval, it's returned using the parameter. In this case, the
+result will be true. If both ranges are exhausted, the parameter is not changed
 and the result of this function is false
 
 */
@@ -5084,12 +5207,12 @@ void Range<Alpha>::Union(const Range<Alpha>& r, Range<Alpha>& result) const{
    if(IsEmpty()){
      result.CopyFrom(&r);
      return;
-   }  
+   }
    if(r.IsEmpty()){
       result.CopyFrom(this);
       return;
    }
-  
+
    // both ranges have elements
    Interval<Alpha> ivUnion; // current interval union
    Interval<Alpha> nextInterval;
@@ -5100,7 +5223,7 @@ void Range<Alpha>::Union(const Range<Alpha>& r, Range<Alpha>& result) const{
    assert(ok);
    while(scan.next(nextInterval)){
       if(nextInterval.Intersects(ivUnion)){
-        ivUnion.Union(nextInterval);  
+        ivUnion.Union(nextInterval);
       } else {
          result.MergeAdd(ivUnion);
          ivUnion = nextInterval;
@@ -5114,7 +5237,7 @@ void Range<Alpha>::Union(const Range<Alpha>& r, Range<Alpha>& result) const{
 
 
 template <class Alpha>
-void Range<Alpha>::Union( const Interval<Alpha>& iv, 
+void Range<Alpha>::Union( const Interval<Alpha>& iv,
                           Range<Alpha>& result ) const
 {
   Interval<Alpha> enlargedInterval(iv);
@@ -5123,9 +5246,9 @@ void Range<Alpha>::Union( const Interval<Alpha>& iv,
 
   result.Clear();
   for(int i=0;i< GetNoComponents;i++){
-     Get(i,tiv); 
+     Get(i,tiv);
      if(tiv.Before(iv) ){
-        result.Add(tiv);       
+        result.Add(tiv);
      } else if(tiv.After(enlargedInterval)){
         if(!done){
            result.Add(enlargedInterval);
@@ -5133,7 +5256,7 @@ void Range<Alpha>::Union( const Interval<Alpha>& iv,
         }
         result.Add(tiv);
      } else {
-       enlargedInterval = enlargedInterval.Union(tiv); 
+       enlargedInterval = enlargedInterval.Union(tiv);
      }
   }
   if(!done){
@@ -5511,7 +5634,7 @@ void Range<Alpha>::Minus( const Range<Alpha>& r, Range<Alpha>& result ) const
 
 
 template <class Alpha>
-void Range<Alpha>::Minus( const Interval<Alpha>& iv, 
+void Range<Alpha>::Minus( const Interval<Alpha>& iv,
                           Range<Alpha>& result ) const
 {
    Interval<Alpha> tiv;
@@ -5528,7 +5651,7 @@ void Range<Alpha>::Minus( const Interval<Alpha>& iv,
          int num = tiv.Minus(iv,iv_1,iv_2);
          if(num>0){
             result.Add(iv_1);
-         } 
+         }
          if(num>1){
             result.Add(iv_2);
          }
@@ -6097,9 +6220,10 @@ inline ostream& Mapping<Unit, Alpha>::Print( ostream &os ) const
 {
   if( !IsDefined() )
   {
-    return os << "(Mapping: undefined)";
+    return os << "("<< Mapping<Unit,Alpha>::BasicType() <<": undefined)";
   }
-  os << "(Mapping: defined, contains " << GetNoComponents() << " units: ";
+  os << "("<< Mapping<Unit,Alpha>::BasicType()
+     <<": defined, contains " << GetNoComponents() << " units: ";
   for(int i=0; i<GetNoComponents(); i++)
   {
     Unit unit;

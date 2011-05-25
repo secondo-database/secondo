@@ -416,15 +416,15 @@ int
 UnitSimpleSelect( ListExpr args )
 {
   ListExpr T = nl->First( args );
-  if( nl->SymbolValue( T ) == "ubool" )
+  if( nl->SymbolValue( T ) == UBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( T ) == "uint" )
+  if( nl->SymbolValue( T ) == UInt::BasicType() )
     return 1;
   if( nl->SymbolValue( T ) == UReal::BasicType() )
     return 2;
   if( nl->SymbolValue( T ) == UPoint::BasicType() )
     return 3;
-  if( nl->SymbolValue( T ) == "ustring" )
+  if( nl->SymbolValue( T ) == UString::BasicType() )
     return 4;
   if( nl->SymbolValue( T ) == URegion::BasicType() )
     return 5;
@@ -448,15 +448,15 @@ UnitCombinedUnitStreamSelect( ListExpr args )
 
   if (nl->IsAtom( arg1 ) )
     {
-      if( nl->SymbolValue( arg1 ) == "ubool" )
+      if( nl->SymbolValue( arg1 ) == UBool::BasicType() )
         return 0;
-      if( nl->SymbolValue( arg1 ) == "uint" )
+      if( nl->SymbolValue( arg1 ) == UInt::BasicType() )
         return 1;
       if( nl->SymbolValue( arg1 ) == UReal::BasicType() )
         return 2;
       if( nl->SymbolValue( arg1 ) == UPoint::BasicType() )
         return 3;
-      if( nl->SymbolValue( arg1 ) == "ustring" )
+      if( nl->SymbolValue( arg1 ) == UString::BasicType() )
         return 4;
       if( nl->SymbolValue( arg1 ) == URegion::BasicType() )
         return 5;
@@ -465,15 +465,15 @@ UnitCombinedUnitStreamSelect( ListExpr args )
   if(   !( nl->IsAtom( arg1 ) )
       && ( nl->ListLength(arg1) == 2 )
       && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-    { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
+    { if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
         return 6;
-      if( nl->IsEqual( nl->Second(arg1), "uint" ) )
+      if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
         return 7;
       if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
         return 8;
       if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
         return 9;
-      if( nl->IsEqual( nl->Second(arg1), "ustring" ) )
+      if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
         return 10;
       if( nl->IsEqual( nl->Second(arg1), URegion::BasicType() ) )
         return 11;
@@ -640,8 +640,8 @@ InstantTypeMapQueryrect2d( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "instant" )  )
-      return nl->SymbolAtom( "rect" );
+    if( nl->IsEqual( arg1, Instant::BasicType() )  )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -749,7 +749,7 @@ PeriodsTypeMapPoint2d( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "periods" )  )
+    if( nl->IsEqual( arg1, Periods::BasicType() )  )
       return nl->SymbolAtom( Point::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -846,8 +846,8 @@ PeriodsTypeMapGetDuration( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "periods" )  )
-      return nl->SymbolAtom( "duration" );
+    if( nl->IsEqual( arg1, Periods::BasicType() )  )
+      return nl->SymbolAtom( Duration::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -941,7 +941,7 @@ Type mapping for ~makemvalue~ is
               APPEND (i ti)
 
       NOT YET AVAILABLE DUE TO ERRORS:
-      stream (tuple ([x1:t1,x1:uregion,..,[xn:tn)))  ->  movingregion
+      stream (tuple ([x1:t1,x1:uregion,..,[xn:tn)))  ->  mregion
               APPEND (i ti)
 
 ----
@@ -960,14 +960,18 @@ ListExpr TU_TM_themvalue( ListExpr args )
 
   // quick check for signature (stream uT) --> mT
   nl->WriteToString(argstr, args);
-  if ( argstr == "((stream ubool))" )   return nl->SymbolAtom( "mbool" );
-  if ( argstr == "((stream uint))" )    return nl->SymbolAtom( "mint" );
+  if ( argstr == "((stream ubool))" )
+    return nl->SymbolAtom( MBool::BasicType() );
+  if ( argstr == "((stream uint))" )
+    return nl->SymbolAtom( MInt::BasicType() );
   if ( argstr == "((stream ureal))" )
     return nl->SymbolAtom( MReal::BasicType() );
   if ( argstr == "((stream upoint))" )
     return nl->SymbolAtom( MPoint::BasicType() );
-//if ( argstr == "((stream uregion))" ) return nl->SymbolAtom( "movingregion" );
-  if ( argstr == "((stream ustring))" ) return nl->SymbolAtom( "mstring" );
+//if ( argstr == "((stream uregion))" )
+//  return nl->SymbolAtom( MRegion::BasicType() );
+  if ( argstr == "((stream ustring))" )
+    return nl->SymbolAtom( MString::BasicType() );
 
   return nl->SymbolAtom( "typeerror" );
 }
@@ -1047,11 +1051,11 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     return listutils::typeError("attrbute not found");
   }
 
-  if((inputtype != "ubool") &&
-     (inputtype != "uint") &&
+  if((inputtype != UBool::BasicType()) &&
+     (inputtype != UInt::BasicType()) &&
      (inputtype != UReal::BasicType()) &&
      (inputtype != UPoint::BasicType()) &&
-     (inputtype != "ustring") &&
+     (inputtype != UString::BasicType()) &&
      (inputtype != "uset")){
     return listutils::typeError("attr type not in {ubool, uint,"
                                 " ustring, ureal, upoint, uset");
@@ -1063,18 +1067,18 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
   if( inputtype == UPoint::BasicType() )
     attrtype = nl->SymbolAtom( MPoint::BasicType() ) ;
-  if( inputtype == "ubool" )
-    attrtype = nl->SymbolAtom( "mbool" );
+  if( inputtype == UBool::BasicType() )
+    attrtype = nl->SymbolAtom( MBool::BasicType() );
   if( inputtype == UReal::BasicType() )
     attrtype = nl->SymbolAtom( MReal::BasicType() );
-  if( inputtype == "uint" )
-    attrtype = nl->SymbolAtom( "mint" );
-  if( inputtype == "ustring" )
-    attrtype = nl->SymbolAtom( "mstring" );
+  if( inputtype == UInt::BasicType() )
+    attrtype = nl->SymbolAtom( MInt::BasicType() );
+  if( inputtype == UString::BasicType() )
+    attrtype = nl->SymbolAtom( MString::BasicType() );
   if( inputtype == "uset" )
     attrtype = nl->SymbolAtom( "msset" );
 //if( inputtype == URegion::BasicType() )
-//  attrtype = nl->SymbolAtom( "movingregion");
+//  attrtype = nl->SymbolAtom( MRegion::BasicType());
 
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->TwoElemList(nl->IntAtom(j),
@@ -1177,7 +1181,7 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
 
   return 0;
 }
-// here comes the version for movingregion, where URegion has a rather
+// here comes the version for mregion, where URegion has a rather
 // ugly implementation and thus needs a specialized treatment!
 int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
                               Word& local,Supplier s)
@@ -1350,9 +1354,9 @@ MakemvalueSelect( ListExpr args )
      if (attrname == inputname)
          inputtype = argstr2;
   }
-  if( inputtype == "ubool" )   return 0;
-  if( inputtype == "uint" )    return 1;
-  if( inputtype == "ustring" ) return 2;
+  if( inputtype == UBool::BasicType() )   return 0;
+  if( inputtype == UInt::BasicType() )    return 1;
+  if( inputtype == UString::BasicType() ) return 2;
   if( inputtype == UReal::BasicType() )   return 3;
   if( inputtype == UPoint::BasicType() )  return 4;
   if( inputtype == URegion::BasicType() ) return 5;
@@ -1479,13 +1483,13 @@ UnitTypeMapPeriods( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-   if(  nl->IsEqual( arg1, "ubool" )  ||
-        nl->IsEqual( arg1, "uint" )   ||
+   if(  nl->IsEqual( arg1, UBool::BasicType() )  ||
+        nl->IsEqual( arg1, UInt::BasicType() )   ||
         nl->IsEqual( arg1, UReal::BasicType() )  ||
         nl->IsEqual( arg1, UPoint::BasicType() ) ||
-        nl->IsEqual( arg1, "ustring" ) ||
+        nl->IsEqual( arg1, UString::BasicType() ) ||
         nl->IsEqual( arg1, URegion::BasicType() ) )
-   return nl->SymbolAtom( "periods" );
+   return nl->SymbolAtom( Periods::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -1569,25 +1573,25 @@ UnitInstantTypeMapIntime( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) )
+    if( nl->IsEqual( arg2, Instant::BasicType() ) )
     {
-       if( nl->IsEqual( arg1, "ubool" ) )
-        return nl->SymbolAtom( "ibool" );
+       if( nl->IsEqual( arg1, UBool::BasicType() ) )
+        return nl->SymbolAtom( IBool::BasicType() );
 
-      if( nl->IsEqual( arg1, "uint" ) )
-        return nl->SymbolAtom( "iint" );
+      if( nl->IsEqual( arg1, UInt::BasicType() ) )
+        return nl->SymbolAtom( IInt::BasicType() );
 
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
-        return nl->SymbolAtom( "ireal" );
+        return nl->SymbolAtom( IReal::BasicType() );
 
       if( nl->IsEqual( arg1, UPoint::BasicType() ) )
-        return nl->SymbolAtom( "ipoint" );
+        return nl->SymbolAtom( IPoint::BasicType() );
 
-      if( nl->IsEqual( arg1, "ustring" ) )
-        return nl->SymbolAtom( "istring" );
+      if( nl->IsEqual( arg1, UString::BasicType() ) )
+        return nl->SymbolAtom( IString::BasicType() );
 
       if( nl->IsEqual( arg1, URegion::BasicType() ) )
-        return nl->SymbolAtom( "intimeregion" );
+        return nl->SymbolAtom( IRegion::BasicType() );
     }
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1685,7 +1689,7 @@ UnitPeriodsTypeMap( ListExpr args )
   arg2 = nl->Second( args );
 
   nl->WriteToString(argstr, arg2);
-  if ( !( nl->IsEqual( arg2, "periods" ) ) )
+  if ( !( nl->IsEqual( arg2, Periods::BasicType() ) ) )
     {
       ErrorReporter::ReportError("Operator atperiods expects a second argument"
                              " of type 'periods' but gets '" + argstr + "'.");
@@ -1694,21 +1698,21 @@ UnitPeriodsTypeMap( ListExpr args )
 
   if( nl->IsAtom( arg1 ) )
     {
-      if( nl->IsEqual( arg1, "ubool" ) )
+      if( nl->IsEqual( arg1, UBool::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-               nl->SymbolAtom("ubool"));
-      if( nl->IsEqual( arg1, "uint" ) )
+               nl->SymbolAtom(UBool::BasicType()));
+      if( nl->IsEqual( arg1, UInt::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-               nl->SymbolAtom("uint"));
+               nl->SymbolAtom(UInt::BasicType()));
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
                nl->SymbolAtom(UReal::BasicType()));
       if( nl->IsEqual( arg1, UPoint::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
                                nl->SymbolAtom(UPoint::BasicType()));
-      if( nl->IsEqual( arg1, "ustring" ) )
+      if( nl->IsEqual( arg1, UString::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-               nl->SymbolAtom("ustring"));
+               nl->SymbolAtom(UString::BasicType()));
       if( nl->IsEqual( arg1, URegion::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
                nl->SymbolAtom(URegion::BasicType()));
@@ -1734,21 +1738,21 @@ UnitPeriodsTypeMap( ListExpr args )
           return nl->SymbolAtom( "typeerror" );
         }
 
-      if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
+      if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("ubool"));
-      if( nl->IsEqual( nl->Second(arg1), "uint" ) )
+                               nl->SymbolAtom(UBool::BasicType()));
+      if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->SymbolAtom("uint"));
+                               nl->SymbolAtom(UInt::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
          return nl->TwoElemList(nl->SymbolAtom("stream"),
                                 nl->SymbolAtom(UReal::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
          return nl->TwoElemList(nl->SymbolAtom("stream"),
                                  nl->SymbolAtom(UPoint::BasicType()));
-      if( nl->IsEqual( nl->Second(arg1), "ustring" ) )
+      if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
          return nl->TwoElemList(nl->SymbolAtom("stream"),
-                                 nl->SymbolAtom("ustring"));
+                                 nl->SymbolAtom(UString::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), URegion::BasicType() ) )
          return nl->TwoElemList(nl->SymbolAtom("stream"),
                                  nl->SymbolAtom(URegion::BasicType()));
@@ -2131,23 +2135,23 @@ UnitTypeMapIntime( ListExpr args )
           return nl->SymbolAtom( "typeerror" );
         }
 
-      if( nl->IsEqual( t, "ubool" ) )
-        return nl->SymbolAtom( "ibool" );
+      if( nl->IsEqual( t, UBool::BasicType() ) )
+        return nl->SymbolAtom( IBool::BasicType() );
 
-      if( nl->IsEqual( t, "uint" ) )
-        return nl->SymbolAtom( "iint" );
+      if( nl->IsEqual( t, UInt::BasicType() ) )
+        return nl->SymbolAtom( IInt::BasicType() );
 
       if( nl->IsEqual( t, UReal::BasicType() ) )
-        return nl->SymbolAtom( "ireal" );
+        return nl->SymbolAtom( IReal::BasicType() );
 
       if( nl->IsEqual( t, UPoint::BasicType() ) )
-        return nl->SymbolAtom( "ipoint" );
+        return nl->SymbolAtom( IPoint::BasicType() );
 
-      if( nl->IsEqual( t, "ustring" ) )
-        return nl->SymbolAtom( "istring" );
+      if( nl->IsEqual( t, UString::BasicType() ) )
+        return nl->SymbolAtom( IString::BasicType() );
 
       if( nl->IsEqual( t, URegion::BasicType() ) )
-        return nl->SymbolAtom( "intimeregion" );
+        return nl->SymbolAtom( IRegion::BasicType() );
     }
   else
     ErrorReporter::ReportError
@@ -2379,14 +2383,14 @@ UnitInstantPeriodsTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) ||
-        nl->IsEqual( arg2, "periods" ) )
+    if( nl->IsEqual( arg2, Instant::BasicType() ) ||
+        nl->IsEqual( arg2, Periods::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "ubool" )  ||
-          nl->IsEqual( arg1, "uint" )   ||
+      if( nl->IsEqual( arg1, UBool::BasicType() )  ||
+          nl->IsEqual( arg1, UInt::BasicType() )   ||
           nl->IsEqual( arg1, UReal::BasicType() )  ||
           nl->IsEqual( arg1, UPoint::BasicType())  ||
-          nl->IsEqual( arg1, "ustring") ||
+          nl->IsEqual( arg1, UString::BasicType()) ||
           nl->IsEqual( arg1, URegion::BasicType())    )
 
         return nl->SymbolAtom( CcBool::BasicType() );
@@ -2473,54 +2477,54 @@ UnitInstantPeriodsSelect( ListExpr args )
 
   // instant versions:
 
-  if( nl->SymbolValue( arg1 ) == "ubool" &&
-      nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType() &&
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "uint" &&
-     nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() &&
+     nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 1;
 
   if( nl->SymbolValue( arg1 ) == UReal::BasicType() &&
-      nl->SymbolValue( arg2 ) == "instant" )
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 2;
 
   if( nl->SymbolValue( arg1 ) == UPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == "instant" )
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "ustring" &&
-      nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == UString::BasicType() &&
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 4;
 
   if( nl->SymbolValue( arg1 ) == URegion::BasicType() &&
-      nl->SymbolValue( arg2 ) == "instant" )
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 5;
 
   // periods versions:
 
-  if( nl->SymbolValue( arg1 ) == "ubool" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType() &&
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "uint" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() &&
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 7;
 
   if( nl->SymbolValue( arg1 ) == UReal::BasicType() &&
-      nl->SymbolValue( arg2 ) == "periods" )
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 8;
 
   if( nl->SymbolValue( arg1 ) == UPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == "periods" )
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 9;
 
-  if( nl->SymbolValue( arg1 ) == "ustring" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == UString::BasicType() &&
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 10;
 
   if( nl->SymbolValue( arg1 ) == URegion::BasicType() &&
-      nl->SymbolValue( arg2 ) == "periods" )
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 11;
 
 
@@ -2569,16 +2573,16 @@ UnitBaseTypeMapBool( ListExpr args )
     if( ((nl->IsEqual( arg1, UPoint::BasicType() )
       && nl->IsEqual( arg2, Point::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
-    if( ((nl->IsEqual( arg1, "uint" )
+    if( ((nl->IsEqual( arg1, UInt::BasicType() )
       && nl->IsEqual( arg2, CcInt::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
-    if( ((nl->IsEqual( arg1, "ubool" )
+    if( ((nl->IsEqual( arg1, UBool::BasicType() )
       && nl->IsEqual( arg2, CcBool::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
     if( ((nl->IsEqual( arg1, UReal::BasicType() )
       && nl->IsEqual( arg2, CcReal::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
-    if( ((nl->IsEqual( arg1, "ustring" )
+    if( ((nl->IsEqual( arg1, UString::BasicType() )
       && nl->IsEqual( arg2, CcString::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
     if( ((nl->IsEqual( arg1, URegion::BasicType() )
@@ -2633,11 +2637,11 @@ TUPassesSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "ubool" &&
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType() &&
       nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "uint" &&
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() &&
       nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 1;
 
@@ -2649,7 +2653,7 @@ TUPassesSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "ustring" &&
+  if( nl->SymbolValue( arg1 ) == UString::BasicType() &&
       nl->SymbolValue( arg2 ) == CcString::BasicType() )
     return 4;
 
@@ -2942,9 +2946,9 @@ TypeMapDerivable( ListExpr args )
       arg1 = nl->First( args );
 
       if( nl->IsEqual( arg1, MReal::BasicType() ) )
-        return nl->SymbolAtom( "mbool" );
+        return nl->SymbolAtom( MBool::BasicType() );
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
-        return nl->SymbolAtom( "ubool" );
+        return nl->SymbolAtom( UBool::BasicType() );
     }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -3288,19 +3292,22 @@ TypeMapTemporalUnitDistance( ListExpr args )
                                nl->SymbolAtom( UReal::BasicType() ));
     }
 
-  if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "uint") )
+  if( nl->IsEqual(first, UInt::BasicType())
+    && nl->IsEqual(second, UInt::BasicType()) )
     {
       return nl->SymbolAtom(UReal::BasicType());
     }
 
-  if( nl->IsEqual(first, "uint") && nl->IsEqual(second, CcInt::BasicType()) )
+  if( nl->IsEqual(first, UInt::BasicType())
+    && nl->IsEqual(second, CcInt::BasicType()) )
     {
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                                nl->OneElemList(nl->IntAtom(0)),
                                nl->SymbolAtom( UReal::BasicType() ));
     }
 
-  if( nl->IsEqual(first, CcInt::BasicType()) && nl->IsEqual(second, "uint") )
+  if( nl->IsEqual(first, CcInt::BasicType())
+    && nl->IsEqual(second, UInt::BasicType()) )
     {
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                                nl->OneElemList(nl->IntAtom(1)),
@@ -3375,13 +3382,13 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   else
     { // get intersection of deftime intervals
 #ifdef TUA_DEBUG
-      cout << "TUDistance_UPoint_UPoint:" << endl
+      cout << __PRETTY_FUNCTION__ << ":" << endl
            << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << endl
            << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << endl;
 #endif
       u1->timeInterval.Intersection( u2->timeInterval, iv );
 #ifdef TUA_DEBUG
-      cout << "TUDistance_UPoint_UPoint: iv="
+      cout << __PRETTY_FUNCTION__ << ": iv="
            << TUPrintTimeInterval(iv) << endl;
 #endif
       // calculate result
@@ -3770,15 +3777,16 @@ int temporalunitDistanceSelect( ListExpr args )
     && nl->IsEqual(second, UPoint::BasicType()) )
     return 1;
 
-  else if( nl->IsEqual(first, "uint") && nl->IsEqual(second, "uint") )
+  else if( nl->IsEqual(first, UInt::BasicType())
+    && nl->IsEqual(second, UInt::BasicType()) )
     return 2;
 
-  else if( nl->IsEqual(first, "uint")
+  else if( nl->IsEqual(first, UInt::BasicType())
     && nl->IsEqual(second, CcInt::BasicType()) )
     return 3;
 
   else if( nl->IsEqual(first, CcInt::BasicType())
-    && nl->IsEqual(second, "uint") )
+    && nl->IsEqual(second, UInt::BasicType()) )
     return 3;
 
   else if( nl->IsEqual(first, UReal::BasicType())
@@ -3835,12 +3843,12 @@ UnitBaseTypeMapAtmax( ListExpr args )
     {
       arg1 = nl->First( args );
 
-      if( nl->IsEqual( arg1, "ubool" ) )
-        return nl->SymbolAtom( "ubool" );
-      if( nl->IsEqual( arg1, "uint" ) )
-        return nl->SymbolAtom( "uint" );
-      if( nl->IsEqual( arg1, "ustring" ) )
-        return nl->SymbolAtom( "ustring" );
+      if( nl->IsEqual( arg1, UBool::BasicType() ) )
+        return nl->SymbolAtom( UBool::BasicType() );
+      if( nl->IsEqual( arg1, UInt::BasicType() ) )
+        return nl->SymbolAtom( UInt::BasicType() );
+      if( nl->IsEqual( arg1, UString::BasicType() ) )
+        return nl->SymbolAtom( UString::BasicType() );
       // for ureal, atmax/atmin will return a stream of ureals!
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
@@ -3986,11 +3994,11 @@ int temporalunitAtmaxSelect( ListExpr args )
     {
       arg1 = nl->First( args );
 
-      if( nl->IsEqual( arg1, "ubool" ) )
+      if( nl->IsEqual( arg1, UBool::BasicType() ) )
         return 0;
-      if( nl->IsEqual( arg1, "uint" ) )
+      if( nl->IsEqual( arg1, UInt::BasicType() ) )
         return 1;
-      if( nl->IsEqual( arg1, "ustring" ) )
+      if( nl->IsEqual( arg1, UString::BasicType() ) )
         return 2;
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
         return 3;
@@ -4213,9 +4221,9 @@ ListExpr TU_TM_Abs( ListExpr args )
 
   first = nl->First(args);
 
-  if( nl->IsEqual(first, "uint") )
+  if( nl->IsEqual(first, UInt::BasicType()) )
   {
-    return nl->SymbolAtom("uint");
+    return nl->SymbolAtom(UInt::BasicType());
   }
 
   if( nl->IsEqual(first, UReal::BasicType()) )
@@ -4359,7 +4367,7 @@ const string TU_Spec_Abs  =
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "uint" )
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() )
     return 0;
 
   if( nl->SymbolValue( arg1 ) == UReal::BasicType() )
@@ -4462,32 +4470,32 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
       // First case: uT uT -> stream uT
       if (nl->Equal( arg1, arg2 ))
         {
-          if( nl->IsEqual( arg1, "ubool" ) )
+          if( nl->IsEqual( arg1, UBool::BasicType() ) )
             return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                    nl->SymbolAtom( "ubool" ));
-          if( nl->IsEqual( arg1, "uint" ) )
+                                    nl->SymbolAtom( UBool::BasicType() ));
+          if( nl->IsEqual( arg1, UInt::BasicType() ) )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                   nl->SymbolAtom( "uint" ));
+                                   nl->SymbolAtom( UInt::BasicType() ));
           if( nl->IsEqual( arg1, UReal::BasicType() ) )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                    nl->SymbolAtom( UReal::BasicType() ));
           if( nl->IsEqual( arg1, UPoint::BasicType() ) )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                    nl->SymbolAtom( UPoint::BasicType() ));
-          if( nl->IsEqual( arg1, "ustring" ) )
+          if( nl->IsEqual( arg1, UString::BasicType() ) )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                   nl->SymbolAtom( "ustring" ));
+                                   nl->SymbolAtom( UString::BasicType() ));
         }
 
       // Second case: uT T -> stream uT
-      if( nl->IsEqual( arg1, "ubool" )
+      if( nl->IsEqual( arg1, UBool::BasicType() )
         && nl->IsEqual( arg2, CcBool::BasicType()) )
         return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "ubool" ));
-      if( nl->IsEqual( arg1, "uint" )
+                                nl->SymbolAtom( UBool::BasicType() ));
+      if( nl->IsEqual( arg1, UInt::BasicType() )
         && nl->IsEqual( arg2, CcInt::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "uint" ));
+                               nl->SymbolAtom( UInt::BasicType() ));
       if( nl->IsEqual( arg1, UReal::BasicType() )
         && nl->IsEqual( arg2, CcReal::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
@@ -4496,20 +4504,20 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
         && nl->IsEqual( arg2, Point::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                nl->SymbolAtom( UPoint::BasicType() ));
-      if( nl->IsEqual( arg1, "ustring" )
+      if( nl->IsEqual( arg1, UString::BasicType() )
         && nl->IsEqual( arg2, CcString::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ustring" ));
+                               nl->SymbolAtom( UString::BasicType() ));
 
       // Third case: T uT -> stream uT
       if( nl->IsEqual( arg1, CcBool::BasicType() )
-        && nl->IsEqual( arg2, "ubool") )
+        && nl->IsEqual( arg2, UBool::BasicType()) )
         return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "ubool" ));
+                                nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, CcInt::BasicType() )
-        && nl->IsEqual( arg2, "uint") )
+        && nl->IsEqual( arg2, UInt::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "uint" ));
+                               nl->SymbolAtom( UInt::BasicType() ));
       if( nl->IsEqual( arg1, CcReal::BasicType() )
         && nl->IsEqual( arg2, UReal::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
@@ -4519,9 +4527,9 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                nl->SymbolAtom( UPoint::BasicType() ));
       if( nl->IsEqual( arg1, CcString::BasicType() )
-        && nl->IsEqual( arg2, "ustring") )
+        && nl->IsEqual( arg2, UString::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ustring" ));
+                               nl->SymbolAtom( UString::BasicType() ));
 
       // Fourth case: upoint line -> stream upoint
       if( nl->IsEqual( arg1, UPoint::BasicType() )
@@ -6352,38 +6360,38 @@ int temporalunitIntersectionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if( nl->IsEqual( arg1, "ubool" )   &&
-      nl->IsEqual( arg2, "ubool") )   return 0;
-  if( nl->IsEqual( arg1, "uint" )    &&
-      nl->IsEqual( arg2, "uint" ) )    return 1;
+  if( nl->IsEqual( arg1, UBool::BasicType() )   &&
+      nl->IsEqual( arg2, UBool::BasicType()) )   return 0;
+  if( nl->IsEqual( arg1, UInt::BasicType() )    &&
+      nl->IsEqual( arg2, UInt::BasicType() ) )    return 1;
   if( nl->IsEqual( arg1, UReal::BasicType() )   &&
       nl->IsEqual( arg2, UReal::BasicType() ) )   return 2;
   if( nl->IsEqual( arg1, UPoint::BasicType() )  &&
       nl->IsEqual( arg2, UPoint::BasicType() ) )  return 3;
-  if( nl->IsEqual( arg1, "ustring" ) &&
-      nl->IsEqual( arg2, "ustring" ) ) return 4;
+  if( nl->IsEqual( arg1, UString::BasicType() ) &&
+      nl->IsEqual( arg2, UString::BasicType() ) ) return 4;
 
-  if( nl->IsEqual( arg1, "ubool" )   &&
+  if( nl->IsEqual( arg1, UBool::BasicType() )   &&
       nl->IsEqual( arg2, CcBool::BasicType() ))     return 5;
-  if( nl->IsEqual( arg1, "uint" )    &&
+  if( nl->IsEqual( arg1, UInt::BasicType() )    &&
       nl->IsEqual( arg2, CcInt::BasicType() ))      return 6;
   if( nl->IsEqual( arg1, UReal::BasicType() )   &&
       nl->IsEqual( arg2, CcReal::BasicType() ))     return 7;
   if( nl->IsEqual( arg1, UPoint::BasicType() )  &&
       nl->IsEqual( arg2, Point::BasicType()  ) )  return 8;
-  if( nl->IsEqual( arg1, "ustring" ) &&
+  if( nl->IsEqual( arg1, UString::BasicType() ) &&
       nl->IsEqual( arg2, CcString::BasicType() ))   return 9;
 
-  if( nl->IsEqual( arg2, "ubool" )   &&
+  if( nl->IsEqual( arg2, UBool::BasicType() )   &&
       nl->IsEqual( arg1, CcBool::BasicType() ))     return 10;
-  if( nl->IsEqual( arg2, "uint" )    &&
+  if( nl->IsEqual( arg2, UInt::BasicType() )    &&
       nl->IsEqual( arg1, CcInt::BasicType() ))      return 11;
   if( nl->IsEqual( arg2, UReal::BasicType() )   &&
       nl->IsEqual( arg1, CcReal::BasicType() ))     return 12;
   if( nl->IsEqual( arg2, UPoint::BasicType() )  &&
       nl->IsEqual( arg1, Point::BasicType() ))    return 13;
-  if( nl->IsEqual( arg2, "ustring" ) &&
-      nl->IsEqual( arg1, "ustring" ))  return 14;
+  if( nl->IsEqual( arg2, UString::BasicType() ) &&
+      nl->IsEqual( arg1, UString::BasicType() ))  return 14;
 
   if( nl->IsEqual( arg1, UPoint::BasicType() )    &&
       nl->IsEqual( arg2, Line::BasicType() ))       return 15;
@@ -6454,14 +6462,14 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
 #ifdef TUA_DEBUG
     cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
 #endif
-    if( nl->IsEqual( arg1, "ubool" )
+    if( nl->IsEqual( arg1, UBool::BasicType() )
       && nl->IsEqual( arg2, CcBool::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                             nl->SymbolAtom( "ubool" ));
-    if( nl->IsEqual( arg1, "uint" )
+                             nl->SymbolAtom( UBool::BasicType() ));
+    if( nl->IsEqual( arg1, UInt::BasicType() )
       && nl->IsEqual( arg2, CcInt::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                             nl->SymbolAtom( "uint" ));
+                             nl->SymbolAtom( UInt::BasicType() ));
     if( nl->IsEqual( arg1, UPoint::BasicType() )
       && nl->IsEqual( arg2, Point::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
@@ -6471,10 +6479,10 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
       && nl->IsEqual( arg2, CcReal::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                              nl->SymbolAtom( UReal::BasicType() ));
-    if( nl->IsEqual( arg1, "ustring" )
+    if( nl->IsEqual( arg1, UString::BasicType() )
       && nl->IsEqual( arg2, CcString::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                             nl->SymbolAtom( "ustring" ));
+                             nl->SymbolAtom( UString::BasicType() ));
     if( nl->IsEqual( arg1, URegion::BasicType() )
       && nl->IsEqual( arg2, Region::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
@@ -6484,7 +6492,7 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                              nl->SymbolAtom( UPoint::BasicType() ));
     if( nl->IsEqual( arg1, UPoint::BasicType() )
-      && nl->IsEqual( arg2, "rect" ) )
+      && nl->IsEqual( arg2, Rectangle<2>::BasicType() ) )
       return nl->SymbolAtom( UPoint::BasicType() );
   }
 #ifdef TUA_DEBUG
@@ -6544,11 +6552,11 @@ TUSelectAt( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "ubool" &&
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType() &&
       nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "uint" &&
+  if( nl->SymbolValue( arg1 ) == UInt::BasicType() &&
       nl->SymbolValue( arg2 ) == CcInt::BasicType() )
     return 1;
 
@@ -6560,7 +6568,7 @@ TUSelectAt( ListExpr args )
       nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "ustring" &&
+  if( nl->SymbolValue( arg1 ) == UString::BasicType() &&
       nl->SymbolValue( arg2 ) == CcString::BasicType() )
     return 4;
 
@@ -6573,7 +6581,7 @@ TUSelectAt( ListExpr args )
     return 6;
 
   if( nl->SymbolValue( arg1 ) == UPoint::BasicType() &&
-      nl->SymbolValue( arg2 ) == "rect" )
+      nl->SymbolValue( arg2 ) == Rectangle<2>::BasicType() )
     return 7;
 
   return -1; // This point should never be reached
@@ -6626,18 +6634,18 @@ static ListExpr TUNoComponentsTypeMap(ListExpr args) {
 
   if (nl->ListLength(args) == 1)
     {
-      if (nl->IsEqual(nl->First(args), "ubool"))
-        return nl->SymbolAtom("uint");
-      if (nl->IsEqual(nl->First(args), "uint"))
-        return nl->SymbolAtom("uint");
+      if (nl->IsEqual(nl->First(args), UBool::BasicType()))
+        return nl->SymbolAtom(UInt::BasicType());
+      if (nl->IsEqual(nl->First(args), UInt::BasicType()))
+        return nl->SymbolAtom(UInt::BasicType());
       if (nl->IsEqual(nl->First(args), UReal::BasicType()))
-        return nl->SymbolAtom("uint");
-      if (nl->IsEqual(nl->First(args), "ustring"))
-        return nl->SymbolAtom("uint");
+        return nl->SymbolAtom(UInt::BasicType());
+      if (nl->IsEqual(nl->First(args), UString::BasicType()))
+        return nl->SymbolAtom(UInt::BasicType());
       if (nl->IsEqual(nl->First(args), UPoint::BasicType()))
-        return nl->SymbolAtom("uint");
+        return nl->SymbolAtom(UInt::BasicType());
       if (nl->IsEqual(nl->First(args), URegion::BasicType()))
-        return nl->SymbolAtom("uint");
+        return nl->SymbolAtom(UInt::BasicType());
     }
   return nl->SymbolAtom("typeerror");
 }
@@ -6819,8 +6827,8 @@ TUNotTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "ubool" )  )
-      return nl->SymbolAtom( "ubool" );
+    if( nl->IsEqual( arg1, UBool::BasicType() )  )
+      return nl->SymbolAtom( UBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -6912,19 +6920,19 @@ ListExpr TUBinaryBoolFuncTypeMap( ListExpr args )
       ListExpr arg2 = nl->Second( args );
 
       // First case: ubool ubool -> ubool
-      if ( nl->IsEqual( arg1, "ubool" )
-        && nl->IsEqual( arg2, "ubool" ) )
-        return nl->SymbolAtom("ubool");
+      if ( nl->IsEqual( arg1, UBool::BasicType() )
+        && nl->IsEqual( arg2, UBool::BasicType() ) )
+        return nl->SymbolAtom(UBool::BasicType());
 
       // Second case: ubool bool -> ubool
-      if( nl->IsEqual( arg1, "ubool" )
+      if( nl->IsEqual( arg1, UBool::BasicType() )
         && nl->IsEqual( arg2, CcBool::BasicType()) )
-        return nl->SymbolAtom("ubool");
+        return nl->SymbolAtom(UBool::BasicType());
 
       // Third case: bool ubool -> ubool
       if( nl->IsEqual( arg1, CcBool::BasicType() )
-        && nl->IsEqual( arg2, "ubool") )
-        return nl->SymbolAtom("ubool");
+        && nl->IsEqual( arg2, UBool::BasicType()) )
+        return nl->SymbolAtom(UBool::BasicType());
 
       // Error case:
       string argstr1, argstr2;
@@ -7099,14 +7107,14 @@ int TUBinaryBoolFuncSelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "ubool"
-   && nl->SymbolValue( arg2 ) == "ubool" )
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType()
+   && nl->SymbolValue( arg2 ) == UBool::BasicType() )
     return 0;
-  if( nl->SymbolValue( arg1 ) == "ubool"
+  if( nl->SymbolValue( arg1 ) == UBool::BasicType()
    && nl->SymbolValue( arg2 ) == CcBool::BasicType() )
     return 1;
   if( nl->SymbolValue( arg1 ) == CcBool::BasicType()
-   && nl->SymbolValue( arg2 ) == "ubool" )
+   && nl->SymbolValue( arg2 ) == UBool::BasicType() )
     return 2;
 
   return -1; // This point should never be reached
@@ -7193,9 +7201,9 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
       ListExpr arg2 = nl->Second( args );
       if (nl->Equal( arg1, arg2 ))
         {
-          if( (nl->IsEqual( arg1, "ubool" ) )   ||
-              (nl->IsEqual( arg1, "uint" ) )    ||
-              (nl->IsEqual( arg1, "ustring" ) ) ||
+          if( (nl->IsEqual( arg1, UBool::BasicType() ) )   ||
+              (nl->IsEqual( arg1, UInt::BasicType() ) )    ||
+              (nl->IsEqual( arg1, UString::BasicType() ) ) ||
               (nl->IsEqual( arg1, UReal::BasicType() ) )   ||
               (nl->IsEqual( arg1, URegion::BasicType() ) ) ||
               (nl->IsEqual( arg1, UPoint::BasicType() ) ) )
@@ -7440,7 +7448,7 @@ ListExpr TUuint2urealTypeMap( ListExpr args )
   if( nl->ListLength( args ) == 1 )
     {
       ListExpr arg1 = nl->First( args );
-      if( nl->IsEqual( arg1, "uint" ) )
+      if( nl->IsEqual( arg1, UInt::BasicType() ) )
         return nl->SymbolAtom(UReal::BasicType());
       // Error case:
       string argstr1;
@@ -7543,19 +7551,19 @@ ListExpr TemporalUnitInsideTypeMap( ListExpr args )
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, URegion::BasicType()) )
         return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "ubool" ));
+                                nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Line::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ubool" ));
+                               nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Points::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ubool" ));
+                               nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, URegion::BasicType() )
         && nl->IsEqual( arg2, Points::BasicType()) )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ubool" ));
+                               nl->SymbolAtom( UBool::BasicType() ));
     }
 
   // Error case:
@@ -7834,7 +7842,7 @@ ListExpr TemporalUnitBoolAggrTypeMap( ListExpr args )
           return nl->SymbolAtom( "typeerror" );
         }
 
-      if( nl->IsEqual( t, "ubool" ) )
+      if( nl->IsEqual( t, UBool::BasicType() ) )
         return nl->SymbolAtom( CcBool::BasicType() );
     }
   nl->WriteToString(argstr, args);
@@ -7917,12 +7925,12 @@ TemporalUnitBoolAggrSelect( ListExpr args )
   ListExpr arg1 = nl->First( args );
 
   if (nl->IsAtom( arg1 ) )
-    if( nl->SymbolValue( arg1 ) == "ubool" )
+    if( nl->SymbolValue( arg1 ) == UBool::BasicType() )
       return 0;
   if(   !( nl->IsAtom( arg1 ) )
       && ( nl->ListLength(arg1) == 2 )
       && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
-    { if( nl->IsEqual( nl->Second(arg1), "ubool" ) )
+    { if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
         return 1;
     }
   cerr << "Problem in TemporalUnitBoolAggrSelect!";
@@ -8178,19 +8186,19 @@ ListExpr TU_TM_TheUnit( ListExpr args )
     return nl->SymbolAtom( UReal::BasicType() );
 
   if (argstr == "(bool instant instant bool bool)")
-    return nl->SymbolAtom( "ubool" );
+    return nl->SymbolAtom( UBool::BasicType() );
   if (argstr == "(ibool duration bool bool)")
-    return nl->SymbolAtom( "ubool" );
+    return nl->SymbolAtom( UBool::BasicType() );
 
   if (argstr == "(int instant instant bool bool)")
-    return nl->SymbolAtom( "uint" );
+    return nl->SymbolAtom( UInt::BasicType() );
   if (argstr == "(iint duration bool bool)")
-    return nl->SymbolAtom( "uint" );
+    return nl->SymbolAtom( UInt::BasicType() );
 
   if (argstr == "(string instant instant bool bool)")
-    return nl->SymbolAtom( "ustring" );
+    return nl->SymbolAtom( UString::BasicType() );
   if (argstr == "(istring duration bool bool)")
-    return nl->SymbolAtom( "ustring" );
+    return nl->SymbolAtom( UString::BasicType() );
 
   ErrorReporter::ReportError
     ("Operator 'the_unit' expects a list with structure\n"
@@ -8515,17 +8523,17 @@ ListExpr TU_TM_TheIvalue( ListExpr args )
   nl->WriteToString(argstr, args);
   // cerr << argstr << endl;
   if (argstr == "(instant bool)")
-    return nl->SymbolAtom( "ibool" );
+    return nl->SymbolAtom( IBool::BasicType() );
   if (argstr == "(instant int)")
-    return nl->SymbolAtom( "iint" );
+    return nl->SymbolAtom( IInt::BasicType() );
   if (argstr == "(instant string)")
-    return nl->SymbolAtom( "istring" );
+    return nl->SymbolAtom( IString::BasicType() );
   if (argstr == "(instant real)")
-    return nl->SymbolAtom( "ireal" );
+    return nl->SymbolAtom( IReal::BasicType() );
   if (argstr == "(instant point)")
-    return nl->SymbolAtom( "ipoint" );
+    return nl->SymbolAtom( IPoint::BasicType() );
   if (argstr == "(instant region)")
-    return nl->SymbolAtom( "intimeregion" );
+    return nl->SymbolAtom( IRegion::BasicType() );
 
   ErrorReporter::ReportError
     ("Operator 'the_ivalue' expects a list with structure "
@@ -8665,35 +8673,35 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
       arg2 = nl->Second( args );
       if (nl->Equal( arg1, arg2 ))
         {
-          if( (nl->IsEqual( arg1, "ubool" ) )   ||
-              (nl->IsEqual( arg1, "uint" ) )    ||
+          if( (nl->IsEqual( arg1, UBool::BasicType() ) )   ||
+              (nl->IsEqual( arg1, UInt::BasicType() ) )    ||
               (nl->IsEqual( arg1, UReal::BasicType() ) )   ||
-              (nl->IsEqual( arg1, "ustring" ) )
+              (nl->IsEqual( arg1, UString::BasicType() ) )
             )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "ubool" ));
+                                nl->SymbolAtom( UBool::BasicType() ));
         }
       else if
         (
-         ((nl->IsEqual( arg1, "ubool" ))
+         ((nl->IsEqual( arg1, UBool::BasicType() ))
          && (nl->IsEqual( arg2, CcBool::BasicType() )))   ||
-         ((nl->IsEqual( arg1, "uint" ))
+         ((nl->IsEqual( arg1, UInt::BasicType() ))
          && (nl->IsEqual( arg2, CcInt::BasicType() )))    ||
          ((nl->IsEqual( arg1, UReal::BasicType() ))
          && (nl->IsEqual( arg2, CcReal::BasicType() )))   ||
-         ((nl->IsEqual( arg1, "ustring" ))
+         ((nl->IsEqual( arg1, UString::BasicType() ))
          && (nl->IsEqual( arg2, CcString::BasicType() ))) ||
          ((nl->IsEqual( arg1, CcBool::BasicType() ))
-         && (nl->IsEqual( arg2, "ubool" )))  ||
+         && (nl->IsEqual( arg2, UBool::BasicType() )))  ||
          ((nl->IsEqual( arg1, CcInt::BasicType() ))
-         && (nl->IsEqual( arg2, "uint" )))   ||
+         && (nl->IsEqual( arg2, UInt::BasicType() )))   ||
          ((nl->IsEqual( arg1, CcReal::BasicType() ))
          && (nl->IsEqual( arg2, UReal::BasicType() )))  ||
          ((nl->IsEqual( arg1, CcString::BasicType() ))
-         && (nl->IsEqual( arg2, "ustring" )))
+         && (nl->IsEqual( arg2, UString::BasicType() )))
         )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ubool" ));
+                               nl->SymbolAtom( UBool::BasicType() ));
     }
   // Error case:
   ErrorReporter::ReportError(
@@ -8712,14 +8720,14 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
       arg2 = nl->Second( args );
       if (nl->Equal( arg1, arg2 ))
         {
-          if( (nl->IsEqual( arg1, "ubool" ) )   ||
-              (nl->IsEqual( arg1, "uint" ) )    ||
+          if( (nl->IsEqual( arg1, UBool::BasicType() ) )   ||
+              (nl->IsEqual( arg1, UInt::BasicType() ) )    ||
               (nl->IsEqual( arg1, UReal::BasicType() ) )   ||
-              (nl->IsEqual( arg1, "ustring" )   ||
+              (nl->IsEqual( arg1, UString::BasicType() )   ||
               (nl->IsEqual( arg1, UPoint::BasicType() ) )   ||
               (nl->IsEqual( arg1, URegion::BasicType() ) ) ) )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                                nl->SymbolAtom( "ubool" ));
+                                nl->SymbolAtom( UBool::BasicType() ));
         }
       string argstr;
       nl->WriteToString(argstr, args);
@@ -8729,7 +8737,7 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
           argstr == "(real ureal)"     || argstr == "(ureal real)"     ||
           argstr == "(point upoint)"   || argstr == "(upoint point)")
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                               nl->SymbolAtom( "ubool" ));
+                               nl->SymbolAtom( UBool::BasicType() ));
     }
 // Error case:
   ErrorReporter::ReportError(
@@ -9913,7 +9921,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
        return nl->SymbolAtom( "typeerror" );
      }
 
-  if( !nl->IsAtom(duration) || !nl->IsEqual(duration, "duration"))
+  if( !nl->IsAtom(duration) || !nl->IsEqual(duration, Duration::BasicType()))
      {
        nl->WriteToString(outstr, duration);
        ErrorReporter::ReportError("Operator canmeet expects duration as a "
