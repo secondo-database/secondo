@@ -52,6 +52,7 @@ using namespace std;
 
 #include <cmath>
 #include <limits.h>
+#include <iostream>
 #include "stdarg.h"
 #include "Attribute.h"
 #include "Messages.h"
@@ -91,139 +92,135 @@ class Rectangle: public StandardSpatialAttribute<dim>
 {
   public:
 
-    inline Rectangle():StandardSpatialAttribute<dim>() {}
 /*
-Do not use this constructor.
+Do not use the standard constructor:
 
 */
+    inline Rectangle():StandardSpatialAttribute<dim>() {}
 
-    inline Rectangle( const bool defined, ... );
 /*
 The first constructor. First one can set if the rectangle is defined, and if it is,
 the coordinates can be set.
 
 */
+    inline Rectangle( const bool defined, ... );
 
-    inline Rectangle( const bool defined,
-                      const double *min, const double *max );
 /*
 The second constructor. First one can set if the rectangle is defined, and if it is,
 the coordinates can be set.
 
 */
+    inline Rectangle( const bool defined,
+                      const double *min, const double *max );
 
-    inline Rectangle( const Rectangle<dim>& r );
 /*
 The copy constructor.
 
 */
-
-    inline void Set(const bool defined, const double *min, const double *max);
+    inline Rectangle( const Rectangle<dim>& r );
 
 /*
 Checks if the rectangle is defined.
 
 */
-    inline bool IsEmpty() const
-    {
-      return !(this->IsDefined());
-    };
+    inline void Set(const bool defined, const double *min, const double *max);
+
 /*
 Checks if the rectangle is defined (For conformity with other spatial types)
 
 */
-    inline Rectangle<dim>& operator = ( const Rectangle<dim>& r );
+    inline bool IsEmpty() const { return !(this->IsDefined()); };
+
 /*
 Redefinition of operator ~=~.
 
 */
+    inline Rectangle<dim>& operator = ( const Rectangle<dim>& r );
 
-    inline bool Contains( const Rectangle<dim>& r, const Geoid* geoid=0 ) const;
 /*
 Checks if the rectangle contains the rectangle ~r~.
 
 */
+    inline bool Contains( const Rectangle<dim>& r, const Geoid* geoid=0 ) const;
 
-    inline bool Intersects( const Rectangle<dim>& r,
-                            const Geoid* geoid=0 ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~. Both rectangles
 must be defined.
 
 */
-inline bool IntersectsUD( const Rectangle<dim>& r,
-                          const Geoid* geoid=0 ) const;
+    inline bool Intersects( const Rectangle<dim>& r,
+                            const Geoid* geoid=0 ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~. If one of the
 involved rectangles is not defined, the result will be false;
 
-
 */
+    inline bool IntersectsUD( const Rectangle<dim>& r,
+                          const Geoid* geoid=0 ) const;
 
-    inline bool operator == ( const Rectangle<dim>& r ) const;
 /*
 Redefinition of operator ~==~.
 
 */
+    inline bool operator == ( const Rectangle<dim>& r ) const;
 
-    inline bool AlmostEqual( const Rectangle<dim>& r ) const;
 /*
 Fuzzy version of the operator ~==~.
 
 */
+    inline bool AlmostEqual( const Rectangle<dim>& r ) const;
 
 
-    inline bool operator != ( const Rectangle<dim>& r ) const;
 /*
 Redefinition of operator ~!=~.
 
 */
+    inline bool operator != ( const Rectangle<dim>& r ) const;
 
-    inline double Area(const Geoid* geoid=0) const;
 /*
 Returns the area of a rectangle.
 
 */
+    inline double Area(const Geoid* geoid=0) const;
 
-    inline double Perimeter(const Geoid* geoid=0) const;
 /*
 Returns the perimeter of a rectangle.
 
 */
-
-    inline const double MinD( int d ) const;
+    inline double Perimeter(const Geoid* geoid=0) const;
 
 /*
 Returns the min coord value for the given dimension ~dim~.
 
 */
+    inline const double MinD( int d ) const;
 
-    inline const double MaxD( int d ) const;
 /*
 Returns the max coord value for the given dimension ~dim~.
 
 */
+    inline const double MaxD( int d ) const;
 
-    inline Rectangle<dim> Union( const Rectangle<dim>& r,
-                                 const Geoid* geoid=0 ) const;
 /*
 Returns the bounding box that contains both this and the rectangle ~r~.
 
 */
+    inline Rectangle<dim> Union( const Rectangle<dim>& r,
+                                 const Geoid* geoid=0 ) const;
 
-    inline double Distance(const Rectangle<dim>& r, const Geoid* geoid=0) const;
 /*
-Returns the Euclidean distance between two rectangles
+Returns the Euclidean distance (~geoid~ = NULL) resp. spherical distance between
+two rectangles.
 
 */
-    inline Rectangle<dim>& Translate( const double t[dim] );
+    inline double Distance(const Rectangle<dim>& r, const Geoid* geoid=0) const;
+
 /*
 Translates the rectangle given the translate vector ~t~.
 
 */
+    inline Rectangle<dim>& Translate( const double t[dim] );
 
-    inline Rectangle<dim> Intersection( const Rectangle<dim>& b,
-                                        const Geoid* geoid=0 ) const;
 /*
 Returns the intersection between this and the rectangle ~r~.
 
@@ -231,21 +228,29 @@ This next functions are necessary for a ~rectangle~ be
 an attribute in the Relational Algebra.
 
 */
+    inline Rectangle<dim> Intersection( const Rectangle<dim>& b,
+                                        const Geoid* geoid=0 ) const;
 
-    inline const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Returns the bounding box of the rectangle; this bounding Box is a clone
 of the rectangle.
 
 */
+    inline const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const;
 
-    inline size_t Sizeof() const
-    {
-      return sizeof( *this );
+    inline static const string BasicType() {
+      if(dim==2){
+        return "rect";
+      } else {
+        ostringstream ss;
+        ss << "rect" << dim;
+        return ss.str();
+      }
     }
 
-    inline size_t HashValue() const
-    {
+    inline size_t Sizeof() const { return sizeof( *this ); }
+
+    inline size_t HashValue() const {
       size_t h = 0;
       for( unsigned i = 0; i < dim; i++ )
         h += size_t(4 * min[i] + max[i]);
@@ -255,14 +260,9 @@ of the rectangle.
     inline void CopyFrom( const Attribute* right )
       { *this = *(const Rectangle<dim>*)right; }
 
-
-
-    inline int Compare( const Attribute *arg ) const
-    {
-
+    inline int Compare( const Attribute *arg ) const {
       unsigned thispos, rpos;
       unsigned thismin[dim], rmin[dim];
-
       const Rectangle<dim>* r = (const Rectangle<dim>*)arg;
       if(!(this->IsDefined())
            && !r->IsDefined())
@@ -271,76 +271,64 @@ of the rectangle.
         return -1;
       if(!r->IsDefined())
         return 1;
-
       //order on rectangles is z-order (bit interleaving)
-
       // treat positive/negative quadrants
-
-
       thispos = 0;
       rpos = 0;
-
-      for (unsigned j = 0; j < dim; j++)
-      {
+      for (unsigned j = 0; j < dim; j++){
         thispos <<= 1;
         thispos |= (min[j] >= 0);
         rpos <<= 1;
         rpos |= (r->min[j] >= 0);
       }
-      if (thispos < rpos)
+      if (thispos < rpos){
         return -1;
-      if (thispos > rpos)
+      }
+      if (thispos > rpos){
         return 1;
-
-
+      }
       // now treat z-order based on positive integer coordinates
-
-      for (unsigned j = 0; j < dim; j++)
-      {
+      for (unsigned j = 0; j < dim; j++){
         thismin[j] = (unsigned) fabs(min[j]);
         rmin[j] = (unsigned) fabs(r->min[j]);
       }
-
-      for (int j = 31; j >= 0; j--)
-      {
+      for (int j = 31; j >= 0; j--){
         thispos = 0;
         rpos = 0;
-
-        for (unsigned k = 0; k < dim; k++)
-        {
+        for (unsigned k = 0; k < dim; k++){
           thispos <<= 1;
           thispos |= ((thismin[k] >> j) & 1);
           rpos <<= 1;
           rpos |= ((rmin[k] >> j) & 1);
         }
-
-        if (thispos < rpos)
+        if (thispos < rpos){
           return -1;
-        if (thispos > rpos)
+        }
+        if (thispos > rpos){
           return 1;
+        }
       }
-
       // if no conclusion on z-order (based on integer coordinates) can be
       // reached, we fall back to the standard comparison
-
-      for( unsigned i = 0; i < dim; i++ )
-      {
-        if( this->min[i] < r->min[i] )
+      for( unsigned i = 0; i < dim; i++ ){
+        if( this->min[i] < r->min[i] ){
           return -1;
-        if( this->min[i] > r->min[i] )
+        }
+        if( this->min[i] > r->min[i] ){
           return 1;
+        }
       }
-      for( unsigned i = 0; i < dim; i++ )
-      {
-        if( this->max[i] < r->max[i] )
+      for( unsigned i = 0; i < dim; i++ ){
+        if( this->max[i] < r->max[i] ){
           return -1;
-        if( this->max[i] > r->max[i] )
+        }
+        if( this->max[i] > r->max[i] ){
           return 1;
+        }
       }
       return 0;
     }
 
-    inline const Rectangle<dim>& Extend(const double b);
 /*
 ~Extend~
 
@@ -348,10 +336,7 @@ Enlarges this rectangle with a border of size ~b~. The function
 changes the ~this~ object and returns it.
 
 */
-
-
-
-
+    inline const Rectangle<dim>& Extend(const double b);
 
     inline bool Adjacent( const Attribute *arg ) const
       { return false; }
@@ -359,22 +344,22 @@ changes the ~this~ object and returns it.
     inline Rectangle* Clone() const
       { return new Rectangle<dim>( *this ); }
 
-    inline ostream& Print( ostream &os ) const
-      { if( this->IsDefined() )
-        {
+    inline ostream& Print( ostream &os ) const {
+      if( this->IsDefined() ){
           os << "Rectangle: ( ";
           for(unsigned int i=0; i < dim; i++)
             os<<min[i]<<" "<<max[i]<<" ";
           os<<")"<<endl;
           return os;
-        }
-        else
+      } else {
           return os << "undef";
       }
+    }
 
-    inline double Size() const
-      {
-        if(!this->IsDefined()) return -1.0;
+    inline double Size() const{
+        if(!this->IsDefined()){
+          return -1.0;
+        }
         double accu = +0.0;
         try{
           accu = (max[0] - min[0]);
@@ -387,7 +372,7 @@ changes the ~this~ object and returns it.
           accu = -1.0;
         }
         return accu;
-      }
+    }
 
 /*
 Projection operator: Returns a 2D-Rectangle created by a projection of this
@@ -405,22 +390,23 @@ Rectangle to arbirary dimensions.
 
   private:
 
-    inline bool Proper() const;
 /*
 Returns ~true~ if this is a "proper" rectangle.
 
 */
+    inline bool Proper() const;
+
+/*
+The lower limits of the intervals in each dimension.
+
+*/
     double min[dim];
+
 /*
-The left limits of the intervals in each dimension.
+The upper limits of the intervals in each dimension.
 
 */
-
     double max[dim];
-/*
-The left limits of the intervals in each dimension.
-
-*/
 };
 
 /*
@@ -513,7 +499,7 @@ Redefinition of operator ~=~.
 
 */
 template <unsigned dim>
-inline Rectangle<dim>& Rectangle<dim>::operator = ( const Rectangle<dim>& r )
+inline Rectangle<dim>& Rectangle<dim>::operator=( const Rectangle<dim>& r )
 {
   this->del.isDefined = r.IsDefined();
   if( (this->del.isDefined) )

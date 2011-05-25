@@ -91,7 +91,7 @@ Rectangle2Property()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("rect"),
+                             nl->StringAtom(Rectangle<2>::BasicType()),
                              nl->StringAtom("(<left> <right> <bottom> <top>)"),
                              nl->StringAtom("(0.0 1.0 0.0 1.0)"))));
 }
@@ -106,7 +106,7 @@ type constructor ~rect~ does not have arguments, this is trivial.
 bool
 CheckRectangle2( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rect" ));
+  return (nl->IsEqual( type, Rectangle<2>::BasicType() ));
 }
 
 /*
@@ -114,7 +114,7 @@ CheckRectangle2( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rect(
-        "rect",                                  //name
+        Rectangle<2>::BasicType(),               //name
         Rectangle2Property,                      //property function
                                                  //describing signature
         OutRectangle<2>,     InRectangle<2>,     //Out and In functions
@@ -162,7 +162,7 @@ Rectangle3Property()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA, RECT34"),
-                             nl->StringAtom("rect3"),
+                             nl->StringAtom(Rectangle<3>::BasicType()),
                              nl->StringAtom(
                              "(list of six <value>). l/r for 3 dimensions."),
                              nl->StringAtom("(0.0 1.0 10.0 11.0 20.0 21.0)"))));
@@ -178,7 +178,7 @@ type constructor ~rect3~ does not have arguments, this is trivial.
 bool
 CheckRectangle3( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rect3" ));
+  return (nl->IsEqual( type, Rectangle<3>::BasicType() ));
 }
 
 /*
@@ -186,7 +186,7 @@ CheckRectangle3( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rect3(
-        "rect3",                                 //name
+        Rectangle<3>::BasicType(),                                 //name
         Rectangle3Property,                      //property function
                                                  //describing signature
         OutRectangle<3>,     InRectangle<3>,     //Out and In functions
@@ -234,7 +234,7 @@ Rectangle4Property()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("rect4"),
+                             nl->StringAtom(Rectangle<4>::BasicType()),
                              nl->StringAtom(
                              "(list of eight <value>). l/r for 4 dimensions."),
                              nl->StringAtom(
@@ -251,7 +251,7 @@ type constructor ~rect4~ does not have arguments, this is trivial.
 bool
 CheckRectangle4( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rect4" ));
+  return (nl->IsEqual( type, Rectangle<4>::BasicType() ));
 }
 
 /*
@@ -259,7 +259,7 @@ CheckRectangle4( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rect4(
-        "rect4",                                 //name
+        Rectangle<4>::BasicType(),                                 //name
         Rectangle4Property,                      //property function
                                                  //describing signature
         OutRectangle<4>,     InRectangle<4>,     //Out and In functions
@@ -307,7 +307,7 @@ Rectangle8Property()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("rect8"),
+                             nl->StringAtom(Rectangle<8>::BasicType()),
                              nl->StringAtom(
                              "(list of sixteen <value>). l/r for "
                              "8 dimensions."),
@@ -326,7 +326,7 @@ type constructor ~rect4~ does not have arguments, this is trivial.
 bool
 CheckRectangle8( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rect8" ));
+  return (nl->IsEqual( type, Rectangle<8>::BasicType() ));
 }
 
 /*
@@ -334,7 +334,7 @@ CheckRectangle8( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rect8(
-        "rect8",                                 //name
+        Rectangle<8>::BasicType(),               //name
         Rectangle8Property,                      //property function
                                                  //describing signature
         OutRectangle<8>,     InRectangle<8>,     //Out and In functions
@@ -378,11 +378,11 @@ RectTypeMapBool( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if( nl->IsEqual( arg1, "rect" ) ||
-        nl->IsEqual( arg1, "rect3" ) ||
-        nl->IsEqual( arg1, "rect4" ) ||
-        nl->IsEqual( arg1, "rect8" ))
-      return (nl->SymbolAtom( "bool" ));
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<3>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<4>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<8>::BasicType() ))
+      return (nl->SymbolAtom( CcBool::BasicType() ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -402,11 +402,11 @@ RectTypeMapReal( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if( nl->IsEqual( arg1, "rect" ) ||
-        nl->IsEqual( arg1, "rect3" ) ||
-        nl->IsEqual( arg1, "rect4" ) ||
-        nl->IsEqual( arg1, "rect8" ))
-      return (nl->SymbolAtom( "real" ));
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<3>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<4>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<8>::BasicType() ))
+      return (nl->SymbolAtom( CcReal::BasicType() ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -426,14 +426,18 @@ RectRectTypeMapRect( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) )
-      return nl->SymbolAtom( "rect" );
-    if( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) )
-      return nl->SymbolAtom( "rect3" );
-    if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
-      return nl->SymbolAtom( "rect4" );
-    if( nl->IsEqual( arg1, "rect8" ) && nl->IsEqual( arg2, "rect8" ) )
-      return nl->SymbolAtom( "rect8" );
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<2>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
+    if( nl->IsEqual( arg1, Rectangle<3>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<3>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<3>::BasicType() );
+    if( nl->IsEqual( arg1, Rectangle<4>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<4>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<4>::BasicType() );
+    if( nl->IsEqual( arg1, Rectangle<8>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<8>::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<8>::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -453,14 +457,18 @@ RectRectTypeMapBool( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) )
-      return nl->SymbolAtom( "bool" );
-    if( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) )
-      return nl->SymbolAtom( "bool" );
-    if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
-      return nl->SymbolAtom( "bool" );
-    if( nl->IsEqual( arg1, "rect8" ) && nl->IsEqual( arg2, "rect8" ) )
-      return nl->SymbolAtom( "bool" );
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<2>::BasicType() ) )
+      return nl->SymbolAtom( CcBool::BasicType() );
+    if( nl->IsEqual( arg1, Rectangle<3>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<3>::BasicType() ) )
+      return nl->SymbolAtom( CcBool::BasicType() );
+    if( nl->IsEqual( arg1, Rectangle<4>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<4>::BasicType() ) )
+      return nl->SymbolAtom( CcBool::BasicType() );
+    if( nl->IsEqual( arg1, Rectangle<8>::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<8>::BasicType() ) )
+      return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -479,26 +487,26 @@ ListExpr TranslateTypeMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "rect" ) &&
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() ) &&
         nl->ListLength( arg2 ) == 2 &&
-        nl->IsEqual( nl->First( arg2 ), "real" ) &&
-        nl->IsEqual( nl->Second( arg2 ), "real" ) )
-      return nl->SymbolAtom( "rect" );
+        nl->IsEqual( nl->First( arg2 ), CcReal::BasicType() ) &&
+        nl->IsEqual( nl->Second( arg2 ), CcReal::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<2>::BasicType() );
 
-    if( nl->IsEqual( arg1, "rect3" ) &&
+    if( nl->IsEqual( arg1, Rectangle<3>::BasicType() ) &&
         nl->ListLength( arg2 ) == 3 &&
-        nl->IsEqual( nl->First( arg2 ), "real" ) &&
-        nl->IsEqual( nl->Second( arg2 ), "real" ) &&
-        nl->IsEqual( nl->Third( arg2 ), "real" ) )
-      return nl->SymbolAtom( "rect3" );
+        nl->IsEqual( nl->First( arg2 ), CcReal::BasicType() ) &&
+        nl->IsEqual( nl->Second( arg2 ), CcReal::BasicType() ) &&
+        nl->IsEqual( nl->Third( arg2 ), CcReal::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<3>::BasicType() );
 
-    if( nl->IsEqual( arg1, "rect4" ) &&
+    if( nl->IsEqual( arg1, Rectangle<4>::BasicType() ) &&
         nl->ListLength( arg2 ) == 4 &&
-        nl->IsEqual( nl->First( arg2 ), "real" ) &&
-        nl->IsEqual( nl->Second( arg2 ), "real" ) &&
-        nl->IsEqual( nl->Third( arg2 ), "real" ) &&
-        nl->IsEqual( nl->Fourth( arg2 ), "real" ) )
-      return nl->SymbolAtom( "rect4" );
+        nl->IsEqual( nl->First( arg2 ), CcReal::BasicType() ) &&
+        nl->IsEqual( nl->Second( arg2 ), CcReal::BasicType() ) &&
+        nl->IsEqual( nl->Third( arg2 ), CcReal::BasicType() ) &&
+        nl->IsEqual( nl->Fourth( arg2 ), CcReal::BasicType() ) )
+      return nl->SymbolAtom( Rectangle<4>::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -522,18 +530,24 @@ ListExpr RectangleTypeMap( ListExpr args )
     }
 
     for(int j = 0; j < 2*dim; j++) {
-      if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
+      if( !(nl->IsEqual( arg[j], CcInt::BasicType() )) ) {
+        checkint = false;
+        break;
+      }
     }
 
     for(int k = 0; k < 2*dim; k++) {
-     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
+     if( !(nl->IsEqual( arg[k], CcReal::BasicType() )) ) {
+       checkreal = false;
+       break;
+     }
    }
 
    if( checkint ||  checkreal )
      switch(dim) {
-       case 2: return nl->SymbolAtom( "rect" );
-       case 3: return nl->SymbolAtom( "rect3" );
-       case 4: return nl->SymbolAtom( "rect4" );
+       case 2: return nl->SymbolAtom( Rectangle<2>::BasicType() );
+       case 3: return nl->SymbolAtom( Rectangle<3>::BasicType() );
+       case 4: return nl->SymbolAtom( Rectangle<4>::BasicType() );
        default: return nl->SymbolAtom( "typeerror" );
      }
     else ErrorReporter::ReportError("All argument types must be either"
@@ -561,15 +575,21 @@ ListExpr Rectangle8TypeMap( ListExpr args )
     }
 
     for(int j = 0; j < dim; j++) {
-      if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
+      if( !(nl->IsEqual( arg[j], CcInt::BasicType() )) ) {
+        checkint = false;
+        break;
+      }
     }
 
     for(int k = 0; k < dim; k++) {
-     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
+     if( !(nl->IsEqual( arg[k], CcReal::BasicType() )) ) {
+       checkreal = false;
+       break;
+     }
    }
 
-   if ( (checkint ||  checkreal) && nl->IsEqual( arg[dim], "real" ) )
-     return nl->SymbolAtom( "rect8" );
+   if ( (checkint ||  checkreal) && nl->IsEqual(arg[dim], CcReal::BasicType() ))
+     return nl->SymbolAtom( Rectangle<8>::BasicType() );
    else ErrorReporter::ReportError("All argument types must be either"
                                    " int or real!");
   }
@@ -590,10 +610,13 @@ RectRectTypeMapReal( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( ( nl->IsEqual( arg1,  "rect" ) && nl->IsEqual( arg2,  "rect" ) ) ||
-        ( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) ) ||
-        ( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )   )
-    return nl->SymbolAtom( "real" );
+    if( ( nl->IsEqual( arg1,  Rectangle<2>::BasicType() )
+      && nl->IsEqual( arg2,  Rectangle<2>::BasicType() ) ) ||
+        ( nl->IsEqual( arg1, Rectangle<3>::BasicType() )
+        && nl->IsEqual( arg2, Rectangle<3>::BasicType() ) ) ||
+        ( nl->IsEqual( arg1, Rectangle<4>::BasicType() )
+        && nl->IsEqual( arg2, Rectangle<4>::BasicType() ) )   )
+    return nl->SymbolAtom( CcReal::BasicType() );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -621,14 +644,14 @@ RectProjectTypeMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
   arg3 = nl->Third( args );
-  if( nl->IsEqual( arg1,  "rect" ) ) dim = 2;
-  else if( nl->IsEqual( arg1, "rect3" ) ) dim = 3;
-  else if( nl->IsEqual( arg1, "rect4" ) ) dim = 4;
-  else if( nl->IsEqual( arg1, "rect8" ) ) dim = 8;
+  if( nl->IsEqual( arg1,  Rectangle<2>::BasicType() ) ) dim = 2;
+  else if( nl->IsEqual( arg1, Rectangle<3>::BasicType() ) ) dim = 3;
+  else if( nl->IsEqual( arg1, Rectangle<4>::BasicType() ) ) dim = 4;
+  else if( nl->IsEqual( arg1, Rectangle<8>::BasicType() ) ) dim = 8;
   else dim = -1;
   if ( !(dim > 0) ||
-       !nl->IsEqual( arg2,  "int" ) ||
-       !nl->IsEqual( arg3,  "int" )
+       !nl->IsEqual( arg2,  CcInt::BasicType() ) ||
+       !nl->IsEqual( arg3,  CcInt::BasicType() )
      )
   {
     nl->WriteToString (argstr, args);
@@ -637,7 +660,7 @@ RectProjectTypeMap( ListExpr args )
     return nl->SymbolAtom("typeerror");\
   }
 
-  return nl->SymbolAtom( "rect" );
+  return nl->SymbolAtom( Rectangle<2>::BasicType() );
 }
 
 /*
@@ -664,17 +687,17 @@ ListExpr
   }
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
-  if( nl->IsEqual( arg1,  "rect" ) ||
+  if( nl->IsEqual( arg1,  Rectangle<2>::BasicType() ) ||
       am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 2;
-  else if( nl->IsEqual( arg1, "rect3" ) ||
+  else if( nl->IsEqual( arg1, Rectangle<3>::BasicType() ) ||
            am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 3;
-  else if( nl->IsEqual( arg1, "rect4" ) ||
+  else if( nl->IsEqual( arg1, Rectangle<4>::BasicType() ) ||
            am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 4;
-  else if( nl->IsEqual( arg1, "rect8" ) ||
+  else if( nl->IsEqual( arg1, Rectangle<8>::BasicType() ) ||
            am->CheckKind("SPATIAL2D", arg1, errorInfo)) dim = 8;
   else dim = -1;
   if ( !(dim > 0) ||
-         !nl->IsEqual( arg2,  "int" )
+         !nl->IsEqual( arg2,  CcInt::BasicType() )
      )
   {
     nl->WriteToString (argstr, args);
@@ -684,7 +707,7 @@ ListExpr
     return nl->SymbolAtom("typeerror");\
   }
 
-  return nl->SymbolAtom( "real" );
+  return nl->SymbolAtom( CcReal::BasicType() );
 }
 
 ListExpr  RectangleTypeMapRectRect( ListExpr args )
@@ -693,10 +716,10 @@ ListExpr  RectangleTypeMapRectRect( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if( nl->IsEqual( arg1, "rect" )  ||
-        nl->IsEqual( arg1, "rect3" ) ||
-        nl->IsEqual( arg1, "rect4" ) ||
-        nl->IsEqual( arg1, "rect8" )
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() )  ||
+        nl->IsEqual( arg1, Rectangle<3>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<4>::BasicType() ) ||
+        nl->IsEqual( arg1, Rectangle<8>::BasicType() )
       )
       return (arg1);
   }
@@ -726,22 +749,22 @@ ListExpr scalerectTypeMap(ListExpr args){
   }
   string a1 = nl->SymbolValue(arg1);
 
-  if(a1=="rect"){
+  if(a1==Rectangle<2>::BasicType()){
     if(dim !=2){
       ErrorReporter::ReportError("Expected 2 scale factors.");
       return nl->TypeError();
     }
-  } else if(a1=="rect3"){
+  } else if(a1==Rectangle<3>::BasicType()){
     if(dim!=3){
       ErrorReporter::ReportError("Expected 3 scale factors.");
       return nl->TypeError();
      }
-  } else if(a1=="rect4"){
+  } else if(a1==Rectangle<4>::BasicType()){
     if( dim!=4){
       ErrorReporter::ReportError("Expected 4 scale factors.");
       return nl->TypeError();
     }
-  } else if(a1=="rect8"){
+  } else if(a1==Rectangle<8>::BasicType()){
     if( dim!=8){
       ErrorReporter::ReportError("Expected 8 scale factors.");
       return nl->TypeError();
@@ -753,7 +776,7 @@ ListExpr scalerectTypeMap(ListExpr args){
   }
   ListExpr rest = nl->Rest(args);
   while(!nl->IsEmpty(rest)){
-     if(!nl->IsEqual(nl->First(rest),"real")){
+     if(!nl->IsEqual(nl->First(rest),CcReal::BasicType())){
        ErrorReporter::ReportError("Only 'real' allowed as scale factors.");
        return nl->TypeError();
      }
@@ -775,15 +798,19 @@ ListExpr RectangleTypeMapEnlargeRect( ListExpr args )
   bool ok = true;
   unsigned int noArgs = nl->ListLength( args );
   switch(noArgs) {
-    case 3:  ok &= nl->IsEqual( nl->First(args), "rect" );  break;
-    case 4:  ok &= nl->IsEqual( nl->First(args), "rect3" ); break;
-    case 5:  ok &= nl->IsEqual( nl->First(args), "rect4" ); break;
-    case 9:  ok &= nl->IsEqual( nl->First(args), "rect8" ); break;
+    case 3:  ok &= nl->IsEqual( nl->First(args), Rectangle<2>::BasicType() );
+             break;
+    case 4:  ok &= nl->IsEqual( nl->First(args), Rectangle<3>::BasicType() );
+             break;
+    case 5:  ok &= nl->IsEqual( nl->First(args), Rectangle<4>::BasicType() );
+             break;
+    case 9:  ok &= nl->IsEqual( nl->First(args), Rectangle<8>::BasicType() );
+             break;
     default: ok = false;
   }
   if(ok){
     for(unsigned int i = 2; i <= noArgs; i++) {
-        if ( !nl->IsEqual(nl->Nth(i,args), "real") ) {
+        if ( !nl->IsEqual(nl->Nth(i,args), CcReal::BasicType()) ) {
           ok = false;
           break;
         }
@@ -811,15 +838,15 @@ RectangleTypeMapBool2( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( (nl->IsEqual( arg1, "rect" )   ||
-        nl->IsEqual( arg1, "rect3" )   ||
-        nl->IsEqual( arg1, "rect4" )   ||
-        nl->IsEqual( arg1, "rect8" )) &&
-  (nl->IsEqual( arg2, "rect" )   ||
-        nl->IsEqual( arg2, "rect3" )   ||
-        nl->IsEqual( arg2, "rect4" )   ||
-        nl->IsEqual( arg2, "rect8" )))
-       return (nl->SymbolAtom( "bool" ));
+    if( (nl->IsEqual( arg1, Rectangle<2>::BasicType() )   ||
+        nl->IsEqual( arg1, Rectangle<3>::BasicType() )   ||
+        nl->IsEqual( arg1, Rectangle<4>::BasicType() )   ||
+        nl->IsEqual( arg1, Rectangle<8>::BasicType() )) &&
+        (nl->IsEqual( arg2, Rectangle<2>::BasicType() )   ||
+        nl->IsEqual( arg2, Rectangle<3>::BasicType() )   ||
+        nl->IsEqual( arg2, Rectangle<4>::BasicType() )   ||
+        nl->IsEqual( arg2, Rectangle<8>::BasicType() )))
+       return (nl->SymbolAtom( CcBool::BasicType() ));
   }
   ErrorReporter::ReportError("Expected rect<Dim1> x rect<Dim2>.");
   return (nl->SymbolAtom( "typeerror" ));
@@ -864,7 +891,7 @@ cellNumberTM( ListExpr args )
   int len = l.length();
 
   if(len==2){ // rect x gridcell2d -> stream(int)
-    if(listutils::isSymbol(nl->First(args), "rect") &&
+    if(listutils::isSymbol(nl->First(args), Rectangle<2>::BasicType()) &&
        listutils::isSymbol(nl->Second(args), CellGrid2D::BasicType())){
        return nl->TwoElemList(nl->SymbolAtom("stream"),
                               nl->SymbolAtom(CcInt::BasicType()));
@@ -880,20 +907,20 @@ cellNumberTM( ListExpr args )
   NList tRect;
   tRect = l.first();
 
-  if ((is3D && !tRect.isSymbol("rect3"))
-      || (!is3D && !tRect.isSymbol("rect")))
+  if ((is3D && !tRect.isSymbol(Rectangle<3>::BasicType()))
+    || (!is3D && !tRect.isSymbol(Rectangle<2>::BasicType())))
     return l.typeError(err);
 
   int np = is3D ? 2 : 1;
   for (int i = 0; i < np; i++)
   {
-    if (!l.elem(len--).isSymbol(Symbols::INT()))
+    if (!l.elem(len--).isSymbol(CcInt::BasicType()))
       return l.typeError(err);
   }
 
   for(int i = 2; i <= len; i++)
   {
-    if (!l.elem(i).isSymbol(Symbols::REAL()))
+    if (!l.elem(i).isSymbol(CcReal::BasicType()))
       return l.typeError(err);
   }
 
@@ -943,9 +970,9 @@ gridIntersectsTM( ListExpr args )
       "(x0, y0, xw, yw, nx, rectA, rectB, cn) or "
       "(x0, y0, z0, xw, yw, zw, nx, ny, rectA, rectB, cn) or"
       "(cellgrid2d, rectA, rectB, cn)";
- 
 
- 
+
+
 
 
   bool is3D = false;
@@ -953,8 +980,8 @@ gridIntersectsTM( ListExpr args )
 
   if(len==4){ // 2D - using cellgrid
     if(!listutils::isSymbol(nl->First(args), CellGrid2D::BasicType()) ||
-       !listutils::isSymbol(nl->Second(args), "rect") ||
-       !listutils::isSymbol(nl->Third(args), "rect" ) ||
+      !listutils::isSymbol(nl->Second(args), Rectangle<2>::BasicType()) ||
+      !listutils::isSymbol(nl->Third(args), Rectangle<2>::BasicType() ) ||
        !listutils::isSymbol(nl->Fourth(args), CcInt::BasicType())){
       return listutils::typeError(err);
     } else {
@@ -973,23 +1000,24 @@ gridIntersectsTM( ListExpr args )
 
   for (; ei <= gpl; ei++)
   {
-    if (!(l.elem(ei).isSymbol(Symbols::REAL())))
+    if (!(l.elem(ei).isSymbol(CcReal::BasicType())))
       return l.typeError(err);
   }
 
   for (; ei <= np; ei++)
   {
-    if(!(l.elem(ei).isSymbol(Symbols::INT())))
+    if(!(l.elem(ei).isSymbol(CcInt::BasicType())))
       return l.typeError(err);
   }
 
   for (int i=0; i < 2; i++)
   {
-    if(!(l.elem(ei++).isSymbol((is3D ? "rect3" : "rect"))))
+    if(!(l.elem(ei++).isSymbol((is3D ? Rectangle<3>::BasicType()
+                                     : Rectangle<2>::BasicType()))))
       return l.typeError(err);
   }
 
-  if (!l.elem(ei).isSymbol(Symbols::INT()))
+  if (!l.elem(ei).isSymbol(CcInt::BasicType()))
     return l.typeError(err);
 
   return NList(BOOL).listExpr();
@@ -1019,7 +1047,7 @@ GridCell2Rect_TM( ListExpr args )
        !listutils::isSymbol(nl->Second(args), CellGrid2D::BasicType())){
       return listutils::typeError("int x cellgrid3d expected");
     }
-    return nl->SymbolAtom("rect");
+    return nl->SymbolAtom(Rectangle<2>::BasicType());
   }
 
   if (len == 9) {
@@ -1029,15 +1057,15 @@ GridCell2Rect_TM( ListExpr args )
   }
 
   if(is3D){
-    if(    !l.elem(1).isSymbol(Symbols::INT())
-        || !l.elem(2).isSymbol(Symbols::REAL())
-        || !l.elem(3).isSymbol(Symbols::REAL())
-        || !l.elem(4).isSymbol(Symbols::REAL())
-        || !l.elem(5).isSymbol(Symbols::REAL())
-        || !l.elem(6).isSymbol(Symbols::REAL())
-        || !l.elem(7).isSymbol(Symbols::REAL())
-        || !l.elem(8).isSymbol(Symbols::INT())
-        || !l.elem(9).isSymbol(Symbols::INT())    )
+    if(    !l.elem(1).isSymbol(CcInt::BasicType())
+        || !l.elem(2).isSymbol(CcReal::BasicType())
+        || !l.elem(3).isSymbol(CcReal::BasicType())
+        || !l.elem(4).isSymbol(CcReal::BasicType())
+        || !l.elem(5).isSymbol(CcReal::BasicType())
+        || !l.elem(6).isSymbol(CcReal::BasicType())
+        || !l.elem(7).isSymbol(CcReal::BasicType())
+        || !l.elem(8).isSymbol(CcInt::BasicType())
+        || !l.elem(9).isSymbol(CcInt::BasicType())    )
     {
       return l.typeError("gridcell2rect expects int x real x real x real x "
                          "real x real x real x int x int.");
@@ -1045,12 +1073,12 @@ GridCell2Rect_TM( ListExpr args )
       return NList(RECT3).listExpr();
     }
   }
-  if(    !l.elem(1).isSymbol(Symbols::INT())
-      || !l.elem(2).isSymbol(Symbols::REAL())
-      || !l.elem(3).isSymbol(Symbols::REAL())
-      || !l.elem(4).isSymbol(Symbols::REAL())
-      || !l.elem(5).isSymbol(Symbols::REAL())
-      || !l.elem(6).isSymbol(Symbols::INT())    )
+  if(    !l.elem(1).isSymbol(CcInt::BasicType())
+      || !l.elem(2).isSymbol(CcReal::BasicType())
+      || !l.elem(3).isSymbol(CcReal::BasicType())
+      || !l.elem(4).isSymbol(CcReal::BasicType())
+      || !l.elem(5).isSymbol(CcReal::BasicType())
+      || !l.elem(6).isSymbol(CcInt::BasicType())    )
   {
     return l.typeError("gridcell2rect expects int x real x real x real x "
     "real x int.");
@@ -1079,7 +1107,7 @@ RectangleCenter_TM( ListExpr args )
     return l.typeError("center expects exactly 1 argument.");
   }
 
-  if( !l.elem(1).isSymbol("rect") ){
+if( !l.elem(1).isSymbol(Rectangle<2>::BasicType()) ){
     return l.typeError("center expects a 'rect' as argument.");
   }
   return NList(POINT).listExpr();
@@ -1106,16 +1134,16 @@ int
 RectangleUnarySelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
-  if( nl->IsEqual( arg1, "rect" ) )
+  if( nl->IsEqual( arg1, Rectangle<2>::BasicType() ) )
     return 0;
 
-  if( nl->IsEqual( arg1, "rect3" ) )
+  if( nl->IsEqual( arg1, Rectangle<3>::BasicType() ) )
     return 1;
 
-  if( nl->IsEqual( arg1, "rect4" ) )
+  if( nl->IsEqual( arg1, Rectangle<4>::BasicType() ) )
     return 2;
 
-  if( nl->IsEqual( arg1, "rect8" ) )
+  if( nl->IsEqual( arg1, Rectangle<8>::BasicType() ) )
     return 3;
 
   return -1; // should never occur
@@ -1133,16 +1161,20 @@ RectangleBinarySelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) )
+           if( nl->IsEqual( arg1, Rectangle<2>::BasicType() )
+             && nl->IsEqual( arg2, Rectangle<2>::BasicType() ) )
     return 0;
 
-  if( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) )
+  if( nl->IsEqual( arg1, Rectangle<3>::BasicType() )
+    && nl->IsEqual( arg2, Rectangle<3>::BasicType() ) )
     return 1;
 
-  if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
+  if( nl->IsEqual( arg1, Rectangle<4>::BasicType() )
+    && nl->IsEqual( arg2, Rectangle<4>::BasicType() ) )
     return 2;
 
-  if( nl->IsEqual( arg1, "rect8" ) && nl->IsEqual( arg2, "rect8" ) )
+  if( nl->IsEqual( arg1, Rectangle<8>::BasicType() )
+    && nl->IsEqual( arg2, Rectangle<8>::BasicType() ) )
     return 3;
 
   return -1; // should never occur
@@ -1162,15 +1194,15 @@ RectangleBinarySelect1( ListExpr args )
            arg2 = nl->Second( args );
   int d1 = 0;
   int d2 = 0;
-  if( nl->IsEqual( arg2, "rect" ) )      d1 = 0;
-  else if( nl->IsEqual( arg2, "rect3" )) d1 = 1;
-  else if( nl->IsEqual( arg2, "rect4" )) d1 = 2;
-  else if( nl->IsEqual( arg2, "rect8" )) d1 = 3;
+  if( nl->IsEqual( arg2, Rectangle<2>::BasicType() ) )      d1 = 0;
+  else if( nl->IsEqual( arg2, Rectangle<3>::BasicType() )) d1 = 1;
+  else if( nl->IsEqual( arg2, Rectangle<4>::BasicType() )) d1 = 2;
+  else if( nl->IsEqual( arg2, Rectangle<8>::BasicType() )) d1 = 3;
   else return -1; // should never occur
-  if( nl->IsEqual( arg1, "rect" ) )      d1 = 0;
-  else if( nl->IsEqual( arg1, "rect3" )) d1 = 4;
-  else if( nl->IsEqual( arg1, "rect4" )) d1 = 8;
-  else if( nl->IsEqual( arg1, "rect8" )) d1 = 12;
+    if( nl->IsEqual( arg1, Rectangle<2>::BasicType() ) )      d1 = 0;
+  else if( nl->IsEqual( arg1, Rectangle<3>::BasicType() )) d1 = 4;
+  else if( nl->IsEqual( arg1, Rectangle<4>::BasicType() )) d1 = 8;
+  else if( nl->IsEqual( arg1, Rectangle<8>::BasicType() )) d1 = 12;
   else return -1; // should never occur
 
   return (d1 + d2);
@@ -1196,12 +1228,18 @@ int RectangleSelect( ListExpr args )
 
   for(int j = 0; j < 2*dim; j++)
   {
-    if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
+    if( !(nl->IsEqual( arg[j], CcInt::BasicType() )) ) {
+      checkint = false;
+      break;
+    }
   }
 
    for(int k = 0; k < 2*dim; k++)
   {
-    if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
+    if( !(nl->IsEqual( arg[k], CcReal::BasicType() )) ) {
+      checkreal = false;
+      break;
+    }
   }
 
   if( checkint ) return 0;
@@ -1231,12 +1269,18 @@ int Rectangle8Select( ListExpr args )
 
   for(int j = 0; j < dim; j++)
   {
-    if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
+    if( !(nl->IsEqual( arg[j], CcInt::BasicType() )) ) {
+      checkint = false;
+      break;
+    }
   }
 
    for(int k = 0; k < dim; k++)
   {
-    if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
+    if( !(nl->IsEqual( arg[k], CcReal::BasicType() )) ) {
+      checkreal = false;
+      break;
+    }
   }
 
   if( checkint ) return 0;
@@ -1273,13 +1317,13 @@ int RectangleMinMaxDSelect( ListExpr args )
   ListExpr arg1 = nl->First(args);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  if(nl->IsEqual(arg1, "rect" ) ||
+  if(nl->IsEqual(arg1, Rectangle<2>::BasicType() ) ||
      am->CheckKind("SPATIAL2D", arg1, errorInfo) ) return 0;
-  if(nl->IsEqual(arg1, "rect3") ||
+  if(nl->IsEqual(arg1, Rectangle<3>::BasicType()) ||
      am->CheckKind("SPATIAL3D", arg1, errorInfo) ) return 1;
-  if(nl->IsEqual(arg1, "rect4") ||
+  if(nl->IsEqual(arg1, Rectangle<4>::BasicType()) ||
      am->CheckKind("SPATIAL4D", arg1, errorInfo) ) return 2;
-  if(nl->IsEqual(arg1, "rect8") ||
+  if(nl->IsEqual(arg1, Rectangle<8>::BasicType()) ||
      am->CheckKind("SPATIAL8D", arg1, errorInfo) ) return 3;
 
   return -1; // should never occur
@@ -2140,8 +2184,8 @@ gridIntersectsVM(Word* args, Word& result,
   double interx = 0.0, intery = 0.0, interz = 0.0;
   int cscNo = 0, cellno = -1;
   int noSons = qp->GetNoSons(s);
- 
-  // check for undefined arguments 
+
+  // check for undefined arguments
   for(int arg=0; arg<noSons; arg++) {
     if(!static_cast<Attribute*>(args[arg].addr)->IsDefined()){
       ErrorReporter::ReportError("RectangleAlgebra::gridIntersects: "
