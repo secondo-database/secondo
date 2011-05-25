@@ -286,7 +286,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
   int unique;
 
   if( nl->ListLength(type) == 2 &&
-      nl->IsEqual(nl->First(type), "tuple", true))
+      nl->IsEqual(nl->First(type), Tuple::BasicType(), true))
   {
     attrlist = nl->Second(type);
     if (nl->IsEmpty(attrlist))
@@ -459,7 +459,7 @@ class ~TypeConstructor~. Constructor's arguments are the type
 constructor's name and the eleven functions previously defined.
 
 */
-TypeConstructor cpptuple( "tuple",         TupleProp,
+TypeConstructor cpptuple( Tuple::BasicType(),         TupleProp,
                           OutTuple,        InTuple,
                           SaveToListTuple, RestoreFromListTuple,
                           CreateTuple,     DeleteTuple,
@@ -639,7 +639,7 @@ bool
 CheckRel(ListExpr type, ListExpr& errorInfo)
 {
   if ((nl->ListLength(type) == 2) &&
-      nl->IsEqual(nl->First(type), "rel"))
+      nl->IsEqual(nl->First(type), Relation::BasicType()))
   {
     return am->CheckKind("TUPLE", nl->Second(type), errorInfo);
   }
@@ -746,7 +746,7 @@ class ~TypeConstructor~. Constructor's arguments are the type
 constructor's name and the eleven functions previously defined.
 
 */
-TypeConstructor cpprel( "rel",           RelProp,
+TypeConstructor cpprel( Relation::BasicType(),           RelProp,
                         OutRel,          InRel,
                         SaveToListRel,   RestoreFromListRel,
                         CreateRel,       DeleteRel,
@@ -1605,7 +1605,7 @@ template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
     }
   }
   if(!isOrel) {
-    return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
+    return nl->Cons(nl->SymbolAtom(Relation::BasicType()), nl->Rest(first));
   } else {
     if(!listutils::isKeyDescription(nl->Second(first),nl->Second(args))) {
       ErrorReporter::ReportError("all identifiers of second argument must "
@@ -1632,7 +1632,8 @@ ListExpr tconsume_tm(ListExpr args)
     return nl->TypeError();
   }
 
-  return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(nl->First(args)));
+  return nl->Cons(nl->SymbolAtom(TempRelation::BasicType()),
+                  nl->Rest(nl->First(args)));
 }
 
 
@@ -2631,7 +2632,7 @@ ListExpr ProjectTypeMap(ListExpr args)
       nl->TwoElemList(
         nl->SymbolAtom("stream"),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           newAttrList)));
   return outlist;
 }
@@ -3037,7 +3038,7 @@ ListExpr RemoveTypeMap(ListExpr args)
               nl->SymbolAtom("APPEND"),
               nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
               nl->TwoElemList(nl->SymbolAtom("stream"),
-              nl->TwoElemList(nl->SymbolAtom("tuple"),
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                        newAttrList)));
     return outlist;
   }
@@ -3126,8 +3127,8 @@ ListExpr ProductTypeMap(ListExpr args)
     return nl->TypeError();
   }
   ListExpr  outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-                                      nl->TwoElemList(nl->SymbolAtom("tuple"),
-                                                      list));
+                                      nl->TwoElemList(
+                                      nl->SymbolAtom(Tuple::BasicType()),list));
   return outlist;
 }
 
@@ -5179,7 +5180,7 @@ RenameTypeMap( ListExpr args )
   }
   return
     nl->TwoElemList(nl->SymbolAtom("stream"),
-    nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
+    nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),listn));
 }
 
 ListExpr RenameAttrTypeMap(ListExpr args){
@@ -5269,7 +5270,7 @@ ListExpr RenameAttrTypeMap(ListExpr args){
     return listutils::typeError(errmsg);
   }
   return nl->TwoElemList( nl->SymbolAtom("stream"),
-                          nl->TwoElemList(nl->SymbolAtom("tuple"),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                           resAttrList));
 }
 
@@ -5843,7 +5844,7 @@ class RelationAlgebra : public Algebra
     cf.kindCheck = TRelKindCheck;
 
     ConstructorInfo ci;
-    ci.name = "trel";
+    ci.name = TempRelation::BasicType();
     ci.signature = "->trel";
     ci.typeExample = "trel((tuple(A int)(B string)))";
     ci.listRep = "A list of tuples";

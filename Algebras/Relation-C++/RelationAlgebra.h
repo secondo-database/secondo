@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics 
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -67,11 +67,11 @@ June 2009, S. Jungnickel. Added classes ~TupleFile~ and ~TupleFileIterator~.
 New methods ~Save~ and ~Open~ in class ~Tuple~ to save and restore tuples to/from
 a ~TupleFile~.
 
-Sept 2009. M. Spiekermann. Due to problems with too many open files communicated 
-by S. Jungnickel several codelines of the classes FLOBCache, Relation and in the 
+Sept 2009. M. Spiekermann. Due to problems with too many open files communicated
+by S. Jungnickel several codelines of the classes FLOBCache, Relation and in the
 StorageManagement need to be changed. Moreover, the class ~PrivateRelation~ has been
 merged into class Relation. The relation itself will now request the FLOBCache to create
-LOB-files if necessary. Before, files were created on the fly indicated by a zero 
+LOB-files if necessary. Before, files were created on the fly indicated by a zero
 lobFile-id which was not a satisfying solution for all situations.
 
 [TOC]
@@ -330,11 +330,11 @@ Puts the attribute type ~attrType~ in the position ~index~.
 */
     inline int NumOfFlobs() const
     {
-      int n = 0;    
-      for(int i = 0; i < noAttributes; i++) {    
+      int n = 0;
+      for(int i = 0; i < noAttributes; i++) {
         n += attrTypeArray[i].numOfFlobs;
       }
-      return n;      
+      return n;
     }
 
 
@@ -377,7 +377,7 @@ struct RelationDescriptor
 {
   friend ostream& operator<<(ostream& o, const RelationDescriptor& rd);
   inline RelationDescriptor( TupleType* tupleType, bool b=false ):
-    isTemp(b),  
+    isTemp(b),
     tupleType( tupleType ),
     attrExtSize( tupleType->GetNoAttributes() ),
     attrSize( tupleType->GetNoAttributes() )
@@ -393,7 +393,7 @@ struct RelationDescriptor
 
   inline
   RelationDescriptor( const ListExpr typeInfo, bool b=false ):
-    isTemp(b),  
+    isTemp(b),
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     attrExtSize( 0 ),
     attrSize( 0 )
@@ -420,7 +420,7 @@ The simple constructors.
                       const vector<double>& attrExtSize,
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
-    isTemp(false),  
+    isTemp(false),
     tupleType( tupleType ),
     attrExtSize( attrExtSize ),
     attrSize( attrSize )
@@ -436,7 +436,7 @@ The simple constructors.
                       const vector<double>& attrExtSize,
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
-    isTemp(false),  
+    isTemp(false),
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     attrExtSize( attrExtSize ),
     attrSize( attrSize )
@@ -450,7 +450,7 @@ The first constructor.
 
 */
   inline RelationDescriptor( const RelationDescriptor& d ):
-    isTemp( d.isTemp ),  
+    isTemp( d.isTemp ),
     tupleType( d.tupleType ),
     attrExtSize( d.attrExtSize ),
     attrSize( d.attrSize )
@@ -637,7 +637,7 @@ the ~tupleType~ as argument.
     inline Tuple( const ListExpr typeInfo ) :
     refs(1), recomputeExtSize(true), recomputeSize(true),
     tupleExtSize(0), tupleSize(0),noAttributes(0), attributes(0),
-    tupleId(0), tupleType( new TupleType( typeInfo ) ) , 
+    tupleId(0), tupleType( new TupleType( typeInfo ) ) ,
     lobFileId(0), tupleFile(0)
         {
       Init( tupleType->GetNoAttributes());
@@ -808,7 +808,7 @@ Returns the size of attribute i including its extension part.
 
    // returns the size in memory of attribute i
    inline size_t  GetMemSize(int i) const {
-      size_t attrMemSize = GetRootSize(i) + 
+      size_t attrMemSize = GetRootSize(i) +
                            attributes[i]->getUncontrolledFlobSize();
       return attrMemSize;
    }
@@ -902,7 +902,7 @@ Deletes the tuple if it is allowed, i.e., there are no references
     {
       refs++;
     }
-    
+
 
     int GetNumOfRefs() const
     {
@@ -968,7 +968,7 @@ record.
 
   bool OpenOrel( SmiFileId lobfileId,
                  SmiRecord& record, TupleId tupleId );
- 
+
   bool OpenOrel(SmiFileId lobFileId,
                 PrefetchingIterator* iter, TupleId tupleId);
 
@@ -1233,7 +1233,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 
   char* WriteToBlock( size_t attrSizes,
                       size_t extensionSize,
-                      bool ignoreLOBs, 
+                      bool ignoreLOBs,
                       SmiRecordFile* file,
                       const SmiFileId& lobFileId) const;
 
@@ -1852,7 +1852,7 @@ The function to retrieve the current tuple ~id~.
 
 */
 
- virtual bool EndOfScan() const{ return false;} 
+ virtual bool EndOfScan() const{ return false;}
 
 };
 
@@ -1930,7 +1930,7 @@ The function that clears the set.
 The function to append a tuple into the set.
 
 */
-    virtual Tuple *GetTuple( const TupleId& id, 
+    virtual Tuple *GetTuple( const TupleId& id,
                              const bool dontReportError) const = 0;
 /*
 The function that retrieves a tuple given its ~id~.
@@ -2038,7 +2038,7 @@ The iterator if it is not in memory.
 */
   TupleType* outtype;
 /*
-The type of the tuples in the TupleBuffer. 
+The type of the tuples in the TupleBuffer.
 Required for the feedproject operator.
 
 */
@@ -2127,7 +2127,7 @@ Checks if the tuple buffer is empty or not.
 */
 
 
-   virtual bool DeleteTuple(Tuple* t){ 
+   virtual bool DeleteTuple(Tuple* t){
       bool implemented = false;
       assert(implemented);
       return false;
@@ -2584,6 +2584,13 @@ The destructor. Deletes the memory part of an relation object.
 
 */
 
+/*
+Return the type name used for a persistent relation in Secondo.
+To get the type name of a temporary relation, use TempRelation::BasicType().
+
+*/
+    inline static const string BasicType() { return "rel"; }
+
     static Relation *GetRelation( const RelationDescriptor& d );
 
     static Relation *GetRelation (const SmiFileId fileId );
@@ -2746,7 +2753,7 @@ relation class.
     ////friend struct PrivateRelationIterator;
 
   private:
-    void InitFiles( bool open = false ); 
+    void InitFiles( bool open = false );
     void ErasePointer();
 /*
 Removes the current Relation from the table of opened relations.
@@ -2886,5 +2893,13 @@ It returns true if they are equal, and false otherwise.
 
 */
 bool CompareSchemas( ListExpr r1, ListExpr r2 );
+
+/*
+Namespace for temporal relation (trel), that does not have its own class.
+
+*/
+namespace TempRelation {
+  const string BasicType();
+}
 
 #endif // _RELATION_ALGEBRA_H_

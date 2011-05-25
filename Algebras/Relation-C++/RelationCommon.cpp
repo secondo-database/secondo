@@ -104,7 +104,7 @@ TupleType::TupleType( const ListExpr typeInfo ):
 noAttributes(0), attrTypeArray(0),totalSize(0),refs(1),coreSize(0)
 {
   int i = 0;
-  size_t offset = sizeof(uint16_t); 
+  size_t offset = sizeof(uint16_t);
 
   try {
     const string errMsg("TupleType: Wrong list format! Line ");
@@ -155,32 +155,32 @@ noAttributes(0), attrTypeArray(0),totalSize(0),refs(1),coreSize(0)
         typeId = nl->IntValue( nl->Second(b1) );
         clsSize = (am->SizeOfObj(algId, typeId))();
       }
-      
+
       int currentCoreSize = 0;
       TypeConstructor* tc = am->GetTC(algId, typeId);
 
       int numOfFlobs = tc->NumOfFLOBs();
       bool extStorage = false;
-      if ( tc->GetStorageType() == Attribute::Extension ) 
+      if ( tc->GetStorageType() == Attribute::Extension )
       {
         currentCoreSize = sizeof(uint32_t);
         extStorage = true;
-      } 
+      }
       else if ( tc->GetStorageType() == Attribute::Default )
-      { 
-        currentCoreSize = clsSize;      
-      } 
-      else 
+      {
+        currentCoreSize = clsSize;
+      }
+      else
       {
         currentCoreSize = tc->SerializedFixSize();
       }
-      
+
       //totalSize += clsSize;
       totalSize += currentCoreSize;
-      attrTypeArray[i++] = AttributeType( algId, typeId, numOfFlobs, 
-                                          clsSize, currentCoreSize, 
+      attrTypeArray[i++] = AttributeType( algId, typeId, numOfFlobs,
+                                          clsSize, currentCoreSize,
                                           extStorage, offset      );
-      coreSize += currentCoreSize; 
+      coreSize += currentCoreSize;
       offset += currentCoreSize;
     }
   }
@@ -204,7 +204,7 @@ Tuple *Tuple::Clone() const
   Tuple *result = new Tuple( this->GetTupleType() );
   for( int i = 0; i < this->GetNoAttributes(); i++ )
   {
-    Attribute* tmp = GetAttribute(i); 
+    Attribute* tmp = GetAttribute(i);
     Attribute *attr = tmp?tmp->Clone():0;
     result->PutAttribute( i, attr );
   }
@@ -286,7 +286,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
     errorInfo = nl->Append(errorInfo,
       nl->FourElemList(
         nl->IntAtom(71),
-        nl->SymbolAtom("tuple"),
+        nl->SymbolAtom(Tuple::BasicType()),
         nl->IntAtom(1),
         nl->IntAtom(errorPos)));
     delete t;
@@ -317,7 +317,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
         errorInfo = nl->Append(errorInfo,
           nl->FourElemList(
             nl->IntAtom(71),
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             nl->IntAtom(2),
             nl->IntAtom(errorPos)));
         delete t;
@@ -354,7 +354,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
           errorInfo = nl->Append(errorInfo,
             nl->FiveElemList(
               nl->IntAtom(71),
-              nl->SymbolAtom("tuple"),
+              nl->SymbolAtom(Tuple::BasicType()),
               nl->IntAtom(3),
               nl->IntAtom(errorPos),
               nl->IntAtom(attrno)));
@@ -376,7 +376,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
       errorInfo = nl->Append(errorInfo,
         nl->FourElemList(
           nl->IntAtom(71),
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           nl->IntAtom(4),
           nl->IntAtom(errorPos)));
       delete t;
@@ -468,7 +468,7 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
     errorInfo = nl->Append(errorInfo,
     nl->ThreeElemList(
       nl->IntAtom(70),
-      nl->SymbolAtom("rel"),
+      nl->SymbolAtom(Relation::BasicType()),
       tuplelist));
     return rel;
   }
@@ -501,7 +501,7 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
         nl->Append(errorInfo,
           nl->TwoElemList(
           nl->IntAtom(72),
-          nl->SymbolAtom("rel")));
+          nl->SymbolAtom(Relation::BasicType())));
       delete rel;
       return 0;
     }
@@ -571,12 +571,12 @@ RelationType TypeOfRelAlgSymbol (ListExpr symbol)
   if (nl->AtomType(symbol) == SymbolType)
   {
     s = nl->SymbolValue(symbol);
-    if (s == "rel"   ) return rel;
-    if (s == "trel"  ) return trel;
-    if (s == "tuple" ) return tuple;
+    if (s == Relation::BasicType()   ) return rel;
+    if (s == TempRelation::BasicType()  ) return trel;
+    if (s == Tuple::BasicType() ) return tuple;
     if (s == "stream") return stream;
     if (s == "map"   ) return ccmap;
-    if (s == "bool"  ) return ccbool;
+    if (s == CcBool::BasicType()  ) return ccbool;
   }
   return error;
 }
@@ -666,13 +666,13 @@ bool insertArelNames (set<string>& aNames, ListExpr a)
       else if (((nl->IsAtom(nl->First(nl->Second(current))))
           && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType))
           && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))
-        
+
       {
         aNames.insert(nl->SymbolValue(nl->First(current)));
         if (!insertArelNames ( aNames, nl->Second(current)))
           return false;
-      }    
-    }  
+      }
+    }
     else
       return false;
   }
@@ -681,7 +681,7 @@ bool insertArelNames (set<string>& aNames, ListExpr a)
 
 bool checkArelNames (set<string>& aNames, ListExpr b)
 {
-  ListExpr rest = nl->Second(nl->Second(b));   
+  ListExpr rest = nl->Second(nl->Second(b));
   ListExpr current;
   while(!nl->IsEmpty(rest))
   {
@@ -693,7 +693,7 @@ bool checkArelNames (set<string>& aNames, ListExpr b)
     {
       if ((nl->IsAtom(nl->Second(current)))
       && (nl->AtomType(nl->Second(current)) == SymbolType))
-      { 
+      {
         if(aNames.find(nl->SymbolValue(nl->First(current))) !=
          aNames.end())
            return false;
@@ -708,13 +708,13 @@ bool checkArelNames (set<string>& aNames, ListExpr b)
         if(!checkArelNames(aNames, nl->Second(current)))
           return false;
       }
-    } 
+    }
     else
       return false;
   }
   return true;
-}    
-  
+}
+
 bool AttributesAreDisjoint(ListExpr a, ListExpr b)
 {
   set<string> aNames;
@@ -738,8 +738,8 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
         aNames.insert(nl->SymbolValue(nl->First(current)));
         if (!insertArelNames ( aNames, nl->Second(current)))
           return false;
-      }    
-    }  
+      }
+    }
     else
       return false;
   }
@@ -754,7 +754,7 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
     {
       if ((nl->IsAtom(nl->Second(current)))
       && (nl->AtomType(nl->Second(current)) == SymbolType))
-      { 
+      {
         if(aNames.find(nl->SymbolValue(nl->First(current))) !=
          aNames.end())
            return false;
@@ -874,7 +874,7 @@ bool IsRelDescription( ListExpr relDesc, bool trel /*=false*/ )
   ListExpr relSymbol = nl->First(relDesc);
   ListExpr tupleDesc = nl->Second(relDesc);
 
-  const string relStr = trel ? "trel" : "rel";
+  const string relStr = trel ? TempRelation::BasicType():Relation::BasicType();
 
   if( !nl->IsAtom(relSymbol) ||
       nl->AtomType(relSymbol) != SymbolType ||
@@ -893,7 +893,7 @@ bool IsRelDescription( ListExpr relDesc, bool trel /*=false*/ )
 
   if( !nl->IsAtom(tupleSymbol) ||
       nl->AtomType(tupleSymbol) != SymbolType ||
-      nl->SymbolValue(tupleSymbol) != "tuple" ){
+      nl->SymbolValue(tupleSymbol) != Tuple::BasicType() ){
     ErrorReporter::ReportError("The first element of a tuple description"
                                " must be the symbol 'tuple'.");
     return false;
@@ -939,7 +939,7 @@ bool IsStreamDescription( ListExpr streamDesc )
 
   if( !nl->IsAtom(tupleSymbol) ||
       nl->AtomType(tupleSymbol) != SymbolType ||
-      nl->SymbolValue(tupleSymbol) != "tuple" ){
+      nl->SymbolValue(tupleSymbol) != Tuple::BasicType() ){
     ErrorReporter::ReportError("The first element of a tuple description"
                                " must be the symbol 'tuple'.");
     return false;
@@ -1012,4 +1012,8 @@ bool CompareSchemas( ListExpr r1, ListExpr r2 )
   return true;
 }
 
+/*
+7 Function returning the type name for ~temporal relation~
 
+*/
+const string TempRelation::BasicType() { return "trel"; }
