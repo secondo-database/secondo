@@ -1301,7 +1301,6 @@ Returns the next cluster with its corresponding time interval.
       noreg.Transpose();
     }
 
-     Periods periods(1);
      vector<pair<Interval<Instant>, toprel::Int9M> > tmpvector;
      if(reg->IsEmpty()){
        pair<Interval<Instant>, toprel::Int9M> p(up->timeInterval, noreg);
@@ -1328,7 +1327,6 @@ Returns the next cluster with its corresponding time interval.
           }
         } else { // non-empty region, non-static upoint
 
-           periods.Add(up->timeInterval);
            if(up->timeInterval.lc && reg->OnBorder(up->p0)){
               pair<Interval<Instant>, toprel::Int9M> 
                       p(Interval<Instant>(up->timeInterval.start, 
@@ -1420,7 +1418,6 @@ Returns the next cluster with its corresponding time interval.
                     insertEvents(common1,false,true,qreg,qup);
                  } else {
                      Interval<Instant> iv = computeInterval(*up, common1);
-                     periods.Minus(iv);   
                      pair<Interval<Instant>, toprel::Int9M> p(iv, onborder);
                      tmpvector.push_back(p);
                  }
@@ -1481,15 +1478,12 @@ Returns the next cluster with its corresponding time interval.
              if(member && member->exactEqualsTo(current)){
                if( (member->getOwner()==avlseg::both)){
                    Interval<Instant> iv = computeInterval(*up, *member);
-                   assert(periods.Contains(iv));
-                   periods.Minus(iv);
                    pair<Interval<Instant>, toprel::Int9M> p(iv, onborder);
                    tmpvector.push_back(p); 
                }
                if( (member->getOwner()==avlseg::second)) {
                   Interval<Instant> iv = computeInterval(*up, *member);
 
-                  periods.Minus(iv);
                   if(member->con_above>0){
                      pair<Interval<Instant>, toprel::Int9M> p(iv, ininterior);
                      tmpvector.push_back(p); 
@@ -1518,9 +1512,6 @@ Returns the next cluster with its corresponding time interval.
         }
      }
      
-    assert(periods.IsEmpty()); // the complete time interval 
-                               // should be exhausted
-
     sort(tmpvector.begin(), tmpvector.end(), pCompare);
 
     // go trough the vector and assign all interval 
@@ -1589,7 +1580,7 @@ Returns the next cluster with its corresponding time interval.
                                               p1.first.end,true,true),
                              onborder);
                if(p3.first.Intersects(up->timeInterval)){
-                 tmpvector.push_back(p3);
+                 toprelvector.push_back(p3);
                }
                p1 = p2;
                
