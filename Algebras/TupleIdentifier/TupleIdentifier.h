@@ -111,6 +111,10 @@ class TupleIdentifier: public Attribute
     return new (addr) TupleIdentifier();
   }
 
+  static const string BasicType(){
+     return "tid";
+  }
+
 
  private:
   TupleId tid;
