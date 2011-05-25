@@ -683,6 +683,12 @@ Acts as the ~Out~ function, but uses internal representation for
 the objects.
 
 */
+
+    static const string BasicType(){
+      return "tuple";
+    }
+
+
     static void InitCounters(bool visible);
     static void SetCounterValues();
 /*
