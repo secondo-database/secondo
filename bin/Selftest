@@ -13,7 +13,7 @@ export MALLOC_CHECK_=2
 
 if [ "$1" == "--valgrind" ]; then
   shift
-  runner="valgrind --num-callers=25 --suppressions=vgs.txt  $(which SecondoBDB) -test -e"
+  runner="valgrind --num-callers=25 --suppressions=vgs.txt --track-origins=yes $(which SecondoBDB) -test -e"
 else 
 if [ "$1" == "--valgrindlc" ]; then
   shift

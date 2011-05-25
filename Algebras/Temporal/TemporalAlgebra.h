@@ -2367,6 +2367,32 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
     p1 = i.p1;
     return *this;
   }
+
+/*
+~GetNoComponents~
+
+Returns the constant number 1. This function allows for
+templates using UPoint and MPoint.
+
+*/
+  int GetNoComponents() const{
+     return 1;
+  }
+  
+
+/*
+~Get~
+
+
+*/
+   
+    void Get( const int i, UPoint& upi ) const{
+      assert(i==0);
+      upi = *this;
+    }
+
+
+
 /*
 Redefinition of the copy operator ~=~.
 
