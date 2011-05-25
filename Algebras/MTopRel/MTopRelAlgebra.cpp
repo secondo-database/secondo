@@ -180,7 +180,7 @@ ListExpr toprelseqTM(ListExpr args){
                                 nl->SymbolAtom(toprel::Int9M::BasicType())));
 
     return nl->TwoElemList(nl->SymbolAtom("stream"),
-                nl->TwoElemList( nl->SymbolAtom("tuple"), attrList));
+                nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()), attrList));
                            
   }
 
@@ -488,7 +488,7 @@ ListExpr clusterseqTM(ListExpr args){
                                 nl->SymbolAtom(toprel::Cluster::BasicType())));
 
     return nl->TwoElemList(nl->SymbolAtom("stream"),
-                nl->TwoElemList( nl->SymbolAtom("tuple"), attrList));
+                nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()), attrList));
   }
 
   return listutils::typeError(err);
