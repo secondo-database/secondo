@@ -92,8 +92,10 @@ extern AlgebraManager* am;
 1.1 Type Mapping
 
    stream(CSVEXPORTABLE) x text x bool -> stream(CSVEXPORTABLE)
-   stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x bool -> stream (tuple(...))
-   stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x bool x string -> stream (tuple(...))
+   stream ( tuple ( (a1 t1) ... (an tn))) x string x 
+                bool x bool -> stream (tuple(...))
+   stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x 
+                bool x string -> stream (tuple(...))
 
 */
 
@@ -429,7 +431,8 @@ Operator csvexport( "csvexport",
 
 1.1 Type Mapping
 
-  rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x int x string -> stream(tuple(...))
+  rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x
+                          int x string -> stream(tuple(...))
 
   where t[_]i is CSVIMPORTABLE.
 
@@ -964,7 +967,8 @@ Operator nmeaimport_line( "nmeaimport_line",
 /*
 4 Operator ~get[_]lines~
 
-This operator reads a file and returns all lines found in this files into a stream.
+This operator reads a file and returns all lines 
+found in this files into a stream.
 
 
 4.1 Type Mapping
@@ -1439,7 +1443,7 @@ ListExpr db3exportTM(ListExpr args){
      return nl->TypeError();
   }
   if(!IsStreamDescription(nl->First(args)) ||
-     !nl->IsEqual(nl->Second(args),"text")){
+     !nl->IsEqual(nl->Second(args),FText::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
@@ -1782,8 +1786,9 @@ text -> text
 */
 
 ListExpr shptypeTM(ListExpr args){
-  if(nl->ListLength(args)==1 && nl->IsEqual(nl->First(args),"text")){
-     return nl->SymbolAtom("text");
+  if(nl->ListLength(args)==1 && nl->IsEqual(nl->First(args),
+                                            FText::BasicType())){
+     return nl->SymbolAtom(FText::BasicType());
   }
   ErrorReporter::ReportError("text expected");
   return nl->TypeError();
@@ -1855,16 +1860,16 @@ string getShpType(const string fname, bool& correct, string& errorMessage){
                return "";
              }
     case 1 : { correct = true;
-               return "point";
+               return Point::BasicType();
              }
     case 3 : { correct = true;
-               return "line";
+               return Line::BasicType();
              }
     case 5 : { correct = true;
-               return "region";
+               return Region::BasicType();
              }
     case 8 : { correct = true;
-               return "points";
+               return Points::BasicType();
              }
     case 11 : { errorMessage = "PointZ, no corresponding secondo type";
                return "";
@@ -1921,7 +1926,7 @@ int shptypeVM(Word* args, Word& result,
     return 0;
   }
   string value = "()";
-  if(shpType=="point"){
+  if(shpType==Point::BasicType()){
     value = "(0 0)";
   }
   res->Set(true, "[const "+shpType+" value "+value+"]");
@@ -1973,7 +1978,7 @@ ListExpr shpimportTM(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->Second(args),"text")){
+  if(!nl->IsEqual(nl->Second(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -1984,7 +1989,10 @@ ListExpr shpimportTM(ListExpr args){
   }
   string t1 = nl->SymbolValue(arg1);
 
-  if(t1!="point" && t1!="points" && t1!="line" && t1!="region"){
+  if(t1!=Point::BasicType() && 
+     t1!=Points::BasicType()  && 
+     t1!=Line::BasicType()  && 
+     t1!=Region::BasicType()){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -2004,13 +2012,13 @@ class shpimportInfo{
 
    shpimportInfo( const ListExpr allowedType1, const FText* fname){
       int allowedType = -1;
-      if(listutils::isSymbol(allowedType1,"point")){
+      if(listutils::isSymbol(allowedType1,Point::BasicType())){
            allowedType=1;
-       } else  if(listutils::isSymbol(allowedType1,"line")){
+       } else  if(listutils::isSymbol(allowedType1,Line::BasicType())){
            allowedType=3;
-       } else  if(listutils::isSymbol(allowedType1,"region")){
+       } else  if(listutils::isSymbol(allowedType1,Region::BasicType())){
            allowedType=5;
-       } else  if(listutils::isSymbol(allowedType1,"points")){
+       } else  if(listutils::isSymbol(allowedType1,Points::BasicType())){
            allowedType=8;
        }
 
@@ -2651,7 +2659,7 @@ ListExpr shpimport2TM(ListExpr args){
    ListExpr type = nl->First(arg);
    ListExpr value = nl->Second(arg);
 
-   if(!listutils::isSymbol(type,"text")){
+   if(!listutils::isSymbol(type,FText::BasicType())){
        return listutils::typeError("text expected");
    }
 
@@ -2721,8 +2729,9 @@ text -> text
 */
 
 ListExpr dbtypeTM(ListExpr args){
-  if(nl->ListLength(args)==1 && nl->IsEqual(nl->First(args),"text")){
-     return nl->SymbolAtom("text");
+  if(nl->ListLength(args)==1 && 
+     nl->IsEqual(nl->First(args),FText::BasicType())){
+     return nl->SymbolAtom(FText::BasicType());
   }
   ErrorReporter::ReportError("text expected");
   return nl->TypeError();
@@ -2816,23 +2825,23 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
      string type = "unknown";
      switch(typeCode){
       case 'C' : {
-         type = len <= MAX_STRINGSIZE?"string":"text";
+         type = len <= MAX_STRINGSIZE?CcString::BasicType():FText::BasicType();
          break;
       }
       case 'D' : {
-         type = "instant";
+         type = datetime::DateTime::BasicType();
          break;
       }
       case 'L' : {
-         type = "bool";
+         type = CcBool::BasicType();
          break;
       }
       case 'M' : {
-         type = "text";
+         type = FText::BasicType();
          break;
       }
       case 'N' : {
-         type = dc==0?"int":"real";
+         type = dc==0?CcInt::BasicType():CcReal::BasicType();
          break;
       }
       default : {
@@ -2945,7 +2954,7 @@ ListExpr dbimportTM(ListExpr args){
     return nl->TypeError();
   }
   if(!IsRelDescription(nl->First(args)) ||
-     !nl->IsEqual(nl->Second(args),"text")){
+     !nl->IsEqual(nl->Second(args),FText::BasicType())){
     ErrorReporter::ReportError("rel x text expected");
     return nl->TypeError();
   }
@@ -3142,16 +3151,17 @@ private:
       unsigned char dc = buffer[17];
       string type;
       switch(t){
-        case 'C' : type = len <= MAX_STRINGSIZE?"string":"text";
+        case 'C' : type = len <= MAX_STRINGSIZE?CcString::BasicType()
+                                               :FText::BasicType();
                    isMemo.push_back(false);
                    break;
-        case 'D' : type = "instant";
+        case 'D' : type = datetime::DateTime::BasicType();
                    isMemo.push_back(false);
                    break;
-        case 'L' : type = "bool";
+        case 'L' : type = CcBool::BasicType();
                    isMemo.push_back(false);
                    break;
-        case 'M' : type = "text";
+        case 'M' : type = FText::BasicType();
                    isMemo.push_back(true);
                    if(len!=10){
                       cerr << "Invalid field length for memo detected ,"
@@ -3159,7 +3169,7 @@ private:
                       len = 10;
                    }
                    break;
-        case 'N' : type = dc==0?"int":"real";
+        case 'N' : type = dc==0?CcInt::BasicType():FText::BasicType();
                    isMemo.push_back(false);
                    break;
         default : file.close();
@@ -3198,7 +3208,7 @@ private:
        }
      }
      string s = ss.str();
-     if(type=="int"){
+     if(type==CcInt::BasicType()){
         if(s.size()==0){
           tuple->PutAttribute(index, new CcInt(false,0));
         } else {
@@ -3208,7 +3218,7 @@ private:
             buffer >> res_int;
             tuple->PutAttribute(index, new CcInt(true,res_int));
         }
-     } else if(type=="real"){
+     } else if(type==CcReal::BasicType()){
         if(s.size()==0){
           tuple->PutAttribute(index, new CcReal(false,0));
         } else {
@@ -3218,13 +3228,13 @@ private:
           buffer >> res_double;
           tuple->PutAttribute(index, new CcReal(true,res_double));
         }
-     } else if(type=="string"){
+     } else if(type==CcString::BasicType()){
         if(s.size()==0){
           tuple->PutAttribute(index, new CcString(false,""));
         } else {
           tuple->PutAttribute(index, new CcString(true,s));
         }
-     } else if(type=="bool"){
+     } else if(type==CcBool::BasicType()){
         trim(s);
         if(s.size()==0 || s=="?"){
            tuple->PutAttribute(index, new CcBool(false,false));
@@ -3232,7 +3242,7 @@ private:
         bool res_bool = s=="y" || s=="Y" || s=="t" || s=="T";
         tuple->PutAttribute(index,new CcBool(true,res_bool));
 
-     } else if(type=="text"){
+     } else if(type==FText::BasicType()){
         bool ismemo = isMemo[index];
         if(ismemo){
            if(s.size()==0){
@@ -3271,7 +3281,7 @@ private:
              tuple->PutAttribute(index, new FText(true,s));
            }
         }
-     } else if(type=="instant"){
+     } else if(type==datetime::DateTime::BasicType()){
         datetime::DateTime* res =
             new datetime::DateTime(datetime::instanttype);
         if(s.size()==0){
@@ -3489,8 +3499,8 @@ ListExpr saveObjectTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->Second(args),"string") |
-     !nl->IsEqual(nl->Third(args),"text")){
+  if(!nl->IsEqual(nl->Second(args),CcString::BasicType()) |
+     !nl->IsEqual(nl->Third(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -3503,7 +3513,7 @@ ListExpr saveObjectTM(ListExpr args){
     ErrorReporter::ReportError("stream not allowes as first argument");
     return nl->TypeError();
   }
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -3590,13 +3600,13 @@ ListExpr stringORtext2boolTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->First(args),"string")
-      && !nl->IsEqual(nl->First(args),"text")){
+  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
+      && !nl->IsEqual(nl->First(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -3647,9 +3657,9 @@ const string isFileSpec  =
 
 int stringORtextSelect( ListExpr args )
 {
-  if(nl->IsEqual(nl->First(args),"string")) {
+  if(nl->IsEqual(nl->First(args),CcString::BasicType())) {
     return 0;
-  } else if(nl->IsEqual(nl->First(args),"text")){
+  } else if(nl->IsEqual(nl->First(args),FText::BasicType())){
     return 1;
   }
   assert( false );
@@ -4105,18 +4115,18 @@ int stringORtext_stringORtext_Select( ListExpr args )
 {
   int index = 0;
   // first arg
-  if(nl->IsEqual(nl->First(args),"string")) {
+  if(nl->IsEqual(nl->First(args),CcString::BasicType())) {
     index += 0;
-  } else if(nl->IsEqual(nl->First(args),"text")){
+  } else if(nl->IsEqual(nl->First(args),FText::BasicType())){
     index +=  2;
   } else {
     assert(false);
     return -1;
   }
   // second arg
-  if(nl->IsEqual(nl->Second(args),"string")) {
+  if(nl->IsEqual(nl->Second(args),CcString::BasicType())) {
     index += 0;
-  } else if(nl->IsEqual(nl->Second(args),"text")){
+  } else if(nl->IsEqual(nl->Second(args),FText::BasicType())){
     index += 1;
   } else {
     assert(false);
@@ -4719,7 +4729,7 @@ Operator fromCSVtext( "fromCSVtext",
 */
 ListExpr getPIDTM(ListExpr args){
   if( nl->ListLength(args)==0 ){
-     return nl->SymbolAtom("int");
+     return nl->SymbolAtom(CcInt::BasicType());
   }
   ErrorReporter::ReportError("No argument expected");
   return nl->TypeError();
@@ -4775,7 +4785,7 @@ Operator getPID( "getPID",
 */
 ListExpr getSecondoVersionTM(ListExpr args){
   if( nl->ListLength(args)==0 ){
-     return nl->SymbolAtom("string");
+     return nl->SymbolAtom(CcString::BasicType());
   }
   ErrorReporter::ReportError("No argument expected");
   return nl->TypeError();
@@ -4837,7 +4847,7 @@ Operator getSecondoVersion( "getSecondoVersion",
 */
 ListExpr getBDBVersionTM(ListExpr args){
   if( nl->ListLength(args)==0 ){
-     return nl->SymbolAtom("string");
+     return nl->SymbolAtom(CcString::BasicType());
   }
   ErrorReporter::ReportError("No argument expected");
   return nl->TypeError();
@@ -4899,7 +4909,7 @@ Operator getBDBVersion( "getBDBVersion",
 */
 ListExpr getSecondoPlatformTM(ListExpr args){
   if( nl->ListLength(args)==0 ){
-     return nl->SymbolAtom("string");
+     return nl->SymbolAtom(CcString::BasicType());
   }
   ErrorReporter::ReportError("No argument expected");
   return nl->TypeError();
@@ -4955,7 +4965,7 @@ Operator getSecondoPlatform( "getSecondoPlatform",
 */
 ListExpr getPageSizeTM(ListExpr args){
   if( nl->ListLength(args)==0 ){
-     return nl->SymbolAtom("int");
+     return nl->SymbolAtom(CcInt::BasicType());
   }
   ErrorReporter::ReportError("No argument expected");
   return nl->TypeError();
