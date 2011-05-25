@@ -154,7 +154,7 @@ ListExpr csvexportTM(ListExpr args){
     }
     ListExpr tuple = nl->Second(stream);
     if(nl->ListLength(tuple)!=2 ||
-       !nl->IsEqual(nl->First(tuple),"tuple")){
+       !nl->IsEqual(nl->First(tuple),Tuple::BasicType())){
        ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
@@ -3418,7 +3418,9 @@ ListExpr dbimport2TM(ListExpr args){
        return listutils::typeError(errMsg);
    }
    return nl->TwoElemList(nl->SymbolAtom("stream"),
-                   nl->TwoElemList(nl->SymbolAtom("tuple"), attrList));
+                   nl->TwoElemList(
+                       nl->SymbolAtom(Tuple::BasicType()), 
+                       attrList));
 
 
 }
