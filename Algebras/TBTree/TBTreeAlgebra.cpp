@@ -77,7 +77,7 @@ bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo){
    ListExpr idName = nl->Third(type);
    ListExpr upName = nl->Fourth(type);
 
-   if(!nl->IsEqual(tbtree,"tbtree")){
+   if(!nl->IsEqual(tbtree,TBTree::BasicType())){
       ErrorReporter::ReportError("symbol tbtree not found");
       return false;
    }
@@ -248,7 +248,7 @@ int SizeOfTBTree() {
 
 
 
-TypeConstructor tbtreetc( "tbtree",
+TypeConstructor tbtreetc( TBTree::BasicType(),
                          TBTreeProperty,
                          OutTBTree,
                          InTBTree,
@@ -311,7 +311,7 @@ ListExpr createtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,"int")){
+  if(!nl->IsEqual(type,CcInt::BasicType())){
     ErrorReporter::ReportError("attribute " +ids  +
                                " has to be an int");
     return nl->TypeError();
@@ -324,14 +324,14 @@ ListExpr createtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,"upoint")){
+  if(!nl->IsEqual(type,UPoint::BasicType())){
     ErrorReporter::ReportError("attribute " +ups  +
                                " has to be a upoint");
     return nl->TypeError();
   }
 
   ListExpr tree =  nl->FourElemList(
-                        nl->SymbolAtom("tbtree"),
+                        nl->SymbolAtom(TBTree::BasicType()),
                         attrList,
                         id,
                         up);
@@ -415,7 +415,7 @@ ListExpr TBTree2Int(ListExpr args){
    }
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -575,30 +575,30 @@ ListExpr getnodesTM(ListExpr args){
       return nl->TwoElemList(
                     nl->SymbolAtom("stream"),
                     nl->TwoElemList(
-                        nl->SymbolAtom("tuple"),
+                        nl->SymbolAtom(Tuple::BasicType()),
                         nl->Cons(
                             nl->TwoElemList(
                                 nl->SymbolAtom("Id"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->SixElemList(
                             nl->TwoElemList(
                                 nl->SymbolAtom("ParentId"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Level"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("IsLeaf"),
-                                nl->SymbolAtom("bool")),
+                                nl->SymbolAtom(CcBool::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Entries"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Box"),
-                                nl->SymbolAtom("rect3")),
+                                nl->SymbolAtom(Rectangle<3>::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Cov"),
-                                nl->SymbolAtom("int"))))));
+                                nl->SymbolAtom(CcInt::BasicType()))))));
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -737,7 +737,7 @@ ListExpr TBTree2Text(ListExpr args){
    }
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
-      return nl->SymbolAtom("text");
+      return nl->SymbolAtom(FText::BasicType());
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -831,17 +831,17 @@ ListExpr getentriesTM(ListExpr args){
       return nl->TwoElemList(
                     nl->SymbolAtom("stream"),
                     nl->TwoElemList(
-                        nl->SymbolAtom("tuple"),
+                        nl->SymbolAtom(Tuple::BasicType()),
                         nl->ThreeElemList(
                             nl->TwoElemList(
                                 nl->SymbolAtom("TupleId"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("TrjId"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Box"),
-                                nl->SymbolAtom("rect3")))));
+                                nl->SymbolAtom(Rectangle<3>::BasicType())))));
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -857,20 +857,20 @@ ListExpr getallentriesTM(ListExpr args){
       return nl->TwoElemList(
                     nl->SymbolAtom("stream"),
                     nl->TwoElemList(
-                        nl->SymbolAtom("tuple"),
+                        nl->SymbolAtom(Tuple::BasicType()),
                         nl->FourElemList(
                             nl->TwoElemList(
                                 nl->SymbolAtom("TupleId"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("TrjId"),
-                                nl->SymbolAtom("int")),
+                                nl->SymbolAtom(CcInt::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Box"),
-                                nl->SymbolAtom("rect3")),
+                                nl->SymbolAtom(Rectangle<3>::BasicType())),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Nodeid"),
-                                nl->SymbolAtom("int")))));
+                                nl->SymbolAtom(CcInt::BasicType())))));
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -1131,8 +1131,8 @@ ListExpr windowintersectsSTM(ListExpr args){
      ErrorReporter::ReportError("invalid number of arguments");
      return nl->TypeError();
    }
-   if(!nl->IsEqual(nl->Second(args), "rect") &&
-      !nl->IsEqual(nl->Second(args), "rect3")){
+   if(!nl->IsEqual(nl->Second(args), Rectangle<2>::BasicType()) &&
+      !nl->IsEqual(nl->Second(args), Rectangle<3>::BasicType())){
      ErrorReporter::ReportError("second argument must be a rectangle");
      return nl->TypeError();
    }
@@ -1141,11 +1141,11 @@ ListExpr windowintersectsSTM(ListExpr args){
       return nl->TwoElemList(
                     nl->SymbolAtom("stream"),
                     nl->TwoElemList(
-                       nl->SymbolAtom("tuple"),
+                       nl->SymbolAtom(Tuple::BasicType()),
                        nl->OneElemList(
                             nl->TwoElemList(
                               nl->SymbolAtom("id"),
-                              nl->SymbolAtom("tid")))));
+                              nl->SymbolAtom(TupleIdentifier::BasicType())))));
 
    }
    ErrorReporter::ReportError("TBTree expected as first arg");
@@ -1382,7 +1382,7 @@ int windowintersectsS_2dVM(Word* args, Word& result, int message,
 */
 
 int windowintersectsSSelect(ListExpr args){
-  if(nl->IsEqual(nl->Second(args),"rect")){
+  if(nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType())){
     return 0;
   } else {
     return 1;
@@ -1428,7 +1428,7 @@ ListExpr getBoxTM(ListExpr args){
    }
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
-      return nl->SymbolAtom("rect3");
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -1489,8 +1489,8 @@ ListExpr windowintersectsTM(ListExpr args){
      ErrorReporter::ReportError("invalid number of arguments");
      return nl->TypeError();
    }
-   if(!nl->IsEqual(nl->Third(args), "rect") &&
-      !nl->IsEqual(nl->Third(args), "rect3")){
+   if(!nl->IsEqual(nl->Third(args), Rectangle<2>::BasicType()) &&
+      !nl->IsEqual(nl->Third(args), Rectangle<3>::BasicType())){
      ErrorReporter::ReportError("second argument must be a rectangle");
      return nl->TypeError();
    }
@@ -1508,7 +1508,7 @@ ListExpr windowintersectsTM(ListExpr args){
       return nl->TwoElemList(
                     nl->SymbolAtom("stream"),
                     nl->TwoElemList(
-                       nl->SymbolAtom("tuple"),
+                       nl->SymbolAtom(Tuple::BasicType()),
                        relal));
    }
    ErrorReporter::ReportError("tbtree x rel x rect | rect3 expected");
@@ -1653,7 +1653,7 @@ int windowintersects_2dVM(Word* args, Word& result, int message,
 */
 
 int windowintersectsSelect(ListExpr args){
-  if(nl->IsEqual(nl->Third(args),"rect")){
+  if(nl->IsEqual(nl->Third(args),Rectangle<2>::BasicType())){
     return 0;
   } else {
     return 1;
@@ -1727,7 +1727,7 @@ ListExpr bulkloadtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,"int")){
+  if(!nl->IsEqual(type,CcInt::BasicType())){
     ErrorReporter::ReportError("attribute " +ids  +
                                " has to be an int");
     return nl->TypeError();
@@ -1740,7 +1740,7 @@ ListExpr bulkloadtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,"upoint")){
+  if(!nl->IsEqual(type,UPoint::BasicType())){
     ErrorReporter::ReportError("attribute " +ups  +
                                " has to be a upoint");
     return nl->TypeError();
@@ -1754,7 +1754,7 @@ ListExpr bulkloadtbtreeTM(ListExpr args){
                                "not an attribute of the relation ");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(type,"tid")){
+  if(!nl->IsEqual(type,TupleIdentifier::BasicType())){
     ErrorReporter::ReportError("attribute " +tids  +
                                " has to be a tid");
     return nl->TypeError();
@@ -1763,7 +1763,7 @@ ListExpr bulkloadtbtreeTM(ListExpr args){
 
 
   ListExpr tree =  nl->FourElemList(
-                        nl->SymbolAtom("tbtree"),
+                        nl->SymbolAtom(TBTree::BasicType()),
                         attrList,
                         id,
                         up);

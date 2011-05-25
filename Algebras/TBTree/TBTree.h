@@ -1405,6 +1405,12 @@ Some Getter
       result.push_back(pair<string,string>("FileId",fileid.str()));
       return true;
   }
+
+  static const string BasicType(){
+     return "tbtree";
+  }
+
+
 /*
 calculate number of different trajectories in this node
 
