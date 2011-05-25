@@ -58,7 +58,7 @@ Fernuniversit[ae]t Hagen.
 Open:
 
   * Bug: List representation checks incorrect for
-    ~(update mv := ((movingregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
+    ~(update mv := ((mregion)((0.0 0.0 true true)(0.0 0.0 1.0 1.0))));~.
     Aleksej Struk found this issue.
 
     Update: Debug output at the beginning on ~InMRegion()~ indicated that
@@ -151,7 +151,7 @@ Closed:
 
     Resolved: Replaced references.
 
-  * Bug: ~intimeregion~ object creation via ~const intimeregion
+  * Bug: ~iregion~ object creation via ~const iregion
     value ...~ results in a failed assertion.
 
     Resolved: Various modifications outside the MovingRegionAlgebra fixed
@@ -2289,8 +2289,8 @@ static void restrictUPointToInterval(const UPoint& up,
 1 Supporting classes and class template
 
 Supporting classes are those, which are not registered as SECONDO datatypes
-but are used to implement the SECONDO datatypes ~intimeregion~, ~uregion~ and
-~movingregion~.
+but are used to implement the SECONDO datatypes ~iregion~, ~uregion~ and
+~mregion~.
 
 1.1 Class ~MSegmentData~
 
@@ -2635,7 +2635,7 @@ bool TrapeziumSegmentIntersection::operator<(
 Moved to ~TemporalAlgbra.h~
 
 
-1 Data type ~intimeregion~
+1 Data type ~iregion~
 
 1.1 Class ~IRegion~
 
@@ -2736,7 +2736,7 @@ static ListExpr IRegionProperty() {
                 nl->StringAtom("Example List")),
             nl->FourElemList(
                 nl->StringAtom("-> UNIT"),
-                nl->StringAtom("(intimeregion)"),
+                nl->StringAtom("(iregion)"),
                 nl->StringAtom("(<instant> <region>)"),
                 example));
 }
@@ -2748,7 +2748,8 @@ static ListExpr IRegionProperty() {
 static bool CheckIRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckIRegion() called" << endl;
 
-    return nl->IsEqual(type, "intimeregion");
+  return nl->IsEqual(type, IRegion::BasicType())
+      || nl->IsEqual(type, "intimeregion");
 }
 
 /*
@@ -2766,7 +2767,7 @@ static Word CreateIRegion(const ListExpr typeInfo) {
 
 */
 static TypeConstructor intimeregion(
-    "intimeregion",
+    IRegion::BasicType(),
     IRegionProperty,
     OutIntime<Region, OutRegion>,
     InIntime<Region, InRegion>,
@@ -6509,7 +6510,7 @@ static ListExpr URegionProperty() {
 static bool CheckURegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckURegion() called" << endl;
 
-    return nl->IsEqual(type, "uregion");
+    return nl->IsEqual(type, URegion::BasicType());
 }
 
 /*
@@ -6615,7 +6616,7 @@ static bool SaveURegion(SmiRecord& rec,
 
 */
 static TypeConstructor uregion(
-    "uregion",
+    URegion::BasicType(),
     URegionProperty,
     OutURegion,
     InURegion,
@@ -6631,7 +6632,7 @@ static TypeConstructor uregion(
     CheckURegion);
 
 /*
-1 Data type ~movingregion~
+1 Data type ~mregion~
 
 1.1 Class ~MRegion~
 
@@ -7701,7 +7702,7 @@ static ListExpr MRegionProperty() {
                 nl->StringAtom("Example List")),
             nl->FourElemList(
                 nl->StringAtom("-> MAPPING"),
-                nl->StringAtom("(movingregion)"),
+                nl->StringAtom("(mregion)"),
                 listrep,
                 example));
 }
@@ -7714,7 +7715,8 @@ static ListExpr MRegionProperty() {
 static bool CheckMRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckMRegion() called" << endl;
 
-    return nl->IsEqual(type, "movingregion");
+    return nl->IsEqual(type, MRegion::BasicType())
+        || nl->IsEqual(type, "movingregion");
 }
 
 /*
@@ -7852,7 +7854,7 @@ static bool SaveMRegion(SmiRecord& rec,
 }
 
 /*
-1.1.1 Type constructor ~movingregion~
+1.1.1 Type constructor ~mregion~
 
 */
 static Word CreateMRegion(const ListExpr typeInfo) {
@@ -7884,7 +7886,7 @@ static int SizeOfMRegion() {
 }
 
 static TypeConstructor movingregion(
-    "movingregion",
+    MRegion::BasicType(),
     MRegionProperty,
     OutMRegion,
     InMRegion,
@@ -7948,9 +7950,9 @@ static ListExpr MPointMRegionToMPointTypeMap(ListExpr args)
     }
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "mpoint")
-        && nl->IsEqual(nl->Second(args), "movingregion"))
-        return nl->SymbolAtom("mpoint");
+        && nl->IsEqual(nl->First(args), MPoint::BasicType())
+        && nl->IsEqual(nl->Second(args), MRegion::BasicType()))
+        return nl->SymbolAtom(MPoint::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -7965,9 +7967,9 @@ static ListExpr MPointMRegionToMBoolTypeMap(ListExpr args) {
         cerr << "MPointMRegionToMBoolTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "mpoint")
-        && nl->IsEqual(nl->Second(args), "movingregion"))
-        return nl->SymbolAtom("mbool");
+        && nl->IsEqual(nl->First(args), MPoint::BasicType())
+        && nl->IsEqual(nl->Second(args), MRegion::BasicType()))
+        return nl->SymbolAtom(MBool::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -7981,8 +7983,8 @@ static ListExpr MRegionToIRegionTypeMap(ListExpr args) {
         cerr << "MRegionToIRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("intimeregion");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(IRegion::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -7996,8 +7998,8 @@ static ListExpr MRegionToPeriodsTypeMap(ListExpr args) {
         cerr << "MRegionToPeriodsTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("periods");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(Range<Instant>::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8012,8 +8014,8 @@ static ListExpr IRegionToInstantTypeMap(ListExpr args) {
         cerr << "IRegionToInstantTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "intimeregion"))
-        return nl->SymbolAtom("instant");
+        && nl->IsEqual(nl->First(args), IRegion::BasicType()))
+        return nl->SymbolAtom(Instant::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8028,8 +8030,8 @@ static ListExpr IRegionToRegionTypeMap(ListExpr args) {
         cerr << "IRegionToRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "intimeregion"))
-        return nl->SymbolAtom("region");
+        && nl->IsEqual(nl->First(args), IRegion::BasicType()))
+        return nl->SymbolAtom(Region::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8045,8 +8047,8 @@ static ListExpr MRegionToRegionTypeMap(ListExpr args) {
         cerr << "MRegionToRegionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("region");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(Region::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8064,10 +8066,10 @@ static ListExpr PresentTypeMap(ListExpr args) {
         cerr << "PresentTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
-        && (nl->IsEqual(nl->Second(args), "instant")
-            || nl->IsEqual(nl->Second(args), "periods")))
-        return nl->SymbolAtom("bool");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType())
+        && (nl->IsEqual(nl->Second(args), Instant::BasicType())
+            || nl->IsEqual(nl->Second(args), Range<Instant>::BasicType())))
+        return nl->SymbolAtom(CcBool::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8083,13 +8085,13 @@ static ListExpr AtTypeMap(ListExpr args) {
         cerr << "AtTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "mpoint")
-        && nl->IsEqual(nl->Second(args), "region"))
-        return nl->SymbolAtom("mpoint");
+        && nl->IsEqual(nl->First(args), MPoint::BasicType())
+        && nl->IsEqual(nl->Second(args), Region::BasicType()))
+        return nl->SymbolAtom(MPoint::BasicType());
     else if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
-        && nl->IsEqual(nl->Second(args), "point"))
-        return nl->SymbolAtom("mpoint");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType())
+        && nl->IsEqual(nl->Second(args), Point::BasicType()))
+        return nl->SymbolAtom(MPoint::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8106,9 +8108,9 @@ ListExpr AddTypeMap( ListExpr args )
         cerr << "AddTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
-        && nl->IsEqual(nl->Second(args), "uregion"))
-        return nl->SymbolAtom("movingregion");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType())
+        && nl->IsEqual(nl->Second(args), URegion::BasicType()))
+        return nl->SymbolAtom(MRegion::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8123,9 +8125,9 @@ static ListExpr UnionTypeMap(ListExpr args) {
         cerr << "UnionTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "uregion")
-        && nl->IsEqual(nl->Second(args), "uregion"))
-        return nl->SymbolAtom("uregion");
+        && nl->IsEqual(nl->First(args), URegion::BasicType())
+        && nl->IsEqual(nl->Second(args), URegion::BasicType()))
+        return nl->SymbolAtom(URegion::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8139,13 +8141,13 @@ static ListExpr AtInstantTypeMap(ListExpr args) {
         cerr << "AtInstantTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
-        && nl->IsEqual(nl->Second(args), "instant"))
-        return nl->SymbolAtom("intimeregion");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType())
+        && nl->IsEqual(nl->Second(args), Instant::BasicType()))
+        return nl->SymbolAtom(IRegion::BasicType());
     else if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "uregion")
-        && nl->IsEqual(nl->Second(args), "instant"))
-        return nl->SymbolAtom("intimeregion");
+        && nl->IsEqual(nl->First(args), URegion::BasicType())
+        && nl->IsEqual(nl->Second(args), Instant::BasicType()))
+        return nl->SymbolAtom(IRegion::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8161,9 +8163,9 @@ static ListExpr MraprecTypeMap(ListExpr args) {
         cerr << "MraprecTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "real")
-        && nl->IsEqual(nl->Second(args), "real"))
-        return nl->SymbolAtom("bool");
+        && nl->IsEqual(nl->First(args), CcReal::BasicType())
+        && nl->IsEqual(nl->Second(args), CcReal::BasicType()))
+        return nl->SymbolAtom(CcBool::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8180,16 +8182,16 @@ static ListExpr MoveTypeMap(ListExpr args){
         ErrorReporter::ReportError("invalid number of arguments");
         return nl->SymbolAtom("typeerror");
     }
-    if(!nl->IsEqual(nl->First(args),"mpoint")){
+    if(!nl->IsEqual(nl->First(args),MPoint::BasicType())){
         ErrorReporter::ReportError("mpoint as first argument required");
         return nl->SymbolAtom("typeerror");
     }
-    if(!nl->IsEqual(nl->Second(args),"region")){
+    if(!nl->IsEqual(nl->Second(args),Region::BasicType())){
         ErrorReporter::ReportError("region as second argument required");
         return nl->SymbolAtom("typeerror");
     }
-    if (MRA_DEBUG) cout << "Typemap returns movingregion" << endl;
-    return nl->SymbolAtom("movingregion");
+    if (MRA_DEBUG) cout << "Typemap returns mregion" << endl;
+    return nl->SymbolAtom(MRegion::BasicType());
 }
 
 /*
@@ -8202,16 +8204,16 @@ static ListExpr BboxTypeMap(ListExpr args) {
         cerr << "BboxTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "uregion"))
-      return nl->SymbolAtom("rect3");
+        && nl->IsEqual(nl->First(args), URegion::BasicType()))
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "intimeregion"))
-        return nl->SymbolAtom("rect3");
+        && nl->IsEqual(nl->First(args), IRegion::BasicType()))
+        return nl->SymbolAtom(Rectangle<3>::BasicType());
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "movingregion"))
-      return nl->SymbolAtom("rect3");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
 
     else
         return nl->SymbolAtom("typeerror");
@@ -8227,16 +8229,16 @@ static ListExpr Bbox2dTypeMap(ListExpr args) {
         cerr << "Bbox2dTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "uregion"))
-      return nl->SymbolAtom("rect");
+        && nl->IsEqual(nl->First(args), URegion::BasicType()))
+      return nl->SymbolAtom(Rectangle<2>::BasicType());
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "intimeregion"))
-        return nl->SymbolAtom("rect");
+        && nl->IsEqual(nl->First(args), IRegion::BasicType()))
+        return nl->SymbolAtom(Rectangle<2>::BasicType());
 
     if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "movingregion"))
-        return nl->SymbolAtom("rect");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType()))
+        return nl->SymbolAtom(Rectangle<2>::BasicType());
 
     else
         return nl->SymbolAtom("typeerror");
@@ -8253,10 +8255,11 @@ static ListExpr VertTrajectoryTypeMap(ListExpr args){
        return nl->SymbolAtom("typeerror");
    }
    ListExpr arg = nl->First(args);
-   if(nl->IsEqual(arg,"uregion") || nl->IsEqual(arg,"movingregion")){
+   if(nl->IsEqual(arg,URegion::BasicType())
+     || nl->IsEqual(arg,MRegion::BasicType())){
      return nl->SymbolAtom("line");
    }
-   ErrorReporter::ReportError("uregion or movingregion"
+   ErrorReporter::ReportError("uregion or mregion"
                               " expected but got ");
    return nl->SymbolAtom("typeerror");
 }
@@ -8273,9 +8276,9 @@ ListExpr MRAUnitsTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "movingregion" ) )
+    if( nl->IsEqual( arg1, MRegion::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
-       nl->SymbolAtom("uregion"));
+       nl->SymbolAtom(URegion::BasicType()));
 
   }
   return nl->SymbolAtom("typeerror");
@@ -8293,10 +8296,10 @@ ListExpr MRegTimeShiftTM( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "duration" ) )
+    if( nl->IsEqual( arg2, Duration::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "movingregion" ) )
-        return nl->SymbolAtom( "movingregion" );
+      if( nl->IsEqual( arg1, MRegion::BasicType() ) )
+        return nl->SymbolAtom( MRegion::BasicType() );
     }
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8316,10 +8319,10 @@ static ListExpr Unittest1TypeMap(ListExpr args) {
         return nl->SymbolAtom("typeerror");
 
     for (; !nl->IsEmpty(args); args = nl->Rest(args))
-        if (nl->SymbolValue(nl->First(args)) != "real")
+        if (nl->SymbolValue(nl->First(args)) != CcReal::BasicType())
             return nl->SymbolAtom("typeerror");
 
-    return nl->SymbolAtom("int");
+    return nl->SymbolAtom(CcInt::BasicType());
 }
 
 static ListExpr Unittest2TypeMap(ListExpr args) {
@@ -8327,9 +8330,9 @@ static ListExpr Unittest2TypeMap(ListExpr args) {
         cerr << "Unittest2TypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "movingregion")
-        && nl->IsEqual(nl->Second(args), "int"))
-        return nl->SymbolAtom("bool");
+        && nl->IsEqual(nl->First(args), MRegion::BasicType())
+        && nl->IsEqual(nl->Second(args), CcInt::BasicType()))
+        return nl->SymbolAtom(CcBool::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8339,9 +8342,9 @@ static ListExpr Unittest3TypeMap(ListExpr args) {
         cerr << "Unittest3TypeMap() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->IsEqual(nl->First(args), "mpoint")
-        && nl->IsEqual(nl->Second(args), "mpoint"))
-        return nl->SymbolAtom("rreal");
+        && nl->IsEqual(nl->First(args), MPoint::BasicType())
+        && nl->IsEqual(nl->Second(args), MPoint::BasicType()))
+        return nl->SymbolAtom(Range<CcReal>::BasicType());
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8361,8 +8364,8 @@ static int MPointMRegionSelect(ListExpr args) {
         cerr << "MPointMRegionSelect() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "mpoint"
-        && nl->SymbolValue(nl->Second(args)) == "movingregion")
+        && nl->SymbolValue(nl->First(args)) == MPoint::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == MRegion::BasicType())
         return 0;
     else
         return -1;
@@ -8378,7 +8381,7 @@ static int MRegionSelect(ListExpr args) {
         cerr << "MRegionSelect() called" << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->SymbolValue(nl->First(args)) == "movingregion")
+        && nl->SymbolValue(nl->First(args)) == MRegion::BasicType())
         return 0;
     else
         return -1;
@@ -8403,7 +8406,7 @@ static int IRegionSelect(ListExpr args) {
              << endl;
 
     if (nl->ListLength(args) == 1
-        && nl->SymbolValue(nl->First(args)) == "intimeregion")
+        && nl->SymbolValue(nl->First(args)) == IRegion::BasicType())
         return 0;
     else
         return -1;
@@ -8420,12 +8423,12 @@ static int PresentSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "PresentSelect() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "instant")
+        && nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Instant::BasicType())
         return 0;
     else if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "periods")
+        && nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Range<Instant>::BasicType())
         return 1;
     else
         return -1;
@@ -8440,12 +8443,12 @@ static int AtSelect(ListExpr args) {
     if (MRA_DEBUG) cerr << "AtSelect() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "mpoint"
-        && nl->SymbolValue(nl->Second(args)) == "region")
+        && nl->SymbolValue(nl->First(args)) == MPoint::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Region::BasicType())
         return 0;
     else if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "point")
+        && nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Point::BasicType())
         return 1;
     else
         return -1;
@@ -8461,12 +8464,12 @@ static int AtInstantSelect(ListExpr args) {
         cerr << "AtInstantSelect() called" << endl;
 
     if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "movingregion"
-        && nl->SymbolValue(nl->Second(args)) == "instant")
+        && nl->SymbolValue(nl->First(args)) == MRegion::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Instant::BasicType())
         return 0;
     else if (nl->ListLength(args) == 2
-        && nl->SymbolValue(nl->First(args)) == "uregion"
-        && nl->SymbolValue(nl->Second(args)) == "instant")
+        && nl->SymbolValue(nl->First(args)) == URegion::BasicType()
+        && nl->SymbolValue(nl->Second(args)) == Instant::BasicType())
         return 1;
     else
         return -1;
@@ -8479,7 +8482,7 @@ Used by ~vertrajectory~:
 
 static int VertTrajectorySelect(ListExpr args){
    ListExpr arg = nl->First(args);
-   if(nl->IsEqual(arg,"uregion"))
+   if(nl->IsEqual(arg,URegion::BasicType()))
       return 0;
    else
       return 1;
@@ -8492,11 +8495,11 @@ Used by ~bbox~ and ~bbox2d~:
 
 static int BBoxSelect(ListExpr args){
   ListExpr arg = nl->First(args);
-  if(nl->IsEqual(arg,"uregion"))
+  if(nl->IsEqual(arg,URegion::BasicType()))
     return 0;
-  if(nl->IsEqual(arg,"intimeregion"))
+  if(nl->IsEqual(arg,IRegion::BasicType()))
     return 1;
-  if(nl->IsEqual(arg,"movingregion"))
+  if(nl->IsEqual(arg,MRegion::BasicType()))
     return 2;
   else
     return -1;
@@ -9320,80 +9323,80 @@ static ValueMapping Bbox2dValueMap[] =
 
 static const string atinstantspec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(movingregion instant) -> intimeregion, "
-    "    (uregion instant) -> intimeregion,</text--->"
+    "  ( <text>(mregion instant) -> iregion, "
+    "    (uregion instant) -> iregion,</text--->"
     "    <text>_ atinstant _ </text--->"
-    "    <text>Get the intimeregion value corresponding "
+    "    <text>Get the iregion value corresponding "
     "to the instant.</text--->"
-    "    <text>movingregion1 atinstant instant1</text---> ) )";
+    "    <text>mregion1 atinstant instant1</text---> ) )";
 
 static const string initialspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>movingregion -> intimeregion</text--->"
+    "  ( <text>mregion -> iregion</text--->"
     "    <text>initial( _ )</text--->"
-    "    <text>Get the intimeregion value corresponding to "
+    "    <text>Get the iregion value corresponding to "
     "the initial instant."
     "    </text--->"
-    "    <text>initial( movingregion1 )</text---> ) )";
+    "    <text>initial( mregion1 )</text---> ) )";
 
 static const string finalspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>movingregion -> intimeregion</text--->"
+    "  ( <text>mregion -> iregion</text--->"
     "    <text>final( _ )</text--->"
-    "    <text>Get the intimeregion value corresponding to "
+    "    <text>Get the iregion value corresponding to "
     "the final instant."
     "    </text--->"
-    "    <text>final( movingregion1 )</text---> ) )";
+    "    <text>final( mregion1 )</text---> ) )";
 
 static const string instspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>intimeregion -> instant</text--->"
+    "  ( <text>iregion -> instant</text--->"
     "    <text>inst ( _ )</text--->"
-    "    <text>intimeregion time instant.</text--->"
-    "    <text>inst ( intimeregion1 )</text---> ) )";
+    "    <text>iregion time instant.</text--->"
+    "    <text>inst ( iregion1 )</text---> ) )";
 
 static const string valspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>intimeregion -> region</text--->"
+    "  ( <text>iregion -> region</text--->"
     "    <text>val ( _ )</text--->"
     "    <text>Intime value.</text--->"
-    "    <text>val ( intimeregion1 )</text---> ) )";
+    "    <text>val ( iregion1 )</text---> ) )";
 
 static const string deftimespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>movingregion -> periods</text--->"
+    "  ( <text>mregion -> periods</text--->"
     "    <text>deftime( _ )</text--->"
-    "    <text>Get the defined time of the movingregion object.</text--->"
-    "    <text>deftime( movingregion1 )</text---> ) )";
+    "    <text>Get the defined time of the mregion object.</text--->"
+    "    <text>deftime( mregion1 )</text---> ) )";
 
 static const string presentspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(movingregion instant) -> bool, "
-    "(movingregion periods) -> bool</text--->"
+    "  ( <text>(mregion instant) -> bool, "
+    "(mregion periods) -> bool</text--->"
     "    <text>_ present _ </text--->"
     "    <text>Whether the object is present at the given instant or"
     "    period.</text--->"
-    "    <text>movingregion1 present instant1</text---> ) )";
+    "    <text>mregion1 present instant1</text---> ) )";
 
 static const string intersectionspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mpoint movingregion) -> mpoint</text--->"
+    "  ( <text>(mpoint mregion) -> mpoint</text--->"
     "    <text>intersection( _ , _ )</text--->"
-    "    <text>Intersection between mpoint and movingregion.</text--->"
-    "    <text>intersection(mpoint1, movingregion1)</text---> ) )";
+    "    <text>Intersection between mpoint and mregion.</text--->"
+    "    <text>intersection(mpoint1, mregion1)</text---> ) )";
 
 static const string insidespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(mpoint movingregion) -> mbool</text--->"
+    "  ( <text>(mpoint mregion) -> mbool</text--->"
     "    <text>_ inside _</text--->"
     "    <text>Calculates if and when mpoint is inside "
-    "movingregion.</text--->"
-    "    <text>mpoint1 inside movingregion1</text---> ) )";
+    "mregion.</text--->"
+    "    <text>mpoint1 inside mregion1</text---> ) )";
 
 static const string atspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mpoint region) -> mpoint, "
-    "(movingregion point) -> mpoint</text--->"
+    "(mregion point) -> mpoint</text--->"
     "    <text>_ at _</text--->"
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
@@ -9422,7 +9425,7 @@ static const string unionspec =
 
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>mpoint x region -> movingregion</text--->"
+    "  ( <text>mpoint x region -> mregion</text--->"
     "    <text>move( _ , _)</text--->"
     "    <text>Creates a moving region from the given region"
     "  using the mpoint speed and direction </text--->"
@@ -9431,11 +9434,11 @@ static const string movespec =
 #ifdef MRA_TRAVERSED
 static const string traversedspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>movingregion -> region</text--->"
+    "  ( <text>mregion -> region</text--->"
     "    <text>traversed( _ )</text--->"
     "    <text>Projection of a moving region into "
     "the plane.</text--->"
-    "    <text>traversed(movingregion1)</text---> ) )";
+    "    <text>traversed(mregion1)</text---> ) )";
 #endif // MRA_TRAVERSED
 
 #ifdef MRA_PREC
@@ -9458,41 +9461,41 @@ static const string mraprecspec =
 static const string bboxspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>uregion -> rect3,\n"
-    "intimeregion -> rect3, \n"
-    "movingregion -> rect3</text--->"
+    "iregion -> rect3, \n"
+    "mregion -> rect3</text--->"
     "    <text>bbox( _ )</text--->"
     "    <text>Returns the 3d bounding box of the spatio-temporal "
     "value.</text--->"
-    "    <text>bbox(movingregion1)</text---> ) )";
+    "    <text>bbox(mregion1)</text---> ) )";
 
 static const string bbox2dspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>uregion -> rect,\n"
     "intimeregion -> rect, \n"
-    "movingregion -> rect</text--->"
+    "mregion -> rect</text--->"
     "    <text>bbox2d( _ )</text--->"
     "    <text>Returns the 2d bounding box of the "
     "spatio-temporal value.</text--->"
-    "    <text>bbox2d(movingregion1)</text---> ) )";
+    "    <text>bbox2d(mregion1)</text---> ) )";
 
 static const string verttrajectoryspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(uregion || movingregion) -> line</text--->"
+    "  ( <text>(uregion || mregion) -> line</text--->"
     "    <text>vertextrajectory( _ )</text--->"
     "    <text>Computes the trajectory of the vertices </text--->"
-    "    <text>vertextrajectory(movingregion1)</text---> ) )";
+    "    <text>vertextrajectory(mregion1)</text---> ) )";
 
 const string mraunitsspec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "  ( <text>movingregion -> (stream uregion)</text--->"
+  "  ( <text>mregion -> (stream uregion)</text--->"
   "<text>units( _ )</text--->"
   "<text>Create the stream of all uregions contained by "
   "the moving region.</text--->"
-  "<text>units( movingregion1 )</text--->) )";
+  "<text>units( mregion1 )</text--->) )";
 
 const string MRegTimeShiftSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>movingregion x duration -> movingregion</text--->"
+  "( <text>mregion x duration -> mregion</text--->"
   "<text>_ timeshift[ _ ]</text--->"
   "<text>Shifts the definition time of the moving region object.</text--->"
   "<text>msnow timeshift[ create_duration(1, 0) ]</text--->"

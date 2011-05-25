@@ -149,14 +149,14 @@ template<int N>
       arg1 = nl->First( args2 );
       args2 = nl->Rest( args );
       if ( !(nl->AtomType( arg1 ) == SymbolType) ||
-             !(nl->SymbolValue( arg1 ) == "real")
+             !(nl->SymbolValue( arg1 ) == CcReal::BasicType())
          ){
         ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
             "expects (real)^" + oss.str() + "." );
         return (nl->SymbolAtom( "typeerror" ));
       }
     }
-    return (nl->SymbolAtom( "bool" ));
+    return (nl->SymbolAtom( CcBool::BasicType() ));
   }
   ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
       "expects a list of length " + oss.str() + ".");
@@ -198,10 +198,10 @@ ListExpr sim_set_rng_TM ( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if ( nl->AtomType( arg1 ) == SymbolType &&
-         nl->SymbolValue( arg1 ) == "int"  &&
+         nl->SymbolValue( arg1 ) == CcInt::BasicType()  &&
          nl->AtomType( arg2 ) == SymbolType &&
-         nl->SymbolValue( arg2 ) == "int" ) {
-      return (nl->SymbolAtom( "bool" ));
+         nl->SymbolValue( arg2 ) == CcInt::BasicType() ) {
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
   }
   ErrorReporter::
@@ -911,7 +911,7 @@ Prints the parameter settings to the console.
 ListExpr sim_empty2bool_TM ( ListExpr args )
 {
   if ( nl->ListLength( args ) == 0 ) {
-    return (nl->SymbolAtom( "bool" ));
+    return (nl->SymbolAtom( CcBool::BasicType() ));
   }
   ErrorReporter::ReportError("SimulationAlgebra::sim_empty2bool_TM "
       "expects a list of length 0.");
@@ -1004,18 +1004,18 @@ ListExpr sim_fillup_mpoint_TM ( ListExpr args )
     arg6 = nl->Sixth( args );
 
     if ( nl->AtomType( arg1 ) == SymbolType &&
-         nl->SymbolValue( arg1 ) == "mpoint"  &&
+         nl->SymbolValue( arg1 ) == MPoint::BasicType()  &&
          nl->AtomType( arg2 ) == SymbolType &&
-         nl->SymbolValue( arg2 ) == "instant" &&
+         nl->SymbolValue( arg2 ) == Instant::BasicType() &&
          nl->AtomType( arg3 ) == SymbolType &&
-         nl->SymbolValue( arg3 ) == "instant" &&
+         nl->SymbolValue( arg3 ) == Instant::BasicType() &&
          nl->AtomType( arg4 ) == SymbolType &&
-         nl->SymbolValue( arg4 ) == "bool" &&
+         nl->SymbolValue( arg4 ) == CcBool::BasicType() &&
          nl->AtomType( arg5 ) == SymbolType &&
-         nl->SymbolValue( arg5 ) == "bool" &&
+         nl->SymbolValue( arg5 ) == CcBool::BasicType() &&
          nl->AtomType( arg6 ) == SymbolType &&
-         nl->SymbolValue( arg6 ) == "bool" ) {
-      return (nl->SymbolAtom( "mpoint" ));
+         nl->SymbolValue( arg6 ) == CcBool::BasicType() ) {
+      return (nl->SymbolAtom( MPoint::BasicType() ));
     }
   }
   ErrorReporter::
@@ -1238,7 +1238,7 @@ ListExpr sim_trips_TM ( ListExpr args )
     return listutils::typeError(errmsg);
   }
   if(!listutils::isSymbol(nl->First( args ),MPoint::BasicType())
-     || !listutils::isSymbol(nl->Second( args ),"duration")){
+     || !listutils::isSymbol(nl->Second( args ),Duration::BasicType())){
     return listutils::typeError(errmsg);
   }
   if((noargs>2) && (!listutils::isSymbol(nl->Third(args),CcReal::BasicType()))){

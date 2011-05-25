@@ -59,7 +59,7 @@ UGrid-Algebra offers the following methods:
 
 const int pageSize        = 4096;    // Alternatively: WinUnix::getPageSize()
 const int maxSplits       = 64;      // Number of max splits for one dim
-const int flBuckets       = 1000;    // Number of hash buckets in front-line  
+const int flBuckets       = 1000;    // Number of hash buckets in front-line
 const int updateCycle     = 100000;  // Update cycle for SmiUpdateFile
 const int maxHistoryUnits = 70;      // Max number of history units in page
 const double tol          = 0.00001; // Tolerance for floating points
@@ -129,7 +129,7 @@ struct UGridBox
     huPageID = HUPAGEID;
     box      = BOX;
   }
-  
+
   db_pgno_t    pageID;   // HistoryUnit or node page, the box refers
   bool         huPageID; // History page id indicator
   Rectangle<3> box;      // 3D bounding box
@@ -203,13 +203,13 @@ The UGridHeader is used to store the most important UGrid data.
 struct UGridHeader
 {
   UGridHeader()
-  { 
+  {
     fileID            = (SmiFileId)0;
     headerPageNo      = (db_pgno_t)0;
     nodePageNo        = (db_pgno_t)0;
-    rootNode          = (UGridNode*)0;  
+    rootNode          = (UGridNode*)0;
     selectedNodePage  = (SmiUpdatePage*)0;
-    currentNodeRecord = 0;  
+    currentNodeRecord = 0;
     area              = UGridArea(0,0,0,0);
     splits            = 0;
     numCells          = 0;
@@ -220,9 +220,9 @@ struct UGridHeader
     tiv.lc            = false;
     tiv.rc            = false;
   }
-  
+
   UGridHeader(UGridArea AREA, int SPLITS)
-  { 
+  {
     fileID            = (SmiFileId)0;
     headerPageNo      = (db_pgno_t)0;
     nodePageNo        = (db_pgno_t)0;
@@ -239,7 +239,7 @@ struct UGridHeader
     tiv.lc            = false;
     tiv.rc            = false;
   }
-  
+
   SmiFileId      fileID;            // UGrid file id
   db_pgno_t      headerPageNo;      // Header page number
   db_pgno_t      flPageNo;          // Front-line page number
@@ -278,7 +278,7 @@ class UGrid
    UGrid(SmiFileId FILEID);
    // Destructor
    ~UGrid();
-   
+
    // The mandatory set of algebra support functions
    static Word    In( const ListExpr typeInfo, const ListExpr instance,
                      const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -287,15 +287,17 @@ class UGrid
    static void     Delete( const ListExpr typeInfo, Word& w );
    static bool     Open( SmiRecord& valueRecord, size_t& offset,
                          const ListExpr typeInfo, Word& value );
-   static bool     Save( SmiRecord& valueRecord, size_t& offset, 
+   static bool     Save( SmiRecord& valueRecord, size_t& offset,
                          const ListExpr typeInfo, Word& w );
    static void     Close( const ListExpr typeInfo, Word& w );
    static Word     Clone( const ListExpr typeInfo, const Word& w );
    static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
    static void*    Cast(void* addr);
-   static int      SizeOfObj();  
+   static int      SizeOfObj();
    static ListExpr Property();
-   
+
+   // type name used in Secondo
+   inline static const string BasicType() { return "ugrid"; }
    // Writes UGrid-header information into file
    void UpdateHeader();
    // Writes UGrid-front-line information into file
@@ -320,19 +322,19 @@ class UGrid
    bool GetSemaphore();
    // Sets the semaphore state
    void SetSemaphore(bool VALUE);
-   
+
    // UGrid front-line hash
    map<int,UploadUnit> frontline[flBuckets];
    // HistoryUnit pages
    set<db_pgno_t> pages;
-   
+
   private:
     // Reads UGrid-header information from file
     void ReadHeader();
     // Reads UGrid-front-line information from file
     void ReadFLine();
     // Reads UGridTree information from file
-    UGridNode* ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA, 
+    UGridNode* ReadUGridTree( UGridNode* FATHERNODE, UGridArea AREA,
                               int SQUARES, int RIGHTCOL, int TOPROW );
     // Creates a new UGridTree
     UGridNode* CreateUGridTree( UGridNode* FATHERNODE, int SQUARES,
@@ -341,7 +343,7 @@ class UGrid
     void DestructUGridTree( UGridNode* FATHERNODE, int SQUARES );
     // Inserts HistoryUnit page id's into pages set
     void insertPageID(db_pgno_t NODEPAGEID, bool HUPAGEID);
-    
+
     SmiUpdateFile* suf;                         // SmiUpdateFile
     UGridHeader*   header;                      // UGrid header
     UGridCell*     cells[maxSplits][maxSplits]; // UGrid cells

@@ -987,6 +987,9 @@ Functions for Secondo integration.
 
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
+    inline static const string BasicType() { return "gpoint"; }
+
+
 /*
 Returns the network distance between 2 ~gpoint~ using DijkstrasAlgorithm.
 
@@ -2618,8 +2621,10 @@ Returns the Bounding GPoints of the GLine.
        m_xRouteIntervals.TrimToSize();
      };
 
-     bool Contains(const RouteInterval* ri)const ;
-     bool Intersects(const RouteInterval* ri)const ;
+    inline static const string BasicType() { return "gline"; }
+
+    bool Contains(const RouteInterval* ri)const ;
+    bool Intersects(const RouteInterval* ri)const ;
 
   private:
 
@@ -3367,6 +3372,7 @@ public:
                           const ListExpr typeInfo, Word& value);
   static bool OpenGPoints(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo, Word& value);
+  inline static const string BasicType() { return "gpoints"; }
   int Compare(const Attribute*)const;
   bool Adjacent(const Attribute*)const;
   GPoints* Clone() const;

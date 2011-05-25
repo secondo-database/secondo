@@ -6742,7 +6742,7 @@ int GLine::NoOfComponents() const
 
 bool GLine::Check ( ListExpr type, ListExpr& errorInfo )
 {
-  return ( nl->IsEqual ( type, "gline" ) );
+  return ( nl->IsEqual ( type, GLine::BasicType() ) );
 }
 
 
@@ -7487,9 +7487,9 @@ Secondo Type Constructor for class ~GLine~
 
 struct glineInfo:ConstructorInfo{
   glineInfo(){
-    name = "gline";
+    name = GLine::BasicType();
     signature = "-> DATA";
-    typeExample = "gline";
+    typeExample = GLine::BasicType();
     listRep = "(<netId> <list of routeintervals>)";
     valueExample = "(1 ((23 34.8 435.3)(...)))";
     remarks = "Route interval: (<routeid><startpos><endpos>)";
@@ -7613,7 +7613,7 @@ int GPoint::SizeOfGPoint()
 
 bool GPoint::CheckGPoint ( ListExpr type, ListExpr& errorInfo )
 {
-  return ( nl->IsEqual ( type, "gpoint" ) );
+  return ( nl->IsEqual ( type, GPoint::BasicType() ) );
 }
 
 /*
@@ -9393,9 +9393,9 @@ Secondo Type Constructor for class ~GPoint~
 
 struct gpointInfo:ConstructorInfo{
   gpointInfo():ConstructorInfo(){
-    name = "gpoint";
+    name = GPoint::BasicType();
     signature = "-> DATA";
-    typeExample = "gpoint";
+    typeExample = GPoint::BasicType();
     listRep = "(<netId> <routeId> <pos> <side>)";
     valueExample = "(1 2 5.4 1)";
     remarks = "Single position in a network.";
@@ -10337,7 +10337,7 @@ void* GPoints::Cast ( void* addr )
 
 bool GPoints::Check ( ListExpr type, ListExpr& errorInfo )
 {
-  return ( nl->IsEqual ( type, "gpoints" ) );
+  return ( nl->IsEqual ( type, GPoints::BasicType() ) );
 }
 
 
@@ -10388,9 +10388,9 @@ void GPoints::CopyFrom ( const Attribute* right )
 
 struct gpointsInfo:ConstructorInfo{
   gpointsInfo(){
-    name = "gpoints";
+    name = GPoints::BasicType();
     signature = "-> DATA";
-    typeExample = "gpoints";
+    typeExample = GPoints::BasicType();
     listRep = "(<gpoint1> <gpoint2> ...)";
     valueExample = "((1 34 235.65 1)(1 98 234.1 0))";
     remarks = "Set of network positions.";
@@ -10441,10 +10441,10 @@ ListExpr OpNetNetdistanceTypeMap ( ListExpr args )
 
   if ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
        nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
-      ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
-          nl->SymbolValue ( param2 ) == "gpoint" ) ||
-        ( nl->SymbolValue ( param1 ) == "gline" &&
-          nl->SymbolValue ( param2 ) == "gline" ) ) )
+      ( ( nl->SymbolValue ( param1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( param2 ) == GPoint::BasicType() ) ||
+        ( nl->SymbolValue ( param1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( param2 ) == GLine::BasicType() ) ) )
   {
     return nl->SymbolAtom ( "real" );
   }
@@ -10497,11 +10497,11 @@ int OpNetNetdistanceselect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
   return -1; // This point should never be reached
 };
@@ -10523,14 +10523,16 @@ ListExpr OpNetNetdistanceNewTypeMap ( ListExpr args )
   {
     return listutils::typeError("netdistancenew expects 2 arguments.");
   }
-  if (!( param.first().isSymbol("gpoint") || param.first().isSymbol("gline")
-       || param.first().isSymbol("gpoints")))
+  if (!( param.first().isSymbol(GPoint::BasicType())
+    || param.first().isSymbol(GLine::BasicType())
+       || param.first().isSymbol(GPoints::BasicType())))
   {
       return
         listutils::typeError("1.argument should be gpoint, gline or gpoints.");
   }
-  if (!(param.second().isSymbol("gpoint")|| param.second().isSymbol("gline") ||
-        param.second().isSymbol("gpoints")))
+  if (!(param.second().isSymbol(GPoint::BasicType())
+    || param.second().isSymbol(GLine::BasicType()) ||
+        param.second().isSymbol(GPoints::BasicType())))
   {
     return
       listutils::typeError("2.argument should be gpoint, gline or gpoints.");
@@ -10575,32 +10577,32 @@ int OpNetNetdistanceNewselect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
+  if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoints::BasicType() )
     return 2;
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 3;
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoints::BasicType() )
     return 4;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 5;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoints::BasicType() )
     return 6;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 7;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 8;
   return -1; // This point should never be reached
 };
@@ -10640,7 +10642,7 @@ ListExpr OpGPoint2RectTypeMap ( ListExpr in_xArgs )
   ListExpr xsource = nl->First ( in_xArgs );
 
   if ( ( !nl->IsAtom ( xsource ) ) ||
-          !nl->IsEqual ( xsource, "gpoint" ) )
+          !nl->IsEqual ( xsource, GPoint::BasicType() ) )
   {
     sendMessage ( "Element must be of type gpoint." );
     return ( nl->SymbolAtom ( "typeerror" ) );
@@ -10693,13 +10695,14 @@ ListExpr OpInsideTypeMap ( ListExpr args )
   ListExpr gpoint = nl->First ( args );
   ListExpr gline = nl->Second ( args );
   if ( !nl->IsAtom ( gpoint ) || nl->AtomType ( gpoint ) != SymbolType ||
-          nl->SymbolValue ( gpoint ) != "gpoint" || !nl->IsAtom ( gline ) ||
+          nl->SymbolValue ( gpoint ) != GPoint::BasicType() ||
+          !nl->IsAtom ( gline ) ||
           nl->AtomType ( gline ) != SymbolType || nl->SymbolValue ( gline ) !=
-"gline" )
+GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom ( "bool" );
+  return nl->SymbolAtom ( CcBool::BasicType() );
 }
 
 int OpInsideValueMap ( Word* args, Word& result, int message,
@@ -10742,7 +10745,7 @@ ListExpr OpLengthTypeMap ( ListExpr args )
   }
   ListExpr gline = nl->First ( args );
   if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
-          nl->SymbolValue ( gline ) != "gline" )
+          nl->SymbolValue ( gline ) != GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -10800,13 +10803,13 @@ ListExpr OpLine2GLineTypeMap ( ListExpr in_xArgs )
 
   if ( ( !nl->IsAtom ( xLineDesc ) ) ||
           nl->AtomType ( xLineDesc ) != SymbolType ||
-          nl->SymbolValue ( xLineDesc ) != "line" )
+          nl->SymbolValue ( xLineDesc ) != Line::BasicType() )
   {
     sendMessage ( "Second element must be of type sline." );
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom ( "gline" );
+  return nl->SymbolAtom ( GLine::BasicType() );
 }
 
 int OpLine2GLineValueMapping ( Word* args,
@@ -10919,13 +10922,14 @@ ListExpr OpNetEqualTypeMap ( ListExpr args )
   NList arg1(param.first());
   NList arg2(param.second());
 
-  if (!(arg1.isSymbol("gpoint") || arg1.isSymbol("gline")))
+  if (!(arg1.isSymbol(GPoint::BasicType())
+    || arg1.isSymbol(GLine::BasicType())))
     return listutils::typeError("expected gpoint or gline values");
 
   if (arg1 != arg2)
     return listutils::typeError("Arguments must be of same type.");
   else
-    return nl->SymbolAtom ( "bool" );
+    return nl->SymbolAtom ( CcBool::BasicType() );
 }
 
 template<class Arg>
@@ -10956,11 +10960,11 @@ int OpNetEqualselect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
   return -1; // This point should never be reached
 };
@@ -10992,11 +10996,12 @@ ListExpr OpNetIntersectsTypeMap ( ListExpr in_xArgs )
     arg1 = nl->First ( in_xArgs );
     arg2 = nl->Second ( in_xArgs );
     if ( nl->IsAtom ( arg1 ) && nl->AtomType ( arg1 ) == SymbolType &&
-            nl->SymbolValue ( arg1 ) == "gline" && nl->IsAtom ( arg2 ) &&
+            nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+            nl->IsAtom ( arg2 ) &&
             nl->AtomType ( arg2 ) == SymbolType &&
-            nl->SymbolValue ( arg2 ) == "gline" )
+            nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     {
-      return ( nl->SymbolAtom ( "bool" ) );
+      return ( nl->SymbolAtom ( CcBool::BasicType() ) );
     }
   }
   return ( nl->SymbolAtom ( "typeerror" ) );
@@ -11208,7 +11213,7 @@ ListExpr OpNetworkTheNetworkTypeMap ( ListExpr in_xArgs )
   ListExpr xRoutesRelDesc = nl->Second ( in_xArgs );
   ListExpr xJunctionsRelDesc = nl->Third ( in_xArgs );
 
-  if ( !nl->IsEqual ( xIdDesc, "int" ) )
+  if ( !nl->IsEqual ( xIdDesc, CcInt::BasicType() ) )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -11287,11 +11292,11 @@ ListExpr OpNoComponentsTypeMap ( ListExpr args )
   }
   ListExpr gline = nl->First ( args );
   if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
-          nl->SymbolValue ( gline ) != "gline" )
+          nl->SymbolValue ( gline ) != GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom ( "int" );
+  return nl->SymbolAtom ( CcInt::BasicType() );
 }
 
 int OpNoComponentsValueMapping ( Word* args, Word& result, int message,
@@ -11346,13 +11351,13 @@ ListExpr OpPoint2GPointTypeMap ( ListExpr in_xArgs )
 
   if ( ( !nl->IsAtom ( xMPointDesc ) ) ||
           nl->AtomType ( xMPointDesc ) != SymbolType ||
-          nl->SymbolValue ( xMPointDesc ) != "point" )
+          nl->SymbolValue ( xMPointDesc ) != Point::BasicType() )
   {
     sendMessage ( "Second element must be of type point." );
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom ( "gpoint" );
+  return nl->SymbolAtom ( GPoint::BasicType() );
 }
 
 int OpPoint2GPointValueMapping ( Word* args,
@@ -11419,13 +11424,13 @@ ListExpr OpGPoint2PointTypeMap ( ListExpr in_xArgs )
 
   if ( ( !nl->IsAtom ( xMPointDesc ) ) ||
           nl->AtomType ( xMPointDesc ) != SymbolType ||
-          nl->SymbolValue ( xMPointDesc ) != "gpoint" )
+          nl->SymbolValue ( xMPointDesc ) != GPoint::BasicType() )
   {
     sendMessage ( "Element must be of type gpoint." );
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom ( "point" );
+  return nl->SymbolAtom ( Point::BasicType() );
 }
 
 int OpGPoint2PointValueMapping ( Word* args,
@@ -11480,7 +11485,7 @@ ListExpr OpPolyGPointTypeMap ( ListExpr in_xArgs )
   ListExpr xnetwork = nl->Second ( in_xArgs );
 
   if ( ( !nl->IsAtom ( xsource ) ) ||
-          !nl->IsEqual ( xsource, "gpoint" ) )
+          !nl->IsEqual ( xsource, GPoint::BasicType() ) )
   {
     sendMessage ( "First Element must be of type gpoint." );
     return ( nl->SymbolAtom ( "typeerror" ) );
@@ -11493,7 +11498,7 @@ ListExpr OpPolyGPointTypeMap ( ListExpr in_xArgs )
   }
 
   return nl->TwoElemList ( nl->SymbolAtom ( "stream" ),
-                           nl->SymbolAtom ( "gpoint" ) );
+                           nl->SymbolAtom ( GPoint::BasicType() ) );
 }
 
 int OpPolyGPointValueMapping ( Word* args,
@@ -11567,7 +11572,7 @@ ListExpr OpRouteIntervalsTypeMap ( ListExpr in_xArgs )
   ListExpr xsource = nl->First ( in_xArgs );
 
   if ( ( !nl->IsAtom ( xsource ) ) ||
-          !nl->IsEqual ( xsource, "gline" ) )
+          !nl->IsEqual ( xsource, GLine::BasicType() ) )
   {
     sendMessage ( "First Element must be of type gline." );
     return ( nl->SymbolAtom ( "typeerror" ) );
@@ -11636,9 +11641,11 @@ ListExpr OpShortestPathTypeMap ( ListExpr args )
     return listutils::typeError("shortest_path expects 2 arguments.");
   }
 
-  if ((param.first().isSymbol("gpoint") && param.second().isSymbol("gpoint")) ||
-      (param.first().isSymbol("gline") && param.second().isSymbol("gline")))
-    return nl->SymbolAtom("gline");
+  if ((param.first().isSymbol(GPoint::BasicType())
+    && param.second().isSymbol(GPoint::BasicType())) ||
+      (param.first().isSymbol(GLine::BasicType())
+      && param.second().isSymbol(GLine::BasicType())))
+    return nl->SymbolAtom(GLine::BasicType());
   else
     return listutils::typeError("Both arguments should be gpoint or gline");
 }
@@ -11685,11 +11692,11 @@ int OpShortestPathSelect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
   return -1; // This point should never be reached
 };
@@ -11726,19 +11733,21 @@ ListExpr OpShortestPathAStarTypeMap ( ListExpr args )
   {
     return listutils::typeError("netdistancenew expects 2 arguments.");
   }
-  if (!( param.first().isSymbol("gpoint") || param.first().isSymbol("gline")
-       || param.first().isSymbol("gpoints")))
+  if (!( param.first().isSymbol(GPoint::BasicType())
+    || param.first().isSymbol(GLine::BasicType())
+       || param.first().isSymbol(GPoints::BasicType())))
   {
       return
         listutils::typeError("1.argument should be gpoint, gline or gpoints.");
   }
-  if (!(param.second().isSymbol("gpoint")|| param.second().isSymbol("gline") ||
-        param.second().isSymbol("gpoints")))
+  if (!(param.second().isSymbol(GPoint::BasicType())
+    || param.second().isSymbol(GLine::BasicType()) ||
+        param.second().isSymbol(GPoints::BasicType())))
   {
     return
       listutils::typeError("2.argument should be gpoint, gline or gpoints.");
   }
-  return nl->SymbolAtom ( "gline" );
+  return nl->SymbolAtom ( GLine::BasicType() );
 }
 
 template<class Source, class Target>
@@ -11770,32 +11779,32 @@ int OpShortestPathAStarSelect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
+  if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoints::BasicType() )
     return 2;
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 3;
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoints::BasicType() )
     return 4;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 5;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gpoints" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoints::BasicType() )
     return 6;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 7;
-  if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 8;
   return -1; // This point should never be reached
 };
@@ -11850,12 +11859,12 @@ ListExpr OpGLine2LineTypeMap ( ListExpr in_xArgs )
   ListExpr xsource = nl->First ( in_xArgs );
 
   if ( ( !nl->IsAtom ( xsource ) ) ||
-          !nl->IsEqual ( xsource, "gline" ) )
+          !nl->IsEqual ( xsource, GLine::BasicType() ) )
   {
     sendMessage ( "Element must be of type gline." );
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom ( "line" );
+  return nl->SymbolAtom ( Line::BasicType() );
 }
 
 int OpGLine2LineValueMapping ( Word* args,
@@ -11901,11 +11910,11 @@ ListExpr OpNetIsEmptyTypeMap ( ListExpr args )
   }
   ListExpr gline = nl->First ( args );
   if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
-          nl->SymbolValue ( gline ) != "gline" )
+          nl->SymbolValue ( gline ) != GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom ( "bool" );
+  return nl->SymbolAtom ( CcBool::BasicType() );
 }
 
 int OpNetIsEmptyValueMap ( Word* args, Word& result, int message,
@@ -11954,17 +11963,17 @@ ListExpr OpNetUnionTypeMap ( ListExpr args )
   ListExpr gline2 = nl->Second ( args );
 
   if ( !nl->IsAtom ( gline1 ) || nl->AtomType ( gline1 ) != SymbolType ||
-          nl->SymbolValue ( gline1 ) != "gline" )
+          nl->SymbolValue ( gline1 ) != GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
   if ( !nl->IsAtom ( gline2 ) || nl->AtomType ( gline2 ) != SymbolType ||
-          nl->SymbolValue ( gline2 ) != "gline" )
+          nl->SymbolValue ( gline2 ) != GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom ( "gline" );
+  return nl->SymbolAtom ( GLine::BasicType() );
 }
 
 int OpNetUnionValueMap ( Word* args, Word& result, int message,
@@ -12005,10 +12014,10 @@ ListExpr OpNetDistanceTypeMap ( ListExpr args )
 
   if ( ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
           nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
-          ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
-              nl->SymbolValue ( param2 ) == "gpoint" ) ||
-            ( nl->SymbolValue ( param1 ) == "gline" &&
-              nl->SymbolValue ( param2 ) == "gline" ) ) ) )
+          ( ( nl->SymbolValue ( param1 ) == GPoint::BasicType() &&
+              nl->SymbolValue ( param2 ) == GPoint::BasicType() ) ||
+            ( nl->SymbolValue ( param1 ) == GLine::BasicType() &&
+              nl->SymbolValue ( param2 ) == GLine::BasicType() ) ) ) )
   {
     return nl->SymbolAtom ( "real" );
   }
@@ -12060,11 +12069,11 @@ int OpNetDistanceselect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
   return -1; // This point should never be reached
 };
@@ -12095,12 +12104,12 @@ ListExpr OpGetBGPTypeMap ( ListExpr args )
   ListExpr gline1 = nl->First ( args );
 
   if ( !nl->IsAtom ( gline1 ) || nl->AtomType ( gline1 ) != SymbolType ||
-          nl->SymbolValue ( gline1 ) != "gline" )
+          nl->SymbolValue ( gline1 ) != GLine::BasicType() )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom ( "gpoints" );
+  return nl->SymbolAtom ( GPoints::BasicType() );
 }
 
 int OpGetBGPValueMap ( Word* args, Word& result, int message,
@@ -12146,23 +12155,26 @@ ListExpr OpSPSearchVisitedTypeMap ( ListExpr args )
   {
     return listutils::typeError("spsearchvisited expects 3 arguments.");
   }
-  if (!( param.first().isSymbol("gpoint") || param.first().isSymbol("gline")
-       || param.first().isSymbol("gpoints")))
+  if (!( param.first().isSymbol(GPoint::BasicType())
+    || param.first().isSymbol(GLine::BasicType())
+       || param.first().isSymbol(GPoints::BasicType())))
   {
       return
         listutils::typeError("1.argument should be gpoint, gline or gpoints.");
   }
-  if (!(param.second().isSymbol("gpoint")|| param.second().isSymbol("gline") ||
-        param.second().isSymbol("gpoints")))
+  if (!(param.second().isSymbol(GPoint::BasicType())
+    || param.second().isSymbol(GLine::BasicType()) ||
+        param.second().isSymbol(GPoints::BasicType())))
   {
-    if (param.first().isSymbol("gpoint") && param.second().isSymbol("ugpoint"))
+    if (param.first().isSymbol(GPoint::BasicType())
+      && param.second().isSymbol("ugpoint"))
       return nl->TwoElemList(nl->SymbolAtom("stream"),
                              tupleType);
     else
       return listutils::typeError(
       "2.argument should be (u)gpoint, gline or gpoints.");
   }
-  if (!param.third().isSymbol("bool"))
+  if (!param.third().isSymbol(CcBool::BasicType()))
   {
     return listutils::typeError("3.argument should be bool");
   }
@@ -12462,32 +12474,32 @@ int OpSpvisitedselect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
   ListExpr arg2 = nl->Second ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 0;
-  if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 1;
-  if (nl->SymbolValue (arg1) == "gpoints" &&
-      nl->SymbolValue (arg2) == "gpoints")
+  if (nl->SymbolValue (arg1) == GPoints::BasicType() &&
+      nl->SymbolValue (arg2) == GPoints::BasicType())
     return 2;
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
-          nl->SymbolValue ( arg2 ) == "gline" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GLine::BasicType() )
     return 3;
-   if (nl->SymbolValue (arg1) == "gpoint" &&
-      nl->SymbolValue (arg2) == "gpoints")
+   if (nl->SymbolValue (arg1) == GPoint::BasicType() &&
+      nl->SymbolValue (arg2) == GPoints::BasicType())
     return 4;
-   if ( nl->SymbolValue ( arg1 ) == "gline" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+   if ( nl->SymbolValue ( arg1 ) == GLine::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 5;
-   if (nl->SymbolValue (arg1) == "gline" &&
-      nl->SymbolValue (arg2) == "gpoints")
+   if (nl->SymbolValue (arg1) == GLine::BasicType() &&
+      nl->SymbolValue (arg2) == GPoints::BasicType())
     return 6;
-   if ( nl->SymbolValue ( arg1 ) == "gpoints" &&
-          nl->SymbolValue ( arg2 ) == "gpoint" )
+   if ( nl->SymbolValue ( arg1 ) == GPoints::BasicType() &&
+          nl->SymbolValue ( arg2 ) == GPoint::BasicType() )
     return 7;
-   if (nl->SymbolValue (arg1) == "gpoints" &&
-      nl->SymbolValue (arg2) == "gline")
+   if (nl->SymbolValue (arg1) == GPoints::BasicType() &&
+      nl->SymbolValue (arg2) == GLine::BasicType())
     return 8;
   return -1; // This point should never be reached
 };
@@ -12528,23 +12540,23 @@ ListExpr OpShortestpathtreeTypeMap ( ListExpr args )
     return listutils::typeError("2 arguments expected.");
 
   NList source(param.first());
-  if (!source.isSymbol("gpoint"))
+  if (!source.isSymbol(GPoint::BasicType()))
     return listutils::typeError("First argument should be gpoint.");
 
   NList network(param.second());
   if (!network.isSymbol("network"))
     return listutils::typeError("Second argument should be a network.");
 
-  //return nl->SymbolAtom("gline");
+  //return nl->SymbolAtom(GLine::BasicType());
 
   NList secID("SecID");
-  NList intVal("int");
+  NList intVal(CcInt::BasicType());
   NList intAttr(secID, intVal);
   NList dist("Dist");
   NList realVal("real");
   NList distAttr(dist,realVal);
   NList up("Up");
-  NList upVal("bool");
+  NList upVal(CcBool::BasicType());
   NList upAttr(up,upVal);
   NList tupleType(intAttr,distAttr,upAttr);
   return NList().tupleStreamOf(tupleType).listExpr();
@@ -12669,7 +12681,7 @@ ValueMapping OpShortestpathtreeMap[] =
 int OpShortestpathtreeSelect ( ListExpr args )
 {
   ListExpr arg1 = nl->First ( args );
-  if ( nl->SymbolValue ( arg1 ) == "gpoint" )
+  if ( nl->SymbolValue ( arg1 ) == GPoint::BasicType() )
     return 0;
   return -1; // This point should never be reached
 };
@@ -12702,20 +12714,20 @@ ListExpr OpGetAdjacentSectionsTypeMap ( ListExpr args )
     return listutils::typeError("First argument should be network.");
 
   NList source(param.second());
-  if (!source.isSymbol("int"))
+  if (!source.isSymbol(CcInt::BasicType()))
     return listutils::typeError("Second argument should be int.");
 
   NList direction(param.third());
-  if (!direction.isSymbol("bool"))
+  if (!direction.isSymbol(CcBool::BasicType()))
     return listutils::typeError("Third argument should be bool.");
 
-  //return nl->SymbolAtom("gline");
+  //return nl->SymbolAtom(GLine::BasicType());
 
   NList secID("SecID");
-  NList intVal("int");
+  NList intVal(CcInt::BasicType());
   NList intAttr(secID, intVal);
   NList up("Up");
-  NList upVal("bool");
+  NList upVal(CcBool::BasicType());
   NList upAttr(up,upVal);
   NList tupleType(intAttr,upAttr);
   return NList().tupleStreamOf(tupleType).listExpr();
@@ -12933,14 +12945,14 @@ ListExpr circleTypeMap ( ListExpr args )
     return listutils::typeError("2 arguments expected.");
 
   NList gp(param.first());
-  if (!gp.isSymbol("gpoint"))
+  if (!gp.isSymbol(GPoint::BasicType()))
     return listutils::typeError("First argument should be gpoint.");
 
   NList dist(param.second());
   if (!dist.isSymbol("real"))
     return listutils::typeError("Second argument should be real.");
 
-  return nl->SymbolAtom("gline");
+  return nl->SymbolAtom(GLine::BasicType());
 }
 
 /*

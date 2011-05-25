@@ -145,7 +145,7 @@ The SETIHeader is used to store the most important SETI data.
 struct SETIHeader
 {
   SETIHeader()
-  { 
+  {
     fileID       = (SmiFileId)0;
     rtreeFileID  = (SmiFileId)0;
     headerPageNo = (db_pgno_t)0;
@@ -161,9 +161,9 @@ struct SETIHeader
     tiv.lc       = false;
     tiv.rc       = false;
   }
-  
+
   SETIHeader(SETIArea AREA, int SPLITS)
-  { 
+  {
     fileID       = (SmiFileId)0;
     rtreeFileID  = (SmiFileId)0;
     headerPageNo = (db_pgno_t)0;
@@ -179,7 +179,7 @@ struct SETIHeader
     tiv.lc       = false;
     tiv.rc       = false;
   }
-  
+
   SmiFileId          fileID;       // SETI file id
   SmiFileId          rtreeFileID;  // RTree file id
   db_pgno_t          headerPageNo; // Header page number
@@ -214,7 +214,7 @@ class SETI
     SETI(SmiFileId FILEID);
     // Destructor
     ~SETI();
-    
+
     // The mandatory set of algebra support functions
     static Word    In( const ListExpr typeInfo, const ListExpr instance,
                       const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -223,15 +223,17 @@ class SETI
     static void     Delete( const ListExpr typeInfo, Word& w );
     static bool     Open( SmiRecord& valueRecord, size_t& offset,
                           const ListExpr typeInfo, Word& value );
-    static bool     Save( SmiRecord& valueRecord, size_t& offset, 
+    static bool     Save( SmiRecord& valueRecord, size_t& offset,
                           const ListExpr typeInfo, Word& w );
     static void     Close( const ListExpr typeInfo, Word& w );
     static Word     Clone( const ListExpr typeInfo, const Word& w );
     static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
     static void*    Cast(void* addr);
-    static int      SizeOfObj();  
+    static int      SizeOfObj();
     static ListExpr Property();
-    
+
+    //the type name used in Secondo
+    inline static const string BasicType(){ return "seti"; }
     // Writes header information into file
     void UpdateHeader();
     // Writes front-line information into file
@@ -250,14 +252,14 @@ class SETI
     bool GetSemaphore();
     // Sets the state of the semaphore
     void SetSemaphore(bool VALUE);
-    
+
     // SETI frontline hash
     map<int,UploadUnit> frontline[flBuckets];
-    
+
   private:
     // Reads SETI header, frontline and cell information
     void ReadSETI();
-    
+
     SmiUpdateFile* suf;                         // SmiUpdateFile
     SmiRecordFile* rtreeFile;                   // File for RTrees
     SETIHeader*    header;                      // SETI header

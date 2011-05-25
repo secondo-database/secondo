@@ -445,7 +445,7 @@ ListExpr FTextProperty()
       nl->FourElemList
       (
         nl->StringAtom("-> DATA\n-> INDEXABLE"),
-        nl->StringAtom("text"),
+        nl->StringAtom(FText::BasicType()),
         nl->StringAtom("<text>writtentext</text--->"),
         nl->StringAtom("<text>This is an example.</text--->")
       )
@@ -568,7 +568,7 @@ ListExpr TypeMap_Text_Text__Bool( ListExpr args )
     arg2 = nl->Second(args);
     if ( nl->IsEqual(arg1, typeName) && nl->IsEqual(arg2, typeName) )
     {
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
@@ -615,9 +615,10 @@ ListExpr TypeMap_Text_String__Bool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, typeName) && nl->IsEqual(arg2, "string") )
+    if ( nl->IsEqual(arg1, typeName)
+      && nl->IsEqual(arg2, CcString::BasicType()) )
     {
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
@@ -642,7 +643,7 @@ ListExpr TypeMap_Text__Int( ListExpr args )
     {
       if(traces)
         cout << '\n' << "Start TypeMap_Text__Int" << '\n';
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
@@ -665,7 +666,7 @@ ListExpr TypeMap_text__stringstream( ListExpr args ){
     arg = nl->First(args);
     if ( nl->IsEqual(arg, typeName) )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
-                              nl->SymbolAtom("string"));
+                              nl->SymbolAtom(CcString::BasicType()));
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -681,7 +682,8 @@ ListExpr TypeMap_text__textstream( ListExpr args ){
   {
     arg = nl->First(args);
     if ( nl->IsEqual(arg, typeName) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("text"));
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                             nl->SymbolAtom(FText::BasicType()));
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -695,7 +697,7 @@ ListExpr TypeMap_int_text_text__real(ListExpr args){
        ErrorReporter::ReportError("three arguments required");
        return nl->SymbolAtom("typeerror");
   }
-  if(!nl->IsEqual(nl->First(args),"int")){
+  if(!nl->IsEqual(nl->First(args),CcInt::BasicType())){
      ErrorReporter::ReportError("first argument must be an integer");
      return nl->SymbolAtom("typeerror");
   }
@@ -711,11 +713,11 @@ ListExpr TypeMap_int_text_text__real(ListExpr args){
   string t3 = nl->SymbolValue(arg3);
 
   // first version, only texts, later extend to string
-  if(t2!="text" || t3!="text"){
+  if(t2!=FText::BasicType() || t3!=FText::BasicType()){
      ErrorReporter::ReportError("text as second and third argument expected");
      return nl->SymbolAtom("typeerror");
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 
@@ -1316,7 +1318,7 @@ ListExpr TypeMap_text__svg(ListExpr args){
       ErrorReporter::ReportError("One argument expected");
       return nl->TypeError();
    }
-   if(nl->IsEqual(nl->First(args),"text")){
+   if(nl->IsEqual(nl->First(args),FText::BasicType())){
       return nl->SymbolAtom("svg");
    }
    ErrorReporter::ReportError("text expected");
@@ -1334,7 +1336,7 @@ ListExpr TypeMap_svg__text(ListExpr args){
       return nl->TypeError();
    }
    if(nl->IsEqual(nl->First(args),"svg")){
-      return nl->SymbolAtom("text");
+      return nl->SymbolAtom(FText::BasicType());
    }
    ErrorReporter::ReportError("svg expected");
    return nl->TypeError();
@@ -1365,12 +1367,12 @@ while(!nl->IsEmpty(args)){
      return nl->TypeError();
   }
   string v = nl->SymbolValue(first);
-  if( (v!="string") && (v!="text")){
+  if( (v!=CcString::BasicType()) && (v!=FText::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
 }
-return nl->SymbolAtom("string");
+return nl->SymbolAtom(CcString::BasicType());
 }
 
 /*
@@ -1391,12 +1393,12 @@ ListExpr checkpwTM(ListExpr args){
        return nl->TypeError();
     }
     string v = nl->SymbolValue(first);
-    if( (v!="string") && (v!="text")){
+    if( (v!=CcString::BasicType()) && (v!=FText::BasicType())){
        ErrorReporter::ReportError(err);
        return nl->TypeError();
     }
   }
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -1423,12 +1425,12 @@ while(!nl->IsEmpty(args)){
      return nl->TypeError();
   }
   string v = nl->SymbolValue(first);
-  if( (v!="string") && (v!="text")){
+  if( (v!=CcString::BasicType()) && (v!=FText::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
 }
-return nl->SymbolAtom("string");
+return nl->SymbolAtom(CcString::BasicType());
 }
 
 
@@ -1456,12 +1458,12 @@ while(!nl->IsEmpty(args)){
      return nl->TypeError();
   }
   string v = nl->SymbolValue(first);
-  if( (v!="string") && (v!="text")){
+  if( (v!=CcString::BasicType()) && (v!=FText::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
 }
-return nl->SymbolAtom("text");
+return nl->SymbolAtom(FText::BasicType());
 }
 
 ListExpr blowfish_decodeTM(ListExpr args){
@@ -1535,7 +1537,7 @@ ListExpr TypeMap_textstring__text(ListExpr args){
 
 ListExpr matchingOperatorNamesTM(ListExpr args){
     ListExpr res =  nl->TwoElemList(nl->SymbolAtom("stream"),
-                                    nl->SymbolAtom("string"));
+                                    nl->SymbolAtom(CcString::BasicType()));
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                nl->OneElemList(nl->TextAtom(nl->ToString(args))),
                res);
@@ -1593,7 +1595,8 @@ ListExpr matchingOperatorsTM(ListExpr args){
                               nl->SymbolAtom(FText::BasicType())));
 
     ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
-                     nl->TwoElemList( nl->SymbolAtom("tuple"),attrList));
+                     nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                                      attrList));
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                        nl->OneElemList(nl->TextAtom(nl->ToString(args))),
                              res);
@@ -1674,7 +1677,8 @@ ListExpr sysgetMatchingOperatorsTM(ListExpr args){
                               nl->SymbolAtom(FText::BasicType())));
 
     ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
-                     nl->TwoElemList( nl->SymbolAtom("tuple"),attrList));
+                     nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                                      attrList));
     if(listutils::isSymbol(first,CcInt::BasicType())) {
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                             nl->OneElemList(nl->TextAtom(nl->ToString(args))),
@@ -2605,14 +2609,14 @@ ValueMapping cryptvm[] = {
    int l = nl->ListLength(args);
    string s1 = nl->SymbolValue(nl->First(args));
    if(l==1){
-     if(s1=="string") return 0;
-     if(s1=="text") return 1;
+     if(s1==CcString::BasicType()) return 0;
+     if(s1==FText::BasicType()) return 1;
    } else {
      string s2 = nl->SymbolValue(nl->Second(args));
-     if(s1=="string" && s2=="string") return 2;
-     if(s1=="string" && s2=="text") return 3;
-     if(s1=="text" && s2=="string") return 4;
-     if(s1=="text" && s2=="text") return 5;
+     if(s1==CcString::BasicType() && s2==CcString::BasicType()) return 2;
+     if(s1==CcString::BasicType() && s2==FText::BasicType()) return 3;
+     if(s1==FText::BasicType() && s2==CcString::BasicType()) return 4;
+     if(s1==FText::BasicType() && s2==FText::BasicType()) return 5;
    }
    return -1; // type mapping and selection are not compatible
  }
@@ -2650,10 +2654,10 @@ ValueMapping checkpwvm[] = {
 int checkpwSelect(ListExpr args){
   string s1 = nl->SymbolValue(nl->First(args));
   string s2 = nl->SymbolValue(nl->Second(args));
-  if(s1=="string" && s2=="string") return 0;
-  if(s1=="string" && s2=="text") return 1;
-  if(s1=="text" && s2=="string") return 2;
-  if(s1=="text" && s2=="text") return 3;
+  if(s1==CcString::BasicType() && s2==CcString::BasicType()) return 0;
+  if(s1==CcString::BasicType() && s2==FText::BasicType()) return 1;
+  if(s1==FText::BasicType() && s2==CcString::BasicType()) return 2;
+  if(s1==FText::BasicType() && s2==FText::BasicType()) return 3;
   return -1; // type mapping and selection are not compatible
  }
 
@@ -2721,14 +2725,14 @@ ValueMapping md5vm[] = {
    int l = nl->ListLength(args);
    string s1 = nl->SymbolValue(nl->First(args));
    if(l==1){
-     if(s1=="string") return 0;
-     if(s1=="text") return 1;
+     if(s1==CcString::BasicType()) return 0;
+     if(s1==FText::BasicType()) return 1;
    } else {
      string s2 = nl->SymbolValue(nl->Second(args));
-     if(s1=="string" && s2=="string") return 2;
-     if(s1=="string" && s2=="text") return 3;
-     if(s1=="text" && s2=="string") return 4;
-     if(s1=="text" && s2=="text") return 5;
+     if(s1==CcString::BasicType() && s2==CcString::BasicType()) return 2;
+     if(s1==CcString::BasicType() && s2==FText::BasicType()) return 3;
+     if(s1==FText::BasicType() && s2==CcString::BasicType()) return 4;
+     if(s1==FText::BasicType() && s2==FText::BasicType()) return 5;
    }
    return -1; // type mapping and selection are not compatible
  }
@@ -2782,10 +2786,10 @@ ValueMapping blowfish_encodevm[] = {
 int blowfish_encodeSelect(ListExpr args){
    string s1 = nl->SymbolValue(nl->First(args));
    string s2 = nl->SymbolValue(nl->Second(args));
-   if(s1=="string" && s2=="string") return 0;
-   if(s1=="string" && s2=="text") return 1;
-   if(s1=="text" && s2=="string") return 2;
-   if(s1=="text" && s2=="text") return 3;
+   if(s1==CcString::BasicType() && s2==CcString::BasicType()) return 0;
+   if(s1==CcString::BasicType() && s2==FText::BasicType()) return 1;
+   if(s1==FText::BasicType() && s2==CcString::BasicType()) return 2;
+   if(s1==FText::BasicType() && s2==FText::BasicType()) return 3;
    return -1; // type mapping and selection are not compatible
 }
 
@@ -3788,7 +3792,7 @@ int FTextSelectFunGetValueNL( ListExpr args )
   if(    type.first().hasLength(2)
       && (type.first().first() == "stream")
       && (type.first().second().hasLength(2))
-      && (type.first().second().first() == "tuple")
+      && (type.first().second().first() == Tuple::BasicType())
     )
   {
     return 0; // tuplestream
@@ -3923,9 +3927,9 @@ Selection function for ~toObject~
 int FTextSelectFunToObject( ListExpr args )
 {
   NList type(args);
-  if( type.first() == "string" )
+  if( type.first() == CcString::BasicType() )
     return 0;
-  if ( type.first() == "text" )
+  if ( type.first() == FText::BasicType() )
     return 1;
   return -1; // should not happen!
 }
@@ -4220,15 +4224,15 @@ int FTextSelectSendTextUDP( ListExpr args )
   NList type(args);
   int noargs = nl->ListLength(args);
   int index = 0;
-  if( noargs>=1 && type.first()=="text" )
+  if( noargs>=1 && type.first()==FText::BasicType() )
     index += 16;
-  if( noargs>=2 && type.second()=="text" )
+  if( noargs>=2 && type.second()==FText::BasicType() )
     index += 8;
-  if( noargs>=3 && type.third()=="text" )
+  if( noargs>=3 && type.third()==FText::BasicType() )
     index += 4;
-  if( noargs>=4 && type.fourth()=="text" )
+  if( noargs>=4 && type.fourth()==FText::BasicType() )
     index += 2;
-  if( noargs>=5 && type.fifth()=="text" )
+  if( noargs>=5 && type.fifth()==FText::BasicType() )
     index += 1;
   return index;
 }
@@ -4414,9 +4418,9 @@ int FTextSelectReceiveTextUDP( ListExpr args )
 {
   NList type(args);
   int index = 0;
-  if( type.first()=="text" )
+  if( type.first()==FText::BasicType() )
     index += 2;
-  if( type.second()=="text" )
+  if( type.second()==FText::BasicType() )
     index += 1;
   return index;
 }
@@ -4888,9 +4892,9 @@ ValueMapping ftextdeleteobject_vm[] = {
 int ftextdeleteobjectselect( ListExpr args )
 {
   NList type(args);
-  if( type.first()=="string" )
+  if( type.first()==CcString::BasicType() )
     return 0;
-  if( type.first()=="text" )
+  if( type.first()==FText::BasicType() )
     return 1;
   return -1;
 }
@@ -5347,11 +5351,11 @@ ValueMapping sysgetMatchingOperators_vm[] = {
 // selection function
 int sysgetMatchingOperators_select(ListExpr args){
     NList type(args);
-    if( type.first()=="int" )
+    if( type.first()==CcInt::BasicType() )
       return 0;
-    if( type.first()=="string" )
+    if( type.first()==CcString::BasicType() )
       return 1;
-    if( type.first()=="text" )
+    if( type.first()==FText::BasicType() )
       return 2;
     return -1;
 }
@@ -5411,9 +5415,9 @@ ValueMapping sys_getAlgebraId_vm[] = {
 // selection function
 int sys_getAlgebraId_select(ListExpr args){
     NList type(args);
-    if( type.first()=="string" )
+    if( type.first()==CcString::BasicType() )
       return 0;
-    if( type.first()=="text" )
+    if( type.first()==FText::BasicType() )
       return 1;
     return -1;
 }
@@ -5884,7 +5888,7 @@ int attr2textVM( Word* args, Word& result, int message,
   FText* res = static_cast<FText*>(result.addr);
 
   Attribute* attr = static_cast<Attribute*>(args[0].addr);
-  
+
   stringstream ss;
   attr->Print(ss);
   res->Set(true,ss.str());

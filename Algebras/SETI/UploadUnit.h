@@ -86,16 +86,19 @@ class UploadUnit : public Attribute
     static void     Delete( const ListExpr typeInfo, Word& w );
     static bool     Open( SmiRecord& valueRecord, size_t& offset,
                           const ListExpr typeInfo, Word& value );
-    static bool     Save( SmiRecord& valueRecord, size_t& offset, 
+    static bool     Save( SmiRecord& valueRecord, size_t& offset,
                           const ListExpr typeInfo, Word& w );
-    
+
     static void     Close( const ListExpr typeInfo, Word& w );
     static Word     Clone( const ListExpr typeInfo, const Word& w );
     static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-    static int     SizeOfObj();  
+    static int     SizeOfObj();
     static void* Cast(void* addr);
     static ListExpr Property();
-    
+
+    // type name used in Secondo
+    inline static const string BasicType() { return "uploadunit";}
+
     // Methods for the abstract Attribute class
     int NumOfFLOBs() const;
     Flob *GetFLOB(const int i);
@@ -106,14 +109,14 @@ class UploadUnit : public Attribute
     size_t HashValue() const;
     void CopyFrom(const Attribute* right);
     ostream& Print( ostream& os ) const;
-    
+
     // Returns the moving object id
     int GetID()   const;
     // Returns the instant of time
     Instant GetTime() const;
     // Returns the position information
     UnitPos GetPos()  const;
-    
+
   private:
     int      id;   // moving object id
     Instant  t;    // instant of time

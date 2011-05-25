@@ -586,6 +586,7 @@ template<unsigned dim, class LeafInfo>
 class R_TreeNode
 {
   public:
+
     R_TreeNode( const bool leaf, const int min, const int max );
 /*
 The constructor.
@@ -603,7 +604,6 @@ The copy constructor.
 The destructor.
 
 */
-
 
     static int SizeOfEmptyNode();
 /*
@@ -1630,6 +1630,7 @@ The first constructor. Creates an empty R-tree.
 
 */
     R_Tree( const int pageSize );
+
 /*
 Opens an existing R-tree.
 
@@ -1656,12 +1657,16 @@ Opens an existing R-tree.
     SmiRecordId DFVisit_Rtree(R_Tree<dim,LeafInfo>*,R_TreeNode<dim,LeafInfo>*);
 
 
-    ~R_Tree();
 /*
 The destructor.
 
 */
+    ~R_Tree();
 
+/*
+Open and Save are used by NetworkAlgebra to save and open the rtree of network.
+
+*/
     bool  Open( SmiRecord& valueRecord,
                 size_t& offset,
                 string typeInfo,
@@ -1670,12 +1675,27 @@ The destructor.
     bool Save(SmiRecord& valueRecord,
                 size_t& offset);
 
+
 /*
-Open and Save are used by NetworkAlgebra to save and open the rtree of network.
+The type name used in Secondo:
 
 */
+    inline static const string BasicType(){
+      if(dim==2){
+        return "rtree";
+      } else {
+        ostringstream ss;
+        ss << "rtree" << dim;
+        return ss.str();
+      }
+    }
 
 
+
+/*
+Deletes the file of the R-Tree.
+
+*/
     inline void DeleteFile()
     {
       if(nodePtr){
@@ -1685,42 +1705,38 @@ Open and Save are used by NetworkAlgebra to save and open the rtree of network.
       file->Close();
       file->Drop();
     }
-/*
-Deletes the file of the R-Tree.
 
-*/
-
-    inline SmiFileId FileId()
-    {
-      return file->GetFileId();
-    }
 /*
 Returns the ~SmiFileId~ of the R-Tree database file.
 
 */
+    inline SmiFileId FileId()
+    {
+      return file->GetFileId();
+    }
 
     inline void GetNode(SmiRecordId id, R_TreeNode<dim, LeafInfo>& result) {
         result.Read(file,id);
     }
 
 
-    inline SmiRecordId RootRecordId() const
-    {
-      return header.rootRecordId;
-    }
 /*
 Returns the ~SmiRecordId~ of the root node.
 
 */
-
-    inline SmiRecordId HeaderRecordId() const
+    inline SmiRecordId RootRecordId() const
     {
-      return header.headerRecordId;
+      return header.rootRecordId;
     }
+
 /*
 Returns the ~SmiRecordId~ of the header node.
 
 */
+    inline SmiRecordId HeaderRecordId() const
+    {
+      return header.headerRecordId;
+    }
 
     inline int MinEntries( int level ) const
     {
@@ -4862,5 +4878,15 @@ bool R_Tree<dim,LeafInfo>::InitializeBLI(const bool& leafSkipping)
     bli = new BulkLoadInfo<dim,LeafInfo>(leafSkipping);
     return true;
 }
+
+typedef R_Tree<2, TupleId> RTree2TID;
+typedef R_Tree<3, TupleId> RTree3TID;
+typedef R_Tree<4, TupleId> RTree4TID;
+typedef R_Tree<8, TupleId> RTree8TID;
+
+typedef R_Tree<2, TwoLayerLeafInfo> RTree2TLLI;
+typedef R_Tree<3, TwoLayerLeafInfo> RTree3TLLI;
+typedef R_Tree<4, TwoLayerLeafInfo> RTree4TLLI;
+typedef R_Tree<8, TwoLayerLeafInfo> RTree8TLLI;
 
 #endif

@@ -740,7 +740,7 @@ int UGrid::SizeOfObj()
 
 bool UGrid::KindCheck(ListExpr type, ListExpr& errorInfo)
 {
-  return (nl->IsEqual(type, "ugrid"));
+  return (nl->IsEqual(type, UGrid::BasicType()));
 }
 
 /******************************************************************************
@@ -758,10 +758,10 @@ ListExpr UGrid::Property()
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("ugrid"),
+                             nl->StringAtom(UGrid::BasicType()),
                              nl->StringAtom("((<x1> <x2> <y1> <y2>) p)"),
                              nl->StringAtom("((8.2 1.6 9.7 4,6) 4096)"),
-                             nl->StringAtom("x/y must be of type double, "
+                             nl->StringAtom("x/y must be of type real, "
                                             "p of type int."))));
 }
 
@@ -1801,7 +1801,7 @@ void UGrid::SetSemaphore(bool value)
 ******************************************************************************/
 
 TypeConstructor UGridTC(
-       "ugrid",                        // name
+       UGrid::BasicType(),                        // name
         UGrid::Property,               // property function
         UGrid::Out,   UGrid::In,       // Out and In functions
         0, 0,                          // SaveTo and RestoreFrom functions
@@ -1825,10 +1825,10 @@ Creates a new UGrid object.
 ListExpr CreateTM(ListExpr args)
 {
   if( nl->ListLength( args ) == 2 &&
-      nl->IsEqual(nl->First(args),"rect") &&
-      nl->IsEqual(nl->Second(args),"int") )
+      nl->IsEqual(nl->First(args),Rectangle<2>::BasicType()) &&
+      nl->IsEqual(nl->Second(args),CcInt::BasicType()) )
   {
-    return (nl->SymbolAtom("ugrid"));
+    return (nl->SymbolAtom(UGrid::BasicType()));
   }
   ErrorReporter::ReportError("rect x int expected!");
   return (nl->SymbolAtom( "typeerror" ));
@@ -2184,10 +2184,10 @@ void GenerateErrorMsg(bool error[3])
 ListExpr InsertUploadTM(ListExpr args)
 {
   if ( nl->ListLength( args ) == 2 &&
-       nl->IsEqual(nl->First(args), "ugrid") &&
-       nl->IsEqual(nl->Second(args), "uploadunit"))
+       nl->IsEqual(nl->First(args), UGrid::BasicType()) &&
+       nl->IsEqual(nl->Second(args), UploadUnit::BasicType()))
   {
-    return (nl->SymbolAtom("bool"));
+    return (nl->SymbolAtom(CcBool::BasicType()));
   }
   return listutils::typeError("Expected ugrid x uploadunit!");
 }
@@ -2277,7 +2277,7 @@ ListExpr InsertStreamTM(ListExpr args)
     return listutils::typeError("Error in first argument!");
   }
 
-  if ( !nl->IsEqual(nl->Second(args), "ugrid") )
+  if ( !nl->IsEqual(nl->Second(args), UGrid::BasicType()) )
   {
     return NList::typeError( "UGrid object for second argument expected!" );
   }
@@ -2294,7 +2294,7 @@ ListExpr InsertStreamTM(ListExpr args)
 
   if ( j != 0 )
   {
-    if ( nl->SymbolValue(attrtype) != "uploadunit" )
+    if ( nl->SymbolValue(attrtype) != UploadUnit::BasicType() )
     {
       return NList::typeError("Attribute type is not of type uploadunit.");
     }
@@ -2550,8 +2550,8 @@ ListExpr IntersectsWinTM(ListExpr args)
 {
  // Check nested list
   if(!(nl->ListLength( args ) == 4 &&
-      nl->IsEqual(nl->First(args),"ugrid") &&
-      nl->IsEqual(nl->Second(args),"rect") &&
+      nl->IsEqual(nl->First(args),UGrid::BasicType()) &&
+      nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
       nl->IsEqual(nl->Third(args),"instant") &&
       nl->IsEqual(nl->Fourth(args),"instant")))
   {
@@ -2563,7 +2563,7 @@ ListExpr IntersectsWinTM(ListExpr args)
   // Create output list
   ListExpr tupleList = nl->TwoElemList(
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
-                                       nl->SymbolAtom("int")),
+                                       nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("HistoryUnit"),
                                        nl->SymbolAtom("upoint")));
   ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -2707,8 +2707,8 @@ ListExpr InsideWinTM(ListExpr args)
 {
   // Check nested list
   if(!(nl->ListLength( args ) == 4 &&
-      nl->IsEqual(nl->First(args),"ugrid") &&
-      nl->IsEqual(nl->Second(args),"rect") &&
+      nl->IsEqual(nl->First(args),UGrid::BasicType()) &&
+      nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
       nl->IsEqual(nl->Third(args),"instant") &&
       nl->IsEqual(nl->Fourth(args),"instant")))
   {
@@ -2720,7 +2720,7 @@ ListExpr InsideWinTM(ListExpr args)
   // Create output list
   ListExpr tupleList = nl->TwoElemList(
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
-                                       nl->SymbolAtom("int")),
+                                       nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("HistoryUnit"),
                                        nl->SymbolAtom("upoint")));
   ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -2886,12 +2886,12 @@ Returns all history units wich belongs to the stated moving object.
 ListExpr GetTrajectoryTM(ListExpr args)
 {
   if( nl->ListLength( args ) == 2 &&
-      nl->IsEqual(nl->First(args),"ugrid") &&
-      nl->IsEqual(nl->Second(args),"int"))
+      nl->IsEqual(nl->First(args),UGrid::BasicType()) &&
+      nl->IsEqual(nl->Second(args),CcInt::BasicType()))
   {
     ListExpr tupleList = nl->TwoElemList(
                          nl->TwoElemList(nl->SymbolAtom("MovObjId"),
-                                         nl->SymbolAtom("int")),
+                                         nl->SymbolAtom(CcInt::BasicType())),
                          nl->TwoElemList(nl->SymbolAtom("HistoryUnit"),
                                          nl->SymbolAtom("upoint")));
     ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -3043,10 +3043,10 @@ Returns the current UploadUnit.
 ListExpr CurrentUploadTM(ListExpr args)
 {
   if( nl->ListLength( args ) == 2 &&
-      nl->IsEqual(nl->First(args),"ugrid") &&
-      nl->IsEqual(nl->Second(args),"int") )
+      nl->IsEqual(nl->First(args),UGrid::BasicType()) &&
+      nl->IsEqual(nl->Second(args),CcInt::BasicType()) )
   {
-    return nl->SymbolAtom("uploadunit");
+    return nl->SymbolAtom(UploadUnit::BasicType());
   }
   ErrorReporter::ReportError("ugrid x int expected!");
   return (nl->SymbolAtom( "typeerror" ));

@@ -610,7 +610,7 @@ int SETI::SizeOfObj()
 
 bool SETI::KindCheck(ListExpr type, ListExpr& errorInfo)
 {
-  return (nl->IsEqual(type, "seti"));
+  return (nl->IsEqual(type, SETI::BasicType()));
 }
 
 /******************************************************************************
@@ -628,7 +628,7 @@ ListExpr SETI::Property()
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("seti"),
+                             nl->StringAtom(SETI::BasicType()),
                              nl->StringAtom("((<x1> <x2> <y1> <y2>) p)"),
                              nl->StringAtom("((8.2 1.6 9.7 4,6) 4096)"),
                              nl->StringAtom("x/y must be of type double, "
@@ -1062,7 +1062,7 @@ void SETI::SetSemaphore(bool value)
 ******************************************************************************/
 
 TypeConstructor SETITC(
-       "seti",                        // name
+        SETI::BasicType(),            // name
         SETI::Property,               // property function
         SETI::Out,   SETI::In,        // Out and In functions
         0, 0,                         // SaveTo and RestoreFrom functions
@@ -1086,10 +1086,10 @@ Creates a new SETI object.
 ListExpr CreateTM(ListExpr args)
 {
   if( nl->ListLength( args ) == 2 &&
-      nl->IsEqual(nl->First(args),"rect") &&
-      nl->IsEqual(nl->Second(args),"int") )
+      nl->IsEqual(nl->First(args),Rectangle<2>::BasicType()) &&
+      nl->IsEqual(nl->Second(args),CcInt::BasicType()) )
   {
-    return (nl->SymbolAtom("seti"));
+    return (nl->SymbolAtom(SETI::BasicType()));
   }
   ErrorReporter::ReportError("rect x int expected!");
   return (nl->SymbolAtom( "typeerror" ));
@@ -1443,10 +1443,10 @@ void GenerateErrorMsg(bool error[3])
 ListExpr InsertUploadTM(ListExpr args)
 {
   if ( nl->ListLength( args ) == 2 &&
-       nl->IsEqual(nl->First(args), "seti") &&
-       nl->IsEqual(nl->Second(args), "uploadunit"))
+       nl->IsEqual(nl->First(args), SETI::BasicType()) &&
+       nl->IsEqual(nl->Second(args), UploadUnit::BasicType()))
   {
-    return (nl->SymbolAtom("bool"));
+    return (nl->SymbolAtom(CcBool::BasicType()));
   }
   return listutils::typeError("Expected seti x uploadunit!");
 }
@@ -1537,7 +1537,7 @@ ListExpr InsertStreamTM(ListExpr args)
     return listutils::typeError("Error in first argument!");
   }
 
-  if ( !nl->IsEqual(nl->Second(args), "seti") )
+  if ( !nl->IsEqual(nl->Second(args), SETI::BasicType()) )
   {
     return NList::typeError( "SETI object for second argument expected!" );
   }
@@ -1554,7 +1554,7 @@ ListExpr InsertStreamTM(ListExpr args)
 
   if ( j != 0 )
   {
-    if ( nl->SymbolValue(attrtype) != "uploadunit" )
+    if ( nl->SymbolValue(attrtype) != UploadUnit::BasicType() )
     {
       return NList::typeError("Attribute type is not of type uploadunit.");
     }
@@ -1818,8 +1818,8 @@ ListExpr IntersectsWinTM(ListExpr args)
 {
   // Check nested list
   if(!(nl->ListLength( args ) == 4 &&
-      nl->IsEqual(nl->First(args),"seti") &&
-      nl->IsEqual(nl->Second(args),"rect") &&
+      nl->IsEqual(nl->First(args),SETI::BasicType()) &&
+      nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
       nl->IsEqual(nl->Third(args),"instant") &&
       nl->IsEqual(nl->Fourth(args),"instant")))
   {
@@ -1831,7 +1831,7 @@ ListExpr IntersectsWinTM(ListExpr args)
   // Create output list
   ListExpr tupleList = nl->TwoElemList(
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
-                                       nl->SymbolAtom("int")),
+                                       nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("TrjSeg"),
                                        nl->SymbolAtom("upoint")));
   ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -1975,8 +1975,8 @@ ListExpr InsideWinTM(ListExpr args)
 {
   // Check nested list
   if(!(nl->ListLength( args ) == 4 &&
-      nl->IsEqual(nl->First(args),"seti") &&
-      nl->IsEqual(nl->Second(args),"rect") &&
+      nl->IsEqual(nl->First(args),SETI::BasicType()) &&
+      nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
       nl->IsEqual(nl->Third(args),"instant") &&
       nl->IsEqual(nl->Fourth(args),"instant")))
   {
@@ -1986,7 +1986,7 @@ ListExpr InsideWinTM(ListExpr args)
   // Create output list
   ListExpr tupleList = nl->TwoElemList(
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
-                                       nl->SymbolAtom("int")),
+                                       nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("TrjSeg"),
                                        nl->SymbolAtom("upoint")));
   ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -2151,12 +2151,12 @@ Returns all trajectory segments  wich belongs to the stated moving object.
 ListExpr GetTrajectoryTM(ListExpr args)
 {
   if( nl->ListLength( args ) == 2 &&
-      nl->IsEqual(nl->First(args),"seti") &&
-      nl->IsEqual(nl->Second(args),"int"))
+      nl->IsEqual(nl->First(args),SETI::BasicType()) &&
+      nl->IsEqual(nl->Second(args),CcInt::BasicType()))
   {
     ListExpr tupleList = nl->TwoElemList(
                          nl->TwoElemList(nl->SymbolAtom("MovObjId"),
-                                         nl->SymbolAtom("int")),
+                                         nl->SymbolAtom(CcInt::BasicType())),
                          nl->TwoElemList(nl->SymbolAtom("TrjSeg"),
                                          nl->SymbolAtom("upoint")));
     ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -2307,10 +2307,10 @@ Returns the current upload.
 ListExpr CurrentUploadTM(ListExpr args)
 {
   if( nl->ListLength( args ) == 2 &&
-      nl->IsEqual(nl->First(args),"seti") &&
-      nl->IsEqual(nl->Second(args),"int") )
+      nl->IsEqual(nl->First(args),SETI::BasicType()) &&
+      nl->IsEqual(nl->Second(args),CcInt::BasicType()) )
   {
-    return nl->SymbolAtom("uploadunit");
+    return nl->SymbolAtom(UploadUnit::BasicType());
   }
   ErrorReporter::ReportError("seti x int expected!");
   return (nl->SymbolAtom( "typeerror" ));
@@ -2393,7 +2393,7 @@ ListExpr ConvertMP2UUTM(ListExpr args)
     return listutils::typeError("Error in first argument!");
   }
 
-  if ( !nl->IsEqual(nl->Second(args), "int") )
+  if ( !nl->IsEqual(nl->Second(args), CcInt::BasicType()) )
   {
     return NList::typeError( "int for second argument expected!" );
   }
@@ -2420,7 +2420,7 @@ ListExpr ConvertMP2UUTM(ListExpr args)
 
   if ( j != 0 )
   {
-    if ( nl->SymbolValue(attrtype1) != "int" )
+    if ( nl->SymbolValue(attrtype1) != CcInt::BasicType() )
     {
       return NList::typeError("First attribute type is not of type int.");
     }
@@ -2450,7 +2450,7 @@ ListExpr ConvertMP2UUTM(ListExpr args)
   // Create output list
   ListExpr tupleList = nl->OneElemList(
                        nl->TwoElemList(nl->SymbolAtom("Upload"),
-                                       nl->SymbolAtom("uploadunit")));
+                                      nl->SymbolAtom(UploadUnit::BasicType())));
   ListExpr outputstream = nl->TwoElemList(nl->SymbolAtom("stream"),
                           nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
 
@@ -2582,7 +2582,7 @@ struct ConvertMP2UUInfo : OperatorInfo {
 ******************************************************************************/
 
 TypeConstructor UploadUnitTC(
-  "uploadunit",                           // name
+  UploadUnit::BasicType(),                // name
   UploadUnit::Property,                   // property function
   UploadUnit::Out, UploadUnit::In,        // Out and In functions
   0, 0,                                   // SaveTo and RestoreFrom functions
