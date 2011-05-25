@@ -684,4 +684,10 @@ ListExpr OutDateTime( ListExpr typeInfo, Word value );
 
 ostream& operator<<(ostream& o, const datetime::DateTime& DT);
 
+
+
+namespace Duration{
+  const string BasicType();
+}
+
 #endif
