@@ -1048,17 +1048,16 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
 
   if(inputtype==""){
-    return listutils::typeError("attrbute not found");
+    return listutils::typeError("attribute not found");
   }
 
   if((inputtype != UBool::BasicType()) &&
      (inputtype != UInt::BasicType()) &&
      (inputtype != UReal::BasicType()) &&
      (inputtype != UPoint::BasicType()) &&
-     (inputtype != UString::BasicType()) &&
-     (inputtype != "uset")){
+     (inputtype != UString::BasicType()) ){
     return listutils::typeError("attr type not in {ubool, uint,"
-                                " ustring, ureal, upoint, uset");
+                                " ustring, ureal, upoint");
   }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1075,8 +1074,6 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( MInt::BasicType() );
   if( inputtype == UString::BasicType() )
     attrtype = nl->SymbolAtom( MString::BasicType() );
-  if( inputtype == "uset" )
-    attrtype = nl->SymbolAtom( "msset" );
 //if( inputtype == URegion::BasicType() )
 //  attrtype = nl->SymbolAtom( MRegion::BasicType());
 
