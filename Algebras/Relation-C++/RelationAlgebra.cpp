@@ -67,7 +67,6 @@ RelationAlgebra.h header file.
 */
 #include "RelationAlgebra.h"
 #include "OrderedRelationAlgebra.h"
-//#include "OldRelationAlgebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
@@ -5118,8 +5117,11 @@ RenameTypeMap( ListExpr args )
   string  attrnamen="";
   bool firstcall = true;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator rename expects a list of length two.");
+
+  if(nl->ListLength(args)!=2){
+   return listutils::typeError("Operator rename expects "
+                               "two arguments.");
+  }
 
   first = nl->First(args);
   second  = nl->Second(args);
@@ -5133,11 +5135,10 @@ RenameTypeMap( ListExpr args )
   }
 
   nl->WriteToString(argstr, second);
-  CHECK_COND( nl->IsAtom(second) &&
-    nl->AtomType(second) == SymbolType,
-    "Operator rename expects as second argument a symbol "
-    "atom (attribute suffix) "
-    "Operator rename gets '" + argstr + "'.");
+
+  if(!listutils::isSymbol(second)){
+    return listutils::typeError("the second argument must be a symbol");
+  } 
 
   tup = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(tup)))
