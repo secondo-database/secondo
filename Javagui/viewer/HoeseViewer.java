@@ -241,6 +241,9 @@ public class HoeseViewer extends SecondoViewer {
   private JRadioButtonMenuItem create_Point_MI;
   private JRadioButtonMenuItem create_Region_MI;
   private JCheckBoxMenuItem create_show_direct;
+  private JCheckBoxMenuItem storeInRelation_MI;
+  private JMenuItem setRelationName_MI;
+  private JMenuItem createRelation_MI;
 
 
 
@@ -1128,7 +1131,7 @@ public class HoeseViewer extends SecondoViewer {
     create_show_direct.addChangeListener(new ChangeListener(){
         public void stateChanged(ChangeEvent e) {
             JCheckBoxMenuItem source = (JCheckBoxMenuItem) e.getSource();
-            createPointSequenceListener.setShowDirect(source.isEnabled());
+            createPointSequenceListener.setShowDirect(source.isSelected());
         }
     });
 
@@ -1138,12 +1141,51 @@ public class HoeseViewer extends SecondoViewer {
         createMenu.add(create_PointSequence_MI);
         createMenu.add(create_FilledPointSequence_MI);
     }
+
+
     createMenu.add(create_Points_MI);
     createMenu.add(create_Point_MI);
     createMenu.add(create_Line_MI);
     createMenu.add(create_Region_MI);
     createMenu.addSeparator();
     createMenu.add(create_show_direct);
+    createMenu.addSeparator();
+    storeInRelation_MI = new JCheckBoxMenuItem("Store in relation");
+    setRelationName_MI = new JMenuItem("Set name of relation");
+    createRelation_MI = new JMenuItem("Create relation");
+    createMenu.add(storeInRelation_MI);
+    createMenu.add(setRelationName_MI);
+    createMenu.add(createRelation_MI);
+
+    storeInRelation_MI.setSelected(false);
+    setRelationName_MI.setEnabled(false);
+    createRelation_MI.setEnabled(false);    
+
+    createPointSequenceListener.storeInRelation(false);
+    createPointSequenceListener.setRelationName(null);
+
+    setRelationName_MI.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+         createPointSequenceListener.askForRelationName();
+      }
+    });
+    createRelation_MI.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+         createPointSequenceListener.createRelation();
+      }
+    });
+
+    
+    storeInRelation_MI.addChangeListener(new ChangeListener(){
+        public void stateChanged(ChangeEvent e) {
+            JCheckBoxMenuItem source = (JCheckBoxMenuItem) e.getSource();
+            boolean enable = source.isSelected();
+            createPointSequenceListener.storeInRelation(enable);
+            setRelationName_MI.setEnabled(enable);
+            createRelation_MI.setEnabled(enable);
+        }
+    });
+
 
 
     ButtonGroup createTypes = new ButtonGroup();
@@ -3424,20 +3466,26 @@ public boolean canDisplay(SecondoObject o){
              }
              String Name=getNameFromUser();
              if(Name!=null){
-                  String TypeName=null;
-                  switch(mode){
-                    case POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
-                    case FILLED_POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
-                    case LINE_MODE : TypeName ="line"; break;
-                    case POINTS_MODE : TypeName ="points";break;
-                    case REGION_MODE : TypeName ="region";break;
-                    default : TypeName ="unknown"; Reporter.writeError("invalid mode detected");
-                  }
+                  String TypeName = getTypeName();
                   ListExpr result = ListExpr.twoElemList(ListExpr.symbolAtom(TypeName),value);
                   processSecondoObject(Name,TypeName,result);
             }
          } // points available
          reset();
+      }
+
+      private String getTypeName(){
+        String TypeName=null;
+        switch(mode){
+           case POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
+           case FILLED_POINT_SEQUENCE_MODE : TypeName = "pointsequence"; break;
+           case LINE_MODE : TypeName ="line"; break;
+           case POINT_MODE : TypeName ="point"; break;
+           case POINTS_MODE : TypeName ="points";break;
+           case REGION_MODE : TypeName ="region";break;
+           default : TypeName ="unknown"; Reporter.writeError("invalid mode detected");
+         }
+         return TypeName;
       }
 
       private boolean processSecondoObject(String Name,String typeName,ListExpr content){
@@ -3449,12 +3497,26 @@ public boolean canDisplay(SecondoObject o){
           if(showDirect){
              addObject(o, false);
           }
-          String cmd = "let "+Name+" = [const "+typeName+" value "+content.second()+"]";
+          String cmd = null;
+          String constValue = "[const "+typeName+" value "+content.second()+"]";
+          if(storeInRelation){
+            if(relName==null){
+               askForRelationName();
+               if(relName==null){
+                    return false;
+               }
+            }
+            cmd = "query "+relName+" inserttuple [\""+Name+"\" , "+ constValue +"] count";
+          } else {
+             cmd = "let "+Name+ " = " + constValue;
+          }
+
+
           sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
           ListExpr resultList = ListExpr.theEmptyList();
            StringBuffer errorMessage= new StringBuffer();
           if(!VC.execCommand(cmd,errorCode,resultList,errorMessage)){
-					Reporter.showError("Error in storing pointsequence\n"
+					Reporter.showError("Error in storing" + typeName + "\n"
 							+
                                         sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+
                                         errorMessage);
@@ -3513,6 +3575,56 @@ public boolean canDisplay(SecondoObject o){
           return showDirect;
       }
 
+      public boolean setRelationName(String relName){
+         if(relName==null){
+            this.relName = null;
+            setRelationName_MI.setText("Set name for relation (null)");
+            return true;
+          } else {
+             if(!relName.matches("[a-zA-Z_][a-zA-Z_0-9]*") || relName.length()>48){
+                  JOptionPane.showMessageDialog(null,"invalid  name for a Secondo object");
+                  return false;
+             }
+             this.relName = relName;
+             setRelationName_MI.setText("Set name for relation ("+relName+")");
+             return true;
+          }
+      }
+
+      public void storeInRelation(boolean on){
+          storeInRelation = on;
+      }
+
+      public void askForRelationName(){
+         String name = JOptionPane.showInputDialog(null, "Select a name for the relation \n " +
+                                                  "It  must have the schema (Name : string, Value : type)\n" +
+                                                   "where type depends on the type of the object to create.");
+         if(name != null){
+            setRelationName(name);
+         }
+
+      }
+
+      public void createRelation(){
+        if(relName==null){
+           JOptionPane.showMessageDialog(null, "No relation name given");
+           return;
+        }
+        String typeName = getTypeName();
+        String command = "let "+ relName+" = [const rel(tuple([Name : string, Value : " + typeName + "])) value () ]";
+        sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
+        ListExpr resultList = ListExpr.theEmptyList();
+        StringBuffer errorMessage= new StringBuffer();
+       if(!VC.execCommand(command,errorCode,resultList,errorMessage)){
+            Reporter.showError("Error in creating relation\n"
+            +
+            sj.lang.ServerErrorCodes.getErrorMessageText(errorCode.value)+"\n"+ errorMessage);
+        } else {
+            Reporter.showInfo("Relation successful created");
+        } 
+      }
+
+
 
       private Dsplpointsequence ps =new Dsplpointsequence();
       private Vector points=null;
@@ -3526,6 +3638,8 @@ public boolean canDisplay(SecondoObject o){
       private boolean isPainted=false; // true if an rectangle is painted
       private boolean active=false;
       private boolean showDirect = false;
+      private String relName = null;
+      private boolean storeInRelation = false;
 
       private static final int POINT_SEQUENCE_MODE=0;
       private static final int RECTANGLE_MODE=1;
