@@ -260,6 +260,10 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
         static int      SizeOfObj();  
         
         static void* Cast(void* addr);
+
+        static const string BasicType(){
+             return "arel";
+        }
         
        
    private:        
@@ -523,6 +527,10 @@ the type of tuple corresponds to the type of the primary relation.
                             const ListExpr typeInfo, Word& value );
                             
           static bool     KindCheck( ListExpr type, ListExpr& errorInfo ); 
+
+          static const string BasicType(){
+              return "nrel";
+          }
           
    private:
         Relation* primary;
