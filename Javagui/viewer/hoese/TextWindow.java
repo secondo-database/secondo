@@ -481,7 +481,7 @@ public class TextWindow extends JPanel {
       qr.setOpaque(this.isOpaque());
       qr.setBackground(this.getBackground());
 
-      if (parent.addQueryResult(qr)) { // successful adding this result
+      if (parent.addQueryResult(qr,true)) { // successful adding this result
         ListExpr CatList = Current.third();
         ListExpr LayerList = Current.fourth();
         if(CatList.atomType()==ListExpr.NO_ATOM && !CatList.isEmpty()){
@@ -503,7 +503,7 @@ public class TextWindow extends JPanel {
     while (lil.hasNext()) {
       Layer lay = (Layer)lil.next();
       if (lay.getGeoObjects().size() > 0)
-        parent.addSwitch(parent.GraphDisplay.addLayer(lay), -1);
+        parent.addSwitch(parent.GraphDisplay.addLayer(lay, true), -1);
     }
     return  true;
   }

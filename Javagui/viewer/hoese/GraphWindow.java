@@ -147,7 +147,7 @@ public class GraphWindow extends JLayeredPane
    * @param grob
    * @return The layertoggle of this layer
    */
-  public JToggleButton addLayerObjects (Vector grob) {
+  public JToggleButton addLayerObjects (Vector grob, boolean changeZoom) {
     Category acat;
     int catSelMode = CurrentState.getCatSelectionMode();
 
@@ -202,7 +202,7 @@ public class GraphWindow extends JLayeredPane
     Layer lay = new Layer(grob, this);
     int Laynr = ++highest;
     add(lay, new Integer(Laynr));
-    mw.updateViewParameter();
+    mw.updateViewParameter(changeZoom);
     JToggleButton res =  lay.CreateLayerButton(LayerButtonListener, Laynr);
     return res; 
   }
@@ -229,12 +229,12 @@ public class GraphWindow extends JLayeredPane
    * @return The layertoggle of this layer
    * @see <a href="Categorysrc.html#addLayer">Source</a>
    */
-  public JToggleButton addLayer (Layer l) {
+  public JToggleButton addLayer (Layer l, boolean changeZoom) {
     //    add (lay,new Integer(highestLayer()+1));
     Layer lay = new Layer(l.getGeoObjects(), this);
     int Laynr = highest++;
     add(lay, new Integer(Laynr));
-    mw.updateViewParameter();
+    mw.updateViewParameter(changeZoom);
     return  lay.CreateLayerButton(LayerButtonListener, Laynr);
   }
 
@@ -333,7 +333,7 @@ public class GraphWindow extends JLayeredPane
         updateBoundingBox();
         ignorePaint=false;
     }
-    mw.updateViewParameter();
+    mw.updateViewParameter(true);
 
     repaint();
   }

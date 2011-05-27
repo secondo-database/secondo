@@ -152,8 +152,7 @@ public class HoeseViewer extends SecondoViewer {
   private TimePanel TimeDisplay;
 
   /** The Zoomfactor of the GraphWindow */
-  protected double ZoomFactor = 1;
-  private AffineTransform ZoomTransform = new AffineTransform();
+  private double ZoomFactor = 1;
   private SelMouseAdapter SelectionControl;
 
   private Interval TimeBounds;
@@ -231,6 +230,7 @@ public class HoeseViewer extends SecondoViewer {
   private JRadioButtonMenuItem catByName;
 
   private JMenuItem selectSequenceCat;
+
   private JRadioButtonMenuItem create_Rectangle_MI;
   private boolean enablePointSequence = true;
   private JMenu createMenu;
@@ -240,6 +240,9 @@ public class HoeseViewer extends SecondoViewer {
   private JRadioButtonMenuItem create_Line_MI;
   private JRadioButtonMenuItem create_Point_MI;
   private JRadioButtonMenuItem create_Region_MI;
+  private JCheckBoxMenuItem create_show_direct;
+
+
 
 
   private javax.swing.JSeparator jSeparator5;
@@ -415,7 +418,6 @@ public class HoeseViewer extends SecondoViewer {
 
     createPointSequenceBtn = new JButton();
     createPointSequenceBtn.setOpaque(true);
-    createPointSequenceListener=new CreatePointSequenceListener();
 
     ActionListener createPointSequenceAL = new ActionListener(){
           public void actionPerformed(ActionEvent evt){
@@ -1118,6 +1120,19 @@ public class HoeseViewer extends SecondoViewer {
     create_Line_MI=new JRadioButtonMenuItem("Line");
     create_Region_MI = new JRadioButtonMenuItem("Region");
 
+    createPointSequenceListener=new CreatePointSequenceListener();
+    create_show_direct = new JCheckBoxMenuItem("Show Directly");
+    create_show_direct.setSelected(true);
+    createPointSequenceListener.setShowDirect(true);
+
+    create_show_direct.addChangeListener(new ChangeListener(){
+        public void stateChanged(ChangeEvent e) {
+            JCheckBoxMenuItem source = (JCheckBoxMenuItem) e.getSource();
+            createPointSequenceListener.setShowDirect(source.isEnabled());
+        }
+    });
+
+
     createMenu.add(create_Rectangle_MI);
     if(enablePointSequence){
         createMenu.add(create_PointSequence_MI);
@@ -1127,6 +1142,10 @@ public class HoeseViewer extends SecondoViewer {
     createMenu.add(create_Point_MI);
     createMenu.add(create_Line_MI);
     createMenu.add(create_Region_MI);
+    createMenu.addSeparator();
+    createMenu.add(create_show_direct);
+
+
     ButtonGroup createTypes = new ButtonGroup();
     createTypes.add(create_Rectangle_MI);
     createTypes.add(create_PointSequence_MI);
@@ -1411,10 +1430,10 @@ public class HoeseViewer extends SecondoViewer {
     AAZoomOut = new AbstractAction("Zoom out"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         double zf = 1/ZoomFactor;
-        ZoomFactor = 1;
+        setZoomFactor(1);
         ClipRect = null;
         Point p = GeoScrollPane.getViewport().getViewPosition();
-        updateViewParameter();
+        updateViewParameter(true);
         GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),
             (int)(p.getY()*zf)));
       }
@@ -1430,14 +1449,15 @@ public class HoeseViewer extends SecondoViewer {
         double zf = 0.75;
         if (ZoomFactor*zf < 1) {
           zf = 1/ZoomFactor;
-          ZoomFactor = 1;
+          setZoomFactor(1);
           ClipRect = null;
           Point p = GeoScrollPane.getViewport().getViewPosition();
-          updateViewParameter();
+          updateViewParameter(true);
           //GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
           return;
         }
-        ZoomFactor *= zf;
+        double zf2 = ZoomFactor * zf;
+        setZoomFactor(zf2);
         double m[] = new double[6];
         CurrentState.transform.getMatrix(m);
         m[0] *= zf;
@@ -1466,7 +1486,7 @@ public class HoeseViewer extends SecondoViewer {
     MIZoomPlus.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         double zf = 1.25;
-        ZoomFactor *= zf;
+        setZoomFactor(ZoomFactor* zf);
         double m[] = new double[6];
         CurrentState.transform.getMatrix(m);
         m[0] *= zf;
@@ -1819,7 +1839,7 @@ public void removeObject(SecondoObject o){
        } else{
           CB.setSelectedIndex(0);
        }
-       updateViewParameter();
+       updateViewParameter(true);
     }
 
 }
@@ -1912,7 +1932,7 @@ public boolean canDisplay(SecondoObject o){
    * @return True if no error has occured
    * @see <a href="MainWindowsrc.html#addQueryResult">Source</a>
    */
-  public boolean addQueryResult (QueryResult qr) {
+  public boolean addQueryResult (QueryResult qr, boolean changeZoom) {
     CurrentQueryResult = qr;
     CurrentQueryResult.addListSelectionListener(DoQuerySelection);
     ListExpr displayErrorList = TextDisplay.newQueryResult(CurrentQueryResult);
@@ -1924,7 +1944,7 @@ public boolean canDisplay(SecondoObject o){
       return  false;
     }
     else {
-      updateViewParameter();
+      updateViewParameter(changeZoom);
       return  true;
       //QueryResultList.add (CurrentQueryResult);
     }
@@ -1938,14 +1958,24 @@ public boolean canDisplay(SecondoObject o){
 
  /** adds a new SecondoObject to this Viewer **/
   public boolean addObject(SecondoObject o){
+      return addObject(o, true);
+  }
 
+
+  /** adds a new secondo object to this viewer.
+      The boolean parameter describes if (when the object has a 
+      spatial extend, the zoom should be changed to display the
+      whole scene.
+
+  */
+  public boolean addObject(SecondoObject o, boolean changeZoom){
     if(getQueryIndex(o)>=0)
       return false;
     else {
       QueryResult qr= new QueryResult(o);
-      if (addQueryResult(qr)) {
+      if (addQueryResult(qr, changeZoom)) {
         if (!CurrentQueryResult.getGraphObjects().isEmpty()){
-          addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects()),-1);
+          addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects(), changeZoom),-1);
         }
         CurrentQueryResult.setSelectedIndex(0);
       }
@@ -2190,7 +2220,7 @@ public boolean canDisplay(SecondoObject o){
         }
       }
       qr.getGraphObjects().clear();
-      updateViewParameter();
+      updateViewParameter(true);
       TextDisplay.getQueryCombo().removeItem(qr);
       CB = TextDisplay.getQueryCombo();
       count = CB.getItemCount();
@@ -2283,14 +2313,16 @@ public boolean canDisplay(SecondoObject o){
    * method must be called to calc. Layersize and transformation again.
    * @see <a href="MainWindowsrc.html#updateViewParameter">Source</a>
    */
-  public void updateViewParameter () {
+  public void updateViewParameter (boolean changeZoom) {
     GraphDisplay.updateBoundingBox();           //fuer neue oder geloeschte Objekte
     if (ClipRect == null) {
       double w = (double)GeoScrollPane.getViewport().getWidth();
       double h = (double)GeoScrollPane.getViewport().getHeight();
       ClipRect = new Rectangle(0, 0, (int)w, (int)h);
     }
-    CurrentState.transform = calcProjection();         //addScaling(calcProjection());
+    if(changeZoom){
+        CurrentState.transform = calcProjection();         //addScaling(calcProjection());
+    }
     Rectangle2D rDC = (Rectangle2D)CurrentState.transform.createTransformedShape(BBoxWC).getBounds();
     double x = rDC.getX();
     double y = rDC.getY();
@@ -2387,8 +2419,7 @@ public boolean canDisplay(SecondoObject o){
    * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
    */
 
-  class QueryListSelectionListener
-      implements ListSelectionListener {
+  class QueryListSelectionListener implements ListSelectionListener {
     public void valueChanged (ListSelectionEvent e) {
       Object o;
       if (e.getValueIsAdjusting()){
@@ -2514,7 +2545,7 @@ public boolean canDisplay(SecondoObject o){
           double w = (double)GeoScrollPane.getViewport().getWidth();
           double h = (double)GeoScrollPane.getViewport().getHeight();
           double zf = Math.min(w/r.getWidth(), h/r.getHeight());
-          ZoomFactor *= zf;
+          setZoomFactor(ZoomFactor * zf);
           double m[] = new double[6];
           CurrentState.transform.getMatrix(m);
           //double z=ZoomFactor;
@@ -3414,7 +3445,10 @@ public boolean canDisplay(SecondoObject o){
         o.setName(Name);
         o.fromList(content);
         if(VC!=null){
-           VC.addObject(o);
+          VC.addObject(o);
+          if(showDirect){
+             addObject(o, false);
+          }
           String cmd = "let "+Name+" = [const "+typeName+" value "+content.second()+"]";
           sj.lang.IntByReference errorCode = new sj.lang.IntByReference(0);
           ListExpr resultList = ListExpr.theEmptyList();
@@ -3471,6 +3505,14 @@ public boolean canDisplay(SecondoObject o){
          return mode;
       }
 
+      public void setShowDirect(boolean enable){
+          showDirect = enable;
+      }
+ 
+      public boolean getShowDirect(){
+          return showDirect;
+      }
+
 
       private Dsplpointsequence ps =new Dsplpointsequence();
       private Vector points=null;
@@ -3483,6 +3525,7 @@ public boolean canDisplay(SecondoObject o){
       private boolean rectangle_start=false;
       private boolean isPainted=false; // true if an rectangle is painted
       private boolean active=false;
+      private boolean showDirect = false;
 
       private static final int POINT_SEQUENCE_MODE=0;
       private static final int RECTANGLE_MODE=1;
