@@ -1026,9 +1026,9 @@ class PageRecord{
 4.5.1 Constants for class PageRecord
 
 */
-    const static int MAX_SLOTINDEXSIZE = 193;
-    const static int MAX_PAGESIZE = 3706;
-    const static int MAX_SLOTS =48;
+    const static int MAX_SLOTINDEXSIZE = 181;
+    const static int MAX_PAGESIZE = 3719;
+    const static int MAX_SLOTS =45;
     const static int OFFSET_SID = 4;
     const static int OFFSET_UPDOWN = 8;
     const static int OFFSET_MEAS_1 = 9;
