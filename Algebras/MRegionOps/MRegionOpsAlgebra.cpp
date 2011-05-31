@@ -50,10 +50,10 @@ For more detailed information please see the files ~SetOps.h~ and ~SetOps.cpp~.
 
 #include "Algebra.h"
 #include "NestedList.h"
-#include "NList.h" 
+#include "NList.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
-#include "ConstructorTemplates.h" 
+#include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include <string>
 #include "TypeMapUtils.h"
@@ -64,7 +64,6 @@ For more detailed information please see the files ~SetOps.h~ and ~SetOps.cpp~.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-using namespace symbols;
 using namespace mappings;
 using namespace std;
 
@@ -85,10 +84,10 @@ ListExpr MRMRMRTypeMap(ListExpr args) {
         return NList::typeError(errMsg);
 
     // movingregion x movingregion -> movingregion
-    if (type.first().isSymbol("movingregion") && 
-        type.second().isSymbol("movingregion")) {
+    if (type.first().isSymbol(MRegion::BasicType()) &&
+        type.second().isSymbol(MRegion::BasicType())) {
 
-        return NList("movingregion").listExpr();
+        return NList(MRegion::BasicType()).listExpr();
     }
 
     return NList::typeError(errMsg);
@@ -116,7 +115,7 @@ int IntersectionValueMap(Word* args, Word& result, int message, Word& local,
     return 0;
 }
 
-int UnionValueMap(Word* args, Word& result, int message, Word& local, 
+int UnionValueMap(Word* args, Word& result, int message, Word& local,
         Supplier s) {
 
     MRegion* mrA = static_cast<MRegion*>(args[0].addr );
@@ -132,7 +131,7 @@ int UnionValueMap(Word* args, Word& result, int message, Word& local,
     return 0;
 }
 
-int MinusValueMap(Word* args, Word& result, int message, Word& local, 
+int MinusValueMap(Word* args, Word& result, int message, Word& local,
         Supplier s) {
 
     MRegion* mrA = static_cast<MRegion*>(args[0].addr );
@@ -158,9 +157,9 @@ struct IntersectionInfo : OperatorInfo {
 
     IntersectionInfo() {
         name = "intersection";
-        signature = "movingregion x movingregion -> movingregion";
+        signature = "mregion x mregion -> mregion";
         syntax = "intersection(_, _)";
-        meaning = "Intersection operation for two movingregions.";
+        meaning = "Intersection operation for two moving regions.";
     }
 };
 
@@ -168,9 +167,9 @@ struct UnionInfo : OperatorInfo {
 
     UnionInfo() {
         name = "union";
-        signature = "movingregion x movingregion -> movingregion";
+        signature = "mregion x mregion -> mregion";
         syntax = "_ union _";
-        meaning = "Union operation for two movingregions.";
+        meaning = "Union operation for two moving regions.";
     }
 };
 
@@ -178,9 +177,9 @@ struct MinusInfo : OperatorInfo {
 
     MinusInfo() {
         name = "minus";
-        signature = "movingregion x movingregion -> movingregion";
+        signature = "mregion x mregion -> mregion";
         syntax = "_ minus _";
-        meaning = "Minus operation for two movingregions.";
+        meaning = "Minus operation for two moving regions.";
     }
 };
 
@@ -212,8 +211,8 @@ public:
 extern "C"Algebra*
 InitializeMRegionOpsAlgebra( NestedList* nlRef,
         QueryProcessor* qpRef ) {
-    
-    // The C++ scope-operator :: must be used to qualify the full name 
+
+    // The C++ scope-operator :: must be used to qualify the full name
     return new mregionops::MRegionOpsAlgebra();
 }
 

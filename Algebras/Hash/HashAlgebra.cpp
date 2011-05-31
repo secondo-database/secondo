@@ -416,11 +416,11 @@ bool CheckHash(ListExpr type, ListExpr& errorInfo)
 {
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("hash")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom(Hash::BasicType())))
   {
     return
-      am->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      && am->CheckKind("DATA", nl->Third(type), errorInfo);
+      am->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo)
+      && am->CheckKind(Kind::DATA(), nl->Third(type), errorInfo);
   }
   errorInfo = nl->Append(errorInfo,
     nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("HASH"), type));
@@ -493,7 +493,7 @@ bool Hash::Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo)
 
 */
 TypeConstructor
-cpphash( "hash",         HashProp,
+cpphash( Hash::BasicType(),         HashProp,
           OutHash,        InHash,
           SaveToListHash, RestoreFromListHash,
           CreateHash,     DeleteHash,
@@ -527,41 +527,43 @@ ListExpr CreateHashTypeMap(ListExpr args)
   }
   if(!listutils::isSymbol(nameL)){
     return listutils::typeError(err + "( invalid attr name)");
-  }  
+  }
 
   string attrName = nl->SymbolValue(nameL);
   ListExpr tupleDescription = nl->Second(first);
   ListExpr attrlist = nl->Second(tupleDescription);
-  
+
   ListExpr attrType;
   int attrIndex = listutils::findAttribute(attrlist, attrName, attrType);
   if(attrIndex==0){
    return listutils::typeError(err + "( attribute not found )");
   }
- 
+
 
   if(!listutils::isBDBIndexableType(attrType)){
     return listutils::typeError(" attribute not indexable");
   }
 
-  if( nl->IsEqual(nl->First(first), "rel") ) {
+  if( nl->IsEqual(nl->First(first), Relation::BasicType()) ) {
     return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->OneElemList(
           nl->IntAtom(attrIndex)),
         nl->ThreeElemList(
-          nl->SymbolAtom("hash"),
+          nl->SymbolAtom(Hash::BasicType()),
           tupleDescription,
           attrType));
-  } else { // nl->IsEqual(nl->First(first), "stream")
+  } else { // nl->IsEqual(nl->First(first), Symbol::STREAM())
     string name;
-    int tidIndex = listutils::findType(attrlist, nl->SymbolAtom("tid"), name);
+    int tidIndex = listutils::findType(attrlist,
+                            nl->SymbolAtom(TupleIdentifier::BasicType()), name);
     if(tidIndex==0){
       return listutils::typeError("stream must contain a tid attribute");
     }
     string name2;
-    int tidpos2 = listutils::findType(attrlist, nl->SymbolAtom("tid"),
-                                      name, tidIndex+1);
+    int tidpos2 = listutils::findType(attrlist,
+                                  nl->SymbolAtom(TupleIdentifier::BasicType()),
+                                  name, tidIndex+1);
     if(tidpos2!=0){
       return listutils::typeError("multiple tid attributes found ");
     }
@@ -573,14 +575,14 @@ ListExpr CreateHashTypeMap(ListExpr args)
       return listutils::typeError("error in removing tid attribute");
     }
     return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->TwoElemList(
           nl->IntAtom(attrIndex),
           nl->IntAtom(tidIndex)),
         nl->ThreeElemList(
-          nl->SymbolAtom("hash"),
+          nl->SymbolAtom(Hash::BasicType()),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             newAttrList),
           attrType));
   }
@@ -592,9 +594,9 @@ ListExpr CreateHashTypeMap(ListExpr args)
 */
 int CreateHashSelect( ListExpr args )
 {
-  if( nl->IsEqual(nl->First(nl->First(args)), "rel") )
+  if( nl->IsEqual(nl->First(nl->First(args)), Relation::BasicType()) )
     return 0;
-  if( nl->IsEqual(nl->First(nl->First(args)), "stream") )
+  if( nl->IsEqual(nl->First(nl->First(args)), Symbol::STREAM()) )
     return 1;
   return -1;
 }
@@ -754,7 +756,7 @@ ListExpr HashExactMatchTypeMap(ListExpr args)
 
   ListExpr resultType =
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       tupleDescription);
 
   return resultType;
@@ -1077,7 +1079,7 @@ ListExpr HashExactMatchSTypeMap(ListExpr args)
 
   if(!listutils::isSymbol(key)){
     return listutils::typeError(err + ": invalid key type");
-  }  
+  }
 
   if(!listutils::isHashDescription(hash)){
     return listutils::typeError(err);
@@ -1088,13 +1090,13 @@ ListExpr HashExactMatchSTypeMap(ListExpr args)
   }
 
   return nl->TwoElemList(
-          nl->SymbolAtom("stream"),
+          nl->SymbolAtom(Symbol::STREAM()),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             nl->OneElemList(
               nl->TwoElemList(
                 nl->SymbolAtom("id"),
-                nl->SymbolAtom("tid")))));
+                nl->SymbolAtom(TupleIdentifier::BasicType())))));
 
 }
 
@@ -1267,7 +1269,7 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
     rest = nl->Rest(rest);
   }
 
-  if(!listutils::isSymbol(nl->Second(next),"tid")){
+  if(!listutils::isSymbol(nl->Second(next),TupleIdentifier::BasicType())){
     return listutils::typeError("last attribute must be of type tid");
   }
 
@@ -1353,7 +1355,7 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
 
   //Append the index of the attribute over which the hash is built to
   //the resultlist.
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                           nl->OneElemList(nl->IntAtom(j)),streamDescription);
 }
 
@@ -1691,7 +1693,7 @@ value            --> string
 
 ListExpr getFileInfoHashTypeMap(ListExpr args)
 {
-  
+
   if(nl->ListLength(args)!=1){
     return NList::typeError("1 arguiment expected.");
   }
@@ -1706,11 +1708,11 @@ ListExpr getFileInfoHashTypeMap(ListExpr args)
   ListExpr hashSymbol = nl->First(btreeDescription);;
   if(    !nl->IsAtom(hashSymbol)
       || (nl->AtomType(hashSymbol) != SymbolType)
-      || (nl->SymbolValue(hashSymbol) != "hash")
+      || (nl->SymbolValue(hashSymbol) != Hash::BasicType())
     ){
     return NList::typeError("1st argument is not a hash table.");
   }
-  return NList(symbols::TEXT).listExpr();
+  return NList(FText::BasicType()).listExpr();
 }
 
 /*

@@ -48,7 +48,6 @@ This file contains all defined getbbox functions. New functions must be register
 #include "GTA_SpatialAttr.h"
 
 extern SecondoInterface* si;
-using symbols::Sym;
 
 namespace gta
 {
@@ -59,20 +58,20 @@ typedef HRect* (*GetBBoxFun)(const void *data);
 Refers the default getbbox function for the each type constructor.
 
 */
-Sym BBOX_DEFAULT("default");
+const string BBOX_DEFAULT("default");
 
 /*
 This value is returned from "BBoxReg::defaultName()"[4], if no default getbbox function has been found for the resp. type constructor.
 
 */
-Sym BBOX_UNDEFINED("n/a");
+const string BBOX_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // constants for the getbbox function names:
 /////////////////////////////////////////////////////////////////////
 
 // native getbbox function (e.g. used if only one fun is defined)
-Sym BBOX_NATIVE("native");
+const string BBOX_NATIVE("native");
 
 
 

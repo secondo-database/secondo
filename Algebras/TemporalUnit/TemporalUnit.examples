@@ -103,7 +103,7 @@ Operator : abs
 Number   : 3
 Signature: uint -> uint
 Example  : query abs([const uint value undef])
-Result   : (uint undef)
+Result   : (uint undefined)
 
 
 Operator : always
@@ -467,7 +467,7 @@ Operator : no_components
 Number   : 1
 Signature: (uT) -> uint
 Example  : query no_components([const uint value undef])
-Result   : (uint undef)
+Result   : (uint undefined)
 
 
 Operator : not

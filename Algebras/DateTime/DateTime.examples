@@ -314,6 +314,6 @@ Operator  : str2instant
 Number    : 2
 Signature : string -> instant
 Example   : query str2instant("wrong")
-Result    : (instant undef)
+Result    : (instant undefined)
 
 

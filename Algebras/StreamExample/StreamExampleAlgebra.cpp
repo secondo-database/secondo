@@ -83,7 +83,6 @@ stream will be empty.
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-using namespace symbols;
 using namespace std;
 
 namespace ste {
@@ -109,10 +108,10 @@ ListExpr
 intstreamType( ListExpr args )
 {
   NList type(args);
-  if ( type != NList(INT, INT) ) {
+  if ( type != NList(CcInt::BasicType(), CcInt::BasicType()) ) {
     return NList::typeError("Expecting a list of two integers.");
   }
-  return NList(STREAM, INT).listExpr();
+  return NList(Symbol::STREAM(), CcInt::BasicType()).listExpr();
 }
 
 /*
@@ -126,10 +125,10 @@ ListExpr
 countType( ListExpr args )
 {
   NList type(args);
-  if ( type.first() != NList(STREAM, INT) ) {
+  if ( type.first() != NList(Symbol::STREAM(), CcInt::BasicType()) ) {
     return NList::typeError("Expecting a stream of integers.");
   }
-  return NList(INT).listExpr();
+  return NList(CcInt::BasicType()).listExpr();
 }
 
 /*
@@ -143,10 +142,10 @@ ListExpr
 printintstreamType( ListExpr args )
 {
   NList type(args);
-  if ( type.first() != NList(STREAM, INT) ) {
+  if ( type.first() != NList(Symbol::STREAM(), CcInt::BasicType()) ) {
     return NList::typeError("Expecting a stream of integers.");
   }
-  return NList(STREAM, INT).listExpr();
+  return NList(Symbol::STREAM(), CcInt::BasicType()).listExpr();
 }
 
 
@@ -165,13 +164,14 @@ filterType( ListExpr args )
   if ( type.hasLength(2) )
   {
     // test first argument for stream(int)
-    if ( type.first() != NList(STREAM, INT) )
+    if ( type.first() != NList(Symbol::STREAM(), CcInt::BasicType()) )
     {
        return NList::typeError("Expecting (stream int) "
 		               "as first argument.");
     }
     // test second argument for map T' bool. T = T'
-    if ( type.second() != NList(MAP, INT, BOOL) )
+    if ( type.second() != NList(Symbol::MAP(), CcInt::BasicType(),
+                                CcBool::BasicType()) )
     {
       return NList::typeError("Expecting (map int bool) "
 		              "as it second argument.");
@@ -428,9 +428,10 @@ struct intstreamInfo : OperatorInfo
 {
   intstreamInfo() : OperatorInfo()
   {
-    name      = INTSTREAM;
-    signature = INT + " x " + INT + " -> stream(int)";
-    syntax    = INTSTREAM + "(_ , _)";
+    name      = "intstream";
+    signature = CcInt::BasicType() + " x " + CcInt::BasicType()
+                + " -> stream(int)";
+    syntax    = "intstream (_ , _)";
     meaning   = "Creates a stream of integers containing the numbers "
                 "between the first and the second argument.";
   }
@@ -441,9 +442,9 @@ struct countInfo :  OperatorInfo
 {
   countInfo() : OperatorInfo()
   {
-    name      = COUNT;
-    signature = "stream(int)  -> " + INT;
-    syntax    = "_" + COUNT;
+    name      = "countintstream";
+    signature = "stream(int)  -> " + CcInt::BasicType();
+    syntax    = "_ countintstream";
     meaning   = "Counts the number of elements of an int stream.";
   }
 };
@@ -452,9 +453,9 @@ struct printintSInfo :  OperatorInfo
 {
   printintSInfo() : OperatorInfo()
   {
-    name      = PRINT_INTSTREAM;
+    name      = "printintstream";
     signature = "stream(int)  -> stream(int)";
-    syntax    = "_" + PRINT_INTSTREAM;
+    syntax    = "_ printintstream";
     meaning   = "Prints the elements int stream.";
   }
 };
@@ -463,9 +464,9 @@ struct filterInfo :  OperatorInfo
 {
   filterInfo() : OperatorInfo()
   {
-    name      = FILTER;
+    name      = "filterintstream";
     signature = "stream(int) x (int -> bool) -> stream(int)";
-    syntax    = "_" + FILTER + "[ function ]";
+    syntax    = "_ filterintstream[ function ]";
     meaning   = "Filters the elements of an int stream by a predicate.";
   }
 };

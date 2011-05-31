@@ -100,7 +100,6 @@ file "TypeMapUtils.h" which defines a namespace ~mappings~.
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-using namespace symbols;
 using namespace mappings;
 
 #include <string>
@@ -169,6 +168,13 @@ Their implementations do nothing which depends on the state of an instance.
   static int      SizeOfObj();
 
   static ListExpr Property();
+
+/*
+The following function defines the name of the type constructor, resp. the name
+Secondo uses for this type.
+
+*/
+  static const string BasicType() { return "xpoint"; }
 
  private:
   inline XPoint() {}
@@ -361,7 +367,7 @@ XPoint::Property()
                nl->StringAtom("Example List"),
                nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-               nl->StringAtom("xpoint"),
+               nl->StringAtom(XPoint::BasicType()),
                nl->StringAtom("(<x> <y>)"),
                nl->StringAtom("(-3 15)"),
                nl->StringAtom("x- and y-coordinates must be "
@@ -383,7 +389,7 @@ type constructor ~xpoint~ does not have arguments, this is trivial.
 bool
 XPoint::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, XPOINT ));
+  return (nl->IsEqual( type, XPoint::BasicType() ));
 }
 
 /*
@@ -391,7 +397,7 @@ XPoint::KindCheck( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor xpointTC(
-  XPOINT,                          // name of the type in SECONDO
+  XPoint::BasicType(),                          // name of the type in SECONDO
   XPoint::Property,                // property function describing signature
   XPoint::Out, XPoint::In,         // Out and In functions
   0, 0,                            // SaveToList, RestoreFromList functions
@@ -461,6 +467,13 @@ functions instead of using the generic persistent mechanism.
 
   static bool     Save( SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& w );
+
+/*
+The following function defines the name of the type constructor, resp. the name
+Secondo uses for this type.
+
+*/
+  static const string BasicType() { return "xrectangle"; }
 
  private:
   XRectangle() {}
@@ -672,9 +685,9 @@ struct xrectangleInfo : ConstructorInfo {
 
   xrectangleInfo() {
 
-    name         = XRECTANGLE;
-    signature    = "-> " + SIMPLE;
-    typeExample  = XRECTANGLE;
+    name         = XRectangle::BasicType();
+    signature    = "-> " + Kind::SIMPLE();
+    typeExample  = XRectangle::BasicType();
     listRep      =  "(<xleft> <xright> <ybottom> <ytop>)";
     valueExample = "(4 12 2 8)";
     remarks      = "all coordinates must be of type int.";
@@ -738,11 +751,11 @@ ListExpr
 RectRectBool( ListExpr args )
 {
   NList type(args);
-  if ( type != NList(XRECTANGLE, XRECTANGLE) ) {
+  if ( type != NList(XRectangle::BasicType(), XRectangle::BasicType()) ) {
     return NList::typeError("Expecting two rectangles");
   }
 
-  return NList(BOOL).listExpr();
+  return NList(CcBool::BasicType()).listExpr();
 }
 
 ListExpr
@@ -753,13 +766,13 @@ insideTypeMap( ListExpr args )
 	                "or a point and a rectangle";
 
   // first alternative: xpoint x xrectangle -> bool
-  if ( type == NList(XPOINT, XRECTANGLE) ) {
-    return NList(BOOL).listExpr();
+  if ( type == NList(XPoint::BasicType(), XRectangle::BasicType()) ) {
+    return NList(CcBool::BasicType()).listExpr();
   }
 
   // second alternative: xrectangle x xrectangle -> bool
-  if ( type == NList(XRECTANGLE, XRECTANGLE) ) {
-    return NList(BOOL).listExpr();
+  if ( type == NList(XRectangle::BasicType(), XRectangle::BasicType()) ) {
+    return NList(CcBool::BasicType()).listExpr();
   }
 
   return NList::typeError(errMsg);
@@ -785,7 +798,7 @@ int
 insideSelect( ListExpr args )
 {
   NList type(args);
-  if ( type.first().isSymbol( XRECTANGLE ) )
+  if ( type.first().isSymbol( XRectangle::BasicType() ) )
     return 1;
   else
     return 0;
@@ -898,9 +911,10 @@ struct intersectsInfo : OperatorInfo {
 
   intersectsInfo()
   {
-    name      = INTERSECTS;
-    signature = XRECTANGLE + " x " + XRECTANGLE + " -> " + BOOL;
-    syntax    = "_" + INTERSECTS + "_";
+    name      = "intersects";
+    signature = XRectangle::BasicType() + " x " + XRectangle::BasicType()
+    + " -> " + CcBool::BasicType();
+    syntax    = "_ intersects _";
     meaning   = "Intersection predicate for two xrectangles.";
   }
 
@@ -912,14 +926,15 @@ struct insideInfo : OperatorInfo {
 
   insideInfo()
   {
-    name      = INSIDE;
+    name      = "inside";
 
-    signature = XPOINT + " x " + XRECTANGLE + " -> " + BOOL;
+    signature = XPoint::BasicType() + " x " + XRectangle::BasicType() + " -> "
+    + CcBool::BasicType();
     // since this is an overloaded operator we append
     // an alternative signature here
-    appendSignature( XRECTANGLE + " x " + XRECTANGLE
-                                              + " -> " + BOOL );
-    syntax    = "_" + INSIDE + "_";
+    appendSignature( XRectangle::BasicType() + " x " + XRectangle::BasicType()
+                                              + " -> " + CcBool::BasicType() );
+    syntax    = "_ inside _";
     meaning   = "Inside predicate.";
   }
 };
@@ -950,8 +965,8 @@ class PointRectangleAlgebra : public Algebra
 
     //the lines below define that xpoint and xrectangle
     //can be used in places where types of kind SIMPLE are expected
-    xpointTC.AssociateKind( SIMPLE );
-    xrectangleTC.AssociateKind( SIMPLE );
+    xpointTC.AssociateKind( Kind::SIMPLE() );
+    xrectangleTC.AssociateKind( Kind::SIMPLE() );
 
 /*
 5.3 Registration of Operators

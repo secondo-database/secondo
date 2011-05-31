@@ -679,7 +679,7 @@ ArrayProperty()
 2.8 Kind Checking Function
 
 The type constructor of an array is a list (array type). The first element of
-that list is the symbol atom "array" and the second element has to be a valid
+that list is the symbol atom Array::BasicType() and the second element has to be a valid
 type constructor for the elements of the array.
 
 So the second element can be an atom (e.g. int) or - in case of a more complex
@@ -699,7 +699,7 @@ CheckArray( ListExpr type, ListExpr& errorInfo )
     ListExpr First = nl->First(type);
     ListExpr Second = nl->Second(type);
 
-    if (nl->IsEqual(First, "array")) {
+    if (nl->IsEqual(First, Array::BasicType())) {
 
       // Check whether Second is a valid type constructor
 
@@ -724,7 +724,7 @@ functions for the array as parameters. The name of the type constructor is
 
 */
 TypeConstructor array (
-      "array",
+      Array::BasicType(),
       ArrayProperty,
       OutArray, InArray,
       SaveToListArray, RestoreFromListArray,
@@ -755,12 +755,12 @@ sizeTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), "array")) {
-      return nl->SymbolAtom("int");
+    if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), Array::BasicType())) {
+      return nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -813,8 +813,8 @@ getTypeMap( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), "array")
-          && nl->IsEqual(arg2, "int")) {
+    if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), Array::BasicType())
+          && nl->IsEqual(arg2, CcInt::BasicType())) {
 
       // The second item of arg1 is the type of the array's elements.
 
@@ -823,7 +823,7 @@ getTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -859,7 +859,7 @@ getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
     ListExpr resultType = qp->GetType(s);
 
     if (nl->ListLength(resultType) > 1) {
-      if (nl->IsEqual(nl->First(resultType), "map")) {
+      if (nl->IsEqual(nl->First(resultType), Symbol::MAP())) {
 
         // In case of a mapping only the type of the resulting object of
         // the mapping is relevant.
@@ -935,13 +935,14 @@ putTypeMap( ListExpr args )
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
 
-    if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), "array")
-        && nl->Equal(nl->Second(arg1), arg2) && nl->IsEqual(arg3, "int")) {
+    if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), Array::BasicType())
+        && nl->Equal(nl->Second(arg1), arg2) &&
+           nl->IsEqual(arg3, CcInt::BasicType())) {
       return arg1;
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -978,7 +979,7 @@ putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
     ListExpr resultType = qp->GetType(s);
 
     if (nl->ListLength(resultType) > 1) {
-      if (nl->IsEqual(nl->First(resultType), "map")) {
+      if (nl->IsEqual(nl->First(resultType), Symbol::MAP())) {
 
         // In case of a mapping only the type of the resulting object of
         // the mapping is relevant.
@@ -1052,11 +1053,11 @@ makearrayTypeMap( ListExpr args )
     }
 
     if (sameType) {
-      return nl->TwoElemList(nl->SymbolAtom("array"), typeOfElement);
+      return nl->TwoElemList(nl->SymbolAtom(Array::BasicType()), typeOfElement);
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -1142,11 +1143,11 @@ sortarrayTypeMap( ListExpr args )
     if ((nl->ListLength(arrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 3))
     {
-      if (nl->IsEqual(nl->First(arrayDesc), "array")
-          && nl->IsEqual(nl->First(mapDesc), "map"))
+      if (nl->IsEqual(nl->First(arrayDesc), Array::BasicType())
+          && nl->IsEqual(nl->First(mapDesc), Symbol::MAP()))
       {
         if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc))
-            && nl->IsEqual(nl->Third(mapDesc), "int"))
+            && nl->IsEqual(nl->Third(mapDesc), CcInt::BasicType()))
         {
           return arrayDesc;
         }
@@ -1154,7 +1155,7 @@ sortarrayTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -1250,8 +1251,8 @@ tieTypeMap( ListExpr args )
     if ((nl->ListLength(arrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 4))
     {
-      if (nl->IsEqual(nl->First(arrayDesc), "array")
-          && nl->IsEqual(nl->First(mapDesc), "map"))
+      if (nl->IsEqual(nl->First(arrayDesc), Array::BasicType())
+          && nl->IsEqual(nl->First(mapDesc), Symbol::MAP()))
       {
         ListExpr elementDesc = nl->Second(arrayDesc);
 
@@ -1265,7 +1266,7 @@ tieTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -1355,8 +1356,8 @@ cumulateTypeMap( ListExpr args )
     if ((nl->ListLength(arrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 4))
     {
-    if (nl->IsEqual(nl->First(arrayDesc), "array")
-        && nl->IsEqual(nl->First(mapDesc), "map"))
+    if (nl->IsEqual(nl->First(arrayDesc), Array::BasicType())
+        && nl->IsEqual(nl->First(mapDesc), Symbol::MAP()))
       {
         ListExpr elementDesc = nl->Second(arrayDesc);
         if (nl->Equal(elementDesc, nl->Second(mapDesc))
@@ -1369,7 +1370,7 @@ cumulateTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -1474,14 +1475,14 @@ distributeTypeMap( ListExpr inArgs )
     NList streamDesc = args.first();
     ListExpr attrNameLE = args.second().listExpr();
 
-    if ( streamDesc.isList() && streamDesc.first().isSymbol("stream")
+    if ( streamDesc.isList() && streamDesc.first().isSymbol(Symbol::STREAM())
          && (streamDesc.length() == 2)
          && (nl->AtomType(attrNameLE) == SymbolType)          )
     {
       ListExpr tupleDesc = streamDesc.second().listExpr();
       string attrName = nl->SymbolValue(attrNameLE);
 
-      if (nl->IsEqual(nl->First(tupleDesc), "tuple")
+      if (nl->IsEqual(nl->First(tupleDesc), Tuple::BasicType())
           && (nl->ListLength(tupleDesc) == 2))
       {
         ListExpr attrList = nl->Second(tupleDesc);
@@ -1494,7 +1495,7 @@ distributeTypeMap( ListExpr inArgs )
           attrIndex = FindAttribute(attrList, attrName, attrType);
 
           if (nl->ListLength(attrList) > 1 && attrIndex > 0
-              && nl->IsEqual(attrType, "int"))
+              && nl->IsEqual(attrType, CcInt::BasicType()))
           {
             ListExpr attrList2 = nl->TheEmptyList();
             ListExpr last;
@@ -1516,13 +1517,13 @@ distributeTypeMap( ListExpr inArgs )
             }
 
             return nl->ThreeElemList(
-                         nl->SymbolAtom("APPEND"),
+                         nl->SymbolAtom(Symbol::APPEND()),
                          nl->OneElemList(nl->IntAtom(attrIndex)),
                          nl->TwoElemList(
-                           nl->SymbolAtom("array"),
+                           nl->SymbolAtom(Array::BasicType()),
                            nl->TwoElemList(
-                             nl->SymbolAtom("rel"),
-                             nl->TwoElemList(nl->SymbolAtom("tuple"),
+                             nl->SymbolAtom(Relation::BasicType()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                              attrList2))));
           }
         }
@@ -1639,7 +1640,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int algebraId = 0;
   int typeId = 0;
 
-  if (sc->GetTypeId("rel", algebraId, typeId)) {
+  if (sc->GetTypeId(Relation::BasicType(), algebraId, typeId)) {
 
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
     qp->Close(args[0].addr);
@@ -1700,17 +1701,17 @@ summarizeTypeMap( ListExpr args )
     ListExpr arrayDesc = nl->First(args);
 
     if (nl->ListLength(arrayDesc) == 2
-        && nl->IsEqual(nl->First(arrayDesc), "array"))
+        && nl->IsEqual(nl->First(arrayDesc), Array::BasicType()))
     {
       ListExpr relDesc = nl->Second(arrayDesc);
 
       if (nl->ListLength(relDesc) == 2
-          && nl->IsEqual(nl->First(relDesc), "rel"))
+          && nl->IsEqual(nl->First(relDesc), Relation::BasicType()))
       {
         ListExpr tupleDesc = nl->Second(relDesc);
-        if (nl->IsEqual(nl->First(tupleDesc), "tuple"))
+        if (nl->IsEqual(nl->First(tupleDesc), Tuple::BasicType()))
         {
-          return nl->TwoElemList(nl->SymbolAtom("stream"),
+          return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                  nl->Second(relDesc));
         }
       }
@@ -1719,7 +1720,7 @@ summarizeTypeMap( ListExpr args )
 
   ErrorReporter::ReportError(
      "summarize: Input type array( rel( tuple(...))) expected!");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -1858,19 +1859,19 @@ loopTypeMap( ListExpr args )
     if ((nl->ListLength(arrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 3))
     {
-      if (nl->IsEqual(nl->First(arrayDesc), "array")
-          && nl->IsEqual(nl->First(mapDesc), "map")
-          && !nl->IsEqual(nl->Third(mapDesc), "typeerror"))
+      if (nl->IsEqual(nl->First(arrayDesc), Array::BasicType())
+          && nl->IsEqual(nl->First(mapDesc), Symbol::MAP())
+          && !nl->IsEqual(nl->Third(mapDesc), Symbol::TYPEERROR()))
       {
         if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
         {
-          return nl->TwoElemList(nl->SymbolAtom("array"),
+          return nl->TwoElemList(nl->SymbolAtom(Array::BasicType()),
                                  nl->Third(mapDesc));
         }
       }
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -1955,22 +1956,22 @@ loopaTypeMap( ListExpr args )
         && (nl->ListLength(secondArrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 4))
     {
-      if (nl->IsEqual(nl->First(firstArrayDesc), "array")
-          && nl->IsEqual(nl->First(secondArrayDesc), "array")
-          && nl->IsEqual(nl->First(mapDesc), "map")
-          && !nl->IsEqual(nl->Fourth(mapDesc), "typeerror"))
+      if (nl->IsEqual(nl->First(firstArrayDesc), Array::BasicType())
+          && nl->IsEqual(nl->First(secondArrayDesc), Array::BasicType())
+          && nl->IsEqual(nl->First(mapDesc), Symbol::MAP())
+          && !nl->IsEqual(nl->Fourth(mapDesc), Symbol::TYPEERROR()))
       {
         if (nl->Equal(nl->Second(firstArrayDesc), nl->Second(mapDesc))
             && nl->Equal(nl->Second(secondArrayDesc), nl->Third(mapDesc)))
         {
-          return nl->TwoElemList(nl->SymbolAtom("array"),
+          return nl->TwoElemList(nl->SymbolAtom(Array::BasicType()),
                                  nl->Fourth(mapDesc));
         }
       }
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -2123,7 +2124,7 @@ loopswitchTypeMap( ListExpr args )
     ListExpr funlist = nl->Second(args);
 
     if ((nl->ListLength(arrayDesc) == 2)
-        && (nl->IsEqual(nl->First(arrayDesc), "array")))
+        && (nl->IsEqual(nl->First(arrayDesc), Array::BasicType())))
     {
       ListExpr firstFunDesc = nl->First(funlist);
       funlist = nl->Rest(funlist);
@@ -2141,8 +2142,8 @@ loopswitchTypeMap( ListExpr args )
         if ((nl->AtomType(firstFunName) == SymbolType)
             && (nl->ListLength(firstMapDesc) == 3))
         {
-           if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
-               && (!nl->IsEqual(nl->Third(firstMapDesc), "typeerror"))
+           if ((nl->IsEqual(nl->First(firstMapDesc), Symbol::MAP()))
+               && (!nl->IsEqual(nl->Third(firstMapDesc), Symbol::TYPEERROR()))
                && (nl->Equal(nl->Second(firstMapDesc),nl->Second(arrayDesc))))
           {
             funNames = nl->OneElemList(
@@ -2180,17 +2181,17 @@ loopswitchTypeMap( ListExpr args )
 
         if (ok) {
           return nl->ThreeElemList(
-                       nl->SymbolAtom("APPEND"),
+                       nl->SymbolAtom(Symbol::APPEND()),
                        funNames,
                        nl->TwoElemList(
-                         nl->SymbolAtom("array"),
+                         nl->SymbolAtom(Array::BasicType()),
                          nl->Third(firstMapDesc)));
         }
       }
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -2276,9 +2277,9 @@ loopswitchaTypeMap( ListExpr args )
     ListExpr funlist = nl->Third(args);
 
     if ((nl->ListLength(firstArrayDesc) == 2)
-        && (nl->IsEqual(nl->First(firstArrayDesc), "array"))
+        && (nl->IsEqual(nl->First(firstArrayDesc), Array::BasicType()))
         && (nl->ListLength(secondArrayDesc) == 2)
-        && (nl->IsEqual(nl->First(secondArrayDesc), "array")))
+        && (nl->IsEqual(nl->First(secondArrayDesc), Array::BasicType())))
     {
       ListExpr firstFunDesc = nl->First(funlist);
       funlist = nl->Rest(funlist);
@@ -2296,8 +2297,8 @@ loopswitchaTypeMap( ListExpr args )
         if ((nl->AtomType(firstFunName) == SymbolType)
             && (nl->ListLength(firstMapDesc) == 4))
         {
-           if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
-               && (!nl->IsEqual(nl->Fourth(firstMapDesc), "typeerror"))
+           if ((nl->IsEqual(nl->First(firstMapDesc), Symbol::MAP()))
+               && (!nl->IsEqual(nl->Fourth(firstMapDesc), Symbol::TYPEERROR()))
                && (nl->Equal(nl->Second(firstMapDesc),
                              nl->Second(firstArrayDesc)))
                && (nl->Equal(nl->Third(firstMapDesc),
@@ -2338,17 +2339,17 @@ loopswitchaTypeMap( ListExpr args )
 
         if (ok) {
           return nl->ThreeElemList(
-                       nl->SymbolAtom("APPEND"),
+                       nl->SymbolAtom(Symbol::APPEND()),
                        funNames,
                        nl->TwoElemList(
-                         nl->SymbolAtom("array"),
+                         nl->SymbolAtom(Array::BasicType()),
                          nl->Fourth(firstMapDesc)));
         }
       }
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -2518,14 +2519,14 @@ loopselectTypeMap( ListExpr args )
     ListExpr arrayDesc = nl->First(args);
     ListExpr funlist = nl->Second(args);
 
-    if (nl->IsEqual(nl->Third(args), "int")
-        && nl->IsEqual(nl->Fourth(args), "real"))
+    if (nl->IsEqual(nl->Third(args), CcInt::BasicType())
+        && nl->IsEqual(nl->Fourth(args), CcReal::BasicType()))
     {
       return loopswitchTypeMap(nl->TwoElemList(arrayDesc, funlist));
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -2625,15 +2626,15 @@ loopselectaTypeMap( ListExpr args )
     ListExpr secondArrayDesc = nl->Second(args);
     ListExpr funlist = nl->Third(args);
 
-    if (nl->IsEqual(nl->Fourth(args), "int")
-        && nl->IsEqual(nl->Fifth(args), "real"))
+    if (nl->IsEqual(nl->Fourth(args), CcInt::BasicType())
+        && nl->IsEqual(nl->Fifth(args), CcReal::BasicType()))
     {
       return loopswitchaTypeMap(nl->ThreeElemList(firstArrayDesc,
                                 secondArrayDesc, funlist));
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -2866,17 +2867,17 @@ partjoinTypeMap( ListExpr args )
         && (nl->ListLength(secondArrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 4))
     {
-      if (nl->IsEqual(nl->First(firstArrayDesc), "array")
-          && nl->IsEqual(nl->First(secondArrayDesc), "array")
+      if (nl->IsEqual(nl->First(firstArrayDesc), Array::BasicType())
+          && nl->IsEqual(nl->First(secondArrayDesc), Array::BasicType())
           && !nl->IsAtom(nl->Second(firstArrayDesc))
           && !nl->IsAtom(nl->Second(secondArrayDesc))
-          && nl->IsEqual(nl->First(mapDesc), "map"))
+          && nl->IsEqual(nl->First(mapDesc), Symbol::MAP()))
       {
         ListExpr firstElementDesc = nl->Second(firstArrayDesc);
         ListExpr secondElementDesc = nl->Second(secondArrayDesc);
 
-        if (nl->IsEqual(nl->First(firstElementDesc), "rel")
-            && nl->IsEqual(nl->First(secondElementDesc), "rel")
+        if (nl->IsEqual(nl->First(firstElementDesc), Relation::BasicType())
+            && nl->IsEqual(nl->First(secondElementDesc), Relation::BasicType())
             && nl->Equal(firstElementDesc, nl->Second(mapDesc))
             && nl->Equal(secondElementDesc, nl->Third(mapDesc)))
         {
@@ -2885,10 +2886,10 @@ partjoinTypeMap( ListExpr args )
 
           if ((nl->ListLength(firstTupleDesc) == 2)
               && (nl->ListLength(secondTupleDesc) == 2)
-              && (nl->IsEqual(nl->First(firstTupleDesc), "tuple"))
-              && (nl->IsEqual(nl->First(secondTupleDesc), "tuple")))
+              && (nl->IsEqual(nl->First(firstTupleDesc), Tuple::BasicType()))
+              && (nl->IsEqual(nl->First(secondTupleDesc), Tuple::BasicType())))
           {
-            return nl->TwoElemList(nl->SymbolAtom("array"),
+            return nl->TwoElemList(nl->SymbolAtom(Array::BasicType()),
                                    nl->Fourth(mapDesc));
           }
         }
@@ -2896,7 +2897,7 @@ partjoinTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -3052,8 +3053,8 @@ partjoinswitchTypeMap( ListExpr args )
     if ((nl->ListLength(firstArrayDesc) == 2)
         && (nl->ListLength(secondArrayDesc) == 2))
     {
-      if ((nl->IsEqual(nl->First(firstArrayDesc), "array"))
-          && (nl->IsEqual(nl->First(secondArrayDesc), "array"))
+      if ((nl->IsEqual(nl->First(firstArrayDesc), Array::BasicType()))
+          && (nl->IsEqual(nl->First(secondArrayDesc), Array::BasicType()))
           && !nl->IsAtom(nl->Second(firstArrayDesc))
           && !nl->IsAtom(nl->Second(secondArrayDesc)))
       {
@@ -3062,16 +3063,17 @@ partjoinswitchTypeMap( ListExpr args )
 
         if ((nl->ListLength(firstElementDesc) == 2)
             && (nl->ListLength(secondElementDesc) == 2)
-            && (nl->IsEqual(nl->First(firstElementDesc), "rel"))
-            && (nl->IsEqual(nl->First(secondElementDesc), "rel")))
+            && (nl->IsEqual(nl->First(firstElementDesc), Relation::BasicType()))
+            && (nl->IsEqual(nl->First(secondElementDesc),
+                            Relation::BasicType())))
         {
           ListExpr firstTupleDesc = nl->Second(firstElementDesc);
           ListExpr secondTupleDesc = nl->Second(secondElementDesc);
 
           if ((nl->ListLength(firstTupleDesc) == 2)
               && (nl->ListLength(secondTupleDesc) == 2)
-              && (nl->IsEqual(nl->First(firstTupleDesc), "tuple"))
-              && (nl->IsEqual(nl->First(secondTupleDesc), "tuple")))
+              && (nl->IsEqual(nl->First(firstTupleDesc), Tuple::BasicType()))
+              && (nl->IsEqual(nl->First(secondTupleDesc), Tuple::BasicType())))
           {
             ListExpr firstFunDesc = nl->First(funlist);
             funlist = nl->Rest(funlist);
@@ -3089,8 +3091,9 @@ partjoinswitchTypeMap( ListExpr args )
               if ((nl->AtomType(firstFunName) == SymbolType)
                   && (nl->ListLength(firstMapDesc) == 4))
               {
-                 if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
-                     && (!nl->IsEqual(nl->Fourth(firstMapDesc), "typeerror"))
+                 if ((nl->IsEqual(nl->First(firstMapDesc), Symbol::MAP()))
+                     && (!nl->IsEqual(nl->Fourth(firstMapDesc),
+                                      Symbol::TYPEERROR()))
                      && (nl->Equal(firstElementDesc, nl->Second(firstMapDesc)))
                      && (nl->Equal(secondElementDesc,
                                    nl->Third(firstMapDesc))))
@@ -3134,10 +3137,10 @@ partjoinswitchTypeMap( ListExpr args )
 
               if (ok) {
                 return nl->ThreeElemList(
-                             nl->SymbolAtom("APPEND"),
+                             nl->SymbolAtom(Symbol::APPEND()),
                              funNames,
                              nl->TwoElemList(
-                               nl->SymbolAtom("array"),
+                               nl->SymbolAtom(Array::BasicType()),
                                nl->Fourth(firstMapDesc)));
               }
             }
@@ -3147,7 +3150,7 @@ partjoinswitchTypeMap( ListExpr args )
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -3294,15 +3297,15 @@ partjoinselectTypeMap( ListExpr args )
     ListExpr secondArrayDesc = nl->Second(args);
     ListExpr funlist = nl->Third(args);
 
-    if (nl->IsEqual(nl->Fourth(args), "int")
-        && nl->IsEqual(nl->Fifth(args), "real"))
+    if (nl->IsEqual(nl->Fourth(args), CcInt::BasicType())
+        && nl->IsEqual(nl->Fifth(args), CcReal::BasicType()))
     {
       return partjoinswitchTypeMap(nl->ThreeElemList(firstArrayDesc,
                                              secondArrayDesc, funlist));
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -3461,12 +3464,12 @@ ELEMENTTypeMap( ListExpr args )
     ListExpr first = nl->First(args);
     if (nl->ListLength(first) == 2)
     {
-      if (nl->IsEqual(nl->First(first), "array")) {
+      if (nl->IsEqual(nl->First(first), Array::BasicType())) {
         return nl->Second(first);
       }
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 const string ELEMENTSpec =
@@ -3503,12 +3506,12 @@ ELEMENT2TypeMap( ListExpr args )
     ListExpr second = nl->Second(args);
     if (nl->ListLength(second) == 2)
     {
-      if (nl->IsEqual(nl->First(second), "array")) {
+      if (nl->IsEqual(nl->First(second), Array::BasicType())) {
         return nl->Second(second);
       }
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 const string ELEMENT2Spec =
@@ -3545,13 +3548,13 @@ makearrayNTypeMap( ListExpr args )
   {
     ListExpr typeOfElement = nl->First(args);
     ListExpr noIfClones = nl->Second(args);
-    if ( nl->IsEqual(noIfClones, "int") ){
-      return nl->TwoElemList(nl->SymbolAtom("array"), typeOfElement);
+    if ( nl->IsEqual(noIfClones, CcInt::BasicType()) ){
+      return nl->TwoElemList(nl->SymbolAtom(Array::BasicType()), typeOfElement);
     }
   }
   ErrorReporter::ReportError("Operator 'makearrayN' expects a list "
       "(elem int).");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static int
@@ -3617,7 +3620,7 @@ class ArrayAlgebra : public Algebra
   {
     AddTypeConstructor( &array );
 
-    array.AssociateKind("ARRAY");
+    array.AssociateKind(Kind::ARRAY());
 
     AddOperator( &size );
     AddOperator( &get );

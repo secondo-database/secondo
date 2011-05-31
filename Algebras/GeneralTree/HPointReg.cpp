@@ -37,7 +37,6 @@ January-May 2008, Mirko Dibbert
 #include "SpatialAlgebra.h"
 
 using namespace gta;
-using namespace symbols;
 /*
 Initialize static members:
 
@@ -205,15 +204,15 @@ void HPointReg::initialize()
 
     addInfo(HPointInfo(
         HPOINT_NATIVE,
-        INT, gethpoint_Int, HPOINT_IS_DEFAULT));
+        CcInt::BasicType(), gethpoint_Int, HPOINT_IS_DEFAULT));
 
     addInfo(HPointInfo(
         HPOINT_NATIVE,
-        REAL, gethpoint_Real, HPOINT_IS_DEFAULT));
+        CcReal::BasicType(), gethpoint_Real, HPOINT_IS_DEFAULT));
 
     addInfo(HPointInfo(
         HPOINT_NATIVE,
-        "point", gethpoint_Point, HPOINT_IS_DEFAULT));
+        Point::BasicType(), gethpoint_Point, HPOINT_IS_DEFAULT));
 
     addInfo(HPointInfo(
         HPOINT_NATIVE,

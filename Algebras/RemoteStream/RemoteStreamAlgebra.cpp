@@ -43,7 +43,7 @@ argument values to express the IP address and port.
 
 1 RemoteStream Algebra
 
-This algebra allows distributed query processing by connecting streams 
+This algebra allows distributed query processing by connecting streams
 sockets.
 
 */
@@ -51,6 +51,7 @@ sockets.
 using namespace std;
 
 #include "RemoteStreamAlgebra.h"
+#include "Symbols.h"
 //#include "../HadoopParallel/HadoopParallelAlgebra.h"
 
 #define TRACE_ON
@@ -202,7 +203,7 @@ TSendTypeMap(ListExpr args)
   delete gate;
 
   int sd = client->GetDescriptor();
-  return NList(NList("APPEND"),
+  return NList(NList(Symbol::APPEND()),
                NList(NList(keyIndex),
                      NList(keyTypeStr, true),
                      NList(sd)),
@@ -256,7 +257,7 @@ TReceiveTypeMap(ListExpr args)
   client->GetSocketStream() << "<GET TYPE/>" << endl;
 
   string keyTypeName = "";
-  string::size_type loc = streamTypeStr.find("APPEND",0);
+  string::size_type loc = streamTypeStr.find(Symbol::APPEND(),0);
   if (loc != string::npos)
   {
     keyTypeName = streamTypeStr.substr(loc + 7);
@@ -268,7 +269,7 @@ TReceiveTypeMap(ListExpr args)
 
   // Warning - the client pointer is not being deleted.
   return nl->ThreeElemList(
-           nl->SymbolAtom("APPEND"),
+           nl->SymbolAtom(Symbol::APPEND()),
            nl->TwoElemList(
                nl->StringAtom(keyTypeName),
                nl->IntAtom(client->GetDescriptor())),
@@ -416,7 +417,7 @@ int32_t receiveSocket(Socket* client, char* buf,
         cerr << "Receiver write socket failed: " << errMsg << endl;
         return -3;  //Indicate that write back socket error
       }
-      return sockNum;    
+      return sockNum;
     }
   }
 }
@@ -457,13 +458,13 @@ TSendStream(Word* args, Word& result,
     keyTypeName =
         (string)(char*)((CcString*)args[4].addr)->GetStringval();
 
-    if ("int" == keyTypeName)
+    if (CcInt::BasicType() == keyTypeName)
       keySize = sizeof(int32_t);
-    else if ("string" == keyTypeName)
+    else if (CcString::BasicType() == keyTypeName)
       keySize = 0; //The size depends on the value
-    else if ("bool" == keyTypeName)
+    else if (CcBool::BasicType() == keyTypeName)
       keySize = sizeof(bool);
-    else if ("real" == keyTypeName)
+    else if (CcReal::BasicType() == keyTypeName)
       keySize = sizeof(double);  //the size of double in 64 platform ??
     else
     {
@@ -547,7 +548,7 @@ is shown below:
       //                   + coreSize + extensionSize + flobSize
       assert(tupleBlockSize < MAX_TOTALTUPLESIZE);
 
-      if(haveKey && ("string" == keyTypeName))
+      if(haveKey && (CcString::BasicType() == keyTypeName))
       {
         keySize =
             ((string)(char*)((CcString*)tuple
@@ -570,7 +571,7 @@ is shown below:
       //Write the key Value before the tuple value
       if (haveKey)
       {
-        if ("int" == keyTypeName)
+        if (CcInt::BasicType() == keyTypeName)
         {
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);
@@ -578,7 +579,7 @@ is shown below:
               ((CcInt*)tuple->GetAttribute(keyIndex))->GetIntval();
           memcpy(tupleBlock + offset, &keyValue, keySize);
         }
-        else if ("string" == keyTypeName)
+        else if (CcString::BasicType() == keyTypeName)
         {
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);
@@ -586,7 +587,7 @@ is shown below:
               (char*)((CcString*)tuple->GetAttribute(keyIndex))
               ->GetStringval(), keySize);
         }
-        else if ("bool" == keyTypeName)
+        else if (CcBool::BasicType() == keyTypeName)
         {
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);
@@ -594,7 +595,7 @@ is shown below:
               ((CcBool*)tuple->GetAttribute(keyIndex))->GetBoolval();
           memcpy(tupleBlock + offset, &keyValue, keySize);
         }
-        else if ("real" == keyTypeName)
+        else if (CcReal::BasicType() == keyTypeName)
         {
           memcpy(tupleBlock + offset, &keySize, sizeof(keySize));
           offset += sizeof(keySize);

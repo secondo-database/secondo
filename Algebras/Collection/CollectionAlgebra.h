@@ -63,7 +63,6 @@ extern QueryProcessor* qp;
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-using namespace symbols;
 using namespace mappings;
 
 #include <vector>
@@ -345,5 +344,22 @@ In this FLOB we save the data of our elements.
 
 
 } //end of namespace collection
+
+/*
+Functions returning the Secondo type names
+
+*/
+namespace Vector{
+  const string BasicType() {return "vector"; };
+}
+
+namespace Set{
+  const string BasicType() {return "set"; };
+}
+
+namespace Multiset{
+  const string BasicType() {return "multiset"; };
+}
+
 
 #endif // _COLLECTIONALGEBRA_H_

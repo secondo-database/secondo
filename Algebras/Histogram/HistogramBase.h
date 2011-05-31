@@ -294,14 +294,7 @@ one common range, its bin value will be 300.0.
 */
   ListExpr TranslateTypeMap(ListExpr args);
 
-  inline int TranslateSelect(ListExpr args)
-  {
-    NList type(args);
-    if (type.first().isSymbol(symbols::HISTOGRAM2D) )
-      return 1;
-    else
-      return 0;
-  }
+  int TranslateSelect(ListExpr args);
 
   int TranslateFun(Word* args, Word& result, int message, Word& local,
           Supplier s);
@@ -398,15 +391,7 @@ of all bins having minimum resp. maximum values.
 */
   ListExpr FindMinMaxBinTypeMap(ListExpr args);
 
-  inline int FindMinMaxBinSelect(ListExpr args)
-  {
-    NList type(args);
-
-    if (type.first().isSymbol(symbols::HISTOGRAM1D))
-      return 0;
-    else
-      return 1;
-  }
+  int FindMinMaxBinSelect(ListExpr args);
 
 /*
 3.5 Helper functions and classes for operators
@@ -463,10 +448,10 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
   struct is_undefinedInfo : OperatorInfo {
     // constructor
     is_undefinedInfo() : OperatorInfo() {
-      name = symbols::IS_UNDEFINED;
+      name = "is_undefined";
       signature = "histogram1d -> bool";
       appendSignature( "histogram2d -> bool" );
-      syntax = symbols::IS_UNDEFINED + "(_)";
+      syntax = "is_undefined(_)";
       meaning = "Returns TRUE if the histogram is undefined.";
     } // is_undefinedInfo() : OperatorInfo() {
   }; // struct is_undefinedInfo : OperatorInfo {
@@ -481,10 +466,11 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "is_refinement";
-      signature = symbols::HISTOGRAM1D + " x " + symbols::HISTOGRAM1D +
-	          " -> " + symbols::BOOL;
-      appendSignature(symbols::HISTOGRAM2D + " x " + symbols::HISTOGRAM2D +
-		      " -> " + symbols::BOOL);
+      signature = Histogram1d::BasicType() + " x " + Histogram1d::BasicType() +
+	          " -> " + CcBool::BasicType();
+      appendSignature(Histogram2d::BasicType() + " x " +
+                                               Histogram2d::BasicType() +
+		      " -> " + CcBool::BasicType());
       syntax = "is_refinement(_, _)";
       meaning = "Returns true, if the first histogram is a refinement "
         "of the second histogram.";
@@ -502,12 +488,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "=";
-      signature = symbols::HISTOGRAM1D + " x " +
-	          symbols::HISTOGRAM1D + " -> " +
-		  symbols::BOOL;
-      appendSignature(symbols::HISTOGRAM2D + " x " +
-		      symbols::HISTOGRAM2D + " -> " +
-		      symbols::BOOL);
+      signature = Histogram1d::BasicType() + " x " +
+	          Histogram1d::BasicType() + " -> " +
+		  CcBool::BasicType();
+      appendSignature(Histogram2d::BasicType() + " x " +
+		      Histogram2d::BasicType() + " -> " +
+		      CcBool::BasicType());
       syntax = "_ = _";
       meaning = "Equals predicate.";
       example = "";
@@ -524,12 +510,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "<";
-      signature = symbols::HISTOGRAM1D + " x " +
-	          symbols::HISTOGRAM1D + " -> " +
-		  symbols::BOOL;
-      appendSignature(symbols::HISTOGRAM2D + " x " +
-		      symbols::HISTOGRAM2D + " -> " +
-		      symbols::BOOL);
+      signature = Histogram1d::BasicType() + " x " +
+	          Histogram1d::BasicType() + " -> " +
+		  CcBool::BasicType();
+      appendSignature(Histogram2d::BasicType() + " x " +
+		      Histogram2d::BasicType() + " -> " +
+		      CcBool::BasicType());
       syntax = "_ < _";
       meaning = "Less predicate.";
       example = "";
@@ -565,10 +551,10 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "usehistogram";
-      signature = "For T in kind DATA: " + symbols::HISTOGRAM1D
-          + " x (real x T* -> real) -> " + symbols::HISTOGRAM1D;
-      appendSignature(symbols::HISTOGRAM2D + " x (real x T* -> real) -> "
-          + symbols::HISTOGRAM2D);
+      signature = "For T in kind DATA: " + Histogram1d::BasicType()
+          + " x (real x T* -> real) -> " + Histogram1d::BasicType();
+      appendSignature(Histogram2d::BasicType() + " x (real x T* -> real) -> "
+          + Histogram2d::BasicType());
       syntax = "_ use[ list; fun ]";
       meaning = "Apply the function fun "
         "to each bin of the first argument.";
@@ -586,12 +572,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "usehistogram2";
-      signature = "For T in kind DATA: " + symbols::HISTOGRAM1D +
-	          " x " + symbols::HISTOGRAM1D
-          + " x (real x real x T* -> real) -> " + symbols::HISTOGRAM1D;
-      appendSignature(symbols::HISTOGRAM2D +
+      signature = "For T in kind DATA: " + Histogram1d::BasicType() +
+	          " x " + Histogram1d::BasicType()
+          + " x (real x real x T* -> real) -> " + Histogram1d::BasicType();
+      appendSignature(Histogram2d::BasicType() +
 		      " x (real x real x T* -> real) -> "
-          + symbols::HISTOGRAM2D);
+          + Histogram2d::BasicType());
       syntax = "_ _ use2[ list; fun ]";
       meaning = "Apply the function fun "
         "to each bin of the first and the second argument.";
@@ -646,11 +632,11 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "find_minbin";
-      signature = symbols::HISTOGRAM1D + " -> " +
-	          symbols::STREAM + "(" + symbols::INT + ")";
-      appendSignature(symbols::HISTOGRAM2D + " -> " +
-		      symbols::STREAM + "(" + symbols::TUPLE + "((" + "x "
-          + symbols::INT + ")(" + "y " + symbols::INT + ")))");
+      signature = Histogram1d::BasicType() + " -> " +
+	          Symbol::STREAM() + "(" + CcInt::BasicType() + ")";
+      appendSignature(Histogram2d::BasicType() + " -> " +
+		      Symbol::STREAM() + "(" + Tuple::BasicType() + "((" + "x "
+          + CcInt::BasicType() + ")(" + "y " + CcInt::BasicType() + ")))");
       syntax = "_ find_minbin";
       meaning = "Returns a stream of the indices of all bins "
         "with minimal value.";
@@ -668,12 +654,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "find_maxbin";
-      signature = symbols::HISTOGRAM1D + " -> " +
-	          symbols::STREAM + "(" + symbols::INT + ")";
-      appendSignature(symbols::HISTOGRAM2D + " -> " +
-		      symbols::STREAM + "(" +
-		      symbols::TUPLE + "((" + "x "
-          + symbols::INT + ")(" + "y " + symbols::INT + ")))");
+      signature = Histogram1d::BasicType() + " -> " +
+	          Symbol::STREAM() + "(" + CcInt::BasicType() + ")";
+      appendSignature(Histogram2d::BasicType() + " -> " +
+		      Symbol::STREAM() + "(" +
+		      Tuple::BasicType() + "((" + "x "
+          + CcInt::BasicType() + ")(" + "y " + CcInt::BasicType() + ")))");
       syntax = "_ find_maxbin";
       meaning = "Returns a stream of the indices of all bins "
         "with maximal value.";

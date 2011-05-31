@@ -74,7 +74,7 @@ Returns a type error, if the NList "arg" is not equal to "REAL"[4]. "pos"[4] sho
 {\
     stringstream err;\
     err << "Argument " << pos << " must be an \"real\" value!";\
-    CHECK_COND(arg.isEqual(REAL), err.str());\
+    CHECK_COND(arg.isEqual(CcReal::BasicType()), err.str());\
 }
 
 
@@ -89,7 +89,7 @@ Returns a type error, if the NList "arg" is not equal to "INT"[4]. "pos"[4] shou
 {\
     stringstream err;\
     err << "Argument " << pos << " must be an \"int\" value!";\
-    CHECK_COND(arg.isEqual(INT), err.str());\
+    CHECK_COND(arg.isEqual(CcInt::BasicType()), err.str());\
 }
 
 

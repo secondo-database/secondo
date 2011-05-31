@@ -31,20 +31,21 @@ June, 2009 Mahmoud Sakr
 
 1 Overview
 
-This source file essentially contains the necessary implementations for 
-evaluating the spatiotemporal pattern predicates (STP). 
+This source file essentially contains the necessary implementations for
+evaluating the spatiotemporal pattern predicates (STP).
 
 2 Defines and includes
 
 */
 #include "STPatternAlgebra.h"
 #include <limits>
+#include "Symbols.h"
 namespace STP{
 
 /*
 3 Classes
 
-3.1 Class STVector 
+3.1 Class STVector
 
 
 */
@@ -115,7 +116,7 @@ inline int STVector::Str2Simple(string s)
   if(s=="b.baa")  return  262144  ;
   if(s=="b.b.aa")  return  524288  ;  if(s=="b.a.ba")  return  524288;
   if(s=="a.b.ba")  return  524288  ;
-  if(s=="ab.ba")  return  1048576  ;    
+  if(s=="ab.ba")  return  1048576  ;
   if(s=="aa.b.b")  return  2097152  ;  if(s=="ab.a.b")  return  2097152;
   if(s=="ab.b.a")  return  2097152  ;
   if(s=="aab.b")  return  4194304  ;
@@ -136,7 +137,7 @@ inline ListExpr STVector::Vector2List()
   bool first=true;
   while(i<26 && first)
   {
-    if(v & simple)  
+    if(v & simple)
     {
       list= nl->OneElemList(nl->SymbolAtom(StrSimpleConnectors[i]));
       last=list;
@@ -170,7 +171,7 @@ Output: none.
 */
 bool STVector::Add(int simple)
 {
-  if(simple <=  b_ba_a && Count(simple)==1) 
+  if(simple <=  b_ba_a && Count(simple)==1)
   {
     v = v|simple;
     return true;
@@ -202,15 +203,15 @@ Process: checks the simple connectors.
 Output: fulfilled or not.
 
 */
-bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2,
     int simple)
-{ 
+{
   double  a=p1.start.GetRealval(),   A=p1.end.GetRealval(),
   b=p2.start.GetRealval(),   B=p2.end.GetRealval();
   switch(simple)
   {
   case   aabb:
-    return(a<A && a<b && a<B && A<b && A<B && b<B); 
+    return(a<A && a<b && a<B && A<b && A<B && b<B);
     break;
   case   bbaa:
     return(b<B && b<a && b<A && B<a && B<A && a<A);
@@ -249,10 +250,10 @@ bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2,
     return(a==b && a<A && a<B && b<A && b<B && A==B);
     break;
   case   a_abb:
-    return(a==A && a<b && a<B && A<b && A<B && b<B); 
+    return(a==A && a<b && a<B && A<b && A<B && b<B);
     break;
   case   a_a_bb:
-    return(a==A && a==b && a<B && A==b && A<B && b<B); 
+    return(a==A && a==b && a<B && A==b && A<B && b<B);
     break;
   case   ba_ab:
     return(b<a && b<A && b<B && a==A && a<B && A<B);
@@ -273,16 +274,16 @@ bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2,
     return(a<b && a<B && a<A && b==B && b<A && B<A);
     break;
   case   aa_b_b:
-    return(a<A && a<b && a<B && A==b && A==B && b==B); 
+    return(a<A && a<b && a<B && A==b && A==B && b==B);
     break;
   case   aab_b:
-    return(a<A && a<b && a<B && A<b && A<B && b==B); 
+    return(a<A && a<b && a<B && A<b && A<B && b==B);
     break;
   case   a_ab_b:
-    return(a==A && a<b && a<B && A<b && A<B && b==B); 
+    return(a==A && a<b && a<B && A<b && A<B && b==B);
     break;
   case   a_a_b_b:
-    return(a==A && a==b && a==B && A==b && A==B && b==B); 
+    return(a==A && a==b && a==B && A==b && A==B && b==B);
     break;
   case   b_ba_a:
     return(b==B && b<a && b<A && B<a && B<A && a==A);
@@ -541,31 +542,31 @@ void STVector::Delete( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
-bool STVector::Open( SmiRecord& valueRecord, size_t& offset, 
-    const ListExpr typeInfo, Word& value ) 
+bool STVector::Open( SmiRecord& valueRecord, size_t& offset,
+    const ListExpr typeInfo, Word& value )
 {
-  //cerr << "OPEN XRectangle" << endl;  
-  size_t size = sizeof(int);   
+  //cerr << "OPEN XRectangle" << endl;
+  size_t size = sizeof(int);
   int vec;
 
   bool ok = true;
   ok = ok && valueRecord.Read( &vec, size, offset );
-  offset += size;  
-  value.addr = new STVector(vec); 
+  offset += size;
+  value.addr = new STVector(vec);
   return ok;
 }
 
-bool STVector::Save( SmiRecord& valueRecord, size_t& offset, 
+bool STVector::Save( SmiRecord& valueRecord, size_t& offset,
     const ListExpr typeInfo, Word& value )
-{  
-  STVector* vec = static_cast<STVector*>( value.addr );  
-  size_t size = sizeof(int);   
+{
+  STVector* vec = static_cast<STVector*>( value.addr );
+  size_t size = sizeof(int);
 
   bool ok = true;
   ok = ok && valueRecord.Write( &vec->v, size, offset );
-  offset += size;  
+  offset += size;
   return ok;
-} 
+}
 /*
 Secondo framework support functions
 
@@ -610,7 +611,7 @@ bool STVector::KindCheck( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "stvector" ));
 }
 
-void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
+void IntervalInstant2IntervalCcReal(const Interval<Instant>& in,
     Interval<CcReal>& out)
 {
   out.start.Set(in.start.IsDefined(), in.start.ToDouble());
@@ -626,7 +627,7 @@ CSP::~CSP()
 {
 }
 
-void CSP::IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
+void CSP::IntervalInstant2IntervalCcReal(const Interval<Instant>& in,
     Interval<CcReal>& out)
 {
   out.start.Set(in.start.IsDefined(), in.start.ToDouble());
@@ -645,12 +646,12 @@ void CSP::IntervalCcReal2IntervalInstant(const Interval<CcReal>& in,
 }
 
 /*
-3.2 Class CSP 
+3.2 Class CSP
 
 The MBool2Vec function is called first thing within the extend function. It
 converts the time intervals for the true units from Interval<Instant> into
-Interval<CcReal>. This is done for the sake of performance since the Instant 
-comparisons are more expensive than the Real comparisons. 
+Interval<CcReal>. This is done for the sake of performance since the Instant
+comparisons are more expensive than the Real comparisons.
 
 */
 int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
@@ -674,11 +675,11 @@ int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
 /*
 The Extend function distinguishes between two cases:
 
- * If the variable given is the first variable to be consumed, 
+ * If the variable given is the first variable to be consumed,
     the SA is intialized.
 
  * Else, the function creates and checks (on the fly) the Cartesean product
-    of SA and the domain of the variable.     
+    of SA and the domain of the variable.
 
 */
 int CSP::Extend(int index, vector<Interval<CcReal> >& domain )
@@ -714,10 +715,10 @@ int CSP::Extend(int index, vector<Interval<CcReal> >& domain )
 }
 
 /*
-The function IsSupported searches the ConstraintGraph for the constraints that 
+The function IsSupported searches the ConstraintGraph for the constraints that
 involve the given variable and check their fulfillment. It is modified to check
-only the constraints related to the newly evaluated variable instead of 
-re-checking all the constraints. 
+only the constraints related to the newly evaluated variable instead of
+re-checking all the constraints.
 
 */
 bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
@@ -742,16 +743,16 @@ bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
       {
         if(ConstraintGraph[assignedVars[i]][assignedVars[j]].size() != 0)
         {
-          supported= CheckConstraint(sa[assignedVars[i]], 
-              sa[assignedVars[j]], 
+          supported= CheckConstraint(sa[assignedVars[i]],
+              sa[assignedVars[j]],
               ConstraintGraph[assignedVars[i]][assignedVars[j]]);
           if(!supported) return false;
         }
 
         if(ConstraintGraph[assignedVars[j]][assignedVars[i]].size() != 0)
         {
-          supported= CheckConstraint(sa[assignedVars[j]], 
-              sa[assignedVars[i]], 
+          supported= CheckConstraint(sa[assignedVars[j]],
+              sa[assignedVars[i]],
               ConstraintGraph[assignedVars[j]][assignedVars[i]]);
           if(!supported) return false;
         }
@@ -761,7 +762,7 @@ bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
   return supported;
 }
 
-bool CSP::CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+bool CSP::CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2,
     vector<Supplier> constraint)
 {
   bool debugme=false;
@@ -779,11 +780,11 @@ bool CSP::CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2,
     satisfied= vec->ApplyVector(p1, p2);
     if(!satisfied) return false;
   }
-  return true; 
+  return true;
 }
 /*
 The function PickVariable picks Agenda variables according to their connectivity
-rank. 
+rank.
 For every variable v
 {
   For every constraint c(v,x)
@@ -816,9 +817,9 @@ int CSP::PickVariable()
             cnt+= ConstraintGraph[r][c].size() * 0.5;
             for(unsigned int v=0; v< assignedVars.size(); v++)
             {
-              if(c == (unsigned int)assignedVars[v]) 
+              if(c == (unsigned int)assignedVars[v])
                 cnt+=0.5 * ConstraintGraph[r][c].size();
-            }  
+            }
 
 
           }
@@ -828,7 +829,7 @@ int CSP::PickVariable()
             cnt+=0.5 * ConstraintGraph[r][c].size();
             for(unsigned int v=0; v< assignedVars.size(); v++)
             {
-              if(r == (unsigned int)assignedVars[v]) 
+              if(r == (unsigned int)assignedVars[v])
                 cnt+=0.5 * ConstraintGraph[r][c].size();
             }
           }
@@ -851,7 +852,7 @@ int CSP::PickVariable()
     cout<<endl<< "Picking variable "<< index<<endl;
     cout.flush();
   }
-  if(index== -1) return -1; 
+  if(index== -1) return -1;
   assignedVars.push_back(index);
   return index;
 }
@@ -1222,7 +1223,7 @@ ClosureResult CSP::GetClosureResult()
   return closureRes;
 }
 /*
-Auxiliary functions 
+Auxiliary functions
 
 */
 void RandomDelay(const MPoint* actual, const Instant* threshold, MPoint& res)
@@ -1301,7 +1302,7 @@ bool IsSimplePredicateList(ListExpr args, bool WithUserArgs=false)
 
     if(!(nl->ListLength(NamedPred) == 2 && nl->IsAtom(nl->First(NamedPred))&&
         nl->IsAtom(nl->Second(NamedPred))&&
-        nl->SymbolValue(nl->Second(NamedPred))== "mbool"))
+        nl->SymbolValue(nl->Second(NamedPred))== MBool::BasicType()))
       return false;
   }
   return true;
@@ -1323,9 +1324,9 @@ bool IsMapTuplePredicateList(ListExpr args, bool WithUserArgs=false)
     Map= nl->Second(NamedPred);
     if(nl->ListLength(NamedPred) != 2 || !nl->IsAtom(nl->First(NamedPred)) ||
       !listutils::isMap<1>(Map)||
-      !nl->IsEqual(nl->Nth(nl->ListLength(Map), Map), "mbool"))
+      !nl->IsEqual(nl->Nth(nl->ListLength(Map), Map), MBool::BasicType()))
       return false;
-    if(!nl->IsEqual(nl->First(nl->Second(Map)), "tuple"))
+    if(!nl->IsEqual(nl->First(nl->Second(Map)), Tuple::BasicType()))
       return false;
   }
   return true;
@@ -1344,10 +1345,10 @@ bool IsMapTuplePeriodsPredicateList(ListExpr args, bool WithUserArgs=false)
     Map= nl->Second(NamedPred);
     if(nl->ListLength(NamedPred) != 2 || !nl->IsAtom(nl->First(NamedPred)) ||
       !listutils::isMap<2>(Map)||
-      !nl->IsEqual(nl->Nth(nl->ListLength(Map), Map), "mbool"))
+      !nl->IsEqual(nl->Nth(nl->ListLength(Map), Map), MBool::BasicType()))
       return false;
-    if(!nl->IsEqual(nl->First(nl->Second(Map)), "tuple") ||
-       !nl->IsEqual(nl->Third(Map), "periods") )
+    if(!nl->IsEqual(nl->First(nl->Second(Map)), Tuple::BasicType()) ||
+       !nl->IsEqual(nl->Third(Map), Periods::BasicType()) )
       return false;
   }
   return true;
@@ -1369,7 +1370,8 @@ bool IsConstraintList(ListExpr args, bool WithUserArgs=false)
     STConstraint = nl->First(ConstraintListRest);
     ConstraintListRest = nl->Rest(ConstraintListRest);
 
-    if(!((nl->IsAtom(STConstraint)&& nl->SymbolValue(STConstraint)== "bool")))
+    if(!((nl->IsAtom(STConstraint)&&
+      nl->SymbolValue(STConstraint)== CcBool::BasicType())))
       return false;
   }
   return true;
@@ -1379,7 +1381,7 @@ bool IsTupleExpr(ListExpr args, bool WithUserArgs=false)
 {
   ListExpr tuple = WithUserArgs? nl->First(args): args;
   return ((nl->ListLength(tuple) == 2) &&
-       nl->IsEqual(nl->First(tuple), "tuple"));
+       nl->IsEqual(nl->First(tuple), Tuple::BasicType()));
 }
 
 bool IsTupleStream(ListExpr args, bool WithUserArgs=false)
@@ -1391,7 +1393,7 @@ bool IsTupleStream(ListExpr args, bool WithUserArgs=false)
 bool IsBoolExpr(ListExpr args, bool WithUserArgs=false)
 {
   ListExpr boolExpr = WithUserArgs? nl->First(args): args;
-  return (nl->IsAtom(boolExpr) && nl->IsEqual(boolExpr, "bool"));
+  return (nl->IsAtom(boolExpr) && nl->IsEqual(boolExpr, CcBool::BasicType()));
 }
 /*
 Auxiliary functions
@@ -1404,8 +1406,8 @@ bool IsBoolMap(ListExpr args, bool WithUserArgs=false)
 
   ListExpr Map = nl->First(boolExpr),
       MapReturn= nl->Nth(nl->ListLength(boolExpr), boolExpr);
-  if(nl->ListLength(boolExpr) < 3 || !nl->IsEqual(Map, "map") ||
-    !nl->IsEqual(MapReturn, "bool"))
+  if(nl->ListLength(boolExpr) < 3 || !nl->IsEqual(Map, Symbol::MAP()) ||
+    !nl->IsEqual(MapReturn, CcBool::BasicType()))
       return false;
   return true;
 }
@@ -1413,7 +1415,8 @@ bool IsBoolMap(ListExpr args, bool WithUserArgs=false)
 bool IsPeriodsExpr(ListExpr args, bool WithUserArgs=false)
 {
   ListExpr periodsExpr = WithUserArgs? nl->First(args): args;
-  return (nl->IsAtom(periodsExpr) && nl->IsEqual(periodsExpr, "periods"));
+  return (nl->IsAtom(periodsExpr) && nl->IsEqual(periodsExpr,
+                                                 Periods::BasicType()));
 }
 
 bool IsAliasInCatalog(set<string>& aliases)
@@ -1743,7 +1746,8 @@ ListExpr CreateSTVectorTM(ListExpr args)
     first = nl->First(rest);
     rest = nl->Rest(rest);
     nl->WriteToString(argstr, first);
-    CHECK_COND (nl->IsAtom(first)&&  nl->SymbolValue(first)=="string",
+    CHECK_COND (nl->IsAtom(first)&&
+                nl->SymbolValue(first)==CcString::BasicType(),
         "Operator v: expects a list of strings but got '" +
         argstr + "'.\n" );
   }
@@ -1835,7 +1839,7 @@ ListExpr STPatternTM(ListExpr args)
     }
   }
 
-  ListExpr result = nl->SymbolAtom("bool");
+  ListExpr result = nl->SymbolAtom(CcBool::BasicType());
   if(debugme)
   {
     cout<<endl<<endl<<"Operator "+ opName +" accepted the input";
@@ -1934,8 +1938,8 @@ ListExpr STPattern2TM(ListExpr args)
   }
 
   ListExpr PAReasoner= ComputeClosure(ConstraintList, predAliases1Unsorted);
-  ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-      nl->OneElemList(PAReasoner), nl->SymbolAtom("bool"));
+  ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+      nl->OneElemList(PAReasoner), nl->SymbolAtom(CcBool::BasicType()));
 
   if(debugme)
   {
@@ -2063,7 +2067,8 @@ ListExpr STPatternExtendTM(ListExpr args)
     last= nl->Append(last, nl->Nth(++n, AttrList));
   for(vector<string>::iterator it= aliases.begin(); it!=aliases.end(); ++it)
     last= nl->Append(last,
-        nl->TwoElemList(nl->SymbolAtom(*it), nl->SymbolAtom("periods")));
+        nl->TwoElemList(nl->SymbolAtom(*it),
+                        nl->SymbolAtom(Periods::BasicType())));
 
   if(extended)
   {
@@ -2078,12 +2083,12 @@ ListExpr STPatternExtendTM(ListExpr args)
   }
 
   ListExpr result,
-    resStream= nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"),resAttrlist));
+    resStream= nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),resAttrlist));
   if(enableTemporalReasoner)
   {
     ListExpr PAReasoner= ComputeClosure(ConstraintList, aliases);
-    result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    result = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
         nl->OneElemList(PAReasoner), resStream);
 
   }
@@ -2138,7 +2143,7 @@ ListExpr STConstraintTM(ListExpr args)
       "Operator stconstraint: expects a temporal connector as third "
       "argument.\n But got '" + argstr + "'.");
 
-  ListExpr result = nl->SymbolAtom("bool");
+  ListExpr result = nl->SymbolAtom(CcBool::BasicType());
   if(debugme)
   {
     cout<<endl<<endl<<"Operator stconstraint accepted the input";
@@ -2168,12 +2173,12 @@ ListExpr StartEndTM(ListExpr args)
       nl->SymbolValue(nl->First(args))== "string",
       "Operator start/end expects a string symbol "
       "but got." + argstr);
-  return nl->SymbolAtom("instant");
+  return nl->SymbolAtom(Instant::BasicType());
 }
 
 /*
 
-The randommbool operator is used for experimental evaluation. We use it to 
+The randommbool operator is used for experimental evaluation. We use it to
 generate the random mbool values that are used in the first experiment in the
 technical report.
 
@@ -2182,15 +2187,15 @@ ListExpr RandomMBoolTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
-      nl->IsAtom(nl->First(args)) && 
-      (nl->SymbolValue(nl->First(args))== "instant") ,
+      nl->IsAtom(nl->First(args)) &&
+      (nl->SymbolValue(nl->First(args))== Instant::BasicType()) ,
   "Operator randommbool expects one parameter.");
-  return nl->SymbolAtom("mbool");
+  return nl->SymbolAtom(MBool::BasicType());
 }
 
 /*
 
-The passmbool operator is used for experimental evaluation. We use it to 
+The passmbool operator is used for experimental evaluation. We use it to
 mimic time-dependent predicates in the first experiment in the technical report.
 
 */
@@ -2198,15 +2203,15 @@ ListExpr PassMBoolTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
-      nl->IsAtom(nl->First(args)) && 
-      (nl->SymbolValue(nl->First(args))== "mbool") ,
+      nl->IsAtom(nl->First(args)) &&
+      (nl->SymbolValue(nl->First(args))== MBool::BasicType()) ,
   "Operator passmbool expects one parameter.");
-  return nl->SymbolAtom("mbool");
+  return nl->SymbolAtom(MBool::BasicType());
 }
 
 /*
-The randomdelay operator is used to enrich the examples. It adds random 
-time delays to the moving point within a given delay threshold   
+The randomdelay operator is used to enrich the examples. It adds random
+time delays to the moving point within a given delay threshold
 
 */
 
@@ -2216,7 +2221,7 @@ ListExpr RandomDelayTM( ListExpr typeList )
       nl->IsAtom(nl->First(typeList)) &&
       (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
       nl->IsAtom(nl->Second(typeList)) &&
-      (nl->SymbolValue(nl->Second(typeList))== "duration"),
+      (nl->SymbolValue(nl->Second(typeList))== Duration::BasicType()),
       "randomdelay operator expects (mpoint duration) but got "
       + nl->ToString(typeList))
 
@@ -2242,10 +2247,10 @@ ListExpr TUPLESTREAMTypeMap(ListExpr args)
   if(nl->ListLength(args) == 2)
   {
     stream = nl->First(args);
-    if(nl->IsEqual(stream, "stream"))
+    if(nl->IsEqual(stream, Symbol::STREAM()))
     {
       tuple = nl->First(stream);
-      if(nl->IsEqual(tuple, "tuple"))
+      if(nl->IsEqual(tuple, Tuple::BasicType()))
         return args;
     }
   }
@@ -2256,7 +2261,7 @@ ListExpr TUPLESTREAMTypeMap(ListExpr args)
 4.2 Value Map Functions
 
 */
-int CreateSTVectorVM 
+int CreateSTVectorVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
@@ -3020,7 +3025,7 @@ int STPatternExExtendStream2VM(
   return 0;
 }
 
-int STConstraintVM 
+int STConstraintVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   assert(0); //this function should never be invoked.
@@ -3080,7 +3085,7 @@ void CreateRandomMBool(Instant starttime, MBool& result)
       rnd=rand()%50000;
     intr.end.Set(intr.start.GetYear(), intr.start.GetMonth(),
         intr.start.GetGregDay(), intr.start.GetHour(),intr.start.GetMinute(),
-        intr.start.GetSecond(),intr.start.GetMillisecond()+rnd); 
+        intr.start.GetSecond(),intr.start.GetMillisecond()+rnd);
     unit.constValue.Set(true, bval);
     unit.timeInterval= intr;
     result.Add(unit);
@@ -3091,7 +3096,7 @@ void CreateRandomMBool(Instant starttime, MBool& result)
     result.Print(cout);
 }
 
-int 
+int
 RandomMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
@@ -3115,7 +3120,7 @@ int PassMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
 //{
 //	bool debugme=true;
 //	MPoint *pActual = static_cast<MPoint*>( args[0].addr );
-//	Instant *threshold = static_cast<Instant*>(args[1].addr ); 
+//	Instant *threshold = static_cast<Instant*>(args[1].addr );
 //
 //	//MPoint* result = (MPoint*) qp->ResultStorage(s).addr;
 //	MPoint* result = (MPoint*) res.addr;
@@ -3124,7 +3129,7 @@ int PassMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
 //		result->CopyFrom(pActual);
 //	else
 //		RandomDelay(pActual, threshold, *result);
-//	
+//
 //	if(debugme)
 //	{
 //		result->Print(cout);
@@ -3147,9 +3152,9 @@ int RandomDelayVM(ArgVector args, Word& result,
     {
       RandomDelay(pActual, threshold, *shifted);
     }
-  result= SetWord(shifted); 
-  //This looks redundant but it is really necessary. After 2 hours of 
-  //debugging, it seems that the "result" word is not correctly set 
+  result= SetWord(shifted);
+  //This looks redundant but it is really necessary. After 2 hours of
+  //debugging, it seems that the "result" word is not correctly set
   //by the query processor to point to the results.
 
   return 0;
@@ -3425,9 +3430,9 @@ const string RandomDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>mpoint x duration -> mpoint</text--->"
   "<text>randomdelay(schedule, delay_threshold)</text--->"
-  "<text>Given an mpoint and a duration value, the operator randomly shift the" 
+  "<text>Given an mpoint and a duration value, the operator randomly shift the"
   "start and end intstants of every unit in the mpoint. This gives the "
-  "effect of having positive and negative delays in the movement. The " 
+  "effect of having positive and negative delays in the movement. The "
   "random shift value is bound by the given threshold.</text--->"
   "<text>query randomdelay(train7)</text--->"
   ") )";

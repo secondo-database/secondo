@@ -128,7 +128,6 @@ storing tuples and LOBs respectively.
 #include "Base64.h"
 
 using namespace std;
-using namespace symbols;
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -197,9 +196,9 @@ Attribute::counters(bool reset, bool show)
 {
   StdTypes::UpdateBasicOps(reset);
 
-  Counter::reportValue(CTR_ATTR_BASIC_OPS, show);
-  Counter::reportValue(CTR_ATTR_HASH_OPS, show);
-  Counter::reportValue(CTR_ATTR_COMPARE_OPS, show);
+  Counter::reportValue(Symbol::CTR_ATTR_BASIC_OPS(), show);
+  Counter::reportValue(Symbol::CTR_ATTR_HASH_OPS(), show);
+  Counter::reportValue(Symbol::CTR_ATTR_COMPARE_OPS(), show);
 }
 
 void
@@ -263,7 +262,7 @@ void Tuple::Save( SmiRecordFile* file,
                          const SmiFileId& fid,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
-                         const bool ignoreLobs /*=false*/) 
+                         const bool ignoreLobs /*=false*/)
 {
   TRACE_ENTER
 
@@ -286,7 +285,7 @@ void Tuple::Save( SmiRecordFile* file,
   // create a new record for the tuple
   DEBUG_MSG("Appending tuple record!")
   SmiRecord *tupleRecord = new SmiRecord();
-//  SmiRecordId tupleId; 
+//  SmiRecordId tupleId;
   bool rc = file->AppendRecord( tupleId, *tupleRecord );
   assert(rc == true);
 
@@ -296,7 +295,7 @@ void Tuple::Save( SmiRecordFile* file,
                                    attrSize);
 
   char* data = WriteToBlock(coreSize, extensionSize, ignoreLobs, file, fid);
-        
+
   // Write data into the record
   DEBUG_MSG("Writing tuple record!")
   SHOW(coreSize)
@@ -316,7 +315,7 @@ void Tuple::Save( SmiRecordFile* file,
 }
 
 
-void Tuple::Save(TupleFile& tuplefile) 
+void Tuple::Save(TupleFile& tuplefile)
 {
   PinAttributes();
   double extSize = 0;
@@ -332,7 +331,7 @@ void Tuple::Save(TupleFile& tuplefile)
   size_t coreSize = 0;
   size_t extensionSize = CalculateBlockSize( coreSize, extSize,
                                              size, attrExtSize,
-                                             attrSize); 
+                                             attrSize);
 
   // Put core and extension part into a single memory block
   // Note: this memory block contains already the block size
@@ -362,7 +361,7 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
          = CalculateBlockSize( attrSizes, extSize,
                                size, attrExtSize, attrSize);
 
-  char* data = WriteToBlock( attrSizes, extensionSize, false, 
+  char* data = WriteToBlock( attrSizes, extensionSize, false,
                              tupleFile, lobFileId );
 
   SmiRecord *tupleRecord = new SmiRecord();
@@ -412,12 +411,12 @@ char* Tuple::WriteToBlock( size_t coreSize,
   // create a single block able to pick up the roots of the
   // attributes and all small FLOBs
 
-  const uint16_t dataSize = coreSize + extensionSize; 
-  
+  const uint16_t dataSize = coreSize + extensionSize;
+
   const size_t recordSizeLen = sizeof(dataSize);
   const size_t blockSize = dataSize + recordSizeLen;
 
-  
+
   char* data = (char*) malloc( blockSize );
 
   WriteToBlock(data, coreSize, extensionSize,
@@ -664,7 +663,7 @@ return extensionSize
 
          SHOW(currentSize)
          SHOW(currentExtSize)
-         SHOW(extensionSize)     
+         SHOW(extensionSize)
 
     // handle Flobs
     double attrLobSize = 0.0;
@@ -728,7 +727,7 @@ bool Tuple::ReadFrom(SmiRecord& record){
 
 bool Tuple::Open( SmiRecordFile* tuplefile,
                   SmiFileId lobfileId,
-                  SmiRecord* record, 
+                  SmiRecord* record,
                   const bool dontReportError ) {
   SmiKey key;
   key = record->GetKey();
@@ -772,7 +771,7 @@ char* Tuple::GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize)
   }
 
 //#undef SHOW
-//#define SHOW(a) {cerr << "  " << #a << " = " << a << endl;} 
+//#define SHOW(a) {cerr << "  " << #a << " = " << a << endl;}
   SHOW(rootSizeLen)
   SHOW(rootSize)
 //#define SHOW(a)
@@ -819,7 +818,7 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
     SHOW(offset)
 
   for(int i=0;i<noAttributes;i++){
-    
+
     int algId = tupleType->GetAttributeType(i).algId;
     int typeId = tupleType->GetAttributeType(i).typeId;
     int sz = tupleType->GetAttributeType(i).size;
@@ -842,17 +841,17 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
     }
     else
     {
-      // serialization within root block 
+      // serialization within root block
       attributes[i] = Attribute::Create( attr, &src[offset], sz, algId, typeId);
 
       int serialSize = attributes[i]->SerializedSize();
       int readData = (serialSize > 0) ? serialSize : sz;
-      
+
       /*
         //debug
        if(offset+readData >wholesize + sizeof(uint16_t)){
          cout << "try to read " << sz << " bytes at offset  "
-              << offset << " within a block of size " << wholesize 
+              << offset << " within a block of size " << wholesize
               << endl;
          assert(false);
       }
@@ -871,7 +870,7 @@ void Tuple::InitializeAttributes(char* src, bool containLOBs/* = false*/)
     for(int k=0; k< attributes[i]->NumOfFLOBs();k++){
       Flob* flob = attributes[i]->GetFLOB(k);
       if(flob->getSize() < extensionLimit){
-         Flob::createFromBlock(*flob, src + flob->getOffset(), 
+         Flob::createFromBlock(*flob, src + flob->getOffset(),
                                flob->getSize(), true);
       }
       else if(containLOBs)
@@ -1692,8 +1691,8 @@ double TupleBuffer::GetTotalSize(int i) const
 void
 TupleBuffer::updateDataStatistics() {
 
-  static long& writtenData_Bytes = Counter::getRef(CTR_TBUF_BYTES_W);
-  static long& writtenData_Pages = Counter::getRef(CTR_TBUF_PAGES_W);
+  static long& writtenData_Bytes = Counter::getRef(Symbol::CTR_TBUF_BYTES_W());
+  static long& writtenData_Pages = Counter::getRef(Symbol::CTR_TBUF_PAGES_W());
 
   if (diskBuffer)
     writtenData_Bytes += (long)ceil( diskBuffer->GetTotalExtSize() );
@@ -2139,8 +2138,8 @@ void CircularTupleBuffer::UpdateTuple( Tuple *tuple,
 
 */
 TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
-  readData_Bytes( Counter::getRef(CTR_TBUF_BYTES_R) ),
-  readData_Pages( Counter::getRef(CTR_TBUF_PAGES_R) ),
+  readData_Bytes( Counter::getRef(Symbol::CTR_TBUF_BYTES_R()) ),
+  readData_Pages( Counter::getRef(Symbol::CTR_TBUF_PAGES_R()) ),
   tupleBuffer( tupleBuffer ),
   currentTuple( 0 ),
   diskIterator(
@@ -2149,17 +2148,17 @@ TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
       tupleBuffer.diskBuffer->MakeScan() )
   {}
 
-TupleBufferIterator::TupleBufferIterator( 
+TupleBufferIterator::TupleBufferIterator(
     const TupleBuffer& tupleBuffer, TupleType* tt ):
-  readData_Bytes( Counter::getRef(CTR_TBUF_BYTES_R) ),
-  readData_Pages( Counter::getRef(CTR_TBUF_PAGES_R) ),
+    readData_Bytes( Counter::getRef(Symbol::CTR_TBUF_BYTES_R()) ),
+    readData_Pages( Counter::getRef(Symbol::CTR_TBUF_PAGES_R()) ),
   tupleBuffer( tupleBuffer ),
   currentTuple( 0 ),
   diskIterator(
     tupleBuffer.inMemory ?
       0 :
       tupleBuffer.diskBuffer->MakeScan() ),
-  outtype( tt )    
+  outtype( tt )
   {}
 /*
 The constructor.
@@ -2214,7 +2213,7 @@ Tuple *TupleBufferIterator::GetNextTuple(const list<int>& attrList)
 
     Tuple *t =
       tupleBuffer.memoryBuffer[currentTuple];
-    
+
     Tuple *result = new Tuple( outtype );
     list<int>::const_iterator iter = attrList.begin();
     for(int i=0 ; iter != attrList.end(); ++iter, ++i )
@@ -2418,7 +2417,7 @@ Relation::InitFiles( bool open /*= false */) {
   {
     SmiRecordFile rf(false,0, relDesc.isTemp);
     if(!rf.Create()){
-      assert(false); 
+      assert(false);
     }
     relDesc.lobFileId = rf.GetFileId();
     rf.Close();
@@ -2609,7 +2608,7 @@ void Relation::Delete()
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
     rf.Close();
-    rf.Drop(); 
+    rf.Drop();
   }
   ErasePointer();
 
@@ -2626,7 +2625,7 @@ void Relation::DeleteAndTruncate()
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
     rf.Close();
-    rf.Drop(); 
+    rf.Drop();
   }
 //  else {
 //    cerr << "Relation has no LOB-file!" << endl;

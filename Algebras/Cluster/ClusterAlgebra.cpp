@@ -109,10 +109,10 @@ PointsTypeMapA( ListExpr args )
 if ( nl->ListLength(args) == 1 )
 {
   ListExpr arg1 = nl->First(args);
-  if ( nl->IsEqual(arg1, "points") )
-  return nl->SymbolAtom("points");
+  if ( nl->IsEqual(arg1, Points::BasicType()) )
+  return nl->SymbolAtom(Points::BasicType());
 }
-return nl->SymbolAtom("typeerror");
+return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 3.2 Type mapping function ~PointsTypeMapB~.
@@ -137,13 +137,13 @@ if ( nl->ListLength(args) == 3 )
   arg3 = nl->Third(args); // Eps --> int
 
   if (
-      ( nl->IsEqual(arg1, "points")) &&
-      ( nl->IsEqual(arg2, "int")) &&
-      ( nl->IsEqual(arg3, "int")))
+      ( nl->IsEqual(arg1, Points::BasicType())) &&
+      ( nl->IsEqual(arg2, CcInt::BasicType())) &&
+      ( nl->IsEqual(arg3, CcInt::BasicType())))
 
-    return nl->SymbolAtom("points");
+    return nl->SymbolAtom(Points::BasicType());
 }
-return nl->SymbolAtom("typeerror");
+return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -152,11 +152,11 @@ if(nl->ListLength(args)!=3){
    ErrorReporter::ReportError("points x int x real expected");
    return nl->TypeError();
 }
-if(nl->IsEqual(nl->First(args),"points") &&
-   nl->IsEqual(nl->Second(args),"int") &&
-   nl->IsEqual(nl->Third(args),"real")){
-   return nl->TwoElemList(nl->SymbolAtom("stream"),
-                          nl->SymbolAtom("points"));
+if(nl->IsEqual(nl->First(args),Points::BasicType()) &&
+   nl->IsEqual(nl->Second(args),CcInt::BasicType()) &&
+   nl->IsEqual(nl->Third(args),CcReal::BasicType())){
+   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->SymbolAtom(Points::BasicType()));
 
 }
 ErrorReporter::ReportError("points x int x real expected");
@@ -166,10 +166,10 @@ return nl->TypeError();
 
 static ListExpr cluster_d_TM(ListExpr args){
 if((nl->ListLength(args)==2) &&
-   (nl->IsEqual(nl->First(args),"points")) &&
-   (nl->IsEqual(nl->Second(args),"real"))){
-   return nl->TwoElemList(nl->SymbolAtom("stream"),
-                          nl->SymbolAtom("points"));
+   (nl->IsEqual(nl->First(args),Points::BasicType())) &&
+   (nl->IsEqual(nl->Second(args),CcReal::BasicType()))){
+   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->SymbolAtom(Points::BasicType()));
 }
 ErrorReporter::ReportError("points x real expected");
 return nl->TypeError();
@@ -2072,7 +2072,7 @@ const string cluster_cSpec =
 		"\"Example\" ) "
 		"( <text>points x int x real -> stream(points)</text--->"
 		"<text> _ cluster_c [ minpts, epsilon ] </text--->"
-		"<text>For a point set given as a points value, compute the clusters using "
+    "<text>For a point set given as a points value, compute the clusters using "
     "the DBSCAN algorithm with parameters minPts (minimum number of points "
     "forming a cluster core) and epsilon (maximum distance between points in "
     "a cluster core). "

@@ -92,9 +92,9 @@ extern AlgebraManager* am;
 1.1 Type Mapping
 
    stream(CSVEXPORTABLE) x text x bool -> stream(CSVEXPORTABLE)
-   stream ( tuple ( (a1 t1) ... (an tn))) x string x 
+   stream ( tuple ( (a1 t1) ... (an tn))) x string x
                 bool x bool -> stream (tuple(...))
-   stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x 
+   stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x
                 bool x string -> stream (tuple(...))
 
 */
@@ -107,8 +107,8 @@ ListExpr csvexportTM(ListExpr args){
   }
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(len == 3){ // stream(CSV) x string x bool
-    if(!nl->IsEqual(nl->Second(args),symbols::TEXT) ||
-       !nl->IsEqual(nl->Third(args),symbols::BOOL)){
+    if(!nl->IsEqual(nl->Second(args),FText::BasicType()) ||
+       !nl->IsEqual(nl->Third(args),CcBool::BasicType())){
        ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
     }
@@ -117,11 +117,11 @@ ListExpr csvexportTM(ListExpr args){
        ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
     }
-    if(!nl->IsEqual(nl->First(stream),"stream")){
+    if(!nl->IsEqual(nl->First(stream),Symbol::STREAM())){
        ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
     }
-    if(!am->CheckKind("CSVEXPORTABLE",nl->Second(stream),errorInfo)){
+    if(!am->CheckKind(Kind::CSVEXPORTABLE(),nl->Second(stream),errorInfo)){
        if(listutils::isTupleStream(stream)){
           return listutils::typeError("for processing a tuple stream one  "
                                      "additional parameter is required"
@@ -134,21 +134,21 @@ ListExpr csvexportTM(ListExpr args){
     }
     return stream;
   } else { // stream(tuple(...) )
-    if( !nl->IsEqual(nl->Second(args),symbols::TEXT) ||
-        !nl->IsEqual(nl->Third(args),symbols::BOOL) ||
-        !nl->IsEqual(nl->Fourth(args),symbols::BOOL)  ){
+    if( !nl->IsEqual(nl->Second(args),FText::BasicType()) ||
+        !nl->IsEqual(nl->Third(args),CcBool::BasicType()) ||
+        !nl->IsEqual(nl->Fourth(args),CcBool::BasicType())  ){
        ErrorReporter::ReportError("stream x text x bool x"
                                   " bool [x string] expected");
        return nl->TypeError();
     }
-    if(len==5 && !nl->IsEqual(nl->Fifth(args),symbols::STRING)){
+    if(len==5 && !nl->IsEqual(nl->Fifth(args),CcString::BasicType())){
        ErrorReporter::ReportError("stream x text x bool x "
                                   "bool [x string] expected");
        return nl->TypeError();
     }
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream)!=2 ||
-       !nl->IsEqual(nl->First(stream),symbols::STREAM)){
+       !nl->IsEqual(nl->First(stream),Symbol::STREAM())){
        ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
@@ -177,7 +177,7 @@ ListExpr csvexportTM(ListExpr args){
          ErrorReporter::ReportError("invalid tuple stream");
          return nl->TypeError();
       }
-      if(!am->CheckKind("CSVEXPORTABLE", atype,errorInfo)){
+      if(!am->CheckKind(Kind::CSVEXPORTABLE(), atype,errorInfo)){
          ErrorReporter::ReportError("invalid kind in tuple");
          return nl->TypeError();
       }
@@ -452,13 +452,13 @@ ListExpr csvimportTM(ListExpr args){
     return nl->TypeError();
   }
   if(!IsRelDescription(nl->First(args)) ||
-     !nl->IsEqual(nl->Second(args),symbols::TEXT) ||
-     !nl->IsEqual(nl->Third(args),symbols::INT) ||
-     !nl->IsEqual(nl->Fourth(args),symbols::STRING)){
+     !nl->IsEqual(nl->Second(args),FText::BasicType()) ||
+     !nl->IsEqual(nl->Third(args),CcInt::BasicType()) ||
+     !nl->IsEqual(nl->Fourth(args),CcString::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if( (len==5) && !nl->IsEqual(nl->Fifth(args),symbols::STRING)){
+  if( (len==5) && !nl->IsEqual(nl->Fifth(args),CcString::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -473,13 +473,13 @@ ListExpr csvimportTM(ListExpr args){
   }
   while(!nl->IsEmpty(attrlist)){
      ListExpr type = nl->Second(nl->First(attrlist));
-     if(!am->CheckKind("CSVIMPORTABLE",type,errorInfo)){
+     if(!am->CheckKind(Kind::CSVIMPORTABLE(),type,errorInfo)){
         ErrorReporter::ReportError("attribute type not in kind CSVEXPORTABLE");
         return nl->TypeError();
      }
      attrlist = nl->Rest(attrlist);
   }
-  return nl->TwoElemList( nl->SymbolAtom(symbols::STREAM),
+  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                           nl->Second(nl->First(args)));
 }
 
@@ -772,7 +772,7 @@ ListExpr nmeaimportTM(ListExpr args){
                                  + nmeaImporter->getKnownTypes());
    }
 
-   return nl->TwoElemList(nl->SymbolAtom("stream"),
+   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                           nmeaImporter->getTupleType());
 }
 
@@ -967,7 +967,7 @@ Operator nmeaimport_line( "nmeaimport_line",
 /*
 4 Operator ~get[_]lines~
 
-This operator reads a file and returns all lines 
+This operator reads a file and returns all lines
 found in this files into a stream.
 
 
@@ -986,7 +986,7 @@ ListExpr get_linesTM(ListExpr args){
      !listutils::isSymbol(arg,FText::BasicType())){
     return listutils::typeError(err);
   }
-  return nl->TwoElemList(nl->SymbolAtom("stream" ),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM() ),
                          nl->SymbolAtom(FText::BasicType()));
 
 }
@@ -1088,19 +1088,19 @@ ListExpr shpexportTM(ListExpr args){
   }
   string err = "   stream(SHPEXPORTABLE) x text \n "
                " or stream(tuple(...)) x text x attrname expected";
-  if(!nl->IsEqual(nl->Second(args),"text")){
+  if(!nl->IsEqual(nl->Second(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
   if(len==2){
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream) != 2 ||
-      !nl->IsEqual(nl->First(stream),"stream")){
+      !nl->IsEqual(nl->First(stream),Symbol::STREAM())){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
     }
     ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-    if(!am->CheckKind("SHPEXPORTABLE",nl->Second(stream), errorInfo)){
+    if(!am->CheckKind(Kind::SHPEXPORTABLE(),nl->Second(stream), errorInfo)){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
     }
@@ -1137,12 +1137,12 @@ ListExpr shpexportTM(ListExpr args){
     }
     // check whether the type is in kind
     ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-    if(!am->CheckKind("SHPEXPORTABLE",nl->Second(attr), errorInfo)){
+    if(!am->CheckKind(Kind::SHPEXPORTABLE(),nl->Second(attr), errorInfo)){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
     }
     // all ok, append the index to the result
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->IntAtom(index)),
                              stream);
   }
@@ -1989,14 +1989,14 @@ ListExpr shpimportTM(ListExpr args){
   }
   string t1 = nl->SymbolValue(arg1);
 
-  if(t1!=Point::BasicType() && 
-     t1!=Points::BasicType()  && 
-     t1!=Line::BasicType()  && 
+  if(t1!=Point::BasicType() &&
+     t1!=Points::BasicType()  &&
+     t1!=Line::BasicType()  &&
      t1!=Region::BasicType()){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  return nl->TwoElemList(nl->SymbolAtom("stream"), arg1);
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), arg1);
 }
 
 
@@ -2690,7 +2690,8 @@ ListExpr shpimport2TM(ListExpr args){
    if(!correct){
       return listutils::typeError(errmsg);
    }
-   return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom(shpType));
+   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->SymbolAtom(shpType));
 }
 
 
@@ -2729,7 +2730,7 @@ text -> text
 */
 
 ListExpr dbtypeTM(ListExpr args){
-  if(nl->ListLength(args)==1 && 
+  if(nl->ListLength(args)==1 &&
      nl->IsEqual(nl->First(args),FText::BasicType())){
      return nl->SymbolAtom(FText::BasicType());
   }
@@ -2958,7 +2959,7 @@ ListExpr dbimportTM(ListExpr args){
     ErrorReporter::ReportError("rel x text expected");
     return nl->TypeError();
   }
-  ListExpr res =  nl->TwoElemList(nl->SymbolAtom("stream"),
+  ListExpr res =  nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(nl->First(args)));
   return res;
 }
@@ -3417,9 +3418,9 @@ ListExpr dbimport2TM(ListExpr args){
    if(!correct){
        return listutils::typeError(errMsg);
    }
-   return nl->TwoElemList(nl->SymbolAtom("stream"),
+   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                    nl->TwoElemList(
-                       nl->SymbolAtom(Tuple::BasicType()), 
+                       nl->SymbolAtom(Tuple::BasicType()),
                        attrList));
 
 
@@ -3511,7 +3512,7 @@ ListExpr saveObjectTM(ListExpr args){
 
   if(!nl->IsAtom(obj) &&
      !nl->IsEmpty(obj) &&
-     nl->IsEqual(nl->First(obj),"stream")){
+     nl->IsEqual(nl->First(obj),Symbol::STREAM())){
     ErrorReporter::ReportError("stream not allowes as first argument");
     return nl->TypeError();
   }
@@ -3833,17 +3834,17 @@ ListExpr stringORtextOPTIONbool2intTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
-      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
+      && !nl->IsEqual(nl->First(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
-  if (listLength == 2 && !nl->IsEqual(nl->Second(args),symbols::BOOL)){
+  if (listLength == 2 && !nl->IsEqual(nl->Second(args),CcBool::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  return nl->SymbolAtom(symbols::INT);
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 /*
@@ -4004,24 +4005,24 @@ ListExpr stringORtext_stringORtext_OPTIONALbool2boolTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
-      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
+      && !nl->IsEqual(nl->First(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->Second(args),symbols::STRING)
-      && !nl->IsEqual(nl->Second(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->Second(args),CcString::BasicType())
+      && !nl->IsEqual(nl->Second(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
 
-  if (listLength == 3 && !nl->IsEqual(nl->Third(args),symbols::BOOL)){
+  if (listLength == 3 && !nl->IsEqual(nl->Third(args),CcBool::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  return nl->SymbolAtom(symbols::BOOL);
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 
@@ -4171,13 +4172,13 @@ ListExpr stringORtext2textTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
-      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
+      && !nl->IsEqual(nl->First(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
-  return nl->SymbolAtom(symbols::TEXT);
+  return nl->SymbolAtom(FText::BasicType());
 }
 
 /*
@@ -4292,19 +4293,19 @@ ListExpr stringORtext_stringORtext2boolTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
-      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
+      && !nl->IsEqual(nl->First(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
-  if(    !nl->IsEqual(nl->Second(args),symbols::STRING)
-      && !nl->IsEqual(nl->Second(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->Second(args),CcString::BasicType())
+      && !nl->IsEqual(nl->Second(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 
-  return nl->SymbolAtom(symbols::BOOL);
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -4393,18 +4394,18 @@ ListExpr stringORtext_OPTIONALint2textstreamTM(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
-      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->First(args),CcString::BasicType())
+      && !nl->IsEqual(nl->First(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
   if(    listLength == 2
-      && !nl->IsEqual(nl->Second(args),symbols::INT)){
+      && !nl->IsEqual(nl->Second(args),CcInt::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  return nl->TwoElemList( nl->SymbolAtom(symbols::STREAM),
-                          nl->SymbolAtom(symbols::TEXT));
+  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                          nl->SymbolAtom(FText::BasicType()));
 }
 
 /*
@@ -4563,11 +4564,11 @@ ListExpr CSVEXPORTABLEtoTextTM(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!am->CheckKind("CSVEXPORTABLE",nl->First(args),errorInfo)){
+  if(!am->CheckKind(Kind::CSVEXPORTABLE(),nl->First(args),errorInfo)){
     ErrorReporter::ReportError("stream element not in kind csvexportable");
     return nl->TypeError();
   }
-  return nl->SymbolAtom(symbols::TEXT);
+  return nl->SymbolAtom(FText::BasicType());
 }
 
 
@@ -4642,12 +4643,12 @@ ListExpr CSVIMPORTABLE_textORstring2CSVIMPORATABLETM(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!am->CheckKind("CSVIMPORTABLE",nl->First(args),errorInfo)){
+  if(!am->CheckKind(Kind::CSVIMPORTABLE(),nl->First(args),errorInfo)){
     ErrorReporter::ReportError("stream element not in kind csvimportable");
     return nl->TypeError();
   }
-  if(    !nl->IsEqual(nl->Second(args),symbols::STRING)
-      && !nl->IsEqual(nl->Second(args),symbols::TEXT)){
+  if(    !nl->IsEqual(nl->Second(args),CcString::BasicType())
+      && !nl->IsEqual(nl->Second(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -4700,9 +4701,9 @@ const string fromCSVtextSpec  =
 */
 
 int fromCSVtextSelect(ListExpr args){
-  if(nl->IsEqual(nl->Second(args),symbols::TEXT)){
+  if(nl->IsEqual(nl->Second(args),FText::BasicType())){
     return 0;
-  } else if(nl->IsEqual(nl->Second(args),symbols::STRING)){
+  } else if(nl->IsEqual(nl->Second(args),CcString::BasicType())){
     return 1;
   }
   return -1;

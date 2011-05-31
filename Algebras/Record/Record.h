@@ -60,11 +60,6 @@ For detailed information refer to ~Record.cpp~.
 
 
 using namespace std;
-using namespace symbols;
-
-namespace symbols {
-  Sym RECORD("record");
-}
 
 /*
 
@@ -199,6 +194,7 @@ be implemented for this data type because a record owns FLOB.
     static int        SizeOfObj();
     static ListExpr   Property();
 
+    static const string BasicType() { return "record"; }
 /*
 4.2 Private area of class Record
 

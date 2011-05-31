@@ -231,6 +231,7 @@ The following groups of test cases are available:
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "DateTime.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -2749,7 +2750,7 @@ static bool CheckIRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckIRegion() called" << endl;
 
   return nl->IsEqual(type, IRegion::BasicType())
-      || nl->IsEqual(type, "intimeregion");
+      || nl->IsEqual(type, IRegion::BasicType());
 }
 
 /*
@@ -6393,7 +6394,7 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
 
     // check for undefined value
     if( !ur->IsDefined() )
-      return (nl->SymbolAtom("undef"));
+      return (nl->SymbolAtom(Symbol::UNDEFINED()));
 
     return
         OutURegionEmbedded(
@@ -6417,8 +6418,7 @@ static Word InURegion(const ListExpr typeInfo,
     URegion* ur = new URegion((unsigned int)0);
 
     // Check for undefined value
-    if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
-         && nl->SymbolValue( instance ) == "undef" )
+    if ( listutils::isSymbolUndefined( instance ) )
       {
         ur->SetDefined(false);
         correct = true;
@@ -7731,7 +7731,7 @@ static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
     MRegion* mr = (MRegion*) value.addr;
 
     // check for undefined value
-    if( !mr->IsDefined() ) return (nl->SymbolAtom("undef"));
+    if( !mr->IsDefined() ) return (nl->SymbolAtom(Symbol::UNDEFINED()));
 
     if (mr->IsEmpty()) return (nl->TheEmptyList());
 
@@ -7777,8 +7777,7 @@ Word InMRegion(const ListExpr typeInfo,
 
     MRegion* mr = new MRegion(0);
 
-    if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
-         && nl->SymbolValue( instance ) == "undef" )
+    if ( listutils::isSymbolUndefined( instance ) )
     {
       mr->SetDefined(false);
       correct = true;
@@ -7954,7 +7953,7 @@ static ListExpr MPointMRegionToMPointTypeMap(ListExpr args)
         && nl->IsEqual(nl->Second(args), MRegion::BasicType()))
         return nl->SymbolAtom(MPoint::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -7971,7 +7970,7 @@ static ListExpr MPointMRegionToMBoolTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), MRegion::BasicType()))
         return nl->SymbolAtom(MBool::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -7986,7 +7985,7 @@ static ListExpr MRegionToIRegionTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), MRegion::BasicType()))
         return nl->SymbolAtom(IRegion::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8001,7 +8000,7 @@ static ListExpr MRegionToPeriodsTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), MRegion::BasicType()))
         return nl->SymbolAtom(Range<Instant>::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8017,7 +8016,7 @@ static ListExpr IRegionToInstantTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), IRegion::BasicType()))
         return nl->SymbolAtom(Instant::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8033,7 +8032,7 @@ static ListExpr IRegionToRegionTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), IRegion::BasicType()))
         return nl->SymbolAtom(Region::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8050,7 +8049,7 @@ static ListExpr MRegionToRegionTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), MRegion::BasicType()))
         return nl->SymbolAtom(Region::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 #endif // MRA_TRAVERSED
 
@@ -8071,7 +8070,7 @@ static ListExpr PresentTypeMap(ListExpr args) {
             || nl->IsEqual(nl->Second(args), Range<Instant>::BasicType())))
         return nl->SymbolAtom(CcBool::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8093,7 +8092,7 @@ static ListExpr AtTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), Point::BasicType()))
         return nl->SymbolAtom(MPoint::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8112,7 +8111,7 @@ ListExpr AddTypeMap( ListExpr args )
         && nl->IsEqual(nl->Second(args), URegion::BasicType()))
         return nl->SymbolAtom(MRegion::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8129,7 +8128,7 @@ static ListExpr UnionTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), URegion::BasicType()))
         return nl->SymbolAtom(URegion::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8149,7 +8148,7 @@ static ListExpr AtInstantTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), Instant::BasicType()))
         return nl->SymbolAtom(IRegion::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8167,7 +8166,7 @@ static ListExpr MraprecTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), CcReal::BasicType()))
         return nl->SymbolAtom(CcBool::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 #endif // MRA_PREC
 
@@ -8180,15 +8179,15 @@ static ListExpr MoveTypeMap(ListExpr args){
     if (MRA_DEBUG) cout << "MOveTypeMap called " << endl;
     if(nl->ListLength(args)!=2){
         ErrorReporter::ReportError("invalid number of arguments");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if(!nl->IsEqual(nl->First(args),MPoint::BasicType())){
         ErrorReporter::ReportError("mpoint as first argument required");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if(!nl->IsEqual(nl->Second(args),Region::BasicType())){
         ErrorReporter::ReportError("region as second argument required");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if (MRA_DEBUG) cout << "Typemap returns mregion" << endl;
     return nl->SymbolAtom(MRegion::BasicType());
@@ -8216,7 +8215,7 @@ static ListExpr BboxTypeMap(ListExpr args) {
       return nl->SymbolAtom(Rectangle<3>::BasicType());
 
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8241,7 +8240,7 @@ static ListExpr Bbox2dTypeMap(ListExpr args) {
         return nl->SymbolAtom(Rectangle<2>::BasicType());
 
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8252,16 +8251,16 @@ Type mapping of the ~vertextrajectory~ operator:
 static ListExpr VertTrajectoryTypeMap(ListExpr args){
    if(nl->ListLength(args)!=1){
        ErrorReporter::ReportError("wrong number of arguments");
-       return nl->SymbolAtom("typeerror");
+       return nl->SymbolAtom(Symbol::TYPEERROR());
    }
    ListExpr arg = nl->First(args);
    if(nl->IsEqual(arg,URegion::BasicType())
      || nl->IsEqual(arg,MRegion::BasicType())){
-     return nl->SymbolAtom("line");
+     return nl->SymbolAtom(Line::BasicType());
    }
    ErrorReporter::ReportError("uregion or mregion"
                               " expected but got ");
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -8277,11 +8276,11 @@ ListExpr MRAUnitsTypeMap( ListExpr args )
     ListExpr arg1 = nl->First(args);
 
     if( nl->IsEqual( arg1, MRegion::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
        nl->SymbolAtom(URegion::BasicType()));
 
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -8302,7 +8301,7 @@ ListExpr MRegTimeShiftTM( ListExpr args )
         return nl->SymbolAtom( MRegion::BasicType() );
     }
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -8316,11 +8315,11 @@ static ListExpr Unittest1TypeMap(ListExpr args) {
         cerr << "Unittest1TypeMap() called" << endl;
 
     if (nl->ListLength(args) != 17)
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 
     for (; !nl->IsEmpty(args); args = nl->Rest(args))
         if (nl->SymbolValue(nl->First(args)) != CcReal::BasicType())
-            return nl->SymbolAtom("typeerror");
+            return nl->SymbolAtom(Symbol::TYPEERROR());
 
     return nl->SymbolAtom(CcInt::BasicType());
 }
@@ -8334,7 +8333,7 @@ static ListExpr Unittest2TypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), CcInt::BasicType()))
         return nl->SymbolAtom(CcBool::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr Unittest3TypeMap(ListExpr args) {
@@ -8346,7 +8345,7 @@ static ListExpr Unittest3TypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), MPoint::BasicType()))
         return nl->SymbolAtom(Range<CcReal>::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 #endif // MRA_UNITTEST
 
@@ -9692,14 +9691,14 @@ public:
     AddTypeConstructor(&uregion);
     AddTypeConstructor(&movingregion);
 
-    intimeregion.AssociateKind("TEMPORAL");
-    intimeregion.AssociateKind("DATA");
+    intimeregion.AssociateKind(Kind::TEMPORAL());
+    intimeregion.AssociateKind(Kind::DATA());
 
-    uregion.AssociateKind("TEMPORAL");
-    uregion.AssociateKind("DATA");
+    uregion.AssociateKind(Kind::TEMPORAL());
+    uregion.AssociateKind(Kind::DATA());
 
-    movingregion.AssociateKind("TEMPORAL");
-    movingregion.AssociateKind("DATA");
+    movingregion.AssociateKind(Kind::TEMPORAL());
+    movingregion.AssociateKind(Kind::DATA());
 
     AddOperator(&atinstant);
     AddOperator(&initial);

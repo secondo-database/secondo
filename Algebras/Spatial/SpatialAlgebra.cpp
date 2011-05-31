@@ -68,6 +68,7 @@ using namespace std;
 #include "AlmostEqual.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "RegionTools.h"
+#include "Symbols.h"
 
 #include <vector>
 #include <queue>
@@ -858,7 +859,7 @@ ostream& operator<<( ostream& o, const Point& p )
   if( p.IsDefined() )
     o << "(" << p.GetX() << ", " << p.GetY() << ")";
   else
-    o << "undef";
+    o << Symbol::UNDEFINED();
   o.flags(oldOptions);
   return o;
 }
@@ -870,7 +871,7 @@ ostream& Point::Print( ostream &os ) const
 
 string Point::toString(const Geoid* geoid /*=0*/) const {
   if(!IsDefined()){
-    return "undef";
+    return Symbol::UNDEFINED();
   }
   stringstream s;
   s.setf(ios_base::fixed,ios_base::floatfield);
@@ -1738,7 +1739,7 @@ OutPoint( ListExpr typeInfo, Word value )
                nl->RealAtom( point->GetX() ),
                nl->RealAtom( point->GetY() ) );
   else
-    return nl->SymbolAtom( "undef" );
+    return nl->SymbolAtom( Symbol::UNDEFINED() );
 }
 
 /*
@@ -1761,7 +1762,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
       return SetWord(new Point(true, listutils::getNumValue(first),
                                      listutils::getNumValue(second)));
     }
-  } else if( listutils::isSymbol( instance, "undef" ) ){
+  } else if( listutils::isSymbolUndefined( instance ) ){
      return SetWord(new Point(false));
   }
   correct = false;
@@ -3170,7 +3171,7 @@ OutPoints( ListExpr typeInfo, Word value )
 {
   Points* points = (Points*)(value.addr);
   if(!points->IsDefined()){
-    return nl->SymbolAtom("undef");
+    return nl->SymbolAtom(Symbol::UNDEFINED());
   }
 
   if( points->IsEmpty() )
@@ -3199,7 +3200,7 @@ Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if(nl->IsEqual(instance,"undef")) {
+  if(listutils::isSymbolUndefined(instance)) {
       Points* points = new Points(0);
       points->Clear();
       points->SetDefined(false);
@@ -6676,7 +6677,7 @@ OutLine( ListExpr typeInfo, Word value )
   Line* l = (Line*)(value.addr);
 
   if(!l->IsDefined()){
-    return nl->SymbolAtom("undef");
+    return nl->SymbolAtom(Symbol::UNDEFINED());
   }
 
 
@@ -6722,7 +6723,7 @@ InLine( const ListExpr typeInfo, const ListExpr instance,
 {
   Line* l = new Line( 0 );
 
-  if(nl->IsEqual(instance,"undef")){
+  if(listutils::isSymbolUndefined(instance)){
     l->SetDefined(false);
     correct=true;
     return SetWord(Address(l));
@@ -7731,7 +7732,7 @@ Word
 
  ListExpr instance = instance1;
  correct = true;
- if(nl->IsEqual(instance,"undef")){
+ if(listutils::isSymbolUndefined(instance)){
     SimpleLine* line = new SimpleLine( 0 );
     line->SetDefined(false);
     return SetWord(Address(line));
@@ -7799,7 +7800,7 @@ Word
    SimpleLine* l = static_cast<SimpleLine*>(value.addr);
 
    if(!l->IsDefined()){
-     return nl->SymbolAtom("undef");
+     return nl->SymbolAtom(Symbol::UNDEFINED());
    }
 
    if( l->IsEmpty() ){
@@ -11608,7 +11609,7 @@ OutRegion( ListExpr typeInfo, Word value )
 {
   Region* cr = (Region*)(value.addr);
   if(!cr->IsDefined()){
-    return nl->SymbolAtom("undef");
+    return nl->SymbolAtom(Symbol::UNDEFINED());
   }
 
   if( cr->IsEmpty() )
@@ -11664,7 +11665,7 @@ OutRegion( ListExpr typeInfo, Word value )
                << "discontiguous segments!" << endl
                << "\ths     = " << hs     << endl
                << "\thsnext = " << hsnext << endl;
-          return nl->SymbolAtom("undef");
+          return nl->SymbolAtom(Symbol::UNDEFINED());
         }
 
         pointNL = OutPoint( nl->TheEmptyList(), SetWord(&outputP) );
@@ -11698,7 +11699,7 @@ OutRegion( ListExpr typeInfo, Word value )
                   << "discontiguous segment in cycle!" << endl
                   << "\thh        = " << hs << endl
                   << "\tleftoverP = " << leftoverP << endl;
-              return nl->SymbolAtom("undef");
+              return nl->SymbolAtom(Symbol::UNDEFINED());
             }
 
             pointNL=OutPoint( nl->TheEmptyList(),
@@ -11747,7 +11748,7 @@ OutRegion( ListExpr typeInfo, Word value )
                   << "discontiguous segments in cycle!" << endl
                   << "\ths     = " << hs     << endl
                   << "\thsnext = " << hsnext << endl;
-              return nl->SymbolAtom("undef");
+              return nl->SymbolAtom(Symbol::UNDEFINED());
             }
 
             pointNL = OutPoint( nl->TheEmptyList(),
@@ -11811,7 +11812,7 @@ OutRegion( ListExpr typeInfo, Word value )
                 << "discontiguous segments in cycle!" << endl
                 << "\ths     = " << hs     << endl
                 << "\thsnext = " << hsnext << endl;
-            return nl->SymbolAtom("undef");
+            return nl->SymbolAtom(Symbol::UNDEFINED());
           }
 
           pointNL = OutPoint(nl->TheEmptyList(), SetWord(&outputP));
@@ -11867,7 +11868,7 @@ InRegion(const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct ){
 
 
-  if(listutils::isSymbol(instance,"undef")){
+  if(listutils::isSymbol(instance,Symbol::UNDEFINED())){
     Region* r = new Region(0);
     r->SetDefined(false);
     correct = true;
@@ -11960,7 +11961,7 @@ InRegion_old( const ListExpr typeInfo, const ListExpr instance,
 
   Region* cr = new Region( 0 );
 
-  if(nl->IsEqual(instance,"undef")){
+  if(listutils::isSymbolUndefined(instance)){
     cr->SetDefined(0);
     correct=true;
     return SetWord(Address(cr));
@@ -13200,15 +13201,15 @@ ListExpr SpatialComponentsMap( ListExpr args )
   if( nl->ListLength( args ) == 1 )
   {
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stpoints )
-      return nl->TwoElemList( nl->SymbolAtom("stream"),
+      return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                               nl->SymbolAtom(Point::BasicType()) );
 
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion )
-      return nl->TwoElemList( nl->SymbolAtom("stream"),
+      return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                               nl->SymbolAtom(Region::BasicType()) );
 
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stline )
-      return nl->TwoElemList( nl->SymbolAtom("stream"),
+      return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                               nl->SymbolAtom(Line::BasicType()) );
 
   }
@@ -13702,7 +13703,7 @@ ListExpr PolylinesMap(ListExpr args){
        return listutils::typeError("line x bool [x points] expected");
      }
   }
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->SymbolAtom(Line::BasicType()));
 }
 
@@ -13742,7 +13743,7 @@ ListExpr SegmentsTypeMap(ListExpr args){
     return listutils::typeError("line expected");
   }
   return nl->TwoElemList(
-               nl->SymbolAtom("stream"),
+               nl->SymbolAtom(Symbol::STREAM()),
                nl->SymbolAtom(Line::BasicType())
          );
 }
@@ -13941,7 +13942,7 @@ ListExpr gkTypeMap(ListExpr args){
       return nl->SymbolAtom(t); // Zone provided by user
     }
   } else if (len==1){
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
            nl->OneElemList(nl->IntAtom(2)),          // standard zone for Hagen
            nl->SymbolAtom(t));
   }
@@ -14093,7 +14094,7 @@ ListExpr SpatialCollectPointsTM(ListExpr args){
   }
   ListExpr s = nl->First(arg1);
   ListExpr p = nl->Second(arg1);
-  if(!listutils::isSymbol(s,"stream")){
+  if(!listutils::isSymbol(s,Symbol::STREAM())){
     return listutils::typeError(err);
   }
   if(!listutils::isSymbol(p,Point::BasicType()) &&
@@ -18964,9 +18965,9 @@ ListExpr halfSegmentsTM(ListExpr args){
                                            nl->SymbolAtom(Line::BasicType())));
 
     return nl->TwoElemList(
-         nl->SymbolAtom("stream"),
+         nl->SymbolAtom(Symbol::STREAM()),
          nl->TwoElemList(
-           nl->SymbolAtom("tuple"),
+           nl->SymbolAtom(Tuple::BasicType()),
            attrList));
 
   } else {
@@ -19248,14 +19249,14 @@ ListExpr PointPointOptGeoidOptReal2PointTM(ListExpr args){
     return listutils::typeError(errmsg);
   }
   if( noargs == 2 ) {
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                             nl->OneElemList(nl->RealAtom(0.5)),
                                             nl->SymbolAtom(Point::BasicType()));
   }
   if( noargs == 3 ){
     if( listutils::isSymbol(nl->Third(args),Geoid::BasicType())) {
       // special case: append default real parameter of 0.5
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->RealAtom(0.5)),
                                nl->SymbolAtom(Point::BasicType()));
     }
@@ -19412,27 +19413,27 @@ class SpatialAlgebra : public Algebra
 
     AddTypeConstructor( &sline);
 
-    point.AssociateKind("DATA");
-    points.AssociateKind("DATA");
-    line.AssociateKind("DATA");
-    region.AssociateKind("DATA");
-    sline.AssociateKind("DATA");
+    point.AssociateKind(Kind::DATA());
+    points.AssociateKind(Kind::DATA());
+    line.AssociateKind(Kind::DATA());
+    region.AssociateKind(Kind::DATA());
+    sline.AssociateKind(Kind::DATA());
 
 
-    point.AssociateKind("SPATIAL2D");
-    points.AssociateKind("SPATIAL2D");
-    line.AssociateKind("SPATIAL2D");
-    region.AssociateKind("SPATIAL2D");
-    sline.AssociateKind("SPATIAL2D");
+    point.AssociateKind(Kind::SPATIAL2D());
+    points.AssociateKind(Kind::SPATIAL2D());
+    line.AssociateKind(Kind::SPATIAL2D());
+    region.AssociateKind(Kind::SPATIAL2D());
+    sline.AssociateKind(Kind::SPATIAL2D());
 
 
-    point.AssociateKind("SHPEXPORTABLE");
-    points.AssociateKind("SHPEXPORTABLE");
-    line.AssociateKind("SHPEXPORTABLE");
-    region.AssociateKind("SHPEXPORTABLE");
+    point.AssociateKind(Kind::SHPEXPORTABLE());
+    points.AssociateKind(Kind::SHPEXPORTABLE());
+    line.AssociateKind(Kind::SHPEXPORTABLE());
+    region.AssociateKind(Kind::SHPEXPORTABLE());
 
     AddTypeConstructor(&geoid_t);
-    geoid_t.AssociateKind("DATA");
+    geoid_t.AssociateKind(Kind::DATA());
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );

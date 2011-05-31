@@ -37,7 +37,6 @@ January-May 2008, Mirko Dibbert
 #include "GTA_SpatialAttr.h"
 
 using namespace gta;
-using namespace symbols;
 
 /*
 Initialize static members:
@@ -409,13 +408,13 @@ void DistfunReg::initialize()
     addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         EuclideanInt,
-        DistDataReg::getInfo(INT, DDATA_NATIVE),
+        DistDataReg::getInfo(CcInt::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         EuclideanReal,
-        DistDataReg::getInfo(REAL, DDATA_NATIVE),
+        DistDataReg::getInfo(CcReal::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     addInfo(DistfunInfo(
@@ -427,7 +426,7 @@ void DistfunReg::initialize()
     addInfo(DistfunInfo(
         DFUN_EDIT_DIST, DFUN_EDIT_DIST_DESCR,
         EditDistance,
-        DistDataReg::getInfo(STRING, DDATA_NATIVE),
+        DistDataReg::getInfo(CcString::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     PictureFuns::initDistfuns();

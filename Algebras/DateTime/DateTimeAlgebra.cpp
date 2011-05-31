@@ -109,21 +109,10 @@ today               & [->] instant
 #include <sys/timeb.h>
 #include "LogMsg.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 #include <limits>
 
-
 #define POS "DateTimeAlgebra.cpp:" << __LINE__
-
-
-
-namespace Duration{
-
-  const string BasicType(){
-     return "duration";
-  }
-}
-
-
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -581,7 +570,7 @@ This function returns the string representation of this DateTime instance.
 string DateTime::ToString() const{
   ostringstream tmp;
   if(!IsDefined()){
-    return "undefined";
+    return Symbol::UNDEFINED();
   }
   if(type == (durationtype)){ //a duration
     tmp << GetDay() << ";";
@@ -694,7 +683,7 @@ bool DateTime::ReadFrom(const string Time){
   SetDefined(true);
   if(type == (instanttype)){
     // read instant type from string
-    if(Time=="undefined"){
+    if(listutils::isSymbolUndefined(Time)){
         SetDefined(false);
         return true;
     }
@@ -822,7 +811,7 @@ bool DateTime::ReadFrom(const string Time){
     return true;
   } else { // read durationtype from string
     assert(type ==(durationtype));
-    if(Time=="undefined"){
+    if(listutils::isSymbolUndefined(Time)){
         SetDefined(false);
         return true;
     }
@@ -922,11 +911,11 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
      }
      ListExpr TypeList = nl->First(LE);
      if(!nl->IsEqual(TypeList,"datetime")){
-       if( (type == (instanttype)) && 
+       if( (type == (instanttype)) &&
            !nl->IsEqual(TypeList,DateTime::BasicType())){
             return false;
        }
-       if( (type == (durationtype)) && 
+       if( (type == (durationtype)) &&
            !nl->IsEqual(TypeList,Duration::BasicType())){
           return false;
        }
@@ -938,7 +927,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
 
   // Special Representation in this Algebra
   if(nl->AtomType(ValueList)==SymbolType){
-    if(nl->SymbolValue(ValueList) == "undef"){
+    if(listutils::isSymbolUndefined(ValueList)){
       SetDefined(false);
       return true;
     }
@@ -1536,7 +1525,7 @@ ListExpr OutDateTime( ListExpr typeInfo, Word value ){
    if( T->IsDefined() )
      return T->ToListExpr(false);
    else
-     return nl->SymbolAtom("undef");
+     return nl->SymbolAtom(Symbol::UNDEFINED());
 }
 
 
@@ -1605,7 +1594,7 @@ ListExpr InstantProperty(){
             nl->FiveElemList(
                 nl->StringAtom("-> Data"),
                 nl->StringAtom(DateTime::BasicType()),
-                nl->StringAtom("string"),
+                nl->StringAtom(CcString::BasicType()),
                 nl->StringAtom("2004-4-12-8:03:32.645"),
                 nl->StringAtom("This type represents a point of time")
          )));
@@ -1773,18 +1762,18 @@ ListExpr VoidInstant(ListExpr args){
   if(nl->IsEmpty(args))
      return nl->SymbolAtom(DateTime::BasicType());
   ErrorReporter::ReportError("no argument allowed\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr IntBool(ListExpr args){
   if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError("one argument expected\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),CcInt::BasicType()))
      return nl->SymbolAtom(CcBool::BasicType());
   ErrorReporter::ReportError("argument must be of type int\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr InstantInt(ListExpr args){
@@ -1796,13 +1785,13 @@ ListExpr InstantInt(ListExpr args){
      }
   }
   ErrorReporter::ReportError("exactly one argument required");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr PlusCheck(ListExpr args){
   if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("plus expects two arguments\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),DateTime::BasicType()) &&
      nl->IsEqual(nl->Second(args),Duration::BasicType()))
@@ -1815,13 +1804,13 @@ ListExpr PlusCheck(ListExpr args){
      return nl->SymbolAtom(Duration::BasicType());
   ErrorReporter::ReportError("duration/instant or"
                              " duration/duration expected\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr MinusCheck(ListExpr args){
   if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("operator - requires two arguments\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),DateTime::BasicType()) &&
      nl->IsEqual(nl->Second(args),Duration::BasicType()))
@@ -1834,62 +1823,62 @@ ListExpr MinusCheck(ListExpr args){
      return nl->SymbolAtom(Duration::BasicType());
   ErrorReporter::ReportError("duration/instant or"
                              " duration/duration expected\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
 ListExpr DurationIntDuration(ListExpr args){
   if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("Two arguments required\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),Duration::BasicType()) &&
      nl->IsEqual(nl->Second(args),CcInt::BasicType()))
      return nl->SymbolAtom(Duration::BasicType());
   ErrorReporter::ReportError("duration x int expected\n" );
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr DurationRealDuration(ListExpr args){
   if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("Two arguments required\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),Duration::BasicType()) &&
      nl->IsEqual(nl->Second(args),CcReal::BasicType()))
      return nl->SymbolAtom(Duration::BasicType());
   ErrorReporter::ReportError("duration x real expected\n" );
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr InstantString(ListExpr args){
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError("one argument expected\n");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),DateTime::BasicType()))
-    return nl->SymbolAtom("string");
+    return nl->SymbolAtom(CcString::BasicType());
   ErrorReporter::ReportError("instant expected\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr DateTimeString(ListExpr args){
   if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError("one argument expected\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(nl->IsEqual(nl->First(args),DateTime::BasicType()) ||
      nl->IsEqual(nl->First(args),Duration::BasicType()))
-     return nl->SymbolAtom("string");
+     return nl->SymbolAtom(CcString::BasicType());
   ErrorReporter::ReportError("instant or duration expected\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
 ListExpr CheckComparisons(ListExpr args){
   if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("two arguments required\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
   if(nl->IsEqual(nl->First(args),DateTime::BasicType()) &&
@@ -1902,20 +1891,20 @@ ListExpr CheckComparisons(ListExpr args){
 
   ErrorReporter::ReportError("(instant x instant) or"
                              "(duratin x duration) required");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr TheInstantTM(ListExpr args){
    int l = nl->ListLength(args);
    if(l<1 || l>7){
       ErrorReporter::ReportError(" 1..7 arguements required\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
    }
    ListExpr rest = args;
    while(!nl->IsEmpty(rest)){
        if(!nl->IsEqual(nl->First(rest),CcInt::BasicType())){
            ErrorReporter::ReportError("All arguments must be of type int\n");
-           return nl->SymbolAtom("typeerror");
+           return nl->SymbolAtom(Symbol::TYPEERROR());
        }
        rest = nl->Rest(rest);
    }
@@ -1925,12 +1914,12 @@ ListExpr TheInstantTM(ListExpr args){
 ListExpr DivTM(ListExpr args){
    if(nl->ListLength(args)!=2){
       ErrorReporter::ReportError("Two arguments required\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
    }
    if(!nl->IsEqual(nl->First(args),Duration::BasicType()) ||
       !nl->IsEqual(nl->Second(args),Duration::BasicType())){
       ErrorReporter::ReportError("two duration values expected\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
    }
    return nl->SymbolAtom(CcInt::BasicType());
 }
@@ -1940,7 +1929,7 @@ ListExpr MinMaxInstantTM(ListExpr args){
        return nl->SymbolAtom(DateTime::BasicType());
    }
    ErrorReporter::ReportError("no arguments allowed");
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr MinMaxDurationTM(ListExpr args){
@@ -1948,7 +1937,7 @@ ListExpr MinMaxDurationTM(ListExpr args){
        return nl->SymbolAtom(Duration::BasicType());
    }
    ErrorReporter::ReportError("no arguments allowed");
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr CreateDurationTM(ListExpr args){
@@ -1957,7 +1946,7 @@ ListExpr CreateDurationTM(ListExpr args){
       return nl->SymbolAtom(Duration::BasicType());
     } else {
       ErrorReporter::ReportError("one real value expected\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   if(nl->ListLength(args)==2){
@@ -1966,11 +1955,11 @@ ListExpr CreateDurationTM(ListExpr args){
       return nl->SymbolAtom(Duration::BasicType());
     } else {
           ErrorReporter::ReportError("two int values expected\n");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("One or two arguments required\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr CreateInstantTM(ListExpr args){
@@ -1979,7 +1968,7 @@ ListExpr CreateInstantTM(ListExpr args){
       return nl->SymbolAtom(DateTime::BasicType());
     } else {
       ErrorReporter::ReportError("one real value expected\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   if(nl->ListLength(args)==2){
@@ -1988,11 +1977,11 @@ ListExpr CreateInstantTM(ListExpr args){
       return nl->SymbolAtom(DateTime::BasicType());
     } else {
       ErrorReporter::ReportError("two int values expected\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("One or two arguments required\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2002,11 +1991,11 @@ ListExpr Duration2RealTM(ListExpr args){
       return nl->SymbolAtom(CcReal::BasicType());
     } else {
       ErrorReporter::ReportError("one duration value expected\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("One argument required\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr Instant2RealTM(ListExpr args){
@@ -2015,11 +2004,11 @@ ListExpr Instant2RealTM(ListExpr args){
       return nl->SymbolAtom(CcReal::BasicType());
     } else {
       ErrorReporter::ReportError("one instant value expected\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("One argument required\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr InstantOrDurationIntTM(ListExpr args){
@@ -2035,7 +2024,7 @@ ListExpr InstantOrDurationIntTM(ListExpr args){
      }
   }
   ErrorReporter::ReportError("exactly one argument required");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2965,14 +2954,14 @@ class DateTimeAlgebra : public Algebra
   {
     // type constructors
     AddTypeConstructor( &instant );
-    instant.AssociateKind("DATA");
-    instant.AssociateKind("INDEXABLE");
-    instant.AssociateKind("CSVEXPORTABLE");
-    instant.AssociateKind("CSVIMPORTABLE");
+    instant.AssociateKind( Kind::DATA() );
+    instant.AssociateKind( Kind::INDEXABLE() );
+    instant.AssociateKind( Kind::CSVEXPORTABLE() );
+    instant.AssociateKind( Kind::CSVIMPORTABLE() );
     AddTypeConstructor( &duration );
-    duration.AssociateKind("DATA");
-    duration.AssociateKind("CSVEXPORTABLE");
-    duration.AssociateKind("CSVIMPORTABLE");
+    duration.AssociateKind( Kind::DATA() );
+    duration.AssociateKind( Kind::CSVEXPORTABLE() );
+    duration.AssociateKind( Kind::CSVIMPORTABLE() );
 
     // operators
     AddOperator(&dt_add);
@@ -3044,4 +3033,5 @@ InitializeDateTimeAlgebra( NestedList* nlRef,
 ostream& operator<<(ostream& o, const datetime::DateTime& DT) {
    return DT.Print(o);
 }
+
 

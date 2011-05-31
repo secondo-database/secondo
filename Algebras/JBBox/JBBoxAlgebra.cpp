@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -124,6 +124,7 @@ using namespace std;
 #include "Attribute.h"
 #include <jni.h>
 #include <JVMInit.h>
+#include "Symbols.h"
 
 namespace jbbox {
 
@@ -980,7 +981,7 @@ JBox* JBox::Union(const JPoint* P) const{
 ~Union~
 
 This function creates a new JBox which contains all points in this
-JBox and in B.  
+JBox and in B.
 
 */
 
@@ -997,7 +998,7 @@ JBox* JBox::Union(const JBox* B) const{
 /*
 ~Intersection~
 
-This function creates a new JBox which only contains such points 
+This function creates a new JBox which only contains such points
 which are contained in both in this JBox and in B.
 
 */
@@ -1439,73 +1440,73 @@ TypeConstructor jbox
 
 static ListExpr OiOiBool(ListExpr arg){
    if(nl->ListLength(arg)!=2)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jpoint") &&
       nl->IsEqual(nl->Second(arg),"jpoint"))
-         return nl->SymbolAtom("bool");
+         return nl->SymbolAtom(CcBool::BasicType());
    if(nl->IsEqual(nl->First(arg),"jbox") &&
       nl->IsEqual(nl->Second(arg),"jbox"))
-         return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+         return nl->SymbolAtom(CcBool::BasicType());
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr BoxPointBool(ListExpr arg){
    if(nl->ListLength(arg)!=2)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jbox") &&
       nl->IsEqual(nl->Second(arg),"jpoint"))
-        return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(CcBool::BasicType());
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr BoxBoxBox(ListExpr arg){
    if(nl->ListLength(arg)!=2)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jbox") &&
       nl->IsEqual(nl->Second(arg),"jbox"))
         return nl->SymbolAtom("jbox");
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr BoxBoxBool(ListExpr arg){
    if(nl->ListLength(arg)!=2)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jbox") &&
       nl->IsEqual(nl->Second(arg),"jbox"))
-        return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(CcBool::BasicType());
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
 static ListExpr BoxReal(ListExpr arg){
    if(nl->ListLength(arg)!=1)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jbox"))
-      return nl->SymbolAtom("real");
-   return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(CcReal::BasicType());
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr PointBoxBool(ListExpr arg){
    if(nl->ListLength(arg)!=2)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jpoint") &&
       nl->IsEqual(nl->Second(arg),"jbox"))
-      return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(CcBool::BasicType());
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr BoxBool(ListExpr arg){
    if(nl->ListLength(arg)!=1)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
    if(nl->IsEqual(nl->First(arg),"jbox"))
-      return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(CcBool::BasicType());
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
 static ListExpr UnionTypeMap(ListExpr arg){
    if(nl->ListLength(arg)!=2)
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
 
    ListExpr F = nl->First(arg);
    ListExpr S = nl->Second(arg);
@@ -1515,7 +1516,7 @@ static ListExpr UnionTypeMap(ListExpr arg){
       return nl->SymbolAtom("jbox");
    if( nl->IsEqual(F,"jbox") && nl->IsEqual(S,"jpoint"))
       return nl->SymbolAtom("jbox");
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -1814,9 +1815,9 @@ class JBBoxAlgebra : public Algebra
   JBBoxAlgebra() : Algebra()
   {
     AddTypeConstructor( &jpoint );
-    jpoint.AssociateKind("DATA");
+    jpoint.AssociateKind(Kind::DATA());
     AddTypeConstructor(&jbox);
-    jbox.AssociateKind("DATA");
+    jbox.AssociateKind(Kind::DATA());
     AddOperator(&op_equals);
     AddOperator(&op_contains);
     AddOperator(&op_inside);

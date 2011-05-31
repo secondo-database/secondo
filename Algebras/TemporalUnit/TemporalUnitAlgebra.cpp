@@ -255,6 +255,7 @@ helping operators for indexing instant values in R-trees.
 #include "RectangleAlgebra.h"
 #include "PolySolver.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -643,7 +644,7 @@ InstantTypeMapQueryrect2d( ListExpr args )
     if( nl->IsEqual( arg1, Instant::BasicType() )  )
       return nl->SymbolAtom( Rectangle<2>::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -752,7 +753,7 @@ PeriodsTypeMapPoint2d( ListExpr args )
     if( nl->IsEqual( arg1, Periods::BasicType() )  )
       return nl->SymbolAtom( Point::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -849,7 +850,7 @@ PeriodsTypeMapGetDuration( ListExpr args )
     if( nl->IsEqual( arg1, Periods::BasicType() )  )
       return nl->SymbolAtom( Duration::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -956,24 +957,33 @@ For ~the\_mvalue~, it is
 
 ListExpr TU_TM_themvalue( ListExpr args )
 {
-  string argstr;
-
-  // quick check for signature (stream uT) --> mT
-  nl->WriteToString(argstr, args);
-  if ( argstr == "((stream ubool))" )
+  string errmsg = "Expected (stream T), where T in{ubool,uint,upoint,ustring}";
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError(errmsg);
+  }
+  if(!listutils::isDATAStream(nl->First(args))){
+    return listutils::typeError(errmsg);
+  }
+  ListExpr elemtype = nl->Second(nl->First(args));
+  if(listutils::isSymbol(elemtype,UBool::BasicType())){
     return nl->SymbolAtom( MBool::BasicType() );
-  if ( argstr == "((stream uint))" )
+  }
+  if(listutils::isSymbol(elemtype,UInt::BasicType())){
     return nl->SymbolAtom( MInt::BasicType() );
-  if ( argstr == "((stream ureal))" )
-    return nl->SymbolAtom( MReal::BasicType() );
-  if ( argstr == "((stream upoint))" )
-    return nl->SymbolAtom( MPoint::BasicType() );
-//if ( argstr == "((stream uregion))" )
-//  return nl->SymbolAtom( MRegion::BasicType() );
-  if ( argstr == "((stream ustring))" )
+  }
+  if(listutils::isSymbol(elemtype,UString::BasicType())){
     return nl->SymbolAtom( MString::BasicType() );
-
-  return nl->SymbolAtom( "typeerror" );
+  }
+  if(listutils::isSymbol(elemtype,UReal::BasicType())){
+    return nl->SymbolAtom( MReal::BasicType() );
+  }
+  if(listutils::isSymbol(elemtype,UPoint::BasicType())){
+    return nl->SymbolAtom( MPoint::BasicType() );
+  }
+//   if(listutils::isSymbol(elemtype,URegion::BasicType())){
+//     return nl->SymbolAtom( MRegion::BasicType() );
+//   }
+  return listutils::typeError(errmsg);
 }
 
 ListExpr MovingTypeMapMakemvalue( ListExpr args )
@@ -1004,7 +1014,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   // check the given parameter
   second  = nl->Second(args);
   nl->WriteToString(argstr, second);
-  if(argstr == "typeerror"){
+  if(argstr == Symbol::TYPEERROR()){
     return listutils::typeError("invalid attrname" + argstr);
   }
 
@@ -1077,7 +1087,7 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
 //if( inputtype == URegion::BasicType() )
 //  attrtype = nl->SymbolAtom( MRegion::BasicType());
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
            nl->TwoElemList(nl->IntAtom(j),
            nl->StringAtom(nl->SymbolValue(attrtype))), attrtype);
 
@@ -1411,7 +1421,7 @@ UnitTrajectoryTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, UPoint::BasicType() ) )
       return nl->SymbolAtom( Line::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -1488,7 +1498,7 @@ UnitTypeMapPeriods( ListExpr args )
         nl->IsEqual( arg1, URegion::BasicType() ) )
    return nl->SymbolAtom( Periods::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -1591,7 +1601,7 @@ UnitInstantTypeMapIntime( ListExpr args )
         return nl->SymbolAtom( IRegion::BasicType() );
     }
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -1679,7 +1689,7 @@ UnitPeriodsTypeMap( ListExpr args )
     {
       ErrorReporter::ReportError("Operator atperiods expects "
                                  "a list of length 2.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   arg1 = nl->First( args );
@@ -1690,28 +1700,28 @@ UnitPeriodsTypeMap( ListExpr args )
     {
       ErrorReporter::ReportError("Operator atperiods expects a second argument"
                              " of type 'periods' but gets '" + argstr + "'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   if( nl->IsAtom( arg1 ) )
     {
       if( nl->IsEqual( arg1, UBool::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                nl->SymbolAtom(UBool::BasicType()));
       if( nl->IsEqual( arg1, UInt::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                nl->SymbolAtom(UInt::BasicType()));
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                nl->SymbolAtom(UReal::BasicType()));
       if( nl->IsEqual( arg1, UPoint::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                nl->SymbolAtom(UPoint::BasicType()));
       if( nl->IsEqual( arg1, UString::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                nl->SymbolAtom(UString::BasicType()));
       if( nl->IsEqual( arg1, URegion::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                nl->SymbolAtom(URegion::BasicType()));
 
       nl->WriteToString(argstr, arg1);
@@ -1719,7 +1729,7 @@ UnitPeriodsTypeMap( ListExpr args )
                                  "of type T in {ubool, uint, ureal, upoint, "
                                  "ustring, uregion} but gets a '"
                                  + argstr + "'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) )
@@ -1732,26 +1742,26 @@ UnitPeriodsTypeMap( ListExpr args )
                                      "'stream(T)', T in {ubool, uint, ureal, "
                                      "upoint, ustring, ureagion} but gets a "
                                      "list with structure '" + argstr + "'.");
-          return nl->SymbolAtom( "typeerror" );
+          return nl->SymbolAtom( Symbol::TYPEERROR() );
         }
 
       if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                nl->SymbolAtom(UBool::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                nl->SymbolAtom(UInt::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom("stream"),
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                 nl->SymbolAtom(UReal::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom("stream"),
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                  nl->SymbolAtom(UPoint::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom("stream"),
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                  nl->SymbolAtom(UString::BasicType()));
       if( nl->IsEqual( nl->Second(arg1), URegion::BasicType() ) )
-         return nl->TwoElemList(nl->SymbolAtom("stream"),
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                  nl->SymbolAtom(URegion::BasicType()));
 
       nl->WriteToString(argstr, nl->Second(arg1));
@@ -1759,14 +1769,14 @@ UnitPeriodsTypeMap( ListExpr args )
                               "(stream T); T in {ubool, uint, ureal, upoint, "
                               "ustring, uregion} but gets '(stream "
                               + argstr + ")'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     };
 
   nl->WriteToString( argstr, args );
   ErrorReporter::ReportError("Operator atperiods encountered an "
                              "unmatched typerror for arguments '"
                              + argstr + "'.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2122,14 +2132,14 @@ UnitTypeMapIntime( ListExpr args )
       if (nl->IsAtom(nl->First(args)))
         t = nl->First( args );
       else if (nl->ListLength(nl->First(args))==2 &&
-               nl->IsEqual(nl->First(nl->First(args)), "stream"))
+               nl->IsEqual(nl->First(nl->First(args)), Symbol::STREAM()))
         t = nl->Second(nl->First(args));
       else
         {
           ErrorReporter::ReportError
             ("Operator initial/final expects a (stream T)"
              "for T in {bool,int,real,string,point,region}");
-          return nl->SymbolAtom( "typeerror" );
+          return nl->SymbolAtom( Symbol::TYPEERROR() );
         }
 
       if( nl->IsEqual( t, UBool::BasicType() ) )
@@ -2155,7 +2165,7 @@ UnitTypeMapIntime( ListExpr args )
       ("Operator initial/final expects a list of length one, "
        "containing a value of one type 'T' with T in "
        "{bool,int,real,string,point,region}");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2393,7 +2403,7 @@ UnitInstantPeriodsTypeMapBool( ListExpr args )
         return nl->SymbolAtom( CcBool::BasicType() );
     }
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2586,7 +2596,7 @@ UnitBaseTypeMapBool( ListExpr args )
       && nl->IsEqual( arg2, Point::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2706,7 +2716,7 @@ TypeMapCircle( ListExpr args )
        && nl->IsEqual( arg3, CcInt::BasicType() ) )
       return nl->SymbolAtom( Region::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2847,7 +2857,7 @@ TypeMapVelocity( ListExpr args )
       if( nl->IsEqual( arg1, UPoint::BasicType() ) )
         return nl->SymbolAtom( UPoint::BasicType() );
     }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2947,7 +2957,7 @@ TypeMapDerivable( ListExpr args )
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
         return nl->SymbolAtom( UBool::BasicType() );
     }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -3091,7 +3101,7 @@ TypeMapDerivative( ListExpr args )
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
         return nl->SymbolAtom( UReal::BasicType() );
     }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -3250,7 +3260,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
       ErrorReporter::ReportError("Operator distance expects a list of "
                                  "length two, but gets '" + outstr1 +
                                  "'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   first = nl->First(args);
@@ -3264,7 +3274,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
       ErrorReporter::ReportError("Operator distance expects as arguments "
                                  "lists of length one, but gets '" + outstr1 +
                                  "' and '" + outstr2 + "'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   if( nl->IsEqual(first, UPoint::BasicType())
@@ -3276,7 +3286,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
   if( nl->IsEqual(first, UPoint::BasicType())
     && nl->IsEqual(second, Point::BasicType()) )
     {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->IntAtom(0)),
                                nl->SymbolAtom( UReal::BasicType() ));
     }
@@ -3284,7 +3294,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
   if( nl->IsEqual(first, Point::BasicType())
     && nl->IsEqual(second, UPoint::BasicType()) )
     {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->IntAtom(1)),
                                nl->SymbolAtom( UReal::BasicType() ));
     }
@@ -3298,7 +3308,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
   if( nl->IsEqual(first, UInt::BasicType())
     && nl->IsEqual(second, CcInt::BasicType()) )
     {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->IntAtom(0)),
                                nl->SymbolAtom( UReal::BasicType() ));
     }
@@ -3306,7 +3316,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
   if( nl->IsEqual(first, CcInt::BasicType())
     && nl->IsEqual(second, UInt::BasicType()) )
     {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->IntAtom(1)),
                                nl->SymbolAtom( UReal::BasicType() ));
     }
@@ -3314,25 +3324,27 @@ TypeMapTemporalUnitDistance( ListExpr args )
     if( nl->IsEqual(first, UReal::BasicType())
       && nl->IsEqual(second, UReal::BasicType()) )
     {
-      return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                               nl->SymbolAtom( UReal::BasicType() ));
     }
 
     if( nl->IsEqual(first, UReal::BasicType())
       && nl->IsEqual(second, CcReal::BasicType()) )
     {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->IntAtom(0)),
-                               nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->TwoElemList(nl->SymbolAtom(
+                               Symbol::STREAM() ),
                                         nl->SymbolAtom( UReal::BasicType() )));
     }
 
     if( nl->IsEqual(first, CcReal::BasicType())
       && nl->IsEqual(second, UReal::BasicType()) )
     {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                nl->OneElemList(nl->IntAtom(1)),
-                               nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->TwoElemList(
+                                        nl->SymbolAtom( Symbol::STREAM() ),
                                         nl->SymbolAtom( UReal::BasicType() )));
     }
 
@@ -3341,7 +3353,7 @@ TypeMapTemporalUnitDistance( ListExpr args )
   ErrorReporter::ReportError("Operator distance found wrong argument "
                              "configuration '" + outstr1 +
                              "' and '" + outstr2 + "'.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -3848,10 +3860,10 @@ UnitBaseTypeMapAtmax( ListExpr args )
         return nl->SymbolAtom( UString::BasicType() );
       // for ureal, atmax/atmin will return a stream of ureals!
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UReal::BasicType() ));
     }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 /*
 5.22.2 Value mapping for operator ~atmax~
@@ -4213,7 +4225,7 @@ ListExpr TU_TM_Abs( ListExpr args )
     ErrorReporter::ReportError("Operator abs expects a list of "
         "length one, but gets '" + outstr1 +
         "'.");
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
   }
 
   first = nl->First(args);
@@ -4225,14 +4237,14 @@ ListExpr TU_TM_Abs( ListExpr args )
 
   if( nl->IsEqual(first, UReal::BasicType()) )
   {
-    return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+    return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                             nl->SymbolAtom( UReal::BasicType() ));
   }
 
   nl->WriteToString(outstr1, first);
   ErrorReporter::ReportError("Operator abs found wrong argument "
       + outstr1 + "'.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -4468,100 +4480,100 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
       if (nl->Equal( arg1, arg2 ))
         {
           if( nl->IsEqual( arg1, UBool::BasicType() ) )
-            return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                     nl->SymbolAtom( UBool::BasicType() ));
           if( nl->IsEqual( arg1, UInt::BasicType() ) )
-            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                    nl->SymbolAtom( UInt::BasicType() ));
           if( nl->IsEqual( arg1, UReal::BasicType() ) )
-            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                    nl->SymbolAtom( UReal::BasicType() ));
           if( nl->IsEqual( arg1, UPoint::BasicType() ) )
-            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                    nl->SymbolAtom( UPoint::BasicType() ));
           if( nl->IsEqual( arg1, UString::BasicType() ) )
-            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                    nl->SymbolAtom( UString::BasicType() ));
         }
 
       // Second case: uT T -> stream uT
       if( nl->IsEqual( arg1, UBool::BasicType() )
         && nl->IsEqual( arg2, CcBool::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, UInt::BasicType() )
         && nl->IsEqual( arg2, CcInt::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UInt::BasicType() ));
       if( nl->IsEqual( arg1, UReal::BasicType() )
         && nl->IsEqual( arg2, CcReal::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UReal::BasicType() ));
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Point::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UPoint::BasicType() ));
       if( nl->IsEqual( arg1, UString::BasicType() )
         && nl->IsEqual( arg2, CcString::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UString::BasicType() ));
 
       // Third case: T uT -> stream uT
       if( nl->IsEqual( arg1, CcBool::BasicType() )
         && nl->IsEqual( arg2, UBool::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, CcInt::BasicType() )
         && nl->IsEqual( arg2, UInt::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UInt::BasicType() ));
       if( nl->IsEqual( arg1, CcReal::BasicType() )
         && nl->IsEqual( arg2, UReal::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UReal::BasicType() ));
       if( nl->IsEqual( arg1, Point::BasicType() )
         && nl->IsEqual( arg2, UPoint::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UPoint::BasicType() ));
       if( nl->IsEqual( arg1, CcString::BasicType() )
         && nl->IsEqual( arg2, UString::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UString::BasicType() ));
 
       // Fourth case: upoint line -> stream upoint
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Line::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UPoint::BasicType() ));
 
       // Fifth case: line upoint -> stream upoint
       if( nl->IsEqual( arg1, Line::BasicType() )
         && nl->IsEqual( arg2, UPoint::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UPoint::BasicType() ));
 
       // Sixth case: upoint uregion -> stream upoint
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, URegion::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UPoint::BasicType() ));
 
       // Eighth case: uregion upoint -> stream upoint
       if( nl->IsEqual( arg1, URegion::BasicType() )
         && nl->IsEqual( arg2, UPoint::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UPoint::BasicType() ));
 
       // Ninth case: upoint region -> stream upoint
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Region::BasicType()) )
-       return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+       return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UPoint::BasicType() ));
 
       // Tenth case: region upoint -> stream upoint
       if( nl->IsEqual( arg1, Region::BasicType() )
         && nl->IsEqual( arg2, UPoint::BasicType()) )
-       return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+       return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UPoint::BasicType() ));
 
       // Error case:
@@ -4580,7 +4592,7 @@ ListExpr TemporalUnitIntersectionTypeMap( ListExpr args )
         "where T in {ubool, uint, ureal, ustring, upoint}\n or a combination of"
         " {upoint,line}, {upoint,uregion}, {upoint,region}.\n");
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 
 }
 
@@ -6461,32 +6473,32 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
 #endif
     if( nl->IsEqual( arg1, UBool::BasicType() )
       && nl->IsEqual( arg2, CcBool::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( UBool::BasicType() ));
     if( nl->IsEqual( arg1, UInt::BasicType() )
       && nl->IsEqual( arg2, CcInt::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( UInt::BasicType() ));
     if( nl->IsEqual( arg1, UPoint::BasicType() )
       && nl->IsEqual( arg2, Point::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( UPoint::BasicType() ));
     // for ureal, _ at _ will return a stream of ureals!
     if( nl->IsEqual( arg1, UReal::BasicType() )
       && nl->IsEqual( arg2, CcReal::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( UReal::BasicType() ));
     if( nl->IsEqual( arg1, UString::BasicType() )
       && nl->IsEqual( arg2, CcString::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( UString::BasicType() ));
     if( nl->IsEqual( arg1, URegion::BasicType() )
       && nl->IsEqual( arg2, Region::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( URegion::BasicType() ));
     if( nl->IsEqual( arg1, UPoint::BasicType() )
       && nl->IsEqual( arg2, Region::BasicType() ) )
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+      return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                              nl->SymbolAtom( UPoint::BasicType() ));
     if( nl->IsEqual( arg1, UPoint::BasicType() )
       && nl->IsEqual( arg2, Rectangle<2>::BasicType() ) )
@@ -6495,7 +6507,7 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
 #ifdef TUA_DEBUG
   cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
 #endif
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -6644,7 +6656,7 @@ static ListExpr TUNoComponentsTypeMap(ListExpr args) {
       if (nl->IsEqual(nl->First(args), URegion::BasicType()))
         return nl->SymbolAtom(UInt::BasicType());
     }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -6735,18 +6747,18 @@ ListExpr
 TUIsemptyTypeMap( ListExpr args )
 {
   ListExpr arg1;
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom(Symbol::ERRORS()));
 
   if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
     {
       arg1 = nl->First(args);
-      if( am->CheckKind("UNIT", arg1, errorInfo) )
+      if( am->CheckKind(Kind::UNIT(), arg1, errorInfo) )
         return nl->SymbolAtom(CcBool::BasicType());
     }
   ErrorReporter::ReportError("Operator isempty expects a list of length one, "
                              "containing a value of type 'U' with U in "
                              "kind UNIT.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -6827,7 +6839,7 @@ TUNotTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, UBool::BasicType() )  )
       return nl->SymbolAtom( UBool::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 /*
 5.33.2 Value mapping for operator ~not~
@@ -6944,7 +6956,7 @@ ListExpr TUBinaryBoolFuncTypeMap( ListExpr args )
           "Binary booleon operator expects any combination of {bool, ubool} "
           "as arguments.");
     }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 5.34.2 Value mapping for operators ~and~ and ~or~
@@ -7221,7 +7233,7 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
       "two arguments of type 'uT', where T in {bool, int, real, "
       "string, point, region}./n");
     }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 5.35.2 Value mapping for operator ~ComparePredicates~
@@ -7457,7 +7469,7 @@ ListExpr TUuint2urealTypeMap( ListExpr args )
     ErrorReporter::ReportError(
         "Operator uint2ureal expects an argument of type 'uint'.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 5.36.2 Value mapping for operator ~uint2ureal~
@@ -7547,19 +7559,19 @@ ListExpr TemporalUnitInsideTypeMap( ListExpr args )
 
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, URegion::BasicType()) )
-        return  nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return  nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Line::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, UPoint::BasicType() )
         && nl->IsEqual( arg2, Points::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UBool::BasicType() ));
       if( nl->IsEqual( arg1, URegion::BasicType() )
         && nl->IsEqual( arg2, Points::BasicType()) )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UBool::BasicType() ));
     }
 
@@ -7568,7 +7580,7 @@ ListExpr TemporalUnitInsideTypeMap( ListExpr args )
   ErrorReporter::ReportError(
     "Operator inside expects a list of length two with a certain signature. "
     "But it gets '" + argstr + "'.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -7829,14 +7841,14 @@ ListExpr TemporalUnitBoolAggrTypeMap( ListExpr args )
       if (nl->IsAtom(nl->First(args)))
         t = nl->First( args );
       else if (nl->ListLength(nl->First(args))==2 &&
-               nl->IsEqual(nl->First(nl->First(args)), "stream"))
+               nl->IsEqual(nl->First(nl->First(args)), Symbol::STREAM()))
         t = nl->Second(nl->First(args));
       else
         {
           ErrorReporter::ReportError
             ("Operator sometimes/always/never expects a (stream ubool)"
              "or (ubool).");
-          return nl->SymbolAtom( "typeerror" );
+          return nl->SymbolAtom( Symbol::TYPEERROR() );
         }
 
       if( nl->IsEqual( t, UBool::BasicType() ) )
@@ -7847,7 +7859,7 @@ ListExpr TemporalUnitBoolAggrTypeMap( ListExpr args )
     ("Operator sometimes/always/never expects a list of length one, "
      "having list structure (ubool) or (stream ubool), but it gets '"
      + argstr + "'.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -8171,41 +8183,85 @@ Operator temporalunitalways( "always",
 */
 ListExpr TU_TM_TheUnit( ListExpr args )
 {
-  string argstr;
-  nl->WriteToString(argstr, args);
-  // cerr << argstr << endl;
-  if (argstr == "(point point instant instant bool bool)")
+  if (nl->Equal(args  , nl->SixElemList(nl->SymbolAtom(Point::BasicType()),
+                                        nl->SymbolAtom(Point::BasicType()),
+                                        nl->SymbolAtom(Instant::BasicType()),
+                                        nl->SymbolAtom(Instant::BasicType()),
+                                        nl->SymbolAtom(CcBool::BasicType()),
+                                        nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UPoint::BasicType() );
-  if (argstr == "(ipoint ipoint bool bool)")
-    return nl->SymbolAtom( UPoint::BasicType() );
+  }
 
-  if (argstr == "(real real real bool instant instant bool bool)")
+  if (nl->Equal(args  , nl->FourElemList(nl->SymbolAtom(IPoint::BasicType()),
+                                         nl->SymbolAtom(IPoint::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
+    return nl->SymbolAtom( UPoint::BasicType() );
+  }
+
+  if(nl->Equal(args  ,nl->Cons(       nl->SymbolAtom(CcReal::BasicType()),
+                      nl->Cons(       nl->SymbolAtom(CcReal::BasicType()),
+                      nl->SixElemList(nl->SymbolAtom(CcReal::BasicType()),
+                                      nl->SymbolAtom(CcBool::BasicType()),
+                                      nl->SymbolAtom(Instant::BasicType()),
+                                      nl->SymbolAtom(Instant::BasicType()),
+                                      nl->SymbolAtom(CcBool::BasicType()),
+                                      nl->SymbolAtom(CcBool::BasicType())))))){
     return nl->SymbolAtom( UReal::BasicType() );
+  }
 
-  if (argstr == "(bool instant instant bool bool)")
+  if (nl->Equal(args  , nl->FiveElemList(nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UBool::BasicType() );
-  if (argstr == "(ibool duration bool bool)")
+  }
+
+  if (nl->Equal(args  , nl->FourElemList(nl->SymbolAtom(IBool::BasicType()),
+                                         nl->SymbolAtom(Duration::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UBool::BasicType() );
+  }
 
-  if (argstr == "(int instant instant bool bool)")
+  if (nl->Equal(args  , nl->FiveElemList(nl->SymbolAtom(CcInt::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UInt::BasicType() );
-  if (argstr == "(iint duration bool bool)")
+  }
+
+  if (nl->Equal(args  , nl->FourElemList(nl->SymbolAtom(IInt::BasicType()),
+                                         nl->SymbolAtom(Duration::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UInt::BasicType() );
+  }
 
-  if (argstr == "(string instant instant bool bool)")
+  if (nl->Equal(args  , nl->FiveElemList(nl->SymbolAtom(CcString::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(Instant::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
     return nl->SymbolAtom( UString::BasicType() );
-  if (argstr == "(istring duration bool bool)")
-    return nl->SymbolAtom( UString::BasicType() );
+  }
 
-  ErrorReporter::ReportError
-    ("Operator 'the_unit' expects a list with structure\n"
+  if (nl->Equal(args  , nl->FourElemList(nl->SymbolAtom(IString::BasicType()),
+                                         nl->SymbolAtom(Duration::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType()),
+                                         nl->SymbolAtom(CcBool::BasicType())))){
+    return nl->SymbolAtom( UString::BasicType() );
+  }
+
+  return listutils::typeError(
+     "Operator 'the_unit' expects a list with structure\n"
      "'(point point instant instant bool bool)', or \n"
      "'(ipoint ipoint bool bool)', or \n"
      "'(real real real bool instant instant bool bool)', or\n"
      "'(T instant instant bool bool)', or \n"
-     "'(iT duration bool bool)'\n for T in {bool, int, string },\n"
-     ", but it gets a list of type \n'" + argstr + "'.");
-  return nl->SymbolAtom( "typeerror" );
+     "'(iT duration bool bool)'\n for T in {bool, int, string }.");
 }
 
 /*
@@ -8516,28 +8572,33 @@ OK                               (instant T) --> iT
 */
 ListExpr TU_TM_TheIvalue( ListExpr args )
 {
-  string argstr;
-  nl->WriteToString(argstr, args);
-  // cerr << argstr << endl;
-  if (argstr == "(instant bool)")
-    return nl->SymbolAtom( IBool::BasicType() );
-  if (argstr == "(instant int)")
-    return nl->SymbolAtom( IInt::BasicType() );
-  if (argstr == "(instant string)")
-    return nl->SymbolAtom( IString::BasicType() );
-  if (argstr == "(instant real)")
-    return nl->SymbolAtom( IReal::BasicType() );
-  if (argstr == "(instant point)")
-    return nl->SymbolAtom( IPoint::BasicType() );
-  if (argstr == "(instant region)")
-    return nl->SymbolAtom( IRegion::BasicType() );
+  if( (nl->ListLength(args)==2) &&
+    (listutils::isSymbol(nl->First(args),Instant::BasicType())) ){
 
-  ErrorReporter::ReportError
-    ("Operator 'the_ivalue' expects a list with structure "
+    ListExpr second = nl->Second(args);
+    if (listutils::isSymbol(second, CcBool::BasicType()) ){
+      return nl->SymbolAtom( IBool::BasicType() );
+    }
+    if (listutils::isSymbol(second, CcInt::BasicType()) ){
+      return nl->SymbolAtom( IInt::BasicType() );
+    }
+    if (listutils::isSymbol(second, CcString::BasicType()) ){
+      return nl->SymbolAtom( IString::BasicType() );
+    }
+    if (listutils::isSymbol(second, CcReal::BasicType()) ){
+      return nl->SymbolAtom( IReal::BasicType() );
+    }
+    if (listutils::isSymbol(second, Point::BasicType()) ){
+      return nl->SymbolAtom( IPoint::BasicType() );
+    }
+    if (listutils::isSymbol(second, Region::BasicType()) ){
+      return nl->SymbolAtom( IRegion::BasicType() );
+    }
+  }
+  return listutils::typeError(
+     "Operator 'the_ivalue' expects a list with structure "
      "'(instant T)', "
-     "for T in {bool, int, string, real, point, region}"
-     ", but it gets a list of type '" + argstr + "'.");
-  return nl->SymbolAtom( "typeerror" );
+     "for T in {bool, int, string, real, point, region}.");
 }
 
 /*
@@ -8675,7 +8736,7 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
               (nl->IsEqual( arg1, UReal::BasicType() ) )   ||
               (nl->IsEqual( arg1, UString::BasicType() ) )
             )
-            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UBool::BasicType() ));
         }
       else if
@@ -8697,7 +8758,7 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
          ((nl->IsEqual( arg1, CcString::BasicType() ))
          && (nl->IsEqual( arg2, UString::BasicType() )))
         )
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UBool::BasicType() ));
     }
   // Error case:
@@ -8705,7 +8766,7 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
     "CompareTemporalValueOperator (one of <, >, <=, >=) "
     "expects two arguments of types '(uT x uT)', '(T x uT)', or '(uT x T)', "
     "where T in {bool, int, real, string}.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
@@ -8723,7 +8784,7 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
               (nl->IsEqual( arg1, UString::BasicType() )   ||
               (nl->IsEqual( arg1, UPoint::BasicType() ) )   ||
               (nl->IsEqual( arg1, URegion::BasicType() ) ) ) )
-            return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+            return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                 nl->SymbolAtom( UBool::BasicType() ));
         }
       string argstr;
@@ -8733,7 +8794,7 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
           argstr == "(string ustring)" || argstr == "(ustring string)" ||
           argstr == "(real ureal)"     || argstr == "(ureal real)"     ||
           argstr == "(point upoint)"   || argstr == "(upoint point)")
-        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+        return nl->TwoElemList(nl->SymbolAtom( Symbol::STREAM() ),
                                nl->SymbolAtom( UBool::BasicType() ));
     }
 // Error case:
@@ -8742,7 +8803,7 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
     "expects two arguments of "
     "type 'uT x uT', 'T x uT' or 'uT x T', where T in "
     "{bool, int, real, string, point}, or (uregion x uregion). ");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -9885,7 +9946,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
       ErrorReporter::ReportError("Operator canmeet expects a list of "
                                  "length four, but gets '" + outstr +
                                  "'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   upoint1 = nl->First(args);
@@ -9899,7 +9960,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
       nl->WriteToString(outstr, upoint1);
       ErrorReporter::ReportError("Operator canmeet expects upoint as a first "
                                  "argument, but gets '" + outstr + "'.");
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
 
   if( !nl->IsAtom(upoint2) || !nl->IsEqual(upoint2, UPoint::BasicType()))
@@ -9907,7 +9968,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
        nl->WriteToString(outstr, upoint2);
        ErrorReporter::ReportError("Operator canmeet expects upoint as a second "
                                   "argument, but gets '" + outstr + "'.");
-       return nl->SymbolAtom( "typeerror" );
+       return nl->SymbolAtom( Symbol::TYPEERROR() );
      }
 
   if( !nl->IsAtom(distance) || !nl->IsEqual(distance, CcReal::BasicType()))
@@ -9915,7 +9976,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
        nl->WriteToString(outstr, distance);
        ErrorReporter::ReportError("Operator canmeet expects real as a third "
                                   "argument, but gets '" + outstr + "'.");
-       return nl->SymbolAtom( "typeerror" );
+       return nl->SymbolAtom( Symbol::TYPEERROR() );
      }
 
   if( !nl->IsAtom(duration) || !nl->IsEqual(duration, Duration::BasicType()))
@@ -9924,7 +9985,7 @@ TypeMapTemporalUnitCanMeet( ListExpr args )
        ErrorReporter::ReportError("Operator canmeet expects duration as a "
                                   "fourth "
                                   "argument, but gets '" + outstr + "'.");
-       return nl->SymbolAtom( "typeerror" );
+       return nl->SymbolAtom( Symbol::TYPEERROR() );
      }
   return nl->SymbolAtom( CcBool::BasicType() );
 }

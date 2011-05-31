@@ -47,6 +47,8 @@ using namespace std;
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "ListUtils.h"
+#include "Symbols.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -135,10 +137,10 @@ NullSize()
 bool
 CheckMap( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( nl->First( type ), "map" ));
+  return (nl->IsEqual( nl->First( type ), Symbol::MAP() ));
 }
 
-TypeConstructor functionMap( "map",             FunctionProperty,
+TypeConstructor functionMap( Symbol::MAP(),             FunctionProperty,
                              OutMap,            InMap,
                              0,                 0,
                              NoSpace,           DoNothing,
@@ -251,7 +253,7 @@ ListExpr WithinTypeMap(ListExpr Args)
       if (  args.second().hasLength(3) )
       {
         ok =      ( args.first() == args.second().second())
-               && ((args.second().first()) == string("map") );
+               && ((args.second().first()) == string(Symbol::MAP()) );
       }
 
       if (!ok) {
@@ -271,7 +273,7 @@ ListExpr WithinTypeMap(ListExpr Args)
 
       if ( args.third().hasLength(4) )
       {
-        ok = (args.third().first() == string("map"))
+        ok = (args.third().first() == string(Symbol::MAP()))
              && (args.first() == args.third().second())
              && (args.second() == args.third().third());
       }
@@ -422,7 +424,7 @@ WithinSelect( ListExpr Args )
       mapRes = map.fourth();
     }
 
-    if( mapRes.isNoAtom() && mapRes.first().str() == "stream" )
+    if( mapRes.isNoAtom() && mapRes.first().str() == Symbol::STREAM() )
     {
       return 1;
     }
@@ -528,7 +530,7 @@ ListExpr WhileDoTypeMap(ListExpr Args)
 
   int noargs = args.length();
 
-  if((noargs == 4) && 
+  if((noargs == 4) &&
      !(listutils::isSymbol(nl->Fourth(Args),CcBool::BasicType()))){
     return listutils::typeError("Optional 4th parameter "
                                 "must be of type 'bool'.");
@@ -548,7 +550,7 @@ ListExpr WhileDoTypeMap(ListExpr Args)
   {
     if( // first argument
         SecondoSystem::GetAlgebraManager()
-           ->CheckKind("DATA", args.first().listExpr(), errorInfo)
+           ->CheckKind(Kind::DATA(), args.first().listExpr(), errorInfo)
       )
     {  // case: T x (T --> bool) x (T --> T) --> T, where T in DATA
       if(noargs == 4 && args.fourth() == Symbols::BOOL() ) {
@@ -569,7 +571,7 @@ ListExpr WhileDoTypeMap(ListExpr Args)
             && args.first().second().first().hasLength(2)
             && args.first().second().first().first().isSymbol()
             && SecondoSystem::GetAlgebraManager()
-                ->CheckKind("DATA",
+                ->CheckKind(Kind::DATA(),
                             args.first().second().first().first().listExpr(),
                             errorInfo
                            )
@@ -621,7 +623,7 @@ int WhileDoValueMap(Word* args, Word& result,
 
       if(!avoidEndless->IsDefined()){
         cmsg.error() << "WARNING: "<< __PRETTY_FUNCTION__
-                   << ": Optional bool parameter is UNDEFINED! Using TRUE." 
+                   << ": Optional bool parameter is UNDEFINED! Using TRUE."
                    << endl;
         cmsg.send();
         sli->avoidEndlessLoop = true;

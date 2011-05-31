@@ -24,7 +24,7 @@ Jan. 2010 M.Klocke, O.Feuer, K.Teufel
 This class is a collection of two interfaces: first, the secondo-specific
 functions (like Open,Save,Create,etc.) are declared here as static methods.
 Second, this class serves as an interface for the BTree2Impl class,
-allowing access to methods without the burden of having to instantiate 
+allowing access to methods without the burden of having to instantiate
 keytype and valuetype.
 
 */
@@ -47,7 +47,7 @@ class BTree2Iterator;
 */
 class BTree2 {
   public:
-    enum multiplicityType { multiple, stable_multiple, uniqueKeyMultiData, 
+    enum multiplicityType { multiple, stable_multiple, uniqueKeyMultiData,
                              uniqueKey };
 
 /*
@@ -66,7 +66,7 @@ used, if one initializes it with a call to ~CreateBTree~.
 Destructor: Basically abstract method - implemented by BTree2Impl.
 
 */
-    static BTree2* Factory(const std::string& keyTypeString, 
+    static BTree2* Factory(const std::string& keyTypeString,
                            const std::string& valueTypeString);
 /*
 Factory pattern: this method creates an uninitialized BTree2Impl Object with
@@ -74,8 +74,8 @@ given keytype and valuetype.
 
 */
 
-    virtual bool CreateNewBTree(double fill, int nodesize, 
-                                 multiplicityType u = multiple, 
+    virtual bool CreateNewBTree(double fill, int nodesize,
+                                 multiplicityType u = multiple,
                                  bool _temporary = false) = 0;
 /*
 Initialization: this method initializes an uninitialized btree.
@@ -164,7 +164,7 @@ Secondo Cast function: casts a void ptr.
 
     static int SizeOf();
 /*
-Secondo SizeOf function: gives the size of this object. 
+Secondo SizeOf function: gives the size of this object.
 
 */
 
@@ -173,7 +173,7 @@ Secondo SizeOf function: gives the size of this object.
                 const ListExpr typeInfo,
                 Word &value);
 /*
-Secondo Open function: restores an BTree from file. 
+Secondo Open function: restores an BTree from file.
 
 */
     static bool Save( SmiRecord& valueRecord,
@@ -181,7 +181,7 @@ Secondo Open function: restores an BTree from file.
                 const ListExpr typeInfo,
                 Word &value);
 /*
-Secondo Save function: saves an BTree from file. 
+Secondo Save function: saves an BTree from file.
 
 */
 
@@ -203,13 +203,13 @@ Returns the name of the valuetype. Can only be set by CreateBTree.
 
     const ListExpr& GetKeyTypeListExpr() { return keyTypeListExpr; }
 /*
-Returns the ListExpr of the keytype. 
+Returns the ListExpr of the keytype.
 
 */
 
     const ListExpr& GetValueTypeListExpr() { return valueTypeListExpr; }
 /*
-Returns the ListExpr of the valuetype. 
+Returns the ListExpr of the valuetype.
 
 */
 
@@ -255,7 +255,7 @@ extended values file)
 
 */
 
-    int GetNodeCount() {return header.internalNodeCount + 
+    int GetNodeCount() {return header.internalNodeCount +
                                header.leafNodeCount;}
 /*
 Returns the total number of nodes in the tree.
@@ -274,7 +274,7 @@ Returns the number of leaf nodes in the tree.
 
 */
 
-    int GetEntryCount() {return header.leafEntryCount + 
+    int GetEntryCount() {return header.leafEntryCount +
                                 header.internalEntryCount;}
 /*
 Returns the total number of entries.
@@ -318,7 +318,7 @@ Returns the smallest possible record size.
 Returns the number of visited nodes.
 
 */
-    
+
     void IncNodesVisitedCounter() {
       header.nodesVisitedCounter++;
     }
@@ -351,7 +351,7 @@ Returns true, if BTree has a valid persistent storage container.
 
 */
 
-    enum FileEnum { FILE_CORE = 0, FILE_EXTENDED_KEYS, FILE_EXTENDED_VALUES, 
+    enum FileEnum { FILE_CORE = 0, FILE_EXTENDED_KEYS, FILE_EXTENDED_VALUES,
                    FILE_CACHE };
     bool GetFileStats( FileEnum ef, SmiStatResultType &result );
 /*
@@ -359,7 +359,7 @@ Returns information on persistent storage container.
 
 */
 
-
+    static const string BasicType() { return "btree2"; }
 /*
 2.4 Content related queries
 
@@ -367,7 +367,7 @@ Returns information on persistent storage container.
     bool ProbeIsInternal(NodeId nid);
 /*
 Returns true, if node ~nid~ is an internal node. This method opens the
-node on disc but only reads the first byte. This method should be 
+node on disc but only reads the first byte. This method should be
 avoided if performance matters.
 
 */
@@ -393,7 +393,7 @@ not found.
 
     virtual Attribute* GetEntryKeyInternal(NodeId nodeId, int entryNumber) = 0;
 /*
-Returns an Attribute representation of the key of node ~nodeId~ at index 
+Returns an Attribute representation of the key of node ~nodeId~ at index
 ~entryNumber~. If keytype is int,bool,string or double, a new Attribute object
 is created otherwise a copy is returned. In both cases, the caller have to
 call DeleteIfAllowed().
@@ -402,14 +402,14 @@ call DeleteIfAllowed().
 
     virtual NodeId GetEntryValueInternal(NodeId nodeId, int entryNumber) = 0;
 /*
-Returns the NodeId of the child of node node ~nodeId~ at index 
-~entryNumber~. 
+Returns the NodeId of the child of node node ~nodeId~ at index
+~entryNumber~.
 
 */
 
     virtual Attribute* GetEntryKey(NodeId nodeId, int entryNumber) = 0;
 /*
-Returns an Attribute representation of the value of node ~nodeId~ at index 
+Returns an Attribute representation of the value of node ~nodeId~ at index
 ~entryNumber~. If keytype is int,bool,string or double, a new Attribute object
 is created otherwise a copy is returned. In both cases, the caller have to
 call DeleteIfAllowed().
@@ -418,7 +418,7 @@ call DeleteIfAllowed().
 
     virtual Attribute* GetEntryValue(NodeId nodeId, int entryNumber) = 0;
 /*
-Returns an Attribute representation of the value of node ~nodeId~ at index 
+Returns an Attribute representation of the value of node ~nodeId~ at index
 ~entryNumber~. If valuetype is int,bool,string or double, a new Attribute object
 is created otherwise a copy is returned. In both cases, the caller have to
 call DeleteIfAllowed().
@@ -452,13 +452,13 @@ Returns the first entry to the right which is not key.
 
 */
 
-    virtual void findExactmatchBoundary(Attribute* key, BTree2Iterator&, 
+    virtual void findExactmatchBoundary(Attribute* key, BTree2Iterator&,
                                                         BTree2Iterator&) = 0;
 /*
 The exactmatch will be different for uniqueKey, uniqueKeyMultiData and
 multiple BTree's. To perform this method, we use a local search in this
 method, if necessary. The method delivers an iterator as starting point
-indicating the first occurence of key and a second iterator to the first 
+indicating the first occurence of key and a second iterator to the first
 entry to the right, which is not key.
 Therefore, this method should be better then:
 startIteratorMarker = findLeftBoundary(key);
@@ -466,12 +466,12 @@ finalIteratorMarker = findRightBoundary(key);
 
 */
 
-    virtual void findRangeBoundary(Attribute* key, Attribute* secondKey, 
+    virtual void findRangeBoundary(Attribute* key, Attribute* secondKey,
                    BTree2Iterator& startIter, BTree2Iterator& finalIter) = 0;
 /*
-The range-operator will be implemented by a search of the smallest sub-B-Tree, 
-that includes key and secondKey. The method delivers an iterator as starting 
-point indicating the first occurence of key and a second iterator to the first 
+The range-operator will be implemented by a search of the smallest sub-B-Tree,
+that includes key and secondKey. The method delivers an iterator as starting
+point indicating the first occurence of key and a second iterator to the first
 entry to the right, which is greater than secondKey.
 Therefore, this method should be better then:
 startIteratorMarker = findLeftBoundary(key);
@@ -498,7 +498,7 @@ Delete the first occurence of ~key~. Returns false, if ~key~ is not found.
 
     virtual bool DeleteGeneric(Attribute*, Attribute*) = 0;
 /*
-Delete the first occurence of given key/value combination. 
+Delete the first occurence of given key/value combination.
 Returns false, if this combination is not found.
 
 */
@@ -507,7 +507,7 @@ Returns false, if this combination is not found.
 
 
 /*
-2.6 Cache delegate methods 
+2.6 Cache delegate methods
 
 All methods are simple delegates to the methods of the BTree2Cache class.
 Documentation is available there.
@@ -518,7 +518,7 @@ Documentation is available there.
     virtual size_t GetCacheSize() = 0;
     virtual int GetCacheHitCounter() = 0;
     virtual void resetCacheHitCounter() = 0;
-    virtual bool addCachePinnedNode(NodeId n) = 0; 
+    virtual bool addCachePinnedNode(NodeId n) = 0;
     virtual bool removeCachePinnedNode(NodeId n) = 0;
     virtual bool IsFixedElementsLimitType() = 0;
     virtual void SetFixedElementsLimitType() = 0;
@@ -526,7 +526,7 @@ Documentation is available there.
     virtual void DropCacheFile() = 0;
     virtual size_t GetPeakCacheMemoryUsage() = 0;
     virtual int GetPeakCacheElements() = 0;
-    struct PinnedNodeInfo{ 
+    struct PinnedNodeInfo{
       NodeId id;
       size_t memoryUsage;
       PinnedNodeInfo(){}
@@ -534,7 +534,7 @@ Documentation is available there.
       bool operator < (const PinnedNodeInfo& p) const
       {
         return id < p.id;
-      } 
+      }
     };
 /*
 Stores information about pinned nodes.
@@ -546,7 +546,7 @@ Stores information about pinned nodes.
 2.7 Global parameter settings
 
 Here, methods are provided for getting and setting default parameters
-for all BTrees. 
+for all BTrees.
 
 */
 
@@ -573,19 +573,19 @@ small messages on loading and unloading of nodes)
 
     static void SetDbgPrintTree(bool x) { debugPrintTree = x; }
 /*
-Set or unset the debug printTree output. 
+Set or unset the debug printTree output.
 
 */
 
     static void SetDbgPrintCache(bool x) { debugPrintCache = x; }
 /*
-Set or unset the debug printCache output. 
+Set or unset the debug printCache output.
 
 */
 
     static void SetDbgPrintNodeLoading(bool x) { debugPrintNodeLoading = x; }
 /*
-Set or unset the debug printNodeLoading output. 
+Set or unset the debug printNodeLoading output.
 
 */
 
@@ -668,13 +668,13 @@ For debugging: print whole btree to stdout.
 
 */
 
-    void ReadHeader();              
+    void ReadHeader();
 /*
 Read btree's parameter.
 
 */
 
-    void WriteHeader();  
+    void WriteHeader();
 /*
 Write btree's parameter.
 
@@ -688,11 +688,11 @@ Write btree's parameter.
 Reset the nodes visited counter.
 
 */
-    
+
 
 
  protected:
-    std::string keytype;      
+    std::string keytype;
     std::string valuetype;
     int recordSize;
     SmiRecordFile* file;
@@ -719,13 +719,13 @@ Reset the nodes visited counter.
       int maxValuesize;
       multiplicityType multiplicity;
     } header;
-    
+
 //    BTree2Iterator startIterate;
 //    BTree2Iterator finalIterate;
 
-    static bool debugPrintTree; 
-    static bool debugPrintCache; 
-    static bool debugPrintNodeLoading; 
+    static bool debugPrintTree;
+    static bool debugPrintCache;
+    static bool debugPrintNodeLoading;
 
     static int defaultMaxKeysize;
     static int defaultMaxValuesize;

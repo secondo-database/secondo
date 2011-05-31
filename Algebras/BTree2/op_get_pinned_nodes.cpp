@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the get\_pinned\_nodes Operator 
+[1] Implementation of the get\_pinned\_nodes Operator
 
 [TOC]
 
@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "BTree2.h"
-
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -65,9 +65,9 @@ ListExpr get_pinned_nodes::TypeMapping( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->TwoElemList(nl->SymbolAtom("stream"), 
-                          nl->SymbolAtom("int"))); 
-}       
+  return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->SymbolAtom(CcInt::BasicType())));
+}
 
 /*
 2.2 Value Mapping function
@@ -76,7 +76,7 @@ ListExpr get_pinned_nodes::TypeMapping( ListExpr args){
 struct valueMappingInfo{
   std::set<BTree2::PinnedNodeInfo>::iterator iter;
   std::set<BTree2::PinnedNodeInfo>::iterator end;
-  valueMappingInfo(std::set<BTree2::PinnedNodeInfo>::iterator it, 
+  valueMappingInfo(std::set<BTree2::PinnedNodeInfo>::iterator it,
           std::set<BTree2::PinnedNodeInfo>::iterator e) : iter(it), end(e) {}
 };
 
@@ -85,32 +85,32 @@ int
 get_pinned_nodes::ValueMapping(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
-   
+
   valueMappingInfo* vmi;
   BTree2::PinnedNodeInfo pni;
   switch( message )
   {
-    case OPEN: { 
+    case OPEN: {
       BTree2* btree = (BTree2*)args[0].addr;
       std::set<BTree2::PinnedNodeInfo> const* pinnedNodes = btree->
                                                          GetPinnedNodes();
       std::set<BTree2::PinnedNodeInfo>::iterator iter = pinnedNodes->begin();
       std::set<BTree2::PinnedNodeInfo>::iterator end = pinnedNodes->end();
       vmi = new valueMappingInfo(iter, end);
-      
+
       local.addr = vmi;
-     
+
       return 0;
     }
     case REQUEST: {
       vmi = (valueMappingInfo*)local.addr;
-      
+
       if ( vmi->iter != vmi->end )
       {
         pni = *vmi->iter;
         CcInt* elem = new CcInt(true, pni.id);
         result.addr = elem;
-        vmi->iter++;  
+        vmi->iter++;
         return YIELD;
       }
       else
@@ -151,8 +151,8 @@ struct getPinnedNodesInfo : OperatorInfo {
   }
 };
 
-Operator get_pinned_nodes::def( getPinnedNodesInfo(), 
-                             get_pinned_nodes::ValueMapping, 
+Operator get_pinned_nodes::def( getPinnedNodesInfo(),
+                             get_pinned_nodes::ValueMapping,
                                 get_pinned_nodes::TypeMapping);
 }
 }

@@ -376,6 +376,8 @@ histogram given as parameter.
 
       size_t Sizeof() const;
 
+      inline static const string BasicType() { return "histogram2d";}
+
     private:
 
       friend class ConstructorFunctions<Histogram2d>;
@@ -547,7 +549,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "binsX";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::INT;
+      signature = Histogram2d::BasicType() + " -> " + CcInt::BasicType();
       syntax = "binsX(_)";
       meaning = "Returns number of bins on x axis.";
       example = "";
@@ -560,7 +562,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "binsY";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::INT;
+      signature = Histogram2d::BasicType() + " -> " + CcInt::BasicType();
       syntax = "binsY(_)";
       meaning = "Returns number of bins on y axis.";
       example = "";
@@ -577,9 +579,9 @@ histogram given as parameter.
     inline binrange_minXInfo() :
       OperatorInfo()
     {
-      name = symbols::BINRANGE_MINX;
+      name = "binrange_minX";
       signature = "histogram2d x int -> real";
-      syntax = symbols::BINRANGE_MINX + "(_, _)";
+      syntax = "binrange_minX(_, _)";
       meaning = "Returns the histogram's lower range on the x axis "
         "of the given interval.";
     }
@@ -591,9 +593,9 @@ histogram given as parameter.
     inline binrange_maxXInfo() :
       OperatorInfo()
     {
-      name = symbols::BINRANGE_MAXX;
+      name = "binrange_maxX";
       signature = "histogram2d x int -> real";
-      syntax = symbols::BINRANGE_MAXX + "(_, _)";
+      syntax = "binrange_maxX(_, _)";
       meaning = "Returns the histogram's upper range on the x axis "
         "of the given interval.";
     }
@@ -605,9 +607,9 @@ histogram given as parameter.
     inline binrange_minYInfo() :
       OperatorInfo()
     {
-      name = symbols::BINRANGE_MINY;
+      name = "binrange_minY";
       signature = "histogram2d x int -> real";
-      syntax = symbols::BINRANGE_MINY + "(_, _)";
+      syntax = "binrange_minY(_, _)";
       meaning = "Returns the histogram's lower range on the y axis "
         "of the given interval.";
     }
@@ -619,9 +621,9 @@ histogram given as parameter.
     inline binrange_maxYInfo() :
       OperatorInfo()
     {
-      name = symbols::BINRANGE_MAXY;
+      name = "binrange_maxY";
       signature = "histogram2d x int -> real";
-      syntax = symbols::BINRANGE_MAXY + "(_, _)";
+      syntax = "binrange_maxY(_, _)";
       meaning = "Returns the histogram's upper range on the y axis "
         "of the given interval.";
     }
@@ -637,7 +639,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "covariance";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::REAL;
+      signature = Histogram2d::BasicType() + " -> " + CcReal::BasicType();
       syntax = "_ covariance";
       meaning = "Compute the covariance.";
       example = "";
@@ -655,7 +657,7 @@ histogram given as parameter.
     {
       name = "create_histogram2d";
       signature = "stream(tuple(X)) x ax x ay x " +
-      symbols::HISTOGRAM2D + " -> " + symbols::HISTOGRAM2D;
+      Histogram2d::BasicType() + " -> " + Histogram2d::BasicType();
       syntax = "_ create_histogram2d [_, _, _]";
       meaning = "Fills a histogram2d from an ordered stream of tuples";
       example = "";
@@ -673,7 +675,7 @@ histogram given as parameter.
     {
       name = "create_histogram2d_equicount";
       signature = "stream(tuple(X)) x ax x ay x int x int -> " +
-	           symbols::HISTOGRAM2D;
+	           Histogram2d::BasicType();
       syntax = "_ create_histogram2d_equicount [_, _, _, _]";
       meaning = "Creates a histogram2d from a stream of tuples;"
         " all categories will have equal height";
@@ -712,7 +714,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "findbinX";
-      signature = symbols::HISTOGRAM2D + " x real -> int";
+      signature = Histogram2d::BasicType() + " x real -> int";
       syntax = "findbinX(_, _)";
       meaning = "Returns the x-coordinate of the bin, "
           "in which value would fall";
@@ -726,7 +728,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "findbinY";
-      signature = symbols::HISTOGRAM2D + " x real -> int";
+      signature = Histogram2d::BasicType() + " x real -> int";
       syntax = "findbinY(_, _)";
       meaning = "Returns the y-coordinate of the bin, "
           "in which the value would fall";
@@ -744,8 +746,9 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "getcount2d";
-      signature = symbols::HISTOGRAM2D + " x " + symbols::INT + " x " +
-	          symbols::INT + " -> " + symbols::REAL;
+      signature = Histogram2d::BasicType() + " x " +
+            CcInt::BasicType() + " x " +
+	          CcInt::BasicType() + " -> " + CcReal::BasicType();
       syntax = "getcount2d(_, _, _)";
       meaning = "Return the count of the specified bin.";
       example = "";
@@ -762,8 +765,8 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "insert2d";
-      signature = symbols::HISTOGRAM2D + " x real x real -> " +
-	          symbols::HISTOGRAM2D;
+      signature = Histogram2d::BasicType() + " x real x real -> " +
+	          Histogram2d::BasicType();
       syntax = "insert2d(_, _, _)";
       meaning = "Increments the bin corresponding to the pair by 1.0";
       example = "";
@@ -776,8 +779,8 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "insert2dvalue";
-      signature = symbols::HISTOGRAM2D + " x real x real x real -> " +
-	          symbols::HISTOGRAM2D;
+      signature = Histogram2d::BasicType() + " x real x real x real -> " +
+	          Histogram2d::BasicType();
       syntax = "insert2dvalue(_, _, _, _)";
       meaning = "Increments the bin corresponding to the pair by value";
       example = "";
@@ -794,7 +797,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "meanX";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::REAL;
+      signature = Histogram2d::BasicType() + " -> " + CcReal::BasicType();
       syntax = "_ meanX";
       meaning = "Compute the bin-weighted arithmetic mean.";
       example = "";
@@ -807,7 +810,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "meanY";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::REAL;
+      signature = Histogram2d::BasicType() + " -> " + CcReal::BasicType();
       syntax = "_ meanY";
       meaning = "Compute the bin-weighted arithmetic mean.";
       example = "";
@@ -824,7 +827,8 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "set_histogram2d";
-      signature = "(stream real) x (stream real) -> " + symbols::HISTOGRAM2D;
+      signature = "(stream real) x (stream real) -> " +
+                                        Histogram2d::BasicType();
       syntax = "_ _ set_histogram2d";
       meaning = "Creates a histogram2d from two ordered real-streams.";
       example = "";
@@ -841,8 +845,8 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "shrink_eager2";
-      signature = symbols::HISTOGRAM2D + " x real x real x real x real-> "
-      + symbols::HISTOGRAM2D;
+      signature = Histogram2d::BasicType() + " x real x real x real x real-> "
+      + Histogram2d::BasicType();
       syntax = "shrink_eager2(_, _, _, _, _)";
       meaning = "constricts the value range to bins "
         "completely contained in [lowerX;upperX[ x [lowerY;upperY[";
@@ -856,8 +860,8 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "shrink_lazy2";
-      signature = symbols::HISTOGRAM2D + " x real x real x real x real -> "
-      + symbols::HISTOGRAM2D;
+      signature = Histogram2d::BasicType() + " x real x real x real x real -> "
+      + Histogram2d::BasicType();
       syntax = "shrink_lazy2(_, _, _, _, _)";
       meaning = "constricts the value range to bins "
         "so that [lX;hX[ x [lY;hY[ is completely contained";
@@ -875,7 +879,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "varianceX";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::REAL;
+      signature = Histogram2d::BasicType() + " -> " + CcReal::BasicType();
       syntax = "_ varianceX";
       meaning = "Compute the variance.";
       example = "";
@@ -889,7 +893,7 @@ histogram given as parameter.
       OperatorInfo()
     {
       name = "varianceY";
-      signature = symbols::HISTOGRAM2D + " -> " + symbols::REAL;
+      signature = Histogram2d::BasicType() + " -> " + CcReal::BasicType();
       syntax = "_ varianceY";
       meaning = "Compute the variance.";
       example = "";

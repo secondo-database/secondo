@@ -46,8 +46,6 @@ which were used to test and benchmark the algebra.
 #include "Counter.h"
 #include "Symbols.h"
 
-using namespace symbols;
-
 /*
 4 Defines
 

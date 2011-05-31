@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@ level remains. Models are also removed from type constructors.
 
 1 Preliminaries
 
-This algebra provides one type constructor ~date~, and seven operators: 
+This algebra provides one type constructor ~date~, and seven operators:
 \verb+<+ , = , \verb+>+, ~year[_]of~, ~month[_]of~, ~day[_]of~, and ~thedate~.
 
 Signatures of these operators are listed below:
@@ -63,13 +63,13 @@ Signatures of these operators are listed below:
 
 ----    int x int x int -> date
 ----
-        generates a date according to the specified year, month, 
+        generates a date according to the specified year, month,
         and day information
 
 
-The algebra provides basic checks on the validity of a date. 
+The algebra provides basic checks on the validity of a date.
 For instance, Fabruary in leap years
-(every 4 years except 100th year, and every 400th year) has 
+(every 4 years except 100th year, and every 400th year) has
 29 days, and Fabruary in normal years only
 has 28 days.
 
@@ -101,7 +101,7 @@ extern AlgebraManager *am;
 
 1.2 Date Validating Function
 
-This function checks whether an input date is valid. The month 
+This function checks whether an input date is valid. The month
 and the day must be within valid
 boundaries. However, the year can be any integer. For instance, -100 represents
 the year of 100BC.
@@ -144,7 +144,7 @@ bool isdate(int  Day, int Month, int Year)
 
 2.1 Data Structure - Class ~Date~
 
-In order to use ~date~ as an attribute type in tuple definitions, 
+In order to use ~date~ as an attribute type in tuple definitions,
 we must derive the class ~Date~ from ~Attribute~.
 
 */
@@ -167,10 +167,10 @@ class Date: public Attribute
 
 Sets this date value to the given string. accepted formats are
 yyy-mm-dd and dd.mm.yyyy where leading zeros can be ommitted.
-If the string  does not represent a valid day, this Date value 
+If the string  does not represent a valid day, this Date value
 remains unchanged and false is returned.
 
-*/  
+*/
   bool     readFrom(string& d);
 
 /*
@@ -187,7 +187,7 @@ getCsvStr
 
 Returns a string represnetation of this date value.
 
-*/  
+*/
 
   virtual string getCsvStr() const;
 
@@ -261,7 +261,7 @@ bool Date::readFrom(string& s){
   if(s.length()>99){
     return false;
   }
- 
+
   char *i, *j;
   int dot = 0;
   int hyphen = 0;
@@ -270,8 +270,8 @@ bool Date::readFrom(string& s){
   int Day;
   char buf[100];
   const char* c_string = s.c_str();
-  
-  if (strcmp(c_string,"-")==0)  //"-" undefined value
+
+  if ((strcmp(c_string,"-")==0) || listutils::isSymbolUndefined(s)) // undefined
   {
     Set(false, 0,0,0);
     return true;
@@ -311,7 +311,7 @@ bool Date::readFrom(string& s){
       *j=0;
       Day=atoi(i);
     } else if ((hyphen == 0) && (dot == 2)) { //format is "1.2.1998"
-      
+
         //extract the year, month, day information from the date
         i=buf; j=i;
         while ((*j!='.') && (j<buf+bufLen))  j++;
@@ -355,7 +355,7 @@ string Date::getCsvStr() const{
 
 /*************************************************************************
 
-  In the following, we give the definitions of the 9 virtual functions 
+  In the following, we give the definitions of the 9 virtual functions
   which are needed
   if we want to use ~date~ as an attribute type in tuple definitions.
 
@@ -466,7 +466,7 @@ bool Date::Adjacent(const Attribute *arg) const
   const Date *d = (const Date *)arg;
   if( this->Compare( d ) == 0 ) return 1;  //both undefined or they are equal
 
-  if (!IsDefined() || !(arg->IsDefined())) 
+  if (!IsDefined() || !(arg->IsDefined()))
      //one is undefined and another defined
      return 0;
   else      //both defined and they are not equal
@@ -491,7 +491,7 @@ bool Date::Adjacent(const Attribute *arg) const
   }
 }
 
-Date* Date::Clone() const 
+Date* Date::Clone() const
 {
   return (new Date( *this));
 }
@@ -524,7 +524,7 @@ OutDate( ListExpr typeInfo, Word value )
   date = (Date*)(value.addr);
   if (date->IsDefined())
   {
-    sprintf(buf, "%02d.%02d.%d", date->GetDay(), 
+    sprintf(buf, "%02d.%02d.%d", date->GetDay(),
             date->GetMonth(), date->GetYear());   //eg. "01.02.1993"
   }
   else
@@ -536,7 +536,7 @@ OutDate( ListExpr typeInfo, Word value )
 }
 
 Word
-InDate( const ListExpr typeInfo, const ListExpr instance, 
+InDate( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if(nl->AtomType(instance)!=StringType){
@@ -552,12 +552,12 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
   }
   correct = true;
   return SetWord(date);
- 
+
 }
 
 /***********************************************************************
 
-The following 5 functions must be defined if we want to use ~date~ as 
+The following 5 functions must be defined if we want to use ~date~ as
 an attribute type in tuple definitions.
 
 ************************************************************************/
@@ -613,9 +613,9 @@ DateProperty()
 {
   ListExpr listreplist = nl->TextAtom();
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(listreplist, 
+  nl->AppendText(listreplist,
     "Either \"<day>.<month>.<year>\" or \"<year>-<month>-<day>\"");
-  nl->AppendText(examplelist, 
+  nl->AppendText(examplelist,
     "\"9.5.1955\" or \"09.05.1955\" or \"1955-5-9\" or \"1955-05-09\"");
 
   return (nl->TwoElemList(
@@ -624,7 +624,7 @@ DateProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("date"),
+                             nl->StringAtom(Date::BasicType()),
                              listreplist,
                              examplelist)));
 }
@@ -641,7 +641,7 @@ the type constructor ~date~ does not have arguments, this is trivial.
 bool
 CheckDate( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual(type, "date" ));
+  return (nl->IsEqual(type, Date::BasicType() ));
 }
 /*
 
@@ -649,7 +649,7 @@ CheckDate( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor date(
-        "date",                      //name
+        Date::BasicType(),                      //name
         DateProperty,                //property function describing signature
         OutDate,  InDate,            //Out and In functions
         0,        0,                 //SaveToList and RestoreFromList functions
@@ -678,10 +678,10 @@ DateInt( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "date"))
-    return nl->SymbolAtom("int");
+    if ( nl->IsEqual(arg1, Date::BasicType()))
+    return nl->SymbolAtom(CcInt::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -693,10 +693,11 @@ DateDateBool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "date") && nl->IsEqual(arg2, "date") )
-    return nl->SymbolAtom("bool");
+    if ( nl->IsEqual(arg1, Date::BasicType()) &&
+      nl->IsEqual(arg2, Date::BasicType()) )
+    return nl->SymbolAtom(CcBool::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -709,12 +710,12 @@ IntIntIntDate( ListExpr args )
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     arg3 = nl->Third(args);
-    if ( nl->IsEqual(arg1, "int") &&
-         nl->IsEqual(arg2, "int") &&
-         nl->IsEqual(arg3, "int"))
-      return nl->SymbolAtom("date");
+    if ( nl->IsEqual(arg1, CcInt::BasicType()) &&
+         nl->IsEqual(arg2, CcInt::BasicType()) &&
+         nl->IsEqual(arg3, CcInt::BasicType()))
+      return nl->SymbolAtom(Date::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -984,7 +985,7 @@ const string str2dateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "<text>query str2date(\"2011-05-23\") = str2date(\"23.5.2011\")</text--->"
      ") )";
 /*
-The above strings are used to explain the signature and the 
+The above strings are used to explain the signature and the
 meaning of operators.
 
 */
@@ -1067,9 +1068,9 @@ class DateAlgebra : public Algebra
   {
     AddTypeConstructor( &date );
 
-    date.AssociateKind("DATA");
-    date.AssociateKind("CSVIMPORTABLE");
-    date.AssociateKind("CSVEXPORTABLE");
+    date.AssociateKind(Kind::DATA());
+    date.AssociateKind(Kind::CSVIMPORTABLE());
+    date.AssociateKind(Kind::CSVEXPORTABLE());
 
     AddOperator( &day );
     AddOperator( &month );
@@ -1104,7 +1105,7 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeDateAlgebra( NestedList* nlRef, 
+InitializeDateAlgebra( NestedList* nlRef,
                        QueryProcessor* qpRef,
                        AlgebraManager* amRef )
 {
@@ -1120,7 +1121,7 @@ InitializeDateAlgebra( NestedList* nlRef,
 
 6.1 Syntax Specification
 
-We need to write the following DateAlgebra.spec file to indicate the syntax 
+We need to write the following DateAlgebra.spec file to indicate the syntax
 of the operations in the date algebra:
 
 ----    operator year[_]of alias YEAR[_]OF pattern op ( _ )
@@ -1133,7 +1134,7 @@ of the operations in the date algebra:
 
 6.2 Display Function
 
-We need to add the following display function into DisplayTTY.h and 
+We need to add the following display function into DisplayTTY.h and
 DisplayTTY.cpp
 (under the secondo/UserInterface/ subdirectary) to display date correctly:
 

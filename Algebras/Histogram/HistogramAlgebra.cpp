@@ -38,6 +38,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "Histogram2d.h"
 #include "Histogram1d.h"
 #include "Histogram.h"
+#include "Symbols.h"
 
 namespace hgr
 {
@@ -52,8 +53,8 @@ namespace hgr
     AddTypeConstructor( &histogram1dTC);
     AddTypeConstructor( &histogram2dTC);
 
-    histogram1dTC.AssociateKind("DATA");
-    histogram2dTC.AssociateKind("DATA");
+    histogram1dTC.AssociateKind(Kind::DATA());
+    histogram2dTC.AssociateKind(Kind::DATA());
 
 
   AddOperator(SetHistogram1dInfo(), SetHistogram1dFun, SetHistogram1dTypeMap);

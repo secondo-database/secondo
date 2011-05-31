@@ -58,8 +58,6 @@ and their parameter driven versions ~sort2Param~ and ~sortby2Param~.
 #include "TupleBuffer2.h"
 #include "StopWatch.h"
 
-using namespace symbols;
-
 /*
 Operators ~sort2Param~ and ~sortby2Param~ allow to specify the maximum
 fan-in for a merge phase. The usable fan-in is limited between a

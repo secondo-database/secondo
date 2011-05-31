@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -50,37 +50,37 @@ enum RasterType {RT_REGION, RT_LINE, RT_POINTS};
 class Raster4CRS: public Signature4CRS, public Attribute
 {
  public:
-  //potency dx dy mbr.min.x mbr.min.y mbr.max.x mbr.max.y signature...   
+  //potency dx dy mbr.min.x mbr.min.y mbr.max.x mbr.max.y signature...
   DbArray<unsigned long> rasterFLOB;
 
   int signatureType;
- 
+
   Raster4CRS(){};
   /*
   Do not use this constructor.
   */
-  
+
   Raster4CRS( unsigned long id,  Coordinate min, Coordinate max,
                 unsigned long sizeOfBlock, unsigned dx, unsigned dy,
-                const Weight weight[], int signature ) : Signature4CRS(id, 
+                const Weight weight[], int signature ) : Signature4CRS(id,
                 min, max, sizeOfBlock, dx, dy, weight ), rasterFLOB(0)
-                                              {  
+                                              {
                                                   signatureType = signature;
                                               }
-  
-  Raster4CRS( const Raster4CRS *raster):Signature4CRS(*(Signature4CRS*)raster), 
+
+  Raster4CRS( const Raster4CRS *raster):Signature4CRS(*(Signature4CRS*)raster),
              rasterFLOB(0)
   {
     this->signatureType = raster->signatureType;
   }
-      
-  Raster4CRS( const Raster4CRS &raster) : Signature4CRS((Signature4CRS)raster), 
+
+  Raster4CRS( const Raster4CRS &raster) : Signature4CRS((Signature4CRS)raster),
              rasterFLOB(0)
   {
     this->signatureType = raster.signatureType;
   }
 
-  Raster4CRS( Signature4CRS::RasterMap4CRS mapaRaster4CRS, 
+  Raster4CRS( Signature4CRS::RasterMap4CRS mapaRaster4CRS,
                int signatureType) : Signature4CRS(mapaRaster4CRS), rasterFLOB(0)
   {
     this->signatureType = signatureType;
@@ -89,7 +89,7 @@ class Raster4CRS: public Signature4CRS, public Attribute
 
   void Raster4CRSToFLOB();
   void FLOBToRaster4CRS();
-  
+
   ~Raster4CRS();
   Raster4CRS*   Clone() const;
 
@@ -97,7 +97,7 @@ class Raster4CRS: public Signature4CRS, public Attribute
   FLOB *GetFLOB(const int i);
 
   Raster4CRS& operator=( Raster4CRS& r );
-  
+
   //functions from Attribute
   bool IsDefined() const {return true;}
   void SetDefined( bool Defined ){}
@@ -107,6 +107,7 @@ class Raster4CRS: public Signature4CRS, public Attribute
   void CopyFrom( const Attribute* right )
           {operator=(*((Raster4CRS *)right));}
   int Compare( const Attribute *arg ) const{ return 1;} //still to do
+  static const string BasicType() { return "raster4CRS"; }
 };
 
 void printSignature(const Signature4CRS *raster4CRS);
@@ -116,7 +117,7 @@ inline string unsignedLongToBinary( const unsigned long &x ) {
   unsigned long t;
   string ret;
   if( x > 0 ) t = x; else t = -1 * x;
-  for( unsigned int i = 0; i < sizeof(unsigned long) * 8; ++i ) 
+  for( unsigned int i = 0; i < sizeof(unsigned long) * 8; ++i )
     if( t & ( 1 << i ) ) ret.push_back( '1' ); else ret.push_back( '0' );
   reverse( ret.begin(), ret.end() );
   if( ret.size() == 0 ) return "0";

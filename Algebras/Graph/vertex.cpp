@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -50,12 +50,12 @@ Vertex::Vertex()
 
 Vertex::~Vertex()
 {
-    
+
 }
 
 
-Vertex* Vertex::Clone() const 
-{ 
+Vertex* Vertex::Clone() const
+{
     Vertex* pRet;
     if (IsDefined())
     {
@@ -66,16 +66,16 @@ Vertex* Vertex::Clone() const
         pRet = new Vertex;
         pRet->SetDefined(false);
     }
-    return pRet;    
+    return pRet;
 }
 
 size_t Vertex::Sizeof() const
-{    
+{
     return sizeof(*this);
 }
 
 int Vertex::Compare(const Attribute* pAttr) const
-{    
+{
     int nRet = 0;
     Vertex const * pVertex = dynamic_cast<Vertex const *>(pAttr);
     if (pVertex != NULL)
@@ -109,7 +109,7 @@ int Vertex::Compare(const Attribute* pAttr) const
 
 
 bool Vertex::Adjacent(const Attribute* pAttr) const
-{    
+{
     bool bRet = false;
     Vertex const * pVertex = dynamic_cast<Vertex const *>(pAttr);
     if (pVertex != NULL)
@@ -152,31 +152,31 @@ void Vertex::SetPos(Coord coordX, Coord coordY)
 */
 
 void* CastVertex (void* addr)
-{    
+{
     return (new (addr) Vertex);
 }
 
 ListExpr OutVertex( ListExpr typeInfo, Word value )
-{  
+{
     Vertex const * pVertex = static_cast<Vertex const *>(value.addr);
     if (pVertex->IsDefined())
     {
         if (pVertex->GetPos().IsDefined())
         {
             return nl->TwoElemList(nl->IntAtom(pVertex->GetKey()),
-                nl->TwoElemList(nl->RealAtom(pVertex->GetPos().GetX()), 
+                nl->TwoElemList(nl->RealAtom(pVertex->GetPos().GetX()),
                 nl->RealAtom(pVertex->GetPos().GetY())));
         }
         else
         {
             return nl->TwoElemList(nl->IntAtom(pVertex->GetKey()),
-                nl->SymbolAtom("undef"));
-        
+                nl->SymbolAtom(Symbol::UNDEFINED()));
+
         }
     }
     else
     {
-        return nl->SymbolAtom("undef");
+        return nl->SymbolAtom(Symbol::UNDEFINED());
     }
 }
 
@@ -187,7 +187,7 @@ Word InVertex( const ListExpr typeInfo, const ListExpr instance,
     {
         ListExpr first = nl->First(instance);
         ListExpr second = nl->Second(instance);
-        
+
         correct = true;
         int nKey = 0;
         if (nl->IsAtom(first) && nl->AtomType(first) == IntType)
@@ -197,8 +197,8 @@ Word InVertex( const ListExpr typeInfo, const ListExpr instance,
         else
         {
             correct = false;
-        } 
-        
+        }
+
         Coord coordX = 0.0;
         Coord coordY = 0.0;
         if (!nl->IsAtom(second) && nl->ListLength(second) == 2)
@@ -220,8 +220,7 @@ Word InVertex( const ListExpr typeInfo, const ListExpr instance,
                 return SetWord(new Vertex(nKey, coordX, coordY));
             }
         }
-        else if (nl->AtomType(second) == SymbolType && 
-            nl->SymbolValue(second) == "undef")
+        else if (listutils::isSymbolUndefined(second))
         {
             if (correct)
             {
@@ -234,21 +233,20 @@ Word InVertex( const ListExpr typeInfo, const ListExpr instance,
             correct = false;
         }
     }
-    else if (nl->AtomType(instance) == SymbolType && 
-        nl->SymbolValue(instance) == "undef")
+    else if (listutils::isSymbolUndefined(instance))
     {
         correct = true;
         Vertex* pVertex = new Vertex;
         pVertex->SetDefined(false);
         return SetWord(pVertex);
     }
-    
+
     correct = false;
     return SetWord(Address(0));
 }
 
 ListExpr VertexProperty()
-{    
+{
     return (nl->TwoElemList(
         nl->FiveElemList(nl->StringAtom("Signature"),
             nl->StringAtom("Example Type List"),
@@ -256,7 +254,7 @@ ListExpr VertexProperty()
             nl->StringAtom("Example List"),
             nl->StringAtom("Remarks")),
         nl->FiveElemList(nl->StringAtom("-> DATA"),
-            nl->StringAtom("vertex"),
+            nl->StringAtom(Vertex::BasicType()),
             nl->StringAtom("(key (<x> <y>))"),
             nl->StringAtom("(1 (-3.0 15.3))"),
             nl->StringAtom("key: int; x, y: float."))));
@@ -284,36 +282,36 @@ Word CloneVertex( const ListExpr typeInfo, const Word& w )
 }
 
 int SizeofVertex()
-{    
+{
     return sizeof(Vertex);
 }
 
 
 bool CheckVertex( ListExpr type, ListExpr& errorInfo )
-{    
-    return (nl->IsEqual(type, "vertex"));
+{
+    return (nl->IsEqual(type, Vertex::BasicType()));
 }
 
 
-bool OpenVertex( SmiRecord& valueRecord, 
+bool OpenVertex( SmiRecord& valueRecord,
     size_t& offset, const ListExpr typeInfo, Word& value )
 {
     value.setAddr(Attribute::Open(valueRecord, offset, typeInfo));
-    return true; 
+    return true;
 }
 
 
-bool SaveVertex( SmiRecord& valueRecord, 
+bool SaveVertex( SmiRecord& valueRecord,
     size_t& offset, const ListExpr typeInfo, Word& value )
 {
-    Attribute::Save(valueRecord, offset, typeInfo, 
+    Attribute::Save(valueRecord, offset, typeInfo,
         static_cast<Attribute*>(value.addr));
     return true;
 }
 
 
 TypeConstructor vertexCon(
-    "vertex",                   //name
+    Vertex::BasicType(),                   //name
     VertexProperty,             //property function describing signature
     OutVertex, InVertex,        //Out and In functions
     0, 0,                       //SaveToList and RestoreFromList functions
@@ -324,8 +322,8 @@ TypeConstructor vertexCon(
     SizeofVertex,               //sizeof function
     CheckVertex);               //kind checking function
 
-    
-    
+
+
 /*
 4 operators
 
@@ -336,9 +334,9 @@ ListExpr VertexIntTypeMap(ListExpr args)
     if (nl->ListLength(args) == 1)
     {
         ListExpr arg = nl->First(args);
-        if (nl->IsEqual(arg, "vertex"))
+        if (nl->IsEqual(arg, Vertex::BasicType()))
         {
-            return nl->SymbolAtom("int");
+            return nl->SymbolAtom(CcInt::BasicType());
         }
         else
         {
@@ -352,7 +350,7 @@ ListExpr VertexIntTypeMap(ListExpr args)
         ErrorReporter::ReportError(
             "Type mapping function got a parameter of length != 1.");
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -361,9 +359,9 @@ ListExpr VertexPointTypeMap(ListExpr args)
     if (nl->ListLength(args) == 1)
     {
         ListExpr arg = nl->First(args);
-        if (nl->IsEqual(arg, "vertex"))
+        if (nl->IsEqual(arg, Vertex::BasicType()))
         {
-            return nl->SymbolAtom("point");
+            return nl->SymbolAtom(Point::BasicType());
         }
         else
         {
@@ -377,7 +375,7 @@ ListExpr VertexPointTypeMap(ListExpr args)
         ErrorReporter::ReportError(
             "Type mapping function got a parameter of length != 1.");
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -387,7 +385,7 @@ int graphkey(Word* args, Word& result, int message, Word& local, Supplier s)
     result = qp->ResultStorage(s);
     CcInt* pRet = static_cast<CcInt *>(result.addr);
     pRet->Set(true, pVertex->GetKey());
-    
+
     return 0;
 }
 
@@ -398,19 +396,19 @@ int graphpos(Word* args, Word& result, int message, Word& local, Supplier s)
     result = qp->ResultStorage(s);
     Point* pRet = static_cast<Point *>(result.addr);
     pRet->CopyFrom(&pVertex->GetPos());
-    
+
     return 0;
 }
 
 
-string const keySpec = 
+string const keySpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>vertex -> int</text--->"
     "<text>get_key ( _ )</text--->"
     "<text>the key of the vertex</text--->"
     "<text>get_key(v1)</text---> ) )";
 
-string const posSpec = 
+string const posSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>vertex -> point</text--->"
     "<text>get_pos ( _ )</text--->"
@@ -424,7 +422,7 @@ string const posSpec =
 returns the key of the vertex
 
 */
-Operator graph_key("get_key", keySpec, graphkey, Operator::SimpleSelect, 
+Operator graph_key("get_key", keySpec, graphkey, Operator::SimpleSelect,
     VertexIntTypeMap);
 
 /*
@@ -434,6 +432,6 @@ returns the position of the vertex
 
 */
 
-Operator graph_pos("get_pos", posSpec, graphpos, Operator::SimpleSelect, 
+Operator graph_pos("get_pos", posSpec, graphpos, Operator::SimpleSelect,
     VertexPointTypeMap);
 

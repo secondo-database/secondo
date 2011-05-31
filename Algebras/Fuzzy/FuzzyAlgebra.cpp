@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -65,6 +65,7 @@ using namespace std;
 #include "Attribute.h"
 #include <jni.h>
 #include <JVMInit.h>
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -498,7 +499,7 @@ Flob *CcFPoint::GetFLOB(const int i){
 
 */
 size_t CcFPoint::Sizeof() const{
-  return sizeof(*this); 
+  return sizeof(*this);
 }
 
 /*
@@ -937,7 +938,7 @@ static jobject ListExprTofEPoint(ListExpr &LE,bool check=true){
    jobject res= env->NewObject(cls,mid,x,y,z);
    if(res==0) error(__LINE__);
    if(check){
-      // check validity 
+      // check validity
       mid = env->GetMethodID(cls,"isValid","()Z");
       if(mid==0) error(__LINE__);
       bool ok = env->CallBooleanMethod(res,mid);
@@ -2067,7 +2068,7 @@ static Word InFRegion(const ListExpr typeInfo,
          correct=false;
          env->DeleteLocalRef(FR);
          return SetWord(Address(0));
-     } 
+     }
      return SetWord(new CcFRegion(FR));
   } else{
     correct=false;
@@ -2409,7 +2410,7 @@ static ListExpr FOiFOiFOi(ListExpr args){
           nl->IsEqual(arg2,"fregion"))
          return nl->SymbolAtom("fregion");
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr CommonPointsTypeMap(ListExpr args){
@@ -2422,7 +2423,7 @@ static ListExpr CommonPointsTypeMap(ListExpr args){
      if(nl->IsEqual(arg1,"fline") && nl->IsEqual(arg2,"fline"))
         return  nl->SymbolAtom("fpoint");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr BoundaryTypeMap(ListExpr args){
@@ -2433,7 +2434,7 @@ static ListExpr BoundaryTypeMap(ListExpr args){
      if(nl->IsEqual(arg1,"fline"))
         return  nl->SymbolAtom("fpoint");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FOiRealBoolFOi(ListExpr args){
@@ -2442,19 +2443,19 @@ static ListExpr FOiRealBoolFOi(ListExpr args){
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
     if( nl->IsEqual(arg1,"fpoint") &&
-        nl->IsEqual(arg2,"real") &&
-        nl->IsEqual(arg3,"bool"))
+        nl->IsEqual(arg2,CcReal::BasicType()) &&
+        nl->IsEqual(arg3,CcBool::BasicType()))
            return nl->SymbolAtom("fpoint");
     if( nl->IsEqual(arg1,"fregion") &&
-        nl->IsEqual(arg2,"real") &&
-        nl->IsEqual(arg3,"bool"))
+        nl->IsEqual(arg2,CcReal::BasicType()) &&
+        nl->IsEqual(arg3,CcBool::BasicType()))
            return nl->SymbolAtom("fregion");
     if( nl->IsEqual(arg1,"fline") &&
-        nl->IsEqual(arg2,"real") &&
-        nl->IsEqual(arg3,"bool"))
+        nl->IsEqual(arg2,CcReal::BasicType()) &&
+        nl->IsEqual(arg3,CcBool::BasicType()))
            return nl->SymbolAtom("fline");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2462,23 +2463,23 @@ static ListExpr FPointReal(ListExpr args){
   if(nl->ListLength(args)==1){
      ListExpr arg1 = nl->First(args);
      if(nl->IsEqual(arg1,"fpoint"))
-        return nl->SymbolAtom("real");
+        return nl->SymbolAtom(CcReal::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FLineReal(ListExpr args){
   if(nl->ListLength(args)==1){
      ListExpr arg1 = nl->First(args);
      if(nl->IsEqual(arg1,"fline"))
-        return nl->SymbolAtom("real");
+        return nl->SymbolAtom(CcReal::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FOiRealFOi(ListExpr args){
    if(nl->ListLength(args)==2){
-      if(nl->IsEqual(nl->Second(args),"real")){
+      if(nl->IsEqual(nl->Second(args),CcReal::BasicType())){
          ListExpr f = nl->First(args);
          if(nl->IsEqual(f,"fpoint"))
             return nl->SymbolAtom("fpoint");
@@ -2488,7 +2489,7 @@ static ListExpr FOiRealFOi(ListExpr args){
             return nl->SymbolAtom("fregion");
       }
     }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2498,42 +2499,42 @@ static ListExpr FOiFOiReal(ListExpr args){
     ListExpr arg2 = nl->Second(args);
     if( nl->IsEqual(arg1,"fpoint") &&
         nl->IsEqual(arg2,"fpoint"))
-         return nl->SymbolAtom("real");
+         return nl->SymbolAtom(CcReal::BasicType());
     if( nl->IsEqual(arg1,"fregion") &&
         nl->IsEqual(arg2,"fregion"))
-         return nl->SymbolAtom("real");
+         return nl->SymbolAtom(CcReal::BasicType());
     if( nl->IsEqual(arg1,"fline") &&
         nl->IsEqual(arg2,"fline"))
-         return nl->SymbolAtom("real");
+         return nl->SymbolAtom(CcReal::BasicType());
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FOBool(ListExpr args){
    if(nl->ListLength(args)==1){
      ListExpr arg1= nl->First(args);
      if( nl->IsEqual(arg1,"fpoint"))
-       return nl->SymbolAtom("bool");
+       return nl->SymbolAtom(CcBool::BasicType());
      if( nl->IsEqual(arg1,"fregion"))
-       return nl->SymbolAtom("bool");
+       return nl->SymbolAtom(CcBool::BasicType());
      if( nl->IsEqual(arg1,"fline"))
-       return nl->SymbolAtom("bool");
+       return nl->SymbolAtom(CcBool::BasicType());
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FOReal(ListExpr args){
    if(nl->ListLength(args)==1){
      ListExpr arg1= nl->First(args);
      if( nl->IsEqual(arg1,"fpoint"))
-       return nl->SymbolAtom("real");
+       return nl->SymbolAtom(CcReal::BasicType());
      if( nl->IsEqual(arg1,"fregion"))
-       return nl->SymbolAtom("real");
+       return nl->SymbolAtom(CcReal::BasicType());
      if( nl->IsEqual(arg1,"fline"))
-       return nl->SymbolAtom("real");
+       return nl->SymbolAtom(CcReal::BasicType());
 
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2543,19 +2544,19 @@ static ListExpr FORealRealReal(ListExpr args){
        ListExpr arg2 = nl->Second(args);
        ListExpr arg3 = nl->Third(args);
        if( nl->IsEqual(arg1,"fpoint") &&
-           nl->IsEqual(arg2,"real") &&
-           nl->IsEqual(arg3,"real"))
-             return nl->SymbolAtom("real");
+           nl->IsEqual(arg2,CcReal::BasicType()) &&
+           nl->IsEqual(arg3,CcReal::BasicType()))
+             return nl->SymbolAtom(CcReal::BasicType());
        if( nl->IsEqual(arg1,"fregion") &&
-           nl->IsEqual(arg2,"real") &&
-           nl->IsEqual(arg3,"real"))
-             return nl->SymbolAtom("real");
+           nl->IsEqual(arg2,CcReal::BasicType()) &&
+           nl->IsEqual(arg3,CcReal::BasicType()))
+             return nl->SymbolAtom(CcReal::BasicType());
        if( nl->IsEqual(arg1,"fline") &&
-           nl->IsEqual(arg2,"real") &&
-           nl->IsEqual(arg3,"real"))
-             return nl->SymbolAtom("real");
+           nl->IsEqual(arg2,CcReal::BasicType()) &&
+           nl->IsEqual(arg3,CcReal::BasicType()))
+             return nl->SymbolAtom(CcReal::BasicType());
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2570,7 +2571,7 @@ static ListExpr FOiFOi(ListExpr args){
          return nl->SymbolAtom("fline");
 
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FRegionFRegion(ListExpr args){
@@ -2579,16 +2580,16 @@ static ListExpr FRegionFRegion(ListExpr args){
       if(nl->IsEqual(arg1,"fregion"))
          return nl->SymbolAtom("fregion");
    }
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FRegionReal(ListExpr args){
   if(nl->ListLength(args)==1){
     ListExpr arg = nl->First(args);
     if(nl->IsEqual(arg,"fregion"))
-       return nl->SymbolAtom("real");
+       return nl->SymbolAtom(CcReal::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FRegionFLine(ListExpr args){
@@ -2597,7 +2598,7 @@ static ListExpr FRegionFLine(ListExpr args){
      if (nl->IsEqual(arg,"fregion"))
        return nl->SymbolAtom("fline");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 static ListExpr FRegionFRegionFLine(ListExpr args){
@@ -2608,7 +2609,7 @@ static ListExpr FRegionFRegionFLine(ListExpr args){
         && nl->IsEqual(arg2,"fregion"))
           return nl->SymbolAtom("fline");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4103,13 +4104,13 @@ class FuzzyAlgebra : public Algebra
   {
     AddTypeConstructor( &ccfpoint );
 
-    ccfpoint.AssociateKind("DATA");
+    ccfpoint.AssociateKind( Kind::DATA() );
 
     AddTypeConstructor(&ccfregion);
-    ccfregion.AssociateKind("DATA");
+    ccfregion.AssociateKind( Kind::DATA() );
 
     AddTypeConstructor(&ccfline);
-    ccfline.AssociateKind("DATA");
+    ccfline.AssociateKind( Kind::DATA() );
 
     AddOperator(&op_add);
     AddOperator(&op_setsf);

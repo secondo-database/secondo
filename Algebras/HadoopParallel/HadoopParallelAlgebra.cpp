@@ -65,8 +65,8 @@ but includes tuples of different schemes.
 #include "regex.h"
 #include "FileSystem.h"
 #include "StringUtils.h"
+#include "Symbols.h"
 
-using namespace symbols;
 using namespace std;
 
 extern NestedList* nl;
@@ -176,15 +176,15 @@ ListExpr doubleExportTypeMap(ListExpr args)
     {
       ListExpr attrList = nl->TwoElemList(
           nl->TwoElemList(nl->StringAtom("keyT",false),
-              nl->SymbolAtom(STRING)),
+              nl->SymbolAtom(CcString::BasicType())),
           nl->TwoElemList(nl->StringAtom("valueT",false),
-              nl->SymbolAtom(TEXT)));
+              nl->SymbolAtom(FText::BasicType())));
       NList AttrList(attrList, nl);
       NList tupleStreamList =
           NList(NList().tupleStreamOf(AttrList));
 
       return nl->ThreeElemList(
-                 nl->SymbolAtom("APPEND"),
+                 nl->SymbolAtom(Symbol::APPEND()),
                  nl->TwoElemList(nl->IntAtom(attrAIndex),
                                  nl->IntAtom(attrBIndex)),
                  tupleStreamList.listExpr());
@@ -438,7 +438,7 @@ ListExpr paraHashJoinTypeMap(ListExpr args)
       return nl->TypeError();
     }
     else if (!listutils::isSymbol(
-        nl->Second(nl->First(streamTupleList)),TEXT))
+        nl->Second(nl->First(streamTupleList)),FText::BasicType()))
     {
       ErrorReporter::ReportError(
               "Operator parahashjoin only accept tuple stream "
@@ -451,8 +451,8 @@ ListExpr paraHashJoinTypeMap(ListExpr args)
     ListExpr rBtupNList =
         renameList(nl->Second(nl->Second(relB)), "2");
     ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
-    ListExpr resultList = nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("tuple"), resultAttrList));
+    ListExpr resultList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), resultAttrList));
 
     return resultList;
 
@@ -755,7 +755,7 @@ ListExpr TUPSTREAMType( ListExpr args)
   first = nl->First(args);
   CHECK_COND(listutils::isRelDescription(first),
       "rel(tuple(...)) expected");
-  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(first));
 }
 
@@ -796,7 +796,7 @@ ListExpr TUPSTREAM2Type( ListExpr args)
   second = nl->Second(args);
   CHECK_COND(listutils::isRelDescription(second),
       "rel(tuple(...)) expected");
-  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(second));
 }
 
@@ -838,7 +838,7 @@ ListExpr TUPSTREAM3Type( ListExpr args)
   third = nl->Third(args);
   CHECK_COND(listutils::isRelDescription(third),
       "rel(tuple(...)) expected");
-  return nl->TwoElemList(nl->SymbolAtom(STREAM),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(third));
 }
 
@@ -944,7 +944,7 @@ ListExpr paraJoinTypeMap( ListExpr args )
         return nl->TypeError();
       }
       else if (!listutils::isSymbol(
-        nl->Second(nl->First(attrList)),TEXT))
+        nl->Second(nl->First(attrList)),FText::BasicType()))
       {
         ErrorReporter::ReportError(
           "Operator parajoin only accept tuple stream "
@@ -959,8 +959,8 @@ ListExpr paraJoinTypeMap( ListExpr args )
           && listutils::isTupleStream(nl->Fourth(mapNL)))
         {
           ListExpr resultList = nl->TwoElemList(
-                nl->SymbolAtom("stream"),
-                nl->TwoElemList(nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Symbol::STREAM()),
+                nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                     nl->Second(nl->Second(nl->Fourth(mapNL)))));
 
           return resultList;
@@ -1362,19 +1362,20 @@ ListExpr paraJoin2TypeMap(ListExpr args)
             "parajoin2 expects two key attributes with same type.");
 
       NList attrResult;
-      if (mapList.first().isSymbol(symbols::MAP)
-          && mapList.second().first().isSymbol(symbols::STREAM)
+      if (mapList.first().isSymbol(Symbol::MAP())
+          && mapList.second().first().isSymbol(Symbol::STREAM())
           && mapList.second().
-             second().first().isSymbol(symbols::TUPLE)
-          && mapList.third().first().isSymbol(symbols::STREAM)
+             second().first().isSymbol(Tuple::BasicType())
+          && mapList.third().first().isSymbol(Symbol::STREAM())
           && mapList.third().
-             second().first().isSymbol(symbols::TUPLE)
+             second().first().isSymbol(Tuple::BasicType())
           && mapList.fourth().checkStreamTuple(attrResult)  )
       {
         NList resultStream =
-            NList(NList(STREAM, NList(NList(TUPLE), attrResult)));
+            NList(NList(Symbol::STREAM(),
+                        NList(NList(Tuple::BasicType()), attrResult)));
 
-        return NList(NList("APPEND"),
+        return NList(NList(Symbol::APPEND()),
                      NList(NList(keyAIndex), NList(keyBIndex)),
                      resultStream).listExpr();
       }
@@ -1685,12 +1686,14 @@ ListExpr add0TupleTypeMap(ListExpr args)
 
   ListExpr tupleList = nl->Second(nl->Second(streamNL));
   if (nl->ListLength(tupleList) == 2
-  && listutils::isSymbol(nl->Second(nl->First(tupleList)), STRING)
-  && listutils::isSymbol(nl->Second(nl->Second(tupleList)), TEXT))
+  && listutils::isSymbol(nl->Second(nl->First(tupleList)),
+                                                 CcString::BasicType())
+  && listutils::isSymbol(nl->Second(nl->Second(tupleList)),
+                                                 FText::BasicType()))
   {
     return streamNL;
-//    return nl->TwoElemList(nl->SymbolAtom(STREAM),
-//          nl->TwoElemList(nl->SymbolAtom(TUPLE),
+//    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+//          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
 //              nl->OneElemList(nl->Second(tupleList))));
   }
   else
@@ -2154,12 +2157,12 @@ ListExpr FConsumeTypeMap(ListExpr args)
   NList pValue = bsList.second();
   if (pType.length() < 2 || pType.length() > 3)
     return l.typeError(typeErr2);
-  if (pType.first().isSymbol(STRING) &&
-      pType.second().isSymbol(TEXT))
+  if (pType.first().isSymbol(CcString::BasicType()) &&
+      pType.second().isSymbol(FText::BasicType()))
   {
     if (pType.length() == 3)
       haveIndex = true;
-    if (haveIndex && !pType.third().isSymbol(INT))
+    if (haveIndex && !pType.third().isSymbol(CcInt::BasicType()))
      return l.typeError(err5);
     NList fnList;
     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
@@ -2182,7 +2185,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
       return l.typeError(err7);
     while (!pType.isEmpty())
     {
-      if (!pType.first().isSymbol(INT))
+      if (!pType.first().isSymbol(CcInt::BasicType()))
         return l.typeError(typeErr3);
       pType.rest();
     }
@@ -2205,8 +2208,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
   {
     if (pType.length() != 2)
       return l.typeError(err6);
-    if (!pType.first().isSymbol(INT) ||
-        !pType.second().isSymbol(INT))
+    if (!pType.first().isSymbol(CcInt::BasicType()) ||
+        !pType.second().isSymbol(CcInt::BasicType()))
       return l.typeError(typeErr4);
     drMode = true;
   }
@@ -2215,7 +2218,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
   string typeFileName = fileName + "_type";
   filePath = getFilePath(filePath, typeFileName);
   ofstream typeFile(filePath.c_str());
-  NList resultList = NList(NList("rel"), tsList.first().second());
+  NList resultList = NList(NList(Relation::BasicType()),
+                           tsList.first().second());
   if (typeFile.good())
   {
     typeFile << resultList.convertToString() << endl;
@@ -2249,7 +2253,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
     }
   }
 
-  return NList(NList(symbols::BOOL)).listExpr();
+  return NList(NList(CcBool::BasicType())).listExpr();
 }
 
 
@@ -2645,7 +2649,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   NList fn = l.first();
   pType = fn.first();
   pValue = fn.second();
-  if (!pType.isSymbol(STRING))
+  if (!pType.isSymbol(CcString::BasicType()))
     return l.typeError(err5);
   NList fnList;
   if (!QueryProcessor::GetNLArgValueInTM(pValue, fnList))
@@ -2662,10 +2666,10 @@ ListExpr FFeedTypeMap(ListExpr args)
     return l.typeError(err6);
   else if (bpLen == 2)
     haveIndex = true;
-  if (!pType.first().isSymbol(TEXT))
+  if (!pType.first().isSymbol(FText::BasicType()))
     return l.typeError(err6);
   if (haveIndex)
-    if (!pType.second().isSymbol(INT))
+    if (!pType.second().isSymbol(CcInt::BasicType()))
       return l.typeError(err6);
   NList fpList;
   if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
@@ -2679,7 +2683,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!pType.isEmpty())
   {
     if (pType.length() > 1 ||
-        !pType.first().isSymbol(INT))
+        !pType.first().isSymbol(CcInt::BasicType()))
       return l.typeError(err7);
     trMode = true;
     pValue = tr.second();
@@ -2692,8 +2696,8 @@ ListExpr FFeedTypeMap(ListExpr args)
   {
     if (pType.length() != 2)
       return l.typeError(err9);
-    if (!pType.first().isSymbol(INT) ||
-        !pType.second().isSymbol(INT))
+    if (!pType.first().isSymbol(CcInt::BasicType()) ||
+        !pType.second().isSymbol(CcInt::BasicType()))
       return l.typeError(err9);
     drMode = true;
   }
@@ -2723,7 +2727,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!listutils::isRelDescription(relType))
     return l.typeError(err3 + filePath);
   NList streamType =
-      NList(NList(symbols::STREAM),
+      NList(NList(Symbol::STREAM()),
       NList(NList(relType).second()));
 
   return streamType.listExpr();
@@ -3171,16 +3175,16 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     }
 
     if (!(l.third().first().first().isSymbol("array")
-        && l.third().first().second().isSymbol(symbols::STRING)))
+        && l.third().first().second().isSymbol(CcString::BasicType())))
       return l.typeError(typeErr);
 
-    if (!l.fourth().first().isSymbol(symbols::INT))
+    if (!l.fourth().first().isSymbol(CcInt::BasicType()))
       return l.typeError(typeErr);
 
-    if (!l.fifth().first().isSymbol(symbols::INT))
+    if (!l.fifth().first().isSymbol(CcInt::BasicType()))
       return l.typeError(typeErr);
 
-    if (!l.sixth().first().isSymbol(symbols::STRING))
+    if (!l.sixth().first().isSymbol(CcString::BasicType()))
       return l.typeError(typeErr);
     NList rnList;
     if (!QueryProcessor::GetNLArgValueInTM(l.sixth().second(), rnList))
@@ -3190,7 +3194,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     string mapStr = l.elem(7).second().fourth().convertToString();
     NList mapList = l.elem(7).first();
     NList attrAB, attr[2];
-    if (mapList.first().isSymbol(symbols::MAP)
+    if (mapList.first().isSymbol(Symbol::MAP())
         && mapList.second().checkStreamTuple(attr[0])
         && mapList.third().checkStreamTuple(attr[1])
         && mapList.fourth().checkStreamTuple(attrAB))
@@ -3204,7 +3208,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
         while (!rest.isEmpty()){
           NList a = rest.first();
           rest.rest();
-          if (a.second().isSymbol("int")){
+          if (a.second().isSymbol(CcInt::BasicType())){
             string aName = a.first().convertToString();
             if ("Partition" ==
                   aName.substr(0,aName.find_first_of("_"))){
@@ -3218,8 +3222,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
 
       // Write the join result type into local default path,
       // in case the following operators need.
-      NList joinResult = NList(NList(REL),
-                       NList(NList(TUPLE), NList(attrAB)));
+      NList joinResult = NList(NList(Relation::BasicType()),
+                       NList(NList(Tuple::BasicType()), NList(attrAB)));
       string typeFileName = FileSystem::GetCurrentFolder();
       FileSystem::AppendItem(typeFileName, "parallel");
       FileSystem::AppendItem(typeFileName, resultName + "_type");
@@ -3239,13 +3243,13 @@ ListExpr hdpJoinTypeMap(ListExpr args)
           << typeFileName << endl;
 
       // result type
-      NList a1(NList("mIndex"), NList(symbols::INT));
-      NList a2(NList("pIndex"), NList(symbols::INT));
+      NList a1(NList("mIndex"), NList(CcInt::BasicType()));
+      NList a2(NList("pIndex"), NList(CcInt::BasicType()));
 
-      NList result(NList(STREAM),
-                   NList(NList(TUPLE), NList(a1, a2)));
+      NList result(NList(Symbol::STREAM()),
+                   NList(NList(Tuple::BasicType()), NList(a1, a2)));
 
-      return NList(NList("APPEND"),
+      return NList(NList(Symbol::APPEND()),
                    NList(NList(streamStr[0], true, true),
                          NList(streamStr[1], true, true),
                          NList(mapStr, true, true)),
@@ -3482,7 +3486,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   if (!l.first().first().checkStreamTuple(attrsList))
     return l.typeError(tpeErr);
 
-  if (!l.second().first().isSymbol(symbols::STRING))
+  if (!l.second().first().isSymbol(CcString::BasicType()))
     return l.typeError(tpeErr);
   NList fnList; //get the file name
   if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fnList))
@@ -3491,7 +3495,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   if (0 == fileName.length())
     return l.typeError(err2);
 
-  if (!l.third().first().isSymbol(symbols::TEXT))
+  if (!l.third().first().isSymbol(FText::BasicType()))
     return l.typeError(tpeErr);
 
   //Identify attribute
@@ -3507,9 +3511,9 @@ ListExpr FDistributeTypeMap(ListExpr args)
   if (5 == len)
   {
     NList fifth = l.fifth();
-    if (fifth.first().isSymbol(symbols::INT))
+    if (fifth.first().isSymbol(CcInt::BasicType()))
       evenMode = true;
-    else if (fifth.first().isSymbol(symbols::BOOL))
+    else if (fifth.first().isSymbol(CcBool::BasicType()))
     {
       setKPA = true;
       KPA = fifth.second().boolval();
@@ -3519,8 +3523,8 @@ ListExpr FDistributeTypeMap(ListExpr args)
   }
   else if (6 == len)
   {
-    if (!l.fifth().first().isSymbol(symbols::INT) ||
-        !l.sixth().first().isSymbol(symbols::BOOL))
+    if (!l.fifth().first().isSymbol(CcInt::BasicType()) ||
+        !l.sixth().first().isSymbol(CcBool::BasicType()))
       return l.typeError(tpeErr);
     else
     {
@@ -3554,7 +3558,8 @@ ListExpr FDistributeTypeMap(ListExpr args)
   filePath = getFilePath(filePath, typeFileName);
   ofstream typeFile(filePath.c_str());
   NList resultList =
-          NList(NList(REL), NList(NList(TUPLE), newAL));
+          NList(NList(Relation::BasicType()),
+                NList(NList(Tuple::BasicType()), newAL));
   if (!typeFile.good())
     return l.typeError(err3 + filePath);
   else
@@ -3565,16 +3570,16 @@ ListExpr FDistributeTypeMap(ListExpr args)
   typeFile.close();
 
   NList outAttrList =
-           NList(NList(NList("suffix"), NList(symbols::INT)),
-                 NList(NList("tupNum"), NList(symbols::INT)));
+           NList(NList(NList("suffix"), NList(CcInt::BasicType())),
+                 NList(NList("tupNum"), NList(CcInt::BasicType())));
   NList outList = NList().tupleStreamOf(outAttrList);
 
-  return NList(NList("APPEND"),
+  return NList(NList(Symbol::APPEND()),
                NList(
                  NList(setKPA, true),
                  NList(attrIndex),
                  NList(
-                   NList(NList(TUPLE), newAL).convertToString(),
+                   NList(NList(Tuple::BasicType()), newAL).convertToString(),
                      true, true)),
                outList).listExpr();
 }
@@ -4258,7 +4263,7 @@ struct fListInfo: ConstructorInfo
   fListInfo()
   {
     name = "flist";
-    signature = "-> " + SIMPLE;
+    signature = "-> " + Kind::SIMPLE();
     typeExample = "flist";
     listRep = "(<objName> <nodeList> <fileLocList><dupTimes>)";
     valueExample =

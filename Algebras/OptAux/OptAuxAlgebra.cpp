@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 
+
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
 class Algebra. All of the data available in Secondo has a nested list
@@ -72,7 +73,6 @@ four different types defined in namespace ~symbols~: ~INT~ and ~REAL~, ~BOOL~ an
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-using namespace symbols;
 using namespace mappings;
 
 #include <string>
@@ -366,11 +366,13 @@ attributes named pattern and count.
 */
    // Zieltyp zusammensetzen
    // ??? die hardcodierten Literale muessen raus
-   resultType = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"),
+   resultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
          nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("Atom"),nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("Count"),nl->SymbolAtom("int")))));
+            nl->TwoElemList(nl->SymbolAtom("Atom"),
+                            nl->SymbolAtom(CcInt::BasicType())),
+            nl->TwoElemList(nl->SymbolAtom("Count"),
+                            nl->SymbolAtom(CcInt::BasicType())))));
    return resultType;
 }
 

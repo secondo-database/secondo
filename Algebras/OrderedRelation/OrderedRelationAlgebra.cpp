@@ -48,6 +48,7 @@ OrderedRelation.h header file.
 #include "../../Tools/Flob/DbArray.h"
 #include <limits>
 #include "BTreeAlgebra.h"
+#include "Symbols.h"
 
 //#define DEBUG_OREL
 
@@ -1435,11 +1436,11 @@ cout << nl->ToString(current) << endl;
         typeId = nl->IntValue(nl->Second(nl->Second(current)));
         string keyTypeString = am->GetTC(algId, typeId)->Name();
 
-        if (keyTypeString == "int") {
+        if (keyTypeString == CcInt::BasicType()) {
           keyElemType[count] = SmiKey::Integer;
-        } else if(keyTypeString == "string") {
+        } else if(keyTypeString == CcString::BasicType()) {
           keyElemType[count] = SmiKey::String;
-        } else if(keyTypeString == "real") {
+        } else if(keyTypeString == CcReal::BasicType()) {
           keyElemType[count] = SmiKey::Float;
         } else {
           keyElemType[count] = SmiKey::Composite;
@@ -1569,8 +1570,9 @@ cout << nl->ToString(args) << endl;
   } else {
     appList = nl->OneElemList(nl->IntAtom(nl->ListLength(nl->Second(args))));
   }
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"), appList,
-        nl->TwoElemList(nl->SymbolAtom("stream"),nl->Second(nl->First(args))));
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()), appList,
+        nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->Second(nl->First(args))));
 }
 
 #ifndef USE_PROGRESS
@@ -1926,14 +1928,14 @@ ListExpr OShortestPathDTypeMap(ListExpr args)
     ListExpr firstAttr = nl->First(orelAttrList);
 
     if (nl->ListLength(firstAttr) != 2 ||
-        nl->SymbolValue(nl->Second(firstAttr)) != "int")
+        nl->SymbolValue(nl->Second(firstAttr)) != CcInt::BasicType())
     {
       return listutils::typeError("First attribute of orel should be int");
     }
 
     ListExpr secondAttr = nl->Second(orelAttrList);
     if (nl->ListLength(secondAttr) != 2 ||
-        nl->SymbolValue(nl->Second(secondAttr)) != "int")
+        nl->SymbolValue(nl->Second(secondAttr)) != CcInt::BasicType())
     {
       return listutils::typeError("Second attribute of orel should be int");
     }
@@ -1944,19 +1946,19 @@ ListExpr OShortestPathDTypeMap(ListExpr args)
   }
 
   //Check of second argument
-  if (!listutils::isSymbol(startNodeList,"int"))
+  if (!listutils::isSymbol(startNodeList,CcInt::BasicType()))
   {
     return listutils::typeError("Second argument should be int");
   }
 
   //Check of third argument
-  if (!listutils::isSymbol(endNodeList,"int"))
+  if (!listutils::isSymbol(endNodeList,CcInt::BasicType()))
   {
     return listutils::typeError("Third argument should be int");
   }
 
   //Check of fourth argument
-  if (!listutils::isSymbol(resultSelect,"int"))
+  if (!listutils::isSymbol(resultSelect,CcInt::BasicType()))
   {
     return listutils::typeError("Fourth argument should be int");
   }
@@ -1976,14 +1978,14 @@ ListExpr OShortestPathDTypeMap(ListExpr args)
 
   ListExpr mapres = nl->Third(functionMap);
 
-  if(!listutils::isSymbol(mapres,"real"))
+  if(!listutils::isSymbol(mapres,CcReal::BasicType()))
   {
     return listutils::typeError("Wrong mapping result type for oshortestpathd");
   }
 
   //returns stream of tuples like in orel
   NList extendAttrList(nl->TwoElemList(nl->SymbolAtom("SeqNo"),
-                                       nl->SymbolAtom("int")));
+                                       nl->SymbolAtom(CcInt::BasicType())));
   NList extOrelAttrList(nl->TheEmptyList());
 
 
@@ -1995,9 +1997,9 @@ ListExpr OShortestPathDTypeMap(ListExpr args)
 
   extOrelAttrList.append(extendAttrList);
 
-  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                      nl->TwoElemList(
-                                      nl->SymbolAtom("tuple"),
+                                      nl->SymbolAtom(Tuple::BasicType()),
                                       extOrelAttrList.listExpr()));
 
   return outlist;
@@ -2618,14 +2620,14 @@ ListExpr OShortestPathATypeMap(ListExpr args)
     ListExpr firstAttr = nl->First(orelAttrList);
 
     if (nl->ListLength(firstAttr) != 2 ||
-        nl->SymbolValue(nl->Second(firstAttr)) != "int")
+        nl->SymbolValue(nl->Second(firstAttr)) != CcInt::BasicType())
     {
       return listutils::typeError("First attribute of orel should be int");
     }
 
     ListExpr secondAttr = nl->Second(orelAttrList);
     if (nl->ListLength(secondAttr) != 2 ||
-        nl->SymbolValue(nl->Second(secondAttr)) != "int")
+        nl->SymbolValue(nl->Second(secondAttr)) != CcInt::BasicType())
     {
       return listutils::typeError("Second attribute of orel should be int");
     }
@@ -2636,19 +2638,19 @@ ListExpr OShortestPathATypeMap(ListExpr args)
   }
 
   //Check of second argument
-  if (!listutils::isSymbol(startNodeList,"int"))
+  if (!listutils::isSymbol(startNodeList,CcInt::BasicType()))
   {
     return listutils::typeError("Second argument should be int");
   }
 
   //Check of third argument
-  if (!listutils::isSymbol(endNodeList,"int"))
+  if (!listutils::isSymbol(endNodeList,CcInt::BasicType()))
   {
     return listutils::typeError("Third argument should be int");
   }
 
   //Check of fourth argument
-  if (!listutils::isSymbol(selectFunList,"int"))
+  if (!listutils::isSymbol(selectFunList,CcInt::BasicType()))
   {
     return listutils::typeError("Fourth argument should be int");
   }
@@ -2668,7 +2670,7 @@ ListExpr OShortestPathATypeMap(ListExpr args)
 
   ListExpr mapres1 = nl->Third(functionDistMap);
 
-  if(!listutils::isSymbol(mapres1,"real"))
+  if(!listutils::isSymbol(mapres1,CcReal::BasicType()))
   {
     return listutils::typeError("Wrong mapping result type for oshortestpatha");
   }
@@ -2688,14 +2690,14 @@ ListExpr OShortestPathATypeMap(ListExpr args)
 
   ListExpr mapres2 = nl->Third(functionWeightMap);
 
-  if(!listutils::isSymbol(mapres2,"real"))
+  if(!listutils::isSymbol(mapres2,CcReal::BasicType()))
   {
     return listutils::typeError("Wrong mapping result type for oshortestpath");
   }
 
   //returns stream of tuples like in orel
   NList extendAttrList(nl->TwoElemList(nl->SymbolAtom("SeqNo"),
-                                       nl->SymbolAtom("int")));
+                                       nl->SymbolAtom(CcInt::BasicType())));
   NList extOrelAttrList(nl->TheEmptyList());
 
 
@@ -2713,9 +2715,9 @@ ListExpr OShortestPathATypeMap(ListExpr args)
   extOrelAttrList.append(extendAttrList);
 
 
-  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                      nl->TwoElemList(
-                                      nl->SymbolAtom("tuple"),
+                                      nl->SymbolAtom(Tuple::BasicType()),
                                       extOrelAttrList.listExpr()));
 
   return outlist;
@@ -3336,10 +3338,10 @@ class OrderedRelationAlgebra : public Algebra {
   public:
     OrderedRelationAlgebra() : Algebra() {
       AddTypeConstructor(&cpporel);
-      cpporel.AssociateKind("REL");
+      cpporel.AssociateKind(Kind::REL());
 
       AddTypeConstructor(&cppcompkey);
-      cppcompkey.AssociateKind("DATA");
+      cppcompkey.AssociateKind(Kind::DATA());
 
       AddOperator(&oleftrange);
       AddOperator(&orightrange);

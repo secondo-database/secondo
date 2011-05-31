@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -46,7 +46,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include "./../Raster/Signature/GenerateRaster.h"
 
 class Raster4CRS;
-extern long compareSignatures4CRS( Signature4CRS *assinat4crs1, 
+extern long compareSignatures4CRS( Signature4CRS *assinat4crs1,
                             Signature4CRS *assinat4crs2, MBR &mbrIntersection);
 
 /*
@@ -60,13 +60,15 @@ extern long compareSignatures4CRS( Signature4CRS *assinat4crs1,
 class CRasterRegion: public Region
 {
   private:
- 
+
   public:
+    static const string BasicType() { return "rasterRegion"; }
+
     Raster4CRS *rasterSignature;
-    
-   //potency dx dy signature...   
+
+   //potency dx dy signature...
     DbArray<unsigned long> rasterFLOB;
-    
+
     bool rasterDefined;
 
 /*
@@ -137,7 +139,7 @@ CRasterRegion::CRasterRegion(const Region& rr) : Region(rr), rasterFLOB(0){
   rasterSignature = NULL;
 };
 
-CRasterRegion::CRasterRegion(const CRasterRegion& rr) : 
+CRasterRegion::CRasterRegion(const CRasterRegion& rr) :
            Region(rr), rasterFLOB(0){
   rasterDefined = false;
   rasterFLOB.Clear();
@@ -153,7 +155,7 @@ CRasterRegion::CRasterRegion(const CRasterRegion& rr) :
 
     FLOBToRaster4CRS();
   } else {
-  
+
     setRaster(rr.readRaster()->Clone());
   }
 };
@@ -174,7 +176,7 @@ Raster4CRS *CRasterRegion::getRaster() {
 
   if (IsEmpty())
       return NULL;
-    
+
   if (rasterDefined)
     return rasterSignature;
   else {
@@ -215,11 +217,11 @@ Raster4CRS *CRasterRegion::calculateRaster(int signatureType) const{
     type = SIGNAT_4CRS;
   else
     cout << "Invalid signatureType" << std::endl;
-    
-  signature = GeraRasterSecondo::generateRaster( 1, r1, NULL, NULL, 
+
+  signature = GeraRasterSecondo::generateRaster( 1, r1, NULL, NULL,
                  potency, type);
-    
-    
+
+
     potency++;
   } while (signature==NULL);
   raster = new Raster4CRS(signature->fullMap(), signatureType);
@@ -240,13 +242,13 @@ bool CRasterRegion::Intersects(CRasterRegion &rr2)
   if(result == 0 || result == 1)
     return result == 1;
 
-  //MBR test  
+  //MBR test
   if(!MBRIntersects((Region)rr2))
     return false;
 
   //Raster signature test
   MBR mbrIntersection;
-  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(),
          rr2.getRaster(), mbrIntersection);
 
   if (rasterIntersects == 0 || rasterIntersects == 1)
@@ -266,7 +268,7 @@ int CRasterRegion::preIntersects( const Region& r) const
 
   if( IsEmpty() || r.IsEmpty() )
     return 0;
-  
+
   return 2;
 }
 
@@ -278,13 +280,13 @@ bool CRasterRegion::MBRIntersects( const Region& r) const
 }
 
 // Function RegionIntersects used for distinguish the first and second steps
-//of the Intersects funcion 
+//of the Intersects funcion
 bool CRasterRegion::ExactIntersects(const Region &r) const
 {
 
   if( Inside( r ) || r.Inside( *this ) )
     return true;
-  
+
   const HalfSegment *hs1, *hs2;
   for( int i = 0; i < Size(); i++ )
   {
@@ -294,7 +296,7 @@ bool CRasterRegion::ExactIntersects(const Region &r) const
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() && 
+        if( hs2->IsLeftDomPoint() &&
             hs1->Intersects( *hs2 ) )
           return true;
       }
@@ -312,25 +314,25 @@ bool CRasterRegion::ExactIntersects(const Region &r) const
 void CRasterRegion::Raster4CRSToFLOB(){
   if (rasterDefined) {
     Signature4CRS::Weight filling;
-    
+
     rasterFLOB.Clear();
-    
+
     rasterFLOB.Append(rasterSignature->signatureType);
     rasterFLOB.Append(rasterSignature->map->potency);
     rasterFLOB.Append(rasterSignature->map->dx);
     rasterFLOB.Append(rasterSignature->map->dy);
-    
+
     long cellSize = 1l << rasterSignature->map->potency;
     long computedCells = 0;
     unsigned long FLOBelement = 0;
 
-    long minXcell = rasterSignature->map->mbr.min.x 
-          - (rasterSignature->map->mbr.min.x % cellSize) 
-          - (cellSize * (rasterSignature->map->mbr.min.x < 0 
+    long minXcell = rasterSignature->map->mbr.min.x
+          - (rasterSignature->map->mbr.min.x % cellSize)
+          - (cellSize * (rasterSignature->map->mbr.min.x < 0
              && (rasterSignature->map->mbr.min.x % cellSize != 0) ? 1 : 0));
-    long minYcell = rasterSignature->map->mbr.min.y 
-          - (rasterSignature->map->mbr.min.y % cellSize) 
-          - (cellSize * (rasterSignature->map->mbr.min.y < 0 
+    long minYcell = rasterSignature->map->mbr.min.y
+          - (rasterSignature->map->mbr.min.y % cellSize)
+          - (cellSize * (rasterSignature->map->mbr.min.y < 0
              && (rasterSignature->map->mbr.min.y % cellSize != 0) ? 1 : 0));
     for( long i=minXcell; i <= rasterSignature->map->mbr.max.x; i+=cellSize) {
       for(long j=minYcell; j <= rasterSignature->map->mbr.max.y; j+=cellSize)
@@ -345,7 +347,7 @@ void CRasterRegion::Raster4CRSToFLOB(){
         }
       }
     }
-      
+
     if (computedCells > 0) {
       rasterFLOB.Append(FLOBelement);
     }
@@ -365,7 +367,7 @@ void CRasterRegion::Raster4CRSToFLOB(){
 
 void CRasterRegion::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy, signatureType;
-  
+
   const unsigned long *l;
 
 
@@ -377,9 +379,9 @@ void CRasterRegion::FLOBToRaster4CRS(){
   dx = *l;
   rasterFLOB.Get(3, l);
   dy = *l;
-  
+
   long cellSize = 1l << potency;
-  
+
   long numElements = dx * dy;
   Signature4CRS::Weight *filling = new Signature4CRS::Weight[numElements];
 for (int i = 0; i < numElements; i++)
@@ -390,25 +392,25 @@ for (int i = 0; i < numElements; i++)
   int positionInElement = -1;
   unsigned int currentCell = 0;
   Signature4CRS::Weight ocup;
-  
+
   int positionInFLOB = 0;
-  long int minXcell = (long int)(this->BoundingBox().MinD(0) 
-       - ((long int)this->BoundingBox().MinD(0) % cellSize) 
-       - (cellSize * (this->BoundingBox().MinD(0) < 0 
+  long int minXcell = (long int)(this->BoundingBox().MinD(0)
+       - ((long int)this->BoundingBox().MinD(0) % cellSize)
+       - (cellSize * (this->BoundingBox().MinD(0) < 0
           && ((long int)this->BoundingBox().MinD(0) % cellSize != 0) ? 1 : 0)));
-  long int minYcell = (long int)(this->BoundingBox().MinD(1) 
-       - ((long int)this->BoundingBox().MinD(1) % cellSize) 
-       - (cellSize * (this->BoundingBox().MinD(1) < 0 
+  long int minYcell = (long int)(this->BoundingBox().MinD(1)
+       - ((long int)this->BoundingBox().MinD(1) % cellSize)
+       - (cellSize * (this->BoundingBox().MinD(1) < 0
           && ((long int)this->BoundingBox().MinD(1) % cellSize != 0) ? 1 : 0)));
 
-  Coordinate cmin ((long int)this->BoundingBox().MinD(0), 
+  Coordinate cmin ((long int)this->BoundingBox().MinD(0),
            (long int)this->BoundingBox().MinD(1));
-  Coordinate cmax ((long int)this->BoundingBox().MaxD(0), 
+  Coordinate cmax ((long int)this->BoundingBox().MaxD(0),
            (long int)this->BoundingBox().MaxD(1));
-  rasterSignature = new Raster4CRS(1, cmin, cmax, cellSize, dx, dy, filling, 
+  rasterSignature = new Raster4CRS(1, cmin, cmax, cellSize, dx, dy, filling,
            signatureType);
-  
-  long totalCells = (long)((this->BoundingBox().MaxD(0) - minXcell + 1) 
+
+  long totalCells = (long)((this->BoundingBox().MaxD(0) - minXcell + 1)
            * (this->BoundingBox().MaxD(1) - minYcell + 1));
 
   for( long i=minXcell; i <= this->BoundingBox().MaxD(0); i+=cellSize)
@@ -416,7 +418,7 @@ for (int i = 0; i < numElements; i++)
     {
       if (positionInElement < 0){
         // the 4 itens at the beggining are signatureType, potency, dx and dy
-        rasterFLOB.Get(positionInFLOB + 4, pFLOBelement); 
+        rasterFLOB.Get(positionInFLOB + 4, pFLOBelement);
         FLOBelement = *pFLOBelement;
         positionInElement = 0;
         //if (dx * dy - currentCell < sizeof(unsigned long) * 4)
@@ -440,13 +442,13 @@ for (int i = 0; i < numElements; i++)
         default:
           ocup = Signature4CRS::Full;
       }
-      rasterSignature->mapBlock((unsigned)((i - minXcell) / cellSize), 
+      rasterSignature->mapBlock((unsigned)((i - minXcell) / cellSize),
                           (unsigned)((j - minYcell) / cellSize), ocup);
-      
+
       positionInElement--;
       currentCell++;
     }
-    
+
   rasterDefined = true;
 }
 
@@ -472,13 +474,15 @@ class CRasterLine: public Line
 {
   private:
     //Raster4CRS *rasterSignature;
- 
-   //potency dx dy signature...   
+
+   //potency dx dy signature...
     DbArray<unsigned long> rasterFLOB;
 
   public:
+    static const string BasicType() { return "rasterLine"; }
+
     Raster4CRS *rasterSignature;
-    
+
     bool rasterDefined;
     CRasterLine() {};
     CRasterLine(Line l);
@@ -492,7 +496,7 @@ class CRasterLine: public Line
     int preIntersects( const Line& l) const;
     bool MBRIntersects( const Line& l) const;
     bool ExactIntersects( const Line& l) const;
-      
+
     bool Intersects(CRasterRegion &rr2);
     int preIntersects( const Region& r) const;
     bool MBRIntersects( const Region& r) const;
@@ -553,7 +557,7 @@ CRasterLine::CRasterLine(const CRasterLine& rl) : Line(rl), rasterFLOB(0){
       rasterFLOB.Put( i, *hs );
     }
   }
-  
+
   setRaster(rl.readRaster()->Clone());
 };
 
@@ -580,7 +584,7 @@ Raster4CRS *CRasterLine::readRaster() const{
 
   if (!IsEmpty() && rasterDefined)
     return rasterSignature;
-  else 
+  else
     return NULL;
 };
 
@@ -605,8 +609,8 @@ Raster4CRS *CRasterLine::calculateRaster(int signatureType) const{
     type = SIGNAT_4CRS;
   else
     cout << "Invalid signatureType" << std::endl;
-    
-  signature = GeraRasterSecondo::generateRaster( 1, NULL, l1, NULL, potency, 
+
+  signature = GeraRasterSecondo::generateRaster( 1, NULL, l1, NULL, potency,
               type);
     potency++;
   } while (signature==NULL);
@@ -628,9 +632,9 @@ bool CRasterLine::Intersects(CRasterLine &rl2)
   }
 
   MBR mbrIntersection;
-  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(),
           rl2.getRaster(), mbrIntersection);
-  
+
   //FALSE_HIT          0
   //HIT                1
   //INCONCLUSIVE       2
@@ -651,7 +655,7 @@ int CRasterLine::preIntersects( const Line& l) const
 
   if( IsEmpty() || l.IsEmpty() )
     return 0;
-  
+
   return 2;
 }
 
@@ -676,7 +680,7 @@ bool CRasterLine::ExactIntersects( const Line& l) const
         if (hs2->IsLeftDomPoint())
         {
           if( hs1->Intersects( *hs2 ) )
-            return true; 
+            return true;
         }
       }
     }
@@ -695,7 +699,7 @@ bool CRasterLine::Intersects(CRasterRegion &rr2)
     return false;
 
   MBR mbrIntersection;
-  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(),
                              rr2.getRaster(), mbrIntersection);
 
   if (rasterIntersects == 0 || rasterIntersects == 1)
@@ -714,7 +718,7 @@ int CRasterLine::preIntersects( const Region& r) const
 
   if( IsEmpty() || r.IsEmpty() )
     return 0;
-  
+
   return 2;
 }
 
@@ -728,7 +732,7 @@ bool CRasterLine::MBRIntersects( const Region& r) const
 bool CRasterLine::ExactIntersects( const Region& r) const
 {
   const HalfSegment *hsl, *hsr;
-  for( int i = 0; i < Size(); i++ ) 
+  for( int i = 0; i < Size(); i++ )
   {
     Get( i, hsl );
     if( hsl->IsLeftDomPoint() )
@@ -743,7 +747,7 @@ bool CRasterLine::ExactIntersects( const Region& r) const
         }
       }
 
-      if( r.Contains( hsl->GetLeftPoint() ) || 
+      if( r.Contains( hsl->GetLeftPoint() ) ||
           r.Contains( hsl->GetRightPoint() ) )
         return true;
     }
@@ -754,26 +758,26 @@ bool CRasterLine::ExactIntersects( const Region& r) const
 void CRasterLine::Raster4CRSToFLOB(){
   if (rasterDefined) {
     Signature4CRS::Weight filling;
-    
+
     rasterFLOB.Clear();
-    
+
     rasterFLOB.Append(rasterSignature->signatureType);
     rasterFLOB.Append(rasterSignature->map->potency);
     rasterFLOB.Append(rasterSignature->map->dx);
     rasterFLOB.Append(rasterSignature->map->dy);
-    
+
     long cellSize = 1l << rasterSignature->map->potency;
     long computedCells = 0;
     unsigned long FLOBelement = 0;
 
     int numCelulas = 0;
-    long minXcell = rasterSignature->map->mbr.min.x 
-          - (rasterSignature->map->mbr.min.x % cellSize) 
-          - (cellSize * (rasterSignature->map->mbr.min.x < 0 
+    long minXcell = rasterSignature->map->mbr.min.x
+          - (rasterSignature->map->mbr.min.x % cellSize)
+          - (cellSize * (rasterSignature->map->mbr.min.x < 0
                && (rasterSignature->map->mbr.min.x % cellSize != 0) ? 1 : 0));
-    long minYcell = rasterSignature->map->mbr.min.y 
-          - (rasterSignature->map->mbr.min.y % cellSize) 
-          - (cellSize * (rasterSignature->map->mbr.min.y < 0 
+    long minYcell = rasterSignature->map->mbr.min.y
+          - (rasterSignature->map->mbr.min.y % cellSize)
+          - (cellSize * (rasterSignature->map->mbr.min.y < 0
                && (rasterSignature->map->mbr.min.y % cellSize != 0) ? 1 : 0));
     for( long i=minXcell; i <= rasterSignature->map->mbr.max.x; i+=cellSize)
       for(long j=minYcell; j <= rasterSignature->map->mbr.max.y; j+=cellSize)
@@ -788,7 +792,7 @@ void CRasterLine::Raster4CRSToFLOB(){
         }
         numCelulas++;
       }
-      
+
     if (computedCells > 0) {
       rasterFLOB.Append(FLOBelement);
     }
@@ -804,7 +808,7 @@ void CRasterLine::FLOBToRaster4CRS(){
   unsigned long potency, dx, dy, signatureType;
   //const Signature4CRS::Weight *filling;
   const unsigned long *l;
-  
+
   rasterFLOB.Get(0, l);
   signatureType = *l;
   rasterFLOB.Get(1, l);
@@ -813,9 +817,9 @@ void CRasterLine::FLOBToRaster4CRS(){
   dx = *l;
   rasterFLOB.Get(3, l);
   dy = *l;
-  
+
   long cellSize = 1l << potency;
-  
+
   long numElements = dx * dy;
   Signature4CRS::Weight *filling = new Signature4CRS::Weight[numElements];
 
@@ -824,22 +828,22 @@ void CRasterLine::FLOBToRaster4CRS(){
   int positionInElement = -1;
   unsigned int currentCell = 0;
   Signature4CRS::Weight ocup;
-  
+
   int positionInFLOB = 0;
-  long minXcell = (long)((this->BoundingBox().MinD(0) 
-     - ((long int)this->BoundingBox().MinD(0) % cellSize)) 
-     - (cellSize * (this->BoundingBox().MinD(0) < 0 
+  long minXcell = (long)((this->BoundingBox().MinD(0)
+     - ((long int)this->BoundingBox().MinD(0) % cellSize))
+     - (cellSize * (this->BoundingBox().MinD(0) < 0
          && ((long int)this->BoundingBox().MinD(0) % cellSize != 0) ? 1 : 0)));
-  long minYcell = (long)((this->BoundingBox().MinD(1) 
-     - ((long int)this->BoundingBox().MinD(1) % cellSize)) 
-     - (cellSize * (this->BoundingBox().MinD(1) < 0 
+  long minYcell = (long)((this->BoundingBox().MinD(1)
+     - ((long int)this->BoundingBox().MinD(1) % cellSize))
+     - (cellSize * (this->BoundingBox().MinD(1) < 0
          && ((long int)this->BoundingBox().MinD(1) % cellSize != 0) ? 1 : 0)));
   for( long i= minXcell; i <= this->BoundingBox().MaxD(0); i+=cellSize)
     for(long j= minYcell; j <= this->BoundingBox().MaxD(1); j+=cellSize)
     {
       if (positionInElement < 0){
         // +4 to consider potency, dx e dy
-        rasterFLOB.Get(positionInFLOB + 4, pFLOBelement); 
+        rasterFLOB.Get(positionInFLOB + 4, pFLOBelement);
         FLOBelement = *pFLOBelement;
         positionInElement = 0;
         if (dx * dy - currentCell < sizeof(unsigned long) * 4)
@@ -862,19 +866,19 @@ void CRasterLine::FLOBToRaster4CRS(){
           ocup = Signature4CRS::Full;
       }
       filling[currentCell] = ocup;
-      
+
       positionInElement--;
       currentCell++;
     }
-  
-  Coordinate x ((long int)this->BoundingBox().MinD(0), 
+
+  Coordinate x ((long int)this->BoundingBox().MinD(0),
        (long int)this->BoundingBox().MinD(1));
-  Coordinate y ((long int)this->BoundingBox().MaxD(0), 
+  Coordinate y ((long int)this->BoundingBox().MaxD(0),
        (long int)this->BoundingBox().MaxD(1));
-  rasterSignature = new Raster4CRS(1,  x,   y, cellSize, dx, dy, 
+  rasterSignature = new Raster4CRS(1,  x,   y, cellSize, dx, dy,
        filling, signatureType);
   rasterDefined = true;
-  
+
 }
 
 int CRasterLine::NumOfFLOBs(void) const {
@@ -903,16 +907,18 @@ class CRasterPoints: public Points
 {
   private:
     Raster4CRS *rasterSignature;
- 
-   //potency dx dy signature...   
+
+   //potency dx dy signature...
     DbArray<unsigned long> rasterFLOB;
 
-    void SelectFirst_pp( const Points& P1, const Points& P2, 
+    void SelectFirst_pp( const Points& P1, const Points& P2,
             object& obj, status& stat );
-    void SelectNext_pp( const Points& P1, const Points& P2, 
+    void SelectNext_pp( const Points& P1, const Points& P2,
             object& obj, status& stat );
 
   public:
+    static const string BasicType() { return "rasterPoints"; }
+
     bool rasterDefined;
     CRasterPoints(){};
     CRasterPoints(Points p);
@@ -927,12 +933,12 @@ class CRasterPoints: public Points
     int preIntersects( const Region& r) const;
     bool MBRIntersects( const Region& r) const;
     bool ExactIntersects( const Region& r) const;
-    
+
     bool Intersects(CRasterLine &rl2);
     int preIntersects( const Line& l) const;
     bool MBRIntersects( const Line& l) const;
     bool ExactIntersects( const Line& l) const;
-        
+
     bool Intersects(CRasterPoints &rp2);
     int preIntersects( const Points& ps) const;
     bool MBRIntersects( const Points& ps) const;
@@ -980,7 +986,7 @@ CRasterPoints::CRasterPoints(Points p) : Points(p), rasterFLOB(0){
   rasterSignature = NULL;
 };
 
-CRasterPoints::CRasterPoints(const CRasterPoints& rp) : 
+CRasterPoints::CRasterPoints(const CRasterPoints& rp) :
        Points(rp), rasterFLOB(0){
   rasterDefined = false;
   rasterFLOB.Clear();
@@ -995,11 +1001,11 @@ CRasterPoints::CRasterPoints(const CRasterPoints& rp) :
       rasterFLOB.Put( i, *hs );
     }
   }
-  
+
   setRaster(rp.readRaster()->Clone());
 };
 
-CRasterPoints::CRasterPoints(const int initsize) : 
+CRasterPoints::CRasterPoints(const int initsize) :
       Points(initsize), rasterFLOB(0){
   rasterDefined = false;
   rasterSignature = NULL;
@@ -1021,7 +1027,7 @@ Raster4CRS *CRasterPoints::readRaster() const{
 
   if (!IsEmpty() && rasterDefined)
     return rasterSignature;
-  else 
+  else
     return NULL;
 };
 
@@ -1046,8 +1052,8 @@ Raster4CRS *CRasterPoints::calculateRaster(int signatureType) const{
     type = SIGNAT_4CRS;
   else
     cout << "Invalid signatureType" << std::endl;
-    
-  signature = GeraRasterSecondo::generateRaster( 1, 
+
+  signature = GeraRasterSecondo::generateRaster( 1,
                   NULL, NULL, rp, potency, type);
     potency++;
   } while (signature==NULL);
@@ -1064,13 +1070,13 @@ bool CRasterPoints::Intersects(CRasterRegion &rr2)
   if(result == 0 || result == 1)
     return result == 1;
 
-  //MBR test  
+  //MBR test
   if(!MBRIntersects(rr2))
     return false;
 
   //Raster Signature test
   MBR mbrIntersection;
-  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(),
        rr2.getRaster(), mbrIntersection);
 
   if (rasterIntersects == 0 || rasterIntersects == 1)
@@ -1089,7 +1095,7 @@ int CRasterPoints::preIntersects( const Region& r) const
 
   if( IsEmpty() || r.IsEmpty() )
     return 0;
-  
+
   return 2;
 }
 
@@ -1119,13 +1125,13 @@ bool CRasterPoints::Intersects(CRasterLine &rl2)
   if(result == 0 || result == 1)
     return result == 1;
 
-  //MBR test  
+  //MBR test
   if(!MBRIntersects(rl2))
     return false;
 
   //Raster Signature test
   MBR mbrIntersection;
-  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(),
          rl2.getRaster(), mbrIntersection);
 
   if (rasterIntersects == 0 || rasterIntersects == 1)
@@ -1175,13 +1181,13 @@ bool CRasterPoints::Intersects(CRasterPoints &rp2)
   if(result == 0 || result == 1)
     return result == 1;
 
-  //MBR test  
+  //MBR test
   if(!MBRIntersects(rp2))
     return false;
 
   //Raster Signature test
   MBR mbrIntersection;
-  int rasterIntersects = compareSignatures4CRS( this->getRaster(), 
+  int rasterIntersects = compareSignatures4CRS( this->getRaster(),
            rp2.getRaster(), mbrIntersection);
 
   if (rasterIntersects == 0 || rasterIntersects == 1)
@@ -1201,7 +1207,7 @@ int CRasterPoints::preIntersects( const Points& ps) const
 
   if( IsEmpty() || ps.IsEmpty() )
     return 0;
-  
+
   return 2;
 }
 
@@ -1212,7 +1218,7 @@ bool CRasterPoints::MBRIntersects( const Points& ps) const
   return true;
 }
 
-bool CRasterPoints::ExactIntersects( const Points& ps) 
+bool CRasterPoints::ExactIntersects( const Points& ps)
 {
   object obj;
   status stat;
@@ -1225,7 +1231,7 @@ bool CRasterPoints::ExactIntersects( const Points& ps)
     SelectNext_pp( *this, ps, obj, stat );
   }
   return false;
-} 
+}
 
 
 void CRasterPoints::Raster4CRSToFLOB(){
@@ -1233,23 +1239,23 @@ void CRasterPoints::Raster4CRSToFLOB(){
     Signature4CRS::Weight filling;
 
     rasterFLOB.Clear();
-    
+
     rasterFLOB.Append(rasterSignature->signatureType);
     rasterFLOB.Append(rasterSignature->map->potency);
     rasterFLOB.Append(rasterSignature->map->dx);
     rasterFLOB.Append(rasterSignature->map->dy);
-    
+
     long cellSize = 1l << rasterSignature->map->potency;
     long computedCells = 0;
     unsigned long FLOBelement = 0;
 
-    long minXcell = rasterSignature->map->mbr.min.x 
-           - (rasterSignature->map->mbr.min.x % cellSize) 
-           - (cellSize * (rasterSignature->map->mbr.min.x < 0 
+    long minXcell = rasterSignature->map->mbr.min.x
+           - (rasterSignature->map->mbr.min.x % cellSize)
+           - (cellSize * (rasterSignature->map->mbr.min.x < 0
               && (rasterSignature->map->mbr.min.x % cellSize != 0) ? 1 : 0));
-    long minYcell = rasterSignature->map->mbr.min.y 
-           - (rasterSignature->map->mbr.min.y % cellSize) 
-           - (cellSize * (rasterSignature->map->mbr.min.y < 0 
+    long minYcell = rasterSignature->map->mbr.min.y
+           - (rasterSignature->map->mbr.min.y % cellSize)
+           - (cellSize * (rasterSignature->map->mbr.min.y < 0
               && (rasterSignature->map->mbr.min.y % cellSize != 0) ? 1 : 0));
     for( long i=minXcell; i <= rasterSignature->map->mbr.max.x; i+=cellSize)
       for(long j=minYcell; j <= rasterSignature->map->mbr.max.y; j+=cellSize)
@@ -1263,8 +1269,8 @@ void CRasterPoints::Raster4CRSToFLOB(){
           computedCells = 0;
         }
       }
-      
-    if (computedCells > 0) 
+
+    if (computedCells > 0)
       rasterFLOB.Append(FLOBelement);
 
 
@@ -1287,9 +1293,9 @@ void CRasterPoints::FLOBToRaster4CRS(){
   dx = *l;
   rasterFLOB.Get(3, l);
   dy = *l;
-  
+
   long cellSize = 1l << potency;
-  
+
   long numElements = dx * dy;
   Signature4CRS::Weight *filling = new Signature4CRS::Weight[numElements];
 
@@ -1298,15 +1304,15 @@ void CRasterPoints::FLOBToRaster4CRS(){
   int positionInElement = -1;
   unsigned int currentCell = 0;
   Signature4CRS::Weight ocup;
-  
+
   int positionInFLOB = 0;
-  long int minXcell = (long int)((this->BoundingBox().MinD(0) 
-     - ((long int)this->BoundingBox().MinD(0) % cellSize)) 
-     - (cellSize * (this->BoundingBox().MinD(0) < 0 
+  long int minXcell = (long int)((this->BoundingBox().MinD(0)
+     - ((long int)this->BoundingBox().MinD(0) % cellSize))
+     - (cellSize * (this->BoundingBox().MinD(0) < 0
         && ((long int)this->BoundingBox().MinD(0) % cellSize != 0) ? 1 : 0)));
-  long int minYcell = (long int)((this->BoundingBox().MinD(1) 
-     - ((long int)this->BoundingBox().MinD(1) % cellSize)) 
-     - (cellSize * (this->BoundingBox().MinD(1) < 0 
+  long int minYcell = (long int)((this->BoundingBox().MinD(1)
+     - ((long int)this->BoundingBox().MinD(1) % cellSize))
+     - (cellSize * (this->BoundingBox().MinD(1) < 0
         && ((long int)this->BoundingBox().MinD(1) % cellSize != 0) ? 1 : 0)));
   for( long i=minXcell; i <= this->BoundingBox().MaxD(0); i+=cellSize)
     for(long j=minYcell; j <= this->BoundingBox().MaxD(1); j+=cellSize)
@@ -1336,19 +1342,19 @@ void CRasterPoints::FLOBToRaster4CRS(){
           ocup = Signature4CRS::Full;
       }
       filling[currentCell] = ocup;
-      
+
       positionInElement--;
       currentCell++;
     }
-  
-  Coordinate x ((long int)this->BoundingBox().MinD(0), 
+
+  Coordinate x ((long int)this->BoundingBox().MinD(0),
        (long int)this->BoundingBox().MinD(1));
-  Coordinate y ((long int)this->BoundingBox().MaxD(0), 
+  Coordinate y ((long int)this->BoundingBox().MaxD(0),
        (long int)this->BoundingBox().MaxD(1));
-  rasterSignature = new Raster4CRS(1,  x,   y, cellSize, 
+  rasterSignature = new Raster4CRS(1,  x,   y, cellSize,
        dx, dy, filling, signatureType);
   rasterDefined = true;
-  
+
 }
 
 int CRasterPoints::NumOfFLOBs(void) const {
@@ -1366,7 +1372,7 @@ FLOB *CRasterPoints::GetFLOB(const int i){
 }
 
 //auxiliary functions for Intersection test of two Points
-void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2, 
+void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
                      object& obj, status& stat )
 {
   P1.SelectFirst();
@@ -1376,34 +1382,34 @@ void CRasterPoints::SelectFirst_pp( const Points& P1, const Points& P2,
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
-  if( !gotP1 && !gotP2 ) 
+  if( !gotP1 && !gotP2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotP1 ) 
-  { 
-    obj = second; 
-    stat = endfirst; 
-  }
-  else if( !gotP2 ) 
+  else if( !gotP1 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = second;
+    stat = endfirst;
+  }
+  else if( !gotP2 )
+  {
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 ) 
+    if( *p1 < *p2 )
       obj = first;
-    else if( *p1 > *p2 ) 
+    else if( *p1 > *p2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }
 
-void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2, 
+void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
@@ -1448,29 +1454,29 @@ void CRasterPoints::SelectNext_pp( const Points& P1, const Points& P2,
   }
 
   //3. generate the outputs
-  if( !gotP1 && !gotP2 ) 
+  if( !gotP1 && !gotP2 )
   {
-    obj = none; 
+    obj = none;
     stat = endboth;
   }
-  else if( !gotP1 ) 
+  else if( !gotP1 )
   {
-    obj = second; 
-    stat = endfirst; 
+    obj = second;
+    stat = endfirst;
   }
-  else if( !gotP2 ) 
+  else if( !gotP2 )
   {
-    obj = first; 
-    stat = endsecond; 
+    obj = first;
+    stat = endsecond;
   }
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 ) 
+    if( *p1 < *p2 )
       obj = first;
-    else if( *p1 > *p2 ) 
+    else if( *p1 > *p2 )
       obj = second;
-    else 
+    else
       obj = both;
   }
 }

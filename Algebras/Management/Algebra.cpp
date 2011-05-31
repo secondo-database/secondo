@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -38,6 +38,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "SecondoSystem.h"
+#include "Symbols.h"
 
 #include <fstream>
 
@@ -47,17 +48,17 @@ AlgebraManager *am;
 
 
 OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
-{ 
+{
   assert(nl);
   ListExpr spec = nl->Empty();
   nl->ReadFromString(specStr, spec);
   NList list(spec);
   if ( !list.hasLength(2) ) {
     cout << "Operator: " << opName << endl;
-    cout << "specStr: " << specStr << endl; 
+    cout << "specStr: " << specStr << endl;
     cout << "Assuming a list of length 2!" << endl;
     assert(false);
-  }  
+  }
   list = list.second();
 
   name = opName;
@@ -77,41 +78,41 @@ OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
   example = list.elem(4).str();
   if (list.length() >= 5)
   remark = list.elem(5).str();
-} 
+}
 
 
-const string 
-OperatorInfo::str() const { 
- 
-  const string S("<text>"); 
-  const string E("</text--->"); 
+const string
+OperatorInfo::str() const {
+
+  const string S("<text>");
+  const string E("</text--->");
   const string headStr = "(\"Signature\" \"Syntax\" \"Meaning\" \"Example\")";
 
-  string spec = "(" + headStr + "(" 
-                + S + signature + E 
+  string spec = "(" + headStr + "("
+                + S + signature + E
                 + S + syntax + E
                 + S + meaning + E
                 + S + example + E + "))";
-  
-  return spec; 
+
+  return spec;
 }
 
 
 const ListExpr
-OperatorInfo::list() const { 
+OperatorInfo::list() const {
 
   assert(nl);
   ListExpr spec = nl->Empty();
   nl->ReadFromString(str(), spec);
   return spec;
-} 
+}
 
 
-void 
+void
 OperatorInfo::appendSignature(const string& sig) {
- 
+
   signature += ", " + sig;
-}  
+}
 
 ostream& operator<<(ostream& o, const OperatorInfo& oi){
    return oi.Print(o);
@@ -157,7 +158,7 @@ Operator::Operator( const string& nm,
      valueMap       = new ValueMapping[1];
      calls          = new unsigned int[1];
      AddValueMapping( 0, vm );
-     calls[0] = 0; 
+     calls[0] = 0;
   } else {
      valueMap = 0;
      calls = 0;
@@ -176,10 +177,10 @@ Operator::Operator( const OperatorInfo& oi,
   // define member attributes
   name           = oi.name;
   specString     = oi.str();
-  spec           = oi; 
+  spec           = oi;
 
 
-  if(vm){ 
+  if(vm){
      numOfFunctions = 1;
      valueMap       = new ValueMapping[1];
      calls          = new unsigned int[1];
@@ -205,12 +206,12 @@ Operator::Operator( const OperatorInfo& oi,
                     TypeMapping tm )
 {
   int max = 0;
-  while ( vms[max] != 0 ) { max++; } 
-  
+  while ( vms[max] != 0 ) { max++; }
+
   // define member attributes
   name           = oi.name;
-  specString     = oi.str(); 
-  spec           = oi; 
+  specString     = oi.str();
+  spec           = oi;
   numOfFunctions = max;
   selectFunc     = sf;
   valueMap       = new ValueMapping[max];
@@ -225,7 +226,7 @@ Operator::Operator( const OperatorInfo& oi,
     //cout << (void*) vms[i] << endl;
     AddValueMapping( i, vms[i] );
     calls[i] = 0;
-  }  
+  }
 }
 
 
@@ -284,8 +285,8 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = RestoreFromList( nl->First(typeInfo), 
-                           nl->First(valueList), 
+  value = RestoreFromList( nl->First(typeInfo),
+                           nl->First(valueList),
                            1, errorInfo, correct  );
   if ( errorInfo != 0 )
   {
@@ -360,7 +361,7 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   ObjectClone clone,
                                   ObjectCast ca,
                                   ObjectSizeof sizeOf,
-                                  TypeCheckFunction tcf ) 
+                                  TypeCheckFunction tcf )
 {
   name                 = nm;
   propFunc             = prop;
@@ -395,7 +396,7 @@ TypeConstructor::AssociateKind( const string& kindName )
 ListExpr
 TypeConstructor::Property()
 {
-  if (propFunc)	
+  if (propFunc)
    return (*propFunc)();
   return Property(conInfo);
 }
@@ -405,7 +406,7 @@ ListExpr
 TypeConstructor::Property(const ConstructorInfo& ci)
 {
   return ci.list();
-}  
+}
 
 
 ListExpr
@@ -431,13 +432,13 @@ TypeConstructor::SaveToList( ListExpr type, Word value )
 }
 
 Word
-TypeConstructor::RestoreFromList( const ListExpr typeInfo, 
+TypeConstructor::RestoreFromList( const ListExpr typeInfo,
                                   const ListExpr value,
-                                  const int errorPos, 
+                                  const int errorPos,
                                   ListExpr& errorInfo, bool& correct )
 {
   if( restoreFromListFunc != 0 )
-    return ((*restoreFromListFunc)( typeInfo, value, 
+    return ((*restoreFromListFunc)( typeInfo, value,
                                     errorPos, errorInfo, correct ));
   else
     return ((*inFunc)( typeInfo, value, errorPos, errorInfo, correct ));
@@ -512,17 +513,17 @@ TypeConstructor::SizeOf()
   return (*sizeofFunc)();
 }
 
-bool 
-TypeConstructor::MemberOf(const string& k) 
+bool
+TypeConstructor::MemberOf(const string& k)
 {
   vector<string>::iterator it = find( kinds.begin(), kinds.end(), k );
   if (it != kinds.end()) {
     return true;
-  } 
-  else {
-    return false;     
   }
-}	  
+  else {
+    return false;
+  }
+}
 
 /*
 This function initializes some properties which are (currently) only
@@ -531,20 +532,20 @@ would be nice to have base classes for types and operators as well. But
 for the moment only the import subcase of data types used in relations
 have it.
 
-As a work around it is convenient to add new feature by defining virtual 
+As a work around it is convenient to add new feature by defining virtual
 functions in the Attribute class with a default implementation. This avoids
 to introduce new functions for all types when only needed in some classes.
 
 */
 
-void  
+void
 TypeConstructor::initKindDataProperties()
 {
    SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
 
    if (propFunc) {
      NList p = NList( (*propFunc)() );
-     //cerr << p << endl;  
+     //cerr << p << endl;
      conInfo = ConstructorInfo( p.second() );
      conInfo.name = name;
    }
@@ -553,52 +554,52 @@ TypeConstructor::initKindDataProperties()
    numOfFlobs = -2;
    storageType = Attribute::Unspecified;
 
-   if ( MemberOf("DATA") ) {
+   if ( MemberOf(Kind::DATA()) ) {
 
-      //cout << "** TC **  " << Name() 
-      //     << " <-- " << conInfo.typeExample << endl;       
+      //cout << "** TC **  " << Name()
+      //     << " <-- " << conInfo.typeExample << endl;
       ListExpr type = nl->Empty();
       nl->ReadFromString(conInfo.typeExample, type);
 
-      // to do: better error handling      
+      // to do: better error handling
       ListExpr numType = ctlg.NumericType(type);
       Word w = Create( numType );
-      
+
       if (w.addr == 0) {
-        cerr << "** TC Error ** Could not create an instance for " 
+        cerr << "** TC Error ** Could not create an instance for "
              << Name() << " using type list " << NList(type) << endl;
         numOfFlobs = -2;
-      } 
+      }
 
       Attribute* attr =  static_cast<Attribute*>(w.addr);
-      
-      if (attr != 0) {    
-        serializedFixSize = attr->SerializedSize();  
+
+      if (attr != 0) {
+        serializedFixSize = attr->SerializedSize();
         numOfFlobs = attr->NumOfFLOBs();
         storageType =  attr->GetStorageType();
-        delete attr; 
-      } 
+        delete attr;
+      }
     }
 }
 
 string TypeConstructor::Storage2Str()
-{ 
+{
   switch ( storageType ) {
     case Attribute::Default: {
-      return "Memoryblock-fix-core"; 
+      return "Memoryblock-fix-core";
       break;
     }
     case Attribute::Core: {
-      return "Serialize-fix-core"; 
+      return "Serialize-fix-core";
       break;
     }
     case Attribute::Extension: {
-      return "Serialize-variable-extension"; 
+      return "Serialize-variable-extension";
       break;
     }
     default: { return "unspecified"; };
-  }         
-} 
+  }
+}
 
 
 
@@ -628,7 +629,7 @@ Algebra::~Algebra()
 }
 
 void
-Algebra::AddTypeConstructor( TypeConstructor* tc, 
+Algebra::AddTypeConstructor( TypeConstructor* tc,
                              const bool nonstatic /* = false */ )
 {
   tcs.push_back( tc );
@@ -653,7 +654,7 @@ Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
 }
 
 void
-Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[], 
+Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[],
 		      SelectFunction sf, TypeMapping tm   )
 {
   Operator* newOp = new Operator(oi, vms, sf, tm);

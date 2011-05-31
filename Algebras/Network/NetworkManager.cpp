@@ -40,6 +40,7 @@ Defines, includes, and constants
 #include "SpatialAlgebra.h"
 #include "NetworkAlgebra.h"
 #include "NetworkManager.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 

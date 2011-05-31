@@ -33,9 +33,9 @@ January-May 2008, Mirko Dibbert
 */
 #include "PictureFuns.h"
 #include "DistfunReg.h"
+#include "PictureAlgebra.h"
 
 using namespace gta;
-using namespace symbols;
 
 /*
 initialize static members:
@@ -284,59 +284,59 @@ void PictureFuns::initDistData()
 {
     DistDataReg::addInfo(DistDataInfo(
         HSV8, HSV8_DESCR, DDATA_HSV8_ID,
-        PICTURE, &getData_hsv8<true>));
+        Picture::BasicType(), &getData_hsv8<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV16, HSV16_DESCR, DDATA_HSV16_ID,
-        PICTURE, &getData_hsv16<true>));
+        Picture::BasicType(), &getData_hsv16<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV32, HSV32_DESCR, DDATA_HSV32_ID,
-        PICTURE, &getData_hsv32<true>));
+        Picture::BasicType(), &getData_hsv32<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV64, HSV64_DESCR, DDATA_HSV64_ID,
-        PICTURE, &getData_hsv64<true>));
+        Picture::BasicType(), &getData_hsv64<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV128, HSV128_DESCR, DDATA_HSV128_ID,
-        PICTURE, &getData_hsv128<true>));
+        Picture::BasicType(), &getData_hsv128<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV256, HSV256_DESCR, DDATA_HSV256_ID,
-        PICTURE, &getData_hsv256<true>));
+        Picture::BasicType(), &getData_hsv256<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         LAB256, LAB256_DESCR, DDATA_LAB256_ID,
-        PICTURE, &getData_lab256<true>));
+        Picture::BasicType(), &getData_lab256<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV8_NCOMPR, HSV8_NCOMPR_DESCR,
-        DDATA_HSV8_NCOMPR_ID, PICTURE, &getData_hsv8<false>));
+        DDATA_HSV8_NCOMPR_ID, Picture::BasicType(), &getData_hsv8<false>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV16_NCOMPR, HSV16_NCOMPR_DESCR,
-        DDATA_HSV16_NCOMPR_ID, PICTURE, &getData_hsv16<false>));
+        DDATA_HSV16_NCOMPR_ID, Picture::BasicType(), &getData_hsv16<false>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV32_NCOMPR, HSV32_NCOMPR_DESCR,
-        DDATA_HSV32_NCOMPR_ID, PICTURE, &getData_hsv32<false>));
+        DDATA_HSV32_NCOMPR_ID, Picture::BasicType(), &getData_hsv32<false>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV64_NCOMPR, HSV64_NCOMPR_DESCR,
-        DDATA_HSV64_NCOMPR_ID, PICTURE, &getData_hsv64<false>));
+        DDATA_HSV64_NCOMPR_ID, Picture::BasicType(), &getData_hsv64<false>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV128_NCOMPR, HSV128_NCOMPR_DESCR,
-        DDATA_HSV128_NCOMPR_ID, PICTURE, &getData_hsv128<false>));
+        DDATA_HSV128_NCOMPR_ID, Picture::BasicType(), &getData_hsv128<false>));
 
     DistDataReg::addInfo(DistDataInfo(
         HSV256_NCOMPR, HSV256_NCOMPR_DESCR,
-        DDATA_HSV256_NCOMPR_ID, PICTURE, &getData_hsv256<false>));
+        DDATA_HSV256_NCOMPR_ID, Picture::BasicType(), &getData_hsv256<false>));
 
     DistDataReg::addInfo(DistDataInfo(
         LAB256_NCOMPR, LAB256_NCOMPR_DESCR,
-        DDATA_LAB256_NCOMPR_ID, PICTURE, &getData_lab256<false>));
+        DDATA_LAB256_NCOMPR_ID, Picture::BasicType(), &getData_lab256<false>));
 }
 
 /*
@@ -349,136 +349,136 @@ void PictureFuns::initDistfuns()
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_hsv64<true>,
-        DistDataReg::getInfo(PICTURE, HSV64),
+        DistDataReg::getInfo(Picture::BasicType(), HSV64),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_hsv128<true>,
-        DistDataReg::getInfo(PICTURE, HSV128),
+        DistDataReg::getInfo(Picture::BasicType(), HSV128),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_hsv256<true>,
-        DistDataReg::getInfo(PICTURE, HSV256),
+        DistDataReg::getInfo(Picture::BasicType(), HSV256),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_lab256<true>,
-        DistDataReg::getInfo(PICTURE, LAB256),
+        DistDataReg::getInfo(Picture::BasicType(), LAB256),
         DFUN_IS_METRIC));
 
     // euclidean distance functions for compressed data
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<8, true>,
-        DistDataReg::getInfo(PICTURE, HSV8),
+        DistDataReg::getInfo(Picture::BasicType(), HSV8),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<16, true>,
-        DistDataReg::getInfo(PICTURE, HSV16),
+        DistDataReg::getInfo(Picture::BasicType(), HSV16),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<32, true>,
-        DistDataReg::getInfo(PICTURE, HSV32),
+        DistDataReg::getInfo(Picture::BasicType(), HSV32),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<64, true>,
-        DistDataReg::getInfo(PICTURE, HSV64),
+        DistDataReg::getInfo(Picture::BasicType(), HSV64),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<128, true>,
-        DistDataReg::getInfo(PICTURE, HSV128),
+        DistDataReg::getInfo(Picture::BasicType(), HSV128),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<256, true>,
-        DistDataReg::getInfo(PICTURE, HSV256),
+        DistDataReg::getInfo(Picture::BasicType(), HSV256),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<256, true>,
-        DistDataReg::getInfo(PICTURE, LAB256),
+        DistDataReg::getInfo(Picture::BasicType(), LAB256),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
     // quadratic distance functions for uncompressed data
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_hsv64<false>,
-        DistDataReg::getInfo(PICTURE, HSV64_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV64_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_hsv128<false>,
-        DistDataReg::getInfo(PICTURE, HSV128_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV128_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_hsv256<false>,
-        DistDataReg::getInfo(PICTURE, HSV256_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV256_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_lab256<false>,
-        DistDataReg::getInfo(PICTURE, LAB256_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), LAB256_NCOMPR),
         DFUN_IS_METRIC));
 
     // euclidean distance functions for uncompressed data
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<8, false>,
-        DistDataReg::getInfo(PICTURE, HSV8_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV8_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<16, false>,
-        DistDataReg::getInfo(PICTURE, HSV16_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV16_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<32, false>,
-        DistDataReg::getInfo(PICTURE, HSV32_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV32_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<64, false>,
-        DistDataReg::getInfo(PICTURE, HSV64_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV64_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<128, false>,
-        DistDataReg::getInfo(PICTURE, HSV128_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV128_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<256, false>,
-        DistDataReg::getInfo(PICTURE, HSV256_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), HSV256_NCOMPR),
         DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         euclidean<256, false>,
-        DistDataReg::getInfo(PICTURE, LAB256_NCOMPR),
+        DistDataReg::getInfo(Picture::BasicType(), LAB256_NCOMPR),
         DFUN_IS_METRIC));
 }
 
@@ -489,23 +489,23 @@ Method ~initHPointReg~
 void PictureFuns::initHPointReg()
 {
     HPointReg::addInfo(HPointInfo(
-        HSV8, PICTURE, &getHPoint_hsv8));
+        HSV8, Picture::BasicType(), &getHPoint_hsv8));
 
     HPointReg::addInfo(HPointInfo(
-        HSV16, PICTURE, &getHPoint_hsv16));
+        HSV16, Picture::BasicType(), &getHPoint_hsv16));
 
     HPointReg::addInfo(HPointInfo(
-        HSV32, PICTURE, &getHPoint_hsv32));
+        HSV32, Picture::BasicType(), &getHPoint_hsv32));
 
     HPointReg::addInfo(HPointInfo(
-        HSV64, PICTURE, &getHPoint_hsv64));
+        HSV64, Picture::BasicType(), &getHPoint_hsv64));
 
     HPointReg::addInfo(HPointInfo(
-        HSV128, PICTURE, &getHPoint_hsv128));
+        HSV128, Picture::BasicType(), &getHPoint_hsv128));
 
     HPointReg::addInfo(HPointInfo(
-        HSV256, PICTURE, &getHPoint_hsv256));
+        HSV256, Picture::BasicType(), &getHPoint_hsv256));
 
     HPointReg::addInfo(HPointInfo(
-        LAB256, PICTURE, &getHPoint_lab256, HPOINT_IS_DEFAULT));
+        LAB256, Picture::BasicType(), &getHPoint_lab256, HPOINT_IS_DEFAULT));
 }

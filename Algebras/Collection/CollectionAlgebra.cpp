@@ -121,7 +121,7 @@ contains the element n times, the result contains the element (n-1) times.
 
     set(t) [x] t [->] "bool"[1]
 
-    multiset(t) [x] t [->] "int"[1]
+    multiset(t) [x] t [->] CcInt::BasicType()[1]
 
 Returns whether the collection contains the element. If the collection is a
 multiset, the count of the element is returned.
@@ -133,7 +133,7 @@ multiset, the count of the element is returned.
 
     t [x] set(t) [->] "bool"[1]
 
-    t [x] multiset [->] "int"[1]
+    t [x] multiset [->] CcInt::BasicType()[1]
 
 Same as contains.
 
@@ -205,11 +205,11 @@ t has to be of Kind DATA.
 
   * size
 
-    vector(t) [->] "int"[1]
+    vector(t) [->] CcInt::BasicType()[1]
 
-    set(t) [->] "int"[1]
+    set(t) [->] CcInt::BasicType()[1]
 
-    multiset(t) [->] "int"[1]
+    multiset(t) [->] CcInt::BasicType()[1]
 
 Returns the number of elements contained in the collection.
 
@@ -233,6 +233,9 @@ Necessary to difference between an empty and an undefined collection.
 //#define DEBUGHEAD
 
 #include "CollectionAlgebra.h"
+#include "ListUtils.h"
+#include "Symbols.h"
+
 using namespace std;
 
 using namespace collection;
@@ -349,8 +352,7 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
       return w;
     }
 
-    if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
-         && nl->SymbolValue( instance ) == "undef" ){
+    if ( listutils::isSymbolUndefined(instance) ){
       defined = false;
     } else if( nl->IsAtom(instance) ){
       correct = false;
@@ -421,7 +423,7 @@ cout << "Out" << endl
 #endif
     Collection* coll = static_cast<Collection*>(value.addr);
     if(!coll->IsDefined()) {
-      return nl->SymbolAtom("undef");
+      return nl->SymbolAtom(Symbol::UNDEFINED());
     }
     int size = coll->GetNoUniqueComponents();
     if(size == 0) {
@@ -551,16 +553,20 @@ cout << "KindCheck"<< endl
      << "  typeInfo: " << nl->ToString(type) << endl;
 #endif
     string coll;
-/*    if(nl->IsAtom(type)) {
+  /*
+      if(nl->IsAtom(type)) {
       coll = nl->SymbolValue(type);
-      if((coll==VECTOR)||(coll==SET)||(coll==MULTISET)) {
+      if((coll==Vector::BasicType())||(coll==Set::BasicType())||
+         (coll==Multiset::BasicType())) {
         return true;
       }
-    }*/
+    }
+  */
     if((nl->ListLength(type)==2) && (nl->IsAtom(nl->First(type)))) {
       coll = nl->SymbolValue(nl->First(type));
-      if((coll==MULTISET) || (coll==VECTOR) || (coll==SET)) {
-        return am->CheckKind("DATA", nl->Second(type), errorInfo);
+      if((coll==Multiset::BasicType()) || (coll==Vector::BasicType()) ||
+         (coll==Set::BasicType())) {
+        return am->CheckKind(Kind::DATA(), nl->Second(type), errorInfo);
       }
     }
     return false;
@@ -779,13 +785,13 @@ cout << "Print" << endl;
     os << "Collection: ";
     switch(collType){
       case vector:
-        os << "vector";
+        os << Vector::BasicType();
         break;
       case set:
-        os << "set";
+        os << Set::BasicType();
         break;
       case multiset:
-        os << "multiset";
+        os << Multiset::BasicType();
         break;
       case undef:
         os << "undef";
@@ -1107,11 +1113,11 @@ cout << "GetCollType" << endl;
     int algId = nl->IntValue(nl->First(collTypeInfo));
     int typeId = nl->IntValue(nl->Second(collTypeInfo));
     string collType = am->GetTC(algId, typeId)->Name();
-    if(collType==VECTOR) {
+    if(collType==Vector::BasicType()) {
       return vector;
-    } else if(collType==SET) {
+    } else if(collType==Set::BasicType()) {
       return set;
-    } else if(collType==MULTISET) {
+    } else if(collType==Multiset::BasicType()) {
       return multiset;
     }
     return undef;
@@ -1328,7 +1334,7 @@ cout << "VectorProperty" << endl;
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("("+VECTOR+" real)"),
+                             nl->StringAtom("("+Vector::BasicType()+" real)"),
                              nl->StringAtom("(elem1 elem2 .. elem_n)"),
                              nl->StringAtom("(2.839 25.123 3.12 481.2)"),
                              nl->StringAtom("All elements must be of the"
@@ -1346,7 +1352,7 @@ cout << "SetProperty" << endl;
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("("+SET+" real)"),
+                             nl->StringAtom("("+Set::BasicType()+" real)"),
                              nl->StringAtom("(elem1 elem2 .. elem_n)"),
                              nl->StringAtom("(2.839 3.12 25.123 481.2)"),
                              nl->StringAtom("All elements must be of the"
@@ -1364,7 +1370,7 @@ cout << "MultisetProperty" << endl;
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("("+MULTISET+" real)"),
+                             nl->StringAtom("("+Multiset::BasicType()+" real)"),
                              nl->StringAtom("((elem1 count1) .. "
                              "(elem_n count_n))"),
                              nl->StringAtom("((2.839 2) (3.12 1) (25.123 1))"),
@@ -1374,7 +1380,7 @@ cout << "MultisetProperty" << endl;
 
 
   TypeConstructor vectorTC(
-      VECTOR, VectorProperty,
+      Vector::BasicType(), VectorProperty,
       Collection::Out, Collection::In,
       0, 0,
       Collection::Create, Collection::Delete,
@@ -1384,7 +1390,7 @@ cout << "MultisetProperty" << endl;
       Collection::KindCheck);
 
   TypeConstructor setTC(
-      SET, SetProperty,
+      Set::BasicType(), SetProperty,
       Collection::Out, Collection::In,
       0, 0,
       Collection::Create, Collection::Delete,
@@ -1394,7 +1400,7 @@ cout << "MultisetProperty" << endl;
       Collection::KindCheck);
 
   TypeConstructor multisetTC(
-      MULTISET, MultisetProperty,
+      Multiset::BasicType(), MultisetProperty,
       Collection::Out, Collection::In,
       0, 0,
       Collection::Create, Collection::Delete,
@@ -1417,7 +1423,7 @@ cout << "MultisetProperty" << endl;
 #ifdef DEBUGHEAD
 cout << "ContainsTypeMapping:" << nl->ToString(args) << endl;
 #endif
-    string opName = (contains?CONTAINS:IN);
+    string opName = (contains?"contains":"in");
     string pos1 = (contains?"first":"second");
     string pos2 = (contains?"second":"first");
     if(nl->ListLength(args)!=2) {
@@ -1439,10 +1445,10 @@ cout << "ContainsTypeMapping:" << nl->ToString(args) << endl;
       return nl->TypeError();
     }
     string type = nl->SymbolValue(nl->First(coll));
-    if((type==VECTOR)||(type==SET)) {
-      return nl->SymbolAtom(BOOL);
-    } else if(type==MULTISET) {
-      return nl->SymbolAtom(INT);
+    if((type==Vector::BasicType())||(type==Set::BasicType())) {
+      return nl->SymbolAtom(CcBool::BasicType());
+    } else if(type==Multiset::BasicType()) {
+      return nl->SymbolAtom(CcInt::BasicType());
     }
     ErrorReporter::ReportError("Operator " + opName + " expects a vector"
                                 + ", set or multiset as " + pos1
@@ -1484,11 +1490,11 @@ cout << "ContainsInValueMap" << endl;
 
     containsInfo()
     {
-      name      = CONTAINS;
-      signature = VECTOR + "(t) x t -> " + BOOL;
-      appendSignature(SET + "(t) x t -> " + BOOL);
-      appendSignature(MULTISET + "(t) x t -> " + INT);
-      syntax    = "_" + CONTAINS + "_";
+      name      = "contains";
+      signature = Vector::BasicType() + "(t) x t -> " + CcBool::BasicType();
+      appendSignature(Set::BasicType() + "(t) x t -> " + CcBool::BasicType());
+      appendSignature(Multiset::BasicType() + "(t) x t -> "+CcInt::BasicType());
+      syntax    = "_ contains _";
       meaning   = "Contains predicate.";
     }
 
@@ -1498,11 +1504,12 @@ cout << "ContainsInValueMap" << endl;
 
     inInfo()
     {
-      name      = IN;
-      signature = "t x " + VECTOR + "(t) -> " + BOOL;
-      appendSignature("t x " + SET + "(t) -> " + BOOL);
-      appendSignature("t x " + MULTISET + "(t) -> " + BOOL);
-      syntax    = "_" + IN + "_";
+      name      = "in";
+      signature = "t x "+Vector::BasicType() + "(t) -> " + CcBool::BasicType();
+      appendSignature("t x "+Set::BasicType() + "(t) -> "+CcBool::BasicType());
+      appendSignature("t x "+Multiset::BasicType()+"(t) -> "+
+                                                   CcBool::BasicType());
+      syntax    = "_ in _";
       meaning   = "Inverted contains predicate.";
     }
 
@@ -1517,7 +1524,7 @@ cout << "ContainsInValueMap" << endl;
 #ifdef DEBUGHEAD
 cout << "InsertTypeMapping:" << nl->ToString(args) << endl;
 #endif
-    string opName = (insert?INSERT:ADD);
+    string opName = (insert?"insert":"+");
     if(nl->ListLength(args)!=2) {
       ErrorReporter::ReportError("Operator " + opName + " expects a list of"
                                   + " length two.");
@@ -1542,15 +1549,15 @@ cout << "InsertTypeMapping:" << nl->ToString(args) << endl;
       return nl->TypeError();
     }
     string type = nl->SymbolValue(nl->First(coll));
-    if((type==VECTOR)==(!insert)) {
+    if((type==Vector::BasicType())==(!insert)) {
       return coll;
     }
     if(insert) {
-      ErrorReporter::ReportError("Operator " + INSERT + " expects a "
-                                + "set or multiset as first argument.");
+      ErrorReporter::ReportError("Operator 'insert' expects a "
+                                "set or multiset as first argument.");
     } else {
-      ErrorReporter::ReportError("Operator " + ADD + " expects a "
-                                + "vector as first argument.");
+      ErrorReporter::ReportError("Operator '+' expects a "
+                                 "vector as first argument.");
     }
     return nl->TypeError();
   }
@@ -1575,10 +1582,11 @@ cout << "InsertValueMap" << endl;
 
     insertInfo()
     {
-      name      = INSERT;
-      signature = SET + "(t) x t -> " + SET + "(t)";
-      appendSignature(MULTISET + "(t) x t -> " + MULTISET + "(t)");
-      syntax    = "_" + INSERT + "_";
+      name      = "insert";
+      signature = Set::BasicType() + "(t) x t -> " + Set::BasicType() + "(t)";
+      appendSignature(Multiset::BasicType() + "(t) x t -> " +
+                                                Multiset::BasicType() + "(t)");
+      syntax    = "_ insert _";
       meaning   = "Inserts the second argument in the first.";
     }
 
@@ -1588,9 +1596,10 @@ cout << "InsertValueMap" << endl;
 
     addInfo()
     {
-      name      = ADD;
-      signature = VECTOR + "(t) x t -> " + VECTOR + "(t)";
-      syntax    = "_" + ADD + "_";
+      name      = "+";
+      signature = Vector::BasicType() + "(t) x t -> " +
+                                                  Vector::BasicType() + "(t)";
+      syntax    = "_ + _";
       meaning   = "Adds the element to the vector";
     }
 
@@ -1607,15 +1616,15 @@ cout << "CreateTypeMap: " << nl->ToString(args) << endl;
     string resultType;
     switch(collType) {
     case collection::vector:
-        resultType = VECTOR;
+        resultType = Vector::BasicType();
         break;
       case collection::set:
-        resultType = SET;
+        resultType = Set::BasicType();
         break;
       default:
-        resultType = MULTISET;
+        resultType = Multiset::BasicType();
     }
-    string opName = CREATE_PREFIX + resultType;
+    string opName = "create_" + resultType;
 #ifdef DEBUG
 cout << "  Statusbericht CreateTypeMap:" << endl
      << "    resultType: " << resultType << endl;
@@ -1632,7 +1641,7 @@ cout << "  Statusbericht CreateTypeMap:" << endl
      << "    type: " << type << endl;
 #endif
     ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-    if(!am->CheckKind("DATA", type, errorInfo)) {
+    if(!am->CheckKind(Kind::DATA(), type, errorInfo)) {
       ErrorReporter::ReportError("Operator " + opName + " expects elements of "
           + "Kind DATA.");
       return nl->TypeError();
@@ -1677,10 +1686,10 @@ cout << "CreateValueMap" << endl;
 
     CreateVectorInfo()
     {
-      name      = CREATE_PREFIX + VECTOR;
-      signature = "t+ -> " + VECTOR + "(t)";
-      syntax    = CREATE_PREFIX + VECTOR + "(_, _)";
-      meaning   = "Creates a " + VECTOR + " of t.";
+      name      = "create_" + Vector::BasicType();
+      signature = "t+ -> " + Vector::BasicType() + "(t)";
+      syntax    = "create_" + Vector::BasicType() + "(_, _)";
+      meaning   = "Creates a " + Vector::BasicType() + " of t.";
     }
   };
 
@@ -1688,10 +1697,10 @@ cout << "CreateValueMap" << endl;
 
     CreateSetInfo()
     {
-      name      = CREATE_PREFIX + SET;
-      signature = "t+ -> " + SET + "(t)";
-      syntax    = CREATE_PREFIX + SET + "(_, _)";
-      meaning   = "Creates a " + SET + " of t.";
+      name      = "create_" + Set::BasicType();
+      signature = "t+ -> " + Set::BasicType() + "(t)";
+      syntax    = "create_" + Set::BasicType() + "(_, _)";
+      meaning   = "Creates a " + Set::BasicType() + " of t.";
     }
   };
 
@@ -1699,10 +1708,10 @@ cout << "CreateValueMap" << endl;
 
     CreateMultisetInfo()
     {
-      name      = CREATE_PREFIX + MULTISET;
-      signature = "t+ -> " + MULTISET + "(t)";
-      syntax    = CREATE_PREFIX + MULTISET + "(_, _)";
-      meaning   = "Creates a " + MULTISET + " of t.";
+      name      = "create_" + Multiset::BasicType();
+      signature = "t+ -> " + Multiset::BasicType() + "(t)";
+      syntax    = "create_" + Multiset::BasicType() + "(_, _)";
+      meaning   = "Creates a " + Multiset::BasicType() + " of t.";
     }
   };
 
@@ -1720,15 +1729,15 @@ cout << "CollectTypeMap: " << nl->ToString(args) << endl;
       switch(targetType){
       case collection::vector:
         operatorName = "collect_vector";
-        resultType = "vector";
+        resultType = Vector::BasicType();
         break;
       case collection::set:
         operatorName = "collect_set";
-        resultType = "set";
+        resultType = Set::BasicType();
         break;
       case collection::multiset:
         operatorName = "collect_multiset";
-        resultType = "multiset";
+        resultType = Multiset::BasicType();
         break;
       default:
         operatorName = "";
@@ -1749,8 +1758,8 @@ cout << "CollectTypeMap: " << nl->ToString(args) << endl;
         {
             argType = nl->Second(argStream);
 
-            if ( nl->IsEqual(nl->First(argStream), STREAM)
-               && am->CheckKind("DATA", argType, errorInfo) ){
+            if ( nl->IsEqual(nl->First(argStream), Symbol::STREAM())
+               && am->CheckKind(Kind::DATA(), argType, errorInfo) ){
                 return nl->TwoElemList(
                                    nl->SymbolAtom(resultType),
                                    argType);
@@ -1796,9 +1805,9 @@ cout << "CollectValueMap" << endl;
 
     collectSetInfo()
     {
-      name      = COLLECT_SET;
-      signature = STREAM + "(t) -> " + SET + "(t)";
-      syntax    = "_ " + COLLECT_SET;
+      name      = "collect_set";
+      signature = Symbol::STREAM() + "(t) -> " + Set::BasicType() + "(t)";
+      syntax    = "_ collect_set";
       meaning   = "Collects the stream elements into a new set";
     }
 
@@ -1808,9 +1817,9 @@ cout << "CollectValueMap" << endl;
 
     collectMultisetInfo()
     {
-      name      = COLLECT_MULTISET;
-      signature = STREAM + "(t) -> " + COLLECT_MULTISET + "(t)";
-      syntax    = "_ " + COLLECT_MULTISET;
+      name      = "collect_multiset";
+      signature = Symbol::STREAM() + "(t) -> " + Multiset::BasicType() + "(t)";
+      syntax    = "_ collect_multiset";
       meaning   = "Collects the stream elements into a new multiset";
     }
 
@@ -1820,9 +1829,9 @@ cout << "CollectValueMap" << endl;
 
     collectVectorInfo()
     {
-      name      = COLLECT_VECTOR;
-      signature = STREAM + "(t) -> " + VECTOR + "(t)";
-      syntax    = "_ " + COLLECT_VECTOR;
+      name      = "collect_vector";
+      signature = Symbol::STREAM() + "(t) -> " + Vector::BasicType() + "(t)";
+      syntax    = "_ collect_vector";
       meaning   = "Collects the stream elements into a new vector";
     }
 
@@ -1854,12 +1863,12 @@ cout << "ComponentsTypeMap" << endl;
             argType = nl->Second(argCollection);
 
             if (
-                (nl->IsEqual(nl->First(argCollection), VECTOR) ||
-                nl->IsEqual(nl->First(argCollection), SET) ||
-                nl->IsEqual(nl->First(argCollection), MULTISET))
-               && am->CheckKind("DATA", argType, errorInfo) ){
+                (nl->IsEqual(nl->First(argCollection), Vector::BasicType()) ||
+                nl->IsEqual(nl->First(argCollection), Set::BasicType()) ||
+                nl->IsEqual(nl->First(argCollection), Multiset::BasicType()))
+               && am->CheckKind(Kind::DATA(), argType, errorInfo) ){
                 return nl->TwoElemList(
-                                   nl->SymbolAtom(STREAM),
+                                   nl->SymbolAtom(Symbol::STREAM()),
                                    argType);
             }
         }
@@ -1934,11 +1943,12 @@ cout << "ComponentsValueMap" << endl;
 
     componentsInfo()
     {
-      name      = COMPONENTS;
-      signature = VECTOR + "(t) -> " + STREAM + "(t)";
-      appendSignature(SET + "(t) -> " + STREAM + "(t)");
-      appendSignature(MULTISET + "(t) -> " + STREAM + "(t)");
-      syntax    = COMPONENTS + "(_)";
+      name      = "components";
+      signature = Vector::BasicType() + "(t) -> " + Symbol::STREAM() + "(t)";
+      appendSignature(Set::BasicType() + "(t) -> " + Symbol::STREAM() + "(t)");
+      appendSignature(Multiset::BasicType() + "(t) -> "
+                                                    + Symbol::STREAM() + "(t)");
+      syntax    = "components(_)";
       meaning   = "Takes the elements from the Collection into a stream";
     }
 
@@ -1967,7 +1977,7 @@ cout << "GetTypeMap" << endl;
         argCollection = nl->First(args);
         argIndex = nl->Second(args);
 
-        if(!(nl->IsAtom(argIndex) && nl->IsEqual(argIndex, INT)))
+        if(!(nl->IsAtom(argIndex) && nl->IsEqual(argIndex, CcInt::BasicType())))
         {
             ErrorReporter::ReportError(errMsg);
             return nl->TypeError();
@@ -1979,8 +1989,8 @@ cout << "GetTypeMap" << endl;
             argType = nl->Second(argCollection);
 
             if (
-                (nl->IsEqual(nl->First(argCollection), VECTOR))
-               && am->CheckKind("DATA", argType, errorInfo) ){
+                (nl->IsEqual(nl->First(argCollection), Vector::BasicType()))
+               && am->CheckKind(Kind::DATA(), argType, errorInfo) ){
                 return argType;
             }
         }
@@ -2018,9 +2028,9 @@ cout << "GetValueMap" << endl;
 
     getInfo()
     {
-      name      = GET;
-      signature = VECTOR + "(t) x int -> t";
-      syntax    = GET + "( _, _ )";
+      name      = "get";
+      signature = Vector::BasicType() + "(t) x int -> t";
+      syntax    = "get( _, _ )";
       meaning   = "Gets a component from the vector and index or undefined"
                     " if the index is invalid";
     }
@@ -2036,7 +2046,7 @@ cout << "GetValueMap" << endl;
 #ifdef DEBUGHEAD
 cout << "DeleteTypeMap" << endl;
 #endif
-      const string errMsg = "Operator " + DELETEELEM +
+      const string errMsg = "Operator 'deleteelem' "
                             " expects (set DATA) x DATA"
                             " or (multiset DATA) x DATA";
 
@@ -2056,9 +2066,9 @@ cout << "DeleteTypeMap" << endl;
             argCollectionType = nl->Second(argCollection);
 
             if (
-                (nl->IsEqual(nl->First(argCollection), SET) ||
-                nl->IsEqual(nl->First(argCollection), MULTISET))
-               && am->CheckKind("DATA", argCollectionType, errorInfo)
+                (nl->IsEqual(nl->First(argCollection), Set::BasicType()) ||
+                nl->IsEqual(nl->First(argCollection), Multiset::BasicType()))
+               && am->CheckKind(Kind::DATA(), argCollectionType, errorInfo)
                && nl->Equal(argCollectionType, argDeleteType)){
                 return argCollection;
             }
@@ -2106,10 +2116,11 @@ cout << "DeleteTypeMap" << endl;
 
     deleteInfo()
     {
-      name      = DELETEELEM;
-      signature = SET + "(t) x t -> " + SET + "(t)";
-      appendSignature(MULTISET + "(t) x t -> " + MULTISET + "(t)");
-      syntax    = DELETEELEM + "( _, _ )";
+      name      = "deleteelem";
+      signature = Set::BasicType() + "(t) x t -> " + Set::BasicType() + "(t)";
+      appendSignature(Multiset::BasicType() + "(t) x t -> "
+                                            + Multiset::BasicType() + "(t)");
+      syntax    = "deleteelem( _, _ )";
       meaning   = "Deletes a component one time from the set or multiset"
                    " if it is present in the collection";
     }
@@ -2145,8 +2156,8 @@ cout << "ConcatTypeMap" << endl;
             argCollectionType = nl->Second(argCollection1);
 
             if (
-                nl->IsEqual(nl->First(argCollection1), VECTOR)
-               && am->CheckKind("DATA", argCollectionType, errorInfo)
+                nl->IsEqual(nl->First(argCollection1), Vector::BasicType())
+               && am->CheckKind(Kind::DATA(), argCollectionType, errorInfo)
                && nl->ToString(argCollection1)
                                 == nl->ToString(argCollection2)){
                 return argCollection1;
@@ -2183,9 +2194,10 @@ cout << "ConcatValueMap" << endl;
 
     concatInfo()
     {
-      name      = CONCAT;
-      signature = VECTOR + "(t) x " + VECTOR + "(t) -> " + VECTOR + "(t)";
-      syntax    = "_ _ " + CONCAT;
+      name      = "concat";
+      signature = Vector::BasicType() + "(t) x "
+                + Vector::BasicType() + "(t) -> " + Vector::BasicType() + "(t)";
+      syntax    = "_ _ concat";
       meaning   = "Concatenates two vectors to a new one";
     }
 
@@ -2240,9 +2252,10 @@ cout << "MathSetTypeMap" << endl;
             argCollectionType = nl->Second(argCollection1);
 
             if (
-                (nl->IsEqual(nl->First(argCollection1), SET)
-                 || nl->IsEqual(nl->First(argCollection1), MULTISET))
-               && am->CheckKind("DATA", argCollectionType, errorInfo)
+                (nl->IsEqual(nl->First(argCollection1), Set::BasicType())
+                 || nl->IsEqual(nl->First(argCollection1),
+                                Multiset::BasicType()))
+               && am->CheckKind(Kind::DATA(), argCollectionType, errorInfo)
                && nl->ToString(argCollection1)
                                 == nl->ToString(argCollection2)){
                 return argCollection1;
@@ -2409,11 +2422,13 @@ cout << "MathSetTypeMap" << endl;
 
     unionInfo()
     {
-      name      = UNION;
-      signature = SET + "(t) x " + SET + "(t) -> " + SET + "(t)";
-      appendSignature(MULTISET + "(t) x " + MULTISET + "(t) -> "
-                                            + MULTISET + "(t)");
-      syntax    = "_" + UNION + "_";
+      name      = "union";
+      signature = Set::BasicType() + "(t) x " + Set::BasicType() + "(t) -> "
+                                                    + Set::BasicType() + "(t)";
+      appendSignature(Multiset::BasicType() + "(t) x "
+                                            + Multiset::BasicType() + "(t) -> "
+                                            + Multiset::BasicType() + "(t)");
+      syntax    = "_ union _";
       meaning   = "assigns the union-operation on two sets or multisets";
     }
 
@@ -2423,11 +2438,13 @@ cout << "MathSetTypeMap" << endl;
 
     intersectionInfo()
     {
-      name      = INTERSECTION;
-      signature = SET + "(t) x " + SET + "(t) -> " + SET + "(t)";
-      appendSignature(MULTISET + "(t) x " + MULTISET + "(t) -> "
-                                            + MULTISET + "(t)");
-      syntax  = INTERSECTION + "( _, _)";
+      name      = "intersection";
+      signature = Set::BasicType() + "(t) x " + Set::BasicType() + "(t) -> "
+                                                    + Set::BasicType() + "(t)";
+      appendSignature(Multiset::BasicType() + "(t) x " + Multiset::BasicType()
+                                            + "(t) -> "
+                                            + Multiset::BasicType() + "(t)");
+      syntax  = "intersection( _, _)";
       meaning = "assigns the intersection-operation on two sets or multisets";
     }
 
@@ -2437,13 +2454,12 @@ cout << "MathSetTypeMap" << endl;
 
     differenceInfo()
     {
-      name      = DIFFERENCE;
-      signature = SET + "(t) x " + SET + "(t) -> " + SET +
-      "(t)";
-      appendSignature(MULTISET + "(t) x " + MULTISET +
-      "(t) -> "  + MULTISET +
-        "(t)");
-      syntax    = DIFFERENCE + "( _, _)";
+      name      = "difference";
+      signature = Set::BasicType() + "(t) x " + Set::BasicType() + "(t) -> "
+                                                   + Set::BasicType() + "(t)";
+      appendSignature(Multiset::BasicType() + "(t) x " + Multiset::BasicType() +
+                                  "(t) -> "  + Multiset::BasicType() + "(t)");
+      syntax    = "difference( _, _)";
       meaning   = "assigns the difference-operation on two sets or multisets";
     }
 
@@ -2466,13 +2482,13 @@ if (!nl->ListLength(args) == 0)
     ListExpr arg1 = nl->First(args);
 
     if (!nl->IsAtom(arg1) && (nl->IsEqual(nl->First(arg1),
-       "set") || nl->IsEqual(nl->First(arg1), "multiset")
-       || nl->IsEqual(nl->First(arg1), "vector"))) {
-      return nl->SymbolAtom("int");
+       Set::BasicType()) || nl->IsEqual(nl->First(arg1), Multiset::BasicType())
+       || nl->IsEqual(nl->First(arg1), Vector::BasicType()))) {
+      return nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 
 }
 
@@ -2481,11 +2497,11 @@ struct sizeInfo : OperatorInfo {
 
   sizeInfo() : OperatorInfo()
   {
-    name      = SIZE;
-    signature = SET + " -> " + INT;
-    appendSignature(MULTISET + " -> " + INT);
-    appendSignature(VECTOR + " -> " + INT);
-    syntax    = SIZE + "( _ )";
+    name      = "size";
+    signature = Set::BasicType() + " -> " + CcInt::BasicType();
+    appendSignature(Multiset::BasicType() + " -> " + CcInt::BasicType());
+    appendSignature(Vector::BasicType() + " -> " + CcInt::BasicType());
+    syntax    = "size( _ )";
     meaning   = "Number of contained objects";
   }
 
@@ -2515,31 +2531,34 @@ int ltFun(Word* args, Word& result, int message, Word& local, Supplier s){
 
 ListExpr compareTypeMap(ListExpr args){
   if (nl->IsAtom(args) || nl->ListLength(args) != 2){
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   if (    !nl->IsAtom(arg1)
-       && (    nl->IsEqual(nl->First(arg1), "set")
-            || nl->IsEqual(nl->First(arg1), "multiset")
-            || nl->IsEqual(nl->First(arg1), "vector")
+       && (    nl->IsEqual(nl->First(arg1), Set::BasicType())
+            || nl->IsEqual(nl->First(arg1), Multiset::BasicType())
+            || nl->IsEqual(nl->First(arg1), Vector::BasicType())
           )
        && nl->Equal(arg1, arg2)
      ) {
-    return nl->SymbolAtom("bool");
+    return nl->SymbolAtom(CcBool::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 struct ltInfo : OperatorInfo {
 
   ltInfo() : OperatorInfo()
   {
-    name      = LT;
-    signature = SET + " x " + SET + " -> " + BOOL;
-    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
-    syntax    = " _ " + LT + " _ ";
+    name      = "<";
+    signature = Set::BasicType() + " x " + Set::BasicType() + " -> "
+                                                        + CcBool::BasicType();
+    appendSignature(Multiset::BasicType() + " x " + Multiset::BasicType()
+                                              + " -> " + CcBool::BasicType());
+    appendSignature(Vector::BasicType() + " x " + Vector::BasicType() + " -> "
+                                                        + CcBool::BasicType());
+    syntax    = " _ < _ ";
     meaning   = "Object 1 Smaller Than Object 2";
   }
 
@@ -2567,11 +2586,14 @@ struct eqInfo : OperatorInfo {
 
   eqInfo() : OperatorInfo()
   {
-    name      = EQ;
-    signature = SET + " x " + SET + " -> " + BOOL;
-    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
-    syntax    = " _ " + EQ + " _ ";
+    name      = "=";
+    signature = Set::BasicType() + " x " + Set::BasicType() + " -> "
+                                                        + CcBool::BasicType();
+    appendSignature(Multiset::BasicType() + " x " + Multiset::BasicType()
+                                                + " -> " + CcBool::BasicType());
+    appendSignature(Vector::BasicType() + " x " + Vector::BasicType()
+                                                + " -> " + CcBool::BasicType());
+    syntax    = " _ = _ ";
     meaning   = "Object 1 equals Object 2";
   }
 
@@ -2597,11 +2619,14 @@ struct neInfo : OperatorInfo {
 
   neInfo() : OperatorInfo()
   {
-    name      = NE;
-    signature = SET + " x " + SET + " -> " + BOOL;
-    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
-    syntax    = " _ " + NE + " _ ";
+    name      = "#";
+    signature = Set::BasicType() + " x " + Set::BasicType() + " -> "
+                                                          + CcBool::BasicType();
+    appendSignature(Multiset::BasicType() + " x " + Multiset::BasicType()
+                                                + " -> " + CcBool::BasicType());
+    appendSignature(Vector::BasicType() + " x " + Vector::BasicType() + " -> "
+                                                        + CcBool::BasicType());
+    syntax    = " _ # _ ";
     meaning   = "Object 1 does not equal Object 2";
   }
 
@@ -2629,11 +2654,14 @@ struct gtInfo : OperatorInfo {
 
   gtInfo() : OperatorInfo()
   {
-    name      = GT;
-    signature = SET + " x " + SET + " -> " + BOOL;
-    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
-    syntax    = " _ " + GT + " _ ";
+    name      = ">";
+    signature = Set::BasicType() + " x " + Set::BasicType() +
+                                                " -> " + CcBool::BasicType();
+    appendSignature(Multiset::BasicType() + " x " + Multiset::BasicType() +
+                                                " -> " + CcBool::BasicType());
+    appendSignature(Vector::BasicType() + " x " + Vector::BasicType() +
+                                                " -> " + CcBool::BasicType());
+    syntax    = " _ > _ ";
     meaning   = "Object 1 Greater Than Object 2";
   }
 
@@ -2661,11 +2689,14 @@ struct leInfo : OperatorInfo {
 
   leInfo() : OperatorInfo()
   {
-    name      = LE;
-    signature = SET + " x " + SET + " -> " + BOOL;
-    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
-    syntax    = " _ " + LE + " _ ";
+    name      = "<=";
+    signature = Set::BasicType() + " x " + Set::BasicType() + " -> "
+                                                        + CcBool::BasicType();
+    appendSignature(Multiset::BasicType() + " x " + Multiset::BasicType()
+                                                + " -> " + CcBool::BasicType());
+    appendSignature(Vector::BasicType() + " x " + Vector::BasicType()
+                                                + " -> " + CcBool::BasicType());
+    syntax    = " _ <= _ ";
     meaning   = "Object 1 Smaller equal Object 2";
   }
 
@@ -2694,15 +2725,19 @@ struct geInfo : OperatorInfo {
 
   geInfo() : OperatorInfo()
   {
-    name      = GE;
-    signature = SET + " x " + SET + " -> " + BOOL;
-    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
-    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
-    syntax    = " _ " + GE + " _ ";
+    name      = ">=";
+    signature = Set::BasicType() + " x " + Set::BasicType() + " -> "
+                                                          + CcBool::BasicType();
+    appendSignature(Multiset::BasicType() + " x " + Multiset::BasicType()
+                                                + " -> " + CcBool::BasicType());
+    appendSignature(Vector::BasicType() + " x " + Vector::BasicType() + " -> "
+                                                        + CcBool::BasicType());
+    syntax    = " _ >= _ ";
     meaning   = "Object 1 Greater equal Object 2";
   }
 
 };
+
 
 /*
 5 Implementation of class CollectionAlgebra, registration of TypeConstructors
@@ -2716,18 +2751,16 @@ class CollectionAlgebra : public Algebra {
       AddTypeConstructor(&setTC);
       AddTypeConstructor(&multisetTC);
 
-      vectorTC.AssociateKind("DATA");
-      setTC.AssociateKind("DATA");
-      multisetTC.AssociateKind("DATA");
+      vectorTC.AssociateKind(Kind::DATA());
+      setTC.AssociateKind(Kind::DATA());
+      multisetTC.AssociateKind(Kind::DATA());
 
       AddOperator(containsInfo(), ContainsInValueMap<true>,
                   ContainsInTypeMap<true>);
       AddOperator(inInfo(), ContainsInValueMap<false>,
                   ContainsInTypeMap<false>);
-      AddOperator(insertInfo(), InsertValueMap<true>,
-                  InsertTypeMap<true>);
-      AddOperator(addInfo(), InsertValueMap<false>,
-                  InsertTypeMap<false>);
+      AddOperator(insertInfo(), InsertValueMap<true>, InsertTypeMap<true>);
+      AddOperator(addInfo(), InsertValueMap<false>, InsertTypeMap<false>);
       AddOperator(CreateVectorInfo(), CreateValueMap,
                   CreateTypeMap<collection::vector>);
       AddOperator(CreateSetInfo(), CreateValueMap,

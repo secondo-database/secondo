@@ -57,6 +57,7 @@ using namespace std;
 #include "Attribute.h"
 #include "Messages.h"
 #include "Geoid.h"
+#include "ListUtils.h"
 
 #include <stdio.h>
 
@@ -352,7 +353,7 @@ changes the ~this~ object and returns it.
           os<<")"<<endl;
           return os;
       } else {
-          return os << "undef";
+          return os << Symbol::UNDEFINED();
       }
     }
 
@@ -858,7 +859,7 @@ ListExpr OutRectangle( ListExpr typeInfo, Word value )
   }
   else
   {
-    return (nl->SymbolAtom("undef"));
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
 
@@ -928,9 +929,7 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
       return SetWord( r );
     }
   }
-  else if ( nl->IsAtom( instance ) &&
-            nl->AtomType( instance ) == SymbolType &&
-            nl->SymbolValue( instance ) == "undef" )
+  else if ( listutils::isSymbolUndefined(instance))
   {
     correct = true;
     return SetWord( new Rectangle<3>( false ) );
@@ -1064,6 +1063,11 @@ class RectangleSet
   protected:
     vector< Rectangle<dim> > set;
 };
+
+typedef Rectangle<2> Rect;
+typedef Rectangle<3> Rect3;
+typedef Rectangle<4> Rect4;
+typedef Rectangle<8> Rect8;
 
 #endif
 

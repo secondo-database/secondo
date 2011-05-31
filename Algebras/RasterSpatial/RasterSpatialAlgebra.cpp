@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -24,12 +24,13 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 
 */
 #include "RasterSpatialAlgebra.h"
+#include "Symbols.h"
 
 extern ListExpr OutRaster4CRS( ListExpr typeInfo, Word value );
-extern Word InRaster4CRS( const ListExpr typeInfo, const ListExpr instance, 
+extern Word InRaster4CRS( const ListExpr typeInfo, const ListExpr instance,
          const int errorPos, ListExpr& errorInfo, bool& correct );
 extern ListExpr OutPoints( ListExpr typeInfo, Word value );
-extern Word InPoints( const ListExpr typeInfo, const ListExpr instance, 
+extern Word InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct );
 
 
@@ -372,7 +373,7 @@ OpenRasterRegion( SmiRecord& valueRecord,
 {
   CRasterRegion *rr = (CRasterRegion*)Attribute::Open( valueRecord,
      offset, typeInfo );
-  
+
   rr->FLOBToRaster4CRS();
   value = SetWord( rr );
   return true;
@@ -384,12 +385,12 @@ SaveRasterRegion( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-  
+
   CRasterRegion *rr = (CRasterRegion *)value.addr;
   rr->Raster4CRSToFLOB();
-  
+
   Attribute::Save( valueRecord, offset, typeInfo, rr );
-  
+
   return true;
 }
 
@@ -447,7 +448,7 @@ OpenRasterLine( SmiRecord& valueRecord,
 {
   CRasterLine *rl = (CRasterLine*)Attribute::Open( valueRecord,
          offset, typeInfo );
-  
+
   rl->FLOBToRaster4CRS();
   value = SetWord( rl );
 
@@ -462,9 +463,9 @@ SaveRasterLine( SmiRecord& valueRecord,
 {
   CRasterLine *rl = (CRasterLine *)value.addr;
   rl->Raster4CRSToFLOB();
-  
+
   Attribute::Save( valueRecord, offset, typeInfo, rl );
-  
+
   return true;
 }
 
@@ -502,7 +503,7 @@ OpenRasterPoints( SmiRecord& valueRecord,
 {
   CRasterPoints *rp = (CRasterPoints*)Attribute::Open( valueRecord,
          offset, typeInfo );
-  
+
   rp->FLOBToRaster4CRS();
   //rr->setRaster(rr->calculateRaster());
   value = SetWord( rp );
@@ -517,9 +518,9 @@ SaveRasterPoints( SmiRecord& valueRecord,
 {
   CRasterPoints *rp = (CRasterPoints *)value.addr;
   rp->Raster4CRSToFLOB();
-  
+
   Attribute::Save( valueRecord, offset, typeInfo, rp );
-  
+
   return true;
 }
 
@@ -552,7 +553,7 @@ RasterRegionProperty()
            nl->StringAtom("List Rep"),
            nl->StringAtom("Remarks")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("rasterRegion"),
+                       nl->StringAtom(CRasterRegion::BasicType()),
            nl->StringAtom("( <raster4CRS> <region> "),
            nl->StringAtom(""))));
 }
@@ -566,7 +567,7 @@ RasterLineProperty()
            nl->StringAtom("List Rep"),
            nl->StringAtom("Remarks")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("rasterLine"),
+                       nl->StringAtom(CRasterLine::BasicType()),
            nl->StringAtom("( <raster4CRS> <line> "),
            nl->StringAtom(""))));
 }
@@ -580,7 +581,7 @@ RasterPointsProperty()
            nl->StringAtom("List Rep"),
            nl->StringAtom("Remarks")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("rasterPoints"),
+                       nl->StringAtom(CRasterPoints::BasicType()),
            nl->StringAtom("( <raster4CRS> <points> "),
            nl->StringAtom(""))));
 }
@@ -592,19 +593,19 @@ RasterPointsProperty()
 bool
 CheckRasterRegion( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rasterRegion" ));
+  return (nl->IsEqual( type, CRasterRegion::BasicType() ));
 }
 
 bool
 CheckRasterLine( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rasterLine" ));
+  return (nl->IsEqual( type, CRasterLine::BasicType() ));
 }
 
 bool
 CheckRasterPoints( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rasterPoints" ));
+  return (nl->IsEqual( type, CRasterPoints::BasicType() ));
 }
 
 
@@ -612,7 +613,8 @@ CheckRasterPoints( ListExpr type, ListExpr& errorInfo )
 
 
 TypeConstructor RasterRegion(
-  "rasterRegion", RasterRegionProperty, OutRasterRegion, InRasterRegion, 0, 0,
+  CRasterRegion::BasicType(), RasterRegionProperty,
+                             OutRasterRegion, InRasterRegion, 0, 0,
   CreateRasterRegion, DeleteRasterRegion,
   OpenRasterRegion, SaveRasterRegion,
      //0, 0,
@@ -621,19 +623,21 @@ TypeConstructor RasterRegion(
 );
 
 TypeConstructor RasterLine(
-  "rasterLine", RasterLineProperty, OutRasterLine, InRasterLine, 0, 0,
+  CRasterLine::BasicType(), RasterLineProperty,
+                           OutRasterLine, InRasterLine, 0, 0,
   CreateRasterLine, DeleteRasterLine,
   OpenRasterLine, SaveRasterLine,
-        //0, 0, 
+        //0, 0,
   CloseRasterLine, CloneRasterLine, CastRasterLine,
   SizeOfRasterLine, CheckRasterLine
 );
 
 TypeConstructor RasterPoints(
-  "rasterPoints", RasterPointsProperty, OutRasterPoints, InRasterPoints, 0, 0,
+  CRasterPoints::BasicType(), RasterPointsProperty,
+                             OutRasterPoints, InRasterPoints, 0, 0,
   CreateRasterPoints, DeleteRasterPoints,
   OpenRasterPoints, SaveRasterPoints,
-        //0, 0, 
+        //0, 0,
   CloseRasterPoints, CloneRasterPoints, CastRasterPoints,
   SizeOfRasterPoints, CheckRasterPoints
 );
@@ -648,10 +652,10 @@ RegionBool( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "region") )
-      return nl->SymbolAtom("bool");
+    if ( nl->IsEqual(arg1, Region::BasicType()) )
+      return nl->SymbolAtom(CcBool::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -660,14 +664,14 @@ PointsLineRegionCRasterRegion( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "line") )
-      return nl->SymbolAtom("rasterLine");
-    else if ( nl->IsEqual(arg1, "region") )
-      return nl->SymbolAtom("rasterRegion");
-    else if ( nl->IsEqual(arg1, "points") )
-      return nl->SymbolAtom("rasterPoints");
+    if ( nl->IsEqual(arg1, Line::BasicType()) )
+      return nl->SymbolAtom(CRasterLine::BasicType());
+    else if ( nl->IsEqual(arg1, Region::BasicType()) )
+      return nl->SymbolAtom(CRasterRegion::BasicType());
+    else if ( nl->IsEqual(arg1, Points::BasicType()) )
+      return nl->SymbolAtom(CRasterPoints::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -676,13 +680,13 @@ RegionCRasterRegion( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "region") )
-      return nl->SymbolAtom("rasterRegion");
+    if ( nl->IsEqual(arg1, Region::BasicType()) )
+      return nl->SymbolAtom(CRasterRegion::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
-//kind checking for 
+//kind checking for
 //'(rasterRegion || rasterLine || rasterPoints)
 // rIntersects
 // (rasterRegion || rasterLine || rasterPoints)'
@@ -694,16 +698,16 @@ CRasterRegionCRasterLineCRasterPointsBool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( (nl->IsEqual(arg1, "rasterRegion") 
-             || nl->IsEqual(arg1, "rasterLine") 
-             || nl->IsEqual(arg1, "rasterPoints")) 
-        && (nl->IsEqual(arg2, "rasterRegion") 
-             || nl->IsEqual(arg2, "rasterLine") 
-             || nl->IsEqual(arg2, "rasterPoints")) ) {
-      return nl->SymbolAtom("bool");
+    if ( (nl->IsEqual(arg1, CRasterRegion::BasicType())
+             || nl->IsEqual(arg1, CRasterLine::BasicType())
+             || nl->IsEqual(arg1, CRasterPoints::BasicType()))
+        && (nl->IsEqual(arg2, CRasterRegion::BasicType())
+             || nl->IsEqual(arg2, CRasterLine::BasicType())
+             || nl->IsEqual(arg2, CRasterPoints::BasicType())) ) {
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -718,7 +722,7 @@ CRasterRegionCRasterLineCRasterPointsBool( ListExpr args )
 
 
 static int
-ConvertRaster3CRS_p (Word* args, Word& result, int message, 
+ConvertRaster3CRS_p (Word* args, Word& result, int message,
            Word& local, Supplier s){
   Points *points = ((Points*)args[0].addr);
 
@@ -733,7 +737,7 @@ ConvertRaster3CRS_p (Word* args, Word& result, int message,
   return 0;
 }
 static int
-ConvertRaster3CRS_l (Word* args, Word& result, int message, 
+ConvertRaster3CRS_l (Word* args, Word& result, int message,
           Word& local, Supplier s){
   Line *line = ((Line*)args[0].addr);
 
@@ -747,14 +751,14 @@ ConvertRaster3CRS_l (Word* args, Word& result, int message,
 
   return 0;
 }
-  
+
 static int
-ConvertRaster3CRS_r (Word* args, Word& result, int message, 
+ConvertRaster3CRS_r (Word* args, Word& result, int message,
            Word& local, Supplier s){
   Region *region = ((Region*)args[0].addr);
 
   CRasterRegion *rasterRegion = new CRasterRegion(*region);
-  
+
   rasterRegion->setRaster(rasterRegion->calculateRaster(3));
 
   result = qp->ResultStorage(s);
@@ -767,14 +771,14 @@ ConvertRaster3CRS_r (Word* args, Word& result, int message,
 
 //8.4 Convert Raster 4CRS
 
-  
+
 static int
-ConvertRaster4CRSFun (Word* args, Word& result, int message, 
+ConvertRaster4CRSFun (Word* args, Word& result, int message,
                 Word& local, Supplier s){
   Region *region = ((Region*)args[0].addr);
 
   CRasterRegion *rasterRegion = new CRasterRegion(*region);
-  
+
   rasterRegion->setRaster(rasterRegion->calculateRaster(4));
 
   result = qp->ResultStorage(s);
@@ -790,7 +794,7 @@ ConvertRaster4CRSFun (Word* args, Word& result, int message,
 
 //creates the .dat File for visualization
 static int
-RegionToPolilyneFun (Word* args, Word& result, int message, 
+RegionToPolilyneFun (Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
   int i;
@@ -807,7 +811,7 @@ RegionToPolilyneFun (Word* args, Word& result, int message,
 //  sfile = "";
 
   Region *r1 = ((Region*)args[0].addr);
-  r1->LogicSort(); 
+  r1->LogicSort();
 
   for( i = 0; i < r1->Size(); i++ )
   {
@@ -832,22 +836,22 @@ RegionToPolilyneFun (Word* args, Word& result, int message,
 
         // the second segment, since the i + 1 is the other
         // half-segment of the first segment
-        r1->Get( i + 2, chs1 ); 
-        if ( ( (chs->GetLeftPoint().GetX() == chs1->GetLeftPoint().GetX()) 
+        r1->Get( i + 2, chs1 );
+        if ( ( (chs->GetLeftPoint().GetX() == chs1->GetLeftPoint().GetX())
             && (chs->GetLeftPoint().GetY() == chs1->GetLeftPoint().GetY()) ) ||
-             ( (chs->GetLeftPoint().GetX() == chs1->GetRightPoint().GetX()) 
+             ( (chs->GetLeftPoint().GetX() == chs1->GetRightPoint().GetX())
             && (chs->GetLeftPoint().GetY() == chs1->GetRightPoint().GetY()) ) )
         {
-          scicle << chs->GetRightPoint().GetX() << "," 
+          scicle << chs->GetRightPoint().GetX() << ","
                  << chs->GetRightPoint().GetY() << endl;
-          scicle << chs->GetLeftPoint().GetX() << "," 
+          scicle << chs->GetLeftPoint().GetX() << ","
                  << chs->GetLeftPoint().GetY() << endl;
         }
         else
         {
-          scicle << chs->GetLeftPoint().GetX() << "," 
+          scicle << chs->GetLeftPoint().GetX() << ","
                  << chs->GetLeftPoint().GetY() << endl;
-          scicle << chs->GetRightPoint().GetX() << "," 
+          scicle << chs->GetRightPoint().GetX() << ","
                  << chs->GetRightPoint().GetY() << endl;
         }
         endX1 = chs->GetLeftPoint().GetX();
@@ -857,14 +861,14 @@ RegionToPolilyneFun (Word* args, Word& result, int message,
       }
       else //inside the same cicle
       {
-        if ( ( (chs->GetLeftPoint().GetX() == endX1) 
+        if ( ( (chs->GetLeftPoint().GetX() == endX1)
              && (chs->GetLeftPoint().GetY() == endY1) ) ||
-             ( (chs->GetLeftPoint().GetX() == endX2) 
+             ( (chs->GetLeftPoint().GetX() == endX2)
              && (chs->GetLeftPoint().GetY() == endY2) ) )
-          scicle << chs->GetRightPoint().GetX() << "," 
+          scicle << chs->GetRightPoint().GetX() << ","
                << chs->GetRightPoint().GetY() << endl;
         else
-          scicle << chs->GetLeftPoint().GetX() << "," 
+          scicle << chs->GetLeftPoint().GetX() << ","
                << chs->GetLeftPoint().GetY() << endl;
         endX1 = chs->GetLeftPoint().GetX();
         endY1 = chs->GetLeftPoint().GetY();
@@ -1035,13 +1039,13 @@ rIntersects_pp (Word* args, Word& result, int message, Word& local, Supplier s)
 //9 Value Mapping
 
 
-ValueMapping convertraster3crsmap[] = { 
+ValueMapping convertraster3crsmap[] = {
     ConvertRaster3CRS_p,
   ConvertRaster3CRS_l,
-    ConvertRaster3CRS_r 
+    ConvertRaster3CRS_r
 };
 
-ValueMapping rIntersectsmap[] = { 
+ValueMapping rIntersectsmap[] = {
   rIntersects_rr,
   rIntersects_rl,
   rIntersects_lr,
@@ -1063,14 +1067,14 @@ ConvertRasterSelect( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "points") )
+    if ( nl->IsEqual(arg1, Points::BasicType()) )
       return 0;
-    else if (nl->IsEqual(arg1, "line") )
+    else if (nl->IsEqual(arg1, Line::BasicType()) )
       return 1;
-    else if (nl->IsEqual(arg1, "region") )
+    else if (nl->IsEqual(arg1, Region::BasicType()) )
       return 2;
   }
-  
+
   return -1;
 }
 
@@ -1081,35 +1085,35 @@ rIntersectsSelect( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "rasterRegion") )
+    if ( nl->IsEqual(arg1, CRasterRegion::BasicType()) )
     {
-      if ( nl->IsEqual(arg2, "rasterRegion") )
+      if ( nl->IsEqual(arg2, CRasterRegion::BasicType()) )
         return 0;
-      else if ( nl->IsEqual(arg2, "rasterLine") )
+      else if ( nl->IsEqual(arg2, CRasterLine::BasicType()) )
         return 1;
-      else if ( nl->IsEqual(arg2, "rasterPoints") )
+      else if ( nl->IsEqual(arg2, CRasterPoints::BasicType()) )
         return 5;
     }
-    else if ( nl->IsEqual(arg1, "rasterLine") )
+    else if ( nl->IsEqual(arg1, CRasterLine::BasicType()) )
     {
-      if ( nl->IsEqual(arg2, "rasterRegion") )
+      if ( nl->IsEqual(arg2, CRasterRegion::BasicType()) )
         return 2;
-      else if ( nl->IsEqual(arg2, "rasterLine") )
+      else if ( nl->IsEqual(arg2, CRasterLine::BasicType()) )
         return 3;
-      else if ( nl->IsEqual(arg2, "rasterPoints") )
+      else if ( nl->IsEqual(arg2, CRasterPoints::BasicType()) )
         return 7;
     }
-    else if ( nl->IsEqual(arg1, "rasterPoints") )
+    else if ( nl->IsEqual(arg1, CRasterPoints::BasicType()) )
     {
-      if ( nl->IsEqual(arg2, "rasterRegion") )
+      if ( nl->IsEqual(arg2, CRasterRegion::BasicType()) )
         return 4;
-      else if ( nl->IsEqual(arg2, "rasterLine") )
+      else if ( nl->IsEqual(arg2, CRasterLine::BasicType()) )
         return 6;
-      else if ( nl->IsEqual(arg2, "rasterPoints") )
+      else if ( nl->IsEqual(arg2, CRasterPoints::BasicType()) )
         return 8;
     }
   }
-  
+
   return -1;
 }
 
@@ -1143,7 +1147,7 @@ const string ConvertRaster4CRSSpec ="( ( \"Signature\" \"Syntax\" \"Meaning\" "
        "<text>query ConvertRaster4CRS (region)</text--->"
        ") )";
 
-const string rIntersectsSpec  = 
+const string rIntersectsSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>(rasterRegion || rasterLine || rasterPoints, "
      "rasterRegion || rasterLine || rasterPoints) -> bool</text--->"
@@ -1166,13 +1170,13 @@ Operator RegionToPolilyne (
   RegionBool    //type mapping
 );
 
-Operator ConvertRaster3CRS ("convertRaster3CRS", ConvertRaster3CRSSpec, 3, 
+Operator ConvertRaster3CRS ("convertRaster3CRS", ConvertRaster3CRSSpec, 3,
      convertraster3crsmap, ConvertRasterSelect, PointsLineRegionCRasterRegion);
 
-Operator ConvertRaster4CRS ("convertRaster4CRS", ConvertRaster4CRSSpec, 
+Operator ConvertRaster4CRS ("convertRaster4CRS", ConvertRaster4CRSSpec,
      ConvertRaster4CRSFun, Operator::SimpleSelect, RegionCRasterRegion);
 
-Operator rIntersects ("rIntersects", rIntersectsSpec, 9, rIntersectsmap, 
+Operator rIntersects ("rIntersects", rIntersectsSpec, 9, rIntersectsmap,
      rIntersectsSelect, CRasterRegionCRasterLineCRasterPointsBool);
 
 
@@ -1186,17 +1190,17 @@ class RasterSpatialAlgebra : public Algebra
   {
 
     AddTypeConstructor( &RasterRegion );
-    RasterRegion.AssociateKind("SPATIAL2D");   
-    RasterRegion.AssociateKind("DATA"); 
+    RasterRegion.AssociateKind(Kind::SPATIAL2D());
+    RasterRegion.AssociateKind(Kind::DATA());
 
     AddTypeConstructor( &RasterLine );
-    RasterLine.AssociateKind("SPATIAL2D");  
-    RasterLine.AssociateKind("DATA"); 
+    RasterLine.AssociateKind(Kind::SPATIAL2D());
+    RasterLine.AssociateKind(Kind::DATA());
 
     AddTypeConstructor( &RasterPoints );
-    RasterPoints.AssociateKind("SPATIAL2D");  
-    RasterPoints.AssociateKind("DATA"); 
-      
+    RasterPoints.AssociateKind(Kind::SPATIAL2D());
+    RasterPoints.AssociateKind(Kind::DATA());
+
     AddOperator( &RegionToPolilyne );
     AddOperator( &ConvertRaster3CRS );
     AddOperator( &ConvertRaster4CRS );

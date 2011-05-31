@@ -3,7 +3,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the treeheight Operator 
+[1] Implementation of the treeheight Operator
 
 [TOC]
 
@@ -18,6 +18,7 @@
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "BTree2.h"
+#include "Symbols.h"
 
 #include <limits>
 
@@ -55,11 +56,11 @@ ListExpr set_cache_limit_type::TypeMapping( ListExpr args){
 
   ListExpr appendArgs = nl->OneElemList(nl->IntAtom(v));
 
-  return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                               appendArgs,
-                              nl->OneElemList( 
-                                nl->SymbolAtom("bool"))); 
-}       
+                              nl->OneElemList(
+                                nl->SymbolAtom(CcBool::BasicType())));
+}
 
 int
 set_cache_limit_type::ValueMapping(Word* args, Word& result, int message,
@@ -93,8 +94,8 @@ struct setCacheTypeInfo : OperatorInfo {
   }
 };
 
-Operator set_cache_limit_type::def( setCacheTypeInfo(), 
-                                     set_cache_limit_type::ValueMapping, 
+Operator set_cache_limit_type::def( setCacheTypeInfo(),
+                                     set_cache_limit_type::ValueMapping,
                                      set_cache_limit_type::TypeMapping);
 
 } // end namespace operator

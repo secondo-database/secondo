@@ -3,7 +3,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the createbtree2 Operator 
+[1] Implementation of the createbtree2 Operator
 
 [TOC]
 
@@ -46,7 +46,7 @@ ListExpr getentry2::TypeMapping(ListExpr args)
 //    return listutils::typeError("keytype and argument type mismatch");
 //  }
 
-  return nl->OneElemList(nl->SymbolAtom("int"));
+  return nl->OneElemList(nl->SymbolAtom(CcInt::BasicType()));
 }
 
 int getentry2::Select( ListExpr args )
@@ -74,7 +74,7 @@ getentry2::ValueMappingEx(Word* args, Word& result, int message,
 
   btree->printNodeInfos();
 
-  for (bi = btree->find(key); 
+  for (bi = btree->find(key);
        (bi != btree->end()) && (key->Compare(bi.key()) == 0); ++bi) {
     cout << *(bi.key());
     if ((*bi) != 0) {
@@ -119,15 +119,15 @@ string getentry2::Specification() {
   string example = "query getentry2(btrX,12)\n";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
 int getentry2::numberOfValueMappings = 2;
-ValueMapping getentry2::valueMappings[] = { 
+ValueMapping getentry2::valueMappings[] = {
                   getentry2::ValueMappingEx,
                   getentry2::ValueMappingExAll,
                 };

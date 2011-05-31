@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <stdexcept>
 #include "Algebra.h"
+#include "Symbols.h"
 
 #include "OperatorsInfo.hpp"
 #include "TypeMapping.hpp"
@@ -184,7 +185,7 @@ struct ChessAlgebra : Algebra
         AddBinaryStreamOperator< p_moves_blocked_op >( p_moves_blocked_info );
 
         AddTypeConstructor( &Game::tc );
-        Game::tc.AssociateKind( "DATA" );
+        Game::tc.AssociateKind( Kind::DATA() );
         AddBinaryOperator< getkey_op >( getkey_info );
         AddBinaryOperator< getposition_op >( getposition_info );
         AddBinaryOperator< getmove_op >( getmove_info );

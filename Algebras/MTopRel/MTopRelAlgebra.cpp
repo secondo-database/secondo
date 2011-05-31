@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2007, 
+Copyright (C) 2007,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TemporalAlgebra.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "Symbols.h"
 
 
 
@@ -55,7 +56,7 @@ GenTC<TopRelDfa> topreldfa;
 1.1 createdfa
 
 
-Operator for creating a topreldfa from a pridicategroup and a 
+Operator for creating a topreldfa from a pridicategroup and a
 text.
 
 */
@@ -65,12 +66,12 @@ int
                Word& local, Supplier s ){
 
     result = qp->ResultStorage(s);
-    toprel::PredicateGroup* pg = 
+    toprel::PredicateGroup* pg =
          static_cast<toprel::PredicateGroup*>(args[0].addr);
     FText* regex = static_cast<FText*>(args[1].addr);
     TopRelDfa* res = static_cast<TopRelDfa*>(result.addr);
     if(!pg->IsDefined() || !regex->IsDefined()){
-      res->SetDefined(false); 
+      res->SetDefined(false);
       return 0;
     }
     string r = regex->GetValue();
@@ -79,7 +80,7 @@ int
     return 0;
 }
 
-const string createDfaSpec  = 
+const string createDfaSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
         "( <text>predicategroup x text -> mtoprel  </text--->"
@@ -100,25 +101,25 @@ Operator createDfa(
 /*
 2. Operator toprelseq
 
-This operator takes a spatial type and an moving spatial type and 
+This operator takes a spatial type and an moving spatial type and
 produces a stream of tuples comptaining an time interval (represented
 as attributes Start, End, LC, RC, and an int9m representing the
-topological relationship between the arguments within this time 
+topological relationship between the arguments within this time
 interval.
 
 */
 ListExpr toprelseqTM(ListExpr args){
   string err = "expected point x upoint | "
                 " point x mpoint | "
-                " upoint x upoint |" 
-                " upoint x mpoint |" 
+                " upoint x upoint |"
+                " upoint x mpoint |"
                 " mpoint x mpoint |"
-                " region x upoint |"  
-                " region x mpoint |" 
-                " upoint x point  |" 
-                " mpoint x point  |"  
-                " mpoint x upoint |"  
-                " upoint x region |"  
+                " region x upoint |"
+                " region x mpoint |"
+                " upoint x point  |"
+                " mpoint x point  |"
+                " mpoint x upoint |"
+                " upoint x region |"
                 " mpoint x region " ;
   int len = nl->ListLength(args);
   if((len!=2) ){
@@ -127,31 +128,31 @@ ListExpr toprelseqTM(ListExpr args){
   ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   bool ok = false;
-  
+
   ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
 
   ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, Point::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
               listutils::isSymbol(arg2, Point::BasicType()));
 
@@ -167,21 +168,21 @@ ListExpr toprelseqTM(ListExpr args){
 
 
   if(ok){
-    ListExpr attrList = nl->FiveElemList( 
-               nl->TwoElemList( nl->SymbolAtom("Start"), 
+    ListExpr attrList = nl->FiveElemList(
+               nl->TwoElemList( nl->SymbolAtom("Start"),
                                 nl->SymbolAtom(DateTime::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("End"), 
+               nl->TwoElemList( nl->SymbolAtom("End"),
                                 nl->SymbolAtom(DateTime::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("LeftClosed"), 
+               nl->TwoElemList( nl->SymbolAtom("LeftClosed"),
                                 nl->SymbolAtom(CcBool::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("RightClosed"), 
+               nl->TwoElemList( nl->SymbolAtom("RightClosed"),
                                 nl->SymbolAtom(CcBool::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("TopRel"), 
+               nl->TwoElemList( nl->SymbolAtom("TopRel"),
                                 nl->SymbolAtom(toprel::Int9M::BasicType())));
 
-    return nl->TwoElemList(nl->SymbolAtom("stream"),
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()), attrList));
-                           
+
   }
 
   return listutils::typeError(err);
@@ -191,7 +192,7 @@ ListExpr toprelseqTM(ListExpr args){
 
 
 
-const string toprelseqSpec = 
+const string toprelseqSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
         "( <text>point x {upoint, mpoint}  | "
@@ -224,7 +225,7 @@ class toprelseq_LocalInfo{
         proc = new Proc(a1,a2);
      }
 
-     toprelseq_LocalInfo(const A1* a1, const A2* a2, 
+     toprelseq_LocalInfo(const A1* a1, const A2* a2,
                          const toprel::PredicateGroup* pg, ListExpr tt){
         tupleType = new TupleType(tt);
         proc = new Proc(a1,a2,pg);
@@ -267,7 +268,7 @@ class toprelseq_LocalInfo{
 
 stores the interval at the first 4 positions of the tuple.
 
-*/    
+*/
 void storeIntervalIntoTuple(Tuple* tuple, Interval<Instant>& interval){
        tuple->PutAttribute(0, new DateTime(interval.start));
        tuple->PutAttribute(1, new DateTime(interval.end));
@@ -331,7 +332,7 @@ int toprelseqSelect(ListExpr args){
      listutils::isSymbol(arg2, Region::BasicType())){
      return 11;
   }
-  return -1; 
+  return -1;
 
 }
 
@@ -342,13 +343,13 @@ int toprelseq_fun(Word* args, Word& result, int message,
   switch(message){
     case OPEN: {
       if(local.addr){
-          toprelseq_LocalInfo<A1,A2,Proc>* li = 
+          toprelseq_LocalInfo<A1,A2,Proc>* li =
                  static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
           delete li;
        }
        const A1* a1;
        const A2* a2;
-       if(!sym){ 
+       if(!sym){
           a1 = static_cast<const A1*>(args[0].addr);
           a2 = static_cast<const A2*>(args[1].addr);
        } else {
@@ -360,14 +361,14 @@ int toprelseq_fun(Word* args, Word& result, int message,
        return 0;
     }
     case REQUEST: {
-      toprelseq_LocalInfo<A1,A2,Proc>* li = 
+      toprelseq_LocalInfo<A1,A2,Proc>* li =
                 static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
       result.addr =  li->nextTopRelTuple();
-      return result.addr? YIELD: CANCEL; 
+      return result.addr? YIELD: CANCEL;
     }
     case CLOSE:{
       if(local.addr){
-          toprelseq_LocalInfo<A1,A2,Proc>* li = 
+          toprelseq_LocalInfo<A1,A2,Proc>* li =
                  static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
           delete li;
           local.addr = 0;
@@ -383,10 +384,10 @@ int toprelseq_fun(Word* args, Word& result, int message,
 
 ValueMapping toprelseqVM[] = {
                 toprelseq_fun<Point,   UPoint, MTopRelAlg_PUP, false>,
-                toprelseq_fun<Point,   MPoint, MTopRelAlg_PMP, false>, 
+                toprelseq_fun<Point,   MPoint, MTopRelAlg_PMP, false>,
                 toprelseq_fun<UPoint,  UPoint, MTopRelAlg_UPUP, false>,
                 toprelseq_fun<UPoint,  MPoint, MTopRelAlg_UPMP, false>,
-                toprelseq_fun<MPoint,  MPoint, MTopRelAlg_MPMP, false>, 
+                toprelseq_fun<MPoint,  MPoint, MTopRelAlg_MPMP, false>,
                 toprelseq_fun<Region,  UPoint, MTopRelAlg_RUP, false>,
                 toprelseq_fun<Region,  MPoint, MTopRelAlg_RMP, false>,
                 toprelseq_fun<Point,   UPoint, MTopRelAlg_UPP, true>,
@@ -443,19 +444,19 @@ ListExpr clusterseqTM(ListExpr args){
 
   ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
 
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
 
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
 
@@ -475,19 +476,19 @@ ListExpr clusterseqTM(ListExpr args){
               listutils::isSymbol(arg2, Region::BasicType()));
 
   if(ok){
-    ListExpr attrList = nl->FiveElemList( 
-               nl->TwoElemList( nl->SymbolAtom("Start"), 
+    ListExpr attrList = nl->FiveElemList(
+               nl->TwoElemList( nl->SymbolAtom("Start"),
                                 nl->SymbolAtom(DateTime::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("End"), 
+               nl->TwoElemList( nl->SymbolAtom("End"),
                                 nl->SymbolAtom(DateTime::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("LeftClosed"), 
+               nl->TwoElemList( nl->SymbolAtom("LeftClosed"),
                                 nl->SymbolAtom(CcBool::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("RightClosed"), 
+               nl->TwoElemList( nl->SymbolAtom("RightClosed"),
                                 nl->SymbolAtom(CcBool::BasicType())),
-               nl->TwoElemList( nl->SymbolAtom("Cluster"), 
+               nl->TwoElemList( nl->SymbolAtom("Cluster"),
                                 nl->SymbolAtom(toprel::Cluster::BasicType())));
 
-    return nl->TwoElemList(nl->SymbolAtom("stream"),
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()), attrList));
   }
 
@@ -507,7 +508,7 @@ int clusterseq_fun(Word* args, Word& result, int message,
   switch(message){
     case OPEN: {
       if(local.addr){
-          toprelseq_LocalInfo<A1,A2,Proc>* li = 
+          toprelseq_LocalInfo<A1,A2,Proc>* li =
                       static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
           delete li;
        }
@@ -520,22 +521,22 @@ int clusterseq_fun(Word* args, Word& result, int message,
          a1 = static_cast<const A1*>(args[1].addr);
          a2 = static_cast<const A2*>(args[0].addr);
        }
-       const toprel::PredicateGroup* pg= 
+       const toprel::PredicateGroup* pg=
                  static_cast<const toprel::PredicateGroup*>(args[2].addr);
        ListExpr tt = GetTupleResultType(s);
-       local.addr = new toprelseq_LocalInfo<A1,A2,Proc>(a1, 
+       local.addr = new toprelseq_LocalInfo<A1,A2,Proc>(a1,
                                                      a2,pg,nl->Second(tt));
        return 0;
     }
     case REQUEST: {
-      toprelseq_LocalInfo<A1,A2,Proc>* li = 
+      toprelseq_LocalInfo<A1,A2,Proc>* li =
                static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
       result.addr =  li->nextClusterTuple();
-      return result.addr? YIELD: CANCEL; 
+      return result.addr? YIELD: CANCEL;
     }
     case CLOSE:{
       if(local.addr){
-          toprelseq_LocalInfo<A1,A2,Proc>* li = 
+          toprelseq_LocalInfo<A1,A2,Proc>* li =
                static_cast<toprelseq_LocalInfo<A1,A2,Proc>*>(local.addr);
           delete li;
           local.addr = 0;
@@ -557,11 +558,11 @@ value mapping array is defined.
 ValueMapping clusterseqVM[] = {
       clusterseq_fun<Point,  UPoint, MTopRelAlg_PUP,  false>,
       clusterseq_fun<Point,  MPoint, MTopRelAlg_PMP,  false>,
-      clusterseq_fun<UPoint, UPoint, MTopRelAlg_UPUP, false>, 
+      clusterseq_fun<UPoint, UPoint, MTopRelAlg_UPUP, false>,
       clusterseq_fun<UPoint, MPoint, MTopRelAlg_UPMP, false>,
       clusterseq_fun<MPoint, MPoint, MTopRelAlg_MPMP, false>,
       clusterseq_fun<Region, UPoint, MTopRelAlg_RUP,  false>,
-      clusterseq_fun<Region, MPoint, MTopRelAlg_RMP,  false>, 
+      clusterseq_fun<Region, MPoint, MTopRelAlg_RMP,  false>,
       clusterseq_fun<Point,  UPoint, MTopRelAlg_UPP,  true>,
       clusterseq_fun<Point,  MPoint, MTopRelAlg_MPP,  true>,
       clusterseq_fun<UPoint, MPoint, MTopRelAlg_MPUP, true>,
@@ -576,7 +577,7 @@ ValueMapping clusterseqVM[] = {
 
 */
 
-const string clusterseqSpec = 
+const string clusterseqSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
         "( <text>point x {upoint, mpoint} x predicategroup | "
@@ -632,7 +633,7 @@ ListExpr checkTopRelTM(ListExpr args){
   }
   ListExpr stream = nl->First(args);
   ListExpr dfa = nl->Second(args);
-  if((nl->ListLength(stream) != 2) ||  
+  if((nl->ListLength(stream) != 2) ||
      !listutils::isSymbol(nl->First(stream), symbols::STREAM) ||
      !listutils::isSymbol(nl->Second(stream), toprel::Cluster::BasicType())){
      return listutils::typeError(err);
@@ -691,7 +692,7 @@ int checkTopRelVM(Word* args, Word& result, int message,
 
 */
 
-const string checkTopRelSpec = 
+const string checkTopRelSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
         "( <text>"
@@ -722,7 +723,7 @@ Operator checkTopRel(
 /*
 5 Operator ~mtoppred~
 
-This operator gets two objects (spatial, at least one moving and 
+This operator gets two objects (spatial, at least one moving and
 an TopRelDfa and checks whether the dfa accepts the topological
 relationships between these objects. If one of the arguments is
 undefined, also the result is undefined.
@@ -734,16 +735,16 @@ undefined, also the result is undefined.
 ListExpr mtoppredTM(ListExpr args){
   string err = "expected "
                " point  x upoint x mtoprel [x bool] | "
-               " point  x mpoint x mtoprel [x bool] | " 
+               " point  x mpoint x mtoprel [x bool] | "
                " upoint x upoint x mtoprel [x bool] | "
                " upoint x mpoint x mtoprel [x bool] |"
                " mpoint x mpoint x mtoprel [x bool] |"
                " region x upoint x mtoprel [x bool] |"
                " region x mpoint x mtoprel |x bool] |"
                " upoint x point  x mtoprel [x bool] | "
-               " mpoint x point  x mtoprel [x bool] | " 
-               " mpoint x upoint x mtoprel [x bool] | " 
-               " upoint x region x mtoprel [x bool] | " 
+               " mpoint x point  x mtoprel [x bool] | "
+               " mpoint x upoint x mtoprel [x bool] | "
+               " upoint x region x mtoprel [x bool] | "
                " mpoint x region x mtoprel [x bool] | " ;
   int len = nl->ListLength(args);
   if((len!=3) && (len!=4) ){
@@ -769,19 +770,19 @@ ListExpr mtoppredTM(ListExpr args){
 
   ok = ok || (listutils::isSymbol(arg1, Point::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
 
   ok = ok || (listutils::isSymbol(arg1, UPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, MPoint::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
 
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, UPoint::BasicType()));
-  
+
   ok = ok || (listutils::isSymbol(arg1, Region::BasicType()) &&
               listutils::isSymbol(arg2, MPoint::BasicType()));
 
@@ -856,7 +857,7 @@ int mtoppredFun(Word* args, Word& result, int message,
     }
 
     Proc proc(arg1, arg2, dfa->getPredicateGroup());
-    pair<Interval<Instant>, toprel::Cluster> 
+    pair<Interval<Instant>, toprel::Cluster>
              p(Interval<Instant>(), toprel::Cluster(1));
     if(!iter){
        dfa->start();
@@ -877,7 +878,7 @@ int mtoppredFun(Word* args, Word& result, int message,
       while(proc.hasNextCluster() && !done){
         p = proc.nextCluster();
         if(p.second.IsDefined()){ // ignore undefined clusters
-          done = ! dfa->next(p.second, states, 
+          done = ! dfa->next(p.second, states,
                            step && (p.first.start == p.first.end));
         }
        }
@@ -893,12 +894,12 @@ int mtoppredFun(Word* args, Word& result, int message,
 
 ValueMapping mtoppredVM[] = {
             mtoppredFun<Point,  UPoint, MTopRelAlg_PUP, false>,
-            mtoppredFun<Point,  MPoint, MTopRelAlg_PMP, false >, 
+            mtoppredFun<Point,  MPoint, MTopRelAlg_PMP, false >,
             mtoppredFun<UPoint, UPoint, MTopRelAlg_UPUP, false >,
             mtoppredFun<UPoint, MPoint, MTopRelAlg_UPMP, false >,
-            mtoppredFun<MPoint, MPoint, MTopRelAlg_MPMP, false >, 
+            mtoppredFun<MPoint, MPoint, MTopRelAlg_MPMP, false >,
             mtoppredFun<Region, UPoint, MTopRelAlg_RUP, false>,
-            mtoppredFun<Region, MPoint, MTopRelAlg_RMP, false>, 
+            mtoppredFun<Region, MPoint, MTopRelAlg_RMP, false>,
             mtoppredFun<Point,  UPoint, MTopRelAlg_UPP, true>,
             mtoppredFun<Point,  MPoint, MTopRelAlg_MPP, true>,
             mtoppredFun<UPoint, MPoint, MTopRelAlg_MPUP, true>,
@@ -961,7 +962,7 @@ int mtoppredSelect(ListExpr args){
      listutils::isSymbol(arg2, Region::BasicType())){
      return 11;
   }
-  return -1; 
+  return -1;
 }
 
 
@@ -970,7 +971,7 @@ int mtoppredSelect(ListExpr args){
 5.4 Specification
 
 */
-const string mtoppredSpec = 
+const string mtoppredSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
            "\"Example\" )"
         "( <text>"
@@ -1038,7 +1039,7 @@ class MTopRelAlgebra: public Algebra{
 
     MTopRelAlgebra(){
        AddTypeConstructor( &topreldfa );
-       topreldfa.AssociateKind("DATA");
+       topreldfa.AssociateKind(Kind::DATA());
 
        // add operators
        AddOperator(&createDfa);
@@ -1048,7 +1049,7 @@ class MTopRelAlgebra: public Algebra{
        AddOperator(&mtoppred);
 
     }
-    
+
     ~MTopRelAlgebra() {};
 
 };

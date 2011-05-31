@@ -34,9 +34,9 @@ January-May 2008, Mirko Dibbert
 #include <sstream>
 #include "PictureFuns.h"
 #include "GeneralTreeAlgebra.h"
+#include "SpatialAlgebra.h"
 
 using namespace gta;
-using namespace symbols;
 
 /*
 Initialize static members:
@@ -293,34 +293,38 @@ void BBoxReg::initialize()
         return;
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, INT, getbbox_Int, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, CcInt::BasicType(), getbbox_Int, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, REAL, getbbox_Real, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, CcReal::BasicType(), getbbox_Real, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "rect", getbbox_Spatial2, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Rectangle<2>::BasicType(),
+                     getbbox_Spatial2, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "rect3", getbbox_Spatial3, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Rectangle<3>::BasicType(),
+                     getbbox_Spatial3, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "rect4", getbbox_Spatial4, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Rectangle<4>::BasicType(),
+                     getbbox_Spatial4, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "rect8", getbbox_Spatial8, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Rectangle<8>::BasicType(),
+                     getbbox_Spatial8, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "line", getbbox_Spatial2, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Line::BasicType(), getbbox_Spatial2, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "point", getbbox_Spatial2, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Points::BasicType(), getbbox_Spatial2, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "points", getbbox_Spatial2, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Points::BasicType(), getbbox_Spatial2, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
-        BBOX_NATIVE, "region", getbbox_Spatial2, BBOX_IS_DEFAULT));
+        BBOX_NATIVE, Region::BasicType(), getbbox_Spatial2, BBOX_IS_DEFAULT));
 
     addInfo(BBoxInfo(
         BBOX_NATIVE, "hpoint", getbbox_HPoint, BBOX_IS_DEFAULT));

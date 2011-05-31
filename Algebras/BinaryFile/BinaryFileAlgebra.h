@@ -1,9 +1,9 @@
 
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004-2007, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -61,6 +61,8 @@ class BinaryFile : public Attribute
 
     static void* Cast(void* addr);
 
+    static const string BasicType() { return "binfile";}
+
   private:
 
     inline BinaryFile() {};
@@ -72,4 +74,7 @@ This constructor should not be used.
     bool canDelete;
 };
 
+namespace FilePath {
+  const string BasicType();
+}
 #endif

@@ -88,6 +88,7 @@ using namespace std;
 #include "ListUtils.h"
 #include "AlmostEqual.h"
 #include "TemporalAlgebra.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -141,13 +142,13 @@ bool CheckRTree2(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 4)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom(RTree2TID::BasicType())))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo) &&
-      (nl->IsEqual(nl->Third(type), "rect") ||
-      algMgr->CheckKind("SPATIAL2D", nl->Third(type), errorInfo)) &&
+      algMgr->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo) &&
+      (nl->IsEqual(nl->Third(type), Rectangle<2>::BasicType()) ||
+      algMgr->CheckKind(Kind::SPATIAL2D(), nl->Third(type), errorInfo)) &&
       nl->IsAtom(nl->Fourth(type)) &&
       nl->AtomType(nl->Fourth(type)) == BoolType;
   }
@@ -167,7 +168,7 @@ bool CheckRTree2(ListExpr type, ListExpr& errorInfo)
 1.12 Type Constructor object for type constructor ~rtree3~
 
 */
-TypeConstructor rtree( "rtree",
+TypeConstructor rtree( RTree2TID::BasicType(),
                         RTree2Prop,
                         OutRTree<2>,
                         InRTree<2>,
@@ -215,12 +216,12 @@ bool CheckRTree3(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree3")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom(RTree3TID::BasicType())))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo) &&
-      algMgr->CheckKind("SPATIAL3D", nl->Third(type), errorInfo);
+      algMgr->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo) &&
+      algMgr->CheckKind(Kind::SPATIAL3D(), nl->Third(type), errorInfo);
   }
   else
   {
@@ -238,7 +239,7 @@ bool CheckRTree3(ListExpr type, ListExpr& errorInfo)
 1.12 Type Constructor object for type constructor ~rtree3~
 
 */
-TypeConstructor rtree3( "rtree3",
+TypeConstructor rtree3( RTree3TID::BasicType(),
                         RTree3Prop,
                         OutRTree<3>,
                         InRTree<3>,
@@ -287,12 +288,12 @@ bool CheckRTree4(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree4")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom(RTree4TID::BasicType())))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      &&nl->Equal(nl->Third(type), nl->SymbolAtom("rect4"));
+      algMgr->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo)
+      &&nl->Equal(nl->Third(type), nl->SymbolAtom(Rectangle<4>::BasicType()));
   }
   else
   {
@@ -310,7 +311,7 @@ bool CheckRTree4(ListExpr type, ListExpr& errorInfo)
 3.12 Type Constructor object for type constructor ~rtree~
 
 */
-TypeConstructor rtree4( "rtree4",
+TypeConstructor rtree4( RTree4TID::BasicType(),
                         RTree4Prop,
                         OutRTree<4>,
                         InRTree<4>,
@@ -359,12 +360,12 @@ bool CheckRTree8(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree8")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom(RTree8TID::BasicType())))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      &&nl->Equal(nl->Third(type), nl->SymbolAtom("rect8"));
+      algMgr->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo)
+      &&nl->Equal(nl->Third(type), nl->SymbolAtom(Rectangle<8>::BasicType()));
   }
   else
   {
@@ -382,7 +383,7 @@ bool CheckRTree8(ListExpr type, ListExpr& errorInfo)
 3.12 Type Constructor object for type constructor ~rtree8~
 
 */
-TypeConstructor rtree8( "rtree8",
+TypeConstructor rtree8( RTree8TID::BasicType(),
                         RTree8Prop,
                         OutRTree<8>,
                         InRTree<8>,
@@ -404,13 +405,15 @@ TypeConstructor rtree8( "rtree8",
 7.1 Operator ~creatertree~
 
 The operator ~creatrtree~ creates a R-Tree for a given Relation. The exact type
-of the desired R-Tree is defind in RTreeAlgebra.h. The variables ~do\_linear\_split~,
-~do\_quadratic\_split~ or ~do\_axis\_split~ are defining, whether a R-Tree (Guttman 84) or
-a R[*]-Tree is generated.
+of the desired R-Tree is defind in RTreeAlgebra.h. The variables
+~do\_linear\_split~,
+~do\_quadratic\_split~ or ~do\_axis\_split~ are defining, whether a R-Tree
+(Guttman 84) or a R[*]-Tree is generated.
 
-The following operator ~creatertree~ accepts relations with tuples of (at least) one
-attribute of kind ~SPATIAL2D~, ~SPATIAL3D~ or ~SPATIAL4D~ or ~rect~, ~rect3~, and ~rect4~.
-The attribute name is specified as argument of the operator.
+The following operator ~creatertree~ accepts relations with tuples of (at least)
+one attribute of kind ~SPATIAL2D~, ~SPATIAL3D~ or ~SPATIAL4D~ or ~rect~,
+~rect3~, and ~rect4~. The attribute name is specified as argument of the
+operator.
 
 7.1.1 Type Mapping of operator ~creatertree~
 
@@ -453,26 +456,26 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
     ){
     return listutils::typeError("Expects key attribute to be of kind SPATIAL,"
         "SPATIAL3D, SPATIAL4D, SPATIAL8D, or have type rect, rect3, rect4, or "
-        "rect8");
+        Rectangle<8>::BasicType());
   }
   string rtreetype;
-  if (    listutils::isKind(attrType, "SPATIAL2D")
-       || listutils::isSymbol(attrType, "rect"))
-    rtreetype = "rtree";
-  else if (    listutils::isKind(attrType, "SPATIAL3D")
-            || listutils::isSymbol(attrType, "rect3"))
-    rtreetype = "rtree3";
-  else if (    listutils::isKind(attrType, "SPATIAL4D")
-            || listutils::isSymbol(attrType, "rect4"))
-    rtreetype = "rtree4";
-  else if (    listutils::isKind(attrType, "SPATIAL8D")
-            || listutils::isSymbol(attrType, "rect8"))
-    rtreetype = "rtree8";
-  if( nl->IsEqual(nl->First(relDescription), "rel") )
+  if (    listutils::isKind(attrType, Kind::SPATIAL2D())
+       || listutils::isSymbol(attrType, Rectangle<2>::BasicType()))
+    rtreetype = RTree2TID::BasicType();
+  else if (    listutils::isKind(attrType, Kind::SPATIAL3D())
+            || listutils::isSymbol(attrType, Rectangle<3>::BasicType()))
+    rtreetype = RTree3TID::BasicType();
+  else if (    listutils::isKind(attrType, Kind::SPATIAL4D())
+            || listutils::isSymbol(attrType, Rectangle<4>::BasicType()))
+    rtreetype = RTree4TID::BasicType();
+  else if (    listutils::isKind(attrType, Kind::SPATIAL8D())
+            || listutils::isSymbol(attrType, Rectangle<8>::BasicType()))
+    rtreetype = RTree8TID::BasicType();
+  if( nl->IsEqual(nl->First(relDescription), Relation::BasicType()) )
   {
     return
       nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->OneElemList(
           nl->IntAtom(attrIndex)),
         nl->FourElemList(
@@ -481,7 +484,7 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
           attrType,
           nl->BoolAtom(false)));
   }
-  else // nl->IsEqual(nl->First(relDescription), "stream")
+  else // nl->IsEqual(nl->First(relDescription), Symbol::STREAM())
   {
 /*
 Here we can have two possibilities:
@@ -515,7 +518,7 @@ and high parameters these two last integer numbers.
       rest = nl->Rest(rest);
 
       type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
+      if (type == TupleIdentifier::BasicType())
       {
         if(tidIndex != 0){
           return listutils::typeError("Expects exactly one arribute of type "
@@ -523,9 +526,9 @@ and high parameters these two last integer numbers.
         }
         tidIndex = j;
       }
-      else if( j == nAttrs - 1 && type == "int" &&
+      else if( j == nAttrs - 1 && type == CcInt::BasicType() &&
                nl->SymbolValue(
-                 nl->Second(nl->First(rest))) == "int" )
+                 nl->Second(nl->First(rest))) == CcInt::BasicType() )
       { // the last two attributes are integers
         doubleIndex = true;
       }
@@ -551,14 +554,14 @@ and high parameters these two last integer numbers.
 
     return
       nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->TwoElemList(
           nl->IntAtom(attrIndex),
           nl->IntAtom(tidIndex)),
         nl->FourElemList(
           nl->SymbolAtom(rtreetype),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             newAttrList),
           attrType,
           nl->BoolAtom(doubleIndex)));
@@ -583,31 +586,31 @@ CreateRTreeSelect (ListExpr args)
   attrIndex = FindAttribute(attrList, attrName, attrType);
 
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
   int result;
-  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+  if ( algMgr->CheckKind(Kind::SPATIAL2D(), attrType, errorInfo) )
     result = 0;
-  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL3D(), attrType, errorInfo) )
     result = 1;
-  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL4D(), attrType, errorInfo) )
     result = 2;
-  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL8D(), attrType, errorInfo) )
     result = 3;
-  else if( nl->SymbolValue(attrType) == "rect" )
+  else if( nl->SymbolValue(attrType) == Rectangle<2>::BasicType() )
     result = 4;
-  else if( nl->SymbolValue(attrType) == "rect3" )
+  else if( nl->SymbolValue(attrType) == Rectangle<3>::BasicType() )
     result = 5;
-  else if( nl->SymbolValue(attrType) == "rect4" )
+  else if( nl->SymbolValue(attrType) == Rectangle<4>::BasicType() )
     result = 6;
-  else if( nl->SymbolValue(attrType) == "rect8" )
+  else if( nl->SymbolValue(attrType) == Rectangle<8>::BasicType() )
     result = 7;
   else
     return -1; /* should not happen */
 
-  if( nl->SymbolValue(nl->First(relDescription)) == "rel")
+  if( nl->SymbolValue(nl->First(relDescription)) == Relation::BasicType())
     return result;
-  if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
     ListExpr first,
              rest = attrList;
@@ -616,7 +619,7 @@ CreateRTreeSelect (ListExpr args)
       first = nl->First(rest);
       rest = nl->Rest(rest);
     }
-    if( nl->IsEqual( nl->Second( first ), "int" ) )
+    if( nl->IsEqual( nl->Second( first ), CcInt::BasicType() ) )
       // Double indexing
       return result + 16;
     else
@@ -1002,33 +1005,33 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   //                             "2nd argument.");
   //}
   // Check whether key type and rtree dimension match
-  if( !(   (listutils::isKind(rtreeKeyType, "SPATIAL2D")
-             && listutils::isSymbol(searchWindow, "rect"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL2D")
-             && listutils::isKind(searchWindow, "SPATIAL2D"))
-         || (listutils::isSymbol(searchWindow, "rect")
-             && listutils::isSymbol(rtreeKeyType, "rect"))
+  if( !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+             && listutils::isSymbol(searchWindow, Rectangle<2>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL2D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<2>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<2>::BasicType()))
        ) &&
-      !(   (listutils::isKind(rtreeKeyType, "SPATIAL3D")
-             && listutils::isSymbol(searchWindow, "rect3"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL3D")
-             && listutils::isKind(searchWindow, "SPATIAL3D"))
-         || (listutils::isSymbol(searchWindow, "rect3")
-             && listutils::isSymbol(rtreeKeyType, "rect3"))
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+             && listutils::isSymbol(searchWindow, Rectangle<3>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL3D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<3>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<3>::BasicType()))
        ) &&
-      !(   (listutils::isKind(rtreeKeyType, "SPATIAL4D")
-             && listutils::isSymbol(searchWindow, "rect4"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL4D")
-             && listutils::isKind(searchWindow, "SPATIAL4D"))
-         || (listutils::isSymbol(searchWindow, "rect4")
-             && listutils::isSymbol(rtreeKeyType, "rect4"))
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+             && listutils::isSymbol(searchWindow, Rectangle<4>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL4D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<4>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<4>::BasicType()))
        ) &&
-      !(   (listutils::isKind(rtreeKeyType, "SPATIAL8D")
-             && listutils::isSymbol(searchWindow, "rect8"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL8D")
-             && listutils::isKind(searchWindow, "SPATIAL8D"))
-         || (listutils::isSymbol(searchWindow, "rect8")
-             && listutils::isSymbol(rtreeKeyType, "rect8"))
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+             && listutils::isSymbol(searchWindow, Rectangle<8>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL8D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<8>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()))
        )
     ){
     return listutils::typeError("Expects same dimensions for the rtree-type "
@@ -1036,7 +1039,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   }
   return
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       tupleDescription);
 }
 
@@ -1049,19 +1052,19 @@ WindowIntersectsSelection( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr searchWindow = nl->Third(args),
-           errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+           errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
-  if (nl->SymbolValue(searchWindow) == "rect" ||
-      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo))
+  if (nl->SymbolValue(searchWindow) == Rectangle<2>::BasicType() ||
+      algMgr->CheckKind(Kind::SPATIAL2D(), searchWindow, errorInfo))
     return 0;
-  else if (nl->SymbolValue(searchWindow) == "rect3" ||
-           algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<3>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL3D(), searchWindow, errorInfo))
     return 1;
-  else if (nl->SymbolValue(searchWindow) == "rect4" ||
-           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<4>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
     return 2;
-  else if (nl->SymbolValue(searchWindow) == "rect8" ||
-           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<8>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
     return 3;
 
   return -1; /* should not happen */
@@ -1448,33 +1451,33 @@ ListExpr WindowIntersectsSTypeMap(ListExpr args)
       "'rect4', or 'rect8'.");
   }
   // Check whether key type and rtree dimension match
-  if( !(   (listutils::isKind(rtreeKeyType, "SPATIAL2D")
-             && listutils::isSymbol(searchWindow, "rect"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL2D")
-             && listutils::isKind(searchWindow, "SPATIAL2D"))
-         || (listutils::isSymbol(searchWindow, "rect")
-             && listutils::isSymbol(rtreeKeyType, "rect"))
+  if( !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+             && listutils::isSymbol(searchWindow, Rectangle<2>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL2D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<2>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<2>::BasicType()))
     ) &&
-      !(   (listutils::isKind(rtreeKeyType, "SPATIAL3D")
-             && listutils::isSymbol(searchWindow, "rect3"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL3D")
-             && listutils::isKind(searchWindow, "SPATIAL3D"))
-         || (listutils::isSymbol(searchWindow, "rect3")
-             && listutils::isSymbol(rtreeKeyType, "rect3"))
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+             && listutils::isSymbol(searchWindow, Rectangle<3>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL3D()))
+         || (listutils::isSymbol(searchWindow, Rectangle<3>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<3>::BasicType()))
        ) &&
-      !(   (listutils::isKind(rtreeKeyType, "SPATIAL4D")
-             && listutils::isSymbol(searchWindow, "rect4"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL4D")
-             && listutils::isKind(searchWindow, "SPATIAL4D"))
-         || (listutils::isKind(searchWindow, "rect4")
-             && listutils::isSymbol(rtreeKeyType, "rect4"))
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+             && listutils::isSymbol(searchWindow, Rectangle<4>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL4D()))
+         || (listutils::isKind(searchWindow, Rectangle<4>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<4>::BasicType()))
        ) &&
-      !(   (listutils::isKind(rtreeKeyType, "SPATIAL8D")
-             && listutils::isSymbol(searchWindow, "rect8"))
-         || (listutils::isKind(rtreeKeyType, "SPATIAL8D")
-             && listutils::isKind(searchWindow, "SPATIAL8D"))
-         || (listutils::isKind(searchWindow, "rect8")
-             && listutils::isSymbol(rtreeKeyType, "rect8"))
+      !(   (listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+             && listutils::isSymbol(searchWindow, Rectangle<8>::BasicType()))
+         || (listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+             && listutils::isKind(searchWindow, Kind::SPATIAL8D()))
+         || (listutils::isKind(searchWindow, Rectangle<8>::BasicType())
+             && listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()))
        )
     ){
     return listutils::typeError("Expects same dimensions for the rtree-type "
@@ -1484,29 +1487,29 @@ ListExpr WindowIntersectsSTypeMap(ListExpr args)
   if( nl->BoolValue(nl->Fourth(rtreeDescription)) )
     return
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           nl->ThreeElemList(
             nl->TwoElemList(
               nl->SymbolAtom("id"),
-              nl->SymbolAtom("tid")),
+              nl->SymbolAtom(TupleIdentifier::BasicType())),
             nl->TwoElemList(
               nl->SymbolAtom("low"),
-              nl->SymbolAtom("int")),
+              nl->SymbolAtom(CcInt::BasicType())),
             nl->TwoElemList(
               nl->SymbolAtom("high"),
-              nl->SymbolAtom("int")))));
+              nl->SymbolAtom(CcInt::BasicType())))));
   else
     return
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           nl->OneElemList(
             nl->TwoElemList(
               nl->SymbolAtom("id"),
-              nl->SymbolAtom("tid")))));
+              nl->SymbolAtom(TupleIdentifier::BasicType())))));
 }
 
 /*
@@ -1518,20 +1521,20 @@ WindowIntersectsSSelection( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr searchWindow = nl->Second(args),
-           errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+           errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
   bool doubleIndex = nl->BoolValue(nl->Fourth(nl->First(args)));
 
-  if (nl->SymbolValue(searchWindow) == "rect" ||
-      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo))
+  if (nl->SymbolValue(searchWindow) == Rectangle<2>::BasicType() ||
+      algMgr->CheckKind(Kind::SPATIAL2D(), searchWindow, errorInfo))
     return 0 + (!doubleIndex ? 0 : 4);
-  else if (nl->SymbolValue(searchWindow) == "rect3" ||
-           algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<3>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL3D(), searchWindow, errorInfo))
     return 1 + (!doubleIndex ? 0 : 4);
-  else if (nl->SymbolValue(searchWindow) == "rect4" ||
-           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<4>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
     return 2 + (!doubleIndex ? 0 : 4);
-  else if (nl->SymbolValue(searchWindow) == "rect8" ||
-           algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<8>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL8D(), searchWindow, errorInfo))
     return 3 + (!doubleIndex ? 0 : 4);
 
   return -1; /* should not happen */
@@ -2195,7 +2198,7 @@ ListExpr GetTuplesTypeMap(ListExpr args)
   int tidIndex = 0;
   string tidAttrName = "";
   tidIndex = listutils::findType(nl->Second(nl->Second(streamDescription)),
-                                 nl->SymbolAtom("tid"),
+                                 nl->SymbolAtom(TupleIdentifier::BasicType()),
                                  tidAttrName);
   if( tidIndex <= 0 ){
     return listutils::typeError("Stream must contain an attribute of type "
@@ -2205,7 +2208,7 @@ ListExpr GetTuplesTypeMap(ListExpr args)
      int tidIndex2 = 0;
      string tidAttrName2 = "";
      tidIndex2 = listutils::findType(nl->Second(nl->Second(streamDescription)),
-                                     nl->SymbolAtom("tid"),
+                                  nl->SymbolAtom(TupleIdentifier::BasicType()),
                                      tidAttrName2,
                                      tidIndex+1);
      if (tidIndex2 != 0) {
@@ -2244,13 +2247,13 @@ ListExpr GetTuplesTypeMap(ListExpr args)
   // return resulttype and APPEND tid-attr index in stream-attrlist
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(
         nl->IntAtom(tidIndex)),
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           newAttrList)));
 }
 
@@ -2618,7 +2621,7 @@ ListExpr GetTuples2TypeMap(ListExpr args)
   tidIndex = listutils::findAttribute(nl->Second(nl->Second(streamDescription)),
                                       tidAttrName,
                                       attrType);
-  if(!listutils::isSymbol(attrType, "tid")){
+  if(!listutils::isSymbol(attrType, TupleIdentifier::BasicType())){
     return listutils::typeError("Expects attribute to be of type 'tid'.");
   }
 
@@ -2652,13 +2655,13 @@ ListExpr GetTuples2TypeMap(ListExpr args)
   // return resulttype and APPEND tid-attr index in stream-attrlist
   return
       nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
   nl->OneElemList(
       nl->IntAtom(tidIndex)),
   nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
   nl->TwoElemList(
-      nl->SymbolAtom("tuple"),
+      nl->SymbolAtom(Tuple::BasicType()),
   newAttrList)));
 }
 
@@ -2760,7 +2763,7 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
     rest = nl->Rest(rest);
 
     type = nl->SymbolValue(nl->Second(first));
-    if (type == "tid")
+    if (type == TupleIdentifier::BasicType())
     {
       if( tidIndex != 0){
         return listutils::typeError("Expects exactly one attribute of type "
@@ -2768,12 +2771,12 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
       }
       tidIndex = j;
     }
-    else if( type == "int" &&
+    else if( type == CcInt::BasicType() &&
              tidIndex == j-1 )
     {
       dblIdxFirst = true;
     }
-    else if( type == "int" &&
+    else if( type == CcInt::BasicType() &&
              dblIdxFirst &&
              tidIndex == j-2 )
     {
@@ -2823,14 +2826,14 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
 
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->TwoElemList(
         nl->IntAtom(attrIndex),
         nl->IntAtom(tidIndex)),
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           newAttrList)));
 }
 
@@ -3031,12 +3034,14 @@ them into $p =\lceil \frac{N}{c} \rceil$ leaf pages. Then start aggregating
 the leafnodes into $p :=\lceil \frac{p}{c} \rceil$ internal nodes until only
 a single node, the root, remains.
 
-Problems: There may be many nodes to be handled, so we need to store the current working set of nodes and within a persistent buffer.
+Problems: There may be many nodes to be handled, so we need to store the current
+working set of nodes and within a persistent buffer.
 
-Sorting is not implemented within this algorithm. The input should already be sorted
-with respect to the center or lower left corner of the input bounding boxes, e.g. using
-a Z-order. You can apply other kinds of orderings to take some influence on the
-overlapping within the r-tree.
+Sorting is not implemented within this algorithm. The input should already be
+sorted
+with respect to the center or lower left corner of the input bounding boxes,
+e.g. using a Z-order. You can apply other kinds of orderings to take some
+influence on the overlapping within the r-tree.
 
 */
 
@@ -3084,15 +3089,20 @@ ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
             "type rect, rect3, rect4, or rect8.");
   }
   string rtreetype;
-  if(    listutils::isKind(attrType, "SPATIAL2D")
-      || listutils::isSymbol(attrType, "rect")){ rtreetype = "rtree"; }
-  else if(    listutils::isKind(attrType, "SPATIAL3D")
-      || listutils::isSymbol(attrType, "rect3")){ rtreetype = "rtree3"; }
-  else if(    listutils::isKind(attrType, "SPATIAL4D")
-      || listutils::isSymbol(attrType, "rect4")){ rtreetype = "rtree4"; }
-  else if(    listutils::isKind(attrType, "SPATIAL8D")
-      || listutils::isSymbol(attrType, "rect8")){ rtreetype = "rtree8"; }
-  else  return listutils::typeError("Unsupported key type.");
+  if(    listutils::isKind(attrType, Kind::SPATIAL2D())
+      || listutils::isSymbol(attrType, Rectangle<2>::BasicType())){
+    rtreetype = RTree2TID::BasicType();
+  } else if(    listutils::isKind(attrType, Kind::SPATIAL3D())
+      || listutils::isSymbol(attrType, Rectangle<3>::BasicType())){
+    rtreetype = RTree3TID::BasicType();
+  } else if(    listutils::isKind(attrType, Kind::SPATIAL4D())
+      || listutils::isSymbol(attrType, Rectangle<4>::BasicType())){
+    rtreetype = RTree4TID::BasicType();
+  } else if(    listutils::isKind(attrType, Kind::SPATIAL8D())
+      || listutils::isSymbol(attrType, Rectangle<8>::BasicType())){
+    rtreetype = RTree8TID::BasicType();
+  } else
+    return listutils::typeError("Unsupported key type.");
 
 /*
 Now we have two possibilities:
@@ -3127,7 +3137,7 @@ and high parameters these two last integer numbers.
       rest = nl->Rest(rest);
 
       type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
+      if (type == TupleIdentifier::BasicType())
       {
         if( tidIndex != 0 ){
           return listutils::typeError("Expecting exactly one attribute of type "
@@ -3135,9 +3145,9 @@ and high parameters these two last integer numbers.
         }
         tidIndex = j;
       }
-      else if( j == nAttrs - 1 && type == "int" &&
+      else if( j == nAttrs - 1 && type == CcInt::BasicType() &&
                nl->SymbolValue(
-               nl->Second(nl->First(rest))) == "int" )
+               nl->Second(nl->First(rest))) == CcInt::BasicType() )
       { // the last two attributes are integers
         doubleIndex = true;
       }
@@ -3163,14 +3173,14 @@ and high parameters these two last integer numbers.
 
     return
         nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
     nl->TwoElemList(
         nl->IntAtom(attrIndex),
     nl->IntAtom(tidIndex)),
     nl->FourElemList(
         nl->SymbolAtom(rtreetype),
     nl->TwoElemList(
-        nl->SymbolAtom("tuple"),
+        nl->SymbolAtom(Tuple::BasicType()),
     newAttrList),
     attrType,
     nl->BoolAtom(doubleIndex)));
@@ -3487,29 +3497,29 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
   ListExpr attrType;
   attrIndex = FindAttribute(attrList, attrName, attrType);
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
   int result;
 
-  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+  if ( algMgr->CheckKind(Kind::SPATIAL2D(), attrType, errorInfo) )
     result = 0;
-  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL3D(), attrType, errorInfo) )
     result = 1;
-  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL4D(), attrType, errorInfo) )
     result = 2;
-  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL8D(), attrType, errorInfo) )
     result = 3;
-  else if( nl->SymbolValue(attrType) == "rect" )
+  else if( nl->SymbolValue(attrType) == Rectangle<2>::BasicType() )
     result = 4;
-  else if( nl->SymbolValue(attrType) == "rect3" )
+  else if( nl->SymbolValue(attrType) == Rectangle<3>::BasicType() )
     result = 5;
-  else if( nl->SymbolValue(attrType) == "rect4" )
+  else if( nl->SymbolValue(attrType) == Rectangle<4>::BasicType() )
     result = 6;
-  else if( nl->SymbolValue(attrType) == "rect8" )
+  else if( nl->SymbolValue(attrType) == Rectangle<8>::BasicType() )
     result = 7;
   else
     return -1; /* should not happen */
 
-  if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
     ListExpr first,
     rest = attrList;
@@ -3518,7 +3528,7 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
       first = nl->First(rest);
       rest = nl->Rest(rest);
     }
-    if( nl->IsEqual( nl->Second( first ), "int" ) )
+    if( nl->IsEqual( nl->Second( first ), CcInt::BasicType() ) )
           // Double indexing
       return result + 8;
     else
@@ -3607,7 +3617,7 @@ ListExpr RTree2IntTypeMap(ListExpr args)
   if( !listutils::isRTreeDescription(rtreeDescription ) ){
     return listutils::typeError("Expected rtree<dim> as 1st argument.");
   }
-  return nl->SymbolAtom("int");
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 /*
@@ -3623,7 +3633,7 @@ ListExpr RTree2TextTypeMap(ListExpr args)
   if( !listutils::isRTreeDescription(rtreeDescription ) ){
     return listutils::typeError("Expected rtree<dim> as 1st argument.");
   }
-  return nl->SymbolAtom("text");
+  return nl->SymbolAtom(FText::BasicType());
 }
 
 
@@ -3641,14 +3651,14 @@ ListExpr RTree2RectTypeMap(ListExpr args)
     return listutils::typeError("Expected rtree<dim> as 1st argument.");
   }
   ListExpr rtreeSymbol = nl->First(rtreeDescription);
-  if(nl->SymbolValue(rtreeSymbol) == "rtree")
-    return nl->SymbolAtom("rect");
-  else if(nl->SymbolValue(rtreeSymbol) == "rtree3")
-    return nl->SymbolAtom("rect3");
-  else if(nl->SymbolValue(rtreeSymbol) == "rtree4")
-    return nl->SymbolAtom("rect4");
-  else if(nl->SymbolValue(rtreeSymbol) == "rtree8")
-    return nl->SymbolAtom("rect8");
+  if(nl->SymbolValue(rtreeSymbol) == RTree2TID::BasicType())
+    return nl->SymbolAtom(Rectangle<2>::BasicType());
+  else if(nl->SymbolValue(rtreeSymbol) == RTree3TID::BasicType())
+    return nl->SymbolAtom(Rectangle<3>::BasicType());
+  else if(nl->SymbolValue(rtreeSymbol) == RTree4TID::BasicType())
+    return nl->SymbolAtom(Rectangle<4>::BasicType());
+  else if(nl->SymbolValue(rtreeSymbol) == RTree8TID::BasicType())
+    return nl->SymbolAtom(Rectangle<8>::BasicType());
   else
     return listutils::typeError("Unsupported rtee-type.");
 }
@@ -3724,13 +3734,13 @@ int RTreeInquirySelect (ListExpr args)
   ListExpr rtreeSymbol = nl->First(rtreeDescription),
            rtreeTwoLayer = nl->Fourth(rtreeDescription);
 
-  if(nl->SymbolValue(rtreeSymbol) == "rtree")
+  if(nl->SymbolValue(rtreeSymbol) == RTree2TID::BasicType())
     result = 0;
-  else if(nl->SymbolValue(rtreeSymbol) == "rtree3")
+  else if(nl->SymbolValue(rtreeSymbol) == RTree3TID::BasicType())
     result = 1;
-  else if(nl->SymbolValue(rtreeSymbol) == "rtree4")
+  else if(nl->SymbolValue(rtreeSymbol) == RTree4TID::BasicType())
     result = 2;
-  else if(nl->SymbolValue(rtreeSymbol) == "rtree8")
+  else if(nl->SymbolValue(rtreeSymbol) == RTree8TID::BasicType())
     result = 3;
 
   if( nl->BoolValue(rtreeTwoLayer) == true )
@@ -3941,36 +3951,43 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
   }
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr MBR_ATOM;
-  if(    listutils::isKind(rtreeKeyType, "SPATIAL2D")
-      || listutils::isSymbol(rtreeKeyType, "rect") ){
-      MBR_ATOM = nl->SymbolAtom("rect"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL3D")
-      || listutils::isSymbol(rtreeKeyType, "rect3") ){
-      MBR_ATOM = nl->SymbolAtom("rect3"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL4D")
-      || listutils::isSymbol(rtreeKeyType, "rect4") ){
-      MBR_ATOM = nl->SymbolAtom("rect4"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL8D")
-      || listutils::isSymbol(rtreeKeyType, "rect8") ){
-      MBR_ATOM = nl->SymbolAtom("rect8"); }
+  if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<2>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<2>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<3>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<3>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<4>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<4>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<8>::BasicType()); }
   else return listutils::typeError("Unsupported rtree-type.");
 
   ListExpr reslist =
    nl->TwoElemList(
-    nl->SymbolAtom("stream"),
+    nl->SymbolAtom(Symbol::STREAM()),
     nl->TwoElemList(
-     nl->SymbolAtom("tuple"),
+     nl->SymbolAtom(Tuple::BasicType()),
      nl->Cons(
-      nl->TwoElemList(nl->SymbolAtom("level"), nl->SymbolAtom("int")),
+      nl->TwoElemList(nl->SymbolAtom("level"),
+                      nl->SymbolAtom(CcInt::BasicType())),
       nl->Cons(
-       nl->TwoElemList(nl->SymbolAtom("nodeId"), nl->SymbolAtom("int")),
+       nl->TwoElemList(nl->SymbolAtom("nodeId"),
+                       nl->SymbolAtom(CcInt::BasicType())),
        nl->SixElemList(
         nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
-        nl->TwoElemList(nl->SymbolAtom("fatherID"), nl->SymbolAtom("int")),
-        nl->TwoElemList(nl->SymbolAtom("isLeaf"), nl->SymbolAtom("bool")),
-        nl->TwoElemList(nl->SymbolAtom("minEntries"), nl->SymbolAtom("int")),
-        nl->TwoElemList(nl->SymbolAtom("maxEntries"), nl->SymbolAtom("int")),
-        nl->TwoElemList(nl->SymbolAtom("countEntries"), nl->SymbolAtom("int"))
+        nl->TwoElemList(nl->SymbolAtom("fatherID"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("isLeaf"),
+                        nl->SymbolAtom(CcBool::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("minEntries"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("maxEntries"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("countEntries"),
+                        nl->SymbolAtom(CcInt::BasicType()))
        )
       )
      )
@@ -4088,7 +4105,7 @@ const string RTreeNodesSpec  =
 int RTreeNodesSelect (ListExpr args)
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
   string rtreeDescriptionStr;
 
@@ -4096,17 +4113,17 @@ int RTreeNodesSelect (ListExpr args)
   ListExpr rtreeDescription = nl->First(args);
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
 
-  if(         nl->IsEqual(rtreeKeyType, "rect")
-           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+  if(         nl->IsEqual(rtreeKeyType, Rectangle<2>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo))
     return 0;
-  else if(    nl->IsEqual(rtreeKeyType, "rect3")
-           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<3>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo))
     return 1;
-  else if(    nl->IsEqual(rtreeKeyType, "rect4")
-           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<4>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo))
     return 2;
-  else if(    nl->IsEqual(rtreeKeyType, "rect8")
-           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo))
     return 3;
 
   return -1;
@@ -4236,7 +4253,7 @@ ValueMapping RTreeEntries[] =
 int RTreeEntriesSelect (ListExpr args)
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
   string rtreeDescriptionStr;
 
@@ -4244,17 +4261,17 @@ int RTreeEntriesSelect (ListExpr args)
   ListExpr rtreeDescription = nl->First(args);
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
 
-  if(         nl->IsEqual(rtreeKeyType, "rect")
-           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+  if(         nl->IsEqual(rtreeKeyType, Rectangle<2>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo))
     return 0;
-  else if(    nl->IsEqual(rtreeKeyType, "rect3")
-           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<3>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo))
     return 1;
-  else if(    nl->IsEqual(rtreeKeyType, "rect4")
-           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<4>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo))
     return 2;
-  else if(    nl->IsEqual(rtreeKeyType, "rect8")
-           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo))
     return 3;
 
   return -1;
@@ -4276,29 +4293,31 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
   }
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr MBR_ATOM;
-  if(    listutils::isKind(rtreeKeyType, "SPATIAL2D")
-      || listutils::isSymbol(rtreeKeyType, "rect") ){
-      MBR_ATOM = nl->SymbolAtom("rect"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL3D")
-      || listutils::isSymbol(rtreeKeyType, "rect3") ){
-      MBR_ATOM = nl->SymbolAtom("rect3"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL4D")
-      || listutils::isSymbol(rtreeKeyType, "rect4") ){
-      MBR_ATOM = nl->SymbolAtom("rect4"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL8D")
-      || listutils::isSymbol(rtreeKeyType, "rect8") ){
-      MBR_ATOM = nl->SymbolAtom("rect8"); }
+  if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<2>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<2>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<3>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<3>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<4>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<4>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<8>::BasicType()); }
   else return listutils::typeError("Unsupported rtree-type.");
 
   ListExpr reslist =
    nl->TwoElemList(
-    nl->SymbolAtom("stream"),
+    nl->SymbolAtom(Symbol::STREAM()),
     nl->TwoElemList(
-     nl->SymbolAtom("tuple"),
+     nl->SymbolAtom(Tuple::BasicType()),
      nl->Cons(
-      nl->TwoElemList(nl->SymbolAtom("Nodeid"), nl->SymbolAtom("int")),
+      nl->TwoElemList(nl->SymbolAtom("Nodeid"),
+                      nl->SymbolAtom(CcInt::BasicType())),
     nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
-          nl->TwoElemList(nl->SymbolAtom("Tupleid"),nl->SymbolAtom("int"))
+          nl->TwoElemList(nl->SymbolAtom("Tupleid"),
+                          nl->SymbolAtom(CcInt::BasicType()))
       )
      )
     )
@@ -4464,10 +4483,10 @@ ListExpr UpdateBulkLoadTypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+  if(!(nl->IsEqual(nl->First(firstpara),RTree2TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -4499,15 +4518,19 @@ ListExpr UpdateBulkLoadTypeMap(ListExpr args)
             "type rect, rect3, rect4, or rect8.");
   }
   string rtreetype;
-  if(    listutils::isKind(attrType, "SPATIAL2D")
-      || listutils::isSymbol(attrType, "rect")){ rtreetype = "rtree"; }
-  else if(    listutils::isKind(attrType, "SPATIAL3D")
-      || listutils::isSymbol(attrType, "rect3")){ rtreetype = "rtree3"; }
-  else if(    listutils::isKind(attrType, "SPATIAL4D")
-      || listutils::isSymbol(attrType, "rect4")){ rtreetype = "rtree4"; }
-  else if(    listutils::isKind(attrType, "SPATIAL8D")
-      || listutils::isSymbol(attrType, "rect8")){ rtreetype = "rtree8"; }
-  else  return listutils::typeError("Unsupported key type.");
+  if(    listutils::isKind(attrType, Kind::SPATIAL2D())
+      || listutils::isSymbol(attrType, Rectangle<2>::BasicType())){
+    rtreetype = RTree2TID::BasicType();
+  } else if(    listutils::isKind(attrType, Kind::SPATIAL3D())
+      || listutils::isSymbol(attrType, Rectangle<3>::BasicType())){
+    rtreetype = RTree3TID::BasicType();
+  } else if(    listutils::isKind(attrType, Kind::SPATIAL4D())
+      || listutils::isSymbol(attrType, Rectangle<4>::BasicType())){
+    rtreetype = RTree4TID::BasicType();
+  } else if(    listutils::isKind(attrType, Kind::SPATIAL8D())
+      || listutils::isSymbol(attrType, Rectangle<8>::BasicType())){
+    rtreetype = RTree8TID::BasicType();
+  } else  return listutils::typeError("Unsupported key type.");
 
 /*
 Now we have two possibilities:
@@ -4542,7 +4565,7 @@ and high parameters these two last integer numbers.
       rest = nl->Rest(rest);
 
       type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
+      if (type == TupleIdentifier::BasicType())
       {
         if( tidIndex != 0 ){
           return listutils::typeError("Expecting exactly one attribute of type "
@@ -4550,9 +4573,9 @@ and high parameters these two last integer numbers.
         }
         tidIndex = j;
       }
-      else if( j == nAttrs - 1 && type == "int" &&
+      else if( j == nAttrs - 1 && type == CcInt::BasicType() &&
                nl->SymbolValue(
-               nl->Second(nl->First(rest))) == "int" )
+               nl->Second(nl->First(rest))) == CcInt::BasicType() )
       { // the last two attributes are integers
         doubleIndex = true;
       }
@@ -4578,14 +4601,14 @@ and high parameters these two last integer numbers.
 
     return
         nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
     nl->TwoElemList(
         nl->IntAtom(attrIndex),
     nl->IntAtom(tidIndex)),
     nl->FourElemList(
         nl->SymbolAtom(rtreetype),
     nl->TwoElemList(
-        nl->SymbolAtom("tuple"),
+        nl->SymbolAtom(Tuple::BasicType()),
     newAttrList),
     attrType,
     nl->BoolAtom(doubleIndex)));
@@ -4711,21 +4734,21 @@ int UpdateBulkLoadSelect (ListExpr args)
   ListExpr attrType;
   attrIndex = FindAttribute(attrList, attrName, attrType);
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
   int result;
 
-  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+  if ( algMgr->CheckKind(Kind::SPATIAL2D(), attrType, errorInfo) )
     result = 0;
-  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL3D(), attrType, errorInfo) )
     result = 1;
-  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL4D(), attrType, errorInfo) )
     result = 2;
-  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind(Kind::SPATIAL8D(), attrType, errorInfo) )
     result = 3;
   else
     return -1; /* should not happen */
 
-  if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
     ListExpr first,
     rest = attrList;
@@ -4804,18 +4827,18 @@ ListExpr RTreeGetInfoTypeTypeMap(ListExpr args)
   // check type of rtree
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr MBR_ATOM;
-  if(    listutils::isKind(rtreeKeyType, "SPATIAL2D")
-      || listutils::isSymbol(rtreeKeyType, "rect") ){
-      MBR_ATOM = nl->SymbolAtom("rect"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL3D")
-      || listutils::isSymbol(rtreeKeyType, "rect3") ){
-      MBR_ATOM = nl->SymbolAtom("rect3"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL4D")
-      || listutils::isSymbol(rtreeKeyType, "rect4") ){
-      MBR_ATOM = nl->SymbolAtom("rect4"); }
-  else if(    listutils::isKind(rtreeKeyType, "SPATIAL8D")
-      || listutils::isSymbol(rtreeKeyType, "rect8") ){
-      MBR_ATOM = nl->SymbolAtom("rect8"); }
+  if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL2D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<2>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<2>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL3D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<3>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<3>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL4D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<4>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<4>::BasicType()); }
+  else if(    listutils::isKind(rtreeKeyType, Kind::SPATIAL8D())
+      || listutils::isSymbol(rtreeKeyType, Rectangle<8>::BasicType()) ){
+      MBR_ATOM = nl->SymbolAtom(Rectangle<8>::BasicType()); }
   else return listutils::typeError("Unsupported rtree-type.");
 
   // test second argument for integer
@@ -4831,26 +4854,33 @@ ListExpr RTreeGetInfoTypeTypeMap(ListExpr args)
     {
       reslist =
        nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-         nl->SymbolAtom("tuple"),
+         nl->SymbolAtom(Tuple::BasicType()),
          nl->Cons(
-         nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
+         nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                         nl->SymbolAtom(CcInt::BasicType())),
          nl->Cons(
           nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
          nl->Cons(
-          nl->TwoElemList(nl->SymbolAtom("NoOfSons"), nl->SymbolAtom("int")),
+          nl->TwoElemList(nl->SymbolAtom("NoOfSons"),
+                          nl->SymbolAtom(CcInt::BasicType())),
          nl->Cons(
-          nl->TwoElemList(nl->SymbolAtom("IsLeafNode"), nl->SymbolAtom("bool")),
+          nl->TwoElemList(nl->SymbolAtom("IsLeafNode"),
+                          nl->SymbolAtom(CcBool::BasicType())),
           nl->SixElemList(
-          nl->TwoElemList(nl->SymbolAtom("IsRootNode"), nl->SymbolAtom("bool")),
-          nl->TwoElemList(nl->SymbolAtom("MBRsize"), nl->SymbolAtom("real")),
-          nl->TwoElemList(nl->SymbolAtom("MBRdead"), nl->SymbolAtom("real")),
+          nl->TwoElemList(nl->SymbolAtom("IsRootNode"),
+                          nl->SymbolAtom(CcBool::BasicType())),
+          nl->TwoElemList(nl->SymbolAtom("MBRsize"),
+                          nl->SymbolAtom(CcReal::BasicType())),
+          nl->TwoElemList(nl->SymbolAtom("MBRdead"),
+                          nl->SymbolAtom(CcReal::BasicType())),
           nl->TwoElemList(nl->SymbolAtom("MBRoverlapSize"),
-                                          nl->SymbolAtom("real")),
+                          nl->SymbolAtom(CcReal::BasicType())),
           nl->TwoElemList(nl->SymbolAtom("MBRoverlapsNo"),
-                                          nl->SymbolAtom("int")),
-          nl->TwoElemList(nl->SymbolAtom("MBRdensity"), nl->SymbolAtom("real"))
+                          nl->SymbolAtom(CcInt::BasicType())),
+          nl->TwoElemList(nl->SymbolAtom("MBRdensity"),
+                          nl->SymbolAtom(CcReal::BasicType()))
       )))))));
       break;
     }
@@ -4858,13 +4888,15 @@ ListExpr RTreeGetInfoTypeTypeMap(ListExpr args)
     {
       reslist =
         nl->TwoElemList(
-          nl->SymbolAtom("stream"),
+          nl->SymbolAtom(Symbol::STREAM()),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             nl->Cons(
-        nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom(CcInt::BasicType())),
         nl->TwoElemList(
-        nl->TwoElemList(nl->SymbolAtom("SonId"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("SonId"),
+                        nl->SymbolAtom(CcInt::BasicType())),
         nl->TwoElemList(nl->SymbolAtom("SonMBR"), MBR_ATOM)
       ))));
       break;
@@ -4873,13 +4905,15 @@ ListExpr RTreeGetInfoTypeTypeMap(ListExpr args)
     {
       reslist =
         nl->TwoElemList(
-          nl->SymbolAtom("stream"),
+          nl->SymbolAtom(Symbol::STREAM()),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             nl->Cons(
-        nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
+        nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom(CcInt::BasicType())),
         nl->TwoElemList(
-        nl->TwoElemList(nl->SymbolAtom("TupleID"),nl->SymbolAtom("tid")),
+        nl->TwoElemList(nl->SymbolAtom("TupleID"),
+                        nl->SymbolAtom(TupleIdentifier::BasicType())),
         nl->TwoElemList(nl->SymbolAtom("EntryMBR"), MBR_ATOM)
       ))));
       break;
@@ -5668,7 +5702,7 @@ The selection function is used for the operators ~getNodeInfo~,
 int RTreeGetInfoTypeSelect (ListExpr args)
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
   string rtreeDescriptionStr;
 
@@ -5676,17 +5710,17 @@ int RTreeGetInfoTypeSelect (ListExpr args)
   ListExpr rtreeDescription = nl->First(args);
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
 
-  if(         nl->IsEqual(rtreeKeyType, "rect")
-           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+  if(         nl->IsEqual(rtreeKeyType, Rectangle<2>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo))
     return 0;
-  else if(    nl->IsEqual(rtreeKeyType, "rect3")
-           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<3>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo))
     return 1;
-  else if(    nl->IsEqual(rtreeKeyType, "rect4")
-           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<4>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo))
     return 2;
-  else if(    nl->IsEqual(rtreeKeyType, "rect8")
-           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+  else if(    nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType())
+           || algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo))
     return 3;
 
   return -1;
@@ -6050,7 +6084,7 @@ Operator rtreegetleafentries(
 
 5.15.1. Data structures
 
-5.15.1.1 GridArea 
+5.15.1.1 GridArea
 
 The GridArea structure defines the boundary of a 2D-grid.
 
@@ -6069,7 +6103,7 @@ struct GridArea
 
 /*
 
-5.15.1.2 Unit 
+5.15.1.2 Unit
 
 Unit structure constists of a TupleId and an UPoint.
 
@@ -6083,7 +6117,7 @@ struct Unit
 
 /*
 
-5.15.1.2 Cell 
+5.15.1.2 Cell
 
 Every Cell stores a map container for Units.
 
@@ -6097,13 +6131,13 @@ struct Cell
 
 /*
 
-5.15.1.3 Grid (2D-Cell-Array) 
+5.15.1.3 Grid (2D-Cell-Array)
 
 The grid is represented by a 2D-Cell-Array
 
 */
 
-const int maxSplits = 64;   
+const int maxSplits = 64;
 Cell* cells[maxSplits][maxSplits];
 
 /*
@@ -6120,7 +6154,7 @@ GridArea ModifyArea(GridArea AREA)
 {
   double tempX = 0;
   double tempY = 0;
-  
+
   if (AREA.x1 > AREA.x2)
   {
     tempX   = AREA.x2;
@@ -6154,7 +6188,7 @@ int ComputeLine(double BORDER1 ,double BORDER2, int SPLITS, double POS)
   int i = 0;
 
   while ((BORDER1 + (i*len)) <= POS) i++;
-  
+
   return i-1;
 }
 
@@ -6184,15 +6218,15 @@ void InsertUnits (int SQUARES, int RIGHTCOL, int TOPROW,
     {
       int col = RIGHTCOL-1;
       int row = TOPROW-1;
-      
+
       // Select cell
       if ( i == 0 ) { col = col-1; row = row-1; } // leftBottomCell
       if ( i == 1 ) { col = col-1;              } // leftTopCell
       if ( i == 2 ) {              row = row-1; } // rightBottomCell
 
       map<double,Unit>::iterator it;
-          
-      for ( it = cells[col][row]->units.begin(); 
+
+      for ( it = cells[col][row]->units.begin();
             it != cells[col][row]->units.end(); )
       {
         // Get all UPoints from cell
@@ -6200,16 +6234,16 @@ void InsertUnits (int SQUARES, int RIGHTCOL, int TOPROW,
         double x2 = it->second.up.p1.GetX();
         double y1 = it->second.up.p0.GetY();
         double y2 = it->second.up.p1.GetY();
-        if (x1 > x2) 
+        if (x1 > x2)
         {
           x1 = it->second.up.p1.GetX();
           x2 = it->second.up.p0.GetX();
         }
-        if (y1 > y2) 
+        if (y1 > y2)
         {
           y1 = it->second.up.p1.GetY();
           y2 = it->second.up.p0.GetY();
-        } 
+        }
 
         // Create bounding box
         const double tol = 0.00001;
@@ -6255,19 +6289,19 @@ ListExpr CyclicBulkloadTM(ListExpr args)
   }
 
   // Check grid size
-  if ( !nl->IsEqual(nl->Second(args), "rect") )
+  if ( !nl->IsEqual(nl->Second(args), Rectangle<2>::BasicType()) )
   {
     return NList::typeError( "Rectangle for second argument expected!" );
   }
 
   // Check number of partitions
-  if ( !nl->IsEqual(nl->Third(args), "int") )
+  if ( !nl->IsEqual(nl->Third(args), CcInt::BasicType()) )
   {
     return NList::typeError( "Integer for third argument expected!" );
   }
 
   // Check cycle time
-  if ( !nl->IsEqual(nl->Fourth(args), "int") )
+  if ( !nl->IsEqual(nl->Fourth(args), CcInt::BasicType()) )
   {
     return NList::typeError( "Integer for fourth argument expected!" );
   }
@@ -6286,7 +6320,7 @@ ListExpr CyclicBulkloadTM(ListExpr args)
   if(attrIndex <= 0){
     return listutils::typeError("Expecting the attribute for fifth argument.");
   }
-  
+
   if ( nl->SymbolValue(attrType) != "mpoint" &&
        nl->SymbolValue(attrType) != "upoint" )
   {
@@ -6309,7 +6343,7 @@ ListExpr CyclicBulkloadTM(ListExpr args)
     rest = nl->Rest(rest);
 
     type = nl->SymbolValue(nl->Second(first));
-    if (type == "tid")
+    if (type == TupleIdentifier::BasicType())
     {
       if( tidIndex != 0 ){
         return listutils::typeError("Expecting exactly one attribute of type "
@@ -6340,14 +6374,14 @@ ListExpr CyclicBulkloadTM(ListExpr args)
 
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
   nl->TwoElemList(
       nl->IntAtom(attrIndex),
   nl->IntAtom(tidIndex)),
   nl->FourElemList(
-      nl->SymbolAtom("rtree3"),
+      nl->SymbolAtom(RTree3TID::BasicType()),
   nl->TwoElemList(
-      nl->SymbolAtom("tuple"),
+      nl->SymbolAtom(Tuple::BasicType()),
   newAttrList),
   attrType,
   nl->BoolAtom(false)));
@@ -6366,7 +6400,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   int       numCells  = static_cast<CcInt*>(args[2].addr)->GetValue();
   int       cycleTime = static_cast<CcInt*>(args[3].addr)->GetValue();
   int       entries = 0;
-  
+
   // Create new RTree
   R_Tree<3, TupleId>* rtree = (R_Tree<3, TupleId>*)qp->ResultStorage(s).addr;
   result.setAddr( rtree );
@@ -6383,7 +6417,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   GridArea area(x1,y1,x2,y2);
   area = ModifyArea(area);
 
-  // Check number of cells  
+  // Check number of cells
   if ( !( numCells == 16   ||
           numCells == 64   ||
           numCells == 256  ||
@@ -6394,9 +6428,9 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   if ( cycleTime < 1000 ) cycleTime = 1000;
 
   // Calculate x/y cell length
-  double areaLenX = abs(area.x2 - area.x1); 
+  double areaLenX = abs(area.x2 - area.x1);
   double areaLenY = abs(area.y2 - area.y1);
-  double cellLenX = areaLenX / splits; 
+  double cellLenX = areaLenX / splits;
   double cellLenY = areaLenY / splits;
 
   GridArea partition(0,0,0,0);
@@ -6406,7 +6440,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
     {
       partition.x1 = area.x1 + (cellLenX * j);
       partition.x2 = partition.x1 + cellLenX;
-      partition.y1 = area.y1 + (cellLenY * i); 
+      partition.y1 = area.y1 + (cellLenY * i);
       partition.y2 = partition.y1 + cellLenY;
       cells[j][i] = new Cell();
       cells[j][i]->area = partition;
@@ -6427,7 +6461,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
     Tuple*  tuple = (Tuple*)wTuple.addr;
     int attrIndex = ((CcInt*)args[5].addr)->GetIntval() - 1;
     int tidIndex = ((CcInt*)args[6].addr)->GetIntval() - 1;
-    
+
     systemTime->Now();
     if ( systemTime->GetAllMilliSeconds() > (startTime + cycleTime))
     {
@@ -6446,30 +6480,30 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
         }
       }
     }
-    
-    if ( isMPoint ) 
+
+    if ( isMPoint )
     {
       // Attribute type is mpoint
       MPoint* mp = static_cast<MPoint*>(tuple->GetAttribute(attrIndex));
       int i = 0;
       while ( i < mp->GetNoComponents() )
       {
-      
+
         Unit u;
         u.tupId = ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid();
         mp->Get(i, u.up);
-      
+
         // Insert upoint into cell, sorted by start time
         systemTime->Now();
         if ( u.up.timeInterval.end < *systemTime &&
              u.up.p0.GetX() > area.x1 && u.up.p0.GetX() < area.x2 &&
-             u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 && 
+             u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 &&
              u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
              u.up.p1.GetY() > area.y1 && u.up.p1.GetY() < area.y2 )
         {
           int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
           int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
-      
+
           cells[col][row]->
                units.insert(make_pair(u.up.timeInterval.start.ToDouble(),u));
         }
@@ -6484,18 +6518,18 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
       Unit u;
       u.tupId = ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid();
       u.up = *up;
-      
+
       // Insert upoint into cell, sorted by start time
       systemTime->Now();
       if ( u.up.timeInterval.end < *systemTime &&
            u.up.p0.GetX() > area.x1 && u.up.p0.GetX() < area.x2 &&
-           u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 && 
+           u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 &&
            u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
            u.up.p1.GetY() > area.y1 && u.up.p1.GetY() < area.y2 )
       {
         int col = ComputeLine(area.x1, area.x2, splits, u.up.p0.GetX());
         int row = ComputeLine(area.y1, area.y2, splits, u.up.p0.GetY());
-      
+
         cells[col][row]->
              units.insert(make_pair(u.up.timeInterval.start.ToDouble(),u));
         entries++;
@@ -6506,7 +6540,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   }
   // Insert the last entries into the RTree
   InsertUnits(numCells, splits, splits, rtree);
-  
+
   // Insert dummy if the rtree is empty
   if (entries == 0)
   {

@@ -45,9 +45,9 @@ This file contains all defined gethpoint functions. New functions must be regist
 #include "Symbols.h"
 #include "TypeConstructor.h"
 #include "GTA_SpatialAttr.h"
+#include <string>
 
 extern SecondoInterface* si;
-using symbols::Sym;
 
 namespace gta
 {
@@ -58,20 +58,20 @@ typedef HPoint* (*GetHPointFun)(const void *data);
 Refers the default gethpoint function for the each type constructor.
 
 */
-Sym HPOINT_DEFAULT("default");
+const string HPOINT_DEFAULT("default");
 
 /*
 This value is returned from "HPointReg::defaultName()"[4], if no default gethpoint function has been found for the resp. type constructor.
 
 */
-Sym HPOINT_UNDEFINED("n/a");
+const string HPOINT_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // constants for the gethpoint function names:
 /////////////////////////////////////////////////////////////////////
 
 // native gethpoint function (e.g. used if only one fun is defined)
-Sym HPOINT_NATIVE("native");
+const string  HPOINT_NATIVE("native");
 
 
 

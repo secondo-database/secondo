@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -33,6 +33,7 @@ using namespace std;
 #include "StandardTypes.h"  //needed because we return a CcBool in an op.
 #include <string>
 #include "Attribute.h"
+#include "Symbols.h"
 
 #include "SpatialAlgebra.h"
 //#include "SpatialAlgebra.cpp"
@@ -56,10 +57,10 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 
 extern ListExpr OutPoints( ListExpr typeInfo, Word value );
-extern Word InPoints( const ListExpr typeInfo, const ListExpr instance, 
+extern Word InPoints( const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr& errorInfo, bool& correct );
 
-extern long compareSignatures4CRS( Signature4CRS *assinat4crs1, 
+extern long compareSignatures4CRS( Signature4CRS *assinat4crs1,
                  Signature4CRS *assinat4crs2, MBR &mbrIntersecao);
 
 
@@ -72,10 +73,10 @@ extern long compareSignatures4CRS( Signature4CRS *assinat4crs1,
 
 Raster4CRS::~Raster4CRS() {  }
 
-Raster4CRS* Raster4CRS::Clone() const{ 
+Raster4CRS* Raster4CRS::Clone() const{
   //cout<<"Raster4CRS::Clone"<<endl;
   //printSignature(this);
-  return new Raster4CRS( *this ); 
+  return new Raster4CRS( *this );
 }
 
 int Raster4CRS::NumOfFLOBs(void) const {
@@ -102,22 +103,22 @@ Raster4CRS& Raster4CRS::operator=( Raster4CRS& r )
       r.rasterFLOB.Get( i, l );
       rasterFLOB.Put( i, *l );
     }
-  
+
     FLOBToRaster4CRS();
   } else {
-    RasterMap4CRS *rasterMap = new RasterMap4CRS(1, r.map->mbr, r.map->dx, 
+    RasterMap4CRS *rasterMap = new RasterMap4CRS(1, r.map->mbr, r.map->dx,
                     r.map->dy, r.map->potency);
     Signature4CRS::Weight weight;
     long cellSize = 1l << r.map->potency;
-    int x = 0; 
+    int x = 0;
     int y = 0;
-    long minXcell = r.map->mbr.min.x - (r.map->mbr.min.x % cellSize) 
-                    - (cellSize * (r.map->mbr.min.x < 0  
+    long minXcell = r.map->mbr.min.x - (r.map->mbr.min.x % cellSize)
+                    - (cellSize * (r.map->mbr.min.x < 0
                     && (r.map->mbr.min.x % cellSize != 0) ? 1 : 0));
-    long minYcell = r.map->mbr.min.y - (r.map->mbr.min.y % cellSize) 
-                    - (cellSize * (r.map->mbr.min.y < 0  
+    long minYcell = r.map->mbr.min.y - (r.map->mbr.min.y % cellSize)
+                    - (cellSize * (r.map->mbr.min.y < 0
                     && (r.map->mbr.min.y % cellSize != 0) ? 1 : 0));
-      
+
     for( long i=minXcell; i <= r.map->mbr.max.x; i+=cellSize, x++) {
       y = 0;
       for(long j=minYcell; j <= r.map->mbr.max.y; j+=cellSize, y++) {
@@ -133,9 +134,9 @@ Raster4CRS& Raster4CRS::operator=( Raster4CRS& r )
 
 void Raster4CRS::Raster4CRSToFLOB(){
   Signature4CRS::Weight weight;
-    
+
   rasterFLOB.Clear();
-    
+
   rasterFLOB.Append(signatureType);
   rasterFLOB.Append(map->potency);
   rasterFLOB.Append(map->dx);
@@ -151,13 +152,13 @@ void Raster4CRS::Raster4CRSToFLOB(){
 
   int x = 0;
   int y = 0;
-  long minXcell = map->mbr.min.x - (map->mbr.min.x % cellSize) 
-      - (cellSize * (map->mbr.min.x < 0 
+  long minXcell = map->mbr.min.x - (map->mbr.min.x % cellSize)
+      - (cellSize * (map->mbr.min.x < 0
       && (map->mbr.min.x % cellSize != 0)? 1 : 0));
-  long minYcell = map->mbr.min.y - (map->mbr.min.y % cellSize) 
-      - (cellSize * (map->mbr.min.y < 0 
+  long minYcell = map->mbr.min.y - (map->mbr.min.y % cellSize)
+      - (cellSize * (map->mbr.min.y < 0
       && (map->mbr.min.y % cellSize != 0) ? 1 : 0));
-    
+
   for( long i=minXcell; i <= map->mbr.max.x; i+=cellSize, x++) {
     y = 0;
     for(long j=minYcell; j <= map->mbr.max.y; j+=cellSize, y++)
@@ -172,8 +173,8 @@ void Raster4CRS::Raster4CRSToFLOB(){
       }
     }
   }
-      
-  if (computedCells > 0) 
+
+  if (computedCells > 0)
     rasterFLOB.Append(FLOBelement);
 
 }
@@ -199,15 +200,15 @@ void Raster4CRS::FLOBToRaster4CRS(){
   mbrMaxX = (long)*l;
   rasterFLOB.Get(7, l);
   mbrMaxY = (long)*l;
-  
+
   long cellSize = 1l << potency;
-  
+
   MBR mbr;
   mbr.min.x = mbrMinX;
   mbr.min.y = mbrMinY;
   mbr.max.x = mbrMaxX;
   mbr.max.y = mbrMaxY;
-  
+
   RasterMap4CRS *rasterMap = new RasterMap4CRS(1, mbr, dx, dy, potency);
 
   const unsigned long *pFLOBelement;
@@ -215,21 +216,21 @@ void Raster4CRS::FLOBToRaster4CRS(){
   int position = -1;
   unsigned int currentCell = 0;
   Signature4CRS::Weight ocup;
-  
+
   int positionInFLOB = 0;
-  long int minXcell = (long int)(mbrMinX - ((long int)mbrMinX % cellSize) 
-            - (cellSize * ((mbrMinX < 0) 
+  long int minXcell = (long int)(mbrMinX - ((long int)mbrMinX % cellSize)
+            - (cellSize * ((mbrMinX < 0)
             && ((long int)mbrMinX % cellSize != 0) ? 1 : 0)));
-  long int minYcell = (long int)(mbrMinY - ((long int)mbrMinY % cellSize) 
-            - (cellSize * ((mbrMinY < 0)  
+  long int minYcell = (long int)(mbrMinY - ((long int)mbrMinY % cellSize)
+            - (cellSize * ((mbrMinY < 0)
             && ((long int)mbrMinY % cellSize != 0)? 1 : 0)));
   for( long i=minXcell; i <= mbrMaxX; i+=cellSize)
     for(long j=minYcell; j <= mbrMaxY; j+=cellSize)
     {
       if (position < 0){
-        // the 8 itens at the beggining are 
+        // the 8 itens at the beggining are
         //signatureType, potency, dx, dy and mbr properties
-        rasterFLOB.Get(positionInFLOB + 8, pFLOBelement); 
+        rasterFLOB.Get(positionInFLOB + 8, pFLOBelement);
         FLOBelement = *pFLOBelement;
         //cout << "FLOBelement = " << FLOBelement << std::endl;
         position = 0;
@@ -239,7 +240,7 @@ void Raster4CRS::FLOBToRaster4CRS(){
           position = sizeof(unsigned long) * 4 - 1;
         positionInFLOB++;
       }
-      //each position has 2 bits. position * 2 makes me come to the position 
+      //each position has 2 bits. position * 2 makes me come to the position
       //of the current bit.
       //&3 makes me reak only the two last bits (3 -> 00...000011)
       switch ( (FLOBelement >> (position * 2)) & 3 ) {
@@ -256,13 +257,13 @@ void Raster4CRS::FLOBToRaster4CRS(){
           ocup = Signature4CRS::Full;
       }
       rasterMap->block(i, j, ocup);
-      
+
       position--;
       currentCell++;
     }
-    
+
   setRaster(*rasterMap);
-  
+
 }
 
 
@@ -272,7 +273,7 @@ void Raster4CRS::FLOBToRaster4CRS(){
 
 //2.1 Raster4CRS
 
-//( id type min.x min.y max.x max.y potency 
+//( id type min.x min.y max.x max.y potency
 //  dx dy (weight[0] weight[1] weight[2] ...) )
 ListExpr
 OutRaster4CRS( ListExpr typeInfo, Word value )
@@ -370,16 +371,16 @@ InRaster4CRS( const ListExpr typeInfo, const ListExpr instance,
         if( nl->IsAtom( first ) && nl->AtomType( first ) == IntType )
         {
           if ( nl->IntValue( first ) == 0x0 )
-            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx), 
+            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx),
                 Signature4CRS::Empty);
           else if ( nl->IntValue( first ) == 0x1 )
-            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx), 
+            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx),
                 Signature4CRS::Weak);
           else if ( nl->IntValue( first ) == 0x2 )
-            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx), 
+            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx),
                 Signature4CRS::Strong);
           else if ( nl->IntValue( first ) == 0x3 )
-            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx), 
+            mapaRaster4CRS.block(i % dx, (unsigned long int)(i / dx),
                 Signature4CRS::Full);
           else
           {
@@ -418,7 +419,7 @@ Word
 CreateRaster4CRS( const ListExpr typeInfo )
 {
   //cout << "Entrou no CreateRaster4CRS" << endl;
-  return (SetWord( new Raster4CRS( 1, Coordinate (0,0), 
+  return (SetWord( new Raster4CRS( 1, Coordinate (0,0),
            Coordinate (0,0), 0, 0, 0, NULL, 3 )));
   //cout << "Saiu do CreateRaster4CRS" << endl;
 }
@@ -465,7 +466,7 @@ OpenRaster4CRS( SmiRecord& valueRecord,
   cout << "entrou no openRaster4CRS" << std::endl;
   #endif
   Raster4CRS *r = (Raster4CRS*)Attribute::Open( valueRecord, offset, typeInfo );
-  
+
   //r->FLOBToRaster4CRS();
   value = SetWord( r );
   return true;
@@ -480,13 +481,13 @@ SaveRaster4CRS( SmiRecord& valueRecord,
   #ifdef DEBUGMESSAGES
   cout << "entrou no saveRaster4CRS" << std::endl;
   #endif
-  
+
   Raster4CRS *r = (Raster4CRS *)value.addr;
   //cout << "dx no no saveRaster4CRS: " << r->map->dx << endl;
   r->Raster4CRSToFLOB();
-  
+
   Attribute::Save( valueRecord, offset, typeInfo, r );
-  
+
   return true;
 }
 
@@ -509,7 +510,7 @@ Raster4CRSProperty()
            nl->StringAtom(""),
            nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("raster4CRS"),
+                       nl->StringAtom(Raster4CRS::BasicType()),
            nl->StringAtom("( <id> <type> <min.x> <min.y> <max.x> <max.y> "),
            nl->StringAtom("<sizeOfBlock> <dx> <dy> (<weight[i]>*))"),
            nl->StringAtom("all values must be of type int."))));
@@ -521,14 +522,14 @@ Raster4CRSProperty()
 bool
 CheckRaster4CRS( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "raster4CRS" ));
+  return (nl->IsEqual( type, Raster4CRS::BasicType() ));
 }
 
 
 //6 Type Constructors
 
 TypeConstructor TCRaster4CRS(
-  "raster4CRS",                //name
+  Raster4CRS::BasicType(),                //name
   Raster4CRSProperty,                 //property function describing signature
         OutRaster4CRS, InRaster4CRS,            //Out and In functions
         0, 0,                        //SaveToList and RestoreFromList functions
@@ -552,10 +553,11 @@ Raster4CRSRaster4CRSInt( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "raster4CRS") && nl->IsEqual(arg2, "raster4CRS") )
-      return nl->SymbolAtom("int");
+    if ( nl->IsEqual(arg1, Raster4CRS::BasicType()) &&
+         nl->IsEqual(arg2, Raster4CRS::BasicType()) )
+      return nl->SymbolAtom(CcInt::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -564,11 +566,12 @@ RegionLinePointsRaster4CRS( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "region") || nl->IsEqual(arg1, "line") 
-         || nl->IsEqual(arg1, "points"))
-      return nl->SymbolAtom("raster4CRS");
+    if ( nl->IsEqual(arg1, Region::BasicType()) ||
+         nl->IsEqual(arg1, Line::BasicType())
+         || nl->IsEqual(arg1, Points::BasicType()))
+      return nl->SymbolAtom(Raster4CRS::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -604,7 +607,7 @@ void printSignature(const Signature4CRS *raster4CRS)
 
 
 static int
-CalcRasterFun (Word* args, Word& result, int message, Word& local, Supplier s, 
+CalcRasterFun (Word* args, Word& result, int message, Word& local, Supplier s,
               SignatureType signature, RasterType rasterType)
 {
   HalfSegment chs;
@@ -630,13 +633,13 @@ CalcRasterFun (Word* args, Word& result, int message, Word& local, Supplier s,
       cout << "pt original = " << pt->GetX() << ", " << pt->GetY() << std::endl;
   #endif
       break;
-  }      
+  }
   {
 
     int potency =0;
     do
     {
-      assinatura=GeraRasterSecondo::generateRaster( 1, r1, l1, p1, 
+      assinatura=GeraRasterSecondo::generateRaster( 1, r1, l1, p1,
                         potency, signature);
 
       potency++;
@@ -679,7 +682,7 @@ static int
 Calc3CRS_l (Word* args, Word& result, int message, Word& local, Supplier s){
   return CalcRasterFun (args, result, message, local, s, SIGNAT_3CRS, RT_LINE);
 }
-  
+
 static int
 Calc3CRS_r (Word* args, Word& result, int message, Word& local, Supplier s){
   return CalcRasterFun (args, result, message, local, s, SIGNAT_3CRS,RT_REGION);
@@ -693,7 +696,7 @@ Calc3CRS_r (Word* args, Word& result, int message, Word& local, Supplier s){
 
 
 int
-IntersectsRasterFun (Word* args, Word& result, int message, 
+IntersectsRasterFun (Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Raster4CRS *r1 = ((Raster4CRS*)args[0].addr);
@@ -718,10 +721,10 @@ IntersectsRasterFun (Word* args, Word& result, int message,
 //9 Value Mapping
 
 
-ValueMapping calc3CRSmap[] = { 
+ValueMapping calc3CRSmap[] = {
   Calc3CRS_p,
   Calc3CRS_l,
-    Calc3CRS_r 
+    Calc3CRS_r
 };
 
 
@@ -734,14 +737,14 @@ calc3CRSSelect( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "points") )
+    if ( nl->IsEqual(arg1, Points::BasicType()) )
       return 0;
-    else if (nl->IsEqual(arg1, "line") )
+    else if (nl->IsEqual(arg1, Line::BasicType()) )
       return 1;
-    else if (nl->IsEqual(arg1, "region") )
+    else if (nl->IsEqual(arg1, Region::BasicType()) )
       return 2;
   }
-  
+
   return -1;
 }
 
@@ -776,7 +779,7 @@ const string IntersectsRasterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 //12 Definition of Operators
 
 
-Operator Calc3CRS (  "calc3CRS",  Calc3CRSSpec, 3, calc3CRSmap, 
+Operator Calc3CRS (  "calc3CRS",  Calc3CRSSpec, 3, calc3CRSmap,
            calc3CRSSelect, RegionLinePointsRaster4CRS);
 
 Operator Calc4CRS (
@@ -808,7 +811,7 @@ class RasterAlgebra : public Algebra
   {
     AddTypeConstructor( &TCRaster4CRS );
     TCRaster4CRS.AssociateKind("SIMPLE");
-      
+
     AddOperator( &Calc3CRS );
     AddOperator( &Calc4CRS );
     AddOperator( &IntersectsRaster );

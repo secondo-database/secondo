@@ -566,7 +566,7 @@ Operator : single
 Number   : 1
 Signature: (points) -> point
 Example  : query single(vertices(thecenter))
-Result   : (point undef)
+Result   : (point undefined)
 
 
 Operator : size
@@ -794,16 +794,14 @@ Operator  : collect_sline
 Number    : 2
 Signature : (stream line) x bool -> line
 Example   : query size(strassen feed sortby[geoData] projecttransformstream[geoData] collect_sline[TRUE])
-Result    : (real undef)
-Tolerance : 0.5
+Result    : (real undefined)
 
 
 Operator  : collect_sline
 Number    : 3
 Signature : (stream sline) x bool -> line
 Example   : query size(strassen feed sortby[geoData] projectextend[;g: fromline(.geoData)] filter[isdefined(.g)] transformstream collect_sline[TRUE])
-Result    : (real undef)
-Tolerance : 0.5
+Result    : (real undefined)
 
 Operator : makepoint
 Number   : 1
@@ -932,7 +930,7 @@ Operator : getRadius
 Number   : 2
 Signature: geoid -> real
 Example  : query getRadius(create_geoid("bla"))
-Result   : (real undef)
+Result   : (real undefined)
 
 Operator : getFlattening
 Number   : 1
@@ -945,7 +943,7 @@ Operator : getFlattening
 Number   : 2
 Signature: geoid -> real
 Example  : query getFlattening(create_geoid("bla"))
-Result   : (real undef)
+Result   : (real undefined)
 
 Operator  : heading
 Number    : 1

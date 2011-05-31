@@ -45,6 +45,7 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "DynamicLibrary.h"
 #include "SystemTables.h"
+#include "Symbols.h"
 
 AlgebraManager::AlgebraManager( NestedList& nlRef,
                                 GetAlgebraEntryFunction getAlgebraEntryFunc )
@@ -481,7 +482,7 @@ void AlgebraManager::matchingOperators(const int algId,
                                        const ListExpr arguments,
                        vector< pair< pair<int,int>, ListExpr> >& result){
   assert( (algId>0) && (algId<algebra.size()) ); // 0 is an invalid algId!
-  ListExpr typeError = nl->SymbolAtom("typeerror");
+  ListExpr typeError = nl->SymbolAtom(Symbol::TYPEERROR());
   Algebra* alg = algebra[algId];
   if(alg!=0){
     for(int o=0 ; o<alg->GetNumOps() ; o++){
@@ -509,7 +510,7 @@ bool AlgebraManager::findOperator(const string& name,
                                   int& algId,
                                   int& opId){
 
-   ListExpr typeError = nl->SymbolAtom("typeerror");
+   ListExpr typeError = nl->SymbolAtom(Symbol::TYPEERROR());
 
    for(unsigned int a=0;a<algebra.size();a++){
      Algebra* alg = algebra[a];

@@ -39,6 +39,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "SecondoCatalog.h"
 #include "Histogram.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 namespace hgr
 {
@@ -229,11 +230,11 @@ namespace hgr
   ListExpr HistHistBoolTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting (" + symbols::HISTOGRAM1D
+    const string errMsg = "Expecting (" + Histogram1d::BasicType()
         + " "
-        + symbols::HISTOGRAM1D + ")"
-        + " or (" + symbols::HISTOGRAM2D + " "
-        + symbols::HISTOGRAM2D + ")";
+        + Histogram1d::BasicType() + ")"
+        + " or (" + Histogram2d::BasicType() + " "
+        + Histogram2d::BasicType() + ")";
 
     if (list.length() != 2)
       return list.typeError(errMsg);
@@ -242,14 +243,14 @@ namespace hgr
     NList arg2 = list.second();
 
     // histogram1d x histogram1d -> bool
-    if (    arg1.isSymbol(symbols::HISTOGRAM1D)
-         && arg2.isSymbol(symbols::HISTOGRAM1D) )
-      return NList(symbols::BOOL).listExpr();
+    if (    arg1.isSymbol(Histogram1d::BasicType())
+         && arg2.isSymbol(Histogram1d::BasicType()) )
+      return NList(CcBool::BasicType()).listExpr();
 
     // histogram2d x histogram2d -> bool
-    if (    arg1.isSymbol(symbols::HISTOGRAM2D)
-         && arg2.isSymbol(symbols::HISTOGRAM2D) )
-      return NList(symbols::BOOL).listExpr();
+    if (    arg1.isSymbol(Histogram2d::BasicType())
+         && arg2.isSymbol(Histogram2d::BasicType()) )
+      return NList(CcBool::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -288,16 +289,35 @@ namespace hgr
     NList histA = argList.first();
     NList histB = argList.second();
 
-    if(!((histA.isSymbol(symbols::HISTOGRAM1D) &&
-	        histB.isSymbol(symbols::HISTOGRAM1D))
-        || (histA.isSymbol(symbols::HISTOGRAM2D) &&
-	    histB.isSymbol(symbols::HISTOGRAM2D)))){
+    if(!((histA.isSymbol(Histogram1d::BasicType()) &&
+	        histB.isSymbol(Histogram1d::BasicType()))
+        || (histA.isSymbol(Histogram2d::BasicType()) &&
+	    histB.isSymbol(Histogram2d::BasicType())))){
       return listutils::typeError("Expecting two histograms of the same type.");
     }
 
     return histA.listExpr();
   } // TranslateTypeMap(ListExpr args)
 
+
+  int TranslateSelect(ListExpr args)
+  {
+    NList type(args);
+    if (type.first().isSymbol(hgr::Histogram2d::BasicType()) )
+      return 1;
+    else
+      return 0;
+  }
+
+  int FindMinMaxBinSelect(ListExpr args)
+  {
+    NList type(args);
+
+    if (type.first().isSymbol(Histogram1d::BasicType()))
+      return 0;
+    else
+      return 1;
+  }
 
   int UseFun(Word* args, Word& result, int message, Word& local, Supplier s)
   {
@@ -396,8 +416,8 @@ namespace hgr
     errorMsg = "Expecting "
       "histogram1d or histogram2d as first argument.";
 
-    if (!arg1.isSymbol(symbols::HISTOGRAM1D) &&
-        !arg1.isSymbol(symbols::HISTOGRAM2D))
+    if (!arg1.isSymbol(Histogram1d::BasicType()) &&
+        !arg1.isSymbol(Histogram2d::BasicType()))
       return list.typeError(errorMsg);
 
 
@@ -409,7 +429,7 @@ namespace hgr
     // Check, if each T is in kind DATA:
     for (unsigned int i = 1; i <= arg2.length(); i++)
     {
-      if (!am->CheckKind("DATA", arg2.elem(i).listExpr(), dummy))
+      if (!am->CheckKind(Kind::DATA(), arg2.elem(i).listExpr(), dummy))
         return list.typeError(errorMsg);
     }
 
@@ -426,15 +446,15 @@ namespace hgr
     NList arg3_2 = arg3.second();
     NList arg3_last = arg3.elem(arg3.length());
 
-    if (!arg3_1.isSymbol(symbols::MAP) ||
-        !arg3_2.isSymbol(symbols::REAL) ||
-        !arg3_last.isSymbol(symbols::REAL))
+    if (!arg3_1.isSymbol(Symbol::MAP()) ||
+        !arg3_2.isSymbol(CcReal::BasicType()) ||
+        !arg3_last.isSymbol(CcReal::BasicType()))
       return list.typeError(errorMsg);
 
     // Check, if each parameter T is in kind DATA:
     for (unsigned int i = 3; i < arg3.length(); i++)
     {
-      if (!am->CheckKind("DATA", arg3.elem(i).listExpr(), dummy))
+      if (!am->CheckKind(Kind::DATA(), arg3.elem(i).listExpr(), dummy))
         return list.typeError(errorMsg);
     }
 
@@ -574,8 +594,8 @@ namespace hgr
     errorMsg = "Expecting "
       "histogram1d or histogram2d as first argument.";
 
-    if (!arg1.isSymbol(symbols::HISTOGRAM1D) &&
-        !arg1.isSymbol(symbols::HISTOGRAM2D))
+    if (!arg1.isSymbol(Histogram1d::BasicType()) &&
+        !arg1.isSymbol(Histogram2d::BasicType()))
       return list.typeError(errorMsg);
 
     // Check the second argument:
@@ -594,7 +614,7 @@ namespace hgr
     // Check, if each T is in kind DATA:
     for (unsigned int i = 1; i <= arg3.length(); i++)
     {
-      if (!am->CheckKind("DATA", arg3.elem(i).listExpr(), dummy))
+      if (!am->CheckKind(Kind::DATA(), arg3.elem(i).listExpr(), dummy))
         return list.typeError(errorMsg);
     }
 
@@ -611,14 +631,16 @@ namespace hgr
     NList arg4_3 = arg4.third();
     NList arg4_last = arg4.elem(arg4.length());
 
-    if (!arg4_1.isSymbol(symbols::MAP) || !arg4_2.isSymbol(symbols::REAL) ||
-        !arg4_3.isSymbol(symbols::REAL) || !arg4_last.isSymbol(symbols::REAL))
+    if (!arg4_1.isSymbol(Symbol::MAP()) ||
+        !arg4_2.isSymbol(CcReal::BasicType()) ||
+        !arg4_3.isSymbol(CcReal::BasicType()) ||
+        !arg4_last.isSymbol(CcReal::BasicType()))
       return list.typeError(errorMsg);
 
     // Check, if each parameter T is in kind DATA:
     for (unsigned int i = 4; i < arg4.length(); i++)
     {
-      if (!am->CheckKind("DATA", arg4.elem(i).listExpr(), dummy))
+      if (!am->CheckKind(Kind::DATA(), arg4.elem(i).listExpr(), dummy))
         return list.typeError(errorMsg);
     }
 
@@ -686,19 +708,19 @@ namespace hgr
     NList fun = argList.second();
     NList initVal = argList.third();
 
-    if(!(    hist.isSymbol(symbols::HISTOGRAM1D)
-          || hist.isSymbol(symbols::HISTOGRAM2D))){
+    if(!(    hist.isSymbol(Histogram1d::BasicType())
+          || hist.isSymbol(Histogram2d::BasicType()))){
       return listutils::typeError("Expects an histogram or histogram2d "
                                   "as 1st argument.");
     }
 
-    if(fun.length() != 4 || !fun.first().isSymbol(symbols::MAP)){
+    if(fun.length() != 4 || !fun.first().isSymbol(Symbol::MAP())){
       return listutils::typeError("Expects vaild function as 3rd argument.");
     }
 
-    if(!fun.third().isSymbol(symbols::REAL)){
+    if(!fun.third().isSymbol(CcReal::BasicType())){
       return listutils::typeError("Expects function parameter of type "
-                                  + symbols::REAL);
+                                  + CcReal::BasicType());
     }
 
     NList type = fun.fourth();
@@ -708,7 +730,7 @@ namespace hgr
     }
     ListExpr dummy;
 
-    if(!am->CheckKind("DATA", type.listExpr(), dummy)){
+    if(!am->CheckKind(Kind::DATA(), type.listExpr(), dummy)){
       return listutils::typeError("Type of parameter is not in kind DATA.");
     }
     //cout << "fun " << fun << endl;
@@ -775,13 +797,13 @@ namespace hgr
     NList histA = argList.first();
     NList histB = argList.second();
 
-    if(!(    (    histA.isSymbol(symbols::HISTOGRAM1D)
-               && histB.isSymbol(symbols::HISTOGRAM1D))
-          || (    histA.isSymbol(symbols::HISTOGRAM2D)
-               && histB.isSymbol(symbols::HISTOGRAM2D)))) {
+    if(!(    (    histA.isSymbol(Histogram1d::BasicType())
+               && histB.isSymbol(Histogram1d::BasicType()))
+          || (    histA.isSymbol(Histogram2d::BasicType())
+               && histB.isSymbol(Histogram2d::BasicType())))) {
       return listutils::typeError("Expects two histograms of the same type.");
     }
-    return NList(symbols::REAL).listExpr();
+    return NList(CcReal::BasicType()).listExpr();
   }
 
 
@@ -798,22 +820,22 @@ namespace hgr
 
     if (histogram1d)
     {
-      if(!hist.isSymbol(symbols::HISTOGRAM1D)) {
+      if(!hist.isSymbol(Histogram1d::BasicType())) {
         return listutils::typeError("Expects " +
-                symbols::HISTOGRAM1D + " as 1st argument");
+                Histogram1d::BasicType() + " as 1st argument");
       }
     } else {
-      if(!hist.isSymbol(symbols::HISTOGRAM2D)) {
+      if(!hist.isSymbol(Histogram2d::BasicType())) {
         return listutils::typeError("Expects " +
-            symbols::HISTOGRAM2D + " as 1st argument");
+            Histogram2d::BasicType() + " as 1st argument");
       }
     }
 
-    if(!value.isSymbol(symbols::REAL)) {
+    if(!value.isSymbol(CcReal::BasicType())) {
       return listutils::typeError("Expects real as 2nd argument");
     }
 
-    NList result = NList(symbols::INT, false);
+    NList result = NList(CcInt::BasicType(), false);
     return result.listExpr();
   }
 
@@ -821,15 +843,15 @@ namespace hgr
   {
     // The structure is: (tuple ((X int)(Y int)))
 
-    NList part1(symbols::TUPLE);
+    NList part1(Tuple::BasicType());
 
     NList part2_1;
     part2_1.append(NList("X"));
-    part2_1.append(NList(symbols::INT));
+    part2_1.append(NList(CcInt::BasicType()));
 
     NList part2_2;
     part2_2.append(NList("Y"));
-    part2_2.append(NList(symbols::INT));
+    part2_2.append(NList(CcInt::BasicType()));
 
     NList part2(part2_1, part2_2);
 
@@ -846,23 +868,23 @@ namespace hgr
   {
     NList in(args);
 
-    const string errMsg = "Expecting (" + symbols::HISTOGRAM1D + ")"
-        + " or (" + symbols::HISTOGRAM2D + ")";
+    const string errMsg = "Expecting (" + Histogram1d::BasicType() + ")"
+        + " or (" + Histogram2d::BasicType() + ")";
 
     if (in.length() != 1)
       return in.typeError(errMsg);
 
     in = in.first();
 
-    NList out1d = NList(NList(symbols::STREAM), NList(symbols::INT));
-    NList out2d = NList(NList(symbols::STREAM), NList(GetResultTuple2d()));
+    NList out1d = NList(NList(Symbol::STREAM()), NList(CcInt::BasicType()));
+    NList out2d = NList(NList(Symbol::STREAM()), NList(GetResultTuple2d()));
 
     // (histogram1d) -> (stream int)
-    if (in.isSymbol(symbols::HISTOGRAM1D))
+    if (in.isSymbol(Histogram1d::BasicType()))
       return out1d.listExpr();
 
     // (histogram2d) -> (stream (tuple ((x int)(y int))))
-    if (in.isSymbol(symbols::HISTOGRAM2D))
+    if (in.isSymbol(Histogram2d::BasicType()))
       return out2d.listExpr();
 
     return in.typeError(errMsg);

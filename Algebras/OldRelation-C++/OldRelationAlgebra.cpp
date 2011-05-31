@@ -64,6 +64,7 @@ of these symbols, then the value ~error~ is returned.
 #include "QueryProcessor.h"
 #include "LogMsg.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -84,11 +85,11 @@ static CcRelationType CcTypeOfRelAlgSymbol (ListExpr symbol)
   if (nl->AtomType(symbol) == SymbolType)
   {
     s = nl->SymbolValue(symbol);
-    if (s == "mrel"   ) return mrel;
-    if (s == "mtuple" ) return mtuple;
-    if (s == "stream" ) return mstream;
-    if (s == "map"    ) return mmap;
-    if (s == "bool"   ) return mbool;
+    if (s == CcRel::BasicType()   ) return mrel;
+    if (s == CcTuple::BasicType() ) return mtuple;
+    if (s == Symbol::STREAM() ) return mstream;
+    if (s == Symbol::MAP()    ) return mmap;
+    if (s == CcBool::BasicType()   ) return mbool;
   }
   return merror;
 }
@@ -287,7 +288,7 @@ ListExpr CcTUPLETypeMap(ListExpr args)
         return nl->Second(first);
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -343,7 +344,7 @@ ListExpr CcTUPLE2TypeMap(ListExpr args)
         return nl->Second(second);
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -405,11 +406,11 @@ ListExpr CcGroupTypeMap(ListExpr args)
         && CcIsTupleDescription(nl->Second(tupleDesc), nl))
         return
           nl->TwoElemList(
-            nl->SymbolAtom("mrel"),
+            nl->SymbolAtom(CcRel::BasicType()),
             tupleDesc);
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -459,12 +460,12 @@ static ListExpr CcFeedTypeMap(ListExpr args)
 {
   if(nl->ListLength(args)!=1){
     return listutils::typeError("One argument expected");
-  } 
+  }
   ListExpr mrel = nl->First(args);
-  if(!listutils::isRelDescription2(mrel, "mrel")){
+  if(!listutils::isRelDescription2(mrel, CcRel::BasicType())){
     return listutils::typeError("mrel(x) expected");
-  } 
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(mrel));
+  }
+  return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(mrel));
 }
 /*
 
@@ -656,12 +657,12 @@ static ListExpr CcSampleTypeMap(ListExpr args)
   ListExpr minSampleSizeLE = nl->Second(args);
   ListExpr minSampleRateLE = nl->Third(args);
 
-  if(!listutils::isRelDescription2(stream,"mrel") ||
-     !listutils::isSymbol(minSampleSizeLE,"int") ||
-     !listutils::isSymbol(minSampleRateLE,"real")){
+  if(!listutils::isRelDescription2(stream,CcRel::BasicType()) ||
+     !listutils::isSymbol(minSampleSizeLE,CcInt::BasicType()) ||
+     !listutils::isSymbol(minSampleRateLE,CcReal::BasicType())){
     return listutils::typeError("mrel x int x real expected");
   }
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(stream));
+  return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(stream));
 }
 /*
 
@@ -846,10 +847,10 @@ ListExpr CcConsumeTypeMap(ListExpr args)
         (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
         (nl->ListLength(nl->Second(first)) == 2) &&
         (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple))
-      return nl->Cons(nl->SymbolAtom("mrel"), nl->Rest(first));
+      return nl->Cons(nl->SymbolAtom(CcRel::BasicType()), nl->Rest(first));
   }
   ErrorReporter::ReportError("Incorrect input for operator consume.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -940,7 +941,7 @@ second element of the type expression - as further arguments to the operator
 is then used as the real result type. In this case 1 is the index of the
 attribute determined in this procedure. The query processor, more precisely
 the procedure ~anotate~ there, will produce the annotation for the constant 1,
-append it to the list of annotated arguments, and then use "string" as the
+append it to the list of annotated arguments, and then use CcString::BasicType() as the
 result type of the ~attr~ operation.
 
 */
@@ -962,12 +963,12 @@ ListExpr CcAttrTypeMap(ListExpr args)
       attrname = nl->SymbolValue(second);
       j = CcFindAttribute(nl->Second(first), attrname, attrtype, nl);
       if (j)
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                   nl->OneElemList(nl->IntAtom(j)), attrtype);
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator attr.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -1059,7 +1060,7 @@ CcFilterTypeMap(ListExpr args)
     isFilter ?
       "Incorrect input for operator filter." :
       "Incorrect input for operator cancel.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -1218,7 +1219,7 @@ CcProjectTypeMap(ListExpr args)
         else
         {
           ErrorReporter::ReportError("Incorrect input for operator project.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
         }
         j = CcFindAttribute(nl->Second(nl->Second(first)),
                             attrname,
@@ -1245,23 +1246,24 @@ CcProjectTypeMap(ListExpr args)
         else
         {
           ErrorReporter::ReportError("Incorrect input for operator project.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
         }
       }
       // Check whether all new attribute names are distinct
       // - not yet implemented
       outlist = nl->ThreeElemList(
-                 nl->SymbolAtom("APPEND"),
+                 nl->SymbolAtom(Symbol::APPEND()),
                  nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-                 nl->TwoElemList(nl->SymbolAtom("stream"),
-                                 nl->TwoElemList(nl->SymbolAtom("mtuple"),
+                 nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                 nl->TwoElemList(
+                                 nl->SymbolAtom(CcTuple::BasicType()),
                                                  newAttrList)));
       // cout << nl->WriteToFile("/dev/tty",outlist) << endl;
       return outlist;
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator project.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -1418,7 +1420,7 @@ CcRemoveTypeMap(ListExpr args)
         else
         {
           ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
         }
 
         j = CcFindAttribute(nl->Second(nl->Second(first)), attrname,
@@ -1427,7 +1429,7 @@ CcRemoveTypeMap(ListExpr args)
         else
         {
           ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
         }
       }
       /* here we need to generate new attr list according to removeSet */
@@ -1470,10 +1472,11 @@ CcRemoveTypeMap(ListExpr args)
       //check whether the returning list is null
       if (noAttrs>0)
       {outlist = nl->ThreeElemList(
-                 nl->SymbolAtom("APPEND"),
+                 nl->SymbolAtom(Symbol::APPEND()),
                  nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-                 nl->TwoElemList(nl->SymbolAtom("stream"),
-                               nl->TwoElemList(nl->SymbolAtom("mtuple"),
+                 nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                               nl->TwoElemList(nl->SymbolAtom(
+                               CcTuple::BasicType()),
                                              newAttrList)));
       return outlist;
       }
@@ -1482,12 +1485,12 @@ CcRemoveTypeMap(ListExpr args)
       ErrorReporter::ReportError(
         "Incorrect input for operator ~remove~ - "
         "trying to remove all attributes.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -1700,8 +1703,8 @@ CcProductTypeMap(ListExpr args)
 
     if ( CcCompareNames(list) )
     {
-      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
+      outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+        nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()), list));
       return outlist;
     }
     else goto typeerror;
@@ -1710,7 +1713,7 @@ CcProductTypeMap(ListExpr args)
 
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator product.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -1996,11 +1999,11 @@ CcCountTypeMap(ListExpr args)
       if ( ( CcTypeOfRelAlgSymbol(nl->First(first)) == mstream
              || CcTypeOfRelAlgSymbol(nl->First(first)) == mrel )
            && CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple )
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator count.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -2168,15 +2171,15 @@ CcRenameTypeMap( ListExpr args )
         }
       }
       return
-        nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("mtuple"),
+        nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()),
                                         listn));
     }
     ErrorReporter::ReportError("Incorrect input for operator rename.");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
     ErrorReporter::ReportError("Incorrect input for operator rename.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -2288,14 +2291,14 @@ CcExtractTypeMap( ListExpr args )
       j = CcFindAttribute(nl->Second(nl->Second(first)), attrname,
                           attrtype, nl);
       if (j)
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
           nl->OneElemList(nl->IntAtom(j)), attrtype);
     }
     ErrorReporter::ReportError("Incorrect input for operator extract.");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError("Incorrect input for operator extract.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -2396,15 +2399,15 @@ CcHeadTypeMap( ListExpr args )
       && CcIsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
       && (nl->AtomType(second) == SymbolType)
-      && nl->SymbolValue(second) == "int")
+      && nl->SymbolValue(second) == CcInt::BasicType())
     {
       return first;
     }
     ErrorReporter::ReportError("Incorrect input for operator head.");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError("Incorrect input for operator head.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -2536,20 +2539,20 @@ CcMaxMinTypeMap( ListExpr args )
                           attrtype, nl);
 
       if (j > 0
-        && (nl->SymbolValue(attrtype) == "real"
-          || nl->SymbolValue(attrtype) == "string"
-          || nl->SymbolValue(attrtype) == "bool"
-          || nl->SymbolValue(attrtype) == "int"))
+        && (nl->SymbolValue(attrtype) == CcReal::BasicType()
+          || nl->SymbolValue(attrtype) == CcString::BasicType()
+          || nl->SymbolValue(attrtype) == CcBool::BasicType()
+          || nl->SymbolValue(attrtype) == CcInt::BasicType()))
       {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
           nl->OneElemList(nl->IntAtom(j)), attrtype);
       }
     }
     ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -2717,20 +2720,20 @@ CcAvgSumTypeMap( ListExpr args )
                           attrtype, nl);
 
       if (j > 0
-        && (nl->SymbolValue(attrtype) == "real"
-          || nl->SymbolValue(attrtype) == "int"))
+        && (nl->SymbolValue(attrtype) == CcReal::BasicType()
+          || nl->SymbolValue(attrtype) == CcInt::BasicType()))
       {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
           nl->TwoElemList(nl->IntAtom(j),
             nl->StringAtom(nl->SymbolValue(attrtype))),
-            isAvg ? nl->SymbolAtom("real") : attrtype);
+            isAvg ? nl->SymbolAtom(CcReal::BasicType()) : attrtype);
       }
     }
     ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2765,7 +2768,7 @@ CcAvgSumValueMapping(Word* args, Word& result, int message,
 
       if(definedValueFound)
       {
-        if(strcmp(*attributeType, "real") == 0)
+        if(strcmp(*attributeType, CcReal::BasicType().c_str()) == 0)
         {
           CcReal* accumulatedReal = (CcReal*)accumulated;
           CcReal* currentReal = (CcReal*)currentAttr;
@@ -2798,7 +2801,7 @@ CcAvgSumValueMapping(Word* args, Word& result, int message,
       CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
       SEC_STD_REAL nItems = (SEC_STD_REAL)nProcessedItems;
 
-      if(strcmp(*attributeType, "real") == 0)
+      if(strcmp(*attributeType, CcReal::BasicType().c_str()) == 0)
       {
         CcReal* accumulatedReal = (CcReal*)accumulated;
         resultAttr->Set(accumulatedReal->GetRealval() / nItems);
@@ -2813,7 +2816,7 @@ CcAvgSumValueMapping(Word* args, Word& result, int message,
     }
     else
     {
-      if(strcmp(*attributeType, "real") == 0)
+      if(strcmp(*attributeType, CcReal::BasicType().c_str()) == 0)
       {
         CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
         CcReal* accumulatedReal = (CcReal*)accumulated;
@@ -2971,26 +2974,26 @@ CcSortByTypeMap( ListExpr args )
             {
               ErrorReporter::ReportError(
                 "Incorrect input for operator sortby.");
-              return nl->SymbolAtom("typeerror");
+              return nl->SymbolAtom(Symbol::TYPEERROR());
             }
           }
           else
           {
             ErrorReporter::ReportError("Incorrect input for operator sortby.");
-            return nl->SymbolAtom("typeerror");
+            return nl->SymbolAtom(Symbol::TYPEERROR());
           }
         }
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
               sortOrderDesc, streamDesc);
       };
       ErrorReporter::ReportError("Incorrect input for operator sortby.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     ErrorReporter::ReportError("Incorrect input for operator sortby.");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError("Incorrect input for operator sortby.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3202,10 +3205,10 @@ CcIdenticalTypeMap( ListExpr args )
       return first;
     }
     ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3375,10 +3378,10 @@ CcSetOpTypeMap( ListExpr args )
       return first;
     }
     ErrorReporter::ReportError(ccSetOpErrorMessages[errorMessageIdx]);
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ErrorReporter::ReportError(ccSetOpErrorMessages[errorMessageIdx]);
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3804,8 +3807,8 @@ CcJoinTypeMap(ListExpr args)
     }
 
     list = CcConcatLists(list1, list2);
-    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
+    outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()), list));
 
     ListExpr joinAttrDescription;
     if(!(nl->IsAtom(nl->Third(args))
@@ -3828,7 +3831,8 @@ CcJoinTypeMap(ListExpr args)
       goto typeerror;
     }
 
-    if(expectIntArgument && nl->SymbolValue(nl->Fifth(args)) != "int")
+    if(expectIntArgument &&
+      nl->SymbolValue(nl->Fifth(args)) != CcInt::BasicType())
     {
       goto typeerror;
     }
@@ -3836,14 +3840,14 @@ CcJoinTypeMap(ListExpr args)
     joinAttrDescription =
       nl->TwoElemList(nl->IntAtom(attrAIndex),
                       nl->IntAtom(attrBIndex));
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
               joinAttrDescription, outlist);
   }
   else goto typeerror;
 
 typeerror:
   ErrorReporter::ReportError(ccJoinErrorMessages[errorMessageIdx]);
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4567,7 +4571,7 @@ CcExtendTypeMap( ListExpr args )
             (nl->ListLength(second2) == 3) &&
             (nl->AtomType(first2) == SymbolType) &&
             (CcTypeOfRelAlgSymbol(nl->First(second2)) == mmap) &&
-            (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)) &&
+            (algMgr->CheckKind(Kind::DATA(), nl->Third(second2), errorInfo)) &&
                   (nl->Equal(nl->Second(first),nl->Second(second2))))
         {
           lastlistn = nl->Append(lastlistn,
@@ -4582,24 +4586,24 @@ CcExtendTypeMap( ListExpr args )
       {
         outlist =
           nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("mtuple"),listn));
+            nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()),listn));
         return outlist;
       }
       else
       {
         ErrorReporter::ReportError("Incorrect input for operator extend.");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
     else
     {
       ErrorReporter::ReportError("Incorrect input for operator extend.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator extend.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -4745,8 +4749,8 @@ CcLoopjoinTypeMap(ListExpr args)
         goto typeerror;
       }
       list = CcConcatLists(list1, list2);
-      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-                  nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
+      outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                  nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()), list));
       return outlist;
     }
     else goto typeerror;
@@ -4755,7 +4759,7 @@ CcLoopjoinTypeMap(ListExpr args)
 
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopjoin.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4952,8 +4956,8 @@ CcLoopselectTypeMap(ListExpr args)
        //    goto typeerror;
        //}
        //list = CcConcatLists(list1, list2);
-       outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-       nl->TwoElemList(nl->SymbolAtom("mtuple"), list2));
+       outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+       nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()), list2));
        return outlist;
     }
     else goto typeerror;
@@ -4962,7 +4966,7 @@ CcLoopselectTypeMap(ListExpr args)
 
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopselect.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5159,8 +5163,8 @@ CcLoopjoinrelTypeMap(ListExpr args)
         goto typeerror;
       }
       list = CcConcatLists(list1, list2);
-      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("mtuple"), list));
+      outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(CcTuple::BasicType()), list));
       return outlist;
     }
     else goto typeerror;
@@ -5169,7 +5173,7 @@ CcLoopjoinrelTypeMap(ListExpr args)
 
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopjoinrel.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5386,11 +5390,11 @@ CcConcatTypeMap( ListExpr args )
     else
     {
       ErrorReporter::ReportError("Incorrect input for operator concat.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator concat.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -5692,7 +5696,7 @@ Word DummyClone(const ListExpr, const Word& w)
 { return SetWord( Address(0) ); };
 int DummySizeOf() { return 0; }
 
-TypeConstructor ccreltuple( "mtuple",             CcTupleProp,
+TypeConstructor ccreltuple( CcTuple::BasicType(),             CcTupleProp,
                           OutCcTuple,          InCcTuple,
                           SaveToListCcTuple,   RestoreFromListCcTuple,
                           CreateCcTuple,       DummyDelete,
@@ -5709,7 +5713,7 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
-TypeConstructor ccrelrel( "mrel",         CcRelProp,
+TypeConstructor ccrelrel( CcRel::BasicType(),         CcRelProp,
                        OutCcRel,          InCcRel,
                        0,                 0,
                        CreateCcRel,       DummyDelete,
@@ -5752,9 +5756,9 @@ ListExpr MConsumeTypeMap(ListExpr args)
   }
 
   return nl->TwoElemList(
-           nl->SymbolAtom("mrel"),
+           nl->SymbolAtom(CcRel::BasicType()),
            nl->TwoElemList(
-             nl->SymbolAtom("mtuple"),
+             nl->SymbolAtom(CcTuple::BasicType()),
              nl->Second(nl->Second(first))));
 }
 /*

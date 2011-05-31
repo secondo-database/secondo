@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -51,6 +51,7 @@ using namespace std;
 #include "Attribute.h"
 #include "../Spatial/SpatialAlgebra.h"
 #include "../Rectangle/RectangleAlgebra.h"
+#include "Symbols.h"
 
 
 extern NestedList* nl;
@@ -98,7 +99,7 @@ This constructor should not be used.
    void SetDefined( bool defined );
    size_t Sizeof() const;
    ostream& Print( ostream& os ) const;
-    
+
    int GetNoPSPoints() const;
    PSPoint GetPSPoint( int i ) const;
    const bool IsEmpty() const;
@@ -107,14 +108,16 @@ This constructor should not be used.
    void CopyFrom(const Attribute* right);
    PointSequence *Clone() const;
 
+   static const string BasicType() { return "pointsequence"; }
+
    void BBox(Rectangle<2>* result);
 
    friend ostream& operator <<( ostream& os, const PointSequence& ps );
- 
+
  private:
- 
+
    DbArray<PSPoint> pspoints;
-  
+
 };
 /*
 2.3.18 Print functions
@@ -380,16 +383,16 @@ OutPointSequence( ListExpr typeInfo, Word value )
   }
   else
   {
-    ListExpr result = nl->OneElemList( 
-                        nl->TwoElemList( 
-                        nl->RealAtom( ps->GetPSPoint(0).x ), 
+    ListExpr result = nl->OneElemList(
+                        nl->TwoElemList(
+                        nl->RealAtom( ps->GetPSPoint(0).x ),
                         nl->RealAtom( ps->GetPSPoint(0).y ) ) );
     ListExpr last = result;
     for( int i = 1; i < ps->GetNoPSPoints(); i++ )
     {
       last = nl->Append( last,
-                         nl->TwoElemList( 
-                         nl->RealAtom( ps->GetPSPoint(i).x ), 
+                         nl->TwoElemList(
+                         nl->RealAtom( ps->GetPSPoint(i).x ),
                          nl->RealAtom( ps->GetPSPoint(i).y ) ) );
     }
     return result;
@@ -427,9 +430,9 @@ InPointSequence( const ListExpr typeInfo, const ListExpr instance,
     rest = nl->Rest( rest );
 
     if( nl->ListLength( first ) == 2 &&
-        nl->IsAtom( nl->First( first ) ) && 
+        nl->IsAtom( nl->First( first ) ) &&
         nl->AtomType( nl->First( first ) ) == RealType &&
-        nl->IsAtom( nl->Second( first ) ) && 
+        nl->IsAtom( nl->Second( first ) ) &&
         nl->AtomType( nl->Second( first ) ) == RealType )
     {
       PSPoint p( nl->RealValue( nl->First( first ) ),
@@ -464,7 +467,7 @@ PointSequenceProperty()
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("pointsequence"),
+                             nl->StringAtom(PointSequence::BasicType()),
                              nl->StringAtom("((<x1> <y1>)...(<xn> <yn>))"),
                              nl->StringAtom("((3.2 15.4)(6.34 20.8))"),
                              nl->StringAtom("x- and y-coordinates must be "
@@ -481,7 +484,7 @@ type constructor ~pointsequence~ does not have arguments, this is trivial.
 bool
 CheckPointSequence( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "pointsequence" ));
+  return (nl->IsEqual( type, PointSequence::BasicType() ));
 }
 
 /*
@@ -515,7 +518,7 @@ OpenPointSequence( SmiRecord& valueRecord,
                    const ListExpr typeInfo,
                    Word& value )
 {
-  PointSequence *ps = (PointSequence*)Attribute::Open( valueRecord, 
+  PointSequence *ps = (PointSequence*)Attribute::Open( valueRecord,
                                                           offset, typeInfo );
   value = SetWord( ps );
   return true;
@@ -532,9 +535,9 @@ SavePointSequence( SmiRecord& valueRecord,
                    Word& value )
 {
   PointSequence *ps = (PointSequence *)value.addr;
-  
+
   { Attribute::Save( valueRecord, offset, typeInfo, ps ); }
-  
+
   return true;
 }
 
@@ -580,8 +583,8 @@ void* CastPointSequence(void* addr)
 
 */
 TypeConstructor pointsequence(
-  "pointsequence",                           //name
-  PointSequenceProperty,                     //property function describing 
+  PointSequence::BasicType(),                           //name
+  PointSequenceProperty,                     //property function describing
                                              //signature
   OutPointSequence,InPointSequence,          //Out and In functions
   0, 0,                                      //SaveToList and RestoreFromList
@@ -610,10 +613,10 @@ C2PointTypeMap( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "pointsequence") )
-    return nl->SymbolAtom("point");
+    if ( nl->IsEqual(arg1, PointSequence::BasicType()) )
+    return nl->SymbolAtom(Point::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -622,10 +625,10 @@ C2PointsTypeMap( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "pointsequence") )
-    return nl->SymbolAtom("points");
+    if ( nl->IsEqual(arg1, PointSequence::BasicType()) )
+    return nl->SymbolAtom(Points::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -634,10 +637,10 @@ C2LineTypeMap( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "pointsequence") )
-    return nl->SymbolAtom("line");
+    if ( nl->IsEqual(arg1, PointSequence::BasicType()) )
+    return nl->SymbolAtom(Line::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -646,10 +649,10 @@ C2RegionTypeMap( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "pointsequence") )
-    return nl->SymbolAtom("region");
+    if ( nl->IsEqual(arg1, PointSequence::BasicType()) )
+    return nl->SymbolAtom(Region::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -658,10 +661,10 @@ C2RectTypeMap( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "pointsequence") )
-    return nl->SymbolAtom("rect");
+    if ( nl->IsEqual(arg1, PointSequence::BasicType()) )
+    return nl->SymbolAtom(Rectangle<2>::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr
@@ -670,10 +673,10 @@ Rect2PSTypeMap( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "rect") )
-    return nl->SymbolAtom("pointsequence");
+    if ( nl->IsEqual(arg1, Rectangle<2>::BasicType()) )
+    return nl->SymbolAtom(PointSequence::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -690,7 +693,7 @@ Converts ~pointsequence~ to ~point~.
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
                                      //a Point instance to take the result
-  
+
   if ( ps->GetNoPSPoints() >= 1 ) {
     ((Point*)result.addr)->Set( ps->GetPSPoint(0).x, ps->GetPSPoint(0).y );
   }
@@ -704,19 +707,19 @@ C2PointsFun (Word* args, Word& result, int message, Word& local, Supplier s)
 Converts ~pointsequence~ to ~points~.
 
 */
-{  
+{
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
                                      //a Points instance to take the result
 
   if ( ps->GetNoPSPoints() >= 1 ) {
-    
+
     Points *pts = (Points*)result.addr;
     pts->Clear();
     pts->StartBulkLoad();
     for( int i = 0; i < ps->GetNoPSPoints(); i++ )
     {
-      Point p(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);      
+      Point p(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);
       *pts += p;
     }
     pts->EndBulkLoad();
@@ -736,7 +739,7 @@ Converts ~pointsequence~ to ~line~.
   result = qp->ResultStorage(s);   //query processor has provided
                                      //a Line instance to take the result
 
-  Line *l = (Line*)result.addr; 
+  Line *l = (Line*)result.addr;
   if ( ps->GetNoPSPoints() >= 2 ) {
     l->Clear();
     l->StartBulkLoad();
@@ -744,7 +747,7 @@ Converts ~pointsequence~ to ~line~.
     {
       Point p1(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);
       Point p2(true, ps->GetPSPoint(i+1).x, ps->GetPSPoint(i+1).y);
-      HalfSegment seg(true,  p1, p2);      
+      HalfSegment seg(true,  p1, p2);
       *l += seg;
       seg.SetLeftDomPoint(false);
       *l += seg;
@@ -767,7 +770,7 @@ Converts ~pointsequence~ to ~region~.
 
   PointSequence *ps = ((PointSequence*)args[0].addr);
   result = qp->ResultStorage(s);   //query processor has provided
-                                     //a Region instance to take the result  
+                                     //a Region instance to take the result
   for( int i = 0; i < ps->GetNoPSPoints(); i++ )
   {
     Point p(true, ps->GetPSPoint(i).x, ps->GetPSPoint(i).y);
@@ -781,15 +784,15 @@ Converts ~pointsequence~ to ~region~.
     }
   }
   instance = nl->OneElemList(nl->OneElemList(instance));
-  Region* reg = (Region*)InRegion( nl->TheEmptyList(), 
+  Region* reg = (Region*)InRegion( nl->TheEmptyList(),
                                  instance, 0, errorInfo, correct ).addr;
   if ( correct ){
-    ((Region*)result.addr)->CopyFrom(reg);  
+    ((Region*)result.addr)->CopyFrom(reg);
   } else {
      ((Region*)result.addr)->SetDefined(false);
   }
   if(reg){
-    delete reg; 
+    delete reg;
   }
   return 0;
 }
@@ -800,13 +803,13 @@ C2RectFun (Word* args, Word& result, int message, Word& local, Supplier s)
 Converts ~pointsequence~ to ~rectangle~.
 
 */
-{ 
+{
   result = qp->ResultStorage(s);
   PointSequence* arg = (PointSequence*)args[0].addr;
   Rectangle<2>* res = (Rectangle<2>*)result.addr;
   arg->BBox(res);
   return 0;
-}  
+}
 
 int
 Rect2PSFun (Word* args, Word& result, int message, Word& local, Supplier s)
@@ -870,7 +873,7 @@ const string C2RegionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       " to region.</text--->"
                       "<text>let myregion = c2reg(mypointsequence)</text--->"
                       ") )";
-                      
+
 const string C2RectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(pointsequence) -> rect</text--->"
@@ -879,7 +882,7 @@ const string C2RectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       " to rectangle.</text--->"
                       "<text>let myrect = c2rect(mypointsequence)</text--->"
                       ") )";
-                      
+
 const string Rect2PSSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                       "\"Example\" ) "
                       "( <text>(rect) -> pointsequence</text--->"
@@ -956,14 +959,14 @@ class PointSequenceAlgebra : public Algebra
 
     //the lines below define that pointsequence
     //can be used in places where types of kind DATA are expected
-    pointsequence.AssociateKind("DATA");
-    
-    AddOperator ( &c2point );                
-    AddOperator ( &c2points );  
-    AddOperator ( &c2line ); 
-    AddOperator ( &c2region ); 
-    AddOperator ( &c2rect );                                                 
-    AddOperator ( &rect2ps ); 
+    pointsequence.AssociateKind(Kind::DATA());
+
+    AddOperator ( &c2point );
+    AddOperator ( &c2points );
+    AddOperator ( &c2line );
+    AddOperator ( &c2region );
+    AddOperator ( &c2rect );
+    AddOperator ( &rect2ps );
   }
   ~PointSequenceAlgebra() {};
 };

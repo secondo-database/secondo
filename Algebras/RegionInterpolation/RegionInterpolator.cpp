@@ -109,22 +109,22 @@ static ListExpr interpolateTypeMap(ListExpr args)
     if( !((nl->ListLength(args)==3+COUNTWEIGHT)||(nl->ListLength(args)==3)) )
     {
         ErrorReporter::ReportError("invalid number of arguments");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if(!nl->IsEqual(nl->First(args),Region::BasicType()))
     {
         ErrorReporter::ReportError("region as second argument required");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if(!nl->IsEqual(nl->Second(args),Region::BasicType()))
     {
         ErrorReporter::ReportError("region as second argument required");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if(!nl->IsEqual(nl->Third(args),Periods::BasicType()))
     {
         ErrorReporter::ReportError("Period as third argument required");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if( !nl->ListLength(args)==3+COUNTWEIGHT)
     {

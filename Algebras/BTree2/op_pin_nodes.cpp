@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 
-[1] Implementation of the pin\_nodes Operator 
+[1] Implementation of the pin\_nodes Operator
 
 [TOC]
 
@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "BTree2.h"
+#include "Symbols.h"
 
 
 extern NestedList* nl;
@@ -56,7 +57,7 @@ namespace Operators {
 Signature is
 
 ----
-    pin\_nodes: stream(int) x (btree2) --> stream(tuple( (Node int) 
+    pin\_nodes: stream(int) x (btree2) --> stream(tuple( (Node int)
                                                   (Ok bool)))
 ----
 
@@ -69,20 +70,22 @@ ListExpr pin_nodes::TypeMapping( ListExpr args){
     NList first (nl->First(args));
     ListExpr second = nl->Second(args);
     CHECK_COND(first.hasLength(2) && first.first().isSymbol() &&
-               first.first().str() == "stream" && first.second().isSymbol() 
-               && first.second().str() == "int", 
+               first.first().str() == Symbol::STREAM() &&
+               first.second().isSymbol()
+               && first.second().str() == CcInt::BasicType(),
                "Operator expects a stream of ints as first argument:");
-      
+
     CHECK_COND(listutils::isBTree2Description(second),
       "Operator expects a btree2 object as second argument.");
-  ListExpr attr = nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Node"), 
-                nl->SymbolAtom("int")), nl->TwoElemList(nl->SymbolAtom("Ok"), 
-                  nl->SymbolAtom("bool")));
-  ListExpr res = (nl->TwoElemList(nl->SymbolAtom("stream"), 
-                          nl->TwoElemList(nl->SymbolAtom("tuple"),
+  ListExpr attr = nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Node"),
+                nl->SymbolAtom(CcInt::BasicType())),
+                                  nl->TwoElemList(nl->SymbolAtom("Ok"),
+                  nl->SymbolAtom(CcBool::BasicType())));
+  ListExpr res = (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                           attr)));
-  return res; 
-}       
+  return res;
+}
 
 /*
 2.2 Valuemapping
@@ -97,13 +100,13 @@ int
 pin_nodes::ValueMapping(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
-  CcInt* currentInt; 
+  CcInt* currentInt;
   Word current;
   Tuple* tuple;
   ValueMapInfo* vmi;
   switch( message )
   {
-    case OPEN: { // initialize the local storage 
+    case OPEN: { // initialize the local storage
       vmi = new ValueMapInfo;
       vmi->btree = (BTree2*)args[1].addr;
       ListExpr resultType = GetTupleResultType( s );
@@ -119,7 +122,7 @@ pin_nodes::ValueMapping(Word* args, Word& result, int message,
       {
         currentInt = (CcInt*)current.addr;
         bool res = false;
-        if ((currentInt->GetIntval() > 0) 
+        if ((currentInt->GetIntval() > 0)
          && (currentInt->GetIntval() != static_cast<int>(vmi->btree->
                                                          GetHeaderId()))
          && (currentInt->GetIntval() < vmi->btree->GetNodeCount()+2)){
@@ -128,7 +131,7 @@ pin_nodes::ValueMapping(Word* args, Word& result, int message,
         tuple = new Tuple(vmi->tType);
         tuple->PutAttribute(0, currentInt);
         tuple->PutAttribute(1, new CcBool(true, res));
-        result.setAddr(tuple);  
+        result.setAddr(tuple);
         return YIELD;
       }
       else
@@ -167,13 +170,13 @@ struct pinNodesInfo : OperatorInfo {
                 "tuple( (Node int) (Ok bool)))"   ;
     syntax =    "_ pin_nodes [ _ ]";
     meaning =   "Pins the nodes with given NodeId in the btree2's cache."
-                "Warning: pinning many nodes and then inserting a " 
+                "Warning: pinning many nodes and then inserting a "
                 "lot of new entries may lead to a cache overflow.";
     example =   "query intstream (0, 4) pin_nodes [staedte_btree2] consume";
   }
 };
 
-Operator pin_nodes::def( pinNodesInfo(), pin_nodes::ValueMapping, 
+Operator pin_nodes::def( pinNodesInfo(), pin_nodes::ValueMapping,
                          pin_nodes::TypeMapping);
 }
 }

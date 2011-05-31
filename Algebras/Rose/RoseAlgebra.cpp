@@ -13,7 +13,7 @@
 
 [TOC]
 
-  
+
 January 3rd, 2003 Mirco G[ue]nster and Ismail Zerrad
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -22,16 +22,16 @@ level remains. Models are also removed from type constructors.
 
 This algebra implements an interface between the Rose Algebra which was
 implemented in the Java programming language and Secondo.
-This means that this module is an algebra in terms of Secondo but the 
+This means that this module is an algebra in terms of Secondo but the
 proper functionality is implemented in Java. Therefore most of the
 functions here are wrapper functions which call with help of the
 JNI (Java Native Interface) according java methods.
 This algebra provides three type constructors ~ccpoints~, ~cclines~
 and ~ccregions~ with its operations.
 For more details of the "Rose"-Algebra in common see the paper:
-"Realm-Based Spatial Data Types - The ROSE Algebra" 
+"Realm-Based Spatial Data Types - The ROSE Algebra"
 by Ralf Hartmut Gueting and Markus Schneider.
-For more details of the JNI (Java Native Interface) see 
+For more details of the JNI (Java Native Interface) see
 "The Java (tm) Native Interface Programmmers Guide and Specification"
 by Sheng Liang. This book is online available as PDF file at www.sun.com.
 
@@ -48,8 +48,10 @@ using namespace std;
 #include "LogMsg.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "StandardTypes.h"        
+#include "StandardTypes.h"
 #include "Attribute.h"
+#include "Symbols.h"
+
 #include <stack>
 #include <time.h>
 #include <cmath>
@@ -63,8 +65,8 @@ extern QueryProcessor* qp;
 
 /*
  The JVMInitializer provides access to a pointer to
-   the JNI Environment and to a pointer to the 
-   Java Virtual Machine. 
+   the JNI Environment and to a pointer to the
+   Java Virtual Machine.
 
 */
 static JVMInitializer *jvminit = 0;
@@ -144,7 +146,7 @@ static jmethodID midRectGetTopLeftY;
 static jmethodID midRectGetBottomRightX;
 static jmethodID midRectGetBottomRightY;
 
- //Pointers to field IDs of 2DSACK. 
+ //Pointers to field IDs of 2DSACK.
 static jfieldID fidRationalX;
 static jfieldID fidRationalY;
 static jfieldID fidPointsPointSet;
@@ -241,21 +243,21 @@ static const bool DEBUG_CONVERT = false;
  1.2 Error functions.
 
 This error function is called if an error referring to the
-JNI interface occurs. In most cases this indicates that 
-there are problems which the installed JDK. 
+JNI interface occurs. In most cases this indicates that
+there are problems which the installed JDK.
 In this case please check the following items first:
 
 a) Under Windows the jvm.dll must be in your PATH.
-b) All paths of used java classes must have an entry in the 
+b) All paths of used java classes must have an entry in the
    JNIPath.ini file.
 c) Used JAR archives must also have an entry in that file.
 
 
 */
 
-/* 
- this function prints an error message including the line 
-        where the error occured. Should never invoked normally. 
+/*
+ this function prints an error message including the line
+        where the error occured. Should never invoked normally.
 
 */
 
@@ -270,18 +272,18 @@ static void error(char *name, int line) {
 static void RoseError() {
   jthrowable exec = env->ExceptionOccurred();
   env->ExceptionClear();
-  const char* errMsgC = 
+  const char* errMsgC =
     env->GetStringUTFChars((jstring)env->GetObjectField(exec,fidROSEError),0);
   cmsg.error() << errMsgC << endl;
   cmsg.send();
 }
 
 
-/* 
+/*
  this function prints an error message including the line
    where the error occured. This method is used for calls
-   to Java methods. The name of the Java method which 
-   should invoked is also printed. 
+   to Java methods. The name of the Java method which
+   should invoked is also printed.
 
 */
 
@@ -289,14 +291,14 @@ static void RoseError() {
  1.4 Conversion Functions
 
 These functions convert a C++-Nested List into a Java object and
-vice versa. 
+vice versa.
 
 */
 
 
-/* 
+/*
  The following function takes a java object of type Rational
-   and returns a suitable ListExpr 
+   and returns a suitable ListExpr
 
 */
 
@@ -309,9 +311,9 @@ static ListExpr Convert_JavaToC_Rational(jobject jRational) {
   return nl->RealAtom(value);
 }
 
-/* 
+/*
  The following function takes a java object of type Point
-   and returns a suitable ListExpr 
+   and returns a suitable ListExpr
 
 */
 
@@ -325,10 +327,10 @@ static ListExpr Convert_JavaToC_Point(jobject jPoint) {
 
   return nl->Cons
     (
-     Convert_JavaToC_Rational(X), 
+     Convert_JavaToC_Rational(X),
      nl->Cons
      (
-      Convert_JavaToC_Rational(Y), 
+      Convert_JavaToC_Rational(Y),
       nl->TheEmptyList()
       )
      );
@@ -337,7 +339,7 @@ static ListExpr Convert_JavaToC_Point(jobject jPoint) {
 
 /*
  The following function takes a java object of type Points
-   and returns a suitable ListExpr 
+   and returns a suitable ListExpr
 
 */
 
@@ -346,14 +348,14 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   jobject jpointlist = env->GetObjectField(jPoints, fidPointsPointSet);
   if (jpointlist == 0) error(__FILE__,__LINE__);
 
-  jobjectArray oarr = 
+  jobjectArray oarr =
     (jobjectArray)env->CallObjectMethod(jpointlist, midPMSToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
-  //Determine the length of the result array. 
+  //Determine the length of the result array.
   int oarrlen = (int)env->GetArrayLength(oarr);
 
-  //Collect all calculated subnodes in a stack first. 
+  //Collect all calculated subnodes in a stack first.
   stack<jobject> jstack;
   for (int i = 0; i < oarrlen; i++) {
     jstack.push(env->GetObjectArrayElement(oarr, i));
@@ -367,13 +369,13 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
     jstack.pop();
     env->DeleteLocalRef(tmp);
     tmp = 0;
-  } 
+  }
 
   env->DeleteLocalRef(jpointlist);
   jpointlist = 0;
   env->DeleteLocalRef(oarr);
   oarr = 0;
-  env->DeleteLocalRef(jPoints); 
+  env->DeleteLocalRef(jPoints);
   jPoints = 0;
 
   return result;
@@ -381,17 +383,17 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
 
 /*
  The following function takes a java object of type Segment
-   and returns a suitable ListExpr 
+   and returns a suitable ListExpr
 
 */
 
 static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Get the start Point itself 
+  // Get the start Point itself
   jobject startP = env->CallObjectMethod(jSegment, midSegmentGetStartpoint);
   if (startP == 0) error(__FILE__,__LINE__);
 
-  // Get the end Point itself 
+  // Get the end Point itself
   jobject endP = env->CallObjectMethod(jSegment, midSegmentGetEndpoint);
   if (endP == 0) error(__FILE__,__LINE__);
 
@@ -400,17 +402,17 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   jobject X1 = env->GetObjectField(startP, fidRationalX);
   if (X1 == 0) error(__FILE__,__LINE__);
 
-  // Get the field y itself (start point) 
+  // Get the field y itself (start point)
   //jobject Y1 = env->GetObjectField(startP, fidY1);
   jobject Y1 = env->GetObjectField(startP, fidRationalY);
   if (X1 == 0) error(__FILE__,__LINE__);
 
-  // Get the field x itself (end point) 
+  // Get the field x itself (end point)
   //jobject X2 = env->GetObjectField(endP, fidX2);
   jobject X2 = env->GetObjectField(endP, fidRationalX);
   if (X1 == 0) error(__FILE__,__LINE__);
 
-  // Get the field y itself (end point) 
+  // Get the field y itself (end point)
   //jobject Y2 = env->GetObjectField(endP, fidY2);
   jobject Y2 = env->GetObjectField(endP, fidRationalY);
   if (X1 == 0) error(__FILE__,__LINE__);
@@ -420,19 +422,19 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   env->DeleteLocalRef(endP);
   endP = 0;
 
-  return 
+  return
     nl->Cons
     (
-     Convert_JavaToC_Rational(X1), 
+     Convert_JavaToC_Rational(X1),
      nl->Cons
      (
-      Convert_JavaToC_Rational(Y1), 
+      Convert_JavaToC_Rational(Y1),
       nl->Cons
       (
-       Convert_JavaToC_Rational(X2), 
+       Convert_JavaToC_Rational(X2),
        nl->Cons
        (
-        Convert_JavaToC_Rational(Y2), 
+        Convert_JavaToC_Rational(Y2),
         nl->TheEmptyList()
         )
        )
@@ -441,10 +443,10 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
 
 }
 
-/* 
+/*
 
  The following function takes a java object of type Lines
-   and returns a suitable ListExpr. 
+   and returns a suitable ListExpr.
 
 */
 
@@ -454,21 +456,21 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   jobject jseglist = env->GetObjectField(jLines, fidLinesSegmentSet);
   if (jseglist == 0) error(__FILE__,__LINE__);
 
-  // Call the method itself  
-  jobjectArray oarr = 
+  // Call the method itself
+  jobjectArray oarr =
     (jobjectArray)env->CallObjectMethod(jseglist, midSMSToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
-  // Determine the length of the result array. 
+  // Determine the length of the result array.
   int oarrlen = (int)env->GetArrayLength(oarr);
 
-  // Collect all calculated subnodes in a stack first. 
+  // Collect all calculated subnodes in a stack first.
   stack<jobject> jstack;
   for (int i = 0; i < oarrlen; i++) {
     jstack.push(env->GetObjectArrayElement(oarr, i));
   }
 
-  // Then assemble the result. 
+  // Then assemble the result.
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
     result = nl->Cons(Convert_JavaToC_Segment(jstack.top()),result);
@@ -476,7 +478,7 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
     jstack.pop();
     env->DeleteLocalRef(tmp);
     tmp = 0;
-  } 
+  }
 
   env->DeleteLocalRef(oarr);
   oarr = 0;
@@ -488,27 +490,27 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
 
 /*
  The following function takes a java object of type ElemList
-   and returns a suitable ListExpr. 
+   and returns a suitable ListExpr.
 
 */
 
 static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Call the method itself  
-  jobjectArray oarr = 
+  // Call the method itself
+  jobjectArray oarr =
     (jobjectArray)env->CallObjectMethod(jpointList, midLLToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
-  // Determine the length of the result array. 
+  // Determine the length of the result array.
   int oarrlen = (int)env->GetArrayLength(oarr);
 
-  // Collect all calculated subnodes in a stack first. 
+  // Collect all calculated subnodes in a stack first.
   stack<jobject> jstack;
   for (int i = 0; i < oarrlen; i++) {
     jstack.push(env->GetObjectArrayElement(oarr, i));
   }
 
-  //Then assemble the result. 
+  //Then assemble the result.
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
     result = nl->Cons(Convert_JavaToC_Point(jstack.top()),result);
@@ -516,7 +518,7 @@ static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
     jstack.pop();
     env->DeleteLocalRef(tmp);
     tmp = 0;
-  } 
+  }
 
   env->DeleteLocalRef(oarr);
   oarr = 0;
@@ -526,18 +528,18 @@ static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
 
 /*
  The following function takes a java object of type ElemListList
-   and returns a suitable ListExpr. 
+   and returns a suitable ListExpr.
 
 */
 
 static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Call the method itself  
-  jobjectArray oarr = 
+  // Call the method itself
+  jobjectArray oarr =
     (jobjectArray)env->CallObjectMethod(jCycleList, midCLToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
-  // Determine the length of the result array. 
+  // Determine the length of the result array.
   int oarrlen = (int)env->GetArrayLength(oarr);
 
   // Collect all calculated subnodes in a stack first.
@@ -546,7 +548,7 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
     jstack.push(env->GetObjectArrayElement(oarr, i));
   }
 
-  // Then assemble the result. 
+  // Then assemble the result.
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
     result = nl->Cons(Convert_JavaToC_ElemList(jstack.top()),result);
@@ -554,7 +556,7 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
     jstack.pop();
     env->DeleteLocalRef(tmp);
     tmp = 0;
-  } 
+  }
 
   env->DeleteLocalRef(oarr);
   oarr = 0;
@@ -564,29 +566,29 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
 
 
 
-/* 
+/*
  The following function takes a java object of type ElemListListList
-   and returns a suitable ListExpr. 
+   and returns a suitable ListExpr.
 
 */
 
 static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Call the method itself  
-  jobjectArray oarr = 
+  // Call the method itself
+  jobjectArray oarr =
     (jobjectArray)env->CallObjectMethod(jCycleListListPoints, midCLLPToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
-  // Determine the length of the result array. 
+  // Determine the length of the result array.
   int oarrlen = (int)env->GetArrayLength(oarr);
 
-  // Collect all calculated subnodes in a stack first. 
+  // Collect all calculated subnodes in a stack first.
   stack<jobject> jstack;
   for (int i = 0; i < oarrlen; i++) {
     jstack.push(env->GetObjectArrayElement(oarr, i));
   }
 
-  // Then assemble the result. 
+  // Then assemble the result.
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
     result = nl->Cons(Convert_JavaToC_ElemListList(jstack.top()),result);
@@ -594,25 +596,25 @@ static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
     jstack.pop();
     env->DeleteLocalRef(tmp);
     tmp = 0;
-  } 
+  }
 
   env->DeleteLocalRef(oarr);
   oarr = 0;
-  
+
   return result;
 }
 
-/* 
+/*
  The following function takes a java object of type Regions
-   and returns a suitable ListExpr. 
+   and returns a suitable ListExpr.
 
 */
 
 static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (!jRegions) cerr << "jRegions is NULL!" << endl;
-  
-  // Call the method itself  
+
+  // Call the method itself
   jobject cycles = env->CallObjectMethod(jRegions, midRegionsCyclesPoints);
   if (cycles == 0) error(__FILE__,__LINE__);
 
@@ -625,13 +627,13 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
 
 /*
  The following function takes a ListExpr of an Rational object and creates
-   the suitable Java object from it. 
+   the suitable Java object from it.
 
 */
- 
+
 static jobject Convert_CToJava_Rational(const ListExpr &le) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Check whether six elements are in le. 
+  // Check whether six elements are in le.
   if (nl->ListLength(le) != 6) error(__FILE__,__LINE__);
 
   // Now we calculate the necessary data for creating a Rational object.
@@ -650,69 +652,69 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
   int Rat_numDec = value4 * Rat_sign;
   int Rat_dnmDec = value6;
 
-  jobject result = 
-    env->CallStaticObjectMethod(clsRationalFactory, midRFConstRational, 
+  jobject result =
+    env->CallStaticObjectMethod(clsRationalFactory, midRFConstRational,
                                          Rat_intPart * Rat_dnmDec + Rat_numDec,
                                          Rat_dnmDec);
   if (result == 0) error(__FILE__,__LINE__);
-  
+
   return result;
 }
 
 /*
  The following function takes a ListExpr of a Point object and creates
-   the suitable Java object from it. 
+   the suitable Java object from it.
 
 */
 static jobject Convert_CToJava_Point(const ListExpr &le) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Check whether two elements are in le. 
+  // Check whether two elements are in le.
   if (nl->ListLength(le) != 2) error(__FILE__,__LINE__);
 
-  // Now we calculate the necessary data for creating a Point object. 
+  // Now we calculate the necessary data for creating a Point object.
   ListExpr e1 = nl->First(le);
   ListExpr e2 = nl->Second(le);
 
   if (
-      (nl->IsAtom(e1)) && 
-      (nl->IsAtom(e2)) && 
+      (nl->IsAtom(e1)) &&
+      (nl->IsAtom(e2)) &&
       (nl->AtomType(e1) == IntType) &&
       (nl->AtomType(e2) == IntType)) {
-    // Both coordinates are integers 
+    // Both coordinates are integers
     int intValue1 = nl->IntValue(e1);
     int intValue2 = nl->IntValue(e2);
-    
-    jobject result = 
+
+    jobject result =
       env->NewObject(clsPoint, midPointConstII, intValue1, intValue2);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
   }
-  else if 
+  else if
     (
-     (nl->IsAtom(e1)) && 
-     (nl->IsAtom(e2)) && 
-     (nl->AtomType(e1) == RealType) && 
+     (nl->IsAtom(e1)) &&
+     (nl->IsAtom(e2)) &&
+     (nl->AtomType(e1) == RealType) &&
      (nl->AtomType(e2) == RealType)) {
-    // Both coordinates are reals 
+    // Both coordinates are reals
     //jfloat realValue1 = nl->RealValue(e1);
     jdouble realValue1 = nl->RealValue(e1);
     //jfloat realValue2 = nl->RealValue(e2);
     jdouble realValue2 = nl->RealValue(e2);
-        
-    //jobject result = env->NewObject(clsPoint, 
-    //                                midPointConstDD, 
-    //                                (jfloat)realValue1, 
+
+    //jobject result = env->NewObject(clsPoint,
+    //                                midPointConstDD,
+    //                                (jfloat)realValue1,
     //                                (jfloat)realValue2);
-    jobject result = env->NewObject(clsPoint, 
-                                    midPointConstDD, 
-                                    realValue1, 
+    jobject result = env->NewObject(clsPoint,
+                                    midPointConstDD,
+                                    realValue1,
                                     realValue2);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
   } else {
-    // Both coordinates are Rationals 
+    // Both coordinates are Rationals
     //cout << "rationals" << endl;
     jobject num1 = Convert_CToJava_Rational(e1);
     jobject num2 = Convert_CToJava_Rational(e2);
@@ -730,7 +732,7 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
 /*
 
  The following function takes a ListExpr of a Points object and creates
-   the suitable Java object from it. 
+   the suitable Java object from it.
 
 */
 static jobject Convert_CToJava_Points(const ListExpr &le) {
@@ -738,14 +740,14 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
   jobject points = env->NewObject(clsPoints, midPointsConst);
   if (points == 0) error(__FILE__,__LINE__);
 
-  // Now we detect the length of le. 
+  // Now we detect the length of le.
   int ll = nl->ListLength(le);
 
   if (ll == 0) {
     //return empty points value
     return points;
   }
-  
+
   bool isPoints = true;
 
   ListExpr first = nl->First(le);
@@ -755,12 +757,12 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
   }
 
   if (isPoints) {
-    // Now we insert in a for-loop all points into the Points object. 
+    // Now we insert in a for-loop all points into the Points object.
     ListExpr restlist = le;
     for (int i = 0; i < ll; i++) {
       ListExpr first = nl->First(restlist);
       restlist = nl->Rest(restlist);
-      // create a java object points 
+      // create a java object points
       jobject jfirst = Convert_CToJava_Point(first);
       if (jfirst == 0) error(__FILE__,__LINE__);
       env->CallVoidMethod(points, midPointsAddPoint, jfirst);
@@ -780,73 +782,73 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
 
 /*
  The following function takes a ListExpr of a Segment object and creates
-   the suitable Java object from it. 
+   the suitable Java object from it.
 
 */
 
 static jobject Convert_CToJava_Segment(const ListExpr &le) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // Check whether four elements are in le. 
+  // Check whether four elements are in le.
   if (nl->ListLength(le) != 4) error(__FILE__,__LINE__);
 
-  // Now we calculate the necessary data for creating a Point object. 
+  // Now we calculate the necessary data for creating a Point object.
   ListExpr e1 = nl->First(le);
   ListExpr e2 = nl->Second(le);
   ListExpr e3 = nl->Third(le);
   ListExpr e4 = nl->Fourth(le);
 
-  if 
+  if
     (
-     (nl->IsAtom(e1)) && 
-     (nl->IsAtom(e2)) && 
-     (nl->IsAtom(e3)) && 
-     (nl->IsAtom(e4)) && 
-     (nl->AtomType(e1) == IntType) && 
-     (nl->AtomType(e2) == IntType) && 
-     (nl->AtomType(e3) == IntType) && 
+     (nl->IsAtom(e1)) &&
+     (nl->IsAtom(e2)) &&
+     (nl->IsAtom(e3)) &&
+     (nl->IsAtom(e4)) &&
+     (nl->AtomType(e1) == IntType) &&
+     (nl->AtomType(e2) == IntType) &&
+     (nl->AtomType(e3) == IntType) &&
      (nl->AtomType(e4) == IntType)) {
 
-    // All coordinates are integers 
+    // All coordinates are integers
     int intValue1 = nl->IntValue(e1);
     int intValue2 = nl->IntValue(e2);
     int intValue3 = nl->IntValue(e3);
     int intValue4 = nl->IntValue(e4);
-    
-    jobject result = env->NewObject(clsSegment, midSegmentConstIIII, 
-                                    intValue1, intValue2, 
+
+    jobject result = env->NewObject(clsSegment, midSegmentConstIIII,
+                                    intValue1, intValue2,
                                     intValue3, intValue4);
     if (result == 0) error(__FILE__,__LINE__);
 
     return result;
   }
-  else if 
+  else if
     (
-     (nl->IsAtom(e1)) && 
+     (nl->IsAtom(e1)) &&
      (nl->IsAtom(e2)) &&
      (nl->IsAtom(e3)) &&
      (nl->IsAtom(e4)) &&
-     (nl->AtomType(e1) == RealType) && 
+     (nl->AtomType(e1) == RealType) &&
      (nl->AtomType(e2) == RealType) &&
      (nl->AtomType(e3) == RealType) &&
      (nl->AtomType(e4) == RealType)) {
 
-    // All coordinates are reals 
+    // All coordinates are reals
     jdouble realValue1 = nl->RealValue(e1);
     jdouble realValue2 = nl->RealValue(e2);
     jdouble realValue3 = nl->RealValue(e3);
     jdouble realValue4 = nl->RealValue(e4);
 
-    //jobject result = env->NewObject(clsSegment, 
-    //                                midSegmentConstDDDD, 
-    //                                (jfloat)realValue1, 
-    //                                (jfloat)realValue2, 
-    //                                (jfloat)realValue3,  
+    //jobject result = env->NewObject(clsSegment,
+    //                                midSegmentConstDDDD,
+    //                                (jfloat)realValue1,
+    //                                (jfloat)realValue2,
+    //                                (jfloat)realValue3,
     //                                (jfloat)realValue4);
-    jobject result = env->NewObject(clsSegment, 
-                                    midSegmentConstDDDD, 
-                                    realValue1, 
-                                    realValue2, 
-                                    realValue3,  
+    jobject result = env->NewObject(clsSegment,
+                                    midSegmentConstDDDD,
+                                    realValue1,
+                                    realValue2,
+                                    realValue3,
                                     realValue4);
     if (result == 0) error(__FILE__,__LINE__);
 
@@ -857,7 +859,7 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
     jobject num3 = Convert_CToJava_Rational(e3);
     jobject num4 = Convert_CToJava_Rational(e4);
 
-    jobject result = 
+    jobject result =
       env->NewObject(clsSegment, midSegmentConstRRRR, num1,num2,num3,num4);
     env->DeleteLocalRef(num1);
     num1 = 0;
@@ -872,9 +874,9 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
   }
 }
 
-/* 
+/*
  The following function takes a ListExpr of a Lines object and creates
-   the suitable Java object from it. 
+   the suitable Java object from it.
 
 */
 
@@ -883,15 +885,15 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
   jobject lines = env->NewObject(clsLines, midLinesConst);
   if (lines == 0) error(__FILE__,__LINE__);
 
-  // Now we detect the length of le. 
+  // Now we detect the length of le.
   int ll = nl->ListLength(le);
-  
-  // Now we insert in a for-loop all points into the Lines object. 
+
+  // Now we insert in a for-loop all points into the Lines object.
   ListExpr restlist = le;
   for (int i = 0; i < ll; i++) {
     ListExpr first = nl->First(restlist);
     restlist = nl->Rest(restlist);
-    // create a java object segment 
+    // create a java object segment
     jobject jfirst = Convert_CToJava_Segment(first);
     if (jfirst == 0) error(__FILE__,__LINE__);
     env->CallVoidMethod(lines, midLinesAddSegment, jfirst);
@@ -904,41 +906,41 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
 
 /*
  The following function takes a ListExpr of a Regions object and creates
-   the suitable Java object from it. 
+   the suitable Java object from it.
 
 */
 static jobject Convert_CToJava_Regions(const ListExpr &le) {
   if (DEBUG_CONVERT) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  // We have to collect all segments into a segment list first 
+  // We have to collect all segments into a segment list first
 
-  // Create a new SegmentComparator 
+  // Create a new SegmentComparator
   jobject jSC = env->NewObject(clsSegmentComparator, midSCConst);
   if (jSC == 0) error(__FILE__,__LINE__);
 
-  // Create a SMS object. 
+  // Create a SMS object.
   jobject segMS = env->NewObject(clsSegMultiSet, midSMSConst, jSC);
   if (segMS == 0) error(__FILE__,__LINE__);
 
- 
-  // Determine how many faces are in le. 
+
+  // Determine how many faces are in le.
   int nllfaces = nl->ListLength(le);
-  
-  // Now we put all segments of the faces into the seglist. 
+
+  // Now we put all segments of the faces into the seglist.
   ListExpr restFaceList = le;
   for (int i = 0; i < nllfaces; i++) {
     ListExpr firstFace = nl->First(restFaceList);
     restFaceList = nl->Rest(restFaceList);
-    // Determine how many cycles are in firstFace. 
+    // Determine how many cycles are in firstFace.
     int nllcycles = nl->ListLength(firstFace);
 
-    // Now we put all segments of the cycles into the seglist. 
+    // Now we put all segments of the cycles into the seglist.
     ListExpr restCycleList = firstFace;
     for (int j = 0; j < nllcycles; j++) {
       ListExpr firstCycle = nl->First(restCycleList);
       restCycleList = nl->Rest(restCycleList);
-      // Determine how many vertices are in firstCycle. 
+      // Determine how many vertices are in firstCycle.
       int nllvertex = nl->ListLength(firstCycle);
-      // Calculate all vertices first. 
+      // Calculate all vertices first.
       jobject vertex[nllvertex];
       ListExpr restVertexList = firstCycle;
       for (int k = 0; k < nllvertex; k++) {
@@ -946,15 +948,15 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
         restVertexList = nl->Rest(restVertexList);
         vertex[k] = Convert_CToJava_Point(firstVertex);
       }
-      // Connect the kth and the (k+1)th Point to a segment. 
+      // Connect the kth and the (k+1)th Point to a segment.
       jobject segment[nllvertex];
       for (int k = 0; k < nllvertex - 1; k++) {
-        segment[k] = env->NewObject(clsSegment, midSegmentConstPP, 
+        segment[k] = env->NewObject(clsSegment, midSegmentConstPP,
                                     vertex[k], vertex[k+1]);
         if (segment[k] == 0) error(__FILE__,__LINE__);
       }
-        
-      segment[nllvertex-1] = env->NewObject(clsSegment, midSegmentConstPP, 
+
+      segment[nllvertex-1] = env->NewObject(clsSegment, midSegmentConstPP,
                                             vertex[nllvertex-1], vertex[0]);
       if (segment[nllvertex-1] == 0) error(__FILE__,__LINE__);
 
@@ -964,11 +966,11 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
         vertex[k] = 0;
       }
 
-      // Now add all segments to the SegMultiSet 
+      // Now add all segments to the SegMultiSet
       for (int k = 0; k < nllvertex; k++) {
         env->CallVoidMethod(segMS, midSMSAdd, segment[k]);
       }
-      
+
       //clear memory used for segments
       for (int k = 0; k < nllvertex-1; k++) {
         env->DeleteLocalRef(segment[k]);
@@ -976,7 +978,7 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
       }
     }
   }
-  
+
   jobject result = env->NewObject(clsRegions, midRegionsConstSMS, segMS);
   if (result == 0) error(__FILE__,__LINE__);
 
@@ -985,21 +987,21 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
   jSC = 0;
   env->DeleteLocalRef(segMS);
   segMS = 0;
-  
+
   return result;
 }
 
-/* 
+/*
  2 Type Constructor ~Points~
 
 2.1 Data Structure - Class ~CcPoints~
 
-The class CcPoints is just a wrapper to the 
-according Points Java class. 
-The cls attribute holds a pointer to the 
-Java class Points and the obj attribute 
+The class CcPoints is just a wrapper to the
+according Points Java class.
+The cls attribute holds a pointer to the
+Java class Points and the obj attribute
 holds a pointer to the java object itself.
-These pointers are used to invoke according 
+These pointers are used to invoke according
 java methods.
 
 */
@@ -1011,15 +1013,15 @@ private:
   bool canDelete;
   void RestoreFLOBFromJavaObject();
   void SyncBboxData();
-  
+
 public:
-  // Bounding Box data 
+  // Bounding Box data
   double BboxTopLeftX;
   double BboxTopLeftY;
   double BboxBottomRightX;
   double BboxBottomRightY;
 
-  // Inherited methods of Attribute 
+  // Inherited methods of Attribute
   int Compare(const Attribute *attr) const;
   Attribute *Clone() const;
   void CopyFrom(const Attribute* right);
@@ -1040,18 +1042,18 @@ public:
   size_t HashValue() const;
   size_t Sizeof() const {
     return sizeof(*this);
-  } 
+  }
   /* This constructor takes the nested list representation
      of CcPoints and recovers the underlying java object with
      help of this data. */
   CcPoints(const ListExpr &le, bool isList);
   // SPM: added an addtional parameter since size_t and ListExpr are ambigous
   // on 64 bit systems.
-  
+
   /* This constructor takes a pointer to a java object which is
      already created. */
   CcPoints(const jobject jobj);
-  /* This constructor creates an empty CcPoints object. */        
+  /* This constructor creates an empty CcPoints object. */
   CcPoints();
   CcPoints(size_t size);
   /* retrieves the nested list representation of the underlying
@@ -1061,11 +1063,11 @@ public:
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     this->obj = obj;
   }
-  
+
   bool GetNL(ListExpr &le);
-  /* Destructor of CcPoints. This destructor destroys also the 
+  /* Destructor of CcPoints. This destructor destroys also the
      object inside the JVM. */
-  
+
   ~CcPoints() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     env->DeleteLocalRef(obj);
@@ -1074,11 +1076,11 @@ public:
   /* Returns the pointer to the proper java objet. */
   jobject GetObj() const;
   void Print() const;
-  
+
 };
 
-/*  
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1088,8 +1090,8 @@ int CcPoints::Compare(const Attribute *attr) const {
   return env->CallByteMethod(obj,midPointsCompare,P->obj);
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1100,8 +1102,8 @@ Attribute *CcPoints::Clone() const {
   return res;
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1116,8 +1118,8 @@ void CcPoints::CopyFrom(const Attribute* right) {
   obj=0;
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1163,14 +1165,14 @@ CcPoints::CcPoints(size_t size):Attribute(true),
   if (obj == 0) error(__FILE__,__LINE__);
 }
 
-/* 
+/*
  This constructor takes the nested list representation
    of CcPoints and recovers the underlying java object with
-   help of this data. 
+   help of this data.
 
 */
- 
-CcPoints::CcPoints(const ListExpr &le, bool isList): 
+
+CcPoints::CcPoints(const ListExpr &le, bool isList):
   Attribute(true),objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Points(le);
@@ -1180,9 +1182,9 @@ CcPoints::CcPoints(const ListExpr &le, bool isList):
   SetDefined(true);
 }
 
-/* 
+/*
  This constructor takes a pointer to a java object which is
-   already created. 
+   already created.
 
 */
 
@@ -1195,19 +1197,19 @@ CcPoints::CcPoints(const jobject jobj):Attribute(true),objectData(1) {
   SetDefined(true);
 }
 
-/* 
- This constructor creates an empty CcPoints object. 
+/*
+ This constructor creates an empty CcPoints object.
 
-*/        
+*/
 
 CcPoints::CcPoints() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
 }
 
 
-/* 
+/*
  retrieves the nested list representation of the underlying
-     java object. 
+     java object.
 
 */
 
@@ -1223,15 +1225,15 @@ bool CcPoints::GetNL(ListExpr& le) {
   return true;
 }
 
-/* 
- Destructor of CcPoints. This destructor destroys also the 
-     object inside the JVM. 
+/*
+ Destructor of CcPoints. This destructor destroys also the
+     object inside the JVM.
 
 */
 
 /*
   ~Destroy~
-  
+
   The Destroy function as known from other (non-JNI) algebras.
 
 */
@@ -1241,8 +1243,8 @@ void CcPoints::Destroy(){
   canDelete=true;
 }
 
-/* 
- Returns the pointer to the proper java objet. 
+/*
+ Returns the pointer to the proper java objet.
 
 */
 
@@ -1252,7 +1254,7 @@ jobject CcPoints::GetObj() const {
 }
 
 
-/* 
+/*
  restores the java object from FLOB
    the FLOB must exists
 
@@ -1260,10 +1262,10 @@ jobject CcPoints::GetObj() const {
 
 void CcPoints::RestoreFLOBFromJavaObject(){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  jbyteArray jbytes = 
+  jbyteArray jbytes =
     (jbyteArray) env->CallObjectMethod(obj,midPointsWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
-  
+
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.resize(size);
@@ -1274,7 +1276,7 @@ void CcPoints::RestoreFLOBFromJavaObject(){
  }
 
 
-/* 
+/*
  creates the content of a FLOB from the given Java-Object
 
 */
@@ -1291,7 +1293,7 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
-  
+
   obj = env->CallStaticObjectMethod(clsPoints,midPointsReadFrom,jbytes);
   if(obj == 0){
     error(__FILE__,__LINE__);
@@ -1325,7 +1327,7 @@ void CcPoints::SyncBboxData() {
   BboxTopLeftY = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftY);
   BboxBottomRightX = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightX);
   BboxBottomRightY = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightY);
-}  
+}
 
 
 /*
@@ -1363,22 +1365,22 @@ static ListExpr OutCcPoints( ListExpr typeInfo, Word value ) {
 }
 
 
-static Word InCcPoints(const ListExpr typeInfo, 
+static Word InCcPoints(const ListExpr typeInfo,
                        const ListExpr instance,
-                       const int errorPos, 
-                       ListExpr& errorInfo, 
+                       const int errorPos,
+                       ListExpr& errorInfo,
                        bool& correct ) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* newpoints;
 
   correct = true;
   newpoints = new CcPoints(instance);
-  
+
   return SetWord(newpoints);
 }
 
-/* 
- Creation of a CcPoints object. 
+/*
+ Creation of a CcPoints object.
 
 */
 static Word CreateCcPoints(const ListExpr typeInfo) {
@@ -1388,33 +1390,33 @@ static Word CreateCcPoints(const ListExpr typeInfo) {
   return SetWord(res);
 }
 
-/* 
- Deletion of a CcPoints object. 
+/*
+ Deletion of a CcPoints object.
 
 */
 
 static void DeleteCcPoints(const ListExpr typeInfo, Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  //cout << "+++ called Delete of CcPointss +++" << endl; 
+  //cout << "+++ called Delete of CcPointss +++" << endl;
   //((CcPoints*)w.addr)->Finalize();
   delete ((CcPoints *)w.addr);
   w.addr = 0;
 }
 
-/* 
- Close a CcPoints object. 
+/*
+ Close a CcPoints object.
 
 */
 
 static void CloseCcPoints(const ListExpr typeInfo, Word & w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  //cout << "+++ called Close of CcPoints +++" << endl; 
+  //cout << "+++ called Close of CcPoints +++" << endl;
   delete (CcPoints *)w.addr;
   w.addr = 0;
 }
 
-/* 
- Clone a CcPoints object. 
+/*
+ Clone a CcPoints object.
 
 */
 
@@ -1443,7 +1445,7 @@ bool OpenCcPoints(SmiRecord& valueRecord,
 bool SaveCcPoints( SmiRecord& valueRecord,
                    size_t& offset,
                    const ListExpr typeInfo,
-                   Word& value) { 
+                   Word& value) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* P = (CcPoints*) value.addr;
   Attribute::Save(valueRecord,offset,typeInfo,P);
@@ -1457,7 +1459,7 @@ bool SaveCcPoints( SmiRecord& valueRecord,
 
 static ListExpr PointsProperty() {
 
-  return 
+  return
     (nl->TwoElemList
      (
       nl->FiveElemList
@@ -1534,17 +1536,17 @@ TypeConstructor ccpoints
  );
 
 
-/* 
+/*
  3 Type Constructor ~Lines~
 
 3.1 Data Structure - Class ~Lines~
 
-The class CcLines is just a wrapper to the 
-according Lines Java class. 
-The cls attribute holds a pointer to the 
-Java class Lines and the obj attribute 
+The class CcLines is just a wrapper to the
+according Lines Java class.
+The cls attribute holds a pointer to the
+Java class Lines and the obj attribute
 holds a pointer to the java object itself.
-These pointers are used to invoke according 
+These pointers are used to invoke according
 java methods.
 
 */
@@ -1558,13 +1560,13 @@ private:
   void SyncBboxData();
 
 public:
-  // Bounding Box data 
+  // Bounding Box data
   double BboxTopLeftX;
   double BboxTopLeftY;
   double BboxBottomRightX;
   double BboxBottomRightY;
 
-  // Inherited methods of Attribute 
+  // Inherited methods of Attribute
   int Compare(const Attribute *attr) const;
   Attribute *Clone() const;
   void CopyFrom(const Attribute* right);
@@ -1596,17 +1598,17 @@ public:
   CcLines(const jobject jobj);
   /* retrieves the nested list representation of the underlying
      java object. */
-  /* This constructor creates an empty CcLines object. */        
+  /* This constructor creates an empty CcLines object. */
   CcLines();
   CcLines(size_t size);
   bool GetNL(ListExpr &le);
-  
+
   void SetObject(jobject obj) {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     this->obj = obj;
   }
 
-  /* Destructor of CcLines. This destructor destroys also the 
+  /* Destructor of CcLines. This destructor destroys also the
      object inside the JVM. */
   ~CcLines() {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -1619,8 +1621,8 @@ public:
   void Print() const;
 };
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1630,8 +1632,8 @@ int CcLines::Compare(const Attribute *attr) const {
   return env->CallByteMethod(obj,midLinesCompare,L->obj);
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1642,13 +1644,13 @@ Attribute *CcLines::Clone() const {
   return res;
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1663,8 +1665,8 @@ void CcLines::CopyFrom(const Attribute* right) {
   obj=0;
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -1711,7 +1713,7 @@ CcLines::CcLines(size_t size):Attribute(true),
 /*
  This constructor takes the nested list representation
    of CcLines and recovers the underlying java object with
-   help of this data. 
+   help of this data.
 
 */
 
@@ -1725,12 +1727,12 @@ CcLines::CcLines(const ListExpr &le, bool isList): Attribute(true),
   SetDefined(true);
 }
 
-/* 
+/*
  This constructor takes a pointer to a java object which is
-   already created. 
+   already created.
 
 */
- 
+
 CcLines::CcLines(const jobject jobj) : Attribute(true),objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   canDelete = false;
@@ -1740,18 +1742,18 @@ CcLines::CcLines(const jobject jobj) : Attribute(true),objectData(1) {
   SetDefined(true);
 }
 
-/* 
- This constructor creates an empty CcPoints object. 
+/*
+ This constructor creates an empty CcPoints object.
 
-*/        
+*/
 
 CcLines::CcLines() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
 }
 
-/* 
+/*
  retrieves the nested list representation of the underlying
-     java object. 
+     java object.
 
 */
 
@@ -1766,12 +1768,12 @@ bool CcLines::GetNL(ListExpr& le) {
   return true;
 }
 
-/* 
- Destructor of CcLines. This destructor destroys also the 
-     object inside the JVM. 
+/*
+ Destructor of CcLines. This destructor destroys also the
+     object inside the JVM.
 
 */
- 
+
 /*
   ~Destroy~
 
@@ -1784,8 +1786,8 @@ void CcLines::Destroy(){
   canDelete=true;
 }
 
-/* 
- Returns the pointer to the proper java objet. 
+/*
+ Returns the pointer to the proper java objet.
 
 */
 
@@ -1794,7 +1796,7 @@ jobject CcLines::GetObj() const {
   return obj;
 }
 
-/* 
+/*
  restores the java object from FLOB
    the FLOB must exist
 
@@ -1802,10 +1804,10 @@ jobject CcLines::GetObj() const {
 
 void CcLines::RestoreFLOBFromJavaObject(){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  jbyteArray jbytes = 
+  jbyteArray jbytes =
     (jbyteArray) env->CallObjectMethod(obj,midLinesWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
-  
+
   int size = env->GetArrayLength(jbytes);
 
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
@@ -1816,7 +1818,7 @@ void CcLines::RestoreFLOBFromJavaObject(){
   jbytes = 0;
  }
 
-/* 
+/*
  creates the content of a FLOB from the given Java-Object
 
 */
@@ -1824,7 +1826,7 @@ void CcLines::RestoreFLOBFromJavaObject(){
 void CcLines::RestoreJavaObjectFromFLOB(){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   if (obj) return;
-  
+
   if(&objectData == 0){
     return;
   }
@@ -1866,7 +1868,7 @@ void CcLines::SyncBboxData() {
   BboxTopLeftY = (double)env->CallDoubleMethod(bbox,midRectGetTopLeftY);
   BboxBottomRightX = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightX);
   BboxBottomRightY = (double)env->CallDoubleMethod(bbox,midRectGetBottomRightY);
-}  
+}
 
 
 /*
@@ -1907,22 +1909,22 @@ static ListExpr OutCcLines( ListExpr typeInfo, Word value ) {
   return le;
 }
 
-static Word InCcLines(const ListExpr typeInfo, 
+static Word InCcLines(const ListExpr typeInfo,
                       const ListExpr instance,
-                      const int errorPos, 
-                      ListExpr& errorInfo, 
+                      const int errorPos,
+                      ListExpr& errorInfo,
                       bool& correct ) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* newlines;
 
   correct = true;
   newlines = new CcLines(instance);
-  
+
   return SetWord(newlines);
 }
 
-/* 
- Creation of a CcLines object. 
+/*
+ Creation of a CcLines object.
 
 */
 
@@ -1935,8 +1937,8 @@ static Word CreateCcLines(const ListExpr typeInfo) {
   return SetWord(res);
 }
 
-/* 
- Deletion of a CcLines object. 
+/*
+ Deletion of a CcLines object.
 
 */
  static void DeleteCcLines(const ListExpr typeInfo, Word &w) {
@@ -1947,8 +1949,8 @@ static Word CreateCcLines(const ListExpr typeInfo) {
   w.addr = 0;
 }
 
-/* 
- Close a CcLines object. 
+/*
+ Close a CcLines object.
 
 */
 static void CloseCcLines(const ListExpr typeInfo, Word & w) {
@@ -1958,8 +1960,8 @@ static void CloseCcLines(const ListExpr typeInfo, Word & w) {
   w.addr = 0;
 }
 
-/* 
- Clone a CcLines object. 
+/*
+ Clone a CcLines object.
 
 */
 
@@ -1997,12 +1999,12 @@ bool SaveCcLines( SmiRecord& valueRecord ,
 
 /*
  3.4 Function Describing the Signature of the Type Constructor
- 
+
 */
 
 static ListExpr LinesProperty() {
 
-  return 
+  return
     (nl->TwoElemList
      (
       nl->FiveElemList
@@ -2076,17 +2078,17 @@ TypeConstructor cclines (
  // kind checking function
  );
 
-/* 
+/*
  4 Type Constructor ~Regions~
 
 4.1 Data Structure - Class ~Regions~
 
-The class CcRegions is just a wrapper to the 
-according Regions Java class. 
-The cls attribute holds a pointer to the 
-Java class Lines and the obj attribute 
+The class CcRegions is just a wrapper to the
+according Regions Java class.
+The cls attribute holds a pointer to the
+Java class Lines and the obj attribute
 holds a pointer to the java object itself.
-These pointers are used to invoke according 
+These pointers are used to invoke according
 java methods.
 
 */
@@ -2100,13 +2102,13 @@ private:
   void SyncBboxData();
 
 public:
-  // Bounding Box data 
+  // Bounding Box data
   double BboxTopLeftX;
   double BboxTopLeftY;
   double BboxBottomRightX;
   double BboxBottomRightY;
 
-  // Inherited methods of Attribute 
+  // Inherited methods of Attribute
   int Compare(const Attribute *attr) const;
   Attribute *Clone() const;
   void CopyFrom(const Attribute* right);
@@ -2136,19 +2138,19 @@ public:
   /* This constructor takes a pointer to a java object which is
      already created. */
   CcRegions(const jobject jobj);
-  /* This constructor creates an empty CcRegions object. */        
+  /* This constructor creates an empty CcRegions object. */
   CcRegions();
   CcRegions(size_t size);
   /* retrieves the nested list representation of the underlying
      java object. */
   bool GetNL(ListExpr &le);
-  
+
   void SetObject(jobject obj) {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
     this->obj = obj;
   }
 
-  /* Destructor of CcRegions. This destructor destroys also the 
+  /* Destructor of CcRegions. This destructor destroys also the
      object inside the JVM. */
   ~CcRegions() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -2156,13 +2158,13 @@ public:
     env->DeleteLocalRef(obj);
     obj = 0;
   }
-  // Returns the pointer to the proper java objet. 
+  // Returns the pointer to the proper java objet.
   jobject GetObj() const;
   void Print() const;
 };
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -2172,8 +2174,8 @@ int CcRegions::Compare(const Attribute *attr) const {
   return env->CallByteMethod(obj,midRegionsCompare,R->obj);
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -2184,12 +2186,12 @@ Attribute *CcRegions::Clone() const {
   return res;
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
-void CcRegions::CopyFrom(const Attribute* right) { 
+void CcRegions::CopyFrom(const Attribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcRegions *R = (const CcRegions *)right;
   objectData.copyFrom(R->objectData);
@@ -2200,8 +2202,8 @@ void CcRegions::CopyFrom(const Attribute* right) {
   obj=0;
 }
 
-/* 
- Inherited method of Attribute 
+/*
+ Inherited method of Attribute
 
 */
 
@@ -2245,10 +2247,10 @@ CcRegions::CcRegions(size_t size):Attribute(true),
   if (obj == 0) error(__FILE__,__LINE__);
 }
 
-/* 
+/*
  This constructor takes the nested list representation
    of CcRegions and recovers the underlying java object with
-   help of this data. 
+   help of this data.
 
 */
 
@@ -2262,9 +2264,9 @@ CcRegions::CcRegions(const ListExpr &le, bool isList):Attribute(true),
   SetDefined(true);
 }
 
-/* 
+/*
  This constructor takes a pointer to a java object which is
-   already created. 
+   already created.
 
 */
 
@@ -2277,18 +2279,18 @@ CcRegions::CcRegions(const jobject jobj):Attribute(true),objectData(1) {
   SetDefined(true);
 }
 
-/* 
+/*
  This constructor creates an empty CcRegions object.
 
-*/        
+*/
 
 CcRegions::CcRegions() {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
 }
 
-/* 
+/*
  retrieves the nested list representation of the underlying
-     java object. 
+     java object.
 
 */
 
@@ -2303,12 +2305,12 @@ bool CcRegions::GetNL(ListExpr& le) {
   return true;
 }
 
-/* 
- Destructor of CcRegions. This destructor destroys also the 
-   object inside the JVM. 
+/*
+ Destructor of CcRegions. This destructor destroys also the
+   object inside the JVM.
 
 */
- 
+
 /*
   ~Destroy~
 
@@ -2321,8 +2323,8 @@ void CcRegions::Destroy(){
   canDelete=true;
 }
 
-/* 
- Returns the pointer to the proper java object. 
+/*
+ Returns the pointer to the proper java object.
 
 */
 
@@ -2331,7 +2333,7 @@ jobject CcRegions::GetObj() const {
   return obj;
 }
 
-/* 
+/*
  restores the java object from FLOB
    the FLOB must exists
 
@@ -2339,10 +2341,10 @@ jobject CcRegions::GetObj() const {
 
 void CcRegions::RestoreFLOBFromJavaObject(){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  jbyteArray jbytes = 
+  jbyteArray jbytes =
     (jbyteArray) env->CallObjectMethod(obj,midRegionsWriteToByteArray);
   if(jbytes == 0) error(__FILE__,__LINE__);
-  
+
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.resize(size);
@@ -2352,7 +2354,7 @@ void CcRegions::RestoreFLOBFromJavaObject(){
   jbytes = 0;
 }
 
-/* 
+/*
  creates the content of a FLOB from the given Java-Object
 
 */
@@ -2416,18 +2418,18 @@ The list representation of a CcRegions object is
 ----        (face1 face2 ... facen)
 ----
 
-whereas the (internal) list representation of a face is 
+whereas the (internal) list representation of a face is
 
 ----        (outer[_]cycle hole[_]cycle1 hole[_]cycle2 ... hole[_]cyclem)
 ----
 
-whereas the (internal) list representation of a cycle 
-(outer[_]cycle or hole[_]cycle) is  
+whereas the (internal) list representation of a cycle
+(outer[_]cycle or hole[_]cycle) is
 
 ----        (vertex1 vertex2 ... vertexk)
 ----
 
-whereas the (internal) list representation of a vertex is 
+whereas the (internal) list representation of a vertex is
 the same as for a point:
 
 ----        (xCoord yCoord)
@@ -2454,21 +2456,21 @@ static ListExpr OutCcRegions( ListExpr typeInfo, Word value ) {
 }
 
 
-static Word InCcRegions(const ListExpr typeInfo, 
+static Word InCcRegions(const ListExpr typeInfo,
                         const ListExpr instance,
-                        const int errorPos, 
-                        ListExpr& errorInfo, 
+                        const int errorPos,
+                        ListExpr& errorInfo,
                         bool& correct ) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* newregions;
   correct = true;
   newregions = new CcRegions(instance);
-  
+
   return SetWord(newregions);
 }
 
-/* 
- Creation of a CcRegions object. 
+/*
+ Creation of a CcRegions object.
 
 */
 
@@ -2479,21 +2481,21 @@ static Word CreateCcRegions(const ListExpr typeInfo) {
   return SetWord(res);
 }
 
-/* 
- Deletion of a CcRegions object. 
+/*
+ Deletion of a CcRegions object.
 
 */
 
 static void DeleteCcRegions(const ListExpr typeInfo, Word &w) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  //cout << "+++ called Delete of CcRegions +++" << endl; 
+  //cout << "+++ called Delete of CcRegions +++" << endl;
   //((CcRegions*)w.addr)->Finalize();
   delete ((CcRegions *)w.addr);
   w.addr = 0;
 }
 
-/* 
- Close a CcRegions object. 
+/*
+ Close a CcRegions object.
 
 */
 
@@ -2504,8 +2506,8 @@ static void CloseCcRegions(const ListExpr typeInfo, Word & w) {
   w.addr = 0;
 }
 
-/* 
- Clone a CcRegions object. 
+/*
+ Clone a CcRegions object.
 
 */
 
@@ -2532,7 +2534,7 @@ bool SaveCcRegions(SmiRecord& valueRecord,size_t& offset,
                    const ListExpr typeInfo,Word& value) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* R = (CcRegions*) value.addr;
-  Attribute::Save(valueRecord,offset,typeInfo,R); 
+  Attribute::Save(valueRecord,offset,typeInfo,R);
   return true;
 }
 
@@ -2544,7 +2546,7 @@ bool SaveCcRegions(SmiRecord& valueRecord,size_t& offset,
 
 static ListExpr RegionsProperty() {
 
-  return 
+  return
     (nl->TwoElemList
      (
       nl->FiveElemList
@@ -2618,7 +2620,7 @@ TypeConstructor ccregions (
  CheckCcRegions
  // kind checking function
  );
- 
+
 /*
  5 Creating Operators
 
@@ -2637,19 +2639,19 @@ static ListExpr equalTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                                  "types as parameters.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 2.");
   return nl->SymbolAtom("typeerror");
@@ -2662,19 +2664,19 @@ static ListExpr unequalTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                                  "types as parameters.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 2.");
   return nl->SymbolAtom("typeerror");
@@ -2687,19 +2689,19 @@ static ListExpr disjointTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got "
                                  "wrong types as parameters.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 2.");
   return nl->SymbolAtom("typeerror");
@@ -2712,19 +2714,19 @@ static ListExpr insideTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                                  "types as parameters.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 2.");
   return nl->SymbolAtom("typeerror");
@@ -2737,21 +2739,21 @@ static ListExpr intersectsTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                                  "types as parameters.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 2.");
   return nl->SymbolAtom("typeerror");
@@ -2764,21 +2766,21 @@ static ListExpr meetsTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                                  "types as parameters.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 2.");
   return nl->SymbolAtom("typeerror");
@@ -2791,15 +2793,15 @@ static ListExpr borderInCommonTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
-    if ((nl->AtomType(arg1) == SymbolType) && 
-        (nl->AtomType(arg2) == SymbolType)) 
+      return nl->SymbolAtom(CcBool::BasicType());
+    if ((nl->AtomType(arg1) == SymbolType) &&
+        (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
         +nl->SymbolValue(arg1)+" and "+nl->SymbolValue(arg2));
     else
@@ -2818,9 +2820,9 @@ static ListExpr onBorderOfTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
@@ -2947,13 +2949,13 @@ static ListExpr verticesTypeMap (ListExpr args) {
       return nl->SymbolAtom("rpoints");
     if (nl->IsEqual(arg1,"rregion"))
       return nl->SymbolAtom("rpoints");
-    if ((nl->AtomType(arg1) == SymbolType)) 
+    if ((nl->AtomType(arg1) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameter of type "
         +nl->SymbolValue(arg1));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                                  "type as parameter.");
-  } 
+  }
   ErrorReporter::ReportError("Type mapping function got a "
                              "parameter of lengh != 1.");
   return nl->SymbolAtom("typeerror");
@@ -2965,11 +2967,11 @@ static ListExpr noOfComponentsTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
     if (nl->IsEqual(arg1,"rpoints"))
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     if (nl->IsEqual(arg1,"rline"))
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     if (nl->IsEqual(arg1,"rregion"))
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameter of type "
@@ -2990,23 +2992,23 @@ static ListExpr distTypeMap (ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rpoints"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rpoints") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rpoints"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rline") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rpoints"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rline"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rregion") && nl->IsEqual(arg2,"rregion"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameters of type "
@@ -3026,11 +3028,11 @@ static ListExpr diameterTypeMap (ListExpr args) {
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
     if (nl->IsEqual(arg1,"rpoints"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rline"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->IsEqual(arg1,"rregion"))
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     if ((nl->AtomType(arg1) == SymbolType) &&
         (nl->AtomType(arg2) == SymbolType))
       ErrorReporter::ReportError("Type mapping function got parameter of type "
@@ -3044,12 +3046,12 @@ static ListExpr diameterTypeMap (ListExpr args) {
   return nl->SymbolAtom("typeerror");
 }
 
-/* 
+/*
 This is a general type mapping function for all Rose methods
-   which take two parameters. 
+   which take two parameters.
 
 */
-static ListExpr typeMappingRose (ListExpr args, char *type1, 
+static ListExpr typeMappingRose (ListExpr args, char *type1,
                                  char *type2, char *resulttype) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1, arg2;
@@ -3057,20 +3059,20 @@ static ListExpr typeMappingRose (ListExpr args, char *type1,
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, type1) 
-         && nl->IsEqual(arg2, type2))  
+    if ( nl->IsEqual(arg1, type1)
+         && nl->IsEqual(arg2, type2))
       return nl->SymbolAtom(resulttype);
   }
   return nl->SymbolAtom("typeerror");
 }
 
-/* 
+/*
  This is a general type mapping function for all Rose methods
-   which take one parameter. 
+   which take one parameter.
 
 */
 
-static ListExpr typeMappingRose (ListExpr args, char *type1, 
+static ListExpr typeMappingRose (ListExpr args, char *type1,
                                  char *resulttype) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   ListExpr arg1;
@@ -3084,19 +3086,19 @@ static ListExpr typeMappingRose (ListExpr args, char *type1,
 }
 
 
-/* 
- type mapping function: ccregions x ccregions -> bool 
+/*
+ type mapping function: ccregions x ccregions -> bool
 
 */
 
 static ListExpr ccregionsccregionsBool(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "rregion", "rregion", "bool");
+  return typeMappingRose(args, "rregion", "rregion", CcBool::BasicType());
 }
 
 
-/* 
- type mapping function: cclines -> ccregions 
+/*
+ type mapping function: cclines -> ccregions
 
 */
 
@@ -3106,8 +3108,8 @@ static ListExpr cclinesccregions(ListExpr args) {
 }
 
 
-/* 
- type mapping function: ccregions -> cclines 
+/*
+ type mapping function: ccregions -> cclines
 
 */
 
@@ -3117,24 +3119,24 @@ static ListExpr ccregionscclines(ListExpr args) {
 }
 
 
-/* 
- type mapping function: ccregions -> real 
+/*
+ type mapping function: ccregions -> real
 
 */
 
 static ListExpr ccregionsDouble(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "rregion", "real");
+  return typeMappingRose(args, "rregion", CcReal::BasicType());
 }
 
-/* 
- type mapping function: cclines -> real 
+/*
+ type mapping function: cclines -> real
 
 */
 
 static ListExpr cclinesDouble(ListExpr args) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return typeMappingRose(args, "rline", "real");
+  return typeMappingRose(args, "rline", CcReal::BasicType());
 }
 
 /*
@@ -3147,8 +3149,8 @@ static ListExpr intBool (ListExpr args) {
   ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
-    if (nl->IsEqual(arg1, "int"))
-      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1, CcInt::BasicType()))
+      return nl->SymbolAtom(CcBool::BasicType());
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -3163,8 +3165,8 @@ static ListExpr doubleBool (ListExpr args) {
   ListExpr arg1;
   if (nl->ListLength(args) == 1) {
     arg1 = nl->First(args);
-    if (nl->IsEqual(arg1, "real"))
-      return nl->SymbolAtom("bool");
+    if (nl->IsEqual(arg1, CcReal::BasicType()))
+      return nl->SymbolAtom(CcBool::BasicType());
   }
   return nl->SymbolAtom("typeerror");
 }
@@ -3180,7 +3182,7 @@ operator, we just have to return 0.
 
 static int simpleSelect (ListExpr args ){
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  return 0; 
+  return 0;
 }
 
 static int equalSelect (ListExpr args) {
@@ -3429,7 +3431,7 @@ static double convertRational(jobject jrat) {
 static int callSetDeviationValue(CcReal *ccr) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //set deviation value to ccr
-  //jmethodID midSetDeviation = 
+  //jmethodID midSetDeviation =
   //  env->GetStaticMethodID(clsROSEAlgebra, "setDeviationValue", "(D)V");
   //if (midSetDeviation == 0) error(__FILE__,__LINE__);
   double v = ccr->GetRealval();
@@ -3447,18 +3449,18 @@ static int callSetDeviationValue(CcReal *ccr) {
 static int callChooseTriangulator(CcInt *cci) {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //set the triangulator
-  //jmethodID midChooseTri = 
+  //jmethodID midChooseTri =
   //  env->GetStaticMethodID(clsROSEAlgebra, "chooseTriangulator", "(I)V");
   //if (midChooseTri == 0) error(__FILE__,__LINE__);
-  env->CallStaticVoidMethod(clsROSEAlgebra, 
-                            midROSEChooseTriangulator, 
+  env->CallStaticVoidMethod(clsROSEAlgebra,
+                            midROSEChooseTriangulator,
                             cci->GetIntval());
 
   return 0;
 }
 
 /*
- 5.3.2 The proper Value Mapping Functions. 
+ 5.3.2 The proper Value Mapping Functions.
 
 */
 
@@ -3468,54 +3470,54 @@ static int callChooseTriangulator(CcInt *cci) {
 
 */
 
-static bool bboxesIntersect(double o1tlx, double o1tly, 
+static bool bboxesIntersect(double o1tlx, double o1tly,
                             double o1brx, double o1bry,
-                            double o2tlx, double o2tly, 
+                            double o2tlx, double o2tly,
                             double o2brx, double o2bry) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   //cout << "bboxesIntersect" << endl;
   bool xcomm = false;
   bool ycomm = false;
-    
-  //    if (o1tlx == o2tlx || o1brx == o2brx || 
+
+  //    if (o1tlx == o2tlx || o1brx == o2brx ||
   //        o1tlx == o2brx || o1brx == o2tlx ||
-  //    (o1tlx < o2tlx && o1brx > o2tlx) || 
+  //    (o1tlx < o2tlx && o1brx > o2tlx) ||
   //    (o1tlx < o2brx && o1brx > o2brx) ||
-  //    (o2tlx < o1tlx && o2brx > o1tlx) || 
+  //    (o2tlx < o1tlx && o2brx > o1tlx) ||
   //    (o2tlx < o1brx && o2brx > o1brx))
   //    xcomm = true;
-      
-  
+
+
   if (fabs(o1tlx - o2tlx) < DEVIATION_VALUE ||
       fabs(o1brx - o2brx) < DEVIATION_VALUE ||
       fabs(o1tlx - o2brx) < DEVIATION_VALUE ||
       fabs(o1brx - o2tlx) < DEVIATION_VALUE ||
-      (o1tlx < o2tlx && o1brx > o2tlx) || 
+      (o1tlx < o2tlx && o1brx > o2tlx) ||
       (o1tlx < o2brx && o1brx > o2brx) ||
-      (o2tlx < o1tlx && o2brx > o1tlx) || 
+      (o2tlx < o1tlx && o2brx > o1tlx) ||
       (o2tlx < o1brx && o2brx > o1brx))
     xcomm = true;
-  
-  
-  //  if (o1tly == o2tly || o1bry == o2bry || 
+
+
+  //  if (o1tly == o2tly || o1bry == o2bry ||
   //      o1tly == o2bry || o1bry == o1tly ||
-  //  (o1tly > o2tly && o1bry < o2tly) || 
+  //  (o1tly > o2tly && o1bry < o2tly) ||
   //  (o1tly > o2bry && o1bry < o2bry) ||
-  //  (o2tly > o1tly && o2bry < o1tly) || 
+  //  (o2tly > o1tly && o2bry < o1tly) ||
   //  (o2tly > o1bry && o2bry < o1bry))
   //  ycomm = true;
-    
-  
+
+
   if (abs(o1tly - o2tly) < DEVIATION_VALUE ||
       abs(o1bry - o2bry) < DEVIATION_VALUE ||
       abs(o1tly - o2bry) < DEVIATION_VALUE ||
       abs(o1bry - o2tly) < DEVIATION_VALUE ||
-      (o1tly > o2tly && o1bry < o2tly) || 
+      (o1tly > o2tly && o1bry < o2tly) ||
       (o1tly > o2bry && o1bry < o2bry) ||
-      (o2tly > o1tly && o2bry < o1tly) || 
+      (o2tly > o1tly && o2bry < o1tly) ||
       (o2tly > o1bry && o2bry < o1bry))
     ycomm = true;
-  if (xcomm && ycomm) 
+  if (xcomm && ycomm)
     return true;
   else
     return false;
@@ -3527,33 +3529,33 @@ static bool bboxesIntersect(double o1tlx, double o1tly,
 
 */
 
-static bool bboxesEqual(double o1tlx, double o1tly, 
+static bool bboxesEqual(double o1tlx, double o1tly,
                         double o1brx, double o1bry,
-                        double o2tlx, double o2tly, 
+                        double o2tlx, double o2tly,
                         double o2brx, double o2bry) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
-  //if (o1tlx == o2tlx && o1tly == o2tly && 
+  //if (o1tlx == o2tlx && o1tly == o2tly &&
   //    o1brx == o2brx && o1bry == o2bry)
   if (abs(o1tlx - o2tlx) < DEVIATION_VALUE &&
       abs(o1tly - o2tly) < DEVIATION_VALUE &&
       abs(o1brx - o2brx) < DEVIATION_VALUE &&
       abs(o1bry - o2bry) < DEVIATION_VALUE)
     return true;
-  else 
+  else
     return false;
 }
 
-/* 
- Equals predicate for two ccpoints. 
+/*
+ Equals predicate for two ccpoints.
 
 */
 
-static int pp_equalFun(Word* args, Word& result, int message, 
+static int pp_equalFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
-  
+
   //if bboxes aren't equal, return false
   if (!bboxesEqual(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,
                    ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
@@ -3566,7 +3568,7 @@ static int pp_equalFun(Word* args, Word& result, int message,
 
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
-  
+
   result = qp->ResultStorage(s);
   //((CcBool *)result.addr)->Set(true, callJMethod_PPB("pp_equal", ccp1, ccp2));
   jboolean obj = env->CallStaticBooleanMethod(clsROSEAlgebra,midROSEpp_equal,
@@ -3579,16 +3581,16 @@ static int pp_equalFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_equal,
   //                                       ccp1->GetObj(),ccp2->GetObj()));
-  
+
   return 0;
 }
 
 /*
- Equals predicate for two cclines. 
+ Equals predicate for two cclines.
 
 */
 
-static int ll_equalFun(Word* args, Word& result, int message, 
+static int ll_equalFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ls1 = ((CcLines *)args[0].addr);
@@ -3606,8 +3608,8 @@ static int ll_equalFun(Word* args, Word& result, int message,
 
   if (!ls1->GetObject()) ls1->RestoreJavaObjectFromFLOB();
   if (!ls2->GetObject()) ls2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   //((CcBool *)result.addr)->Set(true, callJMethod_LLB("ll_equal", ls1, ls2));
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_equal,
                                             ls1->GetObj(),ls2->GetObj());
@@ -3623,12 +3625,12 @@ static int ll_equalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- Equal predicate for two ccregions. 
+/*
+ Equal predicate for two ccregions.
 
 */
 
-static int rr_equalFun(Word* args, Word& result, int message, 
+static int rr_equalFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* rs1 = ((CcRegions *)args[0].addr);
@@ -3647,8 +3649,8 @@ static int rr_equalFun(Word* args, Word& result, int message,
   //bboxes intersect, so prepare to invoke the Java method
   if (!rs1->GetObject()) rs1->RestoreJavaObjectFromFLOB();
   if (!rs2->GetObject()) rs2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   //((CcBool *)result.addr)->Set(true, callJMethod_RRB("rr_equal", rs1, rs2));
 
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_equal,
@@ -3666,11 +3668,11 @@ static int rr_equalFun(Word* args, Word& result, int message,
 }
 
 /*
- pp[_]unequal predicate for two ccpoints. 
+ pp[_]unequal predicate for two ccpoints.
 
 */
 
-static int pp_unequalFun(Word* args, Word& result, int message, 
+static int pp_unequalFun(Word* args, Word& result, int message,
                          Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccps1 = ((CcPoints *)args[0].addr);
@@ -3688,7 +3690,7 @@ static int pp_unequalFun(Word* args, Word& result, int message,
   //bboxes are equal, so prepare to invoke Java method
   if (!ccps1->GetObject()) ccps1->RestoreJavaObjectFromFLOB();
   if (!ccps2->GetObject()) ccps2->RestoreJavaObjectFromFLOB();
-  
+
   result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_unequal,
                                             ccps1->GetObj(),ccps2->GetObj());
@@ -3700,21 +3702,21 @@ static int pp_unequalFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_unequal,
   //                                       ccps1->GetObj(),ccps2->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- ll[_]nequal predicate for two cclines. 
- 
+/*
+ ll[_]nequal predicate for two cclines.
+
 */
 
-static int ll_unequalFun(Word* args, Word& result, int message, 
+static int ll_unequalFun(Word* args, Word& result, int message,
                          Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes aren't equal, return true
   if (!bboxesEqual(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                    ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -3728,8 +3730,8 @@ static int ll_unequalFun(Word* args, Word& result, int message,
   //bboxes are equal, prepare to invoke the Java method
   if (!ccl1 ->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2 ->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
-  
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_unequal,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3740,22 +3742,22 @@ static int ll_unequalFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_unequal,
   //                                       ccl1->GetObj(),ccl2->GetObj()));
-  
+
   return 0;
 }
 
 /*
 
- rr[_]unequal predicate for two ccregions 
+ rr[_]unequal predicate for two ccregions
 
 */
 
-static int rr_unequalFun(Word* args, Word& result, int message, 
+static int rr_unequalFun(Word* args, Word& result, int message,
                          Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-        
+
   //if bboxes aren't equal, return true
   if (!bboxesEqual(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                    ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -3765,12 +3767,12 @@ static int rr_unequalFun(Word* args, Word& result, int message,
     ((CcBool*)result.addr)->Set(true,true);
     return 0;
   }
-  
+
   //bboxes are equal, so prepare to invoke the Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-  
-  result = qp->ResultStorage(s);         
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_unequal,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3781,21 +3783,21 @@ static int rr_unequalFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_unequal,
   //                                       ccr1->GetObj(),ccr2->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- pp[_]disjoint predicate for two CcPoints 
+/*
+ pp[_]disjoint predicate for two CcPoints
 
 */
 
-static int pp_disjointFun(Word* args, Word& result, int message, 
+static int pp_disjointFun(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp1 = ((CcPoints *)args[0].addr);
   CcPoints* ccp2 = ((CcPoints *)args[1].addr);
-        
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,
                        ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
@@ -3809,8 +3811,8 @@ static int pp_disjointFun(Word* args, Word& result, int message,
   //bboxes are equal, prepare to invoke the Java method
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
-  
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_disjoint,
                                             ccp1->GetObj(),ccp2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3825,12 +3827,12 @@ static int pp_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- ll[_]disjoint predicate for two CcLines 
+/*
+ ll[_]disjoint predicate for two CcLines
 
 */
 
-static int ll_disjointFun(Word* args, Word& result, int message, 
+static int ll_disjointFun(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
@@ -3845,12 +3847,12 @@ static int ll_disjointFun(Word* args, Word& result, int message,
     ((CcBool*)result.addr)->Set(true,true);
     return 0;
   }
-  
+
   //bboxes intersect, so prepare to invoke the Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_disjoint,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3864,12 +3866,12 @@ static int ll_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]disjoint predicate for two CcRegions 
+/*
+ rr[_]disjoint predicate for two CcRegions
 
 */
 
-static int rr_disjointFun(Word* args, Word& result, int message, 
+static int rr_disjointFun(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -3888,7 +3890,7 @@ static int rr_disjointFun(Word* args, Word& result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_disjoint,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3899,21 +3901,21 @@ static int rr_disjointFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_disjoint,
   //                                       ccr1->GetObj(),ccr2->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- pr[_]inside predicate for CcPoints and CcRegions 
+/*
+ pr[_]inside predicate for CcPoints and CcRegions
 
 */
 
-static int pr_insideFun(Word* args, Word& result, int message, 
+static int pr_insideFun(Word* args, Word& result, int message,
                         Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccp->BboxTopLeftX,ccp->BboxTopLeftY,
                        ccp->BboxBottomRightX,ccp->BboxBottomRightY,
@@ -3927,7 +3929,7 @@ static int pr_insideFun(Word* args, Word& result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_inside,
                                             ccp->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3938,21 +3940,21 @@ static int pr_insideFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_inside,
   //                                       ccp->GetObj(),ccr->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- lr[_]inside predicate for CcLines and CcRegions 
+/*
+ lr[_]inside predicate for CcLines and CcRegions
 
 */
 
-static int lr_insideFun(Word* args, Word& result, int message, 
+static int lr_insideFun(Word* args, Word& result, int message,
                         Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
-        
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,
                        ccl->BboxBottomRightX,ccl->BboxBottomRightY,
@@ -3966,7 +3968,7 @@ static int lr_insideFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_inside,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -3977,21 +3979,21 @@ static int lr_insideFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_inside,
   //                                       ccl->GetObj(),ccr->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- rr[_]inside predicate for two CcRegions 
+/*
+ rr[_]inside predicate for two CcRegions
 
 */
 
-static int rr_insideFun(Word* args, Word& result, int message, 
+static int rr_insideFun(Word* args, Word& result, int message,
                         Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -4004,8 +4006,8 @@ static int rr_insideFun(Word* args, Word& result, int message,
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-  
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_inside,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4020,12 +4022,12 @@ static int rr_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]area[_]disjoint predicate for two CcRegions 
+/*
+ rr[_]area[_]disjoint predicate for two CcRegions
 
 */
 
-static int rr_area_disjointFun(Word* args, Word& result, int message, 
+static int rr_area_disjointFun(Word* args, Word& result, int message,
                                Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4043,8 +4045,8 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErr_area_disjoint,
                                             ccr1->GetObj(),
@@ -4059,16 +4061,16 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
   //                                       midROSErr_area_disjoint,
   //                                       ccr1->GetObj(),
   //                                       ccr2->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- rr[_]edge[_]disjoint predicate for two CcRegions 
+/*
+ rr[_]edge[_]disjoint predicate for two CcRegions
 
 */
 
-static int rr_edge_disjointFun(Word* args, Word& result, int message, 
+static int rr_edge_disjointFun(Word* args, Word& result, int message,
                                Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4087,7 +4089,7 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErr_edge_disjoint,
                                             ccr1->GetObj(),
@@ -4106,12 +4108,12 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]edge[_]inside predicate for two CcRegions 
+/*
+ rr[_]edge[_]inside predicate for two CcRegions
 
 */
 
-static int rr_edge_insideFun(Word* args, Word& result, int message, 
+static int rr_edge_insideFun(Word* args, Word& result, int message,
                              Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4129,8 +4131,8 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErr_edge_inside,
                                             ccr1->GetObj(),
@@ -4149,12 +4151,12 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]vertex[_]inside predicate for two CcRegions 
+/*
+ rr[_]vertex[_]inside predicate for two CcRegions
 
 */
 
-static int rr_vertex_insideFun(Word* args, Word& result, int message, 
+static int rr_vertex_insideFun(Word* args, Word& result, int message,
                                Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4172,8 +4174,8 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErr_vertex_inside,
                                             ccr1->GetObj(),
@@ -4192,12 +4194,12 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]intersects predicate for two CcRegions 
+/*
+ rr[_]intersects predicate for two CcRegions
 
 */
 
-static int rr_intersectsFun(Word* args, Word& result, int message, 
+static int rr_intersectsFun(Word* args, Word& result, int message,
                             Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4215,8 +4217,8 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_intersects,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4231,17 +4233,17 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]meets predicate for two CcRegions 
+/*
+ rr[_]meets predicate for two CcRegions
 
 */
 
-static int rr_meetsFun(Word* args, Word& result, int message, 
+static int rr_meetsFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -4254,8 +4256,8 @@ static int rr_meetsFun(Word* args, Word& result, int message,
   //bboxes intersect
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_meets,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4270,17 +4272,17 @@ static int rr_meetsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]border[_]in[_]common predicate for two CcRegions 
+/*
+ rr[_]border[_]in[_]common predicate for two CcRegions
 
 */
 
-static int rr_border_in_commonFun(Word* args, Word& result, int message, 
+static int rr_border_in_commonFun(Word* args, Word& result, int message,
                                   Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -4294,7 +4296,7 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErr_border_in_common,
                                             ccr1->GetObj(),
@@ -4313,17 +4315,17 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]adjacent predicate for two CcRegions 
+/*
+ rr[_]adjacent predicate for two CcRegions
 
 */
 
-static int rr_adjacentFun(Word* args, Word& result, int message, 
+static int rr_adjacentFun(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -4336,8 +4338,8 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-        
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_adjacent,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4352,12 +4354,12 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]encloses predicate for two CcRegions 
- 
+/*
+ rr[_]encloses predicate for two CcRegions
+
 */
 
-static int rr_enclosesFun(Word* args, Word& result, int message, 
+static int rr_enclosesFun(Word* args, Word& result, int message,
                           Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
@@ -4376,7 +4378,7 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_encloses,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4391,25 +4393,25 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]intersection predicate for two CcRegions 
+/*
+ rr[_]intersection predicate for two CcRegions
 
 */
 
-static int rr_intersectionFun(Word* args, Word& result, int message, 
+static int rr_intersectionFun(Word* args, Word& result, int message,
                               Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
                        ccr2->BboxTopLeftX,ccr2->BboxTopLeftY,
                        ccr2->BboxBottomRightX,ccr2->BboxBottomRightY)) {
-    //((CcRegions*)result.addr) = 
+    //((CcRegions*)result.addr) =
     //  new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
     result = qp->ResultStorage(s);
     //delete (CcRegions*)result.addr;
@@ -4421,14 +4423,14 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
     ccresult = 0;
     return 0;
   }
-  
+
   //bboxes intersect, prepare to invoke Java method
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
-  
+
   result = qp->ResultStorage(s);
   //delete (CcRegions*)result.addr;
-  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra, 
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErr_intersection,
                                             ccr1->GetObj(),
                                             ccr2->GetObj());
@@ -4437,7 +4439,7 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsRegions,midRegionsConstVoid);
   }
   ccresult = new CcRegions(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                            midROSErr_intersection,
   //                                            ccr1->GetObj(),
@@ -4454,12 +4456,12 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]plus predicate for two CcRegions 
+/*
+ rr[_]plus predicate for two CcRegions
 
 */
 
-static int rr_plusFun(Word* args, Word& result, int message, 
+static int rr_plusFun(Word* args, Word& result, int message,
                       Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccresult;
@@ -4470,7 +4472,7 @@ static int rr_plusFun(Word* args, Word& result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcRegions*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_plus,
                                             ccr1->GetObj(),ccr2->GetObj());
@@ -4479,32 +4481,32 @@ static int rr_plusFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsRegions,midRegionsConstVoid);
   }
   ccresult = new CcRegions(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_plus,
   //                                            ccr1->GetObj(),ccr2->GetObj()));
   ((CcRegions*)result.addr)->CopyFrom(ccresult);
   delete ccresult;
   ccresult = 0;
-  //qp->ResultStorage(s,SetWord(ccresult));  
+  //qp->ResultStorage(s,SetWord(ccresult));
   //ccresult = callJMethod_RRR("rr_plus", ccr1, ccr2);
   //result.addr = ccresult;
 
   return 0;
 }
 
-/* 
- rr[_]minus predicate for two CcRegions 
+/*
+ rr[_]minus predicate for two CcRegions
 
 */
 
-static int rr_minusFun(Word* args, Word& result, int message, 
+static int rr_minusFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return first object
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -4521,7 +4523,7 @@ static int rr_minusFun(Word* args, Word& result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcRegions*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,
                                             ccr1->GetObj(),ccr2->GetObj());
@@ -4530,7 +4532,7 @@ static int rr_minusFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsRegions,midRegionsConstVoid);
   }
   ccresult = new CcRegions(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcRegions(env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_minus,
   //                                            ccr1->GetObj(),ccr2->GetObj()));
   ((CcRegions*)result.addr)->CopyFrom(ccresult);
@@ -4546,19 +4548,19 @@ static int rr_minusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rr[_]common[_]border predicate for two CcRegions 
+/*
+ rr[_]common[_]border predicate for two CcRegions
 
 */
 
-static int rr_common_borderFun(Word *args, Word& result, 
+static int rr_common_borderFun(Word *args, Word& result,
                                int message, Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcRegions* ccr1 = ((CcRegions *)args[0].addr);
   CcRegions* ccr2 = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccr1->BboxTopLeftX,ccr1->BboxTopLeftY,
                        ccr1->BboxBottomRightX,ccr1->BboxBottomRightY,
@@ -4572,7 +4574,7 @@ static int rr_common_borderFun(Word *args, Word& result,
     //delete (CcLines*)result.addr;
     //qp->ResultStorage(s,SetWord(
     //  new CcLines(env->NewObject(clsLines,midLinesConst))));
-    //((CcRegions*)result.addr) = 
+    //((CcRegions*)result.addr) =
     //  new CcRegions(env->NewObject(clsRegions,midRegionsConstVoid));
     return 0;
   }
@@ -4591,7 +4593,7 @@ static int rr_common_borderFun(Word *args, Word& result,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                          midROSErr_common_border,
   //                                          ccr1->GetObj(),
@@ -4605,8 +4607,8 @@ static int rr_common_borderFun(Word *args, Word& result,
   return 0;
 }
 
-/* 
- ll[_]intersects predicate for two CcLines 
+/*
+ ll[_]intersects predicate for two CcLines
 
 */
 
@@ -4615,7 +4617,7 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                        ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -4628,8 +4630,8 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
   //bboxes intersect, so prepare to call Java method
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
-  
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersects,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4640,14 +4642,14 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_intersects,
   //                                       ccl1->GetObj(),ccl2->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- lr[_]intersects predicate for CcLines and CcRegions 
+/*
+ lr[_]intersects predicate for CcLines and CcRegions
 
-*/ 
+*/
 
 static int lr_intersectsFun(Word* args, Word& result, int message,
                             Word& local, Supplier s) {
@@ -4659,7 +4661,7 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
   if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,
                        ccl->BboxBottomRightX,ccl->BboxBottomRightY,
                        ccr->BboxTopLeftX,ccr->BboxTopLeftY,
-                       ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {  
+                       ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
     ((CcBool*)result.addr)->Set(true,false);
     return 0;
@@ -4668,7 +4670,7 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_intersects,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4679,12 +4681,12 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_intersects,
   //                                       ccl->GetObj(),ccr->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- rl[_]intersects predicate for CcRegions and CcLines 
+/*
+ rl[_]intersects predicate for CcRegions and CcLines
 
 */
 
@@ -4693,7 +4695,7 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,
                        ccr->BboxBottomRightX,ccr->BboxBottomRightY,
@@ -4707,7 +4709,7 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersects,
                                             ccr->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4718,21 +4720,21 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_intersects,
   //                                       ccr->GetObj(),ccl->GetObj()));
-  
+
   return 0;
 }
 
-/* 
+/*
  ll[_]meets predicate for two cclines.
 
 */
 
-static int ll_meetsFun(Word* args, Word& result, int message, 
+static int ll_meetsFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                        ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -4746,7 +4748,7 @@ static int ll_meetsFun(Word* args, Word& result, int message,
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_meets,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4761,17 +4763,17 @@ static int ll_meetsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- lr[_]meets predicate for cclines and ccregions. 
+/*
+ lr[_]meets predicate for cclines and ccregions.
 
 */
 
-static int lr_meetsFun(Word* args, Word& result, int message, 
+static int lr_meetsFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
-        
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,
                        ccl->BboxBottomRightX,ccl->BboxBottomRightY,
@@ -4785,7 +4787,7 @@ static int lr_meetsFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_meets,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4796,16 +4798,16 @@ static int lr_meetsFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_meets,
   //                                       ccl->GetObj(),ccr->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- rl[_]meets predicate for ccregions and cclines 
+/*
+ rl[_]meets predicate for ccregions and cclines
 
 */
 
-static int rl_meetsFun(Word* args, Word& result, int message, 
+static int rl_meetsFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr = ((CcRegions *)args[0].addr);
@@ -4824,7 +4826,7 @@ static int rl_meetsFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_meets,
                                             ccr->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
@@ -4835,21 +4837,21 @@ static int rl_meetsFun(Word* args, Word& result, int message,
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_meets,
   //                                       ccr->GetObj(),ccl->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- ll[_]border[_]in[_]common predicate for two CcLines. 
+/*
+ ll[_]border[_]in[_]common predicate for two CcLines.
 
 */
 
-static int ll_border_in_commonFun(Word* args, Word& result, int message, 
+static int ll_border_in_commonFun(Word* args, Word& result, int message,
                                   Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                        ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -4863,7 +4865,7 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSEll_border_in_common,
                                             ccl1->GetObj(),
@@ -4875,24 +4877,24 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
   ((CcBool*)result.addr)->Set(true,obj);
   //((CcBool*)result.addr)->
   //  Set(true,env->CallStaticObjectMethod(clsROSEAlgebra,
-  //                                       midROSEll_border_in_common, 
+  //                                       midROSEll_border_in_common,
   //                                       ccl1->GetObj(),
   //                                       ccl2->GetObj()));
 
   return 0;
 }
 
-/* 
- lr[_]border[_]in[_]common predicate for CcLines and CcRegions. 
+/*
+ lr[_]border[_]in[_]common predicate for CcLines and CcRegions.
 
 */
 
-static int lr_border_in_commonFun(Word* args, Word& result, int message, 
+static int lr_border_in_commonFun(Word* args, Word& result, int message,
                                   Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines* ccl = ((CcLines *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,
                        ccl->BboxBottomRightX,ccl->BboxBottomRightY,
@@ -4906,7 +4908,7 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSElr_border_in_common,
                                             ccl->GetObj(),
@@ -4925,17 +4927,17 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rl[_]border[_]in[_]common predicate for CcRegions and CcLines. 
+/*
+ rl[_]border[_]in[_]common predicate for CcRegions and CcLines.
 
 */
 
-static int rl_border_in_commonFun(Word* args, Word& result, int message, 
+static int rl_border_in_commonFun(Word* args, Word& result, int message,
                                   Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions* ccr = ((CcRegions *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccr->BboxTopLeftX,ccr->BboxTopLeftY,
                        ccr->BboxBottomRightX,ccr->BboxBottomRightY,
@@ -4949,7 +4951,7 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErl_border_in_common,
                                             ccr->GetObj(),ccl->GetObj());
@@ -4967,17 +4969,17 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
 }
 
 
-/* 
- pl[_]on[_]border[_]of predicate for CcPoints and CcLines 
+/*
+ pl[_]on[_]border[_]of predicate for CcPoints and CcLines
 
 */
 
-static int pl_on_border_ofFun(Word* args, Word& result, int message, 
+static int pl_on_border_ofFun(Word* args, Word& result, int message,
                               Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcLines* ccl = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccp->BboxTopLeftX,ccp->BboxTopLeftY,
                        ccp->BboxBottomRightX,ccp->BboxBottomRightY,
@@ -4991,7 +4993,7 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSEpl_on_border_of,
                                             ccp->GetObj(),ccl->GetObj());
@@ -5008,17 +5010,17 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- pr[_]on[_]border[_]of predicate for CcPoints and CcRegions 
+/*
+ pr[_]on[_]border[_]of predicate for CcPoints and CcRegions
 
 */
 
-static int pr_on_border_ofFun(Word* args, Word& result, int message, 
+static int pr_on_border_ofFun(Word* args, Word& result, int message,
                               Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints* ccp = ((CcPoints *)args[0].addr);
   CcRegions* ccr = ((CcRegions *)args[1].addr);
-  
+
   //if bboxes don't intersect, return false
   if (!bboxesIntersect(ccp->BboxTopLeftX,ccp->BboxTopLeftY,
                        ccp->BboxBottomRightX,ccp->BboxBottomRightY,
@@ -5032,7 +5034,7 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSEpr_on_border_of,
                                             ccp->GetObj(),ccr->GetObj());
@@ -5049,12 +5051,12 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
+/*
  pp[_]intersection predicate for two CcPoints.
 
 */
 
-static int pp_intersectionFun(Word* args, Word& result, int message, 
+static int pp_intersectionFun(Word* args, Word& result, int message,
                               Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
@@ -5083,7 +5085,7 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcPoints*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSEpp_intersection,
@@ -5093,7 +5095,7 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsPoints,midPointsConst);
   }
   ccresult = new CcPoints(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                           midROSEpp_intersection,
   //                                           ccp1->GetObj(),ccp2->GetObj()));
@@ -5105,19 +5107,19 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- ll[_]intersection predicate for two CcLines. 
+/*
+ ll[_]intersection predicate for two CcLines.
 
 */
 
-static int ll_intersectionFun(Word* args, Word& result, int message, 
+static int ll_intersectionFun(Word* args, Word& result, int message,
                               Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                        ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -5131,7 +5133,7 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
     ccresult = 0;
     //qp->ResultStorage(s,SetWord(
     //  new CcPoints(env->NewObject(clsPoints,midPointsConst))));
-    //((CcPoints*)result.addr) = 
+    //((CcPoints*)result.addr) =
     //  new CcPoints(env->NewObject(clsPoints,midRegionsConstVoid));
     return 0;
   }
@@ -5139,9 +5141,9 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcPoints*)result.addr;
-  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra, 
+  jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSEll_intersection,
                                             ccl1->GetObj(),
                                             ccl2->GetObj());
@@ -5150,7 +5152,7 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsPoints,midPointsConst);
   }
   ccresult = new CcPoints(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                           midROSEll_intersection,
   //                                           ccl1->GetObj(),ccl2->GetObj()));
@@ -5164,12 +5166,12 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- rl[_]intersection predicate for CcRegions and CcLines 
+/*
+ rl[_]intersection predicate for CcRegions and CcLines
 
 */
 
-static int rl_intersectionFun(Word* args, Word& result, int message, 
+static int rl_intersectionFun(Word* args, Word& result, int message,
                               Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
@@ -5182,7 +5184,7 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
                        ccr->BboxBottomRightX,ccr->BboxBottomRightY,
                        ccl->BboxTopLeftX,ccl->BboxTopLeftY,
                        ccl->BboxBottomRightX,ccl->BboxBottomRightY)) {
-    //((CcLines*)result.addr) = 
+    //((CcLines*)result.addr) =
     //  new CcLines(env->NewObject(clsLines,midLinesConst));
     result = qp->ResultStorage(s);
     //delete (CcLines*)result.addr;
@@ -5198,7 +5200,7 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcLines*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,
                                             midROSErl_intersection,
@@ -5208,7 +5210,7 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //result = 
+  //result =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                          midROSErl_intersection,
   //                                          ccr->GetObj(),ccl->GetObj()));
@@ -5223,11 +5225,11 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
 }
 
 /*
- pp[_]plus predicate for two CcPoints. 
+ pp[_]plus predicate for two CcPoints.
 
 */
 
-static int pp_plusFun(Word* args, Word& result, int message, 
+static int pp_plusFun(Word* args, Word& result, int message,
                       Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
@@ -5238,7 +5240,7 @@ static int pp_plusFun(Word* args, Word& result, int message,
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcPoints*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_plus,
                                             ccp1->GetObj(),ccp2->GetObj());
@@ -5247,37 +5249,37 @@ static int pp_plusFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsPoints,midPointsConst);
   }
   ccresult = new CcPoints(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_plus,
   //                                           ccp1->GetObj(),ccp2->GetObj()));
   ((CcPoints*)result.addr)->CopyFrom(ccresult);
   delete ccresult;
   ccresult = 0;
   //qp->ResultStorage(s,SetWord(ccresult));
-  
+
   //ccresult = callJMethod_PPP("pp_plus", ccp1, ccp2);
   //result.addr = ccresult;
 
   return 0;
 }
 
-/* 
- ll[_]plus predicate for two CcLines. 
+/*
+ ll[_]plus predicate for two CcLines.
 
 */
 
-static int ll_plusFun(Word* args, Word& result, int message, 
+static int ll_plusFun(Word* args, Word& result, int message,
                       Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
-  
+
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
 
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcLines*)result.addr;
 
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_plus,
@@ -5287,26 +5289,26 @@ static int ll_plusFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_plus,
   //                                          ccl1->GetObj(),ccl2->GetObj()));
-  
+
   ((CcLines*)result.addr)->CopyFrom(ccresult);
   delete ccresult;
   ccresult = 0;
-  
+
   //result.addr = ccresult;
   //qp->ResultStorage(s,SetWord(ccresult));
 
   return 0;
 }
 
-/* 
- pp[_]minus predicate for two CcPoints. 
+/*
+ pp[_]minus predicate for two CcPoints.
 
 */
 
-static int pp_minusFun(Word* args, Word& result, int message, 
+static int pp_minusFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccp1;
@@ -5315,7 +5317,7 @@ static int pp_minusFun(Word* args, Word& result, int message,
 
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
-  
+
   //if bboxes don't intersect, return first object
   if (!bboxesIntersect(ccp1->BboxTopLeftX,ccp1->BboxTopLeftY,
                        ccp1->BboxBottomRightX,ccp1->BboxBottomRightY,
@@ -5332,7 +5334,7 @@ static int pp_minusFun(Word* args, Word& result, int message,
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcPoints*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_minus,
                                             ccp1->GetObj(),ccp2->GetObj());
@@ -5341,7 +5343,7 @@ static int pp_minusFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsPoints,midPointsConst);
   }
   ccresult = new CcPoints(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpp_minus,
   //                                           ccp1->GetObj(),ccp2->GetObj()));
   ((CcPoints*)result.addr)->CopyFrom(ccresult);
@@ -5354,19 +5356,19 @@ static int pp_minusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- ll[_]minus predicate for two CcPoints. 
+/*
+ ll[_]minus predicate for two CcPoints.
 
 */
 
-static int ll_minusFun(Word* args, Word& result, int message, 
+static int ll_minusFun(Word* args, Word& result, int message,
                        Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return first object
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                        ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -5383,7 +5385,7 @@ static int ll_minusFun(Word* args, Word& result, int message,
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   //delete (CcLines*)result.addr;
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_minus,
                                             ccl1->GetObj(),ccl2->GetObj());
@@ -5392,7 +5394,7 @@ static int ll_minusFun(Word* args, Word& result, int message,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_minus,
   //                                          ccl1->GetObj(),ccl2->GetObj()));
   //qp->ResultStorage(s,SetWord(ccresult));
@@ -5405,19 +5407,19 @@ static int ll_minusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* 
- ll[_]common[_]border predicate for two CcLines. 
+/*
+ ll[_]common[_]border predicate for two CcLines.
 
 */
 
-static int ll_common_borderFun(Word *args, Word& result, int message, 
+static int ll_common_borderFun(Word *args, Word& result, int message,
                                Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
 
   CcLines* ccl1 = ((CcLines *)args[0].addr);
   CcLines* ccl2 = ((CcLines *)args[1].addr);
-  
+
   //if bboxes don't intersect, return empty object
   if (!bboxesIntersect(ccl1->BboxTopLeftX,ccl1->BboxTopLeftY,
                        ccl1->BboxBottomRightX,ccl1->BboxBottomRightY,
@@ -5431,7 +5433,7 @@ static int ll_common_borderFun(Word *args, Word& result, int message,
     ((CcLines*)result.addr)->CopyFrom(ccresult);
     delete ccresult;
     ccresult = 0;
-    //((CcLines*)result.addr) = 
+    //((CcLines*)result.addr) =
     //  new CcLines(env->NewObject(clsLines,midLinesConst));
     return 0;
   }
@@ -5449,7 +5451,7 @@ static int ll_common_borderFun(Word *args, Word& result, int message,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                          midROSEll_common_border,
   //                                          ccl1->GetObj(),ccl2->GetObj()));
@@ -5463,12 +5465,12 @@ static int ll_common_borderFun(Word *args, Word& result, int message,
   return 0;
 }
 
-/* 
- lr[_]common[_]border predicate for CcLines and CcRegions. 
+/*
+ lr[_]common[_]border predicate for CcLines and CcRegions.
 
 */
 
-static int lr_common_borderFun(Word *args, Word& result, int message, 
+static int lr_common_borderFun(Word *args, Word& result, int message,
                                Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
@@ -5480,7 +5482,7 @@ static int lr_common_borderFun(Word *args, Word& result, int message,
   if (!bboxesIntersect(ccl->BboxTopLeftX,ccl->BboxTopLeftY,
                        ccl->BboxBottomRightX,ccl->BboxBottomRightY,
                        ccr->BboxTopLeftX,ccr->BboxTopLeftY,
-                       ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {  
+                       ccr->BboxBottomRightX,ccr->BboxBottomRightY)) {
     result = qp->ResultStorage(s);
     //delete (CcLines*)result.addr;
     //qp->ResultStorage(s,SetWord(
@@ -5489,7 +5491,7 @@ static int lr_common_borderFun(Word *args, Word& result, int message,
     ((CcLines*)result.addr)->CopyFrom(ccresult);
     delete ccresult;
     ccresult = 0;
-    //((CcLines*)result.addr) = 
+    //((CcLines*)result.addr) =
     //  new CcLines(env->NewObject(clsLines,midLinesConst));
     return 0;
   }
@@ -5507,7 +5509,7 @@ static int lr_common_borderFun(Word *args, Word& result, int message,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                          midROSElr_common_border,
   //                                          ccl->GetObj(),ccr->GetObj()));
@@ -5521,12 +5523,12 @@ static int lr_common_borderFun(Word *args, Word& result, int message,
   return 0;
 }
 
-/* 
- rl[_]common[_]border predicate for CcLines and CcRegions. 
+/*
+ rl[_]common[_]border predicate for CcLines and CcRegions.
 
 */
 
-static int rl_common_borderFun(Word *args, Word& result, 
+static int rl_common_borderFun(Word *args, Word& result,
                                int message, Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
@@ -5547,7 +5549,7 @@ static int rl_common_borderFun(Word *args, Word& result,
     ((CcLines*)result.addr)->CopyFrom(ccresult);
     delete ccresult;
     ccresult = 0;
-    //((CcLines*)result.addr) = 
+    //((CcLines*)result.addr) =
     //  new CcLines(env->NewObject(clsLines,midLinesConst));
     return 0;
   }
@@ -5565,7 +5567,7 @@ static int rl_common_borderFun(Word *args, Word& result,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                          midROSErl_common_border,
   //                                          ccr->GetObj(),ccl->GetObj()));
@@ -5576,16 +5578,16 @@ static int rl_common_borderFun(Word *args, Word& result,
   //ccresult = callJMethod_RLL("rl_common_border", ccr, ccl);
   //result.addr = ccresult;
 
-  
+
   return 0;
 }
 
-/* 
- l[_]vertices predicate for CcLines. 
+/*
+ l[_]vertices predicate for CcLines.
 
 */
 
-static int l_verticesFun(Word *args, Word& result, 
+static int l_verticesFun(Word *args, Word& result,
                          int message, Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
@@ -5604,7 +5606,7 @@ static int l_verticesFun(Word *args, Word& result,
     obj = env->NewObject(clsPoints,midPointsConst);
   }
   ccresult = new CcPoints(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                           midROSEl_vertices,
   //                                           ccl->GetObj()));
@@ -5618,12 +5620,12 @@ static int l_verticesFun(Word *args, Word& result,
   return 0;
 }
 
-/* 
- r[_]vertices predicate for CcRegions. 
+/*
+ r[_]vertices predicate for CcRegions.
 
 */
 
-static int r_verticesFun(Word *args, Word& result, 
+static int r_verticesFun(Word *args, Word& result,
                          int message, Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcPoints *ccresult;
@@ -5642,7 +5644,7 @@ static int r_verticesFun(Word *args, Word& result,
     obj = env->NewObject(clsPoints,midPointsConst);
   }
   ccresult = new CcPoints(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcPoints(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                           midROSEr_vertices,
   //                                           ccr->GetObj()));
@@ -5652,16 +5654,16 @@ static int r_verticesFun(Word *args, Word& result,
   //qp->ResultStorage(s,SetWord(ccresult));
   //ccresult = callJMethod_RP("r_vertices", ccr);
   //result.addr = ccresult;
-  
+
   return 0;
 }
 
-/* 
- l[_]interior predicate for CcLines. 
+/*
+ l[_]interior predicate for CcLines.
 
 */
 
-static int l_interiorFun(Word *args, Word& result, 
+static int l_interiorFun(Word *args, Word& result,
                          int message, Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccresult;
@@ -5681,16 +5683,16 @@ static int l_interiorFun(Word *args, Word& result,
   ((CcRegions*)result.addr)->CopyFrom(ccresult);
   delete ccresult;
   ccresult = 0;
-  
+
   return 0;
 }
 
-/* 
- r[_]contour predicate for CcRegions. 
+/*
+ r[_]contour predicate for CcRegions.
 
 */
 
-static int r_contourFun(Word *args, Word& result, 
+static int r_contourFun(Word *args, Word& result,
                         int message, Word& local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcLines *ccresult;
@@ -5708,7 +5710,7 @@ static int r_contourFun(Word *args, Word& result,
     obj = env->NewObject(clsLines,midLinesConst);
   }
   ccresult = new CcLines(obj);
-  //ccresult = 
+  //ccresult =
   //  new CcLines(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                          midROSEr_contour,
   //                                          ccr->GetObj()));
@@ -5723,8 +5725,8 @@ static int r_contourFun(Word *args, Word& result,
   return 0;
 }
 
-/* 
- p[_]no[_]of[_]components predicate for CcPoints. 
+/*
+ p[_]no[_]of[_]components predicate for CcPoints.
 
 */
 
@@ -5736,10 +5738,10 @@ static int p_no_of_componentsFun(Word *args, Word &result,
 
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
-  
+  result = qp->ResultStorage(s);
+
   //((CcInt *)result.addr)->
-  //  Set(true, callJMethod_PI("p_no_of_components", ccp)); 
+  //  Set(true, callJMethod_PI("p_no_of_components", ccp));
   jint obj = env->CallStaticIntMethod(clsROSEAlgebra,
                                       midROSEp_no_of_components,
                                       ccp->GetObj());
@@ -5756,8 +5758,8 @@ static int p_no_of_componentsFun(Word *args, Word &result,
   return 0;
 }
 
-/* 
- l[_]no[_]of[_]components predicate for CcLines. 
+/*
+ l[_]no[_]of[_]components predicate for CcLines.
 
 */
 
@@ -5769,7 +5771,7 @@ static int l_no_of_componentsFun(Word *args, Word &result,
 
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jint obj = env->CallStaticIntMethod(clsROSEAlgebra,
                                       midROSEl_no_of_components,
                                       ccl->GetObj());
@@ -5786,8 +5788,8 @@ static int l_no_of_componentsFun(Word *args, Word &result,
   return 0;
 }
 
-/* 
- r[_]no[_]of[_]components predicate for CcPoints. 
+/*
+ r[_]no[_]of[_]components predicate for CcPoints.
 
 */
 
@@ -5799,7 +5801,7 @@ static int r_no_of_componentsFun(Word *args, Word &result,
 
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jint obj = env->CallStaticIntMethod(clsROSEAlgebra,
                                       midROSEr_no_of_components,
                                       ccr->GetObj());
@@ -5816,8 +5818,8 @@ static int r_no_of_componentsFun(Word *args, Word &result,
   return 0;
 }
 
-/* 
- pp[_]dist predicate for two CcPoints 
+/*
+ pp[_]dist predicate for two CcPoints
 
 */
 
@@ -5830,7 +5832,7 @@ static int pp_distFun(Word *args, Word &result, int message,
   if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
   if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra, midROSEpp_dist,
                                             ccp1->GetObj(),ccp2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -5847,8 +5849,8 @@ static int pp_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- pl[_]dist predicate for CcPoints and CcLines 
+/*
+ pl[_]dist predicate for CcPoints and CcLines
 
 */
 
@@ -5861,7 +5863,7 @@ static int pl_distFun(Word *args, Word &result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpl_dist,
                                             ccp->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
@@ -5878,9 +5880,9 @@ static int pl_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- pr[_]dist predicate for CcPoints and CcRegions 
- 
+/*
+ pr[_]dist predicate for CcPoints and CcRegions
+
 */
 
 static int pr_distFun(Word *args, Word &result, int message,
@@ -5892,7 +5894,7 @@ static int pr_distFun(Word *args, Word &result, int message,
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEpr_dist,
                                             ccp->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -5909,8 +5911,8 @@ static int pr_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- lp[_]dist predicate for CcLines and CcPoints 
+/*
+ lp[_]dist predicate for CcLines and CcPoints
 
 */
 
@@ -5922,8 +5924,8 @@ static int lp_distFun(Word *args, Word &result, int message,
 
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
-  
-  result = qp->ResultStorage(s);        
+
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElp_dist,
                                             ccl->GetObj(),ccp->GetObj());
   if (env->ExceptionOccurred()) {
@@ -5940,8 +5942,8 @@ static int lp_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- ll[_]dist predicate for two CcLines. 
+/*
+ ll[_]dist predicate for two CcLines.
 
 */
 
@@ -5954,7 +5956,7 @@ static int ll_distFun(Word *args, Word &result, int message,
   if (!ccl1->GetObject()) ccl1->RestoreJavaObjectFromFLOB();
   if (!ccl2->GetObject()) ccl2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEll_dist,
                                             ccl1->GetObj(),ccl2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -5971,8 +5973,8 @@ static int ll_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- lr[_]dist predicate for CcLines and CcRegions. 
+/*
+ lr[_]dist predicate for CcLines and CcRegions.
 
 */
 
@@ -5985,7 +5987,7 @@ static int lr_distFun(Word *args, Word &result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSElr_dist,
                                             ccl->GetObj(),ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6002,8 +6004,8 @@ static int lr_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- rp[_]dist predicate for CcRegions and CcPoints. 
+/*
+ rp[_]dist predicate for CcRegions and CcPoints.
 
 */
 
@@ -6016,7 +6018,7 @@ static int rp_distFun(Word *args, Word &result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErp_dist,
                                             ccr->GetObj(),ccp->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6033,8 +6035,8 @@ static int rp_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- rl[_]dist predicate for CcRegions and CcLines. 
+/*
+ rl[_]dist predicate for CcRegions and CcLines.
 
 */
 
@@ -6047,7 +6049,7 @@ static int rl_distFun(Word *args, Word &result, int message,
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErl_dist,
                                             ccr->GetObj(),ccl->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6064,8 +6066,8 @@ static int rl_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- rr[_]dist predicate for two CcRegions. 
+/*
+ rr[_]dist predicate for two CcRegions.
 
 */
 
@@ -6078,7 +6080,7 @@ static int rr_distFun(Word *args, Word &result, int message,
   if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
   if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSErr_dist,
                                             ccr1->GetObj(),ccr2->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6095,8 +6097,8 @@ static int rr_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- p[_]diameter predicate for a CcPoints. 
+/*
+ p[_]diameter predicate for a CcPoints.
 
 */
 
@@ -6107,7 +6109,7 @@ static int p_diameterFun(Word *args, Word &result, int message,
 
   if (!ccp->GetObject()) ccp->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEp_diameter,
                                             ccp->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6123,8 +6125,8 @@ static int p_diameterFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* 
- l[_]diameter predicate for a CcLines. 
+/*
+ l[_]diameter predicate for a CcLines.
 
 */
 
@@ -6136,7 +6138,7 @@ static int l_diameterFun(Word *args, Word &result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   //debug(__LINE__);
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEl_diameter,
                                             ccl->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6148,12 +6150,12 @@ static int l_diameterFun(Word *args, Word &result, int message,
   //  Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                                       midROSEl_diameter,
   //                                                       ccl->GetObj())));
-  
+
   return 0;
 }
 
-/* 
- r[_]diameter predicate for a CcRegions. 
+/*
+ r[_]diameter predicate for a CcRegions.
 
 */
 
@@ -6161,11 +6163,11 @@ static int r_diameterFun(Word *args, Word &result, int message,
                          Word &local, Supplier s) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcRegions *ccr = ((CcRegions *)args[0].addr);
-  
+
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
   //debug(__LINE__);
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jobject obj = env->CallStaticObjectMethod(clsROSEAlgebra,midROSEr_diameter,
                                             ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6177,12 +6179,12 @@ static int r_diameterFun(Word *args, Word &result, int message,
   //  Set(true,convertRational(env->CallStaticObjectMethod(clsROSEAlgebra,
   //                                                       midROSEr_diameter,
   //                                                       ccr->GetObj())));
-  
+
   return 0;
 }
 
-/* 
- l[_]ength predicate for a CcLines. 
+/*
+ l[_]ength predicate for a CcLines.
 
 */
 
@@ -6194,7 +6196,7 @@ static int l_lengthFun(Word *args, Word &result, int message,
   if (!ccl->GetObject()) ccl->RestoreJavaObjectFromFLOB();
 
   //debug(__LINE__);
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jdouble obj = env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEl_length,
                                             ccl->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6205,12 +6207,12 @@ static int l_lengthFun(Word *args, Word &result, int message,
   //((CcReal*)result.addr)->
   //  Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEl_length,
   //                                       ccl->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- r[_]aera predicate for a CcRegions. 
+/*
+ r[_]aera predicate for a CcRegions.
 
 */
 
@@ -6221,7 +6223,7 @@ static int r_areaFun(Word *args, Word &result, int message,
 
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jdouble obj = env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_area,
                                             ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6232,12 +6234,12 @@ static int r_areaFun(Word *args, Word &result, int message,
   //((CcReal*)result.addr)->
   //  Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_area,
   //                                       ccr->GetObj()));
-  
+
   return 0;
 }
 
-/* 
- r[_]perimeter predicate for a CcRegions. 
+/*
+ r[_]perimeter predicate for a CcRegions.
 
 */
 
@@ -6248,7 +6250,7 @@ static int r_perimeterFun(Word *args, Word &result, int message,
 
   if (!ccr->GetObject()) ccr->RestoreJavaObjectFromFLOB();
 
-  result = qp->ResultStorage(s);        
+  result = qp->ResultStorage(s);
   jdouble obj = env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_perimeter,
                                             ccr->GetObj());
   if (env->ExceptionOccurred()) {
@@ -6259,7 +6261,7 @@ static int r_perimeterFun(Word *args, Word &result, int message,
   //((CcReal*)result.addr)->
   //  Set(true,env->CallStaticDoubleMethod(clsROSEAlgebra,midROSEr_perimeter,
   //                                       ccr->GetObj()));
-  
+
   return 0;
 }
 
@@ -6274,13 +6276,13 @@ static int setDeviationValueFun(Word *args, Word &result, int message,
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcReal *realval = ((CcReal *)args[0].addr);
   result = qp->ResultStorage(s);
-  
+
   callSetDeviationValue(realval);
   ((CcBool *)result.addr)->Set(true, true);
 
   return 0;
 }
-  
+
 /*
  chooseTriangulator can be used to choose between different triangulators.
 
@@ -6291,7 +6293,7 @@ static int chooseTriangulatorFun(Word *args, Word &result, int message,
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   CcInt *intval = ((CcInt *)args[0].addr);
   result = qp->ResultStorage(s);
-  
+
   callChooseTriangulator(intval);
   ((CcBool *)result.addr)->Set(true, true);
 
@@ -6304,64 +6306,64 @@ static int chooseTriangulatorFun(Word *args, Word &result, int message,
 */
 
  //predicates
-ValueMapping equalMap[] = { pp_equalFun, 
-                            ll_equalFun, 
+ValueMapping equalMap[] = { pp_equalFun,
+                            ll_equalFun,
                             rr_equalFun };
-ValueMapping unequalMap[] = { pp_unequalFun, 
-                              ll_unequalFun, 
+ValueMapping unequalMap[] = { pp_unequalFun,
+                              ll_unequalFun,
                               rr_unequalFun };
-ValueMapping disjointMap[] = { pp_disjointFun, 
-                               ll_disjointFun, 
+ValueMapping disjointMap[] = { pp_disjointFun,
+                               ll_disjointFun,
                                rr_disjointFun };
-ValueMapping insideMap[] = { pr_insideFun, 
-                             lr_insideFun, 
+ValueMapping insideMap[] = { pr_insideFun,
+                             lr_insideFun,
                              rr_insideFun };
-ValueMapping intersectsMap[] = { ll_intersectsFun, 
-                                 lr_intersectsFun, 
-                                 rl_intersectsFun, 
+ValueMapping intersectsMap[] = { ll_intersectsFun,
+                                 lr_intersectsFun,
+                                 rl_intersectsFun,
                                  rr_intersectsFun };
-ValueMapping meetsMap[] = { ll_meetsFun, 
-                            lr_meetsFun, 
-                            rl_meetsFun, 
+ValueMapping meetsMap[] = { ll_meetsFun,
+                            lr_meetsFun,
+                            rl_meetsFun,
                             rr_meetsFun };
-ValueMapping borderInCommonMap[] = { ll_border_in_commonFun, 
-                                     lr_border_in_commonFun, 
-                                     rl_border_in_commonFun, 
+ValueMapping borderInCommonMap[] = { ll_border_in_commonFun,
+                                     lr_border_in_commonFun,
+                                     rl_border_in_commonFun,
                                      rr_border_in_commonFun };
-ValueMapping onBorderOfMap[] = { pl_on_border_ofFun, 
+ValueMapping onBorderOfMap[] = { pl_on_border_ofFun,
                                  pr_on_border_ofFun };
 
  //operations
-ValueMapping intersectionMap[] = { pp_intersectionFun, 
-                                   ll_intersectionFun, 
-                                   rr_intersectionFun, 
+ValueMapping intersectionMap[] = { pp_intersectionFun,
+                                   ll_intersectionFun,
+                                   rr_intersectionFun,
                                    rl_intersectionFun };
-ValueMapping plusMap[] = { pp_plusFun, 
-                           ll_plusFun, 
+ValueMapping plusMap[] = { pp_plusFun,
+                           ll_plusFun,
                            rr_plusFun };
-ValueMapping minusMap[] = { pp_minusFun, 
-                            ll_minusFun, 
+ValueMapping minusMap[] = { pp_minusFun,
+                            ll_minusFun,
                             rr_minusFun };
-ValueMapping commonBorderMap[] = { ll_common_borderFun, 
-                                   lr_common_borderFun, 
-                                   rl_common_borderFun, 
+ValueMapping commonBorderMap[] = { ll_common_borderFun,
+                                   lr_common_borderFun,
+                                   rl_common_borderFun,
                                    rr_common_borderFun };
-ValueMapping verticesMap[] = { l_verticesFun, 
+ValueMapping verticesMap[] = { l_verticesFun,
                                r_verticesFun };
-ValueMapping noOfComponentsMap[] = { p_no_of_componentsFun, 
-                                     l_no_of_componentsFun, 
+ValueMapping noOfComponentsMap[] = { p_no_of_componentsFun,
+                                     l_no_of_componentsFun,
                                      r_no_of_componentsFun };
-ValueMapping distMap[] = { pp_distFun, 
-                           pl_distFun, 
-                           pr_distFun, 
-                           lp_distFun, 
-                           ll_distFun, 
-                           lr_distFun, 
-                           rp_distFun, 
-                           rl_distFun, 
+ValueMapping distMap[] = { pp_distFun,
+                           pl_distFun,
+                           pr_distFun,
+                           lp_distFun,
+                           ll_distFun,
+                           lr_distFun,
+                           rp_distFun,
+                           rl_distFun,
                            rr_distFun };
-ValueMapping diameterMap[] = { p_diameterFun, 
-                               l_diameterFun, 
+ValueMapping diameterMap[] = { p_diameterFun,
+                               l_diameterFun,
                                r_diameterFun };
 
 const string equalSpec =
@@ -6375,7 +6377,7 @@ const string equalSpec =
 "<text>query Rhein equal Weser</text--->"
 ") )";
 
-const string unequalSpec = 
+const string unequalSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>({rpoints,rline,rregion} x {rpoints,rline,rregion} -> bool</text--->"
@@ -6386,7 +6388,7 @@ const string unequalSpec =
 "<text>query Rhein unequal Weser</text--->"
 ") )";
 
-const string disjointSpec = 
+const string disjointSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>({rpoints,rline,rregion} x {rpoints,rline,rregion} -> bool</text--->"
@@ -6427,7 +6429,7 @@ const string edgeDisjointSpec =
 "<text>query LKMagdeburg edge_disjoint SKKiel</text--->"
 ") )";
 
-const string edgeInsideSpec = 
+const string edgeInsideSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion x rregion -> bool</text--->"
@@ -6437,7 +6439,7 @@ const string edgeInsideSpec =
 "<text>query LKMagdeburg edge_inside SKKiel</text--->"
 ") )";
 
-const string vertexInsideSpec = 
+const string vertexInsideSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion x rregion -> bool</text--->"
@@ -6447,7 +6449,7 @@ const string vertexInsideSpec =
 "<text>query LKMagdeburg vertex_inside SKKiel</text--->"
 ") )";
 
-const string intersectsSpec = 
+const string intersectsSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rline,rregion} x {rline,rregion} -> bool</text--->"
@@ -6456,8 +6458,8 @@ const string intersectsSpec =
 "<text>query Rhein intersects Main</text--->"
 ") )";
 
-const string meetsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string meetsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rline,rregion} x {rline,rregion} -> bool</text--->"
 "<text>o1 meets o2, where o1,o2 are of type {rline,rregion}</text--->"
@@ -6465,8 +6467,8 @@ const string meetsSpec =
 "<text>query Rhein meets Weser</text--->"
 ") )";
 
-const string borderInCommonSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string borderInCommonSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rline,rregion} x {rline,rregion} -> bool</text--->"
 "<text>o1 border_in_common o2, where o1,o2 are"
@@ -6476,8 +6478,8 @@ const string borderInCommonSpec =
 "<text>query LKSteinfurt border_in_common LKMagdeburg</text--->"
 ") )";
 
-const string adjacentSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string adjacentSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion x rregion -> bool</text--->"
 "<text>r1 adjacent r2, where r1,r2 are of type rregion</text--->"
@@ -6486,8 +6488,8 @@ const string adjacentSpec =
 "<text>query LKSteinfurt adjacent LKMagdeburg</text--->"
 ") )";
 
-const string enclosesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string enclosesSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion x rregion -> bool</text--->"
 "<text>r1 encloses r2, where r1,r2 are of type rregion</text--->"
@@ -6496,8 +6498,8 @@ const string enclosesSpec =
 "<text>query LKOsnabrueck encloses SKOsnabrueck</text--->"
 ") )";
 
-const string intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string intersectionSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rpoints,rline,rregion} x {rpoints,rline,rregion} -> "
 "{rpoints,rline,rregion}</text--->"
@@ -6511,8 +6513,8 @@ const string intersectionSpec =
 "<text>query intersection(Rhein,Weser)(</text--->"
 ") )";
 
-const string plusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string plusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rpoints,rline,rregion} x {rpoints,rline,rregion} -> "
 "{rpoints,rline,rregion}</text--->"
@@ -6522,8 +6524,8 @@ const string plusSpec =
 "<text>query LKOsnabrueck plus SKOsnabrueck</text--->"
 ") )";
 
-const string minusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string minusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rpoints,rline,rregion} x {rpoints,rline,rregion} -> "
 "{rpoints,rline,regin}</text--->"
@@ -6534,8 +6536,8 @@ const string minusSpec =
 "<text>query LKSteinfurt minus LKOsnabrueck</text--->"
 ") )";
 
-const string commonBorderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string commonBorderSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rline,rregion} x {rline,rregion} -> rline</text--->"
 "<text>common_border(o1,o2), where o1,o2 are of type {rline,rregion}</text--->"
@@ -6544,8 +6546,8 @@ const string commonBorderSpec =
 "<text>query common_border(LKSteinfurt,SKOsnabrueck)</text--->"
 ") )";
 
-const string onBorderOfSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string onBorderOfSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rpoints x {rline,rregion} -> bool</text--->"
 "<text>p on_border_of o, where p is a rpoints value and o is of type "
@@ -6555,8 +6557,8 @@ const string onBorderOfSpec =
 "<text>query Koeln on_border_of autobahn3</text--->"
 ") )";
 
-const string verticesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string verticesSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rline,rregion} -> rpoints</text--->"
 "<text>vertices (o), where o is of type {rline,rregion}</text--->"
@@ -6564,8 +6566,8 @@ const string verticesSpec =
 "<text>query vertices (magdeburg)</text--->"
 ") )";
 
-const string interiorSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string interiorSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rline -> rregion</text--->"
 "<text>interior(l), where l has type rline</text--->"
@@ -6574,8 +6576,8 @@ const string interiorSpec =
 "<text>qeury interior(borderOfLKMagdeburg)</text--->"
 ") )";
 
-const string contourSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string contourSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion -> rline</text--->"
 "<text>contour (r), where r has type rregion</text--->"
@@ -6583,8 +6585,8 @@ const string contourSpec =
 "<text>query contour (magdeburg)</text--->"
 ") )";
 
-const string noOfComponentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string noOfComponentsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rpoints,rline,rregion} -> int</text--->"
 "<text>no_of_components (o), where o is of "
@@ -6594,8 +6596,8 @@ const string noOfComponentsSpec =
 "<text>query no_of_components (Rhein)</text--->"
 ") )";
 
-const string distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rpoints,rline,rregion} -> real</text--->"
 "<text>dist(o1,o2), where o1,o2 are of type {rpoints,rline,rregion}</text--->"
@@ -6604,8 +6606,8 @@ const string distSpec =
 "<text>query dist(LKSteinfurt,Rhein)</text--->"
 ") )";
 
-const string diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string diameterSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>{rpoints,rline,rregion} -> real</text--->"
 "<text>diameter (o), where o is of type {rpoints,rline,rregion}</text--->"
@@ -6613,8 +6615,8 @@ const string diameterSpec =
 "<text>query diameter (Rhein)</text--->"
 ") )";
 
-const string lengthSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lengthSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rline -> real</text--->"
 "<text>length (l), where l is of type rline</text--->"
@@ -6622,8 +6624,8 @@ const string lengthSpec =
 "<text>query length (Rhein)</text--->"
 ") )";
 
-const string areaSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string areaSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion -> real</text--->"
 "<text>area (r), where r is of type rregion</text--->"
@@ -6631,8 +6633,8 @@ const string areaSpec =
 "<text>query area (magdeburg)</text--->"
 ") )";
 
-const string perimeterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string perimeterSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>rregion -> real</text--->"
 "<text>perimeter (r), where r is of type rregion</text--->"
@@ -6641,8 +6643,8 @@ const string perimeterSpec =
 "<text>query perimeter (magdeburg)</text--->"
 ") )";
 
-const string setDeviationValueSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string setDeviationValueSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>double -> bool</text--->"
 "<text>setDeviationValue(d), d is a double value</text--->"
@@ -6650,8 +6652,8 @@ const string setDeviationValueSpec =
 "<text>query setDeviationValue(0.000001)</text--->"
 ") )";
 
-const string chooseTriangulatorSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string chooseTriangulatorSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>int -> bool</text--->"
 "<text>chooseTriangulator(i), i is an integer value</text--->"
@@ -6669,10 +6671,10 @@ Operator ROSEequal (
                     "=",                  //name
                     equalSpec,            //specification
                     3,                    //number of functions
-                    equalMap,             //value mapping 
+                    equalMap,             //value mapping
                     equalSelect,          //selection function
                     equalTypeMap);        //type mapping function
-                    
+
 Operator ROSEunequal (
                       "#",                //name
                       unequalSpec,        //specification
@@ -6685,7 +6687,7 @@ Operator ROSEdisjoint (
                        "disjoint",           //name
                        disjointSpec,         //specification
                        3,                    //number of functions
-                       disjointMap,          //value mapping 
+                       disjointMap,          //value mapping
                        disjointSelect,       //selection function
                        disjointTypeMap);     //type mapping function
 
@@ -6693,7 +6695,7 @@ Operator ROSEinside (
                        "inside",             //name
                        insideSpec,           //specification
                        3,                    //number of functions
-                       insideMap,            //value mapping 
+                       insideMap,            //value mapping
                        insideSelect,         //selection function
                        insideTypeMap);       //type mapping function
 
@@ -6729,7 +6731,7 @@ Operator ROSEintersects (
                          "intersects",         //name
                          intersectsSpec,       //specification
                          4,                    //number of functions
-                         intersectsMap,        //value mapping 
+                         intersectsMap,        //value mapping
                          intersectsSelect,     //selection function
                          intersectsTypeMap);   //type mapping function
 
@@ -6737,7 +6739,7 @@ Operator ROSEmeets (
                     "meets",         //name
                     meetsSpec,       //specification
                     4,               //number of functions
-                    meetsMap,        //value mapping 
+                    meetsMap,        //value mapping
                     meetsSelect,     //selection function
                     meetsTypeMap);   //type mapping function
 
@@ -6745,7 +6747,7 @@ Operator ROSEborderInCommon (
                              "border_in_common",        //name
                              borderInCommonSpec,        //specification
                              4,                         //number of functions
-                             borderInCommonMap,         //value mapping 
+                             borderInCommonMap,         //value mapping
                              borderInCommonSelect,      //selection function
                              borderInCommonTypeMap);    //type mapping function
 
@@ -6753,7 +6755,7 @@ Operator ROSEonBorderOf (
                          "on_border_of",        //name
                          onBorderOfSpec,        //specification
                          2,                     //number of functions
-                         onBorderOfMap,         //value mapping 
+                         onBorderOfMap,         //value mapping
                          onBorderOfSelect,      //selection function
                          onBorderOfTypeMap);    //type mapping function
 
@@ -6761,7 +6763,7 @@ Operator ROSEintersection (
                            "intersection",        //name
                            intersectionSpec,      //specification
                            4,                     //number of functions
-                           intersectionMap,       //value mapping 
+                           intersectionMap,       //value mapping
                            intersectionSelect,    //selection function
                            intersectionTypeMap);  //type mapping function
 
@@ -6769,7 +6771,7 @@ Operator ROSEplus (
                    "plus",           //name
                    plusSpec,         //specification
                    3,                //number of functions
-                   plusMap,          //value mapping 
+                   plusMap,          //value mapping
                    plusSelect,       //selection function
                    plusTypeMap);     //type mapping function
 
@@ -6777,7 +6779,7 @@ Operator ROSEminus (
                    "minus",           //name
                    minusSpec,         //specification
                    3,                 //number of functions
-                   minusMap,          //value mapping 
+                   minusMap,          //value mapping
                    minusSelect,       //selection function
                    minusTypeMap);     //type mapping function
 
@@ -6785,7 +6787,7 @@ Operator ROSEcommonBorder (
                    "common_border",     //name
                    commonBorderSpec,    //specification
                    4,                   //number of functions
-                   commonBorderMap,     //value mapping 
+                   commonBorderMap,     //value mapping
                    commonBorderSelect,  //selection function
                    commonBorderTypeMap);//type mapping function
 
@@ -6793,7 +6795,7 @@ Operator ROSEvertices (
                        "vertices",        //name
                        verticesSpec,      //specification
                        2,                 //number of functions
-                       verticesMap,       //value mapping 
+                       verticesMap,       //value mapping
                        verticesSelect,    //selection function
                        verticesTypeMap);  //type mapping function
 
@@ -6801,7 +6803,7 @@ Operator ROSEnoOfComponents (
                              "no_of_components",     //name
                              noOfComponentsSpec,     //specification
                              3,                      //number of functions
-                             noOfComponentsMap,      //value mapping 
+                             noOfComponentsMap,      //value mapping
                              noOfComponentsSelect,   //selection function
                              noOfComponentsTypeMap); //type mapping function
 
@@ -6809,7 +6811,7 @@ Operator ROSEdist (
                    "dist",           //name
                    distSpec,         //specification
                    9,                //number of functions
-                   distMap,          //value mapping 
+                   distMap,          //value mapping
                    distSelect,       //selection function
                    distTypeMap);     //type mapping function
 
@@ -6822,52 +6824,52 @@ Operator ROSEadjacent (
 
 Operator ROSEencloses (
                        "encloses",                 //name
-                       enclosesSpec,               //specification 
+                       enclosesSpec,               //specification
                        rr_enclosesFun,             //value mapping
-                       simpleSelect,               //trivial selection function 
-                       ccregionsccregionsBool      //type mapping 
+                       simpleSelect,               //trivial selection function
+                       ccregionsccregionsBool      //type mapping
                        );
 
 
 
 Operator ROSEinterior (
                        "interior",          //name
-                       interiorSpec,        //specification 
+                       interiorSpec,        //specification
                        l_interiorFun,       //value mapping
-                       simpleSelect,        //trivial selection function 
-                       cclinesccregions     //type mapping 
+                       simpleSelect,        //trivial selection function
+                       cclinesccregions     //type mapping
                        );
 
 Operator ROSEcontour (
                       "contour",            //name
                       contourSpec,          //specification ....
                       r_contourFun,         //value mapping
-                      simpleSelect,         //trivial selection function 
-                      ccregionscclines      //type mapping 
+                      simpleSelect,         //trivial selection function
+                      ccregionscclines      //type mapping
                       );
 
 Operator ROSElength (
                      "length",              //name
                      lengthSpec,            //specification ....
                      l_lengthFun,           //value mapping
-                     simpleSelect,          //trivial selection function 
-                     cclinesDouble          //type mapping 
+                     simpleSelect,          //trivial selection function
+                     cclinesDouble          //type mapping
                      );
 
 Operator ROSEarea (
                  "area",                    //name
                  areaSpec,                  //specification ....
                  r_areaFun,                 //value mapping
-                 simpleSelect,              //trivial selection function 
-                 ccregionsDouble           //type mapping 
+                 simpleSelect,              //trivial selection function
+                 ccregionsDouble           //type mapping
                  );
 
 Operator ROSEperimeter (
                         "perimeter",       //name
                         perimeterSpec,     //specification ....
                         r_perimeterFun,    //value mapping
-                        simpleSelect,      //trivial selection function 
-                        ccregionsDouble    //type mapping 
+                        simpleSelect,      //trivial selection function
+                        ccregionsDouble    //type mapping
                         );
 
 Operator ROSEdiameter (
@@ -6882,21 +6884,21 @@ Operator setDeviationValue (
                             "setDeviationValue",   //name
                             setDeviationValueSpec, //specification ....
                             setDeviationValueFun,  //value mapping
-                            simpleSelect,          //trivial selection function 
-                            doubleBool             //type mapping 
+                            simpleSelect,          //trivial selection function
+                            doubleBool             //type mapping
                             );
 
 Operator chooseTriangulator (
                              "chooseTriangulator",    //name
                              chooseTriangulatorSpec,  //specification ....
                              chooseTriangulatorFun,   //value mapping
-                             simpleSelect,            //trivial sel. function 
-                             intBool                  //type mapping 
+                             simpleSelect,            //trivial sel. function
+                             intBool                  //type mapping
                              );
 
 /*
   6 Creating the Algebra
-  
+
 */
 
 class RoseAlgebra : public Algebra {
@@ -6905,11 +6907,11 @@ public:
     AddTypeConstructor(&ccpoints);
     AddTypeConstructor(&cclines);
     AddTypeConstructor(&ccregions);
-    ccpoints.AssociateKind("DATA");
-    cclines.AssociateKind("DATA");
-    ccregions.AssociateKind("DATA");
-    /* this means that ccpoints, cclines, ccregions 
-       can be used in places where types of DATA are expected, 
+    ccpoints.AssociateKind(Kind::DATA());
+    cclines.AssociateKind(Kind::DATA());
+    ccregions.AssociateKind(Kind::DATA());
+    /* this means that ccpoints, cclines, ccregions
+       can be used in places where types of DATA are expected,
        e. g. in tuples. */
     AddOperator(&ROSEequal);
     AddOperator(&ROSEunequal);
@@ -6945,7 +6947,7 @@ public:
   ~RoseAlgebra() {};
 };
 
-RoseAlgebra roseAlgebra; 
+RoseAlgebra roseAlgebra;
 
 /*
  7 Initialization
@@ -6977,8 +6979,8 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (clsRationalFactory == 0) error(__FILE__,__LINE__);
 
   //set Rational class
-  jmethodID midRatFac = env->GetStaticMethodID(clsRationalFactory, 
-                                               "setClass", 
+  jmethodID midRatFac = env->GetStaticMethodID(clsRationalFactory,
+                                               "setClass",
                                                "(Ljava/lang/String;)V");
   if (midRatFac == 0) error(__FILE__,__LINE__);
 
@@ -6987,45 +6989,45 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
   env->CallStaticVoidMethod(clsRationalFactory, midRatFac, jstr);
 
-  jmethodID midPrecision = env->GetStaticMethodID(clsRationalFactory, 
+  jmethodID midPrecision = env->GetStaticMethodID(clsRationalFactory,
                                                   "setPrecision", "(Z)V");
   if (midPrecision == 0) error(__FILE__,__LINE__);
 
   env->CallStaticVoidMethod(clsRationalFactory, midPrecision, false);
 
-  jmethodID midSetDeviation = env->GetStaticMethodID(clsRationalFactory, 
-                                                     "setDeviationDouble", 
+  jmethodID midSetDeviation = env->GetStaticMethodID(clsRationalFactory,
+                                                     "setDeviationDouble",
                                                      "(D)V");
   if (midSetDeviation == 0) error(__FILE__,__LINE__);
 
   //set deviation value for 2DSACK package
   DEVIATION_VALUE = 0.0000000001;
-  env->CallStaticVoidMethod(clsRationalFactory, 
-                            midSetDeviation, 
+  env->CallStaticVoidMethod(clsRationalFactory,
+                            midSetDeviation,
                             DEVIATION_VALUE);
 
-  jmethodID midReadDeviation = env->GetStaticMethodID(clsRationalFactory, 
-                                                      "readDeviationDouble", 
+  jmethodID midReadDeviation = env->GetStaticMethodID(clsRationalFactory,
+                                                      "readDeviationDouble",
                                                       "()D");
   if (midReadDeviation == 0) error(__FILE__,__LINE__);
 
-  jmethodID midReadDeviationN = 
-    env->GetStaticMethodID(clsRationalFactory, 
+  jmethodID midReadDeviationN =
+    env->GetStaticMethodID(clsRationalFactory,
                            "readDeviationDoubleNeg", "()D");
   if (midReadDeviationN == 0) error(__FILE__,__LINE__);
-  
-  jdouble resD = env->CallStaticDoubleMethod(clsRationalFactory, 
+
+  jdouble resD = env->CallStaticDoubleMethod(clsRationalFactory,
                                              midReadDeviation);
-  jdouble resDN = env->CallStaticDoubleMethod(clsRationalFactory, 
+  jdouble resDN = env->CallStaticDoubleMethod(clsRationalFactory,
                                               midReadDeviationN);
 
-  cout << "2DSACK algebra: deviation values set to " 
+  cout << "2DSACK algebra: deviation values set to "
        << resD << "/" << resDN << endl;
-  
+
   //read all the other classes that are needed in here
   clsPoints = env->FindClass("Points");
   if (clsPoints == 0) error(__FILE__,__LINE__);
-  
+
   clsLines = env->FindClass("Lines");
   if (clsLines == 0) error(__FILE__,__LINE__);
 
@@ -7035,108 +7037,108 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   clsRational = env->FindClass("twodsack/util/number/Rational");
   if (clsRational == 0) error(__FILE__,__LINE__);
 
-  clsPoint = 
+  clsPoint =
     env->FindClass("twodsack/setelement/datatype/basicdatatype/Point");
   if (clsPoint == 0) error(__FILE__,__LINE__);
 
   clsPointMultiSet = env->FindClass("twodsack/set/PointMultiSet");
   if (clsPointMultiSet == 0) error(__FILE__,__LINE__);
 
-  clsSegment = 
+  clsSegment =
     env->FindClass("twodsack/setelement/datatype/basicdatatype/Segment");
   if (clsSegment == 0) error(__FILE__,__LINE__);
 
   clsSegMultiSet = env->FindClass("twodsack/set/SegMultiSet");
   if (clsSegMultiSet == 0) error(__FILE__,__LINE__);
-  
+
   clsLinkedList = env->FindClass("java/util/LinkedList");
   if (clsLinkedList == 0) error(__FILE__,__LINE__);
-  
+
   clsCycleList = env->FindClass("twodsack/util/collection/CycleList");
   if (clsCycleList == 0) error(__FILE__,__LINE__);
 
-  clsCycleListListPoints = 
+  clsCycleListListPoints =
     env->FindClass("twodsack/util/collection/CycleListListPoints");
   if (clsCycleListListPoints == 0) error(__FILE__,__LINE__);
 
-  clsSegmentComparator = 
+  clsSegmentComparator =
     env->FindClass("twodsack/util/comparator/SegmentComparator");
   if (clsSegmentComparator == 0) error(__FILE__,__LINE__);
 
   clsROSEAlgebra = env->FindClass("ROSEAlgebra");
   if (clsROSEAlgebra == 0) error(__FILE__,__LINE__);
 
-  clsRect = 
+  clsRect =
     env->FindClass("twodsack/setelement/datatype/basicdatatype/Rect");
   if (clsRect == 0) error(__FILE__,__LINE__);
 
   //define java methods, that are needed
-  midRationalGetDouble = env->GetMethodID(clsRational, 
-                                          "getDouble", 
+  midRationalGetDouble = env->GetMethodID(clsRational,
+                                          "getDouble",
                                           "()D");
   if (midRationalGetDouble == 0) error(__FILE__,__LINE__);
-  midPMSToArray = env->GetMethodID(clsPointMultiSet, 
-                                   "toArray", 
+  midPMSToArray = env->GetMethodID(clsPointMultiSet,
+                                   "toArray",
                                    "()[Ljava/lang/Object;");
   if (midPMSToArray == 0) error(__FILE__,__LINE__);
-  midSegmentGetStartpoint = 
-    env->GetMethodID(clsSegment, 
-                     "getStartpoint", 
+  midSegmentGetStartpoint =
+    env->GetMethodID(clsSegment,
+                     "getStartpoint",
                      "()Ltwodsack/setelement/datatype/basicdatatype/Point;");
   if (midSegmentGetStartpoint == 0) error(__FILE__,__LINE__);
-  midSegmentGetEndpoint = 
-    env->GetMethodID(clsSegment, 
-                     "getEndpoint", 
+  midSegmentGetEndpoint =
+    env->GetMethodID(clsSegment,
+                     "getEndpoint",
                      "()Ltwodsack/setelement/datatype/basicdatatype/Point;");
   if (midSegmentGetEndpoint == 0) error(__FILE__,__LINE__);
-  midSMSToArray = 
+  midSMSToArray =
     env->GetMethodID(clsSegMultiSet, "toArray", "()[Ljava/lang/Object;");
   if (midSMSToArray == 0) error(__FILE__,__LINE__);
-  midLLToArray = 
+  midLLToArray =
     env->GetMethodID(clsLinkedList, "toArray", "()[Ljava/lang/Object;");
   if (midLLToArray == 0) error(__FILE__,__LINE__);
-  midCLToArray = 
+  midCLToArray =
     env->GetMethodID(clsCycleList, "toArray", "()[Ljava/lang/Object;");
   if (midCLToArray == 0) error(__FILE__,__LINE__);
-  midCLLPToArray = 
-    env->GetMethodID(clsCycleListListPoints, 
-                     "toArray", 
+  midCLLPToArray =
+    env->GetMethodID(clsCycleListListPoints,
+                     "toArray",
                      "()[Ljava/lang/Object;");
   if (midCLLPToArray == 0) error(__FILE__,__LINE__);
-  midRegionsCyclesPoints = 
-    env->GetMethodID(clsRegions, 
-                     "cyclesPoints", 
+  midRegionsCyclesPoints =
+    env->GetMethodID(clsRegions,
+                     "cyclesPoints",
                      "()Ltwodsack/util/collection/CycleListListPoints;");
   if (midRegionsCyclesPoints == 0) error(__FILE__,__LINE__);
-  midRFConstRational = 
-    env->GetStaticMethodID(clsRationalFactory, 
-                           "constRational", 
+  midRFConstRational =
+    env->GetStaticMethodID(clsRationalFactory,
+                           "constRational",
                            "(II)Ltwodsack/util/number/Rational;");
   if (midRFConstRational == 0) error(__FILE__,__LINE__);
   midPointConstII = env->GetMethodID(clsPoint, "<init>", "(II)V");
   if (midPointConstII == 0) error(__FILE__,__LINE__);
   midPointConstDD = env->GetMethodID(clsPoint, "<init>", "(DD)V");
   if (midPointConstDD == 0) error(__FILE__,__LINE__);
-  midPointConstRR = 
-    env->GetMethodID(clsPoint, 
-                     "<init>", 
+  midPointConstRR =
+    env->GetMethodID(clsPoint,
+                     "<init>",
                      "(Ltwodsack/util/number/Rational;"
                      "Ltwodsack/util/number/Rational;)V");
   if (midPointConstRR == 0) error(__FILE__,__LINE__);
   midPointsConst = env->GetMethodID(clsPoints, "<init>", "()V");
   if (midPointsConst == 0) error(__FILE__,__LINE__);
-  midPointsAddPoint = 
-    env->GetMethodID(clsPoints, 
-                     "add", 
+  midPointsAddPoint =
+    env->GetMethodID(clsPoints,
+                     "add",
                      "(Ltwodsack/setelement/datatype/basicdatatype/Point;)V");
   if (midPointsAddPoint == 0) error(__FILE__,__LINE__);
   midSegmentConstIIII = env->GetMethodID(clsSegment, "<init>", "(IIII)V");
   if (midSegmentConstIIII == 0) error(__FILE__,__LINE__);
   midSegmentConstDDDD = env->GetMethodID(clsSegment, "<init>", "(DDDD)V");
   if (midSegmentConstDDDD == 0) error(__FILE__,__LINE__);
-  midSegmentConstRRRR = 
-    env->GetMethodID(clsSegment, 
-                     "<init>", 
+  midSegmentConstRRRR =
+    env->GetMethodID(clsSegment,
+                     "<init>",
                      "(Ltwodsack/util/number/Rational;"
                      "Ltwodsack/util/number/Rational;"
                      "Ltwodsack/util/number/Rational;"
@@ -7144,26 +7146,26 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midSegmentConstRRRR == 0) error(__FILE__,__LINE__);
   midLinesConst = env->GetMethodID(clsLines, "<init>", "()V");
   if (midLinesConst == 0) error(__FILE__,__LINE__);
-  midLinesAddSegment = 
-    env->GetMethodID(clsLines, 
-                     "add", 
+  midLinesAddSegment =
+    env->GetMethodID(clsLines,
+                     "add",
                      "(Ltwodsack/setelement/datatype/basicdatatype/Segment;)V");
   if (midLinesAddSegment == 0) error(__FILE__,__LINE__);
   midSCConst = env->GetMethodID(clsSegmentComparator, "<init>", "()V");
   if (midSCConst == 0) error(__FILE__,__LINE__);
-  midSMSConst = 
-    env->GetMethodID(clsSegMultiSet, 
-                     "<init>", 
+  midSMSConst =
+    env->GetMethodID(clsSegMultiSet,
+                     "<init>",
                      "(Ltwodsack/util/comparator/SegmentComparator;)V");
   if (midSMSConst == 0) error(__FILE__,__LINE__);
-  midSMSAdd = 
-    env->GetMethodID(clsSegMultiSet,  
-                     "add", 
+  midSMSAdd =
+    env->GetMethodID(clsSegMultiSet,
+                     "add",
                      "(Ltwodsack/setelement/datatype/basicdatatype/Segment;)V");
   if (midSMSAdd == 0) error(__FILE__,__LINE__);
-  midSegmentConstPP = 
-    env->GetMethodID(clsSegment, 
-                     "<init>", 
+  midSegmentConstPP =
+    env->GetMethodID(clsSegment,
+                     "<init>",
                      "(Ltwodsack/setelement/datatype/basicdatatype/Point;"
                      "Ltwodsack/setelement/datatype/basicdatatype/Point;)V");
   if (midSegmentConstPP == 0) error(__FILE__,__LINE__);
@@ -7174,60 +7176,60 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if (midRegionsConstSMS == 0) error(__FILE__,__LINE__);
   midPointsCompare = env->GetMethodID(clsPoints,"compare","(LPoints;)I");
   if (midPointsCompare == 0) error(__FILE__,__LINE__);
-  midPointsWriteToByteArray = 
+  midPointsWriteToByteArray =
     env->GetMethodID(clsPoints,"writeToByteArray","()[B");
   if(midPointsWriteToByteArray == 0) error(__FILE__,__LINE__);
-  midPointsReadFrom = 
+  midPointsReadFrom =
     env->GetStaticMethodID(clsPoints,"readFrom","([B)LPoints;");
   if(midPointsReadFrom == 0) error(__FILE__,__LINE__);
   midPointsPrint = env->GetMethodID(clsPoints,"print","()V");
   if(midPointsPrint == 0) error(__FILE__,__LINE__);
-  midLinesRect = 
+  midLinesRect =
     env->GetMethodID(clsLines,
-                     "rect",
+                     Rectangle<2>::BasicType(),
                      "()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
   if(midLinesRect == 0) error(__FILE__,__LINE__);
-  midPointsRect = 
+  midPointsRect =
     env->GetMethodID(clsPoints,
-                     "rect",
+                     Rectangle<2>::BasicType(),
                      "()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
   if(midPointsRect == 0) error(__FILE__,__LINE__);
   midLinesCompare = env->GetMethodID(clsLines,"compare","(LLines;)I");
   if (midLinesCompare == 0) error(__FILE__,__LINE__);
-  midLinesWriteToByteArray = 
+  midLinesWriteToByteArray =
     env->GetMethodID(clsLines,"writeToByteArray","()[B");
   if(midLinesWriteToByteArray == 0) error(__FILE__,__LINE__);
-  midLinesReadFrom = 
+  midLinesReadFrom =
     env->GetStaticMethodID(clsLines,"readFrom","([B)LLines;");
   if(midLinesReadFrom == 0) error(__FILE__,__LINE__);
   midLinesPrint = env->GetMethodID(clsLines,"print","()V");
   if(midLinesPrint == 0) error (__FILE__,__LINE__);
-  midRegionsCompare = 
+  midRegionsCompare =
     env->GetMethodID(clsRegions,"compare","(LRegions;)I");
   if (midRegionsCompare == 0) error (__FILE__,__LINE__);
-  midRegionsWriteToByteArray = 
+  midRegionsWriteToByteArray =
     env->GetMethodID(clsRegions,"writeToByteArray","()[B");
   if(midRegionsWriteToByteArray == 0) error(__FILE__,__LINE__);
-  midRegionsReadFrom = 
+  midRegionsReadFrom =
     env->GetStaticMethodID(clsRegions,"readFrom","([B)LRegions;");
   if(midRegionsReadFrom == 0) error(__FILE__,__LINE__);
   midRegionsPrint = env->GetMethodID(clsRegions,"print","()V");
   if(midRegionsPrint == 0) error(__FILE__,__LINE__);
-  midRationalGetNumerator = 
+  midRationalGetNumerator =
     env->GetMethodID(clsRational, "getNumerator", "()I");
   if (midRationalGetNumerator == 0) error(__FILE__, __LINE__);
-  midRationalGetDenominator = 
+  midRationalGetDenominator =
     env->GetMethodID(clsRational, "getDenominator", "()I");
   if (midRationalGetDenominator == 0) error(__FILE__, __LINE__);
-  midROSESetDeviationValue = 
+  midROSESetDeviationValue =
     env->GetStaticMethodID(clsROSEAlgebra, "setDeviationValue", "(D)V");
   if (midROSESetDeviationValue == 0) error(__FILE__,__LINE__);
-  midROSEChooseTriangulator = 
+  midROSEChooseTriangulator =
     env->GetStaticMethodID(clsROSEAlgebra, "chooseTriangulator", "(I)V");
   if (midROSEChooseTriangulator == 0) error(__FILE__,__LINE__);
-  midRegionsRect = 
+  midRegionsRect =
     env->GetMethodID(clsRegions,
-                     "rect", 
+                     Rectangle<2>::BasicType(),
                      "()Ltwodsack/setelement/datatype/basicdatatype/Rect;");
   if (midRegionsRect == 0) error(__FILE__,__LINE__);
   midRectGetTopLeftX = env->GetMethodID(clsRect,"getTopLeftX","()D");
@@ -7241,348 +7243,348 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
   //define ROSE function mid
 
-  midROSEp_diameter = 
+  midROSEp_diameter =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "p_diameter",
                            "(LPoints;)Ltwodsack/util/number/Rational;");
   if (midROSEp_diameter == 0) error(__FILE__,__LINE__);
-  midROSEp_no_of_components = 
+  midROSEp_no_of_components =
     env->GetStaticMethodID(clsROSEAlgebra,"p_no_of_components","(LPoints;)I");
   if (midROSEp_no_of_components == 0) error(__FILE__,__LINE__);
 
-  midROSEl_diameter = 
+  midROSEl_diameter =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "l_diameter",
                            "(LLines;)Ltwodsack/util/number/Rational;");
   if (midROSEl_diameter == 0) error(__FILE__,__LINE__);
-  midROSEl_interior = 
+  midROSEl_interior =
     env->GetStaticMethodID(clsROSEAlgebra,"l_interior","(LLines;)LRegions;");
   if (midROSEl_interior == 0) error(__FILE__,__LINE__);
-  midROSEl_length = 
+  midROSEl_length =
     env->GetStaticMethodID(clsROSEAlgebra,"l_length","(LLines;)D");
   if (midROSEl_length == 0) error(__FILE__,__LINE__);
-  midROSEl_no_of_components = 
+  midROSEl_no_of_components =
     env->GetStaticMethodID(clsROSEAlgebra,"l_no_of_components","(LLines;)I");
   if (midROSEl_no_of_components == 0) error(__FILE__,__LINE__);
-  midROSEl_vertices = 
+  midROSEl_vertices =
     env->GetStaticMethodID(clsROSEAlgebra,"l_vertices","(LLines;)LPoints;");
   if (midROSEl_vertices == 0) error(__FILE__,__LINE__);
 
-  midROSEr_area = 
+  midROSEr_area =
     env->GetStaticMethodID(clsROSEAlgebra,"r_area","(LRegions;)D");
   if (midROSEr_area == 0) error(__FILE__,__LINE__);
-  midROSEr_contour = 
+  midROSEr_contour =
     env->GetStaticMethodID(clsROSEAlgebra,"r_contour","(LRegions;)LLines;");
   if (midROSEr_contour == 0) error(__FILE__,__LINE__);
-  midROSEr_diameter = 
+  midROSEr_diameter =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "r_diameter",
                            "(LRegions;)Ltwodsack/util/number/Rational;");
   if (midROSEr_diameter == 0) error(__FILE__,__LINE__);
-  midROSEr_no_of_components = 
+  midROSEr_no_of_components =
     env->GetStaticMethodID(clsROSEAlgebra,"r_no_of_components","(LRegions;)I");
   if (midROSEr_no_of_components == 0) error(__FILE__,__LINE__);
-  midROSEr_perimeter = 
+  midROSEr_perimeter =
     env->GetStaticMethodID(clsROSEAlgebra,"r_perimeter","(LRegions;)D");
   if (midROSEr_perimeter == 0) error(__FILE__,__LINE__);
-  midROSEr_vertices = 
+  midROSEr_vertices =
     env->GetStaticMethodID(clsROSEAlgebra,"r_vertices","(LRegions;)LPoints;");
   if (midROSEr_vertices == 0) error(__FILE__,__LINE__);
 
-  midROSEpp_disjoint = 
+  midROSEpp_disjoint =
     env->GetStaticMethodID(clsROSEAlgebra,"pp_disjoint","(LPoints;LPoints;)Z");
   if (midROSEpp_disjoint == 0) error(__FILE__,__LINE__);
-  midROSEpp_dist = 
+  midROSEpp_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pp_dist",
                            "(LPoints;LPoints;)Ltwodsack/util/number/Rational;");
   if (midROSEpp_dist == 0) error(__FILE__,__LINE__);
-  midROSEpp_equal = 
+  midROSEpp_equal =
     env->GetStaticMethodID(clsROSEAlgebra,"pp_equal","(LPoints;LPoints;)Z");
   if (midROSEpp_equal == 0) error(__FILE__,__LINE__);
-  midROSEpp_plus = 
+  midROSEpp_plus =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pp_plus",
                            "(LPoints;LPoints;)LPoints;");
   if (midROSEpp_plus == 0) error(__FILE__,__LINE__);
-  midROSEpp_minus = 
+  midROSEpp_minus =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pp_minus",
                            "(LPoints;LPoints;)LPoints;");
   if (midROSEpp_minus == 0) error(__FILE__,__LINE__);
-  midROSEpp_unequal = 
+  midROSEpp_unequal =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pp_unequal",
                            "(LPoints;LPoints;)Z");
   if (midROSEpp_unequal == 0) error(__FILE__,__LINE__);
-  midROSEpp_intersection = 
+  midROSEpp_intersection =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pp_intersection",
                            "(LPoints;LPoints;)LPoints;");
   if (midROSEpp_intersection == 0) error(__FILE__,__LINE__);
 
-  midROSEll_border_in_common = 
+  midROSEll_border_in_common =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "ll_border_in_common",
                            "(LLines;LLines;)Z");
   if (midROSEll_border_in_common == 0) error(__FILE__,__LINE__);
-  midROSEll_common_border = 
+  midROSEll_common_border =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "ll_common_border",
                            "(LLines;LLines;)LLines;");
   if (midROSEll_common_border == 0) error(__FILE__,__LINE__);
-  midROSEll_disjoint = 
+  midROSEll_disjoint =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "ll_disjoint",
                            "(LLines;LLines;)Z");
   if (midROSEll_disjoint == 0) error(__FILE__,__LINE__);
-  midROSEll_dist = 
+  midROSEll_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "ll_dist",
                            "(LLines;LLines;)Ltwodsack/util/number/Rational;");
   if (midROSEll_dist == 0) error(__FILE__,__LINE__);
-  midROSEll_equal = 
+  midROSEll_equal =
     env->GetStaticMethodID(clsROSEAlgebra,"ll_equal","(LLines;LLines;)Z");
   if (midROSEll_equal == 0) error(__FILE__,__LINE__);
-  midROSEll_intersection = 
+  midROSEll_intersection =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "ll_intersection",
                            "(LLines;LLines;)LPoints;");
   if (midROSEll_intersection == 0) error(__FILE__,__LINE__);
-  midROSEll_intersects = 
+  midROSEll_intersects =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "ll_intersects",
                            "(LLines;LLines;)Z");
   if (midROSEll_intersects == 0) error(__FILE__,__LINE__);
-  midROSEll_meets = 
+  midROSEll_meets =
     env->GetStaticMethodID(clsROSEAlgebra,"ll_meets","(LLines;LLines;)Z");
   if (midROSEll_meets == 0) error(__FILE__,__LINE__);
-  midROSEll_minus = 
+  midROSEll_minus =
     env->GetStaticMethodID(clsROSEAlgebra,"ll_minus","(LLines;LLines;)LLines;");
   if (midROSEll_minus == 0) error(__FILE__,__LINE__);
-  midROSEll_plus = 
+  midROSEll_plus =
     env->GetStaticMethodID(clsROSEAlgebra,"ll_plus","(LLines;LLines;)LLines;");
   if (midROSEll_plus == 0) error(__FILE__,__LINE__);
-  midROSEll_unequal = 
+  midROSEll_unequal =
     env->GetStaticMethodID(clsROSEAlgebra,"ll_unequal","(LLines;LLines;)Z");
   if (midROSEll_unequal == 0) error(__FILE__,__LINE__);
 
-  midROSErr_adjacent = 
+  midROSErr_adjacent =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_adjacent",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_adjacent == 0) error(__FILE__,__LINE__);
-  midROSErr_area_disjoint = 
+  midROSErr_area_disjoint =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_area_disjoint",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_area_disjoint == 0) error(__FILE__,__LINE__);
-  midROSErr_border_in_common = 
+  midROSErr_border_in_common =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_border_in_common",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_border_in_common == 0) error(__FILE__,__LINE__);
-  midROSErr_common_border = 
+  midROSErr_common_border =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_common_border",
                            "(LRegions;LRegions;)LLines;");
   if (midROSErr_common_border == 0) error(__FILE__,__LINE__);
-  midROSErr_disjoint = 
+  midROSErr_disjoint =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_disjoint",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_disjoint == 0) error(__FILE__,__LINE__);
-  midROSErr_dist = 
+  midROSErr_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_dist",
                            "(LRegions;LRegions;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSErr_dist == 0) error(__FILE__,__LINE__);
-  midROSErr_edge_disjoint = 
+  midROSErr_edge_disjoint =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_edge_disjoint",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_edge_disjoint == 0) error(__FILE__,__LINE__);
-  midROSErr_edge_inside = 
+  midROSErr_edge_inside =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_edge_inside",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_edge_inside == 0) error(__FILE__,__LINE__);
-  midROSErr_encloses = 
+  midROSErr_encloses =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_encloses",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_encloses == 0) error(__FILE__,__LINE__);
-  midROSErr_equal = 
+  midROSErr_equal =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_equal",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_equal == 0) error(__FILE__,__LINE__);
-  midROSErr_inside = 
+  midROSErr_inside =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_inside",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_inside == 0) error(__FILE__,__LINE__);
-  midROSErr_intersection = 
+  midROSErr_intersection =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_intersection",
                            "(LRegions;LRegions;)LRegions;");
   if (midROSErr_intersection == 0) error(__FILE__,__LINE__);
-  midROSErr_intersects = 
+  midROSErr_intersects =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_intersects",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_intersects == 0) error(__FILE__,__LINE__);
-  midROSErr_meets = 
+  midROSErr_meets =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_meets",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_meets == 0) error(__FILE__,__LINE__);
-  midROSErr_minus = 
+  midROSErr_minus =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_minus",
                            "(LRegions;LRegions;)LRegions;");
   if (midROSErr_minus == 0) error(__FILE__, __LINE__);
-  midROSErr_plus = 
+  midROSErr_plus =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_plus",
                            "(LRegions;LRegions;)LRegions;");
   if (midROSErr_plus == 0) error(__FILE__,__LINE__);
-  midROSErr_unequal = 
+  midROSErr_unequal =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_unequal",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_unequal == 0) error(__FILE__,__LINE__);
-  midROSErr_vertex_inside = 
+  midROSErr_vertex_inside =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rr_vertex_inside",
                            "(LRegions;LRegions;)Z");
   if (midROSErr_vertex_inside == 0) error(__FILE__,__LINE__);
 
-  midROSEpl_dist = 
+  midROSEpl_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pl_dist",
                            "(LPoints;LLines;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSEpl_dist == 0) error(__FILE__,__LINE__);
-  midROSEpl_on_border_of = 
+  midROSEpl_on_border_of =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pl_on_border_of",
                            "(LPoints;LLines;)Z");
   if (midROSEpl_on_border_of == 0) error(__FILE__,__LINE__);
 
-  midROSEpr_dist = 
+  midROSEpr_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pr_dist",
                            "(LPoints;LRegions;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSEpr_dist == 0) error(__FILE__,__LINE__);
-  midROSEpr_inside = 
+  midROSEpr_inside =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pr_inside",
                            "(LPoints;LRegions;)Z");
   if (midROSEpr_inside == 0) error(__FILE__,__LINE__);
-  midROSEpr_on_border_of = 
+  midROSEpr_on_border_of =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "pr_on_border_of",
                            "(LPoints;LRegions;)Z");
   if (midROSEpr_on_border_of == 0) error(__FILE__,__LINE__);
-  
-  midROSElp_dist = 
+
+  midROSElp_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lp_dist",
                            "(LLines;LPoints;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSElp_dist == 0) error(__FILE__,__LINE__);
 
-  midROSErp_dist = 
+  midROSErp_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rp_dist",
                            "(LRegions;LPoints;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSErp_dist == 0) error(__FILE__,__LINE__);
 
-  midROSElr_border_in_common = 
+  midROSElr_border_in_common =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lr_border_in_common",
                            "(LLines;LRegions;)Z");
   if (midROSElr_border_in_common == 0) error(__FILE__,__LINE__);
-  midROSElr_common_border = 
+  midROSElr_common_border =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lr_common_border",
                            "(LLines;LRegions;)LLines;");
   if (midROSElr_common_border == 0) error(__FILE__,__LINE__);
-  midROSElr_dist = 
+  midROSElr_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lr_dist",
                            "(LLines;LRegions;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSElr_dist == 0) error(__FILE__,__LINE__);
-  midROSElr_inside = 
+  midROSElr_inside =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lr_inside",
                            "(LLines;LRegions;)Z");
   if (midROSElr_inside == 0) error(__FILE__,__LINE__);
-  midROSElr_intersects = 
+  midROSElr_intersects =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lr_intersects",
                            "(LLines;LRegions;)Z");
   if (midROSElr_intersects == 0) error(__FILE__,__LINE__);
-  midROSElr_meets = 
+  midROSElr_meets =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "lr_meets",
                            "(LLines;LRegions;)Z");
   if (midROSElr_meets == 0) error(__FILE__,__LINE__);
 
-  midROSErl_border_in_common = 
+  midROSErl_border_in_common =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rl_border_in_common",
                            "(LRegions;LLines;)Z");
   if (midROSErl_border_in_common == 0) error(__FILE__,__LINE__);
-  midROSErl_common_border = 
+  midROSErl_common_border =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rl_common_border",
                            "(LRegions;LLines;)LLines;");
   if (midROSErl_common_border == 0) error(__FILE__,__LINE__);
-  midROSErl_dist = 
+  midROSErl_dist =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rl_dist",
                            "(LRegions;LLines;)"
                            "Ltwodsack/util/number/Rational;");
   if (midROSErl_dist == 0) error(__FILE__,__LINE__);
-  midROSErl_intersection = 
+  midROSErl_intersection =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rl_intersection",
                            "(LRegions;LLines;)LLines;");
   if (midROSErl_intersection == 0) error(__FILE__,__LINE__);
-  midROSErl_intersects = 
+  midROSErl_intersects =
     env->GetStaticMethodID(clsROSEAlgebra,
-                           "rl_intersects", 
+                           "rl_intersects",
                            "(LRegions;LLines;)Z");
   if (midROSErl_intersects == 0) error(__FILE__,__LINE__);
-  midROSErl_meets = 
+  midROSErl_meets =
     env->GetStaticMethodID(clsROSEAlgebra,
                            "rl_meets",
                            "(LRegions;LLines;)Z");
   if (midROSErl_meets == 0) error(__FILE__,__LINE__);
 
   //define java fields, that are needed
-  fidRationalX = 
+  fidRationalX =
     env->GetFieldID(clsPoint, "x", "Ltwodsack/util/number/Rational;");
   if (fidRationalX == 0) error(__FILE__,__LINE__);
-  fidRationalY = 
+  fidRationalY =
     env->GetFieldID(clsPoint, "y", "Ltwodsack/util/number/Rational;");
   if (fidRationalY == 0) error(__FILE__,__LINE__);
-  fidPointsPointSet = 
+  fidPointsPointSet =
     env->GetFieldID(clsPoints, "pointset", "Ltwodsack/set/PointMultiSet;");
   if (fidPointsPointSet == 0) error(__FILE__,__LINE__);
-  fidLinesSegmentSet = 
+  fidLinesSegmentSet =
     env->GetFieldID(clsLines, "segset", "Ltwodsack/set/SegMultiSet;");
   if (fidLinesSegmentSet == 0) error(__FILE__,__LINE__);
-  
+
   clsRoseError = env->FindClass("RoseAlgebraError");
   if (clsRoseError == 0) error(__FILE__,__LINE__);
-  fidROSEError = 
+  fidROSEError =
     env->GetFieldID(clsRoseError, "errorMessage", "Ljava/lang/String;");
   if (fidROSEError == 0) error(__FILE__,__LINE__);
 

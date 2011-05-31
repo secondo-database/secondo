@@ -53,6 +53,7 @@ We have to include some GSL headers and the GSLAlgebra.
 #include "ListUtils.h"
 #include "NList.h"
 #include "DateTime.h"
+#include "Symbols.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -153,14 +154,14 @@ template<int N>
          ){
         ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
             "expects (real)^" + oss.str() + "." );
-        return (nl->SymbolAtom( "typeerror" ));
+        return (nl->SymbolAtom( Symbol::TYPEERROR() ));
       }
     }
     return (nl->SymbolAtom( CcBool::BasicType() ));
   }
   ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
       "expects a list of length " + oss.str() + ".");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 
@@ -206,7 +207,7 @@ ListExpr sim_set_rng_TM ( ListExpr args )
   }
   ErrorReporter::
       ReportError("SimulationAlgebra: sim_set_rng expected int x int");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int sim_set_rng_VM ( Word* args, Word& result,
@@ -486,7 +487,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
                             nl->IntAtom(a2index));
   }
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                            ind,
                            nl->SymbolAtom(MPoint::BasicType()));
 }
@@ -915,7 +916,7 @@ ListExpr sim_empty2bool_TM ( ListExpr args )
   }
   ErrorReporter::ReportError("SimulationAlgebra::sim_empty2bool_TM "
       "expects a list of length 0.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 
@@ -1021,7 +1022,7 @@ ListExpr sim_fillup_mpoint_TM ( ListExpr args )
   ErrorReporter::
       ReportError("SimulationAlgebra: sim_fillup_mpoint expected "
                   "mpoint x instant x instant x bool x bool x bool");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int sim_fillup_mpoint_VM ( Word* args, Word& result,
@@ -1247,7 +1248,7 @@ ListExpr sim_trips_TM ( ListExpr args )
   if((noargs==4)&&(!listutils::isSymbol(nl->Fourth(args),Geoid::BasicType()))){
     return listutils::typeError(errmsg);
   }
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->SymbolAtom(MPoint::BasicType()));
 }
 

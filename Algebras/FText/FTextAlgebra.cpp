@@ -371,7 +371,7 @@ ListExpr OutFText( ListExpr typeInfo, Word value )
   if(pftext->IsDefined()){
      res=nl->TextAtom(pftext->GetValue());
   } else {
-     res = nl->SymbolAtom("undef");
+     res = nl->SymbolAtom(Symbol::UNDEFINED());
   }
   //nl->AppendText( TextAtomVar, pftext->Get() );
 
@@ -394,14 +394,14 @@ Word InFText( const ListExpr typeInfo, const ListExpr instance,
     First = instance;
 
   if ( nl->IsAtom( First ) && nl->AtomType( First ) == SymbolType
-       && nl->SymbolValue( First ) == "undef" )
+       && listutils::isSymbolUndefined(First) )
   {
     string buffer = "";
     FText* newftext = new FText( false, buffer.c_str() );
     correct = true;
 
     if(traces)
-      cout << "End InFText with undef Text '"<<buffer<<"'\n";
+      cout << "End InFText with undefined Text '"<<buffer<<"'\n";
     return SetWord(newftext);
   }
 
@@ -470,7 +470,7 @@ ListExpr SVGProperty()
       nl->FourElemList
       (
         nl->StringAtom("-> DATA"),
-        nl->StringAtom("svg"),
+        nl->StringAtom(SVG::BasicType()),
         nl->StringAtom("<text>svg description</text--->"),
         nl->StringAtom("<text><svg> ... </svg></text--->")
       )
@@ -504,7 +504,7 @@ bool CheckFText( ListExpr type, ListExpr& errorInfo )
 
 bool CheckSVG( ListExpr type, ListExpr& errorInfo )
 {
-  return nl->IsEqual( type, "svg");
+  return nl->IsEqual( type, SVG::BasicType());
 }
 
 
@@ -528,7 +528,7 @@ TypeConstructor ftext(
   CheckFText );                 //kind checking function
 
 TypeConstructor svg(
-  "svg",                     //name of the type
+  SVG::BasicType(),                     //name of the type
   SVGProperty,                //property function describing signature
   OutFText,    InFText,         //Out and In functions
   0,           0,               //SaveToList and RestoreFromList functions
@@ -574,7 +574,7 @@ ListExpr TypeMap_Text_Text__Bool( ListExpr args )
 
   if(traces)
     cout <<"End TypeMap_Text_Text__Bool with typeerror"<<'\n';
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -587,16 +587,16 @@ ListExpr TypeMap_TextString_TextString__Bool( ListExpr args )
     return listutils::typeError("Expected 2 arguments.");
   }
   ListExpr arg1 = nl->First(args);
-  if(   !listutils::isSymbol(arg1,symbols::TEXT)
-     && !listutils::isSymbol(arg1,symbols::STRING)){
+  if(   !listutils::isSymbol(arg1,FText::BasicType())
+     && !listutils::isSymbol(arg1,CcString::BasicType())){
     return listutils::typeError("{text|string} x {text|string} expected.");
   }
   ListExpr arg2 = nl->Second(args);
-  if(   !listutils::isSymbol(arg2,symbols::TEXT)
-     && !listutils::isSymbol(arg2,symbols::STRING)){
+  if(   !listutils::isSymbol(arg2,FText::BasicType())
+     && !listutils::isSymbol(arg2,CcString::BasicType())){
       return listutils::typeError("{text|string} x {text|string} expected.");
     }
-  return nl->SymbolAtom(symbols::BOOL);
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -624,7 +624,7 @@ ListExpr TypeMap_Text_String__Bool( ListExpr args )
 
   if(traces)
     cout <<"End TypeMap_Text_String__Bool with typeerror"<<'\n';
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -649,7 +649,7 @@ ListExpr TypeMap_Text__Int( ListExpr args )
 
   if(traces)
     cout <<"End TypeMap_Text__Int with typeerror"<<'\n';
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -665,10 +665,10 @@ ListExpr TypeMap_text__stringstream( ListExpr args ){
   {
     arg = nl->First(args);
     if ( nl->IsEqual(arg, typeName) )
-      return nl->TwoElemList( nl->SymbolAtom("stream"),
+      return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                               nl->SymbolAtom(CcString::BasicType()));
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -682,10 +682,10 @@ ListExpr TypeMap_text__textstream( ListExpr args ){
   {
     arg = nl->First(args);
     if ( nl->IsEqual(arg, typeName) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(FText::BasicType()));
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -695,18 +695,18 @@ Typemap: int x text x text [->] real
 ListExpr TypeMap_int_text_text__real(ListExpr args){
   if(nl->ListLength(args)!=3){
        ErrorReporter::ReportError("three arguments required");
-       return nl->SymbolAtom("typeerror");
+       return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   if(!nl->IsEqual(nl->First(args),CcInt::BasicType())){
      ErrorReporter::ReportError("first argument must be an integer");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   ListExpr arg2 = nl->Second(args);
   ListExpr arg3 = nl->Third(args);
   if(  (nl->AtomType(arg2)!=SymbolType ) ||
        (nl->AtomType(arg3)!=SymbolType)){
      ErrorReporter::ReportError("only simple types allowed");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
   string t2 = nl->SymbolValue(arg2);
@@ -715,7 +715,7 @@ ListExpr TypeMap_int_text_text__real(ListExpr args){
   // first version, only texts, later extend to string
   if(t2!=FText::BasicType() || t3!=FText::BasicType()){
      ErrorReporter::ReportError("text as second and third argument expected");
-     return nl->SymbolAtom("typeerror");
+     return nl->SymbolAtom(Symbol::TYPEERROR());
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
@@ -732,12 +732,12 @@ ListExpr TypeGetCatalog( ListExpr args )
 
   if ( type.hasLength(0) ){
     NList resTupleType = NList(NList("ObjectName"),
-                       NList(symbols::STRING)).enclose();
-    resTupleType.append(NList(NList("Type"),NList(symbols::TEXT)));
-    resTupleType.append(NList(NList("TypeExpr"),NList(symbols::TEXT)));
+                       NList(CcString::BasicType())).enclose();
+    resTupleType.append(NList(NList("Type"),NList(FText::BasicType())));
+    resTupleType.append(NList(NList("TypeExpr"),NList(FText::BasicType())));
     NList resType =
-        NList(NList(NList(symbols::STREAM),
-            NList(NList(symbols::TUPLE),resTupleType)));
+        NList(NList(NList(Symbol::STREAM()),
+            NList(NList(Tuple::BasicType()),resTupleType)));
     return resType.listExpr();
   }
   return NList::typeError( "No argument expected!");
@@ -754,15 +754,15 @@ ListExpr TypeFTextSubstr( ListExpr args )
   if ( !type.hasLength(3) ){
     return NList::typeError( "Three arguments expected");
   }
-  if (    type.second() != NList(symbols::INT)
-       || type.third()  != NList(symbols::INT)
+  if (    type.second() != NList(CcInt::BasicType())
+       || type.third()  != NList(CcInt::BasicType())
      )
   {
     return NList::typeError( "Boundary arguments must be of type int.");
   }
-  if ( type.first() == NList(symbols::TEXT) )
+  if ( type.first() == NList(FText::BasicType()) )
   {
-    return NList(symbols::STRING).listExpr();
+    return NList(CcString::BasicType()).listExpr();
   }
   return NList::typeError( "Expected text as first argument type.");
 }
@@ -779,15 +779,15 @@ ListExpr TypeFTextSubtext( ListExpr args )
   if ( !type.hasLength(3) ){
     return NList::typeError( "Three arguments expected");
   }
-  if (    type.second() != NList(symbols::INT)
-          || type.third()  != NList(symbols::INT)
+  if (    type.second() != NList(CcInt::BasicType())
+          || type.third()  != NList(CcInt::BasicType())
      )
   {
     return NList::typeError( "Boundary arguments must be of type int.");
   }
-  if ( type.first() == NList(symbols::TEXT) )
+  if ( type.first() == NList(FText::BasicType()) )
   {
-    return NList(symbols::TEXT).listExpr();
+    return NList(FText::BasicType()).listExpr();
   }
   return NList::typeError( "Expected text as first argument type.");
 }
@@ -803,14 +803,14 @@ ListExpr TypeMap_textstring_textstring__intstream( ListExpr args )
 
   if ( type.hasLength(2) &&
        (
-          (type == NList(symbols::STRING, symbols::STRING))
-       || (type == NList(symbols::TEXT,   symbols::TEXT  ))
-       || (type == NList(symbols::STRING, symbols::TEXT  ))
-       || (type == NList(symbols::TEXT,   symbols::STRING))
+          (type == NList(CcString::BasicType(), CcString::BasicType()))
+       || (type == NList(FText::BasicType(),   FText::BasicType()  ))
+       || (type == NList(CcString::BasicType(), FText::BasicType()  ))
+       || (type == NList(FText::BasicType(),   CcString::BasicType()))
        )
      )
   {
-    return NList(symbols::STREAM, symbols::INT).listExpr();
+    return NList(Symbol::STREAM(), CcInt::BasicType()).listExpr();
   }
   return NList::typeError("Expected {text|string} x {text|string}.");
 }
@@ -826,10 +826,10 @@ ListExpr TypeMap_text__bool( ListExpr args )
   NList type(args);
 
   if ( type.hasLength(1)
-       &&( (type.first() == NList(symbols::TEXT)) )
+       &&( (type.first() == NList(FText::BasicType())) )
      )
   {
-    return NList(symbols::BOOL).listExpr();
+    return NList(CcBool::BasicType()).listExpr();
   }
   return NList::typeError("Expected single text argument.");
 }
@@ -845,10 +845,10 @@ ListExpr TypeMap_text__text( ListExpr args )
     return listutils::typeError("single text expected");
   }
   ListExpr arg = nl->First(args);
-  if(!listutils::isSymbol(arg,symbols::TEXT)){
+  if(!listutils::isSymbol(arg,FText::BasicType())){
     return listutils::typeError("text expected");
   }
-  return nl->SymbolAtom(symbols::TEXT);
+  return nl->SymbolAtom(FText::BasicType());
 }
 
 /*
@@ -871,12 +871,12 @@ ListExpr FTextTypeMapPlus( ListExpr args )
   }
   NList first = type.first();
   NList second = type.second();
-  if(    (type == NList(symbols::STRING, symbols::TEXT  ))
-      || (type == NList(symbols::TEXT,   symbols::TEXT  ))
-      || (type == NList(symbols::TEXT,   symbols::STRING))
+  if(    (type == NList(CcString::BasicType(), FText::BasicType()  ))
+      || (type == NList(FText::BasicType(),   FText::BasicType()  ))
+      || (type == NList(FText::BasicType(),   CcString::BasicType()))
     )
   {
-    return NList(symbols::TEXT).listExpr();
+    return NList(FText::BasicType()).listExpr();
   }
   return NList::typeError("Expected (text x {text|string}) "
       "or ({text|string} x text).");
@@ -902,12 +902,12 @@ ListExpr FTextTypeMapComparePred( ListExpr args )
   }
   NList first = type.first();
   NList second = type.second();
-  if(    (type == NList(symbols::STRING, symbols::TEXT  ))
-          || (type == NList(symbols::TEXT,   symbols::TEXT  ))
-          || (type == NList(symbols::TEXT,   symbols::STRING))
+  if(    (type == NList(CcString::BasicType(), FText::BasicType()  ))
+          || (type == NList(FText::BasicType(),   FText::BasicType()  ))
+          || (type == NList(FText::BasicType(),   CcString::BasicType()))
     )
   {
-    return NList(symbols::BOOL).listExpr();
+    return NList(CcBool::BasicType()).listExpr();
   }
   return NList::typeError("Expected (text x {text|string}) "
       "or ({text|string} x text).");
@@ -932,35 +932,38 @@ Type Mapping Function for operator ~evaluate~
 ListExpr FTextTypeMapEvaluate( ListExpr args )
 {
   NList type(args);
-  NList st(symbols::STREAM);
-  NList tu(symbols::TUPLE);
-  NList resTupleType = NList(NList("CmdStr"),NList(symbols::TEXT)).enclose();
-  resTupleType.append(NList(NList("Success"),NList(symbols::BOOL)));
-  resTupleType.append(NList(NList("Correct"),NList(symbols::BOOL)));
-  resTupleType.append(NList(NList("Evaluable"),NList(symbols::BOOL)));
-  resTupleType.append(NList(NList("Defined"),NList(symbols::BOOL)));
-  resTupleType.append(NList(NList("IsFunction"),NList(symbols::BOOL)));
-  resTupleType.append(NList(NList("ResultType"),NList(symbols::TEXT)));
-  resTupleType.append(NList(NList("Result"),NList(symbols::TEXT)));
-  resTupleType.append(NList(NList("ErrorMessage"),NList(symbols::TEXT)));
-  resTupleType.append(NList(NList("ElapsedTimeReal"),NList(symbols::REAL)));
-  resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(symbols::REAL)));
+  NList st(Symbol::STREAM());
+  NList tu(Tuple::BasicType());
+  NList resTupleType = NList(NList("CmdStr"),
+                             NList(FText::BasicType())).enclose();
+  resTupleType.append(NList(NList("Success"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("Correct"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("Evaluable"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("Defined"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("IsFunction"),NList(CcBool::BasicType())));
+  resTupleType.append(NList(NList("ResultType"),NList(FText::BasicType())));
+  resTupleType.append(NList(NList("Result"),NList(FText::BasicType())));
+  resTupleType.append(NList(NList("ErrorMessage"),NList(FText::BasicType())));
+  resTupleType.append(NList(NList("ElapsedTimeReal"),
+                            NList(CcReal::BasicType())));
+  resTupleType.append(NList(NList("ElapsedTimeCPU"),
+                            NList(CcReal::BasicType())));
 
   NList resulttype(st,NList(tu,resTupleType));
 
   if (    type.hasLength(2)
-       && (type.first()  == symbols::TEXT)
-       && (type.second() == symbols::BOOL)
+       && (type.first()  == FText::BasicType())
+       && (type.second() == CcBool::BasicType())
      )
   {
     return resulttype.listExpr();
   }
   else if(    type.hasLength(1)
-           && (type.first() == symbols::TEXT)
+           && (type.first() == FText::BasicType())
          )
   {
     NList resType1 =
-        NList( NList(symbols::APPEND),
+        NList( NList(Symbol::APPEND()),
                NList(false, false).enclose(), resulttype );
     return resType1.listExpr();
   }
@@ -986,9 +989,9 @@ ListExpr FTextTypeTextData_Data( ListExpr args )
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   if(     type.hasLength(2)
-       && ((type.first()  == symbols::TEXT) ||
-       (type.first()  == symbols::STRING))
-       && (am->CheckKind("DATA",type.second().listExpr(),errorInfo))
+       && ((type.first()  == FText::BasicType()) ||
+       (type.first()  == CcString::BasicType()))
+       && (am->CheckKind(Kind::DATA(),type.second().listExpr(),errorInfo))
     )
   {
     return type.second().listExpr();
@@ -1012,29 +1015,29 @@ ListExpr FTextTypeReplace( ListExpr args )
   NList type(args);
   // {text|string} x {text|string} x {text|string} --> text
   if(     type.hasLength(3)
-          && ((type.first()  == symbols::TEXT) ||
-          (type.first()  == symbols::STRING))
-          && ((type.second() == symbols::TEXT) ||
-          (type.second() == symbols::STRING))
-          && ((type.third()  == symbols::TEXT) ||
-              (type.third()  == symbols::STRING))
+          && ((type.first()  == FText::BasicType()) ||
+          (type.first()  == CcString::BasicType()))
+          && ((type.second() == FText::BasicType()) ||
+          (type.second() == CcString::BasicType()))
+          && ((type.third()  == FText::BasicType()) ||
+              (type.third()  == CcString::BasicType()))
     )
   {
-    return NList(symbols::TEXT).listExpr();
+    return NList(FText::BasicType()).listExpr();
   }
   // {text|string} x int    x int  x {text|string} --> text
   if(     type.hasLength(4)
-          && ((type.first()  == symbols::TEXT) ||
-          (type.first()  == symbols::STRING))
-          && ((type.second() == symbols::INT ) ||
-          (type.second() == symbols::INT   ))
-          && ((type.third()  == symbols::INT ) ||
-          (type.third()  == symbols::INT   ))
-          && ((type.fourth() == symbols::TEXT) ||
-          (type.fourth() == symbols::STRING))
+          && ((type.first()  == FText::BasicType()) ||
+          (type.first()  == CcString::BasicType()))
+          && ((type.second() == CcInt::BasicType() ) ||
+          (type.second() == CcInt::BasicType()   ))
+          && ((type.third()  == CcInt::BasicType() ) ||
+          (type.third()  == CcInt::BasicType()   ))
+          && ((type.fourth() == FText::BasicType()) ||
+          (type.fourth() == CcString::BasicType()))
     )
   {
-    return NList(symbols::TEXT).listExpr();
+    return NList(FText::BasicType()).listExpr();
   }
   // error
   return NList::typeError("Expected ({text|string} x {text|string} x "
@@ -1052,10 +1055,10 @@ Type Mapping for ~isDBObject~:
 ListExpr TypeMap_string__bool( ListExpr args )
 {
   NList type(args);
-  if(type.hasLength(1) && (type.first()  == symbols::STRING))
+  if(type.hasLength(1) && (type.first()  == CcString::BasicType()))
   {
 
-    NList restype(symbols::BOOL, false);
+    NList restype(CcBool::BasicType(), false);
     return restype.listExpr();
   }
   return NList::typeError("Expected 'string' as single argument.");
@@ -1076,8 +1079,8 @@ ListExpr FTextTypeMapExpression2Text( ListExpr args )
   {
     string firsttype = type.first().convertToString();
     NList firstType = NList(firsttype, true, true).enclose();
-    NList append(symbols::APPEND);
-    NList text(symbols::TEXT);
+    NList append(Symbol::APPEND());
+    NList text(FText::BasicType());
     NList restype(append,
                   firstType,
                   text
@@ -1111,22 +1114,22 @@ ListExpr FTextTypeMapGetValueNL( ListExpr args )
   if( IsStreamDescription(type.listExpr()) )
   { // tuplestream
     string myType    = type.second().convertToString();
-    NList streamtype = NList(symbols::STREAM, symbols::TEXT);
+    NList streamtype = NList(Symbol::STREAM(), FText::BasicType());
     NList typeExpr   = NList(myType, true, true).enclose();
-    resulttype = NList( NList(symbols::APPEND),
+    resulttype = NList( NList(Symbol::APPEND()),
                         NList(myType, true, true).enclose(),
                         streamtype
                       );
   }
   else if (    type.hasLength(2)
-            && (type.first() == symbols::STREAM)
-            && am->CheckKind("DATA",type.second().listExpr(),errorInfo)
+            && (type.first() == Symbol::STREAM())
+            && am->CheckKind(Kind::DATA(),type.second().listExpr(),errorInfo)
           )
   { // datastream
     string myType    = type.second().convertToString();
-    NList streamtype = NList(symbols::STREAM, symbols::TEXT);
+    NList streamtype = NList(Symbol::STREAM(), FText::BasicType());
     NList typeExpr   = NList(myType, true, true).enclose();
-    resulttype = NList( NList(symbols::APPEND),
+    resulttype = NList( NList(Symbol::APPEND()),
                         NList(myType, true, true).enclose(),
                         streamtype
                       );
@@ -1135,9 +1138,9 @@ ListExpr FTextTypeMapGetValueNL( ListExpr args )
   { // non-stream expression
     string myType = type.convertToString();
     NList typeExpr = NList(myType, true, true).enclose();
-    resulttype = NList( NList(symbols::APPEND),
+    resulttype = NList( NList(Symbol::APPEND()),
                         NList(myType, true, true).enclose(),
-                        NList(symbols::TEXT)
+                        NList(FText::BasicType())
                       );
   }
 //   cout << __PRETTY_FUNCTION__ << ": result = " << resulttype << endl;
@@ -1156,9 +1159,9 @@ Type Mapping Function for ~chartext~
 ListExpr TypeMap_int__text( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == symbols::INT) )
+  if( type.hasLength(1) && (type.first() == CcInt::BasicType()) )
   {
-    return NList(symbols::TEXT).listExpr();
+    return NList(FText::BasicType()).listExpr();
   }
   return NList::typeError("Expected 'int'.");
 }
@@ -1176,9 +1179,9 @@ Type Mapping Function for ~tostring~
 ListExpr TypeMap_text__string( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == symbols::TEXT) )
+  if( type.hasLength(1) && (type.first() == FText::BasicType()) )
   {
-    return NList(symbols::STRING).listExpr();
+    return NList(CcString::BasicType()).listExpr();
   }
   return NList::typeError("Expected 'text'.");
 }
@@ -1195,9 +1198,9 @@ Type Mapping Function for ~totext~
 ListExpr TypeMap_string__text( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == symbols::STRING) )
+  if( type.hasLength(1) && (type.first() == CcString::BasicType()) )
   {
-    return NList(symbols::TEXT).listExpr();
+    return NList(FText::BasicType()).listExpr();
   }
   return NList::typeError("Expected 'string'.");
 }
@@ -1221,11 +1224,11 @@ ListExpr FTextTypeSendTextUDP( ListExpr args )
   for(int i = 1; i<=noargs; i++){
     string argtype;
     nl->WriteToString(argtype,nl->Nth(i,args));
-    if((argtype != symbols::STRING) && (argtype != symbols::TEXT)){
+    if((argtype != CcString::BasicType()) && (argtype != FText::BasicType())){
       return NList::typeError("Expected {string|text}^n, 3 <= n <= 5.");
     }
   }
-  return NList(symbols::TEXT).listExpr();
+  return NList(FText::BasicType()).listExpr();
 }
 
 /*
@@ -1250,20 +1253,24 @@ ListExpr FTextTypeReceiveTextUDP( ListExpr args )
   NList type(args);
   int noargs = nl->ListLength(args);
   if(    (noargs != 3)
-      || (type.first()  != symbols::TEXT && type.first()  != symbols::STRING)
-      || (type.second() != symbols::TEXT && type.second() != symbols::STRING)
-      || (type.third()  != symbols::REAL) ){
+      || (type.first()  != FText::BasicType() &&
+      type.first()  != CcString::BasicType())
+      || (type.second() != FText::BasicType() &&
+      type.second() != CcString::BasicType())
+      || (type.third()  != CcReal::BasicType()) ){
     return NList::typeError("Expected {string|text} x {string|text} x real.");
   }
-  NList resTupleType = NList(NList("Ok"),NList(symbols::BOOL)).enclose();
-  resTupleType.append(NList(NList("Msg"),NList(symbols::TEXT)));
-  resTupleType.append(NList(NList("ErrMsg"),NList(symbols::STRING)));
-  resTupleType.append(NList(NList("SenderIP"),NList(symbols::STRING)));
-  resTupleType.append(NList(NList("SenderPort"),NList(symbols::STRING)));
-  resTupleType.append(NList(NList("SenderIPversion"),NList(symbols::STRING)));
+  NList resTupleType = NList(NList("Ok"),
+                             NList(CcBool::BasicType())).enclose();
+  resTupleType.append(NList(NList("Msg"),NList(FText::BasicType())));
+  resTupleType.append(NList(NList("ErrMsg"),NList(CcString::BasicType())));
+  resTupleType.append(NList(NList("SenderIP"),NList(CcString::BasicType())));
+  resTupleType.append(NList(NList("SenderPort"),NList(CcString::BasicType())));
+  resTupleType.append(NList(NList("SenderIPversion"),
+                            NList(CcString::BasicType())));
   NList resType =
-      NList(NList(NList(symbols::STREAM),
-            NList(NList(symbols::TUPLE),resTupleType)));
+      NList(NList(NList(Symbol::STREAM()),
+            NList(NList(Tuple::BasicType()),resTupleType)));
   return resType.listExpr();
 }
 
@@ -1289,22 +1296,25 @@ ListExpr FTextTypeReceiveTextStreamUDP( ListExpr args )
   NList type(args);
   int noargs = nl->ListLength(args);
   if(    (noargs !=4 )
-      || (type.first()  != symbols::TEXT && type.first()  != symbols::STRING)
-      || (type.second() != symbols::TEXT && type.second() != symbols::STRING)
-      || (type.third()  != symbols::REAL)
-      || (type.fourth() != symbols::REAL) ) {
+      || (type.first()  != FText::BasicType() &&
+      type.first()  != CcString::BasicType())
+      || (type.second() != FText::BasicType() &&
+      type.second() != CcString::BasicType())
+      || (type.third()  != CcReal::BasicType())
+      || (type.fourth() != CcReal::BasicType()) ) {
     return NList::typeError("Expected {string|text} x "
                             "{string|text} x real x real.");
   }
-  NList resTupleType = NList(NList("Ok"),NList(symbols::BOOL)).enclose();
-  resTupleType.append(NList(NList("Msg"),NList(symbols::TEXT)));
-  resTupleType.append(NList(NList("ErrMsg"),NList(symbols::STRING)));
-  resTupleType.append(NList(NList("SenderIP"),NList(symbols::STRING)));
-  resTupleType.append(NList(NList("SenderPort"),NList(symbols::STRING)));
-  resTupleType.append(NList(NList("SenderIPversion"),NList(symbols::STRING)));
+  NList resTupleType = NList(NList("Ok"),NList(CcBool::BasicType())).enclose();
+  resTupleType.append(NList(NList("Msg"),NList(FText::BasicType())));
+  resTupleType.append(NList(NList("ErrMsg"),NList(CcString::BasicType())));
+  resTupleType.append(NList(NList("SenderIP"),NList(CcString::BasicType())));
+  resTupleType.append(NList(NList("SenderPort"),NList(CcString::BasicType())));
+  resTupleType.append(NList(NList("SenderIPversion"),
+                            NList(CcString::BasicType())));
   NList resType =
-      NList(NList(NList(symbols::STREAM),
-            NList(NList(symbols::TUPLE),resTupleType)));
+      NList(NList(NList(Symbol::STREAM()),
+            NList(NList(Tuple::BasicType()),resTupleType)));
   return resType.listExpr();
 }
 
@@ -1319,7 +1329,7 @@ ListExpr TypeMap_text__svg(ListExpr args){
       return nl->TypeError();
    }
    if(nl->IsEqual(nl->First(args),FText::BasicType())){
-      return nl->SymbolAtom("svg");
+      return nl->SymbolAtom(SVG::BasicType());
    }
    ErrorReporter::ReportError("text expected");
    return nl->TypeError();
@@ -1335,7 +1345,7 @@ ListExpr TypeMap_svg__text(ListExpr args){
       ErrorReporter::ReportError("One argument expected");
       return nl->TypeError();
    }
-   if(nl->IsEqual(nl->First(args),"svg")){
+   if(nl->IsEqual(nl->First(args),SVG::BasicType())){
       return nl->SymbolAtom(FText::BasicType());
    }
    ErrorReporter::ReportError("svg expected");
@@ -1482,12 +1492,14 @@ ListExpr StringtypeStringtypeBool2TextTM(ListExpr args){
   NList type(args);
   int noargs = nl->ListLength(args);
   if(    (noargs  != 3)
-      || ((type.first() != symbols::STRING) && (type.first() != symbols::TEXT))
-      || ((type.second()!= symbols::STRING) && (type.second()!= symbols::TEXT))
-      || ( type.third() != symbols::BOOL) ) {
+      || ((type.first() != CcString::BasicType()) &&
+      (type.first() != FText::BasicType()))
+      || ((type.second()!= CcString::BasicType()) &&
+      (type.second()!= FText::BasicType()))
+      || ( type.third() != CcBool::BasicType()) ) {
     return NList::typeError("Expected {string|text} x {string|text} x bool.");
   }
-  return NList(symbols::TEXT).listExpr();
+  return NList(FText::BasicType()).listExpr();
 }
 
 
@@ -1502,7 +1514,7 @@ ListExpr TypeMap_empty__string(ListExpr args){
   if( noargs != 0 ) {
     return NList::typeError("Expected no argument.");
   }
-  return NList(symbols::STRING).listExpr();
+  return NList(CcString::BasicType()).listExpr();
 }
 
 
@@ -1520,10 +1532,11 @@ ListExpr TypeMap_textstring__text(ListExpr args){
   NList type(args);
   int noargs = nl->ListLength(args);
   if(    (noargs != 1)
-      || ((type.first()!=symbols::STRING) && (type.first() != symbols::TEXT))) {
+      || ((type.first()!=CcString::BasicType()) &&
+      (type.first() != FText::BasicType()))) {
     return NList::typeError("Expected {string|text}.");
   }
-  return NList(symbols::TEXT).listExpr();
+  return NList(FText::BasicType()).listExpr();
 }
 
 
@@ -1536,9 +1549,9 @@ ListExpr TypeMap_textstring__text(ListExpr args){
 */
 
 ListExpr matchingOperatorNamesTM(ListExpr args){
-    ListExpr res =  nl->TwoElemList(nl->SymbolAtom("stream"),
+    ListExpr res =  nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                     nl->SymbolAtom(CcString::BasicType()));
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                nl->OneElemList(nl->TextAtom(nl->ToString(args))),
                res);
 }
@@ -1594,10 +1607,10 @@ ListExpr matchingOperatorsTM(ListExpr args){
                               nl->SymbolAtom("Remark"),
                               nl->SymbolAtom(FText::BasicType())));
 
-    ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+    ListExpr res = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                      nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
                                       attrList));
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                        nl->OneElemList(nl->TextAtom(nl->ToString(args))),
                              res);
 }
@@ -1676,11 +1689,11 @@ ListExpr sysgetMatchingOperatorsTM(ListExpr args){
                               nl->SymbolAtom("Remark"),
                               nl->SymbolAtom(FText::BasicType())));
 
-    ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+    ListExpr res = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                      nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
                                       attrList));
     if(listutils::isSymbol(first,CcInt::BasicType())) {
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                             nl->OneElemList(nl->TextAtom(nl->ToString(args))),
                             res);
     } else {
@@ -1747,7 +1760,7 @@ ListExpr CheckOperatorTypeMapTM(ListExpr args){
       return listutils::typeError(" string x any x any x ... expected");
    }
    ListExpr rest = nl->Rest(args);
-   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->TextAtom(nl->ToString(rest))),
                              nl->SymbolAtom(FText::BasicType()));
 }
@@ -1834,7 +1847,7 @@ ListExpr tokenizeTM(ListExpr args){
       !listutils::isSymbol(nl->Second(args), CcString::BasicType())){
       return listutils::typeError(err);
    }
-   return nl->TwoElemList(nl->SymbolAtom("stream"),
+   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                           nl->SymbolAtom(FText::BasicType()));
 }
 
@@ -1891,12 +1904,12 @@ ListExpr sendtextstreamTCP_TM (ListExpr args ){
     return listutils::typeError("Expected '"+CcReal::BasicType()+"' or '"
     +CcInt::BasicType()+"' as 5th argument.");
   }
-  NList resTupleType = NList(NList("Ok"),NList(symbols::BOOL)).enclose();
-  resTupleType.append(NList(NList("Msg"),NList(symbols::TEXT)));
-  resTupleType.append(NList(NList("ErrMsg"),NList(symbols::STRING)));
+  NList resTupleType = NList(NList("Ok"),NList(CcBool::BasicType())).enclose();
+  resTupleType.append(NList(NList("Msg"),NList(FText::BasicType())));
+  resTupleType.append(NList(NList("ErrMsg"),NList(CcString::BasicType())));
   NList resType =
-    NList(NList(NList(symbols::STREAM),
-                NList(NList(symbols::TUPLE),resTupleType)));
+    NList(NList(NList(Symbol::STREAM()),
+                NList(NList(Tuple::BasicType()),resTupleType)));
   return resType.listExpr();
 }
 
@@ -2977,17 +2990,17 @@ int SVG2TEXTVM( Word* args, Word& result, int message,
 int SelectFun_TextString_TextString( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(symbols::STRING)) &&
-      (type.second() == NList(symbols::TEXT)) )
+  if( (type.first() == NList(CcString::BasicType())) &&
+      (type.second() == NList(FText::BasicType())) )
     return 0;
-  if( (type.first() == NList(symbols::TEXT)) &&
-      (type.second() == NList(symbols::STRING)) )
+  if( (type.first() == NList(FText::BasicType())) &&
+      (type.second() == NList(CcString::BasicType())) )
     return 1;
-  if( (type.first() == NList(symbols::TEXT)) &&
-      (type.second() == NList(symbols::TEXT)) )
+  if( (type.first() == NList(FText::BasicType())) &&
+      (type.second() == NList(FText::BasicType())) )
     return 2;
-  if( (type.first() == NList(symbols::STRING)) &&
-      (type.second() == NList(symbols::STRING)) )
+  if( (type.first() == NList(CcString::BasicType())) &&
+      (type.second() == NList(CcString::BasicType())) )
     return 3;
   // else: ERROR
   return -1;
@@ -3073,14 +3086,14 @@ ValueMapping FText_VMMap_Plus[] =
 int FTextSelectFunPlus( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(symbols::STRING)) &&
-      (type.second() == NList(symbols::TEXT)) )
+  if( (type.first() == NList(CcString::BasicType())) &&
+      (type.second() == NList(FText::BasicType())) )
     return 0;
-  if( (type.first() == NList(symbols::TEXT)) &&
-      (type.second() == NList(symbols::STRING)) )
+  if( (type.first() == NList(FText::BasicType())) &&
+      (type.second() == NList(CcString::BasicType())) )
     return 1;
-  if( (type.first() == NList(symbols::TEXT)) &&
-      (type.second() == NList(symbols::TEXT)) )
+  if( (type.first() == NList(FText::BasicType())) &&
+      (type.second() == NList(FText::BasicType())) )
     return 2;
   // else: ERROR
   return -1;
@@ -3173,14 +3186,14 @@ ValueMapping FText_VMMap_Neq[] =
 int FTextSelectFunComparePred( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(symbols::STRING)) &&
-      (type.second() == NList(symbols::TEXT)) )
+  if( (type.first() == NList(CcString::BasicType())) &&
+      (type.second() == NList(FText::BasicType())) )
     return 0;
-  else if( (type.first() == NList(symbols::TEXT)) &&
-           (type.second() == NList(symbols::STRING)) )
+  else if( (type.first() == NList(FText::BasicType())) &&
+           (type.second() == NList(CcString::BasicType())) )
     return 1;
-  else if( (type.first() == NList(symbols::TEXT)) &&
-       (type.second() == NList(symbols::TEXT)) )
+  else if( (type.first() == NList(FText::BasicType())) &&
+       (type.second() == NList(FText::BasicType())) )
     return 2;
   return -1; // error
 }
@@ -3321,7 +3334,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
           if(   correct
                 && evaluable
                 && defined
-                && ( typestring != "typeerror"  )
+                && ( typestring != Symbol::TYPEERROR()  )
             )
           { // yielded a result (no typerror)
             ListExpr valueList = SecondoSystem::GetCatalog()
@@ -3510,19 +3523,19 @@ int FTextSelectFunReplace( ListExpr args )
   if(type.hasLength(3))
   { // {text|string} x {text|string} x {text|string} --> text
     result = 0;
-    if( type.third() == NList(symbols::STRING) )
+    if( type.third() == NList(CcString::BasicType()) )
       result += 1;
-    if( type.second() == NList(symbols::STRING) )
+    if( type.second() == NList(CcString::BasicType()) )
       result += 2;
-    if( type.first() == NList(symbols::STRING) )
+    if( type.first() == NList(CcString::BasicType()) )
       result += 4;
   }
   else
   { // {text|string} x int x int x {text|string} --> text
     result = 8;
-    if( type.fourth() == NList(symbols::STRING) )
+    if( type.fourth() == NList(CcString::BasicType()) )
       result += 1;
-    if( type.first() == NList(symbols::STRING) )
+    if( type.first() == NList(CcString::BasicType()) )
       result += 2;
   }
   return result;
@@ -3602,7 +3615,7 @@ int FTextValueMapGetValueNL_single( Word* args, Word& result, int message,
     Res->Set( false, "" );
     return 0;
   }
-  else if( myTypeStr != "typeerror"  )
+  else if( myTypeStr != Symbol::TYPEERROR()  )
   {
     ListExpr valueNL =
         SecondoSystem::GetCatalog()->OutObject(myTypeNL,args[0]);
@@ -3639,7 +3652,7 @@ int FTextValueMapGetValueNL_stream( Word* args, Word& result, int message,
       if( myTypeFT->IsDefined() )
       {
         string myTypeStr = myTypeFT->GetValue();
-        if (    (myTypeStr != "typeerror")
+        if (    (myTypeStr != Symbol::TYPEERROR())
              && nl->ReadFromString( myTypeStr, li->myTypeNL)
            )
         {
@@ -3717,7 +3730,7 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
       if( myTypeFT->IsDefined() )
       {
         string myTypeStr = myTypeFT->GetValue();
-        if (    (myTypeStr != "typeerror")
+        if (    (myTypeStr != Symbol::TYPEERROR())
              && nl->ReadFromString( myTypeStr, li->myTypeNL)
            )
         {
@@ -3790,7 +3803,7 @@ int FTextSelectFunGetValueNL( ListExpr args )
 {
   NList type(args);
   if(    type.first().hasLength(2)
-      && (type.first().first() == "stream")
+      && (type.first().first() == Symbol::STREAM())
       && (type.first().second().hasLength(2))
       && (type.first().second().first() == Tuple::BasicType())
     )
@@ -3798,7 +3811,7 @@ int FTextSelectFunGetValueNL( ListExpr args )
     return 0; // tuplestream
   }
   if(     type.first().hasLength(2)
-       && (type.first().first() == "stream")
+       && (type.first().first() == Symbol::STREAM())
     )
   {
     return 1; // datastream
@@ -5196,7 +5209,7 @@ class matchingOpsLocalInfo{
         // resType
         ListExpr resultList = op.second;
         if(nl->HasLength(resultList,3) &&
-           listutils::isSymbol(nl->First(resultList),"APPEND")){
+           listutils::isSymbol(nl->First(resultList),Symbol::APPEND())){
            resultList = nl->Third(resultList);
         }
         res->PutAttribute(4, new FText(true,nl->ToString(resultList)));
@@ -5451,7 +5464,7 @@ int CheckOperatorTypeMapVM( Word* args, Word& result, int message,
        if(found){
            // remove append if found
            if(nl->HasLength(restype,3) &&
-              listutils::isSymbol(nl->First(restype),"APPEND")){
+              listutils::isSymbol(nl->First(restype),Symbol::APPEND())){
               restype = nl->Third(restype);
            }
            res->Set(true,nl->ToString(restype));
@@ -7200,10 +7213,10 @@ public:
       cout <<'\n'<<"Start FTextAlgebra() : Algebra()"<<'\n';
     AddTypeConstructor( &ftext );
     AddTypeConstructor( &svg );
-    ftext.AssociateKind("DATA");
-    svg.AssociateKind("DATA");
-    ftext.AssociateKind("INDEXABLE");
-    ftext.AssociateKind("CSVIMPORTABLE");
+    ftext.AssociateKind(Kind::DATA());
+    svg.AssociateKind(Kind::DATA());
+    ftext.AssociateKind(Kind::INDEXABLE());
+    ftext.AssociateKind(Kind::CSVIMPORTABLE());
     AddOperator( &contains );
     AddOperator( &length );
     AddOperator( &getkeywords );
@@ -7276,6 +7289,14 @@ public:
 };
 
 } // end namespace ftext
+
+/*
+Type name for data type svg in Secondo
+
+*/
+const string SVG::BasicType() {
+  return "svg";
+}
 
 /*
 6 Initialization

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -57,6 +57,8 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "SecondoSystem.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
+#include "Symbols.h"
+#include "ListUtils.h"
 
 /*
 GNU gcc 3.2 includes the header 'windows.h' from standard headers.
@@ -97,7 +99,7 @@ Do not use this constructor.
     y = v.y;
     return *this;
   }
-  
+
   ~Vertex(){}
 
   int x;
@@ -123,7 +125,7 @@ class Edge
        end = src.end;
        return *this;
     }
- 
+
     ~Edge(){}
 
     Vertex& Start()
@@ -178,7 +180,7 @@ class Polygon : public Attribute
     friend ostream& operator <<( ostream& os, const Polygon& p );
 
     static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo, 
+                        const int errorPos, ListExpr& errorInfo,
                         bool& correct );
 
     static ListExpr Out( ListExpr typeInfo, Word value );
@@ -200,11 +202,13 @@ class Polygon : public Attribute
 
     static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
 
-    static int      SizeOfObj();  
-  
+    static int      SizeOfObj();
+
     static ListExpr Property();
-  
+
     static void* Cast(void* addr);
+
+    static const string BasicType() { return "polygon"; }
 
   private:
     Polygon() {} // this constructor is reserved for the cast function.
@@ -359,7 +363,7 @@ void Polygon::CopyFrom(const Attribute* right){
 }
 
 /*
-2.3.8 Sizeof 
+2.3.8 Sizeof
 
 */
 size_t Polygon::Sizeof() const
@@ -533,24 +537,27 @@ Polygon::Out( ListExpr typeInfo, Word value )
 {
   Polygon* polygon = (Polygon*)(value.addr);
 
+  if( !polygon->IsDefined() ){
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
   if( polygon->IsEmpty() )
   {
     return (nl->TheEmptyList());
   }
   else
   {
-    ListExpr result = 
-      nl->OneElemList( 
-        nl->TwoElemList( 
-          nl->IntAtom( polygon->GetVertex(0).x ), 
+    ListExpr result =
+      nl->OneElemList(
+        nl->TwoElemList(
+          nl->IntAtom( polygon->GetVertex(0).x ),
           nl->IntAtom( polygon->GetVertex(0).y ) ) );
     ListExpr last = result;
 
     for( int i = 1; i < polygon->GetNoVertices(); i++ )
     {
       last = nl->Append( last,
-                         nl->TwoElemList( 
-                           nl->IntAtom( polygon->GetVertex(i).x ), 
+                         nl->TwoElemList(
+                           nl->IntAtom( polygon->GetVertex(i).x ),
                            nl->IntAtom( polygon->GetVertex(i).y ) ) );
     }
     return result;
@@ -562,7 +569,13 @@ Polygon::In( const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Polygon* polygon = new Polygon( 0 );
+  polygon->SetDefined(true);
 
+  if(listutils::isSymbolUndefined( instance )){
+    polygon->SetDefined(false);
+    correct = true;
+    return SetWord( polygon );
+  }
   ListExpr first = nl->Empty();
   ListExpr rest = instance;
   while( !nl->IsEmpty( rest ) )
@@ -571,18 +584,19 @@ Polygon::In( const ListExpr typeInfo, const ListExpr instance,
     rest = nl->Rest( rest );
 
     if( nl->ListLength( first ) == 2 &&
-        nl->IsAtom( nl->First( first ) ) && 
+        nl->IsAtom( nl->First( first ) ) &&
         nl->AtomType( nl->First( first ) ) == IntType &&
-        nl->IsAtom( nl->Second( first ) ) && 
+        nl->IsAtom( nl->Second( first ) ) &&
         nl->AtomType( nl->Second( first ) ) == IntType )
     {
-      Vertex v( nl->IntValue( nl->First( first ) ), 
+      Vertex v( nl->IntValue( nl->First( first ) ),
                 nl->IntValue( nl->Second( first ) ) );
       polygon->Append( v );
     }
     else
     {
       correct = false;
+      delete polygon;
       return SetWord( Address(0) );
     }
   }
@@ -605,8 +619,8 @@ Polygon::Property()
                           nl->StringAtom("List Rep"),
                           nl->StringAtom("Example List"),
                           nl->StringAtom("Remarks")),
-         nl->FiveElemList(nl->StringAtom("-> DATA"),
-                          nl->StringAtom("polygon"),
+         nl->FiveElemList(nl->StringAtom("->" + Kind::DATA() ),
+                          nl->StringAtom(Polygon::BasicType()),
                           nl->StringAtom("(<point>*) where <point> is "
                           "(<x> <y>)"),
                           nl->StringAtom("( (3 4) (10 10) (8 2) (6 4) "
@@ -625,7 +639,7 @@ type constructor ~polygon~ does not have arguments, this is trivial.
 bool
 Polygon::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "polygon" ));
+  return (nl->IsEqual( type, Polygon::BasicType() ));
 }
 
 /*
@@ -723,7 +737,7 @@ void* Polygon::Cast(void* addr)
 
 */
 TypeConstructor polygon(
-        "polygon",                          //name
+        Polygon::BasicType(),               //name
         Polygon::Property,                  //property function
         Polygon::Out,   Polygon::In,        //Out and In functions
         0,              0,                  //SaveTo and RestoreFrom functions
@@ -745,7 +759,7 @@ class PolygonAlgebra : public Algebra
     {
       AddTypeConstructor( &polygon );
 
-      polygon.AssociateKind( "DATA" );
+      polygon.AssociateKind( Kind::DATA() );
     }
     ~PolygonAlgebra() {};
 };

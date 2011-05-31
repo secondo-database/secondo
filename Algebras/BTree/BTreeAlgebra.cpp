@@ -190,15 +190,16 @@ ExtractKeyTypeFromTypeInfo( ListExpr typeInfo )
       typeId = nl->IntValue( nl->Second( nl->Third( typeInfo ) ) );
 
   string keyTypeString = am->GetTC( algId, typeId )->Name();
-  if( (keyTypeString == "int")  || (keyTypeString == "tid") )
+  if( (keyTypeString == CcInt::BasicType())
+    || (keyTypeString == TupleIdentifier::BasicType()) )
   {
     return SmiKey::Integer;
   }
-  else if( keyTypeString == "string" )
+  else if( keyTypeString == CcString::BasicType() )
   {
     return SmiKey::String;
   }
-  else if( keyTypeString == "real" )
+  else if( keyTypeString == CcReal::BasicType() )
   {
     return SmiKey::Float;
   }
@@ -724,11 +725,11 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
 {
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("btree")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom(BTree::BasicType())))
   {
     return
-      am->CheckKind("TUPLE", nl->Second(type), errorInfo)
-      && am->CheckKind("DATA", nl->Third(type), errorInfo);
+      am->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo)
+      && am->CheckKind(Kind::DATA(), nl->Third(type), errorInfo);
   }
   else
   {
@@ -808,7 +809,7 @@ bool BTree::Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo)
 
 */
 TypeConstructor
-cppbtree( "btree",         BTreeProp,
+cppbtree( BTree::BasicType(),         BTreeProp,
           OutBTree,        InBTree,
           SaveToListBTree, RestoreFromListBTree,
           CreateBTree,     DeleteBTree,
@@ -851,7 +852,7 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
   if(attrIndex==0){
     return listutils::typeError("attr name " + name + "not found in attr list");
   }
-  
+
   if(!listutils::isBDBIndexableType(attrType)){
     return listutils::typeError("selected attribute not an indexable key");
   }
@@ -859,25 +860,26 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
   ListExpr tupleDescription = nl->Second(first);
 
 
-  if( listutils::isSymbol(nl->First(first),"rel") ) {
-    return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+  if( listutils::isSymbol(nl->First(first),Relation::BasicType()) ) {
+    return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                               nl->OneElemList( nl->IntAtom(attrIndex)),
-                              nl->ThreeElemList( nl->SymbolAtom("btree"),
+                              nl->ThreeElemList(
+                              nl->SymbolAtom(BTree::BasicType()),
                               tupleDescription,
                               attrType));
-  } else { // nl->IsEqual(nl->First(first), "stream")
+  } else { // nl->IsEqual(nl->First(first), Symbol::STREAM())
     // Find the attribute with type tid
     string name;
-    
-    int tidIndex =listutils::findType(nl->Second(tupleDescription), 
-                                    nl->SymbolAtom("tid"),
+
+    int tidIndex =listutils::findType(nl->Second(tupleDescription),
+                                  nl->SymbolAtom(TupleIdentifier::BasicType()),
                                     name);
     if(tidIndex ==0){
      return listutils::typeError("attr list does not contain a tid attribute");
     }
     string name2;
     if(listutils::findType(nl->Second(tupleDescription),
-                           nl->SymbolAtom("tid"),
+                           nl->SymbolAtom(TupleIdentifier::BasicType()),
                            name2,
                            tidIndex+1)>0){
       return listutils::typeError("multiple tid attributes found");
@@ -896,18 +898,18 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
     }
 
     ListExpr res =  nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->TwoElemList(
           nl->IntAtom(attrIndex),
           nl->IntAtom(tidIndex)),
         nl->ThreeElemList(
-          nl->SymbolAtom("btree"),
+          nl->SymbolAtom(BTree::BasicType()),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             newAttrList),
           attrType));
     cout << "out = " << nl->ToString(res) << endl;
-    return res; 
+    return res;
   }
 }
 
@@ -917,9 +919,9 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
 */
 int CreateBTreeSelect( ListExpr args )
 {
-  if( nl->IsEqual(nl->First(nl->First(args)), "rel") )
+  if( nl->IsEqual(nl->First(nl->First(args)), Relation::BasicType()) )
     return 0;
-  if( nl->IsEqual(nl->First(nl->First(args)), "stream") )
+  if( nl->IsEqual(nl->First(nl->First(args)), Symbol::STREAM()) )
     return 1;
   return -1;
 }
@@ -1091,14 +1093,14 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   /* find out type of second key (if any) */
   if(nKeys == 2) {
     if(!nl->Equal(keyDescription, secondKeyDescription)){
-       return listutils::typeError("different key types"); 
+       return listutils::typeError("different key types");
     }
   }
 
   /* handle btree part of argument */
   if(!listutils::isBTreeDescription(btreeDescription)){
     return listutils::typeError("not a btree");
-  } 
+  }
 
   ListExpr btreeKeyType = nl->Third(btreeDescription);
 
@@ -1106,7 +1108,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   if(!nl->Equal(keyDescription, btreeKeyType)){
     return listutils::typeError("key and btree key are different");
   }
-  
+
   if(!listutils::isRelDescription(relDescription)){
     return listutils::typeError("not a relation");
   }
@@ -1119,19 +1121,20 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   }
 
   if (operatorId == KEYRANGE) {
-    NList a1(NList("Less"), NList("real"));
-    NList a2(NList("Equal"), NList("real"));
-    NList a3(NList("Greater"), NList("real"));
-    NList a4(NList("NumOfKeys"), NList("int"));
+    NList a1(NList("Less"), NList(CcReal::BasicType()));
+    NList a2(NList("Equal"), NList(CcReal::BasicType()));
+    NList a3(NList("Greater"), NList(CcReal::BasicType()));
+    NList a4(NList("NumOfKeys"), NList(CcInt::BasicType()));
 
-    NList result(NList("stream"), NList(NList("tuple"), NList(a1,a2,a3,a4)));
+    NList result(NList(Symbol::STREAM()), NList(NList(Tuple::BasicType()),
+                                                NList(a1,a2,a3,a4)));
 
     return result.listExpr();
   }
 
   ListExpr resultType =
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       trel);
 
   return resultType;
@@ -1326,7 +1329,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         case EXACTMATCH: {
           ili->iter = btree->ExactMatch(key);
           break;
-			 }  
+			 }
         case RANGE:
           ili->iter = btree->Range(key, secondKey);
           break;
@@ -1346,7 +1349,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         return -1;
       }
 
-      //determine selectivities for progress estimation, 
+      //determine selectivities for progress estimation,
       //but only for single or first call (not many times in loopjoin)
 
       if ( ili->completeCalls == 0 )
@@ -1407,8 +1410,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         ili->returned = 0;
       }
 
-      //Do not delete ili data structure in CLOSE! To be kept over several 
-      //calls for correct progress estimation when embedded in a loopjoin. 
+      //Do not delete ili data structure in CLOSE! To be kept over several
+      //calls for correct progress estimation when embedded in a loopjoin.
       //Is deleted at the end of the query in CLOSEPROGRESS.
 
       return 0;
@@ -1471,7 +1474,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           switch(operatorId)
           {
-            case EXACTMATCH: 
+            case EXACTMATCH:
               pRes->Card = ili->total * ili->equal;
               break;
             case RANGE:
@@ -1677,7 +1680,7 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
   if(nl->ListLength(args)!=expLength){
     return listutils::typeError("wrong number of arguments");
   }
-  
+
   /* Split argument in two/three parts */
   ListExpr btreeDescription = nl->First(args);
   ListExpr keyDescription = nl->Second(args);
@@ -1705,7 +1708,7 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
 
   /* handle btree part of argument */
   if(!listutils::isBTreeDescription(btreeDescription)){
-    return listutils::typeError("firts argument is not a btree");
+    return listutils::typeError("first argument is not a btree");
   }
   ListExpr btreeKeyType = nl->Third(btreeDescription);
 
@@ -1716,13 +1719,13 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
   /* return result type */
 
   return nl->TwoElemList(
-          nl->SymbolAtom("stream"),
+          nl->SymbolAtom(Symbol::STREAM()),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             nl->OneElemList(
               nl->TwoElemList(
                 nl->SymbolAtom("id"),
-                nl->SymbolAtom("tid")))));
+                nl->SymbolAtom(TupleIdentifier::BasicType())))));
 
 }
 
@@ -2012,7 +2015,7 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
   ListExpr btreeDescription = nl->Second(args);
   ListExpr nameOfKeyAttribute = nl->Third(args);
 
-  
+
   if(!listutils::isTupleStream(streamDescription)){
    return listutils::typeError("first arguments must be a tuple stream");
   }
@@ -2026,9 +2029,9 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
     rest = nl->Rest(rest);
   }
 
-  if(!listutils::isSymbol(nl->Second(next),"tid")){
+  if(!listutils::isSymbol(nl->Second(next),TupleIdentifier::BasicType())){
    return listutils::typeError("last attribut must be of type tid");
-  } 
+  }
 
   if(!listutils::isBTreeDescription(btreeDescription)){
     return listutils::typeError("second argument is not a valid btree");
@@ -2121,7 +2124,7 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
     return listutils::typeError("key attribute type "
                                 "different from indexed type");
   }
-  ListExpr outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  ListExpr outList = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                           nl->OneElemList(nl->IntAtom(j)),streamDescription);
   return outList;
 }
@@ -2481,11 +2484,11 @@ ListExpr getFileInfoBtreeTypeMap(ListExpr args)
   ListExpr btreeSymbol = nl->First(btreeDescription);;
   if(    !nl->IsAtom(btreeSymbol)
       || (nl->AtomType(btreeSymbol) != SymbolType)
-      || (nl->SymbolValue(btreeSymbol) != "btree")
+      || (nl->SymbolValue(btreeSymbol) != BTree::BasicType())
     ){
     return NList::typeError("1st argument is not a btree.");
   }
-  return NList(symbols::TEXT).listExpr();
+  return NList(FText::BasicType()).listExpr();
 }
 
 /*
@@ -2556,15 +2559,15 @@ Operator getfileinfobtree (
 
 
 template <typename T>
-void init_ptr(T*& p, Word& w) 
+void init_ptr(T*& p, Word& w)
 { assert(w.addr != 0); p = static_cast<T*>(w.addr); }
 
 template <typename T>
-void del_ptr(Word& w) 
+void del_ptr(Word& w)
 { assert(w.addr != 0); delete static_cast<T*>(w.addr); w.addr = 0; }
 
 template <typename T>
-void set_val(Word& w, const T& val) 
+void set_val(Word& w, const T& val)
 { (*static_cast<T*>(w.addr)) = val; }
 
 
@@ -2580,11 +2583,11 @@ keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       set_val(local, 1);
       return 0;
 
-    }  
+    }
     case REQUEST : {
 
       int* k;
-      init_ptr(k, local);      
+      init_ptr(k, local);
       if(*k == 1)
       {
 
@@ -2600,7 +2603,7 @@ keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 	SmiKey sk;
         AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
 	btree->GetFile()->KeyRange(sk, factors);
-	int n = relation->GetNoTuples();  
+	int n = relation->GetNoTuples();
 
 	  /*
 	  cout << "btree.less = " << factors.less << endl;
@@ -2632,10 +2635,10 @@ keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE : {
 
-      del_ptr<int>(local);			 
+      del_ptr<int>(local);
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -2645,16 +2648,16 @@ struct keyrangeInfo : OperatorInfo {
 
   keyrangeInfo()
   {
-    name      = "keyrange"; 
+    name      = "keyrange";
 
-    signature = "(btree t) x (rel t) x key " 
+    signature = "(btree t) x (rel t) x key "
 	        " -> " "stream(tuple((Less real)(Equal real)"
 		"(Greater real)(NumOfKeys int)";
     syntax    = "_ _ keyrange(_)";
     meaning   = "Retrieves an estimate for the number of tuples which are"
 	        " less, equal or grater than the given value";
   }
-};  
+};
 
 
 /*

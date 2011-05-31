@@ -36,11 +36,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Using Storage Manager Berkeley DB
 
-January 2009, B. Poneleit 
+January 2009, B. Poneleit
 
 
-This file contains the definition of ~Operator~ instances for outerjoin 
-operators. To include an additional outerjoin operator you have to add 
+This file contains the definition of ~Operator~ instances for outerjoin
+operators. To include an additional outerjoin operator you have to add
 the following to ExtRelationAlgebra.cpp:
 
 Declaration of Operator instance
@@ -75,12 +75,12 @@ Implementation of the operators is in Outerjoin.cpp
 
 template<bool expectSorted> int
 smouterjoin_vm( Word* args, Word& result,
-                  int message, Word& local, Supplier s );    
-                  
+                  int message, Word& local, Supplier s );
+
 template<int dummy> int
 symmouterjoin_vm( Word* args, Word& result,
-                  int message, Word& local, Supplier s );                      
-                  
+                  int message, Word& local, Supplier s );
+
 /*
 2.16.1 Operator ~smouterjoin~
 
@@ -102,7 +102,7 @@ const string SortMergeOuterJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                              "</text--->"
                              "<text>query duplicates feed ten feed "
                              "smouterjoin[no, nr] consume</text--->"
-                             ") )";    
+                             ") )";
 
 template<int dummy>
 ListExpr OuterjoinTypeMap (ListExpr args)
@@ -110,7 +110,7 @@ ListExpr OuterjoinTypeMap (ListExpr args)
   int expLength = 4;
   string err = "stream(tuple[y1 : d1, ..., yn : dn]) x "
                "stream(tuple[z1 : e1, ..., zn : en]) x di x e1 ";
-               
+
   err += " expected";
   if(nl->ListLength(args)!=expLength){
     return listutils::typeError(err + "(wrong number of args)");
@@ -132,7 +132,7 @@ ListExpr OuterjoinTypeMap (ListExpr args)
   if(!listutils::disjointAttrNames(list1,list2)){
     return listutils::typeError("Attribute lists are not disjoint");
   }
-  
+
   ListExpr list = ConcatLists(list1, list2);
   ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
@@ -144,19 +144,19 @@ ListExpr OuterjoinTypeMap (ListExpr args)
 
   int attrAIndex = listutils::findAttribute(list1, attrAName, attrTypeA);
   if(attrAIndex<1){
-    return listutils::typeError("Attributename " + attrAName + 
+    return listutils::typeError("Attributename " + attrAName +
                                 " not found in the first argument");
   }
 
   int attrBIndex = listutils::findAttribute(list2, attrBName, attrTypeB);
   if(attrBIndex<1){
-    return listutils::typeError("Attributename " + attrBName + 
+    return listutils::typeError("Attributename " + attrBName +
                                 " not found in the second argument");
   }
-   
+
   if(!nl->Equal(attrTypeA, attrTypeB)){
     return listutils::typeError("different types selected for operation");
-  } 
+  }
 
 
   ListExpr joinAttrDescription =
@@ -178,7 +178,7 @@ Operator extrelsmouterjoin(
          smouterjoin_vm<false>,        // value mapping
          Operator::SimpleSelect,     // trivial selection function
          OuterjoinTypeMap<1>       // type mapping
-);  
+);
 
 ListExpr SymmOuterJoinTypeMap(ListExpr args)
 {
@@ -199,7 +199,7 @@ ListExpr SymmOuterJoinTypeMap(ListExpr args)
 
   if(!nl->Equal(nl->Second(stream1), nl->Second(map)) ||
      !nl->Equal(nl->Second(stream2), nl->Third(map)) ||
-     !listutils::isSymbol(nl->Fourth(map),symbols::BOOL)){
+     !listutils::isSymbol(nl->Fourth(map),CcBool::BasicType())){
     return listutils::typeError(err +"(wrong mapping)");
   }
 

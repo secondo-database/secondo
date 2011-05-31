@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the createbtree2 operator for the BTree2-Algebra 
+[1] Implementation of the createbtree2 operator for the BTree2-Algebra
 
 [TOC]
 
@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "BTree2Impl.h"
 
 #include <limits>
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -90,7 +91,7 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
 
 //  ListExpr tupleDescription = nl->Second(first);
 
-  if( listutils::isSymbol(nl->First(first),"rel") ) {
+  if( listutils::isSymbol(nl->First(first),Relation::BasicType()) ) {
     if(nl->AtomType(second)!=SymbolType){
       return listutils::typeError("second argument is not a valid attr name");
     }
@@ -102,15 +103,15 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
     keyIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
                                          name,keyType);
     if(keyIndex==0){
-      return listutils::typeError("attr name " + name + 
+      return listutils::typeError("attr name " + name +
                                    " not found in attr list");
     }
-    
-    if(!listutils::isSymbol(keyType,"string") &&
-       !listutils::isSymbol(keyType,"int") &&
-       !listutils::isSymbol(keyType,"bool") &&
-       !listutils::isSymbol(keyType,"real") &&
-       !listutils::isKind(keyType,"INDEXABLE")){
+
+    if(!listutils::isSymbol(keyType,CcString::BasicType()) &&
+       !listutils::isSymbol(keyType,CcInt::BasicType()) &&
+       !listutils::isSymbol(keyType,CcBool::BasicType()) &&
+       !listutils::isSymbol(keyType,CcReal::BasicType()) &&
+       !listutils::isKind(keyType,Kind::INDEXABLE())){
       return listutils::typeError("selected attribut not in kind INDEXABLE");
     }
 
@@ -119,7 +120,7 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
 
     if (nl->ListLength(args) >= 3) {
        ListExpr fillArg = nl->Third(args);
-       if (!listutils::isSymbol(fillArg,"real")) {
+       if (!listutils::isSymbol(fillArg,CcReal::BasicType())) {
         return listutils::typeError
                 ("Argument three expected to be real between 0 and 1");
       }
@@ -128,7 +129,7 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
 
     if (nl->ListLength(args) >= 4) {
        ListExpr fillArg = nl->Fourth(args);
-       if (!listutils::isSymbol(fillArg,"int")) {
+       if (!listutils::isSymbol(fillArg,CcInt::BasicType())) {
         return listutils::typeError("Argument four expected to be int");
       }
       appendArgs = nl->Rest(appendArgs);
@@ -137,25 +138,25 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
       return listutils::typeError("too many arguments");
     }
 
-    return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                               appendArgs,
-                              nl->FourElemList( 
-                                 nl->SymbolAtom("btree2"),
+                              nl->FourElemList(
+                                 nl->SymbolAtom(BTree2::BasicType()),
                                  keyType,
-                                 nl->SymbolAtom("tid"),
+                                 nl->SymbolAtom(TupleIdentifier::BasicType()),
                                  nl->SymbolAtom("multiple")));
-    } else { // nl->IsEqual(nl->First(first), "stream")
+    } else { // nl->IsEqual(nl->First(first), Symbol::STREAM())
     // New createbtree2 operator: Distinguish by number of arguments
     if (nl->ListLength(args) == 6) {
 
       ListExpr fillArg = nl->Second(args);
-      if (!listutils::isSymbol(fillArg,"real")) {
+      if (!listutils::isSymbol(fillArg,CcReal::BasicType())) {
         return listutils::typeError
                   ("Argument two expected to be real between 0 and 1");
       }
 
       ListExpr nodesizeArg = nl->Third(args);
-      if (!listutils::isSymbol(nodesizeArg,"int")) {
+      if (!listutils::isSymbol(nodesizeArg,CcInt::BasicType())) {
        return listutils::typeError("Argument three expected to be int");
       }
 
@@ -165,34 +166,34 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
       int keyAttrIndex, valueAttrIndex;
       ListExpr keyAttrType, valueAttrType;
 
-      keyAttrIndex = listutils::findAttribute(nl->Second(nl->Second(first)), 
+      keyAttrIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
            keyAttrName,keyAttrType);
 
       if(keyAttrIndex==0){
-        return listutils::typeError("key attribute " + keyAttrName + 
+        return listutils::typeError("key attribute " + keyAttrName +
               "not found in attr list");
       }
 
       if (valueAttrName == "none") {
         valueAttrType = nl->SymbolAtom("none");
         valueAttrIndex=-1;
-      } else { 
+      } else {
         valueAttrIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
              valueAttrName,valueAttrType);
         if(valueAttrIndex==0){
-          return listutils::typeError("value attribute " + valueAttrName + 
+          return listutils::typeError("value attribute " + valueAttrName +
                                        "not found in attr list");
         }
       }
-      
-      if(!listutils::isSymbol(keyAttrType,"string") &&
-         !listutils::isSymbol(keyAttrType,"int") &&
-         !listutils::isSymbol(keyAttrType,"bool") &&
-         !listutils::isSymbol(keyAttrType,"real") &&
-         !listutils::isKind(keyAttrType,"INDEXABLE")){
+
+      if(!listutils::isSymbol(keyAttrType,CcString::BasicType()) &&
+         !listutils::isSymbol(keyAttrType,CcInt::BasicType()) &&
+         !listutils::isSymbol(keyAttrType,CcBool::BasicType()) &&
+         !listutils::isSymbol(keyAttrType,CcReal::BasicType()) &&
+         !listutils::isKind(keyAttrType,Kind::INDEXABLE())){
         return listutils::typeError("selected key attribut not INDEXABLE");
       }
- 
+
       ListExpr uniq = nl->Sixth(args);
 
       BTree2::multiplicityType u;
@@ -210,28 +211,28 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
                   "'multiple','uniqueKeyMultiData','uniqueKey' or "
                   "'stable_multiple'");
       }
-      return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                                 nl->ThreeElemList( nl->IntAtom(keyAttrIndex),
                                      nl->IntAtom(valueAttrIndex),
                                      nl->IntAtom(u)),
-                                nl->FourElemList( 
-                                  nl->SymbolAtom("btree2"),
+                                nl->FourElemList(
+                                  nl->SymbolAtom(BTree2::BasicType()),
                                   keyAttrType,
                                   valueAttrType,
                                   uniq));
     } else {
       // Find the attribute with type tid
       string name;
-      
-      int tidIndex = listutils::findType(nl->Second(nl->Second(first)), 
-                                      nl->SymbolAtom("tid"),
+
+      int tidIndex = listutils::findType(nl->Second(nl->Second(first)),
+                                  nl->SymbolAtom(TupleIdentifier::BasicType()),
                                       name);
       if(tidIndex ==0){
       return listutils::typeError("attr list does not contain a tid attribute");
       }
       string name2;
       if(listutils::findType(nl->Second(nl->Second(first)),
-                             nl->SymbolAtom("tid"),
+                             nl->SymbolAtom(TupleIdentifier::BasicType()),
                              name2,
                              tidIndex+1)>0){
         return listutils::typeError("multiple tid attributes found");
@@ -250,27 +251,27 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
       keyIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
                                            keyAttrName,keyType);
       if(keyIndex==0){
-        return listutils::typeError("key attr name " + name + 
+        return listutils::typeError("key attr name " + name +
                                        "not found in attr list");
       }
-      
-      if(!listutils::isSymbol(keyType,"string") &&
-         !listutils::isSymbol(keyType,"int") &&
-         !listutils::isSymbol(keyType,"bool") &&
-         !listutils::isSymbol(keyType,"real") &&
-         !listutils::isKind(keyType,"INDEXABLE")){
+
+      if(!listutils::isSymbol(keyType,CcString::BasicType()) &&
+         !listutils::isSymbol(keyType,CcInt::BasicType()) &&
+         !listutils::isSymbol(keyType,CcBool::BasicType()) &&
+         !listutils::isSymbol(keyType,CcReal::BasicType()) &&
+         !listutils::isKind(keyType,Kind::INDEXABLE())){
         return listutils::typeError("selected attribut not in kind INDEXABLE");
       }
 
       // Get optional arguments fill and node size
 
       ListExpr appendArgs = nl->FourElemList(nl->RealAtom(STD_FILL),
-                                   nl->IntAtom(STD_NODESIZE), 
+                                   nl->IntAtom(STD_NODESIZE),
                                    nl->IntAtom(keyIndex),nl->IntAtom(tidIndex));
 
       if (nl->ListLength(args) >= 3) {
          ListExpr fillArg = nl->Third(args);
-         if (!listutils::isSymbol(fillArg,"real")) {
+         if (!listutils::isSymbol(fillArg,CcReal::BasicType())) {
           return listutils::typeError
                          ("Argument three expected to be real between 0 and 1");
         }
@@ -278,7 +279,7 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
       }
       if (nl->ListLength(args) >= 4) {
          ListExpr fillArg = nl->Fourth(args);
-         if (!listutils::isSymbol(fillArg,"int")) {
+         if (!listutils::isSymbol(fillArg,CcInt::BasicType())) {
           return listutils::typeError("Argument four expected to be int");
         }
         appendArgs = nl->Rest(appendArgs);
@@ -288,15 +289,15 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
       }
 
       ListExpr res =  nl->ThreeElemList(
-          nl->SymbolAtom("APPEND"),
+          nl->SymbolAtom(Symbol::APPEND()),
           appendArgs,
           nl->FourElemList(
-                                 nl->SymbolAtom("btree2"),
+                                 nl->SymbolAtom(BTree2::BasicType()),
                                  keyType,
-                                 nl->SymbolAtom("tid"),
+                                 nl->SymbolAtom(TupleIdentifier::BasicType()),
                                  nl->SymbolAtom("multiple")));
 
-      return res; 
+      return res;
     }
   }
 }
@@ -307,11 +308,11 @@ ListExpr createbtree2::TypeMapping(ListExpr args)
 */
 int createbtree2::Select( ListExpr args )
 {
-  if (nl->IsEqual(nl->First(nl->First(args)), "rel")) {
+  if (nl->IsEqual(nl->First(nl->First(args)), Relation::BasicType())) {
     return 0;
   }
-  if (nl->IsEqual(nl->First(nl->First(args)), "stream")) {
-    if (nl->ListLength(args) == 6) {  // Args! Übel!: 
+  if (nl->IsEqual(nl->First(nl->First(args)), Symbol::STREAM())) {
+    if (nl->ListLength(args) == 6) {  // Args! Übel!:
           // Distinguish by number of arguments (but not the appended ones)
       return 2;
     } else {
@@ -329,9 +330,9 @@ Normally, one should not use the BTree2Impl class directly.
 
 */
 void createbtree2::AppendDouble(BTree2* inBtree,
-                              int attrIndex, 
+                              int attrIndex,
                               GenericRelationIterator* iter) {
-  BTree2Impl<double,TupleId>* btree = 
+  BTree2Impl<double,TupleId>* btree =
                            dynamic_cast<BTree2Impl<double,TupleId>*>(inBtree);
   assert(btree != 0);
   Tuple* tuple;
@@ -349,14 +350,14 @@ void createbtree2::AppendDouble(BTree2* inBtree,
   delete iter;
 }
 
-void createbtree2::AppendInt(BTree2* inBtree, 
-                              int attrIndex, 
+void createbtree2::AppendInt(BTree2* inBtree,
+                              int attrIndex,
                               GenericRelationIterator* iter) {
-  BTree2Impl<int,TupleId>* btree = 
+  BTree2Impl<int,TupleId>* btree =
                             dynamic_cast<BTree2Impl<int,TupleId>*>(inBtree);
   assert(btree != 0);
   Tuple* tuple;
-  while ((tuple = iter->GetNextTuple()) != 0) { 
+  while ((tuple = iter->GetNextTuple()) != 0) {
     CcInt* attr = (CcInt*) tuple->GetAttribute(attrIndex);
     int key;
     if (!attr->IsDefined()) {
@@ -366,55 +367,55 @@ void createbtree2::AppendInt(BTree2* inBtree,
     }
     btree->Append(key, iter->GetTupleId());
     tuple->DeleteIfAllowed();
-  }  
+  }
   delete iter;
 }
 
-void createbtree2::AppendString(BTree2* inBtree, 
-                              int attrIndex, 
+void createbtree2::AppendString(BTree2* inBtree,
+                              int attrIndex,
                               GenericRelationIterator* iter) {
-  BTree2Impl<string,TupleId>* btree = 
+  BTree2Impl<string,TupleId>* btree =
                        dynamic_cast<BTree2Impl<string,TupleId>*>(inBtree);
   assert(btree != 0);
   Tuple* tuple;
-  while ((tuple = iter->GetNextTuple()) != 0) {  
+  while ((tuple = iter->GetNextTuple()) != 0) {
     CcString* attr = (CcString*) tuple->GetAttribute(attrIndex);
     string key = (char*) (attr->GetStringval());
     btree->Append(key, iter->GetTupleId());
     tuple->DeleteIfAllowed();
-  } 
+  }
   delete iter;
 }
 
-void createbtree2::AppendBool(BTree2* inBtree, 
-                              int attrIndex, 
+void createbtree2::AppendBool(BTree2* inBtree,
+                              int attrIndex,
                               GenericRelationIterator* iter) {
-  BTree2Impl<bool,TupleId>* btree = 
+  BTree2Impl<bool,TupleId>* btree =
                        dynamic_cast<BTree2Impl<bool,TupleId>*>(inBtree);
   assert(btree != 0);
   Tuple* tuple;
-  while ((tuple = iter->GetNextTuple()) != 0) {  
+  while ((tuple = iter->GetNextTuple()) != 0) {
     CcBool* attr = (CcBool*) tuple->GetAttribute(attrIndex);
     bool key = attr->GetBoolval();
     btree->Append(key, iter->GetTupleId());
     tuple->DeleteIfAllowed();
-  } 
+  }
   delete iter;
 }
 
-void createbtree2::AppendIndexableAttribute(BTree2* inBtree, 
-                              int attrIndex, 
+void createbtree2::AppendIndexableAttribute(BTree2* inBtree,
+                              int attrIndex,
                               GenericRelationIterator* iter) {
-  BTree2Impl<IndexableAttribute*,TupleId>* btree = 
+  BTree2Impl<IndexableAttribute*,TupleId>* btree =
                dynamic_cast<BTree2Impl<IndexableAttribute*,TupleId>*>(inBtree);
   assert(btree != 0);
   Tuple* tuple;
-  while ((tuple = iter->GetNextTuple()) != 0) {  
-    IndexableAttribute* attr = 
+  while ((tuple = iter->GetNextTuple()) != 0) {
+    IndexableAttribute* attr =
               (IndexableAttribute*) tuple->GetAttribute(attrIndex);
     btree->Append(attr, iter->GetTupleId());
     tuple->DeleteIfAllowed();
-  } 
+  }
   delete iter;
 }
 
@@ -454,13 +455,13 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
     return 0;
   }
 
-  if (btree->GetKeyType() == "real") {
+  if (btree->GetKeyType() == CcReal::BasicType()) {
     AppendDouble(btree, attrIndex, iter);
-  } else if (btree->GetKeyType() == "int") {
+  } else if (btree->GetKeyType() == CcInt::BasicType()) {
     AppendInt(btree, attrIndex, iter);
-  } else if (btree->GetKeyType() == "string") {
+  } else if (btree->GetKeyType() == CcString::BasicType()) {
     AppendString(btree, attrIndex, iter);
-  } else if (btree->GetKeyType() == "bool") {
+  } else if (btree->GetKeyType() == CcBool::BasicType()) {
     AppendBool(btree, attrIndex, iter);
   } else {
     AppendIndexableAttribute(btree, attrIndex, iter);
@@ -482,9 +483,9 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
    int attrIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
    int tidIndex = ((CcInt*)args[5].addr)->GetIntval() - 1;
    Word wTuple;
- 
+
    assert(btree != 0);
-   
+
    if (!(fill >= 0.0) || !(fill <= 1.0)) {
      fill = STD_FILL;
      cout << "Invalid fill factor, correcting to " << STD_FILL << endl;
@@ -508,9 +509,9 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
    qp->Open(args[0].addr);
    qp->Request(args[0].addr, wTuple);
 
-   if (btree->GetKeyType() == "int") {
+   if (btree->GetKeyType() == CcInt::BasicType()) {
      // Could be faster, but maybe not... needs to be checked again.
-     BTree2Impl<int,TupleId>* btreeX = 
+     BTree2Impl<int,TupleId>* btreeX =
                               dynamic_cast<BTree2Impl<int,TupleId>*>(btree);
      while (qp->Received(args[0].addr))
      {
@@ -519,13 +520,13 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
            (Attribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
        {
          CcInt* attr = (CcInt*) tuple->GetAttribute(attrIndex);
-         TupleIdentifier* value = (TupleIdentifier*) 
+         TupleIdentifier* value = (TupleIdentifier*)
                                      tuple->GetAttribute(tidIndex);
          int key = (int) attr->GetIntval();
          btreeX->Append(key, value->GetTid());
-       }  
+       }
        tuple->DeleteIfAllowed();
-   
+
        qp->Request(args[0].addr, wTuple);
      }
     //Append_Stream_Int(args[0].addr, btree, attrIndex,tidIndex);
@@ -541,12 +542,12 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
          btree->AppendGeneric(a,b);
        }
        tuple->DeleteIfAllowed();
-   
+
        qp->Request(args[0].addr, wTuple);
      }
    }
    qp->Close(args[0].addr);
- 
+
    return 0;
  }
 
@@ -560,12 +561,12 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
    double fill = ((CcReal*)args[1].addr)->GetRealval();
    int keyAttrIndex = ((CcInt*)args[6].addr)->GetIntval() - 1;
    int valueAttrIndex = ((CcInt*)args[7].addr)->GetIntval() - 1;
-   BTree2::multiplicityType u = 
+   BTree2::multiplicityType u =
            (BTree2::multiplicityType) ((CcInt*) args[8].addr)->GetIntval();
    Word wTuple;
- 
+
    assert(btree != 0);
-   
+
    if (!(fill >= 0.0) || !(fill <= 1.0)) {
      fill = STD_FILL;
      cout << "Invalid fill factor, correcting to " << STD_FILL << endl;
@@ -593,7 +594,7 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
      if ((Attribute *)tuple->GetAttribute(keyAttrIndex)->IsDefined()) {
        Attribute* keyattr = tuple->GetAttribute(keyAttrIndex);
        if (valueAttrIndex<0) {
-         btree->AppendGeneric(keyattr, 0);  
+         btree->AppendGeneric(keyattr, 0);
        } else {
          if ((Attribute *)tuple->GetAttribute(valueAttrIndex)->IsDefined()) {
            Attribute* valueattr = tuple->GetAttribute(valueAttrIndex);
@@ -602,21 +603,21 @@ createbtree2::ValueMapping_Rel(Word* args, Word& result, int message,
        }
      }
      tuple->DeleteIfAllowed();
- 
+
      qp->Request(args[0].addr, wTuple);
    }
    qp->Close(args[0].addr);
- 
+
    return 0;
  }
 
 string createbtree2::Specification1() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = "stream (tuple (T)) x real x int x ak x ad x u" 
+  string sig = "stream (tuple (T)) x real x int x ak x ad x u"
                " -> (btree2 Tk Td u)\n"
-               "rel (tuple ((x1 t1)...(xn tn))) x ak [x f x n]" 
-               " -> (btree2 Tk tid multiple)\n" 
-               "stream (tuple ((x1 t1)...(xn tn) (id tid))) x ak [x f x n]" 
+               "rel (tuple ((x1 t1)...(xn tn))) x ak [x f x n]"
+               " -> (btree2 Tk tid multiple)\n"
+               "stream (tuple ((x1 t1)...(xn tn) (id tid))) x ak [x f x n]"
                " -> (btree2 Tk tid multiple)";
   string spec = "_ createbtree [ _ ]";
   string meaning = "Creates a btree2. The key type ak must "
@@ -624,25 +625,25 @@ string createbtree2::Specification1() {
     "kind INDEXABLE. u must be 'multiple', 'stable_multiple',"
     "'uniqueKeyMultiData' or 'uniqueKey'.";
 
-  string example = "let mybtree = ten createbtree [nr];\n" 
+  string example = "let mybtree = ten createbtree [nr];\n"
     "let mybtree = ten feed extend[id: tupleid(.)] "
     "sortby[no asc] createbtree[no]";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
 string createbtree2::Specification2() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = "stream (tuple (T)) x real x int x ak x ad x u" 
+  string sig = "stream (tuple (T)) x real x int x ak x ad x u"
                " -> (btree2 Tk Td u)\n"
-               "rel (tuple ((x1 t1)...(xn tn))) x ak [x f x n]" 
-               " -> (btree2 Tk tid multiple)\n" 
-               "stream (tuple ((x1 t1)...(xn tn) (id tid))) x ak [x f x n]" 
+               "rel (tuple ((x1 t1)...(xn tn))) x ak [x f x n]"
+               " -> (btree2 Tk tid multiple)\n"
+               "stream (tuple ((x1 t1)...(xn tn) (id tid))) x ak [x f x n]"
                " -> (btree2 Tk tid multiple)";
   string spec = "_ createbtree2 [ _ ]";
   string meaning = "Creates a btree2. The key type ak must "
@@ -650,23 +651,23 @@ string createbtree2::Specification2() {
     "kind INDEXABLE. u must be 'multiple', 'stable_multiple',"
     "'uniqueKeyMultiData' or 'uniqueKey'.";
 
-  string example = "let mybtree = ten createbtree2 [nr];\n" 
+  string example = "let mybtree = ten createbtree2 [nr];\n"
     "let mybtree = ten feed extend[id: tupleid(.)] "
     "sortby[no asc] createbtree2[no]";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
 int createbtree2::numberOfValueMappings = 3;
-ValueMapping createbtree2::valueMappings[] = { 
+ValueMapping createbtree2::valueMappings[] = {
                   createbtree2::ValueMapping_Rel,
                   createbtree2::ValueMapping_Stream_Tid,
-                  createbtree2::ValueMapping_Stream_Attrib 
+                  createbtree2::ValueMapping_Stream_Attrib
                 };
 
 Operator createbtree2::def1 (

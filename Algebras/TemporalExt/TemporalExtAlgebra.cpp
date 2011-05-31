@@ -53,7 +53,6 @@ extern QueryProcessor *qp;
 #include "Symbols.h"
 #include "ListUtils.h"
 
-using namespace symbols;
 using namespace mappings;
 
 /*
@@ -2358,7 +2357,7 @@ MovingInstantExtTypeMapIntime( ListExpr args )
                 return nl->SymbolAtom( Intime<CcString>::BasicType() );
         }
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2384,7 +2383,7 @@ MovingPeriodsExtTypeMapMoving( ListExpr args )
                 return nl->SymbolAtom( MRegion::BasicType() );
         }
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2403,7 +2402,7 @@ MovingExtTypeMapIntime( ListExpr args )
         if( nl->IsEqual( arg1, MString::BasicType() ) )
             return nl->SymbolAtom( Intime<CcString>::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2427,7 +2426,7 @@ MovingInstantPeriodsExtTypeMapBool( ListExpr args )
                 return nl->SymbolAtom( CcBool::BasicType() );
         }
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2482,7 +2481,7 @@ MovingBaseExtTypeMapMoving( ListExpr args )
             return nl->SymbolAtom( MPoint::BasicType() );
     }
 
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2520,7 +2519,7 @@ MovingBaseExtTypeMapBool( ListExpr args )
           )
             return nl->SymbolAtom( CcBool::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2540,7 +2539,7 @@ MovingExtTypeMapPeriods( ListExpr args )
 
             return nl->SymbolAtom( Periods::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2562,7 +2561,7 @@ IntimeExtTypeMapInstant( ListExpr args )
         if( nl->IsEqual( arg1, IRegion::BasicType() ))
             return nl->SymbolAtom( Instant::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2584,7 +2583,7 @@ IntimeExtTypeMapBase( ListExpr args )
         if( nl->IsEqual( arg1, IRegion::BasicType() ) )
             return nl->SymbolAtom( Region::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2603,7 +2602,7 @@ MovingRExtTypeMapMovingR( ListExpr args )
         if( nl->IsEqual( arg1, MReal::BasicType() ) )
             return nl->SymbolAtom( MReal::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2622,7 +2621,7 @@ MovingRExtTypeMapBool( ListExpr args )
         if( nl->IsEqual( arg1, MReal::BasicType() ) )
             return nl->SymbolAtom( MBool::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2703,7 +2702,7 @@ RangeRangevaluesExtTypeMapRange( ListExpr args )
         if( nl->IsEqual( arg1, MReal::BasicType() ) )
             return nl->SymbolAtom( RReal::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2722,7 +2721,7 @@ MovingSANExtTypeMap( ListExpr args )
         if( nl->IsEqual( arg1, MBool::BasicType() ) )
             return nl->SymbolAtom( CcBool::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2741,7 +2740,7 @@ MPointExtTypeMapMPoint( ListExpr args )
         if( nl->IsEqual( arg1, MPoint::BasicType() ) )
             return nl->SymbolAtom( MPoint::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2760,7 +2759,7 @@ RealPhysicalUnitsExtTypeMap( ListExpr args )
         if( nl->IsEqual( arg1, CcReal::BasicType() ) )
             return nl->SymbolAtom( CcReal::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2779,7 +2778,7 @@ MovingPointExtTypeMapPoints( ListExpr args )
         if( nl->IsEqual( arg1, MPoint::BasicType() ) )
             return nl->SymbolAtom( Points::BasicType() );
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -2805,7 +2804,7 @@ MovingExtTypeMapMoving( ListExpr args )
             return nl->SymbolAtom( MReal::BasicType() );
 
     }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -2834,7 +2833,7 @@ ConcatSTypeMap(ListExpr args){
   }
   ListExpr stream = nl->First(args);
   if(  nl->ListLength(stream)!=2  ||
-       !nl->IsEqual(nl->First(stream),"stream") ||
+       !nl->IsEqual(nl->First(stream),Symbol::STREAM()) ||
        !nl->IsEqual(nl->Second(stream),MPoint::BasicType())){
      ErrorReporter::ReportError("stream(mpoint) expected.");
      return nl->TypeError();
@@ -2851,9 +2850,12 @@ ConcatSTypeMap(ListExpr args){
 
 const string mapsEverNearerThan[3][4] =
 {
-  {MPOINT,    MPOINT,    REAL,   BOOL},
-  {MPOINT,    POINT,     REAL,   BOOL},
-  {POINT,     MPOINT,    REAL,   BOOL}
+  {MPoint::BasicType(),MPoint::BasicType(),
+                            CcReal::BasicType(),CcBool::BasicType()},
+  {MPoint::BasicType(),Point::BasicType(),
+                            CcReal::BasicType(),CcBool::BasicType()},
+  {Point::BasicType(), MPoint::BasicType(),
+                            CcReal::BasicType(),CcBool::BasicType()}
 };
 
 ListExpr
@@ -4692,7 +4694,7 @@ static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist,
   for(int i = 0; i< arg1->GetNoComponents(); i++){
     UPoint upoint;
     arg1->Get(i, upoint);
-    vector<UReal> resvec(1);
+    vector<UReal> resvec;
     upoint.Distance(*arg0, resvec, geoid);
     bool correct = false;
     for(vector<UReal>::iterator it(resvec.begin()); it!=resvec.end(); it++){
@@ -5415,20 +5417,20 @@ class TemporalExtAlgebra : public Algebra
         AddTypeConstructor( &rangebool );
         AddTypeConstructor( &rangestring );
 
-        intimestring.AssociateKind( "TEMPORAL" );
-        intimestring.AssociateKind( "DATA" );
+        intimestring.AssociateKind( Kind::TEMPORAL() );
+        intimestring.AssociateKind( Kind::DATA() );
 
-        unitstring.AssociateKind( "TEMPORAL" );
-        unitstring.AssociateKind( "DATA" );
+        unitstring.AssociateKind( Kind::TEMPORAL() );
+        unitstring.AssociateKind( Kind::DATA() );
 
-        movingstring.AssociateKind( "TEMPORAL" );
-        movingstring.AssociateKind( "DATA" );
+        movingstring.AssociateKind( Kind::TEMPORAL() );
+        movingstring.AssociateKind( Kind::DATA() );
 
-        rangebool.AssociateKind( "RANGE" );
-        rangebool.AssociateKind( "DATA" );
+        rangebool.AssociateKind( Kind::RANGE() );
+        rangebool.AssociateKind( Kind::DATA() );
 
-        rangestring.AssociateKind( "RANGE" );
-        rangestring.AssociateKind( "DATA" );
+        rangestring.AssociateKind( Kind::RANGE() );
+        rangestring.AssociateKind( Kind::DATA() );
 
         AddOperator( &temporalatinstantext );
         AddOperator( &temporalatperiodsext );

@@ -31,18 +31,19 @@ June, 2009 Mahmoud Sakr
 
 1 Overview
 
-This source file essentially contains the necessary implementations for 
-evaluating the spatiotemporal pattern predicates (STP). 
+This source file essentially contains the necessary implementations for
+evaluating the spatiotemporal pattern predicates (STP).
 
 2 Defines and includes
 
 */
 #include "FlockAlgebra.h"
+#include "Symbols.h"
 
 namespace FLOCK{
 
-bool 
-Helpers::string2int(char* digit, int& result) 
+bool
+Helpers::string2int(char* digit, int& result)
 {
   result = 0;
   while (*digit >= '0' && *digit <='9') {
@@ -52,7 +53,7 @@ Helpers::string2int(char* digit, int& result)
   return (*digit == 0); // true if at end of string!
 }
 
-string 
+string
 Helpers::ToString( int number )
 {
   ostringstream o;
@@ -60,7 +61,7 @@ Helpers::ToString( int number )
   return o.str();
 }
 
-string 
+string
 Helpers::ToString( double number )
 {
   ostringstream o;
@@ -73,7 +74,7 @@ Flock::Flock(double* _coords, int _coordsCount):pointsCount(0)
   this->coordsCount= _coordsCount;
   for(int i=0; i< this->coordsCount; ++i)
     this->coordinates[i]= _coords[i];
-  this->SetDefined(true);  
+  this->SetDefined(true);
 }
 
 Flock::Flock(const Flock& arg){
@@ -92,9 +93,9 @@ Flock::Flock(const Flock& arg){
 Flock::~Flock(){
 }
 
-size_t 
+size_t
 Flock::HashValue() const
-{ 
+{
   int res=0;
   if(IsDefined())
   {
@@ -104,10 +105,10 @@ Flock::HashValue() const
     res= res ^ this->coordsCount;
     return res;
   }
-  return 0; 
+  return 0;
 }
 
-void 
+void
 Flock::CopyFrom(const Attribute* rhs)
 {
   const Flock * arg= dynamic_cast<const Flock*>(rhs);
@@ -122,48 +123,48 @@ Flock::CopyFrom(const Attribute* rhs)
   this->pointsCount = arg->pointsCount;
 }
 
-int 
+int
 Flock::Compare( const Attribute* rhs ) const
 {
-  return Attribute::GenericCompare<Flock>( this, 
-           dynamic_cast<Flock*>(const_cast<Attribute*>(rhs)), 
+  return Attribute::GenericCompare<Flock>( this,
+           dynamic_cast<Flock*>(const_cast<Attribute*>(rhs)),
            this->IsDefined(), rhs->IsDefined() );
 }
 
-bool 
+bool
 Flock::operator==(const Flock& rhs) const
 {
-  // this->coordinates playes no role in the equality comparison. In the 
-  // ReportFlock algorithm, this->coordinates is set to the first point 
+  // this->coordinates playes no role in the equality comparison. In the
+  // ReportFlock algorithm, this->coordinates is set to the first point
   // that enters the Flock.
   if (! (this->coordsCount == rhs.coordsCount &&
            this->pointsCount == rhs.pointsCount
-        ) 
+        )
      )return false;
-  
+
   for(int i=0; i<this->pointsCount ; ++i)
     if(this->points[i] != rhs.points[i])
       return false;
   return true;
 }
 
-bool 
+bool
 Flock::operator<(const Flock& rhs) const
 {
-  // We have no formal definition for comparing Flocks. This function is 
+  // We have no formal definition for comparing Flocks. This function is
   // provided only to fulfill the inerface requirements.
   return this->pointsCount < rhs.pointsCount;
-} 
+}
 
-bool 
+bool
 Flock::IsSubset(const Flock& rhs) const
 {
-  // this->coordinates playes no role in the equality comparison. In the 
-  // ReportFlock algorithm, this->coordinates is set to the first point 
+  // this->coordinates playes no role in the equality comparison. In the
+  // ReportFlock algorithm, this->coordinates is set to the first point
   // that enters the Flock.
   if (! (this->coordsCount == rhs.coordsCount &&
            this->pointsCount <= rhs.pointsCount
-        ) 
+        )
      )return false;
   int l=0, r=0;
   while(l < this->pointsCount && r < rhs.pointsCount)
@@ -175,33 +176,33 @@ Flock::IsSubset(const Flock& rhs) const
   return (l == this->pointsCount);
 }
 
-int 
+int
 Flock::Intersection(Flock* arg, Flock* res)
 {
   ::std::vector<int> resVec(maxFlockSize);
   ::std::vector<int>::iterator last;
-  last= std::set_intersection(this->points, this->points + this->pointsCount, 
+  last= std::set_intersection(this->points, this->points + this->pointsCount,
                         arg->points, arg->points + arg->pointsCount,
                         resVec.begin());
-  
+
   res->pointsCount = last - resVec.begin();
   std::copy(resVec.begin(), ++last, res->points);
   return res->pointsCount;
 }
 
-int 
+int
 Flock::IntersectionCount(Flock* arg)
 {
   ::std::vector<int> resVec(maxFlockSize);
   ::std::vector<int>::iterator last= resVec.begin();
-  last= std::set_intersection(this->points, this->points + this->pointsCount, 
+  last= std::set_intersection(this->points, this->points + this->pointsCount,
                         arg->points, arg->points + arg->pointsCount,
                         last);
-  
+
   return last - resVec.begin();
 }
 
-Points* Flock::Flock2Points(Instant& curTime, vector<int>* ids, 
+Points* Flock::Flock2Points(Instant& curTime, vector<int>* ids,
        vector<MPoint*>*sourceMPoints)
 {
   bool debugme=true;
@@ -231,7 +232,7 @@ Points* Flock::Flock2Points(Instant& curTime, vector<int>* ids,
 }
 
 
-ostream& 
+ostream&
 Flock::Print( ostream &os ) const
 {
   if (! this->IsDefined()) return (os << "UnDefined Flock");
@@ -240,33 +241,33 @@ Flock::Print( ostream &os ) const
   prnt+= "\nFlock coordinates: ";
   for(int i=0; i< this->coordsCount ; ++i)
     prnt+= FLOCK::Helpers::ToString(this->coordinates[i]) + ", ";
-   
+
   prnt+= "\nRegistered Flock point ids: " ;
   for (int pointIt=0 ;pointIt < this->pointsCount; ++pointIt)
       prnt+= FLOCK::Helpers::ToString(this->points[pointIt]) + ", ";
   prnt+="\n";
-  
+
   return (os << prnt);
 }
 
-bool 
+bool
 Flock::IsDefined() const
 {
   return this->defined;
 }
 
-void 
+void
 Flock::SetDefined(const bool def)
 {
   this->defined= def;
 }
 
-Attribute* Flock::Clone() const 
+Attribute* Flock::Clone() const
 {
   return new Flock(*this);
 }
 
-int 
+int
 Flock::addPoint(OctreePoint* point){
   if(this->pointsCount >= maxFlockSize )
   {
@@ -283,16 +284,16 @@ Flock::addPoint(OctreePoint* point){
   }
   if(this->points[i] == point->getIdentifier())
     return -1; //point already exists
-  
+
   std::memmove(this->points + ((i+2) * sizeof(int)),
-               this->points + ((i+1) * sizeof(int)), 
+               this->points + ((i+1) * sizeof(int)),
                (this->pointsCount - i - 1) * sizeof(int));
   this->points[i+1] = point->getIdentifier();
   ++this->pointsCount;
   return 1; //point added successfully
 }
 
-int 
+int
 Flock::addPointID(int point){
   bool debugme=false;
   if(this->pointsCount >= maxFlockSize )
@@ -310,7 +311,7 @@ Flock::addPointID(int point){
   }
   if(this->points[i] == point)
     return -1; //point already exists
-  
+
   if(debugme)
   {
     cout<<"\nBefore Addition \n";
@@ -321,7 +322,7 @@ Flock::addPointID(int point){
   oldpos = i+1, // * sizeof(int)),
   numbytes= (this->pointsCount - i - 1) * sizeof(int);
   std::memmove(this->points + newpos,
-               this->points + oldpos, 
+               this->points + oldpos,
                numbytes);
   this->points[i+1] = point;
   ++this->pointsCount;
@@ -370,13 +371,13 @@ bool MFlock::CanAdd(Flock* arg)
 void MFlock::MFlockMergeAdd(UFlock& unit)
 {
 /*
-This is a modified copy from Mappring::MergeAdd. We use this function, instead 
-of the standard implementation, to overcome some unclear errors in the 
-ReportFlocks algorithm, that are possibly due to floating point numerical 
-errors. According to many tests, the final results are correct when we use this 
-function.  
-  
-*/  
+This is a modified copy from Mappring::MergeAdd. We use this function, instead
+of the standard implementation, to overcome some unclear errors in the
+ReportFlocks algorithm, that are possibly due to floating point numerical
+errors. According to many tests, the final results are correct when we use this
+function.
+
+*/
   UFlock lastunit;
   const UFlock *u1transfer;
   int size = units.Size();
@@ -395,8 +396,8 @@ function.
 /*
 The following condition is modified to be "<=" rather than "==" in the standard
 implementation.
- 
-*/        
+
+*/
         (lastunit.timeInterval.end >= unit.timeInterval.start)) {
       lastunit.timeInterval.end = unit.timeInterval.end;
       lastunit.timeInterval.rc = unit.timeInterval.rc;
@@ -418,12 +419,12 @@ implementation.
   }
 }
 /*
-3 Flock Reporting Functions  
- 
+3 Flock Reporting Functions
+
 */
 
 
-void FinalizeLastUnit(::std::vector<MFlock*>* mflocks, 
+void FinalizeLastUnit(::std::vector<MFlock*>* mflocks,
     Instant timeStep, int k)
 {
   bool debugme=true;
@@ -487,7 +488,7 @@ findFlocks(char* filename, double radius, double tolerance, int flocksize,
       cout.flush();
     }
     if(myParser->getPointCount() >= flocksize)
-    { 
+    {
       switch(method)
       {
       case _2Dim:
@@ -497,11 +498,11 @@ findFlocks(char* filename, double radius, double tolerance, int flocksize,
         flocks= findFlocks2DimBruteforce(myParser, radius, flocksize);
         break;
       case _Square:
-        flocks= findFlocksSkiptreeSquare(myParser, radius, 
+        flocks= findFlocksSkiptreeSquare(myParser, radius,
             tolerance, flocksize);
         break;
       case _Pruning:
-        flocks= findFlocksSkiptreeSquareWithPruning(myParser, radius, 
+        flocks= findFlocksSkiptreeSquareWithPruning(myParser, radius,
             tolerance, flocksize);
         break;
       }
@@ -510,7 +511,7 @@ findFlocks(char* filename, double radius, double tolerance, int flocksize,
         cout<<endl<<"Found "<< flocks->size() << " flocks";
         cout.flush();
       }
-      
+
       uflock.timeInterval.end= curtime + timeStep;
       uflock.timeInterval.start= curtime;
 
@@ -542,7 +543,7 @@ findFlocks(char* filename, double radius, double tolerance, int flocksize,
 Flocks that are not merged with any of the existing MFlocks are used to create
 new MFlocks
 
-*/    
+*/
       for(flockIt= flocks->begin(); flockIt != flocks->end(); ++flockIt)
       {
         uflock.constValue.CopyFrom(*flockIt);
@@ -558,17 +559,17 @@ new MFlocks
         }
       }
 /*
-MFlocks that are not updated (i.e. got no new units), need to be finalized 
+MFlocks that are not updated (i.e. got no new units), need to be finalized
 (i.e. the last unit is prolonged k-1 time steps).
 
-*/    
-      
+*/
+
       FinalizeLastUnit(mflocksNotUpdated, timeStep, k);
       for(flockIt=flocks->begin(); flockIt!=flocks->end(); flockIt++)
         delete (*flockIt);
       flocks->clear();
       delete flocks;
-      mflocksNotUpdated->clear(); 
+      mflocksNotUpdated->clear();
       //need to be tested. The destructors should not be called
     }
     ++startCol;
@@ -585,7 +586,7 @@ MFlocks that are not updated (i.e. got no new units), need to be finalized
 }
 
 ::std::vector<Flock*>*
-findFlocks2Dim(OctreeDatParser* myParser, 
+findFlocks2Dim(OctreeDatParser* myParser,
     double radius, double tolerance, int flocksize){
   bool debugme=false;
   printf("Starting the flock search:\n");
@@ -593,14 +594,14 @@ findFlocks2Dim(OctreeDatParser* myParser,
     return 0;
   time_t first, second, third, before, after;
   Flock *flock;
-  before= time(NULL);  
+  before= time(NULL);
   first = time(NULL);
-  
+
   OctreeCell* tree = myParser->getOctree();
   second = time(NULL);
   ::std::vector<OctreePoint*>* points = myParser->getPointset();
   ::std::vector<Flock*>* flocks = new ::std::vector<Flock*>();
-  
+
   ::std::vector<OctreePoint*>::iterator pointIt=points->begin();
   ::std::vector<Flock*>::iterator flockIt;
   int dimensions = (*pointIt)->getDimensions();
@@ -608,7 +609,7 @@ findFlocks2Dim(OctreeDatParser* myParser,
   double *pCoords, *fCoords;
   bool inFlock=false;
   double distance, radiussqrd=radius*radius;
-  
+
   for(; pointIt!=points->end(); pointIt++){
     pCoords=(*pointIt)->getCoordinates();
     //check against all flocks to make sure this point is not in one already
@@ -644,11 +645,11 @@ findFlocks2Dim(OctreeDatParser* myParser,
       (*flockIt)->addPoint(*pointIt);
       continue;
     }
-    
+
     // this point should be in no flock found so far. query it.
     tree->unmarkReported();
     queries++;
-   
+
     amount = tree->exactRangeQuery2DimSteps(pCoords, radius, tolerance);
     if(debugme)
     {
@@ -667,7 +668,7 @@ findFlocks2Dim(OctreeDatParser* myParser,
   }
 
   third = time(NULL);
-  
+
   printf("Flock details (from exact query):\n");
 
   for(flockIt=flocks->begin(); flockIt!=flocks->end(); flockIt++){
@@ -698,24 +699,24 @@ findFlocks2Dim(OctreeDatParser* myParser,
 //        }
 //        if(inFlock){
 //          fpoints->push_back(*pointIt);
-//        }        
+//        }
 //      }
 //    (*flockIt)->printPoints();
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
-  }    
-  printf("Quadtree contains %d points in %d dimensions,\n", 
+  }
+  printf("Quadtree contains %d points in %d dimensions,\n",
     tree->getPointsContained(), dimensions);
   printf("radius was %f, tolerance was %f.\n", radius, tolerance);
   printf("Found a total of %d flocks.\n", flocks->size());
   printf("Building the quadtree took %d seconds.\n", (int)(second-first));
-  printf("Performing %d queries took %d seconds.\n", queries, 
+  printf("Performing %d queries took %d seconds.\n", queries,
       (int)(third-second));
-  
+
   delete tree;
   after= time(NULL);
-  printf("\nProcessing the complete trajectory took %d seconds.\n",  
+  printf("\nProcessing the complete trajectory took %d seconds.\n",
       (int)(after-before));
   return flocks;
 };
@@ -723,7 +724,7 @@ findFlocks2Dim(OctreeDatParser* myParser,
 
 
 ::std::vector<Flock*>*
-findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius, 
+findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
     int flocksize){
   printf("Starting the flock search:\n");
   if(myParser->getPointCount() < flocksize)
@@ -731,12 +732,12 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
   time_t first, second, third, before, after;
   Flock *flock;
   before= time(NULL);
-  
+
   first = time(NULL);
   second = time(NULL);
   ::std::vector<OctreePoint*>* points = myParser->getPointset();
   ::std::vector<Flock*>* flocks = new ::std::vector<Flock*>();
-  
+
   ::std::vector<OctreePoint*>::iterator pointIt=points->begin(), compIt;
   ::std::vector<Flock*>::iterator flockIt;
   int dimensions = (*pointIt)->getDimensions();
@@ -744,7 +745,7 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
   double *pCoords, *fCoords, *cCoords;
   bool inFlock;
   double distance, radiussqrd=radius*radius;
-  
+
   for(; pointIt!=points->end(); pointIt++){
     pCoords=(*pointIt)->getCoordinates();
     //check against all flocks to make sure this point is not in one already
@@ -770,8 +771,8 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
     if(inFlock){
       continue;
     }
-    
-    // this point should be in no flock found so far. Check against all other 
+
+    // this point should be in no flock found so far. Check against all other
     // points
     queries++;
     amount=0;
@@ -791,7 +792,7 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
       }
       if (inFlock) amount++;
     }
-    
+
     if(amount>=flocksize){
       flock=new Flock(pCoords, dimensions);
       flocks->push_back(flock);
@@ -799,28 +800,28 @@ findFlocks2DimBruteforce(OctreeDatParser* myParser, double radius,
   }
 
   third = time(NULL);
-  
+
   printf("Flock details (from brute force):\n");
 
   for(flockIt=flocks->begin(); flockIt!=flocks->end(); flockIt++){
     (*flockIt)->printPoints();
-  }    
-  printf("Pointset contains %d points in %d dimensions,\n", 
+  }
+  printf("Pointset contains %d points in %d dimensions,\n",
     points->size(), dimensions);
   printf("radius was %f.\n", radius);
   printf("Found a total of %d flocks.\n", flocks->size());
   printf("Building the quadtree took %d seconds.\n", (int)(second-first));
-  printf("Performing %d queries took %d seconds.\n", queries, 
+  printf("Performing %d queries took %d seconds.\n", queries,
       (int)(third-second));
   after= time(NULL);
-  printf("\nProcessing the complete trajectory took %d seconds.\n",  
+  printf("\nProcessing the complete trajectory took %d seconds.\n",
       (int)(after-before));
   return flocks;
 };
 
 
 ::std::vector<Flock*>*
-findFlocksSkiptreeSquare(OctreeDatParser* myParser, double radius, 
+findFlocksSkiptreeSquare(OctreeDatParser* myParser, double radius,
     double tolerance, int flocksize){
   printf("Starting the flock search:\n");
   if(myParser->getPointCount() < flocksize)
@@ -829,7 +830,7 @@ findFlocksSkiptreeSquare(OctreeDatParser* myParser, double radius,
   Flock *flock;
   before= time(NULL);
   first = time(NULL);
- 
+
   ::std::map<int, OctreeCell*>* tree = myParser->getSkiptree();
   second = time(NULL);
   ::std::vector<OctreePoint*>* points = myParser->getPointset();
@@ -871,9 +872,9 @@ findFlocksSkiptreeSquare(OctreeDatParser* myParser, double radius,
     // this point should be in no flock found so far. query it.
     (*tree)[0]->unmarkReported();
     queries++;
-   
+
     amount = (*tree)[0]->boxedRangeQueryCounting(pCoords, radius, tolerance);
-    
+
     if(amount>=flocksize){
       flock=new Flock(pCoords, dimensions);
       flock->addPoint(*pointIt);
@@ -882,27 +883,27 @@ findFlocksSkiptreeSquare(OctreeDatParser* myParser, double radius,
   }
 
   third = time(NULL);
-  
+
   printf("Flock details (from box query):\n");
   for(flockIt=flocks->begin(); flockIt!=flocks->end(); flockIt++){
     (*flockIt)->printPoints();
-  }    
-  printf("Quadtree contains %d points in %d dimensions,\n", 
+  }
+  printf("Quadtree contains %d points in %d dimensions,\n",
     (*tree)[0]->getPointsContained(), dimensions);
   printf("radius was %f, tolerance was %f.\n", radius, tolerance);
   printf("Found a total of %d flocks.\n", flocks->size());
   printf("Building the quadtree took %d seconds.\n", (int)(second-first));
-  printf("Performing %d queries took %d seconds.\n", queries, 
+  printf("Performing %d queries took %d seconds.\n", queries,
       (int)(third-second));
   deleteSkipQuadtree(tree);
   after= time(NULL);
-  printf("\nProcessing the complete trajectory took %d seconds.\n",  
+  printf("\nProcessing the complete trajectory took %d seconds.\n",
       (int)(after-before));
   return flocks;
 };
-  
+
 ::std::vector<Flock*>*
-findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser, 
+findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
     double radius, double tolerance, int flocksize){
   printf("Starting the flock search:\n");
   printf("pruning the set of ponts first...");
@@ -912,7 +913,7 @@ findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
   Flock *flock;
   before= time(NULL);
   first = time(NULL);
-  
+
   ::std::map<int, OctreeCell*>* tree = myParser->getSkiptree4Dim();
   second = time(NULL);
   ::std::vector<OctreePoint*>* points = myParser->getPointset();
@@ -954,7 +955,7 @@ findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
     if(inFlock){
       continue;
     }
-    
+
     // this point should be in no flock found so far. query it.
     (*tree)[0]->unmarkReported();
     queries++;
@@ -1010,7 +1011,7 @@ findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
       // this point should be in no flock found so far. query it.
       (*tree)[0]->unmarkReported();
       queries2++;
-     
+
       amount = (*tree)[0]->boxedRangeQueryCounting(pCoords, radius, tolerance);
       if(amount>=flocksize){
         flock=new Flock(pCoords); // TW+DM changed dimensions to dimensions2
@@ -1022,29 +1023,29 @@ findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser,
     fourth = time(NULL);
   }
   fifth = time(NULL);
-  
+
   printf("Flock details (from box query with pruning):\n");
   for(flockIt=flocks->begin(); flockIt!=flocks->end(); flockIt++){
     (*flockIt)->printPoints();
-  }    
-  printf("Quadtree contains %d points in %d dimensions,\n", 
+  }
+  printf("Quadtree contains %d points in %d dimensions,\n",
     (*tree)[0]->getPointsContained(), dimensions2);
   printf("radius was %f, tolerance was %f.\n", radius, tolerance);
   printf("Found a total of %d flocks.\n", flocks->size());
-  printf("Building the pruning skip quadtree took %d seconds.\n", 
+  printf("Building the pruning skip quadtree took %d seconds.\n",
       (int)(second-first));
-  printf("Performing %d queries for pruning took %d seconds.\n", queries, 
+  printf("Performing %d queries for pruning took %d seconds.\n", queries,
       (int)(third-second));
-  printf("Building the final skip quadtree took %d seconds.\n", 
+  printf("Building the final skip quadtree took %d seconds.\n",
       (int)(fourth-third));
-  printf("Performing %d final queries took %d seconds.\n", queries2, 
+  printf("Performing %d final queries took %d seconds.\n", queries2,
       (int)(fifth-fourth));
-  printf("Complete time after first build of tree was %d.\n", 
+  printf("Complete time after first build of tree was %d.\n",
       (int)(fifth-second));
 
-  deleteSkipQuadtree(tree); 
+  deleteSkipQuadtree(tree);
   after= time(NULL);
-  printf("\nProcessing the complete trajectory took %d seconds.\n",  
+  printf("\nProcessing the complete trajectory took %d seconds.\n",
       (int)(after-before));
   return flocks;
 };
@@ -1060,30 +1061,30 @@ ListExpr ReportFlocksTM( ListExpr typeList )
 {
   CHECK_COND(nl->ListLength(typeList) == 8 &&
       nl->IsAtom(nl->First(typeList)) &&
-      (nl->SymbolValue(nl->First(typeList))== "string") &&
+      (nl->SymbolValue(nl->First(typeList))== CcString::BasicType()) &&
       nl->IsAtom(nl->Second(typeList)) &&
-      (nl->SymbolValue(nl->Second(typeList))== "real")&&
+      (nl->SymbolValue(nl->Second(typeList))== CcReal::BasicType())&&
       nl->IsAtom(nl->Third(typeList)) &&
-      (nl->SymbolValue(nl->Third(typeList))== "real")&&
+      (nl->SymbolValue(nl->Third(typeList))== CcReal::BasicType())&&
       nl->IsAtom(nl->Fourth(typeList)) &&
-      (nl->SymbolValue(nl->Fourth(typeList))== "int")&&
+      (nl->SymbolValue(nl->Fourth(typeList))== CcInt::BasicType())&&
       nl->IsAtom(nl->Fifth(typeList)) &&
-      (nl->SymbolValue(nl->Fifth(typeList))== "instant")&&
+      (nl->SymbolValue(nl->Fifth(typeList))== Instant::BasicType())&&
       nl->IsAtom(nl->Sixth(typeList)) &&
-      (nl->SymbolValue(nl->Sixth(typeList))== "duration")&&
+      (nl->SymbolValue(nl->Sixth(typeList))== Duration::BasicType())&&
       nl->IsAtom(nl->Nth(7, typeList)) &&
-      (nl->SymbolValue(nl->Nth(7, typeList))== "int")&&
+      (nl->SymbolValue(nl->Nth(7, typeList))== CcInt::BasicType())&&
       nl->IsAtom(nl->Nth(8, typeList)) &&
-      (nl->SymbolValue(nl->Nth(8, typeList))== "string"),
+      (nl->SymbolValue(nl->Nth(8, typeList))== CcString::BasicType()),
       "reportflocks operator expects type map error"
       + nl->ToString(typeList))
 
-      return (nl->TwoElemList(nl->SymbolAtom("stream"), 
+      return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
           nl->SymbolAtom("mflock")));
 }
 
 
-int ReportFlocksVM(Word* args, Word& result, 
+int ReportFlocksVM(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
   ::std::vector<MFlock*>* mflocks;
@@ -1099,11 +1100,11 @@ int ReportFlocksVM(Word* args, Word& result,
     int k = static_cast<CcInt*>(args[6].addr)->GetIntval();
     string smethod= static_cast<CcString*>(args[7].addr)->GetValue();
     short method;
-    if(smethod == "bruteforce") method= _BruteForce;  
+    if(smethod == "bruteforce") method= _BruteForce;
     else if(smethod == "square") method= _Square;
     else if(smethod == "exact") method= _2Dim;
     else if(smethod == "sqpruning") method= _Pruning;
-    mflocks= findFlocks(const_cast<char*>(fileName.c_str()), radius, tolerance, 
+    mflocks= findFlocks(const_cast<char*>(fileName.c_str()), radius, tolerance,
         flockSize, *startTime, *timeStep, k, method);
     local.setAddr(mflocks);
     return 0;
@@ -1167,7 +1168,7 @@ Flock::Out( ListExpr typeinfo, Word value )
   Flock* flock = static_cast<Flock*>(value.addr);
   if(!flock->IsDefined())
     return nl->SymbolAtom("undef");
-  
+
   ListExpr lastPoint, points;
   points= lastPoint= nl->TheEmptyList();
   if(flock->pointsCount>0)
@@ -1176,8 +1177,8 @@ Flock::Out( ListExpr typeinfo, Word value )
     for(int i=1; i< flock->pointsCount; ++i)
       lastPoint = nl->Append(lastPoint,nl->IntAtom(flock->points[i]));
   }
-  
-  
+
+
   ListExpr lastCoord, coords;
   coords= lastCoord= nl->TheEmptyList();
   if(flock->coordsCount>0)
@@ -1186,7 +1187,7 @@ Flock::Out( ListExpr typeinfo, Word value )
     for(int i=1; i< flock->coordsCount; ++i)
       lastCoord = nl->Append(lastCoord,nl->RealAtom(flock->coordinates[i]));
   }
-  
+
   ListExpr res= nl->FourElemList(
       nl->IntAtom(flock->coordsCount),
       nl->IntAtom(flock->pointsCount),
@@ -1207,10 +1208,10 @@ Flock::In( ListExpr typeInfo, ListExpr value,
 
   if (
       (! (nl->ListLength(value) == 4))                ||
-      (!(nl->IsAtom(nl->First(value)) && 
+      (!(nl->IsAtom(nl->First(value)) &&
           nl->AtomType(nl->First(value))==IntType))   ||
-      (!(nl->IsAtom(nl->Second(value)) && 
-          nl->AtomType(nl->Second(value))==IntType))           
+      (!(nl->IsAtom(nl->Second(value)) &&
+          nl->AtomType(nl->Second(value))==IntType))
      )
   {
     correct= false;
@@ -1220,26 +1221,26 @@ Flock::In( ListExpr typeInfo, ListExpr value,
   Word res;
   res.addr= new Flock(true);
   Flock * flock= static_cast<Flock*>(res.addr);
-  
+
   flock->coordsCount= nl->IntValue(nl->First(value));
   flock->pointsCount= nl->IntValue(nl->Second(value));
-  
+
   ListExpr coords= nl->Third(value);
   ListExpr points= nl->Fourth(value);
-  
+
   if(nl->ListLength(points) != flock->pointsCount)
   {
     correct= false;
     errorInfo= nl->StringAtom("Invalid flock nested list representation");
     return SetWord(Address(0));
   }
-  
+
   if(flock->pointsCount > maxFlockSize)
   {
     correct= false;
-    errorInfo= nl->StringAtom(" \nEncountered a flock of size " + 
-        Helpers::ToString(flock->pointsCount) + 
-        "For efficient implementation, flocks are limited to " + 
+    errorInfo= nl->StringAtom(" \nEncountered a flock of size " +
+        Helpers::ToString(flock->pointsCount) +
+        "For efficient implementation, flocks are limited to " +
         Helpers::ToString(maxFlockSize) );
     return SetWord(Address(0));
   }
@@ -1249,20 +1250,20 @@ Flock::In( ListExpr typeInfo, ListExpr value,
     flock->points[i]= nl->IntValue(nl->First(points));
     points= nl->Rest(points);
   }
-  
+
   if(nl->ListLength(coords) != flock->coordsCount)
   {
     correct= false;
     errorInfo= nl->StringAtom("Invalid flock nested list representation");
     return SetWord(Address(0));
   }
-  
+
   if(flock->coordsCount > maxCoordsSize)
   {
     correct= false;
     errorInfo= nl->StringAtom(" \nEncountered a flock coordinate list of size "
-        + Helpers::ToString(flock->coordsCount) + 
-        "For efficient implementation, coordinates are limited to " + 
+        + Helpers::ToString(flock->coordsCount) +
+        "For efficient implementation, coordinates are limited to " +
         Helpers::ToString(maxCoordsSize) );
     return SetWord(Address(0));
   }
@@ -1271,37 +1272,37 @@ Flock::In( ListExpr typeInfo, ListExpr value,
   {
     flock->coordinates[i]= nl->RealValue(nl->First(coords));
     coords= nl->Rest(coords);
-  }  
+  }
 
   if(debugme)
   {
-    flock->Print(cout); cout<<endl; cout.flush(); 
+    flock->Print(cout); cout<<endl; cout.flush();
   }
   correct= true;
   return res;
 }
 
-Word 
+Word
 Flock::Create( const ListExpr typeInfo )
 {
   return (SetWord (new Flock()));
 }
 
-void     
+void
 Flock::Delete( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<Flock*>(w.addr);
   w.addr= 0;
 }
 
-void     
+void
 Flock::Close( const ListExpr typeInfo, Word& w )
 {
   Flock::Delete(typeInfo, w);
 }
 
 
-Word     
+Word
 Flock::Clone( const ListExpr typeInfo, const Word& w )
 {
   Flock* arg= static_cast<Flock*>(w.addr);
@@ -1309,25 +1310,25 @@ Flock::Clone( const ListExpr typeInfo, const Word& w )
   return SetWord(res);
 }
 
-void*    
+void*
 Flock::Cast(void* addr)
 {
-  return (new (addr) Flock); 
+  return (new (addr) Flock);
 }
 
-bool     
+bool
 Flock::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual(type, "flock"));
 }
 
-int      
-Flock::SizeOfObj() 
-{ 
-  return sizeof(Flock); 
+int
+Flock::SizeOfObj()
+{
+  return sizeof(Flock);
 }
 
-ListExpr 
+ListExpr
 Flock::Property()
 {
   return (nl->TwoElemList(
@@ -1503,7 +1504,7 @@ TypeConstructor flockTC(
         Flock::Clone,  //object close and clone
         Flock::Cast,   //cast function
         Flock::SizeOfObj, //sizeof function
-        Flock::KindCheck );  
+        Flock::KindCheck );
 
 TypeConstructor uflockTC(
         "uflock",     //name
@@ -1545,10 +1546,10 @@ ListExpr RandomMFlockTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 2 &&
-      nl->IsAtom(nl->First(args)) && 
-      (nl->SymbolValue(nl->First(args))== "instant") &&
-      nl->IsAtom(nl->Second(args)) && 
-      (nl->SymbolValue(nl->Second(args))== "int"),
+      nl->IsAtom(nl->First(args)) &&
+      (nl->SymbolValue(nl->First(args))== Instant::BasicType()) &&
+      nl->IsAtom(nl->Second(args)) &&
+      (nl->SymbolValue(nl->Second(args))== CcInt::BasicType()),
   "Operator randommflock expects two parameter.");
   return nl->SymbolAtom("mflock");
 }
@@ -1563,31 +1564,31 @@ void CreateRandomMFlock(Instant starttime, int minSize, MFlock& result)
   Interval<Instant> intr(starttime, starttime, true, false);
 
   rnd=rand()%20;  //deciding the number of units in the mflock value
-  unum=++rnd;     
+  unum=++rnd;
   while(ucntr++ < unum)
   {
     rnd=rand()%20;
-    pnum= rnd + minSize; //deciding the number of points in the flock 
+    pnum= rnd + minSize; //deciding the number of points in the flock
     pntcntr=0;
     f=new Flock(0);
     while(pntcntr++ < pnum) //creating the flock
-    { 
+    {
       rnd=rand() % 30000;
       while(f->addPointID(rnd) == -1)
         rnd=rand() % 30000;
     }
-    
+
     rnd=rand()%50000; //deciding the duration of a unit
     while(rnd<2)
       rnd=rand()%50000;
     intr.end.Set(intr.start.GetYear(), intr.start.GetMonth(),
         intr.start.GetGregDay(), intr.start.GetHour(),intr.start.GetMinute(),
-        intr.start.GetSecond(),intr.start.GetMillisecond()+rnd); 
+        intr.start.GetSecond(),intr.start.GetMillisecond()+rnd);
     unit.constValue.CopyFrom(f);
     delete f;
     if(debugme)
     {
-      cout<<"\nAdding unit number "<<ucntr <<endl; 
+      cout<<"\nAdding unit number "<<ucntr <<endl;
       unit.constValue.Print(cout); cout.flush();
     }
     unit.timeInterval= intr;
@@ -1596,7 +1597,7 @@ void CreateRandomMFlock(Instant starttime, int minSize, MFlock& result)
     {
       unit.constValue.Print(cout); cout.flush();
       result.Print(cout); cout.flush();
-      
+
     }
     intr.start= intr.end;
   }
@@ -1607,7 +1608,7 @@ void CreateRandomMFlock(Instant starttime, int minSize, MFlock& result)
   }
 }
 
-int 
+int
 RandomMFlockVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme=false;
@@ -1647,7 +1648,7 @@ ListExpr MFlock2MRegionTM(ListExpr args)
   string msg= nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 3 ,
       "Operator mflock2mregion expects 3 arguments.\nBut got: " + msg + ".");
-  
+
   msg= nl->ToString(nl->First(args));
   CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
       "Operator mflock2mregion expects stream(tuple(X)) as first argument."
@@ -1657,32 +1658,32 @@ ListExpr MFlock2MRegionTM(ListExpr args)
   CHECK_COND( listutils::isTupleStream(nl->Second(args)) ,
       "Operator mflock2mregion expects stream(tuple(X)) as second argument."
       "\nBut got: " + msg + ".");
-  
-  msg= nl->ToString(nl->Third(args));  
-  CHECK_COND( nl->IsAtom(nl->Third(args)) && 
-      nl->SymbolValue(nl->Third(args))== "duration",  
+
+  msg= nl->ToString(nl->Third(args));
+  CHECK_COND( nl->IsAtom(nl->Third(args)) &&
+      nl->SymbolValue(nl->Third(args))== Duration::BasicType(),
           "Operator mflock2mregion expects duration as third "
           "argument.\nBut got: " + msg + ".");
-  
+
   ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
   msg= nl->ToString(tuple1);
   CHECK_COND( nl->ListLength(tuple1) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple1))) && 
-    nl->SymbolValue(nl->Second(nl->First (tuple1)))== "int" &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple1))) && 
-    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== "mpoint",  
+    nl->IsAtom     (nl->Second(nl->First (tuple1))) &&
+    nl->SymbolValue(nl->Second(nl->First (tuple1)))== CcInt::BasicType() &&
+    nl->IsAtom     (nl->Second(nl->Second(tuple1))) &&
+    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== "mpoint",
         "Operator mflock2mregion expects stream(tuple(int mpoint)) as first "
         "argument.\nBut got: stream(tuple(" + msg + ")).");
-  
+
   ListExpr tuple2 = nl->Second(nl->Second(nl->Second(args)));
   msg= nl->ToString(tuple2);
   CHECK_COND( nl->ListLength(tuple2) == 1 &&
-    nl->IsAtom     (nl->Second(nl->First(tuple2))) && 
-    nl->SymbolValue(nl->Second(nl->First(tuple2)))== "mflock",  
+    nl->IsAtom     (nl->Second(nl->First(tuple2))) &&
+    nl->SymbolValue(nl->Second(nl->First(tuple2)))== "mflock",
         "Operator mflock2mregion expects stream(tuple(mflock)) as second "
         "argument.\nBut got: stream(tuple(" + msg + ")).");
-  
-  return (nl->TwoElemList(nl->SymbolAtom("stream"), 
+
+  return (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
       nl->SymbolAtom("movingregion")));
 }
 
@@ -1702,7 +1703,7 @@ void test()
   }
 }
 
-MRegion* 
+MRegion*
 MFlock::MFlock2MRegion(vector<int>* ids, vector<MPoint*>* sourceMPoints,
       Instant& samplingDuration)
 {
@@ -1714,14 +1715,14 @@ Validating the input
   MRegion* res = new MRegion(0);
   res->SetDefined(false);
   if(!this->IsDefined() || sourceMPoints->size()==0) return res;
-  
+
 /*
 Do the real work. The idea is as follows:
 foreach uflock in this
   1- Sample uflock according to the samplingDuration (include the start and
   end instants).
   2- From every two consecutive samples, create a URegion
- 
+
 */
   res->SetDefined(true);
   const UFlock* curUFlock;
@@ -1741,7 +1742,7 @@ foreach uflock in this
   Match *sm;
   mLineRep *lines;
   URegion *resUnit;
-  
+
   for(int unitIndex=0; unitIndex < this->GetNoComponents(); ++unitIndex)
   {
 /*
@@ -1759,12 +1760,12 @@ Computing the left part of the URegion (i.e. the values at the start instant)
     GrahamScan::convexHull(ps,reg1);
     delete ps;
     reginter1=new RegionInterpol::RegionForInterpolation(reg1);
-   
+
     while(curTime <= finalTime)
     {
 /*
-Computing the right part ofthe URegion 
-      
+Computing the right part ofthe URegion
+
 */
       curTime+= samplingDuration;
       ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
@@ -1777,7 +1778,7 @@ Computing the right part ofthe URegion
         cerr<<endl<<"RegionForInter2 faces count "<<reginter2->getNrOfFaces();
       }
       sm=new OptimalMatch(reginter1, reginter2, weigths);
-      lines=new mLineRep(sm);    
+      lines=new mLineRep(sm);
       resUnit= new URegion(lines->getTriangles(), unitInterval);
       res->Add(*(resUnit->GetEmbedded()));
 /*
@@ -1793,19 +1794,19 @@ Copying the right part of this URegion to the left part of the next URegion
 /*
 Garbage collection
 
-*/      
+*/
       delete resUnit;
       delete lines;
 //      delete sm;
       //delete regswap;
       delete reginterswap;
       delete ps;
-      
+
     }
 /*
 Adding the last instant in the unit
 
-*/    
+*/
     curTime= finalTime;
     ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
     GrahamScan::convexHull(ps, reg2);
@@ -1813,10 +1814,10 @@ Adding the last instant in the unit
     unitInterval.rc= curUFlock->timeInterval.rc;
     reginter2=new RegionForInterpolation(reg2);
     sm=new OptimalMatch(reginter1, reginter2, weigths);
-    lines=new mLineRep(sm);    
+    lines=new mLineRep(sm);
     resUnit= new URegion(lines->getTriangles(), unitInterval);
     res->Add(*(resUnit->GetEmbedded()));
-    
+
     delete resUnit;
     delete lines;
 //    delete sm;
@@ -1829,13 +1830,13 @@ Adding the last instant in the unit
   return res;
 }
 
-int 
+int
 MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme=true;
   result = qp->ResultStorage(s);
   MRegion* res = static_cast<MRegion*>( result.addr);
-  
+
   MFlock* mflock;
   Tuple * t;
   switch (message)
@@ -1871,7 +1872,7 @@ MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
         usedIDs->insert(idsUnit, idsUnit + count);
         //uflock->DeleteIfAllowed();
       }
-      
+
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, w);
       t= static_cast<Tuple*>(w.addr);
@@ -1883,21 +1884,21 @@ MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
           ids->push_back(id);
           mpoint= dynamic_cast<MPoint*>(t->GetAttribute(1));
           mpoints->push_back(mpoint);
-          delBuffer->push_back(t); 
+          delBuffer->push_back(t);
         }
         else
           t->DeleteIfAllowed();
-      
+
         qp->Request(args[0].addr, w);
         t= static_cast<Tuple*>(w.addr);
       }
       qp->Close(args[0].addr);
       assert(ids->size()>0);
-      res= mflock->MFlock2MRegion(ids, mpoints, 
+      res= mflock->MFlock2MRegion(ids, mpoints,
           *static_cast<Instant*>(args[2].addr));
       mflock->DeleteIfAllowed();
 
-      for(delBufferIt= delBuffer->begin(); delBufferIt != delBuffer->end(); 
+      for(delBufferIt= delBuffer->begin(); delBufferIt != delBuffer->end();
         ++delBufferIt)
         (*delBufferIt)->DeleteIfAllowed();
       delBuffer->clear();
@@ -1955,15 +1956,15 @@ public:
     AddTypeConstructor( &flockTC );
     AddTypeConstructor( &uflockTC );
     AddTypeConstructor( &mflockTC );
-    
-    flockTC.AssociateKind( "DATA" );    
-    
-    uflockTC.AssociateKind( "TEMPORAL" );
-    uflockTC.AssociateKind( "DATA" );
-    
-    mflockTC.AssociateKind( "TEMPORAL" );
-    mflockTC.AssociateKind( "DATA" );
-    
+
+    flockTC.AssociateKind( Kind::DATA() );
+
+    uflockTC.AssociateKind( Kind::TEMPORAL() );
+    uflockTC.AssociateKind( Kind::DATA() );
+
+    mflockTC.AssociateKind( Kind::TEMPORAL() );
+    mflockTC.AssociateKind( Kind::DATA() );
+
 
     AddOperator(&reportflocks);
     AddOperator(&randommflock);

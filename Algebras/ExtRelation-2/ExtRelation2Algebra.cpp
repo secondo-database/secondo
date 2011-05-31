@@ -67,7 +67,6 @@ for my master's thesis
 #include "Sort.h"
 
 using namespace std;
-using namespace symbols;
 
 /*
 2 External linking
@@ -156,7 +155,7 @@ ListExpr SortTypeMap( ListExpr args )
     sortDesc.append(NList(true,true));
   }
 
-  return NList(NList(APPEND), sortDesc, type.first()).listExpr();
+  return NList(NList(Symbol::APPEND()), sortDesc, type.first()).listExpr();
 }
 
 /*
@@ -358,7 +357,7 @@ ListExpr SortByTypeMap( ListExpr args )
     }
   }
 
-  return NList(NList("APPEND"), sortDesc, streamDesc).listExpr();
+  return NList(NList(Symbol::APPEND()), sortDesc, streamDesc).listExpr();
 }
 /*
 
@@ -514,7 +513,8 @@ ListExpr JoinTypeMap( ListExpr args )
   // Concatenate tuple descriptions and create tuple stream
   // for joined relations
   NList attr = NList(ConcatLists(attrA.listExpr(), attrB.listExpr()));
-  NList stream = NList(NList(STREAM, NList(NList(TUPLE), attr)));
+  NList stream = NList(NList(Symbol::STREAM(),
+                             NList(NList(Tuple::BasicType()), attr)));
 
   // check types of join attributes
   if ( !(joinA.isAtom() && joinA.isSymbol() &&
@@ -560,7 +560,7 @@ ListExpr JoinTypeMap( ListExpr args )
 
   if( n == 0 || n == 1 )
   {
-    if ( type.fifth().str() != "int" )
+    if ( type.fifth().str() != CcInt::BasicType() )
     {
       return NList::typeError(
             "Operator " + string(op[n]) +
@@ -571,7 +571,7 @@ ListExpr JoinTypeMap( ListExpr args )
 
   if( n == 3 )
   {
-    if ( type.fifth().str() != "int" )
+    if ( type.fifth().str() != CcInt::BasicType() )
     {
       return NList::typeError(
             "Operator " + string(op[n]) +
@@ -582,7 +582,7 @@ ListExpr JoinTypeMap( ListExpr args )
 
   if( n == 1 )
   {
-    if ( type.elem(6).str() != "int" )
+    if ( type.elem(6).str() != CcInt::BasicType() )
     {
       return NList::typeError(
             "Operator " + string(op[n]) +
@@ -590,7 +590,7 @@ ListExpr JoinTypeMap( ListExpr args )
             "must be of type int.\n");
     }
 
-    if ( type.elem(7).str() != "int" )
+    if ( type.elem(7).str() != CcInt::BasicType() )
     {
       return NList::typeError(
             "Operator " + string(op[n]) +
@@ -598,7 +598,7 @@ ListExpr JoinTypeMap( ListExpr args )
             "must be of type int.\n");
     }
 
-    if ( type.elem(8).str() != "int" )
+    if ( type.elem(8).str() != CcInt::BasicType() )
     {
       return NList::typeError(
             "Operator " + string(op[n]) +
@@ -607,7 +607,7 @@ ListExpr JoinTypeMap( ListExpr args )
     }
   }
 
-  return NList( NList("APPEND"), NList( NList(attrAIndex),
+  return NList( NList(Symbol::APPEND()), NList( NList(attrAIndex),
       NList(attrBIndex)), stream).listExpr();
 }
 
@@ -948,7 +948,7 @@ ListExpr TupleFileTypeMap(ListExpr args)
         "Operator received: " + attr.convertToString() );
   }
 
-  if ( type.second() != INT )
+  if ( type.second() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator tuplefile: second argument must be an integer!"
@@ -1043,7 +1043,7 @@ ListExpr TupleBufferTypeMap(ListExpr args)
         "Operator received: " + attr.convertToString() );
   }
 
-  if ( type.second() != INT )
+  if ( type.second() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator tuplebuffer: second argument must be an integer!"
@@ -1140,14 +1140,14 @@ ListExpr TupleBuffer2TypeMap(ListExpr args)
         "Operator received: " + attr.convertToString() );
   }
 
-  if ( type.second() != INT )
+  if ( type.second() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator tuplebuffer2: second argument must be an integer!"
         "Operator received: " + type.second().convertToString() );
   }
 
-  if ( type.third() != INT )
+  if ( type.third() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator tuplebuffer2: third argument must be an integer!"
@@ -1269,7 +1269,7 @@ ListExpr SortParamTypeMap(ListExpr args)
   }
 
   // check if second argument is an integer (operator memory)
-  if ( type.second() != INT )
+  if ( type.second() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator sortParam: second argument (operator memory) "
@@ -1278,7 +1278,7 @@ ListExpr SortParamTypeMap(ListExpr args)
   }
 
   // check if third argument is an integer (maximum fan-in merge-phase)
-  if ( type.third() != INT )
+  if ( type.third() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator sortParam: third argument (maximum fan-in merge-phase)"
@@ -1287,7 +1287,7 @@ ListExpr SortParamTypeMap(ListExpr args)
   }
 
   // check if fourth argument is an integer (I/O buffer size)
-  if ( type.fourth() != INT )
+  if ( type.fourth() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator sortParam: fourth argument ('I/O buffer size') "
@@ -1295,7 +1295,7 @@ ListExpr SortParamTypeMap(ListExpr args)
         "Operator received: " + type.fourth().convertToString() );
   }
 
-  return NList(NList(APPEND), sortDesc, type.first()).listExpr();
+  return NList(NList(Symbol::APPEND()), sortDesc, type.first()).listExpr();
 }
 
 /*
@@ -1502,7 +1502,7 @@ ListExpr SortByParamTypeMap( ListExpr args )
   }
 
   // check if third argument is an integer (operator memory)
-  if ( type.third() != INT )
+  if ( type.third() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator sortbyParam: third argument (operator memory) "
@@ -1511,7 +1511,7 @@ ListExpr SortByParamTypeMap( ListExpr args )
   }
 
   // check if fourth argument is an integer (maximum fan-in merge-phase)
-  if ( type.fourth() != INT )
+  if ( type.fourth() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator sortbyParam: fourth argument (maximum fan-in merge-phase) "
@@ -1520,7 +1520,7 @@ ListExpr SortByParamTypeMap( ListExpr args )
   }
 
   // check if fifth argument is an integer (I/O buffer size)
-  if ( type.fifth() != INT )
+  if ( type.fifth() != CcInt::BasicType() )
   {
     return NList::typeError(
         "Operator sortbyParam: fifth argument ('I/O buffer size') "
@@ -1528,7 +1528,7 @@ ListExpr SortByParamTypeMap( ListExpr args )
         "Operator received: " + type.fifth().convertToString() );
   }
 
-  return NList(NList("APPEND"), sortDesc, type.first()).listExpr();
+  return NList(NList(Symbol::APPEND()), sortDesc, type.first()).listExpr();
 }
 
 /*

@@ -165,6 +165,8 @@ The following includes are neccessary:
 #include "SecondoCatalog.h"
 #include "ListIterator.h"
 #include <cctype>
+#include "Symbols.h"
+#include "ListUtils.h"
 
 
 using namespace std;
@@ -300,9 +302,9 @@ Record::GetElement(int pos) const
      return 0;
   } else {
     // create requested element
-    // TODO: It's not a good idea to have no type information during 
+    // TODO: It's not a good idea to have no type information during
     //       object creation for some types
-    Attribute* elem = static_cast<Attribute*> 
+    Attribute* elem = static_cast<Attribute*>
             ((am->CreateObj(elemInfo.algebraId, elemInfo.typeId))(0).addr);
 
     // save the flob states
@@ -328,10 +330,10 @@ Record::GetElement(int pos) const
     // assign external data offset
     size_t offset = elemInfo.extDataOffset;
 
-    // restore flob data 
+    // restore flob data
     for (int i = 0; i < elem->NumOfFLOBs(); i++) {
       Flob* flob = elem->GetFLOB(i);
-      char* buffer = new char[flob->getSize()]; 
+      char* buffer = new char[flob->getSize()];
       bool ok = elemExtData.read(buffer, flob->getSize(), offset);
       assert(ok);
 
@@ -961,6 +963,11 @@ Record::In(const ListExpr typeInfo, const ListExpr instance,
 
     bool hasValueList;
 
+    if(listutils::isSymbolUndefined(instance)){ // an undefined record:
+      record->SetDefined(false);
+      correct = true;
+      return w;
+    }
     // in case of a not empty value list:
     // case 1: value list has to be a list
     // case 2: type list and value list have to be of the same length
@@ -972,7 +979,7 @@ Record::In(const ListExpr typeInfo, const ListExpr instance,
       // case 1
       if (nl->IsAtom(instance)){
 #ifdef RECORD_DEBUG
-        cerr << "Record::In: value list is of kind atom but a"
+        cerr << "Record::In: value list is of kind atom but "
                 "a list is expected!" << endl;
 #endif
         cmsg.inFunError("Record::In: Value list is of kind atom but "
@@ -1185,7 +1192,7 @@ Record::Out(ListExpr typeInfo, Word value)
     if(record->IsDefined() == false) {
       // record isn't defined
       // result = nl->GetErrorList();
-      result = nl->OneElemList(nl->StringAtom("Record is undefined!"));
+      result = nl->SymbolAtom(Symbol::UNDEFINED());
     } else if (record->noElements == 0) {
       // record has no elements
       result = nl->TheEmptyList();
@@ -1349,7 +1356,7 @@ Record::KindCheck(ListExpr typeInfo, ListExpr& errorInfo)
       // check of record type, list format: (record (...))
       if (!(   nl->ListLength(typeInfo) > 0
             && nl->IntAtom(nl->First(typeInfo))
-            && nl->SymbolValue(nl->First(typeInfo)) == RECORD))
+            && nl->SymbolValue(nl->First(typeInfo)) == Record::BasicType()))
       {
 #ifdef RECORD_DEBUG
     cerr << "Record::KindCheck: not of type record, leave kind check" << endl;
@@ -1379,7 +1386,7 @@ Record::KindCheck(ListExpr typeInfo, ListExpr& errorInfo)
     // check of "(record (...) ...)"
     if (   nl->ListLength(typeInfo) < 2
         || nl->IsAtom(nl->First(typeInfo)) == false
-        || nl->IsEqual(nl->First(typeInfo), symbols::RECORD) == false)
+        || nl->IsEqual(nl->First(typeInfo), Record::BasicType()) == false)
     {
 #ifdef RECORD_DEBUG
       cerr << "Record::KindCheck: wrong type info 2" << endl;
@@ -1445,7 +1452,7 @@ Record::KindCheck(ListExpr typeInfo, ListExpr& errorInfo)
       // check if type name is of kind DATA
       // use the self called list as error info list
       // this list is an indicator to deteced a recrusive call of this method
-      if (am->CheckKind("DATA", typeNameL, selfCalled) == false) {
+      if (am->CheckKind(Kind::DATA(), typeNameL, selfCalled) == false) {
 #ifdef RECORD_DEBUG
         cerr << "Record::KindCheck: Subtype not of kind DATA "
              << typeName
@@ -1506,7 +1513,8 @@ Record::Property()
                           nl->StringAtom("Remarks")),
 
          nl->FiveElemList(nl->StringAtom("-> DATA"),
-                          nl->StringAtom("(" + RECORD + "(name string) "
+                          nl->StringAtom("(" + Record::BasicType() +
+                                                          "(name string) "
                                          "(age int) (amount real))"),
                           nl->StringAtom("(stringElem intElem realElem)"),
                           nl->StringAtom("(\"Meyer\" 42 1023.08)"),
@@ -1610,7 +1618,7 @@ Record::IsRecordTypeList(ListExpr typeInfo)
     int scAlgebraId;
     int scTypeId;
     SecondoCatalog* sc =  SecondoSystem::GetCatalog();
-    sc->GetTypeId(RECORD, scAlgebraId,  scTypeId);
+    sc->GetTypeId(Record::BasicType(), scAlgebraId,  scTypeId);
 
     // compare the list ids with secondo record ids
     if (listAlgebraId == scAlgebraId && listTypeId == scTypeId) {

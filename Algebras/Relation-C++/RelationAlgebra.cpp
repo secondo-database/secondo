@@ -77,6 +77,7 @@ RelationAlgebra.h header file.
 #include "LogMsg.h"
 #include "NList.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -334,7 +335,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
             correct = false;
           }
           attrnamelist.push_back(attrname);
-          ckd = am->CheckKind("DATA", nl->Second(pair),
+          ckd = am->CheckKind(Kind::DATA(), nl->Second(pair),
                               errorInfo);
           if (!ckd)
           {
@@ -640,7 +641,7 @@ CheckRel(ListExpr type, ListExpr& errorInfo)
   if ((nl->ListLength(type) == 2) &&
       nl->IsEqual(nl->First(type), Relation::BasicType()))
   {
-    return am->CheckKind("TUPLE", nl->Second(type), errorInfo);
+    return am->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo);
   }
   else
   {
@@ -927,7 +928,7 @@ ListExpr TUPLE2TypeMap(ListExpr args)
         return nl->Second(second);
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 /*
 
@@ -987,10 +988,10 @@ ListExpr FeedTypeMap(ListExpr args)
   ListExpr first = nl->First(args);
   if(listutils::isRelDescription(first,true)||
      listutils::isRelDescription(first,false)){
-    return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+    return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(first));
   }
   if(listutils::isOrelDescription(first))
-    return nl->TwoElemList(nl->SymbolAtom("stream"), nl->Second(first));
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), nl->Second(first));
   ErrorReporter::ReportError("rel(tuple(...)), trel(tuple(...)) or "
                               "orel(tuple(...)) expected");
   return nl->TypeError();
@@ -1229,7 +1230,7 @@ struct FeedProjectInfo : OperatorInfo {
 
   FeedProjectInfo() : OperatorInfo()
   {
-    name =      symbols::FEEDPROJECT;
+    name =      "feedproject";
 
     signature = "rel(tuple(a_1 ... a_n)) x (a_i1 ... a_ik)\n"
                 "-> stream(tuple(a_i1 ... a_ik))";
@@ -1249,7 +1250,7 @@ ListExpr feedproject_tm(ListExpr args)
 {
   NList l(args);
 
-  const string opName = symbols::FEEDPROJECT;
+  const string opName = "feedproject";
   const string arg1 = "rel(tuple(...)";
   const string arg2 = "list of unique symbols (a_1 ... a_k)";
 
@@ -1292,12 +1293,12 @@ ListExpr feedproject_tm(ListExpr args)
       ErrorReporter::ReportError(
         "Attributename '" + attrname +
         "' is not a known attributename in the tuple stream.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     atoms.rest();
   }
 
-  NList outlist = NList( NList(symbols::APPEND),
+  NList outlist = NList( NList(Symbol::APPEND()),
                          NList( NList( noAtoms ), indices ),
 			 NList().tupleStreamOf( newAttrs ) );
 
@@ -1934,7 +1935,7 @@ ListExpr AttrTypeMap(ListExpr args)
                                " not found in attribute list");
     return nl->TypeError();
   }
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                            nl->OneElemList(nl->IntAtom(j)),
                            attrtype);
 }
@@ -2045,13 +2046,13 @@ ListExpr FilterTypeMap(ListExpr args)
 
   }
   ListExpr map = nl->First(nl->Second(args));
-  if(nl->IsAtom(map) || !nl->IsEqual(nl->First(map), "map") ){
+  if(nl->IsAtom(map) || !nl->IsEqual(nl->First(map), Symbol::MAP()) ){
      ErrorReporter::ReportError("map expected as the second argument");
      return nl->TypeError();
   }
 
   ListExpr mapres = nl->Nth(nl->ListLength(map), map);
-  if(!nl->IsEqual(mapres,"bool")){
+  if(!nl->IsEqual(mapres,CcBool::BasicType())){
     ErrorReporter::ReportError("map is not a predicate");
     return nl->TypeError();
   }
@@ -2386,7 +2387,7 @@ ListExpr reduce_tm(ListExpr args)
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->Third(second),"bool")){
+  if(!nl->IsEqual(nl->Third(second),CcBool::BasicType())){
     ErrorReporter::ReportError("resulttype of the map (2. arg) must be bool");
     return nl->TypeError();
   }
@@ -2396,7 +2397,7 @@ ListExpr reduce_tm(ListExpr args)
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(third,"int")){
+  if(!nl->IsEqual(third,CcInt::BasicType())){
     ErrorReporter::ReportError("third argument must be of type int");
     return nl->TypeError();
   }
@@ -2582,7 +2583,7 @@ ListExpr ProjectTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
         "Attributename in the list is not of symbol type.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     if(attrNames.find(attrname)!=attrNames.end()){
        ErrorReporter::ReportError("names within the projection "
@@ -2619,17 +2620,17 @@ ListExpr ProjectTypeMap(ListExpr args)
       ErrorReporter::ReportError(
         "Operator project: Attributename '" + attrname +
         "' is not a known attributename in the tuple stream.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   outlist =
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->TwoElemList(
         nl->IntAtom(noAttrs),
         numberList),
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
           nl->SymbolAtom(Tuple::BasicType()),
           newAttrList)));
@@ -2981,7 +2982,7 @@ ListExpr RemoveTypeMap(ListExpr args)
       ErrorReporter::ReportError("Operator remove gets '" + argstr +
       "' as attributename.\n"
       "Atrribute name may not be the name of a Secondo object!");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
 
     j = listutils::findAttribute(nl->Second(nl->Second(first)),
@@ -2993,7 +2994,7 @@ ListExpr RemoveTypeMap(ListExpr args)
       ErrorReporter::ReportError(
         "Attributename '" + attrname + "' is not known.\n"
         "Known Attribute(s): " + argstr);
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   // ** here: we need to generate new attr list according to
@@ -3034,9 +3035,9 @@ ListExpr RemoveTypeMap(ListExpr args)
   if (noAttrs>0)
   {
     outlist = nl->ThreeElemList(
-              nl->SymbolAtom("APPEND"),
+              nl->SymbolAtom(Symbol::APPEND()),
               nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-              nl->TwoElemList(nl->SymbolAtom("stream"),
+              nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
               nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                        newAttrList)));
     return outlist;
@@ -3044,7 +3045,7 @@ ListExpr RemoveTypeMap(ListExpr args)
   else
   {
     ErrorReporter::ReportError("Do not remove all attributes!");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 }
 
@@ -3125,7 +3126,7 @@ ListExpr ProductTypeMap(ListExpr args)
     ErrorReporter::ReportError("name conflict in concatenated tuples");
     return nl->TypeError();
   }
-  ListExpr  outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+  ListExpr  outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                       nl->TwoElemList(
                                       nl->SymbolAtom(Tuple::BasicType()),list));
   return outlist;
@@ -3582,7 +3583,7 @@ TCountTypeMap(ListExpr args)
                                 " or stream(tuple(...)) expected");
     return nl->TypeError();
   }
-  return nl->SymbolAtom("int");
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 
@@ -3617,7 +3618,7 @@ countboth_tm(ListExpr args)
     return nl->TypeError();
   }
 
-  return nl->SymbolAtom("int");
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 
@@ -3958,7 +3959,7 @@ RootTupleSizeTypeMap(ListExpr args)
     ErrorReporter::ReportError("tuple stream or relation expected");
     return nl->TypeError();
   }
-  return nl->SymbolAtom("int");
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 /*
@@ -4076,7 +4077,7 @@ ExtTupleSizeTypeMap(ListExpr args)
     ErrorReporter::ReportError("tuple stream or relation expected");
     return nl->TypeError();
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 /*
@@ -4195,7 +4196,7 @@ TupleSizeTypeMap(ListExpr args)
     ErrorReporter::ReportError("tuple stream or relation expected");
     return nl->TypeError();
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 /*
@@ -4337,9 +4338,9 @@ RootAttrSizeTypeMap(ListExpr args)
 
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(nl->IntAtom(j)),
-      nl->SymbolAtom("int"));
+      nl->SymbolAtom(CcInt::BasicType()));
 }
 
 /*
@@ -4482,9 +4483,9 @@ ExtAttrSizeTypeMap(ListExpr args)
 
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(nl->IntAtom(j)),
-      nl->SymbolAtom("real"));
+      nl->SymbolAtom(CcReal::BasicType()));
 }
 
 /*
@@ -4628,9 +4629,9 @@ AttrSizeTypeMap(ListExpr args)
 
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(nl->IntAtom(j)),
-      nl->SymbolAtom("real"));
+      nl->SymbolAtom(CcReal::BasicType()));
 
 }
 
@@ -5138,7 +5139,7 @@ RenameTypeMap( ListExpr args )
 
   if(!listutils::isSymbol(second)){
     return listutils::typeError("the second argument must be a symbol");
-  } 
+  }
 
   tup = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(tup)))
@@ -5149,7 +5150,7 @@ RenameTypeMap( ListExpr args )
     {
       type = nl->First(type);
       if (nl->IsAtom(type)&&(nl->SymbolValue(type) == "arel"))
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     tup = nl->Rest(tup);
   }
@@ -5180,7 +5181,7 @@ RenameTypeMap( ListExpr args )
     }
   }
   return
-    nl->TwoElemList(nl->SymbolAtom("stream"),
+    nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
     nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),listn));
 }
 
@@ -5270,7 +5271,7 @@ ListExpr RenameAttrTypeMap(ListExpr args){
   if(!listutils::replaceAttributes(attrList, renameMap, resAttrList, errmsg)){
     return listutils::typeError(errmsg);
   }
-  return nl->TwoElemList( nl->SymbolAtom("stream"),
+  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                           resAttrList));
 }
@@ -5434,8 +5435,8 @@ ListExpr BufferTypeMap(ListExpr args)
   // DATA stream
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if( nl->ListLength(arg)==2 &&
-      nl->IsEqual(nl->First(arg),symbols::STREAM) &&
-      am->CheckKind("DATA",nl->Second(arg),errorInfo)) {
+      nl->IsEqual(nl->First(arg),Symbol::STREAM()) &&
+      am->CheckKind(Kind::DATA(),nl->Second(arg),errorInfo)) {
      return arg;
   }
   ErrorReporter::ReportError("stream(tuple(x)), stream(DATA)"
@@ -5454,7 +5455,7 @@ ListExpr BufferTypeMap2(ListExpr args)
   ListExpr arg = nl->First(args);
   // DATA
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  if(am->CheckKind("DATA",arg,errorInfo)){
+  if(am->CheckKind(Kind::DATA(),arg,errorInfo)){
      return arg;
   }
   ErrorReporter::ReportError("DATA expected");
@@ -5633,7 +5634,7 @@ int BufferSelect(ListExpr args){
   ListExpr arg = nl->First(args);
   ListExpr type = nl->Second(arg);
   if(nl->AtomType(type)==NoAtom &&
-     nl->IsEqual(nl->First(type),symbols::TUPLE)){
+     nl->IsEqual(nl->First(type),Tuple::BasicType())){
      return 1;
   } else {
      return 0;
@@ -5734,7 +5735,7 @@ ListExpr getFileInfoRelTypeMap(ListExpr args)
     return NList::typeError(
           "Expected 1 single argument of type 'rel' or 'trel'.");
   }
-  return NList(symbols::TEXT).listExpr();
+  return NList(FText::BasicType()).listExpr();
 }
 
 /*
@@ -5894,9 +5895,9 @@ class RelationAlgebra : public Algebra
     AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
     AddOperator( FeedProjectInfo(), feedproject_vm, feedproject_tm );
 
-    cpptuple.AssociateKind( "TUPLE" );
-    cpprel.AssociateKind( "REL" );
-    cpptrel.AssociateKind( "REL" );
+    cpptuple.AssociateKind( Kind::TUPLE() );
+    cpprel.AssociateKind( Kind::REL() );
+    cpptrel.AssociateKind( Kind::REL() );
 
 
 /*

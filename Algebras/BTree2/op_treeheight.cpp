@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the treeheight Operator 
+[1] Implementation of the treeheight Operator
 
 [TOC]
 
@@ -65,8 +65,8 @@ ListExpr treeheight::TypeMapping( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
-}       
+  return (nl->SymbolAtom(CcInt::BasicType()));
+}
 
 /*
 2.2 Valuemapping
@@ -100,7 +100,7 @@ struct treeheightInfo : OperatorInfo {
   }
 };
 
-Operator treeheight::def( treeheightInfo(), treeheight::ValueMapping, 
+Operator treeheight::def( treeheightInfo(), treeheight::ValueMapping,
                                            treeheight::TypeMapping);
 }
 }

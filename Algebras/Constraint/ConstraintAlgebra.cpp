@@ -830,16 +830,6 @@ SymbolicRelation* SymbolicRelation::Clone() const
   return new SymbolicRelation(*this);
 }
 
-bool SymbolicRelation::IsDefined() const
-{
-  return true; // even the empty set is "defined"
-}
-
-void SymbolicRelation::SetDefined(bool Defined )
-{
-  // nothing to do
-}
-
 size_t SymbolicRelation::HashValue() const
 {
   if(LinConstraintsSize()==0)
@@ -874,8 +864,9 @@ void SymbolicRelation::CopyFrom(const Attribute* right)
 }
 
 
-const Rectangle<2> SymbolicRelation::BoundingBox() const
+const Rectangle<2> SymbolicRelation::BoundingBox(const Geoid* geoid /*=0*/)const
 {
+  assert(geoid==0); // TODO: Spherical geometry implementation
   if(!this->mbbox.IsDefined())
   {
   	return this->mbbox;
@@ -894,9 +885,11 @@ const Rectangle<2> SymbolicRelation::BoundingBox() const
   }
 }
 
-double SymbolicRelation::Distance(const Rectangle<2>& rect) const{
-  cerr << "SymbolicRelation::Distance not implemented yet" 
+double SymbolicRelation::Distance(const Rectangle<2>& rect,
+                                  const Geoid* geoid /*=0*/) const{
+  cerr << "SymbolicRelation::Distance not implemented yet"
        << __FILE__ << "::" << __LINE__ << endl;
+  assert(geoid==0); // TODO: Spherical geometry implementation
   if(!IsDefined() || !rect.IsDefined()){
      return -1;
   } else {
@@ -1203,9 +1196,9 @@ class EdgeRefComparator
         y2_B = (*B.FromPoint)[Y];
       }
       if(x1_A < x1_B ||
-        (AlmostEqual(x1_A,x1_B) && y1_A < y1_B) ||
+        (AlmostEqual(x1_A,x1_B) && (y1_A<y1_B)) ||
         (AlmostEqual(x1_A,x1_B) && AlmostEqual(y1_A,y1_B) &&
-        (x2_A < x2_B || AlmostEqual(x2_A,x2_B) && y2_A < y2_B)))
+        (x2_A < x2_B || (AlmostEqual(x2_A,x2_B) && (y2_A<y2_B)))))
       {
         return true;
       }
@@ -2322,11 +2315,9 @@ void ConvexPolygonIntersection(const vector<Point2D>& vP,
 		low_y = (*vTwoElementPointSet)[1].y;
 	  }
       if(pSinglePoint->OnSameLineAs((*vTwoElementPointSet)[0],
-               (*vTwoElementPointSet)[1])
-        && (low_y < (*pSinglePoint).y ||
-          AlmostEqual(low_y, (*pSinglePoint).y))
-        && (*pSinglePoint).y < upp_y ||
-          AlmostEqual((*pSinglePoint).y, upp_y))
+          (*vTwoElementPointSet)[1])
+        && ( (low_y<(*pSinglePoint).y) || AlmostEqual(low_y, (*pSinglePoint).y))
+        && (((*pSinglePoint).y<upp_y) || AlmostEqual((*pSinglePoint).y, upp_y)))
       {
          vPQIntersectionWD.push_back(*pSinglePoint);
       }
@@ -3501,12 +3492,11 @@ ListExpr OutConstraint( ListExpr typeInfo, Word value )
   ListExpr lastCon;
   ListExpr lastDis;
 
-  if(symRel->SymbolicTuplesSize()==0)
-  {
+  if(!symRel->IsDefined()){
+    return nl->SymbolAtom( Symbol::UNDEFINED() );
+  } else if(symRel->SymbolicTuplesSize()==0) {
     result = nl->TheEmptyList();
-  }
-  else // symRel->SymbolicTuplesSize() > 0 (minimum: 1 Tuple)
-  {
+  } else { // symRel->SymbolicTuplesSize() > 0 (minimum: 1 Tuple)
     for(int i = 0; i < symRel->SymbolicTuplesSize(); i++)
     {
       symRel->GetSymbolicTuples(i, pSymRelIP);
@@ -3579,8 +3569,12 @@ Word InConstraint( const ListExpr typeInfo, const ListExpr instance,
   ListExpr linConstraintsNL;
   ListExpr oneLinConstraintNL;
 
-  if(!nl->IsAtom(instance))
-  {
+  if(listutils::isSymbolUndefined(instance)){
+    SymbolicRelation* symbolicRelation = new SymbolicRelation(0, 0);
+    symbolicRelation->SetDefined(false);
+    correct = true;
+    return SetWord(symbolicRelation);
+  } else if(!nl->IsAtom(instance)) {
     SymbolicRelation* symbolicRelation = new SymbolicRelation(0, 0);
     while(!nl->IsEmpty(symbolicTuplesNL))
     {
@@ -3638,9 +3632,7 @@ Word InConstraint( const ListExpr typeInfo, const ListExpr instance,
     // directly normalized before saving it:
     symbolicRelation->Normalize();
     return SetWord(symbolicRelation);
-  }
-  else
-  {
+  } else {
     ErrorReporter::ReportError("instance is atomic (shoud be a list!).");
     correct = false;
     return SetWord(Address(0));
@@ -3751,7 +3743,7 @@ type constructor ~constraint~ does not have arguments, this is trivial.
 bool
 CheckConstraint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "constraint" ));
+  return (nl->IsEqual( type, SymbolicRelation::BasicType() ));
 }
 
 /*
@@ -3803,7 +3795,7 @@ ListExpr CxC2CTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 2.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -3833,7 +3825,7 @@ ListExpr C2CTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -3853,7 +3845,7 @@ ListExpr projectionTypeMap( ListExpr args )
        nl->IsEqual(arg2, "y")))
     {
       retNL = nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->OneElemList(nl->StringAtom(nl->SymbolValue(arg2))),
         nl->SymbolAtom("constraint"));
         return retNL;
@@ -3869,7 +3861,7 @@ ListExpr projectionTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 2.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -3887,14 +3879,14 @@ ListExpr selectionTypeMap( ListExpr args )
     arg_b = nl->Fourth( args );
     arg_op = nl->Fifth( args );
     if(nl->IsEqual(argConstraintRel, "constraint") &&
-      nl->IsEqual(arg_a1, "real") &&
-      nl->IsEqual(arg_a2, "real") &&
-      nl->IsEqual(arg_b, "real") &&
+      nl->IsEqual(arg_a1, CcReal::BasicType()) &&
+      nl->IsEqual(arg_a2, CcReal::BasicType()) &&
+      nl->IsEqual(arg_b, CcReal::BasicType()) &&
       (nl->IsEqual(arg_op, OP_EQ) ||
        nl->IsEqual(arg_op, OP_LEQ)))
     {
       retNL = nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->FourElemList(
           arg_a1,
           arg_a2,
@@ -3914,7 +3906,7 @@ ListExpr selectionTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 5.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -3930,7 +3922,7 @@ ListExpr C2BoolTypeMap( ListExpr args )
     arg = nl->First( args );
     if(nl->IsEqual(arg, "constraint"))
     {
-      return (nl->SymbolAtom("bool"));
+      return (nl->SymbolAtom(CcBool::BasicType()));
     }
     else
     {
@@ -3943,7 +3935,7 @@ ListExpr C2BoolTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -3960,7 +3952,7 @@ ListExpr CxC2BoolTypeMap( ListExpr args )
     if(nl->IsEqual(arg1, "constraint") &&
       nl->IsEqual(arg2, "constraint"))
     {
-      return (nl->SymbolAtom("bool"));
+      return (nl->SymbolAtom(CcBool::BasicType()));
     }
     else
     {
@@ -3973,7 +3965,7 @@ ListExpr CxC2BoolTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 2.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -3989,7 +3981,7 @@ ListExpr C2IntTypeMap( ListExpr args )
 
       if(nl->IsEqual(arg, "constraint"))
       {
-        return (nl->SymbolAtom("int"));
+        return (nl->SymbolAtom(CcInt::BasicType()));
       }
     else
     {
@@ -4002,7 +3994,7 @@ ListExpr C2IntTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -4017,7 +4009,7 @@ ListExpr Point2CTypeMap( ListExpr args )
   {
     arg = nl->First( args );
 
-    if(nl->IsEqual(arg, "point"))
+    if(nl->IsEqual(arg, Point::BasicType()))
     {
       return (nl->SymbolAtom("constraint"));
     }
@@ -4032,7 +4024,7 @@ ListExpr Point2CTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -4047,7 +4039,7 @@ ListExpr Points2CTypeMap( ListExpr args )
   {
     arg = nl->First( args );
 
-    if(nl->IsEqual(arg, "points"))
+    if(nl->IsEqual(arg, Points::BasicType()))
     {
       return (nl->SymbolAtom("constraint"));
     }
@@ -4062,7 +4054,7 @@ ListExpr Points2CTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4075,7 +4067,7 @@ ListExpr Line2CTypeMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg = nl->First( args );
-    if(nl->IsEqual(arg, "line"))
+    if(nl->IsEqual(arg, Line::BasicType()))
     {
       return (nl->SymbolAtom("constraint"));
     }
@@ -4090,7 +4082,7 @@ ListExpr Line2CTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -4105,8 +4097,8 @@ ListExpr RegionxBool2CTypeMap( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if(nl->IsEqual(arg1, "region") &&
-       nl->IsEqual(arg2, "bool"))
+    if(nl->IsEqual(arg1, Region::BasicType()) &&
+       nl->IsEqual(arg2, CcBool::BasicType()))
     {
     return (nl->SymbolAtom("constraint"));
     }
@@ -4121,7 +4113,7 @@ ListExpr RegionxBool2CTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 2.");
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4137,7 +4129,7 @@ ListExpr C2PointTypeMap( ListExpr args )
 
       if(nl->IsEqual(arg, "constraint"))
       {
-        return (nl->SymbolAtom("point"));
+        return (nl->SymbolAtom(Point::BasicType()));
       }
     else
     {
@@ -4150,7 +4142,7 @@ ListExpr C2PointTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4166,7 +4158,7 @@ ListExpr C2PointsTypeMap( ListExpr args )
 
       if(nl->IsEqual(arg, "constraint"))
       {
-        return (nl->SymbolAtom("points"));
+        return (nl->SymbolAtom(Points::BasicType()));
       }
     else
     {
@@ -4179,7 +4171,7 @@ ListExpr C2PointsTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4195,7 +4187,7 @@ ListExpr C2LineTypeMap( ListExpr args )
 
       if(nl->IsEqual(arg, "constraint"))
       {
-        return (nl->SymbolAtom("line"));
+        return (nl->SymbolAtom(Line::BasicType()));
       }
     else
     {
@@ -4208,7 +4200,7 @@ ListExpr C2LineTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4226,11 +4218,11 @@ ListExpr CStream2RegionStreamTypeMap( ListExpr args )
   {
       arg11 = nl->First(nl->First(args));
       arg12 = nl->Second(nl->First(args));
-      if ( nl->IsEqual(arg11, "stream") &&
+      if ( nl->IsEqual(arg11, Symbol::STREAM()) &&
           nl->IsEqual(arg12, "constraint") )
       {
-        return nl->TwoElemList(nl->SymbolAtom("stream"),
-                    nl->SymbolAtom("region"));
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                    nl->SymbolAtom(Region::BasicType()));
       }
       else
       {
@@ -4252,7 +4244,7 @@ ListExpr CStream2RegionStreamTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
     " of wrong length.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -4269,7 +4261,7 @@ ListExpr C2RectTypeMap( ListExpr args )
 
       if(nl->IsEqual(arg, "constraint"))
       {
-        return (nl->SymbolAtom("rect"));
+        return (nl->SymbolAtom(Rectangle<2>::BasicType()));
       }
     else
     {
@@ -4282,7 +4274,7 @@ ListExpr C2RectTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
       " of length != 1.");
   }
-    return nl->SymbolAtom( "typeerror" );
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4300,7 +4292,8 @@ ListExpr RegionStream2RegionStreamTypeMap( ListExpr args )
   {
       arg11 = nl->First(nl->First(args));
       arg12 = nl->Second(nl->First(args));
-      if ( nl->IsEqual(arg11, "stream") && nl->IsEqual(arg12, "region") )
+      if ( nl->IsEqual(arg11, Symbol::STREAM()) &&
+        nl->IsEqual(arg12, Region::BasicType()) )
       {
         return nl->First(args);
       }
@@ -4324,7 +4317,7 @@ ListExpr RegionStream2RegionStreamTypeMap( ListExpr args )
     ErrorReporter::ReportError("Type mapping function got a parameter"
     " of wrong length.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -5492,8 +5485,8 @@ class ConstraintAlgebra : public Algebra
   {
     AddTypeConstructor( &constraint );
 
-    constraint.AssociateKind("DATA");
-	constraint.AssociateKind("SPATIAL2D");
+    constraint.AssociateKind(Kind::DATA());
+	constraint.AssociateKind(Kind::SPATIAL2D());
 
     AddOperator( &constraintunion );
     AddOperator( &constraintjoin );

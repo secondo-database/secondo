@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "FTextAlgebra.h"
+#include "Symbols.h"
 
 
 extern NestedList* nl;
@@ -336,7 +337,7 @@ ListExpr createtbtreeTM(ListExpr args){
                         id,
                         up);
    return nl->ThreeElemList(
-                nl->SymbolAtom("APPEND"),
+                nl->SymbolAtom(Symbol::APPEND()),
                 nl->TwoElemList(
                      nl->IntAtom(index1),
                      nl->IntAtom(index2)),
@@ -573,7 +574,7 @@ ListExpr getnodesTM(ListExpr args){
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
       return nl->TwoElemList(
-                    nl->SymbolAtom("stream"),
+                    nl->SymbolAtom(Symbol::STREAM()),
                     nl->TwoElemList(
                         nl->SymbolAtom(Tuple::BasicType()),
                         nl->Cons(
@@ -829,7 +830,7 @@ ListExpr getentriesTM(ListExpr args){
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
       return nl->TwoElemList(
-                    nl->SymbolAtom("stream"),
+                    nl->SymbolAtom(Symbol::STREAM()),
                     nl->TwoElemList(
                         nl->SymbolAtom(Tuple::BasicType()),
                         nl->ThreeElemList(
@@ -855,7 +856,7 @@ ListExpr getallentriesTM(ListExpr args){
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
       return nl->TwoElemList(
-                    nl->SymbolAtom("stream"),
+                    nl->SymbolAtom(Symbol::STREAM()),
                     nl->TwoElemList(
                         nl->SymbolAtom(Tuple::BasicType()),
                         nl->FourElemList(
@@ -1139,7 +1140,7 @@ ListExpr windowintersectsSTM(ListExpr args){
    ListExpr errorInfo = listutils::emptyErrorInfo();
    if(CheckTBTree(nl->First(args), errorInfo)){
       return nl->TwoElemList(
-                    nl->SymbolAtom("stream"),
+                    nl->SymbolAtom(Symbol::STREAM()),
                     nl->TwoElemList(
                        nl->SymbolAtom(Tuple::BasicType()),
                        nl->OneElemList(
@@ -1506,7 +1507,7 @@ ListExpr windowintersectsTM(ListExpr args){
       }
 
       return nl->TwoElemList(
-                    nl->SymbolAtom("stream"),
+                    nl->SymbolAtom(Symbol::STREAM()),
                     nl->TwoElemList(
                        nl->SymbolAtom(Tuple::BasicType()),
                        relal));
@@ -1768,7 +1769,7 @@ ListExpr bulkloadtbtreeTM(ListExpr args){
                         id,
                         up);
    return nl->ThreeElemList(
-                nl->SymbolAtom("APPEND"),
+                nl->SymbolAtom(Symbol::APPEND()),
                 nl->ThreeElemList(
                      nl->IntAtom(index1),
                      nl->IntAtom(index2),

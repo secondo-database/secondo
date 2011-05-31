@@ -51,8 +51,6 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
-using namespace symbols;
-
 namespace mtreeAlgebra {
 
 /********************************************************************
@@ -75,9 +73,9 @@ static ListExpr MTreeProp()
 
 ListExpr OutMTree(ListExpr type_Info, Word w)
 {
-    #ifdef __MTREE_OUTFUN_PRINT_STATISTICS
+#ifdef __MTREE_OUTFUN_PRINT_STATISTICS
     static_cast<MTree*>(w.addr)->printTreeInfos();
-    #endif
+#endif
     return nl->TheEmptyList();
 }
 
@@ -142,10 +140,10 @@ int SizeOfMTree()
 { return sizeof(MTree); }
 
 bool CheckMTree(ListExpr typeName, ListExpr &error_Info)
-{ return nl->IsEqual(typeName, MTREE); }
+{ return nl->IsEqual(typeName, "mtree"); }
 
 TypeConstructor
-mtreeTC(MTREE,       MTreeProp,
+mtreeTC("mtree",       MTreeProp,
         OutMTree,    InMTree,
         0, 0,
         Createmtree, DeleteMTree,
@@ -210,9 +208,9 @@ template<unsigned paramCnt> int
     }
     delete iter;
 
-    #ifdef __MTREE_PRINT_INSERT_INFO
+#ifdef __MTREE_PRINT_INSERT_INFO
     cout << endl;
-    #endif
+#endif
 
     return 0;
 }
@@ -270,9 +268,9 @@ int createmtreeStream_VM(
     }
     qp->Close(stream);
 
-    #ifdef __MTREE_PRINT_INSERT_INFO
+#ifdef __MTREE_PRINT_INSERT_INFO
     cout << endl;
-    #endif
+#endif
 
     return 0;
 }
@@ -401,9 +399,9 @@ int createmtreeDDRel_VM(
     }
     delete iter;
 
-    #ifdef __MTREE_PRINT_INSERT_INFO
+#ifdef __MTREE_PRINT_INSERT_INFO
     cout << endl;
-    #endif
+#endif
 
     return 0;
 }
@@ -532,9 +530,9 @@ int createmtreeDDStream_VM(
 
     qp->Close(stream);
 
-    #ifdef __MTREE_PRINT_INSERT_INFO
+#ifdef __MTREE_PRINT_INSERT_INFO
     cout << endl;
-    #endif
+#endif
 
     return 0;
 }
@@ -907,7 +905,7 @@ ListExpr createmtree_TM(ListExpr args)
     {
         string errmsg = "No distdata attributes allowed for operator"
         "createmtree3 - use createmtree or createmtree2 instead)!";
-        CHECK_COND(typeName != DISTDATA, errmsg);
+        CHECK_COND(typeName != "distdata", errmsg);
     }
 
     // get config name
@@ -933,19 +931,19 @@ ListExpr createmtree_TM(ListExpr args)
     else
         distfunName = DFUN_DEFAULT;
 
-    if (typeName == DISTDATA)
+    if (typeName == "distdata")
     {
-        NList res1(APPEND);
+        NList res1(Symbol::APPEND());
         NList res2;
         res2.append(NList(attrIndex));
         res2.append(NList(distfunName, true));
         res2.append(NList(configName, true));
-        NList res3(MTREE);
+        NList res3("mtree");
         NList result(res1, res2, res3);
         return result.listExpr();
     }
 
-    // *** typeName != DISTDATA ***
+    // *** typeName != "distdata" ***
 
     // select distdata type
     string dataName;
@@ -969,14 +967,14 @@ ListExpr createmtree_TM(ListExpr args)
     }
 
     // generate result list
-    NList res1(APPEND);
+    NList res1(Symbol::APPEND());
     NList res2;
     res2.append(NList(attrIndex));
     res2.append(NList(typeName, true));
     res2.append(NList(distfunName, true));
     res2.append(NList(dataName, true));
     res2.append(NList(configName, true));
-    NList res3(MTREE);
+    NList res3("mtree");
     NList result(res1, res2, res3);
 
     return result.listExpr();
@@ -1003,7 +1001,7 @@ ListExpr rangesearch_TM(ListExpr args)
     NList searchRad_NL = args_NL.fourth();
 
     CHECK_COND(
-            mtree_NL.isEqual(MTREE),
+            mtree_NL.isEqual("mtree"),
             "First argument must be a mtree!");
     CHECK_REL(rel_NL, attrs, 2);
     CHECK_SYMBOL(data_NL, 3);
@@ -1013,11 +1011,11 @@ ListExpr rangesearch_TM(ListExpr args)
        in the value mapping function, since the type of the mtree
        is not yet known. */
 
-    NList append(APPEND);
+    NList append(Symbol::APPEND());
     NList result (
         append,
         NList(data_NL.str(), true).enclose(),
-        NList(NList(STREAM), rel_NL.second()));
+        NList(NList(Symbol::STREAM()), rel_NL.second()));
 
     return result.listExpr();
 }
@@ -1043,7 +1041,7 @@ ListExpr nnsearch_TM(ListExpr args)
     NList nnCount_NL = args_NL.fourth();
 
     CHECK_COND(
-            mtree_NL.isEqual(MTREE),
+            mtree_NL.isEqual("mtree"),
             "First argument must be a mtree!");
     CHECK_REL(rel_NL, attrs, 2);
     CHECK_SYMBOL(data_NL, 3);
@@ -1053,11 +1051,11 @@ ListExpr nnsearch_TM(ListExpr args)
        in the value mapping function, since the type of the mtree
        is not yet known. */
 
-    NList append(APPEND);
+    NList append(Symbol::APPEND());
     NList result (
         append,
         NList(data_NL.str(), true).enclose(),
-        NList(NList(STREAM), rel_NL.second()));
+        NList(NList(Symbol::STREAM()), rel_NL.second()));
 
     return result.listExpr();
 }
@@ -1079,16 +1077,16 @@ int createmtree_Select(ListExpr args)
     FindAttribute(attrs.listExpr(), attrName, attrTypeLE);
     NList attrType(attrTypeLE);
 
-    if (arg1.first().isEqual(REL))
+    if (arg1.first().isEqual(Relation::BasicType()))
     {
-        if(attrType.isEqual(DISTDATA))
+        if(attrType.isEqual("distdata"))
             return 2;
         else
             return 0;
     }
-    else if (arg1.first().isEqual(STREAM))
+    else if (arg1.first().isEqual(Symbol::STREAM()))
     {
-        if(attrType.isEqual(DISTDATA))
+        if(attrType.isEqual("distdata"))
             return 3;
         else
             return 1;
@@ -1102,9 +1100,9 @@ int createmtree3_Select(ListExpr args)
     NList argsNL(args);
     NList arg1 = argsNL.first();
 
-    if (arg1.first().isEqual(REL))
+    if (arg1.first().isEqual(Relation::BasicType()))
         return 0;
-    else if (arg1.first().isEqual(STREAM))
+    else if (arg1.first().isEqual(Symbol::STREAM()))
         return 1;
     else
         return -1;
@@ -1114,7 +1112,7 @@ int search_Select(ListExpr args)
 {
     NList argsNL(args);
     NList arg3 = argsNL.third();
-    if (arg3.isEqual(DISTDATA))
+    if (arg3.isEqual("distdata"))
         return 1;
     else
         return 0;

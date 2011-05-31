@@ -72,6 +72,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "ListUtils.h"
 #include "CoverInterval.h"
 #include "AlmostEqual.h"
+#include "Symbols.h"
 
 
 using namespace tbtree;
@@ -112,7 +113,6 @@ file "TypeMapUtils.h" which defines a namespace ~mappings~.
 #include "Symbols.h"
 #include <sys/timeb.h>
 
-using namespace symbols;
 using namespace mappings;
 
 #include <string>
@@ -171,7 +171,7 @@ distanceScanTypeMap( ListExpr args )
   ListExpr quantity = nl->Fourth(args);
 
   // check for fourth argument type == int
-  if(!nl->IsEqual(quantity,"int")){
+  if(!nl->IsEqual(quantity,CcInt::BasicType())){
     ErrorReporter::ReportError(errmsg + "(fourth arg not of type int)");
     return nl->TypeError();
   }
@@ -213,36 +213,36 @@ distanceScanTypeMap( ListExpr args )
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = listutils::emptyErrorInfo();
   if( !(
-          ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-            nl->IsEqual(searchWindow, "rect") ) ||
-          ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-            algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo) ) ||
-          ( nl->IsEqual(rtreeKeyType, "rect") &&
-            nl->IsEqual(searchWindow, "rect") ) ||
-          ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-             nl->IsEqual(searchWindow, "rect3") ) ||
-          ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-            algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo) ) ||
-          ( nl->IsEqual(rtreeKeyType, "rect3") &&
-            nl->IsEqual(searchWindow, "rect3") ) ||
-          ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
-            nl->IsEqual(searchWindow, "rect4") ) ||
-          ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
-            algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo) ) ||
-          ( nl->IsEqual(rtreeKeyType, "rect4") &&
-            nl->IsEqual(searchWindow, "rect4") ) ||
-          ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
-            nl->IsEqual(searchWindow, "rect8") ) ||
-          ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
-            algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo) ) ||
-          ( nl->IsEqual(rtreeKeyType, "rect8") &&
-            nl->IsEqual(searchWindow, "rect8") ))){
+          ( algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo) &&
+            nl->IsEqual(searchWindow, Rectangle<2>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL2D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL2D(), searchWindow, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<2>::BasicType()) &&
+            nl->IsEqual(searchWindow, Rectangle<2>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo) &&
+             nl->IsEqual(searchWindow, Rectangle<3>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL3D(), searchWindow, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<3>::BasicType()) &&
+            nl->IsEqual(searchWindow, Rectangle<3>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo) &&
+            nl->IsEqual(searchWindow, Rectangle<4>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL4D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<4>::BasicType()) &&
+            nl->IsEqual(searchWindow, Rectangle<4>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo) &&
+            nl->IsEqual(searchWindow, Rectangle<8>::BasicType()) ) ||
+          ( algMgr->CheckKind(Kind::SPATIAL8D(), rtreeKeyType, errorInfo) &&
+            algMgr->CheckKind(Kind::SPATIAL8D(), searchWindow, errorInfo) ) ||
+          ( nl->IsEqual(rtreeKeyType, Rectangle<8>::BasicType()) &&
+            nl->IsEqual(searchWindow, Rectangle<8>::BasicType()) ))){
     ErrorReporter::ReportError(errmsg + "(different dimensions)");
     return nl->TypeError();
    }
    return
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->Second(relDescription));
 }
 
@@ -332,20 +332,20 @@ distanceScan3TypeMap( ListExpr args ) {
   string rt = nl->SymbolValue(rtreetype);
   string qt = nl->SymbolValue(queryTypeList);
 
-  if( (rt != "point") && (rt != "points") &&
-      (rt != "line") && (rt != "region") &&
-      (rt != "rect")){
+  if( (rt != Point::BasicType()) && (rt != Points::BasicType()) &&
+      (rt != Line::BasicType()) && (rt != Region::BasicType()) &&
+      (rt != Rectangle<2>::BasicType())){
     ErrorReporter::ReportError("Unsupported type within the rtree");
     return nl->TypeError();
   }
-  if( (qt != "point") && (qt != "points") &&
-      (qt != "line") && (qt != "region") &&
-      (qt != "rect")){
+  if( (qt != Point::BasicType()) && (qt != Points::BasicType()) &&
+      (qt != Line::BasicType()) && (qt != Region::BasicType()) &&
+      (qt != Rectangle<2>::BasicType())){
     ErrorReporter::ReportError("Unsupported type for query object");
     return nl->TypeError();
   }
   return nl->ThreeElemList(
-               nl->SymbolAtom("APPEND"),
+               nl->SymbolAtom(Symbol::APPEND()),
                nl->OneElemList( nl->IntAtom(j-1)),
                res1);
 }
@@ -367,7 +367,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
     ErrorReporter::ReportError(err + " (invalid rtree)");
     return listutils::typeError();
   }
-  if(!nl->IsEqual(nl->First(nl->First(args)),"rtree3")){
+  if(!nl->IsEqual(nl->First(nl->First(args)),RTree3TID::BasicType())){
     ErrorReporter::ReportError(err + " (invalid rtree  dimension)");
     return listutils::typeError();
   }
@@ -376,15 +376,15 @@ ListExpr distanceScan4TypeMap(ListExpr args){
     ErrorReporter::ReportError(err + " (invalid relation)");
     return listutils::typeError();
   }
-  if(!nl->IsEqual(nl->Third(args),"point")){
+  if(!nl->IsEqual(nl->Third(args),Point::BasicType())){
     ErrorReporter::ReportError(err + " (invalid point)");
     return listutils::typeError();
   }
-  if(!nl->IsEqual(nl->Fourth(args),"instant")){
+  if(!nl->IsEqual(nl->Fourth(args),Instant::BasicType())){
     ErrorReporter::ReportError(err + " (invalid instant)");
     return listutils::typeError();
   }
-  if(!nl->IsEqual(nl->Fifth(args),"int")){
+  if(!nl->IsEqual(nl->Fifth(args),CcInt::BasicType())){
     ErrorReporter::ReportError(err + " (invalid int)");
     return listutils::typeError();
   }
@@ -395,13 +395,13 @@ ListExpr distanceScan4TypeMap(ListExpr args){
     return listutils::typeError();
   }
   ListExpr rtreekey = listutils::getRTreeType(nl->First(args));
-  if(!nl->IsEqual(rtreekey,"upoint")){
+  if(!nl->IsEqual(rtreekey,UPoint::BasicType())){
     ErrorReporter::ReportError(err + " (rtree not build on upoint)");
     return listutils::typeError();
   }
 
   ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
-  ListExpr res1 = nl->TwoElemList(nl->SymbolAtom("stream"),
+  ListExpr res1 = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                   nl->Second(nl->Second(args)));
   if(len==6){
     ListExpr aname = nl->Sixth(args);
@@ -416,29 +416,30 @@ ListExpr distanceScan4TypeMap(ListExpr args){
       ErrorReporter::ReportError(err + " (attribute not found)");
       return listutils::typeError();
     }
-    if(!nl->IsEqual(type,"upoint") ){
+    if(!nl->IsEqual(type,UPoint::BasicType()) ){
       ErrorReporter::ReportError(err + " (attribute not a upoint)");
       return listutils::typeError();
     }
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->IntAtom(j)),
                              res1);
   } else { // length ==5
     string name;
-    int j = listutils::findType(attrList, nl->SymbolAtom("upoint"),name);
+    int j = listutils::findType(attrList,
+                                nl->SymbolAtom(UPoint::BasicType()),name);
     if(!j){
        ErrorReporter::ReportError(err + " (no upoint stored in relation)");
        return listutils::typeError();
     }
     int j2 = listutils::findType(attrList,
-                                 nl->SymbolAtom("upoint"),
+                                 nl->SymbolAtom(UPoint::BasicType()),
                                  name,
                                  j+1);
     if(j2){
        ErrorReporter::ReportError(err + " (upoint stored twice in relation)");
        return listutils::typeError();
     }
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(j)),
                              res1);
   }
@@ -469,12 +470,12 @@ knearestTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(mpoint,"mpoint")){
+  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
     ErrorReporter::ReportError(msg+" (third arg is not an mpoint)");
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(card,"int")){
+  if(!nl->IsEqual(card,CcInt::BasicType())){
     ErrorReporter::ReportError(msg+" (fourth arg is not an int)");
     return nl->TypeError();
   }
@@ -494,7 +495,7 @@ knearestTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(attrType,"upoint")){
+  if(!nl->IsEqual(attrType,UPoint::BasicType())){
     ErrorReporter::ReportError(msg+" (attrName does not refer to an upoint)");
     return nl->TypeError();
   }
@@ -502,7 +503,7 @@ knearestTypeMap( ListExpr args )
 
   return
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(nl->IntAtom(j)),
       stream);
 }
@@ -529,12 +530,13 @@ ListExpr knearestdistTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(mpoint,"mpoint")){
+  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
     ErrorReporter::ReportError(msg+" (third arg is not an mpoint)");
     return nl->TypeError();
   }
 
-  if(!(nl->IsEqual(card,"int") || nl->IsEqual(card,"real"))){
+  if(!(nl->IsEqual(card,CcInt::BasicType()) ||
+    nl->IsEqual(card,CcReal::BasicType()))){
     ErrorReporter::ReportError(msg+" (fourth arg is not an int)");
     return nl->TypeError();
   }
@@ -554,41 +556,41 @@ ListExpr knearestdistTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(attrType,"upoint")){
+  if(!nl->IsEqual(attrType,UPoint::BasicType())){
     ErrorReporter::ReportError(msg+" (attrName does not refer to an upoint)");
     return nl->TypeError();
   }
 
   ListExpr res;
-  if(nl->IsEqual(card,"real")){
+  if(nl->IsEqual(card,CcReal::BasicType())){
       res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
 
 //                 nl->TwoElemList(
 //                     nl->TwoElemList(
 //                         nl->SymbolAtom("KNeighbor"),
-//                         nl->SymbolAtom("upoint")),
+//                         nl->SymbolAtom(UPoint::BasicType())),
 //                     nl->TwoElemList(
 //                         nl->SymbolAtom("Dist"),
-//                         nl->SymbolAtom("mreal"))
+//                         nl->SymbolAtom(MReal::BasicType()))
 //                     )));
 
                   nl->OneElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("KNeighbor"),
-                        nl->SymbolAtom("upoint"))
+                        nl->SymbolAtom(UPoint::BasicType()))
                     )));
 
   }
-    if(nl->IsEqual(card,"int")){
-      res = nl->SymbolAtom("mreal");
+    if(nl->IsEqual(card,CcInt::BasicType())){
+      res = nl->SymbolAtom(MReal::BasicType());
   }
 
 
   return   nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(nl->IntAtom(j)),
       res);
 
@@ -618,13 +620,13 @@ oldknearestFilterTypeMap( ListExpr args )
   ListExpr quantity = nl->Fourth(args);
 
   // the third element has to be of type mpoint
-  if(!nl->IsEqual(mpoint,"mpoint")){
+  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
   // the third element has to be of type mpoint
-  if(!nl->IsEqual(quantity,"int")){
+  if(!nl->IsEqual(quantity,CcInt::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -640,14 +642,14 @@ oldknearestFilterTypeMap( ListExpr args )
            rtreeKeyType = nl->Third(rtreeDescription),
            rtreeTwoLayer = nl->Fourth(rtreeDescription);
 
-  if(!nl->IsEqual(rtreeSymbol, "rtree3")){
+  if(!nl->IsEqual(rtreeSymbol, RTree3TID::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
   // the keytype of the rtree must be of kind SPATIAL3D
-  if(!algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-     !nl->IsEqual(rtreeKeyType,"rect3")){
+  if(!algMgr->CheckKind(Kind::SPATIAL3D(), rtreeKeyType, errorInfo) &&
+     !nl->IsEqual(rtreeKeyType,Rectangle<3>::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -657,7 +659,7 @@ oldknearestFilterTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->First(rtreeTupleDescription),"tuple")){
+  if(!nl->IsEqual(nl->First(rtreeTupleDescription),Tuple::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -688,7 +690,7 @@ oldknearestFilterTypeMap( ListExpr args )
 
   return
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       nl->Second(nl->Second(args)));
 }
 
@@ -705,11 +707,11 @@ ListExpr rect2periodsTypeMap(ListExpr args){
     return nl->TypeError();
   }
   ListExpr arg = nl->First(args);
-  if(!nl->IsEqual(arg,"rect3")){
+  if(!nl->IsEqual(arg,Rectangle<3>::BasicType())){
     ErrorReporter::ReportError("rect3 expected");
     return nl->TypeError();
   }
-  return nl->SymbolAtom("periods");
+  return nl->SymbolAtom(Periods::BasicType());
 }
 
 /*
@@ -727,37 +729,39 @@ ListExpr isknnTypeMap(ListExpr args){
   }
   ListExpr arg1 = nl->First(args);
   idtype = nl->ToString(arg1);
-  if(!nl->IsEqual(arg1,"int") && !nl->IsEqual(arg1,"string") ){
+  if(!nl->IsEqual(arg1,CcInt::BasicType()) &&
+    !nl->IsEqual(arg1,CcString::BasicType()) ){
     ErrorReporter::ReportError("isknn: expected int or string identifier");
     return nl->TypeError();
   }
 
   ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2,"string")){
+  if(!nl->IsEqual(arg2,CcString::BasicType())){
     ErrorReporter::ReportError("isknn: expected relation name");
     return nl->TypeError();
   }
 
   ListExpr arg3 = nl->Third(args);
-  if(!nl->IsEqual(arg3,"string")){
+  if(!nl->IsEqual(arg3,CcString::BasicType())){
     ErrorReporter::ReportError("isknn: expected btree name");
     return nl->TypeError();
   }
 
   ListExpr arg4 = nl->Fourth(args);
-  if(!nl->IsEqual(arg4,"string")){
+  if(!nl->IsEqual(arg4,CcString::BasicType())){
     ErrorReporter::ReportError("isknn: expected a valid mpoint attribute name");
     return nl->TypeError();
   }
 
   ListExpr arg5 = nl->Fifth(args);
-  if(!nl->IsEqual(arg5,"string")){
+  if(!nl->IsEqual(arg5,CcString::BasicType())){
     ErrorReporter::ReportError("isknn: expected a valid id attribute name");
     return nl->TypeError();
   }
 
-  ListExpr res= nl->ThreeElemList( nl->SymbolAtom("APPEND"),
-      nl->OneElemList(nl->StringAtom(idtype)) , nl->SymbolAtom("mbool"));
+  ListExpr res= nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+      nl->OneElemList(nl->StringAtom(idtype)),
+                      nl->SymbolAtom(MBool::BasicType()));
   cout<< nl->ToString(res);
   cout.flush();
   return res;
@@ -786,19 +790,19 @@ distanceScanSelect( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr searchWindow = nl->Third(args),
-           errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+           errorInfo = nl->OneElemList( nl->SymbolAtom( Symbol::ERRORS() ) );
 
-  if (nl->SymbolValue(searchWindow) == "rect" ||
-      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo))
+  if (nl->SymbolValue(searchWindow) == Rectangle<2>::BasicType() ||
+      algMgr->CheckKind(Kind::SPATIAL2D(), searchWindow, errorInfo))
     return 0;
-  else if (nl->SymbolValue(searchWindow) == "rect3" ||
-           algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<3>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL3D(), searchWindow, errorInfo))
     return 1;
-  else if (nl->SymbolValue(searchWindow) == "rect4" ||
-           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<4>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL4D(), searchWindow, errorInfo))
     return 2;
-  else if (nl->SymbolValue(searchWindow) == "rect8" ||
-           algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == Rectangle<8>::BasicType() ||
+           algMgr->CheckKind(Kind::SPATIAL8D(), searchWindow, errorInfo))
     return 3;
 
   return -1; /* should not happen */
@@ -810,40 +814,40 @@ int distanceScan3Select(ListExpr args){
    // typr of query object
    string t2 = nl->SymbolValue(nl->Third(args));
 
-   if(t1=="point"){
-     if(t2=="point") return 0;
-     if(t2=="points") return 1;
-     if(t2=="line") return 2;
-     if(t2=="region") return 3;
-     if(t2=="rect") return 4;
+   if(t1==Point::BasicType()){
+     if(t2==Point::BasicType()) return 0;
+     if(t2==Points::BasicType()) return 1;
+     if(t2==Line::BasicType()) return 2;
+     if(t2==Region::BasicType()) return 3;
+     if(t2==Rectangle<2>::BasicType()) return 4;
    }
-   if(t1=="points"){
-     if(t2=="point") return 5;
-     if(t2=="points") return 6;
-     if(t2=="line") return 7;
-     if(t2=="region") return 8;
-     if(t2=="rect") return 9;
+   if(t1==Points::BasicType()){
+     if(t2==Point::BasicType()) return 5;
+     if(t2==Points::BasicType()) return 6;
+     if(t2==Line::BasicType()) return 7;
+     if(t2==Region::BasicType()) return 8;
+     if(t2==Rectangle<2>::BasicType()) return 9;
    }
-   if(t1=="line"){
-     if(t2=="point") return 10;
-     if(t2=="points") return 11;
-     if(t2=="line") return 12;
-     if(t2=="region") return 13;
-     if(t2=="rect") return 14;
+   if(t1==Line::BasicType()){
+     if(t2==Point::BasicType()) return 10;
+     if(t2==Points::BasicType()) return 11;
+     if(t2==Line::BasicType()) return 12;
+     if(t2==Region::BasicType()) return 13;
+     if(t2==Rectangle<2>::BasicType()) return 14;
    }
-   if(t1=="region"){
-     if(t2=="point") return 15;
-     if(t2=="points") return 16;
-     if(t2=="line") return 17;
-     if(t2=="region") return 18;
-     if(t2=="rect") return 19;
+   if(t1==Region::BasicType()){
+     if(t2==Point::BasicType()) return 15;
+     if(t2==Points::BasicType()) return 16;
+     if(t2==Line::BasicType()) return 17;
+     if(t2==Region::BasicType()) return 18;
+     if(t2==Rectangle<2>::BasicType()) return 19;
    }
-   if(t1=="rect"){
-     if(t2=="point") return 20;
-     if(t2=="points") return 21;
-     if(t2=="line") return 22;
-     if(t2=="region") return 23;
-     if(t2=="rect") return 24;
+   if(t1==Rectangle<2>::BasicType()){
+     if(t2==Point::BasicType()) return 20;
+     if(t2==Points::BasicType()) return 21;
+     if(t2==Line::BasicType()) return 22;
+     if(t2==Region::BasicType()) return 23;
+     if(t2==Rectangle<2>::BasicType()) return 24;
    }
    return 0;
 }
@@ -866,19 +870,19 @@ int knearestdistSelect(ListExpr args)
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(mpoint,"mpoint")){
+  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
     ErrorReporter::ReportError(msg+" (third arg is not an mpoint)");
     return nl->TypeError();
   }
 
-  if(nl->IsEqual(card,"real")){
+  if(nl->IsEqual(card,CcReal::BasicType())){
     return 0;
   }
-  
-  if(nl->IsEqual(card,"int")){
+
+  if(nl->IsEqual(card,CcInt::BasicType())){
     return 1;
   }
-  
+
   return -1;
 
 
@@ -2665,8 +2669,8 @@ bool checkK(NNTree<ActiveElem> &t, unsigned int k, IT &it)
       return true;
     }
   }
-  
-  
+
+
   return false;
 }
 
@@ -2675,7 +2679,7 @@ bool checkK(NNTree<ActiveElem> &t, unsigned int k, IT &it)
 get the k ths element in the tree or list
 
 */
-IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg, 
+IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg,
                 Instant t_point)
 {
   unsigned int ii = 0;
@@ -2683,7 +2687,7 @@ IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg,
   erg = false;
   double dist_k;
   double slope;
-  
+
   for( ; testit != t.end() && ii < k; ++testit)
   {
     ++ii;
@@ -2693,7 +2697,7 @@ IT getKNeighbor(NNTree<ActiveElem> &t, unsigned int k, bool &erg,
       break;
     }
   }
-  
+
 //   const double delta_dist = 0.001;
 //   for(; testit != t.end();++testit){
 //     double d = CalcDistance(testit->distance, t_point, slope);
@@ -2821,7 +2825,7 @@ public:
      queue.pop();
    }
    int GetPos(){return pos;}
-  
+
  private:
    Word stream;                       // source stream
    QueryProcessor* qp;                // query processor
@@ -3064,69 +3068,69 @@ struct KnearestLocalInfo
   KNearestQueue eventQueue;
   Instant startTime, endTime;
   NNTree< ActiveElem > activeLine;
-  
+
 
   bool AddNewUnit(UPoint* up);
   void MergeUnit(UPoint* up);
   unsigned int count;
   vector<UPoint> up_list;
-  vector<MReal> dist_list; 
+  vector<MReal> dist_list;
   TupleType* resulttype;
-  
+
 };
 
 /*
-check wheter the unit can be merged added into the list 
+check wheter the unit can be merged added into the list
 1. time interval adjacent
 2. evaluation function equal
 3. the end point of the first movement equals to the start point of the second
-movement 
-4. the start point of the first movement not equal to the end point of the 
-second movement 
+movement
+4. the start point of the first movement not equal to the end point of the
+second movement
 
 */
 bool KnearestLocalInfo::AddNewUnit(UPoint* up)
 {
     if(up_list.size() > 0){
       UPoint last_up = up_list[up_list.size() - 1];
-        
+
       Point p1_1 = last_up.p0;
       Point p1_2 = last_up.p1;
 
       Point p2_1 = up->p0;
-      Point p2_2 = up->p1; 
+      Point p2_2 = up->p1;
 
-      Interval<Instant> iv( last_up.timeInterval.start, 
-                              up->timeInterval.end, 
-                              last_up.timeInterval.lc, 
+      Interval<Instant> iv( last_up.timeInterval.start,
+                              up->timeInterval.end,
+                              last_up.timeInterval.lc,
                               up->timeInterval.rc);
 
       if(AlmostEqual(p1_1,p1_2) && AlmostEqual(p1_2,p2_1) &&
          AlmostEqual(p2_1,p2_2)){
 
-        UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(), 
+        UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(),
                                           p1_1.GetX(), p1_1.GetY());
 
         up_list[up_list.size() - 1] = *temp_up;
-        delete temp_up; 
+        delete temp_up;
         return true;
 
       }else if(AlmostEqual(p1_1.GetX(), p1_2.GetX()) &&
                AlmostEqual(p2_1.GetX(), p2_2.GetX()) &&
                AlmostEqual(p1_2, p2_1) && !AlmostEqual(p1_1,p2_2)){
 
-        double duration1 = 
+        double duration1 =
           (last_up.timeInterval.end.ToDouble() -
            last_up.timeInterval.start.ToDouble())*86400.0;
 
-        double duration2 = 
+        double duration2 =
           (up->timeInterval.end.ToDouble() -
            up->timeInterval.start.ToDouble())*86400.0;
         double speed1 = p1_1.Distance(p1_2)/duration1;
         double speed2 = p2_1.Distance(p2_2)/duration2;
 
         if(AlmostEqual(speed1, speed2)){
-            UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(), 
+            UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(),
                                           p2_2.GetX(), p2_2.GetY());
 
             up_list[up_list.size() - 1] = *temp_up;
@@ -3146,7 +3150,7 @@ bool KnearestLocalInfo::AddNewUnit(UPoint* up)
 
            if((p1_2.GetX() > p1_1.GetX() && p2_2.GetX() > p2_1.GetX()) ||
               (p1_2.GetX() < p1_1.GetX() && p2_2.GetX() < p2_1.GetX())){
-              UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(), 
+              UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(),
                                           p2_2.GetX(), p2_2.GetY());
 
               up_list[up_list.size() - 1] = *temp_up;
@@ -3168,14 +3172,14 @@ void KnearestLocalInfo::MergeUnit(UPoint* up)
       Point p1_2 = last_up.p1;
 
       Point p2_1 = up->p0;
-      Point p2_2 = up->p1; 
+      Point p2_2 = up->p1;
 
-      Interval<Instant> iv( last_up.timeInterval.start, 
-                              up->timeInterval.end, 
-                              last_up.timeInterval.lc, 
+      Interval<Instant> iv( last_up.timeInterval.start,
+                              up->timeInterval.end,
+                              last_up.timeInterval.lc,
                               up->timeInterval.rc);
 
-      UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(), 
+      UPoint* temp_up = new UPoint( iv, p1_1.GetX(), p1_1.GetY(),
                                           p2_2.GetX(), p2_2.GetY());
 
       up_list[up_list.size() - 1] = *temp_up;
@@ -3866,7 +3870,7 @@ int newknearestFun (Word* args, Word& result, int message,
 }
 
 /*
-return kth neighbor 
+return kth neighbor
 
 */
 
@@ -3963,13 +3967,13 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
-                        bool l = 
+                        bool l =
                           UPAtInstant(posK->tuple, posK->start, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
                         cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start, 
+                          posK->tuple, attrNr, posK->start,
                           elem.pointInTime, l, r);
                     }else{
                         UPoint temp_up = localInfo->up_list[index];
@@ -3977,7 +3981,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 
 
                         if(up_end < elem.pointInTime){
-                          bool l = 
+                          bool l =
                             UPAtInstant(posK->tuple, up_end, attrNr);
                           bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
@@ -4025,7 +4029,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
             //a unit ends. It has to be removed from the map
             IT posDel = findActiveElem( localInfo->activeLine,
               elem.distance, elem.pointInTime, elem.tuple);
-            
+
             if( posDel != localInfo->activeLine.end()){
 
               //check if this tuple is one of the first k, then give out this
@@ -4060,19 +4064,19 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
-                        bool l = 
+                        bool l =
                             UPAtInstant(posK->tuple, posK->start, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
                         cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start, 
+                          posK->tuple, attrNr, posK->start,
                           elem.pointInTime, l, r);
                     }else{
                         UPoint temp_up = localInfo->up_list[index];
                         Instant up_end = temp_up.timeInterval.end;
 
-                        bool l = 
+                        bool l =
                             UPAtInstant(posK->tuple, up_end, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
@@ -4105,7 +4109,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                       }
                     }
 
- 
+
 
                 }
 
@@ -4162,19 +4166,19 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
-                      bool l = 
+                      bool l =
                             UPAtInstant(posK->tuple, posK->start, attrNr);
                       bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
                         cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start, 
+                          posK->tuple, attrNr, posK->start,
                           elem.pointInTime, l, r);
                     }else{
                         UPoint temp_up = localInfo->up_list[index];
                         Instant up_end = temp_up.timeInterval.end;
 
-                        bool l = 
+                        bool l =
                             UPAtInstant(posK->tuple, up_end, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
@@ -4358,9 +4362,9 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 
           Tuple* tuple = new Tuple(localInfo->resulttype);
 
-          tuple->PutAttribute(0, 
+          tuple->PutAttribute(0,
                               new UPoint(localInfo->up_list[localInfo->count]));
-/*          tuple->PutAttribute(1, 
+/*          tuple->PutAttribute(1,
                           new MReal(localInfo->dist_list[localInfo->count]));*/
           result.setAddr(tuple);
           localInfo->count++;
@@ -4375,7 +4379,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
       KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
       if(localInfo){
         if(localInfo->resulttype != NULL) delete localInfo->resulttype;
-        
+
         delete localInfo;
         local.setAddr(0);
       }
@@ -4387,7 +4391,7 @@ int newknearest_distFun1 (Word* args, Word& result, int message,
 }
 
 /*
-return mreal for the distance of kth neighbor 
+return mreal for the distance of kth neighbor
 
 */
 int newknearest_distFun2 (Word* args, Word& result, int message,
@@ -4402,7 +4406,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
 
 
       result = qp->ResultStorage(s);
-      MReal* presult = (MReal*)result.addr; 
+      MReal* presult = (MReal*)result.addr;
 
       if(!mp->IsDefined() || mp->IsEmpty() || k->GetIntval() < 1){
         MReal* res = new MReal(0);
@@ -4410,7 +4414,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
         delete res;
         qp->Close(args[0].addr);
         return 0;
-      } 
+      }
 
          KnearestLocalInfo* localInfo =
              new KnearestLocalInfo(args[0], attrPos, mp, k->GetIntval(), true);
@@ -4479,13 +4483,13 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
-                        bool l = 
+                        bool l =
                           UPAtInstant(posK->tuple, posK->start, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
                         cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start, 
+                          posK->tuple, attrNr, posK->start,
                           elem.pointInTime, l, r);
                     }else{
                         UPoint temp_up = localInfo->up_list[index];
@@ -4493,7 +4497,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
 
 
                         if(up_end < elem.pointInTime){
-                          bool l = 
+                          bool l =
                             UPAtInstant(posK->tuple, up_end, attrNr);
                           bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
@@ -4541,7 +4545,7 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
             //a unit ends. It has to be removed from the map
             IT posDel = findActiveElem( localInfo->activeLine,
               elem.distance, elem.pointInTime, elem.tuple);
-            
+
             if( posDel != localInfo->activeLine.end()){
 
               //check if this tuple is one of the first k, then give out this
@@ -4574,19 +4578,19 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
-                        bool l = 
+                        bool l =
                             UPAtInstant(posK->tuple, posK->start, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
                         cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start, 
+                          posK->tuple, attrNr, posK->start,
                           elem.pointInTime, l, r);
                     }else{
                         UPoint temp_up = localInfo->up_list[index];
                         Instant up_end = temp_up.timeInterval.end;
 
-                        bool l = 
+                        bool l =
                             UPAtInstant(posK->tuple, up_end, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
@@ -4673,19 +4677,19 @@ int newknearest_distFun2 (Word* args, Word& result, int message,
                     int index = localInfo->up_list.size() - 1;
                     Tuple* cloneTuple = NULL;
                     if(index < 0){
-                      bool l = 
+                      bool l =
                             UPAtInstant(posK->tuple, posK->start, attrNr);
                       bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
 
                         cloneTuple = changeTupleUnit(
-                          posK->tuple, attrNr, posK->start, 
+                          posK->tuple, attrNr, posK->start,
                           elem.pointInTime, l, r);
                     }else{
                         UPoint temp_up = localInfo->up_list[index];
                         Instant up_end = temp_up.timeInterval.end;
 
-                        bool l = 
+                        bool l =
                             UPAtInstant(posK->tuple, up_end, attrNr);
                         bool r =
                           UPAtInstant(posK->tuple, elem.pointInTime, attrNr);
@@ -5616,7 +5620,7 @@ ListExpr coverageTypeMapCommon(ListExpr args, ListExpr result){
   */
   ListExpr dind  = nl->Fourth(arg);
 
-  if(!nl->IsEqual(rtree,"rtree3")){
+  if(!nl->IsEqual(rtree,RTree3TID::BasicType())){
     ErrorReporter::ReportError(err + "3");
     return nl->TypeError();
   }
@@ -5630,7 +5634,7 @@ ListExpr coverageTypeMapCommon(ListExpr args, ListExpr result){
     ErrorReporter::ReportError(err + "6");
     return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(tuple),"tuple")){
+  if(!nl->IsEqual(nl->First(tuple),Tuple::BasicType())){
     ErrorReporter::ReportError(err + "7");
     return nl->TypeError();
   }
@@ -5642,21 +5646,21 @@ ListExpr coverageTypeMapCommon(ListExpr args, ListExpr result){
 inline ListExpr coverageTypeMap(ListExpr args){
   return coverageTypeMapCommon(args,
         nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 nl->ThreeElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("NodeId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("RecId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),
-                        nl->SymbolAtom("uint")
+                        nl->SymbolAtom(UInt::BasicType())
                     )))));
 }
 
@@ -5664,21 +5668,21 @@ inline ListExpr coverageTypeMap(ListExpr args){
 inline ListExpr coverage2TypeMap(ListExpr args){
   return coverageTypeMapCommon(args,
         nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 nl->ThreeElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("NodeId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Level"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),
-                        nl->SymbolAtom("mint")
+                        nl->SymbolAtom(MInt::BasicType())
                     )))));
 }
 
@@ -6107,9 +6111,9 @@ int isknnFun (Word* args, Word& result, int message,
   Word idWord;
   Supplier arg0= qp->GetSupplierSon(s, 0);
   qp->Request(arg0, idWord);
-  if(idType == "string")
+  if(idType == CcString::BasicType())
     id= ((CcString*) idWord.addr)->GetValue() ;
-  else if(idType == "int")
+  else if(idType == CcInt::BasicType())
     id= int2string( ((CcInt*) idWord.addr)->GetValue());
 
   if(debugme)
@@ -6361,7 +6365,7 @@ const string knearestdistSpec  =
       "<text>query query UnitTrains feed head[20] knearest_dist "
       "[UTrip,train1, 2];</text--->"
       ") )";
-      
+
 const string oldknearestFilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
@@ -6512,7 +6516,7 @@ ListExpr bboxesTM(ListExpr args){
   }
   ListExpr stream = nl->First(args);
   ListExpr mp = nl->Second(args);
-  if(!nl->IsEqual(mp,symbols::MPOINT)){
+  if(!nl->IsEqual(mp,MPoint::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
@@ -6520,13 +6524,13 @@ ListExpr bboxesTM(ListExpr args){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(stream),symbols::STREAM)   ||
-     !nl->IsEqual(nl->Second(stream),"periods")){
+  if(!nl->IsEqual(nl->First(stream),Symbol::STREAM())   ||
+     !nl->IsEqual(nl->Second(stream),Periods::BasicType())){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
-  return nl->TwoElemList(nl->SymbolAtom(symbols::STREAM),
-                         nl->SymbolAtom("rect"));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(Rectangle<2>::BasicType()));
 
 }
 
@@ -6951,8 +6955,8 @@ knearestFilterTypeMap( ListExpr args )
       !listutils::isBTreeDescription(btreeDescription) ||
       !listutils::isRelDescription(brelDescription) ||
       !listutils::isSymbol(attrName) ||
-      !listutils::isSymbol(queryobject,"mpoint") ||
-      !listutils::isSymbol(quantity,"int")){
+      !listutils::isSymbol(queryobject,MPoint::BasicType()) ||
+      !listutils::isSymbol(quantity,CcInt::BasicType())){
     return listutils::typeError(err);
   }
 
@@ -6960,7 +6964,7 @@ knearestFilterTypeMap( ListExpr args )
   string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(relDescription)),
                                    aname,attrType);
-  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+  if(j==0 || !listutils::isSymbol(attrType,UPoint::BasicType())){
     return listutils::typeError("attr name " + aname + "  not found "
                                 "or not of type upoint");
   }
@@ -6971,13 +6975,13 @@ knearestFilterTypeMap( ListExpr args )
   if(!listutils::isSymbol(rtreeKeyType)){
     return listutils::typeError("rtree key type must be atomic");
   }
-  if(!listutils::isKind(rtreeKeyType,"SPATIAL3D") &&
-     !listutils::isSymbol(rtreeKeyType,"rect3")){
+  if(!listutils::isKind(rtreeKeyType,Kind::SPATIAL3D()) &&
+     !listutils::isSymbol(rtreeKeyType,Rectangle<3>::BasicType())){
    return listutils::typeError("rtree key type must in kind "
                                "SPATIAL3D or be  a rect3");
   }
 
-  if(!listutils::isSymbol(rtreeSymbol,"rtree3")){
+  if(!listutils::isSymbol(rtreeSymbol,RTree3TID::BasicType())){
     return listutils::typeError("type of rtree is not rtree3");
   }
 
@@ -6989,11 +6993,11 @@ knearestFilterTypeMap( ListExpr args )
   }
 
   ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       nl->Second(relDescription));
 
   return  nl->ThreeElemList(
-             nl->SymbolAtom("APPEND"),
+             nl->SymbolAtom(Symbol::APPEND()),
              nl->OneElemList(nl->IntAtom(j)),
             res);
 }
@@ -7057,15 +7061,17 @@ ListExpr mqknearestTypeMap(ListExpr args){
 
   if(nl->IsAtom(rtsymbol2) &&
     nl->AtomType(rtsymbol2) == SymbolType &&
-    nl->SymbolValue(rtsymbol2) == "rtree" &&
-    nl->IsEqual(k,"int")){
+    nl->SymbolValue(rtsymbol2) == RTree2TID::BasicType() &&
+    nl->IsEqual(k,CcInt::BasicType())){
     ListExpr reslist =  nl->TwoElemList(
-    nl->SymbolAtom("stream"),
+    nl->SymbolAtom(Symbol::STREAM()),
     nl->TwoElemList(
-      nl->SymbolAtom("tuple"),
+      nl->SymbolAtom(Tuple::BasicType()),
       nl->TwoElemList(
-      nl->TwoElemList(nl->SymbolAtom("query"),nl->SymbolAtom("point")),
-      nl->TwoElemList(nl->SymbolAtom("data"),nl->SymbolAtom("point")))
+      nl->TwoElemList(nl->SymbolAtom("query"),
+                      nl->SymbolAtom(Point::BasicType())),
+      nl->TwoElemList(nl->SymbolAtom("data"),
+                      nl->SymbolAtom(Point::BasicType())))
     ));
     return reslist;
   }
@@ -7681,33 +7687,33 @@ ListExpr covleafnodeTypeMap(ListExpr args){
 
   if(nl->IsAtom(rtsymbol2) &&
     nl->AtomType(rtsymbol2) == SymbolType &&
-    nl->SymbolValue(rtsymbol2) == "rtree")
+    nl->SymbolValue(rtsymbol2) == RTree2TID::BasicType())
 
   return
         nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 nl->FiveElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("Nodeid"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),//1 quadrant
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),//2 quadrant
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),//3 quadrant
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),//4 quadrant
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ))));
   ErrorReporter::ReportError("rtree expected");
   return nl->TypeError();
@@ -10111,13 +10117,13 @@ ListExpr ChinaknearestTypeMap( ListExpr args )
   ListExpr quantity = nl->Fifth(args);
 
   // the third element has to be of type mpoint
-  if(!nl->IsEqual(mpoint,"mpoint")){
+  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
   // the third element has to be of type mpoint
-  if(!nl->IsEqual(quantity,"int")){
+  if(!nl->IsEqual(quantity,CcInt::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -10142,14 +10148,14 @@ ListExpr ChinaknearestTypeMap( ListExpr args )
   ListExpr attrType;
   int j = listutils::findAttribute(nl->Second(nl->Second(relDescription)),
       nl->SymbolValue(attrName),attrType);
-  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+  if(j==0 || !listutils::isSymbol(attrType,UPoint::BasicType())){
      return listutils::typeError("upoint expected");
   }
   ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       nl->Second(nl->Second(args)));
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
           nl->OneElemList(nl->IntAtom(j)),res);
 
 }
@@ -10175,13 +10181,13 @@ ListExpr GreeceknearestTypeMap( ListExpr args )
   ListExpr quantity = nl->Fifth(args);
 
   // the third element has to be of type mpoint
-  if(!nl->IsEqual(mpoint,"mpoint")){
+  if(!nl->IsEqual(mpoint,MPoint::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
   // the third element has to be of type mpoint
-  if(!nl->IsEqual(quantity,"int")){
+  if(!nl->IsEqual(quantity,CcInt::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -10194,7 +10200,7 @@ ListExpr GreeceknearestTypeMap( ListExpr args )
 
   ListExpr tbtreeSymbol = nl->First(tbtreeDescription);
 
-  if(!nl->IsEqual(tbtreeSymbol, "rtree3")){
+  if(!nl->IsEqual(tbtreeSymbol, RTree3TID::BasicType())){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -10207,14 +10213,14 @@ ListExpr GreeceknearestTypeMap( ListExpr args )
   ListExpr attrType;
   int j = FindAttribute(nl->Second(nl->Second(relDescription)),
       nl->SymbolValue(attrName),attrType);
-  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+  if(j==0 || !listutils::isSymbol(attrType,UPoint::BasicType())){
     return listutils::typeError("upoint expected");
   }
   ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       nl->Second(nl->Second(args)));
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
           nl->OneElemList(nl->IntAtom(j)),res);
 }
 
@@ -10288,22 +10294,22 @@ ListExpr CellIndexTypeMap( ListExpr args )
 
   if(nl->IsAtom(rtsymbol) &&
     nl->AtomType(rtsymbol) == SymbolType &&
-    (nl->SymbolValue(rtsymbol) == "rtree" ||
-     nl->SymbolValue(rtsymbol) == "rtree3")&&
-    nl->SymbolValue(cellnumber) == "int"){
-    if(nl->SymbolValue(rtsymbol) == "rtree")
-      MBR_ATOM = nl->SymbolAtom("rect");
-    if(nl->SymbolValue(rtsymbol) == "rtree3")
-      MBR_ATOM = nl->SymbolAtom("rect3");
+    (nl->SymbolValue(rtsymbol) == RTree2TID::BasicType() ||
+     nl->SymbolValue(rtsymbol) == RTree3TID::BasicType())&&
+    nl->SymbolValue(cellnumber) == CcInt::BasicType()){
+    if(nl->SymbolValue(rtsymbol) == RTree2TID::BasicType())
+      MBR_ATOM = nl->SymbolAtom(Rectangle<2>::BasicType());
+    if(nl->SymbolValue(rtsymbol) == RTree3TID::BasicType())
+      MBR_ATOM = nl->SymbolAtom(Rectangle<3>::BasicType());
    return
         nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 nl->FourElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("cellid"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("MBR"),
@@ -10311,11 +10317,11 @@ ListExpr CellIndexTypeMap( ListExpr args )
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("nodeid"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("nodelevel"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ))));
   }
   ErrorReporter::ReportError(errmsg);
@@ -10583,11 +10589,11 @@ int CellIndexSelect(ListExpr args)
 
   if(nl->IsAtom(rtsymbol) &&
     nl->AtomType(rtsymbol) == SymbolType &&
-    nl->SymbolValue(rtsymbol) == "rtree")
+    nl->SymbolValue(rtsymbol) == RTree2TID::BasicType())
   return 0;
   if(nl->IsAtom(rtsymbol) &&
     nl->AtomType(rtsymbol) == SymbolType &&
-    nl->SymbolValue(rtsymbol) == "rtree3")
+    nl->SymbolValue(rtsymbol) == RTree3TID::BasicType())
   return 1;
   return -1;
 }
@@ -10624,7 +10630,7 @@ ListExpr GnuplotNodeTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  if(!(nl->SymbolValue(filename) == "string")){
+  if(!(nl->SymbolValue(filename) == CcString::BasicType())){
       ErrorReporter::ReportError(errmsg);
       return nl->TypeError();
   }
@@ -10633,9 +10639,9 @@ ListExpr GnuplotNodeTypeMap( ListExpr args )
   j = FindAttribute(nl->Second(nl->Second(stream)),
                     nl->SymbolValue(attrName),attrType);
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                          nl->OneElemList(nl->IntAtom(j)),
-                         nl->SymbolAtom("int"));
+                         nl->SymbolAtom(CcInt::BasicType()));
 }
 
 /*
@@ -11152,10 +11158,10 @@ TypeMap fun for operator mergertree
   }
 
 
-  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+  if(!(nl->IsEqual(nl->First(firstpara),RTree2TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -11175,9 +11181,9 @@ TypeMap fun for operator mergertree
   }
 
   if(!(nl->IsEqual(nl->First(firstpara),"rtree2") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -11212,10 +11218,10 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
   }
 
 
-  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+  if(!(nl->IsEqual(nl->First(firstpara),RTree2TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -11235,21 +11241,23 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
   }
 
   if(!(nl->IsEqual(nl->First(firstpara),"rtree2") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
 //    return nl->First(args);
     ListExpr reslist = nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("nodeId"),nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("level"),nl->SymbolAtom("int"))
+            nl->TwoElemList(nl->SymbolAtom("nodeId"),
+                            nl->SymbolAtom(CcInt::BasicType())),
+            nl->TwoElemList(nl->SymbolAtom("level"),
+                            nl->SymbolAtom(CcInt::BasicType()))
           )
         )
       );
@@ -11283,10 +11291,10 @@ ListExpr MergeCovTypeMap(ListExpr args)
   }
 
 
-  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+  if(!(nl->IsEqual(nl->First(firstpara),RTree2TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -11305,26 +11313,26 @@ ListExpr MergeCovTypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-   ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+   ListExpr res = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
            nl->Second(nl->Third(args)));
    return res;
 
 /*   return nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 nl->ThreeElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("NodeId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("RecId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),
-                        nl->SymbolAtom("uint")
+                        nl->SymbolAtom(UInt::BasicType())
                     ))));*/
 }
 
@@ -11355,10 +11363,10 @@ ListExpr MergeCov2TypeMap(ListExpr args)
   }
 
 
-  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
-     nl->IsEqual(nl->First(firstpara),"rtree3") ||
-     nl->IsEqual(nl->First(firstpara),"rtree4") ||
-     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+  if(!(nl->IsEqual(nl->First(firstpara),RTree2TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree3TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree4TID::BasicType()) ||
+     nl->IsEqual(nl->First(firstpara),RTree8TID::BasicType()))){
     string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -11373,26 +11381,26 @@ ListExpr MergeCov2TypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-   ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+   ListExpr res = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
            nl->Second(nl->Second(args)));
    return res;
 
 /*   return nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+            nl->SymbolAtom(Symbol::STREAM()),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 nl->ThreeElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("NodeId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("RecId"),
-                        nl->SymbolAtom("int")
+                        nl->SymbolAtom(CcInt::BasicType())
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),
-                        nl->SymbolAtom("uint")
+                        nl->SymbolAtom(UInt::BasicType())
                     ))));*/
 }
 
@@ -12069,8 +12077,8 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &mergertree);
 //    AddOperator( &mergecov);
     AddOperator( &mergecov2);
-    
-    AddOperator( &knearest_dist);//return the k th nearghbor distance 
+
+    AddOperator( &knearest_dist);//return the k th nearghbor distance
   }
   ~NearestNeighborAlgebra() {};
 };

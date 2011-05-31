@@ -83,6 +83,7 @@ The also used classes ~Track~ and ~Event~ are only transient. They are not inher
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include "Symbols.h"
 
 using namespace std;
 
@@ -548,7 +549,7 @@ Returns a string including the description ''midi Algebra''
 */
 ostream& Midi::Print( ostream &os ) const
 {
-  return os << MIDI_STRING << " Algebra" << endl;
+  return os << Midi::BasicType() << " Algebra" << endl;
 }
 
 /*
@@ -1648,7 +1649,7 @@ static Word InMidi(const ListExpr typeInfo, const ListExpr instance,
 
     correct = false;
     errorInfo = nl->Append(errorInfo,nl->FourElemList(
-                nl->IntAtom(70), nl->SymbolAtom(MIDI_STRING),
+                nl->IntAtom(70), nl->SymbolAtom(Midi::BasicType()),
                 nl->IntAtom(1), nl->IntAtom(19)));
     return SetWord(Address(0));
   }
@@ -1671,7 +1672,7 @@ ListExpr MidiProperty()
           nl->StringAtom("Example List"),
           nl->StringAtom("Remarks")),
           nl->FiveElemList(nl->StringAtom("-> DATA"),
-          nl->StringAtom(MIDI_STRING),
+          nl->StringAtom(Midi::BasicType()),
           nl->StringAtom("( <file>filename</file---> )"),
           nl->StringAtom("( <file>Document.mid</file---> )"),
           nl->StringAtom(""))));
@@ -1745,7 +1746,7 @@ type constructor ~Midi~ does not have arguments, this is trivial.
 */
 bool CheckMidi( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, MIDI_STRING ));
+  return (nl->IsEqual( type, Midi::BasicType() ));
 }
 
 /*
@@ -1753,7 +1754,7 @@ bool CheckMidi( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor midi(
-        MIDI_STRING,            //name
+        Midi::BasicType(),            //name
         MidiProperty,           //property funct. describing signature
         OutMidi,    InMidi,     //Out and In functions
         0,          0,          //list functions
@@ -2502,13 +2503,14 @@ ListExpr genericTrackTypeMap( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) && nl->IsEqual(arg2, "int") )
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+         nl->IsEqual(arg2, CcInt::BasicType()) )
     {
       return arg1;
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2994,15 +2996,15 @@ ListExpr mergeTracksTypeMap( ListExpr args )
     ListExpr arg3 = nl->Third(args);
     ListExpr arg4 = nl->Fourth(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) &&
-         nl->IsEqual(arg2, "int")       &&
-         nl->IsEqual(arg3, "int")       &&
-         nl->IsEqual(arg4, "bool"))
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+         nl->IsEqual(arg2, CcInt::BasicType())       &&
+         nl->IsEqual(arg3, CcInt::BasicType())       &&
+         nl->IsEqual(arg4, CcBool::BasicType()))
     {
       return arg1;
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3399,14 +3401,14 @@ ListExpr transposeTrackTypeMap( ListExpr args )
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) &&
-         nl->IsEqual(arg2, "int")       &&
-         nl->IsEqual(arg3, "int"))
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+         nl->IsEqual(arg2, CcInt::BasicType())       &&
+         nl->IsEqual(arg3, CcInt::BasicType()))
     {
       return arg1;
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3643,16 +3645,16 @@ ListExpr extractLyricsTypeMap( ListExpr args )
     ListExpr arg3 = nl->Third( args );
     ListExpr arg4 = nl->Fourth( args );
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) &&
-         nl->IsEqual(arg2, "bool"   )   &&
-         nl->IsEqual(arg3, "bool"   )   &&
-         nl->IsEqual(arg4, "bool"   ))
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+         nl->IsEqual(arg2, CcBool::BasicType()   )   &&
+         nl->IsEqual(arg3, CcBool::BasicType()   )   &&
+         nl->IsEqual(arg4, CcBool::BasicType()   ))
     {
-      return nl->SymbolAtom("text");
+      return nl->SymbolAtom(FText::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -3743,17 +3745,17 @@ if ( nl->ListLength(args) == 5 )
     ListExpr arg4 = nl->Fourth( args );
     ListExpr arg5 = nl->Fifth( args );
 
-    if ( nl->IsEqual(arg1, MIDI_STRING)  &&
-         nl->IsEqual( arg2, "string" )   &&
-         nl->IsEqual( arg3, "bool"   )   &&
-         nl->IsEqual( arg4, "bool"   )   &&
-         nl->IsEqual( arg5, "bool"   ))
+    if ( nl->IsEqual(arg1, Midi::BasicType())  &&
+         nl->IsEqual( arg2, CcString::BasicType() )   &&
+         nl->IsEqual( arg3, CcBool::BasicType()   )   &&
+         nl->IsEqual( arg4, CcBool::BasicType()   )   &&
+         nl->IsEqual( arg5, CcBool::BasicType()   ))
 
     {
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
- return nl->SymbolAtom("typeerror");
+ return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3859,16 +3861,16 @@ ListExpr containsSequenceTypeMap( ListExpr args )
     ListExpr arg3 = nl->Third(args);
     ListExpr arg4 = nl->Fourth(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) &&
-         nl->IsEqual(arg2, "string")    &&
-         nl->IsEqual(arg3, "bool")      &&
-         nl->IsEqual(arg4, "int") )
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+         nl->IsEqual(arg2, CcString::BasicType())    &&
+         nl->IsEqual(arg3, CcBool::BasicType())      &&
+         nl->IsEqual(arg4, CcInt::BasicType()) )
     {
-      return  nl->SymbolAtom("int");
+      return  nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4108,13 +4110,13 @@ ListExpr SavetoMidiTypeMap (ListExpr args)
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
 
-    if (nl->IsAtom(first)   && nl->IsEqual(first, MIDI_STRING) &&
-        nl->IsAtom(second)  && nl->IsEqual(second, "string"))
+    if (nl->IsAtom(first)   && nl->IsEqual(first, Midi::BasicType()) &&
+        nl->IsAtom(second)  && nl->IsEqual(second, CcString::BasicType()))
     {
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4209,13 +4211,13 @@ ListExpr genericMidiTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING))
+    if ( nl->IsEqual(arg1, Midi::BasicType()))
     {
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4552,13 +4554,14 @@ ListExpr countChannelsTypeMap( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) && nl->IsEqual(arg2, "int"))
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+      nl->IsEqual(arg2, CcInt::BasicType()))
     {
       return arg2;
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4696,13 +4699,14 @@ ListExpr trackStringTypeMap( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) && nl->IsEqual(arg2, "int") )
+    if ( nl->IsEqual(arg1, Midi::BasicType()) &&
+      nl->IsEqual(arg2, CcInt::BasicType()) )
     {
-      return nl->SymbolAtom("string");
+      return nl->SymbolAtom(CcString::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4787,13 +4791,13 @@ ListExpr stringTypeMap( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if ( nl->IsEqual(arg1, MIDI_STRING) )
+    if ( nl->IsEqual(arg1, Midi::BasicType()) )
     {
-      return nl->SymbolAtom("string");
+      return nl->SymbolAtom(CcString::BasicType());
     }
   }
 
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5158,7 +5162,7 @@ class MidiAlgebra : public Algebra
   {
     AddTypeConstructor( &midi  );
 
-    midi.AssociateKind( "DATA" );
+    midi.AssociateKind( Kind::DATA() );
 
     AddOperator( &extract_track         );
     AddOperator( &merge_tracks          );

@@ -172,6 +172,12 @@ Retrieves statsitics on the used file from the storage manager
 
 */
 
+/*
+Return the Secondo type name
+
+*/
+  inline static const string BasicType() { return "hash"; }
+
   private:
 
     bool temporary;

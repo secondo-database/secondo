@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -93,11 +93,7 @@ static const int MAX_FORMAT_MIDI   = 2;
 The Midi format is only valid between 0 and 2.
 
 */
-static const string MIDI_STRING    = "midi";
-/*
-Constant string for Midi.
 
-*/
 static const string MIDI_HEADER    = "MThd";
 /*
 Constant string for a Midi object header.
@@ -324,6 +320,7 @@ There are totally 10 functions which are defined as virtual functions. They need
     Flob*    GetFLOB(const int);
     size_t   Sizeof() const;
 
+    static const string BasicType() { return "midi"; }
   private:
 /*
 3.4 Attributes

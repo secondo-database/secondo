@@ -24,7 +24,7 @@ Jan. 2010 M.Klocke, O.Feuer, K.Teufel
 This class is a collection of two interfaces: first, the secondo-specific
 functions (like Open,Save,Create,etc.) are declared here as static methods.
 Second, this class serves as an interface for the BTree2Impl class,
-allowing access to methods without the burden of having to instantiate 
+allowing access to methods without the burden of having to instantiate
 keytype and valuetype.
 
 */
@@ -47,6 +47,7 @@ reduced, but only int/tid trees are possible.
 
 #include "TupleIdentifier.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 namespace BTree2Algebra {
 
@@ -70,7 +71,7 @@ TypeConstructor BTree2::typeConstructor(
   BTree2::Out, BTree2::In,         // Out and In functions
   BTree2::SaveToList,
   BTree2::RestoreFromList,         // SaveToList, RestoreFromList functions
-  BTree2::Instantiate, 
+  BTree2::Instantiate,
   BTree2::Delete,                  // object creation and deletion
   BTree2::Open, BTree2::Save,       // object open, save
   BTree2::Close, BTree2::Clone,    // close, and clone
@@ -78,10 +79,10 @@ TypeConstructor BTree2::typeConstructor(
   BTree2::SizeOf,               // sizeof function
   BTree2::KindCheck );             // kind checking function // TODO!
 
-BTree2::BTree2() { 
+BTree2::BTree2() {
                header.treeHeight = 0;
-               header.multiplicity = multiple; 
-               file = 0; 
+               header.multiplicity = multiple;
+               file = 0;
                header.leafNodeCount = 0;
                header.internalNodeCount = 0;
                header.leafEntryCount = 0;
@@ -91,67 +92,67 @@ BTree2::BTree2() {
                header.maxValuesize = defaultMaxValuesize;
              }
 
-BTree2* BTree2::Factory(const string& keyTypeString, 
+BTree2* BTree2::Factory(const string& keyTypeString,
                         const string& valueTypeString) {
   BTree2* btree;
-  if (keyTypeString == "int") {
-    if (valueTypeString == "tid") {
+  if (keyTypeString == CcInt::BasicType()) {
+    if (valueTypeString == TupleIdentifier::BasicType()) {
       btree = new BTree2Impl<int,TupleId>(keyTypeString,valueTypeString);
-    } 
+    }
 #ifdef FULL_FEATURED
       else if (valueTypeString == "none") {
       btree = new BTree2Impl<int,NoneType>(keyTypeString,valueTypeString);
     } else if (valueTypeString == "double") {
     btree = new BTree2Impl<int,double>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "int") {
+    } else if (valueTypeString == CcInt::BasicType()) {
     btree = new BTree2Impl<int,int>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     btree = new BTree2Impl<int,string>(keyTypeString,valueTypeString);
     }
-#endif 
+#endif
       else {
       btree = new BTree2Impl<int,Attribute*>(keyTypeString,valueTypeString);
     }
   }
 #ifdef FULL_FEATURED
-    else if (keyTypeString == "real") {
-    if (valueTypeString == "tid") {
+    else if (keyTypeString == CcReal::BasicType()) {
+    if (valueTypeString == TupleIdentifier::BasicType()) {
     btree = new BTree2Impl<double,TupleId>(keyTypeString,valueTypeString);
     } else if (valueTypeString == "none") {
     btree = new BTree2Impl<double,NoneType>(keyTypeString,valueTypeString);
     } else if (valueTypeString == "double") {
     btree = new BTree2Impl<double,double>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "int") {
+    } else if (valueTypeString == CcInt::BasicType()) {
     btree = new BTree2Impl<double,int>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     btree = new BTree2Impl<double,string>(keyTypeString,valueTypeString);
     } else {
    btree = new BTree2Impl<double,Attribute*>(keyTypeString,valueTypeString);
     }
-  } else if (keyTypeString == "string") {
+  } else if (keyTypeString == CcString::BasicType()) {
     if (valueTypeString == "none") {
     btree = new BTree2Impl<string,NoneType>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "tid") {
+    } else if (valueTypeString == TupleIdentifier::BasicType()) {
     btree = new BTree2Impl<string,TupleId>(keyTypeString,valueTypeString);
     } else if (valueTypeString == "double") {
     btree = new BTree2Impl<string,double>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "int") {
+    } else if (valueTypeString == CcInt::BasicType()) {
     btree = new BTree2Impl<string,int>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     btree = new BTree2Impl<string,string>(keyTypeString,valueTypeString);
     } else {
    btree = new BTree2Impl<string,Attribute*>(keyTypeString,valueTypeString);
     }
-  } else if (keyTypeString == "bool") {
+  } else if (keyTypeString == CcBool::BasicType()) {
     if (valueTypeString == "none") {
       btree = new BTree2Impl<bool,NoneType>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "tid") {
+    } else if (valueTypeString == TupleIdentifier::BasicType()) {
       btree = new BTree2Impl<bool,TupleId>(keyTypeString,valueTypeString);
     } else if (valueTypeString == "double") {
     btree = new BTree2Impl<bool,double>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "int") {
+    } else if (valueTypeString == CcInt::BasicType()) {
     btree = new BTree2Impl<bool,int>(keyTypeString,valueTypeString);
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     btree = new BTree2Impl<bool,string>(keyTypeString,valueTypeString);
     } else {
       btree = new BTree2Impl<bool,Attribute*>(keyTypeString,valueTypeString);
@@ -159,7 +160,7 @@ BTree2* BTree2::Factory(const string& keyTypeString,
   }
 #endif
     else {
-    if (valueTypeString == "tid") {
+    if (valueTypeString == TupleIdentifier::BasicType()) {
       btree = new BTree2Impl<IndexableAttribute*,TupleId>(
                        keyTypeString,valueTypeString);
 #ifdef FULL_FEATURED
@@ -169,10 +170,10 @@ BTree2* BTree2::Factory(const string& keyTypeString,
     } else if (valueTypeString == "double") {
     btree = new BTree2Impl<IndexableAttribute*,double>(
                                keyTypeString,valueTypeString);
-    } else if (valueTypeString == "int") {
+    } else if (valueTypeString == CcInt::BasicType()) {
     btree = new BTree2Impl<IndexableAttribute*,int>(
                                keyTypeString,valueTypeString);
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     btree = new BTree2Impl<IndexableAttribute*,string>(
                                keyTypeString,valueTypeString);
 #endif
@@ -192,11 +193,11 @@ BTree2* BTree2::Factory(const string& keyTypeString,
 ListExpr BTree2::Property() {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,
-    "<relation> createbtree2 [<keyattr>,{<f>,<n>}]\n" 
-    "<stream> createbtree2 [<keyattr>,{<f>,<n>}]\n" 
-    "<stream> createbtree2 [<f>,<n>,<keyattr>,<valueattr>,<multipl.>]\n" 
+    "<relation> createbtree2 [<keyattr>,{<f>,<n>}]\n"
+    "<stream> createbtree2 [<keyattr>,{<f>,<n>}]\n"
+    "<stream> createbtree2 [<f>,<n>,<keyattr>,<valueattr>,<multipl.>]\n"
     "  where <keyattr> is the key, \n"
-    "        <f> is the minimum fill factor (optional in case 1+2)\n" 
+    "        <f> is the minimum fill factor (optional in case 1+2)\n"
     "        <n> is the record size (optional in case 1+2)\n"
     "        <valueattr> is data directly stored, \n"
     "        <multipl> is 'multiple','uniqueKeys' or 'uniqueKeysMultiData\n");
@@ -223,7 +224,7 @@ Word BTree2::In(ListExpr typeInfo, ListExpr value,
 
 ListExpr BTree2::SaveToList(ListExpr typeInfo, Word value)
 {
-  // TODO: check RestoreFromList 
+  // TODO: check RestoreFromList
   BTree2 *btree = (BTree2*)value.addr;
 
   return nl->ThreeElemList(nl->IntAtom(btree->GetBTreeFileId()),
@@ -289,7 +290,7 @@ Word BTree2::Clone(const ListExpr typeInfo, const Word& w)
   BTree2 *btree = (BTree2*)w.addr;
   BTree2 *clone = BTree2::Factory(btree->GetKeyType(), btree->GetValueType());
   // btree->SetValueTypeListExpr(nl->Fourth(typeInfo));
-  clone->CreateNewBTree(btree->GetFill(), btree->GetRecordSize(), 
+  clone->CreateNewBTree(btree->GetFill(), btree->GetRecordSize(),
                          btree->GetMultiplicity(), false);
 
   if ((!clone->hasValidBTreeFile()) || (!clone->GetBTreeFile()->IsOpen())) {
@@ -319,7 +320,7 @@ void BTree2::Delete(const ListExpr typeInfo, Word& w)
     if (btree->GetExtendedValuesFile() != 0) {
        btree->GetExtendedValuesFile()->Close();
     }
-  
+
     btree->GetBTreeFile()->Drop();
     if (btree->GetExtendedKeysFile() != 0) {
       btree->GetExtendedKeysFile()->Drop();
@@ -351,7 +352,7 @@ bool BTree2::Open( SmiRecord& valueRecord,
 
   valueRecord.Read( typeStr, typeSize, offset);
   offset += typeSize;
-  typeStr[typeSize] = '\0';  
+  typeStr[typeSize] = '\0';
 
   valueRecord.Read( &valueSize, sizeof(int), offset);
   offset += sizeof(int);
@@ -360,7 +361,7 @@ bool BTree2::Open( SmiRecord& valueRecord,
 
   valueRecord.Read( valueStr, valueSize, offset);
   offset += valueSize;
-  valueStr[valueSize] = '\0';  
+  valueStr[valueSize] = '\0';
 
   valueRecord.Read( &fileid, sizeof(SmiFileId), offset);
   offset += sizeof(SmiFileId);
@@ -370,12 +371,12 @@ bool BTree2::Open( SmiRecord& valueRecord,
 
   valueRecord.Read( &headerId, sizeof(SmiRecordId), offset);
   offset += sizeof(SmiRecordId);
-      
+
   BTree2 *btree = BTree2::Factory(typeStr,valueStr);
   // btree->SetValueTypeListExpr(nl->Fourth(typeInfo));
 
   btree->Open(fileid, headerId, recordsize);
- 
+
   value = SetWord(btree);
   delete [] typeStr;
   delete [] valueStr;
@@ -397,29 +398,29 @@ bool BTree2::Save( SmiRecord& valueRecord,
   int typesize = btree->GetKeyType().size();
   valueRecord.Write( &typesize, sizeof(int), offset);
   offset += sizeof(int);
-  
+
   valueRecord.Write( btree->GetKeyType().c_str(), typesize, offset);
   offset += typesize;
-  
+
   int valuesize = btree->GetValueType().size();
   valueRecord.Write( &valuesize, sizeof(int), offset);
   offset += sizeof(int);
-  
+
   valueRecord.Write( btree->GetValueType().c_str(), valuesize, offset);
   offset += valuesize;
-  
+
   valueRecord.Write( &fileid, sizeof(SmiFileId), offset);
   offset += sizeof(SmiFileId);
-  
+
   valueRecord.Write( &recordsize, sizeof(int), offset);
   offset += sizeof(int);
-  
+
   valueRecord.Write( &headerid, sizeof(SmiRecordId), offset);
   offset += sizeof(SmiRecordId);
   btree->WriteHeader();
- 
+
   return true;
-  
+
 }
 
 bool BTree2::KindCheck(ListExpr type, ListExpr& errorInfo)
@@ -473,7 +474,7 @@ void BTree2::WriteHeader() {
   int offset = 0;
   int written = record.Write(&header, sizeof(headerS), 0);
   assert(written == sizeof(headerS));
-  
+
   offset += sizeof(headerS);
 }
 
@@ -550,19 +551,19 @@ bool BTree2::ProbeIsInternal(NodeId nid) {
 
 */
 
-/*static*/ 
+/*static*/
 bool BTree2::SetDefaultMaxKeysize(int i) {
   if ((i > 1) && (i < 255)) {
-    defaultMaxKeysize = i; 
+    defaultMaxKeysize = i;
     return true;
   }
   return false;
 }
 
-/*static*/ 
+/*static*/
 bool BTree2::SetDefaultMaxValuesize(int i) {
   if ((i > 1) && (i < 255)) {
-    defaultMaxValuesize = i; 
+    defaultMaxValuesize = i;
     return true;
   }
   return false;

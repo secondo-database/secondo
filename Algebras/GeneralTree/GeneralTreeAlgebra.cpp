@@ -43,14 +43,13 @@ This file implements the GeneralTreeAlgebra.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Base64.h"
+#include "Symbols.h"
 
 #include "GeneralTreeAlgebra.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
-
-using namespace symbols;
 
 namespace gta {
 
@@ -819,7 +818,7 @@ ListExpr gethpoint_TM(ListExpr args)
     // check, if selected get-hpoint function is defined
     CHECK_HPOINT_DEFINED(funName);
 
-    NList res1(APPEND);
+    NList res1(Symbol::APPEND());
     NList res2(NList(typeName, true), NList(funName, true));
     NList res3("hpoint");
     NList result(res1, res2, res3);
@@ -851,7 +850,7 @@ ListExpr getbbox_TM(ListExpr args)
     // check, if selected get-hrect function is defined
     CHECK_BBOX_DEFINED(funName);
 
-    NList res1(APPEND);
+    NList res1(Symbol::APPEND());
     NList res2(NList(typeName, true), NList(funName, true));
     NList res3("hrect");
     NList result(res1, res2, res3);
@@ -896,9 +895,9 @@ ListExpr getdistdata_TM(ListExpr args)
     // check, if selected distdata type is defined
     CHECK_DISTDATA_DEFINED(dataName);
 
-    NList res1(APPEND);
+    NList res1(Symbol::APPEND());
     NList res2(NList(typeName, true), NList(dataName, true));
-    NList res3(DISTDATA);
+    NList res3("distdata");
     NList result(res1, res2, res3);
     return result.listExpr();
 }
@@ -950,14 +949,14 @@ ListExpr gdistance_TM(ListExpr args)
     else
         distfunName = DFUN_DEFAULT;
 
-    if(typeName == DISTDATA)
+    if(typeName == "distdata")
     {   // further type checkings for distdata attributes are done in
         // the value mapping function, since they need the name of
         // the assigned type constructor, which is stored within the
         // attribute objects.
-        NList res1(APPEND);
+        NList res1(Symbol::APPEND());
         NList res2(distfunName, true); res2.enclose();
-        NList res3(REAL);
+        NList res3(CcReal::BasicType());
         NList result(res1, res2, res3);
         return result.listExpr();
     }
@@ -973,12 +972,12 @@ ListExpr gdistance_TM(ListExpr args)
     CHECK_DISTDATA_DEFINED(dataName);
     CHECK_DISTFUN_DEFINED(distfunName, typeName, dataName);
 
-    NList res1(APPEND);
+    NList res1(Symbol::APPEND());
     NList res2(NList(
         typeName, true),
         NList(distfunName, true),
         NList(dataName, true));
-    NList res3(REAL);
+    NList res3(CcReal::BasicType());
     NList result(res1, res2, res3);
     return result.listExpr();
 }
@@ -1166,9 +1165,9 @@ class GeneralTreeAlgebra
         AddTypeConstructor(&hrect_tc);
         AddTypeConstructor(&distdata_tc);
 
-        hpoint_tc.AssociateKind("DATA");
-        hrect_tc.AssociateKind("DATA");
-        distdata_tc.AssociateKind("DATA");
+        hpoint_tc.AssociateKind( Kind::DATA() );
+        hrect_tc.AssociateKind( Kind::DATA() );
+        distdata_tc.AssociateKind( Kind::DATA() );
 
         AddOperator(
             gethpoint_Info(),

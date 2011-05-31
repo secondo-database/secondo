@@ -3,7 +3,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the treeheight Operator 
+[1] Implementation of the treeheight Operator
 
 [TOC]
 
@@ -18,6 +18,7 @@
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "BTree2.h"
+#include "Symbols.h"
 
 #include <limits>
 
@@ -52,11 +53,11 @@ ListExpr set_debug::TypeMapping( ListExpr args){
 
   ListExpr appendArgs = nl->OneElemList(nl->IntAtom(v));
 
-  return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                               appendArgs,
-                              nl->OneElemList( 
-                                nl->SymbolAtom("bool"))); 
-}       
+                              nl->OneElemList(
+                                nl->SymbolAtom(CcBool::BasicType())));
+}
 
 int
 set_debug::ValueMapping(Word* args, Word& result, int message,
@@ -92,7 +93,7 @@ struct setDebugInfo : OperatorInfo {
   }
 };
 
-Operator set_debug::def( setDebugInfo(), set_debug::ValueMapping, 
+Operator set_debug::def( setDebugInfo(), set_debug::ValueMapping,
                                            set_debug::TypeMapping);
 
 } // end namespace operator

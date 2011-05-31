@@ -7,8 +7,8 @@
 
 [1] Picture Algebra: Class Definitions
 
-Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger 
-M[ue]nx during Prof. G[ue]ting's practical course 
+Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
+M[ue]nx during Prof. G[ue]ting's practical course
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
 [TOC]
@@ -31,6 +31,7 @@ using namespace std;
 #include "JPEGPicture.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "StandardTypes.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -50,7 +51,7 @@ of the methods implemented here.
 void Picture::Scale(Picture *pic, int w, int h) {
     if (PA_DEBUG) cerr << "Picture::Scale() called" << endl;
 
-    // check for invalid parameters 
+    // check for invalid parameters
     if (w <= 0 || h <= 0) {
        pic->jpegData = 0;
        pic->SetDefined(false);
@@ -60,7 +61,7 @@ void Picture::Scale(Picture *pic, int w, int h) {
     unsigned long size      = 0;
     char *buffer = GetJPEGData(size);
     // create picture
-    JPEGPicture *jpg = new JPEGPicture((unsigned char*)buffer, 
+    JPEGPicture *jpg = new JPEGPicture((unsigned char*)buffer,
                                        (unsigned long)size);
     delete[] buffer;
 
@@ -76,11 +77,11 @@ void Picture::Scale(Picture *pic, int w, int h) {
     // delete scale
     delete scale;
 
-    pic->Set(buf, 
-           size, 
-           filename, 
-           category, 
-           w > h ? false : true, 
+    pic->Set(buf,
+           size,
+           filename,
+           category,
+           w > h ? false : true,
            date);
     delete[] buf;
 }
@@ -100,7 +101,7 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     unsigned long size      = 0;
     char* buffer      = GetJPEGData(size);
     // create picture
-    JPEGPicture *jpg  = new JPEGPicture((unsigned char*)buffer, 
+    JPEGPicture *jpg  = new JPEGPicture((unsigned char*)buffer,
                                         (unsigned long)size);
     delete[] buffer;
 
@@ -125,11 +126,11 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     // delete image
     delete cut;
 
-    pic->Set(buf, 
-           size, 
-           filename, 
-           category, 
-           w > h ? false : true, 
+    pic->Set(buf,
+           size,
+           filename,
+           category,
+           w > h ? false : true,
            date);
      delete[] buf;
 }
@@ -137,7 +138,7 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
 void Picture::FlipLeft(Picture *pic, int n) {
     if (PA_DEBUG) cerr << "Picture:FlipLeft() called" << endl;
 
-    // check for invalid parameters 
+    // check for invalid parameters
     if (n < 0) {
       pic->jpegData = 0;
       pic->SetDefined(false);
@@ -147,7 +148,7 @@ void Picture::FlipLeft(Picture *pic, int n) {
     unsigned long size      = 0;
     char *buffer      = GetJPEGData(size);
     // create picture
-     JPEGPicture *jpg = new JPEGPicture((unsigned char*)buffer, 
+     JPEGPicture *jpg = new JPEGPicture((unsigned char*)buffer,
                                         (unsigned long)size);
 
      delete[] buffer;
@@ -163,11 +164,11 @@ void Picture::FlipLeft(Picture *pic, int n) {
     // delete flip
     delete flip;
 
-    pic->Set(buf, 
-           size, 
-           filename, 
-           category, 
-           n % 2 == 0 ? isPortrait : !isPortrait, 
+    pic->Set(buf,
+           size,
+           filename,
+           category,
+           n % 2 == 0 ? isPortrait : !isPortrait,
            date);
     delete[] buf;
 }
@@ -178,7 +179,7 @@ void Picture::Mirror(Picture *pic, bool dir) {
     unsigned long size      = 0;
     char *buffer      = GetJPEGData(size);
     // create picture
-    JPEGPicture *jpg  = new JPEGPicture((unsigned char*)buffer, 
+    JPEGPicture *jpg  = new JPEGPicture((unsigned char*)buffer,
                                         (unsigned long)size);
     delete[] buffer;
 
@@ -212,18 +213,18 @@ ListExpr PictureScaleTypeMap(ListExpr args) {
 
     if ( nl->ListLength(args) == 3 )
     {
-      if (nl->IsEqual(nl->First(args), "picture") &&
-          nl->IsEqual(nl->Second(args), "int") &&
-        nl->IsEqual(nl->Third(args), "int"))
+      if (nl->IsEqual(nl->First(args), Picture::BasicType()) &&
+          nl->IsEqual(nl->Second(args), CcInt::BasicType()) &&
+        nl->IsEqual(nl->Third(args), CcInt::BasicType()))
       {
-        return nl->SymbolAtom("picture");
+        return nl->SymbolAtom(Picture::BasicType());
       }
       else
       {
             string s;
       nl->WriteToString(s, args);
       ErrorReporter::ReportError("expected 'picture x [int int]' as argument");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
     else
@@ -233,7 +234,7 @@ ListExpr PictureScaleTypeMap(ListExpr args) {
           +nl->ListLength(args));
     }
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr PictureCutTypeMap(ListExpr args) {
@@ -241,13 +242,13 @@ ListExpr PictureCutTypeMap(ListExpr args) {
 
     if ( nl->ListLength(args) == 5 )
     {
-      if (nl->IsEqual(nl->First(args), "picture") &&
-          nl->IsEqual(nl->Second(args), "int") &&
-          nl->IsEqual(nl->Third(args), "int") &&
-          nl->IsEqual(nl->Fourth(args), "int") &&
-        nl->IsEqual(nl->Fifth(args), "int"))
+      if (nl->IsEqual(nl->First(args), Picture::BasicType()) &&
+          nl->IsEqual(nl->Second(args), CcInt::BasicType()) &&
+          nl->IsEqual(nl->Third(args), CcInt::BasicType()) &&
+          nl->IsEqual(nl->Fourth(args), CcInt::BasicType()) &&
+        nl->IsEqual(nl->Fifth(args), CcInt::BasicType()))
       {
-        return nl->SymbolAtom("picture");
+        return nl->SymbolAtom(Picture::BasicType());
       }
       else
       {
@@ -255,7 +256,7 @@ ListExpr PictureCutTypeMap(ListExpr args) {
       nl->WriteToString(s, args);
       ErrorReporter::ReportError("expected 'picture x "
                                  "[int int int int]' as argument");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
     else
@@ -265,7 +266,7 @@ ListExpr PictureCutTypeMap(ListExpr args) {
           +nl->ListLength(args));
     }
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr PictureFlipleftTypeMap(ListExpr args) {
@@ -273,17 +274,17 @@ ListExpr PictureFlipleftTypeMap(ListExpr args) {
 
     if ( nl->ListLength(args) == 2 )
     {
-      if (nl->IsEqual(nl->First(args), "picture") &&
-        nl->IsEqual(nl->Second(args), "int"))
+      if (nl->IsEqual(nl->First(args), Picture::BasicType()) &&
+        nl->IsEqual(nl->Second(args), CcInt::BasicType()))
       {
-        return nl->SymbolAtom("picture");
+        return nl->SymbolAtom(Picture::BasicType());
       }
       else
       {
             string s;
       nl->WriteToString(s, args);
       ErrorReporter::ReportError("expected 'picture x [int]' as argument");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
     else
@@ -293,7 +294,7 @@ ListExpr PictureFlipleftTypeMap(ListExpr args) {
           +nl->ListLength(args));
     }
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr PictureMirrorTypeMap(ListExpr args) {
@@ -301,17 +302,17 @@ ListExpr PictureMirrorTypeMap(ListExpr args) {
 
     if ( nl->ListLength(args) == 2 )
     {
-      if (nl->IsEqual(nl->First(args), "picture") &&
-        nl->IsEqual(nl->Second(args), "bool"))
+      if (nl->IsEqual(nl->First(args), Picture::BasicType()) &&
+        nl->IsEqual(nl->Second(args), CcBool::BasicType()))
       {
-        return nl->SymbolAtom("picture");
+        return nl->SymbolAtom(Picture::BasicType());
       }
       else
       {
             string s;
       nl->WriteToString(s, args);
       ErrorReporter::ReportError("expected 'picture x [bool]' as argument");
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
     else
@@ -321,7 +322,7 @@ ListExpr PictureMirrorTypeMap(ListExpr args) {
           +nl->ListLength(args));
     }
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -329,7 +330,7 @@ ListExpr PictureMirrorTypeMap(ListExpr args) {
 5 Type mapping functions
 
 The following functions are the Value Mapping functions for the
-operators scale, cut, flipleft and mirror. 
+operators scale, cut, flipleft and mirror.
 
 */
 

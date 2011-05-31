@@ -727,20 +727,19 @@ as an attribute.
     int Compare(const Attribute* arg) const;
     bool Adjacent(const Attribute* arg) const;
     SymbolicRelation* Clone() const;
-    bool IsDefined() const;
-    void SetDefined(bool Defined);
     size_t HashValue() const;
     size_t Sizeof() const;
     void CopyFrom(const Attribute* right);
 
-    const Rectangle<2> BoundingBox() const;
+    const Rectangle<2> BoundingBox(const Geoid* = 0 ) const;
 /*
 Returns the minimum bounding box of the point set descibed by the symbolic relation.
 
 */
-    double Distance(const Rectangle<2>& rect) const;
+    double Distance(const Rectangle<2>& rect, const Geoid* = 0) const;
     bool IsEmpty() const;
 
+    static const string BasicType() { return "constraint"; }
 
   private:
     DbArray<LinearConstraint> linConstraints;

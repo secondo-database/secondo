@@ -47,6 +47,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
+#include "ListUtils.h"
 #include "StandardTypes.h"
 #include "Attribute.h"
 #include "../../Tools/Flob/Flob.h"
@@ -276,7 +277,7 @@ OutBinaryFile( ListExpr typeInfo, Word value ){
     binFile->Encode( encoded );
     nl->AppendText( result, encoded );
   } else {
-    result = nl->SymbolAtom("undef");
+    result = nl->SymbolAtom(Symbol::UNDEFINED());
   }
   return result;
 }
@@ -295,8 +296,7 @@ InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
   else
     First = instance;
 
-  if ( nl->IsAtom( First ) && nl->AtomType( First ) == SymbolType
-       && nl->SymbolValue( First ) == "undef" )
+  if ( listutils::isSymbolUndefined(First) )
   {
     binFile = new BinaryFile( 0, false );
     correct = true;
@@ -334,7 +334,7 @@ BinaryFileProperty(){
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("binfile"),
+                             nl->StringAtom(BinaryFile::BasicType()),
                              nl->StringAtom("<file>filename</file--->"),
                              nl->StringAtom("<file>Document.pdf</file--->"),
                              nl->StringAtom(""))));
@@ -349,7 +349,7 @@ FilePathProperty(){
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("filepath"),
+                             nl->StringAtom(FilePath::BasicType()),
                              nl->StringAtom("<text>filename</text--->"),
                              nl->StringAtom("<text>../image.jpg</text--->"),
                              nl->StringAtom(""))));
@@ -460,20 +460,20 @@ correctly. Since type constructor ~binfile~ does not have arguments, this is tri
 bool
 CheckBinaryFile( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "binfile" ));
+  return (nl->IsEqual( type, BinaryFile::BasicType() ));
 }
 
 bool
 CheckFilePath( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "filepath" ));
+  return (nl->IsEqual( type, FilePath::BasicType() ));
 }
 /*
 2.15 Creation of the Type Constructor Instances
 
 */
 TypeConstructor binfile(
-  "binfile",                           //name
+  BinaryFile::BasicType(),                           //name
   BinaryFileProperty,                  //property function describing signature
   OutBinaryFile,     InBinaryFile,     //Out and In functions
   0,                 0,                //SaveTo and RestoreFrom List functions
@@ -486,7 +486,7 @@ CheckBinaryFile );                     //kind checking function
 
 
 TypeConstructor filepath(
-  "filepath",                           //name
+  FilePath::BasicType(),                           //name
   FilePathProperty,                  //property function describing signature
   OutFText,  InFText,     //Out and In functions
   0,                 0,                //SaveTo and RestoreFrom List functions
@@ -521,11 +521,11 @@ SaveToTypeMap( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "binfile") &&
-         nl->IsEqual(arg2, "string") )
-    return nl->SymbolAtom("bool");
+    if ( nl->IsEqual(arg1, BinaryFile::BasicType()) &&
+         nl->IsEqual(arg2, CcString::BasicType()) )
+    return nl->SymbolAtom(CcBool::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -594,17 +594,20 @@ class BinaryFileAlgebra : public Algebra
   {
     AddTypeConstructor( &binfile );
 
-    binfile.AssociateKind("DATA");
-    binfile.AssociateKind("FILE");
+    binfile.AssociateKind(Kind::DATA());
+    binfile.AssociateKind(Kind::FILE());
 
     AddTypeConstructor( &filepath );
-    filepath.AssociateKind("DATA");
+    filepath.AssociateKind(Kind::DATA());
 
     AddOperator( &saveto );
 
   }
   ~BinaryFileAlgebra() {};
 };
+
+
+const string FilePath::BasicType() { return "filepath"; }
 
 
 /*

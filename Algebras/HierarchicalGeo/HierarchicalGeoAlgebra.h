@@ -79,20 +79,20 @@ Forward declarations.
 
 3.1 Uncertain
 
-This class represents an epsilon-value of type real. It will be used in type 
+This class represents an epsilon-value of type real. It will be used in type
 constructors of all ~uncertain~ Datatypes.
 
 */
 //template <class Alpha>
 struct Uncertain
 {
-  
+
   public:
-  
+
 /*
 3.1.1 Constructors
 
-*/  
+*/
   Uncertain() {}
 /*
 The simple constructor. This constructor should not be used.
@@ -100,21 +100,21 @@ The simple constructor. This constructor should not be used.
 */
 
   Uncertain( bool is_defined):def(is_defined) {}
-  
+
 /*
 Use this constructor when declaring uncertain object variables etc.
 
 */
 
   Uncertain( const double& epsilon ):
-    epsilon ( epsilon ), def ( true ) 
+    epsilon ( epsilon ), def ( true )
     {}
 
 /*
 The creation of an uncertain value, setting the epsilon value.
 
 */
-  Uncertain( const Uncertain& rhs) : 
+  Uncertain( const Uncertain& rhs) :
 	  epsilon(rhs.epsilon), def(rhs.def) {}
 
   virtual ~Uncertain() {}
@@ -123,25 +123,25 @@ The creation of an uncertain value, setting the epsilon value.
 3.1.2 Member functions
 
 */
-  
+
   virtual bool IsValid() const
   {
     if (epsilon >= 0 && def)
       return true;
     return false;
   }
-    
+
 /*
-Checks if the Uncertain is valid or not. This function should be used for 
+Checks if the Uncertain is valid or not. This function should be used for
 debugging purposes only. An uncertain is valid if the following conditions are
 true:
 
   1 ~alpha~ and ~epsilon~ are defined
-  
+
   2 ~epsilon~ $>=$ 0
-  
+
   3 ~defined~ $==$ TRUE
-  
+
 */
 
   double GetEpsilon() const
@@ -173,7 +173,7 @@ epsilon value is set. The Alpha value is left to be set later.
   {
     this->def = defined;
   }
-  
+
 /*
 Sets the argument ~defined~ to the given boolean value.
 
@@ -184,7 +184,7 @@ Sets the argument ~defined~ to the given boolean value.
 3.1.3 Attributes
 
 */
-  
+
   double epsilon;
 /*
 The possible difference between the original value and the given value.
@@ -203,12 +203,12 @@ The flag that indicates if the value is defined or not.
 /*
 3.2 CUPoint
 
-This class will be used in the ~cupoint~ type constructor, i.e., the type 
+This class will be used in the ~cupoint~ type constructor, i.e., the type
 constructor for the uncertain temporal unit of point values.
 
 */
 class CUPoint : public UPoint,
-                public Uncertain 
+                public Uncertain
 {
   public:
 /*
@@ -225,20 +225,20 @@ The simple constructor. This constructor should not be used.
       Uncertain(is_defined)
   {
   }
-  
+
   CUPoint( const double epsilon ):
       UPoint(false),
       Uncertain(epsilon)
   {
   }
 /*
-The simple constructor, only defining the epsilon-value. 
-  
+The simple constructor, only defining the epsilon-value.
+
 */
-  
+
   CUPoint( const UPoint& source):
     UPoint( source ),
-    Uncertain( 0.0 ) 
+    Uncertain( 0.0 )
   {
   }
 /*
@@ -247,14 +247,14 @@ A constructor to create an uncertain unit point from a unit point.
 */
   CUPoint( const double epsilon, const UPoint& source):
     UPoint( source ),
-    Uncertain( epsilon ) 
+    Uncertain( epsilon )
   {
   }
-  
+
 /*
-A constructor to create an uncertain unit point from the given epsilon-value 
+A constructor to create an uncertain unit point from the given epsilon-value
 and unit point. This constructor should only be used to create test-data!
-  
+
 */
   CUPoint( const double epsilon, const Interval<Instant>& interval,
       const Point& p0, const Point& p1 ):
@@ -270,19 +270,19 @@ and unit point. This constructor should only be used to create test-data!
     Uncertain (epsilon)
     {
     }
-  
-  
-  CUPoint( const CUPoint& source ) : 
-    UPoint(source), 
+
+
+  CUPoint( const CUPoint& source ) :
+    UPoint(source),
     Uncertain(source)
   {
   }
 /*
 The copy-constructor.
 
-*/  
+*/
   virtual ~CUPoint() {}
-  
+
 /*
 The destructor.
 
@@ -294,45 +294,45 @@ The destructor.
   virtual void TemporalFunction( const Instant& t,
                                  Point& result,
                                  bool ignoreLimits = false ) const;
-  
-  virtual bool Passes( const Point& val ) const 
+
+  virtual bool Passes( const Point& val ) const
   {
     return D_Passes( val );
   }
-  
-  bool Passes( const Region& val ) const 
+
+  bool Passes( const Region& val ) const
   {
     return D_Passes( val );
   }
-  
-  virtual bool At( const Point& val, TemporalUnit<Point>& result ) const 
+
+  virtual bool At( const Point& val, TemporalUnit<Point>& result ) const
   {
     return false;
   }
-  
+
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
-  
+
   void Distance( const Point& p, UReal& result ) const {}
-  
-  
+
+
   void USpeed( UReal& result ) const {}
   void UVelocity( UPoint& result ) const {}
   void Intersection(const UPoint &other, UPoint &result) const {}
-  
+
   virtual bool EqualValue( const CUPoint& i )
   {
     return ( AlmostEqual( p0, i.p0 ) && AlmostEqual( p1, i.p1 ) );
   }
 
   void Translate(const double x, const double y, const DateTime& duration) {}
-  
+
 /*
 3.2.4 Additional Uncertain-Temporal Functions
 
 */
   void UTrajectory( const double e, Region& region ) const;
-  
+
 /*
 The only difference of this function to the function 'UTrajectory()' of the
 TemporalAlgebra is the result-Type. To include the uncertainty of an uncertain
@@ -345,14 +345,14 @@ pass.
   bool D_Passes( const Region& r ) const;
 
 /*
-The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It 
-returns TRUE, if there is a point in time, when the uncertain spatio-temporal 
-object lies on or inside the given spatial object, and FALSE, when there may 
-be no such point in time. Refering to a (certain) point-object, this will 
+The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It
+returns TRUE, if there is a point in time, when the uncertain spatio-temporal
+object lies on or inside the given spatial object, and FALSE, when there may
+be no such point in time. Refering to a (certain) point-object, this will
 never occur if the uncertainty-value epsilon is greater than 0.
 
 */
-  
+
   bool P_Passes( const Point& val ) const;
   bool P_Passes( const Region& val ) const;
 
@@ -366,12 +366,12 @@ point in time.
 
   void D_At( const Point& p, CUPoint& result ) const;
   void D_At( const Region& r, CMPoint& result ) const;
-  
+
 /*
 The function D\_At ('Definitely\_At') returns that part(s) of the CUPoint, that
 lie(s) definitely on or inside the given spatal object. Refering to a (certain)
 point-object, the returned CUPoint is empty if the uncertainty-value epsilon
-is greater than 0. Refering to a region-object, there may be more than one 
+is greater than 0. Refering to a region-object, there may be more than one
 CUPoints to be returned, so the result-type is a CMPoint.
 
 */
@@ -380,38 +380,38 @@ CUPoints to be returned, so the result-type is a CMPoint.
   void P_At( const Region& r, CMPoint& result ) const;
 
 /*
-The function P\_At is a shorthand for 'Possibly\_At' and returns that part of 
+The function P\_At is a shorthand for 'Possibly\_At' and returns that part of
 the CUPoint, which possibly lies on or inside the given spatal object.
 
 */
 
   void AtInstant( const Instant& t, Intime<Region>& result ) const;
-  
+
   void Set(double e, Interval<Instant> t, Point p0, Point p1)
   {
-    
+
   }
- 
-  void UnitSetDefined( bool def ) 
+
+  void UnitSetDefined( bool def )
   {
     UPoint::SetDefined( def );
   }
-  
+
   bool UnitIsDefined() const
   {
     return UPoint::IsDefined();
   }
-  
+
   bool UnitIsValid() const
   {
     return TemporalUnit<Point>::IsValid();
   }
-  
+
   bool UncertainIsValid() const
   {
     return Uncertain::IsValid();
   }
-  
+
   bool IsValid() const
   {
     return UnitIsValid() && Uncertain::IsValid();
@@ -426,7 +426,7 @@ virtual const Rectangle<3> BoundingBox() const
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
-  
+
   virtual const Rectangle<2> BBox2D() const
   {
     return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
@@ -442,23 +442,23 @@ the epsilon-value.
 3.2.5 Functions to be part of relations
 
 */
-  
+
   bool IsDefined() const
   {
     return UnitIsDefined() && UncertainIsDefined();
   }
-  
+
   void SetDefined( const bool defined )
   {
     UnitSetDefined( defined );
     UncertainSetDefined( defined );
   }
-  
+
   inline virtual size_t Sizeof() const
   {
     return sizeof( *this );
   }
-  
+
   inline virtual int Compare( const Attribute* arg ) const
   {
     CUPoint* up2 = (CUPoint*) arg;
@@ -472,7 +472,7 @@ the epsilon-value.
     int cmp = timeInterval.CompareTo(up2->timeInterval);
     if(cmp)
       return cmp;
-    
+
     if(p0<up2->p0)
       return -1;
     if(p0>up2->p0)
@@ -486,15 +486,15 @@ the epsilon-value.
       return -1;
     if( epsilon > up2->GetEpsilon() )
       return 1;
-    
+
     return 0;
   }
-  
+
   inline virtual bool Adjacent( const Attribute* arg ) const
   {
     return false;
   }
-  
+
   ostream& Print( ostream& os ) const
   {
     if(IsDefined())
@@ -512,12 +512,12 @@ the epsilon-value.
     else
       return os << "CUPoint: (undef) ";
   }
-  
+
   inline virtual size_t HashValue() const
   {
     return 0;
   }
-  
+
   inline virtual CUPoint* Clone() const
   {
     CUPoint *res;
@@ -525,16 +525,16 @@ the epsilon-value.
     res->SetDefined( IsDefined() );
     return res;
   }
-  
+
   virtual void CopyFrom( const Attribute* right )
   {
     const CUPoint* i = (const CUPoint*)right;
-    
+
     if( i->UncertainIsDefined() )
       epsilon = i->epsilon;
     else
       epsilon = 0.0;
-    
+
     UncertainSetDefined( true );
 
     UnitSetDefined( i->UnitIsDefined() );
@@ -552,13 +552,15 @@ the epsilon-value.
       }
   }
 
+  static const string BasicType() {return "cupoint"; }
+
 /*
 3.2.6 Attributes
 
 */
 
   //Point p0, p1;
-  
+
 };
 
 /*
@@ -578,11 +580,11 @@ class CMPoint : public Mapping< CUPoint, Point >,
   CMPoint() {}
 /*
 The simple constructor. This constructor should not be used.
-  
+
 */
   CMPoint( const int n ):
       Mapping< CUPoint, Point >( n ),
-      Uncertain( true )    
+      Uncertain( true )
   {
     epsilon = 0.0;
     bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -611,30 +613,32 @@ using a check on bbox.
   void AtInstant( const Instant& t, Intime<Region>& result ) const;
   void AtPeriods( const Periods& p, CMPoint& result ) const;
   void Trajectory( Region& region );
-  
+
 /*
 Functions to be part of relations
 
-*/  
-  
+*/
+
   ostream& Print( ostream &os ) const;
-  
+
   virtual Attribute* Clone() const;
-  
+
   void CopyFrom( const Attribute* right );
-  
+
+  static const string BasicType() {return "cmpoint"; }
+
   inline virtual size_t Sizeof() const
   {
     return sizeof( *this );
   }
-  
-  
+
+
 /*
 3.3.3 Additional Uncertain-Temporal Functions
 
 */
   //void Trajectory( Region& region ) const;
-  
+
 /*
 The only difference of this function to the function 'Trajectory()' of the
 TemporalAlgebra is the result-Type. To include the uncertainty of an uncertain
@@ -647,14 +651,14 @@ pass.
   bool D_Passes( const Region& r ) const;
 
 /*
-The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It 
-returns TRUE, if there is a point in time, when the uncertain spatio-temporal 
+The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It
+returns TRUE, if there is a point in time, when the uncertain spatio-temporal
 object lies on or inside the given spatial object, and FALSE, when there may be
-no such point in time. Refering to a (certain) point-object, this will never 
+no such point in time. Refering to a (certain) point-object, this will never
 occur if the uncertainty-value epsilon is greater than 0.
 
 */
-  
+
   bool P_Passes( const Point& p ) const;
   bool P_Passes( const Region& r ) const;
 
@@ -668,7 +672,7 @@ point in time.
 
   void D_At( const Point& p, CMPoint& result ) const;
   void D_At( const Region& r, CMPoint& result ) const;
-  
+
 /*
 The function D\_At ('Definitely\_At') returns that part of the CMPoint, which
 lies definitely on or inside the given spatial object. Refering to a (certain)
@@ -685,11 +689,11 @@ The function P\_At is a shorthand for 'Possibly\_At' and returns that part of
 the CMPoint, which possibly lies on or inside the given spatial object.
 
 
-3.3.3.6 ~epsilon~  
+3.3.3.6 ~epsilon~
 
 */
   void RestoreEpsilon();
-  
+
 /*
 3.3.3.7 ~BoundingBox~
 
@@ -698,14 +702,14 @@ Returns the CMPoint's minimum bounding rectangle
 */
   // return the stored bbox
   Rectangle<3> BoundingBox() const;
-  
+
   Rectangle<2> BBox2D() const;
-  
+
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);
-  
+
   private:
-  
+
   Rectangle<3> bbox;
 };
 
@@ -724,14 +728,14 @@ class HierarchicalEntity: public Attribute
 3.4.1 Constructors
 
 */
-  
+
   HierarchicalEntity() {}
 /*
 The simple constructor. This constructor should not be used.
 
 */
-  
-  HierarchicalEntity( const HierarchicalEntity<Alpha>& entity): 
+
+  HierarchicalEntity( const HierarchicalEntity<Alpha>& entity):
       Attribute(true),
       value(),
       generalizedby( entity.GetGeneralizedby() ),
@@ -745,8 +749,8 @@ The simple constructor. This constructor should not be used.
 /*
 The copy-constructor.
 
-*/  
-  
+*/
+
   HierarchicalEntity( const Alpha& alpha, const int l, const int idx,
                       const int start, const int end ):
     Attribute(true),
@@ -781,22 +785,22 @@ A constructor which sets all attributes (usually unsed by the in-function).
 
 */
   ~HierarchicalEntity() {}
-                    
-  
+
+
 /*
 3.4.2 Member functions
 
 */
-  
+
   inline bool IsValid() const
   {
     if( index > -1 )
       return true;
     return false;
   }
-  
+
   inline bool IsLeaf() const
-  {    
+  {
     if( index > -1 && originstart = originend )
       return true;
     return false;
@@ -813,27 +817,27 @@ A constructor which sets all attributes (usually unsed by the in-function).
   {
     index = idx;
   }
-  
+
   inline void SetLayer(const int l)
   {
     layer = l;
   }
-  
+
   inline int GetLayer() const
   {
     return layer;
   }
-  
+
   inline int GetIndex() const
   {
     return index;
   }
-  
+
   inline int GetGeneralizedby() const
   {
     return generalizedby;
   }
-  
+
   inline void SetGeneralizedby(const int idx)
   {
     if( generalizedby == -1 )
@@ -846,47 +850,47 @@ A constructor which sets all attributes (usually unsed by the in-function).
         "of the Generalization of this Entity is already set!\n";
     }
   }
-  
+
   inline int GetOriginstart() const
   {
     return originstart;
   }
-  
+
   inline void SetOriginstart(const int start)
   {
     originstart = start;
   }
-  
+
   inline int GetOriginend() const
   {
     return originend;
   }
-  
+
   inline void SetOriginend(const int end)
   {
     originend = end;
   }
-  
+
 /*
 3.4.3 Functions to be part of relations
 
-*/  
-  
+*/
+
   inline bool IsDefined() const
   {
     return IsValid();
   }
-  
+
   inline void SetDefined(bool defined) {}
-  
+
   inline size_t Sizeof() const
   {
     return sizeof( *this );
   }
 
 /*
-For HierarchicalEntity is a container-element, providing an order of units 
-within a hierarchical structure, only the layer- and index-values are 
+For HierarchicalEntity is a container-element, providing an order of units
+within a hierarchical structure, only the layer- and index-values are
 compared. The order of the contained units is ignored here!
 
 */
@@ -899,7 +903,7 @@ compared. The order of the contained units is ignored here!
       return -1;
     if( !other->IsDefined() )
       return 1;
-    
+
     if( layer < other->GetLayer() )
       return -1;
     if( layer > other->GetLayer() )
@@ -913,7 +917,7 @@ compared. The order of the contained units is ignored here!
     }
     return 0;
   }
-  
+
   bool Adjacent( const Attribute* arg ) const
   {
     HierarchicalEntity<Alpha>* other = (HierarchicalEntity<Alpha>*) arg;
@@ -924,12 +928,12 @@ compared. The order of the contained units is ignored here!
     }
     return false;
   }
-  
+
   HierarchicalEntity<Alpha>* Clone() const
   {
     return (new HierarchicalEntity<Alpha>( *this) );
   }
-  
+
   inline ostream& Print( ostream &os ) const
   {
     if( !IsDefined() )
@@ -942,17 +946,17 @@ compared. The order of the contained units is ignored here!
     os << "\n)" << endl;
     return os;
   }
-  
+
   virtual size_t HashValue() const
   {
     return 0;
   }
-  
+
   virtual void CopyFrom( const Attribute* right )
   {
     const HierarchicalEntity<Alpha>* i =
       (const HierarchicalEntity<Alpha>*)right;
-    
+
     generalizedby = i->GetGeneralizedby();
     layer = i->GetLayer();
     index = i->GetIndex();
@@ -960,7 +964,7 @@ compared. The order of the contained units is ignored here!
     originend = i->GetOriginend();
     value.CopyFrom( &i->value );
   }
-  
+
 /*
 3.4.4 Attributes
 
@@ -982,29 +986,29 @@ its sons.
 /*
 The position in the array.
 
-*/  
+*/
     int index;
 /*
 The position in the array.
 
-*/  
+*/
     int originstart;
 /*
 The index of the first entity, generalized by this entity.
 
-*/  
+*/
     int originend;
 /*
 The index of the last entity, generalized by this entity.
 
-*/  
+*/
 };
 
 
 /*
 3.6 HCUPoint
 
-represents an uncertain unit point (CUPoint) within an hierarchical structure. 
+represents an uncertain unit point (CUPoint) within an hierarchical structure.
 
 */
 typedef HierarchicalEntity<CUPoint> HCUPoint;
@@ -1013,13 +1017,13 @@ typedef HierarchicalEntity<CUPoint> HCUPoint;
 /*
 3.7 HCMPoint
 
-The type Hierarchical Uncertain Moving Point defines a hierarchical structure 
-in which up to 5 various Generalizations of a particular moving point can be 
-stored. Every unit of such an uncertain moving point is encapsulated within an 
-object called HierarchicalEntity. Such an Entity defines the position in the 
+The type Hierarchical Uncertain Moving Point defines a hierarchical structure
+in which up to 5 various Generalizations of a particular moving point can be
+stored. Every unit of such an uncertain moving point is encapsulated within an
+object called HierarchicalEntity. Such an Entity defines the position in the
 hierarchical structure.
 
-Every uncertain unit point of an upper layer (one of the layers 0 to 4) 
+Every uncertain unit point of an upper layer (one of the layers 0 to 4)
 generalizes a number of uncertain unit points within the layer below.
 
 */
@@ -1044,7 +1048,7 @@ The simple constructor. This constructor should not be used.
   {
     bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
-  
+
   HCMPoint( const int n, const double e, const double f ):
     Attribute(true),
     layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
@@ -1078,127 +1082,127 @@ The destructor.
     canDestroy = true;
   }
 /*
-This function should be called before the destructor if one wants to destroy 
-the persistent arrays of hierarchical entities. It marks the persistent arrays 
+This function should be called before the destructor if one wants to destroy
+the persistent arrays of hierarchical entities. It marks the persistent arrays
 for destroying. The destructor will perform the real destroying.
 
 3.7.2 Member Functions
 
 */
   inline bool IsEmpty() const;
-  
+
   double GetLayerepsilon( const int layer ) const;
-  
+
   void SetLayerepsilon( const int layer, const double epsilon );
-  
+
   inline double GetLayer0epsilon() const
   {
     return layer0epsilon;
   }
-  
+
   inline void SetLayer0epsilon(const double epsilon)
   {
     layer0epsilon = epsilon;
   }
-  
+
   inline double GetLayer1epsilon() const
   {
     return layer1epsilon;
   }
-  
+
   inline void SetLayer1epsilon(const double epsilon)
   {
     layer1epsilon = epsilon;
   }
-  
+
   inline double GetLayer2epsilon() const
   {
     return layer2epsilon;
   }
-  
+
   inline void SetLayer2epsilon(const double epsilon)
   {
     layer2epsilon = epsilon;
   }
-  
+
   inline double GetLayer3epsilon() const
   {
     return layer3epsilon;
   }
-  
+
   inline void SetLayer3epsilon(const double epsilon)
   {
     layer3epsilon = epsilon;
   }
-  
+
   inline double GetLayer4epsilon() const
   {
     return layer4epsilon;
   }
-  
+
   inline void SetLayer4epsilon(const double epsilon)
   {
     layer4epsilon = epsilon;
   }
-  
+
   inline void SetEpsilon(const double e)
   {
     epsilon = e;
   }
-  
+
   inline double GetEpsilon() const
   {
     return epsilon;
   }
-  
+
   inline void SetFactor(const double f)
   {
     factor = f;
   }
-  
+
   inline double GetFactor() const
   {
     return factor;
   }
-  
+
   inline void Get( const int layer, const int i, HCUPoint& hcup ) const;
-  
+
   inline void Get( const int layer, const int i, CUPoint& cup ) const;
-   
+
   inline void Put( const int layer, const int i, HCUPoint& hcup);
-  
+
   inline int GetNoComponents() const;
-  
+
   inline void ResizeLayer( const int layer, const int n );
-  
+
   inline void TrimLayerToSize( const int layer );
-  
+
   inline int LayerSize( const int layer ) const;
-  
+
   int Position( int layer, const Instant& t );
   int Position( int layer, const Instant& t, const int start, const int end );
-                        
+
   inline void GetFirstLayer( int& layer, int& size ) const;
-  
+
   void DefTime( Periods& p );
   bool Present( const Instant& i );
-  
+
   int Generalize(const int layer, const bool checkBreakPoints,
                           const DateTime dur);
 
   void Simplify(const int min, const int max, const int layer,
-                    bool* useleft, bool* useright, double* realepsilon, 
+                    bool* useleft, bool* useright, double* realepsilon,
                     const double epsilon);
 
 /*
-Checks all Units in the most uncertain Layer of the HCMPoint, if the given 
+Checks all Units in the most uncertain Layer of the HCMPoint, if the given
 Periods-Value is completely inside the Definition-time of the HCMPoint-object.
 
 */
   bool Present( const Periods& p );
 
 /*
-Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint.
 If so, it calls a recursive Function to determine if the HCMPoint definitely-
 passes the given Point-value.
 
@@ -1210,11 +1214,11 @@ This recursive function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint definitely-passes the given Point-value.
 
 */
-  bool D_Passes( const int layer, const int start, const int end, 
+  bool D_Passes( const int layer, const int start, const int end,
                   const Point& p );
 
 /*
-Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint.
 If so, it calls a recursive Function to determine if the HCMPoint definitely-
 passes the given Region-value.
 
@@ -1226,11 +1230,11 @@ This recursive Function determines, by an in-order run through the hierarchical
  structure, if the HCMPoint definitely-passes the given Region-value.
 
 */
-  bool D_Passes( const int layer, const int start, const int end, 
+  bool D_Passes( const int layer, const int start, const int end,
                   const Region& r );
 
 /*
-Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint.
 If so, it calls a recursive Function to determine if the HCMPoint possibly-
 passes the given Point-value.
 
@@ -1242,11 +1246,11 @@ This recursive function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint possibly-passes the given Point-value.
 
 */
-  bool P_Passes( const int layer, const int start, const int end, 
+  bool P_Passes( const int layer, const int start, const int end,
                   const Point& p );
 
 /*
-Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint.
 If so, it calls a recursive Function to determine if the HCMPoint possibly-
 passes the given Region-value.
 
@@ -1258,60 +1262,60 @@ This recursive Function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint possibly-passes the given Region-value.
 
 */
-  bool P_Passes( const int layer, const int start, const int end, 
+  bool P_Passes( const int layer, const int start, const int end,
                   const Region& r );
 
   void AtInstant( const Instant& t, Intime<Region>& result );
-  int AtInstant( const int layer, const int start, const int end,  
+  int AtInstant( const int layer, const int start, const int end,
                   const Instant& t, Intime<Region>& result );
-  
+
   void AtPeriods( const Periods& p, CMPoint& result);
-  int AtPeriods( const int layer, const int start, const int end, 
+  int AtPeriods( const int layer, const int start, const int end,
                   const Periods& p, CMPoint& result );
 
   void D_At( const Point& p, CMPoint& result );
-  bool D_At( const int layer, const int start, const int end, const Point& p,  
+  bool D_At( const int layer, const int start, const int end, const Point& p,
                   CMPoint& result);
-                  
+
   void D_At( const Region& r, CMPoint& result );
-  bool D_At( const int layer, const int start, const int end, 
+  bool D_At( const int layer, const int start, const int end,
                   const Region& r, CMPoint& result );
-                  
+
   void P_At( const Point& p, CMPoint& result );
-  bool P_At( const int layer, const int start, const int end, const Point& p,  
+  bool P_At( const int layer, const int start, const int end, const Point& p,
                   CMPoint& result);
-                  
+
   void P_At( const Region& r, CMPoint& result );
-  bool P_At( const int layer, const int start, const int end, 
+  bool P_At( const int layer, const int start, const int end,
                   const Region& r, CMPoint& result );
 
 /*
 
 
-*/     
+*/
   void Get( const int i, HCUPoint& hcup ) const;
-  
-  
+
+
   void GetCMPoint( const double epsilon, CMPoint& result );
-  
+
 
   void Add( const HCUPoint& hcup );
-  
+
   //void GetGeneralization( const double epsilon, const Unit*& upi ) const;
 /*
 Returns the unit ~upi~ at the position ~i~ in the mapping.
 
 */
   void Clear();
-  
+
 /*
 Remove all entities in all DBArrays.
 
 */
   bool IsValid() const;
 /*
-This functions tests if a ~HMPoint~ is in a valid format. It is used for 
-debugging purposes only. The ~HMPoint~ is valid, if the following conditions 
+This functions tests if a ~HMPoint~ is in a valid format. It is used for
+debugging purposes only. The ~HMPoint~ is valid, if the following conditions
 are true:
 
   1 Each entity is valid
@@ -1323,48 +1327,50 @@ are true:
 
 3.7.3 Functions to be part of relations
 
-*/  
+*/
   inline bool IsDefined() const
   {
     return true;
   }
-  
+
   inline void SetDefined( bool Defined ) {}
-  
-  
+
+
   inline size_t Sizeof() const
   {
     return sizeof( *this );
   }
-  
+
   inline int Compare( const Attribute *arg ) const;
-  
-  
+
+
   inline bool Adjacent( const Attribute *arg ) const
   {
     return false;
   }
 
   inline Attribute* Clone() const;
-  
+
 
   inline ostream& Print( ostream &os ) const;
-  
-  
+
+
   inline size_t HashValue() const
   {
     return 0;
   }
-  
+
   inline void CopyFrom( const Attribute* right );
 
-  
+
   inline int NumOfFLOBs() const
   {
     return 5;
   }
-  
+
   inline Flob* GetFLOB( const int i);
+
+  static const string BasicType() {return "hcmpoint"; }
 
 /*
 3.7.3.7 ~BoundingBox~
@@ -1374,13 +1380,13 @@ Returns the HCMPoint's minimum bounding rectangle
 */
   // return the stored bbox
   Rectangle<3> BoundingBox() const;
-  
+
   // return a bbox without the 3rd (temporal) Dimension
   Rectangle<2> BBox2D() const;
-  
+
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);
-  
+
 /*
 3.7.4 Attributes
 
@@ -1390,7 +1396,7 @@ Returns the HCMPoint's minimum bounding rectangle
 /*
 5 variables of type double, to store the uncertainty-value of each layer.
 
-*/     
+*/
     DbArray<HCUPoint> layer0, layer1, layer2, layer3, layer4;
 /*
 5 DBArrays to store the entities depending on their epsilon-value.
@@ -1448,12 +1454,12 @@ A constructor, initializing space for ~n~ entities in the bottom layer.
   {
   }
 /*
-This constructor creates a new HMPoint from the given MPoint-object. The units 
-of the MPoint will be stored in hierarchical entities in the DBArray layer5. 
-The layers 4 to 0 will be filled with generalizations of this MPoint, which 
+This constructor creates a new HMPoint from the given MPoint-object. The units
+of the MPoint will be stored in hierarchical entities in the DBArray layer5.
+The layers 4 to 0 will be filled with generalizations of this MPoint, which
 are computed using the given values epsilon and faktor.
 
-*/  
+*/
   ~HMPoint()
   {
     if( canDestroy )
@@ -1462,13 +1468,13 @@ are computed using the given values epsilon and faktor.
 /*
 The destructor.
 
-*/  
-  
+*/
+
 /*
 3.8.2 member functions
 
-*/  
-  
+*/
+
   void clear()
   {
     HCMPoint::Clear();
@@ -1479,111 +1485,113 @@ The destructor.
 It is necessary to overload the function IsEmpty to ensure that it uses the
 right function GetNoComponents.
 
-*/  
+*/
   inline bool IsEmpty() const
   {
     return (GetNoComponents() == 0);
   }
-  
+
   int GetNoComponents() const
   {
     int noComponents = HCMPoint::GetNoComponents() + certainlayer.Size();
     return noComponents;
   }
-  
+
   void Get( const int layer, const int i, HCUPoint& hcup ) const;
-  
+
   void Get( const int layer, const int i, CUPoint& cup ) const;
-  
+
   //void Get( const int layer, const int i, UPoint const*& up ) const;
-  
+
   void Get( const int i, HCUPoint& ntt ) const;
-  
+
   void GetCMPoint( const double epsilon, CMPoint& result );
-  
+
   void GetMPoint( MPoint& result );
-  
+
   void Put( const int layer, const int i, HCUPoint& hcup);
-  
+
   inline int LayerSize( const int layer ) const;
-  
+
   void ResizeLayer( const int layer, const int n );
-  
+
   void Add( const HCUPoint& hcup );
-  
+
   int Position( int layer, const Instant& t, const int start, const int end );
-  
-  int Generalize(const int layer, const bool checkBreakPoints, 
+
+  int Generalize(const int layer, const bool checkBreakPoints,
                   const DateTime dur);
-  
-  
-  void Simplify(const int min, const int max, const int layer, bool* useleft, 
+
+
+  void Simplify(const int min, const int max, const int layer, bool* useleft,
               bool* useright, double* realepsilon, const double epsilon);
 
   bool D_Passes( const Point& p );
   bool D_Passes( const int layer, const int start, const int end,
                   const Point& p );
-                  
+
   bool D_Passes( const Region& r );
   bool D_Passes( const int layer, const int start, const int end,
                   const Region& r );
-  
+
   void D_At( const Point& p, MPoint& result );
-  bool D_At( const int layer, const int start, const int end, 
+  bool D_At( const int layer, const int start, const int end,
                   const Point& p, MPoint& result);
-  
+
   void D_At( const Region& r, MPoint& result );
-  bool D_At( const int layer, const int start, const int end, 
+  bool D_At( const int layer, const int start, const int end,
                   const Region& r, MPoint& result );
-                    
+
   void AtInstant( const Instant& t, Intime<Point>& result );
-  int AtInstant( const int layer, const int start, const int end, 
+  int AtInstant( const int layer, const int start, const int end,
                   const Instant& t, Intime<Point>& result );
-  
+
   void AtPeriods( const Periods& p, MPoint& result);
-  int AtPeriods( const int layer, const int start, const int end, 
+  int AtPeriods( const int layer, const int start, const int end,
                   const Periods& p, MPoint& result );
-  
+
   void ReduceHierarchy( const double epsilon, HCMPoint& result );
 /*
 3.8.3 functions to be part of relations
 
 */
   inline ostream& Print( ostream &os ) const;
-  
+
   inline int Compare( const Attribute *arg ) const;
-  
-  
+
+
   inline Attribute* Clone() const;
 
-  
+
   inline void CopyFrom( const Attribute* right );
-  
-  
+
+
   inline size_t Sizeof() const
   {
     return sizeof( *this );
   }
-  
-  
+
+
   inline int NumOfFLOBs() const
   {
     return 6;
   }
-  
-  
+
+
   inline Flob* GetFLOB( const int i);
-  
+
+  static const string BasicType() {return "hmpoint"; }
+
 /*
 3.8.4 Attributes
 
 */
   DbArray<HCUPoint> certainlayer;
 /*
-The DBArray ~certainlayer~ stores only HCUPoint-objects with an epsilon-value 
+The DBArray ~certainlayer~ stores only HCUPoint-objects with an epsilon-value
 of 0.
 
-*/  
+*/
 };
 
 
@@ -1594,7 +1602,7 @@ of 0.
 
 void Circle( const Point p, const double radius, const int n, Region& result);
 /*
-Computes a cirular shaped region around Point p, with the given radius. This 
+Computes a cirular shaped region around Point p, with the given radius. This
 region consists of n pairs of halfsegments.
 
 */
@@ -1602,10 +1610,10 @@ region consists of n pairs of halfsegments.
 bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
                     const double epsilon, Point& defPP);
 /*
-This function tries to find a point on halfsegment chs, that has exactly the 
-distance of espilon to the halfsegment rgnhs and lies on the inner side of 
-rgnhs. Therefore rgnhs must belong to a region, so that the Attribute 
-insideAbove is evaluable. If such a point exists, the parameter defPP is set 
+This function tries to find a point on halfsegment chs, that has exactly the
+distance of espilon to the halfsegment rgnhs and lies on the inner side of
+rgnhs. Therefore rgnhs must belong to a region, so that the Attribute
+insideAbove is evaluable. If such a point exists, the parameter defPP is set
 to this value and TRUE is returned. Otherwise FALSE is returned.
 
 */
@@ -1613,23 +1621,23 @@ to this value and TRUE is returned. Otherwise FALSE is returned.
 bool FindPosPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
                     const double epsilon, Point& posPP);
 /*
-Does the same as 'FindDefPassingPoint', but it tries to find that point on the 
-outer side of the halfsegment rgnhs. If such a point exists, the parameter 
+Does the same as 'FindDefPassingPoint', but it tries to find that point on the
+outer side of the halfsegment rgnhs. If such a point exists, the parameter
 posPP is set to this value and TRUE is returned. Otherwise FALSE is returned.
 
 */
 
-void Generalize( const double epsilon, const double factor, 
-                  const MPoint& source, const bool checkBreakPoints, 
+void Generalize( const double epsilon, const double factor,
+                  const MPoint& source, const bool checkBreakPoints,
                   const DateTime dur, HMPoint& result);
 /*
-This Function inserts a MPoint-object into the certainlayer of a HMPoint and 
-computes up to 5 generalizations of this MPoint which are stored in the layers 
+This Function inserts a MPoint-object into the certainlayer of a HMPoint and
+computes up to 5 generalizations of this MPoint which are stored in the layers
 0 to 4.
 
 */
 
-void Generalize( const double epsilon, const double factor, const int layer, 
+void Generalize( const double epsilon, const double factor, const int layer,
                   const CMPoint& source, const bool checkBreakPoints,
                   const DateTime dur, HMPoint& result);
 
@@ -1686,20 +1694,20 @@ Word InUncertain( const ListExpr typeInfo, const ListExpr instance,
       if ( nl->IsAtom(first) && nl->AtomType(first) == RealType )
       {
         correct = true;
-       
+
         Alpha *value = (Alpha *)InFun( nl->TheEmptyList(),
-                                        second, errorPos, 
+                                        second, errorPos,
                                         errorInfo, correct ).addr;
         if ( correct == false )
         {
           delete value;
-          return SetWord( Address(0) );  
+          return SetWord( Address(0) );
         }
         else  // if correct
         {
           Uncertain<Alpha> *uncertain = new Uncertain<Alpha> (
                                         nl->RealValue(first), *value);
-         
+
           delete value;
           return SetWord( uncertain );
         }
@@ -1708,7 +1716,7 @@ Word InUncertain( const ListExpr typeInfo, const ListExpr instance,
       {
         errmsg = "InUncertain(): First arg must be of type Real.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-      }  
+      }
     }
   }
   correct = false;
@@ -1724,7 +1732,7 @@ Word InUncertain( const ListExpr typeInfo, const ListExpr instance,
 ListExpr OutUncertain( ListExpr typeInfo, Word value )
 {
   Uncertain<Alpha>* uncertain = (Uncertain<Alpha>*)(value.addr);
-  
+
   if( uncertain->IsDefined() )
     return nl->TwoElemList(
       nl->RealAtom( &uncertain->GetEpsilon()),
@@ -1817,7 +1825,7 @@ void* CastUncertain(void* addr)
 */
 
 //template <class Alpha>
-int UncertainEpsilon( Word* args, Word& result, int message, Word& local, 
+int UncertainEpsilon( Word* args, Word& result, int message, Word& local,
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1827,7 +1835,7 @@ int UncertainEpsilon( Word* args, Word& result, int message, Word& local,
   {
     // +++++ for debugging purposes only +++
     cout << "epsilon ist = " << u->GetEpsilon() << "\n";
-    
+
     ((CcReal*)result.addr)->Set( u->GetEpsilon() );
   }
   else

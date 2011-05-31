@@ -24,12 +24,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the get\_no\_cachehits Operator 
+[1] Implementation of the get\_no\_cachehits Operator
 
 [TOC]
 
 0 Overview
- 
+
 1 Defines and includes
 
 */
@@ -67,8 +67,8 @@ ListExpr get_no_cachehits::TypeMapping( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
-}       
+  return (nl->SymbolAtom(CcInt::BasicType()));
+}
 
 /*
 2.2 Valuemapping for Operator
@@ -102,8 +102,8 @@ struct getNoCacheHitsInfo : OperatorInfo {
   }
 };
 
-Operator get_no_cachehits::def( getNoCacheHitsInfo(), 
-                             get_no_cachehits::ValueMapping, 
+Operator get_no_cachehits::def( getNoCacheHitsInfo(),
+                             get_no_cachehits::ValueMapping,
                                            get_no_cachehits::TypeMapping);
 }
 }

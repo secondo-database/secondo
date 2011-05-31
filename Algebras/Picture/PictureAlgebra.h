@@ -7,8 +7,8 @@
 
 [1] Picture Algebra: Class Definitions
 
-Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger 
-M[ue]nx during Prof. G[ue]ting's practical course 
+Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
+M[ue]nx during Prof. G[ue]ting's practical course
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
 [TOC]
@@ -16,7 +16,7 @@ M[ue]nx during Prof. G[ue]ting's practical course
 1 Introduction
 
 The Picture algebra for SECONDO provides operations to store and
-manipulate images in JPEG format. It consists of two data types. A ~picture~ 
+manipulate images in JPEG format. It consists of two data types. A ~picture~
 object represents a single JPEG image and allows to scale, cut, mirror, rotate
 and compare images. ~histogram~ represents the histogram of a ~picture~ object
 and is created from a ~picture~ object.
@@ -27,9 +27,9 @@ in parallel without causing frequent conflicts.
 
   * ~PictureAlgebra.h~ (this file): Contains class definitions.
 
-  * ~PictureAlgebra\_base.cpp~: Contains all code related to creating 
+  * ~PictureAlgebra\_base.cpp~: Contains all code related to creating
     the Picture algebra itself. Code relating to the implementation of
-    SECONDO types ~picture~ and ~histogram~ are located in other modules, as 
+    SECONDO types ~picture~ and ~histogram~ are located in other modules, as
     shown below.
 
   * ~PictureAlgebra\_pictimp.cpp~: All methods required for ~Picture~
@@ -42,7 +42,7 @@ in parallel without causing frequent conflicts.
   * ~PictureAlgebra\_graphops.cpp~: SECONDO operators on ~picture~, which
     perform graphical operations such as scaling an image.
 
-  * ~PictureAlgebra\_histimp.cpp~: All methods required for 
+  * ~PictureAlgebra\_histimp.cpp~: All methods required for
     ~Histogram~ to represent a SECONDO ~histogram~ object plus functions.
     required by SECONDO to use ~Histogram~.
 
@@ -58,7 +58,7 @@ in parallel without causing frequent conflicts.
 2 General definitions
 
 If ~PA\_DEBUG~ is set to ~true~, verbose debug output is generated. If you
-are running SECONDO in client/server mode, note that the output is shown in 
+are running SECONDO in client/server mode, note that the output is shown in
 the server.
 
 ~PROG\_DISPLAY~ is the command used by the ~display~ operator to display
@@ -67,7 +67,7 @@ JPEG images. We suggest to use the ~display~ program from ImageMagick.
 */
 
 #ifndef __PICTURE_ALGEBRA_H__
-#define __PICTURE_ALGEBRA_H__ 
+#define __PICTURE_ALGEBRA_H__
 
 #include "DateTime.h"
 #include "Attribute.h"
@@ -91,19 +91,19 @@ class Picture;
 
 /*
 
-With the enum ~HistogramChannel~, applications can specify which 
+With the enum ~HistogramChannel~, applications can specify which
 color channel should be used to create the histogram. For ~HC\_BRIGHTNESS~,
-the brightness (or luminance) $Y$ of each pixel is calculated with 
+the brightness (or luminance) $Y$ of each pixel is calculated with
 $Y = 0.3 \cdot R + 0.59 \cdot G + 0.11 \cdot B$, where $R$, $G$ and $B$
 are the red, green and blue components of the pixel.
 
 */
 
-enum HistogramChannel { 
-  HC_RED, 
-  HC_GREEN, 
-  HC_BLUE, 
-  HC_BRIGHTNESS, 
+enum HistogramChannel {
+  HC_RED,
+  HC_GREEN,
+  HC_BLUE,
+  HC_BRIGHTNESS,
 };
 
 /*
@@ -126,7 +126,7 @@ levels is represented by one array element.
 ~channel~ specifies the channel, which has been used to create this object.
 See the description of ~HistogramChannel~ for details.
 
-~histogramMaxValue~ contains the maximum value of all four histograms of 
+~histogramMaxValue~ contains the maximum value of all four histograms of
 the original image. See private attribute ~histogram~ of class ~Picture~
 for details on this attribute.
 
@@ -154,12 +154,12 @@ no attributes are changed when ~Histogram~ objects are copied.
 /*
 
 Creates a ~Histogram~ object from the RGB data in the array ~imgdata~ of
-size ~size~ for the specified ~channel~ (see the description of 
+size ~size~ for the specified ~channel~ (see the description of
 ~HistogramChannel~ for details on this parameter).
 
 */
-    Histogram(unsigned char* imgdata, 
-        unsigned long size, 
+    Histogram(unsigned char* imgdata,
+        unsigned long size,
         HistogramChannel channel);
 
 /*
@@ -177,7 +177,7 @@ see the description of ~HistogramChannel~ for details on this parameter) and
 3.3 Attribute read and write methods
 
 Returns an pointer to an array with 256 unsigned int elements. Each of
-the 256 elements represents a brightness level and contains the percentage 
+the 256 elements represents a brightness level and contains the percentage
 of pixels of this brightness in the selected channel
 in the original image, from which the ~Histogram~ object has been
 created, .
@@ -190,7 +190,7 @@ created, .
 
 /*
 
-Returns the channel in the original image, from which the ~Histogram~ 
+Returns the channel in the original image, from which the ~Histogram~
 object has been created (see the description of ~HistogramChannel~
 for details).
 
@@ -243,6 +243,8 @@ Guide for details.
     int Compare(const Attribute* a) const;
     bool Adjacent(const Attribute* attr) const { return false; }
     Histogram* Clone(void) const;
+
+    static const string BasicType() { return "histogram"; }
 };
 
 /*
@@ -270,17 +272,17 @@ segments without using FLOBs, all string attributes are defined as ~STRING~,
 which is an array of 48+1 characters, ie. this array has exactly the size
 of the maximum length of a SECONDO string.
 
-Attribute ~date~ contains the image's date in the string representation of the 
+Attribute ~date~ contains the image's date in the string representation of the
 DateTime algebra.
 
 ~isDefined~ is used to represent undefined SECONDO ~picture~ objects.
 
 ~jpegData~ is used to store the binary JPEG data of the image in SECONDO.
 
-The four histograms in attribute ~histogram~ (for red, green, blue and 
-luminance) are created during object construction. Main reason is the 
-graphical representation of histograms: If multiple histograms are displayed 
-in one graph, the maximum value of each histogram must be known for proper 
+The four histograms in attribute ~histogram~ (for red, green, blue and
+luminance) are created during object construction. Main reason is the
+graphical representation of histograms: If multiple histograms are displayed
+in one graph, the maximum value of each histogram must be known for proper
 scaling of the Y axis. As the histogram viewer receives a single
 histogram during each call only and cannot access the other histograms, each
 histogram needs to contain an attribute specifying the maximum value, which
@@ -388,12 +390,12 @@ object's FLOB.
 
 /*
 
-Return a pointer to the JPEG image data as binary data, ie. as sequence of 
+Return a pointer to the JPEG image data as binary data, ie. as sequence of
 bytes in format RGBRGBRGB... Note that the memory containing the JPEG image
-data is explicitely allocated during this call. Once you have completed 
+data is explicitely allocated during this call. Once you have completed
 working with the data, you have to free the allocated memory to avoid
 memory leaks. As the image data is stored in a FLOB, there is no more
-efficient way to implement this method. ~size~ will be set to the total size 
+efficient way to implement this method. ~size~ will be set to the total size
 in bytes of the binary data returned.
 
 */
@@ -403,7 +405,7 @@ in bytes of the binary data returned.
 
 4.5 Attribute read and write methods
 
-The following five methods return the value of the respective private 
+The following five methods return the value of the respective private
 attribute.
 
 */
@@ -454,7 +456,7 @@ is a grayscale image.
 
 /*
 
-Scale image to width ~w~ and height ~h~ and return pointer to new ~Picture~ 
+Scale image to width ~w~ and height ~h~ and return pointer to new ~Picture~
 object containing the result of the operation.
 
 */
@@ -493,7 +495,7 @@ horizontally otherwise.
 As the comparison operations are based on histograms, they go into the same
 section as the ~Colordist~ method.
 
-Method ~Colordist~ returns a pointer to a copy of the specified channel's 
+Method ~Colordist~ returns a pointer to a copy of the specified channel's
 histogram, as stored in private attribute ~histogram~ during object creation.
 
 */
@@ -507,7 +509,7 @@ so that the averages have a differences of more than ~p~ percent.
 
 */
     bool Equals(Picture* pic, int n, int p, bool& valid, double& diff);
-    bool Contains(Picture* pic); 
+    bool Contains(Picture* pic);
 
 /*
 
@@ -517,7 +519,7 @@ interval $[l, u]$.
 */
     bool Like(int p, int t, int l, int u, bool & valid);
     bool Like(double p, double t, int l, int u, bool& valid);
-    
+
 /*
 
 4.9 Methods required to implement ~Attribute~
@@ -528,7 +530,7 @@ Guide for details.
 */
     size_t HashValue(void) const;
     void CopyFrom(const Attribute*);
-    int Compare(const Attribute* a) const; 
+    int Compare(const Attribute* a) const;
     bool Adjacent(const Attribute* attr) const { return false; }
     Picture* Clone(void) const;
     int NumOfFLOBs() const { return 1; }
@@ -545,6 +547,8 @@ this method does not compare any other attributes of the ~Picture~ class.
 */
 
     int SimpleCompare(const Attribute* a) const;
+
+    static const string BasicType() { return "picture"; }
 };
 
 

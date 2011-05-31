@@ -58,44 +58,44 @@ enum SIM_MATRIX_ID
     SIM_MATRIX_LAB256
 };
 
-Sym HSV8("hsv8");
-Sym HSV16("hsv16");
-Sym HSV32("hsv32");
-Sym HSV64("hsv64");
-Sym HSV128("hsv128");
-Sym HSV256("hsv256");
-Sym LAB256("lab256");
+const string HSV8("hsv8");
+const string HSV16("hsv16");
+const string HSV32("hsv32");
+const string HSV64("hsv64");
+const string HSV128("hsv128");
+const string HSV256("hsv256");
+const string LAB256("lab256");
 
-Sym HSV8_NCOMPR("hsv8_ncompr");
-Sym HSV16_NCOMPR("hsv16_ncompr");
-Sym HSV32_NCOMPR("hsv32_ncompr");
-Sym HSV64_NCOMPR("hsv64_ncompr");
-Sym HSV128_NCOMPR("hsv128_ncompr");
-Sym HSV256_NCOMPR("hsv256_ncompr");
-Sym LAB256_NCOMPR("lab256_ncompr");
+const string HSV8_NCOMPR("hsv8_ncompr");
+const string HSV16_NCOMPR("hsv16_ncompr");
+const string HSV32_NCOMPR("hsv32_ncompr");
+const string HSV64_NCOMPR("hsv64_ncompr");
+const string HSV128_NCOMPR("hsv128_ncompr");
+const string HSV256_NCOMPR("hsv256_ncompr");
+const string LAB256_NCOMPR("lab256_ncompr");
 
-Sym HSV8_DESCR("hsv-color histogram with 8 bins");
-Sym HSV16_DESCR("hsv-color histogram with 16 bins");
-Sym HSV32_DESCR("hsv-color histogram with 32 bins");
-Sym HSV64_DESCR("hsv-color histogram with 64 bins");
-Sym HSV128_DESCR("hsv-color histogram with 128 bins");
-Sym HSV256_DESCR("hsv-color histogram with 256 bins");
-Sym LAB256_DESCR("lab-color histogram with 256 bins");
+const string HSV8_DESCR("hsv-color histogram with 8 bins");
+const string HSV16_DESCR("hsv-color histogram with 16 bins");
+const string HSV32_DESCR("hsv-color histogram with 32 bins");
+const string HSV64_DESCR("hsv-color histogram with 64 bins");
+const string HSV128_DESCR("hsv-color histogram with 128 bins");
+const string HSV256_DESCR("hsv-color histogram with 256 bins");
+const string LAB256_DESCR("lab-color histogram with 256 bins");
 
 
-Sym HSV8_NCOMPR_DESCR(
+const string HSV8_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 8 bins");
-Sym HSV16_NCOMPR_DESCR(
+const string HSV16_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 16 bins");
-Sym HSV32_NCOMPR_DESCR(
+const string HSV32_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 32 bins");
-Sym HSV64_NCOMPR_DESCR(
+const string HSV64_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 64 bins");
-Sym HSV128_NCOMPR_DESCR(
+const string HSV128_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 128 bins");
-Sym HSV256_NCOMPR_DESCR(
+const string HSV256_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 256 bins");
-Sym LAB256_NCOMPR_DESCR(
+const string LAB256_NCOMPR_DESCR(
         "uncompressed lab-color histogram with 256 bins");
 
 // domain of the histogram values (should be some floating point

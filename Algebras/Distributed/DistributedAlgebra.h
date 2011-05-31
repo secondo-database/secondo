@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -36,7 +36,7 @@ operator that gives back a darray.
 Operations on the darray-elements are carried out on the remote machines.
 
 Additionally there exists a class LogOutput. This is used to print
-debug messages into a file. 
+debug messages into a file.
 
 
 1. Preliminaries
@@ -67,10 +67,10 @@ private:
 public:
   virtual ~LogOutput();
   static LogOutput* getInstance();
-  
+
   void print(const std::string& msg);
   void print(int val);
-  
+
 private:
   std::ofstream *m_out;
 };
@@ -90,15 +90,15 @@ class DArray
    DArray();
    DArray(ListExpr, string,int,ListExpr);
    ~DArray();
-         
+
   bool initialize(ListExpr, string, int,ListExpr,const vector<Word>& );
   bool initialize(ListExpr, string,int,ListExpr);
-         
+
    //Returns the content of m_elements[int]
    const Word& get(int);
    //Sets m_elements[int] and sends the object to the respective worker
    void set(Word,int);
-                           
+
   int getAlgID() const { return alg_id; }
   int getTypID() const { return typ_id; }
   ListExpr getType() const { return type; }
@@ -115,16 +115,16 @@ class DArray
 
   //Is needed to provide DServer-objects with a pointer to the elements-array
   const vector<Word>& getElements() const {return m_elements;}
-  
-         
+
+
    //Retrieves the element int/all elements from the worker
    //refresh must be called before calling get()
    void refresh(int);
    void refresh();
-         
+
    //Deletes all the remote elements on the workers
    void remove();
-         
+
    //Persistens Storage functions for the type constructor
    static Word In( const ListExpr typeInfo , const ListExpr instance ,
                    const int errorPos , ListExpr& errorInfo ,
@@ -141,18 +141,20 @@ class DArray
                                  Word& value );
    static bool Save( SmiRecord& valueRecord , size_t& offset ,
                                  const ListExpr typeInfo , Word& value );
-         
-         
+
+
    //Static no of existing DArray-Instances, used for naming
    static int no;
-         
+
    bool isRelType() {return isRelation;}
-         
+
+   static const string BasicType() { return "darray"; }
+
    private:
-              
+
    //Sends the relation in elements[index] to the respective worker
    void WriteRelation(int index);
-         
+
    //Is the DArray defined (posseses a name, size, serverlist, type?!)
    bool defined;
 
@@ -166,13 +168,13 @@ class DArray
    int typ_id;
    string name;
    ListExpr type;
-         
+
    ListExpr serverlist;
-         
+
    DServerManager* manager;
-         
+
   vector<Word> m_elements;
-         
+
 };
 
 #endif // _DISTRIBUTEDALGEBRA_H_

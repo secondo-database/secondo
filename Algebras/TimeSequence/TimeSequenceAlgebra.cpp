@@ -31,14 +31,14 @@ June, 2009 Mahmoud Sakr
 
 1 Overview
 
-This source file essentially contains the necessary implementations for 
-evaluating the spatiotemporal pattern predicates (STP). 
+This source file essentially contains the necessary implementations for
+evaluating the spatiotemporal pattern predicates (STP).
 
 2 Defines and includes
 
 */
 #include "TimeSequenceAlgebra.h"
-
+#include "Symbols.h"
 
 namespace TSeq{
 #define Min(X,Y) ((X) < (Y) ? (X) : (Y))
@@ -59,33 +59,36 @@ ConstTemporalConstTemporalTypeMapReal( ListExpr args )
       map2 = nl->Second( map ),
       map3 = nl->Third( map ),
       map4 = nl->Fourth( map );
-      if(nl->IsEqual( map1, "map" ) && nl->IsEqual( map4, "bool" ))
+      if(nl->IsEqual( map1, Symbol::MAP() ) &&
+        nl->IsEqual( map4, CcBool::BasicType() ))
       {
-        if( (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "mint" )  &&
-            nl->IsEqual( map2, "int"  ) && nl->IsEqual( map3,  "int" )) 
+        if( (nl->IsEqual( arg1, MInt::BasicType() ) &&
+            nl->IsEqual( arg2, MInt::BasicType() )  &&
+            nl->IsEqual( map2, CcInt::BasicType()  ) &&
+            nl->IsEqual( map3,  CcInt::BasicType() ))
             ||
             (nl->IsEqual( arg1, "mset" ) && nl->IsEqual( arg2, "mset" )  &&
             nl->IsEqual( map2, "intset"  ) && nl->IsEqual( map3,  "intset" )))
-          return nl->SymbolAtom( "real" );
+          return nl->SymbolAtom( CcReal::BasicType() );
       }
     }
     else
     {
       ErrorReporter::ReportError("similarity operator expects "
           "a (map data data bool) as last parameter, but got: " + argstr);
-      return nl->SymbolAtom( "typeerror" );
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
     }
   }
   nl->WriteToString(argstr, args);
   ErrorReporter::ReportError("typemap error in operator similarity. "
       "Operator  received: " + argstr);
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 template <class Mapping, class Unit, class Static>
 double TWED(Mapping *arg1, Mapping *arg2, Instant* tMax, Word &map)
 {
-  return 0; 
+  return 0;
 }
 
 double TWEDMSet(MSet *arg1, MSet *arg2, Instant* tMax, Word &map)
@@ -97,9 +100,9 @@ double TWEDMSet(MSet *arg1, MSet *arg2, Instant* tMax, Word &map)
   USetRef unit1(false), unit2(false);
   Word mapRes;
   int cost=0;
-  
+
   DTW[0][0]= 0;
-  
+
   for (int i = 1 ; i< n; ++i)
   {
     arg1->Get(i, unit1);
@@ -128,7 +131,7 @@ double TWEDMSet(MSet *arg1, MSet *arg2, Instant* tMax, Word &map)
             // insertion
             DTW[i-1][j] + 1 ,
             // deletion
-            DTW[i][j-1] + 1), 
+            DTW[i][j-1] + 1),
             // match
             DTW[i-1][j-1] + cost) ;
       if(debugme)
@@ -141,40 +144,40 @@ double TWEDMSet(MSet *arg1, MSet *arg2, Instant* tMax, Word &map)
       }
     }
   }
-  return DTW[n-1][m-1]; 
+  return DTW[n-1][m-1];
 }
 template <class Mapping, class Unit, class Static>
 int TWEDValueMap(
-    Word* args, Word& result, int message, Word& local, Supplier s) 
+    Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
   CcReal* res = static_cast<CcReal*>(result.addr);
   res->SetDefined(true);
-  
+
   Mapping *arg1= static_cast<Mapping*>(args[0].addr),
           *arg2= static_cast<Mapping*>(args[1].addr);
   Instant *dMax= static_cast<Instant*>(args[2].addr);
   Word map= args[4];
-  
-  
+
+
   double dist= TWED<Mapping, Unit, Static>(arg1, arg2, dMax, map);
   res->Set(true, dist);
   return 0;
 }
 
 int TWEDMSetValueMap(
-    Word* args, Word& result, int message, Word& local, Supplier s) 
+    Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
   CcReal* res = static_cast<CcReal*>(result.addr);
   res->SetDefined(true);
-  
+
   MSet *arg1= static_cast<MSet*>(args[0].addr),
           *arg2= static_cast<MSet*>(args[1].addr);
   Instant *dMax= static_cast<Instant*>(args[2].addr);
   Word map= args[3];
-  
-  
+
+
   double dist= TWEDMSet(arg1, arg2, dMax, map);
   res->Set(true, dist);
   return 0;
@@ -200,7 +203,7 @@ int TWEDSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mset")
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == MInt::BasicType() )
     return 1;
 
   return -1; // This point should never be reached

@@ -43,6 +43,7 @@ using namespace std;
 #include "Algebra.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "Symbols.h"
 #include "NestedList.h"
 #include "Base64.h"
 
@@ -148,29 +149,29 @@ Picture::Picture(string imgdataB64,
     if (PA_DEBUG) cerr << "Picture::Picture() upper value " << name << endl;
 
     if (strstr(name, ".JPG")) {
-        if (PA_DEBUG) 
-            cerr << "Picture::Picture() JPEG Format detected" << endl;  
+        if (PA_DEBUG)
+            cerr << "Picture::Picture() JPEG Format detected" << endl;
 
         imgType = IMAGE_JPEG;
     } else if (strstr(name, ".TGA")) {
-        if (PA_DEBUG) 
+        if (PA_DEBUG)
             cerr << "Picture::Picture() TGA Format detected" << endl;
 
         imgType = IMAGE_TGA;
     } else if (strstr(name, ".PCX")) {
-        if (PA_DEBUG) 
+        if (PA_DEBUG)
             cerr << "Picture::Picture() PCX Format detected" << endl;
 
         imgType = IMAGE_PCX;
     } else if (strstr(name, ".BMP")) {
-        if (PA_DEBUG) 
+        if (PA_DEBUG)
             cerr << "Picture::Picture() Bitmap Format detected" << endl;
 
         imgType = IMAGE_BMP;
     } else {
-        if (PA_DEBUG) 
-            cerr << "Picture::Picture() unknown image format: " 
-                 << filename 
+        if (PA_DEBUG)
+            cerr << "Picture::Picture() unknown image format: "
+                 << filename
                  << endl;
 
         delete[] imgdata;
@@ -180,15 +181,15 @@ Picture::Picture(string imgdataB64,
     }
 
     if (imgType != IMAGE_JPEG) {
-        converter = 
-            new CImageConverter(imgType, 
-                                (unsigned char*)imgdata, 
+        converter =
+            new CImageConverter(imgType,
+                                (unsigned char*)imgdata,
                                 (unsigned long)size);
 
         if (!converter->Defined()) {
-            if (PA_DEBUG) 
-                cerr << "Picture::Picture() cannot read image: " 
-                     << filename 
+            if (PA_DEBUG)
+                cerr << "Picture::Picture() cannot read image: "
+                     << filename
                      << endl;
             delete[] imgdata;
             jpegData = 0;
@@ -202,9 +203,9 @@ Picture::Picture(string imgdataB64,
 
             strcat(filename, ".JPG");
 
-            if (PA_DEBUG) 
-                cerr << "Picture::Picture() image converted, size: " 
-                     << len 
+            if (PA_DEBUG)
+                cerr << "Picture::Picture() image converted, size: "
+                     << len
                      << endl;
         }
 
@@ -244,9 +245,9 @@ Picture::Picture(char* imgdata,
 Picture::~Picture(void) {
     if (PA_DEBUG) cerr << "Picture::~Picture() called" << endl;
 
-    //if (PA_DEBUG) 
-    //  cerr << "Picture::~Picture() jpegData=" 
-    //       << (unsigned int) jpegData 
+    //if (PA_DEBUG)
+    //  cerr << "Picture::~Picture() jpegData="
+    //       << (unsigned int) jpegData
     //       << endl;
 
     if (PA_DEBUG) cerr << "Picture::~Picture() done" << endl;
@@ -285,14 +286,14 @@ void Picture::createHistograms(char* imgdata, unsigned long size) {
 
     // compute percentage values
 
-    for (int i=HC_RED; i<=HC_BRIGHTNESS; i++) 
-    { 
+    for (int i=HC_RED; i<=HC_BRIGHTNESS; i++)
+    {
       histogram[i] = Histogram( rgbData, rgbSize, (HistogramChannel)i );
       if ( histogram[i].GetHistogramMaxValue() > maxValue )
           maxValue = histogram[i].GetHistogramMaxValue();
       histogram[i].SetHistogramMaxValue( maxValue );
       histogram[i].ScaleValues(relFactor);
-      
+
       if (RTFlag::isActive("PA:histogramCheck")) {
         histogram[i].CheckSum((int)numOfPixels);
         histogram[i].CheckSum(100.0);
@@ -310,9 +311,9 @@ void Picture::createHistograms(char* imgdata, unsigned long size) {
 string Picture::GetJPEGBase64Data(void) {
     if (PA_DEBUG) cerr << "Picture::GetJPEGBase64Data() called" << endl;
 
-    //if (PA_DEBUG) 
-    //  cerr << "Picture::GetJPEGBase64Data() jpegData->Size()=" 
-    //       << jpegData->Size() 
+    //if (PA_DEBUG)
+    //  cerr << "Picture::GetJPEGBase64Data() jpegData->Size()="
+    //       << jpegData->Size()
     //       << endl;
 
     Base64 b64;
@@ -326,9 +327,9 @@ string Picture::GetJPEGBase64Data(void) {
 
     delete [] imgdata;
 
-    if (PA_DEBUG) 
-        cerr << "Picture::GetJPEGBase64Data() res.length()=" 
-             << res.length() 
+    if (PA_DEBUG)
+        cerr << "Picture::GetJPEGBase64Data() res.length()="
+             << res.length()
              << endl;
 
     return res;
@@ -419,9 +420,9 @@ void Picture::CopyFrom(const Attribute* attr) {
         strcpy(category, p->category);
         strcpy(date, p->date);
 
-        if (PA_DEBUG) 
+        if (PA_DEBUG)
             cerr << "Picture::CopyFrom() filename" << p->filename << endl;
-    
+
         jpegData.copyFrom(p->jpegData);
         memcpy(histogram, p->histogram, sizeof(histogram));
     }
@@ -449,7 +450,7 @@ int Picture::Compare(const Attribute* a) const  {
 
     res = strcmp(date, p->date);
     if (res != 0) return res;
-    
+
     if (PA_DEBUG) cerr << "Picture::Compare() date equal" << endl;
 
     if (isPortrait && !p->isPortrait) return -1;
@@ -499,7 +500,7 @@ bool Picture::Export(string filename) {
 bool Picture::Display(void) {
     if (PA_DEBUG) cerr << "Picture::Display() called" << endl;
 
-#ifndef SECONDO_WIN32 
+#ifndef SECONDO_WIN32
 
     static unsigned int fileCtr = 0;
     unsigned long size;
@@ -512,8 +513,8 @@ bool Picture::Display(void) {
     char* filename = strdup(fileStr.str().c_str());
     int fd = mkstemp(filename);
     if (fd < 0) {
-        cerr << "could not create temporary file '" 
-             << filename 
+        cerr << "could not create temporary file '"
+             << filename
              << "': "
              << endl;
         perror("mkstemp");
@@ -544,7 +545,7 @@ bool Picture::Display(void) {
         delete[] buf;
         return false;
     }
-    
+
     close(fd);
 
     string cmd = PROG_DISPLAY;
@@ -600,13 +601,13 @@ int Picture::SimpleCompare(const Attribute* a) const {
     delete [] buf1;
     delete [] buf2;
 
-    if (res != 0)   
+    if (res != 0)
         return res;
     else if (size1 < size2)
         return -1;
     else if (size1 > size2)
         return 1;
-    else 
+    else
         return 0;
 }
 
@@ -636,7 +637,7 @@ static ListExpr OutPicture(ListExpr typeInfo, Word value) {
                 nl->BoolAtom(p->IsPortrait()),
                 imgdata);
     } else
-        return nl->SymbolAtom("undef");
+        return nl->SymbolAtom(Symbol::UNDEFINED());
 }
 
 static Word InPicture(const ListExpr typeInfo,
@@ -671,27 +672,27 @@ static Word InPicture(const ListExpr typeInfo,
             && nl->AtomType(isportrait) == BoolType
             && nl->IsAtom(imgdata)
             && nl->AtomType(imgdata) == TextType) {
-            if (PA_DEBUG) 
+            if (PA_DEBUG)
                 cerr << "InPicture() list elements are correct" << endl;
 
             DateTime dt(instanttype);
 
             if (dt.ReadFrom(nl->StringValue(date))) {
-                if (PA_DEBUG) 
+                if (PA_DEBUG)
                     cerr << "InPicture() date is correct" << endl;
                 string imgdataBase64 = "";
                 string current;
                 while (nl->GetNextText(imgdata, current, 72*1000+1000)) {
                     imgdataBase64 += current;
                     if (PA_DEBUG)
-                        cerr << "InPicture() position=" 
-                             << imgdataBase64.length() 
+                        cerr << "InPicture() position="
+                             << imgdataBase64.length()
                              << endl;
                 }
-                
+
                 if (PA_DEBUG)
                     cerr << "InPicture() imgdataBase64.length()="
-                         << imgdataBase64.length() 
+                         << imgdataBase64.length()
                          << endl;
 
                 correct = true;
@@ -701,13 +702,13 @@ static Word InPicture(const ListExpr typeInfo,
                                 nl->StringValue(category),
                                 nl->BoolValue(isportrait),
                                 nl->StringValue(date));
-                if (PA_DEBUG) 
-                    cerr << "InPicture() created picture at " 
-                         << (void*) pic 
+                if (PA_DEBUG)
+                    cerr << "InPicture() created picture at "
+                         << (void*) pic
                          << endl;
                 return SetWord(pic);
             } else
-                if (PA_DEBUG) 
+                if (PA_DEBUG)
                     cerr << "InPicture() date is not correct" << endl;
 
         }
@@ -734,7 +735,7 @@ static ListExpr PictureProperty(void) {
                 nl->StringAtom("Remarks")),
             nl->FiveElemList(
                 nl->StringAtom("-> DATA"),
-                nl->StringAtom("picture"),
+                nl->StringAtom(Picture::BasicType()),
                 nl->StringAtom(
                     "(<file> <date> <category> <isportrait> <data> )"),
                 nl->StringAtom("n/a"),
@@ -756,9 +757,9 @@ static Word CreatePicture(const ListExpr typeInfo) {
 }
 
 static void DeletePicture(const ListExpr typeInfo, Word& w) {
-    if (PA_DEBUG) 
-        cerr << "DeletePicture() called for " 
-             << (void*) w.addr 
+    if (PA_DEBUG)
+        cerr << "DeletePicture() called for "
+             << (void*) w.addr
              << endl;
 
     delete (Picture*) w.addr;
@@ -768,9 +769,9 @@ static void DeletePicture(const ListExpr typeInfo, Word& w) {
 }
 
 static void ClosePicture(const ListExpr typeInfo, Word& w) {
-    if (PA_DEBUG) 
-        cerr << "ClosePicture() called for " 
-             << (void*) w.addr 
+    if (PA_DEBUG)
+        cerr << "ClosePicture() called for "
+             << (void*) w.addr
              << endl;
 
     delete (Picture*) w.addr;
@@ -795,7 +796,7 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
                         const ListExpr typeInfo,
                         Word& w) {
     if (PA_DEBUG) cerr << "OpenPicture() called" << endl;
-    
+
     return OpenAttribute<Picture>(rec, offset, typeInfo,w);
 }
 
@@ -814,7 +815,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 
 static bool CheckPicture(ListExpr type, ListExpr& errorInfo) {
     if (PA_DEBUG) cerr << "CheckPicture() called" << endl;
-    return  nl->IsEqual(type, "picture");
+    return  nl->IsEqual(type, Picture::BasicType());
 }
 
 /*
@@ -824,8 +825,8 @@ static bool CheckPicture(ListExpr type, ListExpr& errorInfo) {
 */
 
 static void* CastPicture(void* addr) {
-    if (PA_DEBUG) 
-        cerr << "CastPicture() called, addr=" 
+    if (PA_DEBUG)
+        cerr << "CastPicture() called, addr="
              << (void*) addr
              << endl;
 
@@ -842,11 +843,11 @@ TypeConstructor* picture = 0;
 
  void initPicture(){
   picture = new TypeConstructor (
-    "picture",                                //name
-    PictureProperty,                          //property function describing 
+    Picture::BasicType(),                                //name
+    PictureProperty,                          //property function describing
                                               //  signature
     OutPicture, InPicture,                    //Out and In functions
-    0, 0,                                     //SaveToList and RestoreFromList 
+    0, 0,                                     //SaveToList and RestoreFromList
                                               //  functions
     CreatePicture, DeletePicture,             //object creation and deletion
     OpenPicture, SavePicture,                 //object open and save
@@ -868,20 +869,20 @@ ListExpr PictureDateTypeMap(ListExpr args) {
     if (PA_DEBUG) cerr << "PictureDateTypeMap() called" << endl;
 
     if (nl->ListLength(args) == 1) {
-        if (nl->IsEqual(nl->First(args), "picture"))
-            return nl->SymbolAtom("instant");
+        if (nl->IsEqual(nl->First(args), Picture::BasicType()))
+            return nl->SymbolAtom(Instant::BasicType());
         else {
             string lexpr;
             nl->WriteToString(lexpr, nl->First(args));
             ErrorReporter::ReportError(
                 "expected 'picture' argument but received '"+lexpr+"'");
         }
-    } else 
+    } else
         ErrorReporter::ReportError(
             "expected one argument but received "
             +nl->ListLength(args));
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr PictureExportTypeMap(ListExpr args) {
@@ -890,26 +891,26 @@ ListExpr PictureExportTypeMap(ListExpr args) {
     string lexpr;
 
     if (nl->ListLength(args) == 2) {
-        if (!nl->IsEqual(nl->First(args), "picture")) {
+        if (!nl->IsEqual(nl->First(args), Picture::BasicType())) {
             nl->WriteToString(lexpr, nl->First(args));
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
                 +lexpr
                 +"'");
-        } else if (!nl->IsEqual(nl->Second(args), "string")) {
+        } else if (!nl->IsEqual(nl->Second(args), CcString::BasicType())) {
             nl->WriteToString(lexpr, nl->Second(args));
             ErrorReporter::ReportError(
                 "expected 'string' as second argument but received '"
                 +lexpr
                 +"'");
-        } else 
-            return nl->SymbolAtom("bool");
+        } else
+            return nl->SymbolAtom(CcBool::BasicType());
     } else
         ErrorReporter::ReportError(
             "expected two arguments but received "
             +nl->ListLength(args));
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr PictureSimpleEqualsTypeMap(ListExpr args) {
@@ -918,26 +919,26 @@ ListExpr PictureSimpleEqualsTypeMap(ListExpr args) {
     string lexpr;
 
     if (nl->ListLength(args) == 2) {
-        if (!nl->IsEqual(nl->First(args), "picture")) {
+        if (!nl->IsEqual(nl->First(args), Picture::BasicType())) {
             nl->WriteToString(lexpr, nl->First(args));
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
                 +lexpr
                 +"'");
-        } else if (!nl->IsEqual(nl->Second(args), "picture")) {
+        } else if (!nl->IsEqual(nl->Second(args), Picture::BasicType())) {
             nl->WriteToString(lexpr, nl->Second(args));
             ErrorReporter::ReportError(
                 "expected 'string' as second argument but received '"
                 +lexpr
                 +"'");
-        } else 
-            return nl->SymbolAtom("bool");
+        } else
+            return nl->SymbolAtom(CcBool::BasicType());
     } else
         ErrorReporter::ReportError(
             "expected two arguments but received "
             +nl->ListLength(args));
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -958,7 +959,7 @@ int PictureFilenameValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-        ((CcString*) result.addr)->Set(true, 
+        ((CcString*) result.addr)->Set(true,
                                        (STRING_T*) p->GetFilename().c_str());
     else
         ((CcString*) result.addr)->Set(false, (STRING_T*) "");
@@ -978,7 +979,7 @@ int PictureCategoryValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-        ((CcString*) result.addr)->Set(true, 
+        ((CcString*) result.addr)->Set(true,
                                        (STRING_T*) p->GetCategory().c_str());
     else
         ((CcString*) result.addr)->Set(false, (STRING_T*) "");
@@ -1033,9 +1034,9 @@ int PictureDisplayValueMap(Word* args,
 
     Picture* p = (Picture*) args[0].addr;
 
-    if (PA_DEBUG) 
-        cerr << "PictureDisplayValueMap() filename" 
-             << p->GetFilename() 
+    if (PA_DEBUG)
+        cerr << "PictureDisplayValueMap() filename"
+             << p->GetFilename()
              << endl;
 
     result = qp->ResultStorage(s);
@@ -1061,7 +1062,7 @@ int PictureExportValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-        ((CcBool*) result.addr)->Set(true, 
+        ((CcBool*) result.addr)->Set(true,
                                      p->Export((char*) str->GetStringval()));
     else
         ((CcBool*) result.addr)->Set(false, false);
@@ -1082,7 +1083,7 @@ int PictureSimpleEqualsValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p1->IsDefined() && p2->IsDefined())
-        ((CcBool*) result.addr)->Set(true, 
+        ((CcBool*) result.addr)->Set(true,
                                      p1->SimpleCompare((Attribute*) p2) == 0);
     else
         ((CcBool*) result.addr)->Set(false, false);

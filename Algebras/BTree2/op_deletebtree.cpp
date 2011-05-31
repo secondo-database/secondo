@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the insertbtree and insertbtree2 Operators 
+[1] Implementation of the insertbtree and insertbtree2 Operators
 
 [TOC]
 
@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "Symbols.h"
 
 #include "BTree2.h"
 
@@ -69,7 +70,7 @@ ListExpr deletebtree::TypeMappingAll(ListExpr args, bool wrapper)
     CHECK_COND(nl->ListLength(args) == 4,
              "Operator deletebtree2 expects 4 arguments.");
   }
-  
+
   /* Split argument in four parts */
   ListExpr streamDescription = nl->First(args);
   ListExpr btreeDescription = nl->Second(args);
@@ -83,7 +84,7 @@ ListExpr deletebtree::TypeMappingAll(ListExpr args, bool wrapper)
   ListExpr attrList = nl->Second(nl->Second(streamDescription)); // get attrlist
 
   if (wrapper){
-    CHECK_COND(nl->ListLength(attrList)>1, 
+    CHECK_COND(nl->ListLength(attrList)>1,
            "stream must contain at least 2 attributes");
     ListExpr rest = nl->Second(nl->Second(streamDescription));
     ListExpr next = nl->First(rest);
@@ -93,40 +94,40 @@ ListExpr deletebtree::TypeMappingAll(ListExpr args, bool wrapper)
       rest = nl->Rest(rest);
     }
 
-    if(!listutils::isSymbol(nl->Second(next),"tid")){
+    if(!listutils::isSymbol(nl->Second(next),TupleIdentifier::BasicType())){
       return listutils::typeError("last attribute must be of type tid");
-    }  
+    }
   }
- 
+
   if(!listutils::isBTree2Description(btreeDescription)){
     return listutils::typeError("second argument is not a valid btree2");
   }
 
   ListExpr btreeValue = nl->Third(btreeDescription);
   if (wrapper){
-    CHECK_COND(listutils::isSymbol(btreeValue, "tid"),
+    CHECK_COND(listutils::isSymbol(btreeValue, TupleIdentifier::BasicType()),
                "Value type of btree has to b tid");
     CHECK_COND(listutils::isSymbol(nl->Fourth(btreeDescription), "multiple"),
                "Keys have to be multiple");
   }
-   
+
   if(!listutils::isSymbol(nameOfKeyAttribute)){
     return listutils::typeError("invalid name for key attribute");
   }
 
-  
+
 
 /*
 Check key
 
-*/  
- 
+*/
+
   string name;
   nl->WriteToString(name, nameOfKeyAttribute);
   int keyIndex = listutils::findAttribute(attrList, name, attrType);
-  CHECK_COND(keyIndex > 0, "Tuples do not contain an attribute named " + 
+  CHECK_COND(keyIndex > 0, "Tuples do not contain an attribute named " +
                                              name + ".");
-  
+
   ListExpr btreeKey = nl->Second(btreeDescription);
   CHECK_COND(nl->Equal(attrType, btreeKey), "Key in tuple is "
               "different from btree2 key.");
@@ -142,27 +143,27 @@ Check value-types
       return listutils::typeError("invalid name for data attribute");
     }
     nl->WriteToString(name, nameOfDataAttribute);
-    
+
     if (name == "none"){
       CHECK_COND(nl->Equal(nameOfDataAttribute, btreeValue),
                "Argument value type is different from btree value type.");
     }
     else {
       valueIndex = listutils:: findAttribute(attrList, name, attrType);
-      CHECK_COND(valueIndex > 0, "Tuples do not contain an attribute named " + 
+      CHECK_COND(valueIndex > 0, "Tuples do not contain an attribute named " +
                                                     name + ".");
       CHECK_COND(nl->Equal(attrType, btreeValue), "Value type in tuple is "
               "different from btree2 value type.");
-    }    
+    }
   }
   if (wrapper){
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                       nl->TwoElemList(nl->IntAtom(keyIndex), nl->
                       IntAtom(nl->ListLength(attrList))), streamDescription);
   }
-  else{  
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                          nl->TwoElemList(nl->IntAtom(keyIndex), 
+  else{
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                          nl->TwoElemList(nl->IntAtom(keyIndex),
                                 nl->IntAtom(valueIndex)), streamDescription);
   }
 }
@@ -185,24 +186,24 @@ ListExpr deletebtree::TypeMapping2(ListExpr args){
 }
 
 /*
-Value map 
+Value map
 
 */
 struct vmInfo{
    BTree2* btree;
    int keyIndex;
    int valueIndex;
-   
+
    vmInfo(BTree2* b, int k, int v) : btree(b), keyIndex(k), valueIndex(v) {}
-}; 
-  
+};
+
 int
 deletebtree::ValueMapping1(Word* args, Word& result, int message,
                                 Word& local, Supplier s)
-{ 
+{
   vmInfo* info;
   Tuple* tuple;
-  Word elem; 
+  Word elem;
   Attribute* key;
   Attribute* value;
   bool res = false;
@@ -219,9 +220,9 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       return 0;
     }
-    
+
     case REQUEST :
-    {       
+    {
       qp->Request(args[0].addr, elem);
       if (qp->Received(args[0].addr))
       {
@@ -239,7 +240,7 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
         return YIELD;
       }
       return CANCEL;
-    } 
+    }
 
     case CLOSE :
     {
@@ -258,10 +259,10 @@ deletebtree::ValueMapping1(Word* args, Word& result, int message,
 int
 deletebtree::ValueMapping2(Word* args, Word& result, int message,
                                 Word& local, Supplier s)
-{ 
+{
   vmInfo* info;
   Tuple* tuple;
-  Word elem; 
+  Word elem;
   Attribute* key;
   Attribute* value;
   bool res = false;
@@ -278,9 +279,9 @@ deletebtree::ValueMapping2(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       return 0;
     }
-    
+
     case REQUEST :
-    {       
+    {
       qp->Request(args[0].addr, elem);
       if (qp->Received(args[0].addr))
       {
@@ -298,7 +299,7 @@ deletebtree::ValueMapping2(Word* args, Word& result, int message,
         return YIELD;
       }
       return CANCEL;
-    } 
+    }
 
     case CLOSE :
     {

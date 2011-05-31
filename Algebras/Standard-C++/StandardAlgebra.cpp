@@ -31,7 +31,8 @@ August 16, 2000. RHG Changed includes to show dependencies more clearly.
 
 March 2002. Ulrich Telle Port to C++
 
-November 9, 2002. RHG Added operators ~randint~ and ~log~. Some other slight revisions.
+November 9, 2002. RHG Added operators ~randint~ and ~log~. Some other slight
+revisions.
 
 February 2004. F. Hoffmann added operators ~relcount~ and ~relcount2~.
 
@@ -45,7 +46,8 @@ Integer atoms are now also accepted.
 November 2004. M. Spiekermann. Some small functions were moved to the header
 file in order to implement them as inline functions.
 
-November 2004. M. Spiekermann. Implementation of the operator ~substr~. Moreover, the
+November 2004. M. Spiekermann. Implementation of the operator ~substr~.
+Moreover, the
 add operator was overloaded once more in order to concatenate strings.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -56,15 +58,17 @@ January 2006, M. Spiekermann new operator ~elapsedtime~ implemented.
 
 May 2006, M. Spiekermann new operator ~setoption~ implemented.
 
-May 11, 2006, M. Spiekermann. Most of the value mappings are replaced by template
+May 11, 2006, M. Spiekermann. Most of the value mappings are replaced by
+template
 functions using the generic ~Compare~ function. This reduces the code a lot
 (about 400 lines of code) and there are still some functions left which may
 be replaced by template implementations.
 
-December 06, 2006 C. Duentgen added operators int2real, real2int, int2bool, bool2int,
-ceil, floor.7
+December 06, 2006 C. Duentgen added operators int2real, real2int, int2bool,
+bool2int, ceil, floor.7
 
-May 2007, M. Spiekermann. New operator abs and introduction of generic type mappings.
+May 2007, M. Spiekermann. New operator abs and introduction of generic type
+mappings.
 
 \begin{center}
 \footnotesize
@@ -74,10 +78,11 @@ May 2007, M. Spiekermann. New operator abs and introduction of generic type mapp
 
 1 Overview
 
-In  this algebra the standard types and functions are defined. Standard types are
-~int~, ~real~, ~bool~ and ~string~. These types  are represented
+In  this algebra the standard types and functions are defined. Standard types
+are ~int~, ~real~, ~bool~ and ~string~. These types  are represented
 In Classes of C++ whith a boolean flag which shows whether this value is defined
-or not (e.g it could be undefined because it is the result of a divivion by zero).
+or not (e.g it could be undefined because it is the result of a divivion by
+zero).
 
 
 Following operators are defined:
@@ -142,7 +147,8 @@ greater than 0. Otherwise it is set to 2.
             -> int
 ----
 The seqinit operator can be used to create
-sequences of numbers starting by arg. The n-th call of seqnext will return arg+n-1
+sequences of numbers starting by arg. The n-th call of seqnext will return
+arg+n-1
 
   * log
 
@@ -232,6 +238,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "ListUtils.h"
 #include "AlmostEqual.h"
 #include "Progress.h"
+#include "Symbols.h"
 
 #include <iostream>
 #include <string>
@@ -264,10 +271,9 @@ file "TypeMapUtils.h" which defines a namespace mappings.
 */
 
 #include "TypeMapUtils.h"
-#include "Symbols.h"         // Still required for counter names.
+#include "Symbols.h"
 
 using namespace std;
-using namespace symbols;     // Still required for counter names.
 using namespace mappings;
 
 
@@ -351,7 +357,7 @@ OutCcInt( ListExpr typeinfo, Word value )
   }
   else
   {
-    return (nl->SymbolAtom("undef"));
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
 
@@ -374,7 +380,7 @@ InCcInt( ListExpr typeInfo, ListExpr value,
     return (SetWord( new CcInt( true, nl->IntValue( value ) ) ));
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-        && nl->SymbolValue( value ) == "undef" )
+    && listutils::isSymbolUndefined(value) )
   {
     correct = true;
     return (SetWord( new CcInt( false, 0) ));
@@ -498,7 +504,7 @@ OutCcReal( ListExpr typeinfo, Word value )
   }
   else
   {
-    return (nl->SymbolAtom("undef"));
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
 
@@ -506,7 +512,7 @@ Word
 InCcReal( ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if(listutils::isSymbol(value,"undef")){ // undefined
+  if(listutils::isSymbolUndefined(value)){ // undefined
     correct=true;
     return SetWord(new CcReal(false,0.0));
   }
@@ -634,7 +640,7 @@ OutCcBool( ListExpr typeinfo, Word value )
   }
   else
   {
-    return (nl->SymbolAtom("undef"));
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
 
@@ -642,8 +648,8 @@ OutCcBool( ListExpr typeinfo, Word value )
 The function ~InBool~ provides a functionality complementary to ~OutBool~:
 A pointer to a value's main memory representation is returned. It is calculated
 by taking the value's nested list representation and its type description as
-input parameters. Again, we don't need the type information in this example due to
-simplicity of types used.
+input parameters. Again, we don't need the type information in this example due
+to simplicity of types used.
 
 The next three parameters are used to return error information.
 
@@ -659,7 +665,7 @@ InCcBool( ListExpr typeInfo, ListExpr value,
     return (SetWord( new CcBool( true, nl->BoolValue( value ) ) ));
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-        && nl->SymbolValue( value ) == "undef" )
+    && listutils::isSymbolUndefined(value) )
   {
     correct = true;
     return (SetWord( new CcBool( false, false) ));
@@ -807,7 +813,7 @@ OutCcString( ListExpr typeinfo, Word value )
   }
   else
   {
-    return (nl->SymbolAtom("undef"));
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
 
@@ -828,7 +834,7 @@ InCcString( ListExpr typeInfo, ListExpr value,
     return SetWord( cs );
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-        && nl->SymbolValue( value ) == "undef" )
+        && listutils::isSymbolUndefined(value) )
   {
     correct = true;
     return (SetWord( new CcString( false, (STRING_T*)"" ) ));
@@ -1061,7 +1067,8 @@ CcMathTypeMapdiv( ListExpr args )
 /*
 4.2.3 Type mapping function CcMathTypeMap1
 
-It is for the operators mod and div which have ~int~ as input and ~int~ as result.
+It is for the operators mod and div which have ~int~ as input and ~int~ as
+result.
 
 */
 
@@ -1244,7 +1251,8 @@ CcMathTypeMapBool2( ListExpr args )
 /*
 4.2.8 Type mapping function CcMathTypeMapBool3
 
-It is for the  operators ~starts~ and ~contains~  which have ~string~ as input and ~bool~ resulttype.
+It is for the  operators ~starts~ and ~contains~  which have ~string~ as input
+and ~bool~ resulttype.
 
 */
 
@@ -1259,7 +1267,8 @@ CcMathTypeMapBool3( ListExpr args )
 /*
 4.2.9 Type mapping function CcMathTypeMapBool4
 
-It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string~ as input and ~bool~ resulttype.
+It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and
+~string~ as input and ~bool~ resulttype.
 
 */
 
@@ -1353,10 +1362,10 @@ keywordsType( ListExpr args ){
   {
     arg = nl->First(args);
     if ( listutils::isSymbol(arg, CcString::BasicType()) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
         nl->SymbolAtom(CcString::BasicType()));
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -1425,7 +1434,7 @@ ListExpr ifthenelse2Type(ListExpr args)
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 
@@ -1566,7 +1575,7 @@ ListExpr DATAbool( ListExpr args )
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(    !mArgs.hasLength(1)
       || !SecondoSystem::GetAlgebraManager()->
-          CheckKind("DATA", mArgs.first().listExpr(), errorInfo)
+          CheckKind(Kind::DATA(), mArgs.first().listExpr(), errorInfo)
     )
   {
     return NList::typeError("Expected single argument of kind DATA.");
@@ -1598,7 +1607,7 @@ ListExpr CcTypeMapTinDATA_TinDATAint( ListExpr args )
   if(   !mArgs.hasLength(2)
      || ( mArgs.first() != mArgs.second() )
      || !SecondoSystem::GetAlgebraManager()->
-          CheckKind("DATA", mArgs.first().listExpr(), errorInfo)
+          CheckKind(Kind::DATA(), mArgs.first().listExpr(), errorInfo)
     )
   {
     return NList::typeError("Expected T x T for T in kind DATA.");
@@ -1626,7 +1635,7 @@ ListExpr CcTypeMapTinDATAexpplus2TinDATA( ListExpr args )
   }
   NList type = mArgs.first();
   if (!SecondoSystem::GetAlgebraManager()->
-         CheckKind("DATA", type.listExpr(), errorInfo)){
+         CheckKind(Kind::DATA(), type.listExpr(), errorInfo)){
       return NList::typeError("Expected T^n, T in kind DATA, n >= 1.");
   }
 
@@ -1704,7 +1713,7 @@ ListExpr CcTypeMapNumNumOptNumOptBoolReal( ListExpr args ){
     return listutils::typeError(errmsg);
   }
   if( noargs== 2 ) { // numeric x numeric: OK, but APPEND bool parameter
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->BoolAtom(false)),
                              nl->SymbolAtom(CcReal::BasicType()));
   }
@@ -1717,7 +1726,7 @@ ListExpr CcTypeMapNumNumOptNumOptBoolReal( ListExpr args ){
     if( !listutils::isNumericType(nl->Third(args)) ) {
       return listutils::typeError(errmsg);
     } // mumeric x numeric x numeric: OK, but APPEND bool parameter
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->BoolAtom(false)),
                              nl->SymbolAtom(CcReal::BasicType()));
   }
@@ -2176,7 +2185,8 @@ CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
 
 
 /*
-4.8 Value mapping function of operators ~randint~, ~maxrand~, ~initseq~ and ~nextseq~
+4.8 Value mapping function of operators ~randint~, ~maxrand~, ~initseq~ and
+~nextseq~
 
 */
 
@@ -5236,25 +5246,25 @@ class CcAlgebra1 : public Algebra
     AddTypeConstructor( &ccBool );
     AddTypeConstructor( &ccString );
 
-    ccInt.AssociateKind( "DATA" );
-    ccReal.AssociateKind( "DATA" );
-    ccBool.AssociateKind( "DATA" );
-    ccString.AssociateKind( "DATA" );
+    ccInt.AssociateKind( Kind::DATA() );
+    ccReal.AssociateKind( Kind::DATA() );
+    ccBool.AssociateKind( Kind::DATA() );
+    ccString.AssociateKind( Kind::DATA() );
 
-    ccInt.AssociateKind( "BASE" );
-    ccReal.AssociateKind( "BASE" );
-    ccBool.AssociateKind( "BASE" );
-    ccString.AssociateKind( "BASE" );
+    ccInt.AssociateKind( Kind::BASE() );
+    ccReal.AssociateKind( Kind::BASE() );
+    ccBool.AssociateKind( Kind::BASE() );
+    ccString.AssociateKind( Kind::BASE() );
 
-    ccInt.AssociateKind( "CSVEXPORTABLE" );
-    ccReal.AssociateKind( "CSVEXPORTABLE" );
-    ccBool.AssociateKind( "CSVEXPORTABLE" );
-    ccString.AssociateKind( "CSVEXPORTABLE" );
+    ccInt.AssociateKind( Kind::CSVEXPORTABLE() );
+    ccReal.AssociateKind( Kind::CSVEXPORTABLE() );
+    ccBool.AssociateKind( Kind::CSVEXPORTABLE() );
+    ccString.AssociateKind( Kind::CSVEXPORTABLE() );
 
-    ccInt.AssociateKind( "CSVIMPORTABLE" );
-    ccReal.AssociateKind( "CSVIMPORTABLE" );
-    ccBool.AssociateKind( "CSVIMPORTABLE" );
-    ccString.AssociateKind( "CSVIMPORTABLE" );
+    ccInt.AssociateKind( Kind::CSVIMPORTABLE() );
+    ccReal.AssociateKind( Kind::CSVIMPORTABLE() );
+    ccBool.AssociateKind( Kind::CSVIMPORTABLE() );
+    ccString.AssociateKind( Kind::CSVIMPORTABLE() );
 
     AddOperator( &ccplus );
     AddOperator( &ccminus );
@@ -5415,37 +5425,37 @@ Statistics2Counters(bool reset, bool show)
     CcBool::boolsCreated = 0; CcBool::boolsDeleted = 0;
     CcString::stringsCreated = 0; CcString::stringsDeleted = 0;
   }
-  Counter::getRef(CTR_INT_Created) = CcInt::intsCreated;
-  Counter::getRef(CTR_INT_Deleted) = CcInt::intsDeleted;
-  Counter::getRef(CTR_REAL_Created) = CcReal::realsCreated;
-  Counter::getRef(CTR_REAL_Deleted) = CcReal::realsDeleted;
-  Counter::getRef(CTR_BOOL_Created) = CcBool::boolsCreated;
-  Counter::getRef(CTR_BOOL_Deleted) = CcBool::boolsDeleted;
-  Counter::getRef(CTR_STR_Created) = CcString::stringsCreated;
-  Counter::getRef(CTR_STR_Deleted) = CcString::stringsDeleted;
+  Counter::getRef(Symbol::CTR_INT_Created()) = CcInt::intsCreated;
+  Counter::getRef(Symbol::CTR_INT_Deleted()) = CcInt::intsDeleted;
+  Counter::getRef(Symbol::CTR_REAL_Created()) = CcReal::realsCreated;
+  Counter::getRef(Symbol::CTR_REAL_Deleted()) = CcReal::realsDeleted;
+  Counter::getRef(Symbol::CTR_BOOL_Created()) = CcBool::boolsCreated;
+  Counter::getRef(Symbol::CTR_BOOL_Deleted()) = CcBool::boolsDeleted;
+  Counter::getRef(Symbol::CTR_STR_Created()) = CcString::stringsCreated;
+  Counter::getRef(Symbol::CTR_STR_Deleted()) = CcString::stringsDeleted;
 
-  Counter::reportValue(CTR_INT_Created, show);
-  Counter::reportValue(CTR_INT_Deleted, show);
-  Counter::reportValue(CTR_REAL_Created, show);
-  Counter::reportValue(CTR_REAL_Deleted, show);
-  Counter::reportValue(CTR_BOOL_Created, show);
-  Counter::reportValue(CTR_BOOL_Deleted, show);
-  Counter::reportValue(CTR_STR_Created, show);
-  Counter::reportValue(CTR_STR_Deleted, show);
+  Counter::reportValue(Symbol::CTR_INT_Created(), show);
+  Counter::reportValue(Symbol::CTR_INT_Deleted(), show);
+  Counter::reportValue(Symbol::CTR_REAL_Created(), show);
+  Counter::reportValue(Symbol::CTR_REAL_Deleted(), show);
+  Counter::reportValue(Symbol::CTR_BOOL_Created(), show);
+  Counter::reportValue(Symbol::CTR_BOOL_Deleted(), show);
+  Counter::reportValue(Symbol::CTR_STR_Created(), show);
+  Counter::reportValue(Symbol::CTR_STR_Deleted(), show);
 }
 
 
 long
 StdTypes::UpdateBasicOps(bool reset/*=false*/) {
 
-  long& basicOps = Counter::getRef(CTR_ATTR_BASIC_OPS);
-  long& hashOps = Counter::getRef(CTR_ATTR_HASH_OPS);
-  long& compareOps = Counter::getRef(CTR_ATTR_COMPARE_OPS);
+  long& basicOps = Counter::getRef(Symbol::CTR_ATTR_BASIC_OPS());
+  long& hashOps = Counter::getRef(Symbol::CTR_ATTR_HASH_OPS());
+  long& compareOps = Counter::getRef(Symbol::CTR_ATTR_COMPARE_OPS());
 
-  long& intHash = Counter::getRef(CTR_INT_HASH);
-  long& intLess  = Counter::getRef(CTR_INT_LESS);
-  long& intEqual = Counter::getRef(CTR_INT_EQUAL);
-  long& intCompare = Counter::getRef(CTR_INT_COMPARE);
+  long& intHash = Counter::getRef(Symbol::CTR_INT_HASH());
+  long& intLess  = Counter::getRef(Symbol::CTR_INT_LESS());
+  long& intEqual = Counter::getRef(Symbol::CTR_INT_EQUAL());
+  long& intCompare = Counter::getRef(Symbol::CTR_INT_COMPARE());
 
   if (reset)
   {

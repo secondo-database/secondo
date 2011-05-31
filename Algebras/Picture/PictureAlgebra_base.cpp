@@ -33,6 +33,7 @@ SECONDO types ~picture~ and ~histogram~ are located in other modules.
 #include "Algebra.h"
 #include "QueryProcessor.h"
 #include "PictureAlgebra.h"
+#include "Symbols.h"
 
 using namespace std;
 
@@ -71,15 +72,15 @@ static ListExpr Picture2ScalarTypeMap(ListExpr args) {
              << endl;
 
     if (nl->ListLength(args) == 1) {
-        if (nl->IsEqual(nl->First(args), "picture")) {
+        if (nl->IsEqual(nl->First(args), Picture::BasicType())) {
             if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #1" << endl;
 
             if (returnType == P2STM_INT)
-                return nl->SymbolAtom("int");
+                return nl->SymbolAtom(CcInt::BasicType());
             else if (returnType == P2STM_BOOL)
-                return nl->SymbolAtom("bool");
+                return nl->SymbolAtom(CcBool::BasicType());
             else
-                return nl->SymbolAtom("string");
+                return nl->SymbolAtom(CcString::BasicType());
         } else {
             if (PA_DEBUG) cerr << "Picture2ScalarTypeMap() #2" << endl;
 
@@ -93,7 +94,7 @@ static ListExpr Picture2ScalarTypeMap(ListExpr args) {
             "expected only one argument but received "
             +nl->ListLength(args));
 
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -590,8 +591,8 @@ public:
         initHistogram();
         AddTypeConstructor(histogram);
 
-        picture->AssociateKind("DATA");
-        histogram->AssociateKind("DATA");
+        picture->AssociateKind(Kind::DATA());
+        histogram->AssociateKind(Kind::DATA());
 
         AddOperator(&height);
         AddOperator(&width);

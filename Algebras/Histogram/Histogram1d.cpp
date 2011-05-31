@@ -56,8 +56,7 @@ and comment the second one. To switch off test output, uncomment the line
 #include "AlmostEqual.h"
 #include "Progress.h" // required for sortbylocalinfo
 #include "SortByLocalInfo.h"
-
-using namespace symbols;
+#include "Symbols.h"
 
 namespace hgr
 {
@@ -433,8 +432,8 @@ namespace hgr
   {
     NList in(instance);
 
-    if (    in.isSymbol("undef")
-         || (in.length() == 1 && in.first().isSymbol("undef"))
+    if ( listutils::isSymbolUndefined(instance) ||
+         ((in.length()==1)&&listutils::isSymbolUndefined(nl->First(instance)))
        ){
       correct = true;
       return SetWord(new Histogram1d(false));
@@ -542,7 +541,7 @@ namespace hgr
 
     if (!hist->IsDefined())
     {
-      NList result = NList("undef");
+      NList result = NList(Symbol::UNDEFINED());
       return result.listExpr();
     }
     else if(hist->IsEmpty())
@@ -1306,7 +1305,7 @@ The algorithm is taken from
       return listutils::typeError("Histogram1d has wrong type");
     }
 
-    ListExpr result = nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+    ListExpr result = nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                                          nl->OneElemList(nl->IntAtom(index)),
                                          nl->SymbolAtom(symbols::HISTOGRAM1D));
 
@@ -1455,7 +1454,7 @@ The function makes use of four arguments:
 
     // Everything should be fine.
     // We can build the outlist:
-    NList outlist(NList("APPEND"), NList(attrindex).enclose(),
+    NList outlist(NList(Symbol::APPEND()), NList(attrindex).enclose(),
         NList(HISTOGRAM1D) );
 
     //cout << "outlist: " << outlist.convertToString() << endl;
@@ -2046,7 +2045,7 @@ The function makes use of four arguments:
       void *tupleCmp = new TupleCompareBy(spec);
 
       ProgressLocalInfo prog;
-      SortByLocalInfo* sli = new SortByLocalInfo(args[0], false, 
+      SortByLocalInfo* sli = new SortByLocalInfo(args[0], false,
                                                  tupleCmp, &prog);
 
       int noTuples = sli->TupleCount();
@@ -2179,15 +2178,15 @@ The function makes use of four arguments:
                     " does not name an attribute in the stream");
     }
 
-    if(!listutils::isSymbol(attrType,"real")){
+    if(!listutils::isSymbol(attrType,CcReal::BasicType())){
        return listutils::typeError(attrName+" is not of type real");
     }
 
-    if(!listutils::isSymbol(maxCats,"int")){
+    if(!listutils::isSymbol(maxCats,CcInt::BasicType())){
        return listutils::typeError("third argument must be of type int");
     }
 
-    ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                         nl->OneElemList(nl->IntAtom(index)),
                                         nl->SymbolAtom(symbols::HISTOGRAM1D));
     return result;

@@ -43,6 +43,7 @@ May 2008, Victor Almeida
 #include "../Network/NetworkAlgebra.h"
 #include "../Temporal/TemporalAlgebra.h"
 #include "../TemporalNet/TemporalNetAlgebra.h"
+#include "Symbols.h"
 
 using namespace std;
 
@@ -343,7 +344,7 @@ bool CheckMON_Tree(ListExpr type, ListExpr& errorInfo)
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
-      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo) &&
+      algMgr->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo) &&
       nl->IsEqual(nl->Third(type), "mgpoint") &&
       nl->IsAtom(nl->Fourth(type)) &&
       nl->AtomType(nl->Fourth(type)) == BoolType;
@@ -622,11 +623,11 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
 
   bool mgpoint = nl->IsEqual(attrType, "mgpoint");
 
-  if( nl->IsEqual(nl->First(relDescription), "rel") )
+  if( nl->IsEqual(nl->First(relDescription), Relation::BasicType()) )
   {
     return
       nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->OneElemList(
           nl->IntAtom(attrIndex)),
         nl->FourElemList(
@@ -672,7 +673,7 @@ and high parameters these two last integer numbers.
       rest = nl->Rest(rest);
 
       type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
+      if (type == TupleIdentifier::BasicType())
       {
         CHECK_COND( tidIndex == 0,
           "Operator createmontree expects as first argument a stream "
@@ -681,9 +682,9 @@ and high parameters these two last integer numbers.
 
         tidIndex = j;
       }
-      else if( j == nAttrs - 1 && type == "int" &&
+      else if( j == nAttrs - 1 && type == CcInt::BasicType() &&
                nl->SymbolValue(
-                 nl->Second(nl->First(rest))) == "int" )
+                 nl->Second(nl->First(rest))) == CcInt::BasicType() )
       { // the last two attributes are integers
         doubleIndex = true;
       }
@@ -709,14 +710,14 @@ and high parameters these two last integer numbers.
 
     return
       nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
+        nl->SymbolAtom(Symbol::APPEND()),
         nl->TwoElemList(
           nl->IntAtom(attrIndex),
           nl->IntAtom(tidIndex)),
         nl->FourElemList(
           nl->SymbolAtom("montree"),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"),
+            nl->SymbolAtom(Tuple::BasicType()),
             newAttrList),
           attrType,
           nl->BoolAtom(doubleIndex)));
@@ -744,9 +745,9 @@ CreateMONTreeSelect (ListExpr args)
   if(nl->IsEqual(attrType, "ugpoint"))
     doubleUp = 3;
 
-  if( nl->SymbolValue(nl->First(relDescription)) == "rel")
+  if( nl->SymbolValue(nl->First(relDescription)) == Relation::BasicType())
     return doubleUp + 0;
-  if( nl->SymbolValue(nl->First(relDescription)) == "stream")
+  if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
     ListExpr first = nl->TheEmptyList();
     ListExpr rest = attrList;
@@ -755,7 +756,7 @@ CreateMONTreeSelect (ListExpr args)
       first = nl->First(rest);
       rest = nl->Rest(rest);
     }
-    if( nl->IsEqual( nl->Second( first ), "int" ) )
+    if( nl->IsEqual( nl->Second( first ), CcInt::BasicType() ) )
       // Double indexing
       return doubleUp + 2;
     else
@@ -988,13 +989,13 @@ ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
     "to be of type network.");
 
   /* Query window: find out type of key */
-  CHECK_COND(nl->IsEqual(searchWindow, "rect"),
+  CHECK_COND(nl->IsEqual(searchWindow, Rectangle<2>::BasicType()),
     "Operator windowtimeintersects expects that the search window\n"
     "is of type rect.");
 
   // Handling of the time interval
-  CHECK_COND(nl->IsEqual(searchStart, "instant") &&
-             nl->IsEqual(searchEnd, "instant"),
+  CHECK_COND(nl->IsEqual(searchStart, Instant::BasicType()) &&
+             nl->IsEqual(searchEnd, Instant::BasicType()),
     "Operator windowtimeintersects expects the fifth and sixth\n"
     "arguments to be a time interval.");
 
@@ -1025,7 +1026,7 @@ ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
 
   return
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       monTupleDescription);
 }
 
@@ -1185,13 +1186,13 @@ ListExpr MON_WindowTimeIntersectsSTypeMap(ListExpr args)
     "to be of type network.");
 
   /* Query window: find out type of key */
-  CHECK_COND(nl->IsEqual(searchWindow, "rect"),
+  CHECK_COND(nl->IsEqual(searchWindow, Rectangle<2>::BasicType()),
     "Operator windowtimeintersectsS expects that the search window\n"
     "is of type rect.");
 
   // Handling of the time interval
-  CHECK_COND(nl->IsEqual(searchStart, "instant") &&
-             nl->IsEqual(searchEnd, "instant"),
+  CHECK_COND(nl->IsEqual(searchStart, Instant::BasicType()) &&
+             nl->IsEqual(searchEnd, Instant::BasicType()),
     "Operator windowtimeintersectsS expects the fifth and sixth\n"
     "arguments to be a time interval.");
 
@@ -1224,31 +1225,31 @@ ListExpr MON_WindowTimeIntersectsSTypeMap(ListExpr args)
   {
     return
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           nl->OneElemList(
             nl->TwoElemList(
               nl->SymbolAtom("id"),
-              nl->SymbolAtom("tid")))));
+              nl->SymbolAtom(TupleIdentifier::BasicType())))));
   }
   else
   {
     return
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           nl->ThreeElemList(
             nl->TwoElemList(
               nl->SymbolAtom("id"),
-              nl->SymbolAtom("tid")),
+              nl->SymbolAtom(TupleIdentifier::BasicType())),
             nl->TwoElemList(
               nl->SymbolAtom("low"),
-              nl->SymbolAtom("int")),
+              nl->SymbolAtom(CcInt::BasicType())),
             nl->TwoElemList(
               nl->SymbolAtom("high"),
-              nl->SymbolAtom("int")))));
+              nl->SymbolAtom(CcInt::BasicType())))));
   }
 }
 

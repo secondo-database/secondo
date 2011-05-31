@@ -253,7 +253,7 @@ Operator : fromCSVtext
 Number   : 2
 Signature: CSVIMPORTABLE x string -> CSVIMPORTABLE
 Example  : query fromCSVtext(TRUE, "")
-Result   : (bool undef)
+Result   : (bool undefined)
 
 Operator : getPID
 Number   : 1

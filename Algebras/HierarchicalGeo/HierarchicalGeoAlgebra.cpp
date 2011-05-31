@@ -65,6 +65,8 @@ implemented in the HierarchicalGeoAlgebra.h file.
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "TypeMapUtils.h"
+#include "Symbols.h"
+
 #include <math.h>
 
 extern NestedList* nl;
@@ -118,8 +120,8 @@ void CUPoint::UTrajectory(const double e, Region& result ) const
     Coord x1, y1, x2, y2, x3, y3, x4, y4;
     Coord xleft, yleft, xright, yright;
 
-    if ( p0.GetX() < p1.GetX() ||
-         p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
+    if ( (p0.GetX() < p1.GetX()) ||
+         (p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() ) )
     {
       xleft = p0.GetX();
       yleft = p0.GetY();
@@ -220,8 +222,8 @@ functions sin(alpha) and cos(alpha) are used:
     double angle;
     double radius;
     //double startangle;
-    if( p0.GetX() < p1.GetX() ||
-        p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
+    if( (p0.GetX() < p1.GetX()) ||
+        (p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY()) )
     {
       radius = p0.Distance( ep1 );
       angle = ( M_PI / 180 ) * p0.Direction( ep1 );
@@ -419,8 +421,8 @@ bool CUPoint::D_Passes( const Point& p ) const
   if (epsilon > 0.0)
     return false;
 
-  if( timeInterval.lc && AlmostEqual( p, p0 ) ||
-      timeInterval.rc && AlmostEqual( p, p1 ) )
+  if( (timeInterval.lc && AlmostEqual( p, p0 )) ||
+      (timeInterval.rc && AlmostEqual( p, p1 )) )
     return true;
 
   if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
@@ -617,8 +619,8 @@ again.
         //}
       }
 
-      if( (containsP0 && p0tooClose || containsP1 && p1tooClose ||
-          cupIntersectsRgn) && !defPP.IsDefined() || defPPtooClose )
+      if( ((containsP0 && p0tooClose) || (containsP1 && p1tooClose) ||
+          ((cupIntersectsRgn) && !defPP.IsDefined())) || defPPtooClose )
       {
         // +++++ for debugging purposes only +++++
         //if(containsP0 && p0tooClose)
@@ -760,8 +762,8 @@ the same as the definitely\_passes function.
   else
   {
     HalfSegment hs(false, p0, p1);
-    if( p0.GetX() < p1.GetX() ||
-        p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
+    if( (p0.GetX() < p1.GetX()) ||
+        ( (p0.GetX() == p1.GetX()) && (p0.GetY() < p1.GetY()) ) )
       hs.Set(true, p0, p1);
     double dist = hs.Distance(p);
     if(dist < epsilon || AlmostEqual(dist, epsilon) )
@@ -808,8 +810,8 @@ the uncertainty-value.
 */
     HalfSegment segCup(false, p0, p1);
 
-    if( p0.GetX() < p1.GetX() ||
-        p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
+    if( (p0.GetX() < p1.GetX()) ||
+        ( (p0.GetX() == p1.GetX()) && (p0.GetY() < p1.GetY()) ) )
       segCup.Set(true, p0, p1);
 
     HalfSegment segRgn;
@@ -1203,8 +1205,8 @@ the following error message:
           }
         }
 
-        if( hstooClose || containsP0 && p0tooClose ||
-            containsP1 && p1tooClose || cupIntersectsRgn || aDefPPtooClose )
+        if( hstooClose || (containsP0 && p0tooClose) ||
+            (containsP1 && p1tooClose) || cupIntersectsRgn || aDefPPtooClose )
         {
           // +++++ for debugging purposes only +++++
           //if(hstooClose)
@@ -2206,10 +2208,10 @@ to the possibly defined Passing Points.
             return;
           }
           double dummy;
-          hsCloserEpsilon = ( segRgn.attr.insideAbove &&
-            !segRgn.RayAbove(p0, dummy) && !segRgn.RayAbove(p1, dummy) ||
-            !segRgn.attr.insideAbove && segRgn.RayAbove(p0, dummy) &&
-            segRgn.RayAbove(p1, dummy) );
+          hsCloserEpsilon = (( segRgn.attr.insideAbove &&
+            !segRgn.RayAbove(p0, dummy) && !segRgn.RayAbove(p1, dummy)) ||
+            (!segRgn.attr.insideAbove && segRgn.RayAbove(p0, dummy) &&
+             segRgn.RayAbove(p1, dummy)) );
         }
 /*
 
@@ -2307,11 +2309,11 @@ If the distance of the whole unit to the region is less than epsilon, it can
 simply be added to the result.
 
 */
-    if( ( containsP0 || hsMinDistP0 > -1 &&
-          ( distP0 < epsilon || AlmostEqual(distP0, epsilon) ) ) &&
-        (containsP1 || hsMinDistP1 > -1 &&
-          ( distP1 < epsilon || AlmostEqual(distP1, epsilon) ) ) &&
-        definedPosPPs < 1 )
+    if( ( containsP0 || ((hsMinDistP0 > -1) &&
+          ( (distP0 < epsilon) || AlmostEqual(distP0, epsilon) ) ) ) &&
+        (containsP1 || ((hsMinDistP1 > -1) &&
+          ( (distP1 < epsilon) || AlmostEqual(distP1, epsilon) ) ) ) &&
+        (definedPosPPs < 1) )
     {
       result.Add( *this );
       return;
@@ -2491,11 +2493,11 @@ redefined.
     //cout << "There are actually " << definedPosPPs << " defined posPPs.\n";
 
 
-    if( ( containsP0 || hsMinDistP0 > -1 &&
-          ( distP0 < epsilon || AlmostEqual(distP0, epsilon) ) ) &&
-        (containsP1 || hsMinDistP1 > -1 &&
-          ( distP1 < epsilon || AlmostEqual(distP1, epsilon) ) ) &&
-        definedPosPPs < 1 )
+    if( ( containsP0 || ((hsMinDistP0 > -1) &&
+          ( (distP0 < epsilon) || AlmostEqual(distP0, epsilon) ) ) ) &&
+        (containsP1 || ((hsMinDistP1 > -1) &&
+          ( (distP1 < epsilon) || AlmostEqual(distP1, epsilon) ) ) )&&
+        (definedPosPPs < 1) )
     {
       result.Add( *this );
       return;
@@ -2508,8 +2510,8 @@ redefined.
 
       Point ep0(false, 0, 0);
       Point ep1(false, 0, 0);
-      bool firstrun = (containsP0 || hsMinDistP0 > -1 &&
-                        (distP0 < epsilon || AlmostEqual(distP0, epsilon)) );
+      bool firstrun = (containsP0 || ((hsMinDistP0 > -1) &&
+                        ( (distP0 < epsilon) || AlmostEqual(distP0, epsilon))));
 
       // +++++ for debugging purposes only +++++
       //cout << "Begin building new CUPoints...\n";
@@ -2548,8 +2550,8 @@ redefined.
             definedPosPPs--;
             firstrun = false;
           }
-          else if( definedPosPPs < 2 && ( containsP1 || hsMinDistP1 > -1 &&
-                        (distP1 < epsilon || AlmostEqual(distP1, epsilon)) ) )
+          else if( (definedPosPPs<2) && ( containsP1 || ((hsMinDistP1>-1) &&
+                        ((distP1<epsilon) || AlmostEqual(distP1, epsilon)) ) ) )
           {
             ep0.SetDefined(false);
             ep1 = p1;
@@ -2654,8 +2656,8 @@ redefined.
             definedPosPPs--;
             firstrun = false;
           }
-          else if( definedPosPPs < 2 && ( containsP1 || hsMinDistP1 > -1 &&
-                        (distP1 < epsilon || AlmostEqual(distP1, epsilon)) ) )
+          else if( (definedPosPPs < 2) && ( containsP1 || ((hsMinDistP1 > -1) &&
+                      ((distP1 < epsilon) || AlmostEqual(distP1, epsilon))) ) )
           {
             ep0.SetDefined(false);
             ep1 = p1;
@@ -5142,7 +5144,7 @@ bool HCMPoint::D_At( const int layer, const int start, const int end,
     int ostart = ntt.GetOriginstart();
     int oend = ntt.GetOriginend();
 
-    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    if( ((ostart < 0) && (oend < 0)) || (LayerSize(layer+1) == 0) )
     {
       unit = &(ntt.value);
       CUPoint resunit( false );
@@ -5216,7 +5218,7 @@ bool HCMPoint::D_At( const int layer, const int start, const int end,
     int ostart = ntt.GetOriginstart();
     int oend = ntt.GetOriginend();
 
-    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    if( ((ostart < 0) && (oend < 0)) || (LayerSize(layer+1) == 0) )
     {
       // +++++ for debugging purposes only +++++
       //  cout << "HCMPoint::D_At: Reached bottom layer!\n";
@@ -5305,7 +5307,7 @@ bool HCMPoint::P_At( const int layer, const int start, const int end,
     int ostart = ntt.GetOriginstart();
     int oend = ntt.GetOriginend();
 
-    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    if( ((ostart < 0) && (oend < 0)) || (LayerSize(layer+1) == 0) )
     {
       unit = ntt.value;
       CUPoint resunit( false );
@@ -5381,7 +5383,7 @@ bool HCMPoint::P_At( const int layer, const int start, const int end,
     int ostart = ntt.GetOriginstart();
     int oend = ntt.GetOriginend();
 
-    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    if( ((ostart < 0) && (oend < 0)) || (LayerSize(layer+1) == 0) )
     {
       // +++++ for debugging purposes only +++++
       //  cout << "HCMPoint::P_At: Reached bottom layer!\n";
@@ -6685,7 +6687,7 @@ bool HMPoint::D_At( const int layer, const int start, const int end,
     int ostart = ntt.GetOriginstart();
     int oend = ntt.GetOriginend();
 
-    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    if( ((ostart < 0) && (oend < 0)) || LayerSize(layer+1) == 0 )
     {
       unit = (ntt.value);
       CUPoint resunit( false );
@@ -6760,7 +6762,7 @@ bool HMPoint::D_At( const int layer, const int start, const int end,
     int ostart = ntt.GetOriginstart();
     int oend = ntt.GetOriginend();
 
-    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    if( ((ostart < 0) && (oend < 0)) || (LayerSize(layer+1) == 0) )
     {
       // +++++ for debugging purposes only +++++
       //  cout << "HCMPoint::D_At: Reached bottom layer!\n";
@@ -7900,7 +7902,7 @@ ListExpr CUPointProperty()
 */
 bool CheckCUPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "cupoint" ));
+  return (nl->IsEqual( type, CUPoint::BasicType() ));
 }
 
 /*
@@ -8155,7 +8157,7 @@ Creation of the type constructor ~cupoint~
 */
 
 TypeConstructor uncertainunitpoint(
-        "cupoint",                //name
+        CUPoint::BasicType(),                //name
         CUPointProperty,     //property function describing signature
         OutCUPoint,
         InCUPoint,               //Out and In functions
@@ -8223,11 +8225,11 @@ ListExpr CMPointProperty()
 bool
 CheckCMPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "cmpoint" ));
+  return (nl->IsEqual( type, CMPoint::BasicType() ));
 }
 
 TypeConstructor uncertainmovingpoint(
-        "cmpoint",                           //name
+        CMPoint::BasicType(),                           //name
         CMPointProperty,        //property function describing signature
         OutMapping<CMPoint, CUPoint, OutCUPoint>,
         InMapping<CMPoint, CUPoint, InCUPoint>,//Out and In functions
@@ -8643,7 +8645,7 @@ ListExpr HCMPointProperty()
 */
 bool CheckHCMPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "hcmpoint" ));
+  return (nl->IsEqual( type, HCMPoint::BasicType() ));
 }
 
 /*
@@ -8971,7 +8973,7 @@ void* CastHCMPoint(void* addr)
 
 */
 TypeConstructor hierarchicaluncertainmovingpoint(
-        "hcmpoint",          //name
+        HCMPoint::BasicType(),          //name
         HCMPointProperty,    //property function describing signature
         OutHCMPoint,
         InHCMPoint,          //Out and In functions
@@ -9036,7 +9038,7 @@ ListExpr HMPointProperty()
 */
 bool CheckHMPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "hmpoint" ));
+  return (nl->IsEqual( type, HMPoint::BasicType() ));
 }
 
 /*
@@ -9382,7 +9384,7 @@ void* CastHMPoint(void* addr)
 
 */
 TypeConstructor hierarchicalmovingpoint(
-        "hmpoint",          //name
+        HMPoint::BasicType(),          //name
         HMPointProperty,    //property function describing signature
         OutHMPoint,
         InHMPoint,          //Out and In functions
@@ -9426,20 +9428,20 @@ ListExpr UncertainTypeMapReal( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if ( nl->IsEqual( arg1, "cupoint" ) ||
-          nl->IsEqual( arg1, "cmpoint" ) ||
-          nl->IsEqual( arg1, "hcmpoint" ) )
-      return nl->SymbolAtom("real");
+    if ( nl->IsEqual( arg1, CUPoint::BasicType() ) ||
+          nl->IsEqual( arg1, CMPoint::BasicType() ) ||
+          nl->IsEqual( arg1, HCMPoint::BasicType() ) )
+      return nl->SymbolAtom(CcReal::BasicType());
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -9455,20 +9457,20 @@ ListExpr HierarchicalTypeMapInt( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if ( nl->IsEqual( arg1, "cmpoint" ) ||
-          nl->IsEqual( arg1, "hcmpoint" ) ||
-          nl->IsEqual( arg1, "hmpoint") )
-      return nl->SymbolAtom("int");
+    if ( nl->IsEqual( arg1, CMPoint::BasicType() ) ||
+          nl->IsEqual( arg1, HCMPoint::BasicType() ) ||
+          nl->IsEqual( arg1, HMPoint::BasicType()) )
+      return nl->SymbolAtom(CcInt::BasicType());
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -9487,13 +9489,13 @@ ListExpr UncertainTypeMapBaseToUncertain( ListExpr args )
     ListExpr arg1 = nl->First( args );
     ListExpr arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "upoint")  &&
-        nl->IsEqual( arg2, "real") )
-      return nl->SymbolAtom( "cupoint" );
+    if( nl->IsEqual( arg1, UPoint::BasicType())  &&
+        nl->IsEqual( arg2, CcReal::BasicType()) )
+      return nl->SymbolAtom( CUPoint::BasicType() );
 
-    if( nl->IsEqual( arg1, "mpoint") &&
-        nl->IsEqual( arg2, "real") )
-      return nl->SymbolAtom( "cmpoint" );
+    if( nl->IsEqual( arg1, MPoint::BasicType()) &&
+        nl->IsEqual( arg2, CcReal::BasicType()) )
+      return nl->SymbolAtom( CMPoint::BasicType() );
 
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
@@ -9501,12 +9503,12 @@ ListExpr UncertainTypeMapBaseToUncertain( ListExpr args )
       ErrorReporter::ReportError("Type mapping function got parameters of "
               "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+
               ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -9522,25 +9524,25 @@ ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "cmpoint" ) ||
-        nl->IsEqual( arg1, "cupoint") ||
-        nl->IsEqual( arg1, "hcmpoint") )
-      return nl->SymbolAtom( "region" );
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) ||
+        nl->IsEqual( arg1, CUPoint::BasicType()) ||
+        nl->IsEqual( arg1, HCMPoint::BasicType()) )
+      return nl->SymbolAtom( Region::BasicType() );
 
-    if( nl->IsEqual( arg1, "hmpoint" ) )
-      return nl->SymbolAtom( "line" );
+    if( nl->IsEqual( arg1, HMPoint::BasicType() ) )
+      return nl->SymbolAtom( Line::BasicType() );
 
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
 
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -9556,21 +9558,21 @@ ListExpr UncertainMovingTypeMapPeriods( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "cmpoint" ) ||
-        nl->IsEqual( arg1, "hcmpoint" ) ||
-        nl->IsEqual( arg1, "hmpoint" ) )
-      return nl->SymbolAtom( "periods" );
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) ||
+        nl->IsEqual( arg1, HCMPoint::BasicType() ) ||
+        nl->IsEqual( arg1, HMPoint::BasicType() ) )
+      return nl->SymbolAtom( Periods::BasicType() );
 
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9586,24 +9588,24 @@ ListExpr UncertainMovingInstantPeriodsTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( (nl->IsEqual(arg1, "cmpoint") ||
-        nl->IsEqual(arg1, "hcmpoint") ||
-        nl->IsEqual(arg1, "hmpoint") ) &&
-        (nl->IsEqual(arg2, "instant") ||
-        nl->IsEqual(arg2, "periods")) )
-      return nl->SymbolAtom( "bool" );
+    if( (nl->IsEqual(arg1, CMPoint::BasicType()) ||
+        nl->IsEqual(arg1, HCMPoint::BasicType()) ||
+        nl->IsEqual(arg1, HMPoint::BasicType()) ) &&
+        (nl->IsEqual(arg2, Instant::BasicType()) ||
+        nl->IsEqual(arg2, Periods::BasicType())) )
+      return nl->SymbolAtom( CcBool::BasicType() );
 
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9619,26 +9621,26 @@ ListExpr UncertainDPassesTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) ||
-        nl->IsEqual( arg2, "region" ) )
+    if( nl->IsEqual( arg2, Point::BasicType() ) ||
+        nl->IsEqual( arg2, Region::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "cmpoint") ||
-          nl->IsEqual( arg1, "cupoint") ||
-          nl->IsEqual( arg1, "hcmpoint") ||
-          nl->IsEqual( arg1, "hmpoint" ) )
-        return nl->SymbolAtom( "bool" );
+      if( nl->IsEqual( arg1, CMPoint::BasicType()) ||
+          nl->IsEqual( arg1, CUPoint::BasicType()) ||
+          nl->IsEqual( arg1, HCMPoint::BasicType()) ||
+          nl->IsEqual( arg1, HMPoint::BasicType() ) )
+        return nl->SymbolAtom( CcBool::BasicType() );
     }
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9654,25 +9656,25 @@ ListExpr UncertainPPassesTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) ||
-        nl->IsEqual( arg2, "region" ) )
+    if( nl->IsEqual( arg2, Point::BasicType() ) ||
+        nl->IsEqual( arg2, Region::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "cmpoint") ||
-          nl->IsEqual( arg1, "cupoint") ||
-          nl->IsEqual( arg1, "hcmpoint") )
-        return nl->SymbolAtom( "bool" );
+      if( nl->IsEqual( arg1, CMPoint::BasicType()) ||
+          nl->IsEqual( arg1, CUPoint::BasicType()) ||
+          nl->IsEqual( arg1, HCMPoint::BasicType()) )
+        return nl->SymbolAtom( CcBool::BasicType() );
     }
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9689,23 +9691,23 @@ ListExpr HierarchicalPassesTypeMapBool( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) ||
-        nl->IsEqual( arg2, "region" ) )
+    if( nl->IsEqual( arg2, Point::BasicType() ) ||
+        nl->IsEqual( arg2, Region::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "hmpoint") )
-        return nl->SymbolAtom( "bool" );
+      if( nl->IsEqual( arg1, HMPoint::BasicType()) )
+        return nl->SymbolAtom( CcBool::BasicType() );
     }
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9721,25 +9723,25 @@ ListExpr UncertainDAtTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) )
+    if( nl->IsEqual( arg2, Point::BasicType() ) )
     {
-      if( nl->IsEqual(arg1, "cupoint") )
-        return nl->SymbolAtom("cupoint");
-      if( nl->IsEqual(arg1, "cmpoint") ||
-          nl->IsEqual(arg1, "hcmpoint") )
-        return nl->SymbolAtom("cmpoint");
-      if( nl->IsEqual(arg1, "hmpoint") )
-        return nl->SymbolAtom("mpoint");
+      if( nl->IsEqual(arg1, CUPoint::BasicType()) )
+        return nl->SymbolAtom(CUPoint::BasicType());
+      if( nl->IsEqual(arg1, CMPoint::BasicType()) ||
+          nl->IsEqual(arg1, HCMPoint::BasicType()) )
+        return nl->SymbolAtom(CMPoint::BasicType());
+      if( nl->IsEqual(arg1, HMPoint::BasicType()) )
+        return nl->SymbolAtom(MPoint::BasicType());
     }
-    if( nl->IsEqual( arg2, "region") )
+    if( nl->IsEqual( arg2, Region::BasicType()) )
     {
-      if( nl->IsEqual(arg1, "cupoint") ||
-          nl->IsEqual(arg1, "cmpoint") )
-        return nl->SymbolAtom("cmpoint");
-      if( nl->IsEqual(arg1, "hcmpoint") )
-        return nl->SymbolAtom("cmpoint");
-      if( nl->IsEqual(arg1, "hmpoint") )
-        return nl->SymbolAtom("mpoint");
+      if( nl->IsEqual(arg1, CUPoint::BasicType()) ||
+          nl->IsEqual(arg1, CMPoint::BasicType()) )
+        return nl->SymbolAtom(CMPoint::BasicType());
+      if( nl->IsEqual(arg1, HCMPoint::BasicType()) )
+        return nl->SymbolAtom(CMPoint::BasicType());
+      if( nl->IsEqual(arg1, HMPoint::BasicType()) )
+        return nl->SymbolAtom(MPoint::BasicType());
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9747,12 +9749,12 @@ ListExpr UncertainDAtTypeMapMoving( ListExpr args )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9768,11 +9770,11 @@ ListExpr HierarchicalAtTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) ||
-        nl->IsEqual( arg2, "region" ) )
+    if( nl->IsEqual( arg2, Point::BasicType() ) ||
+        nl->IsEqual( arg2, Region::BasicType() ) )
     {
-      if( nl->IsEqual(arg1, "hmpoint") )
-        return nl->SymbolAtom("mpoint");
+      if( nl->IsEqual(arg1, HMPoint::BasicType()) )
+        return nl->SymbolAtom(MPoint::BasicType());
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9780,12 +9782,12 @@ ListExpr HierarchicalAtTypeMapMoving( ListExpr args )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9801,21 +9803,21 @@ ListExpr UncertainPAtTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) )
+    if( nl->IsEqual( arg2, Point::BasicType() ) )
     {
-      if( nl->IsEqual(arg1, "cupoint") )
-        return nl->SymbolAtom("cupoint");
-      if( nl->IsEqual(arg1, "cmpoint") ||
-          nl->IsEqual(arg1, "hcmpoint") )
-        return nl->SymbolAtom("cmpoint");
+      if( nl->IsEqual(arg1, CUPoint::BasicType()) )
+        return nl->SymbolAtom(CUPoint::BasicType());
+      if( nl->IsEqual(arg1, CMPoint::BasicType()) ||
+          nl->IsEqual(arg1, HCMPoint::BasicType()) )
+        return nl->SymbolAtom(CMPoint::BasicType());
     }
-    if( nl->IsEqual( arg2, "region") )
+    if( nl->IsEqual( arg2, Region::BasicType()) )
     {
-      if( nl->IsEqual(arg1, "cupoint") ||
-          nl->IsEqual(arg1, "cmpoint") )
-        return nl->SymbolAtom("cmpoint");
-      if( nl->IsEqual(arg1, "hcmpoint") )
-        return nl->SymbolAtom("cmpoint");
+      if( nl->IsEqual(arg1, CUPoint::BasicType()) ||
+          nl->IsEqual(arg1, CMPoint::BasicType()) )
+        return nl->SymbolAtom(CMPoint::BasicType());
+      if( nl->IsEqual(arg1, HCMPoint::BasicType()) )
+        return nl->SymbolAtom(CMPoint::BasicType());
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9823,12 +9825,12 @@ ListExpr UncertainPAtTypeMapMoving( ListExpr args )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9844,18 +9846,18 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) )
+    if( nl->IsEqual( arg2, Instant::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "cupoint" ) ||
-          nl->IsEqual( arg1, "cmpoint" ) ||
-          nl->IsEqual( arg1, "hcmpoint") )
-        return nl->SymbolAtom( "intimeregion" );
+      if( nl->IsEqual( arg1, CUPoint::BasicType() ) ||
+          nl->IsEqual( arg1, CMPoint::BasicType() ) ||
+          nl->IsEqual( arg1, HCMPoint::BasicType()) )
+        return nl->SymbolAtom( IRegion::BasicType() );
     }
 
-    if( nl->IsEqual( arg2, "instant" ) )
+    if( nl->IsEqual( arg2, Instant::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "hmpoint") )
-        return nl->SymbolAtom( "ipoint" );
+      if( nl->IsEqual( arg1, HMPoint::BasicType()) )
+        return nl->SymbolAtom( IPoint::BasicType() );
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9863,12 +9865,12 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9884,14 +9886,14 @@ ListExpr UncertainMovingPeriodsTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "periods" ) )
+    if( nl->IsEqual( arg2, Periods::BasicType() ) )
     {
-      if( nl->IsEqual( arg1, "cmpoint" ) ||
-          nl->IsEqual( arg1, "hcmpoint" ) )
-        return nl->SymbolAtom( "cmpoint" );
+      if( nl->IsEqual( arg1, CMPoint::BasicType() ) ||
+          nl->IsEqual( arg1, HCMPoint::BasicType() ) )
+        return nl->SymbolAtom( CMPoint::BasicType() );
 
-      if( nl->IsEqual( arg1, "hmpoint" ) )
-        return nl->SymbolAtom( "mpoint" );
+      if( nl->IsEqual( arg1, HMPoint::BasicType() ) )
+        return nl->SymbolAtom( MPoint::BasicType() );
     }
 
     if (nl->AtomType( arg1 ) == SymbolType &&
@@ -9899,12 +9901,12 @@ ListExpr UncertainMovingPeriodsTypeMapMoving( ListExpr args )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -9924,16 +9926,16 @@ ListExpr UncertainMovingTypeMapUnits( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "cmpoint" ) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-       nl->SymbolAtom("cupoint"));
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+       nl->SymbolAtom(CUPoint::BasicType()));
     else
       ErrorReporter::ReportError("Type mapping function got wrong "
                             "types as parameters.");
   }
   ErrorReporter::ReportError("Type mapping function got a "
                       "parameter of length != 1.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -9950,22 +9952,22 @@ ListExpr UncertainTemporalBBoxTypeMap( ListExpr args )
   {
     arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "cupoint" ) )
-      return (nl->SymbolAtom( "rect3" ));
+    if( nl->IsEqual( arg1, CUPoint::BasicType() ) )
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
-    if( nl->IsEqual( arg1, "cmpoint" ) )
-      return (nl->SymbolAtom( "rect3" ));
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
+      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
 
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -9986,20 +9988,20 @@ ListExpr UncertainTemporalTypeMapUnits( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "cmpoint" ) )
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-       nl->SymbolAtom("cupoint"));
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+       nl->SymbolAtom(CUPoint::BasicType()));
 
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -10021,15 +10023,15 @@ ListExpr MovingTypeMapHierarchy( ListExpr args )
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
 
-    if( nl->IsEqual( arg1, "mpoint" ) &&
-        nl->IsEqual( arg2, "real" ) &&
-        nl->IsEqual( arg3, "real" ) )
-      return nl->SymbolAtom("hmpoint");
+    if( nl->IsEqual( arg1, MPoint::BasicType() ) &&
+        nl->IsEqual( arg2, CcReal::BasicType() ) &&
+        nl->IsEqual( arg3, CcReal::BasicType() ) )
+      return nl->SymbolAtom(HMPoint::BasicType());
 
-    if( nl->IsEqual( arg1, "cmpoint" ) &&
-        nl->IsEqual( arg2, "real" ) &&
-        nl->IsEqual( arg3, "real" ) )
-      return nl->SymbolAtom("hcmpoint");
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) &&
+        nl->IsEqual( arg2, CcReal::BasicType() ) &&
+        nl->IsEqual( arg3, CcReal::BasicType() ) )
+      return nl->SymbolAtom(HCMPoint::BasicType());
 
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType &&
@@ -10038,12 +10040,12 @@ ListExpr MovingTypeMapHierarchy( ListExpr args )
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ ", " +nl->SymbolValue(arg2)+ "and "
           +nl->SymbolValue(arg3)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 3.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -10063,19 +10065,19 @@ ListExpr HierarchicalMovingTypeMapMoving( ListExpr args )
   {
     ListExpr arg1 = nl->First(args);
 
-    if( nl->IsEqual( arg1, "hmpoint" ) )
-      return nl->SymbolAtom("mpoint");
+    if( nl->IsEqual( arg1, HMPoint::BasicType() ) )
+      return nl->SymbolAtom(MPoint::BasicType());
 
     if (nl->AtomType( args ) == SymbolType)
     {
       ErrorReporter::ReportError("Type mapping function got a "
               "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 1.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -10096,22 +10098,22 @@ ListExpr HierarchicalMovingTypeMapUncertainMoving( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if( ( nl->IsEqual(arg1, "hmpoint") ||
-        nl->IsEqual(arg1, "hcmpoint") ) &&
-        nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom("cmpoint");
+    if( ( nl->IsEqual(arg1, HMPoint::BasicType()) ||
+        nl->IsEqual(arg1, HCMPoint::BasicType()) ) &&
+        nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return nl->SymbolAtom(CMPoint::BasicType());
 
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -10132,21 +10134,21 @@ ListExpr HierarchicalTypeMapHierarchical( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if( nl->IsEqual( arg1, "hmpoint" ) &&
-        nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom("hcmpoint");
+    if( nl->IsEqual( arg1, HMPoint::BasicType() ) &&
+        nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return nl->SymbolAtom(HCMPoint::BasicType());
 
     if (nl->AtomType( arg1 ) == SymbolType &&
         nl->AtomType( arg2 ) == SymbolType )
     {
       ErrorReporter::ReportError("Type mapping function got parameters of "
           "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -10170,13 +10172,13 @@ int UncertainSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "cupoint" )
+  if( nl->SymbolValue( arg1 ) == CUPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() )
     return 2;
 
   return -1; // This point should never be reached
@@ -10192,13 +10194,13 @@ int HierarchicalSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() )
     return 2;
   return -1;
 }
@@ -10213,16 +10215,16 @@ int UncertainTemporalSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "cupoint" )
+  if( nl->SymbolValue( arg1 ) == CUPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() )
     return 3;
 
   return -1; // This point should never be reached
@@ -10238,16 +10240,16 @@ int UncertainTemporalAtTimeSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "cupoint" )
+  if( nl->SymbolValue( arg1 ) == CUPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() )
     return 3;
 
   return -1; // This point should never be reached
@@ -10266,36 +10268,36 @@ int UncertainPassesSelect( ListExpr args )
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "cupoint" &&
-      nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == CUPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "cupoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
+  if( nl->SymbolValue( arg1 ) == CUPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" &&
-      nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
-      nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
-      nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 7;
 
   return -1; // This point should never be reached
@@ -10313,12 +10315,12 @@ int HierarchicalPassesSelect( ListExpr args )
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
-      nl->SymbolValue( arg2 ) == "point" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Point::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
-      nl->SymbolValue( arg2 ) == "region" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 1;
 
   return -1; // This point should never be reached
@@ -10335,28 +10337,28 @@ int UncertainMovingInstantPeriodsSelect( ListExpr args )
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" &&
-      nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
-      nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 2;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
-      nl->SymbolValue( arg2 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Instant::BasicType() )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
-      nl->SymbolValue( arg2 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Periods::BasicType() )
     return 5;
 
 
@@ -10371,10 +10373,10 @@ int TemporalToUncertainSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "upoint" )
+  if( nl->SymbolValue( arg1 ) == UPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
     return 1;
 
   return -1; // This point should never be reached
@@ -10388,10 +10390,10 @@ int HierarchicalToUncertainSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+  if( nl->SymbolValue( arg1 ) == HMPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+  if( nl->SymbolValue( arg1 ) == HCMPoint::BasicType() )
     return 1;
 
   return -1; // This point should never be reached
@@ -10405,10 +10407,10 @@ int TemporalToHierarchySelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+  if( nl->SymbolValue( arg1 ) == CMPoint::BasicType() )
     return 1;
 
   return -1; // This point should never be reached
@@ -12257,29 +12259,29 @@ class HierarchicalGeoAlgebra : public Algebra
   HierarchicalGeoAlgebra() : Algebra()
   {
     AddTypeConstructor( &uncertainunitpoint );
-    uncertainunitpoint.AssociateKind( "DATA" );
-    uncertainunitpoint.AssociateKind( "UNCERTAIN" );
-    uncertainunitpoint.AssociateKind( "TEMPORAL" );
+    uncertainunitpoint.AssociateKind( Kind::DATA() );
+    uncertainunitpoint.AssociateKind( Kind::UNCERTAIN() );
+    uncertainunitpoint.AssociateKind( Kind::TEMPORAL() );
 
     AddTypeConstructor( &uncertainmovingpoint );
-    uncertainmovingpoint.AssociateKind( "DATA" );
-    uncertainmovingpoint.AssociateKind( "UNCERTAIN" );
-    uncertainmovingpoint.AssociateKind( "TEMPORAL" );
+    uncertainmovingpoint.AssociateKind( Kind::DATA() );
+    uncertainmovingpoint.AssociateKind( Kind::UNCERTAIN() );
+    uncertainmovingpoint.AssociateKind( Kind::TEMPORAL() );
 
     AddTypeConstructor( &hierarchicaluncertainunitpoint );
-    hierarchicaluncertainunitpoint.AssociateKind( "DATA" );
-    hierarchicaluncertainunitpoint.AssociateKind( "UNCERTAIN" );
-    hierarchicaluncertainunitpoint.AssociateKind( "HIERARCHICAL" );
+    hierarchicaluncertainunitpoint.AssociateKind( Kind::DATA() );
+    hierarchicaluncertainunitpoint.AssociateKind( Kind::UNCERTAIN() );
+    hierarchicaluncertainunitpoint.AssociateKind( Kind::HIERARCHICAL() );
 
     AddTypeConstructor( &hierarchicalmovingpoint );
-    hierarchicalmovingpoint.AssociateKind( "DATA" );
-    hierarchicalmovingpoint.AssociateKind( "UNCERTAIN" );
-    hierarchicalmovingpoint.AssociateKind( "HIERARCHICAL" );
+    hierarchicalmovingpoint.AssociateKind( Kind::DATA() );
+    hierarchicalmovingpoint.AssociateKind( Kind::UNCERTAIN() );
+    hierarchicalmovingpoint.AssociateKind( Kind::HIERARCHICAL() );
 
     AddTypeConstructor( &hierarchicaluncertainmovingpoint );
-    hierarchicaluncertainmovingpoint.AssociateKind( "DATA" );
-    hierarchicaluncertainmovingpoint.AssociateKind( "UNCERTAIN" );
-    hierarchicaluncertainmovingpoint.AssociateKind( "HIERARCHICAL" );
+    hierarchicaluncertainmovingpoint.AssociateKind( Kind::DATA() );
+    hierarchicaluncertainmovingpoint.AssociateKind( Kind::UNCERTAIN() );
+    hierarchicaluncertainmovingpoint.AssociateKind( Kind::HIERARCHICAL() );
 
     AddOperator( &uncertainepsilon );
     AddOperator( &uncertaintrajectory );

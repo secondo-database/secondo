@@ -3,7 +3,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the getstatistics Operator 
+[1] Implementation of the getstatistics Operator
 
 [TOC]
 
@@ -19,6 +19,7 @@
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "Symbols.h"
 
 #include "BTree2.h"
 
@@ -44,64 +45,64 @@ ListExpr get_statistics::TypeMapping(ListExpr args)
     if (!listutils::isBTree2Description(first)) {
       return listutils::typeError("argument must be a valid btree2");
     }
-  } 
- 
+  }
+
   ListExpr res = nl->OneElemList(
                    nl->TwoElemList(nl->SymbolAtom("TotalInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   ListExpr res2 = nl->Append(res, nl->TwoElemList(nl->SymbolAtom("TotalLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("UnderflowInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("UnderflowLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("EntriesInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("EntriesLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(
                                    nl->SymbolAtom("MissingEntriesInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("MissingEntriesLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("MinEntriesInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("MinEntriesLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("MaxEntriesInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("MaxEntriesLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("BytesWastedInternal"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("BytesWastedLeaf"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(
                                    nl->SymbolAtom("Peak Cache Memory Usage"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
   res2 = nl->Append(res2,nl->TwoElemList(nl->SymbolAtom("Peak Cache Elements"),
-                                   nl->SymbolAtom("int")));
+                                   nl->SymbolAtom(CcInt::BasicType())));
 
 
-  return nl->TwoElemList( nl->SymbolAtom("stream"),
-                          nl->TwoElemList( 
-                            nl->SymbolAtom("tuple"), res));
+  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(
+                            nl->SymbolAtom(Tuple::BasicType()), res));
 
 }
 
@@ -125,13 +126,13 @@ get_statistics::ValueMappingEx(Word* args, Word& result, int message,
       local.addr = k;
       return 0;
 
-    }  
+    }
     case REQUEST : {
       int* k;
-      k = (int*)local.addr;      
+      k = (int*)local.addr;
       if (*k == 1) {
         StatisticStruct stat;
-       
+
         btree->GetStatistics(btree->GetRootNode(), stat);
 
         const int fields = 16;
@@ -174,7 +175,7 @@ get_statistics::ValueMappingEx(Word* args, Word& result, int message,
       delete (int*) local.addr;
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 
@@ -197,15 +198,15 @@ string get_statistics::Specification() {
   string example = "query get_statistics(Staedte_SName_btree2)";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
 int get_statistics::numberOfValueMappings = 1;
-ValueMapping get_statistics::valueMappings[] = { 
+ValueMapping get_statistics::valueMappings[] = {
                   get_statistics::ValueMappingEx,
                 };
 

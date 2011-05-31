@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the unpin\_nodes Operator 
+[1] Implementation of the unpin\_nodes Operator
 
 [TOC]
 
@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "BTree2.h"
+#include "Symbols.h"
 
 
 extern NestedList* nl;
@@ -55,7 +56,7 @@ namespace Operators {
 Signature is
 
 ----
-    unpin\_nodes: stream(int) x (btree2) --> stream(tuple( (Node int) 
+    unpin\_nodes: stream(int) x (btree2) --> stream(tuple( (Node int)
                                                   (Ok bool)))
 ----
 
@@ -68,20 +69,22 @@ ListExpr unpin_nodes::TypeMapping( ListExpr args){
     NList first (nl->First(args));
     ListExpr second = nl->Second(args);
     CHECK_COND(first.hasLength(2) && first.first().isSymbol() &&
-               first.first().str() == "stream" && first.second().isSymbol() 
-               && first.second().str() == "int", 
+               first.first().str() == Symbol::STREAM() &&
+               first.second().isSymbol()
+               && first.second().str() == CcInt::BasicType(),
                "Operator expects a stream of ints as first argument:");
-      
+
     CHECK_COND(listutils::isBTree2Description(second),
       "Operator expects a btree2 object as second argument.");
-  ListExpr attr = nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Node"), 
-                nl->SymbolAtom("int")), nl->TwoElemList(nl->SymbolAtom("Ok"), 
-                  nl->SymbolAtom("bool")));
-  ListExpr res = (nl->TwoElemList(nl->SymbolAtom("stream"), 
-                          nl->TwoElemList(nl->SymbolAtom("tuple"),
+  ListExpr attr = nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Node"),
+                nl->SymbolAtom(CcInt::BasicType())),
+                                  nl->TwoElemList(nl->SymbolAtom("Ok"),
+                  nl->SymbolAtom(CcBool::BasicType())));
+  ListExpr res = (nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                           attr)));
-  return res; 
-}       
+  return res;
+}
 
 /*
 2.2 Valuemapping
@@ -96,13 +99,13 @@ int
 unpin_nodes::ValueMapping(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
-  CcInt* currentInt; 
+  CcInt* currentInt;
   Word current;
   Tuple* tuple;
   ValueMapInfo* vmi;
   switch( message )
   {
-    case OPEN: { // initialize the local storage 
+    case OPEN: { // initialize the local storage
       vmi = new ValueMapInfo;
       vmi->btree = (BTree2*)args[1].addr;
       ListExpr resultType = GetTupleResultType( s );
@@ -118,11 +121,11 @@ unpin_nodes::ValueMapping(Word* args, Word& result, int message,
       {
         currentInt = (CcInt*)current.addr;
         bool res = vmi->btree->removeCachePinnedNode(currentInt->GetIntval());
-        
+
         tuple = new Tuple(vmi->tType);
         tuple->PutAttribute(0, currentInt);
         tuple->PutAttribute(1, new CcBool(true, res));
-        result.setAddr(tuple);  
+        result.setAddr(tuple);
         return YIELD;
       }
       else
@@ -165,7 +168,7 @@ struct unpinNodesInfo : OperatorInfo {
   }
 };
 
-Operator unpin_nodes::def( unpinNodesInfo(), unpin_nodes::ValueMapping, 
+Operator unpin_nodes::def( unpinNodesInfo(), unpin_nodes::ValueMapping,
                          unpin_nodes::TypeMapping);
 }
 }

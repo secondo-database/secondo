@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004-2008, University in Hagen, Faculty Mathematics and Computer
@@ -74,28 +74,26 @@ for query processing.
 
 /*
 Dependencies with other algebras: RelationAlgebra, StandardAlgebra
-   
+
 */
-#include "RelationAlgebra.h" 
+#include "RelationAlgebra.h"
 #include "StandardTypes.h"
 
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-using namespace symbols;
-
 inline int
-nextInt(const double d) 
+nextInt(const double d)
 {
-  return static_cast<int>( ceil(d) );	
-}	
+  return static_cast<int>( ceil(d) );
+}
 
 inline int
-previousInt(const double d) 
+previousInt(const double d)
 {
   return static_cast<int>( floor(d) );
-}	
+}
 
 
 // a system table which stores some internals about
@@ -125,7 +123,7 @@ class PJoinTuple : public InfoTuple
    int probe_cpuOps;
    string usedFunction;
 
-   
+
    PJoinTuple() : join(""), usedFunction("") {
      id=0;
      arg1_est=0;
@@ -146,8 +144,8 @@ class PJoinTuple : public InfoTuple
      probe_seconds=0.0;
      probe_cpuOps=0;
    }
-   
-   virtual ~PJoinTuple() {} 
+
+   virtual ~PJoinTuple() {}
 
    virtual NList valueList() const
    {
@@ -173,15 +171,15 @@ class PJoinTuple : public InfoTuple
      list.append( NList().intAtom(probe_arg2) );
      list.append( NList().stringAtom(usedFunction) );
      return list;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << id << sep
          << join << sep
-         << result_est << endl; 
+         << result_est << endl;
       return os;
-   } 
+   }
 };
 
 
@@ -194,7 +192,7 @@ class CostTuple : public InfoTuple
    int param_arg2_card;
    int param_res_card;
    int param_arg1_pages;
-   int param_arg2_pages;	   
+   int param_arg2_pages;
    SEC_STD_REAL param_join_sel;
 
    string cost_name;
@@ -202,9 +200,9 @@ class CostTuple : public InfoTuple
    int cost_read;
    int cost_cpu;
    SEC_STD_REAL cost_value;
-   int real_write; 
+   int real_write;
    int real_read;
-   int real_cpu;   
+   int real_cpu;
    SEC_STD_REAL real_runtime;
 
    CostTuple() {
@@ -213,38 +211,38 @@ class CostTuple : public InfoTuple
    param_arg2_card = 0;
    param_res_card = 0;
    param_arg1_pages = 0;
-   param_arg2_pages = 0;   
+   param_arg2_pages = 0;
    param_join_sel = 0.0;
    cost_name = "";
    cost_write = 0;
    cost_read = 0;
    cost_cpu = 0;
    cost_value = 0;
-   real_write = 0; 
+   real_write = 0;
    real_read = 0;
-   real_cpu = 0;   
+   real_cpu = 0;
    real_runtime = 0;
    }
-   
+
    CostTuple(const CostParams& cp, const CostResult& cr) {
    id=0;
    param_arg1_card = cp.cardA;
    param_arg2_card = cp.cardB;
    param_res_card = 0;
    param_arg1_pages = cp.pagesA;
-   param_arg2_pages = cp.pagesB;   
+   param_arg2_pages = cp.pagesB;
    param_join_sel = cp.sel;
    cost_name = "";
    cost_write = cr.write;
    cost_read = cr.read;
    cost_cpu = cr.cpu;
    cost_value = cr.value;
-   real_write = 0; 
+   real_write = 0;
    real_read = 0;
-   real_cpu = 0;   
+   real_cpu = 0;
    real_runtime = 0;
    }
-   virtual ~CostTuple() {} 
+   virtual ~CostTuple() {}
 
    virtual NList valueList() const
    {
@@ -266,77 +264,77 @@ class CostTuple : public InfoTuple
      list.append( NList().intAtom(real_cpu) );
      list.append( NList().realAtom(real_runtime) );
      return list;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << id << sep
          << cost_name << sep
-         << cost_value << endl; 
+         << cost_value << endl;
       return os;
-   } 
+   }
 };
 
 class PJoinRel : public SystemInfoRel
 {
    public:
-   PJoinRel(const string& name) : SystemInfoRel(name) 
+   PJoinRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~PJoinRel() {}
-   
+
    virtual void initSchema()
-   { 
-     addAttribute("Id",    sym.INT()    );
-     addAttribute("Join",  sym.STRING() );
-     addAttribute("Arg1_guess", sym.INT() );
-     addAttribute("Arg1_value", sym.INT() );
-     addAttribute("Arg1_error", sym.INT() );
-     addAttribute("Arg2_guess", sym.INT() );
-     addAttribute("Arg2_value", sym.INT() );
-     addAttribute("Arg2_error", sym.INT() );
-     addAttribute("Result_guess", sym.INT() );
-     addAttribute("Result_value", sym.INT() );
-     addAttribute("Result_error", sym.INT() );
-     addAttribute("Sel_guess", sym.real() );
-     addAttribute("Sel_value", sym.real() );
-     addAttribute("Sel_error", sym.INT() );
-     addAttribute("Probe_Result", sym.INT() );
-     addAttribute("Probe_Seconds", sym.real() );
-     addAttribute("Probe_CPU_Ops", sym.INT() );
-     addAttribute("Probe_Arg1", sym.INT() );
-     addAttribute("Probe_Arg2", sym.INT() );
-     addAttribute("Used_Function", sym.STRING() );
-   } 
-}; 
+   {
+     addAttribute("Id",    CcInt::BasicType()    );
+     addAttribute("Join",  CcString::BasicType() );
+     addAttribute("Arg1_guess", CcInt::BasicType() );
+     addAttribute("Arg1_value", CcInt::BasicType() );
+     addAttribute("Arg1_error", CcInt::BasicType() );
+     addAttribute("Arg2_guess", CcInt::BasicType() );
+     addAttribute("Arg2_value", CcInt::BasicType() );
+     addAttribute("Arg2_error", CcInt::BasicType() );
+     addAttribute("Result_guess", CcInt::BasicType() );
+     addAttribute("Result_value", CcInt::BasicType() );
+     addAttribute("Result_error", CcInt::BasicType() );
+     addAttribute("Sel_guess", CcReal::BasicType() );
+     addAttribute("Sel_value", CcReal::BasicType() );
+     addAttribute("Sel_error", CcInt::BasicType() );
+     addAttribute("Probe_Result", CcInt::BasicType() );
+     addAttribute("Probe_Seconds", CcReal::BasicType() );
+     addAttribute("Probe_CPU_Ops", CcInt::BasicType() );
+     addAttribute("Probe_Arg1", CcInt::BasicType() );
+     addAttribute("Probe_Arg2", CcInt::BasicType() );
+     addAttribute("Used_Function", CcString::BasicType() );
+   }
+};
 
 
 class CostRel : public SystemInfoRel
 {
    public:
-   CostRel(const string& name) : SystemInfoRel(name) 
+   CostRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~CostRel() {}
 
    virtual void initSchema()
-   { 
-     addAttribute("Id",    INT    );
-     addAttribute("Param_arg1_card",  INT );
-     addAttribute("Param_arg2_card", INT );
-     addAttribute("Param_res_card", INT );
-     addAttribute("Param_arg1_pages", INT );
-     addAttribute("Param_arg2_pages", INT );
-     addAttribute("Param_join_sel", REAL );
-     addAttribute("Cost_name", STRING );
-     addAttribute("Cost_write", INT );
-     addAttribute("Cost_read", INT );
-     addAttribute("Cost_cpu", INT );
-     addAttribute("Cost_value", REAL );
-     addAttribute("Real_write", INT );
-     addAttribute("Real_read",  INT );
-     addAttribute("Real_cpu", INT );
-     addAttribute("Real_runtime", REAL );
-   } 
-}; 
+   {
+     addAttribute("Id",    CcInt::BasicType()    );
+     addAttribute("Param_arg1_card",  CcInt::BasicType() );
+     addAttribute("Param_arg2_card", CcInt::BasicType() );
+     addAttribute("Param_res_card", CcInt::BasicType() );
+     addAttribute("Param_arg1_pages", CcInt::BasicType() );
+     addAttribute("Param_arg2_pages", CcInt::BasicType() );
+     addAttribute("Param_join_sel", CcReal::BasicType() );
+     addAttribute("Cost_name", CcString::BasicType() );
+     addAttribute("Cost_write", CcInt::BasicType() );
+     addAttribute("Cost_read", CcInt::BasicType() );
+     addAttribute("Cost_cpu", CcInt::BasicType() );
+     addAttribute("Cost_value", CcReal::BasicType() );
+     addAttribute("Real_write", CcInt::BasicType() );
+     addAttribute("Real_read",  CcInt::BasicType() );
+     addAttribute("Real_cpu", CcInt::BasicType() );
+     addAttribute("Real_runtime", CcReal::BasicType() );
+   }
+};
 
 // the system relation instance pointer
 PJoinRel* pjoinRel = 0;
@@ -348,17 +346,17 @@ CostRel* costRel = 0;
 ostream& operator<<(ostream& os, const CostResult& c)
 {
   return c.print(os);
-} 
+}
 
 ostream& operator<<(ostream& os, const CostInfo& c)
-{ 
-  return c.print(os); 
-} 
+{
+  return c.print(os);
+}
 
 ostream& operator<<(ostream& os, const CostParams& c)
-{ 
-  return c.print(os); 
-} 
+{
+  return c.print(os);
+}
 
 
 /*
@@ -371,80 +369,83 @@ ostream& operator<<(ostream& os, const CostParams& c)
 struct Marker
 {
   int num;    // sequence number
-  int parts;  // expected total number of partitions 
+  int parts;  // expected total number of partitions
   int tuples; // (requested) partition size
 
-  Marker() : num(0), parts(0), tuples(0) {} 
-  Marker(const int n, const int p, const int t) : 
-   num(n), parts(p), tuples(t) 
+  Marker() : num(0), parts(0), tuples(0) {}
+  Marker(const int n, const int p, const int t) :
+   num(n), parts(p), tuples(t)
   {}
 
   inline void print(ostream& os) const
   {
-    os << "(" << num << ", " << parts << ", [" << tuples << "])"; 
-  } 
+    os << "(" << num << ", " << parts << ", [" << tuples << "])";
+  }
 };
 
 ostream& operator<<(ostream& os, const Marker& m)
 {
   m.print(os);
   return os;
-} 
+}
 
 struct PTuple
 {
   const Marker* marker;
   Tuple* tuple;
- 
-  PTuple() : marker(0), tuple(0) {} 
+
+  PTuple() : marker(0), tuple(0) {}
   PTuple(const Marker* m) : marker(m), tuple(0) {}
   PTuple(Tuple* t) : marker(0), tuple(t) {}
-  ~PTuple() 
+  ~PTuple()
   {
     if (marker)
       delete marker;
   }
+
+  static const string BasicType() {return "ptuple";}
+
 };
 
 
-struct PartCtr 
-{ 
+struct PartCtr
+{
   int tuples; // number of tuples per partion
   int parts; // number of partitions
   int num;
   mutable int ctr;
 
-  PartCtr() :  tuples(0), parts(0), num(0), ctr(0) {} 
-  PartCtr(const int pSize, const int card) 
+  PartCtr() :  tuples(0), parts(0), num(0), ctr(0) {}
+  PartCtr(const int pSize, const int card)
   {
-    init(pSize, card); 
+    init(pSize, card);
   }
-   
-  void init(const int pSize, const int card) 
-  { 
-    num = 0; 
-    ctr = 0; 
-   
-    adjustPartSize(pSize); 
+
+  void init(const int pSize, const int card)
+  {
+    num = 0;
+    ctr = 0;
+
+    adjustPartSize(pSize);
     computeParts(card);
     assert(tuples > 0);
   }
-  
-  void adjustPartSize(const int p) { 
-    tuples = max(abs(p), 2);
-  }    
 
-  void computeParts(const int card) { 
+  void adjustPartSize(const int p) {
+    tuples = max(abs(p), 2);
+  }
+
+  void computeParts(const int card) {
     parts = card /tuples;
-  }    
+  }
 
 
 /*
 After construction we have ctr == 0, hence the first call
 will return true. After ~tuples~ calls the counter will be set
 to ~tuples~.
- 
-*/   
+
+*/
   inline bool resetIfNeeded()
   {
     if (ctr != 0) {
@@ -453,7 +454,7 @@ to ~tuples~.
     }
     ctr = tuples;
     return true;
-  } 
+  }
 
   inline Marker* newMarker()
   {
@@ -461,12 +462,12 @@ to ~tuples~.
     num++;
     return new Marker( num-1, parts, tuples );
   }
-  
-};  
+
+};
 
 
 
-/* 
+/*
 Below we define a class which helps to maintain stream in value
 mappings.
 
@@ -476,68 +477,68 @@ template<class T>
 struct StreamBase
 {
   typedef enum {opened, finished, closed} StreamState;
-  
+
   private:
   const T& child() const {
     return static_cast<const T&>( *this );
-  }  
-  
+  }
+
   public:
   mutable StreamState state;
 
 
   inline void open() {
     return child().open();
-  }  
-  
+  }
+
   inline void close() {
     return child().close();
-  }  
-  
-  inline void* getNext() const 
+  }
+
+  inline void* getNext() const
   {
     return child().getNext();
   }
-  
-  StreamBase() : state(closed) {} 
-  StreamBase(const StreamBase& rhs) : state(rhs.state) {} 
-    
+
+  StreamBase() : state(closed) {}
+  StreamBase(const StreamBase& rhs) : state(rhs.state) {}
+
 };
 
 struct StreamOpAddr : public StreamBase<StreamOpAddr>
 {
   public:
-   
+
   void* stream;
 
   StreamOpAddr( ) : StreamBase<StreamOpAddr>() {}
-  
-  StreamOpAddr( Supplier s ) : stream(s) {} 
-  
-  StreamOpAddr( const StreamOpAddr& rhs ) : 
-    StreamBase<StreamOpAddr>(rhs), 
-    stream(rhs.stream) 
-  {} 
- 
-  inline void open() 
+
+  StreamOpAddr( Supplier s ) : stream(s) {}
+
+  StreamOpAddr( const StreamOpAddr& rhs ) :
+    StreamBase<StreamOpAddr>(rhs),
+    stream(rhs.stream)
+  {}
+
+  inline void open()
   {
     if (state == closed) {
-      TRACE("StreamOpAddr()::open");	    
+      TRACE("StreamOpAddr()::open");
       qp->Open(stream);
       state = opened;
-    }   
-  }
-    
-  inline void close() 
-  {
-    if (state != closed) {
-      TRACE("StreamOpAddr()::close");	    
-      qp->Close(stream);
-      state = closed;
-    }  
+    }
   }
 
-/* 
+  inline void close()
+  {
+    if (state != closed) {
+      TRACE("StreamOpAddr()::close");
+      qp->Close(stream);
+      state = closed;
+    }
+  }
+
+/*
 The next function gets a tuple of the input stream and returns
 the tuple or a marker. At the first call a marker will be produced
 This ensures that operators stream-downwards will always know the
@@ -546,92 +547,92 @@ a marker will be injected.
 
 */
 
-  
+
   inline void* getNext() const
   {
-    static Word element; 
+    static Word element;
     if (state != finished) {
     qp->Request(stream, element);
     if( qp->Received(stream) ) {
       return element.addr;
-    }  
+    }
     else {
       state = finished;
       return 0;
     }
     }
-    return 0;  
-  } 
-     
+    return 0;
+  }
+
 };
 
 /*
 The class below can take a relation but can be handled like a stream
 of PTuple
-   
-*/   
+
+*/
 
 struct RelationAddr : public StreamBase<RelationAddr>
 {
- 
+
   private:
    GenericRelation* rel;
    GenericRelationIterator* rit;
    mutable PartCtr parts;
-   
+
   public:
-    
-  RelationAddr( GenericRelation* r, const int tuples = 100 ) : rel(r), rit(0) 
+
+  RelationAddr( GenericRelation* r, const int tuples = 100 ) : rel(r), rit(0)
   {
     int card = r->GetNoTuples();
     parts.init(tuples, card);
-  }    
+  }
 
-  ~RelationAddr() {} 
-  
-  inline void open() 
+  ~RelationAddr() {}
+
+  inline void open()
   {
     if (state == closed) {
-      TRACE("RelationAddr()::open")	    
-      rit = rel->MakeScan(); 
+      TRACE("RelationAddr()::open")
+      rit = rel->MakeScan();
       state = opened;
-    }   
+    }
   }
-    
-  inline void close() 
+
+  inline void close()
   {
     if (state != closed) {
-      TRACE("RelationAddr()::close")	    
+      TRACE("RelationAddr()::close")
       delete rit;
       rit = 0;
       state = closed;
-    }  
+    }
   }
-  
+
   inline void* getNext() const
   {
      if ( parts.resetIfNeeded() )
-     { 
-       return new PTuple( parts.newMarker() ); 
+     {
+       return new PTuple( parts.newMarker() );
      }
      else
      {
-       Tuple* t = rit->GetNextTuple(); 
+       Tuple* t = rit->GetNextTuple();
        if (t) {
          return new PTuple(t);
        } else {
           state = finished;
          return 0;
-       }  
+       }
      }
-    return 0;      
-  } 
-  
+    return 0;
+  }
+
 };
 
 
 /*
-3 The Type Constructor ~ptuple~ 
+3 The Type Constructor ~ptuple~
 
 Since type constructor ~ptuple~ will not be used to construct values from a
 list representation it should never be called. Moreover, the ~create~, ~open~
@@ -645,7 +646,7 @@ most of them are not needed and should never be called. Defining ~open~
 and ~save~ functions is only needed when the datatype should be used as
 attribute type in relations. In and out functions are only interesting if
 the object needs to be converted to or from a textual representation.
-Data types like indexes don't need this. 
+Data types like indexes don't need this.
 
 
 */
@@ -656,14 +657,14 @@ Data types like indexes don't need this.
 /*
 4.1 Type mapping and value mapping functions of operator ~pfeed~
 
-This operator makes the following type mapping 
+This operator makes the following type mapping
 
 ----
 ((rel(tuple(y))) int) -> (stream(ptuple(y)))
 ----
 
 and creates a marker tuple after a number of tuples which is
-specified in the second argument has been created. 
+specified in the second argument has been created.
 
 */
 
@@ -678,14 +679,14 @@ struct PartStreamMappings {
   template<class T>
   inline static T* nextOfStream(const Word& w)
   {
-    Word wTuple = SetWord(Address(0)); 
+    Word wTuple = SetWord(Address(0));
     qp->Request(w.addr, wTuple);
     if( qp->Received(w.addr) )
       return static_cast<T*>( wTuple.addr );
     else
       return 0;
   }
- 
+
   template<class T>
   inline static T* nextOfStream2(const Supplier s)
   {
@@ -700,34 +701,34 @@ struct PartStreamMappings {
   inline static Tuple* nextTuple(const Word& w)
   {
     return nextOfStream<Tuple>(w);
-  } 
-  
+  }
+
   inline static PTuple* nextPTuple(const Word& w)
   {
     return nextOfStream<PTuple>(w);
-  } 
-  
+  }
+
   inline static Tuple* nextTuple(const Supplier s)
   {
     return nextOfStream2<Tuple>(s);
-  } 
-  
+  }
+
   inline static PTuple* nextPTuple(const Supplier s)
   {
     return nextOfStream2<PTuple>(s);
-  } 
+  }
 
   template<class T>
-  inline static T* getArg(const Word& w) 
+  inline static T* getArg(const Word& w)
   {
     return static_cast<T*>( w.addr );
-  } 
+  }
 
-  inline static string expects( const string& s1, 
-                                const string& s2, 
-                                const string attr="..." ) 
+  inline static string expects( const string& s1,
+                                const string& s2,
+                                const string attr="..." )
   {
-    return "(" + s1 + "(" + s2 + "(" + attr + ")))";  
+    return "(" + s1 + "(" + s2 + "(" + attr + ")))";
   }
 
 /*
@@ -735,50 +736,50 @@ The functiion ~checkMap~ tests if a list represents a map of
 ~n~ arguments. It stores the ~n~ arguments and the result type
 in the given vector reference. This can be used for subsequent
 integrity checks for the arguments and result type.
-   
+
 */
   static bool checkMap(const NList& l, Cardinal n, vector<NList>& sig)
-  { 
-    Cardinal len = l.length();  
+  {
+    Cardinal len = l.length();
     if ( len != (n+2) )
       return false;
 
-    if ( !l.first().isSymbol( sym.MAP() ) )
+    if ( !l.first().isSymbol( Symbol::MAP() ) )
       return false;
-     
-    sig.resize(n+1); 
-    for(Cardinal i = 0; i <= n; i++) 
+
+    sig.resize(n+1);
+    for(Cardinal i = 0; i <= n; i++)
     {
       sig[i] = l.elem(2+i);
     }
-    return true;    
-  }  
-  
+    return true;
+  }
+
   static bool checkRelTuple(const NList& l, NList& attrs)
   {
-    return checkDepth3(l, sym.REL(), sym.TUPLE(), attrs);
+    return checkDepth3(l, Relation::BasicType(), Tuple::BasicType(), attrs);
   }
-  
+
   static bool checkStreamTuple(const NList& l, NList& attrs)
   {
-    return checkDepth3(l, sym.STREAM(), sym.TUPLE(), attrs);
+    return checkDepth3(l, Symbol::STREAM(), Tuple::BasicType(), attrs);
   }
 
   static bool checkStreamPTuple(const NList& l, NList& attrs)
   {
-    return checkDepth3(l, sym.STREAM(), sym.PTUPLE(), attrs);
+    return checkDepth3(l, Symbol::STREAM(), PTuple::BasicType(), attrs);
   }
-  
+
   static NList makeStreamTuple(const NList& attrs)
-  {  
-    NList tup( NList(sym.TUPLE()), attrs );
-    return NList( NList(sym.STREAM()), tup );
+  {
+    NList tup( NList(Tuple::BasicType()), attrs );
+    return NList( NList(Symbol::STREAM()), tup );
   }
-  
+
   static NList makeStreamPTuple(const NList& attrs)
-  {  
-    NList tup( NList(sym.PTUPLE()), attrs );
-    return NList( NList(sym.STREAM()), tup );
+  {
+    NList tup( NList(PTuple::BasicType()), attrs );
+    return NList( NList(Symbol::STREAM()), tup );
   }
 
   static bool checkLength(const NList& l, const int len, string& err)
@@ -792,66 +793,67 @@ integrity checks for the arguments and result type.
     }
     return true;
   }
- 
+
   static string argNotCorrect( const int n)
   {
     stringstream s;
     s <<  "Type of argument no. " << n << " not correct, ";
     return s.str();
   }
- 
-  static bool checkDepth3( const NList& l, const string& s1, 
+
+  static bool checkDepth3( const NList& l, const string& s1,
                            const string& s2, NList& attrs    )
   {
 
   if ( !l.hasLength(2) )
     return false;
-   
+
   if ( !l.first().isSymbol(s1) )
     return false;
-  
-  NList s = l.second();   
+
+  NList s = l.second();
   if ( !s.hasLength(2) )
     return false;
-  
+
   if ( !s.first().isSymbol(s2) )
     return false;
 
-  if ( !s.second().isList() )  
-    return false; 
+  if ( !s.second().isList() )
+    return false;
 
   attrs = s.second();
-  return true;   
+  return true;
   }
 
 static ListExpr pfeed_tm(ListExpr args)
 {
   NList l(args);
 
-  string e1 = expects(sym.REL(),sym.TUPLE());
-  
-  static const string err1 = "pfeed expects (" + e1 + " " + sym.INT() + ")!";
-  
+  string e1 = expects(Relation::BasicType(),Tuple::BasicType());
+
+  static const string err1 = "pfeed expects (" + e1 + " "
+                                                + CcInt::BasicType() + ")!";
+
   if ( !l.hasLength(2) )
     return l.typeError(err1);
- 
+
   NList attrs;
   if ( !checkRelTuple( l.first(), attrs ) )
     return l.typeError("First list element should be " + e1 + ".");
-  
-  if ( !l.second().isSymbol( sym.INT() ) )
-    return l.typeError( "Second list element should be symbol '" 
-                        + sym.INT() + "'." );
- 
+
+  if ( !l.second().isSymbol( CcInt::BasicType() ) )
+    return l.typeError( "Second list element should be symbol '"
+                        + CcInt::BasicType() + "'." );
+
   return makeStreamPTuple(attrs).listExpr();
 }
 
-      
 
-  
 
-  struct PartStreamInfo 
-  { 
+
+
+  struct PartStreamInfo
+  {
     RelationAddr relStream;
 
     PartStreamInfo( GenericRelation* r, const int partSize ) :
@@ -859,31 +861,31 @@ static ListExpr pfeed_tm(ListExpr args)
     {
       relStream.open();
     }
-    ~PartStreamInfo() 
+    ~PartStreamInfo()
     {
-      relStream.close();   
+      relStream.close();
     }
-    
+
     inline PTuple* nextPTuple() {
        return static_cast<PTuple*>( relStream.getNext() );
-    }   
+    }
 
-  };  
-    
+  };
+
 
 struct BufferedStreamInfo {
 
  private:
    TupleBuffer* tupBuf;
    PartStreamInfo* pi;
-  
- public:  
+
+ public:
   BufferedStreamInfo(Word& stream, const int pSize) : pi(0)
   {
      qp->Open(stream.addr);
-     tupBuf = new TupleBuffer(); 
+     tupBuf = new TupleBuffer();
      Tuple *t = nextTuple( stream );
-     while (t != 0) 
+     while (t != 0)
      {
        tupBuf->AppendTuple(t);
        t = nextTuple( stream );
@@ -891,48 +893,48 @@ struct BufferedStreamInfo {
      qp->Close(stream.addr);
      GenericRelation* r = static_cast<GenericRelation*>( tupBuf );
      pi = new PartStreamInfo(r, pSize);
-  } 
-  
+  }
+
   inline PTuple* nextPTuple() {
      return pi->nextPTuple();
-  }   
-  
-  ~BufferedStreamInfo() 
+  }
+
+  ~BufferedStreamInfo()
   {
     delete tupBuf;
     delete pi;
   }
-  
-}; 
+
+};
 
 static int
-pfeed_vm(Word* args, Word& result, int message, 
+pfeed_vm(Word* args, Word& result, int message,
          Word& local, Supplier s)
 {
   // args[0]: Input Relation
   // args[1]: An integer defining the partition size
- 
+
   static const string pre = "pfeed: ";
   PartStreamInfo* info = static_cast<PartStreamInfo*>( local.addr );
-  
+
   switch (message)
   {
     case OPEN :
-    { 
+    {
       GenericRelation* r = getArg<GenericRelation>( args[0] );
       int partSize = StdTypes::GetInt( args[1] );
 
       //SHOW(partSize)
-      //SHOW(parts) 
-      
+      //SHOW(parts)
+
       info = new PartStreamInfo( r, partSize );
       local.addr = info;
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
-      // the nextPTuple function returns a marker or a tuple 
+      // the nextPTuple function returns a marker or a tuple
       result.addr = info->nextPTuple();
       if ( result.addr )
       {
@@ -943,16 +945,16 @@ pfeed_vm(Word* args, Word& result, int message,
         return CANCEL;
       }
     }
-    
+
     case CLOSE :
     {
-      //TRACE(pre << "CLOSE received!") 
+      //TRACE(pre << "CLOSE received!")
       delete info;
-      
+
       return 0;
     }
 
-    default : { assert(false); }  
+    default : { assert(false); }
   }
   return 0;
 }
@@ -960,8 +962,8 @@ pfeed_vm(Word* args, Word& result, int message,
 
 /*
 4.2 Operator ~pdelete~
-   
-This operator does the following type mapping: 
+
+This operator does the following type mapping:
 
 ----
 (stream(ptuple(y))) -> (stream(tuple(y)))
@@ -975,66 +977,66 @@ the value mapping removes all marker tuples fomr the input stream
 static ListExpr pdelete_tm(ListExpr args)
 {
   NList l(args);
-  
-  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
+
+  string e1 = expects( Symbol::STREAM(), PTuple::BasicType() );
 
   static const string err1 = "pdelete expects " + e1 + "!";
-  
+
   if ( !l.hasLength(1) )
     return l.typeError(err1);
- 
-  NList attrs; 
+
+  NList attrs;
   if ( !checkStreamPTuple( l.first(), attrs ) )
     return l.typeError(err1);
-  
+
   return makeStreamTuple(attrs).listExpr();
 }
 
-static int pdelete_vm( Word* args, Word& result, int message, 
+static int pdelete_vm( Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y))) 
+  // args[0]: Input stream(ptuple(y)))
   static const string pre = "pdelete: ";
-   
+
   switch (message)
   {
     case OPEN :
-    { 
+    {
       qp->Open( args[0].addr );
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
       bool endOfStream = false;
       do
-      { 
+      {
         PTuple *pt = nextPTuple( args[0] );
 
-        if (pt) 
+        if (pt)
         {
            if (pt->marker) // marker tuple detected
-           { 
+           {
              //TRACE( pre << "Marker: " << *(pt->marker) )
              delete pt;
-           }  
-           else // a normal tuple 
+           }
+           else // a normal tuple
            {
              //TRACE( pre << "Tuple: " << *(pt->tuple) )
              result.addr = pt->tuple;
              delete pt;
              return YIELD;
-           } 
+           }
         }
         else
         {
           endOfStream = true;
-        }         
-        
+        }
+
       } while ( !endOfStream );
       return CANCEL;
-    }     
-      
+    }
+
     case CLOSE :
     {
       //TRACE(pre << "CLOSE received")
@@ -1042,15 +1044,15 @@ static int pdelete_vm( Word* args, Word& result, int message,
       return 0;
     }
 
-    default : { assert(false); }  
+    default : { assert(false); }
   }
   return 0;
 }
 
 /*
 4.2 Operator ~pshow~
-   
-This operator does the following type mapping: 
+
+This operator does the following type mapping:
 
 ----
 (stream(ptuple(y))) -> (stream(ptuple(y)))
@@ -1064,49 +1066,49 @@ the value mapping prints out all  markers of the input stream.
 static ListExpr pshow_tm(ListExpr args)
 {
   NList l(args);
-  
-  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
+
+  string e1 = expects( Symbol::STREAM(), PTuple::BasicType() );
 
   static const string err1 = "pshow expects " + e1 + "!";
-  
+
   if ( !l.hasLength(1) )
     return l.typeError(err1);
- 
-  NList attrs; 
+
+  NList attrs;
   if ( !checkStreamPTuple( l.first(), attrs ) )
     return l.typeError(err1);
-  
+
   return l.first().listExpr();
 }
 
-static int pshow_vm( Word* args, Word& result, int message, 
+static int pshow_vm( Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y))) 
+  // args[0]: Input stream(ptuple(y)))
   static const string pre = "pshow: ";
   static const bool showall = RTFlag::isActive("pshow:all");
 
   switch (message)
   {
     case OPEN :
-    { 
+    {
       qp->Open( args[0].addr );
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
       PTuple *pt = nextPTuple( args[0] );
-      if (pt) 
+      if (pt)
       {
         if (pt->marker) // marker tuple detected
-        { 
+        {
           cerr << *(pt->marker) << endl;
-        } 
-        else {	
-         if (showall)		
+        }
+        else {
+         if (showall)
           cerr << static_cast<void*>( pt->tuple ) << endl;
-	}  
+	}
         result.addr = pt;
         return YIELD;
       }
@@ -1114,16 +1116,16 @@ static int pshow_vm( Word* args, Word& result, int message,
       {
         result.addr = 0;
         return CANCEL;
-      }         
-    }     
-      
+      }
+    }
+
     case CLOSE :
     {
       qp->Close( args[0].addr );
       return 0;
     }
 
-    default : { assert(false); }  
+    default : { assert(false); }
   }
   return 0;
 }
@@ -1132,11 +1134,11 @@ static int pshow_vm( Word* args, Word& result, int message,
 
 /*
 4.3 Type Mapping Operators ~PSTREAM1~ and ~PSTREAM2~
-   
-Thesr operators do the following type mappings: 
+
+Thesr operators do the following type mappings:
 
 ----
-(stream(ptuple(y)) ... ) -> (stream(tuple(y)))  
+(stream(ptuple(y)) ... ) -> (stream(tuple(y)))
 ((...) (stream(ptuple(y))) ... ) -> (stream(tuple(y)))
 ----
 
@@ -1146,56 +1148,56 @@ static ListExpr PSTREAM1_tm(ListExpr args)
 {
   NList l(args);
 
-  //TRACE("PSTREAM1_tm:" << l.convertToString())  
-  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
+  //TRACE("PSTREAM1_tm:" << l.convertToString())
+  string e1 = expects( Symbol::STREAM(), PTuple::BasicType() );
 
   static const string err1 = "PSTREAM1 expects (" + e1 + "...)!";
-  
+
   if ( !(l.length() >= 1) )
     return l.typeError(err1);
-  
+
   NList attrs;
   if ( !checkStreamPTuple( l.first(), attrs ) )
     return l.typeError(err1);
-  
+
   return makeStreamTuple(attrs).listExpr();
 }
 
 static ListExpr PSTREAM2_tm(ListExpr args)
 {
   NList l(args);
-  
-  string e1 = expects( sym.STREAM(), sym.PTUPLE() );
+
+  string e1 = expects( Symbol::STREAM(), PTuple::BasicType() );
 
   static const string err1 = "PSTREAM2 expects ((...) " + e1 + "...)!";
-  
+
   if ( !(l.length() >= 2) )
     return l.typeError(err1);
-  
+
   NList attrs;
   if ( !checkStreamPTuple( l.second(), attrs) )
     return l.typeError(err1);
-  
+
   return makeStreamTuple(attrs).listExpr();
 }
 
 
 /*
 4.3 Operator ~puse~
-   
-This operator does the following type mapping: 
+
+This operator does the following type mapping:
 
 ----
-(stream(ptuple(y)) (map (stream(tuple(y))) (stream(tuple(z)))) ) 
+(stream(ptuple(y)) (map (stream(tuple(y))) (stream(tuple(z)))) )
   -> (stream(ptuple(z)))
 ----
 
-The value mapping passes over all marker tuples from 
+The value mapping passes over all marker tuples from
 the input stream to the output stream. Therefore it uses internally a
 marker queue which stores incoming markers until the first tuple of output
-is produced. This is needed since calling function qp->Request() with the 
+is produced. This is needed since calling function qp->Request() with the
 parameter functions node of the query tree will block until a first tuple is
-returned, but meanwhile there could be received some markers from the input 
+returned, but meanwhile there could be received some markers from the input
 stream which need to be filtered out by the ~puse~ operator.
 
 */
@@ -1204,19 +1206,19 @@ stream which need to be filtered out by the ~puse~ operator.
 static ListExpr puse_tm(ListExpr args)
 {
   NList l(args);
-  
-  static const string e1 = expects( sym.STREAM(), sym.PTUPLE() );
+
+  static const string e1 = expects( Symbol::STREAM(), PTuple::BasicType() );
 
   static string err1 = "Expecting input (" + e1 + ")!";
-  
+
   if ( !checkLength( l, 2, err1 ) )
     return l.typeError( err1 );
-  
+
   NList attrs;
   if ( !checkStreamPTuple( l.first(), attrs) )
     return l.typeError(err1);
-  
-  // Test the parameter function's signature 
+
+  // Test the parameter function's signature
   static const string err2 = "Expecting as second argument a function "
                              "(map (stream(tuple(y))) (stream(tuple(z))))";
   vector<NList> sig;
@@ -1225,71 +1227,71 @@ static ListExpr puse_tm(ListExpr args)
 
   NList attrs2;
   if ( !checkStreamTuple(sig[0], attrs2) )
-    return l.typeError( "First argument of parameter function not correct!\n" 
+    return l.typeError( "First argument of parameter function not correct!\n"
                         "Received " + sig[0].convertToString() + "." );
-  
+
   if ( !(attrs == attrs2) )
-    return l.typeError( "Tuple types do not match!\n" 
+    return l.typeError( "Tuple types do not match!\n"
                         "Received " + attrs2.convertToString() + "." );
-              
+
   if ( !checkStreamTuple(sig[1], attrs2) )
     return l.typeError( "Result type of parameter function not correct!\n"
                         "Received " + sig[1].convertToString() + "." );
-  
+
   return makeStreamPTuple(attrs2).listExpr();
 }
 
 struct MarkerQueue {
 
    MarkerQueue() : max(0), endOfStream(false) {}
-   ~MarkerQueue() 
-   { 
-     assert( q.empty() ); 
+   ~MarkerQueue()
+   {
+     assert( q.empty() );
      //cout << "Max. queue size: " << max << endl;
    }
-   
+
    inline const Marker* removeFront()
    {
      const Marker* m = q.front();
      q.pop();
      //TRACE( "puse: remove Marker: " << *m )
      return m;
-   }  
-      
+   }
+
    inline bool empty() const { return q.empty(); }
- 
-   inline void push(const Marker* m) 
+
+   inline void push(const Marker* m)
    {
      q.push(m);
      if (q.size() > max)
-       max = q.size(); 
+       max = q.size();
    }
-  
+
 
    inline Tuple* getNextTuple(Word& fun) {
-    
+
      if (endOfStream)
        return 0;
-     
+
      Tuple* t = nextTuple(fun);
      if (!t)
        endOfStream = true;
      return t;
    };
-   
+
    queue< const Marker* > q;
    size_t max;
-   bool endOfStream;   
-};  
+   bool endOfStream;
+};
 
 
-static int puse_vm( Word* args, Word& result, int message, 
+static int puse_vm( Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y))) 
+  // args[0]: Input stream(ptuple(y)))
   // args[1]: map stream(tuple(y))) -> stream(tuple(z))
 
- 
+
   static const string pre("puse: ");
   //Word funresult;
   ArgVectorPointer funargs;
@@ -1298,7 +1300,7 @@ static int puse_vm( Word* args, Word& result, int message,
   Word fun = args[1];
 
   MarkerQueue* m = static_cast<MarkerQueue*>( local.addr );
-  
+
   switch ( message )
   {
 
@@ -1312,7 +1314,7 @@ static int puse_vm( Word* args, Word& result, int message,
       // store the supplier of this operator at the last argument
       // position. This indicates that the argument is a stream.
       (*funargs)[MAXARG-1] = SetWord(s);
-  
+
       // initalize local information. The first tuple of a nonempty
       // ptuple stream must be a marker tuple.
       m = new MarkerQueue();
@@ -1322,28 +1324,28 @@ static int puse_vm( Word* args, Word& result, int message,
       // hence we need to open it
       qp->Open(fun.addr);
       //TRACE("param function opened!")
-      
+
       return 0;
     }
     case REQUEST: {
 
         //TRACE(pre << "Request received")
         bool ok = false;
-        do {        
-        if ( !m->empty() ) // is a marker present? 
+        do {
+        if ( !m->empty() ) // is a marker present?
         {
            result.addr = new PTuple( m->removeFront() );
-           ok = true; 
+           ok = true;
            break;
         }
         else
-        { 
+        {
           // return elements computed by the param function
           Tuple* t = m->getNextTuple(fun);
-          
+
           // a side effect of nextTuple(fun) could be that new markers
           // are pushed to the marker queue
-          
+
           if (t) // handle tuple pointer
           {
             result.addr = new PTuple(t);
@@ -1355,64 +1357,64 @@ static int puse_vm( Word* args, Word& result, int message,
             result.addr=0;
             ok = false;
           }
-        } 
+        }
         } while ( !m->empty() );
-        
+
         if (ok) {
           assert(result.addr);
           return YIELD;
-        }   
-        else {  
+        }
+        else {
           return CANCEL;
-        }  
+        }
     }
     case FUNMSG+OPEN: { // just open the input stream
- 
+
       //TRACE(pre << "Message FUNMSG+OPEN received")
       qp->Open(inStream.addr);
       return 0;
     }
 
 /*
-The message below will map a ptuple of the input stream to a ~normal~ tuple 
-to be evaluated by the parameter function. If a marker is 
+The message below will map a ptuple of the input stream to a ~normal~ tuple
+to be evaluated by the parameter function. If a marker is
 
 */
-                      
-    case FUNMSG+REQUEST: { 
- 
+
+    case FUNMSG+REQUEST: {
+
       //TRACE(pre << "Message FUNMSG+REQUEST received")
 
       bool endOfStream = false;
       do
-      { 
+      {
         PTuple* pt = nextPTuple(inStream);
-        if (pt) 
+        if (pt)
         {
           if (pt->tuple) // return tuple to parameter function
-          { 
+          {
             result = SetWord( pt->tuple );
             return YIELD;
-          }  
+          }
           else // save marker in queue
-          { 
+          {
             //TRACE( pre << "save Marker: " << *(pt->marker) )
-            m->push( pt->marker ); 
-          }  
+            m->push( pt->marker );
+          }
           // don't delete pt, only operators consuming streams of PTuple
-          // should do it. 
+          // should do it.
         }
         else
         {
-          endOfStream=true;  
-        } 
-      }  
+          endOfStream=true;
+        }
+      }
       while (!endOfStream);
-      
+
       return CANCEL;
-    }  
-    case FUNMSG+CLOSE: { 
-                        
+    }
+    case FUNMSG+CLOSE: {
+
       // This message must be ignored since we will send a CLOSE message
       // to our input stream when requested by our parent node
 
@@ -1422,48 +1424,48 @@ to be evaluated by the parameter function. If a marker is
     case CLOSE: {
 
       //TRACE(pre << "Message CLOSE received")
-      // close the input stream 
+      // close the input stream
       qp->Close(inStream.addr);
-      
+
       // send a close message to the parameter fun in order that it can be
       // propagated to its childs.
       qp->Close(fun.addr);
-      
-      delete m; 
+
+      delete m;
       return 0;
     }
     default: {
-   
-       cerr << pre << "Cannot handle message " << message << endl;        
-    }    
+
+       cerr << pre << "Cannot handle message " << message << endl;
+    }
   }
   return 0;
-  
-}   
+
+}
 
 /*
 4.3 Operator ~pjoin2~
-   
-This operator does the following type mapping: 
+
+This operator does the following type mapping:
 
 ----
-  ( stream(ptuple(y1)) stream(ptuple(y2)) 
-    ( ( map (stream(tuple(y1))) (stream(tuple(y2))) (stream(tuple(z))) ) 
+  ( stream(ptuple(y1)) stream(ptuple(y2))
+    ( ( map (stream(tuple(y1))) (stream(tuple(y2))) (stream(tuple(z))) )
       ... N repeats ... )
-  ) 
+  )
   -> (stream(ptuple(z)))
 ----
 
-During type mapping the names of the function identifier are appended as string 
+During type mapping the names of the function identifier are appended as string
 arguments. The names must correspond to a join method. For each join method
-a cost function is present and will be used for determining the best function. 
+a cost function is present and will be used for determining the best function.
 
 The value mapping is organized in two phases:
 
    1 Probe phase: First some input is used to do a probe join. This will give
-estimations about the input and output sizes. 
-   2 Eval phase: The cost functions are used to determine the algorithm which 
-   computes the join for the whole inputs. Therfore the buffered inputs must be 
+estimations about the input and output sizes.
+   2 Eval phase: The cost functions are used to determine the algorithm which
+   computes the join for the whole inputs. Therfore the buffered inputs must be
    streamed again.
 
 The implementation of the first phase is done partly in the OPEN and
@@ -1473,111 +1475,111 @@ a tuple computed by the chosen evaluation function.
 After the first phase a marker tuple with a first size estimation will be returned.
 Since it may happen that the output is much smaller than the inputs we need to maintain
 a marker queue as in the implementation of the ~puse~ operator.
-   
+
 */
 
 
 static ListExpr pjoin2_tm(ListExpr args)
 {
   NList l(args);
-  
-  static const string e1 = expects( sym.STREAM(), sym.PTUPLE(), "y1" );
-  static const string e2 = expects( sym.STREAM(), sym.PTUPLE(), "y2" );
 
-  static string err1 = "Expecting input ( " 
+  static const string e1 = expects( Symbol::STREAM(), PTuple::BasicType(),"y1");
+  static const string e2 = expects( Symbol::STREAM(), PTuple::BasicType(),"y2");
+
+  static string err1 = "Expecting input ( "
                        + e1 + " " + e2
                        + " (list of join-expressions) ";
-  
+
   if ( !checkLength( l, 3, err1 ) )
     return l.typeError( err1 );
-  
+
   NList attrs1;
   if ( !checkStreamPTuple( l.first(), attrs1) )
     return l.typeError( argNotCorrect(1) + err1);
-  
+
   NList attrs2;
   if ( !checkStreamPTuple( l.second(), attrs2) )
     return l.typeError( argNotCorrect(2) + err1);
 
-  
-  //if ( l.third().str() != Symbols::STRING() )
+
+  //if ( l.third().str() != Symbols::CcString::BasicType() )
   //  return l.typeError( argNotCorrect(3) + err1);
-   
-  // Test the parameter function's signature 
-  static const string 
+
+  // Test the parameter function's signature
+  static const string
   err2 = "Expecting as third argument a list of functions of type "
          "(map (stream(tuple(y1))) (stream(tuple(y1))) (stream(tuple(z))))";
-  
+
   NList joinMaps = l.third();
   NList lastResultAttrs;
   NList fNames;
-  
+
   int joinMapsLength = joinMaps.length();
   if (joinMapsLength < 0)
     return l.typeError( "Empty list of functions! " + argNotCorrect(4) + err2);
-    
+
   for (int i=1; i < (joinMapsLength+1); i++)
-  { 
+  {
     vector<NList> sig;
-    
+
     NList funDesc = joinMaps.elem(i);
     NList fName = funDesc.first();
     if ( !fName.isSymbol() )
-      return l.typeError( "symbol atom for function name expected!" ); 
-    
+      return l.typeError( "symbol atom for function name expected!" );
+
     string funcStr = fName.str();
     string pre = "Function " + funcStr + ": ";
-    
-    
+
+
     if ( !checkMap( funDesc.second(), 2, sig ) )
       return l.typeError( argNotCorrect(3) + err2);
-    
+
     NList leftAttrs;
     if ( !checkStreamTuple(sig[0], leftAttrs) )
-      return l.typeError( pre + "First argument not correct!\n" 
+      return l.typeError( pre + "First argument not correct!\n"
                           "Received " + sig[0].convertToString() + "." );
-    
+
     NList rightAttrs;
     if ( !checkStreamTuple(sig[1], rightAttrs) )
-      return l.typeError( pre + "Second argument not correct!\n" 
+      return l.typeError( pre + "Second argument not correct!\n"
                           "Received " + sig[1].convertToString() + "." );
-            
+
     NList resultAttrs;
     if ( !checkStreamTuple(sig[2], resultAttrs) )
       return l.typeError( pre + "Result type not correct!\n"
-                          "Received " + sig[2].convertToString() + "." );    
- 
+                          "Received " + sig[2].convertToString() + "." );
+
     if ( i==1 ) // first time define reference mapping
     {
       lastResultAttrs =  resultAttrs;
       fNames.makeHead( fName.toStringAtom() );
-    } 
+    }
     else // compare with previous mapping
     {
       fNames.append( fName.toStringAtom() );
       if ( !(attrs1 == leftAttrs) )
-        return l.typeError( pre + 
-                            "Tuple type of the first arg. does not match! \n" 
+        return l.typeError( pre +
+                            "Tuple type of the first arg. does not match! \n"
                             "Received " + leftAttrs.convertToString() + "." );
-      
+
       if ( !(attrs2 == rightAttrs) )
-        return l.typeError( pre + 
-                            "Tuple type of the second arg. does not match! \n" 
+        return l.typeError( pre +
+                            "Tuple type of the second arg. does not match! \n"
                             "Received " + rightAttrs.convertToString() + "." );
 
       if ( !(lastResultAttrs == resultAttrs) )
-        return l.typeError( pre + 
-                            "Tuple type of the result does not match! \n" 
-                            "Received " + resultAttrs.convertToString() 
+        return l.typeError( pre +
+                            "Tuple type of the result does not match! \n"
+                            "Received " + resultAttrs.convertToString()
                             + ". But the result type of the "
-                            + "previous function was " 
+                            + "previous function was "
                             + lastResultAttrs.convertToString() );
     }
 
-        
+
   }
-    
-  NList appendSym("APPEND");
+
+  NList appendSym(Symbol::APPEND());
   NList resultType(appendSym, fNames, makeStreamPTuple(lastResultAttrs));
   return resultType.listExpr();
 }
@@ -1591,7 +1593,7 @@ into a tuple buffer and allows to us it again.
 template<class T>
 struct PTupleBuffer
 {
-  private: 
+  private:
     const string pre;
     TupleBuffer* buf;
     GenericRelationIterator* rit;
@@ -1605,7 +1607,7 @@ struct PTupleBuffer
     int tuplesCurrentPart;
     int tuplesCompleteParts;
     int requestedTuples;
-    
+
   public:
     PTupleBuffer(const string& id, StreamBase<T>& stream, const int size ) :
      pre(id+": "),
@@ -1614,7 +1616,7 @@ struct PTupleBuffer
      scanBuffer(false),
      bufferOnly(true),
      endReached(false),
-     markerRead(false),	
+     markerRead(false),
      maxSize(size),
      tuplesCurrentPart(0),
      tuplesCompleteParts(0),
@@ -1626,39 +1628,39 @@ struct PTupleBuffer
     {
       showInfo();
       delete buf;
-    } 
+    }
 
     void showInfo()
     {
       TRACE(pre << "Stored tuples " << getNoTuples())
-      SHOW(tuplesCompleteParts) 
-      SHOW(tuplesCurrentPart) 
-    } 
+      SHOW(tuplesCompleteParts)
+      SHOW(tuplesCurrentPart)
+    }
 
 
     TupleBuffer* getBufPtr() {
        return buf;
     }
-    
+
     int getNoTuples(bool useCtrs = false, int ctrNum = 0) {
-      if (!useCtrs) 
+      if (!useCtrs)
         return buf->GetNoTuples();
-      return qp->GetCounter(ctrNum+1); 
+      return qp->GetCounter(ctrNum+1);
     }
-    
-    int getNoTuplesOfCompleteParts() { 
-      return tuplesCompleteParts; 
+
+    int getNoTuplesOfCompleteParts() {
+      return tuplesCompleteParts;
     }
-    
+
     int getRequestedTuples() {
        return tuplesCurrentPart + tuplesCompleteParts;
-    }   
+    }
 
     // used by pjoin1 to correct the number of received tuples
     void setRequestedTuples(const int num) {
        tuplesCurrentPart = 0;
        tuplesCompleteParts = num;
-    }   
+    }
 
     int getTotalSize(bool useCtrs=false, int ctrNum = 0)
     {
@@ -1666,63 +1668,63 @@ struct PTupleBuffer
         return nextInt( buf->GetTotalSize() );
 
       double f = (1.0 * qp->GetCounter(ctrNum+1)) / qp->GetCounter(ctrNum);
-      return nextInt(f * buf->GetTotalSize()); 
-    } 
-    
-    inline bool end() const { 
+      return nextInt(f * buf->GetTotalSize());
+    }
+
+    inline bool end() const {
       return endReached;
     }
 
     void setLastMarker(const Marker& m) {
       lastMarker = m;
-    }  
+    }
 
-    const Marker& getLastMarker() { 
-      assert(markerRead); 
-      return lastMarker; 
-    } 
-    
+    const Marker& getLastMarker() {
+      assert(markerRead);
+      return lastMarker;
+    }
+
 /*
 The ~getNext~ function will remove marker tuples and stores the tuples in
-th ~TupleBuffer~ until a memory overflow is reached. 
-   
-*/   
+th ~TupleBuffer~ until a memory overflow is reached.
+
+*/
     inline bool storeNextTuple() {
-    
-        // get next ptuple from input 
+
+        // get next ptuple from input
         PTuple* pt = (PTuple*) is.getNext();
-        if (pt) 
+        if (pt)
         {
           if (pt->tuple) // save tuple
-          { 
+          {
             TRACE( pre << "Tuple received!" )
             buf->AppendTuple(pt->tuple);
             tuplesCurrentPart++;
             return true;
-          }  
+          }
           else // store last marker information
-          { 
+          {
             TRACE( pre << "Marker: " << *(pt->marker) )
             lastMarker = *(pt->marker);
-            
-            // delete the marker, since the join operator 
+
+            // delete the marker, since the join operator
             // will create new ones.
             // delete pt;
             tuplesCompleteParts += tuplesCurrentPart;
             tuplesCurrentPart = 0;
 	    markerRead=true;
             return true;
-          }  
+          }
         }
 	//cerr << pre << ": End Reached!" << endl;
         endReached = true;
         return false;
     }
-   
+
     bool getNextTuple(Word& result)
     {
       // use the internal Buffer if requested
-      if (scanBuffer)  
+      if (scanBuffer)
       {
         result.addr = rit->GetNextTuple();
         if (!result.addr) {
@@ -1735,79 +1737,79 @@ th ~TupleBuffer~ until a memory overflow is reached.
           else
            return getNextTuple(result);
         }
-        return true;  
-      } 
+        return true;
+      }
       else
       {
         if (!endReached)
-        { 
+        {
           do {
-            // get next ptuple from input 
+            // get next ptuple from input
             PTuple* pt = (PTuple*) is.getNext();
-            if (pt) 
+            if (pt)
             {
               if (pt->tuple) // return tuple to parameter function
-              { 
+              {
                 tuplesCurrentPart++;
                 result.addr = pt->tuple;
                 return true;
-              }  
+              }
               else // store last marker information
-              { 
+              {
                 //TRACE( pre << "Marker: " << *(pt->marker) )
                 lastMarker = *(pt->marker);
-                
-                // delete the marker, since the join operator 
+
+                // delete the marker, since the join operator
                 // will create new ones.
                 // delete pt;
                 tuplesCompleteParts += tuplesCurrentPart;
                 tuplesCurrentPart = 0;
-              }  
-            } 
+              }
+            }
             else
             {
               TRACE(pre << "End of input stream")
               // indicate end of stream
               endReached = true;
               result.addr = 0;
-            } 
+            }
           } while (!endReached);
         }
       }
       return false;
-    }  
+    }
 
 /*
 The function ~estimateInputCard~ uses the last read marker Information and
 the number of read tuples (only complete partitions)
 to estimate the cardinality of the input stream
 
-*/   
+*/
 
-    int getTuplesOfCompleteParts() 
-    { 
-      return max(tuplesCompleteParts, tuplesCurrentPart); 
+    int getTuplesOfCompleteParts()
+    {
+      return max(tuplesCompleteParts, tuplesCurrentPart);
     }
-    
+
     inline int readPartitions() { return lastMarker.num; }
     inline int partSize() { return lastMarker.tuples; }
-    
-    int maxInputCard() { 
+
+    int maxInputCard() {
       assert(markerRead);
       return max(lastMarker.parts,1) * lastMarker.tuples;
     }
 
-    int estimateInputCard(const bool useCtrs = false, int ctrNum = 0) 
+    int estimateInputCard(const bool useCtrs = false, int ctrNum = 0)
     {
       TRACE("Input cardinality estimation")
       SHOW(useCtrs)
       SHOW(ctrNum)
       SHOW(lastMarker.num)
       SHOW(lastMarker.parts)
-     
+
       // expected tuples
       double expected = max(lastMarker.num,1) * lastMarker.tuples;
-      
+
       // received tuples
       double received = getTuplesOfCompleteParts();
 
@@ -1820,75 +1822,75 @@ to estimate the cardinality of the input stream
         // plan of the probe join.
         double Ctr1 = qp->GetCounter(ctrNum);
         double Ctr2 = qp->GetCounter(ctrNum+1);
-        SHOW(Ctr1) 
-        SHOW(Ctr2) 
+        SHOW(Ctr1)
+        SHOW(Ctr2)
         expected = max(Ctr1,1.0);
         received = max(Ctr2,1.0);
-      } 
+      }
 
       SHOW(expected)
-      SHOW(received) 
-      
-      // cardinality. If not a complete partition of tuples 
+      SHOW(received)
+
+      // cardinality. If not a complete partition of tuples
       // was read in then the formula below may underestimate
-      // the input card. 
+      // the input card.
       double card = 0.0;
-      
+
       if (lastMarker.parts != 0)
-      { 
-        card  = lastMarker.tuples 
-                  * max(lastMarker.parts,1) 
+      {
+        card  = lastMarker.tuples
+                  * max(lastMarker.parts,1)
                       * (received / expected);
       }
       else
       {
         card = received;
-      }   
+      }
       SHOW(card)
-      
-      return static_cast<int>( ceil(card) );
-    } 
 
-    
+      return static_cast<int>( ceil(card) );
+    }
+
+
     void reset(const bool bufOnly = true)
-    { 
-      rit = buf->MakeScan(); 
+    {
+      rit = buf->MakeScan();
       scanBuffer = true;
       bufferOnly = bufOnly;
     }
-    
-    inline bool overFlow() { 
-       return getTotalSize() > maxSize; 
+
+    inline bool overFlow() {
+       return getTotalSize() > maxSize;
     }
 
-}; 
+};
 
 
 template<class StreamType>
   struct PJoinInfo {
-  
+
     typedef enum { probe, eval } JoinState;
-    
-    // used to maintain the evaluation functions 
+
+    // used to maintain the evaluation functions
     FunVector* evalFuns;
 
-    // used to maintain the cost functions 
-    CostFunctions* costFuns; 
+    // used to maintain the cost functions
+    CostFunctions* costFuns;
 
     StreamOpAddr leftIs;
     StreamType rightIs;
-    
+
     PTupleBuffer<StreamOpAddr>* leftBuf;
     PTupleBuffer<StreamType>* rightBuf;
-    
+
     JoinState state;
 
     const int maxMem;
-    
+
     // index between [0,n-1] pointing to the best evaluation function
     int bestPos;
     StreamOpAddr bestFun;
-    
+
     // estimated cardinalites of input and output
     int leftCard;
     int rightCard;
@@ -1896,31 +1898,31 @@ template<class StreamType>
     int leftAvgTupSize;
     int rightAvgTupSize;
     int resultTuples;
-    
+
     float joinSel;
     bool isSelfJoin;
     bool useCtrs;
     bool doProbeJoin;
-    
+
     int& instanceNum;
     int ctrNum;
-    
+
     bool bufReset[2];
 
     PartCtr parts;
-        
+
     PJoinTuple* info;
 
-    PJoinInfo( StreamOpAddr left, 
-               StreamType right, 
-               int& instanceCtr, 
+    PJoinInfo( StreamOpAddr left,
+               StreamType right,
+               int& instanceCtr,
                int num = 0,
-               int mem = 1024*1024         ) : 
-      evalFuns(0), 
+               int mem = 1024*1024         ) :
+      evalFuns(0),
       leftIs(left),
-      rightIs(right), 
+      rightIs(right),
       state(probe),
-      maxMem(mem), 
+      maxMem(mem),
       bestPos(1),
       leftCard(0),
       rightCard(0),
@@ -1945,78 +1947,78 @@ template<class StreamType>
 
       bufReset[0] = false;
       bufReset[1] = false;
-    } 
+    }
     ~PJoinInfo()
     {
-      // close the input streams 
+      // close the input streams
       leftIs.close();
       rightIs.close();
-      
-      // send a close message to the parameter functions 
+
+      // send a close message to the parameter functions
       // in order that it can be propagated to its childs.
       bestFun.close();
-      
+
       const int leftTuples = leftBuf->getRequestedTuples();
       const int rightTuples = rightBuf->getRequestedTuples();
-      
+
       const int resultErr = relErr(resultCard, resultTuples);
       const int leftErr = relErr(leftCard, leftTuples);
       const int rightErr = relErr(rightCard, rightTuples);
 
-      const float joinExact = (resultTuples / (max(leftTuples,1) * 1.0)) 
+      const float joinExact = (resultTuples / (max(leftTuples,1) * 1.0))
 	                      / (max(rightTuples,1) * 1.0);
       const int joinSelErr = relErr( joinSel, joinExact);
 
 
       instanceNum++;
       info->id = instanceNum;
-      
+
       info->arg1_est  = leftCard;
       info->arg1_real = leftTuples;
       info->arg1_err  = leftErr;
-      
+
       info->arg2_est  = rightCard;
       info->arg2_real = rightTuples;
       info->arg2_err  = rightErr;
-      
+
       info->result_est  = resultCard;
       info->result_real = resultTuples;
       info->result_err  = resultErr;
-      
+
       info->sel_est  = joinSel;
       info->sel_real = joinExact;
       info->sel_err  = joinSelErr;
-      
+
       FunInfo& f = evalFuns->get(bestPos);
       info->usedFunction = f.getName();
 
-       
+
       pjoinRel->append(info, false);
-     
+
       delete leftBuf;
       delete rightBuf;
       delete evalFuns;
       delete costFuns;
-    } 
+    }
 
-     
+
     int relErr(const float a, const float b) {
       float c = b;
       if (b == 0.0) // avoid infinite values!
         c = 1.0;
       return static_cast<int>( ceil(((abs(a - b) * 1.0) / c) * 100.0) );
-    } 
+    }
 
     void setRequestedTuples() {
       rightBuf->setRequestedTuples( qp->GetCounter(ctrNum+2) );
-    }  
-       
-    
+    }
+
+
 /*
 Function ~computeCards~ will compute estimated cardinalities for the
 input, output, and result stream.
-   
-*/     
+
+*/
     void computeCards(const int resultTuples)
     {
        SHOW(resultTuples)
@@ -2028,38 +2030,38 @@ input, output, and result stream.
 
        int leftRead = max( leftBuf->getNoTuples(), 1 );
        int rightRead = max( rightBuf->getNoTuples(useCtrs, ctrNum), 1);
-      
+
        //avg tuple size
        leftAvgTupSize = nextInt( leftBuf->getTotalSize() / leftRead );
-       rightAvgTupSize = 
-                   previousInt( 
+       rightAvgTupSize =
+                   previousInt(
 	                rightBuf->getTotalSize(useCtrs, ctrNum) / rightRead );
-       
+
        // join selectivity
        if (resultTuples == 0)
          cerr << "Warning: probejoin returned no tuples!" << endl;
 
-       /* 
+       /*
         * Hook for correction of the selectivity estimation
         * in the case of self joins. To be continued!
-        *  
+        *
        if (isSelfJoin)
        {
          float selfJoinTuples = (1.0 * leftRead * leftRead / leftCard);
-       } 
+       }
        */
-       
+
        if ( (leftCard == 0) || (rightCard == 0) )
-       { 
+       {
          // in some cases we may have recognized that the input card is zero!
-         joinSel = 0.0;        
-       }   
+         joinSel = 0.0;
+       }
        else
-       {   
+       {
          joinSel = (1.0 * max(resultTuples,1)) / (leftRead * rightRead);
-       }  
+       }
        SHOW(joinSel)
-       
+
        // cardinality of the join result
        const float leftCardF = leftCard;
        const float rightCardF = rightCard;
@@ -2067,25 +2069,25 @@ input, output, and result stream.
        resultCard = static_cast<int>( resultCardF );
        SHOW(resultCard)
 
-    } 
+    }
 
 /*
-The probe join will be stopped if 
+The probe join will be stopped if
 
    * a memory overflow happens
 
    * more than ~n~ tuples (only complete parts) for each input are read
 
 */
-  
-    inline bool stopLoading(const int n=1000) 
-    { 
-      const int bufferSize = leftBuf->getTotalSize() 
+
+    inline bool stopLoading(const int n=1000)
+    {
+      const int bufferSize = leftBuf->getTotalSize()
                                 + rightBuf->getTotalSize();
       const bool overFlow = bufferSize > 2*maxMem;
-      
+
       bool stop = false;
-      if (overFlow) 
+      if (overFlow)
       {
         TRACE("*** OVERFLOW! ***")
         stop = true;
@@ -2098,52 +2100,52 @@ The probe join will be stopped if
       }
 
       if (stop)
-      { 
+      {
         TRACE("*** Enough tuples read ***")
-        SHOW(bufferSize) 
+        SHOW(bufferSize)
 	// assign values to the ~info~ tuple
 	info->probe_arg1 = leftBuf->getNoTuples();
 	info->probe_arg2 = rightBuf->getNoTuples();
-        // reset streams 
+        // reset streams
         leftBuf->reset();
         leftBuf->showInfo();
         rightBuf->reset();
         rightBuf->showInfo();
-      }  
-      return stop; 
+      }
+      return stop;
     }
 
-    const long cpuOps() { 
+    const long cpuOps() {
       const long cpu1 = Counter::getRef("CcInt::Compare");
       const long cpu2 = Counter::getRef("CcInt::Less");
       const long cpu3 = Counter::getRef("CcInt::Equal");
       const long cpu4 = Counter::getRef("CcInt::HashValue");
       return (cpu1 + cpu2 + cpu3 + cpu4);
-    }  
+    }
 
     // By default 0,05% of the cartesian product will
     // be used as input for the probe join
-    int computeProbeSize( int est, double scaleP, int minVal, int maxVal  ) 
+    int computeProbeSize( int est, double scaleP, int minVal, int maxVal  )
     {
       int ps = nextInt( est * scaleP );
       SHOW(ps)
       ps = min( max(ps, minVal), maxVal );
-      
+
       SHOW(est)
       SHOW(ps)
 
       return ps;
-    }		
+    }
 
     void loadTupleBuffers() {
 
       TRACE("*** load TupleBuffers ***")
 
-     
+
       int k=2;
-      for(int i=0; i < k; i++) { 
+      for(int i=0; i < k; i++) {
         leftBuf->storeNextTuple();
-        rightBuf->storeNextTuple(); 
+        rightBuf->storeNextTuple();
       }
 
       cerr << leftBuf->getLastMarker() << endl;;
@@ -2157,78 +2159,78 @@ The probe join will be stopped if
       int pMinRead = env.getInt("SEC_pMinRead", 500);
       int pMaxRead = env.getInt("SEC_pMaxRead", 500);
       SHOW(pScale)
-      SHOW(pMinRead)	      
-      SHOW(pMaxRead)    
+      SHOW(pMinRead)
+      SHOW(pMaxRead)
 
-      int leftTuples = computeProbeSize(leftEst, pScale, pMinRead, pMaxRead); 
+      int leftTuples = computeProbeSize(leftEst, pScale, pMinRead, pMaxRead);
       int rightTuples = computeProbeSize(rightEst, pScale, pMinRead, pMaxRead);
       k = leftTuples + rightTuples;
 
       // adapt the sample to the currently estimated
       // input sizes
-      while ( !stopLoading(k) ) 
+      while ( !stopLoading(k) )
       {
         if (leftBuf->getNoTuples() < leftTuples || rightBuf->end() )
           leftBuf->storeNextTuple();
         if (rightBuf->getNoTuples() < rightTuples || leftBuf->end() )
-          rightBuf->storeNextTuple(); 
+          rightBuf->storeNextTuple();
 
 	static int ctr=50;
-	ctr--; 
+	ctr--;
 	if (ctr == 0)
-	{ 
+	{
 	  ctr=50;
 	  int leftEst = leftBuf->estimateInputCard();
 	  int rightEst = rightBuf->estimateInputCard(useCtrs, ctrNum);
 	  leftTuples = computeProbeSize(leftEst, pScale, pMinRead, pMaxRead);
 	  rightTuples = computeProbeSize(rightEst, pScale, pMinRead, pMaxRead);
           k = leftTuples + rightTuples;
-	}  
-      } 
-    } 
+	}
+      }
+    }
 
     void showBufResetStates() {
       SHOW(bufReset[0]);
       SHOW(bufReset[1]);
-    } 
-    
+    }
+
     bool resetBuffer(const int no) {
 
       assert( (no == 1) || (no == 2) );
       TRACE("resetBuffer: " << no)
-      
+
       if ( bufReset[no-1] == false ) {
         if (no == 1)
           leftBuf->reset(false);
         else
           rightBuf->reset(false);
-        
+
         bufReset[no-1] = true;
         return true;
-      }  
-      return false;  
-       
+      }
+      return false;
+
     }
-     
-    void runProbeJoin() 
-    { 
+
+    void runProbeJoin()
+    {
       StopWatch probeTimer;
-      
+
       Supplier first = (evalFuns->get(0)).getSupplier();
       info->join = (evalFuns->get(0)).getName();
-     
+
       // open both input streams
-      // Recurses into the operator tree and calls 
+      // Recurses into the operator tree and calls
       // ~runProbeJoin~ for subordinated pjoins!
       leftIs.open();
       rightIs.open();
-      
+
 
       loadTupleBuffers();
       // Loading the tuple buffers will cause
       // requests to subtrees. Hence the time
       // measurement can only start after the tuple
-      // buffers are filled. 
+      // buffers are filled.
       probeTimer.start();
       cout << "* Start Probe Join *" << endl;
 
@@ -2236,11 +2238,11 @@ The probe join will be stopped if
 
       Tuple* t = nextTuple(first);
       int probeReceived = 0;
-      while( t ) 
+      while( t )
       {
         probeReceived++;
         t = nextTuple(first);
-      } 
+      }
       qp->Close(first);
 
       cout << "* End Probe Join *" << probeTimer.diffTimes() << endl;
@@ -2249,33 +2251,33 @@ The probe join will be stopped if
       computeCards(probeReceived);
       computeBestFunction();
 
-      // assgin values to the info tuple	      
+      // assgin values to the info tuple
       info->probe_cpuOps = cpuOps();
-      info->probe_seconds = probeTimer.diffSecondsReal(); 
+      info->probe_seconds = probeTimer.diffSecondsReal();
       info->probe_result = probeReceived;
-     
-      // open the chosen evaluation function 
+
+      // open the chosen evaluation function
       bestFun.open();
       doProbeJoin=false;
-      
+
     }
 
-    
+
     inline void nextPTuple(Word& result)
     {
       static int call=0;
       call++;
- 
+
       /*
       if (doProbeJoin) {
 	cout << call << "-pjoin: runProbeJoin()" << endl;
         runProbeJoin();
-      }*/ 
+      }*/
 
       if ( parts.resetIfNeeded() )
       {
         result.addr = new PTuple( parts.newMarker() );
-      } 
+      }
       else
       {
         Tuple* t =  (Tuple*) bestFun.getNext();
@@ -2284,82 +2286,82 @@ The probe join will be stopped if
           resultTuples++;
         } else {
           result.addr = 0;
-        }  
-      }  
-    } 
+        }
+      }
+    }
 
     void computeBestFunction()
     {
       TRACE( "\n*** START Computing best function ***\n" )
-       
+
       // initialize ouput partSize and expected parts.
       const int tuples = max( leftBuf->partSize(), rightBuf->partSize() );
-      //const int numOfParts = max( resultCard / tuples, 1 ); 
+      //const int numOfParts = max( resultCard / tuples, 1 );
       parts.init(tuples, resultCard);
 
       SHOW(parts.tuples)
       SHOW(parts.parts)
-      //SHOW(numOfParts) 
-     
-      CostParams cp( leftCard, leftAvgTupSize, 
+      //SHOW(numOfParts)
+
+      CostParams cp( leftCard, leftAvgTupSize,
                      rightCard, rightAvgTupSize, joinSel );
       SHOW(cp)
       costFuns = new CostFunctions();
-       
+
       bool useHint = false;
       size_t useIndex = 0;
-      for (size_t i=1; i<evalFuns->size(); i++) 
+      for (size_t i=1; i<evalFuns->size(); i++)
       {
-	string name = (evalFuns->get(i)).getName(); 
+	string name = (evalFuns->get(i)).getName();
 	if ( hasPrefix("use_", name) ) {
-	  removePrefix("use_", name);	
+	  removePrefix("use_", name);
 	  useHint = true;
 	  useIndex = i;
-        }		
+        }
 	SHOW(name)
         bool ok = costFuns->append( name, i );
         assert(ok);
-      } 
-      
+      }
+
       const CostInfo ci = costFuns->findBest(cp);
       SHOW(ci)
       bestPos = ci.cf->index;
 
-      bool pAllowHints = 
+      bool pAllowHints =
 	       Environment::getInstance().getBool("SEC_pAllowHints", false);
       SHOW(pAllowHints)
-      
+
       if (pAllowHints && useHint) {
-        bestPos = useIndex;   	      
+        bestPos = useIndex;
         cout << "Using hint with index " << useIndex << endl;
-      }	      
+      }
       assert( bestPos < (int)evalFuns->size() );
-      
+
       FunInfo& f = evalFuns->get(bestPos);
       bestFun = StreamOpAddr(f.getSupplier());
       cout << "Using " << f.getName() << endl;
 
       TRACE( "\n*** END Computing best function ***\n" )
-    } 
-    
+    }
+
   };
 
 
-static int pjoin2_vm( Word* args, Word& result, int message, 
+static int pjoin2_vm( Word* args, Word& result, int message,
                       Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y1))) 
-  // args[1]: Input stream(ptuple(y2))) 
-    // args[2]: A string which defines if the join is a self join or not 
-  // args[2]: A list of map stream(tuple(y1)))x stream(tuple(y2)) 
+  // args[0]: Input stream(ptuple(y1)))
+  // args[1]: Input stream(ptuple(y2)))
+    // args[2]: A string which defines if the join is a self join or not
+  // args[2]: A list of map stream(tuple(y1)))x stream(tuple(y2))
   //          -> stream(tuple(z))
   // args[3]: A list of symbols for evaluation function names
 
   static const string pre("pjoin2: ");
   static int instanceCtr = 0;
 
-  typedef PJoinInfo<StreamOpAddr> PJoin2_Info; 
-  
+  typedef PJoinInfo<StreamOpAddr> PJoin2_Info;
+
   PJoin2_Info* pj = static_cast<PJoin2_Info*>( local.addr );
 
   switch ( message )
@@ -2372,22 +2374,22 @@ static int pjoin2_vm( Word* args, Word& result, int message,
       // initialze local storage
       StreamOpAddr left(args[0].addr);
       StreamOpAddr right(args[1].addr);
-      
+
       // A possible interface for triggering self join correction.
       //string joinType = StdTypes::GetString(args[2]);
       //SHOW(joinType)
-      //bool isSelfJoin = joinType == "selfjoin"; 
-      
-      pj = new PJoin2_Info(left, right, instanceCtr); 
+      //bool isSelfJoin = joinType == "selfjoin";
+
+      pj = new PJoin2_Info(left, right, instanceCtr);
       local.addr = pj;
-    
-      FunVector& evalFuns = *(pj->evalFuns); 
-      // load functions into funvector 
+
+      FunVector& evalFuns = *(pj->evalFuns);
+      // load functions into funvector
       evalFuns.load(args[2], &args[3]);
 
-      // save caller node in argument vectors 
+      // save caller node in argument vectors
       for (size_t i=0; i < evalFuns.size(); i++ )
-      { 
+      {
         Supplier fun = evalFuns.get(i).getSupplier();
         qp->SetupStreamArg(fun, 1, s);
         qp->SetupStreamArg(fun, 2, s);
@@ -2404,65 +2406,65 @@ static int pjoin2_vm( Word* args, Word& result, int message,
         //TRACE(pre << "Request received")
         // Do a request on the chosen evaluation function
         // a side effect of nextTuple(fun) could be that new markers
-        // are read. 
+        // are read.
         pj->nextPTuple(result);
         //SHOW(result.addr)
-          
+
         if (result.addr) // handle tuple pointer
           return YIELD;
-        else 
+        else
           return CANCEL;
     }
-    case (1*FUNMSG)+OPEN: 
-    { 
+    case (1*FUNMSG)+OPEN:
+    {
       // open the first (left) input stream
       TRACE(pre << "Message 1*FUNMSG+OPEN received")
       (pj->leftIs).open();
       return 0;
     }
-    case (2*FUNMSG)+OPEN: 
-    { 
+    case (2*FUNMSG)+OPEN:
+    {
       // open the second (right) input stream
       TRACE(pre << "Message 2*FUNMSG+OPEN received")
       (pj->rightIs).open();
       return 0;
     }
 
-                          
+
 /*
-The message below will map a ptuple of the input stream to a ~normal~ tuple 
-to be evaluated by the parameter function. If a marker is 
+The message below will map a ptuple of the input stream to a ~normal~ tuple
+to be evaluated by the parameter function. If a marker is
 
 */
-                      
-    case (1*FUNMSG)+REQUEST: { 
- 
+
+    case (1*FUNMSG)+REQUEST: {
+
       //TRACE(pre << "Message 1*FUNMSG+REQUEST received")
 
-      // just collect all markers and store them in the queue  
+      // just collect all markers and store them in the queue
       pj->leftBuf->getNextTuple( result );
-      
+
       if ( result.addr != 0)
         return YIELD;
-      else      
-        return CANCEL;
-    } 
-
-    case (2*FUNMSG)+REQUEST: { 
- 
-      //TRACE(pre << "Message 2*FUNMSG+REQUEST received")
-
-      // just collect all markers and store them in the queue  
-      pj->rightBuf->getNextTuple( result );
-      
-      if ( result.addr != 0)
-        return YIELD;
-      else      
+      else
         return CANCEL;
     }
-                             
-    case (1*FUNMSG)+CLOSE: { 
-                        
+
+    case (2*FUNMSG)+REQUEST: {
+
+      //TRACE(pre << "Message 2*FUNMSG+REQUEST received")
+
+      // just collect all markers and store them in the queue
+      pj->rightBuf->getNextTuple( result );
+
+      if ( result.addr != 0)
+        return YIELD;
+      else
+        return CANCEL;
+    }
+
+    case (1*FUNMSG)+CLOSE: {
+
       // This message must be ignored since we will send a CLOSE message
       // to our input stream when requested by our parent node
 
@@ -2471,8 +2473,8 @@ to be evaluated by the parameter function. If a marker is
       return 0;
     }
 
-    case (2*FUNMSG)+CLOSE: { 
-                        
+    case (2*FUNMSG)+CLOSE: {
+
       // This message must be ignored since we will send a CLOSE message
       // to our input stream when requested by our parent node
 
@@ -2481,165 +2483,166 @@ to be evaluated by the parameter function. If a marker is
       return 0;
     }
 
-                           
+
     case CLOSE: {
 
       TRACE(pre << "Message CLOSE received")
 
-      // closing streams is done in the destructor of the JoinInfo instance 
+      // closing streams is done in the destructor of the JoinInfo instance
       delete pj;
       return 0;
     }
     default: {
-   
-       cerr << pre << "Cannot handle message " << message << endl;        
-    }    
+
+       cerr << pre << "Cannot handle message " << message << endl;
+    }
   }
   return 0;
-  
-}   
+
+}
 
 
 /*
 4.4 Operator ~pjoin1~
-   
-This operator does the following type mapping: 
+
+This operator does the following type mapping:
 
 ----
-  ( stream(ptuple(y1)) rel(tuple(y2)) 
-    ( ( map (stream(tuple(y1))) (rel(tuple(y2))) (stream(tuple(z))) ) 
+  ( stream(ptuple(y1)) rel(tuple(y2))
+    ( ( map (stream(tuple(y1))) (rel(tuple(y2))) (stream(tuple(z))) )
       ... N repeats ... )
-  ) 
+  )
   -> (stream(ptuple(z)))
 ----
 
-During type mapping the names of the function identifier are appended as string 
+During type mapping the names of the function identifier are appended as string
 arguments. The names must correspond to a join method. For each join method
-a cost function is present and will be used for determining the best function. 
+a cost function is present and will be used for determining the best function.
 The value mapping is organized like ~pjoin1~.
 
-   
+
 */
 
 
 static ListExpr pjoin1_tm(ListExpr args)
 {
   NList l(args);
-  
-  static const string e1 = expects( sym.STREAM(), sym.PTUPLE(), "y1" );
-  static const string e2 = expects( sym.REL(), sym.TUPLE(), "y2" );
 
-  static string err1 = "Expecting input (" 
+  static const string e1 = expects( Symbol::STREAM(), PTuple::BasicType(),"y1");
+  static const string e2 = expects( Relation::BasicType(),
+                                    Tuple::BasicType(), "y2" );
+
+  static string err1 = "Expecting input ("
                        + e1 + " " + e2
                        + " int (<list of functions>) ";
-  
+
   if ( !checkLength( l, 4, err1 ) )
     return l.typeError( err1 );
-  
+
   NList attrs1;
   if ( !checkStreamPTuple( l.first(), attrs1) )
     return l.typeError( argNotCorrect(1) + err1);
-  
+
   NList attrs2;
   if ( !checkRelTuple( l.second(), attrs2) )
     return l.typeError( argNotCorrect(2) + err1);
 
-  if ( !l.third().isSymbol( Symbols::INT() ) )
+  if ( !l.third().isSymbol( CcInt::BasicType() ) )
     return l.typeError( argNotCorrect(3) + err1);
-   
-  
-  // Test the parameter function's signature 
-  static const string 
+
+
+  // Test the parameter function's signature
+  static const string
   err2 = "Expecting as third argument a list of functions of type "
          "(map (stream(tuple(y1))) (rel(tuple(y1))) (stream(tuple(z))))";
-  
+
   NList joinMaps = l.fourth();
   NList lastResultAttrs;
   NList fNames;
-  
+
   int joinMapsLength = joinMaps.length();
   for (int i=1; i < (joinMapsLength+1); i++)
-  { 
+  {
     vector<NList> sig;
-    
+
     NList funDesc = joinMaps.elem(i);
     NList fName = funDesc.first();
     if ( !fName.isSymbol() )
-      return l.typeError( "symbol atom for function name expected!" ); 
-    
+      return l.typeError( "symbol atom for function name expected!" );
+
     string funcStr = fName.str();
     string pre = "Function " + funcStr + ": ";
-    
-    
+
+
     if ( !checkMap( funDesc.second(), 2, sig ) )
       return l.typeError( argNotCorrect(3) + err2);
-    
+
     NList leftAttrs;
     if ( !checkStreamTuple(sig[0], leftAttrs) )
-      return l.typeError( pre + "First argument not correct!\n" 
+      return l.typeError( pre + "First argument not correct!\n"
                           "Received " + sig[0].convertToString() + "." );
-    
+
     NList rightAttrs;
     if ( !checkRelTuple(sig[1], rightAttrs) )
-      return l.typeError( pre + "Second argument not correct!\n" 
+      return l.typeError( pre + "Second argument not correct!\n"
                           "Received " + sig[1].convertToString() + "." );
-            
+
     NList resultAttrs;
     if ( !checkStreamTuple(sig[2], resultAttrs) )
       return l.typeError( pre + "Result type not correct!\n"
-                          "Received " + sig[2].convertToString() + "." );    
- 
+                          "Received " + sig[2].convertToString() + "." );
+
     if ( i==1 ) // first time define reference mapping
     {
       lastResultAttrs =  resultAttrs;
       fNames.makeHead( fName.toStringAtom() );
-    } 
+    }
     else // compare with previous mapping
     {
       fNames.append( fName.toStringAtom() );
       if ( !(attrs1 == leftAttrs) )
-        return l.typeError( pre + 
-                            "Tuple type of the first arg. does not match! \n" 
+        return l.typeError( pre +
+                            "Tuple type of the first arg. does not match! \n"
                             "Received " + leftAttrs.convertToString() + "." );
-      
+
       if ( !(attrs2 == rightAttrs) )
-        return l.typeError( pre + 
-                            "Tuple type of the second arg. does not match! \n" 
+        return l.typeError( pre +
+                            "Tuple type of the second arg. does not match! \n"
                             "Received " + rightAttrs.convertToString() + "." );
 
       if ( !(lastResultAttrs == resultAttrs) )
-        return l.typeError( pre + 
-                            "Tuple type of the result does not match! \n" 
-                            "Received " + resultAttrs.convertToString() 
+        return l.typeError( pre +
+                            "Tuple type of the result does not match! \n"
+                            "Received " + resultAttrs.convertToString()
                             + ". But the result type of the "
-                            + "previous function was " 
+                            + "previous function was "
                             + lastResultAttrs.convertToString() );
     }
 
-        
+
   }
-    
-  NList appendSym("APPEND");
+
+  NList appendSym(Symbol::APPEND());
   NList resultType(appendSym, fNames, makeStreamPTuple(lastResultAttrs));
   return resultType.listExpr();
 }
 
 
-static int pjoin1_vm( Word* args, Word& result, int message, 
+static int pjoin1_vm( Word* args, Word& result, int message,
                       Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y1))) 
-  // args[1]: Input rel(tuple(y2))) 
-  // args[2]: Ctr number 
-  // args[3]: A list of map stream(tuple(y1)))x rel(tuple(y2)) 
+  // args[0]: Input stream(ptuple(y1)))
+  // args[1]: Input rel(tuple(y2)))
+  // args[2]: Ctr number
+  // args[3]: A list of map stream(tuple(y1)))x rel(tuple(y2))
   //          -> stream(tuple(z))
   // args[4]: A list of symbols for evaluation function names
 
   static const string pre("pjoin1: ");
   static int instanceCtr = 0;
 
-  typedef PJoinInfo<RelationAddr> PJoin1_Info; 
-  
+  typedef PJoinInfo<RelationAddr> PJoin1_Info;
+
   PJoin1_Info* pj = static_cast<PJoin1_Info*>( local.addr );
 
   switch ( message )
@@ -2654,27 +2657,27 @@ static int pjoin1_vm( Word* args, Word& result, int message,
       GenericRelation* r = getArg<GenericRelation>( args[1] );
       RelationAddr right(r);
       right.open();
-      
-      int ctrNum = StdTypes::GetInt(args[2]);  
-      pj = new PJoin1_Info(left, right, instanceCtr, ctrNum); 
+
+      int ctrNum = StdTypes::GetInt(args[2]);
+      pj = new PJoin1_Info(left, right, instanceCtr, ctrNum);
       local.addr = pj;
-    
-      FunVector& evalFuns = *(pj->evalFuns); 
-      // load functions into funvector 
+
+      FunVector& evalFuns = *(pj->evalFuns);
+      // load functions into funvector
       evalFuns.load(args[3], &args[4]);
 
-      // save caller node in argument vectors 
+      // save caller node in argument vectors
       // and store the relation as second argument for
-      // the parameter functions. 
+      // the parameter functions.
       for (size_t i=0; i < evalFuns.size(); i++ )
-      { 
+      {
         Supplier fun = evalFuns.get(i).getSupplier();
         qp->SetupStreamArg(fun, 1, s);
-        
+
         ArgVectorPointer funargs = qp->Argument(fun);
         if (i == 0) {
           (*funargs)[1] = SetWord( pj->rightBuf->getBufPtr() );
-        } else { 
+        } else {
           (*funargs)[1] = SetWord(r);
         }
       }
@@ -2692,75 +2695,75 @@ static int pjoin1_vm( Word* args, Word& result, int message,
         //TRACE(pre << "Request received")
         // Do a request on the chosen evaluation function
         // a side effect of nextTuple(fun) could be that new markers
-        // are read. 
+        // are read.
         pj->nextPTuple(result);
         //SHOW(result.addr)
-          
+
         if (result.addr) // handle tuple pointer
           return YIELD;
-        else 
+        else
           return CANCEL;
     }
-    case (1*FUNMSG)+OPEN: 
-    { 
+    case (1*FUNMSG)+OPEN:
+    {
       // open the first (left) input stream
       TRACE(pre << "Message 1*FUNMSG+OPEN received")
       (pj->leftIs).open();
       return 0;
     }
 
-                          
+
 /*
-The message below will map a ptuple of the input stream to a ~normal~ tuple 
-to be evaluated by the parameter function. If a marker is 
+The message below will map a ptuple of the input stream to a ~normal~ tuple
+to be evaluated by the parameter function. If a marker is
 
 */
-    case (1*FUNMSG)+REQUEST: { 
- 
+    case (1*FUNMSG)+REQUEST: {
+
       //TRACE(pre << "Message 1*FUNMSG+REQUEST received")
 
-      // just collect all markers and store them in the queue  
+      // just collect all markers and store them in the queue
       pj->leftBuf->getNextTuple( result );
-      
+
       if ( result.addr != 0)
         return YIELD;
-      else      
+      else
         return CANCEL;
-    } 
+    }
 
-                             
-    case (1*FUNMSG)+CLOSE: { 
-                        
+
+    case (1*FUNMSG)+CLOSE: {
+
       // This message must be ignored since we will send a CLOSE message
       // to our input stream when requested by our parent node
 
       TRACE(pre << "Message 1*FUNMSG+CLOSE received")
-      pj->resetBuffer(1); 
+      pj->resetBuffer(1);
       return 0;
     }
 
     case CLOSE: {
 
       TRACE(pre << "Message CLOSE received")
-       
+
       // correct the right PTupleBuffer's information about requested
-      // tuples. Since the embedded executions plans will not request the 
+      // tuples. Since the embedded executions plans will not request the
       // buffer (argument .. is a base relation) it will contain only the
       // number of probe tuples.
       pj->setRequestedTuples();
 
-      // closing streams is done in the destructor of the JoinInfo instance 
+      // closing streams is done in the destructor of the JoinInfo instance
       delete pj;
       return 0;
     }
     default: {
-   
-       cerr << pre << "Cannot handle message " << message << endl;        
-    }    
+
+       cerr << pre << "Cannot handle message " << message << endl;
+    }
   }
   return 0;
-  
-}   
+
+}
 
 
 
@@ -2768,8 +2771,8 @@ static ListExpr pcreate_tm(ListExpr args)
 {
   NList l(args);
   NList attrs;
-  
-  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
+
+  static const string e1 = expects( Symbol::STREAM(), Tuple::BasicType() );
   string err1 = "pcreate expects (" + e1 + "int)!";
 
     if ( !checkLength( l, 2, err1 ) )
@@ -2778,35 +2781,35 @@ static ListExpr pcreate_tm(ListExpr args)
     if ( !checkStreamTuple( l.first(), attrs) )
       return l.typeError( argNotCorrect(1) + err1);
 
-    if ( !l.second().isSymbol(sym.INT()) )
+    if ( !l.second().isSymbol(CcInt::BasicType()) )
       return l.typeError( argNotCorrect(2) + err1);
-  
+
   return makeStreamPTuple(attrs).listExpr();
 }
 
 
-static int pcreate_vm( Word* args, Word& result, int message, 
+static int pcreate_vm( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
-  // args[0]: Input stream(tuple(y)))  
-  // args[1]: int  
+  // args[0]: Input stream(tuple(y)))
+  // args[1]: int
   static const string pre = "pcreate: ";
   BufferedStreamInfo* info = static_cast<BufferedStreamInfo*>( local.addr );
-  
+
   switch (message)
   {
     case OPEN :
-    { 
+    {
       TRACE(pre << "OPEN")
-      int partSize = StdTypes::GetInt(args[1]);  
+      int partSize = StdTypes::GetInt(args[1]);
       info = new BufferedStreamInfo( args[0], partSize );
       local.addr = info;
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
-      // the nextPTuple function returns a marker or a tuple 
+      // the nextPTuple function returns a marker or a tuple
       result.addr = info->nextPTuple();
       if ( result.addr )
       {
@@ -2817,50 +2820,50 @@ static int pcreate_vm( Word* args, Word& result, int message,
         return CANCEL;
       }
     }
-    
+
     case CLOSE :
     {
-      //TRACE(pre << "CLOSE received!") 
+      //TRACE(pre << "CLOSE received!")
       delete info;
-      
+
       return 0;
     }
 
-    default : { assert(false); }  
-  }  
-}   
+    default : { assert(false); }
+  }
+}
 
 static ListExpr pcreate2_tm(ListExpr args)
 {
   NList l(args);
-  
-  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
+
+  static const string e1 = expects( Symbol::STREAM(), Tuple::BasicType() );
   static string err1 = "pcreate2 expects (" + e1 + "int int)!";
-  
+
   if ( !checkLength(l, 3, err1) )
     return l.typeError( err1 );
-  
+
   NList attrs;
   if ( !checkStreamTuple( l.first(), attrs) )
     return l.typeError( argNotCorrect(1) + err1);
-  
-  if ( !l.second().isSymbol(sym.INT()) )
+
+  if ( !l.second().isSymbol(CcInt::BasicType()) )
     return l.typeError( argNotCorrect(2) + err1);
-  
-  if ( !l.third().isSymbol(sym.INT()) )
+
+  if ( !l.third().isSymbol(CcInt::BasicType()) )
     return l.typeError( argNotCorrect(3) + err1);
 
   return makeStreamPTuple(attrs).listExpr();
 }
 
-static int pcreate2_vm( Word* args, Word& result, int message, 
+static int pcreate2_vm( Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y)))  
-  // args[1]: int  
-  // args[2]: int  
+  // args[0]: Input stream(ptuple(y)))
+  // args[1]: int
+  // args[2]: int
   return 0;
-}   
+}
 
 
 /*
@@ -2876,14 +2879,14 @@ function selection.
 static ListExpr shuffleX_tm(ListExpr args, const string& op)
 {
   NList l(args);
-  
-  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
-  static const string e2 = expects( sym.STREAM(), sym.PTUPLE() );
+
+  static const string e1 = expects( Symbol::STREAM(), Tuple::BasicType() );
+  static const string e2 = expects( Symbol::STREAM(), PTuple::BasicType() );
   string err1 = op + " expects (" + e1 + ") or (" + e2 + ")!";
-  
+
   if ( !checkLength(l, 1, err1) )
     return l.typeError( err1 );
-  
+
   NList attrs;
   if ( checkStreamTuple( l.first(), attrs) )
     return l.first().listExpr();
@@ -2902,19 +2905,19 @@ static ListExpr shuffle_tm(ListExpr args)
 static ListExpr shuffle2_tm(ListExpr args)
 {
   NList l(args);
-  
-  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
+
+  static const string e1 = expects( Symbol::STREAM(), Tuple::BasicType() );
   string err1 = "expecting (" + e1 + " x int)";
-  
+
   if ( !checkLength(l, 2, err1) )
     return l.typeError( err1 );
-  
+
   //cout << l.first() << endl;
 
   NList attrs;
-  if ( checkStreamTuple( l.first(), attrs) 
-       && l.second().str() == sym.INT() )
-  {	  
+  if ( checkStreamTuple( l.first(), attrs)
+       && l.second().str() == CcInt::BasicType() )
+  {
     return l.first().listExpr();
   }
 
@@ -2924,10 +2927,10 @@ static ListExpr shuffle2_tm(ListExpr args)
 
 /*
 The shuffle operator uses a tuple buffer of size $M$ and stores all incoming
-tuples there. In the cas of an memory overflow it will work in the following 
+tuples there. In the cas of an memory overflow it will work in the following
 way
 
-1 the tuples of the buffer are written in random order to disk 
+1 the tuples of the buffer are written in random order to disk
 
 2 Fill the tuple buffer again. Hence the input relation is partitioned into
 $N = StreamSize / M$ parts.
@@ -2937,120 +2940,120 @@ $N$ in chunks of a logical page size $Lps$. In order to guarantee that all tuple
 will be mixed we assume that $N * Lps = M$ which implies $StreamSize =
 \frac{M^2}{Lps}$. For example, if $M=16MB$ and $Lps=32k$ we can randomize
 relations with a size up to 8GB.
-   
-*/   
+
+*/
 
 struct ShuffleBuf {
-  
+
   typedef vector<Tuple*> TupleBuf;
 
   TupleBuf buffer;
   size_t pos;      // pos is a positive value
-  
+
   size_t M;
   size_t freeMem;
   int Lps;
-  
-  ShuffleBuf(int MaxMem, int LogicalPageSize) : 
-    pos(0), 
-    M(MaxMem), 
+
+  ShuffleBuf(int MaxMem, int LogicalPageSize) :
+    pos(0),
+    M(MaxMem),
     freeMem(MaxMem),
-    Lps(LogicalPageSize) 
+    Lps(LogicalPageSize)
   {}
   ~ShuffleBuf() {
-   
+
      TupleBuf::const_iterator it = buffer.begin();
      while( it != buffer.end() ) {
        //(*it)->DecReference();
        (*it)->DeleteIfAllowed();
        it++;
-     } 
+     }
   }
-  
+
   void shuffle() { random_shuffle(buffer.begin(), buffer.end()); }
-  
+
   inline bool overFlow(const size_t tupleSize) {
-   
+
      if ( freeMem < tupleSize )
        return true;
 
      freeMem -= tupleSize;
      return false;
-  }   
-    
+  }
+
   // todo: implementation of the persistent case
   void handleOverFlow(Tuple* t) {
 
      cerr << "shuffle: A memory overflow happend!" << endl;
-     buffer.push_back(t); 
-     
-  } 
-  
-  void append(Tuple* t) 
+     buffer.push_back(t);
+
+  }
+
+  void append(Tuple* t)
   {
-    t->IncReference(); 
+    t->IncReference();
     if ( overFlow(t->GetExtSize()) )
       handleOverFlow(t);
     else
-      buffer.push_back(t); 
+      buffer.push_back(t);
   }
 
-  void open() 
-  { 
-    pos = buffer.size() + 1; 
+  void open()
+  {
+    pos = buffer.size() + 1;
   }
 
-  inline Tuple* getNext() { 
-    
+  inline Tuple* getNext() {
+
     //cout << "pos: " << pos << endl;
     if ( pos == 1 )
       return 0;
-      
+
     // Return values and start with buffer.size() - 1
-    pos--; 
-    return buffer[pos-1];   
-  }  
-}; 
+    pos--;
+    return buffer[pos-1];
+  }
+};
 
 
   /*
 struct ShuffleInfo {
 
   ShuffleInfo(int maxMem = 4 * 1024 * 1024, int maxTuples = 512)
-    : persBuf(3/4 * maxMem), 
+    : persBuf(3/4 * maxMem),
       memBuf(maxMem),
       streamPos(0),
       pos(maxTuples/2),
       memTuples(maxTuples),
       skip(2),
-      run(1),	
+      run(1),
       stepwidth(2),
       bufIter(0),
       memBufFinished(false),
-      memCtr(0),		   	   
-      persCtr(0)		   	   
+      memCtr(0),
+      persCtr(0)
   {}
 
   ~ShuffleInfo()
-  {	  
+  {
     if ( bufIter != 0) {
       delete bufIter;
-      bufIter = 0;      
+      bufIter = 0;
     }
-  }     
+  }
 
   void append(Tuple* t) {
 
-    if ( (streamPos % skip) == 0 ) { 
+    if ( (streamPos % skip) == 0 ) {
       // tuple will be selected for the	front part of the
       // output stream.
-   
-    if ( memBuf.GetNoTuples() == memTuples ) 
+
+    if ( memBuf.GetNoTuples() == memTuples )
     {
-      size_t p = nextReplacePos(); 	    
+      size_t p = nextReplacePos();
       if ( p >= memTuples )
       {
-	// restart      
+	// restart
         initReplacePos();
 	p = nextReplacePos();
       }
@@ -3061,58 +3064,58 @@ struct ShuffleInfo {
 	assert( memBuf.InMemory() );
     }
     else
-    {	    
-      memBuf.AppendTuple(t);	    
-    }    
+    {
+      memBuf.AppendTuple(t);
+    }
 
     } // end of if ( (streamPos % skip) == 0 )
     else
     {
-      persCtr++;	    
-      persBuf.AppendTuple(t);	    
-    }	    
-    streamPos++; 
-  }	  
+      persCtr++;
+      persBuf.AppendTuple(t);
+    }
+    streamPos++;
+  }
 
   Tuple* getNext() {
-     
+
     Tuple* result = 0;
 
     // return the tuples of the memory buffer
-    if ( memBufFinished == false ) 
+    if ( memBufFinished == false )
     {
       if ( bufIter == 0) {
-        bufIter = memBuf.MakeScan();	
-      }	      
+        bufIter = memBuf.MakeScan();
+      }
       memCtr++;
       result = bufIter->GetNextTuple();
 
-      if (result == 0) {	      
+      if (result == 0) {
         cerr << endl;
-        cerr << "streamPos" << streamPos << endl;	    
-        cerr << "memBuf: " << memBuf.GetNoTuples() << endl;	    
-        cerr << "memCtr: " << memCtr << endl;	    
+        cerr << "streamPos" << streamPos << endl;
+        cerr << "memBuf: " << memBuf.GetNoTuples() << endl;
+        cerr << "memCtr: " << memCtr << endl;
         cerr << "persBuf: " << persBuf.GetNoTuples() << endl;
         cerr << "persCtr: " << persCtr << endl;
         memBufFinished = true;
 	delete bufIter;
 	bufIter = 0;
-      } 	
+      }
     }
-    
+
     // return the tuples of the persistent buffer
     if ( memBufFinished == true)
     {
       if ( bufIter == 0) {
-        bufIter = persBuf.MakeScan();	
-      }	      
-      result = bufIter->GetNextTuple();      	      
-    }	    
+        bufIter = persBuf.MakeScan();
+      }
+      result = bufIter->GetNextTuple();
+    }
 
-    return result;      
-  }	  
+    return result;
+  }
 
-  inline void initReplacePos() 
+  inline void initReplacePos()
   {
     skip = max((size_t)2, streamPos / memTuples);
     run++;
@@ -3130,10 +3133,10 @@ struct ShuffleInfo {
 	t->DecReference();
 	persCtr++;
 	persBuf.AppendTuple(t);
-    }	
+    }
 
     for(size_t i=1; i < memTuples/2; i++)
-    {	    
+    {
 	// override pos i
 	Tuple* t = memBuf.GetTupleAtPos(2*i);
 	assert(t != 0);
@@ -3146,24 +3149,24 @@ struct ShuffleInfo {
     if (trace) {
     for(size_t i=0; i < memTuples/2; i++) {
 	Tuple* t = memBuf.GetTupleAtPos(i);
-        cerr << i << ": ";		
+        cerr << i << ": ";
 	if (t == 0)
           cerr << "null pointer!";
         else
 	  cerr << *t;
-	cerr << endl;  	  
+	cerr << endl;
     }
     }
 
     cerr << endl;
-	    
+
     cerr << endl
-	 << "run: " << run 
+	 << "run: " << run
 	 << " streamPos: " << streamPos
 	 << " bufindex: " << pos
-	 << " skip: " << skip 
-	 << endl; 
-  }	  
+	 << " skip: " << skip
+	 << endl;
+  }
 
   inline size_t nextReplacePos() {
 
@@ -3171,7 +3174,7 @@ struct ShuffleInfo {
     size_t res = pos;
     pos++;
     return res;
-  }	  
+  }
 
   TupleBuffer persBuf;
   TupleBuffer memBuf;
@@ -3191,84 +3194,84 @@ struct ShuffleInfo {
   */
 
 /*
-Operator ~shuffle~ 
+Operator ~shuffle~
 
 */
 
 struct ShuffleInfo {
 
   ShuffleInfo(int maxMem = 4 * 1024 * 1024, int maxTuples = 100000 )
-    : persBuf(maxMem), 
+    : persBuf(maxMem),
       memBuf(maxMem),
-      memTuples(500),	
+      memTuples(500),
       skip(maxTuples/500),
       streamPos(0),
       bufIter(0),
       memBufFinished(false),
-      trace(false)	
+      trace(false)
   {}
 
   ~ShuffleInfo()
-  {	  
+  {
     if ( bufIter != 0) {
       delete bufIter;
-      bufIter = 0;      
+      bufIter = 0;
     }
-  }     
+  }
 
   void append(Tuple* t) {
 
-    if ( (streamPos % skip) == 0 ) 
-    { 
+    if ( (streamPos % skip) == 0 )
+    {
       // tuple will be selected for the	front part of the
       // output stream.
-      memBuf.AppendTuple(t);	    
+      memBuf.AppendTuple(t);
 
     } // end of if ( (streamPos % skip) == 0 )
     else
     {
-      persBuf.AppendTuple(t);	    
-    }	    
-    streamPos++; 
-  }	  
+      persBuf.AppendTuple(t);
+    }
+    streamPos++;
+  }
 
   Tuple* getNext() {
-     
+
     Tuple* result = 0;
 
     // return the tuples of the memory buffer
-    if ( memBufFinished == false ) 
+    if ( memBufFinished == false )
     {
       if ( bufIter == 0) {
-        bufIter = memBuf.MakeScan();	
-      }	      
+        bufIter = memBuf.MakeScan();
+      }
       result = bufIter->GetNextTuple();
 
-      if (result == 0) {	      
+      if (result == 0) {
 
-	if (trace) {      
+	if (trace) {
           cerr << endl;
-          cerr << "streamPos: " << streamPos << endl;	    
-          cerr << "memBuf   : " << memBuf.GetNoTuples() << endl;	    
+          cerr << "streamPos: " << streamPos << endl;
+          cerr << "memBuf   : " << memBuf.GetNoTuples() << endl;
           cerr << "persBuf  : " << persBuf.GetNoTuples() << endl;
-        }  
+        }
         memBufFinished = true;
 	delete bufIter;
 	bufIter = 0;
-      } 	
+      }
     }
-    
+
     // return the tuples of the persistent buffer
     if ( memBufFinished == true)
     {
       if ( bufIter == 0) {
-        bufIter = persBuf.MakeScan();	
-      }	      
-      result = bufIter->GetNextTuple();      	      
-    }	    
+        bufIter = persBuf.MakeScan();
+      }
+      result = bufIter->GetNextTuple();
+    }
 
-    return result;      
-  }	  
+    return result;
+  }
 
 
   TupleBuffer persBuf;
@@ -3281,42 +3284,42 @@ struct ShuffleInfo {
   bool memBufFinished;
   bool trace;
 
-};	
+};
 
 
 
 
 
-static int shuffle2_vm( Word* args, 
-                        Word& result, int message, 
+static int shuffle2_vm( Word* args,
+                        Word& result, int message,
                         Word& local, Supplier s    )
 {
-  //args[0]: stream(tuple(y))  
+  //args[0]: stream(tuple(y))
   //args[1]: int
-  
+
   static const string pre = "shuffle2: ";
-  
+
   ShuffleInfo* info = static_cast<ShuffleInfo*>( local.addr );
   Word stream = args[0];
   int numTuples = StdTypes::GetInt( args[1] );
-  
+
   switch (message)
   {
     case OPEN :
-    { 
-      info = new ShuffleInfo(4 * 1024 * 1024, numTuples);	    
+    {
+      info = new ShuffleInfo(4 * 1024 * 1024, numTuples);
       qp->Open(stream.addr);
       Tuple* t = nextTuple(stream);
       while( t != 0 )
       {
         info->append(t);
         t = nextTuple(stream);
-      } 
+      }
       local.addr = info;
-       
+
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
       Tuple* t = info->getNext();
@@ -3331,23 +3334,23 @@ static int shuffle2_vm( Word* args,
         return CANCEL;
       }
     }
-    
+
     case CLOSE :
     {
       qp->Close(stream.addr);
       delete info;
-      
+
       return 0;
     }
 
-    default : { assert(false); }  
-  }  
+    default : { assert(false); }
+  }
   return 0;
-}   
+}
 
 
 /*
-Operator ~shuffle~ 
+Operator ~shuffle~
 
 */
 
@@ -3359,25 +3362,25 @@ struct ShuffleInfoRAND : public ShuffleInfo {
   {}
 
   ~ShuffleInfoRAND()
-  {}     
+  {}
 
 
-  void append(Tuple* t) 
+  void append(Tuple* t)
   {
     size_t i = 0;
     bool replaced = false;
     Tuple* v = rtBuf.ReplacedByRandom(t, i, replaced);
-    
+
     if ( replaced )
-    { 
+    {
       // v was replaced by t
       if (v != 0) {
-        persBuf.AppendTuple(v);	    
+        persBuf.AppendTuple(v);
         v->DeleteIfAllowed();
-      }	
+      }
     }
-    else 
-    { 
+    else
+    {
       assert(v == 0);
       // v == 0, and t was not stored in buffer
       persBuf.AppendTuple(t);
@@ -3385,57 +3388,57 @@ struct ShuffleInfoRAND : public ShuffleInfo {
   }
 
   inline size_t freeBytes() const {
-    return persBuf.FreeBytes();	  
-  }	  
+    return persBuf.FreeBytes();
+  }
 
 /*
 Copy all tuples of the random buffer into the memory buffer of
 the parent class.
 
 */
-  void finish() 
+  void finish()
   {
     rtBuf.copy2TupleBuf( memBuf );
-  }	  
+  }
 
-  Tuple* lastTuple; 
-  // Will be used to store the last tuple which could not be hold 
+  Tuple* lastTuple;
+  // Will be used to store the last tuple which could not be hold
   // in memory. Refer to shuffle3_vm.
 
   private:
     RandomTBuf rtBuf;
 
-};	
+};
 
-static int shuffle_vm( Word* args, 
-                        Word& result, int message, 
+static int shuffle_vm( Word* args,
+                        Word& result, int message,
                         Word& local, Supplier s    )
 {
-  //args[0]: stream(tuple(y))  
-  
+  //args[0]: stream(tuple(y))
+
   static const string pre = "shuffle: ";
-  
+
   ShuffleInfoRAND* info = static_cast<ShuffleInfoRAND*>( local.addr );
   Word stream = args[0];
-  
+
   switch (message)
   {
     case OPEN :
-    { 
-      info = new ShuffleInfoRAND();	    
+    {
+      info = new ShuffleInfoRAND();
       qp->Open(stream.addr);
       Tuple* t = nextTuple(stream);
       while( t != 0 )
       {
         info->append(t);
         t = nextTuple(stream);
-      } 
+      }
       info->finish();
       local.addr = info;
-       
+
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
       Tuple* t = info->getNext();
@@ -3450,103 +3453,103 @@ static int shuffle_vm( Word* args,
         return CANCEL;
       }
     }
-    
+
     case CLOSE :
     {
       qp->Close(stream.addr);
       delete info;
-      
+
       return 0;
     }
 
-    default : { assert(false); }  
-  }  
+    default : { assert(false); }
+  }
   return 0;
-}   
+}
 
-static int shuffle3_vm( Word* args, 
-                        Word& result, int message, 
+static int shuffle3_vm( Word* args,
+                        Word& result, int message,
                         Word& local, Supplier s    )
 {
-  //args[0]: stream(tuple(y))  
-  
+  //args[0]: stream(tuple(y))
+
   static const string pre = "shuffle: ";
-  
+
   ShuffleInfoRAND* info = static_cast<ShuffleInfoRAND*>( local.addr );
   Word stream = args[0];
-  
+
   switch (message)
   {
     case OPEN :
-    { 
-      info = new ShuffleInfoRAND();	    
+    {
+      info = new ShuffleInfoRAND();
       qp->Open(stream.addr);
       Tuple* t = nextTuple(stream);
       size_t ctr = 0;
       while( t != 0 )
       {
-	// check if the tuple fits into the buffer      
-	if ( (size_t)t->GetExtSize() < info->freeBytes() ) {     
+	// check if the tuple fits into the buffer
+	if ( (size_t)t->GetExtSize() < info->freeBytes() ) {
           info->append(t);
           t = nextTuple(stream);
 	  ctr++;
 	} else {
-	  // store last tuple for the next REQUEST message	
-	  info->lastTuple = t;	
+	  // store last tuple for the next REQUEST message
+	  info->lastTuple = t;
 	  break;
-        }	
-      } 
+        }
+      }
       cout << "ctr = " << ctr << endl;
       info->finish();
       local.addr = info;
-       
+
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
       Tuple* t = info->getNext();
       if ( t != 0 )
       {
-	// iterate over the memory buffer      
+	// iterate over the memory buffer
         result.addr = t;
         return YIELD;
       }
       else
       {
-	// continue iterating the input stream     
+	// continue iterating the input stream
 	t = info->lastTuple;
         if (t != 0) {
           info->lastTuple = 0;
-	} else {	
+	} else {
 	  t = nextTuple(stream);
-	}  
+	}
 
-        if ( t != 0) 
+        if ( t != 0)
 	{
           result.addr = t;
           return YIELD;
         }
-	else 
-	{	
+	else
+	{
           result.addr = 0;
           return CANCEL;
         }
-      }	
+      }
     }
-    
+
     case CLOSE :
     {
       qp->Close(stream.addr);
       delete info;
-      
+
       return 0;
     }
 
-    default : { assert(false); }  
-  }  
+    default : { assert(false); }
+  }
   return 0;
-}   
+}
 
 
 static ListExpr memshuffle_tm(ListExpr args)
@@ -3554,25 +3557,25 @@ static ListExpr memshuffle_tm(ListExpr args)
   return shuffleX_tm(args, "memshuffle");
 }
 
-static int memshuffle_vm( Word* args, 
-                       Word& result, int message, 
+static int memshuffle_vm( Word* args,
+                       Word& result, int message,
                        Word& local, Supplier s    )
 {
-  //args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
-  
+  //args[0]: Input stream(ptuple(y))  or stream(tuple(y))
+
   static const string pre = "memshuffle: ";
-  
+
   ShuffleBuf* info = static_cast<ShuffleBuf*>( local.addr );
-  
+
   Word stream = args[0];
-  
+
   switch (message)
   {
     case OPEN :
-    { 
+    {
       const int M = 40 * 4096 * 4096;
       const int Lps = 32 * 1024;
-      
+
       info = new ShuffleBuf(M, Lps);
       qp->Open(stream.addr);
       Tuple* t = nextTuple(stream);
@@ -3580,14 +3583,14 @@ static int memshuffle_vm( Word* args,
       {
         info->append(t);
         t = nextTuple(stream);
-      } 
+      }
       info->shuffle();
       info->open();
-      local.addr = info; 
-       
+      local.addr = info;
+
       return 0;
-    } 
-    
+    }
+
     case REQUEST :
     {
       Tuple* t = info->getNext();
@@ -3602,19 +3605,19 @@ static int memshuffle_vm( Word* args,
         return CANCEL;
       }
     }
-    
+
     case CLOSE :
     {
       qp->Close(stream.addr);
       delete info;
-      
+
       return 0;
     }
 
-    default : { assert(false); }  
-  }  
+    default : { assert(false); }
+  }
   return 0;
-}   
+}
 
 
 static ListExpr runtime_tm(ListExpr list)
@@ -3622,33 +3625,33 @@ static ListExpr runtime_tm(ListExpr list)
   NList args(list);
 
   if (!args.hasLength(7))
-    return NList::typeError("Expecting 7 arguments");  
+    return NList::typeError("Expecting 7 arguments");
 
-  if ( !args.elem(1).isSymbol(STRING) )
-    return NList::typeError("Expecting a string as first argument");  
-  if ( !args.elem(2).isSymbol(INT) )
-    return NList::typeError("Expecting an int as second argument");  
-  if ( !args.elem(3).isSymbol(INT) )
-    return NList::typeError("Expecting an int as third argument");  
-  if ( !args.elem(4).isSymbol(REAL) )
-    return NList::typeError("Expecting a real as forth argument");  
-  if ( !args.elem(5).isSymbol(REAL) )
-    return NList::typeError("Expecting a real as fifth argument");  
-  if ( !args.elem(6).isSymbol(REAL) )
-    return NList::typeError("Expecting a real as sixth argument"); 
-  if ( !args.elem(7).isSymbol(INT) )
-   return NList::typeError("Expecting an int as seventh argument"); 
+  if ( !args.elem(1).isSymbol(CcString::BasicType()) )
+    return NList::typeError("Expecting a string as first argument");
+  if ( !args.elem(2).isSymbol(CcInt::BasicType()) )
+    return NList::typeError("Expecting an int as second argument");
+  if ( !args.elem(3).isSymbol(CcInt::BasicType()) )
+    return NList::typeError("Expecting an int as third argument");
+  if ( !args.elem(4).isSymbol(CcReal::BasicType()) )
+    return NList::typeError("Expecting a real as forth argument");
+  if ( !args.elem(5).isSymbol(CcReal::BasicType()) )
+    return NList::typeError("Expecting a real as fifth argument");
+  if ( !args.elem(6).isSymbol(CcReal::BasicType()) )
+    return NList::typeError("Expecting a real as sixth argument");
+  if ( !args.elem(7).isSymbol(CcInt::BasicType()) )
+   return NList::typeError("Expecting an int as seventh argument");
 
-  return NList(INT).listExpr();  
+  return NList(CcInt::BasicType()).listExpr();
 }
 
-static int runtime_vm( Word* args, Word& result, int message, 
+static int runtime_vm( Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
-  // args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
+  // args[0]: Input stream(ptuple(y))  or stream(tuple(y))
   result = qp->ResultStorage(s);
   Word w;
-  
+
   qp->Request(args[0].addr, w);
   string name = StdTypes::GetString(w);
   qp->Request(args[1].addr, w);
@@ -3664,22 +3667,22 @@ static int runtime_vm( Word* args, Word& result, int message,
 
   SHOW(name)
   SHOW(c1)
-  SHOW(s1)	  
+  SHOW(s1)
   CostParams p(c1, s1, c2, s2, sel);
   cout << p << endl;
   StopWatch t;
-  
+
   // evaluate the last argument
   t.start();
   qp->Request(args[6].addr, w);
-  double rt = t.diffSecondsReal(); 
+  double rt = t.diffSecondsReal();
   cout << rt << endl;
 
   CostFunctions* costFuns = new CostFunctions();
   costFuns->append( name, 1 );
   const CostInfo ci = costFuns->findBest(p);
   SHOW(ci)
- 
+
   // set result value
   CcInt* funRes = static_cast<CcInt*>( w.addr);
   CcInt* res = static_cast<CcInt*>( result.addr );
@@ -3692,93 +3695,95 @@ static int runtime_vm( Word* args, Word& result, int message,
   CostTuple* cost = new CostTuple(p, ci.costs);
   cost->cost_name = name;
   cost->id = id;
-  cost->param_res_card = res->GetIntval(); 
+  cost->param_res_card = res->GetIntval();
   cost->real_runtime = rt;
-  cost->real_write = Counter::getRef( CTR_TBUF_PAGES_W ); 
-  cost->real_read = Counter::getRef( CTR_TBUF_PAGES_R );
-  long& intHash = Counter::getRef(CTR_INT_HASH);
-  long& intLess  = Counter::getRef(CTR_INT_LESS);
-  long& intEqual = Counter::getRef(CTR_INT_EQUAL);
-  long& intCompare = Counter::getRef(CTR_INT_COMPARE);
+  cost->real_write = Counter::getRef( Symbol::CTR_TBUF_PAGES_W() );
+  cost->real_read = Counter::getRef( Symbol::CTR_TBUF_PAGES_R() );
+  long& intHash = Counter::getRef(Symbol::CTR_INT_HASH());
+  long& intLess  = Counter::getRef(Symbol::CTR_INT_LESS());
+  long& intEqual = Counter::getRef(Symbol::CTR_INT_EQUAL());
+  long& intCompare = Counter::getRef(Symbol::CTR_INT_COMPARE());
   cost->real_cpu = intHash + intLess + intEqual + intCompare;
 
   costRel->append(cost, false);
-  return 0; 
-}   
+  return 0;
+}
 
 }; // end of PartStreamMappings
 
 class SIG {
 
-  public:	
-  SIG( const string& p1, 
-       const string& p2, 
-       const string& p3 = "", 
-       const string& p4 = "", 
-       const string& p5 = "", 
-       const string& p6 = "", 
-       const string& p7 = "", 
+  public:
+  SIG( const string& p1,
+       const string& p2,
+       const string& p3 = "",
+       const string& p4 = "",
+       const string& p5 = "",
+       const string& p6 = "",
+       const string& p7 = "",
        const string& p8 = "") {
 
-    map.push_back(p1);	  
-    map.push_back(p2);	  
-    if (p3 != "")	  
-      map.push_back(p3);	  
-    if (p4 != "")	  
-      map.push_back(p4);	  
-    if (p5 != "")	  
-      map.push_back(p5);	  
-    if (p6 != "")	  
-      map.push_back(p6);	  
-    if (p7 != "")	  
-      map.push_back(p7);	  
-    if (p8 != "")	  
-      map.push_back(p8);	  
-  }	  
+    map.push_back(p1);
+    map.push_back(p2);
+    if (p3 != "")
+      map.push_back(p3);
+    if (p4 != "")
+      map.push_back(p4);
+    if (p5 != "")
+      map.push_back(p5);
+    if (p6 != "")
+      map.push_back(p6);
+    if (p7 != "")
+      map.push_back(p7);
+    if (p8 != "")
+      map.push_back(p8);
+  }
 
   string str() {
 
-    string res="";	  
+    string res="";
     size_t args = map.size();
     assert(args >= 2);
 
     res=map[0];
     for(size_t i = 1; i <= args-2; i++) {
-      res += " x " + map[i];	    
+      res += " x " + map[i];
     }
     res += " -> " + map[args-1];
-    return res;    
-  }	  
+    return res;
+  }
 
   private:
   vector<string> map;
 
-};	
+};
 
 struct runtimeInfo : OperatorInfo {
 
   runtimeInfo()
   {
-    name      = "runtime"; 
-    signature = SIG(STRING, INT, INT, 
-                     REAL, REAL, REAL, "(map ... -> int)", INT).str();
+    name      = "runtime";
+    signature = SIG(CcString::BasicType(), CcInt::BasicType(),
+                    CcInt::BasicType(),
+                    CcReal::BasicType(),CcReal::BasicType(),CcReal::BasicType(),
+                    "(map ... -> int)", CcInt::BasicType()).str();
     syntax    = "runtime(s,t1,t2,s1,s2,sel,f)";
     meaning   = "Determines the runtime for a join given by function f and "
                 "applies the cost function named by s with the parameters: "
 		"t1,t2,s1,s2 (input cardinalities and avg. tuple sizes), "
 		"sel (join selectivity)";
   }
-};  
+};
 
 
 struct sortmergejoinrInfo : OperatorInfo {
 
   sortmergejoinrInfo(const string& _name)
   {
-    name      = _name; 
+    name      = _name;
 
-    signature = STREAM_TUPLE + " x " + STREAM_TUPLE + " -> " + STREAM_TUPLE;
-    syntax    = "_ _" + SMJ_R + "[an, bm]";
+    signature = "stream(tuple(...)) x stream(tuple(...)) -> stream(tuple(...))";
+    syntax    = "_ _ sortmergejoin_r[an, bm]";
     meaning   = "Computes a join by sorting the inputs but returns the result "
                 "R = S1 u S2 with a random subset S1 and a sorted subset S2. "
                 "The variant _r does this by generating all output tuples "
@@ -3795,16 +3800,16 @@ extern int
 sortmergejoinr_vm( Word* args, Word& result,
                    int message, Word& local, Supplier s );
 
-extern int 
-sortmergejoinr2_vm( Word* args, Word& result, 
+extern int
+sortmergejoinr2_vm( Word* args, Word& result,
                     int message, Word& local, Supplier s );
 
-extern int 
-sortmergejoinr3_vm( Word* args, Word& result, 
+extern int
+sortmergejoinr3_vm( Word* args, Word& result,
                     int message, Word& local, Supplier s );
 
 
-template<bool, int> extern ListExpr 
+template<bool, int> extern ListExpr
 JoinTypeMap(ListExpr args);
 
 
@@ -3820,17 +3825,17 @@ Symbols PartStreamMappings::sym;
 class PartStreamAlgebra : public Algebra
 {
   typedef PartStreamMappings psm;
-        
+
   public:
     PartStreamAlgebra() : Algebra()
     {
 
-      //assert(false); 
-     
+      //assert(false);
+
       ConstructorInfo ci;
-      ci.name      =    "ptuple";
+      ci.name      =    PTuple::BasicType();
       ci.signature =    "(ident x DATA)+ -> PTUPLE";
-      ci.typeExample =  "ptuple";
+      ci.typeExample =  PTuple::BasicType();
       ci.listRep =      "Not supported! ";
       ci.valueExample = " - ";
       ci.remarks =      "Objects are only used in streams!";
@@ -3838,7 +3843,7 @@ class PartStreamAlgebra : public Algebra
       ConstructorFunctions<PTuple> ptf;
       TypeConstructor* ptuple = new TypeConstructor( ci, ptf );
 
-      ptuple->AssociateKind( "PTUPLE" );
+      ptuple->AssociateKind( Kind::PTUPLE() );
       AddTypeConstructor( ptuple,true );
 
 /*
@@ -3848,57 +3853,57 @@ class PartStreamAlgebra : public Algebra
 
       Operator* op = 0;
       OperatorInfo oi;
-      
+
         oi.name =      "pfeed";
         oi.signature = "rel(tuple(y) -> stream(ptuple(y))";
         oi.syntax =    "_ pfeed[int k]";
         oi.meaning =   "Creates a stream containing marker tuples. "
                        "Every max(|k|,2) tuples a new marker tuple will "
                        "be inserted.";
-      
+
       op = new Operator(
-        oi,  
-        psm::pfeed_vm,    
-        psm::pfeed_tm     
+        oi,
+        psm::pfeed_vm,
+        psm::pfeed_tm
       );
 
       AddOperator( op,true );
-      
+
         oi.name =      "pdelete";
         oi.signature = "stream(ptuple(y) -> stream(tuple(y))";
         oi.syntax =    "_ pdelete";
         oi.meaning =   "Removes marker tuples from a stream";
-      
+
       op = new Operator(
-        oi,  
-        psm::pdelete_vm,    
-        psm::pdelete_tm     
+        oi,
+        psm::pdelete_vm,
+        psm::pdelete_tm
       );
 
       AddOperator( op,true );
-      
+
         oi.name =      "PSTREAM1";
         oi.signature = "((stream(ptuple(y)) ...) -> stream(tuple(y))";
         oi.syntax =    "Not available";
         oi.meaning =   "Type mapping operator";
-      
+
       op = new Operator(
-        oi,  
-        0,    
-        psm::PSTREAM1_tm     
+        oi,
+        0,
+        psm::PSTREAM1_tm
       );
 
       AddOperator( op,true );
-      
+
         oi.name =      "PSTREAM2";
         oi.signature = "((...) (stream(ptuple(y)) ...) -> stream(tuple(y))";
         oi.syntax =    "Not available";
         oi.meaning =   "Type mapping operator";
-      
+
       op = new Operator(
-        oi,  
-        0,    
-        psm::PSTREAM2_tm     
+        oi,
+        0,
+        psm::PSTREAM2_tm
       );
 
       AddOperator( op,true );
@@ -3909,72 +3914,72 @@ class PartStreamAlgebra : public Algebra
         oi.syntax =    "_ puse[ _ ]";
         oi.meaning =   "Hides the marker tuples for the parameter function "
                        "and inserts them again into the result stream";
-      
+
       op = new Operator(
-        oi,  
-        psm::puse_vm,    
-        psm::puse_tm     
+        oi,
+        psm::puse_vm,
+        psm::puse_tm
       );
-      
+
       AddOperator( op,true );
 
         oi.name =      "pjoin1";
         oi.signature = "( stream(ptuple(y1)) rel(tuple(y2)) "
                        "( ( map (stream(tuple(y1))) (rel(tuple(y2))) "
-                       "(stream(tuple(z))) ) ... N repeats ... ))" 
+                       "(stream(tuple(z))) ) ... N repeats ... ))"
                        "-> (stream(ptuple(z))).";
         oi.syntax =    "_ _ pjoin1[ f1: expr1, f2: expr2, ... ]";
         oi.meaning =   "Implements the adaptive join for two relations "
                        "given as streams. Function f1 will be used for the"
                        "probe join. Each function must have one of the names"
-                       "symj (symmjoin), smj (sortmergejoin), hj (hashjoin), " 
+                       "symj (symmjoin), smj (sortmergejoin), hj (hashjoin), "
                        "ilj (index-loop-join).";
         oi.meaning =   "Implements the adaptive join for a tuple stream "
                        "and a base relation.";
-      
+
       op = new Operator(
-        oi,  
-        psm::pjoin1_vm,    
-        psm::pjoin1_tm     
+        oi,
+        psm::pjoin1_vm,
+        psm::pjoin1_tm
       );
 
       AddOperator( op,true );
-     
+
         oi.name =      "pjoin2";
         oi.signature = "( stream(ptuple(y1)) stream(ptuple(y2)) "
                        "( ( map (stream(tuple(y1))) (stream(tuple(y2))) "
-                       "(stream(tuple(z))) ) ... N repeats ... ))" 
+                       "(stream(tuple(z))) ) ... N repeats ... ))"
                        "-> (stream(ptuple(z))).";
         oi.syntax =    "_ _ pjoin2[ f1: expr1, f2: expr2, ... ]";
         oi.meaning =   "Implements the adaptive join for two relations "
                        "given as streams. Function f1 will be used for the"
                        "probe join. Each function must have one of the names"
                        "symj (symmjoin), smj (sortmergejoin), hj (hashjoin).";
-      
+
       op = new Operator(
-        oi,  
-        psm::pjoin2_vm,    
-        psm::pjoin2_tm     
+        oi,
+        psm::pjoin2_vm,
+        psm::pjoin2_tm
       );
 
-      
+
       AddOperator( op,true );
-      
+
         oi.name =      "pcreate";
         oi.signature = "stream(tuple(y)) x int -> stream(ptuple(y))";
         oi.syntax =    "_ pcreate[ _ ]";
         oi.meaning =   "Consumes a stream and creates a partitioned "
                        "stream like pfeed";
-      
+
       op = new Operator(
-        oi,  
-        psm::pcreate_vm,    
-        psm::pcreate_tm     
+        oi,
+        psm::pcreate_vm,
+        psm::pcreate_tm
       );
-      
+
       AddOperator( op,true );
 
-      
+
         oi.name =      "pcreate2";
         oi.signature = "stream(tuple(y)) x int x int -> stream(ptuple(y))";
         oi.syntax =    "_ pcreate2[ _, _ ]";
@@ -3982,13 +3987,13 @@ class PartStreamAlgebra : public Algebra
                        "stream size as third parameter. This is useful if "
                        "the input stream is returned "
                        "by an index structure and the size is known.";
-      
+
       op = new Operator(
-        oi,  
-        psm::pcreate2_vm,    
-        psm::pcreate2_tm     
+        oi,
+        psm::pcreate2_vm,
+        psm::pcreate2_tm
       );
-      
+
       AddOperator( op,true );
 
         oi.name =      "shuffle";
@@ -3996,13 +4001,13 @@ class PartStreamAlgebra : public Algebra
         oi.syntax =    "_ shuffle";
         oi.meaning =   "Randomizes its input: Materializes a stream "
                        "returns the first 500 tuples in random order.";
-      
+
       op = new Operator(
-        oi,  
-        psm::shuffle_vm,    
-        psm::shuffle_tm     
+        oi,
+        psm::shuffle_vm,
+        psm::shuffle_tm
       );
-      
+
       AddOperator( op,true );
 
         oi.name =      "shuffle2";
@@ -4012,11 +4017,11 @@ class PartStreamAlgebra : public Algebra
 		       "directly to the output (non-blocking). The other "
 		       "tuples are buffered or materialized if necessary and "
 		       "returned afterwards.";
-      
+
       op = new Operator(
-        oi,  
-        psm::shuffle2_vm,    
-        psm::shuffle2_tm     
+        oi,
+        psm::shuffle2_vm,
+        psm::shuffle2_tm
       );
 
       AddOperator( op,true );
@@ -4030,11 +4035,11 @@ class PartStreamAlgebra : public Algebra
 		       "this a random sample of 500 tuples is drawn and "
 		       "returned first. Afterwards all remaining tuples of "
 		       "the buffer and stream are returned.";
-      
+
       op = new Operator(
-        oi,  
-        psm::shuffle3_vm,    
-        psm::shuffle_tm     
+        oi,
+        psm::shuffle3_vm,
+        psm::shuffle_tm
       );
 
       AddOperator( op,true );
@@ -4048,26 +4053,26 @@ class PartStreamAlgebra : public Algebra
                        "memory buffer and outputs them in random order. "
                        "For large input streams the randomness might be "
                        "insufficient.";
-      
+
       op = new Operator(
-        oi,  
-        psm::memshuffle_vm,    
-        psm::memshuffle_tm     
+        oi,
+        psm::memshuffle_vm,
+        psm::memshuffle_tm
       );
-      
+
       AddOperator( op,true );
 
         oi.name =      "pshow";
         oi.signature = "stream(ptuple(y)) -> stream(ptuple(y))";
         oi.syntax =    "_ pshow";
         oi.meaning =   "Display the marker tuples' information.";
-      
+
       op = new Operator(
-        oi,  
-        psm::pshow_vm,    
+        oi,
+        psm::pshow_vm,
         psm::pshow_tm
       );
-      
+
       AddOperator( op,true );
 
       op = new Operator( runtimeInfo(), psm::runtime_vm, psm::runtime_tm );
@@ -4075,16 +4080,16 @@ class PartStreamAlgebra : public Algebra
       op->SetRequestsArguments();
 
 
-      AddOperator( sortmergejoinrInfo("sortmergejoin_r"), 
-                   sortmergejoinr_vm, 
+      AddOperator( sortmergejoinrInfo("sortmergejoin_r"),
+                   sortmergejoinr_vm,
                    JoinTypeMap<false, 1> );
 
-      AddOperator( sortmergejoinrInfo("sortmergejoin_r2"), 
-                   sortmergejoinr2_vm, 
+      AddOperator( sortmergejoinrInfo("sortmergejoin_r2"),
+                   sortmergejoinr2_vm,
                    JoinTypeMap<false, 1> );
 
       AddOperator( sortmergejoinrInfo("sortmergejoin_r3"),
-                   sortmergejoinr3_vm, 
+                   sortmergejoinr3_vm,
                    JoinTypeMap<false, 1> );
 
     }
@@ -4113,7 +4118,7 @@ InitializePartitionedStreamAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   SystemTables& st = SystemTables::getInstance();
   st.insert(pjoinRel);
   st.insert(costRel);
-  
+
   return (new PartStreamAlgebra());
 }
 

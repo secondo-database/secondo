@@ -47,7 +47,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-using namespace symbols;
 using namespace mappings;
 using namespace std;
 
@@ -60,7 +59,7 @@ namespace record {
 */
 
 TypeConstructor recordTC(
-  "record",                        // name of the type in SECONDO
+  Record::BasicType(),                        // name of the type in SECONDO
   Record::Property,                // property function describing signature
   Record::Out, Record::In,         // Out and In functions
   0, 0,                            // SaveToList, RestoreFromList functions
@@ -176,13 +175,13 @@ createRecordTM(ListExpr args) {
     }
     //check type to be kind DATA
     errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-    if( !am->CheckKind("DATA", nl->Second(elem), errorInfo) ) {
+    if( !am->CheckKind(Kind::DATA(), nl->Second(elem), errorInfo) ) {
       ErrorReporter::ReportError("Elements have to be kind DATA");
       return nl->TypeError();
     }
   }
 
-  resultList = nl->Cons(nl->SymbolAtom("record"), nl->First(args));
+  resultList = nl->Cons(nl->SymbolAtom(Record::BasicType()), nl->First(args));
 #ifdef RECORD_DEBUG
   cerr<<"RecordAlgebra::createRecordTM end.";
     cerr<<"returns: "<<nl->ToString(resultList)<<endl<<endl;
@@ -272,7 +271,7 @@ attrTM(ListExpr args)
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->First(first), "record")) {
+  if(!nl->IsEqual(nl->First(first), Record::BasicType())) {
     ErrorReporter::ReportError("First argument must be a record.");
     return nl->TypeError();
   }
@@ -292,7 +291,7 @@ attrTM(ListExpr args)
     return nl->TypeError();
   }
 
-  ListExpr ret = nl->ThreeElemList(nl->SymbolAtom("APPEND")
+  ListExpr ret = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND())
                                , nl->OneElemList(nl->IntAtom(elemIndex))
                                , elemType);
 
@@ -382,7 +381,7 @@ ListExpr transformT2RstreamTypeMap(ListExpr args)
     return nl->TypeError();
   }
   first = nl->First(nl->Rest(first));
-  ListExpr rec = nl->OneElemList(nl->SymbolAtom("record"));
+  ListExpr rec = nl->OneElemList(nl->SymbolAtom(Record::BasicType()));
   ListExpr last = rec;
   first = nl->Second(first);
   while( !nl->IsEmpty( first ) ){
@@ -396,7 +395,7 @@ ListExpr transformT2RstreamTypeMap(ListExpr args)
     }
     last = nl->Append(last, cur);
   }
-  first =  nl->Cons(nl->SymbolAtom("stream"),
+  first =  nl->Cons(nl->SymbolAtom(Symbol::STREAM()),
        nl->OneElemList(rec));
   return first;
 }
@@ -513,20 +512,21 @@ ListExpr transformR2TstreamTypeMap(ListExpr args)
      return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->First(first),"stream")){
+  if(!nl->IsEqual(nl->First(first),Symbol::STREAM())){
      ErrorReporter::ReportError("stream(record(...)) expected");
      return nl->TypeError();
   }
 
   first = nl->Second(first);
 
-  if(!nl->IsEqual(nl->First(first),"record")){
+  if(!nl->IsEqual(nl->First(first),Record::BasicType())){
      ErrorReporter::ReportError("stream(record) expected");
      return nl->TypeError();
   }
 
-  first = nl->Cons(nl->SymbolAtom("stream"), nl->OneElemList(
-     nl->Cons(nl->SymbolAtom("tuple"),nl->OneElemList(nl->Rest(first)))));
+  first = nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->OneElemList(
+     nl->Cons(nl->SymbolAtom(Tuple::BasicType()),
+              nl->OneElemList(nl->Rest(first)))));
   return first;
 }
 
@@ -631,7 +631,7 @@ Registration of Types
 
 */
     AddTypeConstructor( &recordTC );
-    recordTC.AssociateKind( "DATA" );
+    recordTC.AssociateKind( Kind::DATA() );
 
 /*
 Registration of Operators

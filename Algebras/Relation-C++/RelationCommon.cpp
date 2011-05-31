@@ -80,8 +80,6 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
-using namespace symbols;
-
 long Tuple::tuplesCreated = 0;
 long Tuple::tuplesDeleted = 0;
 long Tuple::maximumTuples = 0;
@@ -219,23 +217,23 @@ void Tuple::InitCounters(const bool val)
   maximumTuples = 0;
   tuplesInMemory = 0;
 
-  Counter::getRef(CTR_CreatedTuples) = 0;
-  Counter::getRef(CTR_DeletedTuples) = 0;
-  Counter::getRef(CTR_MaxmemTuples) = 0;
-  Counter::getRef(CTR_MemTuples) = 0;
+  Counter::getRef(Symbol::CTR_CreatedTuples()) = 0;
+  Counter::getRef(Symbol::CTR_DeletedTuples()) = 0;
+  Counter::getRef(Symbol::CTR_MaxmemTuples()) = 0;
+  Counter::getRef(Symbol::CTR_MemTuples()) = 0;
 
-  Counter::reportValue(CTR_CreatedTuples, val );
-  Counter::reportValue(CTR_DeletedTuples, val);
-  Counter::reportValue(CTR_MaxmemTuples, val);
-  Counter::reportValue(CTR_MemTuples, val);
+  Counter::reportValue(Symbol::CTR_CreatedTuples(), val );
+  Counter::reportValue(Symbol::CTR_DeletedTuples(), val);
+  Counter::reportValue(Symbol::CTR_MaxmemTuples(), val);
+  Counter::reportValue(Symbol::CTR_MemTuples(), val);
 }
 
 void Tuple::SetCounterValues()
 {
-  Counter::getRef(CTR_CreatedTuples) = tuplesCreated;
-  Counter::getRef(CTR_DeletedTuples) = tuplesDeleted;
-  Counter::getRef(CTR_MaxmemTuples) = maximumTuples;
-  Counter::getRef(CTR_MemTuples) = tuplesInMemory;
+  Counter::getRef(Symbol::CTR_CreatedTuples()) = tuplesCreated;
+  Counter::getRef(Symbol::CTR_DeletedTuples()) = tuplesDeleted;
+  Counter::getRef(Symbol::CTR_MaxmemTuples()) = maximumTuples;
+  Counter::getRef(Symbol::CTR_MemTuples()) = tuplesInMemory;
 }
 
 
@@ -574,8 +572,8 @@ RelationType TypeOfRelAlgSymbol (ListExpr symbol)
     if (s == Relation::BasicType()   ) return rel;
     if (s == TempRelation::BasicType()  ) return trel;
     if (s == Tuple::BasicType() ) return tuple;
-    if (s == "stream") return stream;
-    if (s == "map"   ) return ccmap;
+    if (s == Symbol::STREAM()) return stream;
+    if (s == Symbol::MAP()   ) return ccmap;
     if (s == CcBool::BasicType()  ) return ccbool;
   }
   return error;
@@ -836,7 +834,7 @@ bool IsTupleDescription( ListExpr a )
     if(! (    (nl->ListLength(current) == 2)
            && (nl->IsAtom(nl->First(current)))
            && (nl->AtomType(nl->First(current)) == SymbolType)
-           && am->CheckKind("DATA",nl->Second(current),errorInfo))
+           && am->CheckKind(Kind::DATA(),nl->Second(current),errorInfo))
            && attrnames.find(nl->SymbolValue(nl->First(current)))==
                  attrnames.end()) {
       if(nl->ListLength(current!=2)){
@@ -846,7 +844,7 @@ bool IsTupleDescription( ListExpr a )
          !nl->AtomType(nl->First(current)) == SymbolType){
          ErrorReporter::ReportError("Attribute name must be a symbol.");
       }
-      if(! am->CheckKind("DATA",nl->Second(current),errorInfo)){
+      if(! am->CheckKind(Kind::DATA(),nl->Second(current),errorInfo)){
          ErrorReporter::ReportError("Attribute type is not of kind DATA.");
       }
       return false;
@@ -924,7 +922,7 @@ bool IsStreamDescription( ListExpr streamDesc )
 
   if( !nl->IsAtom(streamSymbol) ||
       nl->AtomType(streamSymbol) != SymbolType ||
-      nl->SymbolValue(streamSymbol) != "stream" ){
+      nl->SymbolValue(streamSymbol) != Symbol::STREAM() ){
     ErrorReporter::ReportError("Symbol 'stream' expected");
     return false;
   }

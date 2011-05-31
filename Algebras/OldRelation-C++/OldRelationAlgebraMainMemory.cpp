@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -54,12 +54,14 @@ using namespace std;
 
 #include "OldRelationAlgebra.h"
 #include "LogMsg.h"
+#include "Symbols.h"
 
 int ccTuplesCreated = 0;
 int ccTuplesDeleted = 0;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
 
 /*
 
@@ -291,7 +293,7 @@ in nested list format.
 ListExpr OutCcTuple (ListExpr typeInfo, Word  value)
 {
   int attrno = 0, algebraId = 0, typeId = 0;
-  
+
   ListExpr l, lastElem, first, valuelist;
   l = lastElem = first = valuelist = nl->TheEmptyList();
 
@@ -299,7 +301,7 @@ ListExpr OutCcTuple (ListExpr typeInfo, Word  value)
 
   CcTuple* tupleptr = (CcTuple*)value.addr;
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  
+
   while (!nl->IsEmpty(attrlist))
   {
     first = nl->First(attrlist);
@@ -420,8 +422,10 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
     nl->WriteListExpr(value);
 
     errorInfo = nl->Append(errorInfo,
-      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
-      nl->IntAtom(errorPos)));
+      nl->FourElemList(nl->IntAtom(71),
+                       nl->SymbolAtom(CcTuple::BasicType()),
+                       nl->IntAtom(1),
+                       nl->IntAtom(errorPos)));
     delete tupleaddr;
     return SetWord(Address(0));
   }
@@ -447,7 +451,8 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
 
         errorInfo = nl->Append(errorInfo,
           nl->FourElemList(nl->IntAtom(71),
-                           nl->SymbolAtom("tuple"), nl->IntAtom(2),
+                           nl->SymbolAtom(CcTuple::BasicType()),
+                           nl->IntAtom(2),
                            nl->IntAtom(errorPos)));
         delete tupleaddr;
         return SetWord(Address(0));
@@ -482,8 +487,9 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
 
           errorInfo = nl->Append(errorInfo,
             nl->FiveElemList(nl->IntAtom(71),
-                             nl->SymbolAtom("tuple"), nl->IntAtom(3),
-          nl->IntAtom(errorPos), nl->IntAtom(attrno)));
+                             nl->SymbolAtom(CcTuple::BasicType()),
+                             nl->IntAtom(3),
+                             nl->IntAtom(errorPos), nl->IntAtom(attrno)));
           delete tupleaddr;
           return SetWord(Address(0));
         }
@@ -499,8 +505,10 @@ Word InCcTuple(ListExpr typeInfo, ListExpr value,
       nl->WriteListExpr(value);
 
       errorInfo = nl->Append(errorInfo,
-      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(4),
-      nl->IntAtom(errorPos)));
+      nl->FourElemList(nl->IntAtom(71),
+                       nl->SymbolAtom(CcTuple::BasicType()),
+                       nl->IntAtom(4),
+                       nl->IntAtom(errorPos)));
       delete tupleaddr;
       return SetWord(Address(0));
     }
@@ -672,7 +680,7 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
             correct = false;
           }
           attrnamelist.push_back(attrname);
-          ckd =  algMgr->CheckKind("DATA", nl->Second(pair), errorInfo);
+          ckd =  algMgr->CheckKind(Kind::DATA(), nl->Second(pair), errorInfo);
           if (!ckd)
           {
             errorInfo = nl->Append(errorInfo,
@@ -913,7 +921,7 @@ ListExpr OutCcRel(ListExpr typeInfo, Word  value)
 ListExpr SaveToListCcRel(ListExpr typeInfo, Word value)
 {
   CcTuple* t = 0;
-  
+
   ListExpr l, lastElem, tlist, TupleTypeInfo;
   l = lastElem = tlist = TupleTypeInfo = nl->TheEmptyList();
 
@@ -1129,7 +1137,7 @@ bool CheckCcRel(ListExpr type, ListExpr& errorInfo)
   if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "mrel"))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
-    return (algMgr->CheckKind("MTUPLE", nl->Second(type), errorInfo));
+    return (algMgr->CheckKind(Kind::MTUPLE(), nl->Second(type), errorInfo));
   }
   else
   {

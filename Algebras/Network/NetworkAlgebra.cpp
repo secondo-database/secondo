@@ -42,6 +42,7 @@ October 2008 - Jianqiu Xu
 #include <iterator>
 #include <algorithm>
 #include <limits>
+#include "Symbols.h"
 
 #include "../Relation-C++/RelationAlgebra.h"
 #include "../BTree/BTreeAlgebra.h"
@@ -10433,7 +10434,7 @@ ListExpr OpNetNetdistanceTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr param1 = nl->First ( args );
   ListExpr param2 = nl->Second ( args );
@@ -10446,9 +10447,9 @@ ListExpr OpNetNetdistanceTypeMap ( ListExpr args )
         ( nl->SymbolValue ( param1 ) == GLine::BasicType() &&
           nl->SymbolValue ( param2 ) == GLine::BasicType() ) ) )
   {
-    return nl->SymbolAtom ( "real" );
+    return nl->SymbolAtom ( CcReal::BasicType() );
   }
-  return nl->SymbolAtom ( "typeerror" );
+  return nl->SymbolAtom ( Symbol::TYPEERROR() );
 }
 
 int OpNetNetdistance_gpgp ( Word* args, Word& result, int message,
@@ -10537,7 +10538,7 @@ ListExpr OpNetNetdistanceNewTypeMap ( ListExpr args )
     return
       listutils::typeError("2.argument should be gpoint, gline or gpoints.");
   }
-  return nl->SymbolAtom ( "real" );
+  return nl->SymbolAtom ( CcReal::BasicType() );
 }
 
 template<class Source, class Target>
@@ -10636,7 +10637,7 @@ ListExpr OpGPoint2RectTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 1 )
   {
     sendMessage ( "Expects a list of length 1." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xsource = nl->First ( in_xArgs );
@@ -10645,9 +10646,9 @@ ListExpr OpGPoint2RectTypeMap ( ListExpr in_xArgs )
           !nl->IsEqual ( xsource, GPoint::BasicType() ) )
   {
     sendMessage ( "Element must be of type gpoint." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
-  return ( nl->SymbolAtom ( "rect" ) );
+  return ( nl->SymbolAtom ( Rectangle<2>::BasicType() ) );
 }
 
 int OpGPoint2RectValueMapping ( Word* args,
@@ -10690,7 +10691,7 @@ ListExpr OpInsideTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr gpoint = nl->First ( args );
   ListExpr gline = nl->Second ( args );
@@ -10700,7 +10701,7 @@ ListExpr OpInsideTypeMap ( ListExpr args )
           nl->AtomType ( gline ) != SymbolType || nl->SymbolValue ( gline ) !=
 GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   return nl->SymbolAtom ( CcBool::BasicType() );
 }
@@ -10741,15 +10742,15 @@ ListExpr OpLengthTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 1 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr gline = nl->First ( args );
   if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
           nl->SymbolValue ( gline ) != GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
-  return nl->SymbolAtom ( "real" );
+  return nl->SymbolAtom ( CcReal::BasicType() );
 }
 
 int OpLengthValueMap ( Word* args, Word& result, int message,
@@ -10788,7 +10789,7 @@ ListExpr OpLine2GLineTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 2 )
   {
     sendMessage ( "Expects a list of length 2." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xNetworkIdDesc = nl->First ( in_xArgs );
@@ -10798,7 +10799,7 @@ ListExpr OpLine2GLineTypeMap ( ListExpr in_xArgs )
           !nl->IsEqual ( xNetworkIdDesc, "network" ) )
   {
     sendMessage ( "First element must be of type network." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   if ( ( !nl->IsAtom ( xLineDesc ) ) ||
@@ -10806,7 +10807,7 @@ ListExpr OpLine2GLineTypeMap ( ListExpr in_xArgs )
           nl->SymbolValue ( xLineDesc ) != Line::BasicType() )
   {
     sendMessage ( "Second element must be of type sline." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   return nl->SymbolAtom ( GLine::BasicType() );
@@ -11004,7 +11005,7 @@ ListExpr OpNetIntersectsTypeMap ( ListExpr in_xArgs )
       return ( nl->SymbolAtom ( CcBool::BasicType() ) );
     }
   }
-  return ( nl->SymbolAtom ( "typeerror" ) );
+  return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
 }
 
 int OpNetIntersectsValueMapping ( Word* args,
@@ -11075,7 +11076,7 @@ ListExpr OpNetworkJunctionsTypeMap ( ListExpr args )
       return xType;
     }
   }
-  return ( nl->SymbolAtom ( "typeerror" ) );
+  return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
 }
 
 int OpNetworkJunctionsValueMapping ( Word* args, Word& result, int message,
@@ -11122,7 +11123,7 @@ ListExpr OpNetworkRoutesTypeMap ( ListExpr args )
       return xType;
     }
   }
-  return ( nl->SymbolAtom ( "typeerror" ) );
+  return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
 }
 
 int OpNetworkRoutesValueMapping ( Word* args, Word& result, int message,
@@ -11170,7 +11171,7 @@ ListExpr OpNetworkSectionsTypeMap ( ListExpr args )
       return xType;
     }
   }
-  return ( nl->SymbolAtom ( "typeerror" ) );
+  return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
 }
 
 int OpNetworkSectionsValueMapping ( Word* args, Word& result, int message,
@@ -11207,7 +11208,7 @@ relations.
 ListExpr OpNetworkTheNetworkTypeMap ( ListExpr in_xArgs )
 {
   if ( nl->ListLength ( in_xArgs ) != 3 )
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
 
   ListExpr xIdDesc = nl->First ( in_xArgs );
   ListExpr xRoutesRelDesc = nl->Second ( in_xArgs );
@@ -11215,26 +11216,26 @@ ListExpr OpNetworkTheNetworkTypeMap ( ListExpr in_xArgs )
 
   if ( !nl->IsEqual ( xIdDesc, CcInt::BasicType() ) )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   if ( !IsRelDescription ( xRoutesRelDesc ) ||
           !IsRelDescription ( xJunctionsRelDesc ) )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xType;
   nl->ReadFromString ( Network::routesTypeInfo, xType );
   if ( !CompareSchemas ( xRoutesRelDesc, xType ) )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   nl->ReadFromString ( Network::junctionsTypeInfo, xType );
   if ( !CompareSchemas ( xJunctionsRelDesc, xType ) )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   return nl->SymbolAtom ( "network" );
@@ -11288,13 +11289,13 @@ ListExpr OpNoComponentsTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 1 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr gline = nl->First ( args );
   if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
           nl->SymbolValue ( gline ) != GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   return nl->SymbolAtom ( CcInt::BasicType() );
 }
@@ -11336,7 +11337,7 @@ ListExpr OpPoint2GPointTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 2 )
   {
     sendMessage ( "Expects a list of length 2." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xNetworkIdDesc = nl->First ( in_xArgs );
@@ -11346,7 +11347,7 @@ ListExpr OpPoint2GPointTypeMap ( ListExpr in_xArgs )
           !nl->IsEqual ( xNetworkIdDesc, "network" ) )
   {
     sendMessage ( "First element must be of type network." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   if ( ( !nl->IsAtom ( xMPointDesc ) ) ||
@@ -11354,7 +11355,7 @@ ListExpr OpPoint2GPointTypeMap ( ListExpr in_xArgs )
           nl->SymbolValue ( xMPointDesc ) != Point::BasicType() )
   {
     sendMessage ( "Second element must be of type point." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   return nl->SymbolAtom ( GPoint::BasicType() );
@@ -11417,7 +11418,7 @@ ListExpr OpGPoint2PointTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 1 )
   {
     sendMessage ( "Expects a list of length 1." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xMPointDesc = nl->First ( in_xArgs );
@@ -11427,7 +11428,7 @@ ListExpr OpGPoint2PointTypeMap ( ListExpr in_xArgs )
           nl->SymbolValue ( xMPointDesc ) != GPoint::BasicType() )
   {
     sendMessage ( "Element must be of type gpoint." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   return nl->SymbolAtom ( Point::BasicType() );
@@ -11478,7 +11479,7 @@ ListExpr OpPolyGPointTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 2 )
   {
     sendMessage ( "Expects a list of length 1." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xsource = nl->First ( in_xArgs );
@@ -11488,16 +11489,16 @@ ListExpr OpPolyGPointTypeMap ( ListExpr in_xArgs )
           !nl->IsEqual ( xsource, GPoint::BasicType() ) )
   {
     sendMessage ( "First Element must be of type gpoint." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   if ( ( !nl->IsAtom ( xnetwork ) ) ||
           !nl->IsEqual ( xnetwork, "network" ) )
   {
     sendMessage ( "Second Element must be of type network." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
-  return nl->TwoElemList ( nl->SymbolAtom ( "stream" ),
+  return nl->TwoElemList ( nl->SymbolAtom ( Symbol::STREAM() ),
                            nl->SymbolAtom ( GPoint::BasicType() ) );
 }
 
@@ -11566,7 +11567,7 @@ ListExpr OpRouteIntervalsTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 1 )
   {
     sendMessage ( "Expects a list of length 1." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xsource = nl->First ( in_xArgs );
@@ -11575,10 +11576,10 @@ ListExpr OpRouteIntervalsTypeMap ( ListExpr in_xArgs )
           !nl->IsEqual ( xsource, GLine::BasicType() ) )
   {
     sendMessage ( "First Element must be of type gline." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
-  return nl->TwoElemList ( nl->SymbolAtom ( "stream" ),
-                           nl->SymbolAtom ( "rect" ) );
+  return nl->TwoElemList ( nl->SymbolAtom ( Symbol::STREAM() ),
+                           nl->SymbolAtom ( Rectangle<2>::BasicType() ) );
 }
 
 int OpRouteIntervalsValueMapping ( Word* args,
@@ -11853,7 +11854,7 @@ ListExpr OpGLine2LineTypeMap ( ListExpr in_xArgs )
   if ( nl->ListLength ( in_xArgs ) != 1 )
   {
     sendMessage ( "Expects a list of length 1." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   ListExpr xsource = nl->First ( in_xArgs );
@@ -11862,7 +11863,7 @@ ListExpr OpGLine2LineTypeMap ( ListExpr in_xArgs )
           !nl->IsEqual ( xsource, GLine::BasicType() ) )
   {
     sendMessage ( "Element must be of type gline." );
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   return nl->SymbolAtom ( Line::BasicType() );
 }
@@ -11906,13 +11907,13 @@ ListExpr OpNetIsEmptyTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 1 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr gline = nl->First ( args );
   if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
           nl->SymbolValue ( gline ) != GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   return nl->SymbolAtom ( CcBool::BasicType() );
 }
@@ -11957,7 +11958,7 @@ ListExpr OpNetUnionTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr gline1 = nl->First ( args );
   ListExpr gline2 = nl->Second ( args );
@@ -11965,13 +11966,13 @@ ListExpr OpNetUnionTypeMap ( ListExpr args )
   if ( !nl->IsAtom ( gline1 ) || nl->AtomType ( gline1 ) != SymbolType ||
           nl->SymbolValue ( gline1 ) != GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   if ( !nl->IsAtom ( gline2 ) || nl->AtomType ( gline2 ) != SymbolType ||
           nl->SymbolValue ( gline2 ) != GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   return nl->SymbolAtom ( GLine::BasicType() );
 }
@@ -12007,7 +12008,7 @@ ListExpr OpNetDistanceTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr param1 = nl->First ( args );
   ListExpr param2 = nl->Second ( args );
@@ -12019,9 +12020,9 @@ ListExpr OpNetDistanceTypeMap ( ListExpr args )
             ( nl->SymbolValue ( param1 ) == GLine::BasicType() &&
               nl->SymbolValue ( param2 ) == GLine::BasicType() ) ) ) )
   {
-    return nl->SymbolAtom ( "real" );
+    return nl->SymbolAtom ( CcReal::BasicType() );
   }
-  return nl->SymbolAtom ( "typeerror" );
+  return nl->SymbolAtom ( Symbol::TYPEERROR() );
 }
 
 int OpNetDistance_gpgp ( Word* args, Word& result, int message,
@@ -12099,14 +12100,14 @@ ListExpr OpGetBGPTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 1 )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
   ListExpr gline1 = nl->First ( args );
 
   if ( !nl->IsAtom ( gline1 ) || nl->AtomType ( gline1 ) != SymbolType ||
           nl->SymbolValue ( gline1 ) != GLine::BasicType() )
   {
-    return ( nl->SymbolAtom ( "typeerror" ) );
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
 
   return nl->SymbolAtom ( GPoints::BasicType() );
@@ -12168,7 +12169,7 @@ ListExpr OpSPSearchVisitedTypeMap ( ListExpr args )
   {
     if (param.first().isSymbol(GPoint::BasicType())
       && param.second().isSymbol("ugpoint"))
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              tupleType);
     else
       return listutils::typeError(
@@ -12179,7 +12180,7 @@ ListExpr OpSPSearchVisitedTypeMap ( ListExpr args )
     return listutils::typeError("3.argument should be bool");
   }
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          tupleType);
 }
 
@@ -12553,7 +12554,7 @@ ListExpr OpShortestpathtreeTypeMap ( ListExpr args )
   NList intVal(CcInt::BasicType());
   NList intAttr(secID, intVal);
   NList dist("Dist");
-  NList realVal("real");
+  NList realVal(CcReal::BasicType());
   NList distAttr(dist,realVal);
   NList up("Up");
   NList upVal(CcBool::BasicType());
@@ -12949,7 +12950,7 @@ ListExpr circleTypeMap ( ListExpr args )
     return listutils::typeError("First argument should be gpoint.");
 
   NList dist(param.second());
-  if (!dist.isSymbol("real"))
+  if (!dist.isSymbol(CcReal::BasicType()))
     return listutils::typeError("Second argument should be real.");
 
   return nl->SymbolAtom(GLine::BasicType());
@@ -13054,10 +13055,10 @@ class NetworkAlgebra : public Algebra
       AddTypeConstructor ( &glineTC );
       AddTypeConstructor ( &gpointsTC );
 
-      gpointTC.AssociateKind ( "DATA" );
-      glineTC.AssociateKind ( "DATA" );
-      networkTC.AssociateKind ( "NETWORK" );
-      gpointsTC.AssociateKind ( "DATA" );
+      gpointTC.AssociateKind ( Kind::DATA() );
+      glineTC.AssociateKind ( Kind::DATA() );
+      networkTC.AssociateKind ( Kind::NETWORK() );
+      gpointsTC.AssociateKind ( Kind::DATA() );
 
       AddOperator ( lengthInfo(), OpLengthValueMap, OpLengthTypeMap);
       AddOperator ( noComponentsInfo(), OpNoComponentsValueMapping,

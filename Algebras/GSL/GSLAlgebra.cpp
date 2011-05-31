@@ -358,10 +358,10 @@ gslCcType gslTypeOfSymbol( ListExpr symbol )
   if ( nl->AtomType( symbol ) == SymbolType )
   {
     string s = nl->SymbolValue( symbol );
-    if ( s == "int"    ) return (ccint);
-    if ( s == "real"   ) return (ccreal);
-    if ( s == "bool"   ) return (ccbool);
-    if ( s == "string" ) return (ccstring);
+    if ( s == CcInt::BasicType()    ) return (ccint);
+    if ( s == CcReal::BasicType()   ) return (ccreal);
+    if ( s == CcBool::BasicType()   ) return (ccbool);
+    if ( s == CcString::BasicType() ) return (ccstring);
     if ( s == "const"  ) return (ccconst);
     if ( s == "set"    ) return (ccset);
   }
@@ -378,11 +378,11 @@ ListExpr gslalg_intint2bool_TM ( ListExpr args )
     arg2 = nl->Second( args );
     if ( gslTypeOfSymbol( arg1 ) == ccint && gslTypeOfSymbol( arg2 ) == ccint )
     {
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected int x int.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // () -> int
@@ -391,11 +391,11 @@ ListExpr gslalg_empty2int_TM ( ListExpr args )
   if ( !nl->IsEmpty( args ) )
   {
     ErrorReporter::ReportError("GSLAlgebra: Expected empty list.");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
   else
   {
-    return (nl->SymbolAtom( "int" ));
+    return (nl->SymbolAtom( CcInt::BasicType() ));
   }
 }
 
@@ -405,11 +405,11 @@ ListExpr gslalg_empty2real_TM ( ListExpr args )
   if ( !nl->IsEmpty( args ) )
   {
     ErrorReporter::ReportError("GSLAlgebra: Expected empty list.");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
   else
   {
-    return (nl->SymbolAtom( "real" ));
+    return (nl->SymbolAtom( CcReal::BasicType() ));
   }
 }
 
@@ -422,11 +422,11 @@ ListExpr gslalg_int2bool_TM ( ListExpr args )
     arg1 = nl->First( args );
     if ( gslTypeOfSymbol( arg1 ) == ccint )
     {
-      return (nl->SymbolAtom( "bool" ));
+      return (nl->SymbolAtom( CcBool::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected int.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // int -> int
@@ -438,11 +438,11 @@ ListExpr gslalg_int2int_TM ( ListExpr args )
     arg1 = nl->First( args );
     if ( gslTypeOfSymbol( arg1 ) == ccint )
     {
-      return (nl->SymbolAtom( "int" ));
+      return (nl->SymbolAtom( CcInt::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected int.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // real -> real
@@ -454,11 +454,11 @@ ListExpr gslalg_real2real_TM ( ListExpr args )
     arg1 = nl->First( args );
     if ( gslTypeOfSymbol( arg1 ) == ccreal )
     {
-      return (nl->SymbolAtom( "real" ));
+      return (nl->SymbolAtom( CcReal::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected real.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // real -> int
@@ -470,11 +470,11 @@ ListExpr gslalg_real2int_TM ( ListExpr args )
     arg1 = nl->First( args );
     if ( gslTypeOfSymbol( arg1 ) == ccreal )
     {
-      return (nl->SymbolAtom( "int" ));
+      return (nl->SymbolAtom( CcInt::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected real.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // int -> string
@@ -486,11 +486,11 @@ ListExpr gslalg_int2string_TM ( ListExpr args )
     arg1 = nl->First( args );
     if ( gslTypeOfSymbol( arg1 ) == ccint )
     {
-      return (nl->SymbolAtom( "string" ));
+      return (nl->SymbolAtom( CcString::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected int.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // real x real -> real
@@ -501,14 +501,14 @@ ListExpr gslalg_realreal2real_TM ( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if ( gslTypeOfSymbol( arg1 )
-         == ccreal && gslTypeOfSymbol( arg2 ) == ccreal )
+    if ( (gslTypeOfSymbol( arg1 ) == ccreal) &&
+         (gslTypeOfSymbol( arg2 ) == ccreal) )
     {
-      return (nl->SymbolAtom( "real" ));
+      return (nl->SymbolAtom( CcReal::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected real x real.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // int x real -> real
@@ -521,11 +521,11 @@ ListExpr gslalg_intreal2real_TM ( ListExpr args )
     arg2 = nl->Second( args );
     if ( gslTypeOfSymbol( arg1 ) == ccint && gslTypeOfSymbol( arg2 ) == ccreal )
     {
-      return (nl->SymbolAtom( "real" ));
+      return (nl->SymbolAtom( CcReal::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected int x real.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 // int x real -> real
@@ -538,11 +538,11 @@ ListExpr gslalg_intreal2int_TM ( ListExpr args )
     arg2 = nl->Second( args );
     if ( gslTypeOfSymbol( arg1 ) == ccint && gslTypeOfSymbol( arg2 ) == ccreal )
     {
-      return (nl->SymbolAtom( "int" ));
+      return (nl->SymbolAtom( CcInt::BasicType() ));
     }
   }
   ErrorReporter::ReportError("GSLAlgebra: Expected int x real.");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /*

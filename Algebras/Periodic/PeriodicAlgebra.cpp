@@ -1,5 +1,5 @@
 /*
-3 Connecting with Secondo 
+3 Connecting with Secondo
 
 */
 
@@ -34,7 +34,7 @@ extern QueryProcessor *qp;
 namespace periodic {
 
 /*
-3.1 Secondo Type Constructors 
+3.1 Secondo Type Constructors
 
 */
 
@@ -54,20 +54,6 @@ GenTC<PMInt9M> pmint9m;
 
 GenTC<PMReal> pmreal;
 
-
-
-/*
-~ Class Duration~
-
-This class is used for naming the DateTime type 'duration'
-
-*/
-class Duration{
-  public:
-  static const string BasicType(){
-     return "duration";
-  }
-};
 
 
 /*
@@ -120,14 +106,14 @@ ValueMapping EqualsValueMap[] = {
 */
 
 Operator pequals(
-       "=",  
+       "=",
        getEqualsCTM().getSpecification(
-           "_ = _ ", 
+           "_ = _ ",
            "Check for equality of the arguments",
-           "query a = b"),  
+           "query a = b"),
        getEqualsCTM().getVMCount(),
-       EqualsValueMap, 
-       EqualsSelect,  
+       EqualsValueMap,
+       EqualsSelect,
        EqualsTypeMap);
 
 /*
@@ -171,7 +157,7 @@ class AtF_C{
   }
 };
 
-ValueMapping AtValueMap[] = { 
+ValueMapping AtValueMap[] = {
   GenVM2<PMPoint, DateTime, Point, AtF_Sec<PMPoint, Point> >,
   GenVM2<PMBool, DateTime, CcBool, AtF_C<PMBool, CcBool, bool> >,
   GenVM2<PMInt9M, DateTime, Int9M, AtF_Sec<PMInt9M, Int9M> >,
@@ -180,12 +166,12 @@ ValueMapping AtValueMap[] = {
 };
 
 Operator pat(
-       "atinstant",    
+       "atinstant",
        getAtCTM().getSpecification(
          "_ atinstant _",
-         "returns the value of the first argument for a given instant",        
+         "returns the value of the first argument for a given instant",
          "query pm atinstant i"),
-       getAtCTM().getVMCount(),           
+       getAtCTM().getVMCount(),
        AtValueMap,
        AtSelect,
        AtTypeMap);
@@ -212,11 +198,11 @@ public:
 };
 
 Operator punion(
-        "union",      
-        UnionSpec,    
-        GenVM2<PBBox, PBBox, PBBox, UnionF<PBBox,PBBox,PBBox> >, 
-        Operator::SimpleSelect, 
-        TypeMap2<PBBox, PBBox, PBBox> ); 
+        "union",
+        UnionSpec,
+        GenVM2<PBBox, PBBox, PBBox, UnionF<PBBox,PBBox,PBBox> >,
+        Operator::SimpleSelect,
+        TypeMap2<PBBox, PBBox, PBBox> );
 
 /*
 3.2.4 ~Trajectory~
@@ -428,10 +414,10 @@ class SpeedF{
 };
 
 Operator pspeed(
-        "speed",     
-        SpeedSpec,    
-        GenVM1<PMPoint,PMReal, SpeedF<PMPoint, PMReal> >, 
-        Operator::SimpleSelect, 
+        "speed",
+        SpeedSpec,
+        GenVM1<PMPoint,PMReal, SpeedF<PMPoint, PMReal> >,
+        Operator::SimpleSelect,
         TypeMap1<PMPoint,PMReal>);
 
 /*
@@ -456,11 +442,11 @@ class DirectionF{
 };
 
 Operator pdirection(
-        "direction",      
-        DirectionSpec,    
-        GenVM1<PMPoint,PMReal, DirectionF<PMPoint, PMReal> >, 
-        Operator::SimpleSelect, 
-        TypeMap1<PMPoint,PMReal>); 
+        "direction",
+        DirectionSpec,
+        GenVM1<PMPoint,PMReal, DirectionF<PMPoint, PMReal> >,
+        Operator::SimpleSelect,
+        TypeMap1<PMPoint,PMReal>);
 
 
 /*
@@ -530,7 +516,7 @@ static int IntersectsSelect(ListExpr args){
 
 template<class A1, class A2>
 class IntersectsF{
-public: 
+public:
   void operator()(A1* a1, A2* a2, CcBool* res){
     if(!a1->IsDefined() || !a2->IsDefined()){
       res->SetDefined(false);
@@ -606,12 +592,12 @@ ValueMapping InitialValueMap[] = {
 };
 
 Operator pinitial(
-       "initial",               
+       "initial",
        getInitialCTM().getSpecification(
           "initial( _ )",
           "the first defined vavlue of the argument",
-          "qiery initial(pm1)"),             
-       getInitialCTM().getVMCount(), 
+          "qiery initial(pm1)"),
+       getInitialCTM().getVMCount(),
        InitialValueMap,
        InitialSelect,
        InitialTypeMap);
@@ -666,12 +652,12 @@ ValueMapping FinalValueMap[] = {
 };
 
 Operator pfinal(
-       "final",               
+       "final",
        getFinalCTM().getSpecification(
          "final ( _ )",
          "returns the last defined value of the argument",
          "query last(pm1)"),              // specification
-       getFinalCTM().getVMCount(),                     
+       getFinalCTM().getVMCount(),
        FinalValueMap,
        FinalSelect,
        FinalTypeMap);
@@ -696,27 +682,27 @@ ListExpr BreakpointsTypeMap(ListExpr args){
    string arg = ::nl->SymbolValue(::nl->First(args));
    if(length==3){
      // check the second argument to be a duration type
-     if(!::nl->IsEqual(::nl->Second(args),"duration")){
+     if(!::nl->IsEqual(::nl->Second(args),Duration::BasicType())){
         ErrorReporter::ReportError(
              "The second argument must be of type duration\n");
         return ::nl->TypeError();
      }
-     // check the third argument for bool type 
-     if(!::nl->IsEqual(::nl->Third(args),"bool")){
+     // check the third argument for bool type
+     if(!::nl->IsEqual(::nl->Third(args),CcBool::BasicType())){
         ErrorReporter::ReportError(
              "The third argument must be of type bool\n");
         return ::nl->TypeError();
-     } 
+     }
    }
 
    if(arg=="pmpoint")
-      return ::nl->SymbolAtom("points");
+      return ::nl->SymbolAtom(Points::BasicType());
    if(arg=="pmpoints")
-      return ::nl->SymbolAtom("points");
+      return ::nl->SymbolAtom(Points::BasicType());
 
    ErrorReporter::ReportError(
           "Invalid type for breakpoints operator : "+arg+"\n");
-   return ::nl->TypeError();   
+   return ::nl->TypeError();
 }
 
 
@@ -823,11 +809,11 @@ ValueMapping ToprelValueMap[] = {
 };
 
 Operator ptoprel(
-       "toprel",             
+       "toprel",
        getTopRelCTM().getSpecification(
         "toprel(_,_)",
         "computes the topologicial relationship between the arguments",
-        "query toprel( a, b)" 
+        "query toprel( a, b)"
        ),           // specification
        getTopRelCTM().getVMCount(),                    // number of functions
        ToprelValueMap,
@@ -865,7 +851,7 @@ ValueMapping IntersectionValueMap[] = {
 };
 
 Operator pintersection(
-       "intersection", 
+       "intersection",
        getIntersectionCTM().getSpecification(
         " _ intersection _ ",
         "computes the common part of the arguments",
@@ -908,7 +894,7 @@ class DistanceF{
 ValueMapping DistanceValueMap[] = {
  GenVM2<PMPoint,Point, PMReal, DistanceF<PMPoint, Point> >,
  GenVM2<Point, PMPoint, PMReal, DistanceF<PMPoint, Point> >
-}; 
+};
 
 Operator pdistance(
        "distance",             // name
@@ -1001,7 +987,7 @@ Operator pnumberOfCNodes(
          "numberOfCNodes( _ )",
          "number of composite nodes within the repetition tree",
          "query numberOfCNodes(pm1)"),
-       getNumberOfCNodesCTM().getVMCount(), 
+       getNumberOfCNodesCTM().getVMCount(),
        NumberOfCompositeNodesValueMap,
        NumberOfCNodesSelect,
        NumberOfCNodesTypeMap);
@@ -1038,7 +1024,7 @@ ValueMapping NumberOfPeriodicNodesValueMap[] ={
 };
 
 Operator pnumberOfPNodes(
-       "numberOfPNodes",            
+       "numberOfPNodes",
        getNumberOfPNodesCTM().getSpecification(
          "numberOfPNodes( _ )",
          "number of periodic nodes within the repetition tree",
@@ -1079,12 +1065,12 @@ ValueMapping NumberOfUnitsValueMap[] ={
 };
 
 Operator pnumberOfUnits(
-       "numberOfUnits",             
+       "numberOfUnits",
         getNumberOfUnitsCTM().getSpecification(
          "numberOfUnits( _ )",
          "number of units within the repetition tree",
          "query numberUnits(pm1)"),
-        getNumberOfUnitsCTM().getVMCount(), 
+        getNumberOfUnitsCTM().getVMCount(),
        NumberOfUnitsValueMap,
        NumberOfUnitsSelect,
        NumberOfUnitsTypeMap);
@@ -1156,7 +1142,7 @@ template<class A1,class A2, class R>
 class TranslateF{
   public:
   void operator()(A1* a1,A2* a2, R* res){
-      a1->Translate(a2,*res);  
+      a1->Translate(a2,*res);
     }
   };
 
@@ -1249,21 +1235,21 @@ class PeriodicMoveAlgebra : public Algebra
   {
     // type constructors
     AddTypeConstructor(&periodic::pbbox);
-    periodic::pbbox.AssociateKind("DATA");
+    periodic::pbbox.AssociateKind(Kind::DATA());
     AddTypeConstructor( &periodic::relinterval );
-    periodic::relinterval.AssociateKind("DATA");
+    periodic::relinterval.AssociateKind(Kind::DATA());
     AddTypeConstructor(&periodic::pmpoint);
-    periodic::pmpoint.AssociateKind("DATA");
+    periodic::pmpoint.AssociateKind(Kind::DATA());
     AddTypeConstructor(&periodic::pmbool);
-    periodic::pmbool.AssociateKind("DATA");
+    periodic::pmbool.AssociateKind(Kind::DATA());
     AddTypeConstructor(&periodic::pmint9m);
-    periodic::pmint9m.AssociateKind("DATA");
+    periodic::pmint9m.AssociateKind(Kind::DATA());
     AddTypeConstructor(&periodic::pinterval);
-    periodic::pinterval.AssociateKind("DATA");
+    periodic::pinterval.AssociateKind(Kind::DATA());
     AddTypeConstructor(&periodic::pmpoints);
-    periodic::pmpoints.AssociateKind("DATA");
+    periodic::pmpoints.AssociateKind(Kind::DATA());
     AddTypeConstructor(&periodic::pmreal);
-    periodic::pmreal.AssociateKind("DATA");
+    periodic::pmreal.AssociateKind(Kind::DATA());
    // operators
     AddOperator(&periodic::pequals);
     AddOperator(&periodic::pcontains);

@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the reset\_counters Operator 
+[1] Implementation of the reset\_counters Operator
 
 [TOC]
 
@@ -68,8 +68,8 @@ ListExpr reset_counters::TypeMapping( ListExpr args){
      "Operator expects exact1y 1 argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-    return (nl->SymbolAtom("bool")); 
-}       
+    return (nl->SymbolAtom(CcBool::BasicType()));
+}
 
 /*
 2.2 Valuemapping
@@ -105,8 +105,8 @@ struct resetCountersInfo : OperatorInfo {
   }
 };
 
-Operator reset_counters::def( resetCountersInfo(), 
-                                  reset_counters::ValueMapping, 
+Operator reset_counters::def( resetCountersInfo(),
+                                  reset_counters::ValueMapping,
                                   reset_counters::TypeMapping);
 }
 }

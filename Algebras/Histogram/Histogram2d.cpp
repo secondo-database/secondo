@@ -39,8 +39,8 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include <limits>
 #include "../Algebras/ExtRelation-C++/Tupleorder.h"
 #include "AlmostEqual.h"
+#include "Symbols.h"
 
-using namespace symbols;
 using namespace std;
 
 namespace hgr
@@ -578,9 +578,8 @@ it is either empty or all of the following statements are true:
       const int errorPos, ListExpr& errorInfo, bool& correct)
   {
     NList in(instance);
-    if (    in.isSymbol("undef")
-         || (in.length() == 1 && in.first().isSymbol("undef"))
-       ){
+    if ( listutils::isSymbolUndefined(instance) || ((in.length()==1) &&
+                        (listutils::isSymbolUndefined(nl->First(instance))))){
       correct = true;
       return SetWord(new Histogram2d(false));
     }
@@ -720,7 +719,7 @@ it is either empty or all of the following statements are true:
 
     if (!hist->IsDefined())
     {
-      NList result = NList("undef");
+      NList result = NList(Symbol::UNDEFINED());
       return result.listExpr();
     }
     else if(hist->IsEmpty())
@@ -1935,7 +1934,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       return listutils::typeError("Histogram2d has wrong type");
     }
 
-    ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                         nl->TwoElemList(nl->IntAtom(indexX),
                                                         nl->IntAtom(indexY)),
                                         nl->SymbolAtom(symbols::HISTOGRAM2D));
@@ -2060,7 +2059,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
      // Everything should be fine.
      // We can build the outlist:
-     NList outlist(NList("APPEND"), indexlist,
+     NList outlist(NList(Symbol::APPEND()), indexlist,
          NList(HISTOGRAM2D) );
 
      //cout << "outlist: " << outlist.convertToString() << endl;
@@ -3736,7 +3735,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
                                   " is not of type real");
     }
 
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->TwoElemList(nl->IntAtom(indexX),
                                              nl->IntAtom(indexY)),
                              nl->SymbolAtom(symbols::HISTOGRAM2D));

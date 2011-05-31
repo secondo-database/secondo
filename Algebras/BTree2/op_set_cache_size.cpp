@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 
-[1] Implementation of the set\_cache\_size Operator 
+[1] Implementation of the set\_cache\_size Operator
 
 [TOC]
 
@@ -68,10 +68,10 @@ ListExpr set_cache_size::TypeMapping( ListExpr args){
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
     ListExpr second = nl->Second(args);
-    CHECK_COND(nl->IsEqual(second, "int"),
-      "Second argument must be of type int."); 
-  return (nl->SymbolAtom("bool")); 
-}       
+    CHECK_COND(nl->IsEqual(second, CcInt::BasicType()),
+      "Second argument must be of type int.");
+  return (nl->SymbolAtom(CcBool::BasicType()));
+}
 
 
 /*
@@ -102,7 +102,7 @@ set_cache_size::ValueMapping(Word* args, Word& result, int message,
     for (it = pinnedNodes->begin(); it != pinnedNodes->end(); it++){
       pinnedNodesMemory += it->memoryUsage;
     }
-  
+
     if (pinnedNodesMemory > max){
       res->Set(true, false);
     }
@@ -130,7 +130,7 @@ struct setCacheSizeInfo : OperatorInfo {
   }
 };
 
-Operator set_cache_size::def( setCacheSizeInfo(), set_cache_size::ValueMapping, 
+Operator set_cache_size::def( setCacheSizeInfo(), set_cache_size::ValueMapping,
                                            set_cache_size::TypeMapping);
 }
 }

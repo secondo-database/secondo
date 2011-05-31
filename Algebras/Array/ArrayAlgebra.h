@@ -39,6 +39,8 @@ class Array
     Word getElement(int);
     void setElement(int, Word);
 
+    static const string BasicType() { return "array"; }
+
   static Word genericClone( int algebraId,
          int typeId,
          ListExpr typeInfo,

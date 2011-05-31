@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the keyrange and keyrange2 Operators 
+[1] Implementation of the keyrange and keyrange2 Operators
 
 [TOC]
 
@@ -40,6 +40,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "Symbols.h"
+
 
 #include "BTree2.h"
 #include "BTree2Impl.h"
@@ -59,9 +61,9 @@ namespace Operators {
 /*
 2 Operators ~keyrange~ and ~keyrange2~
 
-These operators estimate the ratio of entries with keys smaller than, 
+These operators estimate the ratio of entries with keys smaller than,
 equal to and larger than the argument key. Estimation is done by
-inspecting treeheight + 1 nodes and assuming an equal distribution 
+inspecting treeheight + 1 nodes and assuming an equal distribution
 of entries amongst the nodes.
 
 Signatures are
@@ -69,29 +71,29 @@ Signatures are
 ----
     keyrange: (btree2) x rel(tuple(T)) x Tk --> stream(tuple( (Less real)
                         Equal real) (Greater real) (NumOfKeys int)))
- 
+
     keyrange2: (btree2) x Tk --> stream(tuple( (Less real)
                         Equal real) (Greater real) (NumOfKeys int)))
 ----
 
-2.1 TypeMappings 
+2.1 TypeMappings
 
 */
 ListExpr keyrange::TypeMapping(ListExpr args)
 {
-  
+
   if(nl->ListLength(args)!=3){
     return listutils::typeError("wrong number of arguments");
   }
 
-/* 
-Split argument in two parts 
+/*
+Split argument in two parts
 
 */
   ListExpr btreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
   ListExpr keyDescription = nl->Third(args);
- 
+
 
   if(!listutils::isSymbol(keyDescription)){
     return listutils::typeError("invalid key");
@@ -99,17 +101,18 @@ Split argument in two parts
 
   if(!listutils::isBTree2Description(btreeDescription)){
     return listutils::typeError("not a btree");
-  } 
-  
-  CHECK_COND(nl->SymbolValue(nl->Third(btreeDescription)) == "tid",
+  }
+
+  CHECK_COND(nl->SymbolValue(nl->Third(btreeDescription)) ==
+             TupleIdentifier::BasicType(),
              "Data type has to be tid");
-  
+
   CHECK_COND(nl->SymbolValue(nl->Fourth(btreeDescription)) == "multiple",
              "Keys have to be multiple.");
 
   ListExpr btreeKeyType = nl->Second(btreeDescription);
 
-  
+
   if(!nl->Equal(keyDescription, btreeKeyType)){
     return listutils::typeError("key and btree key are different");
   }
@@ -118,53 +121,55 @@ Split argument in two parts
     return listutils::typeError("not a relation");
   }
 
-  
-  NList a1(NList("Less"), NList("real"));
-  NList a2(NList("Equal"), NList("real"));
-  NList a3(NList("Greater"), NList("real"));
-  NList a4(NList("NumOfKeys"), NList("int"));
 
-  NList result(NList("stream"), NList(NList("tuple"), NList(a1,a2,a3,a4)));
- 
-  return result.listExpr(); 
+  NList a1(NList("Less"), NList(CcReal::BasicType()));
+  NList a2(NList("Equal"), NList(CcReal::BasicType()));
+  NList a3(NList("Greater"), NList(CcReal::BasicType()));
+  NList a4(NList("NumOfKeys"), NList(CcInt::BasicType()));
+
+  NList result(NList(Symbol::STREAM()), NList(NList(Tuple::BasicType()),
+                                              NList(a1,a2,a3,a4)));
+
+  return result.listExpr();
 }
 
 ListExpr keyrange::TypeMapping2(ListExpr args)
 {
-  
+
   if(nl->ListLength(args)!=2){
     return listutils::typeError("wrong number of arguments");
   }
 
-/* 
-Split argument in two parts 
+/*
+Split argument in two parts
 
 */
   ListExpr btreeDescription = nl->First(args);
- 
+
   ListExpr keyDescription = nl->Second(args);
-  
+
   if(!listutils::isSymbol(keyDescription)){
     return listutils::typeError("invalid key");
   }
 
   if(!listutils::isBTree2Description(btreeDescription)){
     return listutils::typeError("not a btree");
-  } 
+  }
 
   ListExpr btreeKeyType = nl->Second(btreeDescription);
 
   if(!nl->Equal(keyDescription, btreeKeyType)){
     return listutils::typeError("key and btree key are different");
   }
-  NList a1(NList("Less"), NList("real"));
-  NList a2(NList("Equal"), NList("real"));
-  NList a3(NList("Greater"), NList("real"));
-  NList a4(NList("NumOfKeys"), NList("int"));
+  NList a1(NList("Less"), NList(CcReal::BasicType()));
+  NList a2(NList("Equal"), NList(CcReal::BasicType()));
+  NList a3(NList("Greater"), NList(CcReal::BasicType()));
+  NList a4(NList("NumOfKeys"), NList(CcInt::BasicType()));
 
-  NList result(NList("stream"), NList(NList("tuple"), NList(a1,a2,a3,a4)));
- 
-  return result.listExpr(); 
+  NList result(NList(Symbol::STREAM()), NList(NList(Tuple::BasicType()),
+                                              NList(a1,a2,a3,a4)));
+
+  return result.listExpr();
 }
 
 /*
@@ -173,18 +178,18 @@ Split argument in two parts
 */
 int keyrange::Select( ListExpr args )
 {
- 
+
   ListExpr keyDescription = nl->Third(args);
   string keyTypeString;
   nl->WriteToString(keyTypeString, keyDescription);
 
-  if (keyTypeString == "real")  
+  if (keyTypeString == CcReal::BasicType())
     return 0;
-  else if (keyTypeString == "int") 
+  else if (keyTypeString == CcInt::BasicType())
      return 1;
-  else if (keyTypeString == "string") 
+  else if (keyTypeString == CcString::BasicType())
      return 2;
-  else if (keyTypeString == "bool")
+  else if (keyTypeString == CcBool::BasicType())
     return 3;
   else
     return 4;
@@ -194,65 +199,65 @@ int keyrange::Select( ListExpr args )
 
 int keyrange::Select2( ListExpr args )
 {
- 
+
   ListExpr valueDescription = nl->Third(nl->First(args));
   ListExpr keyDescription = nl->Second(args);
   string keyTypeString, valueTypeString;
   nl->WriteToString(valueTypeString, valueDescription);
   nl->WriteToString(keyTypeString, keyDescription);
 
-  if (keyTypeString == "real") {
+  if (keyTypeString == CcReal::BasicType()) {
     if (valueTypeString == "none") {
     return 0;
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     return 1;
-    } else if (valueTypeString =="int"){
+    } else if (valueTypeString ==CcInt::BasicType()){
     return 2;
     } else if (valueTypeString =="double"){
     return 3;
-    } else if (valueTypeString =="tid"){
+    } else if (valueTypeString ==TupleIdentifier::BasicType()){
     return 4;
     } else {
     return 5;
     }
-  } else if (keyTypeString == "int") {
+  } else if (keyTypeString == CcInt::BasicType()) {
     if (valueTypeString == "none") {
     return 6;
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     return 7;
-    } else if (valueTypeString =="int"){
+    } else if (valueTypeString ==CcInt::BasicType()){
     return 8;
     } else if (valueTypeString =="double"){
     return 9;
-    } else if (valueTypeString =="tid"){
+    } else if (valueTypeString ==TupleIdentifier::BasicType()){
     return 10;
     } else {
     return 11;
     }
-  } else if (keyTypeString == "string") {
+  } else if (keyTypeString == CcString::BasicType()) {
     if (valueTypeString == "none") {
     return 12;
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     return 13;
-    } else if (valueTypeString =="int"){
+    } else if (valueTypeString ==CcInt::BasicType()){
     return 14;
     } else if (valueTypeString =="double"){
     return 15;
-    } else if (valueTypeString =="tid"){
+    } else if (valueTypeString ==TupleIdentifier::BasicType()){
     return 16;
     } else {
     return 17;
     }
-  } else if (keyTypeString == "bool") {
+  } else if (keyTypeString == CcBool::BasicType()) {
     if (valueTypeString == "none") {
     return 18;
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     return 19;
-    } else if (valueTypeString =="int"){
+    } else if (valueTypeString ==CcInt::BasicType()){
     return 20;
     } else if (valueTypeString =="double"){
     return 21;
-    } else if (valueTypeString =="tid"){
+    } else if (valueTypeString ==TupleIdentifier::BasicType()){
     return 22;
     } else {
     return 23;
@@ -260,13 +265,13 @@ int keyrange::Select2( ListExpr args )
   }else {
     if (valueTypeString == "none") {
     return 24;
-    } else if (valueTypeString == "string") {
+    } else if (valueTypeString == CcString::BasicType()) {
     return 25;
-    } else if (valueTypeString =="int"){
+    } else if (valueTypeString ==CcInt::BasicType()){
     return 26;
     } else if (valueTypeString =="double"){
     return 27;
-    } else if (valueTypeString =="tid"){
+    } else if (valueTypeString ==TupleIdentifier::BasicType()){
     return 28;
     } else {
     return 29;
@@ -281,17 +286,17 @@ int keyrange::Select2( ListExpr args )
 /*
 2.3 Auxiliary functions for Value Mapping of keyrange.
 
-These functions actually estimate the values for less, equal 
+These functions actually estimate the values for less, equal
 and greater. The first function is used for btrees with unique
 keys, whereas the second one is used for btree with multiple keys.
 
 */
 template<typename keytype, typename valuetype>
-void getKeyrangeValuesUnique (keytype key, double& less, double& equal, 
+void getKeyrangeValuesUnique (keytype key, double& less, double& equal,
          double& greater, BTree2Impl<keytype, valuetype>* btree)
 {
   cout << "here in keyrange" << endl;
-  int internalEntries = btree->GetInternalEntryCount(); 
+  int internalEntries = btree->GetInternalEntryCount();
   int internalNodes = btree->GetInternalNodeCount();
   double avgSons = 0;
   if (internalNodes > 0)
@@ -304,7 +309,7 @@ void getKeyrangeValuesUnique (keytype key, double& less, double& equal,
   int treeheight = btree->GetTreeHeight();
   int index;
   vector <NodeId> path;
-  btree->FindLeftmostLeafNodeId(key, path); 
+  btree->FindLeftmostLeafNodeId(key, path);
   for (unsigned j = 0; j < path.size(); j++){
     if (j == path.size() - 1){
       leafNode = btree->cache.fetchLeafNode(path[j]);
@@ -317,7 +322,7 @@ void getKeyrangeValuesUnique (keytype key, double& less, double& equal,
         }
         else {
           g += 1.0;
-        }  
+        }
       }
       btree->cache.dispose(leafNode);
     }
@@ -330,7 +335,7 @@ void getKeyrangeValuesUnique (keytype key, double& less, double& equal,
       l += noLess * pow (avgSons, treeheight - (int)j - 1) * avgLeafEntries;
       btree->cache.dispose(internalNode);
     }
-  }  
+  }
   if (e == 1){//adjust values to exact amount of keys
     double total = g + l;
     int entries = btree->GetLeafEntryCount();
@@ -347,11 +352,11 @@ void getKeyrangeValuesUnique (keytype key, double& less, double& equal,
 
 
 template<typename keytype, typename valuetype>
-void getKeyrangeValuesMultiple (keytype key, double& less, double& equal, 
+void getKeyrangeValuesMultiple (keytype key, double& less, double& equal,
          double& greater, BTree2Impl<keytype, valuetype>* btree)
 {
- 
-  int internalEntries = btree->GetInternalEntryCount(); 
+
+  int internalEntries = btree->GetInternalEntryCount();
   int internalNodes = btree->GetInternalNodeCount();
   double avgSons = 0;
   if (internalNodes > 0)
@@ -364,7 +369,7 @@ void getKeyrangeValuesMultiple (keytype key, double& less, double& equal,
   int treeheight = btree->GetTreeHeight();
   int index;
   vector <NodeId> path;
-  btree->FindLeftmostLeafNodeId(key, path); 
+  btree->FindLeftmostLeafNodeId(key, path);
   for (unsigned j = 0; j < path.size(); j++){
     if (j == path.size() - 1){
       leafNode = btree->cache.fetchLeafNode(path[j]);
@@ -377,7 +382,7 @@ void getKeyrangeValuesMultiple (keytype key, double& less, double& equal,
         }
         else {
           g += 1.0;
-        }  
+        }
       }
       btree->cache.dispose(leafNode);
     }
@@ -385,20 +390,20 @@ void getKeyrangeValuesMultiple (keytype key, double& less, double& equal,
       internalNode = btree->cache.fetchInternalNode(path[j]);
       index = internalNode->GetEntryIndexByValue(path[j+1]);
       int higherIndex = index + 1;
-      while (higherIndex < internalNode->GetCount() && 
+      while (higherIndex < internalNode->GetCount() &&
          internalNode->GetEntryPtr(higherIndex)->keyEquals(key)){
         higherIndex++;
       }
       int noGreater = internalNode->GetCount() + 1 - higherIndex;
       int noEqual = higherIndex - 1 - index;
       int noLess = index;
-      
+
       g += noGreater * pow (avgSons, treeheight - (int)j - 1) * avgLeafEntries;
-      e += noEqual * pow (avgSons, treeheight - (int)j - 1) * avgLeafEntries;  
+      e += noEqual * pow (avgSons, treeheight - (int)j - 1) * avgLeafEntries;
       l += noLess * pow (avgSons, treeheight - (int)j - 1) * avgLeafEntries;
       btree->cache.dispose(internalNode);
     }
-  } 
+  }
   greater = g / (g + e + l);
   equal = e / (g + e + l);
   less = l / (g + e + l);
@@ -407,7 +412,7 @@ void getKeyrangeValuesMultiple (keytype key, double& less, double& equal,
 
 
 template<typename keytype, typename valuetype>
-void keyrange::getKeyrangeValues (keytype key, double& less, double& equal, 
+void keyrange::getKeyrangeValues (keytype key, double& less, double& equal,
          double& greater, BTree2Impl<keytype, valuetype>* btree)
 {
   if (btree->GetMultiplicity() == btree->uniqueKey)
@@ -421,13 +426,13 @@ void keyrange::getKeyrangeValues (keytype key, double& less, double& equal,
 2.4 Valuemappings
 
 There are several different value mapping functions differentiating between
-different keytypes. 
+different keytypes.
 
 2.4.1 Valuemapping for keytype int
 
 */
 template<typename valuetype, int argNo>
-int keyrange::ValueMappingInt(Word* args, Word& result, int message, 
+int keyrange::ValueMappingInt(Word* args, Word& result, int message,
                                   Word& local, Supplier s)
 {
   switch (message)
@@ -438,19 +443,19 @@ int keyrange::ValueMappingInt(Word* args, Word& result, int message,
       local.addr = k;
       return 0;
 
-    }  
+    }
     case REQUEST : {
 
       int* k;
-      k = (int*)local.addr;      
+      k = (int*)local.addr;
       if(*k == 1)
       {
         double less, equal, greater;
-        BTree2Impl<int, valuetype>* btree = (BTree2Impl<int, 
+        BTree2Impl<int, valuetype>* btree = (BTree2Impl<int,
                                        valuetype>*)args[0].addr;
         int keyValue = ((CcInt*)args[argNo].addr)->GetIntval();
         getKeyrangeValues(keyValue, less, equal, greater, btree);
-       
+
         int n = btree->GetLeafEntryCount();
 
         CcReal* lt = new CcReal(less);
@@ -478,7 +483,7 @@ int keyrange::ValueMappingInt(Word* args, Word& result, int message,
       delete (int*) local.addr;
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -488,7 +493,7 @@ int keyrange::ValueMappingInt(Word* args, Word& result, int message,
 
 */
 template<typename valuetype, int argNo>
-int keyrange::ValueMappingReal(Word* args, Word& result, int message, 
+int keyrange::ValueMappingReal(Word* args, Word& result, int message,
                                   Word& local, Supplier s)
 {
 
@@ -499,19 +504,19 @@ int keyrange::ValueMappingReal(Word* args, Word& result, int message,
       *k = 1;
       local.addr = k;
       return 0;
-    }  
+    }
     case REQUEST : {
 
       int* k;
-      k = (int*)local.addr;      
+      k = (int*)local.addr;
       if(*k == 1)
       {
         double less, equal, greater;
-        BTree2Impl<double, valuetype>* btree = (BTree2Impl<double, 
+        BTree2Impl<double, valuetype>* btree = (BTree2Impl<double,
                                             valuetype>*)args[0].addr;
         double keyValue = ((CcReal*)args[argNo].addr)->GetRealval();
         getKeyrangeValues(keyValue, less, equal, greater, btree);
-        
+
         int n = btree->GetLeafEntryCount();
 
         CcReal* lt = new CcReal(less);
@@ -539,7 +544,7 @@ int keyrange::ValueMappingReal(Word* args, Word& result, int message,
       delete (int*) local.addr;
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -549,7 +554,7 @@ int keyrange::ValueMappingReal(Word* args, Word& result, int message,
 
 */
 template<typename valuetype, int argNo>
-int keyrange::ValueMappingString(Word* args, Word& result, int message, 
+int keyrange::ValueMappingString(Word* args, Word& result, int message,
                                   Word& local, Supplier s)
 {
 
@@ -561,20 +566,20 @@ int keyrange::ValueMappingString(Word* args, Word& result, int message,
       local.addr = k;
       return 0;
 
-    }  
+    }
     case REQUEST : {
 
       int* k;
-      k = (int*)local.addr;      
+      k = (int*)local.addr;
       if(*k == 1)
       {
         double less, equal, greater;
-        BTree2Impl<string, valuetype>* btree = (BTree2Impl<string, 
+        BTree2Impl<string, valuetype>* btree = (BTree2Impl<string,
                                           valuetype>*)args[0].addr;
-        
+
         string keyValue = ((CcString*)args[argNo].addr)->GetValue();
         getKeyrangeValues(keyValue, less, equal, greater, btree);
-        
+
         int n = btree->GetLeafEntryCount();
 
         CcReal* lt = new CcReal(less);
@@ -602,7 +607,7 @@ int keyrange::ValueMappingString(Word* args, Word& result, int message,
       delete (int*) local.addr;
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -612,7 +617,7 @@ int keyrange::ValueMappingString(Word* args, Word& result, int message,
 
 */
 template<typename valuetype, int argNo>
-int keyrange::ValueMappingAttr(Word* args, Word& result, int message, 
+int keyrange::ValueMappingAttr(Word* args, Word& result, int message,
                                   Word& local, Supplier s)
 {
 
@@ -623,17 +628,17 @@ int keyrange::ValueMappingAttr(Word* args, Word& result, int message,
       *k = 1;
       local.addr = k;
       return 0;
-    }  
+    }
     case REQUEST : {
 
       int* k;
-      k = (int*)local.addr;      
+      k = (int*)local.addr;
       if(*k == 1)
       {
         double less, equal, greater;
-        BTree2Impl<IndexableAttribute*, valuetype>* btree = 
+        BTree2Impl<IndexableAttribute*, valuetype>* btree =
                 (BTree2Impl<IndexableAttribute*, valuetype>*)args[0].addr;
-        
+
         IndexableAttribute* keyValue = (IndexableAttribute*)args[argNo].addr;
         getKeyrangeValues(keyValue, less, equal, greater, btree);
 
@@ -664,7 +669,7 @@ int keyrange::ValueMappingAttr(Word* args, Word& result, int message,
       delete (int*) local.addr;
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -674,7 +679,7 @@ int keyrange::ValueMappingAttr(Word* args, Word& result, int message,
 
 */
 template<typename valuetype, int argNo>
-int keyrange::ValueMappingBool(Word* args, Word& result, int message, 
+int keyrange::ValueMappingBool(Word* args, Word& result, int message,
                                   Word& local, Supplier s)
 {
   switch (message)
@@ -685,19 +690,19 @@ int keyrange::ValueMappingBool(Word* args, Word& result, int message,
       local.addr = k;
       return 0;
 
-    }  
+    }
     case REQUEST : {
 
       int* k;
-      k = (int*)local.addr;      
+      k = (int*)local.addr;
       if(*k == 1)
       {
         double less, equal, greater;
-        BTree2Impl<bool, valuetype>* btree = (BTree2Impl<bool, 
+        BTree2Impl<bool, valuetype>* btree = (BTree2Impl<bool,
                                        valuetype>*)args[0].addr;
         bool keyValue = ((CcInt*)args[argNo].addr)->GetIntval();
         getKeyrangeValues(keyValue, less, equal, greater, btree);
-       
+
         int n = btree->GetLeafEntryCount();
 
         CcReal* lt = new CcReal(less);
@@ -725,7 +730,7 @@ int keyrange::ValueMappingBool(Word* args, Word& result, int message,
       delete (int*) local.addr;
       local.addr = 0;
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -745,7 +750,7 @@ struct getKeyrangeInfo : OperatorInfo {
                 " stream(tuple((Less real)"
                 "(Equal real)(Greater real)(NumOfKeys int)))";
     syntax =    "_ keyrange [ _ ]";
-    meaning =   "Returns an estimate of entries with keys larger, smaller or " 
+    meaning =   "Returns an estimate of entries with keys larger, smaller or "
                 "equal to argument key.";
     example =   "query staedte_btree2_tid Staedte keyrange [\"D\"] consume";
   }
@@ -759,15 +764,15 @@ struct getKeyrange2Info : OperatorInfo {
     signature = "(btree2 Tk Td u) x Tk -> stream(tuple((Less real)"
                 "(Equal real)(Greater real)(NumOfKeys int)))";
     syntax =    "_ _ keyrange2 [ _ ]";
-    meaning =   "Returns an estimate of entries with keys larger, smaller or " 
+    meaning =   "Returns an estimate of entries with keys larger, smaller or "
                 "equal to argument key.";
     example =   "query staedte_btree2 keyrange2 [\"D\"] consume";
   }
 };
 
 ValueMapping keyrange::valueMappings [] =
-{ 
-  
+{
+
     keyrange::ValueMappingReal<TupleId, 2>,   //0
     keyrange::ValueMappingInt<TupleId, 2>,    //1
     keyrange::ValueMappingString<TupleId, 2>, //2
@@ -777,28 +782,28 @@ ValueMapping keyrange::valueMappings [] =
 
 
 ValueMapping keyrange::valueMappings2 [] =
-{ 
-  
+{
+
     keyrange::ValueMappingReal<NoneType, 1>,    //0
     keyrange::ValueMappingReal<string, 1>,      //1
     keyrange::ValueMappingReal<int, 1>,         //2
     keyrange::ValueMappingReal<double, 1>,      //3
     keyrange::ValueMappingReal<TupleId, 1>,     //4
     keyrange::ValueMappingReal<Attribute*, 1>,  //5
-   
+
     keyrange::ValueMappingInt<NoneType, 1>,     //6
     keyrange::ValueMappingInt<string, 1>,       //7
     keyrange::ValueMappingInt<int, 1>,          //8
     keyrange::ValueMappingInt<double, 1>,       //9
     keyrange::ValueMappingInt<TupleId, 1>,      //10
     keyrange::ValueMappingInt<Attribute*, 1>,   //11
-   
+
     keyrange::ValueMappingString<NoneType, 1>,  //12
     keyrange::ValueMappingString<string, 1>,    //13
     keyrange::ValueMappingString<int, 1>,       //14
     keyrange::ValueMappingString<double, 1>,    //15
-    keyrange::ValueMappingString<TupleId, 1>,   //16 
-    keyrange::ValueMappingString<Attribute*, 1>,//17 
+    keyrange::ValueMappingString<TupleId, 1>,   //16
+    keyrange::ValueMappingString<Attribute*, 1>,//17
 
     keyrange::ValueMappingBool<NoneType, 1>,    //18
     keyrange::ValueMappingBool<string, 1>,      //19
@@ -813,12 +818,12 @@ ValueMapping keyrange::valueMappings2 [] =
     keyrange::ValueMappingAttr<double, 1>,      //27
     keyrange::ValueMappingAttr<TupleId, 1>,     //28
     keyrange::ValueMappingAttr<Attribute*, 1>   //29
-   
+
   };
 
-Operator keyrange::keyrange1 (getKeyrangeInfo(), keyrange::valueMappings, 
+Operator keyrange::keyrange1 (getKeyrangeInfo(), keyrange::valueMappings,
                           keyrange::Select, keyrange::TypeMapping);
-Operator keyrange::keyrange2 (getKeyrange2Info(), keyrange::valueMappings2, 
+Operator keyrange::keyrange2 (getKeyrange2Info(), keyrange::valueMappings2,
                           keyrange::Select2, keyrange::TypeMapping2);
 }
 }

@@ -314,7 +314,7 @@ ListExpr EdgeIntTypeMap(ListExpr args)
     ListExpr arg = nl->First(args);
     if (nl->IsEqual(arg, "edge"))
     {
-      return nl->SymbolAtom("int");
+      return nl->SymbolAtom(CcInt::BasicType());
     }
     else
     {
@@ -328,7 +328,7 @@ ListExpr EdgeIntTypeMap(ListExpr args)
     ErrorReporter::ReportError(
       "Type mapping function got a parameter of length != 1.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr EdgeRealTypeMap(ListExpr args)
@@ -338,7 +338,7 @@ ListExpr EdgeRealTypeMap(ListExpr args)
     ListExpr arg = nl->First(args);
     if (nl->IsEqual(arg, "edge"))
     {
-      return nl->SymbolAtom("real");
+      return nl->SymbolAtom(CcReal::BasicType());
     }
     else
     {
@@ -352,7 +352,7 @@ ListExpr EdgeRealTypeMap(ListExpr args)
     ErrorReporter::ReportError(
       "Type mapping function got a parameter of length != 1.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 

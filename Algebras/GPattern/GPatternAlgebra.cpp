@@ -36,6 +36,8 @@ JAN, 2010 Mahmoud Sakr
 */
 
 #include "GPatternAlgebra.h"
+#include "Symbols.h"
+
 using namespace mset;
 
 namespace GPattern{
@@ -69,9 +71,9 @@ int GPatternSolver::PickVariable()
             cnt+= ConstraintGraph[r][c].size() * 0.5;
             for(unsigned int v=0; v< assignedVars.size(); v++)
             {
-              if(c == (unsigned int)assignedVars[v]) 
+              if(c == (unsigned int)assignedVars[v])
                 cnt+=0.5 * ConstraintGraph[r][c].size();
-            }  
+            }
 
           }
 
@@ -80,7 +82,7 @@ int GPatternSolver::PickVariable()
             cnt+=0.5 * ConstraintGraph[r][c].size();
             for(unsigned int v=0; v< assignedVars.size(); v++)
             {
-              if(r == (unsigned int)assignedVars[v]) 
+              if(r == (unsigned int)assignedVars[v])
                 cnt+=0.5 * ConstraintGraph[r][c].size();
             }
           }
@@ -103,7 +105,7 @@ int GPatternSolver::PickVariable()
     cout<<endl<< "Picking variable "<< index<<endl;
     cout.flush();
   }
-  if(index== -1) return -1; 
+  if(index== -1) return -1;
   assignedVars.push_back(index);
   return index;
 }
@@ -160,7 +162,7 @@ ostream& GPatternSolver::Print(ostream &os)
 //      tmp.ReadFrom(SA[i][j].first.end.GetRealval());
 //      tmp.Print(os);
 //      os<<"\t{";
-//      for(set<int>::iterator itr= SA[i][j].second.begin(); 
+//      for(set<int>::iterator itr= SA[i][j].second.begin();
 //        itr!= SA[i][j].second.end(); ++itr)
 //      {
 //        os<< *itr << ", ";
@@ -197,7 +199,7 @@ void GPatternSolver::IntervalInstant2IntervalCcReal(
     in.Print(cerr);
     out.Print(cerr);
   }
-  
+
 }
 
 /*
@@ -239,7 +241,7 @@ bool GPatternSolver::Extend(int varIndex)
       }
       qp->Request(Agenda[varIndex], Value);
     }
-    qp->Close(Agenda[varIndex]); 
+    qp->Close(Agenda[varIndex]);
   }
   else
   {
@@ -260,18 +262,18 @@ bool GPatternSolver::Extend(int varIndex)
       }
       qp->Request(Agenda[varIndex], Value);
     }
-    // SA has already entries 
+    // SA has already entries
     unsigned int SASize= SA.size();
     for(unsigned int i=0; i<SASize; i++)
     {
       sa= SA[0];
-      
+
       for(unsigned int j=0; j<stream.size(); ++j)
       {
         sa[varIndex]= stream[j];
         if(IsSupported(sa, varIndex))
           SA.push_back(sa);
-      } 
+      }
       SA.erase(SA.begin());
     }
   }
@@ -282,7 +284,7 @@ bool GPatternSolver::Extend(int varIndex)
 bool GPatternSolver::IsSupported(
     vector< pair<Interval<CcReal>, MSet* > >& sa, int index)
 {
-  bool supported=false; 
+  bool supported=false;
   for(unsigned int i=0; i<assignedVars.size()-1; i++)
   {
     for(unsigned int j=0; j<assignedVars.size(); j++)
@@ -291,16 +293,16 @@ bool GPatternSolver::IsSupported(
       {
         if(ConstraintGraph[assignedVars[i]][assignedVars[j]].size() != 0)
         {
-          supported= CheckConstraint(sa[assignedVars[i]].first, 
-              sa[assignedVars[j]].first, 
+          supported= CheckConstraint(sa[assignedVars[i]].first,
+              sa[assignedVars[j]].first,
               ConstraintGraph[assignedVars[i]][assignedVars[j]]);
           if(!supported) return false;
         }
 
         if(ConstraintGraph[assignedVars[j]][assignedVars[i]].size() != 0)
         {
-          supported= CheckConstraint(sa[assignedVars[j]].first, 
-              sa[assignedVars[i]].first, 
+          supported= CheckConstraint(sa[assignedVars[j]].first,
+              sa[assignedVars[i]].first,
               ConstraintGraph[assignedVars[j]][assignedVars[i]]);
           if(!supported) return false;
         }
@@ -315,7 +317,7 @@ CheckCopnstraint
 
 */
 
-bool GPatternSolver::CheckConstraint(Interval<CcReal>& p1, 
+bool GPatternSolver::CheckConstraint(Interval<CcReal>& p1,
     Interval<CcReal>& p2, vector<Supplier> constraint)
 {
   bool debugme=false;
@@ -333,7 +335,7 @@ bool GPatternSolver::CheckConstraint(Interval<CcReal>& p1,
     satisfied= vec->ApplyVector(p1, p2);
     if(!satisfied) return false;
   }
-  return true; 
+  return true;
 }
 
 int GPatternSolver::AddConstraint(string alias1, string alias2, Supplier handle)
@@ -394,7 +396,7 @@ void GPatternSolver::WriteTuple(Tuple* tuple)
 //    uset.timeInterval.end= instant;
 //    uset.timeInterval.lc= sa[i].first.lc;
 //    uset.timeInterval.rc= sa[i].first.rc;
-//    for(set<int>::iterator it=sa[i].second.begin(); 
+//    for(set<int>::iterator it=sa[i].second.begin();
 //       it != sa[i].second.end(); ++it)
 //      uset.constValue.Insert(*it);
 //    uset.SetDefined(true);
@@ -406,7 +408,7 @@ void GPatternSolver::WriteTuple(Tuple* tuple)
 }
 
 /*
-4 Algebra Types and Operators 
+4 Algebra Types and Operators
 
 */
 
@@ -425,9 +427,9 @@ ListExpr RowColTM(ListExpr args)
   ListExpr errorInfo;
   nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 1 &&
-      nl->IsAtom(nl->First(args)) && 
-      am->CheckKind("TEMPORAL", nl->First(args), errorInfo),
-      "Operators row/col expect one argument of kind TEMPORAL \n but got: " 
+      nl->IsAtom(nl->First(args)) &&
+      am->CheckKind(Kind::TEMPORAL(), nl->First(args), errorInfo),
+      "Operators row/col expect one argument of kind TEMPORAL \n but got: "
       + argstr + ".");
 
   if(debugme)
@@ -454,11 +456,11 @@ ListExpr CrossPatternTM(ListExpr args)
   nl->WriteToString(argstr, args);
   if(nl->ListLength(args) != 7)
   {
-    ErrorReporter::ReportError( 
+    ErrorReporter::ReportError(
       "Operator crosspattern expects 7 arguments \n but got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////  
+//////////////////////////
   ListExpr streamTuple =  nl->First(args),
   tupleIdent1= nl->Second(args),
   tupleIdent2= nl->Third(args),
@@ -467,9 +469,9 @@ ListExpr CrossPatternTM(ListExpr args)
   count  =   nl->Sixth(args),
   subGraph = nl->Nth(7,args),
   tupleType=0;
-  
+
   nl->WriteToString(argstr, streamTuple);
-  if(listutils::isTupleStream(streamTuple)) 
+  if(listutils::isTupleStream(streamTuple))
   {
     tupleType = nl->Second(streamTuple);
     if(!listutils::isTupleDescription(tupleType))
@@ -477,21 +479,21 @@ ListExpr CrossPatternTM(ListExpr args)
   }
   else
     error= true;
-  
+
   if(error)
   {
     ErrorReporter::ReportError(
        "Operator crosspattern expects a stream(tuple) as the first "
        "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////    
+//////////////////////////
   nl->WriteToString(argstr, tupleIdent1);
   if(listutils::isMap<1>(tupleIdent1))
   {
     if(nl->Second(tupleIdent1) == tupleType)
     {
-      if(!nl->Equal(nl->Third(tupleIdent1), nl->SymbolAtom("int")))
+      if(!nl->Equal(nl->Third(tupleIdent1), nl->SymbolAtom(CcInt::BasicType())))
         error= true;
     }
     else
@@ -501,26 +503,26 @@ ListExpr CrossPatternTM(ListExpr args)
         "the second argument. It must be the same as the tuple type in the "
         "stream(tuple) in the first arguement. "
         "\nOperator crosspattern got: " + argstr + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   else
     error= true;
-  
+
   if(error)
   {
     ErrorReporter::ReportError(
        "Operator crosspattern expects a (map tuple int) as a second "
        "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////    
+//////////////////////////
   nl->WriteToString(argstr, tupleIdent2);
   if(listutils::isMap<1>(tupleIdent2))
   {
     if(nl->Second(tupleIdent2) == tupleType)
     {
-      if(!nl->Equal(nl->Third(tupleIdent2), nl->SymbolAtom("int")))
+      if(!nl->Equal(nl->Third(tupleIdent2), nl->SymbolAtom(CcInt::BasicType())))
         error= true;
     }
     else
@@ -530,7 +532,7 @@ ListExpr CrossPatternTM(ListExpr args)
           "the third argument. It must be the same as the tuple type in the "
           "stream(tuple) in the first arguement. "
           "\nOperator crosspattern got: " + argstr + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   else
@@ -541,15 +543,15 @@ ListExpr CrossPatternTM(ListExpr args)
     ErrorReporter::ReportError(
         "Operator crosspattern expects a (map tuple int) as a third "
         "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////  
+//////////////////////////
   nl->WriteToString(argstr, liftedPred);
   if(listutils::isMap<1>(liftedPred))
   {
     if(nl->Second(liftedPred) == tupleType)
     {
-      if(!nl->Equal(nl->Third(liftedPred), nl->SymbolAtom("mbool")))
+      if(!nl->Equal(nl->Third(liftedPred), nl->SymbolAtom(MBool::BasicType())))
         error= true;
     }
     else
@@ -559,49 +561,50 @@ ListExpr CrossPatternTM(ListExpr args)
         "the fourth argument. It must be the same as the tuple type in the "
         "stream(tuple) in the first arguement. "
         "\nOperator gpattern got: " + argstr + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   else
     error= true;
-  
+
   if(error)
   {
     ErrorReporter::ReportError(
        "Operator crosspattern expects a (map tuple mbool) as the fourth "
        "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////        
+//////////////////////////
   nl->WriteToString(argstr, duration);
-  if( !nl->IsAtom(duration) || nl->SymbolValue(duration) != "duration")
+  if( !nl->IsAtom(duration) ||
+       nl->SymbolValue(duration) != Duration::BasicType())
   {
     ErrorReporter::ReportError(
         "Operator crosspattern expects a duration as the fifth argument. "
         "\nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////          
+//////////////////////////
   nl->WriteToString(argstr, count);
-  if( !nl->IsAtom(count) || nl->SymbolValue(count) != "int")
+  if( !nl->IsAtom(count) || nl->SymbolValue(count) != CcInt::BasicType())
   {
     ErrorReporter::ReportError(
         "Operator crosspattern expects an int as the sixth argument. "
         "\nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////        
+//////////////////////////
   nl->WriteToString(argstr, subGraph);
   if( !nl->IsAtom(subGraph) )
   {
     ErrorReporter::ReportError(
         "Operator crosspattern expects a subgraph name (...) as the "
         "last argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-  
-  ListExpr result = 
-    nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("mset"));
+
+  ListExpr result =
+    nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), nl->SymbolAtom("mset"));
   if(debugme)
   {
     cout<<endl<<endl<<"Operator gpattern accepted the input";
@@ -625,11 +628,11 @@ ListExpr GPatternTM(ListExpr args)
   nl->WriteToString(argstr, args);
   if(nl->ListLength(args) != 6)
   {
-    ErrorReporter::ReportError( 
+    ErrorReporter::ReportError(
         "Operator gpattern expects 6 arguments \n but got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////  
+//////////////////////////
   ListExpr streamTuple =  nl->First(args),
   tupleIdent= nl->Second(args),
   liftedPred = nl->Third(args),
@@ -637,9 +640,9 @@ ListExpr GPatternTM(ListExpr args)
   count  =   nl->Fifth(args),
   quantifier = nl->Sixth(args),
   tupleType=0;
-  
+
   nl->WriteToString(argstr, streamTuple);
-  if(listutils::isTupleStream(streamTuple)) 
+  if(listutils::isTupleStream(streamTuple))
   {
     tupleType = nl->Second(streamTuple);
     if(!listutils::isTupleDescription(tupleType))
@@ -647,21 +650,21 @@ ListExpr GPatternTM(ListExpr args)
   }
   else
     error= true;
-  
+
   if(error)
   {
     ErrorReporter::ReportError(
        "Operator gpattern expects a stream(tuple) as the first "
        "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////    
+//////////////////////////
   nl->WriteToString(argstr, tupleIdent);
   if(listutils::isMap<1>(tupleIdent))
   {
     if(nl->Second(tupleIdent) == tupleType)
     {
-      if(!nl->Equal(nl->Third(tupleIdent), nl->SymbolAtom("int")))
+      if(!nl->Equal(nl->Third(tupleIdent), nl->SymbolAtom(CcInt::BasicType())))
         error= true;
     }
     else
@@ -671,26 +674,26 @@ ListExpr GPatternTM(ListExpr args)
         "second argument. It must be the same as the tuple type in the "
         "stream(tuple) in the first arguement. "
         "\nOperator gpattern got: " + argstr + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   else
     error= true;
-  
+
   if(error)
   {
     ErrorReporter::ReportError(
        "Operator gpattern expects a (map tuple int) as a second "
        "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////  
+//////////////////////////
   nl->WriteToString(argstr, liftedPred);
   if(listutils::isMap<1>(liftedPred))
   {
     if(nl->Second(liftedPred) == tupleType)
     {
-      if(!nl->Equal(nl->Third(liftedPred), nl->SymbolAtom("mbool")))
+      if(!nl->Equal(nl->Third(liftedPred), nl->SymbolAtom(MBool::BasicType())))
         error= true;
     }
     else
@@ -700,51 +703,52 @@ ListExpr GPatternTM(ListExpr args)
         "third argument. It must be the same as the tuple type in the "
         "stream(tuple) in the first arguement. "
         "\nOperator gpattern got: " + argstr + ".");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
   else
     error= true;
-  
+
   if(error)
   {
     ErrorReporter::ReportError(
        "Operator gpattern expects a (map tuple mbool) as the third "
        "argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////        
+//////////////////////////
   nl->WriteToString(argstr, duration);
-  if( !nl->IsAtom(duration) || nl->SymbolValue(duration) != "duration")
+  if( !nl->IsAtom(duration) ||
+       nl->SymbolValue(duration) != Duration::BasicType())
   {
     ErrorReporter::ReportError(
         "Operator gpattern expects a duration as the fourth argument. "
         "\nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////          
+//////////////////////////
   nl->WriteToString(argstr, count);
-  if( !nl->IsAtom(count) || nl->SymbolValue(count) != "int")
+  if( !nl->IsAtom(count) || nl->SymbolValue(count) != CcInt::BasicType())
   {
     ErrorReporter::ReportError(
         "Operator gpattern expects an int as the fifth argument. "
         "\nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-//////////////////////////        
+//////////////////////////
   nl->WriteToString(argstr, quantifier);
-  if( !nl->IsAtom(quantifier) || 
-    ( nl->SymbolValue(quantifier) != "exactly" && 
+  if( !nl->IsAtom(quantifier) ||
+    ( nl->SymbolValue(quantifier) != "exactly" &&
       nl->SymbolValue(quantifier) != "atleast"))
   {
     ErrorReporter::ReportError(
         "Operator gpattern expects a quantifier (exactly or atleast) as the "
         "last argument. \nBut got: " + argstr + ".");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-  
-  ListExpr result = 
-    nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("mset"));
+
+  ListExpr result =
+    nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), nl->SymbolAtom("mset"));
   if(debugme)
   {
     cout<<endl<<endl<<"Operator gpattern accepted the input";
@@ -772,40 +776,40 @@ ListExpr ReportPatternTM(ListExpr args)
 
   nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 4,
-      "Operator reportpattern expects 4 arguments \n but got: " 
+      "Operator reportpattern expects 4 arguments \n but got: "
       + argstr + ".");
-  
+
   ListExpr streamExpr = nl->First(args),   //stream(tuple(int, mx))
   NamedPatternoidList  = nl->Second(args),  //named list of patternoids
   ConstraintList = nl->Third(args),    //TConstraint list
-  BoolCondition  = nl->Fourth(args);    
+  BoolCondition  = nl->Fourth(args);
 
   nl->WriteToString(argstr, streamExpr);
   CHECK_COND( listutils::isTupleStream(streamExpr) ,
       "Operator reportpattern expects stream(tuple(X)) as first argument."
       "\nBut got: " + argstr + ".");
-  
+
   ListExpr errorInfo;
   ListExpr tuple = nl->Second(nl->Second(streamExpr));
   nl->WriteToString(argstr, streamExpr);
   CHECK_COND( nl->ListLength(tuple) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple))) && 
-    nl->SymbolValue(nl->Second(nl->First (tuple)))== "int" &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple))) && 
-    am->CheckKind("TEMPORAL", nl->Second(nl->Second(tuple)), errorInfo),  
+    nl->IsAtom     (nl->Second(nl->First (tuple))) &&
+    nl->SymbolValue(nl->Second(nl->First (tuple)))== CcInt::BasicType() &&
+    nl->IsAtom     (nl->Second(nl->Second(tuple))) &&
+    am->CheckKind(Kind::TEMPORAL(), nl->Second(nl->Second(tuple)), errorInfo),
         "Operator reportpattern expects stream(tuple(int mx)) as first "
         "argument.\nBut got: " + argstr + ".");
-  
+
   nl->WriteToString(argstr, NamedPatternoidList);
   CHECK_COND( ! nl->IsAtom(NamedPatternoidList) ,
       "Operator  reportpattern expects as second argument a "
       "list of aliased patternoid reporting functions.\n"
       "But got: '" + argstr + "'.\n" );
-  
+
   ListExpr NamedPatternoidListRest = NamedPatternoidList;
   ListExpr NamedPatternoid;
   vector<ListExpr> aliases;
-  vector<ListExpr>::iterator it; 
+  vector<ListExpr>::iterator it;
   while( !nl->IsEmpty(NamedPatternoidListRest) )
   {
     NamedPatternoid = nl->First(NamedPatternoidListRest);
@@ -834,18 +838,18 @@ ListExpr ReportPatternTM(ListExpr args)
     ConstraintListRest = nl->Rest(ConstraintListRest);
 
     CHECK_COND((nl->IsAtom(STConstraint)&&
-        nl->SymbolValue(STConstraint)== "bool"),
+        nl->SymbolValue(STConstraint)== CcBool::BasicType()),
         "Operator reportpattern expects a list of temporal connectors. "
         "\nBut got: " + argstr + ".");
   }
 
   nl->WriteToString(argstr, BoolCondition);
-  CHECK_COND( nl->IsAtom(BoolCondition) && 
-    nl->SymbolValue(BoolCondition) == "bool",
+  CHECK_COND( nl->IsAtom(BoolCondition) &&
+    nl->SymbolValue(BoolCondition) == CcBool::BasicType(),
         "Operator reportpattern expects a boolean condition. "
         "\nBut got: " + argstr + ".");
-  
-  
+
+
   it= aliases.begin();
   ListExpr attr = nl->TwoElemList(*it, nl->SymbolAtom("mset"));
   ListExpr attrList = nl->OneElemList(attr);
@@ -857,10 +861,10 @@ ListExpr ReportPatternTM(ListExpr args)
     lastlistn = nl->Append(lastlistn, attr);
     ++it;
   }
-    
-  ListExpr result = 
-    nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("tuple"), attrList));
+
+  ListExpr result =
+    nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList));
   if(debugme)
   {
     cout<<endl<<endl<<"Operator reportpattern accepted the input";
@@ -885,10 +889,10 @@ ListExpr MBool2MSetTM(ListExpr args)
   string argstr;
   nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 2 &&
-    nl->IsAtom(nl->First(args)) &&  
-    nl->SymbolValue(nl->First(args))== "mbool" && 
-    nl->IsAtom(nl->Second(args)) &&  
-    nl->SymbolValue(nl->Second(args))== "int",
+    nl->IsAtom(nl->First(args)) &&
+    nl->SymbolValue(nl->First(args))== MBool::BasicType() &&
+    nl->IsAtom(nl->Second(args)) &&
+    nl->SymbolValue(nl->Second(args))== CcInt::BasicType(),
       "Operator mbool2mset expects (mbool int)\n but got "+ argstr+ ".");
   ListExpr result = nl->SymbolAtom("mset");
   return result;
@@ -899,9 +903,9 @@ ListExpr UnionMSetTM(ListExpr args)
   string argstr;
   nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 2 &&
-    nl->IsAtom(nl->First(args)) &&  
+    nl->IsAtom(nl->First(args)) &&
     nl->SymbolValue(nl->First(args))== "mset" &&
-    nl->IsAtom(nl->Second(args)) &&  
+    nl->IsAtom(nl->Second(args)) &&
     nl->SymbolValue(nl->Second(args))== "mset",
       "Operator union expects (mset mset)\n but got "+ argstr+ ".");
   ListExpr result = nl->SymbolAtom("mset");
@@ -913,9 +917,9 @@ ListExpr Union2MSetTM(ListExpr args)
   string argstr;
   nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 2 &&
-    nl->IsAtom(nl->First(args)) &&  
+    nl->IsAtom(nl->First(args)) &&
     nl->SymbolValue(nl->First(args))== "mset" &&
-    nl->IsAtom(nl->Second(args)) &&  
+    nl->IsAtom(nl->Second(args)) &&
     nl->SymbolValue(nl->Second(args))== "mset",
       "Operator union expects (mset mset)\n but got "+ argstr+ ".");
   ListExpr result = nl->SymbolAtom("mset");
@@ -926,10 +930,10 @@ ListExpr CardinalityMSetTM(ListExpr args)
 {
   string argstr;
   nl->WriteToString(argstr, args);
-  CHECK_COND( nl->ListLength(args)==1 &&  nl->IsAtom(nl->First(args)) &&  
+  CHECK_COND( nl->ListLength(args)==1 &&  nl->IsAtom(nl->First(args)) &&
     nl->SymbolValue(nl->First(args))== "mset" ,
       "Operator cardinality expects mset\n but got "+ argstr+ ".");
-  ListExpr result = nl->SymbolAtom("mint");
+  ListExpr result = nl->SymbolAtom(MInt::BasicType());
   return result;
 }
 
@@ -950,19 +954,19 @@ ListExpr TConstraintTM(ListExpr args)
     cout.flush();
   }
 
-  ListExpr alias1 = nl->First(args),   
-  alias2  = nl->Second(args),      
-  temporalconnector = nl->Third(args); 
+  ListExpr alias1 = nl->First(args),
+  alias2  = nl->Second(args),
+  temporalconnector = nl->Third(args);
 
   nl->WriteToString(argstr, alias1);
   CHECK_COND(( nl->IsAtom(alias1)&&
-      nl->SymbolValue(alias1)== "string"),
+      nl->SymbolValue(alias1)== CcString::BasicType()),
       "Operator tconstraint expects a predicate label as first "
       "argument.\n But got '" + argstr + "'.");
 
   nl->WriteToString(argstr, alias2);
   CHECK_COND(( nl->IsAtom(alias2)&&
-      nl->SymbolValue(alias2)== "string"),
+      nl->SymbolValue(alias2)== CcString::BasicType()),
       "Operator tconstraint: expects a predicate label as second "
       "argument.\n But got '" + argstr + "'.");
 
@@ -972,7 +976,7 @@ ListExpr TConstraintTM(ListExpr args)
       "Operator tconstraint: expects a temporal connector as third "
       "argument.\n But got '" + argstr + "'.");
 
-  ListExpr result = nl->SymbolAtom("bool");
+  ListExpr result = nl->SymbolAtom(CcBool::BasicType());
   if(debugme)
   {
     cout<<endl<<endl<<"Operator tconstraint accepted the input";
@@ -987,7 +991,8 @@ ListExpr CreateAlfaSetTM(ListExpr args)
 {
   bool debugme= false;
   //type names according to secondo type mapping
-  char* thetypes[]={"int", "real", "string", "bool"}; 
+  char* thetypes[]={CcInt::BasicType(), CcReal::BasicType(),
+                    CcString::BasicType(), CcBool::BasicType()};
   string alfa(thetypes[Alfa]);
   string argstr;
 
@@ -999,16 +1004,16 @@ ListExpr CreateAlfaSetTM(ListExpr args)
 
   nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 2,
-      "Operator stream2set expects 2 arguments \n but got: " 
+      "Operator stream2set expects 2 arguments \n but got: "
       + argstr + ".");
-  
+
   ListExpr streamExpr = nl->First(args);   //stream(tuple(DATA))
 
   nl->WriteToString(argstr, nl->First(args));
   CHECK_COND( listutils::isTupleStream(streamExpr) ,
       "Operator stream2set expects stream(tuple(.)) as first "
       "argument.\nBut got: " + argstr + ".");
-  
+
   nl->WriteToString(argstr, nl->Second(args));
   CHECK_COND( nl->IsAtom(nl->Second(args)) ,
         "Operator stream2set expects as second argument an "
@@ -1016,24 +1021,24 @@ ListExpr CreateAlfaSetTM(ListExpr args)
 
   nl->WriteToString(argstr, args);
   ListExpr attrType;
-  int attrIndex= 
-    listutils::findAttribute(nl->Second(nl->Second(streamExpr)), 
-        nl->ToString(nl->Second(args)), 
+  int attrIndex=
+    listutils::findAttribute(nl->Second(nl->Second(streamExpr)),
+        nl->ToString(nl->Second(args)),
         attrType);
-  
-  
+
+
   CHECK_COND( attrIndex != 0,
         "Operator  stream2set expects as second argument an "
         "attribute name that belongs to the first argument.\n"
         "But got: '" + argstr + "'.\n" );
-  
+
   CHECK_COND( nl->IsEqual(attrType, alfa),
         "Operator  stream2set expects a attribute of type " + alfa +
         ".\n But got: '" + argstr + "'.\n" );
-  
-  ListExpr res= nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
-      nl->TwoElemList(nl->IntAtom(attrIndex), attrType), 
-      nl->SymbolAtom("intset")); 
+
+  ListExpr res= nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+      nl->TwoElemList(nl->IntAtom(attrIndex), attrType),
+      nl->SymbolAtom("intset"));
   if(debugme)
   {
     cout<<endl<<endl<<"Operator create" + alfa + "set accepted the input";
@@ -1047,34 +1052,34 @@ ListExpr MSet2MRegionTM(ListExpr args)
   string msg= nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 3 ,
       "Operator mset2mregion expects 3 arguments.\nBut got: " + msg + ".");
-  
+
   msg= nl->ToString(nl->First(args));
   CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
       "Operator mset2mregion expects stream(tuple(X)) as first argument."
       "\nBut got: " + msg + ".");
 
   msg= nl->ToString(nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) && 
+  CHECK_COND( nl->IsAtom(nl->Second(args)) &&
       nl->SymbolValue(nl->Second(args)) == "mset",
       "Operator mset2mregion expects an mset as second argument."
       "\nBut got: " + msg + ".");
-  
-  msg= nl->ToString(nl->Third(args));  
-  CHECK_COND( nl->IsAtom(nl->Third(args)) && 
-      nl->SymbolValue(nl->Third(args))== "duration",  
+
+  msg= nl->ToString(nl->Third(args));
+  CHECK_COND( nl->IsAtom(nl->Third(args)) &&
+      nl->SymbolValue(nl->Third(args))== Duration::BasicType(),
           "Operator mset2mregion expects duration as third "
           "argument.\nBut got: " + msg + ".");
-  
+
   ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
   msg= nl->ToString(tuple1);
   CHECK_COND( nl->ListLength(tuple1) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple1))) && 
-    nl->SymbolValue(nl->Second(nl->First (tuple1)))== "int" &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple1))) && 
-    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== "mpoint",  
+    nl->IsAtom     (nl->Second(nl->First (tuple1))) &&
+    nl->SymbolValue(nl->Second(nl->First (tuple1)))== CcInt::BasicType() &&
+    nl->IsAtom     (nl->Second(nl->Second(tuple1))) &&
+    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== MPoint::BasicType(),
         "Operator mset2mregion expects stream(tuple(int mpoint)) as first "
         "argument.\nBut got: stream(tuple(" + msg + ")).");
-  
+
   return nl->SymbolAtom("movingregion");
 }
 
@@ -1083,24 +1088,24 @@ ListExpr ConvexHullTM(ListExpr args)
   string msg= nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 2 ,
       "Operator convexhull expects 2 arguments.\nBut got: " + msg + ".");
-  
+
   msg= nl->ToString(nl->First(args));
   ListExpr strm= nl->First(args);
   CHECK_COND( nl->ListLength(strm) == 2 &&
-      nl->IsAtom(nl->First(strm)) && 
-      nl->SymbolValue(nl->First(strm)) == "stream" &&
-      nl->IsAtom(nl->Second(strm)) && 
-      nl->SymbolValue(nl->Second(strm)) == "mpoint",
+      nl->IsAtom(nl->First(strm)) &&
+      nl->SymbolValue(nl->First(strm)) == Symbol::STREAM() &&
+      nl->IsAtom(nl->Second(strm)) &&
+      nl->SymbolValue(nl->Second(strm)) == MPoint::BasicType(),
       "Operator convexhull expects stream(mpoint) as first argument."
       "\nBut got: " + msg + ".");
 
   msg= nl->ToString(nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) && 
-      nl->SymbolValue(nl->Second(args)) == "instant",
+  CHECK_COND( nl->IsAtom(nl->Second(args)) &&
+      nl->SymbolValue(nl->Second(args)) == Instant::BasicType(),
       "Operator convexhull expects an instant as second argument."
       "\nBut got: " + msg + ".");
-  
-  return nl->SymbolAtom("region");
+
+  return nl->SymbolAtom(Region::BasicType());
 }
 
 ListExpr MSet2MPointsTM(ListExpr args)
@@ -1108,35 +1113,36 @@ ListExpr MSet2MPointsTM(ListExpr args)
   string msg= nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 3 ,
       "Operator mset2mpoints expects 3 arguments.\nBut got: " + msg + ".");
-  
+
   msg= nl->ToString(nl->First(args));
   CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
       "Operator mset2mpoints expects stream(tuple(X)) as first argument."
       "\nBut got: " + msg + ".");
 
   msg= nl->ToString(nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) && 
+  CHECK_COND( nl->IsAtom(nl->Second(args)) &&
       nl->SymbolValue(nl->Second(args)) == "mset",
       "Operator mset2mpoints expects an mset as second argument."
       "\nBut got: " + msg + ".");
 
   msg= nl->ToString(nl->Third(args));
-  CHECK_COND( nl->IsAtom(nl->Third(args)) && 
-      nl->SymbolValue(nl->Third(args)) == "bool",
+  CHECK_COND( nl->IsAtom(nl->Third(args)) &&
+      nl->SymbolValue(nl->Third(args)) == CcBool::BasicType(),
       "Operator mset2mpoints expects a bool as third argument."
       "\nBut got: " + msg + ".");
-    
+
   ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
   msg= nl->ToString(tuple1);
   CHECK_COND( nl->ListLength(tuple1) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple1))) && 
-    nl->SymbolValue(nl->Second(nl->First (tuple1)))== "int" &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple1))) && 
-    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== "mpoint",  
+    nl->IsAtom     (nl->Second(nl->First (tuple1))) &&
+    nl->SymbolValue(nl->Second(nl->First (tuple1)))== CcInt::BasicType() &&
+    nl->IsAtom     (nl->Second(nl->Second(tuple1))) &&
+    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== MPoint::BasicType(),
         "Operator mset2mpoints expects stream(tuple(int mpoint)) as first "
         "argument.\nBut got: stream(tuple(" + msg + ")).");
-  
-  return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("mpoint"));
+
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(MPoint::BasicType()));
 }
 
 
@@ -1149,12 +1155,12 @@ IntersectsTM( ListExpr args )
     ListExpr arg1 = nl->First( args ), //first argument
     arg2 = nl->Second( args );//second argument
     if(nl->IsEqual( arg1, "intset" ) && nl->IsEqual( arg2, "intset" ))
-      return nl->SymbolAtom( "bool" );
+      return nl->SymbolAtom( CcBool::BasicType() );
   }
   nl->WriteToString(argstr, args);
   ErrorReporter::ReportError("typemap error in operator intersects. "
       "Operator  received: " + argstr);
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 ListExpr TheUnitTM( ListExpr args )
@@ -1167,7 +1173,7 @@ ListExpr TheUnitTM( ListExpr args )
     ("Operator 'the_unit' expects a list with structure\n"
      "'(intset instant instant bool bool)'"
      ", but it gets a list of type \n'" + argstr + "'.");
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -1178,7 +1184,7 @@ ListExpr TheMValueTM( ListExpr args )
   // quick check for signature (stream uT) --> mT
   nl->WriteToString(argstr, args);
   if ( argstr == "((stream uset))" )    return nl->SymbolAtom( "mset" );
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 ListExpr CollectIntSetTypeMap(ListExpr args) {
@@ -1197,8 +1203,8 @@ ListExpr CollectIntSetTypeMap(ListExpr args) {
       if ( !nl->IsAtom(argStream) && nl->ListLength(argStream) == 2)
       {
           argType = nl->Second(argStream);
-          if ( nl->IsEqual(nl->First(argStream), "stream")
-             && nl->IsEqual(nl->Second(argStream), "int"))
+          if ( nl->IsEqual(nl->First(argStream), Symbol::STREAM())
+             && nl->IsEqual(nl->Second(argStream), CcInt::BasicType()))
               return nl->SymbolAtom("intset");
       }
     }
@@ -1214,9 +1220,9 @@ NoComponentsTM( ListExpr args )
     ListExpr arg1 = nl->First( args );
 
     if( nl->IsEqual( arg1, "mset" ))
-      return nl->SymbolAtom( "int" );
+      return nl->SymbolAtom( CcInt::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -1224,7 +1230,7 @@ Value map ReportPattern
 
 */
 
-int 
+int
 ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
 {
   bool debugme=false;
@@ -1238,9 +1244,9 @@ ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
 
   switch( message )
   {
-  case OPEN: // Construct and Solve the CSP, then store it in the "local" 
-  { 
-    Supplier stream, namedpatternoidlist, namedpatternoid,alias, patternoid, 
+  case OPEN: // Construct and Solve the CSP, then store it in the "local"
+  {
+    Supplier stream, namedpatternoidlist, namedpatternoid,alias, patternoid,
     constraintlist, filter, constraint, alias1, alias2, tvector;
     Word Value;
     string aliasstr, alias1str, alias2str;
@@ -1294,7 +1300,7 @@ ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
    if(Part2)
    {
      result = qp->ResultStorage( s );
-     Tuple* tuple= 
+     Tuple* tuple=
        new Tuple(static_cast<Tuple*>(result.addr)->GetTupleType() );
      GPSolver.WriteTuple(tuple);
      result.setAddr(tuple);
@@ -1315,7 +1321,7 @@ ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
 }
 
 
-int TConstraintVM 
+int TConstraintVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   cerr<< "\nThe operator tconstraint is a facked operator. It may only be "
@@ -1325,18 +1331,18 @@ int TConstraintVM
 }
 
 
-int GPatternVM 
+int GPatternVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme= false;
   switch( message )
   {
-  case OPEN: 
-  { 
+  case OPEN:
+  {
 /*
 Defining local variables
 
-*/    
+*/
     Word t, value;
     Tuple* tup;
     MBool* mbool;
@@ -1348,8 +1354,8 @@ Defining local variables
 Reading the operator arguments
 
 */
-    Supplier TheStream= args[0].addr, 
-    tupleID= args[1].addr,  
+    Supplier TheStream= args[0].addr,
+    tupleID= args[1].addr,
     liftedPred = args[2].addr;
     ArgVectorPointer tupleIDArgs = qp->Argument(tupleID),
       liftedPredArgs = qp->Argument(liftedPred);
@@ -1364,17 +1370,17 @@ Reading the operator arguments
 /*
 Evaluating the gpattern results
 
-*/    
+*/
     qp->Open(TheStream);
     qp->Request(TheStream, t);
     while (qp->Received(TheStream))
     {
       tup = static_cast<Tuple*>(t.addr);
-      
+
       (*tupleIDArgs)[0] = tup;
       qp->Request(tupleID, value);
       id= static_cast<CcInt*>(value.addr)->GetIntval();
-      
+
       (*liftedPredArgs)[0] = tup;
       qp->Request(liftedPred, value);
       mbool = static_cast<MBool*>(value.addr);
@@ -1401,7 +1407,7 @@ Evaluating the gpattern results
         //tmp2.Print(cerr);
       }
     }
-    
+
     bool changed= true;
     while(changed && accumlator.GetNoComponents() > 0)
     {
@@ -1409,7 +1415,7 @@ Evaluating the gpattern results
       changed= accumlator.RemoveSmallUnits(n);
 
       //accumlator2.RemoveShortElemParts(d);
-      changed= (accumlator.RemoveShortElemParts(d) || changed );  
+      changed= (accumlator.RemoveShortElemParts(d) || changed );
     }
     if(debugme)
     {
@@ -1422,8 +1428,8 @@ Evaluating the gpattern results
         //tmp2.Print(cerr);
       }
     }
-    
-    list<CompressedInMemUSet>::iterator begin= 
+
+    list<CompressedInMemUSet>::iterator begin=
       accumlator.units.begin(), end, tmp;
     //cast the CompressedInMemMSet into an InMemMSet
     begin != accumlator.units.end();
@@ -1446,7 +1452,7 @@ Evaluating the gpattern results
           MSet tmp1(0);
           mset->WriteToMSet(tmp1);
           tmp1.Print(cerr);
-        }        
+        }
         resStream->push_back(*mset);
       }
       else
@@ -1460,11 +1466,11 @@ Evaluating the gpattern results
           MSet tmp1(0);
           mset->WriteToMSet(tmp1);
           tmp1.Print(cerr);
-        } 
+        }
 
         list<InMemUSet>::iterator e= mset->units.end();
         --e;
-        GPatternHelper::ComputeAddSubSets(*mset, mset->units.begin(), e, 
+        GPatternHelper::ComputeAddSubSets(*mset, mset->units.begin(), e,
             n, d, resStream);
       }
       begin= ++end;
@@ -1474,13 +1480,13 @@ Evaluating the gpattern results
   }
   case REQUEST: { // return the next stream element
 
-    vector<InMemMSet>* resStreams= static_cast<vector<InMemMSet>*>(local.addr); 
+    vector<InMemMSet>* resStreams= static_cast<vector<InMemMSet>*>(local.addr);
     if ( resStreams->size() != 0)
     {
       MSet* res= new MSet(0);
       (*resStreams->begin()).WriteToMSet(*res);
       resStreams->erase(resStreams->begin());
-      result= SetWord(res);  
+      result= SetWord(res);
       return YIELD;
     }
     else
@@ -1509,18 +1515,18 @@ Value map CrossPattern
 
 */
 
-int CrossPatternVM 
+int CrossPatternVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme= false;
   switch( message )
   {
-  case OPEN: 
-  { 
+  case OPEN:
+  {
 /*
 Defining local variables
 
-*/    
+*/
     Word t, value;
     Tuple* tup;
     MBool* mbool;
@@ -1528,7 +1534,7 @@ Defining local variables
     vector<pair<int, int> > ids(0);
     CompressedInMemMSet accumlator;
     //InMemMSet accumlator2;
-    list<CompressedMSet*>* resStream= 
+    list<CompressedMSet*>* resStream=
       new list<CompressedMSet*>(), *resStreamFinal=0,
       *localResStream=0;
 
@@ -1536,8 +1542,8 @@ Defining local variables
 Reading the operator arguments
 
 */
-    Supplier TheStream= args[0].addr, 
-    tupleID1= args[1].addr,  
+    Supplier TheStream= args[0].addr,
+    tupleID1= args[1].addr,
     tupleID2= args[2].addr,
     liftedPred = args[3].addr;
     ArgVectorPointer tupleID1Args = qp->Argument(tupleID1),
@@ -1548,25 +1554,25 @@ Reading the operator arguments
     qp->Request(args[5].addr, value);
     int n= static_cast<CcInt*>(value.addr)->GetIntval();
     string qts= nl->ToString(qp->GetType(args[6].addr));
-    
+
 /*
 Evaluating the gpattern results
 
-*/    
+*/
     qp->Open(TheStream);
     qp->Request(TheStream, t);
     while (qp->Received(TheStream))
     {
       tup = static_cast<Tuple*>(t.addr);
-      
+
       (*tupleID1Args)[0] = tup;
       qp->Request(tupleID1, value);
       id1= static_cast<CcInt*>(value.addr)->GetIntval();
-      
+
       (*tupleID2Args)[0] = tup;
       qp->Request(tupleID2, value);
       id2= static_cast<CcInt*>(value.addr)->GetIntval();
-     
+
       (*liftedPredArgs)[0] = tup;
       qp->Request(liftedPred, value);
       mbool = static_cast<MBool*>(value.addr);
@@ -1576,7 +1582,7 @@ Evaluating the gpattern results
         //bool inc= accumlator.Buffer(*mbool, tupleCnt);
         //GPatternHelper::removeShortUnits(*mbool, d);
         //accumlator2.Union(*mbool, tupleCnt);
-        if(inc) 
+        if(inc)
         {
           ids.push_back(make_pair(id1, id2));
           ++tupleCnt;
@@ -1612,7 +1618,7 @@ Evaluating the gpattern results
       //remove short nodes
       //changed= (accumlator.RemoveShortElemParts(d) || changed );
     }
-    
+
     if(debugme)
     {
       MSet tmp1(0), tmp2(0);
@@ -1624,8 +1630,8 @@ Evaluating the gpattern results
         tmp2.Print(cerr);
       }
     }
-    
-    list<CompressedInMemUSet>::iterator begin= 
+
+    list<CompressedInMemUSet>::iterator begin=
       accumlator.units.begin(), end, tmp;
     //cast the CompressedInMemMSet into an InMemMSet
     while(begin != accumlator.units.end())
@@ -1649,14 +1655,14 @@ Evaluating the gpattern results
             //accumlator2.WriteToMSet(tmp2);
             tmp1.Print(cerr);
           }
-          GPatternHelper::FindSubGraphs<CompressedInMemMSet, 
-            list<CompressedInMemUSet>::iterator>(accumlatorPart, 
-              accumlatorPart.units.begin(), accumlatorPart.units.end() , 
+          GPatternHelper::FindSubGraphs<CompressedInMemMSet,
+            list<CompressedInMemUSet>::iterator>(accumlatorPart,
+              accumlatorPart.units.begin(), accumlatorPart.units.end() ,
               ids, d, n, qts, localResStream, 0);
         }
         else
         {
-          GPatternHelper::FindSubGraphs<CompressedInMemMSet, 
+          GPatternHelper::FindSubGraphs<CompressedInMemMSet,
             list<CompressedInMemUSet>::iterator>(
             accumlator, begin, end , ids, d, n, qts, localResStream, 0);
         }
@@ -1669,7 +1675,7 @@ Evaluating the gpattern results
       begin= end;
     }
     resStreamFinal= new list<CompressedMSet*>();
-    for(list<CompressedMSet*>::iterator 
+    for(list<CompressedMSet*>::iterator
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
       if(debugme)
@@ -1679,15 +1685,15 @@ Evaluating the gpattern results
       *it = 0;
     }
     delete resStream;
-    
+
     local= SetWord(resStreamFinal);
     return 0;
   }
   case REQUEST: { // return the next stream element
 
-    list<CompressedMSet*>* resStream= 
+    list<CompressedMSet*>* resStream=
       static_cast< list<CompressedMSet*>* >(local.addr);
-    CompressedInMemMSet tmp;  
+    CompressedInMemMSet tmp;
     if ( resStream->size() != 0)
     {
       MSet* res= new MSet(0);
@@ -1695,7 +1701,7 @@ Evaluating the gpattern results
       tmp.WriteToMSet(*res);
       delete resStream->front();
       resStream->pop_front();
-      result= SetWord(res);  
+      result= SetWord(res);
       return YIELD;
     }
     else
@@ -1708,9 +1714,9 @@ Evaluating the gpattern results
 
   }
   case CLOSE: { // free the local storage
-    list<CompressedMSet*>* resStream= 
+    list<CompressedMSet*>* resStream=
       static_cast<list<CompressedMSet*>* >(local.addr);
-    for(list<CompressedMSet*>::iterator 
+    for(list<CompressedMSet*>::iterator
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
       delete *it;
@@ -1726,7 +1732,7 @@ Evaluating the gpattern results
   return 0;
 }
 
-int EmptyMSetVM 
+int EmptyMSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result= qp->ResultStorage(s);
@@ -1735,7 +1741,7 @@ int EmptyMSetVM
   return 0;
 }
 
-int MBool2MSetVM 
+int MBool2MSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result= qp->ResultStorage(s);
@@ -1746,7 +1752,7 @@ int MBool2MSetVM
   return 0;
 }
 
-int UnionMSetVM 
+int UnionMSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result= qp->ResultStorage(s);
@@ -1757,7 +1763,7 @@ int UnionMSetVM
   return 0;
 }
 
-int Union2MSetVM 
+int Union2MSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result= qp->ResultStorage(s);
@@ -1768,7 +1774,7 @@ int Union2MSetVM
   return 0;
 }
 
-int CardinalityMSetVM 
+int CardinalityMSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result= qp->ResultStorage(s);
@@ -1780,14 +1786,14 @@ int CardinalityMSetVM
 
 
 template <bool Row>
-int RowColVM 
+int RowColVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   return 0;
 }
 
 template <class Alfa>
-int CreateAlfaSetVM 
+int CreateAlfaSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme= false;
@@ -1795,7 +1801,7 @@ int CreateAlfaSetVM
   Tuple* tup;
   IntSet* res=0;
   int elem;
-  
+
   int attrIndex= static_cast<CcInt*>(args[2].addr)->GetIntval();
   //string attrType= static_cast<CcString*>(args[3].addr)->GetValue();
   result = qp->ResultStorage( s );
@@ -1815,7 +1821,7 @@ int CreateAlfaSetVM
   return 0;
 }
 
-void 
+void
 MPointsSample(Instant& curTime, vector<MPoint*>& sourceMPoints, Points& res,
     bool checkDefined)
 {
@@ -1836,8 +1842,8 @@ MPointsSample(Instant& curTime, vector<MPoint*>& sourceMPoints, Points& res,
   }
 }
 
-void 
-MPointsSample(Instant& curTime, set<int>& idset, 
+void
+MPointsSample(Instant& curTime, set<int>& idset,
     map<int, MPoint*>& sourceMPoints, Points& res, bool checkDefined)
 {
   bool debugme=false;
@@ -1859,7 +1865,7 @@ MPointsSample(Instant& curTime, set<int>& idset,
 }
 
 
-void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints, 
+void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints,
     Interval<Instant>& unitBoundary,
     Instant& samplingDuration,
     MRegion& res)
@@ -1870,11 +1876,11 @@ void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints,
     weigths[1] = 0.7;            // OverlapWeight
     weigths[2] = 0.5;            // HausdorffWeight
     weigths[3] = 1.0;            // LinearWeight
-  
+
     Instant curTime(unitBoundary.start);
-    Interval<Instant> 
+    Interval<Instant>
       unitInterval(curTime, unitBoundary.end, unitBoundary.lc, false);
-    
+
     Points ps(0);
     Region* reg1=new Region(0), *reg2=new Region(0), *regswap;
     RegionForInterpolation *reginter1, *reginter2, *reginterswap;
@@ -1882,7 +1888,7 @@ void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints,
     mLineRep *lines;
     URegion *resUnit;
     bool firstIteration= true;
-    
+
     MPointsSample(curTime, idset, sourceMPoints, ps, true);
     GrahamScan::convexHull(&ps,reg1);
     reginter1=new RegionInterpol::RegionForInterpolation(reg1);
@@ -1897,7 +1903,7 @@ void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints,
       unitInterval.end= curTime;
       reginter2=new RegionInterpol::RegionForInterpolation(reg2);
       sm=new OptimalMatch(reginter1, reginter2, weigths);
-      lines=new mLineRep(sm);    
+      lines=new mLineRep(sm);
       resUnit= new URegion(lines->getTriangles(), unitInterval);
       if(debugme)
         unitInterval.Print(cerr);
@@ -1906,7 +1912,7 @@ void AppendMRegionPart(set<int>& idset, map<int, MPoint*>& sourceMPoints,
 Copying the right part of this URegion to the left part of the next URegion
 
 */
-      
+
       unitInterval.start= unitInterval.end;
       regswap= reg1;
       reg1= reg2;
@@ -1916,7 +1922,7 @@ Copying the right part of this URegion to the left part of the next URegion
 /*
 Garbage collection
 
-*/      
+*/
       delete resUnit;
       delete lines;
       delete reginterswap;
@@ -1925,20 +1931,20 @@ Garbage collection
 /*
 Adding the last instant in the unit
 
-*/  
+*/
     Instant endI(unitBoundary.end);
     if(!unitBoundary.rc)
     {
       Instant milli(0, 1, durationtype);
       endI -= milli;
-    } 
+    }
     MPointsSample(endI, idset, sourceMPoints, ps, false);
     unitInterval.rc= unitBoundary.rc;
     GrahamScan::convexHull(&ps, reg2);
     unitInterval.end= unitBoundary.end;
     reginter2=new RegionInterpol::RegionForInterpolation(reg2);
     sm=new OptimalMatch(reginter1, reginter2, weigths);
-    lines=new mLineRep(sm);    
+    lines=new mLineRep(sm);
     resUnit= new URegion(lines->getTriangles(), unitInterval);
     if(debugme)
       unitInterval.Print(cerr);
@@ -1956,7 +1962,7 @@ Value map MSet2MRegion
 
 */
 
-int 
+int
 MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme=false;
@@ -1973,13 +1979,13 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
   if(debugme)
     mset->Print(cerr);
 
-  
+
   if(!mset->IsDefined() || mset->GetNoComponents()==0)
   {
     res->SetDefined(false);
     return 0;
   }
-  
+
   qp->Request(arg2, Value);
   Instant* d= static_cast<Instant*>(Value.addr);
   USetRef usetref;
@@ -1996,7 +2002,7 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
         idset.insert(uset.constValue[k]);
     }
   }
-  
+
   map<int, MPoint*> mpoints;
   vector<Tuple*> tuplesToDelete(0);
   qp->Open(arg0);
@@ -2015,10 +2021,10 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     else
       tuple->DeleteIfAllowed();
-      
+
     qp->Request(arg0, Value);
   }
-  qp->Close(arg0);  
+  qp->Close(arg0);
   if(mpoints.size() != idset.size())
   {
     res->SetDefined(false);
@@ -2028,7 +2034,7 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
       tuplesToDelete[k]->DeleteIfAllowed();
     return 0;
   }
-  
+
   for(int i=0; i<mset->GetNoComponents(); ++i)
   {
     mset->Get(i, usetref);
@@ -2055,7 +2061,7 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-//int 
+//int
 //MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
 //{
 //  bool debugme=false;
@@ -2066,19 +2072,19 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
 //  Supplier arg0= qp->GetSon(s,0);
 //  Supplier arg1= qp->GetSon(s,1);
 //  Supplier arg2= qp->GetSon(s,2);
-//  
+//
 //  qp->Request(arg1, Value);
 //  MSet* mset= static_cast<MSet*>(Value.addr);
 //  if(debugme)
 //    mset->Print(cerr);
 //
-//  
+//
 //  if(!mset->IsDefined() || mset->GetNoComponents()==0)
 //  {
 //    res->SetDefined(false);
 //    return 0;
 //  }
-//  
+//
 //  qp->Request(arg2, Value);
 //  Instant* d= static_cast<Instant*>(Value.addr);
 //  USetRef usetref;
@@ -2104,7 +2110,7 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
 //        setIt= idset.find(id);
 //        if(setIt != idset.end())
 //        {
-//          MPoint* elem=dynamic_cast<MPoint*>( 
+//          MPoint* elem=dynamic_cast<MPoint*>(
 //            dynamic_cast<MPoint*>(tuple->GetAttribute(1))->Clone());
 //          mpoints.push_back(elem);
 //        }
@@ -2132,7 +2138,7 @@ Value map MSet2MPoints
 
 */
 
-int 
+int
 MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
@@ -2141,7 +2147,7 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
   switch( message )
   {
   case OPEN: { // initialize the local storag
-    map<int, Periods*>* msetElems= new map<int, Periods*>();      
+    map<int, Periods*>* msetElems= new map<int, Periods*>();
     Word Value;
     Supplier arg1= qp->GetSon(s,1);
     qp->Request(arg1, Value);
@@ -2153,12 +2159,12 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
     }
     Supplier arg2= qp->GetSon(s,2);
-    qp->Request(arg2, Value);    
-    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();  
-    
+    qp->Request(arg2, Value);
+    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();
+
     int nounitcomponents=0, idFromMSet=0;
     map<int, Periods*>::iterator msetElemsIt;
-    
+
     USetRef usetref;
     USet uset(true);
     for(int i=0; i< nocomponents; ++i)
@@ -2179,11 +2185,11 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
         else
         {
           if(!restrictMPoints)
-            continue;        
+            continue;
           (*msetElemsIt).second->MergeAdd(uset.timeInterval);
         }
       }
-    }    
+    }
     local=SetWord(msetElems);
     qp->Open( args[0].addr );
     return 0;
@@ -2197,16 +2203,16 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     //result = qp->ResultStorage(s);
     Word Value;
-    map<int, Periods*>::iterator msetElemsIt; 
+    map<int, Periods*>::iterator msetElemsIt;
     Supplier arg2= qp->GetSon(s,2);
-    qp->Request(arg2, Value);  
-    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();  
-    
+    qp->Request(arg2, Value);
+    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();
+
     qp->Request(args[0].addr, Value);
     while(qp->Received(args[0].addr))
     {
       Tuple* tuple= static_cast<Tuple*>(Value.addr);
-      int idFromTuple= 
+      int idFromTuple=
         dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
       msetElemsIt= msetElems->find(idFromTuple);
       if(msetElemsIt != msetElems->end())
@@ -2241,7 +2247,7 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
     for(; msetElemsIt != msetElems->end(); ++msetElemsIt)
       delete (*msetElemsIt).second;
     delete msetElems;
-    result.addr=0;  
+    result.addr=0;
     return 0;
   }
   return 0;
@@ -2249,7 +2255,7 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-int 
+int
 ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme= false;
@@ -2258,7 +2264,7 @@ ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
   Instant* instant=0;
   vector<MPoint*> stream(0);
   result = qp->ResultStorage(s);
-  
+
   qp->Open(args[0].addr);
   qp->Request(args[0].addr,Value);
   while (qp->Received(args[0].addr))
@@ -2270,7 +2276,7 @@ ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
   Supplier arg1= qp->GetSon(s,1);
   qp->Request(arg1, Value);
   instant= static_cast<Instant*>(Value.addr);
-  
+
   Points ps(0);
   MPointsSample(*instant, stream, ps, true);
   Region* reg=static_cast<Region*>(result.addr);
@@ -2280,7 +2286,7 @@ ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-int 
+int
 IntersectsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme= false;
@@ -2295,7 +2301,7 @@ IntersectsVM(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     cerr<< "\nInside intersects\n arg1:";
     arg1->Print(cerr);
-    cerr<<"\narg2:"; 
+    cerr<<"\narg2:";
     arg2->Print(cerr);
     cerr<<"\nresult: "<<intersects;
   }
@@ -2384,7 +2390,7 @@ int TheMValueVM(Word* args,Word& result,int message,
 
 
 int CollectIntSetValueMap(
-    Word* args, Word& result, int message, Word& local, Supplier s) 
+    Word* args, Word& result, int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
   IntSet* resColl = static_cast<IntSet*>(result.addr);
@@ -2407,7 +2413,7 @@ int CollectIntSetValueMap(
   return 0;
 }
 
-int NoComponentsVM( 
+int NoComponentsVM(
     Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2775,14 +2781,14 @@ Operator convexhull (
     ConvexHullTM          // type mapping
 );
 
-Operator theunit( 
+Operator theunit(
     "the_unit",
     TheUnitSpec,
     TheUnitVM,
     Operator::SimpleSelect,
     TheUnitTM);
 
-Operator themvalue( 
+Operator themvalue(
     "the_mvalue",
     TheMValueSpec,
     TheMValueVM,
@@ -2794,7 +2800,7 @@ Operator nocomponents( "no_components",
     NoComponentsVM,
     Operator::SimpleSelect,
     NoComponentsTM);
-    
+
 
 TypeConstructor intSetTC(
         "intset",       //name
@@ -2809,7 +2815,7 @@ TypeConstructor intSetTC(
         IntSet::Clone,  //object close and clone
         IntSet::Cast,   //cast function
         IntSet::SizeOfObj, //sizeof function
-        IntSet::KindCheck );  
+        IntSet::KindCheck );
 
 TypeConstructor usetTC(
         "uset",        //name
@@ -2825,7 +2831,7 @@ TypeConstructor usetTC(
         mset::USet::CloneUSet,           //object close and clone
         mset::USet::CastUSet,            //cast function
         mset::USet::SizeOfUSet,          //sizeof function
-        mset::USet::CheckUSet );  
+        mset::USet::CheckUSet );
 
 TypeConstructor msetTC(
         "mset", //name
@@ -2843,7 +2849,7 @@ TypeConstructor msetTC(
         MSet::CloneMSet,     //object close and clone
         MSet::CastMSet,     //cast function
         MSet::SizeOfMSet,    //sizeof function
-        MSet::KindCheck );   
+        MSet::KindCheck );
 
 
 class GPatternAlgebra : public Algebra
@@ -2855,12 +2861,12 @@ public:
     AddTypeConstructor( &intSetTC );
     AddTypeConstructor( &usetTC );
     AddTypeConstructor( &msetTC );
-    
-    intSetTC.AssociateKind( "DATA" );
-    usetTC.AssociateKind("TEMPORAL" );
-    usetTC.AssociateKind( "DATA" );
-    msetTC.AssociateKind("TEMPORAL" );
-    msetTC.AssociateKind( "DATA" );
+
+    intSetTC.AssociateKind( Kind::DATA() );
+    usetTC.AssociateKind(Kind::TEMPORAL() );
+    usetTC.AssociateKind( Kind::DATA() );
+    msetTC.AssociateKind( Kind::TEMPORAL() );
+    msetTC.AssociateKind( Kind::DATA() );
 /*
 The spattern and reportpattern operators are registered as lazy variables.
 
@@ -2868,7 +2874,7 @@ The spattern and reportpattern operators are registered as lazy variables.
     reportpattern.SetRequestsArguments();
     gpattern.SetRequestsArguments();
     crosspattern.SetRequestsArguments();
-    
+
     AddOperator(&GPattern::tconstraint);
     AddOperator(&GPattern::reportpattern);
     AddOperator(&GPattern::emptymset);

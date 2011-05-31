@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the range operators for the BTree2-Algebra 
+[1] Implementation of the range operators for the BTree2-Algebra
 
 [TOC]
 
@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "Symbols.h"
+
 
 #include "BTree2.h"
 #include "BTree2Iterator.h"
@@ -53,7 +55,7 @@ namespace Operators {
 /*
 The following constant values of the operators are defined to calculate
 the number of arguments by (value div 9) and the type of range operator
-by calculating (value mod 3). Type 0 means range2, type 1 means rangeS 
+by calculating (value mod 3). Type 0 means range2, type 1 means rangeS
 and type 2 means range2.
 The type mapping function and value mapping function use these constant
 value as a template parameter.
@@ -76,11 +78,11 @@ const int RANGE = 38;       // (div 9 = 4) (mod 3 = 2)
 /*
 2 Operators ~exactmatch2~, ~exactmatchS~, ~exactmatch~
 
-The operator ~exactmatch2~ uses the given btree2 to find all keys or 
+The operator ~exactmatch2~ uses the given btree2 to find all keys or
 (key-value)-pairs of the btree2 with key Tk.
-The operator ~exactmatchS~ uses the given btree2 to find all tuples 
+The operator ~exactmatchS~ uses the given btree2 to find all tuples
 identifiers where the key matches argument value Tk.
-The operator ~exactmatch~ uses the given btree2 to find all tuples 
+The operator ~exactmatch~ uses the given btree2 to find all tuples
 in the given relation where the key matches argument value Tk.
 
 The signatures are
@@ -100,8 +102,8 @@ The signatures are
 
 The template parameter operatorId specifies the range operator. The operator ~exactmatch2~
 with value 18 needs (18 div 9 =) 2 parameters and is a range2-type with code (18 mod 3 =) 0,
-the operator ~exactmatchS~ with value 19 needs (19 div 9 =) 2 parameters, too, and is a 
-rangeS-type with code (19 mod 3 =) 1 and finally the operator ~exactmatch~ with value 29 
+the operator ~exactmatchS~ with value 19 needs (19 div 9 =) 2 parameters, too, and is a
+rangeS-type with code (19 mod 3 =) 1 and finally the operator ~exactmatch~ with value 29
 needs (29 div 9 =) 3 parameters and is a range-type with code (29 mod 3 =) 2.
 
 */
@@ -112,7 +114,7 @@ ListExpr RangeTypeMap(ListExpr args)
   if(nl->ListLength(args)!=(int)(operatorId/9)){
     return listutils::typeError("wrong number of arguments");
   }
-  // Split arguments in the parts depending on the 
+  // Split arguments in the parts depending on the
   // operator-type indicated by operatorId
   ListExpr btree2Description = nl->First(args);
   ListExpr relDescription = nl->TheEmptyList();
@@ -154,23 +156,23 @@ ListExpr RangeTypeMap(ListExpr args)
        (operatorId==RANGES)||
        (operatorId==RANGE2)) )
   {
-       return listutils::typeError("operator belongs second key type"); 
+       return listutils::typeError("operator belongs second key type");
   }
 
-  // find out type of second key (if any) 
+  // find out type of second key (if any)
   if ((!nl->IsEmpty(secondKeyDescription)) &&
       (!nl->Equal(keyDescription, secondKeyDescription))) {
-       return listutils::typeError("different key types"); 
+       return listutils::typeError("different key types");
   }
 
-  // check btree2 part of argument 
+  // check btree2 part of argument
   if (!listutils::isBTree2Description(btree2Description)) {
     return listutils::typeError("first argument is not a valid btree2");
   }
 
   ListExpr btree2KeyType = nl->Second(btree2Description);
 
-  // check that the type of given key is equal to the btree2 key type 
+  // check that the type of given key is equal to the btree2 key type
   if(!nl->Equal(keyDescription, btree2KeyType)){
     return listutils::typeError("key and btree key are different");
   }
@@ -192,11 +194,11 @@ ListExpr RangeTypeMap(ListExpr args)
   if ((operatorId%3)>0)
   {
     // check loadtype
-    if (!nl->IsEqual(btree2ValType,"tid")){
+    if (!nl->IsEqual(btree2ValType,TupleIdentifier::BasicType())){
       return listutils::typeError("datatype not a TID");
     }
     // check unique-type
-    if ((!nl->IsEqual(btree2Unique,"multiple")) && 
+    if ((!nl->IsEqual(btree2Unique,"multiple")) &&
             (!nl->IsEqual(btree2Unique,"stable_multiple"))) {
       return listutils::typeError("uniquetype not multiple");
     }
@@ -211,9 +213,9 @@ ListExpr RangeTypeMap(ListExpr args)
       if (nl->IsEqual(btree2ValType,"none"))
       {
         resultType = nl->TwoElemList(
-                   nl->SymbolAtom("stream"),
+                   nl->SymbolAtom(Symbol::STREAM()),
                    nl->TwoElemList(
-                       nl->SymbolAtom("tuple"),
+                       nl->SymbolAtom(Tuple::BasicType()),
                        nl->OneElemList(
                            nl->TwoElemList(
                                nl->SymbolAtom("Key"),
@@ -223,9 +225,9 @@ ListExpr RangeTypeMap(ListExpr args)
       else
       {
         resultType = nl->TwoElemList(
-                   nl->SymbolAtom("stream"),
+                   nl->SymbolAtom(Symbol::STREAM()),
                    nl->TwoElemList(
-                       nl->SymbolAtom("tuple"),
+                       nl->SymbolAtom(Tuple::BasicType()),
                        nl->TwoElemList(
                            nl->TwoElemList(
                                nl->SymbolAtom("Key"),
@@ -238,9 +240,9 @@ ListExpr RangeTypeMap(ListExpr args)
       break;
     case 1:
       resultType = nl->TwoElemList(
-                       nl->SymbolAtom("stream"),
+                       nl->SymbolAtom(Symbol::STREAM()),
                        nl->TwoElemList(
-                           nl->SymbolAtom("tuple"),
+                           nl->SymbolAtom(Tuple::BasicType()),
                            nl->OneElemList(
                                nl->TwoElemList(
                                    nl->SymbolAtom("Id"),
@@ -249,7 +251,7 @@ ListExpr RangeTypeMap(ListExpr args)
       break;
     case 2:
       resultType = nl->TwoElemList(
-                       nl->SymbolAtom("stream"),
+                       nl->SymbolAtom(Symbol::STREAM()),
                        trel);
       break;
   }
@@ -314,7 +316,7 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo->ttype = new TupleType(nl->Second(GetTupleResultType(s)));
       localInfo->nextOK = true;
 
-      // Split arguments in the parts depending on the 
+      // Split arguments in the parts depending on the
       // operator-type indicated by operatorId
       switch ((int)(operatorId/9))
       {
@@ -345,7 +347,7 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       assert(btree2 != 0);
       assert(key != 0);
 
-      // get starting point and endmarker point of the range operation 
+      // get starting point and endmarker point of the range operation
       // depending on the operator-type indicated by operatorId
       switch(operatorId)
       {
@@ -353,15 +355,15 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         case EXACTMATCH2:
         case EXACTMATCHS:
         // exactmatch of key
-          btree2->findExactmatchBoundary(key, localInfo->iter, 
+          btree2->findExactmatchBoundary(key, localInfo->iter,
                                               localInfo->iterStopMarker);
           break;
         case RANGE:
         case RANGE2:
         case RANGES:
-        // range between and including key and secondKey, 
+        // range between and including key and secondKey,
         // where key <= secondKey
-          btree2->findRangeBoundary(key, secondKey, localInfo->iter, 
+          btree2->findRangeBoundary(key, secondKey, localInfo->iter,
                                               localInfo->iterStopMarker);
           break;
         case LEFTRANGE:
@@ -407,7 +409,7 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(nextOK)
       {
-        // get the attributes of the result tuple of the range operation 
+        // get the attributes of the result tuple of the range operation
         // depending on the operator-type indicated by operatorId
         switch (operatorId%3)
         {
@@ -437,7 +439,7 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
             break;
         }
         result = SetWord(tuple);
-        // nextOK is true, if there is another result of the iterator and 
+        // nextOK is true, if there is another result of the iterator and
         // the iterator has not reached the endmarking point
         localInfo->nextOK = (localInfo->iter).next();
         localInfo->nextOK &= (localInfo->iter != localInfo->iterStopMarker);
@@ -469,7 +471,7 @@ RangeQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string ExactMatch2Spec() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = "(btree2 Tk none u) x Tk -> stream(tuple((Key Tk)))\n" 
+  string sig = "(btree2 Tk none u) x Tk -> stream(tuple((Key Tk)))\n"
                "(btree2 Tk Td   u) x Tk -> stream(tuple((Key Tk)"
                "(Data Td)))";
   string spec = "_ exactmatch2 [ _ ]";
@@ -479,10 +481,10 @@ const string ExactMatch2Spec() {
                    "[\"Hagen\"] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -500,10 +502,10 @@ const string ExactMatchSSpec() {
                    " Staedte gettuples consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -522,10 +524,10 @@ const string ExactMatchSpec() {
                    "[\"Dortmund\"] count";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -572,14 +574,14 @@ Operator rangebtree2::exactmatch (
 /*
 3 Operators ~range2~, ~rangeS~, ~range~
 
-The operator ~range2~ uses the given btree2 to find all stored keys or 
-(key-value)-pairs of the btree2 with key $ >= $ Tk argument value 1 and 
+The operator ~range2~ uses the given btree2 to find all stored keys or
+(key-value)-pairs of the btree2 with key $ >= $ Tk argument value 1 and
 key $ <= $ Tk argument value 2.
-The operator ~rangeS~ uses the given btree2 to find all stored tuple 
+The operator ~rangeS~ uses the given btree2 to find all stored tuple
 identifiers referencing tuples with key $ >= $ Tk argument value 1 and
 key $ <= $ Tk argument value 2.
 The operator ~range~ uses the given btree2 to find all tuples in the
-given relation with key $ >= $ Tk argument value 1 and key $ <= $ Tk argument 
+given relation with key $ >= $ Tk argument value 1 and key $ <= $ Tk argument
 value 2.
 The stream is empty, if (Tk argument value 2) $ < $ (Tk argument value 1)
 or the given range includes no key.
@@ -598,19 +600,19 @@ range:  (btree2 Tk tid multiple) x rel(tuple(T)) x Tk x Tk --> stream(tuple(T))
 
 
 3.1 Type mapping function of operators ~range2~, ~rangeS~, ~range~
- 
+
 The same as for ~exactmatch2~, ~exactmatchS~ and ~exactmatch~.
 The template parameter operatorId specifies the range operator. The operator ~range2~
 with value 27 needs (27 div 9 =) 3 parameters and is a range2-type with code (27 mod 3 =) 0,
-the operator ~rangeS~ with value 28 needs (28 div 9 =) 3 parameters, too, and is a 
+the operator ~rangeS~ with value 28 needs (28 div 9 =) 3 parameters, too, and is a
 rangeS-type with code (28 mod 3 =) 1 and finally the operator ~range~ with value 38
 needs (38 div 9 =) 4 parameters and is a range-type with code (38 mod 3 =) 2.
 
 
 3.2 Value mapping function of operators ~range2~, ~rangeS~, ~range~
 
-The same as for ~exactmtach2~, ~exactmatchS~ and ~exactmatch~. The template parameter 
-operatorId specifies the range operator, a detailled description is given with the 
+The same as for ~exactmtach2~, ~exactmatchS~ and ~exactmatch~. The template parameter
+operatorId specifies the range operator, a detailled description is given with the
 type mapping function of the operators ~range2~, ~rangeS~ and ~range~.
 
 
@@ -621,7 +623,7 @@ type mapping function of the operators ~range2~, ~rangeS~ and ~range~.
 */
 const string Range2Spec() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = "(btree2 Tk none u) x Tk x Tk -> stream(tuple((Key Tk)))\n" 
+  string sig = "(btree2 Tk none u) x Tk x Tk -> stream(tuple((Key Tk)))\n"
                "(btree2 Tk Td   u) x Tk x Tk -> stream(tuple((Key Tk) "
                "(Data Td)))";
   string spec = "_ range2 [ _ , _ ]";
@@ -632,10 +634,10 @@ const string Range2Spec() {
   string example = "query Staedte_Bev_btree2 range2[105000, 200000] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -656,10 +658,10 @@ const string RangeSSpec() {
                    "Staedte gettuples consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -679,10 +681,10 @@ const string RangeSpec() {
                    "[250000, 400000] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -729,9 +731,9 @@ Operator rangebtree2::range (
 
 The operator ~leftrange2~ uses the given btree2 to find all stored keys or
 (key-value)-pairs of the btree2 with key $ <= $ argument value Tk.
-The operator ~leftrangeS~ uses the given btree2 to find all stored tuple 
+The operator ~leftrangeS~ uses the given btree2 to find all stored tuple
 identifiers referencing tuples with key $ <= $ argument value Tk.
-The operator ~leftrange~ uses the given btree2 to find all tuples in the 
+The operator ~leftrange~ uses the given btree2 to find all tuples in the
 given relation with key $ <= $ argument value Tk.
 
 The signatures are
@@ -749,18 +751,18 @@ The signatures are
 
 4.1 Type mapping function of operators ~leftrange2~, ~leftrangeS~, ~leftrange~
 
-The same as for ~exactmtach2~, ~exactmatchS~ and ~exactmatch~. 
-The template parameter operatorId specifies the range operator. The operator ~leftrange2~ 
+The same as for ~exactmtach2~, ~exactmatchS~ and ~exactmatch~.
+The template parameter operatorId specifies the range operator. The operator ~leftrange2~
 with value 21 needs (21 div 9 =) 2 parameters and is a range2-type with code (21 mod 3 =) 0,
-the operator ~leftrangeS~ with value 22 needs (22 div 9 =) 2 parameters, too, and is a 
-rangeS-type with code (22 mod 3 =) 1 and finally the operator ~leftrange~ with value 32 
+the operator ~leftrangeS~ with value 22 needs (22 div 9 =) 2 parameters, too, and is a
+rangeS-type with code (22 mod 3 =) 1 and finally the operator ~leftrange~ with value 32
 needs (32 div 9 =) 3 parameters and is a range-type with code (32 mod 3 =) 2.
 
 
 4.2 Value mapping function of operators ~leftrange2~, ~leftrangeS~, ~leftrange~
 
-The same as for ~exactmatch2~, ~exactmatchS~ and ~exactmatch~. The template parameter 
-operatorId specifies the range operator, a detailled description is given with the 
+The same as for ~exactmatch2~, ~exactmatchS~ and ~exactmatch~. The template parameter
+operatorId specifies the range operator, a detailled description is given with the
 type mapping function of the operators ~leftrange2~, ~leftrangeS~ and ~leftrange~.
 
 
@@ -771,7 +773,7 @@ type mapping function of the operators ~leftrange2~, ~leftrangeS~ and ~leftrange
 */
 const string LeftRange2Spec() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = "(btree2 Tk none u) x Tk -> stream(tuple((Key Tk)))\n" 
+  string sig = "(btree2 Tk none u) x Tk -> stream(tuple((Key Tk)))\n"
                "(btree2 Tk Td   u) x Tk -> stream(tuple((Key Tk) "
                "(Data Td)))";
   string spec = "_ leftrange2 [ _ ]";
@@ -781,10 +783,10 @@ const string LeftRange2Spec() {
   string example = "query Staedte_Bev_btree2 leftrange2[150000] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -803,10 +805,10 @@ const string LeftRangeSSpec() {
                    "gettuples consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -825,10 +827,10 @@ const string LeftRangeSpec() {
                    "[500000] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -875,9 +877,9 @@ Operator rangebtree2::leftrange (
 
 The operator ~rightrange2~ uses the given btree2 to find all stored keys or
 (key-value)-pairs of the btree2 with key $ >= $ argument value Tk.
-The operator ~rightrangeS~ uses the given btree2 to find all stored tuple 
+The operator ~rightrangeS~ uses the given btree2 to find all stored tuple
 identifiers referencing tuples with key $ >= $ argument value Tk.
-The operator ~rightrange~ uses the given btree2 to find all tuples in the 
+The operator ~rightrange~ uses the given btree2 to find all tuples in the
 given relation with key $ >= $ argument value Tk.
 
 The signatures are
@@ -895,18 +897,18 @@ The signatures are
 
 5.1 Type mapping function of operators ~rightrange2~, ~rightrangeS~, ~rightrange~
 
-The same as for ~exactmatch2~, ~exactmatchS~ and ~exactmatch~. 
-The template parameter operatorId specifies the range operator. The operator ~rightrange2~ 
+The same as for ~exactmatch2~, ~exactmatchS~ and ~exactmatch~.
+The template parameter operatorId specifies the range operator. The operator ~rightrange2~
 with value 24 needs (24 div 9 =) 2 parameters and is a range2-type with code (24 mod 3 =) 0,
-the operator ~rightrangeS~ with value 25 needs (25 div 9 =) 2 parameters, too, and is a 
-rangeS-type with code (25 mod 3 =) 1 and finally the operator ~rightrange~ with value 35 
+the operator ~rightrangeS~ with value 25 needs (25 div 9 =) 2 parameters, too, and is a
+rangeS-type with code (25 mod 3 =) 1 and finally the operator ~rightrange~ with value 35
 needs (35 div 9 =) 3 parameters and is a range-type with code (35 mod 3 =) 2.
 
 
 5.2 Value mapping function of operators ~rightrange2~, ~rightrangeS~, ~rightrange~
 
-The same as for ~exactmtach2~, ~exactmatchS~ and ~exactmatch~. The template parameter 
-operatorId specifies the range operator, a detailled description is given with the 
+The same as for ~exactmtach2~, ~exactmatchS~ and ~exactmatch~. The template parameter
+operatorId specifies the range operator, a detailled description is given with the
 type mapping function of ~rightrange2~, ~rightrangeS~ and ~rightrange~.
 
 
@@ -917,7 +919,7 @@ type mapping function of ~rightrange2~, ~rightrangeS~ and ~rightrange~.
 */
 const string RightRange2Spec() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = "(btree2 Tk none u) x Tk -> stream(tuple((Key Tk)))\n" 
+  string sig = "(btree2 Tk none u) x Tk -> stream(tuple((Key Tk)))\n"
                "(btree2 Tk Td   u) x Tk -> stream(tuple((Key Tk) "
                "(Data Td)))";
   string spec = "_ rightrange2 [ _ ]";
@@ -927,10 +929,10 @@ const string RightRange2Spec() {
   string example = "query Staedte_Bev_btree2 rightrange2[500000] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -949,10 +951,10 @@ const string RightRangeSSpec() {
                    "gettuples consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -971,10 +973,10 @@ const string RightRangeSpec() {
                    "[1000000] consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 

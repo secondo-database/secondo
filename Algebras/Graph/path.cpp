@@ -336,7 +336,8 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
             else
             {
                 result = nl->OneElemList(nl->TwoElemList(
-                    nl->IntAtom(pStruct.key), nl->SymbolAtom("undef")));
+                    nl->IntAtom(pStruct.key),
+                                          nl->SymbolAtom(Symbol::UNDEFINED())));
             }
 
             ListExpr last = result;
@@ -354,7 +355,8 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
                 else
                 {
                     last = nl->Append(last, nl->TwoElemList(
-                        nl->IntAtom(pStruct.key), nl->SymbolAtom("undef")));
+                        nl->IntAtom(pStruct.key),
+                                          nl->SymbolAtom(Symbol::UNDEFINED())));
                 }
             }
 
@@ -363,7 +365,7 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
     }
     else
     {
-        return nl->SymbolAtom("undef");
+        return nl->SymbolAtom(Symbol::UNDEFINED());
     }
 
 }
@@ -373,8 +375,7 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
 {
     Path* pPath = new Path(true);
     correct = true;
-    if (nl->IsAtom(instance) && nl->AtomType(instance) == SymbolType &&
-        nl->SymbolValue(instance) == "undef")
+    if (listutils::isSymbolUndefined(instance))
     {
         pPath->SetDefined(false);
     }
@@ -411,9 +412,7 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                         correct = false;
                     }
                 }
-                else if (nl->IsAtom(Second) &&
-                    nl->AtomType(Second) == SymbolType &&
-                    nl->SymbolValue(Second) == "undef")
+                else if (listutils::isSymbolUndefined(Second))
                 {
                     ps.pos = Point(false);
                 }
@@ -499,9 +498,7 @@ Word InPath( const ListExpr typeInfo, const ListExpr instance,
                                 correct = false;
                             }
                         }
-                        else if (nl->IsAtom(Second) &&
-                            nl->AtomType(Second) == SymbolType &&
-                            nl->SymbolValue(Second) == "undef")
+                        else if (listutils::isSymbolUndefined(Second))
                         {
                             ps.pos = Point(false);
                         }

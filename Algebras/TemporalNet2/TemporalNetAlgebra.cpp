@@ -6394,7 +6394,7 @@ ListExpr OpMgp2mgpsecunitsTypeMap(ListExpr in_xArgs)
     ListExpr attr = type.second().listExpr();
     NList net = type.third();
     NList length = type.fourth();
-    if (net.isEqual("network") && length.isEqual("real")
+    if (net.isEqual("network") && length.isEqual(CcReal::BasicType())
         && (!(nl->IsAtom(attr) && nl->AtomType(attr) != SymbolType))
         && IsRelDescription(rel))
     {
@@ -6404,10 +6404,10 @@ ListExpr OpMgp2mgpsecunitsTypeMap(ListExpr in_xArgs)
       int j=listutils::findAttribute(nl->Second(tupleDescr),attrname, attrtype);
       if (j!=0 && nl->IsEqual(attrtype, "mgpoint"))
       {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                  nl->OneElemList(nl->IntAtom(j)),
                                      nl->TwoElemList(
-                                         nl->SymbolAtom("stream"),
+                                         nl->SymbolAtom(Symbol::STREAM()),
                                          nl->SymbolAtom("mgpsecunit")));
       }
     }
@@ -6554,9 +6554,9 @@ ListExpr OpMgp2mgpsecunits2TypeMap(ListExpr in_xArgs)
   {
     NList mgp = type.first();
     NList length = type.second();
-    if (mgp.isEqual("mgpoint") && length.isEqual("real"))
+    if (mgp.isEqual("mgpoint") && length.isEqual(CcReal::BasicType()))
     {
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom("mgpsecunit"));
     }
   }
@@ -6671,8 +6671,8 @@ ListExpr OpMgp2mgpsecunits3TypeMap(ListExpr in_xArgs)
     NList mgp("mgpoint");
     NList partlength = type.second();
     if (stream.length() == 2 && stream.checkStream(mgp) &&
-        partlength.isEqual("real"))
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
+        partlength.isEqual(CcReal::BasicType()))
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom("mgpsecunit"));
   }
   return NList::typeError( "Expected ((stream mgpoint) real).");
@@ -6824,7 +6824,7 @@ ListExpr OpMPoint2MGPointTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 2 ){
     sendMessages("Expects a list of length 2.");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
   ListExpr xNetworkIdDesc = nl->First(in_xArgs);
   ListExpr xMPointDesc = nl->Second(in_xArgs);
@@ -6833,15 +6833,15 @@ ListExpr OpMPoint2MGPointTypeMap(ListExpr in_xArgs)
       !nl->IsEqual(xNetworkIdDesc, "network"))
   {
     sendMessages("Expected network as first argument.");
-    return (nl->SymbolAtom("typeerror"));
+    return (nl->SymbolAtom(Symbol::TYPEERROR()));
   }
 
   if( (!nl->IsAtom( xMPointDesc )) ||
       nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "mpoint" )
+      nl->SymbolValue( xMPointDesc ) != MPoint::BasicType() )
   {
     sendMessages("Expected mpoint as second argument.");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   return nl->SymbolAtom( "mgpoint" );
@@ -7171,11 +7171,11 @@ ListExpr OpPassesTypeMap( ListExpr args )
       if (nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
          (nl->SymbolValue(arg2) == "gpoint" ||
           nl->SymbolValue(arg2) == "gline")){
-        return (nl->SymbolAtom("bool"));
+        return (nl->SymbolAtom(CcBool::BasicType()));
       }
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpPasses_mgpgp(Word* args,
@@ -7279,7 +7279,7 @@ smaller than a given value.
 ListExpr OpSimplifyTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMPointDesc = nl->First(in_xArgs);
   ListExpr xEpsilonDesc = nl->Second(in_xArgs);
@@ -7288,14 +7288,14 @@ ListExpr OpSimplifyTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMPointDesc ) != SymbolType ||
       nl->SymbolValue( xMPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   if( (!nl->IsAtom( xEpsilonDesc)) ||
       nl->AtomType( xEpsilonDesc ) != SymbolType ||
-      nl->SymbolValue( xEpsilonDesc ) != "real" )
+      nl->SymbolValue( xEpsilonDesc ) != CcReal::BasicType() )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   return nl->SymbolAtom( "mgpoint" );
@@ -7365,7 +7365,7 @@ ListExpr OpAtTypeMap(ListExpr in_xArgs)
       }
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpAt_mgpgp(Word* args,
@@ -7471,7 +7471,7 @@ Restricts the ~MGPoint~ to a given time instant.
 ListExpr OpAtinstantTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
   ListExpr xInstant = nl->Second(in_xArgs);
@@ -7480,12 +7480,12 @@ ListExpr OpAtinstantTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  if (!nl->IsEqual( xInstant, "instant" ))
+  if (!nl->IsEqual( xInstant, Instant::BasicType() ))
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   return nl->SymbolAtom("igpoint");
@@ -7546,7 +7546,7 @@ Restricts a ~MGPoint~ to the given periods.
 ListExpr OpAtperiodsTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
   ListExpr xPeriods = nl->Second(in_xArgs);
@@ -7555,12 +7555,12 @@ ListExpr OpAtperiodsTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  if (!nl->IsEqual( xPeriods, "periods" ))
+  if (!nl->IsEqual( xPeriods, Periods::BasicType() ))
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   return nl->SymbolAtom("mgpoint");
@@ -7623,7 +7623,7 @@ Returns the deftime of a ~MGPoint~ respectively a ~ugpoint~ as ~periods~ value.
 ListExpr OpDeftimeTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -7632,10 +7632,10 @@ ListExpr OpDeftimeTypeMap(ListExpr in_xArgs)
       (nl->SymbolValue( xMGPointDesc ) == "mgpoint" ||
       nl->SymbolValue( xMGPointDesc ) == "ugpoint"))
   {
-    return (nl->SymbolAtom( "periods" ));
+    return (nl->SymbolAtom( Periods::BasicType() ));
   }
 
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 int OpDeftime_ugp(Word* args, Word& result, int message,
@@ -7708,7 +7708,7 @@ TypeMapping see operator ~final~.
 ListExpr OpFinalInitialTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -7716,7 +7716,7 @@ ListExpr OpFinalInitialTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
   return nl->SymbolAtom("igpoint");
 }
@@ -7776,10 +7776,10 @@ ListExpr OpInsideTypeMapping(ListExpr in_xArgs)
     if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
          nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
          nl->AtomType(arg2) == SymbolType && nl->SymbolValue(arg2) == "gline"){
-        return (nl->SymbolAtom("mbool"));
+        return (nl->SymbolAtom(MBool::BasicType()));
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpInsideValueMapping(Word* args,
@@ -7837,7 +7837,7 @@ Returns the time instant of the ~IGPoint~
 ListExpr OpInstTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xIGPointDesc = nl->First(in_xArgs);
 
@@ -7845,10 +7845,10 @@ ListExpr OpInstTypeMap(ListExpr in_xArgs)
       nl->AtomType( xIGPointDesc ) != SymbolType ||
       nl->SymbolValue( xIGPointDesc ) != "igpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  return nl->SymbolAtom( "instant" );
+  return nl->SymbolAtom( Instant::BasicType() );
 }
 
 const string OpInstSpec  =
@@ -7885,7 +7885,7 @@ ListExpr OpIntersectionTypeMapping(ListExpr in_xArgs)
         return (nl->SymbolAtom("mgpoint"));
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpIntersectionValueMapping(Word* args,
@@ -7949,10 +7949,10 @@ ListExpr OpIntersectsTypeMapping(ListExpr in_xArgs)
         nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
         nl->AtomType(arg2) == SymbolType &&
         nl->SymbolValue(arg2) == "mgpoint"){
-        return (nl->SymbolAtom("bool"));
+        return (nl->SymbolAtom(CcBool::BasicType()));
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpIntersectsValueMapping(Word* args,
@@ -8008,7 +8008,7 @@ Returns true if the ~MGPoint~ has no units.
 ListExpr OpIsEmptyTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8016,10 +8016,10 @@ ListExpr OpIsEmptyTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 int OpIsEmptyValueMapping(Word* args,
@@ -8063,7 +8063,7 @@ Returns the length of the trip of the ~MGPoint~.
 ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8072,10 +8072,10 @@ ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" &&
       nl->SymbolValue (xMGPointDesc) != "ugpoint"))
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  return nl->SymbolAtom( "real" );
+  return nl->SymbolAtom( CcReal::BasicType() );
 }
 
 int OpLength_mgp(Word* args,
@@ -8158,7 +8158,7 @@ Returns the number of units of a ~MGPoint~.
 ListExpr OpNoCompTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8166,10 +8166,10 @@ ListExpr OpNoCompTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  return nl->SymbolAtom("int");
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 int OpNoCompValueMapping(Word* args,
@@ -8219,10 +8219,11 @@ ListExpr OpPresentTypeMap(ListExpr in_xArgs)
     ListExpr arg1 = nl->First(in_xArgs);
     ListExpr arg2 = nl->Second(in_xArgs);
     if( nl->IsEqual(arg1,"mgpoint") && (
-      nl->IsEqual(arg2,"instant") || nl->IsEqual(arg2, "periods")))
-      return (nl->SymbolAtom( "bool" ));
+      nl->IsEqual(arg2,Instant::BasicType()) ||
+      nl->IsEqual(arg2, Periods::BasicType())))
+      return (nl->SymbolAtom( CcBool::BasicType() ));
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 int OpPresent_mgpi(Word* args, Word& result, int message,
@@ -8288,10 +8289,10 @@ int OpPresentSelect(ListExpr args){
   ListExpr arg2 = nl->Second( args );
 
   if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue( arg2) == "periods" )
+       nl->SymbolValue( arg2) == Periods::BasicType() )
     return 0;
   if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue( arg2) == "instant")
+       nl->SymbolValue( arg2) == Instant::BasicType())
     return 1;
   return -1; // This point should never be reached
 };
@@ -8329,7 +8330,7 @@ Returns the ~GPoint~ value of a ~IGPoint~
 ListExpr OpValTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xIGPointDesc = nl->First(in_xArgs);
 
@@ -8337,7 +8338,7 @@ ListExpr OpValTypeMap(ListExpr in_xArgs)
       nl->AtomType( xIGPointDesc ) != SymbolType ||
       nl->SymbolValue( xIGPointDesc ) != "igpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   return nl->SymbolAtom( "gpoint" );
@@ -8367,7 +8368,7 @@ Returns the sorted ~GLine~ passed by a ~MGPoint~.
 ListExpr OpTrajectoryTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8375,7 +8376,7 @@ ListExpr OpTrajectoryTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   return nl->SymbolAtom( "gline" );
@@ -8432,7 +8433,7 @@ Returns the stream of ~UGPoint~ from the given ~MGPoint~.
 ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMPointDesc = nl->First(in_xArgs);
 
@@ -8440,10 +8441,10 @@ ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMPointDesc ) != SymbolType ||
       nl->SymbolValue( xMPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->SymbolAtom("ugpoint"));
 }
 
@@ -8474,7 +8475,7 @@ and ~unitrid~.
 ListExpr OpUnitPosTimeTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8482,9 +8483,9 @@ ListExpr OpUnitPosTimeTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom(CcReal::BasicType());
 }
 
 int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
@@ -8685,7 +8686,7 @@ timeInterval.end.
 ListExpr OpUnitBoxTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8693,9 +8694,9 @@ ListExpr OpUnitBoxTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
-  return nl->SymbolAtom("rect3");
+  return nl->SymbolAtom(Rectangle<3>::BasicType());
 }
 
 int OpUnitBoxValueMapping( Word* args, Word& result, int message,
@@ -8735,7 +8736,7 @@ rid, rid, min(p0.pos. p1.pos), max(p0.pos, p1.pos).
 ListExpr OpUnitBox2TypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8743,9 +8744,9 @@ ListExpr OpUnitBox2TypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
-  return nl->SymbolAtom("rect");
+  return nl->SymbolAtom(Rectangle<2>::BasicType());
 }
 
 int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
@@ -8788,7 +8789,7 @@ Returns the spatialtemporal bounding box of the ~ugpoint~.
 ListExpr OpUnitBoundingBoxTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8796,9 +8797,9 @@ ListExpr OpUnitBoundingBoxTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
-  return nl->SymbolAtom("rect3");
+  return nl->SymbolAtom(Rectangle<3>::BasicType());
 }
 
 int OpUnitBoundingBoxValueMapping( Word* args, Word& result, int message,
@@ -8839,7 +8840,7 @@ Returns the spatialtemporal bounding box of the ~ugpoint~.
 ListExpr OpMGPointBoundingBoxTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -8847,9 +8848,9 @@ ListExpr OpMGPointBoundingBoxTypeMap(ListExpr in_xArgs)
       nl->AtomType( xMGPointDesc ) != SymbolType ||
       nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
-  return nl->SymbolAtom("rect3");
+  return nl->SymbolAtom(Rectangle<3>::BasicType());
 }
 
 int OpMGPointBoundingBoxValueMapping( Word* args, Word& result, int message,
@@ -8892,7 +8893,7 @@ ListExpr OpMGPoint2MPointTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 ){
     sendMessages("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
   ListExpr xsource = nl->First(in_xArgs);
@@ -8901,9 +8902,9 @@ ListExpr OpMGPoint2MPointTypeMap(ListExpr in_xArgs)
       !nl->IsEqual(xsource, "mgpoint"))
   {
     sendMessages("Element must be of type mgpoint.");
-    return (nl->SymbolAtom("typeerror"));
+    return (nl->SymbolAtom(Symbol::TYPEERROR()));
   }
-  return nl->SymbolAtom( "mpoint" );
+  return nl->SymbolAtom( MPoint::BasicType() );
 }
 
 int OpMGPoint2MPointValueMapping(Word* args,
@@ -8962,10 +8963,10 @@ ListExpr OpDistanceTypeMapping(ListExpr in_xArgs)
         nl->AtomType(arg2) == SymbolType &&
         nl->SymbolValue(arg2) == "mgpoint")
     {
-      return (nl->SymbolAtom("mreal"));
+      return (nl->SymbolAtom(MReal::BasicType()));
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpDistanceValueMapping(Word* args,
@@ -9045,7 +9046,7 @@ ListExpr OpUnionTypeMap(ListExpr in_xArgs)
         return (nl->SymbolAtom("mgpoint"));
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 int OpUnionValueMapping(Word* args,
@@ -9100,7 +9101,7 @@ Returns the end time instant of a ~UGPoint~ as ~Instant~
 ListExpr OpEndStartunitinstTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -9108,9 +9109,9 @@ ListExpr OpEndStartunitinstTypeMap(ListExpr in_xArgs)
         nl->AtomType( xMGPointDesc ) != SymbolType ||
         nl->SymbolValue( xMGPointDesc ) != "ugpoint")
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
-  return nl->SymbolAtom("instant");
+  return nl->SymbolAtom(Instant::BasicType());
 }
 
 int OpEndunitinstValueMapping(Word* args,
@@ -9201,7 +9202,7 @@ Builds a ~MGPoint~ from a single ~UGPoint~
 ListExpr OpUgpoint2mgpointTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 )
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
@@ -9209,7 +9210,7 @@ ListExpr OpUgpoint2mgpointTypeMap(ListExpr in_xArgs)
         nl->AtomType( xMGPointDesc ) != SymbolType ||
         nl->SymbolValue( xMGPointDesc ) != "ugpoint")
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
   return nl->SymbolAtom("mgpoint");
 }
@@ -9374,13 +9375,13 @@ class TemporalNetAlgebra : public Algebra
     AddTypeConstructor( &intimegpoint);
     AddTypeConstructor( &mgpsecunitTC);
 
-    movinggpoint.AssociateKind( "TEMPORAL" );
-    movinggpoint.AssociateKind( "DATA" );
-    unitgpoint.AssociateKind( "TEMPORAL" );
-    unitgpoint.AssociateKind( "DATA" );
-    intimegpoint.AssociateKind("TEMPORAL");
-    intimegpoint.AssociateKind("DATA");
-    mgpsecunitTC.AssociateKind( "DATA" );
+    movinggpoint.AssociateKind( Kind::TEMPORAL() );
+    movinggpoint.AssociateKind( Kind::DATA() );
+    unitgpoint.AssociateKind( Kind::TEMPORAL() );
+    unitgpoint.AssociateKind( Kind::DATA() );
+    intimegpoint.AssociateKind(Kind::TEMPORAL());
+    intimegpoint.AssociateKind(Kind::DATA());
+    mgpsecunitTC.AssociateKind( Kind::DATA() );
 
     AddOperator(&mpoint2mgpoint);
     AddOperator(&units);

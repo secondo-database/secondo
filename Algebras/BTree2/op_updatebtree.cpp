@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 
-[1] Implementation of the updatebtree and updatebtree2 Operator 
+[1] Implementation of the updatebtree and updatebtree2 Operator
 
 [TOC]
 
@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "Symbols.h"
 
 #include "BTree2.h"
 
@@ -61,11 +62,11 @@ insert an entry with the argument key.
 Signature is
 
 ----
-    updatebtree: stream(tuple(X@[(a1\_old x1)...(ak\_old Tk)...(ak\_old xk ) 
+    updatebtree: stream(tuple(X@[(a1\_old x1)...(ak\_old Tk)...(ak\_old xk )
                  (TID tid)])) x btree2 x ak -->stream(tuple(X@[(a1\_old x1)
                  ...(ak\_old Tk)...(ak\_old xk ) (TID tid)]))
 
-    updatebtree2: stream(tuple(T)) x btree2 x ak x ad -> 
+    updatebtree2: stream(tuple(T)) x btree2 x ak x ad ->
                     stream(tuple(T))
 ----
 
@@ -77,15 +78,15 @@ ListExpr updatebtree::TypeMapping1(ListExpr args){
   CHECK_COND(nl->ListLength(args) == 3,
              "Operator updatebtree expects 3 arguments.");
 
-/* 
-Split argument in three parts 
+/*
+Split argument in three parts
 
 */
   int keyIndex;
   ListExpr streamDescription = nl->First(args);
   ListExpr btreeDescription = nl->Second(args);
   ListExpr nameOfKeyAttribute = nl->Third(args);
- 
+
   if(!listutils::isTupleStream(streamDescription)){
    return listutils::typeError("first arguments must be a tuple stream");
   }
@@ -105,23 +106,23 @@ Split argument in three parts
     rest = nl->Rest(rest);
   }
 
-  if(!listutils::isSymbol(nl->Second(next),"tid")){
+  if(!listutils::isSymbol(nl->Second(next),TupleIdentifier::BasicType())){
    return listutils::typeError("last attribut must be of type tid");
-  } 
+  }
   int tidIndex = nl->ListLength(attrList);
 
   if(!listutils::isBTree2Description(btreeDescription)){
     return listutils::typeError("second argument is not a valid btree2");
   }
-  
+
   ListExpr btreeKey = nl->Second(btreeDescription);
-  ListExpr btreeValue = nl->Third(btreeDescription); 
-  
-  CHECK_COND(listutils::isSymbol(btreeValue, "tid"),
+  ListExpr btreeValue = nl->Third(btreeDescription);
+
+  CHECK_COND(listutils::isSymbol(btreeValue, TupleIdentifier::BasicType()),
                "Value type of btree has to be tid");
   CHECK_COND(listutils::isSymbol(nl->Fourth(btreeDescription), "multiple"),
                "Keys have to be multiple");
-  
+
 
   if(!listutils::isSymbol(nameOfKeyAttribute)){
     return listutils::typeError("invalid attribute name for key");
@@ -129,7 +130,7 @@ Split argument in three parts
 /*
 check that attributelist has old and new attributenames
 
-*/  
+*/
   if ((nl->ListLength(attrList) % 2) != 1){
     return listutils::typeError("tuple stream must contain one attribute "
                              "of kind tid and the same amount of old and "
@@ -159,7 +160,7 @@ check that attributelist has old and new attributenames
     oldAttrList = nl->Rest(oldAttrList);
     i++;
   }
-/* 
+/*
 Test if attributename of the third argument exists as a name in the
 attributelist of the streamtuples
 
@@ -175,18 +176,18 @@ attributelist of the streamtuples
     return listutils::typeError("key attribute type "
                                 "different from indexed type");
   }
-  ListExpr outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                           nl->TwoElemList(nl->IntAtom(keyIndex), 
+  ListExpr outList = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->TwoElemList(nl->IntAtom(keyIndex),
                                 nl->IntAtom(tidIndex)),streamDescription);
-  return outList;   
+  return outList;
 }
 
 
 ListExpr updatebtree::TypeMapping2(ListExpr args){
- 
+
   CHECK_COND(nl->ListLength(args) == 4,
              "Operator updatebtree2 expects 4 arguments.");
-/* 
+/*
 Split argument in four parts
 
 */
@@ -201,14 +202,14 @@ Split argument in four parts
    return listutils::typeError("first arguments must be a tuple stream");
   }
 
-  ListExpr attrList = nl->Second(nl->Second(streamDescription)); 
- 
+  ListExpr attrList = nl->Second(nl->Second(streamDescription));
+
   if(!listutils::isBTree2Description(btreeDescription)){
     return listutils::typeError("second argument is not a valid btree2");
   }
 
   ListExpr btreeValue = nl->Third(btreeDescription);
-  
+
   if(!listutils::isSymbol(nameOfKeyAttribute)){
     return listutils::typeError("invalid name for key attribute");
   }
@@ -219,13 +220,13 @@ Split argument in four parts
 /*
 Check key
 
-*/   
+*/
   string name;
   nl->WriteToString(name, nameOfKeyAttribute);
   int keyIndex = listutils::findAttribute(attrList, name, attrType);
-  CHECK_COND(keyIndex > 0, "Tuples do not contain an attribute named " + 
+  CHECK_COND(keyIndex > 0, "Tuples do not contain an attribute named " +
                                              name + ".");
-  
+
   ListExpr btreeKey = nl->Second(btreeDescription);
   CHECK_COND(nl->Equal(attrType, btreeKey), "Key in tuple is "
               "different from btree2 key.");
@@ -235,42 +236,42 @@ Check value-types
 */
   int valueIndex = 0;
   nl->WriteToString(name, nameOfDataAttribute);
-    
+
   if (name == "none"){
     CHECK_COND(nl->Equal(nameOfDataAttribute, btreeValue),
                "Argument value type is different from btree value type.");
   }
   else {
     valueIndex = listutils:: findAttribute(attrList, name, attrType);
-    CHECK_COND(valueIndex > 0, "Tuples do not contain an attribute named " + 
+    CHECK_COND(valueIndex > 0, "Tuples do not contain an attribute named " +
                                                     name + ".");
     CHECK_COND(nl->Equal(attrType, btreeValue), "Value type in tuple is "
               "different from btree2 value type.");
-  }    
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-                          nl->TwoElemList(nl->IntAtom(keyIndex), 
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                          nl->TwoElemList(nl->IntAtom(keyIndex),
                                 nl->IntAtom(valueIndex)), streamDescription);
 }
 
 /*
-2.2 Value mappings 
+2.2 Value mappings
 
 */
 struct vmInfo{
    BTree2* btree;
    int keyIndex;
    int valueIndex;
-   
+
    vmInfo(BTree2* b, int k, int v) : btree(b), keyIndex(k), valueIndex(v) {}
-}; 
-  
+};
+
 int
 updatebtree::ValueMapping1(Word* args, Word& result, int message,
                                 Word& local, Supplier s)
-{ 
+{
   vmInfo* info;
   Tuple* tuple;
-  Word elem; 
+  Word elem;
   Attribute* key, *keyOld;
   Attribute* value;
   bool res = false;
@@ -287,9 +288,9 @@ updatebtree::ValueMapping1(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       return 0;
     }
-    
+
     case REQUEST :
-    {       
+    {
       qp->Request(args[0].addr, elem);
       if (qp->Received(args[0].addr))
       {
@@ -308,7 +309,7 @@ updatebtree::ValueMapping1(Word* args, Word& result, int message,
         return YIELD;
       }
       return CANCEL;
-    } 
+    }
 
     case CLOSE :
     {
@@ -327,10 +328,10 @@ updatebtree::ValueMapping1(Word* args, Word& result, int message,
 int
 updatebtree::ValueMapping2(Word* args, Word& result, int message,
                                 Word& local, Supplier s)
-{ 
+{
   vmInfo* info;
   Tuple* tuple;
-  Word elem; 
+  Word elem;
   Attribute* key;
   Attribute* value;
   bool res = false;
@@ -347,9 +348,9 @@ updatebtree::ValueMapping2(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       return 0;
     }
-    
+
     case REQUEST :
-    {       
+    {
       qp->Request(args[0].addr, elem);
       if (qp->Received(args[0].addr))
       {
@@ -367,7 +368,7 @@ updatebtree::ValueMapping2(Word* args, Word& result, int message,
         return YIELD;
       }
       return CANCEL;
-    } 
+    }
 
     case CLOSE :
     {
@@ -397,10 +398,10 @@ struct getUpdateBTree2Info : OperatorInfo {
                 " stream(tuple(T))";
     syntax =    "_ _ updatebtree2 [ _, _ ]";
     meaning =   "Updates the first found entry with the argument key, "
-                "if existant," 
+                "if existant,"
                 " or inserts the pairs of values/keys specified by the "
                 "arguments into the BTree2";
-    example =   "query Staedte feed extend [Bev_new: .Bev + 1] " 
+    example =   "query Staedte feed extend [Bev_new: .Bev + 1] "
                 "staedte_btree2 updatebtree2 [SName, Bev_new] consume";
   }
 };

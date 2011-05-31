@@ -119,7 +119,8 @@ This class represents a time instant, or a point in time. It will be
 used in the ~instant~ type constructor.
 
 */
-typedef DateTime Instant;
+// the following typedef has been moved to file DateTime.h:
+// typedef DateTime Instant;
 
 /*
 3.2 Interval
@@ -6803,7 +6804,7 @@ ListExpr OutRange( ListExpr typeInfo, Word value )
   Range<Alpha>* range = (Range<Alpha>*)(value.addr);
 
   if( !range->IsDefined() ){
-    return nl->SymbolAtom( "undef" );
+    return nl->SymbolAtom( Symbol::UNDEFINED() );
   }
 
   if( range->IsEmpty() )
@@ -6849,9 +6850,7 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
 {
   Range<Alpha>* range;
 
-  if ( nl->IsAtom( instance ) &&
-       nl->AtomType( instance ) == SymbolType &&
-       nl->SymbolValue( instance ) == "undef" )
+  if ( listutils::isSymbolUndefined( instance ) )
   {
     range = new Range<Alpha>( 0 );
     range->SetDefined( false );
@@ -7045,7 +7044,7 @@ ListExpr OutIntime( ListExpr typeInfo, Word value )
           OutDateTime( nl->TheEmptyList(), SetWord(&intime->instant) ),
           OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
   else
-    return nl->SymbolAtom( "undef" );
+    return nl->SymbolAtom( Symbol::UNDEFINED() );
 }
 
 /*
@@ -7059,9 +7058,7 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
 
-  if ( nl->IsAtom( instance ) &&
-       nl->AtomType( instance ) == SymbolType &&
-       nl->SymbolValue( instance ) == "undef" )
+  if ( listutils::isSymbolUndefined( instance ) )
   {
     Intime<Alpha> *intime = new Intime<Alpha>;
     intime->SetDefined( false );
@@ -7178,7 +7175,7 @@ ListExpr OutConstTemporalUnit( ListExpr typeInfo, Word value )
 
   //2.test for undefined value
   if ( !constunit->IsDefined() )
-    return (nl->SymbolAtom("undef"));
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
 
   //3.get the time interval NL
   ListExpr intervalList = nl->FourElemList(
@@ -7278,9 +7275,7 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
       delete value;
     }
   }
-  else if ( nl->IsAtom( instance ) &&
-            nl->AtomType( instance ) == SymbolType &&
-            nl->SymbolValue( instance ) == "undef" )
+  else if ( listutils::isSymbolUndefined( instance ) )
     {
       ConstTemporalUnit<Alpha> *constunit =
         new ConstTemporalUnit<Alpha>();
@@ -7372,7 +7367,7 @@ ListExpr OutMapping( ListExpr typeInfo, Word value )
 {
   Mapping* m = (Mapping*)(value.addr);
   if(! m->IsDefined()){
-    return nl->SymbolAtom("undef");
+    return nl->SymbolAtom(Symbol::UNDEFINED());
   } else
   if( m->IsEmpty() )
     return (nl->TheEmptyList());
@@ -7423,7 +7418,7 @@ Word InMapping( const ListExpr typeInfo, const ListExpr instance,
 
   ListExpr rest = instance;
   if (nl->AtomType( rest ) != NoAtom)
-  { if(nl->IsEqual(rest,"undef")){
+  { if(listutils::isSymbolUndefined(rest)){
        m->EndBulkLoad();
        m->SetDefined(false);
        return SetWord( Address( m ) );

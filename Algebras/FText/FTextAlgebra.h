@@ -108,9 +108,9 @@ public:
     Set(true,value);
   }
 
-  static string BasicType(){ 
+  static string BasicType(){
      return "text";
-  } 
+  }
 
 
 private:
@@ -168,7 +168,7 @@ IndexableAttribute(f.IsDefined()),
 theText( f.theText.getSize() )
 {
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
-  //SPM? Assuming Flob fits into memory  
+  //SPM? Assuming Flob fits into memory
   //const char* s = new char(f.theText.getSize());
   theText.copyFrom( f.theText );
   SetDefined( f.IsDefined() );
@@ -217,7 +217,7 @@ inline void FText::Set( bool newDefined, const char *newString )
     SHOW(theText)
     SmiSize sz = strlen( newString ) + 1;
     if(sz>0){
-      assert(newString[sz-1]==0); 
+      assert(newString[sz-1]==0);
       theText.write( newString, sz);
     } else {
       char d=0;
@@ -234,7 +234,7 @@ inline void FText::Set( bool newDefined, const string& newString )
   LOGMSG( "FText:Trace",
           cout << '\n' << "Start Set with newString='"
               << newString << endl; )
-  Set(newDefined,newString.c_str());  
+  Set(newDefined,newString.c_str());
 }
 
 
@@ -247,12 +247,12 @@ inline int FText::TextLength() const
 inline char *FText::Get() const
 {
   assert(IsDefined());
-  SmiSize sz = theText.getSize();	
+  SmiSize sz = theText.getSize();
   if(sz==0){
     char* s = new char[1];
     s[0] = 0;
     return s;
-  } 
+  }
 
   char* s = new char[sz];
   bool ok = theText.read(s, sz);
@@ -324,5 +324,9 @@ bool SaveFText( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo, Word& value );
 
 } // end namespace ftext
+
+namespace SVG {
+  const string BasicType();
+}
 #endif
 

@@ -80,12 +80,12 @@ Histogram* Picture::Colordist(HistogramChannel channel) {
 
 The ~Equals~-function checks, whether two pictures are equal. Therefore,
 it creates for each picture a histogram and compares the datas of
-these objects. 
+these objects.
 
 */
 
 bool Picture::Equals(Picture* pic, int n, int p, bool &valid, double& diff) {
-    //if (PA_DEBUG) 
+    //if (PA_DEBUG)
       cerr << "Picture::Equals() called. n=" << n << ", p=" << p << endl;
 
     //
@@ -113,7 +113,7 @@ bool Picture::Equals(Picture* pic, int n, int p, bool &valid, double& diff) {
     //delete h2;
 
     cerr << "Picture::Equals() done" << endl;
-    return( rc ); 
+    return( rc );
 }
 
 /*
@@ -121,31 +121,31 @@ bool Picture::Equals(Picture* pic, int n, int p, bool &valid, double& diff) {
 3.2 Operator ~Contains~
 
 The ~Contains~-function checks, whether a picture is contained in another one. Therefore,
-it compares for each picture all the color-histogram and multiplies the relative numbers 
-by the number of pictures. 
+it compares for each picture all the color-histogram and multiplies the relative numbers
+by the number of pictures.
 
 */
 bool Picture::Contains(Picture* pic) {
 
-  // calculate number of pixels   
+  // calculate number of pixels
   int pixel_this = GetWidth() * GetHeight();
   int pixel_pic = pic->GetWidth() * pic->GetHeight();
 
-  // compare red histograms 
+  // compare red histograms
   Histogram* h_this = &this->histogram[HC_RED];
   Histogram* h_pic = &pic->histogram[HC_RED];
   if ( !h_this->Contains(pixel_this, h_pic, pixel_pic) ) {
     return false;
   }
 
-  // compare green histograms 
+  // compare green histograms
   h_this = &this->histogram[HC_GREEN];
   h_pic = &pic->histogram[HC_GREEN];
   if ( !h_this->Contains(pixel_this, h_pic, pixel_pic) ) {
     return false;
   }
 
-  // compare blue histograms 
+  // compare blue histograms
   h_this = &this->histogram[HC_BLUE];
   h_pic = &pic->histogram[HC_BLUE];
   if ( !h_this->Contains(pixel_this, h_pic, pixel_pic) ) {
@@ -159,7 +159,7 @@ bool Picture::Contains(Picture* pic) {
 
 3.3 Operator ~Like~
 
-The function ~Like~ checks, whether the brightness of the picture 
+The function ~Like~ checks, whether the brightness of the picture
 in the interval of [l,u] differs p+-t percent.
 
 p       main percentage
@@ -182,10 +182,10 @@ bool Picture::Like(int p, int t, int l, int u, bool& valid) {
     Histogram* h = &this->histogram[ HC_BRIGHTNESS ];
 
     bool rc = h->Like( p, t, l, u, valid );
-    if (PA_DEBUG) 
+    if (PA_DEBUG)
         cerr << "This picture " << ((rc)?"fulfils": "does not fulfil")
                 << " the specified parameter." << endl;
-    
+
     return rc;
 }
 
@@ -193,7 +193,7 @@ bool Picture::Like(int p, int t, int l, int u, bool& valid) {
 
 3.4 Operator ~Like~
 
-The function ~Like~ checks, whether the brightness of the picture 
+The function ~Like~ checks, whether the brightness of the picture
 in the interval of [l,u] differs p+-t percent.
 
 p       main percentage
@@ -217,10 +217,10 @@ bool Picture::Like(double p, double t, int l, int u, bool& valid) {
     Histogram* h = &this->histogram[ HC_BRIGHTNESS ];
 
     bool rc = h->Like( p, t, l, u, valid );
-    if (PA_DEBUG) 
+    if (PA_DEBUG)
         cerr << "This picture " << ((rc)?"fulfils": "does not fulfil")
                 << " the specified parameter." << endl;
-    
+
     return rc;
 }
 
@@ -245,7 +245,7 @@ ListExpr PictureColordistTypeMap(ListExpr args) {
             "expected four arguments but received "
             +nl->ListLength(args));
 
-        return( nl->SymbolAtom("typeerror"));
+        return( nl->SymbolAtom(Symbol::TYPEERROR()));
     }
 
     //
@@ -254,26 +254,26 @@ ListExpr PictureColordistTypeMap(ListExpr args) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
 
-    if ( ! nl->IsEqual(arg1, "picture")) 
+    if ( ! nl->IsEqual(arg1, Picture::BasicType()))
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
                 +nl->ToString(arg1)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg2, "int"))
+    if ( ! nl->IsEqual(arg2, CcInt::BasicType()))
     {
             ErrorReporter::ReportError(
                 "expected 'int' as second argument but received '"
                 +nl->ToString(arg2)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
 
-    return( nl->SymbolAtom("histogram"));
+    return( nl->SymbolAtom(Histogram::BasicType()));
 }
 
 ListExpr PictureEqualsTypeMap(ListExpr args) {
@@ -287,7 +287,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
             "expected four arguments but received "
             +nl->ListLength(args));
 
-        return( nl->SymbolAtom("typeerror"));
+        return( nl->SymbolAtom(Symbol::TYPEERROR()));
     }
 
     //
@@ -298,44 +298,44 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
     arg3 = nl->Third(args);
     arg4 = nl->Fourth(args);
 
-    if ( ! nl->IsEqual(arg1, "picture") )
+    if ( ! nl->IsEqual(arg1, Picture::BasicType()) )
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
                 +nl->ToString(arg1)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg2, "picture"))
+    if ( ! nl->IsEqual(arg2, Picture::BasicType()))
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as second argument but received '"
                 +nl->ToString(arg2)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg3, "int" ))
+    if ( ! nl->IsEqual(arg3, CcInt::BasicType()))
     {
             ErrorReporter::ReportError(
                 "expected 'int' as third argument but received '"
                 +nl->ToString(arg3)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg4, "int" ))
+    if ( ! nl->IsEqual(arg4, CcInt::BasicType() ))
     {
             ErrorReporter::ReportError(
                 "expected 'int' as fourth argument but received '"
                 +nl->ToString(arg4)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    
-    return( nl->SymbolAtom("real"));
+
+    return( nl->SymbolAtom(CcReal::BasicType()));
 }
 
 ListExpr PictureLikeTypeMap(ListExpr args) {
@@ -349,7 +349,7 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
             "expected five arguments but received "
             +nl->ListLength(args));
 
-        return( nl->SymbolAtom("typeerror"));
+        return( nl->SymbolAtom(Symbol::TYPEERROR()));
     }
 
     //
@@ -361,52 +361,54 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
     arg4 = nl->Fourth(args);
     arg5 = nl->Fifth(args);
 
-    if ( ! nl->IsEqual(arg1, "picture")) 
+    if ( ! nl->IsEqual(arg1, Picture::BasicType()))
     {
             ErrorReporter::ReportError(
                 "expected 'picture' as first argument but received '"
                 +nl->ToString(arg1)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg2, "int") && ! nl->IsEqual(arg2, "real" ))
+    if ( ! nl->IsEqual(arg2, CcInt::BasicType()) &&
+         ! nl->IsEqual(arg2, CcReal::BasicType() ))
     {
             ErrorReporter::ReportError(
                 "expected 'int' or 'real' as second argument but received '"
                 +nl->ToString(arg2)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg3, "int" ) && ! nl->IsEqual(arg3, "real" ))
+    if ( ! nl->IsEqual(arg3, CcInt::BasicType() ) &&
+         ! nl->IsEqual(arg3, CcReal::BasicType() ))
     {
             ErrorReporter::ReportError(
                 "expected 'int' or 'real' as third argument but received '"
                 +nl->ToString(arg3)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg4, "int" ) )
+    if ( ! nl->IsEqual(arg4, CcInt::BasicType() ) )
     {
             ErrorReporter::ReportError(
                 "expected 'int' as fourth argument but received '"
                 +nl->ToString(arg4)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->IsEqual(arg5, "int" ) )
+    if ( ! nl->IsEqual(arg5, CcInt::BasicType() ) )
     {
             ErrorReporter::ReportError(
                 "expected 'int' as fifth argument but received '"
                 +nl->ToString(arg5)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    if ( ! nl->Equal(arg2, arg3) ) 
+    if ( ! nl->Equal(arg2, arg3) )
     {
             ErrorReporter::ReportError(
                 "second and third argument must have same type but received '"
@@ -415,10 +417,10 @@ ListExpr PictureLikeTypeMap(ListExpr args) {
                 +nl->ToString(arg3)
                 +"'");
 
-            return (nl->SymbolAtom("typeerror"));
+            return (nl->SymbolAtom(Symbol::TYPEERROR()));
     }
-    
-    return( nl->SymbolAtom("bool"));
+
+    return( nl->SymbolAtom(CcBool::BasicType()));
 }
 
 /*
@@ -450,19 +452,19 @@ int PictureColordistValueMap(Word* args,
 
     //
     //  I need at least a defined picture. Other parameters are
-    //  checked in function ~Colordist~. 
+    //  checked in function ~Colordist~.
     //
-    if ( pic->IsDefined() ) 
+    if ( pic->IsDefined() )
     {
         Histogram* hist = pic->Colordist(
-                                HistogramChannel(channel->GetIntval())); 
+                                HistogramChannel(channel->GetIntval()));
         res->CopyFrom( (const Attribute *) hist);
         delete hist;
     }
     else
     {
         cerr << endl << endl
-             << "The specified picture is not defined." 
+             << "The specified picture is not defined."
              << endl << endl;
 
         res->SetDefined( false );
@@ -493,10 +495,10 @@ int PictureEqualsValueMap(Word* args,
     {
         bool valid = false;
         double diff = 0;
-        pic1->Equals( pic2, numberValue->GetIntval(), 
+        pic1->Equals( pic2, numberValue->GetIntval(),
                         averageValue->GetIntval(), valid, diff );
-        
-        ((CcReal*)result.addr)->Set( valid, diff ); 
+
+        ((CcReal*)result.addr)->Set( valid, diff );
     }
     else
     {
@@ -525,7 +527,7 @@ int PictureContainsValueMap(Word* args,
     if ( pic1->IsDefined() && pic2->IsDefined() )
     {
         bool isInside = pic1->Contains( pic2 );
-        ((CcBool*)result.addr)->Set( true, isInside ); 
+        ((CcBool*)result.addr)->Set( true, isInside );
     }
     else
     {
@@ -565,7 +567,7 @@ static int PictureLikeValueMap_int(Word* args,
     {
         bool valid;
         bool rc = pic->Like( percentage->GetIntval(), delta->GetIntval(),
-                   minInterval->GetIntval(), maxInterval->GetIntval(), valid); 
+                   minInterval->GetIntval(), maxInterval->GetIntval(), valid);
 
         ((CcBool*)result.addr)->Set( valid, rc );
     }
@@ -604,9 +606,9 @@ static int PictureLikeValueMap_real(Word* args,
     if ( pic->IsDefined() )
     {
         bool valid;
-        bool rc = pic->Like(    percentage->GetRealval(), 
+        bool rc = pic->Like(    percentage->GetRealval(),
                                 delta->GetRealval(),
-                                minInterval->GetIntval(), 
+                                minInterval->GetIntval(),
                                 maxInterval->GetIntval(), valid );
 
         ((CcBool*)result.addr)->Set( valid, rc );
@@ -618,12 +620,12 @@ static int PictureLikeValueMap_real(Word* args,
              << endl << endl;
         ((CcBool*)result.addr)->Set(false, false);
     }
-  
+
     return(0);
 }
 
 ValueMapping pictureLikeValueMap[] = {
-    PictureLikeValueMap_int, 
+    PictureLikeValueMap_int,
     PictureLikeValueMap_real
 };
 
@@ -644,5 +646,5 @@ int PictureLikeSelect(ListExpr args) {
 
     ListExpr arg2 = nl->Second(args);
 
-    return nl->IsEqual(arg2, "int" ) ? 0 : 1;
+    return nl->IsEqual(arg2, CcInt::BasicType() ) ? 0 : 1;
 }

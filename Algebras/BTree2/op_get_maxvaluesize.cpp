@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the get\_maxkeysize Operator 
+[1] Implementation of the get\_maxkeysize Operator
 
 [TOC]
 
@@ -78,8 +78,8 @@ ListExpr get_maxvaluesize::TypeMapping(ListExpr args)
     if (!listutils::isBTree2Description(first)) {
       return listutils::typeError("argument must be a valid btree2");
     }
-  } 
-  return nl->OneElemList( nl->SymbolAtom("int"));
+  }
+  return nl->OneElemList( nl->SymbolAtom(CcInt::BasicType()));
 }
 
 /*
@@ -88,8 +88,8 @@ ListExpr get_maxvaluesize::TypeMapping(ListExpr args)
 */
 int get_maxvaluesize::Select( ListExpr args )
 {
-  if (nl->ListLength(args) == 0) { 
-     // Distinguish by number of arguments 
+  if (nl->ListLength(args) == 0) {
+     // Distinguish by number of arguments
     return 0;
   } else {
     return 1;
@@ -128,7 +128,7 @@ get_maxvaluesize::ValueMapping_BTree(Word* args, Word& result, int message,
 */
 string get_maxvaluesize::Specification() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = " -> int\n" 
+  string sig = " -> int\n"
                "(btree2 ti ta unique) -> int";
   string spec = "get_maxvaluesize(_)";
   string meaning = "If called without parameter, it givea the "
@@ -138,15 +138,15 @@ string get_maxvaluesize::Specification() {
   string example = "query get_maxvaluesize()";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
 int get_maxvaluesize::numberOfValueMappings = 2;
-ValueMapping get_maxvaluesize::valueMappings[] = { 
+ValueMapping get_maxvaluesize::valueMappings[] = {
                   get_maxvaluesize::ValueMapping_Default,
                   get_maxvaluesize::ValueMapping_BTree,
                 };

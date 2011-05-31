@@ -4779,7 +4779,7 @@ ListExpr MBoolTypeMapMBool( ListExpr args )
     if( nl->IsEqual( arg1, MBool::BasicType() ) )
       return (nl->SymbolAtom( MBool::BasicType() ));
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4806,7 +4806,7 @@ ListExpr AndOrTypeMapMBool( ListExpr args )
     && nl->IsEqual( arg2, MBool::BasicType() ) )
       return (nl->SymbolAtom( MBool::BasicType() ));
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4881,7 +4881,7 @@ ListExpr MovingEqualTypeMapMBool( ListExpr args )
       return (nl->SymbolAtom( MBool::BasicType() ));
 
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -4936,7 +4936,7 @@ ListExpr MovingCompareTypeMapMBool( ListExpr args )
       return (nl->SymbolAtom( MBool::BasicType() ));
 
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5002,7 +5002,7 @@ ListExpr MovingAddTypeMap( ListExpr args )
      && nl->IsEqual( arg2, MInt::BasicType() ) )
       return (nl->SymbolAtom( MReal::BasicType() ));
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5064,7 +5064,7 @@ ListExpr MovingMultiplyTypeMap( ListExpr args )
      && nl->IsEqual( arg2, MInt::BasicType() ) )
       return (nl->SymbolAtom( MReal::BasicType() ));
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5114,7 +5114,7 @@ ListExpr MovingDivideTypeMap( ListExpr args )
      && nl->IsEqual( arg2, MInt::BasicType() ) )
       return (nl->SymbolAtom( MReal::BasicType() ));
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 
@@ -5146,7 +5146,7 @@ MovingDistanceTypeMapMReal( ListExpr args )
       return nl->SymbolAtom( MReal::BasicType() );
 
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5166,56 +5166,72 @@ MovingIntersectionTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, MBool::BasicType() )
      && nl->IsEqual( arg2, MBool::BasicType() ) )
       return nl->SymbolAtom( MBool::BasicType() );
+
     if( nl->IsEqual( arg1, MBool::BasicType() )
      && nl->IsEqual( arg2, CcBool::BasicType() ) )
       return nl->SymbolAtom( MBool::BasicType() );
+
     if( nl->IsEqual( arg1, CcBool::BasicType() )
      && nl->IsEqual( arg2, MBool::BasicType() ) )
       return nl->SymbolAtom( MBool::BasicType() );
+
     if( nl->IsEqual( arg1, MInt::BasicType() )
      && nl->IsEqual( arg2, MInt::BasicType() ) )
       return nl->SymbolAtom( MInt::BasicType() );
+
     if( nl->IsEqual( arg1, MInt::BasicType() )
      && nl->IsEqual( arg2, CcInt::BasicType() ) )
       return nl->SymbolAtom( MInt::BasicType() );
+
     if( nl->IsEqual( arg1, CcInt::BasicType() )
      && nl->IsEqual( arg2, MInt::BasicType() ) )
       return nl->SymbolAtom( MInt::BasicType() );
+
     if( nl->IsEqual( arg1, MReal::BasicType() )
      && nl->IsEqual( arg2, MReal::BasicType() ) )
       return nl->SymbolAtom( MReal::BasicType() );
+
     if( nl->IsEqual( arg1, MReal::BasicType() )
      && nl->IsEqual( arg2, CcReal::BasicType() ) )
       return nl->SymbolAtom( MReal::BasicType() );
+
     if( nl->IsEqual( arg1, CcReal::BasicType() )
      && nl->IsEqual( arg2, MReal::BasicType() ) )
       return nl->SymbolAtom( MReal::BasicType() );
+
     if( nl->IsEqual( arg1, MPoint::BasicType() )
      && nl->IsEqual( arg2, Points::BasicType() ) )
       return nl->SymbolAtom( MPoint::BasicType() );
+
     if( nl->IsEqual( arg1, MPoint::BasicType() )
      && nl->IsEqual( arg2, Line::BasicType() ) )
       return nl->SymbolAtom( MPoint::BasicType() );
+
     if( nl->IsEqual( arg1, Points::BasicType() )
      && nl->IsEqual( arg2, MPoint::BasicType() ) )
       return nl->SymbolAtom( MPoint::BasicType() );
+
     if( nl->IsEqual( arg1, MPoint::BasicType() )
      && nl->IsEqual( arg2, MPoint::BasicType() ) )
       return nl->SymbolAtom( MPoint::BasicType() );
+
     if( nl->IsEqual( arg1, Line::BasicType() )
      && nl->IsEqual( arg2, MPoint::BasicType() ) )
       return nl->SymbolAtom( MPoint::BasicType() );
+
     if( nl->IsEqual( arg1, MString::BasicType() )
      && nl->IsEqual( arg2, MString::BasicType() ) )
       return nl->SymbolAtom( MString::BasicType() );
+
     if( nl->IsEqual( arg1, MString::BasicType() )
      && nl->IsEqual( arg2, CcString::BasicType() ) )
       return nl->SymbolAtom( MString::BasicType() );
+
     if( nl->IsEqual( arg1, CcString::BasicType() )
      && nl->IsEqual( arg2, MString::BasicType() ) )
       return nl->SymbolAtom( MString::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5293,7 +5309,7 @@ MovingMinusTypeMap( ListExpr args )
      && nl->IsEqual( arg2, MString::BasicType() ) )
       return nl->SymbolAtom( MString::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5324,7 +5340,7 @@ InsideTypeMapMBool( ListExpr args )
        && nl->IsEqual( arg2, Line::BasicType()))
          return nl->SymbolAtom(MBool::BasicType());
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
@@ -5339,7 +5355,7 @@ static ListExpr PerimeterTypeMap(ListExpr args) {
      && nl->IsEqual(nl->First(args), MRegion::BasicType()))
         return nl->SymbolAtom(MReal::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5354,7 +5370,7 @@ static ListExpr RCenterTypeMap(ListExpr args) {
      && nl->IsEqual(nl->First(args), MRegion::BasicType()))
         return nl->SymbolAtom(MPoint::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5369,7 +5385,7 @@ static ListExpr NComponentsTypeMap(ListExpr args) {
      && nl->IsEqual(nl->First(args), MRegion::BasicType()))
         return nl->SymbolAtom(MInt::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5392,10 +5408,10 @@ static ListExpr UnionTypeMap(ListExpr args) {
          return nl->SymbolAtom(MRegion::BasicType());
 
       else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5421,10 +5437,10 @@ static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
         return nl->SymbolAtom(MBool::BasicType());
 
      else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5439,7 +5455,7 @@ static ListExpr TemporalMIntTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), "periods"))
         return nl->SymbolAtom(MInt::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5455,7 +5471,7 @@ static ListExpr TemporalPlusTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), MInt::BasicType()))
         return nl->SymbolAtom(MInt::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5469,7 +5485,7 @@ static ListExpr TemporalZeroTypeMap(ListExpr args) {;
     if (nl->ListLength(args) == 0)
         return nl->SymbolAtom(MInt::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5485,7 +5501,7 @@ static ListExpr TemporalConcatTypeMap(ListExpr args) {
         && nl->IsEqual(nl->Second(args), MPoint::BasicType()) )
         return nl->SymbolAtom(MPoint::BasicType());
     else
-        return nl->SymbolAtom("typeerror");
+        return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -5504,7 +5520,7 @@ ABSTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, MReal::BasicType() ))
       return nl->SymbolAtom( MReal::BasicType() );
   }
-  return nl->SymbolAtom( "typeerror" );
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*

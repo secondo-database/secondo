@@ -36,7 +36,6 @@ January-May 2008, Mirko Dibbert
 #include "PictureFuns.h"
 
 using namespace gta;
-using namespace symbols;
 
 /*
 Initialize static members:
@@ -321,15 +320,15 @@ void DistDataReg::initialize()
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        INT, getDataInt));
+                         CcInt::BasicType(), getDataInt));
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        REAL, getDataReal));
+                         CcReal::BasicType(), getDataReal));
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        STRING, getDataString));
+                         CcString::BasicType(), getDataString));
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,

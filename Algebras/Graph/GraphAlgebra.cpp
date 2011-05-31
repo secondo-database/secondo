@@ -91,6 +91,7 @@ in SECONDO to get more informations about these operators.
 #include "edge.cpp"
 #include "graph.cpp"
 #include "path.cpp"
+#include "Symbols.h"
 
 /*
 4 Creating Operators
@@ -116,8 +117,9 @@ ListExpr theVertexMap ( ListExpr args ) {
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
 
-     if (nl->IsEqual(arg1, "graph") && nl->IsEqual(arg2, "int"))
-       return nl->SymbolAtom("vertex");
+     if (nl->IsEqual(arg1, Graph::BasicType()) &&
+         nl->IsEqual(arg2, CcInt::BasicType()))
+       return nl->SymbolAtom(Vertex::BasicType());
      if ((nl->AtomType(arg1) == SymbolType) &&
          (nl->AtomType(arg2) == SymbolType))
        ErrorReporter::ReportError(
@@ -131,7 +133,7 @@ ListExpr theVertexMap ( ListExpr args ) {
      ErrorReporter::ReportError(
                 "Type mapping function got a parameter of length != 2.");
 
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -148,8 +150,9 @@ ListExpr minMaxDegreeMap ( ListExpr args ) {
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
 
-     if (nl->IsEqual(arg1, "graph") && nl->IsEqual(arg2, "bool"))
-       return nl->SymbolAtom("int");
+     if (nl->IsEqual(arg1, Graph::BasicType()) &&
+         nl->IsEqual(arg2, CcBool::BasicType()))
+       return nl->SymbolAtom(CcInt::BasicType());
      if ((nl->AtomType(arg1) == SymbolType) &&
          (nl->AtomType(arg2) == SymbolType))
        ErrorReporter::ReportError(
@@ -163,7 +166,7 @@ ListExpr minMaxDegreeMap ( ListExpr args ) {
      ErrorReporter::ReportError(
               "Type mapping function got a parameter of length != 2.");
 
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -179,15 +182,15 @@ ListExpr connectedCompMap ( ListExpr args ) {
 
      ListExpr arg1 = nl->First(args);
 
-     if (nl->IsEqual(arg1, "graph"))
+     if (nl->IsEqual(arg1, Graph::BasicType()))
        return nl->TwoElemList(
-                   nl->SymbolAtom("stream"),
+                   nl->SymbolAtom(Symbol::STREAM()),
                    nl->TwoElemList(
-                        nl->SymbolAtom("tuple"),
+                        nl->SymbolAtom(Tuple::BasicType()),
                         nl->OneElemList(
                              nl->TwoElemList(
                                   nl->SymbolAtom("Graph"),
-                                  nl->SymbolAtom("graph")
+                                  nl->SymbolAtom(Graph::BasicType())
                              )
                         )
                    )
@@ -205,7 +208,7 @@ ListExpr connectedCompMap ( ListExpr args ) {
      ErrorReporter::ReportError(
              "Type mapping function got a parameter of length != 1.");
 
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -222,7 +225,7 @@ ListExpr shortestPathMap ( ListExpr args ) {
         ListExpr arg2 = nl->Second(args);
         ListExpr arg3 = nl->Third(args);
 
-        if (!nl->IsEqual(arg1, "graph")){
+        if (!nl->IsEqual(arg1, Graph::BasicType())){
           ErrorReporter::ReportError("first argument must be of type graph");
           return nl->TypeError();
         }
@@ -234,17 +237,17 @@ ListExpr shortestPathMap ( ListExpr args ) {
         }
         string arg2s = nl->SymbolValue(arg2);
         string arg3s = nl->SymbolValue(arg3);
-        if( (arg2s != "vertex") && (arg2s!="int")){
+        if( (arg2s != Vertex::BasicType()) && (arg2s!=CcInt::BasicType())){
             ErrorReporter::ReportError(
                  "graph x {int, vertex} x {int, vertex} expected");
             return nl->TypeError();
         }
-        if( (arg3s != "vertex") && (arg3s!="int")){
+        if( (arg3s != Vertex::BasicType()) && (arg3s!=CcInt::BasicType())){
             ErrorReporter::ReportError(
                  "graph x {int, vertex} x {int, vertex} expected");
             return nl->TypeError();
         }
-        return nl->SymbolAtom("path");
+        return nl->SymbolAtom(Path::BasicType());
 
 
     } else {
@@ -270,11 +273,12 @@ ListExpr edgesMap ( ListExpr args ) {
 
         ListExpr arg1 = nl->First(args);
 
-        if (nl->IsEqual(arg1, "path") || nl->IsEqual(arg1, "graph"))
+        if (nl->IsEqual(arg1, Path::BasicType()) ||
+            nl->IsEqual(arg1, Graph::BasicType()))
             return nl->TwoElemList(
-                nl->SymbolAtom("stream"),
+                nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList(
-                    nl->SymbolAtom("tuple"),
+                    nl->SymbolAtom(Tuple::BasicType()),
                     nl->OneElemList(
                         nl->TwoElemList(
                             nl->SymbolAtom("Edge"),
@@ -296,7 +300,7 @@ ListExpr edgesMap ( ListExpr args ) {
         ErrorReporter::ReportError(
                     "Type mapping function got a parameter of length != 1.");
 
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -313,15 +317,16 @@ ListExpr verticesMap ( ListExpr args ) {
 
         ListExpr arg1 = nl->First(args);
 
-        if (nl->IsEqual(arg1, "path") || nl->IsEqual(arg1, "graph"))
+        if (nl->IsEqual(arg1, Path::BasicType()) ||
+            nl->IsEqual(arg1, Graph::BasicType()))
             return nl->TwoElemList(
-                nl->SymbolAtom("stream"),
+                nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList(
-                    nl->SymbolAtom("tuple"),
+                    nl->SymbolAtom(Tuple::BasicType()),
                     nl->OneElemList(
                         nl->TwoElemList(
                             nl->SymbolAtom("Vertex"),
-                            nl->SymbolAtom("vertex")
+                            nl->SymbolAtom(Vertex::BasicType())
                         )
                     )
                 )
@@ -339,7 +344,7 @@ ListExpr verticesMap ( ListExpr args ) {
         ErrorReporter::ReportError(
             "Operator 'vertices'  got a parameter of length != 1.");
 
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -424,13 +429,13 @@ ListExpr constGraphTypeMap( ListExpr args )
     ErrorReporter::ReportError("Operator constGraph gets '" +
             argstr +", "+argstr2+ "' as attributenames.\n"
             "Atrribute name may not be the name of a Secondo object!");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
-  j = listutils::findAttribute(nl->Second(nl->Second(inTuple)), 
+  j = listutils::findAttribute(nl->Second(nl->Second(inTuple)),
                                 attrname1, attrtype);
   if (j) {
-    if(!listutils::isSymbol(attrtype,"int")){
-      return listutils::typeError("Attribute " + attrname1 + 
+    if(!listutils::isSymbol(attrtype,CcInt::BasicType())){
+      return listutils::typeError("Attribute " + attrname1 +
                                   " must be of type int");
     }
   }
@@ -439,33 +444,33 @@ ListExpr constGraphTypeMap( ListExpr args )
     return listutils::typeError("Attribute " + attrname1 +
                                 " not found in tuple");
   }
-  k = listutils::findAttribute(nl->Second(nl->Second(inTuple)), 
+  k = listutils::findAttribute(nl->Second(nl->Second(inTuple)),
                                attrname2, attrtype);
  if (k)
  {
-   if(!listutils::isSymbol(attrtype,"int")){
-     return listutils::typeError("Attribute " + attrname1 + 
+   if(!listutils::isSymbol(attrtype,CcInt::BasicType())){
+     return listutils::typeError("Attribute " + attrname1 +
                                  " must be of type int");
    }
  }
  else
  {
-   return listutils::typeError("Attribute " + attrname2 + 
+   return listutils::typeError("Attribute " + attrname2 +
                                " not known in the tuple");
  }
  if(characteristic==1||characteristic==3)
  {
    if ( nl->IsAtom(func)
         || !nl->ListLength(func) == 3
-        || !nl->IsEqual(nl->First(func), "map")
-        || !nl->IsEqual(nl->Third(func), "real") )
+        || !nl->IsEqual(nl->First(func), Symbol::MAP())
+        || !nl->IsEqual(nl->Third(func), CcReal::BasicType()) )
       {
           nl->WriteToString(argstr, func);
           ErrorReporter::ReportError("Operator filter expects a "
                "(map tuple real) as its second argument. "
                "The second argument provided "
                "has type '" + argstr + "' instead.");
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
       }
     }
 
@@ -489,7 +494,7 @@ ListExpr constGraphTypeMap( ListExpr args )
       l = FindAttribute(nl->Second(nl->Second(inTuple)), attrname1, attrtype);
       if (l)
       {
-        if(!listutils::isSymbol(attrtype,"point")){
+        if(!listutils::isSymbol(attrtype,Point::BasicType())){
           return listutils::typeError(" Attribute " + attrname1 +
                                       " must be of type point");
         }
@@ -500,13 +505,13 @@ ListExpr constGraphTypeMap( ListExpr args )
           ErrorReporter::ReportError(
             "Attributename '" + attrname1 + "' is not known.\n"
             "Known Attribute(s): " + argstr);
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
       }
        m = FindAttribute(nl->Second(nl->Second(inTuple)), attrname2, attrtype);
       if (m)
       {
-        if(!listutils::isSymbol(attrtype,"point")){
-          return listutils::typeError("Attribute " + attrname2 + 
+        if(!listutils::isSymbol(attrtype,Point::BasicType())){
+          return listutils::typeError("Attribute " + attrname2 +
                                       " must be of type point");
         }
       }
@@ -516,16 +521,16 @@ ListExpr constGraphTypeMap( ListExpr args )
           ErrorReporter::ReportError(
             "Attributename '" + attrname2 + "' is not known.\n"
             "Known Attribute(s): " + argstr);
-          return nl->SymbolAtom("typeerror");
+          return nl->SymbolAtom(Symbol::TYPEERROR());
       }
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
            nl->FourElemList(nl->IntAtom(j),nl->IntAtom(k),
                             nl->IntAtom(l),nl->IntAtom(m)),
-            nl->SymbolAtom("graph"));
+            nl->SymbolAtom(Graph::BasicType()));
   }
-   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
      nl->TwoElemList(nl->IntAtom(j),nl->IntAtom(k)),
-        nl->SymbolAtom("graph"));
+        nl->SymbolAtom(Graph::BasicType()));
 }
 
 
@@ -543,10 +548,10 @@ ListExpr circleMap ( ListExpr args ) {
      ListExpr arg2 = nl->Second(args);
      ListExpr arg3 = nl->Third(args);
 
-     if (nl->IsEqual(arg1, "graph") &&
-         nl->IsEqual(arg2, "vertex") &&
-         nl->IsEqual(arg3, "real"))
-       return nl->SymbolAtom("graph");
+     if (nl->IsEqual(arg1, Graph::BasicType()) &&
+         nl->IsEqual(arg2, Vertex::BasicType()) &&
+         nl->IsEqual(arg3, CcReal::BasicType()))
+       return nl->SymbolAtom(Graph::BasicType());
 
      if ((nl->AtomType(arg1) == SymbolType) &&
          (nl->AtomType(arg2) == SymbolType) &&
@@ -563,7 +568,7 @@ ListExpr circleMap ( ListExpr args ) {
      ErrorReporter::ReportError(
          "Operator 'circle' got a parameter of length != 3.");
 
-   return nl->SymbolAtom("typeerror");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -578,9 +583,9 @@ ListExpr GraphGraphTypeMap(ListExpr args)
   if (nl->ListLength(args) == 1)
   {
     ListExpr arg = nl->First(args);
-    if (nl->IsEqual(arg, "graph"))
+    if (nl->IsEqual(arg, Graph::BasicType()))
     {
-      return nl->SymbolAtom("graph");
+      return nl->SymbolAtom(Graph::BasicType());
     }
     else
     {
@@ -594,7 +599,7 @@ ListExpr GraphGraphTypeMap(ListExpr args)
     ErrorReporter::ReportError(
         "Operator 'placenodes' got a parameter of length != 1.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -610,9 +615,10 @@ ListExpr GraphGraphGraphTypeMap(ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1, "graph") && nl->IsEqual(arg2, "graph"))
+    if (nl->IsEqual(arg1, Graph::BasicType()) &&
+        nl->IsEqual(arg2, Graph::BasicType()))
     {
-      return nl->SymbolAtom("graph");
+      return nl->SymbolAtom(Graph::BasicType());
     }
     else
     {
@@ -626,7 +632,7 @@ ListExpr GraphGraphGraphTypeMap(ListExpr args)
     ErrorReporter::ReportError(
         "GraphGraphGraphTypeMap got a parameter of length != 2.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -642,9 +648,10 @@ ListExpr GraphGraphBoolTypeMap(ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if (nl->IsEqual(arg1, "graph") && nl->IsEqual(arg2, "graph"))
+    if (nl->IsEqual(arg1, Graph::BasicType()) &&
+        nl->IsEqual(arg2, Graph::BasicType()))
     {
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
     }
     else
     {
@@ -658,7 +665,7 @@ ListExpr GraphGraphBoolTypeMap(ListExpr args)
     ErrorReporter::ReportError(
         "GraphGraphBoolTypeMap got a parameter of length != 2.");
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -685,13 +692,13 @@ ListExpr EqualTypeMap(ListExpr args){
        "EqualTypeMap: both arguments must have the same type");
    return nl->TypeError();
  }
- if( (arg1s!="vertex") && (arg1s!="edge") &&
-     (arg1s!="path") && (arg1s!="graph")){
+ if( (arg1s!=Vertex::BasicType()) && (arg1s!="edge") &&
+     (arg1s!=Path::BasicType()) && (arg1s!=Graph::BasicType())){
    ErrorReporter::ReportError("EqualTypeMap: only arguments vertex, edge,"
                               " path, and graph are allowed");
    return nl->TypeError();
  }
- return nl->SymbolAtom("bool");
+ return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -703,12 +710,12 @@ ListExpr EqualWayTypeMap(ListExpr args){
     ErrorReporter::ReportError("Operator equalway: two arguments expected");
      return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(args),"path") ||
-     !nl->IsEqual(nl->Second(args),"path")){
+  if(!nl->IsEqual(nl->First(args),Path::BasicType()) ||
+     !nl->IsEqual(nl->Second(args),Path::BasicType())){
     ErrorReporter::ReportError("Operator equalway: path x path expected");
      return nl->TypeError();
   }
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 
@@ -731,9 +738,9 @@ int edgesVerticesSelect(ListExpr args) {
 
    ListExpr arg = nl->First(args);
 
-   if (nl->IsEqual(arg,"path"))
+   if (nl->IsEqual(arg,Path::BasicType()))
      return (0);
-   if (nl->IsEqual(arg,"graph"))
+   if (nl->IsEqual(arg,Graph::BasicType()))
      return (1);
    return (-1);
 }
@@ -746,10 +753,10 @@ int edgesVerticesSelect(ListExpr args) {
 int shortestPathSelect(ListExpr args){
    string arg2 = nl->SymbolValue(nl->Second(args));
    string arg3 = nl->SymbolValue(nl->Third(args));
-   if(arg2=="vertex" && arg3=="vertex") return 0;
-   if(arg2=="vertex" && arg3=="int") return 1;
-   if(arg2=="int" && arg3=="vertex") return 2;
-   if(arg2=="int" && arg3=="int") return 3;
+   if(arg2==Vertex::BasicType() && arg3==Vertex::BasicType()) return 0;
+   if(arg2==Vertex::BasicType() && arg3==CcInt::BasicType()) return 1;
+   if(arg2==CcInt::BasicType() && arg3==Vertex::BasicType()) return 2;
+   if(arg2==CcInt::BasicType() && arg3==CcInt::BasicType()) return 3;
    return -1;
 }
 
@@ -759,7 +766,7 @@ int shortestPathSelect(ListExpr args){
 
 */
 int EqualSelect(ListExpr args){
-  if(nl->IsEqual(nl->First(args),"graph")){
+  if(nl->IsEqual(nl->First(args),Graph::BasicType())){
      return  0;
   } else {
     return 1;
@@ -1155,7 +1162,7 @@ int constGraphFun(Word* args, Word& result, int message,
       pointIndex1=((CcInt*)args[8].addr)->GetIntval() - 1;
       pointIndex2=((CcInt*)args[9].addr)->GetIntval() - 1;
     }
-    
+
     result = qp->ResultStorage(s);
     res = (Graph*)(result.addr);
     res->SetDefined(true);
@@ -1774,10 +1781,10 @@ class GraphAlgebra : public Algebra
     AddTypeConstructor( &edgeCon );
     AddTypeConstructor( &graphCon );
     AddTypeConstructor( &pathCon );
-    vertexCon.AssociateKind("DATA");
-    edgeCon.AssociateKind("DATA");
-    graphCon.AssociateKind("DATA");
-    pathCon.AssociateKind("DATA");
+    vertexCon.AssociateKind(Kind::DATA());
+    edgeCon.AssociateKind(Kind::DATA());
+    graphCon.AssociateKind(Kind::DATA());
+    pathCon.AssociateKind(Kind::DATA());
 
     AddOperator(&theVertex);
     AddOperator(&maxDegree);

@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 
-[1] Implementation of the get\_cache\_size Operator 
+[1] Implementation of the get\_cache\_size Operator
 
 [TOC]
 
@@ -70,8 +70,8 @@ ListExpr get_cache_size::TypeMapping( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
-}       
+  return (nl->SymbolAtom(CcInt::BasicType()));
+}
 
 /*
 2.2 Value Mapping
@@ -105,7 +105,7 @@ struct getCacheSizeInfo : OperatorInfo {
   }
 };
 
-Operator get_cache_size::def( getCacheSizeInfo(), get_cache_size::ValueMapping, 
+Operator get_cache_size::def( getCacheSizeInfo(), get_cache_size::ValueMapping,
                                            get_cache_size::TypeMapping);
 }
 }

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -67,7 +67,7 @@ enum CcRelationType { mrel, mtuple, mstream, mmap, mbool, merror };
 
 const int MaxSizeOfAttr = 35;  //changed by DZM, original value: 20
 
-int CcFindAttribute( ListExpr list, string attrname, 
+int CcFindAttribute( ListExpr list, string attrname,
 		     ListExpr& attrtype, NestedList* nl);
 bool CcIsTupleDescription(ListExpr a, NestedList* nl);
 
@@ -109,6 +109,8 @@ class CcTuple
 
     friend
     ostream& operator<<(ostream& s, CcTuple t);
+
+    static const string BasicType() { return "mtuple"; }
 };
 
 class LexicographicalCcTupleCmp
@@ -196,6 +198,7 @@ class CcRel
     void    SetNoTuples (int);
     int     GetNoTuples ();
 
+    static const string BasicType() { return "mrel"; }
 };
 
 ListExpr OutCcRel(ListExpr, Word);
@@ -221,5 +224,5 @@ bool OpenCcRel( SmiRecord&, size_t&,
 
 bool SaveCcRel( SmiRecord&, size_t&,
                 const ListExpr, Word& );
-    
+
 #endif /* OLD_RELATION_ALGEBRA_H */

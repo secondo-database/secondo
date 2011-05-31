@@ -3,7 +3,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the treeheight Operator 
+[1] Implementation of the treeheight Operator
 
 [TOC]
 
@@ -31,10 +31,10 @@ ListExpr set_maxkeysize::TypeMapping( ListExpr args){
     CHECK_COND(nl->ListLength(args) == 1,
      "Operator expects one argument");
     ListExpr second = nl->First(args);
-    CHECK_COND(nl->IsEqual(second, "int"),
-      "Second argument must be of type int."); 
-  return (nl->SymbolAtom("bool")); 
-}       
+    CHECK_COND(nl->IsEqual(second, CcInt::BasicType()),
+      "Second argument must be of type int.");
+  return (nl->SymbolAtom(CcBool::BasicType()));
+}
 
 
 int
@@ -62,8 +62,8 @@ struct setMaxKeysizeInfo : OperatorInfo {
   }
 };
 
-Operator set_maxkeysize::def( setMaxKeysizeInfo(), 
-                               set_maxkeysize::ValueMapping, 
+Operator set_maxkeysize::def( setMaxKeysizeInfo(),
+                               set_maxkeysize::ValueMapping,
                                set_maxkeysize::TypeMapping);
 
 } // end namespace operator

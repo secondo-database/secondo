@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -40,8 +40,6 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 //#include "Secondo.cpp"
 //#include "../../Spatial/SpatialAlgebra.h"
 
-using namespace symbols;
-
 //#define DEBUGMESSAGES
 //---------------------------------------------------------------------------
 bool ClipCel::clippedSegmentOnEdge(Segment &s)
@@ -54,17 +52,17 @@ bool ClipCel::clippedSegmentOnEdge(Segment &s)
   TurningPoint tp1,tp2;
   //Returns true if the clipped hs was treated as a segment on edge
   bool reject = false,
-       result = false; 
+       result = false;
   if ( s.p1.y == s.p2.y ) //horizontal edge
   {
     if ( s.p1.y == this->max.y ) //top edge
     {
   // If the half segment lies on the upper edge and the insideAbove attribute's
-  // value is true then the region's area is outside the window, and the half 
-  // segment mustn't be included in the clipped region (Reject). However, its 
-  // end points maybe will have to be connected to the vertices of the window. 
+  // value is true then the region's area is outside the window, and the half
+  // segment mustn't be included in the clipped region (Reject). However, its
+  // end points maybe will have to be connected to the vertices of the window.
   // It happens only when the vertice of the window is inside the region and the
-  // end point is the first point on the window's edge (for the upper-left 
+  // end point is the first point on the window's edge (for the upper-left
   // vertice) or the last point on the window's vertice (for the upper right
   // edge).
       if ( s.insideAbove )
@@ -119,8 +117,8 @@ void ClipCel::addTurningPoint(const RealCoordinate &p,const Segment &s)
 {
   RealCoordinate v;
   //If the left and right edges are been tested then it is not needed to check
-  //the angle between the half segment and the edge. If the attribute inside 
-  //above is true, then the direction is up (false), otherwise it is 
+  //the angle between the half segment and the edge. If the attribute inside
+  //above is true, then the direction is up (false), otherwise it is
   //down (true).
   if (p.x == this->min.x)
     vTurningPointsLEFT.push_back(TurningPoint(p,!s.insideAbove,false,s));
@@ -146,7 +144,7 @@ void ClipCel::addTurningPoint(const RealCoordinate &p,const Segment &s)
               TurningPoint::getDirectionTurningPoint(p,s.p2,s.insideAbove,v),
               false,s));
 
-        //If none of them is above the top edge, then the y coordinate of one 
+        //If none of them is above the top edge, then the y coordinate of one
         //point is equal to p.y and the other is below.
         //In order to discover the correct direction
         //we must change the parameter to send to GetTurningPoint function
@@ -178,7 +176,7 @@ void ClipCel::addTurningPoint(const RealCoordinate &p,const Segment &s)
           vTurningPointsTOP.push_back( TurningPoint(p,
               TurningPoint::getDirectionTurningPoint(p,s.p2,s.insideAbove,v),
               false,s));
-        //If none of them is above the top edge, then the y coordinate of one 
+        //If none of them is above the top edge, then the y coordinate of one
         //point is equal to p.y and the other is below.
         //In order to discover the correct direction
         //we must change the parameter to send to GetTurningPoint function
@@ -198,7 +196,7 @@ void ClipCel::addTurningPoint(const RealCoordinate &p,const Segment &s)
 //---------------------------------------------------------------------------
 double ClipCel::trapezoidArea(Segment s)
 {
-  //If the segment has 'insideAbove' positive, then the area of the 
+  //If the segment has 'insideAbove' positive, then the area of the
   //trapeze must be considered negative
   int x = -1;
   if (!s.insideAbove)
@@ -247,7 +245,7 @@ void ClipCel::handleSegment(RealCoordinate celMin,RealCoordinate celMax,
          bool hsOnEdge = clippedSegmentOnEdge(sInside);
          if (!hsOnEdge)
          {
-          //If the point lies on one edge it must be added to the 
+          //If the point lies on one edge it must be added to the
           //corresponding vector.
           addTurningPoint(sInside.p1,s);
           addTurningPoint(sInside.p2,s);
@@ -390,7 +388,7 @@ void ClipCel::evaluateVerticesBottomEdge(bool &considerLeftVertex,
     while (begin<=end)
     {
       dpAux = vTurningPointsBOTTOM[begin];
-      if (!( (dpAux.x == dp.x) && (dpAux.y == dp.y) && 
+      if (!( (dpAux.x == dp.x) && (dpAux.y == dp.y) &&
            (dpAux.direction==dp.direction) ) )
         break;
       begin++;
@@ -400,7 +398,7 @@ void ClipCel::evaluateVerticesBottomEdge(bool &considerLeftVertex,
   dp = vTurningPointsBOTTOM[end];
   if ( !dp.direction && !dp.rejected) //dp points to right or up
     considerRightVertex = true;
-}    
+}
 //---------------------------------------------------------------------------
 void ClipCel::evaluateNewSegmentsTopEdge(bool &consideredLeftVertex,
                                          bool &consideredRightVertex)
@@ -436,7 +434,7 @@ void ClipCel::evaluateNewSegmentsTopEdge(bool &consideredLeftVertex,
     while (begin<=end)
     {
       dpAux = vTurningPointsTOP[begin];
-      if (!( (dpAux.x == dp.x) && (dpAux.y == dp.y) && 
+      if (!( (dpAux.x == dp.x) && (dpAux.y == dp.y) &&
              (dpAux.direction==dp.direction) ) )
         break;
       begin++;

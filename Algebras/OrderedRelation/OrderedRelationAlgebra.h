@@ -200,6 +200,9 @@ class OrderedRelation : public GenericRelation {
     const SmiBtreeFile* GetTupleFile() const;
 
     const TupleType* GetTupleType() const;
+
+    static const string BasicType() { return "orel"; }
+
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;

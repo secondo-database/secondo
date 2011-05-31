@@ -47,8 +47,6 @@ It represents the current position and time of a moving object.
 #include "UploadUnit.h"
 
 using namespace std;
-using namespace symbols;
-
 /******************************************************************************
 
 3 Implementation of class UploadUnit
@@ -62,7 +60,7 @@ UploadUnit::UploadUnit( int ID, Instant T, UnitPos POS )
   id   = ID;
   t    = T;
   pos  = POS;
-  this->SetDefined(true);
+  this->SetDefined(T.IsDefined());
 }
 
 UploadUnit::UploadUnit( const UploadUnit& UNIT )
@@ -70,7 +68,7 @@ UploadUnit::UploadUnit( const UploadUnit& UNIT )
   id   = UNIT.id;
   t    = UNIT.t;
   pos  = UNIT.pos;
-  this->SetDefined(true);
+  this->SetDefined(UNIT.IsDefined());
 }
 
 /******************************************************************************
@@ -86,20 +84,30 @@ Word UploadUnit::In( const ListExpr typeInfo, const ListExpr instance,
 {
   Word result = SetWord(Address(0));
   correct = false;
+  // the SETI cannot yet handle UNDEFINED UploadUnits, hence we do not create
+  // them:
+//   if(listutils::isSymbolUndefined(instance)){ // undefined UploadUnit
+//     Instant inst(isnatttype);
+//     inst.SetDefined(false);
+//     UploadUnit* r = new UploadUnit(-1,inst);
+//     result = SetWord(r);
+//     correct = true;
+//     return result;
+//   }
   if ( nl->ListLength(instance) != 3 )
   {
     cmsg.inFunError("Three arguments expected!");
     return result;
   }
-  
+
   // Check moving object id
   ListExpr unitID = nl->First(instance);
   if (!(nl->IsAtom(unitID) && nl->AtomType(unitID == IntType)))
   {
     cmsg.inFunError("The id is invalid!");
-    return result; 
+    return result;
   }
-  
+
   // Check timestamp
   ListExpr updatetime  = nl->Second(instance);
   Instant* ts;
@@ -119,7 +127,7 @@ Word UploadUnit::In( const ListExpr typeInfo, const ListExpr instance,
   {
     cmsg.inFunError("The time stamp must be of string type!");
   }
- 
+
   // Check position information
   ListExpr pos = nl->Third(instance);
   if (!( nl->ListLength(pos) == 2 &&
@@ -131,7 +139,7 @@ Word UploadUnit::In( const ListExpr typeInfo, const ListExpr instance,
     cmsg.inFunError("Two double type values for position expected!");
     return result;
   }
-  
+
   // Create UploadUnit
   int   id = nl->IntValue(unitID);
   UnitPos p(nl->RealValue(nl->First(pos)),nl->RealValue(nl->Second(pos)));
@@ -149,17 +157,17 @@ Word UploadUnit::In( const ListExpr typeInfo, const ListExpr instance,
 ListExpr  UploadUnit::Out( ListExpr typeInfo, Word value )
 {
   UploadUnit* unitPtr = static_cast<UploadUnit*>(value.addr);
-  
+
   ListExpr id  = nl->IntAtom(unitPtr->id);
-  
+
   ListExpr t   = OutDateTime(nl->TheEmptyList(), SetWord((void*) &unitPtr->t));
-  
+
   ListExpr pos = nl->TwoElemList(
     nl->RealAtom(unitPtr->pos.x),
     nl->RealAtom(unitPtr->pos.y));
 
   if (unitPtr->IsDefined()) return nl->ThreeElemList( id, t, pos );
-  else return nl->OneElemList(nl->StringAtom("undefined"));
+  else return nl->SymbolAtom(Symbol::UNDEFINED());
 }
 
 /******************************************************************************
@@ -197,7 +205,7 @@ bool UploadUnit::Open( SmiRecord& valueRecord, size_t& offset,
   int      id;
   Instant  t;
   UnitPos pos;
-  
+
   bool ok = true;
   ok = ok && valueRecord.Read(&id,sizeof(int),offset);
   offset += sizeof(int);
@@ -279,7 +287,7 @@ bool UploadUnit::KindCheck( ListExpr type, ListExpr& errorInfo )
 
 ******************************************************************************/
 
-void* UploadUnit::Cast(void* addr) 
+void* UploadUnit::Cast(void* addr)
 {
   return (new (addr) UploadUnit);
 }
@@ -369,7 +377,7 @@ size_t UploadUnit::Sizeof() const
 
 ******************************************************************************/
 
-UploadUnit* UploadUnit::Clone() const 
+UploadUnit* UploadUnit::Clone() const
 {
   return (new UploadUnit( *this));
 }

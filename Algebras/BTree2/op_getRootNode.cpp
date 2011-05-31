@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 
-[1] Implementation of the getRootNode Operator 
+[1] Implementation of the getRootNode Operator
 
 [TOC]
 
@@ -68,8 +68,8 @@ ListExpr getRootNode::TypeMapping( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
-}       
+  return (nl->SymbolAtom(CcInt::BasicType()));
+}
 
 /*
 2.2 Value Mapping
@@ -80,7 +80,7 @@ getRootNode::ValueMapping(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
-  BTree2* btree = (BTree2*)args[0].addr;  
+  BTree2* btree = (BTree2*)args[0].addr;
   CcInt *res = (CcInt*) result.addr;
   res->Set( true, btree->GetRootNode() );
   return 0;

@@ -173,25 +173,25 @@ Operator : contains
 Number   : 11
 Signature: string x string -> bool
 Example  : query [const string value undef] contains "lox"
-Result   : (bool undef)
+Result   : (bool undefined)
 
 Operator : contains
 Number   : 12
 Signature: string x text -> bool
 Example  : query "hello world" contains [const text value undef]
-Result   : (bool undef)
+Result   : (bool undefined)
 
 Operator : contains
 Number   : 13
 Signature: string x text -> bool
 Example  : query [const string value undef] contains 'lox'
-Result   : (bool undef)
+Result   : (bool undefined)
 
 Operator : contains
 Number   : 14
 Signature: text x text -> bool
 Example  : query [const text value undef] contains [const text value undef]
-Result   : (bool undef)
+Result   : (bool undefined)
 
 Operator : dice
 Number   : 1
@@ -806,7 +806,7 @@ Operator : strequal
 Number   : 9
 Signature: text x text -> bool
 Example  : query strequal('hello','HELLO', [const bool value undef])
-Result   : (bool undef)
+Result   : (bool undefined)
 
 Operator : sys_getAlgebraName
 Number   : 1
@@ -818,7 +818,7 @@ Operator : sys_getAlgebraName
 Number   : 2
 Signature: int -> string
 Example  : query sys_getAlgebraName(0)
-Result   : (string undef)
+Result   : (string undefined)
 
 Operator : sys_getAlgebraId
 Number   : 1
@@ -836,7 +836,7 @@ Operator : sys_getAlgebraId
 Number   : 3
 Signature: text -> int
 Example  : query sys_getAlgebraId('blablabla')
-Result   : (int undef)
+Result   : (int undefined)
 
 
 Operator : tokenize

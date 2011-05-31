@@ -46,7 +46,7 @@ The this end, two things are to do:
 #include "DateTime.h"
 #include "NMEAImporter.h"
 #include "StringUtils.h"
-
+#include "Symbols.h"
 
 extern NestedList* nl;
 
@@ -644,51 +644,51 @@ Returns the type of the tuple when converting a GGA sentence.
      ListExpr getTupleTypeAsList() const{
         ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                                     nl->SymbolAtom("SenID"),
-                                                    nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
         ListExpr last = attrList;
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Utc"),
-                                               nl->SymbolAtom("instant")));
+                                        nl->SymbolAtom(Instant::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Lat"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Lon"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("FixQuality"),
-                                               nl->SymbolAtom("int")));
+                                        nl->SymbolAtom(CcInt::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("NoSats"),
-                                               nl->SymbolAtom("int")));
+                                        nl->SymbolAtom(CcInt::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("HDilution"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Alt"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("AltUnit"),
-                                               nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("Height"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("HeightUnit"),
-                                               nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
 
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("TimeLastUpdate"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
 
         last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("DGPSStationID"),
-                                               nl->SymbolAtom("int")));
+                                        nl->SymbolAtom(CcInt::BasicType())));
 
         // ommit checksum
 
-        return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
+        return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList);
 
      }
 /*
@@ -783,44 +783,44 @@ class GSAImporter : public NMEALineImporter{
      ListExpr getTupleTypeAsList()const{
         ListExpr attrList = nl->OneElemList(
                                    nl->TwoElemList(nl->SymbolAtom("SenId"),
-                                                   nl->SymbolAtom("string")));
+                                       nl->SymbolAtom(CcString::BasicType())));
 
         ListExpr last = attrList;
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("FixSel"),
-                                           nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("Fix3D"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN1"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN2"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN3"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN4"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN5"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN6"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN7"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN8"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN9"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN10"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN11"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PRN12"),
-                                           nl->SymbolAtom("int")));
+                                           nl->SymbolAtom(CcInt::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("PDop"),
-                                           nl->SymbolAtom("real")));
+                                          nl->SymbolAtom(CcReal::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("HDop"),
-                                           nl->SymbolAtom("real")));
+                                          nl->SymbolAtom(CcReal::BasicType())));
         last = nl->Append( last, nl->TwoElemList(nl->SymbolAtom("VDop"),
-                                           nl->SymbolAtom("real")));
-        return nl->TwoElemList(nl->SymbolAtom("tuple"),attrList);
+                                          nl->SymbolAtom(CcReal::BasicType())));
+        return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),attrList);
 
 
      }
@@ -907,33 +907,33 @@ class RMCImporter: public NMEALineImporter{
      ListExpr getTupleTypeAsList() const {
        ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                   nl->SymbolAtom("SenID"),
-                                  nl->SymbolAtom("string")));
+                                  nl->SymbolAtom(CcString::BasicType())));
        ListExpr last = attrList;
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
-                                               nl->SymbolAtom("instant")));
+                                        nl->SymbolAtom(Instant::BasicType())));
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Status"),
-                                               nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lat"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lon"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Speed"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Angle"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MagV"),
-                                               nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
        last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MagS"),
-                                               nl->SymbolAtom("string")));
-       return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
+                                        nl->SymbolAtom(CcString::BasicType())));
+       return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList);
      }
 
      virtual Tuple* getTupleForLine(const string& line){
@@ -1018,17 +1018,17 @@ class ZDAImporter : public NMEALineImporter{
       ListExpr getTupleTypeAsList() const {
          ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
-                                    nl->SymbolAtom("string")));
+                                    nl->SymbolAtom(CcString::BasicType())));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
-                                                 nl->SymbolAtom("instant")));
+                                      nl->SymbolAtom(Instant::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeZoneH"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TimeZoneM"),
-                                                 nl->SymbolAtom("int")));
-         return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
+                                          nl->SymbolAtom(CcInt::BasicType())));
+         return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList);
      }
 
      Tuple* getTupleForLine(const string& line){
@@ -1109,65 +1109,65 @@ class GSVImporter: public NMEALineImporter{
      virtual ListExpr getTupleTypeAsList() const{
          ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
-                                    nl->SymbolAtom("string")));
+                                    nl->SymbolAtom(CcString::BasicType())));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("NoMsg"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("MsgNo"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("NoSats"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SatNo1"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Elevation1"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Azimut1"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SNR1"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SatNo2"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Elevation2"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Azimut2"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SNR2"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SatNo3"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Elevation3"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Azimut3"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SNR3"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SatNo4"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Elevation4"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Azimut4"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("SNR4"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
-         return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
+         return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList);
      }
 
      virtual Tuple* getTupleForLine(const string& line){
@@ -1239,21 +1239,21 @@ class GLLImporter: public NMEALineImporter{
      virtual ListExpr getTupleTypeAsList() const{
          ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
-                                    nl->SymbolAtom("string")));
+                                    nl->SymbolAtom(CcString::BasicType())));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lat"),
-                                                 nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lon"),
-                                                 nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
-                                                 nl->SymbolAtom("instant")));
+                                        nl->SymbolAtom(Instant::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ActiveData"),
-                                                 nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
 
-         return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
+         return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList);
       }
 
      virtual Tuple* getTupleForLine(const string& line){
@@ -1337,41 +1337,41 @@ class GNSImporter: public NMEALineImporter{
      virtual ListExpr getTupleTypeAsList() const{
          ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                                     nl->SymbolAtom("SenID"),
-                                    nl->SymbolAtom("string")));
+                                    nl->SymbolAtom(CcString::BasicType())));
          ListExpr last = attrList;
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Time"),
-                                                 nl->SymbolAtom("instant")));
+                                        nl->SymbolAtom(Instant::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lat"),
-                                                 nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Lon"),
-                                                 nl->SymbolAtom("real")));
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Mode"),
-                                                 nl->SymbolAtom("string")));
+                                        nl->SymbolAtom(CcString::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("NoSats"),
-                                                 nl->SymbolAtom("int")));
+                                          nl->SymbolAtom(CcInt::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("HDOP"),
-                                                 nl->SymbolAtom("real")));
+                                          nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Alt"),
-                                                 nl->SymbolAtom("real")));
+                                          nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("GeoidSep"),
-                                                 nl->SymbolAtom("real")));
+                                          nl->SymbolAtom(CcReal::BasicType())));
 
          last = nl->Append(last, nl->TwoElemList(
                                       nl->SymbolAtom("AgeOfDiffData"),
-                                      nl->SymbolAtom("real")));
+                                      nl->SymbolAtom(CcReal::BasicType())));
 
 
          last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("StationId"),
-                                                 nl->SymbolAtom("real")));
+                                      nl->SymbolAtom(CcReal::BasicType())));
 
-         return nl->TwoElemList(nl->SymbolAtom("tuple"), attrList);
+         return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList);
      }
 
      virtual Tuple* getTupleForLine(const string& line){

@@ -165,7 +165,7 @@ Operator : enlargeRect
 Number   : 2
 Signature: rect<dim> x real^<dim> -> rect<dim>
 Example  : query enlargeRect(rectangle3(17, 24, 12, 13, 4, 6), -1.0, 1.0, -1.0)
-Result   : (rect3 undef)
+Result   : (rect3 undefined)
 
 
 Operator : size
@@ -209,7 +209,7 @@ Result   : TRUE
 
 Operator : gridintersects
 Number   : 2
-Signature: cellgrid2d x rect x rect x int -> bool 
+Signature: cellgrid2d x rect x rect x int -> bool
 Example  : query gridintersects( createCellGrid2D(0.0, 0.0, 0.5, 0.5, 10), rectangle2(0.3, 1.5, 0.3, 1.5), rectangle2(0.6, 1.7, 0.6, 1.7), 12)
 Result   : TRUE
 

@@ -112,6 +112,7 @@ variance on a stream.
 #include "Symbols.h"
 #include "ListUtils.h"
 #include "Outerjoin.h"
+#include "DateTime.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -119,7 +120,6 @@ extern AlgebraManager* am;
 extern Operator extrelsmouterjoin;
 extern Operator extrelsymmouterjoin;
 
-using namespace symbols;
 using namespace listutils;
 
 /*
@@ -162,7 +162,7 @@ ListExpr GroupTypeMap(ListExpr args)
   }
 
   return nl->TwoElemList(
-          nl->SymbolAtom("rel"),
+          nl->SymbolAtom(Relation::BasicType()),
           nl->Second(first));
 }
 /*
@@ -370,27 +370,27 @@ ListExpr SampleTypeMap(ListExpr args)
   ListExpr minSampleRate = nl->Third(args);
 
   if(!listutils::isRelDescription(rel) ||
-     !listutils::isSymbol(minSampleSize,INT) ||
-     !listutils::isSymbol(minSampleRate, REAL)){
+     !listutils::isSymbol(minSampleSize,CcInt::BasicType()) ||
+     !listutils::isSymbol(minSampleRate, CcReal::BasicType())){
     ErrorReporter::ReportError("rel x int x real [ x int] expected");
     return nl->TypeError();
   }
 
   ListExpr streamDescription =
-          nl->Cons(nl->SymbolAtom("stream"), nl->Rest(rel));
+          nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(rel));
 
   if(len==4){
     ListExpr randSeed = nl->Fourth(args);
-    if(!listutils::isSymbol(randSeed,INT)){
+    if(!listutils::isSymbol(randSeed,CcInt::BasicType())){
       ErrorReporter::ReportError("rel x int x real [ x int] expected");
       return nl->TypeError();
     }
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->BoolAtom(true)),
                              streamDescription);
   }
 
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                            nl->TwoElemList(nl->IntAtom(0),
                                            nl->BoolAtom(false)),
                            streamDescription);
@@ -569,7 +569,7 @@ ListExpr CancelTypeMap(ListExpr args)
     return listutils::typeError(err);
   }
 
-  if(!listutils::isSymbol(nl->Third(fun),BOOL)){
+  if(!listutils::isSymbol(nl->Third(fun),CcBool::BasicType())){
     return listutils::typeError(err);
   }
   if(!nl->Equal(nl->Second(stream),nl->Second(fun))){
@@ -701,7 +701,7 @@ ListExpr ExtractTypeMap( ListExpr args )
       return nl->TypeError();
     }
     else{
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
            nl->OneElemList(nl->IntAtom(j)), attrType);
     }
   } else {
@@ -803,7 +803,7 @@ ListExpr HeadTypeMap( ListExpr args )
 
   if(( !listutils::isTupleStream(stream) &&
        !listutils::isDATAStream(stream) ) ||
-     !listutils::isSymbol(count,INT) ){
+     !listutils::isSymbol(count,CcInt::BasicType()) ){
     return listutils::typeError(err);
   }
   return stream;
@@ -1043,16 +1043,16 @@ MaxMinTypeMap( ListExpr args )
   ListExpr attrlist = nl->Second(nl->Second(stream));
   int j = listutils::findAttribute(attrlist, attrname, attrtype);
   if ( j ) {
-    if(!listutils::isSymbol(attrtype,REAL) &&
-       !listutils::isSymbol(attrtype,STRING) &&
-       !listutils::isSymbol(attrtype,BOOL) &&
-       !listutils::isSymbol(attrtype,INT) &&
-       !listutils::isSymbol(attrtype,"instant") &&
-       !listutils::isSymbol(attrtype,"duration") ){
+    if(!listutils::isSymbol(attrtype,CcReal::BasicType()) &&
+       !listutils::isSymbol(attrtype,CcString::BasicType()) &&
+       !listutils::isSymbol(attrtype,CcBool::BasicType()) &&
+       !listutils::isSymbol(attrtype,CcInt::BasicType()) &&
+       !listutils::isSymbol(attrtype,Instant::BasicType()) &&
+       !listutils::isSymbol(attrtype,Duration::BasicType()) ){
       return listutils::typeError("result type not in {real, string, "
                                           "bool, int, instant, duration}");
     }
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
            nl->OneElemList(nl->IntAtom(j)), attrtype);
   } else {
     return listutils::typeError("attribute name " + attrname +
@@ -1210,9 +1210,9 @@ AvgSumTypeMap( ListExpr args )
   NList first = type.first();
   if (
     !first.hasLength(2)  ||
-    !first.first().isSymbol(STREAM) ||
+    !first.first().isSymbol(Symbol::STREAM()) ||
     !first.second().hasLength(2) ||
-    !first.second().first().isSymbol(TUPLE) ||
+    !first.second().first().isSymbol(Tuple::BasicType()) ||
     !IsTupleDescription( first.second().second().listExpr() ) )
   {
     return NList::typeError("Error in first argument!");
@@ -1231,13 +1231,14 @@ AvgSumTypeMap( ListExpr args )
 
   if ( j != 0 )
   {
-    if ( nl->SymbolValue(attrtype) != REAL &&
-   nl->SymbolValue(attrtype) != INT )
+    if ( nl->SymbolValue(attrtype) != CcReal::BasicType() &&
+   nl->SymbolValue(attrtype) != CcInt::BasicType() )
     {
       return NList::typeError("Attribute type is not of type real or int.");
     }
-    NList resType = isAvg ? NList(REAL) : NList(attrtype);
-    return NList( NList(APPEND), NList(j).enclose(), resType ).listExpr();
+    NList resType = isAvg ? NList(CcReal::BasicType()) : NList(attrtype);
+    return NList( NList(Symbol::APPEND()),
+                  NList(j).enclose(), resType ).listExpr();
   }
   else
   {
@@ -1261,7 +1262,7 @@ AvgSumSelect( ListExpr args )
   ListExpr attrtype = nl->Empty();
   FindAttribute(first.second().second().listExpr(), attrname, attrtype);
 
-  if ( nl->SymbolValue(attrtype) == INT )
+  if ( nl->SymbolValue(attrtype) == CcInt::BasicType() )
   {
     return 0;
   }
@@ -1552,9 +1553,9 @@ ListExpr  StatsTypeMap( ListExpr args )
   NList first = type.first();
   if (
       !first.hasLength(2)  ||
-      !first.first().isSymbol(STREAM) ||
+      !first.first().isSymbol(Symbol::STREAM()) ||
       !first.second().hasLength(2) ||
-      !first.second().first().isSymbol(TUPLE) ||
+      !first.second().first().isSymbol(Tuple::BasicType()) ||
       !IsTupleDescription( first.second().second().listExpr() ) )
   {
     return NList::typeError("First argument must be of type stream(tuple(X))");
@@ -1586,36 +1587,38 @@ ListExpr  StatsTypeMap( ListExpr args )
 
   if ( (jX != 0) && (jY != 0) )
   {
-    if ( nl->SymbolValue(attrtypeX) != REAL &&
-         nl->SymbolValue(attrtypeX) != INT )
+    if ( nl->SymbolValue(attrtypeX) != CcReal::BasicType() &&
+         nl->SymbolValue(attrtypeX) != CcInt::BasicType() )
     {
       return NList::typeError(
           "Attribute type of 2nd argument is not of type real or int.");
     }
-    if ( nl->SymbolValue(attrtypeY) != REAL &&
-         nl->SymbolValue(attrtypeY) != INT )
+    if ( nl->SymbolValue(attrtypeY) != CcReal::BasicType() &&
+         nl->SymbolValue(attrtypeY) != CcInt::BasicType() )
     {
       return NList::typeError(
           "Attribute type of 3rd argument is not of type real or int.");
     }
-    NList resTupleType = NList(NList("CountX"),NList(INT)).enclose();
-    resTupleType.append(NList(NList("MinX"),NList(REAL)));
-    resTupleType.append(NList(NList("MaxX"),NList(REAL)));
-    resTupleType.append(NList(NList("SumX"),NList(REAL)));
-    resTupleType.append(NList(NList("AvgX"),NList(REAL)));
-    resTupleType.append(NList(NList("VarX"),NList(REAL)));
-    resTupleType.append(NList(NList("CountY"),NList(INT)));
-    resTupleType.append(NList(NList("MinY"),NList(REAL)));
-    resTupleType.append(NList(NList("MaxY"),NList(REAL)));
-    resTupleType.append(NList(NList("SumY"),NList(REAL)));
-    resTupleType.append(NList(NList("AvgY"),NList(REAL)));
-    resTupleType.append(NList(NList("VarY"),NList(REAL)));
-    resTupleType.append(NList(NList("Count"),NList(INT)));
-    resTupleType.append(NList(NList("CountXY"),NList(INT)));
-    resTupleType.append(NList(NList("CovXY"),NList(REAL)));
-    resTupleType.append(NList(NList("CorrXY"),NList(REAL)));
-    NList resType = NList( NList(APPEND), NList(NList(jX), NList(jY)),
-                           NList(NList(STREAM),NList(NList(TUPLE),resTupleType))
+    NList resTupleType = NList(NList("CountX"),
+                               NList(CcInt::BasicType())).enclose();
+    resTupleType.append(NList(NList("MinX"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("MaxX"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("SumX"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("AvgX"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("VarX"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("CountY"),NList(CcInt::BasicType())));
+    resTupleType.append(NList(NList("MinY"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("MaxY"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("SumY"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("AvgY"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("VarY"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("Count"),NList(CcInt::BasicType())));
+    resTupleType.append(NList(NList("CountXY"),NList(CcInt::BasicType())));
+    resTupleType.append(NList(NList("CovXY"),NList(CcReal::BasicType())));
+    resTupleType.append(NList(NList("CorrXY"),NList(CcReal::BasicType())));
+    NList resType = NList( NList(Symbol::APPEND()), NList(NList(jX), NList(jY)),
+                           NList(NList(Symbol::STREAM()),
+                                 NList(NList(Tuple::BasicType()),resTupleType))
                          );
 //    cout << "Result of StatsTypeMap:" << resType << endl;
     return resType.listExpr();
@@ -1647,13 +1650,17 @@ int StatsSelect( ListExpr args )
   FindAttribute(first.second().second().listExpr(), attrnameX, attrtypeX);
   FindAttribute(first.second().second().listExpr(), attrnameY, attrtypeY);
 
-  if ((nl->SymbolValue(attrtypeX) == INT)&&(nl->SymbolValue(attrtypeY) == INT))
+  if ((nl->SymbolValue(attrtypeX) == CcInt::BasicType())&&(
+    nl->SymbolValue(attrtypeY) == CcInt::BasicType()))
     return 0;
-  if ((nl->SymbolValue(attrtypeX) == INT)&&(nl->SymbolValue(attrtypeY) == REAL))
+  if ((nl->SymbolValue(attrtypeX) == CcInt::BasicType())&&
+    (nl->SymbolValue(attrtypeY) == CcReal::BasicType()))
     return 1;
-  if ((nl->SymbolValue(attrtypeX) == REAL)&&(nl->SymbolValue(attrtypeY) == INT))
+  if ((nl->SymbolValue(attrtypeX) == CcReal::BasicType())&&
+    (nl->SymbolValue(attrtypeY) == CcInt::BasicType()))
     return 2;
-  if ((nl->SymbolValue(attrtypeX) == REAL)&&(nl->SymbolValue(attrtypeY)==REAL))
+  if ((nl->SymbolValue(attrtypeX) == CcReal::BasicType())&&
+    (nl->SymbolValue(attrtypeY)==CcReal::BasicType()))
     return 3;
   assert( false );
   return -1;
@@ -1994,7 +2001,7 @@ ListExpr krdupTM(ListExpr args){
 
   // check the stream argument
   if(nl->ListLength(streamList)!=2 ||
-     !nl->IsEqual(nl->First(streamList),"stream")){
+     !nl->IsEqual(nl->First(streamList),Symbol::STREAM())){
      ErrorReporter::ReportError("(stream (tuple(...)) "
                                 " expected as first argument");
      return nl->TypeError();
@@ -2002,7 +2009,7 @@ ListExpr krdupTM(ListExpr args){
 
   ListExpr tupleList = nl->Second(streamList);
   if(nl->ListLength(tupleList)!=2 ||
-     !nl->IsEqual(nl->First(tupleList),"tuple")){
+     !nl->IsEqual(nl->First(tupleList),Tuple::BasicType())){
      ErrorReporter::ReportError("(stream (tuple(...)) "
                                 " expected as first argument");
      return nl->TypeError();
@@ -2050,7 +2057,7 @@ ListExpr krdupTM(ListExpr args){
   }
 
 
-  ListExpr result =  nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  ListExpr result =  nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                       nl->OneElemList(PosList),
                                       streamList);
   return result;
@@ -2259,7 +2266,7 @@ ListExpr ksmallestTM(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!nl->IsEqual(Int,symbols::INT)){
+  if(!nl->IsEqual(Int,CcInt::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -2300,7 +2307,7 @@ ListExpr ksmallestTM(ListExpr args){
   }
 
   return nl->ThreeElemList(
-              nl->SymbolAtom("APPEND"),
+              nl->SymbolAtom(Symbol::APPEND()),
               nl->TwoElemList(nl->IntAtom(attrNo),
                               NumberList),
               Stream);
@@ -2966,7 +2973,7 @@ ListExpr SortByTypeMap( ListExpr args )
       return listutils::typeError("Unknown attribute name found");
     }
   }
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
     sortOrderDescription, stream);
 }
 /*
@@ -3757,7 +3764,7 @@ ListExpr JoinTypeMap (ListExpr args)
   if(OptionalIntAllowed){
     err += " [ x int]";
   }
-  
+
   int len = nl->ListLength(args);
 
   // check for correct number of arguments
@@ -3797,8 +3804,8 @@ ListExpr JoinTypeMap (ListExpr args)
 
 
   ListExpr list = ConcatLists(list1, list2);
-  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+  ListExpr outlist = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), list));
 
   string attrAName = nl->SymbolValue(attr1);
   string attrBName = nl->SymbolValue(attr2);
@@ -3836,14 +3843,14 @@ ListExpr JoinTypeMap (ListExpr args)
   ListExpr joinAttrDescription;
 
   if(!OptionalIntAllowed || len == 5){
-      joinAttrDescription  = nl->TwoElemList(nl->IntAtom(attrAIndex), 
+      joinAttrDescription  = nl->TwoElemList(nl->IntAtom(attrAIndex),
                                              nl->IntAtom(attrBIndex));
   } else { // additionally add the default value
       joinAttrDescription = nl->ThreeElemList( nl->IntAtom(defaultValue),
                                                nl->IntAtom(attrAIndex),
                                                nl->IntAtom(attrBIndex));
   }
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
               joinAttrDescription, outlist);
 }
 
@@ -4090,13 +4097,13 @@ ListExpr ExtendTypeMap( ListExpr args )
       return nl->TypeError();
     }
 
-    if(!nl->IsEqual(nl->First(map),"map")){
+    if(!nl->IsEqual(nl->First(map),Symbol::MAP())){
       ErrorReporter::ReportError("invalid function");
       return nl->TypeError();
     }
 
     ListExpr funResType = nl->Third(map);
-    if(!am->CheckKind("DATA",funResType, errorInfo)){
+    if(!am->CheckKind(Kind::DATA(),funResType, errorInfo)){
       ErrorReporter::ReportError("requested attribute " + namestr +
                                  "not in kind DATA");
       return nl->TypeError();
@@ -4118,8 +4125,8 @@ ListExpr ExtendTypeMap( ListExpr args )
     lastlistn = nl->Append(lastlistn, (nl->TwoElemList(name, funResType )));
   }
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),newAttrList));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),newAttrList));
 }
 /*
 2.18.2 Value mapping function of operator ~extend~
@@ -4517,8 +4524,8 @@ ListExpr LoopjoinTypeMap(ListExpr args)
  }
  ListExpr list = ConcatLists(alist1,alist2);
 
- return nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("tuple"),
+ return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                         list));
 }
 
@@ -5332,9 +5339,9 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
 
   // check the tuple stream
   if(!Stream.hasLength(2) ||
-     !Stream.first().isSymbol(STREAM) ||
+     !Stream.first().isSymbol(Symbol::STREAM()) ||
      !Stream.second().hasLength(2) ||
-     !Stream.second().first().isSymbol(TUPLE) ||
+     !Stream.second().first().isSymbol(Tuple::BasicType()) ||
      !IsTupleDescription(Stream.second().second().listExpr())
      ){
      return NList::typeError("first argument is not a tuple stream");
@@ -5363,11 +5370,11 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
 
   // Map must have format (map <tuple> <stream>)
   if(!Map.hasLength(3) ||
-     !Map.first().isSymbol(MAP) ||
+     !Map.first().isSymbol(Symbol::MAP()) ||
      !Map.second().hasLength(2) ||
-     !Map.second().first().isSymbol(TUPLE) ||
+     !Map.second().first().isSymbol(Tuple::BasicType()) ||
      !Map.third().hasLength(2) ||
-     !Map.third().first().isSymbol(STREAM)){
+     !Map.third().first().isSymbol(Symbol::STREAM())){
      return NList::typeError("expecting (map ( (tuple(...) (stream DATA))))"
                              " as second argument");
   }
@@ -5381,7 +5388,7 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
 
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   // check for Kind Data
-  if(!am->CheckKind("DATA",typelist.listExpr(),errorInfo)){
+  if(!am->CheckKind(Kind::DATA(),typelist.listExpr(),errorInfo)){
     return NList::typeError("stream elements not in kind DATA");
   }
 
@@ -5401,8 +5408,8 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
                                       nl->SymbolAtom(attrname),
                                       Map.third().second().listExpr())));
 
-  return  nl->TwoElemList(nl->SymbolAtom(STREAM),
-                  nl->TwoElemList( nl->SymbolAtom(TUPLE),attrlist));
+  return  nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),attrlist));
 }
 
 /*
@@ -5741,11 +5748,11 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
 
 
   return nl->ThreeElemList(
-               nl->SymbolAtom("APPEND"),
+               nl->SymbolAtom(Symbol::APPEND()),
                nl->TwoElemList( nl->IntAtom(noAttrs),
                                 numberList),
-               nl->TwoElemList( nl->SymbolAtom("stream"),
-                                nl->TwoElemList( nl->SymbolAtom("tuple"),
+               nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                            nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
                                                  newAttrList)));
 
 }
@@ -6244,12 +6251,12 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
  }
 
 
- return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+ return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                            nl->TwoElemList( nl->IntAtom( attrno ),
                                              numberList),
-                           nl->TwoElemList( nl->SymbolAtom("stream"),
+                           nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                                             nl->TwoElemList(
-                                            nl->SymbolAtom("tuple"),
+                                            nl->SymbolAtom(Tuple::BasicType()),
                                             newAttrList)));
 
 }
@@ -6601,8 +6608,8 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   first = second = third = nl->TheEmptyList();
   listn = lastlistn = listp = nl->TheEmptyList();
 
-  string relSymbolStr = "rel";
-  string tupleSymbolStr = "tuple";
+  string relSymbolStr = Relation::BasicType();
+  string tupleSymbolStr = Tuple::BasicType();
 
   if ( memoryImpl ) {
     relSymbolStr = "mrel";
@@ -6638,7 +6645,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
         << "( (y1 (map R T1)) ... (ym (map R Tm))!";
 
     ErrorReporter::ReportError(errMsg.str());
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
 
@@ -6654,7 +6661,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 
     ErrorReporter::ReportError( "groupby: Input is not of type (stream "
         + tupleSymbolStr + "(...))." );
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
   // list seems to be ok. Extract the grouping attributes
@@ -6700,7 +6707,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
           + " not present in input stream!";
 
       ErrorReporter::ReportError(errMsg);
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
     rest = nl->Rest(rest);
   } // end while
@@ -6734,13 +6741,13 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     {
       ErrorReporter::ReportError(
           "groupby: Function definition is not correct!");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
 
     // check if the Type Constructor belongs to KIND DATA
     // If the functions result type is typeerror this check will also fail
     ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
-    if ( !am->CheckKind("DATA", mapOut, errorInfo) ) {
+    if ( !am->CheckKind(Kind::DATA(), mapOut, errorInfo) ) {
 
       stringstream errMsg;
       errMsg << "groupby: The aggregate function for attribute \""
@@ -6752,7 +6759,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
           << ends;
 
       ErrorReporter::ReportError(errMsg.str());
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
 
     }
 
@@ -6773,17 +6780,17 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   if ( !CompareNames(listn) )
   { // check if attribute names are unique
     ErrorReporter::ReportError("groupby: Attribute names are not unique");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
   // Type mapping is correct, return result type.
 
   ListExpr result =
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
           nl->SymbolAtom(tupleSymbolStr),
           listn
@@ -6833,7 +6840,7 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
   first = second = third = nl->TheEmptyList();
   listn = lastlistn = listp = nl->TheEmptyList();
 
-  string tupleSymbolStr = "tuple";
+  string tupleSymbolStr = Tuple::BasicType();
 
   bool listOk = true;
   listOk = listOk && ( nl->ListLength(args) == 4 );
@@ -6859,7 +6866,7 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
         << "( (y1 (map R T1)) ... (ym (map R Tm))!";
 
     ErrorReporter::ReportError(errMsg.str());
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
 
@@ -6875,18 +6882,18 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
 
     ErrorReporter::ReportError( "slidingwindow: Input is not of type (stream "
         + tupleSymbolStr + "(...))." );
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
   // list seems to be ok. Check the second and the third arguments
-  if(! nl->IsEqual(second, "int") )
+  if(! nl->IsEqual(second, CcInt::BasicType()) )
   {
     ErrorReporter::ReportError(
         "slidingwindow: expected int as a second argument");
     return nl->TypeError();
   }
 
-  if(! nl->IsEqual(third, "int") )
+  if(! nl->IsEqual(third, CcInt::BasicType()) )
   {
     ErrorReporter::ReportError(
         "slidingwindow: expected int as a third argument");
@@ -6919,13 +6926,13 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
     {
       ErrorReporter::ReportError(
           "slidingwindow: Function definition is not correct!");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
 
     // check if the Type Constructor belongs to KIND DATA
     // If the functions result type is typeerror this check will also fail
     ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
-    if ( !am->CheckKind("DATA", mapOut, errorInfo) ) {
+    if ( !am->CheckKind(Kind::DATA(), mapOut, errorInfo) ) {
 
       stringstream errMsg;
       errMsg << "slidingwindow: The aggregate function for attribute \""
@@ -6937,7 +6944,7 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
           << ends;
 
       ErrorReporter::ReportError(errMsg.str());
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
 
     }
 
@@ -6958,12 +6965,12 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
   if ( !CompareNames(listn) )
   { // check if attribute names are unique
     ErrorReporter::ReportError("slidingwindow: Attribute names are not unique");
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   }
 
   // Type mapping is correct, return result type.
-  ListExpr groupType = nl->TwoElemList( nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), listn) );
+  ListExpr groupType = nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), listn) );
 
   if(debugme)
   {
@@ -7799,7 +7806,7 @@ ListExpr AggregateTypeMap( ListExpr args )
   }
 
   return nl->ThreeElemList(
-           nl->SymbolAtom( "APPEND" ),
+           nl->SymbolAtom( Symbol::APPEND() ),
            nl->OneElemList(nl->IntAtom(j)),
            defaultValue );
 }
@@ -8176,7 +8183,7 @@ ListExpr SymmJoinTypeMap(ListExpr args)
 
   if(!nl->Equal(nl->Second(stream1), nl->Second(map)) ||
      !nl->Equal(nl->Second(stream2), nl->Third(map)) ||
-     !listutils::isSymbol(nl->Fourth(map),BOOL)){
+     !listutils::isSymbol(nl->Fourth(map),CcBool::BasicType())){
     return listutils::typeError(err +"(wrong mapping)");
   }
 
@@ -8188,8 +8195,8 @@ ListExpr SymmJoinTypeMap(ListExpr args)
   }
   ListExpr list = ConcatLists(a1List, a2List);
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-           nl->TwoElemList(nl->SymbolAtom("tuple"),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
              list));
 }
 /*
@@ -8992,8 +8999,8 @@ ListExpr SymmProductExtendTypeMap(ListExpr args)
                                "conflicting names or non-DATA attributes)");
   }
 
-  return nl->TwoElemList(nl->SymbolAtom(STREAM),
-                         nl->TwoElemList(nl->SymbolAtom(TUPLE),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                          newAttrList));
 
 }
@@ -9364,8 +9371,8 @@ ListExpr SymmProductTypeMap(ListExpr args)
   if(!listutils::isAttrList(newAttrList)){
     return listutils::typeError(err + "( name conflict )");
   }
-  return nl->TwoElemList(nl->SymbolAtom(STREAM),
-                         nl->TwoElemList(nl->SymbolAtom(TUPLE),
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                          newAttrList));
 
 }
@@ -9648,7 +9655,7 @@ ListExpr nameL   = nl->Second(args);
 ListExpr init   = nl->Third(args);
 
 // check init
-if(!nl->IsEqual(init,"int")){
+if(!nl->IsEqual(init,CcInt::BasicType())){
   ErrorReporter::ReportError("the third argument has to be of type int");
   return nl->TypeError();
 }
@@ -9669,13 +9676,13 @@ if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
 
 // check streamlist
 if(nl->ListLength(stream)!=2 ||
-   !nl->IsEqual(nl->First(stream),"stream")){
+   !nl->IsEqual(nl->First(stream),Symbol::STREAM())){
  ErrorReporter::ReportError("first argument is not a stream");
  return nl->TypeError();
 }
 ListExpr tuple = nl->Second(stream);
 if(nl->ListLength(tuple)!=2 ||
-   !nl->IsEqual(nl->First(tuple),"tuple")){
+   !nl->IsEqual(nl->First(tuple),Tuple::BasicType())){
  ErrorReporter::ReportError("first argument is not a tuple stream");
  return nl->TypeError();
 }
@@ -9711,13 +9718,13 @@ if(usednames.find(name)!=usednames.end()){
 // all fine, construct the result
 
 if(nl->IsEmpty(last)){ // stream without attributes
-  return nl->TwoElemList( nl->SymbolAtom("stream"),
+  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                           nl->TwoElemList(
-                              nl->SymbolAtom("tuple"),
+                              nl->SymbolAtom(Tuple::BasicType()),
                               nl->OneElemList(
                                  nl->TwoElemList(
                                      nl->SymbolAtom(name),
-                                     nl->SymbolAtom("int")))));
+                                     nl->SymbolAtom(CcInt::BasicType())))));
 }
 
 // make a copy of the attributes
@@ -9731,10 +9738,10 @@ if(nl->IsEmpty(last)){ // stream without attributes
   }
   lastlist = nl->Append(lastlist,nl->TwoElemList(
                         nl->SymbolAtom(name),
-                        nl->SymbolAtom("int")));
+                        nl->SymbolAtom(CcInt::BasicType())));
 
-  return nl->TwoElemList( nl->SymbolAtom("stream"),
-                nl->TwoElemList( nl->SymbolAtom("tuple"),
+  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
                                  reslist));
 
 }
@@ -9851,10 +9858,10 @@ struct printrefsInfo : OperatorInfo {
 
   printrefsInfo()
   {
-    name      = PRINTREFS;
+    name      = "printrefs";
 
-    signature = STREAM_TUPLE + " -> " + STREAM_TUPLE;
-    syntax    = "_" + PRINTREFS + "_";
+    signature = "stream(tuple(...)) -> stream(tuple(...))";
+    syntax    = "_ printrefs _";
     meaning   = "Prints out the values of the tuple's "
                 "and attribute's reference counter";
   }

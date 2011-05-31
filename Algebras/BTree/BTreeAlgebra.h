@@ -210,6 +210,8 @@ Retrieves statsitics on the used file from the storage manager
 
 */
 
+    inline static const string BasicType() { return "btree"; }
+
   private:
 
     bool temporary;

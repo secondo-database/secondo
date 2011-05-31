@@ -79,13 +79,13 @@ class DistData; // forward declaration
 Refers the default distdata-type for the each type constructor.
 
 */
-symbols::Sym DDATA_DEFAULT("default");
+const string DDATA_DEFAULT("default");
 
 /*
 This value is returned from "DistDataReg::defaultName()"[4], if no default distdata-type has been found for the resp. type constructor.
 
 */
-symbols::Sym DDATA_UNDEFINED("n/a");
+const string DDATA_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // Name and short descriprions for the defined distdata-types:
@@ -94,8 +94,8 @@ symbols::Sym DDATA_UNDEFINED("n/a");
 // native data representation, e.g. an int value for CcInt attributes
 // (this type usually used, if only one distdata-type is defined for
 // the respective type constructor).
-symbols::Sym DDATA_NATIVE("native");
-symbols::Sym DDATA_NATIVE_DESCR(
+const string DDATA_NATIVE("native");
+const string DDATA_NATIVE_DESCR(
         "native representation of the respective datatype");
 
 /////////////////////////////////////////////////////////////////////

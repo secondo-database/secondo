@@ -55,6 +55,7 @@ using namespace std;
 #include <set>
 #include "PlugJoinAlgebra.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -163,7 +164,7 @@ A query-example is: query Rel1 feed Rel2 feed spatialjoin [attrNameRel1, attrNam
 
 ListExpr spatialjoinTypeMap(ListExpr args)
 {
- string err = "stream(tuple) x stream(tuple) x name1 x name2 expected"; 
+ string err = "stream(tuple) x stream(tuple) x name1 x name2 expected";
  if(nl->ListLength(args)!=4){
    return listutils::typeError(err);
  }
@@ -186,7 +187,7 @@ ListExpr spatialjoinTypeMap(ListExpr args)
  }
 
  ListExpr type1;
- string name1 = nl->SymbolValue(nameL1); 
+ string name1 = nl->SymbolValue(nameL1);
  int index1 = listutils::findAttribute(al1,name1,type1);
  if(index1==0){
    return listutils::typeError("attribute " + name1 + "not found");
@@ -201,17 +202,17 @@ ListExpr spatialjoinTypeMap(ListExpr args)
 
  // check for rect, rect3, rect4
  set<string> r;
- r.insert("rect");
- r.insert("rect3");
- r.insert("rect4");
+ r.insert(Rectangle<2>::BasicType());
+ r.insert(Rectangle<3>::BasicType());
+ r.insert(Rectangle<4>::BasicType());
 
  if(!listutils::isASymbolIn(type1,r) &&
-    !listutils::isKind(type1,"SPATIAL2D")){
-   return listutils::typeError("attribute " + name1 + 
+    !listutils::isKind(type1,Kind::SPATIAL2D())){
+   return listutils::typeError("attribute " + name1 +
                                " not supported by spatial join");
  }
  if(!listutils::isASymbolIn(type2,r) &&
-    !listutils::isKind(type1,"SPATIAL2D")){
+    !listutils::isKind(type1,Kind::SPATIAL2D())){
    return listutils::typeError("attribute " + name2 + " not supported");
  }
 
@@ -227,15 +228,15 @@ ListExpr spatialjoinTypeMap(ListExpr args)
 
 
  return nl->ThreeElemList(
-            nl->SymbolAtom("APPEND"),
+            nl->SymbolAtom(Symbol::APPEND()),
             nl->ThreeElemList(
                 nl->IntAtom(index1),
                 nl->IntAtom(index2),
                 nl->StringAtom(nl->SymbolValue(type1))),
             nl->TwoElemList(
-                nl->SymbolAtom("stream"),
+                nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList(
-                    nl->SymbolAtom("tuple"),
+                    nl->SymbolAtom(Tuple::BasicType()),
                     attrlist)));
 
 
@@ -265,12 +266,12 @@ spatialjoinSelection (ListExpr args)
   /* selection function */
   ListExpr errorInfo = nl->OneElemList ( nl->SymbolAtom ("ERRORS"));
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  if ( (algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo)) ||
-       ( nl->SymbolValue (attrTypeS) == "rect") )
+  if ( (algMgr->CheckKind(Kind::SPATIAL2D(), attrTypeS, errorInfo)) ||
+       ( nl->SymbolValue (attrTypeS) == Rectangle<2>::BasicType()) )
   return 0;  //two-dimensional objects to join
-  else if ( nl->SymbolValue (attrTypeS) == "rect3")
+  else if ( nl->SymbolValue (attrTypeS) == Rectangle<3>::BasicType())
        return 1; //three-dimensiona objects to join
-       else if ( nl->SymbolValue (attrTypeS) == "rect4")
+       else if ( nl->SymbolValue (attrTypeS) == Rectangle<4>::BasicType())
             return 2;  //four-dimensional objects to join
             else return -1; /* should not happen */
 }
@@ -964,7 +965,7 @@ Building S.Part of outerRelation.
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
           Tuple* innerTuple =
-            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer, 
+            ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer,
                                                         false);
 
 

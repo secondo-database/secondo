@@ -68,11 +68,10 @@ SETI-Algebra offers the following methods:
 #include "RectangleAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "UploadUnit.h"
+#include "Symbols.h"
 
 
 using namespace std;
-using namespace symbols;
-
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
@@ -1092,7 +1091,7 @@ ListExpr CreateTM(ListExpr args)
     return (nl->SymbolAtom(SETI::BasicType()));
   }
   ErrorReporter::ReportError("rect x int expected!");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /******************************************************************************
@@ -1529,9 +1528,9 @@ ListExpr InsertStreamTM(ListExpr args)
 
   NList first = type.first();
   if ( !first.hasLength(2)  ||
-       !first.first().isSymbol(STREAM) ||
+       !first.first().isSymbol(Symbol::STREAM()) ||
        !first.second().hasLength(2) ||
-       !first.second().first().isSymbol(TUPLE) ||
+       !first.second().first().isSymbol(Tuple::BasicType()) ||
        !IsTupleDescription( first.second().second().listExpr() ))
   {
     return listutils::typeError("Error in first argument!");
@@ -1558,8 +1557,9 @@ ListExpr InsertStreamTM(ListExpr args)
     {
       return NList::typeError("Attribute type is not of type uploadunit.");
     }
-    NList resType = NList(BOOL);
-    return NList( NList(APPEND), NList(j).enclose(), resType ).listExpr();
+    NList resType = NList(CcBool::BasicType());
+    return NList( NList(Symbol::APPEND()), NList(j).enclose(),
+                  resType ).listExpr();
   }
   else
   {
@@ -1820,11 +1820,11 @@ ListExpr IntersectsWinTM(ListExpr args)
   if(!(nl->ListLength( args ) == 4 &&
       nl->IsEqual(nl->First(args),SETI::BasicType()) &&
       nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
-      nl->IsEqual(nl->Third(args),"instant") &&
-      nl->IsEqual(nl->Fourth(args),"instant")))
+      nl->IsEqual(nl->Third(args),Instant::BasicType()) &&
+      nl->IsEqual(nl->Fourth(args),Instant::BasicType())))
   {
     ErrorReporter::ReportError("seti x rect x instant x instant expected!");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
 
@@ -1833,9 +1833,10 @@ ListExpr IntersectsWinTM(ListExpr args)
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("TrjSeg"),
-                                       nl->SymbolAtom("upoint")));
-  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+                                       nl->SymbolAtom(UPoint::BasicType())));
+  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                        tupleList));
   return streamList;
 }
 
@@ -1977,20 +1978,21 @@ ListExpr InsideWinTM(ListExpr args)
   if(!(nl->ListLength( args ) == 4 &&
       nl->IsEqual(nl->First(args),SETI::BasicType()) &&
       nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
-      nl->IsEqual(nl->Third(args),"instant") &&
-      nl->IsEqual(nl->Fourth(args),"instant")))
+      nl->IsEqual(nl->Third(args),Instant::BasicType()) &&
+      nl->IsEqual(nl->Fourth(args),Instant::BasicType())))
   {
     ErrorReporter::ReportError("seti x rect x instant x instant expected!");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
   // Create output list
   ListExpr tupleList = nl->TwoElemList(
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("TrjSeg"),
-                                       nl->SymbolAtom("upoint")));
-  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+                                       nl->SymbolAtom(UPoint::BasicType())));
+  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                        tupleList));
   return streamList;
 }
 
@@ -2158,13 +2160,14 @@ ListExpr GetTrajectoryTM(ListExpr args)
                          nl->TwoElemList(nl->SymbolAtom("MovObjId"),
                                          nl->SymbolAtom(CcInt::BasicType())),
                          nl->TwoElemList(nl->SymbolAtom("TrjSeg"),
-                                         nl->SymbolAtom("upoint")));
-    ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
-                          nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+                                         nl->SymbolAtom(UPoint::BasicType())));
+    ListExpr streamList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                          tupleList));
     return streamList;
   }
   ErrorReporter::ReportError("seti x int expected!");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /******************************************************************************
@@ -2313,7 +2316,7 @@ ListExpr CurrentUploadTM(ListExpr args)
     return nl->SymbolAtom(UploadUnit::BasicType());
   }
   ErrorReporter::ReportError("seti x int expected!");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /******************************************************************************
@@ -2385,9 +2388,9 @@ ListExpr ConvertMP2UUTM(ListExpr args)
 
   NList first = type.first();
   if ( !first.hasLength(2)  ||
-       !first.first().isSymbol(STREAM) ||
+       !first.first().isSymbol(Symbol::STREAM()) ||
        !first.second().hasLength(2) ||
-       !first.second().first().isSymbol(TUPLE) ||
+       !first.second().first().isSymbol(Tuple::BasicType()) ||
        !IsTupleDescription( first.second().second().listExpr() ))
   {
     return listutils::typeError("Error in first argument!");
@@ -2433,13 +2436,13 @@ ListExpr ConvertMP2UUTM(ListExpr args)
   if ( k != 0 )
   {
     if ( nl->SymbolValue(attrtype2) != "mpoint" &&
-         nl->SymbolValue(attrtype2) != "upoint")
+         nl->SymbolValue(attrtype2) != UPoint::BasicType())
     {
       return NList::typeError("Second attribute is not of type"
                               " mpoint or upoint.");
     }
 
-    if ( nl->SymbolValue(attrtype2) == "upoint") isMPoint = false;
+    if ( nl->SymbolValue(attrtype2) == UPoint::BasicType()) isMPoint = false;
     else isMPoint = true;
   }
   else
@@ -2451,10 +2454,12 @@ ListExpr ConvertMP2UUTM(ListExpr args)
   ListExpr tupleList = nl->OneElemList(
                        nl->TwoElemList(nl->SymbolAtom("Upload"),
                                       nl->SymbolAtom(UploadUnit::BasicType())));
-  ListExpr outputstream = nl->TwoElemList(nl->SymbolAtom("stream"),
-                          nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+  ListExpr outputstream = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                          tupleList));
 
-  return NList( NList(APPEND), nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(k)),
+  return NList( NList(Symbol::APPEND()),
+                nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(k)),
                 outputstream ).listExpr();
 }
 
@@ -2606,7 +2611,7 @@ class SETIAlgebra : public Algebra
     {
       AddTypeConstructor(&UploadUnitTC);
       AddTypeConstructor(&SETITC);
-      UploadUnitTC.AssociateKind( "DATA" );
+      UploadUnitTC.AssociateKind( Kind::DATA() );
 
       AddOperator( CreateInfo(),        CreateVM,        CreateTM );
       AddOperator( InsertUploadInfo(),  InsertUploadVM,  InsertUploadTM );

@@ -8,10 +8,10 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-October 2006, Christian Duentgen (CD): Datatypes Points, Region and Line 
-have set-based-semantics. This means, the member functions 
-~void SetDefined(bool)~ and ~bool IsDefined()~ have no functional 
-implementation (are just dummies). Also, one must use ~empty~ instead of 
+October 2006, Christian Duentgen (CD): Datatypes Points, Region and Line
+have set-based-semantics. This means, the member functions
+~void SetDefined(bool)~ and ~bool IsDefined()~ have no functional
+implementation (are just dummies). Also, one must use ~empty~ instead of
 ~undef~ values. All operators have been corrected to implement this convention.
 
 1 Overview
@@ -44,7 +44,7 @@ using namespace std;
 #include <algorithm>
 
 // some compiler versions seem not to have a definition for M_PI
-#ifndef M_PI 
+#ifndef M_PI
 const double M_PI = acos( -1.0 );
 #endif
 
@@ -54,10 +54,10 @@ extern QueryProcessor* qp;
 enum realmkind { PLANESWEEP, QUADRATIC, OVERLAPPING };
 enum State {FIRST, SECOND, BOTH};
 
-struct HalfSegmentCheck { 
-  bool splitsegment; 
+struct HalfSegmentCheck {
+  bool splitsegment;
   list<Point> pointlist;
-  HalfSegmentCheck() : splitsegment(false) {}; 
+  HalfSegmentCheck() : splitsegment(false) {};
 };
 
 const bool PSA_DEBUG = false;
@@ -119,7 +119,7 @@ bool Segment::GetIn1() const    { return in1; }
 
 void Segment::SetLeftPoint(const Point& p)   {
    //if  ( p != hs.GetRightPoint() && p != hs.GetLeftPoint() )
-   if ((!AlmostEqual(p, hs.GetRightPoint())) && 
+   if ((!AlmostEqual(p, hs.GetRightPoint())) &&
                           (!AlmostEqual(p, hs.GetLeftPoint())))
       hs.Set(true,p,hs.GetRightPoint());
 }
@@ -143,10 +143,10 @@ void Segment::CHSInsert(list<HalfSegment>& r1,
 }
 
 Segment& Segment::operator=( const Segment& s )
-{ 
-  in1 = s.in1; 
-  hs = s.hs; 
-  return *this; 
+{
+  in1 = s.in1;
+  hs = s.hs;
+  return *this;
 }
 
 ostream& operator<<(ostream &os, Segment& segm)
@@ -173,7 +173,9 @@ enum Status {NEW, BAL, UNBAL, DUP};
 /*
 2.1 Template BinTreeNode
 
-This class represents a node in the tree ~BinTree~. Each node has an entry, which values can be change and read. Each node had pointers to all neighors in the tree and in the list ant ro his father.
+This class represents a node in the tree ~BinTree~. Each node has an entry,
+which values can be change and read. Each node had pointers to all neighors in
+the tree and in the list ant ro his father.
 
 */
 
@@ -201,9 +203,16 @@ private:
 /*
 2.2 Template BinTree
 
-This class implements a binary tree. This tree is used in the realmisation prozess and in the plane-sweep algorithm of the operations union intersection and minus. This class can be used with the classes ~XEvent~, ~SSSLine~ und ~StatusLine~ in this algebra.
-To use the template the class for an entry must have a function less for comparisations of two objects.
-This tree is a binary tree (a red-black-tree) with a doubled linked list, which join all entries in the tree. The list is used for searching the predecessor and the successesor of entrie. There is also a pointer to the first and the last entrie of the tree (used in the priority queue)
+This class implements a binary tree. This tree is used in the realmisation
+prozess and in the plane-sweep algorithm of the operations union intersection
+and minus. This class can be used with the classes ~XEvent~, ~SSSLine~ und
+~StatusLine~ in this algebra.
+To use the template the class for an entry must have a function less for
+comparisations of two objects.
+This tree is a binary tree (a red-black-tree) with a doubled linked list, which
+join all entries in the tree. The list is used for searching the predecessor
+and the successesor of entrie. There is also a pointer to the first and the
+last entrie of the tree (used in the priority queue)
 
 */
 template<class E> class BinTree
@@ -300,7 +309,11 @@ template<class E> BinTree<E>::~BinTree()  {
 /*
 2.2.2 functions to insert entries
 
-There are different functions to insert an entry in the tree. One for each class in this algebra, which uses this template. First used from class ~PQueue~ with entry ~XEvent~. Returns the first entry and delete it from the tree (top and pop). Second used in class ~StatusLine~ entry ~SSSEntry~ and third used from class ~SLine~ entry ~SEntry~.
+There are different functions to insert an entry in the tree. One for each
+class in this algebra, which uses this template. First used from class ~PQueue~
+with entry ~XEvent~. Returns the first entry and delete it from the tree (top
+and pop). Second used in class ~StatusLine~ entry ~SSSEntry~ and third used
+from class ~SLine~ entry ~SEntry~.
 
 */
 
@@ -362,7 +375,11 @@ template<class E> BinTreeNode<E>* BinTree<E>::Insert(const E &entry,
 /*
 2.2.2 functions to delete entries
 
-There are different functions to delete an entry in the tree. One for each class in this algebra, which uses this template. First used from class ~PQueue~ with entry ~XEvent~. Returns the first entry and delete it from the tree (top and pop). Second used in class ~StatusLine~ entry ~SSSEntry~ and third used from class ~SLine~ entry ~SEntry~.
+There are different functions to delete an entry in the tree. One for each
+class in this algebra, which uses this template. First used from class ~PQueue~
+with entry ~XEvent~. Returns the first entry and delete it from the tree (top
+and pop). Second used in class ~StatusLine~ entry ~SSSEntry~ and third used
+from class ~SLine~ entry ~SEntry~.
 
 */
 
@@ -373,7 +390,7 @@ template<class E> E BinTree<E>::GetFirstAndDelete () {
    assert (node);
    MakeDelete(node);
 
-   
+
    mCount --;
    if (! IsEmpty() ) {
       BinTreeNode<E> * next = node->GetNext();
@@ -424,7 +441,11 @@ template<class E> void BinTree<E>::DeleteNode (BinTreeNode<E>*
 /*
 3.2.3 functions to find entries
 
-There are different functions to find an entry in the tree or to find the right place to insert a entry. One for  each class in this algebra, which uses this template. First used from class ~PQueue~ with entry ~XEvent~. Second used in class ~StatusLine~ (entry ~SSSEntry~) and third used from class ~SLine~ (entry ~SEntry~).
+There are different functions to find an entry in the tree or to find the right
+place to insert a entry. One for  each class in this algebra, which uses this
+template. First used from class ~PQueue~ with entry ~XEvent~. Second used in
+class ~StatusLine~ (entry ~SSSEntry~) and third used from class ~SLine~ (entry
+~SEntry~).
 
 */
 
@@ -501,7 +522,10 @@ template<class E> int BinTree<E>::GetCount () { return mCount; }
 /*
 2.2.5 functions to compare entries
 
-There are different functions to compare two entries. One for each class in this algebra, which uses this template. First used from class ~Queue~ with entry ~XEvent~. Second used in class ~StatusLine~ entry ~SSSEntry~ and third used from class ~SLine~ entry ~SEntry~.
+There are different functions to compare two entries. One for each class in
+this algebra, which uses this template. First used from class ~Queue~ with
+entry ~XEvent~. Second used in class ~StatusLine~ entry ~SSSEntry~ and third
+used from class ~SLine~ entry ~SEntry~.
 
 */
 
@@ -541,7 +565,10 @@ template<class E> int BinTree<E>::cmp(const E &first, const E
 /*
 2.2.4 functions to balance binary tree
 
-There are different functions to compare two entries. One for each class in this algebra, which uses this template. First used from class ~PQueue~ with entry ~XEvent~. Second used in class ~StatusLine~ entry ~SSSEntry~ and third used from class ~SLine~ entry ~SEntry~.
+There are different functions to compare two entries. One for each class in
+this algebra, which uses this template. First used from class ~PQueue~ with
+entry ~XEvent~. Second used in class ~StatusLine~ entry ~SSSEntry~ and third
+used from class ~SLine~ entry ~SEntry~.
 
 */
 template<class E> void BinTree<E>::RotateRight(BinTreeNode<E>* node)
@@ -691,7 +718,8 @@ node)
 
 /*
 2.2.7 Functions to execute the inserting an new entry
-First searhs the right place, then inserts the entry and then calls the balance-function
+First searhs the right place, then inserts the entry and then calls the
+balance-function
 
 */
 template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
@@ -804,7 +832,8 @@ template<class E> void BinTree<E>::MakeInsert (BinTreeNode<E>* node,
 
 /*
 2.2.7 Functions to execute the deleting an entry
-First searhs the right entry, then delete the entry and then calls the balance-function
+First searhs the right entry, then delete the entry and then calls the balance-
+function
 
 */
 template<class E> void BinTree<E>::MakeDelete(BinTreeNode<E>* node) {
@@ -942,7 +971,8 @@ template<class E> BinTreeNode<E>* BinTree<E>::GetMax
 /*
 3 Classes for construktion of a REALM
 
-Several classes are needed to contruct al REALM from a ~line~- or a ~region~-Object.
+Several classes are needed to contruct al REALM from a ~line~- or a ~region~-
+Object.
 A REALM  is a set of points and halfsegments which not intersects.
 The REALMed objects are build with a plane-sweep-algorithm.
 
@@ -1119,9 +1149,9 @@ double XEvent::GetA() const             {return a;}
 
 */
 
-XEvent& XEvent::operator= (const XEvent& ev)  
-{ 
-  Set(ev); 
+XEvent& XEvent::operator= (const XEvent& ev)
+{
+  Set(ev);
   return *this;
 }
 
@@ -1205,8 +1235,10 @@ ostream& operator<<(ostream &os, const XEvent& ev)
 /*
 3.3 class PQueue
 
-This class is implementing the priority of XEvents used in the realmisation prozess and also in the plane-Sweep-algorithm for operations.
-The priority queue based on a binary tree (template ~BinTree~) and uses the class ~XEvent~ as entries.
+This class is implementing the priority of XEvents used in the realmisation
+process and also in the plane-Sweep-algorithm for operations.
+The priority queue based on a binary tree (template ~BinTree~) and uses the
+class ~XEvent~ as entries.
 
 */
 class PQueue
@@ -1224,32 +1256,33 @@ private:
 };
 
 /*
-functions for initialising a tree and reading property values for a PQueue-Object
+functions for initialising a tree and reading property values for a PQueue-
+Object
 
 */
 inline bool PQueue::isEmpty()
-{ 
-  return qu2.empty(); 
+{
+  return qu2.empty();
 }
 
 inline int PQueue::size()
-{ 
-  return qu2.size(); 
+{
+  return qu2.size();
 }
 
-inline void PQueue::insert (const XEvent& event)   
+inline void PQueue::insert (const XEvent& event)
 {
   qu2.push(event);
 }
 
-inline XEvent PQueue::getFirstAndDelete()  
+inline XEvent PQueue::getFirstAndDelete()
 {
    XEvent event = qu2.top();
    qu2.pop();
    return event;
 }
 
-ostream& operator<<(ostream &os, const PQueue& pq) 
+ostream& operator<<(ostream &os, const PQueue& pq)
 {
   PQueue pq2;
   pq2 = pq;
@@ -1262,7 +1295,9 @@ ostream& operator<<(ostream &os, const PQueue& pq)
 /*
 3.4 class SSSEntry
 
-This class implements a entry for the Sweepline-Status-Structure (class ~StatusLine~). Each entry has three attributes: the HalfSegment coded as a integer and two double-values to calculate the y-value for a given x-Coordinate
+This class implements a entry for the Sweepline-Status-Structure (class
+~StatusLine~). Each entry has three attributes: the HalfSegment coded as a
+integer and two double-values to calculate the y-value for a given x-Coordinate
 
 */
 
@@ -1350,8 +1385,10 @@ bool SSSEntry::Equal(const SSSEntry& se) const
 }
 
 /*
-SSSEntry-objects are used as entries in the sweepline-structure (class ~StatusLine~). This class uses a template ~BinTree~ for the implementation.
-These two function are need to calculate the y-value and for the comparisation of two XEvents in the template BinTree to insert the XEvents in the right node.
+SSSEntry-objects are used as entries in the sweepline-structure (class
+~StatusLine~). This class uses a template ~BinTree~ for the implementation.
+These two function are need to calculate the y-value and for the comparisation
+of two XEvents in the template BinTree to insert the XEvents in the right node.
 
 */
 
@@ -1401,7 +1438,9 @@ ostream& operator<<(ostream &os, const SSSEntry& en)
 /*
 3.5 class  StatusLine
 
-This class implements the Sweepline-Status-Structure of the realmisation prozess. It uses the template ~BinTree~ and the class ~SSSEntry~ as entry-objects.
+This class implements the Sweepline-Status-Structure of the realmisation
+process. It uses the template ~BinTree~ and the class ~SSSEntry~ as entry-
+objects.
 
 */
 
@@ -1472,7 +1511,9 @@ BinTreeNode<SSSEntry>* StatusLine::GetPred
 */
 
 /*
-This function is used to find the right position to insert a new entry. It searhs that node in the statusline, which will be the next in the order. (Used in the insert-function)
+This function is used to find the right position to insert a new entry. It
+searchs that node in the statusline, which will be the next in the order. (Used
+in the insert-function)
 
 */
 BinTreeNode<SSSEntry>* StatusLine::GetGreater(Coord x, Coord y,
@@ -1484,7 +1525,8 @@ BinTreeNode<SSSEntry>* StatusLine::GetGreater(Coord x, Coord y,
    return node;
 }
 /*
-This function searches a entry in the Sweepline-Staus-Stucture. It uses the calculated y-value. (Used in the delete-function.)
+This function searches a entry in the Sweepline-Staus-Stucture. It uses the
+calculated y-value. (Used in the delete-function.)
 
 */
 BinTreeNode<SSSEntry>* StatusLine::Find(const Coord x,
@@ -1503,7 +1545,9 @@ BinTreeNode<SSSEntry>* StatusLine::Find(const Coord x,
 }
 
 /*
-function to insert an entry in the sweepline, after inserting at the right position (sweep line is ordered by y-values) tests for intersection are made with predecessor and successor.
+function to insert an entry in the sweepline, after inserting at the right
+position (sweep line is ordered by y-values) tests for intersection are made
+with predecessor and successor.
 Additionally tests are made with more neighbors, if two segments are parallel.
 
 */
@@ -1568,7 +1612,8 @@ void StatusLine::Insert(Coord x, SSSEntry& entry, Segment sgs[],
 
 /*
 function for deleting a entry from the sweep line
-Atuomatically a test for intersection the new neihbors is added (predecessor and succsessor of ald entry are neighbors now).
+Atuomatically a test for intersection the new neihbors is added (predecessor
+and succsessor of ald entry are neighbors now).
 
 */
 void StatusLine::Delete(Coord x, Coord oldx, SSSEntry& entry,
@@ -1596,9 +1641,11 @@ const double DIST = 1* exp(-20.0);
 /*
 This new Functions is needed for testing, if two CHalfsegments
 intersects with inner points and if this is true,
-as result the single point of intersection or the Segments which overlap are given as result in resp or rhs
+as result the single point of intersection or the Segments which overlap are
+given as result in resp or rhs
 If the intersetion points are very close to the endpoint (Distance is
-less than DIST), it is assumed, that the intersection is only a problem of rounding double values
+less than DIST), it is assumed, that the intersection is only a problem of
+rounding double values
 
 */
 
@@ -1779,83 +1826,84 @@ bool StatusLine::InsertIntersection(const HalfSegment& hs1,const
          // both segments starts with same point
          else if (hs1.GetLeftPoint() == hs2.GetLeftPoint() ) {
             if (hs1.Inside(hs2) ) {
-               xp = hs1.GetRightPoint().GetX();  
+               xp = hs1.GetRightPoint().GetX();
                yp = hs1.GetRightPoint().GetY();
-               XEvent ev1( xp, yp, s2, split);  
+               XEvent ev1( xp, yp, s2, split);
                pq.insert(ev1);
             }
             else {
-               xp = hs2.GetRightPoint().GetX();  
+               xp = hs2.GetRightPoint().GetX();
                yp = hs2.GetRightPoint().GetY();
-               XEvent ev1(xp, yp, s1, split);   
+               XEvent ev1(xp, yp, s1, split);
                pq.insert(ev1);
             }
          }
          // both segments ends in same point
          else if (hs1.GetRightPoint() == hs2.GetRightPoint() )  {
             if (hs1.Inside(hs2) ) {
-               xp = hs1.GetLeftPoint().GetX();  
+               xp = hs1.GetLeftPoint().GetX();
                yp = hs1.GetLeftPoint().GetY();
-               XEvent ev1(xp, yp, s2, split);   
+               XEvent ev1(xp, yp, s2, split);
                pq.insert(ev1);
             }
             else {
-               xp = hs2.GetLeftPoint().GetX();  
+               xp = hs2.GetLeftPoint().GetX();
                yp = hs2.GetLeftPoint().GetY();
-               XEvent ev1(xp, yp, s1, split);   
+               XEvent ev1(xp, yp, s1, split);
                pq.insert(ev1);
             }
          }
          // one segement inside the other
          else if (hs1.Inside(hs2)) {
-            xp = hs1.GetLeftPoint().GetX();   
+            xp = hs1.GetLeftPoint().GetX();
             yp = hs1.GetLeftPoint().GetY();
-            XEvent ev1(xp, yp, s2, split);      
+            XEvent ev1(xp, yp, s2, split);
             pq.insert(ev1);
-            xp = hs1.GetRightPoint().GetX();   
+            xp = hs1.GetRightPoint().GetX();
             yp = hs1.GetRightPoint().GetY();
-            XEvent ev2(xp, yp, s2, split);      
+            XEvent ev2(xp, yp, s2, split);
             pq.insert(ev2);
          }
          else if (hs2.Inside(hs1)) {
-            xp = hs2.GetLeftPoint().GetX();  
+            xp = hs2.GetLeftPoint().GetX();
             yp = hs2.GetLeftPoint().GetY();
-            XEvent ev1 (xp, yp, s1, split);     
+            XEvent ev1 (xp, yp, s1, split);
             pq.insert(ev1);
-            xp = hs2.GetRightPoint().GetX();   
+            xp = hs2.GetRightPoint().GetX();
             yp = hs2.GetRightPoint().GetY();
-            XEvent ev2 (xp, yp, s1, split);     
+            XEvent ev2 (xp, yp, s1, split);
             pq.insert(ev2);
          }
          else  { // overlap without Inside
             if (hs1.GetRightPoint() > hs2.GetRightPoint() )   {
-               xp = hs1.GetLeftPoint().GetX();  
+               xp = hs1.GetLeftPoint().GetX();
                yp = hs1.GetLeftPoint().GetY();
-               XEvent ev1(xp, yp, s2, split);   
+               XEvent ev1(xp, yp, s2, split);
                pq.insert(ev1);
-               xp = hs2.GetRightPoint().GetX();  
+               xp = hs2.GetRightPoint().GetX();
                yp = hs2.GetRightPoint().GetY();
-               XEvent ev2(xp, yp, s1, split);   
+               XEvent ev2(xp, yp, s1, split);
                pq.insert(ev2);
             }
             else {
-               xp = hs1.GetRightPoint().GetX();   
+               xp = hs1.GetRightPoint().GetX();
                yp = hs1.GetRightPoint().GetY();
-               XEvent ev1(xp, yp, s2, split);    
+               XEvent ev1(xp, yp, s2, split);
                pq.insert(ev1);
-               xp = hs2.GetLeftPoint().GetX();   
+               xp = hs2.GetLeftPoint().GetX();
                yp = hs2.GetLeftPoint().GetY();
-               XEvent ev2(xp, yp, s1, split);    
+               XEvent ev2(xp, yp, s1, split);
                pq.insert(ev2);
             }
          } // overlap without Inside
-      }  
+      }
    } // innerinter
    return result;
 }
 
 /*
-with this function two entries are exchanged. A test for intersection for new neighbors is added
+with this function two entries are exchanged. A test for intersection for new
+neighbors is added
 
 */
 void StatusLine::Exchange (BinTreeNode<SSSEntry>* e1,
@@ -1888,7 +1936,9 @@ void StatusLine::Exchange (BinTreeNode<SSSEntry>* e1,
 /*
 3.6 class VStructure
 
-This class is  activated, if a vertical segment occurs (SetDefined = true). It is used to store the y-values of end-point of segments at the sweepline, at wich the vertical segment must be split.
+This class is  activated, if a vertical segment occurs (SetDefined = true). It
+is used to store the y-values of end-point of segments at the sweepline, at
+wich the vertical segment must be split.
 In this class a <list> from the C++-Standards is used.
 
 */
@@ -1963,7 +2013,10 @@ void VStructure::Insert (Coord y)
 3.7 class vlist
 
 This class is used to handle vertical segments.
-If a vertical segments occurs the vlist is activated and the segment is inserted. When the sweep line moves, the vlist is cleared, that means alss segments in the vlist are tested for overlaps with each other in the list and the sweepline is scanned from bottom to top for intersection with segments.
+If a vertical segments occurs the vlist is activated and the segment is
+inserted. When the sweep line moves, the vlist is cleared, that means alss
+segments in the vlist are tested for overlaps with each other in the list and
+the sweepline is scanned from bottom to top for intersection with segments.
 Implementation uses the <list> from C++-Standards
 
 */
@@ -2025,7 +2078,9 @@ void VList::output()
 }
 
 /*
-This function is called if the sweep line moves to a new position. The vertical segments are worked off. This means tests are made to find intersection with other segments.
+This function is called if the sweep line moves to a new position. The vertical
+segments are worked off. This means tests are made to find intersection with
+other segments.
 
 */
 list<Segment> VList::processAll(Coord& sweep, VStructure& vstruct,
@@ -2151,9 +2206,9 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
       Coord min = vs.GetMin();
       Coord max =  vs.GetMax();
       hs = first.GetCHS();
-      if (!((hs.GetLeftPoint().GetY()<=min && 
+      if (!((hs.GetLeftPoint().GetY()<=min &&
              hs.GetRightPoint().GetY()<= min)
-         ||(hs.GetLeftPoint().GetY()>=max && 
+         ||(hs.GetLeftPoint().GetY()>=max &&
             hs.GetRightPoint().GetY()>= max))) {
          list<Coord>::iterator ps = vs.vstruct.begin();
          bool ready = false;
@@ -2178,7 +2233,9 @@ void VList::testOverlaps(Coord& sweepline, VStructure& vs,
 }
 
 /*
-for each vertical segment in the list the sweep line is scanned from the bottom of a vertical to the top. If a non-vertical segments occurs, a XEvent split is inserted. The vertical segment ist also split and inserted in result.
+for each vertical segment in the list the sweep line is scanned from the bottom
+  of a vertical to the top. If a non-vertical segments occurs, a XEvent split
+  is inserted. The vertical segment ist also split and inserted in result.
 
 */
 
@@ -2255,8 +2312,13 @@ private:
 /*
 3.8 class MakeRealm
 
-In this class the realmisation prozess was worked out. For each possible  combination of line and region-objects a function exists.
-the steps were the same, but the results are different. In the first step the plane-Sweep was prepared, that means for all segments in both objects the XEvent for left and right end was inserted in the priority queue. In the second step the sweep line moves from left ro right through the plane and handle all events.
+In this class the realmisation prozess was worked out. For each possible
+combination of line and region-objects a function exists.
+the steps were the same, but the results are different. In the first step the
+plane-Sweep was prepared, that means for all segments in both objects the
+XEvent for left and right end was inserted in the priority queue. In the second
+step the sweep line moves from left ro right through the plane and handle all
+events.
 
 */
 
@@ -2273,7 +2335,7 @@ public:
       Region* result2);
    void  REALM (const Line* reg1, const Line* reg2, Line* result1,
       Line* result2);
-   template <class T, class U, class V, class W> void REALM2(const T* , 
+   template <class T, class U, class V, class W> void REALM2(const T* ,
                       const U*, const bool, const bool, V* , W*);
 
 private:
@@ -2282,7 +2344,7 @@ private:
       const int counter);
    void PrepareCHS (bool No1, const HalfSegment& hs, PQueue& pqu,
       Segment segs[], int counter);
-   template<class T> void readhalfsegments(vector<HalfSegment>&, 
+   template<class T> void readhalfsegments(vector<HalfSegment>&,
                                              const T&) const;
    void print(const HalfSegment&) const;
    void printsegvector(const vector<HalfSegment>&) const;
@@ -2296,20 +2358,20 @@ private:
    bool xoverlaps(const HalfSegment&, const HalfSegment&);
    void dorealm(const vector<HalfSegment>&, const vector<HalfSegment>&,
              vector<HalfSegmentCheck>&, vector<HalfSegmentCheck>&);
-   void dorealm2(const vector<HalfSegment>&, const vector<HalfSegment>&, 
-                 const bool,const bool, vector<HalfSegmentCheck>&, 
+   void dorealm2(const vector<HalfSegment>&, const vector<HalfSegment>&,
+                 const bool,const bool, vector<HalfSegmentCheck>&,
                  vector<HalfSegmentCheck>&);
    int intersects(const Point&, const Point&, const Point&, const Point&);
    bool onsegment(const Point&, const Point&, const Point&);
    double direction(const Point&, const Point&, const Point&);
    void hsintersection(const HalfSegment&, const HalfSegment&, Point&);
    void insertpoint(list<Point>&, const Point);
-   void createrealmedobject(const vector<HalfSegment>&, 
+   void createrealmedobject(const vector<HalfSegment>&,
                     vector<HalfSegmentCheck>&, vector<HalfSegment>&);
 };
 
-void MakeRealm::REALM( const Region* reg1, 
-                       const Region* reg2, 
+void MakeRealm::REALM( const Region* reg1,
+                       const Region* reg2,
                        Region* result1,
                        Region* result2      )
 {
@@ -2354,7 +2416,7 @@ void MakeRealm::REALM( const Region* reg1,
       res1.pop_back();
    }
    result1->EndBulkLoad();
-   
+
    //  reconstruction of second region
    result2->Clear();
    result2->StartBulkLoad();
@@ -2375,7 +2437,7 @@ void MakeRealm::REALM( const Region* reg1,
    //cout << *result2 << endl;
 }
 
-void MakeRealm::REALM(const Region* reg1, const Region* reg2, 
+void MakeRealm::REALM(const Region* reg1, const Region* reg2,
                       Line* result1, Line* result2)
 {
    PQueue pqueue ;  // priority Queue for XEvents
@@ -2432,7 +2494,7 @@ void MakeRealm::REALM(const Region* reg1, const Region* reg2,
    result2->EndBulkLoad();
 }
 
-void MakeRealm::REALM(const Line* line1, const Region* reg2, 
+void MakeRealm::REALM(const Line* line1, const Region* reg2,
                       Line* result1, Region* result2)
 {
    PQueue pqueue ;  // priority Queue for XEvents
@@ -2488,7 +2550,7 @@ void MakeRealm::REALM(const Line* line1, const Region* reg2,
    result2->EndBulkLoad();
 }
 
-void MakeRealm::REALM(const Line* line1, const Line* line2,  
+void MakeRealm::REALM(const Line* line1, const Line* line2,
                       Line* result1, Line* result2)
 {
    PQueue pqueue ;  // priority Queue for XEvents
@@ -2549,12 +2611,12 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
    //cout << result2 << endl;
 }
 
-template<class T> void MakeRealm::readhalfsegments(vector<HalfSegment>& v, 
+template<class T> void MakeRealm::readhalfsegments(vector<HalfSegment>& v,
                                                      const T& obj) const
 {
   HalfSegment hs;
 
-  for (int i=0; i<obj->Size(); i++)   
+  for (int i=0; i<obj->Size(); i++)
   {
     obj->Get(i,hs);
     if (hs.IsLeftDomPoint() == true) v.push_back(hs);
@@ -2564,7 +2626,7 @@ template<class T> void MakeRealm::readhalfsegments(vector<HalfSegment>& v,
 void MakeRealm::print(const HalfSegment& hs) const
 {
   Coord xl, xr, yl, yr;
-  
+
   xl=hs.GetLeftPoint().GetX();
   yl=hs.GetLeftPoint().GetY();
   xr=hs.GetRightPoint().GetX();
@@ -2590,7 +2652,7 @@ void MakeRealm::printlist(const list<Point>& values)
 
 void MakeRealm::print(const HalfSegmentCheck& segcheck)
 {
-  if ( segcheck.splitsegment == true ) 
+  if ( segcheck.splitsegment == true )
     cout << "Split segment = yes; ";
   else cout << "Split segment =  no; ";
   printlist(segcheck.pointlist);
@@ -2622,9 +2684,9 @@ void MakeRealm::printsegvector(const vector<HalfSegment>& v) const
   cout << endl;
 }
 
-bool MakeRealm::onsegment(const Point& pi, const Point& pj, 
+bool MakeRealm::onsegment(const Point& pi, const Point& pj,
                 const Point& pk)
-{ 
+{
   //cout << "pi.GetX(): " << pi.GetX() << endl;
   //cout << "pj.GetX(): " << pj.GetX() << endl;
   //cout << "pi.Gety(): " << pi.GetY() << endl;
@@ -2632,11 +2694,11 @@ bool MakeRealm::onsegment(const Point& pi, const Point& pj,
   //cout << "pk.GetX(): " << pk.GetX() << endl;
   //cout << "pk.GetY(): " << pk.GetY() << endl;
 
- 
-  return ( ((min(pi.GetX(), pj.GetX()) <= pk.GetX()) and 
-              (pk.GetX() <= max(pi.GetX(), pj.GetX()))) and 
-              ((min(pi.GetY(), pj.GetY()) <= pk.GetY()) and 
-              (pk.GetY() <= max(pi.GetY(), pj.GetY()))) ); 
+
+  return ( ((min(pi.GetX(), pj.GetX()) <= pk.GetX()) and
+              (pk.GetX() <= max(pi.GetX(), pj.GetX()))) and
+              ((min(pi.GetY(), pj.GetY()) <= pk.GetY()) and
+              (pk.GetY() <= max(pi.GetY(), pj.GetY()))) );
 }
 
 double MakeRealm::direction(const Point& pi, const Point& pj, const Point& pk)
@@ -2645,54 +2707,54 @@ double MakeRealm::direction(const Point& pi, const Point& pj, const Point& pk)
   double cross2 = pj.GetY() - pi.GetY();
   double cross3 = pj.GetX() - pi.GetX();
   double cross4 = pk.GetY() - pi.GetY();
-  
+
   if ( AlmostEqual(cross1 * cross2 - cross3 * cross4, 0.0) )
     return 0.0;
   else
     return cross1 * cross2 - cross3 * cross4;
 }
 
-int MakeRealm::intersects(const Point& p1, const Point& p2, 
+int MakeRealm::intersects(const Point& p1, const Point& p2,
                 const Point& p3, const Point& p4)
 {
   double d1, d2, d3, d4;
-  
+
   d1 = direction(p3, p4, p1);
   d2 = direction(p3, p4, p2);
   d3 = direction(p1, p2, p3);
   d4 = direction(p1, p2, p4);
-  
+
   //cout << "d1: " << d1 << endl;
   //cout << "d2: " << d1 << endl;
   //cout << "d3: " << d1 << endl;
   //cout << "d4: " << d1 << endl;
-  
+
   //if (d1 != 0) cout << "d1 != 0" << endl;
   //else cout << "d1 == 0" << endl;
   //if (!AlmostEqual(d1, 0.0)) cout << "!AlmostEqual(d1, 0.0)" << endl;
   //else cout << "AlmostEqual(d1, 0.0)" << endl;
-  
+
 
   if ( (!(((d1 > 0.0 and d2 < 0.0) or (d1 < 0.0 and d2 > 0.0)) and
-       ((d3 > 0.0 and d4 < 0.0) or (d3 < 0.0 and d4 > 0.0)))) and 
-       (!AlmostEqual(d1, 0.0)) and (!AlmostEqual(d2, 0.0)) and 
+       ((d3 > 0.0 and d4 < 0.0) or (d3 < 0.0 and d4 > 0.0)))) and
+       (!AlmostEqual(d1, 0.0)) and (!AlmostEqual(d2, 0.0)) and
        (!AlmostEqual(d3, 0.0)) and (!AlmostEqual(d4, 0.0)) )
     return 0;
 
   if ( ((d1 > 0.0 and d2 < 0.0) or (d1 < 0.0 and d2 > 0.0)) and
      ((d3 > 0.0 and d4 < 0.0) or (d3 < 0.0 and d4 > 0.0)) )
     return 1;
-    
-  //if ( AlmostEqual(d1, 0.0) and AlmostEqual(d2, 0.0) and 
+
+  //if ( AlmostEqual(d1, 0.0) and AlmostEqual(d2, 0.0) and
   //AlmostEqual(d3, 0.0) and AlmostEqual(d4, 0.0) )
     //cout << " all d's ate almost equal " << endl;
-    
-  if ( AlmostEqual(d1, 0.0) and AlmostEqual(d2, 0.0) and 
+
+  if ( AlmostEqual(d1, 0.0) and AlmostEqual(d2, 0.0) and
        AlmostEqual(d3, 0.0) and AlmostEqual(d4, 0.0) )
   {
   //if ( (d1 == 0.0) and (d2 == 0.0) and (d3 == 0.0) and (d4 == 0.0) )
   //{
-  
+
     //cout << " all d's are 0 " << endl;
     //if ( p1 == p3 ) cout << "p1 == p3" << endl;
     //else cout << "p1 != p3" << endl;
@@ -2712,78 +2774,78 @@ int MakeRealm::intersects(const Point& p1, const Point& p2,
     if ( AlmostEqual(p2, p3) ) // case (1)
     {
       //cout << "case(1)" << endl;
-      return 14;  
+      return 14;
     }
-    
-    if (  (onsegment(p3, p4, p2)) and (onsegment(p1, p2, p3)) 
-          and (p2 != p3) and (p2 != p4) 
+
+    if (  (onsegment(p3, p4, p2)) and (onsegment(p1, p2, p3))
+          and (p2 != p3) and (p2 != p4)
           and (p1 != p3) and (p1 != p4) ) // case (2)
     {
       //cout << "case(2)" << endl;
-      return 2; 
+      return 2;
     }
-    
+
     if ( (AlmostEqual(p1, p3)) and (onsegment(p3, p4, p2)) ) // case (3)
     {
       //cout << "case(3)" << endl;
       return 3;
     }
-    
-    if (  (onsegment(p3, p4, p1)) and (onsegment(p3, p4, p2)) 
-          and (p2 != p3) and (p2 != p4) 
+
+    if (  (onsegment(p3, p4, p1)) and (onsegment(p3, p4, p2))
+          and (p2 != p3) and (p2 != p4)
           and (p1 != p3) and (p1 != p4) ) // case (4)
     {
       //cout << "case(4)" << endl;
-      return 4; 
+      return 4;
     }
-    
+
     if ( (AlmostEqual(p2, p4)) and (onsegment(p3, p4, p1)) ) // case (5)
     {
       //cout << "case(5)" << endl;
       return 5;
     }
-    
-    if (  (onsegment(p3, p4, p1)) and (onsegment(p1, p2, p4)) 
-          and (p2 != p3) and (p2 != p4) 
+
+    if (  (onsegment(p3, p4, p1)) and (onsegment(p1, p2, p4))
+          and (p2 != p3) and (p2 != p4)
           and (p1 != p3) and (p1 != p4) ) // case (6)
     {
       //cout << "case(6)" << endl;
-      return 6; 
+      return 6;
     }
-    
+
     if ( AlmostEqual(p1, p4) ) // case (7)
     {
       //cout << "case(11)" << endl;
-      return 14;  
+      return 14;
     }
-    
+
     if ( (AlmostEqual(p1, p3)) and (onsegment(p1, p2, p4)) ) // case (8)
     {
       //cout << "case(8)" << endl;
       return 7;
     }
-    
-    if (  (onsegment(p1, p2, p3)) and (onsegment(p1, p2, p4)) 
-          and (p2 != p3) and (p2 != p4) 
+
+    if (  (onsegment(p1, p2, p3)) and (onsegment(p1, p2, p4))
+          and (p2 != p3) and (p2 != p4)
           and (p1 != p3) and (p1 != p4) ) // case (9)
     {
       //cout << "case(9)" << endl;
-      return 8; 
+      return 8;
     }
-        
+
     if ( (AlmostEqual(p2, p4)) and (onsegment(p1, p2, p3)) ) // case (10)
     {
       //cout << "case(10)" << endl;
       return 9;
     }
   }
-  
+
   //cout << "GO HEEEEEEEEEEEERE" << endl;
-  if ( ((AlmostEqual(d4, 0.0)) and (onsegment(p1, p2, p4))) and 
+  if ( ((AlmostEqual(d4, 0.0)) and (onsegment(p1, p2, p4))) and
      (!(AlmostEqual(p4, p1))) and (!(AlmostEqual(p4, p2))) )
     return 10;
 
-  if ( ((AlmostEqual(d3, 0.0)) and (onsegment(p1, p2, p3))) and 
+  if ( ((AlmostEqual(d3, 0.0)) and (onsegment(p1, p2, p3))) and
     (!(AlmostEqual(p3, p1))) and (!(AlmostEqual(p3, p2))) )
     return 11;
 
@@ -2791,27 +2853,27 @@ int MakeRealm::intersects(const Point& p1, const Point& p2,
     (!(AlmostEqual(p3, p1))) and (!(AlmostEqual(p4, p1))) )
     return 12;
 
-  if ( ((AlmostEqual(d2, 0.0)) and (onsegment(p3, p4, p2))) and 
+  if ( ((AlmostEqual(d2, 0.0)) and (onsegment(p3, p4, p2))) and
   (!(AlmostEqual(p3, p2))) and (!(AlmostEqual(p4, p2))) )
     return 13;
   //cout << "other" << endl;
   return 14;
 }
 
-void MakeRealm::hsintersection(const HalfSegment& seg1, 
+void MakeRealm::hsintersection(const HalfSegment& seg1,
                                const HalfSegment& seg2, Point& p)
 {
   double m1, m2, a1, a2;
-  
+
   //Precondition: the two half segments properly intersect
-  
+
   if ( AlmostEqual(seg1.GetLeftPoint().GetX(), seg1.GetRightPoint().GetX()) )
   {
-      m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
+      m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) /
            (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
       a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
       p.Set(seg1.GetLeftPoint().GetX(), m2 * seg1.GetLeftPoint().GetX() + a2);
-  } 
+  }
   else if (AlmostEqual(seg2.GetLeftPoint().GetX(), seg2.GetRightPoint().GetX()))
   {
       m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) /
@@ -2819,9 +2881,9 @@ void MakeRealm::hsintersection(const HalfSegment& seg1,
       a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
       p.Set(seg2.GetLeftPoint().GetX(), m1 * seg2.GetLeftPoint().GetX() + a1);
   } else {
-      m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) / 
+      m1 = (seg1.GetRightPoint().GetY() - seg1.GetLeftPoint().GetY()) /
            (seg1.GetRightPoint().GetX() - seg1.GetLeftPoint().GetX());
-      m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) / 
+      m2 = (seg2.GetRightPoint().GetY() - seg2.GetLeftPoint().GetY()) /
            (seg2.GetRightPoint().GetX() - seg2.GetLeftPoint().GetX());
       a1 = seg1.GetLeftPoint().GetY() - (m1 * seg1.GetLeftPoint().GetX());
       a2 = seg2.GetLeftPoint().GetY() - (m2 * seg2.GetLeftPoint().GetX());
@@ -2838,11 +2900,11 @@ void MakeRealm::insertpoint(list<Point>& values, const Point p)
   else
   {
     it = find_if( values.begin(), values.end(), is_greater_than(p) );
- 
+
     pred = it;
 
     if ( pred != values.begin() )
-    { 
+    {
       if ( (*(--pred)) != p )
       {
         values.insert(it, p);
@@ -2855,30 +2917,30 @@ void MakeRealm::insertpoint(list<Point>& values, const Point p)
 
 bool MakeRealm::xoverlaps(const HalfSegment& hs1, const HalfSegment& hs2)
 {
-  if ( ((hs2.GetLeftPoint() > hs1.GetLeftPoint()) && 
+  if ( ((hs2.GetLeftPoint() > hs1.GetLeftPoint()) &&
         (hs2.GetLeftPoint() < hs1.GetRightPoint())) ||
-       ((hs1.GetLeftPoint() > hs2.GetLeftPoint()) && 
+       ((hs1.GetLeftPoint() > hs2.GetLeftPoint()) &&
         (hs1.GetLeftPoint() < hs2.GetRightPoint())) ||
-       ((hs1.GetRightPoint() > hs2.GetLeftPoint()) && 
+       ((hs1.GetRightPoint() > hs2.GetLeftPoint()) &&
         (hs1.GetRightPoint() < hs2.GetRightPoint())) ||
-       ((hs2.GetRightPoint() > hs1.GetLeftPoint()) && 
+       ((hs2.GetRightPoint() > hs1.GetLeftPoint()) &&
         (hs2.GetRightPoint() < hs1.GetRightPoint())) )
       return true;
-    return false; 
+    return false;
 }
 
-void MakeRealm::checksegmentsline(const HalfSegment& hs1, 
-  const HalfSegment& hs2, const int i, const int j, 
+void MakeRealm::checksegmentsline(const HalfSegment& hs1,
+  const HalfSegment& hs2, const int i, const int j,
   vector<HalfSegmentCheck>& vsc1)
 {
   Point ispoint;
 
-  switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(), 
+  switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(),
                       hs2.GetLeftPoint(), hs2.GetRightPoint()) )
   {
     case 0: // cout << "Segments do not intersect, do nothing" << endl;
             break;
-                
+
     case 1: // cout << "Segments intersect properly" << endl;
             hsintersection(hs1, hs2, ispoint);
             vsc1[i].splitsegment = true;
@@ -2886,7 +2948,7 @@ void MakeRealm::checksegmentsline(const HalfSegment& hs1,
             vsc1[j].splitsegment = true;
             insertpoint(vsc1[j].pointlist, ispoint);
             break;
-                
+
     // cases 2 - 9 cover overlapping halfsegments
 
     case 2: // p1----p3----p2----p4 (2)
@@ -2907,13 +2969,13 @@ void MakeRealm::checksegmentsline(const HalfSegment& hs1,
                 // cout << "Segments overlap case(4)" << endl;
                 vsc1[j].splitsegment = true;
                 insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());
-                insertpoint(vsc1[j].pointlist, hs1.GetRightPoint()); 
+                insertpoint(vsc1[j].pointlist, hs1.GetRightPoint());
                 break;
 
         case 5: // p3----p1----p2,p4 (5)
                 // cout << "Segments overlap case(5)" << endl;
                 vsc1[j].splitsegment = true;
-                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());  
+                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());
                 break;
 
         case 6: // p3----p1----p4----p2 (6)
@@ -2921,26 +2983,26 @@ void MakeRealm::checksegmentsline(const HalfSegment& hs1,
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 vsc1[j].splitsegment = true;
-                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());  
+                insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());
                 break;
 
         case 7: // p1,p3----p4----p2 (8)
                 // cout << "Segments overlap case(8)" << endl;
                 vsc1[i].splitsegment = true;
-                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 break;
 
         case 8: // p1----p3----p4----p2 (9)
                 // cout << "Segments overlap case(9)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
-                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 break;
 
         case 9: // p1----p3----p2,p4 (10)
                 // cout << "Segments overlap case(10)" << endl;
                 vsc1[i].splitsegment = true;
-                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());  
+                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
                 break;
 
         case 10: // p1---p4----p2 (12)
@@ -2948,20 +3010,20 @@ void MakeRealm::checksegmentsline(const HalfSegment& hs1,
                  //      p3
                  // cout << "Segments overlap case(12)" << endl;
                  vsc1[i].splitsegment = true;
-                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());        
+                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                  break;
 
         case 11: //      p4 (13)
                  //       |
-                 // p1---p3----p2               
-                 // cout << "Segments overlap case(13)" << endl;        
+                 // p1---p3----p2
+                 // cout << "Segments overlap case(13)" << endl;
                  vsc1[i].splitsegment = true;
-                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint()); 
+                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
                  break;
 
         case 12: //      p2 (14)
                  //       |
-                 // p3---p1----p4               
+                 // p3---p1----p4
                  // cout << "Segments overlap case(14)" << endl;
                  vsc1[j].splitsegment = true;
                  insertpoint(vsc1[j].pointlist, hs1.GetLeftPoint());
@@ -2975,40 +3037,40 @@ void MakeRealm::checksegmentsline(const HalfSegment& hs1,
                  insertpoint(vsc1[j].pointlist, hs1.GetRightPoint());
                  break;
 
-        // case 14 covers overlapping half segments, where nothing 
+        // case 14 covers overlapping half segments, where nothing
         // has to be done
 
         case 14: // p1----p2,p3----p4 (1)
                  // p3----p4,p1----p2 (7)
                  // p1,p3----p2,p4 (11)
-                 // cout << "Do nothing case(1, 7, 11)" << endl;        
+                 // cout << "Do nothing case(1, 7, 11)" << endl;
                  break;
-                
+
         default: cout << "should not happen " << endl;
       }
 }
-  
 
-void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2, 
+
+void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
              const int i, const int j,
              vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
 {
   Point ispoint;
-  
+
   //if ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(),
-                   //hs2.GetLeftPoint(), hs2.GetRightPoint()) ) 
+                   //hs2.GetLeftPoint(), hs2.GetRightPoint()) )
                    //cout << " they intersect " << endl;
-                   
-  //cout << " they intersect" << intersects(hs1.GetLeftPoint(), 
-  //hs1.GetRightPoint(), 
+
+  //cout << " they intersect" << intersects(hs1.GetLeftPoint(),
+  //hs1.GetRightPoint(),
   //hs2.GetLeftPoint(), hs2.GetRightPoint()) << endl;
-                   
-  switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(), 
+
+  switch ( intersects(hs1.GetLeftPoint(), hs1.GetRightPoint(),
                       hs2.GetLeftPoint(), hs2.GetRightPoint()) )
   {
     case 0: //cout << "Segments do not intersect, do nothing" << endl;
             break;
-                
+
     case 1: //cout << "Segments intersect properly" << endl;
             hsintersection(hs1, hs2, ispoint);
             vsc1[i].splitsegment = true;
@@ -3016,7 +3078,7 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
             vsc2[j].splitsegment = true;
             insertpoint(vsc2[j].pointlist, ispoint);
             break;
-                
+
     // cases 2 - 9 cover overlapping halfsegments
 
     case 2: // p1----p3----p2----p4 (2)
@@ -3037,13 +3099,13 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
                 //cout << "Segments overlap case(4)" << endl;
                 vsc2[j].splitsegment = true;
                 insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
-                insertpoint(vsc2[j].pointlist, hs1.GetRightPoint()); 
+                insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
                 break;
 
         case 5: // p3----p1----p2,p4 (5)
                 //cout << "Segments overlap case(5)" << endl;
                 vsc2[j].splitsegment = true;
-                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());  
+                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
                 break;
 
         case 6: // p3----p1----p4----p2 (6)
@@ -3051,26 +3113,26 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 vsc2[j].splitsegment = true;
-                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());  
+                insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
                 break;
 
         case 7: // p1,p3----p4----p2 (8)
                 //cout << "Segments overlap case(8)" << endl;
                 vsc1[i].splitsegment = true;
-                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 break;
 
         case 8: // p1----p3----p4----p2 (9)
                 //cout << "Segments overlap case(9)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
-                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint()); 
+                insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                 break;
 
         case 9: // p1----p3----p2,p4 (10)
                 //cout << "Segments overlap case(10)" << endl;
                 vsc1[i].splitsegment = true;
-                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());  
+                insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
                 break;
 
         case 10: // p1---p4----p2 (12)
@@ -3078,20 +3140,20 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
                  //      p3
                  //cout << "Segments overlap case(12)" << endl;
                  vsc1[i].splitsegment = true;
-                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());        
+                 insertpoint(vsc1[i].pointlist, hs2.GetRightPoint());
                  break;
 
         case 11: //      p4 (13)
                  //       |
-                 // p1---p3----p2               
-                 //cout << "Segments overlap case(13)" << endl;        
+                 // p1---p3----p2
+                 //cout << "Segments overlap case(13)" << endl;
                  vsc1[i].splitsegment = true;
-                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint()); 
+                 insertpoint(vsc1[i].pointlist, hs2.GetLeftPoint());
                  break;
 
         case 12: //      p2 (14)
                  //       |
-                 // p3---p1----p4               
+                 // p3---p1----p4
                  //cout << "Segments overlap case(14)" << endl;
                  vsc2[j].splitsegment = true;
                  insertpoint(vsc2[j].pointlist, hs1.GetLeftPoint());
@@ -3105,62 +3167,62 @@ void MakeRealm::checksegments(const HalfSegment& hs1, const HalfSegment& hs2,
                  insertpoint(vsc2[j].pointlist, hs1.GetRightPoint());
                  break;
 
-        // case 14 covers overlapping half segments, where nothing 
+        // case 14 covers overlapping half segments, where nothing
         // has to be done
 
         case 14: // p1----p2,p3----p4 (1)
                  // p3----p4,p1----p2 (7)
                  // p1,p3----p2,p4 (11)
-                 //cout << "Do nothing case(1, 7, 11)" << endl;        
+                 //cout << "Do nothing case(1, 7, 11)" << endl;
                  break;
-                
+
         default: cout << "should not happen " << endl;
       }
 }
 
-void MakeRealm::dorealm2(const vector<HalfSegment>& vs1, 
+void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
         const vector<HalfSegment>& vs2,const bool isline1, const bool isline2,
         vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
 {
   unsigned int i = 0, j = 0, k, l, hscurrindex, hscurrindexi, hscurrindexj;
   HalfSegment hs1, hs2, hscurr, hscurri, hscurrj;
   State status;
-  
+
   //if ( true ) printsegvector(vs1);
   //if ( true ) printsegvector(vs2);
-  while ( (i < vs1.size()) || (j < vs2.size()) ) 
+  while ( (i < vs1.size()) || (j < vs2.size()) )
   {
-    if (i < vs1.size() && j < vs2.size() ) 
+    if (i < vs1.size() && j < vs2.size() )
     {
       //cout << "if1" << endl;
       hs1 = vs1[i];
       hs2 = vs2[j];
-      if ( AlmostEqual(hs1.GetLeftPoint(), hs2.GetLeftPoint()) && 
+      if ( AlmostEqual(hs1.GetLeftPoint(), hs2.GetLeftPoint()) &&
            AlmostEqual(hs1.GetRightPoint(), hs2.GetRightPoint()) )
       {
         hscurrindexi = i;
         i++;
         hscurrindexj = j;
-        j++;   
-        hscurri = hs1; 
-        hscurrj = hs2;   
+        j++;
+        hscurri = hs1;
+        hscurrj = hs2;
         status = BOTH;
-        //cout << "STATUS IS BOTH" << endl; 
+        //cout << "STATUS IS BOTH" << endl;
       }
-      else if ( hs1 < hs2) 
+      else if ( hs1 < hs2)
       {
         //cout << "hs1 < hs2" << endl;
         hscurrindex = i;
-        i++; 
-        hscurr = hs1; 
+        i++;
+        hscurr = hs1;
         status = FIRST;
       }
-      else if ( hs1 > hs2) 
+      else if ( hs1 > hs2)
       {
         //cout << "hs1 > hs2" << endl;
         hscurrindex = j;
         j++;
-        hscurr = hs2; 
+        hscurr = hs2;
         status = SECOND;
       }
       //cout << hscurr << endl;
@@ -3211,10 +3273,10 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
           cout << "move left pointer" << endl;
           jleft++;
         }
-        
+
         k = jleft;*/
-        
-        
+
+
         //realm the lines
         if ( isline1 )
         {
@@ -3247,16 +3309,16 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
           cout << "move left pointer" << endl;
           ileft++;
         }
-        
+
         k = ileft;*/
-        
+
         //realm the lines
         if ( isline2 )
         {
           l = hscurrindex + 1;
           //if ( l < vs2.size() ) cout << "l < vs2.size()" << endl;
           //else cout << "l >= vs2.size()" << endl;
-          //if ( xoverlaps(hscurr, vs2[l]) ) 
+          //if ( xoverlaps(hscurr, vs2[l]) )
           //cout << "xoverlaps(hscurr, vs2[l])" << endl;
           while ( (l < vs2.size()) && (xoverlaps(hscurr, vs2[l])) )
           {
@@ -3270,7 +3332,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
 
           //if ( k < vs1.size() ) cout << "k < vs1.size()" << endl;
           //else cout << "k >= vs1.size()" << endl;
-          //if ( xoverlaps(hscurr, vs1[k]) ) 
+          //if ( xoverlaps(hscurr, vs1[k]) )
           //cout << "xoverlaps(hscurr, vs1[k])" << endl;
           //else cout << "not xoverlaps(hscurr, vs1[k])" << endl;
         while ( (k < vs1.size()) && (xoverlaps(hscurr, vs1[k])) )
@@ -3287,7 +3349,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
         //cout << endl;
       }
     }
-    else if ( i < vs1.size() ) 
+    else if ( i < vs1.size() )
     {
       //cout << "if2" << endl;
       hscurr = vs1[i];
@@ -3297,7 +3359,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //cout << hscurr << endl;
       //if (status == FIRST) cout << "FIRST2" << endl << endl;
       //else cout << "SECOND2" << endl << endl;
-      
+
         //realm the lines
         if ( isline1 )
         {
@@ -3323,7 +3385,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       }
       //cout << endl;
     }
-    else if ( j < vs2.size() ) 
+    else if ( j < vs2.size() )
     {
       //cout << "if3" << endl;
       hscurr = vs2[j];
@@ -3333,7 +3395,7 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       //cout << hscurr << endl;
       //if (status == FIRST) cout << "FIRST3" << endl << endl;
       //else cout << "SECOND3" << endl << endl;
-      
+
         //realm the lines
         if ( isline2 )
         {
@@ -3359,25 +3421,25 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
       }
       //cout << endl;
     }
-  }   
+  }
 }
 
-void MakeRealm::dorealm(const vector<HalfSegment>& vs1, 
+void MakeRealm::dorealm(const vector<HalfSegment>& vs1,
                         const vector<HalfSegment>& vs2,
              vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
-{ 
+{
   Point ispoint;
-  
+
   for (unsigned int i = 0; i < vs1.size(); i++)
   {
     for (unsigned int j = 0; j < vs2.size(); j++)
     {
-      switch ( intersects(vs1[i].GetLeftPoint(), vs1[i].GetRightPoint(), 
+      switch ( intersects(vs1[i].GetLeftPoint(), vs1[i].GetRightPoint(),
                           vs2[j].GetLeftPoint(), vs2[j].GetRightPoint()) )
       {
         case 0: // cout << "Segments do not intersect, do nothing" << endl;
                 break;
-                
+
         case 1: // cout << "Segments intersect properly" << endl;
                 hsintersection(vs1[i], vs2[j], ispoint);
                 vsc1[i].splitsegment = true;
@@ -3385,7 +3447,7 @@ void MakeRealm::dorealm(const vector<HalfSegment>& vs1,
                 vsc2[j].splitsegment = true;
                 insertpoint(vsc2[j].pointlist, ispoint);
                 break;
-                
+
         // cases 2 - 9 cover overlapping halfsegments
 
         case 2: // p1----p3----p2----p4 (2)
@@ -3406,13 +3468,13 @@ void MakeRealm::dorealm(const vector<HalfSegment>& vs1,
                 // cout << "Segments overlap case(4)" << endl;
                 vsc2[j].splitsegment = true;
                 insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());
-                insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint()); 
+                insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint());
                 break;
 
         case 5: // p3----p1----p2,p4 (5)
                 // cout << "Segments overlap case(5)" << endl;
                 vsc2[j].splitsegment = true;
-                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());  
+                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());
                 break;
 
         case 6: // p3----p1----p4----p2 (6)
@@ -3420,26 +3482,26 @@ void MakeRealm::dorealm(const vector<HalfSegment>& vs1,
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());
                 vsc2[j].splitsegment = true;
-                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());  
+                insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());
                 break;
 
         case 7: // p1,p3----p4----p2 (8)
                 // cout << "Segments overlap case(8)" << endl;
                 vsc1[i].splitsegment = true;
-                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint()); 
+                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());
                 break;
 
         case 8: // p1----p3----p4----p2 (9)
                 // cout << "Segments overlap case(9)" << endl;
                 vsc1[i].splitsegment = true;
                 insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());
-                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint()); 
+                insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());
                 break;
 
         case 9: // p1----p3----p2,p4 (10)
                 // cout << "Segments overlap case(10)" << endl;
                 vsc1[i].splitsegment = true;
-                insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());  
+                insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());
                 break;
 
         case 10: // p1---p4----p2 (12)
@@ -3447,20 +3509,20 @@ void MakeRealm::dorealm(const vector<HalfSegment>& vs1,
                  //      p3
                  // cout << "Segments overlap case(12)" << endl;
                  vsc1[i].splitsegment = true;
-                 insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());        
+                 insertpoint(vsc1[i].pointlist, vs2[j].GetRightPoint());
                  break;
 
         case 11: //      p4 (13)
                  //       |
-                 // p1---p3----p2               
-                 // cout << "Segments overlap case(13)" << endl;        
+                 // p1---p3----p2
+                 // cout << "Segments overlap case(13)" << endl;
                  vsc1[i].splitsegment = true;
-                 insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint()); 
+                 insertpoint(vsc1[i].pointlist, vs2[j].GetLeftPoint());
                  break;
 
         case 12: //      p2 (14)
                  //       |
-                 // p3---p1----p4               
+                 // p3---p1----p4
                  // cout << "Segments overlap case(14)" << endl;
                  vsc2[j].splitsegment = true;
                  insertpoint(vsc2[j].pointlist, vs1[i].GetLeftPoint());
@@ -3474,22 +3536,22 @@ void MakeRealm::dorealm(const vector<HalfSegment>& vs1,
                  insertpoint(vsc2[j].pointlist, vs1[i].GetRightPoint());
                  break;
 
-        // case 14 covers overlapping half segments, where nothing 
+        // case 14 covers overlapping half segments, where nothing
         // has to be done
 
         case 14: // p1----p2,p3----p4 (1)
                  // p3----p4,p1----p2 (7)
                  // p1,p3----p2,p4 (11)
-                 // cout << "Do nothing case(1, 7, 11)" << endl;        
+                 // cout << "Do nothing case(1, 7, 11)" << endl;
                  break;
-                
+
         default: cout << "should not happen " << endl;
       }
     }
   }
 }
 
-void MakeRealm::createrealmedobject(const vector<HalfSegment>& s, 
+void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
                     vector<HalfSegmentCheck>& sc, vector<HalfSegment>& res)
 {
   HalfSegment rseg;
@@ -3498,11 +3560,11 @@ void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
   bool insideAbove;
 
   for (unsigned int u = 0; u < s.size(); u++)
-  { 
+  {
     faceno = s[u].attr.faceno;
     cycleno = s[u].attr.cycleno;
     insideAbove = s[u].attr.insideAbove;
-     
+
     if ( sc[u].splitsegment == false )
             res.push_back(s[u]);
     else
@@ -3528,44 +3590,44 @@ void MakeRealm::createrealmedobject(const vector<HalfSegment>& s,
           rseg.attr.faceno = faceno;
           rseg.attr.cycleno = cycleno;
           rseg.attr.insideAbove = insideAbove;
-          res.push_back(rseg); 
+          res.push_back(rseg);
       }
     }
-  } 
+  }
 }
- 
-template <class T, class U, class V, class W> 
-void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1, 
+
+template <class T, class U, class V, class W>
+void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1,
                        const bool isline2, V* result1, W* result2)
 {
    vector<HalfSegment> vl1, vl2, vl1res, vl2res;
    int counter;
-   
+
    if ( !obj1->BoundingBox().IntersectsUD(obj2->BoundingBox()) )
    {
      if ( PSA_DEBUG ) cout << "Bounding boxes do not intersect." << endl;
      *result1 = *obj1;
      *result2 = *obj2;
    }
-   else 
+   else
    {
      if ( PSA_DEBUG ) cout << "Bounding boxes intersect." << endl;
      readhalfsegments(vl1, obj1);
      if ( PSA_DEBUG ) printsegvector(vl1);
      readhalfsegments(vl2, obj2);
      if ( PSA_DEBUG ) printsegvector(vl2);
-  
+
      HalfSegmentCheck sc;
      vector<HalfSegmentCheck> scl1(vl1.size(), sc), scl2(vl2.size(), sc);
      if ( kindofrealm == OVERLAPPING )
-       dorealm2(vl1, vl2, isline1, isline2, scl1, scl2);   
+       dorealm2(vl1, vl2, isline1, isline2, scl1, scl2);
      else dorealm(vl1, vl2, scl1, scl2);
      if ( PSA_DEBUG ) printsegcheckvector(scl1);
-     if ( PSA_DEBUG ) printsegcheckvector(scl2); 
-   
-     createrealmedobject(vl1, scl1, vl1res);  
+     if ( PSA_DEBUG ) printsegcheckvector(scl2);
+
+     createrealmedobject(vl1, scl1, vl1res);
      if ( PSA_DEBUG ) printsegvector(vl1res);
-     createrealmedobject(vl2, scl2, vl2res);  
+     createrealmedobject(vl2, scl2, vl2res);
      if ( PSA_DEBUG ) printsegvector(vl2res);
 
      // create first region object
@@ -3575,9 +3637,9 @@ void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1,
      while (! vl1res.empty() )  {
         HalfSegment hs = vl1res.back();
         hs.attr.edgeno = counter;
-        hs.SetLeftDomPoint(true);       
+        hs.SetLeftDomPoint(true);
         *result1 += hs;
-        hs.SetLeftDomPoint(false);      
+        hs.SetLeftDomPoint(false);
         *result1 += hs;
         counter++;
         vl1res.pop_back();
@@ -3591,9 +3653,9 @@ void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1,
      while (! vl2res.empty() )  {
         HalfSegment hs = vl2res.back();
         hs.attr.edgeno = counter;
-        hs.SetLeftDomPoint(true);       
+        hs.SetLeftDomPoint(true);
         *result2 += hs;
-        hs.SetLeftDomPoint(false);      
+        hs.SetLeftDomPoint(false);
         *result2 += hs;
         counter++;
         vl2res.pop_back();
@@ -3603,7 +3665,9 @@ void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1,
 }
 
 /*
-function gets a HalfSegment, creates two XEvents ( both endpoints) and inserts them into priority queue. An ~-Segment~-objects was created and inserted in the array with all segments.
+function gets a HalfSegment, creates two XEvents ( both endpoints) and inserts
+them into priority queue. An ~-Segment~-objects was created and inserted in the
+array with all segments.
 
 */
 
@@ -3643,12 +3707,13 @@ void MakeRealm::PrepareCHS ( bool No1, const HalfSegment& hs,
       //cout << pqu << endl;
       //while(!pqu.isEmpty()) {
        //cout << pqu.getFirstAndDelete().GetX() << endl;
-      //} 
+      //}
    }
 }
 
 /*
-This function performs plane-sweep of realmisation process. The priority queue (~PQueue~) was handle until all XEvents are passed.
+This function performs plane-sweep of realmisation process. The priority queue
+(~PQueue~) was handle until all XEvents are passed.
 
 */
 void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
@@ -3673,7 +3738,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       if ( !pq.isEmpty() ) {
         event = pq.getFirstAndDelete();
         insertedCurrentSegment = false;
-      } 
+      }
       i += 1;
       //cout << "Loop1: " << i << endl;
       //cout << "Size: " << vlist.Size();
@@ -3681,7 +3746,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       //else cout << " PQNOTEmpty ";
       //else cout <<  "insertedCurrentSegment is false " << endl;
       if ( ((sweepline != event.GetX()) || (vlist.Size() > 1)) ||
-                     ( ( (pq.isEmpty()) && (vlist.Size() == 1) ) 
+                     ( ( (pq.isEmpty()) && (vlist.Size() == 1) )
                           && insertedCurrentSegment ) )  { // new sweepline
          oldsweep = sweepline;
          // handle all vertical HalfSegments at old sweepline
@@ -3696,7 +3761,7 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
                segment.CHSInsert(list1,list2);
                ++iter;
             }
-            vlist.Clear();   
+            vlist.Clear();
             vs.Clear();
          }
          if (pq.isEmpty() && insertedCurrentSegment) return;
@@ -3727,11 +3792,11 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       else if (event.GetKind() == split) {
          Point point (true, event.GetX(), event.GetY() );
          Segment new1 ( seg.GetIn1(), seg.GetCHS());
-         if ( (point != new1.GetLeftPoint()) && 
+         if ( (point != new1.GetLeftPoint()) &&
               (point != new1.GetRightPoint() ) ) {
             new1.SetRightPoint(point);
             new1.CHSInsert(list1,list2);
-            seg.SetLeftPoint(point);      
+            seg.SetLeftPoint(point);
             segs[event.GetFirst()] = seg;
          }
       }
@@ -4173,7 +4238,7 @@ void SLine::SLineOutput(const Coord x)
       while (node != 0 )  {
          SEntry ev = node->GetEntry();
          HalfSegment hs = ev.GetCHS();
-         double abstand = 
+         double abstand =
              ((hs.GetLeftPoint().GetX() - hs.GetRightPoint().GetX())*
               (hs.GetLeftPoint().GetX() - hs.GetRightPoint().GetX()) ) +
              ((hs.GetLeftPoint().GetY() - hs.GetRightPoint().GetY()) *
@@ -4242,7 +4307,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
       case PLANESWEEP: mr.REALM( reg1, reg2, res1 , res2 );
                          break;
       case QUADRATIC:
-      case OVERLAPPING: 
+      case OVERLAPPING:
                        mr.REALM2( reg1, reg2, false, false, res1 , res2 );
                          break;
       default: cout << "should not happen" << endl;
@@ -4266,7 +4331,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
      // select the first segment
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
           hs1.GetRightPoint()==hs2.GetRightPoint()){
          i ++;   j ++;   hsAkt = hs1;    status = BOTH;
       }
@@ -4348,7 +4413,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
    {
       case PLANESWEEP:  mr.REALM( line, reg, resline , resregion );
                          break;
-      case QUADRATIC: 
+      case QUADRATIC:
       case OVERLAPPING: mr.REALM2(line, reg, false, true, resline , resregion);
                          break;
       default: cout << "should not happen" << endl;
@@ -4371,7 +4436,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
       // select the first segment
       resline->Get(i,hs1);
       resregion->Get(j,hs2);
-      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
           hs1.GetRightPoint()==hs2.GetRightPoint()){
          i ++;   j ++;   hsAkt = hs2;    status = BOTH; }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
@@ -4417,18 +4482,18 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
    resline->Destroy(); delete resline;
    resregion->Destroy(); delete resregion;
 
-  
-   unsigned int size = result->Size(); 
+
+   unsigned int size = result->Size();
    result->Resize(size*2);
    /*
-     At this point, for each segment, a single halfsegment is inserted 
-     into the halfsegment array of the result. The egde numbers are 
-     taken from the original objects and may be outside the valid range 
+     At this point, for each segment, a single halfsegment is inserted
+     into the halfsegment array of the result. The egde numbers are
+     taken from the original objects and may be outside the valid range
      (0..noSegments(result).
-     The following loop corrects this state by adding the missing 
+     The following loop corrects this state by adding the missing
      halfsegments and correcting the edge numbers.
-   */  
-   
+   */
+
     HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
          result->Get(i,hs_old);
@@ -4437,11 +4502,11 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
          result->Put(i,hs_old);
          HalfSegment hsNew(hs_old);
          hsNew.SetLeftDomPoint(false);
-         *result += hsNew;       
+         *result += hsNew;
     }
-   
+
    // VTA - I need to come back here , should be solved
-   
+
    result->EndBulkLoad();
   // cout << " ===========================result fertig ========" << endl;
 }
@@ -4460,7 +4525,7 @@ void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
    {
       case PLANESWEEP: mr.REALM( line1, line2, res1 , res2  );
                          break;
-      case QUADRATIC: 
+      case QUADRATIC:
       case OVERLAPPING: mr.REALM2( line1, line2, true, true, res1 , res2  );
                          break;
       default: cout << "should not happen" << endl;
@@ -4478,7 +4543,7 @@ void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
       res2->Get(j,hs2);
       // segments, which are the same in both arguments are added
       // in result
-      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
           hs1.GetRightPoint()==hs2.GetRightPoint())
          {  i ++;   j ++;   (*result) += hs1; }
       else if ( hs1 < hs2)  i ++;
@@ -4487,7 +4552,7 @@ void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here -- solved ??
-   unsigned int size = result->Size(); 
+   unsigned int size = result->Size();
    result->Resize(size*2);
     HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
@@ -4497,7 +4562,7 @@ void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
          result->Put(i,hs_old);
          HalfSegment hsNew(hs_old);
          hsNew.SetLeftDomPoint(false);
-         *result += hsNew;       
+         *result += hsNew;
     }
    result->EndBulkLoad();
 }
@@ -4538,7 +4603,7 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
      // select_ first
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
           hs1.GetRightPoint()==hs2.GetRightPoint()){
          i ++;   j ++;   hsAkt = hs1;    status = BOTH;      }
       else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
@@ -4578,10 +4643,10 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
             else                                ns = ns-1;
          }
          // if one intersection is found, break and return true
-         if (ms == 2 || ns == 2) { 
+         if (ms == 2 || ns == 2) {
             res1->Destroy(); delete res1;
             res2->Destroy(); delete res2;
-            return true; 
+            return true;
          }
          // set new segmentclasses in SEntry
          ent.SetU(ms);
@@ -4667,10 +4732,10 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
          }
          if (status == FIRST || status == BOTH) {
             if ( pred != 0  && pred->GetEntry().GetO() > 0 )
-               {  
+               {
                   resline->Destroy(); delete resline;
                   resregion->Destroy(); delete resregion;
-                  return true; 
+                  return true;
                }
             // segments from line are deleted at once
             if (status == FIRST) sweepline.Delete(node);
@@ -4713,7 +4778,7 @@ bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
       res1->Get(i,hs1);
       res2->Get(j,hs2);
       // if two segments are the same -> return true
-      if (hs1.GetLeftPoint()== hs2.GetLeftPoint() && 
+      if (hs1.GetLeftPoint()== hs2.GetLeftPoint() &&
           hs1.GetRightPoint()== hs2.GetRightPoint() )
          { return true; }
       else if ( hs1 < hs2)  i ++;
@@ -4894,7 +4959,7 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
                { if (pred->GetEntry().GetO() == 1) {
                    res1->Destroy(); delete res1;
                    res2->Destroy(); delete res2;
-                   return true; 
+                   return true;
                  }
             }
             else sweepline.Delete (node);
@@ -4956,12 +5021,12 @@ bool MakeOp::Intersects (const Line* line1, const Line* line2)
 
 */
 
-void MakeOp::Union(const Region* reg1, const Region* reg2, 
+void MakeOp::Union(const Region* reg1, const Region* reg2,
                       Region* result)
 {
    SLine sweepline;
-   int i = 0;   
-   int j = 0; 
+   int i = 0;
+   int j = 0;
    int counter = 0;
    HalfSegment hsAkt;
    HalfSegment hs1, hs2;
@@ -4972,7 +5037,7 @@ void MakeOp::Union(const Region* reg1, const Region* reg2,
    BinTreeNode<SEntry>* oldnode2;
    Region* res1, *res2;
    MakeRealm mr;
-   
+
    // first Realmisation of both regions
    res1 = new Region(0);
    res2 = new Region(0);
@@ -5002,7 +5067,7 @@ void MakeOp::Union(const Region* reg1, const Region* reg2,
          //cout << "if1" << endl;
          res1->Get(i,hs1);
          res2->Get(j,hs2);
-         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
              hs1.GetRightPoint()==hs2.GetRightPoint() ){
             i ++;   j ++;   hsAkt = hs1;    status = BOTH; }
          else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
@@ -5119,7 +5184,7 @@ void MakeOp::Union(const Line* line1, const Line* line2,Line* result)
          res1->Get(i,hs1);
          res2->Get(j,hs2);
          // add same segments only once
-         if (hs1.GetLeftPoint()== hs2.GetLeftPoint() && 
+         if (hs1.GetLeftPoint()== hs2.GetLeftPoint() &&
              hs1.GetRightPoint()== hs2.GetRightPoint() )
             {  i ++;   j ++;   (*result) += hs1; }
          else if ( hs1 < hs2) { i ++;  (*result) += hs1; }
@@ -5133,7 +5198,7 @@ void MakeOp::Union(const Line* line1, const Line* line2,Line* result)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here
-   unsigned int size = result->Size(); 
+   unsigned int size = result->Size();
    if(size>0) {result->Resize(size*2);}
     HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
@@ -5143,9 +5208,9 @@ void MakeOp::Union(const Line* line1, const Line* line2,Line* result)
          result->Put(i,hs_old);
          HalfSegment hsNew(hs_old);
          hsNew.SetLeftDomPoint(false);
-         *result += hsNew;       
+         *result += hsNew;
     }
-   
+
    result->EndBulkLoad();
 }
 
@@ -5187,7 +5252,7 @@ void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
       if (i < res1->Size() && j < res2->Size() ) {
          res1->Get(i,hs1);
          res2->Get(j,hs2);
-         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
              hs1.GetRightPoint()==hs2.GetRightPoint() )
             {i ++; j ++; hsAkt = hs1;  status = BOTH;    }
          else if ( hs1 < hs2) { i ++; hsAkt = hs1; status = FIRST; }
@@ -5306,7 +5371,7 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
       if (i < resLine -> Size() && j < resReg -> Size() ) {
          resLine -> Get(i,hs1);
          resReg -> Get(j,hs2);
-         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
              hs1.GetRightPoint()==hs2.GetRightPoint()){
             i ++;   j ++;   hsAkt = hs2;    status = BOTH;  }
          else if ( hs1 < hs2) { i ++; hsAkt = hs1; status = FIRST;}
@@ -5334,7 +5399,7 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
             {
          HalfSegment auxHs1( hs1 );
                auxHs1.attr.edgeno = counter;
-               (*result) += auxHs1;    
+               (*result) += auxHs1;
                auxHs1.SetLeftDomPoint(false);
                (*result) += auxHs1;
                counter++;
@@ -5389,7 +5454,7 @@ void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
       if (i < res1->Size() && j < res2->Size() ) {
          res1->Get(i,hs1);
          res2->Get(j,hs2);
-         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
              hs1.GetRightPoint()==hs2.GetRightPoint() )
             { i ++;  j ++; }
          else if ( hs1 < hs2) { i ++;  (*result) += hs1;  }
@@ -5404,7 +5469,7 @@ void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here
-   unsigned int size = result->Size(); 
+   unsigned int size = result->Size();
    result->Resize(size*2);
     HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
@@ -5414,7 +5479,7 @@ void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
          result->Put(i,hs_old);
          HalfSegment hsNew(hs_old);
          hsNew.SetLeftDomPoint(false);
-         *result += hsNew;       
+         *result += hsNew;
     }
    result->EndBulkLoad();
 }
@@ -5433,11 +5498,11 @@ NewSpatialTypeOfSymbol( ListExpr symbol )
   if ( nl->AtomType( symbol ) == SymbolType )
   {
     string s = nl->SymbolValue( symbol );
-    if ( s == "point"  ) return (stpoint);
-    if ( s == "points" ) return (stpoints);
-    if ( s == "line"   ) return (stline);
-    if ( s == "region" ) return (stregion);
-    if ( s == "rect"   ) return (stbox);
+    if ( s == Point::BasicType()  ) return (stpoint);
+    if ( s == Points::BasicType() ) return (stpoints);
+    if ( s == Line::BasicType()   ) return (stline);
+    if ( s == Region::BasicType() ) return (stregion);
+    if ( s == Rectangle<2>::BasicType()   ) return (stbox);
   }
   return (sterror);
 }
@@ -5458,18 +5523,18 @@ static ListExpr realmMap( ListExpr args )
       arg2 = nl->Second( args );
       if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
          NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
    }
-   return (nl->SymbolAtom( "typeerror" ));
+   return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 const string RealmSpec  =
@@ -5504,7 +5569,7 @@ static int realm_lr( Word* args, Word& result, int message,
         case OVERLAPPING: mr.REALM2( l1, r2, true, false, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
-      }       
+      }
 
       //mr.REALM2( l1, r2, test1 , test2 );
       delete test2;
@@ -5541,7 +5606,7 @@ static int realm_rl( Word* args, Word& result, int message,
         case OVERLAPPING: mr.REALM2( l1, r2, false, true, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
-      }       
+      }
       delete test1;
       return(0);
    }
@@ -5575,7 +5640,7 @@ static int realm_ll( Word* args, Word& result, int message,
         case OVERLAPPING: mr.REALM2( l1, l2, true, true, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
-      }       
+      }
       delete test2;
       return(0);
    }
@@ -5610,7 +5675,7 @@ static int realm_rr( Word* args, Word& result, int message,
         case OVERLAPPING: mr.REALM2( r1, r2, false, false, test1 , test2 );
                          break;
         default: cout << "should not happen" << endl;
-      }       
+      }
       delete test2;
       return(0);
    }
@@ -5640,7 +5705,7 @@ int realmSelectCompute ( ListExpr args) {
 }
 
 Operator realm
-        ( "realm", RealmSpec, 4, RealmMap, 
+        ( "realm", RealmSpec, 4, RealmMap,
           realmSelectCompute, realmMap);
 
 /*
@@ -5657,18 +5722,18 @@ static ListExpr InterMap( ListExpr args )
       arg2 = nl->Second( args );
       if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
     }
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /*
@@ -5711,7 +5776,7 @@ static int Inter_ll( Word* args, Word& result, int message,
    else  {
      ((Line *)result.addr)->Clear();
      ((Line *)result.addr)->SetDefined( false );
-     
+
      return (0);
    }
 }
@@ -5863,7 +5928,7 @@ int InterSelectCompute ( ListExpr args) {
       NewSpatialTypeOfSymbol( arg2 ) == stregion )  return (3);
    else return (-1);
 
-}    
+}
 
 Operator Intersectionrr
    ( "intersection_new", InterSpec, 4, InterValueMap,
@@ -5882,18 +5947,18 @@ static ListExpr IntersectsMap( ListExpr args )
       arg2 = nl->Second( args );
       if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "bool" ));
+         return (nl->SymbolAtom( CcBool::BasicType() ));
       else if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "bool" ));
+         return (nl->SymbolAtom( CcBool::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "bool" ));
+         return (nl->SymbolAtom( CcBool::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "bool" ));
+         return (nl->SymbolAtom( CcBool::BasicType() ));
     }
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /*
@@ -6106,18 +6171,18 @@ static ListExpr unionMap( ListExpr args )
       arg2 = nl->Second( args );
       if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
           NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
     }
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /*
@@ -6278,18 +6343,18 @@ static ListExpr minusMap( ListExpr args )
       arg2 = nl->Second( args );
       if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
          NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stline &&
           NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "line" ));
+         return (nl->SymbolAtom( Line::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stline )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
       else  if ( NewSpatialTypeOfSymbol( arg1 ) == stregion &&
           NewSpatialTypeOfSymbol( arg2 ) == stregion )
-         return (nl->SymbolAtom( "region" ));
+         return (nl->SymbolAtom( Region::BasicType() ));
     }
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /*
@@ -6469,7 +6534,7 @@ int minusSelectCompute ( ListExpr args) {
 }
 
 Operator Minusrr
-   ( "minus_new", MinusSpec, 4, MinusValueMap, 
+   ( "minus_new", MinusSpec, 4, MinusValueMap,
    minusSelectCompute, minusMap );
 
 

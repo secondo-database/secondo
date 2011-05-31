@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the get\_maxkeysize Operator 
+[1] Implementation of the get\_maxkeysize Operator
 
 [TOC]
 
@@ -78,8 +78,8 @@ ListExpr get_maxkeysize::TypeMapping(ListExpr args)
     if (!listutils::isBTree2Description(first)) {
       return listutils::typeError("argument must be a valid btree2");
     }
-  } 
-  return nl->OneElemList( nl->SymbolAtom("int"));
+  }
+  return nl->OneElemList( nl->SymbolAtom(CcInt::BasicType()));
 }
 
 /*
@@ -88,8 +88,8 @@ ListExpr get_maxkeysize::TypeMapping(ListExpr args)
 */
 int get_maxkeysize::Select( ListExpr args )
 {
-  // Distinguish by number of arguments 
-  if (nl->ListLength(args) == 0) { 
+  // Distinguish by number of arguments
+  if (nl->ListLength(args) == 0) {
     return 0;
   } else {
     return 1;
@@ -127,7 +127,7 @@ get_maxkeysize::ValueMapping_BTree(Word* args, Word& result, int message,
 */
 string get_maxkeysize::Specification() {
   string header = "\"Signature\" \"Syntax\" \"Meaning\" \"Example\"";
-  string sig = " -> int\n" 
+  string sig = " -> int\n"
                "(btree2 Tk Td u) -> int";
   string spec = "get_maxkeysize(_)";
   string meaning = "If called without parameter, it returns the "
@@ -137,15 +137,15 @@ string get_maxkeysize::Specification() {
   string example = "query get_maxkeysize()";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
 int get_maxkeysize::numberOfValueMappings = 2;
-ValueMapping get_maxkeysize::valueMappings[] = { 
+ValueMapping get_maxkeysize::valueMappings[] = {
                   get_maxkeysize::ValueMapping_Default,
                   get_maxkeysize::ValueMapping_BTree,
                 };

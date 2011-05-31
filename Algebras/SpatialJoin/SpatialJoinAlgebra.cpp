@@ -29,7 +29,7 @@ using namespace std;
 #include <queue>
 
 #include "SpatialJoinAlgebra.h"
-
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -146,16 +146,16 @@ ListExpr spatialJoinTypeMap(ListExpr args)
 
   // check for rect, rect3, rect4
   set<string> r;
-  r.insert("rect");
-  r.insert("rect3");
+  r.insert(Rectangle<2>::BasicType());
+  r.insert(Rectangle<3>::BasicType());
 
   if(!listutils::isASymbolIn(type1,r) &&
-     !listutils::isKind(type1,"SPATIAL2D")){
+     !listutils::isKind(type1,Kind::SPATIAL2D())){
     return listutils::typeError("attribute " + name1 +
                                 " not supported by spatial join");
   }
   if(!listutils::isASymbolIn(type2,r) &&
-     !listutils::isKind(type1,"SPATIAL2D")){
+     !listutils::isKind(type1,Kind::SPATIAL2D())){
     return listutils::typeError("attribute "
         + name2 + " not supported");
   }
@@ -173,7 +173,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   NList funList(nl);
   //compose the nested list of the internal function
   bool is3D = false;
-  if (nl->SymbolValue(type1) == "rect3")
+  if (nl->SymbolValue(type1) == Rectangle<3>::BasicType())
     is3D = true;
 
   const ListExpr sType[] = {stream1, stream2};  //stream type
@@ -293,7 +293,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
 
 
   return nl->ThreeElemList(
-             nl->SymbolAtom("APPEND"),
+             nl->SymbolAtom(Symbol::APPEND()),
              nl->SixElemList(
                  nl->IntAtom(index1),
                  nl->IntAtom(index2),
@@ -303,9 +303,9 @@ ListExpr spatialJoinTypeMap(ListExpr args)
                  funList.listExpr()
                  ),
              nl->TwoElemList(
-                 nl->SymbolAtom("stream"),
+                 nl->SymbolAtom(Symbol::STREAM()),
                  nl->TwoElemList(
-                     nl->SymbolAtom("tuple"),
+                     nl->SymbolAtom(Tuple::BasicType()),
                      attrlist)));
 }
 
@@ -331,14 +331,14 @@ spatialJoinSelection (ListExpr args)
   attrIndexS = FindAttribute(attrListS, attrNameS, attrTypeS);
 
   /* selection function */
-  ListExpr errorInfo = nl->OneElemList ( nl->SymbolAtom ("ERRORS"));
+  ListExpr errorInfo = nl->OneElemList ( nl->SymbolAtom (Symbol::ERRORS()));
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  if ( (algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo)) ||
-       ( nl->SymbolValue (attrTypeS) == "rect") )
+  if ( (algMgr->CheckKind(Kind::SPATIAL2D(), attrTypeS, errorInfo)) ||
+       ( nl->SymbolValue (attrTypeS) == Rectangle<2>::BasicType()) )
   return 0;  //two-dimensional objects to join
-  else if ( nl->SymbolValue (attrTypeS) == "rect3")
+  else if ( nl->SymbolValue (attrTypeS) == Rectangle<3>::BasicType())
        return 1; //three-dimensiona objects to join
-       else if ( nl->SymbolValue (attrTypeS) == "rect4")
+       else if ( nl->SymbolValue (attrTypeS) == Rectangle<4>::BasicType())
             return 2;  //four-dimensional objects to join
             else return -1; /* should not happen */
 }

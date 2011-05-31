@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of some description operators for the BTree2-Algebra 
+[1] Implementation of some description operators for the BTree2-Algebra
 
 [TOC]
 
@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "Symbols.h"
 
 #include "BTree2.h"
 #include "BTree2Iterator.h"
@@ -53,8 +54,8 @@ namespace Operators {
 /*
 2 Operator ~getNodeInfo~
 
-This operator allows introspection of a BTree2. 
-It creates a stream of a tuple, which describes the node of the BTree2 with the 
+This operator allows introspection of a BTree2.
+It creates a stream of a tuple, which describes the node of the BTree2 with the
 specified record number. If the record number is not valid, the stream is empty.
 The tuple contains the record number of the interesting node, the number of sons,
 bool values which show if the node is a leaf node resp. a root node and finally
@@ -98,14 +99,18 @@ ListExpr getNodeInfoTypeMap(ListExpr args)
 
   ListExpr reslist =
    nl->TwoElemList(
-    nl->SymbolAtom("stream"),
+    nl->SymbolAtom(Symbol::STREAM()),
     nl->TwoElemList(
-     nl->SymbolAtom("tuple"),
+     nl->SymbolAtom(Tuple::BasicType()),
      nl->FiveElemList(
-         nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
-         nl->TwoElemList(nl->SymbolAtom("NoOfSons"), nl->SymbolAtom("int")),
-         nl->TwoElemList(nl->SymbolAtom("IsLeafNode"), nl->SymbolAtom("bool")),
-         nl->TwoElemList(nl->SymbolAtom("IsRootNode"), nl->SymbolAtom("bool")),
+         nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                         nl->SymbolAtom(CcInt::BasicType())),
+         nl->TwoElemList(nl->SymbolAtom("NoOfSons"),
+                         nl->SymbolAtom(CcInt::BasicType())),
+         nl->TwoElemList(nl->SymbolAtom("IsLeafNode"),
+                         nl->SymbolAtom(CcBool::BasicType())),
+         nl->TwoElemList(nl->SymbolAtom("IsRootNode"),
+                         nl->SymbolAtom(CcBool::BasicType())),
          nl->TwoElemList(nl->SymbolAtom("MinKey"), keyDescription)
      )
     )
@@ -126,11 +131,11 @@ struct GetNodeLocalInfo{
   TupleType* ttype;
   bool once;
 
-  GetNodeLocalInfo(BTree2* bt2, int nId, int max, TupleType* tty): 
-      btree2(bt2), nodeId(nId), maxEntries(max), ttype(tty) 
+  GetNodeLocalInfo(BTree2* bt2, int nId, int max, TupleType* tty):
+      btree2(bt2), nodeId(nId), maxEntries(max), ttype(tty)
   {
     index = 0;
-    once = true; 
+    once = true;
   }
 };
 /*
@@ -141,7 +146,7 @@ Structure to handle the information of the interesting node.
 bool checkRecordId(BTree2* btree2, int nodeId)
 {
   bool findRID = false;
-  if (   (nodeId > 0) 
+  if (   (nodeId > 0)
       && (nodeId != static_cast<int>(btree2->GetHeaderId()))
       && (nodeId < btree2->GetNodeCount()+2))
       findRID = true;
@@ -166,12 +171,12 @@ int getNodeInfoValueMap( Word* args, Word& result, int message,
       BTree2* btree2 = (BTree2*) args[0].addr;
       if ((btree2 != 0)&&(checkRecordId(btree2, nodeId)))
       {
-        gnli = new GetNodeLocalInfo(btree2, nodeId, 
+        gnli = new GetNodeLocalInfo(btree2, nodeId,
                    btree2->GetNodeEntryCount(nodeId),
                    new TupleType(nl->Second(GetTupleResultType(s))));
         local.setAddr(gnli);
       }
-      else 
+      else
         local.setAddr(0);
       return 0;
     }
@@ -189,7 +194,7 @@ int getNodeInfoValueMap( Word* args, Word& result, int message,
       bool isInternal = gnli->btree2->ProbeIsInternal(gnli->nodeId);
       if (isInternal)
         noOfSons = gnli->maxEntries+1;
-      bool isRoot = 
+      bool isRoot =
                 gnli->nodeId == static_cast<int>(gnli->btree2->GetRootNode());
 
       if (gnli->once) {
@@ -199,7 +204,7 @@ int getNodeInfoValueMap( Word* args, Word& result, int message,
         tuple->PutAttribute(2, new CcBool(true, !isInternal));
         tuple->PutAttribute(3, new CcBool(true, isRoot));
         if (isInternal)
-          tuple->PutAttribute(4, 
+          tuple->PutAttribute(4,
                          gnli->btree2->GetEntryKeyInternal(gnli->nodeId, 0));
         else
           tuple->PutAttribute(4, gnli->btree2->GetEntryKey(gnli->nodeId, 0));
@@ -241,10 +246,10 @@ const string getNodeInfoSpec() {
   string example = "query getNodeInfo(Staedte_SName_btree2, 5) consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -265,10 +270,10 @@ Operator describebtree2::getnodeinfo(
 3 Operator ~getNodeSons~
 
 This operator allows introspection of a BTree2. It creates a stream
-of tuples, each describe a son node of the node with the specified record no. 
+of tuples, each describe a son node of the node with the specified record no.
 If the record number is not valid, the stream is empty.
-Each tuple of the stream contains the record number of the interesting node, 
-the record number of the son node, the minimum key value and the maximum key 
+Each tuple of the stream contains the record number of the interesting node,
+the record number of the son node, the minimum key value and the maximum key
 value of the son node.
 
 Signature is
@@ -308,12 +313,14 @@ ListExpr getNodeSonsTypeMap(ListExpr args)
 
   ListExpr reslist =
      nl->TwoElemList(
-       nl->SymbolAtom("stream"),
+       nl->SymbolAtom(Symbol::STREAM()),
        nl->TwoElemList(
-        nl->SymbolAtom("tuple"),
+        nl->SymbolAtom(Tuple::BasicType()),
         nl->FourElemList(
-          nl->TwoElemList(nl->SymbolAtom("NodeId"), nl->SymbolAtom("int")),
-          nl->TwoElemList(nl->SymbolAtom("SonId"), nl->SymbolAtom("int")),
+          nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                          nl->SymbolAtom(CcInt::BasicType())),
+          nl->TwoElemList(nl->SymbolAtom("SonId"),
+                          nl->SymbolAtom(CcInt::BasicType())),
           nl->TwoElemList(nl->SymbolAtom("Lower"), keyDescription),
           nl->TwoElemList(nl->SymbolAtom("Upper"), keyDescription)
         )
@@ -342,9 +349,9 @@ int getNodeSonsValueMap( Word* args, Word& result, int message,
         gnli = new GetNodeLocalInfo(btree2, nodeId,
                    btree2->GetNodeEntryCount(nodeId),
                    new TupleType(nl->Second(GetTupleResultType(s))));
-        local.setAddr(gnli); 
+        local.setAddr(gnli);
       }
-      else 
+      else
         local.setAddr(0);
       return 0;
     }
@@ -376,9 +383,9 @@ int getNodeSonsValueMap( Word* args, Word& result, int message,
         int maxCount= gnli->btree2->GetNodeEntryCount(sonId);
         if (isSonInternal)
         {
-          tuple->PutAttribute(2, 
+          tuple->PutAttribute(2,
                        gnli->btree2->GetEntryKeyInternal(sonId, 0));
-          tuple->PutAttribute(3, 
+          tuple->PutAttribute(3,
                        gnli->btree2->GetEntryKeyInternal(sonId, maxCount-1));
         }
         else
@@ -433,10 +440,10 @@ const string getNodeSonsSpec() {
   string example = "query getNodeSons(Staedte_SName_btree2, 5) consume";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -456,8 +463,8 @@ Operator describebtree2::getnodesons(
 /*
 4 Operator ~internal\_node\_capacity~
 
-This operator allows introspection of a BTree2. 
-It gives the number of the internal node capacity. The value depends on 
+This operator allows introspection of a BTree2.
+It gives the number of the internal node capacity. The value depends on
 the nodesize of the btree2.
 
 Signature is
@@ -479,7 +486,7 @@ ListExpr internalNodeCapacityTypeMap( ListExpr args)
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
+  return (nl->SymbolAtom(CcInt::BasicType()));
 }
 
 
@@ -511,10 +518,10 @@ const string internalNodeCapacitySpec() {
   string example = "query internal_node_capacity(Staedte_SName_btree2)";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -534,8 +541,8 @@ Operator describebtree2::internalnodecapacity (
 /*
 5 Operator ~leaf\_node\_capacity~
 
-This operator allows introspection of a BTree2. 
-It gives the number of the leaf node capacity. The value depends on 
+This operator allows introspection of a BTree2.
+It gives the number of the leaf node capacity. The value depends on
 the nodesize of the btree2.
 
 Signature is
@@ -557,7 +564,7 @@ ListExpr leafNodeCapacityTypeMap( ListExpr args)
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
+  return (nl->SymbolAtom(CcInt::BasicType()));
 }
 
 
@@ -588,10 +595,10 @@ const string leafNodeCapacitySpec() {
   string example = "query leaf_node_capacity(Staedte_SName_btree2)";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -611,7 +618,7 @@ Operator describebtree2::leafnodecapacity (
 /*
 6 Operator ~getMinFillDegree~
 
-This operator allows introspection of a BTree2. 
+This operator allows introspection of a BTree2.
 It gives the value of the specified minimum fill degree.
 
 Signature is
@@ -632,8 +639,8 @@ ListExpr getminfilldegreeTypeMap( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("real")); 
-}       
+  return (nl->SymbolAtom(CcReal::BasicType()));
+}
 
 
 /*
@@ -663,10 +670,10 @@ const string getminfilldegreeSpec() {
   string example = "query getMinFillDegree(Staedte_SName_btree2)";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 
@@ -686,7 +693,7 @@ Operator describebtree2::getminfilldegree (
 /*
 7 Operator ~getNodeSize~
 
-This operator allows introspection of a BTree2. 
+This operator allows introspection of a BTree2.
 It gives the value of the specified record size of the node.
 
 Signature is
@@ -707,8 +714,8 @@ ListExpr getnodesizeTypeMap( ListExpr args){
      "Operator expects exactly one argument");
     CHECK_COND(listutils::isBTree2Description(nl->First(args)),
       "Operator expects a btree2 object as argument.");
-  return (nl->SymbolAtom("int")); 
-}       
+  return (nl->SymbolAtom(CcInt::BasicType()));
+}
 
 
 /*
@@ -738,10 +745,10 @@ const string getnodesizeSpec() {
   string example = "query getNodeSize(Staedte_SName_btree2)";
 
   return "( ( "+header + ") ( " +
-         "<text>"+sig+"</text--->" + 
-         "<text>"+spec+"</text--->" + 
-         "<text>"+meaning+"</text--->" + 
-         "<text>"+example+"</text--->" + 
+         "<text>"+sig+"</text--->" +
+         "<text>"+spec+"</text--->" +
+         "<text>"+meaning+"</text--->" +
+         "<text>"+example+"</text--->" +
          " ) )";
 }
 

@@ -111,6 +111,9 @@ using namespace std;
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "Base64.h"
+#include "Symbols.h"
+#include "ListUtils.h"
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -218,6 +221,8 @@ class MP3 : public Attribute {
     int GetFrameCount() const;
     /* Returns the length of this MP3 in seconds. */
     int GetLength() const;
+
+    static const string BasicType() { return "mp3"; }
 
   private:
     Flob mp3Data;
@@ -1147,7 +1152,7 @@ ListExpr OutMP3( ListExpr typeInfo, Word value ) {
     if (!mp3->IsDefined()){
         /* the mp3 is not defined, so we have to return a nested list
            with the symbol atom "undef"*/
-         return (nl->SymbolAtom("undef"));
+         return (nl->SymbolAtom(Symbol::UNDEFINED()));
     }
 
     mp3->Encode( encoded );
@@ -1166,9 +1171,7 @@ Word InMP3(const ListExpr typeInfo, const ListExpr instance,
 
     /* we have to check whether the nested list contains
        a valid mp3 object or the symbol atom "undef"*/
-    if (nl->IsAtom( instance )
-        && nl->AtomType( instance ) == SymbolType
-        && nl->SymbolValue( instance ) == "undef" )
+    if (listutils::isSymbolUndefined( instance ) )
     {
         correct = true;
         mp3->SetDefined (false);
@@ -1206,7 +1209,7 @@ ListExpr MP3Property() {
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("mp3"),
+                             nl->StringAtom(MP3::BasicType()),
                              nl->StringAtom("( <file>filename</file---> )"),
                              nl->StringAtom("( <file>song.mp3</file---> )"),
                              nl->StringAtom(""))));
@@ -1275,7 +1278,7 @@ have arguments, this is trivial.
 
 */
 bool CheckMP3( ListExpr type, ListExpr& errorInfo ) {
-    return (nl->IsEqual( type, "mp3" ));
+    return (nl->IsEqual( type, MP3::BasicType() ));
 }
 
 /*
@@ -1284,7 +1287,7 @@ bool CheckMP3( ListExpr type, ListExpr& errorInfo ) {
 */
 TypeConstructor mp3(
     // name
-    "mp3",
+    MP3::BasicType(),
     // property function describing signature
     MP3Property,
     // out function
@@ -1369,6 +1372,8 @@ public:
     void GetGenre(char *genrename);
     /* Extracts the genre name from the genre code. */
     const char *GetGenreName(byte nr);
+
+    static const string BasicType() { return "id3"; }
 
     char songname [31];
     char author [31];
@@ -1945,7 +1950,7 @@ ListExpr ID3Property() {
               nl->StringAtom("Remarks")),
              nl->FiveElemList
              (nl->StringAtom("-> DATA"),
-              nl->StringAtom("id3"),
+              nl->StringAtom(ID3::BasicType()),
               nl->TextAtom("( string string string int string string )"),
               nl->TextAtom(
                   "( 'songname' 'author' 'album' 1984 'comment' 'Rock') "),
@@ -2013,7 +2018,7 @@ type constructor ~id3~ does not have arguments, this is trivial.
 
 */
 bool CheckID3( ListExpr type, ListExpr& errorInfo ) {
-    return (nl->IsEqual( type, "id3" ));
+    return (nl->IsEqual( type, ID3::BasicType() ));
 }
 
 /*
@@ -2022,7 +2027,7 @@ bool CheckID3( ListExpr type, ListExpr& errorInfo ) {
 */
 TypeConstructor id3(
     // name
-    "id3",
+    ID3::BasicType(),
     // property function describing the signature
     ID3Property,
     // Out function
@@ -2119,6 +2124,8 @@ class Lyrics : public Attribute {
     int NoLines() const;
     /* Returns the ith line of the lyrics. */
     Line GetLine( int i ) const;
+
+    static const string BasicType() { return "lyrics"; }
 
   private:
     DbArray<Line> linearray;
@@ -2415,7 +2422,7 @@ ListExpr LyricsProperty() {
               nl->StringAtom("Remarks")),
              nl->FiveElemList
              (nl->StringAtom("-> DATA"),
-              nl->StringAtom("lyrics"),
+              nl->StringAtom(Lyrics::BasicType()),
               nl->StringAtom("( int string int string ... )"),
               nl->StringAtom("( 7 'first line' 11 'second line' )"),
               nl->StringAtom(""))));
@@ -2480,7 +2487,7 @@ type constructor ~lyrics~ does not have arguments, this is trivial.
 
 */
 bool CheckLyrics( ListExpr type, ListExpr& errorInfo ) {
-    return (nl->IsEqual( type, "lyrics" ));
+    return (nl->IsEqual( type, Lyrics::BasicType() ));
 }
 
 /*
@@ -2489,7 +2496,7 @@ bool CheckLyrics( ListExpr type, ListExpr& errorInfo ) {
 */
 TypeConstructor lyrics(
     // name
-    "lyrics",
+    Lyrics::BasicType(),
     // property function describing signature
     LyricsProperty,
     // Out function
@@ -2543,11 +2550,12 @@ ListExpr SaveMP3ToTypeMap( ListExpr args ) {
     if ( nl->ListLength(args) == 2 ) {
         arg1 = nl->First(args);
         arg2 = nl->Second(args);
-        if (nl->IsEqual(arg1, "mp3") && nl->IsEqual(arg2, "string")) {
-            return nl->SymbolAtom("bool");
+        if (nl->IsEqual(arg1, MP3::BasicType()) &&
+            nl->IsEqual(arg2, CcString::BasicType())) {
+            return nl->SymbolAtom(CcBool::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2619,11 +2627,11 @@ ListExpr RemoveLyricsTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("mp3");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(MP3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2691,11 +2699,11 @@ ListExpr RemoveID3TypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("mp3");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(MP3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2772,13 +2780,13 @@ ListExpr SubMP3TypeMap( ListExpr args ) {
         arg1 = nl->First(args);
         arg2 = nl->Second(args);
         arg3 = nl->Third(args);
-        if (nl->IsEqual(arg1, "mp3") &&
-            nl->IsEqual(arg2, "int") &&
-            nl->IsEqual(arg3, "int")) {
-            return nl->SymbolAtom("mp3");
+        if (nl->IsEqual(arg1, MP3::BasicType()) &&
+            nl->IsEqual(arg2, CcInt::BasicType()) &&
+            nl->IsEqual(arg3, CcInt::BasicType())) {
+            return nl->SymbolAtom(MP3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2851,12 +2859,12 @@ ListExpr ConcatMP3TypeMap(ListExpr args) {
     if (nl->ListLength(args) == 2) {
         arg1 = nl->First(args);
         arg2 = nl->Second(args);
-        if (nl->IsEqual(arg1, "mp3") &&
-            nl->IsEqual(arg2, "mp3")) {
-            return nl->SymbolAtom("mp3");
+        if (nl->IsEqual(arg1, MP3::BasicType()) &&
+            nl->IsEqual(arg2, MP3::BasicType())) {
+            return nl->SymbolAtom(MP3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2928,11 +2936,11 @@ ListExpr BitrateTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -2998,11 +3006,11 @@ ListExpr VersionTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3070,11 +3078,11 @@ ListExpr FrequencyTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3143,11 +3151,11 @@ ListExpr FrameCountTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3216,11 +3224,11 @@ ListExpr LengthTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3287,11 +3295,11 @@ ListExpr GetID3TypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("id3");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(ID3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -3427,11 +3435,12 @@ ListExpr PutID3TypeMap(ListExpr args) {
     if (nl->ListLength(args) == 2) {
         arg1 = nl->First(args);
         arg2 = nl->Second(args);
-        if (nl->IsEqual(arg1, "mp3")  && nl->IsEqual (arg2,"id3")) {
-            return nl->SymbolAtom("mp3");
+        if (nl->IsEqual(arg1, MP3::BasicType())  &&
+            nl->IsEqual (arg2,ID3::BasicType())) {
+            return nl->SymbolAtom(MP3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3507,11 +3516,11 @@ ListExpr AuthorTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-            return nl->SymbolAtom("string");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+            return nl->SymbolAtom(CcString::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3586,11 +3595,11 @@ ListExpr TitleTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-            return nl->SymbolAtom("string");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+            return nl->SymbolAtom(CcString::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3666,11 +3675,11 @@ ListExpr AlbumTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-             return nl->SymbolAtom("string");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+             return nl->SymbolAtom(CcString::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3746,11 +3755,11 @@ ListExpr CommentTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-            return nl->SymbolAtom("string");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+            return nl->SymbolAtom(CcString::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3828,11 +3837,11 @@ ListExpr GenreTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-            return nl->SymbolAtom("string");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+            return nl->SymbolAtom(CcString::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3908,11 +3917,11 @@ ListExpr TrackTypeMap(ListExpr args) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3981,11 +3990,11 @@ ListExpr YearTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "id3")) {
-            return nl->SymbolAtom("int");
+        if (nl->IsEqual(arg1, ID3::BasicType())) {
+            return nl->SymbolAtom(CcInt::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4056,12 +4065,12 @@ ListExpr WordsTypeMap( ListExpr args ) {
     if (nl->ListLength(args) == 2) {
         arg1 = nl->First(args);
         arg2 = nl->Second(args);
-        if (nl->IsEqual(arg1, "lyrics") &&
-            nl->IsEqual(arg2, "int")) {
-            return nl->SymbolAtom("string");
+        if (nl->IsEqual(arg1, Lyrics::BasicType()) &&
+            nl->IsEqual(arg2, CcInt::BasicType())) {
+            return nl->SymbolAtom(CcString::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4172,11 +4181,11 @@ ListExpr GetLyricsTypeMap( ListExpr args ) {
     ListExpr arg1;
     if (nl->ListLength(args) == 1) {
         arg1 = nl->First(args);
-        if (nl->IsEqual(arg1, "mp3")) {
-            return nl->SymbolAtom("lyrics");
+        if (nl->IsEqual(arg1, MP3::BasicType())) {
+            return nl->SymbolAtom(Lyrics::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4337,11 +4346,12 @@ ListExpr PutLyricsTypeMap(ListExpr args) {
     if (nl->ListLength(args) == 2) {
         arg1 = nl->First(args);
         arg2 = nl->Second(args);
-        if (nl->IsEqual(arg1, "mp3")  && nl->IsEqual (arg2,"lyrics")) {
-            return nl->SymbolAtom("mp3");
+        if (nl->IsEqual(arg1, MP3::BasicType())  &&
+            nl->IsEqual (arg2,Lyrics::BasicType())) {
+            return nl->SymbolAtom(MP3::BasicType());
         }
     }
-    return nl->SymbolAtom("typeerror");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4491,17 +4501,18 @@ or string argument. If the import fails, the result object is undefined.
 ListExpr LoadMP3fromTypeMap( ListExpr args ) {
   if ( nl->ListLength(args) == 1 ) {
     ListExpr arg1 = nl->First(args);
-    if (nl->IsEqual(arg1, "text") || nl->IsEqual(arg1, "string")) {
-      return nl->SymbolAtom("mp3");
+    if (nl->IsEqual(arg1, FText::BasicType()) ||
+        nl->IsEqual(arg1, CcString::BasicType())) {
+      return nl->SymbolAtom(MP3::BasicType());
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 int LoadMP3fromSelect( ListExpr args ) {
   ListExpr arg1 = nl->First(args);
-  if (nl->IsEqual(arg1,   "text") ) { return 0; }
-  if (nl->IsEqual(arg1, "string") ) { return 1; }
+  if (nl->IsEqual(arg1,   FText::BasicType()) ) { return 0; }
+  if (nl->IsEqual(arg1, CcString::BasicType()) ) { return 1; }
   return -1;
 }
 
@@ -4555,12 +4566,12 @@ public:
         AddTypeConstructor( &id3 );
         AddTypeConstructor( &lyrics);
 
-        mp3.AssociateKind("DATA");
-        mp3.AssociateKind("FILE");
-        id3.AssociateKind("DATA");
-        id3.AssociateKind("FILE");
-        lyrics.AssociateKind("DATA");
-        lyrics.AssociateKind("FILE");
+        mp3.AssociateKind(Kind::DATA());
+        mp3.AssociateKind(Kind::FILE());
+        id3.AssociateKind(Kind::DATA());
+        id3.AssociateKind(Kind::FILE());
+        lyrics.AssociateKind(Kind::DATA());
+        lyrics.AssociateKind(Kind::FILE());
 
         AddOperator(&savemp3to);
         AddOperator(&loadmp3from);
