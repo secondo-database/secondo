@@ -613,6 +613,31 @@ Signature: int x rel1 x rel2 x rel3 -> metrograph
 Example  : query createmgraph(1, node_rel, edge_rel1, edge_rel2);
 Result   : file_platform
 
+Operator : createmetroroute
+Number   : 2
+Signature: dualgraph -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createmetroroute(dg_cell) count;
+Result   : 10
+
+Operator : createmetrostop
+Number   : 2
+Signature: rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createmetroroute(mroutes) count;
+Result   : 522
+
+Operator : createmetromo
+Number   : 2
+Signature: rel x duration -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createmetromo(mroutes, theRange(theInstant(2010,12,6,6,0,0,0), theInstant(2010,12,6,0,0,0), TRUE, TRUE)) count;
+Result   : 1899
+
+
+Operator : mapmstopave
+Number   : 2
+Signature: rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query mapmstopave(mstops, dg_node_sort,rtree_dg) count;
+Result   : 522
+
 
 Operator : thefloor
 Number   : 1

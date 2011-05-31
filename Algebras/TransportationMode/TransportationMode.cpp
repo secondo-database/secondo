@@ -2219,6 +2219,59 @@ int PathInRegionValueMap(Word* args, Word& result, int message,
 }
 
 /*
+check whether the metro graph id has been used already 
+
+*/
+
+bool CheckIndoorGraphId(unsigned int ig_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "indoorgraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      IndoorGraph* ig = (IndoorGraph*)xValue.addr;
+
+      if(ig->g_id == ig_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("indoorgraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("indoorgraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
 Value Mapping for  createigraph  operator
 
 */
@@ -2226,15 +2279,43 @@ Value Mapping for  createigraph  operator
 int OpTMCreateIGValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
+//   IndoorGraph* ig = (IndoorGraph*)qp->ResultStorage(in_pSupplier).addr;
+//   int ig_id = ((CcInt*)args[0].addr)->GetIntval();
+//   Relation* node_rel = (Relation*)args[1].addr;
+//   Relation* edge_rel = (Relation*)args[2].addr;
+//   string type = ((CcString*)args[3].addr)->GetValue();
+//   
+//   ig->Load(ig_id, node_rel, edge_rel, GetBuildingType(type));
+//   result = SetWord(ig);
+//   return 0;
+
+
   IndoorGraph* ig = (IndoorGraph*)qp->ResultStorage(in_pSupplier).addr;
   int ig_id = ((CcInt*)args[0].addr)->GetIntval();
-  Relation* node_rel = (Relation*)args[1].addr;
-  Relation* edge_rel = (Relation*)args[2].addr;
-  string type = ((CcString*)args[3].addr)->GetValue();
-  
-  ig->Load(ig_id, node_rel, edge_rel, GetBuildingType(type));
-  result = SetWord(ig);
+
+  if(CheckIndoorGraphId(ig_id)){
+     Relation* node_rel = (Relation*)args[1].addr;
+     Relation* edge_rel = (Relation*)args[2].addr;
+     string type = ((CcString*)args[3].addr)->GetValue();
+
+    ig->Load(ig_id, node_rel, edge_rel, GetBuildingType(type));
+    result = SetWord(ig);
+  }else{
+    cout<<"invalid indoor graph id "<<ig_id<<endl; 
+    while(CheckIndoorGraphId(ig_id) == false || ig_id <= 0){
+      ig_id++;
+    }
+     cout<<"new indoor graph id "<<ig_id<<endl; 
+
+     Relation* node_rel = (Relation*)args[1].addr;
+     Relation* edge_rel = (Relation*)args[2].addr;
+     string type = ((CcString*)args[3].addr)->GetValue();
+
+     ig->Load(ig_id, node_rel, edge_rel, GetBuildingType(type));
+     result = SetWord(ig);
+  }
   return 0;
+
 }
 
 /*
@@ -4064,6 +4145,42 @@ int PutInfraBNValueMap(Word* args, Word& result, int message,
   
 }
 
+/*
+add metro network infrastructure to the space 
+
+*/
+int PutInfraMNValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Space* space = (Space*)args[0].addr;
+            MetroNetwork* mn = (MetroNetwork*)args[1].addr; 
+            space->AddMetroNetwork(mn);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
+            t->PutAttribute(1, new CcInt(true, mn->GetId()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
 
 /*
 add indoor infrastructure to the space 
@@ -6066,6 +6183,23 @@ ListExpr PutInfraTypeMap(ListExpr args)
     return reslist;
   }
   
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "metronetwork")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("space id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("metronetwork id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
   if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "indoorinfra")){
 
       ListExpr reslist = nl->TwoElemList(
@@ -6125,6 +6259,18 @@ ListExpr GetInfraTypeMap(ListExpr args)
       ListExpr xType;
       nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xType);
       return xType; 
+    }else if(GetSymbol(type) == IF_METROSTOP){ //// metro stops
+      ListExpr xType;
+      nl->ReadFromString(MetroNetwork::MetroStopsTypeInfo, xType);
+      return xType;
+    }else if(GetSymbol(type) == IF_METROROUTE){ ///metro routes 
+      ListExpr xType;
+      nl->ReadFromString(MetroNetwork::MetroRoutesTypeInfo, xType);
+      return xType;
+    }else if(GetSymbol(type) == IF_METRO){ //metro trips 
+      ListExpr xType;
+      nl->ReadFromString(MetroNetwork::MetroTripTypeInfo, xType);
+      return xType;
     }else{
       string err = "infrastructure type error";
       return listutils::typeError(err);
@@ -6164,7 +6310,8 @@ ValueMapping PutInfraValueMapVM[]={
   PutInfraRNValueMap,
   PutInfraPaveValueMap,
   PutInfraBNValueMap,
-  PutInfraIndoorValueMap
+  PutInfraMNValueMap,
+  PutInfraIndoorValueMap,
 };
 
 int PutInfraOpSelect(ListExpr args)
@@ -6181,14 +6328,17 @@ int PutInfraOpSelect(ListExpr args)
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "busnetwork"))
     return 2;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
-    nl->IsAtom(arg2) && nl->IsEqual(arg2, "indoorinfra"))
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "metronetwork"))
     return 3;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "indoorinfra"))
+    return 4;
   return -1;
 }
 
 Operator putinfra("putinfra",
     SpatialSpecPutInfra,
-    4,
+    5,
     PutInfraValueMapVM,
     PutInfraOpSelect,
     PutInfraTypeMap
@@ -7016,7 +7166,7 @@ const string OpTMGetAdjNodeBGSpec  =
     "( <text>busgraph x int -> (stream(((x1 t1) ... (xn tn))))</text--->"
     "<text>getadjnode_bg(busgraph, int)</text--->"
     "<text>get the neighbor nodes of a given graph node</text--->"
-    "<text>query getadjnodebg(bg1, 2); </text--->"
+    "<text>query getadjnode_bg(bg1, 2); </text--->"
     ") )";
 
 const string OpTMBNNavigationSpec  =
@@ -7039,7 +7189,7 @@ const string OpTMTestBNNavigationSpec  =
     "<text>query test_bnnavigation(bus_stops, bus_stops, bn1, "
     "theInstant(2010,12,5,16,0,0,0),0) count; </text--->"
     ") )";
-    
+
 /*
 get traffic data and set time schedule for moving buses 
 
@@ -7245,12 +7395,50 @@ const string OpTMCreateMetroGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>int x rel1 x rel2 x rel3 -> metrograph</text--->"
-    "<text>createbgraph(int, rel, rel, rel)</text--->"
+    "<text>createmgraph(int, rel, rel, rel)</text--->"
     "<text>create a metro network graph by the input edges and nodes"
     "relation</text--->"
     "<text>query createmgraph(1, node-rel, edge1, edge2); </text--->"
     ") )";
 
+const string OpTMCreateMetroRouteSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>dualgraph -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>createmetroroute(dualgraph)</text--->"
+    "<text>create metro routes</text--->"
+    "<text>query createmetroroute(dualgraph); </text--->"
+    ") )";
+
+const string OpTMCreateMetroStopSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>createmetrostop(rel)</text--->"
+    "<text>create metro stops</text--->"
+    "<text>query createmetrostop(rel); </text--->"
+    ") )";
+
+const string OpTMCreateMetroMOSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x duraion ->"
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>createmetromo(rel, duration)</text--->"
+    "<text>create moving metro </text--->"
+    "<text>query createmetromo(rel, duration); </text--->"
+    ") )";
+
+const string OpTMMapMsToPaveSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rel x rtree ->"
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>mapmstopave(rel, rel, rtree)</text--->"
+    "<text>map metro stops to pavement areas </text--->"
+    "<text>query mapmstopave(rel, rel, rtree); </text--->"
+    ") )";
+    
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -11041,7 +11229,6 @@ ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
                         nl->SymbolAtom("point"))
                     )));
   return res;
-
 }
 
 /*
@@ -12632,8 +12819,6 @@ ListExpr OpTMCreateTimeTable2NewTypeMap ( ListExpr args )
                                 UBTrain::TrainsStopTypeInfo);
    }
 
-
-
    ListExpr param2 = nl->Second ( args );
    if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
@@ -12900,7 +13085,7 @@ ListExpr OpTMTheMetroNetworkTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
 
   ListExpr xType1;
-  nl->ReadFromString(MetroNetwork::UBAHNStopsTypeInfo, xType1); 
+  nl->ReadFromString(MetroNetwork::MetroStopsTypeInfo, xType1); 
   if(!CompareSchemas(param2, xType1)){
     return listutils::typeError("rel1 scheam should be" + 
                                 MetroNetwork::UBAHNStopsTypeInfo);
@@ -12911,7 +13096,7 @@ ListExpr OpTMTheMetroNetworkTypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
 
   ListExpr xType2;
-  nl->ReadFromString(MetroNetwork::UBAHNRoutesTypeInfo, xType2); 
+  nl->ReadFromString(MetroNetwork::MetroRoutesTypeInfo, xType2); 
   if(!CompareSchemas(param3, xType2)){
     return listutils::typeError("rel2 scheam should be" + 
                                 MetroNetwork::UBAHNRoutesTypeInfo);
@@ -12920,12 +13105,12 @@ ListExpr OpTMTheMetroNetworkTypeMap ( ListExpr args )
 
   ListExpr param4 = nl->Fourth ( args );
   ListExpr xType3;
-  nl->ReadFromString(MetroNetwork::UBAHNMetroTripTypeInfo, xType3); 
+  nl->ReadFromString(MetroNetwork::MetroTripTypeInfo, xType3);
   if(!CompareSchemas(param4, xType3)){
     return listutils::typeError("rel3 scheam should be" + 
-                                MetroNetwork::UBAHNMetroTripTypeInfo);
+                                MetroNetwork::MetroTripTypeInfo);
   }
-  
+
   return nl->SymbolAtom ( "metronetwork" );
 }
 
@@ -12947,10 +13132,10 @@ ListExpr OpTMMSNeighbor1TypeMap ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
 
   ListExpr xType1;
-  nl->ReadFromString(MetroNetwork::UBAHNStopsTypeInfo, xType1); 
+  nl->ReadFromString(MetroNetwork::MetroStopsTypeInfo, xType1); 
   if(!CompareSchemas(param1, xType1)){
     return listutils::typeError("rel1 scheam should be" + 
-                                MetroNetwork::UBAHNStopsTypeInfo);
+                                MetroNetwork::MetroStopsTypeInfo);
   }
 
   ListExpr res = nl->TwoElemList(
@@ -13004,10 +13189,10 @@ ListExpr OpTMMSNeighbor2TypeMap ( ListExpr args )
     return nl->SymbolAtom("typeerror: param4 should be a relation");
 
   ListExpr xType2;
-  nl->ReadFromString(MetroNetwork::UBAHNMetroTripTypeInfo, xType2); 
+  nl->ReadFromString(MetroStruct::MetroTripTypeInfo_Com, xType2); 
   if(!CompareSchemas(param4, xType2)){
     return listutils::typeError("rel2 scheam should be" + 
-                                MetroNetwork::UBAHNMetroTripTypeInfo);
+                                MetroStruct::MetroTripTypeInfo_Com);
   }
 
   ListExpr param5 = nl->Fifth(args);
@@ -13085,6 +13270,208 @@ ListExpr OpTMCreateMetroGraphTypeMap ( ListExpr args )
 }
 
 
+/*
+type map for operator createmetroroute
+
+*/
+ListExpr OpTMCreateMetroRouteTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args); 
+
+  if(!nl->IsEqual(param1, "dualgraph"))
+    return nl->SymbolAtom ( "typeerror: param1 should be dual graph" );
+
+
+//    ListExpr res = nl->TwoElemList(
+//             nl->SymbolAtom("stream"),
+//             nl->TwoElemList(
+//                 nl->SymbolAtom("tuple"),
+//                 nl->FourElemList(
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("mroute_id"),
+//                         nl->SymbolAtom("int")),
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("mroute"),
+//                         nl->SymbolAtom("line")),
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("cell_region1"),
+//                         nl->SymbolAtom("region")),
+//                                  nl->TwoElemList(
+//                         nl->SymbolAtom("cell_region2"),
+//                         nl->SymbolAtom("region"))
+//                     )));
+
+   ListExpr res = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->TwoElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("mr_id"),
+                         nl->SymbolAtom("int")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("mroute"),
+                         nl->SymbolAtom("busroute"))
+                     )));
+
+  return res; 
+}
+
+
+/*
+type map for operator createmetrostop
+
+*/
+ListExpr OpTMCreateMetroStopTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args); 
+
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(MetroStruct::MetroRouteInfo, xType);
+  if(!CompareSchemas(param1, xType))
+      return nl->SymbolAtom ( "typeerror" );
+
+
+   ListExpr res = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->ThreeElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("ms_stop"),
+                         nl->SymbolAtom("busstop")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("stop_geodata"),
+                         nl->SymbolAtom("point")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("mr_id"),
+                         nl->SymbolAtom("int"))
+                     )));
+
+  return res; 
+}
+
+
+/*
+type map for operator createmetromo
+
+*/
+ListExpr OpTMCreateMetroMOTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args); 
+
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(MetroStruct::MetroRouteInfo, xType);
+  if(!CompareSchemas(param1, xType))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr param2 = nl->Second(args);
+  if(!(nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&  
+     nl->SymbolValue(param2) == "periods"))
+    return nl->SymbolAtom ( "typeerror" );
+
+   ListExpr res = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->FourElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("mtrip1"),
+                         nl->SymbolAtom("genmo")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("mtrip2"),
+                         nl->SymbolAtom("mpoint")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("mr_id"),
+                         nl->SymbolAtom("int")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Up"),
+                         nl->SymbolAtom("bool"))
+                     )));
+
+  return res; 
+}
+
+/*
+type map for operator mapmstopave
+
+*/
+ListExpr OpTMMapMsToPaveTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(MetroNetwork::MetroStopsTypeInfo, xType1);
+  if(!CompareSchemas(param1, xType1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr param2 = nl->Second(args);
+  if(!IsRelDescription(param2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType2);
+  if(!CompareSchemas(param2, xType2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr param3 = nl->Third(args); 
+  if(!listutils::isRTreeDescription(param3))
+      return nl->SymbolAtom("typeerror");
+
+   ListExpr res = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->TwoElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("loc1"),
+                         nl->SymbolAtom("genloc")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("loc2"),
+                         nl->SymbolAtom("point"))
+                     )));
+
+//    ListExpr res = nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//               nl->TwoElemList(
+//                   nl->SymbolAtom("tuple"),
+//                   nl->ThreeElemList(
+//                       nl->TwoElemList(
+//                           nl->SymbolAtom("Tri_Oid"),
+//                           nl->SymbolAtom("int")),
+//                       nl->TwoElemList(
+//                           nl->SymbolAtom("Neighbor"),
+//                           nl->SymbolAtom("region")),
+//                       nl->TwoElemList(
+//                           nl->SymbolAtom("ms_loc"),
+//                           nl->SymbolAtom("point"))
+//                       )));
+  return res;
+}
 
 /*
 TypeMap fun for operator instant2day
@@ -18764,12 +19151,12 @@ location in space
 int OpTMMSNeighbor1ValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-  UBTrain* ub_train;
+  MetroStruct* ub_train;
   switch(message){
       case OPEN:{
         Relation* ms_stops = (Relation*)args[0].addr;
 
-        ub_train = new UBTrain(NULL);
+        ub_train = new MetroStruct();
         ub_train->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
@@ -18779,7 +19166,7 @@ int OpTMMSNeighbor1ValueMap ( Word* args, Word& result, int message,
       }
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
-          ub_train = (UBTrain*)local.addr;
+          ub_train = (MetroStruct*)local.addr;
           if(ub_train->count == ub_train->ms_tid_list1.size())return CANCEL;
 
           Tuple* tuple = new Tuple(ub_train->resulttype);
@@ -18789,14 +19176,13 @@ int OpTMMSNeighbor1ValueMap ( Word* args, Word& result, int message,
          tuple->PutAttribute(1, 
                      new CcInt(true, ub_train->ms_tid_list2[ub_train->count]));
 
-
           result.setAddr(tuple);
           ub_train->count++;
           return YIELD;
       }
       case CLOSE:{
           if(local.addr){
-            ub_train = (UBTrain*)local.addr;
+            ub_train = (MetroStruct*)local.addr;
             delete ub_train;
             local.setAddr(Address(0));
           }
@@ -18814,7 +19200,7 @@ metros
 int OpTMMSNeighbor2ValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-  UBTrain* ub_train;
+  MetroStruct* ub_train;
   switch(message){
       case OPEN:{
         MetroNetwork* mn = (MetroNetwork*)args[0].addr;
@@ -18823,7 +19209,7 @@ int OpTMMSNeighbor2ValueMap ( Word* args, Word& result, int message,
         Relation* metrotrip = (Relation*)args[3].addr;
         BTree* btree2 = (BTree*)args[4].addr;
 
-        ub_train = new UBTrain(NULL);
+        ub_train = new MetroStruct();
         ub_train->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
@@ -18833,7 +19219,7 @@ int OpTMMSNeighbor2ValueMap ( Word* args, Word& result, int message,
       }
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
-          ub_train = (UBTrain*)local.addr;
+          ub_train = (MetroStruct*)local.addr;
           if(ub_train->count == ub_train->ms_tid_list1.size())return CANCEL;
 
           Tuple* tuple = new Tuple(ub_train->resulttype);
@@ -18857,7 +19243,7 @@ int OpTMMSNeighbor2ValueMap ( Word* args, Word& result, int message,
       }
       case CLOSE:{
           if(local.addr){
-            ub_train = (UBTrain*)local.addr;
+            ub_train = (MetroStruct*)local.addr;
             delete ub_train;
             local.setAddr(Address(0));
           }
@@ -18871,7 +19257,7 @@ int OpTMMSNeighbor2ValueMap ( Word* args, Word& result, int message,
 check whether the metro graph id has been used already 
 
 */
-bool ChekMetroGraphId(unsigned int mg_id)
+bool CheckMetroGraphId(unsigned int mg_id)
 {
   ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
   xObjectList = nl->Rest(xObjectList);
@@ -18931,7 +19317,7 @@ int OpTMCreateMetroGraphValueMap ( Word* args, Word& result, int message,
   MetroGraph* mg = (MetroGraph*)qp->ResultStorage(in_pSupplier).addr;
   int mg_id = ((CcInt*)args[0].addr)->GetIntval();
   
-  if(ChekMetroGraphId(mg_id)){
+  if(CheckMetroGraphId(mg_id)){
     Relation* node_rel = (Relation*)args[1].addr;
     Relation* edge_rel1 = (Relation*)args[2].addr;
     Relation* edge_rel2 = (Relation*)args[3].addr; 
@@ -18940,7 +19326,7 @@ int OpTMCreateMetroGraphValueMap ( Word* args, Word& result, int message,
     result = SetWord(mg);
   }else{
     cout<<"invalid metro graph id "<<mg_id<<endl; 
-    while(ChekMetroGraphId(mg_id) == false || mg_id <= 0){
+    while(CheckMetroGraphId(mg_id) == false || mg_id <= 0){
       mg_id++;
     }
     cout<<"new metro graph id "<<mg_id<<endl; 
@@ -18955,6 +19341,220 @@ int OpTMCreateMetroGraphValueMap ( Word* args, Word& result, int message,
 }
 
 
+
+/*
+value map for operator createmetroroute
+
+*/
+int OpTMCreateMetroRouteValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MetroStruct* ub_train;
+  switch(message){
+      case OPEN:{
+        DualGraph* dg = (DualGraph*)args[0].addr;
+
+        ub_train = new MetroStruct();
+        ub_train->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ub_train->CreateMRoute(dg);
+        local.setAddr(ub_train);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ub_train = (MetroStruct*)local.addr;
+          if(ub_train->count == ub_train->id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ub_train->resulttype);
+
+         tuple->PutAttribute(0, 
+                     new CcInt(true, ub_train->id_list[ub_train->count]));
+         tuple->PutAttribute(1, 
+                     new Bus_Route(ub_train->mroute_list[ub_train->count]));
+//         tuple->PutAttribute(2, 
+//                     new Region(ub_train->cell_reg_list1[ub_train->count]));
+//         tuple->PutAttribute(3, 
+//                     new Region(ub_train->cell_reg_list2[ub_train->count]));
+
+          result.setAddr(tuple);
+          ub_train->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ub_train = (MetroStruct*)local.addr;
+            delete ub_train;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+/*
+value map for operator createmetrostop
+
+*/
+int OpTMCreateMetroStopValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MetroStruct* ub_train;
+  switch(message){
+      case OPEN:{
+        Relation* rel = (Relation*)args[0].addr;
+
+        ub_train = new MetroStruct();
+        ub_train->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ub_train->CreateMStop(rel);
+        local.setAddr(ub_train);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ub_train = (MetroStruct*)local.addr;
+          if(ub_train->count == ub_train->mstop_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ub_train->resulttype);
+
+         tuple->PutAttribute(0, 
+                     new Bus_Stop(ub_train->mstop_list[ub_train->count]));
+         tuple->PutAttribute(1, 
+                     new Point(ub_train->stop_geo_list[ub_train->count]));
+         tuple->PutAttribute(2, 
+                     new CcInt(true, ub_train->id_list[ub_train->count]));
+
+          result.setAddr(tuple);
+          ub_train->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ub_train = (MetroStruct*)local.addr;
+            delete ub_train;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+
+/*
+value map for operator createmetromo
+
+*/
+int OpTMCreateMetroMOValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MetroStruct* ub_train;
+  switch(message){
+      case OPEN:{
+        Relation* rel = (Relation*)args[0].addr;
+        Periods* peri = (Periods*)args[1].addr; 
+
+        ub_train = new MetroStruct();
+        ub_train->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ub_train->CreateMTrips(rel, peri);
+        local.setAddr(ub_train);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ub_train = (MetroStruct*)local.addr;
+          if(ub_train->count == ub_train->mtrip_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ub_train->resulttype);
+
+         tuple->PutAttribute(0, 
+                     new GenMO(ub_train->mtrip_list1[ub_train->count]));
+         tuple->PutAttribute(1, 
+                     new MPoint(ub_train->mtrip_list2[ub_train->count]));
+         tuple->PutAttribute(2, 
+                     new CcInt(true, ub_train->id_list[ub_train->count]));
+         tuple->PutAttribute(3, 
+                     new CcBool(true, ub_train->dir_list[ub_train->count]));
+
+          result.setAddr(tuple);
+          ub_train->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ub_train = (MetroStruct*)local.addr;
+            delete ub_train;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+/*
+value map for operator mapmstopave
+
+*/
+int OpTMMapMsToPaveValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  MetroStruct* ub_train;
+  switch(message){
+      case OPEN:{
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[2].addr; 
+
+        ub_train = new MetroStruct();
+        ub_train->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        ub_train->MapMSToPave(rel1, rel2, rtree);
+        local.setAddr(ub_train);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ub_train = (MetroStruct*)local.addr;
+         if(ub_train->count == ub_train->loc_list1.size())return CANCEL;
+//         if(ub_train->count == ub_train->neighbor_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(ub_train->resulttype);
+
+         tuple->PutAttribute(0, 
+                     new GenLoc(ub_train->loc_list1[ub_train->count]));
+         tuple->PutAttribute(1, 
+                     new Point(ub_train->loc_list2[ub_train->count]));
+
+//          tuple->PutAttribute(0, 
+//                     new CcInt(true,ub_train->id_list[ub_train->count]));
+//          tuple->PutAttribute(1, 
+//                       new Region(ub_train->neighbor_list[ub_train->count]));
+//          tuple->PutAttribute(2, 
+//                       new Point(ub_train->loc_list2[ub_train->count]));
+
+          result.setAddr(tuple);
+          ub_train->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            ub_train = (MetroStruct*)local.addr;
+            delete ub_train;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 
 /*
 get the day of an instant 
@@ -19181,7 +19781,6 @@ int OpTMPathToBuildingValueMap ( Word* args, Word& result, int message,
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
         max_rect->PathToBuilding(sp);
-
 
         local.setAddr(max_rect);
         return 0;
@@ -20276,8 +20875,41 @@ Operator createmgraph(
   OpTMCreateMetroGraphTypeMap
 );
 
+/*
+create underground railways, stops and moving metros
 
+*/
+Operator createmetroroute(
+  "createmetroroute", 
+  OpTMCreateMetroRouteSpec,
+  OpTMCreateMetroRouteValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateMetroRouteTypeMap
+);
 
+Operator createmetrostop(
+  "createmetrostop", 
+  OpTMCreateMetroStopSpec,
+  OpTMCreateMetroStopValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateMetroStopTypeMap
+);
+
+Operator createmetromo(
+  "createmetromo", 
+  OpTMCreateMetroMOSpec,
+  OpTMCreateMetroMOValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateMetroMOTypeMap
+);
+
+Operator mapmstopave(
+  "mapmstopave", 
+  OpTMMapMsToPaveSpec,
+  OpTMMapMsToPaveValueMap,
+  Operator::SimpleSelect,
+  OpTMMapMsToPaveTypeMap
+);
 
 /////////////////////////////////////////////////////////////////////////////
 /////////////////// auxiliary operators////////////////////////////////////
@@ -20531,6 +21163,13 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&ms_neighbors1);//create one kind of metro graph edges 
     AddOperator(&ms_neighbors2);//create one kind of metro graph edges(moving)
     AddOperator(&createmgraph);//create metro network graph 
+    //////////////////////////////////////////////////////////////////////
+    //////////////////create underground train from road data////////////
+    /////////////////////////////////////////////////////////////////////
+    AddOperator(&createmetroroute);//create metro routes
+    AddOperator(&createmetrostop);//create metro stops from routes 
+    AddOperator(&createmetromo);//create moving metros 
+    AddOperator(&mapmstopave);//map metro stops to pavement areas
 
     ////////////////////////////////////////////////////////////////////
     ////////////////  Indoor Operators   ///////////////////////////////

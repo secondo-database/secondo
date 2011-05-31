@@ -648,6 +648,7 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     inline bool IsEmpty() const{return Size() == 0;}
     static void* Cast(void* addr); 
     void Add(SimpleLine* sl, int count);
+    void Add2(HalfSegment hs, int count);
     void Get(int i, SimpleLine& sl); 
     void GetGeoData(SimpleLine& sl);
 
@@ -1297,8 +1298,9 @@ struct UBTrain{
   vector<int> ms_tid_list2;
   vector<Periods> period_list;
   vector<double> time_cost_list;
-  
-  
+
+
+
   static string TrainsTypeInfo;
   static string UBahnLineInfo;
   static string UBahnTrainsTypeInfo; 
@@ -1327,8 +1329,7 @@ struct UBTrain{
   enum UBAHN_LINE{UB_LINE_ID = 0, UB_LINE_OID, UB_LINE_GEODATA}; 
   enum UBAHN_TIMETABLE{UB_STATION_LOC_T,UB_LINE_ID_T, UB_STOP_ID_T,
                        UB_DIR_T,UB_PERIODS_T,UB_INTERVAL_T,UB_LOC_ID_T};
-
-
+  
   unsigned int count;
   TupleType* resulttype;
 
@@ -1345,7 +1346,7 @@ struct UBTrain{
                               int count_id);
   void TimeTableCompact(vector<MPoint>&,Point,int,int,bool,int);
   void GetTimeInstantStop(MPoint& mo, Point loc, Instant& st);
-  
+
  ////////////////////////////////////////////////////////////////////////////
  ////////////////// covert berlin trains to generic moving objects//////////
  //////////////////////////////////////////////////////////////////////////
@@ -1354,7 +1355,71 @@ struct UBTrain{
  void TrainsToGenMO(); 
  void MPToGenMO(MPoint* mp, GenMO* mo, int l_id); 
  
- /////////////////////////////////////////////////////////////////////
+
+};
+
+/*
+create Metro: create metro routes and stops from road data 
+
+*/
+struct MetroStruct{
+
+  MetroStruct(){count = 0;resulttype = NULL;}
+  ~MetroStruct(){if(resulttype != NULL) delete resulttype;}
+  
+  unsigned int count;
+  TupleType* resulttype;
+
+  static string MetroRouteInfo; 
+  static string MetroTripTypeInfo_Com;
+
+  enum MetroRouteInfo{MR_ID,MR_ROUTE,MR_OID};
+  enum MetroTripInfoCom{M_GENMO_COM,M_MP_COM,M_R_ID_COM,M_DIR_COM,M_OID_COM};
+
+  vector<int> id_list;
+  vector<bool> dir_list;
+  vector<Bus_Route> mroute_list; 
+  vector<Region> cell_reg_list1;
+  vector<Region> cell_reg_list2;
+
+  vector<Bus_Stop> mstop_list;
+  vector<Point> stop_geo_list;
+
+  vector<GenMO> mtrip_list1;
+  vector<MPoint> mtrip_list2;
+  
+  
+  vector<int> ms_tid_list1;
+  vector<int> ms_tid_list2;
+  vector<Periods> period_list;
+  vector<double> time_cost_list;
+  vector<double> schedule_interval;
+  vector<SimpleLine> geodata;
+   
+  vector<GenLoc> loc_list1;
+  vector<Point> loc_list2; 
+  vector<Region> neighbor_list;
+  
+ /////////////////////////////////////////////////////////////////////////////
+ //////////////////create railway routes and stops/////////////////////////
+ //////////////////not use the data from berlintest or berlinmod////////////
+ ////////////////////////////////////////////////////////////////////////////
+ void CreateMRoute(DualGraph* dg);
+ bool BuildMetroRoute(vector<int> path_list, DualGraph* dg, int count);
+
+ void CreateMStop(Relation*);
+ ////////////////////////////////////////////////////////////
+ ////////////create moving metros////////////////////////////
+ ////////////////////////////////////////////////////////////
+ void CreateMTrips(Relation*, Periods*);
+ void CreateMetroUp(vector<MyHalfSegment>& seg_list, 
+                    Periods* peri,int mr_id, int mr_oid, bool d);
+ void CreateMetroDown(vector<MyHalfSegment>& seg_list, 
+                      Periods* peri,int mr_id, int mr_oid, bool d);
+
+ void CopyMetroTrip(GenMO* genmo, MPoint* mo, Periods* peri, 
+                    Instant st,int,int,bool);
+ /////////////////////////////////////////////////////////////////////////
  ////////////////create stops and routes relation////////////////////
  /////////////////////////////////////////////////////////////////////
  void MsNeighbors1(Relation* r);
@@ -1363,8 +1428,16 @@ struct UBTrain{
  void ConnectionOneRoute(UBahn_Stop* ms_stop, Relation* timetable, 
                          BTree* btree1, Relation* metrotrip, 
                          BTree* btree2, int Neighbor_tid, Point* Neighbor_loc);
- 
+ //////////////////////////////////////////////////////////////////////////
+ ////////////map metro stops to pavement areas/////////////////////////////
+ /////////////////////////////////////////////////////////////////////////
+ void MapMSToPave(Relation*, Relation*, R_Tree<2,TupleId>*);
+ void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
+                             SmiRecordId adr, Point* loc, 
+                             vector<int>& tri_tid_list, double& min_dist);
 };
+
+
 
 /*
 metro network: underground trains 
@@ -1386,6 +1459,7 @@ class MetroNetwork{
     unsigned int GetId() const {return mn_id;}
     Relation* GetMS_Rel(){return stops_rel;}
     Relation* GetMR_Rel(){return routes_rel;}
+    Relation* GetMetro_Rel(){return metrotrips_rel;}
 
     static void* Cast(void* addr);
     void Load(unsigned int i, Relation* r1, Relation* r2, Relation* r3); 
@@ -1398,25 +1472,36 @@ class MetroNetwork{
     R_Tree<2,TupleId>* GetMS_RTree() { return rtree_bs;}
     void SetGraphId(int g_id);
 
-
-
     bool IsGraphInit(){return graph_init;}
     unsigned int GraphId(){return graph_id;}
-  
+
+    ///////////////used for the real data, (ubahn converting)////////////////
     static string UBAHNStopsTypeInfo;
     static string UBAHNStopsBTreeTypeInfo;
     static string UBAHNStopsRTreeTypeInfo;
 
     static string UBAHNRoutesTypeInfo;
     static string UBAHNRotuesBTreeTypeInfo;
-    
-    static string UBAHNMetroTripTypeInfo;
-    static string UBAHNMetroBTreeTypeInfo;
 
     enum UBAHN_STOP_INFO{UB_LINEID, UB_STOP_LOC,UB_STOP_ID, UB_DIRECTION};
-    enum UBAHN_ROUTE_INFO{UB_LINEID2, UB_LINE_OID, UB_L_GEODATA};
-    enum UBAHN_METRO_INFO{UB_TRIP1_GENMO, UB_TRIP2_MO,
-                          UB_M_LINE_ID, UB_M_LINE_DIR, UB_TRIP_OID};
+
+
+    ////////////////////////////////////////////////////////////////////////
+
+    static string MetroStopsTypeInfo; 
+    static string MetroStopsBTreeTypeInfo;
+    static string MetroStopsRTreeTypeInfo;
+
+    static string MetroRoutesTypeInfo;
+    static string MetroRoutesBTreTypeInfo;
+
+    static string MetroTripTypeInfo;
+    static string MetroTypeBTreeTypeInfo;
+
+
+    enum METRO_STOP_INFO{M_STOP, M_STOP_GEO, M_R_ID};
+    enum METRO_ROUTE_INFO{M_ROUTE_ID,M_ROUTE,M_R_OID};
+    enum METRO_TRIP_INFO{M_TRIP_GENMO, M_TRIP_MP, M_ROUTE_ID2,M_TRIP_OID};
 
   private:
 
@@ -1485,7 +1570,7 @@ class MetroGraph{
     static string MGEdge1TypeInfo;
     static string MGEdge2TypeInfo;
 
-    enum MG_NODE_INFO{MG_NODE_LINE_ID,MG_NODE_LOC,MG_NODE_STOP_ID,MG_NODE_UP};
+    enum MG_NODE_INFO{MG_NODE_STOP,MG_NODE_STOP_GEO,MG_NODE_MR_ID};
     enum MG_EDGE1_INFO{MG_EDGE1_TID1, MG_EDGE1_TID2};
     enum MG_EDGE2_INFO{MG_EDGE2_TID1, MG_EDGE2_TID2, MG_EDGE2_PERI,
                        MG_EDGE2_SCHED, MG_EDGE2_PATH, MG_EDGE2_TIME_COST};
