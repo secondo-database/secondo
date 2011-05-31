@@ -5957,6 +5957,47 @@ Relation* Space::GetInfra(string type)
           result = new Relation(xNumType, true);
         }
 
+   }else if(infra_type == IF_METROSTOP){ ///metro stops
+        MetroNetwork* mn = LoadMetroNetwork(IF_METRONETWORK);
+        if(mn != NULL){ 
+          result = mn->GetMS_Rel()->Clone();
+          CloseMetroNetwork(mn);
+        }else{
+          cout<<"metro network does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(MetroNetwork::MetroStopsTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+        }
+
+   }else if(infra_type == IF_METROROUTE){ // metro routes 
+        MetroNetwork* mn = LoadMetroNetwork(IF_METRONETWORK);
+        if(mn != NULL){ 
+          result = mn->GetMR_Rel()->Clone();
+          CloseMetroNetwork(mn);
+        }else{
+          cout<<"metro network does exist "<<endl; 
+          ListExpr xTypeInfo;
+          nl->ReadFromString(MetroNetwork::MetroRoutesTypeInfo, xTypeInfo);
+          ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+          result = new Relation(xNumType, true);
+        }
+
+   }else if(infra_type == IF_METRO){// metro trips 
+      MetroNetwork* mn = LoadMetroNetwork(IF_METRONETWORK);
+      if(mn != NULL){ 
+        result = mn->GetMetro_Rel()->Clone();
+        CloseMetroNetwork(mn);
+      }else{
+        cout<<"metro network does exist "<<endl; 
+        ListExpr xTypeInfo;
+        nl->ReadFromString(MetroNetwork::MetroTripTypeInfo, xTypeInfo);
+        ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+        result = new Relation(xNumType, true);
+      }
    }else{
         cout<<"wrong type or does not exist"<<endl;
    }
@@ -6251,6 +6292,120 @@ void Space::CloseBusNetwork(BusNetwork* bn)
 
 
 /*
+add metro network into the space 
+
+*/
+void Space::AddMetroNetwork(MetroNetwork* mn)
+{
+  InfraRef inf_ref;
+  if(!mn->IsDefined()){
+    cout<<"metro network is not defined"<<endl;
+    return; 
+  }
+  inf_ref.infra_id = mn->GetId();
+  inf_ref.infra_type = GetSymbol("METRONETWORK");
+  int min_id = numeric_limits<int>::max();
+  int max_id = numeric_limits<int>::min();
+
+  Relation* mn_routes = mn->GetMR_Rel();
+
+  for(int i = 1;i <= mn_routes->GetNoTuples();i++){
+    Tuple* mr_tuple = mn_routes->GetTuple(i, false);
+    int mr_id = 
+       ((CcInt*)mr_tuple->GetAttribute(MetroNetwork::M_R_OID))->GetIntval();
+    if(mr_id < min_id) min_id = mr_id;
+    if(mr_id > max_id) max_id = mr_id;
+    mr_tuple->DeleteIfAllowed(); 
+  }
+
+  Relation* mn_metro = mn->GetMetro_Rel();
+  for(int i = 1;i <= mn_metro->GetNoTuples();i++){
+    Tuple* metro_tuple = mn_metro->GetTuple(i, false);
+    int metro_id = 
+     ((CcInt*)metro_tuple->GetAttribute(MetroNetwork::M_TRIP_OID))->GetIntval();
+    if(metro_id < min_id) min_id = metro_id;
+    if(metro_id > max_id) max_id = metro_id; 
+    metro_tuple->DeleteIfAllowed(); 
+  }
+
+
+  inf_ref.ref_id_low = min_id;
+  inf_ref.ref_id_high = max_id; 
+  if(CheckExist(inf_ref) == false){
+      inf_ref.Print(); 
+      Add(inf_ref); 
+  }else
+    cout<<"this infrastructure exists already"<<endl; 
+
+}
+
+/*
+load the metro network 
+
+*/
+MetroNetwork* Space::LoadMetroNetwork(int type)
+{
+
+  InfraRef rn_ref; 
+  bool found = false; 
+  for(int i = 0;i < infra_list.Size();i++){
+    InfraRef elem;
+    infra_list.Get(i, elem); 
+    if(elem.infra_type == type){
+       rn_ref = elem; 
+       found = true;
+       break; 
+    }
+  }
+  if(found){
+      ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+      xObjectList = nl->Rest(xObjectList);
+      while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+          ListExpr xCurrent = nl->First(xObjectList);
+          xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+          ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+          if(nl->IsAtom(xObjectType) &&
+              nl->SymbolValue(xObjectType) == "metronetwork"){
+            // Get name of the metro graph
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the metro network
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            MetroNetwork* mn = (MetroNetwork*)xValue.addr;
+            if((int)mn->GetId() == rn_ref.infra_id){
+              // This is the metronetwork we have been looking for
+              return mn;
+            }
+          }
+      }
+  }
+  return NULL;
+
+}
+
+
+void Space::CloseMetroNetwork(MetroNetwork* mn)
+{
+  if(mn == NULL) return; 
+  Word xValue;
+  xValue.addr = mn;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("metronetwork"),
+                                           xValue);
+}
+
+
+/*
 add indoor infrastructure to the space 
 
 */
@@ -6374,11 +6529,11 @@ void Space::OpenInfra(vector<void*>& infra_pointer)
   infra_pointer.push_back(NULL);//bus route
   infra_pointer.push_back(NULL);//mpptn
   infra_pointer.push_back(LoadBusNetwork(IF_BUSNETWORK));//bus network
-//  infra_pointer.push_back(NULL);// current NULL for Indoor
-  infra_pointer.push_back(LoadIndoorInfra(IF_GROOM));
+  infra_pointer.push_back(LoadIndoorInfra(IF_GROOM));//indoor 
   infra_pointer.push_back(LoadPavement(IF_REGION));// region based outdoor
   infra_pointer.push_back(LoadRoadNetwork(IF_LINE));// road netowrk
   infra_pointer.push_back(NULL);// free space
+  infra_pointer.push_back(LoadMetroNetwork(IF_METRONETWORK));// metro network 
 
 
   if((BusNetwork*)infra_pointer[IF_BUSNETWORK] == NULL){
@@ -6396,6 +6551,10 @@ void Space::OpenInfra(vector<void*>& infra_pointer)
 
   if((IndoorInfra*)infra_pointer[IF_GROOM] == NULL){
     cerr<<__FILE__<<__LINE__<<"indoor infrastructure can not be opend"<<endl;
+  }
+
+  if((MetroNetwork*)infra_pointer[IF_METRONETWORK] == NULL){
+    cerr<<__FILE__<<__LINE__<<"metro network can not be opend"<<endl;
   }
 
 }
@@ -6419,6 +6578,10 @@ void Space::CloseInfra(vector<void*>& infra_pointer)
   if(infra_pointer[IF_LINE] != NULL)
     CloseRoadNetwork((Network*)infra_pointer[IF_LINE]);
 
+  ////////////metro network //////////////////////////
+
+  if(infra_pointer[IF_METRONETWORK] != NULL)
+    CloseMetroNetwork((MetroNetwork*)infra_pointer[IF_METRONETWORK]);
 }
 
 

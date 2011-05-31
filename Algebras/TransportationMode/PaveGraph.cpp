@@ -3581,6 +3581,76 @@ void DualGraph::DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
 
 }
 
+/*
+calculate a path connecting two cells for generating metro routes 
+
+*/
+void DualGraph::Path_Weight(int start, int end, vector<int>& path)
+{
+//  cout<<"start "<<start<<" end "<<end<<endl; 
+  
+  vector<bool> area_flag;
+  for(int i = 1;i <= node_rel->GetNoTuples();i++)
+    area_flag.push_back(false);
+
+  area_flag[start - 1] = true;
+
+  ////////////////shortest path algorithm///////////////////////
+  priority_queue<SPath_elem> path_queue;
+  vector<SPath_elem> expand_path;
+  
+  path_queue.push(SPath_elem(-1, 0, start, 1));
+  expand_path.push_back(SPath_elem(-1, 0, start, 1));
+  bool find = false;
+  SPath_elem dest;//////////destination
+  
+   while(path_queue.empty() == false){
+    SPath_elem top = path_queue.top();
+    path_queue.pop();
+//    top.Print();
+
+    if(top.tri_index == end){
+//       cout<<"find the path"<<endl;
+       find = true;
+       dest = top;
+       break;
+    }
+   ////////find its adjacecy element, and push them into queue and path//////
+    vector<int> adj_list;
+    FindAdj(top.tri_index, area_flag, adj_list);
+
+    int pos_expand_path = top.cur_index;
+    for(unsigned int i = 0;i < adj_list.size();i++){
+      int expand_path_size = expand_path.size();
+      path_queue.push(SPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], top.weight+1));
+      expand_path.push_back(SPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], top.weight+1));
+    }
+
+
+     area_flag[top.tri_index - 1] = true;
+
+  }
+
+  if(find){
+    vector<int> path_record;
+    while(dest.prev_index != -1){
+//      sleeve.push_back(triangles[dest.tri_index]);
+      path_record.push_back(dest.tri_index);
+      dest = expand_path[dest.prev_index];
+    }
+//    sleeve.push_back(triangles[dest.tri_index]);
+    path_record.push_back(dest.tri_index);
+
+    for(int i = path_record.size() - 1;i >= 0;i--){
+//      cout<<"oid "<<path_record[i]<<endl;
+      path.push_back(path_record[i]);
+    }
+  }
+
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 Walk_SP::Walk_SP()
@@ -9026,7 +9096,7 @@ void MaxRect::BuildingEntrance(int build_type, Rectangle<2>* rect,
     }else{
       new_y = rect->MinD(1) + scale_y* width_new;
     }
-    
+
     Point new_door(true, new_x, new_y);
     build_sp_list.push_back(new_door);
   }

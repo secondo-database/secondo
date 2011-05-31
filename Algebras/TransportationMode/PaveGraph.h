@@ -327,6 +327,10 @@ public:
                           Point& loc, vector<int>& tri_oid_list);
     void DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                           Point& loc, vector<int>& tri_oid_list, double dist);
+    //////////////////////////////////////////////////////////////////////
+    //////////calculate a path, for cells in metro route//////////////////
+    void Path_Weight(int start, int end, vector<int>& path);
+   
     //////////////////////////////////////////////////////////////////
     int min_tri_oid_1; //smaller than the minimum tri oid (minoid - 1)
 

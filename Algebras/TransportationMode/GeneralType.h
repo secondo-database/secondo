@@ -81,10 +81,10 @@ instead of int, real, or enum
 
 
 enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO, 
-TM_TRAIN, TM_BICYCLE, TM_TAXI};
+TM_TRAIN, TM_BICYCLE, TM_TAXI, TM_FREE};
 
 const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
-                         "Train", "Bicycle", "Taxi"};
+                         "Train", "Bicycle", "Taxi", "Free"};
 inline int GetTM(string s)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -110,11 +110,13 @@ symbols for data type. to make it more readable, I use string insteand of enum
 
 */ 
 enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN, IF_BUSNETWORK,
-IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE, IF_METRONETWORK, IF_TRAINNETWORK}; 
+IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE, IF_METRONETWORK, IF_METROSTOP,
+IF_METROROUTE, IF_METRO, IF_TRAINNETWORK}; 
 
 const string symbol_type[] = 
 {"BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
-"REGION", "LINE", "FREESPACE", "METRONETWORK", "TRAINNETWORK"};
+"REGION", "LINE", "FREESPACE", "METRONETWORK", "METROSTOP", "METROROUTE", 
+"METRO", "TRAINNETWORK"};
 
 inline int GetSymbol(string s)
 {
@@ -1010,6 +1012,7 @@ struct InfraRef{
 
 
 class BusNetwork; 
+class MetroNetwork;
 
 class Space:public Attribute{
   public:
@@ -1058,19 +1061,23 @@ class Space:public Attribute{
   BusNetwork* LoadBusNetwork(int type); 
   void CloseBusNetwork(BusNetwork* bn);
 
+  void AddMetroNetwork(MetroNetwork* mn);
+  MetroNetwork* LoadMetroNetwork(int type);
+  void CloseMetroNetwork(MetroNetwork* mn);
+
 
   void AddIndoorInfra(IndoorInfra* indoor);
   IndoorInfra* LoadIndoorInfra(int type);
   void CloseIndoorInfra(IndoorInfra*);
-  
+
 
   ////////////get a specific infrastructure////////////////////
   int GetInfraType(int oid);
   /////////////open and close all infrastructures////////////////
   void OpenInfra(vector<void*>&);
   void CloseInfra(vector<void*>&);
-  
-  
+
+
   int MaxRefId();
   //////////////////////////////////////////////////////////////////////////
   ////////////get the submovement in an infrastructure object///////////////
