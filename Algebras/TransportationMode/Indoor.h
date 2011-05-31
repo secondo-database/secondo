@@ -423,6 +423,7 @@ inline string GetRoomStr(int t)
   return room_type[t];
 }
 
+#define MIN_FLOOR_HEIGHT -1000.0
 
 /*
 GRoom: a set of 3D regions. the implementation is similar as for GenRange 
@@ -437,7 +438,7 @@ class GRoom:public StandardSpatialAttribute<2>{
     /////////////////////////////////////////////////////////////
     ///////!!!copy constructor function has to be implemented////
     /////////////////////////////////////////////////////////////
-    
+
     ~GRoom()
     {
 
@@ -758,7 +759,7 @@ struct IndoorNav{
   
   void CreateDoorBox();
   void CreateBox3D(int, int, Line*, float);
-  float NextFloorHeight(float h, vector<float>& floor_height);
+  float NextFloorHeight(float h, vector<float>& floor_height, bool& flag_h);
   ////////////////create a relation storing door////////////////////////
   bool IsGRoom(int tid, Relation* rel);
   void CreateDoor1(R_Tree<3, TupleId>*, int, int ,int);

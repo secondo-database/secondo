@@ -1605,10 +1605,12 @@ return the highest height of a groom
 */
 float GRoom::GetHighHeight()
 {
-  float h = numeric_limits<float>::min(); 
+//  float h = numeric_limits<float>::min(); //returns a positive value 
+  float h = MIN_FLOOR_HEIGHT;
   for( int i = 0; i < elem_list.Size(); i++ ){
     FloorElem felem;
     elem_list.Get(i, felem);
+    assert(felem.h > MIN_FLOOR_HEIGHT);
     if(felem.h > h)
       h = felem.h; 
   }
@@ -1943,8 +1945,10 @@ void IndoorNav::CreateDoor3D()
     
     if(GetRoomEnum(s) == EL){//Elevator 
 //      cout<<"one more box needed"<<endl;
-      h = NextFloorHeight(h, floor_height);  
-      if(h > 0.0){
+      bool flag_h = false;
+      h = NextFloorHeight(h, floor_height, flag_h);  
+//      if(h > 0.0){
+      if(flag_h){
           CreateLine3D(oid, l, h);
       }
     }
@@ -2052,8 +2056,10 @@ void IndoorNav::CreateDoorBox()
 
     if(GetRoomEnum(s) == EL){// Elevator
 //      cout<<"one more box needed"<<endl;
-      h = NextFloorHeight(h, floor_height);  
-      if(h > 0.0){
+      bool flag_h = false;
+      h = NextFloorHeight(h, floor_height, flag_h);
+//      if(h > 0.0){
+      if(flag_h){
           CreateBox3D(oid, tid, l, h);
       }
     }
@@ -2066,15 +2072,19 @@ void IndoorNav::CreateDoorBox()
 get the floor height in the next higher level 
 
 */
-float IndoorNav::NextFloorHeight(float h, vector<float>& floor_height)
+float IndoorNav::NextFloorHeight(float h, 
+                                 vector<float>& floor_height, bool& flag_h)
 {
-//  cout<<"NextFloorHeight()"<<endl; 
   for(unsigned int i = 0;i < floor_height.size();i++){
     if(AlmostEqual(h, floor_height[i])){
-        if(i != floor_height.size() - 1)
+        if(i != floor_height.size() - 1){
+          flag_h = true;
           return floor_height[ i + 1];
-        else
-          return -1.0; 
+        }
+        else{
+          flag_h = false;
+          return -1.0;
+        }
     }
   }
   assert(false); 
@@ -2086,6 +2096,9 @@ void IndoorNav::CreateBox3D(int oid, int tid, Line* l, float h)
 //  const double delta_h = 0.01; 
 //  cout<<"oid "<<oid<<" tid "<<tid<<" height "<<h<<endl; 
 //  cout<<"line "<<*l<<endl; 
+  const double delta = 0.001;
+  if(fabs(h) < delta) h = 0.0;
+
   for(int i = 0;i < l->Size();i++){
       HalfSegment hs;
       l->Get(i, hs);
@@ -2157,9 +2170,9 @@ void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree,
 
 //    cout<<"neighbor size "<<id_list.size()<<endl; 
 
-/*    for(unsigned int j = 0;j < id_list.size();j++)
-      cout<<"neighbor tuple id "<<id_list[j]<<endl; 
-    cout<<endl; */
+//     for(unsigned int j = 0;j < id_list.size();j++)
+//       cout<<"neighbor tuple id "<<id_list[j]<<endl; 
+//     cout<<endl; 
 
     //for staircase and elevator, size = 2
     //the floor at i and i+1 are both represented 
@@ -2178,7 +2191,18 @@ void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree,
 //        cout<<"oid "<<oid<<"tid "<<tid<<" rect "<<*bbox3d<<endl; 
         /////////////create entrance door for the building//////////////
         CreateEntranceDoor(id, oid, tid, attr1, attr2, attr3);
+      }else if(AlmostEqual(bbox3d->MinD(2), 0.0)){
+        /////////////////////////////////////////////////////////////////
+        ////////////////////we define 0.0 for the first level////////////
+        /////////////////where the building entrance is located//////////
+        ////////////////this is for buildings have underground level/////
+        //////////////////////trainstation, hospital/////////////////////
+        /////////////////////////////////////////////////////////////////
+//        cout<<"underground here"<<endl;
+//        cout<<"oid "<<oid<<"tid "<<tid<<" rect "<<*bbox3d<<endl;
+        CreateEntranceDoor(id, oid, tid, attr1, attr2, attr3);
       }
+
     }
 
     door_tuple->DeleteIfAllowed();
@@ -2490,8 +2514,8 @@ Compare two 3D box
 bool IndoorNav::BBox3DEqual(Rectangle<3>* bbox3d, Rectangle<3>* bbox_3d)
 {
   for(unsigned int i = 0;i < 3;i ++){
-    if(!AlmostEqual(bbox3d->MinD(i), bbox_3d->MinD(i)))return false; 
-    if(!AlmostEqual(bbox3d->MaxD(i), bbox_3d->MaxD(i)))return false; 
+    if(!AlmostEqual(bbox3d->MinD(i), bbox_3d->MinD(i)))return false;
+    if(!AlmostEqual(bbox3d->MaxD(i), bbox_3d->MaxD(i)))return false;
   }
   return true; 
 }
@@ -2837,8 +2861,8 @@ void IndoorNav::CreateAdjDoor1(BTree* btree,int attr1, int attr2,
     delete btree_iter;
     delete search_id;
 
-/*    cout<<"groom_oid "<<groom_oid<<" door num "<<tid_list.size()<<endl; 
-    for(unsigned int j = 0;j < tid_list.size();j++)
+//    cout<<"groom_oid "<<groom_oid<<" door num "<<tid_list.size()<<endl; 
+/*    for(unsigned int j = 0;j < tid_list.size();j++)
       cout<<"door tid "<<tid_list[j] <<endl;
     cout<<endl; */
 
@@ -2851,7 +2875,7 @@ void IndoorNav::CreateAdjDoor1(BTree* btree,int attr1, int attr2,
       GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
       string groom_type = 
           ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
-
+//      cout<<"groom type"<<groom_type<<endl;
       ///OR, CO, 
       /////////////////////////////////////////////////////////
       ////// the path inside a elevator: EL //////////////////////
@@ -2917,7 +2941,10 @@ void IndoorNav::BuildPathEL(int groom_oid, GRoom* groom, vector<int> tid_list,
       if(tid_list[i] == tid_list[j])continue; 
       Tuple* door_tuple2 = rel2->GetTuple(tid_list[j], false);
       float h2 = ((CcReal*)door_tuple2->GetAttribute(attr4))->GetRealval();
-      if(AlmostEqual(h1, h2))continue; //ignore the doors on the same level 
+      if(AlmostEqual(h1, h2)) {
+        door_tuple2->DeleteIfAllowed();
+        continue; //ignore the doors on the same level 
+      }
 
       Line* l = (Line*)door_tuple1->GetAttribute(attr2);
       assert(l->Size() == 2);
@@ -3094,8 +3121,12 @@ void IndoorNav::FindPathInRegion(GRoom* groom, float h,
   ShortestPath_InRegion(r, p1, p2, l); 
 //  cout<<"l "<<*l<<endl; 
 
-  if(l->Size() == 0)return; 
-  
+  if(l->Size() == 0) {
+    delete r;
+    delete l;
+    return;
+  }
+
   SimpleLine* sl = new SimpleLine(0);
   sl->fromLine(*l); 
   delete l; 
@@ -3534,6 +3565,7 @@ bool IndoorNav::BuildPathCO(int groom_oid,
   ////////////////1. get 2D area of the groom/////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
   float h = groom->GetLowHeight(); 
+//  cout<<"low h "<<h<<endl;
   Region* groom_reg = new Region(0);
   int index = 0;
   for(;index < groom->Size();index++){
@@ -3549,7 +3581,8 @@ bool IndoorNav::BuildPathCO(int groom_oid,
     delete groom_reg;
     assert(false);
   }
-  
+
+//  cout<<"area "<<groom_reg->Area()<<endl;
 
   //////////////////////////////////////////////////////////////////
   ////////////2. check whether the region is complex or not /////// 
@@ -3562,7 +3595,8 @@ bool IndoorNav::BuildPathCO(int groom_oid,
   DualGraph* dg = NULL; 
   VisualGraph* vg = NULL;
   Relation* tri_rel = NULL;
-  
+
+
   if(complex_reg == 1){ ///complex region, we build dual graph and visual graph
 
 //      cout<<"complex corridor "<<endl; 
@@ -4602,16 +4636,17 @@ bool RunCommand(SecondoCatalog* ctlg, ListExpr parsedCommand,
   if ( !correct ){
       cout<<"ERROR: Value text yields a TYPEERROR.";
       // Do not need to destroy tree here!
+      delete qpp;
       return false;
     }
-    
+
   string typestring = nl->ToString(resultType);
-  
+
   if ( evaluable){
       string typeName = "";
       ctlg->CreateObject(ObjNameString, typeName, resultType, 0);
   }
-  
+
   if ( evaluable ){
        qpp->EvalS( tree, qresult, 1 );
        if( IsRootObject( tree ) && !IsConstantObject( tree ) ){
@@ -4619,6 +4654,7 @@ bool RunCommand(SecondoCatalog* ctlg, ListExpr parsedCommand,
 //         qpp->Destroy( tree, true );
        } else {
          ctlg->UpdateObject( ObjNameString, qresult );
+//         qpp->Destroy( tree, false);
        }
   }
   delete qpp; 
@@ -5043,7 +5079,7 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2, int type)
   ///////////////////////////////////////////////////////////////////////
   ///////////////////calculate the number of grooms////////////////////
   /////////////////////////////////////////////////////////////////////
-  
+
 /*  vector<int> groom_id_list; 
   for(int i = 1;i <= r2->GetNoTuples();i++){
     Tuple* groom_tuple = r2->GetTuple(i, false);
@@ -5090,7 +5126,13 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2, int type)
   entrance_list = (Relation*)xResult.addr; 
   s_rel->Delete(); 
 
-//  cout<<"number of entrance "<<entrance_list->GetNoTuples()<<endl; 
+//  cout<<"number of entrance "<<entrance_list->GetNoTuples()<<endl;
+
+  if(entrance_list->GetNoTuples() == 0){
+    cout<<"invalid building: no entrance"<<endl;
+    assert(false);
+  }
+
   graph_type = type;
 
 }
@@ -6143,7 +6185,7 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
                                    double speed)
 {
   const double delta_dist = 0.001;
-  
+
   vector<Point> center_list; 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* groom_tuple = rel1->GetTuple(i, false);
@@ -6162,13 +6204,13 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
             center_list.push_back(p);
         }
     }
-    groom_tuple->DeleteIfAllowed(); 
+    groom_tuple->DeleteIfAllowed();
   }
 
   vector<Elevator> empty_list;
   for(unsigned int i = 0 ; i < center_list.size();i++)
     elev_list.push_back(empty_list);
-  
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* groom_tuple = rel1->GetTuple(i, false);
     string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
@@ -6185,12 +6227,11 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
             elev_list[j].push_back(elevator);
 
           }
-
         }
     }
     groom_tuple->DeleteIfAllowed(); 
   }
-  
+
 //   for(unsigned int i = 0;i < elev_list.size();i++)
 //     cout<<"elevator "<<i<<" size "<<elev_list[i].size()<<endl; 
 
@@ -6210,10 +6251,8 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
 //               <<" rect "<<elev_list[i][j].el_rect<<endl;
 //    }
 
-
-
   for(unsigned int i = 0;i < elev_list.size();i++){
-  
+
       int n_floor = (int)elev_list[i].size(); 
       double stay = 10.0/(24.0*60.0*60.0); //at each floor stay 10 seconds 
       double delta_h = fabs(elev_list[i][1].h - elev_list[i][0].h);
@@ -6221,7 +6260,7 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
   
       ///////////////////////////////////////////////////////////////
       ////////////t1: higher -- lower////////////////////////////////
-      ////////////t2: lower -- hihger////////////////////////////////
+      ////////////t2: lower -- higher////////////////////////////////
       ///////////////////////////////////////////////////////////////
 
       elev_list[i][n_floor - 1].t1 = 0.0;
@@ -6241,9 +6280,9 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
   }
 
 
-//   for(unsigned int i = 0;i < elev_list.size();i++){
-//     for(unsigned int j = 0;j < elev_list[i].size();j++){
-// 
+//  for(unsigned int i = 0;i < elev_list.size();i++){
+//    for(unsigned int j = 0;j < elev_list[i].size();j++){
+
 //       Instant t1 = periods.start;
 //       t1.ReadFrom(periods.start.ToDouble() + elev_list[i][j].t1); 
 // 
@@ -6252,9 +6291,11 @@ void IndoorNav::InitializeElevator_New(Interval<Instant>& periods,
 // 
 //       cout<<"first arrive "<<t1<<" second arrive "<<t2<<endl; 
 //       cout<<"rect "<<elev_list[i][j].el_rect<<" h "<<elev_list[i][j].h<<endl;
+//       cout<<elev_list[i][j].t1<<" "<<elev_list[i][j].t2<<endl;
+//       cout<<elev_list[i][j].t1*86400.0
+//           <<" "<<elev_list[i][j].t2*86400.0<<endl;
 //     }
 //   }
-
 
 }
 
@@ -6385,9 +6426,32 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
 {
   assert(p3d_list.size() >= 2 && elev_list[0].size() >= 2); 
   ////////////get the time for waiting///////////////////////////////////
-  double relative_start = start_time.ToDouble() - st.ToDouble(); 
-  double cycle_time = elev_list[0][elev_list[0].size() - 1].t2 -
-                      elev_list[0][elev_list[0].size() - 1].t1;
+  double relative_start = start_time.ToDouble() - st.ToDouble();
+  /////////////////////////////////////////////////////////////////////////
+  ///////////////////find which elevator///////////////////////////////////
+  ///////////// different elevators (different heights)2 or 3 levels///////
+  ///////////////// have different cycle time/////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+   float h1 = p3d_list[0].GetZ();
+   float h2 = p3d_list[ p3d_list.size() - 1].GetZ(); 
+   Point test_p(true, p3d_list[0].GetX(), p3d_list[0].GetY());
+   int elev_index = -1;
+   for(unsigned int i = 0;i < elev_list.size();i++){
+       if(test_p.Inside(elev_list[i][0].el_rect)){
+          elev_index = i;
+          break;
+       }
+   }
+   assert(elev_index >= 0);
+  //////////////////////////////////////////////////////////////////////
+
+
+//   double cycle_time = elev_list[0][elev_list[0].size() - 1].t2 -
+//                       elev_list[0][elev_list[0].size() - 1].t1;
+
+   double cycle_time = 
+                elev_list[elev_index][elev_list[elev_index].size() - 1].t2 -
+                elev_list[elev_index][elev_list[elev_index].size() - 1].t1;
 
   while(relative_start > cycle_time){
     relative_start -= cycle_time;
@@ -6399,16 +6463,16 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
 //  cout<<"relative time "<<t<<endl; 
   
 
-  float h1 = p3d_list[0].GetZ(); 
-  float h2 = p3d_list[ p3d_list.size() - 1].GetZ(); 
-  Point test_p(true, p3d_list[0].GetX(), p3d_list[0].GetY());
+//   float h1 = p3d_list[0].GetZ(); 
+//   float h2 = p3d_list[ p3d_list.size() - 1].GetZ(); 
+//   Point test_p(true, p3d_list[0].GetX(), p3d_list[0].GetY());
 
   double wait_time = 0.0;
   
   bool found = false;
 
-//   cout<<"arrive time "<<start_time<<endl; 
-//   cout<<"cycle time "<<cycle_time<<endl; 
+//   cout<<"arrive time "<<start_time<<endl;
+//   cout<<"cycle time "<<cycle_time<<endl;
 
 
   for(unsigned int i = 0;i < elev_list.size();i++){
@@ -6420,6 +6484,9 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
 //                   <<" relative_start"<<relative_start<<endl;
 
               if(elev_list[i][j].t2 > relative_start){
+//               if(elev_list[i][j].t2 > relative_start || 
+//                 (int)(elev_list[i][j].t2*86400.0) == relative_start_int){
+
                 wait_time = elev_list[i][j].t2 - relative_start;
               }else{
                 wait_time = elev_list[i][j].t2 + cycle_time - relative_start;
@@ -6429,6 +6496,10 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
 //                   <<" relative_start "<<relative_start<<endl;
 
               if(elev_list[i][j].t1 > relative_start){
+
+//                 if(elev_list[i][j].t1 > relative_start || 
+//                 (int)(elev_list[i][j].t1*86400.0) == relative_start_int){
+
                 wait_time = elev_list[i][j].t1 - relative_start;
               }else{
                 wait_time = elev_list[i][j].t1 + cycle_time - relative_start;
@@ -7208,11 +7279,11 @@ void IndoorNav::Get_GenLoc(Point3D p1, Point3D p2,
     ///////////////////////////////////////////////////////////////////////
     Rectangle<2> bbox = groom->BoundingBox(); 
     groom_tuple->DeleteIfAllowed();
-  
+
     if(GetRoomEnum(type) == EL){
 //      cout<<"elevator2 "<<endl;
-      Loc loc_1(p1.GetZ(), -1.0); 
-      Loc loc_2(p2.GetZ(), -1.0); 
+      Loc loc_1(p1.GetZ(), -1.0);
+      Loc loc_2(p2.GetZ(), -1.0);
 
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
@@ -7324,7 +7395,7 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
       tid1 = tid_list1[i];
       Tuple* groom_tuple = rel1->GetTuple(tid1, false);
       string type = ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue(); 
-      if(GetRoomEnum(type) == EL)break; 
+      if(GetRoomEnum(type) == EL) break; 
       groom_tuple->DeleteIfAllowed();
     }
     assert(i < tid_list1.size());
