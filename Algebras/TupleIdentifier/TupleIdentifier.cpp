@@ -147,7 +147,7 @@ TupleIdentifierProperty()
                   nl->StringAtom("Example List"),
                   nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-              nl->StringAtom("tid"),
+              nl->StringAtom(TupleIdentifier::BasicType()),
                   nl->StringAtom("(<tid>)"),
                   nl->StringAtom("(50060)"),
                   nl->StringAtom("The tupleidentifier is a long."))));
@@ -194,7 +194,7 @@ type constructor ~TupleIdentifier~ does not have arguments, this is trivial.
 bool
 CheckTupleIdentifier( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "tid" ));
+  return (nl->IsEqual( type, TupleIdentifier::BasicType() ));
 }
 
 /*
@@ -203,7 +203,7 @@ CheckTupleIdentifier( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor tupleIdentifier
 (
- "tid",
+ TupleIdentifier::BasicType(),
    //name
  TupleIdentifierProperty,
    //property function describing signature
@@ -248,7 +248,7 @@ TupleIdTypeMap(ListExpr args)
   if(!listutils::isTupleDescription(tuple)){
     return listutils::typeError("tuple expected");
   }
-  return nl->SymbolAtom("tid");
+  return nl->SymbolAtom(TupleIdentifier::BasicType());
 }
 
 /*
@@ -336,19 +336,20 @@ AddTupleIdTypeMap(ListExpr args)
    return listutils::typeError("Attr name 'id' already exists");
   }
   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("id"),
-                                          nl->SymbolAtom("tid")));
+                                nl->SymbolAtom(TupleIdentifier::BasicType())));
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-                         nl->TwoElemList(nl->SymbolAtom("tuple"),
-                                         head));  
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                         head));
 
 }
 
 ListExpr TIDtid2intTypeMap (ListExpr args)
 {
   string error = "TID expected";
-  if( (nl->ListLength(args) == 1) && (nl->IsEqual(nl->First(args),"tid"))){
-    return nl->SymbolAtom(symbols::INT);
+  if( (nl->ListLength(args) == 1) && (nl->IsEqual(nl->First(args),
+                                      TupleIdentifier::BasicType()))){
+    return nl->SymbolAtom(CcInt::BasicType());
   }
   ErrorReporter::ReportError(error);
   return nl->TypeError();
@@ -357,8 +358,9 @@ ListExpr TIDtid2intTypeMap (ListExpr args)
 ListExpr TIDint2tidTypeMap (ListExpr args)
 {
   string error = "int expected";
-  if( (nl->ListLength(args) == 1) && (nl->IsEqual(nl->First(args),"int"))){
-    return nl->SymbolAtom("tid");
+  if( (nl->ListLength(args) == 1) && (nl->IsEqual(
+                                    nl->First(args),CcInt::BasicType()))){
+    return nl->SymbolAtom(TupleIdentifier::BasicType());
   }
   ErrorReporter::ReportError(error);
   return nl->TypeError();
@@ -469,12 +471,12 @@ EqualTupleIdTypeMap(ListExpr args)
    return listutils::typeError("two arguments expected");
   }
 
-  if(!listutils::isSymbol(nl->First(args),"tid") ||
-     !listutils::isSymbol(nl->Second(args),"tid")){
+  if(!listutils::isSymbol(nl->First(args),TupleIdentifier::BasicType()) ||
+     !listutils::isSymbol(nl->Second(args),TupleIdentifier::BasicType())){
     return listutils::typeError("tid x tid expected");
   }
 
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 
 }
 
@@ -753,7 +755,7 @@ class TupleIdentifierAlgebra : public Algebra
   TupleIdentifierAlgebra() : Algebra()
   {
     AddTypeConstructor( &tupleIdentifier );
-    tupleIdentifier.AssociateKind( "DATA" );
+    tupleIdentifier.AssociateKind( Kind::DATA() );
 
     AddOperator( &tidtupleid );
     AddOperator( &tidaddtupleid );

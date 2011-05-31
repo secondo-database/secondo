@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -32,18 +32,21 @@ include ../../makefile.env
 
 # This is the only macro which must be changed in order to
 # define a module name for an algebra. The rest of this makefile
-# should work for nearly every algebra. 
+# should work for nearly every algebra.
 MODNAME = WEBAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
 CCFLAGS = $(DEFAULTCCFLAGS)
 
-# The next rule will create a ".o" file for every ".cpp" file and 
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS)
+
+# The next rule will create a ".o" file for every ".cpp" file and
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
 # for creating ".dep" files and ".o" files are defined in makefile.env
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ) 
+all: $(OBJECTS) $(LIBOBJ)
 
 WebFlex.cc: web.l web.h
 	$(LEX) -+ -oWebFlex.cc web.l
@@ -59,10 +62,10 @@ include $(DEP_FILES)
 
 # The rule below creates a library file. Maybe as shared or as static
 # object. In case of a shared object all dependencies to other libraries
-# must be defined. However, currently the command make shared=yes will 
+# must be defined. However, currently the command make shared=yes will
 # not work. But in principle every algebra implementor has to define dependencies
 # to other libraries here, since the make procedure does not know how to do this
-# automatically. 
+# automatically.
 $(LIBOBJ): $(OBJECTS) WebFlex.o
 ifeq ($(shared),yes)
 # ... as shared object

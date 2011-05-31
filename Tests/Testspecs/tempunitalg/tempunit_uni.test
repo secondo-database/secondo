@@ -40,7 +40,7 @@ open database tempunittest;
 
 let up1 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0))];
 let up2 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0))];
-let up3 = [const upoint value undef];
+let up3 = [const upoint value undefined];
 let up4 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 1000.0))];
 let up5 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (0.0 0.0 0.0 -1000.0))];
 let up6 = [const upoint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1500.0 1500.0 1500.0 1500.0))];
@@ -55,20 +55,20 @@ let mp2 = [const mpoint value ((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALS
 let p = [const point value (1500.0 1500.0)];
 let p1 = [const point value (2000.0 2000.0)];
 let p2 = [const point value (1000.0 1000.0)];
-let p3 = [const point value undef];
+let p3 = [const point value undefined];
 
 let ui1 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500)];
 let ui2 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1000)];
-let ui3 = [const uint value undef];
+let ui3 = [const uint value undefined];
 let ui4 = [const uint value (("2003-11-20-06:30" "2003-11-20-07:30" TRUE FALSE) 1000)];
 
 let ci = [const int value 1000];
 let i1 = [const int value 100];
-let i3 = [const int value undef];
+let i3 = [const int value undefined];
 
 let ur1 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (1.0 0.0 -1.0 FALSE))];
 let ur2 = [const ureal value (("2000-01-02-23:59:59.900" "2000-01-03-00:00:00.100" TRUE TRUE) (-1.0 -1.0 -1.0 FALSE))];
-let ur3 = [const ureal value undef];
+let ur3 = [const ureal value undefined];
 let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1.0 1.0 1.0 TRUE))];
 let ur5 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (1.0 0.0 -1.0 FALSE))];
 let ur6 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.000" TRUE TRUE) (-1.0 0.0 1.0 FALSE))];
@@ -78,13 +78,13 @@ let ur7 = [const ureal value (("2000-01-01-00:00:00.000" "2000-01-05-00:00:00.00
 let r = [const real value 0.0];
 let r1 = [const real value 2.0];
 let r2 = [const real value -3.0];
-let r3 = [const real value undef];
+let r3 = [const real value undefined];
 
-let rundef = [const real value undef];
+let rundef = [const real value undefined];
 
 let ubool1 = [const ubool value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) TRUE)];
 let ubool2 = [const ubool value (("2003-11-20-05:00" "2003-11-20-06:00" TRUE TRUE) TRUE)];
-let ubool3 = [const ubool value undef];
+let ubool3 = [const ubool value undefined];
 let ubool4 = [const ubool value (("2003-11-20-06:30" "2003-11-20-06:45" TRUE FALSE) FALSE)];
 
 let line1 = [const line value ((1500.0 1000.0 1500.0 2000.0))];
@@ -109,7 +109,7 @@ let LinesRel = units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstrea
 
 let inst1 = [const instant value "2003-11-20-06:00"];
 let inst2 = [const instant value "2003-11-20-07:00"];
-let inst3 = [const instant value undef];
+let inst3 = [const instant value undefined];
 
 ##################
 #   makemvalue   #
@@ -121,7 +121,7 @@ query units([const mpoint value ()]) transformstream makemvalue[elem]
 
 #testcase makemvalue UNDEF in INPUT
 #yields (mpoint ())
-query [const upoint value undef] feed transformstream makemvalue[elem]
+query [const upoint value undefined] feed transformstream makemvalue[elem]
 
 #testcase makemvalue SORTED INPUT
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
@@ -141,7 +141,7 @@ query units([const mpoint value ()]) the_mvalue
 
 #testcase the_mvalue UNDEF in INPUT
 #yields (mpoint ())
-query [const upoint value undef] feed the_mvalue
+query [const upoint value undefined] feed the_mvalue
 
 #testcase the_mvalue SORTED INPUT
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
@@ -164,7 +164,7 @@ query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] proje
 query deftime(up1)
 
 #testcase deftime_undef
-#yields (periods undef)
+#yields (periods undefined)
 query deftime(up3)
 
 #testcase atinstant up1
@@ -172,11 +172,11 @@ query deftime(up3)
 query up1 atinstant [const instant value "2003-11-20-06:30"]
 
 #testcase atinstant undef_upoint
-#yields (ipoint undef)
+#yields (ipoint undefined)
 query up3 atinstant [const instant value "2003-11-20-06:30"]
 
 #testcase atinstant upoint undef_instant
-#yields (ipoint undef)
+#yields (ipoint undefined)
 query up1 atinstant [const instant value undef]
 
 #testcase atperiods upoint
@@ -199,7 +199,7 @@ query (up1 atperiods [const periods value ( ) ] ) transformstream consume
 query initial(up1)
 
 #testcase initial_up undef
-#yields (ipoint undef)
+#yields (ipoint undefined)
 query initial(up3)
 
 #testcase initial stream
@@ -211,7 +211,7 @@ query initial(units(zug5) transformstream extend[zz: randint(500)] sortby[zz asc
 query final(up1)
 
 #testcase final_up undef
-#yields (ipoint undef)
+#yields (ipoint undefined)
 query final(up3)
 
 #testcase final stream
@@ -223,11 +223,11 @@ query final(units(zug5) transformstream extend[zz: randint(500)] sortby[zz asc] 
 query (up1 present [const instant value "2003-11-20-06:33"])
 
 #testcase present_I instant-undef
-#yields (bool undef)
+#yields (bool undefined)
 query (up1 present [const instant value undef])
 
 #testcase present_I upoint-undef
-#yields (bool undef)
+#yields (bool undefined)
 query (up3 present [const instant value "2003-11-20-06:33"])
 
 #testcase present_P
@@ -263,11 +263,11 @@ query ( up2 passes p)
 query ( up4 passes p)
 
 #testcase passes undef-upoint p
-#yields (bool undef)
+#yields (bool undefined)
 query ( up3 passes p)
 
 #testcase passes up2 undef-point
-#yields (bool undef)
+#yields (bool undefined)
 query ( up2 passes p3)
 
 #testcase velocity_up
@@ -279,7 +279,7 @@ query velocity(up1)
 query velocity([const upoint value(("2003-11-20-06:00" "2003-11-20-06:01" TRUE TRUE) (0.0 0.0 1000.0 0.0))])
 
 #testcase velocity undef-upoint
-#yields (upoint undef)
+#yields (upoint undefined)
 query velocity(up3)
 
 #testcase derivable_ur4
@@ -291,11 +291,11 @@ query derivable(ur4)
 query derivable(ur2)
 
 #Testcase derivative_ur4 (radix)
-#yields (ureal undef)
+#yields (ureal undefined)
 query derivative(ur4)
 
 #Testcase derivative_ur3 (undefined)
-#yields (ureal undef)
+#yields (ureal undefined)
 query derivative(ur3)
 
 #testcase derivative_ur2 (defined)
@@ -311,7 +311,7 @@ query atmax(ui1)
 query atmin(ui2)
 
 #testcase distance_ui3_i
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(ui3, i1)
 
 #testcase distance_ui1_i
@@ -319,7 +319,7 @@ query distance(ui3, i1)
 query distance(ui1, i1)
 
 #testcase distance_i_ui3
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(i1, ui3)
 
 
@@ -416,11 +416,11 @@ query ui1 present [const instant value "2003-11-20-06:33"]
 query ui1 present [const instant value "2003-11-20-07:00"]
 
 #testcase present_uconst_instant inst-undef
-#yields (bool undef)
+#yields (bool undefined)
 query ui1 present [const instant value undef]
 
 #testcase present_uconst_instant unit-undef
-#yields (bool undef)
+#yields (bool undefined)
 query ui3 present [const instant value "2003-11-20-06:33"]
 
 
@@ -433,11 +433,11 @@ query ur4 present [const instant value "2003-11-20-06:33"]
 query ur4 present [const instant value "2003-11-20-07:00"]
 
 #testcase present_ureal_instant inst-undef
-#yields (bool undef)
+#yields (bool undefined)
 query ur4 present [const instant value undef]
 
 #testcase present_ureal_instant unit-undef
-#yields (bool undef)
+#yields (bool undefined)
 query ur3 present [const instant value "2003-11-20-06:33"]
 
 
@@ -450,11 +450,11 @@ query (ui1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10"
 query (ui1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
 
 #testcase present_uconst_periods uconst-undef
-#yields (bool undef)
+#yields (bool undefined)
 query (ui3 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
 
 #testcase present_uconst_periods periods-empty
-#yields (bool undef)
+#yields (bool undefined)
 query (ui3 present [const periods value ( ) ])
 
 
@@ -468,11 +468,11 @@ query (ur4 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10"
 query (ur4 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
 
 #testcase present_ureal_periods undef-ureal
-#yields (bool undef)
+#yields (bool undefined)
 query (ur3 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
 
 #testcase present_ureal_periods empty-periods
-#yields (bool undef)
+#yields (bool undefined)
 query (ur3 present [const periods value ( ) ])
 
 
@@ -482,11 +482,11 @@ query (ur3 present [const periods value ( ) ])
 query ui1 atinstant [const instant value "2003-11-20-06:33"]
 
 #testcase atinstant_uconst uconst-undef
-#yields (iint undef)
+#yields (iint undefined)
 query ui3 atinstant [const instant value "2003-11-20-06:33"]
 
 #testcase atinstant_uconst instant-undef
-#yields (iint undef)
+#yields (iint undefined)
 query ui1 atinstant [const instant value undef]
 
 
@@ -496,15 +496,15 @@ query ui1 atinstant [const instant value undef]
 query ur1 atinstant [const instant value "2000-01-03-00:00"]
 
 #testcase atinstant_ureal UNDEF
-#yields (ireal undef)
+#yields (ireal undefined)
 query ur1 atinstant [const instant value "1999-01-03-00:00"]
 
 #testcase atinstant_ureal ureal-undef
-#yields (ireal undef)
+#yields (ireal undefined)
 query ur3 atinstant [const instant value "2000-01-03-00:00"]
 
 #testcase atinstant_ureal instant-undef
-#yields (ireal undef)
+#yields (ireal undefined)
 query ur1 atinstant [const instant value undef]
 
 
@@ -569,7 +569,7 @@ query (ur4 atperiods [const periods value ( ("2003-11-20-05:05" "2003-11-20-05:1
 query initial(ui1)
 
 #testcase initial_uconst undefined
-#yields (iint undef)
+#yields (iint undefined)
 query initial(ui3)
 
 #testcase initial_ureal defined
@@ -578,7 +578,7 @@ query initial(ui3)
 query initial(ur1)
 
 #testcase initial_ureal undefined
-#yields (ireal undef)
+#yields (ireal undefined)
 query initial(ur3)
 
 
@@ -588,7 +588,7 @@ query initial(ur3)
 query final(ui1)
 
 #testcase final_uconst undefined
-#yields (iint undef)
+#yields (iint undefined)
 query initial(ui3)
 
 #testcase final_ureal defined
@@ -597,13 +597,13 @@ query initial(ui3)
 query final(ur1)
 
 #testcase final_ureal undefined
-#yields (ireal undef)
+#yields (ireal undefined)
 query final(ur3)
 
 
 
 #testcase trajectory_up undefined
-#yields (line undef)
+#yields (line undefined)
 query trajectory(up3)
 
 #testcase trajectory_up defined up1
@@ -617,7 +617,7 @@ query trajectory(up2)
 
 
 #testcase speed_upoint undef
-#yields (ureal undef)
+#yields (ureal undefined)
 query speed(up3)
 
 #testcase speed_upoint def1
@@ -657,15 +657,15 @@ query distance(p, up8)
 
 
 #testcase distance_upoint_upoint undef undef
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(up3, up3)
 
 #testcase distance_upoint_upoint def undef
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(up1, up3)
 
 #testcase distance_upoint_upoint undef def
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(up3, up2)
 
 
@@ -691,11 +691,11 @@ query distance(up1,up9)
 query distance(i1, ui1)
 
 #testcase distance_int_uint DEF UNDEF
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(i1, ui3)
 
 #testcase distance_int_uint UNDEF DEF
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(i3, ui1)
 
 #testcase distance_uint_int DEF DEF
@@ -703,11 +703,11 @@ query distance(i3, ui1)
 query distance(ui1, i1)
 
 #testcase distance_uint_int UNDEF DEF
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(ui3, i1)
 
 #testcase distance_uint_int DEF UNDEF
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(ui1, i3)
 
 
@@ -717,11 +717,11 @@ query distance(ui1, i3)
 query distance(ui1, ui1)
 
 #testcase distance_uint_uint DEF UNDEF
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(ui1, ui3)
 
 #testcase distance_uint_uint UNDEF DEF
-#yields (ureal undef)
+#yields (ureal undefined)
 query distance(ui3, ui1)
 
 
@@ -1041,11 +1041,11 @@ query the_unit(initial(ui1), create_duration(1.5), FALSE, FALSE)
 query the_unit(initial(ui1), create_duration(1.5), FALSE, FALSE)
 
 #testcase the_unit (iT duration bool bool) --> uT (3)
-#yields (ubool undef)
+#yields (ubool undefined)
 query the_unit(initial(ubool1), create_duration(0, 0), FALSE, FALSE)
 
 #testcase the_unit (iT duration bool bool) --> uT (4)
-#yields (ubool undef)
+#yields (ubool undefined)
 query the_unit(initial(ubool1), create_duration(0, 1), FALSE, FALSE)
 
 #testcase the_unit (T instant instant bool bool) --> uT (1)
@@ -1053,7 +1053,7 @@ query the_unit(initial(ubool1), create_duration(0, 1), FALSE, FALSE)
 query the_unit("Gliep!", inst1, inst2, FALSE, TRUE)
 
 #testcase the_unit (T instant instant bool bool) --> uT (2)
-#yields (uint undef)
+#yields (uint undefined)
 query the_unit(333, inst2, inst2, FALSE, TRUE)
 
 #testcase the_unit (T instant instant bool bool) --> uT (3)
@@ -1071,7 +1071,7 @@ query the_unit(FALSE, inst1, inst1 + [const duration value (0 1)], FALSE, TRUE)
 
 
 #testcase the_ivalue undef
-#yields (iint undef)
+#yields (iint undefined)
 query the_ivalue(inst3, 75)
 
 #testcase the_ivalue string
@@ -1084,7 +1084,7 @@ query the_ivalue(inst1, "Hallo!")
 query the_ivalue(inst2, p1)
 
 #testcase the_ivalue undef point
-#yields (ipoint ("2003-11-20-07:00" undef))
+#yields (ipoint ("2003-11-20-07:00" undefined))
 query the_ivalue(inst2, p3)
 
 #testcase the_ivalue real
@@ -1096,13 +1096,13 @@ query the_ivalue(inst2, r1)
 query the_ivalue(inst2, FALSE)
 
 ##testcase the_ivalue region
-##yields (iregion undef)
+##yields (iregion undefined)
 #query the_ivalue(inst3, spiral)
 
 
 
 #testcase no_components undef
-#yields (uint undef)
+#yields (uint undefined)
 query no_components(up3)
 
 #testcase no_components def
@@ -1126,7 +1126,7 @@ query isempty([const uint value (("2003-11-12" "2005-05-30" FALSE FALSE) 7)])
 
 
 #testcase not undef
-#yields (ubool undef)
+#yields (ubool undefined)
 query not([const ubool value undef])
 
 #testcase not TRUE
@@ -1140,15 +1140,15 @@ query not([const ubool value (("2003-11-12" "2005-05-30" FALSE FALSE) FALSE)])
 
 
 #testcase and_ubool_ubool undef arg1
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool3 and ubool1
 
 #testcase and_ubool_ubool undef arg2
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool1 and ubool3
 
 #testcase and_ubool_ubool no intersect
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool2 and ubool4
 
 #testcase and_ubool_ubool TRUE
@@ -1162,11 +1162,11 @@ query ubool1 and ubool4
 
 
 #testcase and_bool_ubool undef arg1
-#yields (ubool undef)
+#yields (ubool undefined)
 query [const bool value undef] and ubool1
 
 #testcase and_bool_ubool undef arg2
-#yields (ubool undef)
+#yields (ubool undefined)
 query [const bool value TRUE] and ubool3
 
 #testcase and_bool_ubool TRUE
@@ -1184,11 +1184,11 @@ query [const bool value TRUE] and ubool4
 
 
 #testcase and_ubool_bool undef arg2
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool1 and [const bool value undef]
 
 #testcase and_ubool_bool undef arg1
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool3 and [const bool value TRUE]
 
 #testcase and_bool_ubool TRUE
@@ -1206,15 +1206,15 @@ query ubool4 and [const bool value TRUE]
 
 
 #testcase or_ubool_ubool undef arg1
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool3 or ubool1
 
 #testcase or_ubool_ubool undef arg2
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool1 or ubool3
 
 #testcase or_ubool_ubool no intersect
-#yields (ubool undef)
+#yields (ubool undefined)
 query ubool2 or ubool4
 
 #testcase or_ubool_ubool TRUE 1
@@ -1232,11 +1232,11 @@ query ubool4 or ubool4
 
 
 #testcase or_bool_ubool undef arg1
-#yields (ubool undef)
+#yields (ubool undefined)
 query [const bool value undef] or ubool1
 
 #testcase or_bool_ubool undef arg2
-#yields (ubool undef)
+#yields (ubool undefined)
 query [const bool value TRUE] or ubool3
 
 #testcase or_bool_ubool TRUE 1
@@ -1413,7 +1413,7 @@ query abs(ui1)
 query abs([const uint value (("2000-01-01" "2000-01-02" FALSE FALSE) -378351)])
 
 #testcase abs_uint undef
-#yields (uint undef)
+#yields (uint undefined)
 query abs(ui3)
 
 

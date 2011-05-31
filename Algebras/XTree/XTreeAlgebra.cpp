@@ -42,7 +42,6 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
-using namespace symbols;
 namespace xtreeAlgebra
 {
 
@@ -135,10 +134,10 @@ int SizeOfXTree()
 { return sizeof(XTree); }
 
 bool CheckXTree(ListExpr typeName, ListExpr &error_Info)
-{ return nl->IsEqual(typeName, XTREE); }
+{ return nl->IsEqual(typeName, "xtree"); }
 
 TypeConstructor xtreeTC(
-        XTREE,       XTreeProp,
+        "xtree",       XTreeProp,
         OutXTree,    InXTree,
         0, 0,
         CreateXTree, DeleteXTree,
@@ -1099,7 +1098,7 @@ int nnscanHPoint_VM(
 
 ********************************************************************/
 int nnscan_VM(
-        Word* args, Word& result, int message, 
+        Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   nnscan_LI *li;
@@ -1292,11 +1291,11 @@ ListExpr creatextree_TM(ListExpr args)
 
     if ((typeName == "hpoint") || (typeName == "hrect"))
     {
-        NList res1(APPEND);
+        NList res1(Symbol::APPEND());
         NList res2;
         res2.append(NList(attrIndex));
         res2.append(NList(configName, true));
-        NList res3(XTREE);
+        NList res3("xtree");
         NList result(res1, res2, res3);
         return result.listExpr();
     }
@@ -1349,14 +1348,14 @@ ListExpr creatextree_TM(ListExpr args)
         }
     }
 
-    NList res1(APPEND);
+    NList res1(Symbol::APPEND());
     NList res2;
     res2.append(NList(attrIndex));
     res2.append(NList(configName, true));
     res2.append(NList(typeName, true));
     res2.append(NList(getdataType));
     res2.append(NList(getdataName, true));
-    NList res3(XTREE);
+    NList res3("xtree");
     NList result(res1, res2, res3);
     return result.listExpr();
 
@@ -1384,7 +1383,7 @@ ListExpr rangesearch_TM(ListExpr args)
     NList searchRad_NL = args_NL.fourth();
 
     CHECK_COND(
-            mtree_NL.isEqual(XTREE),
+            mtree_NL.isEqual("xtree"),
             "First argument must be a xtree!");
     CHECK_REL(rel_NL, attrs, 2);
     CHECK_SYMBOL(data_NL, 3);
@@ -1394,11 +1393,11 @@ ListExpr rangesearch_TM(ListExpr args)
        in the value mapping function, since that needs some data from
        the xtree object */
 
-    NList append(APPEND);
+    NList append(Symbol::APPEND());
     NList result (
         append,
         NList(data_NL.str(), true).enclose(),
-        NList(NList(STREAM), rel_NL.second()));
+        NList(NList(Symbol::STREAM()), rel_NL.second()));
 
     return result.listExpr();
 }
@@ -1424,7 +1423,7 @@ ListExpr nnsearch_TM(ListExpr args)
     NList nnCount_NL = args_NL.fourth();
 
     CHECK_COND(
-            mtree_NL.isEqual(XTREE),
+            mtree_NL.isEqual("xtree"),
             "First argument must be a xtree!");
     CHECK_REL(rel_NL, attrs, 2);
     CHECK_SYMBOL(data_NL, 3);
@@ -1434,11 +1433,11 @@ ListExpr nnsearch_TM(ListExpr args)
        in the value mapping function, since that needs some data from
        the xtree object */
 
-    NList append(APPEND);
+    NList append(Symbol::APPEND());
     NList result (
         append,
         NList(data_NL.str(), true).enclose(),
-        NList(NList(STREAM), rel_NL.second()));
+        NList(NList(Symbol::STREAM()), rel_NL.second()));
 
     return result.listExpr();
 }
@@ -1459,7 +1458,7 @@ ListExpr windowintersects_TM(ListExpr args)
     NList hrect_NL = args_NL.third();
 
     CHECK_COND(
-            xtree_NL.isEqual(XTREE),
+            xtree_NL.isEqual("xtree"),
             "First argument must be a xtree!");
     CHECK_REL(rel_NL, attrs, 2);
     CHECK_SYMBOL(hrect_NL, 3);
@@ -1468,7 +1467,7 @@ ListExpr windowintersects_TM(ListExpr args)
     string error = "Expecting a \"hrect\" as third parameter!";
     CHECK_COND(typeName == "hrect", error);
 
-    NList stream_NL(STREAM);
+    NList stream_NL(Symbol::STREAM());
     NList result(stream_NL, rel_NL.second());
     return result.listExpr();
 }
@@ -1493,7 +1492,7 @@ ListExpr nnscan_TM(ListExpr args)
     NList data_NL = args_NL.third();
 
     CHECK_COND(
-            mtree_NL.isEqual(XTREE),
+            mtree_NL.isEqual("xtree"),
             "First argument must be a xtree!");
     CHECK_REL(rel_NL, attrs, 2);
     CHECK_SYMBOL(data_NL, 3);
@@ -1502,11 +1501,11 @@ ListExpr nnscan_TM(ListExpr args)
        in the value mapping function, since that needs some data from
        the xtree object */
 
-    NList append(APPEND);
+    NList append(Symbol::APPEND());
     NList result (
         append,
         NList(data_NL.str(), true).enclose(),
-        NList(NList(STREAM), rel_NL.second()));
+        NList(NList(Symbol::STREAM()), rel_NL.second()));
 
     return result.listExpr();
 }
@@ -1528,7 +1527,7 @@ int creatextree_Select(ListExpr args)
     FindAttribute(attrs.listExpr(), attrName, attrTypeLE);
     NList attrType(attrTypeLE);
 
-    if (arg1.first().isEqual(REL))
+    if (arg1.first().isEqual(Relation::BasicType()))
     { // relation
         if (attrType.isEqual("hpoint"))
             return 0;
@@ -1552,7 +1551,7 @@ int creatextree3_Select(ListExpr args)
 {
     NList argsNL(args);
     NList arg1 = argsNL.first();
-    if (arg1.first().isEqual(REL))
+    if (arg1.first().isEqual(Relation::BasicType()))
         return 0;
     else
         return 1;

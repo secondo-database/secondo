@@ -65,9 +65,9 @@ UGrid-Algebra offers the following methods:
 #include "RectangleAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "UploadUnit.h"
+#include "Symbols.h"
 
 using namespace std;
-using namespace symbols;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -585,8 +585,8 @@ ListExpr UGrid::Out(ListExpr typeInfo, Word value )
   if (ugridPtr->header->numEntries == 0)
   {
     // Time interval is undefined if no entry exist
-    tiv = nl->TwoElemList( nl->StringAtom("undefined"),
-                           nl->StringAtom("undefined"));
+    tiv = nl->TwoElemList( nl->SymbolAtom(Symbol::UNDEFINED()),
+                           nl->SymbolAtom(Symbol::UNDEFINED()));
   }
   else if (ugridPtr->header->numEntries == 1)
   {
@@ -594,7 +594,7 @@ ListExpr UGrid::Out(ListExpr typeInfo, Word value )
     tiv = nl->TwoElemList(
               OutDateTime(nl->TheEmptyList(),
                           SetWord(&ugridPtr->header->tiv.start)),
-                          nl->StringAtom("undefined"));
+                          nl->SymbolAtom(Symbol::UNDEFINED()));
   }
   else
   {
@@ -1831,7 +1831,7 @@ ListExpr CreateTM(ListExpr args)
     return (nl->SymbolAtom(UGrid::BasicType()));
   }
   ErrorReporter::ReportError("rect x int expected!");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /******************************************************************************
@@ -2269,9 +2269,9 @@ ListExpr InsertStreamTM(ListExpr args)
 
   NList first = type.first();
   if ( !first.hasLength(2)  ||
-       !first.first().isSymbol(STREAM) ||
+       !first.first().isSymbol(Symbol::STREAM()) ||
        !first.second().hasLength(2) ||
-       !first.second().first().isSymbol(TUPLE) ||
+       !first.second().first().isSymbol(Tuple::BasicType()) ||
        !IsTupleDescription( first.second().second().listExpr() ))
   {
     return listutils::typeError("Error in first argument!");
@@ -2298,8 +2298,9 @@ ListExpr InsertStreamTM(ListExpr args)
     {
       return NList::typeError("Attribute type is not of type uploadunit.");
     }
-    NList resType = NList(BOOL);
-    return NList( NList(APPEND), NList(j).enclose(), resType ).listExpr();
+    NList resType = NList(CcBool::BasicType());
+    return NList( NList(Symbol::APPEND()),
+                  NList(j).enclose(), resType ).listExpr();
   }
   else
   {
@@ -2552,11 +2553,11 @@ ListExpr IntersectsWinTM(ListExpr args)
   if(!(nl->ListLength( args ) == 4 &&
       nl->IsEqual(nl->First(args),UGrid::BasicType()) &&
       nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
-      nl->IsEqual(nl->Third(args),"instant") &&
-      nl->IsEqual(nl->Fourth(args),"instant")))
+      nl->IsEqual(nl->Third(args),Instant::BasicType()) &&
+      nl->IsEqual(nl->Fourth(args),Instant::BasicType())))
   {
     ErrorReporter::ReportError("ugrid x rect x instant x instant expected!");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
 
@@ -2565,9 +2566,10 @@ ListExpr IntersectsWinTM(ListExpr args)
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("HistoryUnit"),
-                                       nl->SymbolAtom("upoint")));
-  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+                                       nl->SymbolAtom(UPoint::BasicType())));
+  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                                       tupleList));
   return streamList;
 }
 
@@ -2709,11 +2711,11 @@ ListExpr InsideWinTM(ListExpr args)
   if(!(nl->ListLength( args ) == 4 &&
       nl->IsEqual(nl->First(args),UGrid::BasicType()) &&
       nl->IsEqual(nl->Second(args),Rectangle<2>::BasicType()) &&
-      nl->IsEqual(nl->Third(args),"instant") &&
-      nl->IsEqual(nl->Fourth(args),"instant")))
+      nl->IsEqual(nl->Third(args),Instant::BasicType()) &&
+      nl->IsEqual(nl->Fourth(args),Instant::BasicType())))
   {
     ErrorReporter::ReportError("ugrid x rect x instant x instant expected!");
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
   }
 
 
@@ -2722,9 +2724,10 @@ ListExpr InsideWinTM(ListExpr args)
                        nl->TwoElemList(nl->SymbolAtom("MovObjId"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("HistoryUnit"),
-                                       nl->SymbolAtom("upoint")));
-  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
-                        nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+                                       nl->SymbolAtom(UPoint::BasicType())));
+  ListExpr streamList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                                       tupleList));
   return streamList;
 }
 
@@ -2893,13 +2896,14 @@ ListExpr GetTrajectoryTM(ListExpr args)
                          nl->TwoElemList(nl->SymbolAtom("MovObjId"),
                                          nl->SymbolAtom(CcInt::BasicType())),
                          nl->TwoElemList(nl->SymbolAtom("HistoryUnit"),
-                                         nl->SymbolAtom("upoint")));
-    ListExpr streamList = nl->TwoElemList(nl->SymbolAtom("stream"),
-                          nl->TwoElemList(nl->SymbolAtom("tuple"),tupleList));
+                                         nl->SymbolAtom(UPoint::BasicType())));
+    ListExpr streamList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                                         tupleList));
     return streamList;
   }
   ErrorReporter::ReportError("ugrid x int expected!");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /******************************************************************************
@@ -3049,7 +3053,7 @@ ListExpr CurrentUploadTM(ListExpr args)
     return nl->SymbolAtom(UploadUnit::BasicType());
   }
   ErrorReporter::ReportError("ugrid x int expected!");
-  return (nl->SymbolAtom( "typeerror" ));
+  return (nl->SymbolAtom( Symbol::TYPEERROR() ));
 }
 
 /******************************************************************************

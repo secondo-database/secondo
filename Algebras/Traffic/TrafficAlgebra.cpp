@@ -53,8 +53,6 @@ NetworkAlgebra respectively in the TemporalNetAlgebra.
 #include <cmath>
 #include <queue>
 
-using namespace symbols;
-
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -1275,7 +1273,7 @@ ListExpr OpTraffic2TypeMap(ListExpr in_xArgs)
     NList mgp("mgpoint");
     NList partlength = type.second();
     if (stream.length() == 2 && stream.checkStream(mgp) &&
-        partlength.isEqual("real"))
+        partlength.isEqual(CcReal::BasicType()))
     {
       ListExpr retList;
       nl->ReadFromString(trafficRelationTypeInfo, retList);
@@ -1372,7 +1370,8 @@ ListExpr OpHeavyTrafficTypeMap(ListExpr in_xArgs)
     ListExpr rel = type.first().listExpr();
     NList speed = type.second();
     NList cars = type.third();
-    if (speed.isEqual("real") && cars.isEqual("int") && IsRelDescription(rel))
+    if (speed.isEqual(CcReal::BasicType()) &&
+      cars.isEqual(CcInt::BasicType()) && IsRelDescription(rel))
     {
       ListExpr inRelDescr;
       nl->ReadFromString(trafficRelationTypeInfo,inRelDescr);

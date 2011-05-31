@@ -276,6 +276,20 @@ parameter is set. The strings stored in the map must be valid symbols.
 
   bool replaceAttributes( ListExpr attrList, map<string, string>& renameMap,
                           ListExpr& resAttrList, string& errmsg);
+
+/*
+Checks wheter a symbol or string is one of "undef", "UNDEF", "undefined",
+"UNDEFINED", "null" or "NULL", which should all be handled equivalent to
+const string Symbol::UNDEFINED().
+
+These methods are intended to establish backward compatibility in IN-functions.
+To represent undefined values in a nested list when implementing OUT-functions,
+alway use const string Symbol::UNDEFINED()!
+
+*/
+  bool isSymbolUndefined( const string s );
+  bool isSymbolUndefined( ListExpr le );
+
 } // end of namespace
 #endif
 

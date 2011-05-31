@@ -164,7 +164,7 @@ class CcInt : public Attribute
 
   inline size_t HashValue() const
   {
-    static long& ctr = Counter::getRef(symbols::CTR_INT_HASH);
+    static long& ctr = Counter::getRef(Symbol::CTR_INT_HASH());
     ctr++;
     return (IsDefined() ? intval : 0);
   }
@@ -179,7 +179,7 @@ class CcInt : public Attribute
   inline int Compare(const Attribute* arg) const
   {
     const CcInt* rhs = dynamic_cast<const CcInt*>( arg );
-    static long& ctr = Counter::getRef(symbols::CTR_INT_COMPARE);
+    static long& ctr = Counter::getRef(Symbol::CTR_INT_COMPARE());
     ctr++;
 
     return Attribute::GenericCompare<CcInt>( this, rhs,
@@ -188,7 +188,7 @@ class CcInt : public Attribute
 
   inline virtual bool Equal(const CcInt* rhs) const
   {
-    static long& ctr = Counter::getRef(symbols::CTR_INT_EQUAL);
+    static long& ctr = Counter::getRef(Symbol::CTR_INT_EQUAL());
     ctr++;
 
     return Attribute::GenericEqual<CcInt>( this, rhs,
@@ -197,7 +197,7 @@ class CcInt : public Attribute
 
   inline virtual bool Less(const CcInt* rhs) const
   {
-    static long& ctr = Counter::getRef(symbols::CTR_INT_LESS);
+    static long& ctr = Counter::getRef(Symbol::CTR_INT_LESS());
     ctr++;
 
     return Attribute::GenericLess<CcInt>( this, rhs,
@@ -207,7 +207,7 @@ class CcInt : public Attribute
 
   inline bool Adjacent(const Attribute* arg) const
   {
-    static long& ctr = Counter::getRef(symbols::CTR_INT_ADJACENT);
+    static long& ctr = Counter::getRef(Symbol::CTR_INT_ADJACENT());
     ctr++;
 
     int a = GetIntval(),

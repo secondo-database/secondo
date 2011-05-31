@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -208,7 +208,7 @@ query real feed avg[no];
 query Staedte feed avg[SName];
 
 #testcase Average4
-#yields (real undef)
+#yields (real undefined)
 query real feed head[0] avg[no];
 
 #testcase Head1
@@ -240,7 +240,7 @@ query ten feed head[0] extend[mod2 : .no mod 2] head[3] consume;
 query Staedte feed extract[Bev];
 
 #testcase Extract2
-#yields (int undef)
+#yields (int undefined)
 query Staedte feed head[0] extract[Bev];
 
 #-testcase GroupBy1
@@ -288,7 +288,7 @@ query Employee feed head[0] Dept feed rename[A] sortmergejoin[DeptNr, DeptNr_A] 
 query Staedte feed max[SName];
 
 #testcase Max2
-#yields (string undef)
+#yields (string undefined)
 query Staedte feed head[0] max[SName];
 
 #testcase Max3
@@ -312,7 +312,7 @@ query Staedte feed sum[Bev];
 query real feed sum[no];
 
 #testcase Sum3
-#yields (int undef)
+#yields (int undefined)
 query Staedte feed head[0] sum[Bev];
 
 #testcase Product1

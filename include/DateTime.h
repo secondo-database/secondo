@@ -685,9 +685,19 @@ ListExpr OutDateTime( ListExpr typeInfo, Word value );
 ostream& operator<<(ostream& o, const datetime::DateTime& DT);
 
 
+/*
+Type name for Duration type in Secondo
 
-namespace Duration{
-  const string BasicType();
-}
+*/
+class Duration{
+  public:
+    static const string BasicType() {return "duration"; }
+};
+
+/*
+A frequently used alias name for "DateTime" is "Instant".
+
+*/
+typedef datetime::DateTime Instant;
 
 #endif

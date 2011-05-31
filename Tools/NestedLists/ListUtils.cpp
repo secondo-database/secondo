@@ -28,6 +28,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "SecondoSystem.h"
 
+#include "Symbols.h"            // Kind::*, Symbol::*
+#include "StandardTypes.h"      // int, real, bool, string
+#include "OldRelationAlgebra.h" // rel, tuple
+#include "RelationAlgebra.h"    // rel, trel, tuple
+#include "OrderedRelationAlgebra.h" // orel
+#include "TupleIdentifier.h"    // tid
+#include "RectangleAlgebra.h"   // rect, rect3, rect4, rect8
+#include "RTreeAlgebra.h"       // rtree, rtree3, rtree4, rtee8
+#include "BTreeAlgebra.h"       // btree
+#include "BTree2.h"             // btree2
+#include "HashAlgebra.h"        // hash
+
+
 #include <set>
 #include <string>
 
@@ -41,7 +54,7 @@ namespace listutils{
 */
 
   ListExpr emptyErrorInfo(){
-    return nl->OneElemList(nl->SymbolAtom("ERROR"));
+    return nl->OneElemList(nl->SymbolAtom(Symbol::ERROR()));
   }
 
 /*
@@ -52,10 +65,10 @@ Checks for a Spatial type.
   bool isSpatialType(ListExpr arg){
     AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
     ListExpr errorInfo = emptyErrorInfo();
-    return algMgr->CheckKind("SPATIAL2D", arg, errorInfo) ||
-            algMgr->CheckKind("SPATIAL3D", arg, errorInfo) ||
-            algMgr->CheckKind("SPATIAL4D", arg, errorInfo) ||
-            algMgr->CheckKind("SPATIAL8D", arg, errorInfo);
+    return algMgr->CheckKind(Kind::SPATIAL2D(), arg, errorInfo) ||
+           algMgr->CheckKind(Kind::SPATIAL3D(), arg, errorInfo) ||
+           algMgr->CheckKind(Kind::SPATIAL4D(), arg, errorInfo) ||
+           algMgr->CheckKind(Kind::SPATIAL8D(), arg, errorInfo);
   }
 
 /*
@@ -64,10 +77,10 @@ Checks for a rectangle type
 */
 
   bool isRectangle(ListExpr arg){
-    return nl->IsEqual(arg, "rect") ||
-           nl->IsEqual(arg, "rect3") ||
-           nl->IsEqual(arg, "rect4") ||
-           nl->IsEqual(arg, "rect8");
+    return nl->IsEqual(arg, Rectangle<2>::BasicType()) ||
+           nl->IsEqual(arg, Rectangle<3>::BasicType()) ||
+           nl->IsEqual(arg, Rectangle<4>::BasicType()) ||
+           nl->IsEqual(arg, Rectangle<8>::BasicType());
 
   }
 
@@ -109,10 +122,10 @@ Checks for a valid description of an rtree.
    }
    string rtreestr = nl->SymbolValue(rtreeSymbol);
 
-   if( (rtreestr != "rtree") &&
-       (rtreestr != "rtree3") &&
-       (rtreestr != "rtree4") &&
-       (rtreestr != "rtree8") ){
+   if( (rtreestr != RTree2TID::BasicType()) &&
+       (rtreestr != RTree3TID::BasicType()) &&
+       (rtreestr != RTree4TID::BasicType()) &&
+       (rtreestr != RTree8TID::BasicType()) ){
       return false;
    }
 
@@ -135,7 +148,7 @@ bool isBTreeDescription(ListExpr btree){
   if((nl->ListLength(btree)<3) || (nl->ListLength(btree)>4)){
     return false;
   }
-  return nl->IsEqual(nl->First(btree),"btree") &&
+  return nl->IsEqual(nl->First(btree),BTree::BasicType()) &&
          isTupleDescription(nl->Second(btree)) &&
          isDATA(nl->Third(btree)) &&
          ((nl->ListLength(btree) == 3) ||
@@ -151,14 +164,14 @@ an key for a Berkeley DB index.
 bool isBDBIndexableType(ListExpr key){
   ListExpr errorInfo = emptyErrorInfo();
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  bool indexable = algMgr->CheckKind("INDEXABLE", key,errorInfo) ||
+  bool indexable = algMgr->CheckKind(Kind::INDEXABLE(), key,errorInfo) ||
                    (nl->IsAtom(key) &&
                     nl->AtomType(key) == SymbolType &&
-                    (nl->SymbolValue(key) == "int" ||
-                     nl->SymbolValue(key) == "tid" ||
-                     nl->SymbolValue(key) == "real" ||
-                     nl->SymbolValue(key) == "bool" ||
-                     nl->SymbolValue(key) == "string"));
+                    (nl->SymbolValue(key) == CcInt::BasicType() ||
+                     nl->SymbolValue(key) == TupleIdentifier::BasicType() ||
+                     nl->SymbolValue(key) == CcReal::BasicType() ||
+                     nl->SymbolValue(key) == CcBool::BasicType() ||
+                     nl->SymbolValue(key) == CcString::BasicType()));
   return indexable;
 }
 
@@ -174,7 +187,7 @@ bool isBTree2Description(ListExpr btree2){
   ListExpr uniq = nl->Fourth(btree2);
   ListExpr key = nl->Second(btree2);
   bool indexable = isBDBIndexableType(key);
-  return (nl->IsEqual(nl->First(btree2),"btree2") &&
+  return (nl->IsEqual(nl->First(btree2),BTree2Algebra::BTree2::BasicType()) &&
             indexable &&
             nl->IsAtom(nl->Third(btree2)) &&
             nl->AtomType(uniq) == SymbolType) &&
@@ -192,7 +205,7 @@ bool isBTree2Description(ListExpr btree2){
     if(nl->ListLength(hash)!=3){
       return false;
     }
-    return isSymbol(nl->First(hash),"hash") &&
+    return isSymbol(nl->First(hash),Hash::BasicType()) &&
          isTupleDescription(nl->Second(hash)) &&
          isDATA(nl->Third(hash));
   }
@@ -207,7 +220,7 @@ Checks for valid description of a tuple.
     if(nl->ListLength(tuple)!=2){
        return false;
     }
-    string tuplesym = ismtuple?"mtuple":"tuple";
+    string tuplesym = ismtuple?CcTuple::BasicType():Tuple::BasicType();
     if(!isSymbol(nl->First(tuple),tuplesym)){
        return false;
     }
@@ -246,7 +259,7 @@ Checks for a valid atribute list
          return false;
       }
       attrnames.insert(name);
-      if(!am->CheckKind("DATA", attrType, errorInfo)){
+      if(!am->CheckKind(Kind::DATA(), attrType, errorInfo)){
          return false;
       }
     }
@@ -346,10 +359,10 @@ Returns the dimension of an rtree.
   int getRTreeDim(ListExpr rtree){
      assert(isRTreeDescription(rtree));
      string t = nl->SymbolValue(nl->First(rtree));
-     if(t=="rtree") return 2;
-     if(t=="rtree3") return 3;
-     if(t=="rtree4") return 4;
-     if(t=="rtree8") return 8;
+     if(t==RTree2TID::BasicType()) return 2;
+     if(t==RTree3TID::BasicType()) return 3;
+     if(t==RTree4TID::BasicType()) return 4;
+     if(t==RTree8TID::BasicType()) return 8;
      assert(false);
      return -1;
   }
@@ -359,7 +372,7 @@ Checks for a valid relation description.
 
 */
   bool isRelDescription(ListExpr rel, const bool trel /*=false*/){
-    string relsymb = trel?"trel":"rel";
+    string relsymb = trel?TempRelation::BasicType():Relation::BasicType();
     return isRelDescription2(rel, relsymb);
   }
 
@@ -371,7 +384,7 @@ Checks for a valid relation description.
     if(!isSymbol(nl->First(rel),relsymb)){
        return false;
     }
-    bool mtuple = relsymb=="mrel";
+    bool mtuple = relsymb==CcRel::BasicType();
     return isTupleDescription(nl->Second(rel),mtuple);
   }
 
@@ -379,7 +392,7 @@ Checks for a valid relation description.
     if(nl->ListLength(orel)!=3) {
       return false;
     }
-    return isSymbol(nl->First(orel),"orel") &&
+    return isSymbol(nl->First(orel),OrderedRelation::BasicType()) &&
             isTupleDescription(nl->Second(orel),false) &&
             isKeyDescription(nl->Second(orel), nl->Third(orel));
   }
@@ -420,7 +433,7 @@ Checks for a tuple stream
     if(nl->ListLength(s)!=2){
        return false;
     }
-    if(!nl->IsEqual(nl->First(s),"stream")){
+    if(!nl->IsEqual(nl->First(s),Symbol::STREAM())){
        return false;
     }
     return isTupleDescription(nl->Second(s));
@@ -433,7 +446,7 @@ Checks for Kind DATA
 bool isDATA(ListExpr type){
  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
  ListExpr errorInfo = emptyErrorInfo();
- return algMgr->CheckKind("DATA", type, errorInfo);
+ return algMgr->CheckKind(Kind::DATA(), type, errorInfo);
 }
 
 
@@ -473,7 +486,7 @@ bool isNumericType(ListExpr n){
      return false;
   }
   string v = nl->SymbolValue(n);
-  return v=="int" || v=="real";
+  return v==CcInt::BasicType() || v==CcReal::BasicType();
 }
 
 
@@ -486,12 +499,12 @@ Checks for a stream of kind DATA
     if(nl->ListLength(s)!=2){
        return false;
     }
-    if(!nl->IsEqual(nl->First(s),"stream")){
+    if(!nl->IsEqual(nl->First(s),Symbol::STREAM())){
        return false;
     }
     AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
     ListExpr errorInfo = emptyErrorInfo();
-    return algMgr->CheckKind("DATA", nl->Second(s), errorInfo);
+    return algMgr->CheckKind(Kind::DATA(), nl->Second(s), errorInfo);
   }
 
 /*
@@ -502,7 +515,7 @@ Checks whether the list represents a stream.
     if(nl->ListLength(s)!=2){
        return false;
     }
-    if(!nl->IsEqual(nl->First(s),"stream")){
+    if(!nl->IsEqual(nl->First(s),Symbol::STREAM())){
        return false;
     }
     return true;
@@ -629,6 +642,22 @@ Checks whether the list represents a stream.
 
     return true;
 
+  }
+
+  bool isSymbolUndefined( const string s ) {
+    return (s == Symbol::UNDEFINED()) ||
+           (s == "undef")     || (s == "UNDEF") ||
+           (s == "undefined") || (s == "UNDEFINED") ||
+           (s == "null")      || (s == "NULL") ;
+  }
+
+  bool isSymbolUndefined( ListExpr le ){
+    if(isSymbol(le)){
+      string s = nl->SymbolValue(le);
+      return isSymbolUndefined(s);
+    } else {
+      return false;
+    }
   }
 
 } // end of namespace listutils

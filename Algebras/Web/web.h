@@ -68,11 +68,11 @@
 #define CONTENT_END    1016
 #define SEARCH_ELEMENT_START 1017
 #define ERROR    10000
-            
+
 
 /*
 
-1.3 Declcaration of WebLex. 
+1.3 Declcaration of WebLex.
 
 WebLex is a scanncer derived from yyFlexLexer.
 The scanner can analyse URI's, and tokens of a html document
@@ -81,7 +81,7 @@ The scanner can analyse URI's, and tokens of a html document
 using namespace std;
 
 bool isEqual (string s1, string s2);
-int SplitString(const string& input, const string& delimiter, 
+int SplitString(const string& input, const string& delimiter,
                 vector<string>& results,  bool includeEmpties);
 bool isWhite(char c);
 
@@ -101,18 +101,18 @@ class WebLex : public yyFlexLexer {
         int yylex (void);
         void switchStartCond(int);
         bool findAttribute(string attribute, string& value);
-        bool findAttribute(vector<string>& attributes, 
+        bool findAttribute(vector<string>& attributes,
                                    string& value, string & attribute);
         int startElement (string& element);
         flobindex setPos(string value, const string& content);
         int readContent();
         int readContentTmp();
-    
+
     private:
         string tokenVal;
         int switchState;
         unsigned long pos;
-        
+
 };
 
 /*
@@ -128,53 +128,53 @@ class AnalyseElement {
             element= e;
             occurrences=1;
         }
-        
-        
+
+
         AnalyseElement (string e, int s){
             element= e;
             occurrences=1;
             symbol=s;
-        }        
+        }
 
         bool operator<(AnalyseElement ae) {
             return  ( occurrences < ae.getOccurrences());
         }
-        
+
         int getOccurrences(){
             return occurrences;
         }
-        
+
         int increment(void){
             occurrences++;
             return occurrences;
         }
-        
+
         string getElement() const{
             return element;
         }
-        
+
         int getSymbol() const{
             return symbol;
         }
-        
+
         int getOccurrences() const {
             return occurrences;
         }
-        
+
         void setDepth(int i){
             depth=i;
         }
-        
+
         int getDepth(){
             return depth;
         }
-    
+
     private:
         string element;
         int occurrences;
         int symbol;
         int depth;
-        
+
 };
 
 /*
@@ -187,46 +187,46 @@ class AnalyseList : public list<AnalyseElement> {
     public:
         void add(string e){
             AnalyseList::iterator it;
-            
+
             it=begin();
-            
+
 
 
             while (it != end() && (it->getElement() != e))
-                it++;    
+                it++;
 
-            
+
 
             if (it != end())
                 it->increment();
             else
                 list<AnalyseElement>::push_back(AnalyseElement (e));
-            
+
         }
-        
-        
+
+
         void push_back(string el){
             AnalyseElement e(el);
-            
+
             list<AnalyseElement>::push_back(e);
         }
-        
+
         bool find(AnalyseList::const_iterator it, string e){
 
             while (it != end() && (it->getElement() != e))
-                it++;    
+                it++;
             if (it != end())
                 return true;
-            
+
             return false;
-            
+
         }
 };
 
 
 /*
 
-1.6 
+1.6
 
 */
 

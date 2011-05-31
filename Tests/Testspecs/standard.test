@@ -39,9 +39,9 @@ open database basic_cmd;
 
 let myrel = [const rel(tuple([No: int])) value ((1))];
 
-let ten = intstream(1,10) namedtransformstream[No] consume; 
+let ten = intstream(1,10) namedtransformstream[No] consume;
 
-let thousand = intstream(1,1000) namedtransformstream[No] consume; 
+let thousand = intstream(1,1000) namedtransformstream[No] consume;
 
 
 #testcase list objects;
@@ -345,8 +345,8 @@ query 4 minus 3
 query ifthenelse( 3 < 4 , "true" , "false")
 
 #testcase ifthenelse_undef
-#yields (string undef)
-query ifthenelse( [const bool value undef] , "true" , "false")
+#yields (string undefined)
+query ifthenelse( [const bool value undefined] , "true" , "false")
 
 #testcase ifthenelse_stream
 #yields (int 999999)
@@ -354,7 +354,7 @@ query ifthenelse( 3 < 4 , intstream(1,999999) ,1 feed) count;
 
 #testcase ifthenelse_stream_undef
 #yields (int 0)
-query ifthenelse( [const bool value undef] , intstream(1,999999) ,1 feed) count;
+query ifthenelse( [const bool value undefined] , intstream(1,999999) ,1 feed) count;
 
 #testcase ifthenelse2_rel
 #yields (int 1000)
@@ -366,7 +366,7 @@ query ifthenelse2( 3 > 4 , ten feed tconsume , thousand feed tconsume) count;
 
 
 #testcase setoption
-#yields (bool undef)
+#yields (bool undefined)
 query setoption ("unknown", 3)
 
 #testcase hashvalue
@@ -449,7 +449,7 @@ query isdefined(-12)
 
 #testcase isdefined_int_false
 #yields (bool FALSE)
-query isdefined([const int value undef])
+query isdefined([const int value undefined])
 
 #testcase isdefined_real_true
 #yields (bool TRUE)
@@ -465,7 +465,7 @@ query isdefined("")
 
 #testcase isdefined_string_false
 #yields (bool FALSE)
-query isdefined([const string value undef])
+query isdefined([const string value undefined])
 
 #testcase isdefined_bool_true
 #yields (bool TRUE)
@@ -473,7 +473,7 @@ query isdefined(FALSE)
 
 #testcase isdefined_bool_false
 #yields (bool FALSE)
-query isdefined([const bool value undef])
+query isdefined([const bool value undefined])
 
 #testcase compare_int_<
 #yields (int -1)
@@ -489,19 +489,19 @@ query compare(-654,-654)
 
 #testcase compare_int_undef=
 #yields (int 0)
-query compare([const int value undef],[const int value undef])
+query compare([const int value undefined],[const int value undefined])
 
 #testcase compare_int_undef<
 #yields (int 1)
-query compare(-6876,[const int value undef])
+query compare(-6876,[const int value undefined])
 
 #testcase compare_int_undef>
 #yields (int -1)
-query compare([const int value undef],6876)
+query compare([const int value undefined],6876)
 
 #testcase compare_int_undef=
 #yields (int 0)
-query compare([const int value undef],[const int value undef])
+query compare([const int value undefined],[const int value undefined])
 
 
 

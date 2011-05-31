@@ -54,7 +54,6 @@ December 2009 Jiamin Lu
 #include "UrelAlgebra.h"
 
 #include "Symbols.h"
-using namespace symbols;
 using namespace std;
 
 extern NestedList* nl;
@@ -943,7 +942,7 @@ struct urelInsertInfo : OperatorInfo {
 	urelInsertInfo()
   {
     name      = "uinsert";
-    signature = STREAM + " x urel1 -> " + INT;
+    signature = Symbol::STREAM() + " x urel1 -> " + CcInt::BasicType();
     syntax    = "_ _ uinsert";
     meaning   = "Insert a stream of tuples into urel1";
   }
@@ -979,11 +978,12 @@ ListExpr UInsertTypeMap(ListExpr args)
   NList _2Attr = tuplesList.second().second();
   NList _3Attr = tuplesList.third().second();
 
-  CHECK_COND(_1Attr.isSymbol(INT) && _2Attr.isSymbol(UPOINT)
-      && _3Attr.isEqual("instant"),
+  CHECK_COND(_1Attr.isSymbol(CcInt::BasicType()) &&
+      _2Attr.isSymbol(UPoint::BasicType())
+      && _3Attr.isEqual(Instant::BasicType()),
       "Expect (int, upoint, instant) tuple");
 
-  return nl->SymbolAtom(INT);
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 /*
@@ -1047,7 +1047,7 @@ struct urelFeedInfo : OperatorInfo {
 	urelFeedInfo()
   {
     name      = "ufeed";
-    signature = "urel1 x Instant -> " + STREAM;
+    signature = "urel1 x Instant -> " + Symbol::STREAM();
     syntax    = "_ ufeed [ _ ] ";
     meaning   = "Get all tuples before an instant";
   }
@@ -1070,14 +1070,14 @@ ListExpr UFeedTypeMap(ListExpr args)
   CHECK_COND(first.isSymbol("urel1"),
       "Expect the first argument is urel1 type.");
 
-  CHECK_COND(second.isEqual("instant"),
+  CHECK_COND(second.isEqual(Instant::BasicType()),
       "Expect the second argument is instant type.");
 
   ListExpr attrList = nl->OneElemList(nl->TwoElemList(
-      nl->StringAtom("oid", false), nl->SymbolAtom(INT)));
+      nl->StringAtom("oid", false), nl->SymbolAtom(CcInt::BasicType())));
   nl->Append(attrList, nl->TwoElemList(
-      nl->StringAtom("unit", false),
-      nl->SymbolAtom("upoint")));
+      nl->StringAtom(UInt::BasicType(), false),
+      nl->SymbolAtom(UPoint::BasicType())));
 
   NList AttrList(attrList, nl);
   NList outList = NList(NList().tupleStreamOf(AttrList));
@@ -1180,7 +1180,8 @@ struct urelUFeedObjectInfo : OperatorInfo
   urelUFeedObjectInfo()
   {
     name = "ufeedobject";
-    signature = "urel1 x Instant x " + INT + " -> " + STREAM;
+    signature = "urel1 x Instant x " + CcInt::BasicType() + " -> "
+                + Symbol::STREAM();
     syntax = "_ ufeedobject [ _ , _ ] ";
     meaning = "Get all tuples before an instant with a same id";
   }
@@ -1204,22 +1205,22 @@ ListExpr UFeedObjectTypeMap(ListExpr args)
   CHECK_COND(first.isSymbol("urel1"),
       "Expect the first argument is urel1 type.");
 
-  CHECK_COND(second.isEqual("instant"),
+  CHECK_COND(second.isEqual(Instant::BasicType()),
       "Expect the second argument is instant type.");
 
-  CHECK_COND(third.isSymbol(INT),
+  CHECK_COND(third.isSymbol(CcInt::BasicType()),
       "Expect the third argument is int type");
 
   ListExpr attrList = nl->OneElemList(
       nl->TwoElemList(nl->StringAtom("oid", false),
-          nl->SymbolAtom(INT)));
+          nl->SymbolAtom(CcInt::BasicType())));
   nl->Append(attrList, nl->TwoElemList(
-      nl->StringAtom("unit", false),
-      nl->SymbolAtom("upoint")));
+      nl->StringAtom(UInt::BasicType(), false),
+      nl->SymbolAtom(UPoint::BasicType())));
 
   ListExpr outList = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), attrList));
+      nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrList));
 
   return outList;
 }

@@ -55,6 +55,7 @@ level remains. Models are also removed from type constructors.
 
 #include "FTextAlgebra.h"
 #include "GenericTC.h"
+#include "Symbols.h"
 
 
 
@@ -95,7 +96,7 @@ static const int O2_INNER = 128;
 // The name of the unspecified cluster
 static const STRING_T UNSPECIFIED = "unspecified";
 
-// an array containing the transposedd versions 
+// an array containing the transposedd versions
 // for a matrix number
 static unsigned short TranspArray[512];
 
@@ -285,7 +286,7 @@ int Int9M::Compare(const Attribute* arg) const{
     } else {
        return 0;
     }
-    
+
 }
 
 
@@ -495,7 +496,7 @@ void Cluster::SetValueAt(const int pos,const bool value,
 }
 
 
-void Cluster::SetValueAt(const int pos, const bool value, 
+void Cluster::SetValueAt(const int pos, const bool value,
                          const bool updateBox){
     SetValueAt(pos,value,BitVector, BitVectorT);
     if(updateBox){
@@ -744,12 +745,12 @@ bool Cluster::Adjacent(const Attribute*) const{
 /*
 2.2.7 updateBoxChecks
 
-This function codes some interesting information into the __boxchecks__ 
+This function codes some interesting information into the __boxchecks__
 variable. The information is coded as
 
 
   * boxchecks [&] 1 > 0: each contained matrix has a 1 entry at positions ii | ib | bi | bb,
-    if the boxes are disjoint, this cluster cannot contain the toprel of the corresponding 
+    if the boxes are disjoint, this cluster cannot contain the toprel of the corresponding
     objects
 
   * boxchecks [&] 2 > 0: each matrix has a 0 entry at positions ei [&] eb [&] ie [&] be,
@@ -769,12 +770,12 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
   Int9M m3(1,1,1,1,1,1,0,0,0);
   Int9M m4(1,1,0,1,1,0,1,1,0);
 
-  Int9M m5(0,0,1,0,0,1,0,0,0); 
-  Int9M m6(0,0,0,0,0,0,1,1,0); 
+  Int9M m5(0,0,1,0,0,1,0,0,0);
+  Int9M m6(0,0,0,0,0,0,1,1,0);
 
 
   int n1 = m1.GetNumber();
-  int n2 = m2.GetNumber(); 
+  int n2 = m2.GetNumber();
   int n3 = m3.GetNumber();
   int n4 = m4.GetNumber();
   int n5 = m5.GetNumber();
@@ -788,19 +789,19 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
   int o2_non_empty = O2_NON_EMPTY;
   int o1_inner = O1_INNER;
   int o2_inner = O2_INNER;
-   
+
 
   for(unsigned short i=0; i<512; i++){
     if(ValueAt(i,bitvector)){
-        if(! ( n1 & i ) ){ 
-           part_inter = 0; 
+        if(! ( n1 & i ) ){
+           part_inter = 0;
         }
         if( (i & n2) ){
            no_ext_inter = 0;
-        }       
+        }
         if( (i & n3)){
            o1_empty = 0;
-        } 
+        }
         if ((i & n4)){
            o2_empty = 0;
         }
@@ -816,7 +817,7 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
         if( (i & n6)){
            o2_inner = false;
         }
-    } 
+    }
   }
 
   boxchecks = part_inter   | no_ext_inter | o1_empty | o2_empty |
@@ -844,7 +845,7 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
   if(empty1 && empty2){
      Int9M m(0,0,0,0,0,0,0,0,1);
      if(Contains(m)){
-        return 1; 
+        return 1;
      } else {
         return 2;
      }
@@ -874,7 +875,7 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
        return 2;
     }
   }
-  
+
   if(boxchecks & NO_EXT_INTER){
      if(empty1 || empty2){ // boxes are different
         return 2;
@@ -888,7 +889,7 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
     if(!box2.Contains(box1)){
         return 2;
     }
-  }  
+  }
   if(boxchecks & O2_INNER){
     if(!box1.Contains(box2)){
        return 2;
@@ -954,7 +955,7 @@ bool Cluster::Restrict(string condition, const bool updateBC /*=true*/){
       char* tmp = GetLastMessage();
       if(tmp){
          cmsg.warning() << "Error in parsing condition"
-                        <<" during performing of Restrict" << endl 
+                        <<" during performing of Restrict" << endl
                         << tmp << endl;
          cmsg.send();
          free(tmp);
@@ -985,16 +986,16 @@ bool Cluster::Restrict(string condition, const bool updateBC /*=true*/){
 
 This version of ~Restrict~ removes all matrices having a different as the given
 value at the specified position. The pos must be from the set [{]II,...,EE[}].
-Otherwise the result will not be as expected. 
+Otherwise the result will not be as expected.
 
 
 */
- void Cluster::Restrict(const int pos, const bool value, 
+ void Cluster::Restrict(const int pos, const bool value,
                         const bool updateBC/*=true*/){
     for(int i=0;i<512;i++){
        if( ((i&pos) !=0) != value){
           SetValueAt(i,false,false);
-       }  
+       }
     }
     if(updateBC){
        updateBoxChecks();
@@ -1004,7 +1005,7 @@ Otherwise the result will not be as expected.
  }
 
 
-void Cluster::Restrict(const Int9M& m, const bool value, 
+void Cluster::Restrict(const Int9M& m, const bool value,
                        const bool updateBC/*=true*/){
    int matrix = m.GetNumber();
    if(value){
@@ -1020,7 +1021,7 @@ void Cluster::Restrict(const Int9M& m, const bool value,
             SetValueAt(i,false,false);
          }
       }
-   } 
+   }
    if(updateBC){
       updateBoxChecks();
    } else {
@@ -1075,7 +1076,7 @@ bool Cluster::Relax(string condition, const bool updateBC /*=true*/){
    if(updateBC){
       updateBoxChecks();
    } else {
-      boxchecksok = false; 
+      boxchecksok = false;
    }
    return true;
 }
@@ -1156,7 +1157,7 @@ are sorted.
 int PredicateGroup::Compare(const Attribute* right) const{
    int cmp;
    const PredicateGroup* PG = static_cast<const PredicateGroup*>(right);
-   
+
    if(!IsDefined() && !PG->IsDefined())
       return 0;
    if(!IsDefined() && PG->IsDefined())
@@ -1296,7 +1297,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
               return false;
          }
       }
-          
+
       if(strcmp(name,UNSPECIFIED)==0){ // forbidden name
           ErrorReporter::ReportError(" non valid name for cluster");
           return false;
@@ -1394,7 +1395,7 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
    }
 
 
- 
+
    Cluster aux(*C);
    aux.Intersection(&unSpecified); // remove overlapping clusters
    if(aux.IsEmpty())
@@ -1461,7 +1462,7 @@ void PredicateGroup::SetToDefault(){
                                nl->StringAtom("disjoint"),
                                nl->TextAtom("!ii & !ib & !bi & !bb")
                             );
-    
+
      ListExpr nlEqual = nl->TwoElemList(
                          nl->StringAtom("equal"),
                          nl->TextAtom("!ib & !ie & !bi & !be & !ei & !eb")
@@ -1478,7 +1479,7 @@ void PredicateGroup::SetToDefault(){
                       nl->StringAtom("overlap"),
                       nl->TextAtom("ii & ie & ei")
                     );
-     bool ok; 
+     bool ok;
      Cluster clEqual(false);
 
      ok = clEqual.ReadFrom(nlEqual,nl->TheEmptyList());
@@ -1505,7 +1506,7 @@ void PredicateGroup::SetToDefault(){
      Cluster clCovers(clCoveredBy);
      clCovers.Transpose();
      clCovers.SetName("covers");
-    
+
      ok = AddWithPriority(&clEqual);
      if(!ok) {cerr  << "Equal not included" << endl; }
      ok = AddWithPriority(&clInside);
@@ -1522,7 +1523,7 @@ void PredicateGroup::SetToDefault(){
      if(!ok) {cerr  << "CoveredBy  not included" << endl; }
      ok = AddWithPriority(&clCovers);
      if(!ok) {cerr  << "Covers not included" << endl; }
-     
+
      theClusters.Sort(toprel::ClusterCompare);
      sorted = true;
 }
@@ -1537,7 +1538,7 @@ bool PredicateGroup::operator==(const PredicateGroup& I2) const{
 
 
 /*
-4 Defining Type Constructors 
+4 Defining Type Constructors
 
 */
 
@@ -1580,11 +1581,11 @@ ListExpr Int9M_Int9M_Int9M(ListExpr args){
 
 ListExpr Int9M_Int(ListExpr args){
    if(nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("One argument expected"); 
+     ErrorReporter::ReportError("One argument expected");
      return nl->TypeError();
    }
    if(nl->IsEqual(nl->First(args),"int9m")){
-     return nl->SymbolAtom("int");
+     return nl->SymbolAtom(CcInt::BasicType());
    }
    ErrorReporter::ReportError("int9m expected");
    return nl->TypeError();
@@ -1596,7 +1597,7 @@ ListExpr Cluster_String(ListExpr args){
      return nl->TypeError();
    }
    if(nl->IsEqual(nl->First(args),"cluster")){
-     return nl->SymbolAtom("string");
+     return nl->SymbolAtom(CcString::BasicType());
    }
    ErrorReporter::ReportError("cluster expected");
    return nl->TypeError();
@@ -1634,7 +1635,7 @@ ListExpr Cluster_Int9M_Bool(ListExpr args){
    }
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"int9m")){
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
    }
    ErrorReporter::ReportError("cluster x int9m expected");
    return nl->TypeError();
@@ -1647,7 +1648,7 @@ ListExpr Cluster_Cluster_Bool(ListExpr args){
    }
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"cluster")){
-      return nl->SymbolAtom("bool");
+      return nl->SymbolAtom(CcBool::BasicType());
    }
      ErrorReporter::ReportError("cluster x cluster expected");
    return nl->TypeError();
@@ -1660,7 +1661,7 @@ ListExpr TransposeTM(ListExpr args){
    }
    else if(nl->ListLength(args)==2){
       if(nl->IsEqual(nl->First(args),"cluster") &&
-         nl->IsEqual(nl->Second(args),"string"))
+         nl->IsEqual(nl->Second(args),CcString::BasicType()))
          return nl->SymbolAtom("cluster");
    }
    ErrorReporter::ReportError("int9m  or cluster x string expected");
@@ -1676,7 +1677,7 @@ ListExpr Cluster_String_Cluster(ListExpr args){
      ErrorReporter::ReportError("First argument must be a cluster");
      return nl->TypeError();
    }
-   if(! nl->IsEqual(nl->Second(args),"string")){
+   if(! nl->IsEqual(nl->Second(args),CcString::BasicType())){
      ErrorReporter::ReportError("The second argument must be a string");
      return nl->TypeError();
    }
@@ -1685,14 +1686,14 @@ ListExpr Cluster_String_Cluster(ListExpr args){
 
 ListExpr Cluster_Cluster_Cluster(ListExpr args){
    if(nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("cluster x cluster expected"); 
+     ErrorReporter::ReportError("cluster x cluster expected");
      return nl->TypeError();
    }
    if(nl->IsEqual(nl->First(args),"cluster") &&
       nl->IsEqual(nl->Second(args),"cluster")){
       return nl->SymbolAtom("cluster");
    }
-   ErrorReporter::ReportError("cluster x cluster expected"); 
+   ErrorReporter::ReportError("cluster x cluster expected");
    return nl->TypeError();
 }
 
@@ -1720,7 +1721,7 @@ ListExpr InvertTM(ListExpr args){
       ErrorReporter::ReportError("int9m or cluster  expected");
       return nl->TypeError();
    }
-   
+
    if(nl->IsEqual(nl->First(args),"cluster")){
       return nl->SymbolAtom("cluster");
    }
@@ -1765,7 +1766,7 @@ ListExpr ClusterName_OfTM(ListExpr args){
     if(nl->ListLength(args)==2){
         if(nl->IsEqual(nl->First(args),"predicategroup") &&
            nl->IsEqual(nl->Second(args),"int9m")){
-            return nl->SymbolAtom("string");
+            return nl->SymbolAtom(CcString::BasicType());
         }
     }
     ErrorReporter::ReportError("predicategroup x int9m expected");
@@ -1786,7 +1787,7 @@ ListExpr ClusterOfTM(ListExpr args){
 ListExpr GetClusterTM(ListExpr args){
     if(nl->ListLength(args)==2){
         if(nl->IsEqual(nl->First(args),"predicategroup") &&
-           nl->IsEqual(nl->Second(args),"string")){
+           nl->IsEqual(nl->Second(args),CcString::BasicType())){
             return nl->SymbolAtom("cluster");
         }
     }
@@ -1798,7 +1799,7 @@ ListExpr SizeOfTM(ListExpr args){
    if(nl->ListLength(args)==1){
       if(nl->IsEqual(nl->First(args),"cluster") |
          nl->IsEqual(nl->First(args),"predicategroup")){
-         return nl->SymbolAtom("int");
+         return nl->SymbolAtom(CcInt::BasicType());
       } else {
         ErrorReporter::ReportError("TopRel:  SizeOf expects a cluster "
                                    "or a predicategroup\n");
@@ -1815,9 +1816,9 @@ ListExpr CreateClusterTM(ListExpr args){
       ErrorReporter::ReportError("CreateCluster expects 2 arguments\n");
       return nl->TypeError();
    }
-   if( nl->IsEqual(nl->First(args),"string") &&
-       (nl->IsEqual(nl->Second(args),"string") ||
-        nl->IsEqual(nl->Second(args),"text")))
+   if( nl->IsEqual(nl->First(args),CcString::BasicType()) &&
+       (nl->IsEqual(nl->Second(args),CcString::BasicType()) ||
+        nl->IsEqual(nl->Second(args),FText::BasicType())))
         return nl->SymbolAtom("cluster");
    ErrorReporter::ReportError("CreateCluster requires"
                               " string x {string,text} as arguments\n");
@@ -1830,7 +1831,7 @@ ListExpr IsCompleteTM(ListExpr args){
      return nl->TypeError();
   }
   if(nl->IsEqual(nl->First(args),"predicategroup")){
-     return nl->SymbolAtom("bool");
+     return nl->SymbolAtom(CcBool::BasicType());
   }
   ErrorReporter::ReportError("IsComplete"
                              " needs a predicategroup as argument\n");
@@ -1891,7 +1892,7 @@ ListExpr PWDisjointTM(ListExpr args){
     }
     rest = nl->Rest(rest);
   }
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 
@@ -1905,8 +1906,8 @@ ListExpr RestrictRelaxTM(ListExpr args){
                                  " cluster as first argument \n");
       return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->Second(args),"string") &&
-     !nl->IsEqual(nl->Second(args),"text")){
+  if(!nl->IsEqual(nl->Second(args),CcString::BasicType()) &&
+     !nl->IsEqual(nl->Second(args),FText::BasicType())){
       ErrorReporter::ReportError("Restrict and Relax require string or text"
                               " as second argument ");
       return nl->TypeError();
@@ -1936,7 +1937,7 @@ ListExpr TopRelEqualsTM(ListExpr args){
   if(nl->IsEqual(nl->First(args),"int9m") ||
      nl->IsEqual(nl->First(args),"cluster") ||
      nl->IsEqual(nl->First(args),"predicategroup")){
-     return nl->SymbolAtom("bool");
+     return nl->SymbolAtom(CcBool::BasicType());
   }
   ErrorReporter::ReportError("int9m, cluster, or predicategroup expected");
   return nl->TypeError();
@@ -2316,7 +2317,7 @@ int CreatePGroup_Fun(Word* args, Word& result, int message,
 
 int CreatePriorityPGroup_Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s){
- 
+
    result = qp->ResultStorage(s);
   PredicateGroup* res = (PredicateGroup*) result.addr;
   //get the number of arguments
@@ -2426,7 +2427,7 @@ int GetCluster_Fun(Word* args, Word& result, int message,
     const STRING_T* str = name->GetStringval();
 
     Cluster* tmp = PG->GetClusterOf(str);
- 
+
     if(!tmp){ // name not found
        res->SetDefined(false);
        return 0;
@@ -2813,7 +2814,7 @@ static int TransposeSelect(ListExpr args){
    if(nl->IsEqual(nl->First(args),"int9m"))
       return 0;
    if(nl->IsEqual(nl->First(args),"cluster") &&
-      nl->IsEqual(nl->Second(args),"string"))
+      nl->IsEqual(nl->Second(args),CcString::BasicType()))
       return 1;
    return -1; // should never be reached
 }
@@ -2843,21 +2844,21 @@ static int SizeOfSelect(ListExpr args){
 }
 
 static int CreateClusterSelect(ListExpr args){
-   if(nl->IsEqual(nl->Second(args),"string"))
+   if(nl->IsEqual(nl->Second(args),CcString::BasicType()))
       return 0;
    else
       return 1;
 }
 
 static int RestrictSelect(ListExpr args){
-   if(nl->IsEqual(nl->Second(args),"string"))
+   if(nl->IsEqual(nl->Second(args),CcString::BasicType()))
       return 0;
    else
       return 1;
 }
 
 static int RelaxSelect(ListExpr args){
-   if(nl->IsEqual(nl->Second(args),"string"))
+   if(nl->IsEqual(nl->Second(args),CcString::BasicType()))
       return 0;
    else
       return 1;
@@ -3095,7 +3096,7 @@ ostream& operator<<(ostream& o, const toprel::Int9M& p){
 
 
 ostream& operator<<(ostream& o, const toprel::Cluster& c){
-   o << c.ToString(); 
+   o << c.ToString();
    return o;
 }
 
@@ -3117,9 +3118,9 @@ class TopRelAlgebra : public Algebra
     AddTypeConstructor( &toprel::cluster);
     AddTypeConstructor( &toprel::predicategroup);
 
-    toprel::int9m.AssociateKind("DATA");
-    toprel::cluster.AssociateKind("DATA");
-    toprel::predicategroup.AssociateKind("DATA");
+    toprel::int9m.AssociateKind(Kind::DATA());
+    toprel::cluster.AssociateKind(Kind::DATA());
+    toprel::predicategroup.AssociateKind(Kind::DATA());
 
     AddOperator(&toprel::invert);
     AddOperator(&toprel::union_op);
@@ -3159,7 +3160,7 @@ void InitializeTranspArray(){
    for(int i=0;i<512;i++){
       m.SetValue(i);
       m.TransposeSlow();
-      TranspArray[i] = m.GetNumber(); 
+      TranspArray[i] = m.GetNumber();
    }
 
 }

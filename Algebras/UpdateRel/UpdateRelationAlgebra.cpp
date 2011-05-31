@@ -53,6 +53,7 @@ searched on can be hold in an random memory based hash table.
 #include "LogMsg.h"
 #include "RTreeAlgebra.h"
 #include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -145,11 +146,11 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
   lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
-                           nl->SymbolAtom("tid")));
+                           nl->SymbolAtom(TupleIdentifier::BasicType())));
   outList = nl->TwoElemList(
-              nl->SymbolAtom("rel"),
+              nl->SymbolAtom(Relation::BasicType()),
               nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 listn));
   return outList;
 }
@@ -328,11 +329,11 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
   lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
-                           nl->SymbolAtom("tid")));
+                           nl->SymbolAtom(TupleIdentifier::BasicType())));
   outList = nl->TwoElemList(
-              nl->SymbolAtom("stream"),
+              nl->SymbolAtom(Symbol::STREAM()),
               nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
+                nl->SymbolAtom(Tuple::BasicType()),
                 listn));
   return outList;
 }
@@ -504,7 +505,7 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
   lastlistn= nl->Append(lastlistn,
                         nl->TwoElemList(
                           nl->SymbolAtom("TID"),
-                          nl->SymbolAtom("tid")));
+                          nl->SymbolAtom(TupleIdentifier::BasicType())));
 
   if(!nl->Equal(listn, nl->Second(nl->Second(third)))){
     return listutils::typeError("tuple type of the third argument must equal "
@@ -512,8 +513,8 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
               "tid as last attribute");
 
   }
-  outList = nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
+  outList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),listn));
   return outList;
 }
 
@@ -1020,7 +1021,7 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
   lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
-                           nl->SymbolAtom("tid")));
+                           nl->SymbolAtom(TupleIdentifier::BasicType())));
 
   if(!nl->Equal(listn,nl->Second(nl->Second(third)))){
     return listutils::typeError("attribute list of the third argument "
@@ -1028,8 +1029,8 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
             "with an additional tid attribute");
   }
 
-  outList = nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
+  outList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),listn));
   return outList;
 }
 
@@ -1450,9 +1451,9 @@ ListExpr insertTupleTypeMap(ListExpr args)
   lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
-                           nl->SymbolAtom("tid")));
-  outList = nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
+                           nl->SymbolAtom(TupleIdentifier::BasicType())));
+  outList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),listn));
   return outList;
 }
 
@@ -1504,7 +1505,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
           last = nl->Append(last, nl->First(rest));
           rest = nl->Rest(rest);
         }
-        insertType = nl->TwoElemList(nl->SymbolAtom("tuple"),
+        insertType = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                      insertType);
 
         insertTupleType = new TupleType( insertType );
@@ -1651,7 +1652,7 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
   lastlistn = nl->Append(lastlistn,
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
-                           nl->SymbolAtom("tid")));
+                           nl->SymbolAtom(TupleIdentifier::BasicType())));
   // Check if result-tupletype and type of the auxiliary relation
   // are the same
 
@@ -1661,8 +1662,8 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
               " tid attribute ");
 
   }
-  outList = nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
+  outList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),listn));
   return outList;
 }
 
@@ -1718,7 +1719,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
           last = nl->Append(last, nl->First(rest));
           rest = nl->Rest(rest);
         }
-        insertType = nl->TwoElemList(nl->SymbolAtom("tuple"),
+        insertType = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                      insertType);
 
         insertTupleType = new TupleType( insertType );
@@ -1928,17 +1929,17 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
       lastlistn,
       nl->TwoElemList(
         nl->SymbolAtom("TID"),
-        nl->SymbolAtom("tid")));
+        nl->SymbolAtom(TupleIdentifier::BasicType())));
   outlist =
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->TwoElemList(
         nl->IntAtom(noAttrs),
         numberList),
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           listn)));
   return outlist;
 }
@@ -2492,17 +2493,17 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
       lastlistn,
       nl->TwoElemList(
         nl->SymbolAtom("TID"),
-        nl->SymbolAtom("tid")));
+        nl->SymbolAtom(TupleIdentifier::BasicType())));
 
   outlist = nl->ThreeElemList(
-              nl->SymbolAtom("APPEND"),
+              nl->SymbolAtom(Symbol::APPEND()),
               nl->TwoElemList(
                 nl->IntAtom(noAttrs),
                 numberList),
               nl->TwoElemList(
-                nl->SymbolAtom("stream"),
+                nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList(
-                  nl->SymbolAtom("tuple"),
+                  nl->SymbolAtom(Tuple::BasicType()),
                   listn)));
 
   // cout << "typemap-result:" << nl->ToString(outlist) << endl;
@@ -3062,12 +3063,12 @@ ListExpr appendIdentifierTypeMap (ListExpr args)
       lastlistn,
       nl->TwoElemList(
         nl->SymbolAtom("TID"),
-        nl->SymbolAtom("tid")));
+        nl->SymbolAtom(TupleIdentifier::BasicType())));
   outList =
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       nl->TwoElemList(
-        nl->SymbolAtom("tuple"),
+        nl->SymbolAtom(Tuple::BasicType()),
         listn));
   return outList;
 }
@@ -3187,7 +3188,7 @@ ListExpr deleteByIdTypeMap(ListExpr args)
   if(!listutils::isRelDescription(first)){
     return listutils::typeError("first argument must be a relation");
   }
-  if(!listutils::isSymbol(second,"tid")){
+  if(!listutils::isSymbol(second,TupleIdentifier::BasicType())){
     return listutils::typeError("second argument must be a tid");
   }
   // build resultlist
@@ -3205,12 +3206,12 @@ ListExpr deleteByIdTypeMap(ListExpr args)
       lastlistn,
       nl->TwoElemList(
         nl->SymbolAtom("TID"),
-        nl->SymbolAtom("tid")));
+        nl->SymbolAtom(TupleIdentifier::BasicType())));
   outList =
     nl->TwoElemList(
-      nl->SymbolAtom("stream"),
+      nl->SymbolAtom(Symbol::STREAM()),
       nl->TwoElemList(
-        nl->SymbolAtom("tuple"),
+        nl->SymbolAtom(Tuple::BasicType()),
         listn));
   return outList;
 }
@@ -3354,7 +3355,7 @@ ListExpr updateByIdTypeMap(ListExpr args)
     return listutils::typeError("relation as first arg expected");
   }
   // Check second argument
-  if(!listutils::isSymbol(second,"tid")){
+  if(!listutils::isSymbol(second,TupleIdentifier::BasicType())){
     return listutils::typeError("second argument should be tid");
   }
 
@@ -3440,17 +3441,17 @@ ListExpr updateByIdTypeMap(ListExpr args)
       lastlistn,
       nl->TwoElemList(
         nl->SymbolAtom("TID"),
-        nl->SymbolAtom("tid")));
+        nl->SymbolAtom(TupleIdentifier::BasicType())));
   outlist =
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->TwoElemList(
         nl->IntAtom(noAttrs),
         numberList),
       nl->TwoElemList(
-        nl->SymbolAtom("stream"),
+        nl->SymbolAtom(Symbol::STREAM()),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"),
+          nl->SymbolAtom(Tuple::BasicType()),
           listn)));
   return outlist;
 }
@@ -3656,7 +3657,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
     next = nl->First(rest);
     rest = nl->Rest(rest);
   }
-  if(!listutils::isSymbol(nl->Second(next),"tid")){
+  if(!listutils::isSymbol(nl->Second(next),TupleIdentifier::BasicType())){
     return listutils::typeError("last attribute in the tuple must be a tid");
   }
 
@@ -3674,8 +3675,8 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
 
   /* handle rtree type constructor */
-  if(!listutils::isSymbol(rtreeSymbol,"rtree") &&
-     !listutils::isSymbol(rtreeSymbol,"rtree3")){
+  if(!listutils::isSymbol(rtreeSymbol,RTree2TID::BasicType()) &&
+     !listutils::isSymbol(rtreeSymbol,RTree3TID::BasicType())){
     return listutils::typeError("rtree or rtree3 expected as third argument");
   }
 
@@ -3775,12 +3776,12 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   }
 
   // Check if indexed attribute has a spatial-type
-  if( !listutils::isKind(attrType,"SPATIAL2D") &&
-      !listutils::isKind(attrType,"SPATIAL3D") &&
-      !listutils::isKind(attrType,"SPATIAL4D") &&
-      !listutils::isSymbol(attrType,"rect") &&
-      !listutils::isSymbol(attrType,"rect3") &&
-      !listutils::isSymbol(attrType,"rect4") ){
+  if( !listutils::isKind(attrType,Kind::SPATIAL2D()) &&
+      !listutils::isKind(attrType,Kind::SPATIAL3D()) &&
+      !listutils::isKind(attrType,Kind::SPATIAL4D()) &&
+      !listutils::isSymbol(attrType,Rectangle<2>::BasicType()) &&
+      !listutils::isSymbol(attrType,Rectangle<3>::BasicType()) &&
+      !listutils::isSymbol(attrType,Rectangle<4>::BasicType()) ){
     return listutils::typeError("indexed type not supported"
                                 " (not in SPATIAL2D, SPATOIAL3D, SPATIAL4D,"
                                 " rect, rect3, rect4}");
@@ -3790,23 +3791,23 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   // resultlist
   int dim = 0;
   int spatial = 0;
-  if (nl->IsEqual(attrType, "rect"))
+  if (nl->IsEqual(attrType, Rectangle<2>::BasicType()))
     dim = 2;
-  if (nl->IsEqual(attrType, "rect3"))
+  if (nl->IsEqual(attrType, Rectangle<3>::BasicType()))
     dim = 3;
-  if (nl->IsEqual(attrType, "rect4"))
+  if (nl->IsEqual(attrType, Rectangle<4>::BasicType()))
     dim = 4;
-  if (algMgr->CheckKind("SPATIAL2D", attrType, errorInfo))
+  if (algMgr->CheckKind(Kind::SPATIAL2D(), attrType, errorInfo))
   {
     dim = 2;
     spatial = 1;
   }
-  if (algMgr->CheckKind("SPATIAL3D", attrType, errorInfo))
+  if (algMgr->CheckKind(Kind::SPATIAL3D(), attrType, errorInfo))
   {
     dim = 3;
     spatial = 1;
   }
-  if (algMgr->CheckKind("SPATIAL4D", attrType, errorInfo))
+  if (algMgr->CheckKind(Kind::SPATIAL4D(), attrType, errorInfo))
   {
     dim = 4;
     spatial = 1;
@@ -3823,7 +3824,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   //to the resultlist.
   outList =
     nl->ThreeElemList(
-      nl->SymbolAtom("APPEND"),
+      nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(append),
       streamDescription);
   return outList;

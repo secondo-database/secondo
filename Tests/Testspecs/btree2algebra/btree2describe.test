@@ -155,7 +155,7 @@ query getNodeSons(b1, 2) consume;
 query getNodeSons(x1, "Hagen") consume;
 
 #testcase getNodeSons1
-#yields ((rel (tuple ((NodeId int)(SonId int)(Lower int)(Upper int))))((2 undef undef undef)))
+#yields ((rel (tuple ((NodeId int)(SonId int)(Lower int)(Upper int))))((2 undefined undefined undefined)))
 query getNodeSons(x1, 2) consume;
 
 #testcase getNodeSons2

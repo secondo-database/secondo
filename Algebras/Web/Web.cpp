@@ -48,25 +48,27 @@ November 2006
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "StandardTypes.h"  //needed because we return a CcBool in an op.
-#include "../../Tools/Flob/DbArray.h"
+#include "StandardTypes.h"
+#include "FTextAlgebra.h"
+#include "BinaryFileAlgebra.h"
+#include "RelationAlgebra.h"
 #include "Attribute.h"
 #include "DateTime.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
-#include "../FText/FTextAlgebra.h"
-#include "../Relation-C++/RelationAlgebra.h"
 #include "web.h"
+
 #include "SocketIO.h"      //used for web access
 #include "Base64.h"        //to en-/ decode binary data
 #include <stack>
 #include <string>
-#include "../BinaryFile/BinaryFileAlgebra.h"
 
 #ifdef SECONDO_WIN32
 #include "../../ClientServer/Win32Socket.h"
 #else //Linux
 #include "../../ClientServer/UnixSocket.h"
 #endif
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 using namespace datetime;
@@ -500,6 +502,7 @@ class URL : public IndexableAttribute
   SmiSize SizeOfChars(void) const;
   size_t HashValue(void) const;
   void CopyFrom(const Attribute *arg);
+  static const string BasicType() { return "url"; }
  private:
   STRING_T protocol;
   Flob host;
@@ -697,7 +700,7 @@ ListExpr URL::ToListExpr(bool typeincluded)const {
     nl->TextAtom(""),
     nl->TextAtom(""));
    if(typeincluded)
-        return nl->TwoElemList(nl->SymbolAtom("url"),value);
+        return nl->TwoElemList(nl->SymbolAtom(URL::BasicType()),value);
   else
     return value;
 }
@@ -964,7 +967,7 @@ class HTML : public Attribute
   void CopyFrom(const Attribute *arg);
   size_t HashValue(void) const;
 
-
+  static const string BasicType() { return "html"; }
 
 
  private:
@@ -1219,7 +1222,7 @@ ListExpr HTML::ToListExpr(bool typeincluded)const {
     sourceURL.ToListExpr(true));
   if(typeincluded)
   {
-    return nl->TwoElemList(nl->SymbolAtom("html"),value);
+    return nl->TwoElemList(nl->SymbolAtom(HTML::BasicType()),value);
   }
   else
     return value;
@@ -2228,6 +2231,7 @@ class Page : public HTML
     void CopyFrom(const Attribute *arg);
     Page* Clone() const;
 
+    static const string BasicType() { return "page"; }
 
   private:
 
@@ -2538,7 +2542,7 @@ string Page::getText( int i) const
 
     //..and get the bin data..
     char c[getThisBin.len];
-    binFiles.read(c, getThisBin.len, getThisBin.offset); 
+    binFiles.read(c, getThisBin.len, getThisBin.offset);
     string result(c);
     #ifdef _DEBUG_JPS_3
     //cout <<"getMime: >1ind:" << i << " >2mime: " <<
@@ -2562,7 +2566,7 @@ string Page::getMime( int i) const
 
     //..and get the bin data..
     char c[getThisMime.len];
-    mimeTypes.read(c, getThisMime.len, getThisMime.offset); 
+    mimeTypes.read(c, getThisMime.len, getThisMime.offset);
     string result(c);
     #ifdef _DEBUG_JPS_3
     //cout <<"getMime: >1ind:" << i << " >2mime: " << result <<
@@ -2591,15 +2595,15 @@ void Page::addEmbObject(const URL &u, const string &mime, const string &s)
       /******************URL**********************/
       FLOBIndex insertUrlHere;
       embUrlIds.Get(numOfEmbeddedObjects - 1, insertUrlHere);
-      embUrls.write(s_url.c_str(), 
-                    insertUrlHere.len + 1, 
+      embUrls.write(s_url.c_str(),
+                    insertUrlHere.len + 1,
                     insertUrlHere.offset);
 
       /******************MIME**********************/
       FLOBIndex insertMimeHere;
       mimeIDs.Get(numOfEmbeddedObjects - 1, insertMimeHere);
-      mimeTypes.write(mime.c_str(), 
-                      insertMimeHere.len + 1, 
+      mimeTypes.write(mime.c_str(),
+                      insertMimeHere.len + 1,
                       insertMimeHere.offset);
 
       /******************BINARY**********************/
@@ -2779,7 +2783,7 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
         if( onlyHtml )
         {
           mime = httpSock.getContentType();
-          if((mime.find("html") == string::npos)){
+          if((mime.find(HTML::BasicType()) == string::npos)){
             MimeIsEqual = false;
             httpSock.Close();
             return "";
@@ -2838,7 +2842,7 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
   __TRACE__
   }
   MimeIsEqual = false;
-  if( mime.find("html") != string::npos)
+  if( mime.find(HTML::BasicType()) != string::npos)
   {
     MimeIsEqual = true;
   }
@@ -3233,7 +3237,7 @@ bool
 CheckURL( ListExpr type, ListExpr& errorInfo )
 {
   __TRACE__
-  return (nl->IsEqual( type, "url" ));
+  return (nl->IsEqual( type, URL::BasicType() ));
 }
 
 ListExpr
@@ -3247,7 +3251,7 @@ URLProperty()
            nl->StringAtom("Example List"),
            nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("url"),
+                       nl->StringAtom(URL::BasicType()),
            nl->StringAtom("(<protocol> <host> <path>)"),
            nl->StringAtom("(http //dict.leo.org /)"),
            nl->StringAtom("prot.: STRING<46 bytes, host, path"
@@ -3260,7 +3264,7 @@ void* CastURL( void* addr ) {return (new (addr) URL);}
 4.3 Creation of the Type Constructor Instance of ~URL~
 
 */
-TypeConstructor url(   "url",
+TypeConstructor url(   URL::BasicType(),
                 URLProperty,
                 OutURL, InURL,
                 0, 0,
@@ -3307,9 +3311,10 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
     ListExpr Third = nl->Third(instance);    //URL
 
     if ( nl->ListLength( First ) == 2
-     && nl->IsEqual(nl->First(First), "instant")
+     && nl->IsEqual(nl->First(First), Instant::BasicType())
       && nl->IsAtom(Second) && nl->AtomType(Second) == TextType
-      && nl->ListLength( Third ) == 2 && nl->IsEqual(nl->First(Third), "url"))
+      && nl->ListLength( Third ) == 2
+      && nl->IsEqual(nl->First(Third), URL::BasicType()))
     {
       DateTime date(instanttype);
     date.ReadFrom(First,true);
@@ -3362,11 +3367,11 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
              ErrorReporter::ReportError("Second not an atom");
     else if( !nl->ListLength( Third ) == 2)
              ErrorReporter::ReportError("Third not a list of length 2");
-    else if (!(nl->IsEqual(nl->First(First), "instant")))
+    else if (!(nl->IsEqual(nl->First(First), Instant::BasicType())))
         ErrorReporter::ReportError("First not an instant");
     else if (!(nl->AtomType(Second) == TextType))
         ErrorReporter::ReportError("Second not a TextType");
-    else //if (!(nl->IsEqual(nl->First(Third), "url")))
+    else //if (!(nl->IsEqual(nl->First(Third), URL::BasicType())))
         ErrorReporter::ReportError("Third not a url");
     correct = false;
     return SetWord(Address(0));
@@ -3427,7 +3432,7 @@ bool
 CheckHTML( ListExpr type, ListExpr& errorInfo )
 {
   __TRACE__
-  return (nl->IsEqual( type, "html" ));
+  return (nl->IsEqual( type, HTML::BasicType() ));
 }
 
 ListExpr
@@ -3441,7 +3446,7 @@ HTMLProperty()
            nl->StringAtom("Example List"),
            nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("html"),
+                       nl->StringAtom(HTML::BasicType()),
            nl->StringAtom("(<datetime: lastchange><text source> <url>)"),
            nl->StringAtom("(list representation)"),
            nl->StringAtom("url has the type url"))));
@@ -3453,7 +3458,7 @@ void* CastHTML( void* addr ) {return (new (addr) HTML);}
 5.3 Creation of the Type Constructor Instance of ~HTML~
 
 */
-TypeConstructor html(   "html",
+TypeConstructor html(   HTML::BasicType(),
                 HTMLProperty,
                 OutHTML, InHTML,
                 0, 0,
@@ -3509,7 +3514,7 @@ InPage( const ListExpr typeInfo, const ListExpr instance,
   __TRACE__
   if ( nl->ListLength( instance ) >= 1
         && nl->ListLength( nl->First(instance) ) == 2
-        && nl->IsEqual(nl->First(nl->First(instance)), "html"))
+        && nl->IsEqual(nl->First(nl->First(instance)), HTML::BasicType()))
   {
     ListExpr First = nl->First(instance);    //html
    int nrOfEmb = nl->ListLength(instance) - 1;
@@ -3527,7 +3532,7 @@ InPage( const ListExpr typeInfo, const ListExpr instance,
       First = nl->Rest(First);
 
       if ( nl->ListLength( emblist ) == 3
-        && nl->IsEqual(nl->First(nl->First(emblist)), "url")
+        && nl->IsEqual(nl->First(nl->First(emblist)), URL::BasicType())
         && nl->IsAtom(nl->Second(emblist))
         && nl->AtomType(nl->Second(emblist)) == TextType
         && nl->IsAtom(nl->Third(emblist))
@@ -3623,7 +3628,7 @@ bool
 CheckPage( ListExpr type, ListExpr& errorInfo )
 {
   __TRACE__
-  return (nl->IsEqual( type, "page" ));
+  return (nl->IsEqual( type, Page::BasicType() ));
 }
 
 ListExpr
@@ -3637,7 +3642,7 @@ PageProperty()
            nl->StringAtom("Example List"),
            nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
-                       nl->StringAtom("page"),
+                       nl->StringAtom(Page::BasicType()),
            nl->StringAtom("(<html>(<url text string>)*)"),
            nl->StringAtom("(list representation)"),
            nl->StringAtom("<url text mimetype> are the embedded objects"))));
@@ -3649,7 +3654,7 @@ void* CastPage( void* addr ) {return (new (addr) Page);}
 5.3 Creation of the Type Constructor Instance of ~Page~
 
 */
-TypeConstructor page(   "page",
+TypeConstructor page(   Page::BasicType(),
                 PageProperty,
                 OutPage, InPage,
                 0, 0,
@@ -3673,10 +3678,10 @@ protocolHostFilenameTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "url") )
-      return nl->SymbolAtom("text");
+    if ( nl->IsEqual(arg1, URL::BasicType()) )
+      return nl->SymbolAtom(FText::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3690,10 +3695,11 @@ sourceTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "html") || nl->IsEqual(arg1,"page"))
-      return nl->SymbolAtom("url");
+    if ( nl->IsEqual(arg1, HTML::BasicType()) ||
+         nl->IsEqual(arg1,Page::BasicType()))
+      return nl->SymbolAtom(URL::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3707,10 +3713,10 @@ createurlTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "text"))
-      return nl->SymbolAtom("url");
+    if ( nl->IsEqual(arg1, FText::BasicType()))
+      return nl->SymbolAtom(URL::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3724,10 +3730,10 @@ contentTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "html"))
-      return nl->SymbolAtom("text");
+    if ( nl->IsEqual(arg1, HTML::BasicType()))
+      return nl->SymbolAtom(FText::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3741,10 +3747,12 @@ urlsTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "html") || nl->IsEqual(arg1,"page"))
-      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("url"));
+    if ( nl->IsEqual(arg1, HTML::BasicType()) ||
+         nl->IsEqual(arg1,Page::BasicType()))
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(URL::BasicType()));
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3759,11 +3767,12 @@ containsurlTypeMap( ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( (nl->IsEqual(arg1, "html") || nl->IsEqual(arg1,"page"))
-       && nl->IsEqual(arg2,"url"))
-      return nl->SymbolAtom("bool");
+    if ( (nl->IsEqual(arg1, HTML::BasicType()) ||
+          nl->IsEqual(arg1,Page::BasicType()))
+       && nl->IsEqual(arg2,URL::BasicType()))
+      return nl->SymbolAtom(CcBool::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3779,10 +3788,10 @@ lastmodifiedTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "html"))
-      return nl->SymbolAtom("instant");
+    if ( nl->IsEqual(arg1, HTML::BasicType()))
+      return nl->SymbolAtom(Instant::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3797,10 +3806,11 @@ metainfoTypeMap( ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "html")  && nl->IsEqual(arg2,"string"))
-      return nl->SymbolAtom("text");
+    if ( nl->IsEqual(arg1, HTML::BasicType())  &&
+         nl->IsEqual(arg2,CcString::BasicType()))
+      return nl->SymbolAtom(FText::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3814,19 +3824,19 @@ metainfosTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "html"))
+    if ( nl->IsEqual(arg1, HTML::BasicType()))
    {
      ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Key"),
-        nl->SymbolAtom("string")));
+        nl->SymbolAtom(CcString::BasicType())));
       nl->Append(attrList,nl->TwoElemList(nl->SymbolAtom("Content"),
-        nl->SymbolAtom("text")));
+        nl->SymbolAtom(FText::BasicType())));
 
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-     nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+     nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),attrList));
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3841,10 +3851,11 @@ numberofTypeMap( ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "html")  && nl->IsEqual(arg2,"string"))
-      return nl->SymbolAtom("int");
+    if ( nl->IsEqual(arg1, HTML::BasicType())  &&
+         nl->IsEqual(arg2,CcString::BasicType()))
+      return nl->SymbolAtom(CcInt::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3861,11 +3872,13 @@ similarTypeMap( ListExpr args)
     ListExpr arg2 = nl->Second(args);
     ListExpr arg3 = nl->Third(args);
     ListExpr arg4 = nl->Fourth(args);
-    if ( nl->IsEqual(arg1, "html")  && nl->IsEqual(arg2,"html")
-     && nl->IsEqual(arg3,"int") && nl->IsEqual(arg4,"bool"))
-      return nl->SymbolAtom("real");
+    if ( nl->IsEqual(arg1, HTML::BasicType())  &&
+         nl->IsEqual(arg2,HTML::BasicType())
+     && nl->IsEqual(arg3,CcInt::BasicType()) &&
+        nl->IsEqual(arg4,CcBool::BasicType()))
+      return nl->SymbolAtom(CcReal::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3879,10 +3892,10 @@ extracthtmlTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "page"))
-      return nl->SymbolAtom("html");
+    if ( nl->IsEqual(arg1, Page::BasicType()))
+      return nl->SymbolAtom(HTML::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3896,10 +3909,10 @@ numoffilesTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "page"))
-      return nl->SymbolAtom("int");
+    if ( nl->IsEqual(arg1, Page::BasicType()))
+      return nl->SymbolAtom(CcInt::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3913,23 +3926,23 @@ getfilesTypeMap( ListExpr args)
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "page"))
+    if ( nl->IsEqual(arg1, Page::BasicType()))
    {
      ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
-        nl->SymbolAtom("url")));
+        nl->SymbolAtom(URL::BasicType())));
     ListExpr lastAttrList = attrList;
     lastAttrList =
       nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("Type"),
-        nl->SymbolAtom("string")));
+        nl->SymbolAtom(CcString::BasicType())));
     nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("File"),
-        nl->SymbolAtom("binfile")));
+        nl->SymbolAtom(BinaryFile::BasicType())));
 
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-     nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+     nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),attrList));
     }
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3951,9 +3964,9 @@ wgetTypeMap( ListExpr args)
      ListExpr arg5 = nl->  Fifth(args);
     if (nl->IsAtom(arg5)
         || !nl->ListLength(arg5) == 3
-        || !nl->IsEqual(nl->First(arg5), "map")
-        || !nl->IsEqual(nl->Second(arg5), "url")
-        || !nl->IsEqual(nl->Third(arg5), "bool") )
+        || !nl->IsEqual(nl->First(arg5), Symbol::MAP())
+        || !nl->IsEqual(nl->Second(arg5), URL::BasicType())
+        || !nl->IsEqual(nl->Third(arg5), CcBool::BasicType()) )
     {
       string out;
       nl->WriteToString(out, arg5);
@@ -3961,32 +3974,34 @@ wgetTypeMap( ListExpr args)
         "(map -> bool) as its fifth argument. "
         "The second argument provided "
         "has type '" + out + "' instead.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
 
   __TRACE__
 
-    if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "bool")
-     && nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "text"))
+    if ( nl->IsEqual(arg1, URL::BasicType()) &&
+         nl->IsEqual(arg2, CcBool::BasicType())
+     && nl->IsEqual(arg3, CcInt::BasicType()) &&
+        nl->IsEqual(arg4, FText::BasicType()))
    {
   __TRACE__
      ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
-        nl->SymbolAtom("url")));
+        nl->SymbolAtom(URL::BasicType())));
     ListExpr lastAttrList = attrList;
     lastAttrList =
       nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("Type"),
-        nl->SymbolAtom("string")));
+        nl->SymbolAtom(CcString::BasicType())));
     nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("File"),
-        nl->SymbolAtom("binfile")));
+        nl->SymbolAtom(BinaryFile::BasicType())));
 
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-     nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+     nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),attrList));
     }
   }
   __TRACE__
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4008,9 +4023,9 @@ pagegetTypeMap( ListExpr args)
      ListExpr arg5 = nl->Fifth(args);
     if (nl->IsAtom(arg5)
         || !nl->ListLength(arg5) == 3
-        || !nl->IsEqual(nl->First(arg5), "map")
-        || !nl->IsEqual(nl->Second(arg5), "url")
-        || !nl->IsEqual(nl->Third(arg5), "bool") )
+        || !nl->IsEqual(nl->First(arg5), Symbol::MAP())
+        || !nl->IsEqual(nl->Second(arg5), URL::BasicType())
+        || !nl->IsEqual(nl->Third(arg5), CcBool::BasicType()) )
     {
       string out;
       nl->WriteToString(out, arg5);
@@ -4018,28 +4033,30 @@ pagegetTypeMap( ListExpr args)
         "(map -> bool) as its fifth argument. "
         "The second argument provided "
         "has type '" + out + "' instead.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
 
   __TRACE__
 
-    if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "bool")
-     && nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "text"))
+    if ( nl->IsEqual(arg1, URL::BasicType()) &&
+         nl->IsEqual(arg2, CcBool::BasicType())
+     && nl->IsEqual(arg3, CcInt::BasicType()) &&
+        nl->IsEqual(arg4, FText::BasicType()))
    {
   __TRACE__
      ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
-        nl->SymbolAtom("url")));
+        nl->SymbolAtom(URL::BasicType())));
       nl->Append(attrList,nl->TwoElemList(nl->SymbolAtom("Page"),
-        nl->SymbolAtom("page")));
+        nl->SymbolAtom(Page::BasicType())));
 
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-     nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+     nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),attrList));
     }
   }
   __TRACE__
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4061,9 +4078,9 @@ htmlgetTypeMap( ListExpr args)
      ListExpr arg5 = nl->Fifth(args);
     if (nl->IsAtom(arg5)
         || !nl->ListLength(arg5) == 3
-        || !nl->IsEqual(nl->First(arg5), "map")
-        || !nl->IsEqual(nl->Second(arg5), "url")
-        || !nl->IsEqual(nl->Third(arg5), "bool") )
+        || !nl->IsEqual(nl->First(arg5), Symbol::MAP())
+        || !nl->IsEqual(nl->Second(arg5), URL::BasicType())
+        || !nl->IsEqual(nl->Third(arg5), CcBool::BasicType()) )
     {
       string out;
       nl->WriteToString(out, arg5);
@@ -4071,28 +4088,30 @@ htmlgetTypeMap( ListExpr args)
         "(map -> bool) as its fifth argument. "
         "The second argument provided "
         "has type '" + out + "' instead.");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
     }
   }
 
   __TRACE__
 
-    if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "bool")
-     && nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "text"))
+    if ( nl->IsEqual(arg1, URL::BasicType()) &&
+         nl->IsEqual(arg2, CcBool::BasicType())
+     && nl->IsEqual(arg3, CcInt::BasicType()) &&
+        nl->IsEqual(arg4, FText::BasicType()))
    {
   __TRACE__
      ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
-        nl->SymbolAtom("url")));
+        nl->SymbolAtom(URL::BasicType())));
       nl->Append(attrList,nl->TwoElemList(nl->SymbolAtom("Html"),
-        nl->SymbolAtom("html")));
+        nl->SymbolAtom(HTML::BasicType())));
 
-      return nl->TwoElemList(nl->SymbolAtom("stream"),
-     nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+     nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),attrList));
     }
   }
   __TRACE__
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4107,12 +4126,15 @@ webequalTypeMap( ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( (nl->IsEqual(arg1, "url") && nl->IsEqual(arg2,"url"))
-     || (nl->IsEqual(arg1, "html") && nl->IsEqual(arg2,"html"))
-       || (nl->IsEqual(arg1, "page")&& nl->IsEqual(arg2,"page")))
-      return nl->SymbolAtom("bool");
+    if ( (nl->IsEqual(arg1, URL::BasicType()) &&
+          nl->IsEqual(arg2,URL::BasicType()))
+     || (nl->IsEqual(arg1, HTML::BasicType()) &&
+         nl->IsEqual(arg2,HTML::BasicType()))
+       || (nl->IsEqual(arg1, Page::BasicType())&&
+           nl->IsEqual(arg2,Page::BasicType())))
+      return nl->SymbolAtom(CcBool::BasicType());
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -4869,7 +4891,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       strcpy(stype, type.c_str());
       CcString* cctype = new CcString(true,&stype);
       elem->PutAttribute(1,cctype);
-      if( !isHtml && (int)type.find("html") != -1)
+      if( !isHtml && (int)type.find(HTML::BasicType()) != -1)
         isHtml = true;
       cout << "isHTML: " << isHtml << ", " << type << endl;
       BinaryFile *file;
@@ -5140,7 +5162,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
         //cout << "ready loading url" << endl;
 
 //    __TRACE__
-        if( !isHtml && (int)type.find("html") != -1)
+        if( !isHtml && (int)type.find(HTML::BasicType()) != -1)
           isHtml = true;
         cout << "isHTML: " << isHtml << ", " << type << endl;
 
@@ -5267,11 +5289,14 @@ int webequalSelect( ListExpr args)
 {
   ListExpr arg1 = nl->First( args);
   ListExpr arg2 = nl->Second( args);
-  if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "url") )
+  if ( nl->IsEqual(arg1, URL::BasicType()) &&
+       nl->IsEqual(arg2, URL::BasicType()) )
     return(0);
-  if ( nl->IsEqual(arg1, "html") && nl->IsEqual(arg2, "html") )
+  if ( nl->IsEqual(arg1, HTML::BasicType()) &&
+       nl->IsEqual(arg2, HTML::BasicType()) )
     return(1);
-  if ( nl->IsEqual(arg1, "page") && nl->IsEqual(arg2, "page") )
+  if ( nl->IsEqual(arg1, Page::BasicType()) &&
+       nl->IsEqual(arg2, Page::BasicType()) )
     return(2);
   return(-1); //This point should never be reached
 }
@@ -5864,11 +5889,11 @@ class WebAlgebra : public Algebra
   WebAlgebra() : Algebra()
   {
     AddTypeConstructor( &url );
-    url.AssociateKind("DATA");
+    url.AssociateKind(Kind::DATA());
     AddTypeConstructor( &html );
-    html.AssociateKind("DATA");
+    html.AssociateKind(Kind::DATA());
     AddTypeConstructor( &page );
-    page.AssociateKind("DATA");
+    page.AssociateKind(Kind::DATA());
 
     AddOperator( &webprotocol );
     AddOperator( &webhost );

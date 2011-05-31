@@ -42,7 +42,7 @@ query getRootNode(recrel_r_rtree);
 query getNodeInfo(recrel_r_rtree, 2) project[NoOfSons, MBRoverlapsNo] consume;
 
 #testcase getNodeSons1
-#yields ((rel (tuple ((NodeId int)(SonId int)(SonMBR rect))))((2 undef undef)))
+#yields ((rel (tuple ((NodeId int)(SonId int)(SonMBR rect))))((2 undefined undefined)))
 query getNodeSons(recrel_r_rtree, 2) consume;
 
 #testcase getLeafEntries1

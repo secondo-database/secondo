@@ -26,11 +26,11 @@ This file should contain all symbols in nested lists which are
 types or reserved words.
 
 Below we define some string constants which correspond to the symbols for type
-constructors and operators used in SECONDO algebra modules. These constants will
+constructors used in SECONDO algebra modules. These constants will
 be used throughout the code below to avoid redundant use of string constants in
 the code. This is important (i) to avoid strange runtime errors, e.g. in the
 type mapping, which may be caused by a misspelled type name and (ii) to make
-type or operator renaming easier.
+type renaming easier.
 
 */
 
@@ -38,265 +38,94 @@ type or operator renaming easier.
 #define SEC_SYMBOLS_H
 
 #include <string>
+/*
+The following class provides strings used as indentifiers for ~kinds~ in Secondo.
+By Associating a ~type constructor~ with a certain kind, the implementor asserts
+that the data type provides functionality required by the according kind.
 
-namespace symbols {
+Use, e.g. Kind::DATA() to get the according kind name for kind DATA, which is
+the kind for all types that can be used as attributes.
 
- typedef const std::string Sym;
+*/
+class Kind{
+  public:
+    static const std::string ARRAY()         { return "ARRAY"; }
+    static const std::string BASE()          { return "BASE"; }
+    static const std::string CSVEXPORTABLE() { return "CSVEXPORTABLE"; }
+    static const std::string CSVIMPORTABLE() { return "CSVIMPORTABLE"; }
+    static const std::string DATA()          { return "DATA"; }
+    static const std::string DUALGRAPH()     { return "DUALGRAPH"; }
+    static const std::string FILE()          { return "FILE"; }
+    static const std::string HIERARCHICAL()  { return "HIERARCHICAL"; }
+    static const std::string INDEXABLE()     { return "INDEXABLE"; }
+    static const std::string INDOORGRAPH()   { return "INDOORGRAPH"; }
+    static const std::string MREL()          { return "MREL"; }
+    static const std::string MTUPLE()        { return "MTUPLE"; }
+    static const std::string NETWORK()       { return "NETWORK"; }
+    static const std::string PTUPLE()        { return "PTUPLE"; }
+    static const std::string RANGE()         { return "RANGE"; }
+    static const std::string REL()           { return "REL"; }
+    static const std::string SHPEXPORTABLE() { return "SHPEXPORTABLE"; }
+    static const std::string SIMPLE()        { return "SIMPLE"; }
+    static const std::string SPATIAL2D()     { return "SPATIAL2D"; }
+    static const std::string SPATIAL3D()     { return "SPATIAL3D"; }
+    static const std::string SPATIAL4D()     { return "SPATIAL4D"; }
+    static const std::string SPATIAL8D()     { return "SPATIAL8D"; }
+    static const std::string TEMPORAL()      { return "TEMPORAL"; }
+    static const std::string TUPLE()         { return "TUPLE"; }
+    static const std::string UNCERTAIN()     { return "UNCERTAIN"; }
+    static const std::string UNIT()          { return "UNIT"; }
+    static const std::string VISUALGRAPH()   { return "VISUALGRAPH"; }
+};
 
- // standard types
-#undef INT
-#undef REAL
-#undef BOOL
-#undef STRING
-#undef TEXT
- Sym INT("int");
- Sym REAL("real");
- Sym BOOL("bool");
- Sym STRING("string");
- Sym TEXT("text");
+/*
+Class ~Symbol~ defines functions providing general indentifiers used by the
+QueryProcessor, in type mapping functions, counters or runtime flags.
 
+*/
+class Symbol{
+  public:
+    static const std::string APPEND()    { return "APPEND"; }
+    static const std::string ERROR()     { return "ERROR"; }
+    static const std::string ERRORS()    { return "ERRORS"; }
+    static const std::string MAP()       { return "map"; }
+    static const std::string STREAM()    { return "stream"; }
+    static const std::string TYPEERROR() { return "typeerror"; }
+    static const std::string UNDEFINED() { return "undefined"; }
 
- // ugrid types
-#undef MOBPOS
-#undef UGRIDAREA
-//#undef UPDATEUNIT
-//#undef CURRENTUNIT
-//#undef HISTORYUNIT
-#undef UGRIDCELL
-//#undef DIMSIZE
-#undef UGRID
-#undef DOUBLE
- Sym MOBPOS("mobpos");
- Sym UGRIDAREA("ugridarea");
- Sym UGRIDCELL("ugridcell");
- Sym UPDATEUNIT("updateunit");
- Sym CURRENTUNIT("currentunit");
- Sym HISTORYUNIT("historyunit");
- Sym DIMSIZE("dimsize");
- Sym DOUBLE ("double");
- Sym UGRID("ugrid");
- Sym CREATEUGRID("createugrid");
- Sym INSERTUNIT("insertunit");
- Sym INSERTMOB("insertmob");
- Sym INSERTHU("inserthu");
- Sym INERTSTREAM("insertstream");
- Sym VERINT("verint");
- Sym WINDOWINTERSECT("windowintersect");
+    // COUNTER NAMES:
+    static const std::string CTR_CreatedTuples() { return "RA:CreatedTuples"; }
+    static const std::string CTR_DeletedTuples() { return "RA:DeletedTuples"; }
+    static const std::string CTR_MaxmemTuples() { return "RA:MaxTuplesInMem"; }
+    static const std::string CTR_MemTuples() { return "RA:TuplesInMem"; }
 
+    static const std::string CTR_INT_Created() { return "STD:INT_created"; }
+    static const std::string CTR_INT_Deleted() { return "STD:INT_deleted"; }
+    static const std::string CTR_REAL_Created() { return "STD:REAL_created"; }
+    static const std::string CTR_REAL_Deleted() { return "STD:REAL_deleted"; }
+    static const std::string CTR_BOOL_Created() { return "STD:BOOL_created"; }
+    static const std::string CTR_BOOL_Deleted() { return "STD:BOOL_deleted"; }
+    static const std::string CTR_STR_Created() { return "STD:STRING_created"; }
+    static const std::string CTR_STR_Deleted() { return "STD:STRING_deleted"; }
 
-// rectangle algebra types
-#undef RECT
-#undef RECT3
-#undef RECT4
-#undef RECT8
- Sym RECT("rect");
- Sym RECT3("rect3");
- Sym RECT4("rect4");
- Sym RECT8("rect8");
+    static const std::string CTR_ATTR_BASIC_OPS() { return "RA:Attr:BasicOps"; }
+    static const std::string CTR_ATTR_HASH_OPS() { return "RA:Attr:HashOps"; }
+    static const std::string CTR_ATTR_COMPARE_OPS()
+                                                { return "RA:Attr:CompareOps"; }
+    static const std::string CTR_INT_COMPARE() { return "CcInt::Compare"; }
+    static const std::string CTR_INT_EQUAL() { return "CcInt::Equal"; }
+    static const std::string CTR_INT_LESS() { return "CcInt::Less"; }
+    static const std::string CTR_INT_HASH() { return "CcInt::HashValue"; }
+    static const std::string CTR_INT_ADJACENT() { return "CcInt::Adjacent"; }
 
- // point rectangle types
-#undef XPOINT
-#undef XRECTANGLE
-#undef SIMPLE
-#undef INSIDE
-#undef SIMPLE
- Sym XPOINT("xpoint");
- Sym XRECTANGLE("xrectangle");
- Sym INTERSECTS("intersects");
- Sym INSIDE("inside");
- Sym SIMPLE("SIMPLE");
-
-
- // stream example types
-#undef INTSTREAM
-#undef REALSTREAM
-#undef COUNT
- Sym INTSTREAM("intstream");
- Sym PRINT_INTSTREAM("printintstream");
- Sym REALSTREAM("realstream");
- Sym COUNT("countintstream");
- Sym FILTER("filterintstream");
-
-
- // relation algebra
-#undef REL
-#undef TUPLE
-#undef REL_TUPLE
-#undef PRINTREFS
-#undef FEEDPROJECT
- Sym REL("rel");
- Sym TUPLE("tuple");
- Sym REL_TUPLE("rel(tuple(...))");
- Sym STREAM_TUPLE("stream(tuple(...))");
- Sym PRINTREFS("printrefs");
- Sym SMJ_R("sortmergejoin_r");
- Sym SMJ_R2("sortmergejoin_r2");
- Sym FEEDPROJECT("feedproject");
-
- // chess algebra
-#undef MATERIAL
-#undef POSITION
- Sym MATERIAL("material");
- Sym POSITION("position");
-
- // spatial, temporal, temporalunit algebra
-#undef POINT
-#undef POINTS
-#undef LINE
-#undef REGION
-#undef SLINE
-
-#undef UPOINT
-#undef UREGION
-#undef UINT
-#undef UREAL
-#undef UBOOL
-#undef USTRING
-
-#undef MPOINT
-#undef MREGION
-#undef MINT
-#undef MREAL
-#undef MBOOL
-#undef MSTRING
-
-#undef PERIODS
-#undef RINT
-#undef RREAL
-#undef RBOOL
-#undef RSTRING
-
-#undef INSTANT
-#undef DURATION
-
- Sym POINT("point");
- Sym REGION("region");
- Sym LINE("line");
- Sym SLINE("sline");
- Sym POINTS("points");
- Sym UPOINT("upoint");
- Sym UREGION("uregion");
- Sym UINT("uint");
- Sym UREAL("ureal");
- Sym UBOOL("ubool");
- Sym USTRING("mstring");
- Sym MPOINT("mpoint");
- Sym MREGION("movingregion");
- Sym MINT("mint");
- Sym MREAL("mreal");
- Sym MBOOL("mbool");
- Sym MSTRING("mstring");
- Sym PERIODS("periods");
- Sym RINT("rint");
- Sym RREAL("rreal");
- Sym RBOOL("rbool");
- Sym RSTRING("rstring");
- Sym INSTANT("instant");
- Sym DURATION("duration");
-
- // histogram types
-#undef HISTOGRAM1D
-#undef HISTOGRAM2D
- Sym HISTOGRAM1D("histogram1d");
- Sym HISTOGRAM2D("histogram2d");
- Sym IS_UNDEFINED("is_undefined");
- Sym BINRANGE_MIN("binrange_min");
- Sym BINRANGE_MAX("binrange_max");
- Sym BINRANGE_MINX("binrange_minX");
- Sym BINRANGE_MAXX("binrange_maxX");
- Sym BINRANGE_MINY("binrange_minY");
- Sym BINRANGE_MAXY("binrange_maxY");
-
-//vector, set, multiset algebra
-#undef VECTOR
-#undef SET
-#undef MULTISET
-#undef CONTAINS
-#undef IN
-#undef SIZE
-#undef EQ
-#undef GT
-#undef LT
-#undef LE
-#undef GE
-#undef NE
-#undef ISDEF
-Sym ISDEF("is_defined");
-Sym EQ("=");
-Sym GT(">");
-Sym LT("<");
-Sym GE(">=");
-Sym LE("<=");
-Sym NE("#");
-Sym SIZE("size");
-Sym VECTOR("vector");
-Sym SET("set");
-Sym MULTISET("multiset");
-Sym CONTAINS("contains");
-Sym IN("in");
-Sym INSERT("insert");
-Sym ADD("+");
-Sym COLLECT_SET("collect_set");
-Sym COLLECT_MULTISET("collect_multiset");
-Sym COLLECT_VECTOR("collect_vector");
-Sym COMPONENTS("components");
-Sym GET("get");
-Sym DELETEELEM("deleteelem");
-Sym CONCAT("concat");
-Sym UNION("union");
-Sym INTERSECTION("intersection");
-Sym DIFFERENCE("difference");
-Sym CREATE_PREFIX("create_");
-
-
-#undef PICTURE
- Sym PICTURE("picture");
-#undef DISTDATA
- Sym DISTDATA("distdata"); // GeneralTreeAlgebra
-#undef MTREE
- Sym MTREE("mtree");       // MTreeAlgebra
-#undef XTREE
- Sym XTREE("xtree");        // XTreeAlgebra
-
-
- // some reserved words of the query processor
-#undef MAP
-#undef STREAM
-#undef APPEND
- Sym MAP("map");
- Sym STREAM("stream");
- Sym APPEND("APPEND");
-
- // symbols for runtime flags
- // and counters
- Sym CTR_CreatedTuples("RA:CreatedTuples");
- Sym CTR_DeletedTuples("RA:DeletedTuples");
- Sym CTR_MaxmemTuples("RA:MaxTuplesInMem");
- Sym CTR_MemTuples("RA:TuplesInMem");
-
- Sym CTR_INT_Created("STD:INT_created");
- Sym CTR_INT_Deleted("STD:INT_deleted");
- Sym CTR_REAL_Created("STD:REAL_created");
- Sym CTR_REAL_Deleted("STD:REAL_deleted");
- Sym CTR_BOOL_Created("STD:BOOL_created");
- Sym CTR_BOOL_Deleted("STD:BOOL_deleted");
- Sym CTR_STR_Created("STD:STRING_created");
- Sym CTR_STR_Deleted("STD:STRING_deleted");
-
- Sym CTR_ATTR_BASIC_OPS("RA:Attr:BasicOps");
- Sym CTR_ATTR_HASH_OPS("RA:Attr:HashOps");
- Sym CTR_ATTR_COMPARE_OPS("RA:Attr:CompareOps");
- Sym CTR_INT_COMPARE("CcInt::Compare");
- Sym CTR_INT_EQUAL("CcInt::Equal");
- Sym CTR_INT_LESS("CcInt::Less");
- Sym CTR_INT_HASH("CcInt::HashValue");
- Sym CTR_INT_ADJACENT("CcInt::Adjacent");
-
- Sym CTR_TBUF_BYTES_W("RA:TupleBuf:Write:Bytes");
- Sym CTR_TBUF_PAGES_W("RA:TupleBuf:Write:Pages");
- Sym CTR_TBUF_BYTES_R("RA:TupleBuf:Read:Bytes");
- Sym CTR_TBUF_PAGES_R("RA:TupleBuf:Read:Pages");
-
-} // end of namespace
+    static const std::string CTR_TBUF_BYTES_W()
+                                          { return "RA:TupleBuf:Write:Bytes"; }
+    static const std::string CTR_TBUF_PAGES_W()
+                                          { return "RA:TupleBuf:Write:Pages"; }
+    static const std::string CTR_TBUF_BYTES_R()
+                                          { return "RA:TupleBuf:Read:Bytes"; }
+    static const std::string CTR_TBUF_PAGES_R()
+                                          { return "RA:TupleBuf:Read:Pages"; }
+};
 
 #endif

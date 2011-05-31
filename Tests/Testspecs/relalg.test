@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -210,7 +210,7 @@ query real feed avg[no];
 query Staedte feed avg[SName];
 
 #testcase Average4
-#yields (real undef)
+#yields (real undefined)
 query real feed head[0] avg[no];
 
 #testcase Head1
@@ -242,7 +242,7 @@ query ten feed head[0] extend[mod2 : .no mod 2] head[3] consume;
 query Staedte feed extract[Bev];
 
 #testcase Extract2
-#yields (int undef)
+#yields (int undefined)
 query Staedte feed head[0] extract[Bev];
 
 #testcase Extract3
@@ -297,7 +297,7 @@ query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort_old rdup consu
 
 #testcase MergeJoin3
 #yields (int 0)
-query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] count 
+query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] count
 
 #testcase MergeJoin4
 #yields (int 0)
@@ -329,7 +329,7 @@ query Employee feed Dept feed rename[A] sortmergejoin_old[DeptNr, DeptNr_A] coun
 query Staedte feed max[SName];
 
 #testcase Max2
-#yields (string undef)
+#yields (string undefined)
 query Staedte feed head[0] max[SName];
 
 #testcase Max3
@@ -549,27 +549,27 @@ query intstream(1, 4000000) use[fun(i:int) randint(i)] transformstream sort_old 
 # Check if the virtual system tables work
 ##########################################
 
-#testcase SEC2COUNTERS 
+#testcase SEC2COUNTERS
 #yields success
 query SEC2COUNTERS feed count;
 
-#testcase SEC2COMMANDS 
+#testcase SEC2COMMANDS
 #yields success
 query SEC2COMMANDS feed count;
 
-#testcase SEC2CACHEINFO 
+#testcase SEC2CACHEINFO
 #yields success
 query SEC2CACHEINFO feed count;
 
-#testcase SEC2FILEINFO 
+#testcase SEC2FILEINFO
 #yields success
 query SEC2FILEINFO feed count;
 
-#testcase SEC2TYPEINFO 
+#testcase SEC2TYPEINFO
 #yields success
 query SEC2TYPEINFO feed count;
 
-#testcase SEC2OPERATORINFO 
+#testcase SEC2OPERATORINFO
 #yields success
 query SEC2OPERATORINFO feed count;
 
@@ -579,12 +579,12 @@ let Staedte_2 = Staedte feed project[Vorwahl] extend[Seq: seqnext()] consume;
 
 #testcase FLOB2
 #yields success
-query Staedte feed Staedte_2 feed project[Vorwahl] {arg2} product consume count; 
+query Staedte feed Staedte_2 feed project[Vorwahl] {arg2} product consume count;
 
-#testcase coverage1 
+#testcase coverage1
 #coverage RelationAlgebra
 
-#testcase coverage2 
+#testcase coverage2
 #coverage ExtRelationAlgebra
 
 #teardown
