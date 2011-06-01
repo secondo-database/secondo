@@ -40,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "ListUtils.h"
 
 
 /*
@@ -271,47 +272,45 @@ ListExpr predcounts_tm(ListExpr args)
 
    // we expect an input stream and
    // at least one additional parameter
-   CHECK_COND(nl->ListLength(args) == 2,
-      "Operator predcounts expects a list of length two.");
+   if(nl->ListLength(args) != 2){
+      return listutils::typeError("Operator predcounts expects a "
+                                                "list of length two.");
+   }
 
    streamDeclaration = nl->First(args);
    predicateDeclarations = nl->Second(args);
 
    // check type of input stream
    nl->WriteToString(argstr, streamDeclaration);
-   CHECK_COND(nl->ListLength(streamDeclaration) == 2  &&
-      (TypeOfRelAlgSymbol(nl->First(streamDeclaration))
-         == stream) &&
-      (nl->ListLength(nl->Second(streamDeclaration))
-         == 2) &&
-      (TypeOfRelAlgSymbol(nl->First(
-         nl->Second(streamDeclaration))) == tuple) &&
-      (nl->ListLength(nl->Second(streamDeclaration))
-         == 2) &&
-      (IsTupleDescription(nl->Second(
-         nl->Second(streamDeclaration)))),
-      "Operator predcounts expects as "
-      "first argument a list with structure "
-      "(stream (tuple ((a1 t1)...(an tn))))\n"
-      "Operator predcounts gets as first argument '" +
-      argstr + "'." );
+   if( !listutils::isTupleStream(streamDeclaration) ) {
+        return listutils::typeError(
+            "Operator predcounts expects as "
+            "first argument a list with structure "
+            "(stream (tuple ((a1 t1)...(an tn))))\n"
+            "Operator predcounts gets as first argument '" +
+            argstr + "'." );
+  }
 
    streamTupleDeclaration = nl->Second(streamDeclaration);
 
    // check predicate list - it should be a not empty list
-   CHECK_COND(!(nl->IsAtom(predicateDeclarations)) &&
-      (nl->ListLength(predicateDeclarations) > 0),
-      "Operator predcounts: Second argument list may"
-      " not be empty or an atom" );
+   if((nl->IsAtom(predicateDeclarations)) ||
+     (nl->ListLength(predicateDeclarations) <= 0)){
+       return listutils::typeError(
+          "Operator predcounts: Second argument list may"
+          " not be empty or an atom" );
+   }
 
    // if there are more then maxPredicateCount predicate declarations
    // return a type error - its necessary too increase
    // the count of bits of INDEX_TYPE
    WriteIntToString(&argstr, nl->ListLength(predicateDeclarations));
    WriteIntToString(&argstr2, maxPredicateCount);
-   CHECK_COND(nl->ListLength(predicateDeclarations)<=maxPredicateCount,
+   if( nl->ListLength(predicateDeclarations)>maxPredicateCount){
+     return listutils::typeError(
       "Operator predcounts is just able to handle up to " + argstr2
       + " predicates - given predicates: " + argstr);
+   }
 
    // check predicate list - check the list more detailed
    rest = predicateDeclarations;
@@ -323,35 +322,34 @@ ListExpr predcounts_tm(ListExpr args)
       // check the predicate alias
       predicateAlias = nl->First(predicateDeclaration);
       nl->WriteToString(argstr, predicateAlias);
-      CHECK_COND( (nl->IsAtom(predicateAlias)) &&
-         (nl->AtomType(predicateAlias) == SymbolType),
-         "Operator predcounts: predicate alias '" +
-         argstr +
-         "' is not an atom or not of " +
-         "type SymbolType" );
-
+      if( !(nl->IsAtom(predicateAlias)) ||
+        (nl->AtomType(predicateAlias) != SymbolType)){
+          return listutils::typeError(
+            "Operator predcounts: predicate alias '" + argstr +
+            "' is not an atom or not of type SymbolType" );
+        }
       // check type of mapping function
       mapping = nl->Second(predicateDeclaration);
       mappingInputType = nl->Second(mapping);
       nl->WriteToString(argstr, mapping);
-      CHECK_COND( (nl->ListLength(mapping) == 3) &&
-         (TypeOfRelAlgSymbol(nl->First(mapping))
-            == ccmap) &&
-         (TypeOfRelAlgSymbol(nl->Third(mapping))
-            == ccbool),
+      if( (nl->ListLength(mapping) != 3) ||
+         (TypeOfRelAlgSymbol(nl->First(mapping)) != ccmap) ||
+         (TypeOfRelAlgSymbol(nl->Third(mapping)) != ccbool) ){
+        return listutils::typeError(
          "Operator predcounts expects a mapping "
          "function with list structure"
          " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) bool) )\n. Operator"
          " predcounts gets a list '" + argstr + "'.\n" );
-
+      }
       // check tuple type supplied by stream and requested by predicate
       nl->WriteToString(argstr, streamTupleDeclaration);
       nl->WriteToString(argstr2, mappingInputType);
-      CHECK_COND( (nl->Equal(streamTupleDeclaration, mappingInputType)),
+      if( !(nl->Equal(streamTupleDeclaration, mappingInputType)) ){
+        return listutils::typeError(
          "Operator predcounts: Tuple type in first argument '" + argstr +
          "' is different from the argument tuple type '" + argstr2 +
          "' in the mapping function" );
-
+      }
    }
 
 /*

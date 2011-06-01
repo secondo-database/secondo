@@ -1399,23 +1399,19 @@ ListExpr feedTypeMap(ListExpr args)
   ListExpr first;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-    "Operator feed expects a list of length one.");
-
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError(
+      "Operator feed expects a list of length one.");
+  }
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2 && ( nl->IsAtom(nl->First(first)) &&
-    nl->AtomType(nl->First(first)) == SymbolType &&
-    nl->SymbolValue(nl->First(first)) == NestedRelation::BasicType() )
-    && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty
-    (nl->Second(first)))&& (TypeOfRelAlgSymbol(nl->First
-    (nl->Second(first))) == tuple) ),
-  "Operator feed expects an argument of type nested relation, "
-  "(nrel(tuple((a1 t1)...(an tn)))).\n"
-  "Operator feed gets an argument of type '" + argstr + "'."
-  " Nested relation name not known in the database ?");
-
+  if(!listutils::isRelDescription2(first,NestedRelation::BasicType())){
+    return listutils::typeError(
+      "Operator feed expects an argument of type nested relation, "
+      "(nrel(tuple((a1 t1)...(an tn)))).\n"
+      "Operator feed gets an argument of type '" + argstr + "'."
+      " Nested relation name not known in the database ?");
+  }
   return nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->Rest(first));
 }
 
@@ -1499,20 +1495,19 @@ ListExpr consumeTypeMap(ListExpr args)
   ListExpr first, tup, tupFirst, type ;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator consume expects a list of length one.");
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError(
+      "Operator consume expects a list of length one.");
+  }
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ((nl->ListLength(first) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator consume expects an argument of type (stream(tuple"
-  "((a1 t1)...(an tn)))).\n"
-  "Operator consume gets an argument of type '" + argstr + "'.");
+  if(!listutils::isTupleStream(first)){
+    return listutils::typeError(
+      "Operator consume expects an argument of type (stream(tuple"
+      "((a1 t1)...(an tn)))).\n"
+      "Operator consume gets an argument of type '" + argstr + "'.");
+  }
 
   tup = nl->Second(nl->Second(first));
   bool containsArel = false;
@@ -1529,15 +1524,19 @@ ListExpr consumeTypeMap(ListExpr args)
     }
     tup = nl->Rest(tup);
   }
-  CHECK_COND(containsArel, "Operator consume of nrel expects nested tuples as"
-                           " arguments.");
+  if(!containsArel){
+    return listutils::typeError(
+        "Operator consume of nrel expects nested tuples as arguments.");
+  }
 
   ListExpr temp = NestedRelation::unnestedList(nl->Second(first));
   string s;
-  CHECK_COND(NestedRelation::namesUnique(temp, s),
+  if(!NestedRelation::namesUnique(temp, s)){
+    return listutils::typeError(
               "The attributename '" + s + "' in the incoming "
               "stream is not unique.\n"
               "Please make sure that there are no duplicates.");
+  }
   return nl->Cons(nl->SymbolAtom(NestedRelation::BasicType()), nl->Rest(first));
 }
 
@@ -1613,23 +1612,19 @@ ListExpr aFeedTypeMap(ListExpr args)
   ListExpr first;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-    "Operator afeed expects a list of length one.");
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError(
+          "Operator afeed expects a list of length one.");
+  }
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2
-      && ( nl->IsAtom(nl->First(first)) && nl->
-      AtomType(nl->First(first)) == SymbolType &&
-      nl->SymbolValue(nl->First(first)) == AttributeRelation::BasicType() )
-      && ( !(nl->IsAtom(nl->Second(first)) ||
-      nl->IsEmpty(nl->Second(first)))
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
-  "Operator afeed expects an argument of type attribute relation, "
-  "(arel(tuple((a1 t1)...(an tn)))).\n"
-  "Operator afeed gets an argument of type '" + argstr + "'.");
-
+  if(!listutils::isRelDescription2(first,AttributeRelation::BasicType())){
+    return listutils::typeError(
+      "Operator afeed expects an argument of type attribute relation, "
+      "(arel(tuple((a1 t1)...(an tn)))).\n"
+      "Operator afeed gets an argument of type '" + argstr + "'.");
+  }
   return nl->Cons(nl->SymbolAtom(Symbol::STREAM()),nl->Rest(first));
 }
 
@@ -1730,27 +1725,28 @@ ListExpr aConsumeTypeMap(ListExpr args)
   ListExpr first ;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator aconsume expects a list of length one.");
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError(
+        "Operator aconsume expects a list of length one.");
+  }
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ((nl->ListLength(first) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator aconsume expects an argument of type (stream(tuple"
-  "((a1 t1)...(an tn)))).\n"
-  "Operator aconsume gets an argument of type '" + argstr + "'.");
+  if(!listutils::isTupleStream(first)){
+    return listutils::typeError(
+      "Operator aconsume expects an argument of type (stream(tuple"
+      "((a1 t1)...(an tn)))).\n"
+      "Operator aconsume gets an argument of type '" + argstr + "'.");
+  }
 
   ListExpr temp = NestedRelation::unnestedList(nl->Second(first));
   string s;
-  CHECK_COND(NestedRelation::namesUnique(temp, s),
+  if(!NestedRelation::namesUnique(temp, s)){
+    return listutils::typeError(
               "The attributename '" + s
               + "' in the incoming stream is not unique.\n"
               "Please make sure that there are no duplicates.");
+  }
   return nl->Cons(nl->SymbolAtom(AttributeRelation::BasicType()),
                   nl->Rest(first));
 }
@@ -1900,26 +1896,25 @@ ListExpr nestTypeMap( ListExpr args )
    bool allArel = true;
    errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
    string argstr, argstr2, attrname, type;
-   CHECK_COND(nl->ListLength(args) == 3,
-    "Operator nest expects a list of length three.");
+   if(nl->ListLength(args) != 3){
+     return listutils::typeError(
+                "Operator nest expects a list of length three.");
+   }
    first = argList.first();
    second = argList.second();
    third = argList.third();
-   CHECK_COND(third.isSymbol(),
-   "Operator nest expects a valid attribute name as third argument.");
+   if(!third.isSymbol()){
+     return listutils::typeError(
+        "Operator nest expects a valid attribute name as third argument.");
+   }
 
    nl->WriteToString(argstr, first.listExpr());
-   CHECK_COND(nl->ListLength(first.listExpr()) == 2  &&
-             (TypeOfRelAlgSymbol(nl->First(first.listExpr()))
-             == stream) && (nl->ListLength(nl->Second
-             (first.listExpr())) == 2) &&(TypeOfRelAlgSymbol
-             (nl->First(nl->Second(first.listExpr())))
-             == tuple) &&(nl->ListLength(nl->Second
-             (first.listExpr())) == 2) && (IsTupleDescription
-             (nl->Second(nl->Second(first.listExpr())))),
-     "Operator nest expects as first argument a list with structure "
-     "(stream (tuple ((a1 t1)...(an tn))))\n"
-     "Operator nest gets as first argument '" + argstr + "'." );
+   if(!listutils::isTupleStream(first)){
+     return listutils::typeError(
+      "Operator nest expects as first argument a list with structure "
+      "(stream (tuple ((a1 t1)...(an tn))))\n"
+      "Operator nest gets as first argument '" + argstr + "'." );
+   }
 
    string arelName = third.str();
    NList unnested(nl->Second(NestedRelation::unnestedList(
@@ -1931,11 +1926,16 @@ ListExpr nestTypeMap( ListExpr args )
        unique = false;
      unnested.rest();
    }
-   CHECK_COND(unique, "The name for the new arel-Attribute "
+   if(!unique){
+     return listutils::typeError(
+                      "The name for the new arel-Attribute "
                       + arelName + " is already assigned to another "
                       "attribute. Please choose a new name and try again.");
-   CHECK_COND((nl->ListLength(second.listExpr()) > 0),
-   "Operator nest: Second argument list may not be empty" );
+   }
+   if((nl->ListLength(second.listExpr()) <= 0)){
+    return listutils::typeError(
+      "Operator nest: Second argument list may not be empty" );
+   }
 
 /*
 check that all attributes named in second argument appear in the first
@@ -1945,19 +1945,14 @@ argument, collect attributes of second argument in primary.
    int j;
    rest = second;
    set<string> attrNames;
-   while (!(rest.isEmpty()))
-   {
+   while (!(rest.isEmpty())){
       first2 = rest.first();
       rest.rest();
-      if (first2.isSymbol())
-      {
+      if (first2.isSymbol()) {
          attrname = first2.str();
-      }
-      else
-      {
-         ErrorReporter::ReportError(
-         "Attributename in the list is not of symbol type.");
-         return nl->SymbolAtom(Symbol::TYPEERROR());
+      } else {
+         return listutils::typeError(
+          "Attributename in the list is not of symbol type.");
       }
        if(attrNames.find(attrname)!= attrNames.end()){
           ErrorReporter::ReportError("names within the nest "
@@ -1969,33 +1964,29 @@ argument, collect attributes of second argument in primary.
       j = FindAttribute(first.second().second().listExpr(),
                       attrname, attrtype);
 
-      if (j)
-      {
+      if(j>0) {
          primary.append(NList(first2, NList(attrtype)));
          nl->WriteToString( type, attrtype);
 
          numberlist1.append(NList(nl->IntAtom(j)));
          if (!(type == AttributeRelation::BasicType()))
             allArel = false;
-      }
-      else
-      {
-         ErrorReporter::ReportError(
+      } else {
+         return listutils::typeError(
           "Operator nest: Attributename '" + attrname +
           "' is not a known attributename in the tuple stream.");
-         return nl->SymbolAtom(Symbol::TYPEERROR());
       }
    }
-   if (allArel)
-   {
-      ErrorReporter::ReportError(
+   if (allArel){
+     return listutils::typeError(
           "Operator nest: There must be at least one attribute other than "
           "arel in the first argument list.");
-         return nl->SymbolAtom(Symbol::TYPEERROR());
    }
-   CHECK_COND (!(primary.length() == first.second().second().length()),
-     "Operator nest: there must be at least one attribute that should be "
-     "nested in a subrelation.");
+   if(primary.length() == first.second().second().length()){
+     return listutils::typeError(
+      "Operator nest: there must be at least one attribute that should be "
+      "nested in a subrelation.");
+   }
 
 /*
 check, if attributes in first argument exist in primary. If not append to subrel.
@@ -2310,30 +2301,29 @@ ListExpr unnestTypeMap(ListExpr args)
   string attrname="", argstr="";
   int numberAttr, noAttrArel;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator unnest expects a list of length two.");
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError(
+      "Operator unnest expects a list of length two.");
+  }
 
   first = nl->First(args);
   second = nl->Second(args);
 
   nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    nl->SymbolValue(nl->First(nl->Second(first))) == Tuple::BasicType() &&
-    IsTupleDescription(nl->Second(nl->Second(first))),
-    "Operator unnest expects a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator unnest gets a list with structure '" + argstr + "'.");
+  if( !listutils::isTupleStream(first) ){
+    return listutils::typeError(
+      "Operator unnest expects a list with structure "
+      "(stream (tuple ((a1 t1)...(an tn))))\n"
+      "Operator unnest gets a list with structure '" + argstr + "'.");
+  }
 
   nl->WriteToString(argstr, second);
   NList temp (second);
-  CHECK_COND(
-    nl->IsAtom(second) && temp.isSymbol(),
-    "Operator unnest expects one attribute name as argument "
-    "Operator unnest gets '" + argstr + "' as argument.");
-
+  if( !listutils::isSymbol(second) ){
+    return listutils::typeError(
+      "Operator unnest expects one attribute name as argument "
+      "Operator unnest gets '" + argstr + "' as argument.");
+  }
   attrname = nl->SymbolValue(second);
   attr = nl->Second(nl->Second(first));
   numberAttr = nl->ListLength(attr);
@@ -2342,12 +2332,12 @@ ListExpr unnestTypeMap(ListExpr args)
   {
     nl->WriteToString(argstr, attrtype);
 
-    CHECK_COND(
-      (nl->ListLength(attrtype)==2) &&
-      (nl->SymbolValue(nl->First(attrtype)) == AttributeRelation::BasicType()),
-      "Operator unnest expects an attribute of type arel as argument "
-      "Operator unnest gets an attribute of type '" + argstr +
-      "' as argument.");
+    if( !listutils::isRelDescription2(attrtype,AttributeRelation::BasicType())){
+      return listutils::typeError(
+        "Operator unnest expects an attribute of type arel as argument "
+        "Operator unnest gets an attribute of type '" + argstr +
+        "' as argument.");
+    }
   }
   else
   {
@@ -2642,8 +2632,10 @@ nestedRenameTypeMap( ListExpr args )
   string  attrnamen="";
   bool firstcall = true;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator rename expects a list of length two.");
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError(
+          "Operator rename expects a list of length two.");
+  }
 
   first = nl->First(args);
   second  = nl->Second(args);
@@ -2657,12 +2649,12 @@ nestedRenameTypeMap( ListExpr args )
   }
 
   nl->WriteToString(argstr, second);
-  CHECK_COND( nl->IsAtom(second) &&
-    nl->AtomType(second) == SymbolType,
+  if( !listutils::isSymbol(second)){
+    return listutils::typeError(
     "Operator rename expects as second argument a symbol "
     "atom (attribute suffix) "
     "Operator rename gets '" + argstr + "'.");
-
+  }
   tup = nl->Second(nl->Second(first));
   bool containsArel = false;
   while (!(nl->IsEmpty(tup)) && !containsArel)
@@ -2678,7 +2670,9 @@ nestedRenameTypeMap( ListExpr args )
     }
     tup = nl->Rest(tup);
   }
-  CHECK_COND(containsArel, " ");
+  if(!containsArel){
+   return listutils::typeError("I won't tell you, what's the problem, sucker!");
+  }
 
   rest = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(rest)))
@@ -3418,15 +3412,12 @@ ListExpr TermsTypeMap(ListExpr args)
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ((nl->ListLength(first) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator expects an argument of type (stream(tuple"
-  "((a1 t1)...(an tn)))).\n"
-  "Operator gets an argument of type '" + argstr + "'.");
+  if(!listutils::isTupleStream(first)){
+    return listutils::typeError(
+            "Operator expects an argument of type (stream(tuple"
+            "((a1 t1)...(an tn)))).\n"
+            "Operator gets an argument of type '" + argstr + "'.");
+  }
 
   tup = nl->Second(nl->Second(first));
   bool containsArel = false;
@@ -3443,15 +3434,18 @@ ListExpr TermsTypeMap(ListExpr args)
     }
     tup = nl->Rest(tup);
   }
-  CHECK_COND(containsArel, "Operator expects nested tuples as"
-                           " arguments.");
+  if(!containsArel){
+    return listutils::typeError("Operator expects nested tuples as arguments.");
+  }
 
   ListExpr temp = NestedRelation::unnestedList(nl->Second(first));
   string s;
-  CHECK_COND(NestedRelation::namesUnique(temp, s),
+  if(!NestedRelation::namesUnique(temp, s)){
+    return listutils::typeError(
               "The attributename '" + s + "' in the incoming "
               "stream is not unique.\n"
               "Please make sure that there are no duplicates.");
+  }
   //tid needs to be searched and found for further saving in the array as docid
   // Check for existence of a single tid-attribute
   // Split arguments into two parts
