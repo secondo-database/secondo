@@ -165,19 +165,19 @@ let h10x = [const histogram1d value ((0 1 2 3)(Z 6 7)(5 6 7 8 9 10))];
 query intstream(1,10) set_histogram1d;
 
 #testcase h1dSetHistogramEmptyStreamTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query realstream(0.0, -1.0, 1.0) set_histogram1d;
 
 #testcase h1dSetHistogramOneElemStreamTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query realstream(0.0, 0.0, 1.0) set_histogram1d;
 
 #testcase h1dSetHistogramUnorderedStreamTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query testrelSH feed projecttransformstream[Attr2] set_histogram1d;
 
 #testcase h1dSetHistogramStreamWithDuplicateTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query testrelSH feed projecttransformstream[Attr3] set_histogram1d;
 
 #testcase h1dSetHistogramTestcase
@@ -198,39 +198,39 @@ query realstream(0.0, 10.0, 2.0) set_histogram1d;
 query intstream(1,10) intstream(1,3) set_histogram2d;
 
 #testcase h2dSetHistogramEmptyStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, -1.0, 1.0) realstream(0.0, 6.0, 0.5) set_histogram2d;
 
 #testcase h2dSetHistogramEmptyStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, 6.0, 0.5) realstream(0.0, -1.0, 1.0) set_histogram2d;
 
 #testcase h2dSetHistogramEmptyStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, -1.0, 1.0) realstream(0.0, -1.0, 1.0) set_histogram2d;
 
 #testcase h2dSetHistogramOneElemStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, 0.0, 1.0) realstream(0.0, 6.0, 0.5) set_histogram2d;
 
 #testcase h2dSetHistogramOneElemStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, 6.0, 0.5) realstream(0.0, 0.0, 1.0) set_histogram2d;
 
 #testcase h1dSetHistogramUnorderedStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query testrelSH feed projecttransformstream[Attr2] realstream(0.0, 6.0, 0.5) set_histogram2d;
 
 #testcase h1dSetHistogramUnorderedStreamTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, 6.0, 0.5) testrelSH feed projecttransformstream[Attr2] set_histogram2d;
 
 #testcase h1dSetHistogramStreamWithDuplicateTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query testrelSH feed projecttransformstream[Attr3] realstream(0.0, 6.0, 0.5) set_histogram2d;
 
 #testcase h1dSetHistogramStreamWithDuplicateTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, 6.0, 0.5) testrelSH feed projecttransformstream[Attr3] set_histogram2d;
 
 #testcase h2dSetHistogramTestcase
@@ -263,11 +263,11 @@ query is_refinement(histcoarse1d, histcoarse1d);
 query is_refinement(histcoarse1d, histfine1d);
 
 #testcase h1dIsRefinementFalse2Testcase
-#yields (bool undef)
+#yields (bool undefined)
 query is_refinement(realstream(1.0, -1.0, 100.0) set_histogram1d, histfine1d);
 
 #testcase h1dIsRefinementFalse3Testcase
-#yields (bool undef)
+#yields (bool undefined)
 query is_refinement(histfine1d, realstream(1.0, -1.0, 100.0) set_histogram1d);
 
 #testcase h1dIsRefinementErrorTestcase
@@ -295,19 +295,19 @@ query is_refinement(histcoarse2d, histcoarse2d);
 query is_refinement(histcoarse2d, histfine2d);
 
 #testcase h2dIsRefinementFalse2Testcase
-#yields (bool undef)
+#yields (bool undefined)
 query is_refinement(realstream(1.0, -1.0, 100.0) realstream(-23.0, 350.0, 12.0) set_histogram2d, histfine2d);
 
 #testcase h2dIsRefinementFalse3Testcase
-#yields (bool undef)
+#yields (bool undefined)
 query is_refinement(histfine2d, realstream(1.0, -1.0, 100.0) realstream(-23.0, 350.0, 12.0) set_histogram2d);
 
 #testcase h2dIsRefinementFalse4Testcase
-#yields (bool undef)
+#yields (bool undefined)
 query is_refinement(realstream(-23.0, 350.0, 12.0)realstream(1.0, -1.0, 100.0) set_histogram2d, histfine2d);
 
 #testcase h2dIsRefinementFalse5Testcase
-#yields (bool undef)
+#yields (bool undefined)
 query is_refinement(histfine2d, realstream(-23.0, 350.0, 12.0) realstream(1.0, -1.0, 100.0) set_histogram2d);
 
 #testcase h2dIsRefinementErrorTestcase
@@ -513,7 +513,7 @@ query realstream(0.0, 5.0, 1.0) transformstream create_histogram1d_equiwidth[ele
 query realstream(0.0, 5.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 10]
 
 #testcase h1dEquiWidthUndefTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query realstream(5.0, 0.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 10]
 
 #testcase h1dEquiWidth3Testcase
@@ -526,7 +526,7 @@ query realstream(0.0, -5.0, -1.0) transformstream create_histogram1d_equiwidth[e
 
 #testcase h1dEquiWidth2Testcase
 #yields (histogram1d ((-5.0 -4.0 -3.0 -2.0 -1.0 0.0000001)(1.0 1.0 1.0 1.0 2.0)))
-query realstream(0.0, -5.0, -1.0) transformstream real(undef) feed transformstream concat create_histogram1d_equiwidth[elem, 5]
+query realstream(0.0, -5.0, -1.0) transformstream real(undefined) feed transformstream concat create_histogram1d_equiwidth[elem, 5]
 
 #testcase h1dEquiWidthErrorTestcase
 #yields error
@@ -546,18 +546,18 @@ query realstream(-2.0, 2.0, 1.0) transformstream {a} realstream(-2.0, 2.0, 1.0) 
 
 #testcase h2dEquiWidth2Testcase
 #yields (histogram2d ((-2.0 -1.2 -0.4 0.4 1.2 2.0000001)(-2.0 -1.2 -0.4 0.4 1.2 2.0000001)(1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0)))
-query realstream(-2.0, 2.0, 1.0) transformstream real(undef) feed transformstream concat {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(-2.0, 2.0, 1.0) transformstream real(undefined) feed transformstream concat {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
 
 #testcase h2dEquiWidth3Testcase
 #yields (histogram2d ((-1.0 -0.99999899)(-1.0 -0.99999899)(1.0)))
 query realstream(-1.0, -1.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  5, 5]
 
 #testcase h2dEquiWidthUndefTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(2.0, -2.0, 1.0) transformstream {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
 
 #testcase h2dEquiWidthUndef2Testcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(-2.0, 2.0, 1.0) transformstream {a} realstream(2.0, -2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
 
 #testcase h2dEquiWidthErrorTestcase
@@ -577,19 +577,19 @@ query instream(0, 5, 1) transformstream {a} realstream(1.0, 32.3, 1.2) transform
 query instream(0, 5, 1) transformstream {a} realstream(1.0, 32.3, 1.2) transformstream symmproduct create_histogram2d_equiwidth[elem, elem_a, 50, 50]
 
 #testcase h2dEquiWidthUndef3Testcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  -5, 5]
 
 #testcase h2dEquiWidthUndef4Testcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  0, 5]
 
 #testcase h2dEquiWidthUndef5Testcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  5, -5]
 
 #testcase h2dEquiWidthUndef6Testcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  5, 0]
 
 # *
@@ -661,7 +661,7 @@ query h1use usehistogram[0.0; fun(r1: real, r2: real) r1 / r2]
 query h1use usehistogram[;fun(r1: real) r1] = h1use;
 
 #testcase h1dUseUndefTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1undef usehistogram[0.5; fun(r1: real, r2: real) r1 * r2]
 
 #testcase h1dUseErrorTestcase
@@ -689,7 +689,7 @@ query h2use usehistogram[; fun(r1: real) 0.0]
 query h2use usehistogram[0.0; fun(r1: real, r2: real) r1 / r2]
 
 #testcase h2dUseUndefTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2undef usehistogram[0.5; fun(r1: real, r2: real) r1 * r2]
 
 #testcase h2dUseErrorTestcase
@@ -718,7 +718,7 @@ query realstream(-143.23, 320.0, 1.23) transformstream create_histogram1d[elem, 
 query realstream(-143.23, 320.0, 1.23) transformstream create_histogram1d[elem, histcoarse1d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram1d[elem, histfine1d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
 
 #testcase h1dUse2UndefTestcase
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1use histfine1d usehistogram2[; fun(r1: real, r2: real) r1 + r2]
 
 #testcase h1dUse2ErrorTestcase
@@ -754,7 +754,7 @@ query realstream(-143.23, 320.0, 1.23) transformstream create_histogram2d[elem, 
 query realstream(-143.23, 320.0, 1.23) transformstream create_histogram2d[elem, elem, histcoarse2d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram2d[elem, elem, histfine2d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
 
 #testcase h2dUse2UndefTestcase
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2use histfine2d usehistogram2[; fun(r1: real, r2: real) 0.0]
 
 #testcase h2dUse2ErrorTestcase
@@ -788,7 +788,7 @@ query h2use h2use usehistogram2[; funr(r1: real, r2: real, r3: real) 0.0]
 query no_components(realstream(-10000.0, 1000000.0, 1.0) set_histogram1d);
 
 #testcase no_components_undef
-#yields (int undef)
+#yields (int undefined)
 query no_components(realstream(1.0, 0.0, 1.0) set_histogram1d);
 
 #testcase no_components_typeError
@@ -804,7 +804,7 @@ query no_components(realstream(-10000.0, 1000000.0, 1.0) realstream(-100.0, 1000
 query binsX(realstream(-10000.0, 1000000.0, 1.0) realstream(-1.0, 1.0, 1.0) set_histogram2d);
 
 #testcase binsX_undef
-#yields (int undef)
+#yields (int undefined)
 query binsX(realstream(1.0, 0.0, 1.0) realstream(-100.0, 1000.0, 1.0) set_histogram2d);
 
 #testcase binsX_typeError
@@ -820,7 +820,7 @@ query binsX(realstream(-10000.0, 1000000.0, 1.0) set_histogram1d);
 query binsY(realstream(-1.0, 1.0, 1.0) realstream(-10000.0, 1000000.0, 1.0) set_histogram2d);
 
 #testcase binsY_undef
-#yields (int undef)
+#yields (int undefined)
 query binsY(realstream(-100.0, 1000.0, 1.0) realstream(1.0, 0.0, 1.0) set_histogram2d);
 
 #testcase binsY_typeError
@@ -848,15 +848,15 @@ query binrange_min(h2d6, 2.5);
 query binrange_min(h1d4, 2, 1);
 
 #testcase binrange_min_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_min(realstream(1.0, 0.0, 1.0) set_histogram1d, 42);
 
 #testcase binrange_min_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_min(h1d4, -1);
 
 #testcase binrange_min_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_min(h1d4, 7);
 
 #testcase binrange_min_first
@@ -892,15 +892,15 @@ query binrange_max(h2d6, 2.5);
 query binrange_max(h1d4, 2, 1);
 
 #testcase binrange_max_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_max(realstream(1.0, 0.0, 1.0) set_histogram1d, 42);
 
 #testcase binrange_max_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_max(h1d4, -1);
 
 #testcase binrange_max_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_max(h1d4, 7);
 
 #testcase binrange_max_first
@@ -936,15 +936,15 @@ query binrange_minX(h1d4, 2.5);
 query binrange_minX(h2d6, 2, 1);
 
 #testcase binrange_minX_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_minX(realstream(1.0, 0.0, 1.0) realstream(1.0, 0.0, 1.0) set_histogram2d, 42);
 
 #testcase binrange_minX_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_minX(h2d6, -1);
 
 #testcase binrange_minX_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_minX(h2d6, 5);
 
 #testcase binrange_minX_first
@@ -980,15 +980,15 @@ query binrange_maxX(h1d4, 2.5);
 query binrange_maxX(h2d6, 2, 1);
 
 #testcase binrange_maxX_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_maxX(realstream(1.0, 0.0, 1.0) realstream(1.0, 0.0, 1.0) set_histogram2d, 42);
 
 #testcase binrange_maxX_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_maxX(h2d6, -1);
 
 #testcase binrange_maxX_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_maxX(h2d6, 5);
 
 #testcase binrange_maxX_first
@@ -1008,15 +1008,15 @@ query binrange_maxX(h2d6, 4);
 # *
 
 #testcase binrange_minY_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_minY(realstream(1.0, 0.0, 1.0) realstream(1.0, 0.0, 1.0) set_histogram2d, 42);
 
 #testcase binrange_minY_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_minY(h2d6, -1);
 
 #testcase binrange_minY_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_minY(h2d6, 3);
 
 #testcase binrange_minY_first
@@ -1036,15 +1036,15 @@ query binrange_minY(h2d6, 2);
 # *
 
 #testcase binrange_maxY_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_maxY(realstream(1.0, 0.0, 1.0) realstream(1.0, 0.0, 1.0) set_histogram2d, 42);
 
 #testcase binrange_maxY_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_maxY(h2d6, -1);
 
 #testcase binrange_maxY_undef
-#yields (real undef)
+#yields (real undefined)
 query binrange_maxY(h2d6, 3);
 
 #testcase binrange_maxY_first
@@ -1064,19 +1064,19 @@ query binrange_maxY(h2d6, 2);
 # *
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d7 translatehistogram[h1d1];
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d1 translatehistogram[h1d7];
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d7 translatehistogram[h1d7];
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d9 translatehistogram[h1d8];
 
 #testcase translatehistogram_1d
@@ -1096,15 +1096,15 @@ query h1d1 translatehistogram[h1d1] = h1d1;
 query h1d4 translatehistogram[h1d10];
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d10 translatehistogram[h1d4];
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d10 translatehistogram[h1d11];
 
 #testcase translatehistogram_1d_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query h1d10 translatehistogram[h1d12];
 
 #testcase translatehistogram_1d
@@ -1121,19 +1121,19 @@ query h1d13 translatehistogram[h1d9] = h1d14;
 
 
 #testcase translatehistogram_2d_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2d7 translatehistogram[h2d1];
 
 #testcase translatehistogram_2d_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2d1 translatehistogram[h2d7];
 
 #testcase translatehistogram_2d_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2d7 translatehistogram[h2d7];
 
 #testcase translatehistogram_2d_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2d9 translatehistogram[h2d8];
 
 #testcase translatehistogram_2d
@@ -1153,7 +1153,7 @@ query h2d1 translatehistogram[h2d1] = h2d1;
 query h2d4 translatehistogram[h2d10];
 
 #testcase translatehistogram_2d_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query h2d10 translatehistogram[h2d4];
 
 #testcase translatehistogram_2d
@@ -1181,11 +1181,11 @@ query h1d4 fold[ fun(p1: real, p2: real) p1 + p2; 42 ];
 query h1d4 fold[ fun(p1: real, p2: int) p1 + p2; 0.0 ];
 
 #testcase fold_1d_undef
-#yields (real undef)
+#yields (real undefined)
 query h1undef fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ];
 
 #testcase fold_1d_undef
-#yields (string undef)
+#yields (string undefined)
 query h1undef fold[ fun(p1: string, p2: real) p1; "hello world!" ];
 
 #testcase fold_1d
@@ -1217,11 +1217,11 @@ query h2d4 fold[ fun(p1: real, p2: real) p1 + p2; 42 ];
 query h2d4 fold[ fun(p1: real, p2: int) p1 + p2; 0.0 ];
 
 #testcase fold_2d_undef
-#yields (real undef)
+#yields (real undefined)
 query h2undef fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ];
 
 #testcase fold_2d_undef
-#yields (string undef)
+#yields (string undefined)
 query h1undef fold[ fun(p1: string, p2: real) p1; "hello world!" ];
 
 #testcase fold_2d
@@ -1261,43 +1261,43 @@ query shrink_eager( h1d4, 1, 2.0 );
 query shrink_eager( h1d4, 1.0, 2 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1undef, 1.0, 2.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, 1.0, 1.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, 2.0, 1.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, -10.8, -5.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, 10.8, 15.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, -5.0, -2.2 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, 3.0, 5.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, 0.0, 0.2 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, -2.2, -2.0 );
 
 #testcase shrink_eager_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_eager( h1d4, 2.5, 3.9 );
 
 #testcase shrink_eager
@@ -1349,55 +1349,55 @@ query shrink_eager2( h2d4, 1.0, 2.0, 0, 2.0 );
 query shrink_eager2( h2d4, 1.0, 2.0, 0, 2 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2undef, 1.0, 2.0, 0.0, 2.0 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, 1.0, 1.0, 0.0, 2.0 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, 2.0, 1.0, 0.0, 2.0 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, 0.0, 1.0, 3.0, 2.0 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, -10.8, -5.0, 0.0, 2.5 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, 10.8, 15.0, 0.0, 2.5 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, -2.3, 0.0, -3.8, -2.5 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, -2.3, 0.0, 4.8, 7.5 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, -5.0, -2.0, 0.0, 2.7 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, -5.0, -4.0, 0.0, 1.0 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, 0.0, 0.2, 2.4, 2.7 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, 0.0, 0.2, 2.6, 2.7 );
 
 #testcase shrink_eager2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_eager2( h2d4, -5.0, -2.0, 0.0, 2.7 );
 
 #testcase shrink_eager2
@@ -1441,23 +1441,23 @@ query shrink_lazy( h1d4, 1, 2.0 );
 query shrink_lazy( h1d4, 1.0, 2 );
 
 #testcase shrink_lazy_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_lazy( h1undef, 1.0, 2.0 );
 
 #testcase shrink_lazy_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_lazy( h1d4, 1.0, 1.0 );
 
 #testcase shrink_lazy_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_lazy( h1d4, 2.0, 1.0 );
 
 #testcase shrink_lazy_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_lazy( h1d4, -10.8, -5.0 );
 
 #testcase shrink_lazy_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query shrink_lazy( h1d4, 10.8, 15.0 );
 
 #testcase shrink_lazy
@@ -1529,35 +1529,35 @@ query shrink_lazy2( h2d4, 1.0, 2.0, 0, 2.0 );
 query shrink_lazy2( h2d4, 1.0, 2.0, 0, 2 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2undef, 1.0, 2.0, 0.0, 2.0 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, 1.0, 1.0, 0.0, 2.0 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, 2.0, 1.0, 0.0, 2.0 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, 0.0, 1.0, 3.0, 2.0 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, -10.8, -5.0, 0.0, 2.5 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, 10.8, 15.0, 0.0, 2.5 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, -2.3, 0.0, -3.8, -2.5 );
 
 #testcase shrink_lazy2_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query shrink_lazy2( h2d4, -2.3, 0.0, 4.8, 7.5 );
 
 #testcase shrink_lazy2
@@ -1617,15 +1617,15 @@ query getcount1d(h1d1, 2)
 query getcount1d(h1d1, 3)
 
 #testcase GetCount1dUndefTestcase
-#yields (real undef)
+#yields (real undefined)
 query getcount1d(h1undef, 0)
 
 #testcase GetCount1dUndef2Testcase
-#yields (real undef)
+#yields (real undefined)
 query getcount1d(h1d1, 4)
 
 #testcase GetCount1dUndef3Testcase
-#yields (real undef)
+#yields (real undefined)
 query getcount1d(h1d1, -1)
 
 #testcase GetCount1dErrorTestcase
@@ -1669,23 +1669,23 @@ query getcount2d(h2d1, 0, 1)
 query getcount2d(h2d1, 1, 1)
 
 #testcase GetCount2dUndefTestcase
-#yields (real undef)
+#yields (real undefined)
 query getcount2d(h2undef, 0, 0)
 
 #testcase GetCount2dUndef2Testcase
-#yields (real undef)
+#yields (real undefined)
 query getcount2d(h2d1, -1, 0)
 
 #testcase GetCount2dUndef3Testcase
-#yields (real undef)
+#yields (real undefined)
 query getcount2d(h2d1, 0, -1)
 
 #testcase GetCount2dUndef4Testcase
-#yields (real undef)
+#yields (real undefined)
 query getcount2d(h2d1, 3, 0)
 
 #testcase GetCount2dUndef5Testcase
-#yields (real undef)
+#yields (real undefined)
 query getcount2d(h2d1, 0, 3)
 
 #testcase GetCount2dErrorTestcase
@@ -2003,23 +2003,23 @@ query distance( h1d1, h2d1 );
 query distance( h2d1, h1d1 );
 
 #testcase distance_1d_undef
-#yields (real undef)
+#yields (real undefined)
 query distance( h1undef, h1d1 );
 
 #testcase distance_1d_undef
-#yields (real undef)
+#yields (real undefined)
 query distance( h1d1, h1undef );
 
 #testcase distance_1d_undef
-#yields (real undef)
+#yields (real undefined)
 query distance( h1undef, h1undef );
 
 #testcase distance_1d_incompatibel
-#yields (real undef)
+#yields (real undefined)
 query distance( h1d1, h1d5 );
 
 #testcase distance_1d_incompatibel
-#yields (real undef)
+#yields (real undefined)
 query distance( h1d5, h1d1 );
 
 #testcase distance_1d_equal
@@ -2067,23 +2067,23 @@ query distance( insert1dvalue( h1d8, -42.56, 9.0 ), h1d9 );
 # *
 
 #testcase distance_2d_undef
-#yields (real undef)
+#yields (real undefined)
 query distance( h2undef, h2d1 );
 
 #testcase distance_2d_undef
-#yields (real undef)
+#yields (real undefined)
 query distance( h2d1, h2undef );
 
 #testcase distance_2d_undef
-#yields (real undef)
+#yields (real undefined)
 query distance( h2undef, h2undef );
 
 #testcase distance_2d_incompatibel
-#yields (real undef)
+#yields (real undefined)
 query distance( h2d1, h2d5 );
 
 #testcase distance_2d_incompatibel
-#yields (real undef)
+#yields (real undefined)
 query distance( h2d5, h2d1 );
 
 #testcase distance_2d_equal
@@ -2131,7 +2131,7 @@ query distance( insert2dvalue( h2d8, -42.56, 367.78, 9.0 ), h2d9 );
 # *
 
 #testcase FindBinTestcase
-#yields (int undef)
+#yields (int undefined)
 query findbin(h1use, -11.2)
 
 #testcase FindBin1Testcase
@@ -2155,7 +2155,7 @@ query findbin(h1use, 1.234)
 query findbin(h1use, 6.7432)
 
 #testcase FindBin6Testcase
-#yields (int undef)
+#yields (int undefined)
 query findbin(h1use, 10.0)
 
 #testcase FindBinErrorTestcase
@@ -2176,7 +2176,7 @@ query findbin(h2use, 1.0)
 # *
 
 #testcase findbinXTestcase
-#yields (int undef)
+#yields (int undefined)
 query findbinX(h2use, -11.2)
 
 #testcase findbinX1Testcase
@@ -2192,7 +2192,7 @@ query findbinX(h2use, 1.32)
 query findbinX(h2use, 3.1415926)
 
 #testcase findbinX4Testcase
-#yields (int undef)
+#yields (int undefined)
 query findbinX(h2use, 4.5)
 
 #testcase findbinX5Testcase
@@ -2200,7 +2200,7 @@ query findbinX(h2use, 4.5)
 query findbinX(h2use, -10.0)
 
 #testcase findbinX6Testcase
-#yields (int undef)
+#yields (int undefined)
 query findbinX(h2use, 10.0)
 
 #testcase findbinXErrorTestcase
@@ -2220,7 +2220,7 @@ query findbinX(h1use, 1.0)
 # *
 
 #testcase findbinYTestcase
-#yields (int undef)
+#yields (int undefined)
 query findbinY(h2use, -11.2)
 
 #testcase findbinY1Testcase
@@ -2236,7 +2236,7 @@ query findbinY(h2use, -1.32)
 query findbinY(h2use, 3.6)
 
 #testcase findbinY4Testcase
-#yields (int undef)
+#yields (int undefined)
 query findbinY(h2use, 10.0)
 
 #testcase findbinY5Testcase
@@ -2454,15 +2454,15 @@ query testrelEQ feed create_histogram1d_equicount[ Attr2, 10.5 ];
 query testrelEQ feed create_histogram1d_equicount[ Attr0, 10 ];
 
 #testcase create_histogram1d_equicount_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query testrelEQ feed create_histogram1d_equicount[ Attr2, 0 ];
 
 #testcase create_histogram1d_equicount_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query testrelEQ feed create_histogram1d_equicount[ Attr2, -5 ];
 
 #testcase create_histogram1d_equicount_undef
-#yields (histogram1d undef)
+#yields (histogram1d undefined)
 query testrelEQ feed head[0] create_histogram1d_equicount[ Attr2, 6 ];
 
 #testcase create_histogram1d_equicount
@@ -2566,19 +2566,19 @@ query testrelEQ feed create_histogram2d_equicount[ Attr0, Attr3, 12, 6 ];
 query testrelEQ feed create_histogram2d_equicount[ Attr2, Attr0, 0, 6 ];
 
 #testcase create_histogram2d_equicount_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query testrelEQ feed create_histogram2d_equicount[ Attr2, Attr3, 12, 0 ];
 
 #testcase create_histogram2d_equicount_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query testrelEQ feed create_histogram2d_equicount[ Attr2, Attr3, 12, -6 ];
 
 #testcase create_histogram2d_equicount_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query testrelEQ feed create_histogram2d_equicount[ Attr2, Attr3, -12, 6 ];
 
 #testcase create_histogram2d_equicount_undef
-#yields (histogram2d undef)
+#yields (histogram2d undefined)
 query testrelEQ feed head[0] create_histogram2d_equicount[ Attr2, Attr3, 12, 6 ];
 
 #testcase create_histogram2d_equicount
@@ -2696,7 +2696,7 @@ query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstre
 query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram1d_equicount[elem, 1000] variance - (-7.5 * -7.5)) < 1
 
 #testcase VarianceUndefTestcase
-#yields (real undef)
+#yields (real undefined)
 query h1undef variance
 
 #testcase VarianceErrorTestcase
@@ -2724,7 +2724,7 @@ query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstre
 query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[elem, elem, 333, 333] varianceX - (-7.5 * -7.5)) < 2
 
 #testcase VarianceXUndefTestcase
-#yields (real undef)
+#yields (real undefined)
 query h2undef varianceX
 
 #testcase VarianceXErrorTestcase
@@ -2752,7 +2752,7 @@ query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstre
 query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[elem, elem, 333, 333] varianceY - (-7.5 * -7.5)) < 10
 
 #testcase VarianceYUndefTestcase
-#yields (real undef)
+#yields (real undefined)
 query h2undef varianceY
 
 #testcase VarianceYErrorTestcase
@@ -2782,7 +2782,7 @@ query h2covar2 covariance - h2covar3 covariance
 query h2covar4 covariance - h2covar5 covariance
 
 #testcase CovarianceUndefTestcase
-#yields (real undef)
+#yields (real undefined)
 query h2undef covariance
 
 #testcase CovarianceErrorTestcase
