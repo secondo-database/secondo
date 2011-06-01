@@ -634,7 +634,7 @@ ListExpr checkTopRelTM(ListExpr args){
   ListExpr stream = nl->First(args);
   ListExpr dfa = nl->Second(args);
   if((nl->ListLength(stream) != 2) ||
-     !listutils::isSymbol(nl->First(stream), symbols::STREAM) ||
+     !listutils::isSymbol(nl->First(stream), Symbol::STREAM()) ||
      !listutils::isSymbol(nl->Second(stream), toprel::Cluster::BasicType())){
      return listutils::typeError(err);
   }
