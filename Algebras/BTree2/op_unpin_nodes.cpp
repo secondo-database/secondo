@@ -64,18 +64,25 @@ Signature is
 
 */
 ListExpr unpin_nodes::TypeMapping( ListExpr args){
-    CHECK_COND(nl->ListLength(args) == 2,
-     "Operator expects two arguments");
+    if(nl->ListLength(args) != 2){
+     return listutils::typeError("Operator expects two arguments");
+    };
+
+
     NList first (nl->First(args));
     ListExpr second = nl->Second(args);
-    CHECK_COND(first.hasLength(2) && first.first().isSymbol() &&
+    if(!(first.hasLength(2) && first.first().isSymbol() &&
                first.first().str() == Symbol::STREAM() &&
                first.second().isSymbol()
-               && first.second().str() == CcInt::BasicType(),
-               "Operator expects a stream of ints as first argument:");
+               && first.second().str() == CcInt::BasicType())){
+      return listutils::typeError("Operator expects a stream "
+                                  "of ints as first argument:");
+     }
 
-    CHECK_COND(listutils::isBTree2Description(second),
-      "Operator expects a btree2 object as second argument.");
+    if(!listutils::isBTree2Description(second)){
+      return listutils::typeError("Operator expects a btree2"
+                                  " object as second argument.");
+    }
   ListExpr attr = nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Node"),
                 nl->SymbolAtom(CcInt::BasicType())),
                                   nl->TwoElemList(nl->SymbolAtom("Ok"),

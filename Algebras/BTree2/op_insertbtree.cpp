@@ -71,12 +71,15 @@ Signatures are
 ListExpr insertbtree::TypeMappingAll(ListExpr args, bool wrapper)
 {
   if (wrapper){
-    CHECK_COND(nl->ListLength(args) == 3,
-             "Operator insertbtree expects 3 arguments.");
+   if(nl->ListLength(args) != 3){
+     return listutils::typeError("Operator insertbtree expects 3 arguments.");
+    }
   }
   else{
-    CHECK_COND(nl->ListLength(args) == 4,
-             "Operator insertbtree2 expects 4 arguments.");
+    if(nl->ListLength(args) != 4){
+      return listutils::typeError("Operator insertbtree2 expects"
+                                  " 4 arguments.");
+    }
   }
 
   /* Split argument in four parts */
@@ -93,8 +96,9 @@ ListExpr insertbtree::TypeMappingAll(ListExpr args, bool wrapper)
   ListExpr attrList = nl->Second(nl->Second(streamDescription)); // get attrlist
 
   if (wrapper){
-    CHECK_COND(nl->ListLength(attrList)>1,
-           "stream must contain at least 2 attributes");
+    if(nl->ListLength(attrList)<=1){
+       return listutils::typeError("stream must contain at least 2 attributes");
+    }
     ListExpr rest = nl->Second(nl->Second(streamDescription));
     ListExpr next = nl->First(rest);
     while (!(nl->IsEmpty(rest)))
@@ -115,10 +119,12 @@ ListExpr insertbtree::TypeMappingAll(ListExpr args, bool wrapper)
   ListExpr btreeValue = nl->Third(btreeDescription);
 
   if (wrapper){
-    CHECK_COND(listutils::isSymbol(btreeValue, TupleIdentifier::BasicType()),
-               "Value type of btree has to b tid");
-    CHECK_COND(listutils::isSymbol(nl->Fourth(btreeDescription), "multiple"),
-               "Keys have to be multiple");
+    if(!listutils::isSymbol(btreeValue, TupleIdentifier::BasicType())){
+       return listutils::typeError("Value type of btree has to b tid");
+    }
+    if(!listutils::isSymbol(nl->Fourth(btreeDescription), "multiple")){
+       return listutils::typeError("Keys have to be multiple");
+    }
   }
 
   if(!listutils::isSymbol(nameOfKeyAttribute)){
@@ -135,12 +141,15 @@ Check key
   string name;
   nl->WriteToString(name, nameOfKeyAttribute);
   int keyIndex = listutils::findAttribute(attrList, name, attrType);
-  CHECK_COND(keyIndex > 0, "Tuples do not contain an attribute named " +
-                                             name + ".");
-
+  if(keyIndex <= 0){
+      return listutils::typeError("Tuples do not contain an attribute named "
+                                   + name + "."); 
+   }
   ListExpr btreeKey = nl->Second(btreeDescription);
-  CHECK_COND(nl->Equal(attrType, btreeKey), "Key in tuple is "
-              "different from btree2 key.");
+  if(!nl->Equal(attrType, btreeKey)){
+     return listutils::typeError( "Key in tuple is " 
+                                  "different from btree2 key.");
+   }
 
 /*
 Check value-types
@@ -155,15 +164,22 @@ Check value-types
     nl->WriteToString(name, nameOfDataAttribute);
 
     if (name == "none"){
-      CHECK_COND(nl->Equal(nameOfDataAttribute, btreeValue),
-               "Argument value type is different from btree value type.");
+      if(!nl->Equal(nameOfDataAttribute, btreeValue)){
+         return listutils::typeError("Argument value type is different"
+                                     " from btree value type.");
+      }
     }
     else {
       valueIndex = listutils:: findAttribute(attrList, name, attrType);
-      CHECK_COND(valueIndex > 0, "Tuples do not contain an attribute named " +
-                                                    name + ".");
-      CHECK_COND(nl->Equal(attrType, btreeValue), "Value type in tuple is "
-              "different from btree2 value type.");
+      if(valueIndex <= 0){
+          return listutils::typeError("Tuples do not contain an "
+                                      "attribute named " +
+                                       name + ".");
+      }
+      if(!nl->Equal(attrType, btreeValue)){
+         return listutils::typeError("Value type in tuple is "
+                               "different from btree2 value type.");
+       }
     }
   }
   if (wrapper){

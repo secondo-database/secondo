@@ -29,8 +29,9 @@ namespace BTree2Algebra {
 namespace Operators {
 
 ListExpr set_cache_limit_type::TypeMapping( ListExpr args){
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator expects two arguments");
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError("Operator expects two arguments");
+  }
   ListExpr arg1 = nl->First(args);
   if(!listutils::isBTree2Description(arg1)){
      return listutils::typeError("first argument must be a btree2");

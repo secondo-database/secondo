@@ -29,8 +29,9 @@ namespace BTree2Algebra {
 namespace Operators {
 
 ListExpr set_debug::TypeMapping( ListExpr args){
-  CHECK_COND(nl->ListLength(args) == 1,
-    "Operator expects one argument");
+  if(nl->ListLength(args) != 1){
+    return listutils::typeError("Operator expects one argument");
+  }
   ListExpr arg = nl->First(args);
   if (nl->AtomType(arg)!=SymbolType){
      return listutils::typeError("argument is not valid");

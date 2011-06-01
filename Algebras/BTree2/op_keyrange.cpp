@@ -103,12 +103,14 @@ Split argument in two parts
     return listutils::typeError("not a btree");
   }
 
-  CHECK_COND(nl->SymbolValue(nl->Third(btreeDescription)) ==
-             TupleIdentifier::BasicType(),
-             "Data type has to be tid");
+  if(nl->SymbolValue(nl->Third(btreeDescription)) !=
+         TupleIdentifier::BasicType()){
+     return listutils::typeError("Data type has to be tid");
+   }
 
-  CHECK_COND(nl->SymbolValue(nl->Fourth(btreeDescription)) == "multiple",
-             "Keys have to be multiple.");
+  if(nl->SymbolValue(nl->Fourth(btreeDescription)) != "multiple"){
+    return listutils::typeError("Keys have to be multiple.");
+  }
 
   ListExpr btreeKeyType = nl->Second(btreeDescription);
 

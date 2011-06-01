@@ -28,11 +28,13 @@ namespace BTree2Algebra {
 namespace Operators {
 
 ListExpr set_maxvaluesize::TypeMapping( ListExpr args){
-    CHECK_COND(nl->ListLength(args) == 1,
-     "Operator expects one argument");
+    if(nl->ListLength(args) != 1){
+       return listutils::typeError("Operator expects one argument");
+    }
     ListExpr second = nl->First(args);
-    CHECK_COND(nl->IsEqual(second, CcInt::BasicType()),
-      "Second argument must be of type int.");
+    if(!nl->IsEqual(second, CcInt::BasicType())){
+      return listutils::typeError("Second argument must be of type int.");
+    }
   return (nl->SymbolAtom(CcBool::BasicType()));
 }
 

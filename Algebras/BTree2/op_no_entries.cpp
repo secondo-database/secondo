@@ -63,10 +63,13 @@ Signature is
 
 */
 ListExpr no_entries::TypeMapping( ListExpr args){
-    CHECK_COND(nl->ListLength(args) == 1,
-     "Operator expects exactly one argument");
-    CHECK_COND(listutils::isBTree2Description(nl->First(args)),
-      "Operator expects a btree2 object as argument.");
+    if(nl->ListLength(args) != 1){
+      return listutils::typeError("Operator expects exactly one argument");
+    }
+    if(!listutils::isBTree2Description(nl->First(args))){
+      return listutils::typeError( "Operator expects a btree2 "
+                                   "object as argument.");
+    }
   return (nl->SymbolAtom(CcInt::BasicType()));
 }
 

@@ -63,13 +63,17 @@ namespace BTree2Algebra {
 namespace Operators {
 
 ListExpr set_cache_size::TypeMapping( ListExpr args){
-    CHECK_COND(nl->ListLength(args) == 2,
-     "Operator expects 2 arguments");
-    CHECK_COND(listutils::isBTree2Description(nl->First(args)),
-      "Operator expects a btree2 object as argument.");
+    if(nl->ListLength(args) != 2){
+      return listutils::typeError("Operator expects 2 arguments");
+    }
+    if(!listutils::isBTree2Description(nl->First(args))){
+      return listutils::typeError("Operator expects a "
+                                  "btree2 object as argument.");
+    }
     ListExpr second = nl->Second(args);
-    CHECK_COND(nl->IsEqual(second, CcInt::BasicType()),
-      "Second argument must be of type int.");
+    if(!nl->IsEqual(second, CcInt::BasicType())){
+      return listutils::typeError( "Second argument must be of type int.");
+    }
   return (nl->SymbolAtom(CcBool::BasicType()));
 }
 
