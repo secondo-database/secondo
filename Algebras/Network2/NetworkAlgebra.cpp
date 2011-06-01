@@ -11159,10 +11159,10 @@ class NetworkAlgebra : public Algebra
       AddTypeConstructor ( &gline );
       AddTypeConstructor ( &gpoints );
 
-      gpoint.AssociateKind ( kind::DATA() );
-      gline.AssociateKind ( kind::DATA() );
+      gpoint.AssociateKind ( Kind::DATA() );
+      gline.AssociateKind ( Kind::DATA() );
       network.AssociateKind ( Kind::NETWORK() );
-      gpoints.AssociateKind ( kind::DATA() );
+      gpoints.AssociateKind ( Kind::DATA() );
 
 
       AddOperator ( &networkthenetwork );
