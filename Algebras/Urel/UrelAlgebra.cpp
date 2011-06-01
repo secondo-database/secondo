@@ -958,30 +958,34 @@ ListExpr UInsertTypeMap(ListExpr args)
 {
   NList type(args);
 
-  CHECK_COND(type.length() == 2, "Expect two arguments.");
+  if (type.length() != 2)
+    return type.typeError("Expect two arguments.");
 
   NList streamList = type.first();
   NList urelList = type.second();
 
-  CHECK_COND(listutils::isTupleStream(streamList.listExpr()),
-      "Expect the first argument is a tuple stream.");
+  if (!listutils::isTupleStream(streamList.listExpr()))
+      return type.typeError(
+          "Expect the first argument is a tuple stream.");
 
-  CHECK_COND(urelList.isSymbol("urel1"),
-      "Expect the second argument is urel1 type");
+  if (!urelList.isSymbol("urel1"))
+    return type.typeError(
+        "Expect the second argument is urel1 type");
 
   NList tuplesList = streamList.second().second();
 
-  CHECK_COND(tuplesList.length() == 3,
-      "Expect three attributes inside one tuple.");
+  if (tuplesList.length() != 3)
+    return type.typeError(
+        "Expect three attributes inside one tuple.");
 
   NList _1Attr = tuplesList.first().second();
   NList _2Attr = tuplesList.second().second();
   NList _3Attr = tuplesList.third().second();
 
-  CHECK_COND(_1Attr.isSymbol(CcInt::BasicType()) &&
-      _2Attr.isSymbol(UPoint::BasicType())
-      && _3Attr.isEqual(Instant::BasicType()),
-      "Expect (int, upoint, instant) tuple");
+  if (!_1Attr.isSymbol(CcInt::BasicType()) ||
+      !_2Attr.isSymbol(UPoint::BasicType()) ||
+      !_3Attr.isSymbol(Instant::BasicType()) )
+    return type.typeError("Expect (int, upoint, instant) tuple");
 
   return nl->SymbolAtom(CcInt::BasicType());
 }
@@ -1061,17 +1065,20 @@ struct urelFeedInfo : OperatorInfo {
 */
 ListExpr UFeedTypeMap(ListExpr args)
 {
-  CHECK_COND(NList(args).length() == 2,
+  if (nl->ListLength(args) != 2)
+    return listutils::typeError(
       "Operator feed expects a list of length two.");
+  NList l(args);
+  NList first = l.first();
+  NList second = l.second();
 
-  NList first = NList(args).first();
-  NList second = NList(args).second();
+  if (!first.isSymbol("urel1"))
+    return l.typeError(
+        "Expect the first argument is urel1 type.");
 
-  CHECK_COND(first.isSymbol("urel1"),
-      "Expect the first argument is urel1 type.");
-
-  CHECK_COND(second.isEqual(Instant::BasicType()),
-      "Expect the second argument is instant type.");
+  if (!second.isSymbol(Instant::BasicType()))
+      return l.typeError(
+          "Expect the second argument is instant type.");
 
   ListExpr attrList = nl->OneElemList(nl->TwoElemList(
       nl->StringAtom("oid", false), nl->SymbolAtom(CcInt::BasicType())));
@@ -1195,21 +1202,24 @@ struct urelUFeedObjectInfo : OperatorInfo
 ListExpr UFeedObjectTypeMap(ListExpr args)
 {
 
-  CHECK_COND(NList(args).length() == 3,
-      "Operator feed expects a list of length three.");
+  if (nl->ListLength(args) != 3)
+      return listutils::typeError(
+          "Operator feed expects a list of length three.");
 
-  NList first = NList(args).first();
-  NList second = NList(args).second();
-  NList third = NList(args).third();
+  NList l(args);
+  NList first = l.first();
+  NList second = l.second();
+  NList third = l.third();
 
-  CHECK_COND(first.isSymbol("urel1"),
-      "Expect the first argument is urel1 type.");
+  if (!first.isSymbol("urel1"))
+    return l.typeError("Expect the first argument is urel1 type.");
 
-  CHECK_COND(second.isEqual(Instant::BasicType()),
-      "Expect the second argument is instant type.");
+  if (!second.isSymbol(Instant::BasicType()))
+    return l.typeError(
+        "Expect the second argument is instant type.");
 
-  CHECK_COND(third.isSymbol(CcInt::BasicType()),
-      "Expect the third argument is int type");
+  if (!third.isSymbol(CcInt::BasicType()))
+    return l.typeError("Expect the third argument is int type");
 
   ListExpr attrList = nl->OneElemList(
       nl->TwoElemList(nl->StringAtom("oid", false),
