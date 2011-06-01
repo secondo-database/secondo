@@ -151,8 +151,8 @@ Returns a new "HPoint"[4] object which represents "this"[4].
 */
     inline HPoint *hpoint() const
     {
-        char * buffer= new char[m_dim];
-        m_coords.read(buffer, m_dim, 0);
+        char * buffer= new char[vectorlen()];
+        m_coords.read(buffer, vectorlen(), 0);
         const GTA_SPATIAL_DOM *coords =
                 reinterpret_cast<const GTA_SPATIAL_DOM*>(buffer);
         HPoint* res = new HPoint(m_dim, coords);
@@ -337,11 +337,11 @@ Returns a new "HRect"[4] object which represents "this"[4].
 */
     inline HRect *hrect() const
     {
-        char*  buffer1 = new char[m_dim];
-        m_lbVect.read(buffer1, m_dim, 0);;
+        char*  buffer1 = new char[vectorlen()];
+        m_lbVect.read(buffer1, vectorlen(), 0);;
 
-        char* buffer2 = new char[m_dim];
-        m_ubVect.read(buffer2, m_dim, 0);
+        char* buffer2 = new char[vectorlen()];
+        m_ubVect.read(buffer2, vectorlen(), 0);
          
         GTA_SPATIAL_DOM *lb = reinterpret_cast< GTA_SPATIAL_DOM*>(buffer1);
         GTA_SPATIAL_DOM *ub = reinterpret_cast< GTA_SPATIAL_DOM*>(buffer2);

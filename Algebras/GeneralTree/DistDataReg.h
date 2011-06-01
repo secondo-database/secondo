@@ -291,7 +291,7 @@ Destructor.
 
 */
     inline ~DistData()
-    { delete m_value; }
+    { delete [] m_value; }
 
 /*
 Returns a copy of "this"[4].

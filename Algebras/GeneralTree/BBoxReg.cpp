@@ -150,7 +150,10 @@ HRect *BBoxReg::getbbox_Int(const void *attr)
     GTA_SPATIAL_DOM* ub = new GTA_SPATIAL_DOM[1];
     lb[0] = value;
     ub[0] = value;
-    return new HRect(1, lb, ub);
+    HRect* res = new HRect(1, lb, ub);
+    delete[] lb;
+    delete[] ub;
+    return res;
 }
 
 /*
@@ -164,7 +167,10 @@ HRect *BBoxReg::getbbox_Real(const void *attr)
     GTA_SPATIAL_DOM* ub = new GTA_SPATIAL_DOM[1];
     lb[0] = value;
     ub[0] = value;
-    return new HRect(1, lb, ub);
+    HRect* res =  new HRect(1, lb, ub);
+    delete[] lb;
+    delete[] ub;
+    return res;
 }
 
 /*

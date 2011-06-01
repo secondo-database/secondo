@@ -164,8 +164,9 @@ Constructor.
 */
     inline HPoint(unsigned dim, const GTA_SPATIAL_DOM *coords)
         : Spatial(dim),
-          m_coords(new GTA_SPATIAL_DOM[dim])
-    { memcpy(m_coords, coords, vectorlen()); }
+          m_coords(new GTA_SPATIAL_DOM[dim]) { 
+         memcpy(m_coords, coords, vectorlen());
+     }
 
 /*
 Default Copy constructor.
@@ -187,8 +188,9 @@ Constructor (reads the given hyper point from buffer and increases offset)
 Destructor.
 
 */
-    inline ~HPoint()
-    { delete m_coords; }
+    inline ~HPoint() { 
+      delete [] m_coords; 
+    }
 
 /*
 Assignment operator.
@@ -323,8 +325,8 @@ Default copy constructor.
 */
     inline HRect(const HRect &e)
         : Spatial(e),
-          m_lbVect(new GTA_SPATIAL_DOM[dim()]),
-          m_ubVect(new GTA_SPATIAL_DOM[dim()])
+          m_lbVect(new GTA_SPATIAL_DOM[e.dim()]),
+          m_ubVect(new GTA_SPATIAL_DOM[e.dim()])
     {
         memcpy(m_lbVect, e.m_lbVect, vectorlen());
         memcpy(m_ubVect, e.m_ubVect, vectorlen());
@@ -341,8 +343,10 @@ Constructor (reads the given hyper rectangle from buffer and increases offset)
 Destructor.
 
 */
-    inline ~HRect()
-    { delete m_lbVect; delete m_ubVect; }
+    inline ~HRect() { 
+      delete [] m_lbVect; 
+      delete [] m_ubVect; 
+    }
 
 /*
 Assignment operator.
@@ -352,8 +356,8 @@ Assignment operator.
     {
         m_dim = rhs.dim();
         m_vectorlen = m_dim * sizeof(GTA_SPATIAL_DOM);
-        delete m_lbVect;
-        delete m_ubVect;
+        delete [] m_lbVect;
+        delete [] m_ubVect;
         m_lbVect = new GTA_SPATIAL_DOM[dim()];
         m_ubVect = new GTA_SPATIAL_DOM[dim()];
         memcpy(m_lbVect, rhs.m_lbVect, vectorlen());

@@ -144,7 +144,9 @@ HPoint *HPointReg::gethpoint_Int(const void *attr)
     int value = static_cast<const CcInt*>(attr)->GetValue();
     GTA_SPATIAL_DOM* coords = new GTA_SPATIAL_DOM[1];
     coords[0] = value;
-    return new HPoint(1, coords);
+    HPoint* res = new HPoint(1, coords);
+    delete[] coords;
+    return res;
 }
 
 /*
@@ -157,7 +159,9 @@ HPoint *HPointReg::gethpoint_Real(const void *attr)
             static_cast<const CcReal*>(attr)->GetValue();
     GTA_SPATIAL_DOM* coords = new GTA_SPATIAL_DOM[1];
     coords[0] = value;
-    return new HPoint(1, coords);
+    HPoint* res =  new HPoint(1, coords);
+    delete[] coords;
+    return res;
 }
 
 /*
@@ -170,7 +174,8 @@ HPoint *HPointReg::gethpoint_Point(const void *attr)
     GTA_SPATIAL_DOM coords[2];
     coords[0] = point->GetX();
     coords[1] = point->GetY();
-    return new HPoint(2, coords);
+    HPoint* res =  new HPoint(2, coords);
+    return res;
 }
 
 /*
