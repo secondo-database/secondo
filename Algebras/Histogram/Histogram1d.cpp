@@ -823,7 +823,7 @@ The algorithm is taken from
   // the KindCheck or CheckKind function
   bool Histogram1d::KindCheck(ListExpr type, ListExpr& errorInfo)
   {
-    return (nl->IsEqual(type, HISTOGRAM1D));
+    return (nl->IsEqual(type, Histogram1d::BasicType()));
   }
 
   ostream& Histogram1d::Print( ostream& os ) const
@@ -892,11 +892,11 @@ The algorithm is taken from
   {
     if (!h.IsDefined())
     {
-      os << "(" << HISTOGRAM1D << " undef)";
+      os << "(" << Histogram1d::BasicType() << " undef)";
       return os;
     }
 
-    os << "(" << HISTOGRAM1D << "( ( ";
+    os << "(" << Histogram1d::BasicType() << "( ( ";
 
     for (int i = 0; i < h.GetNoRange(); i++)
       os << h.GetRange(i) << " ";
@@ -918,9 +918,9 @@ The algorithm is taken from
 */
   histogram1dInfo::histogram1dInfo()
   {
-    name        = HISTOGRAM1D;
+    name        = Histogram1d::BasicType();
     signature   = "-> DATA";
-    typeExample = HISTOGRAM1D;
+    typeExample = Histogram1d::BasicType();
     listRep     = "((ranges*)(bins*))";
     valueExample= "( (0.0 1.0 2.0 3.0) (2.0 4.8 5.2) )";
     remarks     = "All coordinates must be of type real.";
@@ -970,8 +970,9 @@ The algorithm is taken from
     NList part2 = list.second();
 
     // (stream real) -> histogram1d
-    if (part1.isSymbol(STREAM) && part2.isSymbol(REAL) )
-      return NList(HISTOGRAM1D).listExpr();
+    if (part1.isSymbol(Symbol::STREAM()) &&
+      part2.isSymbol(CcReal::BasicType()) )
+      return NList(Histogram1d::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -1070,7 +1071,7 @@ The algorithm is taken from
   ListExpr NoComponentsTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting (" + HISTOGRAM1D + ")";
+    const string errMsg = "Expecting (" + Histogram1d::BasicType() + ")";
 
     if (list.length() != 1)
     return list.typeError(errMsg);
@@ -1078,8 +1079,8 @@ The algorithm is taken from
     NList arg1 = list.first();
 
     // histogram1d -> int
-    if (arg1.isSymbol(HISTOGRAM1D))
-    return NList(INT).listExpr();
+    if (arg1.isSymbol(Histogram1d::BasicType()))
+    return NList(CcInt::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -1125,27 +1126,27 @@ The algorithm is taken from
       NList numberBin = argList.second();
 
       // the first argument is to be a histogram 1d
-      if ((hist.isSymbol(HISTOGRAM1D)))
+      if ((hist.isSymbol(Histogram1d::BasicType())))
       {
         ok++;
-      } // if ( (hist.isSymbol(HISTOGRAM1D) ) )
+      } // if ( (hist.isSymbol(Histogram1d::BasicType()) ) )
 
       else
       {
         argList.typeError("Expecting a histogram1d as first input parameter.");
-      } // else // if ( (hist.isSymbol(HISTOGRAM1D) ) )
+      } // else // if ( (hist.isSymbol(Histogram1d::BasicType()) ) )
 
       // and the second argument is to be an integer value
-      if (numberBin.isSymbol(INT))
+      if (numberBin.isSymbol(CcInt::BasicType()))
       {
         ok++;
-      } // if (numberBin.isSymbol(INTEGER))
+      } // if (numberBin.isSymbol(CcInt::BasicType()))
 
       else
       {
         argList.typeError("Expecting an integer value as "
             "second input parameter.");
-      } // else // if (numberBin.isSymbol(INTEGER))
+      } // else // if (numberBin.isSymbol(CcInt::BasicType()))
 
     } // if (argList.length() == 2)
 
@@ -1157,7 +1158,7 @@ The algorithm is taken from
           "indicating the bin number.");
     }
     if (ok == 2)
-      return NList(REAL).listExpr();
+      return NList(CcReal::BasicType()).listExpr();
     else
       return argList.typeError( "Expecting exactly two input parameters: "
         "(1) a histogram1d, (2) an integer value "
@@ -1260,9 +1261,9 @@ The algorithm is taken from
     TEST("hist: ", hist)
 
     if(stream.length() != 2
-        || !stream.first().isSymbol(STREAM)
+        || !stream.first().isSymbol(Symbol::STREAM())
         || stream.second().length() != 2
-        || !stream.second().first().isSymbol(TUPLE)
+        || !stream.second().first().isSymbol(Tuple::BasicType())
         || !IsTupleDescription(stream.second().second().listExpr())) {
         return listutils::typeError("Expects a tuples stream as 1st argument.");
     }
@@ -1297,17 +1298,17 @@ The algorithm is taken from
       return listutils::typeError("Attribute not found");
     }
 
-    if(!attrType.isSymbol(REAL)) {
+    if(!attrType.isSymbol(CcReal::BasicType())) {
       return listutils::typeError("Attribute not of type real.");
     }
 
-    if(!hist.isSymbol(HISTOGRAM1D)) {
+    if(!hist.isSymbol(Histogram1d::BasicType())) {
       return listutils::typeError("Histogram1d has wrong type");
     }
 
     ListExpr result = nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                                          nl->OneElemList(nl->IntAtom(index)),
-                                         nl->SymbolAtom(symbols::HISTOGRAM1D));
+                                      nl->SymbolAtom(Histogram1d::BasicType()));
 
     TEST("Result of type mapping of CreateHistogram1d: ", NList(result))
 
@@ -1439,7 +1440,7 @@ The function makes use of four arguments:
     errorMsg = "Operator create_histogram1d_equiwidth expects as "
           "second argument an attribute of type real.";
 
-    if (!NList(attrtype).isSymbol(REAL))
+    if (!NList(attrtype).isSymbol(CcReal::BasicType()))
       return list.typeError(errorMsg);
 
 
@@ -1448,14 +1449,14 @@ The function makes use of four arguments:
     errorMsg = "Operator create_histogram1d_equiwidth expects as "
       "third argument the symbol 'int'.";
 
-    if (!arg3.isSymbol(INT))
+    if (!arg3.isSymbol(CcInt::BasicType()))
       return list.typeError(errorMsg);
 
 
     // Everything should be fine.
     // We can build the outlist:
     NList outlist(NList(Symbol::APPEND()), NList(attrindex).enclose(),
-        NList(HISTOGRAM1D) );
+        NList(Histogram1d::BasicType()) );
 
     //cout << "outlist: " << outlist.convertToString() << endl;
 
@@ -1745,11 +1746,12 @@ The function makes use of four arguments:
     NList lo = argList.second();
     NList hi = argList.third();
 
-    if(!hist.isSymbol(HISTOGRAM1D)) {
-      return listutils::typeError("Expects "+HISTOGRAM1D+" as 1st argument");
+    if(!hist.isSymbol(Histogram1d::BasicType())) {
+      return listutils::typeError("Expects "+
+                                  Histogram1d::BasicType()+" as 1st argument");
     }
 
-    if(!lo.isSymbol(REAL) || !hi.isSymbol(REAL)) {
+    if(!lo.isSymbol(CcReal::BasicType()) || !hi.isSymbol(CcReal::BasicType())) {
       return listutils::typeError("Expects real values for lower an "
                                   "upper bound");
     }
@@ -1779,7 +1781,8 @@ The function makes use of four arguments:
   ListExpr Getcount1dTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting (" + HISTOGRAM1D + " " + INT + ")";
+    const string errMsg = "Expecting (" + Histogram1d::BasicType() +
+                                                " " + CcInt::BasicType() + ")";
 
     if (list.length() != 2)
       return list.typeError(errMsg);
@@ -1788,8 +1791,9 @@ The function makes use of four arguments:
     NList arg2 = list.second();
 
     // histogram1d x int -> real
-    if (arg1.isSymbol(HISTOGRAM1D) && arg2.isSymbol(INT))
-      return NList(REAL).listExpr();
+    if (arg1.isSymbol(Histogram1d::BasicType()) &&
+      arg2.isSymbol(CcInt::BasicType()))
+      return NList(CcReal::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -1858,23 +1862,25 @@ The function makes use of four arguments:
     NList hist = argList.first();
     NList x = argList.second();
 
-    if(!hist.isSymbol(HISTOGRAM1D)) {
+    if(!hist.isSymbol(Histogram1d::BasicType())) {
       return listutils::typeError("First argument not of type " +
-        HISTOGRAM1D);
+        Histogram1d::BasicType());
     }
 
-    if(!x.isSymbol(REAL)) {
-      return listutils::typeError("Second argument not of type " + REAL);
+    if(!x.isSymbol(CcReal::BasicType())) {
+      return listutils::typeError("Second argument not of type " +
+                                                          CcReal::BasicType());
     }
 
     if (incValSupplied) {
       NList incVal = argList.third();
-      if(!incVal.isSymbol(REAL)) {
-        return listutils::typeError("Third argument not of type " + REAL);
+      if(!incVal.isSymbol(CcReal::BasicType())) {
+        return listutils::typeError("Third argument not of type " +
+                                                          CcReal::BasicType());
       }
     }
 
-    NList result = NList(HISTOGRAM1D);
+    NList result = NList(Histogram1d::BasicType());
     return result.listExpr();
   }
 
@@ -1998,7 +2004,7 @@ The function makes use of four arguments:
   ListExpr Hist1dRealTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting " + HISTOGRAM1D;
+    const string errMsg = "Expecting " + Histogram1d::BasicType();
 
     if (list.length() != 1)
       return list.typeError(errMsg);
@@ -2006,8 +2012,8 @@ The function makes use of four arguments:
     NList arg1 = list.first();
 
     // histogram1d -> real
-    if (arg1.isSymbol(HISTOGRAM1D))
-      return NList(REAL).listExpr();
+    if (arg1.isSymbol(Histogram1d::BasicType()))
+      return NList(CcReal::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -2188,7 +2194,7 @@ The function makes use of four arguments:
 
     ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                         nl->OneElemList(nl->IntAtom(index)),
-                                        nl->SymbolAtom(symbols::HISTOGRAM1D));
+                                      nl->SymbolAtom(Histogram1d::BasicType()));
     return result;
 
   } // CreateHistogram1dEquicountTypeMap(ListExpr args)

@@ -904,4 +904,128 @@ namespace hgr
   template ListExpr
   FindBinTypeMap<false>(ListExpr args);
 
+  IsRefinementInfo::IsRefinementInfo() : OperatorInfo() {
+    name = "is_refinement";
+    signature = Histogram1d::BasicType() + " x " + Histogram1d::BasicType() +
+    " -> " + CcBool::BasicType();
+    appendSignature(Histogram2d::BasicType() + " x " +
+    Histogram2d::BasicType() +
+    " -> " + CcBool::BasicType());
+    syntax = "is_refinement(_, _)";
+    meaning = "Returns true, if the first histogram is a refinement "
+    "of the second histogram.";
+    example = "";
+  }
+
+  IsEqualInfo::IsEqualInfo() : OperatorInfo() {
+    name = "=";
+    signature = Histogram1d::BasicType() + " x " +
+    Histogram1d::BasicType() + " -> " +
+    CcBool::BasicType();
+    appendSignature(Histogram2d::BasicType() + " x " +
+    Histogram2d::BasicType() + " -> " +
+    CcBool::BasicType());
+    syntax = "_ = _";
+    meaning = "Equals predicate.";
+    example = "";
+  }
+
+  IsLessInfo::IsLessInfo() : OperatorInfo() {
+      name = "<";
+      signature = Histogram1d::BasicType() + " x " +
+            Histogram1d::BasicType() + " -> " +
+      CcBool::BasicType();
+      appendSignature(Histogram2d::BasicType() + " x " +
+          Histogram2d::BasicType() + " -> " +
+          CcBool::BasicType());
+      syntax = "_ < _";
+      meaning = "Less predicate.";
+      example = "";
+  }
+
+  TranslateInfo::TranslateInfo() : OperatorInfo() {
+      name = "translatehistogram";
+      signature = "histogram1d x histogram1d -> histogram1d";
+      appendSignature("histogram2d x histogram2d -> histogram2d");
+      syntax = "_ translatehistogram (_)";
+      meaning = "Coarsens the first argument to a histogram of the same type"
+        "as the second argument.";
+      example = "";
+  }
+
+  UseInfo::UseInfo() : OperatorInfo() {
+      name = "usehistogram";
+      signature = "For T in kind DATA: " + Histogram1d::BasicType()
+          + " x (real x T* -> real) -> " + Histogram1d::BasicType();
+      appendSignature(Histogram2d::BasicType() + " x (real x T* -> real) -> "
+          + Histogram2d::BasicType());
+      syntax = "_ use[ list; fun ]";
+      meaning = "Apply the function fun "
+        "to each bin of the first argument.";
+      example = "";
+  }
+
+  Use2Info::Use2Info() : OperatorInfo() {
+      name = "usehistogram2";
+      signature = "For T in kind DATA: " + Histogram1d::BasicType() +
+            " x " + Histogram1d::BasicType()
+          + " x (real x real x T* -> real) -> " + Histogram1d::BasicType();
+      appendSignature(Histogram2d::BasicType() +
+          " x (real x real x T* -> real) -> "
+          + Histogram2d::BasicType());
+      syntax = "_ _ use2[ list; fun ]";
+      meaning = "Apply the function fun "
+        "to each bin of the first and the second argument.";
+      example = "";
+  }
+
+  FoldInfo::FoldInfo() : OperatorInfo() {
+      name = "fold";
+      signature = "histogram1d x (T x real -> T) x T -> T";
+      appendSignature("histogram2d x (T x real -> T) x T -> T");
+      syntax = "_ fold [_; _]";
+      meaning = "Apply the fold function to the histogram, "
+        "T of kind DATA";
+      example = "";
+  }
+
+  DistanceInfo::
+
+
+  DistanceInfo() : OperatorInfo() {
+      name = "distance";
+      signature = "histogram1d x histogram1d -> real";
+      appendSignature("histogram2d x histogram2d -> real");
+      syntax = "distance (_, _)";
+      meaning = "Calculate the distance between two histograms.";
+      example = "";
+  }
+
+  FindMinBinInfo::FindMinBinInfo() : OperatorInfo() {
+      name = "find_minbin";
+      signature = Histogram1d::BasicType() + " -> " +
+            Symbol::STREAM() + "(" + CcInt::BasicType() + ")";
+      appendSignature(Histogram2d::BasicType() + " -> " +
+          Symbol::STREAM() + "(" + Tuple::BasicType() + "((" + "x "
+          + CcInt::BasicType() + ")(" + "y " + CcInt::BasicType() + ")))");
+      syntax = "_ find_minbin";
+      meaning = "Returns a stream of the indices of all bins "
+        "with minimal value.";
+      example = "";
+  }
+
+  FindMaxBinInfo::FindMaxBinInfo() : OperatorInfo() {
+      name = "find_maxbin";
+      signature = Histogram1d::BasicType() + " -> " +
+            Symbol::STREAM() + "(" + CcInt::BasicType() + ")";
+      appendSignature(Histogram2d::BasicType() + " -> " +
+          Symbol::STREAM() + "(" +
+          Tuple::BasicType() + "((" + "x "
+          + CcInt::BasicType() + ")(" + "y " + CcInt::BasicType() + ")))");
+      syntax = "_ find_maxbin";
+      meaning = "Returns a stream of the indices of all bins "
+        "with maximal value.";
+      example = "";
+  }
+
 }

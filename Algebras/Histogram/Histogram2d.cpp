@@ -1314,7 +1314,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
 */
   bool Histogram2d::KindCheck(ListExpr type, ListExpr& errorInfo)
   {
-    return (nl->IsEqual(type, HISTOGRAM2D));
+    return (nl->IsEqual(type, Histogram2d::BasicType()));
   }
 
 /*
@@ -1334,11 +1334,11 @@ pages 80-83, Aarhus, Denmark, June 2002.
   {
     if (!h.IsDefined())
     {
-      os << "(" << HISTOGRAM2D << " undef)";
+      os << "(" << Histogram2d::BasicType() << " undef)";
       return os;
     }
 
-    os << "(" << HISTOGRAM2D << "( ( ";
+    os << "(" << Histogram2d::BasicType() << "( ( ";
 
     for (int i = 0; i < h.GetNoRangeX(); i++)
       os << h.GetRangeX(i) << " ";
@@ -1364,9 +1364,9 @@ pages 80-83, Aarhus, Denmark, June 2002.
 */
   histogram2dInfo::histogram2dInfo()
   {
-    name = HISTOGRAM2D;
+    name = Histogram2d::BasicType();
     signature = "-> DATA";
-    typeExample = HISTOGRAM2D;
+    typeExample = Histogram2d::BasicType();
     listRep = "((rangesX*)(rangesY*)(bins*))";
     valueExample= "( (0.0 1.0 ) (0.0 1.5) (2.0) )";
     remarks = "All coordinates must be of type real.";
@@ -1410,9 +1410,11 @@ pages 80-83, Aarhus, Denmark, June 2002.
     NList arg2 = list.second();
 
     // (stream real) x (stream real) -> histogram2d
-    if (arg1.first().isSymbol(STREAM) && arg1.second().isSymbol(REAL) &&
-        arg2.first().isSymbol(STREAM) && arg2.second().isSymbol(REAL) )
-      return NList(HISTOGRAM2D).listExpr();
+    if (arg1.first().isSymbol(Symbol::STREAM()) &&
+      arg1.second().isSymbol(CcReal::BasicType()) &&
+        arg2.first().isSymbol(Symbol::STREAM()) &&
+        arg2.second().isSymbol(CcReal::BasicType()) )
+      return NList(Histogram2d::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -1596,7 +1598,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
   ListExpr BinsXYTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting (" + HISTOGRAM2D + ")";
+    const string errMsg = "Expecting (" + Histogram2d::BasicType() + ")";
 
     if (list.length() != 1)
     return list.typeError(errMsg);
@@ -1604,8 +1606,8 @@ pages 80-83, Aarhus, Denmark, June 2002.
     NList arg1 = list.first();
 
     // histogram1d -> int
-    if (arg1.isSymbol(HISTOGRAM2D))
-    return NList(INT).listExpr();
+    if (arg1.isSymbol(Histogram2d::BasicType()))
+    return NList(CcInt::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -1759,27 +1761,27 @@ pages 80-83, Aarhus, Denmark, June 2002.
       NList numberBin = argList.second();
 
       // the first argument is to be a histogram2d
-      if ((hist.isSymbol(HISTOGRAM2D)))
+      if ((hist.isSymbol(Histogram2d::BasicType())))
       {
         ok++;
-      } // if ( (hist.isSymbol(HISTOGRAM2D) ) )
+      } // if ( (hist.isSymbol(Histogram2d::BasicType()) ) )
 
       else
       {
         argList.typeError("Expecting a histogram2d as first input parameter.");
-      } // else // if ( (hist.isSymbol(HISTOGRAM2D) ) )
+      } // else // if ( (hist.isSymbol(Histogram2d::BasicType()) ) )
 
       // and the second argument is to be an integer value
-      if (numberBin.isSymbol(INT))
+      if (numberBin.isSymbol(CcInt::BasicType()))
       {
         ok++;
-      } // if (numberBin.isSymbol(INTEGER))
+      } // if (numberBin.isSymbol(CcInt::BasicType()))
 
       else
       {
         argList.typeError("Expecting an integer value as "
             "second input parameter.");
-      } // else // if (numberBin.isSymbol(INTEGER))
+      } // else // if (numberBin.isSymbol(CcInt::BasicType()))
 
     } // if (argList.length() == 2)
 
@@ -1791,7 +1793,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
           "indicating the bin number.");
     }
     if (ok == 2)
-    return NList(REAL).listExpr();
+    return NList(CcReal::BasicType()).listExpr();
     else
     return argList.typeError( "Expecting exactly two input parameters: "
         "(1) a histogram2d, (2) an integer value "
@@ -1880,9 +1882,9 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
 
     if(stream.length() != 2
-        || !stream.first().isSymbol(STREAM)
+        || !stream.first().isSymbol(Symbol::STREAM())
         || stream.second().length() != 2
-        || !stream.second().first().isSymbol(TUPLE)
+        || !stream.second().first().isSymbol(Tuple::BasicType())
         || !IsTupleDescription(stream.second().second().listExpr())) {
       return listutils::typeError("Expecting stream of tuples");
     }
@@ -1902,7 +1904,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
       if (attrNameX == attr.first())
       {
-        if(!attr.second().isSymbol(REAL)) {
+        if(!attr.second().isSymbol(CcReal::BasicType())) {
           return listutils::typeError("AttributeX not of type real");
         }
         foundX = true;
@@ -1911,7 +1913,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
       if (attrNameY == attr.first())
       {
-        if(!attr.second().isSymbol(REAL)) {
+        if(!attr.second().isSymbol(CcReal::BasicType())) {
           return listutils::typeError("AttributeY not of type real");
         }
         foundY = true;
@@ -1930,14 +1932,14 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       return listutils::typeError("AttributeY not found");
     }
 
-    if(!hist.isSymbol(HISTOGRAM2D)) {
+    if(!hist.isSymbol(Histogram2d::BasicType())) {
       return listutils::typeError("Histogram2d has wrong type");
     }
 
     ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                         nl->TwoElemList(nl->IntAtom(indexX),
                                                         nl->IntAtom(indexY)),
-                                        nl->SymbolAtom(symbols::HISTOGRAM2D));
+                                      nl->SymbolAtom(Histogram2d::BasicType()));
     return result;
   } // CreateHistogram2dTypeMap(ListExpr args)
 
@@ -2003,7 +2005,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
      errorMsg = "Operator create_histogram2d_equiwidth expects as "
            "second argument an attribute of type real.";
 
-     if (!NList(attrtype).isSymbol(REAL))
+     if (!NList(attrtype).isSymbol(CcReal::BasicType()))
        return list.typeError(errorMsg);
 
      // Remember the position of the attribute:
@@ -2031,7 +2033,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
      errorMsg = "Operator create_histogram2d_equiwidth expects as "
                "second argument an attribute of type real.";
 
-     if (!NList(attrtype).isSymbol(REAL))
+     if (!NList(attrtype).isSymbol(CcReal::BasicType()))
        return list.typeError(errorMsg);
 
 
@@ -2044,7 +2046,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
      errorMsg = "Operator create_histogram2d_equiwidth expects as "
        "fourth argument the symbol 'int'.";
 
-     if (!arg4.isSymbol(INT))
+     if (!arg4.isSymbol(CcInt::BasicType()))
        return list.typeError(errorMsg);
 
 
@@ -2053,14 +2055,14 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
      errorMsg = "Operator create_histogram2d_equiwidth expects as "
        "fifth argument the symbol 'int'.";
 
-     if (!arg5.isSymbol(INT))
+     if (!arg5.isSymbol(CcInt::BasicType()))
        return list.typeError(errorMsg);
 
 
      // Everything should be fine.
      // We can build the outlist:
      NList outlist(NList(Symbol::APPEND()), indexlist,
-         NList(HISTOGRAM2D) );
+         NList(Histogram2d::BasicType()) );
 
      //cout << "outlist: " << outlist.convertToString() << endl;
 
@@ -2460,12 +2462,15 @@ the file ~HistogramAlgebra.cpp~.
     NList loY = argList.fourth();
     NList hiY = argList.fifth();
 
-    if(!hist.isSymbol(HISTOGRAM2D)) {
-      return listutils::typeError("Expects '"+HISTOGRAM2D+"' as 1st argument");
+    if(!hist.isSymbol(Histogram2d::BasicType())) {
+      return listutils::typeError("Expects '"+
+                         Histogram2d::BasicType()+"' as 1st argument");
     }
 
-    if(!loX.isSymbol(REAL) || !hiX.isSymbol(REAL)
-        || !loY.isSymbol(REAL) || !hiY.isSymbol(REAL)) {
+    if(!loX.isSymbol(CcReal::BasicType()) ||
+      !hiX.isSymbol(CcReal::BasicType())
+        || !loY.isSymbol(CcReal::BasicType()) ||
+        !hiY.isSymbol(CcReal::BasicType())) {
       return listutils::typeError("Expects 'real' for lower an upper bound");
     }
     return hist.listExpr();
@@ -2498,8 +2503,8 @@ the file ~HistogramAlgebra.cpp~.
   ListExpr Getcount2dTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting (" + HISTOGRAM2D + " " + INT + " " + INT
-        + ")";
+    const string errMsg = "Expecting (" + Histogram2d::BasicType() + " " +
+                          CcInt::BasicType() + " " + CcInt::BasicType() + ")";
 
     if (list.length() != 3)
       return list.typeError(errMsg);
@@ -2509,8 +2514,10 @@ the file ~HistogramAlgebra.cpp~.
     NList arg3 = list.third();
 
     // histogram2d x int x int -> real
-    if (arg1.isSymbol(HISTOGRAM2D) && arg2.isSymbol(INT) && arg3.isSymbol(INT))
-      return NList(REAL).listExpr();
+    if (arg1.isSymbol(Histogram2d::BasicType()) &&
+      arg2.isSymbol(CcInt::BasicType()) &&
+      arg3.isSymbol(CcInt::BasicType()))
+      return NList(CcReal::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -2581,27 +2588,29 @@ Argument 0 Histogram2d, 1 X real value, 2 Y real value, 3 incVal
     NList x = argList.second();
     NList y = argList.third();
 
-    if(!hist.isSymbol(HISTOGRAM2D)) {
+    if(!hist.isSymbol(Histogram2d::BasicType())) {
       return listutils::typeError("1st argument not of type " +
-                                    HISTOGRAM2D);
+                                    Histogram2d::BasicType());
     }
 
-    if(!x.isSymbol(REAL)) {
+    if(!x.isSymbol(CcReal::BasicType())) {
       return listutils::typeError("2nd argument not of type " +
-        REAL);
+        CcReal::BasicType());
     }
 
-    if(!y.isSymbol(REAL)) {
-      return listutils::typeError("3rd argument not of type " + REAL);
+    if(!y.isSymbol(CcReal::BasicType())) {
+      return listutils::typeError("3rd argument not of type " +
+                                                          CcReal::BasicType());
     }
     if (incValSupplied) {
       NList incVal = argList.fourth();
-      if(!incVal.isSymbol(REAL)) {
-        return listutils::typeError("4th argument not of type " + REAL);
+      if(!incVal.isSymbol(CcReal::BasicType())) {
+        return listutils::typeError("4th argument not of type " +
+                                                          CcReal::BasicType());
       }
     }
 
-    return NList(HISTOGRAM2D).listExpr();
+    return NList(Histogram2d::BasicType()).listExpr();
   }
 
 /*
@@ -2744,7 +2753,7 @@ Argument 0 Histogram2d, 1 real value
   ListExpr Hist2dRealTypeMap(ListExpr args)
   {
     NList list(args);
-    const string errMsg = "Expecting " + HISTOGRAM2D;
+    const string errMsg = "Expecting " + Histogram2d::BasicType();
 
     if (list.length() != 1)
       return list.typeError(errMsg);
@@ -2752,8 +2761,8 @@ Argument 0 Histogram2d, 1 real value
     NList arg1 = list.first();
 
     // histogram2d -> real
-    if (arg1.isSymbol(HISTOGRAM2D))
-      return NList(REAL).listExpr();
+    if (arg1.isSymbol(Histogram2d::BasicType()))
+      return NList(CcReal::BasicType()).listExpr();
 
     return list.typeError(errMsg);
   }
@@ -3700,11 +3709,11 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
                                   "valid attribute name");
     }
 
-    if(!listutils::isSymbol(maxCatX, INT)){
+    if(!listutils::isSymbol(maxCatX, CcInt::BasicType())){
       return listutils::typeError("fourth argument mut be of type int");
     }
 
-    if(!listutils::isSymbol(maxCatY, INT)){
+    if(!listutils::isSymbol(maxCatY, CcInt::BasicType())){
       return listutils::typeError("fifth argument mut be of type int");
     }
 
@@ -3717,7 +3726,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       return listutils::typeError(attrXname + " is not an attribute "
                                   "of the stream");
     }
-    if(!listutils::isSymbol(attrTypeX,REAL)){
+    if(!listutils::isSymbol(attrTypeX,CcReal::BasicType())){
       return listutils::typeError("attribute " + attrXname +
                                   " is not of type real");
     }
@@ -3730,7 +3739,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       return listutils::typeError(attrYname + " is not an attribute "
                                   "of the stream");
     }
-    if(!listutils::isSymbol(attrTypeY,REAL)){
+    if(!listutils::isSymbol(attrTypeY,CcReal::BasicType())){
       return listutils::typeError("attribute " + attrYname +
                                   " is not of type real");
     }
@@ -3738,7 +3747,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                              nl->TwoElemList(nl->IntAtom(indexX),
                                              nl->IntAtom(indexY)),
-                             nl->SymbolAtom(symbols::HISTOGRAM2D));
+                             nl->SymbolAtom(Histogram2d::BasicType()));
 
   } // CreateHistogram2dEquicountTypeMap(ListExpr args)
 
