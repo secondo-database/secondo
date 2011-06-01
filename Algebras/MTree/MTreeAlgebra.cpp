@@ -46,6 +46,8 @@ This file contains the implementation of the mtree algebra.
 #include "TupleIdentifier.h"
 #include "MTreeAlgebra.h"
 #include "MTree.h"
+#include "ListUtils.h"
+#include "Symbols.h"
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -140,10 +142,10 @@ int SizeOfMTree()
 { return sizeof(MTree); }
 
 bool CheckMTree(ListExpr typeName, ListExpr &error_Info)
-{ return nl->IsEqual(typeName, "mtree"); }
+{ return nl->IsEqual(typeName, MTree::BasicType()); }
 
 TypeConstructor
-mtreeTC("mtree",       MTreeProp,
+mtreeTC(MTree::BasicType(),       MTreeProp,
         OutMTree,    InMTree,
         0, 0,
         Createmtree, DeleteMTree,
@@ -886,32 +888,61 @@ ListExpr createmtree_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(paramCnt, args_NL)
+    if(!args_NL.hasLength(paramCnt)){
+      stringstream err;
+      err << "Expecting " << paramCnt << " argument(s)!";
+      return listutils::typeError(err.str());
+    }
 
     NList attrs;
     NList relStream_NL = args_NL.first();
     NList attr_NL = args_NL.second();
 
-    CHECK_REL_OR_STREAM(relStream_NL, attrs, 1)
+    if(!relStream_NL.checkRel(attrs) && !relStream_NL.checkStreamTuple(attrs)){
+      return listutils::typeError(
+                    "Argument 1 must be a relation or tuple stream!");
+    }
 
     // check, if the specified attribute can be found in attribute list
-    CHECK_SYMBOL(attr_NL, 2)
+    if(!attr_NL.isSymbol()){
+      return listutils::typeError(
+                          "Argument 2 must be a symbol or an atomar type!");
+    }
+
     string attrName = attr_NL.str();
     string typeName;
     int attrIndex;
-    CHECK_ATTRIBUTE(attrs, attrName, typeName, attrIndex, 2);
+
+    ListExpr attrTypeLE;
+    attrIndex = FindAttribute(attrs.listExpr(), attrName, attrTypeLE);
+    if(attrIndex <= 0){
+      stringstream err;
+      err << "Attribute name \"" << attrName << "\" is not known.\n"
+          << "Known Attribute(s):\n" << attrs.convertToString();
+      return listutils::typeError(err.str());
+    }
+    --attrIndex;
+    NList attrType (attrTypeLE);
+    typeName = attrType.str();
 
     if (paramCnt > 3)
     {
         string errmsg = "No distdata attributes allowed for operator"
         "createmtree3 - use createmtree or createmtree2 instead)!";
-        CHECK_COND(typeName != "distdata", errmsg);
+        if(typeName == "distdata"){
+          return listutils::typeError(errmsg);
+        }
     }
 
     // get config name
     string configName;
-    if (paramCnt >= 3)
-        GET_CONFIG_NAME(args_NL.third(), configName, 3)
+    if (paramCnt >= 3){
+      if(!args_NL.third().isSymbol()){
+        listutils::typeError(
+        "Argument 3 must be the name of an existing config object!");
+      }
+      configName = args_NL.third().str();
+    }
     else
         configName = CONFIG_DEFAULT;
 
@@ -921,13 +952,20 @@ ListExpr createmtree_TM(ListExpr args)
         errmsg = "Config \"" + configName +
                  "\" not defined, defined names:\n\n" +
                  MTreeConfigReg::definedNames();
-        CHECK_COND(false, errmsg);
+        return listutils::typeError(errmsg);
     }
 
     // select distfun name
     string distfunName;
-    if (paramCnt >= 4)
-        GET_DISTFUN_NAME(args_NL.fourth(), distfunName, 4)
+    if (paramCnt >= 4){
+      if(!args_NL.fourth().isSymbol()){
+        stringstream err;
+        err << "Argument 4 must be the name of an existing "
+        << "distance function or \"" + DFUN_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      distfunName = args_NL.fourth().str();
+    }
     else
         distfunName = DFUN_DEFAULT;
 
@@ -938,7 +976,7 @@ ListExpr createmtree_TM(ListExpr args)
         res2.append(NList(attrIndex));
         res2.append(NList(distfunName, true));
         res2.append(NList(configName, true));
-        NList res3("mtree");
+        NList res3(MTree::BasicType());
         NList result(res1, res2, res3);
         return result.listExpr();
     }
@@ -947,23 +985,62 @@ ListExpr createmtree_TM(ListExpr args)
 
     // select distdata type
     string dataName;
-    if (paramCnt >= 5)
-        GET_DISTDATA_NAME(args_NL.fifth(), dataName, 5)
+    if (paramCnt >= 5){
+      if(!args_NL.fifth().isSymbol()){
+        stringstream err;
+        err << "Argument 5 must be the name of an existing "
+        << "distdata type or \"" + DDATA_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      dataName = args_NL.fifth().str();
+    }
     else
         dataName = DistDataReg::defaultName(typeName);
 
     // check, if selected distdata type is defined
-    CHECK_DISTDATA_DEFINED(dataName);
-    CHECK_DISTFUN_DEFINED(distfunName, typeName, dataName);
+    if (dataName == DDATA_DEFAULT){
+      dataName = DistDataReg::defaultName(typeName);
+      if(dataName == DDATA_UNDEFINED){
+        string errmsg;
+        errmsg = "No default distdata type defined for type "
+                 "constructor \"" + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else if(!DistDataReg::isDefined(typeName, dataName)){
+      string errmsg;
+      errmsg = "Distdata type \"" + dataName + "\" for "
+               "type constructor \"" + typeName +
+               "\" is not defined! Defined names: \n\n" +
+               DistDataReg::definedNames(typeName);
+      return listutils::typeError(errmsg);
+    }
+
+    // Returs a type error, if the specified distance function is not defined.
+    string errmsg;
+    if (distfunName == DFUN_DEFAULT){
+      distfunName = DistfunReg::defaultName(typeName);
+      if(distfunName == DFUN_UNDEFINED){
+        errmsg = "No default distance function defined for type \""
+        + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else {
+      if (!DistfunReg::isDefined(distfunName, typeName, dataName)){
+        errmsg = "Distance function \"" + distfunName +
+          "\" not defined for type \"" +
+          typeName + "\" and data type \"" +
+          dataName + "\"! Defined names: \n\n" +
+          DistfunReg::definedNames(typeName);
+        return listutils::typeError(errmsg);
+      }
+    }
 
     // check if selected distance function is a metric
-    {
-        string errmsg;
-        errmsg = "Distance function \"" + distfunName +
+    if(!DistfunReg::getInfo(distfunName, typeName, dataName).isMetric()){
+      errmsg = "Distance function \"" + distfunName +
                 "\" with \"" + dataName + "\" data for type \"" +
                 typeName + "\" is no metric!";
-        CHECK_COND(DistfunReg::getInfo(
-                distfunName, typeName, dataName).isMetric(), errmsg);
+      return listutils::typeError(errmsg);
     }
 
     // generate result list
@@ -974,7 +1051,7 @@ ListExpr createmtree_TM(ListExpr args)
     res2.append(NList(distfunName, true));
     res2.append(NList(dataName, true));
     res2.append(NList(configName, true));
-    NList res3("mtree");
+    NList res3(MTree::BasicType());
     NList result(res1, res2, res3);
 
     return result.listExpr();
@@ -992,7 +1069,9 @@ ListExpr rangesearch_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(4, args_NL);
+    if(!args_NL.hasLength(4)){
+      return listutils::typeError("Expecting 4 argument(s)!");
+    }
 
     NList attrs;
     NList mtree_NL = args_NL.first();
@@ -1000,12 +1079,23 @@ ListExpr rangesearch_TM(ListExpr args)
     NList data_NL = args_NL.third();
     NList searchRad_NL = args_NL.fourth();
 
-    CHECK_COND(
-            mtree_NL.isEqual("mtree"),
-            "First argument must be a mtree!");
-    CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(data_NL, 3);
-    CHECK_REAL(searchRad_NL, 4);
+    if(!mtree_NL.isEqual(MTree::BasicType())){
+      return listutils::typeError("First argument must be a mtree!");
+    }
+
+    if(!rel_NL.checkRel(attrs)){
+      return listutils::typeError("Argument 2 must be a relation!");
+    }
+
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 3 must be a symbol or an atomar type!");
+    }
+
+    if(!searchRad_NL.isEqual(CcReal::BasicType())){
+      return listutils::typeError("Argument 4 must be a \"real\" value!");
+    }
+
 
     /* Further type checkings for the data parameter will be done
        in the value mapping function, since the type of the mtree
@@ -1032,7 +1122,10 @@ ListExpr nnsearch_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(4, args_NL);
+    if(!args_NL.hasLength(4)){
+      stringstream err;
+      return listutils::typeError("Expecting 4 arguments!");
+    }
 
     NList attrs;
     NList mtree_NL = args_NL.first();
@@ -1040,12 +1133,23 @@ ListExpr nnsearch_TM(ListExpr args)
     NList data_NL = args_NL.third();
     NList nnCount_NL = args_NL.fourth();
 
-    CHECK_COND(
-            mtree_NL.isEqual("mtree"),
-            "First argument must be a mtree!");
-    CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(data_NL, 3);
-    CHECK_INT(nnCount_NL, 4);
+    if(!mtree_NL.isEqual(MTree::BasicType())){
+      return listutils::typeError("First argument must be a mtree!");
+    }
+
+    if(!rel_NL.checkRel(attrs)){
+      return listutils::typeError("Argument 2 must be a relation!");
+    }
+
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+                              "Argument 3 must be a symbol or an atomar type!");
+    }
+
+
+    if(!nnCount_NL.isEqual(CcInt::BasicType())){
+      return listutils::typeError("Argument 4 must be an \"int\" value!");
+    }
 
     /* Further type checkings for the data parameter will be done
        in the value mapping function, since the type of the mtree

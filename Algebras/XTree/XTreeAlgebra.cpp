@@ -134,10 +134,10 @@ int SizeOfXTree()
 { return sizeof(XTree); }
 
 bool CheckXTree(ListExpr typeName, ListExpr &error_Info)
-{ return nl->IsEqual(typeName, "xtree"); }
+{ return nl->IsEqual(typeName, XTree::BasicType()); }
 
 TypeConstructor xtreeTC(
-        "xtree",       XTreeProp,
+        XTree::BasicType(),       XTreeProp,
         OutXTree,    InXTree,
         0, 0,
         CreateXTree, DeleteXTree,
@@ -1258,25 +1258,52 @@ ListExpr creatextree_TM(ListExpr args)
 {
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(paramCnt, args_NL)
+    if(!args_NL.hasLength(paramCnt)){
+      stringstream err;
+      err << "Expected " << paramCnt << " arguments!";
+      return listutils::typeError(err.str());
+    }
 
     NList attrs;
     NList relStream_NL = args_NL.first();
     NList attr_NL = args_NL.second();
 
-    CHECK_REL_OR_STREAM(relStream_NL, attrs, 1)
+    if(!relStream_NL.checkRel(attrs) && !relStream_NL.checkStreamTuple(attrs)){
+      return listutils::typeError(
+      "Argument 1 must be a relation or tuple stream!");
+    }
 
     // check, if the specified attr. can be found in attribute list
-    CHECK_SYMBOL(attr_NL, 2)
+    if(!attr_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 2 must be a symbol or an atomar type!");
+    }
+
     string attrName = attr_NL.str();
     string typeName;
     int attrIndex;
-    CHECK_ATTRIBUTE(attrs, attrName, typeName, attrIndex, 2);
+
+    ListExpr attrTypeLE;
+    attrIndex = FindAttribute(attrs.listExpr(), attrName, attrTypeLE);
+    if(attrIndex <= 0){
+      stringstream err;
+      err << "Attribute name \"" << attrName << "\" is not known.\n"
+      << "Known Attribute(s):\n" << attrs.convertToString();
+      return listutils::typeError(err.str());
+    }
+    --attrIndex;
+    NList attrType (attrTypeLE);
+    typeName = attrType.str();
 
     // get config name
     string configName;
-    if (paramCnt > 2)
-        GET_CONFIG_NAME(args_NL.third(), configName, 3)
+    if (paramCnt > 2){
+      if(!args_NL.third().isSymbol()){
+        listutils::typeError(
+        "Argument 3 must be the name of an existing config object!");
+      }
+      configName = args_NL.third().str();
+    }
     else
         configName = CONFIG_DEFAULT;
 
@@ -1286,7 +1313,7 @@ ListExpr creatextree_TM(ListExpr args)
         errmsg = "Config \"" + configName +
                  "\" not defined, defined names:\n\n" +
                  XTreeConfigReg::definedNames();
-        CHECK_COND(false, errmsg);
+        return listutils::typeError(errmsg);
     }
 
     if ((typeName == "hpoint") || (typeName == "hrect"))
@@ -1295,7 +1322,7 @@ ListExpr creatextree_TM(ListExpr args)
         NList res2;
         res2.append(NList(attrIndex));
         res2.append(NList(configName, true));
-        NList res3("xtree");
+        NList res3(XTree::BasicType());
         NList result(res1, res2, res3);
         return result.listExpr();
     }
@@ -1312,7 +1339,9 @@ ListExpr creatextree_TM(ListExpr args)
         string errmsg;;
         errmsg = "Argument 4 must be the name of an existing "
                  "gethrect or getdata function!";
-        CHECK_COND(getdataName_NL.isSymbol(), errmsg);
+        if(!getdataName_NL.isSymbol()){
+          return listutils::typeError(errmsg);
+        }
         getdataName = getdataName_NL.str();
         getdataType = 0;
         if (!HPointReg::isDefined(typeName, getdataName))
@@ -1327,8 +1356,9 @@ ListExpr creatextree_TM(ListExpr args)
                      HPointReg::definedNames(typeName) +
                      "\ngetbbox  : " +
                      BBoxReg::definedNames(typeName);
-            CHECK_COND(BBoxReg::isDefined(typeName, getdataName),
-                       errmsg);
+            if(!BBoxReg::isDefined(typeName, getdataName)){
+              return listutils::typeError(errmsg);
+            }
         }
     }
     else // creatextree, creatextree2
@@ -1344,7 +1374,9 @@ ListExpr creatextree_TM(ListExpr args)
             errmsg = "No default gethpoint or getbbox function "
                      "defined for type constructor \"" +
                      typeName + "\"!";
-            CHECK_COND(getdataName != BBOX_UNDEFINED, errmsg);
+            if(getdataName == BBOX_UNDEFINED){
+              return listutils::typeError(errmsg);
+            }
         }
     }
 
@@ -1355,7 +1387,7 @@ ListExpr creatextree_TM(ListExpr args)
     res2.append(NList(typeName, true));
     res2.append(NList(getdataType));
     res2.append(NList(getdataName, true));
-    NList res3("xtree");
+    NList res3(XTree::BasicType());
     NList result(res1, res2, res3);
     return result.listExpr();
 
@@ -1374,7 +1406,9 @@ ListExpr rangesearch_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(4, args_NL);
+    if(!args_NL.hasLength(4)){
+      return listutils::typeError("Expected 4 arguments!");
+    }
 
     NList attrs;
     NList mtree_NL = args_NL.first();
@@ -1382,12 +1416,22 @@ ListExpr rangesearch_TM(ListExpr args)
     NList data_NL = args_NL.third();
     NList searchRad_NL = args_NL.fourth();
 
-    CHECK_COND(
-            mtree_NL.isEqual("xtree"),
-            "First argument must be a xtree!");
-    CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(data_NL, 3);
-    CHECK_REAL(searchRad_NL, 4);
+    if(!mtree_NL.isEqual(XTree::BasicType())){
+      return listutils::typeError("First argument must be a xtree!");
+    }
+
+    if(!rel_NL.checkRel(attrs)){
+      return listutils::typeError("Argument 2 must be a relation!");
+    }
+
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 3 must be a symbol or an atomar type!");
+    }
+
+    if(!searchRad_NL.isEqual(CcReal::BasicType())){
+      return listutils::typeError("Argument 4 must be an \"real\" value!");
+    }
 
     /* further type checkings for the data parameter will be done
        in the value mapping function, since that needs some data from
@@ -1414,7 +1458,9 @@ ListExpr nnsearch_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(4, args_NL);
+    if(!args_NL.hasLength(4)){
+      return listutils::typeError("Expected 4 arguments!");
+    }
 
     NList attrs;
     NList mtree_NL = args_NL.first();
@@ -1422,12 +1468,22 @@ ListExpr nnsearch_TM(ListExpr args)
     NList data_NL = args_NL.third();
     NList nnCount_NL = args_NL.fourth();
 
-    CHECK_COND(
-            mtree_NL.isEqual("xtree"),
-            "First argument must be a xtree!");
-    CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(data_NL, 3);
-    CHECK_INT(nnCount_NL, 4);
+    if(!mtree_NL.isEqual(XTree::BasicType())){
+      return listutils::typeError("First argument must be a xtree!");
+    }
+
+    if(!rel_NL.checkRel(attrs)){
+      return listutils::typeError("Argument 2 must be a relation!");
+    }
+
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 3 must be a symbol or an atomar type!");
+    }
+
+    if(!nnCount_NL.isEqual(CcInt::BasicType())){
+      return listutils::typeError("Argument 4 must be an \"int\" value!");
+    }
 
     /* further type checkings for the data parameter will be done
        in the value mapping function, since that needs some data from
@@ -1450,22 +1506,33 @@ ListExpr windowintersects_TM(ListExpr args)
 {
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(3, args_NL);
+    if(!args_NL.hasLength(3)){
+      return listutils::typeError("Expected 3 arguments!");
+    }
 
     NList attrs;
     NList xtree_NL = args_NL.first();
     NList rel_NL = args_NL.second();
     NList hrect_NL = args_NL.third();
 
-    CHECK_COND(
-            xtree_NL.isEqual("xtree"),
-            "First argument must be a xtree!");
-    CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(hrect_NL, 3);
+    if(!xtree_NL.isEqual(XTree::BasicType())){
+      return listutils::typeError("First argument must be a xtree!");
+    }
+
+    if(!rel_NL.checkRel(attrs)){
+      return listutils::typeError("Argument 2 must be a relation!");
+    }
+
+    if(!hrect_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 3 must be a symbol or an atomar type!");
+    }
 
     string typeName = hrect_NL.str();
     string error = "Expecting a \"hrect\" as third parameter!";
-    CHECK_COND(typeName == "hrect", error);
+    if(typeName != "hrect"){
+      return listutils::typeError(error);
+    }
 
     NList stream_NL(Symbol::STREAM());
     NList result(stream_NL, rel_NL.second());
@@ -1484,18 +1551,27 @@ ListExpr nnscan_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(3, args_NL);
+    if(!args_NL.hasLength(3)){
+      return listutils::typeError("Expected 3 arguments!");
+    }
 
     NList attrs;
     NList mtree_NL = args_NL.first();
     NList rel_NL = args_NL.second();
     NList data_NL = args_NL.third();
 
-    CHECK_COND(
-            mtree_NL.isEqual("xtree"),
-            "First argument must be a xtree!");
-    CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(data_NL, 3);
+    if(!mtree_NL.isEqual(XTree::BasicType())){
+      return listutils::typeError("First argument must be a xtree!");
+    }
+
+    if(!rel_NL.checkRel(attrs)){
+      return listutils::typeError("Argument 2 must be a relation!");
+    }
+
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 3 must be a symbol or an atomar type!");
+    }
 
     /* further type checkings for the data parameter will be done
        in the value mapping function, since that needs some data from

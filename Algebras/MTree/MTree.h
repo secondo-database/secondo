@@ -350,6 +350,8 @@ Prints some infos about the tree to cmsg.info().
         cmsg.send();
     }
 
+    static const string BasicType() { return "mtree"; }
+
 private:
     Splitpol* splitpol;  // reference to chosen split policy
     DistfunInfo df_info; // assigned DistfunInfo object

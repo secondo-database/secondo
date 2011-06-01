@@ -453,6 +453,8 @@ Removes the disc representation of the data FLOB.
          return m_data.getData();
     }
 
+    static const string BasicType() { return "distdata"; }
+
 private:
     Flob m_data; // contains the data array
     DistDataId m_distdataId;

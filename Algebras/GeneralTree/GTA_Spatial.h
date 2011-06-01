@@ -51,6 +51,7 @@ This file contains the folllowing classes:
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
 using namespace std;
 
@@ -285,6 +286,8 @@ Returns the bounding box of "this"[4].
 
 */
     HRect *bbox() const;
+
+    static const string BasicType() { return "hpoint"; }
 
   private:
     GTA_SPATIAL_DOM *m_coords; // coordinate vector
@@ -637,6 +640,9 @@ Returns the bounding box of "this"[4].
 */
     inline HRect *bbox() const
     { return new HRect(*this); }
+
+      static const string BasicType() { return "hrect"; }
+
 
   private:
     GTA_SPATIAL_DOM *m_lbVect, *m_ubVect; // lower/upper bounds vect.

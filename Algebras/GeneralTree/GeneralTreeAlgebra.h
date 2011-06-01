@@ -43,8 +43,6 @@ This file combines only some includes to provide a simple way to use the provide
 #include "HPointReg.h"
 #include "BBoxReg.h"
 #include "DistfunReg.h"
-#include "GTA_TypeMapUtils.h" // contains some macros for the type
-                              // mapping functions
 #include "GTree.h"
 
 using namespace std;

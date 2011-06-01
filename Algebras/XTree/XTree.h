@@ -127,7 +127,7 @@ This struct is used for the nnscan methods.
 struct NNScanEntry
 {
     bool isNodeId;
-    union 
+    union
     {
         SmiRecordId nodeId;
         TupleId tid;
@@ -139,7 +139,7 @@ struct NNScanEntry
  //    {}
 
     NNScanEntry(const bool _isNodeId,
-                const SmiRecordId _nodeId, 
+                const SmiRecordId _nodeId,
                 const double _dist)
     : isNodeId(_isNodeId), nodeId(_nodeId), dist(_dist)
     {}
@@ -378,6 +378,8 @@ Prints some infos about the tree to cmsg.info().
             << endl << endl;
         cmsg.send();
     }
+
+    static const string BasicType() { return "xtree"; }
 
 private:
     XTreeConfig config; // assigned XTreeConfig object

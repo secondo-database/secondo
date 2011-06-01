@@ -70,7 +70,7 @@ static ListExpr HPointProp()
                 nl->StringAtom("Example List")),
             nl->FourElemList(
                 nl->StringAtom("-> DATA"),
-                nl->StringAtom("hpoint"),
+                nl->StringAtom(HPoint::BasicType()),
                 nl->StringAtom("(<dim> (<c_1> ... <c_n>) "),
                 nl->StringAtom("(2 (0.5 2.5))"))));
 }
@@ -201,10 +201,10 @@ int SizeOfHPoint()
 { return sizeof(HPointAttr); }
 
 bool CheckHPoint(ListExpr typeName, ListExpr &error_Info)
-{ return (nl->IsEqual(typeName, "hpoint")); }
+{ return (nl->IsEqual(typeName, HPoint::BasicType())); }
 
 TypeConstructor hpoint_tc(
-        "hpoint",     HPointProp,
+        HPoint::BasicType(),     HPointProp,
         OutHPoint,    InHPoint,
         0, 0,
         createHPoint, DeleteHPoint,
@@ -230,7 +230,7 @@ static ListExpr HRectProp()
                 nl->StringAtom("Example List")),
             nl->FourElemList(
                 nl->StringAtom("-> DATA"),
-                nl->StringAtom("hrect"),
+                nl->StringAtom(HRect::BasicType()),
                 nl->StringAtom("(<dim> (<lb_1> ... <lb_n>) "
                                       "(<ub_1> ... <ub_n>))"),
                 nl->StringAtom("(2 (0.0 0.0) (1.0 1.0))"))));
@@ -391,10 +391,10 @@ int SizeOfHRect()
 { return sizeof(HRectAttr); }
 
 bool CheckHRect(ListExpr typeName, ListExpr &error_Info)
-{ return (nl->IsEqual(typeName, "hrect")); }
+{ return (nl->IsEqual(typeName, HRect::BasicType())); }
 
 TypeConstructor hrect_tc(
-        "hrect",     HRectProp,
+        HRect::BasicType(),     HRectProp,
         OutHRect,    InHRect,
         0, 0,
         createHRect, DeleteHRect,
@@ -417,7 +417,7 @@ static ListExpr DistDataProp()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("distdata"),
+                             nl->StringAtom(DistDataAttribute::BasicType()),
                              nl->StringAtom("no list, use operator"
                                             " getdistdata"),
                              nl->StringAtom("---"))));
@@ -568,10 +568,10 @@ int SizeOfDistData()
 { return sizeof(DistDataAttribute); }
 
 bool CheckDistData(ListExpr typeName, ListExpr &error_Info)
-{ return (nl->IsEqual(typeName, "distdata")); }
+{ return (nl->IsEqual(typeName, DistDataAttribute::BasicType())); }
 
 TypeConstructor distdata_tc(
-        "distdata",    DistDataProp,
+        DistDataAttribute::BasicType(),    DistDataProp,
         OutDistData,   InDistData,
         0, 0,
         createDistData, DeleteDistData,
@@ -802,25 +802,58 @@ ListExpr gethpoint_TM(ListExpr args)
         HPointReg::initialize();
 
     NList args_NL(args);
-    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    if(!args_NL.hasLength(paramCnt)){
+      stringstream err;
+      err << "Expected " << paramCnt << " arguments!";
+      return listutils::typeError(err.str());
+    }
+
     NList data_NL = args_NL.first();
 
-    CHECK_SYMBOL(data_NL, 1)
+//     CHECK_SYMBOL(data_NL, 1)
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 1 must be a symbol or an atomar type!");
+    }
+
     string typeName = data_NL.str();
 
     // select bbox type
     string funName;
-    if (paramCnt == 2)
-        GET_HPOINT_NAME(args_NL.second(), funName, 2)
+    if (paramCnt == 2){
+      if(!args_NL.second().isSymbol()){
+        stringstream err;
+        err << "Argument 2 must be the name of an existing "
+            << "gethpoint function or \"" + HPOINT_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      funName = args_NL.second().str();
+    }
     else
         funName = HPOINT_DEFAULT;
 
     // check, if selected get-hpoint function is defined
-    CHECK_HPOINT_DEFINED(funName);
+    if (funName == HPOINT_DEFAULT){
+      funName = HPointReg::defaultName(typeName);
+      if(funName == HPOINT_UNDEFINED){
+        string errmsg;
+        errmsg = "No default gethpoint function defined for type "
+        "constructor \"" + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else if(!HPointReg::isDefined(typeName, funName)){
+      string errmsg;
+      errmsg = "gethpoint function  \"" + funName +
+      "\" for type constructor \"" + typeName +
+      "\" is not defined! Use \"" + HPOINT_DEFAULT +
+      "\" or one of the following names: \n\n" +
+      HPointReg::definedNames(typeName);
+      return listutils::typeError(errmsg);
+    }
 
     NList res1(Symbol::APPEND());
     NList res2(NList(typeName, true), NList(funName, true));
-    NList res3("hpoint");
+    NList res3(HPoint::BasicType());
     NList result(res1, res2, res3);
     return result.listExpr();
 }
@@ -830,29 +863,60 @@ ListExpr gethpoint_TM(ListExpr args)
 template<unsigned paramCnt>
 ListExpr getbbox_TM(ListExpr args)
 {
-    if (!BBoxReg::isInitialized())
-        BBoxReg::initialize();
+    if (!BBoxReg::isInitialized()){
+      BBoxReg::initialize();
+    }
 
     NList args_NL(args);
-    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    if(!args_NL.hasLength(paramCnt)){
+      stringstream err;
+      err << "Expected " << paramCnt << " arguments!";
+      return listutils::typeError(err.str());
+    }
+
     NList data_NL = args_NL.first();
 
-    CHECK_SYMBOL(data_NL, 1)
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 1 must be a symbol or an atomar type!");
+    }
+
     string typeName = data_NL.str();
 
     // select bbox type
     string funName;
-    if (paramCnt == 2)
-        GET_BBOX_NAME(args_NL.second(), funName, 2)
-    else
-        funName = BBOX_DEFAULT;
+    if (paramCnt == 2){
+      if(!args_NL.second().isSymbol()){
+        stringstream err;
+        err << "Argument 2 must be the name of an existing "
+            << "gethrect function or \"" + BBOX_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      funName = args_NL.second().str();
+    } else {
+      funName = BBOX_DEFAULT;
+    }
 
     // check, if selected get-hrect function is defined
-    CHECK_BBOX_DEFINED(funName);
+    if (funName == BBOX_DEFAULT){
+      funName = BBoxReg::defaultName(typeName);
+      if(funName == BBOX_UNDEFINED){
+        string errmsg = "No default gethrect function defined for type "
+                        "constructor \"" + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else if(!BBoxReg::isDefined(typeName, funName)){
+        string errmsg = "gethrect function  \"" + funName +
+                      "\" for type constructor \"" + typeName +
+                      "\" is not defined! Use \"" + BBOX_DEFAULT +
+                      "\" or one of the following names: \n\n" +
+                      BBoxReg::definedNames(typeName);
+        return listutils::typeError(errmsg);
+    }
 
     NList res1(Symbol::APPEND());
     NList res2(NList(typeName, true), NList(funName, true));
-    NList res3("hrect");
+    NList res3(HRect::BasicType());
     NList result(res1, res2, res3);
     return result.listExpr();
 }
@@ -880,24 +944,55 @@ ListExpr getdistdata_TM(ListExpr args)
         DistfunReg::initialize();
 
     NList args_NL(args);
-    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    if(!args_NL.hasLength(paramCnt)){
+      stringstream err;
+      err << "Expected " << paramCnt << " arguments!";
+      return listutils::typeError(err.str());
+    }
+
     NList data_NL = args_NL.first();
-    CHECK_SYMBOL(data_NL, 1)
+    if(!data_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 1 must be a symbol or an atomar type!");
+    }
+
     string typeName = data_NL.str();
 
     // select distdata type
     string dataName;
-    if (paramCnt == 2)
-        GET_DISTDATA_NAME(args_NL.second(), dataName, 2)
+    if (paramCnt == 2){
+      if(!args_NL.second().isSymbol()){
+        stringstream err;
+        err << "Argument 2 must be the name of an existing "
+        << "distdata type or \"" + DDATA_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      dataName = args_NL.second().str();
+    }
     else
         dataName = DDATA_DEFAULT;
 
     // check, if selected distdata type is defined
-    CHECK_DISTDATA_DEFINED(dataName);
+    if (dataName == DDATA_DEFAULT){
+      dataName = DistDataReg::defaultName(typeName);
+      if(dataName == DDATA_UNDEFINED){
+        string errmsg;
+        errmsg = "No default distdata type defined for type "
+        "constructor \"" + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else if(!DistDataReg::isDefined(typeName, dataName)){
+      string errmsg;
+      errmsg = "Distdata type \"" + dataName + "\" for "
+      "type constructor \"" + typeName +
+      "\" is not defined! Defined names: \n\n" +
+      DistDataReg::definedNames(typeName);
+      return listutils::typeError(errmsg);
+    }
 
     NList res1(Symbol::APPEND());
     NList res2(NList(typeName, true), NList(dataName, true));
-    NList res3("distdata");
+    NList res3(DistDataAttribute::BasicType());
     NList result(res1, res2, res3);
     return result.listExpr();
 }
@@ -925,31 +1020,46 @@ ListExpr gdistance_TM(ListExpr args)
 
     NList args_NL(args);
 
-    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    if(!args_NL.hasLength(paramCnt)){
+      stringstream err;
+      err << "Expected " << paramCnt << " arguments!";
+      return listutils::typeError(err.str());
+    }
 
     NList data1_NL = args_NL.first();
     NList data2_NL = args_NL.second();
 
-    CHECK_SYMBOL(data1_NL, 1)
-    CHECK_SYMBOL(data2_NL, 2)
+    if(!data1_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 1 must be a symbol or an atomar type!");
+    }
+    if(!data2_NL.isSymbol()){
+      return listutils::typeError(
+      "Argument 2 must be a symbol or an atomar type!");
+    }
 
-    string errmsg;
-    errmsg = "Expecting two data attributes of the same type!";
     if(!(data1_NL == data2_NL)){
-      ErrorReporter::ReportError(errmsg);
-      return nl->TypeError();
+      return listutils::typeError(
+                    "Expecting two data attributes of the same type!");
     }
 
     string typeName = data1_NL.str();
 
     // select distfun name
     string distfunName;
-    if (paramCnt >= 3)
-        GET_DISTFUN_NAME(args_NL.third(), distfunName, 3)
+    if (paramCnt >= 3){
+      if(!args_NL.third().isSymbol()){
+        stringstream err;
+        err << "Argument 3 must be the name of an existing "
+        << "distance function or \"" + DFUN_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      distfunName = args_NL.third().str();
+    }
     else
         distfunName = DFUN_DEFAULT;
 
-    if(typeName == "distdata")
+    if(typeName == DistDataAttribute::BasicType())
     {   // further type checkings for distdata attributes are done in
         // the value mapping function, since they need the name of
         // the assigned type constructor, which is stored within the
@@ -963,14 +1073,55 @@ ListExpr gdistance_TM(ListExpr args)
 
     // select distdata type
     string dataName;
-    if (paramCnt >= 4)
-        GET_DISTDATA_NAME(args_NL.fourth(), dataName, 4)
+    if (paramCnt >= 4){
+      if(!args_NL.fourth().isSymbol()){
+        stringstream err;
+        err << "Argument 4 must be the name of an existing "
+        << "distdata type or \"" + DDATA_DEFAULT + "\"!";
+        return listutils::typeError(err.str());
+      }
+      dataName = args_NL.fourth().str();
+    }
     else
         dataName = DistDataReg::defaultName(typeName);
 
     // check, if selected distdata type is defined
-    CHECK_DISTDATA_DEFINED(dataName);
-    CHECK_DISTFUN_DEFINED(distfunName, typeName, dataName);
+    if (dataName == DDATA_DEFAULT){
+      dataName = DistDataReg::defaultName(typeName);
+      if(dataName == DDATA_UNDEFINED){
+        string errmsg;
+        errmsg = "No default distdata type defined for type "
+        "constructor \"" + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else if(!DistDataReg::isDefined(typeName, dataName)){
+      string errmsg;
+      errmsg = "Distdata type \"" + dataName + "\" for "
+      "type constructor \"" + typeName +
+      "\" is not defined! Defined names: \n\n" +
+      DistDataReg::definedNames(typeName);
+      return listutils::typeError(errmsg);
+    }
+
+    // Returs a type error, if the specified distance function is not defined.
+    string errmsg;
+    if (distfunName == DFUN_DEFAULT){
+      distfunName = DistfunReg::defaultName(typeName);
+      if(distfunName == DFUN_UNDEFINED){
+        errmsg = "No default distance function defined for type \""
+        + typeName + "\"!";
+        return listutils::typeError(errmsg);
+      }
+    } else {
+      if (!DistfunReg::isDefined(distfunName, typeName, dataName)){
+        errmsg = "Distance function \"" + distfunName +
+          "\" not defined for type \"" +
+          typeName + "\" and data type \"" +
+          dataName + "\"! Defined names: \n\n" +
+          DistfunReg::definedNames(typeName);
+        return listutils::typeError(errmsg);
+      }
+    }
 
     NList res1(Symbol::APPEND());
     NList res2(NList(
@@ -993,7 +1144,7 @@ int gdistance_Select(ListExpr args)
   NList argsNL(args);
   NList arg1 = argsNL.first();
 
-  if (arg1.isEqual("distdata"))
+  if (arg1.isEqual(DistDataAttribute::BasicType()))
     return 1;
   else
     return 0;
