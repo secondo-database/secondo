@@ -749,12 +749,12 @@ struct TUPSTREAMInfo : OperatorInfo
 
 ListExpr TUPSTREAMType( ListExpr args)
 {
-  ListExpr first;
-  CHECK_COND(nl->ListLength(args) >= 1,
-      "Expect one argument at least");
-  first = nl->First(args);
-  CHECK_COND(listutils::isRelDescription(first),
-      "rel(tuple(...)) expected");
+
+  if (nl->ListLength(args) < 1)
+    return listutils::typeError("Expect one argument at least");
+  ListExpr first = nl->First(args);
+  if (!listutils::isRelDescription(first))
+    return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(first));
 }
@@ -790,12 +790,11 @@ struct TUPSTREAM2Info : OperatorInfo
 
 ListExpr TUPSTREAM2Type( ListExpr args)
 {
-  ListExpr second;
-  CHECK_COND(nl->ListLength(args) >= 2,
-      "Expect two argument at least");
-  second = nl->Second(args);
-  CHECK_COND(listutils::isRelDescription(second),
-      "rel(tuple(...)) expected");
+  if (nl->ListLength(args) < 2)
+    return listutils::typeError("Expect two argument at least");
+  ListExpr second = nl->Second(args);
+  if (!listutils::isRelDescription(second))
+    return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(second));
 }
@@ -832,12 +831,11 @@ struct TUPSTREAM3Info : OperatorInfo
 
 ListExpr TUPSTREAM3Type( ListExpr args)
 {
-  ListExpr third;
-  CHECK_COND(nl->ListLength(args) >= 3,
-      "Expect 3 arguments at least");
-  third = nl->Third(args);
-  CHECK_COND(listutils::isRelDescription(third),
-      "rel(tuple(...)) expected");
+  if (nl->ListLength(args) < 3)
+    return listutils::typeError("Expect 3 arguments at least");
+  ListExpr third = nl->Third(args);
+  if (!listutils::isRelDescription(third))
+      return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(third));
 }
@@ -1794,6 +1792,10 @@ int add0TupleValueMap(Word* args, Word& result,
   return 0;
 }
 
+//Set up the remote copy command options uniformly.
+const string scpCommand = "scp -o Connecttimeout=5 ";
+
+
 
 /*
 7 Implementation of clusterInfo class
@@ -2090,7 +2092,7 @@ struct FConsumeInfo : OperatorInfo {
     signature = "stream(tuple(...)) "
         "x fileName x path x {fileIndex} "
         "x {typeNode1} x {typeNode2} "
-        "x { selfIndex x targetIndex x dupTimes } "
+        "x {targetIndex x dupTimes } "
         "-> bool";
     syntax =    "_ fconsume[ basic; remote type; remote data]";
     meaning =   "Export a stream of tuples into a file, "
@@ -2127,10 +2129,10 @@ ListExpr FConsumeTypeMap(ListExpr args)
   string err4 = "ERROR!Expect the file name and path.";
   string err5 = "ERROR!Expect the file suffix.";
   string err6 = "ERROR!Expect the target index and dupTimes.";
-  string err7 = "ERROR!Expect the remote type node indices.";
-  string err8 = "ERROR!Remote node for type file is out of range";
-  string err9 = "ERROR!The slave list file does not exist."
+  string err7 = "ERROR!Remote node for type file is out of range";
+  string err8 = "ERROR!The slave list file does not exist."
       "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+  string err9 = "ERROR!Remote copy type file fail.";
 
   int len = l.length();
   if ( len != 4)
@@ -2182,7 +2184,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if (!pType.isEmpty())
   {
     if (pType.length() > 2)
-      return l.typeError(err7);
+      return l.typeError(typeErr3);
     while (!pType.isEmpty())
     {
       if (!pType.first().isSymbol(CcInt::BasicType()))
@@ -2234,7 +2236,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   {
     clusterInfo *ci = new clusterInfo();
     if (!ci->isOK())
-      return l.typeError(err9);
+      return l.typeError(err8);
     int sLen = ci->getLines();
     //Copy type files to remote location
     for (int i = 0; i < 2; i++)
@@ -2244,11 +2246,12 @@ ListExpr FConsumeTypeMap(ListExpr args)
         if (tNode[i] > sLen)
         {
           ci->print();
-          return l.typeError(err8);
+          return l.typeError(err7);
         }
         string rPath = ci->getPath(tNode[i]);
-        cerr << "Copy the type file to -> " << "\t" << rPath << endl;
-        system(("scp " + filePath + " " + rPath).c_str());
+        cerr << "Copy the type file to -> \t" << rPath << endl;
+        if ( 0 != (system((scpCommand + filePath + " " + rPath).c_str())))
+          return l.typeError(err9);
       }
     }
   }
@@ -2408,16 +2411,17 @@ int FConsumeValueMap(Word* args, Word& result,
         return 0;
       }
 
-      string cName = ci->getIP(localNode, true);
+      string cName = ci->getIP(localNode);
       string newFileName = "/" + relName + "_" + cName;
 
       //Avoid copying file to a same node repeatedly
-      bool copyList[ci->getLines() + 1];
-      memset(copyList, false, sizeof(copyList));
+      int cLen = ci->getLines();
+      bool copyList[cLen + 1];
+      memset(copyList, false, (cLen + 1));
       for (int i = 0; i < dt; i++, ti++)
-        copyList[ti] = true;
+        copyList[((ti - 1)%cLen + 1)] = true;
 
-      for (int i = 1; i <= ci->getLines(); i++)
+      for (int i = 1; i <= cLen; i++)
       {
         if (copyList[i])
         {
@@ -2429,16 +2433,26 @@ int FConsumeValueMap(Word* args, Word& result,
           else
           {
             string rPath = ci->getPath(i, true);
-            system(("scp " + filePath + " "
-              + rPath + newFileName).c_str());
-            cerr << "Copy " << filePath << " \t-> " << rPath << newFileName
-                << endl;
+            cerr << "Copy " << filePath << " \t-> "
+                << rPath << newFileName << endl;
+            if ( 0 != ( system(
+                (scpCommand + filePath + " " + rPath + newFileName).c_str())))
+            {
+              cerr << "Copy remote file fail." << endl;
+              ((CcBool*)(result.addr))->Set(true, false);
+              return 0;
+            }
           }
         }
       }
       if (!keepLocal)
       {
-        system(("rm " + filePath).c_str());
+        if ( 0 != (system(("rm " + filePath).c_str())))
+        {
+          cerr << "Delete local file fail." << endl;
+          ((CcBool*)(result.addr))->Set(true, false);
+          return 0;
+        }
         cerr << "Local file '" + filePath + "' is deleted." << endl;
       }
     }
@@ -2639,8 +2653,9 @@ ListExpr FFeedTypeMap(ListExpr args)
   string err8 = "ERROR! Remote node for type file is out of range.";
   string err9 = "ERROR! Data remote parameters expect "
       "{targetNodeIndex: int, attemptTimes: int}";
-  string err10 = "ERROR!The slave list file does not exist."
+  string err10 = "ERROR! The slave list file does not exist."
       "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+  string err11 = "ERROR! Copy remote type file fail.";
 
 
   if (l.length() != 4)
@@ -2718,7 +2733,8 @@ ListExpr FFeedTypeMap(ListExpr args)
     string rPath = ci->getPath(tnIndex);
     FileSystem::AppendItem(rPath, fileName + "_type");
     cerr << "Copy the type file from <-" << "\t" << rPath << endl;
-    system(("scp " + rPath + " " + filePath).c_str());
+    if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
+      return l.typeError(err11);
   }
 
   ListExpr relType;
@@ -3003,8 +3019,9 @@ Some systems have a limitation of opened files simultaneously.
         }
         int copyTimes = MAX_COPYTIMES;
         do{
-          system(("scp " + nodeIP + ":" + rFilePath +
-              " " + localFilePath).c_str());
+          if (0 != system((scpCommand + nodeIP + ":" + rFilePath +
+              " " + localFilePath).c_str()))
+            cerr << "Warning! Copy remote file fail." << endl;
         }while ((--copyTimes > 0) &&
             !FileSystem::FileOrFolderExists(localFilePath));
         if (copyTimes < 0)
@@ -3402,6 +3419,15 @@ Operator hadoopjoinOp(HdpJoinInfo(),
 /*
 8 Operator ~fdistribute~
 
+The operator maps
+
+----
+stream(tuple(...))
+x fileName x path x attrName
+x [nBuckets] x [KPA]
+-> stream(tuple(fileSufix, value))
+----
+
 ~fdistribute~ partitions a tuple stream into several binary files
 based on a specific attribute value, along with a linear scan.
 These files could be read by ~ffeed~ operator.
@@ -3429,9 +3455,24 @@ But if it's set to be true, then the key attribute will
 stay in the result files.
 
 In 13/5/2011, enable ~fdistribute~ operation with duplication function.
-As we reply on ~fdistribute~ in generic hadoop operation's map step,
+As we need use ~fdistribute~ in the generic hadoop operation's map step,
 it's necessary to use ~fdistribute~ operator to duplicate its result
-files into candidate nodes.
+files into candidate nodes, to meet the requirement of fault-tolerance
+feature.
+
+Same as ~fconsume~ and ~ffeed~ operators, the duplicate parameters
+are optional, and are separated from the basic parameters by semicolons.
+
+Now the operator maps
+
+----
+stream(tuple(...))
+x fileName x path x attrName
+x [nBuckets] x [KPA]
+x [typeNodeIndex1] x [typeNodeIndex2]
+x [targetIndex x dupTimes ]
+-> stream(tuple(fileSufix, value))
+----
 
 8.0 Specification
 
@@ -3444,18 +3485,22 @@ struct FDistributeInfo : OperatorInfo {
     name = "fdistribute";
     signature =
         "stream(tuple(...)) x fileName x path "
-        "x attrName x [nBuckets] x [KPA]"
-        "-> stream(tuple(fileSufix, value))";
-    syntax = "_ fconsume[ _ , _ , _ , {_} , {_}]";
-    meaning =   "Export a stream of tuples into files that can "
-        "be read by ffeed operator. "
+        "x attrName x {nBuckets} x {KPA}"
+        "x {typeNodeIndex1} x {typeNodeIndex2}"
+        "x {targetIndex x dupTimes }"
+        "-> stream(tuple([Suffix:int, TupNum:int]))";
+    syntax = "_ fdistribute[ _ , _ , _ , {_} , {_};{_},{_};{_,_}]";
+    meaning =   "Export a stream of tuples into files that are "
+        "readable by ffeed operator. "
         "Files are separated by their suffix index, "
         "which is a hash value based on the given attribute value"
         "and number of set buckets. "
         "If the parameter nBuckets is not given, "
         "tuples may uneven partitioned."
         "Details about two optional parameters "
-        "are described in the source code";
+        "are described in the source code"
+        "It's also possible to duplicate these files into "
+        "other machines like the fconsume operator";
   }
 
 };
@@ -3467,70 +3512,99 @@ struct FDistributeInfo : OperatorInfo {
 ListExpr FDistributeTypeMap(ListExpr args)
 {
   NList l(args);
-  string lenErr = "operator fdistribute expects 4/5/6 arguments.";
-  string tpeErr = "operator fdistribute expects "
-      "(stream(tuple)) x string x text x symbol x [int] x [bool]";
-  string attErr = "operator fdistribute cannot find the "
-      "basis partition attribute: ";
-  string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
-  string err2 = "The file name should NOT be empty!";
-  string err3 = "Fail by openning file: ";
+  string lenErr = "ERROR!Operator expects 4 parts arguments.";
+  string typeErr = "ERROR!Operator expects "
+      "(stream(tuple(a1, a2, ..., an))) "
+      "x string x text x symbol x [int] x [bool]";
+  string attErr = "ERROR!Operator cannot find the "
+      "partition attribute: ";
+  string err4 = "ERROR!Basic arguments expect "
+      "fileName: string, filePath: text, attrName: ai, "
+      "{nBuckets: int}, {keepPartAttr: bool}";
+  string err5 = "ERROR!Type remote nodes expects "
+      "{{typeNodeIndex: int}, {typeNodeIndex2: int}}";
+  string err6 = "ERROR!Data remote nodes expects "
+        "{targetNode:int, duplicateTimes: int}";
 
-  int len = l.length();
-  bool evenMode = false;
-  bool setKPA = false, KPA = false;
-  if ((len < 4) || (len > 6))
+  string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
+  string err2 = "ERROR!The file name should NOT be empty!";
+  string err3 = "ERROR!Fail by openning file: ";
+  string err7 = "ERROR!Infeasible evaluation in TM for attribute: ";
+  string err8 = "ERROR!The slave list file does not exist."
+        "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+  string err9 = "ERROR!Remote node for type file is out of range";
+  string err10 = "ERROR!Remote duplicate type file fail.";
+
+
+
+  if (l.length() != 4)
     return l.typeError(lenErr);
 
+  NList pType, pValue;
+
+  //First part argument
   NList attrsList;
   if (!l.first().first().checkStreamTuple(attrsList))
-    return l.typeError(tpeErr);
+    return l.typeError(typeErr);
 
-  if (!l.second().first().isSymbol(CcString::BasicType()))
-    return l.typeError(tpeErr);
+  //Basic parameters
+  NList bpList = l.second();
+  pType = bpList.first();
+  pValue = bpList.second();
+  int bpLen = pType.length();
+
+  bool evenMode = false;
+  bool setKPA = false, KPA = false;
+
+
+  if (!pType.first().isSymbol(CcString::BasicType()))
+    return l.typeError(err4);
   NList fnList; //get the file name
-  if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), fnList))
+  if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
     return l.typeError(err1 + "fileName");
   string fileName = fnList.str();
   if (0 == fileName.length())
     return l.typeError(err2);
 
-  if (!l.third().first().isSymbol(FText::BasicType()))
-    return l.typeError(tpeErr);
+  if (!pType.second().isSymbol(FText::BasicType()))
+    return l.typeError(err4);
+  NList fpList;
+  if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
+    return l.typeError(err1 + "filePath");
+  string filePath = fpList.str();
 
   //Identify attribute
-  if (!l.fourth().first().isAtom())
-    return l.typeError(tpeErr);
-  string attrName = l.fourth().second().str();
+  if (!pType.third().isAtom())
+    return l.typeError(typeErr + "\n" + err4);
+  string attrName = pValue.third().str();
   ListExpr attrType;
   int attrIndex = listutils::findAttribute(
       attrsList.listExpr(), attrName, attrType);
   if (attrIndex < 1)
     return l.typeError(attErr + attrName);
 
-  if (5 == len)
+  if (4 == bpLen)
   {
-    NList fifth = l.fifth();
-    if (fifth.first().isSymbol(CcInt::BasicType()))
+    if (pType.fourth().isSymbol(CcInt::BasicType()))
       evenMode = true;
-    else if (fifth.first().isSymbol(CcBool::BasicType()))
+    else if (pType.fourth().isSymbol(CcBool::BasicType()))
     {
       setKPA = true;
-      KPA = fifth.second().boolval();
+      KPA = pValue.fourth().boolval();
     }
     else
-      return l.typeError(tpeErr);
+      return l.typeError(err4);
   }
-  else if (6 == len)
+  else if (5 == bpLen)
   {
-    if (!l.fifth().first().isSymbol(CcInt::BasicType()) ||
-        !l.sixth().first().isSymbol(CcBool::BasicType()))
-      return l.typeError(tpeErr);
+    if (!pType.fourth().isSymbol(CcInt::BasicType()) ||
+        !pType.fifth().isSymbol( CcBool::BasicType()))
+      return l.typeError(err4);
     else
     {
       evenMode = true;
       setKPA = true;
-      KPA = l.sixth().second().boolval();
+      KPA = pValue.fifth().boolval();
     }
   }
 
@@ -3551,10 +3625,6 @@ ListExpr FDistributeTypeMap(ListExpr args)
   }
   //Create the type file in local disk
   string typeFileName = fileName + "_type";
-  NList fpList;
-  if (!QueryProcessor::GetNLArgValueInTM(l.third().second(), fpList))
-    return l.typeError(err1 + "filePath");
-  string filePath = fpList.str();
   filePath = getFilePath(filePath, typeFileName);
   ofstream typeFile(filePath.c_str());
   NList resultList =
@@ -3569,17 +3639,77 @@ ListExpr FDistributeTypeMap(ListExpr args)
   }
   typeFile.close();
 
+  clusterInfo* ci = 0;
+  NList trList = l.third();
+  pType = trList.first();
+  int tNode[2] = {-1, -1};
+  if (!pType.isEmpty())
+  {
+    //Get the type index and duplicate the type file.
+    if (pType.length() > 2)
+      return l.typeError(err5);
+    while (!pType.isEmpty())
+    {
+      if (!pType.first().isSymbol(CcInt::BasicType()))
+        return l.typeError(err5);
+      pType.rest();
+    }
+
+    pValue = trList.second();
+    int cnt = 0;
+    while(!pValue.isEmpty())
+    {
+      NList nList;
+      if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
+        return l.typeError( err7 + " type node index");
+      tNode[cnt++] = nList.intval();
+      pValue.rest();
+    }
+
+    //scp filePath .. IP:loc/typeFileName
+    ci = new clusterInfo();
+    if (!ci->isOK())
+      return l.typeError(err8);
+    int sLen = ci->getLines();
+    for (int i = 0; i < 2; i++)
+    {
+      if (tNode[i] > 0)
+      {
+        if (tNode[i] > sLen)
+        {
+          ci->print();
+          return l.typeError(err9);
+        }
+        string rPath = ci->getPath(tNode[i]);
+        cerr << "Copy the type file to -> \t" << rPath << endl;
+        if (0 != system((scpCommand + filePath + " " + rPath).c_str()))
+          return l.typeError(err10);
+      }
+    }
+  }
+
+  NList drList = l.fourth();
+  pType = drList.first();
+  if (!pType.isEmpty())
+  {
+    if(pType.length() != 2)
+      return l.typeError(err6);
+    if (!pType.first().isSymbol(CcInt::BasicType()) ||
+        !pType.second().isSymbol(CcInt::BasicType()))
+      return l.typeError(err6);
+  }
+
   NList outAttrList =
-           NList(NList(NList("suffix"), NList(CcInt::BasicType())),
-                 NList(NList("tupNum"), NList(CcInt::BasicType())));
+           NList(NList(NList("Suffix"), NList(CcInt::BasicType())),
+                 NList(NList("TupNum"), NList(CcInt::BasicType())));
   NList outList = NList().tupleStreamOf(outAttrList);
 
   return NList(NList(Symbol::APPEND()),
                NList(
-                 NList(setKPA, true),
                  NList(attrIndex),
                  NList(
-                   NList(NList(Tuple::BasicType()), newAL).convertToString(),
+                   NList(NList(
+                     Tuple::BasicType()), newAL).convertToString(),
                      true, true)),
                outList).listExpr();
 }
@@ -3601,50 +3731,65 @@ int FDistributeValueMap(Word* args, Word& result,
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       qp->Open(args[0].addr);
 
-      relName = ((CcString*)args[1].addr)->GetValue();
-      path = ((FText*)args[2].addr)->GetValue();
+      Supplier bspList = args[1].addr,
+               drpList = args[3].addr;
+
+      relName = ((CcString*)qp->Request(
+          qp->GetSupplierSon(bspList,0)).addr)->GetValue();
+      path = ((FText*)qp->Request(
+          qp->GetSupplierSon(bspList,1)).addr)->GetValue();
 
       bool evenMode = false, kpa = false;
       int nBucket = 0;
-      int len = qp->GetNoSons(s);
-      if (8 == len)
+      int bspLen = qp->GetNoSons(bspList);
+      if (4 == bspLen)
       {
-        //Set nBucket or kpa
-        bool setKPA = ((CcBool*)args[5].addr)->GetValue();
-        if (setKPA)
-          kpa = ((CcBool*)args[4].addr)->GetValue();
+        ListExpr ptList = qp->GetType(qp->GetSupplierSon(bspList,3));
+        if (nl->IsEqual(ptList, CcBool::BasicType()))
+          kpa = ((CcBool*)qp->Request(
+              qp->GetSupplierSon(bspList,3)).addr)->GetValue();
         else
         {
           evenMode = true;
-          nBucket = ((CcInt*)args[4].addr)->GetValue();
+          nBucket = ((CcInt*)qp->Request(
+              qp->GetSupplierSon(bspList,3)).addr)->GetValue();
         }
       }
-      else if (9 == len)
+      else if (5 == bspLen)
       {
-        //Set both nBucket and kpa
         evenMode = true;
-        nBucket = ((CcInt*)args[4].addr)->GetValue();
-        kpa = ((CcBool*)args[5].addr)->GetValue();
+        nBucket = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(bspList,3)).addr)->GetValue();
+        kpa = ((CcBool*)qp->Request(
+            qp->GetSupplierSon(bspList,4)).addr)->GetValue();
       }
 
-      int tlpos = len -1;      //postition of the type list
-      string inTupleTypeStr =
-               ((FText*)args[tlpos].addr)->GetValue();
-      tlpos--;
       int attrIndex =
-            ((CcInt*)args[tlpos].addr)->GetValue() - 1;
+            ((CcInt*)args[4].addr)->GetValue() - 1;
 
+      string inTupleTypeStr =
+               ((FText*)args[5].addr)->GetValue();
       ListExpr inTupleTypeList;
       nl->ReadFromString(inTupleTypeStr, inTupleTypeList);
       inTupleTypeList = sc->NumericType(inTupleTypeList);
 
-      ListExpr resultTupleList = GetTupleResultType(s);
+      int drpLen = qp->GetNoSons(drpList);
+      int dupTgtIndex = -1, dupTimes = -1;
+      if (2 == drpLen)
+      {
+        dupTgtIndex = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(drpList, 0)).addr)->GetValue();
+        dupTimes    = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(drpList, 1)).addr)->GetValue();
+      }
 
       fdli = (FDistributeLocalInfo*) local.addr;
       if (fdli) delete fdli;
+      ListExpr resultTupleList = GetTupleResultType(s);
       fdli = new FDistributeLocalInfo(
                relName, path, nBucket, attrIndex, kpa,
-               resultTupleList, inTupleTypeList);
+               resultTupleList, inTupleTypeList,
+               dupTgtIndex, dupTimes);
       local.setAddr(fdli);
 
       //Write tuples to files completely
@@ -3658,7 +3803,8 @@ int FDistributeValueMap(Word* args, Word& result,
         qp->Request(args[0].addr, elem);
       }
       qp->Close(args[0].addr);
-      fdli->startCloseFiles();
+      if (!fdli->startCloseFiles())
+        return CANCEL;
       return 0;
     }
     case REQUEST: {
@@ -3693,10 +3839,14 @@ int FDistributeValueMap(Word* args, Word& result,
 
 FDistributeLocalInfo::FDistributeLocalInfo(
     string _bn, string _pt, int _nb, int _ai, bool _kpa,
-    ListExpr _rtl, ListExpr _itl)
-: nBuckets(_nb), attrIndex(_ai), kpa(_kpa), tupleCounter(0)
+    ListExpr _rtl, ListExpr _itl,
+    int _di, int _dt)
+: nBuckets(_nb), attrIndex(_ai), kpa(_kpa), tupleCounter(0),
+  firstDupTarget(_di), dupTimes(_dt), localIndex(0), cnIP(""),
+  ci(0), copyList(0)
 {
-  filePath = getFilePath(_pt, _bn);
+  fileBaseName = _bn;
+  filePath = getFilePath(_pt, _bn, false);
   resultTupleType = new TupleType(nl->Second(_rtl));
   exportTupleType = new TupleType(_itl);
 }
@@ -3714,7 +3864,7 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
     fp = (*mit).second;
   else
   {
-    fp = new fileInfo(fileSfx, filePath,
+    fp = new fileInfo(fileSfx, filePath, fileBaseName,
         exportTupleType->GetNoAttributes());
     fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
   }
@@ -3723,7 +3873,7 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
   if (!(ok &&
         fp->writeTuple(tuple, tupleCounter,
                        attrIndex, exportTupleType, kpa)))
-    cerr << "Block File " << fp->getFileName() << " Write Fail.\n";
+    cerr << "Block File " << fp->getFilePath() << " Write Fail.\n";
   tupleCounter++;
   tuple->DeleteIfAllowed();
 
@@ -3757,9 +3907,46 @@ bool FDistributeLocalInfo::openFile(fileInfo* tgtFile)
   return ok;
 }
 
-void FDistributeLocalInfo::startCloseFiles()
+bool FDistributeLocalInfo::startCloseFiles()
 {
   fit = fileList.begin();
+
+  if (dupTimes > 0)
+  {
+    ci = new clusterInfo();
+    if(!ci->isOK())
+    {
+      cerr << "ERROR!The slave list file does not exist."
+      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?" << endl;
+      return false;
+    }
+    if(ci->getLines() < firstDupTarget)
+    {
+      cerr << "The first target node index is "
+          "out of the range of slave list" << endl;
+      return false;
+    }
+
+    int cLen = ci->getLines();
+    copyList = new bool[cLen + 1];
+    memset(copyList, false, (cLen + 1));
+    int ti = firstDupTarget;
+    for (int i = 0; i < dupTimes; i++, ti++)
+      copyList[((ti - 1)%cLen + 1)] = true;
+
+    localIndex = ci->getLocalNode();
+    cnIP = ci->getIP(localIndex);
+    if (localIndex < 1)
+    {
+      cerr << "ERROR! Cannot find the local position " << endl
+          << ci->getLocalIP() << ":" << ci->getLocalPath() << endl
+          << "in the slave list, backup files will fail." << endl;
+      ci->print();
+      return false;
+    }
+  }
+
+  return true;
 }
 
 Tuple* FDistributeLocalInfo::closeOneFile()
@@ -3779,9 +3966,43 @@ Tuple* FDistributeLocalInfo::closeOneFile()
       tuple->PutAttribute(0, new CcInt(suffix));
       tuple->PutAttribute(1, new CcInt(count));
     }
+
+    if (!duplicateOneFile(fp))
+    {
+      tuple->DeleteIfAllowed();
+      return 0;
+    }
     fit++;
   }
   return tuple;
+}
+
+bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
+{
+  //Duplicate a file after close it.
+  //if the duplicating goes wrong, it can tell the stream to stop.
+
+  if (copyList)
+  {
+    if (fi->isFileOpen())
+      fi->closeFile();
+    string filePath = fi->getFilePath();
+    int cLen = ci->getLines();
+    for (int i = 1; i <= cLen; i++)
+    {
+      if (copyList[i] && (i != localIndex))
+      {
+        string rPath = ci->getPath(i,true);
+        FileSystem::AppendItem(rPath, (fi->getFileName() + "_" + cnIP));
+        if (system((scpCommand + filePath + " " + rPath).c_str()))
+        {
+          cerr << "Copy remote file fail." << endl;
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 Operator fdistributeOp(FDistributeInfo(),

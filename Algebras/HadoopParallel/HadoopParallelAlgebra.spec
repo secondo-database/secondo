@@ -25,4 +25,4 @@ operator add0Tuple alias ADD0TUPLE pattern _ op
 operator fconsume alias FCONSUME pattern _ op [list;list;list]
 operator ffeed alias FFEED pattern _ op [list;list;list]
 operator hadoopjoin alias HADOOPJOIN pattern _ _ op [_, _, _, _;fun] implicit parameters stream1, stream2 types ANY, ANY2
-operator fdistribute alias FDISTRIBUTE pattern _ op [_, _, _, _]
+operator fdistribute alias FDISTRIBUTE pattern _ op [list;list;list]

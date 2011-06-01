@@ -761,16 +761,16 @@ public:
 */
 class fileInfo{
 public:
-  fileInfo(size_t _hv, string _fp, size_t _an):
+  fileInfo(size_t _hv, string _fp, string _fn, size_t _an):
   cnt(0), totalExtSize(0),totalSize(0),
   lastTupleIndex(0), fileOpen(false)
   {
-    blockFileName = _fp + "_" + int2string(_hv);
+    blockFileName = _fn + "_" + int2string(_hv);
+    blockFilePath = _fp;
+    FileSystem::AppendItem(blockFilePath, blockFileName);
+
     attrExtSize = new vector<double>(_an);
     attrSize = new vector<double>(_an);
-
-//    attrExtSize.resize(_an);
-//    attrSize.resize(_an);
   }
 
   bool openFile()
@@ -778,7 +778,7 @@ public:
     ios_base::openmode mode = ios::binary;
     if (lastTupleIndex > 0)
       mode |= ios::app;
-    blockFile.open(blockFileName.c_str(), mode);
+    blockFile.open(blockFilePath.c_str(), mode);
     fileOpen = true;
     return blockFile.good();
   }
@@ -870,13 +870,17 @@ public:
   string getFileName() {
     return blockFileName;
   }
+
+  string getFilePath() {
+    return blockFilePath;
+  }
   bool isFileOpen()
   {  return fileOpen;  }
   size_t getLastTupleIndex()
   {  return lastTupleIndex;  }
 
 private:
-  string blockFileName;
+  string blockFilePath, blockFileName;
   ofstream blockFile;
 
   int cnt;
@@ -908,12 +912,14 @@ private:
   }
   bool openFile(fileInfo* tgtFile);
 
+  string fileBaseName;
   string filePath;
   map<size_t, fileInfo*> fileList;
   map<size_t, fileInfo*>::iterator fit;
-  //the ~openFileList~ keeps at most
-  //MAX_FILEHANDLENUM opened files handles.
+
+  //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
   vector<fileInfo*> openFileList;
+  bool duplicateOneFile(fileInfo* fi);
 
   size_t nBuckets;
   int attrIndex;
@@ -921,16 +927,25 @@ private:
   TupleType *resultTupleType, *exportTupleType;
   size_t tupleCounter;
 
+  //data remote variables
+  int firstDupTarget, dupTimes, localIndex;
+  string cnIP;
+  clusterInfo *ci;
+  bool* copyList;
+
+
 public:
   FDistributeLocalInfo(string baseName, string path,
                        int nBuckets, int attrIndex,
                        bool keepKeyAttribute,
                        ListExpr resultTupleType,
-                       ListExpr inputTupleType);
+                       ListExpr inputTupleType,
+                       int dtIndex, int dupTimes);
 
   bool insertTuple(Word tuple);
-  void startCloseFiles();
+  bool startCloseFiles();
   Tuple* closeOneFile();
+
   ~FDistributeLocalInfo(){
     map<size_t, fileInfo*>::iterator fit;
     for(fit = fileList.begin(); fit != fileList.end(); fit++)
