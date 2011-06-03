@@ -567,7 +567,7 @@ double value;
 This function returns the string representation of this DateTime instance.
 
 */
-string DateTime::ToString() const{
+string DateTime::ToString(const bool sql92conform /*=false*/ ) const{
   ostringstream tmp;
   if(!IsDefined()){
     return Symbol::UNDEFINED();
@@ -625,7 +625,7 @@ string DateTime::ToString() const{
     int32_t hour = v / 60;
 
 
-    tmp << "-";
+    tmp << (sql92conform?" ":"-");
     if(hour<10)
         tmp << "0";
     tmp << hour << ":";
@@ -731,7 +731,7 @@ bool DateTime::ReadFrom(const string Time){
     if(pos==len) return false;
     // read the day
     int32_t day = 0;
-    while(Time[pos]!='-'){
+    while( (Time[pos]!='-') && (Time[pos]!=' ') ){
         digit = datetime::GetValue(Time[pos]);
         if(digit<0) return false;
         pos++;
@@ -744,7 +744,7 @@ bool DateTime::ReadFrom(const string Time){
           return true;
         }
     }
-    pos++; // read over '-'
+    pos++; // read over '-' or ' '
     if(pos==len) return false;
     if(!IsValid(year,month,day))
         return false;
@@ -910,13 +910,13 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
         return false;
      }
      ListExpr TypeList = nl->First(LE);
-     if(!nl->IsEqual(TypeList,"datetime")){
+     if(!listutils::isSymbol(TypeList,"datetime")){
        if( (type == (instanttype)) &&
-           !nl->IsEqual(TypeList,DateTime::BasicType())){
+           !listutils::isSymbol(TypeList,DateTime::BasicType())){
             return false;
        }
        if( (type == (durationtype)) &&
-           !nl->IsEqual(TypeList,Duration::BasicType())){
+           !listutils::isSymbol(TypeList,Duration::BasicType())){
           return false;
        }
      }
@@ -926,25 +926,25 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
   }
 
   // Special Representation in this Algebra
-  if(nl->AtomType(ValueList)==SymbolType){
-    if(listutils::isSymbolUndefined(ValueList)){
-      SetDefined(false);
+  if(listutils::isSymbolUndefined(ValueList)){
+    SetDefined(false);
+    return true;
+  }
+  if(listutils::isSymbol(ValueList,"currenttime") ||
+    listutils::isSymbol(ValueList,"CURRENTTIME")){
+    if(type == (instanttype)){
+      Now();
       return true;
-    }
-    if(nl->SymbolValue(ValueList)=="currenttime"){
-        if(type == (instanttype)){
-           Now();
-           return true;
-        } else
-           return false;
-    }
-    if(nl->SymbolValue(ValueList)=="today"){
-        if(type == (instanttype)){
-           Today();
-           return  true;
-        } else
-           return false;
-    }
+    } else
+      return false;
+  }
+  if(listutils::isSymbol(ValueList,"today") ||
+     listutils::isSymbol(ValueList,"TODAY")){
+    if(type == (instanttype)){
+      Today();
+      return  true;
+    } else
+      return false;
   }
 
   // string representation
@@ -969,7 +969,6 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
         return false;
   }
 
-
   // (day month year [hour minute [second [millisecond]]])
   if( (nl->ListLength(ValueList)>=3) && nl->ListLength(ValueList)<=7){
      if(type == (durationtype))
@@ -977,7 +976,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
      int32_t len = nl->ListLength(ValueList);
      if(len==4) return false; // only hours is not allowed
      ListExpr tmp = ValueList;
-     while(nl->IsEmpty(tmp)){
+     while(!nl->IsEmpty(tmp)){
         if(nl->AtomType(nl->First(tmp))!=IntType)
            return false;
         tmp = nl->Rest(tmp);

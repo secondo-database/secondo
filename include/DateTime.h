@@ -247,11 +247,17 @@ The function ~ToString~ returns the string representation of this
 DateTime instance. The format depends on the type of time.
 For an instant type, the format is \\
 year-month-day-hour:minute:second.millisecond.\\
-In the other case the format will be:\\
+If ~sql92conform~ is ~true~, a blanc character is used instead of the minus to
+separate date and hour, so the format is
+year-month-day hour:minute:second.millisecond.\\
+
+In the other case (durationtype) the format will be:\\
 day$\mid\mid$millisecond.
 
+
+
 */
-     string ToString() const;
+    string ToString(const bool sql92conform = false) const;
 
 /*
 ~SetType~
@@ -613,7 +619,7 @@ delta in [0,1].
 
 
   virtual string getCsvStr() const {
-     return ToString();
+     return ToString(true); // create sql92 compatible output for instant
   }
 
   virtual bool hasDB3Representation() const {return true;}
