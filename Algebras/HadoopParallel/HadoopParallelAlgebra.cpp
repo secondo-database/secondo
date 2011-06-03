@@ -1932,6 +1932,10 @@ int clusterInfo::searchLocalNode()
       }
     }
   }
+  else
+    cerr << "\nThe local IP or Path is not correctly defined. "
+        "They should match one line in PARALLEL_SECONDO_SLAVES list"
+        "Check the SECONDO_CONFIG file please." << endl;
 
   return local;
 }
@@ -2219,6 +2223,9 @@ ListExpr FConsumeTypeMap(ListExpr args)
   //Type Checking is done, create the type file.
   string typeFileName = fileName + "_type";
   filePath = getFilePath(filePath, typeFileName);
+  if (filePath.length() == 0)
+    return l.typeError(err2 +
+        "Type file path is empty, check the SecondoConfig.ini.");
   ofstream typeFile(filePath.c_str());
   NList resultList = NList(NList(Relation::BasicType()),
                            tsList.first().second());
@@ -2394,7 +2401,7 @@ int FConsumeValueMap(Word* args, Word& result,
 
     qp->Close(args[0].addr);
     blockFile.close();
-    cout << "\nBlockFile: " << filePath << " is created" << endl;
+    cout << "\nData file: " << filePath << " is created" << endl;
 
     if (drMode)
     {
@@ -2412,7 +2419,7 @@ int FConsumeValueMap(Word* args, Word& result,
       }
 
       string cName = ci->getIP(localNode);
-      string newFileName = "/" + relName + "_" + cName;
+      string newFileName = relName + "_" + cName;
 
       //Avoid copying file to a same node repeatedly
       int cLen = ci->getLines();
@@ -2433,10 +2440,10 @@ int FConsumeValueMap(Word* args, Word& result,
           else
           {
             string rPath = ci->getPath(i, true);
-            cerr << "Copy " << filePath << " \t-> "
-                << rPath << newFileName << endl;
+            FileSystem::AppendItem(rPath, newFileName);
+            cerr << "Copy " << filePath << " \t-> " << rPath << endl;
             if ( 0 != ( system(
-                (scpCommand + filePath + " " + rPath + newFileName).c_str())))
+                (scpCommand + filePath + " " + rPath).c_str())))
             {
               cerr << "Copy remote file fail." << endl;
               ((CcBool*)(result.addr))->Set(true, false);
@@ -2614,11 +2621,11 @@ struct FFeedInfo : OperatorInfo {
   {
     name =      "ffeed";
     signature = "fileName x path x {fileSuffix} x {typeNodeIndex}"
-                "x { targetIndex x attemptTimes}"
+                "x { producerIndex x targetIndex x attemptTimes}"
                 "-> stream(tuple(...))";
     syntax =    "_ ffeed[ basic; remote type; remote data]";
     meaning =   "restore a relation from a binary file"
-                "created by ~fconsume~ operator.";
+                "created by fconsume operator.";
   }
 };
 
@@ -2639,7 +2646,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   string typeErr = "ERROR! Operator ffeed expects "
       "fileName: string, filePath: text, {fileSuffix: int};"
       "{typeNodeIndex: int}; "
-      "{targetNodeIndex: int, attemptTimes: int}";
+      "{producerIndex: int, targetIndex: int, attemptTimes: int}";
   string err1 = "ERROR! File name should NOT be empty!";
   string err2 = "ERROR! Type file is NOT exist!\n";
   string err3 = "ERROR! A tuple relation type list is "
@@ -2652,7 +2659,7 @@ ListExpr FFeedTypeMap(ListExpr args)
       "{typeNodeIndex: int}";
   string err8 = "ERROR! Remote node for type file is out of range.";
   string err9 = "ERROR! Data remote parameters expect "
-      "{targetNodeIndex: int, attemptTimes: int}";
+      "{producerIndex: int, targetIndex: int, attemptTimes: int}";
   string err10 = "ERROR! The slave list file does not exist."
       "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
   string err11 = "ERROR! Copy remote type file fail.";
@@ -2709,10 +2716,11 @@ ListExpr FFeedTypeMap(ListExpr args)
   pType = dr.first();
   if (!pType.isEmpty())
   {
-    if (pType.length() != 2)
+    if (pType.length() != 3)
       return l.typeError(err9);
     if (!pType.first().isSymbol(CcInt::BasicType()) ||
-        !pType.second().isSymbol(CcInt::BasicType()))
+        !pType.second().isSymbol(CcInt::BasicType()) ||
+        !pType.third().isSymbol(CcInt::BasicType()))
       return l.typeError(err9);
     drMode = true;
   }
@@ -2760,7 +2768,7 @@ int FFeedValueMap(Word* args, Word& result,
   string relName, path;
   FFeedLocalInfo* ffli = 0;
   Supplier sonOfFeed;
-  int tgtIndex = -1;
+  int prdIndex = -1, tgtIndex = -1;
   int attTimes = 0;
 
   switch(message)
@@ -2769,20 +2777,21 @@ int FFeedValueMap(Word* args, Word& result,
       relName = ((CcString*)args[0].addr)->GetValue();
       Supplier bspList = args[1].addr,
                drpList = args[3].addr;
-      path =  ((FText*)
-          qp->Request(qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
+      path =  ((FText*)qp->Request(
+          qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
       if (qp->GetNoSons(bspList) == 2)
-        index = ((CcInt*)
-            qp->Request(qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
+        index = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
 
-      if (qp->GetNoSons(drpList) == 2)
+      if (qp->GetNoSons(drpList) == 3)
       {
-        tgtIndex = ((CcInt*)
-            qp->Request(qp->GetSupplierSon(drpList, 0)).addr)->GetValue();
-        attTimes = ((CcInt*)
-            qp->Request(qp->GetSupplierSon(drpList, 1)).addr)->GetValue();
+        prdIndex = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(drpList, 0)).addr)->GetValue();
+        tgtIndex = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(drpList, 1)).addr)->GetValue();
+        attTimes = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(drpList, 2)).addr)->GetValue();
       }
-
       if(index >= 0)
         relName = addFileIndex(relName, index);
 
@@ -2794,7 +2803,7 @@ int FFeedValueMap(Word* args, Word& result,
       ffli = new FFeedLocalInfo(qp->GetType(s));
 
       if (ffli->fetchBlockFile(
-          relName, filePath, tgtIndex, attTimes))
+          relName, filePath, prdIndex, tgtIndex, attTimes))
       {
         ffli->returned = 0;
         local.setAddr(ffli);
@@ -2906,11 +2915,12 @@ bool FFeedLocalInfo::isLocalFileExist(string fp)
 
 
 bool FFeedLocalInfo::fetchBlockFile(
-    string fileName, string filePath, int tgtIndex, int att)
+    string fileName, string filePath, int pdi, int tgi, int att)
 {
   //Fetch the binary file from remote machine.
   bool fileFound = false;
-  string hostIP = "", tgtIP = "";
+  int localIndex = -1;
+  string pdrIP = "", tgtIP = "";
   clusterInfo *ci = 0;
 
   string localFilePath = filePath;
@@ -2922,7 +2932,7 @@ if the file is exist, fileFound is true, and the filePath contains
 the complete local path of the file. Or else, the fileFound is false.
 
 */
-  if (tgtIndex < 0)
+  if (pdi < 0)
   {
     //Fetch the file in the local machine
     fileFound = isLocalFileExist(localFilePath);
@@ -2937,7 +2947,7 @@ the complete local path of the file. Or else, the fileFound is false.
           "correctly set up." << endl;
       return false;
     }
-    if (tgtIndex > ci->getLines())
+    if (tgi > ci->getLines())
     {
       cerr << "ERROR!The first target's index is out of "
           "the range of the slave list." << endl;
@@ -2945,8 +2955,7 @@ the complete local path of the file. Or else, the fileFound is false.
       return false;
     }
 
-    tgtIP = ci->getIP(tgtIndex);
-    hostIP = ci->getLocalIP();
+    pdrIP = ci->getIP(pdi);
     string rFileName = "";
 
     while (!fileFound && (att-- > 0))
@@ -2955,20 +2964,17 @@ the complete local path of the file. Or else, the fileFound is false.
 In case the duplicated file's name conflicts with files produced
 locally by the remote machine itself,
 duplicated files' names are ended with its host's IP address.
-When feeding the file from the target node, i.e. at the first attempt,
-the file's name is the same as the given fileName.
-Then in the following attempts, the fileName has to be extended with
-the target's IP address.
+When feeding the file from a non-producer node,
+the file's name has to be extended with the producer's IP address.
 
 */
-      if (rFileName.length() == 0)
+      string nodeIP, rFilePath;
+      nodeIP = ci->getIP(tgi, true);
+      if (tgi == pdi)
         rFileName = fileName;
       else
-        rFileName += ("_" + tgtIP);
-
-      string nodeIP, rFilePath;
-      nodeIP = ci->getIP(tgtIndex, true);
-      rFilePath = ci->getPath(tgtIndex, true, false);
+        rFileName = fileName + "_" + pdrIP;
+      rFilePath = ci->getPath(tgi, true, false);
       FileSystem::AppendItem(rFilePath, rFileName);
       int detectTimes = MAX_COPYTIMES;
       string qStr = "ssh " + nodeIP +
@@ -3005,14 +3011,16 @@ Some systems have a limitation of opened files simultaneously.
       {
         cerr << "Warning! Cannot detect the file "
             << nodeIP << ":" << rFilePath << endl;
-        tgtIndex++;
+        tgi++;
         continue;
       }
       else
       {
         //Delete the local file if it exists,
         //and copy the file to the local node
-        if (isLocalFileExist(localFilePath))
+        localIndex = ci->getLocalNode();
+        if ((localIndex != tgi) &&
+            isLocalFileExist(localFilePath))
         {
           cerr << "Delete the local exist file with the same name\n";
           FileSystem::DeleteFileOrFolder(localFilePath);
@@ -4574,11 +4582,11 @@ string getFilePath(string path, const string fileName, bool extendPath)
 
     const char sep = ':';
     size_t p = path.find_first_of(sep);
-    if (p != string::npos)
+    if ((p != string::npos) || (path.length() == 0))
     {
-      cerr << "The SecondoFilePath " << path
-           << " set in " << confPath
-           << " is not available" << endl;
+      cerr << "\nWarning: The SecondoFilePath " << path
+          << " set in " << confPath
+          << " is not available" << endl;
 
       path = FileSystem::GetCurrentFolder();
       FileSystem::AppendItem(path, "parallel");

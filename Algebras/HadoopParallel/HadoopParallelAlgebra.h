@@ -443,7 +443,13 @@ public:
           "localIP","", confPath);
   }
 
-  inline string getLocalPath(){
+/*
+If the Parallel Secondo system is involved,
+then the default path cannot be used anymore.
+
+*/
+  inline string getLocalPath()
+  {
     string confPath = string(getenv("SECONDO_CONFIG"));
     return SmiProfile::GetParameter("ParallelSecondo",
           "SecondoFilePath","", confPath);
@@ -503,173 +509,7 @@ public:
   }
 
   bool fetchBlockFile(string relName, string filePath,
-                      int servIndex = -1, int att = -1);
-/*  {
-    //Fetch binary file from remote machine.
-    bool fileFound = false;
-    bool isLocal = false;
-    if (!machines)
-      isLocal = true;
-
-    string hostName, targetName = "";
-    if (!isLocal)
-    {
-      char buf[255];
-      memset(buf, '\0', sizeof(buf));
-      if (0 != gethostname(buf, sizeof(buf) - 1 ))
-      {
-        cerr << "Error: Can't get localhost name" << endl;
-        return false;
-      }
-      hostName.assign(buf);
-    }
-
-    while(!fileFound && (isLocal || (att-- > 0)))
-    {
-      string servName, rFileName;
-      if (!isLocal)
-      {
-        int aSize = machines->getSize();
-        servName =
-            ((CcString*)(machines->
-             getElement((servIndex++) % aSize)).addr)->GetValue();
-        if (0 == targetName.length())
-          targetName = servName;
-
-        rFileName = relName;
-        if (targetName.compare(hostName) != 0 &&
-            targetName.compare(servName) != 0)
-          rFileName += ("_" + targetName);
-      }
-
-      //Find the file before reading it.
-      int findTimes = MAX_COPYTIMES;
-      while (!fileFound && (findTimes-- > 0))
-      {
-        FILE *fs;
-        char qBuf[1024];
-        memset(qBuf, '\0', sizeof(qBuf));
-        string qStr;
-        if (isLocal || (0 == servName.compare(hostName)))
-          qStr = "ls " + filePath + " 2>/dev/null";
-        else
-          qStr = "ssh " + servName +
-                 " ls " + rmDefaultPath.substr(1) + rFileName +
-                 " 2>/dev/null";
-        fs = popen(qStr.c_str(), "r");
-
-
-popen function is not a standard C function, and it may return
-a NULL value because of the failure of allocating memory.
-Some systems have a limitation of opened files simultaneously.
-
-
-
-        if (fs == NULL)
-          perror("popen fail! Can't search the remote file: ");
-        else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
-        {
-          fileFound = true;
-          pclose(fs);
-        }
-      }
-      if (!fileFound)
-      {
-        if (!isLocal)
-        {
-          //Attempt the next possible candidate node if have
-          continue;
-        }
-        else
-        {
-          //Specify to fetch the local file, but it's not exist.
-          cerr << "Error: Local file: " << filePath
-               << " is NOT exist!\n";
-          return false;
-        }
-      }
-
-      //Found the file on the local or remote node
-      if (!isLocal && (0 != servName.compare(hostName)))
-      {
-
-
-Find the file on the remote node, attempt to copy it to local node.
-The file that ~filePath~ point to is assumed as an old file,
-and is deleted before the copy starts.
-If the copy doesn't work for MAX\_COPYTIMES times,
-then try the next possible candidate node.
-
-
-
-        int copyTimes = MAX_COPYTIMES;
-        filePath += ("_" + targetName);
-        FileSystem::DeleteFileOrFolder(filePath);
-        do
-        {
-          system(("scp " + servName + rmDefaultPath + rFileName +
-                  " " + filePath).c_str());
-        }while ((--copyTimes > 0) &&
-            !FileSystem::FileOrFolderExists(filePath));
-        if (0 > copyTimes)
-          fileFound = false;
-      }
-    }
-
-    if (!fileFound)
-    {
-      cerr << "Error: File '" << filePath
-           << "' doesn't exist!\n" << endl;
-      return false;
-    }
-    tupleBlockFile = new ifstream(filePath.c_str(), ios::binary);
-    if (!tupleBlockFile->good())
-    {
-      cerr << "Error accessing file '" << filePath << "'\n\n";
-      tupleBlockFile = 0;
-    }
-
-    if (tupleBlockFile)
-    {
-      //get the description list
-      u_int32_t descSize;
-      size_t fileLength;
-      tupleBlockFile->seekg(0, ios::end);
-      fileLength = tupleBlockFile->tellg();
-      tupleBlockFile->seekg(
-          (fileLength - sizeof(descSize)), ios::beg);
-      tupleBlockFile->read((char*)&descSize, sizeof(descSize));
-
-      char descStr[descSize];
-      tupleBlockFile->seekg(
-          (fileLength - (descSize + sizeof(descSize))), ios::beg);
-      tupleBlockFile->read(descStr, descSize);
-      tupleBlockFile->seekg(0, ios::beg);
-
-      NList descList = NList(binDecode(string(descStr)));
-
-      //Initialize the sizes of progress local info
-      noAttrs = tupleType->GetNoAttributes();
-      total = descList.first().intval();
-      attrSize = new double[noAttrs];
-      attrSizeExt = new double[noAttrs];
-      for(int i = 0; i < noAttrs; i++)
-      {
-        attrSizeExt[i] =
-            descList.elem(4 + i*2).realval() / total;
-        attrSize[i] =
-            descList.elem(4 + (i*2 + 1)).realval() / total;
-
-        SizeExt += attrSizeExt[i]; //average sizeExt of a tuple
-        Size += attrSize[i];
-      }
-
-      sizesInitialized = true;
-      sizesChanged = true;
-    }
-
-    return true;
-  }*/
+       int pdi = -1, int tgi = -1, int att = -1);
 
   Tuple* getNextTuple(){
     if (0 == tupleBlockFile )
