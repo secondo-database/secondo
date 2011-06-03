@@ -44,6 +44,7 @@ May 2008, Victor Almeida
 #include "../Temporal/TemporalAlgebra.h"
 #include "../TemporalNet/TemporalNetAlgebra.h"
 #include "Symbols.h"
+#include "ListUtils.h"
 
 using namespace std;
 
@@ -577,20 +578,24 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
   int attrIndex;
   ListExpr attrType;
 
-  CHECK_COND(!nl->IsEmpty(args) &&
-    nl->ListLength(args) == 3,
-    errmsg + "\nOperator createmontree expects three arguments.");
+  if(nl->ListLength(args) != 3){
+    return listutils::typeError(errmsg +
+    "\nOperator createmontree expects three arguments.");
+  }
 
-  CHECK_COND(nl->IsEqual(nl->First(args), "network"),
-    errmsg + "\nThe first argument must be of type network.");
+    if(!nl->IsEqual(nl->First(args), "network")){
+      return listutils::typeError( errmsg +
+      "\nThe first argument must be of type network.");
+    }
 
   ListExpr relDescription = nl->Second(args),
            attrNameLE = nl->Third(args);
 
-  CHECK_COND(nl->IsAtom(attrNameLE) &&
-    nl->AtomType(attrNameLE) == SymbolType,
-    errmsg + "\nThe third argument must be the name of "
+  if(!nl->IsAtom(attrNameLE) || (nl->AtomType(attrNameLE) != SymbolType)){
+    return listutils::typeError( errmsg +
+    "\nThe third argument must be the name of "
     "the attribute to index.");
+  }
   attrName = nl->SymbolValue(attrNameLE);
 
   // Check for relation or tuplestream as first argument
@@ -607,19 +612,20 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
   // Test for index attribute
   ListExpr tupleDescription = nl->Second(relDescription);
   ListExpr attrList = nl->Second(tupleDescription);
-  CHECK_COND(
-    (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-    errmsg +
+  attrIndex = FindAttribute(attrList, attrName, attrType);
+  if( attrIndex <= 0 ){
+    return listutils::typeError( errmsg +
     "\nOperator createmontree expects the attribute " +
     attrName + "\npassed as third argument to be part of "
     "the relation or stream description\n'" +
     relDescriptionStr + "'.");
-
-  CHECK_COND(nl->IsEqual(attrType, "mgpoint") ||
-             nl->IsEqual(attrType, "ugpoint"),
-    errmsg +
+  }
+  if(!nl->IsEqual(attrType, "mgpoint") &&
+     !nl->IsEqual(attrType, "ugpoint")){
+    return listutils::typeError(errmsg +
     "\nOperator createmontree expects that attribute "+attrName+"\n"
     "belongs to type mgpoint or ugpoint.");
+  }
 
   bool mgpoint = nl->IsEqual(attrType, "mgpoint");
 
@@ -675,11 +681,12 @@ and high parameters these two last integer numbers.
       type = nl->SymbolValue(nl->Second(first));
       if (type == TupleIdentifier::BasicType())
       {
-        CHECK_COND( tidIndex == 0,
+        if( tidIndex != 0){
+          return listutils::typeError(
           "Operator createmontree expects as first argument a stream "
           "with\none and only one attribute of type 'tid'\n'"
           "but gets\n'" + relDescriptionStr + "'.");
-
+        }
         tidIndex = j;
       }
       else if( j == nAttrs - 1 && type == CcInt::BasicType() &&
@@ -703,10 +710,12 @@ and high parameters these two last integer numbers.
       }
       j++;
     }
-    CHECK_COND( tidIndex != 0,
+    if( tidIndex == 0){
+      return listutils::typeError(
       "Operator createmontree expects as first argument a stream "
       "with\none and only one attribute of type 'tid'\n'"
       "but gets\n'" + relDescriptionStr + "'.");
+    }
 
     return
       nl->ThreeElemList(
@@ -972,9 +981,9 @@ ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
   string errmsg = "Incorrect input for operator windowtimeintersects.";
   string monDescriptionStr, relDescriptionStr;
 
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 6, errmsg);
+  if(nl->ListLength(args) != 6){
+    return listutils::typeError(errmsg);
+  }
 
   /* Split argument in three parts */
   ListExpr networkDescription = nl->First(args),
@@ -984,45 +993,55 @@ ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
            searchStart = nl->Fifth(args),
            searchEnd = nl->Sixth(args);
 
-  CHECK_COND(nl->IsEqual(networkDescription, "network"),
+  if(!nl->IsEqual(networkDescription, "network")){
+     return listutils::typeError(
     "Operator windowtimeintersects expects the first argument\n"
     "to be of type network.");
+  }
 
   /* Query window: find out type of key */
-  CHECK_COND(nl->IsEqual(searchWindow, Rectangle<2>::BasicType()),
+  if(!nl->IsEqual(searchWindow, Rectangle<2>::BasicType())){
+    return listutils::typeError(
     "Operator windowtimeintersects expects that the search window\n"
     "is of type rect.");
+  }
 
   // Handling of the time interval
-  CHECK_COND(nl->IsEqual(searchStart, Instant::BasicType()) &&
-             nl->IsEqual(searchEnd, Instant::BasicType()),
+  if(!nl->IsEqual(searchStart, Instant::BasicType()) ||
+    !nl->IsEqual(searchEnd, Instant::BasicType())){
+    return listutils::typeError(
     "Operator windowtimeintersects expects the fifth and sixth\n"
     "arguments to be a time interval.");
+  }
 
   /* handle montree part of argument */
   nl->WriteToString (monDescriptionStr, monDescription);
-  CHECK_COND(!nl->IsEmpty(monDescription) &&
-    !nl->IsAtom(monDescription) &&
-    nl->ListLength(monDescription) == 4,
+  if(nl->ListLength(monDescription) != 4){
+    return listutils::typeError(
     "Operator windowtimeintersects expects a MON-Tree with structure "
     "(montree (tuple ((a1 t1)...(an tn))) attrtype bool)\n"
     "\nbut gets the following '"
     +monDescriptionStr+"'.");
+  }
 
   ListExpr monSymbol = nl->First(monDescription),
            monTupleDescription = nl->Second(monDescription);
 
   /* handle rtree type constructor */
-  CHECK_COND(nl->IsEqual(monSymbol, "montree"),
+  if(nl->IsEqual(monSymbol, "montree")){
+    return listutils::typeError(
    "Operator windowtimeintersects expects a MON-Tree \n"
    "as second argument.");
+  }
 
   /* handle rel part of argument */
   nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(IsRelDescription(relDescription),
+  if(!IsRelDescription(relDescription)){
+    return listutils::typeError(
     "Operator windowtimeintersects expects a "
     "relation as its third argument, but gets '"
         + relDescriptionStr + "'.");
+  }
 
   return
     nl->TwoElemList(
@@ -1169,9 +1188,9 @@ ListExpr MON_WindowTimeIntersectsSTypeMap(ListExpr args)
   string errmsg = "Incorrect input for operator windowtimeintersectsS.";
   string monDescriptionStr, relDescriptionStr;
 
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 6, errmsg);
+  if(nl->ListLength(args) != 6){
+    return listutils::typeError(errmsg);
+  }
 
   /* Split argument in three parts */
   ListExpr networkDescription = nl->First(args),
@@ -1181,44 +1200,54 @@ ListExpr MON_WindowTimeIntersectsSTypeMap(ListExpr args)
            searchStart = nl->Fifth(args),
            searchEnd = nl->Sixth(args);
 
-  CHECK_COND(nl->IsEqual(networkDescription, "network"),
+  if(!nl->IsEqual(networkDescription, "network")){
+    return listutils::typeError(
     "Operator windowtimeintersectsS expects the first argument\n"
     "to be of type network.");
+  }
 
   /* Query window: find out type of key */
-  CHECK_COND(nl->IsEqual(searchWindow, Rectangle<2>::BasicType()),
+  if(!nl->IsEqual(searchWindow, Rectangle<2>::BasicType())){
+    return listutils::typeError(
     "Operator windowtimeintersectsS expects that the search window\n"
     "is of type rect.");
+  }
 
   // Handling of the time interval
-  CHECK_COND(nl->IsEqual(searchStart, Instant::BasicType()) &&
-             nl->IsEqual(searchEnd, Instant::BasicType()),
+  if(!nl->IsEqual(searchStart, Instant::BasicType()) ||
+    !nl->IsEqual(searchEnd, Instant::BasicType())){
+    return listutils::typeError(
     "Operator windowtimeintersectsS expects the fifth and sixth\n"
     "arguments to be a time interval.");
+  }
 
   /* handle montree part of argument */
   nl->WriteToString (monDescriptionStr, monDescription);
-  CHECK_COND(!nl->IsEmpty(monDescription) &&
-    !nl->IsAtom(monDescription) &&
-    nl->ListLength(monDescription) == 4,
+  if( nl->ListLength(monDescription) != 4 ){
+    return listutils::typeError(
     "Operator windowtimeintersectsS expects a MON-Tree with structure "
     "(montree (tuple ((a1 t1)...(an tn))) attrtype\n"
     "\nbut gets the following '"
     +monDescriptionStr+"'.");
+  }
 
   ListExpr monSymbol = nl->First(monDescription);
 
   /* handle rtree type constructor */
-  CHECK_COND(nl->IsEqual(monSymbol, "montree"),
+  if(!nl->IsEqual(monSymbol, "montree")){
+    return listutils::typeError(
    "Operator windowtimeintersectsS expects a MON-Tree \n"
    "as second argument.");
+  }
 
   /* handle rel part of argument */
   nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(IsRelDescription(relDescription),
+  if(!IsRelDescription(relDescription)){
+    return listutils::typeError(
     "Operator windowtimeintersectsS expects a "
     "relation as its third argument, but gets '"
         + relDescriptionStr + "'.");
+  }
 
   ListExpr isDouble = nl->BoolValue(nl->Fourth(monDescription));
   if(!isDouble)
