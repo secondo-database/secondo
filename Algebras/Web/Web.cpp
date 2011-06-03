@@ -503,6 +503,9 @@ class URL : public IndexableAttribute
   size_t HashValue(void) const;
   void CopyFrom(const Attribute *arg);
   static const string BasicType() { return "url"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
  private:
   STRING_T protocol;
   Flob host;
@@ -968,6 +971,9 @@ class HTML : public Attribute
   size_t HashValue(void) const;
 
   static const string BasicType() { return "html"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
 
  private:
@@ -2232,6 +2238,9 @@ class Page : public HTML
     Page* Clone() const;
 
     static const string BasicType() { return "page"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
   private:
 

@@ -150,6 +150,12 @@ class DArray
 
    static const string BasicType() { return "darray"; }
 
+   static const bool checkType(ListExpr type){
+     ListExpr errorInfo = listutils::emptyErrorInfo();
+     return KindCheck(type, errorInfo);
+   }
+
+
    private:
 
    //Sends the relation in elements[index] to the respective worker

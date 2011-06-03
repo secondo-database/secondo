@@ -43,6 +43,10 @@ It represents the current position and time of a moving object.
 #ifndef __UPLOAD_UNIT_H__
 #define __UPLOAD_UNIT_H__
 
+
+#include "NestedList.h"
+#include "ListUtils.h"
+
 /******************************************************************************
 
 2 Definition of UnitPos
@@ -98,6 +102,9 @@ class UploadUnit : public Attribute
 
     // type name used in Secondo
     inline static const string BasicType() { return "uploadunit";}
+    static const bool checkType(const ListExpr type){
+       return listutils::isSymbol(type, BasicType());
+    }
 
     // Methods for the abstract Attribute class
     int NumOfFLOBs() const;

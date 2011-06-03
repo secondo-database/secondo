@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/Attribute.h"
 #include "../Spatial/SpatialAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
+#include "ListUtils.h"
 
 /*
 2 Helpful Data Types and Data Structures
@@ -988,6 +989,9 @@ Functions for Secondo integration.
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
     inline static const string BasicType() { return "gpoint"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
 
 /*
@@ -2622,6 +2626,9 @@ Returns the Bounding GPoints of the GLine.
      };
 
     inline static const string BasicType() { return "gline"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
     bool Contains(const RouteInterval* ri)const ;
     bool Intersects(const RouteInterval* ri)const ;
@@ -3373,6 +3380,9 @@ public:
   static bool OpenGPoints(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo, Word& value);
   inline static const string BasicType() { return "gpoints"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
   int Compare(const Attribute*)const;
   bool Adjacent(const Attribute*)const;
   GPoints* Clone() const;

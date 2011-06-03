@@ -298,6 +298,9 @@ class UGrid
 
    // type name used in Secondo
    inline static const string BasicType() { return "ugrid"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
    // Writes UGrid-header information into file
    void UpdateHeader();
    // Writes UGrid-front-line information into file

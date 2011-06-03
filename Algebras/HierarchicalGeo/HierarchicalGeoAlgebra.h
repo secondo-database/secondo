@@ -45,6 +45,7 @@ The type system of the HierarchicalGeo Algebra can be seen below.
 #include <sstream>
 #include <string>
 #include "NestedList.h"
+#include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "Attribute.h"
@@ -553,6 +554,9 @@ the epsilon-value.
   }
 
   static const string BasicType() {return "cupoint"; }
+  static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type,BasicType());
+  }
 
 /*
 3.2.6 Attributes
@@ -626,6 +630,10 @@ Functions to be part of relations
   void CopyFrom( const Attribute* right );
 
   static const string BasicType() {return "cmpoint"; }
+  static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type,BasicType());
+  }
+
 
   inline virtual size_t Sizeof() const
   {
@@ -1371,6 +1379,10 @@ are true:
   inline Flob* GetFLOB( const int i);
 
   static const string BasicType() {return "hcmpoint"; }
+  static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type,BasicType());
+  }
+
 
 /*
 3.7.3.7 ~BoundingBox~
@@ -1581,6 +1593,10 @@ right function GetNoComponents.
   inline Flob* GetFLOB( const int i);
 
   static const string BasicType() {return "hmpoint"; }
+  static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type,BasicType());
+  }
+
 
 /*
 3.8.4 Attributes

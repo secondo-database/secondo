@@ -44,6 +44,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 #include "IndexableAttribute.h"
 #include "../../Tools/Flob/Flob.h"
+#include "ListUtils.h"
 
 // switch off log messages
 #undef LOGMSG
@@ -108,8 +109,12 @@ public:
     Set(true,value);
   }
 
-  static string BasicType(){
+  static const string BasicType(){
      return "text";
+  }
+
+  static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type, BasicType());
   }
 
 

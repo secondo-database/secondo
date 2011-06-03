@@ -52,6 +52,7 @@ using namespace std;
 #include "../Spatial/SpatialAlgebra.h"
 #include "../Rectangle/RectangleAlgebra.h"
 #include "Symbols.h"
+#include "ListUtils.h"
 
 
 extern NestedList* nl;
@@ -109,6 +110,9 @@ This constructor should not be used.
    PointSequence *Clone() const;
 
    static const string BasicType() { return "pointsequence"; }
+   static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type, BasicType());
+   }
 
    void BBox(Rectangle<2>* result);
 

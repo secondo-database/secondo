@@ -741,6 +741,10 @@ Returns the minimum bounding box of the point set descibed by the symbolic relat
 
     static const string BasicType() { return "constraint"; }
 
+    static const bool checkType(const ListExpr list){
+      return listutils::isSymbol(list, BasicType());
+    }
+
   private:
     DbArray<LinearConstraint> linConstraints;
 /*

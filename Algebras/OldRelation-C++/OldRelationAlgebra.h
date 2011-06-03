@@ -50,6 +50,7 @@ vector instead of class CTable.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "ListUtils.h"
 
 #include <iostream>
 #include <string>
@@ -111,6 +112,9 @@ class CcTuple
     ostream& operator<<(ostream& s, CcTuple t);
 
     static const string BasicType() { return "mtuple"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isTupleDescription(type, true);
+    }
 };
 
 class LexicographicalCcTupleCmp
@@ -199,6 +203,9 @@ class CcRel
     int     GetNoTuples ();
 
     static const string BasicType() { return "mrel"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isRelDescription2(type, BasicType());
+    }
 };
 
 ListExpr OutCcRel(ListExpr, Word);

@@ -66,6 +66,8 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "Attribute.h"
 #include "Symbols.h"
 #include "TypeConstructor.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 
 extern SecondoInterface* si;
 using namespace std;
@@ -454,6 +456,9 @@ Removes the disc representation of the data FLOB.
     }
 
     static const string BasicType() { return "distdata"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
 private:
     Flob m_data; // contains the data array

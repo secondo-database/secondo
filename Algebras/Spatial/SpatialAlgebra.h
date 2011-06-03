@@ -69,6 +69,8 @@ shows examples of these spatial data types.
 #include "HalfSegment.h"
 #include "Coord.h"
 #include "Geoid.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 
 /*
 Coordinates are represented by real numbers.
@@ -622,6 +624,9 @@ as an attribute.
 
   static const string BasicType(){
     return "points";
+  }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
   }
 
 
@@ -1376,6 +1381,9 @@ as an attribute.
 
    static const string BasicType(){
       return "line";
+   }  
+   static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type, BasicType());
    }
 
    const DbArray<HalfSegment>& GetArray() const{
@@ -1910,6 +1918,9 @@ The following functions are needed to act as an attribute type.
 
   static const string BasicType(){
     return "sline";
+  }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
   }
 
   private:
@@ -2940,6 +2951,9 @@ The region must be defined!
 
   static const string BasicType(){
     return "region";
+  }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
   }
 
    inline Region() {}

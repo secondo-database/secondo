@@ -249,6 +249,10 @@ of the rectangle.
       }
     }
 
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    } 
+
     inline size_t Sizeof() const { return sizeof( *this ); }
 
     inline size_t HashValue() const {

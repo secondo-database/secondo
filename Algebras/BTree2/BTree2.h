@@ -360,6 +360,11 @@ Returns information on persistent storage container.
 */
 
     static const string BasicType() { return "btree2"; }
+
+    static const bool checkType(const ListExpr list){
+       return listutils::isBTree2Description(list);
+    }
+
 /*
 2.4 Content related queries
 

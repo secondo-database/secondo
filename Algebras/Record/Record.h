@@ -57,6 +57,8 @@ For detailed information refer to ~Record.cpp~.
 #include "Symbols.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 
 
 using namespace std;
@@ -195,6 +197,10 @@ be implemented for this data type because a record owns FLOB.
     static ListExpr   Property();
 
     static const string BasicType() { return "record"; }
+    static const bool checkType(ListExpr type){
+      ListExpr errorInfo = listutils::emptyErrorInfo();
+      return KindCheck(type, errorInfo);
+    }
 /*
 4.2 Private area of class Record
 

@@ -53,6 +53,10 @@ SETI-Algebra offers the following methods:
 #ifndef __SETI_ALGEBRA_H__
 #define __SETI_ALGEBRA_H__
 
+#include "NestedList.h"
+#include "ListUtils.h"
+
+
 /******************************************************************************
 
 2 Globals constants and variables
@@ -234,6 +238,10 @@ class SETI
 
     //the type name used in Secondo
     inline static const string BasicType(){ return "seti"; }
+    // type check
+    static const bool checkType(const ListExpr type){
+       return listutils::isSymbol(type, BasicType());
+    }
     // Writes header information into file
     void UpdateHeader();
     // Writes front-line information into file

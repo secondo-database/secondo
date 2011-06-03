@@ -203,6 +203,11 @@ class OrderedRelation : public GenericRelation {
 
     static const string BasicType() { return "orel"; }
 
+     static const bool checkType(ListExpr list){
+      return listutils::isRelDescription2(list, BasicType());
+     }
+
+
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;

@@ -378,6 +378,11 @@ histogram given as parameter.
 
       inline static const string BasicType() { return "histogram2d";}
 
+      static const bool checkType(ListExpr list){
+        return listutils::isSymbol(list, BasicType());
+      }
+
+
     private:
 
       friend class ConstructorFunctions<Histogram2d>;

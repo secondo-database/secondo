@@ -212,6 +212,10 @@ Retrieves statsitics on the used file from the storage manager
 
     inline static const string BasicType() { return "btree"; }
 
+    static const bool checkType(const ListExpr list){
+      return listutils::isBTreeDescription(list);
+    }
+
   private:
 
     bool temporary;

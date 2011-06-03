@@ -380,6 +380,9 @@ Prints some infos about the tree to cmsg.info().
     }
 
     static const string BasicType() { return "xtree"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
 private:
     XTreeConfig config; // assigned XTreeConfig object

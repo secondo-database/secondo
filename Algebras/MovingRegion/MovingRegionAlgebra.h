@@ -42,6 +42,7 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 #include <stdexcept>
 #include "Algebra.h"
 #include "NestedList.h"
+#include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
@@ -1012,6 +1013,9 @@ The assignment operator
    }
 
    static string BasicType() { return "uregion"; }
+   static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+   }
 
 };
 
@@ -1205,6 +1209,9 @@ Return the name of the Secondo type.
 
 */
   static string BasicType(){ return "movingregion"; }
+   static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+   }
 
 
 /*

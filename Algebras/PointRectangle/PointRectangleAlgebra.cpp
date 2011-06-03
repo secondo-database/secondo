@@ -61,6 +61,7 @@ This little example algebra provides two type constructors ~xpoint~ and
 
 #include "Algebra.h"
 #include "NestedList.h"
+#include "ListUtils.h"
 #include "NList.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
@@ -100,7 +101,6 @@ file "TypeMapUtils.h" which defines a namespace ~mappings~.
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-using namespace mappings;
 
 #include <string>
 using namespace std;
@@ -175,6 +175,10 @@ Secondo uses for this type.
 
 */
   static const string BasicType() { return "xpoint"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
  private:
   inline XPoint() {}
@@ -474,6 +478,10 @@ Secondo uses for this type.
 
 */
   static const string BasicType() { return "xrectangle"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
  private:
   XRectangle() {}

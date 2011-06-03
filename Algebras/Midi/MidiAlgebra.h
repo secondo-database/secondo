@@ -321,6 +321,11 @@ There are totally 10 functions which are defined as virtual functions. They need
     size_t   Sizeof() const;
 
     static const string BasicType() { return "midi"; }
+
+    static const bool checkType(ListExpr list){
+      return listutils::isSymbol(list, BasicType());
+    }
+
   private:
 /*
 3.4 Attributes

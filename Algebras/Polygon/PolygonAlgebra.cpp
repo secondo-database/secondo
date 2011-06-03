@@ -209,6 +209,9 @@ class Polygon : public Attribute
     static void* Cast(void* addr);
 
     static const string BasicType() { return "polygon"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
   private:
     Polygon() {} // this constructor is reserved for the cast function.

@@ -1689,6 +1689,10 @@ The type name used in Secondo:
         return ss.str();
       }
     }
+   
+   static const bool checkType(ListExpr type){
+     return listutils::isRTreeDescription(type, BasicType());
+   }  
 
 
 

@@ -137,6 +137,9 @@ as an attribute.
           }
 
           static const string BasicType() { return "vertex"; }
+          static const bool checkType(const ListExpr type){
+            return listutils::isSymbol(type, BasicType());
+          }
 
     private:
 /*
@@ -222,6 +225,9 @@ as an attribute.
         }
 
         static const string BasicType() { return "edge"; }
+        static const bool checkType(const ListExpr type){
+          return listutils::isSymbol(type, BasicType());
+        }
 
     private:
 /*
@@ -373,6 +379,9 @@ as an attribute.
         }
 
         static const string BasicType() { return "path"; }
+        static const bool checkType(const ListExpr type){
+          return listutils::isSymbol(type, BasicType());
+        }
 
     protected:
 /*
@@ -1390,6 +1399,9 @@ as an attribute.
      void CopyFrom(const Attribute* arg);
 
      static const string BasicType() { return "graph"; }
+     static const bool checkType(const ListExpr type){
+       return listutils::isSymbol(type, BasicType());
+     }
 
    protected:
 /*

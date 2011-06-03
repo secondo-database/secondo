@@ -25,6 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef SEC_ARRAYALGEBRA_H
 #define SEC_ARRAYALGEBRA_H
 
+#include "NestedList.h"
+#include "ListUtils.h"
+
 class Array
 {
   public:
@@ -40,6 +43,10 @@ class Array
     void setElement(int, Word);
 
     static const string BasicType() { return "array"; }
+    static const bool checkType(const ListExpr list){
+       bool implemented = false;
+       assert(implemented);
+    }
 
   static Word genericClone( int algebraId,
          int typeId,

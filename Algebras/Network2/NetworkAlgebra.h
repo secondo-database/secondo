@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "RTreeAlgebra.h"
 #include "Geoid.h"
+#include "ListUtils.h"
 
 #include <cstring>
 
@@ -491,6 +492,9 @@ Support Methods of ~gpoint~
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
     inline static const string BasicType() { return "gpoint"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
 /*
 Method ~Netdistance~ and ~NewNetdistance~
@@ -2722,6 +2726,9 @@ Returns the Bounding GPoints of the GLine.
      };
 
     inline static const string BasicType() { return "gline"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
   private:
 
@@ -3061,6 +3068,9 @@ public:
   static bool OpenGPoints(SmiRecord& valueRecord,size_t& offset,
                           const ListExpr typeInfo, Word& value);
   inline static const string BasicType() { return "gpoints"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
   int Compare(const Attribute*)const;
   bool Adjacent(const Attribute*)const;
   GPoints* Clone()const;

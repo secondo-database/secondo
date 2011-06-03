@@ -192,6 +192,9 @@ Functions required for using ~GenericTC.h~
 
 */
   static string BasicType() { return "geoid"; }
+  static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type, BasicType());
+  }
 
 
   static ListExpr Property() {

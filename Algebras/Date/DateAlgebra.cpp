@@ -212,6 +212,9 @@ Returns a string represnetation of this date value.
   static const string BasicType(){
       return "date";
   }
+  static const bool checkType(const ListExpr list){
+     return listutils::isSymbol(list, BasicType());
+  }
 
 
  private:

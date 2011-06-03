@@ -531,6 +531,12 @@ the type of tuple corresponds to the type of the primary relation.
           static const string BasicType(){
               return "nrel";
           }
+
+          static const bool checkType(const ListExpr list){
+            return listutils::isRelDescription2(list, BasicType());
+          }
+
+
           
    private:
         Relation* primary;

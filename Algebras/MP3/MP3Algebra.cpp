@@ -223,6 +223,9 @@ class MP3 : public Attribute {
     int GetLength() const;
 
     static const string BasicType() { return "mp3"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
   private:
     Flob mp3Data;
@@ -1374,6 +1377,9 @@ public:
     const char *GetGenreName(byte nr);
 
     static const string BasicType() { return "id3"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
     char songname [31];
     char author [31];
@@ -2126,6 +2132,9 @@ class Lyrics : public Attribute {
     Line GetLine( int i ) const;
 
     static const string BasicType() { return "lyrics"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
   private:
     DbArray<Line> linearray;

@@ -96,6 +96,7 @@ The type system of the Temporal Algebra can be seen below.
 #include "DateTime.h"
 #include "AlmostEqual.h"
 #include "Geoid.h"
+#include "ListUtils.h"
 #include "../../include/CharTransform.h"
 
 extern NestedList* nl;
@@ -851,6 +852,11 @@ is defined and all the following conditions are true:
       return "r"+Alpha::BasicType();
     }
   }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
+
 /*
 3.3.7 Attributes
 
@@ -1013,6 +1019,9 @@ The second constructor.
   inline static const string BasicType()
   {
     return "i"+Alpha::BasicType();
+  }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
   }
 
 
@@ -1266,6 +1275,9 @@ Type name used in Secondo
   {
     return "u"+Alpha::BasicType();
   }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 /*
 Tries to merge the other unit into this unit. Returns ~true~ iff this was
 successful (and this unit was modified).
@@ -1388,6 +1400,9 @@ The destructor.
     {
       return "u"+Alpha::BasicType();
     }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
 };
 
@@ -1500,6 +1515,9 @@ The destructor.
     inline static const string BasicType()
     {
       return "u"+Alpha::BasicType();
+    }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
     }
 };
 
@@ -1821,6 +1839,9 @@ not modify this unit and return ~false~.
   {
     return "u"+Alpha::BasicType();
   }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
 /*
 3.6.4 Attributes
@@ -1933,6 +1954,9 @@ Symbol for use in typemappings
 
 */
   static const string BasicType(){ return "ureal"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 /*
 3.6.2 Operator redefinitions
 
@@ -2925,6 +2949,9 @@ Attention: UNDEFINED units my be appended!
                   const double epsilon  = 0.0000001) const;
 
   static const string BasicType(){ return "upoint"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
 /*
 ~IsStatic~
@@ -3318,6 +3345,9 @@ type name used in Secondo
   {
     return "m"+Alpha::BasicType();
   }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
 /*
 3.10.7 Attributes
@@ -3438,6 +3468,9 @@ Casts this MInt into an MReal.
 
 
    static const string BasicType(){ return "mint"; }
+   static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type, BasicType());
+   }
    void Hat(MInt& mint);
 
 /*
@@ -3559,6 +3592,9 @@ Precondition: ccvalue.IsDefined() == true
 
 
    static const string BasicType(){ return "mreal"; }
+   static const bool checkType(const ListExpr type){
+     return listutils::isSymbol(type, BasicType());
+   }
 
 private:
    void Simplify(const int min, const int max,
@@ -3876,6 +3912,9 @@ geometry is used, otherwise spherical geometry is applied.
                             const bool skipSplit = false) const;
 
   static const string BasicType(){ return "mpoint"; }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
 /*
 3.10.5.11 ~Delay Operator~

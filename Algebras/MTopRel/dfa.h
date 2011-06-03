@@ -729,6 +729,9 @@ invalid after destroying this object
  static const string BasicType(){
     return "mtoprel";
  }
+ static const bool checkType(const ListExpr type){
+   return listutils::isSymbol(type, BasicType());
+ }
 
 
  static ListExpr Property(){

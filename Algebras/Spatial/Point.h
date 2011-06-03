@@ -665,6 +665,9 @@ as an attribute.
 
     static const string BasicType(){
        return "point";
+    }  
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
     }
 
 

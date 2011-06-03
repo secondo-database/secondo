@@ -351,6 +351,9 @@ Prints some infos about the tree to cmsg.info().
     }
 
     static const string BasicType() { return "mtree"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 
 private:
     Splitpol* splitpol;  // reference to chosen split policy

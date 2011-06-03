@@ -348,6 +348,12 @@ histogram given as parameter.
 
     inline static const string BasicType() { return "histogram1d";}
 
+    static const bool checkType(ListExpr list){
+      return listutils::isSymbol(list, BasicType());
+    }
+
+
+
 private:
 
     friend class ConstructorFunctions<Histogram1d>;

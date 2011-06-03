@@ -687,6 +687,9 @@ the objects.
     static const string BasicType(){
       return "tuple";
     }
+    static const bool checkType(const ListExpr type){
+      return listutils::isTupleDescription(type);
+    }
 
 
     static void InitCounters(bool visible);
@@ -2590,6 +2593,10 @@ To get the type name of a temporary relation, use TempRelation::BasicType().
 
 */
     inline static const string BasicType() { return "rel"; }
+    
+    static const bool checkType(const ListExpr type){
+      return listutils::isRelDescription(type);
+    }
 
     static Relation *GetRelation( const RelationDescriptor& d );
 

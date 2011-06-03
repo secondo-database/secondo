@@ -74,6 +74,8 @@ JPEG images. We suggest to use the ~display~ program from ImageMagick.
 #include "StandardTypes.h"
 #include "Algebra.h"
 #include "../../Tools/Flob/Flob.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 
 const bool PA_DEBUG = false;
 const string PROG_DISPLAY = "/usr/bin/display";
@@ -245,6 +247,9 @@ Guide for details.
     Histogram* Clone(void) const;
 
     static const string BasicType() { return "histogram"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 };
 
 /*
@@ -549,6 +554,9 @@ this method does not compare any other attributes of the ~Picture~ class.
     int SimpleCompare(const Attribute* a) const;
 
     static const string BasicType() { return "picture"; }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
 };
 
 

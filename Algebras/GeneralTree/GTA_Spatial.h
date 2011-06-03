@@ -47,6 +47,8 @@ This file contains the folllowing classes:
 #define __GTA_SPATIAL_H__
 
 #include "GTA_Config.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 #include <assert.h>
 #include <cstring>
 #include <cmath>
@@ -290,6 +292,9 @@ Returns the bounding box of "this"[4].
     HRect *bbox() const;
 
     static const string BasicType() { return "hpoint"; }
+    static const bool checkType(const ListExpr type){
+       return listutils::isSymbol(type, BasicType());
+    }
 
   private:
     GTA_SPATIAL_DOM *m_coords; // coordinate vector
@@ -646,6 +651,9 @@ Returns the bounding box of "this"[4].
     { return new HRect(*this); }
 
       static const string BasicType() { return "hrect"; }
+      static const bool checkType(const ListExpr type){
+        return listutils::isSymbol(type, BasicType());
+      }
 
 
   private:

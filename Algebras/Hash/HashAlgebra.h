@@ -17,6 +17,7 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "StandardTypes.h"
+#include "ListUtils.h"
 
 /*
 
@@ -177,6 +178,10 @@ Return the Secondo type name
 
 */
   inline static const string BasicType() { return "hash"; }
+
+  static const bool checkType(ListExpr list){
+    return listutils::isHashDescription(list);
+  }
 
   private:
 

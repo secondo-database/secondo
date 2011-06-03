@@ -13,11 +13,16 @@ Implementation of the trajectory bundle tree.
 #include "RectangleAlgebra.h"
 #include "SecondoSMI.h"
 #include "TemporalAlgebra.h"
+#include "NestedList.h"
+#include "ListUtils.h"
 #include <cassert>
 #include <vector>
 #include <iostream>
 
 namespace tbtree{
+
+
+bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo);
 
 /*
 1 Class LeafInfo
@@ -1410,6 +1415,11 @@ Some Getter
      return "tbtree";
   }
 
+  static const bool checkType(ListExpr type){
+    ListExpr errorInfo = listutils::emptyErrorInfo();
+    return CheckTBTree(type, errorInfo);
+  }
+
 
 /*
 calculate number of different trajectories in this node
@@ -2145,7 +2155,6 @@ Destroys local variables.
 };
 
 
-bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo);
 
 } // end of namespace tbtree
 

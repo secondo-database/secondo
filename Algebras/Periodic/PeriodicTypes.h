@@ -82,6 +82,7 @@ natural language (like each second monday of the month) can't be modelled.
 #include "../../Tools/Flob/DbArray.h"
 #include "RepTree.h"
 #include "GenericTC.h"
+#include "ListUtils.h"
 
 using namespace datetime;
 using namespace toprel;
@@ -177,6 +178,9 @@ class PBBox: public Attribute {
     }
     static const string BasicType(){
       return "pbbox";
+    }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
     }
     static ListExpr Property(){
        __TRACE__
@@ -466,6 +470,9 @@ interval at the right end as well as the left end at the same time.
     static const string BasicType(){ 
         return "rinterval";
     }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
     static ListExpr Property(){
       __TRACE__
       return gentc::GenProperty( "-> DATA",
@@ -557,6 +564,9 @@ class PInterval : public Attribute{
     }
     static const string BasicType(){
       return "pinterval";
+    }
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
     }
     static ListExpr Property(){
       __TRACE__
@@ -1418,6 +1428,9 @@ class PMBool: public PMSimple<bool,LinearConstantMove<bool> >{
   static const string BasicType(){
     return "pmbool";
   }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
   static ListExpr Property(){
     __TRACE__
     return gentc::GenProperty("-> DATA",
@@ -1493,6 +1506,9 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
   static const string BasicType(){
        return "pmreal";
   }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
   static ListExpr Property(){
     __TRACE__
     return gentc::GenProperty("-> DATA",
@@ -1530,6 +1546,9 @@ public:
   }
   static const string BasicType(){
      return "pmint9m"; 
+  }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
   }
   static ListExpr Property(){
     __TRACE__
@@ -1615,6 +1634,9 @@ class PMPoint : public Attribute {
      }
      static const string BasicType(){
        return "pmpoint";
+     }
+     static const bool checkType(const ListExpr type){
+       return listutils::isSymbol(type, BasicType());
      }
      static ListExpr Property(){
        __TRACE__
@@ -1730,6 +1752,9 @@ class PMPoints : public Attribute {
      }
      static const string BasicType(){
        return "pmpoints";
+     }
+     static const bool checkType(const ListExpr type){
+       return listutils::isSymbol(type, BasicType());
      }
      static ListExpr Property(){
        __TRACE__

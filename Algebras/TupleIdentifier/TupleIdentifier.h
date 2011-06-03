@@ -44,6 +44,7 @@ using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
+#include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include <string>
@@ -113,6 +114,9 @@ class TupleIdentifier: public Attribute
 
   static const string BasicType(){
      return "tid";
+  }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
   }
 
 

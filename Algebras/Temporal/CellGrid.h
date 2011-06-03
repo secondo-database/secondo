@@ -36,6 +36,7 @@ is open in y direction.
 #include "Attribute.h"
 #include "NestedList.h"
 #include "RectangleAlgebra.h"
+#include "ListUtils.h"
 
 /*
 3.8 Gid structures
@@ -147,6 +148,11 @@ class CellGrid2D: public Attribute{
     void CopyFrom(const Attribute* other);  
 
     static const string BasicType();
+
+    static const bool checkType(const ListExpr type){
+      ListExpr errorInfo = listutils::emptyErrorInfo();
+      return CheckKind(type, errorInfo);
+    }
 
     static ListExpr Property();
 

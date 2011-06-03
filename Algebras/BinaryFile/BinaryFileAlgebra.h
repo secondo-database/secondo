@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define BINARYFILE_H
 
 #include "Attribute.h"
+#include "ListUtils.h"
 #include "../../Tools/Flob/Flob.h"
 
 class BinaryFile : public Attribute
@@ -62,6 +63,11 @@ class BinaryFile : public Attribute
     static void* Cast(void* addr);
 
     static const string BasicType() { return "binfile";}
+
+    static const bool checkType(const ListExpr list){
+      return listutils::isSymbol(list, BasicType());
+    }
+
 
   private:
 

@@ -108,6 +108,13 @@ namespace collection {
 
     static bool KindCheck(ListExpr type, ListExpr& errorInfo);
 
+    static bool checkType(const ListExpr list, const string& basicType){
+       return nl->HasLength(list,2) &&
+              listutils::isSymbol(nl->First(list), basicType) &&
+              listutils::isDATA(nl->Second(list));
+    }
+
+
     static int SizeOfObj();
 
     size_t Sizeof() const;
@@ -351,14 +358,23 @@ Functions returning the Secondo type names
 */
 namespace Vector{
   const string BasicType() {return "vector"; };
+  const bool checkType(ListExpr list){
+     return collection::Collection::checkType(list, BasicType());
+  }
 }
 
 namespace Set{
   const string BasicType() {return "set"; };
+  const bool checkType(ListExpr list){
+     return collection::Collection::checkType(list, BasicType());
+  }
 }
 
 namespace Multiset{
   const string BasicType() {return "multiset"; };
+  const bool checkType(ListExpr list){
+     return collection::Collection::checkType(list, BasicType());
+  }
 }
 
 
