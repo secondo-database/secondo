@@ -135,6 +135,7 @@ This file contains the implementation of the stream operators.
 #include "ListUtils.h"
 #include "Progress.h"
 #include "AlmostEqual.h"
+#include "Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -170,19 +171,15 @@ having a single element of type T.
 ListExpr
 TypeMapStreamfeed( ListExpr args )
 {
-  ListExpr arg1;
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-
-  if ( ( nl->ListLength(args) == 1 ) )
-    {
-      arg1 = nl->First(args);
-      if( am->CheckKind(Kind::DATA(), arg1, errorInfo) )
-        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), arg1);
-    }
-  ErrorReporter::ReportError("Operator feed  expects a list of length one, "
-                             "containing a value of one type 'T' with T in "
-                             "kind DATA.");
-  return nl->SymbolAtom( Symbol::TYPEERROR() );
+  string err = "one argument of kind DATA expected";
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!listutils::isDATA(arg1)){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()), arg1);
 }
 
 /*
@@ -1892,32 +1889,21 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
   ListExpr TypeT;
 
   // check for correct length
-  if (nl->ListLength(args) != 3)
-    {
-      ErrorReporter::ReportError("Operator aggregateS expects a list of length "
-                                 "three.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
+  if (nl->ListLength(args) != 3) {
+      return listutils::typeError("Operator aggregateS expects a "
+                                  "list of length three.");
+  }
 
   // get single arguments
   ListExpr instream   = nl->First(args),
-    map        = nl->Second(args),
-    zerovalue  = nl->Third(args),
-    errorInfo  = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  map        = nl->Second(args),
+  zerovalue  = nl->Third(args);
 
-  // check for first arg to be atomic and of kind DATA
-  if ( nl->IsAtom(instream) ||
-       ( nl->ListLength( instream ) != 2) ||
-       !(TypeOfRelAlgSymbol(nl->First(instream) == stream )) ||
-       !am->CheckKind(Kind::DATA(), nl->Second(instream), errorInfo) )
-    {
-      ErrorReporter::ReportError("Operator aggregateS expects a list of length "
-                                 "two as first argument, having structure "
-                                 "'(stream T)', for T in kind DATA.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-  else
-    TypeT = nl->Second(instream);
+  if(!Stream<Attribute>::checkType(instream)){
+    return  listutils::typeError("first element must be a stream of DATA");
+  }
+
+  TypeT = nl->Second(instream);
 
   // check for second to be of length 4, (map T T T)
   // T of same type as first
@@ -1926,17 +1912,16 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
        !( nl->IsEqual(nl->First(map), Symbol::MAP()) ) ||
        !( nl->Equal(nl->Fourth(map), nl->Second(map)) ) ||
        !( nl->Equal(nl->Third(map), nl->Second(map)) ) ||
-       !( nl->Equal(nl->Third(map), TypeT) ) )
-    {
+       !( nl->Equal(nl->Third(map), TypeT) ) ) {
       ErrorReporter::ReportError("Operator aggregateS expects a list of length "
                                  "four as second argument, having structure "
                                  "'(map T T T)', where T has the base type of "
                                  "the first argument.");
       return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
+  }
 
   // check for third to be atomic and of the same type T
-  if ( !nl->IsAtom(zerovalue) ||
+  if ( !listutils::isDATA(zerovalue) ||
        !nl->Equal(TypeT, zerovalue) )
     {
       ErrorReporter::ReportError("Operator aggregateS expects a list of length"
@@ -2017,25 +2002,23 @@ int Streamaggregate(Word* args, Word& result, int message,
   // args[1] = mapping function
   // args[2] = zero value
 
-  Word t1,resultWord;
+  Word resultWord;
   ArgVectorPointer vector = qp->Argument(args[1].addr);
 
-  qp->Open(args[0].addr);
+  Stream<Attribute> stream(args[0]);
+
+  stream.open();
   result = qp->ResultStorage(s);
   // read the first tuple
-  qp->Request( args[0].addr, t1 );
 
-  if( !qp->Received( args[0].addr ) ){
-    // special case: stream is empty
-    // use the third argument as result
-    ((Attribute*)result.addr)->
-      CopyFrom( (const Attribute*)args[2].addr );
-  } else {
+  Attribute* attr = stream.request();
+
+  if(attr ==0){ // stream was empty, copy zero element to result
+    ((Attribute*)result.addr)-> CopyFrom( (const Attribute*)args[2].addr );
+  } else { // ok, there is at least one element in the stream
     // nonempty stream, consume it
     stack<AggrStackEntry> theStack;
-    while( qp->Received(args[0].addr)){
-       // get the attribute
-       Attribute* attr = (Attribute*)t1.addr;
+    while( attr!=0 ){
        // put the attribute on the stack merging with existing entries
        // while possible
        int level = 0;
@@ -2059,7 +2042,7 @@ int Streamaggregate(Word* args, Word& result, int message,
        }
        AggrStackEntry entry(level,attr);
        theStack.push(entry);
-       qp->Request(args[0].addr,t1);
+       attr = stream.request();
    }
    // stream ends, merge stack elements regardless of their level
    assert(!theStack.empty()); // at least one element must be exist
@@ -2082,7 +2065,7 @@ int Streamaggregate(Word* args, Word& result, int message,
    tmpResult.destroy();
   }
   // close input stream
-  qp->Close(args[0].addr);
+  stream.close();
   return 0;
 }
 
@@ -2172,71 +2155,37 @@ or be processed using ordinary tuplestream operators.
 
 ListExpr StreamTransformstreamTypeMap(ListExpr args)
 {
-  ListExpr first ;
-  string argstr;
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  ListExpr TupleDescr, T;
 
-  if (nl->ListLength(args) != 1)
-    {
-      ErrorReporter::ReportError("Operator transformstream expects a list of "
-                                 "length one.");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+
+  ListExpr arg = nl->First(args);
+  // variant 1: stream<DATA> -> stream <TUPLE>
+ 
+  if(Stream<Attribute>::checkType(arg)){
+     return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                             nl->TwoElemList(
+                                 nl->SymbolAtom(Tuple::BasicType()) ,
+                                 nl->OneElemList(
+                                   nl->TwoElemList(
+                                     nl->SymbolAtom("elem"),
+                                     nl->Second(arg)))));
+  }
+
+  // variant 2: stream(tuple( a: b)) -> stream(b)
+  if(Stream<Tuple>::checkType(arg)){
+    ListExpr attrList = nl->Second(nl->Second(arg));
+    if(!nl->HasLength(attrList,1)){
+       return listutils::typeError("Only one attribute within the "
+                                   "tuple allowed");
     }
+    return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                           nl->Second(nl->First(attrList)));
+  }
 
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-
-  // check for variant 1: (stream T)
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       am->CheckKind(Kind::DATA(), nl->Second(first), errorInfo) )
-    {
-      T = nl->Second(first);
-      return nl->TwoElemList(
-        nl->SymbolAtom(Symbol::STREAM()),
-        nl->TwoElemList(
-            nl->SymbolAtom(Tuple::BasicType()),
-            nl->OneElemList(
-                nl->TwoElemList(
-                    nl->SymbolAtom("elem"),
-                    T))));
-    }
-  // check for variant 2: stream(tuple((id T)))
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       !nl->IsAtom(nl->Second(first)) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) )
-    {
-      TupleDescr = nl->Second(nl->Second(first));
-      nl->WriteToString(argstr, TupleDescr);
-#ifdef GSA_DEBUG
-      cout << "\n In tupledescr = " << argstr << endl;
-#endif
-      if ( !nl->IsAtom(TupleDescr) &&
-           (nl->ListLength(TupleDescr) == 1) &&
-           !nl->IsAtom(nl->First(TupleDescr)) &&
-           (nl->ListLength(nl->First(TupleDescr)) == 2) &&
-           am->CheckKind(Kind::DATA(), nl->Second(nl->First(TupleDescr)),
-                                                                errorInfo))
-        {
-          T = nl->Second(nl->First(TupleDescr));
-          return nl->TwoElemList(
-                                 nl->SymbolAtom(Symbol::STREAM()),
-                                 T);
-        }
-    }
-
-  // Wrong argument format!
-  ErrorReporter::ReportError(
-    "Operator transformstream expects exactly one argument. either "
-    "of type '(stream T)',or 'stream(tuple((id T))))', where T is of "
-    "kind DATA.\n"
-    "The passed argument has type '"+ argstr +"'.");
-  return nl->SymbolAtom(Symbol::TYPEERROR());
+  return listutils::typeError("stream(DATA) or stream(tuple([a : X]))"
+                              " expected");
 }
 
 
@@ -2257,38 +2206,25 @@ using the defaul name 'elem'.
 ListExpr NamedtransformstreamTypemap(ListExpr args){
 
   if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("two arguments required");
-    return nl->TypeError();
+    return listutils::typeError("two arguments required");
   }
-  ListExpr stream = nl->First(args);
-  if(nl->ListLength(stream)!=2){
-    ErrorReporter::ReportError("first argument should be stream(t)");
-    return nl->TypeError();
-  }
-  if(!nl->IsEqual(nl->First(stream),Symbol::STREAM())){
-     ErrorReporter::ReportError("First argument must be a stream");
-     return nl->TypeError();
-  }
-  ListExpr streamType = nl->Second(stream);
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  if(!am->CheckKind(Kind::DATA(), streamType, errorInfo)){
-     ErrorReporter::ReportError("stream type not of kind DATA");
-     return nl->TypeError();
+  ListExpr stream = nl->First(args);
+  if(!Stream<Attribute>::checkType(stream)){
+    return listutils::typeError("First argument must be a stream(DATA).");
   }
-  // stream is korrekt, check attributename
-  if(nl->AtomType(nl->Second(args))!=SymbolType){
-     ErrorReporter::ReportError("wrong syntax for an attribute name");
-     return nl->TypeError();
+  ListExpr nameList = nl->Second(args);
+  if(!listutils::isSymbol(nameList)){
+     return listutils::typeError("Second argument muts be an attribute name");
   }
-  string name = nl->SymbolValue(nl->Second(args));
-  if(SecondoSystem::GetCatalog()->IsTypeName(name)){
-      ErrorReporter::ReportError(""+name+" is a type and can't be "
+  string name = nl->SymbolValue(nameList);
+
+ if(SecondoSystem::GetCatalog()->IsTypeName(name)){
+      return listutils::typeError(""+name+" is a type and can't be "
                                  "used as an attribute name ");
-      return nl->TypeError();
   }
   if(SecondoSystem::GetCatalog()->IsOperatorName(name)){
-      ErrorReporter::ReportError(""+name+" is an operator and can't be "
+      return listutils::typeError(""+name+" is an operator and can't be "
                                  "used as an attribute name ");
       return nl->TypeError();
   }
@@ -2299,7 +2235,7 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
                             nl->OneElemList(
                               nl->TwoElemList(
                                 nl->SymbolAtom(name),
-                                streamType
+                                nl->Second(stream)
                               )
                             )));
 }
@@ -2311,8 +2247,9 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
 
 struct TransformstreamLocalInfo
 {
-  TransformstreamLocalInfo() :
-    finished(false), resultTupleType(0), progressinitialized(false)
+  TransformstreamLocalInfo( Word arg) :
+    finished(false), resultTupleType(0), progressinitialized(false),
+    stream(arg)
   {}
 
   ~TransformstreamLocalInfo() {
@@ -2324,6 +2261,7 @@ struct TransformstreamLocalInfo
   bool       finished;
   TupleType* resultTupleType;
   bool       progressinitialized;
+  Stream<Attribute> stream;
 };
 
 // The first variant creates a tuplestream from a stream:
@@ -2343,13 +2281,13 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
          delete  sli;
          local.addr = 0;
       }
-      sli = new TransformstreamLocalInfo();
+      sli = new TransformstreamLocalInfo(args[0]);
       local.setAddr(sli);
       resultType = GetTupleResultType( s );
       sli->resultTupleType = new TupleType( nl->Second( resultType ) );
       sli->finished = false;
       sli->progressinitialized = false;
-      qp->Open( args[0].addr );
+      sli->stream.open();
       return 0;
     }
     case REQUEST:{
@@ -2357,23 +2295,20 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
         return CANCEL;
 
       sli = (TransformstreamLocalInfo*) (local.addr);
-      if (sli->finished)
+      if (sli->finished){
         return CANCEL;
+      }
 
-      result.setAddr((Attribute*)((qp->ResultStorage(s)).addr));
-
-      qp->Request( args[0].addr, value );
-      if (!qp->Received( args[0].addr ))
-        { // input stream consumed
-          qp->Close( args[0].addr );
+      Attribute* attr = sli->stream.request();
+      if (attr==0) { // input stream consumed
+          sli->stream.close();
           sli->finished = true;
           result.addr = 0;
           return CANCEL;
-        }
+      }
       // create tuple, copy and pass result, delete value
       newTuple = new Tuple( sli->resultTupleType );
-      newTuple->PutAttribute( 0, ((Attribute*)value.addr)->Copy() );
-      ((Attribute*)(value.addr))->DeleteIfAllowed();
+      newTuple->PutAttribute( 0, attr );
       result.setAddr(newTuple);
       return YIELD;
     }
@@ -2381,7 +2316,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       if (local.addr != 0) {
         sli = (TransformstreamLocalInfo*) (local.addr);
         if (!sli->finished){
-          qp->Close( args[0].addr );
+          sli->stream.close();
           sli->finished = true;
         }
       }
@@ -2403,7 +2338,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       }
       ProgressInfo p1;
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
-      if( !qp->RequestProgress(args[0].addr, &p1) ){
+      if( !sli->stream.requestProgress( &p1) ){
         return CANCEL;
       };
       const double uProject = 0.00073; //millisecs per tuple
@@ -2439,7 +2374,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
       if(sli){
         delete sli;
       }
-      sli = new TransformstreamLocalInfo;
+      sli = new TransformstreamLocalInfo(args[0]);
       sli->finished = false;
       sli->progressinitialized = false;
       local.setAddr(sli);
