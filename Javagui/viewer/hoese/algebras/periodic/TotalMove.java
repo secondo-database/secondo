@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -21,6 +21,7 @@ package viewer.hoese.algebras.periodic;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
+import viewer.hoese.DsplGeneric;
 
 public class TotalMove implements Move{
 
@@ -95,7 +96,7 @@ public boolean readFrom(ListExpr LE, Class linearClass){
    Move tmpmove;
    if(LE.second().listLength()<1){
       setUndefined();
-      if(LE.second().atomType()==ListExpr.SYMBOL_ATOM && LE.second().symbolValue().equals("undefined")){
+      if( DsplGeneric.isUndefined(LE.second()) ){
           return true;
       }
       Reporter.debug("TotalMove.readFrom :: wrong list length for submove");

@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@ import viewer.viewer3d.objects.*;
 
 /**
  * A Displayclass for an graph from the histogram2d-algebra
- */                             
+ */
 public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 {
   /** The internal datatype representation */
@@ -74,9 +74,9 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
   boolean undef = false;
   boolean err;
  // Rectangle2D.Double bounds=null;
-  
+
   static ID id = new ID();
-  
+
 
   /**
       * Scans the numeric representation of a histogram2d datatype
@@ -88,13 +88,13 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 
       protected void ScanValue(ListExpr v)
   {
-     
+
     int i = 0;  //for rangesX
     int k = 0;  //for rangesY
     int j = 0;  //for bins
     int c = 0;  //size rangesXVec
     int d = 0;  //size rangesYVec
-    if ( v.isAtom() && v.writeListExprToString().trim().equalsIgnoreCase("undef")){
+    if ( isUndefined(v) ){
       undef = true;
       return;
     }
@@ -107,11 +107,11 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 
 //     ListExpr rangesX = v.first();
 //     ListExpr rangesZ = v.second();
-     
+
     ListExpr rangesZ = v.first();
     ListExpr rangesX = v.second();
-     
-     
+
+
     ListExpr bins = v.third();
 
     ListExpr rangesXRest = rangesX;
@@ -139,7 +139,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       d++;
       rangesZCount = rangesZCount.rest();
     }
-     
+
     this.binsVecOld = binsVec; //copy of ranges and bins to hold old data for second panel
     this.rangesXVecOld = rangesXVec;
     this.rangesZVecOld = rangesZVec;
@@ -190,7 +190,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       binsRest = binsRest.rest();
       j++;
     }
-//     System.out.println("ich bin durch im ScanValue!");     
+//     System.out.println("ich bin durch im ScanValue!");
   }
 
 
@@ -223,8 +223,8 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                          }
                        }
 
-  
-  /** 
+
+  /**
       * shows this histogram in an external window
   */
       public void displayExtern(){
@@ -298,22 +298,22 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       });
       p2.add(saveLeft);
       getContentPane().add(p2,BorderLayout.SOUTH);
-      
+
       this.pack();
 
 
         }
-    
+
         public void setSource(Dsplhistogram2d hist2d){
           this.hist2d = hist2d;
           this.w3dPanel1.setHistogram(hist2d.rangesXVec, hist2d.rangesZVec, hist2d.binsVec);
           this.w3dPanel2.setHistogram(hist2d.rangesXVecOld,hist2d.rangesZVecOld, hist2d.binsVecOld);
         }
       }
-    
-    
+
+
     //##############################    M O U S E   N A V I G A T O R     ##########################
-  
+
   /**
       * to scoll in the scene and to switch the view of the scene by the mouse
   */
@@ -322,32 +322,32 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
     /**count of complete rotations for moving the mouse one pixel*/
         private static final double rotationSpeed = 0.001;
 
-    
+
     private Vector w3ds;
-    
+
     private int mousePressedBeginX = 0;
     private int mousePressedBeginY = 0;
-    
+
     /**the angle in the x-z plane starting at z and rotation counterclockwise (to positive x)*/
         private double theta = 35.0/360.0*2*Math.PI;
     /**the angle starting at 0 = y-axis and leading to x-z plane*/
         private double phi = 75.0/360.0*2*Math.PI;
     private double zoomFactor = 1.0;
-    
+
     private double thetaAtDragStart = theta;
     private double phiAtDragStart = phi;
-    
+
     public MouseNavigator(){
       this.w3ds = new Vector();
     }
-    
+
     /**
         * @param receiver all added receivers will have set their view (camera)
     */
         public void addViewReceiver(World3D receiver){
       this.w3ds.add(receiver);
         }
-    
+
         public void mouseWheelMoved(MouseWheelEvent e) {
           if (e.getWheelRotation() > 0){
             zoomFactor *= (1.0+zoomStep);
@@ -357,24 +357,24 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
           }
           this.updateViewReceivers();
         }
-    
+
         public void mousePressed(MouseEvent e){
           mousePressedBeginX = e.getX();
           mousePressedBeginY = e.getY();
           Iterator it = this.w3ds.iterator();
-      
+
           while (it.hasNext()){
             MyWorld3D w3d = (MyWorld3D)(it.next());
             w3d.grabFocus();
             w3d.repaint();
           }
         }
-    
+
         public void mouseReleased(MouseEvent e){
           thetaAtDragStart = theta;
           phiAtDragStart = phi;
         }
-    
+
         public void mouseDragged(MouseEvent e){
 
           int mouseX = e.getX() - this.mousePressedBeginX;//relative position
@@ -393,14 +393,14 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         }
 
         public void mouseMoved(MouseEvent arg0) {}
-    
+
         public void updateViewReceivers(){
 //      System.out.println("im updateViewRecivers 1");
       //theta, phi, and zoomFactor are ready
           double  camera_X_OnUnitCircle = Math.sin(this.theta)*Math.sin(this.phi)*this.zoomFactor;
           double  camera_Y_OnUnitCircle = Math.cos(this.phi)*this.zoomFactor;
           double camera_Z_OnUnitCircle = Math.sin(phi)*Math.cos(this.theta)*this.zoomFactor;
-      
+
           Iterator it = this.w3ds.iterator();
           while (it.hasNext()){
             MyWorld3D w3d = (MyWorld3D)(it.next());
@@ -419,15 +419,15 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 //      System.out.println("im updateViewRecivers end");
         }
       }
-  
+
   //####################################################################################################################
-  
+
   /**
       * to form my own World3D with its camera position, its ranges and bins and its mouse navigator
       * to write the paint method for MyWorld3D
   */
       private static class MyWorld3D extends World3D{
-    
+
     double[] rangesXVecPaint = null;
     double[] rangesZVecPaint = null;
     double[] binsVecPaint = null;
@@ -460,7 +460,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         //System.err.println("rangesXVecPaint = " + rangesXVecPaint);
         //System.err.println("rangesZVecPaint = " + rangesZVecPaint);
         // System.err.println("binsHeightPaint = " + binsHeightPaint);
-        
+
         return;
       }
       else{
@@ -479,7 +479,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         //Fm3D ready to transform
 
 //        System.out.println("im paint 5");
-        
+
         double minX = rangesXVecPaint[0];
         double maxX = rangesXVecPaint[rangesXVecPaint.length-1];
         double minZ = rangesZVecPaint[0];
@@ -489,7 +489,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         double minXsmaller0;
         double minYsmaller0;
         double minZsmaller0;
-        
+
         if (minY == 0.0 && maxY == 0.0){
           maxY = 10.0;
         }
@@ -523,7 +523,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         Vector stepsHeight = this.paintSteps(maxY, minY);
         Iterator itx = stepsX.iterator();
         int i = 0;
-        
+
         if(minX > 0.0){
           minX = 0.0;
         }
@@ -570,7 +570,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         if (transformedZ != null){
           g.drawString(maxZShort, transformedZ.x+5, transformedZ.y+10);
         }
-        
+
         Iterator itheight = stepsHeight.iterator();
         int k = 0;
 
@@ -598,7 +598,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       }
 //      System.out.println("im paint end");
     }
-       
+
     /**
         * Transforms a 3D-point in 2D-coordinates
         * @param x
@@ -611,7 +611,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 //      System.out.println("im transformPoint 1");
 
       Point3D toTransform = new Point3D(x, y, z,255,255,255,id);
-      
+
       Figure2D transformedFigure = toTransform.project(Fm3D);
       if(transformedFigure == null){
         return null;
@@ -660,7 +660,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
     */
         private double[] getBinHeights(double[] rangesX, double[] rangesZ, double[] binAreas)
     {
-//      System.out.println("in getBinHeights");     
+//      System.out.println("in getBinHeights");
       double[] out = new double[binAreas.length];
 
       int binsCount = 0;
@@ -713,7 +713,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       double minXsmaller0;
       double minYsmaller0;
       double minZsmaller0;
-      
+
       if (minY == 0.0 && maxY == 0.0){
         maxY = 10.0;
       }
@@ -814,7 +814,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                            }
 
 
-    /** adds a rectangle to the trianglevector. The rectangle is splitted 
+    /** adds a rectangle to the trianglevector. The rectangle is splitted
         * into nearly squares. So, the painting algorithm works better.
     **/
         private void insertRectangle(Triangle3DVector tv,
@@ -846,11 +846,11 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                            double x3 = p3.getX();
                                            double y3 = p3.getY();
                                            double z3 = p3.getZ();
-                
+
                                            double x4 = p4.getX();
                                            double y4 = p4.getY();
                                            double z4 = p4.getZ();
-               
+
                                            if(len1_2>len1_4){
                                              int steps = (int) (len1_2 / len1_4);
                                              double dx1 = (x2-x1)/ steps;
@@ -862,7 +862,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 
                                              Point3DSimple P1 = p1.duplicate();
                                              Point3DSimple P4 = p4.duplicate();
-         
+
 
                                              for(int i=1;i<=steps;i++){
                                                Point3DSimple P2 = new Point3DSimple(x1 + i*dx1, y1+i*dy1, z1+i*dz1,color);
@@ -924,16 +924,16 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       */
           private void paintColumnColor(double height, double rangeSmallX, double rangeBigX, double rangeSmallZ, double rangeBigZ,
                                         int cRed, int cGreen, int cBlue){
-      
+
 //        System.out.println("im paintColumnColor 1");
 //           Point3DVector pointVecC = new Point3DVector();
 //           Line3DVector lineVecC = new Line3DVector();
-           
+
                                           if (height == 0.0){
                                             return;
                                           }
-          
-         
+
+
                                           if(cRed <100){
                                             cRed= 100;
                                           }
@@ -952,7 +952,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                           if(cBlue >205){
                                             cBlue= 205;
                                           }
-           
+
 
                                           Color color = new Color(cRed,cGreen,cBlue);
                                           Color borderColor = Color.BLACK;
@@ -960,10 +960,10 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
            //triangles
                                           Point3DSimple pBackRightDownForTria = new Point3DSimple(rangeSmallX, 0, rangeBigZ,cRed,cGreen,cBlue);
                                           Point3DSimple pBackLeftDownForTria = new Point3DSimple(rangeBigX, 0,rangeBigZ,cRed, cGreen, cBlue);
-           
+
                                           Point3DSimple pFrontRightDownForTria = new Point3DSimple(rangeSmallX, 0, rangeSmallZ,cRed, cGreen, cBlue);
                                           Point3DSimple pFrontLeftDownForTria = new Point3DSimple(rangeBigX, 0, rangeSmallZ,cRed, cGreen, cBlue);
-           
+
 
                                           Point3DSimple pBackRightUpForTria = new Point3DSimple(rangeSmallX, height, rangeBigZ,cRed, cGreen, cBlue);
                                           Point3DSimple pBackLeftUpForTria = new Point3DSimple(rangeBigX, height, rangeBigZ,cRed, cGreen, cBlue);
@@ -993,12 +993,12 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
            // top
                                           insertRectangle( triaVecC, pFrontLeftUpForTria, pBackLeftUpForTria,
                                               pBackRightUpForTria, pFrontRightUpForTria, color,borderColor,id);
-                                      
+
                                           this.add(triaVecC);
                                         }
-      
-      
-      
+
+
+
       /**
           * sets data of the histogram2d to paint
           * @param _rangesX
@@ -1035,19 +1035,19 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                               //
 //            if (binsCount == this.selectedBin){
 //              paintColumnColor(_bins[binsCount]*unitY,
-//                  paintX, 
-//                  paintXplus, 
-//                  paintZ, 
+//                  paintX,
+//                  paintXplus,
+//                  paintZ,
 //                  paintZplus,
 //                  255, 0, 0 );
 //            }
 //            else{
-            
-//            System.out.println("*********************");            
+
+//            System.out.println("*********************");
 //            System.out.println("bins["+binsCount+"]"  +_bins[binsCount]*unitX);
 //            System.out.println("rangesX["+i+"]: "+_rangesX[i]);
 //            System.out.println("rangesZ["+j+"]: "+_rangesZ[j]);
-            
+
                                               paintColumnColor( _bins[binsCount]*unitY,
                                                   paintX,
                                                   paintXplus,
@@ -1060,8 +1060,8 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                           }
                                         }
 
-      
-      
+
+
 
       /**
           * paints the coordinate system for the histogram2d
@@ -1078,7 +1078,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
           public void paintCoordinateSystemXYZ(double minX, double maxX, double minZ, double maxZ, double minY, double maxY, double unitX, double unitZ,
                                                double unitY){
 //        System.out.println("im paintCoordingatesystemXYZ 1");
-        
+
         // Point3DVector pointVec = new Point3DVector();
                                                  Line3DVector   lineVec = new Line3DVector();
         //Triangle3DVector triaVec = new Triangle3DVector();
@@ -1102,13 +1102,13 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                                  Point3D pYnegativ = new Point3D(0,minY*unitY, 0, 0, 0, 0,id);
                                                  Point3D pZpositiv = new Point3D(0,0, maxZ*unitZ, 0, 0, 0,id);
                                                  Point3D pZnegativ = new Point3D(0,0, (maxZ-minZ)*unitZ, 0, 0, 0,id);
-        
+
                                                  Point3D pFront = new Point3D((maxX-minX)*unitX, 0, (maxZ-minZ)*unitZ, 0,0,0);
                                                  Point3D pZYUp = new Point3D(0, maxY*unitY, (maxZ-minZ)*unitZ, 0,0,0);
                                                  Point3D pXYUp = new Point3D((maxX-minX)*unitX, maxY*unitY, 0, 0,0,0);
                                                  Point3D pZYDown = new Point3D(0, minY*unitY, (maxZ-minZ)*unitZ, 0,0,0);
                                                  Point3D pXYDown = new Point3D((maxX-minX)*unitX, minY*unitY, 0, 0,0,0);
-    
+
 //        System.out.println("im paintCoordingatesystemXYZ 3");
 
         /*pointVec.append(pNull);
@@ -1138,7 +1138,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                                  Line3D bottomLineZ = new Line3D(pZYDown, pYnegativ);
                                                  Line3D bottomLineX = new Line3D(pXYDown, pYnegativ);
                                                  Line3D XnegativeToYnegative = new Line3D(pXnegativ, pXYDown);
-        
+
                                                  lineVec.append(bottomLineZ);
                                                  lineVec.append(bottomLineX);
                                                  lineVec.append(XnegativeToYnegative);
@@ -1156,8 +1156,8 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                                  lineVec.append(xmaxTomaxXY);
                                                  lineVec.append(upLineXY);
                                                  lineVec.append(upLineYZ);
-        
-        
+
+
         //to paint the steps of the coordinatesystem XY columns and XZ columns
                                                  Vector rangeXIntervals = this.paintSteps(maxX, minX);
                                                  Iterator itx = rangeXIntervals.iterator();
@@ -1244,7 +1244,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                                  Line3D[] lineYXRowMin = new Line3D[12];
                                                  int k = 0;
 
-        
+
                                                  while  (ity.hasNext() ){
                                                    double ityNext =  ((Double)(ity.next())).doubleValue();
                                                    stepsY[k]= new Point3D(0, ityNext*unitY,0, 0,0,0);
@@ -1260,19 +1260,19 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
                                                    lineYZRowMin[k] = new Line3D(stepsY_Zmin[k], stepsY[k]);
                                                    lineVec.append(lineYZRow[k]);
                                                    lineVec.append(lineYZRowMin[k]);
-          
+
                                                    k++;
                                                  }
 
 //        System.out.println("im paintCoordingatesystemXYZ end");
-            
+
   //      this.add(pointVec); //to test
                                                  this.add(lineVec);
-  //      this.add(triaVec);      
+  //      this.add(triaVec);
                                                }
-      
 
-      
+
+
       /**
           *
           * @return vector of steps to be painted
@@ -1289,7 +1289,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
           distance = max;
         }
         double step = this.getDisplayStep(distance, 5);
-        
+
         if(max<=0.0){
           max = 0.0;
         }
@@ -1307,7 +1307,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         }
         return numbers;
           }
-      
+
       /**
           *
           * @param interval

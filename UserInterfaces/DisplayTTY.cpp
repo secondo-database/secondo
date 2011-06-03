@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and 
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -30,7 +30,7 @@ August 2009, M. Spiekermann. Many code changes happen in order to make implement
 display functions easier: 1) There is no need to add new static functions to the DisplayTTY.h
 file, 2) Errors are now returned using exceptions 3) In case an error is caught, the generic
 display functions will be used as fallback. 4) To do: Removing the algebra- and type-id from the
-key in the internal map; the name of the datatype should be sufficient.   
+key in the internal map; the name of the datatype should be sufficient.
 
 
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
@@ -79,6 +79,7 @@ which will be read.
 #include "AlgebraTypes.h"
 #include "Base64.h"
 #include "CharTransform.h"
+#include "Symbols.h"
 
 
 /*
@@ -110,9 +111,9 @@ DisplayFunction::GetNumeric(ListExpr value, bool &err){
   return DisplayTTY::GetInstance().GetNumeric(value, err);
 }
 
-void 
+void
 DisplayFunction::CallDisplayFunction( const ListExpr idPair,
-                                      ListExpr type, 
+                                      ListExpr type,
                                       ListExpr numType,
                                       ListExpr value )
 {
@@ -121,11 +122,11 @@ DisplayFunction::CallDisplayFunction( const ListExpr idPair,
 
 }
 
-void 
+void
 DisplayFunction::DisplayResult( ListExpr type, ListExpr value )
 {
   DisplayTTY::GetInstance().DisplayResult(type, value);
-} 
+}
 
  int DisplayFunction::MaxAttributLength( ListExpr type )
   {
@@ -151,7 +152,7 @@ DisplayTTY*            DisplayTTY::dtty = 0;
 //DisplayTTY::DisplayMap DisplayTTY::displayFunctions;
 
 
-DisplayTTY::~DisplayTTY() 
+DisplayTTY::~DisplayTTY()
 {
  DisplayMap::iterator it = displayFunctions.begin();
  for (; it != displayFunctions.end(); it++){
@@ -171,9 +172,9 @@ function.
 */
 
 void DisplayTTY::CallDisplayFunction( const ListExpr idPair,
-                                              ListExpr type,
-                                              ListExpr numType,
-                                              ListExpr value )
+                                            ListExpr type,
+                                            ListExpr numType,
+                                            ListExpr value )
 {
 
   ostringstream osId;
@@ -183,15 +184,15 @@ void DisplayTTY::CallDisplayFunction( const ListExpr idPair,
       displayFunctions.find( osId.str() );
   if ( dfPos != displayFunctions.end() )
   {
-    try 
-    {     
+    try
+    {
       (dfPos->second)->Display( type, numType, value );
-    } 
-    catch ( const exception& e) 
+    }
+    catch ( const exception& e)
     {
       cerr << "Error in display function: " << e.what() << endl << endl;
       DisplayGeneric( type, numType, value );
-    }       
+    }
   }
   else
   {
@@ -275,10 +276,10 @@ DisplayTTY::DisplayGeneric( ListExpr type,
      ListExpr newnode = nl->Cons(first,second);
      return newnode;
    }
- } 
+ }
   */
 
-void 
+void
 DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
   NList list(value);
@@ -325,7 +326,7 @@ cout << errMsg << endl;
      //cout << blanks << s << ": ";
       string printstr = blanks + s + ": ";
       printstr += entries.first().str();
-      cout << wordWrap((size_t)0, (size_t)(maxNameLen+2), 
+      cout << wordWrap((size_t)0, (size_t)(maxNameLen+2),
                        (size_t)LINELENGTH, printstr) << endl;
       labels.rest();
       entries.rest();
@@ -338,7 +339,7 @@ cout << errMsg << endl;
   }
 }
 
-void 
+void
 DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 {
   int algebraId=0, typeId=0;
@@ -539,7 +540,7 @@ and subvalue, respectively.
 
 
 struct DisplayRelation : DisplayFunction {
-        
+
   virtual void Display( ListExpr type,
                         ListExpr numType, ListExpr value )
   {
@@ -551,7 +552,7 @@ struct DisplayRelation : DisplayFunction {
 
 
 struct DisplayTuples : DisplayFunction {
-        
+
   DisplayTuples() : DisplayFunction() {}
 
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
@@ -586,7 +587,7 @@ struct DisplayTuples : DisplayFunction {
       }
       else
       {
-         CallDisplayFunction( 
+         CallDisplayFunction(
                         nl->First( nl->Second( nl->First( numType ) ) ),
                         nl->Second( nl->First( type ) ),
                         nl->Second( nl->First( numType ) ),
@@ -601,7 +602,7 @@ struct DisplayTuples : DisplayFunction {
 
   }
 
- 
+
 };
 
 
@@ -615,7 +616,7 @@ struct DisplayNestedRelation : DisplayFunction
     numType = nl->Second( numType );
     DisplayNestedTuples ( type, numType, value );
   }
-  
+
   void DisplayNestedTuples( ListExpr type, ListExpr numType, ListExpr value )
   {
     int maxAttribNameLen = MaxAttributLength( nl->Second( numType ) );
@@ -627,7 +628,7 @@ struct DisplayNestedRelation : DisplayFunction
       cout << "------------" << endl << endl;
     }
   }
-  
+
   void DisplayTuple( ListExpr type, ListExpr numType,
                                 ListExpr value, const int maxNameLen )
   {
@@ -647,7 +648,7 @@ struct DisplayNestedRelation : DisplayFunction
       }
       else
       {
-         CallDisplayFunction( 
+         CallDisplayFunction(
                         nl->First( nl->Second( nl->First( numType ) ) ),
                         nl->Second( nl->First( type ) ),
                         nl->Second( nl->First( numType ) ),
@@ -659,21 +660,21 @@ struct DisplayNestedRelation : DisplayFunction
       value   = nl->Rest( value );
     }
   }
-};    
+};
 
 
 struct DisplayAttributeRelation : DisplayFunction
 {
   DisplayAttributeRelation() : DisplayFunction() {}
-  
-  virtual void Display( ListExpr type, ListExpr numType, 
+
+  virtual void Display( ListExpr type, ListExpr numType,
                                           ListExpr value)
   {
     int select = nl->IntValue(nl->First(value));
     value = nl->Rest(value);
     if (select == 0)//means that this arel is an attribute of a nested relation
     {
-      int maxAttribNameLen = MaxAttributLength( nl->Second 
+      int maxAttribNameLen = MaxAttributLength( nl->Second
                                               ( nl->Second( numType ) ) );
       int ind;
       if (maxAttribNameLen >= (DisplayTTY::maxIndent - 3))
@@ -683,8 +684,8 @@ struct DisplayAttributeRelation : DisplayFunction
       cout << endl;
       while (!nl->IsEmpty( value ))
       {
-        DisplayArelTuple( nl->Second( nl->Second( type ) ), nl->Second 
-                    ( nl->Second( numType ) ), nl->First( value ), 
+        DisplayArelTuple( nl->Second( nl->Second( type ) ), nl->Second
+                    ( nl->Second( numType ) ), nl->First( value ),
                       maxAttribNameLen, ind );
         value = nl->Rest( value );
         if (!nl->IsEmpty(value))
@@ -703,23 +704,23 @@ struct DisplayAttributeRelation : DisplayFunction
         tid = val.first().intval();
         cout << "TupleId no. " << i << ": " << tid << endl;
         val.rest();
-        i++; 
+        i++;
       }
     }
-  }  
+  }
 
   void DisplayArelTuple( ListExpr type, ListExpr numType,
                               ListExpr value, const int maxNameLen,
                               int ind )
   {
-    
+
     while (!nl->IsEmpty( value ))
     {
       string s = nl->ToString( nl->First( nl->First( numType ) ) );
       int i = maxNameLen - s.length();
       if ( i < 0)
         i = 0;
-      string attr = string(ind , ' ') + s + 
+      string attr = string(ind , ' ') + s +
                   string( i , ' ') + string(" : ");
       cout << attr;
       DisplayTTY::maxIndent = attr.length();
@@ -744,19 +745,19 @@ struct DisplayAttributeRelation : DisplayFunction
     }
   }
 };
-   
+
 
 
 
 
 struct DisplayInt : DisplayFunction {
-        
+
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -767,14 +768,14 @@ struct DisplayInt : DisplayFunction {
 };
 
 
-struct DisplayReal : DisplayFunction { 
+struct DisplayReal : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -795,9 +796,9 @@ struct DisplayBoolean : DisplayFunction {
   virtual void Display( ListExpr list, ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -813,14 +814,14 @@ struct DisplayBoolean : DisplayFunction {
   }
 };
 
-struct DisplayString : DisplayFunction { 
+struct DisplayString : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -830,29 +831,29 @@ struct DisplayString : DisplayFunction {
 };
 
 
-struct DisplayText : DisplayFunction { 
+struct DisplayText : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
   {
 
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
       string printstr="";
       nl->Text2String(value, printstr);
-      cout << wordWrap((size_t)0,  (size_t)DisplayTTY::maxIndent, 
+      cout << wordWrap((size_t)0,  (size_t)DisplayTTY::maxIndent,
                        (size_t)(LINELENGTH - DisplayTTY::maxIndent),
                        printstr);
     }
   }
 };
 
-struct DisplayFun : DisplayFunction { 
-        
+struct DisplayFun : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
   {
     cout << "Function type: ";
@@ -863,8 +864,8 @@ struct DisplayFun : DisplayFunction {
   }
 };
 
-struct DisplayDate : DisplayFunction { 
-        
+struct DisplayDate : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if (nl->IsAtom(value) && nl->AtomType(value)==StringType)
@@ -875,8 +876,8 @@ struct DisplayDate : DisplayFunction {
 };
 
 
-struct DisplayBinfile : DisplayFunction { 
-        
+struct DisplayBinfile : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     cout << "binary file";
@@ -953,7 +954,7 @@ double DisplayTTY::GetNumeric(ListExpr value, bool &err)
 }
 
 
-struct DisplayXPoint : DisplayFunction { 
+struct DisplayXPoint : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
@@ -974,14 +975,14 @@ struct DisplayXPoint : DisplayFunction {
   }
 };
 
-struct DisplayPoint : DisplayFunction { 
+struct DisplayPoint : DisplayFunction {
 
 virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-      nl->SymbolValue( value ) == "undef" )
+      nl->SymbolValue( value ) == Symbol::UNDEFINED() )
   {
-    cout << "UNDEFINED";
+    cout << Symbol::UNDEFINED();
   }
   else if(nl->ListLength(value)!=2)
     throw runtime_error(stdErrMsg);
@@ -1001,7 +1002,7 @@ virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
 };
 
 
-struct DisplayTBTree : DisplayFunction { 
+struct DisplayTBTree : DisplayFunction {
 
 virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
 {
@@ -1014,14 +1015,14 @@ virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
 };
 
 
-struct DisplayRect : DisplayFunction { 
+struct DisplayRect : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if( nl->ListLength(value) != 4 )
       throw runtime_error(stdErrMsg);
@@ -1077,14 +1078,14 @@ DisplayRect3
 */
 
 
-struct DisplayRect3 : DisplayFunction { 
+struct DisplayRect3 : DisplayFunction {
 
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if( nl->ListLength(value) != 6 )
       throw runtime_error(stdErrMsg);
@@ -1140,14 +1141,14 @@ DisplayRect4
 */
 
 
-struct DisplayRect4 : DisplayFunction { 
-        
+struct DisplayRect4 : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if( nl->ListLength(value) != 8 )
       throw runtime_error(stdErrMsg);
@@ -1203,18 +1204,18 @@ DisplayRect8
 */
 
 
-struct DisplayRect8 : DisplayFunction { 
-        
+struct DisplayRect8 : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if( nl->ListLength(value) != 16 ) {
       throw runtime_error(stdErrMsg);
-    }  
+    }
     else
     {
       bool realValue;
@@ -1266,13 +1267,13 @@ DisplayMP3
 
 */
 
-struct DisplayMP3 : DisplayFunction { 
-        
+struct DisplayMP3 : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
-      cout << "UNDEFINED";
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
+      cout << Symbol::UNDEFINED();
     else
       cout << "mp3 file";
   }
@@ -1282,14 +1283,14 @@ struct DisplayMP3 : DisplayFunction {
 DisplayID3
 
 */
-struct DisplayID3 : DisplayFunction { 
-        
+struct DisplayID3 : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -1319,14 +1320,14 @@ DisplayLyrics
 
 */
 
-struct DisplayLyrics : DisplayFunction { 
-        
+struct DisplayLyrics : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -1347,8 +1348,8 @@ struct DisplayLyrics : DisplayFunction {
 DisplayMidi
 
 */
-struct DisplayMidi  : DisplayFunction { 
-        
+struct DisplayMidi  : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     int size = nl->IntValue(nl->Second(value));
@@ -1362,8 +1363,8 @@ struct DisplayMidi  : DisplayFunction {
 DisplayArray
 
 */
-struct DisplayArray : DisplayFunction { 
-        
+struct DisplayArray : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if(nl->ListLength(value)==0)
@@ -1396,8 +1397,8 @@ struct DisplayArray : DisplayFunction {
 DisplayDArray
 
 */
-struct DisplayDArray : DisplayFunction { 
-        
+struct DisplayDArray : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if(nl->ListLength(value) == 1)
@@ -1450,14 +1451,14 @@ struct DisplayDArray : DisplayFunction {
 DisplayInstant
 
 */
-struct DisplayInstant : DisplayFunction { 
-        
+struct DisplayInstant : DisplayFunction {
+
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if(nl->AtomType(value) ==RealType){
       cout << nl->RealValue(value);
@@ -1471,17 +1472,17 @@ struct DisplayInstant : DisplayFunction {
 DisplayDuration
 
 */
-struct DisplayDuration : DisplayFunction { 
-        
+struct DisplayDuration : DisplayFunction {
+
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
-    { 
+    {
       bool written = false;
       if(nl->ListLength(value)==2){
         if( (nl->AtomType(nl->First(value))==IntType) &&
@@ -1515,14 +1516,14 @@ struct DisplayDuration : DisplayFunction {
 DisplayTid
 
 */
-struct DisplayTid : DisplayFunction { 
-        
+struct DisplayTid : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else
     {
@@ -1535,8 +1536,8 @@ struct DisplayTid : DisplayFunction {
 DisplayHtml
 
 */
-struct DisplayHtml : DisplayFunction { 
-        
+struct DisplayHtml : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if(nl->ListLength(value)!=3)
@@ -1571,8 +1572,8 @@ struct DisplayHtml : DisplayFunction {
 DisplayPage
 
 */
-struct DisplayPage : DisplayFunction { 
-        
+struct DisplayPage : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if(nl->ListLength(value)<1)
@@ -1618,8 +1619,8 @@ struct DisplayPage : DisplayFunction {
 DisplayUrl
 
 */
-struct DisplayUrl : DisplayFunction { 
-        
+struct DisplayUrl : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if(nl->ListLength(value)!=3)
@@ -1646,14 +1647,14 @@ struct DisplayUrl : DisplayFunction {
 DisplayVertex
 
 */
-struct DisplayVertex : DisplayFunction { 
-        
+struct DisplayVertex : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if(nl->ListLength(value)!=2)
       throw runtime_error(stdErrMsg);
@@ -1664,10 +1665,10 @@ struct DisplayVertex : DisplayFunction {
         throw runtime_error(stdErrMsg);
       }
       if( nl->IsAtom( nl->Second(value) )  &&
-          nl->SymbolValue(  nl->Second(value) ) == "undef" )
+          nl->SymbolValue(  nl->Second(value) ) == Symbol::UNDEFINED() )
       {
         stringstream info;
-        info << "vertex " << key << ": no point defined" << endl;           
+        info << "vertex " << key << ": no point defined" << endl;
         throw runtime_error(info.str());
       }
       double x = GetNumeric(nl->First(nl->Second(value)),err);
@@ -1686,14 +1687,14 @@ struct DisplayVertex : DisplayFunction {
 DisplayEdge
 
 */
-struct DisplayEdge : DisplayFunction { 
-        
+struct DisplayEdge : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if(nl->ListLength(value)!=3)
       throw runtime_error(stdErrMsg);
@@ -1720,14 +1721,14 @@ struct DisplayEdge : DisplayFunction {
 DisplayPath
 
 */
-struct DisplayPath : DisplayFunction { 
-        
+struct DisplayPath : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if(nl->ListLength(value)!=1&&(nl->ListLength(value)-1)%2!=0)
       throw runtime_error(stdErrMsg);
@@ -1739,7 +1740,7 @@ struct DisplayPath : DisplayFunction {
         throw runtime_error(stdErrMsg);
       }
       if( nl->IsAtom( nl->Second(nl->First(value)) )  &&
-          nl->SymbolValue(  nl->Second(nl->First(value)) ) == "undef" )
+          nl->SymbolValue(nl->Second(nl->First(value)))==Symbol::UNDEFINED() )
       {
         cout << "vertex "<<key<<": no point defined";
       }
@@ -1769,7 +1770,8 @@ struct DisplayPath : DisplayFunction {
           throw runtime_error(stdErrMsg);
         }
         if( nl->IsAtom( nl->Second(nl->Second(value)) )  &&
-            nl->SymbolValue(  nl->Second(nl->Second(value)) ) == "undef" )
+            nl->SymbolValue(  nl->Second(nl->Second(value)) )
+                                                       == Symbol::UNDEFINED() )
         {
           cout << "vertex "<<key<<": no point defined";
         }
@@ -1796,14 +1798,14 @@ struct DisplayPath : DisplayFunction {
 DisplayGraph
 
 */
-struct DisplayGraph : DisplayFunction { 
-        
+struct DisplayGraph : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if(nl->ListLength(value)!=2)
       cout << "Incorrect Data Format ";
@@ -1821,19 +1823,20 @@ struct DisplayGraph : DisplayFunction {
           throw runtime_error(stdErrMsg);
         }
         if( nl->IsAtom( nl->Second(nl->First(vertices)) )  &&
-            nl->SymbolValue(  nl->Second(nl->First(vertices)) ) == "undef" )
+            nl->SymbolValue(nl->Second(nl->First(vertices)))
+                                                     ==Symbol::UNDEFINED() )
         {
           cout << key<<": no point defined"<<endl;;
 
         }
         else
         {
-          double x = 
+          double x =
              GetNumeric(nl->First(nl->Second(nl->First(vertices))),err);
           if(err){
             throw runtime_error(stdErrMsg);
           }
-          double y = 
+          double y =
              GetNumeric(nl->Second(nl->Second(nl->First(vertices))),err);
           if(err){
             throw runtime_error(stdErrMsg);
@@ -1880,16 +1883,16 @@ DisplayHistogram2d
 
 */
 
-struct DisplayHistogram2d : DisplayFunction { 
-        
+struct DisplayHistogram2d : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     cout << setprecision(16);
     NList val = NList(value);
     bool err;
-    if (val.isAtom() && val.isSymbol() && val.str() == "undef")
+    if (val.isAtom() && val.isSymbol() && val.str() == Symbol::UNDEFINED())
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
 
     else if (val.length() != 3 || ((val.first().length()-1) *
@@ -2050,17 +2053,17 @@ DisplayHistogram1d
 
 */
 
-struct DisplayHistogram1d : DisplayFunction { 
-        
+struct DisplayHistogram1d : DisplayFunction {
+
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
     cout << setprecision(16);
     NList val = NList(value);
     bool err;
     if ( val.isAtom() && val.isSymbol() &&
-         val.str() == "undef" )
+         val.str() == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
 
 
@@ -2101,7 +2104,7 @@ struct DisplayHistogram1d : DisplayFunction {
       ranges = temp;
 
       // Maximum ermitteln, zur Skalierung
-      /*NList elem,*/ 
+      /*NList elem,*/
       temp = NList();
       double maxBin = 1;
       //double d;
@@ -2202,16 +2205,16 @@ struct DisplayHistogram1d : DisplayFunction {
 DisplayPosition
 
 */
-struct DisplayPosition : DisplayFunction { 
-        
+struct DisplayPosition : DisplayFunction {
+
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
     string agents[ 64 ];
 
     if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-         nl->SymbolValue( value ) == "undef" )
+         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if ( nl->ListLength( value ) != 2 )
       throw runtime_error(stdErrMsg);
@@ -2287,14 +2290,14 @@ DisplayMove
 
 */
 
-struct DisplayMove : DisplayFunction { 
-        
+struct DisplayMove : DisplayFunction {
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
   {
     if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-         nl->SymbolValue( value ) == "undef" )
+         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-      cout << "UNDEFINED";
+      cout << Symbol::UNDEFINED();
     }
     else if ( nl->ListLength( value ) != 8 )
       throw runtime_error(stdErrMsg);
@@ -2411,8 +2414,8 @@ Chess Algebra 08/09
 
 */
 
-struct DisplayMoveB  : DisplayFunction { 
-        
+struct DisplayMoveB  : DisplayFunction {
+
   virtual void Display( ListExpr, ListExpr, ListExpr value )
   {
       cout << nl->ToString( value );
@@ -2420,8 +2423,8 @@ struct DisplayMoveB  : DisplayFunction {
 };
 
 
-struct DisplayPositionB  : DisplayFunction { 
-        
+struct DisplayPositionB  : DisplayFunction {
+
   virtual void Display( ListExpr, ListExpr, ListExpr value )
   {
     struct mapper
@@ -2442,9 +2445,9 @@ struct DisplayPositionB  : DisplayFunction {
     static mapper mapper_;
 
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-        cout << "UNDEFINED";
+        cout << Symbol::UNDEFINED();
         return;
     }
 
@@ -2521,14 +2524,14 @@ struct DisplayPositionB  : DisplayFunction {
 };
 
 
-struct DisplayField : DisplayFunction { 
-        
+struct DisplayField : DisplayFunction {
+
   virtual void Display( ListExpr, ListExpr, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-        cout << "UNDEFINED";
+        cout << Symbol::UNDEFINED();
         return;
     }
 
@@ -2543,14 +2546,14 @@ struct DisplayField : DisplayFunction {
 };
 
 
-struct DisplayPiece  : DisplayFunction { 
-        
+struct DisplayPiece  : DisplayFunction {
+
   virtual void Display( ListExpr, ListExpr, ListExpr value )
   {
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-        cout << "UNDEFINED";
+        cout << Symbol::UNDEFINED();
         return;
     }
 
@@ -2565,16 +2568,16 @@ struct DisplayPiece  : DisplayFunction {
 };
 
 
-struct DisplayMaterial : DisplayFunction { 
-        
+struct DisplayMaterial : DisplayFunction {
+
   virtual void Display( ListExpr, ListExpr, ListExpr value )
   {
     stringstream msg;
 
     if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
     {
-        cout << "UNDEFINED";
+        cout << Symbol::UNDEFINED();
         return;
     }
 
@@ -2613,7 +2616,7 @@ struct DisplayVector : DisplayFunction {
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
     if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-       && nl->SymbolValue( value ) == "undef") {
+       && nl->SymbolValue( value ) == Symbol::UNDEFINED()) {
       cout << "Undefined vector";
     }
     else{
@@ -2644,12 +2647,12 @@ DisplaySet
 
 */
 struct DisplaySet : DisplayFunction {
-        
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
 
     if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-       && nl->SymbolValue( value ) == "undef") {
+       && nl->SymbolValue( value ) == Symbol::UNDEFINED()) {
       cout << "Undefined set";
        }
        else{
@@ -2678,12 +2681,12 @@ DisplaySet
 
 */
 struct DisplayMultiset : DisplayFunction {
-        
+
   virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
   {
 
     if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
-       && nl->SymbolValue( value ) == "undef") {
+       && nl->SymbolValue( value ) == Symbol::UNDEFINED()) {
       cout << "Undefined multiset";
        }
        else{
@@ -2714,11 +2717,11 @@ struct DisplayMultiset : DisplayFunction {
 
 
 struct DisplayCellgrid2D : DisplayFunction {
-        
+
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
-    if(nl->IsEqual(value,"undef")){
-        cout << "UNDEFINED";
+    if(nl->IsEqual(value,Symbol::UNDEFINED())){
+        cout << Symbol::UNDEFINED();
     } else {
       cout << "[ x0 = " << nl->RealValue(nl->First(value))
            << ", y0 = " << nl->RealValue(nl->Second(value))
@@ -2740,8 +2743,8 @@ Display Hadoop file list
 struct DisplayFileList : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    if (nl->IsEqual(value, "undef")){
-      cout << "UNDEFINED";
+    if (nl->IsEqual(value, Symbol::UNDEFINED())){
+      cout << Symbol::UNDEFINED();
     }
     else {
       string objName = nl->StringValue(nl->First(value));
@@ -2881,7 +2884,7 @@ DisplayTTY::Initialize()
 }
 
 /*
-Removes the existing instance 
+Removes the existing instance
 
 */
  void DisplayTTY::Finish(){

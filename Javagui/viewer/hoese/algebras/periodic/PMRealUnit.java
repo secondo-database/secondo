@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@ import viewer.hoese.*;
 import sj.lang.ListExpr;
 import java.awt.geom.*;
 import tools.Reporter;
+import viewer.hoese.DsplGeneric;
 
 public class PMRealUnit extends LinearMove{
 
@@ -59,14 +60,13 @@ public class PMRealUnit extends LinearMove{
   }
 
   protected boolean readMap(ListExpr map){
-     if(map.atomType()==ListExpr.SYMBOL_ATOM &&
-        map.symbolValue().equals("undefined")){
+     if( DsplGeneric.isUndefined(map) ){
         defined = false;
         return true;
       }
 
      if(map.listLength()!=4){
-        defined = false;  
+        defined = false;
         return false;
      }
      Double A = LEUtils.readNumeric(map.first());

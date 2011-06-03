@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@ public class DsplGeneric implements DsplBase {
 
 
 public void init(String name,
-                 int nameWidth, 
+                 int nameWidth,
                  int indent,
                  ListExpr type,
                  ListExpr value,
@@ -161,12 +161,12 @@ public void init(String name,
     if(LE==null)
        return true;
     if(LE.atomType()==ListExpr.SYMBOL_ATOM){
-       String v = LE.symbolValue();
-       return v.equals("undef") || v.equals("undefined");
+       String v = LE.symbolValue().toLowerCase();
+       return v.equals("undef") || v.equals("undefined") || v.equals("null");
     }
     if(LE.listLength()==1 && LE.first().atomType()==ListExpr.SYMBOL_ATOM){
-       String v = LE.first().symbolValue();
-       return v.equals("undef") || v.equals("undefined");
+       String v = LE.first().symbolValue().toLowerCase();
+       return v.equals("undef") || v.equals("undefined") || v.equals("null");
     }
     return false;
   }

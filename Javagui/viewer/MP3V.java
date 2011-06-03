@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -41,19 +41,21 @@ import  components.*;
 import  java.util.TimerTask;
 import  java.util.Timer;
 import tools.Reporter;
+import viewer.hoese.DsplGeneric;
+
 
 
 /** The class MP3V implements a viewer for MP3, ID3 and Lyrics.
     It provides a player for MP3 songs and can display all available
     data in the ID3 tag. Lyrics can be displayed en bloc or line by line
     during playing the MP3. (in relations only) */
-public class MP3V extends SecondoViewer 
+public class MP3V extends SecondoViewer
     implements ActionListener, ListSelectionListener {
     /* Threads which play MP3 songs and display lyrics. */
     private PlayerThread player;
     private LyricsThread lyricsplayer;
     private Timer onetimer;
-    
+
     /* In these text field an ID3 is shown. */
     private JTextField id3Version;
     private JTextField id3Title;
@@ -64,10 +66,10 @@ public class MP3V extends SecondoViewer
     private JTextField id3Genre;
     private JTextField id3TrackNo;
 
-    /* In this text field general information about an MP3, ID3 
+    /* In this text field general information about an MP3, ID3
        or lyrics object is shown.
-       
-       MP3: version, frequency, number of frames, length in seconds, 
+
+       MP3: version, frequency, number of frames, length in seconds,
        and bitrate
 
        ID3: author, title, album, track, comment, songyear, genre
@@ -77,7 +79,7 @@ public class MP3V extends SecondoViewer
 
     /* In this JList the whole lyrics text is shown. */
 
-    private JList lyricsarea; 
+    private JList lyricsarea;
     /* starts the playing of an MP3 */
 
     private JButton PlayButton;
@@ -86,7 +88,7 @@ public class MP3V extends SecondoViewer
     private JButton PauseButton;
 
     /* mychoice displays the elements of a relation in a JList. */
-    private JList mychoice; 
+    private JList mychoice;
 
 
     /* supported types for this viewer. */
@@ -102,14 +104,14 @@ public class MP3V extends SecondoViewer
     private int typeselect;
 
 
-    /* clist contains a copy of the whole nested list 
+    /* clist contains a copy of the whole nested list
        that was provided by the JavaViewer
-       this is necessary because otherwise the method 
+       this is necessary because otherwise the method
        valuechanged could not read information
        from a nested list */
     private ListExpr clist;
 
-    /* This ListExpr songbuffer contains the MP3 that has to be 
+    /* This ListExpr songbuffer contains the MP3 that has to be
        provided for the MP3 player if needed. */
     private ListExpr songbuffer;
     /* The ListExpr lyricsbuffer contains the Lyrics data that
@@ -119,21 +121,21 @@ public class MP3V extends SecondoViewer
     private MenuVector MV = new MenuVector();
 
     /* these varaiables are only important for the use of relations
-       selectedtuple and selectedattribute indicate which Tuple 
+       selectedtuple and selectedattribute indicate which Tuple
        and which Attribute were selected
-       numberoftuple and numberofattr indicate the size 
+       numberoftuple and numberofattr indicate the size
        of the relation/tuple*/
     private int selectedtupel;
     private int selectedattribute;
     private int numberoftuple;
     private int numberofattr;
-    
+
     /** implemented method of interface ActionListener
 	This method is called if a user presses the
 	start or stop button. */
     public void actionPerformed(ActionEvent event) {
 	String command = event.getActionCommand();
-	
+
 	if (command.equals("stop")) {
 	    /* stop a song */
 	    StopPlay();
@@ -149,31 +151,31 @@ public class MP3V extends SecondoViewer
      This method is activated if the user activates an item of
      the relation. */
     public void valueChanged(ListSelectionEvent e) {
-	/* first we have to find out which tuple and which 
+	/* first we have to find out which tuple and which
 	   attribute within the
 	   relation were selected */
 	selectedtupel = mychoice.getSelectedIndex() / (numberofattr+1) + 1;
 	selectedattribute = mychoice.getSelectedIndex() % (numberofattr+1) + 1;
-	
+
 	if (selectedattribute > numberofattr)
 	    return;
-	
+
 	ListExpr runner=clist.first().second().second();
 	String typ = new String();
 	int i;
-	/* we have to determine the type of the selected 
+	/* we have to determine the type of the selected
 	   attribute (e.g. mp3, lyrics, id3, int, bool, string, ...)
 	   Afterwards type contains the type (coded as a string) */
 	for(i = 1; i <= selectedattribute; i++) {
 	    typ = runner.first().second().symbolValue();
 	    runner = runner.rest();
 	}
-	
 
-	/* now we determine the position of the selected 
+
+	/* now we determine the position of the selected
 	   attribute by its type
 	   for example:
-	   if we have a tuple that contains three mp3s 
+	   if we have a tuple that contains three mp3s
 	   and some other attributs
 	   and the second mp3 was selected
 	   then afterwards nroftype will have the value 2*/
@@ -182,19 +184,19 @@ public class MP3V extends SecondoViewer
 	for (i=1; i<= selectedattribute; i++) {
 	    if (runner.first().second().symbolValue().equals (typ) )
 		nroftype++;
-	    runner = runner.rest();   
+	    runner = runner.rest();
 	}
-	
+
 	/* we iterate through the tuples until we reach the selected tuple*/
 	ListExpr tupel = clist.second();
 	for (int j=1;j<selectedtupel;j++) {
 	    tupel = tupel.rest();
-	} 
+	}
 
-	/* now we have to iterate within the tuple to find the 
+	/* now we have to iterate within the tuple to find the
 	   correct attributes */
 	ListExpr runnertupel = tupel.first();
-	
+
 	ListExpr runnerattr=clist.first().second().second();
 	int counter=1;
 
@@ -220,31 +222,31 @@ public class MP3V extends SecondoViewer
 
 
 
-	/* first we have to search an mp3 object at the 
+	/* first we have to search an mp3 object at the
 	   given position (nroftype) */
 	for (i=1;i<=numberofattr;i++) {
-	    if (runnerattr.first().second().symbolValue().equals ("mp3")) {  
+	    if (runnerattr.first().second().symbolValue().equals ("mp3")) {
 		if (counter == nroftype) {
 		    songbuffer = runnertupel.first();
 		    StartPlay ();
 		}
 		counter++;
 	    }
-	    runnerattr = runnerattr.rest();   
+	    runnerattr = runnerattr.rest();
 	    runnertupel = runnertupel.rest();
 	}
-	
+
 	/* then we seek an id3 at the given position (nroftype) */
 	runnertupel = tupel.first();
 	runnerattr = clist.first().second().second();
 	counter = 1;
 	for (i = 1; i <= numberofattr;i++) {
-	    if (runnerattr.first().second().symbolValue().equals ("id3")) {  
-		if (counter == nroftype)  
+	    if (runnerattr.first().second().symbolValue().equals ("id3")) {
+		if (counter == nroftype)
 		    DisplayID3 (runnertupel.first() );
 		counter++;
             }
-	    runnerattr = runnerattr.rest();   
+	    runnerattr = runnerattr.rest();
 	    runnertupel = runnertupel.rest();
 	}
 
@@ -253,19 +255,19 @@ public class MP3V extends SecondoViewer
 	runnerattr=clist.first().second().second();
 	counter=1;
 	for (i = 1; i <=numberofattr; i++) {
-	    if (runnerattr.first().second().symbolValue().equals ("lyrics")) {  
-		if (counter == nroftype){  
+	    if (runnerattr.first().second().symbolValue().equals ("lyrics")) {
+		if (counter == nroftype){
 		    DisplayLyrics (runnertupel.first() );
 		    lyricsbuffer = runnertupel.first();
 		    StartLyrics ();
 		}
 		counter++;
             }
-	    runnerattr = runnerattr.rest();   
+	    runnerattr = runnerattr.rest();
 	    runnertupel = runnertupel.rest();
 	}
-    }  
-    
+    }
+
     /* create a label. A help method to build up the layout
      of the viewer. */
     private JLabel newJLabel(String text, String message) {
@@ -288,8 +290,8 @@ public class MP3V extends SecondoViewer
     }
 
 
-    /* create a new JButton with an icon and which sends an 
-       ActionCommand to its owner. A help method to build 
+    /* create a new JButton with an icon and which sends an
+       ActionCommand to its owner. A help method to build
        up  the layout of the viewer. */
     private JButton newJButton(String message, String icon) {
 	ImageIcon ii = new ImageIcon(icon);
@@ -300,7 +302,7 @@ public class MP3V extends SecondoViewer
     }
 
     /* create a new JList with no elements and which
-       sends a SelectionEvent to its owner. 
+       sends a SelectionEvent to its owner.
        A help method to build up the layout of the
        viewer. */
     private JList newJList() {
@@ -315,7 +317,7 @@ public class MP3V extends SecondoViewer
        build up the layout of the viewer. */
     private JPanel newJToolBarJPanel(Component[] comps) {
 	JToolBar jtb = new JToolBar();
-	
+
 	for (int i = 0; i < comps.length; i++) {
 	    jtb.add(comps[i]);
 	}
@@ -326,27 +328,27 @@ public class MP3V extends SecondoViewer
 
 	JPanel result = new JPanel(new BorderLayout());
 	result.add(jtb);
-	
+
 	return result;
     }
 
-    /* create a JPanel with a BorderLayout and put a JSplitPane 
+    /* create a JPanel with a BorderLayout and put a JSplitPane
        into the center component. The orientation of this JSplltPane
        is determined by the first parameter. The other parameters
-       specify which components are inserted into that JSplitPane. 
+       specify which components are inserted into that JSplitPane.
        A help method to build up the layout of the viewer. */
-    private JPanel newJSplitJPanel(int orientation, 
+    private JPanel newJSplitJPanel(int orientation,
 				  Component lefttop,
 				  Component rightdown) {
 	JPanel panel = new JPanel(new BorderLayout());
 	JSplitPane spane = new JSplitPane(orientation, lefttop, rightdown);
 	panel.add(spane, BorderLayout.CENTER);
-	
+
 	return panel;
     }
 
-    /* create a JPanel with a BorderLayout and put a JScrollPane 
-       into the center component. The Component comp is inserted 
+    /* create a JPanel with a BorderLayout and put a JScrollPane
+       into the center component. The Component comp is inserted
        into that JScrollPane. A help method to build up the layout
        of the viewer. */
     private JPanel newScrollJPanel(Component comp) {
@@ -355,33 +357,33 @@ public class MP3V extends SecondoViewer
 	port.add(comp);
 	JPanel result = new JPanel(new BorderLayout());
 	result.add(spane, BorderLayout.CENTER);
-	
+
 	return result;
     }
 
     /* create a JPanel with a BorderLayout and put the components north,
-       south, east, west and center into this panel iff the component 
+       south, east, west and center into this panel iff the component
        reference != null. */
-    private JPanel newBorderLayoutJPanel(Component north, Component south, 
+    private JPanel newBorderLayoutJPanel(Component north, Component south,
 					Component east, Component west,
 					Component center) {
 	JPanel p = new JPanel(new BorderLayout());
-	
+
 	if (north != null) p.add(north, BorderLayout.NORTH);
 	if (south != null) p.add(south, BorderLayout.SOUTH);
 	if (east != null) p.add(east, BorderLayout.EAST);
 	if (west != null) p.add(west, BorderLayout.WEST);
 	if (center != null) p.add(center, BorderLayout.CENTER);
-	
+
 	return p;
     }
-    
+
     /* create a JPanel with a GridLayout and put all the components
-       in the double array comps into this panel. The position of 
+       in the double array comps into this panel. The position of
        each component in this panel depends on its position in the
-       double array. 
+       double array.
        Precondition: The double array comps must be a rectangle.
-       Attention: This is NOT checked. 
+       Attention: This is NOT checked.
        For every component in the double array which is null an
        empty label is inserted instead to keep a cell empty. */
    private JPanel newGridLayoutJPanel(Component[][] comps) {
@@ -390,12 +392,12 @@ public class MP3V extends SecondoViewer
 
 	JPanel p = new JPanel(new GridLayout(maxx, maxy));
 
-	for (int i = 0; i < maxx; i++) 
-	    for (int j = 0; j < maxy; j++) 
-		if (p != null) p.add(comps[i][j]); 
+	for (int i = 0; i < maxx; i++)
+	    for (int j = 0; j < maxy; j++)
+		if (p != null) p.add(comps[i][j]);
 		else p.add(new JLabel());
 
-	return p;			     
+	return p;
     }
 
     /* creates a JPanel with a tabbed pane inside. The caller
@@ -403,18 +405,18 @@ public class MP3V extends SecondoViewer
        and two arrays. The first array is an array of strings
        and contains the titles which are inserted into the
        tabs. The second array is an array of components which
-       were inserted to the main area of the tabbed pane. 
-       Precondition: The dimension of both arrays must be 
+       were inserted to the main area of the tabbed pane.
+       Precondition: The dimension of both arrays must be
        equal.
        Attention: This is NOT checked. */
-    private JPanel newTabbedJPanel(int tabPlacement, String[] titles, 
+    private JPanel newTabbedJPanel(int tabPlacement, String[] titles,
 				  Component[] comps) {
 	JTabbedPane tpane = new JTabbedPane(tabPlacement);
-	
+
 	for (int i = 0; i < titles.length; i++) {
 	    tpane.addTab(titles[i], comps[i]);
 	}
-	
+
 	JPanel result = new JPanel(new BorderLayout());
 	result.add(tpane, BorderLayout.CENTER);
 	return result;
@@ -434,13 +436,13 @@ public class MP3V extends SecondoViewer
 
 
 	setLayout(new BorderLayout());
-	
+
 	// north component
 	add(
 	    newJToolBarJPanel(new Component[] {
-		PauseButton = newJButton("play", 
+		PauseButton = newJButton("play",
 					 "MP3Images/play2_72.gif"),
-		PlayButton = newJButton ("stop", 
+		PlayButton = newJButton ("stop",
 					 "MP3Images/stop2_72.gif")
 	    }),
 	    BorderLayout.NORTH
@@ -449,7 +451,7 @@ public class MP3V extends SecondoViewer
 	// center component
 	add(
 	    newBorderLayoutJPanel(
-		// north 
+		// north
 		newBorderLayoutJPanel(
 		    // north
 		    null,
@@ -467,7 +469,7 @@ public class MP3V extends SecondoViewer
 			{newJLabel("Comment", "")},
 			{newJLabel("Genre", "")},
 			{newJLabel("Track No.", "")}
-		    }), 
+		    }),
 		    // center
 		    newGridLayoutJPanel(new Component[][] {
 			{
@@ -531,13 +533,13 @@ public class MP3V extends SecondoViewer
 	    BorderLayout.CENTER
 	    );
     }
-    
-    /** need for the Java Viewer. 
+
+    /** need for the Java Viewer.
 	Returns the name of this viewer/player.*/
-    public String getName(){ 
+    public String getName(){
 	return "mp3V";
     }
-    
+
     /* clears all components of the viewer. */
     private void clearAreas (){
 	StopPlay();
@@ -560,17 +562,15 @@ public class MP3V extends SecondoViewer
 	id3Genre.setText("");
 	id3TrackNo.setText("");
     }
-    
+
     /* starts the MP3 player. */
     private void StartPlay () {
 	try {
 	    StopPlay();
-	    
-	    /* if the mp3 is not defined we have to print 
+
+	    /* if the mp3 is not defined we have to print
 	       "UNDEFINED" in the infoarea */
-	    if (songbuffer != null 
-		&& songbuffer.atomType() == ListExpr.SYMBOL_ATOM
-		&& songbuffer.symbolValue().equals ("undef")){
+	    if (DsplGeneric.isUndefined(songbuffer)){
 		infoarea.setText ("Song: UNDEFINED");
 	    }
 	    else if (songbuffer!=null) {
@@ -596,11 +596,9 @@ public class MP3V extends SecondoViewer
     private void StartLyrics (){
 	try {
 	    StopLyrics();
-	    /* if the lyrics are not defined we have to print 
+	    /* if the lyrics are not defined we have to print
 	       "UNDEFINED" in the infoarea */
-	    if (lyricsbuffer != null 
-		&& lyricsbuffer.atomType() == ListExpr.SYMBOL_ATOM 
-		&& lyricsbuffer.symbolValue().equals ("undef")){
+	    if (DsplGeneric.isUndefined(lyricsbuffer)){
 		infoarea.setText ("Lyrics: UNDEFINED");
 	    }
 	    else if (lyricsbuffer != null){
@@ -623,12 +621,11 @@ public class MP3V extends SecondoViewer
     }
 
 
-    
+
     /* displays an ID3 tag. LE contains the ID3 data in
 	nested list format. */
     private void DisplayID3 (ListExpr LE) {
-	if (LE.atomType()==ListExpr.SYMBOL_ATOM &&
-	    LE.symbolValue().equals ("undef")){
+	if (DsplGeneric.isUndefined(LE)){
 	    /* the id3 is undefined*/
 	    infoarea.setText ("ID3: UNDEFINED");
 	    return;
@@ -640,7 +637,7 @@ public class MP3V extends SecondoViewer
 	id3Album.setText(LE.third().stringValue());
 	id3Year.setText("" + LE.fourth().intValue());
 	id3Comment.setText(LE.fifth().stringValue());
-	
+
 	if (LE.listLength() == 6) {
 	    /* we have to display an ID3 1.0 tag. */
 	    id3Genre.setText(LE.sixth().stringValue());
@@ -658,62 +655,59 @@ public class MP3V extends SecondoViewer
 	ListExpr iter = LE;
 	lyricsarea.removeAll ();
 
-	if (LE.atomType()==ListExpr.SYMBOL_ATOM &&
-	    LE.symbolValue().equals ("undef")){
+	if (DsplGeneric.isUndefined(LE)){
 	    /* the lyrics were undefined*/
 	    infoarea.setText ("Lyrics: UNDEFINED");
 	    return;
 	}
 
 	int len = LE.listLength() / 2;
-	
+
 	Vector lyricsData = new Vector();
 	for (int i = 0; i < len; i++) {
 	    int time = iter.first().intValue();
 	    String text = iter.second().stringValue();
 	    iter = iter.rest().rest(); // skip next entry.
-	    lyricsData.add 
-		("[" 
-		 + ((time / 60) < 10 ? "0" : "") 
-		 + time/60 + ":" 
-		 + ((time % 60) < 10 ? "0" : "") 
+	    lyricsData.add
+		("["
+		 + ((time / 60) < 10 ? "0" : "")
+		 + time/60 + ":"
+		 + ((time % 60) < 10 ? "0" : "")
 		 + time % 60 + "] " + text);
 	}
 	lyricsarea.setListData (lyricsData);
-	    
+
     }
 
     private void DisplayInt (ListExpr LE) {
-	if (LE.atomType()==ListExpr.SYMBOL_ATOM &&
-	    LE.symbolValue().equals ("undef")){
+	if (DsplGeneric.isUndefined(LE)){
 	    /* the int was undefined*/
 	    infoarea.setText ("Int: UNDEFINED");
 	    return;
 	}
 	infoarea.setText
-	    ("Int: " 
+	    ("Int: "
 	     + String.valueOf(LE.intValue()));
     }
 
     private void DisplayString (ListExpr LE) {
-	if (LE.atomType()==ListExpr.SYMBOL_ATOM &&
-	    LE.symbolValue().equals ("undef")){
+	if (DsplGeneric.isUndefined(LE)){
 	    /* the string was undefined*/
 	    infoarea.setText ("String: UNDEFINED");
 	    return;
 	}
-	infoarea.setText("String: " 
+	infoarea.setText("String: "
 			 + LE.stringValue());
     }
-    
-    /** needed for the Java Viewer. The SecondoObject 
+
+    /** needed for the Java Viewer. The SecondoObject
 	obj contains a nested
 	list of an MP3 or an ID3 or lyrics
 	or strings or ints. */
     public boolean addObject(SecondoObject obj){
 	clearAreas();
 	clist = obj.toListExpr();
-	
+
 	if (!canDisplay(obj))
 	    return false;
 	else if (typeselect == MP3TYPE)
@@ -722,11 +716,11 @@ public class MP3V extends SecondoViewer
 	    songbuffer = obj.toListExpr().second();
 	    lyricsbuffer = null;
 	    StartPlay ();
-	}   
+	}
 	else if (typeselect == ID3V10TYPE || typeselect == ID3V11TYPE)
 	    /* This object is an ID3. (v1.0 or v1.1) */
 	    DisplayID3 (obj.toListExpr().second());
-	else if (typeselect == LYRICSTYPE) 
+	else if (typeselect == LYRICSTYPE)
 	    /* This object is a lyrics. */
 	    DisplayLyrics(obj.toListExpr().second());
 	else if (typeselect == STRINGTYPE) {
@@ -741,16 +735,16 @@ public class MP3V extends SecondoViewer
 	    /* We have to iterate through all tuples in the relation. */
 	    ListExpr iterTuple = obj.toListExpr().second();
 	    numberoftuple = iterTuple.listLength();
-	    /* Every tuple in the relation has the same number 
+	    /* Every tuple in the relation has the same number
 	       of attributes. */
-	    numberofattr 
+	    numberofattr
 		= obj.toListExpr().first().second().second().listLength();
-	    /* Remove all data from mychoice. 
+	    /* Remove all data from mychoice.
 	       New elements are inserted later. */
 	    mychoice.removeAll();
 	    /* Data for the mychoice. */
 	    Vector choiceData = new Vector();
-	    
+
 	    /* Refill the vector choiceData. */
 	    for (int i = 1; i <= numberoftuple; i++) {
 		ListExpr iterAttr = obj.toListExpr().first().second().second();
@@ -761,24 +755,24 @@ public class MP3V extends SecondoViewer
 		    ListExpr iterAttrFF = iterAttr.first().first();
 		    ListExpr iterAttrFS = iterAttr.first().second();
 
-		    String oneline 
+		    String oneline
 			= iterAttrFS.symbolValue() // type
 			+" "
 			+ iterAttrFF.symbolValue(); // name
-		    
-		    if (iterAttrFS.symbolValue().equals("string") 
+
+		    if (iterAttrFS.symbolValue().equals("string")
 			|| iterAttrFS.symbolValue().equals ("int")
 			|| iterAttrFS.symbolValue().equals ("bool")) {
-			
-			/* We have to find the correct attribute 
+
+			/* We have to find the correct attribute
 			   within the selected tuple. */
 			ListExpr iterAttrInTuple = iterTuple.first();
 			for (int t = 1; t < j; t++) {
 			    iterAttrInTuple = iterAttrInTuple.rest();
 			}
 
-			/* Now we have found the correct attribute 
-			   inside the selected tuple. 
+			/* Now we have found the correct attribute
+			   inside the selected tuple.
 			   Now we have to add the existing data. */
 			if (iterAttrInTuple.first().atomType() == ListExpr.SYMBOL_ATOM){
 			    /* the variable was undefined */
@@ -788,33 +782,33 @@ public class MP3V extends SecondoViewer
 			{
 			    /* the variable was defined, we have to read its value */
 			    if (iterAttrFS.symbolValue().equals ("string"))
-				oneline = oneline 
+				oneline = oneline
 				    + " : "
 				    + iterAttrInTuple.first().stringValue();
 			    else if (iterAttrFS.symbolValue().equals ("int"))
-				oneline = oneline 
-				    + " : " 
+				oneline = oneline
+				    + " : "
 				    + iterAttrInTuple.first().intValue();
 			    else if (iterAttrFS.symbolValue().equals ("bool"))
-				oneline = oneline 
-				    + " : " 
+				oneline = oneline
+				    + " : "
 				    + iterAttrInTuple.first().boolValue();
 			}
 		    } // if
-		    /* oneline contains now the attribute type, 
-		       attribute name and 
-		       attribute value. */ 
+		    /* oneline contains now the attribute type,
+		       attribute name and
+		       attribute value. */
 		    choiceData.add(oneline);
 		    iterAttr = iterAttr.rest();
 		} // for j
-		choiceData.add("---"); 
+		choiceData.add("---");
 		iterTuple = iterTuple.rest();
 	    } // for i
 
 	    /* Now we can display the result. */
 	    mychoice.setListData(choiceData);
 	} // if relation
-	
+
 	/* The object could displayed. */
 	return true;
     }
@@ -830,20 +824,20 @@ public class MP3V extends SecondoViewer
 	clearAreas();
 	clist=null;
     }
-    
+
     /** needed for the Java viewer. This viewer can
 	display: MP3, ID3, Lyrics, int, string and relation of these types. */
     public boolean canDisplay(SecondoObject obj){
 	ListExpr LE = obj.toListExpr();
 
 	if(LE.listLength() == 2) {
-	    /* our nested list must contain of a type 
+	    /* our nested list must contain of a type
 	       information and the value. */
 	    if (LE.first().atomType()==ListExpr.SYMBOL_ATOM) {
-		if (LE.first().symbolValue().equals("mp3")) { 
+		if (LE.first().symbolValue().equals("mp3")) {
 		    if (LE.second().atomType()==ListExpr.TEXT_ATOM ||
 			LE.second().atomType()==ListExpr.SYMBOL_ATOM )  {
-			/* This nested list contains the MP3 data 
+			/* This nested list contains the MP3 data
 			   which can be displayed. */
 			typeselect = MP3TYPE;
 			return true;
@@ -852,7 +846,7 @@ public class MP3V extends SecondoViewer
 		    }
 		} else if (LE.first().symbolValue().equals("id3") ) {
 		    if (LE.second().listLength() == 6) {
-			/* This nested list contains the ID3 data 
+			/* This nested list contains the ID3 data
 			   which is a nested list of six elements.
 			   Therefore the ID3 version is 1.0 */
 			typeselect = ID3V10TYPE;
@@ -864,7 +858,7 @@ public class MP3V extends SecondoViewer
 			   Therefore the ID3 version is 1.1 */
 			typeselect = ID3V11TYPE;
 			return true;
-		    } 
+		    }
 		    else if (LE.second().atomType()==ListExpr.SYMBOL_ATOM){
 			/* the id3 object is undefined*/
 			typeselect = ID3V10TYPE;
@@ -874,21 +868,21 @@ public class MP3V extends SecondoViewer
 			return false;
 		} else if (LE.first().symbolValue().equals("string")) {
 		    if ( (LE.second().atomType() == ListExpr.STRING_ATOM) ||
-			 (LE.second().atomType() == ListExpr.SYMBOL_ATOM && LE.second().symbolValue().equals ("undef") ) ){
+			 (DsplGeneric.isUndefined(LE.second())) ){
 			/* this nested list contains a string. */
 			typeselect = STRINGTYPE;
 			return true;
 		    }
-		    else 
+		    else
 			return false;
 		} else if (LE.first().symbolValue().equals("int")) {
 		    if ( (LE.second().atomType() == ListExpr.INT_ATOM) ||
-			 (LE.second().atomType() == ListExpr.SYMBOL_ATOM && LE.second().symbolValue().equals("undef") ) ){
+			 (DsplGeneric.isUndefined(LE.second()) ) ){
 			/* this nested list contains an int. */
 			typeselect = INTTYPE;
 			return true;
 		    }
-		    else 
+		    else
 			return false;
 		} else if (LE.first().symbolValue().equals("lyrics")) {
 		    /* this nested list contains a lyrics. */
@@ -902,7 +896,7 @@ public class MP3V extends SecondoViewer
 		} else
 		    return false;
 	    }
-	    /* LE.first() is not a symbol atom => LE.first() 
+	    /* LE.first() is not a symbol atom => LE.first()
 	       is a nested list. */
 	    else if (LE.first().first().isAtom()) {
 		if (LE.first().first().atomType() == ListExpr.SYMBOL_ATOM) {
@@ -912,48 +906,48 @@ public class MP3V extends SecondoViewer
 			typeselect = RELTYPE;
 			return true;
 		    }
-		    else 
+		    else
 			/* LE.first() contains a nested list but it contains
 			   no relation. */
 			return false;
 		}
-		else 
+		else
 		    /* LE.first() is not a symbol atom. */
 		    return false;
-	    } else 
+	    } else
 		/* no other object kinds supported by this viewer. */
 		return false;
-	
+
 	}
 	else
 	    return false;
     }
-    
+
     /** needed for the Java viewer. */
     public boolean isDisplayed(SecondoObject o){
 	return false;
     }
-    
+
     /** needed for the Java viewer. */
     public boolean selectObject(SecondoObject obj){
 	return true;
     }
 
     /** needed for the Java viewer. */
-    public MenuVector getMenuVector(){ 
+    public MenuVector getMenuVector(){
 	return MV;
     }
-    
-    /* This class is used to start a seperate thread witch plays 
+
+    /* This class is used to start a seperate thread witch plays
        MP3 songs. */
     private class PlayerThread extends Thread implements Runnable {
-	
+
 	PlayerThread(ListExpr LE){
 	    try {
 		P = new Player(LE.decodeText());
 	    } catch(Exception e){}
 	}
-	
+
 	public void run(){
 	    if(P != null)
 		try {
@@ -962,17 +956,17 @@ public class MP3V extends SecondoViewer
 		    Reporter.debug(e);
 		}
 	}
-	
+
 	public void close(){
 	    if(P != null)
 		P.close();
 	}
-	
+
 	Player P = null;
-	
+
     }
 
-    /* This class is used to start a seperate thread witch displays 
+    /* This class is used to start a seperate thread witch displays
        MP3 lyrics while an mp3 is played. */
     private class LyricsThread extends TimerTask {
 	/* indicates the position within the lyrics*/
@@ -987,33 +981,33 @@ public class MP3V extends SecondoViewer
 	    linenumber=0;
 	    lyricsline="";
 	}
-	public void run(){  		
+	public void run(){
 	    /* calculate the number of entries within the lyrics nested list*/
 	    int numberofentries = lyricsbuffer.listLength() / 2;
-	    
+
 	    /* runner is used to iterate through the lyrics nested list*/
 	    ListExpr runner = lyricsbuffer;
-	    
-	    /* indicates whether the last line of the lyrics has 
+
+	    /* indicates whether the last line of the lyrics has
 	       already been displayed
 	       if yes then the thread can be terminated*/
 	    boolean canterminate=false;
-	     	    
-	    /* we now iterate through all lyricslines within 
+
+	    /* we now iterate through all lyricslines within
 	       the lyrics nested list
-	       and check whether one line has to be display 
+	       and check whether one line has to be display
 	       at the given point of time
 	       (seconds) */
 	    for (int i = 1; i <= numberofentries; i++){
 		/* read the time stamp of one lyricsline*/
 		int sec = runner.first().intValue();
 		if (sec == seconds){
-		    /* a lyricsline that corresponds to the given 
+		    /* a lyricsline that corresponds to the given
 		       point of time (seconds)
 		       was found */
 		    if (i == numberofentries)
 			/* we have found the last line
-			   after it has been displayed the thread 
+			   after it has been displayed the thread
 			   can be terminated */
 			canterminate = true;
 		    linenumber = i - 1;
@@ -1023,26 +1017,26 @@ public class MP3V extends SecondoViewer
 		/* iterate to the next pair of timestamp and textatom*/
 		runner = runner.rest().rest();
 	    }
-	    
+
 	    /* display the time*/
-	    infoarea.setText("Time: [" 
-			     + ((seconds / 60) < 10 ? "0" : "") 
-			     + seconds/60 + ":" 
-			     + ((seconds % 60) < 10 ? "0" : "") 
+	    infoarea.setText("Time: ["
+			     + ((seconds / 60) < 10 ? "0" : "")
+			     + seconds/60 + ":"
+			     + ((seconds % 60) < 10 ? "0" : "")
 			     + seconds % 60 + "] \n\n");
-	    
+
 	    /* display the corresponding lyricsline*/
 	    infoarea.append (lyricsline);
-	    
+
 	    /* mark the correct line within the lyricsarea*/
 	    lyricsarea.setSelectedIndex (linenumber);
-	    
+
 	    /* increases seconds*/
 	    seconds++;
 
 	    if (canterminate)
-		cancel();		
-	}	
+		cancel();
+	}
     }
-    
+
 }
