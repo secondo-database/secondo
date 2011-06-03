@@ -54,6 +54,7 @@ derived attribute class must implement.
 
 #include "SecondoSystem.h"
 #include "NestedList.h"
+#include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "Counter.h"
 //#include "AlgebraManager.h"
@@ -209,6 +210,18 @@ Returns the size of uncotrolled flob memory.
       }
       return res;
    }
+
+
+/*
+Checks whether the argument is in Kind DATA.
+
+*/
+  static const bool checkType(const ListExpr type){
+    return listutils::isDATA(type);
+  }
+
+
+
 
 
     virtual int Compare( const Attribute *rhs ) const = 0;

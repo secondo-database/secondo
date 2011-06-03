@@ -78,6 +78,7 @@ by the ~StandardAlgebra~:
 #include "Counter.h"
 #include "Symbols.h"
 #include "Serialize.h"
+#include "ListUtils.h"
 
 
 /*
@@ -317,6 +318,10 @@ class CcInt : public Attribute
     return "int";
   }
 
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
+  }
+
 
   inline virtual size_t SerializedSize() const
   {
@@ -535,6 +540,10 @@ class CcReal : public Attribute
   static const string BasicType(){
     return "real";
   }
+  
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
+  }
 
   inline virtual size_t SerializedSize() const
   {
@@ -700,6 +709,10 @@ class CcBool : public Attribute
 
   static const string BasicType(){
      return "bool";
+  }
+  
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
   }
 
  private:
@@ -902,6 +915,9 @@ class CcString : public Attribute
 
   static const string BasicType(){
     return "string";
+  }
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
   }
 
 #ifdef USE_SERIALIZATION
@@ -1132,6 +1148,9 @@ class CcString : public Attribute
 
   static const string BasicType(){
     return "string";
+  }
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
   }
 
 #ifdef USE_SERIALIZATION

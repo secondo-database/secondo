@@ -81,6 +81,7 @@ topological predicates.
 #include "../Tools/Flob/Flob.h"
 #include "RectangleAlgebra.h"
 #include "GenericTC.h"
+#include "ListUtils.h"
 
 
 
@@ -543,6 +544,9 @@ an attribute type within secondo relations.
        static const string BasicType(){
           return "int9m";
        }
+      static const bool checkType(const ListExpr type){
+         return listutils::isSymbol(type, BasicType());
+      }
 
        static ListExpr Property(){
           return gentc::GenProperty("-> DATA",
@@ -1112,6 +1116,9 @@ clusters.
       static const string BasicType(){
         return "cluster";
       }
+      static const bool checkType(const ListExpr type){
+        return listutils::isSymbol(type, BasicType());
+      }
        
       static ListExpr Property(){
           return gentc::GenProperty("-> DATA",
@@ -1520,6 +1527,9 @@ void SetToDefault();
    static const string BasicType(){
      return "predicategroup";
    }
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
 
    static ListExpr Property(){

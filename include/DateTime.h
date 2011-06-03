@@ -626,6 +626,10 @@ delta in [0,1].
     return "instant";
   }
 
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
+  } 
+
   inline virtual StorageType GetStorageType() const { return Core; }
 
   inline virtual size_t SerializedSize() const
@@ -692,6 +696,12 @@ Type name for Duration type in Secondo
 class Duration{
   public:
     static const string BasicType() {return "duration"; }
+    static const bool checkType(const ListExpr list){
+       return listutils::isSymbol(list, BasicType());
+    }
+
+  private:
+    Duration(){} // do not allow to create an instance of this class
 };
 
 /*
