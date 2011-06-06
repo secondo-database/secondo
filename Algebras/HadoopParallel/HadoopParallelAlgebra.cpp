@@ -451,8 +451,11 @@ ListExpr paraHashJoinTypeMap(ListExpr args)
     ListExpr rBtupNList =
         renameList(nl->Second(nl->Second(relB)), "2");
     ListExpr resultAttrList = ConcatLists(rAtupNList, rBtupNList);
-    ListExpr resultList = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), resultAttrList));
+    ListExpr resultList = nl->TwoElemList(
+        nl->SymbolAtom(Symbol::STREAM()),
+        nl->TwoElemList(
+            nl->SymbolAtom(Tuple::BasicType()),
+            resultAttrList));
 
     return resultList;
 
@@ -1371,7 +1374,8 @@ ListExpr paraJoin2TypeMap(ListExpr args)
       {
         NList resultStream =
             NList(NList(Symbol::STREAM(),
-                        NList(NList(Tuple::BasicType()), attrResult)));
+                        NList(NList(Tuple::BasicType()),
+                              attrResult)));
 
         return NList(NList(Symbol::APPEND()),
                      NList(NList(keyAIndex), NList(keyBIndex)),
@@ -1684,15 +1688,12 @@ ListExpr add0TupleTypeMap(ListExpr args)
 
   ListExpr tupleList = nl->Second(nl->Second(streamNL));
   if (nl->ListLength(tupleList) == 2
-  && listutils::isSymbol(nl->Second(nl->First(tupleList)),
-                                                 CcString::BasicType())
-  && listutils::isSymbol(nl->Second(nl->Second(tupleList)),
-                                                 FText::BasicType()))
+  && listutils::isSymbol(
+      nl->Second(nl->First(tupleList)), CcString::BasicType())
+  && listutils::isSymbol(nl->Second(
+      nl->Second(tupleList)), FText::BasicType()))
   {
     return streamNL;
-//    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-//          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-//              nl->OneElemList(nl->Second(tupleList))));
   }
   else
   {
@@ -1802,7 +1803,7 @@ const string scpCommand = "scp -o Connecttimeout=5 ";
 
 The clusterInfo class is used to read two line-based text files that
 describe the distribution of a cluster.
-The locations of these two files are denoted by two environment
+The locations of these files are denoted by two environment
 variables: PARALLEL\_SECONDO\_MASTER and PARALLEL\_SECONDO\_SLAVES.
 The first one is used to describe the master node of the cluster,
 and can only contains one line.
@@ -1945,7 +1946,7 @@ void clusterInfo::print()
   if (ok)
   {
     int counter = 1;
-    cout << "\n-------- PARALLEL_SECONDO_SLAVES list --------" << endl;
+    cout << "\n---- PARALLEL_SECONDO_SLAVES list ----" << endl;
     vector<diskDesc>::iterator iter;
     for (iter = disks->begin(); iter != disks->end();
         iter++, counter++)
@@ -1954,7 +1955,7 @@ void clusterInfo::print()
           << "\t" << iter->second.first
           << "\t" << iter->second.second << endl;
     }
-    cout << "-------- PARALLEL_SECONDO_SLAVES ends --------\n" << endl;
+    cout << "---- PARALLEL_SECONDO_SLAVES ends ----\n" << endl;
   }
 }
 /*
@@ -2093,16 +2094,27 @@ struct FConsumeInfo : OperatorInfo {
   FConsumeInfo() : OperatorInfo()
   {
     name =      "fconsume";
-    signature = "stream(tuple(...)) "
-        "x fileName x path x {fileIndex} "
-        "x {typeNode1} x {typeNode2} "
-        "x {targetIndex x dupTimes } "
+    signature = "stream(tuple( ... )) "
+        "x string x text x [int] "
+        "x [ [int] x [int] ] "
+        "x [ int x int ] "
         "-> bool";
-    syntax =    "_ fconsume[ basic; remote type; remote data]";
-    meaning =   "Export a stream of tuples into a file, "
-        "and may duplicate the file to some remote machines.\n"
-        "The number of arguments are changed "
-        "along with different mode.";
+    syntax  = "stream(tuple( ... )) "
+        "fconsume[ fileName, filePath, [fileSuffix]; "
+        "[typeNode1] x [typeNode2]; "
+        "[targetIndex x dupTimes] ] ";
+    meaning =
+        "Export a stream of tuples' data into a binary data file, "
+        "and its type nested list into a text type file. "
+        "The given file name is used as the data file's name. "
+        "If the optional integer value fileSuffix is given, "
+        "then the data file's name will be 'fileName_fileSuffix'."
+        "The type file name is 'fileName_type'. "
+        "Both type file and data file can be duplicated "
+        "to some remote machines, which are listed in a list file "
+        "indicated by PARALLEL_SECONDO_SLAVES environment variable. "
+        "Detail explanations are described in the attached "
+        "README.pdf along with the HadoopParallel algebra.";
   }
 };
 
@@ -2113,7 +2125,8 @@ struct FConsumeInfo : OperatorInfo {
 ListExpr FConsumeTypeMap(ListExpr args)
 {
   NList l(args);
-  string lengthErr = "ERROR!Operator fconsume expects 4 parameter parts, "
+  string lengthErr =
+      "ERROR!Operator fconsume expects 4 parameter groups, "
       "separated by semicolons";
   string typeErr = "ERROR!Operator fconsume expects "
                "(stream(tuple(...)) "
@@ -2257,7 +2270,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
         }
         string rPath = ci->getPath(tNode[i]);
         cerr << "Copy the type file to -> \t" << rPath << endl;
-        if ( 0 != (system((scpCommand + filePath + " " + rPath).c_str())))
+        if ( 0 !=
+            (system((scpCommand + filePath + " " + rPath).c_str())))
           return l.typeError(err9);
       }
     }
@@ -2285,13 +2299,13 @@ int FConsumeValueMap(Word* args, Word& result,
     int fileIndex = -1;
 
     relName = ((CcString*)
-        qp->Request(qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
+      qp->Request(qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
     filePath = ((FText*)
-        qp->Request(qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
+      qp->Request(qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
     int bspLen = qp->GetNoSons(bspList);
     if (bspLen == 3)
       fileIndex = ((CcInt*)
-          qp->Request(qp->GetSupplier(bspList, 2)).addr)->GetValue();
+        qp->Request(qp->GetSupplier(bspList, 2)).addr)->GetValue();
 
     int ti = -1, dt = -1;
     bool drMode = false;
@@ -2311,8 +2325,9 @@ int FConsumeValueMap(Word* args, Word& result,
     if (drMode && (ti > ci->getLines()))
     {
       ci->print();
-      cerr << "ERROR!The first target node for back up duplicate files "
-          "is out of the range of the slave list." << endl;
+      cerr <<
+          "ERROR! The first target node for backing up duplicate "
+          "data files is out of the range of the slave list.\n";
       ((CcBool*)(result.addr))->Set(true, false);
       return 0;
     }
@@ -2409,9 +2424,10 @@ int FConsumeValueMap(Word* args, Word& result,
       int localNode = ci->getLocalNode();
       if (localNode < 1)
       {
-        cerr << "ERROR! Cannot find the local position " << endl
-            << ci->getLocalIP() << ":" << ci->getLocalPath() << endl
-            << "in the slave list, backup files fail. " << endl;
+        cerr
+          << "ERROR! Cannot find the local position " << endl
+          << ci->getLocalIP() << ":" << ci->getLocalPath() << endl
+          << "in the slave list, backup files fail. " << endl;
         ci->print();
 
         ((CcBool*) (result.addr))->Set(true, false);
@@ -2441,7 +2457,7 @@ int FConsumeValueMap(Word* args, Word& result,
           {
             string rPath = ci->getPath(i, true);
             FileSystem::AppendItem(rPath, newFileName);
-            cerr << "Copy " << filePath << " \t-> " << rPath << endl;
+            cerr << "Copy " << filePath << "\t-> " << rPath << endl;
             if ( 0 != ( system(
                 (scpCommand + filePath + " " + rPath).c_str())))
             {
@@ -2460,7 +2476,7 @@ int FConsumeValueMap(Word* args, Word& result,
           ((CcBool*)(result.addr))->Set(true, false);
           return 0;
         }
-        cerr << "Local file '" + filePath + "' is deleted." << endl;
+        cerr << "Local file '" + filePath + "' is deleted.\n";
       }
     }
     ((CcBool*)(result.addr))->Set(true, true);
@@ -2608,8 +2624,9 @@ Because of that, we change ~ffeed~ from a prefix operator to
 a post operator, since the prefix operators don't accept semicolons.
 The prefix parameter is the file name of string type.
 
-The typeNodeIndex and targetNodeIndex also refers to the serial
-numbers inside the \$PARALLEL\_SECONDO\_SLAVES file.
+The ~typeNodeIndex~ and ~targetNodeIndex~ denote the locations of
+some specific nodes inside the cluster, which are listed
+inside the \$PARALLEL\_SECONDO\_SLAVES file.
 
 6.2 Specification
 
@@ -2620,12 +2637,20 @@ struct FFeedInfo : OperatorInfo {
   FFeedInfo() : OperatorInfo()
   {
     name =      "ffeed";
-    signature = "fileName x path x {fileSuffix} x {typeNodeIndex}"
-                "x { producerIndex x targetIndex x attemptTimes}"
-                "-> stream(tuple(...))";
-    syntax =    "_ ffeed[ basic; remote type; remote data]";
-    meaning =   "restore a relation from a binary file"
-                "created by fconsume operator.";
+    signature = "string x text x [int] x [int] x [int x int x int]"
+        " -> stream(tuple(...))";
+    syntax  = "fileName ffeed[ filePath, [fileSuffix]; "
+        "[remoteTypeNode]; "
+        "[producerIndex x targetIndex x attemptTimes] ]";
+    meaning =
+        "Restore a tuple stream from the binary data and "
+        "text type files that are created by "
+        "fconsume or fdistribute operator. "
+        "Both type and data file can be fetched from "
+        "remote machines which are listed in the "
+        "PARALLEL_SECONDO_SLAVES file."
+        "Detail explanations are described in the attached "
+        "README.pdf along with the HadoopParallel algebra.";
   }
 };
 
@@ -3199,8 +3224,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
           l.elem(argIndex).second().convertToString();
     }
 
-    if (!(l.third().first().first().isSymbol("array")
-        && l.third().first().second().isSymbol(CcString::BasicType())))
+    if (!(l.third().first().first().isSymbol("array") &&
+       l.third().first().second().isSymbol(CcString::BasicType())))
       return l.typeError(typeErr);
 
     if (!l.fourth().first().isSymbol(CcInt::BasicType()))
@@ -3212,7 +3237,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     if (!l.sixth().first().isSymbol(CcString::BasicType()))
       return l.typeError(typeErr);
     NList rnList;
-    if (!QueryProcessor::GetNLArgValueInTM(l.sixth().second(), rnList))
+    if (!QueryProcessor::GetNLArgValueInTM(
+          l.sixth().second(), rnList))
       return l.typeError(err3 + "resultName");
     string resultName = rnList.str();
 
@@ -3247,8 +3273,9 @@ ListExpr hdpJoinTypeMap(ListExpr args)
 
       // Write the join result type into local default path,
       // in case the following operators need.
-      NList joinResult = NList(NList(Relation::BasicType()),
-                       NList(NList(Tuple::BasicType()), NList(attrAB)));
+      NList joinResult =
+          NList(NList(Relation::BasicType()),
+                NList(NList(Tuple::BasicType()), NList(attrAB)));
       string typeFileName = FileSystem::GetCurrentFolder();
       FileSystem::AppendItem(typeFileName, "parallel");
       FileSystem::AppendItem(typeFileName, resultName + "_type");
@@ -3272,7 +3299,8 @@ ListExpr hdpJoinTypeMap(ListExpr args)
       NList a2(NList("pIndex"), NList(CcInt::BasicType()));
 
       NList result(NList(Symbol::STREAM()),
-                   NList(NList(Tuple::BasicType()), NList(a1, a2)));
+                   NList(NList(Tuple::BasicType()),
+                         NList(a1, a2)));
 
       return NList(NList(Symbol::APPEND()),
                    NList(NList(streamStr[0], true, true),
@@ -3491,24 +3519,35 @@ struct FDistributeInfo : OperatorInfo {
   FDistributeInfo() : OperatorInfo()
   {
     name = "fdistribute";
-    signature =
-        "stream(tuple(...)) x fileName x path "
-        "x attrName x {nBuckets} x {KPA}"
-        "x {typeNodeIndex1} x {typeNodeIndex2}"
-        "x {targetIndex x dupTimes }"
-        "-> stream(tuple([Suffix:int, TupNum:int]))";
-    syntax = "_ fdistribute[ _ , _ , _ , {_} , {_};{_},{_};{_,_}]";
-    meaning =   "Export a stream of tuples into files that are "
-        "readable by ffeed operator. "
-        "Files are separated by their suffix index, "
-        "which is a hash value based on the given attribute value"
-        "and number of set buckets. "
-        "If the parameter nBuckets is not given, "
-        "tuples may uneven partitioned."
-        "Details about two optional parameters "
-        "are described in the source code"
-        "It's also possible to duplicate these files into "
-        "other machines like the fconsume operator";
+    signature = "stream(tuple(a1 ... ai ... aj)) "
+        "x string x text x symbol x [int] x [bool] "
+        "x [int] x [int] x [ int x int ]"
+        "-> stream(tuple( ... )) ";
+    syntax =
+        "stream(tuple(a1 ... ai ... aj)) "
+        " fdistribute[ fileName, path, partitionAttr, "
+        " [bucketNum], [KPA]; "
+        " [typeNode1], [typeNode2]; "
+        " [targetIndex,  dupTimes] ]";
+    meaning =
+        "Export a stream of tuples into binary data files "
+        "that can be read by ffeed operator, and write the schema "
+        "of the stream into a text type file. "
+        "Tuples are distributed into different data files "
+        "based on the hash value of the given partition attribute, "
+        "if the attribute's type provides the HashValue function. "
+        "Data files are distinguished from each other "
+        "by using these hash values as their name's suffices. "
+        "If the bucketNum is given, then the tuples are re-hashed "
+        "by the bucketNum again to achieve an even partition. "
+        "Users can optionally keeping the partition attribute value"
+        "by setting the value of KPA(Keep Partition Attribute) "
+        "as true,  which is set as false by default. "
+        "Both type file and data file can be duplicated "
+        "to some remote machines, which are listed in a list file "
+        "indicated by PARALLEL_SECONDO_SLAVES environment variable. "
+        "Detail explanations are described in the attached "
+        "README.pdf along with the HadoopParallel algebra.";
   }
 
 };
@@ -3690,7 +3729,8 @@ ListExpr FDistributeTypeMap(ListExpr args)
         }
         string rPath = ci->getPath(tNode[i]);
         cerr << "Copy the type file to -> \t" << rPath << endl;
-        if (0 != system((scpCommand + filePath + " " + rPath).c_str()))
+        if (0 != system(
+             (scpCommand + filePath + " " + rPath).c_str()))
           return l.typeError(err10);
       }
     }
@@ -4001,7 +4041,8 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
       if (copyList[i] && (i != localIndex))
       {
         string rPath = ci->getPath(i,true);
-        FileSystem::AppendItem(rPath, (fi->getFileName() + "_" + cnIP));
+        FileSystem::AppendItem(rPath,
+                               (fi->getFileName() + "_" + cnIP));
         if (system((scpCommand + filePath + " " + rPath).c_str()))
         {
           cerr << "Copy remote file fail." << endl;
@@ -4561,18 +4602,20 @@ data files produced by ~fconsume~, ~ffeed~ and ~fdistribute~ operators.
 
 If a specified file path is not given, then it reads the
 ~SecondoFilePath~ variable set in the SecondoConfig.ini that is
-denoted by ~SECONDO\_CONFIG~ parameter.
+denoted by SECONDO\_CONFIG parameter.
 And the path must be an absoloute path.
 
 However, the ~SecondoFilePath~ is may be replaced by
-its environment variable ~SECONDO\_PARAM\_SecondoFilePath~,
+its environment variable SECONDO\_PARAM\_SecondoFilePath,
 and may contains several paths that are divided by ':'.
 In this case, the ~SecondoFilePath~ will be viewed as empty.
 
 By default, the path will be set to SECONDO\_BUILD\_DIR/bin/parallel
 
 */
-string getFilePath(string path, const string fileName, bool extendPath)
+string getFilePath(string path,
+                   const string fileName,
+                   bool extendPath)
 {
   if (0 == path.length())
   {
