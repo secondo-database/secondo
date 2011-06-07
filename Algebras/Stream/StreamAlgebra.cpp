@@ -39,26 +39,26 @@ Feruniversit[ae]t in Hagen.
 State Operator/Signatures
 
 
-OK    use:   (stream X)            (map X Y)            --> (stream Y)
-OK           (stream X)            (map X (stream Y))   --> (stream Y)
+OK   use:   (stream X)            (map X Y)            --> (stream Y)
+OK          (stream X)            (map X (stream Y))   --> (stream Y)
 
-OK    use2:  (stream X) Y          (map X Y Z)          --> (stream Z)
-OK           (stream X) Y          (map X Y stream(Z))  --> (stream Z)
-OK           X          (stream Y) (map X y Z)          --> (stream Z)
-OK           X          (stream Y) (map X y (stream Z)) --> (stream Z)
-OK           (stream X) (stream Y) (map X Y Z)          --> (stream Z)
-OK           (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
-             for X,Y,Z of kind DATA
+OK   use2:  (stream X) Y          (map X Y Z)          --> (stream Z)
+OK          (stream X) Y          (map X Y stream(Z))  --> (stream Z)
+OK          X          (stream Y) (map X y Z)          --> (stream Z)
+OK          X          (stream Y) (map X y (stream Z)) --> (stream Z)
+OK          (stream X) (stream Y) (map X Y Z)          --> (stream Z)
+OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
+            for X,Y,Z of kind DATA
 
-OK    feed:                           T --> (stream T)
+OK   feed:                           T --> (stream T)
 
-OK    transformstream: stream(tuple((id T))) --> (stream T)
-OK                                (stream T) --> stream(tuple((element T)))
-OK    aggregateS:        (stream T) x (T x T --> T) x T  --> T
-OK    count:                      (stream T) --> int
-OK    filter:      ((stream T) (map T bool)) --> int
-OK    printstream:                (stream T) --> (stream T)
-      projecttransformstream: stream(tuple((a1 t1) ..(an tn))) x ai -> stream(ti)
+OK   transformstream: stream(tuple((id T))) --> (stream T)
+OK                               (stream T) --> stream(tuple((element T)))
+OK   aggregateS:        (stream T) x (T x T --> T) x T  --> T
+OK   count:                      (stream T) --> int
+OK   filter:      ((stream T) (map T bool)) --> int
+OK   printstream:                (stream T) --> (stream T)
+     projecttransformstream: stream(tuple((a1 t1) ..(an tn))) x ai -> stream(ti)
 
 COMMENTS:
 
@@ -2164,13 +2164,15 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
   // variant 1: stream<DATA> -> stream <TUPLE>
  
   if(Stream<Attribute>::checkType(arg)){
-     return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
+     ListExpr res =  nl->TwoElemList( 
+                             nl->SymbolAtom(Stream<Tuple>::BasicType()),
                              nl->TwoElemList(
                                  nl->SymbolAtom(Tuple::BasicType()) ,
                                  nl->OneElemList(
                                    nl->TwoElemList(
                                      nl->SymbolAtom("elem"),
                                      nl->Second(arg)))));
+     return res;
   }
 
   // variant 2: stream(tuple( a: b)) -> stream(b)
@@ -2180,8 +2182,11 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
        return listutils::typeError("Only one attribute within the "
                                    "tuple allowed");
     }
-    return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+    ListExpr res = nl->TwoElemList(
+                           nl->SymbolAtom(Stream<Attribute>::BasicType()),
                            nl->Second(nl->First(attrList)));
+     return res;
+    
   }
 
   return listutils::typeError("stream(DATA) or stream(tuple([a : X]))"
@@ -2244,7 +2249,7 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
 5.27.2 Value mapping for operator ~transformstream~
 
 */
-
+template<class T>
 struct TransformstreamLocalInfo
 {
   TransformstreamLocalInfo( Word arg) :
@@ -2261,29 +2266,28 @@ struct TransformstreamLocalInfo
   bool       finished;
   TupleType* resultTupleType;
   bool       progressinitialized;
-  Stream<Attribute> stream;
+  Stream<T> stream;
 };
 
 // The first variant creates a tuplestream from a stream:
 int Transformstream_S_TS(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
-  TransformstreamLocalInfo *sli;
+  TransformstreamLocalInfo<Attribute> *sli;
   Word      value;
-  ListExpr  resultType;
   Tuple     *newTuple;
 
 
   switch ( message ) {
     case OPEN:{
-      sli = (TransformstreamLocalInfo*) local.addr;
+      sli = (TransformstreamLocalInfo<Attribute>*) local.addr;
       if(sli){
          delete  sli;
          local.addr = 0;
       }
-      sli = new TransformstreamLocalInfo(args[0]);
+      sli = new TransformstreamLocalInfo<Attribute>(args[0]);
       local.setAddr(sli);
-      resultType = GetTupleResultType( s );
+      ListExpr resultType = GetTupleResultType( s );
       sli->resultTupleType = new TupleType( nl->Second( resultType ) );
       sli->finished = false;
       sli->progressinitialized = false;
@@ -2294,7 +2298,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       if (local.addr == 0)
         return CANCEL;
 
-      sli = (TransformstreamLocalInfo*) (local.addr);
+      sli = (TransformstreamLocalInfo<Attribute>*) (local.addr);
       if (sli->finished){
         return CANCEL;
       }
@@ -2314,7 +2318,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
     }
     case CLOSE:{
       if (local.addr != 0) {
-        sli = (TransformstreamLocalInfo*) (local.addr);
+        sli = (TransformstreamLocalInfo<Attribute>*) (local.addr);
         if (!sli->finished){
           sli->stream.close();
           sli->finished = true;
@@ -2325,14 +2329,17 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
     case CLOSEPROGRESS:{
       if (local.addr != 0)
         {
-          sli = (TransformstreamLocalInfo*) (local.addr);
+          sli = (TransformstreamLocalInfo<Attribute>*) (local.addr);
+          if(!sli->finished){
+             sli->stream.close();
+          }
           delete sli;
           local.setAddr(0);
         }
       return 0;
     }
     case REQUESTPROGRESS:{
-      sli = (TransformstreamLocalInfo*) (local.addr);
+      sli = (TransformstreamLocalInfo<Attribute>*) (local.addr);
       if(!sli){
         return CANCEL;
       }
@@ -2363,20 +2370,18 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
 int Transformstream_TS_S(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
-  TransformstreamLocalInfo *sli;
-  Word   tuple;
-  Tuple* tupleptr;
+  TransformstreamLocalInfo<Tuple> *sli;
 
   switch ( message ){
     case OPEN:{
-      qp->Open( args[0].addr );
-      sli = (TransformstreamLocalInfo*) local.addr;
+      sli = (TransformstreamLocalInfo<Tuple>*) local.addr;
       if(sli){
         delete sli;
       }
-      sli = new TransformstreamLocalInfo(args[0]);
+      sli = new TransformstreamLocalInfo<Tuple>(args[0]);
       sli->finished = false;
       sli->progressinitialized = false;
+      sli->stream.open();
       local.setAddr(sli);
       return 0;
     }
@@ -2386,31 +2391,29 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           return CANCEL;
         }
 
-      sli = (TransformstreamLocalInfo*) (local.addr);
+      sli = (TransformstreamLocalInfo<Tuple>*) (local.addr);
       if (sli->finished)
         {
           return CANCEL;
         }
 
-      qp->Request( args[0].addr, tuple );
-      if (!qp->Received( args[0].addr ))
-        { // input stream consumed
-          qp->Close( args[0].addr );
+     Tuple* tuple = sli->stream.request();
+     if (tuple==0) { // input stream consumed
+          sli->stream.close();
           sli->finished = true;
           result.addr = 0;
           return CANCEL;
-        }
+      }
       // extract, copy and pass value, delete tuple
-      tupleptr = (Tuple*)tuple.addr;
-      result.addr = tupleptr->GetAttribute(0)->Copy();
-      tupleptr->DeleteIfAllowed();
+      result.addr = tuple->GetAttribute(0)->Copy();
+      tuple->DeleteIfAllowed();
       return YIELD;
     }
     case CLOSE:{
       if (local.addr != 0){
-          sli = (TransformstreamLocalInfo*) (local.addr);
+          sli = (TransformstreamLocalInfo<Tuple>*) (local.addr);
           if (!sli->finished){
-            qp->Close( args[0].addr );
+            sli->stream.close();
             sli->finished = true;
             // disposal of localinfo done in CLOSEPROGRESS
           }
@@ -2420,22 +2423,23 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
     case CLOSEPROGRESS:{
       if (local.addr != 0)
         {
-          sli = (TransformstreamLocalInfo*) (local.addr);
-          if (!sli->finished)
-            qp->Close( args[0].addr );
+          sli = (TransformstreamLocalInfo<Tuple>*) (local.addr);
+          if (!sli->finished){
+            sli->stream.close();
+          }
           delete sli;
           local.setAddr(0);
         }
       return 0;
     }
     case REQUESTPROGRESS:{
-      sli = (TransformstreamLocalInfo*) (local.addr);
+      sli = (TransformstreamLocalInfo<Tuple>*) (local.addr);
       if( !sli ){
         return CANCEL;
       }
       ProgressInfo p1;
       ProgressInfo* pRes = (ProgressInfo*) result.addr;
-      if( !qp->RequestProgress(args[0].addr, &p1) ){
+      if( !sli->stream.requestProgress( &p1) ){
         return CANCEL;
       };
       const double uProject = 0.00073; //millisecs per tuple
@@ -2504,23 +2508,13 @@ ValueMapping streamtransformstreammap[] =
 
 int streamTransformstreamSelect( ListExpr args )
 {
-  ListExpr first = nl->First( args );
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  ListExpr first = nl->First( args);
 
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       am->CheckKind(Kind::DATA(), nl->Second(first), errorInfo) )
-    return 0;
-  if ( !nl->IsAtom(first) &&
-       (nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       !nl->IsAtom(nl->Second(first)) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
-    return 1;
-  cout << "\nstreamTransformstreamSelect: Wrong type!" << endl;
-  return -1;
+  if(Stream<Tuple>::checkType(first)){
+     return 1;
+  } else {
+     return 0;
+  }
 }
 
 
@@ -2547,51 +2541,35 @@ Operator streamtransformstream( "transformstream",
 
 */
 ListExpr ProjecttransformstreamTM(ListExpr args){
-   if(nl->ListLength(args)!=2){
-       ErrorReporter::ReportError("2 arguments expected");
-       return nl->SymbolAtom(Symbol::TYPEERROR());
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError("Two arguments expected");
    }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(nl->AtomType(arg2)!=SymbolType){
-      ErrorReporter::ReportError("the second argument has"
-                                 " to be an attributename");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
+   ListExpr stream = nl->First(args);
+   if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError("first argument must be a tuple stream");
    }
-   string aname = nl->SymbolValue(arg2);
+   ListExpr nameList = nl->Second(args);
+   if(!listutils::isSymbol(nameList)){
+     return listutils::typeError("Second argument is not a "
+                                 "valid attribute name");
+   }
 
-   if( (nl->ListLength(arg1)!=2) || !nl->IsEqual(nl->First(arg1),
-     Symbol::STREAM())){
-      ErrorReporter::ReportError("stream expected");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-   }
-   ListExpr streamtype = nl->Second(arg1);
-   if( (nl->ListLength(streamtype)!=2) ||
-        !nl->IsEqual(nl->First(streamtype),Tuple::BasicType())){
-      ErrorReporter::ReportError("stream(tuple) expected");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-   }
-   ListExpr attributes = nl->Second(streamtype);
-   int pos = 0;
-   while(!nl->IsEmpty(attributes)){
-      ListExpr attribute = nl->First(attributes);
-      if(nl->ListLength(attribute)!=2){
-          ErrorReporter::ReportError("invalid tuple representation");
-          return nl->SymbolAtom(Symbol::TYPEERROR());
-      }
-      if(nl->IsEqual(nl->First(attribute),aname)){
-        // name found -> create result list
-        return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
-                                  nl->OneElemList(nl->IntAtom(pos)),
-                                  nl->TwoElemList(
-                                      nl->SymbolAtom(Symbol::STREAM()),
-                                      nl->Second(attribute)));
-      }
-      attributes = nl->Rest(attributes);
-      pos++;
-   }
-   ErrorReporter::ReportError("attribute not found in tuple");
-   return nl->SymbolAtom(Symbol::TYPEERROR());
+   string name = nl->SymbolValue(nameList);
+   ListExpr attrType;
+   ListExpr attrList = nl->Second(nl->Second(stream));
+   int pos = listutils::findAttribute(attrList, name, attrType);
+    
+   if(pos<=0){
+      return listutils::typeError("Attribute " + name + 
+                                  " not found in tuple");
+    }
+    pos--;
+
+    return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbol::APPEND()),
+                 nl->OneElemList(nl->IntAtom(pos)),
+                 nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                                 attrType));
 }
 
 
@@ -2600,35 +2578,58 @@ ListExpr ProjecttransformstreamTM(ListExpr args){
 
 */
 
+class ProjectTransformLI{
+public:
+   ProjectTransformLI(Word& s, CcInt* p):stream(s), pos(p->GetIntval()){
+      stream.open();
+   }
+
+   ~ProjectTransformLI(){
+      stream.close();
+   }
+
+   Attribute* next(){
+     Tuple* t = stream.request();
+     if(t==0){
+         return 0;
+     } else {
+       Attribute* a = t->GetAttribute(pos)->Copy();
+       t->DeleteIfAllowed();
+       return a;
+     }
+   }
+   
+ private:
+    Stream<Tuple> stream;
+    int pos;
+
+};
+
 int Projecttransformstream(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
-  Word   tuple;
-  Tuple* tupleptr;
-  int pos;
-
   switch ( message )
     {
-    case OPEN:
-      qp->Open( args[0].addr );
-      return 0;
-
-    case REQUEST:
-      qp->Request( args[0].addr, tuple );
-      if (!qp->Received( args[0].addr ))
-        { // input stream consumed
-          result.addr = 0;
-          return CANCEL;
+    case OPEN:{
+        if(local.addr){
+           delete (ProjectTransformLI*)local.addr;
         }
-        // extract, copy and pass value, delete tuple
-        tupleptr = (Tuple*)tuple.addr;
-        pos = ((CcInt*)args[2].addr)->GetIntval();
-        result.addr = tupleptr->GetAttribute(pos)->Copy();
-        tupleptr->DeleteIfAllowed();
-        return YIELD;
+        local.addr = new ProjectTransformLI(args[0], (CcInt*)(args[2].addr));
+        return 0;
+    }
+
+    case REQUEST:{
+       if(!local.addr){
+         return CANCEL;
+       }
+       result.addr = ((ProjectTransformLI*)local.addr)->next();
+       return result.addr?YIELD:CANCEL;
+    }
 
     case CLOSE:
-      qp->Close(args[0].addr);
+     if(local.addr){
+        delete (ProjectTransformLI*)local.addr;
+     }
       return 0;
     }
   cerr << "Projecttransformstream: UNKNOWN MESSAGE!" << endl;
@@ -2674,6 +2675,10 @@ Operator namedtransformstream (
 
 /*
 5.29 The ~echo~ operator
+
+
+   stream(X) x bool x DATA -> STREAM(X)
+   X x DATA -> X   (X can be all but stream)
 
 */
 ListExpr EchoTypeMap(ListExpr args){
@@ -3844,14 +3849,16 @@ struct intstreamInfo : OperatorInfo
 /*
 6 Type operators
 
-Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
+Type operators are used only for inferring argument types of parameter 
+functions. They have a type mapping but no evaluation function.
 
 */
 
 /*
 6.1 Type Operator ~STREAMELEM~
 
-This type operator extracts the type of the elements from a stream type given as the first argument and otherwise just forwards its type.
+This type operator extracts the type of the elements from a stream type given
+as the first argument and otherwise just forwards its type.
 
 ----
      ((stream T1) ...) -> T1
@@ -3901,7 +3908,9 @@ Operator STREAMELEM (
 /*
 6.2 Type Operator ~STREAMELEM2~
 
-This type operator extracts the type of the elements from the stream type within the second element within a list of argument types. Otherwise, the first arguments type is simplyforwarded.
+This type operator extracts the type of the elements from the stream type 
+within the second element within a list of argument types. Otherwise, 
+the first arguments type is simplyforwarded.
 
 ----
      (T1 (stream T2) ...) -> T2
