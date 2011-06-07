@@ -51,6 +51,17 @@ Constructor
                         opened(false){ }
 
 
+     Stream(const Stream<T>& src): source(src.source), 
+                                   opened(src.opened){}
+
+    
+     Stream<T>& operator=(const Stream<T> src) {
+        source = src.source;
+        opened = src.opened;
+        return *this;
+     }
+
+
 /*
 Returns "stream"
 

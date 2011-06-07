@@ -2629,6 +2629,7 @@ int Projecttransformstream(Word* args, Word& result, int message,
     case CLOSE:
      if(local.addr){
         delete (ProjectTransformLI*)local.addr;
+        local.addr=0;
      }
       return 0;
     }
@@ -3028,6 +3029,7 @@ streamPrintstreamType( ListExpr args ) {
     if(firstcall){
       attrNames = nl->OneElemList(name);
       last = attrNames;
+      firstcall = false;
     } else {
       last = nl->Append(last, name);
     }
@@ -3037,7 +3039,6 @@ streamPrintstreamType( ListExpr args ) {
              nl->SymbolAtom(Symbol::APPEND()),
              attrNames,
              stream);
-  cout << "return : " << nl->ToString(res) << endl;
   return res;
 }
 
