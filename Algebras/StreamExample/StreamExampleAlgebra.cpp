@@ -76,6 +76,8 @@ stream will be empty.
 #include "AlgebraManager.h"
 #include "StandardTypes.h"  //We need the SECONDO type int, for example
 #include "Symbols.h"
+#include "Stream.h"
+#include "ListUtils.h"
 
 #include <string>
 #include <iostream>    //
@@ -105,13 +107,17 @@ Type mapping for ~intstream~ is
 
 */
 ListExpr
-intstreamType( ListExpr args )
-{
-  NList type(args);
-  if ( type != NList(CcInt::BasicType(), CcInt::BasicType()) ) {
-    return NList::typeError("Expecting a list of two integers.");
+intstreamType( ListExpr args ) {
+  string err = "int x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
   }
-  return NList(Symbol::STREAM(), CcInt::BasicType()).listExpr();
+  if(!listutils::isSymbol(nl->First(args)) ||
+     !listutils::isSymbol(nl->Second(args))){
+    return listutils::typeError(err);
+  }  
+  return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
+                         nl->SymbolAtom(CcInt::BasicType()));
 }
 
 /*
@@ -124,11 +130,13 @@ Type mapping for ~count~ is
 ListExpr
 countType( ListExpr args )
 {
-  NList type(args);
-  if ( type.first() != NList(Symbol::STREAM(), CcInt::BasicType()) ) {
-    return NList::typeError("Expecting a stream of integers.");
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected");
   }
-  return NList(CcInt::BasicType()).listExpr();
+  if(!Stream<CcInt>::checkType(nl->First(args))){
+    return listutils::typeError("stream(int) expected");
+  }
+  return nl->SymbolAtom(CcInt::BasicType());
 }
 
 /*
@@ -141,11 +149,16 @@ Type mapping for ~printintstream~ is
 ListExpr
 printintstreamType( ListExpr args )
 {
-  NList type(args);
-  if ( type.first() != NList(Symbol::STREAM(), CcInt::BasicType()) ) {
-    return NList::typeError("Expecting a stream of integers.");
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected");
   }
-  return NList(Symbol::STREAM(), CcInt::BasicType()).listExpr();
+  if(!Stream<CcInt>::checkType(nl->First(args))){
+    return listutils::typeError("stream(int) expected");
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
+                         nl->SymbolAtom(CcInt::BasicType()));
+
 }
 
 
@@ -159,30 +172,29 @@ Type mapping for ~filter~ is
 ListExpr
 filterType( ListExpr args )
 {
-  NList type(args);
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!Stream<CcInt>::checkType(arg1)){
+    return listutils::typeError("first argument must be a stream(int)");
+  }
 
-  if ( type.hasLength(2) )
-  {
-    // test first argument for stream(int)
-    if ( type.first() != NList(Symbol::STREAM(), CcInt::BasicType()) )
-    {
-       return NList::typeError("Expecting (stream int) "
-		               "as first argument.");
-    }
-    // test second argument for map T' bool. T = T'
-    if ( type.second() != NList(Symbol::MAP(), CcInt::BasicType(),
-                                CcBool::BasicType()) )
-    {
-      return NList::typeError("Expecting (map int bool) "
-		              "as it second argument.");
-    }
-    // return the type of the first argument
-    return type.first().listExpr();
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->HasLength(arg2,3)){
+    return listutils::typeError("second argument must be map: int -> bool");
   }
-  else
-  { // wrong number of arguments
-    return NList::typeError("Expecting two arguments.");
+
+  ListExpr arg2_1 = nl->First(arg2);
+  ListExpr arg2_2 = nl->Second(arg2);
+  ListExpr arg2_3 = nl->Third(arg2);
+
+  if(!listutils::isSymbol(arg2_1,Symbol::MAP()) ||
+     !listutils::isSymbol(arg2_2, CcInt::BasicType()) ||
+     !listutils::isSymbol(arg2_3, CcBool::BasicType())){
+    return listutils::typeError("second argument must be map: int -> bool");
   }
+  return arg1;
 }
 
 /*
@@ -277,25 +289,22 @@ countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   qp->Open(args[0].addr); // open the argument stream
 
-  Word elem(Address(0)); // retrieve the first element
-  qp->Request(args[0].addr, elem);
+  Stream<CcInt> stream(args[0]);
+  stream.open();
 
-  int count = 0;
-  while ( qp->Received(args[0].addr) )
-  {
+  CcInt* next = stream.request();
+  int count =0;
+  while(next!=0){
     count++;
-    // consume the stream objects. This will free their
-    // memory representation if they are not used any more
-    static_cast<CcInt*>( elem.addr )->DeleteIfAllowed();
-    qp->Request(args[0].addr, elem);
+    next->DeleteIfAllowed();
+    next = stream.request();
   }
+  stream.close();
 
   // Assign a value to the operations result object which is provided
   // by the query processor
   result = qp->ResultStorage(s);
   static_cast<CcInt*>(result.addr)->Set(true, count);
-
-  qp->Close(args[0].addr); // close the underlying stream
 
   return 0;
 }
@@ -315,7 +324,6 @@ printintstreamFun (Word* args, Word& result,
   switch( message )
   {
     case OPEN: {
-
       qp->Open(args[0].addr);
       return 0;
     }
