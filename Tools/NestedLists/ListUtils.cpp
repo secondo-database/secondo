@@ -140,6 +140,32 @@ Checks for a valid description of an rtree.
   }
 
 
+  bool isRTreeDescription(ListExpr rtree, const string& basicType){
+   // (rtree tupledescription type bool)
+   if(nl->ListLength(rtree)!=4){
+     return false;
+   }
+   ListExpr rtreeSymbol = nl->First(rtree);
+   if(nl->AtomType(rtreeSymbol)!=SymbolType){
+     return false;
+   }
+   string rtreestr = nl->SymbolValue(rtreeSymbol);
+
+   if( rtreestr != basicType) {
+      return false;
+   }
+
+   if(!isTupleDescription(nl->Second(rtree))){
+     return false;
+   }
+   if(nl->AtomType(nl->Fourth(rtree))!= BoolType){
+     return false;
+   }
+   // check for valid type as third element omitted
+   return true;
+  }
+
+
 /*
 Checks for a BTreeDescription
 

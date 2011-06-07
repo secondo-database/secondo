@@ -105,6 +105,13 @@ Checks for a valid rtree description.
   bool isRTreeDescription(ListExpr rtree);
 
 /*
+Checks for a special rtree description
+
+*/
+ bool isRTreeDescription(ListExpr rtree, const string& basicType);
+
+
+/*
 Checks for a valid btree description.
 
 */
