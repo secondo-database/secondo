@@ -29,6 +29,22 @@ extern NestedList* nl;
 
 
 /*
+4.1.0 [->] R
+
+*/
+template<class R>
+ListExpr TypeMap0(ListExpr args){
+  string err ="no arguments expected";
+  if(!nl->IsEmpty(args)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(R::BasicType());
+}
+
+
+
+/*
 4.1.1  A [->] R
 
 This type mapping can be used for non-overloaded
@@ -42,7 +58,7 @@ ListExpr TypeMap1(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(args),A::BasicType())){
+  if(!A::checkType(nl->First(args))){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -61,13 +77,59 @@ ListExpr TypeMap2(ListExpr args){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(args),A1::BasicType()) ||
-     !nl->IsEqual(nl->Second(args),A2::BasicType())){
+  if(!A1::checkType(nl->First(args)) ||
+     !A2::checkType(nl->Second(args))){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
   return nl->SymbolAtom(R::BasicType());
 }
+
+/*
+4.1.2 A1 [x] A2 [x] A3 [->] R
+
+
+*/
+template<class A1, class A2, class A3, class R>
+ListExpr TypeMap3(ListExpr args){
+  string err = A1::BasicType()+ " x " + A2::BasicType() + "x" + 
+               A3::BasicType() + " expected";
+  if(nl->ListLength(args)!=3){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!A1::checkType(nl->First(args)) ||
+     !A2::checkType(nl->Second(args)) ||
+     !A3::checkType(nl->Third(args))){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(R::BasicType());
+}
+
+/*
+4.1.2 A1 [x] A2 [x] A3 [->] R
+
+
+*/
+template<class A1, class A2, class A3, class A4, class R>
+ListExpr TypeMap4(ListExpr args){
+  string err = A1::BasicType()+ " x " + A2::BasicType() + " x "+  
+               A3::BasicType() + "x" + A4::BasicType() + " expected";
+  if(nl->ListLength(args)!=3){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!A1::checkType(nl->First(args)) ||
+     !A2::checkType(nl->Second(args)) ||
+     !A3::checkType(nl->Third(args)) ||
+     !A4::checkType(nl->Fourth(args))){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(R::BasicType());
+}
+
 
 
 /*
@@ -266,7 +328,7 @@ public:
 /*
 1.3 class tm4
 
-Type mapping template for terner  operators.
+Type mapping template for 4 arguments.
 
 */
 template<class A1, class A2, class A3, class A4, class R>
