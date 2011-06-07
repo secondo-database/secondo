@@ -2234,7 +2234,7 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
       return nl->TypeError();
   }
 
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
                          nl->TwoElemList(
                             nl->SymbolAtom(Tuple::BasicType()),
                             nl->OneElemList(
@@ -2697,8 +2697,7 @@ ListExpr EchoTypeMap(ListExpr args){
         return nl->TypeError();
      }
      // check for T# stream
-     if(nl->ListLength(nl->First(args))==2 &&
-        nl->IsEqual(nl->First(nl->First(args)),Symbol::STREAM())){
+     if(listutils::isStream(nl->First(args))){
         ErrorReporter::ReportError("If the first argument is a stream, two "
                                    "further parameters are required");
         return nl->TypeError();
@@ -2706,11 +2705,9 @@ ListExpr EchoTypeMap(ListExpr args){
      return nl->First(args);
   } else { // len==3
      // first argument has to be a stream
-     if(nl->ListLength(nl->First(args))!=2 ||
-        !nl->IsEqual(nl->First(nl->First(args)),Symbol::STREAM())){
-        ErrorReporter::ReportError("If the first argument is a stream, two "
-                                   "further parameters are required");
-        return nl->TypeError();
+     if(!listutils::isStream(nl->First(args))){
+        return listutils::typeError("When 3 parameters are given, the"
+                                    " first of them must be a stream");
      }
      if(!nl->IsEqual(nl->Second(args),CcBool::BasicType())){
        ErrorReporter::ReportError("bool expected as second argument.");
@@ -2841,35 +2838,17 @@ The operator counts the number of stream elements.
 ListExpr
 streamCountType( ListExpr args )
 {
-  ListExpr arg1;
-  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  string outstr;
 
-  if ( nl->ListLength(args) == 1 )
-    {
-      arg1 = nl->First(args);
+  if ( nl->ListLength(args) != 1 ){
+    return listutils::typeError("one argument expected");
 
-    if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
-      {
-        if ( nl->IsEqual(nl->First(arg1), Symbol::STREAM())
-             && am->CheckKind(Kind::DATA(), nl->Second(arg1), errorInfo) )
-          return nl->SymbolAtom(CcInt::BasicType());
-        else
-          {
-            nl->WriteToString(outstr, arg1);
-            ErrorReporter::ReportError("Operator count expects a (stream T), "
-                                       "T in kind DATA. The argument profided "
-                                       "has type '" + outstr + "' instead.");
-          }
-      }
-    }
+  }
+  ListExpr arg1 = nl->First(args);
+ if(!Stream<Attribute>::checkType(arg1)){
+     return listutils::typeError("stream(DATA) expected");
+  }
+  return nl->SymbolAtom(CcInt::BasicType());
 
-  nl->WriteToString(outstr, (args));
-  ErrorReporter::ReportError("Operator count expects only a single "
-                             "argument of type (stream T), T "
-                             "in kind DATA. The argument provided "
-                             "has type '" + outstr + "' instead.");
-  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 /*
@@ -3019,92 +2998,47 @@ and passes on the element.
 
 */
 ListExpr
-streamPrintstreamType( ListExpr args )
-{
-  ListExpr stream, errorInfo;
-  string out;
+streamPrintstreamType( ListExpr args ) {
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected."); 
+  } 
 
+  ListExpr stream = nl->First(args);
 
-
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-
-  if ( nl->ListLength(args) != 1 )
-    {
-      ErrorReporter::ReportError("Operator printstream expects only a single "
-                                 "argument.");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-
-  stream = nl->First(args);
-  // test first argument for stream(T), T in kind DATA
-  if (     nl->IsAtom(stream)
-           || !(nl->ListLength(stream) == 2)
-           || !nl->IsEqual(nl->First(stream), Symbol::STREAM())
-           || ( ( !am->CheckKind(Kind::DATA(), nl->Second(stream),
-                                               errorInfo) ) &&
-                ( !(nl->ListLength(nl->Second(stream)) == 2 &&
-                    TypeOfRelAlgSymbol(nl->First(nl->Second(stream)))
-                    == tuple)) ) )
-    {
-      nl->WriteToString(out, stream);
-      ErrorReporter::ReportError("Operator printstream expects a (stream T), "
-                                 "T in kind DATA, or (stream (tuple X) ) as "
-                                 "its first argument. The argument provided "
-                                 "has type '" + out + "' instead.");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-
-  // append list of attribute names for tuplestream signature
-    if ( nl->ListLength(nl->Second(stream)) == 2 &&
-         TypeOfRelAlgSymbol(nl->First(nl->Second(stream))) == tuple
-       )
-  {
-    ListExpr tupleType = nl->Second(nl->Second(stream));
-    bool firstcall = true;
-    int noAttrs = 0;
-    ListExpr attrList, lastofAttrList, currAttrList;
-
-    while( !nl->IsEmpty(tupleType) )
-    {
-      currAttrList = nl->First(tupleType);
-      tupleType = nl->Rest(tupleType);
-      if ( nl->AtomType(nl->First(currAttrList)) != SymbolType )
-      { // ERROR!
-        nl->WriteToString(out, stream);
-        ErrorReporter::ReportError("Operator printstream expects a "
-            "(stream (tuple T)), where T is a list (AttrName AttrType)+ as "
-            "its first argument. The argument provided "
-            "has type '" + out + "' instead.");
-        return nl->SymbolAtom(Symbol::TYPEERROR());
-      }
-      if (firstcall)
-      {
-        firstcall = false;
-        attrList = nl->OneElemList(nl->StringAtom(
-            nl->SymbolValue(nl->First(currAttrList))));
-        lastofAttrList = attrList;
-      }
-      else
-      {
-        lastofAttrList = nl->Append(lastofAttrList, nl->StringAtom(
-            nl->SymbolValue(nl->First(currAttrList))));
-      }
-      noAttrs++;
-    }
-    // return stream@(noAttrs,attrList)
-    ListExpr reslist =
-        nl->ThreeElemList(
-          nl->SymbolAtom(Symbol::APPEND()),
-          nl->TwoElemList(
-            nl->IntAtom(noAttrs),
-            attrList),
-          stream);
-    return reslist;
+  // case: stream<DATA>
+  if(Stream<Attribute>::checkType(stream)){
+     return stream;
   }
-  else
-  { // return stream
-    return stream;
+ 
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError("stream<DATA> or stream<Tuple> expected");
   }
+
+  // case : stream<tuple>
+  // collect and append the attribute names
+
+  ListExpr attrList  = nl->Second(nl->Second(stream));
+  bool firstcall = true;
+  ListExpr attrNames;
+  ListExpr last;
+  while( !nl->IsEmpty(attrList) ) {
+    ListExpr attr = nl->First(attrList);
+    attrList = nl->Rest(attrList);
+    ListExpr name = nl->StringAtom(nl->SymbolValue(nl->First(attr)));
+    if(firstcall){
+      attrNames = nl->OneElemList(name);
+      last = attrNames;
+    } else {
+      last = nl->Append(last, name);
+    }
+  }
+  // return stream@(noAttrs,attrList)
+  ListExpr res =   nl->ThreeElemList(
+             nl->SymbolAtom(Symbol::APPEND()),
+             attrNames,
+             stream);
+  cout << "return : " << nl->ToString(res) << endl;
+  return res;
 }
 
 /*
@@ -3159,7 +3093,6 @@ Print the elements of a Tuple-type stream.
 */
 {
   Word tupleWord, elem;
-  Supplier son;
   string attrName;
   switch(message)
   {
@@ -3173,11 +3106,9 @@ Print the elements of a Tuple-type stream.
       {
         cout << "Tuple: (" << endl;
         Tuple* tuple = (Tuple*) (tupleWord.addr);
-        for(int i = 0; i < tuple->GetNoAttributes(); i++)
-        {
-          son = qp->GetSupplier(args[2].addr, i);
-          qp->Request(son, elem);
-          attrName = (string)(char*)((CcString*)elem.addr)->GetStringval();
+        for(int i=0; i<tuple->GetNoAttributes(); i++){
+          string attrName = (static_cast<CcString*>
+                                   (args[i+1].addr))->GetValue();
           cout << attrName << ": ";
           ((Attribute*) (tuple->GetAttribute(i)))->Print(cout);
           cout << endl;
@@ -3281,18 +3212,12 @@ streamFilterType( ListExpr args )
       map = nl->Second(args);
 
       // test first argument for stream(T), T in kind DATA
-      if ( nl->IsAtom(stream)
-           || !(nl->ListLength(stream) == 2)
-           || !nl->IsEqual(nl->First(stream), Symbol::STREAM())
-           || !am->CheckKind(Kind::DATA(), nl->Second(stream), errorInfo) )
-        {
-          nl->WriteToString(out, stream);
-          ErrorReporter::ReportError("Operator filter expects a (stream T), "
+      if(!Stream<Attribute>::checkType(stream)){
+          return listutils::typeError("Operator filter expects a (stream T), "
                                      "T in kind DATA as its first argument. "
                                      "The argument provided "
                                      "has type '" + out + "' instead.");
-          return nl->SymbolAtom(Symbol::TYPEERROR());
-        }
+      }
 
       // test second argument for map T' bool. T = T'
       if ( nl->IsAtom(map)
@@ -3513,7 +3438,7 @@ ListExpr realstreamTypeMap( ListExpr args ){
     if ( nl->IsEqual(arg1, CcReal::BasicType()) &&
          nl->IsEqual(arg2,CcReal::BasicType()) &&
          nl->IsEqual(arg3, CcReal::BasicType()) ){
-      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      return nl->TwoElemList(nl->SymbolAtom(Stream<CcReal>::BasicType()),
                              nl->SymbolAtom(CcReal::BasicType()));
     }
   }
@@ -3695,11 +3620,16 @@ struct realstreamInfo : OperatorInfo
 ListExpr
 intstreamTypeMap( ListExpr args )
 {
-  NList type(args);
-  if ( type != NList(CcInt::BasicType(), CcInt::BasicType()) ) {
-    return NList::typeError("Expecting a list of two integers.");
+  string err = "int x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
   }
-  return NList(Symbol::STREAM(), CcInt::BasicType()).listExpr();
+  if(!listutils::isSymbol(nl->First(args),CcInt::BasicType()) ||
+     !listutils::isSymbol(nl->Second(args),CcInt::BasicType())){
+    return listutils::typeError(err);
+  }  
+  return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
+                         nl->SymbolAtom(CcInt::BasicType()));
 }
 
 // ValueMappingFunction
@@ -4462,7 +4392,7 @@ ListExpr KindsTypeMap(const ListExpr args){
     return nl->TypeError();
   } else {
     if(nl->IsEqual(nl->First(args),CcString::BasicType())){
-      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+      return nl->TwoElemList(nl->SymbolAtom(Stream<CcString>::BasicType()),
                              nl->SymbolAtom(CcString::BasicType()));
     } else {
       ErrorReporter::ReportError("Wrong number of arguments ");
@@ -4581,18 +4511,15 @@ Type Mapping Fubnction:
 */
 ListExpr TimeoutTypeMap(const ListExpr args){
   if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("Wrong number of arguments ");
-    return nl->TypeError();
+    return listutils::typeError("one argument expected");
   }
   ListExpr first = nl->First(args);
-  if(nl->ListLength(first)!=2){
+  if(!listutils::isStream(first)){
     return listutils::typeError("Expected stream as 1st argument.");
   }
-  if(!nl->IsEqual(nl->First(first),Symbol::STREAM())) {
-    return listutils::typeError("Expected stream as 1st argument.");
-  }
+
   ListExpr second = nl->Second(args);
-  if( !listutils::isSymbol(second, CcReal::BasicType()) ) {
+  if( !CcReal::checkType(second)) {
     return listutils::typeError("Expected real as 2nd argument.");
   }
   return nl->First(args);
