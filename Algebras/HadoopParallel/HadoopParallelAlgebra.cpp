@@ -4604,51 +4604,63 @@ If a specified file path is not given, then it reads the
 ~SecondoFilePath~ variable set in the SecondoConfig.ini that is
 denoted by SECONDO\_CONFIG parameter.
 And the path must be an absoloute path.
-
-However, the ~SecondoFilePath~ is may be replaced by
-its environment variable SECONDO\_PARAM\_SecondoFilePath,
-and may contains several paths that are divided by ':'.
-In this case, the ~SecondoFilePath~ will be viewed as empty.
-
 By default, the path will be set to SECONDO\_BUILD\_DIR/bin/parallel
+
+If an non-default path is unavailable or not exist,
+then a warning message will be given.
 
 */
 string getFilePath(string path,
                    const string fileName,
                    bool extendPath)
 {
-  if (0 == path.length())
-  {
-    string confPath = string(getenv("SECONDO_CONFIG"));
-    path = SmiProfile::GetParameter("ParallelSecondo",
-        "SecondoFilePath","", confPath);
+  string pathCdd[3];
 
-    const char sep = ':';
-    size_t p = path.find_first_of(sep);
-    if ((p != string::npos) || (path.length() == 0))
-    {
-      cerr << "\nWarning: The SecondoFilePath " << path
-          << " set in " << confPath
-          << " is not available" << endl;
+  // The given path
+  pathCdd[0] = path;
 
-      path = FileSystem::GetCurrentFolder();
-      FileSystem::AppendItem(path, "parallel");
-      cerr << "The default path is used: " << path << endl;
-    }
-  }
-  bool isFolderExist = true;
-  if (!FileSystem::FileOrFolderExists(path))
+  // The set up path in Configure file
+  string confPath = string(getenv("SECONDO_CONFIG"));
+  pathCdd[1] = SmiProfile::GetParameter("ParallelSecondo",
+      "SecondoFilePath","", confPath);
+
+  pathCdd[2] = FileSystem::GetCurrentFolder();
+  FileSystem::AppendItem(pathCdd[2], "parallel");
+
+  bool pathOK = false, alarm = false;
+  int cdd = 0;
+  while (!pathOK && cdd < 3)
   {
-    cerr << "File path " << path << " is not exist. \n";
-    if (FileSystem::CreateFolder(path))
-      cerr << "File path " << path << " is created. \n";
-    else
+    string tPath = pathCdd[cdd];
+
+    if (tPath.length() != 0)
     {
-      cerr << "Create file path " << path << " fail. \n";
-      isFolderExist = false;
+      if (cdd < 2)
+        alarm = true;
+
+      if (FileSystem::FileOrFolderExists(tPath) &&
+          FileSystem::IsDirectory(tPath))
+      {
+        pathOK = true;
+        alarm = false;  //No alarm anymore, if the path is exist.
+      }
+      else
+      {
+        pathOK = FileSystem::CreateFolder(tPath);
+        alarm = true;
+      }
     }
+    cdd++;
   }
-  if(isFolderExist)
+  path = pathCdd[(cdd - 1)];
+
+  // When there is no specific path is given,
+  // then no warning messages.
+  if (alarm)
+    cerr << "Warning! The given path is unavailable or not exit, "
+        "the path\n" << path << "\nis used.\n\n";
+
+  if(pathOK)
   {
     if (extendPath)
       FileSystem::AppendItem(path, fileName);
