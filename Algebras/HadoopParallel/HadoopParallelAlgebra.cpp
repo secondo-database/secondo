@@ -2086,6 +2086,24 @@ The location of the files is also set up inside the configure file,
 as SecondoFilePath, in case the \$PARALLEL\_SECONDO\_SLAVES is not
 required within an individual computer.
 
+In 8/6/2011, increase another parameter into the fconsume operator, rowNum.
+As ~ffeed~, we put it in the front of the fileSuffix paramter.
+However, we don't strictly distinguish these two parameters.
+If both of them is available, then we set the data files' names
+with two successive integers connected by a underscore.
+If only one number shows up, then only one integer suffix is set
+after data files' names.
+
+Now the operator maps
+
+---- (stream(tuple(...))
+      x fileName x filePath x [rowNum] x [fileSuffix] ;
+      x [typeLoc1] x [typeLoc2]                       ;
+      x [targetLoc x dupTimes])                       ;
+     -> bool
+----
+
+
 5.2 Specification
 
 */
@@ -2130,16 +2148,18 @@ ListExpr FConsumeTypeMap(ListExpr args)
       "separated by semicolons";
   string typeErr = "ERROR!Operator fconsume expects "
                "(stream(tuple(...)) "
-               "fileName: string, filePath: text, {fileSuffix: int};"
-               "{typeNodeIndex: int} {typeNodeIndex2: int}; "
-               "{targetNodeIndex: int, duplicateTimes: int})";
+               "fileName: string, filePath: text, "
+               "[rowNum: int] x [fileSuffix: int]; "
+               "[typeNodeIndex: int] [typeNodeIndex2: int]; "
+               "[targetNodeIndex: int, duplicateTimes: int])";
   string typeErr2 =
       "ERROR!The basic parameters expects "
-      "{fileName: string, filePath: text, {fileSuffix: int}}";
+      "[fileName: string, filePath: text, "
+      "[rowNum: int], [fileSuffix: int]]";
   string typeErr3 = "ERROR!Type remote nodes expects "
-      "{{typeNodeIndex: int}, {typeNodeIndex2: int}}";
+      "[[typeNodeIndex: int], [typeNodeIndex2: int]]";
   string typeErr4 = "ERROR!Data remote nodes expects "
-      "{targetNode:int, duplicateTimes: int}";
+      "[targetNode:int, duplicateTimes: int]";
   string err1 = "ERROR!The file name should NOT be empty!";
   string err2 = "ERROR!Cannot create type file: \n";
   string err3 = "ERROR!Infeasible evaluation in TM for attribute: ";
@@ -2156,8 +2176,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
     return l.typeError(lengthErr);
 
   string fileName, filePath;
-  bool haveIndex, trMode, drMode;
-  haveIndex = drMode = trMode = false;
+  bool trMode, drMode;
+  drMode = trMode = false;
   int tNode[2] = {-1, -1};
 
   NList tsList = l.first(); //input tuple stream
@@ -2165,24 +2185,31 @@ ListExpr FConsumeTypeMap(ListExpr args)
   NList trList = l.third();  //type remote parameters
   NList drList = l.fourth(); //data remote parameters
 
-  //Basic parameters
   NList attr;
   if(!tsList.first().checkStreamTuple(attr) )
     return l.typeError(typeErr);
 
+  //Basic parameters
   //The first list contains all parameters' types
   NList pType = bsList.first();
   //The second list contains all parameter's values
   NList pValue = bsList.second();
-  if (pType.length() < 2 || pType.length() > 3)
+  if (pType.length() < 2 || pType.length() > 4)
     return l.typeError(typeErr2);
+
   if (pType.first().isSymbol(CcString::BasicType()) &&
       pType.second().isSymbol(FText::BasicType()))
   {
-    if (pType.length() == 3)
-      haveIndex = true;
-    if (haveIndex && !pType.third().isSymbol(CcInt::BasicType()))
-     return l.typeError(err5);
+    if (pType.length() > 2)
+    {
+      if (!pType.third().isSymbol(CcInt::BasicType()))
+        return l.typeError(err5);
+
+      if ((4 == pType.length()) &&
+          !pType.fourth().isSymbol(CcInt::BasicType()))
+        return l.typeError(err5);
+    }
+
     NList fnList;
     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
       return l.typeError(err3 + "fileName");
@@ -2303,9 +2330,15 @@ int FConsumeValueMap(Word* args, Word& result,
     filePath = ((FText*)
       qp->Request(qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
     int bspLen = qp->GetNoSons(bspList);
-    if (bspLen == 3)
+    int idx = 2;
+    while (idx < bspLen)
+    {
       fileIndex = ((CcInt*)
-        qp->Request(qp->GetSupplier(bspList, 2)).addr)->GetValue();
+        qp->Request(qp->GetSupplier(bspList, idx)).addr)->GetValue();
+      if (fileIndex >= 0)
+        relName += ("_" + int2string(fileIndex));
+      idx++;
+    }
 
     int ti = -1, dt = -1;
     bool drMode = false;
@@ -2341,9 +2374,6 @@ int FConsumeValueMap(Word* args, Word& result,
     local.setAddr(fcli);
 
     //Write complete tuples into a binary file.
-    if (fileIndex >= 0)
-      relName = addFileIndex(relName, fileIndex);
-
     //create a path for this file.
     filePath = getFilePath(filePath, relName);
     ofstream blockFile(filePath.c_str(), ios::binary);
@@ -2628,6 +2658,20 @@ The ~typeNodeIndex~ and ~targetNodeIndex~ denote the locations of
 some specific nodes inside the cluster, which are listed
 inside the \$PARALLEL\_SECONDO\_SLAVES file.
 
+In 8/6/2011, add the row number into the ffeed operator.
+The rowNumber doesn't affect the type file, only the data type.
+If it's defined, then the ffeed will fetch a file with two
+successive suffices. Now the operator maps
+
+----
+fileName
+x path x [rowNum] x [fileIndex]     ;
+x [typeNodeIndex]                   ;
+x [targetNodeIndex x attemptTimes]  ;
+->stream(tuple(...))
+----
+
+
 6.2 Specification
 
 */
@@ -2669,9 +2713,10 @@ ListExpr FFeedTypeMap(ListExpr args)
   string lenErr = "ERROR! Operator ffeed expects "
       "four parts parameters, separated by semicolons";
   string typeErr = "ERROR! Operator ffeed expects "
-      "fileName: string, filePath: text, {fileSuffix: int};"
-      "{typeNodeIndex: int}; "
-      "{producerIndex: int, targetIndex: int, attemptTimes: int}";
+      "fileName: string, filePath: text, "
+      "[rowNum: int] [fileSuffix: int]; "
+      "[typeNodeIndex: int]; "
+      "[producerIndex: int, targetIndex: int, attemptTimes: int]";
   string err1 = "ERROR! File name should NOT be empty!";
   string err2 = "ERROR! Type file is NOT exist!\n";
   string err3 = "ERROR! A tuple relation type list is "
@@ -2679,12 +2724,12 @@ ListExpr FFeedTypeMap(ListExpr args)
   string err4 = "ERROR! Infeasible evaluation in TM for attribute ";
   string err5 = "ERROR! Prefix parameter expects fileName: string";
   string err6 = "ERROR! Basic parameters expect "
-      "filePath: text, {fileSuffix: int}";
+      "filePath: text, [rowNum: int] [fileSuffix: int] ";
   string err7 = "ERROR! Type remote parameter expects "
-      "{typeNodeIndex: int}";
+      "[typeNodeIndex: int]; ";
   string err8 = "ERROR! Remote node for type file is out of range.";
   string err9 = "ERROR! Data remote parameters expect "
-      "{producerIndex: int, targetIndex: int, attemptTimes: int}";
+      "[producerIndex: int, targetIndex: int, attemptTimes: int]";
   string err10 = "ERROR! The slave list file does not exist."
       "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
   string err11 = "ERROR! Copy remote type file fail.";
@@ -2709,15 +2754,19 @@ ListExpr FFeedTypeMap(ListExpr args)
   pType = bp.first();
   pValue = bp.second();
   int bpLen = pType.length();
-  if (bpLen < 1 || bpLen > 2)
+  if (bpLen < 1 || bpLen > 3)
     return l.typeError(err6);
-  else if (bpLen == 2)
-    haveIndex = true;
   if (!pType.first().isSymbol(FText::BasicType()))
     return l.typeError(err6);
-  if (haveIndex)
+  if (bpLen > 1)
+  {
     if (!pType.second().isSymbol(CcInt::BasicType()))
       return l.typeError(err6);
+    if (bpLen == 3 &&
+        !pType.third().isSymbol(CcInt::BasicType()))
+      return l.typeError(err6);
+  }
+
   NList fpList;
   if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
     return l.typeError(err4 + "filePath");
@@ -2789,7 +2838,6 @@ ListExpr FFeedTypeMap(ListExpr args)
 int FFeedValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  int index = -1;
   string relName, path;
   FFeedLocalInfo* ffli = 0;
   Supplier sonOfFeed;
@@ -2802,11 +2850,20 @@ int FFeedValueMap(Word* args, Word& result,
       relName = ((CcString*)args[0].addr)->GetValue();
       Supplier bspList = args[1].addr,
                drpList = args[3].addr;
+
+
       path =  ((FText*)qp->Request(
           qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
-      if (qp->GetNoSons(bspList) == 2)
-        index = ((CcInt*)qp->Request(
-            qp->GetSupplierSon(bspList, 1)).addr)->GetValue();
+      int bspLen = qp->GetNoSons(bspList);
+      int idx = 1;
+      while (idx < bspLen )
+      {
+        int index = ((CcInt*)qp->Request(
+            qp->GetSupplierSon(bspList, idx)).addr)->GetValue();
+        if (index >= 0)
+          relName += ("_" + int2string(index));
+        idx++;
+      }
 
       if (qp->GetNoSons(drpList) == 3)
       {
@@ -2817,8 +2874,6 @@ int FFeedValueMap(Word* args, Word& result,
         attTimes = ((CcInt*)qp->Request(
             qp->GetSupplierSon(drpList, 2)).addr)->GetValue();
       }
-      if(index >= 0)
-        relName = addFileIndex(relName, index);
 
       string filePath = path;
       filePath = getFilePath(filePath, relName, false);
@@ -3393,9 +3448,9 @@ int hdpJoinValueMap(Word* args, Word& result,
         << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
         << rtNum << " " << rName << endl;
       int rtn;
-//      cout << queryStr.str() << endl;
-      rtn = system("hadoop dfs -rmr OUTPUT");
-      rtn = system(queryStr.str().c_str());
+      cout << queryStr.str() << endl;
+//      rtn = system("hadoop dfs -rmr OUTPUT");
+//      rtn = system(queryStr.str().c_str());
 
       //2 get the result file list
       if (hjli)
@@ -3404,8 +3459,8 @@ int hdpJoinValueMap(Word* args, Word& result,
 
       FILE *fs;
       char buf[MAX_STRINGSIZE];
-//      fs = popen("cat pjResult", "r");
-      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+      fs = popen("cat pjResult", "r");
+//      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
       if (NULL != fs)
       {
         while(fgets(buf, sizeof(buf), fs))
@@ -3498,7 +3553,6 @@ feature.
 
 Same as ~fconsume~ and ~ffeed~ operators, the duplicate parameters
 are optional, and are separated from the basic parameters by semicolons.
-
 Now the operator maps
 
 ----
@@ -3510,6 +3564,24 @@ x [targetIndex x dupTimes ]
 -> stream(tuple(fileSufix, value))
 ----
 
+In 8/6/2011, extend the fdistribute with another new parameter, rowNum.
+Since this should also be an optional parameter,
+and it may be confused with the nBuckets,
+I decided to further divide the parameter list to 5 parts,
+set the rowNum after the attrName, as an optional parameter,
+and group nBuckeets and KPA as another group of parameters.
+Now the operator maps
+
+----
+stream(tuple(...))
+x fileName x path x attrName x [rowNum] ;
+x [nBuckets] x [KPA] ;
+x [typeNodeIndex1] x [typeNodeIndex2] ;
+x [targetIndex x dupTimes ]
+-> stream(tuple(fileSufix, value))
+----
+
+
 8.0 Specification
 
 */
@@ -3520,12 +3592,12 @@ struct FDistributeInfo : OperatorInfo {
   {
     name = "fdistribute";
     signature = "stream(tuple(a1 ... ai ... aj)) "
-        "x string x text x symbol x [int] x [bool] "
+        "x string x text x symbol x [int] x [int] x [bool] "
         "x [int] x [int] x [ int x int ]"
         "-> stream(tuple( ... )) ";
     syntax =
         "stream(tuple(a1 ... ai ... aj)) "
-        " fdistribute[ fileName, path, partitionAttr, "
+        " fdistribute[ fileName, path, partitionAttr, [rowNum];"
         " [bucketNum], [KPA]; "
         " [typeNode1], [typeNode2]; "
         " [targetIndex,  dupTimes] ]";
@@ -3559,19 +3631,22 @@ struct FDistributeInfo : OperatorInfo {
 ListExpr FDistributeTypeMap(ListExpr args)
 {
   NList l(args);
-  string lenErr = "ERROR!Operator expects 4 parts arguments.";
+  string lenErr = "ERROR!Operator expects 5 parts arguments.";
   string typeErr = "ERROR!Operator expects "
       "(stream(tuple(a1, a2, ..., an))) "
-      "x string x text x symbol x [int] x [bool]";
+      "x string x text x ai x [int] x [int] x [bool] "
+      "x [int] x [int] x [ int x int ] ";
   string attErr = "ERROR!Operator cannot find the "
       "partition attribute: ";
   string err4 = "ERROR!Basic arguments expect "
-      "fileName: string, filePath: text, attrName: ai, "
+      "fileName: string, filePath: text, attrName: ai"
+      "[rowNum: int]";
+  string err11 = "ERROR!Parition mode expects "
       "{nBuckets: int}, {keepPartAttr: bool}";
   string err5 = "ERROR!Type remote nodes expects "
-      "{{typeNodeIndex: int}, {typeNodeIndex2: int}}";
+      "[[typeNodeIndex: int], [typeNodeIndex2: int]]";
   string err6 = "ERROR!Data remote nodes expects "
-        "{targetNode:int, duplicateTimes: int}";
+        "[targetNode:int, duplicateTimes: int]";
 
   string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
   string err2 = "ERROR!The file name should NOT be empty!";
@@ -3584,35 +3659,36 @@ ListExpr FDistributeTypeMap(ListExpr args)
 
 
 
-  if (l.length() != 4)
+  if (l.length() != 5)
     return l.typeError(lenErr);
 
   NList pType, pValue;
 
-  //First part argument
+  //First part argument (including stream(tuple(...)) )
   NList attrsList;
   if (!l.first().first().checkStreamTuple(attrsList))
     return l.typeError(typeErr);
 
-  //Basic parameters
   NList bpList = l.second();
+  //Basic parameters (including string, text, symbol, [int])
   pType = bpList.first();
   pValue = bpList.second();
   int bpLen = pType.length();
 
-  bool evenMode = false;
-  bool setKPA = false, KPA = false;
+  if (bpLen < 3 || bpLen > 4)
+    return l.typeError(err4);
 
-
+  // File name
   if (!pType.first().isSymbol(CcString::BasicType()))
     return l.typeError(err4);
-  NList fnList; //get the file name
+  NList fnList;
   if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
     return l.typeError(err1 + "fileName");
   string fileName = fnList.str();
   if (0 == fileName.length())
     return l.typeError(err2);
 
+  // File path
   if (!pType.second().isSymbol(FText::BasicType()))
     return l.typeError(err4);
   NList fpList;
@@ -3620,7 +3696,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
     return l.typeError(err1 + "filePath");
   string filePath = fpList.str();
 
-  //Identify attribute
+  // Partition attribute
   if (!pType.third().isAtom())
     return l.typeError(typeErr + "\n" + err4);
   string attrName = pValue.third().str();
@@ -3630,28 +3706,42 @@ ListExpr FDistributeTypeMap(ListExpr args)
   if (attrIndex < 1)
     return l.typeError(attErr + attrName);
 
-  if (4 == bpLen)
+  //Optional row number
+  if ( bpLen == 4 )
+    if (!pType.fourth().isSymbol(CcInt::BasicType()))
+      return l.typeError(err4);
+
+  bool evenMode = false;
+  bool setKPA = false, KPA = false;
+  NList pmList = l.third();
+  //Partition mode (including [nBuckets], [KPA])
+  pType = pmList.first();
+  pValue = pmList.second();
+  int pmLen = pType.length();
+  if (pmLen < 0 || pmLen > 2)
+    return l.typeError(err11);
+  if (1 == pmLen)
   {
-    if (pType.fourth().isSymbol(CcInt::BasicType()))
+    if (pType.first().isSymbol(CcInt::BasicType()))
       evenMode = true;
-    else if (pType.fourth().isSymbol(CcBool::BasicType()))
+    else if (pType.first().isSymbol(CcBool::BasicType()))
     {
       setKPA = true;
-      KPA = pValue.fourth().boolval();
+      KPA = pValue.first().boolval();
     }
     else
-      return l.typeError(err4);
+      return l.typeError(err11);
   }
-  else if (5 == bpLen)
+  else if (2 == pmLen)
   {
-    if (!pType.fourth().isSymbol(CcInt::BasicType()) ||
-        !pType.fifth().isSymbol( CcBool::BasicType()))
-      return l.typeError(err4);
+    if (!pType.first().isSymbol(CcInt::BasicType()) ||
+        !pType.second().isSymbol( CcBool::BasicType()))
+      return l.typeError(err11);
     else
     {
       evenMode = true;
       setKPA = true;
-      KPA = pValue.fifth().boolval();
+      KPA = pValue.second().boolval();
     }
   }
 
@@ -3687,7 +3777,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   typeFile.close();
 
   clusterInfo* ci = 0;
-  NList trList = l.third();
+  NList trList = l.fourth();
   pType = trList.first();
   int tNode[2] = {-1, -1};
   if (!pType.isEmpty())
@@ -3736,7 +3826,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
     }
   }
 
-  NList drList = l.fourth();
+  NList drList = l.fifth();
   pType = drList.first();
   if (!pType.isEmpty())
   {
@@ -3780,43 +3870,50 @@ int FDistributeValueMap(Word* args, Word& result,
       qp->Open(args[0].addr);
 
       Supplier bspList = args[1].addr,
-               drpList = args[3].addr;
+               ptmList = args[2].addr,
+               drpList = args[4].addr;
 
       relName = ((CcString*)qp->Request(
           qp->GetSupplierSon(bspList,0)).addr)->GetValue();
       path = ((FText*)qp->Request(
           qp->GetSupplierSon(bspList,1)).addr)->GetValue();
 
-      bool evenMode = false, kpa = false;
-      int nBucket = 0;
+      int rowNum = -1;
       int bspLen = qp->GetNoSons(bspList);
       if (4 == bspLen)
+        rowNum = ((CcInt*)qp->Request(
+            qp->GetSupplier(bspList,3)).addr)->GetValue();
+
+      bool evenMode = false, kpa = false;
+      int nBucket = 0;
+      int ptmLen = qp->GetNoSons(ptmList);
+      if (1 == ptmLen)
       {
-        ListExpr ptList = qp->GetType(qp->GetSupplierSon(bspList,3));
+        ListExpr ptList = qp->GetType(qp->GetSupplierSon(ptmList,0));
         if (nl->IsEqual(ptList, CcBool::BasicType()))
           kpa = ((CcBool*)qp->Request(
-              qp->GetSupplierSon(bspList,3)).addr)->GetValue();
+              qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         else
         {
           evenMode = true;
           nBucket = ((CcInt*)qp->Request(
-              qp->GetSupplierSon(bspList,3)).addr)->GetValue();
+              qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         }
       }
-      else if (5 == bspLen)
+      else if (2 == ptmLen)
       {
         evenMode = true;
         nBucket = ((CcInt*)qp->Request(
-            qp->GetSupplierSon(bspList,3)).addr)->GetValue();
+            qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         kpa = ((CcBool*)qp->Request(
-            qp->GetSupplierSon(bspList,4)).addr)->GetValue();
+            qp->GetSupplierSon(ptmList,1)).addr)->GetValue();
       }
 
       int attrIndex =
-            ((CcInt*)args[4].addr)->GetValue() - 1;
+            ((CcInt*)args[5].addr)->GetValue() - 1;
 
       string inTupleTypeStr =
-               ((FText*)args[5].addr)->GetValue();
+               ((FText*)args[6].addr)->GetValue();
       ListExpr inTupleTypeList;
       nl->ReadFromString(inTupleTypeStr, inTupleTypeList);
       inTupleTypeList = sc->NumericType(inTupleTypeList);
@@ -3835,7 +3932,7 @@ int FDistributeValueMap(Word* args, Word& result,
       if (fdli) delete fdli;
       ListExpr resultTupleList = GetTupleResultType(s);
       fdli = new FDistributeLocalInfo(
-               relName, path, nBucket, attrIndex, kpa,
+               relName, rowNum, path, nBucket, attrIndex, kpa,
                resultTupleList, inTupleTypeList,
                dupTgtIndex, dupTimes);
       local.setAddr(fdli);
@@ -3886,14 +3983,17 @@ int FDistributeValueMap(Word* args, Word& result,
 */
 
 FDistributeLocalInfo::FDistributeLocalInfo(
-    string _bn, string _pt, int _nb, int _ai, bool _kpa,
+    string _bn, int _rn, string _pt, int _nb, int _ai, bool _kpa,
     ListExpr _rtl, ListExpr _itl,
     int _di, int _dt)
 : nBuckets(_nb), attrIndex(_ai), kpa(_kpa), tupleCounter(0),
   firstDupTarget(_di), dupTimes(_dt), localIndex(0), cnIP(""),
   ci(0), copyList(0)
 {
-  fileBaseName = _bn;
+  if ( _rn < 0 )
+    fileBaseName = _bn;
+  else
+    fileBaseName = _bn + "_" + int2string(_rn);
   filePath = getFilePath(_pt, _bn, false);
   resultTupleType = new TupleType(nl->Second(_rtl));
   exportTupleType = new TupleType(_itl);

@@ -775,7 +775,8 @@ private:
 
 
 public:
-  FDistributeLocalInfo(string baseName, string path,
+  FDistributeLocalInfo(string baseName, int rowNum,
+                       string path,
                        int nBuckets, int attrIndex,
                        bool keepKeyAttribute,
                        ListExpr resultTupleType,
