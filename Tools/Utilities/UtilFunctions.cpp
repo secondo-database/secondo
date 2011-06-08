@@ -410,12 +410,10 @@ string expandTabs(const string& s, const int n)
 {
   string result=s;
 
-  size_t end = s.size();
   size_t p1 = 0;
   size_t p2 = 0;
 
-  while (p1 < end)
-  {
+  while (p1 != string::npos) {
     p2 = result.find_first_of('\t',p1);
 
     if ( p2 != string::npos )
@@ -423,7 +421,6 @@ string expandTabs(const string& s, const int n)
       result.erase(p2, 1);
       result.insert(p2, string(n,' '));
     }
-
     p1 = p2;
   }
   return result;
@@ -555,13 +552,14 @@ wordWrap( const size_t indent1, const size_t indent2,
   string indentstr = "";
   size_t indent = indent1;
   string indent2str(indent2,' ');
+
   static const string delim(" ,.:!?;)]}-+*><=\t\n");
 
   string res = "";
 
 
   char curDelim;
-  string line = "";
+  string line(indent1, ' ');
 
   StringTokenizer st(s, delim); 
 
@@ -570,7 +568,7 @@ wordWrap( const size_t indent1, const size_t indent2,
     string token = st.nextToken(curDelim);
     token = expandTabs(token,4); 
 
-    if(line.size() + token.size() <= textwidth-indent){
+    if(line.size() + token.size() <= textwidth){
       // token fits in current line
       line += token;
       if(curDelim == '\n' || curDelim == '\r'){
@@ -580,7 +578,6 @@ wordWrap( const size_t indent1, const size_t indent2,
       }
     } else {
       // remainder of line too short for token
-
       if(token.size() <= textwidth-indent2){
         // token fits into a single line
         // insert a line break
@@ -588,7 +585,7 @@ wordWrap( const size_t indent1, const size_t indent2,
         res += "\n";
         indent = indent2;
        
-        line = token;
+        line = indent2str + token;
         if(curDelim == '\n' || curDelim == '\r'){
            res += line;
            line = indent2str;
@@ -606,7 +603,7 @@ wordWrap( const size_t indent1, const size_t indent2,
         indent = indent2;
         if(curDelim == '\n' || curDelim == '\r'){
            res += line;
-           line = indent2;
+           line = indent2str;
         }
       }   
     }
@@ -614,6 +611,7 @@ wordWrap( const size_t indent1, const size_t indent2,
   if(line.length() > indent){
      res += line; // append last line to res
   }
+ 
   return res;
 }
 
