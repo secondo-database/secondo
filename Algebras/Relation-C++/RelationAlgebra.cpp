@@ -78,6 +78,7 @@ RelationAlgebra.h header file.
 #include "NList.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1584,9 +1585,8 @@ template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
 
   ListExpr first = nl->First(args);
 
-  if(!listutils::isTupleStream(first)){
-    ErrorReporter::ReportError(expected);
-    return nl->TypeError();
+  if(!Stream<Tuple>::checkType(first)){
+    return listutils::typeError(expected);
   }
 
   ListExpr attrlist = nl->Second(nl->Second(first));
@@ -1604,6 +1604,7 @@ template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
       return nl->TypeError();
     }
   }
+
   if(!isOrel) {
     return nl->Cons(nl->SymbolAtom(Relation::BasicType()), nl->Rest(first));
   } else {
@@ -1624,10 +1625,9 @@ ListExpr tconsume_tm(ListExpr args)
 {
 
   if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
-    return nl->TypeError();
+    return listutils::typeError("one argument expected");
   }
-  if(!listutils::isTupleStream(nl->First(args))){
+  if(!Stream<Tuple>::checkType(nl->First(args))){
     ErrorReporter::ReportError("stream(tuple(...)) expecetd");
     return nl->TypeError();
   }
@@ -1664,18 +1664,19 @@ Consume(Word* args, Word& result, int message,
     rel->Clear();
   }
 
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, actual);
-  while (qp->Received(args[0].addr))
-  {
-    Tuple* tuple = (Tuple*)actual.addr;
-    rel->AppendTuple(tuple);
-    tuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, actual);
+  Stream<Tuple> stream(args[0]);
+
+  stream.open;
+
+  Tuple* tup;
+  while( (tup = stream.request()) != 0){
+      rel->AppendTuple(tup);
+      tup->DeleteIfAllowed();
   }
+  stream.close();
+
   result.setAddr(rel);
 
-  qp->Close(args[0].addr);
   return 0;
 }
 
@@ -1686,8 +1687,11 @@ Consume(Word* args, Word& result, int message,
 
 struct consumeLocalInfo
 {
+  consumeLocalInfo(Word& w): state(0), current(0), stream(w){}
+
   int state;      //0 = working, 1 = finished
   int current;    //current no of tuples read
+  Stream<Tuple> stream;
 };
 
 
@@ -1704,9 +1708,8 @@ Consume(Word* args, Word& result, int message,
     cli = (consumeLocalInfo*) local.addr;
     if ( cli ) delete cli;    //needed if consume used in a loop
 
-    cli = new consumeLocalInfo();
-    cli->state = 0;
-    cli->current = 0;
+    cli = new consumeLocalInfo(args[0]);
+ 
     local.setAddr(cli);
 
     GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
@@ -1715,19 +1718,16 @@ Consume(Word* args, Word& result, int message,
       rel->Clear();
     }
 
-    qp->Open(args[0].addr);
-    qp->Request(args[0].addr, actual);
-    while (qp->Received(args[0].addr))
-    {
-      Tuple* tuple = (Tuple*)actual.addr;
+    cli->stream.open();
+    Tuple* tuple;
+    while( (tuple = cli->stream.request())!=0){
       rel->AppendTuple(tuple);
       tuple->DeleteIfAllowed();
       cli->current++;
-      qp->Request(args[0].addr, actual);
     }
     result.setAddr(rel);
 
-    qp->Close(args[0].addr);
+    cli->stream.close();
     cli->state = 1;
     return 0;
   }
@@ -1749,7 +1749,7 @@ Consume(Word* args, Word& result, int message,
     pRes = (ProgressInfo*) result.addr;
 
 
-    if ( qp->RequestProgress(args[0].addr, &p1) )
+    if ( cli->stream.requestProgress( &p1) )
     {
       pRes->Card = p1.Card;
       pRes->CopySizes(p1);
@@ -1802,7 +1802,6 @@ Consume(Word* args, Word& result, int message,
   }
 
   return 0;
-
 }
 
 #endif
@@ -1913,18 +1912,15 @@ use "string" as the result type of the ~attr~ operation.
 ListExpr AttrTypeMap(ListExpr args)
 {
   if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("two arguments expected");
-    return nl->TypeError();
+    return listutils::typeError("two arguments expected");
   }
   ListExpr first = nl->First(args);
-  if(!listutils::isTupleDescription(first)){
-    ErrorReporter::ReportError("First arguments must be  tuple(...)");
-    return nl->TypeError();
+  if(!Tuple::checkType(first)){
+    return listutils::typeError("First arguments must be  tuple(...)");
   }
   ListExpr second = nl->Second(args);
-  if(nl->AtomType(second)!=SymbolType){
-    ErrorReporter::ReportError("second arguments ust be an attribute name");
-    return nl->TypeError();
+  if(!listutils::isSymbol(second)){
+    return listutils::typeError("second arguments ust be an attribute name");
   }
 
   string name = nl->SymbolValue(second);
@@ -2024,10 +2020,10 @@ that is
 ListExpr FilterTypeMap(ListExpr args)
 {
 
-  if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("two arguments expected");
-    return nl->TypeError();
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments expected");
   }
+
   if(!nl->HasLength(nl->First(args),2)){
     ErrorReporter::ReportError("the first argument "
                                " should be a (type, expression) pair");
@@ -2043,8 +2039,8 @@ ListExpr FilterTypeMap(ListExpr args)
     ErrorReporter::ReportError("the second argument "
                                " should be a (type, expression) pair");
     return nl->TypeError();
-
   }
+
   ListExpr map = nl->First(nl->Second(args));
   if(nl->IsAtom(map) || !nl->IsEqual(nl->First(map), Symbol::MAP()) ){
      ErrorReporter::ReportError("map expected as the second argument");
@@ -2175,9 +2171,9 @@ Filter(Word* args, Word& result, int message,
       if ( fli ) delete fli;
 
       fli = new FilterLocalInfo;
-        fli->current = 0;
-        fli->returned = 0;
-                fli->done = false;
+      fli->current = 0;
+      fli->returned = 0;
+      fli->done = false;
       local.setAddr(fli);
 
       qp->Open (args[0].addr);
