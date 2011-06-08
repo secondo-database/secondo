@@ -113,6 +113,7 @@ variance on a stream.
 #include "ListUtils.h"
 #include "Outerjoin.h"
 #include "DateTime.h"
+#include "Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -156,9 +157,8 @@ ListExpr GroupTypeMap(ListExpr args)
 
   ListExpr first = nl->First(args);
 
-  if(!listutils::isTupleStream(first)){
-    ErrorReporter::ReportError("tuple stream expected");
-    return nl->TypeError();
+  if(!Stream<Tuple>::checkType(first)){
+    listutils::typeError("tuple stream expected");
   }
 
   return nl->TwoElemList(
@@ -369,9 +369,9 @@ ListExpr SampleTypeMap(ListExpr args)
   ListExpr minSampleSize = nl->Second(args);
   ListExpr minSampleRate = nl->Third(args);
 
-  if(!listutils::isRelDescription(rel) ||
-     !listutils::isSymbol(minSampleSize,CcInt::BasicType()) ||
-     !listutils::isSymbol(minSampleRate, CcReal::BasicType())){
+  if( !Relation::checkType(rel) ||
+      !CcInt::checkType(minSampleSize)  ||
+      !CcReal::checkType(minSampleRate)){
     ErrorReporter::ReportError("rel x int x real [ x int] expected");
     return nl->TypeError();
   }
@@ -381,7 +381,7 @@ ListExpr SampleTypeMap(ListExpr args)
 
   if(len==4){
     ListExpr randSeed = nl->Fourth(args);
-    if(!listutils::isSymbol(randSeed,CcInt::BasicType())){
+    if(!CcInt::checkType(randSeed)){
       ErrorReporter::ReportError("rel x int x real [ x int] expected");
       return nl->TypeError();
     }
@@ -720,29 +720,26 @@ tuple object.
 */
 int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word t;
-  Tuple* tupleptr;
   int index;
   Attribute* res = (Attribute*)((qp->ResultStorage(s)).addr);
   result.setAddr(res);
 
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr,t);
+  Stream<Tuple> stream(args[0]);
+  stream.open();
+  Tuple* tuple = stream.request(); 
 
-  if (qp->Received(args[0].addr))
-  {
-    tupleptr = (Tuple*)t.addr;
+  if(tuple) {
     index = ((CcInt*)args[2].addr)->GetIntval();
     res->CopyFrom(
-      (const Attribute*)tupleptr->GetAttribute(index - 1));
-    tupleptr->DeleteIfAllowed();
+      (const Attribute*)tuple->GetAttribute(index - 1));
+    tuple->DeleteIfAllowed();
   }
   else
   {
     res->SetDefined(false);
   }
 
-  qp->Close(args[0].addr);
+  stream.close();
   return 0;
 }
 /*
@@ -801,9 +798,9 @@ ListExpr HeadTypeMap( ListExpr args )
   ListExpr stream = nl->First(args);
   ListExpr count = nl->Second(args);
 
-  if(( !listutils::isTupleStream(stream) &&
-       !listutils::isDATAStream(stream) ) ||
-     !listutils::isSymbol(count,CcInt::BasicType()) ){
+  if(( !Stream<Tuple>::checkType(stream) &&
+       !Stream<Attribute>::checkType(stream) ) ||
+     !CcInt::checkType(count) ){
     return listutils::typeError(err);
   }
   return stream;
