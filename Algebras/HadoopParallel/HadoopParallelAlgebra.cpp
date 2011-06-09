@@ -3099,24 +3099,35 @@ Some systems have a limitation of opened files simultaneously.
         //Delete the local file if it exists,
         //and copy the file to the local node
         localIndex = ci->getLocalNode();
-        if ((localIndex != tgi) &&
-            isLocalFileExist(localFilePath))
+        if (localIndex != tgi)
         {
-          cerr << "Delete the local exist file with the same name\n";
-          FileSystem::DeleteFileOrFolder(localFilePath);
-        }
-        int copyTimes = MAX_COPYTIMES;
-        do{
-          if (0 != system((scpCommand + nodeIP + ":" + rFilePath +
-              " " + localFilePath).c_str()))
-            cerr << "Warning! Copy remote file fail." << endl;
-        }while ((--copyTimes > 0) &&
-            !FileSystem::FileOrFolderExists(localFilePath));
-        if (copyTimes < 0)
-        {
-          cerr << "Warning! Cannot copy the remote file: "
-              << rFilePath << endl;
-          fileFound = false;
+/*
+Copy a file only when it's stored in a remote node.
+If there is a file exist with a same file name,
+then this file will be viewed as an unavailable file, and be deleted.
+
+In some cases, when the (localIndex == tgi), i.e. the file is
+in the local node, then nothing to be done, since the file is already found.
+
+*/
+          if (isLocalFileExist(localFilePath))
+          {
+            cerr << "Delete the local exist file with the same name\n";
+            FileSystem::DeleteFileOrFolder(localFilePath);
+          }
+          int copyTimes = MAX_COPYTIMES;
+          do{
+            if (0 != system((scpCommand + nodeIP + ":" + rFilePath +
+                " " + localFilePath).c_str()))
+              cerr << "Warning! Copy remote file fail." << endl;
+          }while ((--copyTimes > 0) &&
+              !FileSystem::FileOrFolderExists(localFilePath));
+          if (copyTimes < 0)
+          {
+            cerr << "Warning! Cannot copy the remote file: "
+                << rFilePath << endl;
+            fileFound = false;
+          }
         }
       }
     }
@@ -3612,7 +3623,7 @@ struct FDistributeInfo : OperatorInfo {
         "by using these hash values as their name's suffices. "
         "If the bucketNum is given, then the tuples are re-hashed "
         "by the bucketNum again to achieve an even partition. "
-        "Users can optionally keeping the partition attribute value"
+        "Users can optionally keeping the partition attribute value "
         "by setting the value of KPA(Keep Partition Attribute) "
         "as true,  which is set as false by default. "
         "Both type file and data file can be duplicated "
