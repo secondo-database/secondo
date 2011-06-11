@@ -35,9 +35,9 @@ June 2011 Jiamin Lu
 
 1 Abstract
 
-This document is used to explain the file-related operators of 
+This document explains the file-related operators of 
 the HadoopParallelAlgebra: ~fconsume~, ~ffeed~ and ~fdistribute~, 
-especially their fault-tolerance feature inside a computer cluster 
+and their fault-tolerance feature inside a computer cluster 
 environment. 
 
 The ~fconsume~ and ~fdistribute~ operators export a stream tuples 
@@ -59,64 +59,107 @@ a simple file system of the parallel Secondo.
 
 2 Basic functions
 
-2.1 fconsume and fdistribute Operators
+2.1 File Names
 
-The ~fconsume~ and ~fdistribute~ operators export a stream tuples 
-data into the file system. The syntax of ~fconsume~ operator is: 
+These file-related operators exchange data between Secondo database 
+and file systems, and we use the file names to identify these files. 
+Hence a string name must be given by the user to be the prefix name 
+of all these involving files. 
+
+As we explained in the last section, there are two kinds of files 
+are processed by these operators, a type file and data files. 
+The type file's name is fixed by connecting the given file name
+with a underscore and a string of "type". 
+E.g., if we set the name as FILENAME, then the type file's name is 
+FILENAME_type.
+
+A data file can use the given name as the file name directly. 
+However, in most cases, a Secondo relation may be distributed into 
+several data files, and all these files sharing a same prefix name. 
+To distinguish these data files, integer numbers 
+are given by user too to be the postfixes of these file names. 
+At most two integer numbers can be used for making the postfix of 
+filenames, since sometimes, a Secondo relation may be distributed
+into a matrix of files. E.g., a file name of FILENAME_0_1 means 
+this is a data file with the given name of FILENAME,
+and it locates in the 1th row, 2th column of a file matrix.
+
+
+2.2 Default File Path
+
+File paths of above three file-related operators are unavoidable. 
+If they are set, then the file path must be an absolute path. 
+However, we can also simple set it as a empty string, 
+and then we can use the default file path. 
+
+The default path can be set inside the SecondoConfig.ini file, 
+which normally is kept in the path \$SECONDO\_BUILD\_DIR/bin. 
+Inside the value, we can define a new parameter called as 
+*SecondoFilePath*, belong to the *ParallelSecondo* environment.
+The file path of this parameter also must be an absolute path. 
+If this parameter is not defined, then we will create a directory
+in \$SECONDO\_BUILD\_DIR/bin/parallel as the default file path.
+
+
+2.3 fconsume and fdistribute Operators
+
+~fconsume~ exports a stream of tuples into a data file, 
+it's syntax is:  
 
 ----
 (stream(tuple(...))
-  x fileName x filePath x [fileSuffix]
+  x fileName x filePath x [rowNum] x [colNum]
   x [typeLoc1] x [typeLoc2]
   x [targetLoc x dupTimes])
 -> bool
 ----
 
-and the syntax of ~fdistribute~ operator is: 
+~fdistribute~ distribute a stream of tuples into several data files, 
+and it's syntax is:  
 
 ----
 stream(tuple(...))
-x fileName x path x attrName
-x [nBuckets] x [KPA]
-x [typeNodeIndex1] x [typeNodeIndex2]
-x [targetIndex x dupTimes ]
+x fileName x path x partAttr x [rowNum]  ;
+x [nBuckets] x [KPA]                     ;
+x [typeNodeIndex1] x [typeNodeIndex2]    ;
+x [targetIndex x dupTimes ]              ;
 -> stream(tuple(fileSufix, value))
 ---- 
 
 Both operators export a stream tuples data into the file system. 
-Therefore the first three parameters of both operators are same: 
-a tuple stream, fileName and filePath. The filePath can be set as 
-empty, if so then a default file path will be used. 
+Therefore they both accept a stream of tuples, a fileName and
+the file path. 
 
-After the exportation, there are two kinds of files are produced. 
-One is called as type file, which is a text file, and use nested-list 
-format to keep the schema of the input tuple stream. The name of the 
-type file is set as *fileName\_type*. Both operators only produce one 
-type file. 
+Besides these necessary parameters, ~fconsume~ also accepts 
+the rowNum and fileSuffix as optional parameters. 
+If they are not defined, then the data file will be named 
+by the given fileName directly. Or else the data file's name is 
+composed by fileName, rowNum and colNum together with underscores.
+The rowNum and colNum are not dependent from each other. 
+If only one integer is given, then this number can be viewed as 
+a row number or a column number.
 
-The other kind of files is called as data file, 
-which is a binary file, and keeps all binary data of the tuples. 
-The ~fconsume~ operator produces one data file, 
-while the ~fdistribute~ may produces several data files. 
-All these files names start by the given fileName parameter, 
-and may end with some integer suffices. 
-In ~fconsume~ operator, this integer suffix is an optional value, 
-if it's given, then the data file name will be *fileName\_fileSuffix*.
-However, in ~fdistribute~ operator, files suffices are inevitable. 
-Tuples are classified according to a specific attribute value, 
-and all tuples written into a same data file can calculate a same 
-integer value by using the attribute's HashValue method, 
-which is set to be the file's suffix. 
-If the optional nBuckets parameter is given, then these tuples will 
-be re-hashed based on the attribute value and the bucket number, 
-to achieve an even partition.
+The ~fdistribute~ requires another necessary parameter called 
+partAttr. Tuples are divided into different data files based 
+on the values of this attribute. The type of the partAttr must 
+provides an available HashValue function, since we reply on this 
+function to calculate an integer number of the tuple. 
+In some cases, dividing the tuples based on partAttr's hash values
+directly is not a good idea, since it may produce extreme uneven 
+partition of the tuples. Therefore, the user can set the optional 
+parameter nBucket to re-hash these tuples, and get a new hash value. 
+These hash values are used as the suffix numbers of the data files 
+that produced by ~fdistribute~. 
+In case the matrix file distribution, the optional integer parameter 
+rowNum can also be set, and it will be set in data files' names 
+between the fileName and the suffix number. 
 
-The ~fconsume~ operator export every attribute value of each tuple 
+The ~fconsume~ operator export the complete value of tuples 
 into the data file, but the ~fdistribute~ operator can choose 
-whether keeping the partition attribute or not by setting the 
+whether keeping the partition attribute or not, by setting the 
 optional parameter KPA(Keep Partition Attribute). 
 Since sometimes, the partition attribute is a temporary attribute. 
-By default, the KPA is set as false.  
+By default, the KPA is set as false.
 
 Above functions are called as local mode of these two operators, 
 users can use these two operators on a discrete computer too. 
@@ -140,6 +183,8 @@ Since the fileSuffix is set as empty, the data file doesn't have
 any suffix number. At the same time, all the parameters for 
 file duplicating are set as empty, therefore these files won't be 
 duplicated to any other machines. 
+
+
 
 2.2 ffeed Operator
 
@@ -173,20 +218,6 @@ and are divided by semicolons. A query like:
 
 can feed in the files that we created in the last example.
 
-2.3 Default File Path
-
-File paths of above three file-related operators are unavoidable. 
-If they are set, then the file path must be an absolute path. 
-However, we can also simple set it as a empty string, 
-and then we can use the default file path. 
-
-The default path can be set inside the SecondoConfig.ini file, 
-which normally is kept in the path \$SECONDO\_BUILD\_DIR/bin. 
-Inside the value, we can define a new parameter called as 
-*SecondoFilePath*, belong to the *ParallelSecondo* environment.
-The file path of this parameter also must be an absolute path. 
-If this parameter is not defined, then we will create a directory
-in \$SECONDO\_BUILD\_DIR/bin/parallel as the default file path.
 
 
 3 Fault-tolerance in cluster
