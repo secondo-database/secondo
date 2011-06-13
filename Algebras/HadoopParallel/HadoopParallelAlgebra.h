@@ -450,6 +450,7 @@ then the default path cannot be used anymore.
 */
   inline string getLocalPath()
   {
+
     string confPath = string(getenv("SECONDO_CONFIG"));
     return SmiProfile::GetParameter("ParallelSecondo",
           "SecondoFilePath","", confPath);
@@ -769,7 +770,7 @@ private:
 
   //data remote variables
   int firstDupTarget, dupTimes, localIndex;
-  string cnIP;
+  string cnIP;  //current node IP
   clusterInfo *ci;
   bool* copyList;
 

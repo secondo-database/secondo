@@ -2118,7 +2118,7 @@ struct FConsumeInfo : OperatorInfo {
         "x [ int x int ] "
         "-> bool";
     syntax  = "stream(tuple( ... )) "
-        "fconsume[ fileName, filePath, [fileSuffix]; "
+        "fconsume[ fileName, filePath, [rowNum], [fileSuffix]; "
         "[typeNode1] x [typeNode2]; "
         "[targetIndex x dupTimes] ] ";
     meaning =
@@ -3192,27 +3192,6 @@ in the local node, then nothing to be done, since the file is already found.
 
 This operator carries out a Hadoop join operation in Secondo.
 
-*/
-
-struct HdpJoinInfo : OperatorInfo {
-
-  HdpJoinInfo() : OperatorInfo(){
-    name = "hadoopjoin";
-    signature =
-        "mq1Stream x mq2Stream x machineArray x masterIndex"
-        "x reduceNum x resultName x rqMap"
-        "-> stream(tuple((mIndex int)(pIndex int)))";
-    syntax = "_ _ hadoopjoin[_, _, _, _, _, _; fun]";
-    meaning =
-        "Evaluating parallel join operation on Secondo platform "
-        "deployed in a cluster, "
-        "by calling a generic Hadoop join program";
-  }
-};
-
-/*
-7.1 Type mapping
-
 The operator maps:
 
 ----
@@ -3260,139 +3239,167 @@ The parameter rtNum is used to define how many reduce tasks we want
 to use in the Hadoop job. The number of the map tasks are defined
 by the amount of slave nodes in the machineArr.
 
+
+Update in 10/06/2010
+Replace the requirement for Partition attribute
+by denoting a partition basis attribute,
+if this attribute's type provides the HashValue function
+required by ~fdistribute~ operator.
+
+At the same time,
+the machineArray and masterIndex are not required any more,
+since we use the PARALLEL\_SECONDO\_SLAVES list.
+
+Now the operator maps
+
+----
+stream(tuple(T1) x stream(tuple(T2))
+x partAttr1 x partAttr2 x partitionNum x resultName
+x (map stream(tuple(T1)) stream(tuple(T2) stream(tuple(T1 T2)))))
+-> stream(tuple((MIndex int)(PIndex int)))
+----
+
+*/
+
+struct HdpJoinInfo : OperatorInfo {
+
+  HdpJoinInfo() : OperatorInfo(){
+    name = "hadoopjoin";
+    signature =
+        "(stream(tuple(T1)) x stream(tuple(T2)) x "
+        " partAttr1 x partAttr2 x int x string x "
+        " (map stream(tuple(T1)) "
+        "  stream(tuple(T2) stream(tuple(T1 T2)))))"
+        "-> stream(tuple(int int))";
+    syntax = "stream(tuple(T1) stream(tuple(T2)) "
+        "hadoopjoin[partAttr1, partAttr2, partitionNum, resultName; "
+        "joinQuery]";
+    meaning =
+        "Evaluating a join operation on parallel Secondo "
+        "by invoking a generic Hadoop join job. "
+        "The join procedure is processed by several computers "
+        "within a cluster simultaneously. "
+        "The result tuples are encapsulated into several files, "
+        "stored on different nodes. "
+        "The output stream of this operator denotes the locations "
+        "of these result data files.";
+  }
+};
+
+/*
+7.1 Type mapping
+
 */
 
 ListExpr hdpJoinTypeMap(ListExpr args)
 {
+  string lengErr = "Operator hadoopjoin expects a list "
+      "of seven arguments. ";
+  string typeErr = "operator hadoopjoin expects "
+      "(stream(tuple(T1)), stream(tuple(T2)), "
+      "partAttr1, partAttr2, int, int, string,"
+      "(map (stream(tuple(T1))) stream(tuple(T2))"
+      "  stream(tuple(T1 T2))) )";
+  string err1 =
+      "ERROR! Infeasible evaluation in TM for attribute ";
+
   NList l(args);
-  int len = l.length();
 
-  if (len == 7)
+  if (l.length() != 7)
+    return l.typeError(lengErr);
+
+  string ss[2] = {"", ""};  // nested list of input streams
+  string an[2] = {"", ""};  // attribute name
+  //Both input are tuple streams,
+  //and the partition attribute is included in respective stream
+  for (int argIndex = 1; argIndex <= 2; argIndex++)
   {
-    string typeErr = "operator hadoopjoin expects "
-        "stream(tuple(T1)), stream(tuple(T2)), "
-        "(array(string), int, int, "
-        "(map (stream(tuple(T1))) stream(tuple(T2)) "
-        "  stream(tuple(T1 T2))))";
-    string err2 = "operator hadoopjoin ecpects "
-        "both input streams contain attribute Partition";
-    string err3 =
-        "ERROR! Infeasible evaluation in TM for attribute ";
-
-    string streamStr[2] = {"", ""};
-    for (int argIndex = 1; argIndex <= 2; argIndex++)
-    {
-      NList mapStream = l.elem(argIndex).first();
-      NList attr;
-      if (!mapStream.checkStreamTuple(attr))
-        return l.typeError(typeErr);
-      streamStr[argIndex - 1] =
-          l.elem(argIndex).second().convertToString();
-    }
-
-    if (!(l.third().first().first().isSymbol("array") &&
-       l.third().first().second().isSymbol(CcString::BasicType())))
+    NList attrList;
+    NList streamList = l.elem(argIndex).first();
+    if (!streamList.checkStreamTuple(attrList))
       return l.typeError(typeErr);
 
-    if (!l.fourth().first().isSymbol(CcInt::BasicType()))
+    NList partAttr = l.elem(argIndex + 2).first();
+    if (!partAttr.isAtom())
       return l.typeError(typeErr);
 
-    if (!l.fifth().first().isSymbol(CcInt::BasicType()))
+    ListExpr attrType;
+    string attrName = partAttr.str();
+    int attrIndex = listutils::findAttribute(
+        attrList.listExpr(), attrName, attrType);
+    if (attrIndex <= 0)
       return l.typeError(typeErr);
 
-    if (!l.sixth().first().isSymbol(CcString::BasicType()))
-      return l.typeError(typeErr);
-    NList rnList;
-    if (!QueryProcessor::GetNLArgValueInTM(
-          l.sixth().second(), rnList))
-      return l.typeError(err3 + "resultName");
-    string resultName = rnList.str();
-
-    string mapStr = l.elem(7).second().fourth().convertToString();
-    NList mapList = l.elem(7).first();
-    NList attrAB, attr[2];
-    if (mapList.first().isSymbol(Symbol::MAP())
-        && mapList.second().checkStreamTuple(attr[0])
-        && mapList.third().checkStreamTuple(attr[1])
-        && mapList.fourth().checkStreamTuple(attrAB))
-    {
-      //Confirmation of Cell and Partition attributes
-      bool haveCP[2] = {false, false};
-      for (int i = 0; i < 2; i++){
-        if (!IsTupleDescription(attr[i].listExpr()))
-          return l.typeError(typeErr);
-        NList rest = attr[i];
-        while (!rest.isEmpty()){
-          NList a = rest.first();
-          rest.rest();
-          if (a.second().isSymbol(CcInt::BasicType())){
-            string aName = a.first().convertToString();
-            if ("Partition" ==
-                  aName.substr(0,aName.find_first_of("_"))){
-                haveCP[i] = true;
-            }
-          }
-        }
-      }
-      if (!(haveCP[0] && haveCP[1]))
-        return l.typeError(err2);
-
-      // Write the join result type into local default path,
-      // in case the following operators need.
-      NList joinResult =
-          NList(NList(Relation::BasicType()),
-                NList(NList(Tuple::BasicType()), NList(attrAB)));
-      string typeFileName = FileSystem::GetCurrentFolder();
-      FileSystem::AppendItem(typeFileName, "parallel");
-      FileSystem::AppendItem(typeFileName, resultName + "_type");
-      ofstream typeFile(typeFileName.c_str());
-      if (!typeFile.good())
-      {
-        cerr << "Create typeInfo file Result_type "
-            "in default parallel path error!" << endl;
-      }
-      else
-      {
-        //The accepted input is a stream tuple
-        typeFile << joinResult.convertToString() << endl;
-        typeFile.close();
-      }
-      cerr << "\nSuccess created type file: "
-          << typeFileName << endl;
-
-      // result type
-      NList a1(NList("mIndex"), NList(CcInt::BasicType()));
-      NList a2(NList("pIndex"), NList(CcInt::BasicType()));
-
-      NList result(NList(Symbol::STREAM()),
-                   NList(NList(Tuple::BasicType()),
-                         NList(a1, a2)));
-
-      return NList(NList(Symbol::APPEND()),
-                   NList(NList(streamStr[0], true, true),
-                         NList(streamStr[1], true, true),
-                         NList(mapStr, true, true)),
-                   result).listExpr();
-    }
-    else
-      return l.typeError(typeErr);
+    ss[argIndex - 1] = l.elem(argIndex).second().convertToString();
+    an[argIndex - 1] = attrName;
   }
-  else
-    return l.typeError("Operator hadoop expects a list "
-        "of nine arguments");
+
+  // Partition scale number
+  if (!l.fifth().first().isSymbol(CcInt::BasicType()))
+    return l.typeError(typeErr);
+
+  // Result file name
+  if (!l.sixth().first().isSymbol(CcString::BasicType()))
+    return l.typeError(typeErr);
+
+  NList rnList;
+  if (!QueryProcessor::GetNLArgValueInTM(
+        l.sixth().second(), rnList))
+    return l.typeError(err1 + " resultName");
+  string resultName = rnList.str();
+
+  string mapStr = l.elem(7).second().fourth().convertToString();
+  NList mapList = l.elem(7).first();
+
+  NList attrAB;
+  if (! (mapList.first().isSymbol(Symbol::MAP())
+      && mapList.fourth().checkStreamTuple(attrAB)))
+    return l.typeError(typeErr);
+
+    // Write the join result type into local default path,
+    // in case the following operators need.
+    NList joinResult =
+        NList(NList(Relation::BasicType()),
+              NList(NList(Tuple::BasicType()), NList(attrAB)));
+    string typeFileName =
+        getFilePath("", (resultName + "_type"), true);
+    ofstream typeFile(typeFileName.c_str());
+    if (!typeFile.good())
+      cerr << "Create typeInfo file Result_type "
+          "in default parallel path error!" << endl;
+    else
+    {
+      //The accepted input is a stream tuple
+      typeFile << joinResult.convertToString() << endl;
+      typeFile.close();
+    }
+    cerr << "\nSuccess created type file: "
+        << typeFileName << endl;
+
+    // result type
+    NList a1(NList("MIndex"), NList(CcInt::BasicType()));
+    NList a2(NList("PIndex"), NList(CcInt::BasicType()));
+
+    NList result(
+        NList(Symbols::STREAM()),
+          NList(NList(Tuple::BasicType()),
+            NList(
+              NList(NList("MIndex"), NList(CcInt::BasicType())),
+              NList(NList("PIndex"), NList(CcInt::BasicType())))));
+
+    NList appList;
+    appList.append(NList(ss[0], true, true));
+    appList.append(NList(ss[1], true, true));
+    appList.append(NList(mapStr, true, true));
+    appList.append(NList(an[0], true, false));
+    appList.append(NList(an[1], true, false));
+
+    return NList(NList(Symbol::APPEND()), appList, result).
+        listExpr();
 }
 
 /*
 7.2 Value mapping
-
-Operator takes the first array parameter,
-filter out the master node by the second masterIndex parameter,
-and gives a nodes name list separated by slash to the hadoop program.
-If the masterIndex is less than 1, all nodes in the array
-are involved in the operation.
-
-Besides, take the query strings together with the number of reduce
-tasks, and also send them to the hadoop program as arguments,
 
 */
 
@@ -3405,63 +3412,39 @@ int hdpJoinValueMap(Word* args, Word& result,
   {
     case OPEN:{
       //0 take the parameters
-      Array *machines = 0;
-      int masterIndex = -1;
 
-      //0.1 make up the nodes list and the master node
-      machines = (Array*)args[2].addr;
-      masterIndex = ((CcInt*)args[3].addr)->GetIntval();
-      int maSize = machines->getSize();
-      string masterName;
-      stringstream slSS, siSS;
-      for (int i = 1; i <= maSize; i++)
-      {
-        string nodeName =
-            ((CcString*)machines->
-                getElement(i - 1).addr)->GetValue();
-        if (masterIndex == i)
-          masterName = nodeName;
-        else{
-          slSS << nodeName << "/";
-          siSS << i << "/";
-        }
-      }
-      string slaveList = slSS.str();
-      slaveList = slaveList.substr(0, slaveList.size() - 1);
-      string slaveIndexList = siSS.str();
-      slaveIndexList =
-          slaveIndexList.substr(0, slaveIndexList.size() - 1);
-
-      //0.2 assume the operation happens on
+      //0.1 assume the operation happens on
       //all nodes' Secondo databases with a same name
       string dbName =
           SecondoSystem::GetInstance()->GetDatabaseName();
 
-      //0.3 get other arguments
+      //0.2 set other arguments
       int rtNum = ((CcInt*)args[4].addr)->GetIntval();
       string rName = ((CcString*)args[5].addr)->GetValue();
       string mrQuery[3] = {
           ((FText*)args[7].addr)->GetValue(),
           ((FText*)args[8].addr)->GetValue(),
-          ((FText*)args[9].addr)->GetValue(),
+          ((FText*)args[9].addr)->GetValue()
+      };
+      string attrName[2] = {
+          ((CcString*)args[10].addr)->GetValue(),
+          ((CcString*)args[11].addr)->GetValue()
       };
 
       //1 evaluate the hadoop program
       stringstream queryStr;
       queryStr << "hadoop jar HdpSec.jar dna.HSJoin \\\n"
-        << "\"" << masterName << "\" "
-        << masterIndex << " "
-        << "\"" << slaveList << "\" "
-        << "\"" << slaveIndexList << "\" "
         << dbName << " \\\n"
         << "\"" << tranStr(mrQuery[0], "\"", "\\\"") << "\" \\\n"
+        << "\"" << attrName[0] << "\" \\\n"
         << "\"" << tranStr(mrQuery[1], "\"", "\\\"") << "\" \\\n"
+        << "\"" << attrName[1] << "\" \\\n"
         << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
         << rtNum << " " << rName << endl;
       int rtn;
-      cout << queryStr.str() << endl;
-//      rtn = system("hadoop dfs -rmr OUTPUT");
-//      rtn = system(queryStr.str().c_str());
+//      cout << queryStr.str() << endl;
+      rtn = system("hadoop dfs -rmr OUTPUT");
+      rtn = system(queryStr.str().c_str());
 
       //2 get the result file list
       if (hjli)
@@ -3470,8 +3453,8 @@ int hdpJoinValueMap(Word* args, Word& result,
 
       FILE *fs;
       char buf[MAX_STRINGSIZE];
-      fs = popen("cat pjResult", "r");
-//      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+//      fs = popen("cat pjResult", "r");  //Used for debug only
+      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
       if (NULL != fs)
       {
         while(fgets(buf, sizeof(buf), fs))
@@ -4094,7 +4077,6 @@ bool FDistributeLocalInfo::startCloseFiles()
       copyList[((ti - 1)%cLen + 1)] = true;
 
     localIndex = ci->getLocalNode();
-    cnIP = ci->getIP(localIndex);
     if (localIndex < 1)
     {
       cerr << "ERROR! Cannot find the local position " << endl
@@ -4103,6 +4085,7 @@ bool FDistributeLocalInfo::startCloseFiles()
       ci->print();
       return false;
     }
+    cnIP = ci->getIP(localIndex);
   }
 
   return true;
