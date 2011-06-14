@@ -1208,7 +1208,7 @@ Copy ~MRegion~ instance.
 Return the name of the Secondo type.
 
 */
-  static string BasicType(){ return "movingregion"; }
+  static string BasicType(){ return "mregion"; }
    static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
    }
