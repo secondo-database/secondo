@@ -2750,7 +2750,7 @@ static bool CheckIRegion(ListExpr type, ListExpr& errorInfo) {
     if (MRA_DEBUG) cerr << "CheckIRegion() called" << endl;
 
   return nl->IsEqual(type, IRegion::BasicType())
-      || nl->IsEqual(type, IRegion::BasicType());
+      || nl->IsEqual(type, "intimeregion"); // backward-compatibility!
 }
 
 /*
@@ -9406,7 +9406,7 @@ static const string addspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mregion uregion) -> mregion</text--->"
     "    <text>adduregion(_, _)</text--->"
-    "    <text>Add a Uregion to a Movingregion,"
+    "    <text>Add a uregion to a mregion,"
     "if all the periods are disjoint.</text--->"
     "    <text>query adduregion( msnow ,interpolate(thecenter, "
     "thecenter translate[100.0, -1000.0], theRange(theInstant(2003, 11, 20, 9),"
@@ -9470,7 +9470,7 @@ static const string bboxspec =
 static const string bbox2dspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>uregion -> rect,\n"
-    "intimeregion -> rect, \n"
+    "iregion -> rect, \n"
     "mregion -> rect</text--->"
     "    <text>bbox2d( _ )</text--->"
     "    <text>Returns the 2d bounding box of the "
