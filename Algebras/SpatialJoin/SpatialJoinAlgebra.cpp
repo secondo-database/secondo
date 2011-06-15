@@ -525,6 +525,8 @@ SpatialJoin2LocalInfo<dim>::scanStream( int attrIndex,
   int tupleNo = 0;
   double size[dim];
   memset(size, 0, sizeof(double)*dim);
+  string undefErr = "One bounding box is not defined, "
+      "check the data set please.";
 
   if (r[loc].isRel)
   {
@@ -538,12 +540,19 @@ SpatialJoin2LocalInfo<dim>::scanStream( int attrIndex,
       Rectangle<dim>
           tBox = ((StandardSpatialAttribute<dim>*) nextTup
               ->GetAttribute(attrIndex))->BoundingBox();
-      for(unsigned i = 0; i < dim; i++)
-        size[i] += tBox.MaxD(i) - tBox.MinD(i);
-      if (!MBR)
-        MBR = new Rectangle<dim> (tBox);
+
+      if (!tBox.IsEmpty())
+      {
+        for(unsigned i = 0; i < dim; i++)
+          size[i] += tBox.MaxD(i) - tBox.MinD(i);
+        if (!MBR)
+          MBR = new Rectangle<dim> (tBox);
+        else
+          *MBR = tBox.Union(*MBR);
+      }
       else
-        *MBR = tBox.Union(*MBR);
+        cerr << undefErr << endl;
+
       nextTup->DeleteIfAllowed();
       tupleNo++;
       nextTup = iter->GetNextTuple();
@@ -565,12 +574,17 @@ SpatialJoin2LocalInfo<dim>::scanStream( int attrIndex,
       Rectangle<dim> tBox =
           ((StandardSpatialAttribute<dim>*)nextTup
               ->GetAttribute(attrIndex))->BoundingBox();
-      for(unsigned i = 0; i < dim; i++)
-        size[i] += tBox.MaxD(i) - tBox.MinD(i);
-      if (!MBR)
-        MBR = new Rectangle<dim>(tBox);
+      if (!tBox.IsEmpty())
+      {
+        for(unsigned i = 0; i < dim; i++)
+          size[i] += tBox.MaxD(i) - tBox.MinD(i);
+        if (!MBR)
+          MBR = new Rectangle<dim>(tBox);
+        else
+          *MBR = tBox.Union(*MBR);
+      }
       else
-        *MBR = tBox.Union(*MBR);
+        cerr << undefErr << endl;
 
       nextTup->DeleteIfAllowed();
       qp->Request(r[loc].streamWord.addr, streamTupleWord);
