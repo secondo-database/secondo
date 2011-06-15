@@ -142,6 +142,12 @@ Close Progress
 
 
 
+   std::ostream& print(std::ostream& o){
+      o << "stream[ source = " << (void*) source << ", opened = " 
+        << opened << ", qp = " << (void*) qp << "]";
+      return o;
+   }
+
 
 
   private:
