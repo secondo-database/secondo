@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -47,7 +47,7 @@ August 2002 Ulrich Telle Added methods to set and get the current algebra level.
 
 April 29 2003 Hoffmann Added methods for saving and restoring single objects.
 
-April 2004 Hoffmann Changed some implementation details, so that the list databases 
+April 2004 Hoffmann Changed some implementation details, so that the list databases
 command is available under Windows XP.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -118,7 +118,7 @@ Creates a scan on the table of database names and returns the names of existing 
   char dbNametmp[1024];
   list = nl->TheEmptyList();
   unsigned int i=0, j=0;
-  
+
   if (SmiEnvironment::ListDatabases( dbName ))
   {
     while ( i < dbName.length() )
@@ -213,7 +213,7 @@ SI_Error
 SecondoSystem::OpenDatabase( const string& dbname )
 {
 /*
-Opens a database with name ~dbname~. 
+Opens a database with name ~dbname~.
 
 Precondition: dbState = dbClosed.
 
@@ -224,7 +224,7 @@ Precondition: dbState = dbClosed.
     cerr << " OpenDatabase: database is already open!" << endl;
     exit( 0 );
   }
-  
+
   ok = SmiEnvironment::OpenDatabase( dbname );
   if ( ok == ERR_NO_ERROR )
   {
@@ -234,7 +234,7 @@ Precondition: dbState = dbClosed.
       SmiEnvironment::CommitTransaction();
     }
     else
-    { 
+    {
       SmiEnvironment::AbortTransaction();
       SmiEnvironment::CloseDatabase();
       ok = ERR_SYSTEM_ERROR;
@@ -342,7 +342,7 @@ Precondition: dbState = dbOpen.
 }
 
 bool
-SecondoSystem::SaveDatabase ( const string& filename, 
+SecondoSystem::SaveDatabase ( const string& filename,
                               const DerivedObj& derivedObjs )
 {
 /*
@@ -377,9 +377,9 @@ Precondition: dbState = dbOpen.
 
   ListExpr list;
   list = nl->TwoElemList( typeExpr, objExpr );
-  list = nl->Cons( 
+  list = nl->Cons(
            nl->SymbolAtom("DATABASE"),
-           nl->Cons( nl->SymbolAtom( GetDatabaseName() ), 
+           nl->Cons( nl->SymbolAtom( GetDatabaseName() ),
                      list ) );
   return (nl->WriteToFile( filename, list ));
 }
@@ -408,7 +408,7 @@ Precondition: dbState = dbOpen.
 
 */
   ListExpr list;
-  
+
   int rc = 0;
 
   if ( testMode && !IsDatabaseOpen() )
@@ -416,7 +416,7 @@ Precondition: dbState = dbOpen.
     cerr << " RestoreObjectFromFile: database is not open!" << endl;
     exit( 0 );
   }
-  else 
+  else
   {
     cout << "Reading file ..." << endl;
     if ( !nl->ReadFromFile( filename, list ) )
@@ -430,8 +430,8 @@ Precondition: dbState = dbOpen.
           return 3; // error in list structure
       }
       string name = nl->SymbolValue(nl->Second(list));
-      cmsg.warning() << "Object name of the file '" 
-                     << name <<  "' changed to '" 
+      cmsg.warning() << "Object name of the file '"
+                     << name <<  "' changed to '"
                      << objectname << "'!" << endl;
       cmsg.send();
       nl->Replace( nl->Second(list), nl->SymbolAtom(objectname) );
@@ -441,8 +441,8 @@ Precondition: dbState = dbOpen.
     {
       rc = 3; // List structure invalid
     }
-    else if ( RestoreObjects( 
-                 nl->TwoElemList( nl->SymbolAtom("OBJECTS"), list ), 
+    else if ( RestoreObjects(
+                 nl->TwoElemList( nl->SymbolAtom("OBJECTS"), list ),
                  errorInfo ) )
     {
       rc = 0; // object successfully restored
@@ -503,7 +503,7 @@ Precondition: dbState = dbClosed.
 Tests the syntax of the database file named ~filename~.
 
 */
-    if ( nl->ExprLength( list ) == 4 || 
+    if ( nl->ExprLength( list ) == 4 ||
          nl->ExprLength( list ) == 8 /* Keep compatibility with old files */)
     {
       if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
@@ -511,14 +511,14 @@ Tests the syntax of the database file named ~filename~.
 //         rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
         string oldname;
         nl->WriteToString(oldname, nl->Second(list));
-        cmsg.warning() << "Original database name '" 
-                       << oldname <<  "' was changed to '" 
+        cmsg.warning() << "Original database name '"
+                       << oldname <<  "' was changed to '"
                        << dbname << "'!" << endl;
         cmsg.send();
       }
       if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
       {
-        list = nl->Rest( nl->Rest( list ) ); 
+        list = nl->Rest( nl->Rest( list ) );
 
         if( nl->ExprLength( list ) == 2 )
         {
@@ -567,19 +567,19 @@ Load database types and objects from file named ~filename~.
         else
         {
           // List structure invalid (Types or objects missing)
-          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE;
         }
       }
       else
       {
         // List structure invalid (Database info missing)
-        rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
+        rc = ERR_IN_LIST_STRUCTURE_IN_FILE;
       }
     }
     else
     {
       // List structure invalid (List too short)
-      rc = ERR_IN_LIST_STRUCTURE_IN_FILE; 
+      rc = ERR_IN_LIST_STRUCTURE_IN_FILE;
     }
     nl->Destroy( listFile );
   }
@@ -669,8 +669,7 @@ SecondoSystem::RestoreTypes( ListExpr types,
 
 bool
 SecondoSystem::RestoreObjects( ListExpr objects,
-                               ListExpr& errorInfo )
-{
+                               ListExpr& errorInfo ){
   ListExpr first = nl->Empty();
   ListExpr typeExpr = nl->Empty();
   ListExpr valueList = nl->Empty();
@@ -684,8 +683,7 @@ SecondoSystem::RestoreObjects( ListExpr objects,
 
   cout << "Restoring objects ..." << endl;
 
-  while ( !nl->IsEmpty( objects) )
-  {
+  while ( !nl->IsEmpty( objects) ) {
     SecondoSystem::BeginTransaction();
     first = nl->First( objects );
     objects = nl->Rest( objects );
@@ -694,32 +692,25 @@ SecondoSystem::RestoreObjects( ListExpr objects,
           nl->IsEqual( nl->First( first ), "OBJECT" ) &&
           nl->IsAtom( nl->Second( first ) ) &&
          (nl->AtomType( nl->Second( first ) ) == SymbolType ) &&
-         !nl->IsAtom( nl->Third( first ) ) )
-    {
+         !nl->IsAtom( nl->Third( first ) ) ) {
       objectName = nl->SymbolValue( nl->Second( first ) );
       cout << "  " << objectName << " ... ";
       if ( !nl->IsEmpty( nl->Third( first ) ) &&
             nl->IsAtom( nl->First( nl->Third( first ) ) ) &&
-           (nl->AtomType( nl->First( nl->Third( first ) ) ) == SymbolType ) )
-      {
+           (nl->AtomType( nl->First( nl->Third( first ) ) ) == SymbolType ) ) {
         typeName = nl->SymbolValue( nl->First( nl->Third( first ) ) );
-      }
-      else
-      {
+      } else {
         typeName = "";
       }
       typeExpr = nl->Fourth( first );
       valueList = nl->Fifth( first );
 
-      if ( catalog->KindCorrect( typeExpr, errorInfo ) )
-      {
-        value = catalog->InObject( typeExpr, valueList, 
+      if ( catalog->KindCorrect( typeExpr, errorInfo ) ) {
+        value = catalog->InObject( typeExpr, valueList,
                                    objno, errorInfo, correctObj );
-        if ( correctObj )
-        {
+        if ( correctObj ) {
           if ( !catalog->InsertObject( objectName, typeName, typeExpr,
-                                  value, true ) )
-          {
+                                  value, true ) ){
             // doubly defined object
             errorInfo = nl->Append( errorInfo,
                           nl->ThreeElemList(
@@ -727,9 +718,7 @@ SecondoSystem::RestoreObjects( ListExpr objects,
                             nl->IntAtom( objno ),
                             nl->Second( first ) ) );
           }
-        }
-        else
-        {
+        } else {
           // wrong list representation
           correct = false;
           errorInfo = nl->Append( errorInfo,
@@ -738,11 +727,10 @@ SecondoSystem::RestoreObjects( ListExpr objects,
                           nl->IntAtom( objno ),
                           nl->Second( first ) ) );
         }
-      }
-      else
-      {
+      } else {
         // wrong type expression
         correct = false;
+        correctObj = false;
         errorInfo = nl->Append( errorInfo,
                       nl->FourElemList(
                         nl->IntAtom( 52 ),
@@ -750,20 +738,26 @@ SecondoSystem::RestoreObjects( ListExpr objects,
                         nl->Second( first ),
                         typeExpr ));
       }
-    }
-    else
-    {
+    } else {
       // error in object definition
       correct = false;
+      correctObj = false;
       errorInfo = nl->Append( errorInfo,
                     nl->TwoElemList(
                       nl->IntAtom( 50 ),
                       nl->IntAtom( objno ) ) );
-    } // if
-    
+    }
+
     SecondoSystem::CommitTransaction();
-    cout << "processed." << endl;
-     
+    cout << "processed";
+
+    if(correctObj){
+      cout << " and succeeded." << endl;
+    } else {
+      cout << " but FAILED!" << endl;
+    }
+
+
   } // while
 
   return (correct);
@@ -802,12 +796,12 @@ SecondoSystem::~SecondoSystem()
   bool shutdownOk = false;
   if ( initialized )
   {
-    try 
-    { 
+    try
+    {
       ShutDown();
       shutdownOk = true;
-    } 
-    catch (SecondoException e) 
+    }
+    catch (SecondoException e)
     {
       string smiErrors;
       SmiEnvironment::GetLastErrorCode( smiErrors );
@@ -816,13 +810,13 @@ SecondoSystem::~SecondoSystem()
       cmsg.send();
     }
   }
-  
+
   delete catalog;
   delete queryProcessor;
   delete algebraManager;
-  
+
   instance = 0;
-  
+
   if (!shutdownOk)
     throw SecondoException("Failure during destruction of SecondoSystem");
 }
@@ -833,7 +827,7 @@ SecondoSystem::CreateInstance( GetAlgebraEntryFunction f)
   if (!instance) {
     instance = new SecondoSystem(f);
     return true;
-  } 	    
+  }
   return false;
 }
 
