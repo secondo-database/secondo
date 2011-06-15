@@ -245,14 +245,22 @@ are meant to be passed to the Secondo kernel.
 
 Therefore, we have three kinds of spelling within the optimizer:
 
-  * ~ExternalSpelling~: The original spelling of identifiers, as they are known within the Secondo Catalog.
+  * ~ExternalSpelling~: The original spelling of identifiers, as they are known
+within the Secondo Catalog.
 
-  * ~InternalSpelling~: A representation used to store the ExternalSpelling within Prolog facts without confusing the Prolog system. It is ~only~ used to translate between ~DownCasedSpelling~ and ~ExternalSpelling~.
+  * ~InternalSpelling~: A representation used to store the ExternalSpelling
+within Prolog facts without confusing the Prolog system. It is ~only~ used to
+translate between ~DownCasedSpelling~ and ~ExternalSpelling~.
 
-  * ~DownCasedSpelling~ or ~DC-Spelling~: The fully down-cased version of identifiers in ~ExternalSpelling~. Each upper-case character is substituted by its lower-case counterpart. This spelling is used within the optimizer, e.g. to store and query meta using facts and predicates. The user has to formulate all queries using this spelling for attributes, relations, indexes, etc.
+  * ~DownCasedSpelling~ or ~DC-Spelling~: The fully down-cased version of
+identifiers in ~ExternalSpelling~. Each upper-case character is substituted by
+its lower-case counterpart. This spelling is used within the optimizer, e.g. to
+store and query meta using facts and predicates. The user has to formulate all
+queries using this spelling for attributes, relations, indexes, etc.
 
 As the optimizer only allows the use of identifiers in DC-Spelling, we need to
-translate between that notation and the ~ExternalSpelling~ (the real names known to the Secondo kernel).
+translate between that notation and the ~ExternalSpelling~ (the real names known
+to the Secondo kernel).
 
 We use dynamic predicate storedSpell(Internal, External) to store the
 translation on disk. Due to this, we must avoid identifiers starting with an
@@ -301,9 +309,9 @@ When using these predicates, at least one of the two arguments must be
 instantiated with a ~ground term~, i.e. a term containing no unbound variable.
 
 Otherwise, or if the translation fails due to some other circumstances, the
-translation predicate will throw an exception. This is to prevent the propagation
-of errors through the optimization process, which easily leads to unpredictable
-behaviour of the optimizer.
+translation predicate will throw an exception. This is to prevent the
+propagation of errors through the optimization process, which easily leads to
+unpredictable behaviour of the optimizer.
 
 So, if you get an exception from these predicates, carefully inspect the error
 message. It is likely, that you just miss-typed an identifier.
@@ -389,16 +397,17 @@ POG, and then invokes step 1 (Section 11).
 
 1.4 Notion of Constants
 
-In queries, string, text, int and real constants can be noted as used in Secondo, e.g.
-"Hello World!" for a string constant, 'Hello Text' for a text constant, -557 or 56
-for an int constant, and -1.565E-12, -1.5, 5688.45 for real constants.
+In queries, string, text, int and real constants can be noted as used in
+Secondo, e.g. "Hello World!" for a string constant, 'Hello Text' for a text
+constant, -557 or 56 for an int constant, and -1.565E-12, -1.5, 5688.45 for real
+constants.
 
 Bool constants must be noted ~true~ and ~false~ instead of ~TRUE~ and ~FALSE~,
 because Prolog would interpret the correct symbols as variables.
 
 Other constants need to be noted as similar to the way this is done in Secondo:
-as a nested list. Again, we use square brackets to delinit the list and commas to
-separate its elements:
+as a nested list. Again, we use square brackets to delinit the list and commas
+to separate its elements:
 
 ----    [const, TYPE, value, VALUE]
 ----
@@ -412,8 +421,9 @@ Internally, ALL constants (also int, real, etc.) are noted as terms
 ----    value_expr(Type,Value)
 ----
 
-where ~Type~ is a Prolog term for the type descriptor and ~Value~ is the nested list
-representation of the constant value, both using round parantheses and commas internally.
+where ~Type~ is a Prolog term for the type descriptor and ~Value~ is the nested
+list representation of the constant value, both using round parantheses and
+commas internally.
 
 For the standard type constants, special ~plan\_to\_atom/2~ rules exists, for
 all other types, that should not be necessary, they are all handled by a generic
@@ -503,8 +513,9 @@ for nodes.
 
 For a given list of relations ~Rels~ and predicates ~Preds~, ~Nodes~ and
 ~Edges~ are the predicate order graph where edges are annotated with selection
-and join operations applied to the correct arguments. Moreover, for each edge possible
-translations into terms of the executable algebra are computed by the rule ~createPlanEdges~.
+and join operations applied to the correct arguments. Moreover, for each edge
+possible translations into terms of the executable algebra are computed by the
+rule ~createPlanEdges~.
 
 Example call:
 
@@ -977,8 +988,8 @@ need to define the input notation precisely.
 We assume the queries can be entered basically as select-from-where
 structures, as follows. Let schemas be given as:
 
-----    plz(PLZ:string, Ort:string)
-        Staedte(SName:string, Bev:int, PLZ:int, Vorwahl:string, Kennzeichen:string)
+---- plz(PLZ:string, Ort:string)
+     Staedte(SName:string, Bev:int, PLZ:int, Vorwahl:string, Kennzeichen:string)
 ----
 
 Then we should be able to enter queries:
@@ -1225,8 +1236,8 @@ the plan as a SECONDO query in text syntax. For attributes we have to
 distinguish whether a leading ``.'' needs to be written (if the attribute occurs
 within a parameter function) or whether just the attribute name is needed as in
 the arguments for hashjoin, for example. Predicate ~wp~ (``write plan'') uses
-predicate ~plan\_to\_atom~ to convert its argument to an atom and then writes that
-atom to standard output.
+predicate ~plan\_to\_atom~ to convert its argument to an atom and then writes
+that atom to standard output.
 
 */
 
@@ -1274,8 +1285,11 @@ deleteVariables :- retractall(varDefined(_)).
 
 
 /*
-The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to distinguish whether
-to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a predicate ~consider\_Arg2(T1, T2)~ to return a term ~T2~, that is constructed from term ~T1~ by replacing all occurrences of ~attr(\_, 2, \_)~ in it by ~attr2(\_, 2, \_)~.
+The ~plan\_to\_atom(attr(Name, Arg, Case), Result)~ predicate is not able to
+distinguish whether to return ~.Name~ or ~..Name~ for ~Arg~ = 2. Now, we use a
+predicate ~consider\_Arg2(T1, T2)~ to return a term ~T2~, that is constructed
+from term ~T1~ by replacing all occurrences of ~attr(\_, 2, \_)~ in it by
+~attr2(\_, 2, \_)~.
 
 */
 
@@ -1325,7 +1339,16 @@ plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
  namedPredList_to_atom(NPredList, NPredList2),
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
- concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',  Result),
+ concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',
+             Result),
+ !.
+
+plan_to_atom( stpattern(NPredList, ConstraintList) , Result):-
+ namedPredList_to_atom(NPredList, NPredList2),
+ ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
+        (plan_to_atom(ConstraintList, ConstraintList2))),
+ concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',
+             Result),
  !.
 
 /*
@@ -1337,7 +1360,8 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
         plan_to_atom(Filter, Filter2),
- concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ', Filter2, ']'],'',  Result),
+ concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ',
+              Filter2, ']'],'',  Result),
  !.
 % Section:End:plan_to_atom_2_b
 /*
@@ -1345,7 +1369,8 @@ The iskNN faked operator
 
 */
 
-plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, RebuildIndexes), Result):- !,
+plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1,
+                   MPointAttr1, IDAttr1, RebuildIndexes), Result):- !,
   plan_to_atom(TID, ExtTID),
   atom_chars(Rel, Rel1),
   atom_chars(MPointAttr, MPointAttr1),
@@ -1359,7 +1384,8 @@ plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, Rebui
   getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, ExtIDAttr, _, _, ExtResultRel, ExtMBoolAttr, ExtBtree),
 
-  concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "', ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
+  concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "',
+               ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
   .
 
 
@@ -1480,9 +1506,11 @@ plan_to_atom([X | Xs], Result) :-
 /*
 Operators: You only need to specify translation rules explicitly
 
-  * for operators with a non-standard syntax (e.g. using a semicolon within a parameter list),
+  * for operators with a non-standard syntax (e.g. using a semicolon within a
+parameter list),
 
-  * for operators that perform translations to more complex terms, or nave another name than is used by the kernel,
+  * for operators that perform translations to more complex terms, or nave
+another name than is used by the kernel,
 
   * if you want to respect some optimizerOptions,
 
@@ -1492,7 +1520,8 @@ Operators: You only need to specify translation rules explicitly
 
 
 For general/standart syntax rules, see below.
-Non-standard syntax can be declared in file ~opsyntax.pl~ using facts ~secondoOp/3~.
+Non-standard syntax can be declared in file ~opsyntax.pl~ using facts
+~secondoOp/3~.
 
 */
 
@@ -1606,7 +1635,8 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
 
 
 /*
-Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the plan or removed from it.
+Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the
+plan or removed from it.
 
 */
 plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
@@ -1626,8 +1656,9 @@ plan_to_atom(reduce(Stream, _, _), StreamAtom) :-
 
 /*
 Attributes can be designated as hidden by setting their argument number to 100,
-e.g. in a term ~attrname(attr(xxxIDplz, 100, l))~. If the flag ~removeHiddenAttributes~ is set,
-they are removed from a projection list. Currently used for the entropy optimizer.
+e.g. in a term ~attrname(attr(xxxIDplz, 100, l))~. If the flag
+~removeHiddenAttributes~ is set, they are removed from a projection list.
+Currently used for the entropy optimizer.
 
 */
 
@@ -2179,9 +2210,11 @@ plan_to_atom(X, Result) :-
 /* Error case */
 plan_to_atom(X, _) :-
   term_to_atom(X,XA),
-  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',ErrMsg),
+  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',
+              ErrMsg),
   write(ErrMsg), nl,
-  throw(error_Internal(optimizer_plan_to_atom(X,undef)::malformedExpression::ErrMsg)),
+  throw(error_Internal(optimizer_plan_to_atom(X,undef)
+                                            ::malformedExpression::ErrMsg)),
   !, fail.
 
 /* auxiliary predicates */
@@ -2223,7 +2256,9 @@ listelement_to_atom(Term, Result) :-
 
 
 /*
-Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
+Hidden fields have an argument number 100 and can be removed from a projection
+list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for
+~project~.
 
 */
 
@@ -2357,12 +2392,14 @@ July 2008, Christian D[ue]ntgen. Added rules covering mtree indexes.
 July 2008, Christian D[ue]ntgen. Problems with indexselect() => , when using
       A = B, where A ad B are attributes of the same relation.
 
-April 2006, Christian D[ue]ntgen. Added project-translation for index selections.
+April 2006, Christian D[ue]ntgen. Added project-translation for index
+selections.
 
-May 2006, Translating a selection-predicate into a combination of ~windowintersects~/
-~windowintersectsS~ and ~filter~, the optimizer will add an initial project ~after~ the
-filter. For non-star-queries with one single selection this may even result in plans
-with two consecutive projections. This problem is still unsolved.
+May 2006, Translating a selection-predicate into a combination of
+~windowintersects~/ ~windowintersectsS~ and ~filter~, the optimizer will add an
+initial project ~after~ the filter. For non-star-queries with one single
+selection this may even result in plans with two consecutive projections. This
+problem is still unsolved.
 
 */
 select(arg(N), Y) => X :-
@@ -2480,9 +2517,9 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 /*
 
 C. D[ue]ntgen, Feb 2006: When using renaming, the indexselect rule using
-``windowintersects'' failed, because the rule accesses the original (not renamed)
-relation. The correct approach is to do a rename on the result ~before~ the
-filter is used.
+``windowintersects'' failed, because the rule accesses the original (not
+renamed) relation. The correct approach is to do a rename on the result
+~before~ the filter is used.
 
 */
 
@@ -2536,8 +2573,8 @@ indexselect(arg(N), pr(Pred, Rel)) => X :-
 
 
 /*
-C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices.
-These indices are recognized by their index type.
+C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree
+indices. These indices are recognized by their index type.
 
 Again. a possible ~rename~ must be done before ~filter~ can be applied.
 
@@ -3425,7 +3462,8 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 
 % Section:Start:translationRule_2_e
 % translation rule for sometimes(Pred). It is necessary for STPattern
-indexselect(arg(N), pr(sometimes(InnerPred), _)) => filter(ISL, sometimes(InnerPred)) :-
+indexselect(arg(N), pr(sometimes(InnerPred), _))
+=> filter(ISL, sometimes(InnerPred)) :-
   indexselectLifted(arg(N), InnerPred)=> ISL.
 
 % special rules for range queries in the form distance(m(x), y) < d
@@ -3435,12 +3473,14 @@ indexselectLifted(arg(N), distance(Y, attr(AttrName, Arg, AttrCase)) < D ) => Re
   indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) => Res.
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
-  gettuples(windowintersectsS(dbobject(IndexName), enlargeRect(bbox(Y),D,D)),  rel(Name, *))
+  gettuples(windowintersectsS(
+                dbobject(IndexName), enlargeRect(bbox(Y),D,D)),  rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   getTypeTree(Y, rel(Name, *), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex,
+          spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
@@ -3450,7 +3490,8 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
   getTypeTree(Y, rel(Name, RelAlias), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex,
+           spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 % 'distance <' with spatial(rtree,unit) index
@@ -3461,7 +3502,8 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   argument(N, rel(Name, *)),
   getTypeTree(Y, rel(Name, *), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, spatial(rtree,unit)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex,
+           spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
@@ -3471,7 +3513,8 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
   getTypeTree(Y, rel(Name, RelAlias), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,unit)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex,
+           spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 
@@ -3487,14 +3530,17 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 % spatial(rtree,unit) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),  rel(Name, *))
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
+                                                             rel(Name,*))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3502,8 +3548,10 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -3518,8 +3566,10 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
@@ -3534,8 +3584,10 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]),
+      BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -3543,7 +3595,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedEqualityQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
+  gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, *), Y))),
+                                                       rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3558,7 +3611,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename( gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
+  rename( gettuples(rdup(sort(exactmatchS(dbobject(IndexName),
+          rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3574,7 +3628,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, *), Arg2 , Arg3))), rel(Name, *))
+  gettuples(rdup(sort(rangeS(dbobject(IndexName),
+            rel(Name, *), Arg2 , Arg3))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2, Arg3],
   Arg1 = attr(_, _, _),
@@ -3588,7 +3643,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, Var), Arg2 , Arg3))), rel(Name, Var)), Var)
+  rename(gettuples(rdup(sort(rangeS(dbobject(IndexName),
+         rel(Name, Var), Arg2 , Arg3))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2, Arg3],
   Arg1 = attr(_, _, _),
@@ -3603,7 +3659,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedLeftRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
+  gettuples(rdup(sort(leftrangeS(dbobject(IndexName),
+            rel(Name, *), Y))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3618,7 +3675,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
+  rename(gettuples(rdup(sort(leftrangeS(dbobject(IndexName),
+         rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3634,7 +3692,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedRightRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
+  gettuples(rdup(sort(rightrangeS(dbobject(IndexName),
+            rel(Name, *), Y))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3649,7 +3708,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
+  rename(gettuples(rdup(sort(rightrangeS(dbobject(IndexName),
+         rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3987,7 +4047,7 @@ getPredNoPET(Index, CalcPET, ExpPET) :-
 
 getPredNoPET(Index, X, Y) :-
   concat_atom(['Cannot find annotated PET.'],'',ErrMsg),
-  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y)::missingData::ErrMsg)),
+  throw(error_Internal(optimizer_getPredNoPET(Index,X,Y)::missingData::ErrMsg)),
   fail, !.
 
 /*
@@ -5207,7 +5267,8 @@ markupProgress(Stream, Sel, _, ExpPET, predinfo(Stream, Sel2, ExpPET)) :-
 ---- markupProgressBBoxIndex(Stream+, Sel+, Stream2-)
 ----
 
-Marks up a bbox index access operator (like windowintersects) with ~Sel~. Succeeds if such an operator exists in the term ~Stream~.
+Marks up a bbox index access operator (like windowintersects) with ~Sel~.
+Succeeds if such an operator exists in the term ~Stream~.
 
 */
 
@@ -5449,10 +5510,10 @@ Furthermore, it possible possible to add a groupby- and an orderby-clause:
 
 Example:
 
-----    select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
-        from plz
-        where plz > 40000
-        groupby ort
+----   select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
+       from plz
+       where plz > 40000
+       groupby ort
 ----
 
   * orderby
@@ -5519,8 +5580,8 @@ case, only a single group is created, e.g. all tuples belong to the same group:
 Simple aggregations:
 
 If only a single value is created using an aggregation function in the select
-list of a non-groupby query, it is not allowed to name it using the ~as~ directive.
-Such queries may have the following syntax:
+list of a non-groupby query, it is not allowed to name it using the ~as~
+directive. Such queries may have the following syntax:
 
   * select $<$AggrOp$>$($<$Attr$>$) from ...
 
@@ -5534,24 +5595,26 @@ where $<$AggrOp$>$ is one of ~max~, ~min~, ~avg~, ~sum~, ~extract~. It is also
 allowed to use expressions instead of attributes here.
 The last syntax is for user defined aggregation functions, where ~Attr~ is the
 attribute to aggregate over (possibly with preceding ~all~ or ~distinct~), ~AggrOp~
-is a associative and commutative bijection operator name (infix operator must be passed in
-round paranthesis), ~Type~ is the datatype of  ~Attr~, and ~DefaultValue~ is the value that
-will be returned, if the query yields no value for ~Attr~.
+is a associative and commutative bijection operator name (infix operator must be
+passed in round paranthesis), ~Type~ is the datatype of  ~Attr~, and
+~DefaultValue~ is the value that will be returned, if the query yields no value
+for ~Attr~.
+
 Note: If using an expression instead of an attribute, ensure that $<$Type$>$ and
 $<$Defaultvalue$>$ match the evaluated expression's type!
 
 Examples:
 
-----    select sum(no)
-        from ten.
+----   select sum(no)
+       from ten.
 
-        select avg(distinct no)
-        from ten
-        where no > 5.
+       select avg(distinct no)
+       from ten
+       where no > 5.
 
-        select aggregate(distinct no+1.1, (*), 'real', '[const real value 0.0]' )
-        from ten
-        where no > 5.
+       select aggregate(distinct no+1.1, (*), 'real', '[const real value 0.0]' )
+       from ten
+       where no > 5.
 ----
 
 Currently only this basic part of SQL has been implemented.
@@ -6184,10 +6247,10 @@ isAttribute(Name, Rel) :-
 11.3.5 Modification of the Where-Clause
 
 
-03/10/2006: (C. D[ue]ntgen) Enabled optimizer to process even predicates with more
-            than two occurences of attributes, as long as at most 2 relations
-            are concerned, e.g. something like $a+a>b$, a and b being attributes
-            of relations A resp. B, is now accepted.
+03/10/2006: (C. D[ue]ntgen) Enabled optimizer to process even predicates with
+            more than two occurences of attributes, as long as at most 2
+            relations are concerned, e.g. something like $a+a>b$, a and b being
+            attributes of relations A resp. B, is now accepted.
 
 */
 
@@ -6292,7 +6355,7 @@ composed back with the looked up lifted predicates by the
 lookupPattern predicate.
 
 */
-lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter) :-
+lookupPred1(patternex(Preds,C,F),patternex(Res,C1,F1), RelsBefore, RelsAfter) :-
   lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
   lookupPred1(F, F1, RelsAfterMe, RelsAfterMee),
   ((is_list(C), lookupPred2(C, C1, RelsAfterMee, RelsAfter));
@@ -6370,7 +6433,8 @@ lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
 % special case for rowid
 lookupPred1(rowid, rowid, RelsBefore, RelsBefore) :- !.
 
-lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred1(pattern*), pattern query crash
+lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
+                  %if placed before lookupPred1(pattern*), pattern query crash
   compound(Term),
   \+ is_list(Term),
   Term =.. [Op|Args],
@@ -6611,7 +6675,7 @@ translate1(Query, Stream3, Select2, Update, Cost2) :-
 % default handling
 translate1(Query, Stream2, Select2, Update, Cost) :-
   translate(Query, Stream, Select, Update, Cost),
-  rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
+  rewritePlanforCSE(Stream, Stream2, Select, Select2), % CSE substitution hook
   !.
 
 %    the main predicate which does the translation of a query
@@ -6725,15 +6789,15 @@ translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
 /*
 Below we handle the case of queries without where-clause. This results
 in simple Cartesian products of the relations in the from-clause.
-This case is not very important and we don't want to make the code complicated by
-applying projections for removing unnecessary attributes which might be a performance
-benefit if a groupby- or orderby- clause is present. The product will be computed
-by the symmjoin operator with a constant filter function which always returns true.
-This operator works well and has symmetric costs, whereas product has antisymmetric
-costs.
+This case is not very important and we don't want to make the code complicated
+by applying projections for removing unnecessary attributes which might be a
+performance benefit if a groupby- or orderby- clause is present. The product
+will be computed by the symmjoin operator with a constant filter function which
+always returns true. This operator works well and has symmetric costs, whereas
+product has antisymmetric costs.
 
-C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniqueness
-                          (otherwise, a triple-product will crash).
+C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of
+                          uniqueness (otherwise, a triple-product will crash).
 
 */
 
@@ -7720,7 +7784,8 @@ queryToStream(Query, Stream, Cost) :-
 ----
 
 Given a ~Stream~, a ~Select~ clause, and a set of attributes for sorting,
-apply the final tranformations (extend, project, duplicate removal, sorting) to obtain ~Stream2~.
+apply the final tranformations (extend, project, duplicate removal, sorting) to o
+btain ~Stream2~.
 
 */
 
@@ -7732,7 +7797,9 @@ finish(Stream, Select, Sort, Stream2) :-
 ---- selectClause(+Select, -Extend, -Project, -Rdup) :-
 ----
 
-The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
+The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~
+for projection, and possibly a ~distinct~ keyword indicating duplicate removal
+returned in ~Rdup~.
 
 */
 
@@ -7795,8 +7862,9 @@ selectClause(select Attrs, Extend, Project, duplicates) :-
 ---- finish2(+Stream, +Extend, +Project, +Rdup, +Sort, -Stream5) :-
 ----
 
-Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
-If option ~rewriteCSE~ is active, also remove auxiliary attributes extended to the results.
+Apply extension, projection, duplicate removal and sorting as specified to
+~Stream~ to obtain ~Stream5~. If option ~rewriteCSE~ is active, also remove
+auxiliary attributes extended to the results.
 
 */
 
@@ -8091,7 +8159,8 @@ Example 17. This may need a larger local stack size. Start Prolog as
 
 which initializes the local stack to 4 MB.
 
-Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
+Example 17 is too complex for the interesting Orders extension (even with 64M
+stacks):
 
 */
 
@@ -8385,8 +8454,8 @@ to a new object ~X~, using the optimizer.
 
 Exception Handling
 
-If an error is encountered during the optimization process, an exception should be
-thrown using the built-in Prolog predicate
+If an error is encountered during the optimization process, an exception should
+be thrown using the built-in Prolog predicate
 
 ----
         throw(error_SQL(X)),      for errors in the SQL-query
@@ -8397,9 +8466,9 @@ thrown using the built-in Prolog predicate
 itself (e.g. the user's SQL command is malformed, the user does not have
 sufficient rights to perform the action, etc.).
 
-~error\_Internal(X))~ is an exception class to report errors that do not directly
-concern the SQL query, but have been occured dur to internal optimizer problems
-(like missing meta data).
+~error\_Internal(X))~ is an exception class to report errors that do not
+directly concern the SQL query, but have been occured dur to internal optimizer
+problems (like missing meta data).
 
 In all cases, ~X~ is a term that represents the error-message respecting format
 
@@ -8501,7 +8570,7 @@ deleteHistory :-
   clearRel('SqlHistory').
 
 :-assert(helpLine(storeHistory,0,[],
-  'Store the query history into relation \'SqlHistory\' within the current DB.')).
+'Store the query history into relation \'SqlHistory\' within the current DB.')).
 storeHistory :-
   saveRel('SqlHistory').
 
@@ -8609,7 +8678,9 @@ streamOptimize(Term, Query, Cost) :-
         mStreamOptimize(union [Term], Query, Cost) :-
 ----
 
-Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subexpressions to be independently optimized, as in union and intersection queries. ~mStreamOptimize~ is a variant returning a stream.
+Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several
+subexpressions to be independently optimized, as in union and intersection
+queries. ~mStreamOptimize~ is a variant returning a stream.
 
 */
 
@@ -8676,7 +8747,7 @@ Looks up the aliased lifted predicate list within the
 spatiotemporal pattern predicate.
 
 */
-composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A| NPredListRest]):-
+composeNPredList([P|PredListRest],[A|AliasListRest],[P as A| NPredListRest]):-
  composeNPredList(PredListRest, AliasListRest, NPredListRest).
 composeNPredList( [], [], []).
 
@@ -8711,20 +8782,15 @@ namedPredList_to_atom([ NP | NPListRest], Result):-
  namedPredList_to_atom( NPListRest, SubResult),
  concat_atom([NP1, ',', SubResult], ' ', Result),!.
 
-isStringList(string).
-isStringList([string]).
-isStringList([string|StrListRest]):-
- isStringList(StrListRest).
+/*
+---- onlyContains(+List,+Pattern)
+----
 
-isBoolList(bool).
-isBoolList([bool]).
-isBoolList([bool|BoolListRest]):-
- isBoolList(BoolListRest).
+Test whether either ~List~ unifies with ~Pattern~ all elements in ~List~
+unify with ~Pattern~.
 
-isNamedPredList(namedPred).
-isNamedPredList([namedPred]).
-isNamedPredList([namedPred|PredListRest]):-
- isNamedPredList(PredListRest).
+*/
+onlyContains(List,Pattern):- (List=Pattern ; delete(List,Patter,[]) ),!.
 
 %evalIskNN(K, QueryObj, RelName, AttrName, TupleIDs).
 isLiftedSpatialRangePred(Op, [T1,T2]):-
@@ -9180,7 +9246,8 @@ and ~ProjectList~
 
 extendStream(Stream, [], _, Stream).
 
-extendStream(Stream, ExtendList, ProjectList, project(extend(Stream, ExtendList), ProjectList2)) :-
+extendStream(Stream, ExtendList, ProjectList,
+             project(extend(Stream, ExtendList), ProjectList2)) :-
   attrnames(ProjectList, ProjectList2).
 
 

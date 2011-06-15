@@ -332,6 +332,7 @@ optimizerOptionInfo(improvedcosts, none, yes,
                     true
                    ).
 
+
 /*
 ----
 optimizerOptionInfo(uniformSpeed, none, yes,
@@ -346,6 +347,10 @@ optimizerOptionInfo(costsConjuctive, none, yes,
 optimizerOptionInfo(determinePredSig, none, yes,
                     'Send queries to investigate predicate argument types.',
                     true, (delOption(improvedcosts))).
+
+optimizerOptionInfo(use_matchingOperators, determinePredSig, yes,
+                    'Use \'matchingOperators\' instead of \'getTypeNL\' to determine types.',
+                    (setOption(determinePredSig)), true).
 
 optimizerOptionInfo(immediatePlan, none, yes,
                     'Immediately create a path rather than the POG.',

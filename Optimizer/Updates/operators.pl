@@ -2506,15 +2506,15 @@ STPatternAlgebra
 */
 opSignature(stconstraint, stpattern, [string, string, stvector],bool,[]).
 opSignature(vec, stpattern, StrList, stvector,[]):-
-  isStringList(StrList).
+  onlyContains(StrList,string).
 opSignature(end, stpattern, [string], instant,[]).
 opSignature(start, stpattern, [string], instant,[]).
 opSignature(pattern, stpattern, [NamedPredList, ConList], bool,[]):-
-  isNamedPredList(NamedPredList),
-  isBoolList(ConList).
+  onlyContains(NamedPredList,namedPred),
+  onlyContains(ConList,bool).
 opSignature(patternex, stpattern, [NamedPredList, ConList, bool], bool,[]):-
-  isNamedPredList(NamedPredList),
-  isBoolList(ConList).
+  onlyContains(NamedPredList,namedPred),
+  onlyContains(ConList,bool).
 opSignature(as, stpattern, [mbool,X], namedPred,[]):-
   atom(X).
 opSignature(randomdelay, stpattern, [mpoint, duration], mpoint,[]).

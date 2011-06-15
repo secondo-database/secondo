@@ -249,6 +249,16 @@ i-th mapping.
 
    * typemapop: ~Op~ is a type mapping operator.
 
+   * liftedspatialrange: ~Op~ is a lifted predicate returning whether a spatial moving object is within a given spatial range. Used for optimizing spatio-temporal pattern queries.
+
+   * liftedequality: ~Op~ is a lifted predicate returnning whether a non-spatial moving object equals to a given value. Used for optimizing spatio-temporal pattern queries.
+
+   * liftedrange: ~Op~ is a lifted predicate returnning whether a non-spatial moving object is within a given range. Used for optimizing spatio-temporal pattern queries.
+
+   * liftedleftrange: ~Op~ is a lifted predicate returnning whether a non-spatial moving object is less or equal a given value. Used for optimizing spatio-temporal pattern queries.
+
+   * liftedrightrange: ~Op~ is a lifted predicate returnning whether a non-spatial moving object is greater or equal a given value. Used for optimizing spatio-temporal pattern queries.
+
    * (list may be extended as required)
 
 % Section:Start:opSignature_5_s
@@ -892,58 +902,58 @@ opSignature(maximum, temporal, [rstring],string,[]).
 opSignature(maximum, temporal, [periods],instant,[]).
 opSignature(no_components, temporal, [T],int,[]) :-
   memberchk(T,[rbool,rint,rreal,rstring,periods,
-               mbool,mint,mreal,mstring,mpoint,movingregion]),!.
+               mbool,mint,mreal,mstring,mpoint,mregion]),!.
 opSignature(inst, temporal, [T],instant,[]) :-
-  memberchk(T,[ipoint,ibool,iint,ireal,istring,intimeregion]),!.
+  memberchk(T,[ipoint,ibool,iint,ireal,istring,iregion]),!.
 opSignature(val, temporal, [ibool],bool,[]).
 opSignature(val, temporal, [iint],int,[]).
 opSignature(val, temporal, [ireal],real,[]).
 opSignature(val, temporal, [istring],string,[]).
 opSignature(val, temporal, [ipoint],point,[]).
-opSignature(val, temporal, [intimeregion],region,[]).
+opSignature(val, temporal, [iregion],region,[]).
 opSignature(atinstant, temporal, [T1,instant],T2,[]) :-
   memberchk((T1,T2),[(mbool,ibool),(mint,iint),(mreal,ireal),(mstring,istring),
-                     (mpoint,ipoint),(movingregion,intimeregion)]),!.
+                     (mpoint,ipoint),(mregion,iregion)]),!.
 opSignature(atperiods, temporal, [T,periods],T,[exp]) :-
-  memberchk(T,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
+  memberchk(T,[mbool,mint,mreal,mstring,mpoint,mregion]),!.
 opSignature(deftime, temporal, [T],periods,[exp]) :-
-  memberchk(T,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
+  memberchk(T,[mbool,mint,mreal,mstring,mpoint,mregion]),!.
 opSignature(trajectory, temporal, [mpoint],line,[exp]).
 opSignature(present, temporal, [T1,T2],bool,[bbox(3)]) :-
   memberchk(T2,[instant,periods]),
-  memberchk(T1,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
+  memberchk(T1,[mbool,mint,mreal,mstring,mpoint,mregion]),!.
 opSignature(passes, temporal, [T1,T2],bool,[bbox(2),exp]) :-
   memberchk((T1,T2),[(mpoint,point),(mpoint,region),(mpoint,rect)]),!.
 opSignature(passes, temporal, [T1,T2],bool,[exp]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mreal,real),(mstring,string)]),!.
 opSignature(initial, temporal, [T1],T2,[]) :-
-  memberchk((T1,T2),[(mpoint,ipoint),(movingregion,intimeregion),(mint,iint),
+  memberchk((T1,T2),[(mpoint,ipoint),(mregion,iregion),(mint,iint),
                      (mreal,ireal),(mbool,ibool),(mstring,istring)]),!.
 opSignature(final, temporal, [T1],T2,[]) :-
-  memberchk((T1,T2),[(mpoint,ipoint),(movingregion,intimeregion),(mint,iint),
+  memberchk((T1,T2),[(mpoint,ipoint),(mregion,iregion),(mint,iint),
                      (mreal,ireal),(mbool,ibool),(mstring,istring)]),!.
 opSignature(units, temporal, [T],[stream,UT],[]) :-
-  memberchk((T,UT),[(mpoint,upoint),(movingregion,uregion),(mreal,ureal),
+  memberchk((T,UT),[(mpoint,upoint),(mregion,uregion),(mreal,ureal),
                     (mint,uint),(mbool,ubool),(mstring,ustring)]),!.
 opSignature(bbox, temporal, [T],rect3,[]) :-
-  memberchk(T,[mpoint,movingregion,upoint,uregion,
-               ipoint,intimeregion,instant,periods]),!.
+  memberchk(T,[mpoint,mregion,upoint,uregion,
+               ipoint,iregion,instant,periods]),!.
 opSignature(bbox, temporal, [T,geoid],rect3,[]) :-
   memberchk(T,[upoint,mpoint,ipoint]),!.
 opSignature(mbrange, temporal, [T],T,[exp]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(bbox2d, temporal, [T],rect,[]) :-
-  memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
+  memberchk(T,[mpoint,upoint,ipoint,mregion,iregion,uregion]),!.
 opSignature(bbox2d, temporal, [T,geoid],rect,[]) :-
   memberchk(T,[upoint,mpoint,ipoint]),!.
 opSignature(bboxold, temporal, [T],rect3,[]) :-
-  memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
+  memberchk(T,[mpoint,upoint,ipoint,mregion,iregion,uregion]),!.
 opSignature(bboxold, temporal, [T,geoid],rect3,[]) :-
   memberchk(T,[mpoint,upoint,ipoint]),!.
 opSignature(bboxold, temporal, [T],T,[]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(at, temporal, [T1,T2],T1,[exp]) :-
-  memberchk((T1,T2),[(mpoint,point),(movingregion,region),(mint,int),
+  memberchk((T1,T2),[(mpoint,point),(mregion,region),(mint,int),
                      (mreal,real),(mbool,bool),(mstring,string)]),!.
 opSignature(distance, temporal, [mpoint,point],mreal,[exp]).
 opSignature(simplify, temporal, [mpoint,real],mpoint,[exp]).
@@ -1068,8 +1078,8 @@ opSignature(at, temporalext, [mpoint,points],mpoint,[bbox(2),exp]).
 opSignature(at, temporalext, [mpoint,line],mpoint,[bbox(2),exp]).
 opSignature(passes, temporalext, [mpoint,points],bool,[bbox(2),exp]).
 opSignature(passes, temporalext, [mpoint,line],bool,[bbox(2),exp]).
-opSignature(passes, temporalext, [movingregion,point],bool,[bbox(2),exp]).
-opSignature(passes, temporalext, [movingregion,points],bool,[bbox(2),exp]).
+opSignature(passes, temporalext, [mregion,point],bool,[bbox(2),exp]).
+opSignature(passes, temporalext, [mregion,points],bool,[bbox(2),exp]).
 opSignature(val, temporal, [istring],string,[]).
 opSignature(derivative_new, temporalext, [mreal],mreal,[]).
 opSignature(derivable_new, temporalext, [mreal],mbool,[]).
@@ -1106,7 +1116,7 @@ opSignature(everNearerThan, temporalext, [point,mpoint,real],bool,[exp]).
 
 */
 opSignature((=), temporallifted, [T,T],mbool,[comm,exp]) :-
-  memberchk(T,[mbool,mint,mstring,mreal,mpoint,movingregion]),!.
+  memberchk(T,[mbool,mint,mstring,mreal,mpoint,mregion]),!.
 opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedequality]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
@@ -1114,16 +1124,16 @@ opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedequality]) :-
                          (mreal,real)])
   ),!.
 opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedspatialrange]) :-
-  (   memberchk((T1,T2),[(mpoint,point),(movingregion,region)])
-    ; memberchk((T2,T1),[(mpoint,point),(movingregion,region)])
+  (   memberchk((T1,T2),[(mpoint,point),(mregion,region)])
+    ; memberchk((T2,T1),[(mpoint,point),(mregion,region)])
   ),!.
 opSignature((#), temporallifted, [T,T],mbool,[comm,exp]) :-
-  memberchk(T,[mbool,mint,mstring,mreal,mpoint,movingregion]),!.
+  memberchk(T,[mbool,mint,mstring,mreal,mpoint,mregion]),!.
 opSignature((#), temporallifted, [T1,T2],mbool,[comm,exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real),(mpoint,point),(movingregion,region)])
+                         (mreal,real),(mpoint,point),(mregion,region)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real),(mpoint,point),(movingregion,region)])
+                         (mreal,real),(mpoint,point),(mregion,region)])
   ),!.
 opSignature((<), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
@@ -1162,8 +1172,8 @@ opSignature(isempty, temporallifted, [T],mbool,[]) :-
 opSignature(inside, temporallifted, [mpoint,points],mbool,[exp,liftedspatialrange]).
 opSignature(inside, temporallifted, [mpoint,line],mbool,[exp,liftedspatialrange]).
 opSignature(inside, temporallifted, [mpoint,region],mbool,[exp,liftedspatialrange]).
-opSignature(inside, temporallifted, [movingregion,points],mbool,[exp,liftedspatialrange]).
-opSignature(inside, temporallifted, [movingregion,line],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mregion,points],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mregion,line],mbool,[exp,liftedspatialrange]).
 opSignature(intersection, temporallifted, [T,T],T,[comm,ass,exp]) :-
   memberchk(T,[mbool, mint, mstring, mreal]),!.
 opSignature(intersection, temporallifted, [T1,T2],T1,[comm,exp]) :-
@@ -1175,9 +1185,9 @@ opSignature(intersection, temporallifted, [T,mpoint],mpoint,[comm,exp]) :-
   memberchk(T,[line,points]),!.
 opSignature(intersection, temporallifted, [mpoint,T],mpoint,[comm,exp]) :-
   memberchk(T,[line,points]),!.
-opSignature(union, temporallifted, [mpoint,region],movingregion,[]).
-opSignature(union, temporallifted, [mpoint,movingregion],movingregion,[]).
-opSignature(union, temporallifted, [point,movingregion],movingregion,[]).
+opSignature(union, temporallifted, [mpoint,region],mregion,[]).
+opSignature(union, temporallifted, [mpoint,mregion],mregion,[]).
+opSignature(union, temporallifted, [point,mregion],mregion,[]).
 
 opSignature(minus, temporallifted, [T,T],T,[exp]) :-
   memberchk(T,[mbool,mint,mstring,mreal]),!.
@@ -1185,15 +1195,15 @@ opSignature(minus, temporallifted, [T1,T2],T1,[exp]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),(mreal,real)]),!.
 opSignature(minus, temporallifted, [T1,T2],T2,[exp]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),(real,mreal)]),!.
-opSignature(minus, temporallifted, [region,mpoint],movingregion,[]).
-opSignature(minus, temporallifted, [movingregion,point],movingregion,[]).
-opSignature(minus, temporallifted, [movingregion,mpoint],movingregion,[]).
-opSignature(minus, temporallifted, [movingregion,points],movingregion,[]).
-opSignature(minus, temporallifted, [movingregion,line],movingregion,[]).
-opSignature(rough_center, temporallifted, [movingregion],mpoint,[exp]).
-opSignature(no_components, temporallifted, [movingregion],mint,[exp]).
-opSignature(perimeter, temporallifted, [movingregion],mreal,[exp]).
-opSignature(area, temporallifted, [movingregion],mreal,[exp]).
+opSignature(minus, temporallifted, [region,mpoint],mregion,[]).
+opSignature(minus, temporallifted, [mregion,point],mregion,[]).
+opSignature(minus, temporallifted, [mregion,mpoint],mregion,[]).
+opSignature(minus, temporallifted, [mregion,points],mregion,[]).
+opSignature(minus, temporallifted, [mregion,line],mregion,[]).
+opSignature(rough_center, temporallifted, [mregion],mpoint,[exp]).
+opSignature(no_components, temporallifted, [mregion],mint,[exp]).
+opSignature(perimeter, temporallifted, [mregion],mreal,[exp]).
+opSignature(area, temporallifted, [mregion],mreal,[exp]).
 opSignature(distance, temporallifted, [mpoint,mpoint],mreal,[comm,exp]).
 opSignature(distance, temporallifted, [mreal,mreal],mreal,[comm,exp]).
 opSignature(distance, temporallifted, [mreal,real],mreal,[comm,exp]).
@@ -1221,10 +1231,10 @@ opSignature(makemvalue, temporalunit, [[stream,[tuple,AttrList]],Attr],T2,
   ( not(optimizerOption(determinePredSig)) ; is_list(AttrList)),
   member([Attr,T1],AttrList),
   member((T1,T2),[(upoint,mpoint),(ubool,mbool),(uint,mint),(ureal,mreal),
-                  (ustring,mstring),(uregion,movingregion)]),!.
+                  (ustring,mstring),(uregion,mregion)]),!.
 opSignature(the_mvalue, temporalunit, [[stream,T1]],T2,[block,aggr,exp]) :-
   memberchk((T1,T2),[(upoint,mpoint),(ubool,mbool),(uint,mint),(ureal,mreal),
-                     (ustring,mstring),(uregion,movingregion)]),!.
+                     (ustring,mstring),(uregion,mregion)]),!.
 opSignature(queryrect2d, temporalunit, [instant],rect,[]).
 opSignature(point2d, temporalunit, [periods],point,[]).
 opSignature(circle, temporalunit, [point,real,int],region,[]).
@@ -1239,25 +1249,25 @@ opSignature(present, temporalunit, [T,instant],bool,[bbox(3)]) :-
 opSignature(present, temporalunit, [T,periods],bool,[bbox(3)]) :-
   memberchk(T,[upoint,uregion,ubool,uint,ureal,ustring]),!.
 opSignature(initial, temporalunit, [[stream,T1]],T2,[block,aggr]) :-
-  memberchk((T1,T2),[(upoint,ipoint),(uregion,intimeregion),(ubool,ibool),
+  memberchk((T1,T2),[(upoint,ipoint),(uregion,iregion),(ubool,ibool),
                      (uint,iint),(ureal,ireal),(ustring,istring)]),!.
 opSignature(initial, temporalunit, [T1],T2,[]) :-
-  memberchk((T1,T2),[(upoint,ipoint),(uregion,intimeregion),(ubool,ibool),
+  memberchk((T1,T2),[(upoint,ipoint),(uregion,iregion),(ubool,ibool),
                      (uint,iint),(ureal,ireal),(ustring,istring)]),!.
 opSignature(final, temporalunit, [[stream,T1]],T2,[block,aggr]) :-
-  memberchk((T1,T2),[(upoint,ipoint),(uregion,intimeregion),(ubool,ibool),
+  memberchk((T1,T2),[(upoint,ipoint),(uregion,iregion),(ubool,ibool),
                      (uint,iint),(ureal,ireal),(ustring,istring)]),!.
 opSignature(final, temporalunit, [T1],T2,[]) :-
-  memberchk((T1,T2),[(upoint,ipoint),(uregion,intimeregion),(ubool,ibool),
+  memberchk((T1,T2),[(upoint,ipoint),(uregion,iregion),(ubool,ibool),
                      (uint,iint),(ureal,ireal),(ustring,istring)]),!.
 opSignature(atinstant, temporalunit, [T1,instant],T2,[]) :-
   memberchk((T1,T2),[(ubool,ibool),(uint,iint),(ureal,ireal),(ustring,istring),
-                     (upoint,ipoint),(uregion,intimeregion)]),!.
+                     (upoint,ipoint),(uregion,iregion)]),!.
 opSignature(atperiods, temporalunit, [T,periods],[stream,T],[]) :-
   memberchk(T,[ubool,uint,ureal,ustring,upoint,uregion]),!.
 opSignature(at, temporalunit, [T1,T2],[stream,T1],[]) :-
   memberchk((T1,T2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string),
-                     (upoint,point),(upoint,intimeregion)]),!.
+                     (upoint,point),(upoint,iregion)]),!.
 opSignature(at, temporalunit, [upoint,region],upoint,[]).
 opSignature(at, temporalunit, [upoint,rect],upoint,[]).
 opSignature(atmax, temporalunit, [ureal],[stream,ureal],[]).
@@ -1359,7 +1369,7 @@ opSignature(the_unit, temporalunit, [T1,instant,instant,bool,bool],T2,[]) :-
   memberchk((T1,T2),[(bool,ubool),(int,uint),(string,ustring)]), !.
 opSignature(the_ivalue, temporalunit, [instant,T1],T2,[]) :-
   memberchk((T1,T2),[(bool,ibool),(int,iint),(real,ireal),(string,istring),
-                     (point,ipoint),(region,intimeregion)]), !.
+                     (point,ipoint),(region,iregion)]), !.
 opSignature(length, temporalunit, [upoint],real,[]).
 opSignature(length, temporalunit, [upoint,geoid],real,[]).
 
@@ -1368,29 +1378,29 @@ opSignature(length, temporalunit, [upoint,geoid],real,[]).
 2.7.8 MovingRegionAlgebra
 
 */
-opSignature(atinstant, movingregion, [movingregion,instant],intimeregion,[]).
-opSignature(atinstant, movingregion, [uregion,instant],intimeregion,[]).
-opSignature(initial, movingregion, [movingregion],intimeregion,[]).
-opSignature(final, movingregion, [movingregion],intimeregion,[]).
-opSignature(inst, movingregion, [intimeregion],instant,[]).
-opSignature(val, movingregion, [intimeregion],region,[]).
-opSignature(deftime, movingregion, [movingregion],periods,[]).
-opSignature(present, movingregion, [movingregion,instant],bool,[bbox(3)]).
-opSignature(present, movingregion, [movingregion,periods],bool,[bbox(3)]).
-opSignature(intersection, movingregion, [mpoint,movingregion],mpoint,[exp]).
-opSignature(inside, movingregion, [mpoint,movingregion],mbool,[exp]).
-opSignature(at, movingregion, [mpoint,region],mpoint,[exp]).
-opSignature(at, movingregion, [movingregion,point],mpoint,[exp]).
-opSignature(bbox, movingregion, [uregion],rect3,[]).
-opSignature(bbox, movingregion, [intimeregion],rect3,[]).
-opSignature(bbox, movingregion, [movingregion],rect3,[]).
+opSignature(atinstant, mregion, [mregion,instant],iregion,[]).
+opSignature(atinstant, mregion, [uregion,instant],iregion,[]).
+opSignature(initial, mregion, [mregion],iregion,[]).
+opSignature(final, mregion, [mregion],iregion,[]).
+opSignature(inst, mregion, [iregion],instant,[]).
+opSignature(val, mregion, [iregion],region,[]).
+opSignature(deftime, mregion, [mregion],periods,[]).
+opSignature(present, mregion, [mregion,instant],bool,[bbox(3)]).
+opSignature(present, mregion, [mregion,periods],bool,[bbox(3)]).
+opSignature(intersection, mregion, [mpoint,mregion],mpoint,[exp]).
+opSignature(inside, mregion, [mpoint,mregion],mbool,[exp]).
+opSignature(at, mregion, [mpoint,region],mpoint,[exp]).
+opSignature(at, mregion, [mregion,point],mpoint,[exp]).
+opSignature(bbox, mregion, [uregion],rect3,[]).
+opSignature(bbox, mregion, [iregion],rect3,[]).
+opSignature(bbox, mregion, [mregion],rect3,[]).
 opSignature(bbox2d, uregion, [uregion],rect,[]).
-opSignature(bbox2d, intimeregion, [uregion],rect,[]).
-opSignature(bbox2d, movingregion, [uregion],rect,[]).
-opSignature(move, movingregion, [mpoint,region],movingregion,[exp]).
-opSignature(vertextrajectory, movingregion, [uregion],line,[]).
-opSignature(vertextrajectory, movingregion, [movingregion],line,[exp]).
-opSignature(units, movingregion, [movingregion],[stream,uregion],[]).
+opSignature(bbox2d, iregion, [uregion],rect,[]).
+opSignature(bbox2d, mregion, [uregion],rect,[]).
+opSignature(move, mregion, [mpoint,region],mregion,[exp]).
+opSignature(vertextrajectory, mregion, [uregion],line,[]).
+opSignature(vertextrajectory, mregion, [mregion],line,[exp]).
+opSignature(units, mregion, [mregion],[stream,uregion],[]).
 
 
 /*
@@ -2703,17 +2713,17 @@ opSignature(isknn, nearestneighbor, [IDType, int, mpoint, string, string, string
 STPatternAlgebra
 
 */
-opSignature(stconstraint, stpattern, [string, string, stvector],bool,[]).
 opSignature(vec, stpattern, StrList, stvector,[]):-
-  isStringList(StrList).
+  onlyContains(StrList,string).
+opSignature(stconstraint, stpattern, [string, string, stvector],bool,[]).
 opSignature(end, stpattern, [string], instant,[]).
 opSignature(start, stpattern, [string], instant,[]).
 opSignature(pattern, stpattern, [NamedPredList, ConList], bool,[]):-
-  isNamedPredList(NamedPredList),
-  isBoolList(ConList).
+  onlyContains(NamedPredList,namedPred),
+  onlyContains(ConList,bool).
 opSignature(patternex, stpattern, [NamedPredList, ConList, bool], bool,[]):-
-  isNamedPredList(NamedPredList),
-  isBoolList(ConList).
+  onlyContains(NamedPredList,namedPred),
+  onlyContains(ConList,bool).
 opSignature(as, stpattern, [mbool,X], namedPred,[]):-
   atom(X).
 opSignature(randomdelay, stpattern, [mpoint, duration], mpoint,[]).
@@ -2877,7 +2887,7 @@ isBBoxOperator(X) :- isBBoxPredicate(X).
 % more recent version: if optimizerOption(determinePredSig) is used
 % --- isBBoxOperator(+Op,+ArgTypeList,?Dimension)
 isBBoxOperator(Op,ArgsTypeList,Dim) :-
-  opSignature(Op, _, ArgsTypeList,_,Flags),
+  opSignature(Op, _, ArgsTypeList,_,Flags), !,
   memberchk(bbox(Dim),Flags),!.
 
 
@@ -2903,10 +2913,10 @@ isCommutativeOP(Term) :-
   checkOpProperty(Term,comm), !.
 
 isCommutativeOP(Op) :-
-  atom(Op),
-  opSignature(Op, _, _, _, Flags),
+  atom(Op), !,
   dm(gettypetree,['INFO:\tOperator name matching used to determine ',
-              'isCommutativeOP(',Op,').\n']),
+              'isCommutativeOP(',Op,').\n']), !,
+  opSignature(Op, _, _, _, Flags),
   memberchk(comm,Flags),!.
 
 /*
@@ -2932,6 +2942,9 @@ isCommutativeOP(troverlaps).
 % Section:Start:isCommutativeOP_1_e
 % Section:End:isCommutativeOP_1_e
 
+% ultimately, the predicate should fail:
+isCommutativeOP(_) :- fail, !.
+
 /*
 2.2.3 Aggregation operators
 
@@ -2951,9 +2964,9 @@ isAggregationOP(Term) :-
 
 isAggregationOP(Op) :-
   atom(Op),
-  opSignature(Op, _, _, _, Flags),
   dm(gettypetree,['INFO:\tOperator name matching used to determine ',
-              'isAggregationOP(',Op,').\n']),
+              'isAggregationOP(',Op,').\n']), !,
+  opSignature(Op, _, _, _, Flags),
   memberchk(aggr,Flags),!.
 
 /*
@@ -2977,6 +2990,8 @@ isAggregationOP(aggregateB). % the cost of the provided function should be appli
 % Section:Start:isAggregationOP_1_e
 % Section:End:isAggregationOP_1_e
 
+% ultimately, the predicate should fail:
+isAggregationOP(_) :- fail, !.
 
 /*
 2.2.4 Join Operators
@@ -3082,7 +3097,7 @@ expressions, etc. for a given Secondo data type ~Type~.
 
   * null --- neutral element for operations usually expressed by $T + T$
 
-  * one --- neutral element fpr operations usually expressed by $T \times T$
+  * one --- neutral element for operations usually expressed by $T \times T$
 
   * empty --- represents an empty value, for set-based data types.
 
@@ -3098,207 +3113,207 @@ according NULL value, i.e.
 
 */
 
-nullValue(bool,undefined,'undef').
+nullValue(bool,undef,'undefined').
 nullValue(bool,null,'FALSE').
 nullValue(bool,one,'TRUE').
-nullValue(bool,error,'undef').
+nullValue(bool,error,'undefined').
 nullValue(bool,default,'FALSE').
 
-nullValue(int,undefined,'undef').
+nullValue(int,undef,'undefined').
 nullValue(int,null,'0').
 nullValue(int,one,'1').
-nullValue(int,error,'undef').
+nullValue(int,error,'undefined').
 nullValue(int,default,'0').
 
-nullValue(real,undefined,'undef').
+nullValue(real,undef,'undefined').
 nullValue(real,null,'0.0').
 nullValue(real,one,'1.0').
-nullValue(real,error,'undef').
+nullValue(real,error,'undefined').
 nullValue(real,default,'0.0').
 
-nullValue(string,undefined,'undef').
+nullValue(string,undef,'undefined').
 nullValue(string,empty,'""').
-nullValue(string,error,'undef').
+nullValue(string,error,'undefined').
 nullValue(string,default,'""').
 
-nullValue(text,undefined,'undef').
+nullValue(text,undef,'undefined').
 nullValue(text,empty,'\'\'').
-nullValue(text,error,'undef').
+nullValue(text,error,'undefined').
 nullValue(text,default,'\'\'').
 
-nullValue(point,undefined,'()').
+nullValue(point,undef,'()').
 nullValue(point,null,'(0.0 0.0)').
 nullValue(point,error,'()').
 nullValue(point,default,'(0.0 0.0)').
 
-nullValue(points,undefined,'()').
+nullValue(points,undef,'()').
 nullValue(points,empty,'()').
 nullValue(points,error,'()').
 nullValue(points,default,'()').
 
-nullValue(line,undefined,'undef').
+nullValue(line,undef,'undefined').
 nullValue(line,empty,'()').
-nullValue(line,error,'undef').
+nullValue(line,error,'undefined').
 nullValue(line,default,'()').
 
-nullValue(sline,undefined,'undef').
+nullValue(sline,undef,'undefined').
 nullValue(sline,empty,'()').
-nullValue(sline,error,'undef').
+nullValue(sline,error,'undefined').
 nullValue(sline,default,'()').
 
-nullValue(region,undefined,'()').
+nullValue(region,undef,'()').
 nullValue(region,empty,'()').
 nullValue(region,error,'()').
 nullValue(region,default,'()').
 
-nullValue(instant,undefined,'undef').
-nullValue(instant,error,'undef').
+nullValue(instant,undef,'undefined').
+nullValue(instant,error,'undefined').
 nullValue(instant,default,'currenttime').
 
-nullValue(duration,undefined,'undef').
+nullValue(duration,undef,'undefined').
 nullValue(duration,null,'(0 0)').
-nullValue(duration,error,'undef').
+nullValue(duration,error,'undefined').
 nullValue(duration,default,'(0 0)').
 
-nullValue(periods,undefined,'()').
+nullValue(periods,undef,'()').
 nullValue(periods,empty,'()').
 nullValue(periods,null,'()').
 nullValue(periods,one,'(("begin of time" "end of time" TRUE TRUE))').
 nullValue(periods,error,'()').
 nullValue(periods,default,'()').
 
-nullValue(mpoint,undefined,'()').
+nullValue(mpoint,undef,'()').
 nullValue(mpoint,empty,'()').
 nullValue(mpoint,error,'()').
 nullValue(mpoint,default,'()').
 
-nullValue(upoint,undefined,'undef').
-nullValue(upoint,error,'undef').
+nullValue(upoint,undef,'undefined').
+nullValue(upoint,error,'undefined').
 nullValue(upoint,default,'((currenttime currenttime TRUE TRUE)(0.0 0.0))').
 
-nullValue(ipoint,undefined,'undef').
-nullValue(ipoint,error,'undef').
+nullValue(ipoint,undef,'undefined').
+nullValue(ipoint,error,'undefined').
 nullValue(ipoint,default,'(currenttime (0.0 0.0))').
 
-nullValue(mreal,undefined,'()').
+nullValue(mreal,undef,'()').
 nullValue(mreal,empty,'()').
 nullValue(mreal,null,'((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE)))').
 nullValue(mreal,one,'((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE)))').
 nullValue(mreal,error,'()').
 nullValue(mreal,default,'()').
 
-nullValue(ureal,undefined,'undef').
+nullValue(ureal,undef,'undefined').
 nullValue(ureal,null,'(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE))').
 nullValue(ureal,one,'(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE))').
 nullValue(ureal,error,'()').
 nullValue(ureal,default,'()').
 
-nullValue(ireal,undefined,'undef').
-nullValue(ireal,error,'undef').
+nullValue(ireal,undef,'undefined').
+nullValue(ireal,error,'undefined').
 nullValue(ireal,default,'(currenttime 0.0)').
 
-nullValue(rreal,undefined,'()').
+nullValue(rreal,undef,'()').
 nullValue(rreal,empty,'()').
 nullValue(rreal,error,'()').
 nullValue(rreal,default,'()').
 
-nullValue(mint,undefined,'()').
+nullValue(mint,undef,'()').
 nullValue(mint,null,'((("begin of time" "end of time" TRUE TRUE) 0))').
 nullValue(mint,one,'((("begin of time" "end of time" TRUE TRUE) 1))').
 nullValue(mint,error,'()').
 nullValue(mint,default,'()').
 
-nullValue(uint,undefined,'undef').
+nullValue(uint,undef,'undefined').
 nullValue(uint,null,'(("begin of time" "end of time" TRUE TRUE) 0)').
 nullValue(uint,one,'(("begin of time" "end of time" TRUE TRUE) 1)').
 nullValue(uint,error,'()').
 nullValue(uint,default,'()').
 
-nullValue(iint,undefined,'undef').
-nullValue(iint,null,'undef').
-nullValue(iint,error,'undef').
+nullValue(iint,undef,'undefined').
+nullValue(iint,null,'undefined').
+nullValue(iint,error,'undefined').
 nullValue(iint,default,'(currenttime 0)').
 
-nullValue(rint,undefined,'()').
+nullValue(rint,undef,'()').
 nullValue(rint,empty,'()').
 nullValue(rint,error,'()').
 nullValue(rint,default,'()').
 
-nullValue(mbool,undefined,'()').
+nullValue(mbool,undef,'()').
 nullValue(mbool,null,'((("begin of time" "end of time" TRUE TRUE) FALSE))').
 nullValue(mbool,one,'((("begin of time" "end of time" TRUE TRUE) TRUE))').
 nullValue(mbool,error,'()').
 nullValue(mbool,default,'()').
 
-nullValue(ubool,undefined,'undef').
+nullValue(ubool,undef,'undefined').
 nullValue(ubool,null,'(("begin of time" "end of time" TRUE TRUE) FALSE)').
 nullValue(ubool,one,'(("begin of time" "end of time" TRUE TRUE) TRUE)').
 nullValue(ubool,error,'()').
 nullValue(ubool,default,'()').
 
-nullValue(ibool,undefined,'undef').
-nullValue(ibool,null,'undef').
-nullValue(ibool,error,'undef').
+nullValue(ibool,undef,'undefined').
+nullValue(ibool,null,'undefined').
+nullValue(ibool,error,'undefined').
 nullValue(ibool,default,'(currenttime FALSE)').
 
-nullValue(rbool,undefined,'()').
+nullValue(rbool,undef,'()').
 nullValue(rbool,empty,'()').
 nullValue(rbool,error,'()').
 nullValue(rbool,default,'()').
 
-nullValue(mstring,undefined,'()').
+nullValue(mstring,undef,'()').
 nullValue(mstring,null,'((("begin of time" "end of time" TRUE TRUE) ""))').
 nullValue(mstring,error,'()').
 nullValue(mstring,default,'()').
 
-nullValue(ustring,undefined,'undef').
+nullValue(ustring,undef,'undefined').
 nullValue(ustring,null,'(("begin of time" "end of time" TRUE TRUE) "")').
 nullValue(ustring,error,'()').
 nullValue(ustring,default,'()').
 
-nullValue(istring,undefined,'undef').
-nullValue(istring,null,'undef').
-nullValue(istring,error,'undef').
-nullValue(istring,default,'undef').
+nullValue(istring,undef,'undefined').
+nullValue(istring,null,'undefined').
+nullValue(istring,error,'undefined').
+nullValue(istring,default,'undefined').
 
-nullValue(rstring,undefined,'()').
+nullValue(rstring,undef,'()').
 nullValue(rstring,empty,'()').
 nullValue(rstring,error,'()').
 nullValue(rstring,default,'()').
 
-nullValue(movingregion,undefined,'()').
-nullValue(movingregion,null,'()').
-nullValue(movingregion,error,'()').
-nullValue(movingregion,default,'()').
+nullValue(mregion,undef,'()').
+nullValue(mregion,null,'()').
+nullValue(mregion,error,'()').
+nullValue(mregion,default,'()').
 
-nullValue(uregion,undefined,'undef').
+nullValue(uregion,undef,'undefined').
 nullValue(uregion,null,'()').
 nullValue(uregion,error,'()').
 nullValue(uregion,default,'()').
 
-nullValue(intimeregion,undefined,'undef').
-nullValue(intimeregion,null,'undef').
-nullValue(intimeregion,error,'undef').
-nullValue(intimeregion,default,'(currenttime ())').
+nullValue(iregion,undef,'undefined').
+nullValue(iregion,null,'undefined').
+nullValue(iregion,error,'undefined').
+nullValue(iregion,default,'(currenttime ())').
 
-nullValue(rect,undefined,'undef').
+nullValue(rect,undef,'undefined').
 nullValue(rect,empty,'(0.0 0.0 0.0 0.0)').
-nullValue(rect,error,'undef').
+nullValue(rect,error,'undefined').
 nullValue(rect,default,'(0.0 0.0 0.0 0.0)').
 
-nullValue(rect3,undefined,'undef').
+nullValue(rect3,undef,'undefined').
 nullValue(rect3,empty,'(0.0 0.0 0.0 0.0 0.0 0.0)').
-nullValue(rect3,error,'undef').
+nullValue(rect3,error,'undefined').
 nullValue(rect3,default,'(0.0 0.0 0.0 0.0 0.0 0.0)').
 
-nullValue(rect4,undefined,'undef').
+nullValue(rect4,undef,'undefined').
 nullValue(rect4,empty,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
-nullValue(rect4,error,'undef').
+nullValue(rect4,error,'undefined').
 nullValue(rect4,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 
-nullValue(rect8,undefined,'undef').
+nullValue(rect8,undef,'undefined').
 nullValue(rect8,empty,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
-nullValue(rect8,error,'undef').
+nullValue(rect8,error,'undefined').
 nullValue(rect8,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 
 % Section:Start:nullValue_3_e

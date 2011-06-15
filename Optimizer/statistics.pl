@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [File ~statistics.pl~]
 
-While module [~database.pl~] handles basic information on database objects, like
-types/ schemas, tuple sizes, cardinalities etc. this module deals with statistics
-on databases, that rely to predicate evaluation.
+While module [~database.pl~] handles basic information on database objects,
+like types/ schemas, tuple sizes, cardinalities etc. this module deals with
+statistics on databases, that rely to predicate evaluation.
 
 Above all, it covers the estimation of predicate selectivities, predicate
 evaluation times (PETs), and type inference for expressions.
@@ -301,15 +301,26 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
                        -QueryTime, -BBoxResCard, -FilterResCard, -InputCard)
 ----
 
-The cardinality query for a selection predicate is performed on the selection sample. The cardinality query for a join predicate is performed on the first ~n~ tuples of the selection sample vs. the join sample, where ~n~ is the size of the join sample. It is done in this way in order to have two independent samples for the join, avoiding correlations, especially for equality conditions.
+The cardinality query for a selection predicate is performed on the selection
+sample. The cardinality query for a join predicate is performed on the first
+~n~ tuples of the selection sample vs. the join sample, where ~n~ is the size
+of the join sample. It is done in this way in order to have two independent
+samples for the join, avoiding correlations, especially for equality conditions.
 
-If ~optimizerOption(dynamicSample)~ is defined, dynamic samples are used instead of the \_sample\_j / \_sample\_s resp. \_small relations.
+If ~optimizerOption(dynamicSample)~ is defined, dynamic samples are used instead
+of the \_sample\_j / \_sample\_s resp. \_small relations.
 
-The predicates return the time ~QueryTime~ used for the query, and the cardinality ~FilterResCard~ of the result after applying the predicate.
+The predicates return the time ~QueryTime~ used for the query, and the
+cardinality ~FilterResCard~ of the result after applying the predicate.
 
-If ~Pred~ has a predicate operator that performs checking of overlapping minimal bounding boxes, the selectivity query will additionally return the cardinality after the bbox-checking in ~BBoxResCard~, otherwise its return value is set to constant  ~noBBox~.
+If ~Pred~ has a predicate operator that performs checking of overlapping minimal
+bounding boxes, the selectivity query will additionally return the cardinality
+after the bbox-checking in ~BBoxResCard~, otherwise its return value is set to
+constant  ~noBBox~.
 
-Selectivity queries will timeout after a time soecified by ~secOptConstant(sampleTimeout, Timeout)~. To calculate the selectivity, the number of processed tuples (joines tuples) is returned as parameter ~InputCard~.
+Selectivity queries will timeout after a time soecified by
+~secOptConstant(sampleTimeout, Timeout)~. To calculate the selectivity, the
+number of processed tuples (joines tuples) is returned as parameter ~InputCard~.
 
 */
 
@@ -320,7 +331,9 @@ Selectivity queries will timeout after a time soecified by ~secOptConstant(sampl
 Return the bbox-selectivity-predicate ~PredTerm~ for for ~Dimension~ dimensions
 for arguments ~Arg1~ and ~Arg2~.
 
-If ~Dimension~ is ~std~, a special operator is used, that for operands of dimensions $n$, $m$ checks whether the bounding boxes of the objects' projections to the first $min\{n,m\}$ dimensions interesect.
+If ~Dimension~ is ~std~, a special operator is used, that for operands of
+dimensions $n$, $m$ checks whether the bounding boxes of the objects'
+projections to the first $min\{n,m\}$ dimensions interesect.
 
 */
 
@@ -386,8 +399,10 @@ bboxSizeQuerySel(Term,Rel,[_,_,T],Size) :-
                                             value_expr(real,Timeout)),NewAttr),
   plan_to_atom(SizeQueryT,SizeQueryA),
   concat_atom(['query ',SizeQueryA],'',SizeQuery),
-  dm(selectivity,['\nThe Avg-Size query is: ', SizeQuery, '\n']),
+  dm(selectivity,['\nThe Avg-Size Query is: ', SizeQuery, '\n']),
+  !, % no backtracking before this!
   secondo(SizeQuery,[real,Size]),
+  dm(selectivity,['\nThe Avg-Size is: ', Size, '\n']),
   databaseName(DB),
   assert(storedBBoxSize(DB,SimpleTerm,Size)), !. % store it
 
@@ -423,18 +438,20 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-%       Old method uses faster loopjoin:
-%       SizeQueryT = avg(timeout(projectextend(
-%             loopjoin(Rel1Query, fun([param(txx1, tuple)], Rel2Query)),
-%             [],
-%             [field(attr(NewAttr,0,l),size(bbox(Term2)))]),Timeout),NewAttr)
-%       New version uses slower symmproduct to enable a balanced stream
-%       consumption within the timeout
-         SizeQueryT = avg(timeout(projectextend(
-            symmproduct(Rel1Query, Rel2Query),
-            [],
-            [field(attr(NewAttr,0,l),size(bbox(Term2)))]),
-             value_expr(real,Timeout)),NewAttr)
+         ( optimizerOption(subqueries)
+           -> % Old method uses faster loopjoin:
+              SizeQueryT = avg(timeout(projectextend(
+                loopjoin(Rel1Query, fun([param(txx1, tuple)], Rel2Query)),
+                [],
+                [field(attr(NewAttr,0,l),size(bbox(Term2)))]),Timeout),NewAttr)
+           ; % New version uses slower symmproduct to enable a balanced stream
+             % consumption within the timeout
+              SizeQueryT = avg(timeout(projectextend(
+                symmproduct(Rel1Query, Rel2Query),
+                [],
+                [field(attr(NewAttr,0,l),size(bbox(Term)))]),
+                value_expr(real,Timeout)),NewAttr)
+         )
        )
     ;  ( ensureSampleSexists(DCrelName1),
          ensureSampleJexists(DCrelName2),
@@ -443,20 +460,30 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          secOptConstant(sampleJoinMaxCard, JoinSize),
-%       Old method uses faster loopjoin:
-%       New version uses slower symmproduct to enable a balanced stream
-%       consumption within the timeout
-         SizeQueryT = avg(timeout(projectextend(
-            symmproduct(head(Rel1Query, JoinSize), head(Rel2Query, JoinSize)),
-            [],
-            [field(attr(NewAttr,0,l),size(bbox(Term2)))]),
-             value_expr(real,Timeout)),NewAttr)
+         ( optimizerOption(subqueries)
+           -> % Old method uses faster loopjoin:
+              SizeQueryT = avg(timeout(projectextend(
+                loopjoin(head(Rel1Query, JoinSize),
+                         fun([param(txx1, tuple)], head(Rel2Query,JoinSize))),
+                [],
+                [field(attr(NewAttr,0,l),size(bbox(Term2)))]),
+                value_expr(real,Timeout)),NewAttr)
+           ;  % New version uses slower symmproduct to enable a balanced stream
+              % consumption within the timeout
+              SizeQueryT = avg(timeout(projectextend(
+                symmproduct(head(Rel1Query, JoinSize), head(Rel2Query, JoinSize)),
+                [],
+                [field(attr(NewAttr,0,l),size(bbox(Term)))]),
+                value_expr(real,Timeout)),NewAttr)
+         )
        )
   ),
   plan_to_atom(SizeQueryT,SizeQueryA),
   concat_atom(['query ',SizeQueryA],'',SizeQuery),
-  dm(selectivity,['\nThe Avg-Size query is: ', SizeQuery, '\n']),
+  dm(selectivity,['\nThe Avg-Size Query is: ', SizeQuery, '\n']),
+  !, % no backtracking before this!
   secondo(SizeQuery,[real,Size]),
+  dm(selectivity,['\nThe Avg-Size is: ', Size, '\n']),
   databaseName(DB),
   assert(storedBBoxSize(DB,SimpleTerm,Size)), !. % store it
 
@@ -496,7 +523,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
          possiblyRename(RelS, RelQuery)
        )
   ),
-  dm(selectivity,['\n==== spatial unary predicate with bbox-checking ====\n']),
+  dm(selectivity,['\n==== spatial unary predicate with bbox-checking: '
+                  ,Pred,' ====\n']),
   secOptConstant(sampleTimeout, Timeout),
   Query = count(timeout(filter(counter(filter(counter(RelQuery,1),
                                 BBoxPred),2), Pred),value_expr(real,Timeout))),
@@ -568,7 +596,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard, InputCard) :-
          possiblyRename(RelS, RelQuery)
        )
   ),
-  dm(selectivity,['\n-------------  unary standard predicate -------------\n']),
+  dm(selectivity,['\n-------------  unary standard predicate: ',
+                  Pred,' -------------\n']),
   secOptConstant(sampleTimeout, Timeout),
   Query = count(timeout(filter(counter(RelQuery,1), Pred),
                                                   value_expr(real,Timeout))),
@@ -650,23 +679,26 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
        )
     ;  Pred2 = Pred
   ),
-  dm(selectivity,['\n==== spatial binary predicate with bbox-checking ====\n']),
+  dm(selectivity,['\n==== spatial binary predicate with bbox-checking: ',
+                  Pred2,' ====\n']),
   Pred2 =.. [_, Arg1, Arg2],
   getBBoxIntersectionTerm(Arg1,Arg2,Dim,Pred3),
   secOptConstant(sampleTimeout, Timeout),
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-%       Old method uses faster loopjoin:
-%        Query = count(timeout(filter(counter(loopjoin(Rel1Query,
-%           fun([param(txx1, tuple)], filter(counter(Rel2Query,1), Pred3)
-%                                                     )),2),Pred2),Timeout ))
-%       New version uses slower symmjoin to enable a balanced stream consumption
-%       within the timeout
-         Query = count(timeout(filter(counter(
+         ( optimizerOption(subqueries)
+           -> % Old method uses faster loopjoin:
+              Query = count(timeout(filter(counter(loopjoin(Rel1Query,
+                      fun([param(txx1, tuple)], filter(
+                      counter(Rel2Query,1), Pred3))),2),Pred2),Timeout ))
+           ;  %  New version uses slower symmjoin to enable a balanced stream
+              %  consumption within the timeout
+              Query = count(timeout(filter(counter(
                                     symmjoin(counter(Rel1Query,1),
                                              counter(Rel2Query,2),
                                     Pred3), 3),Pred2),value_expr(real,Timeout)))
+         )
        )
     ;  ( Rel1 = rel(DCrelName1, _),
          Rel2 = rel(DCrelName2, _),
@@ -677,16 +709,19 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          secOptConstant(sampleJoinMaxCard, JoinSize),
-%       Old method uses faster loopjoin:
-%        Query = count(timeout(filter(counter(loopjoin(counter(Rel1Query,1),
-%                       fun([param(txx1, tuple)],
-%                       filter(Rel2Query, Pred3))),2), Pred2), Timeout ))
-%       New version uses slower symmjoin to enable a balanced stream consumption
-%       within the timeout
-         Query = count(timeout(filter(counter(
+         ( optimizerOption(subqueries)
+           -> % Old method uses faster loopjoin:
+              Query = count(timeout(filter(counter(loopjoin(
+                      counter(Rel1Query,1),
+                      fun([param(txx1, tuple)],
+                      filter(Rel2Query, Pred3))),2), Pred2), Timeout ))
+           ; %  New version uses slower symmjoin to enable a balanced stream
+             %  consumption within the timeout
+              Query = count(timeout(filter(counter(
                       symmjoin( counter(head(Rel1Query,JoinSize), 1),
                                 counter(head(Rel2Query,JoinSize), 2),
                                 Pred3), 3), Pred2), value_expr(real,Timeout)))
+         )
        )
   ),
   transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
@@ -771,20 +806,23 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
        )
     ;  Pred2 = Pred
   ),
-  dm(selectivity,['\n------------- binary standard predicate -------------\n']),
+  dm(selectivity,['\n------------- binary standard predicate: ',
+                  Pred2,' -------------\n']),
   secOptConstant(sampleTimeout, Timeout),
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-%       Old method uses faster loopsel:
-%        Query = count(timeout(loopsel(counter(Rel1Query,1),
-%                      fun([param(txx1, tuple)],
-%                      filter(counter(Rel2Query,2), Pred2))), Timeout))
-%       New version uses slower symmjoin to enable a balanced stream consumption
-%       within the timeout
-         Query = count(timeout(symmjoin(counter(Rel1Query,1),
-                                        counter(Rel2Query,2),
-                                        Pred2), value_expr(real,Timeout)))
+         ( optimizerOption(subqueries)
+           -> % Old method uses faster loopsel:
+              Query = count(timeout(loopsel(counter(Rel1Query,1),
+                      fun([param(txx1, tuple)],
+                      filter(counter(Rel2Query,2), Pred2))), Timeout))
+           ;  %  New version uses slower symmjoin to enable a balanced
+              %  stream consumption within the timeout
+              Query = count(timeout(symmjoin(counter(Rel1Query,1),
+                                    counter(Rel2Query,2),
+                                    Pred2), value_expr(real,Timeout)))
+         )
        )
     ;  ( Rel1 = rel(DCrelName1, _),
          Rel2 = rel(DCrelName2, _),
@@ -796,15 +834,18 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          secOptConstant(sampleJoinMaxCard, JoinSize),
-%        Old method uses faster loopsel:
-%        Query = count(timeout(loopsel(counter(Rel1Query,1),
-%                   fun([param(txx1, tuple)],
-%                   filter(counter(Rel2Query,2), Pred2))), Timeout))
-%       New version uses slower symmjoin to enable a balanced stream consumption
-%       within the timeout
-         Query = count(timeout(symmjoin(counter(head(Rel1Query,JoinSize), 1),
-                                        counter(head(Rel2Query,JoinSize), 2),
-                                        Pred2), value_expr(real,Timeout)))
+         ( optimizerOption(subqueries)
+           -> % Old method uses faster loopsel:
+              Query = count(timeout(loopsel(counter(Rel1Query,1),
+                      fun([param(txx1, tuple)],
+                      filter(counter(Rel2Query,2), Pred2))), Timeout))
+           ;  % New version uses slower symmjoin to enable a balanced
+              % stream consumption within the timeout
+              Query = count(timeout(symmjoin(
+                      counter(head(Rel1Query,JoinSize),1),
+                      counter(head(Rel2Query,JoinSize), 2),
+                      Pred2), value_expr(real,Timeout)))
+         )
        )
    ),
   transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
@@ -875,11 +916,11 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard, InputCard) :-
 
 /*
 
-----	transformPred(Pred, Param, Arg, Pred2) :-
+----	transformPred(+Pred, +Param, +Arg, -Pred2)
 ----
 
-~Pred2~ is ~Pred~ transformed such that the attribute X of relation ~ArgNo~ is written
-as ``attribute(Param, attrname(X))''
+~Pred2~ is ~Pred~ transformed such that the attribute X of relation ~ArgNo~ is
+written as ``attribute(Param, attrname(X))''
 
 */
 
@@ -938,7 +979,10 @@ getPET(+P, -CalcPET, -ExpPET)
 getBBoxSel(+P, -BBoxSel)
 ----
 
-The selectivity of predicate ~P~ is ~Sel~. The analytic predicate cost function reports the evaluation of the predicate to take ~CalcPET~ milliseconds of time. During the actual query, the evaluation took ~ExpPET~ milliseconds of time for a single evaluation.
+The selectivity of predicate ~P~ is ~Sel~. The analytic predicate cost function
+reports the evaluation of the predicate to take ~CalcPET~ milliseconds of time.
+During the actual query, the evaluation took ~ExpPET~ milliseconds of time for
+a single evaluation.
 
 If ~selectivity~ is called, it first tries to look up
 the selectivity via the predicate ~sels~. If no selectivity
@@ -1461,7 +1505,8 @@ showStoredPredicateSignature :-
 /*
 1.5 Determining System Speed and Calibration Factors
 
-To achieve good cost estimations, the used cost factors for operators need to be calibrated.
+To achieve good cost estimations, the used cost factors for operators need to
+be calibrated.
 
 */
 
@@ -1542,7 +1587,9 @@ setOriginalOperatorTFs :-
 
 
 /*
-Estimate the speed the stytem by posing a specific query, calculating the used time and comparing it with the value of the appropriate cost function. From this, calculate a new calibration factor.
+Estimate the speed the stytem by posing a specific query, calculating the used
+time and comparing it with the value of the appropriate cost function. From
+this, calculate a new calibration factor.
 
 */
 
@@ -1675,7 +1722,9 @@ Calculation of the costs of a predicate. To get the total costs of a predicate,
 the costs of its sub-terms are assessed first. The estimated costs are based
 on the attribute sizes and the attribute types.
 
-If the type of a term cannot be dertermined, a failure value (e.g. ~undefined~) should be returned. The clauses should be modified to handle the case where a recursive call yields an undefined result.
+If the type of a term cannot be dertermined, a failure value (e.g. ~undefined~)
+should be returned. The clauses should be modified to handle the case where a
+recursive call yields an undefined result.
 
 */
 
@@ -1820,7 +1869,9 @@ sTTS(T,T).
 
 
 /*
-Different operators can occur within a predicate. Cost factors for certain predicates and different combinations of argument types are stored in the following Prolog facts:
+Different operators can occur within a predicate. Cost factors for certain
+predicates and different combinations of argument types are stored in the
+following Prolog facts:
 
 */
 
@@ -1865,13 +1916,16 @@ calcExpPET(+MSs, +InputCard, +TupleSize1, +TupleSize2, +ResCard, -Time)
 ----
 Calculation of experimental net-PETs (predicate evaluation times):
 
-Reduce the measured time ~MSs~ when determinating the selectivity of selection-predicates
+Reduce the measured time ~MSs~ when determinating the selectivity of selection-
+predicates
 by the estimated costs of operator feed.
 
 Reduce the measured time when determining the selectivity of join-predicates
 by the estimated costs of the operators feed and loopjoin.
 
-Other arguments: ~InputCard~ is the product of the cardinalities of the input streams; ~TupleSize~, ~TupleSize1~, ~TupleSize2~ are the tuple sizes of the input streams, ~ResCard~ is the cardinality of the join.
+Other arguments: ~InputCard~ is the product of the cardinalities of the input
+streams; ~TupleSize~, ~TupleSize1~, ~TupleSize2~ are the tuple sizes of the
+input streams, ~ResCard~ is the cardinality of the join.
 
 ~Time~ is the sesulting net-PET in milliseconds.
 
@@ -1922,7 +1976,8 @@ used within queries, especially within predicates.
 
 The approach investigates a term bottom-up, i.e. it first tries to determine
 the type of the arguments on the leaves of the operator tree by inspecting the
-attribute table or by sending getTypeNL-Queries to Secondo.
+attribute table or by sending ~getTypeNL~ or ~matchingOperators~ Queries to
+Secondo.
 
 Once all argument types are known for a operator node, we check whether the
 signature is already known. If so, we already know the operator result type.
@@ -1935,26 +1990,27 @@ getTypeTree(+Expr,-Result)
 
 ----
 
-This predicates never fail, but throw an exception instead!
+These predicates never fail, but throw exceptions instead!
 
-Retrieves the complete type/operator tree ~TypeTree~ from an expression ~Expr~
+Retrieve the complete type/operator tree ~TypeTree~ from an expression ~Expr~
 for a given relation list ~RelList~. ~RelList~ may also contain
 ~type variable definitions~.
 
 ~Expr~ is an expression in internal format using attribute and relations
 descriptors etc.
 
-~RelList~ has format [(Arg1,Rel1),...(ArgN,RelN)], where Arg1...ArgN are integers
-corresponding to the ~Arg~ fields used in attribute descriptors within ~Expr~,
-and Rel1,..., RelN are the according relation descriptors.
+~RelList~ has format [(Arg1,Rel1),...(ArgN,RelN)], where Arg1...ArgN are
+integers corresponding to the ~Arg~ fields used in attribute descriptors within
+~Expr~, and Rel1,..., RelN are the according relation descriptors.
 
 Additionally, ~RelList~ may contain type variable definitions. These have format
 (typevar,TypeVarName,TypeList), where ~TypeVarName~ is a type variable name and
 TypeList is the according type descriptor. A tuple variable is referenced by
-using the expression ~typevar(TypeVarName)~ or --- within attribute descriptors ---
-in place of the ~ArgNo~ field of attr/3 attribute descriptors:
+using the expression ~typevar(TypeVarName)~ or --- within attribute descriptors
+--- in place of the ~ArgNo~ field of attr/3 attribute descriptors:
 ~attr(AttrName, TypeVarName, Spell)~.
-This is implemented to support type mapping for operators using parameter functions.
+This is implemented to support type mapping for operators using parameter
+functions.
 
 For the variant ~getTypeTree/2~, see below.
 
@@ -1965,9 +2021,10 @@ For the variant ~getTypeTree/2~, see below.
 
 Atomic leaves have special markers instead of an operator symbol:
 integer, real, text and string atoms have ~atom~, attributes have ~attr~,
-constants ~constant~, attribute names have ~attrname~, database object names have ~dbobject~,
-type names have ~typename~, relations have ~relation~. In all these cases,
-~TypeTreeList~ becomes the expression forming the according primitive.
+constants ~constant~, attribute names have ~attrname~, database object names
+have ~dbobject~, type names have ~typename~, relations have ~relation~. In all
+these cases, ~TypeTreeList~ becomes the expression forming the according
+primitive.
 Newly created (calculated) attributes are marked with ~newattr~.
 
 Facts describing known operator signatures are defined in file ~operators.pl~.
@@ -2012,7 +2069,7 @@ If this variant of the predicate receives one argument ~Expr~, that represents
 one of the internal predicate representations: pr(P,A) or pr(P,A,B), it can
 automatically create the ~RelList~ and call getTypeTree/3.
 
-If ~Expr~ is not a internal predicate term, a ~RelList~ is created from the
+If ~Expr~ is not an internal predicate term, a ~RelList~ is created from the
 tables created by callLookup. This is implemented by the auxiliary predicate
 getAllUsedRelations/1.
 
@@ -2158,7 +2215,6 @@ getTypeTree(rel(DCrelName, X),_,[relation,rel(DCrelName, X),tuple(TupleList)]):-
                            [relation,rel(DCrelName, X),tuple(TupleList)])),
   !.
 
-
 % Primitive: object-descriptor
 getTypeTree(dbobject(NameDC),_,[dbobject,dbobject(NameDC),TypeDC]) :-
   secondoCatalogInfo(NameDC,_,_,[TypeExprList]),
@@ -2183,6 +2239,7 @@ getTypeTree(attr(RenRelName:Attr, Arg, Z),RelList,
   assert(tmpStoredTypeTree(attr(RenRelName:Attr, Arg, Z),
                           [attr,attr(RenRelName:Attr, Arg, Z),DCType])),
   !.
+
 getTypeTree(attr(Attr, Arg, Y),Rels,[attr,attr(Attr, Arg, Y),DCType]) :-
   downcase_atom(Attr,DCAttr),
   memberchk((Arg,Rel),Rels),
@@ -2248,10 +2305,21 @@ getTypeTree(Op,_Rels,[Op,[],TypeDC]) :-
   atom(Op),
   secondoOp(Op, prefix, 0),
   systemIdentifier(Op, _),
-  plan_to_atom(getTypeNL(Op),NullQueryAtom),
-  concat_atom(['query ',NullQueryAtom],'',Query),
-%   dm(selectivity,['getTypeNL-Query = ',Query]),nl,
-  secondo(Query,[text,TypeDC]),
+  ( \+(optimizerOption(use_matchingOperators))
+    -> ( % Alternative I: using operator 'getTypeNL'
+         plan_to_atom(getTypeNL(Op),NullQueryAtom),
+         concat_atom(['query ',NullQueryAtom],'',Query),
+         dm(selectivity,['getTypeNL-Query = ',Query]),nl,
+         secondo(Query,[text,TypeDC])
+       )
+    ;  ( % Alternative II: using operator 'matchingOperators'
+
+         concat_atom(['query matchingOperators() filter[.OperatorName="',Op,
+                      '"] extract[ResultType]'],'',Query),
+         dm(selectivity,['matchingOperators-Query = ',Query]),nl,
+         secondo(Query,[text,TypeDC])
+       )
+  ),
      % store signature in fact base
   assert(queriedOpSignature(Op,[],TypeDC,[])),
 %   dm(selectivity,['$$$ getTypeTree: ',Expr,': ',TypeDC]),nl,
@@ -2277,23 +2345,40 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
 getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
   compound(Expr),
   not(is_list(Expr)),
+  write_list(['XRIS: Finally got here for Expr = ',Expr,'\n']),
   Expr =.. [Op|Args],
-  getTypeTree(Args,Rels,ArgTree),
+  write_list(['XRIS: Op = ',Op,' Args = ',Args,'\n']),
+%  getTypeTree(Args,Rels,ArgTree),         %% XRIS: original line
+  getTypeTree(arglist(Args),Rels,ArgTree), %% XRIS: changed line
      % extract types from ArgTree
   trav(ArgTree,ArgTypes),
-%  findall(T,member([_,_,T],ArgTree),ArgTypes),
-     % create a valid expression using defined null values
-  createNullValues(ArgsTypes,NullArgs),
-     % send getTypeNL-query to Secondo to infer the signature
-  NullQueryExpr =.. [Op|NullArgs],
-  plan_to_atom(getTypeNL(NullQueryExpr),NullQueryAtom),
-  concat_atom(['query ',NullQueryAtom],'',Query),
-%   dm(selectivity,['getTypeNL-Query = ',Query]),nl,
-  secondo(Query,[text,TypeDC]),
-     % store signature in fact base
+  ( \+(optimizerOption(use_matchingOperators))
+    -> ( % Alternative I: using operator 'getTypeNL'
+         findall(T,member([_,_,T],ArgTree),ArgTypes),
+         % create a valid expression using defined null values
+         createNullValues(ArgsTypes,NullArgs),
+         % send getTypeNL-query to Secondo to infer the signature
+         NullQueryExpr =.. [Op|NullArgs],
+         plan_to_atom(getTypeNL(NullQueryExpr),NullQueryAtom),
+         concat_atom(['query ',NullQueryAtom],'',Query),
+         dm(selectivity,['getTypeNL-Query = ',Query]),nl,
+         secondo(Query,[text,TypeDC])
+       )
+    ;  ( % Alternative II: using operator 'matchingOperators'
+         findall(T,member([_,_,T],ArgTree),ArgTypes),
+         atomic_list_concat(ArgTypes, ', ', ArgTypesText),
+         concat_atom(['query matchingOperators( ',ArgTypesText,
+                      ' ) filter[.OperatorName="',Op,
+                      '"] extract[ResultType]'],'',Query),
+         dm(selectivity,['matchingOperators-Query = ',Query]),nl,
+         secondo(Query,[text,TypeDC])
+       )
+  ),
+  % store signature in fact base
   assert(queriedOpSignature(Op,ArgTypes,TypeDC,[])),
 %   dm(selectivity,['$$$ getTypeTree: ',Expr,': ',TypeDC]),nl,
   assert(tmpStoredTypeTree(Expr,[Op,ArgsTypes,TypeDC])),
+  write_list(['XRIS: finished\n']),
   !.
 
 getTypeTree(A,B,C) :-
@@ -2325,11 +2410,13 @@ Auxiliary predicate
 (2) valueTypeExpr2valueTypeExprAtom(+Type, -TypeAtom)
 ----
 
-(1) transforms a type expression ~Type~ using square brackets and commas as delimiters
-into an atom with the equivalent nested list representation using round parantheses.
+(1) transforms a type expression ~Type~ using square brackets and commas as
+delimiters into an atom with the equivalent nested list representation using
+round parantheses.
 
-(2) transforms a type expression ~Type~ using round brackets and commas as delimiters
-into an atom with the equivalent nested list representation using round parantheses.
+(2) transforms a type expression ~Type~ using round brackets and commas as
+delimiters into an atom with the equivalent nested list representation using
+round parantheses.
 
 */
 
@@ -2584,7 +2671,8 @@ showDatabase :-
 /*
 1 Examples
 
-The following examples can be used used to test the functionality of this module.
+The following examples can be used used to test the functionality of this
+module.
 
 Example 22:
 

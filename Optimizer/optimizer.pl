@@ -398,19 +398,38 @@ In queries, string, text, int and real constants can be noted as used in Secondo
 "Hello World!" for a string constant, 'Hello Text' for a text constant, -557 or 56
 for an int constant, and -1.565E-12, -1.5, 5688.45 for real constants.
 
-Bool constants must be noted ~true~ and ~false~ instead of ~TRUE~ and ~FALSE~,
+~Bool constants~ must be noted ~true~ and ~false~ instead of ~TRUE~ and ~FALSE~,
 because Prolog would interpret the correct symbols as variables.
 
-Other constants need to be noted as similar to the way this is done in Secondo:
-as a nested list. Again, we use square brackets to delinit the list and commas to
-separate its elements:
+~Int constants~ and ~real constants~ can be written as prolog integer constants.
 
-----    [const, TYPE, value, VALUE]
+~String constants~ are inclosed in double quotes (as in Secondo).
+
+~Text constants~ can be noted in two different ways:
+
+----
+  [const, text, value, <char-list>]
+  const(text,"TEXT")
+----
+
+where TEXT is a sequence of characters except the double quote,
+<char-list> is the Prolog character code list (i.e. a Prolog string) representing
+the text value.
+
+All other constants need to be noted similar to the way this is done in Secondo:
+as a nested list. Again, we use square brackets to delinit the list and commas to
+separate its elements. Also a shorter alternative is available:
+
+----
+  [const, TYPE, value, VALUE]
+  const(TYPE,VALUE)
 ----
 
 where ~TYPE~ is a type descriptor (a Prolog term, like 'mpoint', 'region',
 'vector(int)', or 'set(vector(real))'; and ~VALUE~ is a nested list using round
 parentheses and commas to separate its elements.
+
+This is also the unly way to create undefined value constants.
 
 Internally, ALL constants (also int, real, etc.) are noted as terms
 
@@ -1235,6 +1254,21 @@ atom to standard output.
 
 */
 
+/*
+----  split_list(+InList,+N,?FirstN,?Rest)
+----
+
+Auxiliary predicate splitting a list ~InList~ at position ~N~. The first ~N~
+list arguments are returned as ~FirstN~, the remainder as ~Rest~.
+If the list has less than ~N~ elements, the predicate fails.
+
+*/
+
+split_list(InList,0,[],InList).    % case: finished all N leading elems
+split_list([],N,_,_) :- N>0, fail. % case: error, not enough elems
+split_list(_,N,_,_) :- N<0, fail.  % case: error, negative N
+split_list([F|R],N,[F|R2],Rest) :- N2 is N-1, split_list(R,N2,R2,Rest), !.
+
 upper(Lower, Upper) :-
   atom_chars(Lower, [First | Rest]),
   char_type(First2, to_upper(First)),
@@ -1322,6 +1356,15 @@ rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
 % Section:Start:plan_to_atom_2_b
+
+plan_to_atom( stconstraint(LiftedPred1, LiftedPred2, TempConstraint) , Result):-
+ plan_to_atom( LiftedPred1, LP1 ),
+ plan_to_atom( LiftedPred2, LP2 ),
+ plan_to_atom( TempConstraint, TC ),
+ concat_atom(['stconstraint(', LP1, ', ', LP2, ', ', TC, ')'],'', Result),
+ !.
+
+
 /*
 The stpattern predicate
 
@@ -1330,7 +1373,15 @@ plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
  namedPredList_to_atom(NPredList, NPredList2),
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
- concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',  Result),
+ concat_atom(['. stpattern[', NPredList2, '; ',ConstraintList2,']'],'', Result),
+ !.
+
+
+plan_to_atom( stpattern(NPredList, ConstraintList) , Result):-
+ namedPredList_to_atom(NPredList, NPredList2),
+ ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
+        (plan_to_atom(ConstraintList, ConstraintList2))),
+ concat_atom(['. stpattern[', NPredList2, '; ',ConstraintList2,']'],'', Result),
  !.
 
 /*
@@ -1399,7 +1450,7 @@ plan_to_atom(Rel, Result) :-
 
 plan_to_atom(res(N), Result) :-
   atom_concat('res(', N, Res1),
-  atom_concat(Res1, ') ', Result),
+  atom_concat(Res1, ')', Result),
   !.
 
 plan_to_atom(SubqueryPred, Result) :-
@@ -1421,28 +1472,70 @@ plan_to_atom(pr(P,_,_), Result) :-
 plan_to_atom([], '').
 
 % string atom
+plan_to_atom(value_expr(string,undef), X) :-
+  nullValue(string,undef,X), !.
 plan_to_atom(value_expr(string,Term), Result) :-
-    atom_codes(TermRes, Term),
+    catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
     concat_atom(['"', TermRes, '"'], '', Result).
+plan_to_atom(value_expr(string,Term),Result) :-
+  concat_atom(['Invalid string constant: ',Term],ErrMsg),
+  throw(error_Internal(optimizer_plan_to_atom(value_expr(string,Term),Result)
+        ::malformedExpression:ErrMsg)),
+  !, fail.
 
 % text atom
+plan_to_atom(value_expr(text,undef), X) :-
+  nullValue(text,undef,X), !.
 plan_to_atom(value_expr(text,Term), Result) :-
-    atom_codes(TermRes, Term),
+    is_list(Term),
+    catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
     concat_atom(['\'', TermRes, '\''], '', Result).
+plan_to_atom(value_expr(text,Term), Result) :-
+    atomic(Term),
+    concat_atom(['\'', Term, '\''], '', Result).
+plan_to_atom(value_expr(text,X),Result) :-
+  concat_atom(['Invalid text constant: ',X],ErrMsg),
+  throw(error_Internal(optimizer_plan_to_atom(value_expr(text,X),Result)
+        ::malformedExpression:ErrMsg)),
+  !, fail.
 
 % int atom
-plan_to_atom(value_expr(int,Result), Result).
+plan_to_atom(value_expr(int,Result), Result) :-
+  integer(Result).
+plan_to_atom(value_expr(int,undef), X) :-
+  nullValue(int,undef,X), !.
+plan_to_atom(value_expr(int,X),Result) :-
+  concat_atom(['Invalid int constant: ',X],ErrMsg),
+  throw(error_Internal(optimizer_plan_to_atom(value_expr(int,X),Result)
+        ::malformedExpression:ErrMsg)),
+  !, fail.
 
 % real atom
-plan_to_atom(value_expr(real,Result), Result).
+plan_to_atom(value_expr(real,Result), Result) :-
+  float(Result).
+plan_to_atom(value_expr(real,undef), X) :-
+  nullValue(real,undef,X), !.
+plan_to_atom(value_expr(real,X),Result) :-
+  concat_atom(['Invalid real constant: ',X],ErrMsg),
+  throw(error_Internal(optimizer_plan_to_atom(value_expr(real,X),Result)
+        ::malformedExpression:ErrMsg)),
+  !, fail.
+
 
 % bool atom
-plan_to_atom(value_expr(bool,Term), Result) :-
-  ( Term = true
+plan_to_atom(value_expr(bool,X), Result) :-
+  ( X = true
     -> Result = ' TRUE '
-    ;  ( Term = false
+    ;  ( X = false
          -> ' FALSE '
-         ;  fail
+         ;  ( X = undef
+              -> nullValue(bool,undef,Result)
+              ; (concat_atom(['Invalid bool constant: ',X],ErrMsg),
+                 throw(error_Internal(optimizer_plan_to_atom(value_expr(bool,X),
+                    Result)::malformedExpression:ErrMsg)),
+                 !, fail
+                )
+            )
        )
   ).
 
@@ -1451,7 +1544,10 @@ plan_to_atom(value_expr(Type,Value), Result) :-
   \+ member(Type,[int,real,text,string,bool]), % special rules for these
   term_to_atom(Type,TypeA),
   term_to_atom(Value,ValueA),
-  concat_atom(['[const', TypeA, 'value', ValueA, ']'], ' ', Result).
+  ( nullValue(Type,Value,X)  % registered value (null, empty, error, default)
+    -> Result = X
+    ; concat_atom(['[const',TypeA,'value',ValueA,']'],' ',Result)
+  ).
 
 % type expression
 plan_to_atom(type_expr(Term), Result) :-
@@ -1523,12 +1619,12 @@ plan_to_atom(optimizerAnnotation(X,_), Result) :-
 
 plan_to_atom(sample(Rel, S, T), Result) :-
   plan_to_atom(Rel, ResRel),
-  concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
+  concat_atom([ResRel, ' sample[', S, ', ', T, '] '], '', Result),
   !.
 
 plan_to_atom(sample(Rel, S, T, Seed), Result) :-
   plan_to_atom(Rel, ResRel),
-  concat_atom([ResRel, 'sample[', S, ', ', T, ', ', Seed, '] '], '', Result),
+  concat_atom([ResRel, ' sample[', S, ', ', T, ', ', Seed, '] '], '', Result),
   !.
 
 plan_to_atom(symmjoin(X, Y, M), Result) :-
@@ -1536,8 +1632,8 @@ plan_to_atom(symmjoin(X, Y, M), Result) :-
   plan_to_atom(Y, YAtom),
   consider_Arg2(M, M2),          % transform second arg/3 to arg2/3
   plan_to_atom(M2, MAtom),
-  concat_atom([XAtom, YAtom, 'symmjoin[',
-    MAtom, '] '], '', Result),
+  concat_atom([XAtom, ' ', YAtom, ' symmjoin[',
+    MAtom, ']'], '', Result),
   !.
 
 plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
@@ -1545,8 +1641,8 @@ plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
   plan_to_atom(Y, YAtom),
   consider_Arg2(Fields, Fields2),          % transform second arg/3 to arg2/3
   plan_to_atom(Fields2, FieldsAtom),
-  concat_atom([XAtom, YAtom, 'symmproductextend[',
-    FieldsAtom, '] '], '', Result),
+  concat_atom([XAtom, ' ', YAtom, ' symmproductextend[',
+    FieldsAtom, ']'], '', Result),
   !.
 
 % two pseudo-operators used by the 'interesting orders extension':
@@ -1556,8 +1652,8 @@ plan_to_atom(sortLeftThenMergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, 'sortby[', AAtom, ' asc] ',
-               YAtom, 'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
+  concat_atom([XAtom, ' sortby[', AAtom, ' asc] ',
+               YAtom, ' mergejoin[', AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
 plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
@@ -1566,8 +1662,8 @@ plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'sortby[', BAtom, ' asc] ',
-               'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
+  concat_atom([XAtom, ' ', YAtom, ' sortby[', BAtom, ' asc] ',
+               'mergejoin[', AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
 
@@ -1577,8 +1673,8 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
   optimizerOption(useRandomSMJ), % maps sortmergejoin to sortmergejoin_r2
-  concat_atom([XAtom, YAtom, 'sortmergejoin_r2[',
-               AAtom, ', ', BAtom, '] '], '', Result),
+  concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r2[',
+               AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
 
@@ -1588,8 +1684,8 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
   optimizerOption(useRandomSMJ3),
-  concat_atom([XAtom, YAtom, 'sortmergejoin_r3[',
-               AAtom, ', ', BAtom, '] '], '', Result),
+  concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r3[',
+               AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
 plan_to_atom(pjoin1(X, Y, Ctr, Fields), Result) :-
@@ -1597,14 +1693,15 @@ plan_to_atom(pjoin1(X, Y, Ctr, Fields), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(Ctr, CtrAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([XAtom,YAtom, 'pjoin1[', CtrAtom, '; ', FAtom, '] '], '', Result),
+  concat_atom([XAtom, ' ',YAtom,
+               ' pjoin1[', CtrAtom, '; ', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   plan_to_atom(GroupAttrs, GAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
+  concat_atom([SAtom, ' groupby[', GAtom, '; ', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(field(NewAttr, Expr), Result) :-
@@ -1623,7 +1720,7 @@ plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
   plan_to_atom(Stream, StreamAtom),
   plan_to_atom(Pred, PredAtom),
   plan_to_atom(Factor, FactorAtom),
-  concat_atom([StreamAtom, 'reduce[', PredAtom, ', ', FactorAtom, '] '], '',
+  concat_atom([StreamAtom, ' reduce[', PredAtom, ', ', FactorAtom, ']'], '',
     Result),
   !.
 
@@ -1646,7 +1743,7 @@ plan_to_atom(project(Stream, Fields), Result) :-
   not(removeHiddenAttributes), !,  % standard behaviour
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
+  concat_atom([SAtom, ' project[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(project(Stream, Fields), Result) :-
@@ -1654,14 +1751,14 @@ plan_to_atom(project(Stream, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   removeHidden(Fields, Fields2), % defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
-  concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
+  concat_atom([SAtom, ' project[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(feedproject(Stream, Fields), Result) :-
   not(removeHiddenAttributes), !,  % standard behaviour
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
+  concat_atom([SAtom, ' feedproject[', FAtom, ']'], '', Result),
   !.
 
 plan_to_atom(feedproject(Stream, Fields), Result) :-
@@ -1669,7 +1766,7 @@ plan_to_atom(feedproject(Stream, Fields), Result) :-
   plan_to_atom(Stream, SAtom),
   removeHidden(Fields, Fields2), % defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
-  concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
+  concat_atom([SAtom, ' feedproject[', FAtom, ']'], '', Result),
   !.
 
 
@@ -1685,7 +1782,7 @@ plan_to_atom(exactmatchfun(Index, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(dbobject(Index),IndexAtom),
   newVariable(T),
   concat_atom(['fun(', T, ' : TUPLE) ', IndexAtom,
-    ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
+    ' ', RelAtom, ' exactmatch[attr(', T, ', ', AttrAtom, ')]'], Result),
   !.
 
 
@@ -1698,20 +1795,20 @@ plan_to_atom(newattr(Attr, Expr), Result) :-
 
 plan_to_atom(rename(X, Y), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom([XAtom, '{', Y, '} '], '', Result),
+  concat_atom([XAtom, '{', Y, '}'], '', Result),
   !.
 
 
 plan_to_atom(predinfo(X, Sel, Cost), Result) :-
   plan_to_atom(X, XAtom),
-  concat_atom([XAtom, '{', Sel, ', ', Cost, '} '], '', Result),
+  concat_atom([XAtom, '{', Sel, ', ', Cost, '}'], '', Result),
   !.
 
 
 plan_to_atom(fun(Params, Expr), Result) :-
   params_to_atom(Params, ParamAtom),
   plan_to_atom(Expr, ExprAtom),
-  concat_atom(['fun (', ParamAtom, ') ', ExprAtom], '', Result),
+  concat_atom(['fun(', ParamAtom, ') ', ExprAtom], '', Result),
   !.
 
 
@@ -1826,8 +1923,8 @@ plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
   plan_to_atom( Term, TermRes ),
   plan_to_atom( AttrName, AttrNameRes ),
   plan_to_atom( AggrFunction, AggrFunRes ),
-  concat_atom( [ TermRes, ' aggregateB[ ', AttrNameRes, ' ; ', AggrFunRes,
-                 ' ; ', DefaultVal, ' ] ' ], Result ),
+  concat_atom( [ TermRes, ' aggregateB[', AttrNameRes, ' ; ', AggrFunRes,
+                 ' ; ', DefaultVal, ']' ], Result ),
   !.
 
 /*
@@ -1873,7 +1970,7 @@ Extensions for SQL ~update~ and ~insert~ commands
 plan_to_atom(inserttuple(Rel, Values), Result) :-
   plan_to_atom(Rel, Rel2),
   list_to_atom(Values, Values2),
-  concat_atom([Rel2, ' inserttuple [', Values2, ']'], Result),
+  concat_atom([Rel2, ' inserttuple[', Values2, ']'], Result),
   !.
 
 plan_to_atom(insert(Rel, InsertQuery),Result) :-
@@ -1892,70 +1989,70 @@ plan_to_atom(updatedirect(Rel, Transformations, UpdateQuery),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   list_to_atom(Transformations, Transformations2),
   plan_to_atom(Rel, Rel2),
-  concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect [',
+  concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect[',
         Transformations2, ']'], Result),
   !.
 
 plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree [', Column2, ']'],
+  concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(deletebtree(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree [', Column2, ']'],
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(updatebtree(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree [', Column2, ']'],
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(insertrtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree [', Column2, ']'],
+  concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(deletertree(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree [', Column2, ']'],
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(updatertree(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree [', Column2, ']'],
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(inserthash(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' inserthash [', Column2, ']'],
+  concat_atom([InsertQuery2, ' ', IndexName, ' inserthash[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(deletehash(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash [', Column2, ']'],
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash[', Column2, ']'],
        Result),
   !.
 
 plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash [', Column2, ']'],
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash[', Column2, ']'],
        Result),
   !.
 
@@ -2018,7 +2115,7 @@ Extensions for distance-queries
 plan_to_atom(ksmallest(Stream, Count, Attr), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Attr, Attr2),
-  concat_atom([Stream2, 'ksmallest[', Count, '; ', Attr2, ']'], Result), !.
+  concat_atom([Stream2, ' ksmallest[', Count, '; ', Attr2, ']'], Result), !.
 
 plan_to_atom(distancescan(DCIndex, Rel, X, HeadCount), Result) :-
   plan_to_atom(X, X2),
@@ -2044,17 +2141,56 @@ plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
 
-  * postfix, 1, 2, or 3 arguments
+  * infix: exactly 2 arguments separated by the functor
 
-  * postfix followed by arguments in square brackets
+  * prefix: the functor  followed by at least 0 arguments in round parantheses
 
-  * prefix, 0, 2 arguments
+  * postfix: at least 1 argument followed by the functor
 
-Other syntax, if not default (see below) needs to be coded explicitly.
+  * postfixbrackets: at least N argument before the functor, plus an arbitrary
+    number of comma-separated arguments in squared bracket following the functor
 
 */
 
-% prefix must be defined above. We repeat the code here for explenatory reasons:
+
+/*
+Generic translation for postfix operators with at least n>=1 arguments:
+To use this rule for an operator ~op~, insert a fact
+~secondoOp(op, postfix, N)~ into file ~opsyntax.pl~
+
+----
+  _ #
+  _ ... _ #
+
+----
+
+*/
+plan_to_atom(InTerm,OutTerm) :-
+  compound(InTerm),
+  InTerm =.. [Op|ArgsIn],
+  secondoOp(Op, postfix, N),
+  N>=1,
+  length(ArgsIn,NoArgs),
+  NoArgs >= N,
+  plan_to_atom_2(ArgsIn,ArgsOut),
+  concat_atom(ArgsOut, ' ', ArgsOutAtom),
+  concat_atom([ArgsOutAtom, Op], ' ', OutTerm), !.
+
+/*
+Generic translation for prefix operators with at least n>=0 arguments:
+To use this rule for an operator ~op~, insert a fact
+~secondoOp(op, prefix, N)~ into file ~opsyntax.pl~
+
+----
+  #( )
+  #( _ )
+  #( _, ..., _ )
+
+----
+
+*/
+% prefix with 0 arguments must be defined above. We repeat the code here for
+% explenatory reasons only:
 % plan_to_atom(Op, Result) :-
 %   atom(Op),
 %   secondoOp(Op, prefix, 0),
@@ -2062,87 +2198,93 @@ Other syntax, if not default (see below) needs to be coded explicitly.
 %   concat_atom([Op, '() '], '', Result),
 %   !.
 
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 1),
-  secondoOp(Op, postfix, 1), !,
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  concat_atom([Res1, ' ', Op, ' '], '', Result),
-  !.
+plan_to_atom(InTerm,OutTerm) :-
+  compound(InTerm),
+  InTerm =.. [Op|ArgsIn],
+  secondoOp(Op, prefix, N),
+  N >= 0,
+  length(ArgsIn,NoArgs),
+  NoArgs >= N,
+  plan_to_atom_2(ArgsIn,ArgsOut),
+  concat_atom(ArgsOut, ', ', ArgsOutAtom),
+  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !.
 
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 2),
-  secondoOp(Op, postfix, 2), !,
-  arg(1, Term, Arg1),
+/*
+Generic translation for (binary) infix operators
+To use this rule for an operator ~op~, insert a fact
+~secondoOp(op, infix, 2)~ into file ~opsyntax.pl~
+
+----
+  _ # _
+
+----
+
+*/
+plan_to_atom(InTerm, Result) :-
+  compound(InTerm),
+  InTerm =.. [Op,Arg1,Arg2],
+  secondoOp(Op, infix, 2),
   plan_to_atom(Arg1, Res1),
-  arg(2, Term, Arg2),
   plan_to_atom(Arg2, Res2),
-  concat_atom([Res1, ' ', Res2, ' ', Op, ' '], '', Result),
-  !.
+  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !.
 
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 3),
-  secondoOp(Op, postfix, 3), !,
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg2, Res2),
-  arg(3, Term, Arg3),
-  plan_to_atom(Arg3, Res3),
-  concat_atom([Res1, ' ', Res2, ' ',  Res3, ' ', Op, ' '], '', Result),
-  !.
+/*
+Generic translation for postfixbrackets operators with n arguments followed
+by the functor and arbitrary number of arguments following it in square brackets:
+To use this rule for an operator ~op~, insert a fact
+~secondoOp(op, postfixbrackets, N)~ into file ~opsyntax.pl~
 
-plan_to_atom(Term, Result) :-
-  compound(Term),
-  Term =.. [Op, Arg1 | OtherArgs],
-  secondoOp(Op, postfixbrackets1, _), !,
-  not(OtherArgs = []),                            % this would be (postfix, 1)
-  plan_to_atom(Arg1, RArg1),
-  plan_to_atom_2(OtherArgs, ROtherArgs),
-  concat_atom(ROtherArgs, ' , ', AOtherArgs),
-  concat_atom([RArg1, ' ', Op, '[', AOtherArgs, '] '], '', Result),
-  !.
+----
 
-plan_to_atom(Term, Result) :-
-  compound(Term),
-  Term =.. [Op, Arg1, Arg2 | OtherArgs],
-  secondoOp(Op, postfixbrackets2, _), !,
-  not(OtherArgs = []),                            % this would be (postfix, 2)
-  plan_to_atom(Arg1, RArg1),
-  plan_to_atom(Arg2, RArg2),
-  plan_to_atom_2(OtherArgs, ROtherArgs),
-  concat_atom(ROtherArgs, ' , ', AOtherArgs),
-  concat_atom([RArg1, ' ', RArg2, ' ', Op, '[', AOtherArgs, '] '], '', Result),
-  !.
+  _ #[ _ ]
+  _ #[ _, ..., _ ]
+  _ ... _ #[ _ ]
+  _ ... _ #[ _, ..., _ ]
 
-plan_to_atom(Term, Result) :-
-  compound(Term),
-  Term =.. [Op, Arg1, Arg2, Arg3 | OtherArgs],
-  secondoOp(Op, postfixbrackets3, _), !,
-  not(OtherArgs = []),                            % this would be (postfix, 3)
-  plan_to_atom(Arg1, RArg1),
-  plan_to_atom(Arg2, RArg2),
-  plan_to_atom(Arg3, RArg3),
-  plan_to_atom_2(OtherArgs, ROtherArgs),
-  concat_atom(ROtherArgs, ' , ', AOtherArgs),
-  concat_atom([RArg1, ' ', RArg2, ' ', RArg3, ' ', Op, '[', AOtherArgs, '] '],
-              '',
-              Result),
-  !.
+----
 
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 2),
-  secondoOp(Op, prefix, 2), !,
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg2, Res2),
-  concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
+*/
+plan_to_atom(InTerm,OutTerm) :-
+  compound(InTerm),
+  InTerm =.. [Op|ArgsIn],
+  secondoOp(Op, postfixbrackets, N),
+  N >= 0,
+  length(ArgsIn,NoArgs),
+  NoArgs >= N,
+  split_list(ArgsIn,N,ArgsBefore,ArgsAfter),
+  plan_to_atom_2(ArgsBefore,ArgsBeforeOut),
+  concat_atom(ArgsBeforeOut, ' ', ArgsBeforeOutAtom),
+  plan_to_atom_2(ArgsAfter,ArgsAfterOut),
+  concat_atom(ArgsAfterOut, ', ', ArgsAfterOutAtom),
+  concat_atom([ArgsBeforeOutAtom,' ',Op,'[', ArgsAfterOutAtom, ']'],'',OutTerm),
   !.
 
 /*
-Generic rules. Operators that are not
-recognized are assumed to be:
+Error handler for operator with 'special' syntax, that do not have a matching
+~plan\_to\_atom~ rule:
+
+To safeguard an operator ~op~ with special translation agains using standarad
+translation., add a fact secondoOp(op, special, N) to file opsyntax.pl.
+
+*/
+plan_to_atom(InTerm,OutTerm) :-
+  compound(InTerm),
+  InTerm =.. [Op|_],
+  secondoOp(Op, Syntax, N),
+  term_to_atom(Syntax,SyntaxA),
+  term_to_atom(N,NA),
+  concat_atom(['ERROR: special plan_to_atom/2 rule for operator \'', Op,
+               '\'is missing.\n',
+               '\tDefined Syntax is: secondoOp(',Op,',',SyntaxA,',',NA,')\n',
+               '\tPlease provide an according rule!\.'],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_plan_to_atom(InTerm,OutTerm)
+        ::malformedExpression:ErrMsg)),
+  !, fail.
+
+
+/*
+Depricated generic rules. Operators that are not recognized are assumed to be:
 
   * 1 argument: prefix
 
@@ -2155,26 +2297,40 @@ recognized are assumed to be:
 % 1 argument: prefix */
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
+  \+(secondoOp(Op, _, _)),
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
-  concat_atom([Op, '(', Res1, ')'], '', Result), !.
+  concat_atom([Op, '(', Res1, ')'], '', Result),
+  write_list(['WARNING: Applied deprecated default plan_to_atom rule for unary',
+              'prefix operator ',Op, '/1. Please add the folling fact to file ',
+              '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
 
 /* 2 arguments: infix */
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
+  \+(secondoOp(Op, _, _)),
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !.
+  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result),
+  write_list(['WARNING: Applied deprecated default plan_to_atom rule for ',
+              'infix operator ', Op, '/2. Please add the folling fact to file ',
+              '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
 
 /* 3+ arguments: prefix */
 plan_to_atom(InTerm,OutTerm) :-
   compound(InTerm),
+  \+(secondoOp(Op, _, _)),
   InTerm =.. [Op|ArgsIn],
+  length(ArgsIn,N),
   plan_to_atom_2(ArgsIn,ArgsOut),
   concat_atom(ArgsOut, ', ', ArgsOutAtom),
-  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !.
+  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm),
+  write_list(['WARNING: Applied deprecated default plan_to_atom rule for ',
+              N,'-ary prefix operator ', Op, '/',N,
+              '. Please add the folling fact to file ',
+              '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, ',N,').\n']), !.
 
 /* Standard translation of atomic terms */
 plan_to_atom(X, Result) :-
@@ -2261,9 +2417,6 @@ params_to_atom([param(Var, Type) | Params], Result) :-
   params_to_atom(Params, ParamsAtom),
   concat_atom([Var, ': ', TypeAtom, ', ', ParamsAtom], '', Result),
   !.
-
-
-
 
 type_to_atom(tuple, 'TUPLE')   :- !.
 type_to_atom(tuple2, 'TUPLE2') :- !.
@@ -6047,20 +6200,74 @@ lookupAttr([const, Type, value, Value], value_expr(Type,Value)) :-
   ground(Type), ground(Value),
   ( atom(Type)
     -> Op = Type
-    ;  ( (compound(Type), \+ is_list(T))
-         -> T =.. [Op|_]
-         ;  fail
+    ;  ( (compound(Type), \+ is_list(Type))
+         -> Type =.. [Op|_]
+         ;  fail % Type is a list, which means it is not a valid type expression
        )
   ),
   downcase_atom(Op,OpDC),
   secDatatype(OpDC, _, _, _, _, _),
   !.
 
-lookupAttr([const, Type, value, Value], value_expr(Type,Value)) :-
-  write_list(['ERROR:\tConstant value expression \'',
-              [const, Type, value, Value],'\' could not be parsed!\n']),
+lookupAttr([const, Type, value, Value], Y) :-
+  concat_atom(['ERROR:\tConstant value expression \'',
+              [const, Type, value, Value],'\' could not be parsed!\n'],
+              '',ErrMsg),
+  write_list(['\nERROR: ',ErrMsg]), nl,
+  throw(error_SQL(optimizer_lookupAttr([const, Type, value, Value],Y)
+                                ::malformedExpression:ErrMsg)),
   !, fail.
 
+% text constant
+lookupAttr(const(text,Value), value_expr(text,Value2)) :-
+  ( atomic(Value)
+    -> atom_codes(Value2,Value)
+    ;  ( (is_list(Value), atom_codes(_,Value))
+          -> Value = Value2
+          ; ( concat_atom(['ERROR:\tConstant value expression \'',
+              const(text,Value),'\' could not be parsed!\n'],
+                      '',ErrMsg),
+              write_list(['\nERROR: ',ErrMsg]), nl,
+              throw(error_SQL(optimizer_lookupAttr(const(text,Value),
+                       value_expr(text,Value2))::malformedExpression:ErrMsg)),
+              !, fail
+            )
+       )
+  ),
+  !.
+
+% complex constant value expression (alternative)
+lookupAttr(const(Type,Value), value_expr(Type,Value)) :-
+  ground(Type), ground(Value),
+  ( atom(Type)
+    -> Op = Type
+    ;  ( (compound(Type), \+ is_list(Type))
+         -> Type =.. [Op|_]
+         ;  ( % Type is a list, it is not a valid type expression
+              concat_atom(['ERROR:\tConstant value expression \'',
+                      [const, Type, value, Value],'\' could not be parsed!\n'],
+                      '',ErrMsg),
+              write_list(['\nERROR: ',ErrMsg]), nl,
+              throw(error_SQL(optimizer_lookupAttr(const(Type,Value),
+                      value_expr(Type,Value))::malformedExpression:ErrMsg)),
+              !, fail
+            )
+       )
+  ),
+  downcase_atom(Op,OpDC),
+  secDatatype(OpDC, _, _, _, _, _),
+  !.
+
+lookupAttr(const(Type,Value), Y) :-
+  concat_atom(['ERROR:\tConstant value expression \'',
+              const(Type,Value),'\' could not be parsed!\n'],
+              '',ErrMsg),
+  write_list(['\nERROR: ',ErrMsg]), nl,
+  throw(error_SQL(optimizer_lookupAttr(const(Type,Value),Y)
+                                ::malformedExpression:ErrMsg)),
+  !, fail.
+
+% renamed attribute
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   atomic(Var),  %% changed code FIXME
   atomic(Attr), %% changed code FIXME
@@ -6071,12 +6278,14 @@ lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
     ; assert(usedAttr(Rel2, attr(Attr2, VA, Case)))
   ).
 
+% sorting orders
 lookupAttr(Attr asc, Attr2 asc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
+% attribute
 lookupAttr(Attr, Attr2) :-
   atomic(Attr), %% changed code FIXME
   downcase_atom(Attr,AttrDC),
@@ -6087,11 +6296,13 @@ lookupAttr(Attr, Attr2) :-
     ; assert(usedAttr(Rel2, Attr2))
   ).
 
-
+% count(*)
 lookupAttr(count(*), count(*)) :- !.
 
+% *
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
+% count
 lookupAttr(count(T), count(T2)) :-
   lookupAttr(T, T2), !.
 
@@ -6383,6 +6594,40 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
 % Section:Start:lookupPred1_2_m
 % Section:End:lookupPred1_2_m
 
+% Primitive: int-atom
+lookupPred1(IntAtom, value_expr(int,IntAtom), RelsBefore, RelsBefore) :-
+  atomic(IntAtom), integer(IntAtom),
+  !.
+
+% Primitive: real-atom
+lookupPred1(RealAtom, value_expr(real,RealAtom), RelsBefore, RelsBefore) :-
+  atomic(RealAtom), float(RealAtom),
+  !.
+
+% Primitive: string-atom (they regularly cause problems since they
+% are marked up in double quotes, which Prolog handles as strings, that are
+% represented as charactercode lists...)
+lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
+  is_list(Term), % list represents a string (list of characters)
+  catch((string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
+  !.
+
+%% Primitive: generic atom (constant expression)
+%lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
+%  atom(Term), !.
+lookupPred1(const(Type,Value), value_expr(Type,Value), RelsBefore, RelsBefore):-
+  ground(Type), ground(Value),
+  ( atom(Type)
+    -> Op = Type
+    ;  ( (compound(Type), \+ is_list(Type))
+         -> Type =.. [Op|_]
+         ;  fail % Type is a list, which means it is not a valid type expression
+       )
+  ),
+  downcase_atom(Op,OpDC),
+  secDatatype(OpDC, _, _, _, _, _),
+  !.
+
 % constant value expression
 lookupPred1([const, Type, value, Value], value_expr(Type,Value),
             RelsBefore, RelsBefore) :-
@@ -6404,18 +6649,11 @@ lookupPred1([const, Type, value, Value], value_expr(Type,Value),
               [const, Type, value, Value],'\' could not be parsed!\n']),
   !, fail.
 
-% special clause for string atoms (they regularly cause problems since they
-% are marked up in double quotes, which Prolog handles as strings, that are
-% represented as charactercode lists...
-lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
-  is_list(Term), % list represents a string (list of characters)
-  catch((string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
-  !.
-
 % special case for rowid
 lookupPred1(rowid, rowid, RelsBefore, RelsBefore) :- !.
 
-lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred1(pattern*), pattern query crash
+lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
+%if placed before lookupPred1(pattern*), pattern query crash
   compound(Term),
   \+ is_list(Term),
   Term =.. [Op|Args],
@@ -6438,20 +6676,6 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
-
-% Primitive: int-atom
-lookupPred1(IntAtom, value_expr(int,IntAtom), RelsBefore, RelsBefore) :-
-  atomic(IntAtom), integer(IntAtom),
-  !.
-
-% Primitive: real-atom
-lookupPred1(RealAtom, value_expr(real,RealAtom), RelsBefore, RelsBefore) :-
-  atomic(RealAtom), float(RealAtom),
-  !.
-
-%% Primitive: text-atom
-%lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
-%  atom(Term), !.
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -7817,8 +8041,8 @@ selectClause(select T, Extend, Project, distinct) :-
 
 selectClause(select T, Extend, Project, duplicates) :-
   compound(T),
-  (   T =.. [Op, (all Attr), _Fun, _Type, _Default]
-    ; T =.. [Op, Attr, _Fun, _Type, _Default]
+  (   T =.. [Op, (all Attr), _Fun1, _Type1, _Default1]
+    ; T =.. [Op, Attr, _Fun2, _Type2, _Default2]
   ),
   Attr = attr(_,_,_),
   member(Op,[aggregate]),
@@ -8089,7 +8313,7 @@ sqlToPlan(QueryText, ResultText) :-
 ----    sqlToPlanStr(QueryText, Plan)
 ----
 
-The smae as the predicate before, but using a string-atom instead a simple atom.
+The same as the predicate before, but using a string-atom instead a simple atom.
 Thus, we can avoid problems when coding single quotes in queries, e.g. within
 the ~aggregate~ command.
 
@@ -8350,7 +8574,6 @@ sqlExample( 304,
   where [(t:trip atperiods deftime(train5)) passes s:geodata]
   ).
 
-
 % Example: distance query, no predicate (database berlintest)
 sqlExample( 400,
   select *
@@ -8377,7 +8600,7 @@ sqlExample( 402,
 sqlExample( 403,
   select *
   from strassen
-  where typ = "Hauptstra�e"
+  where typ starts "Hauptstra"
   orderby distance(geodata, alexanderplatz) first 5
   ).
 
@@ -8556,25 +8779,25 @@ defaultExceptionHandler(G) :-
             ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
             % only handle these kinds of exceptions
             -> ( write_list(['\n\nThe following SQL Error was caught: \'', X,
-                        '\'.\n','This usually a problem within the query.\n\n'])
+                     '\'.\n','This is usually a problem within the query.\n\n'])
                 )
             ;  ( Exception = error_Internal(X)
                   -> ( write_list(['\n\nThe following Internal Error was ',
-                            'caught: \'', X, '\'.\n','This is usually due to a ',
-                            'problem with optimizer\'s knowledge base, the ',%'
-                            'meta data within the database, or a problem within ',
-                            'the internal optimization routines.\n\n'])
+                          'caught: \'', X, '\'.\n','This is usually due to a ',
+                          'problem with optimizer\'s knowledge base, the ',%'
+                          'meta data within the database, or a problem within ',
+                          'the internal optimization routines.\n\n'])
                     )
                   ;  ( Exception = error(_Formal, _Context)
                       -> ( write_list(['\n\nThe following Runtime Error was ',
-                              'caught: \'', X, '\'.\n','This is usually a ',
-                              'problem with the optimizer knowledge base or a ',
-                              'program bug within the optimizer.\n\n'])
+                            'caught: \'', X, '\'.\n','This is usually a ',
+                            'problem with the optimizer knowledge base or a ',
+                            'program bug within the optimizer.\n\n'])
                           )
                       ;  ( write_list(['\n\nThe following Unclassified Error ',
-                              'was caught: \'', X, '\'.\n','The reason is ',
-                              'unknown. Please carefully check the error message',
-                              ' to trace the problem.\n\n'])
+                            'was caught: \'', X, '\'.\n','The reason is ',
+                            'unknown. Please carefully check the error message',
+                            ' to trace the problem.\n\n'])
                           )
                     )
                 )
@@ -8787,9 +9010,9 @@ lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
 lookupPatternPreds([], [], RelsBefore, RelsBefore).
 
 lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
-   removeAliases(NPredList, PredList, AliasList),
- lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
- composeNPredList(PredList2, AliasList, NPredList2).
+  removeAliases(NPredList, PredList, AliasList),
+  lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
+  composeNPredList(PredList2, AliasList, NPredList2).
 
 /*
 Used within spatiotemporal pattern predicates
@@ -8811,20 +9034,15 @@ namedPredList_to_atom([ NP | NPListRest], Result):-
  namedPredList_to_atom( NPListRest, SubResult),
  concat_atom([NP1, ',', SubResult], ' ', Result),!.
 
-isStringList(string).
-isStringList([string]).
-isStringList([string|StrListRest]):-
- isStringList(StrListRest).
+/*
+---- onlyContains(+List,+Pattern)
+----
 
-isBoolList(bool).
-isBoolList([bool]).
-isBoolList([bool|BoolListRest]):-
- isBoolList(BoolListRest).
+Test whether either ~List~ unifies with ~Pattern~ all elements in ~List~
+unify with ~Pattern~.
 
-isNamedPredList(namedPred).
-isNamedPredList([namedPred]).
-isNamedPredList([namedPred|PredListRest]):-
- isNamedPredList(PredListRest).
+*/
+onlyContains(List,Pattern):- (List=Pattern ; delete(List,Pattern,[]) ),!.
 
 %evalIskNN(K, QueryObj, RelName, AttrName, TupleIDs).
 isLiftedSpatialRangePred(Op, [T1,T2]):-
