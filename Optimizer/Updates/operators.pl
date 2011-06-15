@@ -2888,32 +2888,32 @@ according NULL value, i.e.
 
 */
 
-nullValue(bool,undefined,'undef').
+nullValue(bool,undefined,'undefined').
 nullValue(bool,null,'FALSE').
 nullValue(bool,one,'TRUE').
-nullValue(bool,error,'undef').
+nullValue(bool,error,'undefined').
 nullValue(bool,default,'FALSE').
 
-nullValue(int,undefined,'undef').
+nullValue(int,undefined,'undefined').
 nullValue(int,null,'0').
 nullValue(int,one,'1').
-nullValue(int,error,'undef').
+nullValue(int,error,'undefined').
 nullValue(int,default,'0').
 
-nullValue(real,undefined,'undef').
+nullValue(real,undefined,'undefined').
 nullValue(real,null,'0.0').
 nullValue(real,one,'1.0').
-nullValue(real,error,'undef').
+nullValue(real,error,'undefined').
 nullValue(real,default,'0.0').
 
-nullValue(string,undefined,'undef').
+nullValue(string,undefined,'undefined').
 nullValue(string,empty,'""').
-nullValue(string,error,'undef').
+nullValue(string,error,'undefined').
 nullValue(string,default,'""').
 
-nullValue(text,undefined,'undef').
+nullValue(text,undefined,'undefined').
 nullValue(text,empty,'\'\'').
-nullValue(text,error,'undef').
+nullValue(text,error,'undefined').
 nullValue(text,default,'\'\'').
 
 nullValue(point,undefined,'()').
@@ -2926,14 +2926,14 @@ nullValue(points,empty,'()').
 nullValue(points,error,'()').
 nullValue(points,default,'()').
 
-nullValue(line,undefined,'undef').
+nullValue(line,undefined,'undefined').
 nullValue(line,empty,'()').
-nullValue(line,error,'undef').
+nullValue(line,error,'undefined').
 nullValue(line,default,'()').
 
-nullValue(sline,undefined,'undef').
+nullValue(sline,undefined,'undefined').
 nullValue(sline,empty,'()').
-nullValue(sline,error,'undef').
+nullValue(sline,error,'undefined').
 nullValue(sline,default,'()').
 
 nullValue(region,undefined,'()').
@@ -2941,13 +2941,13 @@ nullValue(region,empty,'()').
 nullValue(region,error,'()').
 nullValue(region,default,'()').
 
-nullValue(instant,undefined,'undef').
-nullValue(instant,error,'undef').
+nullValue(instant,undefined,'undefined').
+nullValue(instant,error,'undefined').
 nullValue(instant,default,'currenttime').
 
-nullValue(duration,undefined,'undef').
+nullValue(duration,undefined,'undefined').
 nullValue(duration,null,'(0 0)').
-nullValue(duration,error,'undef').
+nullValue(duration,error,'undefined').
 nullValue(duration,default,'(0 0)').
 
 nullValue(periods,undefined,'()').
@@ -2962,12 +2962,12 @@ nullValue(mpoint,empty,'()').
 nullValue(mpoint,error,'()').
 nullValue(mpoint,default,'()').
 
-nullValue(upoint,undefined,'undef').
-nullValue(upoint,error,'undef').
+nullValue(upoint,undefined,'undefined').
+nullValue(upoint,error,'undefined').
 nullValue(upoint,default,'((currenttime currenttime TRUE TRUE)(0.0 0.0))').
 
-nullValue(ipoint,undefined,'undef').
-nullValue(ipoint,error,'undef').
+nullValue(ipoint,undefined,'undefined').
+nullValue(ipoint,error,'undefined').
 nullValue(ipoint,default,'(currenttime (0.0 0.0))').
 
 nullValue(mreal,undefined,'()').
@@ -2977,14 +2977,14 @@ nullValue(mreal,one,'((("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FA
 nullValue(mreal,error,'()').
 nullValue(mreal,default,'()').
 
-nullValue(ureal,undefined,'undef').
+nullValue(ureal,undefined,'undefined').
 nullValue(ureal,null,'(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 0.0 FALSE))').
 nullValue(ureal,one,'(("begin of time" "end of time" TRUE TRUE) (0.0 0.0 1.0 FALSE))').
 nullValue(ureal,error,'()').
 nullValue(ureal,default,'()').
 
-nullValue(ireal,undefined,'undef').
-nullValue(ireal,error,'undef').
+nullValue(ireal,undefined,'undefined').
+nullValue(ireal,error,'undefined').
 nullValue(ireal,default,'(currenttime 0.0)').
 
 nullValue(rreal,undefined,'()').
@@ -2998,15 +2998,15 @@ nullValue(mint,one,'((("begin of time" "end of time" TRUE TRUE) 1))').
 nullValue(mint,error,'()').
 nullValue(mint,default,'()').
 
-nullValue(uint,undefined,'undef').
+nullValue(uint,undefined,'undefined').
 nullValue(uint,null,'(("begin of time" "end of time" TRUE TRUE) 0)').
 nullValue(uint,one,'(("begin of time" "end of time" TRUE TRUE) 1)').
 nullValue(uint,error,'()').
 nullValue(uint,default,'()').
 
-nullValue(iint,undefined,'undef').
-nullValue(iint,null,'undef').
-nullValue(iint,error,'undef').
+nullValue(iint,undefined,'undefined').
+nullValue(iint,null,'undefined').
+nullValue(iint,error,'undefined').
 nullValue(iint,default,'(currenttime 0)').
 
 nullValue(rint,undefined,'()').
@@ -3020,15 +3020,15 @@ nullValue(mbool,one,'((("begin of time" "end of time" TRUE TRUE) TRUE))').
 nullValue(mbool,error,'()').
 nullValue(mbool,default,'()').
 
-nullValue(ubool,undefined,'undef').
+nullValue(ubool,undefined,'undefined').
 nullValue(ubool,null,'(("begin of time" "end of time" TRUE TRUE) FALSE)').
 nullValue(ubool,one,'(("begin of time" "end of time" TRUE TRUE) TRUE)').
 nullValue(ubool,error,'()').
 nullValue(ubool,default,'()').
 
-nullValue(ibool,undefined,'undef').
-nullValue(ibool,null,'undef').
-nullValue(ibool,error,'undef').
+nullValue(ibool,undefined,'undefined').
+nullValue(ibool,null,'undefined').
+nullValue(ibool,error,'undefined').
 nullValue(ibool,default,'(currenttime FALSE)').
 
 nullValue(rbool,undefined,'()').
@@ -3041,15 +3041,15 @@ nullValue(mstring,null,'((("begin of time" "end of time" TRUE TRUE) ""))').
 nullValue(mstring,error,'()').
 nullValue(mstring,default,'()').
 
-nullValue(ustring,undefined,'undef').
+nullValue(ustring,undefined,'undefined').
 nullValue(ustring,null,'(("begin of time" "end of time" TRUE TRUE) "")').
 nullValue(ustring,error,'()').
 nullValue(ustring,default,'()').
 
-nullValue(istring,undefined,'undef').
-nullValue(istring,null,'undef').
-nullValue(istring,error,'undef').
-nullValue(istring,default,'undef').
+nullValue(istring,undefined,'undefined').
+nullValue(istring,null,'undefined').
+nullValue(istring,error,'undefined').
+nullValue(istring,default,'undefined').
 
 nullValue(rstring,undefined,'()').
 nullValue(rstring,empty,'()').
@@ -3061,34 +3061,34 @@ nullValue(movingregion,null,'()').
 nullValue(movingregion,error,'()').
 nullValue(movingregion,default,'()').
 
-nullValue(uregion,undefined,'undef').
+nullValue(uregion,undefined,'undefined').
 nullValue(uregion,null,'()').
 nullValue(uregion,error,'()').
 nullValue(uregion,default,'()').
 
-nullValue(intimeregion,undefined,'undef').
-nullValue(intimeregion,null,'undef').
-nullValue(intimeregion,error,'undef').
+nullValue(intimeregion,undefined,'undefined').
+nullValue(intimeregion,null,'undefined').
+nullValue(intimeregion,error,'undefined').
 nullValue(intimeregion,default,'(currenttime ())').
 
-nullValue(rect,undefined,'undef').
+nullValue(rect,undefined,'undefined').
 nullValue(rect,empty,'(0.0 0.0 0.0 0.0)').
-nullValue(rect,error,'undef').
+nullValue(rect,error,'undefined').
 nullValue(rect,default,'(0.0 0.0 0.0 0.0)').
 
-nullValue(rect3,undefined,'undef').
+nullValue(rect3,undefined,'undefined').
 nullValue(rect3,empty,'(0.0 0.0 0.0 0.0 0.0 0.0)').
-nullValue(rect3,error,'undef').
+nullValue(rect3,error,'undefined').
 nullValue(rect3,default,'(0.0 0.0 0.0 0.0 0.0 0.0)').
 
-nullValue(rect4,undefined,'undef').
+nullValue(rect4,undefined,'undefined').
 nullValue(rect4,empty,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
-nullValue(rect4,error,'undef').
+nullValue(rect4,error,'undefined').
 nullValue(rect4,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 
-nullValue(rect8,undefined,'undef').
+nullValue(rect8,undefined,'undefined').
 nullValue(rect8,empty,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
-nullValue(rect8,error,'undef').
+nullValue(rect8,error,'undefined').
 nullValue(rect8,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 
 % Section:Start:nullValue_3_e

@@ -1472,8 +1472,8 @@ plan_to_atom(pr(P,_,_), Result) :-
 plan_to_atom([], '').
 
 % string atom
-plan_to_atom(value_expr(string,undef), X) :-
-  nullValue(string,undef,X), !.
+plan_to_atom(value_expr(string,undefined), X) :-
+  nullValue(string,undefined,X), !.
 plan_to_atom(value_expr(string,Term), Result) :-
     catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
     concat_atom(['"', TermRes, '"'], '', Result).
@@ -1484,8 +1484,8 @@ plan_to_atom(value_expr(string,Term),Result) :-
   !, fail.
 
 % text atom
-plan_to_atom(value_expr(text,undef), X) :-
-  nullValue(text,undef,X), !.
+plan_to_atom(value_expr(text,undefined), X) :-
+  nullValue(text,undefined,X), !.
 plan_to_atom(value_expr(text,Term), Result) :-
     is_list(Term),
     catch((atom_codes(TermRes, Term), Test = ok),_,Test = failed), Test = ok,
@@ -1502,8 +1502,8 @@ plan_to_atom(value_expr(text,X),Result) :-
 % int atom
 plan_to_atom(value_expr(int,Result), Result) :-
   integer(Result).
-plan_to_atom(value_expr(int,undef), X) :-
-  nullValue(int,undef,X), !.
+plan_to_atom(value_expr(int,undefined), X) :-
+  nullValue(int,undefined,X), !.
 plan_to_atom(value_expr(int,X),Result) :-
   concat_atom(['Invalid int constant: ',X],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(int,X),Result)
@@ -1513,8 +1513,8 @@ plan_to_atom(value_expr(int,X),Result) :-
 % real atom
 plan_to_atom(value_expr(real,Result), Result) :-
   float(Result).
-plan_to_atom(value_expr(real,undef), X) :-
-  nullValue(real,undef,X), !.
+plan_to_atom(value_expr(real,undefined), X) :-
+  nullValue(real,undefined,X), !.
 plan_to_atom(value_expr(real,X),Result) :-
   concat_atom(['Invalid real constant: ',X],ErrMsg),
   throw(error_Internal(optimizer_plan_to_atom(value_expr(real,X),Result)
@@ -1528,8 +1528,8 @@ plan_to_atom(value_expr(bool,X), Result) :-
     -> Result = ' TRUE '
     ;  ( X = false
          -> ' FALSE '
-         ;  ( X = undef
-              -> nullValue(bool,undef,Result)
+         ;  ( X = undefined
+              -> nullValue(bool,undefined,Result)
               ; (concat_atom(['Invalid bool constant: ',X],ErrMsg),
                  throw(error_Internal(optimizer_plan_to_atom(value_expr(bool,X),
                     Result)::malformedExpression:ErrMsg)),
@@ -2347,7 +2347,7 @@ plan_to_atom(X, _) :-
   concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],
                '',ErrMsg),
   write(ErrMsg), nl,
-  throw(error_Internal(optimizer_plan_to_atom(X,undef)
+  throw(error_Internal(optimizer_plan_to_atom(X,undefined)
         ::malformedExpression:ErrMsg)),
   !, fail.
 
@@ -7833,7 +7833,7 @@ aggrQuery(Query groupby G, _, _, _) :-
   concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
-  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef)
+  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undefined, undefined)
                                            ::malformedExpression::ErrMsg)),
   fail.
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
@@ -7897,7 +7897,7 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
-                             undef, undef, undef, undef)
+                             undefined, undefined, undefined, undefined)
                                     ::malformedExpression::ErrMsg)),
   fail.
 userDefAggrQuery(Query orderby Order,

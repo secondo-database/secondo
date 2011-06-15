@@ -3764,7 +3764,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
              TupleTotalSize,
              TupleSizeCore,
              TupleSizeLOB|MoreInfos],
-  ( Card = undef % Undefined cardinality - may not happen!
+  ( Card = undefined % Undefined cardinality - may not happen!
     -> ( concat_atom(['Cardinality query for relation ',DCrel,
                      ' has strange result: ',Card,'.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]),nl,
@@ -3778,9 +3778,9 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
        )
     ;  true
   ),
-  ( TupleTotalSize = undef % some error may have occured
+  ( TupleTotalSize = undefined % some error may have occured
     -> ( Card < 0.5        % special case for card=0
-         -> ( % undef tuplesize due to empty relation
+         -> ( % undefined tuplesize due to empty relation
               write_list(['\nWARNING:\Tuplesize for relation ',DCrel,
                      ' is undefined due to a cardinality of ', Card,
                      '\n--->\tTherefore, tuplesize is set to \'not a number\'',
@@ -3804,8 +3804,8 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
   ),
   analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
   assert(storedCard(DB, DCrel, Card)),
-  ( TupleSizeLOB = undef
-    -> ( % undef tuplesize due to empty relation
+  ( TupleSizeLOB = undefined
+    -> ( % undefined tuplesize due to empty relation
               StoreLOBsize = nAn
             )
     ; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
@@ -3829,13 +3829,13 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
   % Use inquired average attribute sizes. Avoid problems with undefined
   % sizes, which will occur for relations with cardinalit=0.
   secDatatype(DCType, MemSize, _, _, _, _),
-  ( SizeCore = undef
+  ( SizeCore = undefined
     -> ( % Fallback: use typesize, but 1 byte at least
          CoreAttrSize is max(1,MemSize)
        )
     ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
   ),
-  ( SizeExt = undef
+  ( SizeExt = undefined
     -> LOBSize is 0
     ;  LOBSize is max(0,SizeExt) % avoid rounding errors
   ),

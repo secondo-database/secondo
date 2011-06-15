@@ -2213,7 +2213,7 @@ plan_to_atom(X, _) :-
   concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',
               ErrMsg),
   write(ErrMsg), nl,
-  throw(error_Internal(optimizer_plan_to_atom(X,undef)
+  throw(error_Internal(optimizer_plan_to_atom(X,undefined)
                                             ::malformedExpression::ErrMsg)),
   !, fail.
 
@@ -7628,7 +7628,7 @@ aggrQuery(Query groupby G, _, _, _) :-
   concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
-  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef)
+  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undefined, undefined)
                                            ::malformedExpression::ErrMsg)),
   fail.
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
@@ -7692,7 +7692,7 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
-                             undef, undef, undef, undef)
+                             undefined, undefined, undefined, undefined)
                                     ::malformedExpression::ErrMsg)),
   fail.
 userDefAggrQuery(Query orderby Order,
