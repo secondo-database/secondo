@@ -71,7 +71,7 @@ funlist      {return ZZFUNLIST;}
 
 {ident}      {yylval.text = strdup(yytext); return ZZIDENTIFIER;}
 {math}       {yylval.text = strdup(yytext); return ZZSYMBOL;}
-.            {yylval.text = strdup(yytext); return yytext[0];}
+.            {return yytext[0];}
 
 
 

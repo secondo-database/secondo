@@ -12,13 +12,13 @@ SyntaxParser: scan.o parse.o
 
 
 scan.o: lex.yy.c 
-	g++ -c -o scan.o lex.yy.c
+	g++ -g -c -o scan.o lex.yy.c
 
 lex.yy.c: SyntaxParser.l parse.o 
 	flex SyntaxParser.l
 
 parse.o: SyntaxParser.tab.c
-	g++ -c -o parse.o SyntaxParser.tab.c -lstd
+	g++ -g -c -o parse.o SyntaxParser.tab.c -lstd
 
 
 SyntaxParser.tab.c: SyntaxParser.y

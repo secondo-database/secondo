@@ -130,7 +130,7 @@ bool init(){
 %}
 
 %union{
-  const char* text;
+  char* text;
   OpPatternType* pat;
   int   len;
   bool  flag;
@@ -163,43 +163,45 @@ specs      : spec
           ;
 
 spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit bufferforced
-            {   cout << "operator specification found" << "operator name is"<<$2<<endl;
-                
+            {   
+               
+               free($4); // we don't need this here 
                OpPatternType* s = $6;
                string op = string($2);
+               free( $2);
                if(operatornames.find(op)==operatornames.end())
                  {
                    operatornames.insert(op);
                  switch(s->optype)
         {     case PREFIX:
              {
-//             pFile << ":-op(800 , fx , " << $2 << ")." << endl;
-             pFile1 << " SecondoOp(("<< $2 <<") ," << " prefix, " << s->no_args << ")." << endl;
+//             pFile << ":-op(800 , fx , " << op << ")." << endl;
+             pFile1 << " SecondoOp(("<< op <<") ," << " prefix, " << s->no_args << ")." << endl;
              break;   
 	     }
              case INFIX:
             {
-              pFile  << ":-op(800 , xfx , " << $2 << ")." << endl;
-              pFile1 << " SecondoOp(("<< $2 <<") ," << " infix," << s->no_args << ")." << endl;
+              pFile  << ":-op(800 , xfx , " << op << ")." << endl;
+              pFile1 << " SecondoOp(("<< op <<") ," << " infix," << s->no_args << ")." << endl;
               break;
             }
              case POSTFIX:
           {
               bool implicit = $7;
-              pFile  << ":-op(800 , xf , "<< $2 <<")." << endl; // not for postfixbrackets!
+              pFile  << ":-op(800 , xf , "<< op <<")." << endl; // not for postfixbrackets!
               if(  (s->isSpecial== true) /* || (implicit == true) */ ){
-                 pFile1 << " SecondoOp(("<< $2 <<") ," << " special, " << s->no_args << ")." << endl;
+                 pFile1 << " SecondoOp(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
               } else {
-                pFile1 << " SecondoOp(("<< $2 <<") ," << " postfix, " << s->no_args << ")." << endl;
+                pFile1 << " SecondoOp(("<< op <<") ," << " postfix, " << s->no_args << ")." << endl;
               }
               break;
           }
              case POSTFIXBRACKETS:
            {
               if(  (s->isSpecial== true) /* || (implicit == true) */ ){
-                 pFile1 << " SecondoOp(("<< $2 <<") ," << " special, " << s->no_args << ")." << endl;
+                 pFile1 << " SecondoOp(("<< op <<") ," << " special, " << s->no_args << ")." << endl;
               } else {
-                pFile1 << " SecondoOp(("<< $2 <<") ," << " postfixbrackets, " << s->no_args << ")." << endl;
+                pFile1 << " SecondoOp(("<< op <<") ," << " postfixbrackets, " << s->no_args << ")." << endl;
               }
               break;
   }
@@ -207,7 +209,9 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
              cerr << "invalid operator type found" << endl;
              cerr << "the operator name is " << op << endl;
           }
+          
        }}
+          delete $6;
          
 }
           ;
@@ -341,16 +345,20 @@ bufferforced : ZZFORCEBUFFER
 
 parameterlist : ZZIDENTIFIER
                 { 
+                  free($1);
                 }
               | parameterlist ',' ZZIDENTIFIER
                 { 
+                  free($3);
                 }
               ;
 typelist : ZZIDENTIFIER
                 { 
+                  free($1);
                 }
         | typelist ',' ZZIDENTIFIER
                 { 
+                 free($3);
                 }
         ;
 %%
@@ -371,8 +379,12 @@ int main(int argc, char** argv) {
     init();
     if(yyparse()!=0){
        cerr << " Error in parsing specification" << endl;
+       pFile.close();
+       pFile1.close();
        return -1;
     }
+    pFile.close();
+    pFile1.close();
     
     return 0;
 }
