@@ -1,5 +1,5 @@
 
-( movingregion 
+( mregion 
    (
       (
          ( "2003-11-20-06:20"  "2003-11-20-06:45"  TRUE  TRUE )
