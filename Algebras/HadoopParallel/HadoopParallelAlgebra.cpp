@@ -1858,6 +1858,8 @@ clusterInfo::clusterInfo(bool _im) :
   disks = new vector<pair<string, pair<string, int> > >();
   while (getline(fin, line))
   {
+    if (line.length() == 0)
+      continue;  //Avoid warning message for an empty line
     istringstream iss(line);
     string ipAddr, cfPath, sport;
     getline(iss, ipAddr, ':');
@@ -1870,6 +1872,11 @@ clusterInfo::clusterInfo(bool _im) :
       cerr << "Format in file " << fileName << " is not correct.\n";
       break;
     }
+
+    //Remove the slash tail
+    if (cfPath.find_last_of("/") == cfPath.length() - 1)
+      cfPath = cfPath.substr(0, cfPath.length() - 1);
+
     int port = atoi(sport.c_str());
     disks->push_back(pair<string, pair<string, int> >(
         ipAddr, pair<string, int>(cfPath, port)));
@@ -1881,6 +1888,94 @@ clusterInfo::clusterInfo(bool _im) :
     if (isMaster && (disks->size() > 1))
       cerr << "Master list can only have one line" << endl;
   }
+}
+
+/*
+The local IP address can be set inside the SecondoConfig file,
+but if the setting value doesn't match with any available IP
+addresses of the current machine, then an error message will be given.
+
+If it's not defined, then we use all available IP addresses
+to match with the slave list.
+If nothing is matched, then an error message will be given.
+
+If the error message is given, then the return an empty string.
+
+*/
+string clusterInfo::getLocalIP()
+{
+  string localIP;
+
+  string confPath = string(getenv("SECONDO_CONFIG"));
+  localIP = SmiProfile::GetParameter("ParallelSecondo",
+      "localIP","", confPath);
+
+  bool match = false;
+  vector<string> *aIPs = getAvailableIPAddrs();
+  for (vector<string>::iterator it = aIPs->begin();
+       it != aIPs->end(); it++)
+  {
+    string aIP = (*it);
+    if (localIP != "")
+    {
+      if (localIP.compare(aIP) == 0)
+        match = true;
+    }
+    else
+    {
+      for(vector<diskDesc>::iterator dit = disks->begin();
+          dit != disks->end(); dit++)
+      {
+        if (dit->first.compare(aIP) == 0)
+        {
+          localIP = aIP;
+          match = true;
+        }
+      }
+    }
+
+    if (match) break;
+  }
+
+  if (!match)
+    cerr << "Host's IP address is "
+        "undefined in PARALLEL_SLAVES list. \n" << endl;
+
+  return localIP;
+}
+
+vector<string>* clusterInfo::getAvailableIPAddrs()
+{
+  vector<string>* IPList = new vector<string>();
+  struct ifaddrs * ifAddrStruct = 0;
+  struct ifaddrs * ifa = 0;
+  void * tmpAddrPtr = 0;
+
+  getifaddrs(&ifAddrStruct);
+  for (ifa = ifAddrStruct; ifa != 0; ifa = ifa->ifa_next)
+  {
+    if (ifa->ifa_addr->sa_family == AF_INET)
+    {
+      // IPv4 Address
+      tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+      char addressBuffer[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+      IPList->push_back(addressBuffer);
+    }
+    else if (ifa->ifa_addr->sa_family == AF_INET6)
+    {
+      // IPv6 Address
+      tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+      char addressBuffer[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+      IPList->push_back(addressBuffer);
+    }
+  }
+
+  if (ifAddrStruct)
+    freeifaddrs(ifAddrStruct);
+
+  return IPList;
 }
 
 string clusterInfo::getPath(size_t loc, bool round, bool withIP)
@@ -4726,6 +4821,8 @@ string getFilePath(string path,
   while (!pathOK && cdd < 3)
   {
     string tPath = pathCdd[cdd];
+    if (tPath.find_last_of("/") == (tPath.length() - 1))
+      pathCdd[cdd] = tPath.substr(0, tPath.length() - 1);
 
     if (tPath.length() != 0)
     {

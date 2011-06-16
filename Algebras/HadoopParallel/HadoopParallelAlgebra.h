@@ -59,6 +59,8 @@ And includes one method:
 #include "FileSystem.h"
 #include "../Array/ArrayAlgebra.h"
 #include "Profiles.h"
+#include <ifaddrs.h>
+#include <arpa/inet.h>
 
 const int MAX_COPYTIMES = 5;
 const size_t MAX_FILEHANDLENUM = 100;
@@ -437,11 +439,7 @@ public:
     return localNode;
   }
 
-  inline string getLocalIP(){
-    string confPath = string(getenv("SECONDO_CONFIG"));
-    return SmiProfile::GetParameter("ParallelSecondo",
-          "localIP","", confPath);
-  }
+  string getLocalIP();
 
 /*
 If the Parallel Secondo system is involved,
@@ -452,8 +450,12 @@ then the default path cannot be used anymore.
   {
 
     string confPath = string(getenv("SECONDO_CONFIG"));
-    return SmiProfile::GetParameter("ParallelSecondo",
-          "SecondoFilePath","", confPath);
+    string result = SmiProfile::GetParameter("ParallelSecondo",
+        "SecondoFilePath","", confPath);
+    if (result.find_last_of("/") == result.length() - 1)
+      result = result.substr(0, result.length() - 1);
+
+    return result;
   }
 
   inline bool isOK(){  return ok;  }
@@ -477,6 +479,7 @@ private:
   int localNode;
 
   int searchLocalNode();
+  vector<string>* getAvailableIPAddrs();
 };
 
 /*
