@@ -27,7 +27,9 @@ March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ a
 */
 
 %{
+#include "Types.h"
 #include "SyntaxParser.tab.h"
+
 
 
 
