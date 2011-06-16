@@ -481,7 +481,7 @@ vector< pair< pair<int, int>, ListExpr> >
 void AlgebraManager::matchingOperators(const int algId,
                                        const ListExpr arguments,
                        vector< pair< pair<int,int>, ListExpr> >& result){
-  assert( (algId>0) && (algId<algebra.size()) ); // 0 is an invalid algId!
+  assert( (algId>0) && (algId<(int)algebra.size()) ); // 0 is an invalid algId!
   ListExpr typeError = nl->SymbolAtom(Symbol::TYPEERROR());
   Algebra* alg = algebra[algId];
   if(alg!=0){
