@@ -47,14 +47,19 @@ class Stream{
 Constructor
 
 */
-     Stream(Word& s):source(s.addr), 
+     Stream(Word& s):source(s.addr),
                         opened(false){ }
 
+     Stream(void* s):source(s), opened(false){ }
 
-     Stream(const Stream<T>& src): source(src.source), 
+     Stream(const Stream<T>& src): source(src.source),
                                    opened(src.opened){}
 
-    
+     ~Stream() {
+      source = 0;
+      opened = false;
+     }
+
      Stream<T>& operator=(const Stream<T> src) {
         source = src.source;
         opened = src.opened;
@@ -111,9 +116,9 @@ the result is 0.
     }
 
 /*
-Closes the stream. 
+Closes the stream.
 The stream must be opened before.
-  
+
 
 */
     void close(){
@@ -124,7 +129,7 @@ The stream must be opened before.
 
 
 /*
-Request for Progress. 
+Request for Progress.
 
 */
     bool requestProgress(ProgressInfo* p){
@@ -143,7 +148,7 @@ Close Progress
 
 
    std::ostream& print(std::ostream& o){
-      o << "stream[ source = " << (void*) source << ", opened = " 
+      o << "stream[ source = " << (void*) source << ", opened = "
         << opened << ", qp = " << (void*) qp << "]";
       return o;
    }
@@ -151,6 +156,7 @@ Close Progress
 
 
   private:
+    Stream() {}
     void* source;
     bool opened;
 

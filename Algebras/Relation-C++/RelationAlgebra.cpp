@@ -1692,6 +1692,17 @@ struct consumeLocalInfo
   int state;      //0 = working, 1 = finished
   int current;    //current no of tuples read
   Stream<Tuple> stream;
+
+  ostream& print(ostream& o){
+    o << "Localinfo (" << (void*) this << "), state=" << state << ", current="
+      << current << ", stream=";
+    stream.print(o);
+    o << ".";
+    return o;
+  }
+
+  private:
+    consumeLocalInfo(): state(0), current(0),stream(0) {}
 };
 
 
@@ -1709,7 +1720,7 @@ Consume(Word* args, Word& result, int message,
     if ( cli ) delete cli;    //needed if consume used in a loop
 
     cli = new consumeLocalInfo(args[0]);
- 
+
     local.setAddr(cli);
 
     GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
@@ -1735,19 +1746,18 @@ Consume(Word* args, Word& result, int message,
   else if ( message == REQUESTPROGRESS )
   {
 
-      //cout << "consume was asked for progress" << endl;
-
+    if(local.addr == 0){
+      return CANCEL;
+    }
     ProgressInfo p1;
     ProgressInfo* pRes;
     const double uConsume = 0.024;   //millisecs per tuple
     const double vConsume = 0.0003;  //millisecs per byte in
-                                        //  root/extension
+                                     //  root/extension
     const double wConsume = 0.001338;  //millisecs per byte in FLOB
-
 
     cli = (consumeLocalInfo*) local.addr;
     pRes = (ProgressInfo*) result.addr;
-
 
     if ( cli->stream.requestProgress( &p1) )
     {
@@ -1768,7 +1778,7 @@ Consume(Word* args, Word& result, int message,
         {
 
           if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                        //use pipelining
+                                                       //use pipelining
             pRes->Progress = p1.Progress;
           else
             pRes->Progress =
