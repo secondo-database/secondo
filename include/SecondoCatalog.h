@@ -584,6 +584,20 @@ Returns the algebra identifier ~algebraId~ and the type identifier
   bool GetTypeId( const string& typeName,
                   int& algebraId, int& typeId );
 
+
+
+/*
+
+Retrieves the algebraId, the typeId, and the typeName for a type description.
+If no type construtor is found, the return value will be
+false and algebraId and typeId are zero. In this case, the typeName will be
+set to an empty string.
+
+*/
+ bool GetTypeId( const ListExpr& typeExpr, int& algebraId, int& typeId, 
+                 string& typeName );
+
+
 /*
 Looks up the name of a type constructor defined by the algebra
 identifier ~algebraId~ and the type identifier ~opId~.

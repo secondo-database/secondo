@@ -113,6 +113,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SecParser.h"
 #include "TypeConstructor.h"
 #include "Environment.h"
+#include "ListUtils.h"
 
 using namespace std;
 
@@ -524,14 +525,15 @@ Precondition: dbState = dbOpen.
       }
     }
   }
-  if ( !ok )
-  {
-    algebraId = 0;
-    typeId    = 0;
-    typeName  = "";
+  if ( !ok ) {
+    ok = GetTypeId( typeExpr, algebraId, typeId, typeName );
   }
   return (ok);
 }
+
+
+
+
 
 /*
 Deletes the object with type described in __type__ stored in
@@ -2405,6 +2407,30 @@ or a database type.
   return (constructors.find( typeName ) != constructors.end() ||
           (SmiEnvironment::IsDatabaseOpen() && MemberType( typeName )));
 }
+
+
+bool
+SecondoCatalog::GetTypeId( const ListExpr& typeExpr,
+                           int& algebraId, int& typeId, string& typeName )
+{
+ LocalConstructorCatalog::iterator it;
+ ListExpr errorInfo = listutils::emptyErrorInfo();
+ algebraId = 0;
+ typeId = 0;
+ typeName = "";
+ for(it=constructors.begin(); it != constructors.end(); it++){
+   if(am->TypeCheck(it->second.algebraId, 
+                    it->second.entryId,typeExpr, errorInfo)){
+      algebraId = it->second.algebraId;
+      typeId = it->second.entryId;
+      typeName = GetTypeName(algebraId, typeId); 
+      return true;
+   }
+ }
+ return  false;
+}
+
+
 
 bool
 SecondoCatalog::GetTypeId( const string& typeName,
