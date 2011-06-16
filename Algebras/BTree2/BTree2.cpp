@@ -427,7 +427,6 @@ bool BTree2::KindCheck(ListExpr type, ListExpr& errorInfo)
 {
   string str;
   nl->WriteToString(str, type);
-  cout << "STR" << str << endl;
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 4)
     && nl->Equal(nl->First(type), nl->SymbolAtom("btree2")))
