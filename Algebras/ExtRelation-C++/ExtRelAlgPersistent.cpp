@@ -893,6 +893,7 @@ public:
     ProgressWrapper(p),
     traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
   {
+    iter = 0;
     expectSorted = _expectSorted;
     streamA = _streamA;
     streamB = _streamB;
@@ -967,6 +968,10 @@ public:
       delete liA;
       delete liB;
     }
+    if(iter){
+       delete iter;
+       iter = 0;
+    }
 
     delete grpB;
     resultTupleType->DeleteIfAllowed();
@@ -1035,7 +1040,11 @@ public:
 
 	if (!continueMerge)
 	{
-          iter = grpB->MakeScan();
+    if(iter){
+      delete iter;
+      iter = 0;
+    }
+    iter = grpB->MakeScan();
 	  continueMerge = true;
 	  resultTuple = NextConcat();
 	  if (resultTuple)
@@ -1513,8 +1522,10 @@ bucket that the tuple coming from A hashes is also initialized.
     // delete tuple buffer and its iterator if necessary
     if( !bFitsInMemory )
     {
-      if ( iterTuplesRelA )
+      if ( iterTuplesRelA ){
         delete iterTuplesRelA;
+        iterTuplesRelA = 0;
+      }
       relA->Clear();
       delete relA;
     }
@@ -1850,6 +1861,7 @@ bucket that the tuple coming from A hashes is also initialized.
     {
       if ( iterTuplesRelA ){
         delete iterTuplesRelA;
+        iterTuplesRelA = 0;
       }
       relA->Clear();
       delete relA;
