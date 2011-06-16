@@ -137,7 +137,9 @@ NullSize()
 bool
 CheckMap( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( nl->First( type ), Symbol::MAP() ));
+  // (map arg_1 arg_2 ... arg_n  res) , n may be 0
+  return ((nl->ListLength(type) >1) && 
+           nl->IsEqual( nl->First( type ), Symbol::MAP() ));
 }
 
 TypeConstructor functionMap( Symbol::MAP(),             FunctionProperty,
