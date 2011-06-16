@@ -1339,145 +1339,47 @@ The type name has to be of kind ~DATA~.
 bool
 Record::KindCheck(ListExpr typeInfo, ListExpr& errorInfo)
 {
-#ifdef RECORD_DEBUG
-  cerr << "Record::KindCheck(" << nl->ToString(typeInfo)
-       << ", " << nl->ToString(errorInfo) << ")" << endl;
-#endif
 
+ if(nl->ListLength(typeInfo)<2){ // symbol record and at least one element
+   return false;
+ } 
+ if(!listutils::isSymbol(nl->First(typeInfo), Record::BasicType())){
+   return false;
+ }
+ ListExpr rest = nl->Rest(typeInfo);
+ // rest must be a list of pairs (symbol DATA)
+ set<string> usedNames;
+ while(!nl->IsEmpty(rest)){
+   ListExpr attr = nl->First(rest);
+   rest = nl->Rest(rest);
+   if(!nl->HasLength(attr,2)){
+      cmsg.typeError("invalid field description in record");
+      return false; 
+   }
+   ListExpr attrName = nl->First(attr);
+   if(!listutils::isSymbol(attrName)){
+      cmsg.typeError("invalid field name in record");
+      return false; 
+   }
+   string name = nl->SymbolValue(attrName);
+   if(usedNames.find(name)!=usedNames.end()){
+      cmsg.typeError("field name " + name + " is used twice ");
+      return false; 
+   }
+   usedNames.insert(name);
+   string errmsg;
+   if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,errmsg,true)){
+      cmsg.typeError("field name " + name + " is not allowed: " + errmsg);
+      return false; 
+   }
+   // ok, check the type of this field
+   if(!listutils::isDATA(nl->Second(attr))){
+      cmsg.typeError("field  " + name + " is not in kind DATA");
+      return false; 
+   }
+ } 
+ return true;
 
-  ListExpr selfCalled = nl->OneElemList(nl->SymbolAtom("Record::KindCheck"));
-
-  // check of self called indicator
-  if (nl->Equal(errorInfo, selfCalled)) {
-#ifdef RECORD_DEBUG
-    cerr << "Record::KindCheck: self called indicator is present" << endl;
-#endif
-
-      // check of record type, list format: (record (...))
-      if (!(   nl->ListLength(typeInfo) > 0
-            && nl->IntAtom(nl->First(typeInfo))
-            && nl->SymbolValue(nl->First(typeInfo)) == Record::BasicType()))
-      {
-#ifdef RECORD_DEBUG
-    cerr << "Record::KindCheck: not of type record, leave kind check" << endl;
-#endif
-
-        // recursive call and no record is present
-        // do nothing and return with value false
-        return false;
-      }
-  }
-
-  // check given typeInfo of atom or list first
-  if (nl->IsAtom(typeInfo)) {
-#ifdef RECORD_DEBUG
-    cerr << "Record::KindCheck: wrong type info 1" << endl;
-#endif
-    cmsg.typeError("Record::KindCheck: wrong type info 1 " +
-                   nl->ToString(typeInfo) +
-                   ". Type must be record(...)");
-    return false;
-  } else {
-#ifdef RECORD_DEBUG
-    cerr << "Record::KindCheck: typeInfo=" << nl->ToString(typeInfo)
-         << ", errorInfo=" << nl->ToString(errorInfo) << ")"  << endl;
-#endif
-
-    // check of "(record (...) ...)"
-    if (   nl->ListLength(typeInfo) < 2
-        || nl->IsAtom(nl->First(typeInfo)) == false
-        || nl->IsEqual(nl->First(typeInfo), Record::BasicType()) == false)
-    {
-#ifdef RECORD_DEBUG
-      cerr << "Record::KindCheck: wrong type info 2" << endl;
-#endif
-      cmsg.typeError( "Record::KindCheck: wrong type info 2 " +
-                       nl->ToString(typeInfo) +
-                      ". Type must be record (...)");
-      return false;
-    }
-
-    // iterate through the remaining list elements
-    for (ListIterator iter = nl->Rest(typeInfo); iter.HasNext(); ) {
-      // assign the current list element
-      NList current = iter.NextNList();
-
-      // the current list has to contain 2 elements
-      // case 1: (string string)
-      //         1. element name as string
-      //         2. element type name as string
-      // case 2: (string (list)), e.g. record in record
-      //         1. element name as string
-      //         2. element type as list
-      if (current.length() != 2) {
- #ifdef RECORD_DEBUG
-        cerr << "Record::KindCheck: wrong subtype info" << endl;
- #endif
-        cmsg.typeError( "Record::KindCheck: wrong subtype info " +
-                        current.convertToString() +
-                        ". Type must be (string string) or (string (list))");
-
-        return false;
-      }
-
-      // extraxt the element type name from the current list element
-      string typeName;
-      ListExpr typeNameL;
-      if (current.second().isAtom()) {
-        // case 1
-        typeName = current.second().convertToString();
-        typeNameL = current.second().listExpr();;
-      } else {
-        // case 2
-        typeName = current.second().first().convertToString();
-        typeNameL = current.second().listExpr();
-      }
-
-#ifdef RECORD_DEBUG
-      cerr << "Record::KindCheck: subTypeName=" << typeName << endl;
-      cerr << "Record::KindCheck: subTypeNameL=" << nl->ToString(typeNameL)
-           << endl;
-#endif
-
-      // check given type name
-      SecondoCatalog* sc =  SecondoSystem::GetCatalog();
-      if (sc->IsTypeName(typeName) == false) {
-#ifdef RECORD_DEBUG
-        cerr << "Record::Record::KindCheck: unknown sub type name" << endl;
-#endif
-        cmsg.typeError("Record::KindCheck: unknown sub type name " + typeName);
-        return false;
-      }
-
-      // check if type name is of kind DATA
-      // use the self called list as error info list
-      // this list is an indicator to deteced a recrusive call of this method
-      if (am->CheckKind(Kind::DATA(), typeNameL, selfCalled) == false) {
-#ifdef RECORD_DEBUG
-        cerr << "Record::KindCheck: Subtype not of kind DATA "
-             << typeName
-             << ", typeNameL=" << nl->ToString(typeNameL)
-             << ", selfCalled=" << nl->ToString(selfCalled)
-             << ", errorInfo=" << nl->ToString(errorInfo)
-             << endl;
-#endif
-        // set error info
-        errorInfo = selfCalled;
-
-        cmsg.typeError("Record::KindCheck: Subtype not of kind DATA " +
-                       typeName);
-
-        return false;
-      }
-    } // end ListIterator typeInfo
-  }
-
-#ifdef RECORD_DEBUG
-  cerr << "Record::KindCheck: isKind=" << true << endl;
-#endif
-
-  // success, the record type info looks good
-  return true;
 }
 
 /*
