@@ -225,6 +225,8 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "Operator.h"
 #include "stdio.h"
 #include "DotSpec.h"
+#include "StandardTypes.h"
+#include "../Algebras/FText/FTextAlgebra.h"
 
 // force a failed assertion. This will imply to print a stack trace
 #define qp_assert if( RTFlag::isActive("QP:assert") ) assert(false)
@@ -1671,16 +1673,15 @@ function index.
       case IntType:
       {
         int algId, typeId;
-        GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "int" ),
-                                      typeName, algId, typeId );
-        value = GetCatalog()->InObject( nl->SymbolAtom( "int" ),
+        GetCatalog()->GetTypeId(CcInt::BasicType(), algId, typeId );
+        value = GetCatalog()->InObject( nl->SymbolAtom( CcInt::BasicType() ),
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
-        values[valueno].typeInfo = nl->SymbolAtom( "int" );
+        values[valueno].typeInfo = nl->SymbolAtom( CcInt::BasicType() );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1688,22 +1689,21 @@ function index.
                     expr,
                     nl->SymbolAtom( "constant" ),
                     nl->IntAtom( valueno-1 ) ),
-                  nl->SymbolAtom("int") ));
+                  nl->SymbolAtom(CcInt::BasicType()) ));
       }
       // case (ii): return ((<value> constant <index>) real)
       case RealType:
       {
         int algId, typeId;
-        GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "real" ),
-                                      typeName, algId, typeId );
-        value = GetCatalog()->InObject( nl->SymbolAtom( "real" ),
+        GetCatalog()->GetTypeId( CcReal::BasicType(),algId, typeId );
+        value = GetCatalog()->InObject( nl->SymbolAtom( CcReal::BasicType() ),
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
-        values[valueno].typeInfo = nl->SymbolAtom( "real" );
+        values[valueno].typeInfo = nl->SymbolAtom(  CcReal::BasicType() );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1711,22 +1711,21 @@ function index.
                     expr,
                     nl->SymbolAtom( "constant" ),
                     nl->IntAtom( valueno-1 ) ),
-                  nl->SymbolAtom( "real" ) ));
+                  nl->SymbolAtom( CcReal::BasicType() ) ));
       }
       // case (ii): return ((<value> constant <index>) bool)
       case BoolType:
       {
         int algId, typeId;
-        GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "bool" ),
-                                      typeName, algId, typeId );
-        value = GetCatalog()->InObject( nl->SymbolAtom( "bool" ),
+        GetCatalog()->GetTypeId( CcBool::BasicType(),algId, typeId );
+        value = GetCatalog()->InObject( nl->SymbolAtom( CcBool::BasicType() ),
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
-        values[valueno].typeInfo = nl->SymbolAtom( "bool" );
+        values[valueno].typeInfo = nl->SymbolAtom( CcBool::BasicType() );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1734,22 +1733,21 @@ function index.
                     expr,
                     nl->SymbolAtom( "constant" ),
                     nl->IntAtom( valueno-1 ) ),
-                  nl->SymbolAtom( "bool" ) ));
+                  nl->SymbolAtom( CcBool::BasicType() ) ));
       }
       // case (ii): return ((<value> constant <index>) string)
       case StringType:
       {
         int algId, typeId;
-        GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "string" ),
-                                      typeName, algId, typeId );
-        value = GetCatalog()->InObject( nl->SymbolAtom( "string" ),
+        GetCatalog()->GetTypeId( CcString::BasicType(),algId, typeId );
+        value = GetCatalog()->InObject( nl->SymbolAtom( CcString::BasicType() ),
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
-        values[valueno].typeInfo = nl->SymbolAtom( "string" );
+        values[valueno].typeInfo = nl->SymbolAtom( CcString::BasicType() );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1757,22 +1755,21 @@ function index.
                     expr,
                     nl->SymbolAtom( "constant" ),
                     nl->IntAtom( valueno-1 ) ),
-                  nl->SymbolAtom( "string" ) ));
+                  nl->SymbolAtom( CcString::BasicType() ) ));
       }
       // case (ii): return ((<value> constant <index>) text)
       case TextType:
       {
         int algId, typeId;
-        GetCatalog()->LookUpTypeExpr( nl->SymbolAtom( "text" ),
-                                      typeName, algId, typeId );
-        value = GetCatalog()->InObject( nl->SymbolAtom( "text" ),
+        GetCatalog()->GetTypeId( FText::BasicType(), algId, typeId );
+        value = GetCatalog()->InObject( nl->SymbolAtom( FText::BasicType() ),
                                         expr, errorPos, errorInfo,
                                         correct );
         values[valueno].isConstant = true;
         values[valueno].isList = false;
         values[valueno].algId = algId;
         values[valueno].typeId = typeId;
-        values[valueno].typeInfo = nl->SymbolAtom( "text" );
+        values[valueno].typeInfo = nl->SymbolAtom( FText::BasicType() );
         values[valueno].value = value;
         valueno++;
         return (nl->TwoElemList(
@@ -1780,7 +1777,7 @@ function index.
                     expr,
                     nl->SymbolAtom( "constant" ),
                     nl->IntAtom( valueno-1 ) ),
-                  nl->SymbolAtom( "text" ) ));
+                  nl->SymbolAtom( FText::BasicType() ) ));
 
       }
       // case (iii)
