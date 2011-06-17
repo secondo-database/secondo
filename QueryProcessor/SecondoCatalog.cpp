@@ -631,35 +631,27 @@ The resulting form of the type expression is useful for calling the type specifi
   string name;
   int alId, typeId;
 
-  if ( nl->IsEmpty( type ) )
-  {
+  if ( nl->IsEmpty( type ) ) {
     return (type);
-  }
-  else if ( nl->IsAtom( type ) )
-  {
-    if ( nl->AtomType( type ) == SymbolType )
-    {
+  } else if ( nl->IsAtom( type ) ) {
+    if ( nl->AtomType( type ) == SymbolType ) {
       name = nl->SymbolValue( type );
-      if ( IsTypeName( name ) &&
-          (!SmiEnvironment::IsDatabaseOpen() || !MemberType( name )) )
-      {
-        GetTypeId( name, alId, typeId );
-        return (nl->TwoElemList(
-                  nl->IntAtom( alId ),
-                  nl->IntAtom( typeId ) ));
-      }
-      else
-      {
+      if ( (!SmiEnvironment::IsDatabaseOpen() || !MemberType( name )) ) {
+        GetTypeId( type, alId, typeId, name );
+        if(alId==0){
+          return type;
+        } else { 
+            return (nl->TwoElemList(
+                    nl->IntAtom( alId ),
+                    nl->IntAtom( typeId ) ));
+        }
+      } else {
          return (type);  /* return identifier */
       }
-    }
-    else
-    {
+    } else {
       return (type);  /* return other constants */
     }
-  }
-  else
-  { /* is a nonempty list */
+  } else { /* is a nonempty list */
     return (nl->Cons( NumericType( nl->First( type ) ),
                       NumericType( nl->Rest( type ) ) ));
   }
@@ -1258,7 +1250,12 @@ Precondition: dbState = dbOpen.
    ListExpr pair, numtype;
    int algebraId, typeId;
 
-   numtype = NumericType( typeExpr );
+  numtype = NumericType( typeExpr );
+
+  if(nl->AtomType(numtype) != NoAtom){
+    correct = false;
+    return (SetWord( Address( 0 ) ));
+  }
 
   if ( nl->IsEmpty( numtype ) )
   {
@@ -2413,11 +2410,27 @@ bool
 SecondoCatalog::GetTypeId( const ListExpr& typeExpr,
                            int& algebraId, int& typeId, string& typeName )
 {
- LocalConstructorCatalog::iterator it;
- ListExpr errorInfo = listutils::emptyErrorInfo();
  algebraId = 0;
  typeId = 0;
  typeName = "";
+ // extract the first symbol if possible
+ ListExpr tmp = typeExpr;
+ while( (nl->AtomType(tmp) == NoAtom) && !nl->IsEmpty(tmp)){
+    tmp = nl->First(tmp);
+ }
+ if(nl->AtomType(typeExpr) == SymbolType){
+   typeName = nl->SymbolValue(typeExpr);
+    if(GetTypeId(typeName,algebraId, typeId)){
+        return true;
+    } else {
+       typeName = "";
+    }
+ }
+
+
+ /*
+ ListExpr errorInfo = listutils::emptyErrorInfo();
+ LocalConstructorCatalog::iterator it;
  for(it=constructors.begin(); it != constructors.end(); it++){
    if(am->TypeCheck(it->second.algebraId, 
                     it->second.entryId,typeExpr, errorInfo)){
@@ -2427,6 +2440,7 @@ SecondoCatalog::GetTypeId( const ListExpr& typeExpr,
       return true;
    }
  }
+ */
  return  false;
 }
 
