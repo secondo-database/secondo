@@ -1,7 +1,7 @@
 
 (OBJECT msnow 
     () 
-    movingregion 
+    mregion 
     (
         (
             ("2003-11-20-07:00" "2003-11-20-07:15" TRUE FALSE) 
