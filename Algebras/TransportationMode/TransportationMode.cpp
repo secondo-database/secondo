@@ -3126,9 +3126,9 @@ const string SpatialSpecSetMORefId =
 const string SpatialSpecTMAT =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x string -> genmo</text--->"
-"<text>at (genmo,string) </text--->"
+"<text>tm_at (genmo,string) </text--->"
 "<text>get the moving object with one mode</text--->"
-"<text>query at(genmo1, \"Indoor\")</text---> ) )";
+"<text>query tm_at(genmo1, \"Indoor\")</text---> ) )";
 
 
 const string SpatialSpecGenMODeftime =
@@ -9704,30 +9704,36 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
   {
     return  nl->SymbolAtom ( "list length should be 7" );
   }
-  
+
   ListExpr param1 = nl->First ( args );
   if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
      nl->SymbolValue(param1) == "network")){
       return nl->SymbolAtom ( "typeerror: param1 should be network" );
   }
-  
+
   ListExpr param2 = nl->Second ( args );
   if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param2 should be relation" );
-  
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::StreetSectionCellTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusRoute::StreetSectionCellTypeInfo);
+  }
+
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
-                      
+
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
       return listutils::typeError("attr name" + aname1 + "not found"
                       "or not of type int");
   }
-  
- 
+
+
   ListExpr attrName2 = nl->Fourth ( args );
   ListExpr attrType2;
   string aname2 = nl->SymbolValue(attrName2);
@@ -9824,14 +9830,20 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
   ListExpr param2 = nl->Second ( args );
   if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param2 should be relation" );
-  
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::StreetSectionCellTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusRoute::StreetSectionCellTypeInfo);
+  }
+
   ListExpr attrName = nl->Third ( args );
   ListExpr attrType;
   string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname,attrType);
-                      
+
   if(j == 0 || !listutils::isSymbol(attrType,"int")){
       return listutils::typeError("attr name" + aname + "not found"
                       "or not of type int");
@@ -9840,12 +9852,12 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
   ListExpr index = nl->Fourth(args);
   if(!listutils::isBTreeDescription(index))
       return  nl->SymbolAtom ( "parameter 4 should be btree" );
-  
+
   ListExpr param5 = nl->Fifth ( args );
   if(!IsRelDescription(param5))
     return nl->SymbolAtom ( "typeerror: param5 should be relation" );
-  
-  
+
+
   ListExpr attrName1 = nl->Sixth ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
@@ -9854,8 +9866,8 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int"))
       return listutils::typeError("attr name" + aname1 + "not found"
                       "or not of type int");
-  
-  
+
+
   ListExpr attrName2 = nl->Nth (7, args );
   ListExpr attrType2;
   string aname2 = nl->SymbolValue(attrName2);
@@ -9879,7 +9891,7 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                                        
+
                 nl->SixElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("br_id"),
@@ -9929,19 +9941,25 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
      nl->SymbolValue(param1) == "network")){
       return nl->SymbolAtom ( "typeerror: param1 should be network" );
   }
-  
+
   ListExpr param2 = nl->Second ( args );
   if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param2 should be relation" );
-  
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
+      return listutils::typeError("attr name " + aname1 + "not found"
                       "or not of type int");
   }
   
@@ -9951,7 +9969,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"gline")){
-      return listutils::typeError("attr name" + aname2 + "not found"
+      return listutils::typeError("attr name " + aname2 + "not found"
                       "or not of type gline");
   }
   
@@ -9962,7 +9980,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"line")){
-      return listutils::typeError("attr name" + aname3 + "not found"
+      return listutils::typeError("attr name " + aname3 + "not found"
                       "or not of type line");
   }
   
@@ -9972,7 +9990,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname4,attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"point")){
-      return listutils::typeError("attr name" + aname4 + "not found"
+      return listutils::typeError("attr name " + aname4 + "not found"
                       "or not of type point");
   }
   
@@ -9982,7 +10000,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   int j5 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname5,attrType5);
   if(j5 == 0 || !listutils::isSymbol(attrType5,"point")){
-      return listutils::typeError("attr name" + aname5 + "not found"
+      return listutils::typeError("attr name " + aname5 + "not found"
                       "or not of type point");
   }
   
@@ -9992,7 +10010,7 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
   int j6 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname6,attrType6);
   if(j6 == 0 || !listutils::isSymbol(attrType6,"int")){
-      return listutils::typeError("attr name" + aname6 + "not found"
+      return listutils::typeError("attr name " + aname6 + "not found"
                       "or not of type int");
   }
 
@@ -10089,8 +10107,14 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
   ListExpr param1 = nl->First ( args );
   if(!IsRelDescription(param1))
     return nl->SymbolAtom ( "typeerror: param1 should be relation" );
-  
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
   ListExpr attrName1 = nl->Second ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
@@ -10177,6 +10201,13 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
     return nl->SymbolAtom ( "typeerror: param1 should be relation" );
   
   
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::NewBusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::NewBusRoutesTmpTypeInfo);
+  }
+  
   ListExpr attrName1 = nl->Second ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
@@ -10184,7 +10215,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
                       aname1,attrType1);
                       
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
+      return listutils::typeError("attr name " + aname1 + "not found"
                       "or not of type int");
   }
   
@@ -10195,7 +10226,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
-      return listutils::typeError("attr name" + aname2 + "not found"
+      return listutils::typeError("attr name " + aname2 + "not found"
                       "or not of type line");
   
                         
@@ -10205,7 +10236,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
-      return listutils::typeError("attr name" + aname3 + "not found"
+      return listutils::typeError("attr name " + aname3 + "not found"
                       "or not of type int");
                       
                       
@@ -10215,7 +10246,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname4,attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"int"))
-      return listutils::typeError("attr name" + aname4 + "not found"
+      return listutils::typeError("attr name " + aname4 + "not found"
                       "or not of type int");
   
                       
@@ -10230,7 +10261,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
                       aname_a,attrType_a);
                       
   if(j_a == 0 || !listutils::isSymbol(attrType_a,"int")){
-      return listutils::typeError("attr name" + aname_a + "not found"
+      return listutils::typeError("attr name " + aname_a + "not found"
                       "or not of type int");
   }
   
@@ -10240,7 +10271,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   int j_b = listutils::findAttribute(nl->Second(nl->Second(param6)),
                       aname_b,attrType_b);
   if(j_b == 0 || !listutils::isSymbol(attrType_b,"bool"))
-      return listutils::typeError("attr name" + aname_b + "not found"
+      return listutils::typeError("attr name " + aname_b + "not found"
                       "or not of type bool");
 
 
@@ -10295,18 +10326,25 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
      nl->SymbolValue(param1) == "network")){
       return nl->SymbolAtom ( "typeerror: param1 should be network" );
   }
-  
+
+
   ListExpr param2 = nl->Second ( args );
   if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param2 should be relation" );
   
-  
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
-                      
+
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
       return listutils::typeError("attr name" + aname1 + "not found"
                       "or not of type int");
@@ -10393,26 +10431,32 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
   {
     return  nl->SymbolAtom ( "list length should be 5" );
   }
-  
+
   ListExpr param1 = nl->First ( args );
   if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
      nl->SymbolValue(param1) == "network")){
       return nl->SymbolAtom ( "typeerror: param1 should be network" );
   }
-  
+
   ListExpr param2 = nl->Second ( args );
   if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param2 should be relation" );
-  
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusStopTemp1TypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusStopTemp1TypeInfo);
+  }
+
   ListExpr attrName1 = nl->Third ( args );
   ListExpr attrType1;
   string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname1,attrType1);
-                      
+
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
+      return listutils::typeError("attr name " + aname1 + "not found"
                       "or not of type int");
   }
   
@@ -10422,7 +10466,7 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
-      return listutils::typeError("attr name" + aname2 + "not found"
+      return listutils::typeError("attr name " + aname2 + "not found"
                       "or not of type int");
   
   ListExpr attrName3 = nl->Fifth ( args );
@@ -10431,14 +10475,14 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"gpoint"))
-      return listutils::typeError("attr name" + aname3 + "not found"
+      return listutils::typeError("attr name " + aname3 + "not found"
                       "or not of type gpoint");
 
      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                                        
+
                 nl->FiveElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("br_id"),
@@ -10483,17 +10527,24 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
      nl->SymbolValue(param1) == "network")){
       return nl->SymbolAtom ( "typeerror: param1 should be network" );
   }
-  
+
   ListExpr param2 = nl->Second ( args );
   if(!IsRelDescription(param2))
     return nl->SymbolAtom ( "typeerror: param1 should be relation" );
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
   ListExpr attrName = nl->Third ( args );
   ListExpr attrType;
   string aname = nl->SymbolValue(attrName);
   int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
                       aname,attrType);
-                      
+
   if(j == 0 || !listutils::isSymbol(attrType,"gline")){
       return listutils::typeError("attr name" + aname + "not found"
                       "or not of type gline");
@@ -10510,7 +10561,7 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
   string aname1 = nl->SymbolValue(attrName1);
   int j1 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname1,attrType1);
-                      
+
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
       return listutils::typeError("attr name" + aname1 + "not found"
                       "or not of type int");
@@ -10534,7 +10585,6 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
       return listutils::typeError("attr name" + aname3 + "not found"
                       "or not of type gpoint");
 
-                      
   ListExpr param8 = nl->Nth (8, args );
   if(!listutils::isBTreeDescription(param8)) 
     return nl->SymbolAtom ( "typeerror: param7 should be btree" );
@@ -10544,7 +10594,7 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                                        
+
 //                nl->FourElemList(
                 nl->FiveElemList(
                     nl->TwoElemList(
@@ -10588,15 +10638,22 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   ListExpr param1 = nl->First ( args );
   if(!IsRelDescription(param1))
     return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-  
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::NewBusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::NewBusRoutesTmpTypeInfo);
+  }
+
   ListExpr attrName_a = nl->Second ( args );
   ListExpr attrType_a;
   string aname_a = nl->SymbolValue(attrName_a);
   int j_1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
                       aname_a,attrType_a);
-                      
+
   if(j_1 == 0 || !listutils::isSymbol(attrType_a,"line")){
-      return listutils::typeError("attr name" + aname_a + "not found"
+      return listutils::typeError("attr name " + aname_a + "not found"
                       "or not of type line");
   }
   
@@ -10608,7 +10665,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
                       aname_b,attrType_b);
                       
   if(j_2 == 0 || !listutils::isSymbol(attrType_b,"line")){
-      return listutils::typeError("attr name" + aname_b + "not found"
+      return listutils::typeError("attr name " + aname_b + "not found"
                       "or not of type line");
   }
   
@@ -10625,7 +10682,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
                       aname1,attrType1);
                       
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
+      return listutils::typeError("attr name " + aname1 + "not found"
                       "or not of type int");
   }
   
@@ -10635,7 +10692,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname2,attrType2);
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
-      return listutils::typeError("attr name" + aname2 + "not found"
+      return listutils::typeError("attr name " + aname2 + "not found"
                       "or not of type int");
   
   ListExpr attrName3 = nl->Nth (7, args );
@@ -10644,7 +10701,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname3,attrType3);
   if(j3 == 0 || !listutils::isSymbol(attrType3,"point"))
-      return listutils::typeError("attr name" + aname3 + "not found"
+      return listutils::typeError("attr name " + aname3 + "not found"
                       "or not of type point");
 
                       
@@ -10654,7 +10711,7 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   int j4 = listutils::findAttribute(nl->Second(nl->Second(param4)),
                       aname4, attrType4);
   if(j4 == 0 || !listutils::isSymbol(attrType4,"bool"))
-      return listutils::typeError("attr name" + aname4 + "not found"
+      return listutils::typeError("attr name " + aname4 + "not found"
                       "or not of type bool");
                       
 /*     ListExpr res = nl->TwoElemList(
@@ -10742,6 +10799,13 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
   ListExpr param1 = nl->First ( args );
   if(!IsRelDescription(param1))
     return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::FinalBusRoutesTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::FinalBusRoutesTypeInfo);
+  }
   
   ListExpr attrName = nl->Second ( args );
   ListExpr attrType;
@@ -21125,7 +21189,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&up_down);//get up or down direction for bus stops and routes
     AddOperator(&thebusnetwork);//create bus network 
     AddOperator(&bn_busstops);//get bus stops relation
-    AddOperator(&bn_busroutes);//get bus routes relation  
+    AddOperator(&bn_busroutes);//get bus routes relation
     ////////////////////////////////////////////////////////////////////////
     /*grpah for the bus network*/
     ///////////////////////////////////////////////////////////////////////

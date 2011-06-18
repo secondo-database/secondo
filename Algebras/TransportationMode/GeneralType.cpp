@@ -1801,7 +1801,7 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
                   double dist = from_loc.Distance(to_loc);
                   double time = dist; 
                   if(dist < delta_dist){//ignore such small segment 
-                        if((i + 1) < seq_halfseg.size()){
+                        if((i + 1) < (int) seq_halfseg.size()){
                             seq_halfseg[i+1].from = from_loc; 
                         }
                     continue;
@@ -1841,10 +1841,9 @@ free movement, transportation mode is given
 
 */
 void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
-                            GenMO* genmo, MPoint* mo, Instant& start_time,
-                                      string mode)
+                            GenMO* genmo, MPoint* mo, Instant& start_time)
 {
-
+   string mode = "Free";
    SimpleLine* path = new SimpleLine(0);
    path->fromLine(*l);
 
@@ -1871,7 +1870,7 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
  
             if(dist < delta_dist){//ignore such small segment 
                 if((i + 1) < seq_halfseg.size()){
-                seq_halfseg[i+1].from = from_loc; 
+                  seq_halfseg[i+1].from = from_loc; 
                 }
                 continue; 
             }
@@ -1908,7 +1907,7 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
                   double dist = from_loc.Distance(to_loc);
                   double time = dist; 
                   if(dist < delta_dist){//ignore such small segment 
-                        if((i + 1) < seq_halfseg.size()){
+                        if((i + 1) < (int)seq_halfseg.size()){
                             seq_halfseg[i+1].from = from_loc; 
                         }
                     continue;
@@ -1946,9 +1945,9 @@ free movement, transportation mode is given
 
 */
 void GenMObject::GenerateFreeMovement2(Point start_loc, Point end_loc,
-                            GenMO* genmo, MPoint* mo, Instant& start_time,
-                                      string mode)
+                            GenMO* genmo, MPoint* mo, Instant& start_time)
 {
+   string mode = "Free";
    const double delta_dist = 0.01;
    if(start_loc.Distance(end_loc) < delta_dist) return;
    ///////////////////////////////////////////////////////////////////
@@ -2231,7 +2230,7 @@ void GenMObject::CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg,
  //   cout<<"dist "<<dist<<" time "<<time<<endl; 
     ///////////////////////////////////////////////////////////////////
     if(dist < dist_delta){//ignore such small segment 
-        if((i + 1) < seq_halfseg.size()){
+        if((i + 1) < (int)seq_halfseg.size()){
           seq_halfseg[i+1].from = from_loc; 
         }
         continue; 
@@ -2258,6 +2257,11 @@ void GenMObject::CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg,
 
 /*
 generate generic moving objects with mode car or taxi and walk
+
+Note:
+the start and end locations could be on the zebra crossing which intersect the
+road line, then there is no movement in the free space 
+so some movement have free space, while some do not have
 
 */
 void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
@@ -2452,7 +2456,7 @@ void GenMObject::PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp,
 /*
 build the connection from a point on the pavement to the road network point
 subpath1: on the pavement
-subpath2: in the free space (mode: car)
+subpath2: in the free space (mode: free)
 loc1: point on the pavement; end loc: point maps to a gpoint 
 
 */
@@ -2482,7 +2486,7 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
   if(line_list.size() == 0){/////start location is on the pavement border 
       double dist = start_loc.Distance(end_loc);
       double slowspeed = 10.0*1000.0/3600.0;
-      double time = dist/slowspeed;///// define as car or taxi
+      double time = dist/slowspeed;///// define as free space 
     //////////////////////////////////////////////////////////////
       if(dist > delta_dist){//ingore too small segment 
           Instant st = start_time;
@@ -2504,7 +2508,8 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
           Loc loc2(end_loc.GetX(), end_loc.GetY());
           GenLoc gloc1(0, loc1);
           GenLoc gloc2(0, loc2);
-          int tm = GetTM(mode);
+//          int tm = GetTM(mode);
+          int tm = GetTM("Free");//free space 
           UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
           genmo->Add(*unit); 
           delete unit; 
@@ -2655,7 +2660,8 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
           Loc loc2(end_loc.GetX(), end_loc.GetY());
           GenLoc gloc1(0, loc1);///////////0 -- free space 
           GenLoc gloc2(0, loc2);///////////0 -- free space 
-          int tm = GetTM(mode);
+//          int tm = GetTM(mode);
+          int tm = GetTM("Free");//free space 
           UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
           genmo->Add(*unit);
           delete unit;
@@ -2775,7 +2781,7 @@ void GenMObject::ConnectGP1GP2(Network* rn, Point start_loc, GLine* newgl,
 /*
 build the connection from a point on the pavement to the road network point
 subpath1: on the pavement
-subpath2: in the free space (mode: car)
+subpath2: in the free space (mode: free)
 loc: point on the pavement; start loc: point maps to a gpoint 
 
 */
@@ -2806,7 +2812,7 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
 
       double dist = start_loc.Distance(end_loc);
       double slowspeed = 10.0*1000.0/3600.0;
-      double time = dist/slowspeed;///// define as car or taxi
+      double time = dist/slowspeed;///// define as free 
     //////////////////////////////////////////////////////////////
       if(dist > delta_dist){//ingore too small segment 
           Instant st = start_time;
@@ -2828,7 +2834,8 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
           Loc loc2(end_loc.GetX(), end_loc.GetY());
           GenLoc gloc1(0, loc1);
           GenLoc gloc2(0, loc2);
-          int tm = GetTM(mode);
+//          int tm = GetTM(mode);
+          int tm = GetTM("Free");
           UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
           genmo->Add(*unit); 
           delete unit; 
@@ -2915,7 +2922,7 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
       //////////////movement---1//////from road line to pavemet border///////
         double dist1 = start_loc.Distance(middle_loc);
         double lowspeed = 10*1000/3600.0;
-        double time1 = dist1/lowspeed;///// define as car or taxi 
+        double time1 = dist1/lowspeed;///// define as free 
         if(dist1 > delta_dist){//ingore too small segment 
 
           Instant st = start_time;
@@ -2939,7 +2946,8 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
           Loc loc2(middle_loc.GetX(), middle_loc.GetY());
           GenLoc gloc1(0, loc1);///////////0 -- free space 
           GenLoc gloc2(0, loc2);///////////0 -- free space 
-          int tm = GetTM(mode);
+//          int tm = GetTM(mode);
+          int tm = GetTM("Free");//free space 
           UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
           genmo->Add(*unit); 
           delete unit; 
@@ -3481,7 +3489,8 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
                 Loc loc2(start_loc->GetX(), start_loc->GetY());
                 GenLoc gloc1(0, loc1);
                 GenLoc gloc2(0, loc2);
-                int tm = GetTM("Bus");
+//                int tm = GetTM("Bus");
+                int tm = GetTM("Free");
                 UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
                 genmo->Add(*unit); 
                 delete unit; 
@@ -3665,7 +3674,7 @@ void GenMObject::StringToBusStop(string str, Bus_Stop& bs)
 
 /*
 the movement between bus stops on the bus network and its mapping points on
-the pavement 
+the pavement, it is in free space 
 
 */
 void GenMObject::ShortMovement(GenMO* genmo, MPoint* mo, Instant& start_time,
@@ -3693,7 +3702,8 @@ void GenMObject::ShortMovement(GenMO* genmo, MPoint* mo, Instant& start_time,
   Loc loc2(p2->GetX(), p2->GetY());
   GenLoc gloc1(0, loc1);
   GenLoc gloc2(0, loc2);
-  int tm = GetTM("Bus");
+//  int tm = GetTM("Bus");
+  int tm = GetTM("Free");//in free space 
   UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
   genmo->Add(*unit); 
   delete unit; 
@@ -4155,8 +4165,8 @@ void GenMObject::GenerateGenMO4(Space* sp,
     
 //    line_list1.push_back(*path1);
 
-    GenerateFreeMovement(path1, *sp1, genmo, mo, start_time, "Walk");
-    GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time, "Walk");
+    GenerateFreeMovement(path1, *sp1, genmo, mo, start_time);
+    GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time);
 
     //////////////////////////////////////////////////////////////////////////
     //////////////movement in pavement area///////////////////////////////////
@@ -4179,8 +4189,8 @@ void GenMObject::GenerateGenMO4(Space* sp,
     //////////////////path2: from pavement to building/////////////////////////
     Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
  //   line_list2.push_back(*path2);
-    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time, "Walk");
-    GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time, "Walk");
+    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+    GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
     //////////////////////////////////////////////////////////////////////
     /////////////////////////movement inside the second building//////////
@@ -4674,8 +4684,8 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
     ///////////////   outdoor  movement //////////////////////////////
     Line* path1 = (Line*)path_tuple1->GetAttribute(IndoorInfra::INDOORIF_PATH);
 //    line_list1.push_back(*path1);
-    GenerateFreeMovement(path1, *sp1, genmo, mo, start_time, "Walk");
-    GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time, "Walk");
+    GenerateFreeMovement(path1, *sp1, genmo, mo, start_time);
+    GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time);
 
     /////////////////////////////////////////////////////////////////////
     //////////////////4 pavement to network (start location)/////////////
@@ -4716,8 +4726,8 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
     ////////////////outdoor movement/////////////////////////////////////////
     Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
 //    line_list2.push_back(*path2);
-    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time, "Walk");
-    GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time, "Walk");
+    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+    GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
     ///////////////////indoor movement//////////////////////////////////////
     ////////////////////to show which entrance it is////////////////////
@@ -5017,8 +5027,8 @@ void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
 
 
     Line* path1 = (Line*)path_tuple1->GetAttribute(IndoorInfra::INDOORIF_PATH);
-    GenerateFreeMovement(path1, *sp1, genmo, mo, start_time, "Walk");
-    GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time, "Walk");
+    GenerateFreeMovement(path1, *sp1, genmo, mo, start_time);
+    GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time);
 
 
     ///////////////////////////////////////////////////////////////////
@@ -5092,8 +5102,8 @@ void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
      ////////////////outdoor movement/////////////////////////////////////////
     Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
 //    line_list2.push_back(*path2);
-    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time, "Walk");
-    GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time, "Walk");
+    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+    GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
     ///////////////////indoor movement//////////////////////////////////////
     ////////////////////to show which entrance it is////////////////////

@@ -2278,6 +2278,7 @@ should also check the middle point.
 */
 bool RegContainHS(Region* r, HalfSegment hs)
 {
+
   BBox<2> bbox = r->BoundingBox();
 
   if( !hs.GetLeftPoint().Inside(bbox) ||
@@ -2321,7 +2322,6 @@ bool RegContainHS(Region* r, HalfSegment hs)
       }
     }
   }
-
   if( checkMidPoint )
   {
     Point midp( true,
@@ -2330,8 +2330,11 @@ bool RegContainHS(Region* r, HalfSegment hs)
     if( !r->Contains( midp ) )
       return false;
   }
+
+//  cout<<"hs "<<hs<<endl;
+
   for(unsigned int i = 0;i < intersection_points.size();i++){
-      //cout<<intersection_points.size()<<endl;
+
       Point p = intersection_points[i];
       double x1 = (hs.GetLeftPoint().GetX() + p.GetX())/2;
       double y1 = (hs.GetLeftPoint().GetY() + p.GetY())/2;
@@ -2339,9 +2342,12 @@ bool RegContainHS(Region* r, HalfSegment hs)
       double y2 = (hs.GetRightPoint().GetY() + p.GetY())/2;
       Point midp1(true, x1, y1);
       Point midp2(true, x2, y2);
+//      cout<<"midp1 "<<midp1<<" midp2 "<<midp2<<endl;
+
       if(!r->Contains(midp1)) return false;
       if(!r->Contains(midp2)) return false;
   }
+
   return true;
 }
 

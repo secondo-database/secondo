@@ -38,6 +38,27 @@ creating bus network
 #include "BusNetwork.h"
 #include "PaveGraph.h"
 
+string BusRoute::StreetSectionCellTypeInfo = 
+"(rel (tuple ((sid_s int) (cellid_w_a_c int) (Cnt_a_c int) (cover_area_b_c\
+region))))";
+
+string BusRoute::BusRoutesTmpTypeInfo = 
+"(rel (tuple ((br_id int) (bus_route1 gline) (bus_route2 line)\
+(start_loc point)(end_loc point) (route_type int))))";
+
+string BusRoute::NewBusRoutesTmpTypeInfo =
+"(rel (tuple ((br_id int) (bus_route1 line) (bus_route2 line) (route_type int)\
+(br_uid int))))";
+
+string BusRoute::FinalBusRoutesTypeInfo =
+"(rel (tuple ((br_id int) (bus_route line) (route_type int) (br_uid int)\
+(bus_direction bool) (startSmaller bool))))";
+
+
+string BusRoute::BusStopTemp1TypeInfo =
+"(rel (tuple ((br_id int) (bus_stop_id int) (bus_stop1 gpoint)\
+(bus_stop2 point))))";
+
 
 /*
 create route bus route 
@@ -2387,7 +2408,7 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
         dist += fabs(start - end);
   }
   
-  assert(dist_list.size() == (end - start)); 
+  assert((int)dist_list.size() == (end - start)); 
 }
 
 /*
@@ -4366,12 +4387,12 @@ void RoadDenstiy::CreateBusTrip2(MPoint* mo,
  //   cout<<"dist "<<dist<<" time "<<time<<endl; 
     ///////////////////////////////////////////////////////////////////
     if(dist < dist_delta){//ignore such small segment 
-        if((i + 1) < seq_halfseg.size()){
-          seq_halfseg[i+1].from = from_loc; 
+        if((i + 1) < (int) seq_halfseg.size()){
+          seq_halfseg[i+1].from = from_loc;
         }
         continue; 
     }
-    
+
     et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0));//double 1.0 means 1 day 
 //    cout<<st<<" "<<et<<endl;
     ////////////////////create a upoint////////////////////////

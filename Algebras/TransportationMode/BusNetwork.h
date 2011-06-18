@@ -283,6 +283,12 @@ struct BusRoute{
   BusRoute(){count=0;resulttype = NULL;}
   ~BusRoute(){if(resulttype != NULL) delete resulttype;}
   
+  static string StreetSectionCellTypeInfo;
+  static string BusRoutesTmpTypeInfo;
+  static string NewBusRoutesTmpTypeInfo;
+  static string FinalBusRoutesTypeInfo;
+  static string BusStopTemp1TypeInfo;
+  
   ////////////rough description of bus routes/////////////////////////////
   void CreateRoute1(int attr1,int attr2,int attr3,int attr4); 
   void BuildRoute(vector<Section_Cell>& cell_list3,
@@ -1354,7 +1360,6 @@ struct UBTrain{
  void AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines); 
  void TrainsToGenMO(); 
  void MPToGenMO(MPoint* mp, GenMO* mo, int l_id); 
- 
 
 };
 

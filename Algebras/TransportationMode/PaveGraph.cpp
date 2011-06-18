@@ -4289,6 +4289,7 @@ intersecting the line and calculate the total intersection length
 void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* line, double& l)
 {
+  const double delta_area = 0.01;
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
                   rtree->MinEntries(0), rtree->MaxEntries(0));
   for(int j = 0;j < node->EntryCount();j++){
@@ -4300,8 +4301,9 @@ void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                      (Region*)dg_tuple->GetAttribute(DualGraph::PAVEMENT);
               Line* len = new Line(0);
               line->Intersection(*candi_reg, *len);
-              if(len->Length() > 0.0)
+              if(candi_reg->Area() > delta_area && len->Length() > 0.0){
                 l += len->Length();
+              }
               delete len;
               dg_tuple->DeleteIfAllowed();
       }else{
@@ -9715,7 +9717,10 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
 //  cout<<"min_id "<<min_id<<" max_id "<<max_id<<endl;
   if(strlen(buf1) < strlen(buf2)){////////perhaps + 1000000
     cout<<"we need to reset the starting number for building id"<<endl;
-    cur_max_ref_id += pow(10, strlen(buf2) + 1);
+//    cur_max_ref_id += pow(10, strlen(buf2) + 1);
+    double base = 10;
+    double exponent = strlen(buf2) + 1;
+    cur_max_ref_id += pow(base, exponent);
     assert(cur_max_ref_id + build_no < numeric_limits<int>::max());
     assert(false);///////// can be deleted the above code should be correct
   }

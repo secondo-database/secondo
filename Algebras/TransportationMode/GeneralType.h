@@ -893,11 +893,9 @@ struct GenMObject{
                           MaxRect* maxrect);
   /////////free movement in space where the transportation mode is given///////
   void GenerateFreeMovement(Line* l, Point start_loc,
-                            GenMO* genmo, MPoint* mo, Instant& start_time,
-                                      string mode);
+                            GenMO* genmo, MPoint* mo, Instant& start_time);
   void GenerateFreeMovement2(Point start_loc, Point end_loc,
-                            GenMO* genmo, MPoint* mo, Instant& start_time,
-                                      string mode);
+                            GenMO* genmo, MPoint* mo, Instant& start_time);
   void GenerateIndoorMovementToExit(IndoorInfra* i_infra, 
                                     GenMO* genmo, MPoint* mo, 
                                     Instant& start_time, Point loc,
