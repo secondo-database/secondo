@@ -3599,9 +3599,9 @@ bool IndoorNav::BuildPathCO(int groom_oid,
 
   if(complex_reg == 1){ ///complex region, we build dual graph and visual graph
 
-//      cout<<"complex corridor "<<endl; 
+//      cout<<"complex corridor "<<endl;
 
-      GetSecondoObj(groom_reg, obj_name); 
+      GetSecondoObj(groom_reg, obj_name);
       assert(obj_name.size() == 3);
       SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
       bool dg_def, vg_def, rel_def;
@@ -3673,6 +3673,8 @@ void IndoorNav::ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
                            DualGraph* dg, VisualGraph* vg, 
                                      Relation* tri_rel, Region* groom_reg)
 {
+//    if(tid1 != 135 ) return;
+
     assert(dg != NULL);
     assert(vg != NULL);
     assert(tri_rel != NULL);
@@ -3684,11 +3686,11 @@ void IndoorNav::ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
     HalfSegment hs1;
     assert(l1->Size() == 2);
     l1->Get(0, hs1); 
-  
+
     HalfSegment hs2; 
     assert(l2->Size() == 2);
     l2->Get(0, hs2); 
-  
+
     double x1 = (hs1.GetLeftPoint().GetX() + hs1.GetRightPoint().GetX())/2;
     double y1 = (hs1.GetLeftPoint().GetY() + hs1.GetRightPoint().GetY())/2; 
     Point p1(true, x1, y1);
@@ -3703,26 +3705,29 @@ void IndoorNav::ConnectComplexRegion(int groom_oid, Line* l1, Line* l2,
     /////////////////////////////////////////////////////////////////////////
     int oid1 = 0;
     int oid2 = 0;
+//    cout<<"tri no "<<dg->node_rel->GetNoTuples()<<endl;
     FindPointInDG1(dg, &p1, oid1); 
     assert(1 <= oid1 && oid1 <= dg->node_rel->GetNoTuples());
     FindPointInDG1(dg, &p2, oid2); 
     assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
 
-    
     Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
     wsp->rel3 = tri_rel;
     Line* sp_path = new Line(0);
     if(EuclideanConnection(groom_reg, &p1, &p2, sp_path)){
 
-    }else
+    }else{
+//        cout<<"p1 "<<p1<<" p2 "<<p2<<endl;
+//        cout<<"oid1 "<<oid1<<" oid2 "<<oid2<<endl; 
         wsp->WalkShortestPath2(oid1, oid2, p1, p2, sp_path);
+    }
 
     delete wsp;
 
 
     if(sp_path->Size() == 0){
       delete sp_path;
-      return; 
+      return;
     }
 
     vector<MyHalfSegment> mhs;
@@ -4333,6 +4338,8 @@ direct connection between start and end location
 */
 bool EuclideanConnection(Region* reg, Point*s, Point* d, Line* pResult)
 {
+//  cout<<"reg "<<*reg<<endl; 
+  
   vector<HalfSegment> seg_list; 
   for(int i = 0;i < reg->Size();i++){
       HalfSegment hs;
@@ -5401,7 +5408,7 @@ void IndoorNav::InitializeElevator(Interval<Instant>& periods,
 
 
   if(elev_list.size() < 2){
-     cout<<"only one floor, should not have elevator"<<endl; 
+//     cout<<"only one floor, should not have elevator"<<endl; 
      return; 
   }
   sort(elev_list.begin(), elev_list.end());
@@ -9502,7 +9509,7 @@ void IndoorNav::ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2,
           }
 
           assert(i != 0);
-          /////////start and end locations are in OR or CO
+          /////////start and end locations are in OR or CO/////////////
           assert(j < candidate_path[index].size() - 1);//impossible to end in EL
 
           Tuple* gr_tuple1 = rel->GetTuple(candidate_path[index][i - 1],false);
@@ -9513,18 +9520,29 @@ void IndoorNav::ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2,
 
           Tuple* gr_tuple2 = rel->GetTuple(candidate_path[index][j],false);
           GRoom* groom2 = (GRoom*)gr_tuple2->GetAttribute(I_Room);
-          float h2 = groom2->GetLowHeight(); 
-          gr_tuple2->DeleteIfAllowed(); 
+          float h2 = groom2->GetLowHeight();
+          gr_tuple2->DeleteIfAllowed();
 
+          const double delta_d = 0.01;
+          Point center_p;
 
-          if(h1 < h2){//add after 
-//            cout<<"h1 < h2"<<endl; 
+          if(h1 < h2){////// add after 
+//            cout<<"h1 < h2"<<" h1:"<<h1<<" h2: "<<h2<<endl;
             for(unsigned int k = 0;k < el_id.size();k++){
               Tuple* t = rel->GetTuple(el_id[k], false);
               GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
               int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval(); 
               groom_oid_list.push_back(groom_oid);
               room_list.push_back(*gr); 
+
+//              cout<<"oid "<<groom_oid<<endl;
+              if(k == 0){
+                  Rectangle<2> gr_box = gr->BoundingBox();
+                  double center_x = (gr_box.MinD(0) + gr_box.MaxD(0))/2;
+                  double center_y = (gr_box.MinD(1) + gr_box.MaxD(1))/2;
+                  center_p.Set(center_x, center_y);
+              }
+
               t->DeleteIfAllowed(); 
             }
 
@@ -9535,11 +9553,23 @@ void IndoorNav::ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2,
                         ((CcString*)t->GetAttribute(I_Type))->GetValue();
                 if(GetRoomEnum(groom_type) == EL && 
                   AlmostEqual(gr->GetLowHeight(), h2)){
-                  int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval();
-                  groom_oid_list.push_back(groom_oid);
-                  room_list.push_back(*gr); 
-                  t->DeleteIfAllowed();
-                  break;
+
+                  Rectangle<2> box = gr->BoundingBox();
+                  double x = (box.MinD(0) + box.MaxD(0))/2;
+                  double y = (box.MinD(1) + box.MaxD(1))/2;
+                  Point p(true, x, y);
+
+                  /////several elevators, compare the center point /////
+                  if(center_p.Distance(p) < delta_d){
+                    int groom_oid = 
+                        ((CcInt*)t->GetAttribute(I_OID))->GetIntval();
+                    groom_oid_list.push_back(groom_oid);
+//                    cout<<"groom oid "<<groom_oid<<endl;
+
+                    room_list.push_back(*gr); 
+                    t->DeleteIfAllowed();
+                    break;
+                  }
                 }
 
                 t->DeleteIfAllowed();
@@ -9547,19 +9577,39 @@ void IndoorNav::ShortestPath_Room(GenLoc* gloc1, GenLoc* gloc2,
 
           }else{//add before 
 //            cout<<"h1 > h2 "<<"h1 :"<<h1<<" h2: "<<h2<<endl;
-            for(int k = 1; k <= rel->GetNoTuples();k++){
+
+             Tuple* t = rel->GetTuple(el_id[0], false);
+             GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
+             Rectangle<2> gr_box = gr->BoundingBox();
+             double center_x = (gr_box.MinD(0) + gr_box.MaxD(0))/2;
+             double center_y = (gr_box.MinD(1) + gr_box.MaxD(1))/2;
+             center_p.Set(center_x, center_y);
+             t->DeleteIfAllowed();
+
+
+             for(int k = 1; k <= rel->GetNoTuples();k++){
                 Tuple* t = rel->GetTuple(k, false);
                 GRoom* gr = (GRoom*)t->GetAttribute(I_Room);
                 string groom_type = 
                         ((CcString*)t->GetAttribute(I_Type))->GetValue();
                 if(GetRoomEnum(groom_type) == EL && 
                   AlmostEqual(gr->GetLowHeight(), h1)){
-                  int groom_oid = ((CcInt*)t->GetAttribute(I_OID))->GetIntval();
-                  groom_oid_list.push_back(groom_oid);
-                  room_list.push_back(*gr); 
-                  t->DeleteIfAllowed();
+
+
+                  Rectangle<2> box = gr->BoundingBox();
+                  double x = (box.MinD(0) + box.MaxD(0))/2;
+                  double y = (box.MinD(1) + box.MaxD(1))/2;
+                  Point p(true, x, y);
+
+                  if(center_p.Distance(p) < delta_d){
+                    int groom_oid = 
+                        ((CcInt*)t->GetAttribute(I_OID))->GetIntval();
+                    groom_oid_list.push_back(groom_oid);
+                    room_list.push_back(*gr); 
+                    t->DeleteIfAllowed();
 //                  cout<<"find "<<endl;
-                  break;
+                    break;
+                  }
                 }
 
                 t->DeleteIfAllowed();
