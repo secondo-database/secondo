@@ -79,6 +79,7 @@ This file contains the implementation import / export operators.
 #include "DbVersion.h"
 #include "RegionTools.h"
 #include "NMEAImporter.h"
+#include "Stream.h"
 
 
 extern NestedList* nl;
@@ -1082,68 +1083,75 @@ Operator get_lines( "get_lines",
 
 ListExpr shpexportTM(ListExpr args){
   int len = nl->ListLength(args);
-  if(len!=2 && len != 3){
+  if((len!=2) && (len != 3) && (len !=4)){
     ErrorReporter::ReportError("wrong number of arguments");
     return nl->TypeError();
   }
-  string err = "   stream(SHPEXPORTABLE) x text \n "
-               " or stream(tuple(...)) x text x attrname expected";
-  if(!nl->IsEqual(nl->Second(args),FText::BasicType())){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+  string err = "   stream(SHPEXPORTABLE) x text [ x text ]\n "
+               " or stream(tuple(...)) x text x attrname [x text] expected";
+
+  // the second argument must be a text  
+  if(!FText::checkType(nl->Second(args))){
+    return listutils::typeError(err);
   }
-  if(len==2){
-    ListExpr stream = nl->First(args);
-    if(nl->ListLength(stream) != 2 ||
-      !nl->IsEqual(nl->First(stream),Symbol::STREAM())){
-      ErrorReporter::ReportError(err);
-      return nl->TypeError();
-    }
-    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-    if(!am->CheckKind(Kind::SHPEXPORTABLE(),nl->Second(stream), errorInfo)){
-      ErrorReporter::ReportError(err);
-      return nl->TypeError();
-    }
-    return stream;
-  } else { // len = 3
-    ListExpr stream = nl->First(args);
-    if(! IsStreamDescription(stream)){
-      ErrorReporter::ReportError(err);
-      return nl->TypeError();
-    }
-    ListExpr attrName = nl->Third(args);
-    if(nl->AtomType(attrName)!=SymbolType){
-      ErrorReporter::ReportError("Invalid value for an attribute name");
-      return nl->TypeError();
-    }
-    string an = nl->SymbolValue(attrName);
-    ListExpr attrList = nl->Second(nl->Second(stream));
-    int index = -1;
-    int pos = 0;
-    ListExpr attr;
-    while(!nl->IsEmpty(attrList) && index < 0 ){
-       attr = nl->First(attrList);
-       attrList = nl->Rest(attrList);
-       if(nl->IsEqual(nl->First(attr),an)){
-         index = pos;
-       } else {
-         pos ++;
-       }
-    }
-    if(index < 0){
-       ErrorReporter::ReportError("Attribute name " + an +
-                                 " not present in tuple");
-       return nl->TypeError();
-    }
-    // check whether the type is in kind
-    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-    if(!am->CheckKind(Kind::SHPEXPORTABLE(),nl->Second(attr), errorInfo)){
-      ErrorReporter::ReportError(err);
-      return nl->TypeError();
-    }
-    // all ok, append the index to the result
+
+  ListExpr stream = nl->First(args);
+  if(Stream<Tuple>::checkType(stream)){
+     // case stream(tuple) x text x attrname [ x text]
+     ListExpr an = nl->Third(args);
+     if(!listutils::isSymbol(an)){
+       return listutils::typeError(err + ": invalid attribute name");
+     }     
+     ListExpr type;
+     string name = nl->SymbolValue(an);
+     ListExpr attrList = nl->Second(nl->Second(stream));
+     int pos = listutils::findAttribute(attrList, name, type);
+     if(pos<1){
+       return listutils::typeError(err + ": attribute " + name + 
+                                   " not member of tuple");
+     }
+     pos--;
+     ListExpr errorInfo = listutils::emptyErrorInfo();
+     // type of attribute must be in KIND SHPEXORTABLE
+     if(!am->CheckKind(Kind::SHPEXPORTABLE(),type, errorInfo)){
+       return listutils::typeError(err + ":Attribute "+ name + 
+                                  "not in kind SHPEXPORTABLE");
+     }
+     if(len==4){
+        ListExpr shx = nl->Fourth(args);
+        if(!FText::checkType(shx)){
+           return listutils::typeError(err);
+        }
+        // all the things are ok
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                             nl->OneElemList( nl->IntAtom(pos)),
+                             stream);
+     } else {
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                 nl->TwoElemList(nl->TextAtom(""),
+                                                 nl->IntAtom(pos)),
+                                 stream);
+     }
+  }
+  // check for stream<SHPEXPORTABLE>
+  if(!nl->HasLength(stream,2)){
+    return listutils::typeError(err);
+  }
+
+  if(!listutils::isSymbol(nl->First(stream), Stream<Attribute>::BasicType())){
+    return listutils::typeError(err);
+  }
+
+  if(len==3){ // having file name for idx file
+     ListExpr idx = nl->Third(args);
+     if(!FText::checkType(idx)){
+        return listutils::typeError(err);
+     }
+     return stream;
+  } else {
+     // no name for idx file is given
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                             nl->OneElemList(nl->IntAtom(index)),
+                             nl->OneElemList(nl->TextAtom("")),
                              stream);
   }
 }
@@ -1155,7 +1163,7 @@ ListExpr shpexportTM(ListExpr args){
 
 class shpLInfo{
  public:
-    shpLInfo(FText* name){
+    shpLInfo(FText* name, FText* idxname){
       if(!name->IsDefined()){
          defined = false;
       } else {
@@ -1172,6 +1180,13 @@ class shpLInfo{
          zMax = 0;
          mMin = 0;
          mMax = 0;
+         if(!idxname->IsDefined() || 
+            (idxname->GetValue()).length()==0){
+            produceIdx = false;
+         } else {
+            produceIdx = true;
+            idxName = idxname->GetValue();
+         }
       }
     }
 
@@ -1197,6 +1212,31 @@ class shpLInfo{
        for(int i=0;i<8;i++){
          WinUnix::writeLittle64(file,boxpos);
        }
+
+       if(produceIdx){
+         idxfile.open((idxName ).c_str(),
+                    ios::out | ios::trunc | ios_base::binary);
+         if(!idxfile.good()){
+            produceIdx = false;
+           return file.good();
+         }
+         uint32_t code = 9994;
+         WinUnix::writeBigEndian(idxfile,code);
+         uint32_t unused = 0;
+         for(int i=0;i<5;i++){
+           WinUnix::writeBigEndian(idxfile,unused);
+         }
+         // dummy for file length
+         uint32_t length = 100;
+         WinUnix::writeBigEndian(idxfile,length);
+         uint32_t version = 1000;
+         WinUnix::writeLittleEndian(idxfile,version);
+         WinUnix::writeLittleEndian(idxfile,type);
+         double boxpos = 0.0;
+         for(int i=0;i<8;i++){
+           WinUnix::writeLittle64(idxfile,boxpos);
+         }
+       }
        return file.good();
     }
 
@@ -1210,6 +1250,7 @@ class shpLInfo{
           }
           first = false;
        }
+       uint32_t offset = file.tellp() /2; // measured as 16 bit words
        value->writeShape(file,recno++);
        if(value->hasBox()){
           if(!boxdef){
@@ -1232,7 +1273,13 @@ class shpLInfo{
              mMin = min(mMin,value->getMinM());
              mMax = max(mMax,value->getMaxM());
           }
+       } 
+       uint32_t contentlength = file.tellp()/2 - 4 - offset; 
+       if(produceIdx){
+          WinUnix::writeBigEndian(idxfile, offset);
+          WinUnix::writeBigEndian(idxfile, contentlength);
        }
+
        return file.good();
     }
 
@@ -1253,8 +1300,23 @@ class shpLInfo{
        WinUnix::writeLittle64(file,zMax);
        WinUnix::writeLittle64(file,mMin);
        WinUnix::writeLittle64(file,mMax);
-
        file.close();
+        
+       if(produceIdx){
+         uint32_t len = idxfile.tellp();
+         idxfile.seekp(24,ios_base::beg);
+         WinUnix::writeBigEndian(idxfile,len);
+         idxfile.seekp(36,ios_base::beg);
+         WinUnix::writeLittle64(idxfile,xMin);
+         WinUnix::writeLittle64(idxfile,yMin);
+         WinUnix::writeLittle64(idxfile,xMax);
+         WinUnix::writeLittle64(idxfile,yMax);
+         WinUnix::writeLittle64(idxfile,zMin);
+         WinUnix::writeLittle64(idxfile,zMax);
+         WinUnix::writeLittle64(idxfile,mMin);
+         WinUnix::writeLittle64(idxfile,mMax);
+         idxfile.close();
+       } 
 
     }
 
@@ -1277,6 +1339,9 @@ class shpLInfo{
     double mMax;
     bool boxdef;
     int index;
+    bool produceIdx;
+    string idxName;
+    ofstream idxfile;
 
 };
 
@@ -1288,7 +1353,8 @@ int shpexportVM1(Word* args, Word& result,
     case OPEN:{
        qp->Open(args[0].addr);
        FText* fname = static_cast<FText*>(args[1].addr);
-       local.setAddr(new shpLInfo(fname));
+       FText* idxname = static_cast<FText*>(args[2].addr);
+       local.setAddr(new shpLInfo(fname,idxname));
        return 0;
     }
     case REQUEST: {
@@ -1338,8 +1404,16 @@ int shpexportVM2(Word* args, Word& result,
     case OPEN:{
        qp->Open(args[0].addr);
        FText* fname = static_cast<FText*>(args[1].addr);
-       shpLInfo* linfo  = new shpLInfo(fname);
-       int attrPos = (static_cast<CcInt*>(args[3].addr))->GetIntval();
+       FText* idxname = static_cast<FText*>(args[3].addr);
+
+       cout << "fname = " << fname->GetValue() << endl;
+       cout << "idxname = " << idxname->GetValue() << endl;
+
+       shpLInfo* linfo  = new shpLInfo(fname, idxname);
+       int attrPos = (static_cast<CcInt*>(args[4].addr))->GetIntval();
+
+       cout << " attrIndex = " << attrPos << endl;
+
        linfo->setIndex( attrPos);
        local.setAddr(linfo);
        return 0;
