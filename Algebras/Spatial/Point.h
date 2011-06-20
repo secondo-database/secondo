@@ -626,7 +626,7 @@ as an attribute.
        return 1; // Point Type
     }
 
-    virtual bool hasBox(){
+    virtual bool hasBox() const{
        return IsDefined();
     }
 

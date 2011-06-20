@@ -566,7 +566,7 @@ as an attribute.
        return 8; // Point Type
     }
 
-    virtual bool hasBox(){
+    virtual bool hasBox() const{
        return IsDefined();
     }
 
@@ -1304,7 +1304,7 @@ as an attribute.
        return 3; // PolyLine Type
     }
 
-    virtual bool hasBox(){
+    virtual bool hasBox() const{
        return IsDefined();
     }
 
