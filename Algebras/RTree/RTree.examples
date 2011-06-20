@@ -14,6 +14,11 @@ Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi) -> (rtree<d> (tuple ((
 Example  : query Landstrassen feed projectextend[ ; TID: tupleid(.), MBR: bbox(.geoData)] sortby[MBR asc] bulkloadrtree[MBR]
 Result   : file_platform
 
+Operator : bulkloadrtree
+Number   : 2
+Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false), (id tid)(low int)(high int))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true) (id tid)(low int)(high int))) xi) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)
+Example  : query Landstrassen feed projectextend[ ; ATID: tupleid(.), MBR: bbox(.geoData)] extend[ BTid : .ATID] sortby[MBR asc] bulkloadrtree[MBR, ATID]
+Result   : file_platform
 
 Operator : creatertree
 Number   : 1

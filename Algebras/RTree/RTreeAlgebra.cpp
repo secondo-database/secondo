@@ -3006,9 +3006,13 @@ Signature is
 ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
 {
   // check number of parameters
-  if( nl->IsEmpty(args) || nl->ListLength(args) != 2){
-    return listutils::typeError("Expecting exactly 2 arguments.");
+  int len = nl->ListLength(args);
+  if( (len != 2) && (len!=3) ){
+    return listutils::typeError("Expecting exactly 2 or 3 arguments.");
   }
+
+
+
   // split to parameters
   ListExpr tupleStream = nl->First(args),
            attrNameLE = nl->Second(args);
@@ -3016,6 +3020,7 @@ ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
   if(!listutils::isTupleStream(tupleStream)){
     return listutils::typeError("Expecting a tuplestream as 1st argument.");
   }
+
   // check key attribute name
   if(!listutils::isSymbol(attrNameLE)){
     return listutils::typeError("Expecting an attribute name as 2nd argument.");
@@ -3087,7 +3092,7 @@ and high parameters these two last integer numbers.
       type = nl->SymbolValue(nl->Second(first));
       if (type == TupleIdentifier::BasicType())
       {
-        if( tidIndex != 0 ){
+        if( tidIndex != 0 && (len != 3)){
           return listutils::typeError("Expecting exactly one attribute of type "
                                       "'tid' in the 1st argument.");
         }
@@ -3114,24 +3119,45 @@ and high parameters these two last integer numbers.
       }
       j++;
     }
-    if( tidIndex == 0 ){
+   
+    if(len==3){ // ignore the tid index computed before
+       ListExpr tidName = nl->Third(args);
+       if(!listutils::isSymbol(tidName)){
+          return listutils::typeError("third argument "
+                                      "must be an attribute name ");
+       }
+       string tidn = nl->SymbolValue(tidName);
+       ListExpr tidType;
+       tidIndex = listutils::findAttribute(attrList, tidn,tidType);
+       if(tidIndex==0){
+          return listutils::typeError("Attribute " + tidn + 
+                                      " not present in tuple. ");
+       }
+       if(!TupleIdentifier::checkType(tidType)){
+          return listutils::typeError("Attribute " + tidn + 
+                                      " is not a tuple identifier ");
+       }
+    } else if( tidIndex == 0 ){
       return listutils::typeError("Expecting exactly one attribute of type "
                                   "'tid' in the 1st argument.");
     }
 
-    return
+    ListExpr res = 
         nl->ThreeElemList(
-        nl->SymbolAtom(Symbol::APPEND()),
-    nl->TwoElemList(
-        nl->IntAtom(attrIndex),
-    nl->IntAtom(tidIndex)),
-    nl->FourElemList(
-        nl->SymbolAtom(rtreetype),
-    nl->TwoElemList(
-        nl->SymbolAtom(Tuple::BasicType()),
-    newAttrList),
-    attrType,
-    nl->BoolAtom(doubleIndex)));
+          nl->SymbolAtom(Symbol::APPEND()),
+          nl->TwoElemList(
+             nl->IntAtom(attrIndex),
+             nl->IntAtom(tidIndex)),
+          nl->FourElemList(
+            nl->SymbolAtom(rtreetype),
+            nl->TwoElemList(
+              nl->SymbolAtom(Tuple::BasicType()),
+              newAttrList),
+            attrType,
+            nl->BoolAtom(doubleIndex)));
+
+    return res; 
+
 }
 
 /*
@@ -3143,13 +3169,15 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
 // Step 0 - Initialization
+  int argOffset = qp->GetNoSons(s)==4?0:1;
+
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
       (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
   result.setAddr( rtree );
 
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
-  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+  int attrIndex = ((CcInt*)args[2+argOffset].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3+argOffset].addr)->GetIntval() - 1;
 
   // Get a reference to the message center
   static MessageCenter* msg = MessageCenter::GetInstance();
@@ -3224,13 +3252,15 @@ template<unsigned dim>
                                            int message,
                                            Word& local, Supplier s)
 {
+
+  int argsOffset = qp->GetNoSons(s)==4?0:1;
   Word wTuple;
   R_Tree<dim, TwoLayerLeafInfo> *rtree =
       (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
   result.setAddr( rtree );
 
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
-  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+  int attrIndex = ((CcInt*)args[2+argsOffset].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3+argsOffset].addr)->GetIntval() - 1;
 
   // Get a reference to the message center
   static MessageCenter* msg = MessageCenter::GetInstance();
@@ -3298,13 +3328,17 @@ template<unsigned dim>
                                        int message,
                                        Word& local, Supplier s )
 {
+
+
+  int argOffset = qp->GetNoSons(s)==4?0:1;
+
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
       (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
   result.setAddr( rtree );
 
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
-  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+  int attrIndex = ((CcInt*)args[2+argOffset].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3+argOffset].addr)->GetIntval() - 1;
 
   // Get a reference to the message center
   static MessageCenter* msg = MessageCenter::GetInstance();
@@ -3360,13 +3394,14 @@ template<unsigned dim>
 int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
                                     Word& local, Supplier s)
 {
+  int argOffset = qp->GetNoSons(s)==4?0:1;
   Word wTuple;
   R_Tree<dim, TwoLayerLeafInfo> *rtree =
       (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
   result.setAddr( rtree );
 
-  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
-  tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+  int attrIndex = ((CcInt*)args[2+argOffset].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[3+argOffset].addr)->GetIntval() - 1;
 
         // Get a reference to the message center
   static MessageCenter* msg = MessageCenter::GetInstance();
