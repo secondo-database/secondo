@@ -68,7 +68,8 @@ const size_t MAX_FILEHANDLENUM = 100;
 string
 tranStr(const string& s, const string& from, const string& to);
 string
-getFilePath(string path, const string fileName, bool extendPath = true);
+getLocalFilePath(string path, const string fileName,
+            string fSfx, bool extendPath = true);
 string addFileIndex(string fileName, int index);
 
 /*
@@ -430,7 +431,12 @@ class clusterInfo
 public:
   clusterInfo(bool _isMaster = false);
 
-  string getPath(size_t loc, bool round = false, bool withIP = true);
+  string getRemotePath(size_t loc,
+                       bool round = false, bool attachIP = true);
+  string getRemotePath(size_t loc, string fileName,
+                       bool attachIP = true, bool round = false,
+                       bool attachProducerIP = false,
+                       string producerIP = "");
   string getIP(size_t loc, bool round = false);
 
   inline int getLocalNode(){
@@ -465,6 +471,9 @@ then the default path cannot be used anymore.
     else
       return 0;
   }
+
+  static bool isRemoteFolderExist(
+      const string rIP, const string rFolder);
 
   void print();
 
@@ -512,8 +521,9 @@ public:
     }
   }
 
-  bool fetchBlockFile(string relName, string filePath,
-       int pdi = -1, int tgi = -1, int att = -1);
+  bool fetchBlockFile(
+      string relName, string fileSuffix, string filePath,
+      int pdi = -1, int tgi = -1, int att = -1);
 
   Tuple* getNextTuple(){
     if (0 == tupleBlockFile )
@@ -605,11 +615,17 @@ public:
 */
 class fileInfo{
 public:
-  fileInfo(size_t _hv, string _fp, string _fn, size_t _an):
+  fileInfo(size_t _cs, string _fp, string _fn,
+      size_t _an, string _rs = ""):
   cnt(0), totalExtSize(0),totalSize(0),
   lastTupleIndex(0), fileOpen(false)
   {
-    blockFileName = _fn + "_" + int2string(_hv);
+    //\_fn: fileBaseName
+    //\_rs: rowNumberSuffix (string "\_X")
+    //\_hv: columnSuffix    (integer)
+    //\_fn, \_fp: file name and path
+    //\_an: attributes number
+    blockFileName = _fn + _rs + "_" + int2string(_cs);
     blockFilePath = _fp;
     FileSystem::AppendItem(blockFilePath, blockFileName);
 
@@ -658,7 +674,6 @@ public:
     size_t tupleBlockSize =
         newTuple->GetBlockSize(coreSize, extensionSize, flobSize,
                         attrExtSize, attrSize);
-//                        &attrExtSize, &attrSize);
     totalSize += (coreSize + extensionSize + flobSize);
     totalExtSize += (coreSize + extensionSize);
 
@@ -756,20 +771,17 @@ private:
   }
   bool openFile(fileInfo* tgtFile);
 
-  string fileBaseName;
-  string filePath;
-  map<size_t, fileInfo*> fileList;
-  map<size_t, fileInfo*>::iterator fit;
-
-  //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
-  vector<fileInfo*> openFileList;
-  bool duplicateOneFile(fileInfo* fi);
-
   size_t nBuckets;
   int attrIndex;
   bool kpa;
   TupleType *resultTupleType, *exportTupleType;
   size_t tupleCounter;
+
+  string fileBaseName;
+  string rowNumSuffix;
+  string filePath;
+  map<size_t, fileInfo*> fileList;
+  map<size_t, fileInfo*>::iterator fit;
 
   //data remote variables
   int firstDupTarget, dupTimes, localIndex;
@@ -777,6 +789,9 @@ private:
   clusterInfo *ci;
   bool* copyList;
 
+  //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
+  vector<fileInfo*> openFileList;
+  bool duplicateOneFile(fileInfo* fi);
 
 public:
   FDistributeLocalInfo(string baseName, int rowNum,

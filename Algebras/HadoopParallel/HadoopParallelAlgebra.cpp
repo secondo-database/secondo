@@ -1959,7 +1959,8 @@ vector<string>* clusterInfo::getAvailableIPAddrs()
       // IPv4 Address
       tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
       char addressBuffer[INET_ADDRSTRLEN];
-      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+      inet_ntop(AF_INET, tmpAddrPtr,
+          addressBuffer, INET_ADDRSTRLEN);
       IPList->push_back(addressBuffer);
     }
     else if (ifa->ifa_addr->sa_family == AF_INET6)
@@ -1967,7 +1968,8 @@ vector<string>* clusterInfo::getAvailableIPAddrs()
       // IPv6 Address
       tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
       char addressBuffer[INET6_ADDRSTRLEN];
-      inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+      inet_ntop(AF_INET6, tmpAddrPtr,
+          addressBuffer, INET6_ADDRSTRLEN);
       IPList->push_back(addressBuffer);
     }
   }
@@ -1978,7 +1980,8 @@ vector<string>* clusterInfo::getAvailableIPAddrs()
   return IPList;
 }
 
-string clusterInfo::getPath(size_t loc, bool round, bool withIP)
+string clusterInfo::getRemotePath(
+    size_t loc, bool round, bool attachIP)
 {
   if (!round)
   {
@@ -1988,12 +1991,110 @@ string clusterInfo::getPath(size_t loc, bool round, bool withIP)
   else
     loc = (loc - 1) % disks->size();
 
-  if (withIP)
+  if (attachIP)
     return ((*disks)[loc].first + ":" +
             (*disks)[loc].second.first);
   else
     return (*disks)[loc].second.first;
 }
+
+/*
+Get the remote file path, make sure the remote is accessible.
+All files are divided into sub-folders according to their prefix names.
+If the sub-foloder is not exit, then create it
+
+*/
+
+string clusterInfo::getRemotePath(size_t loc, string fileName,
+                          bool attachIP, bool round,
+                          bool attachProducerIP,
+                          string producerIP)
+{
+  string remotePath = "";
+
+  if (!round)
+  {
+    assert(loc <= disks->size());
+    loc -= 1;
+  }
+  else
+    loc = (loc - 1) % disks->size();
+
+  string IPAddr = (*disks)[loc].first;
+  string rfPath = (*disks)[loc].second.first;
+
+  bool isParentOK = isRemoteFolderExist(IPAddr, rfPath);
+  if(isParentOK)
+  {
+    //Use the fileName as sub-folder name
+    if (attachProducerIP)
+    {
+      if (producerIP.length() == 0)
+        producerIP = getLocalIP();
+      fileName += ("_" + producerIP);
+    }
+    FileSystem::AppendItem(rfPath, fileName);
+    bool isChildOK  = isRemoteFolderExist(IPAddr, rfPath);
+
+    if (isChildOK)
+      remotePath = (attachIP ? ( IPAddr + ":") : "") + rfPath;
+
+  }
+
+  return remotePath;
+}
+
+/*
+Detect whether a remote path is exist, if it's not exist,
+try to create it.
+
+*/
+bool clusterInfo::isRemoteFolderExist(
+    const string rIP, const string rFolder)
+{
+  FILE *fs;
+  char qBuf[1024];
+  memset(qBuf, '\0', sizeof(qBuf));
+  string rqStr; //Remote query string
+
+  bool foundPath = false;
+  rqStr = "ssh " + rIP + " ls -d " + rFolder
+          + " 2>/dev/null"; //list directory only
+
+  fs = popen(rqStr.c_str(), "r");
+  if (fs == NULL)
+  {
+    perror(
+        ("popen fail by detecting the remote path: "
+            + rIP + ":" + rFolder).c_str());
+    return false;
+  }
+  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+  {
+    foundPath = true;
+    pclose(fs);
+  }
+
+  if (!foundPath)
+  {
+    rqStr = "ssh " + rIP + " mkdir -p " + rFolder;
+    fs = popen(rqStr.c_str(), "r");
+    if (fs == NULL)
+    {
+      perror(("popen fail by creating the remote path: "
+                 + rIP + ":" + rFolder).c_str());
+      return false;
+    }
+    else
+    {
+      foundPath = true;
+      pclose(fs);
+    }
+  }
+
+  return foundPath;
+}
+
 
 string clusterInfo::getIP(size_t loc, bool round)
 {
@@ -2356,8 +2457,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   }
 
   //Type Checking is done, create the type file.
-  string typeFileName = fileName + "_type";
-  filePath = getFilePath(filePath, typeFileName);
+  filePath = getLocalFilePath(filePath, fileName, "_type");
   if (filePath.length() == 0)
     return l.typeError(err2 +
         "Type file path is empty, check the SecondoConfig.ini.");
@@ -2390,7 +2490,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
           ci->print();
           return l.typeError(err7);
         }
-        string rPath = ci->getPath(tNode[i]);
+        string rPath = ci->getRemotePath(tNode[i], fileName);
         cerr << "Copy the type file to -> \t" << rPath << endl;
         if ( 0 !=
             (system((scpCommand + filePath + " " + rPath).c_str())))
@@ -2417,7 +2517,7 @@ int FConsumeValueMap(Word* args, Word& result,
     result = qp->ResultStorage(s);
     Supplier bspList = args[1].addr,
              drpList = args[3].addr;
-    string relName, filePath;
+    string relName, fileSuffix = "", filePath;
     int fileIndex = -1;
 
     relName = ((CcString*)
@@ -2431,7 +2531,7 @@ int FConsumeValueMap(Word* args, Word& result,
       fileIndex = ((CcInt*)
         qp->Request(qp->GetSupplier(bspList, idx)).addr)->GetValue();
       if (fileIndex >= 0)
-        relName += ("_" + int2string(fileIndex));
+        fileSuffix += ("_" + int2string(fileIndex));
       idx++;
     }
 
@@ -2470,7 +2570,7 @@ int FConsumeValueMap(Word* args, Word& result,
 
     //Write complete tuples into a binary file.
     //create a path for this file.
-    filePath = getFilePath(filePath, relName);
+    filePath = getLocalFilePath(filePath, relName, fileSuffix);
     ofstream blockFile(filePath.c_str(), ios::binary);
     if (!blockFile.good())
     {
@@ -2560,7 +2660,7 @@ int FConsumeValueMap(Word* args, Word& result,
       }
 
       string cName = ci->getIP(localNode);
-      string newFileName = relName + "_" + cName;
+      string newFileName = relName + fileSuffix + "_" + cName;
 
       //Avoid copying file to a same node repeatedly
       int cLen = ci->getLines();
@@ -2580,9 +2680,10 @@ int FConsumeValueMap(Word* args, Word& result,
           }
           else
           {
-            string rPath = ci->getPath(i, true);
-            FileSystem::AppendItem(rPath, newFileName);
-            cerr << "Copy " << filePath << "\t-> " << rPath << endl;
+            string rPath = ci->getRemotePath(
+                i, relName, true, true, true);
+            FileSystem::AppendItem(rPath, (relName + fileSuffix));
+            cerr << "Copy " << filePath << "\n->\t" << rPath << endl;
             if ( 0 != ( system(
                 (scpCommand + filePath + " " + rPath).c_str())))
             {
@@ -2597,7 +2698,7 @@ int FConsumeValueMap(Word* args, Word& result,
       {
         if ( 0 != (system(("rm " + filePath).c_str())))
         {
-          cerr << "Delete local file fail." << endl;
+          cerr << "Delete local file " << filePath << " fail.\n";
           ((CcBool*)(result.addr))->Set(true, false);
           return 0;
         }
@@ -2866,7 +2967,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
     return l.typeError(err4 + "filePath");
   string filePath = fpList.str();
-  filePath = getFilePath(filePath, fileName + "_type");
+  filePath = getLocalFilePath(filePath, fileName, "_type");
 
   NList tr = l.third();
   pType = tr.first();
@@ -2907,7 +3008,8 @@ ListExpr FFeedTypeMap(ListExpr args)
       ci->print();
       return l.typeError(err8);
     }
-    string rPath = ci->getPath(tnIndex);
+
+    string rPath = ci->getRemotePath(tnIndex, fileName);
     FileSystem::AppendItem(rPath, fileName + "_type");
     cerr << "Copy the type file from <-" << "\t" << rPath << endl;
     if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
@@ -2933,7 +3035,7 @@ ListExpr FFeedTypeMap(ListExpr args)
 int FFeedValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s)
 {
-  string relName, path;
+  string relName, path, fileSuffix = "";
   FFeedLocalInfo* ffli = 0;
   Supplier sonOfFeed;
   int prdIndex = -1, tgtIndex = -1;
@@ -2956,7 +3058,7 @@ int FFeedValueMap(Word* args, Word& result,
         int index = ((CcInt*)qp->Request(
             qp->GetSupplierSon(bspList, idx)).addr)->GetValue();
         if (index >= 0)
-          relName += ("_" + int2string(index));
+          fileSuffix += ("_" + int2string(index));
         idx++;
       }
 
@@ -2971,14 +3073,16 @@ int FFeedValueMap(Word* args, Word& result,
       }
 
       string filePath = path;
-      filePath = getFilePath(filePath, relName, false);
+      filePath =
+          getLocalFilePath(filePath, relName, fileSuffix, false);
 
       ffli = (FFeedLocalInfo*) local.addr;
       if (ffli) delete ffli;
       ffli = new FFeedLocalInfo(qp->GetType(s));
 
       if (ffli->fetchBlockFile(
-          relName, filePath, prdIndex, tgtIndex, attTimes))
+          relName , fileSuffix, filePath,
+          prdIndex, tgtIndex, attTimes))
       {
         ffli->returned = 0;
         local.setAddr(ffli);
@@ -3088,18 +3192,23 @@ bool FFeedLocalInfo::isLocalFileExist(string fp)
   return false;
 }
 
+/*
+  * pdi: producer node index
+  * tgi: target node index
 
+
+*/
 bool FFeedLocalInfo::fetchBlockFile(
-    string fileName, string filePath, int pdi, int tgi, int att)
+    string fileName, string fileSuffix, string filePath,
+    int pdi, int tgi, int att)
 {
   //Fetch the binary file from remote machine.
   bool fileFound = false;
-  int localIndex = -1;
   string pdrIP = "", tgtIP = "";
   clusterInfo *ci = 0;
 
   string localFilePath = filePath;
-  FileSystem::AppendItem(localFilePath, fileName);
+  FileSystem::AppendItem(localFilePath, fileName + fileSuffix);
 
 /*
 Detect whether the file is exist or not.
@@ -3131,7 +3240,7 @@ the complete local path of the file. Or else, the fileFound is false.
     }
 
     pdrIP = ci->getIP(pdi);
-    string rFileName = "";
+    string subFolder = "";
 
     while (!fileFound && (att-- > 0))
     {
@@ -3143,76 +3252,86 @@ When feeding the file from a non-producer node,
 the file's name has to be extended with the producer's IP address.
 
 */
-      string nodeIP, rFilePath;
-      nodeIP = ci->getIP(tgi, true);
+      string rFilePath;
+      tgtIP = ci->getIP(tgi, true);
+      bool attachProducerIP;
       if (tgi == pdi)
-        rFileName = fileName;
+        attachProducerIP = false;
       else
-        rFileName = fileName + "_" + pdrIP;
-      rFilePath = ci->getPath(tgi, true, false);
-      FileSystem::AppendItem(rFilePath, rFileName);
-      int detectTimes = MAX_COPYTIMES;
-      string qStr = "ssh " + nodeIP +
-          " ls " + rFilePath + " 2>/dev/null";
-      while (!fileFound && (detectTimes-- > 0))
+        attachProducerIP = true;
+      rFilePath = ci->getRemotePath(tgi, fileName, false, true,
+          attachProducerIP, pdrIP);
+      FileSystem::AppendItem(rFilePath, fileName + fileSuffix);
+
+      if (ci->getLocalIP().compare(tgtIP) == 0)
       {
+        // Fetch the file in local, but is produced by another node
+        localFilePath = rFilePath;
+        fileFound = isLocalFileExist(localFilePath);
+      }
+      else
+      {
+        // Fetch the file in remote machine
+        int detectTimes = MAX_COPYTIMES;
+        string qStr = "ssh " + tgtIP +
+            " ls " + rFilePath + " 2>/dev/null";
+        while (!fileFound && (detectTimes-- > 0))
+        {
 /*
 We detect the remote file through a shell ssh command,
 and the command may fail if the network is too busy.
 Therefore we have to try several times.
 
 */
-        FILE *fs;
-        char qBuf[1024];
-        memset(qBuf, '\0', sizeof(qBuf));
-        fs = popen(qStr.c_str(), "r");
+          FILE *fs;
+          char qBuf[1024];
+          memset(qBuf, '\0', sizeof(qBuf));
+          fs = popen(qStr.c_str(), "r");
 /*
 popen function is not a standard C function, and it may return
 a NULL value because of the failure of allocating memory.
 Some systems have a limitation of opened files simultaneously.
 
 */
-        if (fs == NULL)
-          perror(("popen fail! Detecting the remote file: "
-              + nodeIP + ":" + rFilePath ).c_str());
-        else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
-        {
-          fileFound = true;
-          pclose(fs);
+          if (fs == NULL)
+            perror(("popen fail! Detecting the remote file: "
+                + tgtIP + ":" + rFilePath ).c_str());
+          else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+          {
+            fileFound = true;
+            pclose(fs);
+          }
         }
       }
 
       if (!fileFound)
       {
         cerr << "Warning! Cannot detect the file "
-            << nodeIP << ":" << rFilePath << endl;
+            << tgtIP << ":" << rFilePath << endl;
         tgi++;
         continue;
       }
       else
       {
-        //Delete the local file if it exists,
-        //and copy the file to the local node
-        localIndex = ci->getLocalNode();
-        if (localIndex != tgi)
+        if (ci->getLocalIP().compare(tgtIP) != 0)
         {
 /*
 Copy a file only when it's stored in a remote node.
-If there is a file exist with a same file name,
+If there is a file exist with a same file name kept in local node,
 then this file will be viewed as an unavailable file, and be deleted.
 
-In some cases, when the (localIndex == tgi), i.e. the file is
-in the local node, then nothing to be done, since the file is already found.
+In some cases, when the the file is stored in the local node,
+then nothing to be done, since the file is already found.
 
 */
           if (isLocalFileExist(localFilePath))
           {
-            cerr << "Delete the local exist file with the same name\n";
+            cerr << "Delete the local file with the same name\n";
             FileSystem::DeleteFileOrFolder(localFilePath);
           }
           int copyTimes = MAX_COPYTIMES;
           do{
-            if (0 != system((scpCommand + nodeIP + ":" + rFilePath +
+            if (0 != system((scpCommand + tgtIP + ":" + rFilePath +
                 " " + localFilePath).c_str()))
               cerr << "Warning! Copy remote file fail." << endl;
           }while ((--copyTimes > 0) &&
@@ -3392,7 +3511,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
       "of seven arguments. ";
   string typeErr = "operator hadoopjoin expects "
       "(stream(tuple(T1)), stream(tuple(T2)), "
-      "partAttr1, partAttr2, int, int, string,"
+      "partAttr1, partAttr2, int, string,"
       "(map (stream(tuple(T1))) stream(tuple(T2))"
       "  stream(tuple(T1 T2))) )";
   string err1 =
@@ -3457,7 +3576,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
         NList(NList(Relation::BasicType()),
               NList(NList(Tuple::BasicType()), NList(attrAB)));
     string typeFileName =
-        getFilePath("", (resultName + "_type"), true);
+        getLocalFilePath("", resultName, "_type", true);
     ofstream typeFile(typeFileName.c_str());
     if (!typeFile.good())
       cerr << "Create typeInfo file Result_type "
@@ -3506,8 +3625,7 @@ int hdpJoinValueMap(Word* args, Word& result,
   switch(message)
   {
     case OPEN:{
-      //0 take the parameters
-
+      //0 Set the parameters
       //0.1 assume the operation happens on
       //all nodes' Secondo databases with a same name
       string dbName =
@@ -3537,7 +3655,7 @@ int hdpJoinValueMap(Word* args, Word& result,
         << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
         << rtNum << " " << rName << endl;
       int rtn;
-//      cout << queryStr.str() << endl;
+//      cout << queryStr.str() << endl;   //Used for debug only
       rtn = system("hadoop dfs -rmr OUTPUT");
       rtn = system(queryStr.str().c_str());
 
@@ -3746,8 +3864,6 @@ ListExpr FDistributeTypeMap(ListExpr args)
   string err9 = "ERROR!Remote node for type file is out of range";
   string err10 = "ERROR!Remote duplicate type file fail.";
 
-
-
   if (l.length() != 5)
     return l.typeError(lenErr);
 
@@ -3849,9 +3965,9 @@ ListExpr FDistributeTypeMap(ListExpr args)
         newAL.append(elem);
     }
   }
+
   //Create the type file in local disk
-  string typeFileName = fileName + "_type";
-  filePath = getFilePath(filePath, typeFileName);
+  filePath = getLocalFilePath(filePath, fileName, "_type");
   ofstream typeFile(filePath.c_str());
   NList resultList =
           NList(NList(Relation::BasicType()),
@@ -3906,7 +4022,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
           ci->print();
           return l.typeError(err9);
         }
-        string rPath = ci->getPath(tNode[i]);
+        string rPath = ci->getRemotePath(tNode[i], fileName);
         cerr << "Copy the type file to -> \t" << rPath << endl;
         if (0 != system(
              (scpCommand + filePath + " " + rPath).c_str()))
@@ -4076,14 +4192,15 @@ FDistributeLocalInfo::FDistributeLocalInfo(
     ListExpr _rtl, ListExpr _itl,
     int _di, int _dt)
 : nBuckets(_nb), attrIndex(_ai), kpa(_kpa), tupleCounter(0),
-  firstDupTarget(_di), dupTimes(_dt), localIndex(0), cnIP(""),
+  rowNumSuffix(""), firstDupTarget(_di), dupTimes(_dt),
+  localIndex(0), cnIP(""),
   ci(0), copyList(0)
 {
-  if ( _rn < 0 )
-    fileBaseName = _bn;
-  else
-    fileBaseName = _bn + "_" + int2string(_rn);
-  filePath = getFilePath(_pt, _bn, false);
+  string fnSfx = "";
+  if ( _rn >= 0 )
+    rowNumSuffix = "_" + int2string(_rn);
+  fileBaseName = _bn;
+  filePath = getLocalFilePath(_pt, _bn, rowNumSuffix, false);
   resultTupleType = new TupleType(nl->Second(_rtl));
   exportTupleType = new TupleType(_itl);
 }
@@ -4102,7 +4219,7 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
   else
   {
     fp = new fileInfo(fileSfx, filePath, fileBaseName,
-        exportTupleType->GetNoAttributes());
+        exportTupleType->GetNoAttributes(), rowNumSuffix);
     fileList.insert(pair<size_t, fileInfo*>(fileSfx, fp));
   }
   ok = openFile(fp);
@@ -4225,20 +4342,39 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
       fi->closeFile();
     string filePath = fi->getFilePath();
     int cLen = ci->getLines();
+    bool keepLocal = false;
     for (int i = 1; i <= cLen; i++)
     {
-      if (copyList[i] && (i != localIndex))
+      if (copyList[i])
       {
-        string rPath = ci->getPath(i,true);
-        FileSystem::AppendItem(rPath,
-                               (fi->getFileName() + "_" + cnIP));
-        if (system((scpCommand + filePath + " " + rPath).c_str()))
+        if ((i == localIndex))
         {
-          cerr << "Copy remote file fail." << endl;
-          return false;
+          keepLocal = true;
+          continue;
+        }
+        else
+        {
+          string rPath =
+              ci->getRemotePath(i,fileBaseName, true, true, true);
+          FileSystem::AppendItem(rPath,fi->getFileName());
+          if (system((scpCommand + filePath + " " + rPath).c_str()))
+          {
+            cerr << "Copy remote file fail." << endl;
+            return false;
+          }
         }
       }
     }
+    if (!keepLocal)
+    {
+      if ( 0 != (system(("rm " + filePath).c_str())))
+      {
+        cerr << "Delete local file " << filePath << " fail.\n";
+        return false;
+      }
+      cerr << "Local file " << filePath << " is deleted.\n";
+    }
+
   }
   return true;
 }
@@ -4419,7 +4555,7 @@ then its schema file must be kept in master node's parallel directory.
 The schema file is further explained in ~ffeed~ and ~fconsume~ operators.
 
 */
-          string filePath = getFilePath("", objName + "_type");
+          string filePath = getLocalFilePath("", objName, "_type");
           if (!FileSystem::FileOrFolderExists(filePath))
           {
             correct = false;
@@ -4799,8 +4935,9 @@ If an non-default path is unavailable or not exist,
 then a warning message will be given.
 
 */
-string getFilePath(string path,
+string getLocalFilePath(string path,
                    const string fileName,
+                   string fSfx,
                    bool extendPath)
 {
   string pathCdd[3];
@@ -4845,20 +4982,38 @@ string getFilePath(string path,
   }
   path = pathCdd[(cdd - 1)];
 
+
+  if(pathOK)
+  {
+    //Put files into different sub-folders by the file prefix name
+    FileSystem::AppendItem(path,fileName);
+
+    if (FileSystem::FileOrFolderExists(path))
+    {
+      if (!FileSystem::IsDirectory(path))
+      {
+        pathOK = false;
+        alarm = true;
+      }
+    }
+    else
+      pathOK = FileSystem::CreateFolder(path);
+
+    if (pathOK)
+    {
+      if (extendPath)
+        FileSystem::AppendItem(path, fileName + fSfx);
+      return path;
+    }
+  }
+
   // When there is no specific path is given,
   // then no warning messages.
   if (alarm)
     cerr << "Warning! The given path is unavailable or not exit, "
-        "the path\n" << path << "\nis used.\n\n";
+        "\n the path " << path << " is used.\n\n";
 
-  if(pathOK)
-  {
-    if (extendPath)
-      FileSystem::AppendItem(path, fileName);
-    return path;
-  }
-  else
-    return "";
+  return "";
 }
 
 string addFileIndex(string fileName, int index)
