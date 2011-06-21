@@ -1288,7 +1288,7 @@ class shpLInfo{
     void close(){
        // write correct file-length into file
        // write correct bounding box into file
-       uint32_t len = file.tellp();
+       uint32_t len = file.tellp() / 2; // measured in 16 bit words
        file.seekp(24,ios_base::beg);
        WinUnix::writeBigEndian(file,len);
        file.seekp(36,ios_base::beg);
@@ -1303,7 +1303,7 @@ class shpLInfo{
        file.close();
         
        if(produceIdx){
-         uint32_t len = idxfile.tellp();
+         uint32_t len = idxfile.tellp() / 2;
          idxfile.seekp(24,ios_base::beg);
          WinUnix::writeBigEndian(idxfile,len);
          idxfile.seekp(36,ios_base::beg);
