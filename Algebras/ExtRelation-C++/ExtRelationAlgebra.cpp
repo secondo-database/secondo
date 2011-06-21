@@ -158,7 +158,7 @@ ListExpr GroupTypeMap(ListExpr args)
   ListExpr first = nl->First(args);
 
   if(!Stream<Tuple>::checkType(first)){
-    listutils::typeError("tuple stream expected");
+    return listutils::typeError("tuple stream expected");
   }
 
   return nl->TwoElemList(
