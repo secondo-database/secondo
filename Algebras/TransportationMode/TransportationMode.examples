@@ -638,6 +638,12 @@ Signature: rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query mapmstopave(mstops, dg_node_sort,rtree_dg) count;
 Result   : 522
 
+Operator : mnnavigation
+Number   : 2
+Signature: busstop x busstop x metronetwork x instant -> (stream(((x1 t1) ... (xn tn))))
+Example  : query mnnavigation(ms1, ms2, mn1,theInstant(2010,12,5,0,0,0,0)) count;
+Result   : 1
+
 
 Operator : thefloor
 Number   : 1
@@ -1020,3 +1026,9 @@ Signature: space x rel1 x rel2 x instant x rel x rel x rtree -> (stream(((x1 t1)
 Example  : query navigation1(space_1, query_loc1, query_loc2, theInstant(2010,12,6,9,0,0,0), tri_reg_new, bs_pave_sort, rtree_bs_pave) count;
 Result   : 10
 
+
+Operator : generate_genmo7
+Number   : 1
+Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo7(space_1, TwoDays, 10.0, 10, tri_reg_new, msneighbor, rtree_ms_stop)count;
+Result   : 10

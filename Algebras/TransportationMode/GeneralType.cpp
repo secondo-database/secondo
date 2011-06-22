@@ -3027,7 +3027,21 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
     Interval<Instant> periods;
     peri->Get(0, periods);
     int count = 1;
+    const double min_len = 500.0;
+    
     while(count <= mo_no){
+        int index1 = GetRandom() % genloc_list.size();
+        GenLoc loc1 = genloc_list[index1];
+        int index2 = GetRandom() % genloc_list.size();
+        GenLoc loc2 = genloc_list[index2];
+
+        if(index1 == index2) continue;
+
+        Point pave_loc1(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
+        Point pave_loc2(true, loc2.GetLoc().loc1, loc2.GetLoc().loc2);
+        if(pave_loc1.Distance(pave_loc2) < min_len) continue; 
+
+
         ////////////////////////////////////////////////////////////
         ///////////// initialization////////////////////////////////
         ////////////////////////////////////////////////////////////
@@ -3051,10 +3065,6 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
             start_time.ReadFrom(periods.end.ToDouble() -
                         (GetRandom() % time_range)/(24.0*60.0));
 
-        int index1 = GetRandom() % genloc_list.size();
-        GenLoc loc1 = genloc_list[index1];
-        int index2 = GetRandom() % genloc_list.size();
-        GenLoc loc2 = genloc_list[index2];
         ///////////////debuging//////////////////////////////
         /*
           Loc temp1(1.0, 2.0);
@@ -3483,7 +3493,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 
             }else{/////////waiting for transfer//////////////////////
                 /////////generic moving objects///////////////////
-                /////////referenc to free space oid = 0, mode = bus ////
+                /////////referenc to free space oid = 0, mode = free ////
                 ////////////////////////////////////////////////////
                 Loc loc1(start_loc->GetX(), start_loc->GetY());
                 Loc loc2(start_loc->GetX(), start_loc->GetY());
@@ -3532,7 +3542,8 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             ///////////////set up mpoint//////////////////////////////
             ////////////////////////////////////////////////////////////
 //            cout<<"initial start time "<<start_time<<endl;
-            SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, genmo, mobus_oid);
+            SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
+                        genmo, mobus_oid, "Bus");
             ///////////////////////////////////////////////////////////////
             mo_bus_index = pos2; 
             mo_bus_index++;/////////omit the 30 seconds waiting movement 
@@ -3549,7 +3560,8 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 //            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
 
-            SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, genmo, mobus_oid);
+            SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
+                        genmo, mobus_oid, "Bus");
 
             ///////////////////////////////////////////////////////////////
             mo_bus_index = pos2; 
@@ -3557,7 +3569,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 
             }else{
                 //////////doing transfer without any waiting time/////////////
-             cout<<"seldomly happend"<<endl;
+//             cout<<"seldomly happend"<<endl;
             //////////////////////////////////////////
             /////////////generic unit/////////////////
             //////////reference to bus, mode = bus////
@@ -3576,7 +3588,8 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             /////////find the range in mpoint for bs1, bs2//////////////
               FindPosInMP(&mo_bus, start_loc, end_loc, pos1, pos2, 0);
               assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
-             SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, genmo, mobus_oid);
+             SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
+                         genmo, mobus_oid, "Bus");
              ///////////////////////////////////////////////////////////////
               mo_bus_index = pos2; 
               mo_bus_index++;/////////omit the 30 seconds waiting movement 
@@ -3754,7 +3767,7 @@ set the value for mpoint and genmo
 */
 void GenMObject::SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2, 
                              Instant& start_time, 
-                   MPoint* mo, GenMO* genmo, int mobus_oid)
+                   MPoint* mo, GenMO* genmo, int mobus_oid, string str_tm)
 {
 
       Instant st_temp = start_time;
@@ -3805,7 +3818,8 @@ void GenMObject::SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2,
       Loc loc2(-1.0, -1.0);
       GenLoc gloc1(mobus_oid, loc1);
       GenLoc gloc2(mobus_oid, loc2);
-      int tm = GetTM("Bus");
+//      int tm = GetTM("Bus");
+      int tm = GetTM(str_tm);
 //            cout<<up_interval<<endl; 
       UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
       genmo->Add(*unit);
@@ -5255,6 +5269,484 @@ void GenMObject::GenerateIndoorMovementToExit2(IndoorInfra* i_infra,
   }
 }
 
+
+/*
+generic moving objects with modes: metro + walk
+randomly select two locations on the pavement and their closest metro stops.
+build the connection between them.
+
+*/
+void GenMObject::GenerateGenMO7(Space* sp, Periods* peri, int mo_no, 
+                      int type, Relation* rel1, Relation* rel2, 
+                                R_Tree<2,TupleId>* rtree)
+{
+    Pavement* pm = sp->LoadPavement(IF_REGION);
+    MetroNetwork* mn = sp->LoadMetroNetwork(IF_METRONETWORK);
+    vector<GenLoc> genloc_list;
+    
+    GenerateLocPave(pm, 2*mo_no, genloc_list);///generate locations on pavements
+    DualGraph* dg = pm->GetDualGraph();
+    VisualGraph* vg = pm->GetVisualGraph();
+
+    const double min_len = 5000.0;
+    Interval<Instant> periods;
+    peri->Get(0, periods);
+    int count = 1;
+    while(count <= mo_no){
+
+      int index1 = GetRandom() % genloc_list.size();
+      GenLoc loc1 = genloc_list[index1];
+      int index2 = GetRandom() % genloc_list.size();
+      GenLoc loc2 = genloc_list[index2];
+
+
+      if(index1 == index2) continue;
+
+//      cout<<"genloc1 "<<loc1<<" genloc2 "<<loc2<<endl; 
+
+      Point pave_loc1(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
+      Point pave_loc2(true, loc2.GetLoc().loc1, loc2.GetLoc().loc2);
+
+      if(pave_loc1.Distance(pave_loc2) < min_len) continue; 
+
+
+      ////////////////////////////////////////////////////////////
+      ///////////// initialization////////////////////////////////
+      ////////////////////////////////////////////////////////////
+        MPoint* mo = new MPoint(0);
+        GenMO* genmo = new GenMO(0);
+        mo->StartBulkLoad();
+        genmo->StartBulkLoad();
+
+        //////////////////////////////////////////////////////////////
+        ///////////////set start time/////////////////////////////////
+        /////////////////////////////////////////////////////////////
+        Instant start_time = periods.start;
+        int time_range = 14*60;//14 hours 
+        bool time_type;
+        if(count % 3 == 0) time_type = true;
+        else time_type = false;
+
+        if(time_type)
+            start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+        else
+            start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+
+      ////////////////////////////////////////////////////////////////////
+      ///1. find closest metro stops to the two points on the pavement///
+      ///////////////////////////////////////////////////////////////////
+ 
+      Bus_Stop ms1(true, 0, 0, true);
+      vector<Point> ps_list1;//1 point on the pavement 2 point of metro stop
+      GenLoc gloc1(0, Loc(0, 0));//metro stop on pavement by genloc 
+      bool b1 = true;
+      b1 = NearestMetroStop(loc1,  rel2, rtree, ms1, ps_list1, gloc1);
+
+
+      Bus_Stop ms2(true, 0, 0, true);
+      vector<Point> ps_list2;//1 point on the pavement 2 point of metro stop
+      GenLoc gloc2(0, Loc(0, 0));//metro stop on pavement by genloc
+      bool b2 = true;
+      b2 = NearestMetroStop(loc2,  rel2, rtree, ms2, ps_list2, gloc2);
+
+      if((b1 && b2) == false) continue;
+
+
+//      loc_list1.push_back(pave_loc1);
+//      loc_list1.push_back(pave_loc2);
+
+//     loc_list2.push_back(ps_list2[0]);//mapping point on the pavement of stop
+//     loc_list3.push_back(ps_list2[1]);// point of metro stop 
+
+
+       /////////////////////////////////////////////////////////////////
+       /////////2 connect start location to start metro stop/////////////
+       ////////////////////////////////////////////////////////////////
+       Line* res_path = new Line(0);
+
+       ConnectStartBusStop(dg, vg, rel1, loc1, ps_list1, gloc1.GetOid(),
+                            genmo, mo, start_time, res_path);
+
+        /////////////////////////////////////////////////////////////////
+        //////3. get the path in metro network///////////////////////////
+        /////////////////////////////////////////////////////////////////
+
+//        cout<<"start "<<ms1<<" end "<<ms2<<endl; 
+
+        MNNav* mn_nav = new MNNav(mn);
+        mn_nav->ShortestPath_Time(&ms1, &ms2, &start_time);
+
+        if(mn_nav->path_list.size() == 0){
+//          cout<<"two unreachable metro stops"<<endl;
+          mo->EndBulkLoad();
+          genmo->EndBulkLoad();
+          delete mo;
+          delete genmo;
+          delete mn_nav;
+          delete res_path;
+          continue;
+        }
+
+//        cout<<"metro path size "<<mn_nav->path_list.size()<<endl;
+
+         ConnectTwoMetroStops(mn_nav, ps_list1[1], 
+                                                ps_list2[1],
+                           genmo, mo, start_time, dg, res_path);
+
+        delete mn_nav;
+
+        
+        ///////////////////////////////////////////////////////////////////
+        /////////////4 connect end location to last metro stop//////////////
+        //////////////////////////////////////////////////////////////////
+        ConnectEndBusStop(dg, vg, rel1, loc2, ps_list2, gloc2.GetOid(),
+                          genmo, mo, start_time, res_path);
+        ///////////////////////////////////////////////////////////////////////
+
+        mo->EndBulkLoad();
+        genmo->EndBulkLoad();
+
+        trip1_list.push_back(*genmo);
+        trip2_list.push_back(*mo);
+
+        line_list1.push_back(*res_path);
+
+        delete mo;
+        delete genmo;
+        delete res_path;
+
+        cout<<count<<" moving object "<<endl;
+
+        count++;
+    }
+
+
+    pm->CloseDualGraph(dg);
+    pm->CloseVisualGraph(vg);
+
+    sp->CloseMetroNetwork(mn);
+    sp->ClosePavement(pm);
+}
+
+/*
+for a location on the pavement, find it closest metro stop 
+
+*/
+bool GenMObject::NearestMetroStop(GenLoc loc, Relation* rel,
+                      R_Tree<2,TupleId>* rtree, Bus_Stop& res,
+                      vector<Point>& ps_list, GenLoc& ms_gloc)
+{
+
+  Point p(true, loc.GetLoc().loc1, loc.GetLoc().loc2);
+  SmiRecordId adr = rtree->RootRecordId();
+
+  vector<int> tid_list;
+  DFTraverse2(rtree, adr, rel, p, tid_list);
+
+//  cout<<p<<" "<<tid_list.size()<<endl;
+  
+  if(tid_list.size() == 0) return false;
+
+  vector<MyPoint_Tid> mp_tid_list;
+  for(unsigned int i = 0;i < tid_list.size();i++){
+    Tuple* tuple = rel->GetTuple(tid_list[i], false);
+    Point* q = (Point*)tuple->GetAttribute(MetroNetwork::METRO_PAVE_LOC2);
+    MyPoint_Tid mp_tid(*q, q->Distance(p), tid_list[i]);
+    mp_tid_list.push_back(mp_tid);
+    tuple->DeleteIfAllowed();
+  }
+  sort(mp_tid_list.begin(), mp_tid_list.end());
+  
+  //  for(unsigned int i = 0;i < mp_tid_list.size();i++)
+//    mp_tid_list[i].Print();
+  Tuple* ms_pave = rel->GetTuple(mp_tid_list[0].tid, false);
+  Bus_Stop* ms_stop = 
+      (Bus_Stop*)ms_pave->GetAttribute(MetroNetwork::METRO_PAVE_MS_STOP);
+  Point* ms_loc = 
+      (Point*)ms_pave->GetAttribute(MetroNetwork::METRO_PAVE_MS_STOP_LOC);
+  GenLoc* ms_loc2 = 
+      (GenLoc*)ms_pave->GetAttribute(MetroNetwork::METRO_PAVE_LOC1);
+
+  res = *ms_stop;
+  ps_list.push_back(mp_tid_list[0].loc);
+  ps_list.push_back(*ms_loc);
+  ms_gloc = *ms_loc2;
+  ms_pave->DeleteIfAllowed();
+
+  //////////////////////////////////////////////////////////////////
+  /////////////////// debuging /////////////////////////////////////
+  //////// output the metro stop and the location on the pavement////
+  
+//   loc_list2.push_back(ps_list[0]);
+//   loc_list3.push_back(ps_list[1]);
+  
+  return true;
+
+}
+
+/*
+find all points that their distance to query loc is smaller than the 
+defined max dist
+
+*/
+
+void GenMObject::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                             Relation* rel,
+                             Point query_loc, vector<int>& tid_list)
+{
+  const double max_dist = 1000.0;
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              Point* loc = 
+                  (Point*)dg_tuple->GetAttribute(MetroNetwork::METRO_PAVE_LOC2);
+
+              if(loc->Distance(query_loc) < max_dist){
+                tid_list.push_back(e.info);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(query_loc.Distance(e.box) < max_dist){
+                DFTraverse2(rtree, e.pointer, rel, query_loc, tid_list);
+            }
+      }
+  }
+  delete node;
+}
+
+/*
+create the moving object between two metro stops in metro network
+
+*/
+void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, 
+                                     GenMO* genmo,
+                          MPoint* mo, Instant& start_time,
+                          DualGraph* dg, Line* res_path)
+{
+
+    const double delta_t = 0.01;//seconds
+
+    Line* l = new Line(0); ////////trajectory in metro network
+    l->StartBulkLoad();
+    int edgeno = 0;
+
+    ////////////////////////////////////////////////////////////////////
+
+    Bus_Stop last_ms(false, 0, 0, true);
+    MPoint mo_metro(0);
+    int mo_metro_index = -1;
+    int mometro_oid = 0;
+
+    for(unsigned int i = 0;i < mn_nav->path_list.size();i++){
+
+        SimpleLine* sl = &(mn_nav->path_list[i]);
+        ////////////time cost: second///////////////////
+        Bus_Stop ms1(true, 0, 0, true);
+        StringToBusStop(mn_nav->ms1_list[i], ms1);
+
+        Bus_Stop ms2(true, 0, 0, true);
+        StringToBusStop(mn_nav->ms2_list[i], ms2);
+
+        double t = mn_nav->time_cost_list[i];
+//        int tm = GetTM(mn_nav->tm_list[i]);
+
+//         cout<<"ms1 "<<ms1<<" ms2 "<<ms2<<endl;
+//         cout<<"i "<<i<<" time cost "<<t<<" path size "<<sl->Size()<<endl;
+
+        /////filter the first part and transfer without movement ////////
+        if(sl->Size() == 0 && AlmostEqual(t, 0.0)) continue;
+
+        /////////////////////////////////////////////////////////////
+        Point* start_loc = new Point(true, 0, 0);
+        mn_nav->mn->GetMetroStopGeoData(&ms1, start_loc);
+        Point* end_loc = new Point(true, 0, 0);
+        mn_nav->mn->GetMetroStopGeoData(&ms2, end_loc);
+        
+        Instant temp_start_time = start_time;
+
+
+        assert(ms1.GetId() == ms2.GetId() && ms1.GetUp() == ms2.GetUp());
+
+        if(sl->Size() == 0){////////////no movement in space
+
+            Instant st = start_time;
+            Instant et = start_time; 
+            Interval<Instant> up_interval; 
+            et.ReadFrom(st.ToDouble() + t*1.0/(24.0*60.0*60.0));
+            up_interval.start = st;
+            up_interval.lc = true;
+            up_interval.end = et;
+            up_interval.rc = false; 
+
+            if(fabs(t - 30.0) < delta_t){///metro waiting at the metro stop
+                  ////////generic moving objects/////////////////
+                  ////////reference to the metro///////////////////
+                  /////with bs find br, with br.uoid find mobus///
+                  //////////// mode = metro////////////////////////
+                  ///////////////////////////////////////////////
+                int metro_oid = 
+                    mn_nav->mn->GetMOMetro_Oid(&ms1, start_loc, start_time);
+
+                Loc loc1(-1.0, -1.0);
+                Loc loc2(-1.0, -1.0);
+                GenLoc gloc1(metro_oid, loc1);
+                GenLoc gloc2(metro_oid, loc2);
+                int tm = GetTM("Metro");
+                UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+                genmo->Add(*unit); 
+                delete unit; 
+
+//                cout<<"metro_oid "<<metro_oid<<endl;
+
+            }else{/////////waiting for transfer//////////////////////
+                /////////generic moving objects///////////////////
+                /////////referenc to free space oid = 0, mode = free ////
+                ////////////////////////////////////////////////////
+
+                Loc loc1(start_loc->GetX(), start_loc->GetY());
+                Loc loc2(start_loc->GetX(), start_loc->GetY());
+                GenLoc gloc1(0, loc1);
+                GenLoc gloc2(0, loc2);
+
+                int tm = GetTM("Free");
+                UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
+                genmo->Add(*unit); 
+                delete unit; 
+                ////////////////////////////////////////////////
+                MPoint temp_mo(0);
+                mo_metro = temp_mo;
+                mo_metro_index = -1;
+                mometro_oid = 0;
+            }
+
+              UPoint* up = new UPoint(up_interval,*start_loc, *start_loc);
+              mo->Add(*up);
+              delete up;
+
+              start_time = et;
+
+        }else{//////////moving with the metro 
+//           cout<<"moving with metro"
+//               <<" mo_metro size "<<mo_metro.GetNoComponents()<<endl;
+
+          if(mo_metro.GetNoComponents() == 0){
+            ////////////////////////////////////////
+            //////////find the metro//////////////////
+            //////////mode = metro////////////////////
+            ////////////////////////////////////////
+            assert(mometro_oid == 0);
+            mometro_oid = 
+              mn_nav->mn->GetMOMetro_MP(&ms1, start_loc, start_time, mo_metro);
+//            cout<<"metro mpoint size "<<mo_metro.GetNoComponents()
+//                <<" mometro oid "<<mometro_oid<<endl;
+
+            assert(mometro_oid > 0);
+            int pos1 = -1;
+            int pos2 = -1;
+            /////////find the range in mpoint for ms1, ms2//////////////
+            FindPosInMP(&mo_metro, start_loc, end_loc, pos1, pos2, 0);
+            assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
+//            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl;
+            /////////////////////////////////////////////////////////////
+            ///////////////set up mpoint//////////////////////////////
+            ////////////////////////////////////////////////////////////
+//            cout<<"initial start time "<<start_time<<endl;
+            SetMO_GenMO(&mo_metro, pos1, pos2, start_time, mo, 
+                        genmo, mometro_oid, "Metro");
+            ///////////////////////////////////////////////////////////////
+            mo_metro_index = pos2; 
+            mo_metro_index++;/////////omit the 30 seconds waiting movement 
+
+          }else{
+            assert(last_ms.IsDefined());
+            if(ms1.GetId() == last_ms.GetId() && 
+               ms1.GetUp() == last_ms.GetUp()){////reference to the same metro
+
+            int pos1 = -1;
+            int pos2 = -1;
+            /////////find the range in mpoint for bs1, bs2//////////////
+            FindPosInMP(&mo_metro, start_loc, end_loc, pos1, pos2, 
+                       mo_metro_index);
+//            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
+            assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
+
+            SetMO_GenMO(&mo_metro, pos1, pos2, start_time, mo, 
+                        genmo, mometro_oid, "Metro");
+
+            ///////////////////////////////////////////////////////////////
+            mo_metro_index = pos2; 
+            mo_metro_index++;/////////omit the 30 seconds waiting movement 
+
+            }else{
+                //////////doing transfer without any waiting time/////////////
+//             cout<<"seldomly happend"<<endl;
+            //////////////////////////////////////////
+            /////////////generic unit/////////////////
+            //////////reference to metro, mode = metro////
+            //////////////////////////////////////////
+              MPoint temp_mo(0);
+              mo_metro = temp_mo;
+              mo_metro_index = -1;
+              mometro_oid = 0;
+
+              mometro_oid = 
+              mn_nav->mn->GetMOMetro_MP(&ms1, start_loc, start_time, mo_metro);
+
+              assert(mometro_oid > 0);
+              int pos1 = -1;
+              int pos2 = -1;
+            /////////find the range in mpoint for ms1, ms2//////////////
+              FindPosInMP(&mo_metro, start_loc, end_loc, pos1, pos2, 0);
+              assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
+              SetMO_GenMO(&mo_metro, pos1, pos2, start_time, mo,
+                         genmo, mometro_oid, "Metro");
+             ///////////////////////////////////////////////////////////////
+              mo_metro_index = pos2; 
+              mo_metro_index++;/////////omit the 30 seconds waiting movement 
+            }
+          } 
+
+         ///////////remove this part when the above code works correctly//////
+//         start_time.ReadFrom(temp_start_time.ToDouble() + 
+//                            t*1.0/(24.0*60.0*60.0));
+        }
+
+            for(int j = 0;j < sl->Size();j++){
+              HalfSegment hs1;
+              sl->Get(j, hs1);
+              if(!hs1.IsLeftDomPoint()) continue;
+              HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+              hs2.attr.edgeno = edgeno++;
+              *l += hs2;
+              hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+              *l += hs2;
+            }
+
+            last_ms = ms2;
+            delete start_loc;
+            delete end_loc; 
+
+
+    } /////end for big for 
+
+    l->EndBulkLoad();
+
+    Line* temp_l = new Line(0);
+    l->Union(*res_path, *temp_l);
+    *res_path = *temp_l;
+    delete temp_l;
+
+    delete l;
+
+}
 
 /////////////////////////////////////////////////////////////////////////
 ////////////////navigation system///////////////////////////////////////

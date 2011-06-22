@@ -756,6 +756,8 @@ struct GenMO_MP{
   int index;
 };
 
+struct MNNav;
+
 /*
 used to generate generic moving objects 
 
@@ -778,6 +780,8 @@ struct GenMObject{
 
   vector<Point> loc_list1;
   vector<Point> loc_list2;
+  vector<Point> loc_list3;
+  
   
   vector<GPoint> gp_list;
   vector<Line> line_list1;
@@ -880,7 +884,7 @@ struct GenMObject{
   void FindPosInMP(MPoint* mo_bus, Point* start_loc, Point* end_loc, 
                    int& pos1, int& pos2, int index);
   void SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2, Instant& start_time, 
-                   MPoint* mo, GenMO* genmo, int mobus_oid);
+                   MPoint* mo, GenMO* genmo, int mobus_oid, string str_tm);
   /////////////////////////////////////////////////////////////////////////
   //////////////////////Indoor Walk////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
@@ -931,7 +935,21 @@ struct GenMObject{
                                     int entrance_index, int reg_id,
                                     MaxRect* maxrect, Periods* peri,
                                      MPoint3D*);
-  
+  //////////////////////////////////////////////////////////////////////
+  ////////////////////// Metro Walk///////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  void GenerateGenMO7(Space* sp, Periods* peri, int mo_no, 
+                      int type, Relation*, Relation*, R_Tree<2,TupleId>*);
+  bool NearestMetroStop(GenLoc loc, Relation* rel2, 
+                      R_Tree<2,TupleId>* rtree, Bus_Stop& ms,
+                      vector<Point>& ps_list, GenLoc& gl);
+  void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                             Relation* rel,
+                             Point query_loc, vector<int>& tid_list);
+
+  void ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, GenMO* genmo,
+                          MPoint* mo, Instant& start_time,
+                          DualGraph* dg, Line* res_path);
 };
 
 

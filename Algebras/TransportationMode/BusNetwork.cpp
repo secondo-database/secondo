@@ -5914,6 +5914,105 @@ void Bus_Route::GetBusStopGeoData(Bus_Stop* bs, Point* p)
 
 }
 
+/*
+get the point of a metro stop
+it is different from the bus route. in metro network, the up and down direction
+have the same route (geometry). the segment connecting two endpoints 
+
+*/
+void Bus_Route::GetMetroStopGeoData(Bus_Stop* ms, Point* p)
+{
+  if(GetId() != ms->GetId()){
+    cout<<"route id is different for the bus stop and route"<<endl; 
+    p->SetDefined(false);
+    return; 
+  }
+  if(ms->GetStopId() < 1 || (int) ms->GetStopId() > Size() + 2 ){
+    cout<<"invalid bus stop id"<<endl; 
+    p->SetDefined(false);
+    return;
+  }
+
+  if(ms->GetUp() != GetUp()){
+    cout<<"bus stop and bus route have different directions"<<endl;
+    p->SetDefined(false);
+    return;
+  }
+
+   HalfSegment hs1, hs2;
+   if(ms->GetStopId() == 1){
+
+      if(ms->GetUp()){
+        GetSeg(0, hs1);
+        GetSeg(1, hs2);
+      }else{
+        GetSeg(SegSize() - 1, hs1);
+        GetSeg(SegSize() - 2, hs2);
+      }
+
+      Point lp1 = hs1.GetLeftPoint();
+      Point rp1 = hs1.GetRightPoint();
+      Point lp2 = hs2.GetLeftPoint();
+      Point rp2 = hs2.GetRightPoint();
+
+      if(AlmostEqual(lp1, lp2) || AlmostEqual(lp1, rp2)){
+        *p = rp1;
+      }else if(AlmostEqual(rp1, lp2) || AlmostEqual(rp1, rp2)){
+        *p = lp1;
+      }else assert(false);
+
+   }else if ((int)ms->GetStopId() == SegSize() + 1){
+
+      if(ms->GetUp()){
+        GetSeg(SegSize() - 1, hs1);
+        GetSeg(SegSize() - 2, hs2);
+      }else{
+        GetSeg(0, hs1);
+        GetSeg(1, hs2);
+      }
+
+      Point lp1 = hs1.GetLeftPoint();
+      Point rp1 = hs1.GetRightPoint();
+      Point lp2 = hs2.GetLeftPoint();
+      Point rp2 = hs2.GetRightPoint();
+
+      if(AlmostEqual(lp1, lp2) || AlmostEqual(lp1, rp2)){
+        *p = rp1;
+      }else if(AlmostEqual(rp1, lp2) || AlmostEqual(rp1, rp2)){
+        *p = lp1;
+      }else assert(false);
+
+   }
+   else{
+
+     if(ms->GetUp()){
+        int index1 = ms->GetStopId() - 2;
+        int index2 = ms->GetStopId() - 1;
+        GetSeg(index1, hs1);
+        GetSeg(index2, hs2);
+      }else{
+        int index1 = ms->GetStopId();
+        int index2 = ms->GetStopId() - 1;
+        GetSeg(SegSize() - index1, hs1);
+        GetSeg(SegSize() - index2, hs2);
+      }
+
+      Point lp1 = hs1.GetLeftPoint();
+      Point rp1 = hs1.GetRightPoint();
+      Point lp2 = hs2.GetLeftPoint();
+      Point rp2 = hs2.GetRightPoint();
+
+      if(AlmostEqual(lp1, lp2) || AlmostEqual(lp1, rp2)){
+        *p = lp1;
+      }else if(AlmostEqual(rp1, lp2) || AlmostEqual(rp1, rp2)){
+        *p = rp1;
+      }else assert(false); 
+
+   }
+
+}
+
+
 double Bus_Route::Length()
 {
   if(!IsDefined() || IsEmpty() == true) return 0.0; 
@@ -6842,6 +6941,7 @@ struct Id_Time{
     cout<<"oid "<<oid<<"cost "<<time<<endl;
   }
 };
+
 int BusNetwork::GetMOBus_Oid(Bus_Stop* bs, Point* bs_loc, Instant& t)
 {
 //  cout<<"instant "<<t<<endl; 
@@ -13028,17 +13128,18 @@ void UBTrain::CreateTimeTable_Compact()
 
     station_list_new.push_back(station_list[i]);
 
-    ////////collect all bus stops mapping to the same 2D point in space/////
+    ////////collect all metro stops mapping to the same 2D point in space/////
     unsigned int j = i + 1;
     BusStop_Ext bse = station_list_new[0]; 
-//    bse.Print();
-    
+
     while(j < station_list.size() &&
         station_list[j].loc.Distance(bse.loc) < dist_delta ){
+
         station_list_new.push_back(station_list[j]);
-        j++; 
+
+        j++;
     }
-    i = j - 1; 
+    i = j - 1;
     ///////////////////process train station list new ///////////////////////
     CreateLocTable_Compact(station_list_new,temp_count);
     temp_count++; 
@@ -13109,12 +13210,14 @@ void UBTrain::CreateLocTable_Compact(vector<BusStop_Ext> station_list_new,
      delete btree_iter;
      delete search_trip_id;
     ////////////////////////////////////////////////////////////////////
-    
+
 //    cout<<"up size "<<trip_up.size()<<endl;
 //    cout<<"down size "<<trip_up.size()<<endl; 
-    
+
     TimeTableCompact(trip_up,loc,br_id,stop_id,true,count_id);
     TimeTableCompact(trip_down,loc,br_id,stop_id,false,count_id);
+
+//    cout<<"br_id "<<br_id<<" stop_id "<<stop_id<<" "<<endl;
   }
 
 }
@@ -13436,7 +13539,8 @@ string MetroStruct::MetroRouteInfo =
 "(rel (tuple ((mr_id int) (mroute busroute) (oid int))))";
 
 string MetroStruct::MetroTripTypeInfo_Com = "(rel (tuple ((mtrip1 genmo)\
-(mtrip2 mpoint) (mr_id int) (Up bool) (oid int))))";
+(mtrip2 mpoint) (mr_id int) (Up bool) (mr_oid int) (oid int))))";
+
 
 /*
 create metro routes 
@@ -13474,7 +13578,8 @@ void MetroStruct::CreateMRoute(DualGraph* dg)
   vector<int> find_cell_list; 
   int count = 1;
   const double min_dist = 22000.0;//minimum distance for a ubahn 
-  const double min_dist2 = 1000.0;
+//  const double min_dist2 = 1000.0;
+  const double min_dist2 = 1500.0;
   while(count <= no_mroute){
     int cell1 = GetRandom() % dg->node_rel->GetNoTuples() + 1;
     if(cell_flag[cell1 - 1]) continue;
@@ -13734,6 +13839,11 @@ void MetroStruct::CreateMTrips(Relation* mr, Periods* peri)
     delete sp;
 
   }
+  
+  ///////////////////////////////////////////////////////////////////////
+  /////////////copy all trips one day before//////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  CopyTripOneDayBefore();
 
 }
 
@@ -13795,7 +13905,7 @@ void MetroStruct::CreateMetroUp(vector<MyHalfSegment>& seg_list,
     Loc loc2(i + 1, 0.0);
     GenLoc gloc1(mr_oid, loc1);
     GenLoc gloc2(mr_oid, loc2);
-    int tm = GetTM("Bus"); 
+    int tm = GetTM("Metro"); 
     UGenLoc* unit1 = new UGenLoc(up_interval, gloc1, gloc2, tm);
     genmo->Add(*unit1);
     delete unit1;
@@ -13821,7 +13931,7 @@ void MetroStruct::CreateMetroUp(vector<MyHalfSegment>& seg_list,
     Loc loc4(i + 1 + 1, 0.0);
     GenLoc gloc3(mr_oid, loc3);
     GenLoc gloc4(mr_oid, loc4);
-    tm = GetTM("Bus"); 
+    tm = GetTM("Metro"); 
     UGenLoc* unit2 = new UGenLoc(up_interval, gloc3, gloc4, tm);
     genmo->Add(*unit2);
     delete unit2;
@@ -13851,7 +13961,7 @@ void MetroStruct::CreateMetroUp(vector<MyHalfSegment>& seg_list,
       Loc loc6(i + 1 + 1, 0.0);
       GenLoc gloc5(mr_oid, loc5);
       GenLoc gloc6(mr_oid, loc6);
-      tm = GetTM("Bus"); 
+      tm = GetTM("Metro");
       UGenLoc* unit3 = new UGenLoc(up_interval, gloc5, gloc6, tm);
       genmo->Add(*unit3);
       delete unit3;
@@ -13866,6 +13976,8 @@ void MetroStruct::CreateMetroUp(vector<MyHalfSegment>& seg_list,
   mtrip_list1.push_back(*genmo);
   mtrip_list2.push_back(*mo);
   id_list.push_back(mr_id);
+  mr_oid_list.push_back(mr_oid);//unique object id for a metro route 
+  
   dir_list.push_back(dir);
 
   CopyMetroTrip(genmo, mo, peri, start_time, mr_id, mr_oid, dir);
@@ -13937,7 +14049,7 @@ void MetroStruct::CreateMetroDown(vector<MyHalfSegment>& seg_list,
      Loc loc2(i + 1 + 1, 0.0);
      GenLoc gloc1(mr_oid, loc1);
      GenLoc gloc2(mr_oid, loc2);
-     int tm = GetTM("Bus"); 
+     int tm = GetTM("Metro"); 
      UGenLoc* unit1 = new UGenLoc(up_interval, gloc1, gloc2, tm);
      genmo->Add(*unit1);
      delete unit1;
@@ -13966,7 +14078,7 @@ void MetroStruct::CreateMetroDown(vector<MyHalfSegment>& seg_list,
      Loc loc4(i + 1, 0.0);
      GenLoc gloc3(mr_oid, loc3);
      GenLoc gloc4(mr_oid, loc4);
-     tm = GetTM("Bus"); 
+     tm = GetTM("Metro"); 
      UGenLoc* unit2 = new UGenLoc(up_interval, gloc3, gloc4, tm);
      genmo->Add(*unit2);
      delete unit2;
@@ -13994,7 +14106,7 @@ void MetroStruct::CreateMetroDown(vector<MyHalfSegment>& seg_list,
        Loc loc6(i + 1, 0.0);
        GenLoc gloc5(mr_oid, loc5);
        GenLoc gloc6(mr_oid, loc6);
-       tm = GetTM("Bus"); 
+       tm = GetTM("Metro");
        UGenLoc* unit3 = new UGenLoc(up_interval, gloc5, gloc6, tm);
        genmo->Add(*unit3);
        delete unit3;
@@ -14009,6 +14121,8 @@ void MetroStruct::CreateMetroDown(vector<MyHalfSegment>& seg_list,
   mtrip_list1.push_back(*genmo);
   mtrip_list2.push_back(*mo);
   id_list.push_back(mr_id);
+  mr_oid_list.push_back(mr_oid);//unique object id for a metro route 
+
   dir_list.push_back(dir);
 
   CopyMetroTrip(genmo, mo, peri, start_time, mr_id, mr_oid, dir);
@@ -14078,6 +14192,8 @@ void MetroStruct::CopyMetroTrip(GenMO* genmo, MPoint* mo,
     mtrip_list1.push_back(*new_genmo);
     mtrip_list2.push_back(*new_mo);
     id_list.push_back(mr_id);
+    mr_oid_list.push_back(mr_oid);//unique object id for a metro route 
+
     dir_list.push_back(dir);
 
     delete new_mo;
@@ -14088,6 +14204,77 @@ void MetroStruct::CopyMetroTrip(GenMO* genmo, MPoint* mo,
 
   }
 }
+
+/*
+copy the metro trips on Sunday 
+
+*/
+void MetroStruct::CopyTripOneDayBefore()
+{
+  int start = 0;
+  int end = mtrip_list1.size();
+
+  for(;start < end; start++){
+
+      GenMO* genmo = &mtrip_list1[start];
+      MPoint* mo = &mtrip_list2[start];
+
+      int mr_id = id_list[start];
+      bool dir = dir_list[start];
+      int mr_oid = mr_oid_list[start];
+
+
+      MPoint* new_mo = new MPoint(0);
+      GenMO* new_genmo = new GenMO(0);
+      new_mo->StartBulkLoad();
+      new_genmo->StartBulkLoad();
+      double schedule = 1.0;///////// one day before
+
+      for(int i = 0;i < mo->GetNoComponents();i++){
+        UPoint up;
+        mo->Get(i, up);
+        Instant st = up.timeInterval.start;
+        st.ReadFrom(st.ToDouble() - schedule);
+        Instant et = up.timeInterval.end;
+        et.ReadFrom(et.ToDouble() - schedule);
+        up.timeInterval.start = st;
+        up.timeInterval.end = et; 
+        new_mo->Add(up);
+
+        /////////////////////////////////////////////////
+        //////////genmo units  //////////////////////////
+        /////////////////////////////////////////////////
+        UGenLoc ugloc;
+        genmo->Get(i, ugloc);
+//        cout<<ugloc<<endl;
+
+        UGenLoc* unit_new = new UGenLoc(up.timeInterval, ugloc.gloc1, 
+                                ugloc.gloc2, ugloc.tm);
+        new_genmo->Add(*unit_new);
+        delete unit_new;
+
+      }
+
+      new_mo->EndBulkLoad();
+      new_genmo->EndBulkLoad();
+
+      id_list.push_back(mr_id);
+      dir_list.push_back(dir);
+      mr_oid_list.push_back(mr_oid);
+
+      mtrip_list1.push_back(*new_genmo);
+      mtrip_list2.push_back(*new_mo);
+
+      delete new_mo;
+      delete new_genmo;
+  
+  }
+
+
+}
+
+
+
 
 /*
 create one kind of edges for metro graph where two metro stops have the same
@@ -14232,7 +14419,7 @@ void MetroStruct::ConnectionOneRoute(UBahn_Stop* ms_stop, Relation* timetable,
 
           period_list.push_back(*peri);
           schedule_interval.push_back(sche_int);
-
+          break;
         }
 
         tuple->DeleteIfAllowed();
@@ -14381,10 +14568,16 @@ void MetroStruct::MapMSToPave(Relation* rel1, Relation* rel2,
 //    id_list.push_back(tri_oid);
 //    neighbor_list.push_back(*reg);
 //    loc_list2.push_back(*ms_loc);
+
+    Bus_Stop* ms_stop = (Bus_Stop*)ms_tuple->GetAttribute(MetroNetwork::M_STOP);
+    Point* ms_stop_loc = 
+        (Point*)ms_tuple->GetAttribute(MetroNetwork::M_STOP_GEO);
+
+    stop_geo_list.push_back(*ms_stop_loc);
+    mstop_list.push_back(*ms_stop);
     loc_list2.push_back(ms_loc2);
 
     pave_tuple->DeleteIfAllowed();
-
     ms_tuple->DeleteIfAllowed();
   }
 
@@ -14466,11 +14659,14 @@ string MetroNetwork::MetroRoutesBTreTypeInfo = "(rel (tuple ((mr_id int)\
 (mroute busroute) (oid int))) int)";
 
 string MetroNetwork::MetroTripTypeInfo = "(rel (tuple ((mtrip1 genmo)\
-(mtrip2 mpoint) (mr_id int) (oid int))))";
+(mtrip2 mpoint) (mr_oid int) (oid int))))";
 
 string MetroNetwork::MetroTypeBTreeTypeInfo = "(btree (tuple ((mtrip1 genmo)\
 (mtrip2 mpoint) (mr_id int) (oid int))) int)";
 
+string MetroNetwork::MetroPaveTypeInfo =
+"(rel (tuple ((loc1 genloc) (loc2 point) (ms_stop busstop)\
+(ms_stop_loc point))))";
 
 ListExpr MetroNetworkProperty()
 {
@@ -14486,7 +14682,7 @@ ListExpr MetroNetworkProperty()
 }
 
 /*
-In function. there is not nested list expression here.
+In function. there is no nested list expression here.
 
 */
 Word InMetroNetwork( const ListExpr typeInfo, const ListExpr instance,
@@ -14699,8 +14895,8 @@ bool CheckMetroNetwork( ListExpr type, ListExpr& errorInfo )
 MetroNetwork::MetroNetwork():
 def(false), mn_id(0), graph_init(false), graph_id(0), max_metro_speed(0),
 min_mr_oid(0), min_mt_oid(0), 
-stops_rel(NULL), btree_bs(NULL), rtree_bs(NULL),
-routes_rel(NULL), btree_br(NULL), btree_br_uoid(NULL),
+stops_rel(NULL), btree_ms(NULL), rtree_ms(NULL),
+routes_rel(NULL), btree_mr(NULL), btree_mr_uoid(NULL),
 metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
 {
 
@@ -14710,8 +14906,8 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
 MetroNetwork::MetroNetwork(bool d, unsigned int i): def(d), mn_id(i), 
 graph_init(false), graph_id(0), max_metro_speed(0),
 min_mr_oid(0), min_mt_oid(0),
-stops_rel(NULL), btree_bs(NULL), rtree_bs(NULL),
-routes_rel(NULL), btree_br(NULL), btree_br_uoid(NULL),
+stops_rel(NULL), btree_ms(NULL), rtree_ms(NULL),
+routes_rel(NULL), btree_mr(NULL), btree_mr_uoid(NULL),
 metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
 {
 
@@ -14726,8 +14922,8 @@ MetroNetwork::MetroNetwork(SmiRecord& valueRecord, size_t& offset,
                        const ListExpr typeInfo):
 def(false), mn_id(0), graph_init(false), graph_id(0), max_metro_speed(0),
 min_mr_oid(0), min_mt_oid(0),
-stops_rel(NULL), btree_bs(NULL), rtree_bs(NULL),
-routes_rel(NULL), btree_br(NULL), btree_br_uoid(NULL),
+stops_rel(NULL), btree_ms(NULL), rtree_ms(NULL),
+routes_rel(NULL), btree_mr(NULL), btree_mr_uoid(NULL),
 metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
 {
   valueRecord.Read(&def, sizeof(bool), offset);
@@ -14764,21 +14960,21 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
   ///////////////////btree on metro stops on brid///////////////////////////////
   nl->ReadFromString(MetroStopsBTreeTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  btree_bs = BTree::Open(valueRecord, offset, xNumericType);
-  if(!btree_bs) {
+  btree_ms = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_ms) {
     stops_rel->Delete(); 
    return;
   }
 
   ///////////////////rtree on metro stops //////////////////////////////
   Word xValue;
-  if(!(rtree_bs->Open(valueRecord,offset, MetroStopsRTreeTypeInfo,xValue))){
+  if(!(rtree_ms->Open(valueRecord,offset, MetroStopsRTreeTypeInfo,xValue))){
     stops_rel->Delete(); 
-    delete btree_bs;
+    delete btree_ms;
     return;
   }
 
-  rtree_bs = ( R_Tree<2,TupleId>* ) xValue.addr;
+  rtree_ms = ( R_Tree<2,TupleId>* ) xValue.addr;
 
  ///////////////////////////////Open relation for metroroutes///////////////
   nl->ReadFromString(MetroRoutesTypeInfo, xType);
@@ -14786,19 +14982,19 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
   routes_rel = Relation::Open(valueRecord, offset, xNumericType);
   if(!routes_rel) {
     stops_rel->Delete();
-    delete btree_bs;
-    delete rtree_bs;
+    delete btree_ms;
+    delete rtree_ms;
     return;
   }
 
   ///////////////////btree on metro routes//////////////////////////////////
   nl->ReadFromString(MetroRoutesBTreTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  btree_br = BTree::Open(valueRecord, offset, xNumericType);
-  if(!btree_br) {
+  btree_mr = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_mr) {
     stops_rel->Delete();
-    delete btree_bs;
-    delete rtree_bs;
+    delete btree_ms;
+    delete rtree_ms;
     routes_rel->Delete();
     return;
   }
@@ -14806,13 +15002,13 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
    ///////////////////btree on metro routes unique oid///////////////////////
   nl->ReadFromString(MetroRoutesBTreTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  btree_br_uoid = BTree::Open(valueRecord, offset, xNumericType);
-  if(!btree_br_uoid) {
+  btree_mr_uoid = BTree::Open(valueRecord, offset, xNumericType);
+  if(!btree_mr_uoid) {
     stops_rel->Delete(); 
-    delete btree_bs;
+    delete btree_ms;
     routes_rel->Delete();
-    delete btree_br; 
-    delete rtree_bs; 
+    delete btree_mr;
+    delete rtree_ms;
     return;
   }
 
@@ -14822,25 +15018,25 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
   metrotrips_rel = Relation::Open(valueRecord, offset, xNumericType);
   if(!metrotrips_rel) {
     stops_rel->Delete(); 
-    delete btree_bs;
+    delete btree_ms;
     routes_rel->Delete();
-    delete btree_br; 
-    delete rtree_bs; 
-    delete btree_br_uoid;
+    delete btree_mr;
+    delete rtree_ms;
+    delete btree_mr_uoid;
     return;
   }
 
-  ///////////////////btree on metro trips bus route id///////////////////////
+  ///////////////////btree on metro trips metro route id///////////////////////
   nl->ReadFromString(MetroTypeBTreeTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   btree_trip_br_id = BTree::Open(valueRecord, offset, xNumericType);
   if(!btree_trip_br_id) {
     stops_rel->Delete(); 
-    delete btree_bs;
+    delete btree_ms;
     routes_rel->Delete();
-    delete btree_br; 
-    delete rtree_bs; 
-    delete btree_br_uoid;
+    delete btree_mr;
+    delete rtree_ms; 
+    delete btree_mr_uoid;
     metrotrips_rel->Delete();
     return;
   }
@@ -14851,11 +15047,11 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
   btree_trip_oid = BTree::Open(valueRecord, offset, xNumericType);
   if(!btree_trip_oid) {
     stops_rel->Delete();
-    delete btree_bs;
+    delete btree_ms;
     routes_rel->Delete();
-    delete btree_br;
-    delete rtree_bs;
-    delete btree_br_uoid;
+    delete btree_mr;
+    delete rtree_ms;
+    delete btree_mr_uoid;
     metrotrips_rel->Delete();
     delete btree_trip_br_id;
     return;
@@ -14866,11 +15062,11 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
 MetroNetwork::~MetroNetwork()
 {
   if(stops_rel != NULL) stops_rel->Close();
-  if(btree_bs != NULL) delete btree_bs;
-  if(rtree_bs != NULL) delete rtree_bs; 
+  if(btree_ms != NULL) delete btree_ms;
+  if(rtree_ms != NULL) delete rtree_ms; 
   if(routes_rel != NULL) routes_rel->Close();
-  if(btree_br != NULL) delete btree_br;
-  if(btree_br_uoid != NULL) delete btree_br_uoid;
+  if(btree_mr != NULL) delete btree_mr;
+  if(btree_mr_uoid != NULL) delete btree_mr_uoid;
   if(metrotrips_rel != NULL) metrotrips_rel->Close();
   if(btree_trip_br_id != NULL) delete btree_trip_br_id;
   if(btree_trip_oid != NULL) delete btree_trip_oid;
@@ -14916,11 +15112,11 @@ bool MetroNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   /////////////////////btree on metro stops on lineid/////////////////////////
   nl->ReadFromString(MetroStopsBTreeTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!btree_bs->Save(valueRecord,offset,xNumericType))
+  if(!btree_ms->Save(valueRecord,offset,xNumericType))
       return false;
 
   ///////////////////////rtree on metro stops ///////////////////////
-  if(!rtree_bs->Save(valueRecord, offset)){
+  if(!rtree_ms->Save(valueRecord, offset)){
     return false;
   }
   
@@ -14933,13 +15129,13 @@ bool MetroNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   ///////////////////////btree on metro routes////////////////////////////
   nl->ReadFromString(MetroRoutesBTreTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!btree_br->Save(valueRecord,offset,xNumericType))
+  if(!btree_mr->Save(valueRecord,offset,xNumericType))
       return false;
 
   ///////////////////////btree on bus routes on unique id///////////////////
   nl->ReadFromString(MetroRoutesBTreTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!btree_br_uoid->Save(valueRecord,offset,xNumericType))
+  if(!btree_mr_uoid->Save(valueRecord,offset,xNumericType))
       return false;
 
   ///////////////////metro trips relation/////////////////////////////
@@ -15015,7 +15211,7 @@ void MetroNetwork::LoadStops(Relation* r)
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
-  btree_bs = (BTree*)xResult.addr;
+  btree_ms = (BTree*)xResult.addr;
 
 
   //////////////////////rtree on metro stops//////////////////////////
@@ -15028,7 +15224,7 @@ void MetroNetwork::LoadStops(Relation* r)
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
-  rtree_bs = ( R_Tree<2,TupleId>* ) xResult.addr;
+  rtree_ms = ( R_Tree<2,TupleId>* ) xResult.addr;
 
 }
 
@@ -15073,7 +15269,7 @@ void MetroNetwork::LoadRoutes(Relation* r2)
 //  cout<<strQuery<<endl; 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
-  btree_br = (BTree*)xResult.addr;
+  btree_mr = (BTree*)xResult.addr;
 
   //////////////////////////////////////////////////////////////////
   //////////////////////btree on metro routes unique oid////////////
@@ -15085,7 +15281,7 @@ void MetroNetwork::LoadRoutes(Relation* r2)
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
-  btree_br_uoid = (BTree*)xResult.addr;
+  btree_mr_uoid = (BTree*)xResult.addr;
 
 }
 
@@ -15153,7 +15349,7 @@ void MetroNetwork::LoadMetros(Relation* r3)
   ostringstream xEdgeOidPtrStream3;
   xEdgeOidPtrStream3 << (long)metrotrips_rel;
   strQuery = "(createbtree (" + MetroTripTypeInfo +
-             "(ptr " + xEdgeOidPtrStream3.str() + "))" + "mr_id)";
+             "(ptr " + xEdgeOidPtrStream3.str() + "))" + "mr_oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15184,7 +15380,7 @@ int MetroNetwork::GetMS_Stop_Neighbor(UBahn_Stop* ms_stop )
   bool dir = ms_stop->d;
 
   CcInt* search_cell_id = new CcInt(true, line_id);
-  BTreeIterator* btree_iter = btree_bs->ExactMatch(search_cell_id);
+  BTreeIterator* btree_iter = btree_ms->ExactMatch(search_cell_id);
 
   int neighbor_tid = 0;
   bool found = false;
@@ -15231,6 +15427,266 @@ void MetroNetwork::SetGraphId(int g_id)
   graph_init = true; 
 }
 
+
+/*
+get the metro graph in metro network
+
+*/
+MetroGraph* MetroNetwork::GetMetroGraph()
+{
+  if(graph_init == false) return NULL;
+  
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "metrograph"){
+      // Get name of the metro graph 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. 
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined 
+        continue;
+      }
+      MetroGraph* mg = (MetroGraph*)xValue.addr;
+      if(mg->GetMG_ID() == graph_id){
+        // This is the metro graph we have been looking for
+        return mg;
+      }
+    }
+  }
+  return NULL;
+}
+
+/*
+close the metro graph 
+
+*/
+void MetroNetwork::CloseMetroGraph(MetroGraph* mg)
+{
+  if(mg == NULL) return; 
+  Word xValue;
+  xValue.addr = mg;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("metrograph"),
+                                           xValue);
+}
+
+/*
+get the 2d point of a metro stop
+
+*/
+void MetroNetwork::GetMetroStopGeoData(Bus_Stop* ms, Point* p)
+{
+
+  int id = ms->GetId(); 
+  if(id < 1){
+    cout<<"invalid metro stop"<<endl;
+    return; 
+  }
+
+  CcInt* search_id = new CcInt(true, id);
+  BTreeIterator* btree_iter = btree_mr->ExactMatch(search_id);
+  while(btree_iter->Next()){
+      Tuple* tuple = routes_rel->GetTuple(btree_iter->GetId(), false);
+      Bus_Route* mr = (Bus_Route*)tuple->GetAttribute(M_ROUTE);
+      if(mr->GetUp() == ms->GetUp()){
+        mr->GetMetroStopGeoData(ms, p); 
+        tuple->DeleteIfAllowed();
+        break; 
+      }
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter;
+  delete search_id; 
+
+}
+
+/*
+get the moving metro pass the metro stop at the input time 
+
+*/
+int MetroNetwork::GetMOMetro_Oid(Bus_Stop* ms, Point* ms_loc, Instant& t)
+{
+//  cout<<"metro stop "<<*ms<<" loc "<<*ms_loc<<" time "<<t<<endl; 
+  
+  int mr_id = ms->GetId();
+  
+  //////////////////////////////////////////////////////////////////
+  ////////////get the unique id for the metro route/////////////////
+  //////////////////////////////////////////////////////////////////
+  CcInt* search_id1 = new CcInt(true, mr_id);
+  BTreeIterator* btree_iter1 = btree_mr->ExactMatch(search_id1);
+  int mr_uoid = 0;
+  while(btree_iter1->Next()){
+      Tuple* tuple = routes_rel->GetTuple(btree_iter1->GetId(), false);
+      Bus_Route* mr = (Bus_Route*)tuple->GetAttribute(M_ROUTE);
+      if(mr->GetUp() == ms->GetUp()){
+        mr_uoid = ((CcInt*)tuple->GetAttribute(M_R_OID))->GetIntval();
+        tuple->DeleteIfAllowed();
+        break;
+      }
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter1;
+  delete search_id1;
+  assert(mr_uoid > 0);
+
+//  cout<<"mr_uoid "<<mr_uoid<<endl;
+  
+  ///////////////////////////////////////////////////////////////
+  ///////////////get moving metros moving on the route///////////
+  ///////////////////////////////////////////////////////////////
+  int metro_oid = 0;
+  CcInt* search_id2 = new CcInt(true, mr_uoid);
+  BTreeIterator* btree_iter2 = btree_trip_br_id->ExactMatch(search_id2);
+  const double delta_dist = 0.01;
+  vector<Id_Time> res_list;
+  
+    while(btree_iter2->Next()){
+      Tuple* tuple = metrotrips_rel->GetTuple(btree_iter2->GetId(), false);
+      int mrid = 
+         ((CcInt*)tuple->GetAttribute(M_REFMR_OID))->GetIntval();
+      assert(mrid == mr_uoid);
+      MPoint* mo_metro = (MPoint*)tuple->GetAttribute(M_TRIP_MP);
+      Periods* peri = new Periods(0);
+      mo_metro->DefTime(*peri);
+//      cout<<"periods "<<*peri<<endl; 
+      if(peri->Contains(t)){
+//        cout<<"periods containt instant "<<endl;
+
+        for(int i = 0;i < mo_metro->GetNoComponents();i++){
+          UPoint unit;
+          mo_metro->Get(i, unit);
+          Point p0 = unit.p0;
+          Point p1 = unit.p1;
+
+//          cout<<unit.timeInterval<<" dist "<<bs_loc->Distance(p0)<<endl;
+//          cout<<"dist1 "<<bs_loc->Distance(p0)
+//              <<" dist2 "<<bs_loc->Distance(p1)<<endl;
+
+          if(ms_loc->Distance(p0) < delta_dist &&
+             ms_loc->Distance(p1) < delta_dist){
+             metro_oid = ((CcInt*)tuple->GetAttribute(M_TRIP_OID))->GetIntval();
+             double delta_t = 
+                fabs(unit.timeInterval.start.ToDouble() - t.ToDouble());
+              Id_Time* id_time = new Id_Time(metro_oid, delta_t);
+              res_list.push_back(*id_time);
+              delete id_time;
+          }
+        }
+      }
+      delete peri;
+      tuple->DeleteIfAllowed();
+  }
+
+  delete btree_iter2;
+  delete search_id2;
+
+
+  sort(res_list.begin(), res_list.end());
+
+  assert(res_list.size() > 0);
+  metro_oid = res_list[0].oid;
+  
+  assert(metro_oid > 0);
+  
+  return metro_oid;
+
+}
+
+/*
+given a metro stop and time, it returns mpoint of the moving metro belonging to
+that metro route and direction as well as covering the time
+
+*/
+
+int MetroNetwork::GetMOMetro_MP(Bus_Stop* ms, Point* ms_loc, 
+                                Instant t, MPoint& mp)
+{
+
+//  cout<<"metro stop "<<*ms<<" loc "<<*ms_loc<<" time "<<t<<endl; 
+  
+  int mr_id = ms->GetId();
+  //////////////////////////////////////////////////////////////////
+  ////////////get the unique id for the metro route/////////////////
+  //////////////////////////////////////////////////////////////////
+  CcInt* search_id1 = new CcInt(true, mr_id);
+  BTreeIterator* btree_iter1 = btree_mr->ExactMatch(search_id1);
+  int mr_uoid = 0;
+  while(btree_iter1->Next()){
+      Tuple* tuple = routes_rel->GetTuple(btree_iter1->GetId(), false);
+      Bus_Route* mr = (Bus_Route*)tuple->GetAttribute(M_ROUTE);
+      if(mr->GetUp() == ms->GetUp()){
+        mr_uoid = ((CcInt*)tuple->GetAttribute(M_R_OID))->GetIntval();
+        tuple->DeleteIfAllowed();
+        break;
+      }
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter1;
+  delete search_id1;
+  assert(mr_uoid > 0);
+  
+//  cout<<"mr_uoid "<<mr_uoid<<endl;
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////get moving metro moving on the route///////////
+  ///////////////////////////////////////////////////////////////
+  int metro_oid = 0;
+  CcInt* search_id2 = new CcInt(true, mr_uoid);
+  BTreeIterator* btree_iter2 = btree_trip_br_id->ExactMatch(search_id2);
+  bool found = false;
+  const double delta_dist = 0.01;
+  vector<Id_Time> res_list;
+
+  while(btree_iter2->Next() && found == false){
+      Tuple* tuple = metrotrips_rel->GetTuple(btree_iter2->GetId(), false);
+      int mrid = ((CcInt*)tuple->GetAttribute(M_REFMR_OID))->GetIntval();
+      assert(mrid == mr_uoid);
+      MPoint* mo_metro = (MPoint*)tuple->GetAttribute(M_TRIP_MP);
+      Periods* peri = new Periods(0);
+      mo_metro->DefTime(*peri);
+      if(peri->Contains(t)){
+//        cout<<"periods "<<*peri<<endl;
+        for(int i = 0;i < mo_metro->GetNoComponents();i++){
+          UPoint unit;
+          mo_metro->Get(i, unit);
+          Point p0 = unit.p0;
+          Point p1 = unit.p1;
+          if(ms_loc->Distance(p0) < delta_dist &&
+              unit.timeInterval.Contains(t)){
+              mp = *mo_metro;
+             metro_oid = ((CcInt*)tuple->GetAttribute(M_TRIP_OID))->GetIntval();
+              found = true;
+              break;
+          }
+        }
+
+      }
+      delete peri;
+      tuple->DeleteIfAllowed();
+  }
+  delete btree_iter2;
+  delete search_id2;
+  assert(metro_oid > 0);
+  return metro_oid; 
+
+}
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////metro graph/////////////////////////////////////////
@@ -15801,4 +16257,558 @@ void MetroGraph::LoadEdge2(Relation* edge2)
   delete btree;
 
 }
+
+/*
+find the metro stop tid in the relation 
+
+*/
+int MetroGraph::GetMetroStop_Tid(Bus_Stop* ms)
+{
+
+  if(!ms->IsDefined()) return -1; 
+  
+  int ms_tid = -1;
+  CcInt* search_id = new CcInt(true,ms->GetId());
+  BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
+  while(btree_iter->Next()){
+    Tuple* ms_tuple = node_rel->GetTuple(btree_iter->GetId(), false);
+    Bus_Stop* ms_stop = (Bus_Stop*)ms_tuple->GetAttribute(MG_NODE_STOP);
+    int mr_id = ms->GetId();
+
+    assert(mr_id == (int) ms->GetId());
+    if(ms->GetStopId() == ms_stop->GetStopId() && 
+       ms->GetUp() == ms_stop->GetUp()){
+      ms_tid = ms_tuple->GetTupleId();
+      ms_tuple->DeleteIfAllowed();
+      break;
+    }
+
+    ms_tuple->DeleteIfAllowed();
+
+  }
+  delete btree_iter;
+  delete search_id;
+  assert(ms_tid > 0 && ms_tid <= node_rel->GetNoTuples()); 
+  return ms_tid; 
+
+
+}
+
+/*
+metro stops have the same spatial location in space
+
+*/
+void MetroGraph::FindAdj1(int node_id, vector<int>& list)
+{
+  ListEntry list_entry;
+  entry_adj_list1.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list1.Get(j, oid);
+      j++;
+      list.push_back(oid);
+  }
+  
+}
+
+/*
+metro stops are connected by moving metros 
+
+*/
+void MetroGraph::FindAdj2(int node_id, vector<int>& list)
+{
+
+  ListEntry list_entry;
+  entry_adj_list2.Get(node_id - 1, list_entry);
+  int low = list_entry.low;
+  int high = list_entry.high;
+  int j = low;
+  while(j < high){
+      int oid;
+      adj_list2.Get(j, oid);
+      j++;
+      list.push_back(oid);
+  }
+
+}
+
+////////////////////////////////////////////////////////////////////////////
+////////////////// query processing on the metro graph and network//////////
+////////////////////////////////////////////////////////////////////////////
+/*
+shortest path on metro network and graph 
+
+*/
+void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
+{
+//  cout<<"shortest path on metro network"<<endl; 
+  MetroGraph* mg = mn->GetMetroGraph(); 
+
+  if(mg == NULL){
+    cout<<"metro graph is invalid"<<endl; 
+    return;
+  }
+
+//  cout<<mg->GetNode_Rel()->GetNoTuples()<<endl;
+
+  if(!ms1->IsDefined() || !ms2->IsDefined()){
+    cout<<" metro stops are not defined"<<endl;
+    return; 
+  }
+
+//  cout<<*ms1<<" "<<*ms2<<endl;
+
+  Point start_p, end_p; 
+  mn->GetMetroStopGeoData(ms1, &start_p);
+  mn->GetMetroStopGeoData(ms2, &end_p);
+//  cout<<"start "<<start_p<<" end "<<end_p<<endl;
+
+  
+  const double delta_dist = 0.01; 
+
+  if(*ms1 == *ms2 || start_p.Distance(end_p) < delta_dist){
+   cout<<"two bus stops equal to each other"<<endl;
+   mn->CloseMetroGraph(mg);
+   return; 
+  }
+
+  /////////////////////////build the start time///////////////////////////
+  Instant new_st(instanttype);
+  Instant mg_min(instanttype);
+  mg_min.ReadFrom(mg->GetMIN_T());
+
+//  cout<<"mg_min "<<mg_min<<endl;
+
+  new_st.Set(mg_min.GetYear(), mg_min.GetMonth(), mg_min.GetGregDay(),
+           qt->GetHour(), qt->GetMinute(), qt->GetSecond(),
+           qt->GetMillisecond());
+
+//  cout<<"mapping start time"<<new_st<<endl; 
+
+  //////////////////////////////////////////////////////////////////////////
+
+  priority_queue<BNPath_elem> path_queue;
+  vector<BNPath_elem> expand_queue;
+
+  vector<bool> visit_flag1;////////////metro stop visit 
+  for(int i = 1; i <= mg->GetNode_Rel()->GetNoTuples();i++)
+    visit_flag1.push_back(false);
+
+  //////////////////////////////////////////////////////////////////
+  /////////from metro network, get the maximum speed of the metro///
+  /////////////for setting heuristic value/////////////////////////
+  ///////////////////////////////////////////////////////////////////
+// cout<<"max metro speed "<<mn->GetMaxSpeed()*60.0*60.0/1000.0<<"km/h"<<endl;
+
+
+  ///////////  initialize the queue //////////////////////////////
+  InitializeQueue(ms1, ms2, path_queue, expand_queue, mn, mg, start_p, end_p);
+
+  int ms2_tid = mg->GetMetroStop_Tid(ms2);
+//  cout<<"end bus stop tid "<<ms2_tid<<endl;
+
+  ////////////////////////////////////////////////////////////////////
+  ////////////////////search on the metro graph///////////////////////
+  ////////////////////////////////////////////////////////////////////
+  bool find = false;
+  BNPath_elem dest;//////////destination
+ 
+  while(path_queue.empty() == false){
+    BNPath_elem top = path_queue.top();
+    path_queue.pop();
+
+    if(visit_flag1[top.tri_index - 1]) continue;
+
+//     cout<<"top elem "<<endl;
+//     top.Print();
+
+/*    double cur_time = new_st.ToDouble() + top.real_w; 
+    Instant now_inst = new_st;
+    now_inst.ReadFrom(cur_time);
+    cout<<"top elem time "<<now_inst<<endl;*/
+
+    if(top.tri_index == ms2_tid){
+//       cout<<"find the shortest path"<<endl;
+       find = true;
+       dest = top;
+       break;
+    }
+    int pos_expand_path;
+    int cur_size; 
+
+    pos_expand_path = top.cur_index;
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////////connection 1 same spatial location/////////////
+    ////////////////////////////////////////////////////////////////////
+    vector<int> adj_list1;
+    mg->FindAdj1(top.tri_index, adj_list1);
+//    cout<<"adj1 size "<<adj_list1.size()<<endl;
+
+    for(unsigned int i = 0;i < adj_list1.size();i++){
+      Tuple* edge_tuple = mg->GetEdge_Rel1()->GetTuple(adj_list1[i], false);
+      int neighbor_id1 = 
+     ((CcInt*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE1_TID2))->GetIntval();
+      SimpleLine* path = new SimpleLine(0);
+      path->StartBulkLoad();
+      path->EndBulkLoad();
+//      cout<<"neighbor_tid1 "<<neighbor_id1<<endl;
+      
+      if(visit_flag1[neighbor_id1 - 1]){
+        edge_tuple->DeleteIfAllowed();
+        delete path;
+        continue; 
+      }
+
+      cur_size = expand_queue.size();
+      double w = top.real_w; 
+      Tuple* ms_node_tuple = mg->GetNode_Rel()->GetTuple(neighbor_id1, false);
+      Point* p = 
+          (Point*)ms_node_tuple->GetAttribute(MetroGraph::MG_NODE_STOP_GEO);
+      double hw = p->Distance(end_p)/(mn->GetMaxSpeed()*24.0*60.0*60.0);
+      ms_node_tuple->DeleteIfAllowed();
+
+//      double hw = 0.0;
+      BNPath_elem elem(pos_expand_path, cur_size, neighbor_id1, w + hw, w,
+                       *path, -1, false); //no useful for time cost 
+      path_queue.push(elem);
+      expand_queue.push_back(elem); 
+
+//       cout<<"neighbor1 ";
+//       elem.Print();
+//       cout<<endl; 
+
+      delete path; 
+      edge_tuple->DeleteIfAllowed();
+    }
+
+
+    //////////////////////////////////////////////////////////////////////
+    ////////////////////connection 2 moving metros/////////////////////////
+    //////////////////////////////////////////////////////////////////////
+    vector<int> adj_list2;
+    mg->FindAdj2(top.tri_index, adj_list2);
+    int64_t max_64_int = numeric_limits<int64_t>::max();
+
+//    cout<<"ajd2 size "<<adj_list2.size()<<endl;
+
+    for(unsigned int i = 0;i < adj_list2.size();i++){
+      Tuple* edge_tuple = mg->GetEdge_Rel2()->GetTuple(adj_list2[i], false);
+       int neighbor_id2 = 
+     ((CcInt*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE2_TID2))->GetIntval();
+       SimpleLine* path =
+              (SimpleLine*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE2_PATH);
+
+//      cout<<"neighbor_id2 "<<neighbor_id2<<endl;
+
+       if(visit_flag1[neighbor_id2 - 1]){
+         edge_tuple->DeleteIfAllowed();
+         continue;
+       }
+
+       cur_size = expand_queue.size();
+       double cur_t = new_st.ToDouble() + top.real_w; 
+       Instant cur_inst = new_st;
+       cur_inst.ReadFrom(cur_t); //time to arrive current metro stop
+//       cout<<"time at metro stop "<<cur_inst<<endl; 
+
+       int64_t cur_t_int = cur_t*86400000; 
+       assert(cur_t_int <= max_64_int);
+
+       Periods* peri = 
+               (Periods*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE2_PERI);
+       Interval<Instant> periods;
+       peri->Get(0, periods);
+
+       double sched = 
+       ((CcReal*)edge_tuple->GetAttribute(MetroGraph::
+                                          MG_EDGE2_SCHED))->GetRealval();
+
+       double st = periods.start.ToDouble(); 
+       double et = periods.end.ToDouble(); 
+       int64_t st_int = st*86400000;
+       int64_t et_int = et*86400000; 
+       assert(st_int <= max_64_int);
+       assert(et_int <= max_64_int);
+
+//       cout<<"st "<<periods.start<<" et "<<periods.end<<endl; 
+
+       if(et_int < cur_t_int){//end time smaller than curtime 
+         edge_tuple->DeleteIfAllowed();
+         continue;
+       }
+//       cout<<"st_int "<<st_int<<" cur_t_int "<<cur_t_int<<endl;
+
+       double wait_time = 0.0;
+       if(st_int > cur_t_int){//wait for the first start time 
+            wait_time += st - cur_t; 
+            wait_time += 30.0/(24.0*60.0*60.0);//30 seconds at metro stop 
+       }else if(st_int == cur_t_int){
+          wait_time += 30.0/(24.0*60.0*60.0);//30 seconds at metro stop 
+       }else{ //most times, it is here, wait for the next schedule 
+
+         bool valid = false;
+         while(st_int < cur_t_int && st_int <= et_int){
+
+           Instant temp(instanttype);
+           temp.ReadFrom(st);
+//           cout<<"t1 "<<temp<<endl; 
+//           cout<<"st_int "<<st_int<<" cur_t_int "<<cur_t_int<<endl;
+
+          if((st_int + 30000) >= cur_t_int){//30 second
+            wait_time += st + 30.0/(24.0*60.0*60.0) - cur_t;
+            valid = true;
+            break;
+          }
+          st += sched; 
+          st_int = st * 86400000; 
+          if(st_int >= cur_t_int){
+            wait_time += st + 30.0/(24.0*60.0*60.0) - cur_t;
+            valid = true;
+            break; 
+          }
+          assert(st_int <= max_64_int); 
+
+//           temp.ReadFrom(st);
+//           cout<<"t2 "<<temp<<endl; 
+
+         }
+         if(valid == false){
+           cout<<"should not arrive at here"<<endl; 
+           assert(false); 
+         }
+       }
+
+       double weight = 
+       ((CcReal*)edge_tuple->GetAttribute(MetroGraph::
+                                          MG_EDGE2_TIME_COST))->GetRealval();
+        double w = top.real_w + wait_time + weight; 
+
+        Tuple* ms_node_tuple = mg->GetNode_Rel()->GetTuple(neighbor_id2, false);
+        Point* p = 
+            (Point*)ms_node_tuple->GetAttribute(MetroGraph::MG_NODE_STOP_GEO);
+        double hw = p->Distance(end_p)/(mn->GetMaxSpeed()*24.0*60.0*60.0);
+        ms_node_tuple->DeleteIfAllowed();
+
+
+       BNPath_elem elem(pos_expand_path, cur_size, neighbor_id2, w + hw, w,
+                        *path, TM_METRO, true);
+       if(wait_time > 0.0){ //to the time waiting for metro
+          elem.SetW(top.real_w + wait_time);
+       }
+
+       path_queue.push(elem);
+       expand_queue.push_back(elem);
+
+//       cout<<"neighbor2 "<<wait_time<<" "<<weight<<endl;
+//       elem.Print();
+//       cout<<endl;
+
+      edge_tuple->DeleteIfAllowed();
+
+    }
+
+    visit_flag1[top.tri_index - 1] = true; 
+
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  ////////////////construct the result//////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  if(find){   ////////constrcut the result 
+      vector<int> id_list; 
+      while(dest.prev_index != -1){
+       id_list.push_back(dest.cur_index);
+       dest = expand_queue[dest.prev_index];
+     }
+
+    id_list.push_back(dest.cur_index);
+
+    Bus_Stop ms_last = *ms1; 
+    Instant t1 = *qt;
+//    int no_transfer = 0; 
+
+    for(int i = id_list.size() - 1;i >= 0;i--){
+      BNPath_elem elem = expand_queue[id_list[i]];
+      path_list.push_back(elem.path);
+
+      if(elem.tm == TM_METRO){
+          tm_list.push_back(str_tm[elem.tm]); 
+      }else{
+//        assert(false);
+          tm_list.push_back("none"); 
+      }
+
+      ////////////////////////////////////////////////////////////////////
+      ////////////////we also return///////////////////////////////////////
+      ////////the start and end metro stops connected by the path /////////
+      ////////////////////////////////////////////////////////////////////
+      char buf1[256], buf2[256];
+
+      sprintf(buf1, "mr: %d ", ms_last.GetId());
+      sprintf(buf2, "stop: %d", ms_last.GetStopId());
+      strcat (buf1, buf2);
+      if(ms_last.GetUp()) strcat (buf1, " UP");
+        else strcat (buf1, " DOWN");
+
+      string str1(buf1);
+      ms1_list.push_back(str1);
+
+      if(i == (int)(id_list.size() - 1)){
+        string str2(str1);
+        ms2_list.push_back(str2);
+
+      }else{////////////////the end metro stop 
+
+        Tuple* ms_tuple = mg->GetNode_Rel()->GetTuple(elem.tri_index, false);
+        Bus_Stop* ms_cur = 
+              (Bus_Stop*)ms_tuple->GetAttribute(MetroGraph::MG_NODE_STOP); 
+        char buf_1[256], buf_2[256];
+        sprintf(buf_1, "mr: %d ", ms_cur->GetId());
+        sprintf(buf_2, "stop: %d", ms_cur->GetStopId());
+        strcat (buf_1, buf_2);   
+        if(ms_cur->GetUp()) strcat (buf_1, " UP");
+            else strcat (buf_1, " DOWN");
+
+        string str2(buf_1);
+        ms2_list.push_back(str2);
+        ms_last = *ms_cur;
+        ms_tuple->DeleteIfAllowed();
+      }
+
+        ////////////////time duration////////////////////////////////
+
+        Instant t2(instanttype);
+        if(elem.b_w == false){
+          t2.ReadFrom(elem.real_w + qt->ToDouble());
+//        cout<<t1<<" "<<t2<<endl; 
+
+        //time cost in seconds 
+          if(elem.valid)
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+          else //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+          Interval<Instant> time_span;
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
+          Periods* peri = new Periods(0);
+          peri->StartBulkLoad();
+          if(elem.valid)
+            peri->MergeAdd(time_span);
+          peri->EndBulkLoad();
+          peri_list.push_back(*peri); 
+          t1 = t2; 
+          delete peri; 
+        }else{ //////////to dinstinguish time of waiting for the metro 
+          t2.ReadFrom(elem.w + qt->ToDouble());
+//        cout<<t1<<" "<<t2<<endl; 
+
+        //time cost in seconds 
+          if(elem.valid)
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+          else //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+          Interval<Instant> time_span;
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
+          Periods* peri1 = new Periods(0);
+          peri1->StartBulkLoad();
+          if(elem.valid)
+            peri1->MergeAdd(time_span);
+          peri1->EndBulkLoad();
+          peri_list.push_back(*peri1); 
+          t1 = t2; 
+          delete peri1; 
+
+          SimpleLine* sl = new SimpleLine(0);
+          sl->StartBulkLoad();
+          sl->EndBulkLoad();
+          path_list[path_list.size() - 1] = *sl;
+          delete sl; 
+
+          tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
+          string str = ms2_list[ms2_list.size() - 1];
+          ////////the same as last metro stop //////////////////////
+          ms2_list[ms2_list.size() - 1] = ms1_list[ms1_list.size() - 1];
+
+          /////////////moving with metro////////////////////////////////
+          t2.ReadFrom(elem.real_w + qt->ToDouble());
+//        cout<<t1<<" "<<t2<<endl; 
+
+          //time cost in seconds 
+          if(elem.valid)
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+          else //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
+          Periods* peri2 = new Periods(0);
+          peri2->StartBulkLoad();
+          if(elem.valid)
+            peri2->MergeAdd(time_span);
+          peri2->EndBulkLoad();
+          peri_list.push_back(*peri2); 
+          t1 = t2; 
+          delete peri2; 
+          path_list.push_back(elem.path);
+          tm_list.push_back(str_tm[elem.tm]);
+          ms1_list.push_back(str1);
+          ms2_list.push_back(str); 
+
+        }
+
+    }
+//    cout<<" transfer "<<no_transfer<<" times "<<endl; 
+  }else{
+    cout<<"ms1 ("<<*ms1<<") ms2 ("<<*ms2<<") not reachable "<<endl;
+  }
+
+
+  mn->CloseMetroGraph(mg);
+
+}
+
+
+/*
+initialize the queue: shortest path in time 
+
+*/
+void MNNav::InitializeQueue(Bus_Stop* ms1, Bus_Stop* ms2,
+                            priority_queue<BNPath_elem>& path_queue, 
+                            vector<BNPath_elem>& expand_queue, 
+                            MetroNetwork* mn, MetroGraph* mg,
+                            Point& start_p, Point& end_p)
+{
+    int cur_size = expand_queue.size();
+    double w = 0.0; 
+
+    double hw = start_p.Distance(end_p)/(mn->GetMaxSpeed()*24.0*60.0*60.0);
+//    double hw = 0.0; 
+
+    SimpleLine* sl = new SimpleLine(0);
+    sl->StartBulkLoad();
+    sl->EndBulkLoad();
+
+    int ms_tid = mg->GetMetroStop_Tid(ms1); 
+//    cout<<"start metro stop tid "<<ms_tid<<endl;
+    //////////////////no time cost////////////////////////////////////
+    BNPath_elem elem(-1, cur_size, ms_tid, w + hw, w, *sl, TM_METRO, false);
+    path_queue.push(elem);
+    expand_queue.push_back(elem); 
+    delete sl;
+}
+
 

@@ -115,6 +115,7 @@ operator createmetroroute alias CREATEMETROROUTE pattern op(_)
 operator createmetrostop alias CREATEMETROSTOP pattern op(_)
 operator createmetromo alias CREATEMETROMO pattern op(_,_)
 operator mapmstopave alias MAPMSTOPAVE pattern op(_,_,_)
+operator mnnavigation alias MNNAVIGATION pattern op(_,_,_,_)
 
 operator thefloor alias THEFLOOR pattern op(_,_)
 operator getheight alias GETHEIGHT pattern op(_)
@@ -172,5 +173,7 @@ operator generate_genmo3 alias GENERATE_GENMO3 pattern op(_,_,_,_,_,_,_)
 operator generate_genmo4 alias GENERATE_GENMO4 pattern op(_,_,_,_,_)
 operator generate_genmo5 alias GENERATE_GENMO5 pattern op(_,_,_,_,_,_,_)
 operator generate_genmo6 alias GENERATE_GENMO6 pattern op(_,_,_,_,_,_,_)
+operator generate_genmo7 alias GENERATE_GENMO7 pattern op(_,_,_,_,_,_,_)
+
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 

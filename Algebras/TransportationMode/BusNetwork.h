@@ -659,6 +659,7 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     void GetGeoData(SimpleLine& sl);
 
     void GetBusStopGeoData(Bus_Stop* bs, Point* p);
+    void GetMetroStopGeoData(Bus_Stop* bs, Point* p);
 
     void GetElem(int i, BR_Elem& elem);
     void GetSeg(int i, HalfSegment& hs);
@@ -731,6 +732,7 @@ class BusNetwork{
 
   static string BusRoutesBTreeTypeInfo; 
   static string BusRoutesBTreeUOidTypeInfo; 
+  ////////br id, unique bus route id, large number ///////////////
   static string BusTripsTypeInfo; 
   static string BusTripBTreeTypeInfo;
 
@@ -988,7 +990,7 @@ class BusGraph{
 };
 
 /*
-for shortest path searching  in bus network 
+for shortest path searching  in bus network and metro network
 
 */
 struct BNPath_elem:public Path_elem{
@@ -999,7 +1001,7 @@ struct BNPath_elem:public Path_elem{
   bool valid; //false: transfering without moving 
   
   bool b_w;
-  double w;//special case for time waiting for the bus 
+  double w;//special case for time waiting for the bus or metro
   BNPath_elem():path(0){}
   BNPath_elem(int p, int c, int t, double w1, double w2, SimpleLine& sl,
               int m, bool b = true):Path_elem(p, c, t), weight(w1), real_w(w2), 
@@ -1034,8 +1036,11 @@ struct BNPath_elem:public Path_elem{
   void Print()
   {
     cout<<" tri_index " <<tri_index<<" realweight "<<real_w
-        <<" weight "<<weight<<" tm "<<str_tm[tm]<<endl;
+        <<" weight "<<weight;
+    if(tm >= 0)cout<<" tm "<<str_tm[tm]<<endl;
+    else cout<<"tm: none"<<endl;
   }
+
 };
 
 /*
@@ -1092,7 +1097,9 @@ struct BNPath_elem2:public Path_elem{
   void Print()
   {
     cout<<" tri_index " <<tri_index<<" realweight "<<real_w
-        <<" weight "<<weight<<" tm "<<str_tm[tm]<<endl;
+        <<" weight "<<weight;
+    if(tm >= 0)cout<<" tm "<<str_tm[tm]<<endl;
+    else cout<<"tm: none"<<endl;
   }
 };
 
@@ -1379,10 +1386,12 @@ struct MetroStruct{
   static string MetroTripTypeInfo_Com;
 
   enum MetroRouteInfo{MR_ID,MR_ROUTE,MR_OID};
-  enum MetroTripInfoCom{M_GENMO_COM,M_MP_COM,M_R_ID_COM,M_DIR_COM,M_OID_COM};
+  enum MetroTripInfoCom{M_GENMO_COM,M_MP_COM,M_R_ID_COM,M_DIR_COM,M_R_OID_COM,
+                        M_OID_COM};
 
   vector<int> id_list;
   vector<bool> dir_list;
+  vector<int> mr_oid_list;
   vector<Bus_Route> mroute_list; 
   vector<Region> cell_reg_list1;
   vector<Region> cell_reg_list2;
@@ -1424,6 +1433,7 @@ struct MetroStruct{
 
  void CopyMetroTrip(GenMO* genmo, MPoint* mo, Periods* peri, 
                     Instant st,int,int,bool);
+ void CopyTripOneDayBefore();
  /////////////////////////////////////////////////////////////////////////
  ////////////////create stops and routes relation////////////////////
  /////////////////////////////////////////////////////////////////////
@@ -1443,6 +1453,7 @@ struct MetroStruct{
 };
 
 
+class MetroGraph;
 
 /*
 metro network: underground trains 
@@ -1474,11 +1485,16 @@ class MetroNetwork{
     double GetMaxSpeed(){return max_metro_speed;}
     int GetMS_Stop_Neighbor(UBahn_Stop* ms_stop);
 
-    R_Tree<2,TupleId>* GetMS_RTree() { return rtree_bs;}
+    R_Tree<2,TupleId>* GetMS_RTree() { return rtree_ms;}
     void SetGraphId(int g_id);
 
     bool IsGraphInit(){return graph_init;}
     unsigned int GraphId(){return graph_id;}
+    MetroGraph* GetMetroGraph();
+    void CloseMetroGraph(MetroGraph* mg);
+    void GetMetroStopGeoData(Bus_Stop* ms, Point* p);
+    int GetMOMetro_Oid(Bus_Stop* ms, Point*, Instant& t);
+    int GetMOMetro_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
 
     ///////////////used for the real data, (ubahn converting)////////////////
     static string UBAHNStopsTypeInfo;
@@ -1500,13 +1516,18 @@ class MetroNetwork{
     static string MetroRoutesTypeInfo;
     static string MetroRoutesBTreTypeInfo;
 
+    ////// mr id is the unique route id, large number /////
     static string MetroTripTypeInfo;
     static string MetroTypeBTreeTypeInfo;
 
+    static string MetroPaveTypeInfo;
 
     enum METRO_STOP_INFO{M_STOP, M_STOP_GEO, M_R_ID};
     enum METRO_ROUTE_INFO{M_ROUTE_ID,M_ROUTE,M_R_OID};
-    enum METRO_TRIP_INFO{M_TRIP_GENMO, M_TRIP_MP, M_ROUTE_ID2,M_TRIP_OID};
+    enum METRO_TRIP_INFO{M_TRIP_GENMO, M_TRIP_MP, M_REFMR_OID,M_TRIP_OID};
+
+    enum METRO_PAVE_INFO{METRO_PAVE_LOC1, METRO_PAVE_LOC2,
+                         METRO_PAVE_MS_STOP, METRO_PAVE_MS_STOP_LOC};
 
   private:
 
@@ -1519,16 +1540,16 @@ class MetroNetwork{
     unsigned int min_mt_oid; //smallest metro trip oid 
 
     Relation* stops_rel; //a relation for metro stops
-    BTree* btree_bs; //a btree on metro stops on line id 
-    R_Tree<2,TupleId>* rtree_bs; //an rtree on metro stops
+    BTree* btree_ms; //a btree on metro stops on line id 
+    R_Tree<2,TupleId>* rtree_ms; //an rtree on metro stops
 
     Relation* routes_rel;  //a relaton for metro routes
-    BTree* btree_br; //a btree on metro routes line id
-    BTree* btree_br_uoid; //a btree on metro routes for unique oid 
+    BTree* btree_mr; //a btree on metro routes line id
+    BTree* btree_mr_uoid; //a btree on metro routes for unique oid 
 
 
     Relation* metrotrips_rel; //a relation for moving buses 
-    BTree* btree_trip_br_id; //a btree on metro trips on metro route linid 
+    BTree* btree_trip_br_id; //a btree on metro trips on  unique route linid
     BTree* btree_trip_oid;  //a btree on metro trips on unique oid 
 
 };
@@ -1607,6 +1628,18 @@ class MetroGraph{
     void Load(int, Relation*, Relation*, Relation*);
     void LoadEdge1(Relation* edge1); 
     void LoadEdge2(Relation* edge2); 
+    
+    Relation* GetNode_Rel(){return node_rel;}
+    Relation* GetEdge_Rel1(){return edge_rel1;}
+    Relation* GetEdge_Rel2(){return edge_rel2;}
+    
+    unsigned int GetMG_ID(){return mg_id;}
+    double GetMIN_T(){return min_t;}
+    
+    int GetMetroStop_Tid(Bus_Stop* ms);
+    
+    void FindAdj1(int node_id, vector<int>& list);
+    void FindAdj2(int node_id, vector<int>& list);
 
 
   private:
@@ -1624,6 +1657,51 @@ class MetroGraph{
     DbArray<int> adj_list2;
     DbArray<ListEntry> entry_adj_list2;
 
+};
+
+/*
+query processing on the metro graph
+navigation on the metro network
+
+*/
+struct MNNav{
+  MetroNetwork* mn;
+  
+  vector<SimpleLine> path_list; 
+  vector<string> tm_list; 
+  vector<string> ms1_list;
+  vector<string> ms2_list; 
+  vector<Periods> peri_list; 
+  vector<double> time_cost_list; 
+
+  vector<Bus_Stop> ms_list;
+  vector<Point> ms_geo_list; 
+  
+  vector<GenMO> genmo_list;
+  vector<MPoint> mp_list;
+  
+  vector<Bus_Stop> ms_list1;
+  vector<Bus_Stop> ms_list2;
+  vector<int> mr_id_list;
+  
+  unsigned int count;
+  TupleType* resulttype;
+  
+  MNNav(){count = 0; resulttype = NULL;}
+  MNNav(MetroNetwork* n):mn(n)
+  { count = 0; 
+    resulttype = NULL;
+  }
+
+
+  ~MNNav(){if(resulttype != NULL) delete resulttype;}
+  
+  void ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant*);
+  void InitializeQueue(Bus_Stop* ms1, Bus_Stop* ms2, 
+                            priority_queue<BNPath_elem>& path_queue, 
+                            vector<BNPath_elem>& expand_queue,
+                            MetroNetwork* mn, MetroGraph* mg,
+                            Point& start_p, Point& end_p);
 };
 
 #endif

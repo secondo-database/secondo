@@ -3288,6 +3288,15 @@ const string SpatialSpecGenerateGMO6TMList =
 "<text>query generate_genmo6(space_1, TwoDays, 30.0, 13,"
 "tri_reg_new, bs_pave_sort, rtree_bs_pave) </text---> ) )";
 
+const string SpatialSpecGenerateGMO7TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x periods x real x int x rel x rel x rtree"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_genmo7 (space, periods, int, int, rel,rel, rtree) </text--->"
+"<text>generate generic moving objects </text--->"
+"<text>query generate_genmo7(space_1, TwoDays, 30.0, 4, tri_reg_new,"
+"msneighbor, rtree_ms_stop) </text---> ) )";
+
 
 const string SpatialSpecNavigation1List =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -4677,6 +4686,65 @@ int GenerateGMO6ListValueMap(Word* args, Word& result, int message,
 
 }
 
+/*
+create generic moving objects for Walk Metro
+
+*/
+int GenerateGMO7ListValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        int type = ((CcInt*)args[3].addr)->GetIntval();
+        Relation* rel1 = (Relation*)args[4].addr;
+        Relation* rel2 = (Relation*)args[5].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[6].addr; 
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateGenMO7(sp, peri, mo_no, type, rel1, rel2, rtree);
+        local.setAddr(mo);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->line_list1.size()) return CANCEL;
+//          if(mo->count == mo->loc_list1.size()) return CANCEL;
+          Tuple* tuple = new Tuple(mo->resulttype);
+
+//          tuple->PutAttribute(0, new Point(mo->loc_list1[mo->count]));
+//          tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));
+//          tuple->PutAttribute(2, new Point(mo->loc_list3[mo->count]));
+
+           tuple->PutAttribute(0,new Line(mo->line_list1[mo->count]));
+           tuple->PutAttribute(1,new GenMO(mo->trip1_list[mo->count]));
+           tuple->PutAttribute(2,new MPoint(mo->trip2_list[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
 
 /*
 navigation with modes Walk and Bus
@@ -5669,6 +5737,118 @@ ListExpr GenerateGMO6ListTypeMap(ListExpr args)
 }
 
 /*
+TypeMap function for operator generate genmo7
+
+*/
+ListExpr GenerateGMO7ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 7){
+      string err = "seven input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 parameter should be real and 4 parameter be int";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType);
+
+  if(!(CompareSchemas(arg5, xType)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg6 = nl->Sixth(args);
+  if (!(listutils::isRelDescription(arg6)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(MetroNetwork::MetroPaveTypeInfo, xType1);
+
+  if(!(CompareSchemas(arg6, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg7 = nl->Nth(7, args);
+  if(!listutils::isRTreeDescription(arg7))
+    return listutils::typeError("para7 should be a rtree");
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->SixElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("loc1"),
+//                                     nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("gloc"),
+//                                     nl->SymbolAtom("gpoint")),
+//                         nl->TwoElemList(nl->SymbolAtom("loc2"),
+//                                     nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("Path"),
+//                                     nl->SymbolAtom("line")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                     nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                     nl->SymbolAtom("mpoint"))
+//                   )
+//                 )
+//           );
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                     nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                     nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+//                   nl->SymbolAtom("tuple"),
+//                       nl->OneElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("q_loc"),
+//                                     nl->SymbolAtom("point"))
+//                   )
+//                 )
+//           );
+
+    return result;
+}
+
+
+/*
 TypeMap function for operator navigation1
 
 */
@@ -6378,7 +6558,10 @@ Operator generate_genmo2("generate_genmo2",
     GenerateGMO2ListTypeMap
 );
 
+/*
+bus + walk
 
+*/
 Operator generate_genmo3("generate_genmo3",
     SpatialSpecGenerateGMO3TMList,
     GenerateGMO3ListValueMap,
@@ -6420,6 +6603,17 @@ Operator generate_genmo6("generate_genmo6",
     GenerateGMO6ListTypeMap
 );
 
+/*
+metro + walk
+
+*/
+Operator generate_genmo7("generate_genmo7",
+    SpatialSpecGenerateGMO7TMList,
+    GenerateGMO7ListValueMap,
+    Operator::SimpleSelect,
+    GenerateGMO7ListTypeMap
+);
+
 
 Operator navigation1("navigation1",
     SpatialSpecNavigation1List,
@@ -6427,6 +6621,7 @@ Operator navigation1("navigation1",
     Operator::SimpleSelect,
     Navigation1ListTypeMap
 );
+
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -7438,7 +7633,18 @@ const string OpTMMapMsToPaveSpec  =
     "<text>map metro stops to pavement areas </text--->"
     "<text>query mapmstopave(rel, rel, rtree); </text--->"
     ") )";
-    
+
+const string OpTMMNNavigationSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>busstop x busstop x busnetwork x instant"
+    " -> (stream(((x1 t1) ... (xn tn))))</text--->"
+    "<text>mnnavigation(busstop,bussstop,metronetwork,instant)</text--->"
+    "<text>navigation in metro network system</text--->"
+    "<text>query mnnavigation(ms1, ms2, mn1, "
+    "theInstant(2010,12,5,16,0,0,0)) count; </text--->"
+    ") )";
+
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -13456,7 +13662,7 @@ ListExpr OpTMCreateMetroMOTypeMap ( ListExpr args )
              nl->SymbolAtom("stream"),
              nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
-                 nl->FourElemList(
+                 nl->FiveElemList(
                      nl->TwoElemList(
                          nl->SymbolAtom("mtrip1"),
                          nl->SymbolAtom("genmo")),
@@ -13468,7 +13674,10 @@ ListExpr OpTMCreateMetroMOTypeMap ( ListExpr args )
                          nl->SymbolAtom("int")),
                      nl->TwoElemList(
                          nl->SymbolAtom("Up"),
-                         nl->SymbolAtom("bool"))
+                         nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                         nl->SymbolAtom("mr_oid"),
+                         nl->SymbolAtom("int"))
                      )));
 
   return res; 
@@ -13510,12 +13719,18 @@ ListExpr OpTMMapMsToPaveTypeMap ( ListExpr args )
              nl->SymbolAtom("stream"),
              nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
-                 nl->TwoElemList(
+                 nl->FourElemList(
                      nl->TwoElemList(
                          nl->SymbolAtom("loc1"),
                          nl->SymbolAtom("genloc")),
                      nl->TwoElemList(
                          nl->SymbolAtom("loc2"),
+                         nl->SymbolAtom("point")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("ms_stop"),
+                         nl->SymbolAtom("busstop")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("ms_stop_loc"),
                          nl->SymbolAtom("point"))
                      )));
 
@@ -13535,6 +13750,77 @@ ListExpr OpTMMapMsToPaveTypeMap ( ListExpr args )
 //                           nl->SymbolAtom("point"))
 //                       )));
   return res;
+}
+
+
+/*
+TypeMap fun for operator mnnavigation
+
+*/
+
+ListExpr OpTMMNNavigationTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  
+  
+  if(!(nl->IsAtom(arg1) && 
+       nl->AtomType(arg1) == SymbolType && nl->SymbolValue(arg1) == "busstop")){
+      string err = "param1 should be busstop";
+      return listutils::typeError(err);
+  }
+
+  if(!(nl->IsAtom(arg2) && 
+      nl->AtomType(arg2) == SymbolType && nl->SymbolValue(arg2) == "busstop")){
+      string err = "param2 should be busstop";
+      return listutils::typeError(err);
+  }
+
+  if(!(nl->IsAtom(arg3) && 
+       nl->AtomType(arg3) == SymbolType &&
+       nl->SymbolValue(arg3) == "metronetwork")){
+      string err = "param3 should be metro network";
+      return listutils::typeError(err);
+  }
+
+  if(!(nl->IsAtom(arg4) && 
+      nl->AtomType(arg4) == SymbolType && nl->SymbolValue(arg4) == "instant")){
+      string err = "param4 should be instant";
+      return listutils::typeError(err);
+  }
+
+
+  ListExpr result =
+
+        nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("MS1"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("MS2"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("Duration"),
+                                    nl->SymbolAtom("periods")),
+                        nl->TwoElemList(nl->SymbolAtom("TimeCost"),
+                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+
+  return result; 
+
 }
 
 /*
@@ -19537,14 +19823,16 @@ int OpTMCreateMetroMOValueMap ( Word* args, Word& result, int message,
 
           Tuple* tuple = new Tuple(ub_train->resulttype);
 
-         tuple->PutAttribute(0, 
+          tuple->PutAttribute(0, 
                      new GenMO(ub_train->mtrip_list1[ub_train->count]));
-         tuple->PutAttribute(1, 
+          tuple->PutAttribute(1, 
                      new MPoint(ub_train->mtrip_list2[ub_train->count]));
-         tuple->PutAttribute(2, 
+          tuple->PutAttribute(2, 
                      new CcInt(true, ub_train->id_list[ub_train->count]));
-         tuple->PutAttribute(3, 
+          tuple->PutAttribute(3, 
                      new CcBool(true, ub_train->dir_list[ub_train->count]));
+          tuple->PutAttribute(4, 
+                     new CcInt(true, ub_train->mr_oid_list[ub_train->count]));
 
           result.setAddr(tuple);
           ub_train->count++;
@@ -19596,6 +19884,10 @@ int OpTMMapMsToPaveValueMap ( Word* args, Word& result, int message,
                      new GenLoc(ub_train->loc_list1[ub_train->count]));
          tuple->PutAttribute(1, 
                      new Point(ub_train->loc_list2[ub_train->count]));
+         tuple->PutAttribute(2, 
+                     new Bus_Stop(ub_train->mstop_list[ub_train->count]));
+         tuple->PutAttribute(3, 
+                     new Point(ub_train->stop_geo_list[ub_train->count]));
 
 //          tuple->PutAttribute(0, 
 //                     new CcInt(true,ub_train->id_list[ub_train->count]));
@@ -19603,6 +19895,7 @@ int OpTMMapMsToPaveValueMap ( Word* args, Word& result, int message,
 //                       new Region(ub_train->neighbor_list[ub_train->count]));
 //          tuple->PutAttribute(2, 
 //                       new Point(ub_train->loc_list2[ub_train->count]));
+
 
           result.setAddr(tuple);
           ub_train->count++;
@@ -19619,6 +19912,71 @@ int OpTMMapMsToPaveValueMap ( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+
+/*
+navigation system in the metro network. 
+it provides two kinds of shortest path from one bus stop to another by time
+
+*/
+int OpTMMNNavigationValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  MNNav* mn_nav;
+
+  switch(message){
+      case OPEN:{
+        Bus_Stop* ms1 = (Bus_Stop*)args[0].addr;
+        Bus_Stop* ms2 = (Bus_Stop*)args[1].addr;
+        MetroNetwork* mn = (MetroNetwork*)args[2].addr;
+        Instant* query_time = (Instant*)args[3].addr;
+
+        mn_nav = new MNNav(mn);
+        mn_nav->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mn_nav->ShortestPath_Time(ms1, ms2, query_time);
+
+        local.setAddr(mn_nav);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mn_nav = (MNNav*)local.addr;
+
+          if(mn_nav->count == mn_nav->path_list.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(mn_nav->resulttype);
+          tuple->PutAttribute(0,
+                        new SimpleLine(mn_nav->path_list[mn_nav->count]));
+          tuple->PutAttribute(1,
+                              new CcString(mn_nav->tm_list[mn_nav->count]));
+          tuple->PutAttribute(2,
+                              new CcString(mn_nav->ms1_list[mn_nav->count]));
+          tuple->PutAttribute(3,
+                              new CcString(mn_nav->ms2_list[mn_nav->count]));
+          tuple->PutAttribute(4,
+                              new Periods(mn_nav->peri_list[mn_nav->count]));
+          tuple->PutAttribute(5,
+                       new CcReal(true,mn_nav->time_cost_list[mn_nav->count]));
+
+          result.setAddr(tuple);
+          mn_nav->count++;
+          return YIELD;
+
+      }
+      case CLOSE:{
+          if(local.addr){
+            mn_nav = (MNNav*)local.addr;
+            delete mn_nav;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
 
 /*
 get the day of an instant 
@@ -20975,6 +21333,15 @@ Operator mapmstopave(
   OpTMMapMsToPaveTypeMap
 );
 
+
+Operator mnnavigation(
+  "mnnavigation",
+  OpTMMNNavigationSpec,
+  OpTMMNNavigationValueMap,
+  Operator::SimpleSelect,
+  OpTMMNNavigationTypeMap
+);
+
 /////////////////////////////////////////////////////////////////////////////
 /////////////////// auxiliary operators////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
@@ -21234,6 +21601,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&createmetrostop);//create metro stops from routes 
     AddOperator(&createmetromo);//create moving metros 
     AddOperator(&mapmstopave);//map metro stops to pavement areas
+    AddOperator(&mnnavigation);//query processing on the metro network,graph 
 
     ////////////////////////////////////////////////////////////////////
     ////////////////  Indoor Operators   ///////////////////////////////
@@ -21320,6 +21688,8 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_genmo4);//indoor + walk
    AddOperator(&generate_genmo5);//indoor + walk + car(taxi)
    AddOperator(&generate_genmo6);//indoor + walk + bus
+   AddOperator(&generate_genmo7);//metro + walk
+   
    ///////////////////////////////////////////////////////////////////////
    ///////////////overall navigation system///////////////////////////////
    /////////////////////////////////////////////////////////////////////
