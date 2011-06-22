@@ -1,0 +1,8 @@
+Database: berlintest
+Restore : No
+
+Operator : shpimport3
+Number   : 1
+Signature: text  -> stream(T)
+Example  : query  shpimport3('kinos.shp') count
+Result   : 83
