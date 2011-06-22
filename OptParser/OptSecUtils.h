@@ -48,6 +48,20 @@ the type argument.
 
 
 
+/*
+~isValidId~
+
+This function checks whether a string can be used as a name 
+(for an attribute, an object etc.). If this name is 
+not valid, the result of this function will be false. 
+If the boolean parameter is set to true, the result will also
+be false, if an object with this name is present in the currently
+opened database. 
+
+*/
+
+bool isValidID(const string& id, const bool checkObject = false);
+
 
 
 } // end of namespace

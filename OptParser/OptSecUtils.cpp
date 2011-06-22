@@ -455,7 +455,54 @@ is returned via the type argument.
 
 
 
+/*
+~isValidId~
 
+This function checks whether a string can be used as a name 
+(for an attribute, an object etc.). If this name is 
+not valid, the result of this function will be false. 
+If the boolean parameter is set to true, the result will also
+be false, if an object with this name is present in the currently
+opened database. 
+
+*/
+
+bool isValidID(const string& id, const bool checkObject /*= false*/ ){
+    string b = checkObject?"TRUE":"FALSE";
+    string command = "query isValidID(\"" + id  +"\" , "+ b+")";
+    ListExpr result1;
+    int errorCode =0;
+    int errorPos = 0;
+    string errorMsg; 
+    si->Secondo(command,
+                plnl->TheEmptyList(),
+                1,                    // command level
+                true,                 // command as text
+                false,                // result as text
+                result1,   
+                errorCode,
+                errorPos,
+                errorMsg);
+    ListExpr result;
+    copyList(si->GetNestedList(),result1, plnl, result);
+    if(errorCode!=0){
+      cerr << "Problem in checking for validID " << errorMsg << endl;
+      return false;
+    }
+    if(!plnl->HasLength(result,2)){
+       cerr << "isValidID returns a crazy result" << endl;
+       return false;
+    }
+    if(!plnl->IsEqual(plnl->First(result),"bool") ){
+       cerr << "isValidId does not return a boolean value" << endl;
+       return false;
+    }
+    if(!plnl->AtomType(plnl->Second(result)==BoolType)){
+       cerr << "isValidID does not return a defined boolean value" << endl;
+       return  false;
+    }
+    return plnl->BoolValue(plnl->Second(result));
+}
 
 
 
