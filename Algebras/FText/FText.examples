@@ -865,4 +865,15 @@ Signature : DATA -> text
 Example   : query attr2text(32)
 Result    : (text '32')
 
+Operator  : isValidID
+Number    : 1
+Signature : string -> bool
+Example   : query isValidID("query")
+Result    : FALSE
+
+Operator  : isValidID
+Number    : 2
+Signature : string x bool -> bool
+Example   : query isValidID("mehringdamm", TRUE)
+Result    : FALSE
 

@@ -1948,6 +1948,32 @@ ListExpr attr2textTM(ListExpr args){
 }
 
 
+ListExpr isValidIDTM(ListExpr args){
+  string err =" expected string [ x bool]";
+
+  int len = nl->ListLength(args);
+  if((len !=1) && (len!=2)){
+    return listutils::typeError(err);
+  }
+
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(len == 2){
+    if(!CcBool::checkType(nl->Second(args))){
+        return listutils::typeError(err);
+    }
+    return nl->SymbolAtom(CcBool::BasicType());
+  }
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->BoolAtom(false)),
+                           nl->SymbolAtom(CcBool::BasicType())); 
+
+}
+
+
+
 
 /*
 3.3 Value Mapping Functions
@@ -5907,6 +5933,30 @@ int attr2textVM( Word* args, Word& result, int message,
   res->Set(true,ss.str());
   return 0;
 }
+
+
+int isValidIDVM( Word* args, Word& result, int message,
+                      Word& local, Supplier s ){
+
+   const CcString* arg1 = static_cast<CcString*>(args[0].addr);
+   const CcBool* arg2 = static_cast<CcBool*>(args[1].addr);
+   result = qp->ResultStorage( s );
+   CcBool* res = static_cast<CcBool*>(result.addr);
+    
+   if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+   } else {
+     string errMsg;
+     SecondoCatalog* ct = SecondoSystem::GetCatalog();
+     string str = arg1->GetValue();
+     bool checkObject = arg2->GetValue();
+     res->Set(true, ct->IsValidIdentifier(str, errMsg, checkObject));
+   }
+   return 0;
+}
+
+
+
 /*
 3.4 Definition of Operators
 
@@ -6611,6 +6661,20 @@ const string attr2textSpec =
     " </text--->"
     "<text>query attr2text(32) </text--->"
     ") )";
+
+const string isValidIDSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> string [ x bool] -> bool </text--->"
+    "<text> isValidID(ID, checkForObject) </text--->"
+    "<text>Checks whether the given string can be used as a name, "
+    " i.e. ID is not a keyword, an operator, or a type. If the boolean"
+    " parameter is present and TRUE, the ID must not be object to evaluate"
+    " to TRUE "
+    " </text--->"
+    "<text>query isValidID(\"query\") </text--->"
+    ") )";
+
+
 /*
 Operator Definitions
 
@@ -7194,7 +7258,13 @@ Operator attr2text(
  attr2textTM
  );
 
-
+Operator isValidID(
+   "isValidID",
+   isValidIDSpec,
+   isValidIDVM,
+   Operator::SimpleSelect,
+   isValidIDTM
+  );
 
 
 
@@ -7279,6 +7349,7 @@ public:
     AddOperator( &sendtextstreamTCP);
     AddOperator( &charToText);
     AddOperator( &attr2text);
+    AddOperator( &isValidID);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
