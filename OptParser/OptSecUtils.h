@@ -64,6 +64,18 @@ bool isValidID(const string& id, const bool checkObject = false);
 
 
 
+/*
+~checkKind~
+
+Checks wether the type is member of the kind
+
+*/
+bool checkKind(const string& type, const string& kind);
+
+
+
+
+
 } // end of namespace
 
 

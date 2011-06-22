@@ -504,6 +504,53 @@ bool isValidID(const string& id, const bool checkObject /*= false*/ ){
     return plnl->BoolValue(plnl->Second(result));
 }
 
+/*
+~checkKind~
+
+Checks wether the type is member of the kind
+
+*/
+bool checkKind(const string& type, const string& kind){
+    string command = "query \"" + type  +
+                     "\" kinds transformstream filter[.elem = \""+ 
+                      kind+"\" ] count";
+    ListExpr result1;
+    int errorCode =0;
+    int errorPos = 0;
+    string errorMsg; 
+    si->Secondo(command,
+                plnl->TheEmptyList(),
+                1,                    // command level
+                true,                 // command as text
+                false,                // result as text
+                result1,   
+                errorCode,
+                errorPos,
+                errorMsg);
+    ListExpr result;
+    copyList(si->GetNestedList(),result1, plnl, result);
+    if(errorCode!=0){
+      cerr << "Problem in checking kind " << errorMsg << endl;
+      return false;
+    }
+    if(!plnl->HasLength(result,2)){
+       cerr << "kindcheck returns a crazy result" << endl;
+       return false;
+    }
+    if(!plnl->IsEqual(plnl->First(result),"int") ){
+       cerr << "isValidId does not return an integer value" << endl;
+       return false;
+    }
+    if(!plnl->AtomType(plnl->Second(result)==IntType)){
+       cerr << "isValidID does not return a defined integer value" << endl;
+       return  false;
+    }
+    return plnl->IntValue(plnl->Second(result))>0;
+}
+
+
+
+
 
 
 } // end of namespace
