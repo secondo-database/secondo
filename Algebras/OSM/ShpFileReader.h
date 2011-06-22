@@ -75,6 +75,9 @@ public:
     uint32_t readLittleInt32 ();
     double readLittleDouble ();
 
+    static string getShpType(const string fname, bool& correct,
+                             string& errorMessage);
+
 private:
 
     // --- Attributes

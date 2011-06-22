@@ -61,11 +61,11 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 // --- Announcing global functions from ImExAlgebra.cpp
-extern string getShpType (const string fname, bool& correct,
-                          string& errorMessage);
-template<int filePos>
-extern int shpimportVM (Word* args, Word& result, int message,
-                        Word& local, Supplier s);
+//extern string getShpType (const string fname, bool& correct,
+//                          string& errorMessage);
+//template<int filePos>
+//extern int shpimportVM (Word* args, Word& result, int message,
+//                        Word& local, Supplier s);
 
 // --- shpimport3-operator
 // Specification of operator shpimport3
@@ -166,7 +166,7 @@ ListExpr shpimport3TypeMap(ListExpr args){
    bool correct;
    string errmsg;
 
-   shpType = getShpType(name, correct, errmsg);
+   shpType = ShpFileReader::getShpType(name, correct, errmsg);
    if(!correct){
       return listutils::typeError(errmsg);
    }

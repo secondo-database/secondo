@@ -64,14 +64,15 @@ ShpFileReader::ShpFileReader (const ListExpr allowedType1, const FText* fname) {
     int allowedType = -1;
     if (listutils::isSymbol (allowedType1,Point::BasicType ())) {
         allowedType=1;
-    } else  if (listutils::isSymbol (allowedType1,Line::BasicType ())) {
+    //} else  if (listutils::isSymbol (allowedType1,Line::BasicType ())) {
+    } else  if (listutils::isSymbol (allowedType1,SimpleLine::BasicType ())) {
         allowedType=3;
     } else  if (listutils::isSymbol (allowedType1,Region::BasicType ())) {
         allowedType=5;
     } else  if (listutils::isSymbol (allowedType1,Points::BasicType ())) {
         allowedType=8;
     }
-
+    
     if (!fname->IsDefined ()) {
         defined = false;
     } else {
@@ -112,7 +113,8 @@ Attribute* ShpFileReader::getNext () {
     }
     switch (type) {
         case 1: return getNextPoint ();
-        case 3: return getNextLine ();
+        //case 3: return getNextLine ();
+        case 3: return getNextSimpleLine ();
         case 5: return getNextPolygon ();
         case 8: return getNextMultiPoint ();
         default: return 0;
@@ -608,4 +610,104 @@ double ShpFileReader::readLittleDouble () {
     return res;
 }
 
+string ShpFileReader::getShpType(const string fname, bool& correct,
+                                 string& errorMessage) {
+  correct = false;
+  if(fname.length()==0){
+     errorMessage = "invalid filename";
+     return "";
+  }
 
+  ifstream f(fname.c_str(),std::ios::binary);
+  if(!f.good()){
+     errorMessage = "problem in reading file";
+     return "";
+  }
+
+  f.seekg(0,ios::end);
+  streampos flen = f.tellg();
+  if(flen < 100){
+     errorMessage =  "not a valid shape file";
+     f.close();
+     return "";
+  }
+
+
+  f.seekg(0,ios::beg);
+  uint32_t code = 0;
+  f.read(reinterpret_cast<char*>(&code),4);
+  if(WinUnix::isLittleEndian()){
+     code = WinUnix::convertEndian(code);
+  }
+  if(code!=9994){
+     errorMessage = "invalid file code  detected";
+     f.close();
+     return "";
+  }
+
+  uint32_t version;
+  f.seekg(28,ios::beg);
+  f.read(reinterpret_cast<char*>(&version),4);
+  if(!WinUnix::isLittleEndian()){
+      version = WinUnix::convertEndian(version);
+  }
+  if(version != 1000){
+    errorMessage = "invalid version detected";
+    f.close();
+    return "";
+  }
+  uint32_t type;
+  f.read(reinterpret_cast<char*>(&type),4);
+  if(!WinUnix::isLittleEndian()){
+    type = WinUnix::convertEndian(type);
+  }
+  f.close();
+
+  switch(type){
+    case 0 : { errorMessage = "null shape, no corresponding secondo type";
+               return "";
+             }
+    case 1 : { correct = true;
+               return Point::BasicType();
+             }
+    case 3 : { correct = true;
+               return SimpleLine::BasicType();
+             }
+    case 5 : { correct = true;
+               return Region::BasicType();
+             }
+    case 8 : { correct = true;
+               return Points::BasicType();
+             }
+    case 11 : { errorMessage = "PointZ, no corresponding secondo type";
+               return "";
+             }
+    case 13 : { errorMessage = ("PolyLineZ, no corresponding secondo type");
+               return "";
+             }
+    case 15 : { errorMessage = ("PolygonZ, no corresponding secondo type");
+               return "";
+             }
+    case 18 : { errorMessage=("MultiPointZ, no corresponding secondo type");
+               return "";
+             }
+    case 21 : { errorMessage=("PointM, no corresponding secondo type");
+               return "";
+             }
+    case 23 : { errorMessage =("PolyLineM, no corresponding secondo type");
+               return "";
+             }
+    case 25 : {errorMessage=("PolygonM, no corresponding secondo type");
+               return "";
+             }
+    case 28 : { errorMessage=("MultiPointM, no corresponding secondo type");
+               return "";
+             }
+    case 31 : { errorMessage = ("MultiPatch, no corresponding secondo type");
+               return "";
+             }
+    default : errorMessage = " not a valid shape type";
+              return "";
+  }
+
+}
