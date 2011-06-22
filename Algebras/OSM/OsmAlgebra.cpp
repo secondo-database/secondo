@@ -51,7 +51,10 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Symbols.h"
+#include "../Spatial/Geoid.h"
+#include "../Spatial/SpatialAlgebra.h"
 #include "../FText/FTextAlgebra.h"
+#include "ShpFileReader.h"
 
 // --- Enabling global pointer variables
 extern NestedList* nl;
@@ -78,8 +81,50 @@ const string shpimport3Spec  =
 // Value-mapping-function of operator shpimport3
 template<int filePos>
 int shpimport3ValueMap(Word* args, Word& result, int message,
-                       Word& local, Supplier s){
-    return shpimportVM<filePos> (args, result, message, local, s);
+        Word& local, Supplier s){
+    //return shpimportVM<filePos> (args, result, message, local, s);
+    ShpFileReader* reader = NULL;
+    FText* fname = NULL;
+    ListExpr type;
+    int ret = 0;
+    switch(message){
+        case OPEN:
+            if(local.addr){
+                delete (ShpFileReader*)local.addr;
+            }
+            fname = static_cast<FText*>(args[filePos].addr);
+            type = nl->Second(qp->GetType(s));
+            local.setAddr(new ShpFileReader(type,fname));
+            ret = 0;
+            break;
+        case REQUEST:
+            if(!local.addr){
+                ret = CANCEL;
+            } else {
+                reader = static_cast<ShpFileReader*>(local.addr);
+                if(!reader){
+                    ret = CANCEL;
+                } else {
+                    Attribute* next = reader->getNext();
+                    result.addr = next;
+                    ret = next?YIELD:CANCEL;
+                }
+            }
+            break;
+        case CLOSE:
+            reader = static_cast<ShpFileReader*>(local.addr);
+            if(reader){
+                reader->close();
+                delete reader;
+                local.addr = 0;
+            }
+            ret = 0;
+            break;
+        default:
+            ret = 0;
+            break;
+    }
+    return ret;
 }
 
 // Type-mapping-function of operator shpimport3
