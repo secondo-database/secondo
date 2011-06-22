@@ -72,7 +72,6 @@ ShpFileReader::ShpFileReader (const ListExpr allowedType1, const FText* fname) {
         allowedType=8;
     }
 
-
     if (!fname->IsDefined ()) {
         defined = false;
     } else {
@@ -347,13 +346,17 @@ Attribute* ShpFileReader::getNextLine () {
 }
 
 Attribute* ShpFileReader::getNextPoint () {
+    uint32_t recLen = 0;
+    uint32_t type = 0;
+    double x = 0.;    
+    double y = 0.;
     if (file.tellg () == fileend) {
         return 0;
     }
-    // uint32_t recNo =
+    // Skipping the record number
     readBigInt32 ();
-    uint32_t recLen = readBigInt32 ();
-    uint32_t type = readLittleInt32 ();
+    recLen = readBigInt32 ();
+    type = readLittleInt32 ();
     if (type == 0) { // null shape
         if (recLen!=2 || !file.good ()) {
             cerr << "Error in shape file detected " << __LINE__ << endl;
@@ -370,8 +373,8 @@ Attribute* ShpFileReader::getNextPoint () {
         file.close ();
         return 0;
     }
-    double x = readLittleDouble ();
-    double y = readLittleDouble ();
+    x = readLittleDouble ();
+    y = readLittleDouble ();
     if (!file.good ()) {
         cerr << "Error in shape file detected " << __LINE__ << endl;
         defined = false;
@@ -382,14 +385,19 @@ Attribute* ShpFileReader::getNextPoint () {
 }
 
 Attribute* ShpFileReader::getNextMultiPoint () {
+    uint32_t recNo = 0;
+    uint32_t len = 0;
+    uint32_t type = 0;
+    uint32_t numPoints = 0;
+    uint32_t expectedLen = 0;
+    Points* ps = NULL;
+    Point p;
+
     if (file.tellg ()==fileend) {
         return 0;
     }
-    uint32_t recNo = 0;
     recNo =  readBigInt32 ();
-    uint32_t len = 0;
     len = readBigInt32 ();
-    uint32_t type = 0;
     type = readLittleInt32 ();
 
     if (!file.good ()) {
@@ -424,9 +432,9 @@ Attribute* ShpFileReader::getNextMultiPoint () {
     readLittleDouble ();
     readLittleDouble ();
     readLittleDouble ();
-    uint32_t numPoints = readLittleInt32 ();
+    numPoints = readLittleInt32 ();
 
-    uint32_t expectedLen = (40 + numPoints*16) / 2;
+    expectedLen = (40 + numPoints*16) / 2;
     if (len != (expectedLen)) {
         cerr << "Error in file " << __LINE__ << endl;
         cerr << "len = " << len << endl;
@@ -436,8 +444,7 @@ Attribute* ShpFileReader::getNextMultiPoint () {
         defined = false;
         return 0;
     }
-    Points* ps = new Points (numPoints);
-    Point p;
+    ps = new Points (numPoints);
     ps->StartBulkLoad ();
     for (unsigned int i=0;i<numPoints && file.good ();i++) {
         double x = readLittleDouble ();
@@ -456,13 +463,28 @@ Attribute* ShpFileReader::getNextMultiPoint () {
 }
 
 Attribute* ShpFileReader::getNextPolygon () {
+    uint32_t clen = 0;
+    uint32_t pos = 0;
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t numParts = 0;
+    uint32_t numPoints = 0;
+    uint32_t len = 0;
+    uint32_t type = 0;
+    unsigned int iPart = 0;
+    unsigned int c = 0;
+    double x = 0.;
+    double y = 0.;
+    vector<uint32_t> parts;
+    vector<vector <Point> > cycles;
+ 
     if (file.tellg ()==fileend) { // end of file reached
         return 0;
     }
 
     readBigInt32 (); // ignore record number
-    uint32_t len = readBigInt32 ();
-    uint32_t type = readLittleInt32 ();
+    len = readBigInt32 ();
+    type = readLittleInt32 ();
     if (type==0) {
         if (len!=2) {
             cerr << "Error in file detected" << __LINE__  <<  endl;
@@ -485,10 +507,11 @@ Attribute* ShpFileReader::getNextPolygon () {
     readLittleDouble ();
     readLittleDouble ();
     readLittleDouble ();
-    uint32_t numParts  = readLittleInt32 ();
-    uint32_t numPoints = readLittleInt32 ();
+    numParts  = readLittleInt32 ();
+    numPoints = readLittleInt32 ();
+
     // for debugging the file
-    uint32_t clen = (44 + 4*numParts + 16*numPoints)/2;
+    clen = (44 + 4*numParts + 16*numPoints)/2;
     if (clen!=len) {
         cerr << "File invalid: length given in header seems to be wrong"
             << endl;
@@ -496,25 +519,22 @@ Attribute* ShpFileReader::getNextPolygon () {
         defined = false;
         return 0;
     }
+
     // read the starts of the cycles
-    vector<uint32_t> parts;
-    for (unsigned int i=0;i<numParts;i++) {
-        uint32_t p = readLittleInt32 ();
-        parts.push_back (p);
+    for (iPart = 0; iPart < numParts; ++iPart) {
+        parts.push_back (readLittleInt32 ());
     }
 
     // read the cycles
-    vector<vector <Point> > cycles;
-    uint32_t pos = 0;
-    for (unsigned int p=0;p<parts.size (); p++) {
+    for (iPart = 0;iPart < numParts; ++iPart) {
         vector<Point> cycle;
-        uint32_t start = pos;
-        uint32_t end = p< (parts.size ()-1) ? parts[p+1]:numPoints;
+        start = pos;
+        end = iPart< (numParts - 1) ? parts[iPart + 1]:numPoints;
         Point lastPoint (true,0.0,0.0);
         // read a single cycle
-        for (unsigned int c=start; c< end; c++) {
-            double x = readLittleDouble ();
-            double y = readLittleDouble ();
+        for (c = start; c < end; ++c) {
+            x = readLittleDouble ();
+            y = readLittleDouble ();
             Point point (true,x,y);
             if (c==start) { // the first point
                 cycle.push_back (point);
@@ -523,7 +543,7 @@ Attribute* ShpFileReader::getNextPolygon () {
                 cycle.push_back (point);
                 lastPoint = point;
             }
-            pos++;
+            ++pos;
         }
         cycles.push_back (cycle);
     }
@@ -531,6 +551,8 @@ Attribute* ShpFileReader::getNextPolygon () {
 }
 
 bool ShpFileReader::readHeader (unsigned int allowedType) {
+    uint32_t code;
+    uint32_t version;
     file.seekg (0,ios::end);
     streampos p = file.tellg ();
     fileend = p;
@@ -538,8 +560,6 @@ bool ShpFileReader::readHeader (unsigned int allowedType) {
         return false;
     }
     file.seekg (0,ios::beg);
-    uint32_t code;
-    uint32_t version;
     file.read (reinterpret_cast<char*>(&code),4);
     file.seekg (28,ios::beg);
     file.read (reinterpret_cast<char*>(&version),4);
@@ -579,11 +599,12 @@ uint32_t ShpFileReader::readLittleInt32 () {
 
 double ShpFileReader::readLittleDouble () {
     uint64_t tmp;
+    double res;
     file.read (reinterpret_cast<char*>(&tmp),8);
     if (!WinUnix::isLittleEndian ()) {
         tmp = WinUnix::convertEndian (tmp);
     }
-    double res = * (reinterpret_cast<double*>(&tmp));
+    res = * (reinterpret_cast<double*>(&tmp));
     return res;
 }
 
