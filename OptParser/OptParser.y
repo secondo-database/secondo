@@ -54,7 +54,7 @@ For further checks, we have to extend this definition.
 }
 
 
-%name-prefix="opt"  // use opt instead of yy to avoid naming conflicts with other 
+%name_prefix="opt"  // use opt instead of yy to avoid naming conflicts with other 
                     // parsers of the system
 
 
@@ -63,21 +63,149 @@ Define simple token and token holding a value.
 
 */
 
-%token TOKEN_SELECT TOKEN_FROM TOKEN_STAR TOKEN_ERROR
-%token<strval> TOKEN_ID TOKEN_VARIABLE
+%token TOKEN_SELECT TOKEN_FROM TOKEN_STAR TOKEN_ERROR TOKEN_LET TOKEN_OPEN_BRACKET TOKEN_COMMA TOKEN_SQL TOKEN_SQOPEN_BRACKET
+       TOKEN_SQCLOSE_BRACKET TOKEN_CLOSE_BRACKET TOKEN_DOT TOKEN_PUNCT TOKEN_SMALL_THAN TOKEN_GREATER_THAN TOKEN_INDEX_TYPE
+       TOKEN_INSERT TOKEN_INTO  TOKEN_VALUES TOKEN_DELETE TOKEN_UPDATE TOKEN_SET TOKEN_TABLE TOKEN_CREATE TOKEN_COLUMNS
+       TOKEN_ON TOKEN_DROP TOKEN_INDEX TOKEN_ALL TOKEN_DISTINCT TOKEN_NULL TOKEN_NON_EMPTY TOKEN_WHERE TOKEN_ORDER_BY TOKEN_FIRST
+       TOKEN_LAST TOKEN_GROUP_BY  TOKEN_AS TOKEN_COUNT TOKEN_AGGREGATE TOKEN_ASC TOKEN_DESC TOKEN_COLON TOKEN_EQUAL TOKEN_ANY
+       TOKEN_CUR_OPEN_BRACKET TOKEN_PLUS TOKEN_CUR_CLOSE_BRACKET  TOKEN_DASH TOKEN_FALSE TOKEN_TRUE TOKEN_SOME TOKEN_ROWID
+       TOKEN_VALUE  TOKEN_SMALL_THAN_EQUAL TOKEN_GREATER_THAN_EQUAL  TOKEN_HASH TOKEN_DOUBLE_BRACKET
+       TOKEN_MIN TOKEN_MAX TOKEN_SUM TOKEN_AVERAGE TOKEN_EXTRACT TOKEN_NUMBER TOKEN_CONST
+       TOKEN_INTERSECTION TOKEN_UNION TOKEN_DISTANCE TOKEN_NOT TOKEN_EXISTS TOKEN_INT TOKEN_BOOL TOKEN_STRING TOKEN_REAL TOKEN_IN  
+        TOKEN_LINE TOKEN_POINTS TOKEN_MPOINT TOKEN_UREGION TOKEN_RTREE TOKEN_BTREE TOKEN_HASH1
 
+%token<strval> TOKEN_ID TOKEN_VARIABLE TOKEN_DIGIT TOKEN_smallLetter TOKEN_LETTER TOKEN_SYMBOL TOKEN_TEXT
+
+%type<strval> ident  aggrop
 
 %%
 
-simplequery :  TOKEN_SELECT TOKEN_STAR TOKEN_FROM sources {
-          err_message = 0;      
-          success = true;
-   }
+sql_clause :  TOKEN_LET newname mquery  
+                    
+           |  TOKEN_LET TOKEN_OPEN_BRACKET newname TOKEN_COMMA mquery TOKEN_COMMA TOKEN_TEXT TOKEN_CLOSE_BRACKET 
+           |  TOKEN_SQL mquery 
+           |  TOKEN_SQL TOKEN_OPEN_BRACKET mquery TOKEN_COMMA TOKEN_TEXT  TOKEN_CLOSE_BRACKET 
 ;
 
-sources:  TOKEN_ID {
+ident : TOKEN_ID
+      | TOKEN_IN {$$ =  (char*)"in"; }
+      | TOKEN_INTERSECTION {$$ = (char*)"intersection"; }
+      | TOKEN_AS {$$ = (char*)"as"; }
+      | TOKEN_UNION {$$ = (char*)"union"; }
+      | TOKEN_DISTANCE {$$ = (char*)"distance"; }
+      | TOKEN_NOT {$$ = (char*)"not"; }
+      | TOKEN_EXISTS {$$ = (char*)"exists"; }
+      | TOKEN_ANY {$$ = (char*)"any"; }
+      | TOKEN_SOME {$$ = (char*)"some"; }
+      | TOKEN_ALL {$$ = (char*)"all"; }
+      | aggrop 
+;
+mquery : query
+       | insert_query
+       | delete_query
+       | update_query 
+       | create_query
+       | drop_query
+       | TOKEN_UNION TOKEN_SQOPEN_BRACKET query_list TOKEN_SQCLOSE_BRACKET
+       | TOKEN_INTERSECTION TOKEN_SQOPEN_BRACKET query_list TOKEN_SQCLOSE_BRACKET
+          
+;
 
-     string dbname;
+
+query : TOKEN_SELECT distinct_clause sel_clause TOKEN_FROM rel_clause where_clause orderby_clause first_clause
+       {
+
+    }
+       |TOKEN_SELECT aggr_clause TOKEN_FROM rel_clause where_clause groupby_clause orderby_clause first_clause
+
+     {
+       }
+
+;
+
+insert_query : TOKEN_INSERT TOKEN_INTO relname TOKEN_VALUES value_list
+              | TOKEN_INSERT TOKEN_INTO rel query
+;
+
+delete_query : TOKEN_DELETE TOKEN_FROM relname where_clause
+;
+
+update_query : TOKEN_UPDATE relname TOKEN_SET transform_clause where_clause
+;
+
+create_query : TOKEN_CREATE TOKEN_TABLE newname TOKEN_COLUMNS TOKEN_SQOPEN_BRACKET column_list TOKEN_SQCLOSE_BRACKET
+             | TOKEN_CREATE TOKEN_INDEX TOKEN_ON relname TOKEN_COLUMNS index_clause
+;
+
+drop_query : TOKEN_DROP TOKEN_TABLE relname
+           | TOKEN_DROP TOKEN_INDEX indexname
+           | TOKEN_DROP TOKEN_INDEX TOKEN_ON relname index_clause
+;
+
+query_list : query
+           |query TOKEN_COMMA query_list
+;
+
+distinct_clause : TOKEN_ALL
+                | TOKEN_DISTINCT
+                | 
+;
+
+sel_clause : sel_clause2
+           | TOKEN_NON_EMPTY sel_clause2
+
+;
+
+rel_clause : rel
+           |TOKEN_SQOPEN_BRACKET rel_list TOKEN_SQCLOSE_BRACKET
+;
+
+where_clause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET pred_list TOKEN_SQCLOSE_BRACKET
+             | TOKEN_WHERE pred
+             | 
+;
+
+orderby_clause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderattr_list TOKEN_SQCLOSE_BRACKET
+               | TOKEN_ORDER_BY orderattr
+               | 
+;
+
+first_clause : TOKEN_FIRST TOKEN_INT
+             | TOKEN_LAST TOKEN_INT 
+             | 
+;
+
+aggr_clause : aggr 
+            | TOKEN_SQOPEN_BRACKET aggr TOKEN_COMMA aggr_list TOKEN_SQCLOSE_BRACKET
+;
+
+groupby_clause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupattr_list TOKEN_SQCLOSE_BRACKET
+               | TOKEN_GROUP_BY groupattr 
+;
+
+attrname : ident
+
+;
+
+indextype :index
+; 
+
+index: TOKEN_BTREE
+     | TOKEN_RTREE
+     | TOKEN_HASH1
+;
+
+rel : relname
+    | relname TOKEN_AS newname
+
+;
+
+value_list : value
+           | value TOKEN_COMMA value_list
+;
+
+relname : TOKEN_ID
+          { string dbname;
 
   
      string errorMsg;
@@ -105,15 +233,238 @@ sources:  TOKEN_ID {
        }
   
 
-     }
+    }
+
+; 																			 
+
+transform_clause : transform
+                 | TOKEN_SQOPEN_BRACKET transform_list TOKEN_SQCLOSE_BRACKET
+;
 
 
-  | TOKEN_VARIABLE {
-     opterror("The name of a relation must start with a lower case letter");
-     return false;
-  }
+column_list : column
+            | column TOKEN_COMMA column_list
+;
+
+index_clause : attrname
+             | attrname TOKEN_INDEX_TYPE indextype
+;
+
+indexname : TOKEN_ID
+{
+
+}
+      
+;
+
+sel_clause2 : TOKEN_STAR
+            | result 
+            | TOKEN_SQOPEN_BRACKET result_list TOKEN_SQCLOSE_BRACKET
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET distinct_clause TOKEN_STAR TOKEN_CLOSE_BRACKET
+            | aggrop TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_CLOSE_BRACKET
+            | TOKEN_AGGREGATE TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_COMMA aggrfun TOKEN_COMMA datatype TOKEN_COMMA const TOKEN_CLOSE_BRACKET
+;
+
+rel_list : rel
+         | rel TOKEN_COMMA rel_list
+;
+
+pred_list : pred 
+          | pred TOKEN_COMMA pred_list
+;
+
+pred : bool_const 
+     | subquerypred
 
 ;
+
+bool_const: TOKEN_TRUE
+          | TOKEN_FALSE
+;
+orderattr : ident
+          | ident TOKEN_ASC
+          | ident TOKEN_DESC
+          | TOKEN_DISTANCE TOKEN_OPEN_BRACKET ident TOKEN_COMMA ident TOKEN_CLOSE_BRACKET
+           
+;
+
+orderattr_list : orderattr
+               | orderattr TOKEN_COMMA orderattr_list
+;
+
+
+aggr : groupattr
+     | groupattr TOKEN_AS newname
+     | aggr2
+;
+
+aggr_list : aggr
+          | aggr TOKEN_COMMA aggr_list
+;
+
+value : TOKEN_INT
+      | TOKEN_BOOL
+      | TOKEN_STRING
+;
+
+groupattr : attr
+;
+
+groupattr_list : groupattr
+               | groupattr TOKEN_COMMA groupattr_list 
+               | TOKEN_NULL
+;
+
+var : ident
+
+;
+
+
+
+
+transform : TOKEN_ID TOKEN_EQUAL update_expression
+ ;
+
+transform_list : transform 
+               | transform TOKEN_COMMA transform_list
+;
+
+column : TOKEN_ID TOKEN_COLON datatype
+
+;
+
+result : ident
+
+; 
+
+result_list : attr
+            | attr_expr TOKEN_AS TOKEN_ID
+;
+
+ext_attr_expr : distinct_clause attr_expr
+;
+
+
+
+aggrfun : TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET
+        | TOKEN_OPEN_BRACKET TOKEN_PLUS TOKEN_CLOSE_BRACKET
+        | ident { 
+            if( (strcmp( $1 ,"union_new" ) !=0 ) ||
+             ( strcmp( $1 ,"intersection_new" ) !=0 ))
+            { string err = "The object " + string($1) + " is not  valid .";
+           opterror(err.c_str());
+           return false;
+}}
+    
+;
+
+
+
+
+subquerypred : attr_expr TOKEN_IN TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_BRACKET
+             | attr_expr TOKEN_NOT TOKEN_IN TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_BRACKET
+             | TOKEN_EXISTS  TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
+             | TOKEN_NOT TOKEN_EXISTS  TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
+             | attr_expr compop quant TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_BRACKET
+             
+;
+
+quant : TOKEN_ANY
+      | TOKEN_SOME
+      | TOKEN_ALL
+;
+
+aggr2 : TOKEN_COUNT  TOKEN_OPEN_BRACKET distinct_clause TOKEN_STAR TOKEN_CLOSE_BRACKET TOKEN_AS newname
+      | aggrop  TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_CLOSE_BRACKET TOKEN_AS newname
+      | TOKEN_AGGREGATE TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_COMMA aggrfun TOKEN_COMMA attr_expr TOKEN_COMMA const TOKEN_CLOSE_BRACKET TOKEN_AS newname
+;
+
+newname : TOKEN_ID
+     {}
+;
+
+attr : attrname
+     | var TOKEN_COLON attrname 
+     | TOKEN_ROWID
+;
+
+
+
+update_expression : const
+                  |const_expr
+;
+
+
+
+generic_const : TOKEN_SQOPEN_BRACKET TOKEN_CONST TOKEN_COMMA attr_expr TOKEN_COMMA TOKEN_VALUE nested_list TOKEN_SQCLOSE_BRACKET 
+
+;
+
+table_subquery : query
+;
+
+compop: TOKEN_SMALL_THAN
+      | TOKEN_SMALL_THAN_EQUAL
+      |  TOKEN_EQUAL
+      |  TOKEN_GREATER_THAN_EQUAL
+      |  TOKEN_GREATER_THAN
+      |  TOKEN_HASH
+      |  TOKEN_DOUBLE_BRACKET
+;
+
+aggrop : TOKEN_MIN {$$ =  (char*)"min"; }
+       | TOKEN_MAX {$$ =  (char*)"max"; }
+       | TOKEN_SUM {$$ =  (char*)"sum"; }
+       | TOKEN_AVERAGE {$$ =  (char*)"average"; }
+       | TOKEN_EXTRACT {$$ =  (char*)"extract"; }
+       | TOKEN_COUNT {$$ =  (char*)"count"; }
+;
+ 
+attr_expr : nested_list
+          {}
+;
+
+const_expr : nested_list
+;
+
+const : TOKEN_BOOL
+      | TOKEN_INT
+      | TOKEN_REAL
+      | TOKEN_STRING
+      | TOKEN_TEXT
+      | generic_const
+             
+;
+nested_list : TOKEN_OPEN_BRACKET nlist TOKEN_CLOSE_BRACKET
+            | TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
+            | TOKEN_BOOL
+            | TOKEN_INT
+            | TOKEN_STRING
+            | TOKEN_TEXT
+            | TOKEN_REAL
+            | TOKEN_SYMBOL
+;
+
+nlist : nested_list 
+     | nested_list nlist
+     
+;
+
+datatype : TOKEN_INT
+         | TOKEN_REAL
+         | TOKEN_BOOL
+         | TOKEN_STRING
+         | TOKEN_LINE
+         | TOKEN_POINTS
+         | TOKEN_MPOINT
+         | TOKEN_UREGION
+;
+
+
+
+
+
+
 
 %%
 
