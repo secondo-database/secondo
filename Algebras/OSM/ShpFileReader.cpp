@@ -222,6 +222,7 @@ Attribute* ShpFileReader::getNextSimpleLine () {
                 //if (i == parts.size () - 1 && j == jEnd - 1)  {
                 //    endPoint.Set(x, y);
                 //}
+                // Storing the end point of the polyline (considering circles)
                 if (!AlmostEqual (startPoint, p2))  {
                     endPoint.Set(x, y);
                 }
@@ -236,14 +237,12 @@ Attribute* ShpFileReader::getNextSimpleLine () {
         }
     }
     line->EndBulkLoad ();
-    std::cout << "start point: " <<  startPoint << std::endl;//TEST
-    std::cout << "end point: " <<  endPoint << std::endl;//TEST
     if (startPoint < endPoint)  {
         line->SetStartSmaller (true);
     } else if (startPoint > endPoint)  {
         line->SetStartSmaller (false);
     } else  {
-        // start and end point on circle, not implemented yet
+        // street only consists of almost equal points
         assert (false);
     }
     // Checking if errors occurred    
