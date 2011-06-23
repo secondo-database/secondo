@@ -137,6 +137,8 @@ Attribute* ShpFileReader::getNextSimpleLine () {
     double y = 0.;
     vector<int> parts;
     SimpleLine* line = NULL;
+    Point startPoint;
+    Point endPoint;
     Point p1;
     Point p2;
     HalfSegment hs;
@@ -216,12 +218,34 @@ Attribute* ShpFileReader::getNextSimpleLine () {
                     hs.SetLeftDomPoint ( !hs.IsLeftDomPoint () );
                     (*line) += hs;
                 }
+                // Storing the end point of the polyline
+                //if (i == parts.size () - 1 && j == jEnd - 1)  {
+                //    endPoint.Set(x, y);
+                //}
+                if (!AlmostEqual (startPoint, p2))  {
+                    endPoint.Set(x, y);
+                }
+            } else  {
+                // Storing the start point of the polyline
+                if (i == 0 /*&& j == jStart*/)  {
+                    startPoint.Set (x, y);
+                }
             }
             p1 = p2;
             ++numElems;
         }
     }
     line->EndBulkLoad ();
+    std::cout << "start point: " <<  startPoint << std::endl;//TEST
+    std::cout << "end point: " <<  endPoint << std::endl;//TEST
+    if (startPoint < endPoint)  {
+        line->SetStartSmaller (true);
+    } else if (startPoint > endPoint)  {
+        line->SetStartSmaller (false);
+    } else  {
+        // start and end point on circle, not implemented yet
+        assert (false);
+    }
     // Checking if errors occurred    
     if (!file.good ()) {
         cerr << "Error in reading file" << endl;
