@@ -992,6 +992,12 @@ Signature: space x periods x real x int x rel x btree x rel -> (stream(((x1 t1) 
 Example  : query generate_genmo2(space_1, TwoDays, 5.0, 7, dg_node_rid, btree_dg_rid, streets_speed) count;
 Result   : 5
 
+Operator : generate_car
+Number   : 1
+Signature: network x periods x real x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_car(rn, TwoDays, 10.0, streets_speed) count;
+Result   : 5
+
 
 Operator : generate_genmo3
 Number   : 1
@@ -1031,4 +1037,11 @@ Operator : generate_genmo7
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo7(space_1, TwoDays, 10.0, 10, tri_reg_new, msneighbor, rtree_ms_stop)count;
+Result   : 10
+
+
+Operator : generate_genmo8
+Number   : 1
+Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop)count;
 Result   : 10

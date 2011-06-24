@@ -53,12 +53,11 @@ Jan, 2011 Jianqiu xu
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
 #include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
 #include "FTextAlgebra.h"
 #include <fstream>
 #include "GSLAlgebra.h"
 #include "Indoor2.h"
-
-
 
 
 /*
@@ -773,6 +772,7 @@ struct GenMObject{
 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list; 
+  vector<MGPoint> trip3_list; 
 
   vector<MPoint3D> indoor_mo_list1;
   vector<MPoint3D> indoor_mo_list2;
@@ -781,8 +781,7 @@ struct GenMObject{
   vector<Point> loc_list1;
   vector<Point> loc_list2;
   vector<Point> loc_list3;
-  
-  
+
   vector<GPoint> gp_list;
   vector<Line> line_list1;
   vector<Line> line_list2;
@@ -808,12 +807,28 @@ struct GenMObject{
   void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type, Relation*);
   void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
                       int type, Relation*, BTree*, Relation*);
+  void GenerateCar(Network* rn, Periods* peri, int mo_no, Relation*);
+  void GenerateCarMO(Network*, int i, Periods* peri, GLine* newgl,
+                     Relation* rel, Point);
+  void CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
+                       vector<MyHalfSegment> seq_halfseg,
+                      Instant& start_time, double speed,
+                      int networkId, int routeId, Side s, 
+                       double pos_len, bool increase);
+  void CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
+                       vector<MyHalfSegment> seq_halfseg,
+                      Instant& start_time, double speed,
+                      int networkId, int routeId, Side s, 
+                       double pos_len, bool increase);
+
   //////////////////////////////////////////////////////////////////////////
   //////////////////////Mode: Car or Taxi///////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
   void GenerateGenMO_CarTaxi(Space* sp, Periods* peri, int mo_no, 
                              Relation* rel, string);
   void GenerateGPoint(Network* rn, int mo_no, vector<GPoint>& gp_list);
+  void GenerateGPoint2(Network* rn, int mo_no, 
+                       vector<GPoint>& gp_list, vector<Point>& gp_loc_list);
   void GenerateCarTaxi(Network*, int i, Periods* peri, GLine* newgl,
                    Relation* rel, Point, string);
   void CreateCarTrip1(MPoint* mo, vector<MyHalfSegment> seq_halfseg, 
@@ -950,6 +965,13 @@ struct GenMObject{
   void ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, GenMO* genmo,
                           MPoint* mo, Instant& start_time,
                           DualGraph* dg, Line* res_path);
+  //////////////////////////////////////////////////////////////////////
+  ////////////////Indoor Metro Walk/////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+    void GenerateGenMO8(Space* sp, Periods* peri, int mo_no, int type, 
+                      Relation* rel1, Relation* rel2,
+                      R_Tree<2,TupleId>* rtree);
+
 };
 
 
@@ -1125,6 +1147,8 @@ Word InSpace( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct ); 
 ListExpr OutSpace( ListExpr typeInfo, Word value );
 
+
+#define obj_scale 5
 
 //////////////////////////////////////////////////////////////////////
 /////////////////////////////random number generator//////////////////

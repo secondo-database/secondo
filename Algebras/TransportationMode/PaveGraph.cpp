@@ -8860,11 +8860,11 @@ void MaxRect::OpenBuilding()
           if(nl->IsAtom(xObjectType) &&
              nl->SymbolValue(xObjectType) == "building"){
 
-            // Get name of the bus graph 
+            // Get name of the graph 
             ListExpr xObjectName = nl->Second(xCurrent);
             string strObjectName = nl->SymbolValue(xObjectName);
 
-            // Load object to find out the id of the pavement
+            // Load object to find out the id 
             Word xValue;
             bool bDefined;
             bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
