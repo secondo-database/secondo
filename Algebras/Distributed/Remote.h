@@ -286,7 +286,12 @@ public:
    
   void run()
   {
-    server->Multiply(count);
+    if (!server->Multiply(count))
+      {
+	cerr << "Error multiplying Servers:" 
+	     << server -> getErrorText() << endl;
+	throw;
+      }
   }
 };
    
