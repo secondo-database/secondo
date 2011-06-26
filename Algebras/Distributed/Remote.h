@@ -154,8 +154,6 @@ private:
          
   Socket* cbworker;
 
-  FILE *m_fs;
-
   vector<DServer*> m_childs;
   int m_numChilds;
                   
@@ -288,9 +286,9 @@ public:
   {
     if (!server->Multiply(count))
       {
-	cerr << "Error multiplying Servers:" 
-	     << server -> getErrorText() << endl;
-	throw;
+      cerr << "Error multiplying Servers:" 
+           << server -> getErrorText() << endl;
+      throw;
       }
   }
 };

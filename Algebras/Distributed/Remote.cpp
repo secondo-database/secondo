@@ -91,229 +91,93 @@ DServer::DServer(string n_host,int n_port,string n_name,ListExpr n_type)
    
    rel_open = false;
    m_cmd = NULL;
-   m_fs = NULL;
    m_numChilds = 0;
 }
 
 bool
 DServer::connectToWorker()
 {        
-  bool tryAgain = false;
   string line;
-  do 
+  server = Socket::Connect( host, toString_d(port), 
+                      Socket::SockGlobalDomain,
+                      5,
+                      1);
+      
+  if(server!=0 && server->IsOk())
     {
+      DServer::Debug("DS-Conn", "starting ...");
       
-      server = Socket::Connect( host, toString_d(port), 
-                                Socket::SockGlobalDomain,
-                                5,
-                                1);
+      iostream& iosock = server->GetSocketStream();
       
-      if(server!=0 && server->IsOk())
-        {
-          DServer::Debug("DS-Conn", "starting ...");
-
-          iostream& iosock = server->GetSocketStream();
-          
-          if (!server -> IsOk())
-            {
-              cout << "Error: Faild to establish socket for host " 
-                   << host << ":" << port << "!" << endl;
-            }
-          
-          do
-            {
-              getline( iosock, line );
+      if (!server -> IsOk())
+      {
+        cout << "Error: Faild to establish socket for host " 
+             << host << ":" << port << "!" << endl;
+      }
+      
+      do
+      {
+        getline( iosock, line );
               
-              DServer::Debug("DSConn-Rec1", line);
-            } while (line.empty());
- 
-          if (!server -> IsOk())
-            {
-              cout << "Error: Faild to establish socket for connection"
-                   << " to host " << host << ":" << port << "!" << endl;
-            }
+        DServer::Debug("DSConn-Rec1", line);
+      } while (line.empty());
+      
+      if (!server -> IsOk())
+      {
+        cout << "Error: Faild to establish socket for connection"
+             << " to host " << host << ":" << port << "!" << endl;
+      }
+      
+      if(line=="<SecondoOk/>")
+      {
+        iosock << "<Connect>" << endl << endl 
+             << endl << "</Connect>" << endl;
+        
+        getline( iosock, line );
           
-          if(line=="<SecondoOk/>")
+        DServer::Debug("DSConn-Rec2", line);
+        if( line == "<SecondoIntro>")
+          {
+            do
             {
-              iosock << "<Connect>" << endl << endl 
-                     << endl << "</Connect>" << endl;
-              
-              getline( iosock, line );
-              
-              DServer::Debug("DSConn-Rec2", line);
-              if( line == "<SecondoIntro>")
-                {
-                  do
-                    {
-                      getline( iosock, line);
-                      
-                      DServer::Debug("DSConn-Rec3", line);
-
-                    }  while(line != "</SecondoIntro>");
-
-                  tryAgain = false;
-                  DServer::Debug("DSConn", "... done.");
+              getline( iosock, line);
                   
-                }
-              else 
-                errorText = 
-                  "Unexpected response from worker (No <SecondoIntro/>)";
-            }
-          else 
-            errorText = "Unexpected response from worker (No <SecondoOk/>)";
-        }
+              DServer::Debug("DSConn-Rec3", line);
+              
+            }  while(line != "</SecondoIntro>");
+            
+            DServer::Debug("DSConn", "... done.");
+              
+          }
+        else 
+          errorText = 
+            "Unexpected response from worker (No <SecondoIntro/>)";
+      }
       else 
-        errorText = "Connection to the worker couldn't be established!";
-        
-      if (server == 0)
-        {
-          // should never happen
-          // Socket::Connect always returns a pointer!
-          assert(0);
-          return false;
-        }
+      errorText = "Unexpected response from worker (No <SecondoOk/>)";
+    }
+  else 
+    errorText = "Connection to the worker couldn't be established!";
+  
+  if (server == 0)
+    {
+      // should never happen
+      // Socket::Connect always returns a pointer!
+      assert(0);
+      return false;
+    }
       
-      if (!(server -> IsOk()))
-        { 
-          cout << "Cannot Connect to Server:" 
-               << host << ":" << toString_d(port) << endl;
-          cout << server -> GetErrorText() << endl;
+  if (!(server -> IsOk()))
+    { 
+      cout << "Cannot Connect to Server:" 
+         << host << ":" << toString_d(port) << endl;
+      cout << server -> GetErrorText() << endl;
 
-          if (!tryAgain)
-            {
-              errorText = "OK";
-              tryAgain = true;
-              
-              bool sd = server -> ShutDown();
-              delete server;
-              server = 0;
-              //cout << "Shutting down connection:" << sd << endl;
-              
-              //delete server;
-              //server = 0;
-            }
-          else
-            {
-              delete server;
-              server = 0;
+      delete server;
+      server = 0;
 
-              return false;
-            }
-        } // if (!(server -> IsOk()))
-
-      if (tryAgain)
-        {
-          cout << "Automatic start of SecondoMonitor NOT supported!" << endl;
-          cout << "Please start SecondoMonitor on host " 
-               << host << " by hand!" << endl;
-          return false;
-
-          cout << "Starting SecondoMonitor ...." << endl; 
-          bool secondoMonitorRunning = false;
-
-#if 1     // testing run script "startRemote"
-          // if set to 0, testing popen
-
-          // --- Start up process factory
-          if ( !ProcessFactory::StartUp() )
-            {
-              return false;
-            }
-
-          int pidMonitor;
-          string dir = "/home/achmann/secondo/bin/";
-          string startRemoteDir = "/home/achmann/secondo/Algebras/Distributed/";
-          string secMonitorLog = "~/log.txt";
-          string secMonitor = startRemoteDir + "startRemote";
-          string secMonitorArgs = "-d "+ dir +
-            " -s "
-            //-l " + secMonitorLog 
-            + "-h localhost \"SecondoMonitor -s\"";
-
-          DServer::Debug("DSConn","Starting: " + secMonitor + " " +
-                         secMonitorArgs);
-
-          if ( !ProcessFactory::SpawnProcess( secMonitor, secMonitorArgs,
-                                              pidMonitor , true) )
-            {
-              cout << " ... failed" << endl;
-            }
-          else
-            {
-              cout << " ... running" << endl;
-              secondoMonitorRunning = true;
-            }
-
-          //sleep (20);
-          WinUnix::sleep( 20 );
-        
-               
-    
-#else // testing popen
-
-          char qBuf[1024];
-          memset(qBuf, '\0', sizeof(qBuf));
-          string qStr;
-          
-          qStr = 
-            "ssh localhost bash -c \\\"cd /home/achmann/secondo/bin;\
-             nohup SecondoMonitor -s < /dev/null & \\\"  ";
-
-          DServer::Debug("DSConn-Run", qStr);
-
-          m_fs = popen(qStr.c_str(), "r");
-
-          //sleep(15); // wait for starting
-          
-          if (m_fs != NULL)
-            {
-              secondoMonitorRunning = true;
-              bool startingSecondoMonitor = true;
-              while (startingSecondoMonitor)
-                {
-                  if (fgets(qBuf, sizeof(qBuf), m_fs) != NULL)
-                    {
-                      string line (qBuf);
-                      DServer::Debug("DSConn-RET1", qBuf);
-                      if (line.find("SecondoListener") != -1)
-                        {
-                          bool findCompleted = false;
-                          do {
-                            if (fgets(qBuf, sizeof(qBuf), m_fs) != NULL)
-                              {
-                                string line2 (qBuf);
-                                DServer::Debug("DSConn-RET2", line2);
-                                if (line. find("completed"))
-                                  findCompleted = true;
-                              }
-                            else
-                              startingSecondoMonitor = false;
-
-                          } while (!findCompleted && startingSecondoMonitor);
-                          startingSecondoMonitor = false;
-                        }
-                    }
-                  else
-                    {
-                      startingSecondoMonitor = false;
-                    }
-                }
-                  
-            }
-          else
-            {
-              cout << "Error starting Secondo Monitor!" << endl;
-            }
-#endif
-
-          if (!secondoMonitorRunning)
-            {
-              cout << "SecondoMonitor on " << host 
-                   << " is  NOT running !" << endl;
-            }
-        }
-} while(tryAgain);
-
+      return false;
+    } // if (!(server -> IsOk()))
 
    iostream& iosock = server->GetSocketStream();
    
@@ -322,17 +186,22 @@ DServer::connectToWorker()
             << "</Secondo>" << endl;
    
    getline( iosock, line );
-        
+
    if(line=="<SecondoResponse>")
    {
       do
       {
          getline( iosock, line );
+   
          //cout << "   " << line << endl;
          /*if (line[line.size() - 1] == '\r')
             line.resize(line.size() - 1);*/
-         if(line.find("error") != string::npos)
-            errorText = "Opening of database \"distributed\" on worker failed!";
+         if(line.find("ERROR") != string::npos)
+         {
+           errorText = 
+             "Opening of database \"distributed\" on worker failed!";
+           return false;
+         }
                         
       }
       while(line.find("</SecondoResponse>") == string::npos);
@@ -369,15 +238,7 @@ void DServer::Terminate()
        {
          iostream& iosock = server->GetSocketStream();
          iosock << "<Disconnect/>" << endl;
-         if (m_fs == NULL)
-           {
-             server->Close();
-           }
-         else
-           {
-             cout << "DST-Shutdown!" << endl;
-             server->Close();
-           }
+       server->Close();
        }
      delete server;
      server=0;
@@ -423,6 +284,7 @@ Performs the specified operation on the remote system
 
 void DServer::run()
 {
+  // cout << this << " DS - starting:"  << endl;
   assert(m_cmd != NULL);
     
   int arg2;
@@ -873,7 +735,14 @@ void DServer::run()
    if(m_cmd -> getCmdType() == DS_CMD_OPEN_WRITE_REL)
    {
      assert(server != 0);
-      if(rel_open) return;
+     //cout << this << " DS_CMD_OPEN_WRITE_REL - start" << endl;
+      if(rel_open) 
+      {
+        //cout << this 
+        // << " DS_CMD_OPEN_WRITE_REL - rel is open ! - done" << endl;
+        return;
+      }
+
       //Initializes the writing of a tuple-stream, 
       //the d_receive_rel operator is started on the remote worker
              
@@ -892,41 +761,50 @@ void DServer::run()
                << endl;
                 
       do
-         getline(iosock,line); 
+      {
+        getline(iosock,line);
+      }
       while(line.find("</SecondoResponse") == string::npos);
             
       //The d_receive_rel operator is invoked
       iosock << "<Secondo>" << endl << "1" << endl 
                   << com << endl << "</Secondo>" << endl;
                 
-      
       //The callback connection is opened          
       Socket* gate = Socket::CreateGlobal( HostIP, port);
 
       cbworker = gate->Accept();
-       
+
       //Relation type is sent to type-mapping-fct of the d_receive_rel operator
       iostream& cbsock1 = cbworker->GetSocketStream();
+      
       cbsock1 << "<TYPE>" << endl << nl->ToString(type) 
                   << endl << "</TYPE>" << endl;
                         
                                         
       getline(cbsock1,line);
+
       if(line!="<CLOSE>")
          errorText = "Unexpected Response from worker (<Close> expected)!";
       
-      cbworker->Close();delete cbworker;
+      cbworker->Close();
+
+      delete cbworker;
                         
       //The callback connection from the value-mapping is opened and stored
       cbworker = gate->Accept();
       iostream& cbsock2 = cbworker->GetSocketStream();
-                
+
       cbsock2 << "<TYPE>" << endl << nl->ToString(type) 
                      << endl << "</TYPE>" << endl;
                 
-      gate->Close();delete gate;gate=0;
+      gate->Close();
+      delete gate;
+      gate=0;
                         
       rel_open = true;
+
+      //cout << this << " DS_CMD_OPEN_WRITE_REL - done" << endl;
                
    }
           
@@ -1102,7 +980,9 @@ void DServer::run()
 
    m_cmd = NULL;
 
-   status = 0;          
+   status = 0;   
+
+   //cout << this << " DS - done" << endl;       
    return;
 }
 
@@ -1172,10 +1052,7 @@ delete pipe to SecondoMonitor, if it exists
 
 DServer::~DServer()
 {
-  if (m_fs != NULL)
-    pclose(m_fs);
-
-  m_fs = NULL;
+ 
 }
 
 bool
@@ -1384,7 +1261,9 @@ void RelationWriter::run()
 */
                         
 void DServerExecutor::run()
-{server->run(); }
+{ 
+  server->run(); 
+}
 
 /*
 
@@ -1459,10 +1338,22 @@ ostream& operator << (ostream &out, DServer::RemoteCommand& rc)
       break;
     }
   out <<"  L:";
-  for (list<int>::const_iterator idx = rc.getDArrayIndex() -> begin();
-       idx != rc.getDArrayIndex() -> end(); ++idx)
-    out << *idx << " ";
-  out << " W:" << rc.getElements() -> size();
+  if ( rc.getDArrayIndex() != NULL)
+    {
+      for (list<int>::const_iterator idx = rc.getDArrayIndex() -> begin();
+         idx != rc.getDArrayIndex() -> end(); ++idx)
+
+      out << *idx << " ";
+    }
+  else
+    cout << "NULL";
+
+  out << " W:";
+  if (rc.getElements() != NULL)
+    cout << rc.getElements() -> size();
+  else
+    cout << "NULL";
+
   return out;
 }
 
