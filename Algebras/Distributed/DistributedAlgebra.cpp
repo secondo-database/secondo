@@ -46,6 +46,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "NList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "SecondoCatalog.h"
 #include "RelationAlgebra.h"
 #include "TypeMapUtils.h"
 #include "Remote.h"
@@ -1127,11 +1128,11 @@ static int putFun( Word* args,
 
   //new array is initialized
   result = qp->ResultStorage(s);
-  bool rc = ((DArray*)result.addr)->initialize(array_alt->getType(),
-                                               getArrayName
-                                               (DArray::no),
-                                               array_alt->getSize(),
-                                               array_alt->getServerList());
+  ((DArray*)result.addr)->initialize(array_alt->getType(),
+                                     getArrayName
+                                     (DArray::no),
+                                     array_alt->getSize(),
+                                     array_alt->getServerList());
 
   //all elements, except the one to be substituted, are copied on the workers
   for(int j = 0; j<array_alt->getSize();j++)
@@ -1898,9 +1899,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 
    DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
-   bool rc =
-     array->initialize(restype,getArrayName(DArray::no),
-                       size, serverlist);
+   array->initialize(restype,getArrayName(DArray::no),
+                     size, serverlist);
 
    DServerManager* man = array->getServerManager();
    DServer* server = 0;
@@ -2162,7 +2162,6 @@ template< int dim>
 static int loopValueMap
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-   int dloopCnt = dim;
    result = qp->ResultStorage(s);
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -2197,14 +2196,14 @@ static int loopValueMap
      }
 
    string name = getArrayName(DArray::no);
-   vector<Word>* w = new vector<Word> (2);
-   (*w)[0].addr = &command;
-   (*w)[1].addr = &name;
-
-   bool rc = ((DArray*)(result.addr))->initialize(type,
-                                                  name,
-                                                  size,
-                                                  serverList);
+   vector<Word> w (2);
+   w[0].addr = &command;
+   w[1].addr = &name;
+   
+   ((DArray*)(result.addr))->initialize(type,
+                                        name,
+                                        size,
+                                        serverList);
 
    //DServerManager* man = alt->getServerManager();
    DServerManager* man = ((DArray*)(result.addr)) -> getServerManager();
@@ -2250,7 +2249,7 @@ static int loopValueMap
 
            list<int> l;
            l.push_front(i);
-           server->setCmd(DServer::DS_CMD_EXEC, &l, w, &from);
+           server->setCmd(DServer::DS_CMD_EXEC, &l, &w, &from);
            ex = new DServerExecutor(server);
            exec.execute(ex);
          }
@@ -2660,6 +2659,270 @@ Operator dsummarize (
       dsummarizeTypeMap );
 
 /*
+5.14 Operator ~checkworkers~
+
+The operator ~ceckworkers~ takes a relation of type host:string, port:int
+and checks, if there exists a running instance of SecondoMonitor at
+the specified host, listening at the specified port
+It also checks, if the database distributed is available.
+
+*/
+static ListExpr
+checkWorkersTypeMap( ListExpr args )
+{
+  NList myargs = nl -> First(args);
+
+  if (myargs.length() == 2)
+  {
+    if(myargs.convertToString() == "(rel (tuple ((Server string) (Port int))))")
+      { 
+        //The return-type of checkWorkers is the list of workers
+        NList resultType = NList(myargs).second().second();
+        NList app (NList("Status"), NList(CcString::BasicType())); 
+        NList tuple = NList(Tuple::BasicType(),
+                                NList(resultType.first(), 
+                                      resultType.second(), 
+                                      app));
+
+        NList result = NList(Relation::BasicType(), tuple);
+        
+        return result.listExpr(); 
+      }
+  }
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+ 
+static bool
+checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
+{
+
+  string host = inHost.str();
+  int port = inPort.intval();
+
+  // check worker running
+  string line;
+  Socket* server = Socket::Connect( host, toString_d(port), 
+                                    Socket::SockGlobalDomain,
+                                    5,
+                                    1);
+  
+      
+  if(server == 0 || !server->IsOk())
+    {      
+      msg = "Cannot connect to worker";
+      return false;
+    }
+
+  iostream& iosock = server->GetSocketStream();
+      
+  if (!server -> IsOk())
+    {
+      msg = "Cannot access worker socket";
+      return false;
+    }
+      
+  do
+    {
+      getline( iosock, line );
+      
+    } while (line.empty());
+      
+  bool startupOK = true;
+
+  if(line=="<SecondoOk/>")
+    {
+      iosock << "<Connect>" << endl << endl 
+             << endl << "</Connect>" << endl;
+        
+      getline( iosock, line );
+          
+      if( line == "<SecondoIntro>")
+        {
+          do
+            {
+              getline( iosock, line);
+              
+            }  while(line != "</SecondoIntro>");
+            
+              
+        }
+      else 
+        startupOK = false;
+          
+    }
+  else 
+    startupOK = false;
+   
+  if (!startupOK)
+    {
+      msg = "Unexpected response from worker";
+      return false;
+    }
+
+  if (!(server -> IsOk()))
+    { 
+      msg = "Cannot Connect to Worker";
+     
+      return false;
+    } // if (!(server -> IsOk()))
+
+
+  // check db distributed available
+   
+  iosock << "<Secondo>" << endl << "1" << endl 
+         << "open database distributed" << endl 
+         << "</Secondo>" << endl;
+   
+  getline( iosock, line );
+
+  if(line=="<SecondoResponse>")
+    {
+      do
+        {
+          getline( iosock, line );
+   
+          if(line.find("ERROR") != string::npos)
+            {
+              msg = 
+                "No database \"distributed\"";
+              return false;
+            }
+                        
+        }
+      while(line.find("</SecondoResponse>") == string::npos);
+    }
+  else 
+    msg = "Unexpected response from worker";
+        
+  // check if db distributed is unique
+  iosock << "<Secondo>" << endl << "1" << endl 
+         << cmd << endl 
+         << "</Secondo>" << endl;
+   
+  getline( iosock, line );
+
+  if(line=="<SecondoResponse>")
+    {
+      do
+        {
+          getline( iosock, line );
+   
+          if(line.find("ERROR") != string::npos)
+            {
+              msg = 
+                "Database \"distributed\" in use";
+              return false;
+            }
+                        
+        }
+      while(line.find("</SecondoResponse>") == string::npos);
+    }
+  else 
+    msg = "Unexpected response from worker";
+
+  iosock << "<Disconnect/>" << endl;
+  server->Close();
+  
+  delete server;
+  server=0;
+
+  return true;
+}
+
+static int
+checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  bool res = true;
+  NList tupletype;
+  tupletype.append(NList(NList("Server"), NList(CcString::BasicType())));
+  tupletype.append(NList(NList("Port"), NList(CcInt::BasicType())));
+  tupletype.append(NList(NList("Status"), NList(CcString::BasicType()))); 
+  
+  tupletype = NList(sc->NumericType( tupletype.listExpr()));
+  tupletype = NList(Tuple::BasicType(),tupletype);
+
+  TupleType *tt = new TupleType(tupletype.listExpr());
+
+  result = qp->ResultStorage(s);
+  Relation* rel = (Relation*)((qp->ResultStorage(s)).addr);
+  if(rel->GetNoTuples() > 0)
+    {
+      rel->Clear();
+    }
+
+  //Generate serverlist as ListExpr from Relation
+  GenericRelation* r = (GenericRelation*)args[0].addr;
+  GenericRelationIterator* rit = r->MakeScan();
+
+  ListExpr reltype;
+  nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",reltype);
+  NList serverlist (Relation::Out(reltype,rit));
+
+  NList serverlist_cpy (serverlist);
+
+  string cmd = "let test1 = \"test\"";
+  while( !serverlist.isEmpty() ) 
+    {
+      NList worker = serverlist.first();
+      
+      string msg = "OK"; 
+      bool retVal = checkWorkerRunning(worker.first(), 
+                                       worker.second(), 
+                                       cmd, msg);
+      res &= retVal;
+
+      if (!retVal)
+        {
+          msg = "ERROR: " + msg + "!";
+        }
+      
+      Tuple *tuple = new Tuple(tt);
+      tuple -> PutAttribute(0, new CcString ( true, worker.first().str() ));
+      tuple -> PutAttribute(1, new CcInt ( true, worker.second().intval() ));
+      tuple -> PutAttribute(2, new CcString ( true, msg ));
+      rel->AppendTuple(tuple);
+      tuple -> DeleteIfAllowed();
+
+      serverlist.rest();
+    }
+
+  // just removing the 'test1' object;
+  cmd = "delete test1";
+  while( !serverlist_cpy.isEmpty() ) 
+    {
+      NList worker = serverlist_cpy.first();
+      
+      string msg = "OK";
+      bool retVal = checkWorkerRunning(worker.first(), 
+                                       worker.second(), 
+                                       cmd, msg);
+
+      serverlist_cpy.rest();
+    }
+
+  result.setAddr(rel);
+
+  return 0;
+}
+
+const string checkWorkersSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "(<text>(rel(tuple([Server:string, Port: int]))) ->  "
+    "(rel(tuple([Server:string, Port: int, Status: string])))</text--->"
+      "<text>_ check_workers</text--->"
+      "<text>checks workers, if running and database 'distributed'"
+      "exists</text--->"
+      "<text>query workers check_workers</text---> ))";
+
+Operator checkWorkers (
+      "check_workers",
+      checkWorkersSpec,
+      checkWorkersFun,
+      Operator::SimpleSelect,
+      checkWorkersTypeMap );
+
+/*
 
 6 Creating the Algebra
 
@@ -2688,6 +2951,7 @@ class DistributedAlgebra : public Algebra
          AddOperator( &dElementA2);
          AddOperator( &dtie);
          AddOperator( &dsummarize );
+         AddOperator( &checkWorkers );
       }
       ~DistributedAlgebra() {}
 };

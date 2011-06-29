@@ -49,4 +49,6 @@ operator dtie alias DTIE pattern _ op [ fun ]
 
 operator dsummarize alias DSUMMARIZE pattern _ op
 
+operator check_workers alias CHECKWORKERS pattern _ op
+
 # End DistributedAlgebra.spec
