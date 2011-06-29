@@ -34,10 +34,11 @@ num1 [-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2 [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	{num1}|{num2}
 ident   {letter}({letter}|{digit}|_)*
-math    {otherChar}{otherChar}*
+math    {otherChar}({otherChar}|{star})*
 symbol  {math}|{ident}
-otherChar [^\(\)\"\'A-Za-z0-9_ \a\b\f\n\r\t\v]
+otherChar [^\(\)\"\'A-Za-z0-9_\* \a\b\f\n\r\t\v]
 text '[^']'
+distinct "all"|"distinct"
 
   
 
@@ -51,12 +52,10 @@ text '[^']'
 %%
 [ \a\b\f\t\v\n\r]+ { // ignore space
                    }
-
+{star}   {return TOKEN_STAR; }
 "as"     { return TOKEN_AS; }
 "select" { return TOKEN_SELECT; }
 "from" { return TOKEN_FROM; }
-"true" {return TOKEN_TRUE;}
-"false" {return TOKEN_FALSE; }
 "let"   { return TOKEN_LET;}
 "("     {return TOKEN_OPEN_BRACKET; }
 "sql"   { return TOKEN_SQL; }
@@ -77,8 +76,7 @@ text '[^']'
 "create" { return TOKEN_CREATE; }
 "columns" { return TOKEN_COLUMNS; }
 "delete" { return TOKEN_DELETE; }
-"all"    { return TOKEN_ALL; }
-"distinct" { return TOKEN_DISTINCT; }
+{distinct} { optlval.strval = yytext; return TOKEN_DISTINCT; }
 "null"   { return TOKEN_NULL; }
 "table"  { return TOKEN_TABLE; }
 "drop"   { return TOKEN_DROP; }
@@ -120,10 +118,12 @@ text '[^']'
 "distance"      { return TOKEN_DISTANCE; }
 "not"      { return TOKEN_NOT; }
 "exists"      { return TOKEN_EXISTS; }
-"int"      { return TOKEN_INT; }
-"bool"      { return TOKEN_BOOL; }
-"string"      { return TOKEN_STRING; }
-"real"      { return TOKEN_REAL; }
+{int}      { return TOKEN_INT; }
+"or"      { return TOKEN_OR; }
+"and"      { return TOKEN_AND; }
+"true"|"false" { return TOKEN_BOOL; }
+\"[^\"]\"       { return TOKEN_STRING; }
+{num1}      { return TOKEN_REAL; }
 "line"      { return TOKEN_LINE;}
 "points"      { return  TOKEN_POINTS;}
 "mpoint"      { return  TOKEN_MPOINT;}

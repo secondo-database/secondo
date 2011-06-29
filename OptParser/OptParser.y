@@ -48,6 +48,10 @@ token is not enough to return. We need some more sophisticated return value.
 For further checks, we have to extend this definition.
 
 */
+
+%verbose
+%locations
+
 %union {
  char* strval;
  int numval;
@@ -66,15 +70,15 @@ Define simple token and token holding a value.
 %token TOKEN_SELECT TOKEN_FROM TOKEN_STAR TOKEN_ERROR TOKEN_LET TOKEN_OPEN_BRACKET TOKEN_COMMA TOKEN_SQL TOKEN_SQOPEN_BRACKET
        TOKEN_SQCLOSE_BRACKET TOKEN_CLOSE_BRACKET TOKEN_DOT TOKEN_PUNCT TOKEN_SMALL_THAN TOKEN_GREATER_THAN TOKEN_INDEX_TYPE
        TOKEN_INSERT TOKEN_INTO  TOKEN_VALUES TOKEN_DELETE TOKEN_UPDATE TOKEN_SET TOKEN_TABLE TOKEN_CREATE TOKEN_COLUMNS
-       TOKEN_ON TOKEN_DROP TOKEN_INDEX TOKEN_ALL TOKEN_DISTINCT TOKEN_NULL TOKEN_NON_EMPTY TOKEN_WHERE TOKEN_ORDER_BY TOKEN_FIRST
+       TOKEN_ON TOKEN_DROP TOKEN_INDEX  TOKEN_NULL TOKEN_NON_EMPTY TOKEN_WHERE TOKEN_ORDER_BY TOKEN_FIRST
        TOKEN_LAST TOKEN_GROUP_BY  TOKEN_AS TOKEN_COUNT TOKEN_AGGREGATE TOKEN_ASC TOKEN_DESC TOKEN_COLON TOKEN_EQUAL TOKEN_ANY
        TOKEN_CUR_OPEN_BRACKET TOKEN_PLUS TOKEN_CUR_CLOSE_BRACKET  TOKEN_DASH TOKEN_FALSE TOKEN_TRUE TOKEN_SOME TOKEN_ROWID
        TOKEN_VALUE  TOKEN_SMALL_THAN_EQUAL TOKEN_GREATER_THAN_EQUAL  TOKEN_HASH TOKEN_DOUBLE_BRACKET
        TOKEN_MIN TOKEN_MAX TOKEN_SUM TOKEN_AVERAGE TOKEN_EXTRACT TOKEN_NUMBER TOKEN_CONST
        TOKEN_INTERSECTION TOKEN_UNION TOKEN_DISTANCE TOKEN_NOT TOKEN_EXISTS TOKEN_INT TOKEN_BOOL TOKEN_STRING TOKEN_REAL TOKEN_IN  
-        TOKEN_LINE TOKEN_POINTS TOKEN_MPOINT TOKEN_UREGION TOKEN_RTREE TOKEN_BTREE TOKEN_HASH1
+        TOKEN_LINE TOKEN_POINTS TOKEN_MPOINT TOKEN_UREGION TOKEN_RTREE TOKEN_BTREE TOKEN_HASH1 TOKEN_OR TOKEN_AND
 
-%token<strval> TOKEN_ID TOKEN_VARIABLE TOKEN_DIGIT TOKEN_smallLetter TOKEN_LETTER TOKEN_SYMBOL TOKEN_TEXT
+%token<strval> TOKEN_ID TOKEN_VARIABLE TOKEN_DIGIT TOKEN_smallLetter TOKEN_LETTER TOKEN_SYMBOL TOKEN_TEXT  TOKEN_DISTINCT
 
 %type<strval> ident  aggrop
 
@@ -88,6 +92,8 @@ sql_clause :  TOKEN_LET newname mquery
 ;
 
 ident : TOKEN_ID
+      | TOKEN_AND {$$ =  (char*)"and"; }
+      | TOKEN_OR {$$ =  (char*)"or"; }
       | TOKEN_IN {$$ =  (char*)"in"; }
       | TOKEN_INTERSECTION {$$ = (char*)"intersection"; }
       | TOKEN_AS {$$ = (char*)"as"; }
@@ -97,7 +103,6 @@ ident : TOKEN_ID
       | TOKEN_EXISTS {$$ = (char*)"exists"; }
       | TOKEN_ANY {$$ = (char*)"any"; }
       | TOKEN_SOME {$$ = (char*)"some"; }
-      | TOKEN_ALL {$$ = (char*)"all"; }
       | aggrop 
 ;
 mquery : query
@@ -112,13 +117,16 @@ mquery : query
 ;
 
 
-query : TOKEN_SELECT distinct_clause sel_clause TOKEN_FROM rel_clause where_clause orderby_clause first_clause
+query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_clause orderby_clause first_clause
        {
-
+           cerr << "DEBUG: query 1st rule" << endl; cerr.flush();
     }
+        | TOKEN_SELECT  sel_clause TOKEN_FROM rel_clause where_clause orderby_clause first_clause
+          
        |TOKEN_SELECT aggr_clause TOKEN_FROM rel_clause where_clause groupby_clause orderby_clause first_clause
 
      {
+           cerr << "DEBUG: query 2nd rule" << endl; cerr.flush();
        }
 
 ;
@@ -146,10 +154,7 @@ query_list : query
            |query TOKEN_COMMA query_list
 ;
 
-distinct_clause : TOKEN_ALL
-                | TOKEN_DISTINCT
-                | 
-;
+
 
 sel_clause : sel_clause2
            | TOKEN_NON_EMPTY sel_clause2
@@ -161,7 +166,9 @@ rel_clause : rel
 ;
 
 where_clause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET pred_list TOKEN_SQCLOSE_BRACKET
+               {  cerr << "DEBUG: query 4th rule" << endl }
              | TOKEN_WHERE pred
+             {  cerr << "DEBUG: query 3rd rule" << endl       }
              | 
 ;
 
@@ -181,7 +188,9 @@ aggr_clause : aggr
 
 groupby_clause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupattr_list TOKEN_SQCLOSE_BRACKET
                | TOKEN_GROUP_BY groupattr 
+               |
 ;
+
 
 attrname : ident
 
@@ -208,7 +217,7 @@ relname : TOKEN_ID
           { string dbname;
 
   
-     string errorMsg;
+     string errorMsg ="No database open";
      if(!optutils::isDatabaseOpen(dbname,errorMsg)){
         opterror(errorMsg.c_str());
         return false;
@@ -258,9 +267,12 @@ indexname : TOKEN_ID
 ;
 
 sel_clause2 : TOKEN_STAR
-            | result 
+            | result
             | TOKEN_SQOPEN_BRACKET result_list TOKEN_SQCLOSE_BRACKET
-            | TOKEN_COUNT TOKEN_OPEN_BRACKET distinct_clause TOKEN_STAR TOKEN_CLOSE_BRACKET
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET TOKEN_DISTINCT TOKEN_STAR TOKEN_CLOSE_BRACKET
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET  TOKEN_STAR TOKEN_CLOSE_BRACKET
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET TOKEN_DISTINCT TOKEN_ID TOKEN_CLOSE_BRACKET
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET TOKEN_ID TOKEN_CLOSE_BRACKET
             | aggrop TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_CLOSE_BRACKET
             | TOKEN_AGGREGATE TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_COMMA aggrfun TOKEN_COMMA datatype TOKEN_COMMA const TOKEN_CLOSE_BRACKET
 ;
@@ -273,17 +285,22 @@ pred_list : pred
           | pred TOKEN_COMMA pred_list
 ;
 
-pred : bool_const 
+pred : attr_bool_expr
      | subquerypred
 
 ;
 
-bool_const: TOKEN_TRUE
-          | TOKEN_FALSE
-;
+attr_bool_expr: TOKEN_BOOL
+              | attr_expr compop attr_expr
+              | attr_expr
+              | attr_bool_expr TOKEN_AND attr_bool_expr
+              | attr_bool_expr TOKEN_OR attr_bool_expr
+              | TOKEN_NOT attr_bool_expr
+              ;
+
 orderattr : ident
-          | ident TOKEN_ASC
-          | ident TOKEN_DESC
+          | attr TOKEN_ASC
+          | attr TOKEN_DESC
           | TOKEN_DISTANCE TOKEN_OPEN_BRACKET ident TOKEN_COMMA ident TOKEN_CLOSE_BRACKET
            
 ;
@@ -312,7 +329,7 @@ groupattr : attr
 
 groupattr_list : groupattr
                | groupattr TOKEN_COMMA groupattr_list 
-               | TOKEN_NULL
+               | 
 ;
 
 var : ident
@@ -333,15 +350,15 @@ column : TOKEN_ID TOKEN_COLON datatype
 
 ;
 
-result : ident
-
-; 
-
-result_list : attr
-            | attr_expr TOKEN_AS TOKEN_ID
+result : attr
+       | attr_expr TOKEN_AS TOKEN_ID
 ;
 
-ext_attr_expr : distinct_clause attr_expr
+result_list :  result
+             | result TOKEN_COMMA result_list
+
+ext_attr_expr : TOKEN_DISTINCT attr_expr
+              | attr_expr
 ;
 
 
@@ -350,11 +367,12 @@ aggrfun : TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET
         | TOKEN_OPEN_BRACKET TOKEN_PLUS TOKEN_CLOSE_BRACKET
         | ident { 
             if( (strcmp( $1 ,"union_new" ) !=0 ) ||
-             ( strcmp( $1 ,"intersection_new" ) !=0 ))
-            { string err = "The object " + string($1) + " is not  valid .";
-           opterror(err.c_str());
-           return false;
-}}
+             ( strcmp( $1 ,"intersection_new" ) !=0 )) { 
+               string err = "The object " + string($1) + " is not  valid .";
+               opterror(err.c_str());
+               return false;
+            }     
+        }
     
 ;
 
@@ -371,13 +389,23 @@ subquerypred : attr_expr TOKEN_IN TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_
 
 quant : TOKEN_ANY
       | TOKEN_SOME
-      | TOKEN_ALL
+      | TOKEN_DISTINCT { if (strcmp($1,"all")!=0) {
+                            opterror("all, some,or any expected, bzut got distinct");
+                            return false;
+                         }
+        }
 ;
 
-aggr2 : TOKEN_COUNT  TOKEN_OPEN_BRACKET distinct_clause TOKEN_STAR TOKEN_CLOSE_BRACKET TOKEN_AS newname
-      | aggrop  TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_CLOSE_BRACKET TOKEN_AS newname
-      | TOKEN_AGGREGATE TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_COMMA aggrfun TOKEN_COMMA attr_expr TOKEN_COMMA const TOKEN_CLOSE_BRACKET TOKEN_AS newname
+aggr2 : TOKEN_COUNT  TOKEN_OPEN_BRACKET TOKEN_DISTINCT TOKEN_STAR TOKEN_CLOSE_BRACKET TOKEN_AS newname
+      | TOKEN_COUNT  TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET TOKEN_AS newname
+      | aggrop  TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_CLOSE_BRACKET renaming
+      | TOKEN_AGGREGATE TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_COMMA aggrfun TOKEN_COMMA attr_type TOKEN_COMMA const TOKEN_CLOSE_BRACKET TOKEN_AS newname
 ;
+
+renaming: TOKEN_AS newname
+        | 
+        ;
+
 
 newname : TOKEN_ID
      {}
@@ -396,7 +424,7 @@ update_expression : const
 
 
 
-generic_const : TOKEN_SQOPEN_BRACKET TOKEN_CONST TOKEN_COMMA attr_expr TOKEN_COMMA TOKEN_VALUE nested_list TOKEN_SQCLOSE_BRACKET 
+generic_const : TOKEN_SQOPEN_BRACKET TOKEN_CONST TOKEN_COMMA attr_type TOKEN_COMMA TOKEN_VALUE nested_list TOKEN_SQCLOSE_BRACKET 
 
 ;
 
@@ -415,12 +443,12 @@ compop: TOKEN_SMALL_THAN
 aggrop : TOKEN_MIN {$$ =  (char*)"min"; }
        | TOKEN_MAX {$$ =  (char*)"max"; }
        | TOKEN_SUM {$$ =  (char*)"sum"; }
-       | TOKEN_AVERAGE {$$ =  (char*)"average"; }
+       | TOKEN_AVERAGE {$$ =  (char*)"avg"; }
        | TOKEN_EXTRACT {$$ =  (char*)"extract"; }
        | TOKEN_COUNT {$$ =  (char*)"count"; }
 ;
  
-attr_expr : nested_list
+attr_type : nested_list
           {}
 ;
 
@@ -435,6 +463,32 @@ const : TOKEN_BOOL
       | generic_const
              
 ;
+
+attr_expr : attr
+          | const
+          | TOKEN_OPEN_BRACKET attr_expr TOKEN_CLOSE_BRACKET
+          | attr_expr op attr_expr
+          | attr_expr op
+          | attr_expr op TOKEN_SQOPEN_BRACKET attr_expr_list TOKEN_SQCLOSE_BRACKET
+ //         | attr_expr attr_expr op TOKEN_SQOPEN_BRACKET attr_expr_list TOKEN_SQCLOSE_BRACKET
+//          | attr_expr attr_expr attr_expr op TOKEN_SQOPEN_BRACKET attr_expr_list TOKEN_SQCLOSE_BRACKET
+          | op TOKEN_OPEN_BRACKET attr_expr_list TOKEN_CLOSE_BRACKET
+          | op TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
+          ;
+
+op          : TOKEN_SYMBOL
+             {  cerr << "DEBUG: query 5th rule" << endl }
+            | TOKEN_ID
+            | compop
+            | TOKEN_PLUS
+            | TOKEN_STAR
+            
+            ;
+
+attr_expr_list : attr_expr
+               | attr_expr TOKEN_COMMA attr_expr_list
+              ;
+          
 nested_list : TOKEN_OPEN_BRACKET nlist TOKEN_CLOSE_BRACKET
             | TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
             | TOKEN_BOOL
@@ -442,8 +496,12 @@ nested_list : TOKEN_OPEN_BRACKET nlist TOKEN_CLOSE_BRACKET
             | TOKEN_STRING
             | TOKEN_TEXT
             | TOKEN_REAL
-            | TOKEN_SYMBOL
-;
+            | symbol
+            ;
+symbol      : TOKEN_SYMBOL
+            | TOKEN_STAR
+            ;
+
 
 nlist : nested_list 
      | nested_list nlist
@@ -500,23 +558,29 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
 
    try{
 
+    success = true;
     optlexDestroy();
  
     opt_scan_string(argument);
 
     optparse();
- 
-    if(success && err_message){
-         free(err_message);
-         err_message=0;
-     }
-     if(!success){
-        errmsg = err_message;
-        err_message = 0;
-     }
-     return success;
+    if(success){
+       errmsg=0;
+       if(err_message){
+          free(err_message);
+          err_message = 0;
+       }
+       return true;
+    }
+    if(err_message == 0){
+       cerr << "There is an error, but no message" << endl;
+    }
+    errmsg = err_message;
+    err_message= 0;
+    return false; 
   } catch(...){
-      opterror("internal error during parsing");;
+      opterror("internal error during parsing");
+      errmsg = strdup("internal error");
       return false;
   }
 
