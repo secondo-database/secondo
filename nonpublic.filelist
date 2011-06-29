@@ -39,6 +39,8 @@ ConstraintAlgebra Constraint
 HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
 Network2Algebra Network2
+NestedRelation2Algebra NestedRelation2
+OsmAlgebra OSM
 PointSequenceAlgebra PointSequence
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
@@ -49,7 +51,6 @@ TemporalNet2Algebra TemporalNet2
 UGridAlgebra UGrid
 UrelAlgebra Urel
 WebAlgebra Web
-
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
