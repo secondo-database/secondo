@@ -7218,13 +7218,20 @@ bool SimpleLine::AtPoint( const Point& p,
     segments.Get( lrs.hsPos, &hs );
     result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
 
+
     if( startsSmaller != this->startSmaller ){
       result = length - result;
     }
 
+    /*
     if( AlmostEqual( result, 0.0 ) ){
       result = 0;
     } else if( AlmostEqual( result, length ) ){
+      result = length;
+    }*/
+    if( AlmostEqualAbsolute( result, 0.0, 0.000001 ) ){
+      result = 0;
+    } else if( AlmostEqualAbsolute( result, length, 0.000001 ) ){
       result = length;
     }
 
@@ -18258,8 +18265,8 @@ const string SpatialSpecCollectSLine  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>stream(T) -> sline, T in {point, line, sline} </text--->"
    "<text> _ collect_sline [ IgnoreUndef ]</text--->"
-   "<text>Collects a stream of 'line' or 'sline' values into a single 'line' "
-   "value. Creates a 'line' value by consecutively connecting subsequent "
+   "<text>Collects a stream of 'line' or 'sline' values into a single 'sline' "
+   "value. Creates a 'sline' value by consecutively connecting subsequent "
    "'point' values from the stream by segments. If the stream provides 0 or 1"
    "Element, the result is defined, but empty.\n"
    "If any of the stream elemnts is undefined and parameter 'IgnoreUndef' is "
@@ -18300,7 +18307,7 @@ const string SpatialSpecGetStartSmaller  =
 
 const string SpatialSpecCreateSline  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>poin x point -> sline </text--->"
+"( <text>point x point -> sline </text--->"
 "<text> create_sline( p1, p2 ) </text--->"
 "<text>Creates a simple line, directed from p1 to p2. If p1 = p2, the result is"
 " empty.</text--->"
@@ -19390,6 +19397,71 @@ Operator spatialHeadingToDirection (
 );
 
 /*
+6.17 Operator ~spatialgetstartpoint~
+
+---- sline --> point
+
+Returns the start point of the simple line.
+
+*/
+
+ListExpr SLine2PointTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("Expected: sline.");
+  }
+  if(listutils::isSymbol(nl->First(args),SimpleLine::BasicType())){
+    return nl->SymbolAtom(Point::BasicType());
+  }
+  return listutils::typeError("Expected: sline.");
+}
+
+template<bool start>
+int SpatialGetPointVM(Word* args, Word& result, int message,
+                           Word& local, Supplier s){
+  SimpleLine* l = static_cast<SimpleLine*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  Point* res = static_cast<Point*>(result.addr);
+  if(!l->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    if (start)
+      res->Set(l->StartPoint(l->GetStartSmaller()));
+    else
+      res->Set(l->EndPoint(l->GetStartSmaller()));
+  }
+  return 0;
+}
+
+const string SpatialGetStartPointSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> sline -> point</text--->"
+"<text>getstartpoint( _ ) </text--->"
+"<text>Returns the starting point of a simple line.</text--->"
+"<text>query getstartpoint(fromline(BGrenzenLinie))</text---> ) )";
+
+const string SpatialGetEndPointSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> sline -> point</text--->"
+"<text>getendpoint( _ ) </text--->"
+"<text>Returns the end point of a simple line.</text--->"
+"<text>query getendpoint(fromline(BGrenzenLinie))</text---> ) )";
+
+Operator spatialgetstartpoint (
+  "getstartpoint",
+  SpatialGetStartPointSpec,
+  SpatialGetPointVM<true>,
+  Operator::SimpleSelect,
+  SLine2PointTM
+);
+
+Operator spatialgetendpoint (
+  "getendpoint",
+  SpatialGetEndPointSpec,
+  SpatialGetPointVM<false>,
+  Operator::SimpleSelect,
+  SLine2PointTM
+);
+/*
 10 Type Constructor ~geoid~
 
 */
@@ -19497,6 +19569,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialcollect_points);
     AddOperator( &spatialmakepoint );
     AddOperator( &halfSegmentsOp );
+    AddOperator( &spatialgetstartpoint);
+    AddOperator( &spatialgetendpoint);
     AddOperator( &spatialsetstartsmaller ) ;
     AddOperator( &spatialgetstartsmaller ) ;
     AddOperator( &spatial_create_sline ) ;

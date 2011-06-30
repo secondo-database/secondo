@@ -537,6 +537,26 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
   return l;
 }
 
+ std::ostream& Relation::Print(std::ostream& os) const
+ {
+   os << "Start of Relation: " << endl;
+   int i = 0;
+   Tuple* t = 0;
+   GenericRelationIterator* it = MakeScan();
+   while ((t = it->GetNextTuple()) != 0)
+   {
+     os << i << ".Tuple: ";
+     t->Print(os);
+     t->DeleteIfAllowed();
+     t = 0;
+     i++;
+     os << endl;
+   }
+   delete it;
+   it = 0;
+   os << "End of Relation." << endl;
+   return os;
+ }
 /*
 6 Implementation of class ~TupleBuffer~
 

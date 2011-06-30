@@ -626,11 +626,18 @@ Returns the network distance from the ~ugpoint~ to the ~gpoint~
 
   void Netdistance(const UGPoint* ugp, UReal* result) const;
 
+/*
+Restricts the ugpoint to the given timeInterval
 
-  /*
-  Methods for Secondo integration.
+*/
 
-  */
+void AtInterval( const Interval<Instant>& i,
+                 TemporalUnit<GPoint>& result ) const;
+
+/*
+Methods for Secondo integration.
+
+*/
 
     static ListExpr Property();
 

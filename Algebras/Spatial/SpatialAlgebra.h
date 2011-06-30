@@ -3288,6 +3288,12 @@ inline void Point::Set( const Coord& x, const Coord& y )
   this->y = y;
 }
 
+inline void Point::Set(const Point& p)
+{
+  SetDefined(p.IsDefined());
+  if (p.IsDefined()) Set(p.GetX(), p.GetY());
+}
+
 inline Point Point::Add( const Point& p, const Geoid* geoid /*=0*/ ) const
 {
   assert( IsDefined() && p.IsDefined() );

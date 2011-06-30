@@ -2587,6 +2587,8 @@ The destructor. Deletes the memory part of an relation object.
 
 */
 
+    std::ostream& Print(std::ostream& os) const;
+
 /*
 Return the type name used for a persistent relation in Secondo.
 To get the type name of a temporary relation, use TempRelation::BasicType().
@@ -2758,6 +2760,7 @@ relation class.
     friend class RelationIterator;
     friend class RandomRelationIterator;
     ////friend struct PrivateRelationIterator;
+
 
   private:
     void InitFiles( bool open = false );

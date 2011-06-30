@@ -853,6 +853,20 @@ Signature: sline x bool -> sline
 Example  : query get_startsmaller(set_startsmaller(fromline(BGrenzenLine),FALSE))
 Result   : FALSE
 
+Operator : getstartpoint
+Number   : 1
+Signature: sline -> point
+Example  : query getstartpoint(fromline(BGrenzenLine));
+Result   : (point(-10849.0 1142.0))
+Tolerance: 0.01%
+
+Operator : getendpoint
+Number   : 1
+Signature: sline -> point
+Example  : query getstartpoint(fromline(BGrenzenLine));
+Result   : (point(-10849.0 1142.0))
+Tolerance: 0.01%
+
 Operator : create_sline
 Number   : 1
 Signature: point x point -> sline

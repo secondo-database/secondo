@@ -7016,6 +7016,45 @@ void UGPoint::Netdistance(const UGPoint* ugp, UReal* result) const
   }
 }
 
+/*
+Restricts the result to the given time interval.
+
+*/
+void UGPoint::AtInterval( const Interval<Instant>& i,
+                         TemporalUnit<GPoint>& result ) const
+{
+  assert( IsDefined() );
+  assert( i.IsValid() );
+
+  TemporalUnit<GPoint>::AtInterval( i, result );
+
+  UGPoint *pResult = (UGPoint*)&result;
+  pResult->SetDefined( IsDefined() );
+
+  if( !IsDefined() )
+  {
+    return;
+  }
+
+  if( timeInterval.start == result.timeInterval.start )
+  {
+    pResult->p0 = p0;
+    pResult->timeInterval.start = timeInterval.start;
+    pResult->timeInterval.lc = (pResult->timeInterval.lc && timeInterval.lc);
+  }
+  else
+    TemporalFunction( result.timeInterval.start, pResult->p0 );
+
+  if( timeInterval.end == result.timeInterval.end )
+  {
+    pResult->p1 = p1;
+    pResult->timeInterval.end = timeInterval.end;
+    pResult->timeInterval.rc = (pResult->timeInterval.rc && timeInterval.rc);
+  }
+  else
+    TemporalFunction( result.timeInterval.end, pResult->p1 );
+}
+
 struct ugpointInfo:ConstructorInfo{
   ugpointInfo(){
     name = "ugpoint";

@@ -65,6 +65,11 @@ class TupleIdentifier: public Attribute
  public:
   TupleIdentifier( bool DEFINED, TupleId TID = 0 );
   TupleIdentifier(const TupleIdentifier& source);
+  inline TupleIdentifier() {};
+/*
+This constructor should not be used.
+
+*/
   ~TupleIdentifier();
   TupleId      GetTid() const;
   void     SetTid( const TupleId tid);
@@ -92,16 +97,21 @@ class TupleIdentifier: public Attribute
   inline int Compare(const Attribute *arg) const
   {
     const TupleIdentifier* tupleI = (const TupleIdentifier*)(arg);
-    bool argDefined = tupleI->IsDefined();
+    return Compare(*tupleI);
+  }
+
+  inline int Compare(const TupleIdentifier& t) const
+  {
+    bool argDefined = t.IsDefined();
     if(!IsDefined() && !argDefined)
       return 0;
     if(!IsDefined())
       return -1;
     if(!argDefined)
       return 1;
-    if ( tid < tupleI->GetTid() )
+    if ( tid < t.GetTid() )
       return (-1);
-    if ( tid > tupleI->GetTid())
+    if ( tid > t.GetTid())
       return (1);
     return (0);
   }
@@ -112,7 +122,27 @@ class TupleIdentifier: public Attribute
     return new (addr) TupleIdentifier();
   }
 
-  static const string BasicType(){
+/*
+Additional functions for integration in ~jlist~
+
+*/
+
+static ListExpr Out(ListExpr typeInfo, Word value);
+static Word In(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct);
+static bool Save(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value );
+static bool Open(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value );
+TupleIdentifier& operator=(const TupleIdentifier& other);
+bool operator==(const TupleIdentifier& other) const;
+
+/*
+Basic Type
+
+*/
+
+static const string BasicType(){
      return "tid";
   }
   static const bool checkType(const ListExpr type){
@@ -123,12 +153,6 @@ class TupleIdentifier: public Attribute
  private:
   TupleId tid;
 
-
-  inline TupleIdentifier() {};
-  /*
-   This constructor should not be used.
-
-  */
 };
 
 

@@ -3044,8 +3044,6 @@ void Network::FillRoutes ( const Relation *routes )
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeRoutes = ( BTree* ) xResult.addr;
   //Create R-Tree for the routes
-  ostringstream xNetRoutes;
-  xNetRoutes << ( long ) m_pRoutes;
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesTypeInfo +
          " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
@@ -13085,7 +13083,6 @@ class NetworkAlgebra : public Algebra
                     OpNetEqualTypeMap);
       AddOperator ( line2glineInfo(), OpLine2GLineValueMapping,
                     OpLine2GLineTypeMap);
-      AddOperator ( insideInfo(), OpInsideValueMap, OpInsideTypeMap);
       AddOperator ( polygpointsInfo(), OpPolyGPointValueMapping,
                     OpPolyGPointTypeMap);
       AddOperator ( routeIntervalsInfo(), OpRouteIntervalsValueMapping,

@@ -124,6 +124,7 @@ Sets the value of the point object.
 
 */
     inline void Set( const Coord& x, const Coord& y );
+    inline void Set( const Point& p);
 /*
 Operators redefinition.
 

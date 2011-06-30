@@ -265,6 +265,98 @@ TIDTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
+Additional functions for integration in ~jlist~
+
+*/
+
+ListExpr TupleIdentifier::Out(ListExpr typeInfo, Word value)
+{
+  TupleIdentifier* tupleI = (TupleIdentifier*)(value.addr);
+  if (tupleI->IsDefined())
+    return nl->IntAtom(tupleI->GetTid());
+  else
+    return nl->SymbolAtom("undef");
+}
+
+Word TupleIdentifier::In(const ListExpr typeInfo, const ListExpr instance,
+                        const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  if ( nl->IsAtom(instance))
+  {
+    if ( nl->AtomType(instance) == IntType)
+    {
+      correct = true;
+      TupleIdentifier* newTid =
+        new TupleIdentifier(true, nl->IntValue(instance));
+      return SetWord(newTid);
+    }
+    else
+    {
+      if (nl->AtomType (instance) == SymbolType)
+      {
+        correct = true;
+        TupleIdentifier* newTid =
+                new TupleIdentifier(false, 0);
+        return SetWord(newTid);
+      }
+      else
+      {
+        correct = false;
+        return SetWord(Address(0));
+      }
+    }
+  }
+  else
+  {
+    correct = false;
+    return SetWord(Address(0));
+  }
+}
+
+bool TupleIdentifier::Save(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value )
+{
+  int t;
+  TupleIdentifier* obj = (TupleIdentifier*) value.addr;
+  if (obj->IsDefined())
+  {
+    t = obj->GetTid();
+  }
+  else
+  {
+    t = -1;
+  }
+  valueRecord.Write(&t, sizeof(int), offset);
+  offset += sizeof(int);
+  return true;
+}
+
+bool TupleIdentifier::Open(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value )
+{
+  int tid;
+  valueRecord.Read(&tid, sizeof(int), offset);
+  offset += sizeof(int);
+  if (tid > -1)
+    value = SetWord(new TupleIdentifier(true, tid));
+  else
+    value = SetWord(new TupleIdentifier(false, 0));
+  return true;
+}
+
+TupleIdentifier& TupleIdentifier::operator=(const TupleIdentifier& other)
+{
+  SetDefined(other.IsDefined());
+  if (other.IsDefined()) tid = other.GetTid();
+  return *this;
+}
+
+bool TupleIdentifier::operator==(const TupleIdentifier& other) const
+{
+  return (Compare(other) == 0);
+}
+
+/*
 3.1.3 Specification of operator ~tupleid~
 
 */
@@ -341,7 +433,6 @@ AddTupleIdTypeMap(ListExpr args)
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                          head));
-
 }
 
 ListExpr TIDtid2intTypeMap (ListExpr args)
