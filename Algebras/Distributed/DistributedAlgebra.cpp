@@ -2667,38 +2667,10 @@ the specified host, listening at the specified port
 It also checks, if the database distributed is available.
 
 */
-static ListExpr
-checkWorkersTypeMap( ListExpr args )
-{
-  NList myargs = nl -> First(args);
-
-  if (myargs.length() == 2)
-  {
-    if(myargs.convertToString() == "(rel (tuple ((Server string) (Port int))))")
-      { 
-        //The return-type of checkWorkers is the list of workers
-        NList resultType = NList(myargs).second().second();
-        NList app (NList("Status"), NList(CcString::BasicType())); 
-        NList tuple = NList(Tuple::BasicType(),
-                                NList(resultType.first(), 
-                                      resultType.second(), 
-                                      app));
-
-        NList result = NList(Relation::BasicType(), tuple);
-        
-        return result.listExpr(); 
-      }
-  }
-  return nl->SymbolAtom(Symbol::TYPEERROR());
-}
- 
 static bool
-checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
+checkWorkerRunning(const string &host, int port,  
+                   const string &cmd, string &msg)
 {
-
-  string host = inHost.str();
-  int port = inPort.intval();
-
   // check worker running
   string line;
   Socket* server = Socket::Connect( host, toString_d(port), 
@@ -2710,6 +2682,13 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
   if(server == 0 || !server->IsOk())
     {      
       msg = "Cannot connect to worker";
+      if (server != 0)
+        {
+          msg += ":" + server -> GetErrorText(); 
+          server->Close();
+          delete server;
+        }
+
       return false;
     }
 
@@ -2717,12 +2696,19 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
       
   if (!server -> IsOk())
     {
-      msg = "Cannot access worker socket";
+      msg = "Cannot access worker socket"; 
+      
+      server->Close();
+      delete server;
       return false;
     }
-      
   do
     {
+      if (!iosock.good())
+        {
+          msg = "Communication is blocked! Restart Worker";
+          return false;
+        }
       getline( iosock, line );
       
     } while (line.empty());
@@ -2731,15 +2717,29 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
 
   if(line=="<SecondoOk/>")
     {
+      if (!iosock.good())
+        {
+          msg = "Communication is blocked! Restart Worker";
+          return false;
+        }
       iosock << "<Connect>" << endl << endl 
              << endl << "</Connect>" << endl;
-        
+      if (!iosock.good())
+        {
+          msg = "Communication is blocked! Restart Worker";
+          return false;
+        }
       getline( iosock, line );
           
       if( line == "<SecondoIntro>")
         {
           do
             {
+              if (!iosock.good())
+                {
+                  msg = "Communication is blocked! Restart Worker";
+                  return false;
+                }
               getline( iosock, line);
               
             }  while(line != "</SecondoIntro>");
@@ -2756,13 +2756,16 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
   if (!startupOK)
     {
       msg = "Unexpected response from worker";
+      server->Close();
+      delete server;
       return false;
     }
 
   if (!(server -> IsOk()))
     { 
       msg = "Cannot Connect to Worker";
-     
+      server->Close();
+      delete server;
       return false;
     } // if (!(server -> IsOk()))
 
@@ -2785,6 +2788,8 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
             {
               msg = 
                 "No database \"distributed\"";
+              server->Close();
+              delete server;
               return false;
             }
                         
@@ -2811,6 +2816,8 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
             {
               msg = 
                 "Database \"distributed\" in use";
+              server->Close();
+              delete server;
               return false;
             }
                         
@@ -2829,87 +2836,141 @@ checkWorkerRunning(NList inHost, NList inPort,  const string &cmd, string &msg)
   return true;
 }
 
+static ListExpr
+checkWorkersTypeMap( ListExpr args )
+{
+  NList myargs = NList(args).first();
+
+  if (myargs.hasLength(2) && myargs.first().isSymbol(sym.STREAM()))
+    {
+      NList tupTypeL( myargs.second().second());
+
+      if (tupTypeL.length() == 2)
+        {
+          //The return-type of checkWorkers is 
+          // a stream of workers each appended w/ a status msg;
+          NList app (NList("Status"), NList(CcString::BasicType())); 
+
+          NList tuple = NList(tupTypeL.first(), tupTypeL.second(), app);
+
+          NList result = NList().tupleStreamOf(tuple);
+          return result.listExpr(); 
+        }
+      return NList::typeError("Tuple stream has too many/few attributes");
+    }
+  
+  return 
+    NList::typeError("Expecting a stream of tuples(Server:string, port:int)");
+}
+
+struct CwLocalInfo
+{
+  TupleType *resTupleType;
+  vector<pair<string, int> > hostport;
+  string cmd;
+
+  CwLocalInfo(ListExpr inTT){ resTupleType = new TupleType(inTT); }
+  ~CwLocalInfo() { resTupleType -> DeleteIfAllowed(); }
+};
+
 static int
 checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  bool res = true;
-  NList tupletype;
-  tupletype.append(NList(NList("Server"), NList(CcString::BasicType())));
-  tupletype.append(NList(NList("Port"), NList(CcInt::BasicType())));
-  tupletype.append(NList(NList("Status"), NList(CcString::BasicType()))); 
+  CwLocalInfo *localInfo;
+  Tuple *curTuple;
+  Tuple *resTuple;
+  Word cTupleWord;
+
+  switch (message)
+    {
+    case OPEN:
+      {
+        qp->Open(args[0].addr);
+      
+        ListExpr resultTupleNL = GetTupleResultType(s);
+
+        localInfo = new CwLocalInfo(nl->Second(resultTupleNL));
+      
+        localInfo -> cmd = "let test1 = \"test\"";
+
+        local.setAddr(localInfo);
+        return 0;
+      }
   
-  tupletype = NList(sc->NumericType( tupletype.listExpr()));
-  tupletype = NList(Tuple::BasicType(),tupletype);
+    case REQUEST:
+      {
+        if (local.addr == 0)
+          return CANCEL;
 
-  TupleType *tt = new TupleType(tupletype.listExpr());
+        localInfo = (CwLocalInfo*)local.addr;
 
-  result = qp->ResultStorage(s);
-  Relation* rel = (Relation*)((qp->ResultStorage(s)).addr);
-  if(rel->GetNoTuples() > 0)
-    {
-      rel->Clear();
+    
+        qp->Request(args[0].addr, cTupleWord);
+        if (qp->Received(args[0].addr))
+          {
+            curTuple = (Tuple*)cTupleWord.addr;
+            string host =
+              ((CcString*)(curTuple->GetAttribute(0)))->GetValue();
+            int port =
+              ((CcInt*)(curTuple->GetAttribute(1)))->GetValue();
+
+            curTuple -> DeleteIfAllowed();
+
+            string msg = "OK"; 
+            
+            bool retVal = checkWorkerRunning(host, port, 
+                                             localInfo -> cmd, msg);
+            if (!retVal)
+              {
+                msg = "ERROR: " + msg + "!";
+              }
+     
+            resTuple = new Tuple(localInfo->resTupleType);
+            resTuple->PutAttribute(0, new CcString((true, host)));
+            resTuple->PutAttribute(1, new CcInt(true, port));
+            resTuple->PutAttribute(2, new CcString((true, msg)));
+        
+            localInfo -> hostport.push_back(make_pair<string, int>(host, port));
+        
+            result.setAddr(resTuple);
+            return YIELD;
+          }
+        else
+          return CANCEL;
+      }
+    case CLOSE:
+      {
+        if (local.addr == 0)
+          return CANCEL;
+
+        localInfo = (CwLocalInfo*)local.addr;
+        localInfo -> cmd = "delete test1";
+    
+        while( !localInfo -> hostport.empty() ) 
+          {
+            string msg = "OK";
+            bool retVal = 
+              checkWorkerRunning(localInfo -> hostport.back().first, 
+                                 localInfo -> hostport.back().second, 
+                                 localInfo -> cmd, msg);
+            
+            localInfo -> hostport.pop_back();
+          }
+        
+        delete localInfo;
+        local.setAddr(0);
+        qp->Close(args[0].addr);
+        return 0;
+      }
     }
-
-  //Generate serverlist as ListExpr from Relation
-  GenericRelation* r = (GenericRelation*)args[0].addr;
-  GenericRelationIterator* rit = r->MakeScan();
-
-  ListExpr reltype;
-  nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",reltype);
-  NList serverlist (Relation::Out(reltype,rit));
-
-  NList serverlist_cpy (serverlist);
-
-  string cmd = "let test1 = \"test\"";
-  while( !serverlist.isEmpty() ) 
-    {
-      NList worker = serverlist.first();
-      
-      string msg = "OK"; 
-      bool retVal = checkWorkerRunning(worker.first(), 
-                                       worker.second(), 
-                                       cmd, msg);
-      res &= retVal;
-
-      if (!retVal)
-        {
-          msg = "ERROR: " + msg + "!";
-        }
-      
-      Tuple *tuple = new Tuple(tt);
-      tuple -> PutAttribute(0, new CcString ( true, worker.first().str() ));
-      tuple -> PutAttribute(1, new CcInt ( true, worker.second().intval() ));
-      tuple -> PutAttribute(2, new CcString ( true, msg ));
-      rel->AppendTuple(tuple);
-      tuple -> DeleteIfAllowed();
-
-      serverlist.rest();
-    }
-
-  // just removing the 'test1' object;
-  cmd = "delete test1";
-  while( !serverlist_cpy.isEmpty() ) 
-    {
-      NList worker = serverlist_cpy.first();
-      
-      string msg = "OK";
-      bool retVal = checkWorkerRunning(worker.first(), 
-                                       worker.second(), 
-                                       cmd, msg);
-
-      serverlist_cpy.rest();
-    }
-
-  result.setAddr(rel);
-
+ 
   return 0;
 }
 
 const string checkWorkersSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "(<text>(rel(tuple([Server:string, Port: int]))) ->  "
-    "(rel(tuple([Server:string, Port: int, Status: string])))</text--->"
+    "(<text>((stream (tuple ((Server string) (Port int))))) ->  "
+    "((stream (tuple ((Server string) (Port int) (Status string)))))</text--->"
       "<text>_ check_workers</text--->"
       "<text>checks workers, if running and database 'distributed'"
       "exists</text--->"
