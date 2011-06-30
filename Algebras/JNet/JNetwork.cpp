@@ -33,12 +33,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "PairTIDRLoc.h"
 
-
-
-
 extern NestedList* nl;
 
-static bool DEBUG = true;
+static bool DEBUG = false;
 /*map <SmiFileId, JNetwork*> JNetwork::netlist;*/
 
 /*
@@ -227,8 +224,9 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   if (DEBUG) cout << "Read junctions" << endl;
   ListExpr typeInf = nl->TheEmptyList();
   nl->ReadFromString(junctionsTypeInfo, typeInf);
-  junctions = (Relation*) Relation::In(typeInf, juncList.listExpr(), errorPos,
-                                       errorInfo, correct,false);
+  ListExpr relNumericType = SecondoSystem::GetCatalog()->NumericType(typeInf);
+  junctions = (Relation*) Relation::In(relNumericType, juncList.listExpr(),
+                                       errorPos, errorInfo, correct,false);
   if (!correct)
   {
     cerr << "Second Element must be junctions relation." << endl;
@@ -237,8 +235,9 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
 
   if (DEBUG) cout << "Read sections" << endl;
   nl->ReadFromString(sectionsTypeInfo, typeInf);
-  sections = (Relation*)Relation::In(typeInf, sectList.listExpr(), errorPos,
-                                     errorInfo, correct,false);
+  relNumericType = SecondoSystem::GetCatalog()->NumericType(typeInf);
+  sections = (Relation*)Relation::In(relNumericType, sectList.listExpr(),
+                                     errorPos, errorInfo, correct,false);
   if (!correct)
   {
     delete junctions;
@@ -248,8 +247,9 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
 
   if (DEBUG) cout << "Read routes" << endl;
   nl->ReadFromString(routesTypeInfo, typeInf);
-  routes = (Relation*) Relation::In(typeInf, routeList.listExpr(), errorPos,
-                                    errorInfo, correct, false);
+  relNumericType = SecondoSystem::GetCatalog()->NumericType(typeInf);
+  routes = (Relation*) Relation::In(relNumericType, routeList.listExpr(),
+                                    errorPos, errorInfo, correct, false);
   if (!correct)
   {
     delete junctions;

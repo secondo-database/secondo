@@ -252,21 +252,23 @@ Word PairTIDRLoc::In(const ListExpr typeInfo, const ListExpr instance,
         else
         {
           correct = false;
-          nl->AppendText(errorInfo,"Second element must be an RouteLocation.");
+          nl->Append(errorInfo,
+                     nl->StringAtom("2.Elem must be routelocation."));
           return (SetWord(Address(0)));
         }
       }
       else
       {
         correct = false;
-        nl->AppendText(errorInfo,"First element must be an TupleIdentifier.");
+        nl->Append(errorInfo,
+                   nl->StringAtom("1.Element must be an TupleIdentifier."));
         return (SetWord(Address(0)));
       }
     }
     else
     {
       correct = false;
-      nl->AppendText(errorInfo,"ListLength must be 1 or 2.");
+      nl->Append(errorInfo, nl->StringAtom("ListLength must be 1 or 2."));
       return (SetWord(Address(0)));
     }
   }

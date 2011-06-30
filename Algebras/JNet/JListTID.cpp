@@ -304,7 +304,12 @@ ListExpr JListTID::Out(ListExpr typeInfo, Word value)
 Word JListTID::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  if (DEBUG) cout << "JListTID::in" << endl;
+  if (DEBUG)
+  {
+    cout << "JListTID::in" << endl;
+    NList inst(instance);
+    inst.writeAsStringTo(cout);
+  }
   if(nl->IsEqual(instance,Symbol::UNDEFINED()))
   {
     correct=true;
@@ -331,7 +336,8 @@ Word JListTID::In(const ListExpr typeInfo, const ListExpr instance,
     else
     {
 
-      nl->AppendText(errorInfo, "Incorrect TupleIdentifier in list.");
+      nl->Append(errorInfo,
+                 nl->StringAtom("Incorrect TupleIdentifier in list."));
       in->DeleteIfAllowed();
       delete in;
       return SetWord(Address(0));
