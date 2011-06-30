@@ -72,15 +72,15 @@ which will be read.
 #include <map>
 #include <algorithm>
 
-#include "DisplayTTY.h"
-#include "NestedList.h"
-#include "NList.h"
-#include "SecondoInterface.h"
-#include "AlgebraTypes.h"
-#include "Base64.h"
-#include "CharTransform.h"
-#include "Symbols.h"
-
+#include "../include/DisplayTTY.h"
+#include "../include/NestedList.h"
+#include "../include/NList.h"
+#include "../include/SecondoInterface.h"
+#include "../include/AlgebraTypes.h"
+#include "../include/Base64.h"
+#include "../include/CharTransform.h"
+#include "../include/NList.h"
+#include "../include/Symbols.h"
 
 /*
 Auxiliary global variables and functions
@@ -2735,6 +2735,281 @@ struct DisplayCellgrid2D : DisplayFunction {
 
 };
 
+/*
+Displayfunctions for JNetAlgebra
+
+*/
+struct DisplayJDirection : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    NList in_inst(value);
+    cout << "Direction: " << in_inst.first().str() << endl;
+  }
+};
+
+struct DisplayRouteLocation : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "RouteLocation: ";
+    NList in_inst(value);
+    if (in_inst.hasStringValue())
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      cout<< "route identifier: " << in_inst.first().intval()
+          << ", position: " << in_inst.second().realval()
+          << ", side: " << in_inst.third().first().str()
+          << endl;
+    }
+  }
+};
+
+struct DisplayJRouteInterval : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "Routeinterval: ";
+    NList in_inst(value);
+    if (in_inst.hasStringValue())
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      cout<< "routeId: " << in_inst.first().intval()
+      << ", from position: " << in_inst.second().realval()
+      << ", to position: " << in_inst.third().realval()
+      << ", side: " << in_inst.fourth().first().str()
+      << endl;
+    }
+  }
+};
+
+struct DisplayJListTID : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "List of Tuple Ids: ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      cout << endl;
+      ListExpr rest = value;
+      ListExpr first = nl->TheEmptyList();
+      while( !nl->IsEmpty( rest ) )
+      {
+        first = nl->First( rest );
+        rest = nl->Rest( rest );
+        cout << "TupleId: ";
+        if (nl->IntAtom(nl->First(first)))
+          cout << nl->IntValue(nl->First(first)) << endl;
+        else
+          cout << Symbol::UNDEFINED() << endl;
+      }
+      cout << "End of list of TupleIds." << endl;
+    }
+  }
+};
+
+struct DisplayPairTIDRLoc : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+
+    cout << "Pair: ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      ListExpr tid = nl->First(value);
+      cout << "TupleId: ";
+      if (nl->IntAtom(tid))
+        cout << nl->IntValue(tid) << endl;
+      else
+        cout << Symbol::UNDEFINED() << endl;
+      cout << ", RouteLocation: ";
+      NList rloc( nl->Second(value));
+      if (rloc.hasStringValue())
+        cout << Symbol::UNDEFINED() << endl;
+      else
+      {
+        cout << "route identifier: " << rloc.first().intval()
+             << ", position: " << rloc.second().realval()
+             << ", side: " << rloc.third().first().str()
+             << endl;
+      }
+    }
+  }
+};
+
+struct DisplayListPTIDRLoc : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "List of pairs of Tuple Id and RouteLocation: " << endl;
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      while( !nl->IsEmpty(value))
+      {
+        cout << "Entry: ";
+        NList elem(nl->First(value));
+        if (elem.length() == 2)
+        {
+          NList tid(elem.first());
+          cout << "TupleId: ";
+          if (tid.isInt())
+            cout << tid.intval() << endl;
+          else
+            cout << Symbol::UNDEFINED() << endl;
+          NList rloc(elem.second());
+          cout << "RouteLocation: ";
+          if (rloc.hasStringValue())
+            cout << Symbol::UNDEFINED() << endl;
+          else
+          {
+            cout << "route identifier: " << rloc.first().intval()
+            << ", position: " << rloc.second().realval()
+            << ", side: " << rloc.third().first().str()
+            << endl;
+          }
+        }
+        else
+        {
+          cout << Symbol::UNDEFINED() << endl;
+        }
+        cout << endl;
+        value = nl->Rest(value);
+      }
+      cout << "End of list of pairs of TupleId and RouteLocation." << endl;
+    }
+  }
+};
+
+struct DisplayPairTIDRInt : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "Pair: ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList tid(nl->First(value));
+      cout << "TupleId: ";
+      if (tid.isInt())
+        cout << tid.intval() << endl;
+      else
+        cout << Symbol::UNDEFINED() << endl;
+      cout << ", RouteInterval: ";
+      NList rint( nl->Second(value));
+      if (rint.hasStringValue())
+        cout << Symbol::UNDEFINED() << endl;
+      else
+      {
+        cout << "route identifier: " << rint.first().intval()
+        << ", start position: " << rint.second().realval()
+        << ", end position: " << rint.third().realval()
+        << ", side: " << rint.fourth().first().str()
+        << endl;
+      }
+    }
+  }
+};
+
+struct DisplayListPTIDRInt : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "List of pairs of Tuple Id and RouteIntervals: " << endl;
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      while( !nl->IsEmpty(value))
+      {
+        cout << "Element: ";
+        NList elem(nl->First(value));
+        if (elem.length() == 2)
+        {
+          NList tid(elem.first());
+          cout << "TupleId: ";
+          if (tid.isInt())
+            cout << tid.intval() << endl;
+          else
+            cout << Symbol::UNDEFINED() << endl;
+          NList rint(elem.second());
+          cout << "RouteInterval: ";
+          if (rint.hasStringValue())
+            cout << Symbol::UNDEFINED() << endl;
+          else
+          {
+            cout << "route identifier: " << rint.first().intval()
+            << ", start position: " << rint.second().realval()
+            << ", end position: " << rint.third().realval()
+            << ", side: " << rint.fourth().first().str()
+            << endl;
+          }
+        } else
+        {
+          cout << Symbol::UNDEFINED() << endl;
+        }
+        cout << endl;
+        value = nl->Rest(value);
+      }
+      cout << "End of list of pairs of TupleId and RouteInterval." << endl;
+    }
+  }
+};
+
+struct DisplayNetDistanceGroup : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "NetDistanceGroup: ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList target(nl->First(value));
+      NList nextSect(nl->Second(value));
+      NList nextJunct(nl->Third(value));
+      NList distance(nl->Fourth(value));
+      cout << "target junction tupleid: " << target.intval()
+           << ", next section tupleid: " << nextSect.intval()
+           << ", next junction tupleid: " << nextJunct.intval()
+           << ", netdistance: " << distance.realval() << endl;
+    }
+  }
+};
+
+struct DisplayListNDG : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "List of NetDistanceGroups: " << endl;
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      while( !nl->IsEmpty(value))
+      {
+        cout << "Element: " ;
+        NList elem(nl->First(value));
+        if (elem.length() == 4)
+        {
+          NList target(elem.first());
+          NList nextSect(elem.second());
+          NList nextJunct(elem.third());
+          NList distance(elem.fourth());
+          cout << "target junction tupleid: " << target.intval()
+          << ", next section tupleid: " << nextSect.intval()
+          << ", next junction tupleid: " << nextJunct.intval()
+          << ", netdistance: " << distance.realval() << endl;
+        }
+        else
+        {
+          cout << Symbol::UNDEFINED() << endl;
+        }
+        cout << endl;
+        value = nl->Rest(value);
+      }
+      cout << "End of list of NetDistanceGroups." << endl;
+    }
+  }
+};
 
 /*
 Display Hadoop file list
@@ -2881,6 +3156,18 @@ DisplayTTY::Initialize()
   d.Insert( "vector",    new DisplayVector() );
   d.Insert( "set",       new DisplaySet() );
   d.Insert( "multiset",  new DisplayMultiset() );
+
+  // JNetAlgebra
+  d.Insert( "jdirection", new DisplayJDirection() );
+  d.Insert( "routelocation", new DisplayRouteLocation());
+  d.Insert( "jrouteinterval", new DisplayJRouteInterval());
+  d.Insert( "jlisttid", new DisplayJListTID());
+  d.Insert( "pairtidrloc", new DisplayPairTIDRLoc());
+  d.Insert( "listptidrloc", new DisplayListPTIDRLoc());
+  d.Insert( "pairtidrint", new DisplayPairTIDRInt());
+  d.Insert( "listptidrint", new DisplayListPTIDRInt());
+  d.Insert( "netdistancegroup", new DisplayNetDistanceGroup());
+  d.Insert( "listnetdistgrp", new DisplayListNDG());
 }
 
 /*

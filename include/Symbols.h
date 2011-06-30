@@ -62,6 +62,7 @@ class Kind{
     static const std::string MREL()          { return "MREL"; }
     static const std::string MTUPLE()        { return "MTUPLE"; }
     static const std::string NETWORK()       { return "NETWORK"; }
+    static const std::string JNETWORK()      { return "JNETWORK"; }
     static const std::string PTUPLE()        { return "PTUPLE"; }
     static const std::string RANGE()         { return "RANGE"; }
     static const std::string REL()           { return "REL"; }
