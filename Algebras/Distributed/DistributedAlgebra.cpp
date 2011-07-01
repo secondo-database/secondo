@@ -2671,6 +2671,7 @@ static bool
 checkWorkerRunning(const string &host, int port,  
                    const string &cmd, string &msg)
 {
+  cout << "checking worker on " << host << ":" << port << endl;
   // check worker running
   string line;
   Socket* server = Socket::Connect( host, toString_d(port), 
@@ -2922,6 +2923,7 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
     {
     case OPEN:
       {
+        cout << "Checking workers" << endl;
         qp->Open(args[0].addr);
       
         ListExpr resultTupleNL = GetTupleResultType(s);
