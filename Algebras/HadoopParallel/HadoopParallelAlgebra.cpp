@@ -1543,27 +1543,27 @@ bool pj2LocalInfo::LoadTuples()
   //than the current one.
   tba = new TupleBuffer(maxMem);
   int cmpa = 0;
-  RTuple tmpa;
+  RTuple lta;  //Last tuple A
   while ( (cta != 0) && (0 == cmpa) )
   {
-    tmpa = cta;
-    tba->AppendTuple(tmpa.tuple);
+    lta = cta;
+    tba->AppendTuple(lta.tuple);
     cta.setTuple(NextTuple(streamA));
     if ( cta != 0 )
-      cmpa = CompareTuples(tmpa.tuple, keyAIndex,
+      cmpa = CompareTuples(lta.tuple, keyAIndex,
                          cta.tuple, keyAIndex);
   }
 
   tbb = new TupleBuffer(maxMem);
   int cmpb = 0;
-  RTuple tmpb;
+  RTuple ltb;  //Last tuple B
   while ( (ctb != 0) && (0 == cmpb) )
   {
-    tmpb = ctb;
-    tbb->AppendTuple(tmpb.tuple);
+    ltb = ctb;
+    tbb->AppendTuple(ltb.tuple);
     ctb.setTuple(NextTuple(streamB));
     if ( ctb != 0 )
-      cmpb = CompareTuples(tmpb.tuple, keyBIndex,
+      cmpb = CompareTuples(ltb.tuple, keyBIndex,
                          ctb.tuple, keyBIndex);
   }
   if ((cta == 0) || (ctb == 0))
@@ -1571,10 +1571,14 @@ bool pj2LocalInfo::LoadTuples()
 
   ita = tba->MakeScan();
   itb = tbb->MakeScan();
-  loaded = true;
 
   if ((0 == tba->GetNoTuples()) || (0 == tbb->GetNoTuples()))
+  {
     endOfStream = true;
+    return loaded;
+  }
+
+  loaded = true;
   return loaded;
 }
 
@@ -1613,7 +1617,6 @@ Tuple* pj2LocalInfo::getNextTuple()
     }
   }
 
-  //should never be here ...
   return 0;
 }
 

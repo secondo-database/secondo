@@ -326,8 +326,7 @@ private:
       }
     }
 
-    result.addr = 0;
-    return static_cast<Tuple*>( result.addr );
+    return 0;
   }
 
 public:
@@ -537,10 +536,12 @@ public:
     if (!tupleBlockFile->eof() && (blockSize > 0))
     {
       blockSize -= sizeof(blockSize);
-      char tupleBlock[blockSize];
+      char *tupleBlock = new char[blockSize];
+//      char tupleBlock[blockSize];
       tupleBlockFile->read(tupleBlock, blockSize);
       t = new Tuple(tupleType);
       t->ReadFromBin(tupleBlock, blockSize);
+      delete tupleBlock;
     }
 
     return t;
