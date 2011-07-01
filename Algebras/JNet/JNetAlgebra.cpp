@@ -941,7 +941,47 @@ Returns the routes relation of the jnetwork object.
 
 */
 
-ListExpr RoutesTM ( ListExpr args )
+ListExpr routesTM ( ListExpr args )
+{
+  NList param(args);
+  if (param.length() != 1)
+    return listutils::typeError("Expected 1 argument.");
+
+  NList network(param.first());
+  if (!network.isSymbol(JNetwork::BasicType()))
+    return listutils::typeError("Argument must be jnetwork.");
+
+  ListExpr xType;
+  nl->ReadFromString ( JNetwork::routesTypeInfo, xType );
+  return xType;
+}
+
+int routesVM( Word* args, Word& result, int message,
+              Word& local, Supplier s )
+{
+  JNetwork* network = (JNetwork*)args[0].addr;
+  result = SetWord ( network->GetRoutesCopy() );
+  Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage ( s, result );
+  return 0;
+}
+
+OperatorInfo routesInfo(
+  "routes",
+  "jnetwork -> rel (tuple ( (id int) (listjunctions listptidrloc)"
+  "(listsections listptidrint) (lenth real)))",
+  "routes(_)",
+  "Returns the routes relation of the jnetworkobject",
+  "query routes(jnetworkobject)"
+);
+
+/*
+2.5.2 Junctions
+
+*/
+
+ListExpr junctionsTM ( ListExpr args )
 {
   NList param(args);
   if (param.length() != 1)
@@ -956,32 +996,69 @@ ListExpr RoutesTM ( ListExpr args )
   return xType;
 }
 
-int RoutesVM( Word* args, Word& result, int message,
-              Word& local, Supplier s )
+int junctionsVM( Word* args, Word& result, int message,
+                 Word& local, Supplier s )
 {
   JNetwork* network = (JNetwork*)args[0].addr;
-  result = SetWord ( network->GetRoutesCopy() );
+  result = SetWord ( network->GetJunctionsCopy() );
   Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
   resultSt->Close();
   qp->ChangeResultStorage ( s, result );
   return 0;
 }
 
-OperatorInfo RoutesInfo(
-  "routes",
-  "jnetwork -> ",
-  "routes(_)",
-  "Returns the routes relation of the jnetworkobject",
-  "query routes(jnetworkobject)"
+OperatorInfo junctionsInfo(
+  "junctions",
+  "jnetwork -> rel (tuple( (id int) (pos point)"
+  "(listjuncpos listptidrloc) (listinsections jlisttid)"
+  "(listoutsections jlisttid) (listdistances listnetdistgrp)))",
+  "junctions(_)",
+  "Returns the juncitons relation of the jnetworkobject",
+  "query junctions(jnetworkobject)"
 );
 
 /*
-2.5.2 Junctions
-
 2.5.3 Sections
 
 */
 
+ListExpr sectionsTM ( ListExpr args )
+{
+  NList param(args);
+  if (param.length() != 1)
+    return listutils::typeError("Expected 1 argument.");
+
+  NList network(param.first());
+  if (!network.isSymbol(JNetwork::BasicType()))
+    return listutils::typeError("Argument must be jnetwork.");
+
+  ListExpr xType;
+  nl->ReadFromString ( JNetwork::sectionsTypeInfo, xType );
+  return xType;
+}
+
+int sectionsVM( Word* args, Word& result, int message,
+              Word& local, Supplier s )
+{
+  JNetwork* network = (JNetwork*)args[0].addr;
+  result = SetWord ( network->GetSectionsCopy() );
+  Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage ( s, result );
+  return 0;
+}
+
+OperatorInfo sectionsInfo(
+  "sections",
+  "jnetwork -> rel( tuple ( (id int) (curve sline)"
+  "(startjunc tid) (endjunc tid) (listsectrint listptidrint) "
+  "(listadjsectup jlisttid) (listadjsectdown jlisttid) "
+  "(listrevadjsectup jlisttid) (listrevadjsectdown jlisttid)"
+  "(lenth real) (vmax real) (sectdir jdirection)))",
+  "sections(_)",
+  "Returns the routes relation of the jnetworkobject",
+  "query sections(jnetworkobject)"
+);
 
 /*
 3. ~class JNetAlgebra~
@@ -1051,9 +1128,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
 3.1.2.2 Access to Network Parameters
 
 */
-  AddOperator(RoutesInfo, RoutesVM, RoutesTM);
-  AddOperator(JunctionsInfo, JunctionsVM, JunctionsTM);
-  AddOperator(SectionsInfo, SectionsVM, SectionsTM);
+  AddOperator(routesInfo, routesVM, routesTM);
+  AddOperator(junctionsInfo, junctionsVM, junctionsTM);
+  AddOperator(sectionsInfo, sectionsVM, sectionsTM);
 }
 
 /*

@@ -290,6 +290,42 @@ int JNetwork::GetId() const
   return id;
 }
 
+Relation* JNetwork::GetJunctionsCopy() const
+{
+  ostringstream strPtr;
+  strPtr << ( long ) junctions;
+  string querystring = "(consume (feed (" + junctionsTypeInfo +
+                         " (ptr " + strPtr.str() + "))))";
+  Word resultWord;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted );
+  return ( Relation * ) resultWord.addr;
+}
+
+Relation* JNetwork::GetRoutesCopy() const
+{
+  ostringstream strPtr;
+  strPtr << ( long ) routes;
+  string querystring = "(consume (feed (" + routesTypeInfo +
+                         " (ptr " + strPtr.str() + "))))";
+  Word resultWord;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted );
+  return ( Relation * ) resultWord.addr;
+}
+
+Relation* JNetwork::GetSectionsCopy() const
+{
+  ostringstream strPtr;
+  strPtr << ( long ) sections;
+  string querystring = "(consume (feed (" + sectionsTypeInfo +
+                           " (ptr " + strPtr.str() + "))))";
+  Word resultWord;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted );
+  return ( Relation * ) resultWord.addr;
+}
+
 void JNetwork::SetDefined(const bool def)
 {
   nDef = def;
@@ -1271,44 +1307,4 @@ void JNetwork::WriteSectionTuple(const int sectId,
   sections->AppendTuple(actSectTup);
   actSectTup->DeleteIfAllowed();
   actSectTup = 0;
-}
-
-/*
-1.8 Getter and Setter for Network Attributes.
-
-*/
-
-int JNetwork::GetId() const
-{
-  return id;
-}
-
-bool JNetwork::IsDefined()const
-{
-  return nDef;
-}
-
-Relation* GetJunctionsCopy() const
-{
-
-}
-
-Relation* GetRoutesCopy() const
-{
-
-}
-
-Relation* GetSectionsCopy() const
-{
-
-}
-
-void SetId(const int nid)
-{
-  id = nid;
-}
-
-void SetDefined(const bool def)
-{
-  nDef = def;
 }

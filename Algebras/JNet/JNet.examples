@@ -1,5 +1,5 @@
 Database: jnettest
-Restore : no
+Restore : yes
 
 Operator : createpair
 Number   : 1
@@ -83,3 +83,22 @@ Number   : 1
 Signature: int x rel x rel -> jnetwork
 Example  : query createjnetwork(1, reljunctions, relroutes);
 Result   : file
+
+Operator : junctions
+Number   : 1
+Signature: jnetwork -> rel(tuple( (id int) (pos point)(listjuncpos listptidrloc)(listinsections jlisttid)(listoutsections jlisttid) (listdistances listnetdistgrp)))
+Example  : query junctions(testnet);
+Result   : file
+
+Operator : sections
+Number   : 1
+Signature: jnetwork -> rel ( tuple ( (id int) (curve sline)(startjunc tid) (endjunc tid) (listsectrint listptidrint)(listadjsectup jlisttid) (listadjsectdown jlisttid)(listrevadjsectup jlisttid) (listrevadjsectdown jlisttid)(lenth real) (vmax real) (sectdir jdirection)))
+Example  : query sections(testnet);
+Result   : file
+
+Operator : routes
+Number   : 1
+Signature: jnetwork -> rel(tuple((id int)(listjunctions listptidrloc)(listsections listptidrint)(lenth real)))
+Example  : query routes(testnet);
+Result   : file
+

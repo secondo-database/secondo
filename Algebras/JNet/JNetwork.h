@@ -74,6 +74,9 @@ The default constructor should only be used in the cast function.
 
   bool IsDefined() const;
   int GetId() const;
+  Relation* GetJunctionsCopy() const;
+  Relation* GetRoutesCopy() const;
+  Relation* GetSectionsCopy() const;
 
   void SetDefined(const bool def);
   void SetId(const SmiFileId nid);
@@ -147,18 +150,17 @@ static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo);
 
 /*
-1.5.2 Getter for Network Attributes
+1.7.2 Relation Descriptors
 
 */
-
-int GetId() const;
-bool IsDefined()const;
-Relation* GetJunctionsCopy() const;
-Relation* GetRoutesCopy() const;
-Relation* GetSectionsCopy() const;
-
-void SetId();
-void SetDefined(const bool def);
+static string sectionsTypeInfo;
+static string junctionsTypeInfo;
+static string routesTypeInfo;
+static string sectionsBTreeTypeInfo;
+static string sectionsRTreeTypeInfo;
+static string junctionsBTreeTypeInfo;
+static string junctionsRTreeTypeInfo;
+static string routesBTreeTypeInfo;
 
 private:
 
@@ -216,19 +218,6 @@ private:
     ROUTE_LIST_SECTIONS,
     ROUTE_LENGTH
   };
-
-/*
-1.7.2 Relation Descriptors
-
-*/
-  static string sectionsTypeInfo;
-  static string junctionsTypeInfo;
-  static string routesTypeInfo;
-  static string sectionsBTreeTypeInfo;
-  static string sectionsRTreeTypeInfo;
-  static string junctionsBTreeTypeInfo;
-  static string junctionsRTreeTypeInfo;
-  static string routesBTreeTypeInfo;
 
 /*
 1.8 Internal functions
