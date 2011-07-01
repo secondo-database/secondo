@@ -2963,9 +2963,9 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
               }
      
             resTuple = new Tuple(localInfo->resTupleType);
-            resTuple->PutAttribute(0, new CcString((true, host)));
+            resTuple->PutAttribute(0, new CcString(true, host));
             resTuple->PutAttribute(1, new CcInt(true, port));
-            resTuple->PutAttribute(2, new CcString((true, msg)));
+            resTuple->PutAttribute(2, new CcString(true, msg));
         
             localInfo -> hostport.push_back(make_pair<string, int>(host, port));
         
@@ -2986,10 +2986,9 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
         while( !localInfo -> hostport.empty() ) 
           {
             string msg = "OK";
-            bool retVal = 
-              checkWorkerRunning(localInfo -> hostport.back().first, 
-                                 localInfo -> hostport.back().second, 
-                                 localInfo -> cmd, msg);
+            checkWorkerRunning(localInfo -> hostport.back().first, 
+                               localInfo -> hostport.back().second, 
+                               localInfo -> cmd, msg);
             
             localInfo -> hostport.pop_back();
           }
