@@ -56,6 +56,7 @@ string HostIP_;
 
 //Synchronisation of access to Flobs
 ZThread::Mutex Flob_Mutex;
+ZThread::Mutex Cmd_Mutex;
 
 /*
 
@@ -379,27 +380,25 @@ void DServer::run()
          SmiRecordFile recF(false,0);
          SmiRecord rec;
          SmiRecordId recID;
-                
+         Cmd_Mutex.acquire();       
          recF.Open("send");
          recF.AppendRecord(recID,rec);
          size_t size = 0;
-         
          am->SaveObj(algID,typID,rec,size,type,
                      (*(m_cmd -> getElements()))[arg2]);
-                
          char* buffer = new char[size]; 
          rec.Read(buffer,size,0);
          //rec.Truncate(3);
          recF.DeleteRecord(recID);
          recF.Close();
-
+	 Cmd_Mutex.release();
          //Size of the binary data is sent
          cbsock << "<SIZE>" << endl << size << endl << "</SIZE>" << endl;
                 
          //The actual data are sent
          worker->Write(buffer,size);
-         
-         delete buffer;
+ 
+         delete [] buffer ;
 
          Attribute* a;
          if(t->NumOfFLOBs() > 0 ) 
@@ -523,7 +522,7 @@ void DServer::run()
               SmiRecordFile recF(false,0);
               SmiRecord rec;
               SmiRecordId recID;
-              
+             Cmd_Mutex.acquire(); 
               recF.Open("rec");
               recF.AppendRecord(recID,rec);
               rec.Write(buffer,size,0);
@@ -534,8 +533,8 @@ void DServer::run()
               
               recF.DeleteRecord(recID);
               recF.Close();
-              
-              delete buffer;
+              Cmd_Mutex.release();
+              delete [] buffer;
               
               getline(cbsock,line);
               

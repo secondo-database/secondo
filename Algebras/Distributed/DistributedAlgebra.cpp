@@ -739,7 +739,7 @@ bool DArray::Open( SmiRecord& valueRecord ,
    valueRecord.Read(buffer, length, offset);
    offset += length;
    type.assign(buffer, length);
-   delete buffer;
+   delete [] buffer;
 
    //Workerlist is read
    valueRecord.Read(&length, sizeof(length), offset);
@@ -748,7 +748,7 @@ bool DArray::Open( SmiRecord& valueRecord ,
    valueRecord.Read(buffer, length, offset);
    offset += length;
    server.assign(buffer, length);
-   delete buffer;
+   delete [] buffer;
 
    //name is read
    valueRecord.Read(&length, sizeof(length), offset);
@@ -757,7 +757,7 @@ bool DArray::Open( SmiRecord& valueRecord ,
    valueRecord.Read(buffer, length, offset);
    offset += length;
    name.assign(buffer, length);
-   delete buffer;
+   delete [] buffer;
 
    ListExpr typeList;
    nl->ReadFromString( type, typeList);
