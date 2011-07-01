@@ -2771,17 +2771,33 @@ checkWorkerRunning(const string &host, int port,
 
 
   // check db distributed available
-   
+  if (!iosock.good())
+    {
+      msg = "Communication is blocked! Restart Worker";
+      return false;
+    }
+
   iosock << "<Secondo>" << endl << "1" << endl 
          << "open database distributed" << endl 
          << "</Secondo>" << endl;
-   
+
+   if (!iosock.good())
+    {
+      msg = "Communication is blocked! Restart Worker";
+      return false;
+    }
+
   getline( iosock, line );
 
   if(line=="<SecondoResponse>")
     {
       do
         {
+          if (!iosock.good())
+            {
+              msg = "Communication is blocked! Restart Worker";
+              return false;
+            }
           getline( iosock, line );
    
           if(line.find("ERROR") != string::npos)
@@ -2800,16 +2816,32 @@ checkWorkerRunning(const string &host, int port,
     msg = "Unexpected response from worker";
         
   // check if db distributed is unique
+  if (!iosock.good())
+    {
+      msg = "Communication is blocked! Restart Worker";
+      return false;
+    }
   iosock << "<Secondo>" << endl << "1" << endl 
          << cmd << endl 
          << "</Secondo>" << endl;
    
+  if (!iosock.good())
+    {
+      msg = "Communication is blocked! Restart Worker";
+      return false;
+    }
+
   getline( iosock, line );
 
   if(line=="<SecondoResponse>")
     {
       do
         {
+          if (!iosock.good())
+            {
+              msg = "Communication is blocked! Restart Worker";
+              return false;
+            }
           getline( iosock, line );
    
           if(line.find("ERROR") != string::npos)
@@ -2827,6 +2859,11 @@ checkWorkerRunning(const string &host, int port,
   else 
     msg = "Unexpected response from worker";
 
+  if (!iosock.good())
+    {
+      msg = "Communication is blocked! Restart Worker";
+      return false;
+    }
   iosock << "<Disconnect/>" << endl;
   server->Close();
   
