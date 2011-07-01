@@ -19,7 +19,7 @@ PartitionedStreamAlgebra PartitionedStream
 RemoteStreamAlgebra RemoteStream
 TrafficAlgebra Traffic
 TransportationModeAlgebra TransportationMode
-
+JNetAlgebra JNet
 
 # Plugins
 GeneralTreeAlgebra GeneralTree

@@ -933,6 +933,57 @@ OperatorInfo CreateJNetworkInfo(
 );
 
 /*
+2.5 Access to JNetwork parts
+
+2.5.1 Routes
+
+Returns the routes relation of the jnetwork object.
+
+*/
+
+ListExpr RoutesTM ( ListExpr args )
+{
+  NList param(args);
+  if (param.length() != 1)
+    return listutils::typeError("Expected 1 argument.");
+
+  NList network(param.first());
+  if (!network.isSymbol(JNetwork::BasicType()))
+    return listutils::typeError("Argument must be jnetwork.");
+
+  ListExpr xType;
+  nl->ReadFromString ( JNetwork::junctionsTypeInfo, xType );
+  return xType;
+}
+
+int RoutesVM( Word* args, Word& result, int message,
+              Word& local, Supplier s )
+{
+  JNetwork* network = (JNetwork*)args[0].addr;
+  result = SetWord ( network->GetRoutesCopy() );
+  Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage ( s, result );
+  return 0;
+}
+
+OperatorInfo RoutesInfo(
+  "routes",
+  "jnetwork -> ",
+  "routes(_)",
+  "Returns the routes relation of the jnetworkobject",
+  "query routes(jnetworkobject)"
+);
+
+/*
+2.5.2 Junctions
+
+2.5.3 Sections
+
+*/
+
+
+/*
 3. ~class JNetAlgebra~
 
 3.1 Constructor
@@ -982,6 +1033,8 @@ JNetAlgebra::JNetAlgebra():Algebra()
 /*
 3.1.2 Integration of Operators
 
+3.1.2.1 Creation of Datatypes
+
 */
 
   AddOperator(CreatePairInfo, CreatePairMap, CreatePairSelect,
@@ -993,6 +1046,14 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(CreateStreamInfo, CreateStreamMap, CreateStreamSelect,
               CreateStreamTypeMap);
   AddOperator(CreateJNetworkInfo, CreateJNetworkVM, CreateJNetworkTM);
+
+/*
+3.1.2.2 Access to Network Parameters
+
+*/
+  AddOperator(RoutesInfo, RoutesVM, RoutesTM);
+  AddOperator(JunctionsInfo, JunctionsVM, JunctionsTM);
+  AddOperator(SectionsInfo, SectionsVM, SectionsTM);
 }
 
 /*

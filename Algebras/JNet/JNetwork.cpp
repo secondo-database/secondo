@@ -1272,3 +1272,43 @@ void JNetwork::WriteSectionTuple(const int sectId,
   actSectTup->DeleteIfAllowed();
   actSectTup = 0;
 }
+
+/*
+1.8 Getter and Setter for Network Attributes.
+
+*/
+
+int JNetwork::GetId() const
+{
+  return id;
+}
+
+bool JNetwork::IsDefined()const
+{
+  return nDef;
+}
+
+Relation* GetJunctionsCopy() const
+{
+
+}
+
+Relation* GetRoutesCopy() const
+{
+
+}
+
+Relation* GetSectionsCopy() const
+{
+
+}
+
+void SetId(const int nid)
+{
+  id = nid;
+}
+
+void SetDefined(const bool def)
+{
+  nDef = def;
+}

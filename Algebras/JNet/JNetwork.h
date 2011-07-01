@@ -146,6 +146,20 @@ Opens the Network Object in Secondo
 static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo);
 
+/*
+1.5.2 Getter for Network Attributes
+
+*/
+
+int GetId() const;
+bool IsDefined()const;
+Relation* GetJunctionsCopy() const;
+Relation* GetRoutesCopy() const;
+Relation* GetSectionsCopy() const;
+
+void SetId();
+void SetDefined(const bool def);
+
 private:
 
 /*
