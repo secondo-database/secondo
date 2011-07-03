@@ -51,4 +51,8 @@ operator dsummarize alias DSUMMARIZE pattern _ op
 
 operator check_workers alias CHECKWORKERS pattern _ op
 
+operator startup alias CHECKWORKERS pattern op (_, _)
+
+operator shutdown alias CHECKWORKERS pattern op (_, _)
+
 # End DistributedAlgebra.spec

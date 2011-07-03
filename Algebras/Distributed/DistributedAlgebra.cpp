@@ -1298,6 +1298,7 @@ static int sendFun( Word* args,
 
 
             getline(iosock,line);
+
             if(line!="<FINISH>")
             {
             cout << "Error: Missing 'Finish' tag from Worker!" << endl;
@@ -2883,8 +2884,18 @@ checkWorkersTypeMap( ListExpr args )
     {
       NList tupTypeL( myargs.second().second());
 
-      if (tupTypeL.length() == 2)
-        {
+      if (tupTypeL.length() >= 2)
+        { 
+          if (!tupTypeL.first().second().isSymbol(CcString::BasicType()))
+            {
+              return 
+                NList::typeError("First attribute must be the server name");
+            } 
+          if (!tupTypeL.second().second().isSymbol(CcInt::BasicType()))
+            {
+              return 
+                NList::typeError("Second attribute must be the port number");
+            }
           //The return-type of checkWorkers is 
           // a stream of workers each appended w/ a status msg;
           NList app (NList("Status"), NList(CcString::BasicType())); 
@@ -2894,7 +2905,7 @@ checkWorkersTypeMap( ListExpr args )
           NList result = NList().tupleStreamOf(tuple);
           return result.listExpr(); 
         }
-      return NList::typeError("Tuple stream has too many/few attributes");
+      return NList::typeError("Tuple stream has not enough attributes");
     }
   
   return 
@@ -3022,6 +3033,162 @@ Operator checkWorkers (
       checkWorkersTypeMap );
 
 /*
+5.15 Operator ~startup~
+
+The operator ~startpu~ takes  host, port, user, password,
+bindir and configfile and starts a SecondoServer at the
+specified location.
+It returns true, if server start was successful 
+
+*/
+static ListExpr
+startupTypeMap( ListExpr args )
+{
+  NList myargs (args);
+  if (myargs.length() >= 2  && myargs.length() <= 6)
+    {
+      if (!myargs.first().isSymbol(CcString::BasicType()))
+        {
+          return NList::typeError("First parameter must be the server name");
+        } 
+      if (!myargs.second().isSymbol(CcInt::BasicType()))
+        {
+          return NList::typeError("Second parameter must be the port number");
+        }
+
+      NList result (CcBool::BasicType());
+      return NList(result).listExpr(); 
+    }
+  
+  return 
+    NList::typeError("Sexpecting at least server namae and port");
+}
+
+static int
+startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{ 
+  result = qp->ResultStorage(s);
+  bool ret_val = true;
+
+  string host = ((CcString*)args[0].addr)->GetValue();
+  int port = ((CcInt*)args[1].addr)->GetValue();
+
+  string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
+  string lckfileexist = "if [ -r " + lckfile +
+    " ]; then echo \\\"0\\\"; else echo \\\"1\\\"; fi;";
+  string devnull = "> /dev/null 2>&1 < /dev/null";
+  string cddir = ". .bashrc; cd secondo/bin; ";
+  string cmd = 
+    cddir + lckfileexist + " ./StartMonitor.remote " + devnull + " & ";
+
+  string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
+  //cout << cmd << endl;
+  cout << ssh_cmd << endl;
+
+  FILE *fs;
+  char qBuf[1024];
+  memset(qBuf, '\0', sizeof(qBuf));
+  fs = popen(ssh_cmd.c_str(), "r");
+
+  WinUnix::sleep(5);
+
+  if (fs == NULL)
+    {
+      perror(("popen fail! Cannot start worker on "
+              + host + ":" + toString_d(port) ).c_str());
+      ret_val = false;
+    }
+  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+    {
+      if (string(qBuf).empty() || string(qBuf)[0] != '1')
+        {
+          cerr << "Lock file '" + lckfile + "' exists!" << endl;
+          ret_val = false;
+        }
+
+      pclose(fs);
+    }
+
+  ((CcBool*) (result.addr))->Set(true, ret_val);
+
+  return 0;
+}
+ 
+const string startupSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "(<text>startup (Server:string , Port:int) ->  bool</text--->"
+      "<text>startup (_, _)</text--->"
+      "<text>starts worker on a given host </text--->"
+      "<text>startup (\"localhost\", 1234)</text---> ))";
+
+Operator startUp (
+      "startup",
+      startupSpec,
+      startupFun,
+      Operator::SimpleSelect,
+      startupTypeMap );
+
+static int
+shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{  
+  result = qp->ResultStorage(s);
+  bool ret_val = true;
+
+  string host = ((CcString*)args[0].addr)->GetValue();
+  int port = ((CcInt*)args[1].addr)->GetValue();
+
+  string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
+  string cat_cmd = "if [ -r "+ lckfile + " ]; then cat " + lckfile + "; fi";
+  string kill_cmd = "kill -SIGTERM `" + cat_cmd + "`;";
+  string rm_cmd = " /bin/rm " + lckfile + ";";
+  string cmd = "if [ ! -r "+ lckfile + " ]; then echo \\\"0\\\"; else " + 
+    kill_cmd + rm_cmd + " echo \\\"1\\\"; fi";
+
+  string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
+  //cout << cmd << endl;
+  //cout << ssh_cmd << endl;
+
+  FILE *fs;
+  char qBuf[1024];
+  memset(qBuf, '\0', sizeof(qBuf));
+  fs = popen(ssh_cmd.c_str(), "r");
+
+  if (fs == NULL)
+    {
+      perror(("popen fail! Cannot kill worker on "
+              + host + ":" + toString_d(port) ).c_str());
+      ret_val = false;
+    }
+  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+    {
+      //cout << "result:'" << string(qBuf) << "'" << endl;
+      if (string(qBuf).empty() || string(qBuf)[0] != '1')
+        {
+          cerr << "No lock file '" + lckfile + "' found!" << endl;
+          ret_val = false;
+        }
+      pclose(fs);
+    }
+
+  ((CcBool*) (result.addr))->Set(true, ret_val);
+  return 0;
+}
+ 
+const string shutdownSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "(<text>shutdown (Server:string , Port:int) ->  bool</text--->"
+      "<text>shutdown (_, _)</text--->"
+      "<text>kills worker on a host given in input </text--->"
+      "<text>shutdown(\"localhost\", 1234)</text---> ))";
+
+Operator shutDown (
+      "shutdown",
+      shutdownSpec,
+      shutdownFun,
+      Operator::SimpleSelect,
+      startupTypeMap );
+
+/*
 
 6 Creating the Algebra
 
@@ -3051,6 +3218,8 @@ class DistributedAlgebra : public Algebra
          AddOperator( &dtie);
          AddOperator( &dsummarize );
          AddOperator( &checkWorkers );
+         AddOperator( &startUp );
+         AddOperator( &shutDown );
       }
       ~DistributedAlgebra() {}
 };
