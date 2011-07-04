@@ -2708,7 +2708,7 @@ checkWorkerRunning(const string &host, int port,
     {
       if (!iosock.good())
         {
-          msg = "Communication is blocked! Restart Worker";
+          msg = "Communication is blocked! Restart Worker (1)";
           return false;
         }
       getline( iosock, line );
@@ -2721,14 +2721,14 @@ checkWorkerRunning(const string &host, int port,
     {
       if (!iosock.good())
         {
-          msg = "Communication is blocked! Restart Worker";
+          msg = "Communication is blocked! Restart Worker (2)";
           return false;
         }
       iosock << "<Connect>" << endl << endl 
              << endl << "</Connect>" << endl;
       if (!iosock.good())
         {
-          msg = "Communication is blocked! Restart Worker";
+          msg = "Communication is blocked! Restart Worker (3)";
           return false;
         }
       getline( iosock, line );
@@ -2739,7 +2739,7 @@ checkWorkerRunning(const string &host, int port,
             {
               if (!iosock.good())
                 {
-                  msg = "Communication is blocked! Restart Worker";
+                  msg = "Communication is blocked! Restart Worker (4)";
                   return false;
                 }
               getline( iosock, line);
@@ -2775,7 +2775,7 @@ checkWorkerRunning(const string &host, int port,
   // check db distributed available
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker";
+      msg = "Communication is blocked! Restart Worker (5)";
       return false;
     }
 
@@ -2785,7 +2785,7 @@ checkWorkerRunning(const string &host, int port,
 
    if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker";
+      msg = "Communication is blocked! Restart Worker (6)";
       return false;
     }
 
@@ -2797,7 +2797,7 @@ checkWorkerRunning(const string &host, int port,
         {
           if (!iosock.good())
             {
-              msg = "Communication is blocked! Restart Worker";
+              msg = "Communication is blocked! Restart Worker (7)";
               return false;
             }
           getline( iosock, line );
@@ -2820,7 +2820,7 @@ checkWorkerRunning(const string &host, int port,
   // check if db distributed is unique
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker";
+      msg = "Communication is blocked! Restart Worker (8)";
       return false;
     }
   iosock << "<Secondo>" << endl << "1" << endl 
@@ -2829,7 +2829,7 @@ checkWorkerRunning(const string &host, int port,
    
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker";
+      msg = "Communication is blocked! Restart Worker (9)";
       return false;
     }
 
@@ -2841,7 +2841,7 @@ checkWorkerRunning(const string &host, int port,
         {
           if (!iosock.good())
             {
-              msg = "Communication is blocked! Restart Worker";
+              msg = "Communication is blocked! Restart Worker (10)";
               return false;
             }
           getline( iosock, line );
@@ -2863,7 +2863,7 @@ checkWorkerRunning(const string &host, int port,
 
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker";
+      msg = "Communication is blocked! Restart Worker (11)";
       return false;
     }
   iosock << "<Disconnect/>" << endl;
