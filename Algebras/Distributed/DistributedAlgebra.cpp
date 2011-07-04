@@ -3072,14 +3072,35 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   string host = ((CcString*)args[0].addr)->GetValue();
   int port = ((CcInt*)args[1].addr)->GetValue();
-
+  string secConf = "SecondoConfig.ini";
+  switch (port)
+    {
+    case 21234:
+      secConf = "SecondoConfig.ini.SM1";
+      break;
+    case 24321:
+      secConf = "SecondoConfig.ini.SM2";
+      break;
+    case 1234:
+    case 1235:
+      secConf = "SecondoConfig.ini";
+      break;
+    default:
+      secConf = "SecondoConfig.ini";
+      break;
+    }
+    
+  string exportConf = " export SECONDO_CONFIG=" + secConf + ";";
   string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
   string lckfileexist = "if [ -r " + lckfile +
     " ]; then echo \\\"0\\\"; else echo \\\"1\\\"; fi;";
   string devnull = "> /dev/null 2>&1 < /dev/null";
   string cddir = ". .bashrc; cd secondo/bin; ";
   string cmd = 
-    cddir + lckfileexist + " ./StartMonitor.remote " + devnull + " & ";
+    cddir + 
+    lckfileexist + 
+    exportConf + 
+    " ./StartMonitor.remote " + devnull + " & ";
 
   string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
   //cout << cmd << endl;
@@ -3090,7 +3111,7 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
   memset(qBuf, '\0', sizeof(qBuf));
   fs = popen(ssh_cmd.c_str(), "r");
 
-  WinUnix::sleep(5);
+  WinUnix::sleep(2);
 
   if (fs == NULL)
     {
