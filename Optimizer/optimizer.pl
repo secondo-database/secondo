@@ -1923,8 +1923,9 @@ plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
   plan_to_atom( Term, TermRes ),
   plan_to_atom( AttrName, AttrNameRes ),
   plan_to_atom( AggrFunction, AggrFunRes ),
+  plan_to_atom( DefaultVal, DefaultValRes ),
   concat_atom( [ TermRes, ' aggregateB[', AttrNameRes, ' ; ', AggrFunRes,
-                 ' ; ', DefaultVal, ']' ], Result ),
+                 ' ; ', DefaultValRes, ']' ], Result ),
   !.
 
 /*
@@ -5686,7 +5687,7 @@ When using ~groupby~, the ~select list~ may contain
 Example using a user defined aggregation function:
 
 ----  select
-        aggregate((distinct b:no*1), (*), 'int', '[const int value 0]' ) as fac
+        aggregate((distinct b:no*1), (*), 'int', [const,int,value,0] ) as fac
       from [ten as a, ten as b]
       where [a:no < b:no]
       groupby a:no.
@@ -5751,7 +5752,7 @@ Examples:
         from ten
         where no > 5.
 
-        select aggregate(distinct no+1.1, (*), 'real', '[const real value 0.0]' )
+        select aggregate(distinct no+1.1, (*), 'real', [const,real,value,0.0] )
         from ten
         where no > 5.
 ----
@@ -6311,7 +6312,6 @@ lookupAttr(rowid, rowid) :- !.
 
 /*
 Special clause for ~aggregate~
-Here, only descend into the aggregation attribute/expression (1st argument)
 
 */
 
@@ -6320,7 +6320,8 @@ lookupAttr(Term, Result) :-
   Term =.. [AggrOp, Term2, Op, Type, Default],
   member(AggrOp,[aggregate]),
   lookupAttr(Term2, Term2Res),
-  Result =.. [AggrOp, Term2Res, Op, Type, Default],
+  lookupAttr(Default,DefaultRes),
+  Result =.. [AggrOp, Term2Res, Op, Type, DefaultRes],
   !.
 
 lookupAttr(T, T2) :-
@@ -7376,9 +7377,7 @@ The SQL-syntax is as follows:
 
   TYPE is the datatype processed by the aggregation function.
 
-  DEFAULTVALUE is a value of type TYPE. If you give a constant expression,
-  you should enclose the list expression in single quotes, eg.
-  '[const region value ()]'.
+  DEFAULTVALUE is a value of type TYPE.
 
   Otherwise, you can use user defined aggregation in the select clause of
   a query, just like ordinary aggregation operator, like ~sum~, ~avg~, ~var~,
@@ -8475,7 +8474,7 @@ sqlExample( 53,
 
 % Example: user defined aggregation with grouping
 sqlExample( 100,
-  select aggregate((distinct b:no*1), (*), 'int', '[const int value 0]' ) as fac
+  select aggregate((distinct b:no*1), (*), 'int', [const,int,value,0] ) as fac
   from [ten as a, ten as b]
   where [a:no < b:no]
   groupby a:no
@@ -8521,7 +8520,7 @@ sqlExample( 104,
 
 % Example: Simple distinct aggregation over expression without groupby
 sqlExample( 105,
-  select aggregate(distinct no+1.1, (*), 'real', '[const real value 0.0]' )
+  select aggregate(distinct no+1.1, (*), 'real', [const,real,value,0.0] )
   from ten
   where no > 5
   ).
@@ -8533,7 +8532,7 @@ sqlExample( 106,
           avg(plz) as avgplz,
           count(distinct ort) as diffOrtCnt,
           count(all ort) as allOrtCnt,
-          aggregate(plz*2.0,(+),'real','[const real value 0.0]') as mydoublesum]
+          aggregate(plz*2.0,(+),'real',[const,real,value,0.0]) as mydoublesum]
   from plz
   where [plz >= 40000, plz <50000]
   groupby []

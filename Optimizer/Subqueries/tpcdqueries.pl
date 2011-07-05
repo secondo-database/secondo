@@ -25,19 +25,19 @@ August 2008, Burkart Poneleit. Initial Version
 
 This file provides a framework to execute TPC-Benchmarks. All queries for the benchmark
 should be asserted as facts tpc(Benchmark, QueryDefinition). Currently this file contains
-the definition of all TPC-D queries. 
+the definition of all TPC-D queries.
 
 Before executing a benchmark, the predicate initialize has to be called exactly once to
-create the result relation. The result relation will contain the runtime of all intermediate 
-steps of the optimizer, total runtime for the query and flags, which indicate whether the 
-step of the optimizer succeeded or failed. 
+create the result relation. The result relation will contain the runtime of all intermediate
+steps of the optimizer, total runtime for the query and flags, which indicate whether the
+step of the optimizer succeeded or failed.
 
 Executing a benchmark is as simple as calling the predicate
 
 ---- executeBenchmark(Benchmark)
 ----
 
-where Benchmark is d, h or whatever TPC-Benchmark you want to run. On finishing the 
+where Benchmark is d, h or whatever TPC-Benchmark you want to run. On finishing the
 benchmark run an additional entry is created in the result relation to give you the total
 runtime for the benchmark run.
 
@@ -54,12 +54,12 @@ intermediate steps of the optimizer, you can use the predicate executeSingleQuer
 
 /*
 
-To skip certain queries when executing a benchmark, a fact 
+To skip certain queries when executing a benchmark, a fact
 
----- skipQuery(Benchmark, QueryNumber) 
+---- skipQuery(Benchmark, QueryNumber)
 ----
 
-can be asserted. 
+can be asserted.
 
 */
 
@@ -78,12 +78,12 @@ can be asserted.
    assert(skipQuery(d, 15)),
    assert(skipQuery(d, 18)),
    assert(skipQuery(d, 19)).
-   
+
 /*
 
-Results of the benchmark runs are kept in a relation in the database. Standard name for this 
-relation is benchmarkResult. This can be changed by retracting the fact resultRelation and 
-reasserting it with a different name. To create the relation the predicate initialize has to 
+Results of the benchmark runs are kept in a relation in the database. Standard name for this
+relation is benchmarkResult. This can be changed by retracting the fact resultRelation and
+reasserting it with a different name. To create the relation the predicate initialize has to
 be called. It creates the relation and inserts a "Dummy" entry, as correct handling of empty relation
 in Secondo optimizer is still wonting.
 
@@ -96,14 +96,14 @@ in Secondo optimizer is still wonting.
 
 initialize :-
   resultRelation(Rel),
-  concat_atom([Rel, ' = [const rel(tuple([Query: string,', 
+  concat_atom([Rel, ' = [const rel(tuple([Query: string,',
                                   'Setup: bool, ',
                   'Rewrite: bool, ',
                   'Lookup: bool, ',
                   'QueryToPlan: bool, ',
                   'planToAtom: bool, ',
                   'Execute: bool, ',
-                  'Teardown: bool, ',                
+                  'Teardown: bool, ',
                   'runtime_Rewrite: duration, ',
                   'runtime_Lookup: duration, ',
                   'runtime_QueryToPlan: duration, ',
@@ -113,97 +113,97 @@ initialize :-
                   'Date: instant]))',
                   ' value (("Dummy" FALSE FALSE FALSE ',
                   'FALSE FALSE FALSE FALSE (0 0) (0 0) (0 0) ',
-                  '(0 0) (0 0) (0 0) -1))]'], 
+                  '(0 0) (0 0) (0 0) -1))]'],
                   Query),
   let(Query).
-  
+
 initialize :-
   nl, write('Please assert resultRelation(<RelName>)').
-  
+
 time(Begin, Duration) :-
   get_time(End),
-  Time is End - Begin,  
+  Time is End - Begin,
   convert_time(Time, _, _, _, Hour, Minute, Sec, MilliSec),
   convert_time(0, _, _, _, H, _, _, _),
   Hour1 is Hour - H,
   Duration is (Hour1 * 3600000) + (Minute * 60000) + (Sec * 1000) + MilliSec.
-   
+
 tpc(Benchmark, No) :-
   skipQuery(Benchmark, No),
-  upcase_atom(Benchmark, BMOut),  
+  upcase_atom(Benchmark, BMOut),
   concat_atom(['\nTPC-', BMOut, ' ', No, '\n\tSkipped'], Result),
   concat_atom([Benchmark, No], Key),
   ( retractall(benchmarkResult(Key, _)) ; true ),
-  assert(benchmarkResult(Key, Result)).  
+  assert(benchmarkResult(Key, Result)).
 
-tpc(Benchmark, No) :-  
+tpc(Benchmark, No) :-
   resultRelation(Rel),
-  upcase_atom(Benchmark, BMOut),  
+  upcase_atom(Benchmark, BMOut),
   concat_atom(['"TPC-', BMOut, ' ', No, '"'], QueryName),
   string_to_atom(QueryString, QueryName),
-  sql insert into Rel values [QueryString, false, false, false, false, 
-    false, false, false, create_duration(0, 0), create_duration(0, 0), 
-    create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), 
+  sql insert into Rel values [QueryString, false, false, false, false,
+    false, false, false, create_duration(0, 0), create_duration(0, 0),
+    create_duration(0, 0), create_duration(0, 0), create_duration(0, 0),
     create_duration(0, 0), instant(0)],
   get_time(BeginAll),
   catch( ((setupQuery(Benchmark, No) )
-     -> ( SetupResult = '', sql update Rel set [setup = true] 
+     -> ( SetupResult = '', sql update Rel set [setup = true]
           where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tSetup failed', '\n'], SetupResult)
    ),
    _, concat_atom(['\tSetup failed', '\n'], SetupResult)),
-  tpc(Benchmark, No, Query),    
+  tpc(Benchmark, No, Query),
   catch( (ground(Query), get_time(BeginRewrite), (rewriteQuery(Query, RQuery))
-    -> ( RewriteResult = '', time(BeginRewrite, TRewrite), 
-        sql update Rel set [rewrite = true, 
-          runtime_Rewrite = create_duration(0, TRewrite)] 
+    -> ( RewriteResult = '', time(BeginRewrite, TRewrite),
+        sql update Rel set [rewrite = true,
+          runtime_Rewrite = create_duration(0, TRewrite)]
         where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tRewrite failed', '\n'], RewriteResult)
    ),
-   _, concat_atom(['\tRewrite failed', '\n'], RewriteResult)),  
+   _, concat_atom(['\tRewrite failed', '\n'], RewriteResult)),
   catch( ((ground(RQuery), get_time(BeginLookup), callLookup(RQuery, Query2))
-  -> ( LookupResult = '', time(BeginLookup, TLookup), 
-        sql update Rel set [lookup = true, 
-          runtime_Lookup = create_duration(0, TLookup)] 
+  -> ( LookupResult = '', time(BeginLookup, TLookup),
+        sql update Rel set [lookup = true,
+          runtime_Lookup = create_duration(0, TLookup)]
         where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tLookup failed', '\n'], LookupResult)
    ),
-   _, concat_atom(['\tLookup failed', '\n'], LookupResult)),  
+   _, concat_atom(['\tLookup failed', '\n'], LookupResult)),
   !,
   catch( ((ground(Query2), get_time(BeginQTP), queryToPlan(Query2, Plan, _))
-    -> ( QueryToPlanResult = '', time(BeginQTP, TQTP), 
-        sql update Rel set [queryToPlan = true, 
-          runtime_QueryToPlan = create_duration(0, TQTP)] 
+    -> ( QueryToPlanResult = '', time(BeginQTP, TQTP),
+        sql update Rel set [queryToPlan = true,
+          runtime_QueryToPlan = create_duration(0, TQTP)]
         where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)
    ),
-   _, concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)),  
+   _, concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)),
   !,
   catch( ((ground(Plan), get_time(BeginPTA), plan_to_atom(Plan, QueryOut))
-    -> ( PlanToAtomResult = '', time(BeginPTA, TPTA), 
-        sql update Rel set [planToAtom = true, 
-          runtime_PlanToAtom = create_duration(0, TPTA)] 
+    -> ( PlanToAtomResult = '', time(BeginPTA, TPTA),
+        sql update Rel set [planToAtom = true,
+          runtime_PlanToAtom = create_duration(0, TPTA)]
         where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)
    ),
-   _, concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)),  
-  (( ground(QueryOut), get_time(BeginExec), 
+   _, concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)),
+  (( ground(QueryOut), get_time(BeginExec),
     concat_atom(['query ', QueryOut], QueryText) ) ; true),
   catch( ((ground(QueryOut), secondo(QueryText))
-    -> ( ExecuteResult = '', time(BeginExec, TExec), 
-        sql update Rel set [execute = true, 
-          runtime_Execute = create_duration(0, TExec)] 
+    -> ( ExecuteResult = '', time(BeginExec, TExec),
+        sql update Rel set [execute = true,
+          runtime_Execute = create_duration(0, TExec)]
         where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tExecute failed', '\n'], ExecuteResult)
    ),
-   _, concat_atom(['\tExecute failed', '\n'], ExecuteResult)),  
+   _, concat_atom(['\tExecute failed', '\n'], ExecuteResult)),
   catch( (teardownQuery(Benchmark, No)
-    -> ( TeardownResult = '', 
-        sql update Rel set [teardown = true] 
+    -> ( TeardownResult = '',
+        sql update Rel set [teardown = true]
           where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tTeardown failed', '\n'], TeardownResult)
    ),
-   _, concat_atom(['\tTeardown failed', '\n'], TeardownResult)), 
+   _, concat_atom(['\tTeardown failed', '\n'], TeardownResult)),
    concat_atom(['\nTPC-', BMOut, ' ', No, '\n',
                 SetupResult,
                 RewriteResult  ,
@@ -212,10 +212,10 @@ tpc(Benchmark, No) :-
                 PlanToAtomResult  ,
                 ExecuteResult  ,
                 TeardownResult],
-                Result),    
+                Result),
    time(BeginAll, TotalTime),
-   sql update Rel set [runtime_Total = create_duration(0, TotalTime)] 
-    where [date = instant(0), (query) = QueryString],        
+   sql update Rel set [runtime_Total = create_duration(0, TotalTime)]
+    where [date = instant(0), (query) = QueryString],
    concat_atom([Benchmark, No], Key),
    ( retractall(benchmarkResult(Key, _)) ; true ),
    assert(benchmarkResult(Key, Result)).
@@ -226,7 +226,7 @@ executeSingleQuery(Benchmark, No) :-
   executeQuery(Benchmark, No),
   resultRelation(Rel),
   !,
-  let('tempXXXXXXX = now()'),   
+  let('tempXXXXXXX = now()'),
   !,
   sql update Rel set [date = tempXXXXXXX] where [date = instant(0)],
   !,
@@ -234,7 +234,7 @@ executeSingleQuery(Benchmark, No) :-
 
 executeQuery(Benchmark, No) :-
   tpc(Benchmark, No).
-   
+
 executeQueries(_, []).
 
 executeQueries(Benchmark, [[No, _] | Rest]) :-
@@ -245,37 +245,37 @@ executeQueries(Benchmark, [[No, _] | Rest]) :-
   % get_single_char(Answer),
   % Answer = 121 )),
   executeQueries(Benchmark, Rest).
-  
-executeBenchmark(Benchmark) :- 
+
+executeBenchmark(Benchmark) :-
     get_time(Begin),
     resultRelation(Rel),
-    sql delete from Rel where date = instant(0),  
+    sql delete from Rel where date = instant(0),
     setupBenchmark(Benchmark),
     retractall(benchmarkResult(_, _)),
   findall([No, Query], tpc(Benchmark, No, Query), Queries),
   executeQueries(Benchmark, Queries),
   !,
   time(Begin, Total),
-    upcase_atom(Benchmark, BMOut),  
+    upcase_atom(Benchmark, BMOut),
     concat_atom(['"TPC-', BMOut, '"'], BMName),
     string_to_atom(BMString, BMName),
   let('tempXXXXXXX = now()'),
-    sql insert into Rel values [BMString, false, false, false, false, 
-      false, false, false, create_duration(0, 0), create_duration(0, 0), 
-      create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), 
+    sql insert into Rel values [BMString, false, false, false, false,
+      false, false, false, create_duration(0, 0), create_duration(0, 0),
+      create_duration(0, 0), create_duration(0, 0), create_duration(0, 0),
       create_duration(0, Total), instant(0)],
   sql update Rel set [date = tempXXXXXXX] where [date = instant(0)],
   delete(tempXXXXXXX),
-  findall(Result, benchmarkResult(_, Result), L),  
+  findall(Result, benchmarkResult(_, Result), L),
   nl,
     write_list(L).
-    
-/* 
 
-Run Tpcd Queries and export Benchmark results to csv. 
+/*
+
+Run Tpcd Queries and export Benchmark results to csv.
 
 */
-  
+
 runAnalysis(Database) :-
   ( cdb ; true ),
   odb(Database),
@@ -308,17 +308,17 @@ runAnalysis(Database) :-
   setOption(subqueryUnnesting),
   get_time(A),
   convert_time(A, Y, M, D, _, _, _, _),
-  concat_atom(['benchmarkResult feed csvexport[\'Analyse ', 
-    Database, '-', Y, '-', M, '-', D, '.csv\', 
+  concat_atom(['benchmarkResult feed csvexport[\'Analyse ',
+    Database, '-', Y, '-', M, '-', D, '.csv\',
     FALSE, TRUE, ";"\] count'], Query),
   write('ExportQuery: '), write(Query), nl,
   !,
-  query(Query).    
-  
-/* 
+  query(Query).
 
-Any operations which must happen before a query is run 
-should be coded as a predicate. The predicate is automatically 
+/*
+
+Any operations which must happen before a query is run
+should be coded as a predicate. The predicate is automatically
 called when using executeSingleQuery/2 or runBenchmark/1.
 Currently used to emulate views for Query 15 of TPC-D benchmark.
 
@@ -326,7 +326,7 @@ Currently used to emulate views for Query 15 of TPC-D benchmark.
 ----
 
 */
-  
+
 setupQuery(d, 15) :-
     ( teardownQuery(d, 15) ; true ),
     let(revenue, select
@@ -337,12 +337,12 @@ setupQuery(d, 15) :-
     where
     [lshipdate >= instant("1996-01-01"),
     lshipdate < theInstant(
-      year_of(instant("1996-01-01")), 
-      month_of(instant("1996-01-01")) + 3, 
+      year_of(instant("1996-01-01")),
+      month_of(instant("1996-01-01")) + 3,
       day_of(instant("1996-01-01")))]
     groupby
     [lsuppkey]).
-    
+
 setupQuery(_,_).
 
 /*
@@ -354,10 +354,10 @@ Currently used to emulate views for Query 15 of TPC-D benchmark.
 ----
 
 */
-    
+
 teardownQuery(d, 15) :-
   catch(drop_relation(revenue), _, true).
-  
+
 teardownQuery(_, _).
 
 /*
@@ -382,30 +382,30 @@ setupBenchmark(d) :-
   assert(typeSyllable1(1, "SMALL")),
   assert(typeSyllable1(2, "MEDIUM")),
   assert(typeSyllable1(3, "LARGE")),
-  assert(typeSyllable1(4, "ECONOMY")),  
-  assert(typeSyllable1(5, "PROMO")),  
+  assert(typeSyllable1(4, "ECONOMY")),
+  assert(typeSyllable1(5, "PROMO")),
   retractall(typeSyllable2(_,_)),
   assert(typeSyllable2(0, "ANODIZED")),
   assert(typeSyllable2(1, "BURNISHED")),
   assert(typeSyllable2(2, "PLATED")),
   assert(typeSyllable2(3, "POLISHED")),
-  assert(typeSyllable2(4, "BRUSHED")), 
-  retractall(typeSyllable3(_,_)),  
+  assert(typeSyllable2(4, "BRUSHED")),
+  retractall(typeSyllable3(_,_)),
   assert(typeSyllable3(0, "TIN")),
   assert(typeSyllable3(1, "NICKEL")),
   assert(typeSyllable3(2, "BRASS")),
   assert(typeSyllable3(3, "STEEL")),
   assert(typeSyllable3(4, "COPPER")).
-  
+
 setupBenchmark(_).
 
-/* 
+/*
 
-The Queries defined for TPC-D Benchmark. Queries with syntax currently 
-not understood are commented out. 
+The Queries defined for TPC-D Benchmark. Queries with syntax currently
+not understood are commented out.
 
 */
-  
+
 tpcd(1, select
       [lreturnflag,
       llinestatus,
@@ -433,7 +433,7 @@ tpcd(1, select
   queryValidation
   -> ( Delta is 90.0 )
   ; ( Delta is random(60.0) + 60.0 ).
-      
+
 tpcd(2, select
     [sacctbal,
     sname,
@@ -452,16 +452,16 @@ tpcd(2, select
     where
     [ppartkey = pspartkey,
     ssuppkey = pssuppkey,
-% substitution parameter    
+% substitution parameter
 %     psize = 15,
          psize = Size,
-% substitution parameter 
+% substitution parameter
 %        ptype like "%BRASS"
 %     ptype contains "BRASS",
          ptype contains Type,
      snationkey = nnationkey,
      nregionkey = rregionkey,
-% substitution parameter    
+% substitution parameter
 %     rname = "EUROPE",
          rname = Region,
      pssupplycost = (
@@ -475,7 +475,7 @@ tpcd(2, select
        s:ssuppkey = ps:pssuppkey,
        s:snationkey = n:nnationkey,
        n:nregionkey = r:rregionkey,
-  % substitution parameter    
+  % substitution parameter
 %       rname = "EUROPE"]
        r:rname = Region]
     )]
@@ -485,7 +485,7 @@ tpcd(2, select
     nname,
     sname,
     ppartkey] first 100) :-
-  queryValidation 
+  queryValidation
   -> ( Size is 15,
        Type = "BRASS",
      Region = "EUROPE" )
@@ -494,8 +494,8 @@ tpcd(2, select
       typeSyllable3(T, Type),
       R is random(4),
       region(R, Region)).
-  
-    
+
+
 tpcd(3, select
     [lorderkey,
     sum(lextendedprice*(1-ldiscount)) as revenue,
@@ -506,13 +506,13 @@ tpcd(3, select
     orders,
     lineitem]
     where
-% substitution parameter    
+% substitution parameter
     [cmktsegment = "BUILDING",
     ccustkey = ocustkey,
     lorderkey = oorderkey,
-% substitution parameter    
+% substitution parameter
     oorderdate < instant("1995-03-15"),
-% substitution parameter    
+% substitution parameter
     lshipdate > instant("1995-03-15")]
     groupby
     [lorderkey,
@@ -521,18 +521,18 @@ tpcd(3, select
     orderby
     [revenue desc,
     oorderdate] first 10).
-    
+
 tpcd(4, select
     [oorderpriority,
     count(*) as ordercount]
     from orders
     where
-% substitution parameter        
+% substitution parameter
     [oorderdate >= instant("1993-07-01"),
-% substitution parameter        
+% substitution parameter
     oorderdate < theInstant(
-      year_of(instant("1993-07-01")), 
-      month_of(instant("1993-07-01")) + 3, 
+      year_of(instant("1993-07-01")),
+      month_of(instant("1993-07-01")) + 3,
       day_of(instant("1993-07-01"))),
     exists(
     select
@@ -547,7 +547,7 @@ tpcd(4, select
     [oorderpriority]
     orderby
     [oorderpriority]).
-    
+
 tpcd(5, select
     [nname,
     sum(lextendedprice * (1 - ldiscount)) as revenue]
@@ -565,38 +565,38 @@ tpcd(5, select
     cnationkey = snationkey,
     snationkey = nnationkey,
     nregionkey = rregionkey,
-% substitution parameter        
+% substitution parameter
     rname = "ASIA",
-% substitution parameter        
+% substitution parameter
     oorderdate >= instant("1994-01-01"),
-% substitution parameter        
+% substitution parameter
     oorderdate < theInstant(
-      year_of(instant("1994-01-01")) + 1, 
-      month_of(instant("1994-01-01")) , 
+      year_of(instant("1994-01-01")) + 1,
+      month_of(instant("1994-01-01")) ,
       day_of(instant("1994-01-01")))]
     groupby
     [nname]
     orderby
     [revenue desc]).
-    
+
 tpcd(6, select
     [sum(lextendedprice*ldiscount) as revenue]
     from
     lineitem
     where
-% substitution parameter    
+% substitution parameter
     [lshipdate >= instant("1994-01-01"),
-% substitution parameter  
+% substitution parameter
     lshipdate < theInstant(
-      year_of(instant("1994-01-01")) + 1, 
-      month_of(instant("1994-01-01")) , 
+      year_of(instant("1994-01-01")) + 1,
+      month_of(instant("1994-01-01")) ,
       day_of(instant("1994-01-01"))),
-% substitution parameter  
+% substitution parameter
     between(ldiscount, 0.06 - 0.01, 0.06 + 0.01),
-% substitution parameter  
+% substitution parameter
     lquantity < 24]
     groupby[]).
-    
+
 tpcd(7, select
     [supp_nation,
     cust_nation,
@@ -620,12 +620,12 @@ tpcd(7, select
       ccustkey = ocustkey,
       snationkey = n1:nnationkey,
       cnationkey = n2:nnationkey,
-% substitution parameter      
+% substitution parameter
       (n1:nname = "FRANCE" and n2:nname = "GERMANY")
-% substitution parameter      
+% substitution parameter
       or (n1:nname = "GERMANY" and n2:nname = "FRANCE"),
-      between(instant2real(lshipdate), 
-              instant2real(instant("1995-01-01")), 
+      between(instant2real(lshipdate),
+              instant2real(instant("1995-01-01")),
               instant2real(instant("1996-12-31")))]
     ) as shipping
     groupby
@@ -636,14 +636,14 @@ tpcd(7, select
     [supp_nation,
     cust_nation,
     lyear]).
-    
+
 /*
 
-Q8 does not work, arbitrary expressions over aggregations 
+Q8 does not work, arbitrary expressions over aggregations
 cannot be translated at the moment.
 
 */
-    
+
 tpcd(8, select
     [oyear,
 /*    sum(case
@@ -651,10 +651,10 @@ tpcd(8, select
     then volume
     else 0
     end) / sum(volume) as mktshare */
-    (aggregate((ifthenelse(nation = "BRAZIL", volume, 0.0)), 
-              (+), 
-              'real', 
-              '[const real value 0.0]') / sum(volume)) as mktshare
+    (aggregate((ifthenelse(nation = "BRAZIL", volume, 0.0)),
+              (+),
+              'real',
+              const(real,0.0)) / sum(volume)) as mktshare
     ]
     from (
       select
@@ -677,20 +677,20 @@ tpcd(8, select
       ocustkey = ccustkey,
       cnationkey = n1:nnationkey,
       n1:nregionkey = rregionkey,
-% substitution parameter      
+% substitution parameter
       rname = "AMERICA",
       snationkey = n2:nnationkey,
-      between(instant2real(oorderdate), 
-              instant2real(instant("1995-01-01")),  
+      between(instant2real(oorderdate),
+              instant2real(instant("1995-01-01")),
               instant2real(instant("1996-12-31"))),
-% substitution parameter      
+% substitution parameter
       ptype = "ECONOMY ANODIZED STEEL"]
     ) as allnations
     groupby
     [oyear]
     orderby
     [oyear]).
-    
+
 tpcd(9, select
     [nation,
     oyear,
@@ -714,7 +714,7 @@ tpcd(9, select
       ppartkey = lpartkey,
       oorderkey = lorderkey,
       snationkey = nnationkey,
-% substitution parameter      
+% substitution parameter
       pname contains "green"]
     ) as profit
     groupby
@@ -723,8 +723,8 @@ tpcd(9, select
     orderby
     [nation,
     oyear desc]).
-    
-    
+
+
 tpcd(10, select
     [ccustkey,
     cname,
@@ -744,8 +744,8 @@ tpcd(10, select
     lorderkey = oorderkey,
     oorderdate >= instant("1993-10-01"),
     oorderdate < theInstant(
-      year_of(instant("1993-10-01")), 
-      month_of(instant("1993-10-01")) + 3, 
+      year_of(instant("1993-10-01")),
+      month_of(instant("1993-10-01")) + 3,
       day_of(instant("1993-10-01"))),
     lreturnflag = "R",
     cnationkey = nnationkey]
@@ -759,10 +759,10 @@ tpcd(10, select
     ccomment]
     orderby
     [revenue desc] first 20).
-    
+
 /*
 
-Q11 is only partially working, implementation for the 
+Q11 is only partially working, implementation for the
 having clause is still missing.
 
 */
@@ -777,14 +777,14 @@ tpcd(11, select
     where
     [pssuppkey = ssuppkey,
     snationkey = nnationkey,
-% substitution parameter    
+% substitution parameter
     nname = "GERMANY"]
     groupby
-    [pspartkey] 
+    [pspartkey]
 /*    having
     [sum(pssupplycost * psavailqty) > (
         select
-  % substitution parameter        
+  % substitution parameter
         [sum(pssupplycost * psavailqty * 0.0001)]
         from
         [partsupp,
@@ -798,7 +798,7 @@ tpcd(11, select
     ]*/
     orderby
     [value desc]).
-    
+
 tpcd(12, select
 /*  sum(case
     when oorderpriority ="1-URGENT"
@@ -811,14 +811,14 @@ tpcd(12, select
     and oorderpriority <> "2-HIGH"
     then 1
     else 0
-    end) as lowlinecount*/    
+    end) as lowlinecount*/
     [lshipmode,
-    aggregate((ifthenelse(oorderpriority = "1-URGENT" or 
-                          oorderpriority = "2-HIGH", 1, 0)), 
-              (+), 'int', '[const int value 0]') as highlinecount,
-    aggregate((ifthenelse(not(oorderpriority = "1-URGENT") and 
-                          not(oorderpriority = "2-HIGH"), 1, 0)), 
-              (+), 'int', '[const int value 0]') as lowlinecount    
+    aggregate((ifthenelse(oorderpriority = "1-URGENT" or
+                          oorderpriority = "2-HIGH", 1, 0)),
+              (+), 'int', [const,int,value,0]) as highlinecount,
+    aggregate((ifthenelse(not(oorderpriority = "1-URGENT") and
+                          not(oorderpriority = "2-HIGH"), 1, 0)),
+              (+), 'int', [const,int,value,0]) as lowlinecount
     ]
     from
     [orders,
@@ -830,18 +830,18 @@ tpcd(12, select
 %        lshipmode = "MAIL" or lshipmode = "SHIP",
     lcommitdate < lreceiptdate,
     lshipdate < lcommitdate,
-% substitution parameter    
+% substitution parameter
     lreceiptdate >= instant("1994-01-01"),
-% substitution parameter    
+% substitution parameter
     lreceiptdate < theInstant(
-      year_of(instant("1994-01-01")) + 1, 
-        month_of(instant("1994-01-01")), 
+      year_of(instant("1994-01-01")) + 1,
+        month_of(instant("1994-01-01")),
           day_of(instant("1994-01-01")))]
     groupby
     [lshipmode]
     orderby
     [lshipmode]).
-    
+
 
 /*
 
@@ -849,9 +849,9 @@ Q13 does not work, no implementation of left outerjoin
 
 */
 
-tpcd(13, _).    
+tpcd(13, _).
 
-/* 
+/*
 
 tpcd(13, select
     [ccount, count(*) as custdist]
@@ -870,13 +870,13 @@ tpcd(13, select
     [ccount]
     orderby
     [custdist desc,
-    ccount desc]). 
-    
+    ccount desc]).
+
 Q14Does not work, arbitrary expressions over aggregation aren't translated
 
 */
 
-    
+
 tpcd(14, select
 
 /*  [100.00 * sum(case
@@ -884,9 +884,9 @@ tpcd(14, select
     then lextendedprice*(1-ldiscount)
     else 0
     end) / sum(lextendedprice * (1 - ldiscount)) as promo_revenue]*/
-    [(aggregate(((ifthenelse(ptype starts "PROMO", 
-                    lextendedprice*(1-ldiscount), 0)) * 100.0), 
-      (+), 'real', '[const real value 0.0]') 
+    [(aggregate(((ifthenelse(ptype starts "PROMO",
+                    lextendedprice*(1-ldiscount), 0)) * 100.0),
+      (+), 'real', [const,real,value,0.0])
       / sum(lextendedprice * (1 - ldiscount))) as promo_revenue]
     from
     [lineitem,
@@ -895,14 +895,14 @@ tpcd(14, select
     [lpartkey = ppartkey,
     lshipdate >= instant("1995-09-01"),
     lshipdate < theInstant(
-      year_of(instant("1995-09-01")), 
-      month_of(instant("1995-09-01")) + 1, 
+      year_of(instant("1995-09-01")),
+      month_of(instant("1995-09-01")) + 1,
       day_of(instant("1995-09-01")))]
     groupby[]).
-    
+
 /*
 
-Implementation only partially correct. The view is emulated by a 
+Implementation only partially correct. The view is emulated by a
 temporary relation.
 
 */
@@ -950,11 +950,11 @@ tpcd(16, select
     part]
     where
     [ppartkey = pspartkey,
-% substitution parameter    
+% substitution parameter
     not(pbrand = "Brand#45"),
-% substitution parameter    
+% substitution parameter
     not(ptype starts "MEDIUM POLISHED"),
-% substitution parameters    
+% substitution parameters
     psize in (49, 14, 23, 45, 19, 3, 36, 9),
     pssuppkey not in(
       select
@@ -975,9 +975,9 @@ tpcd(16, select
     pbrand,
     ptype,
     psize]).
-    
+
 tpcd(17, select
-    [sum(lextendedprice / 7.0) as avg_yearly]    
+    [sum(lextendedprice / 7.0) as avg_yearly]
     from
     [lineitem,
     part]
@@ -994,15 +994,15 @@ tpcd(17, select
       [l1:lpartkey = ppartkey]
     )]
     groupby
-    []).  
+    []).
 
 /*
 
-Q18 is only partially working, implementation of the having clause is still 
+Q18 is only partially working, implementation of the having clause is still
 missing.
 
-*/    
-    
+*/
+
 tpcd(18, select
     [cname,
     ccustkey,
@@ -1022,7 +1022,7 @@ tpcd(18, select
       lineitem
       /* groupby
       [lorderkey having
-% substitution parameter      
+% substitution parameter
       sum(lquantity) > 300] */
     ),
     ccustkey = ocustkey,
@@ -1036,7 +1036,7 @@ tpcd(18, select
     orderby
     [ototalprice desc,
     oorderdate]).
-    
+
 tpcd(19, select
     [(sum(lextendedprice * (1 - ldiscount) )) as revenue]
     from
@@ -1046,21 +1046,21 @@ tpcd(19, select
     [((
       (
         (
-          (  
+          (
             (
               (
                 (
                   (
                     (ppartkey = lpartkey)
-% substitution parameter                    
+% substitution parameter
                     and (pbrand = "Brand#12")
-                  )                  
+                  )
                   and (pcontainer in ( "SM CASE", "SM BOX", "SM PACK", "SM PKG"))
                 )
-% substitution parameter                
+% substitution parameter
                 and (lquantity >= 1)
-              ) 
-% substitution parameter              
+              )
+% substitution parameter
               and (lquantity <= 1 + 10)
             )
             and (between(psize, 1, 5))
@@ -1074,21 +1074,21 @@ tpcd(19, select
     (
       (
         (
-          (  
+          (
             (
               (
                 (
                   (
                     (ppartkey = lpartkey)
-% substitution parameter                    
+% substitution parameter
                     and (pbrand = "Brand#23")
                   )
                   and (pcontainer in ("MED BAG", "MED BOX", "MED PKG", "MED PACK"))
                 )
-% substitution parameter                
+% substitution parameter
                 and (lquantity >= 10)
-              ) 
-% substitution parameter              
+              )
+% substitution parameter
               and (lquantity <= 10 + 10)
             )
             and (between(psize, 1, 10))
@@ -1097,27 +1097,27 @@ tpcd(19, select
 %          and (lshipmode = "AIR" or lshipmode = "AIR REG")
         )
       and (lshipinstruct = "DELIVER IN PERSON")
-      )    
+      )
     ))
     or
     (
       (
         (
-          (  
+          (
             (
               (
                 (
                   (
                     (ppartkey = lpartkey)
-% substitution parameter                    
+% substitution parameter
                     and (pbrand = "Brand#34")
                   )
                   and (pcontainer in ( "LG CASE", "LG BOX", "LG PACK", "LG PKG"))
                 )
-% substitution parameter                
+% substitution parameter
                 and (lquantity >= 20)
-              ) 
-% substitution parameter              
+              )
+% substitution parameter
               and (lquantity <= 20 + 10)
             )
             and (between(psize, 1, 15))
@@ -1125,9 +1125,9 @@ tpcd(19, select
           and (lshipmode in ("AIR", "AIR REG"))
         )
       and (lshipinstruct = "DELIVER IN PERSON")
-      )      
+      )
     )]
-    groupby[]).  
+    groupby[]).
 
 tpcd(20, select
     [sname,
@@ -1159,21 +1159,21 @@ tpcd(20, select
         where
         [lpartkey = pspartkey,
         lsuppkey = pssuppkey,
-% substitution parameter        
+% substitution parameter
         lshipdate >= instant("1994-01-01"),
-% substitution parameter        
+% substitution parameter
         lshipdate < theInstant(
-          year_of(instant("1994-01-01")) + 1, 
-          month_of(instant("1994-01-01")), 
+          year_of(instant("1994-01-01")) + 1,
+          month_of(instant("1994-01-01")),
           day_of(instant("1994-01-01")))]
       )]
     ),
     snationkey = nnationkey,
-% substitution parameter    
+% substitution parameter
     nname = "CANADA"]
     orderby
-    [sname]).    
-    
+    [sname]).
+
 
 tpcd(21, select
     [sname,
@@ -1208,15 +1208,15 @@ tpcd(21, select
       l3:lreceiptdate > l3:lcommitdate]
     )),
     snationkey = nnationkey,
-% substitution parameter    
+% substitution parameter
     nname = "SAUDI ARABIA"]
     groupby
     [sname]
     orderby
     [numwait desc,
-    sname] 
+    sname]
     first 100).
-    
+
 tpcd(22, select
     [cntrycode,
     count(*) as numcust,
@@ -1226,10 +1226,10 @@ tpcd(22, select
       [substr(cphone, 1, 2) as cntrycode,
       cacctbal]
       from
-      customer 
+      customer
       where
       [substr(cphone, 1, 2) in
-% substitution parameters      
+% substitution parameters
       ("13","35","31","23","29","30","18"),
       cacctbal > (
         select
@@ -1239,7 +1239,7 @@ tpcd(22, select
         where
         [c1:cacctbal > 0.00,
         substr(c1:cphone, 1, 2) in
-% substitution parameter        
+% substitution parameter
         ("13","35","31","23","29","30","18")]
       ),
       not( exists(
@@ -1255,4 +1255,3 @@ tpcd(22, select
     [cntrycode]
     orderby
     [cntrycode]).
-    
