@@ -248,9 +248,6 @@ This struct contains the private attributes of the class ~Tuple~.
 
     tuplesDeleted++;
     tuplesInMemory--;
-    if (noAttributes > MAX_NUM_OF_ATTR){
-      delete [] attributes;
-    }
   }
 /*
 The destructor.
