@@ -606,7 +606,7 @@ FileSystem::MakeTemp(const string& templ)
   // append CPU clock and placeholder for mktemp function
   
   stringstream ss;
-  ss << templ << clock() << "-" << ctr++;
+  ss << templ << clock() << "-" << getpid() << "-" << ctr++;
 
   return ss.str();
 }
