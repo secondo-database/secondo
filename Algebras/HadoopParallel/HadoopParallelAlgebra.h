@@ -296,19 +296,17 @@ private:
 
   TupleBuffer *tba, *tbb;
   GenericRelationIterator *ita, *itb;
-  RTuple cta, ctb;  //Cached tuple for the next bucket
+  Tuple *cta, *ctb;  //Cached tuple for the next bucket
+  
 
   int maxMem;
-  bool endOfStream;
-  bool moreTuples;
-  //any stream is end, then the operation is over
+  bool endOfStream;       //End of the output stream
+  bool moreInputTuples;   //End of the input stream
 
   bool LoadTuples();
-  //find both streams' closest buckets
-  //having the same key attribute value
+  //Load tuples with same key attribute value
 
-  int CompareTuples(Tuple* ta, int kai,
-                    Tuple* tb, int kbi);
+  int CompareTuples(Tuple* ta, int kai, Tuple* tb, int kbi);
 
   inline Tuple* NextTuple(Word stream)
   {
@@ -320,8 +318,7 @@ private:
       qp->Request(stream.addr, result);
       yield = qp->Received(stream.addr);
 
-      if(yield)
-      {
+      if(yield) {
         return static_cast<Tuple*> (result.addr);
       }
     }
@@ -333,9 +330,8 @@ public:
   pj2LocalInfo(Word _sa, Word _sb, Word _kai, Word _kbi,
                Word _fun, Supplier s)
   : streamA(_sa), streamB(_sb),
-    tba(0), tbb(0), ita(0), itb(0),
-    cta(0), ctb(0),
-    endOfStream(false), moreTuples(true)
+    tba(0), tbb(0), ita(0), itb(0), cta(0), ctb(0),
+    endOfStream(false), moreInputTuples(true)
   {
     keyAIndex = StdTypes::GetInt( _kai ) - 1;
     keyBIndex = StdTypes::GetInt( _kbi ) - 1;
@@ -511,6 +507,7 @@ public:
   ~FFeedLocalInfo() {
     if (tupleBlockFile)
     {
+      tupleBlockFile->close();
       delete tupleBlockFile;
       tupleBlockFile = 0;
     }
@@ -530,6 +527,7 @@ public:
 
     Tuple* t = 0;
     u_int32_t blockSize;
+    assert(tupleBlockFile->good());
     tupleBlockFile->read(
         reinterpret_cast<char*>(&blockSize),
         sizeof(blockSize));
@@ -537,11 +535,11 @@ public:
     {
       blockSize -= sizeof(blockSize);
       char *tupleBlock = new char[blockSize];
-//      char tupleBlock[blockSize];
       tupleBlockFile->read(tupleBlock, blockSize);
+
       t = new Tuple(tupleType);
       t->ReadFromBin(tupleBlock, blockSize);
-      delete tupleBlock;
+      delete[] tupleBlock;
     }
 
     return t;

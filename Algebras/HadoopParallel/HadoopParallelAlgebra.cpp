@@ -1487,22 +1487,24 @@ bool pj2LocalInfo::LoadTuples()
   if (tbb)
     delete tbb; tbb = 0;
 
-  if (moreTuples)
+  if (moreInputTuples)
   {
-    if (cta == 0)
-      cta.setTuple(NextTuple(streamA));
-    if (ctb == 0)
-      ctb.setTuple(NextTuple(streamB));
+    if (cta == 0){
+      cta = NextTuple(streamA);
+    }
+    if (ctb == 0){
+      ctb = NextTuple(streamB);
+    }
   }
   if ( cta == 0 || ctb == 0)
   {
     //one of the stream is exhausted
     endOfStream = true;
+    moreInputTuples = false;
     return loaded;
   }
 
-  int cmp = CompareTuples(cta.tuple, keyAIndex,
-                          ctb.tuple, keyBIndex);
+  int cmp = CompareTuples(cta, keyAIndex, ctb, keyBIndex);
 
   // Assume both streams are ordered by asc
   while(0 != cmp)
@@ -1512,14 +1514,13 @@ bool pj2LocalInfo::LoadTuples()
       //a < b, get more a until a >= b
       while (cmp < 0)
       {
-        cta.setTuple(NextTuple(streamA));
+        cta = NextTuple(streamA);
         if ( cta == 0 )
         {
           endOfStream = true;
           return loaded;
         }
-        cmp = CompareTuples(cta.tuple, keyAIndex,
-                            ctb.tuple, keyBIndex);
+        cmp = CompareTuples(cta, keyAIndex, ctb, keyBIndex);
       }
     }
     else if (cmp > 0)
@@ -1527,14 +1528,13 @@ bool pj2LocalInfo::LoadTuples()
       //a > b, get more b until a <= b
       while (cmp > 0)
       {
-        ctb.setTuple(NextTuple(streamB));
+        ctb = NextTuple(streamB);
         if ( ctb == 0 )
           {
             endOfStream = true;
             return loaded;
           }
-        cmp = CompareTuples(cta.tuple, keyAIndex,
-                            ctb.tuple, keyBIndex);
+        cmp = CompareTuples(cta, keyAIndex, ctb, keyBIndex);
       }
     }
   }
@@ -1543,34 +1543,30 @@ bool pj2LocalInfo::LoadTuples()
   //than the current one.
   tba = new TupleBuffer(maxMem);
   int cmpa = 0;
-  RTuple lta;  //Last tuple A
+  Tuple* lta = 0;
   while ( (cta != 0) && (0 == cmpa) )
   {
     lta = cta;
-    tba->AppendTuple(lta.tuple);
-    cta.setTuple(NextTuple(streamA));
+    tba->AppendTuple(lta);
+    cta = NextTuple(streamA);
     if ( cta != 0 )
-      cmpa = CompareTuples(lta.tuple, keyAIndex,
-                         cta.tuple, keyAIndex);
+      cmpa = CompareTuples(lta, keyAIndex, cta, keyAIndex);
   }
 
   tbb = new TupleBuffer(maxMem);
   int cmpb = 0;
-  RTuple ltb;  //Last tuple B
+  Tuple* ltb = 0;
   while ( (ctb != 0) && (0 == cmpb) )
   {
     ltb = ctb;
-    tbb->AppendTuple(ltb.tuple);
-    ctb.setTuple(NextTuple(streamB));
+    tbb->AppendTuple(ltb);
+    ctb = NextTuple(streamB);
     if ( ctb != 0 )
-      cmpb = CompareTuples(ltb.tuple, keyBIndex,
-                         ctb.tuple, keyBIndex);
+      cmpb = CompareTuples(ltb, keyBIndex, ctb, keyBIndex);
   }
-  if ((cta == 0) || (ctb == 0))
-    moreTuples = false;
-
-  ita = tba->MakeScan();
-  itb = tbb->MakeScan();
+  if ((cta == 0) || (ctb == 0)){
+    moreInputTuples = false;
+  }
 
   if ((0 == tba->GetNoTuples()) || (0 == tbb->GetNoTuples()))
   {
@@ -1578,7 +1574,10 @@ bool pj2LocalInfo::LoadTuples()
     return loaded;
   }
 
+  ita = tba->MakeScan();
+  itb = tbb->MakeScan();
   loaded = true;
+
   return loaded;
 }
 
@@ -1588,8 +1587,10 @@ int pj2LocalInfo::CompareTuples(Tuple* ta, int kai,
   Attribute* a = static_cast<Attribute*>(ta->GetAttribute(kai));
   Attribute* b = static_cast<Attribute*>(tb->GetAttribute(kbi));
 
-  if (!a->IsDefined() || !b->IsDefined())
+  if (!a->IsDefined() || !b->IsDefined()){
+    cerr << "Undefined Tuples are contained." << endl;
     return -1;
+  }
 
   int cmp = a->Compare(b);
   return cmp;
@@ -3040,39 +3041,44 @@ int FFeedValueMap(Word* args, Word& result,
 {
   string relName, path, fileSuffix = "";
   FFeedLocalInfo* ffli = 0;
-  Supplier sonOfFeed;
   int prdIndex = -1, tgtIndex = -1;
   int attTimes = 0;
 
   switch(message)
   {
     case OPEN: {
-      relName = ((CcString*)args[0].addr)->GetValue();
-      Supplier bspList = args[1].addr,
-               drpList = args[3].addr;
+      if (!((CcString*)args[0].addr)->IsDefined()){
+        cerr << "File Name string is undefined." << endl;
+        return 0;
+      }
+      else{
+        relName = ((CcString*)args[0].addr)->GetValue();
+      }
 
+      Supplier bspNode = args[1].addr,
+               drpNode = args[3].addr;
 
       path =  ((FText*)qp->Request(
-          qp->GetSupplierSon(bspList, 0)).addr)->GetValue();
-      int bspLen = qp->GetNoSons(bspList);
+          qp->GetSupplierSon(bspNode, 0)).addr)->GetValue();
+      int bspLen = qp->GetNoSons(bspNode);
       int idx = 1;
       while (idx < bspLen )
       {
         int index = ((CcInt*)qp->Request(
-            qp->GetSupplierSon(bspList, idx)).addr)->GetValue();
+            qp->GetSupplierSon(bspNode, idx)).addr)->GetValue();
         if (index >= 0)
           fileSuffix += ("_" + int2string(index));
         idx++;
       }
 
-      if (qp->GetNoSons(drpList) == 3)
+      if (qp->GetNoSons(drpNode) == 3)
       {
         prdIndex = ((CcInt*)qp->Request(
-            qp->GetSupplierSon(drpList, 0)).addr)->GetValue();
+            qp->GetSupplierSon(drpNode, 0)).addr)->GetValue();
         tgtIndex = ((CcInt*)qp->Request(
-            qp->GetSupplierSon(drpList, 1)).addr)->GetValue();
+            qp->GetSupplierSon(drpNode, 1)).addr)->GetValue();
         attTimes = ((CcInt*)qp->Request(
-            qp->GetSupplierSon(drpList, 2)).addr)->GetValue();
+            qp->GetSupplierSon(drpNode, 2)).addr)->GetValue();
       }
 
       string filePath = path;
@@ -3089,21 +3095,17 @@ int FFeedValueMap(Word* args, Word& result,
       {
         ffli->returned = 0;
         local.setAddr(ffli);
-        return 0;
-      }
-      else
-      {
-        delete ffli;
-        local.setAddr(0);
-        return CLOSE;
       }
 
+      return 0;
     }
     case REQUEST: {
       ffli = (FFeedLocalInfo*)local.addr;
-      Tuple *t = 0;
-      if (ffli)
-        t = ffli->getNextTuple();
+
+      if (!ffli)
+        return CANCEL;
+
+      Tuple *t = ffli->getNextTuple();
       if (0 == t)
         return CANCEL;
       else
@@ -3116,18 +3118,21 @@ int FFeedValueMap(Word* args, Word& result,
     }
     case CLOSE: {
       ffli = (FFeedLocalInfo*)local.addr;
-      if (ffli){
+      if (!ffli)
+        return CANCEL;
+      else
+      {
         if (ffli->tupleBlockFile){
           ffli->tupleBlockFile->close();
           delete ffli->tupleBlockFile;
           ffli->tupleBlockFile = 0;
         }
       }
+
       return 0;  //must return
     }
 
     case CLOSEPROGRESS: {
-      sonOfFeed = qp->GetSupplierSon(s, 0);
       ffli = (FFeedLocalInfo*) local.addr;
       if ( ffli )
       {
