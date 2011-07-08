@@ -1984,35 +1984,16 @@ vector<string>* clusterInfo::getAvailableIPAddrs()
   return IPList;
 }
 
-string clusterInfo::getRemotePath(
-    size_t loc, bool round, bool attachIP)
-{
-  if (!round)
-  {
-    assert(loc <= disks->size());
-    loc -= 1;
-  }
-  else
-    loc = (loc - 1) % disks->size();
-
-  if (attachIP)
-    return ((*disks)[loc].first + ":" +
-            (*disks)[loc].second.first);
-  else
-    return (*disks)[loc].second.first;
-}
-
 /*
 Get the remote file path, make sure the remote is accessible.
 All files are divided into sub-folders according to their prefix names.
-If the sub-foloder is not exit, then create it
+If the sub-folder is not exit, then create it
 
 */
 
-string clusterInfo::getRemotePath(size_t loc, string fileName,
-                          bool attachIP, bool round,
-                          bool attachProducerIP,
-                          string producerIP)
+string clusterInfo::getRemotePath(size_t loc, string filePrefix,
+    bool round, bool createPath, bool attachIP,
+    bool attachProducerIP, string producerIP)
 {
   string remotePath = "";
 
@@ -2026,78 +2007,37 @@ string clusterInfo::getRemotePath(size_t loc, string fileName,
 
   string IPAddr = (*disks)[loc].first;
   string rfPath = (*disks)[loc].second.first;
-
-  bool isParentOK = isRemoteFolderExist(IPAddr, rfPath);
-  if(isParentOK)
+  if (attachProducerIP)
   {
-    //Use the fileName as sub-folder name
-    if (attachProducerIP)
-    {
-      if (producerIP.length() == 0)
-        producerIP = getLocalIP();
-      fileName += ("_" + producerIP);
-    }
-    FileSystem::AppendItem(rfPath, fileName);
-    bool isChildOK  = isRemoteFolderExist(IPAddr, rfPath);
+    if (producerIP.length() == 0)
+      producerIP = getLocalIP();
+    filePrefix += ("_" + producerIP);
+  }
+  FileSystem::AppendItem(rfPath, filePrefix);
 
-    if (isChildOK)
-      remotePath = (attachIP ? ( IPAddr + ":") : "") + rfPath;
+  bool pathOK = false;
+  if (0 == system(("ssh " + IPAddr +
+      " ls -d " + rfPath + " 2>/dev/null").c_str())){
+    pathOK = true;
+  }
+  else if (createPath){
+/*
+If the path is not exist, and cannot be created,
+then either the path is set as a file,
+or the path is unavailable at all.
 
+*/
+    pathOK = ( 0 ==
+        system(("ssh " + IPAddr + " mkdir -p " + rfPath).c_str()));
+  }
+
+  if (pathOK){
+    remotePath = (attachIP ? (IPAddr + ":") : "") + rfPath;
   }
 
   return remotePath;
 }
 
-/*
-Detect whether a remote path is exist, if it's not exist,
-try to create it.
-
-*/
-bool clusterInfo::isRemoteFolderExist(
-    const string rIP, const string rFolder)
-{
-  FILE *fs;
-  char qBuf[1024];
-  memset(qBuf, '\0', sizeof(qBuf));
-  string rqStr; //Remote query string
-
-  bool foundPath = false;
-  rqStr = "ssh " + rIP + " ls -d " + rFolder
-          + " 2>/dev/null"; //list directory only
-
-  fs = popen(rqStr.c_str(), "r");
-  if (fs == NULL)
-  {
-    perror(
-        ("popen fail by detecting the remote path: "
-            + rIP + ":" + rFolder).c_str());
-    return false;
-  }
-  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
-  {
-    foundPath = true;
-    pclose(fs);
-  }
-
-  if (!foundPath)
-  {
-    rqStr = "ssh " + rIP + " mkdir -p " + rFolder;
-    fs = popen(rqStr.c_str(), "r");
-    if (fs == NULL)
-    {
-      perror(("popen fail by creating the remote path: "
-                 + rIP + ":" + rFolder).c_str());
-      return false;
-    }
-    else
-    {
-      foundPath = true;
-      pclose(fs);
-    }
-  }
-
-  return foundPath;
-}
 
 
 string clusterInfo::getIP(size_t loc, bool round)
@@ -2375,7 +2315,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if ( len != 4)
     return l.typeError(lengthErr);
 
-  string fileName, filePath;
+  string filePrefix, filePath;
   bool trMode, drMode;
   drMode = trMode = false;
   int tNode[2] = {-1, -1};
@@ -2412,9 +2352,9 @@ ListExpr FConsumeTypeMap(ListExpr args)
 
     NList fnList;
     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
-      return l.typeError(err3 + "fileName");
-    fileName = fnList.str();
-    if (0 == fileName.length())
+      return l.typeError(err3 + "file prefix name");
+    filePrefix = fnList.str();
+    if (0 == filePrefix.length())
       return l.typeError(err1);
     NList fpList;
     if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
@@ -2461,10 +2401,10 @@ ListExpr FConsumeTypeMap(ListExpr args)
   }
 
   //Type Checking is done, create the type file.
-  filePath = getLocalFilePath(filePath, fileName, "_type");
+  filePath = getLocalFilePath(filePath, filePrefix, "_type");
   if (filePath.length() == 0)
     return l.typeError(err2 +
-        "Type file path is empty, check the SecondoConfig.ini.");
+        "Type file path is unavailable, check the SecondoConfig.ini.");
   ofstream typeFile(filePath.c_str());
   NList resultList = NList(NList(Relation::BasicType()),
                            tsList.first().second());
@@ -2475,7 +2415,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
     cerr << "Type file: " << filePath << " is created. " << endl;
   }
   else
-    return l.typeError(err2 + filePath);
+    return l.typeError(
+        err2 + "Type file path is unavailable: " + filePath);
 
   //Verify the existence of the PARALLEL\_SECONDO\_SLAVES file
   if (trMode || drMode)
@@ -2494,8 +2435,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
           ci->print();
           return l.typeError(err7);
         }
-        string rPath = ci->getRemotePath(tNode[i], fileName);
-        cerr << "Copy the type file to -> \t" << rPath << endl;
+        string rPath = ci->getRemotePath(tNode[i], filePrefix);
+        cerr << "Copy type file to -> \t" << rPath << endl;
         if ( 0 !=
             (system((scpCommand + filePath + " " + rPath).c_str())))
           return l.typeError(err9);
@@ -2685,7 +2626,7 @@ int FConsumeValueMap(Word* args, Word& result,
           else
           {
             string rPath = ci->getRemotePath(
-                i, relName, true, true, true);
+                i, relName, true, true, true, true);
             FileSystem::AppendItem(rPath, (relName + fileSuffix));
             cerr << "Copy " << filePath << "\n->\t" << rPath << endl;
             if ( 0 != ( system(
@@ -3013,7 +2954,7 @@ ListExpr FFeedTypeMap(ListExpr args)
       return l.typeError(err8);
     }
 
-    string rPath = ci->getRemotePath(tnIndex, fileName);
+    string rPath = ci->getRemotePath(tnIndex, fileName, false, false);
     FileSystem::AppendItem(rPath, fileName + "_type");
     cerr << "Copy the type file from <-" << "\t" << rPath << endl;
     if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
@@ -3220,8 +3161,9 @@ bool FFeedLocalInfo::fetchBlockFile(
 
 /*
 Detect whether the file is exist or not.
-if the file is exist, fileFound is true, and the filePath contains
-the complete local path of the file. Or else, the fileFound is false.
+If the file exists, the fileFound is set as true,
+and the filePath contains the complete local path of the file.
+Or else, the fileFound is false.
 
 */
   if (pdi < 0)
@@ -3267,10 +3209,9 @@ the file's name has to be extended with the producer's IP address.
         attachProducerIP = false;
       else
         attachProducerIP = true;
-      rFilePath = ci->getRemotePath(tgi, fileName, false, true,
-          attachProducerIP, pdrIP);
+      rFilePath = ci->getRemotePath(tgi, fileName, true, false,
+          false, attachProducerIP, pdrIP);
       FileSystem::AppendItem(rFilePath, fileName + fileSuffix);
-
       if (ci->getLocalIP().compare(tgtIP) == 0)
       {
         // Fetch the file in local, but is produced by another node
@@ -3897,8 +3838,8 @@ ListExpr FDistributeTypeMap(ListExpr args)
   NList fnList;
   if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
     return l.typeError(err1 + "fileName");
-  string fileName = fnList.str();
-  if (0 == fileName.length())
+  string filePrefix = fnList.str();
+  if (0 == filePrefix.length())
     return l.typeError(err2);
 
   // File path
@@ -3975,7 +3916,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
   }
 
   //Create the type file in local disk
-  filePath = getLocalFilePath(filePath, fileName, "_type");
+  filePath = getLocalFilePath(filePath, filePrefix, "_type");
   ofstream typeFile(filePath.c_str());
   NList resultList =
           NList(NList(Relation::BasicType()),
@@ -4030,7 +3971,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
           ci->print();
           return l.typeError(err9);
         }
-        string rPath = ci->getRemotePath(tNode[i], fileName);
+        string rPath = ci->getRemotePath(tNode[i], filePrefix);
         cerr << "Copy the type file to -> \t" << rPath << endl;
         if (0 != system(
              (scpCommand + filePath + " " + rPath).c_str()))
@@ -4363,7 +4304,7 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
         else
         {
           string rPath =
-              ci->getRemotePath(i,fileBaseName, true, true, true);
+              ci->getRemotePath(i,fileBaseName, true, true, true, true);
           FileSystem::AppendItem(rPath,fi->getFileName());
           if (system((scpCommand + filePath + " " + rPath).c_str()))
           {
@@ -4943,93 +4884,82 @@ If an non-default path is unavailable or not exist,
 then a warning message will be given.
 
 */
-string getLocalFilePath(string path,
-                   const string fileName,
+string getLocalFilePath(string filePath,
+                   const string filePrefix,
                    string fSfx,
                    bool extendPath)
 {
-  string pathCdd[3];
-
-  // The given path
-  pathCdd[0] = path;
-
-  // The set up path in Configure file
-  string confPath = string(getenv("SECONDO_CONFIG"));
-  pathCdd[1] = SmiProfile::GetParameter("ParallelSecondo",
-      "SecondoFilePath","", confPath);
-
-  pathCdd[2] = FileSystem::GetCurrentFolder();
-  FileSystem::AppendItem(pathCdd[2], "parallel");
 
   bool pathOK = false, alarm = false;
+  string path = "";
   int cdd = 0;
   while (!pathOK && cdd < 3)
   {
-    string tPath = pathCdd[cdd];
-    if (tPath.find_last_of("/") == (tPath.length() - 1))
-      pathCdd[cdd] = tPath.substr(0, tPath.length() - 1);
+    if (0 == cdd) {
+      path = filePath;
+    }
+    else if (1 == cdd) {
+      path = SmiProfile::GetParameter("ParallelSecondo",
+          "SecondoFilePath","", string(getenv("SECONDO_CONFIG")));
+    }
+    else {
+      path = FileSystem::GetCurrentFolder();
+      FileSystem::AppendItem(path, "parallel");
+    }
 
-    if (tPath.length() != 0)
+    if (path.length() > 0)
     {
-      if (cdd < 2)
-        alarm = true;
+      if (path.find_last_of("/") == (path.length() - 1))
+        path = path.substr(0, path.length() - 1);
 
-      if (FileSystem::FileOrFolderExists(tPath) &&
-          FileSystem::IsDirectory(tPath))
-      {
+      //In case the parent folder doesn't exist.
+      if ( FileSystem::IsDirectory(path) ) {
         pathOK = true;
-        alarm = false;  //No alarm anymore, if the path is exist.
       }
-      else
-      {
-        pathOK = FileSystem::CreateFolder(tPath);
+      else {
+        pathOK = FileSystem::CreateFolder(path);
         alarm = true;
+      }
+
+      if (pathOK)
+      {
+        //Set files into sub-folders named by their prefix name
+        FileSystem::AppendItem(path,filePrefix);
+
+/*
+If the creation of sub-folder fails,
+then either the path exists already,
+or it is unavailable at all.
+
+*/
+        if ( FileSystem::IsDirectory(path) ) {
+          pathOK = true;
+        }
+        else {
+          pathOK = FileSystem::CreateFolder(path);
+          alarm = true;
+        }
       }
     }
     cdd++;
   }
-  path = pathCdd[(cdd - 1)];
 
-
-  if(pathOK)
-  {
-    //Put files into different sub-folders by the file prefix name
-    FileSystem::AppendItem(path,fileName);
-
-    if (FileSystem::FileOrFolderExists(path))
-    {
-      if (!FileSystem::IsDirectory(path))
-      {
-        pathOK = false;
-        alarm = true;
-      }
-    }
-    else
-      pathOK = FileSystem::CreateFolder(path);
-
-    if (pathOK)
-    {
-      if (extendPath)
-        FileSystem::AppendItem(path, fileName + fSfx);
-      return path;
-    }
+  if(pathOK && extendPath){
+    FileSystem::AppendItem(path, filePrefix + fSfx);
   }
 
   // When there is no specific path is given,
   // then no warning messages.
-  if (alarm)
+  if (pathOK && alarm)
+  {
     cerr << "Warning! The given path is unavailable or not exit, "
-        "\n the path " << path << " is used.\n\n";
+        "\n then the path " << path << " is used.\n\n";
+  }
 
-  return "";
+  return (pathOK ? path : "");
 }
 
-string addFileIndex(string fileName, int index)
-{
-  stringstream ss;
-  ss << fileName << "_" << index;
-  return ss.str();
-}
+
 /*
 3 Class ~HadoopParallelAlgebra~
 

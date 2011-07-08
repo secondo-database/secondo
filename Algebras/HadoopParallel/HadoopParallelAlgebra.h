@@ -426,12 +426,12 @@ class clusterInfo
 public:
   clusterInfo(bool _isMaster = false);
 
-  string getRemotePath(size_t loc,
-                       bool round = false, bool attachIP = true);
-  string getRemotePath(size_t loc, string fileName,
-                       bool attachIP = true, bool round = false,
-                       bool attachProducerIP = false,
-                       string producerIP = "");
+  string getRemotePath(size_t loc, string filePrefix,
+      bool round = false,
+      bool createPath = true,
+      bool attachIP = true,
+      bool attachProducerIP = false,
+      string producerIP = "");
   string getIP(size_t loc, bool round = false);
 
   inline int getLocalNode(){
@@ -466,9 +466,6 @@ then the default path cannot be used anymore.
     else
       return 0;
   }
-
-  static bool isRemoteFolderExist(
-      const string rIP, const string rFolder);
 
   void print();
 
