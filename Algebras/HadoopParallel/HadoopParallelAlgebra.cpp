@@ -1490,7 +1490,7 @@ bool pj2LocalInfo::LoadTuples()
   if (moreInputTuples)
   {
     if (cta == 0){
-      cta = NextTuple(streamA);
+      cta.setTuple(NextTuple(streamA));
     }
     if (ctb == 0){
       ctb = NextTuple(streamB);
@@ -1504,7 +1504,8 @@ bool pj2LocalInfo::LoadTuples()
     return loaded;
   }
 
-  int cmp = CompareTuples(cta, keyAIndex, ctb, keyBIndex);
+  int cmp = CompareTuples(cta.tuple, keyAIndex,
+                          ctb.tuple, keyBIndex);
 
   // Assume both streams are ordered by asc
   while(0 != cmp)
@@ -1514,13 +1515,14 @@ bool pj2LocalInfo::LoadTuples()
       //a < b, get more a until a >= b
       while (cmp < 0)
       {
-        cta = NextTuple(streamA);
+        cta.setTuple(NextTuple(streamA));
         if ( cta == 0 )
         {
           endOfStream = true;
           return loaded;
         }
-        cmp = CompareTuples(cta, keyAIndex, ctb, keyBIndex);
+        cmp = CompareTuples(cta.tuple, keyAIndex,
+                            ctb.tuple, keyBIndex);
       }
     }
     else if (cmp > 0)
@@ -1534,7 +1536,8 @@ bool pj2LocalInfo::LoadTuples()
             endOfStream = true;
             return loaded;
           }
-        cmp = CompareTuples(cta, keyAIndex, ctb, keyBIndex);
+        cmp = CompareTuples(cta.tuple, keyAIndex,
+                            ctb.tuple, keyBIndex);
       }
     }
   }
@@ -1543,26 +1546,28 @@ bool pj2LocalInfo::LoadTuples()
   //than the current one.
   tba = new TupleBuffer(maxMem);
   int cmpa = 0;
-  Tuple* lta = 0;
+  RTuple lta;
   while ( (cta != 0) && (0 == cmpa) )
   {
     lta = cta;
-    tba->AppendTuple(lta);
-    cta = NextTuple(streamA);
+    tba->AppendTuple(lta.tuple);
+    cta.setTuple(NextTuple(streamA));
     if ( cta != 0 )
-      cmpa = CompareTuples(lta, keyAIndex, cta, keyAIndex);
+      cmpa = CompareTuples(lta.tuple, keyAIndex,
+                           cta.tuple, keyAIndex);
   }
 
   tbb = new TupleBuffer(maxMem);
   int cmpb = 0;
-  Tuple* ltb = 0;
+  RTuple ltb;
   while ( (ctb != 0) && (0 == cmpb) )
   {
     ltb = ctb;
-    tbb->AppendTuple(ltb);
-    ctb = NextTuple(streamB);
+    tbb->AppendTuple(ltb.tuple);
+    ctb.setTuple(NextTuple(streamB));
     if ( ctb != 0 )
-      cmpb = CompareTuples(ltb, keyBIndex, ctb, keyBIndex);
+      cmpb = CompareTuples(ltb.tuple, keyBIndex,
+                           ctb.tuple, keyBIndex);
   }
   if ((cta == 0) || (ctb == 0)){
     moreInputTuples = false;
@@ -2013,28 +2018,8 @@ string clusterInfo::getRemotePath(size_t loc, string filePrefix,
       producerIP = getLocalIP();
     filePrefix += ("_" + producerIP);
   }
-  FileSystem::AppendItem(rfPath, filePrefix);
 
-  bool pathOK = false;
-  if (0 == system(("ssh " + IPAddr +
-      " ls -d " + rfPath + " 2>/dev/null").c_str())){
-    pathOK = true;
-  }
-  else if (createPath){
-/*
-If the path is not exist, and cannot be created,
-then either the path is set as a file,
-or the path is unavailable at all.
-
-*/
-    pathOK = ( 0 ==
-        system(("ssh " + IPAddr + " mkdir -p " + rfPath).c_str()));
-  }
-
-  if (pathOK){
-    remotePath = (attachIP ? (IPAddr + ":") : "") + rfPath;
-  }
-
+  remotePath = (attachIP ? (IPAddr + ":") : "") + rfPath;
   return remotePath;
 }
 
@@ -4919,26 +4904,6 @@ string getLocalFilePath(string filePath,
       else {
         pathOK = FileSystem::CreateFolder(path);
         alarm = true;
-      }
-
-      if (pathOK)
-      {
-        //Set files into sub-folders named by their prefix name
-        FileSystem::AppendItem(path,filePrefix);
-
-/*
-If the creation of sub-folder fails,
-then either the path exists already,
-or it is unavailable at all.
-
-*/
-        if ( FileSystem::IsDirectory(path) ) {
-          pathOK = true;
-        }
-        else {
-          pathOK = FileSystem::CreateFolder(path);
-          alarm = true;
-        }
       }
     }
     cdd++;

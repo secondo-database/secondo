@@ -296,7 +296,7 @@ private:
 
   TupleBuffer *tba, *tbb;
   GenericRelationIterator *ita, *itb;
-  Tuple *cta, *ctb;  //Cached tuple for the next bucket
+  RTuple cta, ctb;
   
 
   int maxMem;
