@@ -298,7 +298,8 @@ struct BusRoute{
                      int bus_no, unsigned int limit_no);
   int FindEndCell(Section_Cell& start_cell,
                   vector<Section_Cell>& cell_list, float dist_val); 
-  void ConvertGLine(GLine* gl1, GLine* gl2); 
+  void ConvertGLine(GLine* gl1, GLine* gl2);
+  bool ConvertGLine2(GLine* gl1, GLine* gl2); 
   /////////////////////////////create bus routes//////////////////////////
   void CreateRoute2(int attr,int attr1,int attr2,int attr3); 
   void ConnectCell(int attr,int from_cell_id,int end_cell_id, 

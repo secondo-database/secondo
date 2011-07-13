@@ -2293,13 +2293,14 @@ bool RegContainHS(Region* r, HalfSegment hs)
   bool checkMidPoint = false;
 
   vector<Point> intersection_points;
-
+  
   //now we know that both endpoints of hs is inside region
   for( int i = 0; i < r->Size(); i++ ){
     r->Get(i, auxhs);
     if( auxhs.IsLeftDomPoint() ){
-      if( hs.Crosses(auxhs) )
+      if( hs.Crosses(auxhs) ){
         return false;
+      }
       else if( hs.Inside(auxhs) )
        //hs is part of the border
         return true;
@@ -2564,6 +2565,11 @@ void SpacePartition::TransferSegment(MyHalfSegment& mhs,
 
     if(GetClockwise(from,to,p4)) clock_wise.push_back(p4);
       else counterclock_wise.push_back(p4);
+
+//      cout<<"clock size "<<clock_wise.size()
+//         <<" counter clock size "<<counterclock_wise.size()<<endl;
+//      cout<<"from "<<from<<" to "<<to
+//         <<" p1 "<<p1<<" p2 "<<p2<<" p3 "<<p3<<" p4 "<<p4<<endl;
 
     assert(clock_wise.size() == 2 && counterclock_wise.size() == 2);
     if(clock_flag){
@@ -3044,14 +3050,154 @@ void SpacePartition::ReorderLine(SimpleLine* sline,
 for the given set of ordered points, it creates a region
 
 */
+void SpacePartition::CheckRegionPS(vector<Point>& outer_region)
+{
+  ////////////whether two points are equal or segments overlapping ////
+  assert(outer_region.size() >= 3);
+  vector<bool> flag_list;
+  vector<Point> ps_list;
+  for(unsigned int i = 0;i < outer_region.size();i++){
+    flag_list.push_back(true);
+    ps_list.push_back(outer_region[i]);
+  }
+
+
+  for(unsigned int i = 0;i < outer_region.size() - 2;i++){
+      unsigned int j = i + 1;
+      unsigned int k = j + 1;
+      Point p1 = outer_region[i];
+      Point p2 = outer_region[j];
+      Point p3 = outer_region[k];
+//      cout<<"p1 "<<p1<<" p2 "<<p2<<" p3 "<<p3<<endl;
+//       HalfSegment hs1(true, p1, p2);
+//       HalfSegment hs2(true, p2, p3);
+//       HalfSegment hs_res;
+//       if(hs1.Intersection(hs2, hs_res)){
+//           if(hs_res.Length() > 0.0)
+//             cout<<"wrong overlapping segment"<<endl;
+//       }
+      if(!AlmostEqual(p1,p2) && !AlmostEqual(p2,p3)){
+         HalfSegment hs1(true, p1, p2);
+         HalfSegment hs2(true, p2, p3);
+         HalfSegment hs_res;
+         if(hs1.Intersection(hs2, hs_res)){
+          if(hs_res.Length() > 0.0){
+//            cout<<"wrong overlapping segments"<<endl;//delete p2
+//            cout<<hs1<<" "<<hs2<<endl;
+            flag_list[j] = false;
+
+          }
+        }
+      }
+  }
+  
+  outer_region.clear();
+  for(unsigned int i = 0;i < ps_list.size();i++){
+    if(flag_list[i]){
+      outer_region.push_back(ps_list[i]);
+    }
+  }
+  
+  //////////////////////////////////////////////////
+  /////////check crossing segment//////////////////
+  /////////////////////////////////////////////////
+  
+    vector<MyHalfSegment> mhs;
+    for(unsigned int i = 0;i < outer_region.size() - 1;i++){
+        Point from = outer_region[i];
+        unsigned int j = i + 1;
+        while(j < outer_region.size()){
+          Point to = outer_region[j];
+          if(!AlmostEqual(from, to)){
+              MyHalfSegment my_hs(true, from, to);
+              mhs.push_back(my_hs);
+              break;
+          }else
+            j++;
+        }
+    }
+//    cout<<"mhs size "<<mhs.size()<<endl;
+    for(unsigned int i = 0;i < mhs.size() - 2;i++){
+      unsigned int j = i + 1;
+      unsigned int k = j + 1;
+//      cout<<"i "<<i<<" k "<<k<<endl;
+      HalfSegment hs1(true, mhs[i].from, mhs[i].to);
+      HalfSegment hs2(true, mhs[k].from, mhs[k].to);
+//      cout<<"hs1 "<<hs1<<" hs2 "<<hs2<<endl;
+      if(hs1.Crosses(hs2)){
+//        cout<<"crossing segments"<<endl;
+        Point res;
+        assert(hs1.Intersection(hs2,res));
+        if(res.IsDefined()){
+          mhs[i].to = res;
+          mhs[j].from = mhs[j].to = res;
+          mhs[k].from = res;
+          i++;
+        }
+      }
+
+    }
+    ////////////////////////////////////////////////////////////
+    ////////////debuging, detecting/////////////////////////////
+    ////////////delete roundant segment////////////////////////
+    ///////////////////////////////////////////////////////////
+//     vector<MyHalfSegment> temp_mhs;
+//     for(unsigned int i = 0;i < mhs.size() - 1;i++){
+//       unsigned int j = i + 1;
+//       if(j == mhs.size()) break;
+//       if(AlmostEqual(mhs[i].from, mhs[j].from) &&
+//          AlmostEqual(mhs[i].to, mhs[j].to)){
+//         cout<<"wrong"<<endl;
+//         cout<<mhs[i].from<<" "<<mhs[i].to<<endl;
+//         cout<<mhs[j].from<<" "<<mhs[j].to<<endl;
+//         temp_mhs.push_back(mhs[i]);
+//         i++;
+//       }else{
+//           temp_mhs.push_back(mhs[i]);
+//           temp_mhs.push_back(mhs[j]);
+//        }
+// 
+//      }
+//      mhs.clear();
+//      for(unsigned int i = 0;i < temp_mhs.size();i++)
+//        mhs.push_back(temp_mhs[i]);
+
+    ///////////////////////////////////////////////////////////
+
+
+    outer_region.clear();
+
+    for(unsigned int i = 0;i < mhs.size();i++){
+      if(i == 0)outer_region.push_back(mhs[i].from);
+      else{
+        Point last_p = outer_region[outer_region.size() - 1];
+        Point cur_p = mhs[i].from;
+        if(!AlmostEqual(last_p,cur_p)) outer_region.push_back(cur_p);
+
+        if(i == mhs.size() - 1){
+           last_p = outer_region[outer_region.size() - 1];
+           cur_p = mhs[i].to;
+          if(!AlmostEqual(last_p,cur_p)) outer_region.push_back(cur_p);
+        }
+      }
+    }
+
+    assert(outer_region.size() >= 3);
+
+}
 void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
                                     vector<Region>& regs)
 {
     /////////note that points are counter_clock_wise ordered///////////////
 //    for(unsigned i = 0;i < outer_region.size();i++)
 //      cout<<outer_region[i];
+    
+      ///////////////////////////////////////////////////////////////
+      //////////// check for overlapping segments///////////////////
+      //////////////////////////////////////////////////////////////
+      CheckRegionPS(outer_region);
 
-
+      ////////////////////////////////////////////////////////////
       Region* cr = new Region( 0 );
       cr->StartBulkLoad();
 
@@ -3233,7 +3379,7 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       vector<Point> outer5;
 
       assert(delta1 != delta2);
-
+//      cout<<"i "<<i<<endl;
 
 //      cout<<"small1"<<endl;
       ExtendSeg1(seq_halfseg, delta1, true, outer_s,outer1);
@@ -3281,6 +3427,17 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       ComputeRegion(outer4, outer_regions4);
       ComputeRegion(outer5, outer_regions5);
 
+      ////////////////////////////////////////////////////////////////
+      ///////////////////////debuging////////////////////////////////
+      ///////////////////////////////////////////////////////////////
+//       Region* res1 = new Region(0);
+//       Region* res2 = new Region(0);
+//       int reg_id = outer_regions_s.size() - 1;
+//       outer_regions4[reg_id].Minus(outer_regions1[reg_id],*res1);
+//       outer_regions5[reg_id].Minus(outer_regions2[reg_id],*res2);
+// 
+//       delete res1;
+//       delete res2;
     }
 }
 
@@ -3290,8 +3447,7 @@ cut the intersection region between pavement and road, especailly at junction
 */
 void SpacePartition::ClipPaveRegion(Region& reg,
                      vector<Region>& paves,int rid, Region* inborder)
-  {
-
+{
       Region* comm_reg = new Region(0);
 //      reg.Intersection(*inborder,*comm_reg);
       MyIntersection(reg,*inborder,*comm_reg);
@@ -3305,8 +3461,6 @@ void SpacePartition::ClipPaveRegion(Region& reg,
       delete result;
 
       delete comm_reg;
-//    }
-
 }
 
 /*
@@ -3325,7 +3479,7 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
 
     vector<MyJun> myjuns;
     for(int i = 1;i <= n->GetNoJunctions();i++){
-//      Tuple* jun_tuple = juns->GetTuple(i);
+
       Tuple* jun_tuple = juns->GetTuple(i,false);
       CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
       CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
@@ -3381,16 +3535,15 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
             j2++;
           }
 
-//          cout<<" rids size "<<rids.size()<<endl;
-//        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
-
         if(rids.size() == 2){
             NewFillPavement3(routes, rid1, rid2, &loc,
                         pavements1, pavements2, rids, paves1, paves2);
+
         }
         if(rids.size() == 6){
            NewFillPavement4(routes, rid1, rid2, &loc,
                         pavements1, pavements2, rids, paves1, paves2);
+
         }
 
         ////////a special case for junction rid 2549--2550 ///////////////////
@@ -3423,6 +3576,7 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
       }
     }
 
+
 }
 
 
@@ -3437,6 +3591,7 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
 {
   vector<Region> subregions;
   int no_faces = reg->NoComponents();
+//  cout<<"no_faces "<<no_faces<<endl;
   for(int i = 0;i < no_faces;i++){
         Region* temp = new Region(0);
         subregions.push_back(*temp);
@@ -3454,7 +3609,7 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
   for(int i = 0;i < no_faces;i++)
       subregions[i].EndBulkLoad(false,false,false,false);
 
-  Region* result = new Region(*reg);
+/*  Region* result = new Region(*reg);
 //  result->StartBulkLoad();
 
   for(unsigned int i = 0;i < subregions.size();i++){
@@ -3471,10 +3626,32 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
         delete temp;
       }
   }
+
 //  result->SetNoComponents(count);
 //  result->EndBulkLoad(false, false, false, false);
   regs.push_back(*result);
+  delete result; */
+
+  //////////////////////////new method//////////////////////////////
+  Region* result = new Region(0);
+  int count = 0;
+  for(unsigned int i = 0;i < subregions.size();i++){
+    if(subregions[i].Size() <= 6 || subregions[i].Area() < 3.0)continue;
+
+    Region* temp = new Region(0);
+    subregions[i].Union(*result, *temp);
+    *result = *temp;
+    delete temp;
+    count++;
+  }
+//  cout<<"count "<<count<<endl;
+  assert(count <= no_faces);//faceno in halfsegment is not modified 
+
+  result->SetNoComponents(count);
+  regs.push_back(*result);
+
   delete result;
+
 }
 
 /*
@@ -3490,7 +3667,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
     Relation* routes = n->GetRoutes();
     vector<double> routes_length;
     for(int i = 1;i <= rel2->GetNoTuples();i++){
-//      Tuple* tuple = rel2->GetTuple(i);
+
       Tuple* tuple = rel2->GetTuple(i, false);
       Region* reg1 = (Region*)tuple->GetAttribute(attr_pos1);
       Region* reg2 = (Region*)tuple->GetAttribute(attr_pos2);
@@ -3498,7 +3675,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
       pavements2.push_back(*reg2);
       tuple->DeleteIfAllowed();
 
-//      Tuple* route_tuple = routes->GetTuple(i);
+
       Tuple* route_tuple = routes->GetTuple(i, false);
       CcReal* len = (CcReal*)route_tuple->GetAttribute(ROUTE_LENGTH);
       double length = len->GetRealval();
@@ -3511,7 +3688,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
     Relation* juns = n->GetJunctions();
 
     for(int i = 1;i <= n->GetNoJunctions();i++){
-//      Tuple* jun_tuple = juns->GetTuple(i);
+
       Tuple* jun_tuple = juns->GetTuple(i, false);
       CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
       CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
@@ -3520,10 +3697,11 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
 
 //      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
 
-/*      if(!(id1 == 1754 || id2 == 1754)) {
-          jun_tuple->DeleteIfAllowed();
-          continue;
-      }*/
+//       if(!(id1 == 1561 && id2 == 3818)) {
+//           jun_tuple->DeleteIfAllowed();
+//           continue;
+//       }
+
 //      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
 //      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
@@ -3539,8 +3717,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
       Region rid2_pave1 = pavements1[id2 - 1];
       Region rid2_pave2 = pavements2[id2 - 1];
 
-//      Tuple* inborder_tuple1 = rel1->GetTuple(id1);
-//      Tuple* inborder_tuple2 = rel1->GetTuple(id2);
+
       Tuple* inborder_tuple1 = rel1->GetTuple(id1, false);
       Tuple* inborder_tuple2 = rel1->GetTuple(id2, false);
 
@@ -3574,6 +3751,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
         delete reg;
       }
       FillPave(n, pavements1, pavements2, routes_length, newpave1, newpave2);
+
       for(unsigned int i = 0;i < pavements1.size();i++){
         Region* reg1 = new Region(0);
         MyUnion(pavements1[i], newpave1[i], *reg1);
@@ -3590,6 +3768,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
     for(unsigned int i = 0;i < pavements1.size();i++){
 //        outer_regions1.push_back(pavements1[i]);
 //        outer_regions2.push_back(pavements2[i]);
+//        cout<<"id "<<i + 1<<endl;
         FilterDirtyRegion(outer_regions1, &pavements1[i]);
         FilterDirtyRegion(outer_regions2, &pavements2[i]);
     }
@@ -3674,11 +3853,14 @@ void SpacePartition::GetSubCurve(SimpleLine* curve, Line* newcurve,
       for(int i = 0; i < curve->Size();i++){
           HalfSegment hs;
           curve->Get(i,hs);
+//          cout<<"old "<<hs<<endl;
           TransferHalfSegment(hs, roadwidth, clock);
+//          cout<<"new "<<hs<<endl;
           *newcurve += hs;
       }
       newcurve->EndBulkLoad();
 }
+
 
 /*
 build the zebracrossing at the junction position.
@@ -4194,12 +4376,12 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
 
-//      if(!(id1 == 1930 && id2 == 1944)){
+//      if(!(id1 == 2829 && id2 == 3421)){
 //          jun_tuple->DeleteIfAllowed();
 //          continue;
 //      }
 
- //     cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
+//      cout<<"rid1 "<<id1<<" rid2 "<<id2<<endl;
 
       CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
       CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
@@ -4476,8 +4658,12 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
                 unsigned int index1 = i;
                 unsigned int index2 = (i + 1)%ps.size();
                 unsigned int index3 = (i + 2)%ps.size();
+
+/*                cout<<i<<" "<<ps[index1]<<" "<<ps[index2]
+                    <<" "<<ps[index3]<<endl;*/
                 ////////////the special case that three points collineartion///
                 if(Collineation(ps[index1], ps[index2], ps[index3]))continue;
+
                 if(GetClockwise(ps[index2], ps[index1], ps[index3]))break;
 
                 vector<Point> temp_ps;
@@ -4488,14 +4674,24 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
                   ps.push_back(temp_ps[j]);
                 break;
             }
-            assert( i < ps.size());
 
-           //should be counter clock wise
+            ////////old checking////////////////
+//             assert( i < ps.size());
+//            //should be counter clock wise
+//             vector<Region> gap;
+//             ComputeRegion(ps, gap);
+//             outer_fillgap.push_back(gap[0]);
+//             return true;
 
-            vector<Region> gap;
-            ComputeRegion(ps, gap);
-            outer_fillgap.push_back(gap[0]);
-            return true;
+            /////four points can also be collineartion/////////
+            if(i < ps.size()){
+              vector<Region> gap;
+              ComputeRegion(ps, gap);
+              outer_fillgap.push_back(gap[0]);
+              return true;
+            }else{
+              return false;
+            }
 
             /////////////////////////////////////////////////
 /*            cout<<"four points"<<endl;
@@ -4530,6 +4726,10 @@ the pavement gap should not intersect the small region
 bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
                   Point* junp, MyHalfSegment thirdseg, Region& smallreg)
 {
+      if(reg1->Size() < 3 || reg2->Size() < 3){
+        return false;
+      }
+
       vector<MyPoint> mps1;
       vector<MyPoint> mps2;
       for(int i = 0;i < reg1->Size();i++){
@@ -4544,6 +4744,7 @@ bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
             mps1.push_back(mp2);
           }
       }
+
       for(int i = 0;i < reg2->Size();i++){
           HalfSegment hs;
           reg2->Get(i,hs);
@@ -5117,8 +5318,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
     ComputeRegion(ps, smallreg);
     //////////////////////////////
 
-//    Tuple* pave_tuple1 = rel->GetTuple(id1);
-//    Tuple* pave_tuple2 = rel->GetTuple(id2);
+
     Tuple* pave_tuple1 = rel->GetTuple(id1, false);
     Tuple* pave_tuple2 = rel->GetTuple(id2, false);
 
@@ -5127,7 +5327,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
     Region* reg2_pave1 = (Region*)pave_tuple2->GetAttribute(attr_pos1);
     Region* reg2_pave2 = (Region*)pave_tuple2->GetAttribute(attr_pos2);
 
-//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+
      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide2(reg1_pave1, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 /*       if(third_seg > 2){
@@ -5153,7 +5353,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
 
     }
 
-//    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+
       if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide2(reg1_pave1, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 //       if(third_seg > 2){
@@ -5177,7 +5377,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
 
     }
 
-//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+
     if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide2(reg1_pave2, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 
@@ -5200,7 +5400,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
 
     }
 
-//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+
      if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide2(reg1_pave2, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
@@ -5276,7 +5476,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
     Region* reg1_pave2 = &paves2[id1 - 1];
     Region* reg2_pave1 = &paves1[id2 - 1];
     Region* reg2_pave2 = &paves2[id2 - 1];
-//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
+
       if(PavementIntersection(reg1_pave1, reg2_pave1) == false &&
        SameSide1(reg1_pave1, reg2_pave1, r1r2, junp)){
 
@@ -5291,7 +5491,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       delete result;
 
     }
-//    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+
       if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide1(reg1_pave1, reg2_pave2, r1r2, junp)){
 
@@ -5305,7 +5505,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       delete result;
 
     }
-//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+
       if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide1(reg1_pave2, reg2_pave1, r1r2, junp)){
 
@@ -5319,7 +5519,7 @@ void SpacePartition::NewFillPavement3(Relation* routes, int id1, int id2,
       delete result;
 
     }
-//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+
       if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide1(reg1_pave2, reg2_pave2, r1r2, junp)){
 
@@ -5466,8 +5666,9 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
     Region* reg2_pave1 = &paves1[id2 - 1];
     Region* reg2_pave2 = &paves2[id2 - 1];
 
-//    if(reg1_pave1->Intersects(*reg2_pave1) == false &&
-      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
+    
+//      if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
+      if(PavementIntersection(reg1_pave1, reg2_pave1) == false &&
        SameSide2(reg1_pave1, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 
         Region* result = new Region(0);
@@ -5480,7 +5681,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
         delete result;
 
     }
-//    if(reg1_pave1->Intersects(*reg2_pave2) == false &&
+
       if(PavementIntersection(reg1_pave1, reg2_pave2) == false &&
        SameSide2(reg1_pave1, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
@@ -5494,7 +5695,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
       delete result;
 
     }
-//    if(reg1_pave2->Intersects(*reg2_pave1) == false &&
+
       if(PavementIntersection(reg1_pave2, reg2_pave1) == false &&
        SameSide2(reg1_pave2, reg2_pave1, r1r2, junp, thirdseg, smallreg[0])){
 
@@ -5508,7 +5709,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
       delete result;
 
     }
-//    if(reg1_pave2->Intersects(*reg2_pave2) == false &&
+
      if(PavementIntersection(reg1_pave2, reg2_pave2) == false &&
        SameSide2(reg1_pave2, reg2_pave2, r1r2, junp, thirdseg, smallreg[0])){
 
@@ -5608,7 +5809,7 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
 
 
     for(int i = 1;i <= routes->GetNoTuples();i++){
-//      Tuple* route_tuple = routes->GetTuple(i);
+
       Tuple* route_tuple = routes->GetTuple(i, false);
       CcReal* len = (CcReal*)route_tuple->GetAttribute(ROUTE_LENGTH);
       double length = len->GetRealval();
@@ -5618,20 +5819,52 @@ void SpacePartition::FillHoleOfPave(Network* n, Relation* rel,  int attr_pos1,
       route_tuple->DeleteIfAllowed();
       routes_length.push_back(length);
     }
+    
+    //////////////////////////////////////////////////////////////////
+//     vector<Region> pavements1;
+//     vector<Region> pavements2;
+//     for(int i = 1;i <= rel->GetNoTuples();i++){
+//       Tuple* pave_tuple = rel->GetTuple(i, false);
+//       Region* reg1 = (Region*)pave_tuple->GetAttribute(attr_pos1);
+//       Region* reg2 = (Region*)pave_tuple->GetAttribute(attr_pos2);
+//       pavements1.push_back(*reg1);
+//       pavements2.push_back(*reg2);
+//       pave_tuple->DeleteIfAllowed();
+//     }
+// 
+//      vector<Region> newpave1;
+//      vector<Region> newpave2;
+//       for(unsigned int i = 0;i < pavements1.size();i++){
+//         Region* reg = new Region(0);
+//         newpave1.push_back(*reg);
+//         newpave2.push_back(*reg);
+//         delete reg;
+//       }
+//       FillPave(n, pavements1, pavements2, routes_length, newpave1, newpave2);
+//       for(unsigned int i = 0;i < pavements1.size();i++){
+// //        cout<<"i "<<i<<endl;
+// 
+//         Region* reg1 = new Region(0);
+//         MyUnion(pavements1[i], newpave1[i], *reg1);
+//         pavements1[i] = *reg1;
+//         delete reg1;
+// 
+//         Region* reg2 = new Region(0);
+//         MyUnion(pavements2[i], newpave2[i], *reg2);
+//         pavements2[i] = *reg2;
+//         delete reg2;
+//       }
+
+
 
     vector<MyJun> myjuns;
     for(int i = 1;i <= n->GetNoJunctions();i++){
-//      Tuple* jun_tuple = juns->GetTuple(i);
+
       Tuple* jun_tuple = juns->GetTuple(i, false);
       CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
       CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
       int id1 = rid1->GetIntval();
       int id2 = rid2->GetIntval();
-
-/*      if(!(id1 == 2549 && id2 == 2550)){
-        jun_tuple->DeleteIfAllowed();
-        continue;
-      }*/
 
 
       Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
@@ -6119,4 +6352,424 @@ void StrRS::GenPoints2(R_Tree<2,TupleId>* rtree, int attr_pos1,
         cout<<"WARNING!!! not enough points found"<<endl;
     }
     
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+///////////////////data cleaning process/////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+/*
+modify the coordinates of a line value, not so many numbers after dot
+
+*/
+void DataClean::ModifyLine(SimpleLine* in, SimpleLine* out)
+{
+//  *out = *in;
+  out->Clear();
+  out->StartBulkLoad();
+  int edgeno = 0;
+  static int line_id = 1;
+  const double delta_dist = 0.001;
+  for(int i = 0;i < in->Size();i++){
+      HalfSegment hs1;
+      in->Get(i, hs1);
+      if(!hs1.IsLeftDomPoint()) continue;
+
+      Point lp = hs1.GetLeftPoint();
+      Point rp = hs1.GetRightPoint();
+//      Modify_Point2(lp);
+//      Modify_Point2(rp);
+      HalfSegment hs2(true, lp, rp);
+      hs2.attr.edgeno = edgeno++;
+      *out += hs2;
+      hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+      *out += hs2;
+
+      if(lp.Distance(rp) < delta_dist){
+          cout<<line_id<<endl;
+          line_id++;
+      }
+
+  }
+
+  out->EndBulkLoad();
+}
+
+/*
+check the coordinates; data clean for roads data 
+it checks whether two roads have overlapping. if it is, then delete the two
+old roads, and create a new one by doing union on them 
+using traverse rtree to improve efficiency 
+much faster than navie algorithm (two loops)
+
+*/
+void DataClean::CheckRoads(Relation* rel, R_Tree<2,TupleId>* rtree)
+{
+
+
+/*vector<Line> new_line_list;
+  for(unsigned int i = 0;i < line_list.size();i++){
+    Line* l1 = &(line_list[i]);
+
+    //////////////////////naive method///////////////////////////
+
+    for(unsigned int j = i + 1;j < line_list.size();j++){
+      Line* l2 = &line_list[j];
+
+      Line* res = new Line(0);
+      l1->Intersection(*l2, *res);
+      if(res->IsDefined() && res->Length() > 0.0){
+        flag_list[i] = false;
+        flag_list[j] = false;
+        cout<<"len "<<res->Length()
+            <<" l1 "<<line_id_list[i]<<" l2 "<<line_id_list[j]<<endl;
+        Line* res2 = new Line(0);
+        l1->Union(*l2, *res2);
+        new_line_list.push_back(*res2);
+        delete res2;
+      }
+      delete res;
+
+    }
+  }
+  
+  for(unsigned int i = 0;i < flag_list.size();i++){
+    if(flag_list[i] == false) continue;
+
+    SimpleLine* sl = new SimpleLine(0);
+    sl->fromLine(line_list[i]);
+    sl_list.push_back(*sl);
+    delete sl;
+  }
+
+  //////new generated line/////
+  for(unsigned int i = 0;i < new_line_list.size();i++){
+    SimpleLine* sl = new SimpleLine(0);
+    sl->fromLine(new_line_list[i]);
+    sl_list.push_back(*sl);
+    delete sl;
+  }*/
+
+/*  vector<bool> flag_list;
+  vector<Line> line_list;
+  vector<SimpleLine> sline_list;
+  vector<int> line_id_list;
+  
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+    flag_list.push_back(true);
+    Tuple* road_tuple = rel->GetTuple(i, false);
+    SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+
+    line_id_list.push_back(i);
+    Line* l = new Line(0);
+    sl->toLine(*l);
+    line_list.push_back(*l);
+    sline_list.push_back(*sl);
+
+    delete l;
+    road_tuple->DeleteIfAllowed();
+  }*/
+  
+//   const double delta_len = 0.001;
+//   
+//   for(unsigned int i = 0;i < line_list.size();i++){
+//     Line* l1 = &(line_list[i]);
+// 
+//     vector<int> oid_list;
+//     DFTraverse(rel,rtree,rtree->RootRecordId(),l1, oid_list, i + 1);
+//     for(unsigned int j = 0;j < oid_list.size();j++){
+//       int index = oid_list[j] - 1;
+//       Line* l2 = &line_list[index];
+// 
+//       if(flag_list[index] == false) continue; 
+// 
+//       if(l1->Inside(*l2)){
+//         flag_list[i] = false;//delete this line
+//         break;
+//       }
+//       if(l2->Inside(*l1)){
+//         flag_list[index] = false;
+//       }else {
+// 
+//         Line* res1 = new Line(0);
+//         l1->Intersection(*l2, *res1);
+//         if(res1->IsDefined() && res1->Length() > 0.0){
+//             double len1 = l1->Length();
+//             double len2 = l2->Length();
+//             cout<<"id1 "<<i + 1<<" id2 "<<j + 1<<" ";
+//             cout<<"len1 "<<len1<<" len2 "<<len2
+//                 <<" comm "<<res1->Length()<<endl;
+//             assert(res1->Length() > delta_len);
+//             assert(len1 - res1->Length() > delta_len);
+//             assert(len2 - res1->Length() > delta_len);
+// 
+//             if(len1 > len2){
+//               Line* res = new Line(0);
+//               l1->Minus(*res1,*res);
+//               line_list[i] = *res;
+//               delete res;
+//               l1 = &(line_list[i]);
+//             }else{
+//               Line* res = new Line(0);
+//               l2->Minus(*res1,*res);
+//               line_list[index] = *res;
+//               delete res;
+//             }
+//         }
+//         delete res1;
+//       }
+// 
+//     }
+// 
+//   }
+// 
+// 
+//   for(unsigned int i = 0;i < flag_list.size();i++){
+//     if(flag_list[i] == false) continue;
+// 
+//     SimpleLine* sl = new SimpleLine(0);
+//     sl->fromLine(line_list[i]);
+//     if(sl->IsDefined() && sl->Length() > 0.0)
+//         sl_list.push_back(*sl);
+//     else
+//       cout<<"id "<<i+1<<endl;
+// 
+//     delete sl;
+//   }
+
+  //////////////////////////////////////////////////////////////////////////
+  /////////////// delete cycle ///////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+
+//    for(int i = 1;i <= rel->GetNoTuples();i++){
+//     Tuple* road_tuple = rel->GetTuple(i, false);
+//     SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+//     if(sl->IsCycle() == false)
+//       sl_list.push_back(*sl);
+//     else{
+//       SpacePartition* sp = new SpacePartition();
+//       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+//       sp->ReorderLine(sl, seq_halfseg);
+// 
+// 
+// //       double sum = 0;
+// //       for(int j = 0;j < seq_halfseg.size();j++){
+// //         Point p1 = seq_halfseg[j].from;
+// //         Point p2 = seq_halfseg[j].to;
+// //         sum += p1.Distance(p2);
+// //       }
+// //       cout<<sl->Length()<<" "<<sum<<endl;
+//       SimpleLine* sl1 = new SimpleLine(0);
+//       SimpleLine* sl2 = new SimpleLine(0);
+//       sl1->StartBulkLoad();
+//       sl2->StartBulkLoad();
+//       int half = seq_halfseg.size()/2;
+//       int edgeno = 0;
+//       for(int j = 0;j < half;j++){
+//            Point p1 = seq_halfseg[j].from;
+//            Point p2 = seq_halfseg[j].to;
+//            HalfSegment hs(true, p1, p2);
+//            hs.attr.edgeno = edgeno++;
+//            *sl1 += hs;
+//            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+//            *sl1 += hs;
+//       
+//       }
+//       edgeno = 0;
+//       for(int j = half; j < seq_halfseg.size();j++){
+//            Point p1 = seq_halfseg[j].from;
+//            Point p2 = seq_halfseg[j].to;
+//            HalfSegment hs(true, p1, p2);
+//            hs.attr.edgeno = edgeno++;
+//            *sl2 += hs;
+//            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+//            *sl2 += hs;
+//       }
+//       
+//       
+//       sl1->EndBulkLoad();
+//       sl2->EndBulkLoad();
+// 
+//       
+//       sl_list.push_back(*sl1);
+//       sl_list.push_back(*sl2);
+// 
+//       delete sl2;
+//       delete sl1;
+//       
+//       delete sp;
+//     }
+// 
+// 
+//     road_tuple->DeleteIfAllowed();
+//   }
+//   return;
+  
+////////////////////////////////////////////////////////////////////////////
+
+
+
+
+/*   for(int i = 1;i <= rel->GetNoTuples();i++){
+    Tuple* road_tuple1 = rel->GetTuple(i, false);
+    int id1 = ((CcInt*)road_tuple1->GetAttribute(ROUTE_ID))->GetIntval();
+    SimpleLine* sl1 = (SimpleLine*)road_tuple1->GetAttribute(ROUTE_CURVE);
+    bool s1 = 
+      ((CcBool*)road_tuple1->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+
+    Line* l1 = new Line(0);
+    sl1->toLine(*l1);
+    vector<int> oid_list;
+//    DFTraverse(rel,rtree,rtree->RootRecordId(), l1, oid_list, i);
+    DFTraverse(rel,rtree,rtree->RootRecordId(), l1, oid_list, id1);
+    delete l1;
+
+      for(unsigned int index = 0;index < oid_list.size();index++){
+          int j = oid_list[index];
+
+          Tuple* road_tuple2 = rel->GetTuple(j, false);
+          int id2 =  ((CcInt*)road_tuple2->GetAttribute(ROUTE_ID))->GetIntval();
+          SimpleLine* sl2 = (SimpleLine*)road_tuple2->GetAttribute(ROUTE_CURVE);
+
+          bool s2 = 
+      ((CcBool*)road_tuple2->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+
+          Points* ps = new Points(0);
+
+          sl1->Crossings( *sl2, *ps);
+
+          if(ps->Size() == 0){
+            delete ps;
+            road_tuple2->DeleteIfAllowed();
+            continue;
+          }
+//          cout<<ps->Size()<<endl;
+
+          if(ps->Size() >= 3){
+            cout<<"id1 "<<id1<<" id2 "<<id2<<" no "<<ps->Size()<<endl;
+          }
+
+//          cout<<"id1 "<<id1<<" id2 "<<id2<<endl;
+          for(int k = 0;k < ps->Size();k++){
+            Point loc;
+            ps->Get(k, loc);
+            double pos1, pos2;
+//            cout<<"loc "<<loc<<endl;
+
+            if(sl1->AtPoint(loc, s1, pos1) == false){
+              cout<<"not find on simpleline1 "<<id1<<" loc "<<loc<<endl;
+              cout<<"id2 "<<id2<<endl;
+            }
+            if(sl2->AtPoint(loc, s2, pos2) == false){
+              cout<<"not find on simpleline2 "<<id2<<" loc "<<loc<<endl;
+              cout<<"id1 "<<id1<<endl;
+            }
+
+          }
+          delete ps;
+          road_tuple2->DeleteIfAllowed();
+      }
+
+    road_tuple1->DeleteIfAllowed(); 
+
+  } */
+
+
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+    Tuple* road_tuple = rel->GetTuple(i, false);
+    int id = ((CcInt*)road_tuple->GetAttribute(ROUTE_ID))->GetIntval();
+    SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+    Line* l = new Line(0);
+
+    sl->toLine(*l);
+
+    vector<int> oid_list;
+    DFTraverse2(rel,rtree,rtree->RootRecordId(), l, oid_list, id);
+    delete l;
+    road_tuple->DeleteIfAllowed();
+
+    if(oid_list.size() == 0){
+      cout<<"rid "<<id<<endl;
+    }
+  }
+
+}
+
+/*
+traverse rtree to find lines intersect the input line 
+
+*/
+void DataClean::DFTraverse(Relation* rel,
+                           R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* sl, vector<int>& id_list, unsigned int id)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              SimpleLine* sline =
+                     (SimpleLine*)dg_tuple->GetAttribute(ROUTE_CURVE);
+              unsigned int r_id = 
+                ((CcInt*)dg_tuple->GetAttribute(ROUTE_ID))->GetIntval();
+              if(r_id == id){
+                  dg_tuple->DeleteIfAllowed();
+                  continue;
+              }
+
+              if(sl->BoundingBox().Intersects(sline->BoundingBox())){
+                  if(e.info != id)
+                      id_list.push_back(e.info);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(sl->BoundingBox().Intersects(e.box)){
+                DFTraverse(rel,rtree, e.pointer, sl, id_list, id);
+            }
+      }
+  }
+  delete node;
+
+}
+
+
+void DataClean::DFTraverse2(Relation* rel,
+                           R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* sl, vector<int>& id_list, unsigned int id)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              SimpleLine* sline =
+                     (SimpleLine*)dg_tuple->GetAttribute(ROUTE_CURVE);
+
+              if(sl->BoundingBox().Intersects(sline->BoundingBox())){
+                  Line* temp_l = new Line(0);
+                  sline->toLine(*temp_l);
+
+                  if(e.info != id && sl->Intersects(*temp_l)){
+                    id_list.push_back(e.info);
+                  }
+
+                  delete temp_l;
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(sl->BoundingBox().Intersects(e.box)){
+                DFTraverse2(rel,rtree, e.pointer, sl, id_list, id);
+            }
+      }
+  }
+  delete node;
+
 }

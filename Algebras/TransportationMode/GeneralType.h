@@ -58,6 +58,7 @@ Jan, 2011 Jianqiu xu
 #include <fstream>
 #include "GSLAlgebra.h"
 #include "Indoor2.h"
+#include "ArrayAlgebra.h"
 
 
 /*
@@ -852,7 +853,7 @@ struct GenMObject{
                              Relation* rel, BTree* btree, Relation*, string);
   void PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, Relation* rel, 
                       BTree* btree, vector<GPoint>& gp_list, 
-                      vector<Point>& p_list);
+                      vector<Point>& p_list, bool& correct);
   void ConnectStartMove(GenLoc loc, Point start_loc, MPoint* mo, 
                         GenMO* genmo, Instant& start_time, 
                         Pavement* pm, string);
@@ -944,6 +945,10 @@ struct GenMObject{
   void GenerateGenMO6(Space* sp, Periods* peri, int mo_no, int type, 
                       Relation* rel1, Relation* rel2,
                       R_Tree<2,TupleId>* rtree);
+  void CreateBuildingPair3(IndoorInfra* i_infra, 
+                          vector<RefBuild>& build_id1_list,
+                          vector<RefBuild>& build_id2_list, int no, 
+                          MaxRect* maxrect);
   void GenerateIndoorMovementToExit2(IndoorInfra* i_infra, 
                                     GenMO* genmo, MPoint* mo, 
                                     Instant& start_time, Point loc,

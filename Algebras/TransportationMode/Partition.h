@@ -570,6 +570,28 @@ inline void Modify_Point(Point& p)
 
     p.Set(x,y);
 }
+/*
+keep the number of digits after dot for float or double representation
+
+*/
+inline void Modify_Point2(Point& p)
+{
+    double x,y;
+
+    x = p.GetX();
+    y = p.GetY();
+//    printf("%.10f %.10f\n",x, y);
+
+//    x = ((int)(x*1000.0 + 0.5))/1000.0;
+//    y = ((int)(y*1000.0 + 0.5))/1000.0;
+     double xx = (double)(int(x*1000.0 + 0.5))/1000;
+     double yy = (double)(int(y*1000.0 + 0.5))/1000;
+
+//    printf("%.10f %.10f\n",xx, yy);
+
+      p.Set(xx,yy);
+
+}
 
 void MySetOp(const Region& reg1, const Region& reg2,Region& result,
            myavlseg::SetOperation op);
@@ -865,6 +887,7 @@ struct SpacePartition{
   void ReorderLine(SimpleLine*, vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
   void ComputeRegion(vector<Point>& outer_region,vector<Region>& regs);
+  void CheckRegionPS(vector<Point>& outer_region);
   //extend each road to a region
   void ExtendRoad(int attr_pos, int w);
   //remove triangle area after cutting
@@ -1021,5 +1044,28 @@ struct StrRS{
 };
 
 #define TM_MYPI 3.1415927
+
+/*
+data clean process 
+
+*/
+struct DataClean{
+  unsigned int count;
+  TupleType* resulttype; 
+  
+  DataClean(){ count = 0; resulttype = NULL;} 
+  ~DataClean(){if(resulttype != NULL) delete resulttype;}
+
+  vector<SimpleLine> sl_list;
+
+
+  void ModifyLine(SimpleLine* in, SimpleLine* out);
+  void CheckRoads(Relation* r, R_Tree<2,TupleId>* rtree);
+  void DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* sl, vector<int>& id_list, unsigned int id);
+  void DFTraverse2(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* sl, vector<int>& id_list, unsigned int id);
+};
+
 
 #endif

@@ -3906,47 +3906,6 @@ void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
     return; 
   }
 
-/*  Word xResult;
-  string strQuery = "(region(((";
-  /////////////first create a region object by reg //////////////////////////
-  Hole* reg_hole = new Hole();
-  reg_hole->GetHole(reg);
-  for(unsigned int i = 0;i < reg_hole->regs.size();i++){
-    Region* r = &reg_hole->regs[i];
-    vector<Point> ps;
-    GetBoundaryPoints(r, ps, i);
-    for(unsigned int j = 0;j < ps.size();j++){
-      string str = "(";
-      char coord[256]; 
-      memset(coord,'\0',256);
-      sprintf(coord,"%f %f", ps[j].GetX(), ps[j].GetY());
-      str += coord;
-      str += ")";
-      strQuery += str; 
-    }
-  }
-  
-  strQuery += "))))"; 
-  delete reg_hole; 
-  cout<<strQuery<<endl; 
-  
-  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted);
-  Region* temp = (Region*)xResult.addr; 
-  cout<<*temp<<endl; */
-  
-  //////////////////create the relation of all points////////////////////
-/* strQuery = "(consume(getallpoints r1))";
-  cout<<strQuery<<endl; 
-  
-  
-  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted);
-  Relation* noderel = (Relation*)xResult.addr;
-  
-  cout<<noderel->GetNoTuples()<<endl; 
-  delete noderel;*/
-
    /////////////////////////////////////////////////////////////////////
    ////////////// naive method to compute shortest path in a polygon////
    /////////////////////////////////////////////////////////////////////
@@ -4010,6 +3969,8 @@ void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
   ////////////first check whether Euclidean distance between s and d//////
   HalfSegment temp_hs(true, start_loc.loc, end_loc.loc);
 
+
+
   if(SegAvailable(temp_hs, seg_list) && RegContainHS(reg, temp_hs)){
 //    cout<<"find the path"<<endl; 
     pResult->StartBulkLoad();
@@ -4036,7 +3997,7 @@ void ShortestPath_InRegion(Region* reg, Point* s, Point* d, Line* pResult)
 //  cout<<" expand size "<<expandpath.size()<<endl; 
   bool find = false; 
   RPath_elem dest;
-   while(path_queue.empty() == false){
+  while(path_queue.empty() == false){
     RPath_elem top = path_queue.top();
     path_queue.pop();
 //    top.Print();
@@ -5242,6 +5203,8 @@ void IndoorNav::GenerateIP1(int num)
 //  srand48(tval.tv_sec);//second 
 //    srand48(tval.tv_usec);//Microseconds
 
+  const double TM_EPSILON = 0.001;
+
   for(int i = 1;i <= num;){
     unsigned int room_oid; 
 
@@ -5273,6 +5236,9 @@ void IndoorNav::GenerateIP1(int num)
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
+
+        if(coord_x < TM_EPSILON) coord_x = 0.0;
+        if(coord_y < TM_EPSILON) coord_y = 0.0;
 
         p1.Set(coord_x, coord_y); //set back to relative position
         //lower the precision
@@ -5310,6 +5276,8 @@ void IndoorNav::GenerateIP2(int num)
 {
   int no_rooms = rel1->GetNoTuples(); 
 
+  const double TM_EPSILON = 0.001;
+  
   for(int i = 1;i <= num;){
     unsigned int room_oid; 
 
@@ -5341,6 +5309,9 @@ void IndoorNav::GenerateIP2(int num)
 
         double coord_x = x/100.0;
         double coord_y = y/100.0;
+        if(coord_x < TM_EPSILON) coord_x = 0.0;
+        if(coord_y < TM_EPSILON) coord_y = 0.0;
+
 
         p1.Set(coord_x, coord_y); //set back to relative position
         //lower the precision
@@ -5593,8 +5564,16 @@ void IndoorNav::GetDoorLoc(IndoorGraph* ig, BTree* btree,
     Tuple* groom_tuple = rel1->GetTuple(groom_tid, false);
     GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
     Rectangle<2> bbox = groom->BoundingBox();
-    Loc loc(loc_list[i].GetX() - bbox.MinD(0),
-            loc_list[i].GetY() - bbox.MinD(1));
+//     Loc loc(loc_list[i].GetX() - bbox.MinD(0),
+//             loc_list[i].GetY() - bbox.MinD(1));
+
+    double x = loc_list[i].GetX() - bbox.MinD(0);
+    double y = loc_list[i].GetY() - bbox.MinD(1);
+    const double tm_epsilon = 0.001;
+    if( x < tm_epsilon) x = 0.0;
+    if( y < tm_epsilon) y = 0.0;
+    Loc loc(x,y);
+
     GenLoc gloc(groom_oid, loc);
 
 //    cout<<"gloc "<<gloc<<endl;
@@ -5844,7 +5823,7 @@ void IndoorNav::GenerateMO2_End(IndoorGraph* ig, BTree* btree,
 }
 
 /*
-create one indoor movement from the building entrance to a indoor location
+create one indoor movement from the building entrance to an indoor location.
 this function is used to create indoor and outdoor trips
 
 */
@@ -8055,6 +8034,7 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
   double x1 = gloc->GetLoc().loc1 + bbox.MinD(0);
   double y1 = gloc->GetLoc().loc2 + bbox.MinD(1);
   Point p1(true, x1, y1);
+  Modify_Point2(p1);// numeric problem, not so many digit after dot
   delete reg;
   
   /////////////////////////////////////////////////////////////////////////
@@ -8137,26 +8117,28 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
      door_tuple->DeleteIfAllowed();
 
      Point p2(true, x2, y2);
+     Modify_Point2(p2); // numeric problem, not so many digit after dot
+
      ////////////////computes the shortest path////////////////////////////
 
      Line* sp_path = new Line(0);
-     
+
      if(complex_reg == 1){
-        Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
-        wsp->rel3 = tri_rel;
-        int oid2 = 0; 
-        FindPointInDG1(dg, &p2, oid2); 
-        assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
         //////////////////////////////////////////////////////////////////
         //////////////////////////!!!! careful!!!!!///////////////////////
         //////////////////////////////////////////////////////////////////
         if(EuclideanConnection(r, &p2, &p1, sp_path)){
 
         }
-        else
+        else{
+          Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+          wsp->rel3 = tri_rel;
+          int oid2 = 0; 
+          FindPointInDG1(dg, &p2, oid2); 
+          assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
           wsp->WalkShortestPath2(oid2, oid1, p2, p1, sp_path);
-
-        delete wsp;
+          delete wsp;
+        }
      }else{
        ///////////////////////////////////////////////////////////////////
         //////////////////////////!!!! careful!!!!!///////////////////////
@@ -8491,8 +8473,9 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
   double x1 = gloc->GetLoc().loc1 + bbox.MinD(0);
   double y1 = gloc->GetLoc().loc2 + bbox.MinD(1);
   Point p1(true, x1, y1);
+  Modify_Point2(p1);//numeric problem, we do not need so many number after dot
   delete reg;
-  
+
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////get the 2D area/////////////////////////////////
   /////////////////////////////////////////////////////////////////////////
@@ -8573,23 +8556,26 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
      door_tuple->DeleteIfAllowed();
 
      Point p2(true, x2, y2);
+     Modify_Point2(p2);//numeric problem, do not need so many number after dot
      ////////////////computes the shortest path////////////////////////////
 
      Line* sp_path = new Line(0);
      if(complex_reg == 1){
-        Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
-        wsp->rel3 = tri_rel;
-        int oid2 = 0; 
-        FindPointInDG1(dg, &p2, oid2); 
-        assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
         //////////////////////////////////////////////////////////////////
         //////////////////////////!!!! careful!!!!!///////////////////////
         //////////////////////////////////////////////////////////////////
         if(EuclideanConnection(r, &p1, &p2, sp_path)){
 
-        }else
+        }else{
+            Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+            wsp->rel3 = tri_rel;
+            int oid2 = 0; 
+            FindPointInDG1(dg, &p2, oid2); 
+            assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
             wsp->WalkShortestPath2(oid1, oid2, p1, p2, sp_path);
-        delete wsp;
+            delete wsp;
+        }
+
      }else{
        ///////////////////////////////////////////////////////////////////
         //////////////////////////!!!! careful!!!!!///////////////////////
@@ -8608,13 +8594,22 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
       vector<MyHalfSegment> mhs; 
       sp->ReorderLine(sl, mhs);
       delete sp; 
+
       delete sl;
       delete sp_path;
+
+
+
+//      cout<<mhs[0].from.Distance(p1)<<" "
+//          <<mhs[mhs.size() - 1].to.Distance(p2)<<endl;
+
+//      cout<<" from "<<mhs[0].from<<" to "<<mhs[mhs.size() - 1].to<<endl;
 
       if(mhs[0].from.Distance(p1) < dist_delta && 
          mhs[mhs.size() - 1].to.Distance(p2) < dist_delta){
 
       }else{
+
           assert(mhs[mhs.size() - 1].to.Distance(p1) < dist_delta && 
                   mhs[0].from.Distance(p2) < dist_delta);  
 
@@ -9198,7 +9193,6 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
 //      unsigned int groom_id2 = 
 //  ((CcInt*)door_tuple1->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
 
-//      cout<<"groom oid "<<groom_oid<<" neighbor door tid "<<neighbor_id<<endl;
 
      Line3D* l = (Line3D*)door_tuple1->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
      Point3D p;

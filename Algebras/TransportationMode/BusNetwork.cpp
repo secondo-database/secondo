@@ -587,7 +587,7 @@ void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
     
 //    cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
 //        <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
-    
+
     if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
        gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
       if(gp_p1.pos1 < gp_p1.pos2)
@@ -660,6 +660,164 @@ void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
     newgl->TrimToSize();
     
 //    cout<<*newgl<<endl; 
+}
+
+/*
+there are bugs of computing shortest path in road network. 
+if the result is not correct, return false
+
+*/
+
+bool BusRoute::ConvertGLine2(GLine* gl, GLine* newgl)
+{
+   newgl->SetNetworkId(gl->GetNetworkId());
+   
+   
+   vector<RouteInterval> ri_list; 
+   for(int i = 0; i < gl->Size();i++){
+    RouteInterval* ri = new RouteInterval();
+    gl->Get(i, *ri); 
+    
+
+    /////////////////merge connected intervals///////////////////////////// 
+    /////////////////but are properply not ordered correctly//////////////
+    if(!AlmostEqual(ri->GetStartPos(), ri->GetEndPos())){
+      if(ri_list.size() == 0)ri_list.push_back(*ri); 
+      else{
+        int last_rid = ri_list[ri_list.size() - 1].GetRouteId();
+        if(last_rid == ri->GetRouteId()){
+            double last_start = ri_list[ri_list.size() - 1].GetStartPos();
+            double last_end = ri_list[ri_list.size() - 1].GetEndPos();
+            
+            double cur_start = ri->GetStartPos();
+            double cur_end = ri->GetEndPos(); 
+            
+            if(AlmostEqual(last_start, cur_start)){
+              ri_list[ri_list.size() - 1].SetStartPos(cur_end);
+            }else if(AlmostEqual(last_start, cur_end)){
+              ri_list[ri_list.size() - 1].SetStartPos(cur_start);
+            }else if(AlmostEqual(last_end, cur_start)){
+              ri_list[ri_list.size() - 1].SetEndPos(cur_end);
+            }else if(AlmostEqual(last_end, cur_end)){ 
+              ri_list[ri_list.size() - 1].SetEndPos(cur_start);
+            }else {
+              delete ri;
+              return false;
+            }
+        }else
+          ri_list.push_back(*ri);
+      }
+
+    }
+    delete ri; 
+   }
+
+   vector<GP_Point> gp_p_list; 
+
+ //  cout<<"after processing "<<endl; 
+
+
+   for(unsigned int i = 0;i < ri_list.size();i++){
+
+        int rid = ri_list[i].GetRouteId();
+        double start = ri_list[i].GetStartPos();
+        double end = ri_list[i].GetEndPos();
+        GPoint* gp1 = new GPoint(true,n->GetId(),rid, start,None);
+        Point* p1 = new Point();
+        gp1->ToPoint(p1);
+
+        GPoint* gp2 = new GPoint(true,n->GetId(),rid, end, None);
+        Point* p2 = new Point();
+        gp2->ToPoint(p2);
+
+        GP_Point* gp_p = new GP_Point(rid,start,end,*p1,*p2);
+        gp_p_list.push_back(*gp_p);
+
+
+        delete gp_p;
+        delete p2;
+        delete gp2; 
+        delete p1;
+        delete gp1;
+   }
+
+  if(ri_list.size() < 2) return false;
+
+   vector<bool> temp_start_from; 
+   const double dist_delta = 0.001; 
+   for(unsigned int i = 0; i < gp_p_list.size() - 1;i++){
+    GP_Point gp_p1 = gp_p_list[i];
+    GP_Point gp_p2 = gp_p_list[i + 1];
+
+//    cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
+//        <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
+
+
+    if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
+       gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
+      if(gp_p1.pos1 < gp_p1.pos2)
+        temp_start_from.push_back(false);
+      else
+        temp_start_from.push_back(true); 
+
+    }else if(gp_p1.loc2.Distance(gp_p2.loc1) < dist_delta ||
+             gp_p1.loc2.Distance(gp_p2.loc2) < dist_delta){
+     if(gp_p1.pos2 < gp_p1.pos1)
+        temp_start_from.push_back(false);
+      else
+        temp_start_from.push_back(true); 
+    }else {
+        return false;
+      }
+
+   }
+
+
+    GP_Point gp_p1 = gp_p_list[gp_p_list.size() - 1];
+    GP_Point gp_p2 = gp_p_list[gp_p_list.size() - 2];
+    if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
+       gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
+      if(gp_p1.pos1 < gp_p1.pos2)
+        temp_start_from.push_back(true);
+      else
+        temp_start_from.push_back(false); 
+
+
+    }else if(gp_p1.loc2.Distance(gp_p2.loc1) < dist_delta ||
+             gp_p1.loc2.Distance(gp_p2.loc2) < dist_delta){
+     if(gp_p1.pos2 < gp_p1.pos1)
+        temp_start_from.push_back(true);
+      else
+        temp_start_from.push_back(false); 
+    }else {
+      return false;
+    }
+
+    for(unsigned int i = 0;i < ri_list.size();i++){
+      int rid = ri_list[i].GetRouteId();
+      double start = ri_list[i].GetStartPos();
+      double end = ri_list[i].GetEndPos();
+      if(temp_start_from[i]){
+        if(start < end)
+          newgl->AddRouteInterval(rid, start, end);
+        else
+          newgl->AddRouteInterval(rid, end, start);
+      
+      }else{
+        if(start < end)
+          newgl->AddRouteInterval(rid, end, start);
+        else
+          newgl->AddRouteInterval(rid, start, end);
+      
+      }
+    }
+
+    newgl->SetDefined(true);
+    newgl->SetSorted(false);
+    newgl->TrimToSize();
+    
+//    cout<<*newgl<<endl; 
+    return true;
 }
 
 /*
@@ -7033,6 +7191,7 @@ that bus route and direction as well as coving the time
 */
 int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
 {
+//  cout<<"GetMOBus_MP() bs "<<*bs<<endl;
   int br_id = bs->GetId();
   //////////////////////////////////////////////////////////////////
   ////////////get the unique id for the bus route/////////////////
@@ -8710,6 +8869,10 @@ ListExpr BusGraph::Out(ListExpr typeInfo)
           xLast = nl->Append(xLast,xNext);
       node_tuple->DeleteIfAllowed();
   }
+
+//   cout<< edge_rel1->GetNoTuples() + edge_rel2->GetNoTuples() + 
+//          edge_rel3->GetNoTuples()<<endl;
+
   return nl->TwoElemList(nl->IntAtom(bg_id),xNode);
 
 }
@@ -9530,7 +9693,7 @@ void BNNav::ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
     }
   }else{
-    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
+//    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
   }
 
   bn->CloseBusGraph(bg);
@@ -11005,7 +11168,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     }
 //    cout<<" transfer "<<no_transfer<<" times "<<endl; 
   }else{
-    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
+//    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
   }
 
   bn->CloseBusGraph(bg);
@@ -12453,7 +12616,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     }
 
   }else{
-    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
+//    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
   }
 
   bn->CloseBusGraph(bg);
@@ -15620,7 +15783,7 @@ int MetroNetwork::GetMOMetro_MP(Bus_Stop* ms, Point* ms_loc,
 {
 
 //  cout<<"metro stop "<<*ms<<" loc "<<*ms_loc<<" time "<<t<<endl; 
-  
+
   int mr_id = ms->GetId();
   //////////////////////////////////////////////////////////////////
   ////////////get the unique id for the metro route/////////////////
@@ -15641,7 +15804,7 @@ int MetroNetwork::GetMOMetro_MP(Bus_Stop* ms, Point* ms_loc,
   delete btree_iter1;
   delete search_id1;
   assert(mr_uoid > 0);
-  
+
 //  cout<<"mr_uoid "<<mr_uoid<<endl;
 
   ///////////////////////////////////////////////////////////////
@@ -15668,6 +15831,7 @@ int MetroNetwork::GetMOMetro_MP(Bus_Stop* ms, Point* ms_loc,
           mo_metro->Get(i, unit);
           Point p0 = unit.p0;
           Point p1 = unit.p1;
+
           if(ms_loc->Distance(p0) < delta_dist &&
               unit.timeInterval.Contains(t)){
               mp = *mo_metro;
@@ -16773,7 +16937,7 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
     }
 //    cout<<" transfer "<<no_transfer<<" times "<<endl; 
   }else{
-    cout<<"ms1 ("<<*ms1<<") ms2 ("<<*ms2<<") not reachable "<<endl;
+//    cout<<"ms1 ("<<*ms1<<") ms2 ("<<*ms2<<") not reachable "<<endl;
   }
 
 

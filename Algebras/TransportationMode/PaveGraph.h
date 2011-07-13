@@ -426,6 +426,7 @@ struct Walk_SP{
   void SetPaveRid(R_Tree<2,TupleId>* rtree);
   void PaveLocToGP(Network* n);
   void PaveLocToGPoint(Point* loc, Network* n, vector<int> route_id_list);
+  bool PaveLocToGPoint2(Point* loc, Network* n, vector<int> route_id_list);
 };
 
 /*

@@ -3255,7 +3255,6 @@ const string SpatialSpecGenerateCarList =
 "<text>generate moving cars in road network to get traffic </text--->"
 "<text>query generate_car(rn, TwoDays, 30.0, streets_speed) </text---> ) )";
 
-
 const string SpatialSpecGenerateGMO3TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x int x rel x rel x rtree"
@@ -4482,6 +4481,7 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
   
 }
 
+
 /*
 create generic moving objects for Walk Bus
 
@@ -4513,15 +4513,16 @@ int GenerateGMO3ListValueMap(Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           mo = (GenMObject*)local.addr;
-          if(mo->count == mo->line_list1.size())
-                          return CANCEL;
+//          if(mo->count == mo->line_list1.size()) return CANCEL;
+          if(mo->count == mo->trip1_list.size()) return CANCEL;
+
           Tuple* tuple = new Tuple(mo->resulttype);
 
 //        tuple->PutAttribute(0,new Point(mo->loc_list1[mo->count]));
 //        tuple->PutAttribute(1,new Point(mo->loc_list2[mo->count]));
-          tuple->PutAttribute(0,new Line(mo->line_list1[mo->count]));
-          tuple->PutAttribute(1,new GenMO(mo->trip1_list[mo->count]));
-          tuple->PutAttribute(2,new MPoint(mo->trip2_list[mo->count]));
+//          tuple->PutAttribute(0,new Line(mo->line_list1[mo->count]));
+          tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+          tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
 
           result.setAddr(tuple);
           mo->count++;
@@ -4787,7 +4788,7 @@ int GenerateGMO7ListValueMap(Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           mo = (GenMObject*)local.addr;
-          if(mo->count == mo->line_list1.size()) return CANCEL;
+          if(mo->count == mo->trip1_list.size()) return CANCEL;
 //          if(mo->count == mo->loc_list1.size()) return CANCEL;
           Tuple* tuple = new Tuple(mo->resulttype);
 
@@ -4795,9 +4796,9 @@ int GenerateGMO7ListValueMap(Word* args, Word& result, int message,
 //          tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));
 //          tuple->PutAttribute(2, new Point(mo->loc_list3[mo->count]));
 
-           tuple->PutAttribute(0,new Line(mo->line_list1[mo->count]));
-           tuple->PutAttribute(1,new GenMO(mo->trip1_list[mo->count]));
-           tuple->PutAttribute(2,new MPoint(mo->trip2_list[mo->count]));
+//           tuple->PutAttribute(0,new Line(mo->line_list1[mo->count]));
+           tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+           tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
 
           result.setAddr(tuple);
           mo->count++;
@@ -5414,7 +5415,7 @@ TypeMap function for operator generate car
 ListExpr GenerateCarListTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 4){
-      string err = "seven input parameter expected";
+      string err = "four input parameter expected";
       return listutils::typeError(err);
   }
   
@@ -5481,7 +5482,6 @@ ListExpr GenerateCarListTypeMap(ListExpr args)
 
     return result;
 }
-
 
 /*
 TypeMap function for operator generate genmo3
@@ -5561,15 +5561,29 @@ ListExpr GenerateGMO3ListTypeMap(ListExpr args)
 //                 )
 //           );
 
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->ThreeElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Path"),
+//                                     nl->SymbolAtom("line")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                      nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                      nl->SymbolAtom("mpoint"))
+//                   )
+//                 )
+//           );
     ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("Path"),
-                                    nl->SymbolAtom("line")),
+                      nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
                                      nl->SymbolAtom("genmo")),
                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
@@ -6013,15 +6027,31 @@ ListExpr GenerateGMO7ListTypeMap(ListExpr args)
 //                 )
 //           );
 
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->ThreeElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Path"),
+//                                     nl->SymbolAtom("line")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                      nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                      nl->SymbolAtom("mpoint"))
+//                   )
+//                 )
+//           );
+
+
     ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
 
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("Path"),
-                                    nl->SymbolAtom("line")),
+                      nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
                                      nl->SymbolAtom("genmo")),
                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
@@ -6029,19 +6059,6 @@ ListExpr GenerateGMO7ListTypeMap(ListExpr args)
                   )
                 )
           );
-
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-//                   nl->SymbolAtom("tuple"),
-//                       nl->OneElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("q_loc"),
-//                                     nl->SymbolAtom("point"))
-//                   )
-//                 )
-//           );
 
     return result;
 }
@@ -6859,6 +6876,7 @@ Operator generate_car("generate_car",
     Operator::SimpleSelect,
     GenerateCarListTypeMap
 );
+
 
 /*
 bus + walk
@@ -8038,6 +8056,28 @@ const string OpTMRemoveDirtySpec  =
     "<text>remove_dirty(rel, attr, attr);</text--->"
     "<text>clear some dirty region data</text--->"
     "<text>query remove_dirty(region_elems, id, covarea);</text--->"
+    ") )";
+
+    
+const string OpTMModifyLineSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>line -> line</text--->"
+    "<text>modifyline(line)</text--->"
+    "<text>modify the coordinates of a line, for numeric problem</text--->"
+    "<text>query modifyline([const line value ((2.33 3.33 4.444 5.555))])"
+    "</text--->"
+    ") )";
+
+const string OpTMCheckRoadsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>relation x rtree"
+    " ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>checkroads(rel, rtree)</text--->"
+    "<text>check the coordinates of a line</text--->"
+    "<text>query checkroads(r,rtree_road)"
+    "</text--->"
     ") )";
 
 ////////////////TypeMap function for operators//////////////////////////////
@@ -14478,6 +14518,88 @@ ListExpr OpTMRemoveDirtyTypeMap ( ListExpr args )
 
 }
 
+
+/*
+TypeMap fun for operator modifyline
+
+*/
+
+ListExpr OpTMModifyLineTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+
+  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "sline" )
+  {
+    return nl->SymbolAtom ( "sline" );
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator checkroads
+
+*/
+ListExpr OpTMCheckRoadsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xRoutesRelDesc = nl->First ( args );
+
+ if ( !IsRelDescription ( xRoutesRelDesc ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType;
+  nl->ReadFromString ( Network::routesTypeInfo, xType );
+  if ( !CompareSchemas ( xRoutesRelDesc, xType ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  
+  ListExpr param2 = nl->Second( args );
+
+ if(!listutils::isRTreeDescription(param2) )
+    return listutils::typeError("param2 should be an rtree" );
+
+
+//  return nl->SymbolAtom ( "bool" );
+
+
+  ListExpr result =
+
+        nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FiveElemList(
+                        nl->TwoElemList(nl->SymbolAtom("id"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("lengt"),
+                                    nl->SymbolAtom("real")),
+                        nl->TwoElemList(nl->SymbolAtom("curve"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("dual"),
+                                    nl->SymbolAtom("bool")),
+                        nl->TwoElemList(nl->SymbolAtom("startSmaller"),
+                                    nl->SymbolAtom("bool"))
+                  )
+                )
+          );
+
+  return result; 
+  
+  
+}
+
 int GetContourSelect(ListExpr args)
 {
     if(nl->IsEqual(nl->First(args),"text"))return 0;
@@ -14488,7 +14610,7 @@ int GetContourSelect(ListExpr args)
 //////////////////////////////////////////////////////////////////////////
 
 /*
-Correct road with dirt data, two segment are very close to each other and the
+Correct road with dirt data, two segments are very close to each other and the
 angle is relatively small.
 In Berlin road network, there are three, 454,542 and 2324.
 
@@ -20674,6 +20796,96 @@ int OpTMRemoveDirtyValueMap ( Word* args, Word& result, int message,
   
 }
 
+
+/*
+given a line value, modify its coordinates value. not so many numbers after 
+dot.
+for example (2.345567, 2.33444) (2.34,2.33)
+
+*/
+
+int OpTMModifyLinemap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  SimpleLine* l = (SimpleLine*)args[0].addr;
+
+  result = qp->ResultStorage( in_pSupplier );
+  SimpleLine *pResult = (SimpleLine *)result.addr;
+
+
+  DataClean* datacl = new DataClean(); 
+  datacl->ModifyLine(l, pResult);
+  delete datacl;
+
+  return 0;
+}
+
+/*
+check roads lines points, wether there  are overlapping 
+
+*/
+int OpTMCheckRoadsmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+//   Relation* rel = (Relation*)args[0].addr;
+// 
+//   result = qp->ResultStorage(in_pSupplier);
+//   CcBool* res = static_cast<CcBool*>(result.addr);
+// 
+//   res->Set(true, true);
+// 
+//   DataClean* datacl = new DataClean(); 
+//   datacl->CheckRoads(rel);
+//   delete datacl;
+
+  DataClean* datacl;
+  switch(message){
+      case OPEN:{
+
+        Relation* rel = (Relation*)args[0].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr; 
+
+        datacl = new DataClean(); 
+        datacl->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        datacl->CheckRoads(rel, rtree);
+        local.setAddr(datacl);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          datacl = (DataClean*)local.addr;
+          if(datacl->count == datacl->sl_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(datacl->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, datacl->count + 1));
+          tuple->PutAttribute(1, 
+                    new CcReal(true, datacl->sl_list[datacl->count].Length()));
+          tuple->PutAttribute(2,
+                        new SimpleLine(datacl->sl_list[datacl->count]));
+          tuple->PutAttribute(3, new CcBool(true, true));
+          tuple->PutAttribute(4, new CcBool(true, true));
+
+          result.setAddr(tuple);
+          datacl->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            datacl = (DataClean*)local.addr;
+            delete datacl;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -21717,6 +21929,25 @@ Operator set_building_type(
   OpTMSetBuildingTypeTypeMap //type mapping 
 );
 
+/*
+data cleaning process 
+
+*/
+Operator modifyline(
+    "modifyline",               // name
+    OpTMModifyLineSpec,          // specification
+    OpTMModifyLinemap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMModifyLineTypeMap        // type mapping
+);
+
+Operator checkroads(
+    "checkroads",
+    OpTMCheckRoadsSpec,
+    OpTMCheckRoadsmap,
+    Operator::SimpleSelect,        // selection function
+    OpTMCheckRoadsTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -22009,6 +22240,11 @@ class TransportationModeAlgebra : public Algebra
    ///////////////overall navigation system///////////////////////////////
    /////////////////////////////////////////////////////////////////////
    AddOperator(&navigation1);//navigation with modes bus and walk 
+   //////////////////////////////////////////////////////////////////
+   /////////////// data clean process////////////////////////////////
+   ///////////////////////////////////////////////////////////////////
+   AddOperator(&modifyline);
+   AddOperator(&checkroads);
 
   }
   ~TransportationModeAlgebra() {};

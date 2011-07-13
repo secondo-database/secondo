@@ -55,7 +55,15 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
     vector<Region> temp_result;
 
     vector<Region> result1;
-    int no_faces = reg1->NoComponents();
+//    int no_faces = reg1->NoComponents();
+//    int no_faces = reg1->Size();//faceno in halfsegment is not recomputed 
+    int no_faces = 0;
+    for(int i = 0;i < reg1->Size();i++){
+      HalfSegment hs;
+      reg1->Get(i, hs);
+      if(hs.attr.faceno >= no_faces) no_faces = hs.attr.faceno + 1;
+    }
+
     for(int i = 0;i < no_faces;i++){
         Region* temp = new Region(0);
 
@@ -63,24 +71,38 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
         delete temp;
         result1[i].StartBulkLoad();
     }
-    for(int i = 0;i < reg1->Size();i++){
-      HalfSegment hs;
-      reg1->Get(i,hs);
-      int face = hs.attr.faceno;
-      result1[face] += hs;
+
+//    cout<<"no faces "<<no_faces<<endl;
+
+    for(int index = 0;index < reg1->Size();index++){
+      HalfSegment temp_hs;
+      reg1->Get(index, temp_hs);
+      int face = temp_hs.attr.faceno;
+      if(temp_hs.attr.cycleno == 0){/////do not need the hole 
+        result1[face] += temp_hs;
+      }
     }
 
     for(int i = 0;i < no_faces;i++){
         result1[i].SetNoComponents(1);
         result1[i].EndBulkLoad(false,false,false,false);
-        if(result1[i].Size() >= 6)
-//          result.push_back(result1[i]);
+        if(result1[i].Size() >= 6){
           temp_result.push_back(result1[i]);
+        }
     }
 
 
     vector<Region> result2;
-    no_faces = reg2->NoComponents();
+//    no_faces = reg2->NoComponents();
+//    no_faces = reg2->Size();
+
+    no_faces = 0; /// original faceno in halfsegment is not recomputed 
+    for(int i = 0;i < reg2->Size();i++){
+      HalfSegment hs;
+      reg2->Get(i, hs);
+      if(hs.attr.faceno >= no_faces) no_faces = hs.attr.faceno + 1;
+    }
+
     for(int i = 0;i < no_faces;i++){
         Region* temp = new Region(0);
 
@@ -92,22 +114,27 @@ void SpacePartition::DecomposePave(Region* reg1, Region* reg2,
       HalfSegment hs;
       reg2->Get(i,hs);
       int face = hs.attr.faceno;
-      result2[face] += hs;
+      if(hs.attr.cycleno == 0){/////do not need the hole
+          result2[face] += hs;
+      }
     }
     for(int i = 0;i < no_faces;i++){
         result2[i].SetNoComponents(1);
         result2[i].EndBulkLoad(false,false,false,false);
         if(result2[i].Size() >= 6)
-//          result.push_back(result2[i]);
           temp_result.push_back(result2[i]);
     }
     //////////////////////////////////////////////////////////
 
+//    cout<<temp_result.size()<<endl;
+
     for(unsigned int i = 0;i < temp_result.size();i++){
         Line* line = new Line(0);
         temp_result[i].Boundary(line);
+//        cout<<"i "<<i<<" len "<<line->Length()<<endl;
         SimpleLine* sline = new SimpleLine(0);
         sline->fromLine(*line);
+
         vector<MyHalfSegment> mhs;
         ReorderLine(sline, mhs);
         delete sline;
@@ -326,7 +353,7 @@ void SpacePartition::DecomposePavement1(Network* n, Relation* rel,
     vector<Region> paves2;
     vector<bool> route_flag;
     for(int i = 1;i <=  rel->GetNoTuples();i++){
-//      Tuple* pave_tuple = rel->GetTuple(i);
+
       Tuple* pave_tuple = rel->GetTuple(i, false);
       Region* reg1 = (Region*)pave_tuple->GetAttribute(attr_pos2);
       Region* reg2 = (Region*)pave_tuple->GetAttribute(attr_pos3);
@@ -345,14 +372,16 @@ void SpacePartition::DecomposePavement1(Network* n, Relation* rel,
     assert(paves1.size() == paves2.size());
     for(int i = 1;i <=  rel->GetNoTuples();i++){
 
-//      Tuple* pave_tuple = rel->GetTuple(i);
       Tuple* pave_tuple = rel->GetTuple(i, false);
       int rid = ((CcInt*)pave_tuple->GetAttribute(attr_pos1))->GetIntval();
+//      cout<<"rid "<<rid<<endl;
 
-/*      if(!(rid == 1306 || rid == 1626)){
+/*      if(!(rid == 3116)){
           pave_tuple->DeleteIfAllowed();
           continue;
       }*/
+//      cout<<"pave1 "<<paves1[rid - 1].NoComponents()<<endl;
+//      cout<<"pave2 "<<paves2[rid - 1].NoComponents()<<endl;
 
       DecomposePave(&paves1[rid - 1], &paves2[rid - 1], pavements1);
       for(unsigned int j = 0;j < pavements1.size();j++){
@@ -4660,6 +4689,7 @@ void Walk_SP::PaveLocToGPoint(Point* loc, Network* n,
     Tuple* route_tuple = n->GetRoute(rid);
     SimpleLine* l = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
 //    cout<<"l : "<<l->Length()<<endl; 
+
     for(int j = 0;j < l->Size();j++){
       HalfSegment hs;
       l->Get(j, hs);
@@ -4676,6 +4706,9 @@ void Walk_SP::PaveLocToGPoint(Point* loc, Network* n,
   }
   assert(mp_list.size() > 0); 
   sort(mp_list.begin(), mp_list.end());
+
+//  cout<<"rid "<<mp_list[0].id<<" neighbor "<<mp_list[0].loc<<endl;
+
   Tuple* route_tuple = n->GetRoute(mp_list[0].id); 
   SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE); 
   bool s = 
@@ -4686,6 +4719,56 @@ void Walk_SP::PaveLocToGPoint(Point* loc, Network* n,
   route_tuple->DeleteIfAllowed();
   p_list.push_back(mp_list[0].loc); 
   gp_list.push_back(gp);
+
+}
+
+/*
+more robustness 
+
+*/
+bool Walk_SP::PaveLocToGPoint2(Point* loc, Network* n, 
+                              vector<int> route_id_list)
+{
+  vector<MyPoint_Id> mp_list; 
+  for(unsigned int i = 0;i < route_id_list.size();i++){
+    int rid = route_id_list[i];
+    Tuple* route_tuple = n->GetRoute(rid);
+    SimpleLine* l = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
+//    cout<<"l : "<<l->Length()<<endl; 
+
+    for(int j = 0;j < l->Size();j++){
+      HalfSegment hs;
+      l->Get(j, hs);
+      if(!hs.IsLeftDomPoint())continue; 
+
+      SpacePartition* sp = new SpacePartition();
+      Point res; 
+      double dist = sp->GetClosestPoint(hs, *loc, res); 
+      delete sp;
+      MyPoint_Id mp(res, dist, rid); 
+      mp_list.push_back(mp); 
+    }
+    route_tuple->DeleteIfAllowed(); 
+  }
+  assert(mp_list.size() > 0); 
+  sort(mp_list.begin(), mp_list.end());
+
+//  cout<<"rid "<<mp_list[0].id<<" neighbor "<<mp_list[0].loc<<endl;
+
+  Tuple* route_tuple = n->GetRoute(mp_list[0].id); 
+  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE); 
+  bool s = 
+      ((CcBool*)route_tuple->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+  double pos;
+  bool ok = sl->AtPoint(mp_list[0].loc, s, pos);
+  if(ok){
+    GPoint gp(true, n->GetId(), mp_list[0].id, pos);
+    route_tuple->DeleteIfAllowed();
+    p_list.push_back(mp_list[0].loc); 
+    gp_list.push_back(gp);
+  }
+  
+  return ok;
 
 }
 
@@ -9292,7 +9375,8 @@ void MaxRect::Path_BuildingPave(Point sp, Point ep, Rectangle<2>* rect,
       HalfSegment new_hs(true, hs.GetLeftPoint(), hs.GetRightPoint());
       new_hs.attr.edgeno = edgeno++;
       *boundary += new_hs;
-      new_hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+//      new_hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      new_hs.SetLeftDomPoint(!new_hs.IsLeftDomPoint());
       *boundary += new_hs;
     }
     boundary->EndBulkLoad();

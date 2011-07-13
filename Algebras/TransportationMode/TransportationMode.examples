@@ -996,8 +996,7 @@ Operator : generate_car
 Number   : 1
 Signature: network x periods x real x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_car(rn, TwoDays, 10.0, streets_speed) count;
-Result   : 5
-
+Result   : 10
 
 Operator : generate_genmo3
 Number   : 1
@@ -1045,3 +1044,20 @@ Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop)count;
 Result   : 10
+
+
+
+Operator : modifyline
+Number   : 1
+Signature: line -> line
+Example  : query modifyline([const line value((2.33 3.33 4.444 5.555))]);
+Result   : (line value ((2.33 3.33 4.44 5.56)))
+
+
+Operator : checkroads
+Number   : 1
+Signature: relation x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query checkroads(r, rtree_road) count;
+Result   : 3250
+
+
