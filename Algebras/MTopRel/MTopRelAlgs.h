@@ -1530,9 +1530,9 @@ Returns the next cluster with its corresponding time interval.
           p2 = tmpvector[i];
           if(p1.first.end != p2.first.start){
              
-             cout << "crazy intervals found" << endl;
-             cout << "p1 = " << p1.first << endl;
-             cout << "p2 = " << p2.first << endl;
+             //cout << "crazy intervals found" << endl;
+             //cout << "p1 = " << p1.first << endl;
+             //cout << "p2 = " << p2.first << endl;
           }
 
 
