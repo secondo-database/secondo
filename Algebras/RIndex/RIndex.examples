@@ -1,0 +1,15 @@
+Database: berlintest
+Restore : No
+
+Operator : insertRindex
+Number   : 1
+Signature:  stream(rectangle) -> stream(rectangle) 
+Example  : query strassen feed extend[B : bbox(.geoData)] projecttransformstream[B] insertRindex count  
+Result   : 3212 
+
+
+Operator : findRindex
+Number   : 1
+Signature:  stream(tuple) x attrname x rectangle  -> stream(tupleid) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] findRindex [ B, [const rect value (-10836 33575 -6686 0)  ] ] count)  = (strassen feed filter[bbox(.geoData) intersects [const rect value (-10836 33575 -6686 0)  ]] count )
+Result   : TRUE 
