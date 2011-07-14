@@ -781,7 +781,7 @@ const string spatialJoinSpec  =
 */
 
 Operator spatialjoin2 (
-         "spatialjoin2",          // name
+         "spatialjoin",          // name
          spatialJoinSpec,         // specification
          3,                       // number of overloaded functions
          spatialJoinMap,          // value mapping

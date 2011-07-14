@@ -1,3 +1,3 @@
-operator spatialjoin alias SPATIALJOIN pattern _ _ op [ _, _ ]
+operator spatialjoin2 alias SPATIALJOIN2 pattern _ _ op [ _, _ ]
 
 

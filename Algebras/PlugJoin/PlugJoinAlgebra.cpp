@@ -1913,20 +1913,20 @@ ValueMapping spatialjoinMap [] = {spatialjoinValueMapping<2>,
 
 */
 const string spatialjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
-      " \"Example\" )"
-      "( <text>( (stream (tuple ((x1 t1)...(xn tn)))) "
-      "(stream (tuple ((y1 yt1)...(yn ytn))))"
-      " rect||rect3||rect4||SpatialType rect||rect3||rect4||SpatialType) -> "
-      "(stream (tuple ((x1 t1)...(xn tn)((y1 yt1)...(yn ytn)))))</text--->"
-      "<text>outerStream innerStream spatialjoin "
-      "[outerAttr, innerAttr]</text--->"
-      "<text>Uses the Plug&Join-Algorithm to find all pairs of intersecting"
-      " tuples in the given relations. The joining tuples are reported."
-      "</text--->"
-      "<text>query trees feed streets feed spatialjoin [pos_trees, pos_streets]"
-      " consume; the joining attributes must be of the same dimension."
-      "</text--->"
-      ") )";
+    " \"Example\" )"
+    "( <text>( (stream (tuple ((x1 t1)...(xn tn)))) "
+    "(stream (tuple ((y1 yt1)...(yn ytn))))"
+    " rect||rect3||rect4||SpatialType rect||rect3||rect4||SpatialType) -> "
+    "(stream (tuple ((x1 t1)...(xn tn)((y1 yt1)...(yn ytn)))))</text--->"
+    "<text>outerStream innerStream spatialjoin2 "
+    "[outerAttr, innerAttr]</text--->"
+    "<text>Uses the Plug&Join-Algorithm to find all pairs of intersecting"
+    " tuples in the given relations. The joining tuples are reported."
+    "</text--->"
+    "<text>query trees feed streets feed spatialjoin2 [pos_trees, pos_streets]"
+    " consume; the joining attributes must be of the same dimension."
+    "</text--->"
+    ") )";
 
 /*
 3.9 Definition of operator ~spatialjoin~
@@ -1934,7 +1934,7 @@ const string spatialjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
 */
 
 Operator spatialjoin (
-         "spatialjoin",             // name
+         "spatialjoin2",             // name
          spatialjoinSpec,           // specification
          3,                         // number of overloaded functions
          spatialjoinMap,            // value mapping

@@ -17,4 +17,4 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator spatialjoin2 alias SPATIALJOIN2 pattern _ _ op [ _, _ ]
+operator spatialjoin alias SPATIALJOIN pattern _ _ op [ _, _ ]
