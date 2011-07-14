@@ -12,7 +12,6 @@
 DistributedAlgebra DistributedAlgebra
 FlockAlgebra Flock
 GPatternAlgebra GPattern
-HadoopParallelAlgebra HadoopParallel
 IndoorAlgebra Indoor
 MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream
@@ -20,6 +19,7 @@ RemoteStreamAlgebra RemoteStream
 TrafficAlgebra Traffic
 TransportationModeAlgebra TransportationMode
 JNetAlgebra JNet
+RIndexAlgebra RIndex
 
 # Plugins
 GeneralTreeAlgebra GeneralTree
@@ -46,7 +46,6 @@ RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
 RegionInterpolationAlgebra RegionInterpolation
 SETIAlgebra SETI
-SpatialJoinAlgebra SpatialJoin
 TemporalNet2Algebra TemporalNet2
 UGridAlgebra UGrid
 UrelAlgebra Urel
