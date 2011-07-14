@@ -577,7 +577,7 @@ template<class A, class R, class CT>
 class InitialF_C{
   public:
   void operator()(A* a,R* res){
-     CT r;
+     CT r=0;
      a->Initial(r);
      res->Set(true,r);
   }
@@ -637,7 +637,7 @@ template<class A, class R, class CT>
 class FinalF_C{
   public:
   void operator()(A* a,R* res){
-     CT r;
+     CT r=0;
      a->Final(r);
      res->Set(true,r);
   }
