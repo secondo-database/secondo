@@ -28,4 +28,18 @@ public:
 	virtual ~MAttiaAlgebra();
 };
 
+class Page
+{
+public:
+ char ar[4000];
+ Page()
+ {
+ }
+ Page(char dummy)
+ {
+   for(int i=0; i<4000; ++i)
+     ar[i]= 'M';
+ }
+};
+
 #endif 

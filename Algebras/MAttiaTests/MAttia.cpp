@@ -26,12 +26,12 @@
     }
     arg->Get(0, uarg);
     //uarg.Print(cout);
-    uBool2.CopyFrom(&uarg);
+    uBool2.CopyFrom(&uarg);  
     res->MergeAdd(uBool2);
     //res->Print(cout);
     uBool.timeInterval.lc = !uarg.timeInterval.rc;
     uBool.timeInterval.start = uarg.timeInterval.end;
-    for( int i = 1; i < arg->GetNoComponents(); i++)
+    for( int i = 1; i < arg->GetNoComponents(); i++) 
     {
       arg->Get(i, uarg);
 
@@ -46,7 +46,7 @@
         //res->Print(cout);
       }
 
-        uBool2.CopyFrom(&uarg);
+        uBool2.CopyFrom(&uarg);  
         res->MergeAdd(uBool2);
         //res->Print(cout);
         uBool.timeInterval.lc = !uarg.timeInterval.rc;
@@ -61,7 +61,7 @@
       cout<<"\nOutput:"; res->Print(cout);
       cout.flush();
     }
-  }
+  }  
 
 int Randint(int u)//Computes a random integer in the range 0..u-1,
 //for u >= 2
@@ -86,15 +86,15 @@ string GenerateConnectedRandomConstraints(int numPreds, int numConstraints)
   string aliases[]={"a","b","c","d","e","f","g","h","i","j","k","l","m","n",
       "o","p","q","r","s","t","u","v","w","x","y","z"};
 
-  string connectors[]= {"vec(\"aabb\")"  , "meanwhile", "vec(\"bbaa\")"  ,
-      "vec(\"aa.bb\")"  ,  "vec(\"bb.aa\")"  , "vec(\"abab\")"  ,
-      "vec(\"baba\")"   ,  "vec(\"baab\")"  ,  "vec(\"abba\")"  ,
-      "vec(\"a.bab\")"  ,  "vec(\"a.bba\")"  , "vec(\"baa.b\")" ,
-      "vec(\"aba.b\")"  , "immediately"    , "vec(\"a.ba.b\")"  ,
-      "vec(\"a.abb\")"  , "vec(\"a.a.bb\")"  , "vec(\"ba.ab\")" ,
-      "then",           "vec(\"bb.a.a\")"  ,  "vec(\"bba.a\")"  ,
-      "vec(\"b.baa\")"  , "vec(\"b.b.aa\")" , "vec(\"ab.ba\")"  ,
-      "vec(\"aa.b.b\")"  ,  "vec(\"aab.b\")"  ,  "follows",
+  string connectors[]= {"vec(\"aabb\")"  , "meanwhile", "vec(\"bbaa\")"  ,  
+      "vec(\"aa.bb\")"  ,  "vec(\"bb.aa\")"  , "vec(\"abab\")"  ,  
+      "vec(\"baba\")"   ,  "vec(\"baab\")"  ,  "vec(\"abba\")"  ,  
+      "vec(\"a.bab\")"  ,  "vec(\"a.bba\")"  , "vec(\"baa.b\")" ,  
+      "vec(\"aba.b\")"  , "immediately"    , "vec(\"a.ba.b\")"  ,  
+      "vec(\"a.abb\")"  , "vec(\"a.a.bb\")"  , "vec(\"ba.ab\")" ,  
+      "then",           "vec(\"bb.a.a\")"  ,  "vec(\"bba.a\")"  ,  
+      "vec(\"b.baa\")"  , "vec(\"b.b.aa\")" , "vec(\"ab.ba\")"  ,  
+      "vec(\"aa.b.b\")"  ,  "vec(\"aab.b\")"  ,  "follows", 
       "vec(\"a.ab.b\")"  ,  "vec(\"a.a.b.b\")"  ,"vec(\"b.ba.a\")",  "later"};
 
   string result= "";
@@ -127,7 +127,7 @@ string GenerateConnectedRandomConstraints(int numPreds, int numConstraints)
 
       ConnectedSet[op1] = 1 ; ConnectedSet[op2]=1;
       op3=Randint(31);
-      str= "stconstraint(\"" + aliases[op1] + "\", \"" + aliases[op2]
+      str= "stconstraint(\"" + aliases[op1] + "\", \"" + aliases[op2] 
              + "\", " + connectors[op3] + ")";
       if(result=="")
         result += str;
@@ -159,7 +159,7 @@ string GenerateRandSTPPExpr2(int alias)
   case 0: //distance
     op1= Randint(300); //RandPoint
     op2= Randint(50);  //RandDistance
-    pred= "distance(trip, point" + ToString(op1+1) + ")< " +
+    pred= "distance(trip, point" + ToString(op1+1) + ")< " + 
     ToString(op2+1)+ ".0 as " + aliases[alias];
     break;
   case 1: //speed
@@ -174,7 +174,7 @@ string GenerateRandSTPPExpr2(int alias)
   return pred;
 }
 
-bool GenerateSTPQExperiment2Queries(string selectfrom, int count,
+bool GenerateSTPQExperiment2Queries(string selectfrom, int count, 
     int numpreds[], int numconstraints[], int numQueries[], char* filename)
 {
 
@@ -190,15 +190,15 @@ bool GenerateSTPQExperiment2Queries(string selectfrom, int count,
       "71","72","73","74","75","76","77","78","79","80",
       "81","82","83","84","85","86","87","88","89","90",
       "91","92","93","94","95","96","97","98","99","100"};
-  string connectors[]= {"vec(\"aabb\")"  , "meanwhile", "vec(\"bbaa\")"  ,
+  string connectors[]= {"vec(\"aabb\")"  , "meanwhile", "vec(\"bbaa\")"  ,  
       "vec(\"aa.bb\")"  ,  "vec(\"bb.aa\")"  ,
-      "vec(\"abab\")"  ,  "vec(\"baba\")"  ,  "vec(\"baab\")"  ,
+      "vec(\"abab\")"  ,  "vec(\"baba\")"  ,  "vec(\"baab\")"  ,  
       "vec(\"abba\")"  ,  "vec(\"a.bab\")"  ,  "vec(\"a.bba\")"  ,
-      "vec(\"baa.b\")"  ,  "vec(\"aba.b\")"  , "immediately",
+      "vec(\"baa.b\")"  ,  "vec(\"aba.b\")"  , "immediately", 
       "vec(\"a.ba.b\")"  ,  "vec(\"a.abb\")"  ,  "vec(\"a.a.bb\")"  ,
-      "vec(\"ba.ab\")"  ,  "then", "vec(\"bb.a.a\")"  ,  "vec(\"bba.a\")"  ,
+      "vec(\"ba.ab\")"  ,  "then", "vec(\"bb.a.a\")"  ,  "vec(\"bba.a\")"  ,  
       "vec(\"b.baa\")"  ,  "vec(\"b.b.aa\")"  ,
-      "vec(\"ab.ba\")"  ,  "vec(\"aa.b.b\")"  ,  "vec(\"aab.b\")"  ,
+      "vec(\"ab.ba\")"  ,  "vec(\"aa.b.b\")"  ,  "vec(\"aab.b\")"  ,  
       "follows", "vec(\"a.ab.b\")"  ,  "vec(\"a.a.b.b\")"  ,
       "vec(\"b.ba.a\")",  "later"};
   string query="";
@@ -229,7 +229,7 @@ bool GenerateSTPQExperiment2Queries(string selectfrom, int count,
 //        while(op1==op2)
 //          op2 = Randint(numpreds[c]);
 //        int conn= Randint(31);
-//        query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," +
+//        query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," + 
 //        connectors[conn]+ "),";
 //      }
 //
@@ -239,7 +239,7 @@ bool GenerateSTPQExperiment2Queries(string selectfrom, int count,
 //      while(op1==op2)
 //        op2 = Randint(numpreds[c]);
 //      int conn= Randint(31);
-//      query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," +
+//      query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," + 
 //      connectors[conn]+ ")";
 
       string constraint_str= GenerateConnectedRandomConstraints(numpreds[c],
@@ -255,10 +255,10 @@ bool GenerateSTPQExperiment2Queries(string selectfrom, int count,
     }
   }
   out.close();
-  return true;
+  return true;   
 }
 
-bool RunSTPQExperiment1Queries(string selectfrom, int count,
+bool RunSTPQExperiment1Queries(string selectfrom, int count, 
     int numpreds[], int numconstraints[], int numQueries[])
 {
 
@@ -308,7 +308,7 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
 //        while(op1==op2)
 //          op2 = Randint(numpreds[c]);
 //        int conn= Randint(31);
-//        query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," +
+//        query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," + 
 //        connectors[conn]+ "),";
 //      }
 //
@@ -318,10 +318,10 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
 //      while(op1==op2)
 //        op2 = Randint(numpreds[c]);
 //      int conn= Randint(31);
-//      query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," +
+//      query+= "\"" + aliase[op1] + "\"," +"\"" + aliase[op2] + "\"," + 
 //      connectors[conn]+ ")";
 
-      string constraint_str=
+      string constraint_str= 
         GenerateConnectedRandomConstraints(numpreds[c],numconstraints[c]);
       query+=  constraint_str +  "]] count \n";
 
@@ -333,11 +333,11 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
 
       try{
         qqueryTime.start();
-        sec.Secondo(query, res, err);
+        sec.Secondo(query, res, err);   
 
         queryReal = qqueryTime.diffSecondsReal();
         queryCPU = qqueryTime.diffSecondsCPU();
-        out<< "\nMeasured Times (elapsed / cpu): " << queryReal << " / "
+        out<< "\nMeasured Times (elapsed / cpu): " << queryReal << " / " 
         << queryCPU << endl<<"================================\n";
         stat<<numpreds[c]<<"\t"<<numconstraints[c]<<"\t"<<q<<"\t"<<queryReal
         <<"\t"<<queryCPU<<endl;
@@ -348,7 +348,7 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
       {
         out.close();
         stat.close();
-      }
+      }  
     }
     stat<<endl<<"Total Time:"<< sumTime<<"\tAvg Time:"
     <<sumTime/numQueries[c];
@@ -357,7 +357,7 @@ bool RunSTPQExperiment1Queries(string selectfrom, int count,
   }
   out.close();
   stat.close();
-  return true;
+  return true;   
 }
 
 
@@ -384,9 +384,9 @@ ListExpr RunSTPQExperiment1QueriesTM(ListExpr args)
 {
   //cout<<nl->ToString(args);
   CHECK_COND( nl->ListLength(args) == 1 &&
-   nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string")
+   nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string") 
     , "Operator RunSTPQExperiment1QueriesTM expects one parameter.");
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom("bool");
 }
 
 
@@ -396,7 +396,7 @@ ListExpr RunSTPQExperiment2QueriesTM(ListExpr args)
   CHECK_COND( nl->ListLength(args) == 1 &&
     nl->IsAtom(nl->First(args)) && (nl->SymbolValue(nl->First(args))== "string")
     , "Operator RunSTPQExperiment1QueriesTM expects one parameter.");
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom("bool");
 }
 
 /*
@@ -411,8 +411,8 @@ ListExpr NDefUnitTM(ListExpr args){
     ErrorReporter::ReportError("Two argument expected");
     return nl->SymbolAtom( "typeerror" );
   }
-  if(nl->IsEqual(nl->First(args),"mbool") &&
-      nl->IsEqual(nl->Second(args),CcBool::BasicType())){
+  if(nl->IsEqual(nl->First(args),"mbool") && 
+      nl->IsEqual(nl->Second(args),"bool")){
     return   nl->SymbolAtom("mbool");
   }
   ErrorReporter::ReportError("mbool x bool expected");
@@ -437,7 +437,7 @@ ListExpr RandomShiftDelayTM( ListExpr typeList )
 }
 
 ListExpr TestTM(ListExpr args){
-  return nl->SymbolAtom( CcBool::BasicType() );
+  return nl->SymbolAtom( "bool" );
 }
 
 void CreateRandomMBool(Instant starttime, MBool& result)
@@ -488,7 +488,7 @@ int PassMBool(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 
-void RandomShiftDelay( const MPoint* actual, const Instant* threshold,
+void RandomShiftDelay( const MPoint* actual, const Instant* threshold, 
     double dx, double dy, MPoint& res)
 {
   bool debugme= false;
@@ -585,7 +585,7 @@ int NDefUnitVM( ArgVector args, Word& result,
 
 
 
-int RunSTPQExperiment1QueriesVM(Word* args, Word& result,
+int RunSTPQExperiment1QueriesVM(Word* args, Word& result, 
     int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
@@ -593,10 +593,10 @@ int RunSTPQExperiment1QueriesVM(Word* args, Word& result,
   CcString* selectfrom = (CcString*) args[0].addr;
   int numpreds[]={2,2,2,2,
       3,3,3,3,3,
-      4,4,4,4,4,4,
-      5,5,5,5,5,5,5,
-      6,6,6,6,6,6,6,6,
-      7,7,7,7,7,7,7,7,7,
+      4,4,4,4,4,4,  
+      5,5,5,5,5,5,5,  
+      6,6,6,6,6,6,6,6,    
+      7,7,7,7,7,7,7,7,7,   
       8,8,8,8,8,8,8,8,8,8
   };
   int numconss[]={1,2,3,4,
@@ -612,10 +612,10 @@ int RunSTPQExperiment1QueriesVM(Word* args, Word& result,
       100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,
       100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,
       100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,
-      100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100};
+      100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100}; 
 
 
-  res->Set(true, RunSTPQExperiment1Queries(selectfrom->GetValue(), 49,
+  res->Set(true, RunSTPQExperiment1Queries(selectfrom->GetValue(), 49,  
       numpreds, numconss, munexmpl));
 
   return 0;
@@ -623,7 +623,7 @@ int RunSTPQExperiment1QueriesVM(Word* args, Word& result,
 
 
 
-int RunSTPQExperiment2QueriesVM(Word* args, Word& result,
+int RunSTPQExperiment2QueriesVM(Word* args, Word& result, 
     int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
@@ -631,10 +631,10 @@ int RunSTPQExperiment2QueriesVM(Word* args, Word& result,
   CcString* filename = (CcString*) args[0].addr;
   int numpreds[]={2,2,2,2,
       3,3,3,3,3,
-      4,4,4,4,4,4,
-      5,5,5,5,5,5,5,
-      6,6,6,6,6,6,6,6,
-      7,7,7,7,7,7,7,7,7,
+      4,4,4,4,4,4,  
+      5,5,5,5,5,5,5,  
+      6,6,6,6,6,6,6,6,    
+      7,7,7,7,7,7,7,7,7,   
       8,8,8,8,8,8,8,8,8,8
   };
   int numconss[]={1,2,3,4,
@@ -650,10 +650,10 @@ int RunSTPQExperiment2QueriesVM(Word* args, Word& result,
       10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
       10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
       10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,
-      10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10};
+      10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10}; 
 
-  res->Set(true,
-      GenerateSTPQExperiment2Queries("select count(*) from trains ", 49,
+  res->Set(true, 
+      GenerateSTPQExperiment2Queries("select count(*) from trains ", 49,  
           numpreds, numconss, munexmpl, "/home/mattia/Desktop/SQLExpr3.txt"));
   return 0;
 }
@@ -665,8 +665,8 @@ int RandomShiftDelayVM(ArgVector args, Word& result,
   Instant *threshold = static_cast<Instant*>(args[1].addr );
   double dx = static_cast<CcReal*>(args[2].addr )->GetRealval();
   double dy = static_cast<CcReal*>(args[3].addr )->GetRealval();
-
-
+  
+  
   MPoint* shifted = (MPoint*) qp->ResultStorage(s).addr;
 
   if(pActual->GetNoComponents()<2 || !pActual->IsDefined())
@@ -675,9 +675,9 @@ int RandomShiftDelayVM(ArgVector args, Word& result,
     {
       RandomShiftDelay(pActual, threshold, dx, dy, *shifted);
     }
-  result= SetWord(shifted);
-  //This looks redundant but it is really necessary. After 2 hours of
-  //debugging, it seems that the "result" word is not correctly set
+  result= SetWord(shifted); 
+  //This looks redundant but it is really necessary. After 2 hours of 
+  //debugging, it seems that the "result" word is not correctly set 
   //by the query processor to point to the results.
 
   return 0;
@@ -687,12 +687,12 @@ int RandomShiftDelayVM(ArgVector args, Word& result,
 int StretchVM( ArgVector args, Word& result,
     int msg, Word& local, Supplier s )
 {
-  bool debugme=false;
+  bool debugme=false; 
   MPoint *mpoint = static_cast<MPoint*>( args[0].addr );
   MPoint *mpref  = static_cast<MPoint*>( args[1].addr );
   int numAnchors = static_cast<CcInt*>( args[2].addr )->GetIntval();
   double distThreshold = static_cast<CcReal*>( args[3].addr )->GetRealval();
-
+  
   return 0;
 }
 
@@ -702,21 +702,31 @@ int TestVM( ArgVector args, Word& result,
   bool debugme=false;
   result = qp->ResultStorage(s);
   CcBool* res= static_cast<CcBool*>(result.addr);
+//
+//  list<int> lst;
+//
+//  for(int i=0; i<10; ++i)
+//    lst.push_back(i);
+//  list<int>::iterator it= lst.begin();
+//  cerr<<*it<<endl;
+//  ++it;
+//  cerr<<*it<<endl;
+//
+//  for(int i=100; i<103; ++i)
+//    lst.push_front(i);
+//
+//  lst.erase(it++);
+//  cerr<<*it<<endl;
 
-  list<int> lst;
-
-  for(int i=0; i<10; ++i)
-    lst.push_back(i);
-  list<int>::iterator it= lst.begin();
-  cerr<<*it<<endl;
-  ++it;
-  cerr<<*it<<endl;
-
-  for(int i=100; i<103; ++i)
-    lst.push_front(i);
-
-  lst.erase(it++);
-  cerr<<*it<<endl;
+  
+  DbArray<Page> dbarr(1);
+  Page val1;
+  for(int i=0; i<4000; ++i)
+       val1.ar[i]= 'C';
+  dbarr.Put(0,val1);
+  Page val2('a');
+  dbarr.Get(0,val2);
+  cerr<<val2.ar;
   res->Set(true, true);
   return 0;
 }
@@ -737,7 +747,7 @@ const string RandomShiftDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>mpoint x duration x real x real-> mpoint</text--->"
   "<text>randomdelay(schedule, delay_threshold, dx, dy)</text--->"
-  "<text>Given an mpoint and a duration value, the operator randomly shift the"
+  "<text>Given an mpoint and a duration value, the operator randomly shift the" 
   "start and end intstants of every unit in the mpoint. This gives the "
   "effect of having positive and negative delays and spatial shifts in the "
   "movement. The random shift values are bound by the given threshold."
