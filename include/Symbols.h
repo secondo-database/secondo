@@ -84,6 +84,7 @@ Class ~Symbol~ defines functions providing general indentifiers used by the
 QueryProcessor, in type mapping functions, counters or runtime flags.
 
 */
+#undef ERROR
 class Symbol{
   public:
     static const std::string APPEND()    { return "APPEND"; }
