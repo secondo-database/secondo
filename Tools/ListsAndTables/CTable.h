@@ -174,6 +174,7 @@ parameter.
 #include <iostream>
 #include <string>
 #include <typeinfo>
+#include <stdint.h>
 
 #ifdef CTABLE_PERSISTENT
 #include "PagedArray.h"
