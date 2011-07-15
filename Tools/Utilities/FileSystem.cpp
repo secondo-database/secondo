@@ -60,6 +60,8 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 #include <sstream>
 #include <stdexcept>
 
+#include "WinUnix.h"
+
 using namespace std;
 
 /*
@@ -606,7 +608,7 @@ FileSystem::MakeTemp(const string& templ)
   // append CPU clock and placeholder for mktemp function
   
   stringstream ss;
-  ss << templ << clock() << "-" << getpid() << "-" << ctr++;
+  ss << templ << clock() << "-" << WinUnix::getpid() << "-" << ctr++;
 
   return ss.str();
 }
