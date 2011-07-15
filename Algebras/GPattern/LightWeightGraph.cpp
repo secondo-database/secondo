@@ -85,8 +85,8 @@ bool Component::UpdateMessage(ComponentMessage newMsg)
 {
   bool debugme= false;
   if(newMsg == this->message) return true;
-  string msgs[]= {"NoMessage", "NotChanged", "NewlyAddedEdges", 
-      "NewlyAddedNodes", "RemovedEdges", "RemovedNodes", "AddRemoveMix", 
+  string msgs[]= {"NotChanged", "AddedEdges",
+      "RemovedEdges", "AddRemoveMix",
       "NewlyAdded", "RemoveNow", "SplitFromExtistingComponent", 
       "MergedFromExistingComponents", "ReDistribute"};
   if(debugme)
@@ -94,44 +94,19 @@ bool Component::UpdateMessage(ComponentMessage newMsg)
       "argument message"<< msgs[newMsg];
   switch (this->message)
   {
-  case Component::NoMessage:
   case Component::NotChanged:
   {
     this->message= newMsg;
     return true;
   }break;
-  case Component::NewlyAddedEdges:
+  case Component::AddedEdges:
   {
-    if(newMsg== NoMessage || newMsg== NotChanged || newMsg== NewlyAddedEdges)
-      return true;
-    if(newMsg== NewlyAddedNodes)
+    if(newMsg== NotChanged || newMsg== AddedEdges)
     {
-      this->message= NewlyAddedNodes;
+      this->message= AddedEdges;
       return true;
     }
-    if(newMsg== RemovedEdges || newMsg== RemovedNodes || newMsg== AddRemoveMix)
-    {
-      this->message=AddRemoveMix;
-      return true;
-    }
-    if(newMsg == NewlyAdded)
-      return false;
-    if(newMsg == SplitFromExtistingComponent || newMsg== RemoveNow || 
-        newMsg== MergedFromExistingComponents)
-    {
-      this->message= newMsg;
-      return true;
-    }
-  }break;
-  case Component::NewlyAddedNodes:
-  {
-    if(newMsg== NoMessage || newMsg== NotChanged || newMsg== NewlyAddedEdges||
-        newMsg== NewlyAddedNodes)
-    {
-      this->message= NewlyAddedNodes;
-      return true;
-    }
-    if(newMsg== RemovedEdges || newMsg== RemovedNodes || newMsg== AddRemoveMix)
+    if(newMsg== RemovedEdges || newMsg== AddRemoveMix)
     {
       this->message=AddRemoveMix;
       return true;
@@ -139,7 +114,7 @@ bool Component::UpdateMessage(ComponentMessage newMsg)
     if(newMsg == NewlyAdded)
       return false;
     if(newMsg == SplitFromExtistingComponent || newMsg== RemoveNow ||
-        newMsg== MergedFromExistingComponents)
+        newMsg== MergedFromExistingComponents || newMsg== ReDistribute)
     {
       this->message= newMsg;
       return true;
@@ -147,35 +122,9 @@ bool Component::UpdateMessage(ComponentMessage newMsg)
   }break;
   case Component::RemovedEdges:
   {
-    if(newMsg== NoMessage || newMsg== NotChanged || newMsg== RemovedEdges)
+    if(newMsg== NotChanged || newMsg== RemovedEdges)
       return true;
-    if(newMsg== RemovedNodes)
-    {
-      this->message= RemovedNodes;
-      return true;
-    }
-    if(newMsg== NewlyAddedEdges || newMsg== NewlyAddedNodes || 
-        newMsg== AddRemoveMix)
-    {
-      this->message=AddRemoveMix;
-      return true;
-    }
-    if(newMsg == NewlyAdded)
-      return false;
-    if(newMsg == SplitFromExtistingComponent || newMsg== RemoveNow || 
-        newMsg== MergedFromExistingComponents)
-    {
-      this->message= newMsg;
-      return true;
-    }
-  }break;
-  case Component::RemovedNodes:
-  {
-    if(newMsg== NoMessage || newMsg== NotChanged || newMsg== RemovedEdges||
-        newMsg==RemovedNodes)
-      return true;
-    if(newMsg== NewlyAddedEdges || newMsg== NewlyAddedNodes || 
-        newMsg== AddRemoveMix)
+    if(newMsg== AddedEdges || newMsg== AddRemoveMix)
     {
       this->message=AddRemoveMix;
       return true;
@@ -191,9 +140,8 @@ bool Component::UpdateMessage(ComponentMessage newMsg)
   }break;
   case Component::AddRemoveMix:
   {
-    if(newMsg== NoMessage || newMsg== NotChanged || newMsg== RemovedEdges||
-        newMsg==RemovedNodes || newMsg== NewlyAddedEdges || 
-        newMsg== NewlyAddedNodes || newMsg== AddRemoveMix)
+    if(newMsg== NotChanged || newMsg== RemovedEdges ||
+        newMsg== AddedEdges || newMsg== AddRemoveMix)
     {
       this->message=AddRemoveMix;
       return true;
@@ -208,13 +156,24 @@ bool Component::UpdateMessage(ComponentMessage newMsg)
     }
   }break;
   case Component::NewlyAdded:
+  {
+    if(newMsg== NotChanged || newMsg== RemovedEdges ||
+        newMsg== AddedEdges || newMsg== AddRemoveMix ||
+        newMsg == SplitFromExtistingComponent)
+      return true;
+    if(newMsg == RemoveNow)
+    {
+      this->message= newMsg;
+      return true;
+    }
+  }break;
   case Component::SplitFromExtistingComponent:
   case Component::RemoveNow:
     return false; break;
   case Component::MergedFromExistingComponents:
   {
-    if(newMsg== NoMessage || newMsg== NotChanged || newMsg== RemovedEdges||
-        newMsg==RemovedNodes || newMsg== AddRemoveMix)
+    if(newMsg== NotChanged || newMsg== RemovedEdges ||
+        newMsg== AddRemoveMix)
     {
       this->message= MergedFromExistingComponents;
       return true;
@@ -337,11 +296,9 @@ void Component::GetEdges(LWGraph* g, set<int>& compEdges)
 void Component::Union(Component* arg)
 {
   assert(this->UpdateMessage(arg->message));
-  
   this->nodes.insert(arg->nodes.begin(), arg->nodes.end());
-  this->resStreams.insert(this->resStreams.end(), arg->resStreams.begin(), 
-      arg->resStreams.end());
-  
+  this->associatedResults.insert(this->associatedResults.end(),
+      arg->associatedResults.begin(),  arg->associatedResults.end());
 }
 
 ostream& Component::Print( ostream &os )
@@ -349,19 +306,24 @@ ostream& Component::Print( ostream &os )
   os<<endl<<"Printing component "<<label<<": ";
   for(set<int>::iterator it= nodes.begin(); it!= nodes.end(); ++it)
     os<<*it<< ", ";
-  os<<"\n  Component is associated with "<<resStreams.size()<<" resStreams";
+  //os<<"\n  Component is associated with "<<resStreams.size()<<" resStreams";
   return os;
 }
 
 
-void Component::ExtendResStreamsTillNow(double endtime, bool rc)
+void Component::ExtendResStreamsTillNow(
+    vector<mset::CompressedMSet*>& resultsParts, double endtime, bool rc)
 {
   if(ExtendedTillLastChange) return;
   mset::CompressedUSetRef theUSet;
-  for(list< list<mset::CompressedMSet*>::iterator >::iterator res= 
-    this->resStreams.begin(); res!= this->resStreams.end(); ++res)
+  mset::CompressedMSet* theMSet;
+  list< vector<int> >::iterator associatedResultIt;
+  int resultPartToExtend;
+  for(unsigned int i=0; i < this->associatedResults.size(); ++i)
   {
-    mset::CompressedMSet* theMSet= **res;
+    associatedResultIt= this->associatedResults[i];
+    resultPartToExtend= (*associatedResultIt).back();
+    theMSet= resultsParts[resultPartToExtend];
     theMSet->units.Get(theMSet->GetNoComponents()-1, theUSet);
     theUSet.endtime= endtime;
     theUSet.rc= rc;
@@ -738,6 +700,13 @@ void ExpandInGraph(LWGraph*  graph, pair<int, int>* edgeNodes,
   }
 }
 
+/*
+Given a vector (newComponents), where an element $v_i \in $newComponent is a
+set of integers $s_i$. And given a set of integers (affectedComponents). Merge
+together every $v_i, v_j$, where $s_i \cap s_j \cap $affectedComponents.
+
+*/
+
 void MergeNewComponents(vector<NewComponent>& newComponents, 
     set<int>& affectedComponents)
 {
@@ -752,6 +721,7 @@ void MergeNewComponents(vector<NewComponent>& newComponents,
       (*it).Print(cerr);
   }
   if(newComponents.size() <= 1) return;
+  vector<NewComponent> mergedComponents;
   vector<int> intersectingNewComponents;
   for(set<int>::iterator it= affectedComponents.begin(); it!= 
     affectedComponents.end(); ++it)
@@ -763,12 +733,15 @@ void MergeNewComponents(vector<NewComponent>& newComponents,
     
     assertIf(!intersectingNewComponents.empty());
     if(intersectingNewComponents.size() == 1) continue;
-    NewComponent bigComp= newComponents[intersectingNewComponents.back()];
-    for(int j= intersectingNewComponents.size()-2;  j>=0; --j)
-    {
+    NewComponent bigComp= newComponents[intersectingNewComponents[0]];
+    for(int j= 1;  j< intersectingNewComponents.size(); ++j)
       bigComp.Union(newComponents[intersectingNewComponents[j]]);
-      newComponents.erase(newComponents.begin()+ intersectingNewComponents[j]);
-    }
+
+    for(int j= intersectingNewComponents.size() -1;  j>=0 ; --j)
+      newComponents.erase(newComponents.begin() + intersectingNewComponents[j]);
+
+    newComponents.push_back(bigComp);
+    if(newComponents.size() == 1) return;
   }
 }
 
@@ -881,7 +854,7 @@ ostream& PrintVector( vector<int>& arg, ostream &os )
 
 bool HasOneComponent(set<int> edges, vector<pair<int,int> >& edge2nodes)
 {
-  bool debugme=true;
+  bool debugme=false;
   bool res=false;
   LWGraph* graph= new LWGraph();
   InsertEdgesUndirected(graph, edges, edge2nodes);
@@ -939,6 +912,23 @@ bool IsOneComponent(mset::CompressedMSet* _mset, int n,
       return false;
   }
   return true;
+}
+
+int GetNumComponents(
+    set<int>& edges, int n, vector< pair<int,int> > & edge2nodes)
+{
+  bool debugme=false;
+  int numComps=0;
+  LWGraph* graph= new LWGraph();
+  InsertEdgesUndirected(graph, edges, edge2nodes);
+  vector< LWGraph* >* comps= graph->cluster();
+  for(unsigned int i=0; i< comps->size(); ++i)
+  {
+    if((*comps)[i]->nodes_count() >= n) ++numComps;
+    delete (*comps)[i];
+  }
+  delete comps;
+  return numComps;
 }
 
 bool SetIntersects(set<int>* set1, set<int>* set2)

@@ -61,20 +61,25 @@ public:
 class Component
 {
 public:
-  enum ComponentMessage{NoMessage, NotChanged, NewlyAddedEdges, 
-    NewlyAddedNodes, RemovedEdges, RemovedNodes, AddRemoveMix, NewlyAdded, 
-    RemoveNow, SplitFromExtistingComponent, MergedFromExistingComponents,
-    ReDistribute};
-  set<int> nodes;
-  list< list<mset::CompressedMSet*>::iterator > resStreams;
-  set<int> addedEdges;
-  set<int> removedEdges;
+  enum ComponentMessage{NotChanged, AddedEdges, RemovedEdges, AddRemoveMix,
+    NewlyAdded, RemoveNow, SplitFromExtistingComponent,
+    MergedFromExistingComponents, ReDistribute};
   ComponentMessage message;
   int label;
+  int parentLabel;
+  //parentLabel helps the finalize function to know the parent of a
+  //component whose message is SplitFromExtistingComponent. This is the only
+  //use for this attribute. The attribute's value is written in UpdateRemove
+  //function, and read in the Finalize function.
+  set<int> nodes;
+  int resultPartIndex;
+  vector< list< vector<int> >::iterator> associatedResults;
+  set<int> addedEdges;
+  set<int> removedEdges;
   bool ExtendedTillLastChange;
 
   
-  Component():message(NoMessage), label(-1), 
+  Component():message(NotChanged), label(-1),
     ExtendedTillLastChange(false){}
   void SetMessage(ComponentMessage msg);
   bool UpdateMessage(ComponentMessage newMsg);
@@ -84,7 +89,8 @@ public:
   void GetEdges(LWGraph* g, set<int>& compEdges);
   void Union(Component* arg);
   ostream& Print( ostream &os );
-  void ExtendResStreamsTillNow(double endtime, bool rc);
+  void ExtendResStreamsTillNow(
+      vector<mset::CompressedMSet*>& resultsParts,double endtime, bool rc);
   void Reset();
   bool Intersects(set<int>* arg);
 };
@@ -152,6 +158,8 @@ ostream& PrintVector( vector<int>& arg, ostream &os );
 bool HasOneComponent(set<int> edges, vector< pair<int,int> >& edge2nodes);
 bool IsOneComponent(mset::CompressedMSet* _mset, int n, 
     vector< pair<int,int> > & edge2nodes);
+int GetNumComponents(
+    set<int>& edges, int n, vector< pair<int,int> > & edge2nodes);
 
 bool SetIntersects(set<int>* set1, set<int>* set2);
 }

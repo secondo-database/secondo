@@ -154,7 +154,7 @@ Set operations and predicates
   void Clear();
   int BinSearch(int elem);
   int operator[](int index) const;
-
+  static const string BasicType();
 /*
 members required for the Attribute interface
 
@@ -294,7 +294,7 @@ not modify this unit and return ~false~.
   static Word CloneUSet( const ListExpr typeInfo, const Word& w );
   static int SizeOfUSet();
   static void* CastUSet(void* addr);
-
+  inline static const string BasicType();
 /*
 3.6.4 Attributes
 
@@ -376,7 +376,7 @@ Calss member functions
   
   bool IsValid() const 
   { 
-    return (this->start< this->end && timeInterval.IsValid());
+    return (this->start <= this->end && timeInterval.IsValid());
   }
   
   bool IsDefined() const {return isdefined;}
@@ -450,7 +450,7 @@ public:
   inline void CopyFrom( const Attribute* right );
   int NumOfFLOBs()const;
   Flob *GetFLOB(const int i);
-  inline virtual ostream& Print( ostream &os ) const;
+  virtual ostream& Print( ostream &os ) const;
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
   static ListExpr Property();  
   static Word InMSet(const ListExpr typeInfo, const ListExpr instance,
@@ -462,7 +462,7 @@ public:
   static Word CloneMSet( const ListExpr typeInfo, const Word& w );
   static int SizeOfMSet();
   static void* CastMSet(void* addr);
-  
+  inline static const string BasicType();
   DbArray<int> data;
 };
 
@@ -580,7 +580,8 @@ public:
  
   CompressedInMemUSet():count(0){}
   void Erase(int victim);
-  
+  bool EraseNodes(
+      vector<int>& removedNodes, vector<pair<int,int> >& edge2nodesMap);
   void Insert(int elem);
   
   ostream& Print( ostream &os );
@@ -687,8 +688,14 @@ public:
       double &endtime, bool lc, bool rc);
    
   void ConstructFromBuffer();
-
   
+/*
+MakeMinimal merges the consecutive units having the same value together, so
+that the representation is minimal.
+
+*/
+  void MakeMinimal();
+
   multimap<double, Event> buffer;
   list<CompressedInMemUSet> units;
   list<CompressedInMemUSet>::iterator it;
@@ -716,9 +723,10 @@ class CompressedMSet
 {
 private:
   set<int> lastUnitValue;
-  bool validLastUnitValue;
 
 public:
+  bool validLastUnitValue;
+
   CompressedMSet();
   
   CompressedMSet(int);
@@ -737,6 +745,9 @@ public:
   
   void WriteToCompressedInMemMSet(CompressedInMemMSet& res);
   void ReadFromCompressedInMemMSet(CompressedInMemMSet& arg);
+  bool ReadFromCompressedInMemMSet(CompressedInMemMSet& arg,
+                list<CompressedInMemUSet>::iterator b,
+                list<CompressedInMemUSet>::iterator e);
   
   ostream& Print( ostream &os );
   
@@ -751,6 +762,10 @@ public:
 
   double DurationLength();
   
+  bool Concat(CompressedMSet* arg);
+
+  CompressedMSet* GetSubMSet(int offset, int length);
+
   DbArray<int> removed;
   DbArray<int> added;
   DbArray<CompressedUSetRef> units;

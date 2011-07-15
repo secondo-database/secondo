@@ -1,122 +1,145 @@
-Database : berlintest
+Database : gpatterntests
 Restore  : NO
 
 Operator : reportpattern
 Number   : 1
 Signature: stream(tuple(int, moving(x))) X [alias: fun()->mset] X [bool] X bool -> mset
-Example  : query Trains feedproject[Trip] addcounter[Cnt, 0] projectextend[;Id:.Cnt, Path:.Trip] reportpattern[a:emptymset(), b:emptymset(), c:emptymset(); tconstraint("a", "b", later), tconstraint("b","c", later); TRUE  ] 
-Result   : 14
+Example  : query 1
+Result   : 1
+Remark  : query Trains feedproject[Trip] addcounter[Cnt, 0] projectextend[;Id:.Cnt, Path:.Trip] reportpattern[a:emptymset(), b:emptymset(), c:emptymset(); tconstraint("a", "b", later), tconstraint("b","c", later); TRUE  ]
 
 Operator : gpattern
 Number   : 1
 Signature: stream(tuple) x (tuple -> ord ) x (tuple -> mbool  ) x duration x int x {exactly, atleast} -> stream(mset) 
-Example  : query Trains feed addcounter[Cnt, 0] head[10] gpattern[.Cnt, speed(.Trip) < 100.0 , create_duration(0, 600000), 5, atleast] transformstream count  
+Example  : query 1  
 Result   : 1
+Remark   : query Trains feed addcounter[Cnt, 0] head[10] gpattern[.Cnt, speed(.Trip) < 100.0 , create_duration(0, 600000), 5, atleast] transformstream count
 
 Operator : crosspattern
 Number   : 1
-Signature: mbool X int X (exactly, atleast) X (partiallyconnected, fullyconnected) -> mset
-Example  : query Trains feedproject[Trip] addcounter[Cnt, 0] projectextend[;Id:.Cnt, Path:.Trip] reportpattern[a: . gpattern[(mdirection(.Path) > 45.0) and (mdirection(.Path) < 135.0), 1, exactly],  b: . gpattern((mdirection(.Path) > 45.0) and (mdirection(.Path) < 135.0), 20, atleast], c: . crosspattern[ distance(row(.Path), col(.Path)) < 50.0, 20, atleast, fullyconnected] ; tconstraint("a", "b", later), tconstraint("b","c", later); TRUE  ] 
-Result   : 14
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query crosspatternCase1 feed crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 2000000), 4, cc] transformstream addcounter[Cnt,1] consume; 
+Result   : file
+Remark   : TestCase1: Add undef gaps in the Accumlator
+
+Operator : crosspattern
+Number   : 2
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query crosspatternCase2 feed crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 2000000), 4, cc] transformstream addcounter[Cnt,1] consume;
+Result   : file
+Remark   : TestCase2: Insert units in the middle of Accumlator having too few nodes 
+
+Operator : crosspattern
+Number   : 3
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query   crosspatternCase3 feed crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 2000000), 4, cc] transformstream addcounter[Cnt,1] consume;
+Result   : file
+Remark   : TestCase3: Repeat some pairs in the input 
+
+Operator : crosspattern
+Number   : 4
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query crosspatternCase4 feed  crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 1800000), 3, cc]  transformstream  addcounter[Cnt,1]  consume;
+Result   : file
+Remark   : TestCase4: Add short node membership in the input
+
+ 
+
+
 
 Operator : emptymset
 Number   : 1
 Signature:  -> mset
 Example  : query emptymset() 
-Result   : 14
+Result   : (mset ())
 
 Operator : tconstraint
 Number   : 1
 Signature: string X string X stvector -> bool
-Example  : query Trains feed filter[. stpattern[a:  .Trip inside msnow,  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  stconstraint("a","b",vec("aabb")),  stconstraint("b","c",vec("bbaa"))  ]] count
-Result   : 14
-
-Operator : row
-Number   : 1
-Signature: TEMPORAL -> TEMPORAL
-Example  : query Trains feedproject[Trip] addcounter[Cnt, 0] projectextend[;Id:.Cnt, Path:.Trip] reportpattern[a: . gpattern[(mdirection(.Path) > 45.0) and (mdirection(.Path) < 135.0), 1, exactly],  b: . gpattern[(mdirection(.Path) > 45.0) and (mdirection(.Path) < 135.0), 20, atleast], c: . crosspattern[ distance(row(.Path), col(.Path)) < 50.0, 20, atleast, fullyconnected] ; tconstraint("a", "b", later), tconstraint("b","c", later); TRUE  ] 
-Result   : 14
-
-Operator : col
-Number   : 1
-Signature: TEMPORAL -> TEMPORAL
-Example  : query Trains feedproject[Trip] addcounter[Cnt, 0] projectextend[;Id:.Cnt, Path:.Trip] reportpattern[a: . gpattern[(mdirection(.Path) > 45.0) and (mdirection(.Path) < 135.0), 1, exactly],  b: . gpattern[(mdirection(.Path) > 45.0) and (mdirection(.Path) < 135.0), 20, atleast], c: . crosspattern[ distance(row(.Path), col(.Path)) < 50.0, 20, atleast, fullyconnected] ; tconstraint("a", "b", later), tconstraint("b","c", later); TRUE  ] 
-Result   : 14
+Example  : query 1
+Result   : 1
+Remark   : query Trains feed filter[. stpattern[a:  .Trip inside msnow,  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  stconstraint("a","b",vec("aabb")),  stconstraint("b","c",vec("bbaa"))  ]] count
 
 Operator : intstream2set
 Number   : 1
 Signature: stream x symbol -> elemset
-Example  : query ten feed intstream2set[no] consume
-Result   : file
-
-Operator : emptymset
-Number   : 1
-Signature: -> mset
-Example  : query emptymset
-Result   : file
+Example  : query 1
+Result   : 1
+Remark   : query ten feed intstream2set[no] consume
 
 Operator : mbool2mset
 Number   : 1
 Signature: mbool x int -> mset
-Example  : query speed(train7)>15 mbool2mset(7) nocomponents
-Result   : 3
+Example  : query 1
+Result   : 1
+Remark   : query speed(train7)>15 mbool2mset(7) nocomponents
 
 Operator : union
 Number   : 1
 Signature: mset x mset -> mset
-Example  : query no_components(speed(train7)>15 mbool2mset(7) union emptymset()) 
-Result   : 0
+Example  : query 1 
+Result   : 1
+Remark   : query no_components(speed(train7)>15 mbool2mset(7) union emptymset())
 
 Operator : union2
 Number   : 1
 Signature: mset x mset -> mset
-Example  : query no_components(speed(train7)>23.0 mbool2mset(7) union2 emptymset()) 
-Result   : 2
+Example  : query 1 
+Result   : 1
+Remark   : query no_components(speed(train7)>23.0 mbool2mset(7) union2 emptymset())
 
 Operator : cardinality
 Number   : 1
 Signature: mset -> mint
-Example  : query speed(train7)>15 mbool2mset(7) cardinality max
+Example  : query 1
 Result   : 1
+Remark   : query speed(train7)>15 mbool2mset(7) cardinality max
 
 Operator : mset2mregion
 Number   : 1
 Signature: stream(truple(int, mpoint)) x mset x duration -> movingregion
-Example  : query speed(train7)>15 mbool2mset(7) cardinality max
+Example  : query 1
 Result   : 1
+Remark   : query speed(train7)>15 mbool2mset(7) cardinality max
 
 Operator : mset2mpoints
 Number   : 1
 Signature: stream(truple(int, mpoint)) x mset x duration -> movingregion
-Example  : query speed(train7)>15 mbool2mset(7) cardinality max
+Example  : query 1
 Result   : 1
+Remark   : query speed(train7)>15 mbool2mset(7) cardinality max
 
 Operator : convexhull2
 Number   : 1
 Signature: stream(truple(int, mpoint)) x mset x duration -> movingregion
-Example  : query speed(train7)>15 mbool2mset(7) cardinality max
+Example  : query 1
 Result   : 1
+Remark   : query speed(train7)>15 mbool2mset(7) cardinality max
 
 Operator : the_unit
 Number   : 1
 Signature: intset  instant instant bool bool --> uset
-Example  : query ten feed extend[theUSet: the_unit(intstream(0, 2 * .no) collectintset, create_instant( 10 * .no, 10 * .no), create_instant(100 * .no, 100 * .no), FALSE, TRUE)] count
-Result   : 10
+Example  : query 1
+Result   : 1
+Remark   : query ten feed extend[theUSet: the_unit(intstream(0, 2 * .no) collectintset, create_instant( 10 * .no, 10 * .no), create_instant(100 * .no, 100 * .no), FALSE, TRUE)] count
 
 Operator : the_mvalue
 Number   : 7
 Signature: (stream uset) -> mset 
-Example  : query no_components(ten feed extend[theUSet: the_unit(intstream(0, 2 * .no) collectintset, create_instant( 100 * .no, 10 * .no), create_instant(100 * .no, 11 * .no), FALSE, TRUE)] project[theUSet] transformstream the_mvalue)
-Result   : 10
+Example  : query 1
+Result   : 1
+Remark   : query no_components(ten feed extend[theUSet: the_unit(intstream(0, 2 * .no) collectintset, create_instant( 100 * .no, 10 * .no), create_instant(100 * .no, 11 * .no), FALSE, TRUE)] project[theUSet] transformstream the_mvalue)
 
 Operator : collectintset
 Number   : 1
 Signature: (stream int) -> intset
-Example  : query intstream(1,3) collectintset 
-Result   : (1 2 3)
+Example  : query 1
+Result   : 1
+Remark   : query intstream(1,3) collectintset
 
 Operator : no_components
 Number   : 1
 Signature: mset -> int
-Example  : query no_components (emptymset)
-Result   : 0
+Example  : query 1
+Result   : 1
+Remark   : query no_components (emptymset)
