@@ -6819,10 +6819,10 @@ Private helper function for the delay operator
 int MPoint::IntervalRelation(Interval<Instant> &int_a_b,
                              Interval<Instant> &int_c_d  ) const
 {
-  double a= int_a_b.start.ToDouble();
-  double b= int_a_b.end.ToDouble();
-  double c= int_c_d.start.ToDouble();
-  double d= int_c_d.end.ToDouble();
+  Instant a= int_a_b.start;
+  Instant b= int_a_b.end;
+  Instant c= int_c_d.start;
+  Instant d= int_c_d.end;
   assert(a < b && c < d );
 /*
   The assertion will fail in case of numerical instability (i.e: rounding error)
