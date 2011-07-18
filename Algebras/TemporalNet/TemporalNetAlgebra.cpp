@@ -9503,7 +9503,7 @@ ListExpr OpUnitBoundingBoxTypeMap(ListExpr in_xArgs)
     return listutils::typeError("one argument expected");
 
   if (param.first().isSymbol("ugpoint"))
-    return nl->SymbolAtom( Rectangle<2>::BasicType() );
+    return nl->SymbolAtom( Rectangle<3>::BasicType() );
   else
     return listutils::typeError("ugpoint expected");
 }
