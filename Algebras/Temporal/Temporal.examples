@@ -169,6 +169,7 @@ Number   : 1
 Signature: (mpoint point) -> mreal, (mpoint mpoint) -> mreal
 Example  : query minimum(squareddistance(train7, mehringdamm))
 Result   : 0.0
+Tolerance: 0.000000001
 
 Operator : disturb
 Number   : 1
