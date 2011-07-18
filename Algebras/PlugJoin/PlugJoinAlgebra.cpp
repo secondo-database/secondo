@@ -1918,12 +1918,12 @@ const string spatialjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
     "(stream (tuple ((y1 yt1)...(yn ytn))))"
     " rect||rect3||rect4||SpatialType rect||rect3||rect4||SpatialType) -> "
     "(stream (tuple ((x1 t1)...(xn tn)((y1 yt1)...(yn ytn)))))</text--->"
-    "<text>outerStream innerStream spatialjoin2 "
+    "<text>outerStream innerStream spatialjoin0 "
     "[outerAttr, innerAttr]</text--->"
     "<text>Uses the Plug&Join-Algorithm to find all pairs of intersecting"
     " tuples in the given relations. The joining tuples are reported."
     "</text--->"
-    "<text>query trees feed streets feed spatialjoin2 [pos_trees, pos_streets]"
+    "<text>query trees feed streets feed spatialjoin0 [pos_trees, pos_streets]"
     " consume; the joining attributes must be of the same dimension."
     "</text--->"
     ") )";
@@ -1934,7 +1934,7 @@ const string spatialjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
 */
 
 Operator spatialjoin (
-         "spatialjoin2",             // name
+         "spatialjoin0",             // name
          spatialjoinSpec,           // specification
          3,                         // number of overloaded functions
          spatialjoinMap,            // value mapping

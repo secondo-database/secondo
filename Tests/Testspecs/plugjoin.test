@@ -26,12 +26,12 @@ open database berlintest;
 
 #testcase test1
 #yields (int 2366)
-query strassen feed {a} WStrassen feed {w} spatialjoin2[geoData_a, geoData_w] count;
+query strassen feed {a} WStrassen feed {w} spatialjoin0[geoData_a, geoData_w] count;
 
 #testcase test2
 #yields (bool TRUE)
 query strassen feed {a}  loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[bbox(.geoData_w) intersects bbox(attr(t, geoData_a))]] count =
-      strassen feed {a}  WStrassen feed {w} spatialjoin2[geoData_a, geoData_w] count;
+      strassen feed {a}  WStrassen feed {w} spatialjoin0[geoData_a, geoData_w] count;
 
 #testcase test3
 #yields (int 198)
@@ -40,7 +40,7 @@ query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.geoData
 #testcase test4
 #yields (bool TRUE)
 query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.geoData_w intersects attr(t, geoData_a)]] count =
-      strassen feed {a} WStrassen feed {w} spatialjoin2[geoData_a, geoData_w] filter[.geoData_a intersects .geoData_w] count;
+      strassen feed {a} WStrassen feed {w} spatialjoin0[geoData_a, geoData_w] filter[.geoData_a intersects .geoData_w] count;
 
 #testcase test7
 #yields (int 244)
@@ -49,12 +49,12 @@ query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoDat
 #testcase test7
 #yields (bool TRUE)
 query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]] count =
-      Flaechen feed {X} Flaechen feed spatialjoin2[geoData_X, geoData] count;
+      Flaechen feed {X} Flaechen feed spatialjoin0[geoData_X, geoData] count;
 
 #testcase test17
 #yields (bool TRUE)
 query (Flaechen feed {X} filter[.geoData_X intersects zoogarten]
-       Flaechen feed spatialjoin2[geoData_X, geoData] filter[.geoData_X intersects .geoData] count) =
+       Flaechen feed spatialjoin0[geoData_X, geoData] filter[.geoData_X intersects .geoData] count) =
       (Flaechen feed {X} filter[.geoData_X intersects zoogarten]
        loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]
          filter[.geoData intersects attr(t, geoData_X)]] count);
