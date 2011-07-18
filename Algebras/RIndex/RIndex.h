@@ -101,7 +101,7 @@ into res. This function is just for checking the structure.
 /*
 1.6 countEntries
 
-  Rteurns the number of elements even if their are erased.
+  Returns the number of elements even if their are erased.
 
 */
    uint32_t countEntries(){
@@ -112,7 +112,45 @@ into res. This function is just for checking the structure.
       } 
    }
 
+/*
+1.8 height
 
+Returns the height of a tree (0, iff tree is empty, 1 for a single leaf).
+
+*/
+    uint32_t height(){
+       if(!root){
+         return 0;
+       } else {
+          return root->height();
+       }
+    }
+
+
+    uint32_t noLeafs(){
+       if(!root){
+         return 0;
+       } else {
+          return root->noLeafs();
+       }
+    }
+
+    uint32_t dim0Entries(){
+       if(!root){
+         return 0;
+       } else {
+          return root->dim0Entries();
+       }
+    }
+    
+
+    uint32_t dim0Leafs(){
+       if(!root){
+         return 0;
+       } else {
+          return root->dim0Leafs();
+       }
+    }
 
 /*
 TODO:
@@ -326,9 +364,69 @@ The return value is this node or 0, if this subtree becomes empty.
      return sum +  1;
   }
 
+
+  uint32_t height(){
+    uint32_t h  = 0;
+    for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          uint32_t h2 = planes[i]->height();
+          h = h>h2?h:h2;
+       }
+     }
+     for(int i=0; i< (1 << cdim) ; i++){
+       if(quadrants[i]){
+          uint32_t h2 = quadrants[i]->height();
+          h = h>h2?h:h2;
+       }     
+     }
+     return h + 1;
+  }
+
+
   const Rectangle<rdim>& getBBox() const{
      return bbox;
   }
+
+
+  uint32_t noLeafs(){
+    int count = 0;
+     for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          count += planes[i]->noLeafs();
+       }
+     }
+     // we don't check whether we have to search for a
+     // special quadrant because the bounding box
+     // check will do it
+     for(int i=0; i< (1 << cdim) ; i++){
+       if(quadrants[i]){
+          count += quadrants[i]->noLeafs();
+       }     
+     }
+     return count>0?count:1;
+  }
+  
+  uint32_t dim0Entries(){
+    int count = 0;
+     for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          count += planes[i]->dim0Entries();
+       }
+     }
+     return count;
+  }
+
+  
+  uint32_t dim0Leafs(){
+    int count = 0;
+     for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          count += planes[i]->dim0Leafs();
+       }
+     }
+     return count;
+  }
+
 
 
   private:
@@ -421,7 +519,7 @@ The return value is this node or 0, if this subtree becomes empty.
 
 */
 template<int rdim, typename T>
-class RIndexNode<rdim, T,1>{
+class RIndexNode<rdim, T,0>{
 
    public:
       RIndexNode(const Rectangle<rdim> r, const T& t){
@@ -465,10 +563,24 @@ class RIndexNode<rdim, T,1>{
         return bbox;
      }
 
+     uint32_t height(){
+        return 1;
+     }
+
+     uint32_t noLeafs(){ // at dimension 0, we have a leaf in each case
+        return 1;
+     }
+
+     uint32_t dim0Entries(){
+        return content.size();
+     }
+
+     uint32_t dim0Leafs(){
+        return 1;
+     }
 
    private:
       Rectangle<rdim> bbox;
-
       vector<pair<Rectangle<rdim>,T> > content;
 
 

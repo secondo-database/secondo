@@ -242,8 +242,71 @@ Operator findRindex (
   findRindexTM);
 
 
+/*
+Operator heightRIndex
+
+This operator creates an RIndex from a stream and computes its height.
+
+*/
+
+ListExpr heightRindexTM(ListExpr args){
+   string err = "stream(rect) expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+
+   if(!Stream<Rectangle<2> >::checkType(nl->First(args))){
+      return listutils::typeError(err);
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
 
 
+
+int heightRindexVM( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+
+   Stream<Rectangle<2> > stream(args[0]);
+   Rectangle<2>* r;
+   stream.open();
+   r = stream.request();
+   RIndex<2,int> ind;
+   while(r){
+     ind.insert(*r,1);
+     r->DeleteIfAllowed();
+     r = stream.request();
+   }
+   stream.close();
+   result = qp->ResultStorage(s);
+   CcInt* res = static_cast<CcInt*>(result.addr);
+   cout << "ind.countEntriesm =" << ind.countEntries();
+   cout << "ind.height() = " << ind.height(); 
+   cout << "noLeafs() = " << ind.noLeafs();
+   cout << "dim0Entries() = " << ind.dim0Entries();
+   cout << "dim0Leafs() = " << ind.dim0Leafs();
+   res->Set(true,ind.height());
+   return 0;
+}
+
+
+const string heightRindexSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text> stream(rect)  -> int </text---> "
+      "<text>_ heightRindex  </text--->"
+      "<text>Creates an RIndex form the stream and returns its height "
+      " </text--->"
+      "<text>query strassen feed heightRIndex "
+      " </text--->"
+             ") )";
+
+
+Operator heightRindex (
+  "heightRindex",
+  heightRindexSpec,
+  heightRindexVM,
+  Operator::SimpleSelect,
+  heightRindexTM);
 
 
 
@@ -253,6 +316,7 @@ class RIndexAlgebra : public Algebra {
    {
       AddOperator(&insertRindex);
       AddOperator(&findRindex);
+      AddOperator(&heightRindex);
 
    }
 };
