@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Class CellGrid2D
 
 This class defines a grid in 2d Euclidean space which
-is open in y direction. 
+is open in y direction.
 
 
 */
@@ -39,7 +39,7 @@ is open in y direction.
 #include "ListUtils.h"
 
 /*
-3.8 Gid structures
+3.8 Grid structures
 
 The following 2 classes are used to represent 2D cell grids and events created
 by moving objects on such a grid.
@@ -73,7 +73,7 @@ class CellGrid2D: public Attribute{
 
     ~CellGrid2D(); // standard destructor
 
-     
+
     bool set(const double x0,
              const double y0,
              const double wx,
@@ -145,7 +145,7 @@ class CellGrid2D: public Attribute{
 
     size_t HashValue() const;
 
-    void CopyFrom(const Attribute* other);  
+    void CopyFrom(const Attribute* other);
 
     static const string BasicType();
 
