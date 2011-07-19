@@ -68,11 +68,10 @@ using namespace ftext;
 */
 
 inline BinaryFile::BinaryFile( const int size, const bool defined /* =0 */ ) :
+Attribute(defined),
 binData( size ),
 canDelete( false )
-{
-  SetDefined( defined );
-}
+{ }
 
 inline BinaryFile::~BinaryFile(){
   if( canDelete ){
@@ -225,13 +224,16 @@ bool BinaryFile::SaveToFile( const char *fileName ) const{
   FILE *f = fopen( fileName, "wb" );
   if( f == NULL ) { return false; }
 
-  char bytes[binData.getSize()];
+  cout << "write " << binData.getSize() << " bytes " << endl;
+
+  char* bytes  = new char[binData.getSize()];
   binData.read( bytes, 0, binData.getSize() );
 
   if( fwrite( bytes, 1, binData.getSize(), f ) != binData.getSize() ){
+    delete[] bytes;
     return false;
   }
-
+  delete[] bytes;
   fclose( f );
   return true;
 }
