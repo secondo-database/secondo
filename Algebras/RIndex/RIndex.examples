@@ -20,3 +20,28 @@ Number   : 1
 Signature: stream(rectangle) -> int
 Example  : query strassen feed extend[B : bbox(.geoData)] projecttransformstream[B] heightRindex   
 Result   : 22 
+
+Operator : statRindex
+Number   : 1
+Signature: stream(rectangle) -> text
+Example  : query (strassen feed extend[B : bbox(.geoData)] projecttransformstream[B] statRindex) contains 'height'
+Result   : TRUE
+
+Operator : joinRindex
+Number   : 1
+Signature:  stream(tuple) x stream(tuple) attrname x rectangle  -> stream(tuple(TID1 tid)(TID2 tid)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] joinRindex[B,B] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+
+Operator : symmjoinRindex
+Number   : 1
+Signature:  stream(tuple) x stream(tuple) attrname x rectangle  -> stream(tuple(TID1 tid)(TID2 tid)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] symmJoinRindex[B,B] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+Operator : insertMMRTree 
+Number   : 1
+Signature:  stream(tuple) x int x int  -> stream(tuple) 
+Example  : query strassen feed extend[B : bbox(.geoData)] projecttransformstream[B]  insertMMRTree[4,8] count = strassen count
+Result   : TRUE 

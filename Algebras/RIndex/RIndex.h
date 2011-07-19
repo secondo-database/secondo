@@ -91,8 +91,6 @@ into res. This function is just for checking the structure.
       res.clear();
       if(root){
          root->findSimple(r,res);
-         cout << "Search with " << r << endl;
-         cout << "Search in " << root->getBBox() << endl;
       }
     }
 
@@ -151,6 +149,32 @@ Returns the height of a tree (0, iff tree is empty, 1 for a single leaf).
           return root->dim0Leafs();
        }
     }
+
+    uint32_t maxBranches(){
+       if(!root){
+         return 0;
+       } else {
+          return root->maxBranches();
+       }
+    }
+
+    
+    uint32_t branches(){
+       if(!root){
+         return 0;
+       } else {
+          return root->branches();
+       }
+    }
+
+    size_t usedMem(){
+      if(!root){
+        return sizeof(*this);
+      } else {
+        return sizeof(*this) + root->usedMem();
+      }
+    }
+
 
 /*
 TODO:
@@ -395,9 +419,6 @@ The return value is this node or 0, if this subtree becomes empty.
           count += planes[i]->noLeafs();
        }
      }
-     // we don't check whether we have to search for a
-     // special quadrant because the bounding box
-     // check will do it
      for(int i=0; i< (1 << cdim) ; i++){
        if(quadrants[i]){
           count += quadrants[i]->noLeafs();
@@ -427,6 +448,56 @@ The return value is this node or 0, if this subtree becomes empty.
      return count;
   }
 
+
+  uint32_t maxBranches(){
+    int branches = 0;
+     for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          branches += planes[i]->maxBranches();
+       }
+     }
+     for(int i=0; i< (1 << cdim) ; i++){
+       if(quadrants[i]){
+          branches += quadrants[i]->maxBranches();
+       }     
+     }
+     return branches + cdim + (1 << cdim); 
+  }
+
+  uint32_t branches(){
+    int branches = 0;
+     for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          branches++;
+          branches += planes[i]->branches();
+       }
+     }
+     for(int i=0; i< (1 << cdim) ; i++){
+       if(quadrants[i]){
+          branches++; 
+          branches += quadrants[i]->branches();
+       }     
+     }
+     return branches; 
+  }
+
+
+  size_t usedMem(){
+    int mem = 0;
+     for(int i=0;i<cdim; i++){
+       if(planes[i]){
+          mem += planes[i]->usedMem();
+       }
+     }
+     for(int i=0; i< (1 << cdim) ; i++){
+       if(quadrants[i]){
+          mem += quadrants[i]->usedMem();
+       }     
+     }
+     return mem + sizeof(*this);; 
+  }
+
+  
 
 
   private:
@@ -578,6 +649,20 @@ class RIndexNode<rdim, T,0>{
      uint32_t dim0Leafs(){
         return 1;
      }
+
+     uint32_t branches() {
+        return 0;
+     }
+     
+     uint32_t maxBranches(){
+        return  0;
+     }
+
+     size_t usedMem(){
+        return sizeof(*this) + 
+               sizeof(pair<Rectangle<rdim>,T>) * content.capacity();
+     }
+
 
    private:
       Rectangle<rdim> bbox;
