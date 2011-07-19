@@ -2027,14 +2027,14 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     if( !this->IsDefined() || !i.IsDefined() ) {
       return false;
     }
-    double offset = i.timeInterval.start.ToDouble()
-    - timeInterval.start.ToDouble();
+    double offset = (i.timeInterval.start - timeInterval.start).ToDouble();
 
     return
       (AlmostEqual( a, i.a ) &&
+       (r == i.r) &&
        AlmostEqual( 2 * a * offset + b, i.b ) &&
        AlmostEqual( a * pow(offset, 2) + b * offset + c, i.c )
-       && r == i.r );
+       );
   }
 
 /*
@@ -8061,11 +8061,6 @@ int MappingTimeShift( Word* args, Word& result,
       if(mapping->GetNoComponents() == 0)
         return 0;
       mapping->Get(0, unit);
-      if( (unit.timeInterval.start.ToDouble() +  dd->ToDouble()) < 0 )
-      {
-        mpResult->SetDefined( false );
-        return 0;
-      }
 
       mpResult->StartBulkLoad();
       for( int i = 0; i < mapping->GetNoComponents(); i++ )

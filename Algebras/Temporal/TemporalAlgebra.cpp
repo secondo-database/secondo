@@ -446,8 +446,6 @@ double UReal::Max(bool& correct) const{
     return 0.0;
   }
 
-  //double t0 = timeInterval.start.ToDouble();
-  //double t1 = timeInterval.end.ToDouble();
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   correct = true;
 
@@ -492,8 +490,6 @@ double UReal::Min(bool& correct) const{
      return  0.0;
   }
 
-  // double t0 = timeInterval.start.ToDouble();
-  // double t1 = timeInterval.end.ToDouble();
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   correct = true;
   double v1 = c;  // == TemporalFunction(t0);
@@ -2171,7 +2167,7 @@ void UPoint::USpeed( UReal& result, const Geoid* geoid ) const
     result.timeInterval = timeInterval;
 
     DateTime dt = timeInterval.end - timeInterval.start;
-    duration = dt.ToDouble() * 86400;   // value in seconds
+    duration = dt.millisecondsToNull() / 1000.0;   // value in seconds
 
     if( duration > 0.0 ){
       if(!geoid){ // (X,Y)-coords
@@ -2220,7 +2216,7 @@ void UPoint::UVelocity( UPoint& result ) const
       y1 = p1.GetY();
 
       DateTime dt = timeInterval.end - timeInterval.start;
-      duration = dt.ToDouble() * 86400;   // value in seconds
+      duration = dt.millisecondsToNull() / 1000.0;   // value in seconds
 
       if( duration > 0.0 )
         {
@@ -7276,7 +7272,7 @@ otherwise, the result is undefined
     dist2= uPoint.p0.Distance(uPoint.p1);
     last= uPoint.p1;
     lastslope= (dist2-dist1)/((uPoint.timeInterval.end -
-        uPoint.timeInterval.start).ToDouble()* 8640);
+        uPoint.timeInterval.start).millisecondsToNull() / 1000.0);
     unitstart = dist1;
     unitend= dist2;
     interval=uPoint.timeInterval;
@@ -7301,7 +7297,7 @@ otherwise, the result is undefined
 
       //Assure minimal representation
       curslope= (dist2-dist1)/((uPoint.timeInterval.end -
-          uPoint.timeInterval.start).ToDouble()* 8640);
+          uPoint.timeInterval.start).millisecondsToNull()/ 1000.0);
       if(debugme)
       {
         cout.flush();
@@ -13950,7 +13946,7 @@ int Avg_SpeedVM( Word* args, Word& result, int message,
       length += up.p0.Distance(up.p1);
     }
    }
-   res->Set(valid,length/(totaltime.ToDouble()*86400.0));
+   res->Set(valid,length/(totaltime.millisecondsToNull()/ 1000.0));
    if(geoidptr){
      delete geoidptr;
      geoidptr = 0;
