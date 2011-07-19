@@ -669,6 +669,22 @@ This function returns the type of this DateTime;
   }
 
 
+/*
+~millisecsToNull~
+
+For an duration value, this function returns the duration in milliseconds. 
+For in instant, this function returns the distance to the NULL-Day in 
+milliseconds.
+
+*/
+
+ int64_t millisecondsToNull() const{
+    return value;
+ }
+
+
+
+
   private:
     // the data-part of datetime
     TimeType type;
