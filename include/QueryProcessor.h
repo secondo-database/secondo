@@ -510,7 +510,7 @@ Represents an operator tree through a list expression. Used for testing.
 Additionally more detailed information will be printed into ~os~.
 
 */
-  const char* MsgToStr(const int msg);
+ string  MsgToStr(const int msg);
 /*
 Translates a message ito its name.
    

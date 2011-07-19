@@ -245,23 +245,6 @@ ErrorStr(const string& msg, const string& file, const int& line)
   return err.str();
 }
 
-string msg2str(int message){
-   switch(message){
-      case OPEN : return "OPEN";
-      case REQUEST: return "REQUEST";;
-      case CLOSE : return "CLOSE";
-      case YIELD: return "YIELD";
-      case CANCEL:          return "CANCEL";
-      case CARDINALITY:     return "CARDINALITY";
-      case REQUESTPROGRESS: return "REQUESTPROGRESS";
-      case CLOSEPROGRESS:   return "CLOSEPROGRESS";
-      case FAILURE: return "FAILURE";
-      default : return "UNKNOWN";
-   }
- }
-
-
-
 
 
 /**************************************************************************
@@ -3454,16 +3437,27 @@ Translate a message code into its name
 
 */
 
-const char*
+string
 QueryProcessor::MsgToStr(const int msg) {
-
- switch (msg % 10) {
-    case OPEN: return "OPEN";
-    case REQUEST:  return "REQUEST";
-    case CLOSE: return "CLOSE";
-    case YIELD: return "YIELD";
-    case CANCEL: return "CANCEL";
-    default: return "UNKNOWN";
+ int argNo = (msg) / FUNMSG;
+ string prefix = "";
+ if(argNo>0){
+    stringstream ss;
+    ss << "FUN, ARG = " << argNo << ":";
+    prefix = ss.str();
+ }
+ 
+ switch (msg % FUNMSG) {
+    case OPEN: return prefix + "OPEN";
+    case REQUEST:  return prefix + "REQUEST";
+    case CLOSE: return prefix + "CLOSE";
+    case YIELD: return prefix + "YIELD";
+    case CANCEL: return prefix + "CANCEL";
+    case CARDINALITY : return prefix + "CARDINALITY";
+    case REQUESTPROGRESS: return prefix + "REQUESTPROGRESS";
+    case CLOSEPROGRESS: return prefix + "CLOSEPROGRESS";
+    case FAILURE : return prefix + "FAILURE";
+    default: return prefix + "UNKNOWN";
  }
 }
 
