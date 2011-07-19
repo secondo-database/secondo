@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and
@@ -37,7 +37,7 @@ Gettext() and getline() functions, to allow input commands of arbitrary size.
 
 Dec 2004, M. Spiekermann. The read in command lines will be separated by a
 "\\n" symbol, otherwise the parser can't calculate a position in terms of lines
-and cols. 
+and cols.
 
 July 2005, M. Spiekermann. Help message improved.
 
@@ -96,7 +96,7 @@ using namespace std;
 #include "TTYParameter.h"
 
 
-class SecondoTTY : public Application 
+class SecondoTTY : public Application
 {
  public:
   SecondoTTY( const TTYParameter& t );
@@ -118,7 +118,7 @@ class SecondoTTY : public Application
   ListExpr CallSecondo();
   void CallSecondo2();
   bool MatchQuery(string& w, istringstream& is) const;
-  string ReadCommand(istringstream& is) const; 
+  string ReadCommand(istringstream& is) const;
 
   string parmFile;
   string user;
@@ -132,7 +132,7 @@ class SecondoTTY : public Application
   string            prompt;
   const string      prompt_first;
   const string      prompt_next;
-  
+
   int               errorCode;
   bool              isStdInput;
   bool              quit;
@@ -144,7 +144,7 @@ class SecondoTTY : public Application
 SecondoTTY::SecondoTTY( const TTYParameter& t )
   : Application( t.numArgs, (const char**)t.argValues ),
     cmd(""),
-    prompt(""), 
+    prompt(""),
     prompt_first("Secondo => "),
     prompt_next("Secondo -> ")
 {
@@ -173,28 +173,27 @@ void
 SecondoTTY::Usage()
 {
   stringstream cmdList;
-  cmdList << 
-  "The following internal commands are available:\n" << 
+  cmdList <<
+  "The following internal commands are available:\n" <<
   "\n" <<
   "  ?, HELP  - display this message\n" <<
   "  @FILE    - read commands from file 'FILE' (may be nested)\n" <<
   "  DEBUG n  - set debug level to n where n is an integer where each " <<
   "bit corresponds to one setting:\n" <<
   "           bit  0: debug mode (show annotated query and operator tree)\n" <<
-  "           bit  1: trace (show type mapping and rec. calls)\n" <<
+  "           bit  1: trace (show type mapping and recursive calls)\n" <<
   "           bit  2: trace nodes (construction of nodes of the op. tree,\n" <<
-  "                   and execution of the query processors Eval method)\n" <<
-  "           bit  3: localInfo (prints a warning if an operator does " << 
-  "not have" << 
-  " destroyed its \n" <<
-  "                   localinfo when destroying the operator tree" <<
+  "                   and execution of the query processor's Eval() method)\n"<<
+  "           bit  3: localInfo (prints a warning if an operator did not\n" <<
+  "                   have destroyed its localinfo before the operator tree\n"<<
+  "                   is deconstructed)\n" <<
   "  Q, QUIT  - exit the program\n" <<
   "  # ...    - comment line (first character on line has to be '#')\n" <<
-  "\n" <<
   "  REPEAT n <query> - execute <query> n times.\n" <<
   "\n" <<
   "Moreover, you may enter any valid SECONDO command introduced by the \n" <<
-  "keywords query, let, restore, etc. refer to the \"User Manual\" for \n" <<
+  "keywords 'query', 'let', 'restore', etc. "
+  "Refer to the \"User Manual\" for \n" <<
   "details. Internal commands are restricted to ONE line, while SECONDO \n" <<
   "commands may span several lines; a semicolon as the last character on \n" <<
   "a line terminates a command, but is not part of the command. \n" <<
@@ -214,13 +213,13 @@ SecondoTTY::ProcessFile( const string& fileName )
     oldBuffer = cin.rdbuf( fileInput.rdbuf() );
     cout << "*** Begin processing file '" << fileName << "'." << endl;
     isStdInput = false;
-    
+
     StopWatch scriptTime;
     scriptTime.start();
-     
+
     ProcessCommands();
 
-    cout << "Runtime for " << fileName << ": " 
+    cout << "Runtime for " << fileName << ": "
          << scriptTime.diffTimes() << endl;
 
     isStdInput = saveIsStdInput;
@@ -251,13 +250,13 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
   if (pos == string::npos)
     return isQuery;
 
-  if ( cmdWord == "QUERY" ) 
+  if ( cmdWord == "QUERY" )
   {
     isQuery = true;
   }
-  else 
-  {   
-    if ( cmdWord == "(" ) 
+  else
+  {
+    if ( cmdWord == "(" )
     {
       cmdWord = ReadCommand(is);
       if (cmdWord == "QUERY")
@@ -267,7 +266,7 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
     }
   }
   return isQuery;
-}    
+}
 
 void
 
@@ -302,20 +301,20 @@ SecondoTTY::ProcessCommand()
     cmdWord = ReadCommand(is);
 
     isQuery = MatchQuery(cmdWord, is);
-    const string err = 
-              "Syntax Error: Expecting REPEAT n { query ... | ( query ...]}!"; 
+    const string err =
+              "Syntax Error: Expecting REPEAT n { query ... | ( query ...]}!";
 
-    if (!isQuery) 
+    if (!isQuery)
     {
      cerr << err << endl;
-    } 
-    else 
+    }
+    else
     {
       // remove repeat <n> from the cmd
       cmd = cmd.substr(6);
       size_t pos = cmd.find_first_of("(q");
       if ( pos != string::npos )
-      { 
+      {
         cmd = cmd.substr( pos );
         cout << "Repeating next query " << repeatCtr << " times ..." << endl;
 
@@ -329,8 +328,8 @@ SecondoTTY::ProcessCommand()
       else
       {
         // should never happen !
-        cerr << err << endl; 
-      }   
+        cerr << err << endl;
+      }
     }
   }
   else
@@ -350,7 +349,7 @@ SecondoTTY::ShowPrompt( const bool first )
     return;
 
   prompt = first ? prompt_first : prompt_next;
-    
+
   #ifdef READLINE
     rl_set_prompt( prompt.c_str() );
   #else
@@ -459,10 +458,10 @@ SecondoTTY::ProcessCommands()
     {
       try {
         ProcessCommand();
-      } 
+      }
       catch (SecondoException e) {
         cerr << "Exception caught: " << e.msg() << endl;
-      }  
+      }
     }
   }
 }
@@ -534,7 +533,7 @@ SecondoTTY::ShowQueryResult( ListExpr list )
   }
   else
   {
-    DisplayTTY::GetInstance().DisplayResult( nl->First( list ), 
+    DisplayTTY::GetInstance().DisplayResult( nl->First( list ),
                                              nl->Second( list ) );
   }
 }
@@ -577,7 +576,7 @@ SecondoTTY::CallSecondo()
                  outList, errorCode, errorPos, errorMessage );
     NList::setNLRef(nl);
   }
-  
+
   if ( errorCode != 0 )
   {
     si->WriteErrorList( outList );
@@ -593,7 +592,7 @@ SecondoTTY::CallSecondo()
   cerr << endl;
   if (errorCode != 0)
   {
-    if (errorMessage != "") 
+    if (errorMessage != "")
     {
       cerr << color(red) << errorMessage << color(normal) << endl;
     }
@@ -603,15 +602,15 @@ SecondoTTY::CallSecondo()
       cmsg.error() << si->GetErrorMessage( errorCode ) << endl;
       cmsg.send();
     }
-  } 
- 
+  }
+
   return (outList);
 }
 
 /*
 12 Secondo2
 
-This would normally be  the  main function of SecondoTTY.
+This would normally be the main function of SecondoTTY.
 
 */
 
@@ -678,7 +677,7 @@ SecondoTTY::Execute()
   bool useOutputFile = oFileName.length() > 0;
 
   si = new SecondoInterface();
-  string errorMsg("");  
+  string errorMsg("");
   if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg  ) )
   {
 
@@ -697,31 +696,31 @@ SecondoTTY::Execute()
         oldOutputBuffer = cout.rdbuf( fileOutput.rdbuf() );
         cout << endl << "Redirecting output to " << oFileName << endl;
       }
-      else 
+      else
       {
         cerr << "Error: Could not redirect ouput to " << oFileName << endl;
         useOutputFile = false;
-      } 
+      }
     }
-   
+
     if ( isStdInput )
     {
       cout << endl << "Secondo TTY ready for operation." << endl
            << "Type 'HELP' to get a list of available commands." << endl;
       ProcessCommands();
     }
-    else 
+    else
     {
-      ProcessFile(iFileName);  
-    } 
+      ProcessFile(iFileName);
+    }
 
     if ( useOutputFile ){
       cout.rdbuf( oldOutputBuffer );
     }
     DisplayTTY::Finish();
   } else {
-    cerr << "Error in initializing the secondo system: " 
-         << errorMsg << endl; 
+    cerr << "Error in initializing the secondo system: "
+         << errorMsg << endl;
   }
 
   try {
@@ -729,11 +728,11 @@ SecondoTTY::Execute()
     delete si;
     si = 0;
   }
-  catch (SecondoException e) 
+  catch (SecondoException e)
   {
      cerr << e.msg() << endl;
-     rc = 17;    
-  }       
+     rc = 17;
+  }
   return (rc);
 }
 
@@ -752,20 +751,21 @@ be NULL.
 */
 const char* keywords[] = { "abort", "algebra", "algebras", "begin", "commit",
                      "close", "constructors", "consume","count", "create",
-                     "database", "databases", "DEBUG", "delete",
-                     "extend", "feed", "filter", "from",  "let", "list",
-                     "objects", "open", "operators", "query",
-                     "restore", "save", "SHOW", "transaction", "type",
-                     "types", "update","SEC2TYPEINFO","SEC2OPERATORUSAGE",
-                     "SEC2OPERATORINFO","SEC2FILEINFO","SEC2COUNTERS",
-                     "SEC2COMMANDS","SEC2CACHEINFO",
+                     "database", "databases", "DEBUG", "delete", "derive",
+                     "else","endif","endwhile","extend", "feed", "filter",
+                     "from", "if", "kill", "let", "list","objects", "open",
+                     "operators", "query","restore", "save", "SHOW", "then",
+                     "transaction", "type","types", "update","while",
+                     "SEC2TYPEINFO","SEC2OPERATORUSAGE","SEC2OPERATORINFO",
+                     "SEC2FILEINFO","SEC2COUNTERS","SEC2COMMANDS",
+                     "SEC2CACHEINFO",
                      (char *)0 };
 
 
 /*
 ~dupstr~
 
-This fucntion returns a clone of the argument string;
+This funCtion returns a clone of the argument string;
 
 */
 char *
@@ -862,7 +862,7 @@ int SecondoTTYMode(const TTYParameter& tp)
     if(query!=""){
       add_history(query.c_str());
       query = "";
-    } 
+    }
     hist_file.close();
     historyFile = FileSystem::GetCurrentFolder();
     FileSystem::AppendItem(historyFile, HISTORY_FILE);
@@ -894,7 +894,7 @@ int SecondoTTYMode(const TTYParameter& tp)
   }
 #endif
   return (rc);
-} 
+}
 
 
 
