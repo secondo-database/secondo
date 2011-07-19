@@ -38,7 +38,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 // On Linux64 palttform, this makes Secondo report errors and crash when
 // connecting in the client server mode.
 
-//#define ACHMANNPATCH
+#define ACHMANNPATCH
 
 #include "SecondoConfig.h"
 
@@ -454,6 +454,9 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
   union
   {
     sockaddr    sock;
+#ifdef ACHMANNPATCH
+    sockaddr_un sock_unix;
+#endif
     sockaddr_in sock_inet;
     char        name[MAX_HOST_NAME];
   } u;
