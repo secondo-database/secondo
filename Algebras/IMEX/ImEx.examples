@@ -74,6 +74,20 @@ Example  : query  Kinos feed shpexport['kinos.shp',geoData] count
 Result   : 83
 
 
+Operator : shpexport
+Number   : 3
+Signature: stream(s) x text x text -> stream(s) , s in {Point, Points, Line }
+Example  : query  Kinos feed projecttransformstream[geoData] shpexport['kinos.shp','kinos.idx'] count
+Result   : 83
+
+
+Operator : shpexport
+Number   : 4
+Signature: stream(tuple(...) x text x id  x text -> stream(tuple(...))
+Example  : query  Kinos feed shpexport['kinos.shp',geoData,'kinos.idx'] count
+Result   : 83
+
+
 Operator : shptype
 Number   : 1
 Signature: text -> text
