@@ -28,7 +28,10 @@ include ../../makefile.env
 CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all:  $(OBJECTS)
+all:  Crypt.o $(OBJECTS)
+
+Crypt.o: Crypt.cpp
+	$(CC) -c -I ../../include -Wall -o Crypt.o $<
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
