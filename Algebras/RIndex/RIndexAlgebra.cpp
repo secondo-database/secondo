@@ -310,23 +310,52 @@ information as text.
 */
 
 ListExpr statRindexTM(ListExpr args){
-   string err = "stream(rect) expected";
-   if(!nl->HasLength(args,1)){
+   string err = "stream(rect) or stream(tuple) x attrname expected";
+   int len = nl->ListLength(args);
+   if((len!=2)){
       return listutils::typeError(err);
    }
 
-   if(!Stream<Rectangle<2> >::checkType(nl->First(args))){
+   if(Stream<Rectangle<2> >::checkType(nl->First(args))){
+      return nl->SymbolAtom(FText::BasicType());
+   }
+   if(len!=2){
       return listutils::typeError(err);
    }
-   return nl->SymbolAtom(FText::BasicType());
+
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+      return listutils::typeError(err); 
+   }
+   ListExpr sec = nl->Second(args);
+   if(!listutils::isSymbol(sec)){
+      return listutils::typeError(err); 
+   }
+   ListExpr attrType;
+   string name = nl->SymbolValue(sec);
+   int index = listutils::findAttribute(
+                            nl->Second(nl->Second(nl->First(args))),
+                            name, attrType);
+   if(index==0){
+       return listutils::typeError("Attribute " + name + 
+                                   " not known in stream");
+   }
+   if(!Rectangle<2>::checkType(attrType)){
+       return listutils::typeError("Attribute " + name + 
+                              " not of type " + Rectangle<2>::BasicType());
+   }
+
+   return nl->ThreeElemList( 
+              nl->SymbolAtom(Symbols::APPEND()),
+              nl->OneElemList(nl->IntAtom(index-1)),
+              nl->SymbolAtom(FText::BasicType()));
+
+
 }
 
 
 
-int statRindexVM( Word* args, Word& result, int message,
+int statRindexVMS( Word* args, Word& result, int message,
                     Word& local, Supplier s ){
-
-
    Stream<Rectangle<2> > stream(args[0]);
    Rectangle<2>* r;
    stream.open();
@@ -354,22 +383,94 @@ int statRindexVM( Word* args, Word& result, int message,
 }
 
 
+string  hMem(size_t mem){
+
+   stringstream ss; 
+   if(mem >= (1u << 30)){
+      ss  << (mem / (1u << 30) ) << "GB";
+   } else if(mem >= (1u << 20)){
+      ss << (mem / (1u << 20)) << "MB" ;
+   } else if(mem > (1u << 10)){
+      ss << (mem / (1u << 10)) << "kB" ;
+   } else  {
+      ss << mem << "b";
+   }
+   return ss.str();
+}
+
+
+int statRindexVMTS( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+   Stream<Tuple> stream(args[0]);
+   Rectangle<2>* r;
+   int index = ((CcInt*)args[2].addr)->GetValue();
+
+   stream.open();
+   Tuple* t;
+   t  = stream.request();
+   size_t tupleSizes = 0;
+   RIndex<2,int> ind;
+   while(t){
+     r = (Rectangle<2>*) t->GetAttribute(index);
+     ind.insert(*r,1);
+     tupleSizes += t->GetMemSize();
+     t->DeleteIfAllowed();
+     t = stream.request();
+   }
+   stream.close();
+   result = qp->ResultStorage(s);
+   FText* res = static_cast<FText*>(result.addr);
+   stringstream out;
+   out << "ind.countEntriesm =" << ind.countEntries() << endl;
+   out << "ind.height() = " << ind.height() << endl; 
+   out << "noLeafs() = " << ind.noLeafs() << endl;
+   out << "dim0Entries() = " << ind.dim0Entries() << endl;
+   out << "dim0Leafs() = " << ind.dim0Leafs() << endl;
+   out << "maxBranches() == " << ind.maxBranches() << endl;
+   out << "branches() = " << ind.branches() << endl;
+   size_t um = ind.usedMem();
+   out << "usedMem() = " << ind.usedMem() << " (" << hMem(um) << ")" << endl;
+   out << "used mem by tuples = " << tupleSizes 
+       << " (" << hMem(tupleSizes) << ")" <<  endl;
+   res->Set(true,out.str());
+   return 0;
+}
+
+
+
 const string statRindexSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text> stream(rect)  -> text </text---> "
+      "( <text> stream(rect) x ANY -> text \n"
+      " stream(tuple) x attrname -> text</text---> "
       "<text>_ statRindex  </text--->"
       "<text>Creates an RIndex from the stream and returns statistics as text"
+      " The ANY parameter is just a dummy."
       " </text--->"
-      "<text>query strassen feed heightRIndex "
+      "<text>query strassen extend [B : bbox(.geoData)] feed statRIndex[B] "
       " </text--->"
              ") )";
+
+int statRindexSelect(ListExpr args){
+  if(Stream<Rectangle<2> >::checkType(nl->First(args))){
+     return 0;
+  } else {
+     return 1;
+  }
+}
+
+
+ValueMapping statRindexVM[] = {
+     statRindexVMS, statRindexVMTS
+  };
 
 
 Operator statRindex (
   "statRindex",
   statRindexSpec,
+  2,
   statRindexVM,
-  Operator::SimpleSelect,
+  statRindexSelect,
   statRindexTM);
 
 /*
@@ -675,15 +776,18 @@ class RealJoinRindexLocalInfo{
         s1.open();
         Tuple* t = s1.request();
         if(t){
-           relation = new Relation(t->GetTupleType(),true);
+           vec = new vector<Tuple*>; // Relation(t->GetTupleType(),true);
         } else {
-           relation = 0;
+           vec = 0;
         }
         while(t){
-           relation->AppendTuple(t);
+           //relation->AppendTuple(t);
+           vec->push_back(t);
+           //TupleId id = t->GetTupleId();
+           TupleId id = vec->size()-1;
            Rectangle<2>* r = (Rectangle<2>*)t->GetAttribute(_i1);
-           ind.insert(*r, t->GetTupleId());
-           t->DeleteIfAllowed(); 
+           ind.insert(*r, id);
+           //t->DeleteIfAllowed(); 
            t = s1.request();
         }
         s1.close();
@@ -694,9 +798,15 @@ class RealJoinRindexLocalInfo{
      ~RealJoinRindexLocalInfo(){
          s2.close();
          tt->DeleteIfAllowed();
-         if(relation){
-            delete relation;
+         if(vec){
+             for(unsigned int i =0; i<vec->size(); i++){
+               vec->at(i)->DeleteIfAllowed();
+             }
+             delete vec;
          }
+         //if(relation){
+         //   delete relation;
+         //}
          if(currentTuple){
             currentTuple->DeleteIfAllowed();
          }
@@ -726,9 +836,10 @@ class RealJoinRindexLocalInfo{
          pair<Rectangle<2>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
-         Tuple* t1 = relation->GetTuple(p1.second, false);
+         //Tuple* t1 = relation->GetTuple(p1.second, false);
+         Tuple* t1 = vec->at(p1.second);
          Concat(t1, currentTuple, result);
-         t1->DeleteIfAllowed();         
+         //t1->DeleteIfAllowed();         
          return result;
       }
 
@@ -739,7 +850,8 @@ class RealJoinRindexLocalInfo{
       TupleType* tt;
       vector<pair<Rectangle<2>,TupleId> > lastRes;
       Tuple* currentTuple;
-      Relation* relation;
+      //Relation* relation;
+      vector<Tuple*>* vec;
 };
 
 template<class JLI>
