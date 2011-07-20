@@ -1090,7 +1090,7 @@ ListExpr shpexportTM(ListExpr args){
   string err = "   stream(SHPEXPORTABLE) x text [ x text ]\n "
                " or stream(tuple(...)) x text x attrname [x text] expected";
 
-  // the second argument must be a text  
+  // the second argument must be a text
   if(!FText::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -1101,20 +1101,20 @@ ListExpr shpexportTM(ListExpr args){
      ListExpr an = nl->Third(args);
      if(!listutils::isSymbol(an)){
        return listutils::typeError(err + ": invalid attribute name");
-     }     
+     }
      ListExpr type;
      string name = nl->SymbolValue(an);
      ListExpr attrList = nl->Second(nl->Second(stream));
      int pos = listutils::findAttribute(attrList, name, type);
      if(pos<1){
-       return listutils::typeError(err + ": attribute " + name + 
+       return listutils::typeError(err + ": attribute " + name +
                                    " not member of tuple");
      }
      pos--;
      ListExpr errorInfo = listutils::emptyErrorInfo();
      // type of attribute must be in KIND SHPEXORTABLE
      if(!am->CheckKind(Kind::SHPEXPORTABLE(),type, errorInfo)){
-       return listutils::typeError(err + ":Attribute "+ name + 
+       return listutils::typeError(err + ":Attribute "+ name +
                                   "not in kind SHPEXPORTABLE");
      }
      if(len==4){
@@ -1180,7 +1180,7 @@ class shpLInfo{
          zMax = 0;
          mMin = 0;
          mMax = 0;
-         if(!idxname->IsDefined() || 
+         if(!idxname->IsDefined() ||
             (idxname->GetValue()).length()==0){
             produceIdx = false;
          } else {
@@ -1273,8 +1273,8 @@ class shpLInfo{
              mMin = min(mMin,value->getMinM());
              mMax = max(mMax,value->getMaxM());
           }
-       } 
-       uint32_t contentlength = file.tellp()/2 - 4 - offset; 
+       }
+       uint32_t contentlength = file.tellp()/2 - 4 - offset;
        if(produceIdx){
           WinUnix::writeBigEndian(idxfile, offset);
           WinUnix::writeBigEndian(idxfile, contentlength);
@@ -1301,7 +1301,7 @@ class shpLInfo{
        WinUnix::writeLittle64(file,mMin);
        WinUnix::writeLittle64(file,mMax);
        file.close();
-        
+
        if(produceIdx){
          uint32_t len = idxfile.tellp() / 2;
          idxfile.seekp(24,ios_base::beg);
@@ -1316,7 +1316,7 @@ class shpLInfo{
          WinUnix::writeLittle64(idxfile,mMin);
          WinUnix::writeLittle64(idxfile,mMax);
          idxfile.close();
-       } 
+       }
 
     }
 
@@ -1466,7 +1466,7 @@ ValueMapping shpexportmap[] =
 */
 
 int shpexportSelect( ListExpr args )
-{ if(nl->ListLength(args)==2){
+{ if(!listutils::isTupleStream(nl->First(args))){
     return 0;
   } else {
     return 1;
@@ -1479,11 +1479,16 @@ int shpexportSelect( ListExpr args )
 */
 const string shpexportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>stream(X) x  string -> stream(X)\n"
-    "stream(tuple(...))) x string x bool x bool -> stream(tuple...)</text--->"
-    "<text> stream shpexport [ file ]</text--->"
-    "<text> Exports stream content to a shp file </text--->"
-    "<text> not tested !!!</text--->"
+    "( <text>stream(T) x  text [x text] -> stream(T), X in SHPEXPORTABLE\n"
+    "stream(tuple(T))) x text x attrname [x text] -> stream(tuple(T))"
+    ", (attrname W) in T, W in SHPEXPORTABLE</text--->"
+    "<text> stream shpexport [ shpfile [, idxfile] ]\n"
+    "tuplestream shpexport[ shpfile, attrname [, idxfile] ]</text--->"
+    "<text> Exports stream content to the specified shp file. If the optional"
+    "argument is provided, also the according shape index file is created."
+    "</text--->"
+    "<text>query  Kinos feed projecttransformstream[geoData] "
+    "shpexport['kinos.shp'] count</text--->"
     ") )";
 
 /*
