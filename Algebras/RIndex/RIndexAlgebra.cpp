@@ -448,6 +448,71 @@ ListExpr joinRindexTM(ListExpr args){
 }
 
 
+ListExpr realJoinRindexTM(ListExpr args){
+
+
+   string err = "stream(tuple) x stream(tuple) x a_i x b_j expected";
+   if(!nl->HasLength(args,4)){
+     return listutils::typeError(err);
+   }
+
+   if(!Stream<Tuple>::checkType(nl->First(args)) ||
+      !Stream<Tuple>::checkType(nl->Second(args)) ||
+      !listutils::isSymbol(nl->Third(args)) ||
+      !listutils::isSymbol(nl->Fourth(args))){
+     return listutils::typeError(err);
+   }
+
+   ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
+   ListExpr attrList2 = nl->Second(nl->Second(nl->Second(args)));
+   string name1 = nl->SymbolValue(nl->Third(args));
+   string name2 = nl->SymbolValue(nl->Fourth(args));
+
+   ListExpr type1;
+   ListExpr type2;
+
+   int index1 = listutils::findAttribute(attrList1, name1, type1);
+   if(index1 == 0){
+     return listutils::typeError("Attribute " + name1 + 
+                                 " not present in first stream");
+   }
+   if(!Rectangle<2>::checkType(type1)){
+     return listutils::typeError("Attribute " + name1 + 
+                                 " not of type " + Rectangle<2>::BasicType());
+   }
+   
+   int index2 = listutils::findAttribute(attrList2, name2, type2);
+   if(index2 == 0){
+     return listutils::typeError("Attribute " + name2 + 
+                                 " not present in second stream");
+   }
+   if(!Rectangle<2>::checkType(type2)){
+     return listutils::typeError("Attribute " + name2 + 
+                                 " not of type " + Rectangle<2>::BasicType());
+   }
+ 
+   ListExpr attrList = listutils::concat(attrList1, attrList2);
+
+   if(!listutils::isAttrList(attrList)){
+     return listutils::typeError("name conflicts in tuple streams");
+   }
+
+   ListExpr resList = nl->TwoElemList( 
+                           nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                           nl->TwoElemList(
+                               nl->SymbolAtom(Tuple::BasicType()),
+                               attrList));
+
+
+   return nl->ThreeElemList(
+                   nl->SymbolAtom(Symbols::APPEND()),
+                   nl->TwoElemList(nl->IntAtom(index1-1), 
+                                   nl->IntAtom(index2-1)),
+                   resList);
+}
+
+
+
 class JoinRindexLocalInfo{
 
   public:
@@ -597,6 +662,85 @@ class SymmJoinRindexLocalInfo{
 };
 
 
+class RealJoinRindexLocalInfo{
+
+  public:
+     RealJoinRindexLocalInfo(Word& _s1, Word& _s2, int _i1, 
+                             int _i2, ListExpr _tt):
+         ind(), s2(_s2),  i2(_i2) {
+
+        // build the index from the first stream
+        tt = new TupleType(_tt);
+        Stream<Tuple> s1(_s1);
+        s1.open();
+        Tuple* t = s1.request();
+        if(t){
+           relation = new Relation(t->GetTupleType(),true);
+        } else {
+           relation = 0;
+        }
+        while(t){
+           relation->AppendTuple(t);
+           Rectangle<2>* r = (Rectangle<2>*)t->GetAttribute(_i1);
+           ind.insert(*r, t->GetTupleId());
+           t->DeleteIfAllowed(); 
+           t = s1.request();
+        }
+        s1.close();
+        s2.open();
+        currentTuple = 0;
+     }
+
+     ~RealJoinRindexLocalInfo(){
+         s2.close();
+         tt->DeleteIfAllowed();
+         if(relation){
+            delete relation;
+         }
+         if(currentTuple){
+            currentTuple->DeleteIfAllowed();
+         }
+         
+      }
+
+      Tuple* nextTuple(){
+        if(lastRes.empty() && (currentTuple!=0)){
+           currentTuple->DeleteIfAllowed();
+           currentTuple = 0;
+         }        
+
+         while(lastRes.empty()){
+            Tuple* t = s2.request();
+            if(t==0){
+               return 0;
+            }
+            Rectangle<2>* r = (Rectangle<2>*) t->GetAttribute(i2);
+            ind.findSimple(*r, lastRes); 
+            if(lastRes.empty()){
+                t->DeleteIfAllowed();
+            } else {
+               currentTuple = t;
+            }
+         }
+
+         pair<Rectangle<2>,TupleId> p1 = lastRes.back();
+         lastRes.pop_back();
+         Tuple*result = new Tuple(tt);
+         Tuple* t1 = relation->GetTuple(p1.second, false);
+         Concat(t1, currentTuple, result);
+         t1->DeleteIfAllowed();         
+         return result;
+      }
+
+   private:
+      RIndex<2,TupleId> ind;
+      Stream<Tuple> s2;
+      int i2;
+      TupleType* tt;
+      vector<pair<Rectangle<2>,TupleId> > lastRes;
+      Tuple* currentTuple;
+      Relation* relation;
+};
 
 template<class JLI>
 int joinRindexVM( Word* args, Word& result, int message,
@@ -685,6 +829,28 @@ Operator symmJoinRindex (
   joinRindexTM);
 
 
+const string realJoinRindexSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text> stream(tuple(X)) x stream(tuple(Y)) x a_i x b_j -> "
+      "stream(tuple(X o Y)) </text---> "
+      "<text>_ _ realJoinRindex  </text--->"
+      "<text>Performes a spatial join on two streams. "
+      "The attributes a_i and b_j must"
+      " be of type rect. The result is a stream of "
+      "tuples with intersecting rectangles build as concatenation"
+      " of the source tuples"
+      " </text--->"
+      "<text>query strassen feed extend[B : bbox(.geoData] strassen "
+      "feed extend[B : bbox(.geoData)] realJoinRindex[B,B] count "
+      " </text--->"
+             ") )";
+
+Operator realJoinRindex (
+  "realJoinRindex",
+  realJoinRindexSpec,
+  joinRindexVM<RealJoinRindexLocalInfo>,
+  Operator::SimpleSelect,
+  realJoinRindexTM);
 /*
 Now, we use a main  memory implementation of an r-tree for comparisons
 
@@ -803,6 +969,7 @@ class RIndexAlgebra : public Algebra {
       AddOperator(&statRindex);
       AddOperator(&joinRindex);
       AddOperator(&symmJoinRindex);
+      AddOperator(&realJoinRindex);
       
       // operators using mmrtrees
       AddOperator(&insertMMRTree);

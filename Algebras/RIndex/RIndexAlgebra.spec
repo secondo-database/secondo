@@ -10,6 +10,7 @@ operator statRindex  alias STATRINDEX  pattern _ op
 
 operator joinRindex    alias   JOINRINDEX  pattern _ _ op [ _, _ ]
 operator symmJoinRindex    alias   SYMMJOINRINDEX  pattern _ _ op [ _, _ ]
+operator realJoinRindex    alias   REALJOINRINDEX  pattern _ _ op [ _, _ ]
 
 
 operator insertMMRTree    alias   INSERTMMRTREE  pattern _ op [ _, _ ]

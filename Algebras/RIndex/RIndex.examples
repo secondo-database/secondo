@@ -34,11 +34,18 @@ Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[
 Result   : TRUE 
 
 
-Operator : symmjoinRindex
+Operator : symmJoinRindex
 Number   : 1
 Signature:  stream(tuple) x stream(tuple) attrname x rectangle  -> stream(tuple(TID1 tid)(TID2 tid)) 
 Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] symmJoinRindex[B,B] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
 Result   : TRUE 
+
+Operator : realJoinRindex
+Number   : 1
+Signature:  stream(tuple) x stream(tuple) attrname x rectangle  -> stream(tuple(TID1 tid)(TID2 tid)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRindex[B,B_a] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
 
 Operator : insertMMRTree 
 Number   : 1

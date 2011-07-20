@@ -50,6 +50,9 @@ into this index;
 */
       void insert(const Rectangle<dim> & r, 
                   const T& t){
+         if(!r.IsDefined()){
+            return;
+         }
          if(root){
            root->insert(r,t);
          } else {
@@ -65,6 +68,9 @@ result of this function is false, true otherwise.
 
 */
       bool erase(const Rectangle<dim>& r, const T& t){
+         if(!r.IsDefined()){
+            return;
+         }
          if(!root){
             return false;
          }
@@ -88,7 +94,11 @@ into res. This function is just for checking the structure.
 
     void findSimple(const Rectangle<dim>& r, 
                     vector<pair<Rectangle<dim> , T> >& res){
+        
       res.clear();
+      if(!r.IsDefined()){
+        return;
+      }
       if(root){
          root->findSimple(r,res);
       }
