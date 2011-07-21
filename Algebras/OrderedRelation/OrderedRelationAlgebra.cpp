@@ -1658,6 +1658,7 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
         linfo = new ORangeLocalInfo;
         linfo->completeCalls = 0;
         linfo->completeReturned = 0;
+        linfo->iter = 0;
         local = SetWord(linfo);
 
         //initialization of sizes
