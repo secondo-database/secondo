@@ -18,3 +18,4 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator spatialjoin alias SPATIALJOIN pattern _ _ op [ _, _ ]
+operator parajoin2 alias PARAJOIN2 pattern _ _ op[_,_;fun] implicit parameters stream1, stream2 types ANY, ANY2
