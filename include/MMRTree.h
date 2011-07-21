@@ -40,7 +40,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 1 Preparations
 
-This section contains  __includes__, __namespaces__, and __forward declarations__.
+This section contains  __includes__, 
+                      __namespaces__, and 
+                      __forward declarations__.
 
 
 */
@@ -50,6 +52,8 @@ This section contains  __includes__, __namespaces__, and __forward declarations_
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <set>
+#include <vector>
 #include <utility>
 
 #include "RectangleAlgebra.h"
@@ -59,7 +63,7 @@ namespace mmrtree {
 
 
 
-template<unsigned dim> class Node;
+template<unsigned dim, class T> class Node;
 
 
 /*
@@ -67,7 +71,7 @@ template<unsigned dim> class Node;
 
 */
 
-template<unsigned dim> class Rtree{
+template<unsigned dim, class T> class RtreeT{
 
 public:
 /*
@@ -77,13 +81,13 @@ This constructor creates a new empty RTRee with ~min~ and ~max~ as
 parameters for the minimum/ maximum number of entries within a node.
 
 */
-   Rtree(int min, int max);
+   RtreeT(const int min, const int max);
 
 /*
 2.2 Destructor 
 
 */
-  ~Rtree(){
+  ~RtreeT(){
       if(root){
          root->destroy();
          delete root;
@@ -98,7 +102,7 @@ parameters for the minimum/ maximum number of entries within a node.
 Inserts a box together with an id into the R-Tree.
 
 */
-   void insert(const Rectangle<dim>& box, long id);
+   void insert(const Rectangle<dim>& box, const T& id);
 
 /*
 2.3 ~findAll~
@@ -107,7 +111,10 @@ Returns all object's ids stored in the tree where the box
 intersects ~box~. 
 
 */
-  void findAll(const Rectangle<dim>& box, set<long>& res)const;
+  void findAll(const Rectangle<dim>& box, set<T>& res)const;
+
+  void findSimple(const Rectangle<dim>& box, 
+                  vector<pair<Rectangle<dim>,T> >& res)const;
 
 /*
 2.4 ~findAllExact~
@@ -116,7 +123,10 @@ Returns all object ids stored within the tree whose corresponding
 rectangle is AlmostEqual to ~box~
 
 */
-  void findAllExact(const Rectangle<dim>& box, set<long>& res)const;
+  void findAllExact(const Rectangle<dim>& box, set<T>& res)const;
+
+  void findSimpleExact(const Rectangle<dim>& box, 
+                       vector<pair<Rectangle<dim>,T> >& res)const;
 
 
 
@@ -132,7 +142,7 @@ the result will be __false__.
 
 
 */
-  bool erase(const Rectangle<dim>& box, const long id);
+  bool erase(const Rectangle<dim>& box, const T& id);
 
 /*
 2.4 ~printStats~
@@ -207,7 +217,7 @@ private:
 */
    int min; // minimum number of entries within a node
    int max; // maximum number of entries within a node
-   Node<dim>* root; // root node
+   Node<dim, T>* root; // root node
 
 /*
 ~getListString~
@@ -226,8 +236,8 @@ Prints the content of the subtree given by root as relation to
 
 */
 
-   void printAsRelRec(Node<dim>* root, ostream& o,
-                      const int level, int& id, const int father) const;
+   void printAsRelRec(Node<dim,T>* root, ostream& o,
+                      const int level, int& nodeId, const int father) const;
 
 
 /*
@@ -238,7 +248,7 @@ Function supporting the public function ~printAsTree~.
 
 */
 
-void printAsTreeRec(const Node<dim>* root, ostream& o)const;
+void printAsTreeRec(const Node<dim,T>* root, ostream& o)const;
 
 /*
 ~noNodes~
@@ -246,7 +256,7 @@ void printAsTreeRec(const Node<dim>* root, ostream& o)const;
 Computes the number of non-object-nodes within the tree.
 
 */
-   int noNodes(const Node<dim>* root) const;
+   int noNodes(const Node<dim,T>* root) const;
 
   
 /*
@@ -255,7 +265,7 @@ Computes the number of non-object-nodes within the tree.
 Returns the number of leaves within the tree rooted by ~root~.
 
 */
-   int noLeaves(const Node<dim>* root) const;
+   int noLeaves(const Node<dim,T>* root) const;
 
 /*
 ~noObjects~
@@ -264,7 +274,7 @@ Computes the number of stored objects. If an object is
 multiple stored, each instance is count.
 
 */
-   int noObjects(const Node<dim>* root) const;
+   int noObjects(const Node<dim,T>* root) const;
 
 /*
 ~height~
@@ -272,7 +282,7 @@ multiple stored, each instance is count.
 Computes the height of the tree rooted by ~root~.
 
 */
-   int height(const Node<dim>* root) const;
+   int height(const Node<dim,T>* root) const;
 
 /*
 ~insert~
@@ -281,14 +291,14 @@ Inserts a  set of subtrees at the specified levels.
 This function supports the ~erase~ function. 
 
 */
-void insert(const set<pair < int , Node<dim>* > >&  Q);
+void insert(const set<pair < int , Node<dim,T>* > >&  Q);
 
 /*
 Inserts a node at the specified level. If the tree grows, true is 
 returned. If a leaf should be inserted, just set level to -1.
 
 */
-bool insertNodeAtLevel(int level, Node<dim>* node);
+bool insertNodeAtLevel(int level, Node<dim,T>* node);
 
 /*
 ~insertRecAtLevel~
@@ -296,8 +306,8 @@ bool insertNodeAtLevel(int level, Node<dim>* node);
 Function supporting the ~insertNodeAtLevel~ function.
 
 */
-pair<Node<dim>*, Node<dim>* >* 
-  insertRecAtLevel(Node<dim>*& root,  Node<dim>* node, 
+pair<Node<dim,T>*, Node<dim,T>* >* 
+  insertRecAtLevel(Node<dim,T>*& root,  Node<dim,T>* node, 
                    const int targetLevel, const int currentLevel);
 
 
@@ -308,10 +318,13 @@ Searches in the subtree given by root for objects whose
 bounding box intersects ~box~ and collect them in ~res~.
 
 */   
-   void findAllRec(const Node<dim>* root,
+   void findAllRec(const Node<dim,T>* root,
                    const Rectangle<dim>& box,
-                   set<long>& res)const;
+                   set<T>& res)const;
 
+   void findSimpleRec(const Node<dim,T>* root,
+                   const Rectangle<dim>& box,
+                   vector< pair<Rectangle<dim>,T> >& res)const;
 /*
 ~findAllRecExact~
 
@@ -320,9 +333,13 @@ bounding box contains ~box~ and collect the object ids
 whose corresponding rectangle is equals to ~box~.
 
 */   
-   void findAllRecExact(const Node<dim>* root,
+   void findAllRecExact(const Node<dim,T>* root,
                    const Rectangle<dim>& box,
-                   set<long>& res)const;
+                   set<T>& res)const;
+   
+    void findSimpleRecExact(const Node<dim,T>* root,
+                   const Rectangle<dim>& box,
+                   vector<pair<Rectangle<dim>,T> >& res)const;
 
 /* 
 Erases one occurence of id.
@@ -333,8 +350,8 @@ inserted into ~Q~. An exception is the root of the tree which is not
 removed even if  0 entries  left in the root.
 
 */
-bool eraseRec(Node<dim>*& root,const Rectangle<dim>& box, const long id,
-              set<pair < int, Node<dim>*> >& Q, int level);
+bool eraseRec(Node<dim,T>*& root,const Rectangle<dim>& box, const T& id,
+              set<pair < int, Node<dim, T>*> >& Q, int level);
 
 
 /*
@@ -350,17 +367,26 @@ This function checks the complete tree for RTree properties.
 */
 bool checkTree(const bool print = true)const;
 
-bool checkBox(const Node<dim>* root, const bool print,const int level)const;
+bool checkBox(const Node<dim,T>* root, const bool print,const int level)const;
 
-bool checkSonNumber(const Node<dim>* root,  
+bool checkSonNumber(const Node<dim,T>* root,  
                     const bool print,
                     const int level) const;
 
-bool checkLeafLevel(const Node<dim>* root, const bool print) const;
+bool checkLeafLevel(const Node<dim,T>* root, const bool print) const;
 
-int getHeight(const Node<dim>* root)const;
+int getHeight(const Node<dim,T>* root)const;
 
 }; 
+
+template<unsigned dim>
+class Rtree: public RtreeT<dim,long>{
+ public:
+   Rtree(const int min, const int max): RtreeT<dim,long>(min,max){}
+
+};
+
+
 
 /*
 
@@ -377,9 +403,10 @@ is declared as a friend of this class.
 
 */
 
-template<unsigned dim> class Node{
+template<unsigned dim, class T> 
+class Node{
 
-friend class Rtree<dim>;
+friend class RtreeT<dim,T>;
 private:
 /*
 1.1 Constructors
@@ -388,8 +415,8 @@ private:
 This constructor creates a leaf node.
 
 */
-  Node(const Rectangle<dim>& abox, long id):
-    min(-1), max(-1),count(id), box(abox), sons(0){ }  
+  Node(const Rectangle<dim>& abox, const T& _id):
+    min(-1), max(-1),count(-1),id(_id), box(abox), sons(0){ }  
 
 
 /*
@@ -397,7 +424,7 @@ Copy constructor.
 
 */
   Node(const Node& src):min(src.min), max(src.max), 
-    count(src.count),box(src.box){
+    count(src.count), id(src.id), box(src.box){
     if(src.sons){
        sons = new Node[max+1];
        for(int i=0;i<count;i++){
@@ -417,6 +444,7 @@ Copy constructor.
     this->min = src.min;
     this.max = src.max;
     this.count = src.count;
+    this.id = src.id;
     this.box = src.box;
     if(src.sons){
        sons = new Node[max+1];
@@ -449,9 +477,9 @@ be removed, use a combination of destroy and delete.
 */
   string getLabel() const{
     stringstream s; 
-    if(max <0){
-      s << "' o: " << count << "'";  
-    } else {
+    if(max <0){ // a content node
+      s << "' o: " << id  << "'";  
+    } else { // an inner node
       s << "' (";
       for(unsigned int i=0;i<dim;i++){
         if(i!=0){
@@ -499,9 +527,9 @@ Deletes the subtrees rooted by this node.
   int min;            // minimum count of entries
   int max;            // maximum count of entries <0 for "object nodes"
   long count;         // current count of entries
-                      // used as id for objects nodes 
+  T    id;            // content  
   Rectangle<dim> box; // the bounding box
-  Node<dim>** sons;   // array of sons, 0 for object nodes
+  Node<dim,T>** sons;   // array of sons, 0 for object nodes
 
 /*
 1.5 Private functions
@@ -514,8 +542,8 @@ This constructor constructs an empty inner node.
 */
 
   Node(int min1, int max1): 
-     min(min1), max(max1), count(0), box(false) {
-     sons = new Node<dim>*[max+1]; 
+     min(min1), max(max1), count(0), id(0), box(false) {
+     sons = new Node<dim,T>*[max+1]; 
   }
 
 
@@ -523,7 +551,7 @@ This constructor constructs an empty inner node.
 ~append~
 
 Appends a new entry to this node. If the node overflows,
-the result will be false.
+the result will be false. Not usuable for "object nodes".
 
 */
   bool append(Node* entry){
@@ -751,7 +779,7 @@ be empty and all contained elements was distributed to the new nodes.
 
 */
 pair<Node*, Node*> split(){
-  pair<Node<dim>*, Node<dim>* > res =  quadraticSplit();
+  pair<Node<dim,T>*, Node<dim,T>* > res =  quadraticSplit();
   return res;
 }
 
@@ -841,8 +869,8 @@ This constructor creates a new empty RTRee with ~min~ and ~max~ as
 parameters for the minimum/ maximum number of entries within a node.
 
 */
-template<unsigned dim>
-Rtree<dim>::Rtree(const int min, const int max){
+template<unsigned dim, class T>
+RtreeT<dim,T>::RtreeT(const int min, const int max){
    assert(max>=2);
    assert(min>0);
    assert(min<=max/2);
@@ -857,12 +885,15 @@ Rtree<dim>::Rtree(const int min, const int max){
 Inserts a box together with an id into the R-Tree.
 
 */
-template<unsigned dim>
-void Rtree<dim>::insert(const Rectangle<dim>& box, long id){
+template<unsigned dim, class T>
+void RtreeT<dim,T>::insert(const Rectangle<dim>& box, const T& id){
+   if(!box.IsDefined()){ // ignore undefined rectangles
+       return;
+   }
    if(!root){
-     root = new Node<dim>(min,max);
+     root = new Node<dim,T>(min,max);
    } 
-   Node<dim>* obj = new Node<dim>(box,id);
+   Node<dim,T>* obj = new Node<dim,T>(box,id);
    insertNodeAtLevel(-1,obj);
 }
 
@@ -873,10 +904,21 @@ Returns all object's ids stored in the tree where the box
 intersects ~box~. 
 
 */
-template<unsigned dim>
-void Rtree<dim>::findAll(const Rectangle<dim>& box, set<long>& res)const{
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findAll(const Rectangle<dim>& box, set<T>& res)const{
   res.clear();
-  findAllRec(root,box,res);
+  if(box.IsDefined()){
+     findAllRec(root,box,res);
+  }
+} 
+
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findSimple(const Rectangle<dim>& box, 
+                               vector<pair<Rectangle<dim>, T> >& res)const{
+  res.clear();
+  if(box.IsDefined()){
+     findSimpleRec(root,box,res);
+  }
 } 
 
 /*
@@ -886,10 +928,21 @@ Returns all object's ids stored in the tree where the box
 is equals to ~box~. 
 
 */
-template<unsigned dim>
-void Rtree<dim>::findAllExact(const Rectangle<dim>& box, set<long>& res)const{
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findAllExact(const Rectangle<dim>& box, set<T>& res)const{
   res.clear();
-  findAllRecExact(root,box,res);
+  if(box.IsDefined()){
+     findAllRecExact(root,box,res);
+  }
+} 
+
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findSimpleExact(const Rectangle<dim>& box, 
+                                    vector<pair<Rectangle<dim>,T> >& res)const{
+  res.clear();
+  if(box.IsDefined()){
+     findSimpleRecExact(root,box,res);
+  }
 } 
 
 /*
@@ -898,9 +951,12 @@ void Rtree<dim>::findAllExact(const Rectangle<dim>& box, set<long>& res)const{
 Erases the entries of ~id~ found at positions intersecting by box.
 
 */
-template<unsigned dim>
-bool Rtree<dim>::erase(const Rectangle<dim>& box, const long id){
-  set<pair < int , Node<dim>*> > Q;
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::erase(const Rectangle<dim>& box, const T& id){
+  if(!box.IsDefined()){
+      return false;
+  }
+  set<pair < int , Node<dim,T>*> > Q;
   Q.clear();
   if(eraseRec(root,box,id, Q,0)){
      if(root->count==0  && root->isLeaf()){ // last entry removed
@@ -912,7 +968,9 @@ bool Rtree<dim>::erase(const Rectangle<dim>& box, const long id){
         insert(Q);
      }
      if((root!=0) && (root->count == 1) &&(!root->isLeaf())){
-        Node<dim>* victim = root;
+        // root has only a single entry and can be replaced by 
+        // its son
+        Node<dim,T>* victim = root;
         root = root->sons[0];
         delete victim;
      } 
@@ -928,8 +986,8 @@ bool Rtree<dim>::erase(const Rectangle<dim>& box, const long id){
 Prints some statistical information about this tree to ~o~.
 
 */
-template<unsigned dim>
-ostream& Rtree<dim>::printStats(ostream& o)const{
+template<unsigned dim, class T>
+ostream& RtreeT<dim,T>::printStats(ostream& o)const{
   o << "Tree[" << endl
     << "  min = " << min << endl
     << "  max = " << max << endl
@@ -947,8 +1005,8 @@ ostream& Rtree<dim>::printStats(ostream& o)const{
 This function writes the nested list representation of this tree to ~o~.
 
 */
-template<unsigned dim>
-void Rtree<dim>::printAsRel(ostream& o) const{
+template<unsigned dim, class T>
+void RtreeT<dim,T>::printAsRel(ostream& o) const{
   o << "  ( (rel (tuple ("
     << "      ( level int )"
     << "      ( box rectangle) "               
@@ -957,9 +1015,9 @@ void Rtree<dim>::printAsRel(ostream& o) const{
     << "      )))"
     << " ( ";
     int level = 0;
-    int id = 0;
+    int nodeId = 0;
     int father = -1;
-    printAsRelRec(root,o,level, id, father);
+    printAsRelRec(root,o,level, nodeId, father);
     o << " ))";
 }
 
@@ -970,8 +1028,8 @@ This function produces a string according to the nested list
 representation of a rectangle.
 
 */
-template<unsigned dim>
-string Rtree<dim>::getListString(const Rectangle<dim>& rect)const{
+template<unsigned dim, class T>
+string RtreeT<dim,T>::getListString(const Rectangle<dim>& rect)const{
    stringstream res;
    res <<   "(" ;
    for(unsigned int i=0;i<dim; i++){
@@ -988,21 +1046,21 @@ Prints the content of the subtree given by root as relation to o.
 
 */
 
-template<unsigned dim>
-void Rtree<dim>::printAsRelRec(Node<dim>* root, ostream& o,
-                      const int level, int& id, const int father) const{
+template<unsigned dim, class T>
+void RtreeT<dim,T>::printAsRelRec(Node<dim,T>* root, ostream& o,
+                    const int level, int& nodeId, const int father) const{
   if(!root){
      return;
   } else if (root->max<0){
     o << "("
       << level << " "
       << getListString(root->box) << " "
-      << id++ << " " 
+      << nodeId++ << " " 
       << father 
       << " )" << endl;
   } else {
-    int myId = id;
-    id++;
+    int myId = nodeId;
+    nodeId++;
     o << "("
       << level << " "
       << getListString(root->box) << " "
@@ -1010,7 +1068,7 @@ void Rtree<dim>::printAsRelRec(Node<dim>* root, ostream& o,
       << father
       << " )" << endl;
     for(int i=0;i<root->count; i++){
-       printAsRelRec( root->sons[i],o, level+1, id, myId);
+       printAsRelRec( root->sons[i],o, level+1, nodeId, myId);
     }
   }
 } 
@@ -1020,16 +1078,16 @@ void Rtree<dim>::printAsRelRec(Node<dim>* root, ostream& o,
 
 */
 
-template<unsigned dim>
-void Rtree<dim>::printAsTree(ostream& o) const {
+template<unsigned dim, class T>
+void RtreeT<dim,T>::printAsTree(ostream& o) const {
    o << "( tree " << endl;
    printAsTreeRec(root,o);
    o << ")"; 
 }
 
 
-template<unsigned dim>
-void Rtree<dim>::printAsTreeRec(const Node<dim>* root, ostream& o)const{
+template<unsigned dim, class T>
+void RtreeT<dim, T>::printAsTreeRec(const Node<dim,T>* root, ostream& o)const{
    if(!root){
       o << "()" << endl;
    } else {
@@ -1055,13 +1113,13 @@ void Rtree<dim>::printAsTreeRec(const Node<dim>* root, ostream& o)const{
 Computes the number of non-object-nodes within the tree.
 
 */
-template<unsigned dim>
-int Rtree<dim>::noNodes()const{
+template<unsigned dim, class T>
+int RtreeT<dim,T>::noNodes()const{
    return noNodes(root);
 }
 
-template<unsigned dim>
-int Rtree<dim>::noNodes(const Node<dim>* root) const{
+template<unsigned dim, class T>
+int RtreeT<dim,T>::noNodes(const Node<dim,T>* root) const{
    if(!root){
      return 0;
    }
@@ -1083,13 +1141,13 @@ Returns the number of leaves within the tree.
 
 */
 
-template<unsigned dim>
-int Rtree<dim>::noLeaves()const {
+template<unsigned dim, class T>
+int RtreeT<dim,T>::noLeaves()const {
   return noLeaves(root);
 }
 
-template<unsigned dim>
-int Rtree<dim>::noLeaves(const Node<dim>* root)const{
+template<unsigned dim, class T>
+int RtreeT<dim,T>::noLeaves(const Node<dim,T>* root)const{
   if(!root){
      return 0;
   }
@@ -1112,13 +1170,13 @@ multiple stored, each instance is count.
 
 */
 
-template<unsigned dim>
-int Rtree<dim>::noObjects()const{
+template<unsigned dim, class T>
+int RtreeT<dim,T>::noObjects()const{
    return noObjects(root);
 }
 
-template<unsigned dim>
-int Rtree<dim>::noObjects(const Node<dim>* root)const{
+template<unsigned dim, class T>
+int RtreeT<dim,T>::noObjects(const Node<dim,T>* root)const{
   if(!root){
      return 0; 
   }
@@ -1139,20 +1197,20 @@ int Rtree<dim>::noObjects(const Node<dim>* root)const{
 Computes the height of the tree.
 
 */
-template<unsigned dim>
-int Rtree<dim>::height() const{
+template<unsigned dim, class T>
+int RtreeT<dim,T>::height() const{
   return height(root);
 }
 
 
-template<unsigned dim>
-int Rtree<dim>::height(const Node<dim>* root) const{
+template<unsigned dim,class  T>
+int RtreeT<dim,T>::height(const Node<dim,T>* root) const{
   if(!root){
     return -1;
   }
   int h = 0;
-  const Node<dim>* node =  root;
-  if(node->isLeaf()){
+  const Node<dim,T>* node =  root;
+  while(!node->isLeaf()){
      h++;
      node = node->sons[0];
   }
@@ -1166,12 +1224,12 @@ Inserts a  set of subtrees at the specified levels. This function supports the
 ~erase~ function. 
 
 */
-template<unsigned dim>
-void Rtree<dim>::insert(const set<pair < int , Node<dim>* > >&  Q){
+template<unsigned dim, class T>
+void RtreeT<dim,T>::insert(const set<pair < int , Node<dim,T>* > >&  Q){
    int levelDiff = 0; // store the grow of the tree
-   typename set<pair < int , Node<dim>*> >::iterator it;
+   typename set<pair < int , Node<dim,T>*> >::iterator it;
    for(it = Q.begin(); it!=Q.end(); it++){
-      pair<int, Node<dim>*> node = *it;     
+      pair<int, Node<dim,T>*> node = *it;     
       int level = node.first<0?node.first:node.first+levelDiff;
       if(insertNodeAtLevel(level, node.second)){
         levelDiff++;
@@ -1184,17 +1242,18 @@ Inserts a node at the specified level. If the tree grows, true is
 returned.
 
 */
-template<unsigned dim>
-bool Rtree<dim>::insertNodeAtLevel(int level, Node<dim>* node){
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::insertNodeAtLevel(int level, Node<dim,T>* node){
   if(!root){
-     root = new Node<dim>(min,max);
+     root = new Node<dim,T>(min,max);
   }
-  pair<Node<dim>*, Node<dim>* >* res = insertRecAtLevel(root,node, level,0); 
+  pair<Node<dim,T>*, Node<dim,T>* >* res = 
+                                insertRecAtLevel(root,node, level,0); 
   if(!res){ // tree does not grow
      return false;
   } else {
     delete root;
-    root = new Node<dim>(min,max);
+    root = new Node<dim,T>(min,max);
     root->append(res->first);
     root->append(res->second);
     delete res;
@@ -1203,22 +1262,22 @@ bool Rtree<dim>::insertNodeAtLevel(int level, Node<dim>* node){
 }
 
 
-template<unsigned dim>
-pair<Node<dim>*, Node<dim>* >* 
-  Rtree<dim>::insertRecAtLevel(Node<dim>*& root,  Node<dim>* node, 
+template<unsigned dim, class T>
+pair<Node<dim,T>*, Node<dim,T>* >* 
+  RtreeT<dim,T>::insertRecAtLevel(Node<dim,T>*& root,  Node<dim,T>* node, 
                    const int targetLevel, const int currentLevel){
     if(root->isLeaf() || (targetLevel == currentLevel) ){
       if(root->append(node)){ // no overflow
         return 0;
       } else { // overflow
-        pair<Node<dim>*, Node<dim>*> res = root->split();
+        pair<Node<dim,T>*, Node<dim,T>*> res = root->split();
         delete root;
         root = 0;
-        return new pair<Node<dim>*, Node<dim>*>(res);
+        return new pair<Node<dim,T>*, Node<dim,T>*>(res);
       }
     } else { // not the target node
       int index = root->selectFittestSon(node->box);
-      pair<Node<dim>*, Node<dim>*>* res;
+      pair<Node<dim,T>*, Node<dim,T>*>* res;
       res  = insertRecAtLevel(root->sons[index], node,
                               targetLevel, currentLevel+1);
       if(!res){ // son was not split
@@ -1232,7 +1291,7 @@ pair<Node<dim>*, Node<dim>* >*
            return 0;
         } else { 
            delete res;
-           res = new pair<Node<dim>*, Node<dim>*>(root->split());
+           res = new pair<Node<dim,T>*, Node<dim,T>*>(root->split());
            delete root;
            root = 0;
            return res;
@@ -1249,16 +1308,16 @@ Searches in the subtree given by root for objects whose
 bounding box intersects ~box~ and collect them in ~res~.
 
 */   
-template<unsigned dim>
-void Rtree<dim>::findAllRec(const Node<dim>* root,
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findAllRec(const Node<dim,T>* root,
                        const Rectangle<dim>& box,
-                       set<long>& res)const{
+                       set<T>& res)const{
   if(!root){
      return;
   } else if(root->isLeaf()){
     for(int i = 0; i<root->count; i++){
        if(root->sons[i]->box.Intersects(box)){
-         res.insert(root->sons[i]->count);
+         res.insert(root->sons[i]->id);
        }
     }
   } else {
@@ -1270,6 +1329,27 @@ void Rtree<dim>::findAllRec(const Node<dim>* root,
   }
 }
 
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findSimpleRec(const Node<dim,T>* root,
+                       const Rectangle<dim>& box,
+                       vector<pair<Rectangle<dim>,T> >& res)const{
+  if(!root){
+     return;
+  } else if(root->isLeaf()){
+    for(int i = 0; i<root->count; i++){
+       if(root->sons[i]->box.Intersects(box)){
+         pair<Rectangle<dim>,T>  p(root->sons[i]->box, root->sons[i]->id);
+         res.push_back(p);
+       }
+    }
+  } else {
+    for(int i =0; i < root->count; i++){
+       if(root->sons[i]->box.Intersects(box)){
+         findSimpleRec(root->sons[i],box,res);
+       }
+    }
+  }
+}
 /*
 ~findAllRecExact~
 
@@ -1277,22 +1357,44 @@ Searches in the subtree given by root for objects whose
 bounding box is equals to ~box~ and collect them in ~res~.
 
 */   
-template<unsigned dim>
-void Rtree<dim>::findAllRecExact(const Node<dim>* root,
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findAllRecExact(const Node<dim,T>* root,
                        const Rectangle<dim>& box,
-                       set<long>& res)const{
+                       set<T>& res)const{
   if(!root){
      return;
   } else if(root->isLeaf()){
     for(int i = 0; i<root->count; i++){
        if(root->sons[i]->box.AlmostEqual(box)){
-         res.insert(root->sons[i]->count);
+         res.insert(root->sons[i]->id);
        }
     }
   } else {
     for(int i =0; i < root->count; i++){
        if(root->sons[i]->box.Contains(box)){
          findAllRec(root->sons[i],box,res);
+       }
+    }
+  }
+}
+
+template<unsigned dim, class T>
+void RtreeT<dim,T>::findSimpleRecExact(const Node<dim,T>* root,
+                       const Rectangle<dim>& box,
+                       vector<pair<Rectangle<dim>,T> >& res)const{
+  if(!root){
+     return;
+  } else if(root->isLeaf()){
+    for(int i = 0; i<root->count; i++){
+       if(root->sons[i]->box.AlmostEqual(box)){
+         pair<Rectangle<dim>,T> p(root->sons[i]->box,root->sons[i]->id);
+         res.push_back(p);
+       }
+    }
+  } else {
+    for(int i =0; i < root->count; i++){
+       if(root->sons[i]->box.Contains(box)){
+         findSimpleRec(root->sons[i],box,res);
        }
     }
   }
@@ -1307,11 +1409,11 @@ inserted into Q. An exception is the root of the tree which is not
 removed even if  0 entries  left in the root.
 
 */
-template<unsigned dim>
-bool Rtree<dim>::eraseRec(Node<dim>*& root,
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::eraseRec(Node<dim,T>*& root,
                      const Rectangle<dim>& box, 
-                     const long id,
-                     set<pair < int, Node<dim>*> >& Q, 
+                     const T& id,
+                     set<pair < int, Node<dim,T>*> >& Q, 
                      int level){
 
  if(!root){ // tree is empty, doe nothing
@@ -1320,14 +1422,14 @@ bool Rtree<dim>::eraseRec(Node<dim>*& root,
     // try find the object node having the corresponding id
     int index = -1;
     for(int i=0;i<root->count && index < 0;i++){
-       if(root->sons[i]->count == id){
+       if(root->sons[i]->id == id){
            index = i;
        }
     }
     if(index < 0){  // id not found within this node
        return false;
     }
-    Node<dim>* victim = root->sons[index];
+    Node<dim,T>* victim = root->sons[index];
     bool under = !root->remove(index,true);
     delete victim;
     if( under && (root != this->root)){ // an underflow
@@ -1381,15 +1483,15 @@ This function checks the complete tree for RTree properties.
 
 
 */
-template<unsigned dim>
-bool Rtree<dim>::checkTree(const bool print/* = true*/)const{
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::checkTree(const bool print/* = true*/)const{
   return checkLeafLevel(root, print) &&
          checkSonNumber (root,print,0 ) &&
          checkBox(root,print,0);
 }
 
-template<unsigned dim>
-bool Rtree<dim>::checkBox(const Node<dim>* root, 
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::checkBox(const Node<dim,T>* root, 
                      const bool print,
                      const int level)const{
    if(!root) {
@@ -1413,8 +1515,8 @@ bool Rtree<dim>::checkBox(const Node<dim>* root,
    }
 }
 
-template<unsigned dim>
-bool Rtree<dim>::checkSonNumber(const Node<dim>* root,  
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::checkSonNumber(const Node<dim,T>* root,  
                            const bool print,
                            const int level) const{
   if(!root){ // empty tree all ok
@@ -1451,8 +1553,9 @@ bool Rtree<dim>::checkSonNumber(const Node<dim>* root,
 
 
 
-template<unsigned dim>
-bool Rtree<dim>::checkLeafLevel(const Node<dim>* root, const bool print) const{
+template<unsigned dim, class T>
+bool RtreeT<dim,T>::checkLeafLevel(const Node<dim,T>* root, 
+                                   const bool print) const{
   if(!root) { // empty tree
     return true;
   } else if(root->isLeaf()){ // a leave has correct height
