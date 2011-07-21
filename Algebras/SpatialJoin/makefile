@@ -32,7 +32,6 @@ ALGEBRA_DEPENDENCIES += FunctionAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
 ALGEBRA_DEPENDENCIES += RectangleAlgebra
 ALGEBRA_DEPENDENCIES += ExtRelationAlgebra
-ALGEBRA_DEPENDENCIES += HadoopParallelAlgebra
 
 
 
