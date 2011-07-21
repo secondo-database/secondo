@@ -12,6 +12,7 @@
 DistributedAlgebra DistributedAlgebra
 FlockAlgebra Flock
 GPatternAlgebra GPattern
+HadoopParallelAlgebra HadoopParallel
 IndoorAlgebra Indoor
 MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream

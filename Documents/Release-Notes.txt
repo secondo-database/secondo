@@ -1,21 +1,15 @@
 2011-07-20 Notes on Release 3.1.0
 ===============================================================================
 
-(0) Platform Support
-
-The Windows platform is NOT supported by this version of Secondo.
-This is due to the added HadoopParallelAlgebra, which depends on unprovided
-include <ifaddrs.h>.
--------------------------------------------------------------------------------
-
 (1) GUI
 
-The Java based GUI was extended to support tiled maps from OSM or google as backgrounds.
-Brief explanations on tiled map backgrounds are available from the Secondo User Manual
-($SECONDO_BUILD_DIR/Documents/SecondoManual.pdf), Section 5.3.5.
+The Java based GUI was extended to support tiled maps from OSM or google as 
+backgrounds. Brief explanations on tiled map backgrounds are available from 
+the Secondo User Manual ($SECONDO_BUILD_DIR/Documents/SecondoManual.pdf), 
+Section 5.3.5.
 
-The Java interface to Secondo was separated from the remainder of the GUI to be
-able to develop own applications using Secondo.
+The Java interface to Secondo was separated from the remainder of the GUI to 
+be able to develop own applications using Secondo.
 -------------------------------------------------------------------------------
 
 (2) Secondo Kernel: Framework
@@ -30,10 +24,12 @@ Several more bug fixes improve the stability of the system.
 
 (3) Secondo Kernel:  Algebra Modules
 
-New Algebras: SpatialJoinAlgebra, HadoopParallelAlgebra
+New Algebra: SpatialJoinAlgebra
 
-These two algebras provide a new implementation of a spatialjoin operator.
-The old spatialjoin operator has been renamed to spatialjoin0.
+This algebra provides a new implementation of a spatialjoin operator.
+This algorithm was assigned the operator name 'spatialjoin'.
+The old spatialjoin operator implementation (RTree PlugJoin) has been renamed 
+to spatialjoin0.
 
 Within the previously released algebras, version 3.1.0 brings some new operators.
 Some operators and types have been renamed in order to avoid confusion and to
