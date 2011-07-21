@@ -763,12 +763,43 @@ class SymmJoinRindexLocalInfo{
 };
 
 
+
+template <class Tree>
 class RealJoinRindexLocalInfo{
 
   public:
      RealJoinRindexLocalInfo(Word& _s1, Word& _s2, int _i1, 
                              int _i2, ListExpr _tt):
          ind(), s2(_s2),  i2(_i2) {
+
+        // build the index from the first stream
+        tt = new TupleType(_tt);
+        Stream<Tuple> s1(_s1);
+        s1.open();
+        Tuple* t = s1.request();
+        if(t){
+           vec = new vector<Tuple*>; // Relation(t->GetTupleType(),true);
+        } else {
+           vec = 0;
+        }
+        while(t){
+           //relation->AppendTuple(t);
+           vec->push_back(t);
+           //TupleId id = t->GetTupleId();
+           TupleId id = vec->size()-1;
+           Rectangle<2>* r = (Rectangle<2>*)t->GetAttribute(_i1);
+           ind.insert(*r, id);
+           //t->DeleteIfAllowed(); 
+           t = s1.request();
+        }
+        s1.close();
+        s2.open();
+        currentTuple = 0;
+     }
+
+     RealJoinRindexLocalInfo(Word& _s1, Word& _s2, int _i1, 
+                             int _i2, ListExpr _tt, int min, int max):
+         ind(min,max), s2(_s2),  i2(_i2) {
 
         // build the index from the first stream
         tt = new TupleType(_tt);
@@ -844,7 +875,7 @@ class RealJoinRindexLocalInfo{
       }
 
    private:
-      RIndex<2,TupleId> ind;
+      Tree ind;
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
@@ -960,9 +991,161 @@ const string realJoinRindexSpec  =
 Operator realJoinRindex (
   "realJoinRindex",
   realJoinRindexSpec,
-  joinRindexVM<RealJoinRindexLocalInfo>,
+  joinRindexVM<RealJoinRindexLocalInfo<RIndex<2, TupleId> > >,
   Operator::SimpleSelect,
   realJoinRindexTM);
+
+
+
+/*
+Operator realJoinMMRTRee
+
+*/
+
+ListExpr realJoinMMRTreeTM(ListExpr args){
+
+  // similar to the version using an RIndex, but 2 additional integer values are
+  // required for the min and max entry value for an rtree node
+  string err = "stream(tuple(A)) x stream(tuple(B)) x"
+               " a_i x b_i x int x int expected";
+   if(!nl->HasLength(args,6)){
+     return listutils::typeError(err);
+   }
+
+   if(!Stream<Tuple>::checkType(nl->First(args)) ||
+      !Stream<Tuple>::checkType(nl->Second(args)) ||
+      !listutils::isSymbol(nl->Third(args)) ||
+      !listutils::isSymbol(nl->Fourth(args))  ||
+      !CcInt::checkType(nl->Fifth(args)) ||
+      !CcInt::checkType(nl->Sixth(args))){
+     return listutils::typeError(err);
+   }
+
+   ListExpr attrList1 = nl->Second(nl->Second(nl->First(args)));
+   ListExpr attrList2 = nl->Second(nl->Second(nl->Second(args)));
+   string name1 = nl->SymbolValue(nl->Third(args));
+   string name2 = nl->SymbolValue(nl->Fourth(args));
+
+   ListExpr type1;
+   ListExpr type2;
+
+   int index1 = listutils::findAttribute(attrList1, name1, type1);
+   if(index1 == 0){
+     return listutils::typeError("Attribute " + name1 + 
+                                 " not present in first stream");
+   }
+   if(!Rectangle<2>::checkType(type1)){
+     return listutils::typeError("Attribute " + name1 + 
+                                 " not of type " + Rectangle<2>::BasicType());
+   }
+   
+   int index2 = listutils::findAttribute(attrList2, name2, type2);
+   if(index2 == 0){
+     return listutils::typeError("Attribute " + name2 + 
+                                 " not present in second stream");
+   }
+   if(!Rectangle<2>::checkType(type2)){
+     return listutils::typeError("Attribute " + name2 + 
+                                 " not of type " + Rectangle<2>::BasicType());
+   }
+ 
+   ListExpr attrList = listutils::concat(attrList1, attrList2);
+
+   if(!listutils::isAttrList(attrList)){
+     return listutils::typeError("name conflicts in tuple streams");
+   }
+
+   ListExpr resList = nl->TwoElemList( 
+                           nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                           nl->TwoElemList(
+                               nl->SymbolAtom(Tuple::BasicType()),
+                               attrList));
+
+
+   return nl->ThreeElemList(
+                   nl->SymbolAtom(Symbols::APPEND()),
+                   nl->TwoElemList(nl->IntAtom(index1-1), 
+                                   nl->IntAtom(index2-1)),
+                   resList);
+
+}
+
+template<class JLI>
+int joinRTreeVM( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+   JLI* li = static_cast<JLI*>(local.addr);
+ 
+   switch(message){
+        case OPEN: {
+             if(li){
+               delete li;
+               li = 0;
+             }
+             CcInt* Min = (CcInt*)(args[4].addr);
+             CcInt* Max = (CcInt*)(args[5].addr);
+             if(!Min->IsDefined() || !Max->IsDefined()){
+                return 0;
+             }
+             int min = Min->GetValue();
+             int max = Max->GetValue();
+             if(min<1 || max< (2*min)){
+                  return 0;
+             }
+             int i1 = ((CcInt*)(args[6].addr))->GetValue();
+             int i2 = ((CcInt*)(args[7].addr))->GetValue();
+             local.addr = new JLI(args[0], args[1],i1,i2,
+                                  nl->Second(GetTupleResultType(s)), min, max);
+             return 0; 
+        }
+        case REQUEST: {
+             if(!li){
+                return CANCEL;
+             }
+             result.addr = li->nextTuple();
+             return result.addr?YIELD:CANCEL;
+        }
+        case CLOSE:{
+             if(li){
+               delete li;
+               local.addr = 0;
+             }
+        }
+
+   }
+   return -1;
+}
+
+
+const string realJoinMMRTreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int-> "
+    "stream(tuple(X o Y)) </text---> "
+    "<text>streamA streamB realJoinMMRTree[attrnameA, attrnameB, min, max]"
+  "  </text--->"
+    "<text>Performes a spatial join on two streams. "
+    "The attributes a_i and b_j must"
+    " be of type rect. The result is a stream of "
+    "tuples with intersecting rectangles build as concatenation"
+    " of the source tuples. Min and max define the range for the number of"
+    " entries within the nodes of the used rtree."
+    " </text--->"
+    "<text>query strassen feed extend[B : bbox(.geoData] strassen "
+    "feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,8,16] count "
+    " </text--->"
+         ") )";
+
+Operator realJoinMMRTree(
+  "realJoinMMRTree",
+  realJoinMMRTreeSpec,
+  joinRTreeVM<RealJoinRindexLocalInfo<mmrtree::RtreeT<2, TupleId> > >,
+  Operator::SimpleSelect,
+  realJoinMMRTreeTM 
+ );
+
+
+
+
 /*
 Now, we use a main  memory implementation of an r-tree for comparisons
 
@@ -1085,6 +1268,7 @@ class RIndexAlgebra : public Algebra {
       
       // operators using mmrtrees
       AddOperator(&insertMMRTree);
+      AddOperator(&realJoinMMRTree);
 
    }
 };
