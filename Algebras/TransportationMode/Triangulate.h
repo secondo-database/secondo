@@ -533,5 +533,311 @@ inline Vect<ELEM_TYPE, DIM> Vect<ELEM_TYPE, DIM>::versor() const
     return (*this / module() );
 }
 
+/*
+template function compare
+
+*/
+
+inline bool operator == ( const Vect2D& c1, const Vect2D& c2 )
+{
+    if ( fabs( c1.X() - c2.X() ) < ZERO &&
+         fabs( c1.Y() - c2.Y() ) < ZERO )
+
+        return true;
+    else
+        return false;
+}
+
+
+inline bool operator < ( const Vect2D& c1, const Vect2D& c2 )
+{
+    if ( fabs( c1.X() - c2.X() ) > ZERO )
+    {
+        if ( c1.X() + ZERO < c2.X() )
+            return true;
+        else 
+            return false;
+    }
+    else
+    {
+        if ( fabs( c1.Y() - c2.Y() ) > ZERO )
+        {
+            if ( c1.Y() + ZERO < c2.Y() )
+                return true;
+            else 
+                return false;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+
+
+
+inline bool operator == ( const Vect3D& c1, const Vect3D& c2 )
+{
+    if ( fabs( c1.X() - c2.X() ) < ZERO &&
+         fabs( c1.Y() - c2.Y() ) < ZERO &&
+         fabs( c1.Z() - c2.Z() ) < ZERO )
+
+        return true;
+    else
+        return false;
+}
+
+
+inline bool operator < ( const Vect3D& c1, const Vect3D& c2 )
+{
+    if ( fabs( c1.X() - c2.X() ) > ZERO )
+    {
+        if ( c1.X() + ZERO < c2.X() )
+            return true;
+        else 
+            return false;
+    }
+    else
+    {
+        if ( fabs( c1.Y() - c2.Y() ) > ZERO )
+        {
+            if ( c1.Y() + ZERO < c2.Y() )
+                return true;
+            else 
+                return false;
+        }
+        else
+        {
+            if ( fabs( c1.Z() - c2.Z() ) > ZERO )
+            {
+                if ( c1.Z() + ZERO < c2.Z() )
+                    return true;
+                else 
+                    return false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+}
+
+
+
+
+/*
+specialization of the Vect operators for DIM=1,2,3,4
+
+*/
+
+
+//////////////////////////////////////////////////////////////////////
+// Vect1D
+//////////////////////////////////////////////////////////////////////
+template <>
+inline Vect1D operator*( const MGFloat& comp, const Vect1D& vec)
+{
+    return Vect1D( vec.mtab[0] * comp );
+}
+
+
+template <>
+inline Vect1D operator*( const Vect1D& vec, const MGFloat& comp)
+{
+    return Vect1D( vec.mtab[0] * comp );
+}
+
+
+template <>
+inline Vect1D operator/( const Vect1D& vec, const MGFloat& comp)
+{
+    return Vect1D( vec.mtab[0] / comp );
+}
+
+
+template <>
+inline MGFloat operator*( const Vect1D& vec1, const Vect1D& vec2)
+{
+    return vec1.mtab[0] * vec2.mtab[0];
+}
+
+
+template <>
+inline Vect1D operator+( const Vect1D& vec1, const Vect1D& vec2)
+{
+    return Vect1D( vec1.mtab[0] + vec2.mtab[0] );
+}
+
+
+template <>
+inline Vect1D operator-( const Vect1D& vec1, const Vect1D& vec2)
+{
+    return Vect1D( vec1.mtab[0] - vec2.mtab[0] );
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+// Vect2D
+//////////////////////////////////////////////////////////////////////
+template <>
+inline Vect2D operator*( const MGFloat& comp, const Vect2D& vec)
+{
+    return Vect2D( vec.mtab[0] * comp, vec.mtab[1] * comp );
+}
+
+
+template <>
+inline Vect2D operator*( const Vect2D& vec, const MGFloat& comp)
+{
+    return Vect2D( vec.mtab[0] * comp, vec.mtab[1] * comp );
+}
+
+
+template <>
+inline Vect2D operator/( const Vect2D& vec, const MGFloat& comp)
+{
+    return Vect2D( vec.mtab[0] / comp, vec.mtab[1] / comp );
+}
+
+
+template <>
+inline MGFloat operator*( const Vect2D& vec1, const Vect2D& vec2)
+{
+    return vec1.mtab[0] * vec2.mtab[0] + vec1.mtab[1] * vec2.mtab[1];
+}
+
+
+template <>
+inline Vect2D operator+( const Vect2D& vec1, const Vect2D& vec2)
+{
+    return Vect2D( vec1.mtab[0] + vec2.mtab[0], vec1.mtab[1] + vec2.mtab[1] );
+}
+
+
+template <>
+inline Vect2D operator-( const Vect2D& vec1, const Vect2D& vec2)
+{
+    return Vect2D( vec1.mtab[0] - vec2.mtab[0], vec1.mtab[1] - vec2.mtab[1] );
+}
+
+
+/* 
+Vect3D
+
+*/
+
+template <>
+inline Vect3D operator*( const MGFloat& comp, const Vect3D& vec)
+{
+    return Vect3D( vec.mtab[0] * comp, vec.mtab[1] * comp, vec.mtab[2] * comp );
+}
+
+
+template <>
+inline Vect3D operator*( const Vect3D& vec, const MGFloat& comp)
+{
+    return Vect3D( vec.mtab[0] * comp, vec.mtab[1] * comp, vec.mtab[2] * comp );
+}
+
+
+template <>
+inline Vect3D operator/( const Vect3D& vec, const MGFloat& comp)
+{
+    return Vect3D( vec.mtab[0] / comp, vec.mtab[1] / comp, vec.mtab[2] / comp );
+}
+
+
+template <>
+inline MGFloat operator*( const Vect3D& vec1, const Vect3D& vec2)
+{
+    return vec1.mtab[0]*vec2.mtab[0] + vec1.mtab[1]*vec2.mtab[1] + 
+    vec1.mtab[2]*vec2.mtab[2];
+}
+
+
+template <>
+inline Vect3D operator+( const Vect3D& vec1, const Vect3D& vec2)
+{
+    return Vect3D( vec1.mtab[0] + vec2.mtab[0], vec1.mtab[1] + vec2.mtab[1], 
+                   vec1.mtab[2] + vec2.mtab[2] );
+}
+
+
+template <>
+inline Vect3D operator-( const Vect3D& vec1, const Vect3D& vec2)
+{
+    return Vect3D( vec1.mtab[0] - vec2.mtab[0], vec1.mtab[1] - vec2.mtab[1], 
+                   vec1.mtab[2] - vec2.mtab[2] );
+}
+
+
+template <>
+inline Vect3D operator%( const Vect3D& vec1, const Vect3D& vec2)
+{
+    MGFloat x,y,z;
+    x = vec1.mtab[1]*vec2.mtab[2] - vec1.mtab[2]*vec2.mtab[1];
+    y = vec1.mtab[2]*vec2.mtab[0] - vec1.mtab[0]*vec2.mtab[2];
+    z = vec1.mtab[0]*vec2.mtab[1] - vec1.mtab[1]*vec2.mtab[0];
+    return Vect3D(x,y,z);
+}
+
+
+
+/* 
+Vect4D 
+
+*/
+
+template <>
+inline Vect4D operator*( const MGFloat& comp, const Vect4D& vec)
+{
+    return Vect4D( vec.mtab[0] * comp, vec.mtab[1] * comp, vec.mtab[2] * comp, 
+                   vec.mtab[3] * comp );
+}
+
+
+template <>
+inline Vect4D operator*( const Vect4D& vec, const MGFloat& comp)
+{
+    return Vect4D( vec.mtab[0] * comp, vec.mtab[1] * comp, vec.mtab[2] * comp, 
+                   vec.mtab[3] * comp );
+}
+
+
+template <>
+inline Vect4D operator/( const Vect4D& vec, const MGFloat& comp)
+{
+    return Vect4D( vec.mtab[0] / comp, vec.mtab[1] / comp, vec.mtab[2] / comp, 
+                   vec.mtab[3] / comp );
+}
+
+
+template <>
+inline MGFloat operator*( const Vect4D& vec1, const Vect4D& vec2)
+{
+    return vec1.mtab[0]*vec2.mtab[0] + vec1.mtab[1]*vec2.mtab[1] + 
+    vec1.mtab[2]*vec2.mtab[2] + vec1.mtab[3]*vec2.mtab[3];
+}
+
+
+template <>
+inline Vect4D operator+( const Vect4D& vec1, const Vect4D& vec2)
+{
+    return Vect4D( vec1.mtab[0] + vec2.mtab[0], vec1.mtab[1] + 
+    vec2.mtab[1], vec1.mtab[2] + vec2.mtab[2], vec1.mtab[3] + vec2.mtab[3] );
+}
+
+
+template <>
+inline Vect4D operator-( const Vect4D& vec1, const Vect4D& vec2)
+{
+    return Vect4D( vec1.mtab[0] - vec2.mtab[0], vec1.mtab[1] - vec2.mtab[1], 
+                   vec1.mtab[2] - vec2.mtab[2], vec1.mtab[3] - vec2.mtab[3] );
+}
+
 
 #endif
