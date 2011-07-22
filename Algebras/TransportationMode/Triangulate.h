@@ -1777,16 +1777,11 @@ protected:
     void    CheckPoints( char st[]);
     void    CheckGrid();
 };
-//--------------------------------------------------------------------
-
-
 
 inline IterGPnt HGrid::InsertPoint( HGrdPnt *gpnt)
 {
     return mcolPnt.insert( mcolPnt.end(), gpnt );
 }
-
-
 
 
 inline IterGCell HGrid::InsertCell( HGrdTri *gcell)
