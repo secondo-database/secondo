@@ -3296,3 +3296,407 @@ void HGrid::InitTriangles()
 #endif // _DEBUG
 }
 
+
+
+
+bool HGrid::IsOutside( const Vect2D& vct)
+{
+    IterFro     itrfro;
+    IterFSeg    itrsg;
+    Vect2D      v1, v2;
+    double      x;
+
+//// winding algorithm
+//  MGFloat     alf;
+//  for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); itrfro++)
+//  {
+//      alf += (*itrfro).Angle( vct);
+//  }
+//  if ( fabs(alf) < M_PI )
+//      return true;
+//  else 
+//      return false;
+
+
+// ray casting algorithm
+    MGInt   cross = 0;
+    for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); itrfro++)
+        for ( itrsg = (*itrfro).begin(); itrsg != (*itrfro).end(); itrsg++)
+        {
+            v1 = *(*(*itrsg)->PntLf());
+            v2 = *(*(*itrsg)->PntRt());
+
+            if ( ( v1.Y() > vct.Y() && v2.Y() <= vct.Y() ) ||
+                 ( v2.Y() > vct.Y() && v1.Y() <= vct.Y() ) )
+            {
+
+//              x = ( v1.X()*v2.Y() - v1.Y()*v2.X() ) / ( v2.Y() - v1.Y() );
+                x = (v2.X() - v1.X())*(vct.Y() - v1.Y())/(v2.Y() - v1.Y())
+                     + v1.X();
+
+                if ( x > vct.X() ) 
+                    ++cross;
+            }
+
+        }
+
+    if ( (cross % 2) == 1 )
+        return false;
+    else 
+        return true;
+}
+
+
+void HGrid::FlagOuterTris()
+{
+    IterFro     itrfro;
+    IterFSeg    itrsg;
+    IterGCell   itr, itrnb, itrcl;;
+    Vect2D      vout, vcnt, vc1, vc2;
+
+    CollGCell   colCell;
+
+
+//  // flaging all triangles lying outside domain using N^2 algo
+//  for ( itr = mcolCell.begin(); itr != mcolCell.end(); itr++)
+//  {
+//      if( IsOutside( (*itr)->Center() ) )
+//          (*itr)->rIsOutside() = true;
+//      else
+//          (*itr)->rIsOutside() = false;
+//  }
+
+    Vect2D  v1, v2, vct;
+//  MGInt   cross = 0;
+    HGrdTri *ptri;
+    MGFloat x, y1, y2;
+
+    multimap<MGFloat, HGrdTri*>             mapCell;
+    multimap<MGFloat, HGrdTri*>::iterator   imap, ifirst, ilast;
+
+    for ( itr = mcolCell.begin(); itr != mcolCell.end(); itr++)
+    {
+        vct = (*itr)->Center();
+        (*itr)->rCross() = 0;
+        mapCell.insert( multimap<MGFloat, HGrdTri*>::value_type( vct.Y(), 
+                                                                 (*itr) ) );
+    }
+
+
+    for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); itrfro++)
+        for ( itrsg = (*itrfro).begin(); itrsg != (*itrfro).end(); itrsg++)
+        {
+            v1 = *(*(*itrsg)->PntLf());
+            v2 = *(*(*itrsg)->PntRt());
+            if ( v1.Y() > v2.Y() )
+            {
+                y1 = v2.Y();
+                y2 = v1.Y();
+            }
+            else
+            {
+                y1 = v1.Y();
+                y2 = v2.Y();
+            }
+
+            ifirst = mapCell.lower_bound( y1 );
+            ilast  = mapCell.upper_bound( y2 );
+
+            for ( imap = ifirst; imap != ilast; ++imap)
+            {
+                ptri = (*imap).second;
+                vct = ptri->Center();
+
+                if ( ( v1.Y() > vct.Y() && v2.Y() <= vct.Y() ) ||
+                     ( v2.Y() > vct.Y() && v1.Y() <= vct.Y() ) )
+                {
+                    x = (v2.X() - v1.X())*(vct.Y() - v1.Y())/(v2.Y() - v1.Y())
+                        + v1.X();
+
+                    if ( x > vct.X() ) 
+                        ++(ptri->rCross());
+                }
+            }
+        }
+    
+    for ( itr = mcolCell.begin(); itr != mcolCell.end(); itr++)
+    {
+        if ( ((*itr)->rCross() % 2) == 1 )
+            (*itr)->rIsOutside() = false;
+        else
+            (*itr)->rIsOutside() = true;
+    }
+
+
+}
+
+
+void HGrid::RemoveOuterTris()
+{
+    IterGCell   itr, itr2;
+    HGrdTri     *ptri;
+
+//    itr2 = NULL;
+    itr2 = (IterGCell)NULL;
+    for ( itr = mcolCell.begin(); itr != mcolCell.end(); itr++)
+    {
+ //       if ( itr2 != NULL)
+        if ( itr2 != (IterGCell)NULL){
+            ptri = *itr2;
+            (*itr2)->InvalidateNeighb();
+            mcolCell.erase( itr2);
+            delete ptri;
+            itr2 = (IterGCell)NULL;
+        }
+        if ( (*itr)->IsOutside() )
+            itr2 = itr;
+    }
+//    if ( itr2 != NULL)
+    if ( itr2 != (IterGCell)NULL){
+        ptri = *itr2;
+        (*itr2)->InvalidateNeighb();
+        mcolCell.erase( itr2);
+        delete ptri;
+        itr2 = (IterGCell)NULL;
+    }
+
+    if ( *mind1) delete *mind1;
+    if ( *mind2) delete *mind2;
+    if ( *mind3) delete *mind3;
+    if ( *mind4) delete *mind4;
+    mcolPnt.erase( mind1);
+    mcolPnt.erase( mind2);
+    mcolPnt.erase( mind3);
+    mcolPnt.erase( mind4);
+    mind1 = (IterGPnt)NULL;
+    mind2 = (IterGPnt)NULL;
+    mind3 = (IterGPnt)NULL;
+    mind4 = (IterGPnt)NULL;
+}
+
+
+
+bool HGrid::CheckSwapTriangles( HGrdTri *ptri1, HGrdTri *ptri2)
+{
+    HGrdTri tri1, tri2;
+
+    tri1 = *ptri1;
+    tri2 = *ptri2;
+
+    SwapTriangles( &tri1, &tri2, false);
+
+    if ( !tri1.Check() || !tri2.Check() )
+        return false;
+
+    if ( tri1.Area() < 0 || tri2.Area() < 0 )
+        return false;
+
+    return true;
+}
+
+/*
+switch two triangles 
+
+*/
+void HGrid::SwapTriangles( HGrdTri *ptri1, HGrdTri *ptri2, bool bgo)
+{
+    MGInt       ifc1, ifc2;
+    IterGPnt    ip1, ip2, ip3, ip4;
+    IterGCell   ic1, ic2, ic3, ic4;
+
+    IterGCell itri1, itri2;
+    
+//  TRACE( "--- swapping !!!");
+    
+    if ( ptri2->Node(1) == ptri1->Node(0) && ptri2->Node(0) == ptri1->Node(1) )
+    {
+        ip1 = ptri2->Node(1);
+        ip2 = ptri2->Node(2);
+        ip3 = ptri2->Node(0);
+        ip4 = ptri1->Node(2);
+        ifc1 = 0;
+        ifc2 = 0;
+        ic1 = ptri2->Cell(1);
+        ic2 = ptri2->Cell(2);
+        ic3 = ptri1->Cell(1);
+        ic4 = ptri1->Cell(2);
+        itri1 = ptri2->Cell(0);
+        itri2 = ptri1->Cell(0);
+    }
+    else
+    if ( ptri2->Node(0) == ptri1->Node(0) && ptri2->Node(2) == ptri1->Node(1) )
+    {
+        ip1 = ptri2->Node(0);
+        ip2 = ptri2->Node(1);
+        ip3 = ptri2->Node(2);
+        ip4 = ptri1->Node(2);
+        ifc1 = 0;
+        ifc2 = 2;
+        ic1 = ptri2->Cell(0);
+        ic2 = ptri2->Cell(1);
+        ic3 = ptri1->Cell(1);
+        ic4 = ptri1->Cell(2);
+        itri1 = ptri2->Cell(2);
+        itri2 = ptri1->Cell(0);
+    }
+    else
+    if ( ptri2->Node(2) == ptri1->Node(0) && ptri2->Node(1) == ptri1->Node(1) )
+    {
+        ip1 = ptri2->Node(2);
+        ip2 = ptri2->Node(0);
+        ip3 = ptri2->Node(1);
+        ip4 = ptri1->Node(2);
+        ifc1 = 0;
+        ifc2 = 1;
+        ic1 = ptri2->Cell(2);
+        ic2 = ptri2->Cell(0);
+        ic3 = ptri1->Cell(1);
+        ic4 = ptri1->Cell(2);
+        itri1 = ptri2->Cell(1);
+        itri2 = ptri1->Cell(0);
+    }
+    else
+    
+    if ( ptri2->Node(1) == ptri1->Node(2) && ptri2->Node(0) == ptri1->Node(0) )
+    {
+        ip1 = ptri2->Node(1);
+        ip2 = ptri2->Node(2);
+        ip3 = ptri2->Node(0);
+        ip4 = ptri1->Node(1);
+        ifc1 = 2;
+        ifc2 = 0;
+        ic1 = ptri2->Cell(1);
+        ic2 = ptri2->Cell(2);
+        ic3 = ptri1->Cell(0);
+        ic4 = ptri1->Cell(1);
+        itri1 = ptri2->Cell(0);
+        itri2 = ptri1->Cell(2);
+    }
+    else
+    if ( ptri2->Node(0) == ptri1->Node(2) && ptri2->Node(2) == ptri1->Node(0) )
+    {
+        ip1 = ptri2->Node(0);
+        ip2 = ptri2->Node(1);
+        ip3 = ptri2->Node(2);
+        ip4 = ptri1->Node(1);
+        ifc1 = 2;
+        ifc2 = 2;
+        ic1 = ptri2->Cell(0);
+        ic2 = ptri2->Cell(1);
+        ic3 = ptri1->Cell(0);
+        ic4 = ptri1->Cell(1);
+        itri1 = ptri2->Cell(2);
+        itri2 = ptri1->Cell(2);
+    }
+    else
+    if ( ptri2->Node(2) == ptri1->Node(2) && ptri2->Node(1) == ptri1->Node(0) )
+    {
+        ip1 = ptri2->Node(2);
+        ip2 = ptri2->Node(0);
+        ip3 = ptri2->Node(1);
+        ip4 = ptri1->Node(1);
+        ifc1 = 2;
+        ifc2 = 1;
+        ic1 = ptri2->Cell(2);
+        ic2 = ptri2->Cell(0);
+        ic3 = ptri1->Cell(0);
+        ic4 = ptri1->Cell(1);
+        itri1 = ptri2->Cell(1);
+        itri2 = ptri1->Cell(2);
+    }
+    else
+    
+    if ( ptri2->Node(1) == ptri1->Node(1) && ptri2->Node(0) == ptri1->Node(2) )
+    {
+        ip1 = ptri2->Node(1);
+        ip2 = ptri2->Node(2);
+        ip3 = ptri2->Node(0);
+        ip4 = ptri1->Node(0);
+        ifc1 = 1;
+        ifc2 = 0;
+        ic1 = ptri2->Cell(1);
+        ic2 = ptri2->Cell(2);
+        ic3 = ptri1->Cell(2);
+        ic4 = ptri1->Cell(0);
+        itri1 = ptri2->Cell(0);
+        itri2 = ptri1->Cell(1);
+    }
+    else
+    if ( ptri2->Node(0) == ptri1->Node(1) && ptri2->Node(2) == ptri1->Node(2) )
+    {
+        ip1 = ptri2->Node(0);
+        ip2 = ptri2->Node(1);
+        ip3 = ptri2->Node(2);
+        ip4 = ptri1->Node(0);
+        ifc1 = 1;
+        ifc2 = 2;
+        ic1 = ptri2->Cell(0);
+        ic2 = ptri2->Cell(1);
+        ic3 = ptri1->Cell(2);
+        ic4 = ptri1->Cell(0);
+        itri1 = ptri2->Cell(2);
+        itri2 = ptri1->Cell(1);
+    }
+    else
+    if ( ptri2->Node(2) == ptri1->Node(1) && ptri2->Node(1) == ptri1->Node(2) )
+    {
+        ip1 = ptri2->Node(2);
+        ip2 = ptri2->Node(0);
+        ip3 = ptri2->Node(1);
+        ip4 = ptri1->Node(0);
+        ifc1 = 1;
+        ifc2 = 1;
+        ic1 = ptri2->Cell(2);
+        ic2 = ptri2->Cell(0);
+        ic3 = ptri1->Cell(2);
+        ic4 = ptri1->Cell(0);
+        itri1 = ptri2->Cell(1);
+        itri2 = ptri1->Cell(1);
+    }
+
+    ASSERT( itri1 != (IterGCell)NULL && itri2 != (IterGCell)NULL);
+
+    ptri1->rNode(0) = ip2;  
+    ptri1->rNode(1) = ip4;  
+    ptri1->rNode(2) = ip1;  
+
+    ptri1->rCell(0) = itri2;    
+    ptri1->rCell(1) = ic4;  
+    ptri1->rCell(2) = ic1;  
+
+
+    ptri2->rNode(0) = ip4;  
+    ptri2->rNode(1) = ip2;  
+    ptri2->rNode(2) = ip3;  
+
+    ptri2->rCell(0) = itri1;    
+    ptri2->rCell(1) = ic2;  
+    ptri2->rCell(2) = ic3;
+
+    if ( bgo)
+    {
+        if ( ic1 != (IterGCell)NULL ){
+            if ( (*ic1)->Cell(0) == itri2)
+                (*ic1)->rCell(0) = itri1;
+            else if ( (*ic1)->Cell(1) == itri2)
+                (*ic1)->rCell(1) = itri1;
+            else if ( (*ic1)->Cell(2) == itri2)
+                (*ic1)->rCell(2) = itri1;
+            else
+                ASSERT(0);
+        }
+
+        if ( ic3 != (IterGCell)NULL){
+            if ( (*ic3)->Cell(0) == itri1)
+                (*ic3)->rCell(0) = itri2;
+            else if ( (*ic3)->Cell(1) == itri1)
+                (*ic3)->rCell(1) = itri2;
+            else if ( (*ic3)->Cell(2) == itri1)
+                (*ic3)->rCell(2) = itri2;
+            else
+                ASSERT(0);
+        }
+    }
+
+}
+
