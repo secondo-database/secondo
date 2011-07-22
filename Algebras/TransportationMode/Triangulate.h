@@ -1418,5 +1418,395 @@ inline void HRect::ExportTEC( FILE *f)
 }
 
 
+/* 
+class HGrdPnt
+
+*/
+
+class HGrdPnt : public Vect2D
+{
+public:
+    HGrdPnt()               {}
+    HGrdPnt( const Vect2D& vec) : Vect2D( vec)  {}
+    HGrdPnt( const MGFloat& dx, const MGFloat& dy) : Vect2D( dx, dy)    {}
+    ~HGrdPnt()      {}
+    
+    const MGInt&    Index() const   { return mInd;}
+    MGInt&          rIndex()        { return mInd;}
+
+protected:
+    MGInt   mInd;
+};
+//--------------------------------------------------------------------
+
+
+typedef list<HGrdPnt*>      CollGPnt;
+typedef CollGPnt::iterator  IterGPnt;
+
+
+const MGInt NUM_TRI     = 3;
+
+class HFroSeg;
+
+
+
+/* 
+class HGrdTri 
+
+*/
+
+class HGrdTri
+{
+public:
+
+    typedef list<HGrdTri*>      CollGCell;
+    typedef CollGCell::iterator IterGCell;
+
+    HGrdTri();
+    ~HGrdTri()      {}
+
+
+    const bool&     IsOutside() const   { return mbIsOutside;}
+    bool&           rIsOutside()        { return mbIsOutside;}
+
+    const MGInt&    Cross() const       { return mCross;}
+    MGInt&          rCross()            { return mCross;}
+
+    IterGPnt    Node( const MGInt& i) const;
+    IterGCell   Cell( const MGInt& i) const;
+
+    IterGPnt&   rNode( const MGInt& i);
+    IterGCell&  rCell( const MGInt& i);
+
+    bool        IsInside( const Vect2D& vct);
+    void        NullifyThis( HGrdTri *pcl);
+    void        NullifyThis( HFroSeg *pseg);
+    void        InvalidateNeighb();
+    void        SetNeighbour( const IterGCell& itrcl);
+    
+    MGFloat     Area() const;
+    Vect2D      Center();   
+    IterGCell   NextCell( const Vect2D& vct);
+    IterGCell   NextCell( HFroSeg *pseg, 
+                          const IterGCell& iclprv=(IterGCell)NULL);
+
+
+    const Vect2D&   CircCenter() const;
+    bool            SetCircCenter();
+    
+    bool    IsInsideCirc( const Vect2D& vct);
+    bool    IsVisible( const IterGCell& icl, const Vect2D& vct);
+    bool    IsVisibleDump( const IterGCell& icl, const Vect2D& vct);
+
+    bool    Check();
+    void    DumpTri();
+    void    DumpTEC( FILE *f);
+                             
+protected:
+    IterGPnt    mlstNod[NUM_TRI];   // ref. to three nodes
+    IterGCell   mlstCell[NUM_TRI];  // ref. to three neighbours
+    bool        mbIsOutside;
+    Vect2D      mCircCenter;
+
+    MGInt       mCross;
+};
+//--------------------------------------------------------------------
+
+typedef HGrdTri::CollGCell CollGCell;
+typedef HGrdTri::IterGCell IterGCell;
+
+
+
+inline const Vect2D& HGrdTri::CircCenter() const
+{
+    return mCircCenter;
+}
+
+
+inline IterGPnt HGrdTri::Node( const MGInt& i) const
+{
+    ASSERT( i>=0 && i<NUM_TRI);
+    return mlstNod[i];
+}
+
+inline IterGCell HGrdTri::Cell( const MGInt& i) const
+{
+    ASSERT( i>=0 && i<NUM_TRI);
+    return mlstCell[i];
+}
+
+
+inline IterGPnt& HGrdTri::rNode( const MGInt& i)
+{
+    ASSERT( i>=0 && i<NUM_TRI);
+    return mlstNod[i];
+}
+
+inline IterGCell& HGrdTri::rCell( const MGInt& i)
+{
+    ASSERT( i>=0 && i<NUM_TRI);
+    return mlstCell[i];
+}
+
+inline bool HGrdTri::Check()
+{
+    Vect2D  v1 = *(*Node(1)) - *(*Node(0));
+    Vect2D  v2 = *(*Node(2)) - *(*Node(0));
+    MGFloat d = v1.X()*v2.Y() - v1.Y()*v2.X();
+
+    if ( fabs(d) < 1.0e-16)
+        return false;
+    else 
+        return true;
+}
+
+
+inline  MGFloat HGrdTri::Area() const
+{
+    Vect2D  v1 = *(*Node(1)) - *(*Node(0));
+    Vect2D  v2 = *(*Node(2)) - *(*Node(0));
+    MGFloat d = v1.X()*v2.Y() - v1.Y()*v2.X();
+
+    return 0.5*d;
+}
+
+inline void HGrdTri::DumpTri()
+{
+    char    sbuf[256];
+    sprintf( sbuf, "n0 = (%lg %lg) n1 = (%lg %lg) n2 = (%lg %lg)", 
+        (*Node(0))->X(), (*Node(0))->Y(), 
+        (*Node(1))->X(), (*Node(1))->Y(), 
+        (*Node(2))->X(), (*Node(2))->Y() );
+
+    TM_TRACE( sbuf);
+
+    void        *cp0, *cp1, *cp2;
+    
+    cp0 = cp1 = cp2 = NULL;
+//    if ( Cell(0) != NULL)
+    if ( Cell(0) != (IterGCell)NULL)
+        cp0 = *Cell(0);
+
+//    if ( Cell(1) != NULL)
+        if ( Cell(1) != (IterGCell)NULL)
+        cp1 = *Cell(1);
+
+//    if ( Cell(2) != NULL)
+      if ( Cell(2) != (IterGCell)NULL)
+        cp2 = *Cell(2);
+
+  
+    sprintf( sbuf, "c0 = (%p) c1 = (%p) c2 = (%p)", cp0, cp1, cp2);
+
+    TM_TRACE( sbuf);
+}
+
+
+inline void HGrdTri::DumpTEC( FILE *f)
+{
+    fprintf( f, "VARIABLES = \"X\", \"Y\"\n");
+    fprintf( f, "ZONE T=\"TRIANGLES\", ");
+    fprintf( f, "N=%2d, ", 3 );
+    fprintf( f, "E=%2d, F=FEPOINT, ET=QUADRILATERAL C=BLACK\n ", 1 );
+
+    fprintf( f, "%lg %lg\n%lg %lg\n%lg %lg\n", 
+        (*Node(0))->X(), (*Node(0))->Y(), 
+        (*Node(1))->X(), (*Node(1))->Y(), 
+        (*Node(2))->X(), (*Node(2))->Y() );
+    fprintf( f, "1 2 3 3\n");
+
+}
+
+
+
+/* 
+class HFroSeg 
+
+*/
+
+class HFroSeg
+{
+public:
+    HFroSeg();
+    HFroSeg( const HFroSeg& seg);
+
+    HFroSeg( IterGPnt ip1, IterGPnt ip2, 
+                IterGCell ic1 = (IterGCell)NULL, 
+                IterGCell ic2 = (IterGCell)NULL );
+
+                
+    ~HFroSeg()  {}
+    
+    const IterGPnt& PntLf() const   { return miPntLf;}
+    const IterGPnt& PntRt() const   { return miPntRt;}
+    IterGPnt&       rPntLf()        { return miPntLf;}
+    IterGPnt&       rPntRt()        { return miPntRt;}
+    
+    const IterGCell&    CellUp() const  { return miCellUp;}
+    const IterGCell&    CellLo() const  { return miCellLo;}
+    IterGCell&          rCellUp()       { return miCellUp;}
+    IterGCell&          rCellLo()       { return miCellLo;}
+
+protected:
+    IterGPnt    miPntLf;        // ref. to left GrdPoint 
+    IterGPnt    miPntRt;        // ref. to right GrdPoint
+    IterGCell   miCellUp;       // ref. to upper cell
+    IterGCell   miCellLo;       // ref. to lower cell
+
+public:
+    bool        mbtmp;
+};
+//--------------------------------------------------------------------
+
+typedef list<HFroSeg*>      CollFSeg;
+typedef CollFSeg::iterator  IterFSeg;
+
+
+
+inline HFroSeg::HFroSeg()   
+{ 
+
+      miPntLf = miPntRt = (IterGPnt)NULL;
+      miCellUp = miCellLo = (IterGCell)NULL;
+}
+
+inline HFroSeg::HFroSeg( const HFroSeg& seg)
+{
+    miPntLf = seg.miPntLf;
+    miPntRt = seg.miPntRt;
+    miCellUp = seg.miCellUp;
+    miCellLo = seg.miCellLo;
+}
+
+
+inline HFroSeg::HFroSeg( IterGPnt ip1, IterGPnt ip2, 
+                         IterGCell ic1, IterGCell ic2)
+{
+    miPntLf = ip1; 
+    miPntRt = ip2;
+    miCellUp = ic1;
+    miCellLo = ic2;
+}
+
+
+
+/* 
+class HFront 
+
+*/
+
+class HFront : public CollFSeg
+{
+    friend class HFrontLoop;
+
+public:
+    HFront()        {}
+    ~HFront();
+    
+    MGFloat Angle( const Vect2D& vct);
+
+};
+//--------------------------------------------------------------------
+
+typedef list<HFront>        CollFro;
+typedef CollFro::iterator   IterFro;
+
+
+
+
+/* 
+class HGrid 
+
+*/
+
+class HGrid
+{
+public:
+    HGrid()     {}
+    ~HGrid();
+
+    void    Init( const vector<Vect2D>& tabp, const vector<MGInt>& tabn );
+    void    Generate();
+    void    ExportTECTmp( FILE *f);
+    void    WriteFrontTEC( const char name[]);
+
+
+    IterGCell   CellBegin()     { return mcolCell.begin(); }
+    IterGCell   CellEnd()       { return mcolCell.end(); }
+    
+protected:
+// protected attributes
+    CollGPnt        mcolPnt;    // list of boundary grid points
+    CollGCell       mcolCell;   // list of cells    
+    CollFro         mcolFro;
+
+// auxiliary attributes
+    IterGPnt        mind1, mind2, mind3, mind4;     
+    //iterators to 4 corners of the bounding box
+    HRect           mBox;
+
+
+// protected methods for internal use
+    bool    IsOutside( const Vect2D& vct);
+    bool    IsBoxCorner( const IterGPnt& ipnt);
+
+    IterGPnt    InsertPoint( HGrdPnt *gpnt);
+    IterGCell   InsertCell( HGrdTri *gcell);
+
+// UNSTRUCTURED GRID GENERATIUON
+    void    CheckBoundIntegr();
+    void    FlagOuterTris();
+    void    InitTriangles();    // init. triangulation (2 cells)
+    void    RemoveOuterTris();
+
+    bool    CheckSwapTriangles( HGrdTri *ptri1, HGrdTri *ptri2);
+    void    SwapTriangles( HGrdTri *ptri1, HGrdTri *ptri2, bool bgo = true);
+    
+    bool    CheckNeighb( IterGCell icl, CollFSeg& lstsg, 
+                         const Vect2D& vct, const IterGCell& ipvcl);
+
+    MGInt   InsertPointIntoMesh( IterGPnt itr);
+
+//    HFroSeg*    NewFace( MGInt i, IterGCell icl = NULL);
+    HFroSeg*    NewFace( MGInt i, IterGCell icl = (IterGCell)NULL);
+
+// SOURCES !!!!!!
+    bool    PointExists( const Vect2D& ip);
+
+
+    void    CheckPoints( char st[]);
+    void    CheckGrid();
+};
+//--------------------------------------------------------------------
+
+
+
+inline IterGPnt HGrid::InsertPoint( HGrdPnt *gpnt)
+{
+    return mcolPnt.insert( mcolPnt.end(), gpnt );
+}
+
+
+
+
+inline IterGCell HGrid::InsertCell( HGrdTri *gcell)
+{
+    return mcolCell.insert( mcolCell.end(), gcell );
+}
+
+
+
+inline bool HGrid::IsBoxCorner( const IterGPnt& ipnt)
+{
+    if ( ipnt == mind1 || ipnt == mind2 || ipnt == mind3 || ipnt == mind4 )
+        return true;
+
+    return false;
+}
+
+
+int Triangulation2(int ncontours, int cntr[], vector<double>& vertices_x,
+                   vector<double>& vertices_y);
+
 
 #endif
