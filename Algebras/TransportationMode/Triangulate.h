@@ -839,5 +839,274 @@ inline Vect4D operator-( const Vect4D& vec1, const Vect4D& vec2)
                    vec1.mtab[2] - vec2.mtab[2], vec1.mtab[3] - vec2.mtab[3] );
 }
 
+/*
+operator function for template class vector
+
+*/
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE,DIM> operator-( const Vect<ELEM_TYPE,DIM>& vec1, 
+                                      const Vect<ELEM_TYPE,DIM>& vec2)
+{
+    Vect<ELEM_TYPE,DIM> v;
+    for ( MGInt i=0; i<DIM; ++i)
+        v.mtab[i] = vec1.mtab[i] - vec2.mtab[i];
+    return v;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE,DIM> operator+( const Vect<ELEM_TYPE,DIM>& vec1, 
+                                      const Vect<ELEM_TYPE,DIM>& vec2)
+{
+    Vect<ELEM_TYPE,DIM> v;
+    for ( MGInt i=0; i<DIM; ++i)
+        v.mtab[i] = vec1.mtab[i] + vec2.mtab[i];
+    return v;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline ELEM_TYPE operator*( const Vect<ELEM_TYPE,DIM>& vec1, 
+                            const Vect<ELEM_TYPE,DIM>& vec2)
+{
+    ELEM_TYPE   e(0);
+    for ( MGInt i=0; i<DIM; ++i)
+        e += vec1.mtab[i] * vec2.mtab[i];
+    return e;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE,DIM> operator*( const ELEM_TYPE& e, 
+                                      const Vect<ELEM_TYPE,DIM>& vec)
+{
+    Vect<ELEM_TYPE,DIM> v;
+    for ( MGInt i=0; i<DIM; ++i)
+        v.mtab[i] = e * vec.mtab[i];
+    return v;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE,DIM> operator*( const Vect<ELEM_TYPE,DIM>& vec, 
+                                      const ELEM_TYPE& e)
+{
+    Vect<ELEM_TYPE,DIM> v;
+    for ( MGInt i=0; i<DIM; ++i)
+        v.mtab[i] = e * vec.mtab[i];
+    return v;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE,DIM> operator/( const Vect<ELEM_TYPE,DIM>& vec, 
+                                      const ELEM_TYPE& e)
+{
+    Vect<ELEM_TYPE,DIM> v;
+    for ( MGInt i=0; i<DIM; ++i)
+        v.mtab[i] = vec.mtab[i] / e;
+    return v;
+}
+
+
+/* 
+class HPolygon
+structur for polygon triangulation 
+
+*/
+
+class HPolygon
+{
+public:
+    HPolygon()      {}
+    ~HPolygon()     {}
+
+    void    Init( const char name[]);
+    void    Triangulate();
+    void    WriteTEC( const char name[]);
+
+
+    int Triangulation2(int ncontours, int cntr[], 
+                             vector<double>& vertices_x,
+                   vector<double>& vertices_y);
+    void    Init2(int ncontours, int cntr[], vector<double>& vertices_x,
+                   vector<double>& vertices_y);
+    int    OutPut();
+    
+    
+    vector<Vect2D>  mtabPnt;
+    vector<MGInt>   mtabSize;
+    vector<HTri>    mtabCell;
+    vector<int>     p_id_list;
+    
+};
+
+
+
+#define THIS_FILE __FILE__  // defines name of header or implementation file
+
+
+const MGInt EX_FILE_CODE        = 101;
+const MGInt EX_MATH_CODE        = 102;
+const MGInt EX_MEMORY_CODE      = 103;
+const MGInt EX_INTERNAL_CODE    = 104;
+const MGInt EX_ASSERT_CODE      = 105;
+const MGInt EX_REXP_CODE        = 106;
+
+const char EX_FILE_STR[]        = "FILE";
+const char EX_MATH_STR[]        = "MATH";
+const char EX_MEMORY_STR[]      = "MEM";
+const char EX_INTERNAL_STR[]    = "INTERNAL";
+const char EX_ASSERT_STR[]      = "ASSERT";
+const char EX_REXP_STR[]        = "REXP";
+
+
+// name of file used for tracing
+const char TRACE_FILE_NAME[]    = "trace.txt";
+
+
+
+/* 
+class Trace, for debuging, trace the program
+
+*/
+
+class TRI_Trace
+{
+public:
+    TRI_Trace() { FILE *ftrc = fopen( TRACE_FILE_NAME, "wt"); 
+    Verify(ftrc); fclose( ftrc); }
+
+    FILE*   Open() { FILE *ftrc = fopen( TRACE_FILE_NAME, "at"); 
+    Verify(ftrc); return ftrc; }
+    void    Close( FILE *f) { fclose( f);}
+    void    Verify( FILE *f);
+    void    Out( char *sfile, MGInt nline);
+};
+
+inline void TRI_Trace::Verify( FILE *f)
+{
+    if ( !f)
+        printf( "mgtrace file '%s' opening error\n", TRACE_FILE_NAME);
+}
+
+inline void TRI_Trace::Out( char *sfile, MGInt nline)
+{   
+    FILE *ftrc = Open(); 
+    fprintf( ftrc, "FILE:%s - LINE:%d;  ", sfile, nline);
+    Close( ftrc);   
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// macros for traceing
+//////////////////////////////////////////////////////////////////////
+
+//-----------------------------------------
+#ifdef _DEBUG
+//-----------------------------------------
+#define INIT_TRACE  TRI_Trace mgtrace
+
+#define TM_TRACE(sz) \
+    { \
+        FILE *f = mgtrace.Open(); \
+        mgtrace.Out(THIS_FILE, __LINE__); \
+        fprintf( f, sz); \
+        fprintf( f, "\n"); \
+        mgtrace.Close( f); \
+    }
+
+#define TM_TRACE1(sz, x1) \
+    { \
+        FILE *f = mgtrace.Open(); \
+        mgtrace.Out(THIS_FILE, __LINE__); \
+        fprintf( f, sz, x1); \
+        fprintf( f, "\n"); \
+        mgtrace.Close( f); \
+    }
+
+#define TM_TRACE2(sz, x1, x2) \
+    { \
+        FILE *f = mgtrace.Open(); \
+        mgtrace.Out(THIS_FILE, __LINE__); \
+        fprintf( f, sz, x1, x2); \
+        fprintf( f, "\n"); \
+        mgtrace.Close( f); \
+    }
+
+#define TM_TRACE_EXCEPTION(e) \
+    { \
+        FILE *f = mgtrace.Open(); \
+        (e).WriteInfo( f); \
+        mgtrace.Close( f); \
+    }
+
+
+class Trace mgtrace;
+
+//-----------------------------------------
+#else // _DEBUG
+//-----------------------------------------
+
+#define INIT_TRACE
+
+#define TM_TRACE(sz) \
+    { \
+    }
+
+#define TM_TRACE1(sz, x1) \
+    { \
+    }
+
+#define TM_TRACE2(sz, x1, x2) \
+    { \
+    }
+
+#define TM_TRACE_EXCEPTION(e) \
+    { \
+    }
+
+//-----------------------------------------
+#endif // _DEBUG
+//-----------------------------------------
+
+
+
+
+
+#define TM_TRACE_TO_STDERR(e) \
+    { \
+        (e).WriteInfo( stderr); \
+    }
+
+#define TM_TRACE_TO_CERR TM_TRACE_TO_STDERR
+
+
+/* 
+class Except - base, abstract class for all exceptions
+
+*/
+
+class Except
+{
+public:
+    Except():mComment(""),mFileName(""),mLineNo(0){}
+    Except( const Except& ex) 
+        : mComment(ex.mComment), mFileName(ex.mFileName), mLineNo(ex.mLineNo){};
+        
+    Except( MGString com, MGString fname, MGInt line) 
+        : mComment(com), mFileName(fname), mLineNo(line) {};
+        
+    virtual ~Except()   {};
+
+    Except& operator = (const Except& ex);
+    
+    virtual MGInt       GetExType()      const  = 0;
+    virtual MGString    GetExPrefix()    const  = 0;
+    
+    virtual void        WriteInfo( FILE *f);
+
+protected:
+    MGString    mComment;   
+    MGString    mFileName;
+    MGInt       mLineNo;
+    
+};
 
 #endif
