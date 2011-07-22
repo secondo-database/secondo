@@ -3165,3 +3165,134 @@ MGInt HGrid::InsertPointIntoMesh( IterGPnt pntitr)
 
     return num;
 }
+
+
+
+
+
+bool HGrid::PointExists( const Vect2D& vct)
+{
+//  Leaf<IterFacGPnt>   *pndlf;
+//  IterFacGPnt         ipn;
+//
+//  pndlf = mPntQTree.ClosestItem( vct );
+//  if ( pndlf != NULL)
+//  {   
+//      ipn = pndlf->Data();
+//
+//      if ( fabs( (*ipn)->X() - vct.X() ) < ZERO &&
+//           fabs( (*ipn)->Y() - vct.Y() ) < ZERO   )
+//      {
+//           return true;
+//      }
+//  }
+//
+    return false;
+}
+
+
+
+// creates basic trinagulation (two triangles) and inserts all boundary points
+void HGrid::InitTriangles()
+{
+    CollGPnt::iterator  itr;
+    Vect2D      vmin, vmax, vct;
+    bool        bFirst = true;
+    HGrdPnt     *pnd1, *pnd2, *pnd3, *pnd4;
+    HGrdTri     *ptri1, *ptri2;
+    IterGPnt    ind1, ind2, ind3, ind4;
+    IterGCell   itri1, itri2;
+
+//    ind1 = ind2 = ind3 = ind4 = NULL;
+    ind1 = ind2 = ind3 = ind4 = (IterGPnt)NULL;
+//    itri1 = itri2 = NULL;
+    itri1 = itri2 = (IterGCell)NULL;
+
+
+    // finding limits
+    for ( itr = mcolPnt.begin(); itr != mcolPnt.end(); itr++)
+    {
+        vct = *(*itr);
+        if ( bFirst)
+        {
+            vmin = vmax = vct;
+            bFirst = false;
+        }
+        else
+        {
+            if ( vct.X() > vmax.X() ) vmax.rX() = vct.X();
+            if ( vct.Y() > vmax.Y() ) vmax.rY() = vct.Y();
+            if ( vct.X() < vmin.X() ) vmin.rX() = vct.X();
+            if ( vct.Y() < vmin.Y() ) vmin.rY() = vct.Y();
+        }
+    }
+    
+    vct = (vmax - vmin)/1.5;
+    vmax += vct;
+    vmin -= vct;
+    
+    mBox = HRect( vmin.X(), vmin.Y(), vmax.X(), vmax.Y() ); 
+    
+    // creating starting triangulation containing two cells and four points
+    THROW_ALLOC( pnd1 = MGNEW HGrdPnt( vmin) );
+    THROW_ALLOC( pnd2 = MGNEW HGrdPnt( vmax.X(), vmin.Y()) );
+    THROW_ALLOC( pnd3 = MGNEW HGrdPnt( vmax) );
+    THROW_ALLOC( pnd4 = MGNEW HGrdPnt( vmin.X(), vmax.Y()) );
+    
+    THROW_ALLOC( ptri1 = MGNEW HGrdTri() );
+    THROW_ALLOC( ptri2 = MGNEW HGrdTri() );
+        
+    mind1 = ind1 = InsertPoint( pnd1);
+    mind2 = ind2 = InsertPoint( pnd2);
+    mind3 = ind3 = InsertPoint( pnd3);
+    mind4 = ind4 = InsertPoint( pnd4);
+
+    itri1 = InsertCell( ptri1);
+    itri2 = InsertCell( ptri2);
+
+    ptri1->rNode(0) = ind1;
+    ptri1->rNode(1) = ind2;
+    ptri1->rNode(2) = ind3;
+    
+    ptri2->rNode(0) = ind3;
+    ptri2->rNode(1) = ind4;
+    ptri2->rNode(2) = ind1;
+    
+    ptri1->rCell(2) = itri2;
+    ptri2->rCell(2) = itri1;
+    ptri1->SetCircCenter();
+    ptri2->SetCircCenter();
+
+
+    // inserting frontal points into mesh
+    IterFro     itrfro;
+    IterFSeg    itrsg;
+
+    map<HGrdPnt*,int>           mapNod;
+    map<HGrdPnt*,int>::iterator imap;
+
+    for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); itrfro++)
+    {
+        for ( itrsg = (*itrfro).begin(); itrsg != (*itrfro).end(); itrsg++)
+        {
+            itr = (*itrsg)->rPntRt();
+
+            if ( ( imap = mapNod.find( *itr) ) == mapNod.end() )
+            {
+                InsertPointIntoMesh( itr);
+                mapNod.insert( map<HGrdPnt*,int>::value_type( *itr, 0) );
+            }
+
+        }
+    }           
+
+    
+#ifdef _DEBUG
+
+    FILE    *ftmp = fopen( "initial.plt", "wt");
+    ExportTECTmp( ftmp);
+    fclose( ftmp);
+    
+#endif // _DEBUG
+}
+
