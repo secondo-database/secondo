@@ -588,6 +588,9 @@ static int add_segment(int segnum)
   int tmptriseg;
 
   s = seg[segnum];
+//  cout<<"( "<<s.v0.x<<" "<<s.v0.y<<")"<<endl;
+//  cout<<"( "<<s.v1.x<<" "<<s.v1.y<<")"<<endl;
+
   if (_greater_than(&s.v1, &s.v0)) /* Get higher vertex in v0 */
     {
       int tmp;
@@ -942,15 +945,15 @@ static int add_segment(int segnum)
       if (FP_EQUAL(tr[t].lo.y, tr[tlast].lo.y) &&
           FP_EQUAL(tr[t].lo.x, tr[tlast].lo.x) && tribot)
         {       /* bottom forms a triangle */
-          int tmpseg;
+//          int tmpseg;
 
           if (is_swapped)
         tmptriseg = seg[segnum].prev;
           else
         tmptriseg = seg[segnum].next;
 
-          if ((tmpseg > 0) && is_left_of(tmpseg, &s.v0))
-        {
+//          if ((tmpseg > 0) && is_left_of(tmpseg, &s.v0)){
+          if ((tmptriseg > 0) && is_left_of(tmptriseg, &s.v0)){
           /* L-R downward cusp */
           tr[tr[t].d1].u0 = t;
           tr[tn].d0 = tr[tn].d1 = -1;
@@ -2019,4 +2022,1146 @@ vector<double> vertices_y, int (*triangles)[3])
   int no_tri = triangulate_monotone_polygons(n, nmonpoly, triangles);
 
   return no_tri;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+/////////// another implementation of triangulation /////////////////////////
+/////////// 2011.7 from code project/////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+Dimension GlobDim::mDim = DIM_NONE;
+
+/*
+initialize the polygon, input points
+
+*/
+void HPolygon::Init( const char name[])
+{
+    int     n, ni;
+    double  x, y;
+
+    FILE    *f = fopen( name, "rt");
+
+    if (!f)
+        THROW_FILE( "can not open file", name);
+
+    printf( "Reading file: %s\n", name );
+
+    fscanf( f, "%d", &n);
+    mtabSize.resize( n);
+
+    for ( int i=0; i<n; ++i){
+        fscanf( f, "%d", &ni);
+        mtabSize[i] = ni;
+
+        for ( int j=0; j<ni; ++j)
+        {
+            fscanf( f, "%lg %lg", &x, &y);
+            mtabPnt.insert( mtabPnt.end(), Vect2D( x, y) );
+        }
+    }
+
+    fclose( f);
+}
+
+/*
+new initialization function, read the input from vectors instead of files 
+
+*/
+void HPolygon::Init2(int ncontours, int cntr[], vector<double>& vertices_x,
+                   vector<double>& vertices_y)
+{
+
+    int n = ncontours;
+    mtabSize.resize(n);
+
+    int point_id = 1;
+
+    int count = 0;
+    for ( int i = 0; i< n; i++){
+        int ni = cntr[i];
+        mtabSize[i] = ni;
+//        cout<<"ni "<<ni<<endl;
+        double first_x, first_y;
+        int first_p_id;
+        for ( int j = 0; j < ni; j++){
+           double x = vertices_x[j + count];
+           double y = vertices_y[j + count];
+//           cout<<"x "<<x<<" y "<<y<<endl;
+           mtabPnt.insert( mtabPnt.end(), Vect2D( x, y) );
+           if(j == 0){
+              first_x = x;
+              first_y = y;
+              first_p_id = point_id;
+           }
+           p_id_list.push_back(point_id);
+           point_id++;
+        }
+
+        mtabSize[i]++;
+        mtabPnt.insert( mtabPnt.end(), Vect2D( first_x, first_y) );
+        count += ni;
+        p_id_list.push_back(first_p_id);//no ++ !!!
+
+//        count += ni;
+    }
+
+}
+
+void HPolygon::Triangulate()
+{
+//    printf( "Triangulation started\n" );
+
+    HGrid   grid;
+
+    grid.Init( mtabPnt, mtabSize);
+    grid.Generate();
+
+    vector<HTri>::iterator  itri;
+    IterGCell   itr;
+
+    for ( itr = grid.CellBegin(); itr != grid.CellEnd(); ++itr)
+    {
+        itri = mtabCell.insert( mtabCell.end(), HTri() );
+        (*itri).rIndex( 0) = (*(*itr)->Node( 0))->Index();
+        (*itri).rIndex( 1) = (*(*itr)->Node( 1))->Index();
+        (*itri).rIndex( 2) = (*(*itr)->Node( 2))->Index();
+    }
+
+}
+
+/*
+new form of triangulation
+
+*/
+int HPolygon::Triangulation2(int ncontours, int cntr[], 
+                             vector<double>& vertices_x,
+                   vector<double>& vertices_y)
+{
+
+//try
+//  {
+//      HPolygon    poly;
+
+//      if ( argc != 3 ){
+//        printf("usage: hgrd [input file with points][output tecplot file]\n");
+//        return 1;
+//      }
+//      poly.Init( argv[1]);
+//      poly.Triangulate();
+//      poly.WriteTEC( argv[2]);
+//  }
+//  catch ( Except *pe)
+//  {
+//      ASSERT( pe);
+//      TRACE_EXCEPTION( *pe);
+//      TRACE_TO_STDERR( *pe);
+//      delete pe;
+//  }
+
+//     for(unsigned int i = 0;i < vertices_x.size();i++){
+//       cout<<vertices_x[i]<<" "<<vertices_y[i]<<endl;
+//     }
+
+//    cout<<mtabPnt.max_size()<<endl; ////////268,435,455
+    Init2(ncontours, cntr, vertices_x,vertices_y);
+    Triangulate();
+    int triangle_no = OutPut();
+
+    return triangle_no;
+}
+
+/*
+output the result into files 
+
+*/
+void HPolygon::WriteTEC( const char name[])
+{
+    printf( "Writing TECPLOT file: %s\n", name );
+
+    FILE *f = fopen( name, "wt");
+
+    fprintf( f, "TITLE = \"polygon\"\n");
+    fprintf( f, "VARIABLES = \"X\", \"Y\"\n");
+    fprintf( f, "ZONE T=\"TRIANGLES\", ");
+    fprintf( f, "N=%2ld, ", (long int)mtabPnt.size() );
+    fprintf( f, "E=%2ld, F=FEPOINT, ET=TRIANGLE C=BLACK\n ", 
+             (long int)mtabCell.size() );
+
+    size_t      i;
+    for ( i=0; i<mtabPnt.size(); ++i)
+        fprintf( f, "%lg %lg\n", mtabPnt[i].X(), mtabPnt[i].Y() );
+
+
+    for ( i=0; i<mtabCell.size(); ++i)
+        fprintf( f, "%d %d %d\n", 1+mtabCell[i].Index(0), 
+                 1+mtabCell[i].Index(1), 1+mtabCell[i].Index(2) );
+
+    fclose( f);
+}
+
+
+int HPolygon::OutPut()
+{
+    
+//     for (int i = 0; i < mtabPnt.size(); ++i)
+//         printf( "%lg %lg\n", mtabPnt[i].X(), mtabPnt[i].Y() );
+// 
+// 
+//     for (int i = 0; i< mtabCell.size(); ++i)
+//         printf( "%d %d %d\n", 1+mtabCell[i].Index(0), 
+//                  1+mtabCell[i].Index(1), 1+mtabCell[i].Index(2) );
+
+//    cout<<mtabPnt.size()<<" "<<mtabCell.size()<<endl;
+
+    return mtabCell.size();
+}
+
+
+
+MGFloat Angle( const Vect2D &nd, const Vect2D &nd1, const Vect2D &nd2)
+{
+    static Vect2D   v1, v2;
+    static MGFloat  dvect, dsin, dcos;
+
+    //v1 = nd1 - nd;
+    //v2 = nd2 - nd;
+    v1 = (nd1 - nd).module();
+    v2 = (nd2 - nd).module();
+
+    dsin = v1.X()*v2.Y() - v2.X()*v1.Y();
+    dcos = v1.X()*v2.X() + v1.Y()*v2.Y();
+    if ( fabs( dsin) < ZERO && fabs( dcos) < ZERO)
+        return M_PI_2;
+    dvect = atan2( dsin, dcos);
+    return dvect;
+}
+
+/*
+check vector crossing 
+
+*/
+bool CheckCrossing( const Vect2D& v1, const Vect2D& v2, const Vect2D& v3, 
+                    const Vect2D& v4)
+{
+    Vect2D  vv, vv1, vv2;
+    MGFloat t1, t2, t;
+    MGFloat h1, h2;
+
+    
+    vv = v2 - v1;
+    vv1 = v3 - v1;
+    vv2 = v4 - v1;
+    
+    ASSERT( fabs( vv.module() ) > ZERO );
+
+    t1 = vv * vv1 / vv.module();
+    t2 = vv * vv2 / vv.module();
+    
+    h1 = (vv.X()*vv1.Y() - vv.Y()*vv1.X()) / vv.module();
+    h2 = (vv.X()*vv2.Y() - vv.Y()*vv2.X()) / vv.module();
+
+    if ( fabs( h2 - h1) < ZERO)
+        return false;
+
+    t = t1 - (t2 - t1)/(h2 - h1) * h1;
+    
+    if ( t > 0.0 && t < vv.module() && h1 * h2 < ZERO )
+        return true;
+    else
+        return false;
+}
+
+
+bool AreNeigbours( const IterGCell& ic1, const IterGCell& ic2)
+{
+    char    sbuf[256];
+    bool    b1, b2;
+
+//  TRACE2( "itrcl = %d %d", ic1, *ic1);
+//  (*ic1)->DumpTri();
+//  TRACE2( "itrcl = %d %d", ic2, *ic2);
+//  (*ic2)->DumpTri();
+
+    b1 = b2 = false;
+    for ( int i=0; i<NUM_TRI; ++i)
+    {
+//      if ( (*ic1)->Cell(i) != NULL)
+            if ( (*ic1)->Cell(i) == ic2 )
+                b1 = true;
+
+//      if ( (*ic2)->Cell(i) != NULL)
+            if ( (*ic2)->Cell(i) == ic1 )
+                b2 = true;
+    }
+
+    sprintf( sbuf, " b1 = %d b2 = %d", static_cast<int>(b1), 
+             static_cast<int>(b2) );
+    TM_TRACE( sbuf);
+    if ( !b1 || !b2)
+        THROW_INTERNAL( "Not neighbours found");
+
+    return true;
+}
+
+
+/* 
+class HGrdTri 
+main class for triangulation, grid 
+
+*/
+
+HGrdTri::HGrdTri() : mbIsOutside( false)    
+{
+    for ( MGInt i=0; i<NUM_TRI; i++)
+    {
+//        mlstNod[i] = NULL;
+//        mlstCell[i] = NULL;
+
+          mlstNod[i] = (IterGPnt)NULL;
+          mlstCell[i] = (IterGCell)NULL;
+    }
+}
+
+/*
+check whether two grids are visible 
+
+*/
+bool HGrdTri::IsVisible( const IterGCell& icl, const Vect2D& vct)
+{
+    static Vect2D   vfac, v1, v2;
+    static MGFloat  d1, d2;
+//  static char     sbuf[1024];
+
+    if ( Cell(0) == icl )
+    {
+        v1 = *( (*Node(0)) ) - *( (*Node(2)) );
+        v2 = *( (*Node(1)) ) - *( (*Node(2)) );
+        vfac = vct - *( (*Node(2)) );
+    }
+    else if ( Cell(1) == icl )
+    {
+        v1 = *( (*Node(1)) ) - *( (*Node(0)) );
+        v2 = *( (*Node(2)) ) - *( (*Node(0)) );
+        vfac = vct - *( (*Node(0)) );
+    }
+    else if ( Cell(2) == icl )
+    {
+        v1 = *( (*Node(2)) ) - *( (*Node(1)) );
+        v2 = *( (*Node(0)) ) - *( (*Node(1)) );
+        vfac = vct - *( (*Node(1)) );
+    }
+    else
+    {
+        ASSERT( 0);
+    }
+    d1 = v1.X()*vfac.Y() - v1.Y()*vfac.X();
+    d2 = v2.X()*vfac.Y() - v2.Y()*vfac.X();
+
+    d1 /= vfac.module();
+    d2 /= vfac.module();
+    
+    if ( (d2 > ZERO && d1 < -ZERO) )
+        return false;
+    else
+        return true;
+}
+
+bool HGrdTri::IsVisibleDump( const IterGCell& icl, const Vect2D& vct)
+{
+//  static Vect2D   vfac, v1, v2;
+//  static MGFloat  d1, d2;
+//  static char     sbuf[1024];
+    Vect2D  vfac, v1, v2;
+    MGFloat d1, d2;
+
+    THROW_INTERNAL("Should not be used !!!");
+
+    if ( Cell(0) == icl )
+    {
+        v1 = *( (*Node(0)) ) - *( (*Node(2)) );
+        v2 = *( (*Node(1)) ) - *( (*Node(2)) );
+        vfac = vct - *( (*Node(2)) );
+    }
+    else if ( Cell(1) == icl )
+    {
+        v1 = *( (*Node(1)) ) - *( (*Node(0)) );
+        v2 = *( (*Node(2)) ) - *( (*Node(0)) );
+        vfac = vct - *( (*Node(0)) );
+    }
+    else if ( Cell(2) == icl )
+    {
+        v1 = *( (*Node(2)) ) - *( (*Node(1)) );
+        v2 = *( (*Node(0)) ) - *( (*Node(1)) );
+        vfac = vct - *( (*Node(1)) );
+    }
+    else
+    {
+        ASSERT( 0);
+    }
+    d1 = v1.X()*vfac.Y() - v1.Y()*vfac.X();
+    d2 = v2.X()*vfac.Y() - v2.Y()*vfac.X();
+    
+    if ( d1 * d2 > ZERO )
+    {
+        TM_TRACE2( "v1 = (%lg %lg)", v1.X(), v1.Y() );
+        TM_TRACE2( "v2 = (%lg %lg)", v2.X(), v2.Y() );
+        TM_TRACE2( "vf = (%lg %lg)", vfac.X(), vfac.Y() );
+        TM_TRACE2( "d1 = %lg d1 = %lg", d1, d2 );
+
+        return false;
+    }
+    else
+        return true;
+}
+
+/*
+for a grid, set its neighbors 
+
+*/
+
+void HGrdTri::SetNeighbour( const IterGCell& itrcl)
+{
+    static HGrdTri  *ptr;
+    
+//    ASSERT( itrcl != NULL);
+    ASSERT( itrcl != (IterGCell)NULL);
+    ptr = (*itrcl);
+    ASSERT( ptr);
+    
+    if ( ( ptr->Node(1) == Node(0) && ptr->Node(0) == Node(1) ) ||
+         ( ptr->Node(0) == Node(0) && ptr->Node(2) == Node(1) ) ||
+         ( ptr->Node(2) == Node(0) && ptr->Node(1) == Node(1) ) )
+    {
+        rCell(0) = itrcl;
+    }
+    else
+    if ( ( ptr->Node(1) == Node(1) && ptr->Node(0) == Node(2) ) ||
+         ( ptr->Node(0) == Node(1) && ptr->Node(2) == Node(2) ) ||
+         ( ptr->Node(2) == Node(1) && ptr->Node(1) == Node(2) ) )
+    {
+        rCell(1) = itrcl;
+    }
+    else
+    if ( ( ptr->Node(1) == Node(2) && ptr->Node(0) == Node(0) ) ||
+         ( ptr->Node(0) == Node(2) && ptr->Node(2) == Node(0) ) ||
+         ( ptr->Node(2) == Node(2) && ptr->Node(1) == Node(0) ) )
+    {
+        rCell(2) = itrcl;
+    }
+}
+
+
+void HGrdTri::NullifyThis( HGrdTri *pcl)
+{
+    for ( MGInt i=0; i<NUM_TRI; i++)
+    {
+//         if ( mlstCell[i] != NULL)
+//             if ( (*mlstCell[i]) == pcl)
+//                 mlstCell[i] = NULL;
+
+        if ( mlstCell[i] != (IterGCell)NULL)
+            if ( (*mlstCell[i]) == pcl)
+                mlstCell[i] = (IterGCell)NULL;
+
+    }
+}
+
+
+void HGrdTri::NullifyThis( HFroSeg *pseg)
+{
+    if ( ( pseg->PntLf() == Node(0) && pseg->PntLf() == Node(1) ) ||
+         ( pseg->PntRt() == Node(0) && pseg->PntRt() == Node(1) ) )
+    {
+//        rCell(0) = NULL;
+        rCell(0) = (IterGCell)NULL;
+    }
+    else
+    if ( ( pseg->PntLf() == Node(1) && pseg->PntLf() == Node(2) ) ||
+         ( pseg->PntRt() == Node(1) && pseg->PntRt() == Node(2) ) )
+    {
+//        rCell(1) = NULL;
+        rCell(1) = (IterGCell)NULL;
+    }
+    else
+    if ( ( pseg->PntLf() == Node(2) && pseg->PntLf() == Node(0) ) ||
+         ( pseg->PntRt() == Node(2) && pseg->PntRt() == Node(0) ) )
+    {
+//        rCell(2) = NULL;
+        rCell(2) = (IterGCell)NULL;
+    }
+}
+
+
+void HGrdTri::InvalidateNeighb()
+{
+    for ( MGInt i=0; i<NUM_TRI; i++)
+    {
+//        if ( mlstCell[i] != NULL)
+        if ( mlstCell[i] != (IterGCell)NULL)
+            (*mlstCell[i])->NullifyThis( this);
+    }
+}
+
+
+
+bool HGrdTri::IsInside( const Vect2D& vct)
+{
+// ::TODO:: new and faster algorithm should be introduced
+    MGFloat alf;
+
+    alf  = ::Angle( vct, *(*Node(0)), *(*Node(1)) );
+    alf += ::Angle( vct, *(*Node(1)), *(*Node(2)) );
+    alf += ::Angle( vct, *(*Node(2)), *(*Node(0)) );
+
+    if ( fabs(alf) < M_PI )
+        return false;
+    else 
+        return true;
+}
+
+/*
+set the center point of a triangle
+
+*/
+
+bool HGrdTri::SetCircCenter()
+{
+    static MGFloat  x1, y1, x2, y2, x3, y3;
+    static MGFloat  xr, yr, d;
+
+    x1 = (*Node(0))->X();
+    y1 = (*Node(0))->Y();
+    x2 = (*Node(1))->X();
+    y2 = (*Node(1))->Y();
+    x3 = (*Node(2))->X();
+    y3 = (*Node(2))->Y();
+
+    d = y3*(x2 - x1) + y2*(x1 - x3) + y1*(x3 - x2);
+    if ( fabs( d) < ZERO)
+    {
+        DumpTri();
+//        TM_TRACE1( "d = %lg", d);
+        cout<<d<<endl;
+        cout<<x1<<" "<<y1<<endl;
+        cout<<x2<<" "<<y2<<endl;
+        cout<<x3<<" "<<y3<<endl;
+        return true;
+        // THROW_INTERNAL( "Problem inside SetCircCenter() !!!");
+    }
+
+    xr = x1*x1*(y3-y2) + x2*x2*(y1-y3) + x3*x3*(y2-y1) + 
+         y1*y1*(y3-y2) + y2*y2*(y1-y3) + y3*y3*(y2-y1);
+    xr *= -0.5/d;
+
+    yr = x1*x1*(x3-x2) + x2*x2*(x1-x3) + x3*x3*(x2-x1) + 
+         y1*y1*(x3-x2) + y2*y2*(x1-x3) + y3*y3*(x2-x1);
+    yr *= 0.5/d;
+
+    mCircCenter =  Vect2D( xr, yr);
+
+    return false;
+}
+
+
+
+
+Vect2D HGrdTri::Center()
+{
+    return ( *(*Node(0)) + *(*Node(1)) + *(*Node(2)) )/3.0;
+}
+
+
+
+IterGCell HGrdTri::NextCell( const Vect2D& vct)
+{
+    static Vect2D   v1, v2;
+    
+//    if ( Cell(0) != NULL)
+    if ( Cell(0) != (IterGCell)NULL){
+        v1 = *(*Node(1)) - *(*Node(0));
+        v1 = Vect2D( -v1.Y(), v1.X() );
+        v2 = ( *(*Node(1)) + *(*Node(0)) )/2.0;
+        v2 = vct - v2;
+        if ( v1 * v2 < 0.0 )
+            return Cell(0);
+    }
+
+//    if ( Cell(1) != NULL)
+    if ( Cell(1) !=  (IterGCell)NULL){
+        v1 = *(*Node(2)) - *(*Node(1));
+        v1 = Vect2D( -v1.Y(), v1.X() );
+        v2 = ( *(*Node(2)) + *(*Node(1)) )/2.0;
+        v2 = vct - v2;
+        if ( v1 * v2 < 0.0 )
+            return Cell(1);
+    }
+
+//    if ( Cell(2) != NULL)
+    if ( Cell(2) != (IterGCell)NULL){
+        v1 = *(*Node(0)) - *(*Node(2));
+        v1 = Vect2D( -v1.Y(), v1.X() );
+        v2 = ( *(*Node(0)) + *(*Node(2)) )/2.0;
+        v2 = vct - v2;
+        if ( v1 * v2 < 0.0 )
+            return Cell(2);
+    }
+
+
+    return (IterGCell)NULL;
+}
+
+/*
+iterate to next cell to access  
+
+*/
+IterGCell  HGrdTri::NextCell( HFroSeg *pseg, const IterGCell& iclprv)
+{
+    IterGCell   itrnb, itr1, itr2;
+    Vect2D      v1, v2, v3, v4;
+
+    v1 = *(*(pseg->PntLf()));
+    v2 = *(*(pseg->PntRt()));
+
+//    if ( iclprv == NULL)
+    if ( iclprv == (IterGCell)NULL){
+
+        if ( Node(0) == pseg->PntLf() )
+        {
+            v3 = *(*Node(1));
+            v4 = *(*Node(2));
+            itrnb = Cell(1);
+            if ( Node(1) == pseg->PntRt() || Node(2) == pseg->PntRt() )
+//                return NULL;
+            return (IterGCell)NULL;
+        }
+        else if ( Node(1) == pseg->PntLf() )
+        {
+            v3 = *(*Node(2));
+            v4 = *(*Node(0));
+            itrnb = Cell(2);
+            if ( Node(2) == pseg->PntRt() || Node(0) == pseg->PntRt() )
+//                return NULL;
+                return (IterGCell)NULL;
+        }
+        else if ( Node(2) == pseg->PntLf() )
+        {
+            v3 = *(*Node(0));
+            v4 = *(*Node(1));
+            itrnb = Cell(0);
+            if ( Node(0) == pseg->PntRt() || Node(1) == pseg->PntRt() )
+//                return NULL;
+            return (IterGCell)NULL;
+        }
+        else
+        {
+            THROW_INTERNAL("NextCell - seg: node not found");
+        }
+
+        if ( ::CheckCrossing( v1, v2, v3, v4 ) == true)
+        {
+            return itrnb;
+        }
+        else
+//            return NULL;
+          return (IterGCell)NULL;
+    }
+    else
+    {
+        int k;
+        for ( int i=0; i<NUM_TRI; ++i)
+        {
+            if ( iclprv != Cell(i) )
+            {
+                if ( i == NUM_TRI-1)
+                    k = 0;
+                else
+                    k = i+1;
+
+                v3 = *(*Node(i));
+                v4 = *(*Node(k));
+
+                if ( ::CheckCrossing( v1, v2, v3, v4 ) == true)
+                    return Cell(i);
+            }
+        }
+
+//        return NULL;
+          return (IterGCell)NULL;
+    }
+}
+
+
+bool HGrdTri::IsInsideCirc( const Vect2D& vct)
+{
+    static MGFloat  R2, r2;
+    static Vect2D   vtmp, v0;
+
+    v0 = CircCenter();
+    vtmp = v0 - *( (*Node(0)) );
+    R2 = vtmp * vtmp;
+
+    vtmp = v0 - vct;
+    r2 = vtmp * vtmp;
+
+    if ( r2 < R2) 
+        return true;
+    
+    return false;
+}
+
+
+/* 
+class HFront 
+
+*/
+
+HFront::~HFront()
+{
+    iterator    i;
+    for ( i= begin(); i != end(); i++)
+        if ( *i != NULL) delete (*i);
+}
+
+
+MGFloat HFront::Angle( const Vect2D& vct)
+{
+    iterator    itr;
+    MGFloat     alf;
+    IterGPnt    ipnt1, ipnt2;
+    
+    alf = 0.0;
+    for ( itr = begin(); itr != end(); itr++)
+    {
+        ipnt1 = (*itr)->PntLf();
+        ipnt2 = (*itr)->PntRt();
+        alf += ::Angle( vct, *(*ipnt1), *(*ipnt2) );
+    }
+    
+    return alf;
+}
+
+
+
+
+
+/* 
+class HGrid 
+
+*/
+
+
+HGrid::~HGrid()         
+{
+    CollGPnt::iterator  itrpnt;
+    CollGCell::iterator itrcell;
+    
+    for ( itrpnt = mcolPnt.begin(); itrpnt != mcolPnt.end(); itrpnt++)
+        if ( (*itrpnt) != NULL) delete (*itrpnt);
+
+    for ( itrcell = mcolCell.begin(); itrcell != mcolCell.end(); itrcell++)
+        if ( (*itrcell) != NULL) delete (*itrcell);
+}
+
+
+void HGrid::Init( const vector<Vect2D>& tabp, const vector<MGInt>& tabn )
+{
+    MGInt   i, j, nprev;
+    IterFro ifro;
+
+    HGrdPnt     *ppnt;
+    IterGPnt    ip0, ipp, ipa;
+    HFroSeg     *pfro;
+    Vect2D      v0, v1, v2;
+
+    map< Vect2D, IterGPnt>              mapNod;
+    map< Vect2D, IterGPnt>::iterator    imap;
+
+//  char    sbuf[512];
+    double  d;
+
+    nprev = 0;
+    for ( i=0; i<(MGInt)tabn.size(); ++i)
+    {
+        v1 = tabp[nprev];
+        v2 = tabp[nprev+tabn[i]-1];
+
+        d = (v2-v1).module();
+
+        if ( (v2-v1).module() < ZERO)
+        {
+            ifro = mcolFro.insert( mcolFro.end(), HFront() );
+
+            imap = mapNod.find( tabp[nprev]);
+            if ( imap != mapNod.end() )
+            {
+                ip0 = ipp = ipa = (*imap).second;
+            }
+            else
+            {
+                ppnt = MGNEW HGrdPnt( tabp[nprev]);
+                ppnt->rIndex() = nprev;
+                ip0 = ipp = ipa = InsertPoint( ppnt);
+                mapNod.insert( map< Vect2D, IterGPnt>::value_type( *ppnt, ipa));
+            }
+
+            v0 = *(*ip0); 
+        
+
+            for ( j=1; j<tabn[i]; ++j)
+            {
+                v1 = *(*ipp);
+                v2 = tabp[nprev+j];
+
+                if ( (v2 - v1).module() > ZERO)
+                {
+                  if ( j != tabn[i]-1 || (tabp[nprev+j] - v0 ).module() > ZERO)
+                    {
+                        imap = mapNod.find( tabp[nprev+j]);
+                        if ( imap != mapNod.end() )
+                        {
+                            ipa = (*imap).second;
+                            ppnt = *ipa;
+                        }
+                        else
+                        {
+                            ppnt = MGNEW HGrdPnt( tabp[nprev+j]);
+                            ppnt->rIndex() = nprev+j;
+                            ipa = InsertPoint( ppnt);
+                            mapNod.insert( map< Vect2D, 
+                                           IterGPnt>::value_type( *ppnt, ipa) );
+                        }
+
+
+                        pfro = MGNEW HFroSeg( ipp, ipa);
+                        (*ifro).insert( (*ifro).end(), pfro);
+                        ipp = ipa;
+                    }
+                }
+            }
+
+            v1 = *(*ipp);
+            v2 = *(*ip0);
+
+            if ( (v2 - v1).module() > ZERO)
+            {
+                pfro = MGNEW HFroSeg( ipp, ip0);
+                (*ifro).insert( (*ifro).end(), pfro);
+            }
+        }
+
+        nprev += tabn[i];
+    }
+
+
+
+    IterFro     itrfro;
+    IterFSeg    itrsg;
+    IterGPnt    ip1, ip2;
+
+    for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); ++itrfro)
+    {
+//      TRACE1( "Front size = %d\n", (*itrfro).size() );
+        itrsg = (*itrfro).begin();
+        ip0 = (*itrsg)->PntLf();
+        ip1 = (*itrsg)->PntRt();
+
+        for ( ++itrsg; itrsg != (*itrfro).end(); ++itrsg)
+        {
+            if ( (*itrsg)->PntLf() != ip1 )
+            {
+                TM_TRACE( "Front not consistent !!!\n");
+            }
+            ip1 = (*itrsg)->PntRt();
+
+            v1 = *(*(*itrsg)->PntLf());
+            v2 = *(*(*itrsg)->PntRt());
+
+            if ( (v2 - v1).module() < ZERO)
+                TM_TRACE1( "seg length = %24.16lg\n", (v2 - v1).module() );
+        }
+
+        if ( ip0 != ip1 )
+        {
+            TM_TRACE( "Front not consistent (closure problem) !!!\n");
+        }
+    }
+
+//  ASSERT(0);
+
+#ifdef _DEBUG
+
+    FILE    *f = fopen( "front.plt", "wt");
+
+    int isize = 0;
+    for ( isize = 0, itrfro = mcolFro.begin(); itrfro != mcolFro.end();
+          ++itrfro, ++isize)
+    {
+        fprintf( f, "VARIABLES = \"X\", \"Y\"\n" );
+        fprintf( f, "ZONE I=%d F=POINT\n", (*itrfro).size()+1);
+
+        for ( itrsg = (*itrfro).begin(); itrsg != (*itrfro).end(); ++itrsg)
+        {
+            v1 = *(*(*itrsg)->PntLf());
+            v2 = *(*(*itrsg)->PntRt());
+            fprintf( f, "%lg %lg\n", v1.X(), v1.Y() );
+        }
+        fprintf( f, "%lg %lg\n", v2.X(), v2.Y() );
+    }
+
+    fclose( f);
+
+#endif // _DEBUG
+
+}
+
+
+
+HFroSeg* HGrid::NewFace( MGInt i, IterGCell icl)
+{
+    HFroSeg*    psg;
+    
+    THROW_ALLOC( psg = MGNEW HFroSeg() );
+    switch ( i)
+    {
+        case  0:
+            psg->rPntLf() = (*icl)->Node(0);
+            psg->rPntRt() = (*icl)->Node(1);
+//            if ( icl != NULL ){
+            if ( icl != (IterGCell)NULL ){
+                psg->rCellUp() = icl;
+                psg->rCellLo() = (*icl)->Cell(0);
+            }
+            break;
+
+        case  1:
+            psg->rPntLf() = (*icl)->Node(1);
+            psg->rPntRt() = (*icl)->Node(2);
+//            if ( icl != NULL)
+            if ( icl != (IterGCell)NULL){
+                psg->rCellUp() = icl;
+                psg->rCellLo() = (*icl)->Cell(1);
+            }
+            break;
+            
+        case  2:
+            psg->rPntLf() = (*icl)->Node(2);
+            psg->rPntRt() = (*icl)->Node(0);
+//            if ( icl != NULL)
+            if ( icl != (IterGCell)NULL){
+                psg->rCellUp() = icl;
+                psg->rCellLo() = (*icl)->Cell(2);
+            }
+            break;
+
+        default:
+            if ( psg) delete psg;
+            ASSERT( 0);
+            return NULL;
+    };
+    return psg;
+}
+
+/*
+check neighbor 
+
+*/
+bool HGrid::CheckNeighb( IterGCell icl, CollFSeg& lstsg, 
+                         const Vect2D& vct, const IterGCell& ipvcl)
+{
+    HGrdTri *pthis;
+    
+    pthis = (HGrdTri*)( (*icl) );
+
+    if ( pthis->IsInsideCirc( vct ) == true )
+    {
+        HGrdTri     *ptri;
+        HFroSeg     *pseg;
+        IterGCell   itri;
+        IterGPnt    ipnt;
+        bool        bVis;
+
+        for ( int i=0; i<NUM_TRI; i++)
+        {       
+//            if ( (*icl)->Cell(i) != ipvcl || ipvcl == NULL)
+            if ( (*icl)->Cell(i) != ipvcl || ipvcl == (IterGCell)NULL){
+                pseg = NewFace( i, icl);    // this allocate memory for pseg !!!
+
+                itri = (*icl)->Cell(i);
+                bVis = false;
+//                if ( itri != NULL )
+                if ( itri != (IterGCell)NULL )
+                    if ( (*itri)->IsOutside() == true)
+//                        itri = NULL;
+                      itri = (IterGCell)NULL;
+
+//                if ( itri != NULL)
+                if ( itri != (IterGCell)NULL){
+                    ptri = (HGrdTri*)( (*itri) );
+                    ASSERT( ptri);
+                    bVis = ptri->IsVisible( icl, vct);
+                }
+
+//                if ( itri != NULL && bVis)
+                if ( itri != (IterGCell)NULL && bVis){
+                    if ( CheckNeighb( itri, lstsg, vct, icl ) == true )
+                    {
+                        delete pseg;
+                    }
+                    else
+                    {
+                        lstsg.insert( lstsg.end(), pseg );
+ //                       pseg->rCellUp() = NULL;
+                        pseg->rCellUp() = (IterGCell)NULL;
+                    }
+                }
+                else
+                {
+                    lstsg.insert( lstsg.end(), pseg );
+//                    pseg->rCellUp() = NULL;
+                    pseg->rCellUp() = (IterGCell)NULL;
+                }
+            }
+        }
+                    
+        ptri = (HGrdTri*)( (*icl) );
+        ptri->InvalidateNeighb();
+
+        mcolCell.erase( icl);
+        delete ptri;
+        return true;
+    }
+
+    return false;
+}
+
+
+MGInt HGrid::InsertPointIntoMesh( IterGPnt pntitr)
+{
+    Vect2D      vct;
+    IterGCell   itrcl, itrcl2, itrcl0, itrclout;
+    HGrdTri     *ptri;
+    CollFSeg    *plstsg;
+    IterFSeg    itrsg, itrsg2;
+    HFroSeg     *pseg;
+
+    
+    static int  num = 0;
+    ++num;
+
+    vct = *(*pntitr);
+    
+// sprintf( sbuf, "POINT No = %d; x=%14.8lg, y=%14.8lg", num, vct.X(), vct.Y());
+//  TRACE1( "%s", sbuf);
+    
+    itrcl = mcolCell.begin();
+
+    do
+    {
+        itrcl0 = (*itrcl)->NextCell( vct);
+//        if ( itrcl0 == NULL)
+        if ( itrcl0 == (IterGCell)NULL)
+            break;
+        itrcl = itrcl0;
+    }
+    while ( true);
+    
+    
+    THROW_ALLOC( plstsg = MGNEW CollFSeg );
+    
+   // next function creates segments bounding Delaunay cavity (stored in plstsg)
+    // removes cavity triangles from mcolCell;
+    // ALL ITERATORS TO THOSE CELLS ARE THEN INVALID !!!
+    // iterators to those cells are set to NULL
+    
+//    CheckNeighb( itrcl, *plstsg, vct, NULL);
+    CheckNeighb( itrcl, *plstsg, vct, (IterGCell)NULL);
+
+    // sorting segments stored in plstsg 
+    itrsg = plstsg->end();
+    itrsg--;
+    do
+    {
+        for ( itrsg2 = plstsg->begin(); itrsg2 != plstsg->end(); itrsg2++)
+        {
+            if ( (*itrsg)->PntLf() == (*itrsg2)->PntRt() )
+            {
+                pseg = (*itrsg2);
+                plstsg->erase( itrsg2);
+                itrsg = plstsg->insert( itrsg, pseg );
+                break;
+            }
+        }
+    }
+    while ( itrsg != plstsg->begin() );
+
+ // creating new triangles and connections between triangles in Delaunay cavity
+//    itrcl0 = itrcl2 = NULL;
+    itrcl0 = itrcl2 = (IterGCell)NULL;
+    for ( itrsg = plstsg->begin(); itrsg != plstsg->end(); itrsg++)
+    {
+        THROW_ALLOC( ptri = MGNEW HGrdTri );
+        
+        itrclout = (*itrsg)->CellLo();
+        ptri->rNode(0) = (*itrsg)->PntLf();
+        ptri->rNode(1) = (*itrsg)->PntRt();
+        ptri->rNode(2) = pntitr;
+        ptri->rCell(0) = itrclout;
+            
+        if ( ptri->SetCircCenter() )
+        {
+            FILE *f = fopen( "cavity.plt", "wt");
+            ExportTECTmp( f);
+            fclose( f);
+            TM_TRACE1( "num = %d", num);
+            TM_TRACE2( "new point = %lg %lg", vct.X(), vct.Y() );
+            TM_TRACE1( "no of segs bounding cavity = %d", plstsg->size() );
+
+            FILE *ff = fopen( "cavity_front.plt", "wt");
+            fprintf( ff, "VARIABLES = \"X\", \"Y\"\n");
+            fprintf( ff, "ZONE I=%d F=POINT\n", (int) (plstsg->size()+1) );
+
+            fprintf( ff, "%lg %lg\n", (*(*plstsg->begin())->PntLf())->X(), 
+                     (*(*plstsg->begin())->PntLf())->Y() );
+            for ( itrsg = plstsg->begin(); itrsg != plstsg->end(); itrsg++)
+                fprintf( ff, "%lg %lg\n", (*(*itrsg)->PntRt())->X(), 
+                         (*(*itrsg)->PntRt())->Y() );
+
+            fclose( ff);
+
+            THROW_INTERNAL("Flat triangle !!!");
+        }
+
+        itrcl = InsertCell( ptri);
+
+//        if ( itrclout != NULL)
+        if ( itrclout != (IterGCell)NULL)
+            (*itrclout)->SetNeighbour( itrcl);
+
+//        if ( itrcl0 == NULL)
+        if ( itrcl0 == (IterGCell)NULL)
+            itrcl0 = itrcl;
+
+//        if ( itrcl2 != NULL)
+        if ( itrcl2 != (IterGCell)NULL){
+            (*itrcl)->rCell(2)  = itrcl2;
+            (*itrcl2)->rCell(1) = itrcl;
+        }
+        itrcl2 = itrcl;
+    }
+//    if ( itrcl2 != NULL && itrcl0 != NULL)
+    if ( itrcl2 != (IterGCell)NULL && itrcl0 != (IterGCell)NULL)
+    {
+        (*itrcl0)->rCell(2) = itrcl2;
+        (*itrcl2)->rCell(1) = itrcl0;
+    }   
+
+    // removing all segments stored in plstsg
+    for ( itrsg = plstsg->begin(); itrsg != plstsg->end(); itrsg++)
+        if ( (*itrsg) != NULL ) delete (*itrsg);
+
+    if ( plstsg) delete plstsg;
+
+
+    return num;
 }
