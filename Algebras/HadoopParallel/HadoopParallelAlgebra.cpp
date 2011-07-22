@@ -1495,16 +1495,29 @@ clusterInfo::clusterInfo(bool _im) :
     ps_slaves("PARALLEL_SECONDO_SLAVES"),
     isMaster(_im), localNode(-1)
 {
+  char *fn;
   if (isMaster)
-    fileName = string(getenv(ps_master.c_str()));
+    fn = getenv(ps_master.c_str());
   else
-    fileName = string(getenv(ps_slaves.c_str()));
-
+    fn = getenv(ps_slaves.c_str());
   ok = false;
-  if (fileName.length() == 0)
+
+  if (fn == 0)
+  {
     cerr << "Environment variable "
          << (isMaster ? ps_master : ps_slaves)
          << " is not defined." << endl;
+    return;
+  }
+  else
+  {
+    fileName = string(fn);
+    if (fileName.length() == 0)
+      cerr << "Environment variable "
+           << (isMaster ? ps_master : ps_slaves)
+           << " is set as empty." << endl;
+    return;
+  }
   if (!FileSystem::FileOrFolderExists(fileName))
     cerr << "File (" << fileName << ") is not exist." << endl;
   if (FileSystem::IsDirectory(fileName))
@@ -2127,15 +2140,19 @@ int FConsumeValueMap(Word* args, Word& result,
     }
 
     //Check whether the duplicate parameters are available
-    clusterInfo *ci = new clusterInfo();
-    if (drMode && (ti > ci->getLines()))
+    clusterInfo *ci = 0;
+    if (drMode)
     {
-      ci->print();
-      cerr <<
-          "ERROR! The first target node for backing up duplicate "
-          "data files is out of the range of the slave list.\n";
-      ((CcBool*)(result.addr))->Set(true, false);
-      return 0;
+      ci = new clusterInfo();
+      if ((ti > ci->getLines()))
+      {
+        ci->print();
+        cerr <<
+            "ERROR! The first target node for backing up duplicate "
+            "data files is out of the range of the slave list.\n";
+        ((CcBool*)(result.addr))->Set(true, false);
+        return 0;
+      }
     }
 
     fcli = (fconsumeLocalInfo*) local.addr;
