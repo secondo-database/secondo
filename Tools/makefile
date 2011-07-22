@@ -38,6 +38,7 @@ makedirsnormal:
 	$(MAKE) -C Parser
 	$(MAKE) -C Utilities
 	$(MAKE) -C pd 
+	$(MAKE) -C RStarTree
 
 .PHONY: makedirsjni
 makedirsjni:
@@ -53,4 +54,5 @@ clean:
 	$(MAKE) -C Jni clean
 	$(MAKE) -C pd clean
 	$(MAKE) -C Flob clean
+	$(MAKE) -C RStarTree clean
 

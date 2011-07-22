@@ -49,6 +49,9 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/StringUtils \
 	Tools/Flob/FlobManager \
 	Tools/Flob/PersistentFlobCache \
+	Tools/RStarTree/util \
+	Tools/RStarTree/rstartree \
+	Tools/RStarTree/storage \
 	Tools/Utilities/AlmostEqual
 
 # The following libraries have interdependencies to Nested lists
