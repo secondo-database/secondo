@@ -205,6 +205,15 @@ Computes the height of the tree rooted by ~root~.
    int height() const;
 
 /*
+~usedMem~
+
+Returns the memory used by this structure in bytes
+
+*/
+   size_t usedMem() const;
+
+
+/*
 2.6 private part
 
 */
@@ -518,6 +527,24 @@ Deletes the subtrees rooted by this node.
      }
   }
 
+/*
+~usedMem~
+
+Returns the memory allocated for this subtree;
+
+*/
+ssize_t usedMem() const{
+
+  if(sons==0){
+    return sizeof(*this);
+  } 
+  size_t sum = 0;
+  for(int i=0;i<count;i++){
+    sum += sons[i]->usedMem();
+  }
+  return sum + sizeof(*this) + sizeof(sons);  
+}
+
 
 /*
 1.4 Data members
@@ -615,6 +642,9 @@ bool checkBox(bool print = true) const{
   }
   return res;
 }
+
+
+
 
 /*
 ~recomputeBox~
@@ -992,9 +1022,10 @@ ostream& RtreeT<dim,T>::printStats(ostream& o)const{
     << "  min = " << min << endl
     << "  max = " << max << endl
     << "  nodes = " << noNodes(root) << endl
-    << "  leafs = " << noLeafs(root) << endl
+    << "  leafs = " << noLeaves(root) << endl
     << " height = " << height(root) << endl
     << " objects = " << noObjects(root) << endl
+    << " usedMem = " << usedMem() << endl
     << " ] ";
     return o;
 }
@@ -1156,7 +1187,7 @@ int RtreeT<dim,T>::noLeaves(const Node<dim,T>* root)const{
   }else {
     int sum = 0;
     for(int i=0;i<root->count;i++){
-       sum += noLeafs(root->sons[i]);
+       sum += noLeaves(root->sons[i]);
     }
     return sum;
   }
@@ -1216,6 +1247,20 @@ int RtreeT<dim,T>::height(const Node<dim,T>* root) const{
   }
   return h;
 }
+
+/*
+~usedMem~
+
+*/
+template<unsigned dim, class T>
+size_t RtreeT<dim,T>::usedMem() const{
+  if(!root){
+    return sizeof(*this);
+  } else {
+    return sizeof(*this) + root->usedMem();
+  }
+}
+
 
 /*
 ~insert~
