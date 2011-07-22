@@ -1109,4 +1109,96 @@ protected:
     
 };
 
+
+inline Except& Except::operator = (const Except& ex)
+{ 
+    mFileName = ex.mFileName;
+    mLineNo   = ex.mLineNo;
+    mComment  = ex.mComment;
+    return *this; 
+}
+
+inline void Except::WriteInfo( FILE *f)
+{
+    fprintf( f, "FILE:%s - LINE:%d;\n", mFileName.c_str(), mLineNo);
+    fprintf( f, "    %s: %s\n", (GetExPrefix()).c_str(), mComment.c_str() );
+}
+
+/* 
+class ExceptFile
+  used when some problems occur with opening, reading and parsing
+  information from files
+
+
+*/
+
+class ExceptFile : public Except
+{   
+protected:
+    MGString    mFileInfo;
+    
+public:
+    ExceptFile()                        { mFileInfo = "";}
+    ExceptFile( MGString com, MGString info, MGString fname, MGInt line)
+        : Except( com, fname, line)     {mFileInfo = info;};
+    virtual ~ExceptFile()   {};
+    
+    virtual MGInt       GetExType()     const   { return EX_FILE_CODE;}
+    virtual MGString    GetExPrefix()   const   { return EX_FILE_STR;}
+
+    virtual void        WriteInfo( FILE *f);
+
+};
+
+inline void ExceptFile::WriteInfo( FILE *f)
+{
+    fprintf( f, "FILE:%s - LINE:%d;\n", mFileName.c_str(), mLineNo);
+    fprintf( f, "    %s: %s '%s'\n", (GetExPrefix()).c_str(), 
+             mComment.c_str(), mFileInfo.c_str() );
+}
+
+
+
+/* 
+class ExceptMath
+
+*/
+
+class ExceptMath : public Except
+{   
+public:
+    ExceptMath()                {};
+    ExceptMath( MGString com, MGString fname, MGInt line) 
+        : Except( com, fname, line) {};
+        
+    virtual ~ExceptMath()   {};
+    
+    virtual MGInt   GetExType()     const { return EX_MATH_CODE;}
+    virtual MGString    GetExPrefix()   const { return EX_MATH_STR;}
+};
+
+
+/* 
+class ExceptMem
+  for exception caused by memory (problems with alloc, memory corrupt.)
+  C++ bad alloc is switched off (at least for obj allocated with GGNEW)
+  because badalloc does not return info. where except. occured
+
+*/
+
+class ExceptMem : public Except
+{   
+public:
+    ExceptMem()             {};
+    ExceptMem( MGString com, MGString fname, MGInt line) 
+        : Except( com, fname, line) {};
+        
+    virtual ~ExceptMem()    {};
+    
+    virtual MGInt   GetExType()     const { return EX_MEMORY_CODE;}
+    virtual MGString    GetExPrefix()   const { return EX_MEMORY_STR;}
+};
+
+
+
 #endif
