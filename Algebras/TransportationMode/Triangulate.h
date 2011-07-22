@@ -47,6 +47,14 @@ May, 2010 Jianqiu xu
 #include <string.h>
 #include <stdio.h>
 
+#include <vector>
+#include <list>
+#include <map>
+#include <stack>
+
+#include <stdlib.h>
+#include <stdarg.h>
+
 using namespace std;
 
 #define TRUE  1
@@ -55,6 +63,8 @@ using namespace std;
 #define FIRSTPT 1       /* checking whether pt. is inserted */
 #define LASTPT  2
 
+
+//#define SEGSIZE 500000
 
 #define SEGSIZE 200000     /* max# of segments. Determines how */
                 /* many points can be specified as */
@@ -173,5 +183,355 @@ int triangulate_polygon(int ncontours, int cntr[], vector<double> vertices_x,
 vector<double> vertices_y, int (*triangles)[3]);
 
 //#define DEBUG
+
+
+//////////////////////////////////////////////////////////////////////////////
+/////////// another implementation of triangulation /////////////////////////
+/////////// 2011.7 from code project/////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+#define ASSERT assert
+
+enum Dimension
+{
+    DIM_NONE    = 0,
+    DIM_1D      = 1,
+    DIM_2D      = 2,
+    DIM_3D      = 3,
+    DIM_4D      = 4
+};
+
+#define MGNEW new           // old standard
+
+// definition of basic types
+typedef double      MGFloat;
+typedef int         MGInt;
+typedef string      MGString;
+
+
+typedef vector<MGFloat> MGFloatArr;
+typedef vector<MGInt>   MGIntArr;
+
+
+//const MGFloat ZERO = 1.0e-12;
+//const MGFloat ZERO = 1.0e-7;
+const MGFloat ZERO = 1.0e-8;
+
+
+// constants below have to be defined by preprocessor command #define
+// because of dupliate naming in UNIX system; In UNIX those constants are 
+// already defined using preprocessor
+#ifndef M_E
+#define M_E         2.7182818284590452354
+#endif
+#ifndef M_LOG2E
+#define M_LOG2E     1.4426950408889634074
+#endif
+#ifndef M_LOG10E
+#define M_LOG10E    0.43429448190325182765
+#endif
+#ifndef M_LN2
+#define M_LN2       0.69314718055994530942
+#endif
+#ifndef M_LN10
+#define M_LN10      2.30258509299404568402
+#endif
+#ifndef M_PI
+#define M_PI        3.14159265358979323846
+#endif
+#ifndef M_PI_2
+#define M_PI_2      1.57079632679489661923
+#endif
+#ifndef M_1_PI
+#define M_1_PI      0.31830988618379067154
+#endif
+#ifndef M_PI_4
+#define M_PI_4      0.78539816339744830962
+#endif
+#ifndef M_2_PI
+#define M_2_PI      0.63661977236758134308
+#endif
+#ifndef M_2_SQRTPI
+#define M_2_SQRTPI  1.12837916709551257390
+#endif
+#ifndef M_SQRT2
+#define M_SQRT2     1.41421356237309504880
+#endif
+#ifndef M_SQRT1_2
+#define M_SQRT1_2   0.70710678118654752440
+#endif
+
+#ifndef TRI_PI                      // as in stroustrup 
+#define TRI_PI  M_PI
+#endif
+#ifndef TRI_PI2
+#define TRI_PI2  M_PI_2
+#endif
+
+
+
+//////////////////////////////////////////////////////////////////////
+// class GlobDim
+//////////////////////////////////////////////////////////////////////
+class GlobDim
+{
+public:
+    GlobDim()                       { mDim = DIM_NONE;}
+    GlobDim( const Dimension& dim)  { assert( mDim == DIM_NONE); mDim = dim;}
+    
+    static const Dimension& Dim()   { return mDim;}
+    static Dimension&       rDim()  { return mDim;}
+    
+protected:
+    static Dimension    mDim;
+};
+
+
+/* 
+class HTri for triangulation
+
+*/
+
+class HTri
+{
+public:
+    const MGInt&    Index( const MGInt& i) const    { return mtabInd[i];}
+    MGInt&          rIndex( const MGInt& i)         { return mtabInd[i];}
+
+public:
+    MGInt   mtabInd[3];
+};
+
+
+/*
+template function for 1D,2D,3D,4D
+
+*/
+template <class ELEM_TYPE, Dimension DIM> 
+class Vect;
+
+template <class ELEM_TYPE, Dimension DIM> 
+Vect<ELEM_TYPE,DIM> operator *( const ELEM_TYPE&,  const Vect<ELEM_TYPE,DIM>&);
+
+template <class ELEM_TYPE, Dimension DIM> 
+Vect<ELEM_TYPE,DIM> operator *( const Vect<ELEM_TYPE,DIM>&, const ELEM_TYPE&);
+
+template <class ELEM_TYPE, Dimension DIM> 
+Vect<ELEM_TYPE,DIM> operator /( const Vect<ELEM_TYPE,DIM>&, const ELEM_TYPE&);
+
+template <class ELEM_TYPE, Dimension DIM> 
+ELEM_TYPE   operator *( const Vect<ELEM_TYPE,DIM>&, const Vect<ELEM_TYPE,DIM>&);
+// dot product
+
+template <class ELEM_TYPE, Dimension DIM> 
+Vect<ELEM_TYPE,DIM> operator +( const Vect<ELEM_TYPE,DIM>&, 
+                                const Vect<ELEM_TYPE,DIM>&);
+
+template <class ELEM_TYPE, Dimension DIM> 
+Vect<ELEM_TYPE,DIM> operator -( const Vect<ELEM_TYPE,DIM>&, 
+                                const Vect<ELEM_TYPE,DIM>&);
+
+template <class ELEM_TYPE, Dimension DIM> 
+Vect<ELEM_TYPE,DIM> operator %( const Vect<ELEM_TYPE,DIM>&, 
+                                const Vect<ELEM_TYPE,DIM>&);   
+                                // vector product
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+//  class Vect
+//////////////////////////////////////////////////////////////////////
+
+template <class ELEM_TYPE, Dimension DIM> 
+class Vect
+{
+public:
+    //////////////////////////////////////////////////////////////////
+    // constructors
+    Vect( const ELEM_TYPE& x);
+    Vect( const ELEM_TYPE& x, const ELEM_TYPE& y);
+    Vect( const ELEM_TYPE& x, const ELEM_TYPE& y, const ELEM_TYPE& z);
+    Vect( const ELEM_TYPE& x, const ELEM_TYPE& y, const ELEM_TYPE& z, 
+          const ELEM_TYPE& w);
+    Vect( const Vect<ELEM_TYPE, DIM>& vec);
+    Vect();
+
+    //////////////////////////////////////////////////////////////////
+    // declaration of friend two argument operators
+    friend Vect<ELEM_TYPE, DIM> operator  *<>( const ELEM_TYPE&,  
+                                               const Vect<ELEM_TYPE, DIM>&);
+    friend Vect<ELEM_TYPE, DIM> operator  *<>( const Vect<ELEM_TYPE, DIM>&, 
+                                               const ELEM_TYPE&);
+    friend Vect<ELEM_TYPE, DIM> operator  /<>( const Vect<ELEM_TYPE, DIM>&,
+                                               const ELEM_TYPE&);
+    friend ELEM_TYPE            operator  *<>( const Vect<ELEM_TYPE, DIM>&, 
+                                               const Vect<ELEM_TYPE, DIM>&);
+                                               //scalar mult.
+    friend Vect<ELEM_TYPE, DIM> operator  +<>( const Vect<ELEM_TYPE, DIM>&, 
+                                               const Vect<ELEM_TYPE, DIM>&);
+    friend Vect<ELEM_TYPE, DIM> operator  -<>( const Vect<ELEM_TYPE, DIM>&, 
+                                               const Vect<ELEM_TYPE, DIM>&);
+    friend Vect<ELEM_TYPE, DIM> operator  %<>( const Vect<ELEM_TYPE, DIM>&, 
+                                               const Vect<ELEM_TYPE, DIM>&);   
+                                               //Vect mult.
+
+    //////////////////////////////////////////////////////////////////
+    // one argument operators
+    Vect<ELEM_TYPE, DIM>&   operator  =( const Vect<ELEM_TYPE, DIM> &vec);
+    Vect<ELEM_TYPE, DIM>&   operator +=( const Vect<ELEM_TYPE, DIM>&);
+    Vect<ELEM_TYPE, DIM>&   operator -=( const Vect<ELEM_TYPE, DIM>&);
+    Vect<ELEM_TYPE, DIM>&   operator *=( const ELEM_TYPE&);
+    Vect<ELEM_TYPE, DIM>&   operator /=( const ELEM_TYPE&);
+
+    //////////////////////////////////////////////////////////////////
+    // misc functions
+    ELEM_TYPE               module() const;
+    Vect<ELEM_TYPE, DIM>    versor() const;
+    
+    
+    const ELEM_TYPE&    X( const MGInt& i) const    { return mtab[i];}
+    ELEM_TYPE&          rX( const MGInt& i)         { return mtab[i];}
+
+    const ELEM_TYPE&    X() const   { return mtab[0];}
+    const ELEM_TYPE&    Y() const   { ASSERT(DIM>1); return mtab[1];}
+    const ELEM_TYPE&    Z() const   { ASSERT(DIM>2); return mtab[2];}
+    const ELEM_TYPE&    W() const   { ASSERT(DIM>3); return mtab[3];}
+    
+    ELEM_TYPE&          rX()        { return mtab[0];}
+    ELEM_TYPE&          rY()        { ASSERT(DIM>1); return mtab[1];}
+    ELEM_TYPE&          rZ()        { ASSERT(DIM>2); return mtab[2];}
+    ELEM_TYPE&          rW()        { ASSERT(DIM>3); return mtab[3];}
+
+protected:
+    ELEM_TYPE mtab[DIM];
+};
+
+
+//////////////////////////////////////////////////////////////////////
+typedef Vect<MGFloat,DIM_1D> Vect1D;
+typedef Vect<MGFloat,DIM_2D> Vect2D;
+typedef Vect<MGFloat,DIM_3D> Vect3D;
+typedef Vect<MGFloat,DIM_4D> Vect4D;
+
+
+
+
+/*
+template insert function
+
+*/
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>::Vect( const Vect<ELEM_TYPE, DIM> &vec)
+{
+    ASSERT( DIM>0 && DIM<5);
+    for ( MGInt i=0; i<DIM; ++i)
+        mtab[i] = vec.mtab[i];
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>::Vect( const ELEM_TYPE& x)
+{
+        ASSERT( DIM == DIM_1D);
+        mtab[0] = x;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>::Vect( const ELEM_TYPE& x, const ELEM_TYPE& y)
+{
+        ASSERT( DIM == DIM_2D);
+        mtab[0] = x;
+        mtab[1] = y;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>::Vect( const ELEM_TYPE& x, const ELEM_TYPE& y, 
+                                   const ELEM_TYPE& z)
+{
+        ASSERT( DIM == DIM_3D);
+        mtab[0] = x;
+        mtab[1] = y;
+        mtab[2] = z;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>::Vect( const ELEM_TYPE& x, const ELEM_TYPE& y, 
+                                   const ELEM_TYPE& z, const ELEM_TYPE& w)
+{
+        ASSERT( DIM == DIM_4D);
+        mtab[0] = x;
+        mtab[1] = y;
+        mtab[2] = z;
+        mtab[3] = w;
+}
+
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>::Vect()
+{
+    ASSERT( DIM > DIM_NONE && DIM <= DIM_4D);
+    for ( MGInt i=0; i<DIM; mtab[i++]=(ELEM_TYPE)0.0);
+}
+
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>& Vect<ELEM_TYPE, DIM>::operator =( 
+const Vect<ELEM_TYPE, DIM> &vec)
+{
+    for ( MGInt i=0; i<DIM; ++i)
+        mtab[i] = vec.mtab[i];
+    return *this;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>& Vect<ELEM_TYPE, DIM>::operator+=( 
+const Vect<ELEM_TYPE, DIM>& vec)
+{
+    for ( MGInt i=0; i<DIM; ++i)
+        mtab[i] += vec.mtab[i];
+    return *this;
+}
+
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>& Vect<ELEM_TYPE, DIM>::operator-=( 
+const Vect<ELEM_TYPE, DIM>& vec)
+{
+    for ( MGInt i=0; i<DIM; ++i)
+        mtab[i] -= vec.mtab[i];
+    return *this;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>& Vect<ELEM_TYPE, DIM>::operator*=( 
+const ELEM_TYPE& doub)
+{
+    for ( MGInt i=0; i<DIM; ++i)
+        mtab[i] *= doub;
+    return *this;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM>& Vect<ELEM_TYPE, DIM>::operator/=( 
+const ELEM_TYPE& doub)
+{
+    for ( MGInt i=0; i<DIM; ++i)
+        mtab[i] /= doub;
+    return *this;
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline ELEM_TYPE Vect<ELEM_TYPE, DIM>::module() const
+{
+    return sqrt( (*this)*(*this));
+}
+
+template <class ELEM_TYPE, Dimension DIM> 
+inline Vect<ELEM_TYPE, DIM> Vect<ELEM_TYPE, DIM>::versor() const
+{
+    return (*this / module() );
+}
+
 
 #endif
