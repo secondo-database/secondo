@@ -3700,3 +3700,434 @@ void HGrid::SwapTriangles( HGrdTri *ptri1, HGrdTri *ptri2, bool bgo)
 
 }
 
+/*
+checking bounding 
+
+*/
+
+void HGrid::CheckBoundIntegr()
+{
+//  char        sbuf[256];
+    IterFro     itrfro;
+    IterFSeg    itrsg;
+    Vect2D      v1, v2, v3, v4;
+//  CollGCell   colCell;
+    CollGCell   colPath;
+    CollFSeg    colSeg;
+    IterFSeg    iseg;
+    IterGCell   itr, itrnb, itrcl;
+    Vect2D      vcnt;
+    bool        bReady, bFound;
+//  MGInt       k, i=0;
+    MGInt k;
+
+    list<IterGCell>             lstCell;
+    list<IterGCell>::iterator   itrtmp;
+
+    multimap< HGrdPnt*, IterGCell >                     mapNod;
+    pair< multimap< HGrdPnt*, IterGCell >::iterator, 
+          multimap< HGrdPnt*, IterGCell >::iterator>    range[2];   
+          // no of points per froseg
+
+    multimap< HGrdPnt*, IterGCell >::iterator           itrmap1, itrmap2;
+
+
+    // getting number of front segments
+    int no = 0;
+    for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); itrfro++)
+        for ( itrsg = (*itrfro).begin(); itrsg != (*itrfro).end(); itrsg++)
+            ++no;
+
+
+    for ( itr = mcolCell.begin(); itr != mcolCell.end(); itr++)
+        for ( k=0; k<NUM_TRI; ++k)
+          mapNod.insert( multimap<HGrdPnt*, 
+                         IterGCell>::value_type(*(*itr)->Node(k), itr) );
+
+    int iii=0;
+    int nrec = 0;
+    for ( itrfro = mcolFro.begin(); itrfro != mcolFro.end(); itrfro++)
+        for ( itrsg = (*itrfro).begin(); itrsg != (*itrfro).end(); itrsg++)
+        {
+            ++iii;
+            //if ( iii - 1000*(iii/1000) == 0)
+            //  printf( "triang. iter = %d / %d  nrec = %d\n", iii, no, nrec);
+
+            range[0] = mapNod.equal_range( *(*itrsg)->PntLf() );
+            range[1] = mapNod.equal_range( *(*itrsg)->PntRt() );
+            
+            bReady = false;
+
+            for ( itrmap1=range[0].first; itrmap1!=range[0].second; itrmap1++)
+            {
+                itrcl = (*itrmap1).second;
+                lstCell.insert( lstCell.begin(), itrcl );
+                for ( itrmap2=range[1].first; itrmap2!=range[1].second; 
+                itrmap2++)
+                {
+                    if ( *itrcl == *(*itrmap2).second )
+                    {
+                        bReady = true;
+                        goto out_of_loops;
+                    }
+                }
+            }
+            out_of_loops:
+
+    
+            // the segment is missing - must be recovered
+            if ( ! bReady)
+            {
+                ++nrec;
+                //printf( "triang. iter = %d / %d  nrec = %d\n", iii, no, nrec);
+
+                v1 = *(*((*itrsg)->PntLf()));
+                v2 = *(*((*itrsg)->PntRt()));
+
+
+//              TRACE( "\n" );
+//              sprintf( sbuf, "seg (%lg, %lg) (%lg, %lg) - lstCell.size = %d",
+//              v1.X(), v1.Y(), v2.X(), v2.Y(), lstCell.size() );
+//              TRACE( sbuf);
+
+                bFound = false;
+                for ( itrtmp = lstCell.begin(); itrtmp != lstCell.end(); 
+                ++itrtmp)
+                {
+                    itr = *itrtmp;
+                    if(( itrnb = (*itr)->NextCell( *itrsg, 
+                       (IterGCell)NULL) ) != (IterGCell)NULL)
+                    {
+                        bFound = true;
+                        break;
+                    }
+
+                }
+
+                if ( bFound)
+                {
+                    IterGCell itr1, itr2, itro1=(IterGCell)NULL, 
+                              itro2=(IterGCell)NULL;
+                    stack<IterGCell>    stackCell;
+
+//                  CheckGrid();
+
+                    itr1 = itr;
+                    itr2 = itrnb;
+
+//                  TRACE2( "v1 = %lg %lg", v1.X(), v1.Y() );
+//                  TRACE2( "v2 = %lg %lg", v2.X(), v2.Y() );
+
+                    int niter = 0;
+
+                    do 
+                    {
+                        ++niter;
+
+//                      TRACE( "--- loop start");
+//                      TRACE2( "itrcl = %d / %d", itr1, *itr1);
+//                      (*itr1)->DumpTri();
+//                      TRACE2( "itrcl = %d / %d", itr2, *itr2);
+//                      (*itr2)->DumpTri();
+
+           // check if swap is possible if not then try with another triangles
+                        while ( /*! (*itr2)->IsVisible( itr1, v1) ||*/ 
+                            ! CheckSwapTriangles( *itr1, *itr2 )
+                            || ( itr1 == itro1 && itr2 == itro2 ) ) 
+                          // avoid swaping the same triangles again
+                        {
+                            stackCell.push( itr1);
+                            itr = itr2;
+                            itr2 = (*itr)->NextCell( *itrsg, itr1);
+                            itr1 = itr;
+                            ASSERT( itr2 != (IterGCell)NULL);
+                        }
+
+                        itro1 = itr1;
+                        itro2 = itr2;
+
+
+                        // pre swapping - remove itr1 and itr2 from map
+                        for ( k=0; k< NUM_TRI; ++k)
+                        {
+                            range[0] = mapNod.equal_range( *(*itr1)->Node(k) );
+                            for ( itrmap1=range[0].first; 
+                                  itrmap1!=range[0].second; itrmap1++)
+                            {
+                                if ( (*itrmap1).second == itr1 )
+                                {
+                                    mapNod.erase( itrmap1);
+                                    break;
+                                }
+                            }
+
+                            range[0] = mapNod.equal_range( *(*itr2)->Node(k) );
+                            for ( itrmap1=range[0].first; 
+                                  itrmap1!=range[0].second; itrmap1++)
+                            {
+                                if ( (*itrmap1).second == itr2 )
+                                {
+                                    mapNod.erase( itrmap1);
+                                    break;
+                                }
+                            }
+                        }
+
+                        if ( ! CheckSwapTriangles( *itr1, *itr2 ) )
+                            THROW_INTERNAL( "Recovery: Swap not possible !!!");
+
+                        SwapTriangles( *itr1, *itr2 );
+
+
+                      // post swapping - insert modified itr1 and itr2 into map
+                        for ( k=0; k< NUM_TRI; ++k)
+                        {
+                            mapNod.insert( multimap<HGrdPnt*, 
+                            IterGCell>::value_type( *(*itr1)->Node(k), itr1) );
+                            mapNod.insert( multimap<HGrdPnt*, 
+                            IterGCell>::value_type( *(*itr2)->Node(k), itr2) );
+                        }
+
+
+                        if ( stackCell.empty() )
+                        {
+                            itrcl = (IterGCell)NULL;
+                            itrnb = (IterGCell)NULL;
+
+                            if((itr = (*itr1)->NextCell( (*itrsg), 
+                                      (IterGCell)NULL )) != (IterGCell)NULL)
+                            {
+                                itrcl = itr1;
+                                itrnb = itr;
+                            }
+
+                            if ( (itr = (*itr2)->NextCell( (*itrsg),
+                                        (IterGCell)NULL )) != (IterGCell)NULL)
+                            {
+                                itrcl = itr2;
+                                itrnb = itr;
+                            }
+
+                            itr1 = itrcl;
+                            itr2 = itrnb;
+                        }
+                        else{
+                            itr1 = stackCell.top();
+                            stackCell.pop();
+
+                            if ( stackCell.empty() )
+                             itr2 = (*itr1)->NextCell(*itrsg, (IterGCell)NULL);
+                            else
+                                itr2 = (*itr1)->NextCell(*itrsg, 
+                                                   (IterGCell)stackCell.top());
+                        }
+
+
+                    }
+                    while ( itr1 != (IterGCell)NULL && itr2 != (IterGCell)NULL);
+
+                    (*itrsg)->mbtmp = true;
+                }
+                else
+                {
+                    char    sbuf[1024];
+                 sprintf( sbuf, "recovery problem with seg(%lg, %lg)(%lg, %lg)",
+                             v1.X(), v1.Y(), v2.X(), v2.Y() );
+                    TM_TRACE( sbuf);
+                    TM_TRACE1( "recovwry lstCell.size = %d", lstCell.size() );
+                    TM_TRACE1( "%d edges already recovered", nrec);
+
+                    FILE *ff = fopen( "lstcell.plt", "wt");
+                    for ( itrtmp = lstCell.begin(); itrtmp != lstCell.end(); 
+                          ++itrtmp)
+                    {
+                        (*(*itrtmp))->DumpTEC( ff);
+                    }
+                    fclose( ff);
+
+                    printf( "%s\n", sbuf);
+                  printf( "recovery lstCell.size = %d\n", (int)lstCell.size() );
+
+                    (*itrsg)->mbtmp = true;
+
+                    FILE *f = fopen( "recovery.plt", "wt");
+                    ExportTECTmp( f);
+                    fclose( f);
+
+                    THROW_INTERNAL( "Recovery problem !!!");
+                }
+            }
+
+            lstCell.erase( lstCell.begin(), lstCell.end() );
+        }
+
+//        printf( "%d edges recovered\n", nrec);
+}
+
+
+
+
+
+
+void HGrid::Generate()
+{
+    clock_t     start, tstart, finish;
+    double      duration;
+
+    try
+    {
+        tstart = clock();
+
+        start = clock();
+
+        InitTriangles();
+
+        finish = clock();
+        duration = (double)(finish - start) / CLOCKS_PER_SEC;
+//        printf( "InitTriangles() - %2.1f seconds\n\n", duration );
+
+        //FILE *f = fopen( "ini.plt", "wt");
+        //ExportTECTmp( f);
+        //fclose( f);
+
+        TM_TRACE( "CheckBoundIntegr()");
+//        printf( "CheckBoundIntegr()\n");
+
+        start = clock();
+
+        CheckBoundIntegr();
+
+        finish = clock();
+        duration = (double)(finish - start) / CLOCKS_PER_SEC;
+//        printf( "CheckBoundIntegr() - %2.1f seconds\n\n", duration );
+
+        TM_TRACE( "FlagOuterTris()");
+//        printf( "FlagOuterTris()\n");
+        FlagOuterTris();
+
+        TM_TRACE( "RemoveOuterTris()");
+//        printf( "RemoveOuterTris()\n");
+        RemoveOuterTris();
+
+        finish = clock();
+        duration = (double)(finish - tstart) / CLOCKS_PER_SEC;
+//        printf( "Generation total - %2.1f seconds\n\n", duration );
+
+//      FILE *f = fopen( "param.plt", "wt");
+//      ExportTECTmp( f);
+//      fclose( f);
+    }
+    catch ( Except *pe)
+    {
+        ASSERT( pe);
+        TM_TRACE_EXCEPTION( *pe);
+        TM_TRACE_TO_STDERR( *pe);
+        delete pe;
+    }
+}
+
+
+
+void HGrid::ExportTECTmp( FILE *f)
+{
+    IterGPnt    pntitr;
+    Vect2D      vct;
+
+    IterGCell   cellitr, itrcl;
+    MGInt       id1, id2, id3, id4;
+    MGInt       ltri, ltmp;
+    map<void*,MGInt,less<void*> >   tmpMap;
+
+    TM_TRACE( "ExportTEC");
+
+
+    fprintf( f, "TITLE = \"surface\"\n");
+    fprintf( f, "VARIABLES = \"X\", \"Y\"\n");
+    fprintf( f, "ZONE T=\"TRIANGLES\", ");
+    fprintf( f, "N=%2ld, ", (long int) mcolPnt.size() );
+    fprintf( f, "E=%2d, F=FEPOINT, ET=QUADRILATERAL C=BLACK\n ", 
+             ltri = (MGInt)mcolCell.size() );
+
+
+    ltmp = 0;
+    for ( pntitr = mcolPnt.begin(); pntitr != mcolPnt.end(); pntitr++)
+    {
+        ltmp++;
+        vct = *(*pntitr);
+        fprintf( f, "%20.10lg %20.10lg\n", vct.X(), vct.Y() );
+        tmpMap.insert( map<void*,MGInt,
+                       less<void*> >::value_type((void*)(*pntitr), ltmp ));
+    }
+    
+    TM_TRACE( "after Pnt");
+
+
+    ltri = 0;
+    for ( cellitr = mcolCell.begin(); cellitr != mcolCell.end(); cellitr++)
+    {   
+        ltri++;
+
+        pntitr = (*cellitr)->Node(0);
+        id1 = tmpMap[ (*pntitr)];
+
+        pntitr = (*cellitr)->Node(1);
+        id2 = tmpMap[ (*pntitr)];
+
+        pntitr = (*cellitr)->Node(2);
+        id4 = id3 = tmpMap[ (*pntitr)];
+        
+        fprintf( f, "%9ld %9ld %9ld %9ld\n", (long int)id1, (long int)id2, 
+                (long int)id3, (long int)id4 );
+    }
+    
+
+    TM_TRACE( "after Cells");
+}
+
+
+void HGrid::CheckGrid()
+{
+//  char        sbuf[256];
+    bool        bFound;
+    IterGCell   itr, itrnb;
+
+//  TRACE("CheckGrid()\n");
+    for ( itr = mcolCell.begin(); itr != mcolCell.end(); ++itr)
+    {
+//      sprintf( sbuf, "cel = %d   | %d %d %d", itr, (*itr)->Cell(0), 
+//(*itr)->Cell(1), (*itr)->Cell(2) );
+//      TRACE( sbuf);
+        for ( int i=0; i<NUM_TRI; ++i)
+        {
+            bFound = true;
+            itrnb = (*itr)->Cell(i);
+            if ( itrnb != (IterGCell)NULL){
+                ASSERT( *itrnb );
+                bFound = false;
+                for ( int k=0; k<NUM_TRI; ++k)
+                {
+                    if ( (*itrnb)->Cell(k) == itr )
+                        bFound = true;
+                }
+            }
+
+            if ( ! bFound)
+            {
+                THROW_INTERNAL( "Cells pointers are not consistent !");
+            }
+        }
+    }
+}
+
+
+
+void HGrid::WriteFrontTEC( const char name[])
+{
+}
+
+
+
+INIT_TRACE;
+
+
+
