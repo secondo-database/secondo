@@ -180,7 +180,10 @@ struct CompTriangle{
   unsigned int NoOfCycles();
   void PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
                            vector<double>&, vector<double>&);
+  void PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
+                           vector<double>&, vector<double>&);
   void NewTriangulation();
+  void NewTriangulation2();
   inline bool InsideTriangle(float Ax, float Ay,
                       float Bx, float By,
                       float Cx, float Cy,
@@ -548,6 +551,7 @@ struct RegVertex{
   }
   void CreateVertex();
   void TriangulationNew();
+  void TriangulationNew2();
   void GetDGEdge();
   void GetDGEdgeRTree(R_Tree<2,TupleId>*);
   void ShareEdge(Region* reg1, Region* reg2, int, int,vector<vector<int> >&);

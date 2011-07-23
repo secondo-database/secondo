@@ -2364,12 +2364,42 @@ bool MyInside(Line* l, Region* r)
     return false;
   assert(l->IsOrdered());
   assert(r->IsOrdered());
-  for(int i = 0;i < l->Size();i++){
-    HalfSegment hs;
-    l->Get(i, hs);
-    if(!hs.IsLeftDomPoint()) continue;
-    if(!RegContainHS(r, hs)) return false;
-  }
+   for(int i = 0;i < l->Size();i++){
+     HalfSegment hs;
+     l->Get(i, hs);
+     if(!hs.IsLeftDomPoint()) continue;
+     if(!RegContainHS(r, hs)) return false;
+   }
+
+  //////////////////debuging///////////////////////////
+/*  for(int i = 0;i < l->Size();i++){
+    HalfSegment hs1;
+    l->Get(i, hs1);
+    if(!hs1.IsLeftDomPoint()) continue;
+    int count = 0;
+
+    Point lp1 = hs1.GetLeftPoint();
+    Point rp1 = hs1.GetRightPoint();
+    for(int j = 0;j < l->Size();j++){
+      HalfSegment hs2;
+      l->Get(j, hs2);
+      if(!hs2.IsLeftDomPoint() || j == i) continue;
+      Point lp2 = hs2.GetLeftPoint();
+      Point rp2 = hs2.GetRightPoint();
+      if(AlmostEqual(lp1, lp2) || AlmostEqual(lp1, rp2)) count++;
+      if(AlmostEqual(rp1, lp2) || AlmostEqual(rp1, rp2)) count++;
+    }
+
+    if(count != 2){
+      cout<<"i "<<i<<" "<<hs1<<" count "<<count<<endl;
+    }
+  }*/
+
+   ////////////the program crashes, if the number is 10000000/////
+   ///////////////segmentation fault///////////////
+   //////////////// 100000 is ok////////////////////////////////
+//   MyPoint big_regs[100000];
+
   return true;
 }
 
@@ -3116,16 +3146,21 @@ void SpacePartition::CheckRegionPS(vector<Point>& outer_region)
             j++;
         }
     }
+    
 //    cout<<"mhs size "<<mhs.size()<<endl;
     for(unsigned int i = 0;i < mhs.size() - 2;i++){
       unsigned int j = i + 1;
       unsigned int k = j + 1;
 //      cout<<"i "<<i<<" k "<<k<<endl;
+
+
       HalfSegment hs1(true, mhs[i].from, mhs[i].to);
       HalfSegment hs2(true, mhs[k].from, mhs[k].to);
-//      cout<<"hs1 "<<hs1<<" hs2 "<<hs2<<endl;
+
       if(hs1.Crosses(hs2)){
 //        cout<<"crossing segments"<<endl;
+//        cout<<"hs1 "<<hs1<<" hs2 "<<hs2<<endl;
+
         Point res;
         assert(hs1.Intersection(hs2,res));
         if(res.IsDefined()){
@@ -3195,7 +3230,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
       ///////////////////////////////////////////////////////////////
       //////////// check for overlapping segments///////////////////
       //////////////////////////////////////////////////////////////
-      CheckRegionPS(outer_region);
+        CheckRegionPS(outer_region);
 
       ////////////////////////////////////////////////////////////
       Region* cr = new Region( 0 );

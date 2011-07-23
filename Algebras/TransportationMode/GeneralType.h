@@ -769,7 +769,10 @@ struct GenMObject{
   vector<string> tm_str_list; 
   vector<int> id_list; 
   static string StreetSpeedInfo;
+  static string CommPathInfo;
+  static string RTreeCellInfo;
   enum StreeSpeed{SPEED_RID = 0, SPEED_VAL}; 
+  enum CommPath{CELL_ID1,CELL_AREA1,CELL_ID2,CELL_AREA2,CELL_PATH};
 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list; 
@@ -797,6 +800,12 @@ struct GenMObject{
   vector<int> build_type_list1;
   vector<int> build_type_list2;
   
+  vector<int> cell_id_list1;
+  vector<int> cell_id_list2;
+  vector<GLine> gline_list;
+  
+  
+
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
   void GetMode(GenMO* mo); 
@@ -809,6 +818,15 @@ struct GenMObject{
   void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
                       int type, Relation*, BTree*, Relation*);
   void GenerateCar(Network* rn, Periods* peri, int mo_no, Relation*);
+  void GenerateCarExt(Network* rn, Periods* peri, int mo_no, 
+                   Relation*,Relation*);
+  void SetCellId(vector<Point> p_loc_list, vector<int>& loc_cellid_list, 
+                 R_Tree<2,TupleId>* rtree_cell, Relation* rel);
+  
+  void DFTraverse3(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                             Relation* rel,
+                             Point query_loc, vector<int>& cellid__list);
+
   void GenerateCarMO(Network*, int i, Periods* peri, GLine* newgl,
                      Relation* rel, Point);
   void CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
@@ -977,6 +995,17 @@ struct GenMObject{
                       Relation* rel1, Relation* rel2,
                       R_Tree<2,TupleId>* rtree);
 
+  ///////////////////////////////////////////////////////////////////////
+  //////////////////improve creating road shortest path/////////////////
+  ///////////////////////////////////////////////////////////////////////
+  void CreateCommPath(Network*, Relation*, int attr1, int attr2, 
+                      int attr3, int attr4, int ,int);
+  inline int GetNewCellId(vector<int>&, int);
+  void MergeCommPath(Network*, Relation* );
+  void MergeRoadPath(vector<GLine>& gl_list, GLine* res_gl);
+  void PrintRouteInterval(vector< vector<RouteInterval> >& ri_list, 
+                          unsigned int);
+  
 };
 
 

@@ -77,7 +77,13 @@ Result   : 1
 Operator : triangulation
 Number   : 2
 Signature: region -> (stream(((x1 t1) ... (xn tn)))
-Example  : query triangulation(r1) count;
+Example  : query triangulation([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 1
+
+Operator : triangulation2
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn)))
+Example  : query triangulation2([const region value ((((0 0)(0 5)(2 5))))]) count;
 Result   : 1
 
 Operator : convex
@@ -178,8 +184,16 @@ Result   : 441
 Operator : triangulation_new
 Number   : 2
 Signature: region -> (stream(((x1 t1) ... (xn tn)))
-Example  : query triangulation_new(r1) count;
+Example  : query triangulation_new([const region value ((((0 0)(0 5)(2 5))))]) count;
 Result   : 1
+
+
+Operator : triangulation_new2
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn)))
+Example  : query triangulation_new2([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 1
+
 
 Operator : get_dg_edge
 Number   : 2
@@ -573,12 +587,6 @@ Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query create_time_table2_new(train_stops,ubtrains,btree_train) count;
 Result   : 10.0
 
-
-Operator : splitubahn 
-Number   : 2
-Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query splitubahn(UBahn,Name,geoData) count;
-Result   : 10.0
 
 Operator : refmo2genmo 
 Number   : 2
@@ -998,6 +1006,12 @@ Signature: network x periods x real x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_car(rn, TwoDays, 10.0, streets_speed) count;
 Result   : 10
 
+Operator : generate_car_ext
+Number   : 1
+Signature: network x periods x real x rel x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_car_ext(rn, TwoDays, 10.0, streets_speed, mergepaths) count;
+Result   : 10
+
 Operator : generate_genmo3
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
@@ -1045,6 +1059,35 @@ Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) 
 Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop)count;
 Result   : 10
 
+Operator : comm_path
+Number   : 1
+Signature: network x rel x attr1 x attr2 x atrr3 x attr4 x int x int -> (stream(((x1 t1) ... (xn tn))))
+Example  : query comm_path(rn, cell_join_tm, cell_id, id_f, cover_area_w, r_c_ps,2,3) count;
+Result   : 10
+
+Operator : merge_path
+Number   : 1
+Signature: network x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query merge_path(rn, comm_paths) count;
+Result   : 10
+
+Operator : get_rg_nodes
+Number   : 1
+Signature: network -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_rg_nodes(rn) head[10] count;
+Result   : 10
+
+Operator : get_rg_edges1
+Number   : 1
+Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_rg_edges1(rel, rtree) head[10] count;
+Result   : 10
+
+Operator : get_rg_edges2
+Number   : 1
+Signature: network x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_rg_edges2(rn, rel) head[10] count;
+Result   : 10
 
 
 Operator : modifyline

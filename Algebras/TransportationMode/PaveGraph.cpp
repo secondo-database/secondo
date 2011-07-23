@@ -2216,6 +2216,103 @@ void CompTriangle::PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
 }
 
 /*
+the same as PolygonContourPoint, but do not insert (0,0) for the first point
+for each cycle, it inserts the first point to the end to close the region
+
+*/
+
+void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
+                           vector<double>& ps_contour_x,
+                           vector<double>& ps_contour_y)
+{
+  
+  vector<SimpleLine*> sl_contour;
+
+  for(unsigned int i = 0;i < no_cyc;i++){
+      SimpleLine* sl = new SimpleLine(0);
+      sl->StartBulkLoad();
+      sl_contour.push_back(sl);
+  }
+  vector<int> edgenos(no_cyc, 0);
+  for(int j = 0;j < reg->Size();j++){
+    HalfSegment hs1;
+    reg->Get(j, hs1);
+    if(!hs1.IsLeftDomPoint()) continue;
+    HalfSegment hs2;
+    hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+
+    hs2.attr.edgeno = edgenos[hs1.attr.cycleno]++;
+    *sl_contour[hs1.attr.cycleno] += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    *sl_contour[hs1.attr.cycleno] += hs2;
+  }
+//  cout<<"get all boundary line"<<endl;
+  SpacePartition* sp = new SpacePartition();
+  for(unsigned int i = 0;i < no_cyc;i++){
+      sl_contour[i]->EndBulkLoad();
+      vector<MyHalfSegment> mhs;
+      sp->ReorderLine(sl_contour[i], mhs);
+      vector<Point> ps;
+      for(unsigned int j = 0;j < mhs.size();j++)
+        ps.push_back(mhs[j].from);
+
+      bool clock;
+      if(0.0f < Area(ps)){//points counter-clockwise order
+        clock = false;
+      }else{// points clockwise
+        clock = true;
+      }
+      no_p_contour[i] = ps.size();
+      if(i == 0){//outer contour, counter_clockwise
+        if(clock == false){
+            for(unsigned int index = 0;index < ps.size();index++){
+                ps_contour_x.push_back(ps[index].GetX());
+                ps_contour_y.push_back(ps[index].GetY());
+            }
+            //////////insert the start point again to close the region///////
+//             unsigned int index = 0;
+//             ps_contour_x.push_back(ps[index].GetX());
+//             ps_contour_y.push_back(ps[index].GetY());
+
+        }else{
+            for(unsigned int index = 0;index < ps.size();index++){
+                ps_contour_x.push_back(ps[ps.size() - 1 - index].GetX());
+                ps_contour_y.push_back(ps[ps.size() - 1 - index].GetY());
+            }
+            //////////insert the start point again to close the region///////
+//             unsigned int index = 0;
+//             ps_contour_x.push_back(ps[ps.size() - 1 - index].GetX());
+//             ps_contour_y.push_back(ps[ps.size() - 1 - index].GetY());
+        }
+      }else{//hole points, should be clockwise
+        if(clock == false){
+            for(unsigned int index = 0;index < ps.size();index++){
+                ps_contour_x.push_back(ps[ps.size() -1 - index].GetX());
+                ps_contour_y.push_back(ps[ps.size() -1 - index].GetY());
+            }
+            //////////insert the start point again to close the region///////
+//             unsigned int index = 0;
+//             ps_contour_x.push_back(ps[ps.size() -1 - index].GetX());
+//             ps_contour_y.push_back(ps[ps.size() -1 - index].GetY());
+        }else{
+            for(unsigned int index = 0;index < ps.size();index++){
+                ps_contour_x.push_back(ps[index].GetX());
+                ps_contour_y.push_back(ps[index].GetY());
+            }
+            //////////insert the start point again to close the region///////
+//             unsigned int index = 0;
+//             ps_contour_x.push_back(ps[index].GetX());
+//             ps_contour_y.push_back(ps[index].GetY());
+        }
+      }
+
+      delete sl_contour[i];
+  }
+  delete sp;
+
+}
+
+/*
 Decompose a polygon with and without holes into a set of triangles
 Using the implementation by Atul Narkhede and Dinesh Manocha
 
@@ -2300,6 +2397,109 @@ void CompTriangle::NewTriangulation()
     triangles.push_back(reg[0]);
   }
   delete spacepart;
+  ////////////////////////////////////////////////////////////////////
+
+}
+
+/*
+Decompose a polygon with and without holes into a set of triangles
+Using the implementation by from codeproject
+holes: number of vertices - 2
+without holes: number of vertices - 1 - 2
+
+*/
+
+void CompTriangle::NewTriangulation2()
+{
+
+  if(reg->NoComponents() == 0){
+      cout<<"this is not a region"<<endl;
+      return;
+  }
+
+  if(reg->NoComponents() > 1){
+      cout<<"can't handle region with more than one face"<<endl;
+      return;
+  }
+
+
+  ////////////////////get the number of cycles////////////////////
+  unsigned int no_cyc = NoOfCycles();
+
+  if(no_cyc == 1){
+    Triangulation();
+    return;
+  }
+
+  //the first is the outer cycle
+//  cout<<"polgyon with "<<no_cyc - 1<<" holes inside "<<endl;
+
+
+  const int ncontours = no_cyc;
+  int no_p_contour[ncontours];
+
+  vector<double> ps_contour_x;
+  vector<double> ps_contour_y;
+
+  PolygonContourPoint2(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
+
+ //  cout<<"finish creating contour for the polgyon"<<endl;
+//   for(unsigned int i = 0;i < no_cyc;i++)
+//     cout<<no_p_contour[i]<<endl;
+
+//  cout<<"no vertices "<<ps_contour_x.size()<<endl;
+
+  HPolygon poly;
+  int no_triangle = poly.Triangulation2(no_cyc, no_p_contour,
+                ps_contour_x, ps_contour_y);
+
+//  cout<<"no_triangle "<<no_triangle<<endl;
+
+
+  SpacePartition* spacepart = new SpacePartition();
+
+  for (int i = 0; i < no_triangle; i++){
+
+//    printf("triangle #%d: %d %d %d\n", i,
+//       poly.mtabCell[i].Index(0) + 1,
+//       poly.mtabCell[i].Index(1) + 1,
+//       poly.mtabCell[i].Index(2) + 1);
+
+      int index1 = poly.mtabCell[i].Index(0);
+      int index2 = poly.mtabCell[i].Index(1);
+      int index3 = poly.mtabCell[i].Index(2);
+
+//       cout<<"( "<<poly.mtabPnt[index1].X()<<" "
+//           <<poly.mtabPnt[index1].Y()<<") "
+//           <<"( "<<poly.mtabPnt[index2].X()<<" "
+//           <<poly.mtabPnt[index2].Y()<<") "
+//           <<"( "<<poly.mtabPnt[index3].X()<<" "
+//           <<poly.mtabPnt[index3].Y()<<") "<<endl;
+
+    vector<Point> ps_reg;
+    Point p1, p2, p3;
+    Coord x, y;
+    x = poly.mtabPnt[index1].X();
+    y = poly.mtabPnt[index1].Y();
+    p1.Set(x, y);
+    x = poly.mtabPnt[index2].X();
+    y = poly.mtabPnt[index2].Y();
+    p2.Set(x, y);
+    x = poly.mtabPnt[index3].X();
+    y = poly.mtabPnt[index3].Y();
+    p3.Set(x, y);
+    ps_reg.push_back(p1);
+    ps_reg.push_back(p2);
+    ps_reg.push_back(p3);
+    vector<Region> reg;
+//    cout<<p1<<" "<<p2<<" "<<p3<<endl;
+    spacepart->ComputeRegion(ps_reg, reg);
+
+    triangles.push_back(reg[0]);
+
+  }
+  delete spacepart;
+
   ////////////////////////////////////////////////////////////////////
 
 }
@@ -4647,7 +4847,9 @@ void Walk_SP::PaveLocToGP(Network* n)
 //      cout<<"rid "<<route_id_list[i]<<endl; 
 
 //    cout<<"oid "<<oid<<" rid "<<rid<<endl;
-    PaveLocToGPoint(loc, n, route_id_list);
+//    PaveLocToGPoint(loc, n, route_id_list);
+
+    PaveLocToGPoint2(loc, n, route_id_list);//more robustness
 
     tuple1->DeleteIfAllowed(); 
 
@@ -6314,11 +6516,13 @@ void RegVertex::CreateVertex()
         *sl_contour[hs1.attr.cycleno] += hs2;
         hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
         *sl_contour[hs1.attr.cycleno] += hs2;
+
       }
 
       SpacePartition* sp = new SpacePartition();
 
       for(unsigned int i = 0;i < no_cyc;i++){
+//        cout<<"i "<<i<<endl;
         sl_contour[i]->EndBulkLoad();
         vector<MyHalfSegment> mhs;
 
@@ -6424,6 +6628,65 @@ void RegVertex::TriangulationNew()
 
       delete ct;
 }
+
+
+/*
+for each triangle, it returns the number of each point and the centroid
+
+*/
+void RegVertex::TriangulationNew2()
+{
+    CompTriangle* ct = new CompTriangle(reg);
+    unsigned int no_cyc = ct->NoOfCycles();
+    assert(no_cyc > 0);
+
+    const int ncontours = no_cyc;
+    int no_p_contour[ncontours];
+
+    vector<double> ps_contour_x;//start from 0
+    vector<double> ps_contour_y;//start from 0
+
+   ct->PolygonContourPoint2(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
+
+   HPolygon poly;
+   int no_triangle = poly.Triangulation2(no_cyc, no_p_contour,
+                ps_contour_x, ps_contour_y);
+
+//   cout<<"no_triangle "<<no_triangle<<endl;
+
+      for (int i = 0; i < no_triangle; i++){
+          Coord x, y;
+          int index1 = poly.mtabCell[i].Index(0);
+          int index2 = poly.mtabCell[i].Index(1);
+          int index3 = poly.mtabCell[i].Index(2);
+
+          x = poly.mtabPnt[index1].X();
+          y = poly.mtabPnt[index1].Y();
+
+          x += poly.mtabPnt[index2].X();
+          y += poly.mtabPnt[index2].Y();;
+
+          x += poly.mtabPnt[index3].X();
+          y += poly.mtabPnt[index3].Y();;
+
+//          v1_list.push_back(index1 + 1);
+//          v2_list.push_back(index2 + 1);
+//          v3_list.push_back(index3 + 1);
+
+          v1_list.push_back(poly.p_id_list[index1]);
+          v2_list.push_back(poly.p_id_list[index2]);
+          v3_list.push_back(poly.p_id_list[index3]);
+
+
+          //calculate the centroid point
+          Point p;
+          p.Set(x/3.0, y/3.0);
+          regnodes.push_back(p);
+      }
+
+      delete ct;
+}
+
 /*
 For each triangle, it sets the number of neighbors it has already.
 If the numbers of two vertices are consecutive and they belong to the same
@@ -6636,6 +6899,10 @@ void RegVertex::GetDGEdge()
       TriNode* temp = head->next;
       while(temp){
         temp->tri.Print();
+        cout<<vertex_point[temp->tri.v1 - 1]<<" "
+            <<vertex_point[temp->tri.v2 - 1]<<" "
+            <<vertex_point[temp->tri.v3 - 1]<<" "<<endl;
+            
         temp = temp->next;
       }
       assert(false);
