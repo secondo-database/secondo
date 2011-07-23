@@ -560,20 +560,6 @@ Example  : query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,nigh
 Result   : 10.0
 
 
-Operator : createUBTrains
-Number   : 2
-Signature: rel x attr1 x attr2 x attr3 x duration -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createUBTrains(UBahnTrains1,Line,Up,Trip,UBTrain_time) count; 
-Result   : 10.0
-
-
-Operator : create_train_stop
-Number   : 2
-Signature: rel x attr1 x attr2 x attr3-> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_train_stop(ubtrains,Line,Up,Trip) count; 
-Result   : 10.0
-
-
 Operator : create_time_table2
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
@@ -830,13 +816,6 @@ Number   : 2
 Signature: rel x genloc x genloc x rel x btree x int-> (stream(((x1 t1) ... (xn tn))))
 Example  : query indoornavigation(ig1, genloc1, genloc2, building_uni, btree_groom,1) count;
 Result   : 1
-
-
-Operator : outputregion 
-Number   : 1
-Signature: region -> string 
-Example  : query outputregion(r1);
-Result   : "empty"
 
 
 Operator : maxrect 

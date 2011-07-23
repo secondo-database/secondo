@@ -3255,6 +3255,17 @@ const string SpatialSpecGenerateCarList =
 "<text>generate moving cars in road network to get traffic </text--->"
 "<text>query generate_car(rn, TwoDays, 30.0, streets_speed) </text---> ) )";
 
+
+const string SpatialSpecGenerateCarExtList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x periods x real x rel x rel"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_car_ext (space, periods, real, rel, rel) </text--->"
+"<text>generate moving cars in road network to get traffic </text--->"
+"<text>query generate_car_ext(rn, TwoDays, 30.0, "
+"streets_speed, mergepaths) </text---> ) )";
+
+
 const string SpatialSpecGenerateGMO3TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x int x rel x rel x rtree"
@@ -3308,10 +3319,48 @@ const string SpatialSpecGenerateGMO8TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x int x rel x rel x rtree"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>generate_genmo7 (space, periods, int, int, rel,rel, rtree) </text--->"
+"<text>generate_genmo8 (space, periods, int, int, rel,rel, rtree) </text--->"
 "<text>generate generic moving objects </text--->"
-"<text>query generate_genmo7(space_1, TwoDays, 30.0, 15, tri_reg_new,"
+"<text>query generate_genmo8(space_1, TwoDays, 30.0, 15, tri_reg_new,"
 "msneighbor, rtree_ms_stop) </text---> ) )";
+
+
+const string SpatialSpecCommPathTMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> network x rel x attr x attr x attr x attr x attr x int x int"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>comm_path (network, rel, int, int, region, points, int ,int) </text--->"
+"<text>create a set of paths for each pair of cells </text--->"
+"<text>query comm_path(rn, cell_join_tm, cell_id, id_f, cover_area_w,"
+" r_c_ps, 2, 3) </text---> ) )";
+
+const string SpatialSpecMergePathTMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> network x rel -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>merge_path (network, rel) </text--->"
+"<text>merge common road paths </text--->"
+"<text>query merge_path(rn, comm_paths) </text---> ) )";
+
+const string SpatialSpecGetRGNodesTMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> network -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>get_rg_nodes(network) </text--->"
+"<text>get road graph nodes </text--->"
+"<text>query get_rg_nodes(rn) count </text---> ) )";
+
+const string SpatialSpecGetRGEdges1TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> rel x rtree -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>get_rg_edges1(rel, rtree) </text--->"
+"<text>get road graph edges </text--->"
+"<text>query get_rg_edges1(rel, rtree) count </text---> ) )";
+
+const string SpatialSpecGetRGEdges2TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> network x rel -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>get_rg_edges2(network, rel) </text--->"
+"<text>get road graph edges </text--->"
+"<text>query get_rg_edges2(rn, rel) count </text---> ) )";
 
 const string SpatialSpecNavigation1List =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -4483,6 +4532,68 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
 
 
 /*
+create moving cars (mpoint and mgpoint) to get traffic 
+use some stored paths to speed up data generation
+
+*/
+int GenerateCarExtValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Network* rn = (Network*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        Relation* rel1 = (Relation*)args[3].addr;
+        Relation* rel2 = (Relation*)args[4].addr;
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateCarExt(rn, peri, mo_no, rel1, rel2);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+//          if(mo->count == mo->trip1_list.size()) return CANCEL;
+//          if(mo->count == mo->trip2_list.size()) return CANCEL;
+          if(mo->count == mo->loc_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(mo->resulttype);
+ 
+//           tuple->PutAttribute(0,new MPoint(mo->trip2_list[mo->count]));
+//           tuple->PutAttribute(1,new MGPoint(mo->trip3_list[mo->count]));
+
+          tuple->PutAttribute(0, new Point(mo->loc_list1[mo->count]));
+//          tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));
+
+//          tuple->PutAttribute(0, new MPoint(mo->trip2_list[mo->count]));
+//          tuple->PutAttribute(1, new MGPoint(mo->trip3_list[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+
+/*
 create generic moving objects for Walk Bus
 
 */
@@ -4886,6 +4997,289 @@ int GenerateGMO8ListValueMap(Word* args, Word& result, int message,
   return 0;
   
 }
+
+
+/*
+find common paths for a set of road paths
+
+*/
+int CommPathValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Network* rn = (Network* ) args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+        
+        int cell_id1 = ((CcInt*)args[6].addr)->GetIntval();
+        int cell_id2 = ((CcInt*)args[7].addr)->GetIntval();
+        
+        int cell_id_pos = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int r_id_pos = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int cell_area_pos = ((CcInt*)args[10].addr)->GetIntval() - 1;
+        int ps_pos = ((CcInt*)args[11].addr)->GetIntval() - 1;
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->CreateCommPath(rn, rel, cell_id_pos, r_id_pos, 
+                           cell_area_pos, ps_pos, cell_id1, cell_id2);
+        local.setAddr(mo);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+
+          if(mo->count == mo->cell_id_list1.size()) return CANCEL;
+
+           Tuple* tuple = new Tuple(mo->resulttype);
+
+          tuple->PutAttribute(0, new CcInt(true, 
+                                          mo->cell_id_list1[mo->count]));
+          tuple->PutAttribute(1, new Rectangle<2>(mo->rect_list1[mo->count]));
+          tuple->PutAttribute(2, new CcInt(true,
+                                          mo->cell_id_list2[mo->count]));
+          tuple->PutAttribute(3, new Rectangle<2>(mo->rect_list2[mo->count]));
+          tuple->PutAttribute(4, new GLine(mo->gline_list[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+merge common paths for a set of road paths
+
+*/
+int MergePathValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Network* rn = (Network* ) args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->MergeCommPath(rn, rel);
+        local.setAddr(mo);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+
+          if(mo->count == mo->cell_id_list1.size()) return CANCEL;
+
+           Tuple* tuple = new Tuple(mo->resulttype);
+
+          tuple->PutAttribute(0, new CcInt(true, 
+                                          mo->cell_id_list1[mo->count]));
+          tuple->PutAttribute(1, new Rectangle<2>(mo->rect_list1[mo->count]));
+          tuple->PutAttribute(2, new CcInt(true,
+                                          mo->cell_id_list2[mo->count]));
+          tuple->PutAttribute(3, new Rectangle<2>(mo->rect_list2[mo->count]));
+          tuple->PutAttribute(4, new GLine(mo->gline_list[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+
+/*
+get road graph nodes relation
+
+*/
+int GetRGNodesValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  RoadDenstiy* rd;
+
+  switch(message){
+      case OPEN:{
+        Network* rn = (Network* ) args[0].addr;
+
+        rd = new RoadDenstiy(rn, NULL, NULL, NULL);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        rd->GetRGNodes();
+        local.setAddr(rd);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+
+          if(rd->count == rd->unique_id_list.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, 
+                                          rd->unique_id_list[rd->count]));
+          tuple->PutAttribute(1, new GPoint(rd->gp_list[rd->count]));
+          tuple->PutAttribute(2, new Point(rd->jun_loc_list[rd->count]));
+
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+/*
+get road graph edge relation. two junction points at the same location
+
+*/
+int GetRGEdges1ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  RoadDenstiy* rd;
+
+  switch(message){
+      case OPEN:{
+        Relation* rel = (Relation*) args[0].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr;
+
+        rd = new RoadDenstiy(NULL, NULL, NULL, NULL);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        rd->GetRGEdges1(rel, rtree);
+        local.setAddr(rd);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+
+          if(rd->count == rd->jun_id_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, 
+                                          rd->jun_id_list1[rd->count]));
+          tuple->PutAttribute(1, new CcInt(true,
+                                           rd->jun_id_list2[rd->count]));
+
+
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+
+/*
+get road graph edge relation. two junction points are connected by glines 
+
+*/
+int GetRGEdges2ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  RoadDenstiy* rd;
+
+  switch(message){
+      case OPEN:{
+        Network* rn = (Network*)args[0].addr;
+        Relation* rel = (Relation*) args[1].addr;
+
+        rd = new RoadDenstiy(rn, NULL, NULL, NULL);
+        rd->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        rd->GetRGEdges2(rel);
+        local.setAddr(rd);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rd = (RoadDenstiy*)local.addr;
+
+          if(rd->count == rd->jun_id_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(rd->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, 
+                                          rd->jun_id_list1[rd->count]));
+          tuple->PutAttribute(1, new CcInt(true,
+                                           rd->jun_id_list2[rd->count]));
+          tuple->PutAttribute(2, new GLine(rd->gl_path_list[rd->count]));
+         tuple->PutAttribute(3, new SimpleLine(rd->sline_path_list[rd->count]));
+          result.setAddr(tuple);
+          rd->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rd = (RoadDenstiy*)local.addr;
+            delete rd;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
 
 /*
 navigation with modes Walk and Bus
@@ -5480,6 +5874,89 @@ ListExpr GenerateCarListTypeMap(ListExpr args)
                 )
           );
 
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate car ext
+
+*/
+ListExpr GenerateCarExtListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  
+
+  if(!(nl->IsEqual(arg3, "real") )){
+      string err = "the 3 paramenter should be real";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg4 = nl->Fourth(args);
+  if (!(listutils::isRelDescription(arg4)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(GenMObject::StreetSpeedInfo, xType1);
+
+  if(!(CompareSchemas(arg4, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(GenMObject::CommPathInfo, xType2);
+
+  if(!(CompareSchemas(arg5, xType2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                     nl->TwoElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                      nl->SymbolAtom("mpoint")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                      nl->SymbolAtom("mgpoint"))
+//                   )
+//                 )
+//           );
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                    nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("loc"),
+                                     nl->SymbolAtom("point"))
+                  )
+                )
+          );
+          
     return result;
 }
 
@@ -6158,6 +6635,294 @@ ListExpr GenerateGMO8ListTypeMap(ListExpr args)
           );
 
     return result;
+}
+
+
+
+/*
+TypeMap function for operator comm path
+
+*/
+ListExpr CommPathListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 8){
+      string err = "eight input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if (!(listutils::isRelDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+
+  ListExpr arg7 = nl->Nth(7,args);
+  ListExpr arg8 = nl->Nth(8,args);
+  
+  if(!(nl->IsEqual(arg7, "int") && nl->IsEqual(arg8, "int"))){
+      string err = "the 7, 8 parameters should be int";
+      return listutils::typeError(err);
+  }
+  
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(arg3);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(arg4);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  }
+
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(arg5);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname3,attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(arg6);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname4,attrType4);
+
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"points")){
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type points");
+  }
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FiveElemList(
+                        nl->TwoElemList(nl->SymbolAtom("cell_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("cell_area1"),
+                                      nl->SymbolAtom("rect")),
+                        nl->TwoElemList(nl->SymbolAtom("cell_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("cell_area2"),
+                                      nl->SymbolAtom("rect")),
+                        nl->TwoElemList(nl->SymbolAtom("path"),
+                                      nl->SymbolAtom("gline"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->FourElemList(nl->IntAtom(j1), nl->IntAtom(j2),
+                              nl->IntAtom(j3), nl->IntAtom(j4)),
+                             result);
+
+}
+
+
+/*
+TypeMap function for operator merge path
+
+*/
+ListExpr MergePathListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if (!(listutils::isRelDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(GenMObject::CommPathInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+ 
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FiveElemList(
+                        nl->TwoElemList(nl->SymbolAtom("cell_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("cell_area1"),
+                                      nl->SymbolAtom("rect")),
+                        nl->TwoElemList(nl->SymbolAtom("cell_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("cell_area2"),
+                                      nl->SymbolAtom("rect")),
+                        nl->TwoElemList(nl->SymbolAtom("path"),
+                                      nl->SymbolAtom("gline"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+/*
+TypeMap function for operator get rg ndoes
+
+*/
+ListExpr GetRGNodesTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+ 
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("jun_id"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("jun_gp"),
+                                      nl->SymbolAtom("gpoint")),
+                        nl->TwoElemList(nl->SymbolAtom("jun_p"),
+                                      nl->SymbolAtom("point"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+
+/*
+TypeMap function for operator get rg edges
+
+*/
+ListExpr GetRGEdges1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(RoadDenstiy::rg_nodes_typeinfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg2 = nl->Second(args);
+   if(!listutils::isRTreeDescription(arg2))
+    return listutils::typeError("para2 should be a rtree");
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("jun_id2"),
+                                      nl->SymbolAtom("int"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+
+/*
+TypeMap function for operator get rg edges
+
+*/
+ListExpr GetRGEdges2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two input parameters expected";
+      return listutils::typeError(err);
+  }
+
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(RoadDenstiy::rg_nodes_typeinfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("jun_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path1"),
+                                      nl->SymbolAtom("gline")),
+                        nl->TwoElemList(nl->SymbolAtom("Path2"),
+                                      nl->SymbolAtom("sline"))
+                  )
+                )
+          );
+
+    return result;
+
 }
 
 /*
@@ -6877,6 +7642,18 @@ Operator generate_car("generate_car",
     GenerateCarListTypeMap
 );
 
+/*
+store some paths in road network where two locations from two areas should pass
+those roads
+
+*/
+Operator generate_car_ext("generate_car_ext",
+    SpatialSpecGenerateCarExtList,
+    GenerateCarExtValueMap,
+    Operator::SimpleSelect,
+    GenerateCarExtListTypeMap
+);
+
 
 /*
 bus + walk
@@ -6945,6 +7722,47 @@ Operator generate_genmo8("generate_genmo8",
     Operator::SimpleSelect,
     GenerateGMO8ListTypeMap
 );
+
+
+Operator comm_path("comm_path",
+    SpatialSpecCommPathTMList,
+    CommPathValueMap,
+    Operator::SimpleSelect,
+    CommPathListTypeMap
+);
+
+Operator merge_path("merge_path",
+    SpatialSpecMergePathTMList,
+    MergePathValueMap,
+    Operator::SimpleSelect,
+    MergePathListTypeMap
+);
+
+/*
+create road graph nodes and edges 
+
+*/
+Operator get_rg_nodes("get_rg_nodes",
+    SpatialSpecGetRGNodesTMList,
+    GetRGNodesValueMap,
+    Operator::SimpleSelect,
+    GetRGNodesTypeMap
+);
+
+Operator get_rg_edges1("get_rg_edges1",
+    SpatialSpecGetRGEdges1TMList,
+    GetRGEdges1ValueMap,
+    Operator::SimpleSelect,
+    GetRGEdges1TypeMap
+);
+
+Operator get_rg_edges2("get_rg_edges2",
+    SpatialSpecGetRGEdges2TMList,
+    GetRGEdges2ValueMap,
+    Operator::SimpleSelect,
+    GetRGEdges2TypeMap
+);
+
 
 Operator navigation1("navigation1",
     SpatialSpecNavigation1List,
@@ -7089,6 +7907,15 @@ const string OpTMTriangulateSpec  =
     "<text>query triangulation(r1) count; </text--->"
     ") )";
 
+const string OpTMTriangulate2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region ->(stream ( (x1 t1)(x2 t2)...(xn tn)) </text--->"
+    "<text>triangulate2(region)</text--->"
+    "<text>decompose a polygon into a set of triangles</text--->"
+    "<text>query triangulation2(r1) count; </text--->"
+    ") )";
+    
 const string OpTMConvexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7228,6 +8055,18 @@ const string OpTMTriangulationNewSpec  =
     "represented by the three points</text--->"
     "<text>query triangulation_new(r1) count; </text--->"
     ") )";
+    
+const string OpTMTriangulationNew2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>triangulation_new2(region)</text--->"
+    "<text>decompose the region into a set of triangles where each is"
+    "represented by the three points</text--->"
+    "<text>query triangulation_new2(r1) count; </text--->"
+    ") )";
+    
 const string OpTMGetDGEdgeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7825,27 +8664,6 @@ const string OpTMCreateTimeTable1NewSpec  =
     "night1, night2) count;</text--->"
     ") )";
     
-const string OpTMCreateUBTrainsSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 x attr3 x duration "
-    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>createUBTrains(rel,attr1,attr2,attr3,duration);</text--->"
-    "<text>create UBahn Trains </text--->"
-    "<text>query createUBTrains(UBahnTrains1,Line,Up,Trip,"
-    "UBTrain_time) count;</text--->"
-    ") )";
-    
-const string OpTMCreateUBTrainStopSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 x attr3 "
-    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_train_stop(rel,attr,attr,attr);</text--->"
-    "<text>create UBahn Train Stops </text--->"
-    "<text>query create_train_stop(UBahnTrains,Line,Up,Trip) count;</text--->"
-    ") )";
-
 const string OpTMCreateTimeTable2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7866,17 +8684,6 @@ const string OpTMCreateTimeTable2NewSpec  =
     "<text>compact storage of time tables </text--->"
     "<text>query create_time_table2_new(train_stops,ubtrains,btree_train)"
     "count;</text--->"
-    ") )";
-
-    
-const string OpTMSplitUBahnSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 "
-    "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>splitubahn(rel, attr, attr );</text--->"
-    "<text>represent the ubahn line in a new way </text--->"
-    "<text>query splitubahn(UBahn, Name, geoData) count;</text--->"
     ") )";
 
 const string OpTMRefMO2GenMOSpec  =
@@ -7983,16 +8790,6 @@ const string OpTMInstant2DaySpec  =
     "<text>instant2day(instant);</text--->"
     "<text>get the day (int value) of time</text--->"
     "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
-    ") )";
-
-const string OpTMOutputRegionSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>region -> string </text--->"
-    "<text>outputregion(region);</text--->"
-    "<text>output the vertices in correct order"
-    "(clockwise for the outer cycle and counter clockwise for holes)</text--->"
-    "<text>query outputregion(r1);</text--->"
     ") )";
 
 /*
@@ -12257,6 +13054,30 @@ ListExpr OpTMBNNavigationTypeMap ( ListExpr args )
                 )
           );
         break;
+    case 3: ///minimum travlling time with optimize, record searching time
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS1"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("BS2"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("Duration"),
+                                    nl->SymbolAtom("periods")),
+                        nl->TwoElemList(nl->SymbolAtom("TimeCost"),
+                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+        break;
+
     default:
       string err = "the value of fifth parameter([0,2]) is not correct";
       return listutils::typeError(err);
@@ -13190,167 +14011,6 @@ ListExpr OpTMCreateTimeTable1NewTypeMap ( ListExpr args )
 }
 
 /*
-TypeMap fun for operator create UBahn Trains
-
-*/
-
-ListExpr OpTMCreateUBTrainsTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 5 )
-  {
-    return  nl->SymbolAtom ( "list length should be 5" );
-  }
-  
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-  
-  ListExpr attrName1 = nl->Second ( args );
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-                      
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type int");
-  }
-
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2,attrType2);
-                      
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"bool")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type bool");
-  }
-
-
-  ListExpr attrName3 = nl->Fourth ( args );
-  ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
-  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname3,attrType3);
-                      
-  if(j3 == 0 || !listutils::isSymbol(attrType3,"mpoint")){
-      return listutils::typeError("attr name" + aname3 + "not found"
-                      "or not of type mpoint");
-  }
-
-
-  ListExpr param5 = nl->Fifth(args );
-  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
-     nl->SymbolValue(param5) == "periods")){
-      return nl->SymbolAtom ( "typeerror: param5 should be periods" );
-  }  
-  
-  
-     ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-
-                nl->FiveElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Line"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Up"),
-                        nl->SymbolAtom("bool")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Trip"),
-                        nl->SymbolAtom("mpoint")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("schedule_id"),
-                        nl->SymbolAtom("int"))
-                    )));
-
-      return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
-                          nl->IntAtom(j3)), res);
-}
-
-
-/*
-TypeMap fun for operator create UBahn Train Stops 
-
-*/
-
-ListExpr OpTMCreateUBTrainStopTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 4 )
-  {
-    return  nl->SymbolAtom ( "list length should be 4" );
-  }
-  
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-  
-  ListExpr attrName1 = nl->Second ( args );
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-                      
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type int");
-  }
-
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2,attrType2);
-                      
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"bool")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type bool");
-  }
-
-
-  ListExpr attrName3 = nl->Fourth ( args );
-  ListExpr attrType3;
-  string aname3 = nl->SymbolValue(attrName3);
-  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname3,attrType3);
-
-  if(j3 == 0 || !listutils::isSymbol(attrType3,"mpoint")){
-      return listutils::typeError("attr name" + aname3 + "not found"
-                      "or not of type mpoint");
-  }
-
-     ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-
-                nl->ThreeElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("LineId"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("loc"),
-                        nl->SymbolAtom("point")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("stop_id"),
-                        nl->SymbolAtom("int"))
-                    )));
-
-      return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
-                          nl->IntAtom(j3)), res);
-}
-
-/*
 TypeMap fun for operator create time table for each spatial location 
 
 */
@@ -13488,64 +14148,6 @@ ListExpr OpTMCreateTimeTable2NewTypeMap ( ListExpr args )
                     )));
       return res; 
 }
-
-/*
-represent the UBahn line in a new way  
-(lineid int)(geoData1 line)(geoData2 sline)
-
-*/
-
-ListExpr OpTMSplitUBahnTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 3 )
-  {
-    return  nl->SymbolAtom ( "list length should be 3" );
-  }
-  
-  ListExpr param1 = nl->First ( args );
-  if(!IsRelDescription(param1))
-    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
-  
- 
-  ListExpr attrName1 = nl->Second ( args );
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(attrName1);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"string")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type string");
-  }
-
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2, attrType2);
-
-  if(j2 == 0 || !listutils::isSymbol(attrType2, "line")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type line");
-  }
-
-  ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("lineid"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("geoData"),
-                        nl->SymbolAtom("sline"))
-                    )));
-      return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), res);
-}
-
 
 /*
 conver berlintest trains to generic moving objects 
@@ -14192,25 +14794,6 @@ ListExpr OpTMInstant2DayNewTypeMap ( ListExpr args )
   }else
     return nl->SymbolAtom ( "typeerror: param1 should be instant" );
 }
-
-
-/*
-TypeMap fun for operator outputregion 
-
-*/
-
-ListExpr OpTMOutputRegionTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 1 )
-  {
-    return  nl->SymbolAtom ( "list length should be 1" );
-  }
-  if(nl->IsEqual(nl->First(args),"region")){
-    return nl->SymbolAtom("string");
-  }else
-    return nl->SymbolAtom ( "typeerror: param1 should be region" );
-}
-
 
 /*
 TypeMap fun for operator maxrect 
@@ -15381,8 +15964,6 @@ Value Mapping for the triangulate operator
 decompose a polygon into a set of triangles
 
 */
-
-
 int OpTMTriangulatemap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
@@ -15418,6 +15999,46 @@ int OpTMTriangulatemap ( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+Value Mapping for the triangulate operator
+decompose a polygon into a set of triangles.
+use the code from codeproject HGRD
+
+*/
+int OpTMTriangulate2map ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  CompTriangle* ct;
+  switch(message){
+      case OPEN:{
+        Region* reg = (Region*)args[0].addr;
+        ct = new CompTriangle(reg);
+        ct->NewTriangulation2();
+        local.setAddr(ct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          ct = (CompTriangle*)local.addr;
+          if(ct->count == ct->triangles.size())
+                          return CANCEL;
+          Region* reg = new Region(ct->triangles[ct->count]);
+          result.setAddr(reg);
+          ct->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+
+          if(local.addr){
+            ct = (CompTriangle*)local.addr;
+            delete ct;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 
 /*
 Value Mapping for the convex operator
@@ -16115,6 +16736,59 @@ int OpTMTriangulationNewValueMap ( Word* args, Word& result, int message,
   return 0;
 
 }
+
+
+/*
+decompose a region into a set of triangles where each is represented by the
+three points. We number all vertices of a polygon. It works together with
+operator regvertex. the triangulation is different. it is consistent with
+operator triangulation2. 
+
+*/
+
+int OpTMTriangulationNew2ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Region* r = (Region*)args[0].addr;
+        rv = new RegVertex(r);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->TriangulationNew2();
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->v1_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
+          tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
+          tuple->PutAttribute(2, new CcInt(true, rv->v3_list[rv->count]));
+          tuple->PutAttribute(3, new Point(rv->regnodes[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
 
 /*
 get the edge relation for the dual graph. it is based on the triangles by
@@ -17067,16 +17741,18 @@ void CellList::CreateCell()
       min[1] = y_value_min;
       max[0] = x_value_max;
       max[1] = y_value_max;
-      
+
       BBox<2>* box = new BBox<2>(true, min,max); 
       Cell* cell = new Cell(cell_id,*box);
+
       
-      delete box; 
-      cell_array.push_back(*cell); 
+      cell_array.push_back(*cell);
       cell_id++;
       x_value_min = x_value_max; 
+      delete cell;
+      delete box;
     }
-  
+
     y_value_min = y_value_max; 
   }
 }
@@ -18716,6 +19392,9 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
 //                bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
                   bn_nav->ShortestPath_TransferNew(bs1, bs2, query_time);
                   break;
+          case 3: 
+                  bn_nav->ShortestPath_TimeNew2(bs1, bs2, query_time);
+                  break;
           default:
                   cout<<"invalid type "<<type<<endl;
                   break;
@@ -18743,7 +19422,7 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
               result.setAddr(tuple);
               bn_nav->count++;
               return YIELD;
-          }else if(bn_nav->type == 1){
+          }else if(bn_nav->type == 1 || bn_nav->type == 3){
               if(bn_nav->count == bn_nav->path_list.size())
                           return CANCEL;
               Tuple* tuple = new Tuple(bn_nav->resulttype);
@@ -18891,6 +19570,28 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                     bn_nav->peri_list.clear(); 
                     bn_nav->time_cost_list.clear();
                   }
+                  break;
+          case 3:
+                  ////////////////filtering edges////////////////////////////
+                  ////////////////record searching time//////////////////////
+                  bn_nav->ShortestPath_TimeNew2(bs1, bs2, query_time);
+                  if(bn_nav->path_list.size() > 0){
+                    double l = 0.0;
+                    double time_cost = 0.0;
+                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++){
+                      l += bn_nav->path_list[k].Length();
+                      time_cost += bn_nav->time_cost_list[k];
+                    }
+                    cout<<"bs1: "<<*bs1<<" bs2: "<<*bs2
+                       <<" length: "<<l<<" time cost: "<<time_cost<<" s"<<endl;
+                    bn_nav->path_list.clear();
+                    bn_nav->tm_list.clear();
+                    bn_nav->bs1_list.clear();
+                    bn_nav->bs2_list.clear();
+                    bn_nav->peri_list.clear(); 
+                    bn_nav->time_cost_list.clear();
+                  }
+
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
@@ -19446,125 +20147,6 @@ int OpTMCreateTimeTable1NewValueMap ( Word* args, Word& result, int message,
 }
 
 
-
-/*
-create UBahn Trains 
-
-*/
-int OpTMCreateUBahanTrainsValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-
-  UBTrain* ubtrain;
-  switch(message){
-      case OPEN:{
-        
-        Relation* r = (Relation*)args[0].addr; 
-        Periods* peri = (Periods*)args[4].addr;        
-        
-        int attr1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
-        int attr3 = ((CcInt*)args[7].addr)->GetIntval() - 1;
-
-        ubtrain = new UBTrain(r);
-        ubtrain->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-        
-        ubtrain->CreateUBTrains(attr1,attr2,attr3,peri);
-        local.setAddr(ubtrain);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          ubtrain = (UBTrain*)local.addr;
-          if(ubtrain->count == ubtrain->id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(ubtrain->resulttype);
-          tuple->PutAttribute(0, 
-                            new CcInt(true, ubtrain->id_list[ubtrain->count]));
-          tuple->PutAttribute(1, 
-                        new CcInt(true, ubtrain->line_id_list[ubtrain->count]));
-          tuple->PutAttribute(2, 
-                     new CcBool(true, ubtrain->direction_list[ubtrain->count]));
-          tuple->PutAttribute(3, 
-                     new MPoint(ubtrain->train_trip[ubtrain->count])); 
-          tuple->PutAttribute(4, 
-                    new CcInt(true, ubtrain->schedule_id_list[ubtrain->count]));
-
-          result.setAddr(tuple);
-          ubtrain->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            ubtrain = (UBTrain*)local.addr;
-            delete ubtrain;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-
-}
-
-/*
-create UBahn Train Stops 
-
-*/
-int OpTMCreateUBahanTrainStopValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-
-  UBTrain* ubtrain;
-  switch(message){
-      case OPEN:{
-        
-        Relation* r = (Relation*)args[0].addr; 
-        
-        int attr1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[5].addr)->GetIntval() - 1;
-        int attr3 = ((CcInt*)args[6].addr)->GetIntval() - 1;
-
-        ubtrain = new UBTrain(r);
-        ubtrain->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-        
-        ubtrain->CreateUBTrainStop(attr1,attr2,attr3);
-        local.setAddr(ubtrain);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          ubtrain = (UBTrain*)local.addr;
-          if(ubtrain->count == ubtrain->line_id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(ubtrain->resulttype);
-          tuple->PutAttribute(0, 
-                        new CcInt(true, ubtrain->line_id_list[ubtrain->count]));
-          tuple->PutAttribute(1, 
-                        new Point(ubtrain->stop_loc_list[ubtrain->count]));
-          tuple->PutAttribute(2, 
-                     new CcInt(true, ubtrain->stop_id_list[ubtrain->count]));
-
-          result.setAddr(tuple);
-          ubtrain->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            ubtrain = (UBTrain*)local.addr;
-            delete ubtrain;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-
-}
-
-
 /*
 create time table for each spatial location--Train 
 
@@ -19691,57 +20273,7 @@ int OpTMCreateTimeTable2NewValueMap ( Word* args, Word& result, int message,
 }
 
 
-/*
-represent the ubahn in a new way (lineid:int)(geoData1:line)(geoData2:sline)
 
-*/
-int OpTMSplitUBahnValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-
-  UBTrain* ubtrain;
-  switch(message){
-      case OPEN:{
-
-        Relation* r = (Relation*)args[0].addr; 
-        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1; 
-        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
-        
-        ubtrain = new UBTrain(r, NULL, NULL);
-        ubtrain->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        ubtrain->SplitUBahn(attr1, attr2);
-        local.setAddr(ubtrain);
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          ubtrain = (UBTrain*)local.addr;
-          if(ubtrain->count == ubtrain->line_id_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(ubtrain->resulttype);
-          tuple->PutAttribute(0, 
-                       new CcInt(true,ubtrain->line_id_list[ubtrain->count]));
-          tuple->PutAttribute(1, 
-                             new SimpleLine(ubtrain->geodata[ubtrain->count]));
-
-          result.setAddr(tuple);
-          ubtrain->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            ubtrain = (UBTrain*)local.addr;
-            delete ubtrain;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-
-}
 
 /*
 convert trains, buses to generic moving objects 
@@ -20428,122 +20960,6 @@ int OpTMInstant2DayValueMap ( Word* args, Word& result, int message,
 
 
 /*
-output the vertices of a region in a correct way.
-outer cycle: clockwise, holes: counter clockwise 
-
-*/
-string GetRegVertices(Region* reg)
-{
-  string result;
-  if(reg->NoComponents() > 1){
-   result = "region should have one face ";
-   return result; 
-  } 
-  result = " ";
-  CompTriangle* ct = new CompTriangle(reg);
-  unsigned int no_cyc = ct->NoOfCycles();
-
-  vector<SimpleLine*> sl_contour;
-
-  for(unsigned int i = 0;i < no_cyc;i++){
-       SimpleLine* sl = new SimpleLine(0);
-          sl->StartBulkLoad();
-          sl_contour.push_back(sl);
-  }
-  vector<int> edgenos(no_cyc, 0);
-  for(int j = 0;j < reg->Size();j++){
-      HalfSegment hs1;
-      reg->Get(j, hs1);
-      if(!hs1.IsLeftDomPoint()) continue;
-      HalfSegment hs2;
-      hs2.Set(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
-
-      hs2.attr.edgeno = edgenos[hs1.attr.cycleno]++;
-
-      *sl_contour[hs1.attr.cycleno] += hs2;
-      hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
-      *sl_contour[hs1.attr.cycleno] += hs2;
-  }
-
-
-  SpacePartition* sp = new SpacePartition();
-
-  const double dist_delta = 0.001; 
-  for(unsigned int i = 0;i < no_cyc;i++){
-        sl_contour[i]->EndBulkLoad();
-        vector<MyHalfSegment> mhs;
-
-        sp->ReorderLine(sl_contour[i], mhs);
-        vector<Point> ps;
-        for(unsigned int j = 0;j < mhs.size();j++){
-          if(ps.size() == 0)
-            ps.push_back(mhs[j].from);
-          else{
-            Point p = ps[ps.size() - 1];
-            if(p.Distance(mhs[j].from) < dist_delta)
-              continue; 
-            else
-              ps.push_back(mhs[j].from);
-          }
-        }  
-
-
-        bool clock;
-        if(0.0f < ct->Area(ps)){//points counter-clockwise order
-            clock = false;
-        }else{// points clockwise
-            clock = true;
-        }
-
-        if(i == 0){ //outer cycle 
-          cout<<"outer cycle "<<endl; 
-          if(clock){
-            for(unsigned int j = 0;j < ps.size();j++){
-              printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
-            }
-          }else{
-            for(int j = ps.size() - 1;j >= 0;j--){
-              printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
-            }
-          }
-          cout<<endl; 
-        }else{////////////holes 
-          cout<<"hole "<<endl; 
-          if(clock == false){
-            for(unsigned int j = 0;j < ps.size();j++){
-             printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
-            }
-          }else{
-            for(int j = ps.size() - 1;j >= 0;j--){
-             printf("(%f %f)\n",ps[j].GetX(),ps[j].GetY());
-            }
-          }
-          cout<<endl; 
-        }
-
-        delete sl_contour[i];
-  }
-  delete ct;
-  delete sp;
-
-  return result; 
-}
-
-/*
-output the regino vertex. it will be used to get the vertices of a region.
-the result is used as nested list input 
-
-*/
-int OpTMOutputRegionValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-    result = qp->ResultStorage(in_pSupplier);
-    Region* reg = (Region*)args[0].addr;
-    ((CcString*)result.addr)->Set(true,GetRegVertices(reg));
-    return 0; 
-}
-
-/*
 get the maximum rectangle from a convex region 
 
 */
@@ -20985,6 +21401,14 @@ Operator triangulation(
     OpTMTriangulateTypeMap        // type mapping
 );
 
+Operator triangulation2(
+    "triangulation2",               // name
+    OpTMTriangulate2Spec,          // specification
+    OpTMTriangulate2map,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMTriangulateTypeMap        // type mapping
+);
+
 Operator convex(
     "convex",               // name
     OpTMConvexSpec,          // specification
@@ -21173,6 +21597,14 @@ Operator triangulation_new(
     "triangulation_new",
     OpTMTriangulationNewSpec,
     OpTMTriangulationNewValueMap,
+    Operator::SimpleSelect,
+    OpTMTriangulationNewTypeMap
+);
+
+Operator triangulation_new2(
+    "triangulation_new2",
+    OpTMTriangulationNew2Spec,
+    OpTMTriangulationNew2ValueMap,
     Operator::SimpleSelect,
     OpTMTriangulationNewTypeMap
 );
@@ -21733,23 +22165,6 @@ Operator create_time_table1_new(
 );
 
 
-Operator createUBTrains(
-  "createUBTrains",
-  OpTMCreateUBTrainsSpec,
-  OpTMCreateUBahanTrainsValueMap,
-  Operator::SimpleSelect,
-  OpTMCreateUBTrainsTypeMap
-);
-
-
-Operator create_train_stop(
-  "create_train_stop",
-  OpTMCreateUBTrainStopSpec,
-  OpTMCreateUBahanTrainStopValueMap,
-  Operator::SimpleSelect,
-  OpTMCreateUBTrainStopTypeMap
-);
-
 Operator create_time_table2(
   "create_time_table2",
   OpTMCreateTimeTable2Spec,
@@ -21765,16 +22180,6 @@ Operator create_time_table2_new(
   Operator::SimpleSelect,
   OpTMCreateTimeTable2NewTypeMap
 );
-
-
-Operator splitubahn(
-  "splitubahn",
-  OpTMSplitUBahnSpec,
-  OpTMSplitUBahnValueMap,
-  Operator::SimpleSelect,
-  OpTMSplitUBahnTypeMap
-); 
-
 
 Operator refmo2genmo(
   "refmo2genmo",
@@ -21877,15 +22282,6 @@ Operator instant2day(
   OpTMInstant2DayValueMap,
   Operator::SimpleSelect,
   OpTMInstant2DayNewTypeMap
-);
-
-
-Operator outputregion(
-  "outputregion",
-  OpTMOutputRegionSpec,
-  OpTMOutputRegionValueMap,
-  Operator::SimpleSelect,
-  OpTMOutputRegionTypeMap
 );
 
 Operator maxrect(
@@ -22035,6 +22431,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getpavenode2);
     AddOperator(&getpaveedge2);
     AddOperator(&triangulation);
+    AddOperator(&triangulation2);
     AddOperator(&convex);
     AddOperator(&geospath);
     AddOperator(&createdualgraph);///////create a dual graph 
@@ -22058,6 +22455,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&zcurve);//create a curve for the points sorted by z-order
     AddOperator(&regvertex);
     AddOperator(&triangulation_new);
+    AddOperator(&triangulation_new2);
     AddOperator(&get_dg_edge);//create dual graph edge relation 
     AddOperator(&getadjnode_dg);//get adjacent nodes for a dual graph node 
     AddOperator(&smcdgte);//simple method to create dual graph, traverse RTree
@@ -22126,13 +22524,10 @@ class TransportationModeAlgebra : public Algebra
     ///////////////////////////////////////////////////////////////////
     //////////    process UBahn Trains    /////////////////////////////
     ///////////////////////////////////////////////////////////////////
-    AddOperator(&createUBTrains); //create UBahn Trains 
-    AddOperator(&create_train_stop);//create UBahn Train Stops 
     AddOperator(&create_time_table2);//create time table for train stop 
     AddOperator(&create_time_table2_new);//compact storage of train time tables 
     ///////////////////////////////////////////////////////////////////
     ///////////convert berlin trains to genmo///////////////
-    AddOperator(&splitubahn); 
     AddOperator(&refmo2genmo); refmo2genmo.SetUsesArgsInTypeMapping();
     AddOperator(&themetronetwork);//create metro network infrastructure 
     AddOperator(&ms_neighbors1);//create one kind of metro graph edges 
@@ -22185,7 +22580,6 @@ class TransportationModeAlgebra : public Algebra
     ////////////////////////////////////////////////////////////////////
     /////////////////  others  /////////////////////////////////////////
     AddOperator(&instant2day); 
-    AddOperator(&outputregion);//output the vertices in correct order 
     ////////////////////////////////////////////////////////////////////
     //////////////////2D areas for buildings///////////////////////////
     ///////////////////////////////////////////////////////////////////
@@ -22229,12 +22623,21 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_genmo1);//walk
    AddOperator(&generate_genmo2);//car taxi + walk
    AddOperator(&generate_car);//car, for creating moving gpoints to get traffic
+   AddOperator(&generate_car_ext);//optimize, use some prestored paths 
    AddOperator(&generate_genmo3);//bus + walk
    AddOperator(&generate_genmo4);//indoor + walk
    AddOperator(&generate_genmo5);//indoor + walk + car(taxi)
    AddOperator(&generate_genmo6);//indoor + walk + bus
    AddOperator(&generate_genmo7);//metro + walk
    AddOperator(&generate_genmo8);//indoor + metro + walk
+   /////////////////////////////////////////////////////////////////////////
+   //////////////// improve shortest path computing in road network////////
+   ///////////////////////////////////////////////////////////////////////
+   AddOperator(&comm_path);//find common road shortest path
+   AddOperator(&merge_path);//merge common paths 
+   AddOperator(&get_rg_nodes);//get road graph nodes 
+   AddOperator(&get_rg_edges1);//get road graph edges, same location 
+   AddOperator(&get_rg_edges2);//get road graph edges, glines
    
    ///////////////////////////////////////////////////////////////////////
    ///////////////overall navigation system///////////////////////////////
