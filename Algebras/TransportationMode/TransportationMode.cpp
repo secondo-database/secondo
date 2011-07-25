@@ -52,6 +52,7 @@ queries moving objects with transportation modes.
 #include "BusNetwork.h"
 #include "Indoor.h"
 #include "QueryTM.h"
+#include "RoadNetwork.h"
 #include <sys/timeb.h>
 
 extern NestedList* nl;
@@ -3362,6 +3363,27 @@ const string SpatialSpecGetRGEdges2TMList =
 "<text>get road graph edges </text--->"
 "<text>query get_rg_edges2(rn, rel) count </text---> ) )";
 
+const string OpTMCreateRoadGraphSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel1 x rel2 x rel3 -> roadgraph</text--->"
+    "<text>creatergraph(int, rel, rel, rel)</text--->"
+    "<text>create a road network graph by the input edges and nodes"
+    "relation</text--->"
+    "<text>query creatergraph(1, node-rel, edge1, edge2); </text--->"
+    ") )";
+
+const string OpTMShortestPathTMSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint x gpoint x roadgraph x network ->"
+    " (stream(((x1 t1) ... (xn tn)))</text--->"
+    "<text>shortestpath_tm(gpoint, gpoint, roadgraph, network)</text--->"
+    "<text>return the shortest path in road network for two gpoints</text--->"
+    "<text>query shortestpath_tm(gp1, gp2, rg1, rn); </text--->"
+    ") )";
+    
+    
 const string SpatialSpecNavigation1List =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x rel x rel x instant x rel x rel x rtree"
@@ -5155,6 +5177,7 @@ int GetRGNodesValueMap(Word* args, Word& result, int message,
                                           rd->unique_id_list[rd->count]));
           tuple->PutAttribute(1, new GPoint(rd->gp_list[rd->count]));
           tuple->PutAttribute(2, new Point(rd->jun_loc_list[rd->count]));
+          tuple->PutAttribute(3, new CcInt(true, rd->rid_list[rd->count]));
 
           result.setAddr(tuple);
           rd->count++;
@@ -5278,6 +5301,121 @@ int GetRGEdges2ValueMap(Word* args, Word& result, int message,
   }
   return 0;
   
+}
+
+
+/*
+check whether the road graph id has been used already 
+
+*/
+bool CheckRoadGraphId(unsigned int rg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "roadgraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      RoadGraph* rg = (RoadGraph*)xValue.addr;
+
+      if(rg->GetRG_ID() == rg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("roadgraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("roadgraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+
+/*
+value map for operator creatergraph
+
+*/
+
+int OpTMCreateRoadGraphValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RoadGraph* rg = (RoadGraph*)qp->ResultStorage(in_pSupplier).addr;
+  int rg_id = ((CcInt*)args[0].addr)->GetIntval();
+  
+  if(CheckRoadGraphId(rg_id)){
+    Relation* node_rel = (Relation*)args[1].addr;
+    Relation* edge_rel1 = (Relation*)args[2].addr;
+    Relation* edge_rel2 = (Relation*)args[3].addr; 
+
+    rg->Load(rg_id, node_rel, edge_rel1, edge_rel2);
+    result = SetWord(rg);
+  }else{
+    cout<<"invalid road graph id "<<rg_id<<endl; 
+    while(CheckRoadGraphId(rg_id) == false || rg_id <= 0){
+      rg_id++;
+    }
+    cout<<"new road graph id "<<rg_id<<endl; 
+    Relation* node_rel = (Relation*)args[1].addr;
+    Relation* edge_rel1 = (Relation*)args[2].addr;
+    Relation* edge_rel2 = (Relation*)args[3].addr; 
+
+    rg->Load(rg_id, node_rel, edge_rel1, edge_rel2);
+    result = SetWord(rg);
+  }
+  return 0;
+}
+
+
+/*
+value map for operator shortest path tm
+
+*/
+
+int OpTMShortestPathTMValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  GPoint* gp1 = (GPoint*)args[0].addr;
+  GPoint* gp2 = (GPoint*)args[1].addr; 
+  RoadGraph* rg = (RoadGraph*)args[2].addr;
+  Network* rn = (Network*)args[3].addr;
+  
+  GLine* pGLine = (GLine*)qp->ResultStorage(in_pSupplier).addr;
+  result = SetWord(pGLine);
+
+  RoadNav* nav = new RoadNav();
+
+  nav->ShortestPath(gp1, gp2, rg, rn, pGLine);
+
+  delete nav;
+
+  return 0;
+
 }
 
 
@@ -5775,29 +5913,6 @@ ListExpr GenerateGMO2ListTypeMap(ListExpr args)
                 )
           );
 
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->SixElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("loc1"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("gloc"),
-//                                     nl->SymbolAtom("gpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("loc2"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                     nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                     nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
-
     return result;
 }
 
@@ -5842,22 +5957,6 @@ ListExpr GenerateCarListTypeMap(ListExpr args)
 
   if(!(CompareSchemas(arg4, xType1)))
     return nl->SymbolAtom ( "typeerror" );
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->TwoElemList(
-//                       nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                     nl->SymbolAtom("mpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                     nl->SymbolAtom("mgpoint"))
-//                   )
-//                 )
-//           );
-
 
     ListExpr result =
           nl->TwoElemList(
@@ -5928,21 +6027,6 @@ ListExpr GenerateCarExtListTypeMap(ListExpr args)
 
   if(!(CompareSchemas(arg5, xType2)))
     return nl->SymbolAtom ( "typeerror" );
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                     nl->TwoElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("mpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mgpoint"))
-//                   )
-//                 )
-//           );
 
     ListExpr result =
           nl->TwoElemList(
@@ -6015,45 +6099,6 @@ ListExpr GenerateGMO3ListTypeMap(ListExpr args)
   if(!listutils::isRTreeDescription(arg7))
     return listutils::typeError("para7 should be a rtree");
 
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->SixElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("loc1"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("gloc"),
-//                                     nl->SymbolAtom("gpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("loc2"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                     nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                     nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->ThreeElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
     ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
@@ -6118,54 +6163,6 @@ ListExpr GenerateGMO4ListTypeMap(ListExpr args)
 
   if(!(CompareSchemas(arg5, xType)))
     return nl->SymbolAtom ( "typeerror" );
-  
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->SixElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("loc1"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("gloc"),
-//                                     nl->SymbolAtom("gpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("loc2"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                     nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                     nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
-
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->SixElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path1"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                      nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
-//                                      nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("IndoorTrip1"),
-//                                      nl->SymbolAtom("mpoint3d"))
-//                   )
-//                 )
-//           );
 
     ListExpr result =
           nl->TwoElemList(
@@ -6254,40 +6251,7 @@ ListExpr GenerateGMO5ListTypeMap(ListExpr args)
 
   if(!(CompareSchemas(arg7, xType2)))
     return nl->SymbolAtom ( "typeerror" );
-  
 
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->ThreeElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path1"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                      nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
-//                                      nl->SymbolAtom("line"))
-//                   )
-//                 )
-//           );
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->TwoElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
 
     ListExpr result =
           nl->TwoElemList(
@@ -6481,46 +6445,6 @@ ListExpr GenerateGMO7ListTypeMap(ListExpr args)
   if(!listutils::isRTreeDescription(arg7))
     return listutils::typeError("para7 should be a rtree");
 
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->SixElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("loc1"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("gloc"),
-//                                     nl->SymbolAtom("gpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("loc2"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                     nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                     nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->ThreeElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
-
 
     ListExpr result =
           nl->TwoElemList(
@@ -6595,21 +6519,6 @@ ListExpr GenerateGMO8ListTypeMap(ListExpr args)
   if(!listutils::isRTreeDescription(arg7))
     return listutils::typeError("para7 should be a rtree");
 
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->TwoElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Building1"),
-//                                       nl->SymbolAtom("string")),
-//                         nl->TwoElemList(nl->SymbolAtom("Building2"),
-//                                       nl->SymbolAtom("string"))
-//                   )
-//                 )
-//           );
 
     ListExpr result =
           nl->TwoElemList(
@@ -6816,13 +6725,15 @@ ListExpr GetRGNodesTypeMap(ListExpr args)
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
+                      nl->FourElemList(
                         nl->TwoElemList(nl->SymbolAtom("jun_id"),
                                       nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("jun_gp"),
                                       nl->SymbolAtom("gpoint")),
                         nl->TwoElemList(nl->SymbolAtom("jun_p"),
-                                      nl->SymbolAtom("point"))
+                                      nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                                      nl->SymbolAtom("int"))
                   )
                 )
           );
@@ -6925,6 +6836,93 @@ ListExpr GetRGEdges2TypeMap(ListExpr args)
 
 }
 
+
+/*
+type map for operator creatergraph 
+
+*/
+ListExpr OpTMCreateRoadGraphTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc1 = nl->Third(args);
+  ListExpr xEdgeDesc2 = nl->Fourth(args); 
+
+
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType1);
+  if(!CompareSchemas(xNodeDesc, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(xEdgeDesc1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(RoadGraph::RGEdgeTypeInfo1, xType2);
+  if(!CompareSchemas(xEdgeDesc1, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(xEdgeDesc2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(RoadGraph::RGEdgeTypeInfo2, xType3);
+  if(!CompareSchemas(xEdgeDesc2, xType3))return nl->SymbolAtom ( "typeerror" );
+
+
+  return nl->SymbolAtom ( "roadgraph" );
+}
+
+
+/*
+type map for operator shortest path tm
+
+*/
+ListExpr OpTMShortestPathTMTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+  ListExpr param4 = nl->Fourth(args);
+
+
+  if(!nl->IsEqual(param1, "gpoint")) return nl->SymbolAtom ( "typeerror" );
+  if(!nl->IsEqual(param2, "gpoint")) return nl->SymbolAtom ( "typeerror" );
+  if(!nl->IsEqual(param3, "roadgraph")) return nl->SymbolAtom ( "typeerror" );
+  if(!nl->IsEqual(param4, "network")) return nl->SymbolAtom ( "typeerror" );
+  
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->TwoElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Path1"),
+//                                     nl->SymbolAtom("gline")),
+//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
+//                                     nl->SymbolAtom("sline"))
+//                   )
+//                 )
+//           );
+
+
+   return nl->SymbolAtom ( "gline" );;
+}
+
+
 /*
 TypeMap function for operator navigation1
 
@@ -7011,23 +7009,6 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
                   )
                 )
           );
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->ThreeElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
 
     return result;
 }
@@ -7178,20 +7159,6 @@ ListExpr GenRangeVisibleTypeMap(ListExpr args)
   ListExpr arg2 = nl->Second(args);
   
   if(nl->IsEqual(arg1, "genrange") && nl->IsEqual(arg2, "space")){
-//       ListExpr res = 
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->TwoElemList(
-//                       nl->TwoElemList(nl->SymbolAtom("Path1"),
-//                                     nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
-//                                     nl->SymbolAtom("line3d"))
-//                   )
-//                 )
-//           );
 
       ListExpr res = 
           nl->TwoElemList(
@@ -7764,18 +7731,29 @@ Operator get_rg_edges2("get_rg_edges2",
 );
 
 
+Operator creatergraph(
+  "creatergraph", 
+  OpTMCreateRoadGraphSpec,
+  OpTMCreateRoadGraphValueMap,
+  Operator::SimpleSelect,
+  OpTMCreateRoadGraphTypeMap
+);
+
+Operator shortestpath_tm(
+  "shortestpath_tm", 
+  OpTMShortestPathTMSpec,
+  OpTMShortestPathTMValueMap,
+  Operator::SimpleSelect,
+  OpTMShortestPathTMTypeMap
+);
+
+
 Operator navigation1("navigation1",
     SpatialSpecNavigation1List,
     Navigation1ValueMap,
     Operator::SimpleSelect,
     Navigation1ListTypeMap
 );
-
-
-
-/////////////////////////////////////////////////////////////////////////////
-///////////////////   general data type   ///////////////////////////////////
-////////////////////////////////////////////////////////////////////////////
 
 ////////////string for Operator Spec //////////////////////////////////
 const string OpTMCheckSlineSpec  =
@@ -9140,19 +9118,6 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
 
-/*                      nl->SixElemList(
-                        nl->TwoElemList(nl->SymbolAtom("rid1"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("rid2"),
-                                      nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("crosspave1"),
-                                      nl->SymbolAtom("line")),
-                        nl->TwoElemList(nl->SymbolAtom("crosspave2"),
-                                      nl->SymbolAtom("line")),
-                        nl->TwoElemList(nl->SymbolAtom("crossreg1"),
-                                      nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("crossreg2"),
-                                      nl->SymbolAtom("region"))*/
                       nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("rid"),
                                     nl->SymbolAtom("int")),
@@ -21482,6 +21447,19 @@ TypeConstructor metrograph("metrograph", MetroGraph::MetroGraphProp,
 );
 
 
+
+TypeConstructor roadgraph("roadgraph", RoadGraph::RoadGraphProp,
+      RoadGraph::OutRoadGraph, RoadGraph::InRoadGraph,
+      0, 0,
+      RoadGraph::CreateRoadGraph, RoadGraph::DeleteRoadGraph,
+      RoadGraph::OpenRoadGraph, RoadGraph::SaveRoadGraph,
+      RoadGraph::CloseRoadGraph, RoadGraph::CloneRoadGraph,
+      RoadGraph::CastRoadGraph, RoadGraph::SizeOfRoadGraph,
+      RoadGraph::CheckRoadGraph
+);
+
+
+
 Operator createdualgraph(
     "createdualgraph",
     OpTMCreateDGSpec,
@@ -22364,6 +22342,7 @@ class TransportationModeAlgebra : public Algebra
     indoorgraph.AssociateKind("INDOORGRAPH");
     AddTypeConstructor(&busgraph); 
     AddTypeConstructor(&metrograph);
+    AddTypeConstructor(&roadgraph);//road graph 
     /*   Indoor   Data Type   */
     AddTypeConstructor( &point3d);
     AddTypeConstructor( &line3d);
@@ -22638,6 +22617,8 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&get_rg_nodes);//get road graph nodes 
    AddOperator(&get_rg_edges1);//get road graph edges, same location 
    AddOperator(&get_rg_edges2);//get road graph edges, glines
+   AddOperator(&creatergraph);//create road network graph
+   AddOperator(&shortestpath_tm);//shortest path on road graph
    
    ///////////////////////////////////////////////////////////////////////
    ///////////////overall navigation system///////////////////////////////

@@ -57,7 +57,7 @@ March, 2010 Jianqiu xu
 #include "FTextAlgebra.h"
 #include <fstream>
 #include "GeneralType.h"
-#include <pthread.h>
+
 
 double TM_DiffTimeb(struct timeb* t1, struct timeb* t2);
 

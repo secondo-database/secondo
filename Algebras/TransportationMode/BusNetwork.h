@@ -198,12 +198,13 @@ struct GP_Point{
   double pos2;
   Point loc1;
   Point loc2;
+  int oid;
   GP_Point(){}
   GP_Point(int r, double p1,double p2, Point q1, Point q2):
-  rid(r),pos1(p1),pos2(p2),loc1(q1),loc2(q2){}
+  rid(r),pos1(p1),pos2(p2),loc1(q1),loc2(q2), oid(0){}
   GP_Point(const GP_Point& gp_p):
   rid(gp_p.rid),pos1(gp_p.pos1),pos2(gp_p.pos2),
-  loc1(gp_p.loc1),loc2(gp_p.loc2){}
+  loc1(gp_p.loc1),loc2(gp_p.loc2), oid(gp_p.oid){}
   GP_Point& operator=(const GP_Point& gp_p)
   {
     rid = gp_p.rid;
@@ -211,12 +212,13 @@ struct GP_Point{
     pos2 = gp_p.pos2;
     loc1 = gp_p.loc1;
     loc2 = gp_p.loc2; 
+    oid = gp_p.oid;
     return *this;
   }
   void Print()
   {
     cout<<"rid "<<rid<<" pos1 "<<pos1<<" pos2 "<<pos2
-         <<"loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
+         <<" loc1 "<<loc1<<" loc2 "<<loc2<<" oid "<<oid<<endl;
   }
 
 };
@@ -434,6 +436,14 @@ struct RoadDenstiy{
   vector<Bus_Stop> bs_list;
   vector<int> bs_uoid_list; 
   
+  vector<Point> jun_loc_list;
+  vector<GPoint> gp_list;
+  vector<int> rid_list;
+  
+  vector<int> jun_id_list1;
+  vector<int> jun_id_list2;
+  vector<GLine> gl_path_list;
+  vector<SimpleLine> sline_path_list;
   
   static string night_sched_typeinfo;
   static string day_sched_typeinfo;
@@ -444,6 +454,9 @@ struct RoadDenstiy{
   static string mo_bus_typeinfo;
   static string bus_route_typeinfo;
   static string bus_route_old_typeinfo;
+  
+  
+  static string rg_nodes_typeinfo;
   
   //for bus route speed relation  
   enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED, BR_SPEED_SEG}; 
@@ -472,6 +485,12 @@ struct RoadDenstiy{
   ///////////////with gline information///////////////////////////////
   enum BR_ROUTE_OLD{BR_ID_OLD = 0, BR_GEODATA1, BR_GEODATA2, BR_START_LOC, 
                 BR_END_LOC, BR_ROUTE_TYPE_OLD}; 
+
+
+  /////////////////////////////////////////////////////////////////////
+  ///////////////road graph information//////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+  enum RG_NODES{RG_N_JUN_ID,RG_N_GP,RG_N_P, RG_RID};
 
 
   RoadDenstiy(){count=0;resulttype = NULL;}
@@ -538,6 +557,16 @@ struct RoadDenstiy{
                                    int br_id, int stop_id, bool dir,
                                    int count_id); 
   void GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t); 
+  ////////////////////////////////////////////////////////////////////////
+  ////////////////construct road graph///////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
+  void GetRGNodes();
+  void GetRGEdges1(Relation* rel, R_Tree<2,TupleId>* rtree);
+  void DFTraverse(Relation*, R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Point& loc, vector<int>& _oid_list);
+
+  void GetRGEdges2(Relation* rel);
+
 };
 
 /*
@@ -1153,6 +1182,9 @@ struct BNNav{
   void ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
 
+  
+  void ShortestPath_TimeNew2(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
+  
   void InitializeQueue1(Bus_Stop* bs1, Bus_Stop* bs2, 
                             priority_queue<BNPath_elem>& path_queue, 
                             vector<BNPath_elem>& expand_queue, 
@@ -1347,11 +1379,6 @@ struct UBTrain{
   unsigned int count;
   TupleType* resulttype;
 
-  void CreateUBTrains(int,int,int,Periods*);
-  void CreateUBTrainTrip(vector<UBTrainTrip> trip_list, Periods* peri); 
-  void CreateTrainTrip(vector<UBTrainTrip>, Periods*);
-  void CopyTrainTrip(int start_pos, int end_pos,int line_id, bool d);
-  void CreateUBTrainStop(int,int,int);
   void CreateTimeTable();
   void CreateLocTable(vector<BusStop_Ext> station_list_new,int count_id);
   ////////////////  Compact Storage of Time Tables //////////////
@@ -1364,8 +1391,6 @@ struct UBTrain{
  ////////////////////////////////////////////////////////////////////////////
  ////////////////// covert berlin trains to generic moving objects//////////
  //////////////////////////////////////////////////////////////////////////
- void SplitUBahn(int attr1, int attr2); 
- void AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines); 
  void TrainsToGenMO(); 
  void MPToGenMO(MPoint* mp, GenMO* mo, int l_id); 
 
@@ -1415,6 +1440,7 @@ struct MetroStruct{
   vector<Point> loc_list2; 
   vector<Region> neighbor_list;
   
+
  /////////////////////////////////////////////////////////////////////////////
  //////////////////create railway routes and stops/////////////////////////
  //////////////////not use the data from berlintest or berlinmod////////////
@@ -1423,6 +1449,7 @@ struct MetroStruct{
  bool BuildMetroRoute(vector<int> path_list, DualGraph* dg, int count);
 
  void CreateMStop(Relation*);
+ 
  ////////////////////////////////////////////////////////////
  ////////////create moving metros////////////////////////////
  ////////////////////////////////////////////////////////////
@@ -1704,6 +1731,8 @@ struct MNNav{
                             MetroNetwork* mn, MetroGraph* mg,
                             Point& start_p, Point& end_p);
 };
+
+
 
 #endif
 

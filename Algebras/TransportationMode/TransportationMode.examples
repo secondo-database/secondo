@@ -1068,6 +1068,18 @@ Signature: network x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query get_rg_edges2(rn, rel) head[10] count;
 Result   : 10
 
+Operator : creatergraph
+Number   : 2
+Signature: int x rel1 x rel2 x rel3 -> roadgraph
+Example  : query creatergraph(1, node_rel, edge_rel1, edge_rel2);
+Result   : file_platform
+
+Operator : shortestpath_tm
+Number   : 2
+Signature: gpoint x gpoint x roadgraph x network -> (stream(((x1 t1) ... (xn tn))))
+Example  : query shortestpath_tm(gp1, gp2, rg1, rn) count;
+Result   : 1
+
 
 Operator : modifyline
 Number   : 1

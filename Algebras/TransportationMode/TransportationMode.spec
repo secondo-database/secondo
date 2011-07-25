@@ -105,6 +105,7 @@ operator create_daytime_bus_mo alias CREATE_DAYTIME_BUS_MO pattern op(_,_,_)
 operator create_time_table1 alias CREATE_TIME_TABLE1 pattern op(_,_,_)
 operator create_time_table1_new alias CREATE_TIME_TABLE1_NEW pattern op(_,_,_,_,_)
 
+
 operator create_time_table2 alias CREATE_TIME_TABLE2 pattern op(_,_,_)
 operator create_time_table2_new alias CREATE_TIME_TABLE2_NEW pattern op(_,_,_)
 operator refmo2genmo alias REFMO2GENMO pattern op(_,_,_,_)
@@ -184,7 +185,8 @@ operator merge_path alias MERGE_PATH pattern op(_,_)
 operator get_rg_nodes alias GET_RG_NODES pattern op(_)
 operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)
 operator get_rg_edges2 alias GET_RG_EDGES2 pattern op(_,_)
-
+operator creatergraph alias CREATERGRAPH pattern op(_,_,_,_)
+operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 

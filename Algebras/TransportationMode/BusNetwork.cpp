@@ -702,6 +702,7 @@ bool BusRoute::ConvertGLine2(GLine* gl, GLine* newgl)
               ri_list[ri_list.size() - 1].SetEndPos(cur_start);
             }else {
               delete ri;
+
               return false;
             }
         }else
@@ -733,6 +734,7 @@ bool BusRoute::ConvertGLine2(GLine* gl, GLine* newgl)
         GP_Point* gp_p = new GP_Point(rid,start,end,*p1,*p2);
         gp_p_list.push_back(*gp_p);
 
+//        cout<<*gp1<<" "<<*gp2<<endl;
 
         delete gp_p;
         delete p2;
@@ -749,8 +751,8 @@ bool BusRoute::ConvertGLine2(GLine* gl, GLine* newgl)
     GP_Point gp_p1 = gp_p_list[i];
     GP_Point gp_p2 = gp_p_list[i + 1];
 
-//    cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
-//        <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
+//     cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
+//         <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
 
 
     if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
@@ -767,6 +769,7 @@ bool BusRoute::ConvertGLine2(GLine* gl, GLine* newgl)
       else
         temp_start_from.push_back(true); 
     }else {
+
         return false;
       }
 
@@ -840,13 +843,13 @@ void BusRoute::RefineBusRoute(int attr1, int attr2, int attr3, int attr4,
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* tuple_bus_route1 = rel1->GetTuple(i, false);
     int br_id1 = ((CcInt*)tuple_bus_route1->GetAttribute(attr1))->GetIntval();
-    
+
 //    if(br_id1 != 52){
 //        tuple_bus_route1->DeleteIfAllowed();
 //        continue; 
 //    }
-    
-    
+
+
     if(routes_def[br_id1 - 1] == false){
         tuple_bus_route1->DeleteIfAllowed();
         continue; 
@@ -3459,6 +3462,9 @@ string RoadDenstiy::bus_route_old_typeinfo =
 "(rel (tuple ((br_id int) (bus_route1 gline) (bus_route2 line)\
 (start_loc point) (end_loc point) (route_type int))))"; 
 
+string RoadDenstiy::rg_nodes_typeinfo = 
+"(rel (tuple ((jun_id int) (jun_gp gpoint) (jun_p point) (rid int))))";
+
 
 /*
 get night buses. use the network flow value.
@@ -5401,6 +5407,345 @@ void RoadDenstiy::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
       }
  }
   assert(false);
+}
+
+bool CompareGP_P(const GP_Point& gp_p1, const GP_Point& gp_p2)
+{
+   if(gp_p1.rid < gp_p2.rid) return true;
+   else{
+      if(gp_p1.rid > gp_p2.rid) return false;
+      else{
+        if(gp_p1.pos1 <  gp_p2.pos1) return true; 
+        else return false;
+      }
+   } 
+
+}
+
+/*
+create nodes relation for road graph jun id,  gpoint, point 
+
+*/
+
+void RoadDenstiy::GetRGNodes()
+{
+
+    Relation* juns = n->GetJunctions();
+    
+    vector<GP_Point> loc_list;
+    
+    for(int i = 1;i <= juns->GetNoTuples();i++){
+
+      Tuple* jun_tuple = juns->GetTuple(i, false);
+      CcInt* rid1 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_ID);
+      CcInt* rid2 = (CcInt*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_ID);
+      int id1 = rid1->GetIntval();
+      int id2 = rid2->GetIntval();
+      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
+
+      CcReal* meas1 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      CcReal* meas2 = (CcReal*)jun_tuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+
+      double pos1 = meas1->GetRealval();
+      double pos2 = meas2->GetRealval();
+
+
+//       unique_id_list.push_back(oid);
+//       oid++;
+//       gp_list.push_back(*gp1);
+//       jun_loc_list.push_back(*junp);
+// 
+// 
+//       unique_id_list.push_back(oid);
+//       oid++;
+//       gp_list.push_back(*gp2);
+//       jun_loc_list.push_back(*junp);
+      GP_Point gp_p1(id1, pos1, -1.0, *junp, *junp);
+      GP_Point gp_p2(id2, pos2, -1.0, *junp, *junp);
+      
+      loc_list.push_back(gp_p1);
+      loc_list.push_back(gp_p2);
+
+      jun_tuple->DeleteIfAllowed();
+    }
+
+    juns->Delete();
+
+
+    int oid = 1;
+
+    sort(loc_list.begin(), loc_list.end(), CompareGP_P);
+    const double delta_dist = 0.001;
+    for(unsigned int i = 0;i < loc_list.size();i++){
+//      loc_list[i].Print();
+        if(oid == 1){
+          GPoint* gp = new GPoint(true, n->GetId(), loc_list[i].rid,
+                                  loc_list[i].pos1, None);
+
+          unique_id_list.push_back(oid);
+          oid++;
+          gp_list.push_back(*gp);
+          delete gp;
+          jun_loc_list.push_back(loc_list[i].loc1);
+          rid_list.push_back(loc_list[i].rid);
+        }else{
+          GPoint last_gp = gp_list[gp_list.size() - 1];
+          Point last_jun = jun_loc_list[jun_loc_list.size() - 1];
+
+
+          GPoint* gp = new GPoint(true, n->GetId(), loc_list[i].rid,
+                                  loc_list[i].pos1, None);
+          if(gp->GetRouteId() == last_gp.GetRouteId() && 
+             fabs(gp->GetPosition() - last_gp.GetPosition()) < delta_dist &&
+             last_jun.Distance(loc_list[i].loc1) < delta_dist){
+            delete gp;
+            continue;
+          }
+
+          unique_id_list.push_back(oid);
+          oid++;
+          gp_list.push_back(*gp);
+          delete gp;
+          jun_loc_list.push_back(loc_list[i].loc1);
+          rid_list.push_back(loc_list[i].rid);
+
+        }
+
+    }
+
+}
+
+/*
+create one connection for road graph, two junction points having the same
+spatial location 
+
+*/
+void RoadDenstiy::GetRGEdges1(Relation* rel, R_Tree<2,TupleId>* rtree)
+{
+
+    for(int i = 1;i <= rel->GetNoTuples();i++){
+      Tuple* jun_tuple = rel->GetTuple(i, false);
+      int id = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+      Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
+
+      vector<int> neighbor_list;
+
+      DFTraverse(rel, rtree, rtree->RootRecordId(), *loc, neighbor_list);
+      for(unsigned int i = 0;i < neighbor_list.size();i++){
+        if(neighbor_list[i] == id)continue;
+        jun_id_list1.push_back(id);
+        jun_id_list2.push_back(neighbor_list[i]);
+      }
+      jun_tuple->DeleteIfAllowed();
+    }
+
+}
+
+/*
+traverse rtree to find the points that have the same spatial location as input
+
+*/
+void RoadDenstiy::DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, 
+                             SmiRecordId adr, 
+                          Point& loc, vector<int>& oid_list)
+{
+  const double delta_dist = 0.001;
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              Point* q = (Point*)dg_tuple->GetAttribute(RG_N_P);
+
+              if(q->Distance(loc) < delta_dist){
+                  int id = 
+                    ((CcInt*)dg_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+                  oid_list.push_back(id);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(loc.Inside(e.box)){
+                DFTraverse(rel, rtree, e.pointer, loc, oid_list);
+            }
+      }
+  }
+  delete node;
+
+}
+
+/*
+two junction points are connected by glines 
+converting gline to line takes a lot of time 
+because the junction point (gpoint ) is get from curve -- dual --TRUE
+use simpline method 2 seconds for berlin roads
+
+use gline2line method 27 seconds 
+
+*/
+void RoadDenstiy::GetRGEdges2(Relation* rel)
+{
+  vector<GP_Point> gp_p_list;
+  int NetId;
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+    Tuple* jun_tuple = rel->GetTuple(i, false);
+    int oid = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+    GPoint* gp = (GPoint*)jun_tuple->GetAttribute(RG_N_GP);
+    Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
+    NetId = gp->GetNetworkId();
+    GP_Point gp_p(gp->GetRouteId(), gp->GetPosition(), oid, *loc, *loc);
+    gp_p_list.push_back(gp_p);
+    jun_tuple->DeleteIfAllowed();
+  }
+  sort(gp_p_list.begin(), gp_p_list.end(), CompareGP_P);
+
+  
+  
+  
+  for(unsigned int i = 0;i < gp_p_list.size();i++){
+
+//      gp_p_list[i].Print();
+    vector<GP_Point> sub_list;
+    sub_list.push_back(gp_p_list[i]);
+    int rid = gp_p_list[i].rid;
+    unsigned int j = i + 1;
+    while(j < gp_p_list.size() && 
+          gp_p_list[j].rid == sub_list[sub_list.size() - 1].rid){
+      sub_list.push_back(gp_p_list[j]);
+      j++;
+    }
+
+//    cout<<"rid "<<rid<<" "<<sub_list.size()<<endl;
+    i = j - 1;
+    if(sub_list.size() > 1){
+//      cout<<"rid "<<rid<<endl;
+
+    Tuple* road_tuple = n->GetRoute(rid);
+    SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+
+     for(unsigned int k = 0;k < sub_list.size();k++){
+       if(k == 0){
+          jun_id_list1.push_back((int)sub_list[k].pos2);
+          jun_id_list2.push_back((int)sub_list[k + 1].pos2);
+          double pos1 = sub_list[k].pos1;
+          double pos2 = sub_list[k + 1].pos1;
+
+          GLine* gl = new GLine(0);
+          gl->SetNetworkId(NetId);
+          gl->AddRouteInterval(rid, pos1, pos2);
+          gl->SetDefined(true);
+          gl->SetSorted(false);
+          gl->TrimToSize();
+    
+          gl_path_list.push_back(*gl);
+
+          SimpleLine* sub_l = new SimpleLine(0);
+          if(pos1 < pos2)
+            sl->SubLine(pos1, pos2, true, *sub_l);
+          else
+            sl->SubLine(pos2, pos1, true, *sub_l);
+          
+          sline_path_list.push_back(*sub_l);
+          delete sub_l;
+
+    
+          delete gl;
+
+       }else if(k == sub_list.size() - 1){
+         jun_id_list1.push_back((int)sub_list[k].pos2);
+         jun_id_list2.push_back((int)sub_list[k - 1].pos2);
+
+         double pos1 = sub_list[k].pos1;
+         double pos2 = sub_list[k - 1].pos1;
+
+         GLine* gl = new GLine(0);
+         gl->SetNetworkId(NetId);
+         gl->AddRouteInterval(rid, pos1, pos2);
+
+         gl->SetDefined(true);
+         gl->SetSorted(false);
+         gl->TrimToSize();
+
+         gl_path_list.push_back(*gl);
+
+          SimpleLine* sub_l = new SimpleLine(0);
+          if(pos2 < pos1)
+            sl->SubLine(pos2, pos1, true, *sub_l);
+          else
+            sl->SubLine(pos1, pos2, true, *sub_l);
+          
+          sline_path_list.push_back(*sub_l);
+          delete sub_l;
+
+         delete gl;
+
+       }else{
+        jun_id_list1.push_back((int)sub_list[k].pos2);
+        jun_id_list2.push_back((int)sub_list[k - 1].pos2);
+
+        double pos1_1 = sub_list[k].pos1;
+        double pos1_2 = sub_list[k - 1].pos1;
+
+        jun_id_list1.push_back((int)sub_list[k].pos2);
+        jun_id_list2.push_back((int)sub_list[k + 1].pos2);
+
+        double pos2_1 = sub_list[k].pos1;
+        double pos2_2 = sub_list[k + 1].pos1;
+
+
+        GLine* gl1 = new GLine(0);
+        gl1->SetNetworkId(NetId);
+        gl1->AddRouteInterval(rid, pos1_1, pos1_2);
+        gl1->SetDefined(true);
+        gl1->SetSorted(false);
+        gl1->TrimToSize();
+        gl_path_list.push_back(*gl1);
+
+
+        SimpleLine* sub_l1 = new SimpleLine(0);
+        if(pos1_2 < pos1_1)
+          sl->SubLine(pos1_2, pos1_1, true, *sub_l1);
+        else
+          sl->SubLine(pos1_1, pos1_2, true, *sub_l1);
+
+        sline_path_list.push_back(*sub_l1);
+        delete sub_l1;
+          
+
+        delete gl1;
+
+
+        GLine* gl2 = new GLine(0);
+        gl2->SetNetworkId(NetId);
+        gl2->AddRouteInterval(rid, pos2_1, pos2_2);
+        gl2->SetDefined(true);
+        gl2->SetSorted(false);
+        gl2->TrimToSize();
+
+        gl_path_list.push_back(*gl2);
+
+        SimpleLine* sub_l2 = new SimpleLine(0);
+        if(pos2_1 < pos2_2)
+          sl->SubLine(pos2_1, pos2_2, true, *sub_l2);
+        else
+          sl->SubLine(pos2_2, pos2_1, true, *sub_l2);
+
+        sline_path_list.push_back(*sub_l2);
+        delete sub_l2;
+
+        delete gl2;
+       }
+ 
+      }
+    
+      road_tuple->DeleteIfAllowed();
+    }
+
+  }
+
 }
 
 //////////////////////////////////////////////////////////////
@@ -10454,6 +10799,7 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           }
           st += sched; 
           st_int = st * 86400000; 
+
           if(st_int >= cur_t_int){
             wait_time += st + 30.0/(24.0*60.0*60.0) - cur_t;
             valid = true;
@@ -10469,8 +10815,535 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
            cout<<"should not arrive at here"<<endl; 
            assert(false); 
          }
+
        }
 
+       double weight = 
+       ((CcReal*)edge_tuple->GetAttribute(BusGraph::BG_TIMECOST))->GetRealval();
+        double w = top.real_w + wait_time + weight; 
+
+        Tuple* bs_node_tuple = bg->node_rel->GetTuple(neighbor_id3, false);
+        Point* p = (Point*)bs_node_tuple->GetAttribute(BusGraph::BG_NODE_GEO);
+        double hw = p->Distance(end_p)/(bn->GetMaxSpeed()*24.0*60.0*60.0);
+        bs_node_tuple->DeleteIfAllowed(); 
+
+//       double hw = 0.0;
+
+       BNPath_elem elem(pos_expand_path, cur_size,neighbor_id3, w + hw, w,
+                        *path, TM_BUS, true);
+       if(wait_time > 0.0){ //to the time waiting for bus 
+          elem.SetW(top.real_w + wait_time);
+       }
+
+       path_queue.push(elem);
+       expand_queue.push_back(elem); 
+
+
+       edge_tuple->DeleteIfAllowed();
+
+    }
+
+    visit_flag1[top.tri_index - 1] = true; 
+
+  }  
+//   cout<<elem_count<<" elements poped from queue"<<endl;
+
+  //////////////////////////////////////////////////////////////////////
+  ////////////////construct the result//////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  if(find){   ////////constrcut the result 
+      vector<int> id_list; 
+      while(dest.prev_index != -1){
+       id_list.push_back(dest.cur_index);
+       dest = expand_queue[dest.prev_index];
+     }
+
+    id_list.push_back(dest.cur_index);
+
+    Bus_Stop bs_last = *bs1; 
+    Instant t1 = *qt;
+//    int no_transfer = 0; 
+
+    for(int i = id_list.size() - 1;i >= 0;i--){
+      BNPath_elem elem = expand_queue[id_list[i]];
+      path_list.push_back(elem.path);
+
+      if(elem.tm == TM_WALK){
+          tm_list.push_back(str_tm[elem.tm]); 
+      }else if(elem.tm == TM_BUS){
+          tm_list.push_back(str_tm[elem.tm]); 
+      }else{
+//        assert(false);
+          tm_list.push_back("none"); 
+      }
+
+
+      ////////////////////////////////////////////////////////////////////
+      ////////////////we also return///////////////////////////////////////
+      ////////the start and end bus stops connected by the path ////////////
+      ////////////////////////////////////////////////////////////////////
+      char buf1[256], buf2[256];
+
+      sprintf(buf1, "br: %d ", bs_last.GetId());
+      sprintf(buf2, "stop: %d", bs_last.GetStopId());
+      strcat (buf1, buf2);   
+      if(bs_last.GetUp())strcat (buf1, " UP");
+        else strcat (buf1, " DOWN");
+
+      string str1(buf1);
+      bs1_list.push_back(str1);
+
+      if(i == (int)(id_list.size() - 1)){
+        string str2(str1);
+        bs2_list.push_back(str2);
+
+      }else{////////////////the end bus stop 
+
+        Tuple* bs_tuple = bg->node_rel->GetTuple(elem.tri_index, false); 
+        Bus_Stop* bs_cur = 
+              (Bus_Stop*)bs_tuple->GetAttribute(BusGraph::BG_NODE); 
+        char buf_1[256], buf_2[256];
+        sprintf(buf_1, "br: %d ", bs_cur->GetId());
+        sprintf(buf_2, "stop: %d", bs_cur->GetStopId());
+        strcat (buf_1, buf_2);   
+        if(bs_cur->GetUp()) strcat (buf_1, " UP");
+            else strcat (buf_1, " DOWN");
+
+        string str2(buf_1);
+        bs2_list.push_back(str2);
+        bs_last = *bs_cur; 
+        bs_tuple->DeleteIfAllowed();
+      }
+
+        ////////////////time duration////////////////////////////////
+
+        Instant t2(instanttype);
+        if(elem.b_w == false){
+          t2.ReadFrom(elem.real_w + qt->ToDouble());
+//        cout<<t1<<" "<<t2<<endl; 
+
+        //time cost in seconds 
+          if(elem.valid)
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+          else //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+          Interval<Instant> time_span;
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
+          Periods* peri = new Periods(0);
+          peri->StartBulkLoad();
+          if(elem.valid)
+            peri->MergeAdd(time_span);
+          peri->EndBulkLoad();
+          peri_list.push_back(*peri); 
+          t1 = t2; 
+          delete peri; 
+        }else{ //////////to dinstinguish time of waiting for the bus 
+          t2.ReadFrom(elem.w + qt->ToDouble());
+//        cout<<t1<<" "<<t2<<endl; 
+
+        //time cost in seconds 
+          if(elem.valid)
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+          else //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+          Interval<Instant> time_span;
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
+          Periods* peri1 = new Periods(0);
+          peri1->StartBulkLoad();
+          if(elem.valid)
+            peri1->MergeAdd(time_span);
+          peri1->EndBulkLoad();
+          peri_list.push_back(*peri1); 
+          t1 = t2; 
+          delete peri1; 
+
+          SimpleLine* sl = new SimpleLine(0);
+          sl->StartBulkLoad();
+          sl->EndBulkLoad();
+          path_list[path_list.size() - 1] = *sl;
+          delete sl; 
+
+          tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 
+          string str = bs2_list[bs2_list.size() - 1];
+          ////////the same as last bus stop //////////////////////
+          bs2_list[bs2_list.size() - 1] = bs1_list[bs1_list.size() - 1];
+
+
+          /////////////moving with bus////////////////////////////////
+          t2.ReadFrom(elem.real_w + qt->ToDouble());
+//        cout<<t1<<" "<<t2<<endl; 
+
+          //time cost in seconds 
+          if(elem.valid)
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+          else //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
+          Periods* peri2 = new Periods(0);
+          peri2->StartBulkLoad();
+          if(elem.valid)
+            peri2->MergeAdd(time_span);
+          peri2->EndBulkLoad();
+          peri_list.push_back(*peri2); 
+          t1 = t2; 
+          delete peri2; 
+          path_list.push_back(elem.path);
+          tm_list.push_back(str_tm[elem.tm]);
+          bs1_list.push_back(str1);
+          bs2_list.push_back(str); 
+
+        }
+
+    }
+//    cout<<" transfer "<<no_transfer<<" times "<<endl; 
+  }else{
+    cout<<"bs1 ("<<*bs1<<") bs2 ("<<*bs2<<") not reachable "<<endl;
+  }
+
+  bn->CloseBusGraph(bg);
+}
+
+
+/*
+shortest path from one bus stop to another in time 
+edge without any cost, id does not connect walk edge and no cost edge because
+its previous node has expanded these edges 
+for the edge connected by moving buses, for a route which is accessed for the
+  first time, it records the searching time of the whole periods. 
+  in this case, it does not have to start from the begin of the periods for a 
+  bus stop
+
+*/
+void BNNav::ShortestPath_TimeNew2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
+{
+  BusGraph* bg = bn->GetBusGraph(); 
+  if(bg == NULL){
+    cout<<"bus graph is invalid"<<endl; 
+    return;
+  }
+  
+  if(!bs1->IsDefined() || !bs2->IsDefined()){
+   cout<<" bus stops are not defined"<<endl;
+   return; 
+  }
+
+  Point start_p, end_p; 
+  bn->GetBusStopGeoData(bs1, &start_p);
+  bn->GetBusStopGeoData(bs2, &end_p);
+  const double delta_dist = 0.01; 
+
+  if(*bs1 == *bs2 || start_p.Distance(end_p) < delta_dist){
+   cout<<"two bus stops equal to each other"<<endl;
+   bn->CloseBusGraph(bg);
+   return; 
+  }
+//  cout<<*bs1<<" "<<*bs2<<" "<<*qt<<endl;
+  /////////////////////////////////////////////////////////////////////
+  ////////// initialize counter for searhcing periods/////////////////
+  ///////////////////////////////////////////////////////////////////
+  vector<int> counter_up;
+  vector<int> counter_down;
+  for(int i = 0;i < bn->GetBR_Rel()->GetNoTuples();i++){
+    counter_up.push_back(0);
+    counter_down.push_back(0);
+  }
+//  cout<<counter_up.size()<<endl;
+
+  /////////////////////////build the start time///////////////////////////
+  Instant new_st(instanttype);
+  Instant bg_min(instanttype);
+  bg_min.ReadFrom(bg->min_t); 
+
+  assert(bg_min.GetWeekday() == 6);//start from Sunday 
+  
+  if(qt->GetWeekday() == 6){
+    new_st.Set(bg_min.GetYear(),bg_min.GetMonth(),bg_min.GetGregDay(),
+           qt->GetHour(), qt->GetMinute(), qt->GetSecond(),
+           qt->GetMillisecond());
+//    cout<<"Sunday"<<endl; 
+    
+  }else{ //Monday-Saturday 
+    ////////////////////////////to Monday///////////////////////
+    new_st.Set(bg_min.GetYear(),bg_min.GetMonth(),bg_min.GetGregDay() + 1, 
+           qt->GetHour(), qt->GetMinute(), qt->GetSecond(),
+           qt->GetMillisecond());
+//    cout<<"workday --->Monday"<<endl; 
+  }
+//  cout<<"mapping start time"<<new_st<<endl; 
+  //////////////////////////////////////////////////////////////////////////
+
+  priority_queue<BNPath_elem> path_queue;
+  vector<BNPath_elem> expand_queue;
+
+  vector<bool> visit_flag1;////////////bus stop visit 
+  for(int i = 1; i <= bg->node_rel->GetNoTuples();i++)
+    visit_flag1.push_back(false);
+  
+  //////////////////////////////////////////////////////////////////
+  /////////////from bus network, get the maximum speed of the bus///
+  /////////////for setting heuristic value/////////////////////////
+  ///////////////////////////////////////////////////////////////////
+//  cout<<"max bus speed "<<bn->GetMaxSpeed()*60.0*60.0/1000.0<<"km/h"<<endl;
+
+  ///////////  initialize the queue //////////////////////////////
+  InitializeQueue2(bs1, bs2, path_queue, expand_queue, bn, bg, start_p, end_p);
+
+  int bs2_tid = bg->GetBusStop_Tid(bs2);
+//  cout<<"end bus stop tid "<<bs2_tid<<endl; 
+
+  ////////////////////////////////////////////////////////////////////
+  ////////////////////search on the bus graph//////////////////////////
+  /////////////////////////////////////////////////////////////////////
+  bool find = false;
+  BNPath_elem dest;//////////destination
+  double speed_human = 1.0; 
+  
+//  int elem_count = 0;
+
+  while(path_queue.empty() == false){
+    BNPath_elem top = path_queue.top();
+    path_queue.pop();
+
+//     elem_count++;
+
+    if(visit_flag1[top.tri_index - 1])continue; 
+
+//    top.Print();
+
+    if(top.tri_index == bs2_tid){
+//       cout<<"find the shortest path"<<endl;
+       find = true;
+       dest = top;
+       break;
+    }
+    int pos_expand_path;
+    int cur_size; 
+
+    pos_expand_path = top.cur_index;
+    ///////////////////////////////////////////////////////////////////////
+    //////////////////////connection 1 by pavements ///////////////////////
+    //////////////////////////////////////////////////////////////////////
+    if(top.tm == TM_BUS){
+      vector<int> adj_list1;
+      bg->FindAdj1(top.tri_index, adj_list1);
+
+      bool search_flag = true;
+      BNPath_elem temp_elem = top;
+      while(dest.prev_index != -1){
+        if(temp_elem.tm == TM_BUS){
+          break;
+        }
+        if(temp_elem.tm == TM_WALK){
+          search_flag = false;
+          break;
+        }
+        temp_elem = expand_queue[temp_elem.prev_index];
+      }
+
+      for(unsigned int i = 0;i < adj_list1.size() && search_flag;i++){
+        Tuple* edge_tuple = bg->edge_rel1->GetTuple(adj_list1[i], false);
+        int neighbor_id1 = 
+        ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
+        SimpleLine* path = 
+                  (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH2);
+
+        if(visit_flag1[neighbor_id1 - 1]){
+          edge_tuple->DeleteIfAllowed();
+          continue; 
+        }
+
+        cur_size = expand_queue.size();
+
+        double w = top.real_w + path->Length()/(speed_human*24.0*60.0*60.0); 
+
+        Tuple* bs_node_tuple = bg->node_rel->GetTuple(neighbor_id1, false); 
+        Point* p = (Point*)bs_node_tuple->GetAttribute(BusGraph::BG_NODE_GEO);
+        double hw = p->Distance(end_p)/(bn->GetMaxSpeed()*24.0*60.0*60.0);
+        bs_node_tuple->DeleteIfAllowed(); 
+
+//      double hw = 0.0;
+        BNPath_elem elem(pos_expand_path, cur_size,neighbor_id1, w + hw, w, 
+                       *path, TM_WALK, true);
+        path_queue.push(elem);
+        expand_queue.push_back(elem);
+        edge_tuple->DeleteIfAllowed();
+      }
+    }
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////////connection 2 same spatial location/////////////
+    ////////////////////////////////////////////////////////////////////
+    if(top.tm == TM_WALK || top.tm == TM_BUS){
+
+      vector<int> adj_list2;
+      bg->FindAdj2(top.tri_index, adj_list2);
+
+      for(unsigned int i = 0;i < adj_list2.size();i++){
+        Tuple* edge_tuple = bg->edge_rel2->GetTuple(adj_list2[i], false);
+        int neighbor_id2 = 
+       ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E2_BS2_TID))->GetIntval();
+        SimpleLine* path = new SimpleLine(0);
+        path->StartBulkLoad();
+        path->EndBulkLoad();
+
+        if(visit_flag1[neighbor_id2 - 1]){
+          edge_tuple->DeleteIfAllowed();
+          delete path;
+          continue; 
+        }
+
+        cur_size = expand_queue.size();
+        double w = top.real_w; 
+        Tuple* bs_node_tuple = bg->node_rel->GetTuple(neighbor_id2, false); 
+        Point* p = (Point*)bs_node_tuple->GetAttribute(BusGraph::BG_NODE_GEO);
+        double hw = p->Distance(end_p)/(bn->GetMaxSpeed()*24.0*60.0*60.0);
+        bs_node_tuple->DeleteIfAllowed();
+
+  //      double hw = 0.0; 
+        BNPath_elem elem(pos_expand_path, cur_size, neighbor_id2, w + hw, w,
+                       *path, -1, false); //not useful for time cost 
+        path_queue.push(elem);
+        expand_queue.push_back(elem); 
+
+        delete path; 
+        edge_tuple->DeleteIfAllowed();
+      }
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    ////////////////////connection 3 moving buses/////////////////////////
+    //////////////////////////////////////////////////////////////////////
+    vector<int> adj_list3;
+    bg->FindAdj3(top.tri_index, adj_list3);
+    int64_t max_64_int = numeric_limits<int64_t>::max();
+
+    for(unsigned int i = 0;i < adj_list3.size();i++){
+      Tuple* edge_tuple = bg->edge_rel3->GetTuple(adj_list3[i], false);
+       int neighbor_id3 = 
+       ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E3_BS2_TID))->GetIntval();
+       SimpleLine* path =
+               (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH3);
+
+       if(visit_flag1[neighbor_id3 - 1]){
+         edge_tuple->DeleteIfAllowed();
+         continue; 
+       }
+
+       cur_size = expand_queue.size();
+       double cur_t = new_st.ToDouble() + top.real_w; 
+       Instant cur_inst = new_st;
+       cur_inst.ReadFrom(cur_t); //time to arrive current bus stop 
+//       cout<<"time at bus stop "<<cur_inst<<endl; 
+
+       int64_t cur_t_int = cur_t*86400000; 
+       assert(cur_t_int <= max_64_int);
+
+       Periods* peri = 
+               (Periods*)edge_tuple->GetAttribute(BusGraph::BG_LIFETIME);
+       Interval<Instant> periods;
+       peri->Get(0, periods);
+
+       double sched = 
+       ((CcReal*)edge_tuple->GetAttribute(BusGraph::BG_SCHEDULE))->GetRealval();
+       double st = periods.start.ToDouble(); 
+       double et = periods.end.ToDouble(); 
+       int64_t st_int = st*86400000;
+       int64_t et_int = et*86400000; 
+       assert(st_int <= max_64_int);
+       assert(et_int <= max_64_int);
+
+
+       if(et_int < cur_t_int){//end time smaller than curtime 
+         edge_tuple->DeleteIfAllowed();
+         continue;
+       }
+       double wait_time = 0.0;
+       Tuple* bs_top_tuple = bg->node_rel->GetTuple(top.tri_index, false);
+       Bus_Stop* bs_top =
+                 (Bus_Stop*)bs_top_tuple->GetAttribute(BusGraph::BG_NODE);
+
+//         cout<<*bs_top<<endl;
+//         Instant temp(instanttype);
+//         temp.ReadFrom(st);
+//         cout<<"t1 "<<temp<<endl; 
+
+        if(bs_top->GetUp()){
+          int last_record = counter_up[bs_top->GetId() - 1];
+//          cout<<"up "<<last_record<<endl;
+
+          st += sched * last_record;
+          st_int = st * 86400000; 
+
+        }else{
+          int last_record = counter_down[bs_top->GetId() - 1];
+//          cout<<"down "<<last_record<<endl;
+
+          st += sched * last_record;
+          st_int = st * 86400000; 
+        }
+
+//         temp.ReadFrom(st);
+//         cout<<"t2 "<<temp<<endl; 
+//         cout<<st_int<<" "<<cur_t_int<<endl;
+
+       if(st_int > cur_t_int){//wait for the first start time 
+            wait_time += st - cur_t; 
+            wait_time += 30.0/(24.0*60.0*60.0);//30 seconds at bus stop 
+       }else if(st_int == cur_t_int){
+          wait_time += 30.0/(24.0*60.0*60.0);//30 seconds at bus stop 
+       }else{ //most times, it is here, wait for the next schedule 
+
+         bool valid = false;
+         int record_count = 0;
+         while(st_int < cur_t_int && st_int <= et_int){
+
+          if((st_int + 30000) >= cur_t_int){//30 second
+            wait_time += st + 30.0/(24.0*60.0*60.0) - cur_t;
+            valid = true;
+            break;
+          }
+          st += sched; 
+          st_int = st * 86400000; 
+
+          if(st_int >= cur_t_int){
+            wait_time += st + 30.0/(24.0*60.0*60.0) - cur_t;
+            valid = true;
+            break; 
+          }
+          assert(st_int <= max_64_int); 
+          record_count++;
+         }
+
+         if(bs_top->GetUp()){
+          if(counter_up[bs_top->GetId() - 1] == 0) //for the first time 
+             counter_up[bs_top->GetId() - 1] = record_count;
+         }else{
+          if(counter_down[bs_top->GetId() - 1] == 0) //for the first time 
+             counter_down[bs_top->GetId() - 1] = record_count;
+         }
+
+         if(valid == false){
+           cout<<"should not arrive at here"<<endl; 
+           assert(false); 
+         }
+       }
+
+        bs_top_tuple->DeleteIfAllowed();
+       //////////////////////////////////////////////////////////////
+ 
        double weight = 
        ((CcReal*)edge_tuple->GetAttribute(BusGraph::BG_TIMECOST))->GetRealval();
         double w = top.real_w + wait_time + weight; 
@@ -12775,351 +13648,6 @@ void BNNav::MPToGenMO(MPoint* mp,unsigned int br_id, bool dir, Relation* br_rel,
 //////////////////        Create UBahn Trains    ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-/*
-create UBahan Trains. use the original data. translate the time and copy 
-more trips 
-
-*/
-
-void UBTrain::CreateUBTrains(int attr1,int attr2,int attr3, Periods* peri)
-{
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3
-//      <<" Periods "<<*peri<<endl; 
-
-  //1.  take all bus trips from one line, one direction 
-  //2.  find the first schedule 
-  //3.  change the time according to peri
-  
-  vector<UBTrainTrip> trip_list; 
-  id_count = 1; 
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* tuple_trip = rel1->GetTuple(i, false);
-    int l_id = ((CcInt*)tuple_trip->GetAttribute(attr1))->GetIntval();
-    bool d = ((CcBool*)tuple_trip->GetAttribute(attr2))->GetBoolval();
-    MPoint* trip = (MPoint*)tuple_trip->GetAttribute(attr3); 
-    
-//    if(l_id != 15){
-//      tuple_trip->DeleteIfAllowed();
-//      continue; 
-//    }
-    UBTrainTrip* train_trip = new UBTrainTrip(l_id,d,*trip);
-    if(trip_list.size() == 0)
-      trip_list.push_back(*train_trip);
-    else{
-      UBTrainTrip last_trip = trip_list[trip_list.size() - 1];
-      if(train_trip->line_id == last_trip.line_id)
-        trip_list.push_back(*train_trip);
-      else{
-         ////////////process the train from the same line////////////////
-//        cout<<"l_id "<<l_id<<" d "<<d<<endl; 
-        CreateUBTrainTrip(trip_list, peri); 
-
-        trip_list.clear();
-        trip_list.push_back(*train_trip);
-      }
-
-    }
-
-    delete train_trip; 
-    tuple_trip->DeleteIfAllowed();
-  }
-
-  CreateUBTrainTrip(trip_list, peri);//process the last  
-
-}
-
-/*
-create the UBahn Train Trip for each route 
-
-*/
-void UBTrain::CreateUBTrainTrip(vector<UBTrainTrip> trip_list, Periods* peri)
-{
-//  cout<<" size "<<trip_list.size()<<endl; 
-
-  vector<UBTrainTrip> trip_list_up;
-  vector<UBTrainTrip> trip_list_down;
-  for(unsigned int i = 0;i < trip_list.size();i++){
-    if(trip_list[i].direction)
-        trip_list_up.push_back(trip_list[i]);
-    else
-        trip_list_down.push_back(trip_list[i]);
-  }
-  
-  sort(trip_list_up.begin(), trip_list_up.end());
-  sort(trip_list_down.begin(), trip_list_down.end()); 
-
-  CreateTrainTrip(trip_list_up, peri); ///////// UP direction 
-  CreateTrainTrip(trip_list_down, peri);  ///////// DOWN direction 
-}
-
-/*
-create UBahn Trip 
-
-*/
-void UBTrain::CreateTrainTrip(vector<UBTrainTrip> trip_list, Periods* time_peri)
-{
-    /////////////create the time difference in days ////////////////////////
-    Periods* peri1 = new Periods(0);
-    trip_list[0].train_trip.DefTime(*peri1);
-    Interval<Instant> periods1;
-    peri1->Get(0, periods1);
-    delete peri1; 
-
-    Interval<Instant> periods2;
-    time_peri->Get(0, periods2);
-
-    int day1 = periods1.start.GetDay();
-    int day2 = periods2.start.GetDay();
-    
-    double waittime = 10.0/(24.0*60.0*60.0);
-    const double dist_delta = 0.01; 
-    ////////////get the first trip of new time ////////////////////////////
-    MPoint new_trip(0);
-    for(unsigned int i = 0;i < trip_list.size();i++){
-      Periods* peri = new Periods(0);
-      trip_list[i].train_trip.DefTime(*peri);
-      Interval<Instant> periods;
-      peri->Get(0, periods);
-      
-//      cout<<"old "<<periods<<endl; 
-    
-      MPoint mo = trip_list[i].train_trip;
-      MPoint* new_mo = new MPoint(0);
-      new_mo->StartBulkLoad();
-      
-      Instant start_time = periods.start; 
-//      cout<<"old start time "<<start_time<<endl;
-      start_time.ReadFrom(start_time.ToDouble() + (double)(day2-day1));
-//      cout<<"new start time "<<start_time<<endl; 
-      for(int j = 0;j < mo.GetNoComponents();j++){
-        if(j == 0 ){// add stop 10 seconds for waiting, the first stop  
-            UPoint up_temp;
-            mo.Get(0, up_temp);
-            Instant st = start_time;
-            st.ReadFrom(st.ToDouble() - waittime); 
-            Instant et = start_time;
-            up_temp.timeInterval.start = st;
-            up_temp.timeInterval.end = et;
-            if(up_temp.p0.Distance(up_temp.p1) > dist_delta){
-              up_temp.p1 = up_temp.p0; 
-              new_mo->Add(up_temp);
-            }else{
-              double delva = up_temp.timeInterval.end.ToDouble() - 
-                      up_temp.timeInterval.start.ToDouble();
-              assert(AlmostEqual(delva,waittime)); //check time deviation 
-            }  
-//            cout<<up_temp<<endl; 
-        }
-            
-        UPoint up;
-        mo.Get(j, up);
-        double time_interval = 
-             up.timeInterval.end.ToDouble() - up.timeInterval.start.ToDouble();
-        
-        UPoint* new_up = new UPoint(up);
-        new_up->timeInterval.start = start_time;
-        
-        Instant end_time = start_time;
-        end_time.ReadFrom(start_time.ToDouble() + time_interval);
-        new_up->timeInterval.end = end_time; 
-        start_time = end_time; 
-        new_mo->Add(*new_up);
-        delete new_up; 
-
-        if(j == mo.GetNoComponents() - 1){//last station, wait for 10 seconds 
-            UPoint up_temp;
-            mo.Get(j, up_temp);
-            Instant st = end_time;
-            Instant et = end_time;
-            et.ReadFrom(et.ToDouble() + waittime); 
-            up_temp.timeInterval.start = st;
-            up_temp.timeInterval.end = et;
-            if(up_temp.p0.Distance(up_temp.p1) > dist_delta){//the last stop 
-              up_temp.p0 = up_temp.p1; 
-              new_mo->Add(up_temp);
-            }else{
-              double delva = up_temp.timeInterval.end.ToDouble() - 
-                      up_temp.timeInterval.start.ToDouble();
-              assert(AlmostEqual(delva,waittime)); //check time deviation 
-            }  
-        }
-
-      }
-      new_mo->EndBulkLoad();
-      new_mo->DefTime(*peri);
-      peri->Get(0, periods);
-//      cout<<"new "<<periods<<endl; 
-      new_trip = *new_mo; 
-      delete new_mo;
-      delete peri; 
-      break;  ////////////////  only need to create the first trip 
-    }
-    
-    ////////////////////get the time schedule ///////////////////////////
-    assert(trip_list.size() > 2); 
-    
-    Periods* peri_1 = new Periods(0);
-    trip_list[0].train_trip.DefTime(*peri_1);
-    Interval<Instant> periods_1;
-    peri_1->Get(0, periods_1);
-
-    
-    Periods* peri_2 = new Periods(0);
-    trip_list[1].train_trip.DefTime(*peri_2);
-    Interval<Instant> periods_2;
-    peri_2->Get(0, periods_2);
-
-    delete peri_1;
-    delete peri_2; 
-    
-    double schedule_time = 
-        periods_2.start.ToDouble() - periods_1.start.ToDouble();
-        
-    int w_day = periods2.start.GetWeekday(); 
-    if(w_day != 0){
-      cout<<"the day should be Monday"<<endl; 
-      return; 
-    }
-
-    ///////////////copy the train trip//////////////////////////////////
-    int start_pos = id_list.size(); //record the start position 
-    
-    int schedule_id = 1; 
-    id_list.push_back(id_count);
-    id_count++; 
-    int train_line_id = trip_list[0].line_id;
-    bool train_direction = trip_list[0].direction;
-    line_id_list.push_back(train_line_id);
-    direction_list.push_back(train_direction); 
-    train_trip.push_back(new_trip); 
-    schedule_id_list.push_back(schedule_id);
-    schedule_id++; 
-
-    
-    Periods* peri_a = new Periods(0);
-    new_trip.DefTime(*peri_a);
-    peri_a->Get(0, periods_1);
-    Instant start_time = periods_1.start; 
-    
-    time_peri->Get(0, periods_2);
-    Instant end_time = periods_2.end; 
-    
-    while(start_time < end_time){
-        MPoint* mo = new MPoint(0);
-        mo->StartBulkLoad();
-        for(int i = 0;i < new_trip.GetNoComponents();i++){
-            UPoint up;
-            new_trip.Get(i, up);
-            Instant st = up.timeInterval.start;
-            st.ReadFrom(st.ToDouble() + (schedule_id - 1)*schedule_time);
-            Instant et = up.timeInterval.end;
-            et.ReadFrom(et.ToDouble() + (schedule_id - 1)*schedule_time);
-            up.timeInterval.start = st;
-            up.timeInterval.end = et;
-            mo->Add(up);
-        }
-        mo->EndBulkLoad();
-        /////////////////////////////////////////////////////////////////
-        mo->DefTime(*peri_a);
-        peri_a->Get(0, periods_1);
-        start_time = periods_1.start; 
-        start_time.ReadFrom(start_time.ToDouble() + schedule_time); 
-        ///////////////////////////////////////////////////////////////////
-        id_list.push_back(id_count);
-        id_count++; 
-        line_id_list.push_back(train_line_id);
-        direction_list.push_back(train_direction); 
-        train_trip.push_back(*mo); 
-        schedule_id_list.push_back(schedule_id);
-        schedule_id++; 
-        ///////////////////////////////////////////////////////////////////
-        delete mo; 
-    }
-
-    delete peri_a; 
-
-    int end_pos = id_list.size();//end position 
-    ////////////  make it one day more //////////////////////////
-    CopyTrainTrip(start_pos, end_pos, train_line_id,train_direction); 
-}
-
-/*
-let the UBahn train move one day more ---Sunday 
-
-*/
-void UBTrain::CopyTrainTrip(int start_pos, int end_pos,int line_id, bool d)
-{
-//  cout<<"start_pos "<<start_pos<<" end_pos "<<end_pos<<endl; 
-
-  int schedule_id = 1; 
-  for(int i = start_pos; i< end_pos;i++){//the same schedule 
-    MPoint mo = train_trip[i];
-    MPoint* new_mo = new MPoint(0);
-    new_mo->StartBulkLoad();
-    for(int j = 0;j < mo.GetNoComponents();j++){
-      UPoint up;
-      mo.Get(j, up);
-      Instant st = up.timeInterval.start;
-      st.ReadFrom(st.ToDouble() - 1.0);//one day before 
-      Instant et = up.timeInterval.end;
-      et.ReadFrom(et.ToDouble() - 1.0);//one day before
-      up.timeInterval.start = st;
-      up.timeInterval.end = et; 
-      new_mo->Add(up);
-    }
-    new_mo->EndBulkLoad();
-    /////////////////////////////////////////////////////////////////////
-    id_list.push_back(id_count);
-    id_count++; 
-    line_id_list.push_back(line_id);
-    direction_list.push_back(d); 
-    train_trip.push_back(*new_mo); 
-    schedule_id_list.push_back(schedule_id);
-    schedule_id++; 
-    /////////////////////////////////////////////////////////////////////
-    delete new_mo; 
-  }
-}
-
-/*
-extract train stops from train trip 
-
-*/
-
-void UBTrain::CreateUBTrainStop(int attr1, int attr2, int attr3)
-{
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl; 
-  const double delta_dist = 0.01; 
-
-  int last_line_id = 0; 
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* tuple_train = rel1->GetTuple(i, false);
-    int lineid = 
-          ((CcInt*)tuple_train->GetAttribute(attr1))->GetIntval();
-    bool direction =       
-          ((CcBool*)tuple_train->GetAttribute(attr2))->GetBoolval(); 
-    /////////we define the stop id increases along up direction
-    /////// it means id decreases along down direction 
-    int stopid = 1; 
-    if(last_line_id != lineid && direction){ //should be the same result 
-//    if(last_line_id != lineid && direction == false){
-        MPoint* mo = (MPoint*)tuple_train->GetAttribute(attr3); 
-        /////  extract bus stop from mo  ///// 
-        for(int j = 0;j < mo->GetNoComponents();j++){
-          UPoint up;
-          mo->Get(j, up);
-          if(up.p0.Distance(up.p1) < delta_dist){ //a stop position 
-              line_id_list.push_back(lineid);
-              stop_loc_list.push_back(up.p0);
-              stop_id_list.push_back(stopid);
-              stopid++;
-          }
-        }
-        last_line_id = lineid; 
-    }
-    tuple_train->DeleteIfAllowed();
-  }
-}
 
 /*
 create time tables for trains 
@@ -13510,78 +14038,6 @@ void UBTrain::GetTimeInstantStop(MPoint& mo, Point loc, Instant& arrove_t)
       }
  }
   assert(false);
-}
-
-/*
-split the UBhan represent to get the line id 
-the name for the UBahn is the form   (U1, U12, U15)
-
-*/
-void UBTrain::SplitUBahn(int attr1, int attr2)
-{
-  vector<UBhan_Id_Geo> ub_lines; 
-  
-//  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<endl; 
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* ubahn_tuple = rel1->GetTuple(i, false);
-    string name = ((CcString*)ubahn_tuple->GetAttribute(attr1))->GetValue(); 
-//    cout<<"name "<<name<<endl; 
-    char* str = new char[name.size() + 1];
-    strcpy(str, name.c_str()); 
-    char* sub_str = strtok(str, ","); 
-    while(sub_str != NULL){
-      string number1(sub_str);
-//      cout<<number1<<endl; 
-      string number2(number1,1);
-//      cout<<number2<<endl; 
-      int id = atoi(number2.c_str()); 
-//      cout<<"id "<<id<<endl; 
-      sub_str=strtok(NULL, ",");
-      Line* l = (Line*)ubahn_tuple->GetAttribute(attr2); 
-      AddToUBahn(id, l, ub_lines);
-    } 
-    delete[] str; 
-
-    ubahn_tuple->DeleteIfAllowed();
-  }
-
-  for(unsigned int i = 0;i < ub_lines.size();i++){
-    line_id_list.push_back(ub_lines[i].lineid);
-    SimpleLine* sl = new SimpleLine(0);
-    sl->fromLine(ub_lines[i].geodata);
-    geodata.push_back(*sl); 
-    delete sl;
-  }
-
-}
-
-/*
-add the line with id to the result vector 
-
-*/
-void UBTrain::AddToUBahn(int id, Line* l, vector<UBhan_Id_Geo>& ub_lines)
-{
-  if(ub_lines.size() == 0){
-    UBhan_Id_Geo* idgeo = new UBhan_Id_Geo(id, *l);
-    ub_lines.push_back(*idgeo);
-    delete idgeo; 
-  }else{
-    unsigned int i = 0;
-    for(;i < ub_lines.size();i++){
-        if(ub_lines[i].lineid == id){
-          Line* res = new Line(0);
-          ub_lines[i].geodata.Union(*l, *res); 
-          ub_lines[i].geodata = *res; 
-          delete res; 
-          break; 
-        }
-    }
-    if(i == ub_lines.size()){
-        UBhan_Id_Geo* idgeo = new UBhan_Id_Geo(id, *l);
-        ub_lines.push_back(*idgeo);
-        delete idgeo; 
-    }
-  }
 }
 
 string UBTrain::TrainsTypeInfo = 
@@ -16974,5 +17430,4 @@ void MNNav::InitializeQueue(Bus_Stop* ms1, Bus_Stop* ms2,
     expand_queue.push_back(elem); 
     delete sl;
 }
-
 
