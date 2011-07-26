@@ -12,23 +12,20 @@
 #define YYERROR_VERBOSE 1
 
 
-#ifdef __cplusplus
-int optlex(){ return 1;}
-
-
-
+/*#ifdef __cplusplus
 extern "C"{
- //int optlex(); 
+ int optlex(); 
  int opterror (const char *error);
  void opt_scan_string(const char* argument);
  int optparse();
 }
 #else 
+*/
  int optlex(); 
  int opterror (const char *error);
  void opt_scan_string(const char* argument);
  int optparse();
-#endif
+//#endif
 
 
 
@@ -1243,11 +1240,11 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg){
    try{
 
     success = true;
-    //optlexDestroy();
+    optlexDestroy();
  
- //   opt_scan_string(argument);
+    opt_scan_string(argument);
 
-  //  optparse();
+    optparse();
     if(success){
        errmsg=0;
        if(err_message){

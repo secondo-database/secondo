@@ -12,10 +12,12 @@ string will remove this memory leak.
 
 
 */
+extern "C" {
 void optlexDestroy(){
-    // yy_delete_buffer(YY_CURRENT_BUFFER);
-    // optlex_destroy();
+     yy_delete_buffer(YY_CURRENT_BUFFER);
+     //optlex_destroy();
   }
+}
 
 %}
 
