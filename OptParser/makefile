@@ -36,4 +36,4 @@ parser.c: OptParser.y OptSecUtils.h Types.h
 
 .PHONY: clean
 clean:
-	rm -f parser.c parser.h scanner.c scanner.o parser.o $(LIBDIR)/liboptparser.a OptChecker.o OptSecUtils.o
+	rm -f parser.c parser.h scanner.c scanner.o parser.o $(LIBDIR)/liboptparser.a OptChecker.o OptSecUtils.o parser.output
