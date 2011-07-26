@@ -1,6 +1,9 @@
 %{
 
+#include "Types.h"
+
 #include "parser.h"
+
 
 /*
 Some versions of flex have a memeory leak when scanning a 
@@ -10,7 +13,7 @@ string will remove this memory leak.
 
 */
 void optlexDestroy(){
-     yy_delete_buffer(YY_CURRENT_BUFFER);
+    // yy_delete_buffer(YY_CURRENT_BUFFER);
     // optlex_destroy();
   }
 
@@ -36,10 +39,10 @@ number	{num1}|{num2}
 ident   {letter}({letter}|{digit}|_)*
 math    {otherChar}({otherChar}|{star})*
 symbol  {math}|{ident}
-otherChar [^\(\)\"\'A-Za-z0-9_\* \a\b\f\n\r\t\v]
+otherChar [^\(\)\[\]\"\'A-Za-z0-9_\* \a\b\f\n\r\t\v]
 text '[^']'
 distinct "all"|"distinct"
-
+aggrop "min"|"max"|"sum"|"avg"|"extract"|"count"
   
 
 
@@ -64,11 +67,6 @@ distinct "all"|"distinct"
 ","     { return TOKEN_COMMA; }
 "count" { return TOKEN_COUNT; }
 "aggregate" { return TOKEN_AGGREGATE; }
-"min"   { return TOKEN_MIN; }
-"max"   { return TOKEN_MAX; }
-"sum"   { return TOKEN_SUM; }
-"avg"   { return TOKEN_AVERAGE; }
-"extract" { return TOKEN_EXTRACT; }
 "["     { return TOKEN_SQOPEN_BRACKET; }
 "]"     { return TOKEN_SQCLOSE_BRACKET; }
 "+"     { return TOKEN_PLUS; }
@@ -77,6 +75,7 @@ distinct "all"|"distinct"
 "columns" { return TOKEN_COLUMNS; }
 "delete" { return TOKEN_DELETE; }
 {distinct} { optlval.strval = yytext; return TOKEN_DISTINCT; }
+{aggrop} { optlval.strval = yytext; return TOKEN_AGGROP; }
 "null"   { return TOKEN_NULL; }
 "table"  { return TOKEN_TABLE; }
 "drop"   { return TOKEN_DROP; }
