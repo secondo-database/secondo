@@ -1,35 +1,23 @@
-# $Id$
-# Copyright (C) 2010 by The Regents of the University of California
- 
-# Redistribution of this file is permitted under
-# the terms of the BSD license.
- 
-# Date: 11/01/2009
-# Author: Sattam Alsubaiee <salsubai (at) ics.uci.edu>
-
-CC = g++
-CXXFLAGS = -Wall 
-LDFLAGS = 
-
-all: librstartree.a nntest 
-
-nntest: rstartree.o storage.o util.o
 
 
-rstartree.h: storage.h \
-	util.h
-	touch $@
 
-rstartree.o: rstartree.h
+include ../../makefile.env
 
-storage_mem.o: storage.h
+all: librstartree.a 
 
-util.o: util.h
+librstartree.a: util.o rstartree.o storage.o 
+	$(AR) -rs librstartree.a util.o rstartree.o storage.o
 
-librstartree.a:	librstartree.a( \
-		rstartree.o \
-		storage.o \
-		util.o)
+
+rstartree.o: rstartree.h rstartree.cc
+	$(CPPC) -c -o rstartree.o rstartree.cc
+	
+util.o: util.h util.cc
+	$(CPPC) -c -o util.o util.cc
+
+storage.o: storage.h storage.cc
+	$(CPPC) -c -o storage.o storage.cc
+
 
 clean:
 	-rm -f *.o *.a
