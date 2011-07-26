@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JSide.h"
 
 /*
-1. class ~Direction~
+1 class ~Direction~
 
 The class ~Direction~ makes the enum ~JSide~ usable as Attribute in relations
 defining sections. Therefore it implements the secondo interface for
@@ -113,6 +113,8 @@ The default constructor should only be used in the Cast-Function.
 /*
 1.6 Helpful Operations
 
+1.6.1 SameSide
+
 Returns true if the both direction values are equal or one of them is ~Both~.
 
 */
@@ -120,6 +122,11 @@ Returns true if the both direction values are equal or one of them is ~Both~.
   bool SameSide(const Direction& dir) const;
 
 private:
+
+/*
+2 Private Attributes
+
+*/
 
   JSide side;
 

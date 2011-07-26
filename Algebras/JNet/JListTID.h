@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, May Simone Jandt
 
+1 Includes
+
 */
 
 #ifndef JLISTTID_H
@@ -31,7 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../TupleIdentifier/TupleIdentifier.h"
 
 /*
-1. class ~JListTID~
+1 class JListTID
+
 Enables us to use a list of ~TupleId~s as attributes in relations.
 
 */
@@ -42,7 +45,7 @@ class JListTID: public Attribute
 public:
 
 /*
-1.1. Constructors and deconstructors
+1.1 Constructors and deconstructors
 
 The default constructor should only be used in the cast-Function.
 
@@ -123,6 +126,11 @@ void SetList(const DbArray<TupleIdentifier> inList);
   void Put(const int i, const TupleIdentifier& e);
 
 private:
+/*
+1 Private Attributes
+
+*/
+
   DbArray<TupleIdentifier> elemlist;
 };
 

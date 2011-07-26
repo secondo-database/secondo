@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, April Simone Jandt
 
+1 Includes
+
 */
 
 #ifndef JNETALGEBRA_H
@@ -27,6 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "../../include/Algebra.h"
 
+
+/*
+2 Class JNetAlgebra
+
+*/
 
 class JNetAlgebra : public Algebra
 {

@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, May Simone Jandt
 
+1 Includes
+
 */
 
 #include "JListTID.h"
@@ -32,7 +34,7 @@ static bool DEBUG = false;
 
 1 Implementation of class ~JTupleIdList~
 
-1.1. Constructors and deconstructors
+1.1 Constructors and deconstructors
 
 */
 
@@ -63,7 +65,7 @@ JListTID::~JListTID()
 {}
 
 /*
-1.2 Getter and Setter for private Attributes
+1.1 Getter and Setter for private Attributes
 
 */
 

@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, May Simone Jandt
 
+1 Includes
+
 */
 
 #include <assert.h>
@@ -36,10 +38,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 extern NestedList* nl;
 
 static bool DEBUG = false;
-/*map <SmiFileId, JNetwork*> JNetwork::netlist;*/
+/*map <int, JNetwork*> JNetwork::netlist;*/
 
 /*
-1.1 Constructors and Deconstructor
+2 Constructors and Deconstructor
 
 */
 
@@ -276,7 +278,7 @@ JNetwork::~JNetwork()
 }
 
 /*
-1.2 Getter and Setter for private Attributes
+1 Getter and Setter for private Attributes
 
 */
 
@@ -338,9 +340,7 @@ void JNetwork::SetId(const SmiFileId nid)
 
 
 /*
-1.3 Secondo Integration
-
-1.3.1 Out-Function
+1 Secondo Integration
 
 */
 
@@ -501,7 +501,7 @@ bool JNetwork::Open(SmiRecord& valueRecord, size_t& offset,
 }
 
 /*
-1.4 StandardOperations
+1 StandardOperations
 
 */
 
@@ -575,9 +575,7 @@ const bool JNetwork::checkType(const ListExpr type)
   return listutils::isSymbol(type, BasicType());
 }
 /*
-1.5 Network Operations
-
-1.5.1 ~CreateNetwork~
+1 ~CreateNetwork~
 
 */
 
@@ -606,7 +604,7 @@ void JNetwork::CreateNetwork(const int netid, const Relation* juncRel,
 }
 
 /*
-1.6 Relation Descriptors
+1 Relation Descriptors
 
 */
 
@@ -650,9 +648,9 @@ string JNetwork::routesBTreeTypeInfo = "(btree (tuple ( (id int) "
 
 
 /*
-1.7 Private functions
+1 Private functions
 
-1.7.1 Build ListExpr for Out-Function of Network
+1.1 Build ListExpr for Out-Function of Network
 
 */
 
@@ -687,7 +685,7 @@ ListExpr JNetwork::RoutesToList() const
 }
 
 /*
-1.7.2 Internal Relations
+1.2 Access to Internal Relations
 
 */
 
@@ -732,11 +730,11 @@ BTree* JNetwork::GetRoutesBTree() const
 }
 
 /*
-1.7.3 Initialize And Update Relations
+1 Initialize And Update Relations
 
-1.7.3.1 Initialize Relations
+1.1 Initialize Relations
 
-1.7.3.1.1 junctions
+1.1.1 junctions
 
 */
 
@@ -803,7 +801,7 @@ void JNetwork::InitJunctions(const Relation* junRel)
 }
 
 /*
-1.7.3.1.2 Routes and Sections
+1.1.2 Routes and Sections
 
 */
 
@@ -904,9 +902,9 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
 }
 
 /*
-1.7.3.2 Update Relations
+1Update Relations
 
-1.7.3.2.1 junctions
+1.1 junctions
 
 */
 
@@ -985,7 +983,7 @@ void JNetwork::UpdateJunctions()
 }
 
 /*
-1.7.3.2.2 sections
+1.2 sections
 
 */
 
@@ -1082,7 +1080,7 @@ void JNetwork::UpdateSections()
 }
 
 /*
-1.7.4 Creates Relation from string type descriptor
+1 Create Relation from string type descriptor
 
 */
 
@@ -1096,7 +1094,7 @@ Relation* JNetwork::CreateRelation(const string descriptor, ListExpr& numType)
 }
 
 /*
-1.7.5 Creates Trees
+1 Creates Trees
 
 */
 
@@ -1110,7 +1108,7 @@ void JNetwork::CreateTrees()
 }
 
 /*
-1.7.5.1 BTree from relation type descriptor and attr name
+1.1 BTree from relation type descriptor and attr name
 
 */
 
@@ -1129,7 +1127,7 @@ BTree* JNetwork::CreateBTree(const Relation* rel, const string descriptor,
 }
 
 /*
-1.7.5.2 RTree from relation, descriptor and attr
+1.2 RTree from relation, descriptor and attr
 
 */
 
@@ -1150,9 +1148,9 @@ R_Tree<2,TupleId>* JNetwork::CreateRTree(const Relation* rel,
 }
 
 /*
-1.7.6 Open Relations and Trees
+1 Open Relations and Trees
 
-1.7.6.1 Relation
+11 Relation
 
 */
 
@@ -1167,7 +1165,7 @@ Relation* JNetwork::OpenRelation(const std::string descriptor,
 }
 
 /*
-1.7.6.2 BTree
+1.2 BTree
 
 */
 
@@ -1183,7 +1181,7 @@ BTree* JNetwork::OpenBTree(const std::string descriptor,
 
 
 /*
-1.7.7 Return TupleId for identifier
+1 Return TupleId for identifier
 
 */
 
@@ -1203,7 +1201,7 @@ TupleId JNetwork::GetTupleId(BTree* tree, const int ident)const
 }
 
 /*
-1.7.7.1 junction id
+1.1 junction id
 
 */
 
@@ -1214,7 +1212,7 @@ TupleId JNetwork::GetJunctionTupleId(const int jid) const
 }
 
 /*
-1.7.7.2 routes id
+1.2 routes id
 
 */
 
@@ -1226,7 +1224,7 @@ TupleId JNetwork::GetRoutesTupleId(const int rid) const
 }
 
 /*
-1.7.7.3 sections id
+1.3 sections id
 
 */
 
@@ -1236,6 +1234,13 @@ TupleId JNetwork::GetSectionsTupleId(const int sid) const
 
   return GetTupleId(sectionsBTree, sid);
 }
+
+/*
+1 Write Tuple to Relation
+
+1.1 Junction
+
+*/
 
 void JNetwork::WriteJunctionTuple(const int jid, Point* pos,
                                   ListPTIDRLoc* listRLoc,
@@ -1256,6 +1261,11 @@ void JNetwork::WriteJunctionTuple(const int jid, Point* pos,
   newJunctionTup = 0;
 }
 
+/*
+1.1 Routes
+
+*/
+
 void JNetwork::WriteRoutesTuple(const int rid,
                                 const double length,
                                 ListPTIDRLoc* listjunc,
@@ -1271,6 +1281,11 @@ void JNetwork::WriteRoutesTuple(const int rid,
   newRouteTup->DeleteIfAllowed();
   newRouteTup = 0;
 }
+
+/*
+1.1 Sections
+
+*/
 
 void JNetwork::WriteSectionTuple(const int sectId,
                                  SimpleLine* curve,

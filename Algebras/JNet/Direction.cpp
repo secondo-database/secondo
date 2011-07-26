@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, April 14 Simone Jandt
 
+1 Includes
+
 */
 
 #include "Direction.h"
@@ -33,7 +35,7 @@ extern NestedList* nl;
 static bool DEBUG = false;
 
 /*
-1.1 Constructors and Deconstructors
+1 Constructors and Deconstructors
 
 The default constructor should only be used in the Cast-Function.
 
@@ -65,7 +67,7 @@ Direction::~Direction()
 {if (DEBUG) cout << "Direction::~Direction()" << endl;}
 
 /*
-1.2 Getter and Setter
+1 Getter and Setter
 
 */
 
@@ -80,7 +82,7 @@ void Direction::SetDirection(const JSide inside)
 }
 
 /*
-1 .3 Override Methods from Attribute
+1 Override Methods from Attribute
 
 */
 
@@ -186,7 +188,7 @@ const bool Direction::checkType(const ListExpr type)
 }
 
 /*
-1.4 Standard Operators
+1 Standard Operators
 
 */
 
@@ -227,9 +229,9 @@ bool Direction::operator<(const JSide& other) const
 }
 
 /*
-1 .5 Operators for Secondo Integration
+1 Operators for Secondo Integration
 
-Converts the direction into a nested list.
+1.1 Converts the direction into a nested list.
 
 */
 
@@ -277,7 +279,7 @@ ListExpr Direction::Out(ListExpr typeInfo, Word value)
 }
 
 /*
-Constructs a Direction object from a nested list.
+1.2 Constructs a Direction object from a nested list.
 
 */
 
@@ -461,7 +463,9 @@ bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
 }
 
 /*
-1.6 Helpful Operations
+1 Helpful Operations
+
+1.1 SameSide
 
 Returns true if the both direction values are equal or one of them is ~Both~.
 

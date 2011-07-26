@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, April Simone Jandt
 
+1 Includes
+
 */
 
 #include "JNetAlgebra.h"
@@ -38,7 +40,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/AlgebraTypes.h"
 #include "../../include/Operator.h"
 #include "../../include/QueryProcessor.h"
-
 #include "../../include/ListUtils.h"
 #include "../../include/Symbols.h"
 #include "../../include/StandardTypes.h"
@@ -48,9 +49,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
-1. Secondo Type Constructors
+1 Type Constructors
 
-1.1 class ~Direction~
+1.1 ~Direction~
 
 */
 
@@ -88,7 +89,7 @@ directionFunctions dirFunc;
 TypeConstructor directionTC(dirInfo, dirFunc);
 
 /*
-1.2 class ~RouteLocation~
+1.2 ~RouteLocation~
 
 */
 
@@ -128,7 +129,7 @@ TypeConstructor routeLocationTC(rLInfo, rLFunc);
 
 
 /*
-1.3 class ~JRouteInterval~
+1.3 ~JRouteInterval~
 
 */
 
@@ -441,7 +442,7 @@ listNetDistGrpFunctions lNDGFunc;
 TypeConstructor listNDGTC(lNDGInfo, lNDGFunc);
 
 /*
-1.11 JNetwork
+1.11 ~JNetwork~
 
 */
 
@@ -480,11 +481,11 @@ jNetworkFunctions jNetFunc;
 TypeConstructor jNetTC(jNetInfo, jNetFunc);
 
 /*
-2. Secondo Operators
+2 Secondo Operators
 
-2.1 Creation of Pairs and Tuples
+2.1 ~createpair~
 
-2.1.1 Create Pair of TupleId and RouteLocation or JRouteInterval
+Creates Pairs of ~TupleId~s and ~RouteLocation~s and ~RouteInterval~s.
 
 */
 
@@ -552,7 +553,12 @@ OperatorInfo CreatePairInfo(
 
 
 /*
-2.1.2 Create Netdistance Group
+2.1 ~createnetdistgroup~
+
+Creates ~NetdistanceGroup~ from 3 ~TupleIds~ and an ~real~ value.
+The 3 ~TupleIds~ connect the target Junctions id, the next Junction on the way
+to the target and the next section on the way to the target with the distance
+to the target.
 
 */
 
@@ -612,8 +618,17 @@ OperatorInfo CreateNetDistGroupInfo(
 
 
 /*
-2.2 Creation of Lists from ObjectStreams
+2.2 ~createlistj~
 
+Gets a stream of argument objects from type ~X~ and creates a list of the
+corresponding listtype ~Y~.
+
+X            | Y
+================================
+tid          | jlisttid
+ptidrloc     | listpairtidrloc
+ptidrint     | listpairtidrint
+netdistgroup | listndg
 
 */
 
@@ -695,7 +710,18 @@ OperatorInfo CreateListInfo(
 
 
 /*
-2.3 Creation of Object Streams from Lists
+2.3 createstreamj
+
+Creates a stream of objects from type ~X~ from a corresponding listtype ~Y~.
+
+X            | Y
+================================
+tid          | jlisttid
+ptidrloc     | listpairtidrloc
+ptidrint     | listpairtidrint
+netdistgroup | listndg
+
+Creation of Object Streams from Lists
 
 */
 
@@ -1013,7 +1039,7 @@ OperatorInfo junctionsInfo(
   "(listjuncpos listptidrloc) (listinsections jlisttid)"
   "(listoutsections jlisttid) (listdistances listnetdistgrp)))",
   "junctions(_)",
-  "Returns the juncitons relation of the jnetworkobject",
+  "Returns the junctions relation of the jnetworkobject",
   "query junctions(jnetworkobject)"
 );
 
@@ -1071,7 +1097,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 {
 
 /*
-3.1.1 Integration of Type Constructors
+3.1.1 Integration of Data Types by Type Constructors
 
 */
   AddTypeConstructor(&directionTC);
@@ -1110,7 +1136,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 /*
 3.1.2 Integration of Operators
 
-3.1.2.1 Creation of Datatypes
+3.1.2.1 Creation of not simple Datatypes
 
 */
 
@@ -1134,7 +1160,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 }
 
 /*
-3.2 Dekonstructor
+3.2 Deconstructor
 
 */
 

@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, May Simone Jandt
 
+1 Includes
+
 */
 
 #ifndef JNETWORK_H
@@ -40,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListPTIDRInt.h"
 
 /*
-1. class ~JNetwork~
+1 Class ~JNetwork~
 
 */
 
@@ -115,7 +117,9 @@ static const bool checkType(const ListExpr type);
 /*
 1.5 Network Operations
 
-1.5.1 Creates a network object from an integer and two input relations.
+1.5.1 CreateNetwork
+
+Creates a network object from an integer and two input relations.
 
 The integer value defines the network identifier.
 
@@ -135,6 +139,8 @@ void CreateNetwork(const int netid, const Relation* juncRel,
                    const Relation* routesRel);
 
 /*
+1.5.2 Save
+
 Saves the Network Object to Secondo
 
 */
@@ -142,6 +148,8 @@ Saves the Network Object to Secondo
 bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr  typeInfo);
 
 /*
+1.1.1 Open
+
 Opens the Network Object in Secondo
 
 */
@@ -150,7 +158,7 @@ static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo);
 
 /*
-1.7.2 Relation Descriptors
+1.1 Relation Descriptors
 
 */
 static string sectionsTypeInfo;
@@ -165,7 +173,7 @@ static string routesBTreeTypeInfo;
 private:
 
 /*
-1.6 Attributes of Network Object
+1.6 Private Attributes of Network Object
 
 */
   bool nDef;           //defined Flag
@@ -220,9 +228,7 @@ private:
   };
 
 /*
-1.8 Internal functions
-
-1.8.1 ListRepresentation of internal relations
+1.8 ListRepresentation of internal relations
 
 */
 
@@ -231,7 +237,7 @@ private:
   ListExpr RoutesToList() const;
 
 /*
-1.8.2 Access to private relations for copy constructors
+1.2 Access to private relations for copy constructors
 
 */
 
@@ -245,9 +251,9 @@ private:
   R_Tree<2, TupleId>* GetJunctionsRTree() const;
 
 /*
-1.8.3 Create Network Relations
+1.1 Create Network Relations
 
-1.8.3.1 Initialize relations
+1.3.1 Initialize relations
 
 */
 
@@ -255,7 +261,7 @@ private:
   void InitRoutesAndSections(const Relation* inRoutesRel);
 
 /*
-1.8.3.2 Update relations
+1.3.2 Update relations
 
 */
 
@@ -270,20 +276,30 @@ private:
   Relation* CreateRelation(const string descriptor, ListExpr& numType);
 
 /*
-1.8.5 Handling Trees
+1.8.5 Create Internal Trees
 
-1.8.5 Creates BTree or RTree from typeString and attr name as string
+*/
+
+void CreateTrees();
+
+/*
+1.8.5.1 Creates BTree
 
 */
 
   BTree* CreateBTree(const Relation* rel, const string descriptor,
                      const string attr);
-  R_Tree<2,TupleId>* CreateRTree(const Relation* rel, const string descriptor,
-                                 const string attr);
-  void CreateTrees();
 
 /*
-1.8.5.1 OpenTrees and Relations
+1.8.5.1 Create RTree
+
+*/
+ R_Tree<2,TupleId>* CreateRTree(const Relation* rel, const string descriptor,
+                                 const string attr);
+
+
+/*
+1.1 OpenTrees and Relations
 
 */
 
@@ -293,7 +309,7 @@ private:
                  size_t& offset);
 
 /*
-1.8.6 Return TupleId for id
+1.1 Return TupleId for id
 
 */
 
@@ -303,7 +319,7 @@ private:
   TupleId GetSectionsTupleId(const int sid) const;
 
 /*
-1.9 Write Tuples to Relations
+1.1 Write Tuples to Relations
 
 */
 

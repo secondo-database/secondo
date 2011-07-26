@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 2011, April Simone Jandt
 
+1 Includes
+
 */
 
 #include "JRouteInterval.h"
@@ -32,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 ~class JRouteInterval~
 
 1.1 Constructors and Deconstructor
+
 The default constructor should never been used, except in the Cast-Function.
 
 */
@@ -443,6 +446,8 @@ bool JRouteInterval::Open(SmiRecord& valueRecord, size_t& offset,
 /*
 1.6 Helpful Operators
 
+1.1 ~IsOneSided~
+
 Returns true if the routeinterval covers only one side of the route.
 
 */
@@ -454,6 +459,8 @@ bool JRouteInterval::IsOneSided() const
 }
 
 /*
+1.1 ~SameSide~
+
 Returns true if the ~route intervals~ have identic ~side~ values or at least one
 of them is both.
 
@@ -466,6 +473,8 @@ bool JRouteInterval::SameSide(const JRouteInterval& other) const
 }
 
 /*
+1.1 Intersects
+
 Returns true if the ~jrouteintervals~ belong to the same route and intersect.
 
 */
@@ -486,6 +495,8 @@ bool JRouteInterval::Intersects(const JRouteInterval& other) const
 
 
 /*
+1.1 Contains
+
 Returns true if the ~routelocation~ is covered by the ~jrouteinterval~.
 
 */
