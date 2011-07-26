@@ -1502,22 +1502,22 @@ clusterInfo::clusterInfo(bool _im) :
     fn = getenv(ps_slaves.c_str());
   ok = false;
 
-  if (fn == 0)
-  {
+  if (fn == 0){
     cerr << "Environment variable "
          << (isMaster ? ps_master : ps_slaves)
          << " is not defined." << endl;
     return;
   }
-  else
-  {
-    fileName = string(fn);
-    if (fileName.length() == 0)
+
+  fileName = string(fn);
+
+  if (fileName.length() == 0){
       cerr << "Environment variable "
            << (isMaster ? ps_master : ps_slaves)
            << " is set as empty." << endl;
     return;
   }
+
   if (!FileSystem::FileOrFolderExists(fileName))
     cerr << "File (" << fileName << ") is not exist." << endl;
   if (FileSystem::IsDirectory(fileName))
