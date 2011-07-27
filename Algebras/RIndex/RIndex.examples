@@ -22,6 +22,11 @@ Signature: stream(tuple(A)) x a_i  -> text
 Example  : query (strassen feed extend[B : bbox(.geoData)] statRindex[B]) contains 'height'
 Result   : TRUE
 
+Operator : statRindex
+Number   : 2
+Signature: stream(tuple(A)) x a_i  -> text  
+Example  : query (units(train7) namedtransformstream [U] extend[B : bbox(.U)] statRindex[B]) contains 'height'
+Result   : TRUE
 
 Operator : joinRindex
 Number   : 1

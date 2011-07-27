@@ -580,7 +580,6 @@ The signature is:  stream(tuple(A)) x a[_]j -> text
 where a[_]j is an attribute name in A belonging to type rect.
 
 */
-
 ListExpr statRindexTM(ListExpr args){
    string err = "stream(tuple) x attrname expected";
    int len = nl->ListLength(args);
@@ -605,9 +604,9 @@ ListExpr statRindexTM(ListExpr args){
        return listutils::typeError("Attribute " + name + 
                                    " not known in stream");
    }
-   if(!Rectangle<2>::checkType(attrType)){
+   if(!Rectangle<2>::checkType(attrType) && !Rectangle<3>::checkType(attrType)){
        return listutils::typeError("Attribute " + name + 
-                              " not of type " + Rectangle<2>::BasicType());
+                              " not of type rect or rect3");
    }
 
    return nl->ThreeElemList( 
@@ -620,21 +619,21 @@ ListExpr statRindexTM(ListExpr args){
 1.3.2 Value Mapping
 
 */
-
+template <int dim>
 int statRindexVM( Word* args, Word& result, int message,
                     Word& local, Supplier s ){
 
    Stream<Tuple> stream(args[0]);
-   Rectangle<2>* r;
+   Rectangle<dim>* r;
    int index = ((CcInt*)args[2].addr)->GetValue();
 
    stream.open();
    Tuple* t;
    t  = stream.request();
    size_t tupleSizes = 0;
-   RIndex<2,int> ind;
+   RIndex<dim,int> ind;
    while(t){
-     r = (Rectangle<2>*) t->GetAttribute(index);
+     r = (Rectangle<dim>*) t->GetAttribute(index);
      ind.insert(*r,1);
      tupleSizes += t->GetMemSize();
      t->DeleteIfAllowed();
@@ -672,11 +671,32 @@ const string statRindexSpec  =
   ") )";
 
 
+int statRindexSelect(ListExpr args){
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   string name = nl->SymbolValue(nl->Second(args));
+   ListExpr type;
+   int index = listutils::findAttribute(attrList,name,type);
+   assert(index >0);
+   if(Rectangle<2>::checkType(type)){
+      return 0;
+   } else if(Rectangle<3>::checkType(type)){
+      return 1;
+   }
+   return -1;
+}
+
+ValueMapping statRindexvm[] = {
+    statRindexVM<2>,
+    statRindexVM<3>
+};
+
+
 Operator statRindex (
   "statRindex",
   statRindexSpec,
-  statRindexVM,
-  Operator::SimpleSelect,
+  2,
+  statRindexvm,
+  statRindexSelect,
   statRindexTM);
 
 
