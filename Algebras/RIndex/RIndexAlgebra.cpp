@@ -1265,6 +1265,160 @@ Returns the next result tuple or 0 if no more tuples are available.
 };
 
 
+template <class Tree, int dim>
+class RealJoinTreeVecLocalInfo{
+
+  public:
+
+/*
+~Constructor~
+
+The parameters are:
+
+----
+     _s1 : first stream
+     _s2 : second stream
+     _i1 : index of a rectangle<dim> attribute in _s1
+     _i2 : index of a rectangle<dim> attribute in _s2
+     _tt : list describing the result tuple type
+     _maxMem : maximum cache size for tuples of _s1 in kB
+
+----
+
+The cinstructor is blocking. This means, the first stream is 
+processed completely. Each tuple is inserted into a tuple store 
+and into an Tree structure.
+
+*/ 
+
+     RealJoinTreeVecLocalInfo(Word& _s1, Word& _s2, int _i1, 
+                             int _i2, ListExpr _tt, size_t maxMem):
+         ind(), s2(_s2),  i2(_i2) {
+         
+         tt = new TupleType(_tt);
+         Stream<Tuple> s1(_s1);
+         init(s1,_i1,maxMem);
+     }
+
+
+
+/*
+~Constructor~
+
+The parameters are:
+
+----
+     _s1 : first stream
+     _s2 : second stream
+     _i1 : index of a rect attribute in _s1
+     _i2 : index of a rect attribute in _s2
+     _tt : list describing the result tuple type
+     min : minimum number of entries within a node of the index
+     max : maximum number of entries within a node of the index
+     _maxMem : maximum cache size for tuples of _s1 in kB
+
+----
+
+
+
+*/
+
+     RealJoinTreeVecLocalInfo(Word& _s1, Word& _s2, int _i1, 
+                             int _i2, ListExpr _tt, int min, int max,
+                             size_t maxMem):
+         ind(min,max), s2(_s2),  i2(_i2) {
+         tt = new TupleType(_tt);
+         Stream<Tuple> s1(_s1);
+
+         init(s1,_i1,maxMem);
+     }
+
+
+
+
+
+/*
+~Destructor~
+
+*/
+
+     ~RealJoinTreeVecLocalInfo(){
+         s2.close();
+         
+         tt->DeleteIfAllowed();
+         vector<Tuple*>::iterator it;
+         for(it=vec.begin(); it!=vec.end(); it++){
+            (*it)->DeleteIfAllowed();
+         }
+         vec.clear();
+         if(currentTuple){
+            currentTuple->DeleteIfAllowed();
+         }
+         
+      }
+
+/*
+~nextTuple~
+
+Returns the next result tuple or 0 if no more tuples are available.
+
+*/
+
+      Tuple* nextTuple(){
+        if(lastRes.empty() && (currentTuple!=0)){
+           currentTuple->DeleteIfAllowed();
+           currentTuple = 0;
+         }        
+
+         while(lastRes.empty()){
+            Tuple* t = s2.request();
+            if(t==0){
+               return 0;
+            }
+            Rectangle<dim>* r = (Rectangle<dim>*) t->GetAttribute(i2);
+            ind.findSimple(*r, lastRes); 
+            if(lastRes.empty()){
+                t->DeleteIfAllowed();
+            } else {
+               currentTuple = t;
+            }
+         }
+
+         pair<Rectangle<dim>,TupleId> p1 = lastRes.back();
+         lastRes.pop_back();
+         Tuple*result = new Tuple(tt);
+         Tuple* t1 = vec[p1.second];
+         Concat(t1, currentTuple, result);
+         return result;
+      }
+
+   private:
+      Tree ind;
+      Stream<Tuple> s2;
+      int i2;
+      TupleType* tt;
+      vector<pair<Rectangle<dim>,TupleId> > lastRes;
+      Tuple* currentTuple;
+      vector<Tuple*> vec;
+
+
+     void init(Stream<Tuple>& s1, int _i1, size_t maxMem){
+         // build the index from the first stream
+         s1.open();
+         Tuple* t = s1.request();
+         while(t){
+            TupleId id = vec.size();
+            vec.push_back(t);
+            Rectangle<dim>* r = (Rectangle<dim>*)t->GetAttribute(_i1);
+            ind.insert(*r, id);
+            t = s1.request();
+         }
+         s1.close();
+         s2.open();
+         currentTuple = 0;
+     }
+};
+
 /*
 1.4.7 Value Mapping
 
@@ -1442,6 +1596,18 @@ Operator realJoinRindex (
   realJoinRindexTM);
 
 
+ValueMapping realJoinRindexVecVM[] = {
+   joinRindexVM<RealJoinTreeVecLocalInfo<RIndex<2, TupleId>, 2 > >,
+   joinRindexVM<RealJoinTreeVecLocalInfo<RIndex<3, TupleId>, 3 > >,
+};
+
+Operator realJoinRindexVec (
+  "realJoinRindexVec",
+  realJoinRindexSpec,
+  2,
+  realJoinRindexVecVM,
+  realJoinSelect,
+  realJoinRindexTM);
 
 /*
 1.5 Operator ~realJoinMMRTRee~
@@ -1657,6 +1823,22 @@ Operator realJoinMMRTree(
   realJoinMMRTreeTM 
  );
 
+
+
+ValueMapping realJoinMMRTreeVecVM[] = {
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,2 > >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,3 > >
+  };
+
+
+Operator realJoinMMRTreeVec(
+  "realJoinMMRTreeVec",
+  realJoinMMRTreeSpec,
+  2,
+  realJoinMMRTreeVecVM,
+  realJoinSelect,
+  realJoinMMRTreeTM 
+ );
 
 
 
@@ -2393,11 +2575,14 @@ class RIndexAlgebra : public Algebra {
       AddOperator(&joinRindex);
       AddOperator(&symmJoinRindex);
       AddOperator(&realJoinRindex);
+
+      AddOperator(&realJoinRindexVec);
       
       // operators using mmrtrees
       AddOperator(&insertMMRTree);
-      AddOperator(&realJoinMMRTree);
       AddOperator(&statMMRTree);
+      AddOperator(&realJoinMMRTree);
+      AddOperator(&realJoinMMRTreeVec);
 
       // R* operators
       AddOperator(&insertRStar);
