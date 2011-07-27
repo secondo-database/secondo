@@ -131,6 +131,11 @@ Signature:  stream(tuple) x attrname int x int  -> text
 Example  : query strassen feed extend[B : bbox(.geoData)] statMMRTree[B, 4,8] contains "height" 
 Result   : TRUE 
 
+Operator : statMMRTree
+Number   : 2
+Signature: stream(tuple(A)) x a_i  -> text  
+Example  : query (units(train7) namedtransformstream [U] extend[B : bbox(.U)] statMMRTree[B,4,8]) contains 'height'
+Result   : TRUE
 
 Operator : insertRStar 
 Number   : 1

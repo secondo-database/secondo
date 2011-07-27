@@ -2021,9 +2021,10 @@ ListExpr statMMRTreeTM(ListExpr args){
   if(index==0){
      return listutils::typeError("Attribute " + name + " unknown in tuple");
   }
-  if(!Rectangle<2>::checkType(type)){
+  if(!Rectangle<2>::checkType(type) && !Rectangle<3>::checkType(type)){
      return listutils::typeError("Attribute " + name + " not of type" +
-                                 Rectangle<2>::BasicType());
+                                 Rectangle<2>::BasicType() + " or " + 
+                                 Rectangle<3>::BasicType());
   }
   return nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
@@ -2035,6 +2036,7 @@ ListExpr statMMRTreeTM(ListExpr args){
 1.6.2 Value Mapping
 
 */
+template <int dim>
 int statMMRTreeVM( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {  
@@ -2057,10 +2059,10 @@ int statMMRTreeVM( Word* args, Word& result, int message,
    Stream<Tuple> stream(args[0]);
    stream.open();
    int index = ((CcInt*)args[4].addr)->GetValue();
-   mmrtree::RtreeT<2,TupleId> tree(min,max);
+   mmrtree::RtreeT<dim,TupleId> tree(min,max);
    Tuple* t = stream.request();
    while(t){
-      Rectangle<2>* r = (Rectangle<2>*) t->GetAttribute(index);
+      Rectangle<dim>* r = (Rectangle<dim>*) t->GetAttribute(index);
       tree.insert(*r, t->GetTupleId());
       tuples += t->GetMemSize();
       t->DeleteIfAllowed();
@@ -2095,11 +2097,35 @@ const string statMMRTreeSpec  =
 1.6.4 Operator instance
 
 */
+
+int statMMRTreeSelect(ListExpr args){
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   string name = nl->SymbolValue(nl->Second(args));
+   ListExpr type;
+   int index = listutils::findAttribute(attrList,name,type);
+   assert(index >0);
+   if(Rectangle<2>::checkType(type)){
+      return 0;
+   } else if(Rectangle<3>::checkType(type)){
+      return 1;
+   }
+   return -1;
+}
+
+ValueMapping statMMRTreevm[] = {
+    statMMRTreeVM<2>,
+    statMMRTreeVM<3>
+};
+
+
+
+
 Operator statMMRTree (
   "statMMRTree",
   statMMRTreeSpec,
-  statMMRTreeVM,
-  Operator::SimpleSelect,
+  2, 
+  statMMRTreevm,
+  statMMRTreeSelect,
   statMMRTreeTM);
 
 
