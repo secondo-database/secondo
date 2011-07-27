@@ -184,11 +184,12 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
     if(top.count_1 == 1)
       cell_list1.push_back(top);
   }
-  //3---13  2---49  1---204
-//  cout<<cell_list3.size()<<" "
-//        <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
+  //3---13  2---49  1---204 //berlin roads
+  //3---7 2---20 1---610 //houston roads
+  cout<<cell_list3.size()<<" "
+      <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
 
-  int bus_no;
+   int bus_no;
    bus_no = 3;
    
    BuildRoute(cell_list3, cell_list1, attr1, bus_no);
@@ -294,10 +295,10 @@ void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
           end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
      
           bus_route_type.push_back(3);//the lowest route 
-          
+
           to_cell_list[i].def = false; 
           from_cell_list[end_cellid].def = false; 
-          
+
       }
      
       temp_bus_no--; 
@@ -462,14 +463,14 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
     //    cout<<"rid2 "<<rid2<<endl; 
 
     GLine* gl = new GLine(0);
-    
+
 //    cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
-    
+
     gp1->ShortestPath(gp2, gl);
-    
+
     delete location1; 
     delete gp1;
-    
+
     delete location2; 
     delete gp2; 
     

@@ -757,6 +757,7 @@ struct GenMO_MP{
 };
 
 struct MNNav;
+class RoadGraph;
 
 /*
 used to generate generic moving objects 
@@ -817,7 +818,7 @@ struct GenMObject{
   void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type, Relation*);
   void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
                       int type, Relation*, BTree*, Relation*);
-  void GenerateCar(Network* rn, Periods* peri, int mo_no, Relation*);
+  void GenerateCar(Space* sp, Periods* peri, int mo_no, Relation*);
   void GenerateCarExt(Network* rn, Periods* peri, int mo_no, 
                    Relation*,Relation*);
   void SetCellId(vector<Point> p_loc_list, vector<int>& loc_cellid_list, 
@@ -998,8 +999,8 @@ struct GenMObject{
   ///////////////////////////////////////////////////////////////////////
   //////////////////improve creating road shortest path/////////////////
   ///////////////////////////////////////////////////////////////////////
-  void CreateCommPath(Network*, Relation*, int attr1, int attr2, 
-                      int attr3, int attr4, int ,int);
+  void CreateCommPath(RoadGraph*, Network*, Relation*, int attr1, int attr2, 
+                      int attr3, int attr4);
   inline int GetNewCellId(vector<int>&, int);
   void MergeCommPath(Network*, Relation* );
   void MergeRoadPath(vector<GLine>& gl_list, GLine* res_gl);
@@ -1086,6 +1087,7 @@ struct InfraRef{
 class BusNetwork; 
 class MetroNetwork;
 
+
 class Space:public Attribute{
   public:
   static string FreeSpaceTypeInfo; 
@@ -1093,7 +1095,7 @@ class Space:public Attribute{
   Space():Attribute(){}
   Space(const Space& sp);
   Space(bool d, int id = 0):Attribute(d), def(true), 
-                            space_id(id),infra_list(0){}
+                            space_id(id), rg_id(0), infra_list(0){}
 
   Space& operator=(const Space& sp); 
   ~Space();
@@ -1102,6 +1104,7 @@ class Space:public Attribute{
   bool IsDefined() const{return def;}
   void SetDefined(bool b){def = b;}
   int GetSpaceId(){return space_id;}
+  int GetRGId(){return rg_id;}
   
   inline size_t Sizeof() const{return sizeof(*this);}
   int Compare(const Attribute* arg) const{return 0;}
@@ -1142,6 +1145,10 @@ class Space:public Attribute{
   IndoorInfra* LoadIndoorInfra(int type);
   void CloseIndoorInfra(IndoorInfra*);
 
+  
+  void AddRoadGraph(RoadGraph*);
+  RoadGraph* LoadRoadGraph();
+  void CloseRoadGraph(RoadGraph*);
 
   ////////////get a specific infrastructure////////////////////
   int GetInfraType(int oid);
@@ -1167,6 +1174,8 @@ class Space:public Attribute{
   private:
     bool def; 
     int space_id;
+    
+    int rg_id;//road graph id 
     DbArray<InfraRef> infra_list; 
 };
 ListExpr SpaceProperty(); 

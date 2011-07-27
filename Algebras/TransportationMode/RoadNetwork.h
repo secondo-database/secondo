@@ -81,6 +81,11 @@ two junctions are connected by
 (1) the same location on space
 (2) route segments of one route (the two junctions belong to one route)
 
+at this movement (2011.7.26) we assume each road has both up and down directions
+so that for a gpoint it can go either direction along the route. 
+but it is no problem to extend that if gpoint has up or down value, then only
+one direction is available
+
 */
 class RoadGraph{
   public:

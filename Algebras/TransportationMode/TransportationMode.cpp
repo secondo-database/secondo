@@ -410,6 +410,14 @@ const string SpatialSpecIndoorNavigation =
 " count </text---> ) )";
 
 
+ const string SpatialSpecGetIndoorPath =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>string x int -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"<text>getindorpath(string, int) </text--->"
+"<text>read indoor shortest path from disk files</text--->"
+"<text>query getindoorpath(UNIVERSITY, 10001001) count </text---> ))";
+
+
 /*
 TypeMap function for operator thefloor
 
@@ -1377,6 +1385,26 @@ ListExpr GenerateMO1TypeMap(ListExpr args)
         return nl->SymbolAtom("schema error"); 
   }
   return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator getindoorpaths
+
+*/
+ListExpr GetIndoorPathTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "string x int ";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->SymbolValue(arg1) == "string" && nl->SymbolValue(arg2) == "int")
+    return nl->SymbolAtom("line3d");    
+  else
+    return nl->SymbolAtom("typeerror");
 }
 
 
@@ -2667,6 +2695,24 @@ int GenerateMO1_I_GenMO_ValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+read the indoor shortest path from a file disk 
+
+*/
+int GetIndoorPathValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  string build_name = ((CcString*)args[0].addr)->GetValue();
+  int path_oid = ((CcInt*)args[1].addr)->GetIntval();
+  result = qp->ResultStorage(in_pSupplier);
+  Line3D* res = (Line3D*)result.addr;
+  ReadIndoorPath(build_name, path_oid, res);
+
+  return 0;
+
+}
+
 Operator thefloor("thefloor",
     SpatialSpecTheFloor,
     TheFloorValueMap,
@@ -2937,6 +2983,13 @@ Operator generate_mo1("generate_mo1",
     GenerateMO1ValueMap,
     GenerateMO1Select,
     GenerateMO1TypeMap
+);
+
+Operator getindoorpath("getindoorpath",
+    SpatialSpecGetIndoorPath,
+    GetIndoorPathValueMap,
+    Operator::SimpleSelect,
+    GetIndoorPathTypeMap
 );
 
 /*
@@ -3328,12 +3381,12 @@ const string SpatialSpecGenerateGMO8TMList =
 
 const string SpatialSpecCommPathTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> network x rel x attr x attr x attr x attr x attr x int x int"
+"( <text> roadgraph x network x rel x attr x attr x attr x attr x attr"
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>comm_path (network, rel, int, int, region, points, int ,int) </text--->"
+"<text>comm_path (rodgraph, network, rel, int, int, region, points) </text--->"
 "<text>create a set of paths for each pair of cells </text--->"
-"<text>query comm_path(rn, cell_join_tm, cell_id, id_f, cover_area_w,"
-" r_c_ps, 2, 3) </text---> ) )";
+"<text>query comm_path(rg, rn, cell_join_tm, cell_id, id_f, cover_area_w,"
+" r_c_ps) </text---> ) )";
 
 const string SpatialSpecMergePathTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -4057,6 +4110,11 @@ int AddIndoorGraphValueMap(Word* args, Word& result, int message,
           if(flag == 0){
             Building* build = (Building*)args[0].addr;
             IndoorGraph* ig = (IndoorGraph*)args[1].addr; 
+            if(ig->GetGraphType() != (int)build->GetType()){
+              cout<<"error:building and graph do not match"<<endl;
+              flag = 0;
+              return CANCEL;
+            }
             build->SetIndoorGraphId(ig->g_id);
             Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
             t->PutAttribute(0, new CcInt(true, build->GetId()));
@@ -4314,6 +4372,44 @@ int PutInfraIndoorValueMap(Word* args, Word& result, int message,
   
 }
 
+
+/*
+add road graph to the space 
+
+*/
+int PutRoadGraphValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            Space* space = (Space*)args[0].addr;
+            RoadGraph* rg = (RoadGraph*)args[1].addr; 
+            space->AddRoadGraph(rg);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, space->GetSpaceId()));
+            t->PutAttribute(1, new CcInt(true, rg->GetRG_ID()));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
 /*
 get network infrastructure from the space 
 
@@ -4506,7 +4602,7 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
 
   switch(message){
       case OPEN:{
-        Network* rn = (Network*)args[0].addr; 
+        Space* sp = (Space*)args[0].addr; 
         Periods* peri = (Periods*)args[1].addr;
         int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
         Relation* rel = (Relation*)args[3].addr;
@@ -4515,7 +4611,7 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
         mo->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        mo->GenerateCar(rn, peri, mo_no, rel);
+        mo->GenerateCar(sp, peri, mo_no, rel);
         local.setAddr(mo);
         return 0;
       }
@@ -5032,23 +5128,21 @@ int CommPathValueMap(Word* args, Word& result, int message,
 
   switch(message){
       case OPEN:{
-        Network* rn = (Network* ) args[0].addr;
-        Relation* rel = (Relation*)args[1].addr;
+        RoadGraph* rg = (RoadGraph*)args[0].addr;
+        Network* rn = (Network* ) args[1].addr;
+        Relation* rel = (Relation*)args[2].addr;
         
-        int cell_id1 = ((CcInt*)args[6].addr)->GetIntval();
-        int cell_id2 = ((CcInt*)args[7].addr)->GetIntval();
-        
-        int cell_id_pos = ((CcInt*)args[8].addr)->GetIntval() - 1;
-        int r_id_pos = ((CcInt*)args[9].addr)->GetIntval() - 1;
-        int cell_area_pos = ((CcInt*)args[10].addr)->GetIntval() - 1;
-        int ps_pos = ((CcInt*)args[11].addr)->GetIntval() - 1;
+        int cell_id_pos = ((CcInt*)args[7].addr)->GetIntval() - 1;
+        int r_id_pos = ((CcInt*)args[8].addr)->GetIntval() - 1;
+        int cell_area_pos = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int ps_pos = ((CcInt*)args[10].addr)->GetIntval() - 1;
 
         mo = new GenMObject();
         mo->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        mo->CreateCommPath(rn, rel, cell_id_pos, r_id_pos, 
-                           cell_area_pos, ps_pos, cell_id1, cell_id2);
+        mo->CreateCommPath(rg, rn, rel, cell_id_pos, r_id_pos, 
+                           cell_area_pos, ps_pos);
         local.setAddr(mo);
 
         return 0;
@@ -5929,8 +6023,8 @@ ListExpr GenerateCarListTypeMap(ListExpr args)
   }
   
   ListExpr arg1 = nl->First(args);
-  if(!nl->IsEqual(arg1, "network")){
-      string err = "the first parameter should be network";
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
       return listutils::typeError(err);
   }
 
@@ -6554,39 +6648,37 @@ TypeMap function for operator comm path
 */
 ListExpr CommPathListTypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 8){
-      string err = "eight input parameter expected";
+  if(nl->ListLength(args) != 7){
+      string err = "seven input parameter expected";
       return listutils::typeError(err);
   }
 
   ListExpr arg1 = nl->First(args);
-  if(!nl->IsEqual(arg1, "network")){
-      string err = "the first parameter should be network";
+  if(!nl->IsEqual(arg1, "roadgraph")){
+      string err = "the first parameter should be road graph";
       return listutils::typeError(err);
   }
 
   ListExpr arg2 = nl->Second(args);
-  if (!(listutils::isRelDescription(arg2)))
+  if(!nl->IsEqual(arg2, "network")){
+      string err = "the second parameter should be network";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  if (!(listutils::isRelDescription(arg3)))
     return nl->SymbolAtom ( "typeerror" );
 
 
-  ListExpr arg3 = nl->Third(args);
   ListExpr arg4 = nl->Fourth(args);
   ListExpr arg5 = nl->Fifth(args);
   ListExpr arg6 = nl->Sixth(args);
+  ListExpr arg7 = nl->Nth(7, args);
 
-  ListExpr arg7 = nl->Nth(7,args);
-  ListExpr arg8 = nl->Nth(8,args);
-  
-  if(!(nl->IsEqual(arg7, "int") && nl->IsEqual(arg8, "int"))){
-      string err = "the 7, 8 parameters should be int";
-      return listutils::typeError(err);
-  }
-  
-
+ 
   ListExpr attrType1;
-  string aname1 = nl->SymbolValue(arg3);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+  string aname1 = nl->SymbolValue(arg4);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
                       aname1,attrType1);
 
   if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
@@ -6596,8 +6688,8 @@ ListExpr CommPathListTypeMap(ListExpr args)
 
 
   ListExpr attrType2;
-  string aname2 = nl->SymbolValue(arg4);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+  string aname2 = nl->SymbolValue(arg5);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
                       aname2,attrType2);
 
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
@@ -6607,8 +6699,8 @@ ListExpr CommPathListTypeMap(ListExpr args)
 
 
   ListExpr attrType3;
-  string aname3 = nl->SymbolValue(arg5);
-  int j3 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+  string aname3 = nl->SymbolValue(arg6);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
                       aname3,attrType3);
 
   if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
@@ -6617,8 +6709,8 @@ ListExpr CommPathListTypeMap(ListExpr args)
   }
 
   ListExpr attrType4;
-  string aname4 = nl->SymbolValue(arg6);
-  int j4 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+  string aname4 = nl->SymbolValue(arg7);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
                       aname4,attrType4);
 
   if(j4 == 0 || !listutils::isSymbol(attrType4,"points")){
@@ -7440,7 +7532,25 @@ ListExpr PutInfraTypeMap(ListExpr args)
       );
     return reslist;
   }
-  
+
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "roadgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("space id"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("road graph id"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+
   return nl->SymbolAtom("typeerror");
 }
 
@@ -7536,6 +7646,7 @@ ValueMapping PutInfraValueMapVM[]={
   PutInfraBNValueMap,
   PutInfraMNValueMap,
   PutInfraIndoorValueMap,
+  PutRoadGraphValueMap
 };
 
 int PutInfraOpSelect(ListExpr args)
@@ -7557,12 +7668,16 @@ int PutInfraOpSelect(ListExpr args)
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "indoorinfra"))
     return 4;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "roadgraph"))
+    return 5;
+  
   return -1;
 }
 
 Operator putinfra("putinfra",
     SpatialSpecPutInfra,
-    5,
+    6,
     PutInfraValueMapVM,
     PutInfraOpSelect,
     PutInfraTypeMap
@@ -21741,7 +21856,7 @@ Operator cellbox(
 
 Operator create_bus_route1(
   "create_bus_route1",
-  OpTMCreateBusRouteSpec1,               
+  OpTMCreateBusRouteSpec1,
   OpTMCreateBusRouteValueMap1,
   Operator::SimpleSelect,
   OpTMCreateBusRouteTypeMap1
@@ -22554,6 +22669,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getadjnode_ig); //get adjacent node 
     AddOperator(&generate_ip1);//generate indoor positions 
     AddOperator(&generate_mo1);//generate moving objects:int indoor,real:+genmo
+    AddOperator(&getindoorpath);//read indoor paths from files 
     //////////////  indoor navigation ////////////////////////////////////////
     AddOperator(&indoornavigation);indoornavigation.SetUsesArgsInTypeMapping();
     ////////////////////////////////////////////////////////////////////
@@ -22592,6 +22708,7 @@ class TransportationModeAlgebra : public Algebra
                             //add bus network infrastructure (graph)
                             //add trains network infrastructure
                             //add indoor infrastructure
+                            //add road graph 
 
     //retrieve required infrastructure relation 
     AddOperator(&getinfra); getinfra.SetUsesArgsInTypeMapping();

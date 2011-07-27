@@ -56,7 +56,9 @@ Jan, 2011 Jianqiu xu
 #include "PaveGraph.h"
 #include "BusNetwork.h"
 #include "Indoor.h"
+#include "RoadNetwork.h"
 #include <sys/timeb.h>
+
 ///////////////////////////random number generator//////////////////////////
 unsigned long GetRandom()
 {
@@ -1576,14 +1578,33 @@ void GenMObject::GenerateGenMO2(Space* sp, Periods* peri, int mo_no,
 
 /*
 generate moving cars in road network (mpoint and mgpoint) to get traffic 
+old method: old shortest path computation 
+50 cars: 9.92 seconds
+new method: road graph: 50 cars   1.71 seconds
 
 */
-void GenMObject::GenerateCar(Network* rn, Periods* peri, int mo_no, 
+void GenMObject::GenerateCar(Space* sp, Periods* peri, int mo_no, 
                              Relation* rel)
 {
   if(mo_no < 1){
     cout<<"invalid mo no "<<endl;
     return;
+  }
+
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  if(rn == NULL){
+    cout<<"road network loading error"<<endl;
+    return;
+  }
+  RoadGraph* rg = sp->LoadRoadGraph();
+  if(rg == NULL){
+    cout<<"road graph loading error"<<endl;
+    return;
+  }
+  Relation* routes = rn->GetRoutes();
+  if(routes == NULL){
+    cout<<"routes loading error"<<endl;
+    return; 
   }
 
   const double min_len = 500.0;
@@ -1597,7 +1618,8 @@ void GenMObject::GenerateCar(Network* rn, Periods* peri, int mo_no,
   vector<GPoint> gp_loc_list;
   vector<Point> p_loc_list;
   GenerateGPoint2(rn, obj_scale*mo_no, gp_loc_list, p_loc_list);
-
+  RoadNav* road_nav = new RoadNav();
+  
    while(count <= mo_no){
     int index1 = GetRandom() % gp_loc_list.size();
     GPoint gp1 = gp_loc_list[index1];
@@ -1611,24 +1633,28 @@ void GenMObject::GenerateCar(Network* rn, Periods* peri, int mo_no,
 
 
     Point* start_loc = new Point();
-    gp1.ToPoint(start_loc);
+    Tuple* road_tuple = routes->GetTuple(gp1.GetRouteId(), false);
+    SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+    assert(sl->GetStartSmaller());
+    assert(sl->AtPosition(gp1.GetPosition(), true, *start_loc));
+    road_tuple->DeleteIfAllowed();
 
-    GLine* gl = new GLine(0);
+/*    GLine* gl = new GLine(0);
     gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
-
-//    cout<<"gline len "<<gl->GetLength()<<endl; 
-
     BusRoute* br = new BusRoute(rn, NULL,NULL);
     GLine* newgl = new GLine(0);
-
-//    cout<<"gp1 "<<gp1<<" gp2 "<<gp2<<endl; 
-
     if(br->ConvertGLine2(gl, newgl)){
       GenerateCarMO(rn, count, peri, newgl, rel, *start_loc);
     }
-
     delete newgl; 
     delete br;
+    delete gl; */
+
+//    cout<<gp1<<" "<<gp2<<endl;
+
+    GLine* gl = new GLine(0);
+    road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    GenerateCarMO(rn, count, peri, gl, rel, *start_loc);
     delete gl;
 
 
@@ -1640,6 +1666,11 @@ void GenMObject::GenerateCar(Network* rn, Periods* peri, int mo_no,
 
     count++;
   }
+  delete road_nav;
+  
+  sp->CloseRoadGraph(rg);
+  sp->CloseRoadNetwork(rn);
+  
 
 }
 
@@ -2721,7 +2752,8 @@ void GenMObject::GenerateGPoint2(Network* rn, int mo_no,
      GPoint gp(true, rn->GetId(), rid, pos);
      Point* gp_loc = new Point();
 
-     gp.ToPoint(gp_loc);
+     assert(sl->GetStartSmaller());
+     assert(sl->AtPosition(pos, true, *gp_loc));
 
      gp_list.push_back(gp);
      gp_loc_list.push_back(*gp_loc);
@@ -2846,16 +2878,28 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
 {
 
 //  cout<<"Mode Car-Walk "<<endl;
-  const double min_len = 50.0;
+  const double min_len = 100.0;
   Pavement* pm = sp->LoadPavement(IF_REGION);
   vector<GenLoc> genloc_list;
-  GenerateLocPave(pm, mo_no, genloc_list);///generate locations on pavements 
+  GenerateLocPave(pm, 2*mo_no, genloc_list);//generate locations on pavements 
   int count = 1;
   Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  if(rn == NULL){
+    cout<<"road network loading error"<<endl;
+    return;
+  }
+
+  RoadGraph* rg = sp->LoadRoadGraph();
+  if(rg == NULL){
+    cout<<"road graph loading error"<<endl;
+    return;
+  }
 
   Interval<Instant> periods;
   peri->Get(0, periods);
-    
+
+  RoadNav* road_nav = new RoadNav();
+
   while(count <= mo_no){
     int index1 = GetRandom() % genloc_list.size();
     GenLoc loc1 = genloc_list[index1];
@@ -2868,11 +2912,11 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
     mo->StartBulkLoad();
     GenMO* genmo = new GenMO(0);
     genmo->StartBulkLoad();
-  
-    
+
+
     Instant start_time = periods.start;
     int time_range = 14*60;//14 hours 
-  
+
     if(count % 3 == 0)//////////one third on sunday 
       start_time.ReadFrom(periods.start.ToDouble() + 
                         (GetRandom() % time_range)/(24.0*60.0));
@@ -2894,6 +2938,10 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
     GPoint gp2 = gpoint_list[1];
     Point start_loc = p_list[0];
     Point end_loc = p_list[1];
+    if(start_loc.Distance(end_loc) < min_len){
+      continue;
+    }
+
     //////////////////////////////////////////////////////////////////////
     ////////////2 connect the path to the end point//////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -2904,36 +2952,9 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
     ///////////3 shortest path between two gpoints////////////////////////
     //////////////////////////////////////////////////////////////////////
     GLine* gl = new GLine(0);
-    gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
-
-    if(gl->GetLength() < min_len){
-      delete gl;
-      continue;
-    }
-
-    BusRoute* br = new BusRoute(rn, NULL,NULL);
-    GLine* newgl = new GLine(0);
-
-//    br->ConvertGLine(gl, newgl);
-
-    bool res = br->ConvertGLine2(gl, newgl);//robustness, bugs of shortest path
-    if(res == false){
-      delete newgl;
-      delete br;
-      delete gl;
-      mo->EndBulkLoad();
-      genmo->EndBulkLoad();
-      delete mo;
-      delete genmo;
-      continue;
-    }
-    
-    ConnectGP1GP2(rn, start_loc, newgl, mo, genmo, start_time, 
+    road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, 
                   speed_rel, mode);
-
-    delete newgl;
-
-    delete br;
     delete gl;
 
     //////////////////////////////////////////////////////////////////////
@@ -2956,8 +2977,11 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
     delete mo;
     delete genmo; 
   }
+  
+  delete road_nav;
 
   sp->ClosePavement(pm);
+  sp->CloseRoadGraph(rg);
   sp->CloseRoadNetwork(rn);
 
 }
@@ -4728,7 +4752,7 @@ void GenMObject::GenerateGenMO4(Space* sp,
   
   int count = 0;
   int real_count = 1;
-//  while(count < mo_no){
+
   while(real_count <= mo_no && count < obj_scale*mo_no){
 
    //////////////////////////////start time///////////////////////////
@@ -4758,7 +4782,6 @@ void GenMObject::GenerateGenMO4(Space* sp,
    //////////////////////////////////////////////////////////////////////
    cout<<"building 1 "<<GetBuildingStr(build_id1_list[count].type)
         <<" building 2 "<<GetBuildingStr(build_id2_list[count].type)<<endl;
-
 
    ////////////////////////////////////////////////////////////////////////
    MPoint* mo = new MPoint(0);
@@ -5555,7 +5578,6 @@ void GenMObject::CreateBuildingPair2(IndoorInfra* i_infra,
       continue;
     }
 
-
     int reg_id1 = ((CcInt*)tuple1->GetAttribute(IndoorInfra::
                 INDOORIF_REG_ID))->GetIntval();
 
@@ -5584,8 +5606,6 @@ void GenMObject::CreateBuildingPair2(IndoorInfra* i_infra,
 
   }
 }
-
-
 
 
 /*
@@ -6990,11 +7010,12 @@ create common road network shortest paths
 compute or find the common road network shortest paths for a pair of cells
 if the number of roads intersection cells is small, the area has less roads
 it has low probability to be selected for locations 
+old shortest path computation: 2150 time: 623 seconds 
+new method (road graph) 149 seconds 
 
 */
-void GenMObject::CreateCommPath(Network* rn, Relation* rel, 
-                                int attr1, int attr2, int attr3, 
-                                int attr4, int cell_id1, int cell_id2)
+void GenMObject::CreateCommPath(RoadGraph* rg, Network* rn, Relation* rel,
+                                int attr1, int attr2, int attr3, int attr4)
 {
 //   cout<<"attr1 "<<attr1<<" attr2 "<<attr2
 //       <<" attr3 "<<attr3<<" attr4 "<<attr4<<endl;
@@ -7029,14 +7050,12 @@ void GenMObject::CreateCommPath(Network* rn, Relation* rel,
 //  cout<<new_cell_id_list.size()<<endl; 
 
   int sum = 0;
+  RoadNav* road_nav = new RoadNav();
+  
   for(int i = 1;i <= rel->GetNoTuples();i++){
 
     Tuple* tuple1 = rel->GetTuple(i, false);
     int c_id1 = ((CcInt*)tuple1->GetAttribute(attr1))->GetIntval();
-    if(cell_id1 != 0 && c_id1 != cell_id1){
-      tuple1->DeleteIfAllowed();
-      continue;
-    }
 
     Region* reg1 = (Region*)tuple1->GetAttribute(attr3);
     Rectangle<2> bbox1 = reg1->BoundingBox();
@@ -7096,10 +7115,6 @@ void GenMObject::CreateCommPath(Network* rn, Relation* rel,
     for(int k = 1;k <= rel->GetNoTuples();k++){
       Tuple* cell_tuple = rel->GetTuple(k, false);
       int c_id2 = ((CcInt*)cell_tuple->GetAttribute(attr1))->GetIntval();
-      if(cell_id2 != 0 && c_id2 != cell_id2){
-        cell_tuple->DeleteIfAllowed();
-        continue;
-      }
 
       Points* ps = (Points*)cell_tuple->GetAttribute(attr4);
 
@@ -7171,23 +7186,36 @@ void GenMObject::CreateCommPath(Network* rn, Relation* rel,
 
           for(unsigned int index2 = 0; index2 < gp_list2.size();index2++){
 
-                GLine* gl = new GLine(0);
-                /////some memory leaks in NetworkAlgebra implementation////
-                gp_list1[index1].ShortestPath(&gp_list2[index2], gl);
+//                 GLine* gl = new GLine(0);
+//                 /////some memory leaks in NetworkAlgebra implementation////
+//                 gp_list1[index1].ShortestPath(&gp_list2[index2], gl);
+// 
+//                 BusRoute* br = new BusRoute(rn, NULL,NULL);
+//                 GLine* newgl = new GLine(0);
+//                 assert(br->ConvertGLine2(gl, newgl));
+//                 delete gl;
+//                 delete br;
+// 
+//                 cell_id_list1.push_back(new_cell_id1);
+//                 rect_list1.push_back(bbox1);
+//                 cell_id_list2.push_back(new_cell_id2);
+//                 rect_list2.push_back(bbox2);
+//                 gline_list.push_back(*newgl);
+// 
+//                 delete newgl;
 
-                BusRoute* br = new BusRoute(rn, NULL,NULL);
-                GLine* newgl = new GLine(0);
-                assert(br->ConvertGLine2(gl, newgl));
-                delete gl;
-                delete br;
+                GLine* gl = new GLine(0);
+
+                road_nav->ShortestPathSub(&gp_list1[index1], 
+                                          &gp_list2[index2], rg, rn, gl);
 
                 cell_id_list1.push_back(new_cell_id1);
                 rect_list1.push_back(bbox1);
                 cell_id_list2.push_back(new_cell_id2);
                 rect_list2.push_back(bbox2);
-                gline_list.push_back(*newgl);
+                gline_list.push_back(*gl);
 
-                delete newgl;
+                delete gl;
           }
       }
 
@@ -7200,9 +7228,12 @@ void GenMObject::CreateCommPath(Network* rn, Relation* rel,
 //     cout<<"cell id 1 "<<new_cell_id1
 //         <<" current size "<<cell_id_list1.size()<<endl;
 
-    if(new_cell_id1 >= 1) break;////////small testing 
+//    if(new_cell_id1 >= 10) break;////////small testing 
   }
-    cout<<"total paths "<<sum<<endl;
+
+  delete road_nav;
+
+  cout<<"total paths "<<sum<<endl;
 
 }
 
@@ -7993,7 +8024,12 @@ ListExpr OutSpace( ListExpr typeInfo, Word value )
     xLast = nl->Append(xLast,xNext);
  }
  
- return nl->TwoElemList(space_list, infra_list);
+ ListExpr rg_list = nl->TwoElemList(nl->StringAtom("RoadGraph Id:"),
+                        nl->IntAtom(sp->GetRGId())); 
+
+// return nl->TwoElemList(space_list, infra_list);
+ return nl->ThreeElemList(space_list, infra_list, rg_list);
+
 }
 
 
@@ -8046,6 +8082,7 @@ Space::Space(const Space& sp):Attribute(sp.IsDefined()), infra_list(0)
   if(sp.IsDefined()){
     def = sp.def;
     space_id = sp.space_id; 
+    rg_id = sp.rg_id;
     for(int i = 0;i < sp.Size();i++){
       InfraRef inf_ref; 
       sp.Get(i, inf_ref); 
@@ -8061,6 +8098,7 @@ Space& Space::operator=(const Space& sp)
   SetDefined(sp.IsDefined());
   if(def){
     space_id = sp.space_id;
+    rg_id = sp.rg_id; 
     for(int i = 0;i < sp.Size();i++){
       InfraRef inf_ref; 
       sp.Get(i, inf_ref); 
@@ -8793,6 +8831,64 @@ void Space::CloseIndoorInfra(IndoorInfra* indoor_infra)
     Word xValue;
     xValue.addr = indoor_infra;
     SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "indoorinfra"),
+                                           xValue);
+}
+
+void Space::AddRoadGraph(RoadGraph* rg)
+{
+  if(rg->GetRG_ID() > 0){
+    rg_id = rg->GetRG_ID();
+  }
+
+}
+
+/*
+load road graph into space
+
+*/
+RoadGraph* Space:: LoadRoadGraph()
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList)){
+          // Next element in list
+      ListExpr xCurrent = nl->First(xObjectList);
+      xObjectList = nl->Rest(xObjectList);
+          // Type of object is at fourth position in list
+      ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+      if(nl->IsAtom(xObjectType) &&
+          nl->SymbolValue(xObjectType) == "roadgraph"){
+            // Get name of the bus graph 
+            ListExpr xObjectName = nl->Second(xCurrent);
+            string strObjectName = nl->SymbolValue(xObjectName);
+
+            // Load object to find out the id of the pavement
+            Word xValue;
+            bool bDefined;
+            bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+            if(!bDefined || !bOk){
+              // Undefined
+              continue;
+            }
+            RoadGraph* rg = (RoadGraph*)xValue.addr;
+            if((int)rg->GetRG_ID() == rg_id){
+            // This is the indoor infrastructure we have been looking for
+              return rg;
+            }
+          }
+      }
+  return NULL;
+}
+
+
+void Space::CloseRoadGraph(RoadGraph* rg)
+{
+   if(rg == NULL) return; 
+    Word xValue;
+    xValue.addr = rg;
+    SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "roadgraph"),
                                            xValue);
 }
 

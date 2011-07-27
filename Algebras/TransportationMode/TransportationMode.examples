@@ -810,6 +810,12 @@ Signature: indoorgraph x rel x btree x rtree x int x periods-> (stream(((x1 t1) 
 Example  : query generate_mo1(ig1, fernuni, btree_groom, rtree_groom,10, Monday) count;
 Result   : 10
 
+Operator : getindoorpath
+Number   : 2
+Signature: string x int -> line3d
+Example  : query lenth(getindoorpath("UNIVERSITY", 10001001));
+Result   : 76.476
+
 
 Operator : indoornavigation
 Number   : 2
@@ -1040,8 +1046,8 @@ Result   : 10
 
 Operator : comm_path
 Number   : 1
-Signature: network x rel x attr1 x attr2 x atrr3 x attr4 x int x int -> (stream(((x1 t1) ... (xn tn))))
-Example  : query comm_path(rn, cell_join_tm, cell_id, id_f, cover_area_w, r_c_ps,2,3) count;
+Signature: roadgraph x network x rel x attr1 x attr2 x atrr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query comm_path(rg, rn, cell_join_tm, cell_id, id_f, cover_area_w, r_c_ps) count;
 Result   : 10
 
 Operator : merge_path

@@ -868,7 +868,8 @@ struct IndoorNav{
                     Instant& start_time, int build_id, int entrance_index,
                     MPoint3D* mp3d, GenMO* genmo, Periods* peri,
                             unsigned int num_elev);
-                            
+
+
    /////////////////////////////////////////////////////////////////////////
    float GetMinimumDoorWidth();
    void AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2, 
@@ -906,6 +907,7 @@ struct IndoorNav{
 
    void ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree, int start_tid);
+
    void ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree, int end_tid);
    ////////connection start locaton to all doors in staircase///////////////
@@ -1140,9 +1142,10 @@ public:
   void GetEntranceDoor(vector<Point>& door_loc);
   void GetEntranceDoor2(vector<Point>& door_loc, 
                         vector<int>& groom_list, vector<int>& door_tid_list);
+  void GetDoorsInGRoom(int groom_oid, vector<int>& tid_list);
   
   private:
-    BTree* btree_node; //btree on node relation 
+    BTree* btree_node; //btree on node relation on grood oid 1
     Relation* entrance_list;//store tid of door relation for building entrance
     int graph_type;
 };
@@ -1179,6 +1182,16 @@ inline string GetBuildingStr(int build)
 
 
 /*
+the path where the indoor paths are stored 
+
+*/
+const string IndoorPathPrefix = "./TM-Data/";
+const string IndoorPathSuffix = "_Paths";
+#define MAX_ENTRANCE 9
+#define MAX_ROOM_NO 10000
+#define MAX_DOOR_INROOM 100
+
+/*
 for an indoor building which can be of different types: office, university...
 
 */
@@ -1212,6 +1225,10 @@ class Building{
    R_Tree<3, TupleId>* GetRTree(){return rtree_rel_box;}
    IndoorGraph* OpenIndoorGraph();
    void CloseIndoorGraph(IndoorGraph* ig);
+   
+   void StorePaths();
+   void WritePathToFile(FILE* fp, Line3D* path, int entrance, int groom_oid, 
+                        int door_id, bool from);
   
   private:
     bool def; 
@@ -1324,7 +1341,6 @@ class IndoorInfra{
     Relation* building_type; // the type of a building 
     BTree* btree_reg_id2;  //btree on reg id  relation for types 
 
-    //DbArray<RefBuild> building_list;
 };
 
 ListExpr IndoorInfraProperty();
@@ -1341,5 +1357,27 @@ void CloseIndoorInfra( const ListExpr typeInfo, Word& w );
 Word CloneIndoorInfra( const ListExpr typeInfo, const Word& w );
 int SizeOfIndoorInfra();
 bool CheckIndoorInfra( ListExpr type, ListExpr& errorInfo );
+
+
+
+void ReadIndoorPath(string name, int path_id, Line3D* res);
+struct IndoorPath{
+  int oid;
+  Line3D l3d;
+  IndoorPath():oid(0), l3d(0){}
+  IndoorPath(int id, Line3D& l):oid(id), l3d(l){}
+  IndoorPath(const IndoorPath& ip):oid(ip.oid), l3d(ip.l3d){}
+  IndoorPath& operator=(const IndoorPath& ip)
+  {
+    oid = ip.oid;
+    l3d = ip.l3d;
+    return *this;
+  }
+  bool operator<(const IndoorPath& ip) const
+  {
+    return oid < ip.oid;  
+  }
+
+};
 
 #endif // __INDOOR_H__

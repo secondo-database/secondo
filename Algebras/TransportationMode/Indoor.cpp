@@ -5165,6 +5165,26 @@ void IndoorGraph::GetEntranceDoor2(vector<Point>& door_loc,
 
 
 /*
+collect all doors of a groom by oid
+
+*/
+void IndoorGraph::GetDoorsInGRoom(int groom_oid, vector<int>& tid_list)
+{
+
+  CcInt* search_id = new CcInt(true, groom_oid);
+  BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
+
+  while(btree_iter->Next()){
+     Tuple* tuple = node_rel->GetTuple(btree_iter->GetId(), false);
+     tid_list.push_back(tuple->GetTupleId());
+     tuple->DeleteIfAllowed();
+  }
+  delete btree_iter;
+  delete search_id;
+}
+
+
+/*
 get all adjacent nodes for a given node. indoor graph
 
 */
@@ -5632,7 +5652,7 @@ void IndoorNav::GenerateMO2_Start(IndoorGraph* ig, BTree* btree,
       cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
 
       indoor_nav->ShortestPath_Length_Start(&loc1, &loc2, rel1, btree,
-                                          door_tid_list[door_index]);
+                                           door_tid_list[door_index]);
 
 //      cout<<indoor_nav->path_list[count].Length()<<endl;
       //////////////////////////////////////////////////////////////////
@@ -7647,6 +7667,7 @@ void IndoorNav::ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2,
   
 }
 
+
 /*
 return the shortest path with minimum length for indoor navigation 
 the start location is in a room and the end location is the building 
@@ -9171,11 +9192,8 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
       ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_DOOR_TID2))->GetIntval();
       Line3D* path = (Line3D*)edge_tuple->GetAttribute(IndoorGraph::I_PATH);
 
-    int groom_oid = 
-    ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval();
-
-//      output<<"edge groom_oid "<<groom_oid<<endl; 
-//      output<<"neighbor_ id "<<neighbor_id<<endl;
+      int groom_oid = 
+     ((CcInt*)edge_tuple->GetAttribute(IndoorGraph::I_GROOM_OID))->GetIntval();
 
       if(visit_flag1[neighbor_id - 1]){
 //        output<<"door visit already"<<endl; 
@@ -9188,11 +9206,6 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
       }
 
       Tuple* door_tuple1 = node_rel->GetTuple(neighbor_id, false);
-//      unsigned int groom_id1 = 
-//  ((CcInt*)door_tuple1->GetAttribute(IndoorGraph::I_GROOM_OID1))->GetIntval();
-//      unsigned int groom_id2 = 
-//  ((CcInt*)door_tuple1->GetAttribute(IndoorGraph::I_GROOM_OID2))->GetIntval();
-
 
      Line3D* l = (Line3D*)door_tuple1->GetAttribute(IndoorGraph::I_DOOR_LOC_3D);
      Point3D p;
@@ -9200,8 +9213,8 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
       assert(MiddlePoint(l, p));//get the point of next door 
       door_tuple1->DeleteIfAllowed(); 
 
-
       if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
+          edge_tuple->DeleteIfAllowed();
           continue; 
       }
 
@@ -11449,10 +11462,285 @@ void Building::SetIndoorGraphId(int gid)
   if(gid > 0){
     indoorgraph_id = gid;
     indoorgraph_init = true;
+    StorePaths();
   }else{
     cout<<"invalid indoor graph id "<<gid<<endl;
     indoorgraph_init = false;
   }
+}
+
+/*
+store the indoor paths from building entrance to rooms door 
+and from rooms door to building entrance 
+
+*/
+void Building::StorePaths()
+{
+  string str1 = GetBuildingStr(building_type);
+  string path_str = IndoorPathPrefix + str1 + IndoorPathSuffix;
+//  cout<<"path name "<<path_str<<endl;
+  
+  FILE *fp = fopen(path_str.c_str(), "a");
+  long size = ftell(fp);
+  if(size > 0){
+    cout<<"paths file already exists"<<endl;
+    fclose(fp);
+    return;
+  }
+
+
+  IndoorGraph* ig = OpenIndoorGraph();
+  vector<GenLoc> doorloc_list;
+  vector<int> door_tid_list;
+  IndoorNav* indoornav = new IndoorNav(rel_rooms, NULL);
+  indoornav->ig = ig;
+  indoornav->GetDoorLoc(ig, btree_room, doorloc_list, door_tid_list);
+//  cout<<"number of entrances "<<door_tid_list.size()<<endl;
+  if(door_tid_list.size() >= MAX_ENTRANCE){
+    cout<<"error: assume the number is less than "<<MAX_ENTRANCE<<endl;
+    delete indoornav;
+    fclose(fp);
+    return;
+  }
+  if(rel_rooms->GetNoTuples() >= MAX_ROOM_NO){
+    cout<<"error:assume the number is less than "<<MAX_ROOM_NO<<endl;
+    delete indoornav;
+    fclose(fp);
+    return;
+  }
+  ///////////////////////////////////////////////////////////////////////
+  ////////1. for each entrance door, get tid and genloc  ////////////////
+  ////////for each room, according groom oid and indoor graph////////////
+  //find all doors of that room, filter the entrance room itself ////////
+  ////////compute the shortest path/////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
+  int sum_paths = 0;
+  for(unsigned int i = 0;i < door_tid_list.size();i++){
+      GenLoc door_gloc = doorloc_list[i];
+      Tuple* door_room_tuple = rel_rooms->GetTuple(door_gloc.GetOid(), false);
+      GRoom* door_groom = 
+            (GRoom*)door_room_tuple->GetAttribute(IndoorNav::I_Room);
+      float low_h1 = door_groom->GetLowHeight();
+      float high_h1 = door_groom->GetHighHeight();
+      float min_h1 = MIN(low_h1, high_h1);
+      float max_h1 = MAX(low_h1, high_h1);
+
+      for(int j = 1; j <= rel_rooms->GetNoTuples();j++){
+        Tuple* room_tuple = rel_rooms->GetTuple(j, false);
+        int groom_oid = 
+            ((CcInt*)room_tuple->GetAttribute(IndoorNav::I_OID))->GetIntval();
+        string groom_type = 
+          ((CcString*)room_tuple->GetAttribute(IndoorNav::I_Type))->GetValue();
+        if(groom_oid == (int)door_gloc.GetOid()){
+          room_tuple->DeleteIfAllowed();
+          continue;
+        }
+
+        if((GetRoomEnum(groom_type) == ST || GetRoomEnum(groom_type) == EL)){
+          room_tuple->DeleteIfAllowed();
+          continue;
+        }
+
+        GRoom* groom = (GRoom*)room_tuple->GetAttribute(IndoorNav::I_Room);
+        float low_h2 = groom->GetLowHeight();
+        float high_h2 = groom->GetHighHeight();
+        float min_h2 = MIN(low_h2, high_h2);
+        float max_h2 = MAX(low_h2, high_h2);
+        
+        ////////////////////////////////////////////////////////////////
+        ////////////////find all doors of this room////////////////////
+        ///////////////////////////////////////////////////////////////
+        float min_h = MIN(min_h1, min_h2);
+        float max_h = MAX(max_h1, max_h2);
+
+
+        vector<int> doors_list;
+        ig->GetDoorsInGRoom(groom_oid, doors_list);
+        if(doors_list.size() >= MAX_DOOR_INROOM){
+          room_tuple->DeleteIfAllowed();
+          continue;
+        }
+
+
+        Line3D* l3d_s = new Line3D(0);
+        Line3D* l3d_e = new Line3D(0);
+
+        double prune_dist = -1.0;
+        for(unsigned int k = 0;k < doors_list.size();k++){
+
+          //!!! use -1, 0 is used already for entrance door/////////
+
+          /////////////from entrance to rooms///////////////////////////
+          vector<Line3D> from_path_list;
+          indoornav->IndoorShortestPath(door_tid_list[i], doors_list[k],
+                                        from_path_list, l3d_s, l3d_e,
+                                        prune_dist, min_h, max_h, -1);
+          prune_dist = -1.0;
+
+          WritePathToFile(fp, &from_path_list[0], i + 1, groom_oid, k, true);
+
+          /////////from rooms to entrance//////////////////////
+          vector<Line3D> to_path_list;
+          indoornav->IndoorShortestPath(doors_list[k], door_tid_list[i],
+                                        to_path_list, l3d_s, l3d_e,
+                                        prune_dist, min_h, max_h, -1);
+          prune_dist = -1.0;
+          WritePathToFile(fp, &to_path_list[0], i + 1, groom_oid, k, false);
+        }
+
+        delete l3d_s;
+        delete l3d_e;
+
+        room_tuple->DeleteIfAllowed();
+
+        sum_paths += doors_list.size()*2;
+//        break;
+      }
+
+      door_room_tuple->DeleteIfAllowed();
+  }
+  delete indoornav; 
+  CloseIndoorGraph(ig);
+
+//  cout<<"total paths "<<sum_paths<<endl;
+
+  fclose(fp);
+
+}
+
+/*
+write the path into file 
+
+*/
+void Building::WritePathToFile(FILE* fp, Line3D* path, int entrance, 
+                               int groom_oid, int door_num, bool from)
+{
+    ///////////////construct a number //////////////////////////////
+    ////////entrance id + groom id + door sequence + from or to/////
+    ///////1 + 4 + 2 + 1 ///////////////////////////
+    vector<int> oid_num(8,0);
+    oid_num[0] = entrance;
+    if(from)
+      oid_num[7] = 1;
+    else
+      oid_num[7] = 0;
+    unsigned int index = 4;
+    int num1 = groom_oid;
+    while(index > 0){
+        oid_num[index] = num1%10;
+        index--;
+        num1 = num1/10;
+        if(num1 == 0) break;
+    }
+
+    num1 = door_num;
+    index = 6;
+    while(index > 4){
+        oid_num[index] = num1%10;
+        index--;
+        num1 = num1/10;
+        if(num1 == 0) break;
+    }
+
+/*    cout<<"entrance id "<<entrance<<" groom oid "<<groom_oid
+         <<" door id "<<door_num<<" from "<<oid_num[7]<<endl;*/
+    int path_oid = 0;
+    for(unsigned int l = 0;l < oid_num.size();l++){
+//        cout<<oid_num[l];
+        int expo = oid_num.size() - 1 - l;
+        if(expo > 0)
+          path_oid += oid_num[l]*pow(10, expo);
+        else
+          path_oid += oid_num[l];
+    }
+//    cout<<" path_oid "<<path_oid<<endl;
+
+    fprintf(fp, "%d %d\n", path_oid, path->Size());
+    for(int i = 0;i < path->Size();i++){
+      Point3D q;
+      path->Get(i, q);
+      fprintf(fp, "%f %f %f\n", q.GetX(), q.GetY(), q.GetZ());
+    }
+
+
+}
+
+/*
+read the path from disk file
+
+*/
+void ReadIndoorPath(string name, int path_oid, Line3D* l3d_res)
+{
+//  cout<<"building "<<name<<endl;
+  ////////////////////////////////////////////////
+  ////////read all paths from the file////////////
+  ///////////////////////////////////////////////
+  int building_type = GetBuildingType(name);
+  if(building_type < 0){
+    cout<<"error:no such a building"<<endl;
+    return;
+  }
+
+  string str1 = GetBuildingStr(building_type);
+  string path_str = IndoorPathPrefix + name + IndoorPathSuffix;
+//  cout<<"path "<<path_str<<endl;
+
+  FILE *fp = fopen(path_str.c_str(), "r");
+  fseek(fp, 0L, SEEK_END);
+  long file_size = ftell(fp);
+  if(file_size == 0){
+      cout<<"No paths stored!"<<endl;
+      fclose(fp);
+      return;
+  }
+  fseek(fp, 0L, SEEK_SET);
+
+  map<int, Line3D> path_list;//////implemented by a binary tree
+  while (!feof(fp)){
+      int path_id, no;
+      if(fscanf(fp, "%d %d", &path_id, &no) < 0){
+//        cout<<"read path error1"<<endl;
+        break;
+      }
+//      cout<<"path_id "<<path_id<<" no "<<no<<endl;
+      
+      Line3D* l3d = new Line3D(0);
+      l3d->StartBulkLoad();
+      float x, y, z;
+      for(int i = 0;i < no;i++){
+         int res = fscanf(fp, "%f %f %f", &x, &y, &z);
+         if(res > 0){
+           Point3D q(true, x, y, z);
+           *l3d += q;
+          }
+      }
+      l3d->EndBulkLoad();
+      assert(l3d->Length() > 0.0);
+//      IndoorPath i_path(path_id, *l3d);
+//      path_list.push_back(i_path);
+      path_list.insert(pair<int, Line3D>(path_id, *l3d));
+      delete l3d;
+  }
+
+  fclose(fp);
+
+//  sort(path_list.begin(), path_list.end());
+
+/*  for(unsigned int i = 0;i < path_list.size();i++){
+  //   cout<<path_list[i].oid<<endl; 
+    if(path_list[i].oid == path_oid){
+      *l3d_res = path_list[i].l3d;
+      break;
+    }
+  }*/
+
+  map<int, Line3D>::iterator iter = path_list.find(path_oid);
+  if(iter != path_list.end()){
+    *l3d_res = iter->second;
+  }else{
+    cout<<" path "<<path_oid<<" not found"<<endl;
+  }
+
 }
 
 /*

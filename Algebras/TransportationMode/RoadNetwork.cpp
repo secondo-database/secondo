@@ -592,7 +592,6 @@ get all junctions nodes of a route
 */
 void RoadGraph::GetJunctionsNode(int rid, vector<GP_Point>& res_list)
 {
-  
     CcInt* search_id = new CcInt(true, rid);
     BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
     while(btree_iter->Next()){
@@ -607,7 +606,6 @@ void RoadGraph::GetJunctionsNode(int rid, vector<GP_Point>& res_list)
     }
     delete btree_iter;
     delete search_id;
-
 }
 
 
@@ -673,9 +671,8 @@ void RoadNav::GenerateRoadLoc(Network* rn, int no,
 
      Point* gp_loc = new Point();
 
-//     gp.ToPoint(gp_loc);
-    assert(sl->GetStartSmaller());
-    assert(sl->AtPosition(pos, true, *gp_loc));//look at the value (dual) for r
+     assert(sl->GetStartSmaller());
+     assert(sl->AtPosition(pos, true, *gp_loc));//look at the value (dual) for r
 
      gp_list.push_back(gp);
      gp_loc_list.push_back(*gp_loc);
