@@ -21,6 +21,7 @@ operator shuffle alias SHUFFLE pattern _ op
 operator shuffle2 alias SHUFFLE2 pattern _ op [ _ ]
 operator shuffle3 alias SHUFFLE3 pattern _ op
 operator memshuffle alias MEMSHUFFLE pattern _ op
+operator memshuffle2 alias MEMSHUFFLE2 pattern _ op
 
 operator pfeed alias PFEED pattern _ op [ _ ]
 

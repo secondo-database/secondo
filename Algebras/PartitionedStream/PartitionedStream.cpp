@@ -2992,9 +2992,9 @@ struct ShuffleBuf {
   void append(Tuple* t)
   {
     t->IncReference();
-    if ( overFlow(t->GetExtSize()) )
-      handleOverFlow(t);
-    else
+//    if ( overFlow(t->GetExtSize()) )
+//      handleOverFlow(t);
+//    else
       buffer.push_back(t);
   }
 
@@ -3015,6 +3015,32 @@ struct ShuffleBuf {
   }
 };
 
+struct ShuffleBuf2 {
+
+  vector<Tuple*> buffer;
+  unsigned int size;
+
+  ShuffleBuf2():size(0) {srand ( time(NULL) );}
+  ~ShuffleBuf2() { }
+
+  void append(Tuple* t)
+  {
+    buffer.push_back(t);
+    ++size;
+  }
+
+  inline Tuple* getNext()
+  {
+    if ( size == 0)
+      return 0;
+
+    int i= rand() % size;
+    Tuple* res= buffer[i];
+    buffer[i]= buffer[size-1];
+    --size;
+    return res;
+  }
+};
 
   /*
 struct ShuffleInfo {
@@ -3619,6 +3645,65 @@ static int memshuffle_vm( Word* args,
   return 0;
 }
 
+static ListExpr memshuffle2_tm(ListExpr args)
+{
+  return shuffleX_tm(args, "memshuffle2");
+}
+
+static int memshuffle2_vm( Word* args,
+                       Word& result, int message,
+                       Word& local, Supplier s    )
+{
+  //args[0]: Input stream(ptuple(y))  or stream(tuple(y))
+
+  static const string pre = "memshuffle2: ";
+  ShuffleBuf2* info = static_cast<ShuffleBuf2*>( local.addr );
+
+  Word stream = args[0];
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      info = new ShuffleBuf2();
+      qp->Open(stream.addr);
+      Tuple* t = nextTuple(stream);
+      while( t != 0 )
+      {
+        info->append(t);
+        t = nextTuple(stream);
+      }
+      local.addr = info;
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      Tuple* t = info->getNext();
+      if ( t != 0 )
+      {
+        result.addr = t;
+        return YIELD;
+      }
+      else
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      qp->Close(stream.addr);
+      delete info;
+
+      return 0;
+    }
+
+    default : { assert(false); }
+  }
+  return 0;
+}
 
 static ListExpr runtime_tm(ListExpr list)
 {
@@ -4061,6 +4146,21 @@ class PartStreamAlgebra : public Algebra
       );
 
       AddOperator( op,true );
+
+      oi.name =      "memshuffle2";
+      oi.signature = "stream(ptuple(y)) -> stream(ptuple(y)), "
+                     "stream(tuple(y)) -> stream(tuple(y))";
+      oi.syntax =    "_ memshuffle2";
+      oi.meaning =   "Shuffles a stream of tuples in a "
+                     "memory buffer and outputs them in random order. ";
+
+    op = new Operator(
+      oi,
+      psm::memshuffle2_vm,
+      psm::memshuffle2_tm
+    );
+
+    AddOperator( op,true );
 
         oi.name =      "pshow";
         oi.signature = "stream(ptuple(y)) -> stream(ptuple(y))";

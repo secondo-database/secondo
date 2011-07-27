@@ -28,6 +28,12 @@ Example  : query plz pfeed[1000] memshuffle pdelete count
 Result   : crashes
 Remark   : Currently, this overloaded operator is not implemented yet!  
 
+Operator : memshuffle2
+Number   : 1
+Signature: stream(tuple(y)) -> stream(tuple(y))
+Example  : query plz feed memshuffle2 count
+Result   : 41267
+
 Operator : pcreate2
 Number   : 1
 Signature: stream(tuple(y)) x int x int -> stream(ptuple(y))
