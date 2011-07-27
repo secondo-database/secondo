@@ -1671,6 +1671,7 @@ struct SectIDTreeP
       else
         return false;
     }
+    return false; //should never been reached
   }
 
   void SetIndex (const int pos, const int index)
@@ -3178,8 +3179,6 @@ JUNCTION_ROUTE2_ID );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeJunctionsByRoute1 = ( BTree* ) xResult.addr;
 
-  ostringstream xThisJunctionsPtrStream2;
-  xThisJunctionsPtrStream2 << ( long ) m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
              " (ptr " + nl->ToString(ptrList) + "))" + " r2id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
