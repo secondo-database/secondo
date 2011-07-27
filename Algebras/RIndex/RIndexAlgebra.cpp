@@ -816,7 +816,7 @@ ListExpr realJoinRindexTM(ListExpr args){
      return listutils::typeError("Attribute " + name1 + 
                                  " not present in first stream");
    }
-   if(!Rectangle<2>::checkType(type1)){
+   if(!Rectangle<2>::checkType(type1) && !Rectangle<3>::checkType(type1)){
      return listutils::typeError("Attribute " + name1 + 
                                  " not of type " + Rectangle<2>::BasicType());
    }
@@ -826,10 +826,13 @@ ListExpr realJoinRindexTM(ListExpr args){
      return listutils::typeError("Attribute " + name2 + 
                                  " not present in second stream");
    }
-   if(!Rectangle<2>::checkType(type2)){
-     return listutils::typeError("Attribute " + name2 + 
-                                 " not of type " + Rectangle<2>::BasicType());
+
+   if(!nl->Equal(type1,type2)){
+      return listutils::typeError("Attribute type of the second stream "
+                                  "differs from the attribute of in the "
+                                  "first stream");
    }
+
  
    ListExpr attrList = listutils::concat(attrList1, attrList2);
 
@@ -1094,14 +1097,14 @@ Returns the next result tuple or 0 if no more tuples are available.
 
 
 /*
-Auxiliary class ~RealJoinRindexLocalInfo~
+Auxiliary class ~RealJoinTreeLocalInfo~
 
 The template parameter Tree determines the structure
 used as index.
 
 
 */
-template <class Tree>
+template <class Tree, int dim>
 class RealJoinTreeLocalInfo{
 
   public:
@@ -1114,8 +1117,8 @@ The parameters are:
 ----
      _s1 : first stream
      _s2 : second stream
-     _i1 : index of a rect attribute in _s1
-     _i2 : index of a rect attribute in _s2
+     _i1 : index of a rectangle<dim> attribute in _s1
+     _i2 : index of a rectangle<dim> attribute in _s2
      _tt : list describing the result tuple type
      _maxMem : maximum cache size for tuples of _s1 in kB
 
@@ -1211,7 +1214,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             if(t==0){
                return 0;
             }
-            Rectangle<2>* r = (Rectangle<2>*) t->GetAttribute(i2);
+            Rectangle<dim>* r = (Rectangle<dim>*) t->GetAttribute(i2);
             ind.findSimple(*r, lastRes); 
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
@@ -1220,7 +1223,7 @@ Returns the next result tuple or 0 if no more tuples are available.
             }
          }
 
-         pair<Rectangle<2>,TupleId> p1 = lastRes.back();
+         pair<Rectangle<dim>,TupleId> p1 = lastRes.back();
          lastRes.pop_back();
          Tuple*result = new Tuple(tt);
          Tuple* t1 = tb->GetTuple(p1.second);
@@ -1234,7 +1237,7 @@ Returns the next result tuple or 0 if no more tuples are available.
       Stream<Tuple> s2;
       int i2;
       TupleType* tt;
-      vector<pair<Rectangle<2>,TupleId> > lastRes;
+      vector<pair<Rectangle<dim>,TupleId> > lastRes;
       Tuple* currentTuple;
       TupleStore* tb;
 
@@ -1250,7 +1253,7 @@ Returns the next result tuple or 0 if no more tuples are available.
          }
       while(t){
           TupleId id = tb->AppendTuple(t);
-          Rectangle<2>* r = (Rectangle<2>*)t->GetAttribute(_i1);
+          Rectangle<dim>* r = (Rectangle<dim>*)t->GetAttribute(_i1);
           ind.insert(*r, id);
           t->DeleteIfAllowed(); 
           t = s1.request();
@@ -1405,12 +1408,37 @@ const string realJoinRindexSpec  =
 1.4.13 Operator instance
 
 */
+int realJoinSelect(ListExpr args){
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string name = nl->SymbolValue(nl->Third(args));
+
+  ListExpr type;
+
+  int index = listutils::findAttribute(attrList,name,type);
+  assert(index>0);
+  if(Rectangle<2>::checkType(type)){
+     return 0;
+  }
+  if(Rectangle<3>::checkType(type)){
+     return 1;
+   }
+   assert(false);
+   return -1;
+}
+
+ValueMapping realJoinRindexVM[] = {
+   joinRindexVM<RealJoinTreeLocalInfo<RIndex<2, TupleId>, 2 > >,
+   joinRindexVM<RealJoinTreeLocalInfo<RIndex<3, TupleId>, 3 > >,
+};
+
+
 
 Operator realJoinRindex (
   "realJoinRindex",
   realJoinRindexSpec,
-  joinRindexVM<RealJoinTreeLocalInfo<RIndex<2, TupleId> > >,
-  Operator::SimpleSelect,
+  2,
+  realJoinRindexVM,
+  realJoinSelect,
   realJoinRindexTM);
 
 
@@ -1438,7 +1466,6 @@ where
 ----
 
 */
-
 ListExpr realJoinMMRTreeTM(ListExpr args){
 
   // similar to the version using an RIndex, but 2 additional integer values are
@@ -1476,7 +1503,7 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
      return listutils::typeError("Attribute " + name1 + 
                                  " not present in first stream");
    }
-   if(!Rectangle<2>::checkType(type1)){
+   if(!Rectangle<2>::checkType(type1) && !Rectangle<3>::checkType(type1)){
      return listutils::typeError("Attribute " + name1 + 
                                  " not of type " + Rectangle<2>::BasicType());
    }
@@ -1486,9 +1513,10 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
      return listutils::typeError("Attribute " + name2 + 
                                  " not present in second stream");
    }
-   if(!Rectangle<2>::checkType(type2)){
-     return listutils::typeError("Attribute " + name2 + 
-                                 " not of type " + Rectangle<2>::BasicType());
+   if(!nl->Equal(type1,type2)){
+     return listutils::typeError("Attribute type in the second stream differs"
+                                 " from the attribute type in the first "
+                                 "stream" );
    }
  
    ListExpr attrList = listutils::concat(attrList1, attrList2);
@@ -1594,7 +1622,8 @@ const string realJoinMMRTreeSpec  =
     "  </text--->"
     "<text>Performes a spatial join on two streams. "
     "The attributes a_i and b_j must"
-    " be of type rect in A and B, respectively. The result is a stream of "
+    " be of type rect or rect3 in A and B, respectively. "
+    "The result is a stream of "
     "tuples with intersecting rectangles build as concatenation"
     " of the source tuples. min and max define the range for the number of"
     " entries within the nodes of the used rtree. maxMem is the maximum cache"
@@ -1612,12 +1641,19 @@ const string realJoinMMRTreeSpec  =
 1.4.4 Operator Instance
 
 */
+ValueMapping realJoinMMRTreeVM[] = {
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId>,2 > >,
+    joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<3, TupleId>,3 > >
+  };
+
+
 
 Operator realJoinMMRTree(
   "realJoinMMRTree",
   realJoinMMRTreeSpec,
-  joinRTreeVM<RealJoinTreeLocalInfo<mmrtree::RtreeT<2, TupleId> > >,
-  Operator::SimpleSelect,
+  2,
+  realJoinMMRTreeVM,
+  realJoinSelect,
   realJoinMMRTreeTM 
  );
 
