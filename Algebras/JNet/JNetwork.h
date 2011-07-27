@@ -251,6 +251,14 @@ private:
   R_Tree<2, TupleId>* GetJunctionsRTree() const;
 
 /*
+1.1 Gets a copy of the internal relation given in the parameter
+
+*/
+
+  Relation* GetRelationCopy(const string relTypeInfo,
+                            Relation* relPointer) const;
+
+/*
 1.1 Create Network Relations
 
 1.3.1 Initialize relations

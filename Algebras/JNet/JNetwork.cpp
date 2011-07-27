@@ -294,10 +294,15 @@ int JNetwork::GetId() const
 
 Relation* JNetwork::GetJunctionsCopy() const
 {
-  ostringstream strPtr;
-  strPtr << ( long ) junctions;
-  string querystring = "(consume (feed (" + junctionsTypeInfo +
-                         " (ptr " + strPtr.str() + "))))";
+  return GetRelationCopy(junctionsTypeInfo, junctions);
+}
+
+Relation* JNetwork::GetRelationCopy(const string relTypeInfo,
+                                    Relation* relPointer) const
+{
+  ListExpr strPtr = listutils::getPtrList(relPointer);
+  string querystring = "(consume (feed (" + relTypeInfo +
+                           " (ptr " + nl->ToString(strPtr) + "))))";
   Word resultWord;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
   assert ( QueryExecuted );
@@ -306,26 +311,12 @@ Relation* JNetwork::GetJunctionsCopy() const
 
 Relation* JNetwork::GetRoutesCopy() const
 {
-  ostringstream strPtr;
-  strPtr << ( long ) routes;
-  string querystring = "(consume (feed (" + routesTypeInfo +
-                         " (ptr " + strPtr.str() + "))))";
-  Word resultWord;
-  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
-  assert ( QueryExecuted );
-  return ( Relation * ) resultWord.addr;
+  return GetRelationCopy(routesTypeInfo, routes);
 }
 
 Relation* JNetwork::GetSectionsCopy() const
 {
-  ostringstream strPtr;
-  strPtr << ( long ) sections;
-  string querystring = "(consume (feed (" + sectionsTypeInfo +
-                           " (ptr " + strPtr.str() + "))))";
-  Word resultWord;
-  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
-  assert ( QueryExecuted );
-  return ( Relation * ) resultWord.addr;
+  return GetRelationCopy(sectionsTypeInfo, sections);
 }
 
 void JNetwork::SetDefined(const bool def)
@@ -1116,10 +1107,9 @@ BTree* JNetwork::CreateBTree(const Relation* rel, const string descriptor,
                              const string attr)
 {
   if (DEBUG) cout << "JNetwork::CreateBTree: " << endl;
-  ostringstream relPtrStream;
-  relPtrStream << ( long ) rel;
+  ListExpr relPtr = listutils::getPtrList(rel);
   string strQuery = "(createbtree (" + descriptor +
-                    " (ptr " + relPtrStream.str() + "))" + attr + ")";
+                    " (ptr " + nl->ToString(relPtr) + "))" + attr + ")";
   Word w;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, w);
   assert ( QueryExecuted );
@@ -1136,10 +1126,9 @@ R_Tree<2,TupleId>* JNetwork::CreateRTree(const Relation* rel,
                                          const string attr)
 {
   if (DEBUG) cout << "JNetwork::CreateRTree:" << endl;
-  ostringstream relPtrStream;
-  relPtrStream << (long) rel;
+  ListExpr relPtr = listutils::getPtrList(rel);
   string strQuery = "(bulkloadrtree(sortby(addid(feed (" + descriptor +
-           " (ptr " + relPtrStream.str() + "))))((" + attr +" asc)))" +
+           " (ptr " + nl->ToString(relPtr) + "))))((" + attr +" asc)))" +
            attr + " TID)";
   Word w;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, w );
