@@ -3024,21 +3024,20 @@ Fill routes relation of network
 */
 void Network::FillRoutes ( const Relation *routes )
 {
-  ostringstream xRoutesPtrStream;
-  xRoutesPtrStream << ( long ) routes;
+
+  ListExpr ptrList = listutils::getPtrList(routes);
 
   string strQuery = "(consume (sort (feed (" + routesTypeInfo +
-                    " (ptr " + xRoutesPtrStream.str() + ")))))";
-
+                    " (ptr " + nl->ToString(ptrList)  + ")))))";
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pRoutes = ( Relation * ) xResult.addr;
   // Create B-Tree for the routes
-  ostringstream xThisRoutesPtrStream;
-  xThisRoutesPtrStream << ( long ) m_pRoutes;
+  ptrList = listutils::getPtrList(m_pRoutes);
+
   strQuery = "(createbtree (" + routesTypeInfo +
-             " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
+             " (ptr " + nl->ToString(ptrList) + "))" + " id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
@@ -3046,7 +3045,7 @@ void Network::FillRoutes ( const Relation *routes )
   //Create R-Tree for the routes
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesTypeInfo +
-         " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
+         " (ptr " + nl->ToString(ptrList) + "))))((curve asc))) curve)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;
@@ -3151,10 +3150,10 @@ JUNCTION_ROUTE2_ID );
   //
   // Sort the table which is now containing all junctions
   //
-  ostringstream xJunctionsStream;
-  xJunctionsStream << ( long ) pIntJunctions;
+  ListExpr ptrList = listutils::getPtrList(pIntJunctions);
+
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
-                    " (ptr " + xJunctionsStream.str() +
+                    " (ptr " + nl->ToString(ptrList) +
                     "))) ((r1id asc)(meas1 asc))))";
 
 
@@ -3170,10 +3169,11 @@ JUNCTION_ROUTE2_ID );
   //
   // Create two b-trees for the junctions sorted by first and second id
   //
-  ostringstream xThisJunctionsPtrStream;
-  xThisJunctionsPtrStream << ( long ) m_pJunctions;
+
+  ptrList = listutils::getPtrList(m_pJunctions);
+
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-             " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
+             " (ptr " + nl->ToString(ptrList) + "))" + " r1id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeJunctionsByRoute1 = ( BTree* ) xResult.addr;
@@ -3181,7 +3181,7 @@ JUNCTION_ROUTE2_ID );
   ostringstream xThisJunctionsPtrStream2;
   xThisJunctionsPtrStream2 << ( long ) m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-             " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
+             " (ptr " + nl->ToString(ptrList) + "))" + " r2id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeJunctionsByRoute2 = ( BTree* ) xResult.addr;
@@ -3599,10 +3599,10 @@ void Network::FillSections()
 
   // Create B-Tree for the sections
   Word xResult;
-  ostringstream xThisSectionsPtrStream;
-  xThisSectionsPtrStream << ( long ) m_pSections;
+
+  ListExpr ptrList = listutils::getPtrList(m_pSections);
   string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
-                    " (ptr " + xThisSectionsPtrStream.str() + "))" + " rid)";
+                    " (ptr " + nl->ToString(ptrList) + "))" + " rid)";
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pBTreeSectionsByRoute = ( BTree* ) xResult.addr;
@@ -4438,11 +4438,11 @@ Relation *Network::GetRoutes() const
 
 Relation *Network::GetJunctions() const
 {
-  ostringstream strJunctionsPtr;
-  strJunctionsPtr << ( long ) m_pJunctions;
+
+  ListExpr ptrList = listutils::getPtrList(m_pJunctions);
 
   string querystring = "(consume (feed (" + junctionsInternalTypeInfo +
-                       " (ptr " + strJunctionsPtr.str() + "))))";
+                       " (ptr " + nl->ToString(ptrList) + "))))";
 
   Word resultWord;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
@@ -4695,11 +4695,10 @@ Relation* Network::GetSectionsInternal()const
 
 Relation* Network::GetSections()const
 {
-  ostringstream strSectionsPtr;
-  strSectionsPtr << ( long ) m_pSections;
+  ListExpr ptrList = listutils::getPtrList(m_pSections);
 
   string querystring = "(consume (feed (" + sectionsInternalTypeInfo +
-                       " (ptr " + strSectionsPtr.str() + "))))";
+                       " (ptr " + nl->ToString(ptrList) + "))))";
 
   Word resultWord;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );

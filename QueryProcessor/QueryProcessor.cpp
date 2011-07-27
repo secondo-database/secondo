@@ -1938,19 +1938,30 @@ function index.
     {
       // case (iv-b): The first element is a valid type expression!
       bool isPointer = false;
+
       if( nl->ListLength(nl->Second(expr)) == 2 &&
           nl->IsEqual(nl->First(nl->Second(expr)), "ptr") &&
+          listutils::isPtrList(nl->Second(nl->Second(expr)))) {
+        value = SetWord(listutils::getPtr(nl->Second(nl->Second(expr))));
+        isPointer = true;
+        correct = true;
+      } else if( nl->ListLength(nl->Second(expr)) == 2 &&
+          nl->IsEqual(nl->First(nl->Second(expr)), "ptr") &&
           nl->IsAtom(nl->Second(nl->Second(expr))) &&
-          nl->AtomType(nl->Second(nl->Second(expr))) == IntType )
-      {
+          nl->AtomType(nl->Second(nl->Second(expr))) == IntType ) {
+
+        cerr << "WARNING: Use of deprecated (non 64 bit save) version of ptr" 
+             << endl;
+        cerr << "Use listutils::getPtrList(void*) instead of an int-Atom " 
+             << endl;
+        cerr << "Please contact the programmer of the used opertor to fix it"
+             << endl;
         // constant value given as pointer
         value = SetWord(
           (void*)nl->IntValue(nl->Second(nl->Second(expr))));
         isPointer = true;
         correct = true;
-      }
-      else
-      {
+      } else {
         // constant value given as pair (<type> <value>)
         value = GetCatalog()->InObject(nl->First( expr ),
                                        nl->Second( expr ),

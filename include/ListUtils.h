@@ -158,6 +158,28 @@ Checks for a numeric value
  bool isASymbolIn(const ListExpr list, const set<string>& s);
 
 
+/*
+transformes a pointer into a listexpr evaluable by the query processor
+
+*/
+
+ ListExpr getPtrList(const void* ptr);
+
+
+/*
+Checks whether this list represents a pointer
+
+*/
+ bool isPtrList(const ListExpr list);
+
+/*
+Converts a ptr list into a pointer.
+
+*/
+ void* getPtr(const ListExpr ptrList);
+
+
+
 
 /*
 Returns the numeric value.

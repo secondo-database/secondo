@@ -686,4 +686,37 @@ Checks whether the list represents a stream.
     }
   }
 
+
+  ListExpr getPtrList(const void* ptr){
+    // ensure that two int atoms can pick up a pointer
+    assert(sizeof(void*) <= 8);
+    uint32_t v1 = 0;
+    uint32_t v2 = 0;
+    uint64_t v = (uint64_t) ptr;
+    v1 = v;         // lower bits
+    v2 = (v >> 32); // higher bits
+    ListExpr res = nl->TwoElemList(nl->IntAtom(v2), nl->IntAtom(v1));
+    return res; 
+
+  }
+
+  bool isPtrList(const ListExpr list){
+
+    return nl->HasLength(list,2) &&
+           nl->AtomType(nl->First(list)) == IntType &&
+           nl->AtomType(nl->Second(list)) == IntType;
+  }
+
+ void* getPtr( const ListExpr ptrList){
+    uint64_t v2 = (uint64_t) nl->IntValue(nl->First(ptrList));
+    uint64_t v1 = (uint64_t) nl->IntValue(nl->Second(ptrList));
+
+    uint64_t v = (v2 << 32) | v1;
+    return (void*) v;
+ }
+ 
+
+
+
+
 } // end of namespace listutils
