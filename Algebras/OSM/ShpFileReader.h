@@ -40,6 +40,7 @@ This header file essentially contains the definition of the class ~ShpFileReader
 #ifndef __SHP_FILE_READER_H__
 #define __SHP_FILE_READER_H__
 
+// --- Including header-files
 #include "NestedList.h"
 #include <fstream>
 #include <sys/stat.h>
@@ -48,7 +49,6 @@ This header file essentially contains the definition of the class ~ShpFileReader
 class FText;
 class Attribute;
 
-// --- Including header-files
 class ShpFileReader {
 
 public:
