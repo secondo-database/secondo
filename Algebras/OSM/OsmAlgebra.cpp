@@ -55,6 +55,7 @@ using namespace std;
 #include "../Spatial/SpatialAlgebra.h"
 #include "../FText/FTextAlgebra.h"
 #include "ShpFileReader.h"
+#include "ConnCodeFinder.h"
 
 // --- Enabling global pointer variables
 extern NestedList* nl;
@@ -181,12 +182,103 @@ Operator shpimport3( "shpimport3",
                     Operator::SimpleSelect,
                     shpimport3TypeMap);
 
+// --- getconnectivitycode-operator
+// Specification of operator getconnectivitycode
+const string getconnectivitycodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> d1 x d2 x d3 x d4 x o1 x o2 x o3 x o4 -> c"
+    ", d1, d2, d3, d4, c int, o1, o2, o3, o4 bool</text--->"
+    "<text>getconnectivitycode(_)</text--->"
+    "<text>Computes and returns the connectivity code as integer value "
+    "from the directions and the one-way data of four crossing "
+    "sections</text--->"
+    "<text> query getconnectivitycode(sec1, sec2, sec3, sec4, ow1, ow2,"
+    " ow3, ow4)</text--->))";
+
+// Value-mapping-function of operator getconnectivitycode
+int getconnectivitycodeValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+   assert (args != NULL);
+   result = qp->ResultStorage (s);
+   CcInt *res = static_cast<CcInt*>(result.addr);;
+   int dir[4] = {0, 0, 0, 0};
+   bool ow[4] = {false, false, false, false};
+   CcInt *direction = NULL;
+   CcBool *oneWay = NULL;
+   int iDir = 0;
+   int iOw = 0;
+   bool foundUndefined = false;
+   for (iDir = 0; iDir < 4; ++iDir)  {
+      direction = static_cast<CcInt *>(args[iDir].addr);
+      if (!direction->IsDefined()) {
+         foundUndefined = true;
+      }
+      dir[iDir] = direction->GetValue ();
+   }
+   for (iOw = 0; iOw < 4; ++iOw)  {
+      oneWay = static_cast<CcBool *>(args[4 + iOw].addr);
+      if (!oneWay->IsDefined()) {
+         foundUndefined = true;
+      }
+      ow[iOw] = oneWay->GetValue ();
+   }
+   if (foundUndefined)  {
+      res->SetDefined(false);
+   } else  {
+      res->Set (true, ConnCodeFinder::getConnectivityCode (
+         dir[0],dir[1],dir[2],dir[3],ow[0],ow[1],ow[2],ow[3]));
+   }
+   return 0;
+}
+
+// Type-mapping-function of operator getconnectivitycode
+ListExpr getconnectivitycodeTypeMap(ListExpr args){
+   assert (args);
+   if(nl->ListLength(args) != 8){
+      return listutils::typeError("eight arguments expected");
+   }
+   ListExpr rest = args;
+   int i = 0;
+   int val = 0;
+   while (!nl->IsEmpty (rest)) {
+      ListExpr current = nl->First (rest);
+      rest = nl->Rest (rest);
+      if (nl->ListLength (current) != 2){
+         return listutils::typeError("argument has to consists of 2 parts");
+      }
+      if (i >= 0 && i < 4)  {
+         if (!listutils::isSymbol (nl->First(current), CcInt::BasicType ())) {
+            return listutils::typeError("int expected");
+         }
+         //TODO Reconsider the following line!
+         val = (nl->Second(current));
+         if (val >= 0 && val < 3)  {
+            return listutils::typeError("value between zero and two expected");
+         }
+      } else if ((i >= 4 && i < 8 &&
+         !listutils::isSymbol (nl->First(current), CcBool::BasicType ()))){
+         return listutils::typeError("bool expected");
+      }
+      ++i;
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+// Instance of operator getconnectivitycode
+Operator getconnectivitycode( "getconnectivitycode",
+                    getconnectivitycodeSpec,
+                    getconnectivitycodeValueMap,
+                    Operator::SimpleSelect,
+                    getconnectivitycodeTypeMap);
+
 // --- Constructors
 // Constructor
 osm::OsmAlgebra::OsmAlgebra () : Algebra ()
 {
     AddOperator(&shpimport3);
     shpimport3.SetUsesArgsInTypeMapping();;
+    AddOperator(&getconnectivitycode);
+    getconnectivitycode.SetUsesArgsInTypeMapping();;
 }
 
 // Destructor
