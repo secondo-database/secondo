@@ -3680,7 +3680,7 @@ Then call the operator's value mapping function.
 
                 Eval( tree->u.op.sons[i].addr, arg[i], message );
                  
-                if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
+                //if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
 
               }
               else // a stream operator
