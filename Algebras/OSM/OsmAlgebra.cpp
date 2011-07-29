@@ -271,6 +271,75 @@ Operator getconnectivitycode( "getconnectivitycode",
                     Operator::SimpleSelect,
                     getconnectivitycodeTypeMap);
 
+// --- binor-operator
+// Specification of operator binor
+const string binorSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> d1 x d2 -> c, d1, d2, c int</text--->"
+    "<text>binor(_,_)</text--->"
+    "<text>Represents the binary-or-operation of two interger values</text--->"
+    "<text> query binor(0,1)</text--->))";
+
+// Value-mapping-function of operator binor
+int binorValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+   assert (args != NULL);
+   result = qp->ResultStorage (s);
+   CcInt *res = static_cast<CcInt*>(result.addr);;
+   CcInt *arg1 = NULL;
+   CcInt *arg2 = NULL;
+   int a = 0;
+   int b = 0;
+   bool foundUndefined = false;
+   arg1 = static_cast<CcInt *>(args[0].addr);
+   if (!arg1->IsDefined()) {
+      foundUndefined = true;
+   }
+   a = arg1->GetValue ();
+   arg2 = static_cast<CcInt *>(args[1].addr);
+   if (!arg2->IsDefined()) {
+      foundUndefined = true;
+   }
+   b = arg2->GetValue ();
+    
+   if (foundUndefined)  {
+      res->SetDefined(false);
+   } else  {
+      res->Set (true,(a|b));
+   }
+   return 0;
+}
+
+// Type-mapping-function of operator binor
+ListExpr binorTypeMap(ListExpr args){
+   assert (args);
+   if(nl->ListLength(args) != 2){
+      return listutils::typeError("two arguments expected");
+   }
+   ListExpr a = nl->First (args);
+   ListExpr b = nl->Second (args);
+   if (nl->ListLength (a) != 2){
+      return listutils::typeError("argument has to consists of 2 parts");
+   }
+   if (nl->ListLength (b) != 2){
+      return listutils::typeError("argument has to consists of 2 parts");
+   }
+   if (!listutils::isSymbol (nl->First(a), CcInt::BasicType ())) {
+      return listutils::typeError("int expected");
+   }
+   if (!listutils::isSymbol (nl->First(b), CcInt::BasicType ())) {
+      return listutils::typeError("int expected");
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+// Instance of operator binor
+Operator binor( "binor",
+                binorSpec,
+                binorValueMap,
+                Operator::SimpleSelect,
+                binorTypeMap);
+
 // --- Constructors
 // Constructor
 osm::OsmAlgebra::OsmAlgebra () : Algebra ()
@@ -279,6 +348,8 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     shpimport3.SetUsesArgsInTypeMapping();;
     AddOperator(&getconnectivitycode);
     getconnectivitycode.SetUsesArgsInTypeMapping();;
+    AddOperator(&binor);
+    binor.SetUsesArgsInTypeMapping();;
 }
 
 // Destructor

@@ -12,3 +12,9 @@ Number   : 2
 Signature: d1 x d2 x d3 x d4 x o1 x o2 x o3 x o4 -> c, d1, d2, d3, d4, c int, o1, o2, o3, o4 bool
 Example  : query getconnectivitycode(0, 0, 0, 0, FALSE, FALSE, FALSE, FALSE)
 Result   : 0
+
+Operator : binor
+Number   : 3
+Signature: d1 x d2 -> c, d1, d2, c int
+Example  : query getconnectivitycode(0, 1)
+Result   : 1
