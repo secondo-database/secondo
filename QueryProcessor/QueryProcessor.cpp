@@ -3728,13 +3728,15 @@ Then call the operator's value mapping function.
 
           // copy arguments from abstraction to argument 
           // vector of the underlying function
-          absArgs = Argument(tree->u.op.sons[0].addr ); // argument vector
-          for ( i = 1; i < tree->u.op.noSons; i++ ) {
-              (*absArgs)[i-1] = arg[i]; // load arguments for function
+          if(message <= CLOSE){
+            absArgs = Argument(tree->u.op.sons[0].addr ); // argument vector
+            for ( i = 1; i < tree->u.op.noSons; i++ ) {
+                (*absArgs)[i-1] = arg[i]; // load arguments for function
 
-                        if ( traceNodes )
-                        cerr << fn << "absArgs[" << i-1 << "] = "
-                        << (void*)arg[i].addr << endl;
+                          if ( traceNodes )
+                          cerr << fn << "absArgs[" << i-1 << "] = "
+                          << (void*)arg[i].addr << endl;
+            }
           }
          
 
