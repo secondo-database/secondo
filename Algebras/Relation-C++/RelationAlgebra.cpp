@@ -771,7 +771,7 @@ relation.
 class TmpRel {
 
   public:
-  TmpRel(){ trel = 0; };
+  TmpRel(){  };
   ~TmpRel(){};
 
   static GenericRelation* In( ListExpr typeInfo,
@@ -789,7 +789,6 @@ class TmpRel {
     return r;
   }
 
-  TupleBuffer* trel;
 };
 
 
