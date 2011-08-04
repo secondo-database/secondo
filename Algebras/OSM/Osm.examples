@@ -18,3 +18,27 @@ Number   : 3
 Signature: d1 x d2 -> c, d1, d2, c int
 Example  : query getconnectivitycode(0, 1)
 Result   : 1
+
+Operator : getscalefactorx
+Number   : 4
+Signature: -> int
+Example  : query getscalefactorx()
+Result   : 1000
+
+Operator : getscalefactory
+Number   : 5
+Signature: -> int
+Example  : query getscalefactory()
+Result   : 1000
+
+Operator : setscalefactorx
+Number   : 6
+Signature: int -> int
+Example  : query setscalefactorx(2000)
+Result   : 2000
+
+Operator : setscalefactory
+Number   : 7
+Signature: int -> int
+Example  : query setscalefactory(2000)
+Result   : 2000

@@ -34,7 +34,7 @@ June-November, 2011. Thomas Uchdorf
 
 This implementation file contains the implementation of the class ~ShpFileReader~.
 
-For more detailed information see OsmAlgebra.h.
+For more detailed information see ShpFileReader.h.
 
 2 Defines and Includes
 
@@ -49,6 +49,7 @@ For more detailed information see OsmAlgebra.h.
 #include "../Spatial/SpatialAlgebra.h"
 #include "RegionTools.h"
 #include "../FText/FTextAlgebra.h"
+#include "ScalingEngine.h"
 using namespace std;
 
 // --- Constructors
@@ -142,8 +143,6 @@ Attribute* ShpFileReader::getNextSimpleLine () {
     Point p1;
     Point p2;
     HalfSegment hs;
-    int SCALE_FACTOR_X = 1000;
-    int SCALE_FACTOR_Y = 1000;
 
     // Testing if the file is empty
     if (file.tellg ()==fileend) {
@@ -209,8 +208,10 @@ Attribute* ShpFileReader::getNextSimpleLine () {
         jStart = numElems;
         jEnd = (i == parts.size () - 1)? numPoints : parts[i + 1];
         for (j = jStart; j < jEnd && file.good () ; ++j) {
-            x = readLittleDouble () * SCALE_FACTOR_X;
-            y = readLittleDouble () * SCALE_FACTOR_Y;
+            x = readLittleDouble () * 
+                ScalingEngine::getInstance ().getScaleFactorX ();
+            y = readLittleDouble () *
+                ScalingEngine::getInstance ().getScaleFactorY ();
             p2.Set (x,y);
             if (j > jStart) {
                 if (!AlmostEqual (p1,p2)) {

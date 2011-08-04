@@ -56,6 +56,7 @@ using namespace std;
 #include "../FText/FTextAlgebra.h"
 #include "ShpFileReader.h"
 #include "ConnCodeFinder.h"
+#include "ScalingEngine.h"
 
 // --- Enabling global pointer variables
 extern NestedList* nl;
@@ -340,6 +341,168 @@ Operator binor( "binor",
                 Operator::SimpleSelect,
                 binorTypeMap);
 
+// --- getscalefactorx-operator
+// Specification of operator getscalefactorx
+const string getscalefactorxSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> -> int</text--->"
+    "<text>getscalefactorx()</text--->"
+    "<text>Returns the currently set scale factor for x coordinates.</text--->"
+    "<text> query getscalefactorx()</text--->))";
+
+// Value-mapping-function of operator getscalefactorx
+int getscalefactorxValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+   assert (args != NULL);
+   result = qp->ResultStorage (s);
+   CcInt *res = static_cast<CcInt*>(result.addr);;
+   res->Set (true,ScalingEngine::getInstance ().getScaleFactorX ());
+   return 0;
+}
+
+// Type-mapping-function of operator getscalefactorx
+ListExpr getscalefactorxTypeMap(ListExpr args){
+   if(args){
+      return listutils::typeError("no arguments expected");
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+// Instance of operator getscalefactorx
+Operator getscalefactorx( "getscalefactorx",
+                getscalefactorxSpec,
+                getscalefactorxValueMap,
+                Operator::SimpleSelect,
+                getscalefactorxTypeMap);
+
+// --- getscalefactory-operator
+// Specification of operator getscalefactory
+const string getscalefactorySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> -> int</text--->"
+    "<text>getscalefactory()</text--->"
+    "<text>Returns the currently set scale factor for y coordinates.</text--->"
+    "<text> query getscalefactory()</text--->))";
+
+// Value-mapping-function of operator getscalefactory
+int getscalefactoryValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+   assert (args != NULL);
+   result = qp->ResultStorage (s);
+   CcInt *res = static_cast<CcInt*>(result.addr);;
+   res->Set (true,ScalingEngine::getInstance ().getScaleFactorY ());
+   return 0;
+}
+
+// Type-mapping-function of operator getscalefactory
+ListExpr getscalefactoryTypeMap(ListExpr args){
+   if(args){
+      return listutils::typeError("no arguments expected");
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+// Instance of operator getscalefactory
+Operator getscalefactory( "getscalefactory",
+                getscalefactorySpec,
+                getscalefactoryValueMap,
+                Operator::SimpleSelect,
+                getscalefactoryTypeMap);
+
+// --- setscalefactorx-operator
+// Specification of operator setscalefactorx
+const string setscalefactorxSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> int -> int</text--->"
+    "<text>setscalefactorx(_)</text--->"
+    "<text>Sets the scale factor for x coordinates and returns the new "
+    "value.</text--->"
+    "<text> query setscalefactorx(2000)</text--->))";
+
+// Value-mapping-function of operator setscalefactorx
+int setscalefactorxValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+   assert (args != NULL);
+   result = qp->ResultStorage (s);
+   CcInt *res = static_cast<CcInt*>(result.addr);;
+   CcInt *arg = static_cast<CcInt *>(args[0].addr);
+   if (!arg->IsDefined()) {
+      res->SetDefined(false);
+   } else  {
+      ScalingEngine::getInstance ().setScaleFactorX (arg->GetValue ());
+      res->Set (true, ScalingEngine::getInstance ().getScaleFactorX ());
+   }
+   return 0;
+}
+
+// Type-mapping-function of operator setscalefactorx
+ListExpr setscalefactorxTypeMap(ListExpr args){
+   assert (args);
+   if(nl->ListLength(args) != 1){
+      return listutils::typeError("one argument expected");
+   }
+   ListExpr arg = nl->First (args);
+   if (nl->ListLength (arg) != 2 ||
+       !listutils::isSymbol (nl->First (arg), CcInt::BasicType ())) {
+      return listutils::typeError("wrapped int expected");
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+// Instance of operator setscalefactorx
+Operator setscalefactorx( "setscalefactorx",
+                setscalefactorxSpec,
+                setscalefactorxValueMap,
+                Operator::SimpleSelect,
+                setscalefactorxTypeMap);
+
+// --- setscalefactory-operator
+// Specification of operator setscalefactory
+const string setscalefactorySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> int -> int</text--->"
+    "<text>setscalefactory(_)</text--->"
+    "<text>Sets the scale factor for y coordinates and returns the new "
+    "value.</text--->"
+    "<text> query setscalefactory(2000)</text--->))";
+
+// Value-mapping-function of operator setscalefactory
+int setscalefactoryValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+   assert (args != NULL);
+   result = qp->ResultStorage (s);
+   CcInt *res = static_cast<CcInt*>(result.addr);;
+   CcInt *arg = static_cast<CcInt *>(args[0].addr);
+   if (!arg->IsDefined()) {
+      res->SetDefined(false);
+   } else  {
+      ScalingEngine::getInstance ().setScaleFactorY (arg->GetValue ());
+      res->Set (true, ScalingEngine::getInstance ().getScaleFactorY ());
+   }
+   return 0;
+}
+
+// Type-mapping-function of operator setscalefactory
+ListExpr setscalefactoryTypeMap(ListExpr args){
+   assert (args);
+   if(nl->ListLength(args) != 1){
+      return listutils::typeError("one argument expected");
+   }
+   ListExpr arg = nl->First (args);
+   if (nl->ListLength (arg) != 2 ||
+       !listutils::isSymbol (nl->First (arg), CcInt::BasicType ())) {
+      return listutils::typeError("wrapped int expected");
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+// Instance of operator setscalefactory
+Operator setscalefactory( "setscalefactory",
+                setscalefactorySpec,
+                setscalefactoryValueMap,
+                Operator::SimpleSelect,
+                setscalefactoryTypeMap);
+
 // --- Constructors
 // Constructor
 osm::OsmAlgebra::OsmAlgebra () : Algebra ()
@@ -350,6 +513,14 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     getconnectivitycode.SetUsesArgsInTypeMapping();;
     AddOperator(&binor);
     binor.SetUsesArgsInTypeMapping();;
+    AddOperator(&getscalefactorx);
+    getscalefactorx.SetUsesArgsInTypeMapping();;
+    AddOperator(&getscalefactory);
+    getscalefactory.SetUsesArgsInTypeMapping();;
+    AddOperator(&setscalefactorx);
+    setscalefactorx.SetUsesArgsInTypeMapping();;
+    AddOperator(&setscalefactory);
+    setscalefactory.SetUsesArgsInTypeMapping();;
 }
 
 // Destructor
