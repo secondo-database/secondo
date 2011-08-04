@@ -142,6 +142,8 @@ Attribute* ShpFileReader::getNextSimpleLine () {
     Point p1;
     Point p2;
     HalfSegment hs;
+    int SCALE_FACTOR_X = 1000;
+    int SCALE_FACTOR_Y = 1000;
 
     // Testing if the file is empty
     if (file.tellg ()==fileend) {
@@ -207,8 +209,8 @@ Attribute* ShpFileReader::getNextSimpleLine () {
         jStart = numElems;
         jEnd = (i == parts.size () - 1)? numPoints : parts[i + 1];
         for (j = jStart; j < jEnd && file.good () ; ++j) {
-            x = readLittleDouble ();
-            y = readLittleDouble ();
+            x = readLittleDouble () * SCALE_FACTOR_X;
+            y = readLittleDouble () * SCALE_FACTOR_Y;
             p2.Set (x,y);
             if (j > jStart) {
                 if (!AlmostEqual (p1,p2)) {
