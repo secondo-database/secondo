@@ -1,3 +1,4 @@
+
 %{
 
 #include <stdio.h>
@@ -50,10 +51,22 @@ some variables corresponding the the options.
 bool subqueries = false;
 // insert further options here
 
+
 // define some global variables
 std::set<string> usedNames;
 
-
+bool isCorrect( std::set<std::string>& usedNames , std::set<std::string>& name )
+    {
+        set<string> :: iterator it;
+        for(it=usedNames.begin(); it!=usedNames.end(); it++){
+           if( name.find(*it) == name.end()){
+              string err = "The name " + (*it) + "is used but not available";
+              opterror(err.c_str());
+              return false; 
+           }
+        }
+        return true;
+ }
 
 
 
@@ -155,8 +168,14 @@ mquery : query
 
 
 query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_clause groupby_clause orderby_clause first_clause
-       {  
+       {   
+            cerr << "DEBUG: query 1st rule" << endl; cerr.flush();
             $$ = $3;
+
+            if(!isCorrect($3->name, $5->name)) {
+                return false;
+            }
+
             {
             set<string>  a = $5->name ;
             set<string> :: iterator it ;
@@ -164,9 +183,12 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                { 
                  $$->name.insert( *it);
                }
+            
            delete( $5 );
           }
-
+            if(!isCorrect($6->name, $5->name)) {
+                return false;
+            }
         { 
            set<string>  a = $6->name ;
             set<string>:: iterator it ;
@@ -176,6 +198,9 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                }
            delete( $6 );
           }
+         if(!isCorrect($7->name, $5->name)) {
+                return false;
+            }
         {
           set<string>  a = $7->name ;
             set<string> :: iterator it ;
@@ -185,7 +210,9 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                }
            delete( $7 );
           }
-
+         if(!isCorrect($8->name, $5->name)) {
+                return false;
+            }
         { 
            set<string>  a = $8->name ;
             set<string> :: iterator it ;
@@ -195,6 +222,10 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                }
            delete( $8 );
           }
+
+        if(!isCorrect($9->name, $5->name)) {
+                return false;
+            }
         {
           set<string>  a = $9->name ;
             set<string> :: iterator it ;
@@ -204,12 +235,18 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                }
            delete( $9 );
           }
-           
-       cerr << "DEBUG: query 1st rule" << endl; cerr.flush();
+      
+       
+        
+
+              
     }
        
         | TOKEN_SELECT  sel_clause TOKEN_FROM rel_clause where_clause groupby_clause orderby_clause first_clause
           { $$ = $2 ;
+               if(!isCorrect($2->name, $4->name)) {
+                return false;
+            }
             {
                      set<string> a = $4->name ;
                      set<string> :: iterator it ;
@@ -218,7 +255,9 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                          $$->name.insert( *it);
                          }
                     delete( $4 );       
-                }
+                }   if(!isCorrect($5->name, $4->name)) {
+                     return false;
+                     }
                {
                      set<string> a = $5->name ;
                      set<string> :: iterator it ;
@@ -227,7 +266,10 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                          $$->name.insert( *it);
                          }
                     delete( $5 );       
-                }
+                }  
+                   if(!isCorrect($6->name, $4->name)) {
+                   return false;
+                   }
                {
                      set<string> a = $6->name ;
                      set<string> :: iterator it ;
@@ -237,6 +279,9 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                          }
                     delete( $6 );       
                 }
+                   if(!isCorrect($7->name, $4->name)) {
+                    return false;
+                   }
               {
                      set<string>  a = $7->name ;
                      set<string> :: iterator it ;
@@ -246,6 +291,9 @@ query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_claus
                          }
                     delete( $7 );       
                 }
+                      if(!isCorrect($8->name, $4->name)) {
+                      return false;
+                     }
               {
                      set<string>  a = $8->name ;
                      set<string> :: iterator it ;
