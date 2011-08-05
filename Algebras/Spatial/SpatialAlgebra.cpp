@@ -8354,10 +8354,16 @@ bool Region::Contains( const HalfSegment& hs, const Geoid* geoid/*=0*/ ) const
                   hs.Contains(auxhs.GetLeftPoint(),geoid) ||
                   hs.Contains(auxhs.GetRightPoint(),geoid)){
                     checkMidPoint = true;
-              } else { //the intersection point that is not the endpoint
-                  Point temp_p;
-                  assert(hs.Intersection(auxhs,temp_p,geoid));
-                  intersection_points.push_back(temp_p);
+                   //the intersection point that is not the endpoint
+                    Point temp_p;
+  
+                  if(hs.Intersection(auxhs,temp_p, geoid))
+                    intersection_points.push_back(temp_p);
+                  HalfSegment temp_hs;
+                  if(hs.Intersection(auxhs, temp_hs, geoid)){
+                      intersection_points.push_back(temp_hs.GetLeftPoint());
+                      intersection_points.push_back(temp_hs.GetRightPoint());
+                  }
               }
       }
     }
@@ -10380,6 +10386,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                       cycle,
                                       1);
        adjacentPointFound=s->goToCHS1Right;
+//       cout<<"flag 1 "<<adjacentPointFound<<" p1 "<<previousPoint<<endl;
      }
      if ( !adjacentPointFound && s->goToCHS1Left )
      {
@@ -10394,6 +10401,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                      cycle,
                                      -1);
        adjacentPointFound=s->goToCHS1Left;
+//       cout<<"flag 2 "<<adjacentPointFound<<" p2 "<<previousPoint<<endl;
      }
      if (!adjacentPointFound && s->goToCHS2Right)
      {
@@ -10408,6 +10416,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                       cycle,
                                       1);
        adjacentPointFound=s->goToCHS2Right;
+//       cout<<"flag 3 "<<adjacentPointFound<<" p3 "<<previousPoint<<endl;
      }
      if (!adjacentPointFound && s->goToCHS2Left)
      {
@@ -10422,9 +10431,13 @@ void Region::ComputeCycle( HalfSegment &hs,
                                      cycle,
                                      -1);
        adjacentPointFound = s->goToCHS2Left;
+
+//      cout<<"flag 4 "<<adjacentPointFound<<" p4 "<<previousPoint<<endl;
+
      }
 
      if(!adjacentPointFound){
+         cerr<<"previousPoint "<<previousPoint<<endl;
          cerr << "Problem in rebuilding cycle in a region " << endl;
          cerr << "no adjacent point found" << endl;
          cerr << "Halfsegments : ---------------     " << endl;
