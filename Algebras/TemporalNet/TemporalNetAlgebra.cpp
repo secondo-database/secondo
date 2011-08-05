@@ -5713,8 +5713,8 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
 }
 
 void MGPoint::GetMGPSecUnits(vector<MGPSecUnit> &res,
-                             const double maxSectLength,
-                             const Network *pNet) const
+                             double maxSectLength,
+                             Network *pNet) const
 {
   res.clear();
   if (IsDefined() && 0 < GetNoComponents())

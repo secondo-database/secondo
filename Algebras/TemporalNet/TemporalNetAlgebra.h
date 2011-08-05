@@ -938,8 +938,8 @@ Returns the sections passed by the ~mgpoint~
 
   int Position(const Instant &inst, bool atinst=true) const;
 
-  void GetMGPSecUnits(vector<MGPSecUnit> &res, const double maxSectLength,
-                     const Network *pNet) const;
+  void GetMGPSecUnits(vector<MGPSecUnit> &res, double maxSectLength,
+                      Network *pNet) const;
 
   DbArray<RouteInterval> m_trajectory;
   private:
