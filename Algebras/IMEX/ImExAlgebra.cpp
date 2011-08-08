@@ -433,35 +433,35 @@ Operator csvexport( "csvexport",
 1.1 Type Mapping
 
   rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x
-                          int x string -> stream(tuple(...))
+                          int x string [x string] [x bool] -> stream(tuple(...))
 
   where t[_]i is CSVIMPORTABLE.
 
-  text   :  indicates the filename containing the csv data
-  int    :  number of lines to ignore (header)
-  string :  ignore Lines starting with this string (comment)
-            use an empty string for disable this feature
+  text            :  indicates the filename containing the csv data
+  int             :  number of lines to ignore (header)
+  string          :  ignore Lines starting with this string (comment)
+                     use an empty string for disable this feature
+
+  optional string : use another separator, default is ","
+  optional bool   : if set to true, ignore separators within quotes, for example,
+                    treat "hello, hello" as a single item , default is false
 
 */
 
 ListExpr csvimportTM(ListExpr args){
   string err = " rel(tuple(a_1 : t_1)...(a_n : t_n)) x "
-               "text x int x string [x string] expected";
+               " text x int x string [x string [x bool]] expected";
+
   int len = nl->ListLength(args);
-  if((len!=4) && (len!=5)){
+  if((len!=4) && (len!=5) && (len !=6)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!IsRelDescription(nl->First(args)) ||
-     !nl->IsEqual(nl->Second(args),FText::BasicType()) ||
-     !nl->IsEqual(nl->Third(args),CcInt::BasicType()) ||
-     !nl->IsEqual(nl->Fourth(args),CcString::BasicType())){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
-  }
-  if( (len==5) && !nl->IsEqual(nl->Fifth(args),CcString::BasicType())){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+  if(!Relation::checkType(nl->First(args)) ||
+     !FText::checkType(nl->Second(args) )  ||
+     !CcInt::checkType(nl->Third(args)) ||
+     !CcString::checkType(nl->Fourth(args) )){
+    return listutils::typeError(err);
   }
 
   // check attribute types for csv importable
@@ -469,8 +469,7 @@ ListExpr csvimportTM(ListExpr args){
 
   ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
   if(nl->IsEmpty(attrlist)){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
+    return listutils::typeError(err);
   }
   while(!nl->IsEmpty(attrlist)){
      ListExpr type = nl->Second(nl->First(attrlist));
@@ -480,8 +479,40 @@ ListExpr csvimportTM(ListExpr args){
      }
      attrlist = nl->Rest(attrlist);
   }
-  return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
-                          nl->Second(nl->First(args)));
+
+  // create result list
+  ListExpr resList = nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
+                     nl->Second(nl->First(args)));
+
+
+
+  if(len==4){ // append two default values
+     ListExpr defaults = nl->TwoElemList(
+                              nl->StringAtom(","),
+                              nl->BoolAtom(false)
+                            );
+     return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                               defaults, resList);
+  }  
+
+  
+  // the fifth element must be of type string
+ if(!CcString::checkType(nl->Fifth(args))){
+    return listutils::typeError(err);
+  }
+
+  if(len==5){ // set the optional boolean to be false 
+     ListExpr defaults = nl->OneElemList(nl->BoolAtom(false));
+
+     return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                               defaults, resList);
+  }
+
+  // len == 6: no defaults, check sixth element
+  if(!CcBool::checkType(nl->Sixth(args))){
+    return listutils::typeError(err);
+  }
+  return resList;
 }
 
 
@@ -494,9 +525,10 @@ ListExpr csvimportTM(ListExpr args){
 
 const string csvimportSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text>rel(tuple(...) x text x int x string [x string] "
+   "( <text>rel(tuple(...) x text x int x string [x string [x bool]] "
    "-> stream (tuple(...))</text--->"
-   "<text>Rel csvimport[ FileName, HeaderSize, Comment, Separator] </text--->"
+   "<text>Rel csvimport[ FileName, HeaderSize, Comment, Separator, quotes]"
+   " </text--->"
    "<text> Returns the content of the CSV (Comma Separated Value) file "
    "'FileName' as a stream of tuples. The types are defined by the first "
    "argument, 'Rel', whose tuple type acts as a template for the result tuple "
@@ -504,7 +536,9 @@ const string csvimportSpec  =
    "the imported textfile. 'Comment' defines a character that marks comment "
    "lines within the textfile. 'Separator' defines the character that is "
    "expected to separate the fields within each line of the textfile (default "
-   "is \",\".</text--->"
+   "is \",\"."
+   "quotes means that separators within quotes are ignored."
+   "</text--->"
    "<text> not tested !!!</text--->"
    ") )";
 /*
@@ -515,9 +549,22 @@ class CsvImportInfo{
 public:
   CsvImportInfo(ListExpr type, FText* filename,
                 CcInt* hSize , CcString* comment,
-                const string& separator){
+                CcString* separator,
+                CcBool* quotes){
 
-      this->separator = separator;
+      this->separator = ",";
+      this->quotes = false;
+
+      if(separator->IsDefined() ){
+         string sep = separator->GetValue();
+         if(sep.length()>0){
+           this->separator=sep;
+         }
+      } 
+      if(quotes->IsDefined()){
+         this->quotes = quotes->GetValue();
+      }
+
       BasicTuple = 0;
       tupleType = 0;
       defined = filename->IsDefined() && hSize->IsDefined() &&
@@ -619,27 +666,78 @@ private:
   Tuple* BasicTuple;
   vector<Attribute*> instances;
   string separator;
+  bool quotes;
+
+
+  string getNextElem(const string& line, size_t& pos, bool& ok){
+    if(!quotes){
+      return getNextElemWithoutQuotes(line,pos,ok);
+    }
+    size_t pos2 = line.find_first_not_of(" ",pos); // ignore space
+    if((pos2==string::npos) || line[pos2]!='"'){ // next does not start with "
+      return getNextElemWithoutQuotes(line,pos,ok);
+    }
+    // ok next string seems to be embedded within quotes
+    // try to find the corresponding quote
+    size_t pos3 = line.find_first_of("\"",pos2+1);
+    if(pos3==string::npos){
+       // no closing quote found, ignore open quote
+       return getNextElemWithoutQuotes(line,pos,ok);
+    }
+    // closing quotes found, find the next separator
+    size_t pos4 = line.find_first_of(separator,pos3+1);
+    // ensure thet between the closing quotes and the next separator are atmost 
+    // spaces
+    size_t pos5 = line.find_first_not_of(" ", pos3+1);
+    if(pos4!=pos5){
+       // there are non space characters between closing quote and separator
+       return getNextElemWithoutQuotes(line,pos,ok);
+    }
+    string res = line.substr(pos2+1, pos3 - (pos2 + 1));
+    ok = true;
+    if(pos4==string::npos){
+        pos = pos4;
+    } else {
+        pos = pos4+1;
+    }
+    return res;
+  }
+
+  string getNextElemWithoutQuotes(const string& line, size_t& pos, bool& ok){
+
+      if(pos==string::npos){
+         ok = false;
+         return "";
+      }
+
+      size_t nextPos = line.find_first_of(separator,pos);
+      string res;
+
+      if(nextPos!=string::npos){ // separator found
+         res = line.substr(pos,nextPos-pos);
+         pos = nextPos + 1;
+      } else { // no further separator found
+         res = line.substr(pos, line.length()-pos);
+         pos = nextPos;
+      }
+      ok = true;
+      return res;
+  }
+
+
   Tuple* createTuple(string line){
       Tuple* result = BasicTuple->Clone();
-      string::size_type lastPos = 0;
-      bool end = false;
+      size_t lastPos = 0;
       for(unsigned int i=0;i<instances.size();i++){
          Attribute* attr = instances[i]->Clone();
-         string::size_type pos  = line.find_first_of(separator, lastPos);
-         if( (pos!=string::npos)  || ( (lastPos != string::npos) && !end)){
-            if(pos==string::npos){
-               pos = line.size();
-               end=true;
-            }
-            string attrstr = line.substr(lastPos,pos -lastPos);
-            attr->ReadFromString(attrstr);
-            result->PutAttribute(i,attr);
-            lastPos = pos+separator.length();
-            pos = line.find_first_of(separator, lastPos);
+         bool ok = true;
+         string next = getNextElem(line, lastPos, ok);
+         if(ok){
+            attr->ReadFromString(next);
          } else {
             attr->SetDefined(false);
-            result->PutAttribute(i,attr);
          }
+         result->PutAttribute(i,attr);
       }
       return result;
   }
@@ -649,36 +747,32 @@ private:
 int csvimportVM(Word* args, Word& result,
                int message, Word& local, Supplier s){
 
+
+  CsvImportInfo* info = static_cast<CsvImportInfo*>(local.addr);
   switch(message){
     case OPEN: {
       ListExpr type = qp->GetType(qp->GetSon(s,0));
-      int sons = qp->GetNoSons(s);
       FText* fname = static_cast<FText*>(args[1].addr);
       CcInt* skip = static_cast<CcInt*>(args[2].addr);
       CcString* comment = static_cast<CcString*>(args[3].addr);
-      string separator = ",";
-      if(sons==5){
-        CcString* cCSep = static_cast<CcString*>(args[4].addr);
-        separator = cCSep->GetValue();
-        if(separator.length()==0){
-          separator=",";
-        }
+      CcString* separator = static_cast<CcString*>(args[4].addr);
+      CcBool* quotes = static_cast<CcBool*>(args[5].addr);
+      if(info){
+        delete info;
       }
-      local.setAddr(new CsvImportInfo(type,fname,skip,comment,separator));
+      local.setAddr(new CsvImportInfo(type,fname,skip,comment,separator, 
+                                      quotes));
       return 0;
     }
     case REQUEST: {
-      CsvImportInfo* info = static_cast<CsvImportInfo*>(local.addr);
       if(!info){
         return CANCEL;
       } else {
-        Tuple* tuple = info->getNext();
-        result.addr = tuple;
-        return tuple==0?CANCEL:YIELD;
+        result.addr = info->getNext();
+        return result.addr?YIELD:CANCEL;
       }
     }
     case CLOSE: {
-      CsvImportInfo* info = static_cast<CsvImportInfo*>(local.addr);
       if(info){
         delete info;
         local.addr=0;
