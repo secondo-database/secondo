@@ -926,6 +926,9 @@ struct MaxRect{
     //////////set the building entrance according to the floor plan////////
     void OpenBuilding();
     void OpenIndoorGraph();
+    void LoadIndoorPaths(vector< map<int, Line3D> >& paths,
+                         vector< map<int, Line3D> >& rooms);
+
     void CloseIndoorGraph();
     void CloseBuilding();
     void PathToBuilding(Space* gl_sp);
@@ -968,7 +971,7 @@ struct MaxRect{
                          Rectangle<2> bbox);
 
     void SetOffice24(vector<Build_Rect>& build_rect_list, unsigned int no);
-
+    void SetOffice38(vector<Build_Rect>& build_rect_list, unsigned int no);
 
     void SetHospital(vector<Build_Rect>& build_rect_list, unsigned int no);
     bool NoNeighborHospital(vector<Build_Rect>& list1, Build_Rect br);

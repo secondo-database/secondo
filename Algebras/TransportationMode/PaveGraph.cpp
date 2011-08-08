@@ -3528,11 +3528,10 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
 //  cout<<"Load()"<<endl;
   g_id = id;
   //////////////////node relation////////////////////
-
-  ostringstream xNodePtrStream;
-  xNodePtrStream<<(long)r1;
+  ListExpr ptrList1 = listutils::getPtrList(r1);
+  
   string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
-                "(ptr " + xNodePtrStream.str() + ")))))";
+                "(ptr " + nl->ToString(ptrList1) + ")))))";
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -3543,29 +3542,30 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   LoadSortNode(r1); 
 
   /////////////////edge relation/////////////////////
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)r2;
+  ListExpr ptrList2 = listutils::getPtrList(r2);
+  
   strQuery = "(consume(sort(feed(" + EdgeTypeInfo +
-                "(ptr " + xEdgePtrStream.str() + ")))))";
+                "(ptr " + nl->ToString(ptrList2) + ")))))";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   edge_rel = (Relation*)xResult.addr;
 
   ////////////adjacency list ////////////////////////////////
+  ListExpr ptrList3 = listutils::getPtrList(edge_rel);
 
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel;
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "oid1)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "oid1)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree_node_oid1 = (BTree*)xResult.addr;
 
 
-  ostringstream xNodeOidPtrStream2;
-  xNodeOidPtrStream2 << (long)edge_rel;
+  ListExpr ptrList4 = listutils::getPtrList(edge_rel);
+
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + xNodeOidPtrStream2.str() + "))" + "oid2)";
+             "(ptr " + nl->ToString(ptrList4) + "))" + "oid2)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   BTree* btree_node_oid2 = (BTree*)xResult.addr;
@@ -3649,17 +3649,16 @@ sort the dual graph node by the bounding box of the region (triangle)
 void DualGraph::LoadSortNode(Relation* r1)
 {
  
-  ostringstream xNodePtrStream;
-  xNodePtrStream<<(long)r1;
+  ListExpr ptrList1 = listutils::getPtrList(r1);
   string strQuery = "(consume(sortby(feed(" + NodeTypeInfo +
-                "(ptr " + xNodePtrStream.str() + ")))((pavement asc))))";
+                "(ptr " + nl->ToString(ptrList1) + ")))((pavement asc))))";
+
 //  cout<<strQuery<<endl;
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   node_rel_sort = (Relation*)xResult.addr;
 
-//  cout<<node_rel_sort->GetNoTuples()<<endl;
 
 //   for(int i = 1;i <= node_rel_sort->GetNoTuples();i++){
 //     Tuple* tuple = node_rel_sort->GetTuple(i, false);
@@ -3668,11 +3667,11 @@ void DualGraph::LoadSortNode(Relation* r1)
 //     tuple->DeleteIfAllowed();
 //   }
 
-  ostringstream xNodesRtree;
-  xNodesRtree << ( long ) node_rel_sort;
+  ListExpr ptrList2 = listutils::getPtrList(node_rel_sort);
 
   strQuery = "(bulkloadrtree(addid(feed (" + NodeTypeInfo +
-         " (ptr " + xNodesRtree.str() + ")))) pavement)";
+         " (ptr " + nl->ToString(ptrList2) + ")))) pavement)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   rtree_node = ( R_Tree<2,TupleId>* ) xResult.addr;
@@ -7129,31 +7128,29 @@ void VisualGraph::Load(int id, Relation* r1, Relation* r2)
 //  cout<<"VisualGraph::Load()"<<endl;
   g_id = id;
   //////////////////node relation////////////////////
+  ListExpr ptrList1 = listutils::getPtrList(r1);
 
-  ostringstream xNodePtrStream;
-  xNodePtrStream<<(long)r1;
   string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
-                "(ptr " + xNodePtrStream.str() + ")))))";
+                "(ptr " + nl->ToString(ptrList1) + ")))))";
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   node_rel = (Relation*)xResult.addr;
 
   /////////////////edge relation/////////////////////
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)r2;
+  ListExpr ptrList2 = listutils::getPtrList(r2);
+  
   strQuery = "(consume(sort(feed(" + EdgeTypeInfo +
-                "(ptr " + xEdgePtrStream.str() + ")))))";
+                "(ptr " + nl->ToString(ptrList2) + ")))))";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   edge_rel = (Relation*)xResult.addr;
 
   ////////////adjacency list ////////////////////////////////
+  ListExpr ptrList3 = listutils::getPtrList(edge_rel);
 
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel;
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "oid1)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "oid1)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree_node_oid1 = (BTree*)xResult.addr;
@@ -9268,6 +9265,36 @@ void MaxRect::OpenIndoorGraph()
   }
 }
 
+/*
+read indoor paths of each building from disk files 
+
+*/
+void MaxRect::LoadIndoorPaths(vector< map<int, Line3D> >& paths,
+                              vector< map<int, Line3D> >& rooms)
+{
+  for(unsigned int i = 0;i < build_pointer.size();i++){
+      if(build_pointer[i] != NULL){
+//      cout<<i<<" "<<str_build_type[build_pointer[i]->GetType()]<<endl;
+
+        map<int, Line3D> path_list;
+        map<int, Line3D> room_id_list;
+
+        build_pointer[i]->LoadPaths(path_list, room_id_list);
+
+        paths.push_back(path_list);
+        rooms.push_back(room_id_list);//store groom id for each point3d 
+
+      }else{
+          map<int, Line3D> path_list;
+          map<int, Line3D> room_id_list;
+
+          paths.push_back(path_list);
+          rooms.push_back(room_id_list);//store groom id for each point3d 
+      }
+  }
+
+}
+
 void MaxRect::CloseIndoorGraph()
 {
   for(unsigned int i = 0;i < igraph_pointer.size();i++){
@@ -10017,6 +10044,8 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
   SetHotel(build_rect_list, 32, bbox);//maximum 32 hotels
   SetShopMall(build_rect_list, 48, bbox);//maximum 48 shopping malls
   SetOffice24(build_rect_list, 200);//maximum 200 office24 
+  SetOffice38(build_rect_list, 200);//maximum 200 office38
+
 
   ////////////can not be close to the above three/////////////////////////
   /////////////but may be close to school or houses, apartments//////////
@@ -10408,6 +10437,50 @@ void MaxRect::SetOffice24(vector<Build_Rect>& list, unsigned int no)
       if(quad_list[list[i].quadrant - 1] < no / 4 && 
          reg_type_list[list[i].reg_type - 1] < no /3){
         list[i].build_type = BUILD_OFFICE24;
+        list[i].init = true;
+        cand_list.push_back(list[i]);
+
+        quad_list[list[i].quadrant - 1]++;
+        reg_type_list[list[i].reg_type - 1]++;
+
+        if(cand_list.size() == no)return;
+      }
+    }
+  }
+  
+}
+
+/*
+set the places for office38,  uniformly distributed in each quadrant 
+
+*/
+#define OFFICE38_AREA_MIN 1000.0
+#define OFFICE38_AREA_MAX 3000.0
+
+void MaxRect::SetOffice38(vector<Build_Rect>& list, unsigned int no)
+{
+  vector<unsigned int> quad_list;
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+  quad_list.push_back(0);
+
+  vector<Build_Rect> cand_list; 
+
+  vector<unsigned int> reg_type_list;
+  reg_type_list.push_back(0);
+  reg_type_list.push_back(0);
+  reg_type_list.push_back(0);
+
+  
+  for(int i = list.size() - 1;i >= 0;i--){
+    if(list[i].rect.Area() > OFFICE38_AREA_MIN && 
+       list[i].rect.Area() < OFFICE38_AREA_MAX &&
+      list[i].init == false){
+//      cout<<"find a office38 site"<<endl;
+      if(quad_list[list[i].quadrant - 1] < no / 4 && 
+         reg_type_list[list[i].reg_type - 1] < no /3){
+        list[i].build_type = BUILD_OFFICE38;
         list[i].init = true;
         cand_list.push_back(list[i]);
 
@@ -10979,10 +11052,12 @@ void Pavement::Load(unsigned int i, Relation* r)
 
   def = true; 
   
-  ostringstream xRoutesStream;
-  xRoutesStream << (long)r;
+
+
+  ListExpr ptrList = listutils::getPtrList(r);
+  
   string strQuery = "(consume(feed(" + PaveTypeInfo +
-                "(ptr " + xRoutesStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList) + "))))";
 
 //  cout<<strQuery<<endl; 
 
