@@ -109,6 +109,7 @@ today               & [->] instant
 #include <sys/timeb.h>
 #include "LogMsg.h"
 #include "ListUtils.h"
+#include "StringUtils.h"
 #include "Symbols.h"
 #include <limits>
 
@@ -679,7 +680,10 @@ Spaces are not allowed in this string. The squared brackets
 indicates optional parts. This function is not defined for durations.
 
 */
-bool DateTime::ReadFrom(const string Time){
+bool DateTime::ReadFrom(const string Time1){
+   
+  string Time = Time1;
+  stringutils::trim(Time);
   SetDefined(true);
   if(type == (instanttype)){
     // read instant type from string

@@ -288,7 +288,6 @@ the CSV import.
 
 */
    virtual void ReadFromString(string time){
-        trimstring(time);
         if(!ReadFrom(time)){
           SetDefined(false);
         }
