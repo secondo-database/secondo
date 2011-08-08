@@ -1169,7 +1169,7 @@ it is indoor, it has to convert 3D box to 4D box (x,y,z,t). And it also has to
 calculate the absolute coordinates in space. 
 
 */
-const Rectangle<3> UGenLoc::BoundingBox() const
+const Rectangle<3> UGenLoc::BoundingBox(const Geoid* geoid) const
 {
   if(this->IsDefined()){
 
@@ -4730,7 +4730,13 @@ void GenMObject::GenerateGenMO4(Space* sp,
   MaxRect* maxrect = new MaxRect();
   maxrect->OpenBuilding();
   maxrect->OpenIndoorGraph();
-  
+
+#ifdef INDOOR_PATH
+  ///////////////load indoor paths/////////////////////////////
+  maxrect->LoadIndoorPaths(indoor_paths_list, rooms_id_list);
+  assert(indoor_paths_list.size() == rooms_id_list.size());
+#endif
+
   ////////////////////////////////////////////////////////////////
   ////////////select a pair of buildings/////////////////////////
   //////////////////////////////////////////////////////////////
@@ -5068,23 +5074,32 @@ void GenMObject::GenerateIndoorMovementToExit(IndoorInfra* i_infra,
     Building* build = maxrect->build_pointer[build_type];
     Relation* room_rel = build->GetRoom_Rel();
     IndoorNav* indoor_nav = new IndoorNav(room_rel, NULL);
+    
+
     unsigned int num_elev = indoor_nav->NumerOfElevators();
 
     IndoorGraph* ig = maxrect->igraph_pointer[build_type];
     BTree* btree_room = build->GetBTree();
     R_Tree<3, TupleId>* rtree_room = build->GetRTree();
 
-
 //    cout<<"number of elevators "<<num_elev<<endl;
+
+#ifdef INDOOR_PATH
+    ////////////////indoor paths and rooms id list ///////////////////
+    indoor_nav->indoor_paths_list = indoor_paths_list[build_type];
+    indoor_nav->rooms_list = rooms_id_list[build_type];
+#endif 
+    indoor_nav->ig = ig;
+
 
     MPoint3D* mp3d = new MPoint3D(0); 
     if(num_elev <= 1){
       Instant t1 = start_time;
-//    cout<<"t1 "<<t1<<endl;
+
       indoor_nav->GenerateMO3_End(ig, btree_room, rtree_room, start_time,
                                 build_id, entrance_index,mp3d,genmo,peri);
       Instant t2 = start_time;
-//    cout<<"t2 "<<t2<<endl;
+
       ////////////////////////////////////////////////////////////////////
       ///////////////set up outdoor movement/////////////////////////////
       //////////////////////////////////////////////////////////////////
@@ -5100,12 +5115,12 @@ void GenMObject::GenerateIndoorMovementToExit(IndoorInfra* i_infra,
     }else{
 //      cout<<"several elevators "<<endl;
       Instant t1 = start_time;
-//      cout<<"t1 "<<t1<<endl;
+
       indoor_nav->GenerateMO3_New_End(ig, btree_room, rtree_room, start_time,
                             build_id, entrance_index,mp3d,genmo,peri,num_elev);
 
       Instant t2 = start_time;
-//      cout<<"t2 "<<t2<<endl;
+
       ////////////////////////////////////////////////////////////////////
       ///////////////set up outdoor movement/////////////////////////////
       //////////////////////////////////////////////////////////////////
@@ -5165,7 +5180,15 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
     R_Tree<3, TupleId>* rtree_room = build->GetRTree();
 
 
-//    cout<<"number of elevators "<<num_elev<<endl;
+    ////////////////indoor paths and rooms id list ///////////////////
+#ifdef INDOOR_PATH
+    indoor_nav->indoor_paths_list = indoor_paths_list[build_type];
+    indoor_nav->rooms_list = rooms_id_list[build_type];
+#endif 
+
+    indoor_nav->ig = ig;
+    /////////////////////////////////////////////////
+
 
     MPoint3D* mp3d = new MPoint3D(0); 
     if(num_elev <= 1){
@@ -5274,13 +5297,36 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
   //////////////////////Initialization/////////////////////////////
   ////////////////////////////////////////////////////////////////
   Pavement* pm = sp->LoadPavement(IF_REGION);
+  if(pm == NULL){
+    cout<<"pavement loading error"<<endl;
+    return;
+  }
   Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  if(rn == NULL){
+    sp->ClosePavement(pm);
+    cout<<"road network loading error"<<endl;
+    return;
+  }
+  RoadGraph* rg = sp->LoadRoadGraph();
+  if(rg == NULL){
+    sp->CloseRoadNetwork(rn);
+    sp->ClosePavement(pm);
+    cout<<"road graph loading error"<<endl;
+    return;
+  }
+  RoadNav* road_nav = new RoadNav();
   //////////////////////////////////////////////////////////////////
-  ////////////////load all buildings and indoor graphs////////////////////////
+  ////////////////load all buildings and indoor graphs/////////////
+  ////////////////// and indoor paths//////////////////////////////
   MaxRect* maxrect = new MaxRect();
   maxrect->OpenBuilding();
   maxrect->OpenIndoorGraph();
-  
+
+#ifdef INDOOR_PATH
+  maxrect->LoadIndoorPaths(indoor_paths_list, rooms_id_list);
+  assert(indoor_paths_list.size() == rooms_id_list.size());
+#endif 
+
   ////////////////////////////////////////////////////////////////
   ////////////select a pair of buildings/////////////////////////
   //////////////////////////////////////////////////////////////
@@ -5419,35 +5465,8 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
     //////////////////5 road network movement //////////////////////////
     ////////////////////////////////////////////////////////////////////
     GLine* gl = new GLine(0);
-    gp1.ShortestPath(&gp2, gl);
-
-    BusRoute* br = new BusRoute(rn, NULL, NULL);
-    GLine* newgl = new GLine(0);
-//    br->ConvertGLine(gl, newgl);//bugs for shortest path in network
-
-//     Line* road_path = new Line(0);
-//     newgl->Gline2line(road_path);
-//     path_list.push_back(*road_path);
-//     cout<<road_path->Length()<<endl;
-//     delete road_path;
-    bool res = br->ConvertGLine2(gl, newgl);//bugs for shortest path in network
-    if(res == false){
-      delete newgl;
-      delete br;
-      delete gl;
-      mo->EndBulkLoad();
-      genmo->EndBulkLoad();
-      delete mo;
-      delete genmo;
-      count++;
-      continue;
-    }
-
-    ConnectGP1GP2(rn, start_loc, newgl, mo, genmo, start_time, speed_rel,mode);
-
-    delete newgl; 
-
-    delete br;
+    road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel,mode);
     delete gl;
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
@@ -5505,10 +5524,10 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
   maxrect->CloseIndoorGraph();
   maxrect->CloseBuilding();
   delete maxrect;
-
-
+  delete road_nav;
   ////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
+  sp->CloseRoadGraph(rg);
   sp->CloseRoadNetwork(rn);
   sp->ClosePavement(pm);
 
@@ -5748,11 +5767,16 @@ void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
   VisualGraph* vg = pm->GetVisualGraph();
   BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);
   //////////////////////////////////////////////////////////////////
-  ////////////////load all buildings and indoor graphs////////////////////////
+  ////////////////load all buildings and indoor graphs/////////////
+  /////////////// and indoor paths////////////////////////////////
   MaxRect* maxrect = new MaxRect();
   maxrect->OpenBuilding();
   maxrect->OpenIndoorGraph();
-  
+
+#ifdef INDOOR_PATH
+  maxrect->LoadIndoorPaths(indoor_paths_list, rooms_id_list);
+  assert(indoor_paths_list.size() == rooms_id_list.size());
+#endif
   ////////////////////////////////////////////////////////////////
   ////////////select a pair of buildings/////////////////////////
   //////////////////////////////////////////////////////////////
@@ -6108,6 +6132,12 @@ void GenMObject::GenerateIndoorMovementToExit2(IndoorInfra* i_infra,
     BTree* btree_room = build->GetBTree();
     R_Tree<3, TupleId>* rtree_room = build->GetRTree();
 
+#ifdef INDOOR_PATH
+    ////////////////indoor paths and rooms id list ///////////////////
+    indoor_nav->indoor_paths_list = indoor_paths_list[build_type];
+    indoor_nav->rooms_list = rooms_id_list[build_type];
+#endif 
+    indoor_nav->ig = ig;
 
 //    cout<<"number of elevators "<<num_elev<<endl;
 
@@ -6692,6 +6722,10 @@ void GenMObject::GenerateGenMO8(Space* sp, Periods* peri, int mo_no,
   maxrect->OpenBuilding();
   maxrect->OpenIndoorGraph();
 
+#ifdef INDOOR_PATH
+  maxrect->LoadIndoorPaths(indoor_paths_list, rooms_id_list);
+  assert(indoor_paths_list.size() == rooms_id_list.size());
+#endif
 
   ////////////////////////////////////////////////////////////////
   ////////////select a pair of buildings/////////////////////////

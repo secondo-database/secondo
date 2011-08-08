@@ -3688,7 +3688,8 @@ int GenMODeftimeValueMap(Word* args, Word& result, int message,
 {
   GenMO* mo = (GenMO*)args[0].addr;
   result = qp->ResultStorage(s);
-  if(mo->IsDefined()){
+  ((Periods*)result.addr)->Clear();
+  if(mo->IsDefined() && mo->GetNoComponents() > 0){
       mo->DefTime(*(Periods*)result.addr); 
   }
   return 0;
@@ -3704,7 +3705,8 @@ int MP3dDeftimeValueMap(Word* args, Word& result, int message,
 {
   MPoint3D* mo = (MPoint3D*)args[0].addr;
   result = qp->ResultStorage(s);
-  if(mo->IsDefined()){
+  ((Periods*)result.addr)->Clear();
+  if(mo->IsDefined() && mo->GetNoComponents() > 0){
       mo->DefTime(*(Periods*)result.addr); 
   }
   return 0;
@@ -8348,12 +8350,12 @@ const string OpTMCreateBusRouteSpec1  =
 const string OpTMCreateBusRouteSpec2  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>network x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3"
+    "( <text>space x rel1 x attr x btree x rel2 x attr1 x attr2 x attr3"
     "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_bus_route2(n,rel,attr,btree,rel2,attr1,attr2,attr3);"
+    "<text>create_bus_route2(sp,rel,attr,btree,rel2,attr1,attr2,attr3);"
     "</text--->"
     "<text>create bus routes</text--->"
-    "<text>query create_bus_route2(n,street_sections_cell,cellid_w_a_c,"
+    "<text>query create_bus_route2(sp,street_sections_cell,cellid_w_a_c,"
     "section_cell_index,rough_pair,start_cell_id,end_cell_id,route_type) "
     "count;</text--->"
     ") )";
@@ -10221,7 +10223,7 @@ ListExpr OpTMRegVertexTypeMap ( ListExpr args )
                       nl->TwoElemList(
                         nl->TwoElemList(nl->SymbolAtom("cycleno"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("vertex"),
+                        nl->TwoElemList(nl->SymbolAtom("Vertex"),
                                     nl->SymbolAtom("point"))
                   )
                 )
@@ -11259,8 +11261,8 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
   
   ListExpr param1 = nl->First ( args );
   if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
-     nl->SymbolValue(param1) == "network")){
-      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+     nl->SymbolValue(param1) == "space")){
+      return nl->SymbolAtom ( "typeerror: param1 should be space" );
   }
   
   ListExpr param2 = nl->Second ( args );
@@ -17978,7 +17980,8 @@ int OpTMCreateBusRouteValueMap2 ( Word* args, Word& result, int message,
   BusRoute* br;
   switch(message){
       case OPEN:{
-        Network* n = (Network*)args[0].addr;
+//        Network* n = (Network*)args[0].addr;
+        Space* sp = (Space*)args[0].addr;
         Relation* r1 = (Relation*)args[1].addr; 
         BTree* btree = (BTree*)args[3].addr;
         Relation* r2 = (Relation*)args[4].addr; 
@@ -17988,11 +17991,11 @@ int OpTMCreateBusRouteValueMap2 ( Word* args, Word& result, int message,
         int attr2 = ((CcInt*)args[10].addr)->GetIntval() - 1;
         int attr3 = ((CcInt*)args[11].addr)->GetIntval() - 1;
 
-        br = new BusRoute(n,r1,btree,r2);
+        br = new BusRoute(NULL,r1,btree,r2);
         br->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         
-        br->CreateRoute2(attr,attr1,attr2,attr3);
+        br->CreateRoute2(sp, attr,attr1,attr2,attr3);
         local.setAddr(br);
         return 0;
       }
@@ -21864,7 +21867,7 @@ Operator create_bus_route1(
 
 Operator create_bus_route2(
   "create_bus_route2",
-  OpTMCreateBusRouteSpec2,               
+  OpTMCreateBusRouteSpec2,
   OpTMCreateBusRouteValueMap2,
   Operator::SimpleSelect,
   OpTMCreateBusRouteTypeMap2

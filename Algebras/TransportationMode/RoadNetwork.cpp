@@ -38,6 +38,7 @@ computing shortest path in road network
 #include "BusNetwork.h"
 #include "RoadNetwork.h"
 #include "PaveGraph.h"
+#include "ListUtils.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -427,11 +428,9 @@ void RoadGraph::Load(int id, Relation* r1, Relation* edge_rel1,
 
   //////////////////node relation////////////////////
 
-  ostringstream xNodePtrStream;
-  xNodePtrStream<<(long)r1;
-
+  ListExpr ptrList1 = listutils::getPtrList(r1);
   string strQuery = "(consume(feed(" + RGNodeTypeInfo +
-                "(ptr " + xNodePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -439,11 +438,9 @@ void RoadGraph::Load(int id, Relation* r1, Relation* edge_rel1,
   node_rel = (Relation*)xResult.addr;
 
   ///////////////////rtree on junction points//////////////////////
-  ostringstream xNodeBtreePtrStream;
-  xNodeBtreePtrStream<<(long)r1;
-
+  ListExpr ptrList2 = listutils::getPtrList(r1);
   strQuery = "(createbtree (" + RGNodeTypeInfo +
-             "(ptr " + xNodeBtreePtrStream.str() + "))" + "rid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "rid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -458,15 +455,18 @@ void RoadGraph::Load(int id, Relation* r1, Relation* edge_rel1,
 
 }
 
+/*
+load road graph edges 
+
+*/
 
 void RoadGraph::LoadEdge1(Relation* edge1)
 {
 
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)edge1;
+  ListExpr ptrList1 = listutils::getPtrList(edge1);
 
   string strQuery = "(consume(feed(" + RGEdgeTypeInfo1 +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -474,10 +474,10 @@ void RoadGraph::LoadEdge1(Relation* edge1)
   edge_rel1 = (Relation*)xResult.addr;
 
   //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel1;
+  ListExpr ptrList2 = listutils::getPtrList(edge1);
+  
   strQuery = "(createbtree (" + RGEdgeTypeInfo1 +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "jun_id1)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "jun_id1)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -525,11 +525,10 @@ void RoadGraph::LoadEdge1(Relation* edge1)
 void RoadGraph::LoadEdge2(Relation* edge2)
 {
 
- ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)edge2;
-
+  ListExpr ptrList1 = listutils::getPtrList(edge2);
+  
   string strQuery = "(consume(feed(" + RGEdgeTypeInfo2 +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -537,10 +536,11 @@ void RoadGraph::LoadEdge2(Relation* edge2)
   edge_rel2 = (Relation*)xResult.addr;
 
   //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel2;
+  ListExpr ptrList2 = listutils::getPtrList(edge2);
+
   strQuery = "(createbtree (" + RGEdgeTypeInfo2 +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "jun_id1)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "jun_id1)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -1185,7 +1185,7 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       i = j + 1;
     }
 
-    for(int i = 0;i < new_ri_list.size(); i++){
+    for(unsigned int i = 0;i < new_ri_list.size(); i++){
         res_path->AddRouteInterval(new_ri_list[i]);
     } 
 

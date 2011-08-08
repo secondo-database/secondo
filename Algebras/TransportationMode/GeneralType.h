@@ -346,14 +346,14 @@ public:
   {
       *this = *(const GenLoc*)right;
   }
-  const Rectangle<2> BoundingBox() const
+  const Rectangle<2> BoundingBox(const Geoid* geoid=0) const
   {
       Point* p = new Point(true, loc.loc1, loc.loc2);
       Rectangle<2> bbox = p->BoundingBox();
       delete p;
       return bbox;
   }
-  double Distance(const Rectangle<2>& r)const
+  double Distance(const Rectangle<2>& r,const Geoid* geoid=0)const
   {
       return BoundingBox().Distance(r);
   }
@@ -361,6 +361,9 @@ public:
   unsigned int GetOid() const {return oid;}
   Loc GetLoc() const {return loc;}
   void SetLoc(Loc& l){loc = l;}
+  static const string BasicType(){
+       return "genloc";
+  } 
   private:
     unsigned int oid;
     Loc loc; 
@@ -546,7 +549,7 @@ public:
   {
       *this = *(const GenRange*)right;
   }
-  const Rectangle<2> BoundingBox() const
+  const Rectangle<2> BoundingBox(const Geoid* geoid=0) const
   {
       Rectangle<2> bbox;
       for(int i = 0;i < seglist.Size();i++){
@@ -559,7 +562,7 @@ public:
       }
       return bbox;
   }
-  double Distance(const Rectangle<2>& r)const
+  double Distance(const Rectangle<2>& r,const Geoid* geoid=0)const
   {
       return BoundingBox().Distance(r);
   }
@@ -643,8 +646,8 @@ class UGenLoc: public SpatialTemporalUnit<GenLoc,3>
   inline size_t Sizeof() const { return sizeof(*this);}
   UGenLoc* Clone() const;
   void CopyFrom(const Attribute* right); 
-  const Rectangle<3> BoundingBox() const; 
-  double Distance(const Rectangle<3>& rect) const
+  const Rectangle<3> BoundingBox(const Geoid* geoid=0) const; 
+  double Distance(const Rectangle<3>& rect, const Geoid* geoid=0) const
   {
     return BoundingBox().Distance(rect); 
   }
@@ -804,8 +807,9 @@ struct GenMObject{
   vector<int> cell_id_list1;
   vector<int> cell_id_list2;
   vector<GLine> gline_list;
-  
-  
+
+  vector< map<int, Line3D> > indoor_paths_list;//read indoor paths from disk
+  vector< map<int, Line3D> > rooms_id_list; //groom oid for each point3D
 
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}

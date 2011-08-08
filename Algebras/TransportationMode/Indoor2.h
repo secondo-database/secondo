@@ -107,7 +107,7 @@ public :
     {
       *this = *(const Point3D*)right;
     }
-    inline const Rectangle<3> BoundingBox() const
+    inline const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const
     {
       if(IsDefined()){
             return Rectangle<3>(true,
@@ -150,11 +150,11 @@ public :
         return *this;
     }
 
-    double Distance(const Rectangle<3>& r)const
+    double Distance(const Rectangle<3>& r, const Geoid* geoid=0)const
     {
       return BoundingBox().Distance(r);
     }
-    double Distance(const Point3D& p3d) const
+    double Distance(const Point3D& p3d, const Geoid* geoid=0) const
     {
       double a = fabs(x - p3d.GetX());
       double b = fabs(y - p3d.GetY());
@@ -180,6 +180,9 @@ public :
     {
       return !(*this == p3d);
     }
+    static const string BasicType(){
+       return "point3d";
+    } 
     void Print() const
     {
       cout<<"x "<<x<<" y "<<y<<" z "<<z<<endl;
@@ -241,7 +244,7 @@ class Line3D: public StandardSpatialAttribute<3>
 
     void EndBulkLoad( bool sort = true, bool remDup = true, bool trim = true );
 
-    const Rectangle<3> BoundingBox() const;
+    const Rectangle<3> BoundingBox(const Geoid* geoid=0) const;
 
     inline bool IsEmpty() const;
 
@@ -281,10 +284,14 @@ class Line3D: public StandardSpatialAttribute<3>
     {
       return new Line3D( *this );
     }
-    double Distance( const Rectangle<3>& r ) const;
+    double Distance( const Rectangle<3>& r,const Geoid* geoid=0 ) const;
     void Print();
     static void* Cast(void* addr){return (new(addr)Line3D());}
     double Length();
+    
+    static const string BasicType(){
+       return "line3d";
+    }
     
   private:
 
@@ -355,8 +362,8 @@ class UPoint3D: public SpatialTemporalUnit<Point3D, 4>
   inline size_t Sizeof() const { return sizeof(*this);}
   UPoint3D* Clone() const;
   void CopyFrom(const Attribute* right); 
-  const Rectangle<4> BoundingBox() const; 
-  double Distance(const Rectangle<4>& rect) const
+  const Rectangle<4> BoundingBox(const Geoid* geoid=0) const; 
+  double Distance(const Rectangle<4>& rect, const Geoid* geoid=0) const
   {
     return BoundingBox().Distance(rect); 
   }
@@ -403,6 +410,9 @@ class MPoint3D:public Mapping<UPoint3D,Point3D>
     void Add(const UPoint3D& unit); 
     void EndBulkLoad(const bool sort = true, const bool checkvalid = false);
     void Trajectory(Line3D& l);
+    static const string BasicType(){
+       return "mpoint3d";
+    }
 };
 
 

@@ -137,11 +137,11 @@ public:
     {
       *this = *(const Floor3D*)right;
     }
-    const Rectangle<2> BoundingBox() const
+    const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const
     {
       return reg.BoundingBox();
     }
-    double Distance(const Rectangle<2>& r)const
+    double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
     {
       return reg.BoundingBox().Distance(r);
     }
@@ -255,11 +255,11 @@ class Door3D:public StandardSpatialAttribute<2>{
   {
       *this = *(const Door3D*)right;
   }
-  const Rectangle<2> BoundingBox() const
+  const Rectangle<2> BoundingBox(const Geoid* geoid=0) const
   {
       return door_pos1.BoundingBox();
   }
-  double Distance(const Rectangle<2>& r)const
+  double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
   {
       return door_pos1.BoundingBox().Distance(r);
   }
@@ -542,7 +542,7 @@ class GRoom:public StandardSpatialAttribute<2>{
     }
     void Translate(const Coord& x, const Coord& y, GRoom& result);
     void GetRegion(Region& r); //2D area covered by the room 
-    const Rectangle<2> BoundingBox() const
+    const Rectangle<2> BoundingBox(const Geoid* geoid=0) const
     {
       Rectangle<2> bbox;
       for( int i = 0; i < Size(); i++ ){
@@ -557,10 +557,10 @@ class GRoom:public StandardSpatialAttribute<2>{
 
       return bbox;
     }
-    double Distance(const Rectangle<2>& r)const
-   {
+    double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
+    {
       return BoundingBox().Distance(r);
-   }
+    }
 
    const Rectangle<3> BoundingBox3D() const;
 
@@ -718,6 +718,7 @@ struct IndoorNav{
   vector<unsigned int> door_tid_list1;
   vector<unsigned int> door_tid_list2; 
   vector<Line3D> path_list; 
+  vector<Line3D> rooms_id_list;///
   
   
   vector<GenLoc> genloc_list;
@@ -730,6 +731,10 @@ struct IndoorNav{
   vector<MPoint3D> mo_list; 
   vector<GenMO> genmo_list; 
   vector<int> entrance_index;
+  
+  
+  map<int, Line3D> indoor_paths_list;//indoor paths from disk files 
+  map<int, Line3D> rooms_list;
   
   int type; 
   /////////////the attribute position for indoor (groom+door) relation 
@@ -851,6 +856,11 @@ struct IndoorNav{
                     Instant& start_time, Instant& st, 
                     vector< vector<Elevator> >&);
 
+   void AddUnitToMO_Elevator_New2(MPoint3D* mp3d, vector<Point3D>& , 
+                    Instant& start_time, Instant& st, 
+                    vector< vector<Elevator> >&, int index,
+                    Line3D* l_room, int build_id, GenMO* genmo);
+
    void GenerateMO2_New_Start(IndoorGraph* ig, BTree* btree,
                           R_Tree<3,TupleId>* rtree,
                   int num, Periods* peri, bool convert, unsigned int num_elev);
@@ -877,10 +887,20 @@ struct IndoorNav{
    void AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& , 
                     Instant& start_time, Instant& st, vector<Elevator>&);
 
+   void AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
+                    Instant& start_time, double speed, int index,
+                    Line3D* l_room, int build_id, GenMO* genmo);
+    void AddUnitToMO_Elevator2(MPoint3D* mp3d, vector<Point3D>& , 
+                     Instant& start_time, Instant& st, vector<Elevator>&,
+                     int index, Line3D* l_room, int build_id, GenMO* genmo);
+
+   int GetRef_RoomTid(int, Line3D*);
+
    void ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree);
    void ToGenLoc2(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree, 
                   int build_id, GenMO* genmo);
-   
+
+
    void Get_GenLoc(Point3D p1, Point3D p2, GenLoc& loc1, GenLoc& loc2,
                    R_Tree<3,TupleId>* rtree);
    void DFTraverse(R_Tree<3,TupleId>* rtree, SmiRecordId adr, 
@@ -908,8 +928,17 @@ struct IndoorNav{
    void ShortestPath_Length_Start(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree, int start_tid);
 
+   void ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree, 
+                            int start_tid, int entrance);
+
    void ShortestPath_Length_End(GenLoc* gloc1, GenLoc* gloc2, 
                             Relation* rel, BTree* btree, int end_tid);
+
+   void ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2, 
+                            Relation* rel, BTree* btree, 
+                            int end_tid, int entrance_id);
+
    ////////connection start locaton to all doors in staircase///////////////
    void ConnectStartLocST(Tuple* groom_tuple, GenLoc* gloc,  
                          vector<int> tid_list, vector<Line3D>& candidate_path);
@@ -1156,13 +1185,14 @@ public:
 
 enum building_type{BUILD_NONE = 0, BUILD_HOUSE,
 BUILD_UNIVERSITY, BUILD_OFFICE24,
-BUILD_CINEMA,  BUILD_TRAINSTATION, BUILD_HOTEL, BUILD_AIRPORT, 
-BUILD_HOSPITAL, BUILD_SHOPPINGMALL, BUILD_SCHOOL, BUILD_LIBRARY};
+BUILD_CINEMA,  BUILD_TRAINSTATION, BUILD_HOTEL,
+BUILD_AIRPORT, BUILD_HOSPITAL, BUILD_SHOPPINGMALL,
+BUILD_SCHOOL, BUILD_LIBRARY, BUILD_OFFICE38};
 
 const string str_build_type[] = {"BUILDING_NONE", "HOUSE",
 "UNIVERSITY", "OFFICE24",
 "CINEMA", "TRAINSTATION", "HOTEL", "AIRPORT", 
-"HOSPITAL", "SHOPPINGMALL", "SCHOOL", "LIBRARY"};
+"HOSPITAL", "SHOPPINGMALL", "SCHOOL", "LIBRARY", "OFFICE38"};
 
 
 inline int GetBuildingType(string s)
@@ -1229,6 +1259,8 @@ class Building{
    void StorePaths();
    void WritePathToFile(FILE* fp, Line3D* path, int entrance, int groom_oid, 
                         int door_id, bool from);
+   void DFTraverse(SmiRecordId adr, Point3D p, vector<int>& tid_list);
+   void LoadPaths(map<int, Line3D>& path_list, map<int, Line3D>& room_id_list);
   
   private:
     bool def; 
@@ -1361,6 +1393,8 @@ bool CheckIndoorInfra( ListExpr type, ListExpr& errorInfo );
 
 
 void ReadIndoorPath(string name, int path_id, Line3D* res);
+int GetIndooPathID(int, int , bool);
+int GetIndooPathID2(int, int , int, bool);
 struct IndoorPath{
   int oid;
   Line3D l3d;
@@ -1379,5 +1413,9 @@ struct IndoorPath{
   }
 
 };
+
+///////////////whether the indoor paths are stored already ////////////////
+#define INDOOR_PATH TRUE
+
 
 #endif // __INDOOR_H__
