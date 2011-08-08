@@ -32,9 +32,10 @@ June-November, 2011. Thomas Uchdorf
 
 1 Overview
 
-This implementation file contains the implementation of the class ~ShpFileReader~.
+This implementation file contains the implementation of the class
+~ConnCodeFinder~.
 
-For more detailed information see OsmAlgebra.h.
+For more detailed information see ConnCodeFinder.h.
 
 2 Defines and Includes
 
@@ -84,7 +85,7 @@ int ConnCodeFinder::getConnectivityCode (
    int iNorth = (!ow2 && dir2 != 0)? 3 : dir2;
    int iEast = (!ow3 && dir3 != 0)? 3 : dir3;
    int iSouth = (!ow4 && dir4 != 0)? 3 : dir4;
-   int mat [4][4] = {{is_bit_set(iWest,1)&is_bit_set(iEast,1),
+   int help [4][4] = {{is_bit_set(iWest,1)&is_bit_set(iEast,1),
                       is_bit_set(iWest,1)&is_bit_set(iWest,2),
                       is_bit_set(iWest,1)&is_bit_set(iNorth,1),
                       is_bit_set(iWest,1)&is_bit_set(iSouth,2)},
@@ -100,13 +101,72 @@ int ConnCodeFinder::getConnectivityCode (
                       is_bit_set(iNorth,2)&is_bit_set(iWest,2),
                       is_bit_set(iNorth,2)&is_bit_set(iNorth,1),
                       is_bit_set(iNorth,2)&is_bit_set(iSouth,2)}}; 
+
+   // --- Transforming the matrix (Up in horizontal direction actually
+   //     means to the left and down in horizontal direction means to the
+   //     right. So, the 3rd row and the 4th row have to be swapped. The
+   //     same applies to the according columns.)
+   // ------------------------------------------
+   // |        |A_{up}|A_{down}|B_{up}|B_{down}|
+   // ------------------------------------------
+   // |A_{up}  |      |        |      |        |
+   // ------------------------------------------
+   // |A_{down}|      |        |      |        |
+   // ------------------------------------------
+   // |B_{up}  |      |        |      |        |
+   // ------------------------------------------
+   // |B_{down}|      |        |      |        |
+   // ------------------------------------------
+   //
+   //                          |
+   //                          |
+   //                          V
+   //
+   // ------------------------------------------
+   // |        |A_{up}|A_{down}|B_{down}|B_{up}|
+   // ------------------------------------------
+   // |A_{up}  |      |        |        |      |
+   // ------------------------------------------
+   // |A_{down}|      |        |        |      |
+   // ------------------------------------------
+   // |B_{down}|      |        |        |      |
+   // ------------------------------------------
+   // |B_{up}  |      |        |        |      |
+   // ------------------------------------------
+   int mat [4][4] = {{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}};
+   int iRow = 0; 
+   int iCol = 0; 
+   for (iRow = 0; iRow < 4; ++iRow)  {
+      for (iCol = 0; iCol < 4; ++iCol)  {
+         if (iRow == 2 && iCol == 2)  {
+            mat[3][3] = help[2][2];
+         } else if (iRow == 2 && iCol == 3)  {
+            mat[3][2] = help[2][3];
+         } else if (iRow == 3 && iCol == 2)  {
+            mat[2][3] = help[3][2];
+         } else if (iRow == 3 && iCol == 3)  {
+            mat[2][2] = help[3][3];
+         } else if (iRow == 2)  {
+            mat[3][iCol] = help[2][iCol];
+         } else if (iRow == 3)  {
+            mat[2][iCol] = help[3][iCol];
+         } else if (iCol == 2) {
+            mat[iRow][3] = help[iRow][2];           
+         } else if (iCol == 3) {
+            mat[iRow][2] = help[iRow][3];           
+         } else  {
+            mat[iRow][iCol] = help[iRow][iCol];
+         }
+      }
+   }
+
    int sum = 0;
    int i = 15;
    int elem = 0;
    //std::ostringstream calc;
    //std::cout << "Übergangscode-Matrix:" << std::endl;
-   for (int iRow = 0; iRow < 4; ++iRow)  {
-      for (int iCol = 0; iCol < 4; ++iCol)  {
+   for (iRow = 0; iRow < 4; ++iRow)  {
+      for (iCol = 0; iCol < 4; ++iCol)  {
          //std::cout << mat[iRow][iCol];
          //if (mat[iRow][iCol] == 1)  {
          //   calc << "2^{" << i << "} + ";

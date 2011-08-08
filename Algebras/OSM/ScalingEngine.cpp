@@ -48,8 +48,8 @@ For more detailed information see OsmAlgebra.h.
 #include "ScalingEngine.h"
 
 // --- Defining class-variables
-int ScalingEngine::DEFAULT_SCALE_FACTOR_X = 1000;
-int ScalingEngine::DEFAULT_SCALE_FACTOR_Y = 1000;
+int ScalingEngine::DEFAULT_SCALE_FACTOR_X = 1;//1000;
+int ScalingEngine::DEFAULT_SCALE_FACTOR_Y = 1;//1000;
 
 // --- Constructors
 // Default-Constructor
