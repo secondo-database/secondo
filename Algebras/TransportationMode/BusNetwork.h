@@ -68,6 +68,7 @@ Oct, 2010 Jianqiu xu
 #include "Partition.h"
 #include "PaveGraph.h"
 #include "GeneralType.h"
+#include "RoadNetwork.h"
 
 /*
 store cell id and the number of road sections intersecting it.
@@ -303,8 +304,8 @@ struct BusRoute{
   void ConvertGLine(GLine* gl1, GLine* gl2);
   bool ConvertGLine2(GLine* gl1, GLine* gl2); 
   /////////////////////////////create bus routes//////////////////////////
-  void CreateRoute2(int attr,int attr1,int attr2,int attr3); 
-  void ConnectCell(int attr,int from_cell_id,int end_cell_id, 
+  void CreateRoute2(Space*, int attr,int attr1,int attr2,int attr3); 
+  void ConnectCell(RoadGraph*, int attr,int from_cell_id,int end_cell_id, 
                    int route_type, int seed);
   /////////////////////refine bus routes////////////////////////////////
   void RefineBusRoute(int, int, int, int, int, int);
@@ -604,6 +605,9 @@ class Bus_Stop:public Attribute{
      int GetUOid();
      bool operator==(const Bus_Stop& bs);
      ostream& Print(ostream& os) const; 
+     static const string BasicType(){
+       return "busstop";
+     }
 
   private:
     unsigned int br_id;
@@ -696,8 +700,8 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     int SegSize(){return seg_list.Size();}
 
     double Length();
-    const Rectangle<2> BoundingBox() const;
-    double Distance(const Rectangle<2>& r)const
+    const Rectangle<2> BoundingBox(const Geoid* geoid=0) const;
+    double Distance(const Rectangle<2>& r, const Geoid* geoid=0)const
     {
         return BoundingBox().Distance(r);
     }
@@ -705,7 +709,9 @@ class Bus_Route:public StandardSpatialAttribute<2>{
     void EndBulkLoad();
     unsigned int GetId() const { return br_id;}
     bool GetUp() const { return up_down;}
-
+    static const string BasicType(){
+       return "busroute";
+    }
     /////////////very important two functions////////////////////
    ////////especially genrange is an attribute in a relation/////
   inline int NumOfFLOBs() const { 

@@ -186,8 +186,8 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
   }
   //3---13  2---49  1---204 //berlin roads
   //3---7 2---20 1---610 //houston roads
-  cout<<cell_list3.size()<<" "
-      <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
+//   cout<<cell_list3.size()<<" "
+//       <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
 
    int bus_no;
    bus_no = 3;
@@ -340,15 +340,22 @@ the end location of a bus route
 
 */
 
-void BusRoute::CreateRoute2(int attr,int attr1,int attr2,int attr3)
+void BusRoute::CreateRoute2(Space* sp, int attr,int attr1,int attr2,int attr3)
 {
 //  cout<<"attr "<<attr<<" attr1 "<<attr1 <<" attr2 "<<attr2<<endl; 
 //  cout<<"CreateRoute2()"<<endl; 
 
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  if(rn == NULL){
+    cout<<"load road network error"<<endl;
+    return;
+  }
+  n = rn;
+  
+  RoadGraph* rg = sp->LoadRoadGraph();
+
   for(int i = 1;i <= rel2->GetNoTuples();i++){
-    
-//    if(i != 6 )continue; 
-    
+
     Tuple* tuple_cell_pair = rel2->GetTuple(i, false);
     int from_cell_id = 
         ((CcInt*)tuple_cell_pair->GetAttribute(attr1))->GetIntval();
@@ -360,16 +367,21 @@ void BusRoute::CreateRoute2(int attr,int attr1,int attr2,int attr3)
 //    cout<<"from_cell "<<from_cell_id<<" end_cell "<<end_cell_id<<endl; 
 
 //    cout<<"route_type "<<route_type<<endl; 
-    
-    ConnectCell(attr,from_cell_id,end_cell_id,route_type, i);
+
+    ConnectCell(rg, attr,from_cell_id,end_cell_id,route_type, i);
     tuple_cell_pair->DeleteIfAllowed(); 
-  
+    
+
   }
+
+  sp->CloseRoadGraph(rg);
+  sp->CloseRoadNetwork(rn);
+
   ///////////////////add several special routes//////////////////////////
   /////////maybe not the shortest path, cycle route//////////////////////
   ////////////////////////////////////////////////////////////////////////
-  
-  
+
+
 }
 
 /*
@@ -377,7 +389,119 @@ randomly choose two positions in two cells and find the shortest path
 connecting them. use the shortest path as the bus route 
 
 */
-void BusRoute::ConnectCell(int attr,int from_cell_id,
+
+void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
+                           int end_cell_id, int route_type, int seed)
+{
+    Relation* routes = n->GetRoutes();
+    RoadNav* road_nav = new RoadNav();
+
+    ////use btree to get the sections that this cell interesects////////
+    CcInt* search_cell_id_from = new CcInt(true, from_cell_id);
+    BTreeIterator* btree_iter1 = btree->ExactMatch(search_cell_id_from);
+    vector<int> sec_id_list_from; 
+    while(btree_iter1->Next()){
+        Tuple* tuple_cell = rel1->GetTuple(btree_iter1->GetId(), false);
+        CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr);
+        sec_id_list_from.push_back(sec_id->GetIntval());
+        tuple_cell->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+    delete search_cell_id_from;
+
+    ////////////////////create first gpoint////////////////////////
+    int index1 = 0;
+    index1 = (index1 + seed) % sec_id_list_from.size(); 
+    int sec_id_1 = sec_id_list_from[index1];
+        
+
+    ///////// create two gpoints from selected two sections///////////////
+    /////////choose the first road section for each cell/////////////////
+    
+    Tuple* tuple_sec_1 = n->GetSection(sec_id_1);  
+    int rid1 = ((CcInt*)tuple_sec_1->GetAttribute(SECTION_RID))->GetIntval();
+    double loc1 = 
+      ((CcReal*)tuple_sec_1->GetAttribute(SECTION_MEAS1))->GetRealval();
+
+    GPoint* gp1 = new GPoint(true,n->GetId(),rid1,loc1,None);
+    Point* location1 = new Point();
+    
+    Tuple* road_tuple1 = routes->GetTuple(gp1->GetRouteId(), false);
+    SimpleLine* sl1 = (SimpleLine*)road_tuple1->GetAttribute(ROUTE_CURVE);
+    assert(sl1->GetStartSmaller());
+    assert(sl1->AtPosition(gp1->GetPosition(), true, *location1));
+    road_tuple1->DeleteIfAllowed();
+
+    start_gp.push_back(*location1); 
+
+
+    ////////////////////////////////////////////////////////////////////////
+    CcInt* search_cell_id_end = new CcInt(true, end_cell_id);
+    BTreeIterator* btree_iter2 = btree->ExactMatch(search_cell_id_end);
+    vector<int> sec_id_list_end; 
+    while(btree_iter2->Next()){
+        Tuple* tuple_cell = rel1->GetTuple(btree_iter2->GetId(), false);
+        CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr);
+        sec_id_list_end.push_back(sec_id->GetIntval());
+        tuple_cell->DeleteIfAllowed();
+    }
+    delete btree_iter2;
+    delete search_cell_id_end;
+
+
+    ///////////////////create second gpoint/////////////////////////////
+    int index2 = 0; 
+    index2 = (index2 + seed) % sec_id_list_end.size(); 
+    int sec_id_2 = sec_id_list_end[index2];
+    
+    Tuple* tuple_sec_2 = n->GetSection(sec_id_2);
+    int rid2 = ((CcInt*)tuple_sec_2->GetAttribute(SECTION_RID))->GetIntval();
+    double loc2 = 
+        ((CcReal*)tuple_sec_2->GetAttribute(SECTION_MEAS1))->GetRealval();
+    GPoint* gp2 = new GPoint(true,n->GetId(),rid2,loc2,None); 
+    Point* location2 = new Point();
+
+    Tuple* road_tuple2 = routes->GetTuple(gp2->GetRouteId(), false);
+    SimpleLine* sl2 = (SimpleLine*)road_tuple2->GetAttribute(ROUTE_CURVE);
+    assert(sl2->GetStartSmaller());
+    assert(sl2->AtPosition(gp2->GetPosition(), true, *location2));
+    road_tuple2->DeleteIfAllowed();
+
+    end_gp.push_back(*location2); 
+
+
+    GLine* gl = new GLine(0);
+
+//    cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
+
+    road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+
+    delete location1; 
+    delete gp1;
+
+    delete location2; 
+    delete gp2; 
+    
+    tuple_sec_1->DeleteIfAllowed();
+    tuple_sec_2->DeleteIfAllowed(); 
+    //////////////////////////////////////////////////////////////////////////
+
+    bus_lines1.push_back(*gl);
+
+    //////////////////////////////////////////////////////////////////////////
+    Line* l = new Line(0);
+    gl->Gline2line(l);
+    bus_lines2.push_back(*l);
+    delete l; 
+    delete gl; 
+
+    bus_route_type.push_back(route_type);
+
+    delete road_nav;
+
+} 
+
+/*void BusRoute::ConnectCell(int attr,int from_cell_id,
                            int end_cell_id, int route_type, int seed)
 {
      
@@ -393,9 +517,7 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
     }
     delete btree_iter1;
     delete search_cell_id_from;
-/*    cout<<"from_cell_id "<<from_cell_id
-        <<" sec no "<<sec_id_list_from.size()<<" "; */
-    
+
     ////////////////////create first gpoint////////////////////////
     int index1 = 0;
     index1 = (index1 + seed) % sec_id_list_from.size(); 
@@ -428,15 +550,13 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
     }
     delete btree_iter2;
     delete search_cell_id_end;
-/*    cout<<"end_cell_id "<<end_cell_id
-        <<" sec no "<<sec_id_list_end.size()<<endl; */
-    
+
     ///////////////////get the selected road section////////////////////
-/*  SimpleLine* sl1 = (SimpleLine*)tuple_sec_1->GetAttribute(SECTION_CURVE);
-    Line* busline1 = new Line(0);
-    sl1->toLine(*busline1);
-    bus_sections1.push_back(*busline1);
-    delete busline1; */
+//  SimpleLine* sl1 = (SimpleLine*)tuple_sec_1->GetAttribute(SECTION_CURVE);
+//    Line* busline1 = new Line(0);
+//    sl1->toLine(*busline1);
+//    bus_sections1.push_back(*busline1);
+//    delete busline1; 
     
     ///////////////////create second gpoint/////////////////////////////
     int index2 = 0; 
@@ -454,11 +574,11 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
     
 
     ////////////////////////get the selected road section////////////////////
-/*    SimpleLine* sl2 = (SimpleLine*)tuple_sec_2->GetAttribute(SECTION_CURVE);
-    Line* busline2 = new Line(0);
-    sl2->toLine(*busline2);
-    bus_sections2.push_back(*busline2);
-    delete busline2; */
+//    SimpleLine* sl2 = (SimpleLine*)tuple_sec_2->GetAttribute(SECTION_CURVE);
+//    Line* busline2 = new Line(0);
+//    sl2->toLine(*busline2);
+//    bus_sections2.push_back(*busline2);
+//    delete busline2; 
     //////////////////////////////////////////////////////////////////////////
     //    cout<<"rid2 "<<rid2<<endl; 
 
@@ -493,7 +613,9 @@ void BusRoute::ConnectCell(int attr,int from_cell_id,
     delete gl; 
     
     bus_route_type.push_back(route_type);
-}
+} */
+
+
 
 /*
 reorder the route interval in each gline 
@@ -6276,7 +6398,7 @@ void* Bus_Route::Cast(void* addr)
 }
 
 
-const Rectangle<2> Bus_Route::BoundingBox() const
+const Rectangle<2> Bus_Route::BoundingBox(const Geoid* geoid) const
 {
     Rectangle<2> bbox;
     for( int i = 0; seg_list.Size(); i++ ){
@@ -7118,10 +7240,11 @@ void BusNetwork::LoadStops(Relation* r1)
   }
 //  cout<<s_rel->GetNoTuples()<<endl; 
 
-  ostringstream xStopsStream;
-  xStopsStream << (long)s_rel;
+
+  ListExpr ptrList1 = listutils::getPtrList(s_rel);
+
   string strQuery = "(consume(feed(" + BusStopsInternalTypeInfo +
-                "(ptr " + xStopsStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
  
 //  cout<<strQuery<<endl; 
 
@@ -7134,10 +7257,10 @@ void BusNetwork::LoadStops(Relation* r1)
   //////////////////////////////////////////////////////////////////
   //////////////////////btree on bus stops br id/////////////////////
   ///////////////////////////////////////////////////////////////////
-  ostringstream xNodeOidPtrStream;
-  xNodeOidPtrStream << (long)stops_rel;
+  ListExpr ptrList2 = listutils::getPtrList(stops_rel);
+  
   strQuery = "(createbtree (" + BusStopsInternalTypeInfo +
-             "(ptr " + xNodeOidPtrStream.str() + "))" + "br_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "br_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7145,21 +7268,20 @@ void BusNetwork::LoadStops(Relation* r1)
 
 
   //////////////////////btree on bus stops uoid/////////////////////
-  ostringstream xNodeOidPtrStream_UOID;
-  xNodeOidPtrStream_UOID << (long)stops_rel;
+  ListExpr ptrList3 = listutils::getPtrList(stops_rel);
+
   strQuery = "(createbtree (" + BusStopsInternalTypeInfo +
-             "(ptr " + xNodeOidPtrStream_UOID.str() + "))" + "u_oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "u_oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   btree_bs_uoid = (BTree*)xResult.addr;
 
   //////////////////////rtree on bus stops//////////////////////////
-  ostringstream xBusStopsRtree;
-  xBusStopsRtree << ( long ) stops_rel;
+  ListExpr ptrList4 = listutils::getPtrList(stops_rel);
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + BusStopsInternalTypeInfo +
-         " (ptr " + xBusStopsRtree.str() + "))))((geodata asc))) geodata)";
+         " (ptr " + nl->ToString(ptrList4) + "))))((geodata asc))) geodata)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   rtree_bs = ( R_Tree<2,TupleId>* ) xResult.addr;
@@ -7172,10 +7294,11 @@ store bus routes relation as well as some indices
 */
 void BusNetwork:: LoadRoutes(Relation* r2)
 {
-  ostringstream xRoutesStream;
-  xRoutesStream << (long)r2;
+
+  ListExpr ptrList1 = listutils::getPtrList(r2);
+
   string strQuery = "(consume(feed(" + BusRoutesTypeInfo +
-                "(ptr " + xRoutesStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
 //  cout<<strQuery<<endl; 
 
@@ -7198,10 +7321,11 @@ void BusNetwork:: LoadRoutes(Relation* r2)
    //////////////////////////////////////////////////////////////////
   //////////////////////btree on bus routes brid/////////////////////
   //////////////////////////////////////////////////////////////////
-  ostringstream xEdgeOidPtrStream;
-  xEdgeOidPtrStream << (long)routes_rel;
+
+  ListExpr ptrList2 = listutils::getPtrList(routes_rel);
+
   strQuery = "(createbtree (" + BusRoutesTypeInfo +
-             "(ptr " + xEdgeOidPtrStream.str() + "))" + "br_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "br_id)";
 //  cout<<strQuery<<endl; 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7211,10 +7335,11 @@ void BusNetwork:: LoadRoutes(Relation* r2)
    //////////////////////////////////////////////////////////////////
   //////////////////////btree on bus routes unique oid///////////////
   //////////////////////////////////////////////////////////////////
-  ostringstream xEdgeOidPtrStream2;
-  xEdgeOidPtrStream2 << (long)routes_rel;
+
+  ListExpr ptrList3 = listutils::getPtrList(routes_rel);
+
   strQuery = "(createbtree (" + BusRoutesTypeInfo +
-             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7229,10 +7354,11 @@ store moving buses and the maximum speed of all buses
 */
 void BusNetwork:: LoadBuses(Relation* r3)
 {
-  ostringstream xRoutesStream;
-  xRoutesStream << (long)r3;
+
+  ListExpr ptrList1 = listutils::getPtrList(r3);
+
   string strQuery = "(consume(feed(" + BusTripsTypeInfo +
-                "(ptr " + xRoutesStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
 //  cout<<strQuery<<endl; 
 
@@ -7241,8 +7367,6 @@ void BusNetwork:: LoadBuses(Relation* r3)
   assert(QueryExecuted);
   bustrips_rel = (Relation*)xResult.addr; 
 
-  
-  
 //  cout<<"size "<<bustrips_rel->GetNoTuples()<<endl; 
 
  //////////////////////////////////////////////////////////////////////
@@ -7277,26 +7401,27 @@ void BusNetwork:: LoadBuses(Relation* r3)
 
  }
  min_bt_oid = temp_id; 
- cout<<"max bus speed "<<max_bus_speed*60*60/1000.0<<"km/h "<<endl;
+// cout<<"max bus speed "<<max_bus_speed*60*60/1000.0<<"km/h "<<endl;
 // cout<<"min bus trip oid "<<min_bt_oid<<endl; 
 
   ////////////////btree on bus trips oid///////////////////////////
-  ostringstream xEdgeOidPtrStream2;
-  xEdgeOidPtrStream2 << (long)bustrips_rel;
+
+  ListExpr ptrList2 = listutils::getPtrList(bustrips_rel);
+
   strQuery = "(createbtree (" + BusTripsTypeInfo +
-             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   btree_trip_oid = (BTree*)xResult.addr;
 
-  
-  
+
   ////////////////btree on bus trips bus route///////////////////////////
-  ostringstream xEdgeOidPtrStream3;
-  xEdgeOidPtrStream3 << (long)bustrips_rel;
+
+  ListExpr ptrList3 = listutils::getPtrList(bustrips_rel);
+
   strQuery = "(createbtree (" + BusTripsTypeInfo +
-             "(ptr " + xEdgeOidPtrStream3.str() + "))" + "br_id)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "br_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7857,6 +7982,7 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
   
   double d1 = it_p_list1[0].loc.Distance(p1);
   double d2 = it_p_list1[0].loc.Distance(p2);
+
   if(d1 < d2){
       // it_p_list1[0] -- p1 bs1, it_p_list2[0] -- p2 bs2
       Tuple* pave_tuple1 = pave_rel->GetTuple(it_p_list1[0].tid, false);
@@ -7870,6 +7996,11 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
 
       GenLoc genloc1(oid1, loc1); 
       assert(q1.Inside(*reg1));
+//       if(q1.Inside(*reg1) == false){
+//         cout<<"oid1 "<<"q1 "<<endl;
+//         cout<<bs1<<" "<<bs2<<endl;
+//       }
+
       pave_tuple1->DeleteIfAllowed(); 
       bs_list.push_back(bs1);
       genloc_list.push_back(genloc1); 
@@ -7887,6 +8018,11 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
 
       GenLoc genloc2(oid2, loc2); 
       assert(q2.Inside(*reg2));
+//       if(q2.Inside(*reg2) == false){
+//           cout<<"oid2 "<<oid2<<" q2 "<<q2<<endl;
+//           cout<<bs1<<" "<<bs2<<endl;
+//       }
+
       pave_tuple2->DeleteIfAllowed(); 
 
       bs_list.push_back(bs2); 
@@ -7904,11 +8040,18 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
       Region* reg1 = (Region*)pave_tuple1->GetAttribute(DualGraph::PAVEMENT);
       Point q1 = it_p_list1[0].loc; 
 
+
       Loc loc1(q1.GetX() - reg1->BoundingBox().MinD(0),
                q1.GetY() - reg1->BoundingBox().MinD(1));
 
+
       GenLoc genloc1(oid1, loc1); 
       assert(q1.Inside(*reg1));
+//       if(q1.Inside(*reg1) == false){
+//         cout<<"oid1 "<<oid1<<" q1"<<q1<<endl;
+//         cout<<bs1<<" "<<bs2<<endl;
+//       }
+
       pave_tuple1->DeleteIfAllowed(); 
       bs_list.push_back(bs2);
       genloc_list.push_back(genloc1); 
@@ -7926,6 +8069,11 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
 
       GenLoc genloc2(oid2, loc2); 
       assert(q2.Inside(*reg2));
+//       if(q2.Inside(*reg2) == false){
+//         cout<<"oid2 "<<oid2<<" q2 "<<q2<<endl;
+//         cout<<bs1<<" "<<bs2<<endl;
+//       }
+
       pave_tuple2->DeleteIfAllowed(); 
 
       bs_list.push_back(bs1); 
@@ -7956,18 +8104,39 @@ void BN::DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
               Region* candi_reg =
                      (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
               if(l->Intersects(candi_reg->BoundingBox())){
-                  Line* l1 = new Line(0);
+/*                  Line* l1 = new Line(0);
                   candi_reg->Boundary(l1);
                   Points* ps = new Points(0);
                   l->Crossings(*l1, *ps); 
                   for(int i = 0;i < ps->Size();i++){
                     Point p;
                     ps->Get(i, p);
-                    MyPoint_Tid mpt(p, 0.0, e.info); 
+                    MyPoint_Tid mpt(p, 0.0, e.info);
                     it_p_list.push_back(mpt);
+//                    assert(p.Inside(*candi_reg));
                   }
                   delete ps;
-                  delete l1;
+                  delete l1;*/
+
+                 for(int i1 = 0;i1 < l->Size();i1++){
+                    HalfSegment hs1;
+                    l->Get(i1, hs1);
+                    if(hs1.IsLeftDomPoint() == false) continue;
+                    for(int i2 = 0;i2 < candi_reg->Size();i2++){
+                      HalfSegment hs2;
+                      candi_reg->Get(i2, hs2);
+                      if(hs2.IsLeftDomPoint() == false) continue;
+                      Point p;
+                      if(hs1.Intersection(hs2, p)){
+                         if(p.Inside(*candi_reg)){
+                             MyPoint_Tid mpt(p, 0.0, e.info);
+                             it_p_list.push_back(mpt);
+                         }
+//                        MyPoint_Tid mpt(p, 0.0, e.info);
+//                        it_p_list.push_back(mpt);
+                      }
+                    }
+                 }
               }
               dg_tuple2->DeleteIfAllowed();
       }else{
@@ -7980,6 +8149,7 @@ void BN::DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
   }
   delete node;
 }
+
 
 /*
 for each bus stop, we find its neighbor bus stops. the distance between them
@@ -9377,11 +9547,11 @@ void BusGraph::Load(int id, Relation* r1, Relation* edge1,
   }
 
 
-  ostringstream xNodePtrStream;
-  xNodePtrStream<<(long)s_rel;
+  ListExpr ptrList1 = listutils::getPtrList(s_rel);
 
   string strQuery = "(consume(feed(" + NodeInternalTypeInfo +
-                "(ptr " + xNodePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -9390,16 +9560,17 @@ void BusGraph::Load(int id, Relation* r1, Relation* edge1,
 
   s_rel->Delete();
 
-  ////////////////////////////btree on nodes///////////////////////////
-  ostringstream xNodeOidPtrStream2;
-  xNodeOidPtrStream2<< (long)node_rel;
+  ////////////////////////////btree on nodes/////////////////////////
+  ListExpr ptrList2 = listutils::getPtrList(node_rel);
+
   strQuery = "(createbtree (" + NodeInternalTypeInfo +
-             "(ptr " + xNodeOidPtrStream2.str() + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   btree_node = (BTree*)xResult.addr;
 
-  //////////////////////////////load edges////////////////////////////
+  //////////////////////////////load edges///////////////////////////
   LoadEdge1(edge1);///connected by pavements path 
   LoadEdge2(edge2);///same spatial location, doing transfer 
   LoadEdge3(edge3);//moving buses in the same route 
@@ -9417,11 +9588,10 @@ void BusGraph::LoadEdge1(Relation* r)
   ////////////////////more efficient for query processing///////////////
   //////////////////////////////////////////////////////////////////////
 
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)r;
+  ListExpr ptrList1 = listutils::getPtrList(r);
 
   string strQuery = "(consume(feed(" + EdgeTypeInfo1 +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -9457,11 +9627,13 @@ void BusGraph::LoadEdge1(Relation* r)
 
 //  cout<<"edge1 rel no "<<edge_rel1->GetNoTuples()<<endl; 
 
-  //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel1;
+  //////////////////create adjacency list///////////////////////////////////
+  
+  ListExpr ptrList2 = listutils::getPtrList(edge_rel1);
+  
   strQuery = "(createbtree (" + EdgeTypeInfo1 +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -9518,11 +9690,10 @@ void BusGraph::LoadEdge2(Relation* r)
   ////////////////////more efficient for query processing///////////////
   //////////////////////////////////////////////////////////////////////
 
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)r;
+  ListExpr ptrList1 = listutils::getPtrList(r);
 
   string strQuery = "(consume(feed(" + EdgeTypeInfo2 +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -9560,10 +9731,12 @@ void BusGraph::LoadEdge2(Relation* r)
 
 
   //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel2;
+
+  ListExpr ptrList2 = listutils::getPtrList(edge_rel2);
+
   strQuery = "(createbtree (" + EdgeTypeInfo2 +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -9615,11 +9788,11 @@ void BusGraph::LoadEdge3(Relation* e_rel)
 {
 //  cout<<e_rel->GetNoTuples()<<endl; 
   
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)e_rel;
+
+  ListExpr ptrList1 = listutils::getPtrList(e_rel);
 
   string strQuery = "(consume(feed(" + EdgeTypeInfo3 +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -9672,10 +9845,12 @@ void BusGraph::LoadEdge3(Relation* e_rel)
 
 
  //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel3;
+  
+  ListExpr ptrList2 = listutils::getPtrList(edge_rel3);
+
   strQuery = "(createbtree (" + EdgeTypeInfo3 +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -15808,10 +15983,10 @@ void MetroNetwork::LoadStops(Relation* r)
 {
 //  cout<<"LoadStops"<<endl;
   
-  ostringstream xStopsStream;
-  xStopsStream << (long)r;
+  ListExpr ptrList1 = listutils::getPtrList(r);
+  
   string strQuery = "(consume(feed(" + MetroStopsTypeInfo +
-                "(ptr " + xStopsStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
 //  cout<<strQuery<<endl; 
 
@@ -15824,10 +15999,11 @@ void MetroNetwork::LoadStops(Relation* r)
   //////////////////////////////////////////////////////////////////
   //////////////////////btree on metro stops line id/////////////////////
   ///////////////////////////////////////////////////////////////////
-  ostringstream xNodeOidPtrStream;
-  xNodeOidPtrStream << (long)stops_rel;
+
+  ListExpr ptrList2 = listutils::getPtrList(stops_rel);
+
   strQuery = "(createbtree (" + MetroStopsTypeInfo +
-             "(ptr " + xNodeOidPtrStream.str() + "))" + "mr_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15835,11 +16011,11 @@ void MetroNetwork::LoadStops(Relation* r)
 
 
   //////////////////////rtree on metro stops//////////////////////////
-  ostringstream xMetroStopsRtree;
-  xMetroStopsRtree << ( long ) stops_rel;
-
+  
+  ListExpr ptrList3 = listutils::getPtrList(stops_rel);
+  
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + MetroStopsTypeInfo +
-         " (ptr " + xMetroStopsRtree.str() + 
+         " (ptr " + nl->ToString(ptrList3) + 
          "))))((stop_geodata asc))) stop_geodata)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
@@ -15855,10 +16031,11 @@ load metro routes relation
 void MetroNetwork::LoadRoutes(Relation* r2)
 {
 //    cout<<"LoadRotes"<<endl; 
-    ostringstream xRoutesStream;
-    xRoutesStream << (long)r2;
+
+    ListExpr ptrList1 = listutils::getPtrList(r2);
+
     string strQuery = "(consume(feed(" + MetroRoutesTypeInfo +
-                "(ptr " + xRoutesStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
 //  cout<<strQuery<<endl; 
 
@@ -15882,10 +16059,11 @@ void MetroNetwork::LoadRoutes(Relation* r2)
    //////////////////////////////////////////////////////////////////
   //////////////////////btree on metro routes lineid/////////////////
   //////////////////////////////////////////////////////////////////
-  ostringstream xEdgeOidPtrStream;
-  xEdgeOidPtrStream << (long)routes_rel;
+
+  ListExpr ptrList2 = listutils::getPtrList(routes_rel);
+  
   strQuery = "(createbtree (" + MetroRoutesTypeInfo +
-             "(ptr " + xEdgeOidPtrStream.str() + "))" + "mr_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_id)";
 //  cout<<strQuery<<endl; 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15894,10 +16072,11 @@ void MetroNetwork::LoadRoutes(Relation* r2)
   //////////////////////////////////////////////////////////////////
   //////////////////////btree on metro routes unique oid////////////
   //////////////////////////////////////////////////////////////////
-  ostringstream xEdgeOidPtrStream2;
-  xEdgeOidPtrStream2 << (long)routes_rel;
+
+  ListExpr ptrList3 = listutils::getPtrList(routes_rel);
+  
   strQuery = "(createbtree (" + MetroRoutesTypeInfo +
-             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15913,10 +16092,10 @@ void MetroNetwork::LoadMetros(Relation* r3)
 {
 //  cout<<"LoadMetros"<<endl;
 
-  ostringstream xRoutesStream;
-  xRoutesStream << (long)r3;
+  ListExpr ptrList1 = listutils::getPtrList(r3);
+
   string strQuery = "(consume(feed(" + MetroTripTypeInfo +
-                "(ptr " + xRoutesStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
 //  cout<<strQuery<<endl;
 
@@ -15966,10 +16145,11 @@ void MetroNetwork::LoadMetros(Relation* r3)
 
 
   ////////////////btree on metro trips metro route id ///////////////////////
-  ostringstream xEdgeOidPtrStream3;
-  xEdgeOidPtrStream3 << (long)metrotrips_rel;
+  
+  ListExpr ptrList2 = listutils::getPtrList(metrotrips_rel);
+  
   strQuery = "(createbtree (" + MetroTripTypeInfo +
-             "(ptr " + xEdgeOidPtrStream3.str() + "))" + "mr_oid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15977,10 +16157,10 @@ void MetroNetwork::LoadMetros(Relation* r3)
 
   ////////////////btree on metro trips oid///////////////////////////
 
-  ostringstream xEdgeOidPtrStream2;
-  xEdgeOidPtrStream2 << (long)metrotrips_rel;
+  ListExpr ptrList3 = listutils::getPtrList(metrotrips_rel);
+
   strQuery = "(createbtree (" + MetroTripTypeInfo +
-             "(ptr " + xEdgeOidPtrStream2.str() + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -16701,12 +16881,10 @@ void MetroGraph::Load(int g_id, Relation* r1, Relation* edge1, Relation* edge2)
   mg_id = g_id;
 
   //////////////////node relation////////////////////
-
-  ostringstream xNodePtrStream;
-  xNodePtrStream<<(long)r1;
+  ListExpr ptrList1 = listutils::getPtrList(r1);
 
   string strQuery = "(consume(feed(" + MGNodeTypeInfo +
-                "(ptr " + xNodePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -16716,10 +16894,11 @@ void MetroGraph::Load(int g_id, Relation* r1, Relation* edge1, Relation* edge2)
 //  cout<<"nodes size "<<node_rel->GetNoTuples()<<endl;
 
   ///////////////////////////btree on nodes///////////////////////////
-  ostringstream xNodeOidPtrStream2;
-  xNodeOidPtrStream2<< (long)node_rel;
+
+  ListExpr ptrList2 = listutils::getPtrList(node_rel);
+
   strQuery = "(createbtree (" + MGNodeTypeInfo +
-             "(ptr " + xNodeOidPtrStream2.str() + "))" + "mr_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_id)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   btree_node = (BTree*)xResult.addr;
@@ -16738,12 +16917,10 @@ metro graph edges: two metro stops have the same spatial location in space
 */
 void MetroGraph::LoadEdge1(Relation* edge1)
 {
-
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)edge1;
+  ListExpr ptrList1 = listutils::getPtrList(edge1);
 
   string strQuery = "(consume(feed(" + MGEdge1TypeInfo +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -16751,10 +16928,12 @@ void MetroGraph::LoadEdge1(Relation* edge1)
   edge_rel1 = (Relation*)xResult.addr;
 
   //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel1;
+
+  ListExpr ptrList2 = listutils::getPtrList(edge_rel1);
+  
   strQuery = "(createbtree (" + MGEdge1TypeInfo +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "ms_stop1_tid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "ms_stop1_tid)";
+             
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -16803,11 +16982,10 @@ metro graph edges: two metro stops are connected by moving metros
 void MetroGraph::LoadEdge2(Relation* edge2)
 {
 
-  ostringstream xEdgePtrStream;
-  xEdgePtrStream<<(long)edge2;
+  ListExpr ptrList1 = listutils::getPtrList(edge2);
 
   string strQuery = "(consume(feed(" + MGEdge2TypeInfo +
-                "(ptr " + xEdgePtrStream.str() + "))))";
+                "(ptr " + nl->ToString(ptrList1) + "))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -16837,10 +17015,13 @@ void MetroGraph::LoadEdge2(Relation* edge2)
 
 
  //////////////////create adjacency list////////////////////////////////////
-  ostringstream xNodeOidPtrStream1;
-  xNodeOidPtrStream1 << (long)edge_rel2;
+
+  ListExpr ptrList2 = listutils::getPtrList(edge_rel2);
+
   strQuery = "(createbtree (" + MGEdge2TypeInfo +
-             "(ptr " + xNodeOidPtrStream1.str() + "))" + "ms_stop1_tid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "ms_stop1_tid)";
+
+
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
