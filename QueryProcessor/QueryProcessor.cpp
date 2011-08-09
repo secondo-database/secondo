@@ -304,7 +304,8 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   : progressView(0),nl( newNestedList ),
     algebraManager( newAlgebraManager ),
     testMode( false ), debugMode( false ),
-    traceMode( false ), traceNodes( false ), debugLocal(false)
+    traceMode( false ), traceNodes( false ), debugLocal(false),
+    debugProgress(false), traceProgress(false)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS,0 );
@@ -4013,52 +4014,35 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 
   assert(tree!=0);
 
-  if ( tree->nodetype == Operator )
-  {
-    if ( !tree->u.op.supportsProgress ) return false;
-    else
-    {
-      result = SetWord(p);
-      Eval(tree, result, REQUESTPROGRESS);
-
-        if (trace)
-        {
-
-    if (tree->u.received)
-          {
-      cout << "Return from supplier " << (void*) s << endl;
-      cout << "Cardinality = " << p->Card << endl;
-      cout << "Size = " << static_cast<int>(p->Size + 0.5) << endl;
-      cout << "SizeExt = " << static_cast<int>(p->SizeExt + 0.5) << endl;
-      cout << "noAttrs = " << p->noAttrs << endl;
-            cout << "attrSize[i] = ";
-        for ( int i = 0; i < p->noAttrs; i++ )
-                cout << static_cast<int>(p->attrSize[i]+ 0.5) << " ";
-      cout << endl;
-            cout << "attrSizeExt[i] = ";
-        for ( int i = 0; i < p->noAttrs; i++ )
-                cout << static_cast<int>(p->attrSizeExt[i] + 0.5) << " ";
-      cout << endl;
-      cout << "sizesChanged = " << p->sizesChanged << endl;
-
-      cout << "BlockingTime = " << p->BTime << endl;
-      cout << "BlockingProgress = " << p->BProgress << endl;
-
-      cout << "Time = " << p->Time << endl;
-      cout << "Progress = " << p->Progress << endl;
-
-            cout << "=================" << endl;
-          }
-          else
-          {
-      cout << "CANCEL from supplier " << (void*) s << endl;
-          }
-        }
-
-      return (tree->u.received);
-    }
+  // RequestProgress is available for operator node only
+  if(tree->nodetype != Operator){
+    return  false;
   }
-  else return false;
+
+  // check if the operator supports progress
+ if ( !tree->u.op.supportsProgress ){
+    return false;
+  }
+
+  result = SetWord(p);
+  Eval(tree, result, REQUESTPROGRESS);
+  if(tree->u.received){
+    if(traceProgress  || (debugProgress && !p->checkRanges())){
+        cout << "Result of REQUESTPROGRESS for " << (void*) s << "(";
+        cout  << tree->u.op.theOperator->GetName() << ")" << endl;
+        cout << (*p) << endl;
+        cout << "======================" << endl;
+     }
+   } else {
+     if(traceProgress){
+        cout << "REQUESTPROGRESS for " << (void*) s << "(";
+        cout  << tree->u.op.theOperator->GetName() << ")" << endl;
+        cout << "has no result" << endl;
+        cout << "======================" << endl;
+     }
+   }
+
+   return (tree->u.received);
 }
 
 
@@ -4479,6 +4463,8 @@ QueryProcessor::SetDebugLevel( const int level )
    traceMode = (level & 2) > 0;
    traceNodes = (level & 4) > 0;
    debugLocal = (level & 8) > 0;
+   debugProgress = (level & 16) > 0;
+   traceProgress = (level & 32) > 0;
 }
 
 bool

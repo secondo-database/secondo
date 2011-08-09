@@ -59,9 +59,13 @@ class ProgressView
 {
   public:
 
-  ProgressView()
+  ProgressView() : currentProgress(0.0), ofs(), 
+                   initialized(false), startClock(0), msgList(), msg(0),
+                   PROGRESS_NORM(50), 
+                   DETPROT(0), PROGTYPECARD(0), PROGTYPEPROG(0)
   {
-    parmFile = expandVar("$(SECONDO_CONFIG)");
+
+    string parmFile = expandVar("$(SECONDO_CONFIG)");
     PROGRESS_NORM = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgNorm", 50, parmFile);
     DETPROT = SmiProfile::GetParameter("ProgressEstimation", 
@@ -75,14 +79,18 @@ class ProgressView
     if (PROGTYPEPROG)
     {
       initialized = false;
-      fileName    = "proglogt.csv";
+      string fileName    = "proglogt.csv";
       if (DETPROT & 2) ofs.open(fileName.c_str(), ios::app);
     }
   }
 
+
   ~ProgressView()
   {        
-    if (PROGTYPEPROG && (DETPROT & 2)) { ofs << endl; ofs.close(); }
+    if (PROGTYPEPROG && (DETPROT & 2)) {
+           ofs << endl; 
+           ofs.close(); 
+    }
   }
 
   void
@@ -92,14 +100,13 @@ class ProgressView
     if (PROGTYPEPROG)
     {
       initialized  = true;
-      pointCounter = 0;
-	  startClock  = clock();
+   	  startClock  = clock();
       msg = MessageCenter::GetInstance();
 
-      msgList = NList(NList("progress"), NList(NList(-1), 
-        NList(PROGRESS_NORM)));
+      msgList = NList(NList("progress"), 
+                         NList(NList(-1), 
+                         NList(PROGRESS_NORM)));
       msg->Send(msgList);
-
     }
   }
 
@@ -122,17 +129,18 @@ class ProgressView
     {
       if (!initialized) InitProgressView();
 
-      actMaxPoints = (int) (progress.Progress * PROGRESS_NORM);
-      while (pointCounter < actMaxPoints)
-      {
-        pointCounter++;
-        msgList = 
-          NList(NList("progress"),
-            NList(NList((int) ((pointCounter * 100.0) / PROGRESS_NORM)),
-            NList(100)));
-        msg->Send(msgList);
-	    }
-
+       currentProgress = progress.Progress;
+       if(currentProgress < 0){
+         currentProgress = 0;
+       } 
+       if(currentProgress>1){
+         currentProgress= 1;
+       }
+       msgList = NList( NList("progress"),
+              NList( NList((int) (currentProgress*PROGRESS_NORM)), 
+                     NList(PROGRESS_NORM)));
+       msg->Send(msgList);
+              
       if (DETPROT & 2)
       {
 
@@ -142,14 +150,14 @@ class ProgressView
 
 
        ofs << clocks << ";" ;
-
-	sprintf (progstr, "%6.2f", progress.Progress * 100.0);
-        progstr [3] = ',';
+       char progstr[7];
+       sprintf (progstr, "%6.2f", currentProgress * 100.0);
+       progstr [3] = ',';
 
         ofs << (int) progress.Card << ";";
         ofs << (int) progress.Time << ";";
-	ofs << progstr << ";" ;
-	ofs << endl;
+        ofs << progstr << ";" ;
+        ofs << endl;
       }
     }
   }
@@ -161,30 +169,28 @@ class ProgressView
     {
       initialized = false;
 
-      while (pointCounter < PROGRESS_NORM)
-      {
-        pointCounter++;
-        msgList = 
-          NList(NList("progress"),
-            NList(NList((int) ((pointCounter * 100.0) / PROGRESS_NORM)),
-            NList(100)));
-        msg->Send(msgList);
-      }
+      // set progress to 100%
+      msgList = NList( NList("progress"),
+                           NList(NList(PROGRESS_NORM), 
+                           NList(PROGRESS_NORM)));
+      msg->Send(msgList);
+    
+
+      // mark end of progress messages
       msgList = NList(NList("progress"), NList(NList(0), NList(-1)));
       msg->Send(msgList);
 
-      if (DETPROT & 2) 	ofs << endl;
-
+      if (DETPROT & 2) {
+          	ofs << endl;
+      }
     }
   }
 
   private:
+    double currentProgress;
+    ofstream ofs;
     bool initialized;
     clock_t startClock;
-    int pointCounter, actMaxPoints;
-    char progstr [6];
-    string fileName, parmFile;
-    ofstream ofs;
     NList msgList;
     MessageCenter* msg;
     int PROGRESS_NORM;

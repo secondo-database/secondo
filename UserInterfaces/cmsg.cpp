@@ -195,8 +195,9 @@ Implementation of Class ProgMesHandler
 bool
 ProgMesHandler::handleMsg(NList msgList)
 {
-  if ( !msgList.first().isSymbol("progress") )
+  if ( !msgList.first().isSymbol("progress") ){
     return false;
+  }
 
   int ActValue = msgList.second().first().intval();
   int TotalValue = msgList.second().second().intval();
@@ -204,46 +205,57 @@ ProgMesHandler::handleMsg(NList msgList)
   static StopWatch* s = 0;
   static double rt = 0;
 
-  if (ActValue < 0) // Initialisierung
-  {
-    for (int i = 1; i < TotalValue; i++)
-      if ((i % 10) == 0) cout << "|"; else cout << "-";
-	cout << "|" << endl;
-    s = new StopWatch;    
-  }
-  else 
-  {
-    rt = s->diffSecondsReal();
-    static int prg = 0;      
-    if (TotalValue > 0)
-    {
-      prg++;
-      const int len=50;
-      int showprg = min(prg, len);
-      string bar1(showprg, '.');
-      string bar2(len-showprg, ' ');
-      int p= (ActValue*100 / TotalValue);
-      int restTime = static_cast<int>( ceil( rt/p * (100-p) ) );
-      int showMin = restTime / 60;
-      int showSec = restTime - (showMin * 60); 
-
-      cout << "\r" << bar1 << bar2 
-           //<< " " 
-	   //<< p << "% " 
-	   //<< "(run: " << ceil(rt) 
-	   //<< "s, rest: " <<  restSecs << "s)    " 
-           << " remaining: " << showMin << ":" 
-	   << setw(2) << setfill('0') << showSec << " min  "
-	   << flush;
+  // initialize the size of the progress bar
+  if (ActValue < 0) {
+    for (int i = 1; i < TotalValue; i++){
+      if ((i % 10) == 0) {
+          cout << "|"; 
+      } else {
+          cout << "-";
+      }
     }
-    else
-    {
+	  cout << "|" << endl;
+    s = new StopWatch;  
+    total = TotalValue; 
+    return true; 
+  }
+
+
+  // end of progress messages
+  if(TotalValue <= 0){
       cout << endl << "feddisch!" << endl << endl;
       delete s;
       s = 0;
-      prg = 0;
-    } 
+      return true;
   }
+
+  // normal progress messages
+
+  rt = s->diffSecondsReal();
+  
+  double pr = (double)ActValue / (double)TotalValue;
+
+  int dots = (int)  (((double)total) * pr);
+  if(dots<0){
+     dots = 0;
+  }
+  if(dots>total){
+    dots = total;
+  }
+
+  string bar1(dots, '.');
+  string bar2(total-dots, ' ');
+
+  int p = ((ActValue*100) / TotalValue);
+  int restTime = static_cast<int>( ceil( rt/p * (100-p) ) );
+  int showMin = restTime / 60;
+  int showSec = restTime - (showMin * 60); 
+
+  cout << "\r" << bar1 << bar2 
+       << " remaining: " << showMin << ":" 
+	     << setw(2) << setfill('0') << showSec << " min  "
+       << "               "
+	     << flush;
   return true;
 }
 

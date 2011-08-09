@@ -23,12 +23,68 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Progress.h"
+#include <iostream>
 
 
 ProgressInfo::ProgressInfo():
   Card(0), Size(0), SizeExt(0), noAttrs(0), attrSize(0), attrSizeExt(0),
   sizesChanged(false), Time(0), Progress(0), BTime(0.001), BProgress(1.0) 
  { }
+
+
+ostream& ProgressInfo::Print(ostream& out) const{
+  out << "ProgressInfo : [ " << std::endl
+      << "   Card         = " << Card << std::endl 
+      << "   Size         = " << Size << std::endl
+      << "   SizeExt      = " << SizeExt << std::endl
+      << "   noAttrs      = " << noAttrs << std::endl
+      << "   attrSize     = [ ";
+  for(int i=0; i< noAttrs; i++){
+    if(i>0) out << ", ";
+    out << attrSize[i];
+  }   
+  out << " ]" << std::endl;
+
+  out  << "  attrSizeExt  = [ ";
+  for(int i=0; i< noAttrs; i++){
+    if(i>0) out << ", ";
+    out << attrSizeExt[i];
+  }   
+  out << " ]" << std::endl;
+
+
+  out << "   sizesChanged = " << (sizesChanged?"true":"false") << std::endl
+      << "   Time         = " << Time << std::endl
+      << "   Progress     = " << Progress << std::endl
+      << "   BTime        = " << BTime << std::endl
+      << "   BProgress    = " << BProgress << std::endl
+      << " ]" << std::endl;
+      return out;
+}
+
+
+ostream& operator<<(ostream& out, const ProgressInfo& pi){
+  return pi.Print(out);
+}
+
+bool ProgressInfo::checkRanges() const{
+   if(Card < 0)   return false;
+   if(Size < 0)   return false;
+   if(SizeExt < 0) return false;
+   if(noAttrs < 0) return false;
+   if(Time < 0)  return false;
+   if((Progress < 0) || (Progress > 1)) return false;
+   if(BTime < 0) return false;
+   if((BProgress <0) || (BProgress > 1)) return false;
+
+   for(int i = 0; i< noAttrs; i++){
+     if(attrSize[i] < 0 ) return false;
+     if(attrSizeExt[i] < 0) return false;
+   }
+   return true;
+}
+
+
 
 
 void ProgressInfo::CopySizes(const ProgressInfo& p)

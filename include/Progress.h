@@ -46,6 +46,8 @@ messages. This is still work in progress!
 #ifndef CLASS_PROGRESS_H
 #define CLASS_PROGRESS_H
 
+#include <iostream>
+
 
 using namespace std;
 
@@ -112,8 +114,15 @@ public:
 
   void Copy(const ProgressInfo& p);    //copy all fields
 
+
+  ostream& Print(ostream& out) const;
+
+  bool checkRanges() const;
+
 };
 
+
+ostream& operator<<(ostream& out, const ProgressInfo& pi);
 
 
 

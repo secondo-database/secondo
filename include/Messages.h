@@ -101,8 +101,10 @@ class ProgMesHandler : public MessageHandler
 
   public:
   virtual bool handleMsg(NList msgList);
-  ProgMesHandler() {};
+  ProgMesHandler():total(50) {};
   ~ProgMesHandler() {};
+
+  int total;  // len of the progress bar 
 
 };
 
