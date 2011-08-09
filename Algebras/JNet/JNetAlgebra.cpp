@@ -24,6 +24,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include "../../include/QueryProcessor.h"
+#include "../../include/AlgebraTypes.h"
+#include "../../include/Operator.h"
+#include "../../include/ConstructorTemplates.h"
+#include "../../include/ListUtils.h"
+#include "../../include/Symbols.h"
+#include "../../include/StandardTypes.h"
 #include "JNetAlgebra.h"
 #include "Direction.h"
 #include "RouteLocation.h"
@@ -36,13 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NetDistanceGroup.h"
 #include "ListNetDistGrp.h"
 #include "JNetwork.h"
-#include "../../include/ConstructorTemplates.h"
-#include "../../include/AlgebraTypes.h"
-#include "../../include/Operator.h"
-#include "../../include/QueryProcessor.h"
-#include "../../include/ListUtils.h"
-#include "../../include/Symbols.h"
-#include "../../include/StandardTypes.h"
+
 
 
 extern NestedList* nl;
@@ -453,9 +454,9 @@ struct jNetworkInfo:ConstructorInfo
     name = JNetwork::BasicType();
     signature = "-> " + Kind::JNETWORK();
     typeExample = JNetwork::BasicType();
-    listRep = "(" + CcInt::BasicType() + " " + Relation::BasicType() + " " +
+    listRep = "(" + CcString::BasicType() + " " + Relation::BasicType() + " " +
               Relation::BasicType() + " " + Relation::BasicType() + ")";
-    valueExample = "(1 (rel(Junctions)) (rel(Sections)) (rel(Routes)))";
+    valueExample = "(netname (rel(Junctions)) (rel(Sections)) (rel(Routes)))";
     remarks = "Central network object.";
   }
 };
@@ -849,9 +850,9 @@ OperatorInfo CreateStreamInfo(
 /*
 2.4 Creation of JNetwork Object
 
-The operator expects an integer value and two relations.
+The operator expects an string value and two relations.
 
-The integer value defines the network identifier.
+The string value defines the name of the network object in the database.
 
 The first relation defines the nodes of the network by four values of type
 ~int~, ~point~, ~int~, ~real~, whereas the meaning is JUNC\_ID, JUNC\_POS,
@@ -872,8 +873,8 @@ ListExpr CreateJNetworkTM ( ListExpr args )
     return listutils::typeError("Expected 3 arguments.");
 
   NList netId(param.first());
-  if (!netId.isSymbol(CcInt::BasicType()))
-    return listutils::typeError("1.Argument must be int.");
+  if (!netId.isSymbol(CcString::BasicType()))
+    return listutils::typeError("1.Argument must be" + CcString::BasicType());
 
   NList juncRel(param.second());
   NList juncAttrs;
@@ -939,7 +940,7 @@ ListExpr CreateJNetworkTM ( ListExpr args )
 int CreateJNetworkVM( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
-  int nid = ((CcInt*)args[0].addr)->GetIntval();
+  string nid = ((CcString*)args[0].addr)->GetValue();
   Relation* juncRel = (Relation*) args[1].addr;
   Relation* routesRel = (Relation*) args[2].addr;
   JNetwork* pResult = (JNetwork*) qp->ResultStorage ( s ).addr;
@@ -950,12 +951,12 @@ int CreateJNetworkVM( Word* args, Word& result, int message,
 
 OperatorInfo CreateJNetworkInfo(
   "createjnetwork",
-  "int x rel(tuple((jid int)(pos point)(rid int)(r_pos real))) x "
+  "string x rel(tuple((jid int)(pos point)(rid int)(r_pos real))) x "
   " rel(tuple((rid int)(jid int)(r_pos real)(vmax real)(curve sline)))"
   " -> jnetwork",
-  "createjnetwork(1, junctionsRelation, routesRelation)",
-  "Creates a network object from the two inputrelations.",
-  "let NEWNETWORK = createjnetwork(1, junctionsRelation, routesRelation)"
+  "createjnetwork(name, junctionsRelation, routesRelation)",
+  "Creates a network object name from the two inputrelations.",
+  "let netname = createjnetwork('netname', junctionsRelation, routesRelation)"
 );
 
 /*

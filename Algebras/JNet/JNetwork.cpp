@@ -35,10 +35,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "PairTIDRLoc.h"
 
+
 extern NestedList* nl;
 
 static bool DEBUG = false;
-/*map <int, JNetwork*> JNetwork::netlist;*/
 
 /*
 2 Constructors and Deconstructor
@@ -46,7 +46,7 @@ static bool DEBUG = false;
 */
 
 JNetwork::JNetwork() : nDef(false),
-                       id(0),
+                       id(""),
                        junctions(0),
                        sections(0),
                        routes(0),
@@ -59,7 +59,7 @@ JNetwork::JNetwork() : nDef(false),
   if (DEBUG) cout << "JNetwork::Network()" << endl;
 }
 
-JNetwork::JNetwork(const bool def) : nDef(def), id(0),
+JNetwork::JNetwork(const bool def) : nDef(def), id(""),
                                      junctions(0), sections(0), routes(0),
                                      sectionsBTree(0), sectionsRTree(0),
                                      junctionsBTree(0), junctionsRTree(0),
@@ -68,21 +68,27 @@ JNetwork::JNetwork(const bool def) : nDef(def), id(0),
   if (DEBUG) cout << "JNetwork::Network(bool)" << endl;
 }
 
-JNetwork::JNetwork(const int nid, Relation* injunctions,
+JNetwork::JNetwork(const string nid, Relation* injunctions,
                    Relation* insections, Relation* inroutes) :
   nDef(true), id(nid), junctions(injunctions), sections(insections),
   routes(inroutes)
 {
-  if (DEBUG) cout << "JNetwork::Network(int, rel, rel, rel)" << endl;
+  if (DEBUG) cout << "JNetwork::Network(string, rel, rel, rel)" << endl;
   CreateTrees();
 }
 
 JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo) : nDef(false), id(0)
+                   const ListExpr typeInfo) : nDef(false), id("")
 {
   if (DEBUG) cout << "JNetwork::Network(smirecord, ...)" << endl;
-  valueRecord.Read(&id, sizeof(int), offset);
-  offset += sizeof(int);
+  Word w;
+  ListExpr idLE;
+  nl->ReadFromString(CcString::BasicType(), idLE);
+  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+  if (!OpenAttribute<CcString>(valueRecord, offset, numId, w))
+    return;
+  id = ((CcString*)w.addr)->GetValue();
+
   junctions = OpenRelation(junctionsTypeInfo, valueRecord, offset);
   if (junctions == 0) return;
 
@@ -181,7 +187,7 @@ JNetwork::JNetwork(const JNetwork& net) : nDef(net.IsDefined()),
 JNetwork::JNetwork(const ListExpr instance, const int errorPos,
                    ListExpr& errorInfo, bool& correct) :
   nDef(true),
-  id(0),
+  id(""),
   junctions(0),
   sections(0),
   routes(0),
@@ -213,15 +219,15 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   NList juncList(inlist.second());
   NList sectList(inlist.third());
   NList routeList(inlist.fourth());
-  if (DEBUG) cout << "Read id" << endl;
-  if (!(netId.isAtom() && netId.isInt()))
+  if (DEBUG) cout << "Read id from: " << netId.str()<< endl;
+  if (!(netId.isAtom() && netId.isString()))
   {
     correct = false;
-    cerr << "First element should be int atom." << endl;
+    cerr << "First element should be string atom." << endl;
     return;
   }
 
-  id = netId.intval();
+  id = netId.str();
 
   if (DEBUG) cout << "Read junctions" << endl;
   ListExpr typeInf = nl->TheEmptyList();
@@ -287,7 +293,7 @@ bool JNetwork::IsDefined() const
   return nDef;
 }
 
-int JNetwork::GetId() const
+string JNetwork::GetId() const
 {
   return id;
 }
@@ -295,18 +301,6 @@ int JNetwork::GetId() const
 Relation* JNetwork::GetJunctionsCopy() const
 {
   return GetRelationCopy(junctionsTypeInfo, junctions);
-}
-
-Relation* JNetwork::GetRelationCopy(const string relTypeInfo,
-                                    Relation* relPointer) const
-{
-  ListExpr strPtr = listutils::getPtrList(relPointer);
-  string querystring = "(consume (feed (" + relTypeInfo +
-                           " (ptr " + nl->ToString(strPtr) + "))))";
-  Word resultWord;
-  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
-  assert ( QueryExecuted );
-  return ( Relation * ) resultWord.addr;
 }
 
 Relation* JNetwork::GetRoutesCopy() const
@@ -324,7 +318,7 @@ void JNetwork::SetDefined(const bool def)
   nDef = def;
 }
 
-void JNetwork::SetId(const SmiFileId nid)
+void JNetwork::SetId(const string nid)
 {
   id = nid;
 }
@@ -338,6 +332,7 @@ void JNetwork::SetId(const SmiFileId nid)
 ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
 {
   if (DEBUG) cout << "JNetwork::Out" << endl;
+  
   JNetwork* source = (JNetwork*) value.addr;
   if (!source->IsDefined())
   {
@@ -345,8 +340,7 @@ ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
   }
   else
   {
-    int nid = source->GetId();
-    ListExpr netId = nl->IntAtom(nid);
+    ListExpr netId = nl->StringAtom(source->GetId());
     ListExpr junclist = source->JunctionsToList();
     ListExpr sectlist = source->SectionsToList();
     ListExpr routelist = source->RoutesToList();
@@ -357,6 +351,7 @@ ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
 Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
                   const int errorPos, ListExpr& errorInfo, bool& correct)
 {
+  if (DEBUG) cout << "JNetwork::In " << endl;
   JNetwork* net = new JNetwork(instance, errorPos, errorInfo, correct);
   if (correct)
     return SetWord(net);
@@ -391,7 +386,9 @@ void JNetwork::Close( const ListExpr typeInfo, Word& w )
 Word JNetwork::Clone( const ListExpr typeInfo, const Word& w )
 {
   if (DEBUG) cout << "JNetwork::Clone" << endl;
-  return SetWord ( new JNetwork(*((JNetwork*) w.addr)));
+  JNetwork* clone = new JNetwork(*((JNetwork*)w.addr));
+  clone->SetId(clone->GetId()+"clone");
+  return SetWord (clone);
 }
 
 void* JNetwork::Cast( void* addr )
@@ -424,53 +421,49 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr  typeInfo)
 {
   if (DEBUG) cout << "JNetwork::Save" << endl;
-  if (DEBUG) cout << "save id" << endl;
-  valueRecord.Write(&id, sizeof(int), offset);
-  offset += sizeof(int);
+  Word w;
+  w.setAddr(new CcString(true,id));
+  ListExpr idLE;
+  nl->ReadFromString(CcString::BasicType(), idLE);
+  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+  if (!SaveAttribute<CcString>(valueRecord, offset, numId, w))
+    return false;
 
   ListExpr relType;
   nl->ReadFromString ( junctionsTypeInfo, relType );
   ListExpr relNumericType =
-  SecondoSystem::GetCatalog()->NumericType ( relType );
-  if (DEBUG) cout << "save junctions" << endl;
+    SecondoSystem::GetCatalog()->NumericType ( relType );
   if (!junctions->Save(valueRecord, offset, relNumericType))
     return false;
 
   nl->ReadFromString(sectionsTypeInfo, relType);
   relNumericType = SecondoSystem::GetCatalog()->NumericType(relType);
-  if (DEBUG) cout << "save sections" << endl;
   if (!sections->Save(valueRecord, offset, relNumericType))
     return false;
 
-  if (DEBUG) cout << "save routes" << endl;
   nl->ReadFromString(routesTypeInfo, relType);
   relNumericType = SecondoSystem::GetCatalog()->NumericType(relType);
   if (!routes->Save(valueRecord, offset, relNumericType))
     return false;
 
-  if (DEBUG) cout << "save sectionsbtree" << endl;
   nl->ReadFromString ( sectionsBTreeTypeInfo, relType );
   relNumericType =SecondoSystem::GetCatalog()->NumericType ( relType );
   if (!sectionsBTree->Save( valueRecord, offset, relNumericType))
     return false;
 
-  if (DEBUG) cout << "save sectionsrtree" << endl;
   if (!sectionsRTree->Save( valueRecord, offset))
     return false;
 
   nl->ReadFromString ( junctionsBTreeTypeInfo, relType );
   relNumericType =SecondoSystem::GetCatalog()->NumericType ( relType );
-  if (DEBUG) cout << "save junctionsbtree" << endl;
   if (!junctionsBTree->Save( valueRecord, offset, relNumericType))
     return false;
 
-  if (DEBUG) cout << "save junctionsrtree" << endl;
   if (!junctionsRTree->Save( valueRecord, offset))
     return false;
 
   nl->ReadFromString ( routesBTreeTypeInfo, relType );
   relNumericType =SecondoSystem::GetCatalog()->NumericType ( relType );
-  if (DEBUG) cout << "save routesbtree" << endl;
   if (!routesBTree->Save( valueRecord, offset, relNumericType))
     return false;
 
@@ -487,12 +480,13 @@ bool JNetwork::Open(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr typeInfo, Word& value )
 {
   if (DEBUG) cout << "JNetwork::Open(..value)" << endl;
+
   value.addr = JNetwork::Open(valueRecord, offset, typeInfo);
   return value.addr != 0;
 }
 
 /*
-1 StandardOperations
+1 Standard Operations
 
 */
 
@@ -528,9 +522,7 @@ int JNetwork::Compare(const JNetwork& net) const
   if (!IsDefined() && !net.IsDefined()) return 0;
   if (!IsDefined() && net.IsDefined()) return -1;
   if (IsDefined() && !net.IsDefined()) return 1;
-  if (id < net.GetId()) return -1;
-  if (id > net.GetId()) return 1;
-  return 0;
+  return id.compare(net.GetId());
 }
 
 ostream& JNetwork::Print(ostream& os) const
@@ -570,7 +562,7 @@ const bool JNetwork::checkType(const ListExpr type)
 
 */
 
-void JNetwork::CreateNetwork(const int netid, const Relation* juncRel,
+void JNetwork::CreateNetwork(const string netid, const Relation* juncRel,
                              const Relation* routesRel)
 {
   if (DEBUG) cout << "JNetwork::CreateNetwork" << endl;
@@ -648,31 +640,19 @@ string JNetwork::routesBTreeTypeInfo = "(btree (tuple ( (id int) "
 ListExpr JNetwork::JunctionsToList() const
 {
   if (DEBUG) cout << "JNetwork::JunctionsToList" << endl;
-  GenericRelationIterator* it = junctions->MakeScan();
-  ListExpr typeInfo = nl->TheEmptyList();
-  nl->ReadFromString(junctionsTypeInfo, typeInfo);
-  ListExpr junList = Relation::Out(typeInfo, it);
-  return junList;
+  return RelationToList(junctions, junctionsTypeInfo);
 }
 
 ListExpr JNetwork::SectionsToList() const
 {
   if (DEBUG) cout << "JNetwork::SectionsToList" << endl;
-  GenericRelationIterator* it = sections->MakeScan();
-  ListExpr typeInfo = nl->TheEmptyList();
-  nl->ReadFromString(sectionsTypeInfo, typeInfo);
-  ListExpr secList = Relation::Out(typeInfo, it);
-  return secList;
+  return RelationToList(sections, sectionsTypeInfo);
 }
 
 ListExpr JNetwork::RoutesToList() const
 {
   if (DEBUG) cout << "JNetwork::RouteToList" << endl;
-  GenericRelationIterator* it = routes->MakeScan();
-  ListExpr typeInfo = nl->TheEmptyList();
-  nl->ReadFromString(routesTypeInfo, typeInfo);
-  ListExpr routeList = Relation::Out(typeInfo, it);
-  return routeList;
+  return RelationToList(routes, routesTypeInfo);
 }
 
 /*
@@ -1170,7 +1150,7 @@ BTree* JNetwork::OpenBTree(const std::string descriptor,
 
 
 /*
-1 Return TupleId for identifier
+1 Return TupleId for identifier from BTree
 
 */
 
@@ -1311,4 +1291,39 @@ void JNetwork::WriteSectionTuple(const int sectId,
   sections->AppendTuple(actSectTup);
   actSectTup->DeleteIfAllowed();
   actSectTup = 0;
+}
+
+/*
+1 Access internal Relations
+
+Some helpful tools to transform internal relations
+
+1.1 Copy
+
+*/
+
+Relation* JNetwork::GetRelationCopy(const string relTypeInfo,
+                                    Relation* relPointer) const
+{
+  ListExpr strPtr = listutils::getPtrList(relPointer);
+  string querystring = "(consume (feed (" + relTypeInfo +
+                       " (ptr " + nl->ToString(strPtr) + "))))";
+  Word resultWord;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted );
+  return ( Relation * ) resultWord.addr;
+}
+
+/*
+1.2 ToList
+
+*/
+
+ListExpr JNetwork::RelationToList(Relation* rel, const string relTypeInfo) const
+{
+  GenericRelationIterator* it = rel->MakeScan();
+  ListExpr typeInfo = nl->TheEmptyList();
+  nl->ReadFromString(relTypeInfo, typeInfo);
+  ListExpr relList = Relation::Out(typeInfo, it);
+  return relList;
 }

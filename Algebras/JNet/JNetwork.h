@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/SecondoSMI.h"
 #include "../../include/NestedList.h"
 #include "../../include/NList.h"
+#include "../../include/StandardTypes.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "../BTree/BTreeAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
@@ -61,7 +62,7 @@ The default constructor should only be used in the cast function.
   JNetwork();
   JNetwork(const bool def);
   JNetwork(const JNetwork& net);
-  JNetwork(const int nid, Relation* injunctions, Relation* insections,
+  JNetwork(const string nid, Relation* injunctions, Relation* insections,
            Relation* inroutes);
   JNetwork(SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo);
@@ -75,53 +76,53 @@ The default constructor should only be used in the cast function.
 */
 
   bool IsDefined() const;
-  int GetId() const;
+  string GetId() const;
   Relation* GetJunctionsCopy() const;
   Relation* GetRoutesCopy() const;
   Relation* GetSectionsCopy() const;
 
   void SetDefined(const bool def);
-  void SetId(const SmiFileId nid);
+  void SetId(const string nid);
 
 /*
 1.3 Secondo Integration
 
 */
-static ListExpr Out(ListExpr typeInfo, Word value);
-static Word In(const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct);
-static Word Create(const ListExpr typeInfo);
-static void Delete( const ListExpr typeInfo, Word& w );
-static void Close( const ListExpr typeInfo, Word& w );
-static Word Clone( const ListExpr typeInfo, const Word& w );
-static void* Cast( void* addr );
-static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
-static int SizeOf();
-static bool Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value );
-static bool Open(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value );
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete( const ListExpr typeInfo, Word& w );
+  static void Close( const ListExpr typeInfo, Word& w );
+  static Word Clone( const ListExpr typeInfo, const Word& w );
+  static void* Cast( void* addr );
+  static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
+  static int SizeOf();
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value );
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value );
 
 /*
 1.4 StandardOperations
 
 */
 
-JNetwork& operator=(const JNetwork& net) ;
-bool operator==(const JNetwork& net) const;
-int Compare(const JNetwork& net) const;
-ostream& Print(ostream& os) const;
-static const string BasicType();
-static const bool checkType(const ListExpr type);
+  JNetwork& operator=(const JNetwork& net) ;
+  bool operator==(const JNetwork& net) const;
+  int Compare(const JNetwork& net) const;
+  ostream& Print(ostream& os) const;
+  static const string BasicType();
+  static const bool checkType(const ListExpr type);
 
 /*
 1.5 Network Operations
 
 1.5.1 CreateNetwork
 
-Creates a network object from an integer and two input relations.
+Creates a network object from an string and two input relations.
 
-The integer value defines the network identifier.
+The string value should be the name of the network object in the database.
 
 The first relation defines the nodes of the network by four values of type
 ~int~, ~point~, ~int~, ~real~, whereas the meaning is JUNC\_ID, JUNC\_POS,
@@ -135,8 +136,8 @@ speed on the road and the route curve.
 
 */
 
-void CreateNetwork(const int netid, const Relation* juncRel,
-                   const Relation* routesRel);
+  void CreateNetwork(const string netid, const Relation* juncRel,
+                     const Relation* routesRel);
 
 /*
 1.5.2 Save
@@ -145,7 +146,7 @@ Saves the Network Object to Secondo
 
 */
 
-bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr  typeInfo);
+  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr  typeInfo);
 
 /*
 1.1.1 Open
@@ -154,21 +155,21 @@ Opens the Network Object in Secondo
 
 */
 
-static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
+  static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo);
 
 /*
 1.1 Relation Descriptors
 
 */
-static string sectionsTypeInfo;
-static string junctionsTypeInfo;
-static string routesTypeInfo;
-static string sectionsBTreeTypeInfo;
-static string sectionsRTreeTypeInfo;
-static string junctionsBTreeTypeInfo;
-static string junctionsRTreeTypeInfo;
-static string routesBTreeTypeInfo;
+  static string sectionsTypeInfo;
+  static string junctionsTypeInfo;
+  static string routesTypeInfo;
+  static string sectionsBTreeTypeInfo;
+  static string sectionsRTreeTypeInfo;
+  static string junctionsBTreeTypeInfo;
+  static string junctionsRTreeTypeInfo;
+  static string routesBTreeTypeInfo;
 
 private:
 
@@ -177,7 +178,7 @@ private:
 
 */
   bool nDef;           //defined Flag
-  int id;              //network identifier
+  string id;              //network identifier
   Relation* junctions;    //data of street crossings and death ends
   Relation* sections;     //data of connections between junctions
   Relation* routes;       //semantic connection of sections and junctions for
@@ -251,14 +252,6 @@ private:
   R_Tree<2, TupleId>* GetJunctionsRTree() const;
 
 /*
-1.1 Gets a copy of the internal relation given in the parameter
-
-*/
-
-  Relation* GetRelationCopy(const string relTypeInfo,
-                            Relation* relPointer) const;
-
-/*
 1.1 Create Network Relations
 
 1.3.1 Initialize relations
@@ -288,7 +281,7 @@ private:
 
 */
 
-void CreateTrees();
+  void CreateTrees();
 
 /*
 1.8.5.1 Creates BTree
@@ -331,20 +324,20 @@ void CreateTrees();
 
 */
 
-void WriteJunctionTuple(const int jid, Point* pos,
+  void WriteJunctionTuple(const int jid, Point* pos,
                         ListPTIDRLoc* listRLoc,
                         JListTID* listinsect,
                         JListTID* listoutsect,
                         ListNetDistGrp* listdist,
                         const ListExpr& juncNumType);
 
-void WriteRoutesTuple(const int rid,
+  void WriteRoutesTuple(const int rid,
                       const double length,
                       ListPTIDRLoc* listjunc,
                       ListPTIDRInt* listsect,
                       const ListExpr routesNumType);
 
-void WriteSectionTuple(const int sectId,
+  void WriteSectionTuple(const int sectId,
                        SimpleLine* curve,
                        const TupleId& curJunTID,
                        const TupleId& actJunTID,
@@ -354,6 +347,25 @@ void WriteSectionTuple(const int sectId,
                        const JSide dir,
                        const double curMaxSpeed,
                        const ListExpr& sectionsNumType);
+
+/*
+1 Access to internal relations
+
+Some helpful tools for access  to internal relations.
+
+1.1. Copy
+
+*/
+
+  Relation* GetRelationCopy(const string relTypeInfo,
+                            Relation* relPointer) const;
+
+/*
+1.1 ToList
+
+*/
+
+ListExpr RelationToList(Relation* rel, const string relTypeInfo) const;
 
 };
 #endif // JNETWORK_H

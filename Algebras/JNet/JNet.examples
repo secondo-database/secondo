@@ -80,8 +80,8 @@ Tolerance: 0.01%
 
 Operator : createjnetwork
 Number   : 1
-Signature: int x rel x rel -> jnetwork
-Example  : query createjnetwork(1, reljunctions, relroutes);
+Signature: string x rel x rel -> jnetwork
+Example  : query createjnetwork("testnet1", reljunctions, relroutes);
 Result   : file
 
 Operator : junctions
