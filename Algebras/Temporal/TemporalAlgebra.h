@@ -7979,7 +7979,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->Time = 0.00001;  // (almost) zero runtime
       }
       if(!localinfo->progressinitialized){
-        pRes->Card = (double) min(0,localinfo->noUnits); // cardinality
+        pRes->Card = (double) max(0,localinfo->noUnits); // cardinality
         pRes->Size = localinfo->attrSize;                // total size
         pRes->SizeExt = localinfo->attrSizeExt;          // size w/o FLOBS
         pRes->noAttrs = 1;                               //no of attributes
@@ -7989,6 +7989,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->sizesChanged = true;  //sizes have been recomputed
         localinfo->progressinitialized = true;
       } else {
+        pRes->Card = (double) max(0,localinfo->noUnits); // cardinality
         pRes->sizesChanged = false;
       }
       if(    (localinfo->noUnits > 0)
