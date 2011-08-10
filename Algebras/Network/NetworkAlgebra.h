@@ -2223,6 +2223,8 @@ isDefined
     return m_pSections->GetNoTuples();
   }
 
+  R_Tree<2,TupleId>* GetRTree(){ return m_pRTreeRoutes;}
+
 private:
 
 
