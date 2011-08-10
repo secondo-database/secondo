@@ -2,7 +2,15 @@
 
 
 .PHONY: all
-all: SyntaxParser
+all: opprios.pl
+
+
+opprios.pl: SyntaxParser ../../Algebras/specs
+	./SyntaxParser ../../Algebras/specs
+
+
+../../Algebras/specs:
+	make -C ../../Algebras specs
 
 
 
@@ -26,4 +34,4 @@ SyntaxParser.tab.c: SyntaxParser.y
 
 .PHONY: clean
 clean:
-	rm -f SyntaxParser.tab.c parse.o lex.yy.c scan.o SyntaxParser SyntaxParser.tab.h SyntaxParser.output
+	rm -f SyntaxParser.tab.c parse.o lex.yy.c scan.o SyntaxParser SyntaxParser.tab.h SyntaxParser.output opprios.pl opsyntax.pl
