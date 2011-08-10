@@ -819,7 +819,7 @@ struct GenMObject{
   void GetIdList(GenRange* gr); 
   void GetRef(GenMO* mo);
   ///////////////////create generic moving objects///////////////////////
-  void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type, Relation*);
+
   void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
                       int type, Relation*, BTree*, Relation*);
   void GenerateCar(Space* sp, Periods* peri, int mo_no, Relation*);
@@ -848,13 +848,11 @@ struct GenMObject{
   //////////////////////////////////////////////////////////////////////////
   //////////////////////Mode: Car or Taxi///////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO_CarTaxi(Space* sp, Periods* peri, int mo_no, 
-                             Relation* rel, string);
+  
   void GenerateGPoint(Network* rn, int mo_no, vector<GPoint>& gp_list);
   void GenerateGPoint2(Network* rn, int mo_no, 
                        vector<GPoint>& gp_list, vector<Point>& gp_loc_list);
-  void GenerateCarTaxi(Network*, int i, Periods* peri, GLine* newgl,
-                   Relation* rel, Point, string);
+  
   void CreateCarTrip1(MPoint* mo, vector<MyHalfSegment> seq_halfseg, 
                       Instant& start_time, double speed);
   void CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg, 
@@ -863,10 +861,9 @@ struct GenMObject{
   ///////////////////////////////////////////////////////////////////////
   /////////////////////Mode:Walk/////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
-  void GenerateGenMO_Walk(Space* sp, Periods* peri, int mo_no, Relation* rel);
+
   void GenerateLocPave(Pavement* pm, int mo_no, vector<GenLoc>& genloc_list);
-  void GenerateWalk(DualGraph* dg, int count, Periods* peri, Line* path, 
-                    Point p1);
+  
   void GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc, 
                             GenMO* genmo, MPoint* mo, Instant& start_time);
   //////////////////////////////////////////////////////////////////////////

@@ -10491,7 +10491,7 @@ void MaxRect::SetOffice38(vector<Build_Rect>& list, unsigned int no)
       }
     }
   }
-  
+
 }
 
 

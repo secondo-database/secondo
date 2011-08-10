@@ -170,7 +170,7 @@ operator putinfra alias PUTINFRA pattern op(_,_)
 operator getinfra alias GETINFRA pattern op(_,_)
 operator addinfragraph alias ADDINFRAGRAPH pattern op(_,_)
 operator genmo_tm_list alias GENMO_TM_LIST pattern op(_)
-operator generate_genmo1 alias GENERATE_GENMO1 pattern op(_,_,_,_,_)
+
 operator generate_genmo2 alias GENERATE_GENMO2 pattern op(_,_,_,_,_,_,_)
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
 operator generate_car_ext alias GENERATE_CAR_EXT pattern op(_,_,_,_,_)

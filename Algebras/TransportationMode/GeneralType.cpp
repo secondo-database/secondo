@@ -1511,43 +1511,6 @@ void GenMObject::GetIdList(GenRange* gr)
 create generic moving objects
 
 */
-void GenMObject::GenerateGenMO(Space* sp, Periods* peri, int mo_no, 
-                               int type, Relation* rel)
-{
-//  cout<<"GenerateGenMO()"<<endl; 
-  if(mo_no < 1){
-    cout<<" invalid number of moving objects "<<mo_no<<endl;
-    return;
-  }
-
-  if(!(0 <= type && type < int(ARR_SIZE(genmo_tmlist)))){
-    cout<<" invalid type value "<<type<<endl;
-  }
-
-  switch(type){
-    case 1:
-      GenerateGenMO_Walk(sp, peri, mo_no, rel);
-      break;
-
-    case 4:
-      GenerateGenMO_CarTaxi(sp, peri, mo_no, rel, "Car");
-      break;
-
-    case 6:
-      GenerateGenMO_CarTaxi(sp, peri, mo_no, rel, "Taxi");
-      break;
-
-    default:
-      assert(false);
-      break;  
-  }
-
-}
-
-/*
-create generic moving objects
-
-*/
 void GenMObject::GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
                                int type, Relation* rel1, 
                                BTree* btree, Relation* rel2)
@@ -1639,16 +1602,6 @@ void GenMObject::GenerateCar(Space* sp, Periods* peri, int mo_no,
     assert(sl->AtPosition(gp1.GetPosition(), true, *start_loc));
     road_tuple->DeleteIfAllowed();
 
-/*    GLine* gl = new GLine(0);
-    gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
-    BusRoute* br = new BusRoute(rn, NULL,NULL);
-    GLine* newgl = new GLine(0);
-    if(br->ConvertGLine2(gl, newgl)){
-      GenerateCarMO(rn, count, peri, newgl, rel, *start_loc);
-    }
-    delete newgl; 
-    delete br;
-    delete gl; */
 
 //    cout<<gp1<<" "<<gp2<<endl;
 
@@ -1801,33 +1754,6 @@ void GenMObject::GenerateCarExt(Network* rn, Periods* peri, int mo_no,
       count++;
     }else{
 
-/*    Point* start_loc = new Point();
-    gp1.ToPoint(start_loc);
-
-    GLine* gl = new GLine(0);
-    gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
-
-//    cout<<"gline len "<<gl->GetLength()<<endl; 
-
-    BusRoute* br = new BusRoute(rn, NULL,NULL);
-    GLine* newgl = new GLine(0);
-
-//    cout<<"gp1 "<<gp1<<" gp2 "<<gp2<<endl; 
-
-    if(br->ConvertGLine2(gl, newgl)){
-      GenerateCarMO(rn, count, peri, newgl, rel1, *start_loc);
-    }
-
-    delete newgl; 
-    delete br;
-    delete gl;
-
-
-//    loc_list1.push_back(gp_loc1);
-//    loc_list2.push_back(gp_loc2);
-
-    delete start_loc; 
-    cout<<count<<" moving object"<<endl; */
 
     count++;
     }
@@ -2170,67 +2096,7 @@ void GenMObject::GenerateGenMO3(Space* sp, Periods* peri, int mo_no,
 
 
 }
-/*
-generic moving objects with transportation mode walk
 
-*/
-void GenMObject::GenerateGenMO_Walk(Space* sp, Periods* peri, 
-                                    int mo_no, Relation* tri_rel)
-{
-
-//  cout<<"Mode Walk "<<endl;
-  const double min_len = 50.0;
-  Pavement* pm = sp->LoadPavement(IF_REGION);
-  vector<GenLoc> genloc_list;
-  GenerateLocPave(pm, mo_no, genloc_list);///generate locations on pavements 
-  int count = 1;
-
-  DualGraph* dg = pm->GetDualGraph();
-  int no_triangle = dg->GetNodeRel()->GetNoTuples();
-  int mini_oid = dg->min_tri_oid_1;
-  VisualGraph* vg = pm->GetVisualGraph();
-
-
-  Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
-  wsp->rel3 = tri_rel;
-  
-  while(count <= mo_no){
-    int index1 = GetRandom() % genloc_list.size();
-    GenLoc loc1 = genloc_list[index1];
-    int index2 = GetRandom() % genloc_list.size();
-    GenLoc loc2 = genloc_list[index2];
-
-    if(index1 == index2) continue;
-    Point p1(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
-    Point p2(true, loc2.GetLoc().loc1, loc2.GetLoc().loc2);
-    if(p1.Distance(p2) < min_len) continue;
-
-
-    int oid1 = loc1.GetOid() - mini_oid;
-//    cout<<"oid1 "<<oid1<<endl;
-    assert(1 <= oid1 && oid1 <= no_triangle);
-
-    int oid2 = loc2.GetOid() - mini_oid;
-//    cout<<"oid2 "<<oid2<<endl;
-    assert(1 <= oid2 && oid2 <= no_triangle);
-
-    Line* path = new Line(0);
-
-    wsp->WalkShortestPath2(oid1, oid2, p1, p2, path);
-//    cout<<"path length "<<path->Length()<<endl; 
-    GenerateWalk(dg, count, peri, path, p1);
-
-    delete path;
-    count++;
-
-  }
-  delete wsp;
-
-  pm->CloseDualGraph(dg);
-  pm->CloseVisualGraph(vg);
-
-  sp->ClosePavement(pm);
-}
 
 /*
 generate locations on the pavment area 
@@ -2260,43 +2126,6 @@ void GenMObject::GenerateLocPave(Pavement* pm, int mo_no,
   delete wsp;
 }
 
-/*
-generate moving objects with mode walk and the path 
-
-*/
-void GenMObject::GenerateWalk(DualGraph* dg, int count, Periods* peri, 
-                              Line* l, Point start_loc)
-{
-
-   MPoint* mo = new MPoint(0);
-   GenMO* genmo = new GenMO(0);
-   mo->StartBulkLoad();
-   genmo->StartBulkLoad();
-   //////////////////////////////////////////////////////////////
-   ///////////////set start time/////////////////////////////////
-   /////////////////////////////////////////////////////////////
-   Interval<Instant> periods;
-   peri->Get(0, periods);
-   Instant start_time = periods.start;
-   int time_range = 14*60;//14 hours 
-   if(count % 3 == 0)
-     start_time.ReadFrom(periods.start.ToDouble() + 
-                        (GetRandom() % time_range)/(24.0*60.0));
-   else
-    start_time.ReadFrom(periods.end.ToDouble() -
-                        (GetRandom() % time_range)/(24.0*60.0));
-
-   GenerateWalkMovement(dg, l, start_loc, genmo, mo, start_time);
-
-   mo->EndBulkLoad();
-   genmo->EndBulkLoad();
-
-   trip1_list.push_back(*genmo);
-   trip2_list.push_back(*mo);
-   delete mo; 
-   delete genmo; 
-   
-}
 
 /*
 provide an interface for creating moving objects with mode walk
@@ -2563,153 +2392,6 @@ void GenMObject::GenerateFreeMovement2(Point start_loc, Point end_loc,
 
 
 
-/*
-generic moving objects with transportation mode car or taxi
-
-*/
-void GenMObject::GenerateGenMO_CarTaxi(Space* sp, Periods* peri, int mo_no, 
-                                   Relation* rel, string mode)
-{
-//  cout<<"Mode Car "<<endl;
-
-  const double min_len = 500.0;
-  Network* rn = sp->LoadRoadNetwork(IF_LINE);
-  vector<GPoint> gp_list; 
-  GenerateGPoint(rn, mo_no, gp_list);/////////get road network locations 
-  int count = 1;
-  while(count <= mo_no){
-    int index1 = GetRandom() % gp_list.size();
-    GPoint gp1 = gp_list[index1];
-//    cout<<"gp1 "<<gp1<<endl;
-    int index2 = GetRandom() % gp_list.size();
-    GPoint gp2 = gp_list[index2];
-    if(index1 == index2) continue; 
-
-    Point* start_loc = new Point();
-    gp1.ToPoint(start_loc);
-
-//      cout<<"gp2 "<<gp2<<endl; 
-    GLine* gl = new GLine(0);
-    gp1.ShortestPath(&gp2, gl);////////compute the shortest path 
-//    cout<<"gline len "<<gl->GetLength()<<endl; 
-    if(gl->GetLength() > min_len){
-        BusRoute* br = new BusRoute(rn, NULL,NULL);
-        GLine* newgl = new GLine(0);
-        br->ConvertGLine(gl, newgl);
-//        cout<<"new gl length "<<newgl->GetLength()<<endl; 
-        GenerateCarTaxi(rn, count, peri, newgl, rel, *start_loc, mode);
-
-        delete newgl; 
-        delete br;
-        count++;
-    }
-    delete gl;
-    delete start_loc; 
-  }
-
-  sp->CloseRoadNetwork(rn);
-}
-
-
-/*
-create a moving object with mode car or taxi
-
-*/
-void GenMObject::GenerateCarTaxi(Network* rn, int i, Periods* peri, 
-                                 GLine* newgl,
-                                 Relation* rel, Point start_loc, string mode)
-{
-  Interval<Instant> periods;
-  peri->Get(0, periods);
-  Instant start_time = periods.start;
-  int time_range = 14*60;//14 hours 
-  if(i % 3 == 0)
-    start_time.ReadFrom(periods.start.ToDouble() + 
-                        (GetRandom() % time_range)/(24.0*60.0));
-  else
-    start_time.ReadFrom(periods.end.ToDouble() -
-                        (GetRandom() % time_range)/(24.0*60.0));
-//  cout<<"start time "<<start_time<<endl;
-
-  MPoint* mo = new MPoint(0);
-  GenMO* genmo = new GenMO(0);
-  mo->StartBulkLoad();
-  genmo->StartBulkLoad(); 
-  const double delta_dist = 0.01;
-
-  for(int i = 0;i < newgl->Size();i++){
-    RouteInterval* ri = new RouteInterval();
-    newgl->Get(i, *ri);
-    int rid = ri->GetRouteId();
-    Tuple* speed_tuple = rel->GetTuple(rid, false);
-    assert(((CcInt*)speed_tuple->GetAttribute(SPEED_RID))->GetIntval() == rid);
-    double speed = 
-      ((CcReal*)speed_tuple->GetAttribute(SPEED_VAL))->GetRealval();
-    speed_tuple->DeleteIfAllowed();
-//    cout<<"rid "<<rid<<" speed "<<speed<<endl; 
-
-    if(speed < 0.0)speed = 10.0;
-    speed = speed * 1000.0/3600.0;// meters in second 
-//    cout<<"rid "<<rid<<" new speed "<<speed<<endl;
-    SimpleLine* sl = new SimpleLine(0);
-    rn->GetLineValueOfRouteInterval(ri, sl);
-    ////////////////////////////////////////////////////////////////////
-    /////////////get the subline of this route interval////////////////
-    ///////////////////////////////////////////////////////////////////
-    SpacePartition* sp = new SpacePartition();
-    vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
-    sp->ReorderLine(sl, seq_halfseg);
-    delete sp;
-    //////////////////////////////////////////////////////////////////
-    delete sl;
-    
-    /////////////////////////////////////////////////////////////////////
-
-    Interval<Instant> unit_interval;
-    unit_interval.start = start_time;
-    unit_interval.lc = true;
-
-    Point temp_sp1 = seq_halfseg[0].from; 
-    Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
-    if(start_loc.Distance(temp_sp1) < delta_dist){
-      CreateCarTrip1(mo, seq_halfseg, start_time, speed);
-
-      start_loc = temp_sp2;
-    }else if(start_loc.Distance(temp_sp2) < delta_dist){
-
-      CreateCarTrip2(mo, seq_halfseg, start_time, speed);
-      start_loc = temp_sp1;
-    }else assert(false);
-
-    unit_interval.end = start_time;
-    unit_interval.rc = false;
-    //////////////////////////////////////////////////////////////
-    ////////////////generic units/////////////////////////////////
-    //////////////////////////////////////////////////////////////
-    Loc loc1(ri->GetStartPos(), -1); 
-    Loc loc2(ri->GetEndPos(), -1); 
-    GenLoc gloc1(ri->GetRouteId(), loc1);
-    GenLoc gloc2(ri->GetRouteId(), loc2);
-    int tm = GetTM(mode); 
-
-    //////////////////////////////////////////////////////////////////
-    /////////////correct way to create UGenLoc///////////////////////
-    //////////////////////////////////////////////////////////////////
-    UGenLoc* unit = new UGenLoc(unit_interval, gloc1, gloc2, tm);
-    genmo->Add(*unit); 
-    delete unit; 
-    delete ri;
-
-  }
-  mo->EndBulkLoad();
-  genmo->EndBulkLoad();
-  
-  trip1_list.push_back(*genmo);
-  trip2_list.push_back(*mo);
-  delete mo; 
-  delete genmo; 
-
-}
 
 /*
 create a set of random gpoint locations 
@@ -3757,11 +3439,11 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
 //        cout<<"time type "<<time_type<<endl; 
 //        cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl; 
 
-//        clock_t start, finish;// the total CPU time 
-//        start = clock(); //the total CPU time
-//         struct timeb t1;
-//         struct timeb t2;
-//         ftime(&t1);
+        clock_t start, finish;// the total CPU time 
+        start = clock(); //the total CPU time
+        struct timeb t1;
+        struct timeb t2;
+        ftime(&t1);
 
         BNNav* bn_nav = new BNNav(bn);
         if(count % time_and_type != 0){ //more movment with minimum time 
@@ -3771,11 +3453,11 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
             bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
         }
 
-//         finish = clock();
-//         ftime(&t2);
-//
-//         printf("CPU time :%.3f seconds: Real time: %.3f\n\n", 
-//           (double)(finish - start)/CLOCKS_PER_SEC, Gen_DiffTimeb(&t2, &t1));
+         finish = clock();
+         ftime(&t2);
+
+         printf("CPU time :%.3f seconds: Real time: %.3f\n\n", 
+           (double)(finish - start)/CLOCKS_PER_SEC, Gen_DiffTimeb(&t2, &t1));
 
         if(bn_nav->path_list.size() == 0){
 //          cout<<"two unreachable bus stops"<<endl;
@@ -3846,6 +3528,7 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
     sp->CloseBusNetwork(bn);
     sp->ClosePavement(pm);
 
+    
 }
 
 /*
@@ -7220,23 +6903,6 @@ void GenMObject::CreateCommPath(RoadGraph* rg, Network* rn, Relation* rel,
 
           for(unsigned int index2 = 0; index2 < gp_list2.size();index2++){
 
-//                 GLine* gl = new GLine(0);
-//                 /////some memory leaks in NetworkAlgebra implementation////
-//                 gp_list1[index1].ShortestPath(&gp_list2[index2], gl);
-// 
-//                 BusRoute* br = new BusRoute(rn, NULL,NULL);
-//                 GLine* newgl = new GLine(0);
-//                 assert(br->ConvertGLine2(gl, newgl));
-//                 delete gl;
-//                 delete br;
-// 
-//                 cell_id_list1.push_back(new_cell_id1);
-//                 rect_list1.push_back(bbox1);
-//                 cell_id_list2.push_back(new_cell_id2);
-//                 rect_list2.push_back(bbox2);
-//                 gline_list.push_back(*newgl);
-// 
-//                 delete newgl;
 
                 GLine* gl = new GLine(0);
 
@@ -7322,7 +6988,7 @@ void GenMObject::MergeCommPath(Network* rn, Relation* rel)
         GLine* newgl = new GLine(0);
 
         if(res_gl->Size() >= 2){
-          assert(br->ConvertGLine2(res_gl, newgl));
+          assert(br->ConvertGLine(res_gl, newgl));
           gline_list.push_back(*newgl);
         }
         else{

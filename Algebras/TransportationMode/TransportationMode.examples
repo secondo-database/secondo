@@ -972,12 +972,6 @@ Signature: bool -> (stream(((x1 t1) ... (xn tn))))
 Example  : query genmo_tm_list(TRUE) count;
 Result   : 17
 
-Operator : generate_genmo1
-Number   : 1
-Signature: space x periods x real x int x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo1(space_1, TwoDays, 5.0, 4, tmp_streets_speed) count;
-Result   : 5
-
 
 Operator : generate_genmo2
 Number   : 1

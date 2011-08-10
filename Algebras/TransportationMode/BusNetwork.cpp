@@ -38,6 +38,7 @@ creating bus network
 #include "BusNetwork.h"
 #include "PaveGraph.h"
 
+
 string BusRoute::StreetSectionCellTypeInfo = 
 "(rel (tuple ((sid_s int) (cellid_w_a_c int) (Cnt_a_c int) (cover_area_b_c\
 region))))";
@@ -123,10 +124,14 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
 
   ///////////////////////////////////////////////////////////////////
 
-  float div_number1 = 0.5; 
-  float div_number2 = 0.2; 
-  
-  
+//  float div_number1 = 0.5; 
+    float div_number1 = 0.4;
+
+    
+//    float div_number2 = 0.2;
+    float div_number2 = 0.25;
+
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* tuple_cell = rel1->GetTuple(i,false);
 //    CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr1); 
@@ -139,7 +144,7 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
     cell_list[cellid - 1].sec_intersect_count = cnt->GetIntval();
     cell_list[cellid - 1].reg = reg->BoundingBox(); 
   
-    if(cnt->GetIntval() > (int)(max_cnt*div_number1)){  
+    if(cnt->GetIntval() > (int)(max_cnt*div_number1)){
         cell_list[cellid - 1].count_1 = 3;
     }    
     else if(cnt->GetIntval() > (int)(max_cnt*div_number2) ){
@@ -184,24 +189,33 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
     if(top.count_1 == 1)
       cell_list1.push_back(top);
   }
-  //3---13  2---49  1---204 //berlin roads
+  //3---13  2---49  1---204 //berlin roads---div1 0.5
+  //3---21  2---41  1---204 //berlin roads---div1 0.4
+  //3---  2---  1--- //berlin roads---div1 0.4; div 0.25
+
   //3---7 2---20 1---610 //houston roads
-//   cout<<cell_list3.size()<<" "
-//       <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
+
+   cout<<cell_list3.size()<<" "
+       <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
 
    int bus_no;
-   bus_no = 3;
-   
-   BuildRoute(cell_list3, cell_list1, attr1, bus_no);
-   bus_no = 2;
-   
-   BuildRoute(cell_list2, cell_list1, attr1, bus_no);
-  
+//   bus_no = 3;
+//   bus_no = 2;
+   bus_no = 1;
+
+   BuildRoute(cell_list3, cell_list1, attr1, bus_no, 1);//type 1
+//   bus_no = 2;
+   bus_no = 1;
+
+   BuildRoute(cell_list2, cell_list1, attr1, bus_no, 2);//type 1
+
   bus_no = 1;
-  unsigned int limit_no = 20; 
-  
+//  unsigned int limit_no = 20;
+//  unsigned int limit_no = 40;
+  unsigned int limit_no = 30;
+
   BuildRoute_Limit(cell_list1, cell_list1, attr1, bus_no, limit_no);
-  
+
 }
 
 /*
@@ -210,22 +224,22 @@ highest density area with low density area
 */
 void BusRoute::BuildRoute(vector<Section_Cell>& from_cell_list,
                              vector<Section_Cell> to_cell_list,
-                             int attr1, int bus_no)
+                             int attr1, int bus_no, int type)
 {
   for(unsigned int i = 0;i < from_cell_list.size();i++){
     Section_Cell elem = from_cell_list[i];
-    
+
     int temp_bus_no = bus_no;
-    
+
     while(temp_bus_no > 0){
 //      float dist_val = 10000.0;//Euclidean distance between two cells
-      
+
 //      float dist_val = 12000.0;//Euclidean distance between two cells
-            
+
       float dist_val = 16000.0;//Euclidean distance between two cells
-      
+
       int end_cellid = FindEndCell(from_cell_list[i],to_cell_list,dist_val); 
-    
+
       if(end_cellid >= 0){
 //        cout<<"start cell "<<from_cell_list[i].cell_id
 //          <<" end cell "<<to_cell_list[end_cellid].cell_id<<endl; 
@@ -234,12 +248,16 @@ void BusRoute::BuildRoute(vector<Section_Cell>& from_cell_list,
           end_cells.push_back(to_cell_list[end_cellid].reg);
           start_cell_id.push_back(from_cell_list[i].cell_id);
           end_cell_id.push_back(to_cell_list[end_cellid].cell_id);
-          
-          if(bus_no == 3)bus_route_type.push_back(1);//the first route
-          if(bus_no == 2)bus_route_type.push_back(2);//the second route
-          
+
+//        if(bus_no == 3)bus_route_type.push_back(1);//the first route
+//        if(bus_no == 2)bus_route_type.push_back(2);//the second route
+
+//        if(bus_no == 2)bus_route_type.push_back(1);//the first route
+//        if(bus_no == 1)bus_route_type.push_back(2);//the second route
+
+          bus_route_type.push_back(type);
       }
-    
+
       temp_bus_no--; 
     
     }
@@ -301,7 +319,7 @@ void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
 
       }
      
-      temp_bus_no--; 
+      temp_bus_no--;
     
     }
     if(i > limit_no) break; 
@@ -474,7 +492,12 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
 
 //    cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
 
-    road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+//    road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+
+    if(route_type == 1 || route_type == 2)
+      road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+    else //////paths avoid city center area 
+      road_nav->ShortestPathSub2(gp1, gp2, rg, n, gl);
 
     delete location1; 
     delete gp1;
@@ -501,289 +524,6 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
 
 } 
 
-/*void BusRoute::ConnectCell(int attr,int from_cell_id,
-                           int end_cell_id, int route_type, int seed)
-{
-     
-    ////use btree to get the sections that this cell interesects////////
-    CcInt* search_cell_id_from = new CcInt(true, from_cell_id);
-    BTreeIterator* btree_iter1 = btree->ExactMatch(search_cell_id_from);
-    vector<int> sec_id_list_from; 
-    while(btree_iter1->Next()){
-        Tuple* tuple_cell = rel1->GetTuple(btree_iter1->GetId(), false);
-        CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr);
-        sec_id_list_from.push_back(sec_id->GetIntval());
-        tuple_cell->DeleteIfAllowed();
-    }
-    delete btree_iter1;
-    delete search_cell_id_from;
-
-    ////////////////////create first gpoint////////////////////////
-    int index1 = 0;
-    index1 = (index1 + seed) % sec_id_list_from.size(); 
-    int sec_id_1 = sec_id_list_from[index1];
-        
-
-    ///////// create two gpoints from selected two sections///////////////
-    /////////choose the first road section for each cell/////////////////
-    
-    Tuple* tuple_sec_1 = n->GetSection(sec_id_1);  
-    int rid1 = ((CcInt*)tuple_sec_1->GetAttribute(SECTION_RID))->GetIntval();
-    double loc1 = 
-      ((CcReal*)tuple_sec_1->GetAttribute(SECTION_MEAS1))->GetRealval();
-
-    GPoint* gp1 = new GPoint(true,n->GetId(),rid1,loc1,None);
-    Point* location1 = new Point();
-    gp1->ToPoint(location1);
-    start_gp.push_back(*location1); 
-    
-
-    ////////////////////////////////////////////////////////////////////////
-    CcInt* search_cell_id_end = new CcInt(true, end_cell_id);
-    BTreeIterator* btree_iter2 = btree->ExactMatch(search_cell_id_end);
-    vector<int> sec_id_list_end; 
-    while(btree_iter2->Next()){
-        Tuple* tuple_cell = rel1->GetTuple(btree_iter2->GetId(), false);
-        CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr);
-        sec_id_list_end.push_back(sec_id->GetIntval());
-        tuple_cell->DeleteIfAllowed();
-    }
-    delete btree_iter2;
-    delete search_cell_id_end;
-
-    ///////////////////get the selected road section////////////////////
-//  SimpleLine* sl1 = (SimpleLine*)tuple_sec_1->GetAttribute(SECTION_CURVE);
-//    Line* busline1 = new Line(0);
-//    sl1->toLine(*busline1);
-//    bus_sections1.push_back(*busline1);
-//    delete busline1; 
-    
-    ///////////////////create second gpoint/////////////////////////////
-    int index2 = 0; 
-    index2 = (index2 + seed) % sec_id_list_end.size(); 
-    int sec_id_2 = sec_id_list_end[index2];
-    
-    Tuple* tuple_sec_2 = n->GetSection(sec_id_2);
-    int rid2 = ((CcInt*)tuple_sec_2->GetAttribute(SECTION_RID))->GetIntval();
-    double loc2 = 
-        ((CcReal*)tuple_sec_2->GetAttribute(SECTION_MEAS1))->GetRealval();
-    GPoint* gp2 = new GPoint(true,n->GetId(),rid2,loc2,None); 
-    Point* location2 = new Point();
-    gp2->ToPoint(location2); 
-    end_gp.push_back(*location2); 
-    
-
-    ////////////////////////get the selected road section////////////////////
-//    SimpleLine* sl2 = (SimpleLine*)tuple_sec_2->GetAttribute(SECTION_CURVE);
-//    Line* busline2 = new Line(0);
-//    sl2->toLine(*busline2);
-//    bus_sections2.push_back(*busline2);
-//    delete busline2; 
-    //////////////////////////////////////////////////////////////////////////
-    //    cout<<"rid2 "<<rid2<<endl; 
-
-    GLine* gl = new GLine(0);
-
-//    cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
-
-    gp1->ShortestPath(gp2, gl);
-
-    delete location1; 
-    delete gp1;
-
-    delete location2; 
-    delete gp2; 
-    
-    tuple_sec_1->DeleteIfAllowed();
-    tuple_sec_2->DeleteIfAllowed(); 
-    //////////////////////////////////////////////////////////////////////////
-    GLine* newgl = new GLine(0);
-    ConvertGLine(gl, newgl);
-    
-    bus_lines1.push_back(*newgl);
-    /////////////////////////////////////////////////////////////////////////
-//    bus_lines1.push_back(*gl);
-    
-    delete newgl; 
-    //////////////////////////////////////////////////////////////////////////
-    Line* l = new Line(0);
-    gl->Gline2line(l);
-    bus_lines2.push_back(*l);
-    delete l; 
-    delete gl; 
-    
-    bus_route_type.push_back(route_type);
-} */
-
-
-
-/*
-reorder the route interval in each gline 
-the end point of i interval is connected to the start point of (i+1) interval 
-
-Note: 2010.11.8. Currently, it only works with the old version of computing
-intersectiong points of halfsegments in Spatial Algebra. The new version of
-computing has some problems in Network Algebra. Because the rounding error of
-computing junction points, it can't get the correct adjacent section list. 
-
-*/
-void BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
-{
-   newgl->SetNetworkId(gl->GetNetworkId());
-   
-   
-   vector<RouteInterval> ri_list; 
-   for(int i = 0; i < gl->Size();i++){
-    RouteInterval* ri = new RouteInterval();
-    gl->Get(i, *ri); 
-    
-//    cout<<"rid "<<ri->GetRouteId()
-//        <<"start "<<ri->GetStartPos()
-//        <<"end "<<ri->GetEndPos()<<endl;
-     
-    /////////////////merge connected intervals///////////////////////////// 
-    /////////////////but are properply not ordered correctly//////////////
-    if(!AlmostEqual(ri->GetStartPos(), ri->GetEndPos())){
-      if(ri_list.size() == 0)ri_list.push_back(*ri); 
-      else{
-        int last_rid = ri_list[ri_list.size() - 1].GetRouteId();
-        if(last_rid == ri->GetRouteId()){
-            double last_start = ri_list[ri_list.size() - 1].GetStartPos();
-            double last_end = ri_list[ri_list.size() - 1].GetEndPos();
-            
-            double cur_start = ri->GetStartPos();
-            double cur_end = ri->GetEndPos(); 
-            
-            if(AlmostEqual(last_start, cur_start)){
-              ri_list[ri_list.size() - 1].SetStartPos(cur_end);
-            }else if(AlmostEqual(last_start, cur_end)){
-              ri_list[ri_list.size() - 1].SetStartPos(cur_start);
-            }else if(AlmostEqual(last_end, cur_start)){
-              ri_list[ri_list.size() - 1].SetEndPos(cur_end);
-            }else if(AlmostEqual(last_end, cur_end)){ 
-              ri_list[ri_list.size() - 1].SetEndPos(cur_start);
-            }else assert(false);   
-        }else
-          ri_list.push_back(*ri);
-      }
-
-    }
-    delete ri; 
-   }
-
-   assert(ri_list.size() >= 2); //for bus route, long section 
-
-   vector<GP_Point> gp_p_list; 
-
- //  cout<<"after processing "<<endl; 
-
-   for(unsigned int i = 0;i < ri_list.size();i++){     
-
-        int rid = ri_list[i].GetRouteId();
-        double start = ri_list[i].GetStartPos();
-        double end = ri_list[i].GetEndPos();
-        GPoint* gp1 = new GPoint(true,n->GetId(),rid, start,None);
-        Point* p1 = new Point();
-        gp1->ToPoint(p1);
-
-        GPoint* gp2 = new GPoint(true,n->GetId(),rid, end, None);
-        Point* p2 = new Point();
-        gp2->ToPoint(p2);
-
-        GP_Point* gp_p = new GP_Point(rid,start,end,*p1,*p2);
-        gp_p_list.push_back(*gp_p);
-
-
-        delete gp_p;
-        delete p2;
-        delete gp2; 
-        delete p1;
-        delete gp1;
-   }  
-
-
-   vector<bool> temp_start_from; 
-   const double dist_delta = 0.001; 
-   for(unsigned int i = 0; i < gp_p_list.size() - 1;i++){
-    GP_Point gp_p1 = gp_p_list[i];
-    GP_Point gp_p2 = gp_p_list[i + 1];
-    
-//    cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
-//        <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
-
-    if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
-       gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
-      if(gp_p1.pos1 < gp_p1.pos2)
-        temp_start_from.push_back(false);
-      else
-        temp_start_from.push_back(true); 
-    
-      
-    }else if(gp_p1.loc2.Distance(gp_p2.loc1) < dist_delta ||
-             gp_p1.loc2.Distance(gp_p2.loc2) < dist_delta){
-     if(gp_p1.pos2 < gp_p1.pos1)
-        temp_start_from.push_back(false);
-      else
-        temp_start_from.push_back(true); 
-    
-    }else assert(false);
-    
-   }
-   
-    GP_Point gp_p1 = gp_p_list[gp_p_list.size() - 1];
-    GP_Point gp_p2 = gp_p_list[gp_p_list.size() - 2];
-    if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
-       gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
-      if(gp_p1.pos1 < gp_p1.pos2)
-        temp_start_from.push_back(true);
-      else
-        temp_start_from.push_back(false); 
-    
-      
-    }else if(gp_p1.loc2.Distance(gp_p2.loc1) < dist_delta ||
-             gp_p1.loc2.Distance(gp_p2.loc2) < dist_delta){
-     if(gp_p1.pos2 < gp_p1.pos1)
-        temp_start_from.push_back(true);
-      else
-        temp_start_from.push_back(false); 
-    
-    }else assert(false);
-    
-    assert(temp_start_from.size() == ri_list.size());
-    
-/*    for(unsigned int i = 0;i < ri_list.size();i++){
-    
-        cout<<"rid "<<ri_list[i].GetRouteId()
-        <<" start "<<ri_list[i].GetStartPos()
-        <<" end "<<ri_list[i].GetEndPos()
-        <<" start_from "<<temp_start_from[i]<<endl;
-    }*/
-
-    for(unsigned int i = 0;i < ri_list.size();i++){
-      int rid = ri_list[i].GetRouteId();
-      double start = ri_list[i].GetStartPos();
-      double end = ri_list[i].GetEndPos();
-      if(temp_start_from[i]){
-        if(start < end)
-          newgl->AddRouteInterval(rid, start, end);
-        else
-          newgl->AddRouteInterval(rid, end, start);
-      
-      }else{
-        if(start < end)
-          newgl->AddRouteInterval(rid, end, start);
-        else
-          newgl->AddRouteInterval(rid, start, end);
-      
-      }
-    }
-
-    newgl->SetDefined(true);
-    newgl->SetSorted(false);
-    newgl->TrimToSize();
-    
-//    cout<<*newgl<<endl; 
-}
 
 /*
 there are bugs of computing shortest path in road network. 
@@ -791,7 +531,7 @@ if the result is not correct, return false
 
 */
 
-bool BusRoute::ConvertGLine2(GLine* gl, GLine* newgl)
+bool BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
 {
    newgl->SetNetworkId(gl->GetNetworkId());
    
@@ -2056,7 +1796,9 @@ void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
 //  cout<<"bus_stop_list size "<<bus_stop_list.size()<<endl; 
 
   //////////////////////////////////////////////////////////////////////////
-  const double dist_val = 500.0; //distance used to expand road section 
+//  const double dist_val = 500.0; //distance used to expand road section
+  const double dist_val = 300.0; //distance used to expand road section 
+
   int last_br_id = 0; 
   vector<SectTreeEntry> sec_list; 
   vector<bool> start_from; 
@@ -2064,8 +1806,7 @@ void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
       
 //      if(bus_stop_list[i].br_id > 10) continue;
 
-//      if(i != 500) continue; 
-        
+
       if(bus_stop_list[i].def == false) continue; 
       
     ///////////////////////////////////////////////////////////////////////////
@@ -3334,6 +3075,12 @@ void BusRoute::GetBusRoutes()
   Tuple* br_tuple = rel2->GetTuple(i, false);
     int br_id = 
         ((CcInt*)br_tuple->GetAttribute(RoadDenstiy::BR_ID6))->GetIntval();
+
+//     if(br_id != 39){
+//       br_tuple->DeleteIfAllowed();
+//       continue;
+//     }
+
     bool direction = 
      ((CcBool*)br_tuple->GetAttribute(RoadDenstiy::BR_DIRECTION))->GetBoolval();
 
@@ -3364,7 +3111,6 @@ void BusRoute::GetBusRoutes()
 
     br_tuple->DeleteIfAllowed();
 
-//    break; 
   }
 
 }
@@ -3420,20 +3166,45 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
       Point loc1 = bslist[i].loc;
       Point loc2 = bslist[i + 1].loc;
 
-//      cout<<"stop id1 "<<bslist[i].br_stop_id
-//          <<" stop id2 "<<bslist[i + 1].br_stop_id<<endl;
+//       cout<<"br_id "<<br_id<<endl;
+//       cout<<"stop id1 "<<bslist[i].br_stop_id
+//           <<" stop id2 "<<bslist[i + 1].br_stop_id<<endl;
 
 //      cout<<"loc1 "<<bslist[i].loc<<" loc2 "<<bslist[i + 1].loc<<endl; 
 
-      double pos1, pos2; 
-      assert(sl->AtPoint(loc1, sl->GetStartSmaller(), pos1));
-      assert(sl->AtPoint(loc2, sl->GetStartSmaller(), pos2));
+      //////////////////////////////////////////////////////////////////
+      /////////numeric problem, use the new implementation//////////////
+      //////////////////////////////////////////////////////////////////
+      double pos1 = -1.0;
+      double pos2 = -1.0; 
+//      assert(sl->AtPoint(loc1, sl->GetStartSmaller(), pos1));
+//      assert(sl->AtPoint(loc2, sl->GetStartSmaller(), pos2));
+
+//       if(sl->AtPoint(loc1, sl->GetStartSmaller(), pos1) == false){
+//         cout<<"br_id "<<br_id<<" pos1 "<<pos1<<endl;
+//       }
+//       if(sl->AtPoint(loc2, sl->GetStartSmaller(), pos2) == false){
+//         cout<<"br_id "<<br_id<<" pos2 "<<pos2<<endl;
+//       }
+
+      double newpos1, newpos2;
+      GetPosOnSL(sl, loc1, newpos1);
+      GetPosOnSL(sl, loc2, newpos2);
+
+//       if(fabs(pos1 - newpos1) > delta_dist || 
+//          fabs(pos2 - newpos2) > delta_dist){
+//         printf("%.4f %.4f\n", pos1, newpos1);
+//         printf("%.4f %.4f\n", pos2, newpos2);
+//       }
+
+      pos1 = newpos1;
+      pos2 = newpos2; 
+
       /////////////////////////////////////////////////////////////////////
       ////////////////////////section before the first stop////////////////
       /////////////////////////////////////////////////////////////////////
       if(i == 0){
-//        cout<<"pos1 "<<pos1<<" length "<<sl->Length()<<endl; 
-        assert(pos1 > 0.0 && !AlmostEqual(pos1, sl->Length())); 
+        assert(pos1 > 0.0 && !AlmostEqual(pos1, sl->Length()));
 
         double l1;
         double l2;
@@ -3550,6 +3321,75 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
   br_id_list.push_back(br_id);
   bus_route_list.push_back(*br); 
   delete br; 
+}
+
+
+/*
+due to numeric problem, use the following method to find pos for a point on 
+a sline
+
+*/
+void BusRoute::GetPosOnSL(SimpleLine* sl, Point loc, double& pos)
+{
+  ////////get the start point of sline /////////////
+  Point start_loc;
+  assert(sl->AtPosition(0.0, sl->StartsSmaller(), start_loc));
+  
+  /////////convert to myhalfsegment/////////////////
+  SpacePartition* sp = new SpacePartition();
+  vector<MyHalfSegment> mhs;
+  sp->ReorderLine(sl, mhs);
+  
+  ////////use getclosespoint//////////////////////
+  const double delta_d = 0.001;
+  if(mhs[0].from.Distance(start_loc) < delta_d){
+    double len = 0;
+    unsigned int i = 0;
+    for(;i < mhs.size();i++){
+      HalfSegment hs(true, mhs[i].from, mhs[i].to);
+      Point res;
+      sp->GetClosestPoint_New(hs, loc, res);
+      if(res.Distance(loc) < delta_d){
+        len += res.Distance(mhs[i].from);
+        pos = len;
+        break;
+      }else{
+        len += hs.Length();
+      }
+    }
+    if(i == mhs.size())assert(false);
+
+
+  }else if(mhs[mhs.size() - 1].to.Distance(start_loc) < delta_d){
+
+    double len = 0;
+    int i = mhs.size() - 1;
+    for(;i >= 0;i--){
+      HalfSegment hs(true, mhs[i].from, mhs[i].to);
+      Point res;
+      sp->GetClosestPoint_New(hs, loc, res);
+      if(res.Distance(loc) < delta_d){
+        len += res.Distance(mhs[i].to);
+        pos = len;
+        break;
+      }else{
+        len += hs.Length();
+      }
+    }
+    if(i < 0)assert(false);
+
+  }else{
+    cout<<"should not be here"<<endl;
+    assert(false);
+  }
+  
+  delete sp;
+
+  //////////////////testing the result again////////////////
+  Point test;
+  assert(sl->AtPosition(pos,sl->StartsSmaller(), test));
+  assert(test.Distance(loc) < delta_d);
+
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -7874,6 +7714,7 @@ line and pavements.
 void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
                     Relation* pave_rel, int w)
 {
+  w = 2*w;
   ////////////////construct a line connecting the two bus stops//////
   Point p1;
   bn->GetBusStopGeoData(&bs1, &p1);
@@ -7979,7 +7820,14 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
   //////////////////////////////////////////////////////////////////////////
   ///////////////map each point to its corresponding bus stop///////////////
   /////////////////////////////////////////////////////////////////////////
-  
+//  cout<<p1<<" "<<p2<<endl;
+//  cout<<it_p_list1.size()<<" "<<it_p_list2.size()<<endl;
+  if(it_p_list1.size() == 0 || it_p_list2.size() == 0){
+    cout<<"road width should be enlarged"<<endl;
+    assert(false);
+
+  }
+
   double d1 = it_p_list1[0].loc.Distance(p1);
   double d2 = it_p_list1[0].loc.Distance(p2);
 
@@ -11766,6 +11614,17 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
    return; 
   }
 
+  /////////////////////////////////////////////////////////////////////
+  ////////// initialize counter for searhcing periods/////////////////
+  ///////////////////////////////////////////////////////////////////
+  vector<int> counter_up;
+  vector<int> counter_down;
+  for(int i = 0;i < bn->GetBR_Rel()->GetNoTuples();i++){
+    counter_up.push_back(0);
+    counter_down.push_back(0);
+  }
+  
+
   Point start_p, end_p; 
   bn->GetBusStopGeoData(bs1, &start_p);
   bn->GetBusStopGeoData(bs2, &end_p);
@@ -11803,28 +11662,40 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
   vector<BNPath_elem> expand_queue;
 
   vector<bool> visit_flag1;////////////bus stop visit 
-  for(int i = 1; i <= bg->node_rel->GetNoTuples();i++)
+  vector<bool> visit_flag2;
+  vector<int> visit_flag3;
+  vector<string> tm_list1;
+  vector<string> tm_list2;
+  for(int i = 1; i <= bg->node_rel->GetNoTuples();i++){
     visit_flag1.push_back(false);
-  
+    visit_flag2.push_back(false);
+    visit_flag3.push_back(0);
+    tm_list1.push_back("empty");
+    tm_list2.push_back("empty");
+  }
+
   //////////////////////////////////////////////////////////////////
   /////////////from bus network, get the maximum speed of the bus///
   /////////////for setting heuristic value/////////////////////////
   ///////////////////////////////////////////////////////////////////
-//  cout<<"max bus speed "<<bn->GetMaxSpeed()*60.0*60.0/1000.0<<"km/h"<<endl;
 
   ///////////  initialize the queue //////////////////////////////
   InitializeQueue2(bs1, bs2, path_queue, expand_queue, bn, bg, start_p, end_p);
 
   int bs2_tid = bg->GetBusStop_Tid(bs2);
-//  cout<<"end bus stop tid "<<bs2_tid<<endl; 
+//  cout<<"end bus stop tid "<<bs2_tid<<endl;
 
   ////////////////////////////////////////////////////////////////////
   ////////////////////search on the bus graph//////////////////////////
   /////////////////////////////////////////////////////////////////////
   bool find = false;
   BNPath_elem dest;//////////destination
-  double speed_human = 1.0; 
+  double speed_human = 1.0;
   const double delta_t = 0.001;
+
+  int top_elem = 0;
+  clock_t start, finish;// the total CPU time 
+  start = clock(); //the total CPU time
 
   while(path_queue.empty() == false){
     BNPath_elem top = path_queue.top();
@@ -11833,9 +11704,9 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     if(visit_flag1[top.tri_index - 1])continue; 
 
 //    top.Print();
+    top_elem++;
 
     if(top.tri_index == bs2_tid){
-//       cout<<"find the shortest path"<<endl;
        find = true;
        dest = top;
        break;
@@ -11850,10 +11721,11 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
     ////for the first bus stop, do not consider walk segment////////////
     if(top.real_w > delta_t){
+
         if(top.tm == TM_BUS){
           bool search_flag = true;
           BNPath_elem temp_elem = top;
-//          while(dest.prev_index != -1){
+
           while(temp_elem.prev_index != -1){
             if(temp_elem.tm == TM_BUS){
               break;
@@ -11874,13 +11746,12 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E_BS2_TID))->GetIntval();
           SimpleLine* path = 
                    (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH2);
-//           SimpleLine* path = 
-//                    (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH1);
 
           if(visit_flag1[neighbor_id1 - 1]){
             edge_tuple->DeleteIfAllowed();
             continue; 
           }
+
 
           cur_size = expand_queue.size();
 
@@ -11897,7 +11768,16 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           path_queue.push(elem);
           expand_queue.push_back(elem);
           edge_tuple->DeleteIfAllowed();
+
+
+          if(visit_flag1[neighbor_id1 - 1] == 0)
+              tm_list1[neighbor_id1 - 1] = "walk";
+          else
+              tm_list2[neighbor_id1 - 1] = "walk";
+
+          visit_flag3[neighbor_id1 - 1]++;
         }
+
       }
     }
 
@@ -11905,6 +11785,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     //////////////////////connection 2 same spatial location/////////////
     ////////////////////////////////////////////////////////////////////
     if(top.tm == TM_WALK || top.tm == TM_BUS){
+
       vector<int> adj_list2;
       bg->FindAdj2(top.tri_index, adj_list2);
 
@@ -11912,15 +11793,20 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         Tuple* edge_tuple = bg->edge_rel2->GetTuple(adj_list2[i], false);
         int neighbor_id2 = 
        ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E2_BS2_TID))->GetIntval();
-        SimpleLine* path = new SimpleLine(0);
-        path->StartBulkLoad();
-        path->EndBulkLoad();
 
         if(visit_flag1[neighbor_id2 - 1]){
           edge_tuple->DeleteIfAllowed();
-          delete path;
           continue; 
         }
+
+        if(visit_flag2[neighbor_id2 - 1]){
+          edge_tuple->DeleteIfAllowed();
+          continue;
+        }
+
+        SimpleLine* path = new SimpleLine(0);
+        path->StartBulkLoad();
+        path->EndBulkLoad();
 
         cur_size = expand_queue.size();
         double w = top.real_w; 
@@ -11929,35 +11815,46 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         double hw = p->Distance(end_p)/(bn->GetMaxSpeed()*24.0*60.0*60.0);
         bs_node_tuple->DeleteIfAllowed();
 
-//      double hw = 0.0; 
+//      double hw = 0.0;
         BNPath_elem elem(pos_expand_path, cur_size, neighbor_id2, w + hw, w,
-                       *path, -1, false); //not useful for time cost 
+                       *path, -1, false); //-1, not useful for time cost 
         path_queue.push(elem);
-        expand_queue.push_back(elem); 
+        expand_queue.push_back(elem);
 
         delete path; 
         edge_tuple->DeleteIfAllowed();
+
+
+        if(visit_flag3[neighbor_id2 - 1] == 0)
+            tm_list1[neighbor_id2 - 1] = "none";
+        else
+            tm_list2[neighbor_id2 - 1] = "none";
+
+        visit_flag2[neighbor_id2 - 1] = true;
+
+        visit_flag3[neighbor_id2 - 1]++;
       }
+
     }
 
     //////////////////////////////////////////////////////////////////////
     ////////////////////connection 3 moving buses/////////////////////////
     //////////////////////////////////////////////////////////////////////
+
     vector<int> adj_list3;
     bg->FindAdj3(top.tri_index, adj_list3);
     int64_t max_64_int = numeric_limits<int64_t>::max();
 
     for(unsigned int i = 0;i < adj_list3.size();i++){
-      Tuple* edge_tuple = bg->edge_rel3->GetTuple(adj_list3[i], false);
+       Tuple* edge_tuple = bg->edge_rel3->GetTuple(adj_list3[i], false);
        int neighbor_id3 = 
        ((CcInt*)edge_tuple->GetAttribute(BusGraph::BG_E3_BS2_TID))->GetIntval();
-       SimpleLine* path =
-               (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH3);
 
        if(visit_flag1[neighbor_id3 - 1]){
          edge_tuple->DeleteIfAllowed();
          continue; 
        }
+
 
        cur_size = expand_queue.size();
        double cur_t = new_st.ToDouble() + top.real_w; 
@@ -11988,7 +11885,26 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
          edge_tuple->DeleteIfAllowed();
          continue;
        }
+       
+       
        double wait_time = 0.0;
+       ///////////////////////////////////////////////////////////////
+       Tuple* bs_top_tuple = bg->node_rel->GetTuple(top.tri_index, false);
+       Bus_Stop* bs_top = 
+            (Bus_Stop*)bs_top_tuple->GetAttribute(BusGraph::BG_NODE);
+
+       if(bs_top->GetUp()){
+        int last_record = counter_up[bs_top->GetId() - 1];
+        st += sched*last_record;
+        st_int = st*86400000;
+       }else{
+         int last_record = counter_down[bs_top->GetId() - 1];
+         st += sched*last_record;
+         st_int = st*86400000;
+       }
+
+       ///////////////////////////////////////////////////////////////
+
        if(st_int > cur_t_int){//wait for the first start time 
             wait_time += st - cur_t; 
             wait_time += 30.0/(24.0*60.0*60.0);//30 seconds at bus stop 
@@ -11997,6 +11913,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
        }else{ //most times, it is here, wait for the next schedule 
 
          bool valid = false;
+         int record_count = 0;
          while(st_int < cur_t_int && st_int <= et_int){
 
 /*          Instant temp(instanttype);
@@ -12016,16 +11933,30 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
             break; 
           }
           assert(st_int <= max_64_int); 
+          record_count++;
 
 //           temp.ReadFrom(st);
 //           cout<<"t2 "<<temp<<endl; 
-
          }
+
+         if(bs_top->GetUp()){
+          if(counter_up[bs_top->GetId() - 1] == 0)
+              counter_up[bs_top->GetId() - 1] = record_count;
+         }else{
+          if(counter_down[bs_top->GetId() - 1] == 0)
+              counter_down[bs_top->GetId() - 1] = record_count;
+         }
+
          if(valid == false){
            cout<<"should not arrive at here"<<endl; 
            assert(false); 
          }
-       }
+       }////////end else
+
+       bs_top_tuple->DeleteIfAllowed();
+
+       SimpleLine* path =
+            (SimpleLine*)edge_tuple->GetAttribute(BusGraph::BG_PATH3);
 
        double weight = 
        ((CcReal*)edge_tuple->GetAttribute(BusGraph::BG_TIMECOST))->GetRealval();
@@ -12036,7 +11967,6 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
         double hw = p->Distance(end_p)/(bn->GetMaxSpeed()*24.0*60.0*60.0);
         bs_node_tuple->DeleteIfAllowed(); 
 
-//       double hw = 0.0;
 
        BNPath_elem elem(pos_expand_path, cur_size,neighbor_id3, w + hw, w,
                         *path, TM_BUS, true);
@@ -12046,19 +11976,35 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
        path_queue.push(elem);
        expand_queue.push_back(elem); 
-
-
        edge_tuple->DeleteIfAllowed();
+       
+       if(visit_flag3[neighbor_id3 - 1] == 0)
+         tm_list1[neighbor_id3 - 1] = "bus";
+       else
+         tm_list2[neighbor_id3 - 1] = "bus";
+       
+       visit_flag3[neighbor_id3 - 1]++;
 
     }
 
     visit_flag1[top.tri_index - 1] = true; 
+  }
 
-  }  
+  cout<<"pop elem"<<top_elem<<endl;
+  finish = clock();
+
+  printf("CPU time :%.3f seconds: \n", (double)(finish - start)/CLOCKS_PER_SEC);
+
+//   for(unsigned int i = 0;i < visit_flag3.size();i++){
+//     if(visit_flag3[i] > 1) {
+//       cout<<visit_flag3[i]<<" "<<tm_list1[i]<<" "<<tm_list2[i]<<endl;
+//     }
+//   }
+
   //////////////////////////////////////////////////////////////////////
   ////////////////construct the result//////////////////////////////////
   //////////////////////////////////////////////////////////////////////
-  if(find){   ////////constrcut the result 
+  if(find){   ///constrcut the result 
       vector<int> id_list; 
       while(dest.prev_index != -1){
        id_list.push_back(dest.cur_index);

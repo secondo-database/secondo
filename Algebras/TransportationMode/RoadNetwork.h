@@ -212,6 +212,32 @@ struct RNPath_elem:public Path_elem{
 
 };
 
+struct GPoint_Dist{
+  GPoint gp;
+  Point p;
+  double dist;
+  GPoint_Dist(){}
+  GPoint_Dist(GPoint& p1, Point& p2, double d):gp(p1), p(p2), dist(d){}
+  GPoint_Dist(const GPoint_Dist& gpd):gp(gpd.gp), p(gpd.p), dist(gpd.dist){}
+  GPoint_Dist& operator=(const GPoint_Dist& gpd)
+  {
+    gp = gpd.gp;
+    dist = gpd.dist;
+    p = gpd.p;
+    return *this;
+  }
+
+  bool operator<(const GPoint_Dist& gpd) const
+  {
+    return dist < gpd.dist;
+  }
+  void Print()
+  {
+    cout<<gp<<endl;
+    cout<<p<<" "<<dist<<endl;
+  }
+  
+};
 
 /*
 query processing on the road graph
@@ -236,6 +262,12 @@ struct RoadNav{
   void ShortestPath(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
   
   void ShortestPathSub(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
+  
+  void ShortestPath2(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
+  void ShortestPathSub2(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
+  void DFTraverse(Network* rn, R_Tree<2,TupleId>* rtree, 
+                          SmiRecordId adr, 
+                          SimpleLine* line, vector<GPoint_Dist>& id_list);
 };
 
 #define LOOP_PRINT1(s) for(unsigned int i = 0; i < s.size();i++){ \

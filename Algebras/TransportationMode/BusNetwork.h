@@ -295,14 +295,15 @@ struct BusRoute{
   ////////////rough description of bus routes/////////////////////////////
   void CreateRoute1(int attr1,int attr2,int attr3,int attr4); 
   void BuildRoute(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1, int attr1, int bus_no);
+                     vector<Section_Cell> cell_list1, int attr1, 
+                  int bus_no, int type);
   void BuildRoute_Limit(vector<Section_Cell>& cell_list3,
                      vector<Section_Cell> cell_list1, int attr1, 
                      int bus_no, unsigned int limit_no);
   int FindEndCell(Section_Cell& start_cell,
                   vector<Section_Cell>& cell_list, float dist_val); 
-  void ConvertGLine(GLine* gl1, GLine* gl2);
-  bool ConvertGLine2(GLine* gl1, GLine* gl2); 
+
+  bool ConvertGLine(GLine* gl1, GLine* gl2); 
   /////////////////////////////create bus routes//////////////////////////
   void CreateRoute2(Space*, int attr,int attr1,int attr2,int attr3); 
   void ConnectCell(RoadGraph*, int attr,int from_cell_id,int end_cell_id, 
@@ -352,7 +353,7 @@ struct BusRoute{
   void GetInterestingPoints(HalfSegment hs,Point loc, vector<MyPoint>& list,
                             Line* l1, Line* l2);
   bool MyAtPoint(SimpleLine* sl, Point& loc, bool startSmaller, 
-                 double& res, double dist_delta);                            
+                 double& res, double dist_delta);
   //////////////////////set the up and down value/////////////////////////
   void CreateRoute4(int attr1, int attr2, int attr3, int attr4, 
                     int attr_a, int attr_b);
@@ -365,6 +366,8 @@ struct BusRoute{
   void GetBusRoutes(); 
   void CreateRoutes(vector<TupleId>& tid_list, int br_id,
                             SimpleLine* sl, bool small, bool d); 
+
+  void GetPosOnSL(SimpleLine* sl, Point loc, double& pos);
 
 };
 
