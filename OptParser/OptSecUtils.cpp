@@ -17,6 +17,9 @@ is in kind data). At this place these checks are not nessecary.
 #include "NestedList.h"
 #include "SecondoInterface.h"
 
+
+#include "OptSecUtils.h"
+
 extern NestedList* plnl;       // use global si
 extern SecondoInterface* si;  // use the same si as the rest of prolog
 
@@ -255,7 +258,7 @@ Checks whether the list is a description of a relation with given relation type;
 
 */
 
-bool isRelDescription(ListExpr list, const string& reltype = "rel"){
+bool isRelDescription(const ListExpr list, const string reltype /*="rel" */){
 
   if(!plnl->HasLength(list,2)){
      return false;
