@@ -119,7 +119,7 @@ Define simple token and token holding a value.
 %type<attrset> attrname newname  query sel_clause rel_clause where_clause groupby_clause orderby_clause first_clause relname value_list
                value transform_clause column_list column index_clause query_list aggr_clause rel_list rel pred_list pred orderattr_list orderattr
                aggr_list aggr groupattr_list ident attr index transform_list transform indextype indexname result_list result attr_bool_expr
-               subquerypred attr_expr compop ident2 update_expression datatype table_subquery quant ext_attr_expr attr_type aggrfun const_expr
+               subquerypred attr_expr compop ident2 update_expression table_subquery quant ext_attr_expr attr_type aggrfun const_expr
                const nested_list intlist generic_const intlist2 op attr_expr_list nlist symbol insert_query delete_query update_query create_query
                drop_query  sel_clause2 sql_clause
 
@@ -1226,22 +1226,14 @@ nlist : nested_list
 ;
 
 datatype : TOKEN_INT
-             { $$ = new M() ; }
          | TOKEN_REAL
-            { $$ = new M() ; }
          | TOKEN_BOOL
-             { $$ = new M() ; }
          | TOKEN_STRING
-            { $$ = new M() ; }
          | TOKEN_LINE
-             { $$ = new M() ; }
          | TOKEN_POINTS
-             { $$ = new M() ; }
          | TOKEN_MPOINT
-            { $$ = new M() ; }
          | TOKEN_UREGION
-           { $$ = new M() ; }
-;
+         ;;
 
 
 
