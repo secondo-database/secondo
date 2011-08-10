@@ -47,6 +47,17 @@ the type argument.
   bool isRelDescription(const ListExpr type, const string& reltyp = "rel");
 
 
+/*
+~getAttributeNames~
+
+Inserts all attributes names of a relation description to a set of strings.
+
+*/
+
+  void getAttributeNames(const ListExpr type, set<string>& names);
+
+  void getAttributeNames(const string& name, set<string>& names);
+
 
 /*
 ~isValidId~

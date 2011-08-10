@@ -271,6 +271,30 @@ bool isRelDescription(ListExpr list, const string& reltype = "rel"){
 
 }
 
+void getAttributeNames(const ListExpr type, set<string>& names){
+
+  if(!isRelDescription(type)){
+    return;
+  }
+  ListExpr attrList = plnl->Second(plnl->Second(type));
+  while(!plnl->IsEmpty(attrList)){
+   ListExpr first = plnl->First(attrList);
+   attrList = plnl->Rest(attrList);
+   names.insert(plnl->SymbolValue(plnl->First(first)));
+  }
+
+}
+
+  void getAttributeNames(const string& name, set<string>& names){
+    string n2;
+    ListExpr type;
+    if(!isObject(name,n2,type)){
+       return;
+    }
+    getAttributeNames(type,names);
+  }
+
+
 /*
 Checks whether two strings are equal. Using the boolean parameter,
 the case sensitivity of the comparison can be controlled.
