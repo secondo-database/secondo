@@ -5453,6 +5453,27 @@ int OpTMShortestPathTMValueMap ( Word* args, Word& result, int message,
 }
 
 
+int OpTMShortestPath2TMValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  GPoint* gp1 = (GPoint*)args[0].addr;
+  GPoint* gp2 = (GPoint*)args[1].addr; 
+  RoadGraph* rg = (RoadGraph*)args[2].addr;
+  Network* rn = (Network*)args[3].addr;
+  
+  GLine* pGLine = (GLine*)qp->ResultStorage(in_pSupplier).addr;
+  result = SetWord(pGLine);
+
+  RoadNav* nav = new RoadNav();
+
+  nav->ShortestPath2(gp1, gp2, rg, rn, pGLine);
+
+  delete nav;
+
+  return 0;
+
+}
+
 /*
 navigation with modes Walk and Bus
 
@@ -7731,6 +7752,14 @@ Operator shortestpath_tm(
   "shortestpath_tm", 
   OpTMShortestPathTMSpec,
   OpTMShortestPathTMValueMap,
+  Operator::SimpleSelect,
+  OpTMShortestPathTMTypeMap
+);
+
+Operator shortestpath_tm2(
+  "shortestpath_tm2", 
+  OpTMShortestPathTMSpec,
+  OpTMShortestPath2TMValueMap,
   Operator::SimpleSelect,
   OpTMShortestPathTMTypeMap
 );
@@ -22609,6 +22638,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&get_rg_edges2);//get road graph edges, glines
    AddOperator(&creatergraph);//create road network graph
    AddOperator(&shortestpath_tm);//shortest path on road graph
+   AddOperator(&shortestpath_tm2);//path on road graph avoid center area
    ///////////////////////////////////////////////////////////////////////
    ///////////////overall navigation system///////////////////////////////
    /////////////////////////////////////////////////////////////////////

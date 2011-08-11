@@ -188,6 +188,7 @@ operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)
 operator get_rg_edges2 alias GET_RG_EDGES2 pattern op(_,_)
 operator creatergraph alias CREATERGRAPH pattern op(_,_,_,_)
 operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
+operator shortestpath_tm2 alias SHORTESTPATH_TM2 pattern op(_,_,_,_)
 
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 

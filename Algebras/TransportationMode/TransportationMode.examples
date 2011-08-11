@@ -1081,6 +1081,13 @@ Example  : query shortestpath_tm(gp1, gp2, rg1, rn) count;
 Result   : 1
 
 
+Operator : shortestpath_tm2
+Number   : 2
+Signature: gpoint x gpoint x roadgraph x network -> (stream(((x1 t1) ... (xn tn))))
+Example  : query shortestpath_tm2(gp1, gp2, rg1, rn) count;
+Result   : 1
+
+
 Operator : modifyline
 Number   : 1
 Signature: line -> line

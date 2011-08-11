@@ -1176,14 +1176,12 @@ struct BNNav{
     resulttype = NULL;
   }
 
-
-  
   ~BNNav(){if(resulttype != NULL) delete resulttype;}
-  
+
   void ShortestPath_Length(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_Time(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
-  
+
   void ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
 

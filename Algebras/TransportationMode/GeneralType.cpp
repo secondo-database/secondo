@@ -3439,25 +3439,17 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
 //        cout<<"time type "<<time_type<<endl; 
 //        cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl; 
 
-        clock_t start, finish;// the total CPU time 
-        start = clock(); //the total CPU time
-        struct timeb t1;
-        struct timeb t2;
-        ftime(&t1);
 
         BNNav* bn_nav = new BNNav(bn);
-        if(count % time_and_type != 0){ //more movment with minimum time 
-            bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
-        }
-        else{
-            bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
-        }
+         if(count % time_and_type != 0){ //more movment with minimum time 
+             bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
+         }
+         else{
+             bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
+         }
 
-         finish = clock();
-         ftime(&t2);
+//        bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
 
-         printf("CPU time :%.3f seconds: Real time: %.3f\n\n", 
-           (double)(finish - start)/CLOCKS_PER_SEC, Gen_DiffTimeb(&t2, &t1));
 
         if(bn_nav->path_list.size() == 0){
 //          cout<<"two unreachable bus stops"<<endl;
@@ -5640,9 +5632,12 @@ void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
     //////2.2. get the path in bus network////////////////////////////
     /////////////////////////////////////////////////////////////////
     BNNav* bn_nav = new BNNav(bn);
-    if(count % time_and_type != 0) 
-        bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
-    else bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
+
+     if(count % time_and_type != 0) 
+         bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
+     else bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
+
+//    bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
 
     if(bn_nav->path_list.size() == 0){
 //        cout<<"two unreachable bus stops"<<endl;
