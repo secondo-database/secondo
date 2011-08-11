@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[_] [\_]
 
-[1] Header File of the OSM Algebra
+[1] Header File of the ConnCodeFinder
 
 June-November, 2011. Thomas Uchdorf
 
@@ -32,7 +32,8 @@ June-November, 2011. Thomas Uchdorf
 
 1 Overview
 
-This header file essentially contains the definition of the class ~ShpFileReader~.
+This header file essentially contains the definition of the class
+~ConnCodeFinder~.
 
 2 Defines and includes
 
@@ -40,8 +41,11 @@ This header file essentially contains the definition of the class ~ShpFileReader
 #ifndef __CONN_CODE_FINDER_H__
 #define __CONN_CODE_FINDER_H__
 
+#define is_bit_set(number,n) \
+   ((((number) & (1 << ((n)-1))) != 0)? 1 : 0)
+
 // --- Including header-files
-//...
+#include "ConnCodeMatrix.h"
 
 class ConnCodeFinder {
 
@@ -50,10 +54,13 @@ public:
    // --- Constructors
    // Default-Constructor
    ConnCodeFinder ();
-    // Destructor
-    ~ConnCodeFinder ();
 
-   // --- Methods
+   ConnCodeFinder (int west, int north, int east, int south);
+
+   // Destructor
+   ~ConnCodeFinder ();
+
+   // --- Class-functions
    // Returns the connectivity code for a junction between up to four sections
    //      |
    //      |-dir2
@@ -75,6 +82,41 @@ public:
 
    static void printAllConnectivityCodes ();
 
+   static void printVerticalArrows (int iNorthSouth);
+
+   static void printHorizontalArrows (int iWestEast);
+
+   // --- Methods
+   void computeConnCode ();
+
+   bool isJunctionBtwAtLeastTwoSections () const;
+
+   int getWest () const;
+
+   int getNorth () const;
+
+   int getEast () const;
+
+   int getSouth () const;
+
+   int getConnCode () const;
+   
+   void print () const;
+
+   private:
+
+   // --- Members
+   int m_west;
+
+   int m_north;
+
+   int m_east;
+
+   int m_south;
+   
+   int m_connCode;
+
+   ConnCodeMatrix m_matrix;
 };
 
 #endif /* __CONN_CODE_FINDER_H__ */

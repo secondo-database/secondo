@@ -53,14 +53,20 @@ For more detailed information see ConnCodeFinder.h.
 #include <cassert>
 #include <cstring>
 
-#define is_bit_set(number,n) \
-   ((((number) & (1 << ((n)-1))) != 0)? 1 : 0)
-
 // --- Constructors
 // Default-Constructor
 ConnCodeFinder::ConnCodeFinder ()
+  : m_west (0), m_north (0), m_east (0), m_south (0), m_connCode (0),
+  m_matrix ()
 {
    // empty
+}
+
+ConnCodeFinder::ConnCodeFinder (int west, int north, int east, int south)
+  : m_west (west), m_north (north), m_east (east), m_south (south),
+  m_connCode (0), m_matrix ()
+{
+   computeConnCode ();
 }
 
 // Destructor
@@ -78,234 +84,167 @@ int ConnCodeFinder::getConnectivityCode (
    assert (dir2 >= 0 && dir2 <= 2);
    assert (dir3 >= 0 && dir3 <= 2);
    assert (dir4 >= 0 && dir4 <= 2);
+
+   // Swapping vertical directions since networks require them in opposite
+   // order
+   //if (dir2 == 1) { dir2 = 2; } else if (dir2 == 2) { dir2 = 1; }
+   //if (dir4 == 1) { dir4 = 2; } else if (dir4 == 2) { dir4 = 1; }
+
    // if oneway == true or dir == 0 then do nothing
    // if oneway == false and dir != 0
    //    then 00000001 -> 00000011 or 00000010 -> 00000011
-   int iWest = (!ow1 && dir1 != 0)? 3 : dir1;
-   int iNorth = (!ow2 && dir2 != 0)? 3 : dir2;
-   int iEast = (!ow3 && dir3 != 0)? 3 : dir3;
-   int iSouth = (!ow4 && dir4 != 0)? 3 : dir4;
-   int help [4][4] = {{is_bit_set(iWest,1)&is_bit_set(iEast,1),
-                      is_bit_set(iWest,1)&is_bit_set(iWest,2),
-                      is_bit_set(iWest,1)&is_bit_set(iNorth,1),
-                      is_bit_set(iWest,1)&is_bit_set(iSouth,2)},
-                     {is_bit_set(iEast,2)&is_bit_set(iEast,1),
-                      is_bit_set(iEast,2)&is_bit_set(iWest,2),
-                      is_bit_set(iEast,2)&is_bit_set(iNorth,1),
-                      is_bit_set(iEast,2)&is_bit_set(iSouth,2)},
-                     {is_bit_set(iSouth,1)&is_bit_set(iEast,1),
-                      is_bit_set(iSouth,1)&is_bit_set(iWest,2),
-                      is_bit_set(iSouth,1)&is_bit_set(iNorth,1),
-                      is_bit_set(iSouth,1)&is_bit_set(iSouth,2)},
-                     {is_bit_set(iNorth,2)&is_bit_set(iEast,1),
-                      is_bit_set(iNorth,2)&is_bit_set(iWest,2),
-                      is_bit_set(iNorth,2)&is_bit_set(iNorth,1),
-                      is_bit_set(iNorth,2)&is_bit_set(iSouth,2)}}; 
+   ConnCodeFinder ccFinder =
+      ConnCodeFinder ((!ow1 && dir1 != 0)? 3 : dir1,
+                      (!ow2 && dir2 != 0)? 3 : dir2,
+                      (!ow3 && dir3 != 0)? 3 : dir3,
+                      (!ow4 && dir4 != 0)? 3 : dir4);
+   return ccFinder.getConnCode ();
+}
 
-   // --- Transforming the matrix (Up in horizontal direction actually
-   //     means to the left and down in horizontal direction means to the
-   //     right. So, the 3rd row and the 4th row have to be swapped. The
-   //     same applies to the according columns.)
-   // ------------------------------------------
-   // |        |A_{up}|A_{down}|B_{up}|B_{down}|
-   // ------------------------------------------
-   // |A_{up}  |      |        |      |        |
-   // ------------------------------------------
-   // |A_{down}|      |        |      |        |
-   // ------------------------------------------
-   // |B_{up}  |      |        |      |        |
-   // ------------------------------------------
-   // |B_{down}|      |        |      |        |
-   // ------------------------------------------
-   //
-   //                          |
-   //                          |
-   //                          V
-   //
-   // ------------------------------------------
-   // |        |A_{up}|A_{down}|B_{down}|B_{up}|
-   // ------------------------------------------
-   // |A_{up}  |      |        |        |      |
-   // ------------------------------------------
-   // |A_{down}|      |        |        |      |
-   // ------------------------------------------
-   // |B_{down}|      |        |        |      |
-   // ------------------------------------------
-   // |B_{up}  |      |        |        |      |
-   // ------------------------------------------
-   int mat [4][4] = {{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}};
-   int iRow = 0; 
-   int iCol = 0; 
-   for (iRow = 0; iRow < 4; ++iRow)  {
-      for (iCol = 0; iCol < 4; ++iCol)  {
-         if (iRow == 2 && iCol == 2)  {
-            mat[3][3] = help[2][2];
-         } else if (iRow == 2 && iCol == 3)  {
-            mat[3][2] = help[2][3];
-         } else if (iRow == 3 && iCol == 2)  {
-            mat[2][3] = help[3][2];
-         } else if (iRow == 3 && iCol == 3)  {
-            mat[2][2] = help[3][3];
-         } else if (iRow == 2)  {
-            mat[3][iCol] = help[2][iCol];
-         } else if (iRow == 3)  {
-            mat[2][iCol] = help[3][iCol];
-         } else if (iCol == 2) {
-            mat[iRow][3] = help[iRow][2];           
-         } else if (iCol == 3) {
-            mat[iRow][2] = help[iRow][3];           
-         } else  {
-            mat[iRow][iCol] = help[iRow][iCol];
-         }
-      }
+void ConnCodeFinder::computeConnCode ()
+{
+   int matrix [4][4] =
+      {{is_bit_set(getWest (),1)&is_bit_set(getEast (),1),     //AupAup
+        is_bit_set(getWest (),1)&is_bit_set(getWest (),2),     //AupAdown
+        is_bit_set(getWest (),1)&is_bit_set(getNorth (),1),    //AupBup
+        is_bit_set(getWest (),1)&is_bit_set(getSouth (),2)},   //AupBdown
+       {is_bit_set(getEast (),2)&is_bit_set(getEast (),1),     //AdownAup
+        is_bit_set(getEast (),2)&is_bit_set(getWest (),2),     //AdownAdown
+        is_bit_set(getEast (),2)&is_bit_set(getNorth (),1),    //AdownBup
+        is_bit_set(getEast (),2)&is_bit_set(getSouth (),2)},   //AdownBdown
+       {is_bit_set(getSouth (),1)&is_bit_set(getEast (),1),    //BupAup
+        is_bit_set(getSouth (),1)&is_bit_set(getWest (),2),    //BupAdown
+        is_bit_set(getSouth (),1)&is_bit_set(getNorth (),1),   //BupBup
+        is_bit_set(getSouth (),1)&is_bit_set(getSouth (),2)},  //BupBdown
+       {is_bit_set(getNorth (),2)&is_bit_set(getEast (),1),    //BdownAup
+        is_bit_set(getNorth (),2)&is_bit_set(getWest (),2),    //BdownAdown
+        is_bit_set(getNorth (),2)&is_bit_set(getNorth (),1),   //BdownBup
+        is_bit_set(getNorth (),2)&is_bit_set(getSouth (),2)}}; //BdownBdown
+   m_matrix.setValues (matrix);
+   // Transforming the matrix
+   m_matrix.transform ();
+
+   // Checking whether the connectivity code is searched for a dual and a 
+   // simple street
+   if ((getWest () == 3 && getEast () == 3) &&
+       (getSouth () == 1 && getNorth () == 1))  {
+      m_matrix.shrinkTo3x3Mat (3);
+   } else if ((getWest () == 3 && getEast () == 3) &&
+              (getSouth () == 2 && getNorth () == 2))  {
+      m_matrix.shrinkTo3x3Mat (2);
+   } else if ((getWest () == 1 && getEast () == 1) && 
+              (getSouth () == 3 && getNorth () == 3))  {
+      m_matrix.shrinkTo3x3Mat (1);
+   } else if ((getWest () == 2 && getEast () == 2) && 
+              (getSouth () == 3 && getNorth () == 3))  {
+      m_matrix.shrinkTo3x3Mat (0);
    }
+   // if the junction lies between two simple streets the code is ignored
+   // anyway
+   m_matrix.computeConnCode ();
+   
+   m_connCode = m_matrix.getConnCode (); 
+}
 
-   int sum = 0;
-   int i = 15;
-   int elem = 0;
-   //std::ostringstream calc;
-   //std::cout << "Übergangscode-Matrix:" << std::endl;
-   for (iRow = 0; iRow < 4; ++iRow)  {
-      for (iCol = 0; iCol < 4; ++iCol)  {
-         //std::cout << mat[iRow][iCol];
-         //if (mat[iRow][iCol] == 1)  {
-         //   calc << "2^{" << i << "} + ";
-         //}
-         elem = (mat[iRow][iCol]<<i);
-         sum += elem;
-         --i;
-      } 
-      //std::cout << std::endl;
-   } 
-   //calc << "0";
-   //std::cout << "Rechnung: " << calc.str () << std::endl;
-   //std::cout << "Dezimalwert: " << sum << std::endl;
-   return sum;
+int ConnCodeFinder::getConnCode () const
+{
+   return m_connCode;
+}
+
+void ConnCodeFinder::printVerticalArrows (int iNorthSouth)
+{
+   switch (iNorthSouth)  {
+      case (0):
+          std::cout << " ×" << std::endl; break;
+      case (1):
+          std::cout << " ↑" << std::endl; break;
+      case (2):
+          std::cout << " ↓" << std::endl; break;
+      case (3):
+          std::cout << " ↕" << std::endl; break;
+      default:
+          assert (false);
+          break;
+   }
+}
+
+void ConnCodeFinder::printHorizontalArrows (int iWestEast)
+{
+   switch (iWestEast)  {
+      case (0):
+          std::cout << "×"; break;
+      case (1):
+          std::cout << "→"; break;
+      case (2):
+          std::cout << "←"; break;
+      case (3):
+          std::cout << "↔"; break;
+      default:
+          assert (false);
+          break;
+   }
 }
 
 void ConnCodeFinder::printAllConnectivityCodes ()
 {
+   ConnCodeFinder *ccFinder = NULL;
    //std::cout <<  "256 Fälle - 13 Fälle, in denen sich keine
    //  2 Straßen kreuzen" << std::endl;
    for (int iWest = 0; iWest < 4; ++iWest)  {
       for (int iNorth = 0; iNorth < 4; ++iNorth)  {
          for (int iEast = 0; iEast < 4; ++iEast)  {
             for (int iSouth = 0; iSouth < 4; ++iSouth)  {
-                  if (!((iWest == 0 && iNorth == 0 && 
-                         iEast == 0 && iSouth == 0) ||
-                      (iWest == 0 && iNorth == 0 && iEast == 0) ||
-                      (iWest == 0 && iNorth == 0 && iSouth == 0) ||
-                      (iWest == 0 && iEast == 0 && iSouth == 0) ||
-                      (iNorth == 0 && iEast == 0 && iSouth == 0))) {
-                        switch (iNorth)  {
-                           case (0):
-                               std::cout << " ×" << std::endl; break;
-                           case (1):
-                               std::cout << " ↑" << std::endl; break;
-                           case (2):
-                               std::cout << " ↓" << std::endl; break;
-                           case (3):
-                               std::cout << " ↕" << std::endl; break;
-                           default:
-                               assert (false);
-                               break;
-                        }
-                        switch (iWest)  {
-                           case (0):
-                               std::cout << "×"; break;
-                           case (1):
-                               std::cout << "→"; break;
-                           case (2):
-                               std::cout << "←"; break;
-                           case (3):
-                               std::cout << "↔"; break;
-                           default:
-                               assert (false);
-                               break;
-                        }
-                       switch (iEast)  {
-                           case (0):
-                               std::cout << "  ×" << std::endl; break;
-                           case (1):
-                               std::cout << "  →" << std::endl; break;
-                           case (2):
-                               std::cout << "  ←" << std::endl; break;
-                           case (3):
-                               std::cout << "  ↔" << std::endl; break;
-                           default:
-                               assert (false);
-                               break;
-                        }
-                        switch (iSouth)  {
-                           case (0):
-                               std::cout << " ×"; break;
-                           case (1):
-                               std::cout << " ↑"; break;
-                           case (2):
-                               std::cout << " ↓"; break;
-                           case (3):
-                               std::cout << " ↕"; break;
-                           default:
-                               assert (false);
-                               break;
-                        }
-                     std::cout << std::endl;
-                     int mat [4][4] = {{is_bit_set(iWest,1)&
-                                        is_bit_set(iEast,1),
-                                        is_bit_set(iWest,1)&
-                                        is_bit_set(iWest,2),
-                                        is_bit_set(iWest,1)&
-                                        is_bit_set(iNorth,1),
-                                        is_bit_set(iWest,1)&
-                                        is_bit_set(iSouth,2)},
-                                       {is_bit_set(iEast,2)&
-                                        is_bit_set(iEast,1),
-                                        is_bit_set(iEast,2)&
-                                        is_bit_set(iWest,2),
-                                        is_bit_set(iEast,2)&
-                                        is_bit_set(iNorth,1),
-                                        is_bit_set(iEast,2)&
-                                        is_bit_set(iSouth,2)},
-                                       {is_bit_set(iSouth,1)&
-                                        is_bit_set(iEast,1),
-                                        is_bit_set(iSouth,1)&
-                                        is_bit_set(iWest,2),
-                                        is_bit_set(iSouth,1)&
-                                        is_bit_set(iNorth,1),
-                                        is_bit_set(iSouth,1)&
-                                        is_bit_set(iSouth,2)},
-                                       {is_bit_set(iNorth,2)&
-                                        is_bit_set(iEast,1),
-                                        is_bit_set(iNorth,2)&
-                                        is_bit_set(iWest,2),
-                                        is_bit_set(iNorth,2)&
-                                        is_bit_set(iNorth,1),
-                                        is_bit_set(iNorth,2)&
-                                        is_bit_set(iSouth,2)}}; 
-                     int sum = 0;
-                     int i = 15;
-                     int elem = 0;
-                     std::ostringstream calc;
-                     std::cout << "Übergangscode-Matrix:" << std::endl;
-                     for (int iRow = 0; iRow < 4; ++iRow)  {
-                        for (int iCol = 0; iCol < 4; ++iCol)  {
-                           std::cout << mat[iRow][iCol];
-                           if (mat[iRow][iCol] == 1)  {
-                              calc << "2^{" << i << "} + ";
-                           }
-                           elem = (mat[iRow][iCol]<<i);
-                           sum += elem;
-                           --i;
-                        } 
-                        std::cout << std::endl;
-                     } 
-                     calc << "0";
-                     std::cout << "Rechnung: " << calc.str () << std::endl;
-                     std::cout << "Dezimalwert: " << sum << std::endl;
-                }
+               ccFinder = new ConnCodeFinder (iWest, iNorth, iEast, iSouth);
+                  if (ccFinder->isJunctionBtwAtLeastTwoSections ()) {
+                       ccFinder->print (); 
+                  }
+               delete ccFinder;
             }
          }
       }
    }
-   return;
+}
+
+// --- Methods
+bool ConnCodeFinder::isJunctionBtwAtLeastTwoSections () const
+{
+   return !((getWest () == 0 && getNorth () == 0 && 
+             getEast () == 0 && getSouth () == 0) ||
+            (getWest () == 0 && getNorth () == 0 && getEast () == 0) ||
+            (getWest () == 0 && getNorth () == 0 && getSouth () == 0) ||
+            (getWest () == 0 && getEast () == 0 && getSouth () == 0) ||
+            (getNorth () == 0 && getEast () == 0 && getSouth () == 0));
+}
+
+int ConnCodeFinder::getWest () const
+{
+   return m_west;
+}
+
+int ConnCodeFinder::getNorth () const
+{
+   return m_north;
+}
+
+int ConnCodeFinder::getEast () const
+{
+   return m_east;
+}
+
+int ConnCodeFinder::getSouth () const
+{
+   return m_south;
+}
+
+void ConnCodeFinder::print () const
+{
+   printVerticalArrows (getNorth ()); 
+   printHorizontalArrows (getWest ());
+   std::cout << "  ";
+   printHorizontalArrows (getEast ());
+   std::cout << std::endl;
+   printVerticalArrows (getSouth ());
+   std::cout << std::endl;
+   m_matrix.print ();
+   std::cout << "Dezimalwert: " << getConnCode () << std::endl; 
 }
