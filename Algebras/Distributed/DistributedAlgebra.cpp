@@ -3229,12 +3229,13 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
         }
       else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
         {
-          cout << "result:'" << string(qBuf) << "'" << endl;
           if (string(qBuf).empty() || string(qBuf)[0] != '1')
             {
               cerr << "No lock file '" + lckfile + "' found!" << endl;
               ret_val = false;
             }
+          cout << "Stopped SecondoMonitor on "
+               << host << ":" << port << endl;
           pclose(fs);
         }
     }
