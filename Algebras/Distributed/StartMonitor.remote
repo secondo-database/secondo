@@ -1,0 +1,28 @@
+#!/bin/bash
+# Startup script for the Secondo monitor application
+
+  secConfig=$SECONDO_CONFIG
+
+  if [ "${secConfig}x" == "x" ]; then 
+    if [ -e SecondoConfig.ini ]; then
+      port=`grep SecondoPort SecondoConfig.ini | sed -e 's@SecondoPort=@@g'`
+    else
+      port = 1234
+    fi
+  else
+    port=`grep SecondoPort ${secConfig} | sed -e 's@SecondoPort=@@g'`
+  fi
+
+  if [ -e /tmp/SM_${port}.lck ]; then
+    echo "SecondoMonitor already running on port ${port}"
+    exit 1;
+  fi
+
+  export SECONDO_MONITOR_PORT=${port}
+  nohup sh -c 'cd secondo/bin; SecondoMonitor -s &  \
+                pid=$!; \
+		tmpfile="/tmp/SM_${SECONDO_MONITOR_PORT}.lck"; \
+		echo "${pid}" > $tmpfile; '
+  exit $?
+
+
