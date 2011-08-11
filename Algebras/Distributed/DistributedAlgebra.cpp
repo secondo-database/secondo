@@ -2708,7 +2708,14 @@ checkWorkerRunning(const string &host, int port,
     {
       if (!iosock.good())
         {
-          msg = "Communication is blocked! Restart Worker (1)";
+          msg = "(1):";
+          switch (iosock.rdstate())
+           {
+             default:
+             msg += " nospecified";
+             break;
+           }
+          msg += " Communication is blocked! Restart Worker:";
           return false;
         }
       getline( iosock, line );
@@ -2721,14 +2728,14 @@ checkWorkerRunning(const string &host, int port,
     {
       if (!iosock.good())
         {
-          msg = "Communication is blocked! Restart Worker (2)";
+          msg = "(2) Communication is blocked! Restart Worker";
           return false;
         }
       iosock << "<Connect>" << endl << endl 
              << endl << "</Connect>" << endl;
       if (!iosock.good())
         {
-          msg = "Communication is blocked! Restart Worker (3)";
+          msg = "(3) Communication is blocked! Restart Worker";
           return false;
         }
       getline( iosock, line );
@@ -2739,7 +2746,7 @@ checkWorkerRunning(const string &host, int port,
             {
               if (!iosock.good())
                 {
-                  msg = "Communication is blocked! Restart Worker (4)";
+                  msg = "(4) Communication is blocked! Restart Worker";
                   return false;
                 }
               getline( iosock, line);
@@ -2775,7 +2782,7 @@ checkWorkerRunning(const string &host, int port,
   // check db distributed available
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker (5)";
+      msg = "(5) Communication is blocked! Restart Worker";
       return false;
     }
 
@@ -2785,7 +2792,7 @@ checkWorkerRunning(const string &host, int port,
 
    if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker (6)";
+      msg = "(6) Communication is blocked! Restart Worker";
       return false;
     }
 
@@ -2797,7 +2804,7 @@ checkWorkerRunning(const string &host, int port,
         {
           if (!iosock.good())
             {
-              msg = "Communication is blocked! Restart Worker (7)";
+              msg = "(7) Communication is blocked! Restart Worker";
               return false;
             }
           getline( iosock, line );
@@ -2820,7 +2827,7 @@ checkWorkerRunning(const string &host, int port,
   // check if db distributed is unique
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker (8)";
+      msg = "(8) Communication is blocked! Restart Worker";
       return false;
     }
   iosock << "<Secondo>" << endl << "1" << endl 
@@ -2829,7 +2836,7 @@ checkWorkerRunning(const string &host, int port,
    
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker (9)";
+      msg = "(9) Communication is blocked! Restart Worker";
       return false;
     }
 
@@ -2841,7 +2848,7 @@ checkWorkerRunning(const string &host, int port,
         {
           if (!iosock.good())
             {
-              msg = "Communication is blocked! Restart Worker (10)";
+              msg = "(10) Communication is blocked! Restart Worker";
               return false;
             }
           getline( iosock, line );
@@ -2863,7 +2870,7 @@ checkWorkerRunning(const string &host, int port,
 
   if (!iosock.good())
     {
-      msg = "Communication is blocked! Restart Worker (11)";
+      msg = "(11) Communication is blocked! Restart Worker";
       return false;
     }
   iosock << "<Disconnect/>" << endl;
@@ -3035,8 +3042,8 @@ Operator checkWorkers (
 /*
 5.15 Operator ~startup~
 
-The operator ~startpu~ takes  host, port, user, password,
-bindir and configfile and starts a SecondoServer at the
+The operator ~startup~ takes  host, port, configfile, user, password,
+bindir, and starts a SecondoServer at the
 specified location.
 It returns true, if server start was successful 
 
@@ -3055,6 +3062,12 @@ startupTypeMap( ListExpr args )
         {
           return NList::typeError("Second parameter must be the port number");
         }
+      if (!myargs.third().isSymbol(CcString::BasicType()))
+        {
+          return 
+            NList::typeError
+            ("Third parameter must be the name of the SecondoConfigFile");
+        }
 
       NList result (CcBool::BasicType());
       return NList(result).listExpr(); 
@@ -3072,64 +3085,66 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   string host = ((CcString*)args[0].addr)->GetValue();
   int port = ((CcInt*)args[1].addr)->GetValue();
-  string secConf = "SecondoConfig.ini";
-  switch (port)
+  string secConf = ((CcString*)args[2].addr)->GetValue();
+
+  if (host.empty())
     {
-    case 21234:
-      secConf = "SecondoConfig.ini.SM1";
-      break;
-    case 24321:
-      secConf = "SecondoConfig.ini.SM2";
-      break;
-    case 1234:
-    case 1235:
-      secConf = "SecondoConfig.ini";
-      break;
-    default:
-      secConf = "SecondoConfig.ini";
-      break;
-    }
-    
-  string exportConf = " export SECONDO_CONFIG=" + secConf + ";";
-  string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
-  string lckfileexist = "if [ -r " + lckfile +
-    " ]; then echo \\\"0\\\"; else echo \\\"1\\\"; fi;";
-  string devnull = "> /dev/null 2>&1 < /dev/null";
-  string cddir = ". .bashrc; cd secondo/bin; ";
-  string cmd = 
-    cddir + 
-    lckfileexist + 
-    exportConf + 
-    " ./StartMonitor.remote " + devnull + " & ";
-
-  string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
-  //cout << cmd << endl;
-  cout << ssh_cmd << endl;
-
-  FILE *fs;
-  char qBuf[1024];
-  memset(qBuf, '\0', sizeof(qBuf));
-  fs = popen(ssh_cmd.c_str(), "r");
-
-  WinUnix::sleep(2);
-
-  if (fs == NULL)
-    {
-      perror(("popen fail! Cannot start worker on "
-              + host + ":" + toString_d(port) ).c_str());
+      cerr << "Error: Please specify the host" << endl;
       ret_val = false;
     }
-  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+
+  else if (secConf.empty())
     {
-      if (string(qBuf).empty() || string(qBuf)[0] != '1')
+      cerr << "Error: Please specify the SecondoConfig file" << endl;
+      ret_val = false;
+    }
+  
+  if (ret_val)
+    {
+      cout << "Starting: SecondoMonitor on host "
+           << host << ":" << port
+           << " with " << secConf << endl;
+
+      string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
+      string devnull = "< /dev/null > /dev/null 2>&1";
+
+      string exportConf = 
+        " export SECONDO_CONFIG=/export/homes/achmann/secondo/bin/" + 
+        secConf + ";";
+      string lckfileexist = "if [ -r " + lckfile +
+        " ]; then echo \\\"0\\\"; else echo \\\"1\\\"; fi;";
+      string cddir = ". .bashrc; cd secondo/bin; ";
+      string cmd = 
+        cddir + 
+        lckfileexist + 
+        exportConf + 
+        " ./StartMonitor.remote " + devnull + " & ";
+
+      string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
+ 
+      FILE *fs;
+      char qBuf[1024];
+      memset(qBuf, '\0', sizeof(qBuf));
+      fs = popen(ssh_cmd.c_str(), "r");
+
+      if (fs == NULL)
         {
-          cerr << "Lock file '" + lckfile + "' exists!" << endl;
+          perror(("popen fail! Cannot start worker on "
+                  + host + ":" + toString_d(port) ).c_str());
           ret_val = false;
         }
+      else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+        {
+          if (string(qBuf).empty() || string(qBuf)[0] != '1')
+            {
+              cerr << "Lock file '" + lckfile + "' exists!" << endl;
+              ret_val = false;
+            }
 
-      pclose(fs);
+          pclose(fs);
+        }
     }
-
+  cout << endl;
   ((CcBool*) (result.addr))->Set(true, ret_val);
 
   return 0;
@@ -3158,17 +3173,13 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
   string host = ((CcString*)args[0].addr)->GetValue();
   int port = ((CcInt*)args[1].addr)->GetValue();
 
+  // retrieving pid for SecondoMonitor
+  // stored in /tmp/SM_<port>.lck on that host
+  string killPid; // store pid of SecondoMonitor
   string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
-  string cat_cmd = "if [ -r "+ lckfile + " ]; then cat " + lckfile + "; fi";
-  string kill_cmd = "kill -SIGTERM `" + cat_cmd + "`;";
-  string rm_cmd = " /bin/rm " + lckfile + ";";
-  string cmd = "if [ ! -r "+ lckfile + " ]; then echo \\\"0\\\"; else " + 
-    kill_cmd + rm_cmd + " echo \\\"1\\\"; fi";
-
-  string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
-  //cout << cmd << endl;
-  //cout << ssh_cmd << endl;
-
+  string cat_cmd = "cat " + lckfile;
+  string ssh_cmd = "ssh " + host + " " + cat_cmd;
+ 
   FILE *fs;
   char qBuf[1024];
   memset(qBuf, '\0', sizeof(qBuf));
@@ -3182,15 +3193,51 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
     }
   else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
     {
-      //cout << "result:'" << string(qBuf) << "'" << endl;
-      if (string(qBuf).empty() || string(qBuf)[0] != '1')
+      if (string(qBuf).empty())
         {
           cerr << "No lock file '" + lckfile + "' found!" << endl;
           ret_val = false;
         }
+      else
+        {
+          killPid =  string(qBuf);
+        }
       pclose(fs);
     }
+  fs=NULL;
 
+  if (ret_val)
+    {
+      // now killing that process w/ kill -SIGTERM <pid>
+      // and removing the lockfile /tmp/SM_<port>.lck
+      killPid =  stringutils::replaceAll(killPid,"\n","");
+
+      string kill_cmd = "kill -SIGTERM " + killPid + ";";
+      string rm_cmd = " /bin/rm " + lckfile + ";";
+      string cmd = "if [ ! -r "+ lckfile + " ]; then echo \\\"0\\\"; else " + 
+        kill_cmd + rm_cmd + " echo \\\"1\\\"; fi";
+      ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
+
+      memset(qBuf, '\0', sizeof(qBuf));
+      fs = popen(ssh_cmd.c_str(), "r");
+
+      if (fs == NULL)
+        {
+          perror(("popen fail! Cannot kill worker on "
+                  + host + ":" + toString_d(port) ).c_str());
+          ret_val = false;
+        }
+      else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+        {
+          cout << "result:'" << string(qBuf) << "'" << endl;
+          if (string(qBuf).empty() || string(qBuf)[0] != '1')
+            {
+              cerr << "No lock file '" + lckfile + "' found!" << endl;
+              ret_val = false;
+            }
+          pclose(fs);
+        }
+    }
   ((CcBool*) (result.addr))->Set(true, ret_val);
   return 0;
 }
