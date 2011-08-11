@@ -232,6 +232,9 @@ ProgMesHandler::handleMsg(NList msgList)
   // normal progress messages
 
   rt = s->diffSecondsReal();
+  if(ActValue > TotalValue){
+     ActValue = TotalValue;
+  }
   
   double pr = (double)ActValue / (double)TotalValue;
 
@@ -245,7 +248,6 @@ ProgMesHandler::handleMsg(NList msgList)
 
   string bar1(dots, '.');
   string bar2(total-dots, ' ');
-
   int p = ((ActValue*100) / TotalValue);
   int restTime = static_cast<int>( ceil( rt/p * (100-p) ) );
   int showMin = restTime / 60;
