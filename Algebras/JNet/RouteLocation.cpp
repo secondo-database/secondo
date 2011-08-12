@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/NestedList.h"
 #include "../../include/NList.h"
 #include "../../include/Symbols.h"
+#include "../../include/LogMsg.h"
 
 
 /*
@@ -127,15 +128,19 @@ Attribute* RouteLocation::Clone() const
   return new RouteLocation(*this);
 }
 
-bool RouteLocation::Adjacent(const Attribute* attrib) const
+bool RouteLocation::Adjacent(const RouteLocation attrib) const
 {
-  RouteLocation* val = (RouteLocation*) attrib;
-  if (rid  == val->GetRouteId() && pos == val->GetPosition()) return true;
-  if (rid == val->GetRouteId() && side.SameSide(val->GetSide()) &&
-      fabs(pos - val->GetPosition()) < 1.0)
+  if (rid  == attrib.GetRouteId() &&
+      AlmostEqual(pos, attrib.GetPosition()) &&
+      side.SameSide(attrib.GetSide()))
     return true;
   else
     return false;
+}
+
+bool RouteLocation::Adjacent(const Attribute* attrib) const
+{
+  return Adjacent(*((RouteLocation*) attrib));
 }
 
 int RouteLocation::Compare(const Attribute* rhs) const
@@ -257,7 +262,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cerr << "First should be int" << endl;
+        cmsg.inFunError("RouteLocation: First Element must be int");
         return SetWord(Address(0));
       }
       if (posList.isReal())
@@ -265,7 +270,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cerr << "Second should be real" << endl;
+        cmsg.inFunError("RouteLocation:Second Element must be real");
         return SetWord(Address(0));
       }
       correct = true;
@@ -284,7 +289,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
                                  correct);
       if (!correct)
       {
-        cerr << "third should be jdirection" << endl;
+        cmsg.inFunError("RouteLocation: Third element must be jdirection");
         return SetWord(Address(0));
       }
       Direction* sideofroad =(Direction*)sideaddr.addr;
@@ -294,7 +299,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
     }
   }
   correct = false;
-  cerr << "length should be 1 or three" << endl;
+  cmsg.inFunError("list length should be 1 or 3");;
   return SetWord(Address(0));
 }
 

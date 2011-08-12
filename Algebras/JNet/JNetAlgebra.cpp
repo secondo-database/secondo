@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NetDistanceGroup.h"
 #include "ListNetDistGrp.h"
 #include "JNetwork.h"
+#include "JPoint.h"
 
 
 
@@ -480,6 +481,46 @@ struct jNetworkFunctions:ConstructorFunctions<JNetwork>{
 jNetworkInfo jNetInfo;
 jNetworkFunctions jNetFunc;
 TypeConstructor jNetTC(jNetInfo, jNetFunc);
+
+/*
+1.1 ~JPoint~
+
+*/
+
+struct jPointInfo:ConstructorInfo
+{
+  jPointInfo():ConstructorInfo()
+  {
+    name = JPoint::BasicType();
+    signature = "-> " + Kind::DATA();
+    typeExample = JPoint::BasicType();
+    listRep = "(" + CcString::BasicType() + " " + RouteLocation::BasicType() +
+              ")";
+    valueExample = "(testnet (12 45.6 Down))";
+    remarks = "Single position in network.";
+  }
+};
+
+struct jPointFunctions:ConstructorFunctions<JPoint>{
+  jPointFunctions():ConstructorFunctions<JPoint>(){
+    in = JPoint::In;
+    out = JPoint::Out;
+    create = JPoint::Create;
+    deletion = JPoint::Delete;
+    close = JPoint::Close;
+    clone = JPoint::Clone;
+    cast = JPoint::Cast;
+    sizeOf = JPoint::SizeOf;
+    kindCheck = JPoint::KindCheck;
+    open = JPoint::Open;
+    save = JPoint::Save;
+  }
+};
+
+jPointInfo jPInfo;
+jPointFunctions jPFunc;
+TypeConstructor jPTC(jPInfo, jPFunc);
+
 
 /*
 2 Secondo Operators
@@ -1133,6 +1174,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
   AddTypeConstructor(&jNetTC);
   jNetTC.AssociateKind(Kind::JNETWORK());
+
+  AddTypeConstructor(&jPTC);
+  jPTC.AssociateKind(Kind::DATA());
 
 /*
 3.1.2 Integration of Operators

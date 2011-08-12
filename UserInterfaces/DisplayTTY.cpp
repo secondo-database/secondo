@@ -2756,8 +2756,8 @@ struct DisplayRouteLocation : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      cout<< "route identifier: " << in_inst.first().intval()
-          << ", position: " << in_inst.second().realval()
+      cout<< "rid: " << in_inst.first().intval()
+          << ", pos: " << in_inst.second().realval()
           << ", side: " << in_inst.third().first().str()
           << endl;
     }
@@ -2773,9 +2773,9 @@ struct DisplayJRouteInterval : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      cout<< "routeId: " << in_inst.first().intval()
-      << ", from position: " << in_inst.second().realval()
-      << ", to position: " << in_inst.third().realval()
+      cout<< "rid: " << in_inst.first().intval()
+      << ", from: " << in_inst.second().realval()
+      << ", to: " << in_inst.third().realval()
       << ", side: " << in_inst.fourth().first().str()
       << endl;
     }
@@ -2803,7 +2803,7 @@ struct DisplayJListTID : DisplayFunction {
         else
           cout << Symbol::UNDEFINED() << endl;
       }
-      cout << "End of list of TupleIds." << endl;
+      cout << "End of list." << endl;
     }
   }
 };
@@ -2820,7 +2820,7 @@ struct DisplayPairTIDRLoc : DisplayFunction {
       ListExpr tid = nl->First(value);
       cout << "TupleId: ";
       if (nl->IntAtom(tid))
-        cout << nl->IntValue(tid) << endl;
+        cout << nl->IntValue(tid);
       else
         cout << Symbol::UNDEFINED() << endl;
       cout << ", RouteLocation: ";
@@ -2829,8 +2829,8 @@ struct DisplayPairTIDRLoc : DisplayFunction {
         cout << Symbol::UNDEFINED() << endl;
       else
       {
-        cout << "route identifier: " << rloc.first().intval()
-             << ", position: " << rloc.second().realval()
+        cout << "rid: " << rloc.first().intval()
+             << ", pos: " << rloc.second().realval()
              << ", side: " << rloc.third().first().str()
              << endl;
       }
@@ -2841,31 +2841,31 @@ struct DisplayPairTIDRLoc : DisplayFunction {
 struct DisplayListPTIDRLoc : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "List of pairs of Tuple Id and RouteLocation: " << endl;
+    cout << "List of Tuple Id and RouteLocation: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      cout << endl;
       while( !nl->IsEmpty(value))
       {
-        cout << "Entry: ";
         NList elem(nl->First(value));
         if (elem.length() == 2)
         {
           NList tid(elem.first());
           cout << "TupleId: ";
           if (tid.isInt())
-            cout << tid.intval() << endl;
+            cout << tid.intval();
           else
-            cout << Symbol::UNDEFINED() << endl;
+            cout << Symbol::UNDEFINED();
           NList rloc(elem.second());
-          cout << "RouteLocation: ";
+          cout << " RouteLocation: ";
           if (rloc.hasStringValue())
             cout << Symbol::UNDEFINED() << endl;
           else
           {
-            cout << "route identifier: " << rloc.first().intval()
-            << ", position: " << rloc.second().realval()
+            cout << "rid: " << rloc.first().intval()
+            << ", pos: " << rloc.second().realval()
             << ", side: " << rloc.third().first().str()
             << endl;
           }
@@ -2874,10 +2874,9 @@ struct DisplayListPTIDRLoc : DisplayFunction {
         {
           cout << Symbol::UNDEFINED() << endl;
         }
-        cout << endl;
         value = nl->Rest(value);
       }
-      cout << "End of list of pairs of TupleId and RouteLocation." << endl;
+      cout << "End of list." << endl;
     }
   }
 };
@@ -2893,7 +2892,7 @@ struct DisplayPairTIDRInt : DisplayFunction {
       NList tid(nl->First(value));
       cout << "TupleId: ";
       if (tid.isInt())
-        cout << tid.intval() << endl;
+        cout << tid.intval();
       else
         cout << Symbol::UNDEFINED() << endl;
       cout << ", RouteInterval: ";
@@ -2902,9 +2901,9 @@ struct DisplayPairTIDRInt : DisplayFunction {
         cout << Symbol::UNDEFINED() << endl;
       else
       {
-        cout << "route identifier: " << rint.first().intval()
-        << ", start position: " << rint.second().realval()
-        << ", end position: " << rint.third().realval()
+        cout << "rid: " << rint.first().intval()
+        << ", from: " << rint.second().realval()
+        << ", to: " << rint.third().realval()
         << ", side: " << rint.fourth().first().str()
         << endl;
       }
@@ -2915,43 +2914,43 @@ struct DisplayPairTIDRInt : DisplayFunction {
 struct DisplayListPTIDRInt : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "List of pairs of Tuple Id and RouteIntervals: " << endl;
+    cout << "List of Tuple Ids and RouteIntervals: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      cout << endl;
       while( !nl->IsEmpty(value))
       {
-        cout << "Element: ";
         NList elem(nl->First(value));
         if (elem.length() == 2)
         {
           NList tid(elem.first());
           cout << "TupleId: ";
           if (tid.isInt())
-            cout << tid.intval() << endl;
+            cout << tid.intval();
           else
-            cout << Symbol::UNDEFINED() << endl;
+            cout << Symbol::UNDEFINED();
           NList rint(elem.second());
-          cout << "RouteInterval: ";
+          cout << ", RouteInterval: ";
           if (rint.hasStringValue())
             cout << Symbol::UNDEFINED() << endl;
           else
           {
-            cout << "route identifier: " << rint.first().intval()
-            << ", start position: " << rint.second().realval()
-            << ", end position: " << rint.third().realval()
+            cout << " rid: " << rint.first().intval()
+            << ", from: " << rint.second().realval()
+            << ", to: " << rint.third().realval()
             << ", side: " << rint.fourth().first().str()
             << endl;
           }
-        } else
+        }
+        else
         {
           cout << Symbol::UNDEFINED() << endl;
         }
-        cout << endl;
         value = nl->Rest(value);
       }
-      cout << "End of list of pairs of TupleId and RouteInterval." << endl;
+      cout << "End of list." << endl;
     }
   }
 };
@@ -2968,10 +2967,10 @@ struct DisplayNetDistanceGroup : DisplayFunction {
       NList nextSect(nl->Second(value));
       NList nextJunct(nl->Third(value));
       NList distance(nl->Fourth(value));
-      cout << "target junction tupleid: " << target.intval()
-           << ", next section tupleid: " << nextSect.intval()
-           << ", next junction tupleid: " << nextJunct.intval()
-           << ", netdistance: " << distance.realval() << endl;
+      cout << "target: " << target.intval()
+           << ", next sect: " << nextSect.intval()
+           << ", next junction: " << nextJunct.intval()
+           << ", dist: " << distance.realval() << endl;
     }
   }
 };
@@ -2979,14 +2978,14 @@ struct DisplayNetDistanceGroup : DisplayFunction {
 struct DisplayListNDG : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "List of NetDistanceGroups: " << endl;
+    cout << "List of NetDistanceGroups: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      cout << endl;
       while( !nl->IsEmpty(value))
       {
-        cout << "Element: " ;
         NList elem(nl->First(value));
         if (elem.length() == 4)
         {
@@ -2994,19 +2993,38 @@ struct DisplayListNDG : DisplayFunction {
           NList nextSect(elem.second());
           NList nextJunct(elem.third());
           NList distance(elem.fourth());
-          cout << "target junction tupleid: " << target.intval()
-          << ", next section tupleid: " << nextSect.intval()
-          << ", next junction tupleid: " << nextJunct.intval()
-          << ", netdistance: " << distance.realval() << endl;
+          cout << "target: " << target.intval()
+          << ", next sect: " << nextSect.intval()
+          << ", next junction: " << nextJunct.intval()
+          << ", dist: " << distance.realval() << endl;
         }
         else
         {
           cout << Symbol::UNDEFINED() << endl;
         }
-        cout << endl;
         value = nl->Rest(value);
       }
-      cout << "End of list of NetDistanceGroups." << endl;
+      cout << "End of list." << endl;
+    }
+  }
+};
+
+struct DisplayJPoint : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "JPoint: ";
+    NList in_inst(value);
+    if (in_inst.length() ==  1 && in_inst.hasStringValue())
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList net(in_inst.first());
+      cout << "Network: " << net.str();
+      NList rloc(in_inst.second());
+      cout<< " rid: " << rloc.first().intval()
+      << ", pos: " << rloc.second().realval()
+      << ", side: " << rloc.third().first().str()
+      << endl;
     }
   }
 };
@@ -3168,6 +3186,7 @@ DisplayTTY::Initialize()
   d.Insert( "listptidrint", new DisplayListPTIDRInt());
   d.Insert( "netdistancegroup", new DisplayNetDistanceGroup());
   d.Insert( "listnetdistgrp", new DisplayListNDG());
+  d.Insert( "jpoint", new DisplayJPoint());
 }
 
 /*

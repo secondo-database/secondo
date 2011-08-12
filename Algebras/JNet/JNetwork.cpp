@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/ListUtils.h"
 #include "../../include/SecondoSystem.h"
 #include "../../include/Symbols.h"
+#include "../../include/LogMsg.h"
 #include "../Spatial/Point.h"
 #include "Direction.h"
 #include "JNetwork.h"
@@ -211,7 +212,7 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   if (inlist.length() != 4)
   {
     correct = false;
-    cerr << "List of length 4 expected." << endl;
+    cmsg.inFunError("List of length 4 expected.");
     return;
   }
 
@@ -223,7 +224,7 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   if (!(netId.isAtom() && netId.isString()))
   {
     correct = false;
-    cerr << "First element should be string atom." << endl;
+    cmsg.inFunError("First element should be string atom.");
     return;
   }
 
@@ -237,7 +238,7 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
                                        errorPos, errorInfo, correct,false);
   if (!correct)
   {
-    cerr << "Second Element must be junctions relation." << endl;
+    cmsg.inFunError("Second Element must be junctions relation.");
     return;
   }
 
@@ -249,7 +250,7 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   if (!correct)
   {
     delete junctions;
-    cerr << "Third Element must be sections relation."<< endl;
+    cmsg.inFunError("Third Element must be sections relation.");
     return;
   }
 
@@ -262,7 +263,7 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   {
     delete junctions;
     delete sections;
-    cerr << "Fourth Element must be routes relation." << endl;
+    cmsg.inFunError("Fourth Element must be routes relation.");
     return ;
   }
 
@@ -332,7 +333,7 @@ void JNetwork::SetId(const string nid)
 ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
 {
   if (DEBUG) cout << "JNetwork::Out" << endl;
-  
+
   JNetwork* source = (JNetwork*) value.addr;
   if (!source->IsDefined())
   {
@@ -414,7 +415,20 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
 {
   if (DEBUG) cout << "JNetwork::Save(...value)" << endl;
   JNetwork* source = (JNetwork*) value.addr;
-  return source->Save(valueRecord, offset, typeInfo);
+  if (source->IsDefined())
+    return source->Save(valueRecord, offset, typeInfo);
+  else
+  {
+    Word w;
+    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
+    ListExpr idLE;
+    nl->ReadFromString(CcString::BasicType(), idLE);
+    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+    if (!SaveAttribute<CcString>(valueRecord, offset, numId, w))
+      return false;
+    else
+      return true;
+  }
 }
 
 bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,

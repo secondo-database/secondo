@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/NestedList.h"
 #include "../../include/NList.h"
 #include "../../include/Symbols.h"
+#include "../../include/LogMsg.h"
 
 extern NestedList* nl;
 
@@ -324,6 +325,7 @@ Word Direction::In(const ListExpr typeInfo, const ListExpr instance,
     }
   }
   correct = false;
+  cmsg.inFunError("Direction must be Up, Down, Both or " + Symbol::UNDEFINED());
   return SetWord(Address( 0 ));
 }
 

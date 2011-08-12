@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 1. ~class RouteLocation~
 
-The class NLos describes a position in the network. It consists of a
+The class RouteLocation describes a position in the network. It consists of a
 route identifier rid, the distance from the start of the route pos, and a
 ~direction~ value telling if the position is reachable from the Up side, the
 Down side or Both sides of the road.
@@ -81,6 +81,7 @@ StorageType GetStorageType() const;
 size_t HashValue() const;
 Attribute* Clone() const;
 bool Adjacent(const Attribute* attrib) const;
+bool Adjacent(const RouteLocation attrib) const;
 int Compare(const Attribute* rhs) const;
 int Compare(const RouteLocation& rhs) const;
 size_t Sizeof() const;
