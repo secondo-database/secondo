@@ -122,7 +122,7 @@ void ConnCodeFinder::computeConnCode ()
         is_bit_set(getNorth (),2)&is_bit_set(getSouth (),2)}}; //BdownBdown
    m_matrix.setValues (matrix);
    // Transforming the matrix
-   m_matrix.transform ();
+   //m_matrix.transform ();
 
    // Checking whether the connectivity code is searched for a dual and a 
    // simple street

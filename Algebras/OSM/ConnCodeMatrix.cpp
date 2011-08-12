@@ -167,9 +167,9 @@ void ConnCodeMatrix::computeConnCode ()
 
 int ConnCodeMatrix::getConnCode () const
 {
-   return m_connCode;
+   //return m_connCode;
    // Temporarily returning a fix connectivity code
-   //return 65535;
+   return 65535;
 }
 
 void ConnCodeMatrix::print () const
