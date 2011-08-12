@@ -301,7 +301,7 @@ public void setValueTo (ListExpr list) {
 /**
  * Create a list of pairs representing the (key, value)-pair of a Properties
  * object.
- * 
+ *
  * @param p
  *            the Properties to read from
  * @return a ListExpr representing the Properties
@@ -331,7 +331,7 @@ public static ListExpr fromProperties(Properties p) {
 /**
  * Inserts (key, value)-Pairs found in a list ((stringAtom textAtom)*) into
  * a Properties object. Returns false if and only if some problem occurs.
- * 
+ *
  * @param l
  *            the ListExpr to read from
  * @return the Properties
@@ -674,6 +674,15 @@ public ListExpr sixth(){
    return nThElement(6);
 }
 
+/** Returns the tenth element of a list **/
+public ListExpr tenth(){
+  return nThElement(10);
+}
+
+/** Returns the twelfth element of a list **/
+public ListExpr twelfth(){
+  return nThElement(12);
+}
 
 /** Returns the rest of this ListExpr object, this is, a ListExpr
   * object what is identical to this ListExpr but without the first element. The
@@ -794,7 +803,7 @@ public int writeToFile (String fileName) {
 public boolean writeTo(OutputStream out,boolean OnlyRationals){
     try{
        Writer W;
-       if(Environment.ENCODING!=null) { 
+       if(Environment.ENCODING!=null) {
           W = new OutputStreamWriter(out, Environment.ENCODING);
        } else {
           W = new OutputStreamWriter(out);
