@@ -401,8 +401,10 @@ Attribute* ShpFileReader::getNextPoint () {
         file.close ();
         return 0;
     }
-    x = readLittleDouble ();
-    y = readLittleDouble ();
+    x = readLittleDouble () *
+       ScalingEngine::getInstance ().getScaleFactorX ();
+    y = readLittleDouble () *
+       ScalingEngine::getInstance ().getScaleFactorY ();
     if (!file.good ()) {
         cerr << "Error in shape file detected " << __LINE__ << endl;
         defined = false;
