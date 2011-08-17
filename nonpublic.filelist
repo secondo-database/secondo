@@ -73,7 +73,7 @@ Data/Objects/Brasil
 Data/Objects/Distrikte
 Data/Objects/KreisLaender
 Algebras/RegionInterpolation/Tex
-Tools/RStarTree
+#Tools/RStarTree
 
 # chessalgebra
 Tests/Testspecs/chessalgebra
