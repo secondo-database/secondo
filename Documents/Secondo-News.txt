@@ -6,6 +6,28 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2011-08-17 Preparations for relase of Secondo 3.1.1
+===============================================================================
+This is just a summary of the most important changes. Please read the 
+ReleaseInfo to learn more details on changes:
+
+ * Harmonized naming schema for moving and unit types
+
+ * Renamed operators with typical attribute names to avoid problems in queries
+
+ * Plugins NearestNeighbor, TBTree, and STPattern have been merged into the 
+	 standard algebra collection.
+
+ * Operators have been added to several Algebras
+
+ * TypeMappings have been changed in order to foster the use of generic 
+	 TypeMapping tools and new Attribute member functions returning the typename
+
+ * Support for geographic coordinates has been integrated or prepared for
+   many spatial and spatio-temporal operators.
+
+ * Several bug fixes
+
 2010-06-21 Preparations for release of Secondo 3.0
 ===============================================================================
 Several changes have been done in the last 6 monthes.

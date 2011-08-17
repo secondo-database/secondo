@@ -11,12 +11,9 @@ zip-archive file. A user just needs to install VMware Player,
 a virtualization software, in order to play the virtual machine.
 
 VMware Player is available from the VMware website
-(http://info.vmware.com/). It is available for Linux and 
-Windows platforms. For non-commercial use, Licences are free of 
-charge. For the Macintish, you may install Linux/Windows 
-using Bootcamp, and install the according VMware Player.
-Instead, you may use VMware Fusion, which is free of charge during 
-an evaluation period of 30 days.
+(http://info.vmware.com/). It is available for Linux,
+Windows and Mac platforms. For non-commercial use, Licences
+are free of charge.
 
 The SecondoVM appliance was set up using the 32bit variant of
 Xubuntu (relying on Ubuntu 10.04 LTS) as a base. When starting
@@ -52,8 +49,10 @@ log you on as the predefined user "secondo" (password: secondo).
 User "secondo" has administrative rights and may use the "sudo"
 command to run administrative tasks.
 
-If you notice problems with the keyboard key mappings, please
-consult the internet to find a solution appropriate to your setting.
+If you notice problems with the keyboard key mappings, you may use the 
+keyboard-mapping tool from the application launcher bar to adopt to your 
+keyboard. If this does not help, please consult the internet to find a 
+solution appropriate to your setting.
 
 
 How do I get rid of it?
@@ -64,7 +63,7 @@ How do I get rid of it?
 
 How to run Secondo with a command line?
 ---------------------------------------
- (1) Open a bash shell.
+ (1) Open a bash shell. (There should be a Shell icon on your desktop.)
  (2) Change to directory /home/secondo/secondo/bin
  (3) Execute the following command: secinit
  (4) Execute the following command: SecondoTTYBDB
@@ -115,4 +114,8 @@ How to (re-)build Secondo?
  (3) Execute the following command: secinit
  (4) Execute the following command: make clean; make
 
+More Information
+----------------
+The Secondo Manual and Programmer's Guides are located on your Desktop.
+You can also consult the Secondo homepage to download recent versions, demos etc.
 
