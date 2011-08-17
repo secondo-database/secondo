@@ -86,22 +86,22 @@ private:
 
 class DArray
 {
-   public:
-   DArray();
-   DArray(ListExpr, string,int,ListExpr);
-   ~DArray();
+public:
+  DArray();
+  DArray(ListExpr, string,int,ListExpr);
+  ~DArray();
 
   bool initialize(ListExpr, string, int,ListExpr,const vector<Word>& );
   bool initialize(ListExpr, string,int,ListExpr);
 
-   //Returns the content of m_elements[int]
-   const Word& get(int);
-   //Sets m_elements[int] and sends the object to the respective worker
-   void set(Word,int);
+  //Returns the content of m_elements[int]
+  const Word& get(int);
+  //Sets m_elements[int] and sends the object to the respective worker
+  void set(Word,int);
 
   int getAlgID() const { return alg_id; }
   int getTypID() const { return typ_id; }
-  ListExpr getType() const { return type; }
+  ListExpr getType() const { return m_type; }
 
   ListExpr getServerList() const { return serverlist; }
 
@@ -117,67 +117,67 @@ class DArray
   const vector<Word>& getElements() const {return m_elements;}
 
 
-   //Retrieves the element int/all elements from the worker
-   //refresh must be called before calling get()
-   void refresh(int);
-   void refresh();
+  //Retrieves the element int/all elements from the worker
+  //refresh must be called before calling get()
+  void refresh(int);
+  void refresh();
 
-   //Deletes all the remote elements on the workers
-   void remove();
+  //Deletes all the remote elements on the workers
+  void remove();
 
-   //Persistens Storage functions for the type constructor
-   static Word In( const ListExpr typeInfo , const ListExpr instance ,
-                   const int errorPos , ListExpr& errorInfo ,
-                           bool& correct );
-   static ListExpr Out( ListExpr typeInfo , Word value );
-   static Word Create( const ListExpr typeInfo );
-   static void Delete( const ListExpr typeInfo , Word& w );
-   static void Close( const ListExpr typeInfo, Word& w );
-   static Word Clone( const ListExpr typeInfo , const Word& w );
-   static bool KindCheck( ListExpr type , ListExpr& errorInfo );
-   static int SizeOfObj();
-   static bool Open( SmiRecord& valueRecord ,
-                                 size_t& offset , const ListExpr typeInfo,
-                                 Word& value );
-   static bool Save( SmiRecord& valueRecord , size_t& offset ,
-                                 const ListExpr typeInfo , Word& value );
-
-
-   //Static no of existing DArray-Instances, used for naming
-   static int no;
-
-   bool isRelType() {return isRelation;}
-
-   static const string BasicType() { return "darray"; }
-
-   static const bool checkType(ListExpr type){
-     ListExpr errorInfo = listutils::emptyErrorInfo();
-     return KindCheck(type, errorInfo);
-   }
+  //Persistens Storage functions for the type constructor
+  static Word In( const ListExpr inTypeInfo , const ListExpr instance ,
+                  const int errorPos , ListExpr& errorInfo ,
+                  bool& correct );
+  static ListExpr Out( ListExpr inTypeInfo , Word value );
+  static Word Create( const ListExpr inTypeInfo );
+  static void Delete( const ListExpr inTypeInfo , Word& w );
+  static void Close( const ListExpr inTypeInfo, Word& w );
+  static Word Clone( const ListExpr inTypeInfo , const Word& w );
+  static bool KindCheck( ListExpr inType , ListExpr& errorInfo );
+  static int SizeOfObj();
+  static bool Open( SmiRecord& valueRecord ,
+                    size_t& offset , const ListExpr inTypeInfo,
+                    Word& value );
+  static bool Save( SmiRecord& valueRecord , size_t& offset ,
+                    const ListExpr inTypeInfo , Word& value );
 
 
-   private:
+  //Static no of existing DArray-Instances, used for naming
+  static int no;
 
-   //Sends the relation in elements[index] to the respective worker
-   void WriteRelation(int index);
+  bool isRelType() {return isRelation;}
 
-   //Is the DArray defined (posseses a name, size, serverlist, type?!)
-   bool defined;
+  static const string BasicType() { return "darray"; }
 
-   //Is a certain element present on the master?
+  static const bool checkType(ListExpr inType){
+    ListExpr errorInfo = listutils::emptyErrorInfo();
+    return KindCheck(inType, errorInfo);
+  }
+
+
+private:
+
+  //Sends the relation in elements[index] to the respective worker
+  void WriteRelation(int index);
+
+  //Is the DArray defined (posseses a name, size, serverlist, type?!)
+  bool defined;
+
+  //Is a certain element present on the master?
   // std::vector<bool> is broken!
   // using 1: present; 0: not present
   vector<int> m_present;
-   bool isRelation;
-   int size;
-   int alg_id;
-   int typ_id;
-   string name;
-   ListExpr type;
+  bool isRelation;
+  int size;
+  int alg_id;
+  int typ_id;
+  string name;
+  ListExpr m_type;
 
-   ListExpr serverlist;
+  ListExpr serverlist;
 
-   DServerManager* manager;
+  DServerManager* manager;
 
   vector<Word> m_elements;
 

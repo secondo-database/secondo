@@ -148,7 +148,7 @@ private:
   RemoteCommand* m_cmd;
 
   int port;
-  ListExpr type;
+  ListExpr m_type;
 
   Socket* server;
          
@@ -166,7 +166,9 @@ class DServerManager
 {
    public:
       DServerManager(ListExpr serverlist_n, 
-                              string name_n, ListExpr type, int sizeofarray);
+                     string name_n, 
+                     ListExpr inType, int sizeofarray);
+
       ~DServerManager();
   
 /*
@@ -268,7 +270,7 @@ private:
   DServer* m_server;
   string host,name;
   int port;
-  ListExpr type;
+  ListExpr m_type;
 };
 
 class DServerMultiplyer : public ZThread::Runnable
