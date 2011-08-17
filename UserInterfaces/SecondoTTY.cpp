@@ -185,15 +185,15 @@ SecondoTTY::Usage()
   "           bit  2: trace nodes (construction of nodes of the op. tree,\n" <<
   "                   and execution of the query processor's Eval() method)\n"<<
   "           bit  3: localInfo (prints a warning if an operator did not\n" <<
-  "                   have destroyed its localinfo before the operator tree\n"<<
+  "                   destroy its localinfo before the operator tree\n"<<
   "                   is deconstructed)\n" <<
   "           bit  4: debug progress (after sending a REQUESTPROGRESS\n " <<
   "                   message to an operator, the ranges in the \n" <<
-  "                   ProgressInfo are checked to be reasonable. If\n" <<
-  "                   this check fails, the operator and the ProgressInfo\n"<<
-  "                   are printed out) \n" <<
-  "           bit  5: trace progress prints out the result of \n " <<
-  "                   each REQUESTPROGRESS message \n" <<
+  "                   ProgressInfo are checked for whether tey are\n" <<
+  "                   reasonable. If not so, the according operator and \n" <<
+  "                   ProgressInfo are reported) \n" <<
+  "           bit  5: trace progress (prints the result of \n " <<
+  "                   each REQUESTPROGRESS message) \n" <<
   "  Q, QUIT  - exit the program\n" <<
   "  # ...    - comment line (first character on line has to be '#')\n" <<
   "  REPEAT n <query> - execute <query> n times.\n" <<
