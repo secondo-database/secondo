@@ -1,3 +1,23 @@
+2011-08-17 Notes on Release 3.1.1
+===============================================================================
+
+(1) GUI
+
+- Fixed problem: HoeseViewer could not display mregion values
+
+-------------------------------------------------------------------------------
+
+(2) Secondo Kernel: Framework
+
+- Fixed Problem: ProgressView caused system to crash in some queries
+
+-------------------------------------------------------------------------------
+
+(3) Secondo Kernel: Algebras Modules
+
+- STPatternAlgebra, NearesrNeighborAlgebra, TBTreeAlgebra now supported 
+	directly (used to be Secondo plugins).
+
 2011-07-20 Notes on Release 3.1.0
 ===============================================================================
 
