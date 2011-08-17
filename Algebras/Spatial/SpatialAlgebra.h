@@ -1381,7 +1381,7 @@ as an attribute.
 
    static const string BasicType(){
       return "line";
-   }  
+   }
    static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
    }
@@ -1884,6 +1884,7 @@ The following functions are needed to act as an attribute type.
   void toLine(Line& result) const;
 
   void fromLine(const Line& src);
+  void fromLine(const Line& src, const bool smaller);
 
   static void* Cast(void* addr){
     return new (addr) SimpleLine();

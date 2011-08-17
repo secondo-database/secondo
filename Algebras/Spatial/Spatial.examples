@@ -708,6 +708,17 @@ Signature : line -> sline
 Example   : query abs(size(BGrenzenLine) - size(fromline(BGrenzenLine))) < 0.0001
 Result    : (bool TRUE)
 
+Operator  : fromline
+Number    : 2
+Signature : line x bool -> sline
+Example   : query abs(size(BGrenzenLine) - size(fromline(BGrenzenLine, FALSE))) < 0.0001
+Result    : (bool TRUE)
+
+Operator  : fromline
+Number    : 3
+Signature : line x bool -> sline
+Example   : query abs(size(BGrenzenLine) - size(fromline(BGrenzenLine, TRUE))) < 0.0001
+Result    : (bool TRUE)
 
 Operator  : toline
 Number    : 1

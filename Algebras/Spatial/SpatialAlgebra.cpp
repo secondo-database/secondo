@@ -7463,7 +7463,13 @@ bool SimpleLine::getWaypoint( Point &destination ) const{
    return true;
 }
 
-void SimpleLine::fromLine(const Line& src){
+void SimpleLine::fromLine(const Line& src)
+{
+  fromLine(src,true);
+}
+
+void SimpleLine::fromLine(const Line& src, const bool smaller)
+{
   Clear(); // remove all old segments
   if(!src.IsDefined()){
      SetDefined(false);
@@ -7487,6 +7493,7 @@ void SimpleLine::fromLine(const Line& src){
     }
   }
   EndBulkLoad();
+  SetStartSmaller(smaller);
 }
 
 
@@ -8356,7 +8363,7 @@ bool Region::Contains( const HalfSegment& hs, const Geoid* geoid/*=0*/ ) const
                     checkMidPoint = true;
                    //the intersection point that is not the endpoint
                     Point temp_p;
-  
+
                   if(hs.Intersection(auxhs,temp_p, geoid))
                     intersection_points.push_back(temp_p);
                   HalfSegment temp_hs;
@@ -13885,14 +13892,14 @@ Signature is :  line [->] sline
 */
 
 ListExpr fromLineTypeMap(ListExpr args){
-  const string err = "line expected";
-  if(nl->ListLength(args)!=1){
-    return listutils::typeError(err);
-  }
-  if(nl->IsEqual(nl->First(args),Line::BasicType())){
+  if ((nl->ListLength(args) == 2 &&
+       nl->IsEqual(nl->First(args),Line::BasicType()) &&
+       nl->IsEqual(nl->Second(args),CcBool::BasicType())) ||
+      (nl->ListLength(args) == 1 &&
+       nl->IsEqual(nl->First(args),Line::BasicType())))
     return nl->SymbolAtom(SimpleLine::BasicType());
-  }
-  return listutils::typeError(err);
+  else
+    return listutils::typeError("line or line and bool expected");
 }
 
 /*
@@ -16790,7 +16797,9 @@ int toLineVM(Word* args, Word& result, int message,
 Value Mapping for ~fromLine~
 
 */
-int fromLineVM(Word* args, Word& result, int message,
+
+
+int fromLineVM1(Word* args, Word& result, int message,
             Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Line* line = static_cast<Line*>(args[0].addr);
@@ -16799,6 +16808,26 @@ int fromLineVM(Word* args, Word& result, int message,
    return 0;
 }
 
+int fromLineVM2(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  Line* line = static_cast<Line*>(args[0].addr);
+  CcBool* smaller = static_cast<CcBool*> (args[1].addr);
+  SimpleLine* res = static_cast<SimpleLine*>(result.addr);
+  res->fromLine(*line,smaller->GetBoolval());
+  return 0;
+}
+
+ValueMapping fromLineVM[] = {
+  fromLineVM1,
+  fromLineVM2
+};
+
+int fromLineSelect(ListExpr args){
+  if(nl->ListLength(args)==1) return 0;
+  if(nl->ListLength(args)==2) return 1;
+  return -1;
+}
 
 /*
 Value Mapping for ~isCycle~
@@ -18184,9 +18213,11 @@ const string SpatialSpecToLine  =
 
 const string SpatialSpecFromLine  =
      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-     "( <text>line -> sline </text--->"
-     "<text> fromline( _ )  </text--->"
-     "<text>Converts a line into an sline</text--->"
+     "( <text>line [x bool]-> sline </text--->"
+     "<text> fromline( _ ) fromline (_ ,_)  </text--->"
+     "<text>Converts a line into an sline, if no bool value is defined the"
+     "sline starts from the smaller endpoint. Otherwise the bool value "
+     "tells if the sline starts from the smaller or bigger endpoint.</text--->"
      "<text>query toline(fromline(trajectory(train7))</text--->"
      ") )";
 
@@ -18742,8 +18773,9 @@ Operator spatialtoline (
 Operator spatialfromline (
   "fromline",
   SpatialSpecFromLine,
+  2,
   fromLineVM,
-  Operator::SimpleSelect,
+  fromLineSelect,
   fromLineTypeMap );
 
 Operator spatialiscycle (
