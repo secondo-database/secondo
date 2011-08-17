@@ -52,6 +52,12 @@ public class JSection
   private double length;
 
   /**
+  * List of route intervals covered by this section.
+  *
+  */
+  private JRouteInterval[] rints;
+
+  /**
    * All segments of this section
    */
   private JSegment[] segments;
@@ -96,6 +102,7 @@ public class JSection
     // Read values for the list
     id =  list.first().intValue();
     length = list.tenth().realValue();
+    ListExpr rintsList = list.fifth();
     ListExpr lineList = list.second();
     ListExpr dualList = list.twelfth().first();
     if (dualList.toString() == "Both") dual = true;
@@ -103,6 +110,20 @@ public class JSection
     starts = lineList.second().boolValue();
 
     System.out.println("Section " + id);
+
+    // Read RouteIntervals
+
+    Vector rintsv = new Vector();
+    ListExpr restList = rintsList;
+
+    while (!restList.isEmpty())
+    {
+      ListExpr rintList = restList.first().second();
+      rintsv.add(new JRouteInterval(rintList));
+      restList = restList.rest();
+    }
+
+    rints = (JRouteInterval[])rintsv.toArray(new JRouteInterval[0]);
 
     // Read segments
 
@@ -146,6 +167,7 @@ public class JSection
     maintainSegmentsOrdering();
     path = buildPath(segments);
   }
+
 
 
   /**
@@ -477,4 +499,85 @@ public class JSection
     return xPath;
   }
 
+  /**
+  * Returns the route interval of the section covering the given position
+  *
+  * @param r RouteLocation
+  * @return JRouteInterval
+  */
+  public JRouteInterval getRouteInterval(JRouteLocation rloc)
+  throws Exception
+  {
+    for (int i = 0; i < rints.length; i++)
+    {
+      JRouteInterval currRint = rints[i];
+      if (currRint.contains(rloc))
+        return currRint;
+    }
+    throw new Exception("No JRouteInterval for rloc found");
+  }
+
+  /**
+  * Returns spatial position of routelocation
+  *
+  * @param pos distance of position from start of route
+  * @param startPos distance of section start from start of route
+  * @return spatial position
+  */
+  public Point2D.Double getPointOnSection(double pos, double startPos)
+  {
+    // Look for segment
+    JSegment segm = firstSegment;
+    double dDistanceOnRoute = startPos;
+    while(segm != null)
+    {
+      dDistanceOnRoute += segm.getLength();
+      if(dDistanceOnRoute >= pos)
+      {
+        break;
+      }
+      segm = segm.getNextSegment();
+    }
+
+    // Calculate offset for this segment
+    double dDistanceOnSegment = pos -
+                                dDistanceOnRoute +
+                                segm.getLength();
+
+    return segm.getPointOnSegment(dDistanceOnSegment);
+  }
+
+  /**
+  * Tests the section if their rints cover the given position data of the
+  * network.
+  *
+  * @param r RouteLocation
+  * @return bool
+  */
+  public boolean contains(JRouteLocation rloc)
+  {
+    for (int i = 0; i < rints.length; i++)
+    {
+      JRouteInterval currRint = rints[i];
+      if (currRint.contains(rloc)) return true;
+    }
+    return false;
+  }
+
+/**
+  * Tests the section if it intersects the given position interval of
+  * the network.
+  *
+  * @param r JRouteLocation
+  * @return bool
+  */
+  public boolean intersects(JRouteInterval rint)
+  {
+    for (int i = 0; i < rints.length; i++)
+    {
+      JRouteInterval currRint = rints[i];
+      if (currRint.intersects(rint)) return true;
+    }
+    return false;
+  }
 }

@@ -95,6 +95,8 @@ public class JNetwork
     sects = (JSection[])sectv.toArray(new JSection[0]);
     juncts = (JJunction[])junctv.toArray(new JJunction[0]);
 
+    JNetManager.getInstance().addNetwork(this);
+
   }
 
   /**
@@ -140,9 +142,9 @@ public class JNetwork
   }
 
   /**
-   * Searches for a route.
+   * Searches for a section
    *
-   * @param in_iId of the route
+   * @param in_iId of the section
    * @return A route.
    */
   public JSection getSectionById(int id)
@@ -157,6 +159,71 @@ public class JNetwork
     }
     // No route found
     throw new RuntimeException("Section with id " + id + " not found.");
+  }
+
+  /**
+   * Searches the section a route id and a position
+   *
+   * @param rid routeid of the position
+   * @param pos distance of the position from the start of the route
+   * @param side direction
+   * @return A section
+   */
+  public JSection getSection(int rid, double pos, String side)
+  {
+    return getSection(new JRouteLocation(rid, pos, side));
+  }
+
+  /**
+   * Searches the section a route id and a position
+   *
+   * @param rloc JRouteLocation
+   * @return A section
+   */
+  public JSection getSection(JRouteLocation rloc)
+  {
+    for (int i = 0; i < sects.length; i++)
+    {
+      JSection currSection = sects[i];
+      if (currSection.contains(rloc))
+        return currSection;
+    }
+    // No route found
+    throw new RuntimeException("No Section containing route location found.");
+  }
+
+  /**
+   * Searches the section a route id, a start position, a end position and a
+   * side value
+   *
+   * @param rid routeid of the position
+   * @param from distance of the start from the start of the route
+   * @param to distance of the end from the start of the route
+   * @param side
+   * @return A section
+   */
+
+  public JSection[] getSections(int rid, double from, double to, String side)
+  {
+    return getSections(new JRouteInterval(rid, from, to, side));
+  }
+
+  /**
+   * Searches the section a route id and a position
+   *
+   * @param rint JRouteInterval
+   * @return A section
+   */
+  public JSection[] getSections(JRouteInterval rint)
+  {
+    Vector sectsv = new Vector();
+    for (int i = 0; i < sects.length; i++)
+    {
+      JSection currSection = sects[i];
+      if (currSection.intersects(rint))
+        sectsv.add(currSection);
+    }
+    return (JSection[])sectsv.toArray(new JSection[0]);
   }
 
   /**
