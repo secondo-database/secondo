@@ -549,6 +549,7 @@ secondoOp( updatedirectsave,  postfixbrackets, 3).
 secondoOp( updatesearchsave,  postfixbrackets, 3).
 secondoOp( use,               postfixbrackets, 1).
 secondoOp( use2,              postfixbrackets, 2).
+secondoOp( val,               prefix, 1).
 secondoOp( var,               postfixbrackets, 1).
 secondoOp( vec,               prefix, 1).
 secondoOp( getWidth,          postfix, 1).
