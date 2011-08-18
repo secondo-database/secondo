@@ -198,6 +198,32 @@ ListExpr convertType( ListExpr type, bool isOneElList = false)
      }
 }
 
+static bool RunCmdPopen(const string& inCmd,
+                         string &outResult)
+{
+  bool ret_val = true;
+  FILE *fs;
+  char qBuf[1024];
+  memset(qBuf, '\0', sizeof(qBuf));
+  fs = popen(inCmd.c_str(), "r");
+
+  if (fs == NULL)
+    {
+      perror(("ERROR: Cannot start Command:" + inCmd).c_str());
+      ret_val = false;
+    }
+  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
+    {
+      outResult = string(qBuf);
+      pclose(fs);
+    }
+  else
+    {
+      pclose(fs);
+    }
+
+  return ret_val;
+}
 
 /*
 
@@ -3181,13 +3207,13 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   if (host.empty())
     {
-      cerr << "Error: Please specify the host" << endl;
+      cerr << "ERROR: Please specify the host" << endl;
       ret_val = false;
     }
 
   else if (secConf.empty())
     {
-      cerr << "Error: Please specify the SecondoConfig file" << endl;
+      cerr << "ERROR: Please specify the SecondoConfig file" << endl;
       ret_val = false;
     }
   
@@ -3214,26 +3240,13 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
       string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
  
-      FILE *fs;
-      char qBuf[1024];
-      memset(qBuf, '\0', sizeof(qBuf));
-      fs = popen(ssh_cmd.c_str(), "r");
-
-      if (fs == NULL)
+      string retVal;
+      bool success = RunCmdPopen(ssh_cmd, retVal);
+      if (!success ||
+          retVal.empty() || retVal[0] != '1')
         {
-          perror(("popen fail! Cannot start worker on "
-                  + host + ":" + toString_d(port) ).c_str());
+          cerr << "ERROR: Lock file '" + lckfile + "' exists!" << endl;
           ret_val = false;
-        }
-      else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
-        {
-          if (string(qBuf).empty() || string(qBuf)[0] != '1')
-            {
-              cerr << "Lock file '" + lckfile + "' exists!" << endl;
-              ret_val = false;
-            }
-
-          pclose(fs);
         }
     }
   cout << endl;
@@ -3255,6 +3268,16 @@ Operator startUp (
       startupFun,
       Operator::SimpleSelect,
       startupTypeMap );
+
+/*
+5.16 Operator ~shutdown~
+
+The operator ~shutdown~ takes  host and port 
+and stops a SecondoServer at the
+specified location.
+It returns true, if server was stopped successfully.
+
+*/
 
 static ListExpr
 shutdownTypeMap( ListExpr args )
@@ -3278,16 +3301,6 @@ shutdownTypeMap( ListExpr args )
   return 
     NList::typeError("Sexpecting at least server name and port");
 }
-
-/*
-5.16 Operator ~shutdown~
-
-The operator ~shutdown~ takes  host and port 
-and stops a SecondoServer at the
-specified location.
-It returns true, if server was stopped successfully.
-
-*/
 
 static int
 shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
@@ -3320,7 +3333,7 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
     {
       if (string(qBuf).empty())
         {
-          cerr << "No lock file '" + lckfile + "' found!" << endl;
+          cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
           ret_val = false;
         }
       else
@@ -3348,7 +3361,7 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
       if (fs == NULL)
         {
-          perror(("popen fail! Cannot kill worker on "
+          perror(("ERROR: popen fail! Cannot kill worker on "
                   + host + ":" + toString_d(port) ).c_str());
           ret_val = false;
         }
@@ -3356,11 +3369,14 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
         {
           if (string(qBuf).empty() || string(qBuf)[0] != '1')
             {
-              cerr << "No lock file '" + lckfile + "' found!" << endl;
+              cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
               ret_val = false;
             }
-          cout << "Stopped SecondoMonitor on "
-               << host << ":" << port << endl;
+          else
+            {
+              cout << "Stopped SecondoMonitor on "
+                   << host << ":" << port << endl;
+            }
           pclose(fs);
         }
     }
