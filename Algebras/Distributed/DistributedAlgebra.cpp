@@ -3165,7 +3165,8 @@ startupTypeMap( ListExpr args )
     }
   
   return 
-    NList::typeError("Sexpecting at least server namae and port");
+    NList::typeError
+    ("Sexpecting at least server name, port and configuration file");
 }
 
 static int
@@ -3254,6 +3255,39 @@ Operator startUp (
       startupFun,
       Operator::SimpleSelect,
       startupTypeMap );
+
+static ListExpr
+shutdownTypeMap( ListExpr args )
+{
+  NList myargs (args);
+  if (myargs.length() >= 2 )
+    {
+      if (!myargs.first().isSymbol(CcString::BasicType()))
+        {
+          return NList::typeError("First parameter must be the server name");
+        } 
+      if (!myargs.second().isSymbol(CcInt::BasicType()))
+        {
+          return NList::typeError("Second parameter must be the port number");
+        }
+
+      NList result (CcBool::BasicType());
+      return NList(result).listExpr(); 
+    }
+  
+  return 
+    NList::typeError("Sexpecting at least server name and port");
+}
+
+/*
+5.16 Operator ~shutdown~
+
+The operator ~shutdown~ takes  host and port 
+and stops a SecondoServer at the
+specified location.
+It returns true, if server was stopped successfully.
+
+*/
 
 static int
 shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
@@ -3346,7 +3380,7 @@ Operator shutDown (
       shutdownSpec,
       shutdownFun,
       Operator::SimpleSelect,
-      startupTypeMap );
+      shutdownTypeMap );
 
 /*
 
