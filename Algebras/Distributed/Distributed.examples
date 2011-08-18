@@ -1,0 +1,118 @@
+Database: opengeodb
+Restore : No
+
+Operator : DELEMENT2
+Number   : 1
+Signature: ((array t) ... ) -> t
+Example  : query OrteArray7 dloop [. count]
+Result   : TRUE
+
+
+Operator : DELEMENT
+Number   : 1
+Signature: ((array t) ... ) -> t
+Example  : query OrteArray7 dloop [. count]
+Result   : TRUE
+
+
+Operator : d_send_rel
+Number   : 1
+Signature: ( hostname port t) -> int
+Example  : query OrteArray7 dloop [. count]
+Result   : TRUE
+
+
+Operator : d_receive_rel
+Number   : 1
+Signature: ( hostname port) -> t
+Example  : query d_receive_rel (localhost, 1234)
+Result   : TRUE
+
+
+Operator : ddistribute
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple([Server:string, Port: int]))) ) -> (darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)(xi+1 ti+1) ... (xn tn)))))
+Example  : query plz feed ddistribute [pkg,3,server_rel]
+Result   : TRUE
+
+
+Operator : dloop
+Number   : 1
+Signature: ((darray t) (map t u)) -> (darray u)
+Example  : query plz_a20 dloop[. count]
+Result   : TRUE
+
+
+Operator : dloopa
+Number   : 1
+Signature: ((darray t) (darray r) (map t r u)) -> (darray u)
+Example  : query plz_a20 plz_a20 dloopa[. count]
+Result   : TRUE
+
+
+Operator : dsummarize
+Number   : 1
+Signature: ((darray (rel t))) -> (stream t)
+Example  : query prel dsummarize consume
+Result   : TRUE
+
+
+Operator : dtie
+Number   : 1
+Signature: ((array t) (map t t t)) -> t
+Example  : query ai tie[fun(i:int,l:int)(i+l)]
+Result   : TRUE
+
+
+Operator : get
+Number   : 1
+Signature: ((darray t) int) -> t
+Example  : query get(makeDarray(server_rel,1,2,3),1)
+Result   : TRUE
+
+
+Operator : makeDarray
+Number   : 1
+Signature: (rel(tuple([Server: string, Port: int])) t t ...) -> darray t
+Example  : query makeDarray(server_rel,1,2,3)
+Result   : TRUE
+
+
+Operator : put
+Number   : 1
+Signature: ((darray t) t int) -> darray t
+Example  : query put(makeDarray(server_rel,1,2,3),2,2)
+Result   : TRUE
+
+
+Operator : receiveD
+Number   : 1
+Signature: ( hostname port) -> t
+Example  : query receiveD (localhost, 1234)
+Result   : TRUE
+
+
+Operator : sendD
+Number   : 1
+Signature: ( hostname port t ) -> int
+Example  : query sendD (localhost , 1234, 1)
+Result   : TRUE
+
+Operator : check_workers
+Number   : 1
+Signature: ((stream (tuple ((Server string) (Port int))))) ->  ((stream (tuple ((Server string) (Port int) (Status string)))))
+Example  : query worker feed check_workers tconsume
+Result   : TRUE
+
+Operator : startup
+Number   : 1
+Signature: startup (Server:string , Port:int) ->  bool
+Example  : query startup("localhost", 1234)
+Result   : TRUE
+
+Operator : shutdown
+Number   : 1
+Signature: shutdown (Server:string , Port:int) ->  bool
+Example  : query shutdown("localhost", 1234)
+Result   : TRUE
+
