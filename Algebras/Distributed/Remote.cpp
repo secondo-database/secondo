@@ -59,8 +59,13 @@ string HostIP_;
 
 //Synchronisation of access to Flobs
 ZThread::Mutex Flob_Mutex;
-ZThread::Mutex Rel_Mutex;
+//Synchronisation of access to read relations
+ZThread::Mutex Rel1_Mutex;
+ZThread::Mutex Rel2_Mutex;
+//Synchronisation of access to read non relations and write commands
 ZThread::Mutex Cmd_Mutex;
+//Synchronisation of access to nl -> ToString in DServer::DServer
+ZThread::Mutex Type_Mutex;
 
 /*
 
@@ -92,7 +97,11 @@ DServer::DServer(string n_host,int n_port,string n_name,
    port = n_port;
    name = n_name;
    m_type = inType;
-   
+
+   Type_Mutex.acquire();
+   m_typeStr = nl -> ToString(m_type);
+   Type_Mutex.release();
+
    errorText = "OK";
    
    rel_open = false;
@@ -371,7 +380,7 @@ void DServer::run()
          iostream& cbsock1 = worker->GetSocketStream();
 
          //The element-type is sent to the type-mapping-fcts of receiveD
-         cbsock1 << "<TYPE>" << endl << nl->ToString(m_type) 
+         cbsock1 << "<TYPE>" << endl << m_typeStr
                      << endl << "</TYPE>" << endl;
                 
          getline(cbsock1,line);
@@ -389,7 +398,7 @@ void DServer::run()
          
          iostream& cbsock = worker->GetSocketStream();
 
-         cbsock << "<TYPE>" << endl << nl->ToString(m_type) 
+         cbsock << "<TYPE>" << endl << m_typeStr
                     << endl << "</TYPE>" << endl;
 
          //The element is converted into a binary stream of data
@@ -508,11 +517,11 @@ void DServer::run()
           gate->Close();delete gate;gate=0;
           
           iostream& cbsock = worker->GetSocketStream();
-          cbsock << "<TYPE>" << endl << nl->ToString(m_type)
+          cbsock << "<TYPE>" << endl << m_typeStr
                  << endl << "</TYPE>" << endl;
           
           DServer::Debug("DSR-READ send cbsock","<TYPE>" + 
-                         nl->ToString(m_type) + "</TYPE>");
+                         m_typeStr + "</TYPE>");
           DServer::Debug("DSR-READ"," ... done");
 
           string line;
@@ -810,10 +819,10 @@ void DServer::run()
       iostream& cbsock1 = cbworker->GetSocketStream();
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
         cout << this << " OR Send CB1:" 
-             << "<TYPE>" << endl << nl->ToString(m_type) 
+             << "<TYPE>" << endl << m_typeStr 
              << endl << "</TYPE>" << endl;
 #endif
-      cbsock1 << "<TYPE>" << endl << nl->ToString(m_type) 
+      cbsock1 << "<TYPE>" << endl << m_typeStr
               << endl << "</TYPE>" << endl;
                         
                                         
@@ -833,10 +842,10 @@ void DServer::run()
       iostream& cbsock2 = cbworker->GetSocketStream();
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
         cout << this << " OR Send CB2:" 
-             << "<TYPE>" << endl << nl->ToString(m_type) 
+             << "<TYPE>" << endl << m_typeStr
              << endl << "</TYPE>" << endl;
 #endif
-      cbsock2 << "<TYPE>" << endl << nl->ToString(m_type) 
+      cbsock2 << "<TYPE>" << endl << m_typeStr
                      << endl << "</TYPE>" << endl;
                 
       gate->Close();
@@ -966,7 +975,11 @@ void DServer::run()
       //Reads an entire relation from the worker
       int algID,typID;
       extractIds(m_type,algID,typID);
-          
+
+      Rel2_Mutex.acquire(); 
+      TupleType* tt = new TupleType(nl->Second(m_type));
+      Rel2_Mutex.release(); 
+
       while(!m_cmd -> getDArrayIndex() ->empty())
       {
        
@@ -992,7 +1005,6 @@ void DServer::run()
          GenericRelation* rel = 
            (Relation*)(*(m_cmd -> getElements()))[arg2].addr;
 
-         TupleType* tt = new TupleType(nl->Second(m_type));
                 
          //receive tuples
          getline(cbsock,line);
@@ -1019,9 +1031,9 @@ void DServer::run()
             //transform to tuple and append to relation
             t->ReadFromBin(buffer);
 
-            Rel_Mutex.acquire(); 
+            Rel1_Mutex.acquire(); 
             rel->AppendTuple(t);
-            Rel_Mutex.release(); 
+            Rel1_Mutex.release(); 
 
             t->DeleteIfAllowed();
               
@@ -1036,7 +1048,6 @@ void DServer::run()
                               + "(<CLOSE> or <TUPLE> expected)";
                 
 
-         delete tt;
          gate->Close(); delete gate; gate=0;
          worker->Close(); delete worker; worker=0;
 
@@ -1049,7 +1060,9 @@ void DServer::run()
          while(line.find("</SecondoResponse>") == string::npos);
 
       }
-          
+
+       
+      delete tt;   
           
    }
 
@@ -1352,10 +1365,14 @@ void DServerExecutor::run()
 DServerCreator::DServerCreator
 (string h, int p, string n, ListExpr t)
 {
-   string s_type = nl->ToString(t);
-   nl->ReadFromString(s_type,m_type);
-
-   host = h; port = p; name = n;
+  /*
+    string s_type = nl->ToString(t);
+    nl->ReadFromString(s_type,m_type);
+  */
+  assert(!(nl -> ToString(t).empty()));
+  m_type = t;
+  
+  host = h; port = p; name = n;
 }
 
 DServer*

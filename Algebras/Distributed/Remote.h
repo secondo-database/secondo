@@ -149,6 +149,7 @@ private:
 
   int port;
   ListExpr m_type;
+  string m_typeStr;
 
   Socket* server;
          
