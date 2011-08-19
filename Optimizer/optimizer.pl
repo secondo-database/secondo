@@ -2273,7 +2273,7 @@ plan_to_atom(InTerm,OutTerm) :-
   InTerm =.. [Op|_],
   secondoOp(Op, Syntax, N),
   term_to_atom(Syntax,SyntaxA),
-  term_to_atom(N,NA),
+  term_to_atom(N,NA), !,
   concat_atom(['ERROR: special plan_to_atom/2 rule for operator \'', Op,
                '\'is missing.\n',
                '\tDefined Syntax is: secondoOp(',Op,',',SyntaxA,',',NA,')\n',
@@ -2295,40 +2295,40 @@ Depricated generic rules. Operators that are not recognized are assumed to be:
 
 */
 
-% 1 argument: prefix */
+/* 1 argument: prefix */
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
-  \+(secondoOp(Op, _, _)),
+  \+(secondoOp(Op, _, _)), !,
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
-  concat_atom([Op, '(', Res1, ')'], '', Result),
-  write_list(['WARNING: Applied deprecated default plan_to_atom rule for unary',
+  concat_atom([Op, '(', Res1, ')'], '', Result), !,
+  write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
               'prefix operator ',Op, '/1. Please add the folling fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
 
 /* 2 arguments: infix */
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
-  \+(secondoOp(Op, _, _)),
+  \+(secondoOp(Op, _, _)), !,
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result),
-  write_list(['WARNING: Applied deprecated default plan_to_atom rule for ',
+  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
+  write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
               'infix operator ', Op, '/2. Please add the folling fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
 
 /* 3+ arguments: prefix */
 plan_to_atom(InTerm,OutTerm) :-
   compound(InTerm),
-  \+(secondoOp(Op, _, _)),
+  \+(secondoOp(Op, _, _)), !,
   InTerm =.. [Op|ArgsIn],
   length(ArgsIn,N),
   plan_to_atom_2(ArgsIn,ArgsOut),
   concat_atom(ArgsOut, ', ', ArgsOutAtom),
-  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm),
-  write_list(['WARNING: Applied deprecated default plan_to_atom rule for ',
+  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !,
+  write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
               N,'-ary prefix operator ', Op, '/',N,
               '. Please add the folling fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, ',N,').\n']), !.
