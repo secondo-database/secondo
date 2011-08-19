@@ -401,6 +401,7 @@ secondoOp( move,              prefix, 2).
 secondoOp( multiintersection, prefix, 2).
 secondoOp( nanmedtransformstream,postfixbrackets, 1).
 secondoOp((never),            infix, 2).
+secondoOp( not,               prefix, 1).
 secondoOp( now,               prefix, 0).
 secondoOp( nnscan,            postfixbrackets, 2).
 secondoOp( nnsearch,          postfixbrackets, 2).
