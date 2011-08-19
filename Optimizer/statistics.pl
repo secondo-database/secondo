@@ -2366,7 +2366,7 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
        )
     ;  ( % Alternative II: using operator 'matchingOperators'
          findall(T,member([_,_,T],ArgTree),ArgTypes),
-         atomic_list_concat(ArgTypes, ', ', ArgTypesText),
+         concat_atom(ArgTypes, ', ', ArgTypesText),
          concat_atom(['query matchingOperators( ',ArgTypesText,
                       ' ) filter[.OperatorName="',Op,
                       '"] extract[ResultType]'],'',Query),
