@@ -3264,10 +3264,16 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
  
 const string startupSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "(<text>startup (Server:string , Port:int) ->  bool</text--->"
-      "<text>startup (_, _)</text--->"
-      "<text>starts worker on a given host </text--->"
-      "<text>startup (\"localhost\", 1234)</text---> ))";
+    "(<text>startup (Server:string , Port:int, SecondoConf:string) "
+    "->  bool</text--->"
+      "<text>startup (_, _, _)</text--->"
+      "<text>Starts a worker on a given host. On that host there "
+      "must be a directory ${HOME}/secondo/bin. In this directory "
+      "there must exists the StartMonitor.remote script. The given "
+      "SecondoConfig.ini file must exist there, too, with "
+      "a matching SecondoPort number.</text--->"
+      "<text>startup (\"localhost\", 1234, "
+      "\"SecondoConfig.ini\" )</text---> ))";
 
 Operator startUp (
       "startup",

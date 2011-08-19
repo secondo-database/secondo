@@ -106,13 +106,13 @@ Result   : TRUE
 
 Operator : startup
 Number   : 1
-Signature: startup (Server:string , Port:int) ->  bool
-Example  : query startup("localhost", 1234)
+Signature: startup (Server:string, Port:int, SecondoConf:string) ->  bool
+Example  : query startup("localhost", 1234, "SecondoConfig.ini")
 Result   : TRUE
 
 Operator : shutdown
 Number   : 1
-Signature: shutdown (Server:string , Port:int) ->  bool
+Signature: shutdown (Server:string, Port:int) ->  bool
 Example  : query shutdown("localhost", 1234)
 Result   : TRUE
 
