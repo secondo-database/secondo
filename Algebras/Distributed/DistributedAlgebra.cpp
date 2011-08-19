@@ -225,6 +225,15 @@ static bool RunCmdPopen(const string& inCmd,
   return ret_val;
 }
 
+static bool RunCmdSSH(const string& inHost,
+                      const string& inCmd,
+                      string &outResult)
+{
+  string cmd = "ssh " + inHost + " 'bash -c \"" + inCmd + "\"'";
+  //cout << cmd << endl;
+  return RunCmdPopen(cmd, outResult);
+}
+
 /*
 
 
@@ -2053,7 +2062,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            l.push_front(i);
 
            //cout << "Starting Server " << i 
-           //<< " :" << child << " " << server << endl;
+           //   << " :" << child << " " << server << endl;
            server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l);
 
            DServerExecutor* run = new DServerExecutor(server);
@@ -3237,11 +3246,9 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
         lckfileexist + 
         exportConf + 
         " ./StartMonitor.remote " + devnull + " & ";
-
-      string ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
  
       string retVal;
-      bool success = RunCmdPopen(ssh_cmd, retVal);
+      bool success = RunCmdSSH(host, cmd, retVal);
       if (!success ||
           retVal.empty() || retVal[0] != '1')
         {
@@ -3316,70 +3323,41 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
   string killPid; // store pid of SecondoMonitor
   string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
   string cat_cmd = "cat " + lckfile;
-  string ssh_cmd = "ssh " + host + " " + cat_cmd;
- 
-  FILE *fs;
-  char qBuf[1024];
-  memset(qBuf, '\0', sizeof(qBuf));
-  fs = popen(ssh_cmd.c_str(), "r");
+  bool success = RunCmdSSH(host, cat_cmd, killPid);
 
-  if (fs == NULL)
+  if (!success || killPid.empty())
     {
-      perror(("popen fail! Cannot kill worker on "
-              + host + ":" + toString_d(port) ).c_str());
-      ret_val = false;
+      cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
+      ret_val = false; 
     }
-  else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
-    {
-      if (string(qBuf).empty())
-        {
-          cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
-          ret_val = false;
-        }
-      else
-        {
-          killPid =  string(qBuf);
-        }
-      pclose(fs);
-    }
-  fs=NULL;
 
   if (ret_val)
     {
       // now killing that process w/ kill -SIGTERM <pid>
       // and removing the lockfile /tmp/SM_<port>.lck
       killPid =  stringutils::replaceAll(killPid,"\n","");
-
+      
       string kill_cmd = "kill -SIGTERM " + killPid + ";";
       string rm_cmd = " /bin/rm " + lckfile + ";";
+      
       string cmd = "if [ ! -r "+ lckfile + " ]; then echo \\\"0\\\"; else " + 
         kill_cmd + rm_cmd + " echo \\\"1\\\"; fi";
-      ssh_cmd = "ssh " + host + " 'bash -c \"" + cmd + "\"'";
+      
+      string retVal;
+      success = RunCmdSSH(host, cmd, retVal);
 
-      memset(qBuf, '\0', sizeof(qBuf));
-      fs = popen(ssh_cmd.c_str(), "r");
-
-      if (fs == NULL)
+      if (!success || retVal.empty() || retVal[0] != '1')
         {
-          perror(("ERROR: popen fail! Cannot kill worker on "
-                  + host + ":" + toString_d(port) ).c_str());
-          ret_val = false;
-        }
-      else if (fgets(qBuf, sizeof(qBuf), fs) != NULL)
-        {
-          if (string(qBuf).empty() || string(qBuf)[0] != '1')
-            {
-              cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
+          cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
               ret_val = false;
-            }
-          else
-            {
-              cout << "Stopped SecondoMonitor on "
-                   << host << ":" << port << endl;
-            }
-          pclose(fs);
+        }
+      else
+        {
+          cout << "Stopped SecondoMonitor on "
+               << host << ":" << port << endl;
         }
     }
+    
   ((CcBool*) (result.addr))->Set(true, ret_val);
   return 0;
 }
