@@ -42,3 +42,10 @@ Number   : 7
 Signature: int -> int
 Example  : query setscalefactory(2000)
 Result   : 2000
+
+Operator : osmimport
+Number   : 8
+Signature: text  -> bool
+Example  : query osmimport('city.osm')
+Result   : TRUE
+

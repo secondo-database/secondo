@@ -47,6 +47,7 @@ For more detailed information see ConnCodeFinder.h.
 
 // --- Including header-files
 #include "ConnCodeFinder.h"
+#include "BitOperations.h"
 #include <iostream>
 #include <sstream>
 #include <cstdio>

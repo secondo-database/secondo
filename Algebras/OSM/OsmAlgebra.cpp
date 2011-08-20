@@ -57,6 +57,7 @@ using namespace std;
 #include "ShpFileReader.h"
 #include "ConnCodeFinder.h"
 #include "ScalingEngine.h"
+#include "OsmReader.h"
 
 // --- Enabling global pointer variables
 extern NestedList* nl;
@@ -182,6 +183,83 @@ Operator shpimport3( "shpimport3",
                     shpimport3ValueMap<0>,
                     Operator::SimpleSelect,
                     shpimport3TypeMap);
+
+
+
+
+// --- osmimport-operator
+// Specification of operator osmimport
+const string osmimportSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text -> bool </text--->"
+    "<text> osmimport(_) </text--->"
+    "<text> Produces relations with a fix format from an OSM-file. </text--->"
+    "<text> query osmimport('city.osm') </text--->) )";
+
+// Value-mapping-function of operator osmimport
+int osmimportValueMap(Word* args, Word& result, int message,
+        Word& local, Supplier s)
+{
+   assert (args != NULL);
+   OsmReader* reader = NULL;
+   FText *arg = static_cast<FText *>(args[0].addr);
+   result = qp->ResultStorage (s);
+   CcBool *res = static_cast<CcBool*>(result.addr);;
+   if (!arg->IsDefined()) {
+      res->SetDefined(false);
+   } else  {
+      reader = new OsmReader(arg->GetValue ());
+      reader->readOsmFile (); 
+      res->Set (true, true);
+      delete reader;
+   }
+   return 0;
+}
+
+// Type-mapping-function of operator osmimport
+ListExpr osmimportTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      return listutils::typeError("one argument expected");
+   }
+   ListExpr arg = nl->First(args);
+   if(nl->ListLength(arg) !=2){
+      return listutils::typeError("Error, argument has to consists of 2 parts");
+   }
+   ListExpr type = nl->First(arg);
+   ListExpr value = nl->Second(arg);
+
+   if(!listutils::isSymbol(type,FText::BasicType())){
+       return listutils::typeError("text expected");
+   }
+
+   // get the value if possible
+
+   Word res;
+   bool success = QueryProcessor::ExecuteQuery(nl->ToString(value),res);
+   if(!success){
+     return listutils::typeError("could not evaluate the value of  " +
+                                  nl->ToString(value) );
+   }
+
+   FText* resText = static_cast<FText*>(res.addr);
+
+   if(!resText->IsDefined()){
+      resText->DeleteIfAllowed();
+       return listutils::typeError("filename evaluated to be undefined");
+   }
+
+   //string name = resText->GetValue();
+   resText->DeleteIfAllowed();
+
+   return nl->SymbolAtom(CcBool::BasicType());
+}
+
+// Instance of operator osmimport
+Operator osmimport( "osmimport",
+                    osmimportSpec,
+                    osmimportValueMap,
+                    Operator::SimpleSelect,
+                    osmimportTypeMap);
 
 // --- getconnectivitycode-operator
 // Specification of operator getconnectivitycode
@@ -521,6 +599,8 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     setscalefactorx.SetUsesArgsInTypeMapping();;
     AddOperator(&setscalefactory);
     setscalefactory.SetUsesArgsInTypeMapping();;
+    AddOperator(&osmimport);
+    osmimport.SetUsesArgsInTypeMapping();;
 }
 
 // Destructor

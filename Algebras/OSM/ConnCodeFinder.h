@@ -41,9 +41,6 @@ This header file essentially contains the definition of the class
 #ifndef __CONN_CODE_FINDER_H__
 #define __CONN_CODE_FINDER_H__
 
-#define is_bit_set(number,n) \
-   ((((number) & (1 << ((n)-1))) != 0)? 1 : 0)
-
 // --- Including header-files
 #include "ConnCodeMatrix.h"
 
