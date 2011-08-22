@@ -5008,19 +5008,21 @@ get all adjacent nodes for a given node. dual graph
 
 void VGraph::GetAdjNodeDG(int oid)
 {
-    if(oid <= dg->min_tri_oid_1 || 
+    if(oid <= dg->min_tri_oid_1 ||
        oid > dg->min_tri_oid_1 + dg->node_rel->GetNoTuples()){
         cout<<"invalid oid "<<oid<<endl;
-        cout<<"minimum oid "<<dg->min_tri_oid_1<<endl;
+        cout<<"minimum oid "<<dg->min_tri_oid_1 + 1<<endl;
         cout<<"maximum oid "
             <<dg->min_tri_oid_1 + dg->node_rel->GetNoTuples()<<endl;
         return; 
     }
 
+    cout<<"total "<< dg->GetNodeRel()->GetNoTuples()<<" nodes "<<endl;
+
     vector<int> adj_list;
     assert(dg->min_tri_oid_1 >= 0); 
     dg->FindAdj(oid - dg->min_tri_oid_1, adj_list);
-//    cout<<" tid "<<oid - dg->min_tri_oid_1<<endl; 
+
     for(unsigned int i = 0;i < adj_list.size();i++){
 
       Tuple* node_tuple = dg->GetNodeRel()->GetTuple(adj_list[i], false);
@@ -5031,6 +5033,7 @@ void VGraph::GetAdjNodeDG(int oid)
       node_tuple->DeleteIfAllowed();
 
     }
+
 }
 
 /*
@@ -5040,6 +5043,12 @@ get all adjacent nodes for a given node. visibility graph
 
 void VGraph::GetAdjNodeVG(int oid)
 {
+    if(oid < 1 || oid > vg->GetNodeRel()->GetNoTuples()){
+      cout<<"invalid oid "<<oid<<endl;
+      return;
+    }
+    cout<<"total "<<vg->GetNodeRel()->GetNoTuples()<<" nodes "<<endl;
+
     Tuple* node_tuple = vg->GetNodeRel()->GetTuple(oid, false);
     Point* query_p = (Point*)node_tuple->GetAttribute(VisualGraph::LOC);
     Point query_loc(*query_p);
@@ -6901,7 +6910,7 @@ void RegVertex::GetDGEdge()
         cout<<vertex_point[temp->tri.v1 - 1]<<" "
             <<vertex_point[temp->tri.v2 - 1]<<" "
             <<vertex_point[temp->tri.v3 - 1]<<" "<<endl;
-            
+
         temp = temp->next;
       }
       assert(false);

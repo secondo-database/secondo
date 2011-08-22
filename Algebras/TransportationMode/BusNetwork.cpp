@@ -40,8 +40,7 @@ creating bus network
 
 
 string BusRoute::StreetSectionCellTypeInfo = 
-"(rel (tuple ((sid_s int) (cellid_w_a_c int) (Cnt_a_c int) (cover_area_b_c\
-region))))";
+"(rel (tuple ((Secid int)(Cellid int) (Cnt int) (Cover_area region))))";
 
 string BusRoute::BusRoutesTmpTypeInfo = 
 "(rel (tuple ((br_id int) (bus_route1 gline) (bus_route2 line)\
@@ -73,9 +72,10 @@ high density - low density;
 middle denstiy - low density ; 
 low density - lowdenstiy; 
 
+Berlin and Houston have different roads distribution.
 
 */
-void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
+void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
 {
 //  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl; 
 //  cout<<"CreateBusRoute()"<<endl; 
@@ -84,8 +84,8 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
   int max_cnt = -1;
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* tuple_cell = rel1->GetTuple(i,false);
-    CcInt* cell_id = (CcInt*)tuple_cell->GetAttribute(attr2); 
-    CcInt* cnt = (CcInt*)tuple_cell->GetAttribute(attr3); 
+    CcInt* cell_id = (CcInt*)tuple_cell->GetAttribute(attr1);
+    CcInt* cnt = (CcInt*)tuple_cell->GetAttribute(attr2); 
     
 //    cout<<sec_id->GetIntval()<<" "
 //        <<cell_id->GetIntval()<<" "<<cnt->GetIntval()<<endl; 
@@ -95,20 +95,20 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
     
     if(cnt->GetIntval() > max_cnt) 
       max_cnt = cnt->GetIntval(); 
-      
+
     tuple_cell->DeleteIfAllowed(); 
   }
 
 //  cout<<"max_cell_id "<<max_cell_id<<endl;
-//    cout<<"max_cnt "<<max_cnt<<endl; 
-    
+//  cout<<"max_cnt "<<max_cnt<<endl;
+
   /********initialize the array storing section_cell structure**************/
   vector<Section_Cell> cell_list; //////////////////////array 
-  
+
 //  cell_list.resize(max_cell_id); 
 //  for(int i = 0;i < max_cell_id;i++)
 //    cell_list[i].def = false;  //crashes if all BuildRoute is called 3 times 
-  
+
   for(int i = 0;i < max_cell_id;i++){
     double min[2], max[2];
     min[0] = 0;
@@ -133,10 +133,10 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* tuple_cell = rel1->GetTuple(i,false);
-//    CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr1); 
-    CcInt* cell_id = (CcInt*)tuple_cell->GetAttribute(attr2); 
-    CcInt* cnt = (CcInt*)tuple_cell->GetAttribute(attr3); 
-    Region* reg = (Region*)tuple_cell->GetAttribute(attr4);
+
+    CcInt* cell_id = (CcInt*)tuple_cell->GetAttribute(attr1);
+    CcInt* cnt = (CcInt*)tuple_cell->GetAttribute(attr2); 
+    Region* reg = (Region*)tuple_cell->GetAttribute(attr3);
     
     int cellid = cell_id->GetIntval();
     cell_list[cellid - 1].cell_id = cellid; 
@@ -158,29 +158,31 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
     tuple_cell->DeleteIfAllowed(); 
   }
 
+//  cout<<"cell list size "<<cell_list.size()<<endl;
+
   //create priority_queue 
   int count = 0;
-  
+
   priority_queue<Section_Cell> cell_queue; //////////priority_queue
-  
+  ////////////cells are ordered by intersecting number from large to small////
   for(unsigned int i = 0;i < cell_list.size();i++)
       if(cell_list[i].def){
 //          cell_list[i].Print(); 
           count++;
           cell_queue.push(cell_list[i]);
-      }    
+      }
 //  cout<<"count "<<count<<endl; 
 
 
   vector<Section_Cell> cell_list3; //////////////////////array
-  vector<Section_Cell> cell_list2; //////////////////////array 
-  vector<Section_Cell> cell_list1; //////////////////////array 
+  vector<Section_Cell> cell_list2; //////////////////////array
+  vector<Section_Cell> cell_list1; //////////////////////array
 
   while(cell_queue.empty() == false){
     Section_Cell top = cell_queue.top();
     cell_queue.pop();
 //    top.Print();
-    
+
     if(top.count_1 == 3)
       cell_list3.push_back(top);
     if(top.count_1 == 2)
@@ -192,28 +194,35 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,int attr4)
   //3---21  2---41  1---204 //berlin roads---div1 0.4
   //3---27  2---21  1---218 //berlin roads---div1 0.4; div 0.25
 
-  //3---7 2---20 1---610 //houston roads
+  //3---10 2---8 1---619 //houston roads
 
-   cout<<cell_list3.size()<<" "
-       <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
+//    cout<<cell_list3.size()<<" "
+//        <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
 
-   int bus_no;
-//   bus_no = 3;
-//   bus_no = 2;
-   bus_no = 1;
+   if(type == "Berlin"){
 
-   BuildRoute(cell_list3, cell_list1, attr1, bus_no, 1);//type 1
-//   bus_no = 2;
-   bus_no = 1;
+    BuildRoute(cell_list3, cell_list1, 1, true);//type 1
 
-   BuildRoute(cell_list2, cell_list1, attr1, bus_no, 2);//type 1
+    BuildRoute(cell_list2, cell_list1, 2, false);//type 2
 
-  bus_no = 1;
-//  unsigned int limit_no = 20;
-    unsigned int limit_no = 40;
-//  unsigned int limit_no = 30;
+  //  unsigned int limit_no = 20;
+      unsigned int limit_no = 45;
+//    unsigned int limit_no = 30;
 
-  BuildRoute_Limit(cell_list1, cell_list1, attr1, bus_no, limit_no);
+    BuildRoute_Limit(cell_list1, cell_list1, limit_no);
+   }else if(type == "Houston"){
+
+    BuildRoute(cell_list3, cell_list1, 1, true);//type 1
+    BuildRoute(cell_list2, cell_list1, 2, false);//type 2
+
+    unsigned int limit_no = 70;
+
+    BuildRoute_Limit2(cell_list1, cell_list1, limit_no);
+
+   }else{
+    cout<<"type: "<<type<<" not processed"<<endl;
+    assert(false);
+   }
 
 }
 
@@ -223,60 +232,32 @@ highest density area with low density area
 */
 void BusRoute::BuildRoute(vector<Section_Cell>& from_cell_list,
                              vector<Section_Cell> to_cell_list,
-                             int attr1, int bus_no, int type)
+                             int type, bool start)
 {
   for(unsigned int i = 0;i < from_cell_list.size();i++){
     Section_Cell elem = from_cell_list[i];
 
-    int temp_bus_no = bus_no;
-
-    while(temp_bus_no > 0){
 //      float dist_val = 10000.0;//Euclidean distance between two cells
 
 //      float dist_val = 12000.0;//Euclidean distance between two cells
 
       float dist_val = 16000.0;//Euclidean distance between two cells
 
-      int end_cellid = FindEndCell(from_cell_list[i],to_cell_list,dist_val); 
+      int end_cellid = 
+          FindEndCell1(from_cell_list[i],to_cell_list,dist_val, start); 
 
       if(end_cellid >= 0){
 //        cout<<"start cell "<<from_cell_list[i].cell_id
 //          <<" end cell "<<to_cell_list[end_cellid].cell_id<<endl; 
-        
+
           start_cells.push_back(from_cell_list[i].reg);
           end_cells.push_back(to_cell_list[end_cellid].reg);
           start_cell_id.push_back(from_cell_list[i].cell_id);
           end_cell_id.push_back(to_cell_list[end_cellid].cell_id);
 
-//        if(bus_no == 3)bus_route_type.push_back(1);//the first route
-//        if(bus_no == 2)bus_route_type.push_back(2);//the second route
-
-//        if(bus_no == 2)bus_route_type.push_back(1);//the first route
-//        if(bus_no == 1)bus_route_type.push_back(2);//the second route
 
           bus_route_type.push_back(type);
       }
-
-      temp_bus_no--; 
-    
-    }
-
-    ////use btree to get the sections that this cell interesects////////
-/*    CcInt* search_cell_id = new CcInt(true, elem.cell_id);
-    BTreeIterator* btree_iter = btree->ExactMatch(search_cell_id);
-    vector<int> sec_id_list; 
-    while(btree_iter->Next()){
-        Tuple* tuple_cell = rel1->GetTuple(btree_iter->GetId(), false);
-        CcInt* sec_id = (CcInt*)tuple_cell->GetAttribute(attr1);
-        sec_id_list.push_back(sec_id->GetIntval());
-        tuple_cell->DeleteIfAllowed();
-    }
-    delete btree_iter;
-    delete search_cell_id;
-    ////////////////////////////////////////////////////////////////////
-    cout<<"cell_id "<<cell_list3[i].cell_id
-        <<"sec no "<<sec_id_list.size()<<endl; 
-        */
   }
 
 }
@@ -288,41 +269,122 @@ with the limit number of bus routes
 */
 void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
                              vector<Section_Cell> to_cell_list,
-                             int attr1, int bus_no, unsigned int limit_no)
+                             unsigned int limit_no)
 {
+  unsigned int count = 0;
   for(unsigned int i = 0;i < from_cell_list.size();i++){
     Section_Cell elem = from_cell_list[i];
-    
+
     if(from_cell_list[i].def == false) continue; 
-    
-    int temp_bus_no = bus_no;
-    
-    while(temp_bus_no > 0){
+
 //      float dist_val = 15000.0;//Euclidean distance between two cells
       float dist_val = 22000.0;//Euclidean distance between two cells
-      int end_cellid = FindEndCell(from_cell_list[i],to_cell_list,dist_val); 
-    
+      int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
+
       if(end_cellid >= 0){
 //        cout<<"start cell "<<from_cell_list[i].cell_id
 //          <<" end cell "<<to_cell_list[end_cellid].cell_id<<endl; 
-        
+
           start_cells.push_back(from_cell_list[i].reg);
           end_cells.push_back(to_cell_list[end_cellid].reg);
           start_cell_id.push_back(from_cell_list[i].cell_id);
           end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
-     
+
           bus_route_type.push_back(3);//the lowest route 
 
           to_cell_list[i].def = false; 
           from_cell_list[end_cellid].def = false; 
-
-      }
-     
-      temp_bus_no--;
-    
+          count++;
     }
-    if(i > limit_no) break; 
-    
+    if(count > limit_no/2) break; 
+  } 
+
+  count = 0;
+  for(int i = from_cell_list.size() - 1;i >= 0;i--){
+    Section_Cell elem = from_cell_list[i];
+
+    if(from_cell_list[i].def == false) continue; 
+
+      float dist_val = 22000.0;//Euclidean distance between two cells
+      int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
+
+      if(end_cellid >= 0){
+
+          start_cells.push_back(from_cell_list[i].reg);
+          end_cells.push_back(to_cell_list[end_cellid].reg);
+          start_cell_id.push_back(from_cell_list[i].cell_id);
+          end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
+
+          bus_route_type.push_back(3);//the lowest route 
+
+          to_cell_list[i].def = false; 
+          from_cell_list[end_cellid].def = false; 
+          count++;
+    }
+    if(count > limit_no/2) break; 
+  }
+
+}
+
+/*
+lown density area with low density area
+with the limit number of bus routes for Houston 
+larger area than Berlin, so the distance value is also large
+
+*/
+void BusRoute::BuildRoute_Limit2(vector<Section_Cell>& from_cell_list,
+                             vector<Section_Cell> to_cell_list,
+                             unsigned int limit_no)
+{
+  unsigned int count = 0;
+  for(unsigned int i = 0;i < from_cell_list.size();i++){
+    Section_Cell elem = from_cell_list[i];
+
+    if(from_cell_list[i].def == false) continue; 
+
+      float dist_val = 40000.0;//Euclidean distance between two cells
+      int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
+
+      if(end_cellid >= 0){
+
+          start_cells.push_back(from_cell_list[i].reg);
+          end_cells.push_back(to_cell_list[end_cellid].reg);
+          start_cell_id.push_back(from_cell_list[i].cell_id);
+          end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
+
+          bus_route_type.push_back(3);//the lowest route 
+
+          to_cell_list[i].def = false; 
+          from_cell_list[end_cellid].def = false; 
+          count++;
+    }
+    if(count > limit_no/2) break; 
+
+  }
+  
+    count = 0;
+    for(int i = from_cell_list.size() - 1;i >= 0;i--){
+      Section_Cell elem = from_cell_list[i];
+
+      if(from_cell_list[i].def == false) continue; 
+
+      float dist_val = 40000.0;//Euclidean distance between two cells
+      int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
+
+      if(end_cellid >= 0){
+
+          start_cells.push_back(from_cell_list[i].reg);
+          end_cells.push_back(to_cell_list[end_cellid].reg);
+          start_cell_id.push_back(from_cell_list[i].cell_id);
+          end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
+
+          bus_route_type.push_back(3);//the lowest route 
+
+          to_cell_list[i].def = false; 
+          from_cell_list[end_cellid].def = false; 
+          count++;
+    }
+    if(count > limit_no/2) break; 
   }
 
 }
@@ -330,9 +392,42 @@ void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
 /*
 use the first paramter as the start cell and find a cell from the
 second parameter that the distance between them is larger than a value 
+if flag is true, from small index to large. otherwise from large to small
 
 */
-int BusRoute::FindEndCell(Section_Cell& start_cell,
+int BusRoute::FindEndCell1(Section_Cell& start_cell, 
+                           vector<Section_Cell>& cell_list, 
+                           float dist_val, bool flag)
+{
+  if(flag){
+    for(unsigned int i = 0;i < cell_list.size();i++){
+      if(cell_list[i].def){
+          if(start_cell.reg.Distance(cell_list[i].reg) > dist_val){
+            cell_list[i].def = false;
+            return i; 
+          }
+      }
+    }
+  }else{
+      for(int i = cell_list.size() - 1;i >= 0;i--){
+      if(cell_list[i].def){
+          if(start_cell.reg.Distance(cell_list[i].reg) > dist_val){
+            cell_list[i].def = false;
+            return i; 
+          }
+      }
+    }
+  }
+
+  return -1; 
+}
+
+/*
+use the first paramter as the start cell and find a cell from the
+second parameter that the distance between them is larger than a value 
+
+*/
+int BusRoute::FindEndCell2(Section_Cell& start_cell,
                           vector<Section_Cell>& cell_list, float dist_val)
 {
   for(unsigned int i = 0;i < cell_list.size();i++){
@@ -1052,28 +1147,31 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
   /////////////  bus route uid = br id * 2 -1///////////
   ////////////   bus route uid = br id * 2 /////////////
   //////////////////////////////////////////////////////
-  
+
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-    
-//      if(i != 1) continue; 
-      
+
       Tuple* tuple_bus_route = rel1->GetTuple(i, false);
       int br_id = ((CcInt*)tuple_bus_route->GetAttribute(attr1))->GetIntval();
       Line* l = (Line*)tuple_bus_route->GetAttribute(attr2);
       int route_type = 
           ((CcInt*)tuple_bus_route->GetAttribute(attr3))->GetIntval();
-  
+
+//       if(br_id != 39){
+//         tuple_bus_route->DeleteIfAllowed();
+//         continue;
+//       }
+
       ////////////////////////translate/////////////////////////////////    
       SimpleLine* sl = new SimpleLine(0);
       sl->fromLine(*l);
-      
+
       SpacePartition* sp = new SpacePartition();
       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
       sp->ReorderLine(sl, seq_halfseg);
-      
-  
+
 //      cout<<"l1 "<<l->Length()<<" l2 "<<sl->Length()<<endl; 
-      
+//      cout<<"br_id "<<br_id<<endl;
+
       vector<Point> outer_l;
       vector<Point> outer_r;
       sp->ExtendSeg3(seq_halfseg, w, true, outer_l);
@@ -1084,27 +1182,30 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
       ComputeLine(outer_l, l1);
       l1->EndBulkLoad();
       bus_sections1.push_back(*l1);
-      
-   
+
+
       br_id_list.push_back(br_id);
       bus_lines2.push_back(*l);
       bus_route_type.push_back(route_type);
       br_uid_list.push_back(bus_route_uid);
       bus_route_uid++;
-      
+
+
       Line* l2 = new Line(0);
       l2->StartBulkLoad();
       ComputeLine(outer_r, l2);
       l2->EndBulkLoad();
       bus_sections1.push_back(*l2); 
-       
-      
+
+
       br_id_list.push_back(br_id);
       bus_lines2.push_back(*l);
       bus_route_type.push_back(route_type);
       br_uid_list.push_back(bus_route_uid);
       bus_route_uid++;
-      
+
+      ////////////////////////////////////////////////////////////
+
       delete l1;
       delete l2;
       delete sp; 
@@ -1126,16 +1227,22 @@ void BusRoute::ComputeLine(vector<Point>& point_list, Line* l)
 {
   assert(point_list.size() > 0);
   int edgeno = 0;
+
   for(unsigned int i = 0;i < point_list.size() - 1;i++){
     Point lp = point_list[i];
     Point rp = point_list[i + 1];
+
     HalfSegment* hs = new HalfSegment(true, lp, rp);
     hs->attr.edgeno = edgeno++;
     *l += *hs;
+
     hs->SetLeftDomPoint(!hs->IsLeftDomPoint());
     *l += *hs;
+
     delete hs;
+
   }
+
 }
 
 /*
@@ -1143,8 +1250,16 @@ for each bus route, it creates a sequence of points on it as bus stops
 
 */
 void BusRoute::CreateBusStop1(int attr1, int attr2, int attr3, 
-                              int attr4, Relation* pave_rel, BTree* btree_pave)
+                              int attr4, Relation* pave_rel, 
+                              BTree* btree_pave, string type)
 {
+    ////////////initialize distance for stops///////////////////////
+    vector<double> dist_stops1;//for type 1
+    vector<double> dist_stops2;//for type 2
+    vector<double> dist_stops3;//for type 3
+    InitializeDistStop(dist_stops1, dist_stops2, dist_stops3, type);
+    ///////////////////////////////////////////////////////
+  
     for(int i = 1;i <= rel1->GetNoTuples();i++){
 
       Tuple* tuple_bus_route = rel1->GetTuple(i, false);
@@ -1154,22 +1269,118 @@ void BusRoute::CreateBusStop1(int attr1, int attr2, int attr3,
       int route_type = 
           ((CcInt*)tuple_bus_route->GetAttribute(attr4))->GetIntval();
 
+//       if(br_id != 5){
+//           tuple_bus_route->DeleteIfAllowed();
+//           continue;
+//       }
+
 //      cout<<"br_id "<<br_id<<endl; 
 //      cout<<"route_type "<<route_type<<endl; 
 
-//      cout<<"before "<<bus_stop_loc_1.size()<<endl; 
-//      cout<<"before "<<bus_stop_loc_2.size()<<endl; 
       unsigned int cur_size = bus_stop_loc_1.size(); 
-      
-      CreateStops(br_id, gl,l, route_type); 
+
+      CreateStops(br_id, gl,l, route_type, 
+                  dist_stops1, dist_stops2, dist_stops3);
       tuple_bus_route->DeleteIfAllowed();
 
-//      cout<<"after "<<bus_stop_loc_1.size()<<endl;
-//      cout<<"after "<<bus_stop_loc_2.size()<<endl; 
-      
       ///modify the bus stops if they are located on the zebracrossing/////
       CheckBusStopZC(cur_size, pave_rel, btree_pave); 
     }
+}
+
+/*
+set the distance value for two adjacent bus stops
+
+*/
+void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
+                                  vector<double>& dist_for_stops2,
+                                  vector<double>& dist_for_stops3, 
+                                  string type)
+{
+  if(type == "Berlin"){
+    dist_for_stops1.push_back(1000.0);
+    dist_for_stops1.push_back(900.0);
+    dist_for_stops1.push_back(1100.0);
+    dist_for_stops1.push_back(1050.0);
+    dist_for_stops1.push_back(1500.0);
+    dist_for_stops1.push_back(1300.0);
+    dist_for_stops1.push_back(950.0);
+    dist_for_stops1.push_back(1200.0);
+    dist_for_stops1.push_back(1400.0);
+    dist_for_stops1.push_back(1300.0);
+
+    dist_for_stops1.push_back(800.0);////////add smaller distance
+    dist_for_stops1.push_back(500.0);////////add smaller distance
+  }else if(type == "Houston"){
+    dist_for_stops1.push_back(1900.0);
+    dist_for_stops1.push_back(2000.0); 
+    dist_for_stops1.push_back(2100.0); 
+    dist_for_stops1.push_back(1800.0);
+    dist_for_stops1.push_back(2300.0);
+    dist_for_stops1.push_back(2400.0);
+    dist_for_stops1.push_back(2200.0);
+    dist_for_stops1.push_back(2500.0);
+
+  }else {
+    cout<<"not processed"<<endl;
+    assert(false);
+  }
+
+
+  if(type == "Berlin"){
+    dist_for_stops2.push_back(900.0);
+    dist_for_stops2.push_back(1100.0);
+    dist_for_stops2.push_back(1150.0); 
+    dist_for_stops2.push_back(1250.0); 
+    dist_for_stops2.push_back(1050.0); 
+    dist_for_stops2.push_back(1000.0);
+    dist_for_stops2.push_back(1200.0);
+
+    dist_for_stops2.push_back(800.0);////////add smaller distance
+    dist_for_stops2.push_back(500.0);////////add smaller distance
+  }else if(type == "Houston"){
+    dist_for_stops2.push_back(2000.0);
+    dist_for_stops2.push_back(2200.0);
+    dist_for_stops2.push_back(1800.0);
+    dist_for_stops2.push_back(2100.0);
+    dist_for_stops2.push_back(1900.0);
+    dist_for_stops2.push_back(2300.0);
+    dist_for_stops2.push_back(2400.0);
+    dist_for_stops2.push_back(2500.0);
+
+  }else{
+    cout<<"not processed"<<endl;
+    assert(false);
+  }
+  
+  if(type == "Berlin"){
+    dist_for_stops3.push_back(900.0);
+    dist_for_stops3.push_back(1100.0);
+    dist_for_stops3.push_back(950.0);
+    dist_for_stops3.push_back(1300.0);
+    dist_for_stops3.push_back(1000.0);
+    dist_for_stops3.push_back(1200.0);
+    dist_for_stops3.push_back(1150.0);
+
+    dist_for_stops3.push_back(800.0); ////////add smaller distance
+    dist_for_stops3.push_back(500.0);
+  }else if(type == "Houston"){
+  
+    dist_for_stops3.push_back(2000.0);
+    dist_for_stops3.push_back(2200.0); 
+    dist_for_stops3.push_back(2100.0); 
+    dist_for_stops3.push_back(1900.0);
+    dist_for_stops3.push_back(1800.0);
+    dist_for_stops3.push_back(2300.0); 
+    dist_for_stops3.push_back(2400.0);
+    dist_for_stops3.push_back(2500.0);
+
+  }else{
+    cout<<"not processed"<<endl;
+    assert(false);
+  }
+
+
 }
 
 /*
@@ -1177,51 +1388,11 @@ for such a gline, create a set of points on it
 
 */
 
-void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, int route_type)
+void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, 
+                           int route_type,vector<double> dist_for_stops1,
+                           vector<double> dist_for_stops2, 
+                           vector<double> dist_for_stops3)
 {
-  vector<double> dist_for_stops1;//for type 1
-  dist_for_stops1.push_back(1000.0);
-  dist_for_stops1.push_back(900.0);
-  dist_for_stops1.push_back(1100.0);
-  dist_for_stops1.push_back(1050.0);
-  dist_for_stops1.push_back(1500.0);
-  dist_for_stops1.push_back(1300.0);
-  dist_for_stops1.push_back(950.0);
-  dist_for_stops1.push_back(1200.0);
-  dist_for_stops1.push_back(1400.0);
-  dist_for_stops1.push_back(1300.0);
-
-  dist_for_stops1.push_back(800.0);////////add smaller distance
-  dist_for_stops1.push_back(500.0);////////add smaller distance
-
-  ////////////////////////////////////////////////////////////////////
-  vector<double> dist_for_stops2;//for type 2
-  dist_for_stops2.push_back(900.0);
-  dist_for_stops2.push_back(1100.0);
-  dist_for_stops2.push_back(1150.0); 
-  dist_for_stops2.push_back(1250.0); 
-  dist_for_stops2.push_back(1050.0); 
-  dist_for_stops2.push_back(1000.0);
-  dist_for_stops2.push_back(1200.0);
-
-  dist_for_stops2.push_back(800.0);////////add smaller distance
-  dist_for_stops2.push_back(500.0);////////add smaller distance
-
-
-  ///////////////////////////////////////////////////////////////////
-  vector<double> dist_for_stops3;//for type 3
-  dist_for_stops3.push_back(900.0);
-  dist_for_stops3.push_back(1100.0); 
-  dist_for_stops3.push_back(950.0); 
-  dist_for_stops3.push_back(1300.0); 
-  dist_for_stops3.push_back(1000.0);  
-  dist_for_stops3.push_back(1200.0); 
-  dist_for_stops3.push_back(1150.0); 
-
-  dist_for_stops3.push_back(800.0); ////////add smaller distance
-  dist_for_stops3.push_back(500.0);
-
-  //////////////////////////////////////////////////////////////////////
 
 
 ////we have to know it goes from start to end or the other direction/////
@@ -1249,16 +1420,7 @@ void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, int route_type)
   
     
   assert(start_from.size() == sec_list.size()); 
-  
-/*  for(int i = 0;i < sec_list.size();i++){
-    cout<<"rid "<<sec_list[i].rid
-        <<"secid "<<sec_list[i].secttid
-        <<"start pos "<<sec_list[i].start
-        <<"end pos "<<sec_list[i].end<<endl; 
-    cout<<start_from[i]<<endl; 
-  }*/
-  
- 
+
   //////////////////////////////////////////////////////////////////////////
   while(true){
     SectTreeEntry entry = sec_list[last_sec_index]; 
@@ -1335,11 +1497,9 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
                     double next_stop_dist, 
                     double dist_to_jun, vector<bool> start_from)
 {
-  
+
   if(start_from[last_sec_index]){ //from small to big 
-    
-//    cout<<"from small to big "<<endl; 
-    
+
     int rid; 
     //still in the same section, very long road section 
     if(fabs(last_sec_gp_pos - last_sec_end) > (next_stop_dist + dist_to_jun)){
@@ -1360,10 +1520,14 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
         
       /////////////////////////////////////////////////////////
       if(fabs(cur_end - cur_start) < 2*dist_to_jun){
-        next_stop_dist -= fabs(cur_end - cur_start);
+//        next_stop_dist -= fabs(cur_end - cur_start);
+        double temp_dist = next_stop_dist - fabs(cur_end - cur_start);
+        if(temp_dist > 0.0){//if smaller than 0, keep the value, skip the part
+          next_stop_dist = temp_dist;
+        }
         continue; 
       }
-        
+
       if(next_stop_dist - fabs(cur_end - cur_start) < 0){
         
          if(start_from[last_sec_index]){ //from small to big 
@@ -1404,8 +1568,8 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
    gp->ToPoint(p);
    bus_stop_loc_2.push_back(*p);   
    
-//   cout<<"stop "<<*gp<<endl; 
-   
+//   cout<<"stop1 "<<*gp<<endl; 
+
    delete p;
    delete gp;
          
@@ -1420,30 +1584,34 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
     if(fabs(last_sec_gp_pos - last_sec_start) > (next_stop_dist + dist_to_jun)){
       last_sec_gp_pos -= next_stop_dist;
       rid = sec_list[last_sec_index].rid; 
-      
+
     }else{
-    
+
      next_stop_dist -= fabs(last_sec_gp_pos - last_sec_start); 
       for(last_sec_index++;last_sec_index < sec_list.size();last_sec_index++){
-      
+
       double cur_start = sec_list[last_sec_index].start;
       double cur_end = sec_list[last_sec_index].end; 
       ////////////////////////////////////////////////////////////////
-/*      cout<<"cur_start "<<cur_start<<" cur_end "<<cur_end<<endl; 
-      
-      cout<<"rid "<<sec_list[last_sec_index].rid
+ //     cout<<"cur_start "<<cur_start<<" cur_end "<<cur_end<<endl; 
+
+/*      cout<<"rid "<<sec_list[last_sec_index].rid
         <<" secid "<<sec_list[last_sec_index].secttid
         <<" start pos "<<sec_list[last_sec_index].start
         <<" end pos "<<sec_list[last_sec_index].end<<endl; */
+ //     cout<<"next_stop_dist "<<next_stop_dist<<endl; 
 
       ////////////////////////////////////////////////////////////////
-      if(fabs(cur_end - cur_start) < 2*dist_to_jun){
-        next_stop_dist -= fabs(cur_end - cur_start);
+      if(fabs(cur_end - cur_start) < 2*dist_to_jun){//close to junction area
+        double temp_dist = next_stop_dist - fabs(cur_end - cur_start);
+        if(temp_dist > 0.0){//if smaller than 0, keep the value, skip the part
+          next_stop_dist = temp_dist;
+        }
         continue; 
       }
-        
+
       if(next_stop_dist - fabs(cur_end - cur_start) < 0){
-        
+
          if(start_from[last_sec_index]){ //from small to big 
           double temp_pos = cur_start + next_stop_dist;
           if(fabs(temp_pos - cur_start) < dist_to_jun)
@@ -1456,6 +1624,8 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
 //          cout<<"next_stop_dist "<<next_stop_dist<<endl; 
 
           double temp_pos = cur_end - next_stop_dist;
+//          cout<<"temp_pos "<<temp_pos<<endl;
+
           if(fabs(temp_pos - cur_end) < dist_to_jun)
               temp_pos = cur_end - dist_to_jun;
           if(fabs(temp_pos - cur_start) < dist_to_jun)
@@ -1463,7 +1633,9 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
 
           last_sec_gp_pos = temp_pos;   
         }
-        
+
+//        cout<<"last_sec_gp_pos: "<<last_sec_gp_pos<<endl;
+
         last_sec_start = cur_start;
         last_sec_end = cur_end; 
         rid = sec_list[last_sec_index].rid;      
@@ -1480,16 +1652,16 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
     bus_stop_loc_1.push_back(*gp);
     Point* p = new Point();
     gp->ToPoint(p);
-    bus_stop_loc_2.push_back(*p);   
-  
-//    cout<<" stop "<<*gp<<endl; 
-    
+    bus_stop_loc_2.push_back(*p);
+
+//    cout<<" stop2 "<<*gp<<endl;
+
     delete p;
     delete gp;
 
     return true; 
   }
-   
+
 }
 
 /*
@@ -1587,12 +1759,16 @@ void BusRoute::CreateBusStop2(int attr1,int attr2,int attr3)
       tuple_bus_stop->DeleteIfAllowed();
       continue; 
     }*/
-    
+
     int stop_id = ((CcInt*)tuple_bus_stop->GetAttribute(attr2))->GetIntval();
     GPoint* gp = (GPoint*)tuple_bus_stop->GetAttribute(attr3); 
+//    cout<<"br_id "<<br_id<<*gp<<endl;
+
+    Tuple* temp = n->GetSectionOnRoute(gp);
+    assert(temp != NULL);
 
     int sid = n->GetSectionOnRoute(gp)->GetTupleId(); 
-    
+
 //    cout<<*tuple_bus_stop<<endl; 
 //    cout<<*n->GetSectionOnRoute(gp)<<endl;
     
@@ -2026,34 +2202,17 @@ void BusRoute::MergeBusStop2(vector<SectTreeEntry> sec_down,
           double start = sec_all[i].start;
           double end = sec_all[i].end; 
           /////////collect all bus stops on these sections/////////////
-        
+
         CcInt* search_cell_id = new CcInt(true, sec_id);
         BTreeIterator* btree_iter = btree->ExactMatch(search_cell_id);
         while(btree_iter->Next()){
-          
+
           int tuple_id = btree_iter->GetId();
           if(tuple_id - 1 != cur_index){//do not include itself 
             if(start <= bus_stop_list[tuple_id - 1].pos &&
               bus_stop_list[tuple_id - 1].pos <= end){//bus stop locate on it 
-            
-
               bus_stop_id_list.push_back(tuple_id - 1);
-            
-/*              if(bus_stop_list[tuple_id - 1].rid != 
-                 bus_stop_list[cur_index].rid && 
-                 !AlmostEqual(bus_stop_list[tuple_id - 1].pos,
-                              bus_stop_list[cur_index].pos)){
-                cout<<"tuple_id "<<tuple_id<<endl; 
-                bus_stop_list[cur_index].Print();
-                bus_stop_list[tuple_id - 1].Print();
 
-              }*/
-              ///////////////////////////////////////////////////////
-/*              Tuple* tuple_bus_stop = 
-                    rel2->GetTuple(btree_iter->GetId(), false);
-//              cout<<*tuple_bus_stop<<endl; 
-              tuple_bus_stop->DeleteIfAllowed();*/
-              ///////////////////////////////////////////////////////    
             }
           }
         }
@@ -2190,7 +2349,7 @@ void BusRoute::FindDownSection(double cur_bus_stop_pos,
       }else break;
   }
   
-}                       
+}
   
 /*
 find the section to up direction. bus route goes up
@@ -2289,42 +2448,6 @@ void BusRoute::GetSectionList(GLine* gl,vector<SectTreeEntry>& sec_list,
 //        <<"end "<<ri->GetEndPos()<<endl;
     
     if(!AlmostEqual(ri->GetStartPos(), ri->GetEndPos())){
-      
-/*      DbArray<SectTreeEntry>* actSections = new DbArray<SectTreeEntry>(0);
-      n->GetSectionsOfRouteInterval(ri,actSections);
-
-      SectTreeEntry nEntry;
-      
-      vector<SectTreeEntry> sec_list_temp; 
-      
-      for(int j = 0;j < actSections->Size();j++){
-          actSections->Get(j, nEntry);
-
-          ////////////////////////////////////////////////////
-//          cout<<"entry "<<nEntry.rid
-//              <<" start "<<nEntry.start
-//              <<" end "<<nEntry.end<<endl; 
-              
-          if(AlmostEqual(nEntry.start,nEntry.end))continue; 
-
-          sec_list_temp.push_back(nEntry); 
-          
-          if(ri->GetStartPos() < ri->GetEndPos()) start_from.push_back(true);
-          else
-            start_from.push_back(false); 
-          
-      }  
-      
-      if(ri->GetStartPos() < ri->GetEndPos()){
-        for(unsigned int k = 0;k < sec_list_temp.size();k++)
-          sec_list.push_back(sec_list_temp[k]);
-      }else{
-        for(int k = sec_list_temp.size() - 1;k >= 0;k--)
-          sec_list.push_back(sec_list_temp[k]);
-      }
-      
-      
-      delete actSections;*/
 
       vector<SectTreeEntry> actSections;
       n->GetSectionsOfRouteInterval(ri,actSections);
@@ -2382,20 +2505,20 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
 //  cout<<"start "<<start<<" end "<<end<<endl; 
   double dist = 0.0;
   unsigned int bus_stop_index = start;
-  
+
   bool startsmaller; 
   bool initialize = false; 
   ///////////use the section list of the bus route/////////////////
   //////////bus stops are ordered from id small to id big///////////
-  
+
   for(unsigned int i = 0;i < sec_list.size();i++){
     unsigned int sec_id = sec_list[i].secttid; 
     double start = sec_list[i].start;
     double end = sec_list[i].end; 
-    
+
  //   cout<<"sec_id "<<sec_id
  //       <<" busstop sec id "<<bus_stop_list[bus_stop_index].sid<<endl; 
-    
+
     //find the section where the bus stop locates 
     while(bus_stop_list[bus_stop_index].sid == sec_id){
         double temp_dist = 0.0; 
@@ -2411,7 +2534,7 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
             dist_list.push_back(dist);
         }
         ///////////////////////////////////////////////////////////////
-        
+
         int rid = bus_stop_list[bus_stop_index].rid; 
         double pos = bus_stop_list[bus_stop_index].pos;
         GPoint* gp = new GPoint(true,n->GetId(),rid,pos,None); 
@@ -2427,7 +2550,7 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
               startsmaller = true;
           else
               startsmaller = false;
-          
+
           initialize = true; 
 /*           cout<<"loc1 "<<*p<<" loc2 "<<temp_p
               <<" startsmaller "<<startsmaller<<endl; */
@@ -2442,11 +2565,11 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
         bus_stop_index++; 
         dist -= temp_dist; 
     }
-    
+
     if(bus_stop_list[bus_stop_index].sid != sec_id)  
         dist += fabs(start - end);
   }
-  
+
   assert((int)dist_list.size() == (end - start)); 
 }
 
@@ -2511,7 +2634,10 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
     line_list2.push_back(*l2);
     sline_list.push_back(*sl1);
     sline_list.push_back(*sl2);
-        
+    
+    if(sl1->Length() < 1.0 || sl2->Length() < 1.0){
+      cout<<i<<endl;
+    }
 
     delete sl1;
     delete sl2; 
@@ -2576,9 +2702,7 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
     
 //    cout<<"hs "<<hs<<endl; 
 
-//    Line* l1 = &line_list2[(bse_0.br_id * 2 - 1) - 1];
-//    Line* l2 = &line_list2[(bse_0.br_id * 2) - 1];
-     
+
     //for each translated bus route simple 
     
     for(unsigned int k = 0;k < bus_stop_list_new.size();k++){
@@ -2608,6 +2732,7 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       SimpleLine* sl1 = &sline_list[(bs_ext.br_id * 2 - 1) - 1];
       SimpleLine* sl2 = &sline_list[(bs_ext.br_id * 2 ) - 1];
       
+
 //      assert(sl1->AtPoint(intersect_ps[0].loc,sm,pos1));
 //      assert(sl2->AtPoint(intersect_ps[1].loc,sm,pos2));
 
@@ -3089,11 +3214,7 @@ void BusRoute::GetBusRoutes()
   Tuple* br_tuple = rel2->GetTuple(i, false);
     int br_id = 
         ((CcInt*)br_tuple->GetAttribute(RoadDenstiy::BR_ID6))->GetIntval();
-
-//     if(br_id != 39){
-//       br_tuple->DeleteIfAllowed();
-//       continue;
-//     }
+//    cout<<"br_id "<<br_id<<endl;
 
     bool direction = 
      ((CcBool*)br_tuple->GetAttribute(RoadDenstiy::BR_DIRECTION))->GetBoolval();
@@ -3174,9 +3295,14 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
   Bus_Route* br = new Bus_Route(br_id, direction);
   br->StartBulkLoad(); 
   int count = 0;
-  
+
+  SpacePartition* sp_pt = new SpacePartition();
+  vector<MyHalfSegment> mhs;
+  sp_pt->ReorderLine(sl, mhs);
+  delete sp_pt;
+
+
   for(unsigned int i = 0;i < bslist.size() - 1;i++){//ordered by stop id 
-//      bslist[i].Print(); 
       Point loc1 = bslist[i].loc;
       Point loc2 = bslist[i + 1].loc;
 
@@ -3191,28 +3317,21 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
       //////////////////////////////////////////////////////////////////
       double pos1 = -1.0;
       double pos2 = -1.0; 
-//      assert(sl->AtPoint(loc1, sl->GetStartSmaller(), pos1));
-//      assert(sl->AtPoint(loc2, sl->GetStartSmaller(), pos2));
-
-//       if(sl->AtPoint(loc1, sl->GetStartSmaller(), pos1) == false){
-//         cout<<"br_id "<<br_id<<" pos1 "<<pos1<<endl;
-//       }
-//       if(sl->AtPoint(loc2, sl->GetStartSmaller(), pos2) == false){
-//         cout<<"br_id "<<br_id<<" pos2 "<<pos2<<endl;
-//       }
 
       double newpos1, newpos2;
-      GetPosOnSL(sl, loc1, newpos1);
-      GetPosOnSL(sl, loc2, newpos2);
 
-//       if(fabs(pos1 - newpos1) > delta_dist || 
-//          fabs(pos2 - newpos2) > delta_dist){
-//         printf("%.4f %.4f\n", pos1, newpos1);
-//         printf("%.4f %.4f\n", pos2, newpos2);
-//       }
+//      GetPosOnSL(sl, loc1, newpos1);
+//      GetPosOnSL(sl, loc2, newpos2);
 
-      pos1 = newpos1;
-      pos2 = newpos2; 
+      //////////////////////////////////////////////////
+
+      GetPosOnSL(sl, loc1, newpos1, mhs);
+      GetPosOnSL(sl, loc2, newpos2, mhs);
+
+      ///////////////////////////////////////////
+
+        pos1 = newpos1;
+        pos2 = newpos2; 
 
       /////////////////////////////////////////////////////////////////////
       ////////////////////////section before the first stop////////////////
@@ -3266,12 +3385,11 @@ void BusRoute::CreateRoutes(vector<TupleId>& tid_list, int br_id,
 
       SimpleLine sub_l(0);
 
-      if(sl->GetStartSmaller())
-//        sl->SubLine(pos1, pos2, sl->GetStartSmaller(), sub_l);
+      if(sl->GetStartSmaller()){
         sl->SubLine(len1, len2, sl->GetStartSmaller(), sub_l);
-      else
-//        sl->SubLine(pos2, pos1, sl->GetStartSmaller(), sub_l);
+      }else{
         sl->SubLine(len2, len1, sl->GetStartSmaller(), sub_l);
+      }
 
       assert(AlmostEqual(sub_l.Length(), fabs(pos2 - pos1))); 
       Point sp, ep;
@@ -3343,7 +3461,69 @@ due to numeric problem, use the following method to find pos for a point on
 a sline
 
 */
-void BusRoute::GetPosOnSL(SimpleLine* sl, Point loc, double& pos)
+void BusRoute::GetPosOnSL(SimpleLine* sl, Point loc, double& pos, 
+                          vector<MyHalfSegment>& mhs)
+{
+  ////////get the start point of sline /////////////
+  Point start_loc;
+  assert(sl->AtPosition(0.0, sl->StartsSmaller(), start_loc));
+  
+  /////////convert to myhalfsegment/////////////////
+  SpacePartition* sp = new SpacePartition();
+
+  ////////use getclosespoint//////////////////////
+  const double delta_d = 0.001;
+  if(mhs[0].from.Distance(start_loc) < delta_d){
+    double len = 0;
+    unsigned int i = 0;
+    for(;i < mhs.size();i++){
+      HalfSegment hs(true, mhs[i].from, mhs[i].to);
+      Point res;
+      sp->GetClosestPoint_New(hs, loc, res);
+      if(res.Distance(loc) < delta_d){
+        len += res.Distance(mhs[i].from);
+        pos = len;
+        break;
+      }else{
+        len += hs.Length();
+      }
+    }
+    if(i == mhs.size())assert(false);
+
+
+  }else if(mhs[mhs.size() - 1].to.Distance(start_loc) < delta_d){
+
+    double len = 0;
+    int i = mhs.size() - 1;
+    for(;i >= 0;i--){
+      HalfSegment hs(true, mhs[i].from, mhs[i].to);
+      Point res;
+      sp->GetClosestPoint_New(hs, loc, res);
+      if(res.Distance(loc) < delta_d){
+        len += res.Distance(mhs[i].to);
+        pos = len;
+        break;
+      }else{
+        len += hs.Length();
+      }
+    }
+    if(i < 0)assert(false);
+
+  }else{
+    cout<<"should not be here"<<endl;
+    assert(false);
+  }
+  
+  delete sp;
+
+  //////////////////testing the result again////////////////
+  Point test;
+  assert(sl->AtPosition(pos,sl->StartsSmaller(), test));
+  assert(test.Distance(loc) < delta_d);
+
+}
+
+/*void BusRoute::GetPosOnSL(SimpleLine* sl, Point loc, double& pos)
 {
   ////////get the start point of sline /////////////
   Point start_loc;
@@ -3404,7 +3584,8 @@ void BusRoute::GetPosOnSL(SimpleLine* sl, Point loc, double& pos)
   assert(sl->AtPosition(pos,sl->StartsSmaller(), test));
   assert(test.Distance(loc) < delta_d);
 
-}
+}*/
+
 
 //////////////////////////////////////////////////////////////////////////////
 //      use the road density data to set time schedule for each bus route  ///
@@ -7736,8 +7917,8 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
   Point p2;
   bn->GetBusStopGeoData(&bs2, &p2);
 
-//  cout<<"bs1 "<<bs1<<"bs2 "<<bs2<<endl; 
-//  cout<<"loc1 "<<p1<<" loc2 "<<p2<<endl; 
+//  cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl; 
+//  cout<<"loc1 "<<p1<<" loc2 "<<p2<<endl;
 
   Line* l = new Line(0);
   l->StartBulkLoad();
@@ -7790,7 +7971,7 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
   delete l;
 
 //  cout<<it_p_list.size()<<endl;
-  
+
   assert(it_p_list.size() >= 2); 
   Point midp(true, (p1.GetX() + p2.GetX())/2, (p1.GetY() + p2.GetY())/2); 
   
@@ -7805,11 +7986,12 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
   ////////////get the two closest points ////////////////////////////
   for(unsigned int i = 0;i < it_p_list.size();i++){
       it_p_list[i].dist = it_p_list[i].loc.Distance(midp); 
+
   }
-  
+
   vector<MyPoint_Tid> it_p_list1; 
   vector<MyPoint_Tid> it_p_list2; 
-  
+
   if(AlmostEqual(p1.GetX(), p2.GetX())){
     for(unsigned int i = 0;i < it_p_list.size();i++){
         if(it_p_list[i].loc.GetY() > midp.GetY()){
@@ -8584,6 +8766,12 @@ void BN::GetAdjNodeBG1(BusGraph* bg, int nodeid)
       return; 
   }
 
+  cout<<"total "<<bg->node_rel->GetNoTuples()<<" nodes "<<endl;
+  cout<<"total "<<bg->edge_rel1->GetNoTuples() +
+                  bg->edge_rel2->GetNoTuples() +
+                  bg->edge_rel3->GetNoTuples() <<" edges "<<endl;
+  
+  
   Tuple* bs_tuple = bg->node_rel->GetTuple(nodeid, false);
   Bus_Stop* bs1 = (Bus_Stop*)bs_tuple->GetAttribute(BusGraph::BG_NODE);
 //  cout<<*bs1<<endl; 
@@ -8723,6 +8911,10 @@ void BN::GetAdjNodeBG1(BusGraph* bg, int nodeid)
 
 /*
 get the neighbor nodes of a given bus stop 
+notes: the result may have the same value (type 3). this is becuase some bus
+routes have night schedule (day schedule (workday and weekend))  
+(night schedule (0:00-5:00 20:00-24:00)) 
+there can be 4 tuples having the same value 
 
 */
 void BN::GetAdjNodeBG2(BusGraph* bg, Bus_Stop* bs)
@@ -13660,6 +13852,7 @@ converting from moving buses (mpoint) to genmo
 */
 void BNNav::BusToGenMO(Relation* mo_rel, Relation* br_rel, BTree* btree)
 {
+
   for(int i = 1;i <= mo_rel->GetNoTuples();i++){
     Tuple* bus_tuple = mo_rel->GetTuple(i, false);
     unsigned int br_id = 
@@ -13667,12 +13860,8 @@ void BNNav::BusToGenMO(Relation* mo_rel, Relation* br_rel, BTree* btree)
     bool dir =  ((CcBool*)bus_tuple->GetAttribute(
                  RoadDenstiy::MO_BUS_DIRECTION))->GetBoolval();
     MPoint* mp = (MPoint*)bus_tuple->GetAttribute(RoadDenstiy::BUS_TRIP);
-/*    int oid = 
-     ((CcInt*)bus_tuple->GetAttribute(RoadDenstiy::MO_BUS_OID))->GetIntval();*/
-
     MPToGenMO(mp,br_id, dir, br_rel, btree);
     bus_tuple->DeleteIfAllowed(); 
-    
   }
 
 }
@@ -13681,6 +13870,7 @@ void BNNav::BusToGenMO(Relation* mo_rel, Relation* br_rel, BTree* btree)
 from mpoint, bool (direction), line id to genmo 
 
 */
+
 void BNNav::MPToGenMO(MPoint* mp,unsigned int br_id, bool dir, Relation* br_rel,
                       BTree* btree)
 {
@@ -14296,7 +14486,7 @@ string MetroStruct::MetroTripTypeInfo_Com = "(rel (tuple ((mtrip1 genmo)\
 create metro routes 
 
 */
-void MetroStruct::CreateMRoute(DualGraph* dg)
+void MetroStruct::CreateMRoute(DualGraph* dg, string type)
 {
   int no_mroute = 10;
   vector<bool> cell_flag;
@@ -14327,9 +14517,19 @@ void MetroStruct::CreateMRoute(DualGraph* dg)
 
   vector<int> find_cell_list; 
   int count = 1;
-  const double min_dist = 22000.0;//minimum distance for a ubahn 
-//  const double min_dist2 = 1000.0;
-  const double min_dist2 = 1500.0;
+  
+//  double min_dist = 22000.0;//minimum distance for a ubahn 
+  double min_dist;
+  if(type == "Berlin"){
+    min_dist = 22000.0;
+  }else if(type == "Houston"){
+    min_dist = 80000.0;
+  }else{
+    cout<<"not processed"<<endl;
+    assert(false);
+  }
+  double min_dist2 = 1500.0;
+  
   while(count <= no_mroute){
     int cell1 = GetRandom() % dg->node_rel->GetNoTuples() + 1;
     if(cell_flag[cell1 - 1]) continue;
@@ -17201,45 +17401,47 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
     /////////////////////////////////////////////////////////////////////
     //////////////////////connection 1 same spatial location/////////////
     ////////////////////////////////////////////////////////////////////
-    vector<int> adj_list1;
-    mg->FindAdj1(top.tri_index, adj_list1);
+    if(top.tm == TM_METRO){
+      vector<int> adj_list1;
+      mg->FindAdj1(top.tri_index, adj_list1);
 //    cout<<"adj1 size "<<adj_list1.size()<<endl;
 
-    for(unsigned int i = 0;i < adj_list1.size();i++){
-      Tuple* edge_tuple = mg->GetEdge_Rel1()->GetTuple(adj_list1[i], false);
-      int neighbor_id1 = 
+      for(unsigned int i = 0;i < adj_list1.size();i++){
+        Tuple* edge_tuple = mg->GetEdge_Rel1()->GetTuple(adj_list1[i], false);
+        int neighbor_id1 = 
      ((CcInt*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE1_TID2))->GetIntval();
-      SimpleLine* path = new SimpleLine(0);
-      path->StartBulkLoad();
-      path->EndBulkLoad();
+        SimpleLine* path = new SimpleLine(0);
+        path->StartBulkLoad();
+        path->EndBulkLoad();
 //      cout<<"neighbor_tid1 "<<neighbor_id1<<endl;
-      
-      if(visit_flag1[neighbor_id1 - 1]){
-        edge_tuple->DeleteIfAllowed();
-        delete path;
-        continue; 
-      }
 
-      cur_size = expand_queue.size();
-      double w = top.real_w; 
-      Tuple* ms_node_tuple = mg->GetNode_Rel()->GetTuple(neighbor_id1, false);
-      Point* p = 
+        if(visit_flag1[neighbor_id1 - 1]){
+          edge_tuple->DeleteIfAllowed();
+          delete path;
+          continue; 
+        }
+
+        cur_size = expand_queue.size();
+        double w = top.real_w; 
+        Tuple* ms_node_tuple = mg->GetNode_Rel()->GetTuple(neighbor_id1, false);
+        Point* p = 
           (Point*)ms_node_tuple->GetAttribute(MetroGraph::MG_NODE_STOP_GEO);
-      double hw = p->Distance(end_p)/(mn->GetMaxSpeed()*24.0*60.0*60.0);
-      ms_node_tuple->DeleteIfAllowed();
+        double hw = p->Distance(end_p)/(mn->GetMaxSpeed()*24.0*60.0*60.0);
+        ms_node_tuple->DeleteIfAllowed();
 
 //      double hw = 0.0;
-      BNPath_elem elem(pos_expand_path, cur_size, neighbor_id1, w + hw, w,
+        BNPath_elem elem(pos_expand_path, cur_size, neighbor_id1, w + hw, w,
                        *path, -1, false); //no useful for time cost 
-      path_queue.push(elem);
-      expand_queue.push_back(elem); 
+        path_queue.push(elem);
+        expand_queue.push_back(elem); 
 
 //       cout<<"neighbor1 ";
 //       elem.Print();
 //       cout<<endl; 
 
-      delete path; 
-      edge_tuple->DeleteIfAllowed();
+        delete path; 
+        edge_tuple->DeleteIfAllowed();
+      }
     }
 
 
@@ -17566,5 +17768,212 @@ void MNNav::InitializeQueue(Bus_Stop* ms1, Bus_Stop* ms2,
     path_queue.push(elem);
     expand_queue.push_back(elem); 
     delete sl;
+}
+
+/*
+get adjacent list for a metro graph node 
+
+*/
+void MNNav::GetAdjNodeMG(MetroGraph* mg, int nodeid)
+{
+ 
+  if(mg->GetNode_Rel() == NULL){
+    cout<<"no metro graph node rel"<<endl;
+    return; 
+  }
+  if(nodeid < 1 || nodeid > mg->GetNode_Rel()->GetNoTuples()){
+      cout<<"invalid node id "<<endl; 
+      return; 
+  }
+
+  cout<<"total "<<mg->GetNode_Rel()->GetNoTuples()<<" nodes "<<endl;
+  cout<<"total "<<mg->GetEdge_Rel1()->GetNoTuples() + 
+                  mg->GetEdge_Rel2()->GetNoTuples()<<" edges "<<endl;
+
+  
+  Relation* node_rel = mg->GetNode_Rel();
+
+  Tuple* ms_tuple = node_rel->GetTuple(nodeid, false);
+  Bus_Stop* ms1 = (Bus_Stop*)ms_tuple->GetAttribute(MetroGraph::MG_NODE_STOP);
+//  cout<<*ms1<<endl; 
+
+  ///////////////////////////////////////////////////////////////////////////
+  //////the first kind of connection (no path; the same spatial location)////
+  ////////////////////////////////////////////////////////////////////////////
+  vector<int> tid_list1; 
+  mg->FindAdj1(nodeid, tid_list1); 
+  
+  for(unsigned int i = 0;i < tid_list1.size();i++){
+    Tuple* edge_tuple = mg->GetEdge_Rel1()->GetTuple(tid_list1[i], false);
+    int neighbor_id = 
+     ((CcInt*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE1_TID2))->GetIntval();
+    edge_tuple->DeleteIfAllowed();
+
+    Tuple* ms_neighbor1 = node_rel->GetTuple(neighbor_id, false);
+    Bus_Stop* ms2 = 
+        (Bus_Stop*)ms_neighbor1->GetAttribute(MetroGraph::MG_NODE_STOP);
+
+    SimpleLine* path = new SimpleLine(0);
+    path->StartBulkLoad();
+    path->EndBulkLoad(); 
+    ms_list1.push_back(*ms1);
+    ms_list2.push_back(*ms2);
+    path_list.push_back(*path);
+    delete path; 
+
+    ms_neighbor1->DeleteIfAllowed();
+    type_list.push_back(1); 
+  }
+  
+  ////////////////////////////////////////////////////////////////////
+  //////the second kind of connection (connected by moving metros)////
+  ////////////////////////////////////////////////////////////////////
+  
+  vector<int> tid_list2; 
+  mg->FindAdj2(nodeid, tid_list2); 
+
+  for(unsigned int i = 0;i < tid_list2.size();i++){
+
+    Tuple* edge_tuple = mg->GetEdge_Rel2()->GetTuple(tid_list2[i], false);
+    int neighbor_id = 
+     ((CcInt*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE2_TID2))->GetIntval();
+    Tuple* ms_neighbor2 = node_rel->GetTuple(neighbor_id, false);
+    
+    Bus_Stop* ms3 = 
+      (Bus_Stop*)ms_neighbor2->GetAttribute(MetroGraph::MG_NODE_STOP);
+
+
+    SimpleLine* path = 
+          (SimpleLine*)edge_tuple->GetAttribute(MetroGraph::MG_EDGE2_PATH);
+    ms_list1.push_back(*ms1);
+    ms_list2.push_back(*ms3);
+    path_list.push_back(*path);
+
+    edge_tuple->DeleteIfAllowed();
+    ms_neighbor2->DeleteIfAllowed();
+
+    type_list.push_back(2); 
+  }
+
+  ms_tuple->DeleteIfAllowed();
+
+
+}
+
+
+///////////////////////////////////////////////////////////////////////
+////////// improve join algorithm, not use symmjoin////////////////////
+///////////////////////////////////////////////////////////////////////
+string TM_Join::CellBoxTypeInfo = "(rel (tuple ((cellid int)\
+(cover_area region) (x_id int) (y_id int))))";
+
+string TM_Join::RoadSectionTypeInfo = "(rel (tuple ((rid int) (meas1 real)\
+(meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool)\
+(rrc tid) (sid int))))";
+
+
+/*
+for each cell, it collects the number of route section intersecting it
+
+*/
+void TM_Join::Road_Cell_Join(Relation* rel1, Relation* rel2, 
+                             R_Tree<2,TupleId>* rtree)
+{
+//  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+
+  
+  vector<Region> cell_area_list(rel2->GetNoTuples(), Region(0));
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+      Tuple* cell_tuple = rel2->GetTuple(i, false);
+      int cellid = ((CcInt*)cell_tuple->GetAttribute(TM_JOIN_ID))->GetIntval();
+      Region* reg = (Region*)cell_tuple->GetAttribute(TM_JOIN_AREA);
+      cell_area_list[cellid - 1] = *reg;
+      cell_tuple->DeleteIfAllowed();
+  }
+
+  vector<int> cell_list;
+  vector<int> sec_id_list(rel2->GetNoTuples(), 0);
+
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* road_tuple = rel1->GetTuple(i, false);
+    int sec_id = ((CcInt*)road_tuple->GetAttribute(SECTION_SID))->GetIntval();
+    SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(SECTION_CURVE);
+    Line* l = new Line(0);
+    sl->toLine(*l);
+
+    vector<int> tid_list;
+    DFTraverse(rel2, rtree, rtree->RootRecordId(), l, tid_list);
+
+//    cout<<"rid "<<r_id<<" "<<tid_list.size()<<endl;
+    if(tid_list.size() > 0){
+      for(unsigned int j = 0;j < tid_list.size();j++){
+
+        Tuple* cell_tuple = rel2->GetTuple(tid_list[j], false);
+        int cell_id = 
+          ((CcInt*)cell_tuple->GetAttribute(TM_JOIN_ID))->GetIntval();
+
+        cell_list.push_back(cell_id);
+        cell_tuple->DeleteIfAllowed();
+
+        if(sec_id_list[cell_id - 1] == 0){
+            sec_id_list[cell_id - 1] = sec_id;
+        }
+      }
+    }
+    delete l;
+    road_tuple->DeleteIfAllowed();
+  }
+
+  sort(cell_list.begin(), cell_list.end());
+  for(unsigned int i = 0;i < cell_list.size();i++){
+    int cell_id = cell_list[i];
+    unsigned int j = i + 1;
+    int count = 1;
+    while(j < cell_list.size() && cell_list[j] == cell_id){
+      count++;
+      j++;
+    }
+
+    i = j - 1;
+
+    sec_list.push_back(sec_id_list[cell_id - 1]);
+    id_list.push_back(cell_id);
+    count_list.push_back(count);
+    area_list.push_back(cell_area_list[cell_id - 1]);
+  }
+
+//    for(unsigned int i = 0;i < id_list.size();i++)
+//      cout<<id_list[i]<<" no: "<<count_list[i]<<endl;
+
+}
+
+/*
+find all cell box that intersect the road line
+
+*/
+void TM_Join::DFTraverse(Relation* rel, R_Tree<2,TupleId>* rtree,
+                           SmiRecordId adr, Line* l, vector<int>& id_list)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* tuple = rel->GetTuple(e.info,false);
+              Region* reg =(Region*)tuple->GetAttribute(TM_JOIN_AREA);
+              if(l->Intersects(*reg)){
+                id_list.push_back(e.info);
+              }
+              tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(l->Intersects(e.box)){
+              DFTraverse(rel, rtree, e.pointer, l, id_list);
+            }
+      }
+  }
+  delete node;
 }
 

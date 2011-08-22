@@ -374,16 +374,6 @@ const string OpTMCreateIGSpec  =
     "<text>query createigraph(1, edge-rel, node-rel, \"cinema\"); </text--->"
     ") )";
 
-const string OpTMGetAdjNodeIGSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>indoorgraph x int"
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getadjnode_ig(indoorgraph,int)</text--->"
-    "<text>for a given node, find its adjacent nodes</text--->"
-    "<text>query getadjnode_ig(ig1,1); </text--->"
-    ") )"; 
-
  const string SpatialSpecGenerateIP1 =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>rel x int x bool->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
@@ -1127,45 +1117,6 @@ ListExpr OpTMCreateIGTypeMap ( ListExpr args )
     return nl->SymbolAtom ("typeerror");
 
   return nl->SymbolAtom ( "indoorgraph" );
-}
-
-/*
-TypeMap fun for operator getadjnode
-
-*/
-
-ListExpr OpTMGetAdjNodeIGTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 2 )
-  {
-    return  nl->SymbolAtom ( "typeerror" );
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-
-
-  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-     nl->SymbolValue(arg1) == "indoorgraph" &&
-     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
-     nl->SymbolValue(arg2) == "int"){
-
-      ListExpr result = nl->TwoElemList(
-             nl->SymbolAtom("stream"),
-               nl->TwoElemList(
-                 nl->SymbolAtom("tuple"),
-                     nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("tid1"),
-                                   nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("tid2"),
-                                    nl->SymbolAtom("int")),
-                      nl->TwoElemList(nl->SymbolAtom("connection"),
-                                    nl->SymbolAtom("line3d"))
-                  )
-                )
-          );
-    return result;
-  }
-  return  nl->SymbolAtom ( "typeerror" );
 }
 
 
@@ -2934,14 +2885,6 @@ Operator createigraph(
     OpTMCreateIGValueMap,
     Operator::SimpleSelect,
     OpTMCreateIGTypeMap
-);
-
-Operator getadjnode_ig(
-    "getadjnode_ig",
-    OpTMGetAdjNodeIGSpec,
-    OpTMGetAdjNodeIGValueMap,
-    Operator::SimpleSelect,
-    OpTMGetAdjNodeIGTypeMap
 );
 
 
@@ -8106,16 +8049,6 @@ const string OpTMMyInsideSpec  =
     "<text>query l2 myinside r2; </text--->"
     ") )";
 
-const string OpTMGetAdjNodeDGSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>dualgraph x int"
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getadjnode_dg(dualgraph,int)</text--->"
-    "<text>for a given node, find its adjacent nodes</text--->"
-    "<text>query getadjnode_dg(dg1,1); </text--->"
-    ") )";
-
 const string OpTMDecomposeTriSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -8133,16 +8066,6 @@ const string OpTMCreateVGSpec  =
     "<text>create a visibility graph by the input edge and node"
     "relation</text--->"
     "<text>query createvgraph(1, edge-rel, node-rel); </text--->"
-    ") )";
-
-const string OpTMGetAdjNodeVGSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>visualgraph x int"
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getadjnode_vg(visualgraph,int)</text--->"
-    "<text>for a given node, find its adjacent nodes</text--->"
-    "<text>query getadjnode_vg(vg1,1); </text--->"
     ") )";
 
 const string OpTMGetContourSpec  =
@@ -8237,13 +8160,13 @@ const string OpTMCellBoxSpec  =
 const string OpTMCreateBusRouteSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>network x rel x attr1 x attr2 x attr3 x attr4 x btree"
+    "( <text>network x rel x attr1 x attr2 x attr3 x attr4 x btree x string"
     "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_bus_route1(n,rel,attr1,attr2,attr3,attr4,btree);"
+    "<text>create_bus_route1(n,rel,attr1,attr2,attr3,attr4,btree,string);"
     "</text--->"
     "<text>create bus route1</text--->"
     "<text>query create_bus_route1(n,street_sections_cell,sid_s,cellid_w_a_c,"
-    "Cnt_a_c,cover_area_b_c,section_cell_index) count;</text--->"
+    "Cnt_a_c,cover_area_b_c,section_cell_index,Berlin) count;</text--->"
     ") )";
     
 const string OpTMCreateBusRouteSpec2  =
@@ -8309,12 +8232,12 @@ const string OpTMCreateBusStopSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree"
-    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_bus_stops1(n,rel1,attr1,attr2, attr3, attr4, rel2, btree);"
-    "</text--->"
+    "x string -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>create_bus_stops1(n,rel1,attr1,attr2, attr3, attr4, rel2,"
+    " btree, string);</text--->"
     "<text>create bus stops</text--->"
     "<text>query create_bus_stop1(n,busroutes,br_id,bus_route1,"
-    "bus_route2,route_type,subpaves2, btree_pave2) count;</text--->"
+    "bus_route2,route_type,subpaves2, btree_pave2,Berlin) count;</text--->"
     ") )";
     
 const string OpTMCreateBusStopSpec2  =
@@ -8519,13 +8442,13 @@ const string OpTMCreateBusGraphSpec  =
     "<text>query createbgraph(1, node-rel, edge1, edge2, edge3); </text--->"
     ") )";
 
-const string OpTMGetAdjNodeBGSpec  =
+const string OpTMGetAdjNodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>busgraph x int -> (stream(((x1 t1) ... (xn tn))))</text--->"
-    "<text>getadjnode_bg(busgraph, int)</text--->"
+    "<text>getadjnode(busgraph, int)</text--->"
     "<text>get the neighbor nodes of a given graph node</text--->"
-    "<text>query getadjnode_bg(bg1, 2); </text--->"
+    "<text>query getadjnode(bg1, 2); </text--->"
     ") )";
 
 const string OpTMBNNavigationSpec  =
@@ -8731,10 +8654,11 @@ const string OpTMCreateMetroGraphSpec  =
 const string OpTMCreateMetroRouteSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>dualgraph -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>createmetroroute(dualgraph)</text--->"
+    "( <text>dualgraph x string "
+     "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>createmetroroute(dualgraph, string)</text--->"
     "<text>create metro routes</text--->"
-    "<text>query createmetroroute(dualgraph); </text--->"
+    "<text>query createmetroroute(dualgraph, Berlin); </text--->"
     ") )";
 
 const string OpTMCreateMetroStopSpec  =
@@ -8867,8 +8791,17 @@ const string OpTMCheckRoadsSpec  =
     " ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
     "<text>checkroads(rel, rtree)</text--->"
     "<text>check the coordinates of a line</text--->"
-    "<text>query checkroads(r,rtree_road)"
-    "</text--->"
+    "<text>query checkroads(r,rtree_road)</text--->"
+    ") )";
+
+const string OpTMTMJoin1Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>relation x relation x rtree"
+    " ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>tm_join1(rel, rel, rtree)</text--->"
+    "<text>check the intersection of routes and cell boxes</text--->"
+    "<text>query tm_join1(r, cell_box, rtree_box)</text--->"
     ") )";
 
 ////////////////TypeMap function for operators//////////////////////////////
@@ -10396,43 +10329,6 @@ ListExpr OpTMMyInsideTypeMap ( ListExpr args )
   return  nl->SymbolAtom ( "typeerror" );
 }
 
-/*
-TypeMap fun for operator getadjnode
-
-*/
-
-ListExpr OpTMGetAdjNodeDGTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 2 )
-  {
-    return  nl->SymbolAtom ( "typeerror" );
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-
-
-  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-     nl->SymbolValue(arg1) == "dualgraph" &&
-     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
-     nl->SymbolValue(arg2) == "int"){
-
-      ListExpr result = nl->TwoElemList(
-             nl->SymbolAtom("stream"),
-               nl->TwoElemList(
-                 nl->SymbolAtom("tuple"),
-                     nl->TwoElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
-                                   nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("pavement"),
-                                    nl->SymbolAtom("region"))
-                  )
-                )
-          );
-    return result;
-  }
-  return  nl->SymbolAtom ( "typeerror" );
-}
-
 
 /*
 TypeMap fun for operator decomposetri
@@ -10495,44 +10391,6 @@ ListExpr OpTMCreateVGTypeMap ( ListExpr args )
   return nl->SymbolAtom ( "visualgraph" );
 }
 
-/*
-TypeMap fun for operator getadjnode
-
-*/
-
-ListExpr OpTMGetAdjNodeVGTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 2 )
-  {
-    return  nl->SymbolAtom ( "typeerror" );
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-
-
-  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-     nl->SymbolValue(arg1) == "visualgraph" &&
-     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
-     nl->SymbolValue(arg2) == "int"){
-
-      ListExpr result = nl->TwoElemList(
-             nl->SymbolAtom("stream"),
-               nl->TwoElemList(
-                 nl->SymbolAtom("tuple"),
-                     nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
-                                   nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("loc"),
-                                    nl->SymbolAtom("point")),
-                      nl->TwoElemList(nl->SymbolAtom("connection"),
-                                    nl->SymbolAtom("line"))
-                  )
-                )
-          );
-    return result;
-  }
-  return  nl->SymbolAtom ( "typeerror" );
-}
 
 /*
 TypeMap fun for operator getcontour
@@ -11079,32 +10937,28 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
   if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
       return listutils::typeError("attr name" + aname2 + "not found"
                       "or not of type int");
-  
-  
+
   ListExpr attrName3 = nl->Fifth ( args );
   ListExpr attrType3;
   string aname3 = nl->SymbolValue(attrName3);
   int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
-                      aname3,attrType3);
-  if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
+                      aname3, attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region"))
       return listutils::typeError("attr name" + aname3 + "not found"
-                      "or not of type int");
-  
-  
-  ListExpr attrName4 = nl->Sixth ( args );
-  ListExpr attrType4;
-  string aname4 = nl->SymbolValue(attrName4);
-  int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
-                      aname4,attrType4);
-  if(j4 == 0 || !listutils::isSymbol(attrType4,"region"))
-      return listutils::typeError("attr name" + aname4 + "not found"
                       "or not of type region");
                  
-  ListExpr index = nl->Nth(7,args);
+  ListExpr index = nl->Sixth(args);
   if(!listutils::isBTreeDescription(index))
-      return  nl->SymbolAtom ( "parameter 7 should be btree" );
+      return  nl->SymbolAtom ( "parameter 6 should be btree" );
     
   
+  ListExpr param7 = nl->Nth (7, args );
+  if(!(nl->IsAtom(param7) && nl->AtomType(param7) == SymbolType &&  
+     nl->SymbolValue(param7) == "string")){
+      return nl->SymbolAtom ( "typeerror: param7 should be network" );
+  }
+
+
      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
@@ -11140,8 +10994,8 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
 
       return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
-        nl->FourElemList(nl->IntAtom(j1),nl->IntAtom(j2),
-                         nl->IntAtom(j3),nl->IntAtom(j4)),res);
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                         nl->IntAtom(j3)),res);
 }
 
 
@@ -11653,7 +11507,7 @@ create bus stop
 
 ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 8 )
+  if ( nl->ListLength ( args ) != 9 )
   {
     return  nl->SymbolAtom ( "list length should be 6" );
   }
@@ -11729,6 +11583,11 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
   if(!listutils::isBTreeDescription(param8))
     return nl->SymbolAtom ( "typeerror: param8 should be a btree" );
 
+  ListExpr param9 = nl->Nth (9, args );
+  if(!(nl->IsAtom(param9) && nl->AtomType(param9) == SymbolType &&  
+     nl->SymbolValue(param9) == "string")){
+      return nl->SymbolAtom ( "typeerror: param9 should be string" );
+  }
 
      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -12869,11 +12728,11 @@ ListExpr OpTMCreateBusGraphTypeMap ( ListExpr args )
 
 
 /*
-TypeMap fun for operator getadjnode bg
+TypeMap fun for operator getadjnode vg, dg, bg, ig
 
 */
 
-ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
+ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 2 )
   {
@@ -12881,16 +12740,15 @@ ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
   }
   ListExpr param1 = nl->First(args);
   ListExpr param2 = nl->Second(args);
-  
-  
-  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
-     nl->SymbolValue(param1) == "busgraph")){
-      return nl->SymbolAtom ( "typeerror: param1 should be busgraph" );
-  }
-  if(!(nl->IsEqual(param2, "int") || nl->IsEqual(param2, "busstop")))
-    return nl->SymbolAtom ( "typeerror" );
 
-  ListExpr res = nl->TwoElemList(
+
+
+  if(nl->SymbolValue(param1) == "busgraph"){
+
+    if(!(nl->IsEqual(param2, "int") || nl->IsEqual(param2, "busstop")))
+        return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
@@ -12909,7 +12767,125 @@ ListExpr OpTMGetAdjNodeBGTypeMap ( ListExpr args )
                         nl->SymbolAtom("Type"),
                         nl->SymbolAtom("int"))
                     )));
-  return res; 
+    return res; 
+  }
+
+  if(nl->SymbolValue(param1) == "visualgraph"){
+    
+    if(!(nl->IsEqual(param2, "int"))) return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                                    nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+      return result;
+  }
+
+  if(nl->SymbolValue(param1) == "dualgraph"){
+
+    if(!(nl->IsEqual(param2, "int"))) return nl->SymbolAtom ( "typeerror" );
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("pavement"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+
+  if(nl->SymbolValue(param1) == "indoorgraph"){
+
+    if(!(nl->IsEqual(param2, "int"))) return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("tid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("tid2"),
+                                    nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+      return result;
+
+  }
+
+  if(nl->SymbolValue(param1) == "metrograph"){
+
+    if(!(nl->IsEqual(param2, "int"))) return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("metro_stop1"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("metro_stop2"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path"),
+                        nl->SymbolAtom("sline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int"))
+                    )));
+    return res; 
+  }
+  
+  
+    if(nl->SymbolValue(param1) == "roadgraph"){
+
+    if(!(nl->IsEqual(param2, "int"))) return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("jun1"),
+                        nl->SymbolAtom("gpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("jun2"),
+                        nl->SymbolAtom("gpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path"),
+                        nl->SymbolAtom("gline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int"))
+                    )));
+    return res; 
+  }
+  
+  return nl->SymbolAtom ( "typeerror" );
 
 }
 
@@ -14137,115 +14113,37 @@ conver berlintest trains to generic moving objects
 
 ListExpr OpTMRefMO2GenMOTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 4 )
+  if ( nl->ListLength ( args ) != 3 )
   {
-    return  nl->SymbolAtom ( "list length should be 4" );
+    return  nl->SymbolAtom ( "list length should be 3" );
   }
-  
-  ListExpr param1 = nl->First(args); 
- 
-  if(!(nl->IsAtom(nl->First(param1)) && 
-       nl->AtomType(nl->First(param1)) == SymbolType &&
-       nl->SymbolValue(nl->First(param1)) == "string" )){
-      string err = "param1 should be string";
-      return listutils::typeError(err);
-  }
-  
-  string str = nl->StringValue(nl->Second(param1));
-  if(GetTM(str) == TM_METRO){
-      ListExpr param2 = nl->Second ( args );
-      if(!IsRelDescription(nl->First(param2)))
-      return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
-  
-      ListExpr xType1;
-      nl->ReadFromString(UBTrain::TrainsTypeInfo, xType1); 
-      if(!CompareSchemas(nl->First(param2), xType1)){
-      return listutils::typeError("rel1 scheam should be" + 
-                                UBTrain::TrainsTypeInfo);
-      }
-      ListExpr param3 = nl->Third ( args );
-      if(!IsRelDescription(nl->First(param3)))
-        return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
-  
-      ListExpr xType2;
-      nl->ReadFromString(UBTrain::UBahnLineInfo, xType2); 
-      if(!CompareSchemas(nl->First(param3), xType2)){
-        return listutils::typeError("rel2 scheam should be" + 
-                               UBTrain::UBahnLineInfo);
-      }
 
-      ListExpr param4 = nl->Fourth ( args );
-      if(!listutils::isBTreeDescription(nl->First(param4)))
-      return nl->SymbolAtom ( "typeerror: param4 should be a btree" );
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
 
-
-//       ListExpr res = nl->TwoElemList(
-//             nl->SymbolAtom("stream"),
-//             nl->TwoElemList(
-//                 nl->SymbolAtom("tuple"),
-//                 nl->OneElemList(
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("metrotrip"),
-//                         nl->SymbolAtom("genmo"))
-//                     )));
-
-      ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->FourElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("metrotrip1"),
-                        nl->SymbolAtom("genmo")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("metrotrip2"),
-                        nl->SymbolAtom("mpoint")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("br_dir"),
-                        nl->SymbolAtom("bool"))
-                    )));
-      return  res;
-  }else if(GetTM(str) == TM_BUS){
-      
-      ListExpr param2 = nl->Second ( args );
-      if(!IsRelDescription(nl->First(param2)))
-      return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
-  
-      ListExpr xType1;
-      nl->ReadFromString(RoadDenstiy::mo_bus_typeinfo, xType1); 
-      if(!CompareSchemas(nl->First(param2), xType1)){
+  ListExpr xType1;
+  nl->ReadFromString(RoadDenstiy::mo_bus_typeinfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
       return listutils::typeError("rel1 scheam should be" + 
                                 RoadDenstiy::mo_bus_typeinfo);
-      }
-      
-       ListExpr param3 = nl->Third ( args );
-       if(!IsRelDescription(nl->First(param3)))
-        return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
-  
-      ListExpr xType2;
-      nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType2); 
-      if(!CompareSchemas(nl->First(param3), xType2)){
-        return listutils::typeError("rel2 scheam should be" + 
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType2); 
+  if(!CompareSchemas(param2, xType2)){
+     return listutils::typeError("rel2 scheam should be" + 
                                BusNetwork::BusRoutesTypeInfo);
-      }
+  }
 
-      ListExpr param4 = nl->Fourth ( args );
-      if(!listutils::isBTreeDescription(nl->First(param4)))
-      return nl->SymbolAtom ( "typeerror: param4 should be a btree" );
+  ListExpr param3 = nl->Third ( args );
+  if(!listutils::isBTreeDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a btree" );
 
-
-//       ListExpr res = nl->TwoElemList(
-//             nl->SymbolAtom("stream"),
-//             nl->TwoElemList(
-//                 nl->SymbolAtom("tuple"),
-//                 nl->OneElemList(
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("bustrip"),
-//                         nl->SymbolAtom("genmo"))
-//                     )));
 
       ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -14262,11 +14160,8 @@ ListExpr OpTMRefMO2GenMOTypeMap ( ListExpr args )
                         nl->SymbolAtom("br_id"),
                         nl->SymbolAtom("int"))
                     )));
-      return  res;
-  
-  }else{
-      return nl->SymbolAtom ( "typeerror" );
-  }
+    return  res;
+
 }
 
 /*
@@ -14482,7 +14377,7 @@ type map for operator createmetroroute
 */
 ListExpr OpTMCreateMetroRouteTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 1 )
+  if ( nl->ListLength ( args ) != 2 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -14491,25 +14386,10 @@ ListExpr OpTMCreateMetroRouteTypeMap ( ListExpr args )
   if(!nl->IsEqual(param1, "dualgraph"))
     return nl->SymbolAtom ( "typeerror: param1 should be dual graph" );
 
+  ListExpr param2 = nl->Second(args); 
 
-//    ListExpr res = nl->TwoElemList(
-//             nl->SymbolAtom("stream"),
-//             nl->TwoElemList(
-//                 nl->SymbolAtom("tuple"),
-//                 nl->FourElemList(
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("mroute_id"),
-//                         nl->SymbolAtom("int")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("mroute"),
-//                         nl->SymbolAtom("line")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("cell_region1"),
-//                         nl->SymbolAtom("region")),
-//                                  nl->TwoElemList(
-//                         nl->SymbolAtom("cell_region2"),
-//                         nl->SymbolAtom("region"))
-//                     )));
+  if(!nl->IsEqual(param2, "string"))
+    return nl->SymbolAtom ( "typeerror: param2 should be string" );
 
    ListExpr res = nl->TwoElemList(
              nl->SymbolAtom("stream"),
@@ -15162,6 +15042,79 @@ ListExpr OpTMCheckRoadsTypeMap ( ListExpr args )
   return result; 
   
   
+}
+
+
+/*
+TypeMap fun for operator tmjoin
+
+*/
+ListExpr OpTMTMJoin1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xRoutesRelDesc = nl->First ( args );
+
+  if ( !IsRelDescription ( xRoutesRelDesc ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType;
+  nl->ReadFromString ( TM_Join::RoadSectionTypeInfo, xType );
+  if ( !CompareSchemas ( xRoutesRelDesc, xType ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr cellRelDesc = nl->Second( args );
+
+  if ( !IsRelDescription ( cellRelDesc ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType2;
+  nl->ReadFromString ( TM_Join::CellBoxTypeInfo, xType2 );
+  if ( !CompareSchemas ( cellRelDesc, xType2 ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+
+
+  ListExpr param3 = nl->Third( args );
+
+ if(!listutils::isRTreeDescription(param3) )
+    return listutils::typeError("param3 should be an rtree" );
+
+
+//  return nl->SymbolAtom ( "bool" );
+
+
+  ListExpr result =
+
+        nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Secid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Cellid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Cnt"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Cover_area"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+  return result; 
+
 }
 
 int GetContourSelect(ListExpr args)
@@ -17811,20 +17764,20 @@ int OpTMCreateBusRouteValueMap1 ( Word* args, Word& result, int message,
       case OPEN:{
         Network* n = (Network*)args[0].addr;
         Relation* r = (Relation*)args[1].addr; 
-        BTree* btree = (BTree*)args[6].addr;
-        
+        BTree* btree = (BTree*)args[5].addr;
+        string type = ((CcString*)args[6].addr)->GetValue();
+
 
         int attr1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
         int attr2 = ((CcInt*)args[8].addr)->GetIntval() - 1;
         int attr3 = ((CcInt*)args[9].addr)->GetIntval() - 1;
-        int attr4 = ((CcInt*)args[10].addr)->GetIntval() - 1;
-        
-        
+
+
         br = new BusRoute(n,r,btree);
         br->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         
-        br->CreateRoute1(attr1,attr2,attr3,attr4);
+        br->CreateRoute1(attr1,attr2,attr3, type);
         local.setAddr(br);
         return 0;
       }
@@ -18157,17 +18110,19 @@ int OpTMCreateBusStopValueMap1 ( Word* args, Word& result, int message,
         Relation* r1 = (Relation*)args[1].addr; 
         Relation* r2 = (Relation*)args[6].addr;
         BTree* btree = (BTree*)args[7].addr; 
+        string type = ((CcString*)args[8].addr)->GetValue();
 
-        int attr1 = ((CcInt*)args[8].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[9].addr)->GetIntval() - 1;
-        int attr3 = ((CcInt*)args[10].addr)->GetIntval() - 1;
-        int attr4 = ((CcInt*)args[11].addr)->GetIntval() - 1;
+        int attr1 = ((CcInt*)args[9].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[10].addr)->GetIntval() - 1;
+        int attr3 = ((CcInt*)args[11].addr)->GetIntval() - 1;
+        int attr4 = ((CcInt*)args[12].addr)->GetIntval() - 1;
+        
         
         br = new BusRoute(n,r1,NULL,NULL);
         br->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         
-        br->CreateBusStop1(attr1, attr2, attr3, attr4, r2, btree);
+        br->CreateBusStop1(attr1, attr2, attr3, attr4, r2, btree, type);
         local.setAddr(br);
         return 0;
       }
@@ -19340,6 +19295,115 @@ int OpTMGetAdjNodeBGBSValueMap ( Word* args, Word& result, int message,
 }
 
 /*
+for each metro stop, find neighbor bus stops by searching on the metro graph 
+  the input is metro stop node id 
+
+*/
+int OpTMGetAdjNodeMGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  MNNav* m_n;
+  switch(message){
+      case OPEN:{
+        MetroGraph* mg = (MetroGraph*)args[0].addr;
+        int nodeid = ((CcInt*)args[1].addr)->GetIntval();
+
+        m_n = new MNNav(NULL);
+        m_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        m_n->GetAdjNodeMG(mg, nodeid);
+
+        local.setAddr(m_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          m_n = (MNNav*)local.addr;
+          if(m_n->count == m_n->ms_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(m_n->resulttype);
+
+          tuple->PutAttribute(0, new Bus_Stop(m_n->ms_list1[m_n->count]));
+          tuple->PutAttribute(1, new Bus_Stop(m_n->ms_list2[m_n->count]));
+          tuple->PutAttribute(2, new SimpleLine(m_n->path_list[m_n->count]));
+          tuple->PutAttribute(3, new CcInt(true,m_n->type_list[m_n->count]));
+
+          result.setAddr(tuple);
+          m_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            m_n = (MNNav*)local.addr;
+            delete m_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+/*
+for each junction, find neighbor junctions by searching on the road graph 
+  the input is junction id 
+
+*/
+int OpTMGetAdjNodeRGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  RoadNav* r_n;
+  switch(message){
+      case OPEN:{
+        RoadGraph* rg = (RoadGraph*)args[0].addr;
+        int nodeid = ((CcInt*)args[1].addr)->GetIntval();
+
+        r_n = new RoadNav();
+        r_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        r_n->GetAdjNodeRG(rg, nodeid);
+
+        local.setAddr(r_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          r_n = (RoadNav*)local.addr;
+          if(r_n->count == r_n->jun_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(r_n->resulttype);
+
+          tuple->PutAttribute(0, new GPoint(r_n->jun_list1[r_n->count]));
+          tuple->PutAttribute(1, new GPoint(r_n->jun_list2[r_n->count]));
+          tuple->PutAttribute(2, new GLine(r_n->gline_list[r_n->count]));
+          tuple->PutAttribute(3, new CcInt(true, r_n->type_list[r_n->count]));
+
+          result.setAddr(tuple);
+          r_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            r_n = (RoadNav*)local.addr;
+            delete r_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+
+/*
 navigation system in the bus network. 
 it provides two kinds of shortest path from one bus stop to another:
 1) length; 2) time 
@@ -20264,60 +20328,13 @@ convert trains, buses to generic moving objects
 int OpTMRefMO2GenMOValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-  string tm = ((CcString*)args[0].addr)->GetValue();
-  if(GetTM(tm) == TM_METRO){ /////////metros 
-      UBTrain* ubtrain;
-      switch(message){
-        case OPEN:{
-
-        Relation* r1 = (Relation*)args[1].addr;
-        Relation* r2 = (Relation*)args[2].addr; 
-        BTree* btree = (BTree*)args[3].addr; 
-
-        ubtrain = new UBTrain(r1, r2, btree);
-        ubtrain->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        ubtrain->TrainsToGenMO();
-        local.setAddr(ubtrain);
-        return 0;
-        }
-        case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          ubtrain = (UBTrain*)local.addr;
-          if(ubtrain->count == ubtrain->genmo_list.size())return CANCEL;
-
-          Tuple* tuple = new Tuple(ubtrain->resulttype);
-          tuple->PutAttribute(0,
-                       new GenMO(ubtrain->genmo_list[ubtrain->count]));
-          tuple->PutAttribute(1,
-                       new MPoint(ubtrain->mp_list[ubtrain->count]));
-          tuple->PutAttribute(2,
-                       new CcInt(true, ubtrain->br_id_list[ubtrain->count]));
-          tuple->PutAttribute(3,
-                    new CcBool(true, ubtrain->direction_list[ubtrain->count]));
-
-          result.setAddr(tuple);
-          ubtrain->count++;
-          return YIELD;
-        }
-        case CLOSE:{
-          if(local.addr){
-            ubtrain = (UBTrain*)local.addr;
-            delete ubtrain;
-            local.setAddr(Address(0));
-          }
-          return 0;
-        }
-    }
-  }else if(GetTM(tm) == TM_BUS){///////////////moving buses 
       BNNav* bn_nav;
       switch(message){
         case OPEN:{
 
-        Relation* r1 = (Relation*)args[1].addr;
-        Relation* r2 = (Relation*)args[2].addr; 
-        BTree* btree = (BTree*)args[3].addr; 
+        Relation* r1 = (Relation*)args[0].addr;
+        Relation* r2 = (Relation*)args[1].addr; 
+        BTree* btree = (BTree*)args[2].addr; 
 
         bn_nav = new BNNav(NULL);
         bn_nav->resulttype =
@@ -20353,11 +20370,7 @@ int OpTMRefMO2GenMOValueMap ( Word* args, Word& result, int message,
           return 0;
         }
     }
-  
-  
-  }
   return 0;
-
 }
 
 /*
@@ -20652,12 +20665,13 @@ int OpTMCreateMetroRouteValueMap ( Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         DualGraph* dg = (DualGraph*)args[0].addr;
+        string type = ((CcString*)args[1].addr)->GetValue();
 
         ub_train = new MetroStruct();
         ub_train->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        ub_train->CreateMRoute(dg);
+        ub_train->CreateMRoute(dg, type);
         local.setAddr(ub_train);
         return 0;
       }
@@ -21227,16 +21241,6 @@ int OpTMCheckRoadsmap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
-//   Relation* rel = (Relation*)args[0].addr;
-// 
-//   result = qp->ResultStorage(in_pSupplier);
-//   CcBool* res = static_cast<CcBool*>(result.addr);
-// 
-//   res->Set(true, true);
-// 
-//   DataClean* datacl = new DataClean(); 
-//   datacl->CheckRoads(rel);
-//   delete datacl;
 
   DataClean* datacl;
   switch(message){
@@ -21275,6 +21279,63 @@ int OpTMCheckRoadsmap ( Word* args, Word& result, int message,
           if(local.addr){
             datacl = (DataClean*)local.addr;
             delete datacl;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
+
+/*
+join: roads and cell box
+
+*/
+int OpTMTMJoin1map ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  TM_Join* tm_join;
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[2].addr;
+
+        tm_join = new TM_Join(); 
+        tm_join->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        tm_join->Road_Cell_Join(rel1,rel2, rtree);
+        local.setAddr(tm_join);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          tm_join = (TM_Join*)local.addr;
+          if(tm_join->count == tm_join->id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(tm_join->resulttype);
+          tuple->PutAttribute(0, 
+                            new CcInt(true, tm_join->sec_list[tm_join->count]));
+          tuple->PutAttribute(1, 
+                             new CcInt(true, tm_join->id_list[tm_join->count]));
+          tuple->PutAttribute(2, 
+                      new CcInt(true, tm_join->count_list[tm_join->count]));
+          tuple->PutAttribute(3, 
+                      new Region(tm_join->area_list[tm_join->count]));
+
+          result.setAddr(tuple);
+          tm_join->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            tm_join = (TM_Join*)local.addr;
+            delete tm_join;
             local.setAddr(Address(0));
           }
           return 0;
@@ -21644,14 +21705,6 @@ Operator myinside(
     OpTMMyInsideTypeMap
 );
 
-Operator getadjnode_dg(
-    "getadjnode_dg",
-    OpTMGetAdjNodeDGSpec,
-    OpTMGetAdjNodeDGValueMap,
-    Operator::SimpleSelect,
-    OpTMGetAdjNodeDGTypeMap
-);
-
 Operator decomposetri(
     "decomposetri",
     OpTMDecomposeTriSpec,
@@ -21669,13 +21722,7 @@ Operator createvgraph(
     OpTMCreateVGTypeMap
 );
 
-Operator getadjnode_vg(
-    "getadjnode_vg",
-    OpTMGetAdjNodeVGSpec,
-    OpTMGetAdjNodeVGValueMap,
-    Operator::SimpleSelect,
-    OpTMGetAdjNodeVGTypeMap
-);
+
 ValueMapping getcontourVM[]=
 {
   OpTMGetContourValueMapFile,
@@ -22036,30 +22083,45 @@ Operator createbgraph(
   OpTMCreateBusGraphTypeMap
 );
 
-ValueMapping OpTMGetAdjNodeBGVM[]=
+ValueMapping OpTMGetAdjNodeVM[]=
 {
+  OpTMGetAdjNodeVGValueMap,
+  OpTMGetAdjNodeDGValueMap,
   OpTMGetAdjNodeBGIntValueMap,
-  OpTMGetAdjNodeBGBSValueMap
+  OpTMGetAdjNodeBGBSValueMap,
+  OpTMGetAdjNodeIGValueMap,
+  OpTMGetAdjNodeMGValueMap,
+  OpTMGetAdjNodeRGValueMap
 };
 
-int GetAdjNodeBGSelect(ListExpr args)
+int GetAdjNodeSelect(ListExpr args)
 {
+  ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
-  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "int"))
+  if(nl->IsEqual(arg1, "visualgraph") && nl->IsEqual(arg2, "int"))
     return 0;
-  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "busstop"))
+  if(nl->IsEqual(arg1, "dualgraph") && nl->IsEqual(arg2, "int"))
     return 1;
-
+  if(nl->IsEqual(arg1, "busgraph") && nl->IsEqual(arg2, "int"))
+    return 2;
+  if(nl->IsEqual(arg1, "busgraph") && nl->IsEqual(arg2, "busstop"))
+    return 3;
+  if(nl->IsEqual(arg1, "indoorgraph") && nl->IsEqual(arg2, "int"))
+    return 4;
+  if(nl->IsEqual(arg1, "metrograph") && nl->IsEqual(arg2, "int"))
+    return 5;
+  if(nl->IsEqual(arg1, "roadgraph") && nl->IsEqual(arg2, "int"))
+    return 6;
   return -1;
 }
 
-Operator getadjnode_bg(
-  "getadjnode_bg", 
-  OpTMGetAdjNodeBGSpec,
-  2,
-  OpTMGetAdjNodeBGVM,
-  GetAdjNodeBGSelect,
-  OpTMGetAdjNodeBGTypeMap
+Operator getadjnode(
+  "getadjnode", 
+  OpTMGetAdjNodeSpec,
+  7,
+  OpTMGetAdjNodeVM,
+  GetAdjNodeSelect,
+  OpTMGetAdjNodeTypeMap
 );
 
 Operator bnnavigation(
@@ -22340,6 +22402,15 @@ Operator checkroads(
     OpTMCheckRoadsTypeMap
 );
 
+Operator tm_join1(
+    "tm_join1",
+    OpTMTMJoin1Spec,
+    OpTMTMJoin1map,
+    Operator::SimpleSelect,        // selection function
+    OpTMTMJoin1TypeMap
+);
+
+
 /*
 Main Class for Transportation Mode
 data types and operators 
@@ -22440,7 +22511,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&decomposetri);
     AddOperator(&getvgedge);
     AddOperator(&createvgraph);//create a visibility graph 
-    AddOperator(&getadjnode_vg);//get adjacent nodes for a visibility graph node
+    
     AddOperator(&walk_sp_old);//trip planning for pedestrian 
     AddOperator(&test_walk_sp); //test the algorithm of trip planning 
     AddOperator(&walk_sp);//trip planning for pedestrian 
@@ -22453,7 +22524,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&triangulation_new);
     AddOperator(&triangulation_new2);
     AddOperator(&get_dg_edge);//create dual graph edge relation 
-    AddOperator(&getadjnode_dg);//get adjacent nodes for a dual graph node 
+
     AddOperator(&smcdgte);//simple method to create dual graph, traverse RTree
     ////////////////////data process///////////////////////////////////
     AddOperator(&generate_wp1);
@@ -22503,7 +22574,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&bs_neighbors2);//bus stops with same 2D point, different routes
     AddOperator(&bs_neighbors3);//connected by moving buses 
     AddOperator(&createbgraph);//create bus network graph 
-    AddOperator(&getadjnode_bg); //get neighbor nodes of a given node in bg 
+    AddOperator(&getadjnode); //get neighbor nodes of a given node in vg,dg,bg..
     AddOperator(&bnnavigation);bnnavigation.SetUsesArgsInTypeMapping();
    AddOperator(&test_bnnavigation);test_bnnavigation.SetUsesArgsInTypeMapping();
     //////////////preprocess road data to get denstiy value/////////////
@@ -22524,7 +22595,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_time_table2_new);//compact storage of train time tables 
     ///////////////////////////////////////////////////////////////////
     ///////////convert berlin trains to genmo///////////////
-    AddOperator(&refmo2genmo); refmo2genmo.SetUsesArgsInTypeMapping();
+    AddOperator(&refmo2genmo);
     AddOperator(&themetronetwork);//create metro network infrastructure 
     AddOperator(&ms_neighbors1);//create one kind of metro graph edges 
     AddOperator(&ms_neighbors2);//create one kind of metro graph edges(moving)
@@ -22568,7 +22639,6 @@ class TransportationModeAlgebra : public Algebra
 
     AddOperator(&path_in_region);//shortest path between two points inside a reg
     AddOperator(&createigraph);//create indoor graph 
-    AddOperator(&getadjnode_ig); //get adjacent node 
     AddOperator(&generate_ip1);//generate indoor positions 
     AddOperator(&generate_mo1);//generate moving objects:int indoor,real:+genmo
     AddOperator(&getindoorpath);//read indoor paths from files 
@@ -22643,11 +22713,13 @@ class TransportationModeAlgebra : public Algebra
    ///////////////overall navigation system///////////////////////////////
    /////////////////////////////////////////////////////////////////////
    AddOperator(&navigation1);//navigation with modes bus and walk 
+
    //////////////////////////////////////////////////////////////////
    /////////////// data clean process////////////////////////////////
    ///////////////////////////////////////////////////////////////////
    AddOperator(&modifyline);
    AddOperator(&checkroads);
+   AddOperator(&tm_join1);
 
   }
   ~TransportationModeAlgebra() {};

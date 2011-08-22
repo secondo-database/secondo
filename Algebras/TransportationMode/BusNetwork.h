@@ -293,16 +293,18 @@ struct BusRoute{
   static string BusStopTemp1TypeInfo;
   
   ////////////rough description of bus routes/////////////////////////////
-  void CreateRoute1(int attr1,int attr2,int attr3,int attr4); 
+  void CreateRoute1(int attr2,int attr3,int attr4,string type); 
   void BuildRoute(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1, int attr1, 
-                  int bus_no, int type);
-  void BuildRoute_Limit(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1, int attr1, 
-                     int bus_no, unsigned int limit_no);
-  int FindEndCell(Section_Cell& start_cell,
-                  vector<Section_Cell>& cell_list, float dist_val); 
+                     vector<Section_Cell> cell_list1,int type,bool);
 
+  void BuildRoute_Limit(vector<Section_Cell>& cell_list3,
+                     vector<Section_Cell> cell_list1,unsigned int limit_no);
+  void BuildRoute_Limit2(vector<Section_Cell>& cell_list3,
+                     vector<Section_Cell> cell_list1, unsigned int limit_no);
+  int FindEndCell1(Section_Cell& start_cell, vector<Section_Cell>& cell_list, 
+                  float dist_val, bool start); 
+  int FindEndCell2(Section_Cell& start_cell, vector<Section_Cell>& cell_list,
+                  float dist_val); 
   bool ConvertGLine(GLine* gl1, GLine* gl2); 
   /////////////////////////////create bus routes//////////////////////////
   void CreateRoute2(Space*, int attr,int attr1,int attr2,int attr3); 
@@ -314,8 +316,11 @@ struct BusRoute{
   float BusRouteInRoad(int);
   /////////////////////////////create bus stops/////////////////////
   void CreateBusStop1(int attr1,int attr2,int attr3, int attr4,
-                      Relation*, BTree*); 
-  void CreateStops(int br_id, GLine* gl, Line* l, int route_type); 
+                      Relation*, BTree*, string type); 
+  void InitializeDistStop(vector<double>&, vector<double>&, vector<double>&,
+                          string type);
+  void CreateStops(int br_id, GLine* gl, Line* l, int route_type,
+                   vector<double>, vector<double>, vector<double>);
   bool FindNextStop(vector<SectTreeEntry> sec_list,
                     unsigned int& last_sec_index,double& last_sec_start,
                     double& last_sec_end, double& last_sec_gp_pos,
@@ -367,7 +372,8 @@ struct BusRoute{
   void CreateRoutes(vector<TupleId>& tid_list, int br_id,
                             SimpleLine* sl, bool small, bool d); 
 
-  void GetPosOnSL(SimpleLine* sl, Point loc, double& pos);
+  void GetPosOnSL(SimpleLine* sl, Point loc, double& pos, 
+                  vector<MyHalfSegment>&);
 
 };
 
@@ -1214,6 +1220,7 @@ struct BNNav{
   void MPToGenMO(MPoint* mp, unsigned int br_id, bool dir, Relation* br_rel,
                  BTree* btree);
 
+
 };
 //////////////////////////////////////////////////////////////////////////
 ///////////////////////underground trains////////////////////////////////
@@ -1452,7 +1459,7 @@ struct MetroStruct{
  //////////////////create railway routes and stops/////////////////////////
  //////////////////not use the data from berlintest or berlinmod////////////
  ////////////////////////////////////////////////////////////////////////////
- void CreateMRoute(DualGraph* dg);
+ void CreateMRoute(DualGraph* dg, string);
  bool BuildMetroRoute(vector<int> path_list, DualGraph* dg, int count);
 
  void CreateMStop(Relation*);
@@ -1718,6 +1725,8 @@ struct MNNav{
   vector<Bus_Stop> ms_list1;
   vector<Bus_Stop> ms_list2;
   vector<int> mr_id_list;
+
+  vector<int> type_list;
   
   unsigned int count;
   TupleType* resulttype;
@@ -1737,9 +1746,39 @@ struct MNNav{
                             vector<BNPath_elem>& expand_queue,
                             MetroNetwork* mn, MetroGraph* mg,
                             Point& start_p, Point& end_p);
+  void GetAdjNodeMG(MetroGraph* mg, int nodeid);
+  
 };
 
 
+/*
+improve join 
+
+*/
+struct TM_Join{
+
+  vector<int> id_list;
+  vector<int> cell_id_list;
+  vector<Region> area_list;
+  vector<int> count_list;
+  vector<int> sec_list;
+  
+  unsigned int count;
+  TupleType* resulttype;
+  
+  TM_Join(){count = 0; resulttype = NULL;}
+  ~TM_Join(){if(resulttype != NULL) delete resulttype;}
+  
+  static string CellBoxTypeInfo;
+  static string RoadSectionTypeInfo;
+  
+  enum CellBox{TM_JOIN_ID, TM_JOIN_AREA, TM_JOIN_X, TM_JOIN_Y};
+  
+  void Road_Cell_Join(Relation* rel, Relation* rel2, R_Tree<2,TupleId>* rtree);
+  void DFTraverse(Relation* rel, R_Tree<2,TupleId>* rtree,
+                           SmiRecordId adr, Line* l, vector<int>& id_list);
+
+};
 
 #endif
 

@@ -2371,35 +2371,6 @@ bool MyInside(Line* l, Region* r)
      if(!RegContainHS(r, hs)) return false;
    }
 
-  //////////////////debuging///////////////////////////
-/*  for(int i = 0;i < l->Size();i++){
-    HalfSegment hs1;
-    l->Get(i, hs1);
-    if(!hs1.IsLeftDomPoint()) continue;
-    int count = 0;
-
-    Point lp1 = hs1.GetLeftPoint();
-    Point rp1 = hs1.GetRightPoint();
-    for(int j = 0;j < l->Size();j++){
-      HalfSegment hs2;
-      l->Get(j, hs2);
-      if(!hs2.IsLeftDomPoint() || j == i) continue;
-      Point lp2 = hs2.GetLeftPoint();
-      Point rp2 = hs2.GetRightPoint();
-      if(AlmostEqual(lp1, lp2) || AlmostEqual(lp1, rp2)) count++;
-      if(AlmostEqual(rp1, lp2) || AlmostEqual(rp1, rp2)) count++;
-    }
-
-    if(count != 2){
-      cout<<"i "<<i<<" "<<hs1<<" count "<<count<<endl;
-    }
-  }*/
-
-   ////////////the program crashes, if the number is 10000000/////
-   ///////////////segmentation fault///////////////
-   //////////////// 100000 is ok////////////////////////////////
-//   MyPoint big_regs[100000];
-
   return true;
 }
 
@@ -2534,24 +2505,14 @@ void SpacePartition::TransferSegment(MyHalfSegment& mhs,
     Point p1,p2,p3,p4;
 
     if(AlmostEqual(from.GetX(),to.GetX())){
- /*     next_from1.Set(from.GetX() + delta, from.GetY());
-      next_to1.Set(to.GetX() + delta, to.GetY());
-      MyHalfSegment* seg = new MyHalfSegment(true,next_from1,next_to1);
-      boundary.push_back(*seg);
-      delete seg;
-      return;*/
+
       p1.Set(from.GetX() - delta,from.GetY());
       p2.Set(from.GetX() + delta,from.GetY());
       p3.Set(to.GetX() - delta, to.GetY());
       p4.Set(to.GetX() + delta, to.GetY());
     }
     else if(AlmostEqual(from.GetY(), to.GetY())){
-/*      next_from1.Set(from.GetX(),from.GetY() - delta);
-      next_to1.Set(to.GetX(), to.GetY() - delta);
-      MyHalfSegment* seg = new MyHalfSegment(true,next_from1,next_to1);
-      boundary.push_back(*seg);
-      delete seg;
-      return;*/
+
       p1.Set(from.GetX(), from.GetY() - delta);
       p2.Set(from.GetX(), from.GetY() + delta);
       p3.Set(to.GetX(), to.GetY() - delta);
@@ -2580,6 +2541,8 @@ void SpacePartition::TransferSegment(MyHalfSegment& mhs,
       p2.Set(x2,y2);
       p3.Set(x3,y3);
       p4.Set(x4,y4);
+//      cout<<"k1: "<<k1<<" k2: "<<k2<<endl;
+//      cout<<p3<<" "<<p4<<endl;
     }
 
     vector<Point> clock_wise;
@@ -2600,6 +2563,11 @@ void SpacePartition::TransferSegment(MyHalfSegment& mhs,
 //         <<" counter clock size "<<counterclock_wise.size()<<endl;
 //      cout<<"from "<<from<<" to "<<to
 //         <<" p1 "<<p1<<" p2 "<<p2<<" p3 "<<p3<<" p4 "<<p4<<endl;
+
+/*  if(!(clock_wise.size() == 2 && counterclock_wise.size() == 2)){
+      cout<<"from "<<from<<" to "<<to<<endl;
+      cout<<" p1 "<<p1<<" p2 "<<p2<<" p3 "<<p3<<" p4 "<<p4<<endl;
+    }*/     ////////// y value of two points are too close
 
     assert(clock_wise.size() == 2 && counterclock_wise.size() == 2);
     if(clock_flag){
@@ -2720,11 +2688,11 @@ void SpacePartition::Gettheboundary(vector<MyHalfSegment>& segs,
           Point q1;
           q1.Set(x,y);
           Point q2 = segs[i].GetRightPoint();
-//          cout<<"q1 "<<q1<<" q2 "<<q2<<endl;
-          if(q1.Distance(q2) > 5*delta){
 
-//            assert(false);
-//            cout<<"special case"<<endl;
+          if(q1.Distance(q2) > 5*delta){//reason: two roads points (y) too close
+//             cout<<"special case: (needs to be processed)"<<endl;
+//             cout<<"q1 "<<q1<<" q2 "<<q2<<endl;
+ //           assert(false);
           }
           /////////////////////////////////////////////////////
           boundary[i].to.Set(x,y);
@@ -2946,39 +2914,7 @@ void SpacePartition::ExtendSeg3(vector<MyHalfSegment>& segs,int delta,
     
     outer.push_back(boundary[boundary.size() - 1].GetRightPoint());
 //    cout<<"outer size "<<outer.size()<<endl; 
-    
-/*      if(clock_wise){
-        for(unsigned int i = 0;i < boundary.size();i++){
-          ///////////////outer segments////////////////////////////////
-          Point p = boundary[i].GetLeftPoint();
 
-          ModifyPoint(p);
-
-          /////////////////////////////////////////////////////////
-          if(i == 0){
-              outer.push_back(boundary[i].GetLeftPoint());
-          }
-          else{
-            outer.push_back(p);
-
-          }
-        }
-
-      }else{
-        for(int i = boundary.size() - 1;i >= 0;i--){
-          /////////////////////////////////////////////////////////////
-          Point p = boundary[i].GetRightPoint();
-          ModifyPoint(p);
-         /////////////////////////////////////////////////////////////
-          if((unsigned)i == boundary.size() - 1){
-              outer.push_back(boundary[i].GetRightPoint());
-
-          }else{
-              outer.push_back(p);
-          }
-        }
-
-      }*/
 
 }
 

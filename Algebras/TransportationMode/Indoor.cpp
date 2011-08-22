@@ -5195,6 +5195,14 @@ get all adjacent nodes for a given node. indoor graph
 
 void IndoorNav::GetAdjNodeIG(int oid)
 {
+    if(oid < 1 || oid > ig->GetNodeRel()->GetNoTuples()){
+      cout<<"invalid oid "<<oid<<endl;
+      return;
+    }
+
+    cout<<"total "<<ig->GetNodeRel()->GetNoTuples()<<" nodes "<<endl;
+    cout<<"total "<<ig->GetEdgeRel()->GetNoTuples()<<" edges "<<endl;
+
     vector<int> adj_list;
     ig->FindAdj(oid, adj_list);
 //    cout<<"adj_list size "<<adj_list.size()<<endl; 
@@ -5219,7 +5227,7 @@ it contains OR, CO, BR
 */
 void IndoorNav::GenerateIP1(int num)
 {
-  int no_rooms = rel1->GetNoTuples(); 
+  int no_rooms = rel1->GetNoTuples();
 
 //  struct timeval tval;
 //  struct timezone tzone;

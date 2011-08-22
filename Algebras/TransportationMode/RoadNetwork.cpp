@@ -1755,3 +1755,90 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
 
 }
+
+
+/*
+get all neighbor junction nodes for a given junction 
+
+*/
+void RoadNav::GetAdjNodeRG(RoadGraph* rg, int nodeid)
+{
+  if(rg->GetNode_Rel() == NULL){
+    cout<<"no road graph node rel"<<endl;
+    return; 
+  }
+  if(nodeid < 1 || nodeid > rg->GetNode_Rel()->GetNoTuples()){
+      cout<<"invalid node id "<<endl; 
+      return; 
+  }
+
+  cout<<"total "<<rg->GetNode_Rel()->GetNoTuples()<<" nodes "<<endl;
+  cout<<"total "<<rg->GetEdge_Rel1()->GetNoTuples() +
+                  rg->GetEdge_Rel2()->GetNoTuples()<<" edges "<<endl;
+
+  Relation* node_rel = rg->GetNode_Rel();
+  
+  Tuple* jun_tuple = node_rel->GetTuple(nodeid, false);
+  GPoint* jun1 = (GPoint*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_GP);
+//  cout<<*jun1<<endl; 
+
+///////////////////////////////////////////////////////////////////////////
+  //////the first kind of connection (no path; the same spatial location)////
+  ////////////////////////////////////////////////////////////////////////////
+  vector<int> tid_list1; 
+  rg->FindAdj1(nodeid, tid_list1); 
+  
+  for(unsigned int i = 0;i < tid_list1.size();i++){
+    Tuple* edge_tuple = rg->GetEdge_Rel1()->GetTuple(tid_list1[i], false);
+    int neighbor_id = 
+     ((CcInt*)edge_tuple->GetAttribute(RoadGraph::RG_JUN2))->GetIntval();
+    edge_tuple->DeleteIfAllowed();
+
+    Tuple* jun_neighbor1 = node_rel->GetTuple(neighbor_id, false);
+    GPoint* gp2 = (GPoint*)jun_neighbor1->GetAttribute(RoadGraph::RG_JUN_GP);
+
+    GLine* path = new GLine(0);
+
+    jun_list1.push_back(*jun1);
+    jun_list2.push_back(*gp2);
+    gline_list.push_back(*path);
+    delete path; 
+
+    jun_neighbor1->DeleteIfAllowed();
+    type_list.push_back(1); 
+  }
+  
+  ////////////////////////////////////////////////////////////////////
+  //////the second kind of connection (connected by moving metros)////
+  ////////////////////////////////////////////////////////////////////
+  
+  vector<int> tid_list2; 
+  rg->FindAdj2(nodeid, tid_list2); 
+
+  for(unsigned int i = 0;i < tid_list2.size();i++){
+
+    Tuple* edge_tuple = rg->GetEdge_Rel2()->GetTuple(tid_list2[i], false);
+    int neighbor_id = 
+     ((CcInt*)edge_tuple->GetAttribute(RoadGraph::RG_JUN_2))->GetIntval();
+    Tuple* jun_neighbor2 = node_rel->GetTuple(neighbor_id, false);
+
+    GPoint* gp3 = 
+      (GPoint*)jun_neighbor2->GetAttribute(RoadGraph::RG_JUN_GP);
+
+
+    GLine* path = 
+          (GLine*)edge_tuple->GetAttribute(RoadGraph::RG_PATHA1);
+    jun_list1.push_back(*jun1);
+    jun_list2.push_back(*gp3);
+    gline_list.push_back(*path);
+
+    edge_tuple->DeleteIfAllowed();
+    jun_neighbor2->DeleteIfAllowed();
+
+    type_list.push_back(2); 
+  }
+
+
+
+  jun_tuple->DeleteIfAllowed();
+}

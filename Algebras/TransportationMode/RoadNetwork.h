@@ -249,6 +249,11 @@ struct RoadNav{
   vector<SimpleLine> path_list; 
   vector<GLine> gline_list;
   
+  vector<GPoint> jun_list1;
+  vector<GPoint> jun_list2;
+  vector<int> type_list;
+  
+  
   unsigned int count;
   TupleType* resulttype;
   
@@ -268,6 +273,11 @@ struct RoadNav{
   void DFTraverse(Network* rn, R_Tree<2,TupleId>* rtree, 
                           SmiRecordId adr, 
                           SimpleLine* line, vector<GPoint_Dist>& id_list);
+
+  void GetAdjNodeRG(RoadGraph* rg, int nodeid);
+  
+  
+  
 };
 
 #define LOOP_PRINT1(s) for(unsigned int i = 0; i < s.size();i++){ \

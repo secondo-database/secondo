@@ -225,17 +225,6 @@ Signature: line x region -> bool
 Example  : query l2 myinside r2;
 Result   : TRUE
 
-Operator : getadjnode_dg
-Number   : 2
-Signature: dualgraph x int -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getadjnode_dg(dg1,1) count;
-Result   : 3
-
-Operator : getadjnode_vg
-Number   : 2
-Signature: visualgraph x int -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getadjnode_vg(vg1,1) count;
-Result   : 3
 
 Operator : decomposetri
 Number   : 2
@@ -310,8 +299,8 @@ Result   : 10
 
 Operator : create_bus_route1
 Number   : 2
-Signature: network x rel x attr_1 x attr_2 x attr_3 x attr4 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route1(n,street_sections_cell,sid_s,cellid_w_a_c,Cnt_a_c,cover_area_b_c, section_cell_index) count; 
+Signature: network x rel x attr_1 x attr_2 x attr_3 x btree x string-> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_route1(n,street_sections_cell,cellid_w_a_c,Cnt_a_c,cover_area_b_c, section_cell_index, "Berlin") count; 
 Result   : 75 
 
 
@@ -351,8 +340,8 @@ Result   : 10
 
 Operator : create_bus_stop1
 Number   : 2
-Signature: network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree-> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type,subpaves2, btree_pave2) count; 
+Signature: network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree x string-> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type,subpaves2, btree_pave2, "Berlin") count; 
 Result   : 10
 
 
@@ -474,10 +463,10 @@ Signature: int x rel1 x rel2 x rel3 x rel4 -> busgraph
 Example  : query createbgraph(1, node_rel, edge_rel1, edge_rel2, edge_rel3);
 Result   : file_platform
 
-Operator : getadjnode_bg
+Operator : getadjnode
 Number   : 2
 Signature: busgraph x int  -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getadjnode_bg(bg1, 2) count;
+Example  : query getadjnode(bg1, 2) count;
 Result   : 0
 
 Operator : bnnavigation
@@ -576,8 +565,8 @@ Result   : 10.0
 
 Operator : refmo2genmo 
 Number   : 2
-Signature: string x rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query refmo2genmo("Metro", Trains, ubahn_line, btree_ub_line) count;
+Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query refmo2genmo(Trains, ubahn_line, btree_ub_line) count;
 Result   : 562 
 
 
@@ -609,8 +598,8 @@ Result   : file_platform
 
 Operator : createmetroroute
 Number   : 2
-Signature: dualgraph -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createmetroroute(dg_cell) count;
+Signature: dualgraph x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createmetroroute(dg_cell, "Berlin") count;
 Result   : 10
 
 Operator : createmetrostop
@@ -789,12 +778,6 @@ Number   : 2
 Signature: int x rel x rel x string -> indoorgraph
 Example  : query createigraph(1, node_rel, edge_rel, "UNIVERSITY");
 Result   : file_platform
-
-Operator : getadjnode_ig
-Number   : 2
-Signature: indoorgraph x int -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getadjnode_ig(ig1,1) count;
-Result   : 3
 
 
 Operator : generate_ip1
@@ -1101,4 +1084,10 @@ Signature: relation x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query checkroads(r, rtree_road) count;
 Result   : 3250
 
+
+Operator : tm_join1
+Number   : 1
+Signature: relation x relation x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query tm_join1(r, cell_box, rtree_cell) count;
+Result   : 10
 

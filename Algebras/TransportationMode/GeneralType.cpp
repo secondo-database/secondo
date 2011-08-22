@@ -1586,11 +1586,14 @@ void GenMObject::GenerateCar(Space* sp, Periods* peri, int mo_no,
    while(count <= mo_no){
     int index1 = GetRandom() % gp_loc_list.size();
     GPoint gp1 = gp_loc_list[index1];
+//    GPoint gp1(true, 1, 1184, 500.0, None);////////testing
     Point gp_loc1 = p_loc_list[index1];
 
     int index2 = GetRandom() % gp_loc_list.size();
     GPoint gp2 = gp_loc_list[index2];
+//    GPoint gp2(true, 1, 1966, 32.0, None);//////////testing 
     Point gp_loc2 = p_loc_list[index2];
+
 
     if(index1 == index2 || gp_loc1.Distance(gp_loc2) < min_len) continue;
 
@@ -1602,14 +1605,12 @@ void GenMObject::GenerateCar(Space* sp, Periods* peri, int mo_no,
     assert(sl->AtPosition(gp1.GetPosition(), true, *start_loc));
     road_tuple->DeleteIfAllowed();
 
-
 //    cout<<gp1<<" "<<gp2<<endl;
 
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
     GenerateCarMO(rn, count, peri, gl, rel, *start_loc);
     delete gl;
-
 
 //    loc_list1.push_back(gp_loc1);
 //    loc_list2.push_back(gp_loc2);
@@ -1790,8 +1791,8 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
   MGPoint* mo_gp = new MGPoint(0);
 
   mo->StartBulkLoad();
-  mo_gp->StartBulkLoad();
-  mo_gp->SetDefined(true);
+
+  mo_gp->SetDefined(true);/////////no bulkload for moving gpoint
 
   const double delta_dist = 0.01;
   bool correct = true;
@@ -1805,7 +1806,7 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
     double speed = 
       ((CcReal*)speed_tuple->GetAttribute(SPEED_VAL))->GetRealval();
     speed_tuple->DeleteIfAllowed();
-//    cout<<"rid "<<rid<<" speed "<<speed<<endl; 
+// cout<<ri->GetRouteId()<<" "<<ri->GetStartPos()<<" "<<ri->GetEndPos()<<endl;
 
     if(speed < 0.0)speed = 10.0;
     speed = speed * 1000.0/3600.0;// meters in second 
@@ -1878,9 +1879,7 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
 
 //    }else assert(false);
     }else {
-      ////////compute shortest path in network has a bug ////
-      ////// (1 3232 149.0 2) ---- (1 1487 59 2)///////
-      //////////////////////////////////////////////////////
+
       delete ri;
       correct = false;
       break;
@@ -1895,8 +1894,6 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
   
   if(correct){
     mo->EndBulkLoad();
-    mo_gp->EndBulkLoad();
-
     trip2_list.push_back(*mo);
     trip3_list.push_back(*mo_gp);
   }
@@ -1937,7 +1934,7 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
     //////////////////////////////////////////////////////////////
     if(dist < dist_delta){//ignore such small segment 
         if((i + 1) < seq_halfseg.size()){
-          seq_halfseg[i+1].from = from_loc; 
+          seq_halfseg[i + 1].from = from_loc; 
         }
         continue; 
     }
@@ -1946,6 +1943,16 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
     //double 1.0 means 1 day 
     et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60));
 //    cout<<st<<" "<<et<<endl;
+
+    int64_t start_time = st.ToDouble()*86400000.0;
+    int64_t end_time = et.ToDouble()*86400000.0;
+    if(start_time == end_time){/////////time is equal, unit is not valid
+        if((i + 1) < seq_halfseg.size()){
+          seq_halfseg[i + 1].from = from_loc; 
+        }
+        continue; 
+    }
+
     ////////////////////create a upoint////////////////////////
     up_interval.start = st;
     up_interval.lc = true;
@@ -2002,7 +2009,8 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
                                  double pos_len, bool increase)
 {
 
- const double dist_delta = 0.01;
+  const double dist_delta = 0.01;
+
 //  cout<<"trip2 max speed "<<speed_val<<" start time "<<start_time<<endl; 
   Instant st = start_time;
   Instant et = start_time; 
@@ -2016,14 +2024,25 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
  //   cout<<"dist "<<dist<<" time "<<time<<endl; 
     ///////////////////////////////////////////////////////////////////
     if(dist < dist_delta){//ignore such small segment 
-        if((i + 1) < (int)seq_halfseg.size()){
-          seq_halfseg[i+1].from = from_loc; 
+        if((i - 1) >= 0 ){
+          seq_halfseg[i - 1].to = from_loc; 
         }
         continue; 
     }
 
     //double 1.0 means 1 day 
     et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0*60.0));
+
+    int64_t start_time = st.ToDouble()*86400000.0;
+    int64_t end_time = et.ToDouble()*86400000.0;
+    if(start_time == end_time){/////////time is equal, unit is not valid
+        if((i - 1) >= 0 ){
+          seq_halfseg[i - 1].to = from_loc; 
+        }
+        continue; 
+    }
+
+
 //    cout<<st<<" "<<et<<endl;
     ////////////////////create a upoint////////////////////////
     up_interval.start = st;
@@ -2031,6 +2050,7 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
     up_interval.end = et;
     up_interval.rc = false; 
     UPoint* up = new UPoint(up_interval,from_loc,to_loc);
+
     mo->Add(*up);
     delete up; 
     /////////////////////////////////////////////////////////////
@@ -2048,8 +2068,8 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
 //       cout<<"end "<<" network id "<<networkId<<" route id "<<routeId
 //           <<" side "<<side<<" increase "<<increase
 //           <<" pos1 "<<start_pos<<" pos2 "<<end_pos<<endl;
-//     cout<<"2 time interval "<<up_interval<<endl;
 
+//     cout<<"2 time interval "<<up_interval<<endl;
 
     UGPoint* ugp = 
         new UGPoint(up_interval,networkId,routeId,side,start_pos,end_pos);
