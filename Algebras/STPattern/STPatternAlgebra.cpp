@@ -1535,7 +1535,8 @@ ListExpr ComputeClosure(ListExpr ConstraintList, vector<string> IntervalVars)
     alias= nl->StringValue(nl->Third(STConstraint));
     j= alias2IAIndex[alias];
 
-    if(! relatedPairs.insert(make_pair<int,int>(i,j)).second)
+    if((! relatedPairs.insert(make_pair<int,int>(i,j)).second) ||
+       (! relatedPairs.insert(make_pair<int,int>(j,i)).second))
       return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
 
     IAVector.Clear();
@@ -2251,34 +2252,6 @@ ListExpr RandomDelayTM( ListExpr typeList )
   return (nl->SymbolAtom("mpoint"));
 }
 
-
-/*
-
-Type Operator ~TUPLESTREAM~
-
-Type mapping function of operator ~TUPLESTREAM~
-
-Passes forward a stream(tuple) type.
-
-----    (stream (tuple x))          ->  (stream (tuple x))
-----
-
-*/
-ListExpr TUPLESTREAMTypeMap(ListExpr args)
-{
-  ListExpr stream, tuple;
-  if(nl->ListLength(args) == 2)
-  {
-    stream = nl->First(args);
-    if(nl->IsEqual(stream, "stream"))
-    {
-      tuple = nl->First(stream);
-      if(nl->IsEqual(tuple, "tuple"))
-        return args;
-    }
-  }
-  return nl->SymbolAtom("typeerror");
-}
 
 /*
 4.2 Value Map Functions
@@ -3192,7 +3165,7 @@ const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>(stringlist) -> stvector</text--->"
     "<text>vec( _ )</text--->"
-    "<text>Creates a vector temporal connector.</text--->"
+    "<text>Creates a vector temporal relations.</text--->"
     "<text>let meanwhile = vec(\"abab\",\"abba\",\"aba.b\")</text--->"
     ") )";
 
@@ -3462,20 +3435,6 @@ const string RandomDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "<text>query randomdelay(train7)</text--->"
     ") )";
 
-const string TUPLESTREAMSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Remarks\" ) "
-    "( <text><text>(stream (tuple x)) -> (stream (tuple x)) </text--->"
-    "<text>type operator</text--->"
-    "<text>Pass forward a stream(tuple) type.</text--->"
-    "<text>not for use with sos-syntax</text--->"
-    ") )";
-
-
-int TypeOperatorSelect(ListExpr args)
-{
-  return -1;
-}
 
 /*
 4.4 Operators
@@ -3633,14 +3592,6 @@ Operator randomdelay (
     RandomDelayTM          // type mapping
 );
 
-Operator TUPLESTREAM (
-    "TUPLESTREAM",             // name
-    TUPLESTREAMSpec,           // specification
-    0,                    // no value mapping
-    TypeOperatorSelect,   // trivial selection function
-    TUPLESTREAMTypeMap         // type mapping
-);
-
 /*
 4.5 Algebra Declaration
 
@@ -3702,7 +3653,6 @@ The spattern and stpatternex operators are registered as lazy variables.
   AddOperator(&randommbool);
   AddOperator(&passmbool);
   AddOperator(&randomdelay);
-  AddOperator(&TUPLESTREAM);
 }
 ~STPatternAlgebra() {};
 };
