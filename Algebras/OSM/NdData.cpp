@@ -33,9 +33,9 @@ June-November, 2011. Thomas Uchdorf
 1 Overview
 
 This implementation file contains the implementation of the class
-~NodeData~.
+~NdData~.
 
-For more detailed information see NodeData.h.
+For more detailed information see NdData.h.
 
 2 Defines and Includes
 
@@ -46,84 +46,65 @@ For more detailed information see NodeData.h.
 #define __TRACE__
 
 // --- Including header-files
-#include "NodeData.h"
+#include "NdData.h"
 #include <iostream>
+#include <cassert>
+#include "OsmReader.h"
 
 // --- Constructors
 // Constructor
-NodeData::NodeData ()
-  : m_id (0), m_lon (0.), m_lat (0.), m_amenity (), m_name ()
+NdData::NdData ()
+  : m_ref (0)
 {
    // empty
 }
 
 // Destructor
-NodeData::~NodeData ()
+NdData::~NdData ()
 {
    // empty
 }
 
+// --- Class-function
+NdData NdData::createNdFromElement (const Element &element)
+{
+    NdData nd;
+    std::vector<std::string>::const_iterator itAttrNames;
+    std::vector<std::string>::const_iterator itAttrValues;
+    std::vector<std::string> const & attributeNames =
+        element.getAttributeNames ();
+    std::vector<std::string> const & attributeValues =
+        element.getAttributeValues ();
+    assert (attributeNames.size () == attributeValues.size ());
+    for (itAttrNames = attributeNames.begin (),
+            itAttrValues = attributeValues.begin ();
+            itAttrNames != attributeNames.end ();
+            ++itAttrNames,++itAttrValues)  {
+        if ((*itAttrNames) == "ref")  {
+            nd.setRef (OsmReader::convStrToInt (*itAttrValues));
+            break;
+        }
+    }
+    return nd;
+}
+
 // --- Methods
-void NodeData::setId (const int & id)
+void NdData::setRef (const int & ref)
 {
-    m_id = id;
+    m_ref = ref;
 }
 
-void NodeData::setLon (const double & lon)
+const int & NdData::getRef () const
 {
-    m_lon = lon;
+    return m_ref;
 }
 
-void NodeData::setLat (const double & lat)
+void NdData::print () const
 {
-    m_lat = lat;
+    printNd (*this);
 }
 
-void NodeData::setAmenity (const std::string & amenity)
+void printNd (const NdData &nd)
 {
-    m_amenity = amenity;
-}
-
-void NodeData::setName (const std::string & name)
-{
-    m_name = name;
-}
-
-const int & NodeData::getId () const
-{
-    return m_id;
-}
-
-const double & NodeData::getLon () const
-{
-    return m_lon;
-}
-
-const double & NodeData::getLat () const
-{
-    return m_lat;
-}
-
-const std::string & NodeData::getAmenity () const
-{
-    return m_amenity;
-}
-
-const std::string & NodeData::getName () const
-{
-    return m_name;
-}
-
-void NodeData::print () const
-{
-    printNode (*this);
-}
-
-void printNode (const NodeData &node)
-{
-    std::cout << "NODE Id = " << node.getId ();
-    std::cout << ", Lon = " << node.getLon ();
-    std::cout << ", Lat = " << node.getLat ();
-    std::cout << ", Amenity = " << node.getAmenity ();
-    std::cout << ", Name = " << node.getName () << std::endl;
+    std::cout << "Ref = " << nd.getRef ();
 }

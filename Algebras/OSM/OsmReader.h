@@ -58,7 +58,10 @@ enum ReaderStates {
     ReaderStateInTag = 0x0002,     //00000010
     ReaderStateInWay = 0x0004,     //00000100
     ReaderStateInRelation = 0x0008,//00001000
-    ReaderStateInNodeTag = 0x0003  //00000011
+    ReaderStateInNd = 0x0010,      //00010000
+    ReaderStateInNodeTag = 0x0003, //00000011
+    ReaderStateInWayNd = 0x0014,   //00010100
+    ReaderStateInWayTag = 0x0006   //00000110
 };
 
 // --- Including header-files
@@ -79,19 +82,23 @@ class OsmReader : public XmlParserInterface{
         const std::string & getFileName () const;
         void readOsmFile ();
 
-    protected:
-
         // --- Class-functions
         static int convStrToInt (const std::string &str); 
         static double convStrToDbl (const std::string &str); 
+
+    protected:
 
         // --- Methods
         void pushEmptyElementToStack (const Element &element);
         void pushElementToStack (const Element &element);
         void popElementFromStack (const Element &element);
         void createNodeFromElement (const Element &element);
-        void adjustNodeFromElement (const Element &element);
+        void updateNodeFromElement (const Element &element);
         void addTagElementToNode (const Element &element);
+        void createWayFromElement (const Element &element);
+        void updateWayFromElement (const Element &element);
+        void addNdElementToWay (const Element &element);
+        void addTagElementToWay (const Element &element);
         void prepareElement (const Element &element);
         void finalizeElement (const Element &element);
         const int & getReaderState () const;
@@ -113,8 +120,9 @@ class OsmReader : public XmlParserInterface{
         // --- Constants
         static const int IN_NODE;
         static const int IN_TAG;
-        static const int IN_WAY_TAG;
-        static const int IN_RELATION_TAG;
+        static const int IN_WAY;
+        static const int IN_RELATION;
+        static const int IN_ND;
 
 };
 

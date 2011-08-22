@@ -46,7 +46,7 @@ This header file essentially contains the definition of the class
 #include <stack>
 #include "Element.h"
 
-//#define WITH_LIBXML2_SUPPORT
+#define WITH_LIBXML2_SUPPORT
 #ifdef WITH_LIBXML2_SUPPORT
 #include "libxml/xmlreader.h"
 #endif

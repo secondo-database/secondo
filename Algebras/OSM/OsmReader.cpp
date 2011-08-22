@@ -49,6 +49,7 @@ For more detailed information see OsmReader.h.
 #include "OsmReader.h"
 #include "XmlFileReader.h"
 #include "TagData.h"
+#include "NdData.h"
 #include "BitOperations.h"
 #include <StringUtils.h>
 #include <sstream>
@@ -57,8 +58,9 @@ For more detailed information see OsmReader.h.
 // --- Class-variables
 const int OsmReader::IN_NODE = 1;
 const int OsmReader::IN_TAG = 2;
-const int OsmReader::IN_WAY_TAG = 3;
-const int OsmReader::IN_RELATION_TAG = 4;
+const int OsmReader::IN_WAY = 3;
+const int OsmReader::IN_RELATION = 4;
+const int OsmReader::IN_ND = 5;
 
 // --- Constructors
 // Default-Constructor
@@ -139,7 +141,7 @@ void OsmReader::createNodeFromElement (const Element &element)
     //m_currentNode.print ();
 }
 
-void OsmReader::adjustNodeFromElement (const Element &element)
+void OsmReader::updateNodeFromElement (const Element &element)
 {
     bool foundId = false;
     bool foundLat = false;
@@ -169,13 +171,12 @@ void OsmReader::adjustNodeFromElement (const Element &element)
             break;
         }
     }
-    std::cout << "adjustNodeFromElement () - ";//TEST
-    m_currentNode.print ();//TEST
+    //std::cout << "updateNodeFromElement () - ";//TEST
+    //m_currentNode.print ();//TEST
 }
 
 void OsmReader::addTagElementToNode (const Element &element)
 {
-    //TODO Add interesting tag data to the top element of the stack
     TagData amenity = TagData::createTagFromElement (element, "amenity");
     TagData name = TagData::createTagFromElement (element, "name");
     if (amenity.getValue () != "")
@@ -186,11 +187,80 @@ void OsmReader::addTagElementToNode (const Element &element)
     //m_currentNode.print ();//TEST
 }
 
+void OsmReader::createWayFromElement (const Element &element)
+{
+    m_currentWay = WayData ();
+    //m_currentWay.print ();
+}
+
+void OsmReader::updateWayFromElement (const Element &element)
+{
+    bool foundId = false;
+    std::vector<std::string>::const_iterator itAttrNames;
+    std::vector<std::string>::const_iterator itAttrValues;
+    std::vector<std::string> const & attributeNames =
+        element.getAttributeNames ();
+    std::vector<std::string> const & attributeValues =
+        element.getAttributeValues ();
+    assert (attributeNames.size () == attributeValues.size ());
+    for (itAttrNames = attributeNames.begin (),
+            itAttrValues = attributeValues.begin ();
+            itAttrNames != attributeNames.end ();
+            ++itAttrNames,++itAttrValues)  {
+        if ((*itAttrNames) == "id")  {
+            m_currentWay.setId (convStrToInt (*itAttrValues));
+            foundId = true;
+        }
+        if (foundId)  {
+            break;
+        }
+    }
+    //std::cout << "updateWayFromElement () - ";//TEST
+    //m_currentWay.print ();//TEST
+}
+
+void OsmReader::addNdElementToWay (const Element &element)
+{
+    NdData nd = NdData::createNdFromElement (element);
+    m_currentWay.addRef (nd.getRef ());
+}
+
+void OsmReader::addTagElementToWay (const Element &element)
+{
+    TagData highway = TagData::createTagFromElement (element, "highway");
+    TagData name = TagData::createTagFromElement (element, "name");
+    TagData maxSpeed = TagData::createTagFromElement (element, "maxspeed");
+    TagData oneWay = TagData::createTagFromElement (element, "oneway");
+    TagData layer = TagData::createTagFromElement (element, "layer");
+    TagData bridge = TagData::createTagFromElement (element, "bridge");
+    TagData tunnel = TagData::createTagFromElement (element, "tunnel");
+    TagData ref = TagData::createTagFromElement (element, "ref");
+    if (highway.getValue () != "")
+        m_currentWay.setHighway (highway.getValue ());
+    if (name.getValue () != "")
+        m_currentWay.setName (name.getValue ());
+    if (maxSpeed.getValue () != "")
+        m_currentWay.setMaxSpeed (convStrToInt (maxSpeed.getValue ()));
+    if (oneWay.getValue () != "")
+        m_currentWay.setOneWay (convStrToInt (oneWay.getValue ()));
+    if (layer.getValue () != "")
+        m_currentWay.setLayer (convStrToInt (layer.getValue ()));
+    if (bridge.getValue () != "")
+        m_currentWay.setBridge (bridge.getValue ());
+    if (tunnel.getValue () != "")
+        m_currentWay.setTunnel (tunnel.getValue ());
+    if (ref.getValue () != "")
+        m_currentWay.setRef (ref.getValue ());
+    //std::cout << "addTagElementToWay () - ";//TEST
+    //m_currentWay.print ();//TEST
+}
+
 void OsmReader::prepareElement (const Element &element)
 {
     if (element.getLevel () == 1 && element.getName () == "node")  {
         createNodeFromElement (element);
     } else if (element.getLevel () == 1 && element.getName () == "way")  {
+        createWayFromElement (element);
     } else if (element.getLevel () == 1 && element.getName () == "relation")  {
     } 
 }
@@ -200,11 +270,20 @@ void OsmReader::finalizeElement (const Element &element)
     int const & curState = getReaderState ();
     if (element.getLevel () == 1 && element.getName () == "node"/* &&
         is_bit_set(curState,IN_NODE) != 0*/)  {
-        adjustNodeFromElement (element);
+        updateNodeFromElement (element);
+        m_currentNode.print ();//TEST
     } else if (element.getLevel () == 2 && element.getName () == "tag" &&
                is_bit_set(curState,IN_NODE) != 0)  {
         addTagElementToNode (element); 
     } else if (element.getLevel () == 1 && element.getName () == "way")  {
+        updateWayFromElement (element);
+        m_currentWay.print ();//TEST
+    } else if (element.getLevel () == 2 && element.getName () == "nd" &&
+               is_bit_set(curState,IN_WAY) != 0)  {
+        addNdElementToWay (element); 
+    } else if (element.getLevel () == 2 && element.getName () == "tag" &&
+               is_bit_set(curState,IN_WAY) != 0)  {
+        addTagElementToWay (element); 
     } else if (element.getLevel () == 1 && element.getName () == "relation")  {
     } 
 }
@@ -239,12 +318,26 @@ void OsmReader::updateState (const Element &element, bool up)
                 element.getName () == "relation")  {
             // /relation
             newState = ReaderStateInRelation;
-        } else if (is_bit_set(curState,IN_NODE) != 0 &&
-                element.getLevel () == 2 &&
-                element.getName () == "tag")  {
+        } else if (element.getLevel () == 2 &&
+                element.getName () == "tag" &&
+                is_bit_set(curState,IN_NODE) != 0)  {
             // /node/tag
             set_bit(newState,IN_TAG);
             assert (newState == ReaderStateInNodeTag);
+        } else if (element.getLevel () == 2 &&
+                element.getName () == "nd" &&
+                is_bit_set(curState,IN_WAY) != 0)  {
+            // /way/nd
+            set_bit(newState,IN_ND);
+            assert (newState == ReaderStateInWayNd);
+        } else if (element.getLevel () == 2 &&
+                element.getName () == "tag" &&
+                is_bit_set(curState,IN_WAY) != 0)  {
+            // /way/tag
+            set_bit(newState,IN_TAG);
+            assert (newState == ReaderStateInWayTag);
+        } else  {
+            assert (false);
         }
     } else  {
         //std::cout << "state down" << std::endl;//TEST
@@ -253,6 +346,16 @@ void OsmReader::updateState (const Element &element, bool up)
             // new: /node
             unset_bit(newState,IN_TAG);
             assert (newState == ReaderStateInNode);
+        } else if (curState == ReaderStateInWayNd)  {
+            // cur: /way/nd
+            // new: /way
+            unset_bit(newState,IN_ND);
+            assert (newState == ReaderStateInWay);
+        } else if (curState == ReaderStateInWayTag)  {
+            // cur: /way/tag
+            // new: /way
+            unset_bit(newState,IN_TAG);
+            assert (newState == ReaderStateInWay);
         } else if (curState == ReaderStateInNode ||
                    curState == ReaderStateInWay ||
                    curState == ReaderStateInRelation )  {
@@ -286,6 +389,10 @@ bool OsmReader::isElementInteresting (const Element &element) const
         (element.getLevel () == 1 && element.getName () == "way") ||
         (element.getLevel () == 1 && element.getName () == "relation") ||
         (element.getLevel () == 2 && element.getName () == "tag" &&
-         is_bit_set(getReaderState (),IN_NODE) != 0);
+         is_bit_set(getReaderState (),IN_NODE) != 0) ||
+        (element.getLevel () == 2 && element.getName () == "nd" &&
+         is_bit_set(getReaderState (),IN_WAY) != 0) ||
+        (element.getLevel () == 2 && element.getName () == "tag" &&
+         is_bit_set(getReaderState (),IN_WAY) != 0);
 }
 

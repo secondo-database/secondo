@@ -42,20 +42,57 @@ This header file essentially contains the definition of the class
 #define __WAY_DATA_H__
 
 // --- Including header-files
-//...
+#include <string>
+#include <vector>
 
 class WayData {
 
-public:
+    public:
 
-   // --- Constructors
-   // Constructor
-   WayData ();
-   // Destructor
-   ~WayData ();
+        // --- Constructors
+        // Constructor
+        WayData ();
+        // Destructor
+        ~WayData ();
 
-protected:
+        // --- Methods
+        const int & getId () const;
+        void setId (const int &id);
+        const std::vector<int> & getRefs () const;
+        void addRef (const int &ref);
+        void print () const;
+        const std::string & getHighway () const;
+        const std::string & getName () const;
+        const int & getMaxSpeed () const;
+        const int & getOneWay () const;
+        const int & getLayer () const;
+        const std::string & getBridge () const;
+        const std::string & getTunnel () const;
+        const std::string & getRef () const;
+        void setHighway  (const std::string & highway);
+        void setName  (const std::string & name);
+        void setMaxSpeed  (const int & maxSpeed);
+        void setOneWay  (const int & oneWay);
+        void setLayer  (const int & layer);
+        void setBridge  (const std::string & bridge);
+        void setTunnel  (const std::string & tunnel);
+        void setRef  (const std::string & ref);
 
+    protected:
+
+        // --- Members
+        int m_id;
+        std::vector<int> m_refs;
+        std::string m_highway;
+        std::string m_name;
+        int m_maxSpeed;
+        int m_oneWay;
+        int m_layer;
+        std::string m_bridge;
+        std::string m_tunnel;
+        std::string m_ref;
 };
+
+void printWay (const WayData &way);
 
 #endif /*__WAY_DATA_H__ */
