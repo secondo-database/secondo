@@ -39,6 +39,8 @@ public void processMessage(ListExpr message){
    if(current<0 || max<0 ){
        setText(empty);
        startTime = System.currentTimeMillis();
+   } else if(current==0){
+       setText(empty);
    } else {
        int p = (int)((100.0*current)/max+0.5);
        //  setText(""+p+" %"); // display in percent
