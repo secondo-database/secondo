@@ -47,10 +47,12 @@ For more detailed information see RestrictionData.h.
 
 // --- Including header-files
 #include "RestrictionData.h"
+#include <iostream>
 
 // --- Constructors
 // Constructor
 RestrictionData::RestrictionData ()
+  : m_id (0), m_from (0), m_to (0), m_restriction (), m_type ()
 {
     // empty
 }
@@ -62,9 +64,19 @@ RestrictionData::~RestrictionData ()
 }
 
 // --- Methods
+void RestrictionData::setId (const int & id)
+{
+    m_id = id;
+}
+
 void RestrictionData::setFrom (const int & from)
 {
     m_from = from;
+}
+
+void RestrictionData::setVia (const int & via)
+{
+    m_via = via;
 }
 
 void RestrictionData::setTo (const int & to)
@@ -72,14 +84,29 @@ void RestrictionData::setTo (const int & to)
     m_to = to;
 }
 
-void RestrictionData::setType (const int & type)
+void RestrictionData::setRestriction (const std::string & restriction)
+{
+    m_restriction = restriction;
+}
+
+void RestrictionData::setType (const std::string & type)
 {
     m_type = type;
+}
+
+const int & RestrictionData::getId () const
+{
+    return m_id;
 }
 
 const int & RestrictionData::getFrom () const
 {
     return m_from;
+}
+
+const int & RestrictionData::getVia () const
+{
+    return m_via;
 }
 
 const int & RestrictionData::getTo () const
@@ -88,8 +115,27 @@ const int & RestrictionData::getTo () const
 
 }
 
-const int & RestrictionData::getType () const
+const std::string & RestrictionData::getRestriction () const
+{
+    return m_restriction;
+}
+
+const std::string & RestrictionData::getType () const
 {
     return m_type;
 }
 
+void RestrictionData::print () const
+{
+    printRestriction (*this);
+}
+
+void printRestriction (const RestrictionData &restriction)
+{
+    std::cout << "RESTRICTION Id = " << restriction.getId ();
+    std::cout << ", From = " << restriction.getFrom ();
+    std::cout << ", Via = " << restriction.getVia ();
+    std::cout << ", To = " << restriction.getTo ();
+    std::cout << ", Restriction = " << restriction.getRestriction ();
+    std::cout << ", Type = " << restriction.getType () << std::endl;
+}

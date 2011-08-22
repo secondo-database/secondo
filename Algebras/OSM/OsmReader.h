@@ -53,15 +53,18 @@ This header file essentially contains the definition of the class
 #include "XmlParserInterface.h"
 
 enum ReaderStates {
-    ReaderStateUnknown = 0x0000,   //00000000
-    ReaderStateInNode = 0x0001,    //00000001
-    ReaderStateInTag = 0x0002,     //00000010
-    ReaderStateInWay = 0x0004,     //00000100
-    ReaderStateInRelation = 0x0008,//00001000
-    ReaderStateInNd = 0x0010,      //00010000
-    ReaderStateInNodeTag = 0x0003, //00000011
-    ReaderStateInWayNd = 0x0014,   //00010100
-    ReaderStateInWayTag = 0x0006   //00000110
+    ReaderStateUnknown = 0x0000,         //00000000
+    ReaderStateInNode = 0x0001,          //00000001
+    ReaderStateInTag = 0x0002,           //00000010
+    ReaderStateInWay = 0x0004,           //00000100
+    ReaderStateInRelation = 0x0008,      //00001000
+    ReaderStateInNd = 0x0010,            //00010000
+    ReaderStateInMember = 0x0020,        //00100000
+    ReaderStateInNodeTag = 0x0003,       //00000011
+    ReaderStateInWayNd = 0x0014,         //00010100
+    ReaderStateInWayTag = 0x0006,        //00000110
+    ReaderStateInRelationTag = 0x000A,   //00001010
+    ReaderStateInRelationMember = 0x0028 //00101000
 };
 
 // --- Including header-files
@@ -99,6 +102,10 @@ class OsmReader : public XmlParserInterface{
         void updateWayFromElement (const Element &element);
         void addNdElementToWay (const Element &element);
         void addTagElementToWay (const Element &element);
+        void createRelationFromElement (const Element &element);
+        void updateRelationFromElement (const Element &element);
+        void addTagElementToRelation (const Element &element);
+        void addMemberElementToRelation (const Element &element);
         void prepareElement (const Element &element);
         void finalizeElement (const Element &element);
         const int & getReaderState () const;
@@ -123,6 +130,7 @@ class OsmReader : public XmlParserInterface{
         static const int IN_WAY;
         static const int IN_RELATION;
         static const int IN_ND;
+        static const int IN_MEMBER;
 
 };
 

@@ -42,40 +42,62 @@ This header file essentially contains the definition of the class
 #define __RESTRICTION_DATA_H__
 
 // --- Including header-files
-//...
+#include <string>
 
 class RestrictionData {
 
-public:
+    public:
 
-   // --- Constructors
-   // Constructor
-   RestrictionData ();
-   // Destructor
-   ~RestrictionData ();
+        // --- Constructors
+        // Constructor
+        RestrictionData ();
+        // Destructor
+        ~RestrictionData ();
 
-   // --- Methods
-   void setFrom (const int & from);
+        // --- Methods
+        void setId (const int & id);
 
-   void setTo (const int & to);
+        void setFrom (const int & from);
+        
+        void setVia (const int & via);
 
-   void setType (const int & type);
+        void setTo (const int & to);
 
-   const int & getFrom () const;
+        void setRestriction (const std::string & restriction);
 
-   const int & getTo () const;
+        void setType (const std::string & type);
 
-   const int & getType () const;
+        const int & getId () const;
 
-protected:
+        const int & getFrom () const;
+        
+        const int & getVia () const;
 
-   // --- Members
-   int m_from;
+        const int & getTo () const;
 
-   int m_to;
+        const std::string & getRestriction () const;
 
-   int m_type;
+        const std::string & getType () const;
+
+        void print () const;
+
+    protected:
+
+        // --- Members
+        int m_id;
+
+        int m_from;
+
+        int m_via;
+
+        int m_to;
+
+        std::string m_restriction;
+        
+        std::string m_type;
 
 };
+
+void printRestriction (const RestrictionData &restriction);
 
 #endif /*__RESTRICTION_DATA_H__ */

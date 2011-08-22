@@ -50,6 +50,7 @@ For more detailed information see OsmReader.h.
 #include "XmlFileReader.h"
 #include "TagData.h"
 #include "NdData.h"
+#include "MemberData.h"
 #include "BitOperations.h"
 #include <StringUtils.h>
 #include <sstream>
@@ -61,6 +62,7 @@ const int OsmReader::IN_TAG = 2;
 const int OsmReader::IN_WAY = 3;
 const int OsmReader::IN_RELATION = 4;
 const int OsmReader::IN_ND = 5;
+const int OsmReader::IN_MEMBER = 6;
 
 // --- Constructors
 // Default-Constructor
@@ -255,6 +257,63 @@ void OsmReader::addTagElementToWay (const Element &element)
     //m_currentWay.print ();//TEST
 }
 
+void OsmReader::createRelationFromElement (const Element &element)
+{
+    m_currentRestriction = RestrictionData ();
+    //m_currentRestriction.print ();
+}
+
+void OsmReader::updateRelationFromElement (const Element &element)
+{
+    bool foundId = false;
+    std::vector<std::string>::const_iterator itAttrNames;
+    std::vector<std::string>::const_iterator itAttrValues;
+    std::vector<std::string> const & attributeNames =
+        element.getAttributeNames ();
+    std::vector<std::string> const & attributeValues =
+        element.getAttributeValues ();
+    assert (attributeNames.size () == attributeValues.size ());
+    for (itAttrNames = attributeNames.begin (),
+            itAttrValues = attributeValues.begin ();
+            itAttrNames != attributeNames.end ();
+            ++itAttrNames,++itAttrValues)  {
+        if ((*itAttrNames) == "id")  {
+            m_currentRestriction.setId (convStrToInt (*itAttrValues));
+            foundId = true;
+        }
+        if (foundId)  {
+            break;
+        }
+    }
+    //std::cout << "updateRestrictionFromElement () - ";//TEST
+    //m_currentRestriction.print ();//TEST
+}
+
+void OsmReader::addTagElementToRelation (const Element &element)
+{
+    TagData restriction = TagData::createTagFromElement (element,
+        "restriction");
+    TagData type = TagData::createTagFromElement (element, "type");
+    if (restriction.getValue () != "")
+        m_currentRestriction.setRestriction (restriction.getValue ());
+    if (type.getValue () != "")
+        m_currentRestriction.setType (type.getValue ());
+    //std::cout << "addTagElementToRelation () - ";//TEST
+    //m_currentRestriction.print ();//TEST
+}
+
+void OsmReader::addMemberElementToRelation (const Element &element)
+{
+    MemberData member = MemberData::createMemberFromElement (element);
+    if (member.getRole () == "from" && member.getType () == "way")  {
+        m_currentRestriction.setFrom (member.getRef ());
+    } else if (member.getRole () == "via" && member.getType () == "node")  {
+        m_currentRestriction.setVia (member.getRef ());
+    } else if (member.getRole () == "to" && member.getType () == "way")  {
+        m_currentRestriction.setTo (member.getRef ());
+    }
+}
+
 void OsmReader::prepareElement (const Element &element)
 {
     if (element.getLevel () == 1 && element.getName () == "node")  {
@@ -262,6 +321,7 @@ void OsmReader::prepareElement (const Element &element)
     } else if (element.getLevel () == 1 && element.getName () == "way")  {
         createWayFromElement (element);
     } else if (element.getLevel () == 1 && element.getName () == "relation")  {
+        createRelationFromElement (element);
     } 
 }
 
@@ -284,7 +344,17 @@ void OsmReader::finalizeElement (const Element &element)
     } else if (element.getLevel () == 2 && element.getName () == "tag" &&
                is_bit_set(curState,IN_WAY) != 0)  {
         addTagElementToWay (element); 
+    } else if (element.getLevel () == 2 && element.getName () == "tag" &&
+               is_bit_set(curState,IN_RELATION) != 0)  {
+        addTagElementToRelation (element); 
+    } else if (element.getLevel () == 2 && element.getName () == "member" &&
+               is_bit_set(curState,IN_RELATION) != 0)  {
+        addMemberElementToRelation (element); 
     } else if (element.getLevel () == 1 && element.getName () == "relation")  {
+        updateRelationFromElement (element);
+        if (m_currentRestriction.getType () == "restriction")  {
+            m_currentRestriction.print ();//TEST
+        }
     } 
 }
 
@@ -336,6 +406,18 @@ void OsmReader::updateState (const Element &element, bool up)
             // /way/tag
             set_bit(newState,IN_TAG);
             assert (newState == ReaderStateInWayTag);
+        } else if (element.getLevel () == 2 &&
+                element.getName () == "tag" &&
+                is_bit_set(curState,IN_RELATION) != 0)  {
+            // /relation/tag
+            set_bit(newState,IN_TAG);
+            assert (newState == ReaderStateInRelationTag);
+        } else if (element.getLevel () == 2 &&
+                element.getName () == "member" &&
+                is_bit_set(curState,IN_RELATION) != 0)  {
+            // /relation/member
+            set_bit(newState,IN_MEMBER);
+            assert (newState == ReaderStateInRelationMember);
         } else  {
             assert (false);
         }
@@ -356,6 +438,16 @@ void OsmReader::updateState (const Element &element, bool up)
             // new: /way
             unset_bit(newState,IN_TAG);
             assert (newState == ReaderStateInWay);
+        } else if (curState == ReaderStateInRelationTag)  {
+            // cur: /relation/tag
+            // new: /relation
+            unset_bit(newState,IN_TAG);
+            assert (newState == ReaderStateInRelation);
+        } else if (curState == ReaderStateInRelationMember)  {
+            // cur: /relation/member
+            // new: /relation
+            unset_bit(newState,IN_MEMBER);
+            assert (newState == ReaderStateInRelation);
         } else if (curState == ReaderStateInNode ||
                    curState == ReaderStateInWay ||
                    curState == ReaderStateInRelation )  {
@@ -393,6 +485,10 @@ bool OsmReader::isElementInteresting (const Element &element) const
         (element.getLevel () == 2 && element.getName () == "nd" &&
          is_bit_set(getReaderState (),IN_WAY) != 0) ||
         (element.getLevel () == 2 && element.getName () == "tag" &&
-         is_bit_set(getReaderState (),IN_WAY) != 0);
+         is_bit_set(getReaderState (),IN_WAY) != 0) ||
+        (element.getLevel () == 2 && element.getName () == "tag" &&
+         is_bit_set(getReaderState (),IN_RELATION) != 0) ||
+        (element.getLevel () == 2 && element.getName () == "member" &&
+         is_bit_set(getReaderState (),IN_RELATION) != 0);
 }
 
