@@ -41,6 +41,8 @@ public class Dsplupoint extends DisplayTimeGraph {
   private static JPanel EmptyPanel = new JPanel();
   private RectangularShape shp;
 
+  private static Point2D.Double aPoint = new Point2D.Double();
+
   public boolean isPointType(int num){
      return true;
   }
@@ -66,16 +68,20 @@ public class Dsplupoint extends DisplayTimeGraph {
     double x = x1+Delta*(x2-x1);
     double y = y1+Delta*(y2-y1);
 
-    point = new Point2D.Double(x, y);
+    if(!ProjectionManager.project(x,y,aPoint)){
+       aPoint.setLocation(x,y);
+    }
+
+
     double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
     double pixy = Math.abs(ps/at.getScaleY());
     //double pix = Cat.getPointSize();
     double pix = Math.abs(ps/at.getScaleX());
     //Point2D p=at.transform(point,p);
     if (Cat.getPointasRect())
-      shp = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
+      shp = new Rectangle2D.Double(aPoint.getX()- pix/2, aPoint.getY() - pixy/2, pix, pixy);
     else {
-      shp = new Ellipse2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
+      shp = new Ellipse2D.Double(aPoint.getX()- pix/2, aPoint.getY() - pixy/2, pix, pixy);
     }
     return  shp;
   }
@@ -110,10 +116,23 @@ public class Dsplupoint extends DisplayTimeGraph {
     x2 = X2.doubleValue();
     y1 = Y1.doubleValue();
     y2 = Y2.doubleValue();
+
     err = false;
     if(bounds==null)
       bounds = new Rectangle2D.Double(0,0,0,0);
+
+    Point2D.Double p1 = new Point2D.Double();
+    Point2D.Double p2 = new Point2D.Double();
+    if(ProjectionManager.project(x1,y1,p1) &&
+       ProjectionManager.project(x2,y2,p2)){
+       x1 = p1.getX();
+       x2 = p2.getX();
+       y1 = p1.getY();
+       y2 = p2.getY();
+    } 
+
     bounds.setRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x1-x2),Math.abs(y1-y2));
+   
     if(!theInterval.isInfinite()){ 
         TimeBounds = theInterval;
     } else{
