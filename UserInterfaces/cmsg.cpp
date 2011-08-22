@@ -251,13 +251,18 @@ ProgMesHandler::handleMsg(NList msgList)
   int p = ((ActValue*100) / TotalValue);
   int restTime = static_cast<int>( ceil( rt/p * (100-p) ) );
   int showMin = restTime / 60;
-  int showSec = restTime - (showMin * 60); 
+  int showSec = restTime - (showMin * 60);
 
-  cout << "\r" << bar1 << bar2 
-       << " remaining: " << showMin << ":" 
-	     << setw(2) << setfill('0') << showSec << " min  "
-       << "               "
-	     << flush;
+  if(ActValue>0){
+    cout << "\r" << bar1 << bar2 
+         << " remaining: " << showMin << ":" 
+	       << setw(2) << setfill('0') << showSec << " min  "
+  	     << flush;
+  } else {
+    cout << "\r" << bar1 << bar2 
+         << " remaining: ?? :  min  "
+  	     << flush;
+  }
   return true;
 }
 
