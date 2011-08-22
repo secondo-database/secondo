@@ -66,17 +66,18 @@ public void processMessage(ListExpr message){
     message.second().atomType()!=ListExpr.INT_ATOM ){
      return;
   }
+
+
+
   int tmpcurrent = message.first().intValue();
   int tmpmax = message.second().intValue();
-  if((tmpcurrent!=this.current ||
-     tmpmax!=this.max ) && (tmpcurrent<=tmpmax)){
+  if( (tmpcurrent<0) || (tmpmax<0) || (tmpcurrent>tmpmax)){
+     current = -1;
+  } else {
      this.current = tmpcurrent;
      this.max = tmpmax;
-     paintImmediately(0,0,getWidth(),getHeight());
-  } else{
-     current = -1;
-     paintImmediately(0,0,getWidth(),getHeight());
   }
+  paintImmediately(0,0,getWidth(),getHeight());
 }
 
 public Dimension getMaximumSize(){
