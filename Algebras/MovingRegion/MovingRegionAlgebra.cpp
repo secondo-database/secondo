@@ -6732,12 +6732,12 @@ and point unit, both restricted to this interval, intersect.
 
 */
 void MRegion::InsideAddUBool(MBool& res,
-                             double starttime,
-                             double endtime,
+                             Instant starttime,
+                             Instant endtime,
                              bool lc,
                              bool rc,
                              bool value,
-                             double& prev,
+                             Instant& prev,
                              bool& prev_c,
                              UBool*& pending) {
     if (MRA_DEBUG)
@@ -6745,11 +6745,9 @@ void MRegion::InsideAddUBool(MBool& res,
              << value
              << endl;
 
-    Instant start(instanttype);
-    start.ReadFrom(starttime);
+    Instant start(starttime);
 
-    Instant end(instanttype);
-    end.ReadFrom(endtime);
+    Instant end(endtime);
 
     CcBool bv(true, value);
 
@@ -6758,7 +6756,7 @@ void MRegion::InsideAddUBool(MBool& res,
              << setprecision(20)
              << start.ToString()
              << " ("
-             << starttime
+             << starttime.ToString()
              << ") "
              << end.ToString()
              << " ("
@@ -6783,7 +6781,7 @@ void MRegion::InsideAddUBool(MBool& res,
                  << endl;
         }
 
-        if (nearlyEqual(starttime, pending->timeInterval.end.ToDouble())
+        if ((starttime == pending->timeInterval.end)
             && (pending->timeInterval.rc || lc)
             && pending->constValue.GetBoolval() == value) {
 
@@ -7188,9 +7186,7 @@ we skip this interval.
 */
         if (upPos < 0) continue;
 
-        double prevtime = iv.start.ToDouble();
-        Instant prev(instanttype);
-        prev.ReadFrom(prevtime);
+        Instant prev = iv.start;
         bool prev_c = !iv.lc;
 
 /*
@@ -7258,15 +7254,14 @@ applicable).
                              << endl;
 
                     InsideAddUBool(res,
-                                   prevtime,
-                                   iv.end.ToDouble(),
+                                   prev,
+                                   iv.end,
                                    !prev_c,
                                    iv.rc,
                                    false,
-                                   prevtime,
+                                   prev,
                                    prev_c,
                                    pending);
-                    prev.ReadFrom(prevtime);
                 }
 
 /*
@@ -7295,38 +7290,36 @@ and value ~false~.
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     closing gap #1a, prev="
                              << setprecision(20)
-                             << prevtime
+                             << prev
                              << endl;
 
                     InsideAddUBool(res,
-                                   prevtime,
-                                   up.timeInterval.start.ToDouble(),
+                                   prev,
+                                   up.timeInterval.start,
                                    !prev_c,
                                    !up.timeInterval.lc,
                                    false,
-                                   prevtime,
+                                   prev,
                                    prev_c,
                                    pending);
-                    prev.ReadFrom(prevtime);
                 } else if (up.timeInterval.start.Compare(&prev) == 0
                            && !up.timeInterval.lc
                            && prev_c) {
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     closing gap #1b, prev="
                              << setprecision(15)
-                             << prevtime
+                             << prev
                              << endl;
 
                     InsideAddUBool(res,
-                                   up.timeInterval.start.ToDouble(),
-                                   up.timeInterval.start.ToDouble(),
+                                   up.timeInterval.start,
+                                   up.timeInterval.start,
                                    true,
                                    true,
                                    false,
-                                   prevtime,
+                                   prev,
                                    prev_c,
                                    pending);
-                    prev.ReadFrom(prevtime);
                 }
 
 /*
@@ -7335,15 +7328,14 @@ and value ~true~.
 
 */
                 InsideAddUBool(res,
-                               up.timeInterval.start.ToDouble(),
-                               up.timeInterval.end.ToDouble(),
+                               up.timeInterval.start,
+                               up.timeInterval.end,
                                up.timeInterval.lc,
                                up.timeInterval.rc,
                                true,
-                               prevtime,
+                               prev,
                                prev_c,
                                pending);
-                prev.ReadFrom(prevtime);
             }
         }
 
@@ -7358,15 +7350,14 @@ and value ~true~.
                          << endl;
 
                 InsideAddUBool(res,
-                               prevtime,
-                               iv.end.ToDouble(),
+                               prev,
+                               iv.end,
                                !prev_c,
                                iv.rc,
                                false,
-                               prevtime,
+                               prev,
                                prev_c,
                                pending);
-                prev.ReadFrom(prevtime);
             } else if (prev.Compare(&iv.end) == 0
                        && !prev_c
                        && iv.rc) {
@@ -7375,15 +7366,14 @@ and value ~true~.
                          << endl;
 
                 InsideAddUBool(res,
-                               iv.end.ToDouble(),
-                               iv.end.ToDouble(),
+                               iv.end,
+                               iv.end,
                                true,
                                true,
                                false,
-                               prevtime,
+                               prev,
                                prev_c,
                                pending);
-                prev.ReadFrom(prevtime);
             }
         }
     }
