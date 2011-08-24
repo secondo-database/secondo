@@ -3550,9 +3550,6 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
 
 }
 
-
-
-
 /*
 remove triangle area after cutting
 
@@ -3580,34 +3577,12 @@ void SpacePartition::FilterDirtyRegion(vector<Region>& regs, Region* reg)
   for(int i = 0;i < no_faces;i++)
       subregions[i].EndBulkLoad(false,false,false,false);
 
-/*  Region* result = new Region(*reg);
-//  result->StartBulkLoad();
-
-  for(unsigned int i = 0;i < subregions.size();i++){
-      if(subregions[i].Size() <= 6){ //filter small triangle  area
-        Region* temp = new Region(0);
-        result->Minus(subregions[i], *temp);
-        *result = *temp;
-        delete temp;
-      }
-      if(subregions[i].Area() < 3){ //filter very small area
-        Region* temp = new Region(0);
-        result->Minus(subregions[i], *temp);
-        *result = *temp;
-        delete temp;
-      }
-  }
-
-//  result->SetNoComponents(count);
-//  result->EndBulkLoad(false, false, false, false);
-  regs.push_back(*result);
-  delete result; */
-
   //////////////////////////new method//////////////////////////////
   Region* result = new Region(0);
   int count = 0;
   for(unsigned int i = 0;i < subregions.size();i++){
-    if(subregions[i].Size() <= 6 || subregions[i].Area() < 3.0)continue;
+//    if(subregions[i].Size() <= 6 || subregions[i].Area() < 3.0)continue;
+    if(subregions[i].Size() <= 6 || fabs(subregions[i].Area()) < 3.0)continue;
 
     Region* temp = new Region(0);
     subregions[i].Union(*result, *temp);
@@ -3668,7 +3643,7 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
 
 //      Point* junp = (Point*)jun_tuple->GetAttribute(JUNCTION_POS);
 
-//       if(!(id1 == 1561 && id2 == 3818)) {
+//       if(!(id1 == 2043 || id2 == 2043)) {
 //           jun_tuple->DeleteIfAllowed();
 //           continue;
 //       }
@@ -3740,8 +3715,10 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
 //        outer_regions1.push_back(pavements1[i]);
 //        outer_regions2.push_back(pavements2[i]);
 //        cout<<"id "<<i + 1<<endl;
+
         FilterDirtyRegion(outer_regions1, &pavements1[i]);
         FilterDirtyRegion(outer_regions2, &pavements2[i]);
+
     }
 }
 
@@ -4474,7 +4451,7 @@ Detect whether three points collineation
 
 */
 
-inline bool SpacePartition::Collineation(Point& p1, Point& p2, Point& p3)
+bool SpacePartition::Collineation(Point& p1, Point& p2, Point& p3)
 {
       if(MyAlmostEqual(p1.GetX(), p2.GetX())){
           if(MyAlmostEqual(p2.GetX(), p3.GetX())) return true;

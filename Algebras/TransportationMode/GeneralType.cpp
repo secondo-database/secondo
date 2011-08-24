@@ -2583,7 +2583,7 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
   const double min_len = 100.0;
   Pavement* pm = sp->LoadPavement(IF_REGION);
   vector<GenLoc> genloc_list;
-  GenerateLocPave(pm, 2*mo_no, genloc_list);//generate locations on pavements 
+  GenerateLocPave(pm, mo_no, genloc_list);//generate locations on pavements 
   int count = 1;
   Network* rn = sp->LoadRoadNetwork(IF_LINE);
   if(rn == NULL){

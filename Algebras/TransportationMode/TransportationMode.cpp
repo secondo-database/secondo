@@ -8726,11 +8726,11 @@ const string OpTMMaxRectSpec  =
 const string OpTMGetRect1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x attr1 x attr2->"
+    "( <text>rel x attr1 x attr2 x string->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getrect1(rel, attr, attr);</text--->"
+    "<text>getrect1(rel, attr, attr, string);</text--->"
     "<text>get the maximum rectangle area for a region</text--->"
-    "<text>query getrect1(new_region_elems2, id, covarea);</text--->"
+    "<text>query getrect1(new_region_elems2, id, covarea, Berlin);</text--->"
     ") )";
 
 /*
@@ -14683,9 +14683,9 @@ region
 
 ListExpr OpTMGetRect1TypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+  if ( nl->ListLength ( args ) != 4 )
   {
-    return  nl->SymbolAtom ( "list length should be 3" );
+    return  nl->SymbolAtom ( "list length should be 4" );
   }
   ListExpr param1 = nl->First ( args );
   if(!IsRelDescription(param1))
@@ -14714,6 +14714,11 @@ ListExpr OpTMGetRect1TypeMap ( ListExpr args )
                       "or not of type region");
   }
 
+  ListExpr param4 = nl->Fourth(args);
+  if(!(nl->SymbolValue(param4) == "string")){
+    return nl->SymbolAtom ( "typeerror: param4 should be a string" );
+    
+  }
 
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -19438,9 +19443,6 @@ int OpTMBNNavigationValueMap(Word* args, Word& result, int message,
 //                bn_nav->ShortestPath_Transfer(bs1, bs2, query_time);
                   bn_nav->ShortestPath_TransferNew(bs1, bs2, query_time);
                   break;
-          case 3: 
-                  bn_nav->ShortestPath_TimeNew2(bs1, bs2, query_time);
-                  break;
           default:
                   cout<<"invalid type "<<type<<endl;
                   break;
@@ -19575,6 +19577,7 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                 ////////////////no optimization on edges filtering///////////
 //                  bn_nav->ShortestPath_Time(bs1, bs2, query_time);
                   ////////////////filtering edges////////////////////////////
+                   ////////////////record searching time//////////////////////
                   bn_nav->ShortestPath_TimeNew(bs1, bs2, query_time);
                   if(bn_nav->path_list.size() > 0){
                     double l = 0.0;
@@ -19616,28 +19619,6 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
                     bn_nav->peri_list.clear(); 
                     bn_nav->time_cost_list.clear();
                   }
-                  break;
-          case 3:
-                  ////////////////filtering edges////////////////////////////
-                  ////////////////record searching time//////////////////////
-                  bn_nav->ShortestPath_TimeNew2(bs1, bs2, query_time);
-                  if(bn_nav->path_list.size() > 0){
-                    double l = 0.0;
-                    double time_cost = 0.0;
-                    for(unsigned int k = 0;k < bn_nav->path_list.size();k++){
-                      l += bn_nav->path_list[k].Length();
-                      time_cost += bn_nav->time_cost_list[k];
-                    }
-                    cout<<"bs1: "<<*bs1<<" bs2: "<<*bs2
-                       <<" length: "<<l<<" time cost: "<<time_cost<<" s"<<endl;
-                    bn_nav->path_list.clear();
-                    bn_nav->tm_list.clear();
-                    bn_nav->bs1_list.clear();
-                    bn_nav->bs2_list.clear();
-                    bn_nav->peri_list.clear(); 
-                    bn_nav->time_cost_list.clear();
-                  }
-
                   break;
           default:
                   cout<<"invalid type "<<type<<endl;
@@ -20986,14 +20967,16 @@ int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
       case OPEN:{
 
         Relation* r = (Relation*)args[0].addr;
-        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1; 
+        string type = ((CcString*)args[3].addr)->GetValue();
+
+        int attr1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[5].addr)->GetIntval() - 1; 
 
         max_rect = new MaxRect(r);
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->GetRectangle1(attr1, attr2);
+        max_rect->GetRectangle1(attr1, attr2, type);
         local.setAddr(max_rect);
         return 0;
       }

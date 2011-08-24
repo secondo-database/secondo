@@ -2165,6 +2165,7 @@ void CompTriangle::PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
     *sl_contour[hs1.attr.cycleno] += hs2;
     hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
     *sl_contour[hs1.attr.cycleno] += hs2;
+
   }
 //  cout<<"get all boundary line"<<endl;
   SpacePartition* sp = new SpacePartition();
@@ -3988,6 +3989,15 @@ void Walk_SP::WalkShortestPath(Line* res)
   tuple1->DeleteIfAllowed();
   tuple2->DeleteIfAllowed();
   
+  ////////////////////////////////////////////////////
+  ////////debuging euclidean connection//////////////
+//   oid1 = 34450 - dg->min_tri_oid_1;
+//   oid2 = 34430 - dg->min_tri_oid_1;
+//   loc1.Set(24164.01, 15711.896);
+//   loc2.Set(24170.12, 15720.85);
+
+  //////////////////////////////////////////////////
+  
   WalkShortestPath2(oid1, oid2, loc1, loc2, res);
 
 }
@@ -4078,11 +4088,12 @@ void Walk_SP::TestWalkShortestPath(int tid1, int tid2)
       delete res; 
       return; 
   }
-  
+
   ///////////////////////////////////////////////////////////////////////
   ///////////////////check Eudlidean Connection//////////////////////////
   //////////////////////////////////////////////////////////////////////
-  if(EuclideanConnect(loc1, loc2)){
+
+  if(EuclideanConnect2(oid1, loc1, oid2, loc2)){
       Line* res = new Line(0);
       res->StartBulkLoad();
       /////////////////////////////////////////////////////
@@ -4275,20 +4286,6 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
 //  cout<<"WalkShortestPath2"<<endl;
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
-  
-  int no_node_graph = dg->No_Of_Node();
-  if(oid1 < 1 || oid1 > no_node_graph){
-    cout<<"loc1 does not exist"<<endl;
-    return;
-  }
-  if(oid2 < 1 || oid2 > no_node_graph){
-    cout<<"loc2 does not exist"<<endl;
-    return;
-  }
-  if(AlmostEqual(loc1,loc2)){
-    cout<<"start location equals to end location"<<endl;
-    return;
-  }
 
   if(oid1 == oid2){/////////////start and end point are located on the same tri
       res->StartBulkLoad();
@@ -4308,7 +4305,10 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
   ///////////////////////////////////////////////////////////////////////
   ///////////////////check Eudlidean Connection//////////////////////////
   ///////////////////////////////////////////////////////////////////////
-  if(EuclideanConnect(loc1, loc2)){
+//   clock_t start, finish;
+//   start = clock();
+
+  if(EuclideanConnect2(oid1, loc1, oid2, loc2)){
       res->StartBulkLoad();
       /////////////////////////////////////////////////////
       HalfSegment hs;
@@ -4323,8 +4323,9 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
 // printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
     return; 
   }
+//     finish = clock();
+//     printf("Time: %f\n",(double)(finish - start) / CLOCKS_PER_SEC);
 
-  
   ///////////////////////////////////////////////////////////////////////
   priority_queue<WPath_elem> path_queue;
   vector<WPath_elem> expand_path;
@@ -4391,6 +4392,9 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
   for(int i = 1;i <= vg->GetNodeRel()->GetNoTuples();i++)
     mark_flag.push_back(false);
 
+//   clock_t start, finish;
+//   start = clock();
+
   WPath_elem dest;
   while(path_queue.empty() == false){
         WPath_elem top = path_queue.top();
@@ -4456,6 +4460,10 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
         }
         ///////////////////////////////////////////////////////////////
   }
+
+
+//     finish = clock();
+//     printf("Time: %f\n",(double)(finish - start) / CLOCKS_PER_SEC);
 
   delete neighbor_end;
   delete vg2;
@@ -4528,7 +4536,14 @@ void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
               Region* candi_reg =
                      (Region*)dg_tuple->GetAttribute(DualGraph::PAVEMENT);
               Line* len = new Line(0);
-              line->Intersection(*candi_reg, *len);
+
+/*              int oid = 
+                ((CcInt*)dg_tuple->GetAttribute(DualGraph::OID))->GetIntval();
+              cout<<oid<<endl;*/
+
+//              line->Intersection(*candi_reg, *len); //crashes once for Houston
+              MyIntersection(*line, *candi_reg, *len); 
+
               if(candi_reg->Area() > delta_area && len->Length() > 0.0){
                 l += len->Length();
               }
@@ -4544,6 +4559,82 @@ void Walk_SP::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
   }
   delete node;
 
+}
+
+
+/*
+check whether the two points can be directly reachable by a line 
+
+*/
+bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
+{
+//    cout<<"EuclideanConnect2 oid1 "<<oid1<<" oid2 "<<oid2<<endl; 
+    Line* l = new Line(0);
+    l->StartBulkLoad();
+    HalfSegment hs;
+    hs.Set(true, loc1, loc2);
+    hs.attr.edgeno = 0;
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+    l->EndBulkLoad(); 
+
+    Tuple* node_tuple = dg->GetNodeRel()->GetTuple(oid1, false);
+    Region* reg = (Region*)node_tuple->GetAttribute(DualGraph::PAVEMENT);
+    Line* res = new Line(0);
+    MyIntersection(*l, *reg, *res);
+    delete res;
+    node_tuple->DeleteIfAllowed();
+
+    bool flag = true;
+//    oid1 -= dg->min_tri_oid_1;
+//    oid2 -= dg->min_tri_oid_1;
+
+    int start_tri = oid1;
+    int last_tri = oid1;
+
+    bool find = false;
+    while(flag){
+        vector<int> adj_list;
+//        cout<<"tri "<<start_tri + dg->min_tri_oid_1 <<endl;
+        dg->FindAdj(start_tri, adj_list);////find all neighbor triangles
+        unsigned int i = 0;
+/*        cout<<start_tri + dg->min_tri_oid_1 
+            <<" neighbor size "<<adj_list.size()<<endl;*/
+        for(;i < adj_list.size();i++){
+
+           Tuple* tuple = dg->GetNodeRel()->GetTuple(adj_list[i], false);
+           Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
+           int tri_id = 
+              ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval();
+//           cout<<"neighbor id "<<tri_id<<endl;
+           tri_id -= dg->min_tri_oid_1;
+           if(tri_id == last_tri){
+              tuple->DeleteIfAllowed();
+              continue;
+           }
+           Line* res = new Line(0);
+           MyIntersection(*l, *reg, *res);
+           if(res->Length() > 0.0){
+
+              last_tri = start_tri;
+              start_tri = tri_id;
+              break;
+           }
+           delete res;
+           tuple->DeleteIfAllowed();
+        }
+        if(i == adj_list.size()){
+          flag = false;
+        }else if(start_tri == oid2){
+          find = true;
+          flag = false;
+        }
+   }
+
+    delete l;
+
+    return find;
 }
 
 /*
@@ -8084,7 +8175,7 @@ Rectangle<2> GetMaxRect(Region* reg)
     return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 
   }
-  
+
   vector<Point> ps;
   for(unsigned int i = 0;i < mhs.size();i++)
     ps.push_back(mhs[i].from);
@@ -8101,6 +8192,7 @@ Rectangle<2> GetMaxRect(Region* reg)
   //////////////////////////////////////////////////////////////////////
  
   Rectangle<2> reg_box = reg->BoundingBox(); 
+//  cout<<"ps size "<<ps.size()<<endl;
   for(unsigned int i = 0;i < ps.size();i++){
     double x = ps[i].GetX();
     double y = ps[i].GetY(); 
@@ -8126,6 +8218,8 @@ Rectangle<2> GetMaxRect(Region* reg)
             break; 
     }
     ps[i].Set(x,y); 
+//    cout<<"x "<<x<<" y "<<y<<endl;
+
     if(i > 0){
       Point p1 = ps[i - 1];
       Point p2 = ps[i]; 
@@ -8136,12 +8230,24 @@ Rectangle<2> GetMaxRect(Region* reg)
           delete sp;
           delete ct; 
 
-          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+          return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
       }
     }
 
+    /////////////////////////////////////////////////////////////////
+    //more checking, three points collineation, cannot be a region///
+    ////////////////////////////////////////////////////////////////
+    if(ps.size() == 3){
+      SpacePartition* sp = new SpacePartition();
+      if(sp->Collineation(ps[0], ps[1], ps[2])){
+        delete sp;
+        return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+      }
+
+      delete sp;
+    }
   }
-  
+
   delete boundary;
   delete sboundary;
 
@@ -8188,6 +8294,77 @@ Rectangle<2> GetMaxRect(Region* reg)
   }
 
      return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+}
+
+/*
+simple and approximate method to get a rectangle from a polygon.
+the method above takes too much time
+
+*/
+Rectangle<2> GetMaxRect2(Region* reg)
+{
+  if(reg->NoComponents() != 1){
+    cout<<"only one face is allowed"<<endl; 
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+
+  }
+  
+  CompTriangle* ct = new CompTriangle(reg);
+  unsigned int no_cyc = ct->NoOfCycles();
+  
+  if(no_cyc != 1){
+    cout<<"has holes inside or no cycle"<<endl; 
+    delete ct; 
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+
+  }
+  delete ct;
+
+  Rectangle<2> bbox = reg->BoundingBox();
+  double mid_x = (bbox.MinD(0) + bbox.MaxD(0))/2;
+  double mid_y = (bbox.MinD(1) + bbox.MaxD(1))/2;
+
+
+  double dist_delta1; 
+  double dist_delta2; 
+  if(GetRandom() % 2 ==0){
+    dist_delta1 = 5.0;
+    dist_delta2 = 3.0;
+  }else{
+    dist_delta1 = 3.0;
+    dist_delta2 = 5.0;
+  }
+
+  double min[2], max[2];
+  min[0] = mid_x - dist_delta1;
+  max[0] = mid_x + dist_delta1;
+  min[1] = mid_y - dist_delta2;
+  max[1] = mid_y + dist_delta2;
+  Rectangle<2> max_bbox(true, min, max);
+  if(RegContainRect(reg, max_bbox)){
+    bool valid = true;
+    Rectangle<2> last_box = max_bbox;
+    while(valid){
+
+      dist_delta1 += dist_delta1;
+      dist_delta2 += dist_delta2;
+
+      min[0] = mid_x - dist_delta1;
+      max[0] = mid_x + dist_delta1;
+      min[1] = mid_y - dist_delta2;
+      max[1] = mid_y + dist_delta2;
+      Rectangle<2> temp_bbox(true, min, max);
+      if(RegContainRect(reg, temp_bbox) && temp_bbox.Area() < maxi_rect_area){
+        last_box = temp_bbox;
+      }else{
+        valid = false;
+      }
+    }
+    return last_box;
+  }else{
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0); 
+  }
+
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -9028,19 +9205,21 @@ bool RegContainRect(Region* reg, Rectangle<2>& rect)
 for the input relation, it gets a maximum rectangle for each region 
 
 */
-void MaxRect::GetRectangle1(int attr1, int attr2)
+void MaxRect::GetRectangle1(int attr1, int attr2, string type)
 {
-//  cout<<"attr "<<attr1<<" attr2 "<<attr2<<endl; 
 
   int reg_id = 1; 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
     Tuple* poly_tuple = rel1->GetTuple(i, false); 
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(attr1))->GetIntval();
     Region* poly = (Region*)poly_tuple->GetAttribute(attr2); 
-//     if(poly_id != 2289){
-//       poly_tuple->DeleteIfAllowed();
-//       continue; 
-//     }
+
+    if(poly_id == 1){
+       poly_tuple->DeleteIfAllowed();
+       continue; 
+     }
+
+//    cout<<"poly_id "<<poly_id<<endl;
 
     CompTriangle* ct = new CompTriangle(poly);
     ct->NewTriangulation();
@@ -9048,13 +9227,28 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
 
     vector<Rectangle<2> > rect_box_list; 
 
+
     for(unsigned int j = 0;j < ct->triangles.size();j++){
       if(ct->triangles[j].Area() > mini_tri_area && 
-        ct->triangles[j].Area() < maxi_tri_area){
+         ct->triangles[j].Area() < maxi_tri_area){
 //          printf("%f\n",ct->triangles[j].Area());
+//          if(ct->triangles[j].Area() > 28000.0) poly_count++;
 
           if(ValidRegion(&ct->triangles[j])){//coordinates should be positive 
-            Rectangle<2> rect_box = GetMaxRect(&ct->triangles[j]); 
+
+            Rectangle<2> rect_box;
+            if(type == "Berlin"){
+              rect_box = GetMaxRect(&ct->triangles[j]); 
+            }else if(type == "Houston"){
+              if(ct->triangles[j].Area() > 0.9 * maxi_tri_area){
+                rect_box = GetMaxRect(&ct->triangles[j]);
+              }else{
+                rect_box = GetMaxRect2(&ct->triangles[j]);
+              }
+            }else {
+              assert(false);
+            }
+
 //            cout<<rect_box<<endl;
             if(rect_box.IsDefined()){
                 double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
@@ -9063,10 +9257,7 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
                 double max = MAX(x,y); 
               if(rect_box.Area() > mini_rect_area && 
                  rect_box.Area() < maxi_rect_area && (max / min < 5.0)){
-/*                    reg_id_list.push_back(reg_id);
-                    rect_list.push_back(rect_box);
-                    poly_id_list.push_back(poly_id); 
-                    reg_id++; */
+
                     if(RegContainRect(poly, rect_box))
                         rect_box_list.push_back(rect_box); 
                }
@@ -9080,7 +9271,21 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
             Region* r = new Region(0);
             ct->triangles[j].Translate(tran_x, tran_y, *r); 
             assert(ValidRegion(r));
-            Rectangle<2> rect_box = GetMaxRect(r); 
+
+            Rectangle<2> rect_box;
+            if(type == "Berlin"){
+                rect_box = GetMaxRect(r);
+            }else if(type == "Houston"){
+                if(r->Area() > 0.9 * maxi_tri_area){
+                  rect_box = GetMaxRect(r);
+                }else{
+                  rect_box = GetMaxRect2(r);
+                }
+            }else{
+              assert(false);
+
+            }
+
             if(rect_box.IsDefined()){
                 double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));
                 double y = fabs(rect_box.MaxD(1) - rect_box.MinD(1));
@@ -9095,10 +9300,6 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
                     maxi[1] = rect_box.MaxD(1) - tran_y; 
                     Rectangle<2>* res_box = new Rectangle<2>(true, mini, maxi);
 
-/*                    reg_id_list.push_back(reg_id);
-                    rect_list.push_back(res_box);
-                    poly_id_list.push_back(poly_id); 
-                    reg_id++; */
 
                     if(RegContainRect(poly, rect_box))
                         rect_box_list.push_back(res_box); 
@@ -9113,7 +9314,6 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
     delete ct; 
     poly_tuple->DeleteIfAllowed(); 
 
-    
       //////////the distance between two buildings should be large////////
       for(unsigned int k1 = 0;k1 < rect_box_list.size();k1++){
         Rectangle<2> bbox1 = rect_box_list[k1];
@@ -9130,6 +9330,7 @@ void MaxRect::GetRectangle1(int attr1, int attr2)
         }
       }
   }
+
 }
 
 /*
@@ -9594,6 +9795,7 @@ void MaxRect::MapToPavement(DualGraph* dg, Point loc)
   dg->DFTraverse3(dg->rtree_node, root_id, loc, tri_oid_list, dist);
 
   if(tri_oid_list.size() == 0){
+    cout<<loc<<endl;
     cout<<"!!! should not happen: no mapping point"<<endl;
   }
 
@@ -10224,7 +10426,7 @@ void MaxRect::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
 set the train station 
 
 */
-#define TRAINSTATION_AREA_MIN 1000.0
+#define TRAINSTATION_AREA_MIN 800.0
 #define TRAINSTATION_AREA_MAX 2000.0
 
 void MaxRect::SetTrainStation(vector<Build_Rect>& list)

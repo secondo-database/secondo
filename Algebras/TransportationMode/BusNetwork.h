@@ -1047,13 +1047,22 @@ struct BNPath_elem:public Path_elem{
   
   bool b_w;
   double w;//special case for time waiting for the bus or metro
+  
+  int type;//////walk, bus, or none for this connection
+  int edge_tid;//tuple tid for this edge in bus graph 
   BNPath_elem():path(0){}
   BNPath_elem(int p, int c, int t, double w1, double w2, SimpleLine& sl,
               int m, bool b = true):Path_elem(p, c, t), weight(w1), real_w(w2), 
-              path(sl), tm(m), valid(b), b_w(false), w(0){}
+              path(sl), tm(m), valid(b), b_w(false), w(0)
+              {
+                type = -1;
+                edge_tid = 0;
+              }
   BNPath_elem(const BNPath_elem& wp):Path_elem(wp),
             weight(wp.weight),real_w(wp.real_w),
-            path(wp.path), tm(wp.tm), valid(wp.valid), b_w(wp.b_w), w(wp.w){}
+            path(wp.path), tm(wp.tm), valid(wp.valid), 
+            b_w(wp.b_w), w(wp.w), type(wp.type), edge_tid(wp.edge_tid){}
+
   BNPath_elem& operator=(const BNPath_elem& wp)
   {
     Path_elem::operator=(wp);
@@ -1064,6 +1073,8 @@ struct BNPath_elem:public Path_elem{
     valid = wp.valid; 
     b_w = wp.b_w;
     w = wp.w;
+    type = wp.type;
+    edge_tid = wp.edge_tid;
     return *this;
   }
   void SetW(double d)
@@ -1104,13 +1115,21 @@ struct BNPath_elem2:public Path_elem{
   
   bool b_w;
   double w;//special case for time waiting for the bus 
+  
+  int type;//////walk, bus, or none for this connection
+  int edge_tid;//tuple tid for this edge in bus graph 
   BNPath_elem2():path(0){}
   BNPath_elem2(int p, int c, int t, int w1, double w2, SimpleLine& sl,
               int m, bool b = true):Path_elem(p, c, t), weight(w1), real_w(w2), 
-              path(sl), tm(m), valid(b), b_w(false), w(0){}
+              path(sl), tm(m), valid(b), b_w(false), w(0)
+              {
+                type = -1;
+                edge_tid = 0;
+              }
   BNPath_elem2(const BNPath_elem2& wp):Path_elem(wp),
             weight(wp.weight),real_w(wp.real_w),
-            path(wp.path), tm(wp.tm), valid(wp.valid), b_w(wp.b_w), w(wp.w){}
+            path(wp.path), tm(wp.tm), valid(wp.valid), 
+            b_w(wp.b_w), w(wp.w), type(wp.type), edge_tid(wp.edge_tid){}
   BNPath_elem2& operator=(const BNPath_elem2& wp)
   {
     Path_elem::operator=(wp);
@@ -1121,6 +1140,8 @@ struct BNPath_elem2:public Path_elem{
     valid = wp.valid; 
     b_w = wp.b_w;
     w = wp.w;
+    type = wp.type;
+    edge_tid = wp.edge_tid;
     return *this;
   }
   void SetW(double d)
@@ -1195,9 +1216,7 @@ struct BNNav{
   void ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
   void ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
 
-  
-  void ShortestPath_TimeNew2(Bus_Stop* bs1, Bus_Stop* bs2, Instant*);
-  
+
   void InitializeQueue1(Bus_Stop* bs1, Bus_Stop* bs2, 
                             priority_queue<BNPath_elem>& path_queue, 
                             vector<BNPath_elem>& expand_queue, 

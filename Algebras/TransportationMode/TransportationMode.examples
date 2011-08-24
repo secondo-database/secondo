@@ -816,8 +816,8 @@ Result   : 4
 
 Operator : getrect1 
 Number   : 1
-Signature: rel x attr1 x attr2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getrect1(new_region_elems, id, covarea) count;
+Signature: rel x attr1 x attr2 x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getrect1(new_region_elems, id, covarea, "Berlin") count;
 Result   : 20 
 
 

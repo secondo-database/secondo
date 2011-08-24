@@ -417,6 +417,8 @@ struct Walk_SP{
   void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Line* line, 
                   double& l);
 
+  bool EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2);
+
   void TestWalkShortestPath(int, int);
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);
@@ -692,6 +694,7 @@ struct Hole{
 ///////////////////////////search maximum rectangle//////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 Rectangle<2> GetMaxRect(Region*);
+Rectangle<2> GetMaxRect2(Region*);
 Rectangle<2> RectInTriangle(vector<Point>& ps); 
 
 struct GeomPoint{
@@ -765,16 +768,13 @@ struct GeomEdge{
  const float mini_reg_area = 1000.0; 
 // const float mini_rect_area = 800.0; 
 // const float maxi_rect_area = 8000.0; 
-// const float mini_tri_area = 100.0; 
-// const float maxi_tri_area = 20000.0;
-
 
 const float mini_rect_area = 100.0; 
 const float maxi_rect_area = 15000.0; 
 const float mini_tri_area = 200.0; 
 const float maxi_tri_area = 30000.0;
 
-const float mini_dist_build = 15.0; 
+const float mini_dist_build = 15.0;
 
 struct Build_Rect{
   int reg_id;
@@ -912,7 +912,7 @@ struct MaxRect{
     /////////////whether two triangle have a commone edge////////////////
     bool NeighborTriangle(Region* r1, Region* r2); 
     /////////get the maximum rectangle for each region/////////////////
-    void GetRectangle1(int attr1, int attr2); 
+    void GetRectangle1(int attr1, int attr2, string type);
 
     ////////////////check whether all coordinates are positive///////////////
     ////////////because the function to get maximum rectangle needs all ////
