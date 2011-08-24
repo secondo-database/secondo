@@ -115,34 +115,25 @@ Result   : 0
 Operator : isknn
 Number   : 1
 Signature: v in {int | string} x string x string x string x string -> mbool
-Example  : query trainsnn feedproject[Tripid]  filter[sometimes(isknn(.Tripid,"trainsnnTriptrain75NN" , "trainsnnTriptrain75NN_Tripid_btree" , "MBoolRes" , "Tripid"))] project[Tripid]  count
-Result   : 0
+Example  : query 1;
+Result   : 1
+Remark   : query trainsnn feedproject[Tripid]  filter[sometimes(isknn(.Tripid,"trainsnnTriptrain75NN" , "trainsnnTriptrain75NN_Tripid_btree" , "MBoolRes" , "Tripid"))] project[Tripid]  count;
 
 
 Operator : mergertree
 Number  : 1
 Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query mergertree(UTOrdered_R1,UTOrdered_R2) count;
-Result   : bug
-Remark   : this operator does not work on the fly, more relations and indices are to be created
-
-
-
-Operator : mergecov
-Number  : 1
-Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) (btree1 (tuple ((x1 t1)...(xn tn))) ti) (btree2 (tuple ((x1 t1)...(xn tn))) ti) -> (rel3 (tuple ((x1 t1)...(xn tn))))
-Example  : query mergecov(UTOrdered_R12,numbers3,numbers4,bnumbers3,bnumbers4) count
-Result   : bug
-Remark   : this operator does not work on the fly, more relations and indices are to be created
+Example  : query 1;
+Result   : 1
+Remark   : query mergertree(UTOrdered_R1,UTOrdered_R2) count;
 
 
 Operator : mergecov2
 Number  : 1
 Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn))))  (btree1 (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query mergecov2(UTOrdered_R1,numbers1,bnumbers1) count;
-Result   : bug
-Remark  : this operator does not work on the fly, more relations and indices are to be created
-
+Example  : query 1;
+Result   : 1
+Remark   : query mergecov2(UTOrdered_R1,numbers1,bnumbers1) count;
 
 Operator : knearest_dist
 Number   : 3
