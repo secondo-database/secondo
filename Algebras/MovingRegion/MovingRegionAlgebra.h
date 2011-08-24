@@ -1065,12 +1065,12 @@ value to reduce the total number of units.
 */
     void InsideAddUBool(
         MBool& res,
-        double starttime,
-        double endtime,
+        Instant starttime,
+        Instant endtime,
         bool lc,
         bool rc,
         bool value,
-        double& prev,
+        Instant& prev,
         bool& prev_c,
         UBool*& pending);
 
