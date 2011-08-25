@@ -165,24 +165,11 @@ void XmlFileReader::processXmlNode(xmlTextReaderPtr reader)
     //if (xmlTextReaderGetParserLineNumber (reader) > 200)  {
     //    return;
     //}
-    //std::string value = "";
-    //std::string empty = "";
-    //std::string type = "";
     std::string elementName = "";
     std::string elementValue = "";
     std::string attributeName = "";
     std::string attributeValue = "";
     int elementLevel = xmlTextReaderDepth(reader);
-    //int lineNum = xmlTextReaderGetParserLineNumber (reader);//TEST 
-    //const xmlChar *name = NULL;
-    //const xmlChar *nodeValue = NULL;
-    //name = xmlTextReaderConstName(reader);
-    //if (name == NULL)
-    //    name = BAD_CAST "--";
-
-    //nodeValue = xmlTextReaderConstValue(reader);
-    //value = (nodeValue == NULL)? empty : ((const char *)nodeValue);
-    //stringutils::trim(value);
     int nodeType = xmlTextReaderNodeType(reader);
 
     std::vector<std::string> attributeNames;
@@ -190,24 +177,18 @@ void XmlFileReader::processXmlNode(xmlTextReaderPtr reader)
 
     if (nodeType ==  (int)XML_READER_TYPE_ELEMENT)  {
         elementName = (char *)xmlTextReaderConstName(reader);
-        //std::cout << elementName << std::endl;
         // Fetching the attributes
         while (xmlTextReaderMoveToNextAttribute(reader))  {
             attributeName = (char *)xmlTextReaderConstName(reader);
             attributeValue = (char *)xmlTextReaderConstValue(reader);
-            //std::cout << "-" << attributeName << " = " << attributeValue;
-            //std::cout << std::endl; 
             attributeNames.push_back (attributeName); 
             attributeValues.push_back (attributeValue); 
         }
         xmlTextReaderMoveToElement(reader);
-        //std::cout << "element \"" << elementName << "\" starts at: ";//TEST
-        //std::cout << lineNum << std::endl;//TEST
         // Checking whether the tag looks like this:
         // <sometag attrib_1 = "" ... attrib_n="" />
         if (xmlTextReaderIsEmptyElement (reader))  {
             // found empty element
-            //std::cout << "and ends directly" << std::endl;//TEST
             Element element (elementName, attributeNames, attributeValues, 
                 elementValue, elementLevel);
             pushEmptyElementToStack (element);
@@ -225,15 +206,9 @@ void XmlFileReader::processXmlNode(xmlTextReaderPtr reader)
     } else if (nodeType ==  (int)XML_READER_TYPE_TEXT)  {
         // found text
         elementValue = (char *)xmlTextReaderConstValue(reader);
-        //std::cout << "=" << elementValue << std::endl; 
-        //std::cout << "text \"" << elementValue;//TEST
-        //std::cout << "\" appears at: " << lineNum;//TEST
-        //std::cout << std::endl;//TEST
     } else if (nodeType == (int)XML_READER_TYPE_END_ELEMENT)  {
         // found end of element
         elementName = (char *)xmlTextReaderConstName(reader);
-        //std::cout << "element \"" << elementName;//TEST
-        //std::cout << "\" ends at: " << lineNum << std::endl;//TEST
         Element element (elementName, attributeNames, attributeValues,
             elementValue, elementLevel);
         popElementFromStack (element);
@@ -274,8 +249,6 @@ void XmlFileReader::pushEmptyElementToStack (const Element &element)
 void XmlFileReader::pushElementToStack (const Element &element)
 {
     if (isElementInteresting (element))  {
-        //std::cout << "pushElemToStack () - stack size:";//TEST
-        //std::cout << m_elements.size () << std::endl;//TEST 
         m_elements.push (element);
         assert (m_parser != NULL);
         m_parser->pushedElementToStack (element);
@@ -285,17 +258,11 @@ void XmlFileReader::pushElementToStack (const Element &element)
 void XmlFileReader::popElementFromStack (const Element &element)
 {
     if (isElementInteresting (element))  {
-        //std::cout << "popElemFromStack () - stack size:";//TEST
-        //std::cout << m_elements.size () <<std::endl;//TEST
-        //element.print ();//TEST
         Element top = m_elements.top ();
-        //top.print ();//TEST
         m_elements.pop ();
         assert (top.getName () == element.getName ());
-        //if (m_elements.empty ())  {
-            assert (m_parser != NULL);
-            m_parser->poppedElementFromStack (top);
-        //}
+        assert (m_parser != NULL);
+        m_parser->poppedElementFromStack (top);
     }
 }
 

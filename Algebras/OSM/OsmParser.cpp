@@ -112,14 +112,12 @@ void OsmParser::readOsmFile ()
 
 void OsmParser::openOsmFile ()
 {
-    std::cout << "open ()" << std::endl;//TEST
     m_reader = new XmlFileReader (getFileName (), this);
     assert (m_reader);
 }
 
 void OsmParser::getNext (std::vector<std::string> *values, int *elementType)
 {
-    std::cout << "getNext ()" << std::endl;//TEST
     assert (m_reader);
     m_reader->getNext ();
     getInterestingElement (values, elementType);
@@ -127,7 +125,6 @@ void OsmParser::getNext (std::vector<std::string> *values, int *elementType)
 
 void OsmParser::closeOsmFile ()
 {
-    std::cout << "close ()" << std::endl;//TEST
     assert (m_reader);
     delete m_reader;
     m_reader = NULL;
@@ -195,8 +192,6 @@ void OsmParser::updateNodeFromElement (const Element &element)
             break;
         }
     }
-    //std::cout << "updateNodeFromElement () - ";//TEST
-    //m_currentNode.print ();//TEST
 }
 
 void OsmParser::addTagElementToNode (const Element &element)
@@ -207,8 +202,6 @@ void OsmParser::addTagElementToNode (const Element &element)
         m_currentNode.setAmenity (amenity.getValue ());
     if (name.getValue () != "")
         m_currentNode.setName (name.getValue ());
-    //std::cout << "addTagElementToNode () - ";//TEST
-    //m_currentNode.print ();//TEST
 }
 
 void OsmParser::createWayFromElement (const Element &element)
@@ -240,8 +233,6 @@ void OsmParser::updateWayFromElement (const Element &element)
             break;
         }
     }
-    //std::cout << "updateWayFromElement () - ";//TEST
-    //m_currentWay.print ();//TEST
 }
 
 void OsmParser::addNdElementToWay (const Element &element)
@@ -279,8 +270,6 @@ void OsmParser::addTagElementToWay (const Element &element)
         m_currentWay.setTunnel (tunnel.getValue ());
     if (ref.getValue () != "")
         m_currentWay.setRef (ref.getValue ());
-    //std::cout << "addTagElementToWay () - ";//TEST
-    //m_currentWay.print ();//TEST
 }
 
 void OsmParser::createRelationFromElement (const Element &element)
@@ -312,8 +301,6 @@ void OsmParser::updateRelationFromElement (const Element &element)
             break;
         }
     }
-    //std::cout << "updateRestrictionFromElement () - ";//TEST
-    //m_currentRestriction.print ();//TEST
 }
 
 void OsmParser::addTagElementToRelation (const Element &element)
@@ -325,8 +312,6 @@ void OsmParser::addTagElementToRelation (const Element &element)
         m_currentRestriction.setRestriction (restriction.getValue ());
     if (type.getValue () != "")
         m_currentRestriction.setType (type.getValue ());
-    //std::cout << "addTagElementToRelation () - ";//TEST
-    //m_currentRestriction.print ();//TEST
 }
 
 void OsmParser::addMemberElementToRelation (const Element &element)
@@ -401,8 +386,6 @@ void OsmParser::updateState (const Element &element, bool up)
     int newState = curState;
 
     if (up) {
-        //std::cout << "state up" << std::endl;//TEST
-        //std::cout << "current state: " << curState << std::endl;//TEST
 
         if (element.getLevel () == 1 && element.getName () == "node")  {
             // /node
@@ -449,7 +432,6 @@ void OsmParser::updateState (const Element &element, bool up)
             assert (false);
         }
     } else  {
-        //std::cout << "state down" << std::endl;//TEST
         if (curState == ReaderStateInNodeTag)  {
             // cur: /node/tag
             // new: /node
@@ -483,8 +465,6 @@ void OsmParser::updateState (const Element &element, bool up)
             assert (false);
         }
     }
-    //std::cout << "new state: " << newState << std::endl;//TEST
-    //element.print ();//TEST
 
     // Propagating the state
     setReaderState (newState);

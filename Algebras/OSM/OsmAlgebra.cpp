@@ -302,7 +302,6 @@ ListExpr osmimportTypeMap(ListExpr args)
 
     elementType = nl->ToString(elementTypeValue);
 
-    std::cout << "elementType: " << elementType<< std::endl;//TEST
     // Creating a list of attributes
     if (elementType == "'node'")  {
         attrList = OsmImportOperator::getOsmNodeAttrList ();

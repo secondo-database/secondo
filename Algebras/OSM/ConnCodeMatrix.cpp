@@ -126,8 +126,6 @@ void ConnCodeMatrix::transform ()
 void ConnCodeMatrix::shrinkTo3x3Mat (int missing)
 {
    assert (m_values);
-   //std::cout << "shrinkTo3x3Mat" << std::endl;//TEST
-   //std::cout << "missing: " << missing << std::endl;//TEST
    assert (missing >= 0 && missing <= 3);
    int iRow = 0; 
    int iCol = 0;
