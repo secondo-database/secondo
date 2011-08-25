@@ -47,9 +47,9 @@ For more detailed information see NdData.h.
 
 // --- Including header-files
 #include "NdData.h"
+#include "OsmImportOperator.h"
 #include <iostream>
 #include <cassert>
-#include "OsmReader.h"
 
 // --- Constructors
 // Constructor
@@ -81,7 +81,7 @@ NdData NdData::createNdFromElement (const Element &element)
             itAttrNames != attributeNames.end ();
             ++itAttrNames,++itAttrValues)  {
         if ((*itAttrNames) == "ref")  {
-            nd.setRef (OsmReader::convStrToInt (*itAttrValues));
+            nd.setRef (OsmImportOperator::convStrToInt (*itAttrValues));
             break;
         }
     }

@@ -51,13 +51,14 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Symbols.h"
+#include "RelationAlgebra.h"
 #include "../Spatial/Geoid.h"
 #include "../Spatial/SpatialAlgebra.h"
 #include "../FText/FTextAlgebra.h"
 #include "ShpFileReader.h"
 #include "ConnCodeFinder.h"
 #include "ScalingEngine.h"
-#include "OsmReader.h"
+#include "OsmImportOperator.h"
 
 // --- Enabling global pointer variables
 extern NestedList* nl;
@@ -184,74 +185,141 @@ Operator shpimport3( "shpimport3",
                     Operator::SimpleSelect,
                     shpimport3TypeMap);
 
-
-
-
 // --- osmimport-operator
 // Specification of operator osmimport
 const string osmimportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "(<text> text -> bool </text--->"
-    "<text> osmimport(_) </text--->"
-    "<text> Produces relations with a fix format from an OSM-file. </text--->"
-    "<text> query osmimport('city.osm') </text--->) )";
+    "(<text> text x ('node','way','restriction') -> stream (tuple(...)) "
+    "</text--->"
+    "<text> osmimport(_,_) </text--->"
+    "<text> Produces a stream with the nodes, ways or restrictions from the "
+    "specified OSM-file. </text--->"
+    "<text> query osmimport('city.osm','node') count </text--->) )";
 
 // Value-mapping-function of operator osmimport
 int osmimportValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
-   assert (args != NULL);
-   OsmReader* reader = NULL;
-   FText *arg = static_cast<FText *>(args[0].addr);
-   result = qp->ResultStorage (s);
-   CcBool *res = static_cast<CcBool*>(result.addr);;
-   if (!arg->IsDefined()) {
-      res->SetDefined(false);
-   } else  {
-      reader = new OsmReader(arg->GetValue ());
-      reader->readOsmFile (); 
-      res->Set (true, true);
-      delete reader;
-   }
-   return 0;
+    assert (args != NULL);
+    OsmImportOperator* importOperator = NULL;
+    FText *arg1 = NULL;
+    FText *arg2 = NULL;
+    result = qp->ResultStorage (s);
+    int ret = 0;
+    switch (message) {
+        case OPEN:
+            arg1 = static_cast<FText *>(args[0].addr);
+            arg2 = static_cast<FText *>(args[1].addr);
+            if (arg1->IsDefined () && arg2->IsDefined ()) {
+                importOperator = new OsmImportOperator (arg1->GetValue (),
+                    arg2->GetValue (), qp->GetType (s));
+            }
+            local.setAddr (importOperator);
+            ret = 0; 
+            break;
+        case REQUEST:
+            importOperator = static_cast<OsmImportOperator *>(local.addr);
+            if (!importOperator) {
+                ret = CANCEL;
+            } else  {
+                result.addr = importOperator->getNext (); 
+                ret = (result.addr)? YIELD : CANCEL;
+            }
+            break;
+        case CLOSE:
+            importOperator = static_cast<OsmImportOperator *>(local.addr);
+            if (importOperator)  {
+                delete importOperator;
+                local.setAddr (0);
+            }
+            break;
+        default:
+            break;
+    }
+    return ret;
 }
 
 // Type-mapping-function of operator osmimport
-ListExpr osmimportTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=1){
-      return listutils::typeError("one argument expected");
-   }
-   ListExpr arg = nl->First(args);
-   if(nl->ListLength(arg) !=2){
-      return listutils::typeError("Error, argument has to consists of 2 parts");
-   }
-   ListExpr type = nl->First(arg);
-   ListExpr value = nl->Second(arg);
+ListExpr osmimportTypeMap(ListExpr args)
+{
+    Word res;
+    bool success (false);
+    std::string elementType;
+    ListExpr fileNameArg;
+    ListExpr fileNameType;
+    ListExpr fileNameValue;
+    ListExpr elementTypeArg;
+    ListExpr elementTypeType;
+    ListExpr elementTypeValue;
+    ListExpr attrList;
+    ListExpr ret;
+    FText* fileName (NULL);
 
-   if(!listutils::isSymbol(type,FText::BasicType())){
-       return listutils::typeError("text expected");
-   }
+    if(nl->ListLength(args) != 2){
+        return listutils::typeError("two arguments expected");
+    }
 
-   // get the value if possible
+    // --- Testing if a valid file name was passed
+    fileNameArg = nl->First(args);
+    if(nl->ListLength(fileNameArg) != 2){
+        return listutils::typeError(
+            "Error, argument has to consists of 2 parts");
+    }
+    fileNameType = nl->First(fileNameArg);
+    fileNameValue = nl->Second(fileNameArg);
 
-   Word res;
-   bool success = QueryProcessor::ExecuteQuery(nl->ToString(value),res);
-   if(!success){
-     return listutils::typeError("could not evaluate the value of  " +
-                                  nl->ToString(value) );
-   }
+    if(!listutils::isSymbol(fileNameType,FText::BasicType())){
+        return listutils::typeError("text expected");
+    }
 
-   FText* resText = static_cast<FText*>(res.addr);
+    success = QueryProcessor::ExecuteQuery(nl->ToString(fileNameValue),res);
+    if(!success){
+        return listutils::typeError("could not evaluate the value of  " +
+                nl->ToString(fileNameValue) );
+    }
 
-   if(!resText->IsDefined()){
-      resText->DeleteIfAllowed();
-       return listutils::typeError("filename evaluated to be undefined");
-   }
+    fileName = static_cast<FText*>(res.addr);
 
-   //string name = resText->GetValue();
-   resText->DeleteIfAllowed();
+    if(!fileName->IsDefined()){
+        fileName->DeleteIfAllowed();
+        return listutils::typeError("filename evaluated to be undefined");
+    }
 
-   return nl->SymbolAtom(CcBool::BasicType());
+    fileName->DeleteIfAllowed();
+
+    // --- Checking the element type ("node", "way" or "restriction")
+    elementTypeArg = nl->Second(args);
+    if(nl->ListLength(elementTypeArg) != 2){
+        return listutils::typeError(
+            "Error, argument has to consists of 2 parts");
+    }
+    elementTypeType = nl->First(elementTypeArg);
+    elementTypeValue = nl->Second(elementTypeArg);
+
+    if(!listutils::isSymbol(elementTypeType,FText::BasicType())){
+        return listutils::typeError("text expected");
+    }
+
+    elementType = nl->ToString(elementTypeValue);
+
+    std::cout << "elementType: " << elementType<< std::endl;//TEST
+    // Creating a list of attributes
+    if (elementType == "'node'")  {
+        attrList = OsmImportOperator::getOsmNodeAttrList ();
+    } else if (elementType == "'way'")  {
+        attrList = OsmImportOperator::getOsmWayAttrList ();
+    } else if (elementType == "'restriction'")  {
+        attrList = OsmImportOperator::getOsmRestrictionAttrList (); 
+    } else {
+        return listutils::typeError (
+            "Error: The passed element type is unknown.");
+    }
+
+    ret = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+            nl->TwoElemList(
+                nl->SymbolAtom(Tuple::BasicType()),
+                attrList));
+    return ret;
 }
 
 // Instance of operator osmimport

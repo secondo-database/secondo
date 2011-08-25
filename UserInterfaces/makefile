@@ -24,7 +24,8 @@
 ########################################################################
 
 include ../makefile.env
-
+#LIBXML2 := /opt/local/lib/libxml2.dylib
+LIBXML2 := 
 CC := g++
 LD := g++
 
@@ -142,7 +143,7 @@ $(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS)
 # SecondoBDB, the stand alone application.
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) MainTTY.o $(FLOB)
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 
 # The TTY-Clients, they use special implementations of SecondoInterface and don't

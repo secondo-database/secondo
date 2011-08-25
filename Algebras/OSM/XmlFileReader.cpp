@@ -54,22 +54,23 @@ For more detailed information see XmlFileReader.h.
 // --- Constructors
 // Default-Constructor
 XmlFileReader::XmlFileReader ()
-  : m_fileName (), m_parser (NULL), m_elements ()
+  : m_fileName (), m_parser (NULL), m_elements (), m_reader (NULL)
 {
     // empty
 }
 
 // Constructor
-XmlFileReader::XmlFileReader (const std::string &fileName)
-  : m_fileName (fileName), m_parser (NULL), m_elements ()
+XmlFileReader::XmlFileReader (const std::string &fileName,
+    XmlParserInterface *parser)
+  : m_fileName (fileName), m_parser (parser), m_elements (), m_reader (NULL)
 {
-    // empty
+    open ();
 }
 
 // Destructor
 XmlFileReader::~XmlFileReader ()
 {
-    // empty
+    close ();
 }
 
 // --- Methods
@@ -92,6 +93,26 @@ void XmlFileReader::setXmlParser (XmlParserInterface *parser)
 }
 
 #ifdef WITH_LIBXML2_SUPPORT
+void XmlFileReader::open ()
+{
+    assert (!m_reader);
+    xmlInitParser();
+    m_reader = new xmlTextReaderPtr ();
+    const char *fileName = getFileName ().c_str();
+    (*m_reader) = xmlReaderForFile(fileName, NULL, 0);
+    assert (m_reader);
+}
+
+void XmlFileReader::close ()
+{
+    assert (m_reader);
+    xmlFreeTextReader(*m_reader);
+    delete m_reader;
+    m_reader = NULL;
+    xmlCleanupParser();
+    assert (!m_reader);
+}
+
 void XmlFileReader::readXmlFile ()
 {
     xmlInitParser();
@@ -114,6 +135,28 @@ void XmlFileReader::readXmlFile ()
         std::cerr << "Could not open \"" << fileName << "\"" << std::endl;
     }
     xmlCleanupParser();
+}
+
+void XmlFileReader::getNext ()
+{
+    assert (m_reader != NULL);
+    const char *fileName = getFileName ().c_str();
+    int ret;
+    bool found = false;
+
+    if ((*m_reader) != NULL) {
+        ret = xmlTextReaderRead(*m_reader);
+        while (!found && ret == 1) {
+            processXmlNode(*m_reader);
+            ret = xmlTextReaderRead(*m_reader);
+            found = foundInterestingElement ();
+        }
+        if (!found && ret != 0) {
+            std::cerr << "Could not parse \"" << fileName << "\"" << std::endl;
+        }
+    } else {
+        std::cerr << "Could not open \"" << fileName << "\"" << std::endl;
+    }
 }
 
 void XmlFileReader::processXmlNode(xmlTextReaderPtr reader)
@@ -199,7 +242,22 @@ void XmlFileReader::processXmlNode(xmlTextReaderPtr reader)
     }
 }
 #else
+void XmlFileReader::open ()
+{
+    // empty
+}
+
+void XmlFileReader::close ()
+{
+    // empty
+}
+
 void XmlFileReader::readXmlFile ()
+{
+    std::cerr << "libxml2 is not supported!" << std::endl;
+}
+
+void XmlFileReader::getNext ()
 {
     std::cerr << "libxml2 is not supported!" << std::endl;
 }
@@ -247,3 +305,8 @@ bool XmlFileReader::isElementInteresting (const Element &element) const
     return m_parser->isElementInteresting (element);
 }
 
+bool XmlFileReader::foundInterestingElement () const
+{
+    assert (m_parser != NULL);
+    return m_parser->foundInterestingElement ();
+}

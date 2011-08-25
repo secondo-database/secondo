@@ -45,7 +45,7 @@ Result   : 2000
 
 Operator : osmimport
 Number   : 8
-Signature: text  -> bool
-Example  : query osmimport('city.osm')
-Result   : TRUE
+Signature: text x ('node','way','restriction') -> stream (tuple (...))
+Example  : query osmimport('city.osm','node') count
+Result   : 0
 

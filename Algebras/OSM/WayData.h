@@ -77,6 +77,8 @@ class WayData {
         void setBridge  (const std::string & bridge);
         void setTunnel  (const std::string & tunnel);
         void setRef  (const std::string & ref);
+        const std::vector<std::string> & getValues ();
+
 
     protected:
 
@@ -91,6 +93,8 @@ class WayData {
         std::string m_bridge;
         std::string m_tunnel;
         std::string m_ref;
+        std::vector<std::string> m_values;
+
 };
 
 void printWay (const WayData &way);

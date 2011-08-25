@@ -43,6 +43,7 @@ This header file essentially contains the definition of the class
 
 // --- Including header-files
 #include <string>
+#include <vector>
 
 class NodeData {
 
@@ -75,7 +76,10 @@ public:
 
     const std::string & getName () const;
 
+    const std::vector<std::string> & getValues ();
+
     void print () const;
+
 protected:
 
     // --- Members
@@ -88,6 +92,9 @@ protected:
     std::string m_amenity;
     
     std::string m_name;
+
+    std::vector<std::string> m_values;
+
 };
 
 void printNode (const NodeData &node);

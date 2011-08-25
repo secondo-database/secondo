@@ -48,11 +48,12 @@ For more detailed information see RestrictionData.h.
 // --- Including header-files
 #include "RestrictionData.h"
 #include <iostream>
+#include <sstream>
 
 // --- Constructors
 // Constructor
 RestrictionData::RestrictionData ()
-  : m_id (0), m_from (0), m_to (0), m_restriction (), m_type ()
+  : m_id (0), m_from (0), m_to (0), m_restriction (), m_type (), m_values ()
 {
     // empty
 }
@@ -123,6 +124,26 @@ const std::string & RestrictionData::getRestriction () const
 const std::string & RestrictionData::getType () const
 {
     return m_type;
+}
+
+const std::vector<std::string> & RestrictionData::getValues ()
+{
+    m_values.clear ();
+    std::ostringstream strId;
+    std::ostringstream strFrom;
+    std::ostringstream strVia;
+    std::ostringstream strTo;
+    strId << getId ();
+    strFrom << getFrom ();
+    strVia << getVia ();
+    strTo << getTo ();
+    m_values.push_back (strId.str ());
+    m_values.push_back (strFrom.str ());
+    m_values.push_back (strVia.str ());
+    m_values.push_back (strTo.str ());
+    m_values.push_back (getRestriction ());
+    m_values.push_back (getType ());
+    return m_values; 
 }
 
 void RestrictionData::print () const

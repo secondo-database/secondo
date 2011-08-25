@@ -47,9 +47,9 @@ For more detailed information see MemberData.h.
 
 // --- Including header-files
 #include "MemberData.h"
+#include "OsmImportOperator.h"
 #include <iostream>
 #include <cassert>
-#include "OsmReader.h"
 
 // --- Constructors
 // Constructor
@@ -84,7 +84,7 @@ MemberData MemberData::createMemberFromElement (const Element &element)
             member.setType (*itAttrValues);
         }
         if ((*itAttrNames) == "ref")  {
-            member.setRef (OsmReader::convStrToInt (*itAttrValues));
+            member.setRef (OsmImportOperator::convStrToInt (*itAttrValues));
         }
         if ((*itAttrNames) == "role")  {
             member.setRole (*itAttrValues);

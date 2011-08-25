@@ -48,6 +48,7 @@ For more detailed information see WayData.h.
 // --- Including header-files
 #include "WayData.h"
 #include <iostream>
+#include <sstream>
 
 // --- Constructors
 // Constructor
@@ -160,6 +161,29 @@ void WayData::setTunnel (const std::string & tunnel)
 void WayData::setRef (const std::string & ref)
 {
     m_ref = ref;
+}
+
+const std::vector<std::string> & WayData::getValues ()
+{
+    m_values.clear ();
+    std::ostringstream strId;
+    std::ostringstream strMaxSpeed;
+    std::ostringstream strOneWay;
+    std::ostringstream strLayer;
+    strId << getId ();
+    strMaxSpeed << getMaxSpeed ();
+    strOneWay << getOneWay ();
+    strLayer << getLayer ();
+    m_values.push_back (strId.str ());
+    m_values.push_back (strMaxSpeed.str ());
+    m_values.push_back (strOneWay.str ());
+    m_values.push_back (strLayer.str ());
+    m_values.push_back (getHighway ());
+    m_values.push_back (getName ());
+    m_values.push_back (getBridge ());
+    m_values.push_back (getTunnel ());
+    m_values.push_back (getRef ());
+    return m_values; 
 }
 
 void printWay (const WayData &way)

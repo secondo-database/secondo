@@ -33,9 +33,9 @@ June-November, 2011. Thomas Uchdorf
 1 Overview
 
 This implementation file contains the implementation of the class
-~OsmReader~.
+~OsmParser~.
 
-For more detailed information see OsmReader.h.
+For more detailed information see OsmParser.h.
 
 2 Defines and Includes
 
@@ -46,7 +46,8 @@ For more detailed information see OsmReader.h.
 #define __TRACE__
 
 // --- Including header-files
-#include "OsmReader.h"
+#include "OsmParser.h"
+#include "OsmImportOperator.h"
 #include "XmlFileReader.h"
 #include "TagData.h"
 #include "NdData.h"
@@ -57,93 +58,111 @@ For more detailed information see OsmReader.h.
 #include <cassert>
 
 // --- Class-variables
-const int OsmReader::IN_NODE = 1;
-const int OsmReader::IN_TAG = 2;
-const int OsmReader::IN_WAY = 3;
-const int OsmReader::IN_RELATION = 4;
-const int OsmReader::IN_ND = 5;
-const int OsmReader::IN_MEMBER = 6;
+const int OsmParser::IN_NODE = 1;
+const int OsmParser::IN_TAG = 2;
+const int OsmParser::IN_WAY = 3;
+const int OsmParser::IN_RELATION = 4;
+const int OsmParser::IN_ND = 5;
+const int OsmParser::IN_MEMBER = 6;
 
 // --- Constructors
 // Default-Constructor
-OsmReader::OsmReader ()
+OsmParser::OsmParser ()
   : XmlParserInterface (), m_fileName (), m_readerState (ReaderStateUnknown),
-    m_currentNode (), m_currentWay (), m_currentRestriction ()
+    m_currentNode (), m_currentWay (), m_currentRestriction (), m_reader (NULL),
+    m_foundNode (false), m_foundWay (false), m_foundRestriction (false)
 {
     // empty
 }
 
 // Constructor
-OsmReader::OsmReader (const std::string &fileName)
+OsmParser::OsmParser (const std::string &fileName)
   : XmlParserInterface (), m_fileName (fileName),
     m_readerState (ReaderStateUnknown), m_currentNode (), 
-    m_currentWay (), m_currentRestriction ()
+    m_currentWay (), m_currentRestriction (), m_reader (NULL),
+    m_foundNode (false), m_foundWay (false), m_foundRestriction (false)
 {
     // empty
 }
 
 // Destructor
-OsmReader::~OsmReader ()
+OsmParser::~OsmParser ()
 {
-    // empty
+    if (m_reader)  {
+        closeOsmFile ();
+    }
 }
 
 // --- Methods
-void OsmReader::setFileName (const std::string &fileName)
+void OsmParser::setFileName (const std::string &fileName)
 {
     m_fileName = fileName;
 }
 
-const std::string & OsmReader::getFileName () const
+const std::string & OsmParser::getFileName () const
 {
     return m_fileName;
 }
 
-void OsmReader::readOsmFile ()
+void OsmParser::readOsmFile ()
 {
-    std::cout << "Hello, World!" << std::endl;//TEST
-    XmlFileReader reader (getFileName ());
-    reader.setXmlParser (this);
+    XmlFileReader reader (getFileName (), this);
     reader.readXmlFile ();
 }
 
-int OsmReader::convStrToInt (const std::string &str)
+void OsmParser::openOsmFile ()
 {
-    //string strQuery = "num2string(" + str + ")";
-    //Word result;
-    //int worked = QueryProcessor::ExecuteQuery(strQuery, result);
-    //assert(worked);
-    //CcInt res = (Relation*)result.addr;
-    //return res.getValue (); 
-    std::istringstream stream (str);
-    int ret;
-    stream.precision (10);
-    stream >> ret;
-    return ret;
+    std::cout << "open ()" << std::endl;//TEST
+    m_reader = new XmlFileReader (getFileName (), this);
+    assert (m_reader);
 }
 
-double OsmReader::convStrToDbl (const std::string &str)
+void OsmParser::getNext (std::vector<std::string> *values, int *elementType)
 {
-    //string strQuery = "num2string(" + str + ")";
-    //Word result;
-    //int worked = QueryProcessor::ExecuteQuery(strQuery, result);
-    //assert(worked);
-    //CcInt res = (Relation*)result.addr;
-    //return res.getValue ();
-    std::istringstream stream (str);
-    double ret;
-    stream.precision (10);
-    stream >> ret;
-    return ret;
+    std::cout << "getNext ()" << std::endl;//TEST
+    assert (m_reader);
+    m_reader->getNext ();
+    getInterestingElement (values, elementType);
 }
 
-void OsmReader::createNodeFromElement (const Element &element)
+void OsmParser::closeOsmFile ()
+{
+    std::cout << "close ()" << std::endl;//TEST
+    assert (m_reader);
+    delete m_reader;
+    m_reader = NULL;
+    assert (!m_reader);
+}
+
+void OsmParser::getInterestingElement (std::vector<std::string> *values,
+    int *elementType)
+{
+    assert (values);
+    assert (elementType);
+    values->clear ();
+    if (isFoundNode ())  {
+        (*values) = m_currentNode.getValues ();
+        (*elementType) = OsmImportOperator::ELEMENT_TYPE_NODE;
+    } else if (isFoundWay ())  {
+        (*values) = m_currentWay.getValues ();
+        (*elementType) = OsmImportOperator::ELEMENT_TYPE_WAY;
+    } else if (isFoundRestriction ())  {
+        (*values) = m_currentRestriction.getValues ();
+        (*elementType) = OsmImportOperator::ELEMENT_TYPE_RESTRICTION;
+    }
+    // Resetting the boolean members used for iterative access
+    setFoundNode (false);
+    setFoundWay (false);
+    setFoundRestriction (false);
+}
+
+void OsmParser::createNodeFromElement (const Element &element)
 {
     m_currentNode = NodeData ();
     //m_currentNode.print ();
 }
 
-void OsmReader::updateNodeFromElement (const Element &element)
+void OsmParser::updateNodeFromElement (const Element &element)
 {
     bool foundId = false;
     bool foundLat = false;
@@ -160,13 +179,16 @@ void OsmReader::updateNodeFromElement (const Element &element)
             itAttrNames != attributeNames.end ();
             ++itAttrNames,++itAttrValues)  {
         if ((*itAttrNames) == "id")  {
-            m_currentNode.setId (convStrToInt (*itAttrValues));
+            m_currentNode.setId (
+                OsmImportOperator::convStrToInt (*itAttrValues));
             foundId = true;
         } else if ((*itAttrNames) == "lat")  {
-            m_currentNode.setLat (convStrToDbl (*itAttrValues));
+            m_currentNode.setLat (
+                OsmImportOperator::convStrToDbl (*itAttrValues));
             foundLat = true;
         } else if ((*itAttrNames) == "lon")  {
-            m_currentNode.setLon (convStrToDbl (*itAttrValues));
+            m_currentNode.setLon (
+                OsmImportOperator::convStrToDbl (*itAttrValues));
             foundLon = true;
         }
         if (foundId && foundLat && foundLon)  {
@@ -177,7 +199,7 @@ void OsmReader::updateNodeFromElement (const Element &element)
     //m_currentNode.print ();//TEST
 }
 
-void OsmReader::addTagElementToNode (const Element &element)
+void OsmParser::addTagElementToNode (const Element &element)
 {
     TagData amenity = TagData::createTagFromElement (element, "amenity");
     TagData name = TagData::createTagFromElement (element, "name");
@@ -189,13 +211,13 @@ void OsmReader::addTagElementToNode (const Element &element)
     //m_currentNode.print ();//TEST
 }
 
-void OsmReader::createWayFromElement (const Element &element)
+void OsmParser::createWayFromElement (const Element &element)
 {
     m_currentWay = WayData ();
     //m_currentWay.print ();
 }
 
-void OsmReader::updateWayFromElement (const Element &element)
+void OsmParser::updateWayFromElement (const Element &element)
 {
     bool foundId = false;
     std::vector<std::string>::const_iterator itAttrNames;
@@ -210,7 +232,8 @@ void OsmReader::updateWayFromElement (const Element &element)
             itAttrNames != attributeNames.end ();
             ++itAttrNames,++itAttrValues)  {
         if ((*itAttrNames) == "id")  {
-            m_currentWay.setId (convStrToInt (*itAttrValues));
+            m_currentWay.setId (
+                OsmImportOperator::convStrToInt (*itAttrValues));
             foundId = true;
         }
         if (foundId)  {
@@ -221,13 +244,13 @@ void OsmReader::updateWayFromElement (const Element &element)
     //m_currentWay.print ();//TEST
 }
 
-void OsmReader::addNdElementToWay (const Element &element)
+void OsmParser::addNdElementToWay (const Element &element)
 {
     NdData nd = NdData::createNdFromElement (element);
     m_currentWay.addRef (nd.getRef ());
 }
 
-void OsmReader::addTagElementToWay (const Element &element)
+void OsmParser::addTagElementToWay (const Element &element)
 {
     TagData highway = TagData::createTagFromElement (element, "highway");
     TagData name = TagData::createTagFromElement (element, "name");
@@ -242,11 +265,14 @@ void OsmReader::addTagElementToWay (const Element &element)
     if (name.getValue () != "")
         m_currentWay.setName (name.getValue ());
     if (maxSpeed.getValue () != "")
-        m_currentWay.setMaxSpeed (convStrToInt (maxSpeed.getValue ()));
+        m_currentWay.setMaxSpeed (
+            OsmImportOperator::convStrToInt (maxSpeed.getValue ()));
     if (oneWay.getValue () != "")
-        m_currentWay.setOneWay (convStrToInt (oneWay.getValue ()));
+        m_currentWay.setOneWay (
+            OsmImportOperator::convStrToInt (oneWay.getValue ()));
     if (layer.getValue () != "")
-        m_currentWay.setLayer (convStrToInt (layer.getValue ()));
+        m_currentWay.setLayer (
+            OsmImportOperator::convStrToInt (layer.getValue ()));
     if (bridge.getValue () != "")
         m_currentWay.setBridge (bridge.getValue ());
     if (tunnel.getValue () != "")
@@ -257,13 +283,13 @@ void OsmReader::addTagElementToWay (const Element &element)
     //m_currentWay.print ();//TEST
 }
 
-void OsmReader::createRelationFromElement (const Element &element)
+void OsmParser::createRelationFromElement (const Element &element)
 {
     m_currentRestriction = RestrictionData ();
     //m_currentRestriction.print ();
 }
 
-void OsmReader::updateRelationFromElement (const Element &element)
+void OsmParser::updateRelationFromElement (const Element &element)
 {
     bool foundId = false;
     std::vector<std::string>::const_iterator itAttrNames;
@@ -278,7 +304,8 @@ void OsmReader::updateRelationFromElement (const Element &element)
             itAttrNames != attributeNames.end ();
             ++itAttrNames,++itAttrValues)  {
         if ((*itAttrNames) == "id")  {
-            m_currentRestriction.setId (convStrToInt (*itAttrValues));
+            m_currentRestriction.setId (
+                OsmImportOperator::convStrToInt (*itAttrValues));
             foundId = true;
         }
         if (foundId)  {
@@ -289,7 +316,7 @@ void OsmReader::updateRelationFromElement (const Element &element)
     //m_currentRestriction.print ();//TEST
 }
 
-void OsmReader::addTagElementToRelation (const Element &element)
+void OsmParser::addTagElementToRelation (const Element &element)
 {
     TagData restriction = TagData::createTagFromElement (element,
         "restriction");
@@ -302,7 +329,7 @@ void OsmReader::addTagElementToRelation (const Element &element)
     //m_currentRestriction.print ();//TEST
 }
 
-void OsmReader::addMemberElementToRelation (const Element &element)
+void OsmParser::addMemberElementToRelation (const Element &element)
 {
     MemberData member = MemberData::createMemberFromElement (element);
     if (member.getRole () == "from" && member.getType () == "way")  {
@@ -314,7 +341,7 @@ void OsmReader::addMemberElementToRelation (const Element &element)
     }
 }
 
-void OsmReader::prepareElement (const Element &element)
+void OsmParser::prepareElement (const Element &element)
 {
     if (element.getLevel () == 1 && element.getName () == "node")  {
         createNodeFromElement (element);
@@ -325,19 +352,19 @@ void OsmReader::prepareElement (const Element &element)
     } 
 }
 
-void OsmReader::finalizeElement (const Element &element)
+void OsmParser::finalizeElement (const Element &element)
 {
     int const & curState = getReaderState ();
     if (element.getLevel () == 1 && element.getName () == "node"/* &&
         is_bit_set(curState,IN_NODE) != 0*/)  {
         updateNodeFromElement (element);
-        m_currentNode.print ();//TEST
+        setFoundNode ();
     } else if (element.getLevel () == 2 && element.getName () == "tag" &&
                is_bit_set(curState,IN_NODE) != 0)  {
         addTagElementToNode (element); 
     } else if (element.getLevel () == 1 && element.getName () == "way")  {
         updateWayFromElement (element);
-        m_currentWay.print ();//TEST
+        setFoundWay ();
     } else if (element.getLevel () == 2 && element.getName () == "nd" &&
                is_bit_set(curState,IN_WAY) != 0)  {
         addNdElementToWay (element); 
@@ -353,22 +380,22 @@ void OsmReader::finalizeElement (const Element &element)
     } else if (element.getLevel () == 1 && element.getName () == "relation")  {
         updateRelationFromElement (element);
         if (m_currentRestriction.getType () == "restriction")  {
-            m_currentRestriction.print ();//TEST
+            setFoundRestriction ();
         }
     } 
 }
 
-const int & OsmReader::getReaderState () const
+const int & OsmParser::getReaderState () const
 {
     return m_readerState;
 }
 
-void OsmReader::setReaderState (const int & readerState)
+void OsmParser::setReaderState (const int & readerState)
 {
     m_readerState = readerState;
 }
 
-void OsmReader::updateState (const Element &element, bool up)
+void OsmParser::updateState (const Element &element, bool up)
 {
     int const & curState = getReaderState ();
     int newState = curState;
@@ -463,19 +490,58 @@ void OsmReader::updateState (const Element &element, bool up)
     setReaderState (newState);
 }
 
-void OsmReader::pushedElementToStack (const Element &element)
+void OsmParser::setFoundNode (const bool &foundNode)
+{
+    m_foundNode = foundNode;
+    if (m_foundNode)  {
+        m_currentNode.print ();//TEST
+    }
+}
+
+void OsmParser::setFoundWay (const bool &foundWay)
+{
+    m_foundWay = foundWay;
+    if (m_foundWay)  {
+        m_currentWay.print ();//TEST
+    }
+}
+
+void OsmParser::setFoundRestriction (const bool &foundRestriction)
+{
+    m_foundRestriction = foundRestriction;
+    if (m_foundRestriction)  {
+        m_currentRestriction.print ();//TEST
+    }
+}
+
+bool OsmParser::isFoundNode () const
+{
+    return m_foundNode;
+}
+
+bool OsmParser::isFoundWay () const
+{
+    return m_foundWay;
+}
+
+bool OsmParser::isFoundRestriction () const
+{
+    return m_foundRestriction;
+}
+
+void OsmParser::pushedElementToStack (const Element &element)
 {
     prepareElement (element);
     updateState (element, true);
 }
 
-void OsmReader::poppedElementFromStack (const Element &element)
+void OsmParser::poppedElementFromStack (const Element &element)
 {
     finalizeElement (element);
     updateState (element, false);
 }
 
-bool OsmReader::isElementInteresting (const Element &element) const
+bool OsmParser::isElementInteresting (const Element &element) const
 {
     return (element.getLevel () == 1 && element.getName () == "node") ||
         (element.getLevel () == 1 && element.getName () == "way") ||
@@ -492,3 +558,7 @@ bool OsmReader::isElementInteresting (const Element &element) const
          is_bit_set(getReaderState (),IN_RELATION) != 0);
 }
 
+bool OsmParser::foundInterestingElement () const
+{
+    return m_foundNode || m_foundWay || m_foundRestriction;
+}

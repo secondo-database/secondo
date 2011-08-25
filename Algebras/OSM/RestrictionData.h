@@ -43,6 +43,7 @@ This header file essentially contains the definition of the class
 
 // --- Including header-files
 #include <string>
+#include <vector>
 
 class RestrictionData {
 
@@ -79,6 +80,8 @@ class RestrictionData {
 
         const std::string & getType () const;
 
+        const std::vector<std::string> & getValues ();
+
         void print () const;
 
     protected:
@@ -95,6 +98,8 @@ class RestrictionData {
         std::string m_restriction;
         
         std::string m_type;
+
+        std::vector<std::string> m_values;
 
 };
 

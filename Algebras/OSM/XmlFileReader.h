@@ -46,9 +46,11 @@ This header file essentially contains the definition of the class
 #include <stack>
 #include "Element.h"
 
-#define WITH_LIBXML2_SUPPORT
+//#define WITH_LIBXML2_SUPPORT
 #ifdef WITH_LIBXML2_SUPPORT
 #include "libxml/xmlreader.h"
+#else
+class xmlTextReaderPtr;
 #endif
 
 class XmlParserInterface;
@@ -62,19 +64,23 @@ class XmlFileReader {
         // Default-Constructor
         XmlFileReader ();
         // Constructor
-        XmlFileReader (const std::string &fileName);
+        XmlFileReader (const std::string &fileName,
+            XmlParserInterface *parser);
         // Destructor
         ~XmlFileReader ();
 
         // --- Methods
         void setFileName (const std::string &fileName);
         const std::string & getFileName () const;
-        void setXmlParser (XmlParserInterface *parser);
         void readXmlFile ();
+        void getNext ();
 
     protected:
 
         // --- Methods
+        void setXmlParser (XmlParserInterface *parser);
+        void open ();
+        void close ();
 #ifdef WITH_LIBXML2_SUPPORT
         void processXmlNode (xmlTextReaderPtr reader);
 #endif
@@ -83,6 +89,8 @@ class XmlFileReader {
         void popElementFromStack (const Element &element);
         bool isElementInteresting (const Element &element) const;
 
+        bool foundInterestingElement () const;
+
         // --- Members
         std::string m_fileName;
 
@@ -90,6 +98,8 @@ class XmlFileReader {
 
         // Stack that only contains relevant elements
         std::stack<Element> m_elements;
+
+        xmlTextReaderPtr *m_reader;
 };
 
 #endif /* __XML_FILE_READER_H__ */

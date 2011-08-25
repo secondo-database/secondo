@@ -57,7 +57,7 @@ ScalingEngine::ScalingEngine ()
   : scaleFactorX (DEFAULT_SCALE_FACTOR_X),
     scaleFactorY (DEFAULT_SCALE_FACTOR_Y)
 {
-
+    // empty
 }
 
 // Copy-Constructor

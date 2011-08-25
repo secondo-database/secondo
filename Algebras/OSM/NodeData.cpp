@@ -48,11 +48,12 @@ For more detailed information see NodeData.h.
 // --- Including header-files
 #include "NodeData.h"
 #include <iostream>
+#include <sstream>
 
 // --- Constructors
 // Constructor
 NodeData::NodeData ()
-  : m_id (0), m_lon (0.), m_lat (0.), m_amenity (), m_name ()
+  : m_id (0), m_lon (0.), m_lat (0.), m_amenity (), m_name (), m_values ()
 {
    // empty
 }
@@ -114,6 +115,23 @@ const std::string & NodeData::getName () const
     return m_name;
 }
 
+const std::vector<std::string> & NodeData::getValues ()
+{
+    m_values.clear ();
+    std::ostringstream strId;
+    strId << getId ();
+    std::ostringstream strLon;
+    strLon << getLon ();
+    std::ostringstream strLat;
+    strLat << getLat ();
+    m_values.push_back (strId.str ());
+    m_values.push_back (strLon.str ());
+    m_values.push_back (strLat.str ());
+    m_values.push_back (getAmenity ());
+    m_values.push_back (getName ());
+    return m_values; 
+}
+ 
 void NodeData::print () const
 {
     printNode (*this);

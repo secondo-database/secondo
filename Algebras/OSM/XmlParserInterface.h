@@ -58,6 +58,7 @@ public:
    virtual void pushedElementToStack (const Element &element) = 0;
    virtual void poppedElementFromStack (const Element &element) = 0;
    virtual bool isElementInteresting (const Element &element) const = 0; 
+   virtual bool foundInterestingElement () const = 0;
 };
 
 #endif /* __XML_PARSER_INTERFACE_H__ */

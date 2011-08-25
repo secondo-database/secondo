@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[_] [\_]
 
-[1] Header File of the OsmReader
+[1] Header File of the OsmParser
 
 June-November, 2011. Thomas Uchdorf
 
@@ -33,17 +33,18 @@ June-November, 2011. Thomas Uchdorf
 1 Overview
 
 This header file essentially contains the definition of the class
-~OsmReader~.
+~OsmParser~.
 
 2 Defines and includes
 
 */
-#ifndef __OSM_READER_H__
-#define __OSM_READER_H__
+#ifndef __OSM_PARSER_H__
+#define __OSM_PARSER_H__
 
 // --- Including header-files
 #include <string>
 #include <stack>
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include "Element.h"
@@ -51,6 +52,8 @@ This header file essentially contains the definition of the class
 #include "WayData.h"
 #include "RestrictionData.h"
 #include "XmlParserInterface.h"
+
+class XmlFileReader;
 
 enum ReaderStates {
     ReaderStateUnknown = 0x0000,         //00000000
@@ -67,27 +70,29 @@ enum ReaderStates {
     ReaderStateInRelationMember = 0x0028 //00101000
 };
 
-// --- Including header-files
-class OsmReader : public XmlParserInterface{
+class OsmParser : public XmlParserInterface
+{
 
     public:
 
         // --- Constructors
         // Default-Constructor
-        OsmReader ();
+        OsmParser ();
         // Constructor
-        OsmReader (const std::string &fileName);
+        OsmParser (const std::string &fileName);
         // Destructor
-        virtual ~OsmReader ();
+        virtual ~OsmParser ();
 
         // --- Methods
         void setFileName (const std::string &fileName);
         const std::string & getFileName () const;
         void readOsmFile ();
 
-        // --- Class-functions
-        static int convStrToInt (const std::string &str); 
-        static double convStrToDbl (const std::string &str); 
+        void openOsmFile ();
+        void getNext (std::vector<std::string> *values, int *elementType);
+        void getInterestingElement (std::vector<std::string> *values,
+            int *elementType);
+        void closeOsmFile ();
 
     protected:
 
@@ -112,10 +117,18 @@ class OsmReader : public XmlParserInterface{
         void setReaderState (const int & readerState);
         void updateState (const Element &element, bool up);
 
+        void setFoundNode (const bool &foundNode = true);
+        void setFoundWay (const bool &foundWay = true);
+        void setFoundRestriction (const bool &foundRestriction = true);
+        bool isFoundNode () const;
+        bool isFoundWay () const;
+        bool isFoundRestriction () const;
+
         // --- Functions of the parser interface 
         virtual void pushedElementToStack (const Element &element);
         virtual void poppedElementFromStack (const Element &element);
         virtual bool isElementInteresting (const Element &element) const;
+        virtual bool foundInterestingElement () const;        
 
         // --- Members
         std::string m_fileName;
@@ -123,6 +136,10 @@ class OsmReader : public XmlParserInterface{
         NodeData m_currentNode;
         WayData m_currentWay;
         RestrictionData m_currentRestriction;
+        XmlFileReader *m_reader;
+        bool m_foundNode;
+        bool m_foundWay;
+        bool m_foundRestriction;
 
         // --- Constants
         static const int IN_NODE;
@@ -134,4 +151,4 @@ class OsmReader : public XmlParserInterface{
 
 };
 
-#endif /* __OSM_READER_H__ */
+#endif /* __OSM_PARSER_H__ */
