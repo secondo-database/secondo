@@ -124,13 +124,9 @@ const std::vector<std::string> & NodeData::getValues ()
     m_values.clear ();
     std::ostringstream strId;
     strId << getId ();
-    std::ostringstream strLon;
-    strLon << getLon ();
-    std::ostringstream strLat;
-    strLat << getLat ();
     m_values.push_back (strId.str ());
-    m_values.push_back (strLon.str ());
-    m_values.push_back (strLat.str ());
+    m_values.push_back (OsmImportOperator::convDblToStr (getLon ()));
+    m_values.push_back (OsmImportOperator::convDblToStr (getLat ()));
     m_values.push_back (getAmenity ());
     m_values.push_back (getName ());
     return m_values; 

@@ -68,6 +68,7 @@ class OsmImportOperator
         // --- Class-functions
         static int convStrToInt (const std::string &str); 
         static double convStrToDbl (const std::string &str); 
+        static const std::string convDblToStr (const double &dbl);
         static ListExpr getOsmNodeAttrList ();
         static ListExpr getOsmWayAttrList ();
         static ListExpr getOsmRestrictionAttrList ();

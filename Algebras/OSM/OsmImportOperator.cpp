@@ -124,7 +124,7 @@ int OsmImportOperator::convStrToInt (const std::string &str)
 {
     std::istringstream stream (str);
     int ret;
-    stream.precision (10);
+    stream.precision (16);
     stream >> ret;
     return ret;
 }
@@ -133,8 +133,18 @@ double OsmImportOperator::convStrToDbl (const std::string &str)
 {
     std::istringstream stream (str);
     double ret;
-    stream.precision (10);
+    stream.precision (16);
     stream >> ret;
+    return ret;
+}
+
+const std::string OsmImportOperator::convDblToStr (const double &dbl)
+{
+    std::ostringstream stream;
+    std::string ret;
+    stream.precision (16);
+    stream << dbl;
+    ret = stream.str ();
     return ret;
 }
 
