@@ -54,7 +54,9 @@ For more detailed information see MemberData.h.
 // --- Constructors
 // Constructor
 MemberData::MemberData ()
-  : m_type (), m_ref (0), m_role ()
+  : m_type (OsmImportOperator::getUndefinedStr ()),
+    m_ref (0),
+    m_role (OsmImportOperator::getUndefinedStr ())
 {
    // empty
 }

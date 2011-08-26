@@ -47,13 +47,17 @@ For more detailed information see NodeData.h.
 
 // --- Including header-files
 #include "NodeData.h"
+#include "OsmImportOperator.h"
 #include <iostream>
 #include <sstream>
 
 // --- Constructors
 // Constructor
 NodeData::NodeData ()
-  : m_id (0), m_lon (0.), m_lat (0.), m_amenity (), m_name (), m_values ()
+  : m_id (0), m_lon (0.), m_lat (0.),
+    m_amenity (OsmImportOperator::getUndefinedStr ()),
+    m_name (OsmImportOperator::getUndefinedStr ()),
+    m_values ()
 {
    // empty
 }

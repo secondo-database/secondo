@@ -74,6 +74,8 @@ class OsmImportOperator
         static ListExpr getAttrList (std::string attributeNames [],
                 std::string attributeTypes [],
                 const int &NUM_ATTR);
+        static const char * getUndefinedStr ();
+        static const char * getUnknownStr ();
 
         // --- Methods
         Tuple * getNext ();
@@ -86,6 +88,8 @@ class OsmImportOperator
         static const int ELEMENT_TYPE_NODE;
         static const int ELEMENT_TYPE_WAY;
         static const int ELEMENT_TYPE_RESTRICTION;
+        static const char * ATTRIBUTE_VALUE_UNDEFINED;
+        static const char * ATTRIBUTE_VALUE_UNKNOWN;
 
     protected:
 

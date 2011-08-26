@@ -47,14 +47,23 @@ For more detailed information see WayData.h.
 
 // --- Including header-files
 #include "WayData.h"
+#include "OsmImportOperator.h"
 #include <iostream>
 #include <sstream>
 
 // --- Constructors
 // Constructor
 WayData::WayData ()
-  : m_id (0), m_refs (), m_highway (), m_name (), m_maxSpeed (0), m_oneWay (0),
-    m_layer (0), m_bridge (), m_tunnel (), m_ref ()
+  : m_id (0),
+    m_refs (),
+    m_highway (OsmImportOperator::getUndefinedStr ()),
+    m_name (OsmImportOperator::getUndefinedStr ()),
+    m_maxSpeed (0),
+    m_oneWay (0),
+    m_layer (0),
+    m_bridge (OsmImportOperator::getUndefinedStr ()),
+    m_tunnel (OsmImportOperator::getUndefinedStr ()),
+    m_ref (OsmImportOperator::getUndefinedStr ())
 {
    // empty
 }
@@ -170,10 +179,19 @@ const std::vector<std::string> & WayData::getValues ()
     std::ostringstream strMaxSpeed;
     std::ostringstream strOneWay;
     std::ostringstream strLayer;
+    std::ostringstream strNodeRefs;
     strId << getId ();
     strMaxSpeed << getMaxSpeed ();
     strOneWay << getOneWay ();
     strLayer << getLayer ();
+    std::vector<int> const & refs = getRefs ();
+    std::vector<int>::const_iterator itRef;
+    for (itRef = refs.begin (); itRef != refs.end (); ++itRef)  {
+        if (itRef != refs.begin ())  {
+            strNodeRefs << ",";
+        }
+        strNodeRefs << (*itRef);
+    }
     m_values.push_back (strId.str ());
     m_values.push_back (strMaxSpeed.str ());
     m_values.push_back (strOneWay.str ());
@@ -183,6 +201,7 @@ const std::vector<std::string> & WayData::getValues ()
     m_values.push_back (getBridge ());
     m_values.push_back (getTunnel ());
     m_values.push_back (getRef ());
+    m_values.push_back (strNodeRefs.str ());
     return m_values; 
 }
 

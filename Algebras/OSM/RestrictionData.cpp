@@ -47,13 +47,17 @@ For more detailed information see RestrictionData.h.
 
 // --- Including header-files
 #include "RestrictionData.h"
+#include "OsmImportOperator.h"
 #include <iostream>
 #include <sstream>
 
 // --- Constructors
 // Constructor
 RestrictionData::RestrictionData ()
-  : m_id (0), m_from (0), m_to (0), m_restriction (), m_type (), m_values ()
+  : m_id (0), m_from (0), m_to (0),
+    m_restriction (OsmImportOperator::getUndefinedStr ()),
+    m_type (OsmImportOperator::getUndefinedStr ()),
+    m_values ()
 {
     // empty
 }

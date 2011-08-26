@@ -53,6 +53,7 @@ For more detailed information see OsmParser.h.
 #include "NdData.h"
 #include "MemberData.h"
 #include "BitOperations.h"
+#include "ScalingEngine.h"
 #include <StringUtils.h>
 #include <sstream>
 #include <cassert>
@@ -181,11 +182,13 @@ void OsmParser::updateNodeFromElement (const Element &element)
             foundId = true;
         } else if ((*itAttrNames) == "lat")  {
             m_currentNode.setLat (
-                OsmImportOperator::convStrToDbl (*itAttrValues));
+                OsmImportOperator::convStrToDbl (*itAttrValues) *
+                ScalingEngine::getInstance ().getScaleFactorX ());
             foundLat = true;
         } else if ((*itAttrNames) == "lon")  {
             m_currentNode.setLon (
-                OsmImportOperator::convStrToDbl (*itAttrValues));
+                OsmImportOperator::convStrToDbl (*itAttrValues) *
+                ScalingEngine::getInstance ().getScaleFactorY ());
             foundLon = true;
         }
         if (foundId && foundLat && foundLon)  {

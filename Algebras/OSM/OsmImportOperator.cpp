@@ -57,6 +57,9 @@ const int OsmImportOperator::ELEMENT_TYPE_NODE = 0x1;
 const int OsmImportOperator::ELEMENT_TYPE_WAY = 0x2;
 const int OsmImportOperator::ELEMENT_TYPE_RESTRICTION = 0x4;
 
+const char * OsmImportOperator::ATTRIBUTE_VALUE_UNDEFINED = "VALUE_UNDEFINED";
+const char * OsmImportOperator::ATTRIBUTE_VALUE_UNKNOWN = "VALUE_UNKNOWN";
+
 // --- Constructors
 // Default-Constructor
 OsmImportOperator::OsmImportOperator ()
@@ -158,7 +161,7 @@ ListExpr OsmImportOperator::getOsmNodeAttrList ()
 
 ListExpr OsmImportOperator::getOsmWayAttrList ()
 {
-    const int NUM_ATTR = 9;
+    const int NUM_ATTR = 10;
     std::string attributeNames[NUM_ATTR] = {
         "id",
         "maxSpeed",
@@ -168,13 +171,15 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
         "name",
         "bridge",
         "tunnel",
-        "ref"
+        "ref",
+        "nodeRefs"
     }; 
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
         CcInt::BasicType(),
         CcInt::BasicType(),
         CcInt::BasicType(),
+        FText::BasicType(),
         FText::BasicType(),
         FText::BasicType(),
         FText::BasicType(),
@@ -228,6 +233,16 @@ ListExpr OsmImportOperator::getAttrList (std::string attributeNames [],
     }
     return attrList;
 }
+        
+const char * OsmImportOperator::getUndefinedStr ()
+{
+    return OsmImportOperator::ATTRIBUTE_VALUE_UNDEFINED;
+}
+
+const char * OsmImportOperator::getUnknownStr ()
+{
+    return OsmImportOperator::ATTRIBUTE_VALUE_UNKNOWN;
+}
 
 // --- Methods
 Tuple * OsmImportOperator::getNext ()
@@ -252,10 +267,14 @@ Tuple * OsmImportOperator::createTuple (const vector<std::string> &values)
     itValue = values.begin ();
     for(unsigned int i = 0; i < m_attributeTemplates.size (); ++i)  {
         Attribute* attr = m_attributeTemplates[i]->Clone();
-        if ((*itValue) == "")  {
-            attr->ReadFromString ("UNKNOWN");
-        } else  {
-            attr->ReadFromString (*itValue);
+        if ((*itValue) != OsmImportOperator::getUndefinedStr ())  {
+            if ((*itValue) == "")  {
+                attr->ReadFromString (OsmImportOperator::getUnknownStr ());
+            } else  {
+                attr->ReadFromString (*itValue);
+            }
+        } else {
+            attr->SetDefined (false);
         }
         result->PutAttribute(i, attr);
         ++itValue;
