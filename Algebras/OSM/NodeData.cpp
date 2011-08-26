@@ -49,7 +49,6 @@ For more detailed information see NodeData.h.
 #include "NodeData.h"
 #include "OsmImportOperator.h"
 #include <iostream>
-#include <sstream>
 
 // --- Constructors
 // Constructor
@@ -122,9 +121,7 @@ const std::string & NodeData::getName () const
 const std::vector<std::string> & NodeData::getValues ()
 {
     m_values.clear ();
-    std::ostringstream strId;
-    strId << getId ();
-    m_values.push_back (strId.str ());
+    m_values.push_back (OsmImportOperator::convIntToStr (getId ()));
     m_values.push_back (OsmImportOperator::convDblToStr (getLon ()));
     m_values.push_back (OsmImportOperator::convDblToStr (getLat ()));
     m_values.push_back (getAmenity ());
@@ -137,11 +134,17 @@ void NodeData::print () const
     printNode (*this);
 }
 
+std::ostream &operator<<(std::ostream &ostr, const NodeData &node)
+{
+    ostr << "NODE Id = " << node.getId ();
+    ostr << ", Lon = " << node.getLon ();
+    ostr << ", Lat = " << node.getLat ();
+    ostr << ", Amenity = " << node.getAmenity ();
+    ostr << ", Name = " << node.getName ();
+    return ostr;
+}
+
 void printNode (const NodeData &node)
 {
-    std::cout << "NODE Id = " << node.getId ();
-    std::cout << ", Lon = " << node.getLon ();
-    std::cout << ", Lat = " << node.getLat ();
-    std::cout << ", Amenity = " << node.getAmenity ();
-    std::cout << ", Name = " << node.getName () << std::endl;
+    std::cout << node << std::endl;
 }

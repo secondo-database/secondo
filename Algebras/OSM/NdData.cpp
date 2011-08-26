@@ -104,7 +104,13 @@ void NdData::print () const
     printNd (*this);
 }
 
+std::ostream &operator<<(std::ostream &ostr, const NdData &nd)
+{
+    ostr << "Ref = " << nd.getRef ();
+    return ostr;
+}
+
 void printNd (const NdData &nd)
 {
-    std::cout << "Ref = " << nd.getRef ();
+    std::cout << nd;
 }

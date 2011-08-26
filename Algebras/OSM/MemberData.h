@@ -83,6 +83,8 @@ protected:
 
 };
 
+std::ostream &operator<<(std::ostream &ostr, const MemberData &member);
+
 void printMember (const MemberData &node);
 
 #endif /*__MEMBER_DATA_H__ */

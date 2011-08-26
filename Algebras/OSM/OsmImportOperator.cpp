@@ -138,6 +138,16 @@ double OsmImportOperator::convStrToDbl (const std::string &str)
     return ret;
 }
 
+const std::string OsmImportOperator::convIntToStr (const int &i)
+{
+    std::ostringstream stream;
+    std::string ret;
+    stream.precision (16);
+    stream << i;
+    ret = stream.str ();
+    return ret;
+}
+
 const std::string OsmImportOperator::convDblToStr (const double &dbl)
 {
     std::ostringstream stream;
@@ -148,14 +158,31 @@ const std::string OsmImportOperator::convDblToStr (const double &dbl)
     return ret;
 }
 
+const std::string OsmImportOperator::convIntVecToStr (
+    const std::vector<int> &values)
+{
+    std::ostringstream stream;
+    std::string ret;
+    std::vector<int> const & vals = values;
+    std::vector<int>::const_iterator itVal;
+    for (itVal = vals.begin (); itVal != vals.end (); ++itVal)  {
+        if (itVal != vals.begin ())  {
+            stream << ",";
+        }
+        stream << (*itVal);
+    }
+    ret = stream.str ();
+    return ret;
+}
+
 ListExpr OsmImportOperator::getOsmNodeAttrList ()
 {
     const int NUM_ATTR = 5;
     std::string attributeNames[NUM_ATTR] = {
-        "id",
+        "osm_id",
         "lon",
         "lat",
-        "amenity",
+        "type",
         "name"
     }; 
     std::string attributeTypes[NUM_ATTR] = {
@@ -173,11 +200,11 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
 {
     const int NUM_ATTR = 10;
     std::string attributeNames[NUM_ATTR] = {
-        "id",
-        "maxSpeed",
-        "oneWay",
+        "osm_id",
+        "maxspeed",
+        "oneway",
         "layer",
-        "highway",
+        "type",
         "name",
         "bridge",
         "tunnel",
@@ -204,7 +231,7 @@ ListExpr OsmImportOperator::getOsmRestrictionAttrList ()
 {
     const int NUM_ATTR = 6;
     std::string attributeNames[NUM_ATTR] = {
-        "id",
+        "osm_id",
         "from",
         "via",
         "to",

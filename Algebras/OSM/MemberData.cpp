@@ -127,7 +127,13 @@ void MemberData::print () const
     printMember (*this);
 }
 
+std::ostream &operator<<(std::ostream &ostr, const MemberData &member)
+{
+    ostr << "Ref = " << member.getRef ();
+    return ostr;
+}
+
 void printMember (const MemberData &member)
 {
-    std::cout << "Ref = " << member.getRef ();
+    std::cout << member;
 }

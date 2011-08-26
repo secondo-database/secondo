@@ -103,6 +103,9 @@ class RestrictionData {
 
 };
 
+std::ostream &operator<<(std::ostream &ostr,
+    const RestrictionData &restriction);
+
 void printRestriction (const RestrictionData &restriction);
 
 #endif /*__RESTRICTION_DATA_H__ */

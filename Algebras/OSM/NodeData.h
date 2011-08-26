@@ -97,6 +97,8 @@ protected:
 
 };
 
+std::ostream &operator<<(std::ostream &ostr, const NodeData &node);
+
 void printNode (const NodeData &node);
 
 #endif /*__NODE_DATA_H__ */

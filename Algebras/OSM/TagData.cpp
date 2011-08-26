@@ -115,9 +115,14 @@ void TagData::print () const
     printTag (*this);
 }
 
+std::ostream &operator<<(std::ostream &ostr, const TagData &tag)
+{
+    ostr << "Key = " << tag.getKey ();
+    ostr << ", Value = " << tag.getValue ();
+    return ostr;
+}
+
 void printTag (const TagData &tag)
 {
-    std::cout << "Key = " << tag.getKey ();
-    std::cout << ", Value = " << tag.getValue ();
-    std::cout << std::endl;
+    std::cout << tag << std::endl;
 }

@@ -49,7 +49,6 @@ For more detailed information see WayData.h.
 #include "WayData.h"
 #include "OsmImportOperator.h"
 #include <iostream>
-#include <sstream>
 
 // --- Constructors
 // Constructor
@@ -175,51 +174,39 @@ void WayData::setRef (const std::string & ref)
 const std::vector<std::string> & WayData::getValues ()
 {
     m_values.clear ();
-    std::ostringstream strId;
-    std::ostringstream strMaxSpeed;
-    std::ostringstream strOneWay;
-    std::ostringstream strLayer;
-    std::ostringstream strNodeRefs;
-    strId << getId ();
-    strMaxSpeed << getMaxSpeed ();
-    strOneWay << getOneWay ();
-    strLayer << getLayer ();
-    std::vector<int> const & refs = getRefs ();
-    std::vector<int>::const_iterator itRef;
-    for (itRef = refs.begin (); itRef != refs.end (); ++itRef)  {
-        if (itRef != refs.begin ())  {
-            strNodeRefs << ",";
-        }
-        strNodeRefs << (*itRef);
-    }
-    m_values.push_back (strId.str ());
-    m_values.push_back (strMaxSpeed.str ());
-    m_values.push_back (strOneWay.str ());
-    m_values.push_back (strLayer.str ());
+    m_values.push_back (OsmImportOperator::convIntToStr (getId ()));
+    m_values.push_back (OsmImportOperator::convIntToStr (getMaxSpeed ()));
+    m_values.push_back (OsmImportOperator::convIntToStr (getOneWay ()));
+    m_values.push_back (OsmImportOperator::convIntToStr (getLayer ()));
     m_values.push_back (getHighway ());
     m_values.push_back (getName ());
     m_values.push_back (getBridge ());
     m_values.push_back (getTunnel ());
     m_values.push_back (getRef ());
-    m_values.push_back (strNodeRefs.str ());
+    m_values.push_back (OsmImportOperator::convIntVecToStr (getRefs ()));
     return m_values; 
+}
+
+std::ostream &operator<<(std::ostream &ostr, const WayData &way)
+{
+    ostr << "WAY Id = " << way.getId ();
+    ostr << ", Highway = " << way.getHighway ();
+    ostr << ", Name = " << way.getName ();
+    ostr << ", MaxSpeed = " << way.getMaxSpeed ();
+    ostr << ", OneWay = " << way.getOneWay ();
+    ostr << ", Layer = " << way.getLayer ();
+    ostr << ", Bridge = " << way.getBridge ();
+    ostr << ", Tunnel = " << way.getTunnel ();
+    ostr << ", Ref = " << way.getRef ();
+    std::vector<int> const & refs = way.getRefs ();
+    std::vector<int>::const_iterator itRef;
+    for (itRef = refs.begin (); itRef != refs.end (); ++itRef)  {
+        ostr << ", NodeRef = " << (*itRef);
+    }
+    return ostr;
 }
 
 void printWay (const WayData &way)
 {
-    std::cout << "WAY Id = " << way.getId ();
-    std::cout << ", Highway = " << way.getHighway ();
-    std::cout << ", Name = " << way.getName ();
-    std::cout << ", MaxSpeed = " << way.getMaxSpeed ();
-    std::cout << ", OneWay = " << way.getOneWay ();
-    std::cout << ", Layer = " << way.getLayer ();
-    std::cout << ", Bridge = " << way.getBridge ();
-    std::cout << ", Tunnel = " << way.getTunnel ();
-    std::cout << ", Ref = " << way.getRef ();
-    std::vector<int> const & refs = way.getRefs ();
-    std::vector<int>::const_iterator itRef;
-    for (itRef = refs.begin (); itRef != refs.end (); ++itRef)  {
-        std::cout << ", NodeRef = " << (*itRef);
-    }
-    std::cout << std::endl;
+   std::cout << way << std::endl;
 }

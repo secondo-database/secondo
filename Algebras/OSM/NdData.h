@@ -71,6 +71,8 @@ protected:
 
 };
 
+std::ostream &operator<<(std::ostream &ostr, const NdData &nd);
+
 void printNd (const NdData &node);
 
 #endif /*__ND_DATA_H__ */

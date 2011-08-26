@@ -49,7 +49,6 @@ For more detailed information see RestrictionData.h.
 #include "RestrictionData.h"
 #include "OsmImportOperator.h"
 #include <iostream>
-#include <sstream>
 
 // --- Constructors
 // Constructor
@@ -133,21 +132,13 @@ const std::string & RestrictionData::getType () const
 const std::vector<std::string> & RestrictionData::getValues ()
 {
     m_values.clear ();
-    std::ostringstream strId;
-    std::ostringstream strFrom;
-    std::ostringstream strVia;
-    std::ostringstream strTo;
-    strId << getId ();
-    strFrom << getFrom ();
-    strVia << getVia ();
-    strTo << getTo ();
-    m_values.push_back (strId.str ());
-    m_values.push_back (strFrom.str ());
-    m_values.push_back (strVia.str ());
-    m_values.push_back (strTo.str ());
+    m_values.push_back (OsmImportOperator::convIntToStr (getId ()));
+    m_values.push_back (OsmImportOperator::convIntToStr (getFrom ()));
+    m_values.push_back (OsmImportOperator::convIntToStr (getVia ()));
+    m_values.push_back (OsmImportOperator::convIntToStr (getTo ()));
     m_values.push_back (getRestriction ());
     m_values.push_back (getType ());
-    return m_values; 
+    return m_values;
 }
 
 void RestrictionData::print () const
@@ -155,12 +146,19 @@ void RestrictionData::print () const
     printRestriction (*this);
 }
 
+std::ostream &operator<<(std::ostream &ostr, const RestrictionData &restriction)
+{
+    ostr << "RESTRICTION Id = " << restriction.getId ();
+    ostr << ", From = " << restriction.getFrom ();
+    ostr << ", Via = " << restriction.getVia ();
+    ostr << ", To = " << restriction.getTo ();
+    ostr << ", Restriction = " << restriction.getRestriction ();
+    ostr << ", Type = " << restriction.getType ();
+    return ostr;
+}
+
 void printRestriction (const RestrictionData &restriction)
 {
-    std::cout << "RESTRICTION Id = " << restriction.getId ();
-    std::cout << ", From = " << restriction.getFrom ();
-    std::cout << ", Via = " << restriction.getVia ();
-    std::cout << ", To = " << restriction.getTo ();
-    std::cout << ", Restriction = " << restriction.getRestriction ();
-    std::cout << ", Type = " << restriction.getType () << std::endl;
+    std::cout << restriction << std::endl;
 }
+

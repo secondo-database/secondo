@@ -97,6 +97,8 @@ class WayData {
 
 };
 
+std::ostream &operator<<(std::ostream &ostr, const WayData &way);
+
 void printWay (const WayData &way);
 
 #endif /*__WAY_DATA_H__ */

@@ -77,6 +77,8 @@ protected:
     std::string m_value;
 };
 
+std::ostream &operator<<(std::ostream &ostr, const TagData &tag);
+
 void printTag (const TagData &tag);
 
 #endif /*__TAG_DATA_H__ */
