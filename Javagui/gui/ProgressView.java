@@ -77,7 +77,10 @@ public void processMessage(ListExpr message){
      this.current = tmpcurrent;
      this.max = tmpmax;
   }
-  paintImmediately(0,0,getWidth(),getHeight());
+  if(current>highest){
+     highest = current;
+     paintImmediately(0,0,getWidth(),getHeight());
+  }
 }
 
 public Dimension getMaximumSize(){
@@ -96,6 +99,7 @@ public String toString(){
 
 private int current=-1;
 private int max=-1;
+private int highest=-1;
 
 }
 
