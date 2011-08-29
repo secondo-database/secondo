@@ -101,11 +101,11 @@ class ProgMesHandler : public MessageHandler
 
   public:
   virtual bool handleMsg(NList msgList);
-  ProgMesHandler():total(50) {};
+  ProgMesHandler():total(50),highest(-1) {};
   ~ProgMesHandler() {};
 
   int total;  // len of the progress bar 
-
+  int highest; // highest value ever received
 };
 
 /*
