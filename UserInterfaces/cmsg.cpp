@@ -216,7 +216,8 @@ ProgMesHandler::handleMsg(NList msgList)
     }
 	  cout << "|" << endl;
     s = new StopWatch;  
-    total = TotalValue; 
+    total = TotalValue;
+    highest = -1; 
     return true; 
   }
 
@@ -230,11 +231,18 @@ ProgMesHandler::handleMsg(NList msgList)
   }
 
   // normal progress messages
+  
 
   rt = s->diffSecondsReal();
   if(ActValue > TotalValue){
      ActValue = TotalValue;
   }
+
+  if(ActValue <= highest){
+    // don't go back in progress
+    return true;
+  }
+  highest = ActValue;
   
   double pr = (double)ActValue / (double)TotalValue;
 
@@ -260,7 +268,7 @@ ProgMesHandler::handleMsg(NList msgList)
   	     << flush;
   } else {
     cout << "\r" << bar1 << bar2 
-         << " remaining: ?? :  min  "
+    //   << " remaining: ?? :  min  "
   	     << flush;
   }
   return true;
