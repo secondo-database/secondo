@@ -170,7 +170,8 @@ The maxMem parameter is ignored.
 */
      ~TupleStore3(){
        if(rel){
-           delete rel;
+          rel->DeleteAndTruncate();
+          rel = 0;
        }
      }
 
@@ -187,7 +188,8 @@ return value of this function.
         if(!rel){
           rel = new Relation(t->GetTupleType(), true);
         }
-        rel->AppendTuple(t);
+        t->PinAttributes();
+        rel->AppendTupleNoLOBs(t);
         return t->GetTupleId();
      }
 
@@ -264,7 +266,8 @@ can be used.  Note that the returned tuple ids are not nessecary increasing.
         if(!overflow){
            overflow = new Relation(t->GetTupleType(), true);
         }
-        overflow->AppendTuple(t);
+        t->PinAttributes();
+        overflow->AppendTupleNoLOBs(t);
         TupleId newId = t->GetTupleId();
         return (TupleId) (newId + firstElems.size());
     }
@@ -274,7 +277,7 @@ can be used.  Note that the returned tuple ids are not nessecary increasing.
 */
     ~TupleStore1(){
        if(overflow){
-         delete overflow;
+         overflow->DeleteAndTruncate();
        }
        for(size_t i=0; i< firstElems.size();i++){
           firstElems[i]->DeleteIfAllowed();
@@ -1152,12 +1155,11 @@ and into an Tree structure.
 
      RealJoinTreeLocalInfo(Word& _s1, Word& _s2, int _i1, 
                              int _i2, ListExpr _tt, size_t maxMem):
-         ind(), s2(_s2),  i2(_i2) {
+         ind(), s2(_s2),  i2(_i2), tt(new TupleType(_tt)), lastRes(), 
+         currentTuple(0), tb(0) {
          
-         tt = new TupleType(_tt);
          Stream<Tuple> s1(_s1);
          init(s1,_i1,maxMem);
-
      }
 
 
@@ -1186,10 +1188,9 @@ The parameters are:
      RealJoinTreeLocalInfo(Word& _s1, Word& _s2, int _i1, 
                              int _i2, ListExpr _tt, int min, int max,
                              size_t maxMem):
-         ind(min,max), s2(_s2),  i2(_i2) {
-         tt = new TupleType(_tt);
+         ind(min,max), s2(_s2),  i2(_i2), tt(new TupleType(_tt)), 
+         lastRes(), currentTuple(0), tb(0) {
          Stream<Tuple> s1(_s1);
-
          init(s1,_i1,maxMem);
 
      }
@@ -1271,16 +1272,16 @@ Returns the next result tuple or 0 if no more tuples are available.
          } else {
            tb = 0;
          }
-      while(t){
-          TupleId id = tb->AppendTuple(t);
-          Rectangle<dim>* r = (Rectangle<dim>*)t->GetAttribute(_i1);
-          ind.insert(*r, id);
-          t->DeleteIfAllowed(); 
-          t = s1.request();
-       }
-       s1.close();
-       s2.open();
-       currentTuple = 0;
+         while(t){
+            TupleId id = tb->AppendTuple(t);
+            Rectangle<dim>* r = (Rectangle<dim>*)t->GetAttribute(_i1);
+            ind.insert(*r, id);
+            t->DeleteIfAllowed(); 
+            t = s1.request();
+         }
+         s1.close();
+         s2.open();
+         currentTuple = 0;
     }
 };
 
@@ -1771,6 +1772,7 @@ int joinRTreeVM( Word* args, Word& result, int message,
              }
              int i1 = ((CcInt*)(args[7].addr))->GetValue();
              int i2 = ((CcInt*)(args[8].addr))->GetValue();
+
              local.addr = new JLI(args[0], args[1],i1,i2,
                                   nl->Second(GetTupleResultType(s)), 
                                   min, max, maxMem);
