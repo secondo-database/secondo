@@ -217,10 +217,10 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
         CcInt::BasicType(),
         CcInt::BasicType(),
         FText::BasicType(),
+        CcString::BasicType(),
         FText::BasicType(),
         FText::BasicType(),
-        FText::BasicType(),
-        FText::BasicType(),
+        CcString::BasicType(),
         FText::BasicType()
     }; 
     return OsmImportOperator::getAttrList (attributeNames, attributeTypes,
