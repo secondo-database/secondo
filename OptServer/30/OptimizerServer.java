@@ -671,7 +671,12 @@ static {
          String command = "";
          Vector ResVector = new Vector();
          while(!command.equals("quit")){
-           command = in.readLine().trim();
+           command = in.readLine();
+           if(command==null){
+              command = "";
+              continue;
+            }
+            command = command.trim();
            if(command.equals("clients")){
               System.out.println("Number of Clients: "+ Clients);
            }else if(command.equals("quit")){
