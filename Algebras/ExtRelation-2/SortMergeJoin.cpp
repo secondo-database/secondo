@@ -67,6 +67,12 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 , traceMode(RTFlag::isActive("ERA:TraceMergeJoin"))
 , continueMerge(false)
 {
+  grpB = 0;
+  iter = 0;
+  liA = 0;
+  sliA = 0;
+  liB = 0;
+  sliB = 0;
   // sort the input streams
   SortOrderSpecification specA;
   SortOrderSpecification specB;
