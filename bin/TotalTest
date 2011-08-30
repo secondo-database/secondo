@@ -10,9 +10,23 @@ LOGFILEMON=$BIN/TotalTest.monitor.log
 LOGFILEOPT=$BIN/TotalTest.optserver.log
 LOGFILE=$BIN/TotalTest.log
 
+PID=$$
+dir=$TMPDIR/SecTotal_$PID
+
+
+mkdir $dir
+
+if [ $? -ne 0 ]; then
+   echo "Directory $dir already exists"
+   echo "Directory $dir already exists" >$LOGFILE
+   exit 1
+fi 
+
+
 #overwrite settings in SecondoConfig.ini
 
 export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCounters,SMI:AutoRemoveLogs,Server:BinaryTransfer"
+export SECONDO_PARAM_SecondoHome=$dir
 
 
 # start the SecondoMonitor
@@ -92,6 +106,9 @@ echo "quit" >$FIFO
 #rm $FIFO
 echo "Terminate Monitor"
 kill -SIGTERM $mon 2>/dev/null 
+
+
+rm -rf $dir
 
 
 
