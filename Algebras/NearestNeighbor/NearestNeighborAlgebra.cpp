@@ -4037,7 +4037,7 @@ int knearestFun2 (Word* args, Word& result, int message,
               return 0;
             }
         }
-      }else{/////////calculate the value 
+      }else if(zone == -1){/////////calculate the value 
         int de = 3;
         int count = 120;
         vector<int> de_list;
@@ -4062,6 +4062,10 @@ int knearestFun2 (Word* args, Word& result, int message,
         }
         zone = index;
         cout<<"zone "<<zone<<endl;
+      }else{
+        cout<<"invalid zone value "<<zone<<endl;
+        local.addr = 0;
+        return 0;
       }
 
       if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
@@ -6845,13 +6849,13 @@ const string distanceScan4Spec  =
       "  [[const point value (10539.0 14412.0)], now(),  5] tconsume;"
       "</text--->))";
 
-const string knearestSpec  =
+const string knearestvectorSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>stream(tuple ((x1 t1)...(xn tn))"
       " ti) x xi x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ knearest [_, _, _ ]</text--->"
+      "<text>_ knearestvector [_, _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which contains the k-nearest units to the given mpoint. "
       "The tuples are splitted into multiple tuples with disjoint "
@@ -6859,8 +6863,42 @@ const string knearestSpec  =
       "not necessarily ordered by time or distance to the given "
       "mpoint. The operator expects that the input stream with "
       "the tuples are sorted by the time of the units</text--->"
-      "<text>query query UnitTrains feed head[20] knearest "
+      "<text>query query UnitTrains feed head[20] knearestvector "
       "[UTrip,train1, 2] consume;</text--->"
+      ") )";
+
+const string knearestSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>stream(tuple ((x1 t1)...(xn tn))"
+      " ti) x xi x mpoint x int [x int] ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))"
+      "</text--->"
+      "<text>_ knearest [_, _, _ [, _] ]</text--->"
+      "<text>The purpose of the operator is to compute the time dependent"
+      " k nearest neighbors to a given moving point mp within a set of "
+      "moving objects S. Set S is provided as the first argument in the form"
+      " of a stream of units, i.e., a stream of tuples having a upoint "
+      "atribute. This stream of tuples MUST be ordered by unit start time. "
+      "Given a call s knearest[attr, mp, k], the result is a stream of tuples"
+      " in the same format as the input stream containing for each instant the"
+      " k closest units to mp. Note that the original units may have been "
+      "split into pieces. The tuples in the result stream are not "
+      "necessarily ordered by time or distance to the given mpoint.\n\n"
+      "The operator may not work correctly for geographical coordinates due"
+      " to numerical problems with small distance differences, if called as"
+      " described above. For moving objects with geographical (LON, LAT)"
+      " coordinates, use the second form with an additional int parameter j,"
+      " that is, s knearest[attr, mp, k, j]. The parameter, if present, "
+      "specifies that Gauss Krueger projection is to be used before computing"
+      " distances. The value of j, if in the range 0 <= j < 120 specifies a "
+      "meridian to be used in the Gauss Krueger projection (see the "
+      "explanation of the gk operator). If j is -1, then the location of the "
+      "first unit in the input stream is used to determine the Gauss Krueger "
+      "zone number. Other values of j lead to error messages. Also if a wrong"
+      " zone is specified (input data do not lie in the given zone), an error"
+      " message is generated. </text--->"
+      "<text>query query UnitTrains feed head[20] knearest "
+      "[UTrip,train1, 2] count;</text--->"
       ") )";
 
 const string knearestdistSpec  =
@@ -6974,7 +7012,7 @@ Operator knearest_dist (
 
 Operator knearestvector (
          "knearestvector",      // name
-         knearestSpec,          // specification
+         knearestvectorSpec,          // specification
          knearestFunVector,     // value mapping
          Operator::SimpleSelect,// trivial selection function
          knearestTypeMap        // type mapping
