@@ -81,6 +81,9 @@ public void processMessage(ListExpr message){
      highest = current;
      paintImmediately(0,0,getWidth(),getHeight());
   }
+  if(current == -1){
+     paintImmediately(0,0,getWidth(),getHeight());
+  }
 }
 
 public Dimension getMaximumSize(){
