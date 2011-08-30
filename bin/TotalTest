@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# this script starts a SecondoMonitor, an OptimizerServer and than 
+# it executes a set of scripts gives as arguments in GUI-testrunner style
+# the return  value is the amount of failed tests. 
+# The outputs of the tests are redirected to TotalTest.log
+
+BIN=$SECONDO_BUILD_DIR/bin
+LOGFILEMON=$BIN/TotalTest.monitor.log
+LOGFILEOPT=$BIN/TotalTest.optserver.log
+LOGFILE=$BIN/TotalTest.log
+
+#overwrite settings in SecondoConfig.ini
+
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCounters,SMI:AutoRemoveLogs,Server:BinaryTransfer"
+
+
+# start the SecondoMonitor
+
+if [ $SECONDO_BUILD_DIR = "" ]; then
+  echo "Variable SECONDO_BUILD_DIR not defined" >$LOGFILE
+  exit 1
+fi
+
+# start Monitor
+echo "StartMonitor"
+
+cd $SECONDO_BUILD_DIR/bin
+./SecondoMonitor -s >$LOGFILEMON 2>&1 </dev/null &
+mon=$!
+monrc=$?
+
+echo "SecondoMonitor-PID =  $mon"
+echo "SecondoMonitor-RC =   $monrc"
+
+
+if [ $monrc -ne 0 ]; then
+  echo "Problem in starting Monitor" >$LOGFILE 2>&1
+  exit 1
+fi
+
+
+sleep 5
+
+echo "STartOptServer"
+
+#start OptServer
+FIFO=$SECONDO_BUILD_DIR/Optimizer/inputOptServer
+rm -f $FIFO
+mkfifo $FIFO
+cd $SECONDO_BUILD_DIR/Optimizer
+StartOptServer -f $FIFO >$LOGFILEOPT 2>&1 &
+echo >$FIFO
+pidopt=$!
+
+echo "PID_OPT = $pidopt" 
+
+
+echo "Start Tests" 
+
+
+declare -i err=0
+cd $SECONDO_BUILD_DIR/Javagui
+runCmd="sgui --wait --testrunner "
+errFiles=""
+
+echo -e  "Tests from  $date \n" >$LOGFILE
+
+for f in $*; do
+ echo "run test " $f
+
+ $runCmd  $f >>$LOGFILE 2>&1 &
+ sgpid=$!
+ rc=$?
+ wait $sgpid
+ if [ $rc -ne 0 ]; then
+   errFiles=$errFiles"\n   $f $errRC"
+ fi  
+done
+
+if [ "$errFiles" != "" ]; then
+  echo "There are tests failed $errFiles"
+  echo "Failed test:  $errFiles" >> $LOGFILE
+else
+  echo "All Tests successful"
+  echo "All tests successful" >>$LOGFILE
+fi
+
+
+echo "Terminate OptServer"
+echo "quit" >$FIFO
+#rm $FIFO
+echo "Terminate Monitor"
+kill -SIGTERM $mon 2>/dev/null 
+
+
+
