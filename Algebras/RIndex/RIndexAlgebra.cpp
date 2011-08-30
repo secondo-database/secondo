@@ -1307,7 +1307,7 @@ The parameters are:
 ----
 
 The cinstructor is blocking. This means, the first stream is 
-processed completely. Each tuple is inserted into a tuple store 
+processed completely. Each tuple is inserted into a vector 
 and into an Tree structure.
 
 */ 
