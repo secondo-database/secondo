@@ -21,7 +21,7 @@
 
 # variables of the client part
 
-while getopts "h:p:u:s:c:" Option
+while getopts "h:p:u:s:c:f:" Option
 do
   case $Option in
     h ) HOST=$OPTARG ;;
@@ -29,6 +29,7 @@ do
     c ) CONFIG=$OPTARG ;;
     s ) PSWD=$OPTARG ;;
     u ) USER=$OPTARG ;;
+    f ) FILE=$OPTARG;;
     * ) 
   esac
 done
@@ -96,10 +97,23 @@ if [ -n "$PSWD" ]; then
    export SECONDO_PSWD=$PSWD
 fi
 
-cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT"
+INPUT=""
+if [ -n "$FILE" ]; then
+   INPUT="<$FILE"
+   echo "Reading from input $INPUT" 
+else 
+   echo "reading from standard" 
+fi
 
-echo $cmd
-$cmd
+cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT "
+
+echo $cmd $INPUT
+
+if [ -n "$FILE" ]; then
+	$cmd <$FILE
+else 
+   $cmd 
+fi
 
 if [ -n "$CONFIG" ]; then 
    export SECONDO_CONFIG=$OLD_CONFIG
