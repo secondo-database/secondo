@@ -564,6 +564,7 @@ secondoOp( within2,           postfixbrackets, 2).
 secondoOp( whiledo,           special, 1). % TODO: special syntax
 secondoOp( writeFile,         prefix, 2).
 secondoOp( zero,              prefix , 0).
+secondoOp( theInstant, prefix, 1).
 % Section:Start:secondoOp_3_e
 secondoOp( randomdelay,       prefix, 2).
 % Section:End:secondoOp_3_e
