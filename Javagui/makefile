@@ -80,6 +80,7 @@ removedoc:
 
 .PHONY: makedirs
 makedirs:
+	rm -rf sj
 	make -C secondoInterface SecondoInterface.jar
 	make -C communication all
 	make -C extern all
