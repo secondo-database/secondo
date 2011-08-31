@@ -138,6 +138,9 @@ private void init(){
  GC.add("gui set servertrace = <true,false>");
  GC.add("gui set commandstyle = <tty,gui>");
  GC.add("gui set scriptstyle = <tty,gui>");
+ GC.add("-----------------------------");
+ GC.add("gui enableOptimizer");
+ GC.add("gui disableOptimizer");
  GuiCommands = new JList(GC);
 }
 

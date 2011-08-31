@@ -1528,6 +1528,11 @@ public boolean execGuiCommand(String command){
   } else if(command.startsWith("display ")){
     OList.displayObject(command.substring(8));  
     ComPanel.showPrompt();
+  } else if(command.equals("enableOptimizer")){
+    success=ComPanel.enableOptimizer();
+  } else if(command.equals("disableOptimizer")){
+    ComPanel.disableOptimizer();
+    success = true;
   } else {
     ComPanel.appendText("unknown gui command \n show help to get a list of available commands");
     ComPanel.showPrompt();
@@ -1993,6 +1998,7 @@ public boolean addObject(SecondoObject SO){
 
 /** closes all connections and exits the program */
 public void shutdown(int errorCode){
+    System.out.println(" shutdon " + errorCode);
     ComPanel.disconnect();
     ComPanel.disableOptimizer();
     setVisible(false);
