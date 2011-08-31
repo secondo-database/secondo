@@ -231,7 +231,7 @@ public class OSMDialog extends JDialog {
 	 * @return true if the new selection was accepted, false if canceled.
 	 **/
 	public boolean showDialog() {
-		setSize(980, 600);
+		setSize(980, 800);
 		setVisible(true);
 		return accepted;
 	}
