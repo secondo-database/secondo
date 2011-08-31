@@ -30,16 +30,21 @@ if [ -f "secpub.tar" ] ; then
   exit 1
 fi
 
+cat publicsecondo_filelist | sed "s/.*/tar -rf secondo-$VERSION-LAT1.tar \"&\"/g" | sh
+
 if [ "$SECONDO_PLATFORM" = "win32" ]; then
-  cat publicsecondo_filelist | sed "s/.*/zip -rf secondo-$VERSION-CP1252.zip \"&\"/g" | sh
+  rm -r secondo
+  tar -xf secondo-$VERSION-LAT1.tar
+  rm secondo-$VERSION-LAT1.tar
+  zip -r secondo-$VERSION-CP1252.zip secondo  
+  rm -rf secondo
 else
-  cat publicsecondo_filelist | sed "s/.*/tar -rf secondo-$VERSION-LAT1.tar \"&\"/g" | sh
   gzip secondo-$VERSION-LAT1.tar
+  rm -r secondo
 fi
 
 echo "archive created"
 
-rm -r secondo
 
 
 
