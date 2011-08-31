@@ -27,10 +27,7 @@ RIndexAlgebra RIndex
 GeneralTreeAlgebra GeneralTree
 MONTreeAlgebra MONTree
 MTreeAlgebra MTree
-#NearestNeighborAlgebra NearestNeighbor
 PeriodicAlgebra Periodic
-#STPatternAlgebra STPattern
-#TBTreeAlgebra TBTree
 XTreeAlgebra XTree
 
 
