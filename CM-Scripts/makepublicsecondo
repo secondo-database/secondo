@@ -3,8 +3,10 @@
 
 if [ -n "$1"  ]; then
    REV=" -r $1 "
+   VERSION=$1
 else
    REV=" -D now "
+   VERSION=current
 fi
 
 if [ -d secondo ] ; then
@@ -28,13 +30,17 @@ if [ -f "secpub.tar" ] ; then
   exit 1
 fi
 
-cat publicsecondo_filelist | sed "s/.*/tar -rf secpub.tar \"&\"/g" | sh
+if [ "$SECONDO_PLATFORM" = "win32" ]; then
+  cat publicsecondo_filelist | sed "s/.*/zip -rf secondo-$VERSION-CP1252.zip \"&\"/g" | sh
+else
+  cat publicsecondo_filelist | sed "s/.*/tar -rf secondo-$VERSION-LAT1.tar \"&\"/g" | sh
+  gzip secondo-$VERSION-LAT1.tar
+fi
 
-echo "tar archive created"
+echo "archive created"
 
 rm -r secondo
 
-gzip secpub.tar
 
 
 
