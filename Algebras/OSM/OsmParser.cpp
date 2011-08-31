@@ -476,25 +476,25 @@ void OsmParser::updateState (const Element &element, bool up)
 void OsmParser::setFoundNode (const bool &foundNode)
 {
     m_foundNode = foundNode;
-    if (m_foundNode)  {
+    /*if (m_foundNode)  {
         m_currentNode.print ();//TEST
-    }
+    }*/
 }
 
 void OsmParser::setFoundWay (const bool &foundWay)
 {
     m_foundWay = foundWay;
-    if (m_foundWay)  {
+    /*if (m_foundWay)  {
         m_currentWay.print ();//TEST
-    }
+    }*/
 }
 
 void OsmParser::setFoundRestriction (const bool &foundRestriction)
 {
     m_foundRestriction = foundRestriction;
-    if (m_foundRestriction)  {
+    /*if (m_foundRestriction)  {
         m_currentRestriction.print ();//TEST
-    }
+    }*/
 }
 
 bool OsmParser::isFoundNode () const
