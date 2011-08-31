@@ -17,19 +17,6 @@ fi
 
 echo classpath= $CP
 
-if [ "$1" == "--wait" ]; then
-  w="true"
-  shift
-fi
-  
 
-
-$JAVA  -Xmx1024M -Djava.library.path=lib $FEF -classpath $CP gui.MainWindow $*
-
-pid=$$
-
-if [ "$w" == "true" ]; then
-  wait $pid
-fi
-
+$JAVA  -Xmx1024M -Djava.library.path=lib $FEF -classpath $CP gui.MainWindow $* 
 
