@@ -592,6 +592,18 @@ public class CommandPanel extends JScrollPane {
   } // findSelectClause
 
 
+  /** Changes the format of error messages coming from the optimizer.
+    * The Error messages from the optimizer are not nice formatted.
+    * For example line breaks are marked by \n. This is changed by this function.
+  */
+  private String formatOptimizerError(String errmsg){
+    errmsg = errmsg.replaceAll("\\\\n","\n");
+    errmsg = errmsg.replaceAll("\\\\'","'");
+    return errmsg;
+  }
+
+
+
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
    IntObj Err = new IntObj();
@@ -641,7 +653,7 @@ public class CommandPanel extends JScrollPane {
         return "";
       }else if(opt.startsWith("::ERROR::")){
         appendText("\nproblem in optimization: \n");
-        appendText(opt.substring(9)+"\n");
+        appendText(formatOptimizerError(opt.substring(9))+"\n");
         showPrompt();
         return "";
       } else if(catChanged){
