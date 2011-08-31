@@ -11,22 +11,60 @@ if [ -d $dbDir ]; then
   echo "Cleaning $dbDir ..."
 else
   echo "Directory $dbDir does not exist."	
+  exit 1
 fi
 
-cd $dbDir >& /dev/null
-if [ $? -ne 0 ]; then
-  echo -e "Error: Could not change to $dbDir"
+which db_archive >/dev/null
+if [ $? -eq 0 ]; then
+  ARCHIVE=db_archive
 else
-  echo -e "Deleting unused log files in $dbDir ..."
-  db_checkpoint -v1
-  for file in $(db_archive); do
-    echo -e "deleting $file"
+  ARCHIVE=$(ls /usr/bin/db?.?_archive)
+fi
+
+if [ -z "$ARCHIVE" ]; then
+    echo "tool db_archive not found"
+    exit 1
+fi  
+
+which "$ARCHIVE" >/dev/null
+if [ $? -ne 0 ]; then
+       echo "Try to use $ARCHIVE as db_archive failed"
+       exit 1
+fi
+
+
+which db_checkpoint >/dev/null
+if [ $? -eq 0 ]; then
+  CHECKPOINT=db_checkpoint
+else
+  CHECKPOINT=$(ls /usr/bin/db?.?_checkpoint)
+if [ -z "$CHECKPOINT" ]; then
+    echo "tool db_checkpoint not found"
+    exit 1
+else  
+    which $CHECKPOINT >/dev/null
+if [ $? -ne 0 ]; then
+       echo "Try to use $CHECKPOINT as db_checkpoint failed"
+       exit 1
+fi
+fi
+fi
+
+
+cd $dbDir 
+if [ $? -ne 0 ]; then
+  echo  "Error: Could not change to $dbDir"
+else
+  echo  "Deleting unused log files in $dbDir ..."
+  $CHECKPOINT -v1
+  for file in $($ARCHIVE); do
+    echo  "deleting $file"
     rm -f $file
   done
-  echo -e "Deleting old 0tmp subdirectories ..."
+  echo  "Deleting old 0tmp subdirectories ..."
   files=$(find $dbDir -name "0tmp*")
   for file in $files; do
-    echo -e "deleting $file"
+    echo  "deleting $file"
     rm -rf $file
   done
 fi
