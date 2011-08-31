@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
+import javax.swing.BoxLayout;
 
 public class OSMDialog extends JDialog {
 
@@ -37,7 +38,7 @@ public class OSMDialog extends JDialog {
 		// create components for server settings
 		selectionCB = new JComboBox();
 		protocolTF = new JTextField(8);
-		serverTF = new JTextField(30);
+		serverTF = new JTextField(24);
 		portTF = new JTextField(3);
 		directoryTF = new JTextField(30);
 		prefixTF = new JTextField(10);
@@ -48,8 +49,8 @@ public class OSMDialog extends JDialog {
 		tileSizeYTF = new JTextField(4);
 		nameTF = new JTextField(12);
 		licenseUrlTF = new JTextField(12);
-		warningTF = new JTextField(30);
-		mapperClassTF = new JTextField(30);
+		warningTF = new JTextField(24);
+		mapperClassTF = new JTextField(24);
 
 		showFrames = new JCheckBox("Show tile frames");
 		showNames = new JCheckBox("Show tile names");
@@ -88,26 +89,19 @@ public class OSMDialog extends JDialog {
 
 	/** puts all the contained components at their places. **/
 	private void layoutComponents(Container root) {
-		root.setLayout(new BorderLayout());
+		root.setLayout(new BoxLayout(root,BoxLayout.Y_AXIS));
 
-		// create and add the command panel (south)
-		JPanel commandPanel = new JPanel();
-		commandPanel.add(acceptBtn);
-		commandPanel.add(resetBtn);
-		commandPanel.add(cancelBtn);
-		root.add(commandPanel, BorderLayout.SOUTH);
 
 		// north ( preset type and name )
-		JPanel categoryPanel = new JPanel(new GridLayout(1, 2));
-		JPanel selectionPanel = new JPanel();
-		selectionPanel.add(new JLabel("Choose preset type:"));
-		selectionPanel.add(selectionCB);
-		categoryPanel.add(selectionPanel);
+		JPanel categoryPanel = new JPanel();
+    categoryPanel.setLayout(new BoxLayout(categoryPanel,BoxLayout.X_AXIS));
+		categoryPanel.add(new JLabel("Choose preset type:"));
+		categoryPanel.add(selectionCB);
 		JPanel namePanel = new JPanel();
 		namePanel.add(new JLabel("Name:"));
 		namePanel.add(nameTF);
 		categoryPanel.add(namePanel);
-		root.add(categoryPanel, BorderLayout.NORTH);
+		root.add(categoryPanel);
 
 		// center
 		JPanel centerPanel = new JPanel(new BorderLayout());
@@ -222,7 +216,15 @@ public class OSMDialog extends JDialog {
 
 		centerPanel.add(infoTab, BorderLayout.SOUTH);
 
-		root.add(centerPanel, BorderLayout.CENTER);
+		root.add(centerPanel);
+		
+
+    // create and add the command panel (south)
+		JPanel commandPanel = new JPanel();
+		commandPanel.add(acceptBtn);
+		commandPanel.add(resetBtn);
+		commandPanel.add(cancelBtn);
+		root.add(commandPanel);
 	}
 
 	/**
@@ -231,7 +233,7 @@ public class OSMDialog extends JDialog {
 	 * @return true if the new selection was accepted, false if canceled.
 	 **/
 	public boolean showDialog() {
-		setSize(980, 800);
+		setSize(900,700);
 		setVisible(true);
 		return accepted;
 	}
