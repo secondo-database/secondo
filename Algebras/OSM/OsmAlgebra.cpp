@@ -354,19 +354,21 @@ int getconnectivitycodeValueMap(Word* args, Word& result, int message,
    int iDir = 0;
    int iOw = 0;
    bool foundUndefined = false;
-   for (iDir = 0; iDir < 4; ++iDir)  {
+   for (iDir = 0; !foundUndefined && iDir < 4; ++iDir)  {
       direction = static_cast<CcInt *>(args[iDir].addr);
       if (!direction->IsDefined()) {
          foundUndefined = true;
+      } else  {
+         dir[iDir] = direction->GetValue ();
       }
-      dir[iDir] = direction->GetValue ();
    }
-   for (iOw = 0; iOw < 4; ++iOw)  {
+   for (iOw = 0; !foundUndefined && iOw < 4; ++iOw)  {
       oneWay = static_cast<CcBool *>(args[4 + iOw].addr);
       if (!oneWay->IsDefined()) {
          foundUndefined = true;
+      } else  {
+         ow[iOw] = oneWay->GetValue ();
       }
-      ow[iOw] = oneWay->GetValue ();
    }
    if (foundUndefined)  {
       res->SetDefined(false);
