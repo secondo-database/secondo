@@ -14,13 +14,18 @@ PID=$$
 dir=$TMPDIR/SecTotal_$PID
 
 
-mkdir $dir
+mkdir -p $dir
 
 if [ $? -ne 0 ]; then
    echo "Directory $dir already exists"
    echo "Directory $dir already exists" >$LOGFILE
    exit 1
 fi 
+
+
+echo "Use directory $dir as home of the databases"
+echo "Current content "
+ls -l $dir
 
 
 #overwrite settings in SecondoConfig.ini
@@ -32,31 +37,32 @@ export SECONDO_PARAM_SecondoHome=$dir
 # start the SecondoMonitor
 
 if [ $SECONDO_BUILD_DIR = "" ]; then
+  echo "Variable SECONDO_BUILD_DIR not defined" 
   echo "Variable SECONDO_BUILD_DIR not defined" >$LOGFILE
+  rm -rf $dir
   exit 1
 fi
 
 # start Monitor
 echo "StartMonitor"
+echo "StartMonitor" >$LOGFILE
 
 cd $SECONDO_BUILD_DIR/bin
 ./SecondoMonitor -s >$LOGFILEMON 2>&1 </dev/null &
 mon=$!
 monrc=$?
 
-echo "SecondoMonitor-PID =  $mon"
-echo "SecondoMonitor-RC =   $monrc"
-
 
 if [ $monrc -ne 0 ]; then
   echo "Problem in starting Monitor" >$LOGFILE 2>&1
+  rm -rf $dir
   exit 1
 fi
 
-
+echo "Monitor is running"
 sleep 5
 
-echo "STartOptServer"
+echo "StartOptServer"
 
 #start OptServer
 FIFO=$SECONDO_BUILD_DIR/Optimizer/inputOptServer
@@ -64,31 +70,35 @@ rm -f $FIFO
 mkfifo $FIFO
 cd $SECONDO_BUILD_DIR/Optimizer
 StartOptServer -f $FIFO >$LOGFILEOPT 2>&1 &
-echo >$FIFO
-pidopt=$!
+echo -e "\n" >$FIFO
 
-echo "PID_OPT = $pidopt" 
 
+echo "Optimizer server is running"
+
+sleep 3
 
 echo "Start Tests" 
 
 
 declare -i err=0
 cd $SECONDO_BUILD_DIR/Javagui
-runCmd="sgui --wait --testrunner "
+runCmd="sgui  --testrunner "
 errFiles=""
 
 echo -e  "Tests from  $date \n" >$LOGFILE
+declare -i errors=0
 
 for f in $*; do
  echo "run test " $f
 
- $runCmd  $f >>$LOGFILE 2>&1 &
- sgpid=$!
+ $runCmd  $f >>$LOGFILE 2>&1 
  rc=$?
- wait $sgpid
  if [ $rc -ne 0 ]; then
+   echo "Test $f failed with return code $rc"
    errFiles=$errFiles"\n   $f $errRC"
+   let errors++
+ else
+   echo "Test $f successful"
  fi  
 done
 
@@ -103,12 +113,11 @@ fi
 
 echo "Terminate OptServer"
 echo "quit" >$FIFO
-#rm $FIFO
+rm $FIFO
 echo "Terminate Monitor"
 kill -SIGTERM $mon 2>/dev/null 
 
-
 rm -rf $dir
 
-
+exit $errors
 
