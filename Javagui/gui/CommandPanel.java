@@ -1106,6 +1106,10 @@ public class CommandPanel extends JScrollPane {
 
   /** disables the use of the optimizer */
   public void disableOptimizer(){
+      if(useOptimizer()){
+        IntObj err = new IntObj();
+        OptInt.optimize_execute("secondo('close database')",OpenedDatabase, err, true);
+      }
       OptInt.disconnect();
   }
 
