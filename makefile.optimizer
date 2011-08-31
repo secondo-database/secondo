@@ -39,7 +39,11 @@ else
 endif
 
 ifndef PL_LIB
+ifeq ($(platform),mac_osx)
+   PL_LIB = swipl
+else
    PL_LIB = pl
+endif
 endif
 
 export PL_LIB_DIR PL_INCLUDE_DIR PL_LIB optimizer
