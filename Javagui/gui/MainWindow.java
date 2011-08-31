@@ -704,7 +704,7 @@ public MainWindow(String Title,String user,String passwd){
       OptEnable=OptEnable.trim().toLowerCase();
       if(OptEnable.equals("true"))
           if(!ComPanel.enableOptimizer()){
-             Reporter.writeError("error in enabling optimizer");
+             Reporter.writeWarning("error in enabling optimizer");
           } else {
              Reporter.writeInfo("optimizer enabled");
           }
