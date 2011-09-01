@@ -116,3 +116,10 @@ Number   : 1
 Signature: mpoint x duration -> mpoint
 Example  : query always(randomdelay(train7, create_duration(0, 5000)) = train7)
 Result   : FALSE
+
+Operator : computeclosure
+Number   : 1
+Signature: tuple(x) X periods X namedFunlist X constraintList -> bool
+Example  : query Trains feed filter[fun(t: TUPLE, p: periods) t p computeclosure[insnow: (attr(t,Trip) atperiods p) inside msnow, isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0, isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ] = 1 ] count
+Result   : 562
+

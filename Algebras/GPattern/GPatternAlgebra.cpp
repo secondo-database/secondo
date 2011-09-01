@@ -240,18 +240,18 @@ void MSetIndex::AppendRemovalsIntoNodeLog(set<int>& deltaNodes,
 }
 
 MSetIndex::NodeLogEntry::NodeLogEntry(
-    double st, list<CompressedInMemUSet>::iterator stIt, int sUI, set<int>& aE):
-      starttime(st), endtime(-1), startUnitIt(stIt), startUnitIndex(sUI),
-      endUnitIndex(-1), associatedEdges(aE){}
+   int64_t st, list<CompressedInMemUSet>::iterator stIt, int sUI, set<int>& aE):
+   starttime(st), endtime(-1), startUnitIt(stIt), startUnitIndex(sUI),
+   endUnitIndex(-1), associatedEdges(aE){}
 
 ostream& MSetIndex::NodeLogEntry::Print(ostream& os)
 {
   os<<"\nunit indexes ["<< this->startUnitIndex<<"," <<this->endUnitIndex<<"]";
   os<<",\t time [";
   Instant i(instanttype);
-  i.ReadFrom(this->starttime/day2min); i.Print(os);
+  i.ReadFrom(this->starttime); i.Print(os);
   os<<",";
-  i.ReadFrom(this->endtime/day2min); i.Print(os);
+  i.ReadFrom(this->endtime); i.Print(os);
   os<<"]";
   os<<",\t timeFromUnit ["<< (*this->startUnitIt).starttime<<"," ;
   if(this->endUnitIndex == -1)
@@ -358,19 +358,19 @@ ostream& MSetIndex::NodeLog::Print(ostream& os)
 }
 
 bool MSetIndex::RemoveShortNodeEntries(
-    double d, vector<ChangeRecord>& AllChanges)
+    int64_t dMS, vector<ChangeRecord>& AllChanges)
 {
   map<int,  NodeLog>::iterator nodeEntry= this->nodes.begin();
   bool changed= false;
   while(nodeEntry != this->nodes.end())
   {
-    changed= RemoveShortNodeEntries(d, nodeEntry, AllChanges) || changed;
+    changed= RemoveShortNodeEntries(dMS, nodeEntry, AllChanges) || changed;
     ++nodeEntry;
   }
   return changed;
 }
 
-void DecreaseUnitCount(int cnt)
+void DecreaseUnitCount(int& cnt)
 {
   assertIf(cnt > 0);
   --cnt;
@@ -396,8 +396,8 @@ bool CheckRemoveEntry::GetChanged()
   return CheckRemoveEntry::changed;
 }
 CheckRemoveEntry::CheckRemoveEntry(int id,
-  vector<ChangeRecord>& ch, MSetIndex* i, double _d):
-  nodeId(id), AllChanges(&ch), index(i), d(_d){}
+  vector<ChangeRecord>& ch, MSetIndex* i, int64_t _dMS):
+  nodeId(id), AllChanges(&ch), index(i), dMS(_dMS){}
 bool CheckRemoveEntry::operator() (MSetIndex::NodeLogEntry& logEntry)
 {
   bool debugme= false;
@@ -406,7 +406,7 @@ bool CheckRemoveEntry::operator() (MSetIndex::NodeLogEntry& logEntry)
     cerr<< "\nbefore applying d:";
     logEntry.Print(cerr);
   }
-  if((logEntry.endtime - logEntry.starttime) < d)
+  if((logEntry.endtime - logEntry.starttime) < dMS)
   {
     for_each(index->units.begin() + logEntry.startUnitIndex,
         index->units.begin()+ logEntry.endUnitIndex, DecreaseUnitCount);
@@ -423,7 +423,7 @@ bool CheckRemoveEntry::operator() (MSetIndex::NodeLogEntry& logEntry)
   }
 }
 
-bool MSetIndex::RemoveShortNodeEntries(double d,
+bool MSetIndex::RemoveShortNodeEntries(int64_t dMS,
     map<int,  NodeLog>::iterator nodeIt, vector<ChangeRecord>& AllChanges)
 {
   bool debugme= false;
@@ -435,7 +435,7 @@ bool MSetIndex::RemoveShortNodeEntries(double d,
   while(logEntryIt != nodeLog->log.end())
   {
     logEntry= &(*logEntryIt);
-    if((logEntry->endtime - logEntry->starttime) < d)
+    if((logEntry->endtime - logEntry->starttime) < dMS)
     {
       for_each(this->units.begin() + logEntry->startUnitIndex,
         this->units.begin()+ logEntry->endUnitIndex + 1, DecreaseUnitCount);
@@ -525,16 +525,16 @@ void GPatternHelper::RemoveDuplicates(list<CompressedInMemUSet>& resStream)
 
 }
 
-void GPatternHelper::removeShortUnits(MBool &mbool, double d)
+void GPatternHelper::removeShortUnits(MBool &mbool, int64_t dMS)
 {
   UBool ubool;
-  double starttime, endtime;
+  int64_t starttime, endtime;
   for(int i= 0; i< mbool.GetNoComponents(); ++i)
   {
     mbool.Get(i, ubool);
-    starttime= ubool.timeInterval.start.ToDouble() * day2min;
-    endtime= ubool.timeInterval.end.ToDouble() * day2min;
-    if(endtime - starttime < d)
+    starttime= ubool.timeInterval.start.millisecondsToNull();
+    endtime= ubool.timeInterval.end.millisecondsToNull();
+    if(endtime - starttime < dMS)
     {
       ubool.constValue.Set(false, false);
       mbool.Put(i, ubool);
@@ -544,7 +544,7 @@ void GPatternHelper::removeShortUnits(MBool &mbool, double d)
 
 bool GPatternHelper::RemoveShortNodeMembership(
     CompressedInMemMSet& Accumlator,
-    vector<pair<int, int> >& edge2nodesMap, double d)
+    vector<pair<int, int> >& edge2nodesMap, int64_t dMS)
 {
   bool debugme= false;
   if(debugme)
@@ -574,7 +574,7 @@ bool GPatternHelper::RemoveShortNodeMembership(
       PrintNodeHistory(&nodeHistory, cerr);
     RemoveEdgesUndirected(&graph, (*i).removed, edge2nodesMap, deltaNodes);
     changed= (CheckRemoveNodeMembership(
-      &nodeHistory, (*i).removed, edge2nodesMap, i, deltaNodes, d) || changed);
+      &nodeHistory, (*i).removed, edge2nodesMap, i, deltaNodes, dMS)||changed);
     if(debugme)
       PrintNodeHistory(&nodeHistory, cerr);
     ++i;
@@ -604,9 +604,9 @@ ostream& GPatternHelper::PrintNodeHistory(
 bool GPatternHelper::CheckRemoveNodeMembership(
   map<int, pair<list<CompressedInMemUSet>::iterator, set<int> > >* nodeHistory,
   set<int> removedEdges, vector<pair<int, int> >& edge2nodesMap,
-  list<CompressedInMemUSet>::iterator& cur, set<int>& deltaNodes, double d)
+  list<CompressedInMemUSet>::iterator& cur, set<int>& deltaNodes, int64_t dMS)
 {
-  double nodeMembershipDuration;
+  int64_t nodeMembershipDuration;
   bool changed=false;
   map<int, pair<list<CompressedInMemUSet>::iterator,set<int> > >::iterator pos;
   list<CompressedInMemUSet>::iterator nodeFirstUnitIt, curUnitIt;
@@ -619,7 +619,7 @@ bool GPatternHelper::CheckRemoveNodeMembership(
     assert(pos != nodeHistory->end());
     nodeFirstUnitIt= (*pos).second.first;
     nodeMembershipDuration= (*cur).starttime - (*nodeFirstUnitIt).starttime;
-    if(nodeMembershipDuration < d)
+    if(nodeMembershipDuration < dMS)
     {
       changed= true;
       nodeEdges= & (*pos).second.second;
@@ -750,10 +750,10 @@ bool GPatternHelper::RemoveUnitsHavingFewNodes(
 void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
     list<CompressedInMemUSet>::iterator begin,
     list<CompressedInMemUSet>::iterator end ,
-    vector<pair<int,int> >& edge2nodesMap, double d, int n, string& qts,
+    vector<pair<int,int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
     list<CompressedMSet*>*& finalResStream, int depth)
 {
-  bool debugme= true;
+  bool debugme= false;
   list<CompressedInMemUSet>::iterator cur= begin;
   set<int> s;
   list<CompressedMSet*>* resStream= 0;
@@ -764,7 +764,7 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
     cerr<<"\nFindSubGraphs started at depth " << depth;
     cerr<<"\nAccumlator has " << Accumlator.GetNoComponents()<< " units";
   }
-  FindDynamicComponents(Accumlator, begin, end, edge2nodesMap, d, n, qts,
+  FindDynamicComponents(Accumlator, begin, end, edge2nodesMap, dMS, n, qts,
       resStream);
   if(debugme)
   {
@@ -799,30 +799,31 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
     curMSet= resStream->front();
     if(debugme)
     {
-      curMSet->GetNoComponents();
       curMSet->Print(cerr);
+      CompressedMSet* tmp= EdgeMSet2NodeMSet(curMSet, edge2nodesMap);
+      CompressedInMemMSet tmp1;
+      tmp->WriteToCompressedInMemMSet(tmp1);
+      MSet tmp2(true);
+      tmp1.WriteToMSet(tmp2);
+      tmp2.Print(cerr);
+      delete tmp;
     }
     Changes.resize(curMSet->GetNoComponents());
     curMSet->WriteToCompressedInMemMSet(inMemMSet);
-    if(debugme)
-    {
-      cerr<<inMemMSet.GetNoComponents();
-      inMemMSet.Print(cerr);
-    }
     MSetIndex index(inMemMSet, edge2nodesMap);
     changed=
-        GPHelper.ApplyThresholds(index, n, d, Changes);
+        GPHelper.ApplyThresholds(index, n, dMS, Changes);
     if(changed)
     {
       GPHelper.UpdateResult(
-          &inMemMSet, edge2nodesMap, n, d, qts, Changes, localResStream);
+          &inMemMSet, edge2nodesMap, n, dMS, qts, Changes, localResStream);
       resStream->splice(resStream->end(), localResStream);
       delete curMSet;
     }
     else
       finalResStream->push_back(curMSet);
     resStream->pop_front();
-    if(debugme)
+    if(debugme&& 0)
     {
       list<CompressedMSet*>::iterator it= resStream->begin();
       while(it != resStream->end())
@@ -844,10 +845,10 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
 }
 
 struct
-checkShortDelete: binary_function< CompressedMSet* ,double,bool>
+checkShortDelete: binary_function< CompressedMSet* , int64_t, bool>
 {
 public:
-  bool operator() (CompressedMSet* _mset, double d) const
+  bool operator() (CompressedMSet* _mset, int64_t dMS) const
   {
     if(_mset->units.Size() == 0)
     {
@@ -856,10 +857,10 @@ public:
     }
     CompressedUSetRef uset;
     _mset->units.Get(0, uset);
-    double starttime= uset.starttime;
+    int64_t starttime= uset.starttime;
     _mset->units.Get(_mset->units.Size() - 1, uset);
-    double endtime= uset.endtime;
-    if(endtime - starttime < d)
+    int64_t endtime= uset.endtime;
+    if(endtime - starttime < dMS)
     {
       delete _mset;
       return true;
@@ -897,7 +898,7 @@ CompressedMSet* GPatternHelper::CollectResultParts(
 void GPatternHelper::FindDynamicComponents(CompressedInMemMSet& Accumlator,
     list<CompressedInMemUSet>::iterator begin,
     list<CompressedInMemUSet>::iterator end ,
-    vector<pair<int, int> >& edge2nodesMap, double d, int n, string& qts,
+    vector<pair<int, int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
     list<CompressedMSet*>*& FinalResultStream)
 {
   bool debugme= false;
@@ -926,7 +927,7 @@ void GPatternHelper::FindDynamicComponents(CompressedInMemMSet& Accumlator,
     }
 
     DynamicGraphAppend(graph, components, compLabelsMap, cur,
-        edge2nodesMap, d, n, qts, NextComponentLabel, ResultParts,
+        edge2nodesMap, dMS, n, qts, NextComponentLabel, ResultParts,
         ResultStream, FinalResultStream);
     ++cur;
   }
@@ -1235,7 +1236,7 @@ Finalize
 
 */
 void GPatternHelper::Finalize(LWGraph* graph, list<Component*>* components,
-    double d, CompressedInMemUSet& cur, vector<CompressedMSet*>& ResultParts,
+    int64_t dMS, CompressedInMemUSet& cur, vector<CompressedMSet*>& ResultParts,
     list<vector<int> > *ResultStream, list<CompressedMSet*>* FinalResultStream,
     vector<pair<int, int> >& edge2nodesMap)
 {
@@ -1382,7 +1383,7 @@ function.
             &(*(comp->associatedResults[associatedResultIndex]));
         CompressedMSet* theMSet=
             CollectResultParts(ResultParts, *associatedResult);
-        if(theMSet->DurationLength() >= d)
+        if(theMSet->DurationLength() >= dMS)
         {
           if(debugme)
           {
@@ -1483,7 +1484,7 @@ void GPatternHelper::DynamicGraphAppend(LWGraph* graph,
     list<Component*>* components,
     map<int, list<Component*>::iterator>& compLabelsMap,
     list<CompressedInMemUSet>::iterator cur,
-    vector<pair<int, int> >& edge2nodesMap, double d,
+    vector<pair<int, int> >& edge2nodesMap, int64_t dMS,
     int n, string& qts, int& NextComponentLabel,
     vector<CompressedMSet*>* ResultParts,
     list<vector<int> >* ResultStream,
@@ -1559,7 +1560,7 @@ void GPatternHelper::DynamicGraphAppend(LWGraph* graph,
           NextComponentLabel, affectedComponentsLabels);
   }
 
-  Finalize(graph, components, d, *cur, *ResultParts, ResultStream,
+  Finalize(graph, components, dMS, *cur, *ResultParts, ResultStream,
       FinalResultStream, edge2nodesMap);
 
 }
@@ -1581,7 +1582,7 @@ void GPatternHelper::GraphNodes2Edges(set<int>& subGraphNodes,
 }
 
 bool GPatternHelper::Merge(CompressedInMemMSet *_mset, set<int> *subGraph,
-    double starttime, double endtime, bool lc, bool rc)
+    int64_t starttime, int64_t endtime, bool lc, bool rc)
 {
   set<int>* finalSet= _mset->GetFinalSet();
   bool intersects = SetIntersects(*finalSet, *subGraph);
@@ -1699,12 +1700,12 @@ CompressedMSet* GPatternHelper::EdgeMSet2NodeMSet(
 
 void GPatternHelper::ComputeAddSubSets(InMemMSet& acc,
     list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
-    unsigned int n,  double d, vector<InMemMSet>* result)
+    unsigned int n,  int64_t dMS, vector<InMemMSet>* result)
 {
   bool debugme= false;
   assert(acc.GetNoComponents() > 0 );
-  assert(d > 0);
-  assert(((*t2).endtime - (*t1).starttime) > d);
+  assert(dMS > 0);
+  assert(((*t2).endtime - (*t1).starttime) > dMS);
 
   if(debugme)
   {
@@ -1714,30 +1715,30 @@ void GPatternHelper::ComputeAddSubSets(InMemMSet& acc,
     (*t2).Print(cerr);
     cerr<<"End of input -----------------------";
   }
-  multimap< set<int>, DoubleInterval> res;
+  multimap< set<int>, Int64Interval> res;
 
   list<InMemUSet>::iterator unitIterator1=t1, unitIterator2=t2;
-  double startInstant= (*t1).starttime, curInstant=0,
+  int64_t startInstant= (*t1).starttime, curInstant=0,
   endInstant= (*t2).endtime;
   bool lc= (*t1).lc, rc=false;
   list<InMemUSet>::iterator curUnit;
   InMemUSet candidates;
   curUnit= unitIterator1;
-  while( endInstant - startInstant >= d)
+  while( endInstant - startInstant >= dMS)
   {
     unitIterator2= unitIterator1;
     curInstant= (*curUnit).endtime;
     rc= (*curUnit).rc;
     candidates.CopyFrom(*curUnit);
     while( candidates.Count() >= n &&
-        curInstant - startInstant < d && unitIterator2 != t2)
+        curInstant - startInstant < dMS && unitIterator2 != t2)
     {
       curUnit = ++unitIterator2;
       curInstant= (*curUnit).endtime;
       rc= (*curUnit).rc;
       candidates.Intersection((*curUnit).constValue);
     }
-    if(candidates.Count() >= n && curInstant - startInstant >= d)
+    if(candidates.Count() >= n && curInstant - startInstant >= dMS)
       AddAllSubSetsToVector(candidates, startInstant, curInstant,
           lc, rc, n, res);
 
@@ -1763,7 +1764,7 @@ void GPatternHelper::ComputeAddSubSets(InMemMSet& acc,
       break;
   }
   //result.reserve(res.size());
-  multimap< set<int>, DoubleInterval>::iterator i;
+  multimap< set<int>, Int64Interval>::iterator i;
   for(i= res.begin(); i != res.end(); ++i)
   {
     InMemMSet mset;
@@ -1817,9 +1818,9 @@ void GPatternHelper::GenerateAllCombinations(InMemUSet& cand, int select,
 }
 
 void GPatternHelper::AddAllSubSetsToVector(InMemUSet& candidates,
-    double startInstant,
-    double curInstant, bool lc, bool rc,
-    int n, multimap< set<int>, DoubleInterval>& res)
+    int64_t startInstant,
+    int64_t curInstant, bool lc, bool rc,
+    int n, multimap< set<int>, Int64Interval>& res)
 {
   bool debugme= false;
   bool changed=false;
@@ -1836,11 +1837,11 @@ void GPatternHelper::AddAllSubSetsToVector(InMemUSet& candidates,
 
   if(changed)
   {
-    pair<multimap< set<int>, DoubleInterval>::iterator,
-    multimap< set<int>, DoubleInterval>::iterator> ret;
-    multimap< set<int>, DoubleInterval>::iterator i;
+    pair<multimap< set<int>, Int64Interval>::iterator,
+    multimap< set<int>, Int64Interval>::iterator> ret;
+    multimap< set<int>, Int64Interval>::iterator i;
     bool consumed= false;
-    DoubleInterval timeInterval(startInstant, curInstant, lc, rc);
+    Int64Interval timeInterval(startInstant, curInstant, lc, rc);
     for(unsigned int k=0; k<sets.size(); ++k)
     {
       consumed= false;
@@ -1857,8 +1858,8 @@ void GPatternHelper::AddAllSubSetsToVector(InMemUSet& candidates,
       }
       if(!consumed)
       {
-        DoubleInterval tmp(startInstant, curInstant, lc, rc);
-        res.insert( pair<set<int>, DoubleInterval>(sets[k],tmp) );
+        Int64Interval tmp(startInstant, curInstant, lc, rc);
+        res.insert( pair<set<int>, Int64Interval>(sets[k],tmp) );
       }
     }
 
@@ -1868,7 +1869,7 @@ void ClearChangeRecord(ChangeRecord& rec)
 {
   rec.Clear();
 }
-bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n,double d,
+bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
     vector<ChangeRecord>& AllChanges)
 {
   bool debugme= false;
@@ -1878,10 +1879,10 @@ bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n,double d,
     index.Print(cerr);
   while(changed)
   {
-    changed= index.RemoveShortNodeEntries(d, AllChanges);
+    changed= index.RemoveShortNodeEntries(dMS, AllChanges);
     globallyChanged |= changed;
-    if(changed)
-      changed= index.RemoveSmallUnits(n, AllChanges);
+    changed= index.RemoveSmallUnits(n, AllChanges);
+    globallyChanged |= changed;
   }
   if(debugme)
     index.Print(cerr);
@@ -1890,7 +1891,7 @@ bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n,double d,
 
 
 void GPatternHelper::UpdateResult(CompressedInMemMSet* curMSet,
-    vector<pair<int,int> >& edge2nodesMap,int n,double d, string qts,
+    vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     vector<ChangeRecord>& Changes,
     list<CompressedMSet*>& resStream)
 {
@@ -1907,7 +1908,8 @@ FOREACH corresponding changesPart in changesParts
 
   bool debugme= false;
   unsigned int offset=0, length=0, it=0;
-  list<CompressedInMemUSet>::iterator begin, end, usetIt=curMSet->units.begin();
+  list<CompressedInMemUSet>::iterator begin= curMSet->units.begin(),
+      usetIt= begin, end;
   list<CompressedInMemMSet*> msetParts;
   list<vector<ChangeRecord> > changeParts;
   bool lastUnitIsDeleted=(Changes[0].status == ChangeRecord::UnitRemoved);
@@ -1934,12 +1936,15 @@ FOREACH corresponding changesPart in changesParts
     lastUnitIsDeleted= (Changes[it].status == ChangeRecord::UnitRemoved);
   }
 
-  if(msetParts.empty())
+  if(!lastUnitIsDeleted)
   {
     CompressedInMemMSet* newMSetPart= new CompressedInMemMSet(
-        *curMSet, curMSet->units.begin(), curMSet->units.end());
+        *curMSet, begin, curMSet->units.end());
     msetParts.push_back(newMSetPart);
-    changeParts.push_back(Changes);
+
+    changeParts.resize(changeParts.size()+1);
+    changeParts.back().insert(changeParts.back().end(),
+        Changes.begin() + offset, Changes.end());
   }
 
   assertIf(msetParts.size() == changeParts.size());
@@ -1948,20 +1953,13 @@ FOREACH corresponding changesPart in changesParts
   {
     if(debugme)
     {
-      cerr<<"\nBefore Change: ";
-      list<CompressedMSet*>::iterator it= resStream.begin();
-      while(it++ != resStream.end())
-        (*it)->Print(cerr);
-    }
-    if(debugme)
-    {
       MSet tmp(true);
       cerr<<"\nBefore Change: ";
       msetParts.front()->WriteToMSet(tmp);
       tmp.Print(cerr);
     }
     ApplyChanges(msetParts.front(), changeParts.front(), edge2nodesMap,
-        n, d, qts, resStream, msetParts, changeParts);
+        n, dMS, qts, resStream, msetParts, changeParts);
     delete msetParts.front();
     msetParts.pop_front();
     changeParts.pop_front();
@@ -1987,7 +1985,7 @@ FOREACH corresponding changesPart in changesParts
 
 void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
     vector<ChangeRecord>& changesPart,
-    vector<pair<int,int> >& edge2nodesMap,int n, double d, string qts,
+    vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     list<CompressedMSet*>& resStream, list<CompressedInMemMSet*>& msetParts,
     list<vector<ChangeRecord> >& changeParts)
 {
@@ -2024,7 +2022,6 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
   ChangeRecord* ch;
   set<int> edges;
   int noComponents;
-  bool succeeded;
   bool changed=false;
   while(changeIt!= changesPart.end())
   {
@@ -2066,8 +2063,12 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
           CompressedMSet* resPart= new CompressedMSet(0);
           resPart->ReadFromCompressedInMemMSet(firstPart);
           resStream.push_back(resPart);
+          if(debugme)
+            resStream.back()->Print(cerr);
         }
-        if(usetIt != inMemMSet->units.end()--)
+        list<CompressedInMemUSet>::iterator last= inMemMSet->units.end();
+        --last;
+        if(usetIt != last)
         {
           list<CompressedInMemUSet>::iterator it= usetIt; ++it;
           CompressedInMemMSet* lastPart= new CompressedInMemMSet(*inMemMSet,
@@ -2082,7 +2083,7 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
       {
         inMemMSet->MakeMinimal();
         FindDynamicComponents(*inMemMSet, inMemMSet->units.begin(),
-            inMemMSet->units.end(), edge2nodesMap, d, n, qts, localResStream);
+            inMemMSet->units.end(), edge2nodesMap, dMS, n, qts, localResStream);
         resStream.splice(resStream.end(), *localResStream);
         delete localResStream;
         localResStream= 0;
@@ -2187,7 +2188,7 @@ bool GPatternSolver::GetStart(string alias, Instant& result)
   if(it== VarAliasMap.end()) return false;
 
   int index=(*it).second;
-  result.ReadFrom(SA[iterator][index].first.start.GetRealval());
+  result.CopyFrom(&(SA[iterator][index].first.start));
   return true;
 }
 
@@ -2199,7 +2200,7 @@ bool GPatternSolver::GetEnd(string alias, Instant& result)
   if(it== VarAliasMap.end()) return false;
 
   int index=(*it).second;
-  result.ReadFrom(SA[iterator][index].first.end.GetRealval());
+  result.CopyFrom(&(SA[iterator][index].first.end));
   return true;
 }
 
@@ -2269,9 +2270,9 @@ Extend
 bool GPatternSolver::Extend(int varIndex)
 {
   bool debugme= false;
-  vector< pair< Interval<CcReal>, MSet* > > sa(count);
+  vector< pair< Interval<Instant>, MSet* > > sa(count);
   qp->Open(Agenda[varIndex]);
-  Interval<CcReal> deftime;
+  Interval<Instant> deftime;
   Interval<Instant> period;
   Periods periods(0);
   set<int> val;
@@ -2293,8 +2294,7 @@ bool GPatternSolver::Extend(int varIndex)
         if(debugme) res->Print(cerr);
         res->DefTime(periods);
         periods.Get(0, period);
-        IntervalInstant2IntervalCcReal(period, deftime);
-        sa[varIndex].first= deftime;
+        sa[varIndex].first= period;
         sa[varIndex].second= res;
         SA.push_back(sa);
       }
@@ -2304,8 +2304,8 @@ bool GPatternSolver::Extend(int varIndex)
   }
   else
   {
-    vector< pair< Interval<CcReal>, MSet* > > stream;
-    pair< Interval<CcReal>, MSet* > elem;
+    vector< pair< Interval<Instant>, MSet* > > stream;
+    pair< Interval<Instant>, MSet* > elem;
     qp->Request(Agenda[varIndex], Value);
     while(qp->Received(Agenda[varIndex]))
     {
@@ -2315,7 +2315,7 @@ bool GPatternSolver::Extend(int varIndex)
       {
         res->DefTime(periods);
         periods.Get(0, period);
-        IntervalInstant2IntervalCcReal(period, elem.first);
+        elem.first= period;
         elem.second= res;
         stream.push_back(elem);
       }
@@ -2341,7 +2341,7 @@ bool GPatternSolver::Extend(int varIndex)
 }
 
 bool GPatternSolver::IsSupported(
-    vector< pair<Interval<CcReal>, MSet* > >& sa, int index)
+    vector< pair<Interval<Instant>, MSet* > >& sa, int index)
 {
   bool supported=false; 
   for(unsigned int i=0; i<assignedVars.size()-1; i++)
@@ -2376,8 +2376,8 @@ CheckCopnstraint
 
 */
 
-bool GPatternSolver::CheckConstraint(Interval<CcReal>& p1, 
-    Interval<CcReal>& p2, vector<Supplier> constraint)
+bool GPatternSolver::CheckConstraint(Interval<Instant>& p1,
+    Interval<Instant>& p2, vector<Supplier> constraint)
 {
   bool debugme=false;
   Word Value;
@@ -2441,7 +2441,7 @@ bool GPatternSolver::Solve()
 
 void GPatternSolver::WriteTuple(Tuple* tuple)
 {
-  vector< pair< Interval<CcReal>, MSet* > > sa= SA[iterator];
+  vector< pair< Interval<Instant>, MSet* > > sa= SA[iterator];
   USet uset(true);
   Instant instant(instanttype);
   MSet mset(0);
@@ -3109,37 +3109,53 @@ ListExpr CreateAlfaSetTM(ListExpr args)
 ListExpr MSet2MRegionTM(ListExpr args)
 {
   string msg= nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 3 ,
-      "Operator mset2mregion expects 3 arguments.\nBut got: " + msg + ".");
+  if(nl->ListLength(args) != 3)
+  {
+    ErrorReporter::ReportError("Operator mset2mregion expects 3 arguments."
+        "\nBut got: " + msg + ".");
+    return nl->SymbolAtom("typeerror");
+  };
   
   msg= nl->ToString(nl->First(args));
-  CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
-      "Operator mset2mregion expects stream(tuple(X)) as first argument."
-      "\nBut got: " + msg + ".");
+  if(!listutils::isTupleStream(nl->First(args)))
+  {
+    ErrorReporter::ReportError("Operator mset2mregion expects stream(tuple(X)) "
+        "as first argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom("typeerror");
+  };
 
   msg= nl->ToString(nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) && 
-      nl->SymbolValue(nl->Second(args)) == "mset",
-      "Operator mset2mregion expects an mset as second argument."
-      "\nBut got: " + msg + ".");
+  if(!nl->IsAtom(nl->Second(args)||nl->SymbolValue(nl->Second(args))!="mset"))
+  {
+    ErrorReporter::ReportError("Operator mset2mregion expects an mset as second"
+        " argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom("typeerror");
+  };
 
   msg= nl->ToString(nl->Third(args));
-  CHECK_COND( nl->IsAtom(nl->Third(args)) &&
-      nl->SymbolValue(nl->Third(args))== Duration::BasicType(),
-          "Operator mset2mregion expects duration as third "
-          "argument.\nBut got: " + msg + ".");
+  if(!nl->IsAtom(nl->Third(args)||
+      nl->SymbolValue(nl->Third(args))!= Duration::BasicType()))
+  {
+    ErrorReporter::ReportError("Operator mset2mregion expects duration as "
+        "third argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom("typeerror");
+  };
   
   ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
   msg= nl->ToString(tuple1);
-  CHECK_COND( nl->ListLength(tuple1) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple1))) &&
-    nl->SymbolValue(nl->Second(nl->First (tuple1)))== CcInt::BasicType() &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple1))) &&
-    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== MPoint::BasicType(),
-        "Operator mset2mregion expects stream(tuple(int mpoint)) as first "
+  if(nl->ListLength(tuple1) != 2 ||
+     !nl->IsAtom(nl->Second(nl->First (tuple1))) ||
+     nl->SymbolValue(nl->Second(nl->First (tuple1)))!= CcInt::BasicType() ||
+     !nl->IsAtom(nl->Second(nl->Second(tuple1))) ||
+     nl->SymbolValue(nl->Second(nl->Second(tuple1)))!= MPoint::BasicType())
+  {
+    ErrorReporter::ReportError("Operator mset2mregion expects "
+        "stream(tuple(int mpoint)) as first "
         "argument.\nBut got: stream(tuple(" + msg + ")).");
+    return nl->SymbolAtom("typeerror");
+  };
   
-  return nl->SymbolAtom("movingregion");
+  return nl->SymbolAtom(MRegion::BasicType());
 }
 
 ListExpr ConvexHullTM(ListExpr args)
@@ -3420,7 +3436,7 @@ Reading the operator arguments
     ArgVectorPointer tupleIDArgs = qp->Argument(tupleID),
       liftedPredArgs = qp->Argument(liftedPred);
     qp->Request(args[3].addr, value);
-    double d= static_cast<Instant*>(value.addr)->ToDouble() * day2min;
+    int64_t dMS= static_cast<Instant*>(value.addr)->millisecondsToNull();
     qp->Request(args[4].addr, value);
     int n= static_cast<CcInt*>(value.addr)->GetIntval();
     string qts= nl->ToString(qp->GetType(args[5].addr));
@@ -3475,7 +3491,7 @@ Evaluating the gpattern results
       changed= accumlator.RemoveSmallUnits(n);
 
       //accumlator2.RemoveShortElemParts(d);
-      changed= (accumlator.RemoveShortElemParts(d) || changed );  
+      changed= (accumlator.RemoveShortElemParts(dMS) || changed );
     }
     if(debugme)
     {
@@ -3531,7 +3547,7 @@ Evaluating the gpattern results
         list<InMemUSet>::iterator e= mset->units.end();
         --e;
         GPHelper.ComputeAddSubSets(*mset, mset->units.begin(), e,
-            n, d, resStream);
+            n, dMS, resStream);
       }
       begin= ++end;
     }
@@ -3611,7 +3627,7 @@ Reading the operator arguments
       tupleID2Args = qp->Argument(tupleID2),
       liftedPredArgs = qp->Argument(liftedPred);
     qp->Request(args[4].addr, value);
-    double d= static_cast<Instant*>(value.addr)->ToDouble() * day2min;
+    int64_t dMS= static_cast<Instant*>(value.addr)->millisecondsToNull();
     qp->Request(args[5].addr, value);
     int n= static_cast<CcInt*>(value.addr)->GetIntval();
     string qts= nl->ToString(qp->GetType(args[6].addr));
@@ -3712,7 +3728,7 @@ performed in this step.
         (*begin).Print(cerr);
         (*end).Print(cerr);
       }
-      if((*end).endtime - (*begin).starttime >= d)
+      if((*end).endtime - (*begin).starttime >= dMS)
       {
         ++end;
         if(begin != accumlator.units.begin())
@@ -3727,12 +3743,12 @@ performed in this step.
           }
           GPHelper.FindLargeDynamicComponents(accumlatorPart,
               accumlatorPart.units.begin(), accumlatorPart.units.end() , 
-              edge2nodesMap, d, n, qts, localResStream, 0);
+              edge2nodesMap, dMS, n, qts, localResStream, 0);
         }
         else
         {
           GPHelper.FindLargeDynamicComponents(accumlator, begin, end ,
-                edge2nodesMap, d, n, qts, localResStream, 0);
+                edge2nodesMap, dMS, n, qts, localResStream, 0);
         }
         resStream->splice(resStream->end(), *localResStream);
         delete localResStream;
@@ -4868,7 +4884,7 @@ Operator nocomponents( "no_components",
     NoComponentsVM,
     Operator::SimpleSelect,
     NoComponentsTM);
-    
+
 
 TypeConstructor intSetTC(
         "intset",       //name

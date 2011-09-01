@@ -40,7 +40,11 @@ evaluating the spatiotemporal pattern predicates (STP).
 #include "STPatternAlgebra.h"
 #include <limits>
 #include "Symbols.h"
+
 namespace STP{
+
+static int64_t  min_VALUE = numeric_limits<int64_t>::min();
+static int64_t  max_VALUE = numeric_limits<int64_t>::max();
 
 /*
 3 Classes
@@ -179,7 +183,7 @@ bool STVector::Add(int simple)
   return false;
 }
 
-bool STVector::ApplyVector(Interval<CcReal>& p1, Interval<CcReal>& p2)
+bool STVector::ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2)
 {
   int simple=1;
   bool supported=false;
@@ -203,11 +207,10 @@ Process: checks the simple connectors.
 Output: fulfilled or not.
 
 */
-bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+bool STVector::ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2,
     int simple)
 { 
-  double  a=p1.start.GetRealval(),   A=p1.end.GetRealval(),
-      b=p2.start.GetRealval(),   B=p2.end.GetRealval();
+  Instant  a=p1.start,   A=p1.end,    b=p2.start,   B=p2.end;
   switch(simple)
   {
   case   aabb:
@@ -620,7 +623,7 @@ void IntervalInstant2IntervalCcReal(const Interval<Instant>& in,
 
 
 CSP::CSP(): closureRes(notPA), count(0),iterator(-1),
-    nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
+    nullInterval(Instant((int64_t)0),Instant((int64_t)0), true,true)
 {}
 
 CSP::~CSP()
@@ -654,20 +657,16 @@ Interval<CcReal>. This is done for the sake of performance since the Instant
 comparisons are more expensive than the Real comparisons. 
 
 */
-int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
+int CSP::MBool2Vec(const MBool* mb, vector<Interval<Instant> >& vec)
 {
   UBool unit(0);
   vec.clear();
-  Interval<CcReal> elem(CcReal(true,0.0),CcReal(true,0.0),true,true);
   if(!mb->IsDefined() || mb->IsEmpty() || !mb->IsValid()) return 0;
   for(int i=0; i<mb->GetNoComponents(); i++)
   {
     mb->Get(i, unit);
     if( ((CcBool)unit.constValue).GetValue())
-    {
-      IntervalInstant2IntervalCcReal(unit.timeInterval, elem);
-      vec.push_back(elem);
-    }
+      vec.push_back(unit.timeInterval);
   }
   return 0;
 }
@@ -682,9 +681,9 @@ The Extend function distinguishes between two cases:
     of SA and the domain of the variable.     
 
 */
-int CSP::Extend(int index, vector<Interval<CcReal> >& domain )
+int CSP::Extend(int index, vector<Interval<Instant> >& domain )
 {
-  vector<Interval<CcReal> > sa(count);
+  vector<Interval<Instant> > sa(count);
 
   if(SA.size() == 0)
   {
@@ -692,7 +691,6 @@ int CSP::Extend(int index, vector<Interval<CcReal> >& domain )
       sa[i].CopyFrom(nullInterval);
     for(unsigned int i=0; i<domain.size(); i++)
     {
-
       sa[index]= domain[i];
       SA.push_back(sa);
     }
@@ -721,7 +719,7 @@ only the constraints related to the newly evaluated variable instead of
 re-checking all the constraints. 
 
 */
-bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
+bool CSP::IsSupported(vector<Interval<Instant> > sa, int index)
 {
   bool debugme= false;
   bool supported=false;
@@ -762,7 +760,7 @@ bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
   return supported;
 }
 
-bool CSP::CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+bool CSP::CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2,
     vector<Supplier> constraint)
 {
   bool debugme=false;
@@ -905,9 +903,18 @@ bool CSP::Solve()
   bool debugme=false;
   int varIndex;
   Word Value;
-  vector<Interval<CcReal> > domain(0);
+  vector<Interval<Instant> > domain(0);
+  int loopCnt=0;
+  Counter::getRef("TemporalReasoningOn", false)= 0;
+  string counterPrefix= "CSP::Solve::Iteration";
+  if(debugme)
+    cerr<<"Iterations ";
   while( (varIndex= PickVariable()) != -1)
   {
+    ++loopCnt;
+    if(debugme)
+      cerr<<loopCnt<<", ";
+    Counter::getRef(counterPrefix + int2Str(loopCnt), true)++;
     qp->Request(Agenda[varIndex], Value);
     //Agenda[varIndex]=0;
     UsedAgendaVars[varIndex]= true;
@@ -915,7 +922,7 @@ bool CSP::Solve()
     if(domain.size()==0) {SA.clear(); return false;}
     if(Extend(varIndex, domain)!= 0) return false;
     if(SA.size()==0) return false;
-    if(debugme)
+    if(debugme&&0)
       Print();
   }
   return true;
@@ -929,34 +936,29 @@ of the temporal reasoning.
 void CSP::SetConsistentPeriods(
     int varIndex, Periods* periodsArg, PointAlgebraReasoner* paReasoner)
 {
-  bool debugme= false;
   Periods* consistentPeriods= periodsArg;
   consistentPeriods->Clear();
+
+  Instant tMIN(instanttype), tMAX(instanttype);
+  tMIN.ToMinimum(); tMAX.ToMaximum();
 
   unsigned int SASize= SA.size();
   if(SASize == 0)
   {
-    Instant t1(instanttype), t2(instanttype);
-    t1.ToMinimum(); t2.ToMaximum();
-    Interval<Instant> I(t1, t2, false, false);
+    Interval<Instant> I(tMIN, tMAX, false, false);
     consistentPeriods->Add(I);
     return;
   }
 
-  vector<Interval<CcReal> > sa(count);
-  double MAXDOUBLE= numeric_limits<double>::max();
-  pair<double, double> bounds(-1, MAXDOUBLE);
-  Range<CcReal> consistentPeriodsReal(0);
+  vector<Interval<Instant> > sa(count);
   vector<PARelation> PARels;
   vector<int> PAVarIndexes(0), lowerBoundIndexes(0), upperBoundIndexes(0);
-  vector<double> lowerBounds(0), upperBounds(0);
-  DateTime tenmilli(0,10, instanttype);
-  double epslon= tenmilli.ToDouble();
+  vector<Instant> lowerBounds(0), upperBounds(0);
+  DateTime epsilon(0,1010, durationtype);
   int curPAVarIndex, IAVar;
-  double lowerBound, upperBound;
-  CcReal t1(true, -1), t2(true, MAXDOUBLE);
-  Interval<CcReal> I(t1, t2, false, false);
-  Range<CcReal> p(0), unionp(0);
+  Instant lowerBound, upperBound;
+  Interval<Instant> bounds(tMIN, tMAX, false, false);
+  Range<Instant> unionp(0);
 
   for(vector<int>::iterator it= assignedVars.begin();
       it!=assignedVars.end(); ++it)
@@ -986,9 +988,7 @@ void CSP::SetConsistentPeriods(
 
   if(lowerBoundIndexes.empty() && upperBoundIndexes.empty())
   {
-    Instant t1(instanttype), t2(instanttype);
-    t1.ToMinimum(); t2.ToMaximum();
-    Interval<Instant> I(t1, t2, false, false);
+    Interval<Instant> I(tMIN, tMAX, false, false);
     consistentPeriods->Add(I);
     return;
   }
@@ -996,7 +996,7 @@ void CSP::SetConsistentPeriods(
   for(unsigned int i=0; i<SASize; i++)
   {
     sa= SA[i];
-    bounds= make_pair<double,double>(-1, MAXDOUBLE);
+    bounds.start.ToMinimum(); bounds.end.ToMaximum();
     if(!lowerBoundIndexes.empty())
     {
       //find the maximum lower bound
@@ -1004,10 +1004,9 @@ void CSP::SetConsistentPeriods(
       {
         curPAVarIndex = lowerBoundIndexes[j];
         lowerBound= (curPAVarIndex % 2)?
-            sa[(curPAVarIndex / 2)].end.GetRealval():
-            sa[(curPAVarIndex / 2)].start.GetRealval();
-        if(bounds.first < lowerBound)
-          bounds.first = lowerBound;
+            sa[(curPAVarIndex / 2)].end:
+            sa[(curPAVarIndex / 2)].start;
+        if(bounds.start < lowerBound)  bounds.start.CopyFrom(&lowerBound);
       }
     }
 
@@ -1018,42 +1017,23 @@ void CSP::SetConsistentPeriods(
       for(unsigned int j=0; j<upperBoundIndexes.size(); ++j)
       {
         curPAVarIndex = upperBoundIndexes[j];
-        if(debugme)
-          sa[(curPAVarIndex / 2)].Print(cerr);
         upperBound= (curPAVarIndex % 2)?
-            sa[(curPAVarIndex / 2)].end.GetRealval():
-            sa[(curPAVarIndex / 2)].start.GetRealval();
-        if(bounds.second > upperBound)
-          bounds.second = upperBound;
+            sa[(curPAVarIndex / 2)].end:
+            sa[(curPAVarIndex / 2)].start;
+        if(bounds.end > upperBound)  bounds.end.CopyFrom(&upperBound);
       }
     }
 
     //expand the bounds with epslon
-    if(bounds.first != -1)
-      bounds.first-= epslon;
-    if(bounds.second != MAXDOUBLE)
-      bounds.second+= epslon;
+    if(!bounds.start.IsMinimum())   bounds.start-= epsilon;
+    if(!bounds.end.IsMaximum())     bounds.end+= epsilon;
 
     //union the bounds with the consistentPeriods
-    I.start.Set(true, bounds.first);
-    I.end.Set(true, bounds.second);
-    p.Clear();    p.Add(I);
-    p.Union(consistentPeriodsReal, unionp);
-    consistentPeriodsReal.CopyFrom(&unionp);
-  }
-
-  //convert consistentPeriodsReal into time periods
-  Instant t(instanttype);
-  Interval<Instant> IT(t,t,true,true);
-  for(int i=0; i< consistentPeriodsReal.GetNoComponents(); ++i)
-  {
-    consistentPeriodsReal.Get(i, I);
-    IT.start.ToMinimum(); IT.end.ToMaximum();
-    if(I.start.GetRealval() != -1)
-      IT.start.ReadFrom(I.start.GetRealval());
-    if(I.end.GetRealval() != MAXDOUBLE)
-      IT.end.ReadFrom(I.end.GetRealval());
-    consistentPeriods->Add(IT);
+    if(bounds.IsValid())
+    {
+      consistentPeriods->Union(bounds , unionp);
+      consistentPeriods->CopyFrom(&unionp);
+    }
   }
 }
 
@@ -1067,19 +1047,52 @@ bool CSP::Solve(Periods* periodsArg, PointAlgebraReasoner* paReasoner)
   bool debugme=false;
   int varIndex;
   Word Value;
-  vector<Interval<CcReal> > domain(0);
+  vector<Interval<Instant> > domain(0);
+  int loopCnt=0;
+  string counterPrefix= "CSP::SolveTR::Iteration";
+  Counter::getRef("TemporalReasoningOn", false)= 1;
+  if(debugme)
+    cerr<<"TR Iterations ";
   while( (varIndex= PickVariable()) != -1)
   {
+    ++loopCnt;
+    if(debugme)
+      cerr<<loopCnt<<", ";
+    Counter::getRef(counterPrefix + int2Str(loopCnt), true)++;
     if(GetClosureResult() == consistent )
       SetConsistentPeriods(varIndex, periodsArg, paReasoner);
-    if(debugme)
-      if(!IsMaximumPeriods(*periodsArg)) periodsArg->Print(cerr);
+    if(debugme && 0)
+    {
+      if(!IsMaximumPeriods(*periodsArg))
+      {
+        periodsArg->Print(cerr);
+        for(int i= 0; i<periodsArg->GetNoComponents(); ++i)
+        {
+          Interval<Instant> intr;
+          periodsArg->Get(i, intr);
+          cerr<<endl<<intr.start.millisecondsToNull()<< "\t"<<
+              intr.end.millisecondsToNull();
+        }
+      }
+    }
     qp->Request(Agenda[varIndex], Value);
     UsedAgendaVars[varIndex]= true;
+    if(debugme && 0)
+      ((MBool*)Value.addr)->Print(cerr);
     MBool2Vec((MBool*)Value.addr, domain);
+    if(debugme && 0)
+    {
+      for(int i=0; i<domain.size(); ++i)
+      {
+        cerr<<endl;
+        domain[i].Print(cerr);
+      }
+    }
     if(domain.size()==0) {SA.clear(); return false;}
     if(Extend(varIndex, domain)!= 0) return false;
     if(SA.size()==0) return false;
+    if(debugme && 0)
+      Print();
   }
   return true;
 }
@@ -1102,10 +1115,7 @@ bool CSP::GetSA(unsigned int saIndex, unsigned int varIndex, Periods& res)
   res.Clear();
   if(saIndex >= SA.size() || varIndex >= SA[0].size())
     return false;
-  Instant t0(instanttype), t1(instanttype);
-  Interval<Instant> resInterval( t0, t1, false, false );
-  IntervalCcReal2IntervalInstant(SA[saIndex][varIndex], resInterval);
-  res.Add(resInterval);
+  res.Add(SA[saIndex][varIndex]);
   return true;
 }
 
@@ -1155,7 +1165,7 @@ bool CSP::GetStart(string alias, Instant& result)
   if(it== VarAliasMap.end()) return false;
 
   int index=(*it).second;
-  result.ReadFrom(SA[iterator][index].start.GetRealval());
+  result.CopyFrom(& SA[iterator][index].start);
   return true;
 }
 
@@ -1167,7 +1177,7 @@ bool CSP::GetEnd(string alias, Instant& result)
   if(it== VarAliasMap.end()) return false;
 
   int index=(*it).second;
-  result.ReadFrom(SA[iterator][index].end.GetRealval());
+  result.CopyFrom(& SA[iterator][index].end);
   return true;
 }
 
@@ -1178,8 +1188,8 @@ void CSP::Print()
   {
     for(unsigned int j=0; j<SA[i].size(); j++)
     {
-      cout<<(SA[i][j].start.GetRealval()-2972)*24*60*60<< "\t "<<
-          (SA[i][j].end.GetRealval()-2972)*24*60*60 <<" | ";
+      cout<<SA[i][j].start.millisecondsToNull()<< "\t "<<
+          SA[i][j].end.millisecondsToNull()<<" | ";
     }
     cout<<endl;
   }
@@ -1603,20 +1613,32 @@ ClosureResult ImportPAReasonerFromArgs(
     Supplier TRTable, PointAlgebraReasoner*& paReasoner)
 {
   Word value;
-  Supplier son= qp->GetSon(TRTable, 0);
+  bool debugme=false;
+  if(debugme)
+    qp->ListOfTree(TRTable, cerr);
+  Supplier son= qp->GetSon(TRTable, 0), raw;
   qp->Request(son, value);
   int PAReasonerN= static_cast<CcInt*>(value.addr)->GetValue();
+  int tblIndex=0;
   ClosureResult res= consistent;
   if(PAReasonerN != 0)
   {
     paReasoner= new PointAlgebraReasoner(PAReasonerN);
     int *Table= new int[PAReasonerN * PAReasonerN + 1];
-    Table[0]= PAReasonerN;
-    for(int i=1; i<= PAReasonerN * PAReasonerN; ++i)
+    Table[tblIndex++]= PAReasonerN;
+    for(int i=1; i<= PAReasonerN; ++i)
     {
-      son= qp->GetSon(TRTable, i);
-      qp->Request(son, value);
-      Table[i]= static_cast<CcInt*>(value.addr)->GetIntval();
+      if(debugme)
+        cerr<<endl;
+      raw= qp->GetSon(TRTable, i);
+      for(int j=0; j< PAReasonerN ; ++j)
+      {
+        son= qp->GetSon(raw, j);
+        qp->Request(son, value);
+        Table[tblIndex++]= static_cast<CcInt*>(value.addr)->GetIntval();
+        if(debugme)
+          cerr<<static_cast<CcInt*>(value.addr)->GetIntval()<<",";
+      }
     }
     paReasoner->ImportFromArray(Table);
     delete[] Table;
@@ -2253,6 +2275,102 @@ ListExpr RandomDelayTM( ListExpr typeList )
 }
 
 
+
+/*
+Type Map for ComputeClosure
+
+*/
+ListExpr ComputeClosureTM(ListExpr args)
+{
+  bool debugme= false;
+
+  string opName= "computeclosure";
+  string argstr;
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
+
+  nl->WriteToString(argstr, args);
+  if(nl->ListLength(args) != 4)
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects " +
+        int2string(4 ) + "arguments\nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr tupleExpr = nl->First(args),
+      periodsExpr    = nl->Second(args),
+      NamedPredList  = nl->Third(args),
+      ConstraintList = nl->Fourth(args);
+
+  nl->WriteToString(argstr, tupleExpr);
+  if(!IsTupleExpr(tupleExpr, true))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects "
+        "argument a list with structure (tuple ((a1 t1)...(an tn))).\n"
+        "But got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  nl->WriteToString(argstr, periodsExpr);
+  if(!IsPeriodsExpr(periodsExpr, true))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects periods.\n"
+        "But got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  nl->WriteToString(argstr, NamedPredList);
+  if(! IsSimplePredicateList(NamedPredList, true))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "aliased predicates. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  nl->WriteToString(argstr, ConstraintList);
+  if(!IsConstraintList(ConstraintList, true))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": expects a list of "
+        "temporal connectors. \nBut got '" + argstr + "'.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  vector<string> predAliases1Unsorted;
+  set<string> predAliases1, predAliases2;
+  ExtractPredAliasesFromPredList(NamedPredList, predAliases1Unsorted);
+  ExtractPredAliasesFromConstraintList(ConstraintList, predAliases2);
+  predAliases1.insert(predAliases1Unsorted.begin(), predAliases1Unsorted.end());
+  if((predAliases1.size() != predAliases2.size()) ||
+   !std::equal(predAliases1.begin(), predAliases1.end(), predAliases2.begin()))
+  {
+    ErrorReporter::ReportError("Operator "+ opName +": unknown aliases in "
+        "temporal constraints.");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr PAReasoner= ComputeClosure(ConstraintList, predAliases1Unsorted);
+  int res;
+  if(nl->IntValue(nl->First(PAReasoner)) == 0)
+    res= nl->IntValue(nl->Second(PAReasoner));
+  else
+    res= consistent;
+
+  ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+      nl->OneElemList(nl->IntAtom(res)), nl->SymbolAtom("int"));
+
+  if(debugme)
+  {
+    cout<<endl<<endl<<"Operator "+ opName +" accepted the input";
+    nl->WriteToString(argstr, result);
+    cout<<endl<<"Output is:"<<argstr;
+    cout.flush();
+  }
+  return result;
+}
+
 /*
 4.2 Value Map Functions
 
@@ -2276,11 +2394,23 @@ int CreateSTVectorVM
 template<bool extended>
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  bool debugme= false;
   Word Value;
   Supplier namedpredlist, constraintlist, filter;
   result = qp->ResultStorage( s );
   namedpredlist = args[1].addr;
   constraintlist= args[2].addr;
+
+  if(debugme)
+  {
+    Word w;
+    qp->Request(args[0].addr, w);
+    Tuple* tuple= static_cast<Tuple*>(w.addr);
+    cerr<<endl<<"Id: "<<
+        static_cast<CcInt*>(tuple->GetAttribute(0))->GetValue();
+    cerr<<", Line: "<<
+        static_cast<CcInt*>(tuple->GetAttribute(1))->GetValue();
+  }
 
   csp.Clear();
   CSPAddPredicates(namedpredlist);
@@ -2313,6 +2443,17 @@ Value Map for STPattern2 and STPatternEx2
 template<bool extended>
 int STPattern2VM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  bool debugme= false;
+  if(debugme)
+  {
+    Word w;
+    qp->Request(args[0].addr, w);
+    Tuple* tuple= static_cast<Tuple*>(w.addr);
+    cerr<<endl<<"Id: "<<
+        static_cast<CcInt*>(tuple->GetAttribute(0))->GetValue();
+    cerr<<", Line: "<<
+        static_cast<CcInt*>(tuple->GetAttribute(1))->GetValue();
+  }
   Supplier namedpredlist, constraintlist, filter, TRTable;
   result = qp->ResultStorage( s );
   namedpredlist = args[2].addr;
@@ -2622,7 +2763,7 @@ int STPatternExtendStreamVM(
 
   case REQUEST :
   {
-    Supplier stream, namedpredlist, filter;
+    Supplier stream, namedpredlist;
     localInfo= (STPExtendStreamInfo*) local.addr;
     stream= args[0].addr;
 
@@ -3156,6 +3297,24 @@ int RandomDelayVM(ArgVector args, Word& result,
   return 0;
 }
 
+
+/*
+Value Map for ComputeClosure
+
+*/
+
+int ComputeClosureVM(
+    Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Supplier TRResult= qp->GetSon(s, 4);
+  Word value;
+  qp->Request(TRResult, value);
+  int PAReasonerRes= static_cast<CcInt*>(value.addr)->GetValue();
+  result = qp->ResultStorage( s );
+  ((CcInt*)result.addr)->Set(true, PAReasonerRes);
+  return 0;
+}
+
 /*
 4.3 Operator Specifications
 
@@ -3435,6 +3594,24 @@ const string RandomDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "<text>query randomdelay(train7)</text--->"
     ") )";
 
+const string ComputeClosureSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) ( <text>tuple(x) X periods X namedFunlist X "
+  "constraintList -> int</text--->"
+  "<text>_  _ computeclosure[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator is gets the same set of arguments of stpattern2 "
+  "Predicate. It constructs the point algebra constraint network for the given "
+  "arguments, and tries to compute its closure. The result is: 0 if the network"
+  " is inconsistent, 1 if it is consistent, 2 if it is not representable by the"
+  "point algebra (i.e., does not belong to the continuous endpoint algebra)."
+  "</text--->"
+  "<text>query Trains feed "
+  "filter[fun(t: TUPLE, p: periods)"
+  "  t p computeclosure[insnow: (attr(t,Trip) atperiods p) inside msnow,"
+  "  isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0,"
+  "  isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("
+  " \"insnow\", \"isclose\",vec(\"aabb\")),"
+  "  stconstraint(\"isclose\",\"isfast\",vec(\"aabb\"))  ] = 1] count"
+  "</text--->) )";
 
 /*
 4.4 Operators
@@ -3592,6 +3769,14 @@ Operator randomdelay (
     RandomDelayTM          // type mapping
 );
 
+Operator computeClosure (
+    "computeclosure",    //name
+    ComputeClosureSpec,     //specification
+    ComputeClosureVM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    ComputeClosureTM        //type mapping
+);
+
 /*
 4.5 Algebra Declaration
 
@@ -3633,6 +3818,7 @@ The spattern and stpatternex operators are registered as lazy variables.
   stpatternextendstream2.SetUsesArgsInTypeMapping();
   stpatternexextendstream.SetUsesArgsInTypeMapping();
   stpatternexextendstream2.SetUsesArgsInTypeMapping();
+  computeClosure.SetUsesArgsInTypeMapping();
 
   AddOperator(&STP::createstvector);
   AddOperator(&STP::stpattern);
@@ -3653,6 +3839,7 @@ The spattern and stpatternex operators are registered as lazy variables.
   AddOperator(&randommbool);
   AddOperator(&passmbool);
   AddOperator(&randomdelay);
+  AddOperator(&computeClosure);
 }
 ~STPatternAlgebra() {};
 };

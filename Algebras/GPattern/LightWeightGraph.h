@@ -90,7 +90,7 @@ public:
   void Union(Component* arg);
   ostream& Print( ostream &os );
   void ExtendResStreamsTillNow(
-      vector<mset::CompressedMSet*>& resultsParts,double endtime, bool rc);
+      vector<mset::CompressedMSet*>& resultsParts,int64_t endtime, bool rc);
   void Reset();
   bool Intersects(set<int>* arg);
 };

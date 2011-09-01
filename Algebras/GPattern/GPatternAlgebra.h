@@ -65,22 +65,22 @@ extern QueryProcessor* qp;
 namespace GPattern {
 enum quantifier {exactly, atleast};
 
-struct DoubleInterval
+struct Int64Interval
 {
-  double start, end;
+  int64_t start, end;
   bool lc, rc;
-  DoubleInterval(double s, double e, bool l, bool r): start(s), 
+  Int64Interval(int64_t s, int64_t e, bool l, bool r): start(s),
      end(e), lc(l), rc(r){}
-  void Set(double s, double e, bool l, bool r){
+  void Set(int64_t s, int64_t e, bool l, bool r){
     start=s;    end=e;    lc=l;    rc=r;    }
-  bool Inside(double s, double e, bool l, bool r)
+  bool Inside(int64_t s, int64_t e, bool l, bool r)
   {
     return ((s< start && e > end) ||
     (s== start && (l || !lc) && e > end) ||
     (s< start && e == end && (r || !rc)) ||
     (s== start && (l || !lc) && e == end && (r || !rc)));
   }
-  bool Inside(DoubleInterval& arg)
+  bool Inside(Int64Interval& arg)
   {
     return ((arg.start< start && arg.end > end) ||
     (arg.start== start && (arg.lc || !lc) && arg.end > end) ||
@@ -113,12 +113,12 @@ class MSetIndex
 public:
   struct NodeLogEntry
   {
-    double starttime, endtime;
+    int64_t starttime, endtime;
     list<CompressedInMemUSet>::iterator startUnitIt, endUnitIt;
     int startUnitIndex, endUnitIndex;
     set<int> associatedEdges;
     NodeLogEntry(
-        double st, list<CompressedInMemUSet>::iterator stIt, int sUI,
+        int64_t st, list<CompressedInMemUSet>::iterator stIt, int sUI,
         set<int>& aE);
     ostream& Print(ostream& os);
   };
@@ -137,8 +137,8 @@ public:
       CompressedInMemMSet& mset, vector<pair<int, int> >& edge2Nodes);
 
 
-  bool RemoveShortNodeEntries(double d, vector<ChangeRecord>& AllChanges);
-  bool RemoveShortNodeEntries(double d, map<int,  NodeLog>::iterator nodeIt,
+  bool RemoveShortNodeEntries(int64_t dMS, vector<ChangeRecord>& AllChanges);
+  bool RemoveShortNodeEntries(int64_t dMS, map<int,  NodeLog>::iterator nodeIt,
       vector<ChangeRecord>& AllChanges);
   void DeleteNodePart(map<int,  NodeLog>::iterator& nodeIt,
       list<NodeLogEntry>::iterator nodeEntryIt,
@@ -164,12 +164,13 @@ class CheckRemoveEntry {
     int nodeId;
     vector<ChangeRecord>* AllChanges;
     MSetIndex* index;
-    double d;
+    int64_t dMS;
   public:
     static bool changed;
     void SetChanged(bool ch);
     bool GetChanged();
-    CheckRemoveEntry(int id, vector<ChangeRecord>& ch, MSetIndex* i, double _d);
+    CheckRemoveEntry(
+        int id, vector<ChangeRecord>& ch, MSetIndex* i, int64_t _dMS);
     bool operator() (MSetIndex::NodeLogEntry& logEntry);
 };
 bool CheckRemoveEntry::changed = false;
@@ -189,10 +190,10 @@ bool setCompareDesc (set<int>& i,set<int>& j);
 
 void RemoveDuplicates(list<CompressedInMemUSet>& resStream);
 
-void removeShortUnits(MBool &mbool, double d);
+void removeShortUnits(MBool &mbool, int64_t dMS);
 
 bool RemoveShortNodeMembership(CompressedInMemMSet& Accumlator,
-    vector<pair<int, int> >& edge2nodesMap, double d);
+    vector<pair<int, int> >& edge2nodesMap, int64_t dMS);
 
 ostream& PrintNodeHistory(
   map<int, pair<list<CompressedInMemUSet>::iterator, set<int> > >* nodeHistory,
@@ -201,7 +202,7 @@ ostream& PrintNodeHistory(
 bool CheckRemoveNodeMembership(
   map<int, pair<list<CompressedInMemUSet>::iterator, set<int> > >* nodeHistory,
   set<int> removedEdges, vector<pair<int, int> >& edge2nodesMap,
-  list<CompressedInMemUSet>::iterator& cur, set<int>& deltaNodes, double d);
+  list<CompressedInMemUSet>::iterator& cur, set<int>& deltaNodes, int64_t dMS);
 
 void InPlaceSetDifference(set<int>& set1, set<int>& set2);
 
@@ -222,7 +223,7 @@ bool RemoveUnitsHavingFewNodes(
 void FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
     list<CompressedInMemUSet>::iterator begin,
     list<CompressedInMemUSet>::iterator end ,
-    vector<pair<int,int> >& edge2nodesMap, double d, int n, string& qts,
+    vector<pair<int,int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
     list<CompressedMSet*>*& finalResStream, int depth);
   
 CompressedMSet* CollectResultParts(
@@ -231,7 +232,7 @@ CompressedMSet* CollectResultParts(
 void FindDynamicComponents(CompressedInMemMSet& Accumlator,
     list<CompressedInMemUSet>::iterator begin, 
     list<CompressedInMemUSet>::iterator end , 
-    vector<pair<int, int> >& edge2nodesMap, double d, int n, string& qts,
+    vector<pair<int, int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
     list<CompressedMSet*>*& FinalResultStream);
 
 bool SetIntersects(set<int> &set1, set<int> &set2);
@@ -255,7 +256,7 @@ void UpdateRemove(LWGraph* graph, list<Component*>* components,
     vector<pair<int, int> >& edge2nodesMap, int n, int& NextComponentLabel,
     set< int>& affectedComponentsLabels);
 
-void Finalize(LWGraph* graph, list<Component*>* components,double d,
+void Finalize(LWGraph* graph, list<Component*>* components, int64_t dMS,
     CompressedInMemUSet& cur,
     vector<CompressedMSet*>& ResultParts,
     list<vector<int> > *ResultStream,
@@ -265,7 +266,7 @@ void Finalize(LWGraph* graph, list<Component*>* components,double d,
 void DynamicGraphAppend(LWGraph* graph, list<Component*>* components,
     map<int, list<Component*>::iterator>& compLabelsMap,
     list<CompressedInMemUSet>::iterator cur,
-    vector<pair<int, int> >& edge2nodesMap, double d,
+    vector<pair<int, int> >& edge2nodesMap, int64_t dMS,
     int n, string& qts, int& NextComponentLabel, 
     vector<CompressedMSet*>* ResultParts,
     list<vector<int> >* ResultStream,
@@ -275,7 +276,7 @@ void GraphNodes2Edges(set<int>& subGraphNodes, set<int>& graphEdges,
     vector<pair<int, int> >& edge2Nodes, set<int>& res);
 
 bool Merge(CompressedInMemMSet *_mset, set<int> *subGraph,
-    double starttime, double endtime, bool lc, bool rc);
+    int64_t starttime, int64_t endtime, bool lc, bool rc);
 
 void SetAddRemove(set<int>& _set, set<int>& _add, set<int>& _remove);
   
@@ -287,19 +288,19 @@ CompressedMSet* EdgeMSet2NodeMSet(
 
 void ComputeAddSubSets(InMemMSet& acc,
     list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
-    unsigned int n,  double d, vector<InMemMSet>* result);
+    unsigned int n,  int64_t dMS, vector<InMemMSet>* result);
 
-bool ApplyThresholds(MSetIndex& index, int n,double d,
+bool ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
     vector<ChangeRecord>& Changes);
 
 void UpdateResult(CompressedInMemMSet* curMSet,
-    vector<pair<int,int> >& edge2nodesMap,int n,double d, string qts,
+    vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     vector<ChangeRecord>& Changes,
     list<CompressedMSet*>& resStream);
 
 void ApplyChanges(CompressedInMemMSet* msetPart,
     vector<ChangeRecord>& changesPart,
-    vector<pair<int,int> >& edge2nodesMap,int n, double d, string qts,
+    vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     list<CompressedMSet*>& resStream, list<CompressedInMemMSet*>& msetParts,
     list<vector<ChangeRecord> >& changeParts);
 /*
@@ -310,9 +311,9 @@ private:
   void GenerateAllCombinations(InMemUSet& cand, int select,
       vector< set<int> > & res);
       
-  void AddAllSubSetsToVector(InMemUSet& candidates, double startInstant,
-      double curInstant, bool lc, bool rc, 
-      int n, multimap< set<int>, DoubleInterval>& res);
+  void AddAllSubSetsToVector(InMemUSet& candidates, int64_t startInstant,
+      int64_t curInstant, bool lc, bool rc,
+      int n, multimap< set<int>, Int64Interval>& res);
 };
 
 
@@ -327,7 +328,7 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector< pair< Interval<CcReal>, MSet* > > > SA;
+  vector< vector< pair< Interval<Instant>, MSet* > > > SA;
   vector<Supplier> Agenda;
     
 /*
@@ -349,7 +350,7 @@ The iterator is used in the "start" and "end" operators to iterate over the SA
 
 */
   int iterator;
-  Interval<CcReal> nullInterval;
+  Interval<Instant> nullInterval;
     
 /*
 A list of the variable that have been consumed so far.
@@ -359,7 +360,8 @@ A list of the variable that have been consumed so far.
     
     
     GPatternSolver():count(0),iterator(-1), 
-    nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
+    nullInterval(Instant(0,0, instanttype ),
+        Instant(0,0, instanttype ), true,true)
     {}
     
     ~GPatternSolver()
@@ -458,7 +460,7 @@ fulfilled.
 Output: whether the partial assignment is consistent.
    
 */  
-  bool IsSupported(vector< pair<Interval<CcReal>, MSet* > >& sa, int index);
+  bool IsSupported(vector< pair<Interval<Instant>, MSet* > >& sa, int index);
 
 /*
 The CheckConstraint helper function. It checks whether an STVector is fulfilled 
@@ -466,7 +468,7 @@ by two lifted predicates.
 
 */
 
-  bool CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+  bool CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2,
       vector<Supplier> constraint);
 /*
 The PickVariable function. It implements the picking methodology based on the

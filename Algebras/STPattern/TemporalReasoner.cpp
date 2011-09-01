@@ -161,17 +161,28 @@ ListExpr PointAlgebraReasoner::ExportToNestedList()
 {
 /*
 Yields a nested list with the format
-(n Table[0][0],..., Table[0][n-1], Table[1][0],..., Table[n-1][n-1])
+(n (Table[0][0],..., Table[0][n-1]) (Table[1][0],..., Table[0][n-1])
+(Table[n-1][0],..., Table[n-1][n-1]))
 
 */
-  ListExpr list;
-  ListExpr last;
-  list= nl->OneElemList(nl->IntAtom(n));
-  last= list;
+  bool debugme=false;
+  ListExpr outer, lastOuter, inner, lastInner;
+
+  outer= nl->OneElemList(nl->IntAtom(n));
+  lastOuter= outer;
   for(unsigned int i=0; i< this->n; ++i)
-    for(unsigned int j=0; j<this->n; ++j)
-      last= nl->Append(last, nl->IntAtom(static_cast<int>(Table[i][j])));
-  return list;
+  {
+    inner= nl->OneElemList(nl->IntAtom(Table[i][0]));
+    lastInner= inner;
+    for(unsigned int j=1; j<this->n; ++j)
+      lastInner=
+          nl->Append(lastInner, nl->IntAtom(static_cast<int>(Table[i][j])));
+    lastOuter=
+        nl->Append(lastOuter, inner);
+  }
+  if(debugme)
+    cerr<<endl<<nl->ListLength(outer)<<nl->ToString(outer);
+  return outer;
 }
 
 bool PointAlgebraReasoner::ImportFromNestedList(ListExpr& args)

@@ -312,7 +312,7 @@ ostream& Component::Print( ostream &os )
 
 
 void Component::ExtendResStreamsTillNow(
-    vector<mset::CompressedMSet*>& resultsParts, double endtime, bool rc)
+    vector<mset::CompressedMSet*>& resultsParts, int64_t endtime, bool rc)
 {
   if(ExtendedTillLastChange) return;
   mset::CompressedUSetRef theUSet;

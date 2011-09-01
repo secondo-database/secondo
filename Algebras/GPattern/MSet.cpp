@@ -585,9 +585,9 @@ void InMemUSet::ReadFrom(USet& arg)
 void InMemUSet::WriteToUSet(USet& res)
 {
   res.constValue.Clear();
-  res.timeInterval.start.ReadFrom(starttime/day2min);
+  res.timeInterval.start.ReadFrom(starttime);
   res.timeInterval.start.SetType(instanttype);
-  res.timeInterval.end.ReadFrom(endtime/day2min);
+  res.timeInterval.end.ReadFrom(endtime);
   res.timeInterval.end.SetType(instanttype);
   res.timeInterval.lc= lc;
   res.timeInterval.rc= rc;
@@ -613,8 +613,8 @@ void InMemUSet::ReadFrom(UBool& arg, int key)
 void InMemUSet::SetTimeInterval(Interval<Instant>& arg)
 {
   assert(arg.IsValid());
-  starttime= arg.start.ToDouble() * day2min;
-  endtime= arg.end.ToDouble() * day2min;
+  starttime= arg.start.millisecondsToNull();
+  endtime= arg.end.millisecondsToNull();
   lc= arg.lc;
   rc= arg.rc;
 }
@@ -691,10 +691,10 @@ ostream& InMemUSet::Print( ostream &os )
     return os << "(USet: empty)";
   }
   Instant tmp(instanttype);
-  tmp.ReadFrom(starttime/day2min);
+  tmp.ReadFrom(starttime);
   char c= (lc)? '[' : '(';
   os<< c ; tmp.Print(os);
-  tmp.ReadFrom(endtime/day2min);
+  tmp.ReadFrom(endtime);
   os<< "\t"; tmp.Print(os);
   c= (rc)? ']' : ')';
   os << c <<  " {";
@@ -845,13 +845,13 @@ void InMemMSet::WriteToMSet(MSet& res, list<InMemUSet>::iterator begin,
 }
 
 bool InMemMSet::MergeAdd(
-    set<int>& val, double &starttime, double &endtime, bool lc, bool rc)
+    set<int>& val, int64_t &starttime, int64_t &endtime, bool lc, bool rc)
 {
   bool merged= false;
   if(!units.empty())
   {
     InMemUSet* lastElem= &units.back();
-    if( AlmostEqual(starttime, lastElem->endtime) && 
+    if( (starttime == lastElem->endtime) &&
         (lc || lastElem->rc))
     {
       merged= true;
@@ -905,8 +905,8 @@ void InMemMSet::Union (InMemMSet& arg)
   // both arguments are non-empty
   arg.it = arg.units.begin();
   it= units.begin();
-  double a= (*it).starttime, A=(*it).endtime;
-  double b= (*arg.it).starttime, B=(*arg.it).endtime;
+  int64_t a= (*it).starttime, A=(*it).endtime;
+  int64_t b= (*arg.it).starttime, B=(*arg.it).endtime;
   bool lcA= (*it).lc, rcA= (*it).rc;
   bool lcB= (*arg.it).lc, rcB= (*arg.it).rc;
   InMemMSet result;
@@ -1153,7 +1153,7 @@ bool InMemMSet::RemoveSmallUnits(const unsigned int n)
   return changed;
 }
 
-bool InMemMSet::RemoveShortPariods(const double d)
+bool InMemMSet::RemoveShortPariods(const int64_t dMS)
 {
   bool changed=false;
   if(units.size()==0) return false;
@@ -1162,7 +1162,7 @@ bool InMemMSet::RemoveShortPariods(const double d)
   while(begin != units.end())
   {
     end = GetPeriodEndUnit(begin);
-    if(((*end).endtime - (*begin).starttime) < d)
+    if(((*end).endtime - (*begin).starttime) < dMS)
     {
       tmp= end; ++tmp;
       begin= units.erase(begin, tmp);
@@ -1185,7 +1185,7 @@ ostream& InMemMSet::Print( map<int, inst> elems, ostream &os )
   return os;
   
 }
-bool InMemMSet::RemoveShortElemParts(const double d)
+bool InMemMSet::RemoveShortElemParts(const int64_t dMS)
 {
   bool debugme= false;
   
@@ -1193,7 +1193,7 @@ bool InMemMSet::RemoveShortElemParts(const double d)
   if(units.size()==0) return false;
   if(units.size()==1)
   {
-    if( ( (*units.begin()).endtime - (*units.begin()).starttime) < d)
+    if( ( (*units.begin()).endtime - (*units.begin()).starttime) < dMS)
     { 
       units.clear(); return true;
     }
@@ -1228,7 +1228,7 @@ bool InMemMSet::RemoveShortElemParts(const double d)
 IF the period length is less than d, remove all units within the period
 
 */      
-    if(((*end).endtime - (*cur).starttime) < d)
+    if(((*end).endtime - (*cur).starttime) < dMS)
     {
       ++end;
       cur= units.erase(cur, end);
@@ -1292,7 +1292,7 @@ ELSE remove short parts of elements as follows:
           int elemToRemove= *diffIt;
           elemsIt= elems.find(elemToRemove);
           assert(elemsIt != elems.end());
-          if( ((*prev).endtime - (*elemsIt).second.first) < d )
+          if( ((*prev).endtime - (*elemsIt).second.first) < dMS )
           {
             list<InMemUSet>::iterator unitToChange= (*elemsIt).second.second;
             for(; unitToChange != cur; ++unitToChange)
@@ -1326,7 +1326,7 @@ ELSE remove short parts of elements as follows:
           cerr<<(*elemsIt).first;
           cerr<<endl<<((*prev).endtime - (*elemsIt).second.first);
         }
-        if( ((*prev).endtime - (*elemsIt).second.first) < d )
+        if( ((*prev).endtime - (*elemsIt).second.first) < dMS )
         {
           list<InMemUSet>::iterator unitToChange= (*elemsIt).second.second;
           for(; unitToChange != cur; ++unitToChange)
@@ -1525,7 +1525,7 @@ InMemMSet::GetPeriodEndUnit(list<InMemUSet>::iterator begin)
     (*begin).Print(cerr);
   
   list<InMemUSet>::iterator end=begin;   
-  double totalLength= (*begin).endtime - (*begin).starttime, curLength=0;
+  int64_t totalLength= (*begin).endtime - (*begin).starttime, curLength=0;
   ++end;
   while(end != units.end())
   {
@@ -1546,7 +1546,7 @@ InMemMSet::GetPeriodStartUnit(list<InMemUSet>::iterator end)
     return end;
 
   list<InMemUSet>::iterator begin= end;   
-  double totalLength= (*end).endtime - (*end).starttime, curLength=0;
+  int64_t totalLength= (*end).endtime - (*end).starttime, curLength=0;
   --begin;
   while(begin != units.begin())
   {
@@ -1601,8 +1601,8 @@ void InMemMSet::Union (MBool& arg, int key)
   if (!GetNextTrueUnit(arg, rhsit, ubool)) return;
   rhs.ReadFrom(ubool, key);
   it= units.begin();
-  double a= (*it).starttime, A=(*it).endtime;
-  double b= rhs.starttime, B=rhs.endtime;
+  int64_t a= (*it).starttime, A=(*it).endtime;
+  int64_t b= rhs.starttime, B=rhs.endtime;
   bool lcA= (*it).lc, rcA= (*it).rc;
   bool lcB= rhs.lc, rcB= rhs.rc;
   InMemMSet result;
@@ -1851,8 +1851,8 @@ ostream& CompressedInMemUSet::Print( ostream &os )
   char l= (lc)? '[' : '(';
   char r= (rc)? ']' : ')';
   Instant i1(instanttype), i2(instanttype);
-  i1.ReadFrom(starttime/day2min);
-  i2.ReadFrom(endtime/day2min); 
+  i1.ReadFrom(starttime);
+  i2.ReadFrom(endtime);
   os<< endl<< l<< i1<< "\t"<< i2<< r<< "\tCount= "<< count;
   return os;
 }
@@ -2005,9 +2005,9 @@ void CompressedInMemMSet::WriteUSet(
     set<int>& val, CompressedInMemUSet& source, USet& res)
 {
   res.constValue.Clear();
-  res.timeInterval.start.ReadFrom(source.starttime/day2min);
+  res.timeInterval.start.ReadFrom(source.starttime);
   res.timeInterval.start.SetType(instanttype);
-  res.timeInterval.end.ReadFrom(source.endtime/day2min);
+  res.timeInterval.end.ReadFrom(source.endtime);
   res.timeInterval.end.SetType(instanttype);
   res.timeInterval.lc= source.lc;
   res.timeInterval.rc= source.rc;
@@ -2137,9 +2137,9 @@ ostream& CompressedInMemMSet::Print( ostream &os )
   {
     os<<"\n[";
     Instant i(instanttype);
-    i.ReadFrom((*it).starttime /day2min); i.Print(os);
+    i.ReadFrom((*it).starttime ); i.Print(os);
     os<<", ";
-    i.ReadFrom((*it).endtime /day2min); i.Print(os);
+    i.ReadFrom((*it).endtime ); i.Print(os);
     os<< "]";
     if((*it).added.size() != 0)
       constValue.insert((*it).added.begin(), (*it).added.end());
@@ -2279,7 +2279,7 @@ ostream& CompressedInMemMSet::Print( map<int, inst> elems, ostream &os )
   
 }
 
-bool CompressedInMemMSet::RemoveShortElemParts(const double d)
+bool CompressedInMemMSet::RemoveShortElemParts(const int64_t dMS)
 {
   bool debugme= false;
   
@@ -2287,7 +2287,7 @@ bool CompressedInMemMSet::RemoveShortElemParts(const double d)
   if(units.size()==0) return false;
   if(units.size()==1)
   {
-    if( ( (*units.begin()).endtime - (*units.begin()).starttime) < d)
+    if( ( (*units.begin()).endtime - (*units.begin()).starttime) < dMS)
     { 
       units.clear(); return true;
     }
@@ -2319,7 +2319,7 @@ bool CompressedInMemMSet::RemoveShortElemParts(const double d)
 IF the period length is less than d, remove all units within the period
 
 */      
-    if(((*end).endtime - (*cur).starttime) < d)
+    if(((*end).endtime - (*cur).starttime) < dMS)
     {
       ++end;
       cur= EraseUnits(cur, end);
@@ -2384,7 +2384,7 @@ ELSE remove short parts of elements as follows:
             cerr<< elemToRemove;
           elemsIt= elems.find(elemToRemove);
           assert(elemsIt != elems.end());
-          if( ((*cur).starttime - (*elemsIt).second.first) < d )
+          if( ((*cur).starttime - (*elemsIt).second.first) < dMS )
           {
             list<CompressedInMemUSet>::iterator unitToChange= 
               (*elemsIt).second.second;
@@ -2449,7 +2449,7 @@ ELSE remove short parts of elements as follows:
           cerr<<(*elemsIt).first;
           cerr<<endl<<((*prev).endtime - (*elemsIt).second.first);
         }
-        if( ((*prev).endtime - (*elemsIt).second.first) < d )
+        if( ((*prev).endtime - (*elemsIt).second.first) < dMS )
         {
           list<CompressedInMemUSet>::iterator unitToChange= 
             (*elemsIt).second.second;
@@ -2498,7 +2498,7 @@ list<CompressedInMemUSet>::iterator CompressedInMemMSet::GetPeriodEndUnit(
   }
   
   list<CompressedInMemUSet>::iterator end=begin;   
-  double totalLength= (*begin).endtime - (*begin).starttime, curLength=0;
+  int64_t totalLength= (*begin).endtime - (*begin).starttime, curLength=0;
   ++end;
   while(end != units.end())
   {
@@ -2533,26 +2533,26 @@ bool CompressedInMemMSet::Buffer (MBool& arg, int key)
   bool trueUnitFound= false;
   UBool ubool;
   int cur=0;
-  double starttime, endtime;
+  int64_t starttime, endtime;
   bool lc, rc;
   while(GetNextTrueUnit(arg, cur, ubool))
   {
     trueUnitFound= true;
     assert(ubool.IsValid());
-    starttime= ubool.timeInterval.start.ToDouble() * day2min;
-    endtime= ubool.timeInterval.end.ToDouble() * day2min;
+    starttime= ubool.timeInterval.start.millisecondsToNull();
+    endtime= ubool.timeInterval.end.millisecondsToNull();
     lc= ubool.timeInterval.lc;
     rc= ubool.timeInterval.rc;
     Event entrance(key,  (lc)? closedstart: openstart);
     Event theleave(key, (rc)? closedend: openend);
-    buffer.insert(pair<double, Event>(starttime, entrance));
-    buffer.insert(pair<double, Event>(endtime, theleave));
+    buffer.insert(pair<int64_t, Event>(starttime, entrance));
+    buffer.insert(pair<int64_t, Event>(endtime, theleave));
     ++cur;
   }
   return trueUnitFound;
 }
 
-bool CompressedInMemMSet::Buffer (MBool& arg, int key, double d)
+bool CompressedInMemMSet::Buffer (MBool& arg, int key, int64_t dMS)
 {
   if(arg.GetNoComponents()==0)
     return false; 
@@ -2560,35 +2560,35 @@ bool CompressedInMemMSet::Buffer (MBool& arg, int key, double d)
   bool longUnitFound= false;
   UBool ubool;
   int cur=0;
-  double starttime, endtime;
+  int64_t starttime, endtime;
   bool lc, rc;
   while(GetNextTrueUnit(arg, cur, ubool))
   {
     assert(ubool.IsValid());
-    starttime= ubool.timeInterval.start.ToDouble() * day2min;
-    endtime= ubool.timeInterval.end.ToDouble() * day2min;
+    starttime= ubool.timeInterval.start.millisecondsToNull();
+    endtime= ubool.timeInterval.end.millisecondsToNull();
     ++cur;
-    if(endtime - starttime < d) continue;
+    if(endtime - starttime < dMS) continue;
     lc= ubool.timeInterval.lc;
     rc= ubool.timeInterval.rc;
     Event entrance(key,  (lc)? closedstart: openstart);
     Event theleave(key, (rc)? closedend: openend);
-    buffer.insert(pair<double, Event>(starttime, entrance));
-    buffer.insert(pair<double, Event>(endtime, theleave));
+    buffer.insert(pair<int64_t, Event>(starttime, entrance));
+    buffer.insert(pair<int64_t, Event>(endtime, theleave));
     longUnitFound= true;
   }
   return longUnitFound;
 }
 
 void CompressedInMemMSet::ClassifyEvents(
-    pair< multimap<double, Event>::iterator, 
-    multimap<double, Event>::iterator >& events, 
-    map<EventType, vector<multimap<double, Event>::iterator> >& eventClasses)
+    pair< multimap<int64_t, Event>::iterator,
+    multimap<int64_t, Event>::iterator >& events,
+    map<EventType, vector<multimap<int64_t, Event>::iterator> >& eventClasses)
 {
   eventClasses[openstart].clear();  eventClasses[closedstart].clear();
   eventClasses[openend].clear();  eventClasses[closedend].clear();
   if(events.first == events.second) return;
-  for(multimap<double, Event>::iterator k= events.first; 
+  for(multimap<int64_t, Event>::iterator k= events.first;
     k != events.second; ++k)
   {
     if((*k).second.type == openstart)
@@ -2605,7 +2605,7 @@ void CompressedInMemMSet::ClassifyEvents(
 }
 
 void CompressedInMemMSet::AddUnit(
-    double starttime, double endtime, bool lc, bool rc, 
+    int64_t starttime, int64_t endtime, bool lc, bool rc,
     set<int>& elemsToAdd, set<int>& elemsToRemove, int elemsCount)
 {
   bool debugme= false;
@@ -2620,8 +2620,8 @@ void CompressedInMemMSet::AddUnit(
   {
     char l= (unit.lc)? '[' : '(', r = (unit.rc)? ']' : ')';
     Instant i1(instanttype),i2(instanttype);
-    i1.ReadFrom(unit.starttime/day2min);
-    i2.ReadFrom(unit.endtime/day2min);
+    i1.ReadFrom(unit.starttime);
+    i2.ReadFrom(unit.endtime);
     cerr<<"\nAdding unit "<< l ; i1.Print(cerr); cerr<<", ";
     i2.Print(cerr); cerr<<r<< "  count="<< unit.count;
   }
@@ -2635,7 +2635,7 @@ void CompressedInMemMSet::AddUnit(
 }
 
 void CompressedInMemMSet::AddUnit( set<int>& constValue,
-    double starttime, double endtime, bool lc, bool rc)
+    int64_t starttime, int64_t endtime, bool lc, bool rc)
 {
   bool debugme= false;
   set<int>* finalSet= GetFinalSet();
@@ -2666,8 +2666,8 @@ void CompressedInMemMSet::AddUnit( set<int>& constValue,
   {
     char l= (unit.lc)? '[' : '(', r = (unit.rc)? ']' : ')';
     Instant i1(instanttype),i2(instanttype);
-    i1.ReadFrom(unit.starttime/day2min);
-    i2.ReadFrom(unit.endtime/day2min);
+    i1.ReadFrom(unit.starttime);
+    i2.ReadFrom(unit.endtime);
     cerr<<"\nAdding unit "<< l ; i1.Print(cerr); cerr<<", ";
     i2.Print(cerr); cerr<<r<< "  count="<< unit.count;
   }
@@ -2683,15 +2683,15 @@ void CompressedInMemMSet::AddUnit( set<int>& constValue,
       (equal(lastUnitValue.begin(), lastUnitValue.end(), constValue.begin())));
 }
 
-bool CompressedInMemMSet::MergeAdd(set<int>& val, double &starttime, 
-    double &endtime, bool lc, bool rc)
+bool CompressedInMemMSet::MergeAdd(set<int>& val, int64_t &starttime,
+    int64_t &endtime, bool lc, bool rc)
 {
   bool merged= false;
   if(!units.empty())
   {
     set<int>* finalSet= GetFinalSet();
     CompressedInMemUSet* lastUSet= &units.back();
-    if( AlmostEqual(starttime, lastUSet->endtime) && 
+    if( (starttime == lastUSet->endtime) &&
         (lc || lastUSet->rc))
     {
       merged= true;
@@ -2714,13 +2714,13 @@ void CompressedInMemMSet::ConstructFromBuffer()
   units.clear();
   if(this->buffer.begin() == this->buffer.end()) return;
   
-  multimap<double, Event>::iterator cur=this->buffer.begin();
-  pair< multimap<double, Event>::iterator, 
-    multimap<double, Event>::iterator > events;
-  map<EventType, vector<multimap<double, Event>::iterator> > eventClasses;
-  vector<multimap<double, Event>::iterator >::iterator i;
-  double starttime; bool lc;
-  double curtime;
+  multimap<int64_t, Event>::iterator cur=this->buffer.begin();
+  pair< multimap<int64_t, Event>::iterator,
+    multimap<int64_t, Event>::iterator > events;
+  map<EventType, vector<multimap<int64_t, Event>::iterator> > eventClasses;
+  vector<multimap<int64_t, Event>::iterator >::iterator i;
+  int64_t starttime; bool lc;
+  int64_t curtime;
   set<int> elemsToAdd, elemsToRemove;
   int curElemsCount=0;
   
@@ -2860,7 +2860,7 @@ A pre-condition for this function is that the InMemMSet has no temporal gaps
   ++curUnitIt;
   while(curUnitIt != this->units.end())
   {
-    if( !AlmostEqual((*prevUnitIt).endtime, (*curUnitIt).starttime))
+    if( (*prevUnitIt).endtime !=  (*curUnitIt).starttime)
     {
       bool MSet_Has_No_Temporal_Gaps= false;
       assert(MSet_Has_No_Temporal_Gaps);
@@ -4261,7 +4261,7 @@ ostream& CompressedMSet::Print( ostream &os )
 }
 
 void CompressedMSet::AddUnit( set<int>& constValue,
-    double starttime, double endtime, bool lc, bool rc)
+    int64_t starttime, int64_t endtime, bool lc, bool rc)
 {
   bool debugme= false;
   set<int>* finalSet= GetFinalSet();
@@ -4323,7 +4323,7 @@ void CompressedMSet::AddUnit( set<int>& constValue,
 }
 
 void CompressedMSet::AddUnit( set<int>& added, set<int>& removed,
-    double starttime, double endtime, bool lc, bool rc)
+    int64_t starttime, int64_t endtime, bool lc, bool rc)
 {
   bool debugme= false;
   CompressedUSetRef unit;
@@ -4382,8 +4382,8 @@ void CompressedMSet::AddUnit( set<int>& added, set<int>& removed,
   }
 }
 
-bool CompressedMSet::MergeAdd(set<int>& val, double &starttime, 
-    double &endtime, bool lc, bool rc)
+bool CompressedMSet::MergeAdd(set<int>& val, int64_t &starttime,
+    int64_t &endtime, bool lc, bool rc)
 {
   bool merged= false;
   if(this->units.Size() != 0)
@@ -4410,7 +4410,7 @@ bool CompressedMSet::MergeAdd(set<int>& val, double &starttime,
   return merged;
 }
 
-double CompressedMSet::DurationLength()
+int64_t CompressedMSet::DurationLength()
 {
   if(this->units.Size() == 0) return 0;
   

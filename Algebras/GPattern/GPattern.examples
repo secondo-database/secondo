@@ -43,8 +43,26 @@ Example  : query crosspatternCase4 feed  crosspattern[.IDa, .IDb, passmbool(.Pre
 Result   : file
 Remark   : TestCase4: Add short node membership in the input
 
- 
+Operator : crosspattern
+Number   : 5
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query crosspatternCase5 feed crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 1800000), 5, cc] transformstream addcounter[Cnt,1]  consume;
+Result   : ((rel(tuple((elem mset)(Cnt int))))())
+Remark   : TestCase5: NewlyAdded -> RemoveNow
 
+Operator : crosspattern
+Number   : 6
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query crosspatternCase6 feed  crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 1800000), 5, cc]  transformstream  addcounter[Cnt,1]  consume;
+Result   : file
+Remark   : TestCase5: NewlyAdded -> SplitFromExistingComponent
+ 
+Operator : crosspattern
+Number   : 7
+Signature: stream(tuple) X tuple->int X tuple->int X tuple->mbool X duration X int X {cc, clique} -> stream(mset)
+Example  : query crosspatternCase6 feed  crosspattern[.IDa, .IDb, passmbool(.Pred), create_duration(0, 1800000), 4, cc]  transformstream  addcounter[Cnt,1]  consume;
+Result   : file
+Remark   : TestCase5: AddedEdges -> SplitFromExistingComponent
 
 
 Operator : emptymset

@@ -36,3 +36,4 @@ operator start alias START pattern op(_)
 operator randommbool alias RandomMBool pattern op(_)
 operator passmbool alias PassMBool pattern op(_)
 operator randomdelay alias RANDOMDELAY pattern op(_,_)
+operator computeclosure alias COMPUTECLOSURE pattern _ _ op[funlist;list]

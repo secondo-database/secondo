@@ -214,7 +214,7 @@ Output: fulfilled or not.
 
 */  
 
-  bool ApplyVector(Interval<CcReal>& p1, Interval<CcReal>& p2);
+  bool ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2);
 
 /*
 The ApplySimple function. Checks whether a simple temporal connector is 
@@ -226,7 +226,7 @@ Output: fulfilled or not.
 
 */  
 
-  bool ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+  bool ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2,
       int simple);
 
 /*
@@ -296,13 +296,13 @@ The MBool2Vec helper function. It constructs a vector from the true units in the
 MBool argument.
  
 */  
-  int MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec);
+  int MBool2Vec(const MBool* mb, vector<Interval<Instant> >& vec);
 
 /* 
 The Extend function as in the paper.  
     
 */  
-  int Extend(int index, vector<Interval<CcReal> >& domain );
+  int Extend(int index, vector<Interval<Instant> >& domain );
     
 /*
 The IsSupported function.
@@ -312,7 +312,7 @@ fulfilled.
 Output: whether the partial assignment is consistent.
    
 */  
-  bool IsSupported(vector<Interval<CcReal> > sa, int index);
+  bool IsSupported(vector<Interval<Instant> > sa, int index);
 
 /*
 The CheckConstraint helper function. It checks whether an STVector is fulfilled 
@@ -320,7 +320,7 @@ by two lifted predicates.
 
 */
 
-  bool CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+  bool CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2,
       vector<Supplier> constraint);
 /*
 The PickVariable function. It implements the picking methodology based on the
@@ -343,7 +343,7 @@ public:
 The list of supported assignments
 
 */  
-  vector< vector<Interval<CcReal> > > SA;
+  vector< vector<Interval<Instant> > > SA;
   vector<Supplier> Agenda;
   vector<bool> UsedAgendaVars;
   
@@ -365,7 +365,7 @@ The iterator is used in the "start" and "end" operators to iterate over the SA
 
 */
   int iterator;
-  Interval<CcReal> nullInterval;
+  Interval<Instant> nullInterval;
   
 /*
 A list of the variable that have been consumed so far.

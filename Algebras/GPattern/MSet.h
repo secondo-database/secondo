@@ -84,15 +84,6 @@ using namespace std;
 
 namespace mset{
 
-/*
-For efficiency, we cast the datetime objects into double and process the 
-doubles instead. Since this casting yields the value of the instant in days, we 
-define the following constant to convert the days to minutes so that to avoid 
-numerical problems of very small fractions
-
-*/
-const double day2min= 1440;
-
 class Helpers
 {
 public:  
@@ -474,7 +465,8 @@ public:
   {
     ReadFrom(arg);
   }
-  InMemUSet(const set<int>& s, double start, double end, bool left, bool right):
+  InMemUSet(
+      const set<int>& s, int64_t start, int64_t end, bool left, bool right):
     starttime(start), endtime(end), lc(left), rc(right),
     constValue(s.begin(), s.end()) {}
 
@@ -510,7 +502,7 @@ public:
 
   void CopyFrom(InMemUSet& arg);
 
-  double starttime, endtime;
+  int64_t starttime, endtime;
   bool lc, rc;
   set<int> constValue;
   set<int>::iterator it;
@@ -544,8 +536,8 @@ public:
   void WriteToMSet(MSet& res, list<InMemUSet>::iterator begin, 
       list<InMemUSet>::iterator end);
 
-  bool MergeAdd(set<int>& val, double &starttime, 
-      double &endtime, bool lc, bool rc);
+  bool MergeAdd(set<int>& val, int64_t &starttime,
+      int64_t &endtime, bool lc, bool rc);
   
   ostream& Print( ostream &os );
   
@@ -553,12 +545,12 @@ public:
 
   bool RemoveSmallUnits(const unsigned int n);
   
-  bool RemoveShortPariods(const double d);
+  bool RemoveShortPariods(const int64_t dMS);
  
-  typedef pair<double, list<InMemUSet>::iterator > inst;
+  typedef pair<int64_t, list<InMemUSet>::iterator > inst;
   ostream& Print( map<int, inst> elems, ostream &os );
   
-  bool RemoveShortElemParts(const double d);
+  bool RemoveShortElemParts(const int64_t dMS);
   
   list<InMemUSet>::iterator GetPeriodEndUnit(list<InMemUSet>::iterator begin);
 
@@ -586,7 +578,7 @@ public:
   
   ostream& Print( ostream &os );
   
-  double starttime, endtime;
+  int64_t starttime, endtime;
   bool lc, rc;
   set<int> added;
   set<int> removed;
@@ -661,10 +653,10 @@ public:
   
   bool RemoveSmallUnits(const unsigned int n);
   
-  typedef pair<double, list<CompressedInMemUSet>::iterator > inst;
+  typedef pair<int64_t, list<CompressedInMemUSet>::iterator > inst;
   ostream& Print( map<int, inst> elems, ostream &os );
   
-  bool RemoveShortElemParts(const double d);
+  bool RemoveShortElemParts(const int64_t dMS);
   
   list<CompressedInMemUSet>::iterator GetPeriodEndUnit(
       list<CompressedInMemUSet>::iterator begin);
@@ -672,20 +664,20 @@ public:
   bool GetNextTrueUnit(MBool& mbool, int& pos, UBool& unit);
   
   bool Buffer (MBool& arg, int key);
-  bool Buffer (MBool& arg, int key, double duration);
+  bool Buffer (MBool& arg, int key, int64_t duration);
   
-  void ClassifyEvents(pair< multimap<double, Event>::iterator, 
-      multimap<double, Event>::iterator >& events, 
-      map<EventType, vector<multimap<double, Event>::iterator> >& eventClasses);
+  void ClassifyEvents(pair< multimap<int64_t, Event>::iterator,
+     multimap<int64_t, Event>::iterator >& events,
+     map<EventType, vector<multimap<int64_t, Event>::iterator> >& eventClasses);
   
-  void AddUnit(double starttime, double endtime, bool lc, bool rc, 
+  void AddUnit(int64_t starttime, int64_t endtime, bool lc, bool rc,
       set<int>& elemsToAdd, set<int>& elemsToRemove, int elemsCount);
   
   void AddUnit( set<int>& constValue,
-      double starttime, double endtime, bool lc, bool rc);
+      int64_t starttime, int64_t endtime, bool lc, bool rc);
   
-  bool MergeAdd(set<int>& val, double &starttime, 
-      double &endtime, bool lc, bool rc);
+  bool MergeAdd(set<int>& val, int64_t &starttime,
+      int64_t &endtime, bool lc, bool rc);
    
   void ConstructFromBuffer();
   
@@ -696,7 +688,7 @@ that the representation is minimal.
 */
   void MakeMinimal();
 
-  multimap<double, Event> buffer;
+  multimap<int64_t, Event> buffer;
   list<CompressedInMemUSet> units;
   list<CompressedInMemUSet>::iterator it;
 };
@@ -715,7 +707,7 @@ public:
   int removedend;
   int count;
   bool isdefined;
-  double starttime, endtime;
+  int64_t starttime, endtime;
   bool lc, rc;
 };
 
@@ -752,15 +744,15 @@ public:
   ostream& Print( ostream &os );
   
   void AddUnit( set<int>& constValue,
-      double starttime, double endtime, bool lc, bool rc);
+      int64_t starttime, int64_t endtime, bool lc, bool rc);
   
   void AddUnit( set<int>& added, set<int>& removed,
-      double starttime, double endtime, bool lc, bool rc);
+      int64_t starttime, int64_t endtime, bool lc, bool rc);
   
-  bool MergeAdd(set<int>& val, double &starttime, 
-      double &endtime, bool lc, bool rc);
+  bool MergeAdd(set<int>& val, int64_t &starttime,
+      int64_t &endtime, bool lc, bool rc);
 
-  double DurationLength();
+  int64_t DurationLength();
   
   bool Concat(CompressedMSet* arg);
 
