@@ -5374,6 +5374,98 @@ void IndoorNav::GenerateIP2(int num)
 }
 
 /*
+generate an indoor location only in Office Room
+
+*/
+void IndoorNav::GenerateIP3(int num)
+{
+  int no_rooms = rel1->GetNoTuples();
+
+//  struct timeval tval;
+//  struct timezone tzone;
+//  gettimeofday(&tval, &tzone);
+//  srand48(tval.tv_sec);//second 
+//    srand48(tval.tv_usec);//Microseconds
+
+  const double TM_EPSILON = 0.001;
+
+  for(int i = 1;i <= num;){
+    unsigned int room_oid; 
+
+    room_oid = GetRandom() % no_rooms + 1;
+
+    Tuple* room_tuple = rel1->GetTuple(room_oid, false);
+    string type = ((CcString*)room_tuple->GetAttribute(I_Type))->GetValue();
+    if(GetRoomEnum(type) != OR){
+        room_tuple->DeleteIfAllowed();
+        continue; 
+    }
+
+    GRoom* groom = (GRoom*)room_tuple->GetAttribute(I_Room);
+    Region* reg = new Region(0);
+    groom->GetRegion(*reg); 
+
+    ////////////////check complexity//////////////////////
+    /////////we ignore the complex region here//////////////////////
+    /////because it needs to build rtree and btree//////////////////
+    ////////a lot of somethin sdb files, bdb SMI open too many files/////////
+    CompTriangle* ct = new CompTriangle(reg);
+    int complex_reg = ct->ComplexRegion(); 
+    delete ct; 
+    if(complex_reg == 1){
+      delete reg;
+      room_tuple->DeleteIfAllowed();
+      continue; 
+    }
+    //////////////////////////////////////
+
+    BBox<2> bbox = reg->BoundingBox();
+    int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
+    int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
+
+    Point p1;
+    Point p2;
+    bool inside = false;
+    int count = 1;
+    while(inside == false && count <= 100){
+
+       int x = (GetRandom() + 1)% (xx*100);
+       int y = (GetRandom() + 1)% (yy*100);
+
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+
+        if(coord_x < TM_EPSILON) coord_x = 0.0;
+        if(coord_y < TM_EPSILON) coord_y = 0.0;
+
+        p1.Set(coord_x, coord_y); //set back to relative position
+        //lower the precision
+        Modify_Point_3(p1);
+
+        Coord x_cord = p1.GetX() + bbox.MinD(0);
+        Coord y_cord = p1.GetY() + bbox.MinD(1);
+        p2.Set(x_cord, y_cord); //absolute position 
+
+        inside = p2.Inside(*reg);
+        count++;
+      }
+      if(inside){
+        float h = groom->GetLowHeight();////////////always on the lowest level 
+        Loc loc(p1.GetX(), p1.GetY());
+        GenLoc genl(room_oid, loc);
+        Point3D q(true, p2.GetX(), p2.GetY(), h);
+        genloc_list.push_back(genl);
+        p3d_list.push_back(q); 
+        i++;
+      }
+
+    delete reg; 
+    room_tuple->DeleteIfAllowed(); 
+  }
+
+}
+
+/*
 find the height of the point in a staircase. at which footstep
 
 */
@@ -5864,7 +5956,8 @@ void IndoorNav::GenerateMO3_Start(IndoorGraph* ig, BTree* btree,
                     Instant& start_time, int build_id, int entrance_index,
                             MPoint3D* mp3d, GenMO* genmo, Periods* peri)
 {
-  GenerateIP1(1);
+//  GenerateIP1(1);
+  GenerateIP3(1);
 
   //////////////////get the building entrance position/////////////////
   vector<GenLoc> doorloc_list;
@@ -6016,8 +6109,8 @@ void IndoorNav::GenerateMO3_End(IndoorGraph* ig, BTree* btree,
                     Instant& start_time, int build_id, int entrance_index,
                             MPoint3D* mp3d, GenMO* genmo, Periods* peri)
 {
-  GenerateIP1(1);
-
+//  GenerateIP1(1);
+  GenerateIP3(1);
   //////////////////get the building entrance position/////////////////
   vector<GenLoc> doorloc_list;
   vector<int> door_tid_list;
@@ -7434,8 +7527,8 @@ void IndoorNav::GenerateMO3_New_Start(IndoorGraph* ig, BTree* btree,
                             unsigned int num_elev)
 {
 
-  GenerateIP1(1); 
-
+//  GenerateIP1(1); 
+  GenerateIP3(1); 
   //////////////////get the building entrance position///////////////////////
   vector<GenLoc> doorloc_list;
   vector<int> door_tid_list;
@@ -7591,8 +7684,8 @@ void IndoorNav::GenerateMO3_New_End(IndoorGraph* ig, BTree* btree,
                     MPoint3D* mp3d, GenMO* genmo, Periods* peri,
                             unsigned int num_elev)
 {
-  GenerateIP1(1); 
-
+//  GenerateIP1(1);
+  GenerateIP3(1);
   //////////////////get the building entrance position///////////////////////
   vector<GenLoc> doorloc_list;
   vector<int> door_tid_list;
@@ -9468,6 +9561,7 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
   Relation* tri_rel = NULL;
   int oid1 = 0;
   if(complex_reg == 1){ ///complex region, we build dual graph and visual graph
+//      cout<<"complex region"<<endl;
       GetSecondoObj(r, obj_name); 
       assert(obj_name.size() == 3);
       SecondoCatalog* ctlg = SecondoSystem::GetCatalog();

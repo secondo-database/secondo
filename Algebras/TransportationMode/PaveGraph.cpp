@@ -4290,12 +4290,14 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
   if(oid1 == oid2){/////////////start and end point are located on the same tri
       res->StartBulkLoad();
       /////////////////////////////////////////////////////
-      HalfSegment hs;
-      hs.Set(true, loc1, loc2);
-      hs.attr.edgeno = 0;
-      *res += hs;
-      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-      *res += hs;
+      if(!AlmostEqual(loc1, loc2)){/////////two locations are equal 
+        HalfSegment hs;
+        hs.Set(true, loc1, loc2);
+        hs.attr.edgeno = 0;
+        *res += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *res += hs;
+      }
       /////////////////////////////////////////////////////
       res->EndBulkLoad(); 
 //    double len = res->Length(); 
@@ -4937,9 +4939,8 @@ void Walk_SP::PaveLocToGP(Network* n)
 //      cout<<"rid "<<route_id_list[i]<<endl; 
 
 //    cout<<"oid "<<oid<<" rid "<<rid<<endl;
-//    PaveLocToGPoint(loc, n, route_id_list);
 
-    PaveLocToGPoint2(loc, n, route_id_list);//more robustness
+    PaveLocToGPoint(loc, n, route_id_list);//more robustness
 
     tuple1->DeleteIfAllowed(); 
 
@@ -4972,53 +4973,12 @@ struct MyPoint_Id:public MyPoint{
     }
 };
 
-void Walk_SP::PaveLocToGPoint(Point* loc, Network* n, 
-                              vector<int> route_id_list)
-{
-  vector<MyPoint_Id> mp_list; 
-  for(unsigned int i = 0;i < route_id_list.size();i++){
-    int rid = route_id_list[i];
-    Tuple* route_tuple = n->GetRoute(rid);
-    SimpleLine* l = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE);
-//    cout<<"l : "<<l->Length()<<endl; 
-
-    for(int j = 0;j < l->Size();j++){
-      HalfSegment hs;
-      l->Get(j, hs);
-      if(!hs.IsLeftDomPoint())continue; 
-
-      SpacePartition* sp = new SpacePartition();
-      Point res; 
-      double dist = sp->GetClosestPoint(hs, *loc, res); 
-      delete sp;
-      MyPoint_Id mp(res, dist, rid); 
-      mp_list.push_back(mp); 
-    }
-    route_tuple->DeleteIfAllowed(); 
-  }
-  assert(mp_list.size() > 0); 
-  sort(mp_list.begin(), mp_list.end());
-
-//  cout<<"rid "<<mp_list[0].id<<" neighbor "<<mp_list[0].loc<<endl;
-
-  Tuple* route_tuple = n->GetRoute(mp_list[0].id); 
-  SimpleLine* sl = (SimpleLine*)route_tuple->GetAttribute(ROUTE_CURVE); 
-  bool s = 
-      ((CcBool*)route_tuple->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
-  double pos;
-  assert(sl->AtPoint(mp_list[0].loc, s, pos)); 
-  GPoint gp(true, n->GetId(), mp_list[0].id, pos);
-  route_tuple->DeleteIfAllowed();
-  p_list.push_back(mp_list[0].loc); 
-  gp_list.push_back(gp);
-
-}
 
 /*
-more robustness 
+pavement location to gpoint 
 
 */
-bool Walk_SP::PaveLocToGPoint2(Point* loc, Network* n, 
+bool Walk_SP::PaveLocToGPoint(Point* loc, Network* n, 
                               vector<int> route_id_list)
 {
   vector<MyPoint_Id> mp_list; 
@@ -5053,6 +5013,8 @@ bool Walk_SP::PaveLocToGPoint2(Point* loc, Network* n,
       ((CcBool*)route_tuple->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
   double pos;
   bool ok = sl->AtPoint(mp_list[0].loc, s, pos);
+  ////////////MyAtPoint()////////////////
+  
   if(ok){
     GPoint gp(true, n->GetId(), mp_list[0].id, pos);
     route_tuple->DeleteIfAllowed();
@@ -9210,6 +9172,8 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
 
   int reg_id = 1; 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
+//  for(int i = 1;i <= 50;i++){
+
     Tuple* poly_tuple = rel1->GetTuple(i, false); 
     int poly_id = ((CcInt*)poly_tuple->GetAttribute(attr1))->GetIntval();
     Region* poly = (Region*)poly_tuple->GetAttribute(attr2); 
@@ -9226,7 +9190,6 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
 //    cout<<ct->triangles.size()<<endl; 
 
     vector<Rectangle<2> > rect_box_list; 
-
 
     for(unsigned int j = 0;j < ct->triangles.size();j++){
       if(ct->triangles[j].Area() > mini_tri_area && 
@@ -9300,7 +9263,6 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
                     maxi[1] = rect_box.MaxD(1) - tran_y; 
                     Rectangle<2>* res_box = new Rectangle<2>(true, mini, maxi);
 
-
                     if(RegContainRect(poly, rect_box))
                         rect_box_list.push_back(res_box); 
 
@@ -9310,6 +9272,7 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
             delete r;
           }
       }
+
     }
     delete ct; 
     poly_tuple->DeleteIfAllowed(); 
@@ -9323,10 +9286,64 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
           if(bbox1.Distance(bbox2) < mini_dist_build) break; 
         }
         if(k2 == rect_box_list.size()){
-          reg_id_list.push_back(reg_id);
-          rect_list.push_back(bbox1);
-          poly_id_list.push_back(poly_id); 
-          reg_id++;
+
+/*            reg_id_list.push_back(reg_id);
+            rect_list.push_back(bbox1);
+            poly_id_list.push_back(poly_id); 
+            reg_id++;*/
+
+//          if(bbox1.Area() < 4000.0 || bbox1.Area() > 8500.0){
+          if(bbox1.Area() < 4000.0){/////we do not have the airport now. 2011.8
+            reg_id_list.push_back(reg_id);
+            rect_list.push_back(bbox1);
+            poly_id_list.push_back(poly_id); 
+            reg_id++;
+          }else{//set this value considering airport
+            /////////decompose the large rectangle to have more ////////////
+            /////////keep large region for airport ///////////////////
+            float w = bbox1.MaxD(0) - bbox1.MinD(0);
+            float h = bbox1.MaxD(1) - bbox1.MinD(1);
+            int row = w/length_limit;
+            int col = h/length_limit;
+
+            double x_min = bbox1.MinD(0);
+//            double x_max = bbox1.MaxD(0);
+            double y_min = bbox1.MinD(1);
+//            double y_max = bbox1.MaxD(1);
+            ///////35 x 30 ///////////////////
+            double x = 35.0;
+            double y = 30.0;
+//            cout<<"row "<<row<<" col "<<col<<endl;
+            if(row == 0 || col == 0){
+                reg_id_list.push_back(reg_id);
+                rect_list.push_back(bbox1);
+                poly_id_list.push_back(poly_id); 
+                reg_id++;
+            }else{
+
+              for(int index1 = 0;index1 < row;index1++){
+                double x1 = x_min + index1*length_limit;
+                double x2 = x1 + x;
+                for(int index2 = 0;index2 < col;index2++){
+                  double y1 = y_min + index2*length_limit;
+                  double y2 = y1 + y;
+
+                  double min[2], max[2];
+                  min[0] = x1; max[0] = x2;
+                  min[1] = y1; max[1] = y2;
+                  Rectangle<2> temp_box(true, min, max);
+
+                  if(bbox1.Contains(temp_box)){
+                    reg_id_list.push_back(reg_id);
+                    rect_list.push_back(temp_box);
+                    poly_id_list.push_back(poly_id); 
+                    reg_id++;
+                  }
+                }
+              }/////end for 
+            }///end else
+
+          }
         }
       }
   }
@@ -9400,6 +9417,7 @@ load the pointers to all types of buildings
 */
 void MaxRect::OpenBuilding()
 {
+
   for(unsigned int i = 0;i < ARR_SIZE(str_build_type);i++){
     if(i == 0){
       build_pointer.push_back(NULL);
@@ -9432,6 +9450,7 @@ void MaxRect::OpenBuilding()
               continue;
             }
             Building* building = (Building*)xValue.addr;
+
             if(building->GetType() == i){
               build_pointer.push_back(building);
               found = true;
@@ -9535,10 +9554,11 @@ void MaxRect::PathToBuilding(Space* gl_sp)
   OpenBuilding();
   OpenIndoorGraph();
 
-  for(unsigned int i = 0;i < build_pointer.size();i++){
-    if(build_pointer[i] != NULL)cout<<GetBuildingStr(i)<<endl;
-    if(igraph_pointer[i] != NULL)cout<<GetBuildingStr(i)<<endl;
-  }
+//   for(unsigned int i = 0;i < build_pointer.size();i++){
+//     if(build_pointer[i] != NULL)cout<<GetBuildingStr(i)<<endl;
+//     if(igraph_pointer[i] != NULL)cout<<GetBuildingStr(i)<<endl;
+//   }
+
  ////////////////////////////////////////////////////////////////////
 
   /////for each original polygon, it collects all rectangles inside /////
@@ -10252,16 +10272,18 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
 
   /////////////////these buildings can be close to each other//////////////
   SetCinema(build_rect_list, 8, bbox);//maximum 8 cinemas 
-  SetHotel(build_rect_list, 32, bbox);//maximum 32 hotels
-  SetShopMall(build_rect_list, 48, bbox);//maximum 48 shopping malls
-  SetOffice24(build_rect_list, 200);//maximum 200 office24 
-  SetOffice38(build_rect_list, 200);//maximum 200 office38
+  SetHotel(build_rect_list, 40, bbox);//maximum 40 hotels
+  SetShopMall(build_rect_list, 60, bbox);//maximum 60 shopping malls
+//   SetOffice24(build_rect_list, 200);//maximum 200 office24 
+//   SetOffice38(build_rect_list, 200);//maximum 200 office38
 
+  SetOffice24(build_rect_list, 500);//maximum 500 office24 
+  SetOffice38(build_rect_list, 500);//maximum 500 office38
 
   ////////////can not be close to the above three/////////////////////////
   /////////////but may be close to school or houses, apartments//////////
-  SetHospital(build_rect_list, 20);//maximum 20 hospitals
-
+//  SetHospital(build_rect_list, 20);//maximum 20 hospitals
+  SetHospital(build_rect_list, 40);//maximum 20 hospitals
 
   ///////////////////////////////////////////////////////////////////////
   //////////////////school library//////////////////////////////////
@@ -10271,7 +10293,8 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
   SetUniversity(build_rect_list, 16);//maximum 16 universities  
 
   /////////////////////////////////////////////////////////////////////
-  SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments 
+//  SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments
+  SetHouse(build_rect_list, 3000);//maximum 3000 houses and apartments 
 
   ///////////////////////////////////////////////////////////////////
   int cur_max_ref_id = gl_sp->MaxRefId() + 1;
@@ -10511,7 +10534,7 @@ set the places for hotels,  uniformly distributed in each quadrant
 
 */
 #define HOTEL_AREA_MIN 800.0
-#define HOTEL_AREA_MAX 1200.0
+#define HOTEL_AREA_MAX 1600.0
 
 void MaxRect::SetHotel(vector<Build_Rect>& list, unsigned int no,
                        Rectangle<2> bbox)
@@ -10622,7 +10645,7 @@ set the places for office24,  uniformly distributed in each quadrant
 
 */
 #define OFFICE24_AREA_MIN 600.0
-#define OFFICE24_AREA_MAX 2000.0
+#define OFFICE24_AREA_MAX 2500.0
 
 void MaxRect::SetOffice24(vector<Build_Rect>& list, unsigned int no)
 {
@@ -10666,7 +10689,8 @@ set the places for office38,  uniformly distributed in each quadrant
 
 */
 #define OFFICE38_AREA_MIN 1000.0
-#define OFFICE38_AREA_MAX 3000.0
+#define OFFICE38_AREA_MAX 3500.0
+
 
 void MaxRect::SetOffice38(vector<Build_Rect>& list, unsigned int no)
 {
@@ -10711,7 +10735,7 @@ set the places for hospitals ,  uniformly distributed in each quadrant
 
 */
 #define HOSPITAL_AREA_MIN 800.0
-#define HOSPITAL_AREA_MAX 1500.0
+#define HOSPITAL_AREA_MAX 2000.0
 
 void MaxRect::SetHospital(vector<Build_Rect>& list, unsigned int no)
 {

@@ -274,6 +274,7 @@ struct RoadNav{
                           SmiRecordId adr, 
                           SimpleLine* line, vector<GPoint_Dist>& id_list);
 
+  void ShortestPathSub3(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
   void GetAdjNodeRG(RoadGraph* rg, int nodeid);
   
   

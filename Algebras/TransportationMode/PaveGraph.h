@@ -430,8 +430,8 @@ struct Walk_SP{
 
   void SetPaveRid(R_Tree<2,TupleId>* rtree);
   void PaveLocToGP(Network* n);
-  void PaveLocToGPoint(Point* loc, Network* n, vector<int> route_id_list);
-  bool PaveLocToGPoint2(Point* loc, Network* n, vector<int> route_id_list);
+
+  bool PaveLocToGPoint(Point* loc, Network* n, vector<int> route_id_list);
 };
 
 /*
@@ -772,9 +772,13 @@ struct GeomEdge{
 const float mini_rect_area = 100.0; 
 const float maxi_rect_area = 15000.0; 
 const float mini_tri_area = 200.0; 
+
 const float maxi_tri_area = 30000.0;
 
 const float mini_dist_build = 15.0;
+
+const float length_limit = 50.0;
+
 
 struct Build_Rect{
   int reg_id;

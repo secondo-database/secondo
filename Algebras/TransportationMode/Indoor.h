@@ -822,6 +822,7 @@ struct IndoorNav{
    ////////////////////////// data generation/////////////////////////
    void GenerateIP1(int num);
    void GenerateIP2(int num);
+   void GenerateIP3(int num);
    float GetHeightInST(GRoom* groom, Point p);
    void InitializeElevator(Interval<Instant>& periods, 
                                    vector<Elevator>& elev_list, double speed);

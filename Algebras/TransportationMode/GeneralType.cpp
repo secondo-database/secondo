@@ -2631,8 +2631,10 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
     vector<GPoint> gpoint_list;
     vector<Point> p_list;
     bool correct = true;
-    PaveLoc2GPoint(loc1, loc2, sp, rel, btree, gpoint_list, p_list, correct);
+    PaveLoc2GPoint(loc1, loc2, sp, rel, btree, gpoint_list, p_list, correct,rn);
     if(correct == false){
+      delete mo;
+      delete genmo;
       continue;
     }
 
@@ -2641,6 +2643,8 @@ void GenMObject::GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no,
     Point start_loc = p_list[0];
     Point end_loc = p_list[1];
     if(start_loc.Distance(end_loc) < min_len){
+      delete mo;
+      delete genmo;
       continue;
     }
 
@@ -2693,11 +2697,11 @@ map the two points on the pavement to loations on the road network
 
 */
 void GenMObject::PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, 
-                                Relation* rel,
-                      BTree* btree, vector<GPoint>& gpoint_list, 
-                                vector<Point>& p_list, bool& correct)
+                                Relation* rel, BTree* btree, 
+                                vector<GPoint>& gpoint_list, 
+                                vector<Point>& p_list, bool& correct, 
+                                Network* rn)
 {
-    Network* rn = sp->LoadRoadNetwork(IF_LINE);
 
   /////////////////////////////////////////////////////////////////////
     CcInt* search_id1 = new CcInt(true, loc1.GetOid());
@@ -2718,8 +2722,8 @@ void GenMObject::PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp,
     Point p1(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
 
     Walk_SP* wsp1 = new Walk_SP();
-//    wsp1->PaveLocToGPoint(&p1, rn, route_id_list1);
-    correct = wsp1->PaveLocToGPoint2(&p1, rn, route_id_list1);
+
+    correct = wsp1->PaveLocToGPoint(&p1, rn, route_id_list1);
     if(correct == false) {
        delete wsp1;
        return;
@@ -2748,8 +2752,8 @@ void GenMObject::PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp,
     Point p2(true, loc2.GetLoc().loc1, loc2.GetLoc().loc2);
 
     Walk_SP* wsp2 = new Walk_SP();
-//    wsp2->PaveLocToGPoint(&p2, rn, route_id_list2);
-    correct = wsp2->PaveLocToGPoint2(&p2, rn, route_id_list2);
+
+    correct = wsp2->PaveLocToGPoint(&p2, rn, route_id_list2);
     if(correct == false){
       delete wsp2;
       return;
@@ -2758,9 +2762,7 @@ void GenMObject::PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp,
     Point gp_loc2 = wsp2->p_list[0];
     delete wsp2;
     ///////////////////////////////////////////////////////////////////////
-    sp->CloseRoadNetwork(rn);
 
-    /////////////////////////////////////////////////////////////////////
     gpoint_list.push_back(gp1);
     gpoint_list.push_back(gp2);
     p_list.push_back(gp_loc1);
@@ -3356,7 +3358,7 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
     if(mo_no <= 500) max_obj = 2;
     else if(mo_no <= 1000) max_obj = 3;
     else if(mo_no <= 5000) max_obj = 4;
-    else mo_no = 5;
+    else max_obj = 5;
 
 
     int index1 = -1;
@@ -4454,6 +4456,10 @@ void GenMObject::GenerateGenMO4(Space* sp,
   int count = 0;
   int real_count = 1;
 
+  ////////////////////////////////////////////////////////////
+//  mo_no = 0;//////stop the while loop 
+  ////////////////////////////////////////////////////////////
+
   while(real_count <= mo_no && count < obj_scale*mo_no){
 
    //////////////////////////////start time///////////////////////////
@@ -4518,6 +4524,8 @@ void GenMObject::GenerateGenMO4(Space* sp,
 
          Line* path = new Line(0);
 
+//         cout<<path_tid1<<" "<<path_tid2<<endl;
+
          wsp->WalkShortestPath2(oid1, oid2, *ep1_2, *ep2_2, path);
 
          ID_Length id_len(path_tid1, path_tid2, path->Length());
@@ -4570,13 +4578,13 @@ void GenMObject::GenerateGenMO4(Space* sp,
 
 
     ///////////////////////////////////////////////////////////////////////
-    /////////////path1: from entranct to pavement//////////////////////////
+    /////////////path1: from entrance to pavement//////////////////////////
     //////////////////////////////////////////////////////////////////////
     Line* path1 = (Line*)path_tuple1->GetAttribute(IndoorInfra::INDOORIF_PATH);
-    
+
     if(path1->Length() > min_path)
       GenerateFreeMovement(path1, *sp1, genmo, mo, start_time);
-    
+
     GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time);
 
     //////////////////////////////////////////////////////////////////////////
@@ -4589,15 +4597,14 @@ void GenMObject::GenerateGenMO4(Space* sp,
 
 //     cout<<" length "<<path->Length()
 //         <<" start_time "<<start_time<<endl;
-
-    GenerateWalkMovement(dg, path, *ep1_2, genmo, mo, start_time);
+    if(path->Length() > min_path)
+      GenerateWalkMovement(dg, path, *ep1_2, genmo, mo, start_time);
 
     delete path; 
 
-
     //////////////////path2: from pavement to building/////////////////////////
     Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
- 
+
     GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
     if(path2->Length() > min_path)
       GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
@@ -4689,7 +4696,7 @@ void GenMObject::CreateBuildingPair(IndoorInfra* i_infra,
     int type2 = ((CcInt*)tuple2->GetAttribute(IndoorInfra::
                 INDOORIF_BUILD_TYPE))->GetIntval();
 
-                
+
 //    cout<<GetBuildingStr(type1)<<" "<<GetBuildingStr(type2)<<endl;
     //////////////////check whether the building is available/////////////////
     ///////////////////there is no building and indoor graph ///////////////
@@ -4697,11 +4704,13 @@ void GenMObject::CreateBuildingPair(IndoorInfra* i_infra,
     if(type1 > 1 && maxrect->build_pointer[type1] == NULL){
       tuple1->DeleteIfAllowed();
       tuple2->DeleteIfAllowed();
+
       continue;
     }
     if(type2 > 1 && maxrect->build_pointer[type2] == NULL){
       tuple1->DeleteIfAllowed();
       tuple2->DeleteIfAllowed(); 
+
       continue;
     }
 
@@ -5113,7 +5122,13 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
     vector<Point> p_list;
     bool correct;
     PaveLoc2GPoint(newgloc1, newgloc2, sp, dg_node_rel,
-                   btree, gpoint_list, p_list, correct);
+                   btree, gpoint_list, p_list, correct, rn);
+
+    if(correct == false){
+        count++;
+        continue;
+    }
+
     GPoint gp1 = gpoint_list[0];
     GPoint gp2 = gpoint_list[1];
     Point start_loc = p_list[0];
@@ -5192,13 +5207,13 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
                                    entrance_index2, reg_id2, maxrect, peri);
 
    /////////////////////////////////////////////////////////////////////////
-   
+
     mo->EndBulkLoad();
     genmo->EndBulkLoad();
 
     trip1_list.push_back(*genmo);
     trip2_list.push_back(*mo);
-    
+
     ///////////////////////store building type//////////////////////////////
     build_type_list1.push_back(build_id1_list[count].type); 
     build_type_list2.push_back(build_id2_list[count].type); 
@@ -5208,10 +5223,10 @@ void GenMObject::GenerateGenMO_IndoorWalkCarTaxi(Space* sp,
 
 
     path_tuple1->DeleteIfAllowed();
-    path_tuple2->DeleteIfAllowed(); 
+    path_tuple2->DeleteIfAllowed();
 
     count++;
-    cout<<real_count<<" moving object"<<endl; 
+    cout<<real_count<<" moving object"<<endl;
 
     real_count++;
 
@@ -5497,7 +5512,7 @@ void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
    if(mo_no <= 500) max_obj = 2;
    else if(mo_no <= 1000) max_obj = 3;
    else if(mo_no <= 5000) max_obj = 4;
-   else mo_no = 5;
+   else max_obj = 5;
 
 
    int index1 = -1;
@@ -6405,7 +6420,7 @@ void GenMObject::GenerateGenMO8(Space* sp, Periods* peri, int mo_no,
     cout<<"indoor infrastructure does not exist "<<endl;
     return;
   }
-
+  
   ////////////////////////////////////////////////////////////////
   //////////////////////Initialization/////////////////////////////
   ////////////////////////////////////////////////////////////////
@@ -6436,7 +6451,7 @@ void GenMObject::GenerateGenMO8(Space* sp, Periods* peri, int mo_no,
   CreateBuildingPair2(i_infra, build_id1_list, build_id2_list, 
                      real_mo_count, maxrect);
   
-
+  cout<<real_mo_count<<endl;
    /////////////////////////////////////////////////////////////////
    Relation* build_path_rel = i_infra->BuildingPath_Rel();
    /////////////////////////////////////////////////////////////////
@@ -6455,7 +6470,7 @@ void GenMObject::GenerateGenMO8(Space* sp, Periods* peri, int mo_no,
    if(mo_no <= 500) max_obj = 2;
     else if(mo_no <= 1000) max_obj = 3;
     else if(mo_no <= 5000) max_obj = 4;
-    else mo_no = 5;
+    else max_obj = 5;
 
     int index1 = -1;
     int index2 = -1;
@@ -7793,6 +7808,7 @@ Word CloneSpace( const ListExpr typeInfo, const Word& w )
 
 
 Space::Space(const Space& sp):Attribute(sp.IsDefined()), infra_list(0)
+//pave_rid_list(0), entry_list(0)
 {
   if(sp.IsDefined()){
     def = sp.def;
@@ -7803,6 +7819,20 @@ Space::Space(const Space& sp):Attribute(sp.IsDefined()), infra_list(0)
       sp.Get(i, inf_ref); 
       infra_list.Append(inf_ref);
     }
+
+    ////////////////////////////////////////////////////
+//     for(int i = 0; i < sp.Pave_Rid_Size();i++){
+//       int rid;
+//       sp.GetRid(i, rid);
+//       pave_rid_list.Append(rid);
+// 
+//     }
+//     for(int i = 0;i < sp.Entry_List_Size();i++){
+//       EntryItem entry;
+//       sp.GetEntry(i, entry);
+//       entry_list.Append(entry);
+//     }
+    ///////////////////////////////////////////
   }
 
 }
@@ -7819,6 +7849,20 @@ Space& Space::operator=(const Space& sp)
       sp.Get(i, inf_ref); 
       infra_list.Append(inf_ref);
     }
+    ////////////////////////////////////////////////////
+//     for(int i = 0; i < sp.Pave_Rid_Size();i++){
+//       int rid;
+//       sp.GetRid(i, rid);
+//       pave_rid_list.Append(rid);
+// 
+//     }
+//     for(int i = 0;i < sp.Entry_List_Size();i++){
+//       EntryItem entry;
+//       sp.GetEntry(i, entry);
+//       entry_list.Append(entry);
+//     }
+
+    ///////////////////////////////////////////
   }
   return *this; 
 }
@@ -7839,6 +7883,22 @@ void Space::SetId(int id)
 
 }
 
+/*
+road rid for a triangle oid
+
+*/
+// void Space::GetRid(int i , int& rid) const
+// {
+//   assert(0 <= i && i < pave_rid_list.Size());
+//   pave_rid_list.Get(i, rid);
+//   
+// }
+// 
+// void Space::GetEntry(int i, EntryItem& entry)const
+// {
+//   assert(0 <= i && i < entry_list.Size());
+//   entry_list.Get(i, entry);
+// }
 
 /*
 get infrastructure ref representation 

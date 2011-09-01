@@ -61,6 +61,7 @@ Jan, 2011 Jianqiu xu
 #include "ArrayAlgebra.h"
 
 
+
 /*
 technique macro definition 
 
@@ -762,6 +763,8 @@ struct GenMO_MP{
 struct MNNav;
 class RoadGraph;
 
+
+
 /*
 used to generate generic moving objects 
 
@@ -873,7 +876,7 @@ struct GenMObject{
                              Relation* rel, BTree* btree, Relation*, string);
   void PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, Relation* rel, 
                       BTree* btree, vector<GPoint>& gp_list, 
-                      vector<Point>& p_list, bool& correct);
+                      vector<Point>& p_list, bool& correct, Network* rn);
   void ConnectStartMove(GenLoc loc, Point start_loc, MPoint* mo, 
                         GenMO* genmo, Instant& start_time, 
                         Pavement* pm, string);
@@ -1088,6 +1091,12 @@ struct InfraRef{
 class BusNetwork; 
 class MetroNetwork;
 
+struct EntryItem{
+  EntryItem(){} //do not initialize the members
+  EntryItem(int l, int h):low(l),high(h){}
+  EntryItem(const EntryItem& le):low(le.low), high(le.high){}
+  int low, high;
+};
 
 class Space:public Attribute{
   public:
@@ -1115,8 +1124,19 @@ class Space:public Attribute{
   void CopyFrom(const Attribute* right){*this = *(const Space*)right;}
   
   /////////////very important two functions////////////////////
-  inline int NumOfFLOBs() const { return 1;}
-  inline Flob* GetFLOB(const int i) { return &infra_list;}
+   inline int NumOfFLOBs() const { return 1;}
+   inline Flob* GetFLOB(const int i) { return &infra_list;}
+
+//   inline int NumOfFLOBs() const { return 3;}
+//   inline Flob* GetFLOB(const int i) {
+//     if(i < 1)
+//       return &infra_list;
+//     else if(i < 2)
+//       return &pave_rid_list;
+//     else 
+//       return &entry_list;
+//   }
+
 
   inline int Size() const {return infra_list.Size();}
   void Get(int i, InfraRef& inf_ref) const;
@@ -1171,6 +1191,11 @@ class Space:public Attribute{
   void GetLineInBusNetwork(int& oid, Line* l,
                            BusNetwork* bn, Interval<Instant> time_range);
   void GetLineInGRoom(int oid, GenLoc gl1, GenLoc gl2, Line* l);
+  
+//   inline int Pave_Rid_Size() const {return pave_rid_list.Size();}
+//   inline int Entry_List_Size() const {return entry_list.Size();}
+//   void GetRid(int, int&) const;
+//   void GetEntry(int, EntryItem&)const;
 
   private:
     bool def; 
@@ -1178,6 +1203,10 @@ class Space:public Attribute{
     
     int rg_id;//road graph id 
     DbArray<InfraRef> infra_list; 
+
+//     DbArray<int> pave_rid_list; //all rids for such a  oid 
+//     DbArray<EntryItem> entry_list;//dual graph oid as indices
+
 };
 ListExpr SpaceProperty(); 
 bool CheckSpace( ListExpr type, ListExpr& errorInfo );
@@ -1192,7 +1221,7 @@ Word InSpace( const ListExpr typeInfo, const ListExpr instance,
 ListExpr OutSpace( ListExpr typeInfo, Word value );
 
 
-#define obj_scale 5
+#define obj_scale 3
 
 //////////////////////////////////////////////////////////////////////
 /////////////////////////////random number generator//////////////////

@@ -584,19 +584,48 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
 
     GLine* gl = new GLine(0);
 
-//    cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
+ //   cout<<"gp1 "<<*gp1<<" gp2 "<<*gp2<<endl; 
 
 //    road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
 
-    if(route_type == 1 || route_type == 2)
-      road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
-    else{ //////paths avoid city center area 
-      road_nav->ShortestPathSub2(gp1, gp2, rg, n, gl);
-      if(gl->IsDefined() == false){//in case cannot find such a path 
-        road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+//     if(route_type == 1 || route_type == 2){
+//         road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+//     }else{ //////paths avoid city center area 
+//       road_nav->ShortestPathSub2(gp1, gp2, rg, n, gl);
+//       if(gl->IsDefined() == false){//in case cannot find such a path 
+//         road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+//       }
+//     }
+
+    if(route_type == 1){
+        if(GetRandom() % 2 == 0)
+          road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+        else{
+          road_nav->ShortestPathSub3(gp1, gp2, rg, n, gl);
+        if(gl->IsDefined() == false)
+          road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+        }
+    }else if(route_type == 2){
+       if(GetRandom() % 2 == 0){
+          road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+       }else{
+        road_nav->ShortestPathSub3(gp1, gp2, rg, n, gl);
+        if(gl->IsDefined() == false)
+          road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+       }
+    }else{ //////paths avoid city center area 
+      if(GetRandom() % 2 == 0){
+        road_nav->ShortestPathSub2(gp1, gp2, rg, n, gl);
+        if(gl->IsDefined() == false){//in case cannot find such a path 
+          road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+        }
+      }else{
+        road_nav->ShortestPathSub3(gp1, gp2, rg, n, gl);
+        if(gl->IsDefined() == false){//in case cannot find such a path 
+          road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
+        }
       }
     }
-
 
     delete location1; 
     delete gp1;
@@ -1156,7 +1185,7 @@ void BusRoute::CreateRoute3(int attr1, int attr2, int attr3, int w)
       int route_type = 
           ((CcInt*)tuple_bus_route->GetAttribute(attr3))->GetIntval();
 
-//       if(br_id != 39){
+//       if(br_id != 38){
 //         tuple_bus_route->DeleteIfAllowed();
 //         continue;
 //       }
@@ -1228,20 +1257,58 @@ void BusRoute::ComputeLine(vector<Point>& point_list, Line* l)
   assert(point_list.size() > 0);
   int edgeno = 0;
 
+//   for(unsigned int i = 0;i < point_list.size() - 1;i++){
+//     Point lp = point_list[i];
+//     Point rp = point_list[i + 1];
+// 
+//     HalfSegment* hs = new HalfSegment(true, lp, rp);
+//     hs->attr.edgeno = edgeno++;
+//     *l += *hs;
+// 
+//     hs->SetLeftDomPoint(!hs->IsLeftDomPoint());
+//     *l += *hs;
+// 
+//     delete hs;
+// 
+//   }
+ 
   for(unsigned int i = 0;i < point_list.size() - 1;i++){
     Point lp = point_list[i];
     Point rp = point_list[i + 1];
-
-    HalfSegment* hs = new HalfSegment(true, lp, rp);
-    hs->attr.edgeno = edgeno++;
-    *l += *hs;
-
-    hs->SetLeftDomPoint(!hs->IsLeftDomPoint());
-    *l += *hs;
-
-    delete hs;
+    HalfSegment hs1(true, lp, rp);
+    unsigned int j = i + 2;
+    for(; j < point_list.size() - 1;j++){
+      Point p1 = point_list[j];
+      Point p2 = point_list[j + 1];
+      HalfSegment hs2(true, p1, p2);
+      Point res;
+      if(hs1.Intersection(hs2, res)){
+//        cout<<"crossing"<<endl;
+        point_list[j] = res;
+        point_list[j + 1] = res;
+        break;
+      }
+    }
+    if(j >= point_list.size() - 1){
+        HalfSegment* hs = new HalfSegment(true, lp, rp);
+        hs->attr.edgeno = edgeno++;
+       *l += *hs;
+        hs->SetLeftDomPoint(!hs->IsLeftDomPoint());
+        *l += *hs;
+        delete hs;
+    }else{
+        rp = point_list[j];
+        HalfSegment* hs = new HalfSegment(true, lp, rp);
+        hs->attr.edgeno = edgeno++;
+       *l += *hs;
+        hs->SetLeftDomPoint(!hs->IsLeftDomPoint());
+        *l += *hs;
+        delete hs;
+        i = j;
+    }
 
   }
+
 
 }
 
@@ -2634,17 +2701,19 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
     line_list2.push_back(*l2);
     sline_list.push_back(*sl1);
     sline_list.push_back(*sl2);
-    
+
     if(sl1->Length() < 1.0 || sl2->Length() < 1.0){
       cout<<i<<endl;
+      cout<<"not correct routes"<<endl;
+      assert(false);
     }
 
     delete sl1;
     delete sl2; 
-    
+
     tuple_bus_route1->DeleteIfAllowed();
     tuple_bus_route2->DeleteIfAllowed(); 
-    
+
   }
   
 //  cout<<"line list size "<<line_list1.size()
@@ -2697,18 +2766,18 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
         }else{
           cout<<"can't find the point (might be numeric problem)"<<endl;
           assert(false); 
-        }    
+        }
     }
-    
+
 //    cout<<"hs "<<hs<<endl; 
 
 
     //for each translated bus route simple 
-    
+
     for(unsigned int k = 0;k < bus_stop_list_new.size();k++){
 
       BusStop_Ext bs_ext = bus_stop_list_new[k]; 
-      
+
 //      SimpleLine* sl1 = &sline_list[(bse_0.br_id * 2 - 1) - 1];
 //      SimpleLine* sl2 = &sline_list[(bse_0.br_id * 2 ) - 1];
 
@@ -2723,15 +2792,15 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
 
       vector<MyPoint> intersect_ps;
       GetInterestingPoints(hs,bse_0.loc,intersect_ps,l1,l2);
-    
+
       assert(intersect_ps.size() == 2); 
 
 //      cout<<"0 "<<intersect_ps[0].loc
 //          <<" 1 "<<intersect_ps[1].loc<<endl; 
-              
+
       SimpleLine* sl1 = &sline_list[(bs_ext.br_id * 2 - 1) - 1];
       SimpleLine* sl2 = &sline_list[(bs_ext.br_id * 2 ) - 1];
-      
+
 
 //      assert(sl1->AtPoint(intersect_ps[0].loc,sm,pos1));
 //      assert(sl2->AtPoint(intersect_ps[1].loc,sm,pos2));
@@ -2781,7 +2850,7 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
 
 
 /*
-get the intersecting point between the create small line and two bus routes 
+get the intersecting points between the create small line and two bus routes 
 
 */
 
@@ -2866,7 +2935,7 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
         assert(ps1->Size() >= 1 && ps2->Size() >= 1);
         
 //        cout<<*ps1<<" "<<*ps2<<endl; 
-        
+
         /////////////calculate the distanc to ip and get the two closest/////
         vector<MyPoint> temp1; 
         for(int i = 0;i <ps1->Size();i++){
@@ -14242,7 +14311,12 @@ create metro routes
 */
 void MetroStruct::CreateMRoute(DualGraph* dg, string type)
 {
-  int no_mroute = 10;
+//  int no_mroute = 10;
+  
+  int no_mroute;
+  if(type == "Berlin")no_mroute = 10;
+  else if(type == "Houston") no_mroute = 20;
+  
   vector<bool> cell_flag;
   for(int i = 1;i <= dg->node_rel->GetNoTuples();i++){
     cell_flag.push_back(false);
@@ -14277,7 +14351,7 @@ void MetroStruct::CreateMRoute(DualGraph* dg, string type)
   if(type == "Berlin"){
     min_dist = 25000.0;
   }else if(type == "Houston"){
-    min_dist = 80000.0;
+    min_dist = 60000.0;
   }else{
     cout<<"not processed"<<endl;
     assert(false);
