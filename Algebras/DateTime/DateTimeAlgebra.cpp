@@ -881,6 +881,18 @@ bool DateTime::ReadFrom(const double Time){
 }
 
 /*
+~ReadFrom~
+
+This functions reads the value of this instance from the given int64\_t.
+
+*/
+bool DateTime::ReadFrom(const int64_t Time){
+   SetDefined(true);
+   value = Time;
+   return true;
+}
+
+/*
 ~IsValid~
 
 This functions checks if the given arguments represent a valid gregorian
@@ -963,10 +975,11 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
         bool res = ReadFrom(nl->RealValue(ValueList));
         return res;
   }
-  // accect also integer values
+  // accept also integer values
   if(nl->AtomType(ValueList)==IntType ){
      if(type ==(instanttype)){
-        bool res = ReadFrom(nl->IntValue(ValueList));
+        bool res = 
+         ReadFrom(static_cast<double>(nl->IntValue(ValueList)));
         return res;
      }
      else
