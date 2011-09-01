@@ -123,8 +123,6 @@ Optimizer/adaptiveJoin.pl
 bin/geo
 bin/chesstest
 bin/sochi84.pgn
-bin/tbtreetest
-bin/nntest
 
 Tests/Testspecs/partstream.test
 
