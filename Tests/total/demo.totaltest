@@ -1,0 +1,132 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# a test for the BinaryFile Algebra
+
+# clean up what may be left over from e.g. a segfault
+delete database demotest;
+
+#setup
+
+restore database demotest from '../bin/berlintest';
+
+gui enableOptimizer
+
+#testcase UBahn
+#yields success 
+query UBahn;
+
+#testcase train7
+#yields success
+query train7 
+
+
+#testcase trajectory
+#yields success
+query trajectory(train7)
+
+#testcase msnow
+#yields success
+query msnow
+
+#testcase mehringdamm
+#yields success
+query mehringdamm
+
+
+#testcase distance
+#yields success
+query distance(train7, mehringdamm)
+
+
+#testcase tiergarten
+#yields success
+query tiergarten
+
+
+#testcase counttrains 
+#yields (int 562)
+query Trains count
+
+#testcase countTrains2
+#yields (int 80)
+query Trains feed filter[.Trip passes tiergarten] count
+
+#testcase selectTrains
+#yields success
+query Trains feed filter[.Trip passes tiergarten] consume
+
+#testcase selectTrainsOptCount
+#yields (int 122)
+select count(*) from trains where trip passes mehringdamm
+
+#testcase selectTrainsOpt
+#yields  success
+select * from trains where trip passes mehringdamm
+
+#testcase createObject
+#yields success
+let seven05 = theInstant(2003,11,20,7,5)
+
+#testcase updateCatalog
+#yields success
+optimizer updateCatalog
+
+
+#testcase select2
+#yields success
+select [id, line, up, val(trip atinstant seven05) as pos] from trains where [trip passes mehringdamm, trip present seven05]
+
+
+#testcase trainsInSnow
+#yields success
+select * from trains where [not(isempty(deftime(intersection(trip, msnow))))]
+
+#testcase trainsInSnowShortened
+#yields success
+select [id, intersection(trip, msnow) as insnow] from trains where [not(isempty(deftime(intersection(trip, msnow))))]
+
+#testcase listAlgebras
+#yields success
+list algebras
+
+#testcase listTempAlgebra
+#yields success 
+list algebra TemporalAlgebra
+
+#testcase typeConstructors
+#yields success
+list type constructors
+
+#testcase Operator
+#yields success
+list operators
+
+#testcase Sec2OperatorInfo
+#yields success
+query SEC2OPERATORINFO feed filter[.Name contains "atinstant"] consume
+
+
+#teardown
+gui disableOptimizer;
+
+close database;
+
+delete database demotest;
+
