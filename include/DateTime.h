@@ -297,10 +297,19 @@ the CSV import.
 ~ReadFrom~
 
 This functions read the value of this DateTime from the given double
-value. The return value is allways true.
+value. The return value is always true.
 
 */
     bool ReadFrom(const double Time);
+
+/*
+~ReadFrom~
+
+This functions read the value of this DateTime from the given int64\_t
+value. The return value is always true.
+
+*/
+    bool ReadFrom(const int64_t Time);
 
 /*
 ~ToDouble~
