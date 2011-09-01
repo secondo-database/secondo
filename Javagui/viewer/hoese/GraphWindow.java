@@ -291,6 +291,17 @@ public class GraphWindow extends JLayeredPane
     revalidate();
   }
 
+
+  /* scales an rectangle by scaleFactor from ProjectionManager */
+  Rectangle2D.Double scale(Rectangle2D.Double r, boolean reverse){
+    double sf = ProjectionManager.getScaleFactor();
+    if(!reverse){
+       sf = 1/sf;
+    }
+    r.setRect( r.x*sf, r.y*sf, r.width*sf, r.height*sf);
+    return r;
+  }
+
   /**
    * Recalculates the boundingbox of all graph. objects
    * @see <a href="Categorysrc.html#updateBoundingBox">Source</a>
@@ -300,6 +311,7 @@ public class GraphWindow extends JLayeredPane
     Background bgi = getBackgroundObject();
     if(bgi.useForBoundingBox()){
          r = (Rectangle2D.Double) bgi.getBBox().clone();
+         scale(r,true);
     }else{
          r = null;
     }
@@ -355,11 +367,21 @@ public class GraphWindow extends JLayeredPane
   // first transform the bounding box for the background
   // into screen coordinates
   try{
-    AffineTransform iat = at.createInverse();
-    Rectangle vpbounds = mw.GeoScrollPane.getViewport().getViewRect();
-    Rectangle2D cbbi = iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
+    double sf = ProjectionManager.getScaleFactor();
+    double rsf = 1/sf;
+    AffineTransform at1 = new AffineTransform(at);
+    at1.scale(sf,sf);
+
+    AffineTransform iat = at1.createInverse();
+
+    Rectangle vpbounds1 =  mw.GeoScrollPane.getViewport().getViewRect();
+
+    Rectangle2D.Double vpbounds = new Rectangle2D.Double(vpbounds1.x, vpbounds1.y,vpbounds1.width, vpbounds1.height);
+
+    Rectangle2D.Double cbbi = (Rectangle2D.Double)iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
+
     if(background != null) {
-      background.paint(this,g2,at, cbbi);
+      background.paint(this,g2,at1, cbbi);
     }
   } catch(Exception e){
      Reporter.writeError("Problem while drawing background");

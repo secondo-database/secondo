@@ -31,6 +31,8 @@ public class ProjectionManager {
 
 
    public static boolean project(double x, double y, java.awt.geom.Point2D.Double result){
+      x /= SCALE_FACTOR;
+      y /= SCALE_FACTOR;
       return P.project(x,y,result);
    }   
 
@@ -61,7 +63,12 @@ public class ProjectionManager {
    }
 
    public static boolean getOrig(double px, double py, java.awt.geom.Point2D.Double result){
-      return P.getOrig(px,py,result);
+      if(! P.getOrig(px,py,result)){
+         return false;
+      } else {
+          result.setLocation(result.x * SCALE_FACTOR, result.y * SCALE_FACTOR); 
+          return true;
+      }
    }
    
    public static boolean estimateOrig(double px,double py, java.awt.geom.Point2D.Double result){
@@ -212,12 +219,27 @@ public class ProjectionManager {
 		return ok;
 	}
 
+  public static double getScaleFactor(){
+    return SCALE_FACTOR;
+  }
+
+  public static boolean setScaleFactor(double sf){
+    if(sf>0){
+      SCALE_FACTOR=sf;
+      return true;
+    }
+    return false;
+  }
+
    private static Projection P = new  VoidProjection();
 
    private static Projection VP = new VoidProjection();
    private static double EPSILON=0.00001;
+   private static double SCALE_FACTOR = 1.0;
+
    
 	private static final String KEY_PROJECTIONMANAGER = "PROJECTION_MANAGER";
 	private static final String KEY_PROJECTION_CLASS = "PROJECTION_CLASSNAME";
 	private static final String KEY_EPSILON = "PM_EPSILON";
+ 
 }

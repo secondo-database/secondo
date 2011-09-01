@@ -199,6 +199,9 @@ public class HoeseViewer extends SecondoViewer {
   /** Set of known types **/
   private TreeSet validTypes = new TreeSet();
 
+  /* Dialog for asking for a scxale factor */
+  private viewer.hoese.ScaleFactorDialog scaleFactorDialog;
+
  /* File-Menu */
   private javax.swing.JMenu jMenu1;
   private javax.swing.JMenuItem jMenu_NewSession;
@@ -1102,6 +1105,17 @@ public class HoeseViewer extends SecondoViewer {
        public void actionPerformed(ActionEvent evt){
           ProjectionManager.showSettings();
        }});
+
+    JMenuItem menuItem_Scale = new JMenuItem("Scale factor");
+    jMenuGui.add(menuItem_Scale);
+
+    scaleFactorDialog = new viewer.hoese.ScaleFactorDialog(null);
+
+    menuItem_Scale.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+        scaleFactorDialog.setVisible(true);
+      }
+    });
 
 
     jMenuGui.add(new JSeparator());
