@@ -1,0 +1,112 @@
+################################################################################
+### Importing OSM data from shape files (2 / 7)
+################################################################################
+### Description:
+### - Reads data on streets and points of interest from osm-files.
+### Please, see tu_osm_import.sh for further details.
+###
+### Preconditions:
+### - existing open database
+###
+### Postconditions:
+### - streetsTmp-relation
+### either self-made shape-files in a custom format:
+### streetsTmp: rel{geoData: sline, ID: int, part: int, attrib: string}
+### or shape-files in the free standard geofabrik-format:
+### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
+###                 type: string, oneway: int, bridge: int, maxspeed: int,
+###                 tunnel: bool, layer: int}
+### - pointsTmp-relation
+### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
+###                type: string}
+###
+### Author:
+### - Thomas Uchdorf, t.uchdorf@arcor.de
+################################################################################
+
+# Importing the raw data from an osm-file
+# on POIs
+let osmNodesTmp =
+   osmimport(SRC_DIR_PATH + 'City.osm','node')
+   consume;
+# on streets
+let osmWaysTmp =
+   osmimport(SRC_DIR_PATH + 'City.osm','way')
+   filter [isdefined(.type)]
+   consume;
+# on restrictions
+let osmRestrictionsRel =
+   osmimport(SRC_DIR_PATH + 'City.osm','restriction')
+   consume;
+
+# Converting the (longitude,latitude)-coordinates into points
+let osmNodesRel = 
+    osmNodesTmp feed
+    extend [geoData: makepoint(.lon,.lat)]
+    remove [lon,lat]
+    consume;
+
+# Extending the references to osm nodes
+let osmWayNodeRefsTmp =
+   osmWaysTmp feed
+   extendstream [abc: tokenize(.nodeRefs,",")]
+   addcounter[orderId, 1]
+   extend [nodeRef: toObject(.abc,0)]
+   remove [abc]
+   consume;
+
+# Replacing the references to osm nodes by the actual points
+let osmWayPointsTmp =
+   osmNodesRel feed {p}
+   project [osm_id_p,geoData_p]
+   osmWayNodeRefsTmp feed
+   hashjoin [osm_id_p,nodeRef,99997]
+   extend [pointGeoData: .geoData_p]
+   remove [geoData_p]
+   consume;
+
+# Combining the points to lines
+let osmUncheckedWaysTmp = 
+   osmWayPointsTmp feed 
+   sortby [osm_id,orderId] 
+   groupby [osm_id;  
+      numPoints: group count,  
+      geoData: group feed
+         projecttransformstream [pointGeoData]
+         collect_sline[TRUE]] 
+   consume;
+
+let osmWaysRel = 
+   osmWaysTmp feed
+   osmUncheckedWaysTmp feed
+   extend [helpId: .osm_id]
+   remove [osm_id]
+   hashjoin [osm_id,helpId,99997]
+   remove [nodeRefs,helpId]
+   consume;
+
+# Checking if streets with broken lines exist (missing or wrong references)
+query
+   osmWaysRel feed 
+   filter [not(isdefined(.geoData))]
+   consume;
+
+# Storing the street data
+let streetsTmp =
+   osmWaysRel feed 
+   filter[bbox(.geoData) intersects partRect]
+   consume;
+
+# Storing the POI data
+let pointsTmp =
+   osmNodesRel feed
+   filter[bbox(.geoData) intersects partRect]
+   extend [timestamp: "DUMMY"]
+   consume;
+
+# Storing the restriction data
+let restrictionsTmp =
+   osmRestrictionsRel feed
+#   filter[bbox(.geoData) intersects partRect]
+   consume;
+
