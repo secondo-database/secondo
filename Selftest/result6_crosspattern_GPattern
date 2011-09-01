@@ -1,0 +1,15 @@
+
+(OBJECT result6_crosspattern_GPattern 
+    () 
+    (rel 
+        (tuple 
+            (
+                (elem mset) 
+                (Cnt int)))) 
+    (
+        (
+            (
+                (
+                    ("2011-01-11-11:00" "2011-01-11-12:00" TRUE FALSE) 
+                    (10 20 30 40 70))) 
+            1)))
