@@ -5285,7 +5285,7 @@ void Range<Alpha>::Union( const Interval<Alpha>& iv,
   bool done = false;
 
   result.Clear();
-  for(int i=0;i< GetNoComponents;i++){
+  for(int i=0;i< this->GetNoComponents();i++){
      Get(i,tiv);
      if(tiv.Before(iv) ){
         result.Add(tiv);
@@ -5296,7 +5296,7 @@ void Range<Alpha>::Union( const Interval<Alpha>& iv,
         }
         result.Add(tiv);
      } else {
-       enlargedInterval = enlargedInterval.Union(tiv);
+       enlargedInterval.Union(tiv);
      }
   }
   if(!done){
