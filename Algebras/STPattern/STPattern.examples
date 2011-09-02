@@ -8,12 +8,6 @@ Signature: tuple(x) X namedFunlist X constraintList -> bool
 Example  : query Trains feed filter[. stpattern[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ]] count
 Result   : 14
 
-Operator : stpattern2
-Number   : 1
-Signature: tuple(x) X periods X namedFunlist X constraintList -> bool
-Example  : query Trains feed filter[fun(t: TUPLE, p: periods) t p stpattern2[insnow: (attr(t,Trip) atperiods p) inside msnow, isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0, isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ]] count
-Result   : 14
-
 Operator : stpatternextend
 Number   : 1
 Signature: stream(tuple(x)) X namedFunlist X constraintList -> stream(tuple(x, funListNames))
@@ -48,12 +42,6 @@ Operator : stpatternex
 Number   : 1
 Signature: tuple(x) X namedFunlist X constraintList X bool -> bool
 Example  : query Trains feed filter[. stpatternex[insnow: .Trip inside msnow, isclose: distance(.Trip, mehringdamm)<10.0, isfast: speed(.Trip)>8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"));  (end("isclose") - start("insnow")) < [const duration value (1 0)] ]] count
-Result   : 14
-
-Operator : stpatternex2
-Number   : 1
-Signature: tuple(x) X periods X namedFunlist X constraintList X bool -> bool
-Example  : query Trains feed  filter[fun(t: TUPLE, p: periods)    t p stpatternex2[insnow: (attr(t,Trip) atperiods p) inside msnow,    isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0,    isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("insnow","isclose",vec("aabb")),    stconstraint("isclose","isfast",vec("aabb"));  (end("isclose") - start("insnow")) < [const duration value (1 0)]  ]] count
 Result   : 14
 
 
@@ -116,10 +104,3 @@ Number   : 1
 Signature: mpoint x duration -> mpoint
 Example  : query always(randomdelay(train7, create_duration(0, 5000)) = train7)
 Result   : FALSE
-
-Operator : computeclosure
-Number   : 1
-Signature: tuple(x) X periods X namedFunlist X constraintList -> bool
-Example  : query Trains feed filter[fun(t: TUPLE, p: periods) t p computeclosure[insnow: (attr(t,Trip) atperiods p) inside msnow, isclose: distance((attr(t,Trip) atperiods p), mehringdamm)<10.0, isfast: speed(attr(t,Trip) atperiods p) > 8.0 ;  stconstraint("insnow","isclose",vec("aabb")),  stconstraint("isclose","isfast",vec("bbaa"))  ] = 1 ] count
-Result   : 562
-

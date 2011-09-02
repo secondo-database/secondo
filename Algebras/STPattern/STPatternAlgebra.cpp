@@ -3822,10 +3822,10 @@ The spattern and stpatternex operators are registered as lazy variables.
 
   AddOperator(&STP::createstvector);
   AddOperator(&STP::stpattern);
-  AddOperator(&STP::stpattern2);
+//  AddOperator(&STP::stpattern2);
   AddOperator(&STP::stconstraint);
   AddOperator(&STP::stpatternex);
-  AddOperator(&STP::stpatternex2);
+//  AddOperator(&STP::stpatternex2);
   AddOperator(&STP::stpatternextend);
   AddOperator(&STP::stpatternextend2);
   AddOperator(&STP::stpatternexextend);
@@ -3839,7 +3839,7 @@ The spattern and stpatternex operators are registered as lazy variables.
   AddOperator(&randommbool);
   AddOperator(&passmbool);
   AddOperator(&randomdelay);
-  AddOperator(&computeClosure);
+//  AddOperator(&computeClosure);
 }
 ~STPatternAlgebra() {};
 };
