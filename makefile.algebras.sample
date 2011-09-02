@@ -287,6 +287,15 @@ ALGEBRAS     += RecordAlgebra
 ALGEBRA_DIRS += SpatialJoin
 ALGEBRAS     += SpatialJoinAlgebra
 
+
+#ALGEBRA_DIRS  += RIndex
+#ALGEBRAS     += RIndexAlgebra
+
+ALGEBRA_DIRS  += MMRTree 
+ALGEBRAS     += MMRTreeAlgebra
+
+
+
 #ALGEBRA_DIRS  += HadoopParallel
 #ALGEBRAS     += HadoopParallelAlgebra
 
