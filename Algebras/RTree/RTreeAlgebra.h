@@ -4538,6 +4538,11 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
   delete bli;
   bli = NULL;
 
+
+  if(!finished){
+     // happens if no things are do do above
+       WriteHeader();
+  } 
   // re-initialize the rtree
   ReadHeader();
   assert( header.maxLeafEntries >= 2*header.minLeafEntries &&
