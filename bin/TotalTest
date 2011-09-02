@@ -11,14 +11,45 @@ LOGFILEOPT=$BIN/TotalTest.optserver.log
 LOGFILE=$BIN/TotalTest.log
 
 PID=$$
-dir=$TMPDIR/SecTotal_$PID
+
+t=$TMPDIR
+if [ -z "$t" ]; then
+  t=$TEMP
+fi
+
+if [ -z "$t" ]; then
+  t=$TMP
+fi
+if [ -z "$t" ]; then
+  if [ -d "/tmp" ]; then
+     t="/tmp"
+  else 
+    if [ -d "/var/tmp" ]; then
+      t="/var/tmp"
+    else
+      if [ -d "/usr/tmp" ]; then
+        t="/usr/tmp"
+      fi
+    fi
+  fi 
+fi
+
+if [ -z "$t" ]; then
+   echo "cannot find temporal directory"
+   exit 1
+fi
+
+
+
+
+dir=$t/SecTotal_$PID
 
 
 mkdir -p $dir
 
 if [ $? -ne 0 ]; then
-   echo "Directory $dir already exists"
-   echo "Directory $dir already exists" >$LOGFILE
+   echo "Directory $dir already exists or no permission to write into parent folder"
+   echo "Directory $dir already exists or no permission to write into parent folder" >$LOGFILE
    exit 1
 fi 
 
@@ -70,7 +101,7 @@ rm -f $FIFO
 mkfifo $FIFO
 cd $SECONDO_BUILD_DIR/Optimizer
 StartOptServer -f $FIFO >$LOGFILEOPT 2>&1 &
-echo -e "\n" >$FIFO
+echo -e "\n" >$FIFO&
 
 
 echo "Optimizer server is running"
@@ -112,7 +143,7 @@ fi
 
 
 echo "Terminate OptServer"
-echo "quit" >$FIFO
+echo "quit" >$FIFO&
 rm $FIFO
 echo "Terminate Monitor"
 kill -SIGTERM $mon 2>/dev/null 
