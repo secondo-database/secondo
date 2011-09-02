@@ -30,6 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef STREAM_H
+#define STREAM_H
+
 #include "QueryProcessor.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -161,4 +164,6 @@ Close Progress
     bool opened;
 
 };
+
+#endif
 
