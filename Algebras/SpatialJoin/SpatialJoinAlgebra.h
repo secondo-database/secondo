@@ -164,15 +164,15 @@ public:
 
   ~pj2LocalInfo()
   {
-    if (ita)
-      delete ita; ita = 0;
-    if (tba)
-      delete tba; tba = 0;
+    if (ita){
+      delete ita; ita = 0;}
+    if (tba){
+      delete tba; tba = 0;}
 
-    if (itb)
-      delete itb; itb = 0;
-    if (tbb)
-      delete tbb; tbb = 0;
+    if (itb){
+      delete itb; itb = 0;}
+    if (tbb){
+      delete tbb; tbb = 0;}
   }
 
   Tuple* getNextTuple();

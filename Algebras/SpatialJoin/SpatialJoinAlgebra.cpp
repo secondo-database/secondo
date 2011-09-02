@@ -15,6 +15,11 @@ July 2011, Jiamin Lu moved the *parajoin2* operator to
 SpatialjoinAlgebra. The *spatialjoin2* operator is renamed
 as *spatialjoin* operator.
 
+September 2011, Jiamin Lu changed the internal join operator in spatialjoin
+operator, from *symmjoin* to *realJoinMMRTree* + *filter*.
+The cell size for 2D grid, is enlarged with 10 times,
+according to the evaluation result that we got in parallel processing.
+
 [TOC]
 
 0 Overview
@@ -192,6 +197,8 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   const string ptName1[] = {"tupleLx", "tupleRx"};
   const string ptName2[] = {"tupleL2x", "tupleR2x"};
   const string ptName3[] = {"streamelemLx", "streamelemRx"};
+  const string ptName4[] = {"stream2Lx", "stream2Rx"};
+  const string ptName5 =  "streamelemMG";   //merged stream element
 
   funList.append(NList("fun"));
   funList.append(NList(NList(ptName[0]), NList(sType[0])));
@@ -265,26 +272,56 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   pjList.append(NList(eaName[0]));
   pjList.append(NList(eaName[1]));
 
+  NList interJoinList(nl);
+  interJoinList.append(NList("realJoinMMRTreeVec"));
+  interJoinList.append(NList(ptName4[0]));
+  interJoinList.append(NList(ptName4[1]));
+  interJoinList.append(NList(eaName2[0]));
+  interJoinList.append(NList(eaName2[1]));
+  interJoinList.append(NList(10));
+  interJoinList.append(NList(20));
 
+  NList gisCheckList(nl);  //Prepare for gridintersects operator
+  gisCheckList.append(NList("gridintersects"));
+  gisCheckList.append(NList("xl"));
+  gisCheckList.append(NList("yb"));
+  if (is3D){
+    gisCheckList.append(NList("zb"));
+  }
+  gisCheckList.append(NList("wx"));
+  gisCheckList.append(NList("wy"));
+  if (is3D){
+    gisCheckList.append(NList("wz"));
+  }
+  gisCheckList.append(NList("nx"));
+  if (is3D){
+    gisCheckList.append(NList("ny"));
+  }
+  gisCheckList.append(
+      NList(NList("attr"), NList(ptName5), NList(eaName2[0])));
+  gisCheckList.append(
+      NList(NList("attr"), NList(ptName5), NList(eaName2[1])));
+  gisCheckList.append(
+      NList(NList("attr"), NList(ptName5), NList(eaName[0])));
 
-  ListExpr inFunL;
-  stringstream inFunStr;
-  inFunStr << "( fun "
-           << "(stream2Lx " << "ANY" << ") "
-           << "(stream2Rx " << "ANY2" << ") "
-           << "(symmjoin stream2Lx stream2Rx "
-           << "(fun "
-             << "(tupleL3x TUPLE ) "
-             << "(tupleR3x TUPLE2 ) "
-              << "(gridintersects xl yb " << (is3D ? "zb" : "")
-                << " wx wy " << (is3D ? "wz" : "")
-                << " nx " << (is3D ? "ny" : "")
-                << " (bbox (attr tupleL3x " << aName[0]  << ")) "
-                << " (bbox (attr tupleR3x " << aName[1] << ")) "
-                << " (attr tupleL3x " << eaName[0] << "))"
-                     << ")))";
-  nl->ReadFromString(inFunStr.str(), inFunL);
-  pjList.append(NList(inFunL));
+  NList inFunList(nl);
+  inFunList.append(NList("fun"));
+  inFunList.append(NList(NList(ptName4[0]), NList("ANY")));
+  inFunList.append(NList(NList(ptName4[1]), NList("ANY2")));
+  inFunList.append(NList(
+      NList("filter"),
+      interJoinList,
+      NList(NList("fun"),
+        NList(NList(ptName5), NList("STREAMELEM")),
+        NList(
+          NList("and"),
+          NList(
+            NList("="),
+              NList(NList("attr"), NList(ptName5), NList(eaName[0])),
+              NList(NList("attr"), NList(ptName5), NList(eaName[1]))),
+          gisCheckList ))));
+
+  pjList.append(NList(inFunList));
   funList.append(NList(NList("remove"),
                 pjList,
                 NList(NList(eaName[0])
@@ -294,7 +331,6 @@ ListExpr spatialJoinTypeMap(ListExpr args)
                       )));
   //remove the extended attributes,
   //to make sure the equality of the output tuple type
-
 
   return nl->ThreeElemList(
              nl->SymbolAtom(Symbol::APPEND()),
@@ -456,6 +492,12 @@ cells' height is set alone.
     xr = joinBox->MaxD(0);
     yt = joinBox->MaxD(1);
 
+/*
+According to the evaluation in parallel processing,
+we enlarge the cell size for 2D space with 10 times.
+
+*/
+    wx *= 10;
     do
     {
       nx = size_t(ceil(length / wx));
@@ -996,15 +1038,15 @@ bool pj2LocalInfo::LoadTuples()
   bool loaded = false;
 
   //Clear the buffer
-  if (ita)
-    delete ita; ita = 0;
-  if (tba)
-    delete tba; tba = 0;
+  if (ita){
+    delete ita; ita = 0;}
+  if (tba){
+    delete tba; tba = 0;}
 
-  if (itb)
-    delete itb; itb = 0;
-  if (tbb)
-    delete tbb; tbb = 0;
+  if (itb){
+    delete itb; itb = 0;}
+  if (tbb){
+    delete tbb; tbb = 0;}
 
   if (moreInputTuples)
   {
