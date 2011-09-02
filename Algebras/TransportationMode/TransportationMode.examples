@@ -4,14 +4,14 @@ Restore : yes
 Operator : checksline
 Number   : 2
 Signature: sline-> sline
-Example  : query routes(n) feed extend[newcurve: checksline(.curve,roadwidth)] count;
-Result   : 3253
+Example  : query no_components(toline(checksline([const sline value ((2 2 3 3))], 3)));
+Result   : 1
 
 
 Operator : modifyboundary
 Number   : 2
-Signature: rectangle x 2-> region
-Example  : query modifyboundary(bbox(rtreeroad),2);
+Signature: rectangle x int -> region
+Example  : query no_components(modifyboundary([const rect value (2 3 2 3)],2));
 Result   : 1
 
 
@@ -38,7 +38,7 @@ Result   : 1
 Operator : decomposeregion
 Number   : 2
 Signature: region -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query decomposeregion(partition_regions) count;
+Example  : query decomposeregion([const region value ((((1 1)(5 1)(5 5)(1 5))))]) count;
 Result   : 1
 
 Operator : fillpavement
@@ -89,15 +89,15 @@ Result   : 1
 Operator : convex
 Number   : 2
 Signature: region -> bool
-Example  : query convex(r1);
+Example  : query convex([const region value ((((0 0)(0 5)(2 5))))]);
 Result   : TRUE
 
 
 Operator : geospath
 Number   : 2
 Signature: point x point x region -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query size(geospath(p1, p2, r1)) count;
-Result   : 2
+Example  : query geospath([const point value (0 1)], [const point value (0 5)], [const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 1
 
 
 Operator : createdualgraph
@@ -178,8 +178,8 @@ Result   : 2
 Operator : regvertex
 Number   : 2
 Signature: reg -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query regvertex(node_reg) count;
-Result   : 441
+Example  : query regvertex([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 3
 
 Operator : triangulation_new
 Number   : 2
@@ -222,8 +222,8 @@ Result   : 1
 Operator : myinside
 Number   : 2
 Signature: line x region -> bool
-Example  : query l2 myinside r2;
-Result   : TRUE
+Example  : query [const line value ((2 2 3 3))] myinside [const region value ((((0 0)(0 5)(2 5))))];
+Result   : FALSE
 
 
 Operator : decomposetri
@@ -254,8 +254,8 @@ Result   : file_platform
 Operator : getallpoints
 Number   : 2
 Signature: region -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getallpoints(node_reg) count;
-Result   : 432
+Example  : query getallpoints([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 3
 
 Operator : rotationsweep
 Number   : 2
@@ -266,8 +266,8 @@ Result   : 4
 Operator : gethole
 Number   : 2
 Signature: region -> (stream(((x1 t1) ... (xn tn))))
-Example  : query gethole(node_reg) count;
-Result   : 2
+Example  : query gethole([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 1
 
 
 Operator : getsections
@@ -294,8 +294,8 @@ Result   : 2
 Operator : cellbox
 Number   : 2
 Signature: rect x int  (stream(((x1 t1) ... (xn tn))))
-Example  : query cellbox(b_box, 10) count;
-Result   : 10
+Example  : query cellbox([const rect value (0 100 0 100)], 10) count;
+Result   : 100
 
 Operator : create_bus_route1
 Number   : 2
@@ -389,13 +389,13 @@ Operator : brgeodata
 Number   : 2
 Signature: busroute -> sline
 Example  : query size(brgeodata([const busroute value ((1 TRUE)((((2.0 2.0 2.0 3.0)))) )]));
-Result   : 1.0
+Result   : 1
 
 Operator : bsgeodata
 Number   : 2
 Signature: busstop x busroute -> point
-Example  : query bsgeodata([const busstop value (1 1 TRUE)], [const busroute value ((1 TRUE)((((2.0 2.0 2.0 3.0)))) )]);
-Result   : (2.0 2.0)
+Example  : query bsgeodata([const busstop value (1 1 TRUE)], [const busroute value ((1 TRUE)((((2.0 2.0 2.0 3.0))) (((2.0 3.0 4.0 4.0))) ) )]);
+Result   : (2.0 3.0)
 
 Operator : up_down
 Number   : 2
@@ -484,9 +484,8 @@ Result   : TRUE
 Operator : getstopid
 Number   : 2
 Signature: busstop -> int
-Example  : query getstopid([const busstop value (1 2)]);
+Example  : query getstopid([const busstop value (1 2 TRUE)]);
 Result   : 2
-
 
 
 Operator : get_route_density1
@@ -632,7 +631,7 @@ Operator : thefloor
 Number   : 1
 Signature: float x region -> floor3d
 Example  : query getheight(thefloor(3.0, [const region value ((((1 1)(5 1)(5 5)(1 5))))]));
-Result   : 3.0
+Result   : 3
 
 
 Operator : getheight
@@ -652,58 +651,58 @@ Result   : 16
 Operator : thedoor
 Number   : 1
 Signature: int x line x int x line x mbool x bool -> door3d
-Example  : query type_of_door(thedoor(1,l1,2,l3,doorstate,FALSE));
+Example  : query type_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE));
 Result   : FALSE
 
 Operator : type_of_door
 Number   : 1
 Signature: door3d -> bool
-Example  : query type_of_door(door1);
+Example  : query type_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE));
 Result   : FALSE
 
 Operator : oid_of_door
 Number   : 1
 Signature: door3d x int -> int
-Example  : query oid_of_door(door1,1);
+Example  : query oid_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE),1);
 Result   : 1
 
 
 Operator : loc_of_door
 Number   : 1
 Signature: door3d x int -> line 
-Example  : query loc_of_door(door1,1);
-Result   : (1 ((5.93 4.42 7.53 4.37)))
+Example  : query loc_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE),1);
+Result   : ((2.0 2.0 3.0 3.0))
 
 Operator : state_of_door
 Number   : 1
 Signature: door3d -> mbool
-Example  : query no_components(state_of_door(door1));
-Result   : 1
+Example  : query no_components(state_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE)));
+Result   : 2
 
 
 Operator : get_floor
 Number   : 1
 Signature: groom x int -> floor3d
-Example  : query get_height(get_floor(groom1, 0));
-Result   : 2.0
+Example  : query getheight(get_floor([const groom value ((2.0 ( (((1.0 1.0)(1.0 5.0)(5.0 5.0)(5.0 1.0))) ) ))], 0));
+Result   : 2
 
 Operator : add_height_groom
 Number   : 1
 Signature: groom x real -> groom
-Example  : query get_height(get_floor(add_height_groom(groom1, 3.0),0));
-Result   : 2.0
+Example  : query getheight(get_floor(add_height_groom([const groom value ((2.0 ( (((1.0 1.0)(1.0 5.0)(5.0 5.0)(5.0 1.0))) ) ))], 3.0),0));
+Result   : 5.0
 
 
 Operator : translate_groom
 Number   : 1
 Signature: groom x real x real -> groom
-Example  : query get_height(get_floor(groom1 translate_groom [2.0, 0.0]),0);
-Result   : 2.0
+Example  : query getheight(get_floor([const groom value ((2.0 ( (((1.0 1.0)(1.0 5.0)(5.0 5.0)(5.0 1.0))) ) ))] translate_groom [2.0, 0.0], 0));
+Result   : 2
 
 
 Operator : size
 Number   : 1
-Signature: size -> real 
+Signature: line3d -> real 
 Example  : query size([const line3d value ((2.0 2.0 2.0)(2.0 2.0 3.0))]);
 Result   : 1.0
 
@@ -770,8 +769,8 @@ Result   : 300
 Operator : path_in_region 
 Number   : 1
 Signature: region x point x point -> line 
-Example  : query size(path_in_region(reg1, p1, p2));
-Result   : 25.0 
+Example  : query size(path_in_region([const region value ((((1 1)(5 1)(5 5)(1 5))))], [const point value (1 1)], [const point value (1 2) ]));
+Result   : 1 
 
 Operator : createigraph
 Number   : 2

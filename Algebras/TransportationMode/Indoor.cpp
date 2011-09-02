@@ -5355,7 +5355,8 @@ void IndoorNav::GenerateIP2(int num)
 
         inside = p2.Inside(*reg);
         count++;
-      }
+    }
+
       if(inside){
         bool flag = false;
         float h = GetHeightInST2(groom, p2, flag);

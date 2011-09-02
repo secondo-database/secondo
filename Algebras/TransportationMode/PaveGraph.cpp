@@ -1628,7 +1628,7 @@ If it has hole inside, it has to check every possible path.
 */
 void CompTriangle::GeoShortestPath(Point* start, Point* end)
 {
-    cout<<"GeoShortestPath point to point"<<endl;
+
     if(start->Inside(*reg) == false || end->Inside(*reg) == false){
       cout<<"points are not inside the polygon"<<endl;
       return;
@@ -1640,7 +1640,7 @@ void CompTriangle::GeoShortestPath(Point* start, Point* end)
     }
 
     if(PolygonConvex()){ //convex, just use euclidean distance
-      cout<<"a convex polygon"<<endl;
+//      cout<<"a convex polygon"<<endl;
       int edgeno = 0;
       path = new Line(0);
       path->StartBulkLoad();
@@ -7498,6 +7498,10 @@ bool RegionCom(const Region& r1, const Region& r2)
   return r1.Area() > r2.Area();
 }
 
+/*
+query getcontour('Transportationmode/Polygon/GermanyPPPoly') count;
+
+*/
 void Hole::GetContour()
 {
     Coord x1, y1, x2, y2;

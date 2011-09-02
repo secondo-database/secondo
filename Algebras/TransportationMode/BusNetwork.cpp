@@ -1854,7 +1854,7 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
   
         Point* p = new Point();
         gp->ToPoint(p);
-        bus_stop_loc_2.push_back(*p);      
+        bus_stop_loc_2.push_back(*p);
         delete p; 
         delete gp; 
 
@@ -6445,6 +6445,7 @@ get a bus segment from the dbarray
 */
 void Bus_Route::Get(int i, SimpleLine& sl)
 {
+//  cout<<i<<" "<<elem_list.Size()<<endl;
   assert(0 <= i && i < elem_list.Size()); 
 
   BR_Elem br_elem;
