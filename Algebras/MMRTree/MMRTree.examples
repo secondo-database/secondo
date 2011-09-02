@@ -1,0 +1,79 @@
+Database: berlintest
+Restore : No
+
+
+Operator : realJoinMMRTree
+Number   : 1
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int  -> stream(tuple(A o B)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+
+Operator : realJoinMMRTree
+Number   : 2 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+Operator : realJoinMMRTree
+Number   : 3 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
+Example  : query (units(train7) namedtransformstream[U1]  extend[B1 : bbox(.U1)] units(train7) namedtransformstream[U2] extend[B2 : bbox(.U2)] realJoinMMRTree[B1,B2,4,8, 512] count) =  (units(train7) namedtransformstream[U1]  extend[B1 : bbox(.U1)] units(train7) namedtransformstream[U2] extend[B2 : bbox(.U2)] spatialjoin0[B1,B2] count)
+Result   : TRUE 
+
+Operator : realJoinMMRTreeVec
+Number   : 1
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int  -> stream(tuple(A o B)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTreeVec[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+
+Operator : realJoinMMRTreeVec
+Number   : 2 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTreeVec[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+Operator : realJoinMMRTreeVec
+Number   : 3 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
+Example  : query (units(train7) namedtransformstream[U1]  extend[B1 : bbox(.U1)] units(train7) namedtransformstream[U2] extend[B2 : bbox(.U2)] realJoinMMRTreeVec[B1,B2,4,8, 512] count) =  (units(train7) namedtransformstream[U1]  extend[B1 : bbox(.U1)] units(train7) namedtransformstream[U2] extend[B2 : bbox(.U2)] spatialjoin0[B1,B2] count)
+Result   : TRUE 
+
+Operator : insertMMRTree 
+Number   : 1
+Signature:  stream(rectangle) x int x int  -> stream(rectangle) 
+Example  : query strassen feed extend[B : bbox(.geoData)] projecttransformstream[B]  insertMMRTree[4,8] count = strassen count
+Result   : TRUE 
+
+
+Operator : statMMRTree 
+Number   : 1
+Signature:  stream(tuple) x attrname int x int  -> text 
+Example  : query strassen feed extend[B : bbox(.geoData)] statMMRTree[B, 4,8] contains "height" 
+Result   : TRUE 
+
+Operator : statMMRTree
+Number   : 2
+Signature: stream(tuple(A)) x a_i  -> text  
+Example  : query (units(train7) namedtransformstream [U] extend[B : bbox(.U)] statMMRTree[B,4,8]) contains 'height'
+Result   : TRUE
+
+Operator : insertRStar 
+Number   : 1
+Signature:  stream(rectangle) x int x double  -> stream(rectangle) 
+Example  : query strassen feed extend[B : bbox(.geoData)] projecttransformstream[B]  insertRStar[15,0.7] count = strassen count
+Result   : TRUE 
+
+Operator : realJoinRStar
+Number   : 1 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x real   -> stream(tuple(A o B)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRStar[B,B_a,16,0.7] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
+Operator : realJoinRStar
+Number   : 2 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x real   -> stream(tuple(A o B)) 
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRStar[B,B_a,16,0.7,512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Result   : TRUE 
+
