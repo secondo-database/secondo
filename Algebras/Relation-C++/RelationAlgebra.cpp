@@ -2050,17 +2050,19 @@ ListExpr FilterTypeMap(ListExpr args)
     return nl->TypeError();
   }
 
+  
   ListExpr map = nl->First(nl->Second(args));
-  if(nl->IsAtom(map) || !nl->IsEqual(nl->First(map), Symbol::MAP()) ){
-     ErrorReporter::ReportError("map expected as the second argument");
+  if(!listutils::isMap<1>(map)){ // checking for a single arg
+     ErrorReporter::ReportError("map: tuple -> bool expected as the"
+                                " second argument");
      return nl->TypeError();
   }
 
-  ListExpr mapres = nl->Nth(nl->ListLength(map), map);
-  if(!nl->IsEqual(mapres,CcBool::BasicType())){
+  ListExpr mapres = nl->Third(map);
+  if(!CcBool::checkType(mapres)){
     ErrorReporter::ReportError("map is not a predicate");
     return nl->TypeError();
-  }
+  } 
 
   if(!nl->Equal(nl->Second(nl->First(nl->First(args))), nl->Second(map))){
     ErrorReporter::ReportError("map and tuple type are not consistent");
