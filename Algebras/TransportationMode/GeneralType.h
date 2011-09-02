@@ -1000,17 +1000,6 @@ struct GenMObject{
                       Relation* rel1, Relation* rel2,
                       R_Tree<2,TupleId>* rtree);
 
-  ///////////////////////////////////////////////////////////////////////
-  //////////////////improve creating road shortest path/////////////////
-  ///////////////////////////////////////////////////////////////////////
-  void CreateCommPath(RoadGraph*, Network*, Relation*, int attr1, int attr2, 
-                      int attr3, int attr4);
-  inline int GetNewCellId(vector<int>&, int);
-  void MergeCommPath(Network*, Relation* );
-  void MergeRoadPath(vector<GLine>& gl_list, GLine* res_gl);
-  void PrintRouteInterval(vector< vector<RouteInterval> >& ri_list, 
-                          unsigned int);
-  
 };
 
 

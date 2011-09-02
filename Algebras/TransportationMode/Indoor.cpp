@@ -5357,13 +5357,16 @@ void IndoorNav::GenerateIP2(int num)
         count++;
       }
       if(inside){
-        float h = GetHeightInST(groom, p2);
-        Loc loc(p1.GetX(), p1.GetY());
-        GenLoc genl(room_oid, loc);
-        Point3D q(true, p2.GetX(), p2.GetY(), h);
-        genloc_list.push_back(genl);
-        p3d_list.push_back(q); 
-        i++;
+        bool flag = false;
+        float h = GetHeightInST2(groom, p2, flag);
+        if(flag){
+          Loc loc(p1.GetX(), p1.GetY());
+          GenLoc genl(room_oid, loc);
+          Point3D q(true, p2.GetX(), p2.GetY(), h);
+          genloc_list.push_back(genl);
+          p3d_list.push_back(q); 
+          i++;
+        }
       }
 
     delete reg; 
@@ -5471,6 +5474,7 @@ find the height of the point in a staircase. at which footstep
 */
 float IndoorNav::GetHeightInST(GRoom* groom, Point p)
 {
+
   for(int i = 0; i < groom->Size(); i++){
     Region temp_reg(0);
     float h;
@@ -5481,6 +5485,24 @@ float IndoorNav::GetHeightInST(GRoom* groom, Point p)
   assert(false); 
   return 0; 
 }
+
+float IndoorNav::GetHeightInST2(GRoom* groom, Point p, bool& flag)
+{
+
+  for(int i = 0; i < groom->Size(); i++){
+    Region temp_reg(0);
+    float h;
+    groom->Get( i, h, temp_reg);
+    if(temp_reg.Contains(p)){
+      flag = true;
+      return h;
+    }
+  }
+  cout<<"do not find the point in the 2D area"<<endl;
+  flag = false;
+  return 0; 
+}
+
 /*
 initialize the elevator schedule 
 

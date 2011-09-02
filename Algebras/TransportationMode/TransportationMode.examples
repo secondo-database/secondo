@@ -433,8 +433,8 @@ Result   : 20
 
 Operator : mapbstopave
 Number   : 2
-Signature: busnetwork x rtree x rel x int -> (stream(((x1 t1) ... (xn tn))))
-Example  : query mapbstopave(bn1, rtree_dg, dg_node, roadwidth) count;
+Signature: busnetwork x rtree x rel x int x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query mapbstopave(bn1, rtree_dg, dg_node, roadwidth, Berlin) count;
 Result   : 20
 
 
@@ -1019,18 +1019,6 @@ Operator : generate_genmo8
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop)count;
-Result   : 10
-
-Operator : comm_path
-Number   : 1
-Signature: roadgraph x network x rel x attr1 x attr2 x atrr3 x attr4 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query comm_path(rg, rn, cell_join_tm, cell_id, id_f, cover_area_w, r_c_ps) count;
-Result   : 10
-
-Operator : merge_path
-Number   : 1
-Signature: network x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query merge_path(rn, comm_paths) count;
 Result   : 10
 
 Operator : get_rg_nodes

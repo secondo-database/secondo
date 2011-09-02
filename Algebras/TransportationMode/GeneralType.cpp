@@ -3738,6 +3738,8 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     MPoint mo_bus(0);
     int mo_bus_index = -1;
     int mobus_oid = 0;
+    
+//    double time1 = 0.0;
 
     for(unsigned int i = 0;i < bn_nav->path_list.size();i++){
       if(last_walk_id == (int)i) break;/////stop at the last walk segment 
@@ -3753,10 +3755,12 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
       double t = bn_nav->time_cost_list[i];
       int tm = GetTM(bn_nav->tm_list[i]);
       /////////////////////////////////////////////////////////////
+
       Point* start_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs1, start_loc);
       Point* end_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs2, end_loc);
+
 
       /////filter the first part and transfer without movement ////////
       if(sl->Size() == 0 && AlmostEqual(t, 0.0)) continue;
@@ -3770,6 +3774,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
       Instant temp_start_time = start_time; 
 
       if(tm == TM_WALK){
+
 
         Line* l1 = new Line(0);
         ///////////////////////////////////////////////////////////////////
@@ -3856,8 +3861,23 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
                   /////with bs find br, with br.uoid find mobus///
                   //////////// mode = bus////////////////////////
                   ///////////////////////////////////////////////
-                int mbus_oid = 
+//                 clock_t start1, finish1;
+//                 start1 = clock();
+
+//                 int mbus_oid = 
+//                       bn_nav->bn->GetMOBus_Oid(&bs1, start_loc, start_time);
+//                cout<<mobus_oid<<" "<<mbus_oid<<endl;
+                int mbus_oid = mobus_oid;
+                if(mbus_oid == 0){
+                    mbus_oid = 
                       bn_nav->bn->GetMOBus_Oid(&bs1, start_loc, start_time);
+                }
+
+//                 finish1 = clock();
+//                 time1 += (double)(finish1 - start1) / CLOCKS_PER_SEC;
+//                 printf("%.4f\n", time1);
+
+
                 Loc loc1(-1.0, -1.0);
                 Loc loc2(-1.0, -1.0);
                 GenLoc gloc1(mbus_oid, loc1);
@@ -3926,7 +3946,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             /////////find the range in mpoint for bs1, bs2//////////////
             FindPosInMP(&mo_bus, start_loc, end_loc, pos1, pos2, 0);
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
-//            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl;
+
             /////////////////////////////////////////////////////////////
             ///////////////set up mpoint//////////////////////////////
             ////////////////////////////////////////////////////////////
@@ -3946,7 +3966,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             int pos2 = -1;
             /////////find the range in mpoint for bs1, bs2//////////////
             FindPosInMP(&mo_bus, start_loc, end_loc, pos1, pos2, mo_bus_index);
-//            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
+
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
 
             SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
@@ -3988,6 +4008,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
          ///////////remove this part when the above code works correctly//////
 //         start_time.ReadFrom(temp_start_time.ToDouble() + 
 //                            t*1.0/(24.0*60.0*60.0));
+
         }
 
       }
@@ -4019,6 +4040,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     delete temp_l;
 
     delete l;
+
 
     return last_walk_id;
 }
@@ -6144,7 +6166,7 @@ void GenMObject::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                              Relation* rel,
                              Point query_loc, vector<int>& tid_list)
 {
-  const double max_dist = 1000.0;
+  const double max_dist = 1500.0;
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
                   rtree->MinEntries(0), rtree->MaxEntries(0));
   for(int j = 0;j < node->EntryCount();j++){
@@ -6217,7 +6239,7 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
         mn_nav->mn->GetMetroStopGeoData(&ms1, start_loc);
         Point* end_loc = new Point(true, 0, 0);
         mn_nav->mn->GetMetroStopGeoData(&ms2, end_loc);
-        
+
         Instant temp_start_time = start_time;
 
 
@@ -6240,8 +6262,13 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
                   /////with bs find br, with br.uoid find mobus///
                   //////////// mode = metro////////////////////////
                   ///////////////////////////////////////////////
-                int metro_oid = 
-                    mn_nav->mn->GetMOMetro_Oid(&ms1, start_loc, start_time);
+/*                int metro_oid = 
+                    mn_nav->mn->GetMOMetro_Oid(&ms1, start_loc, start_time);*/
+                int metro_oid = mometro_oid;
+                if(metro_oid == 0){
+                    metro_oid = 
+                      mn_nav->mn->GetMOMetro_Oid(&ms1, start_loc, start_time);
+                }
 
                 Loc loc1(-1.0, -1.0);
                 Loc loc2(-1.0, -1.0);
@@ -6741,550 +6768,6 @@ void GenMObject::GenerateGenMO8(Space* sp, Periods* peri, int mo_no,
   sp->ClosePavement(pm);
   
   sp->CloseIndoorInfra(i_infra);
-
-}
-
-int GenMObject::GetNewCellId(vector<int>& id_list, int id)
-{
-  for(unsigned int i = 0;i < id_list.size();i++){
-    if(id_list[i] == id) return i + 1;
-  }
-  return 0;
-}
-
-/*
-create common road network shortest paths
-compute or find the common road network shortest paths for a pair of cells
-if the number of roads intersection cells is small, the area has less roads
-it has low probability to be selected for locations 
-old shortest path computation: 2150 time: 623 seconds 
-new method (road graph) 149 seconds 
-
-*/
-void GenMObject::CreateCommPath(RoadGraph* rg, Network* rn, Relation* rel,
-                                int attr1, int attr2, int attr3, int attr4)
-{
-//   cout<<"attr1 "<<attr1<<" attr2 "<<attr2
-//       <<" attr3 "<<attr3<<" attr4 "<<attr4<<endl;
-
-  Tuple* cell_tuple = rel->GetTuple(1, false);
-  Region* reg = (Region*)cell_tuple->GetAttribute(attr3);
-  Rectangle<2> bbox = reg->BoundingBox();
-  const int factor = 10;
-  const double min_dist = fabs(bbox.MaxD(0) - bbox.MinD(0)) * factor;
-  cell_tuple->DeleteIfAllowed();
-
-  const unsigned int min_inter_ps = 10;
-
-  ////////reorder the cell id so that the number is in a sequence///////////
-  vector<int> new_cell_id_list;
-  for(int i = 1;i <= rel->GetNoTuples();i++){
-    Tuple* cell_tuple = rel->GetTuple(i, false);
-    int id = ((CcInt*)cell_tuple->GetAttribute(attr1))->GetIntval();
-    if(new_cell_id_list.size() == 0)
-        new_cell_id_list.push_back(id);
-    else{
-      unsigned int j = 0;
-      for(;j < new_cell_id_list.size();j++){
-        if(new_cell_id_list[j] == id)break;
-      }
-      if(j == new_cell_id_list.size())
-        new_cell_id_list.push_back(id);
-    }
-    cell_tuple->DeleteIfAllowed();
-  }
-
-//  cout<<new_cell_id_list.size()<<endl; 
-
-  int sum = 0;
-  RoadNav* road_nav = new RoadNav();
-  
-  for(int i = 1;i <= rel->GetNoTuples();i++){
-
-    Tuple* tuple1 = rel->GetTuple(i, false);
-    int c_id1 = ((CcInt*)tuple1->GetAttribute(attr1))->GetIntval();
-
-    Region* reg1 = (Region*)tuple1->GetAttribute(attr3);
-    Rectangle<2> bbox1 = reg1->BoundingBox();
-    Points* ps1 = (Points*)tuple1->GetAttribute(attr4);
-
-    vector<GPoint> gp_list1;
-
-    for(int index = 0;index < ps1->Size();index++){
-      Point p;
-      ps1->Get(index, p);
-      GPoint* res = rn->GetNetworkPosOfPoint(p);/////////bad interface 
-      assert(res->IsDefined());
-      gp_list1.push_back(*res);
-      delete res;
-    }
-
-    int j = i + 1;
-    while(j <= rel->GetNoTuples()){
-      Tuple* tuple2 = rel->GetTuple(j, false);
-      int c_id2 = ((CcInt*)tuple2->GetAttribute(attr1))->GetIntval();
-      if(c_id2 != c_id1){
-          tuple2->DeleteIfAllowed();
-          break;
-      }
-      Points* ps2 = (Points*)tuple2->GetAttribute(attr4);
-
-      for(int index = 0;index < ps2->Size();index++){
-          Point p;
-          ps2->Get(index, p);
-          GPoint* res = rn->GetNetworkPosOfPoint(p);
-          assert(res->IsDefined());
-          gp_list1.push_back(*res);
-          delete res;
-      }
-      j++;
-
-      tuple2->DeleteIfAllowed();
-
-    }
-    i = j - 1;
-//    cout<<"cell id1 "<<c_id1<<" gp size1 "<<gp_list1.size()<<endl;
-    
-    if(gp_list1.size() < min_inter_ps){
-      tuple1->DeleteIfAllowed();
-      continue;
-    }
-    
-
-
-    int new_cell_id1 = GetNewCellId(new_cell_id_list, c_id1);
-    assert(1 <= new_cell_id1 && new_cell_id1 <= (int)new_cell_id_list.size());
-
-    ////////////////////////////////////////////////////////////////////////
-    ////////////////// get gpoints for another cell///////////////////////
-    ///////////////////////////////////////////////////////////////////////
-    
-    for(int k = 1;k <= rel->GetNoTuples();k++){
-      Tuple* cell_tuple = rel->GetTuple(k, false);
-      int c_id2 = ((CcInt*)cell_tuple->GetAttribute(attr1))->GetIntval();
-
-      Points* ps = (Points*)cell_tuple->GetAttribute(attr4);
-
-      Region* reg2 = (Region*)cell_tuple->GetAttribute(attr3);
-      Rectangle<2> bbox2 = reg2->BoundingBox();
-      if(c_id1 == c_id2 || bbox1.Distance(bbox2) < min_dist){
-        cell_tuple->DeleteIfAllowed();
-        continue;
-      }
-
-      vector<GPoint> gp_list2;
-
-      for(int index = 0;index < ps->Size();index++){
-        Point p;
-        ps->Get(index, p);
-        GPoint* res = rn->GetNetworkPosOfPoint(p);
-        assert(res->IsDefined());
-        gp_list2.push_back(*res);
-        delete res;
-      }
-      cell_tuple->DeleteIfAllowed();
-
-      /////////////////////////////////////////////////////////////////////
-
-      int k2 = k + 1;
-      while(k2 <= rel->GetNoTuples()){
-        Tuple* tuple_tmp = rel->GetTuple(k2, false);
-        int id_tmp = ((CcInt*)tuple_tmp->GetAttribute(attr1))->GetIntval();
-        if(id_tmp != c_id2){
-          tuple_tmp->DeleteIfAllowed();
-          break;
-        }
-        Points* ps_tmp = (Points*)tuple_tmp->GetAttribute(attr4);
-
-        for(int index_tmp = 0;index_tmp < ps_tmp->Size();index_tmp++){
-            Point p;
-            ps_tmp->Get(index_tmp, p);
-            GPoint* res = rn->GetNetworkPosOfPoint(p);
-            assert(res->IsDefined());
-            gp_list2.push_back(*res);
-            delete res;
-        }
-        k2++;
-        tuple_tmp->DeleteIfAllowed();
-      }
-
-      k = k2 - 1;
-
-//      cout<<"cell id2 "<<c_id2<<" gp size2 "<<gp_list2.size()<<endl;
-
-
-      if(gp_list2.size() < min_inter_ps){
-        continue;
-      }
-
-
-      int new_cell_id2 = GetNewCellId(new_cell_id_list, c_id2);
-      assert(1 <= new_cell_id2 && new_cell_id2 <= (int)new_cell_id_list.size());
-
-//       cout<<"id 1 "<<new_cell_id1<<" size1 "<<gp_list1.size()
-//           <<"id 2 "<<new_cell_id2<<" size2 "<<gp_list2.size()<<endl;
-
-      //calculate the total number of paths needed to compute
-      sum += gp_list1.size()*gp_list2.size();
-      ///////////////////////////////////////////////////////////////////
-      /////////////compute shortest path////////////////////////////////
-      /////////////////////////////////////////////////////////////////
-      for(unsigned int index1 = 0; index1 < gp_list1.size();index1++){
-
-          for(unsigned int index2 = 0; index2 < gp_list2.size();index2++){
-
-
-                GLine* gl = new GLine(0);
-
-                road_nav->ShortestPathSub(&gp_list1[index1], 
-                                          &gp_list2[index2], rg, rn, gl);
-
-                cell_id_list1.push_back(new_cell_id1);
-                rect_list1.push_back(bbox1);
-                cell_id_list2.push_back(new_cell_id2);
-                rect_list2.push_back(bbox2);
-                gline_list.push_back(*gl);
-
-                delete gl;
-          }
-      }
-
-    }
-
-//    cout<<"candi_no "<<candi_no<<endl;
-
-    tuple1->DeleteIfAllowed();
-
-//     cout<<"cell id 1 "<<new_cell_id1
-//         <<" current size "<<cell_id_list1.size()<<endl;
-
-//    if(new_cell_id1 >= 10) break;////////small testing 
-  }
-
-  delete road_nav;
-
-  cout<<"total paths "<<sum<<endl;
-
-}
-
-/*
-merge the paths between a pair of cells and find the common gline
-
-*/
-void GenMObject::MergeCommPath(Network* rn, Relation* rel)
-{
-  const double min_len = 3000.0;
-
-  for(int i = 1;i <= rel->GetNoTuples();i++){
-    Tuple* cell_tuple1 = rel->GetTuple(i, false);
-    int id1_1 = ((CcInt*)cell_tuple1->GetAttribute(CELL_ID1))->GetIntval();
-    int id1_2 = ((CcInt*)cell_tuple1->GetAttribute(CELL_ID2))->GetIntval();
-    
-    
-    vector<GLine> gl_list;
-    GLine* gl1 = (GLine*)cell_tuple1->GetAttribute(CELL_PATH);
-    gl_list.push_back(*gl1);
-    int j = i + 1;
-    while(j <= rel->GetNoTuples()){
-      Tuple* cell_tuple2 = rel->GetTuple(j, false);
-      int id2_1 = ((CcInt*)cell_tuple2->GetAttribute(CELL_ID1))->GetIntval();
-      int id2_2 = ((CcInt*)cell_tuple2->GetAttribute(CELL_ID2))->GetIntval();
-      if(id1_1 == id2_1 && id1_2 == id2_2){
-          GLine* gl2 = (GLine*)cell_tuple2->GetAttribute(CELL_PATH);
-          gl_list.push_back(*gl2);
-          j++;
-      }else{
-        cell_tuple2->DeleteIfAllowed();
-        break;
-      }
-
-      cell_tuple2->DeleteIfAllowed();
-    }
-    i = j - 1;
-
-//     if(!(id1_1 == 10 && id1_2 == 51)){
-//       cell_tuple1->DeleteIfAllowed();
-//       continue;
-//     }
-
-//    cout<<"id1 "<<id1_1<<" id2 "<<id1_2<<" size "<<gl_list.size()<<endl;
-    ///////////////////////////////////////////////////////////////////
-
-    GLine* res_gl = new GLine(0);
-    MergeRoadPath(gl_list, res_gl);
-
-    if(res_gl->Size() > 0 && res_gl->GetLength() > min_len){
-        BusRoute* br = new BusRoute(rn, NULL,NULL);
-        GLine* newgl = new GLine(0);
-
-        if(res_gl->Size() >= 2){
-          assert(br->ConvertGLine(res_gl, newgl));
-          gline_list.push_back(*newgl);
-        }
-        else{
-          gline_list.push_back(*res_gl);
-        }
-
-        Rectangle<2>* bbox1 = 
-                          (Rectangle<2>*)cell_tuple1->GetAttribute(CELL_AREA1);
-        Rectangle<2>* bbox2 = 
-                          (Rectangle<2>*)cell_tuple1->GetAttribute(CELL_AREA2);
-
-        cell_id_list1.push_back(id1_1);
-        rect_list1.push_back(*bbox1);
-        cell_id_list2.push_back(id1_2);
-        rect_list2.push_back(*bbox2);
-//        gline_list.push_back(*newgl);
-//        gline_list.push_back(*res_gl);
-
-
-        delete newgl;
-        delete br;
-    }
-
-    delete res_gl;
-
-
-    cell_tuple1->DeleteIfAllowed();
-
-//    break;
-  }
-
-}
-
-bool CompareRoadInterval(const RouteInterval& ri1, 
-                                      const RouteInterval& ri2)
-{
-   if(ri1.GetRouteId() < ri2.GetRouteId()) return true;
-   else if(ri1.GetRouteId() > ri2.GetRouteId()) return false; 
-   else{
-    double start1 = ri1.GetStartPos();
-    double end1 = ri1.GetEndPos(); 
-    if(start1 > end1){
-      double temp = start1;
-      start1 = end1;
-      end1 = temp;
-    }
-    double start2 = ri2.GetStartPos();
-    double end2 = ri2.GetEndPos(); 
-    if(start2 > end2){
-      double temp = start2;
-      start2 = end2;
-      end2 = temp; 
-    }
-    if(AlmostEqual(start1, start2)){
-      if(AlmostEqual(end1, end2))return true;
-      else if(end1 < end2) return true;
-      else return false; 
-    }
-    else if(start1 < start2 )return true; 
-    else return false;
-   }
-}
-
-void GenMObject::PrintRouteInterval(vector< vector<RouteInterval> >& ri_list, 
-                                    unsigned int index)
-{
-  assert(0 <= index && index < ri_list.size());
-  cout<<"index "<<index<<endl;
-  for(unsigned int i = 0;i < ri_list[index].size();i++){
-    ri_list[index][i].Print(cout);
-  }
-  cout<<endl;
-
-}
-
-void GenMObject::MergeRoadPath(vector<GLine>& gl_list, GLine* res_gl)
-{
-  vector< vector<RouteInterval> > ri_list;
-
-  for(unsigned int i = 0;i < gl_list.size();i++){
-      vector<RouteInterval> sub_ri_list;
-      for(int j = 0; j < gl_list[i].Size();j++){
-          RouteInterval* ri = new RouteInterval();
-          gl_list[i].Get(j, *ri); 
-          sub_ri_list.push_back(*ri);
-      }
-      sort(sub_ri_list.begin(), sub_ri_list.end(), CompareRoadInterval);
-//      cout<<"i "<<i<<" size "<<sub_ri_list.size()<<endl;
-      ri_list.push_back(sub_ri_list);
-  }
-  assert(ri_list.size() == gl_list.size());
-
-
-
-  if(ri_list.size() >= 2){
-    
-//    PrintRouteInterval(ri_list, 0);
-//    PrintRouteInterval(ri_list, 1);
-    
-    unsigned int index1 = 0;
-    unsigned int index2 = 0;
-    vector<RouteInterval> res_list;
-    while(index1 < ri_list[0].size() && index2 < ri_list[1].size()){
-      int rid1 = ri_list[0][index1].GetRouteId();
-      int rid2 = ri_list[1][index2].GetRouteId();
-      if(rid1 < rid2){
-        index1++;
-      }else if(rid1 > rid2){
-        index2++;
-      }else{
-            double s1 = ri_list[0][index1].GetStartPos();
-            double e1 = ri_list[0][index1].GetEndPos();
-            if(s1 > e1){
-              double temp = s1;
-              s1 = e1;
-              e1 = temp;
-            }
-            double s2 = ri_list[1][index2].GetStartPos();
-            double e2 = ri_list[1][index2].GetEndPos();
-            if(s2 > e2){
-              double temp = s2;
-              s2 = e2;
-              e2 = temp; 
-            }
-
-            if(s1 < s2){
-              if(e1 < s2)index1++;
-              else{
-                double start, end;
-                start = s2;
-                if(e1 < e2)
-                  end = e1;
-                else
-                  end = e2;
-
-                RouteInterval* ri = new RouteInterval(rid1, start, end);
-                res_list.push_back(*ri);
-                delete ri;
-                index1++;
-              }
-            }else{
-              if(e2 < s1)index2++;
-              else{
-                double start, end;
-                start = s1;
-                if(e1 < e2)end = e1;
-                else end = e2;
-
-                RouteInterval* ri = new RouteInterval(rid1, start,end);
-                res_list.push_back(*ri);
-                delete ri;
-                index2++;
-              }
-
-            }
-      }
-
-    }
-
-
-
-    for(unsigned int i = 2;i < ri_list.size();i++){
-      index1 = 0;
-      index2 = 0;
-      vector<RouteInterval> tmp_res_list;
-      while(index1 < ri_list[i].size() && index2 < res_list.size()){
-          int rid1 = ri_list[i][index1].GetRouteId();
-          int rid2 = res_list[index2].GetRouteId();
-          if(rid1 < rid2){
-            index1++;
-          }else if(rid1 > rid2){
-          index2++;
-          }else{
-            double s1 = ri_list[i][index1].GetStartPos();
-            double e1 = ri_list[i][index1].GetEndPos();
-            if(s1 > e1){
-              double temp = s1;
-              s1 = e1;
-              e1 = temp;
-            }
-            double s2 = res_list[index2].GetStartPos();
-            double e2 = res_list[index2].GetEndPos();
-            if(s2 > e2){
-              double temp = s2;
-              s2 = e2;
-              e2 = temp; 
-            }
-            if(s1 < s2){
-              if(e1 < s2)index1++;
-              else{
-                double start, end;
-                start = s2;
-                if(e1 < e2)end = e1;
-                else end = e2;
-
-                RouteInterval* ri = new RouteInterval(rid1, start, end);
-                tmp_res_list.push_back(*ri);
-                delete ri;
-                index1++;
-              }
-            }else{
-              if(e2 < s1)index2++;
-              else{
-                double start, end;
-                start = s1;
-                if(e1 < e2) end = e1;
-                else end = e2;
-
-                RouteInterval* ri = new RouteInterval(rid1, start, end);
-                tmp_res_list.push_back(*ri);
-                delete ri;
-                index2++;
-              }
-
-            }
-        }
-
-      }
-    
-     res_list.clear();
-     for(unsigned int i = 0;i < tmp_res_list.size();i++)
-      res_list.push_back(tmp_res_list[i]);
-    }
-
-
-/*    for(unsigned int i = 0;i < res_list.size();i++)
-       res_list[i].Print(cout);
-      cout<<endl;*/
-    
-    
-    ////////////////////////////////////////////////////////////////////
-
-    const double delta_dist = 0.001;
-    for(int i = 0;i < gl_list[0].Size();i++){
-        RouteInterval* ri = new RouteInterval();
-        gl_list[0].Get(i, *ri); 
-//        ri->Print(cout);
-        double start1 = ri->GetStartPos();
-        double end1 = ri->GetEndPos();
-
-        for(unsigned int j = 0;j < res_list.size();j++){
-          if(ri->GetRouteId() == res_list[j].GetRouteId()){
-
-
-            double start2 = res_list[j].GetStartPos();
-            double end2 = res_list[j].GetEndPos();
-
-
-           if(start1 < end1){
-             if((fabs(start1 - start2) < delta_dist || start1 < start2) && 
-                (fabs(end1 - end2) < delta_dist || end2 < end1)){
-              res_gl->AddRouteInterval(ri->GetRouteId(), start2, end2);
-             }
-           }
-             if((fabs(end1 - start2) < delta_dist || end1 < start2) && 
-                (fabs(start1 - end2) < delta_dist || end2 < start1)){
-              res_gl->AddRouteInterval(ri->GetRouteId(), start2, end2);
-             }
-          }
-
-        }
-       delete ri;
-    }
-//    cout<<*res_gl<<endl;
-
-  }
 
 }
 

@@ -3311,23 +3311,6 @@ const string SpatialSpecGenerateGMO8TMList =
 "<text>query generate_genmo8(space_1, TwoDays, 30.0, 15, tri_reg_new,"
 "msneighbor, rtree_ms_stop) </text---> ) )";
 
-
-const string SpatialSpecCommPathTMList =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> roadgraph x network x rel x attr x attr x attr x attr x attr"
-" -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>comm_path (rodgraph, network, rel, int, int, region, points) </text--->"
-"<text>create a set of paths for each pair of cells </text--->"
-"<text>query comm_path(rg, rn, cell_join_tm, cell_id, id_f, cover_area_w,"
-" r_c_ps) </text---> ) )";
-
-const string SpatialSpecMergePathTMList =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> network x rel -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>merge_path (network, rel) </text--->"
-"<text>merge common road paths </text--->"
-"<text>query merge_path(rn, comm_paths) </text---> ) )";
-
 const string SpatialSpecGetRGNodesTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> network -> (stream(((x1 t1) ... (xn tn))) </text--->"
@@ -5001,127 +4984,6 @@ int GenerateGMO8ListValueMap(Word* args, Word& result, int message,
 
 
 /*
-find common paths for a set of road paths
-
-*/
-int CommPathValueMap(Word* args, Word& result, int message,
-                    Word& local, Supplier in_pSupplier)
-{
- GenMObject* mo;
-
-  switch(message){
-      case OPEN:{
-        RoadGraph* rg = (RoadGraph*)args[0].addr;
-        Network* rn = (Network* ) args[1].addr;
-        Relation* rel = (Relation*)args[2].addr;
-        
-        int cell_id_pos = ((CcInt*)args[7].addr)->GetIntval() - 1;
-        int r_id_pos = ((CcInt*)args[8].addr)->GetIntval() - 1;
-        int cell_area_pos = ((CcInt*)args[9].addr)->GetIntval() - 1;
-        int ps_pos = ((CcInt*)args[10].addr)->GetIntval() - 1;
-
-        mo = new GenMObject();
-        mo->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        mo->CreateCommPath(rg, rn, rel, cell_id_pos, r_id_pos, 
-                           cell_area_pos, ps_pos);
-        local.setAddr(mo);
-
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          mo = (GenMObject*)local.addr;
-
-          if(mo->count == mo->cell_id_list1.size()) return CANCEL;
-
-           Tuple* tuple = new Tuple(mo->resulttype);
-
-          tuple->PutAttribute(0, new CcInt(true, 
-                                          mo->cell_id_list1[mo->count]));
-          tuple->PutAttribute(1, new Rectangle<2>(mo->rect_list1[mo->count]));
-          tuple->PutAttribute(2, new CcInt(true,
-                                          mo->cell_id_list2[mo->count]));
-          tuple->PutAttribute(3, new Rectangle<2>(mo->rect_list2[mo->count]));
-          tuple->PutAttribute(4, new GLine(mo->gline_list[mo->count]));
-
-          result.setAddr(tuple);
-          mo->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            mo = (GenMObject*)local.addr;
-            delete mo;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-
-}
-
-
-/*
-merge common paths for a set of road paths
-
-*/
-int MergePathValueMap(Word* args, Word& result, int message,
-                    Word& local, Supplier in_pSupplier)
-{
- GenMObject* mo;
-
-  switch(message){
-      case OPEN:{
-        Network* rn = (Network* ) args[0].addr;
-        Relation* rel = (Relation*)args[1].addr;
-
-        mo = new GenMObject();
-        mo->resulttype =
-            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
-        mo->MergeCommPath(rn, rel);
-        local.setAddr(mo);
-
-        return 0;
-      }
-      case REQUEST:{
-          if(local.addr == NULL) return CANCEL;
-          mo = (GenMObject*)local.addr;
-
-          if(mo->count == mo->cell_id_list1.size()) return CANCEL;
-
-           Tuple* tuple = new Tuple(mo->resulttype);
-
-          tuple->PutAttribute(0, new CcInt(true, 
-                                          mo->cell_id_list1[mo->count]));
-          tuple->PutAttribute(1, new Rectangle<2>(mo->rect_list1[mo->count]));
-          tuple->PutAttribute(2, new CcInt(true,
-                                          mo->cell_id_list2[mo->count]));
-          tuple->PutAttribute(3, new Rectangle<2>(mo->rect_list2[mo->count]));
-          tuple->PutAttribute(4, new GLine(mo->gline_list[mo->count]));
-
-          result.setAddr(tuple);
-          mo->count++;
-          return YIELD;
-      }
-      case CLOSE:{
-          if(local.addr){
-            mo = (GenMObject*)local.addr;
-            delete mo;
-            local.setAddr(Address(0));
-          }
-          return 0;
-      }
-  }
-  return 0;
-  
-}
-
-
-/*
 get road graph nodes relation
 
 */
@@ -6485,160 +6347,6 @@ ListExpr GenerateGMO8ListTypeMap(ListExpr args)
 }
 
 
-
-/*
-TypeMap function for operator comm path
-
-*/
-ListExpr CommPathListTypeMap(ListExpr args)
-{
-  if(nl->ListLength(args) != 7){
-      string err = "seven input parameter expected";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg1 = nl->First(args);
-  if(!nl->IsEqual(arg1, "roadgraph")){
-      string err = "the first parameter should be road graph";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2, "network")){
-      string err = "the second parameter should be network";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg3 = nl->Third(args);
-  if (!(listutils::isRelDescription(arg3)))
-    return nl->SymbolAtom ( "typeerror" );
-
-
-  ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fifth(args);
-  ListExpr arg6 = nl->Sixth(args);
-  ListExpr arg7 = nl->Nth(7, args);
-
- 
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(arg4);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
-                      aname1,attrType1);
-
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type int");
-  }
-
-
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(arg5);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
-                      aname2,attrType2);
-
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type int");
-  }
-
-
-  ListExpr attrType3;
-  string aname3 = nl->SymbolValue(arg6);
-  int j3 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
-                      aname3,attrType3);
-
-  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
-      return listutils::typeError("attr name" + aname3 + "not found"
-                      "or not of type region");
-  }
-
-  ListExpr attrType4;
-  string aname4 = nl->SymbolValue(arg7);
-  int j4 = listutils::findAttribute(nl->Second(nl->Second(arg3)),
-                      aname4,attrType4);
-
-  if(j4 == 0 || !listutils::isSymbol(attrType4,"points")){
-      return listutils::typeError("attr name" + aname4 + "not found"
-                      "or not of type points");
-  }
-
-    ListExpr result =
-          nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-                  nl->SymbolAtom("tuple"),
-                      nl->FiveElemList(
-                        nl->TwoElemList(nl->SymbolAtom("cell_id1"),
-                                      nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("cell_area1"),
-                                      nl->SymbolAtom("rect")),
-                        nl->TwoElemList(nl->SymbolAtom("cell_id2"),
-                                      nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("cell_area2"),
-                                      nl->SymbolAtom("rect")),
-                        nl->TwoElemList(nl->SymbolAtom("path"),
-                                      nl->SymbolAtom("gline"))
-                  )
-                )
-          );
-
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-             nl->FourElemList(nl->IntAtom(j1), nl->IntAtom(j2),
-                              nl->IntAtom(j3), nl->IntAtom(j4)),
-                             result);
-
-}
-
-
-/*
-TypeMap function for operator merge path
-
-*/
-ListExpr MergePathListTypeMap(ListExpr args)
-{
-  if(nl->ListLength(args) != 2){
-      string err = "two input parameter expected";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg1 = nl->First(args);
-  if(!nl->IsEqual(arg1, "network")){
-      string err = "the first parameter should be network";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg2 = nl->Second(args);
-  if (!(listutils::isRelDescription(arg2)))
-    return nl->SymbolAtom ( "typeerror" );
-
-  ListExpr xType;
-  nl->ReadFromString(GenMObject::CommPathInfo, xType);
-  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
- 
-    ListExpr result =
-          nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-                  nl->SymbolAtom("tuple"),
-                      nl->FiveElemList(
-                        nl->TwoElemList(nl->SymbolAtom("cell_id1"),
-                                      nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("cell_area1"),
-                                      nl->SymbolAtom("rect")),
-                        nl->TwoElemList(nl->SymbolAtom("cell_id2"),
-                                      nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("cell_area2"),
-                                      nl->SymbolAtom("rect")),
-                        nl->TwoElemList(nl->SymbolAtom("path"),
-                                      nl->SymbolAtom("gline"))
-                  )
-                )
-          );
-
-    return result;
-
-}
-
 /*
 TypeMap function for operator get rg ndoes
 
@@ -7642,21 +7350,6 @@ Operator generate_genmo8("generate_genmo8",
     GenerateGMO8ListTypeMap
 );
 
-
-Operator comm_path("comm_path",
-    SpatialSpecCommPathTMList,
-    CommPathValueMap,
-    Operator::SimpleSelect,
-    CommPathListTypeMap
-);
-
-Operator merge_path("merge_path",
-    SpatialSpecMergePathTMList,
-    MergePathValueMap,
-    Operator::SimpleSelect,
-    MergePathListTypeMap
-);
-
 /*
 create road graph nodes and edges 
 
@@ -8388,12 +8081,12 @@ const string OpTMBusRoutesSpec  =
 const string OpTMMapBsToPaveSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>busnetwork x rtree x rel x int"
+    "( <text>busnetwork x rtree x rel x int x string"
      " -> (stream(((x1 t1) ... (xn tn))))</text--->"
-    "<text>mapbstopave(bn1, rtree_dg, dg_node, roadwidth);"
+    "<text>mapbstopave(bn1, rtree_dg, dg_node, roadwidth, Berlin);"
     " </text--->"
     "<text>map bus stops to pavement areas</text--->"
-    "<text>query mapbstopave(bn1, rtree_dg, dg_node, roadwidth)"
+    "<text>query mapbstopave(bn1, rtree_dg, dg_node, roadwidth, Berlin)"
     " count ;</text--->) )";
 
 /*
@@ -12446,7 +12139,7 @@ TypeMap fun for operator mapbstopave
 */
 ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 4 )
+  if ( nl->ListLength ( args ) != 5 )
   {
     return  nl->SymbolAtom ( "list length should be 4" );
   }
@@ -12472,7 +12165,11 @@ ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
       nl->SymbolValue(param4) == "int"))
       return nl->SymbolAtom("typeerror");
 
-
+ ListExpr param5 = nl->Fifth(args);
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&
+      nl->SymbolValue(param5) == "string"))
+      return nl->SymbolAtom("typeerror");
+  
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
@@ -18886,12 +18583,13 @@ int OpTMMapBsToPaveValueMap ( Word* args, Word& result, int message,
         R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr; 
         Relation* pave_rel = (Relation*)args[2].addr;
         int w = ((CcInt*)args[3].addr)->GetIntval();
+        string type = ((CcString*)args[4].addr)->GetValue();
 
         b_n = new BN(bn);
         b_n->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        b_n->MapBSToPavements(rtree, pave_rel, w);
+        b_n->MapBSToPavements(rtree, pave_rel, w, type);
         local.setAddr(b_n);
         return 0;
       }
@@ -22684,8 +22382,7 @@ class TransportationModeAlgebra : public Algebra
    /////////////////////////////////////////////////////////////////////////
    //////////////// improve shortest path computing in road network////////
    ///////////////////////////////////////////////////////////////////////
-   AddOperator(&comm_path);//find common road shortest path
-   AddOperator(&merge_path);//merge common paths 
+
    AddOperator(&get_rg_nodes);//get road graph nodes 
    AddOperator(&get_rg_edges1);//get road graph edges, same location 
    AddOperator(&get_rg_edges2);//get road graph edges, glines

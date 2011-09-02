@@ -201,9 +201,9 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
 
    if(type == "Berlin"){
 
-    BuildRoute(cell_list3, cell_list1, 1, true);//type 1
+    BuildRoute1(cell_list3, cell_list1, 1, true);//type 1
 
-    BuildRoute(cell_list2, cell_list1, 2, false);//type 2
+    BuildRoute1(cell_list2, cell_list1, 2, false);//type 2
 
   //  unsigned int limit_no = 20;
       unsigned int limit_no = 45;
@@ -212,10 +212,10 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
     BuildRoute_Limit(cell_list1, cell_list1, limit_no);
    }else if(type == "Houston"){
 
-    BuildRoute(cell_list3, cell_list1, 1, true);//type 1
-    BuildRoute(cell_list2, cell_list1, 2, false);//type 2
+    BuildRoute2(cell_list3, cell_list1, 1, true);//type 1
+    BuildRoute2(cell_list2, cell_list1, 2, false);//type 2
 
-    unsigned int limit_no = 70;
+    unsigned int limit_no = 65;
 
     BuildRoute_Limit2(cell_list1, cell_list1, limit_no);
 
@@ -230,7 +230,7 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
 highest density area with low density area
 
 */
-void BusRoute::BuildRoute(vector<Section_Cell>& from_cell_list,
+void BusRoute::BuildRoute1(vector<Section_Cell>& from_cell_list,
                              vector<Section_Cell> to_cell_list,
                              int type, bool start)
 {
@@ -322,6 +322,35 @@ void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
           count++;
     }
     if(count > limit_no/2) break; 
+  }
+
+}
+
+
+void BusRoute::BuildRoute2(vector<Section_Cell>& from_cell_list,
+                             vector<Section_Cell> to_cell_list,
+                             int type, bool start)
+{
+  for(unsigned int i = 0;i < from_cell_list.size();i++){
+    Section_Cell elem = from_cell_list[i];
+
+      float dist_val = 30000.0;//Euclidean distance between two cells
+
+      int end_cellid = 
+          FindEndCell1(from_cell_list[i],to_cell_list,dist_val, start); 
+
+      if(end_cellid >= 0){
+//        cout<<"start cell "<<from_cell_list[i].cell_id
+//          <<" end cell "<<to_cell_list[end_cellid].cell_id<<endl; 
+
+          start_cells.push_back(from_cell_list[i].reg);
+          end_cells.push_back(to_cell_list[end_cellid].reg);
+          start_cell_id.push_back(from_cell_list[i].cell_id);
+          end_cell_id.push_back(to_cell_list[end_cellid].cell_id);
+
+
+          bus_route_type.push_back(type);
+      }
   }
 
 }
@@ -588,15 +617,6 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
 
 //    road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
 
-//     if(route_type == 1 || route_type == 2){
-//         road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
-//     }else{ //////paths avoid city center area 
-//       road_nav->ShortestPathSub2(gp1, gp2, rg, n, gl);
-//       if(gl->IsDefined() == false){//in case cannot find such a path 
-//         road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
-//       }
-//     }
-
     if(route_type == 1){
         if(GetRandom() % 2 == 0)
           road_nav->ShortestPathSub(gp1, gp2, rg, n, gl);
@@ -651,168 +671,6 @@ void BusRoute::ConnectCell(RoadGraph* rg, int attr,int from_cell_id,
     delete road_nav;
 
 } 
-
-
-/*
-there are bugs of computing shortest path in road network. 
-if the result is not correct, return false
-
-*/
-
-bool BusRoute::ConvertGLine(GLine* gl, GLine* newgl)
-{
-   newgl->SetNetworkId(gl->GetNetworkId());
-   
-   
-   vector<RouteInterval> ri_list; 
-   for(int i = 0; i < gl->Size();i++){
-    RouteInterval* ri = new RouteInterval();
-    gl->Get(i, *ri); 
-    
-
-    /////////////////merge connected intervals///////////////////////////// 
-    /////////////////but are properply not ordered correctly//////////////
-    if(!AlmostEqual(ri->GetStartPos(), ri->GetEndPos())){
-      if(ri_list.size() == 0)ri_list.push_back(*ri); 
-      else{
-        int last_rid = ri_list[ri_list.size() - 1].GetRouteId();
-        if(last_rid == ri->GetRouteId()){
-            double last_start = ri_list[ri_list.size() - 1].GetStartPos();
-            double last_end = ri_list[ri_list.size() - 1].GetEndPos();
-            
-            double cur_start = ri->GetStartPos();
-            double cur_end = ri->GetEndPos(); 
-            
-            if(AlmostEqual(last_start, cur_start)){
-              ri_list[ri_list.size() - 1].SetStartPos(cur_end);
-            }else if(AlmostEqual(last_start, cur_end)){
-              ri_list[ri_list.size() - 1].SetStartPos(cur_start);
-            }else if(AlmostEqual(last_end, cur_start)){
-              ri_list[ri_list.size() - 1].SetEndPos(cur_end);
-            }else if(AlmostEqual(last_end, cur_end)){ 
-              ri_list[ri_list.size() - 1].SetEndPos(cur_start);
-            }else {
-              delete ri;
-
-              return false;
-            }
-        }else
-          ri_list.push_back(*ri);
-      }
-
-    }
-    delete ri; 
-   }
-
-   vector<GP_Point> gp_p_list; 
-
- //  cout<<"after processing "<<endl; 
-
-
-   for(unsigned int i = 0;i < ri_list.size();i++){
-
-        int rid = ri_list[i].GetRouteId();
-        double start = ri_list[i].GetStartPos();
-        double end = ri_list[i].GetEndPos();
-        GPoint* gp1 = new GPoint(true,n->GetId(),rid, start,None);
-        Point* p1 = new Point();
-        gp1->ToPoint(p1);
-
-        GPoint* gp2 = new GPoint(true,n->GetId(),rid, end, None);
-        Point* p2 = new Point();
-        gp2->ToPoint(p2);
-
-        GP_Point* gp_p = new GP_Point(rid,start,end,*p1,*p2);
-        gp_p_list.push_back(*gp_p);
-
-//        cout<<*gp1<<" "<<*gp2<<endl;
-
-        delete gp_p;
-        delete p2;
-        delete gp2; 
-        delete p1;
-        delete gp1;
-   }
-
-  if(ri_list.size() < 2) return false;
-
-   vector<bool> temp_start_from; 
-   const double dist_delta = 0.001; 
-   for(unsigned int i = 0; i < gp_p_list.size() - 1;i++){
-    GP_Point gp_p1 = gp_p_list[i];
-    GP_Point gp_p2 = gp_p_list[i + 1];
-
-//     cout<<"gp1 loc1 "<<gp_p1.loc1<<" gp1 loc2 "<<gp_p1.loc2
-//         <<"gp2 loc1 "<<gp_p2.loc1<<" gp2 loc2 "<<gp_p2.loc2<<endl; 
-
-
-    if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
-       gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
-      if(gp_p1.pos1 < gp_p1.pos2)
-        temp_start_from.push_back(false);
-      else
-        temp_start_from.push_back(true); 
-
-    }else if(gp_p1.loc2.Distance(gp_p2.loc1) < dist_delta ||
-             gp_p1.loc2.Distance(gp_p2.loc2) < dist_delta){
-     if(gp_p1.pos2 < gp_p1.pos1)
-        temp_start_from.push_back(false);
-      else
-        temp_start_from.push_back(true); 
-    }else {
-
-        return false;
-      }
-
-   }
-
-
-    GP_Point gp_p1 = gp_p_list[gp_p_list.size() - 1];
-    GP_Point gp_p2 = gp_p_list[gp_p_list.size() - 2];
-    if(gp_p1.loc1.Distance(gp_p2.loc1) < dist_delta || 
-       gp_p1.loc1.Distance(gp_p2.loc2) < dist_delta){
-      if(gp_p1.pos1 < gp_p1.pos2)
-        temp_start_from.push_back(true);
-      else
-        temp_start_from.push_back(false); 
-
-
-    }else if(gp_p1.loc2.Distance(gp_p2.loc1) < dist_delta ||
-             gp_p1.loc2.Distance(gp_p2.loc2) < dist_delta){
-     if(gp_p1.pos2 < gp_p1.pos1)
-        temp_start_from.push_back(true);
-      else
-        temp_start_from.push_back(false); 
-    }else {
-      return false;
-    }
-
-    for(unsigned int i = 0;i < ri_list.size();i++){
-      int rid = ri_list[i].GetRouteId();
-      double start = ri_list[i].GetStartPos();
-      double end = ri_list[i].GetEndPos();
-      if(temp_start_from[i]){
-        if(start < end)
-          newgl->AddRouteInterval(rid, start, end);
-        else
-          newgl->AddRouteInterval(rid, end, start);
-      
-      }else{
-        if(start < end)
-          newgl->AddRouteInterval(rid, end, start);
-        else
-          newgl->AddRouteInterval(rid, start, end);
-      
-      }
-    }
-
-    newgl->SetDefined(true);
-    newgl->SetSorted(false);
-    newgl->TrimToSize();
-    
-//    cout<<*newgl<<endl; 
-    return true;
-}
 
 /*
 Refine bus routes: filter some routes which are very similar to each other 
@@ -1379,14 +1237,16 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops1.push_back(800.0);////////add smaller distance
     dist_for_stops1.push_back(500.0);////////add smaller distance
   }else if(type == "Houston"){
+    dist_for_stops1.push_back(2600.0);
+    dist_for_stops1.push_back(2350.0);
+    dist_for_stops1.push_back(2000.0);
+    dist_for_stops1.push_back(2100.0);
     dist_for_stops1.push_back(1900.0);
-    dist_for_stops1.push_back(2000.0); 
-    dist_for_stops1.push_back(2100.0); 
-    dist_for_stops1.push_back(1800.0);
     dist_for_stops1.push_back(2300.0);
     dist_for_stops1.push_back(2400.0);
     dist_for_stops1.push_back(2200.0);
     dist_for_stops1.push_back(2500.0);
+    dist_for_stops1.push_back(2700.0);
 
   }else {
     cout<<"not processed"<<endl;
@@ -1408,9 +1268,10 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
   }else if(type == "Houston"){
     dist_for_stops2.push_back(2000.0);
     dist_for_stops2.push_back(2200.0);
-    dist_for_stops2.push_back(1800.0);
     dist_for_stops2.push_back(2100.0);
-    dist_for_stops2.push_back(1900.0);
+    dist_for_stops1.push_back(1900.0);
+    dist_for_stops1.push_back(2600.0);
+    dist_for_stops2.push_back(2700.0);
     dist_for_stops2.push_back(2300.0);
     dist_for_stops2.push_back(2400.0);
     dist_for_stops2.push_back(2500.0);
@@ -1434,13 +1295,14 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
   }else if(type == "Houston"){
   
     dist_for_stops3.push_back(2000.0);
-    dist_for_stops3.push_back(2200.0); 
+    dist_for_stops3.push_back(2200.0);
+    dist_for_stops3.push_back(2600.0);
     dist_for_stops3.push_back(2100.0); 
-    dist_for_stops3.push_back(1900.0);
-    dist_for_stops3.push_back(1800.0);
+    dist_for_stops1.push_back(1900.0);
     dist_for_stops3.push_back(2300.0); 
     dist_for_stops3.push_back(2400.0);
     dist_for_stops3.push_back(2500.0);
+    dist_for_stops3.push_back(2700.0);
 
   }else{
     cout<<"not processed"<<endl;
@@ -1984,7 +1846,7 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
         /////////////////////////////////
         new_pos += sec_pos1; 
         /////////////////////////////////
-        
+
         br_id_list.push_back(stop_list[i].br_id);
         br_stop_id.push_back(stop_list[i].br_stop_id); 
         GPoint* gp = new GPoint(true,n->GetId(),stop_list[i].rid,new_pos);
@@ -1998,9 +1860,9 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
 
         sec_id_list.push_back(stop_list[i].sid);
       }
-      
+
     }
-  
+
     tuple_sec->DeleteIfAllowed();
   }
 
@@ -4735,6 +4597,16 @@ void RoadDenstiy::CreateBusTrip1(MPoint* mo,
     
     et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0));//double 1.0 means 1 day 
 //    cout<<st<<" "<<et<<endl;
+
+    int64_t time1 = st.ToDouble()*86400000.0;
+    int64_t time2 = et.ToDouble()*86400000.0;
+    if(time1 == time2){/////////time is equal, unit is not valid
+        if((i + 1) < seq_halfseg.size()){
+          seq_halfseg[i + 1].from = from_loc; 
+        }
+        continue; 
+    }
+
     ////////////////////create a upoint////////////////////////
     up_interval.start = st;
     up_interval.lc = true;
@@ -4786,6 +4658,17 @@ void RoadDenstiy::CreateBusTrip2(MPoint* mo,
 
     et.ReadFrom(st.ToDouble() + time*1.0/(24.0*60.0));//double 1.0 means 1 day 
 //    cout<<st<<" "<<et<<endl;
+
+
+    int64_t time1 = st.ToDouble()*86400000.0;
+    int64_t time2 = et.ToDouble()*86400000.0;
+    if(time1 == time2){/////////time is equal, unit is not valid
+        if((i + 1) < seq_halfseg.size()){
+          seq_halfseg[i + 1].from = from_loc; 
+        }
+        continue; 
+    }
+
     ////////////////////create a upoint////////////////////////
     up_interval.start = st;
     up_interval.lc = true;
@@ -7942,8 +7825,16 @@ map bus stops to the pavements
 
 */
 
-void BN::MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, int w)
+void BN::MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, 
+                          int w, string type)
 {
+  if(type == "Berlin") w = 2*w;
+  else if(type == "Houston") w = 4*w;
+  else{
+      cout<<"invalid value "<<type<<endl;
+      assert(false);
+  }
+
   vector<Bus_Stop> stop_list;
 
   for(int i = 1;i <= bn->GetBS_Rel()->GetNoTuples();i++){
@@ -7957,6 +7848,7 @@ void BN::MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, int w)
 
   sort(stop_list.begin(), stop_list.end(), BSCompare); 
 
+
   for(unsigned int i = 0;i < stop_list.size();){
     Bus_Stop bs1 = stop_list[i];
     Bus_Stop bs2 = stop_list[i + 1];
@@ -7964,7 +7856,6 @@ void BN::MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, int w)
     i += 2;
     MapToPavment(bs1, bs2, rtree, pave_rel, w);
 
-//    break;
   }
 
 }
@@ -7978,7 +7869,13 @@ line and pavements.
 void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
                     Relation* pave_rel, int w)
 {
-  w = 2*w;
+//  w = 2*w;
+//   if(type == "Berlin") w = 2*w;
+//   else if(type == "Houston") w = 4*w;
+//   else{
+//     cout<<"invalid value "<<type<<endl;
+//     assert(false);
+//   }
   ////////////////construct a line connecting the two bus stops//////
   Point p1;
   bn->GetBusStopGeoData(&bs1, &p1);
@@ -7986,7 +7883,7 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
   Point p2;
   bn->GetBusStopGeoData(&bs2, &p2);
 
-//  cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl; 
+//  cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl;
 //  cout<<"loc1 "<<p1<<" loc2 "<<p2<<endl;
 
   Line* l = new Line(0);
@@ -8077,11 +7974,6 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
     }
   }
 
-  sort(it_p_list1.begin(), it_p_list1.end());
-  sort(it_p_list2.begin(), it_p_list2.end());
-
-//  it_p_list1[0].Print();
-//  it_p_list2[0].Print();
   //////////////////////////////////////////////////////////////////////////
   ///////////////map each point to its corresponding bus stop///////////////
   /////////////////////////////////////////////////////////////////////////
@@ -8092,6 +7984,12 @@ void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree,
     assert(false);
 
   }
+
+  sort(it_p_list1.begin(), it_p_list1.end());
+  sort(it_p_list2.begin(), it_p_list2.end());
+
+//  it_p_list1[0].Print();
+//  it_p_list2[0].Print();
 
   double d1 = it_p_list1[0].loc.Distance(p1);
   double d2 = it_p_list1[0].loc.Distance(p2);
@@ -14315,7 +14213,7 @@ void MetroStruct::CreateMRoute(DualGraph* dg, string type)
   
   int no_mroute;
   if(type == "Berlin")no_mroute = 10;
-  else if(type == "Houston") no_mroute = 20;
+  else if(type == "Houston") no_mroute = 16;
   
   vector<bool> cell_flag;
   for(int i = 1;i <= dg->node_rel->GetNoTuples();i++){
@@ -14348,16 +14246,19 @@ void MetroStruct::CreateMRoute(DualGraph* dg, string type)
   
 //  double min_dist = 22000.0;//minimum distance for a ubahn 
   double min_dist;
+  double min_dist2;
   if(type == "Berlin"){
     min_dist = 25000.0;
+    min_dist2 = 1500.0;
   }else if(type == "Houston"){
     min_dist = 60000.0;
+    min_dist2 = 4000.0;
   }else{
     cout<<"not processed"<<endl;
     assert(false);
   }
-  double min_dist2 = 1500.0;
-  
+
+
   while(count <= no_mroute){
     int cell1 = GetRandom() % dg->node_rel->GetNoTuples() + 1;
     if(cell_flag[cell1 - 1]) continue;

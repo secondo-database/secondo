@@ -824,6 +824,7 @@ struct IndoorNav{
    void GenerateIP2(int num);
    void GenerateIP3(int num);
    float GetHeightInST(GRoom* groom, Point p);
+   float GetHeightInST2(GRoom* groom, Point p, bool& correct);
    void InitializeElevator(Interval<Instant>& periods, 
                                    vector<Elevator>& elev_list, double speed);
    void GenerateMO1(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,

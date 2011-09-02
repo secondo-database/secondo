@@ -294,7 +294,10 @@ struct BusRoute{
   
   ////////////rough description of bus routes/////////////////////////////
   void CreateRoute1(int attr2,int attr3,int attr4,string type); 
-  void BuildRoute(vector<Section_Cell>& cell_list3,
+  void BuildRoute1(vector<Section_Cell>& cell_list3,
+                     vector<Section_Cell> cell_list1,int type,bool);
+
+  void BuildRoute2(vector<Section_Cell>& cell_list3,
                      vector<Section_Cell> cell_list1,int type,bool);
 
   void BuildRoute_Limit(vector<Section_Cell>& cell_list3,
@@ -305,7 +308,7 @@ struct BusRoute{
                   float dist_val, bool start); 
   int FindEndCell2(Section_Cell& start_cell, vector<Section_Cell>& cell_list,
                   float dist_val); 
-  bool ConvertGLine(GLine* gl1, GLine* gl2); 
+
   /////////////////////////////create bus routes//////////////////////////
   void CreateRoute2(Space*, int attr,int attr1,int attr2,int attr3); 
   void ConnectCell(RoadGraph*, int attr,int from_cell_id,int end_cell_id, 
@@ -914,7 +917,8 @@ struct BN{
   void GetStops();
   void GetRoutes();
   
-  void MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, int w);
+  void MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, 
+                        int w, string);
   void MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
                     Relation* pave_rel, int w);
   void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel, 
