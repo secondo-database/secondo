@@ -106,6 +106,7 @@ public class OSMBackground extends Background {
 	 */
 	public void paint(JComponent parent, Graphics2D g, AffineTransform at,
 			Rectangle2D clipRect) {
+
 		// set background color
 		if (backgroundColorChanged && parent != null) {
 			backgroundColorChanged = false;
@@ -121,12 +122,13 @@ public class OSMBackground extends Background {
 		if (ProjectionManager.isReversible()) {
 			java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
 			java.awt.geom.Point2D.Double p2 = new java.awt.geom.Point2D.Double();
-			ProjectionManager.getOrig(clipRect.getX(), clipRect.getY(), p1);
-			ProjectionManager.getOrig(clipRect.getX() + clipRect.getWidth(),
+			ProjectionManager.getOrigWithoutScale(clipRect.getX(), clipRect.getY(), p1);
+			ProjectionManager.getOrigWithoutScale(clipRect.getX() + clipRect.getWidth(),
 					clipRect.getY() + clipRect.getHeight(), p2);
 			clipRect.setRect(p1.getX(), p1.getY(), p2.getX() - p1.getX(),
 					p2.getY() - p1.getY());
 		}
+
 
 		try {
 			lastParent = parent;
@@ -135,11 +137,11 @@ public class OSMBackground extends Background {
 			if (clipRect.isEmpty()) {
 				return;
 			}
+
 			// compute the urls of all required tiles and
 			// define an affine transformation to move the tile to it's location
 			// within the world
-			LinkedList<Pair<URL, AffineTransform>> urls = mapper
-					.computeURLs((Rectangle2D.Double) clipRect);
+			LinkedList<Pair<URL, AffineTransform>> urls = mapper.computeURLs((Rectangle2D.Double) clipRect);
 
 			// paint the tiles, frames, and labels
 			if (urls != null) {
@@ -210,6 +212,7 @@ public class OSMBackground extends Background {
 		if (url.first() == null) {
 			return;
 		}
+
 
 		File f = downloadManager.getURL(url.first(), observer);
 

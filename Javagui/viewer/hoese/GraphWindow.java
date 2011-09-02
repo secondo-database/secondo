@@ -293,7 +293,7 @@ public class GraphWindow extends JLayeredPane
 
 
   /* scales an rectangle by scaleFactor from ProjectionManager */
-  Rectangle2D.Double scale(Rectangle2D.Double r, boolean reverse){
+  /*Rectangle2D.Double scale(Rectangle2D.Double r, boolean reverse){
     double sf = ProjectionManager.getScaleFactor();
     if(!reverse){
        sf = 1/sf;
@@ -301,6 +301,7 @@ public class GraphWindow extends JLayeredPane
     r.setRect( r.x*sf, r.y*sf, r.width*sf, r.height*sf);
     return r;
   }
+  */
 
   /**
    * Recalculates the boundingbox of all graph. objects
@@ -311,7 +312,6 @@ public class GraphWindow extends JLayeredPane
     Background bgi = getBackgroundObject();
     if(bgi.useForBoundingBox()){
          r = (Rectangle2D.Double) bgi.getBBox().clone();
-         scale(r,true);
     }else{
          r = null;
     }
@@ -328,6 +328,8 @@ public class GraphWindow extends JLayeredPane
       }
     if (r != null){
       mw.BBoxWC = r;
+    } else {
+      mw.BBoxWC=new Rectangle2D.Double(-170,-80,340,160);
     }
   }
 
@@ -370,7 +372,7 @@ public class GraphWindow extends JLayeredPane
     double sf = ProjectionManager.getScaleFactor();
     double rsf = 1/sf;
     AffineTransform at1 = new AffineTransform(at);
-    at1.scale(sf,sf);
+    //at1.scale(sf,sf);
 
     AffineTransform iat = at1.createInverse();
 

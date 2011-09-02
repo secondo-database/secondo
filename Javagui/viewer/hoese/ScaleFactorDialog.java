@@ -64,6 +64,19 @@ public class ScaleFactorDialog extends JDialog{
     getContentPane().add(jp, BorderLayout.CENTER);
     getContentPane().add(cp, BorderLayout.SOUTH);
 
+    // allow finish the dialog using ESC or return
+    valueTF.addKeyListener(new KeyAdapter(){
+      public void keyPressed(KeyEvent evt){
+        int c = evt.getKeyCode();
+        if(c == KeyEvent.VK_ENTER){
+           accept();
+        } else if(c==KeyEvent.VK_ESCAPE){
+           cancel();
+        }
+      }
+    });
+
+
   }
 
 

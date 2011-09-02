@@ -37,6 +37,11 @@ public class ProjectionManager {
    }   
 
 
+   public static boolean projectWithoutScale(double x, double y, java.awt.geom.Point2D.Double result){
+      return P.project(x,y,result);
+   }   
+
+
    public static boolean showSettings(){
       return P.showSettings();
    }
@@ -70,6 +75,12 @@ public class ProjectionManager {
           return true;
       }
    }
+
+
+   public static boolean getOrigWithoutScale(double px, double py, java.awt.geom.Point2D.Double result){
+      return P.getOrig(px,py,result);
+   }
+
    
    public static boolean estimateOrig(double px,double py, java.awt.geom.Point2D.Double result){
       java.awt.geom.Point2D.Double aPoint = new java.awt.geom.Point2D.Double();

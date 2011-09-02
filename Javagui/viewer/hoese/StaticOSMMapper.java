@@ -67,8 +67,8 @@ public class StaticOSMMapper implements Rect2UrlMapper {
 		java.awt.geom.Point2D.Double p1 = new java.awt.geom.Point2D.Double();
 		java.awt.geom.Point2D.Double p2 = new java.awt.geom.Point2D.Double();
 
-		ProjectionManager.project(r.getX(), r.getY(), p1);
-		ProjectionManager.project(r.getX() + r.getWidth(), r.getY() + r.getHeight(), p2);
+		ProjectionManager.projectWithoutScale(r.getX(), r.getY(), p1);
+		ProjectionManager.projectWithoutScale(r.getX() + r.getWidth(), r.getY() + r.getHeight(), p2);
 
 		r.setRect(p1.getX(), p1.getY(), p2.getX() - p1.getX(),
 				p2.getY() - p1.getY());
