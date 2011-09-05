@@ -252,7 +252,7 @@ int find(const int size,const T field[],const T elem){
    while(max!=min){
      mid=(max+min)/2;
      if(field[mid]<elem)
-        min==mid+1;
+        min=mid+1;
      else
         max=mid;
    } 
