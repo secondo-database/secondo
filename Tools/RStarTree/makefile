@@ -3,10 +3,10 @@
 
 include ../../makefile.env
 
-all: librstartree.a 
+all: $(LIBDIR)/librstartree.a 
 
-librstartree.a: util.o rstartree.o storage.o 
-	$(AR) -rs librstartree.a util.o rstartree.o storage.o
+$(LIBDIR)/librstartree.a: util.o rstartree.o storage.o 
+	$(AR) -rs $(LIBDIR)/librstartree.a util.o rstartree.o storage.o
 
 
 rstartree.o: rstartree.h rstartree.cc
@@ -20,7 +20,7 @@ storage.o: storage.h storage.cc
 
 
 clean:
-	-rm -f *.o *.a
+	-rm -f *.o *.a $(LIBDIR)/librstartree.a
 
 
 

@@ -295,7 +295,6 @@ ALGEBRA_DIRS  += MMRTree
 ALGEBRAS     += MMRTreeAlgebra
 
 
-
 #ALGEBRA_DIRS  += HadoopParallel
 #ALGEBRAS     += HadoopParallelAlgebra
 
