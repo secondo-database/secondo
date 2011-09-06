@@ -107,6 +107,18 @@ static {
     }
 
 
+
+    public static boolean halt(){
+       try{
+          Query q = new Query("halt");
+          boolean res = command(q,null);
+          return res; 
+       } catch(Exception e){
+          System.err.println(" error in shutting down the prolog engine");
+          return false;
+       }
+    }
+
     /** invokes a prolog predicate
       * all terms in variables must be contained in arguments
       * variables and results can be null if no result is desired
@@ -361,6 +373,10 @@ static {
            System.out.println("\nbye client");
            System.out.println("number of clients is :"+ OptimizerServer.Clients);
         }
+        if((OptimizerServer.Clients==0) && OptimizerServer.quitAfterDisconnect){
+          // OptimizerServer.halt(); // not allowed from this tread
+          System.exit(0);
+        }
         showPrompt();
       }
 
@@ -601,6 +617,16 @@ static {
    }
 
 
+  private static void showUsage(){
+     System.out.println("java -classpath .:<jplclasses> OptimizerServer  PORT [options] ");
+     System.out.println("<jplclasses> : jar file containing the JPL (prolog) API");
+     System.out.println("PORT : port for the server");
+     System.out.println("[Options can be :");
+     System.out.println("   -autoquit           : exits the server if the last client disconnects");
+     System.out.println("   -trace_methods      : enables tracing of method calls (for debugging)");
+     System.out.println("   -trace_instructions : enables tracing of instructions (for debugging)");
+  }
+
 
    /** creates a new server object
      * process inputs from the user
@@ -610,8 +636,8 @@ static {
      */
    public static void main(String[] args){
        if(args.length<1){
-        System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer Port");
-              System.exit(1);
+          showUsage();
+          System.exit(1);
        }
        // process options
        Runtime rt = Runtime.getRuntime();
@@ -625,9 +651,14 @@ static {
                rt.traceInstructions(true);
                System.out.println("enable instruction tracing");
                pos++;
-           } else{
+           } else if(args[pos].equals("-autoquit")){
+               quitAfterDisconnect=true;
+               System.out.println("auto quit enabled");
+               pos++;
+           } else {
                System.out.println("unknown option " + args[pos]);
-               System.exit(-1);
+               showUsage();
+               System.exit(1);
            }
        }
 
@@ -739,6 +770,7 @@ static {
    private boolean optimizer_loaded = false;
    private int PortNr = 1235;
    private static int Clients = 0;
+   private static boolean quitAfterDisconnect = false;
    private ServerSocket SS;
    private boolean running;
    private static String openedDatabase ="";
