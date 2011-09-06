@@ -21,7 +21,9 @@
 
 # variables of the client part
 
-while getopts "h:p:u:s:c:f:" Option
+AUTOQUIT=""
+
+while getopts "h:p:u:s:c:q" Option
 do
   case $Option in
     h ) HOST=$OPTARG ;;
@@ -29,16 +31,18 @@ do
     c ) CONFIG=$OPTARG ;;
     s ) PSWD=$OPTARG ;;
     u ) USER=$OPTARG ;;
-    f ) FILE=$OPTARG;;
+    q ) AUTOQUIT="-autoquit" ;;
     * ) 
   esac
 done
+
+
 
 shift $(($OPTIND - 1))
 
 # port of the server part
 
-if [ -z $1 ]; then
+if [ -z $BASH_ARGV ]; then
   S_PORT=1235
 else
 # check for integer
@@ -97,17 +101,10 @@ if [ -n "$PSWD" ]; then
    export SECONDO_PSWD=$PSWD
 fi
 
-INPUT=""
-if [ -n "$FILE" ]; then
-   INPUT="<$FILE"
-   echo "Reading from input $INPUT" 
-else 
-   echo "reading from standard" 
-fi
 
-cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT "
+cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT $AUTOQUIT"
 
-echo $cmd $INPUT
+echo $cmd 
 
 if [ -n "$FILE" ]; then
 	$cmd <$FILE
