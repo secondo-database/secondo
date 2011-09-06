@@ -104,7 +104,7 @@ examples:
 jnicheck:
 ifeq ($(USE_JNI),"true")
 ifeq ($(j2sdkIsPresent),"false")
-	@echo -e "\nJNI based algebras can not be compiled!" 
+	@echo ; echo  "JNI based algebras can not be compiled!" 
 	$(j2sdk-msg)
 	@exit 1
 endif 
@@ -124,7 +124,7 @@ javagui: java2
 
 .PHONY: makedirs
 makedirs:
-	@echo -e "\n *** Building objects for Secondo libraries *** \n"
+	@echo; echo  " *** Building objects for Secondo libraries *** " ; echo
 	$(MAKE) -C ClientServer
 	$(MAKE) -C Tools
 	$(MAKE) -C StorageManager
@@ -145,7 +145,7 @@ buildAlgebras:
 
 .PHONY: buildlibs
 buildlibs:
-	@echo -e "\n *** Creating library files *** \n"
+	@echo ; echo  " *** Creating library files *** "; echo
 	$(MAKE) -f ./makefile.libs
 
 
@@ -155,10 +155,10 @@ java: java2 update-config
 .PHONY: java2
 java2:
 ifeq ($(compileJava),"true")
-	@echo -e "\n *** Compiling the java based GUI *** \n"
+	@echo ; echo  " *** Compiling the java based GUI *** "; echo
 	$(MAKE) -C Javagui all
 else
-	@echo -e "\nThe java based GUI was not compiled!"
+	@echo ; echo  "The java based GUI was not compiled!"
 	$(javac-msg)
 endif
 
@@ -176,7 +176,7 @@ optserver:
 ifeq ($(compileJava),"true")
 ifeq ($(optimizer),"true")
 ifeq ($(j2sdkIsPresent),"true")
-	@echo -e "\n *** Building JPL and the optimizer server *** \n"
+	@echo; echo  " *** Building JPL and the optimizer server *** "; echo
 	$(MAKE) -C Jpl all
 	$(MAKE) -C OptServer all
 	@chmod ugo+x Optimizer/StartOptServer
@@ -188,11 +188,11 @@ endif
 optsrv-msg:
 ifeq ($(compileJava),"true")
 ifeq ($(j2sdkIsPresent),"false")
-	@echo -e "\nJPL and the optimizer server were not compiled!"
+	@echo ; echo "JPL and the optimizer server were not compiled!"
 	$(j2sdk-msg)
 endif
 else
-	@echo -e "\nJPL and the optimizer server were not compiled!"
+	@echo ; echo  "JPL and the optimizer server were not compiled!"
 	$(javac-msg)
 endif
 
@@ -200,13 +200,13 @@ endif
 
 .PHONY: buildapps
 buildapps: 
-	@echo -e "\n *** Linking Applications *** \n"
+	@echo ; echo  " *** Linking Applications *** "; echo
 	$(MAKE) -C UserInterfaces buildapp
 	$(MAKE) -C ClientServer buildapp
 
 .PHONY: minApps
 minApps: 
-	@echo -e "\n *** Linking Applications *** \n"
+	@echo ; echo  " *** Linking Applications *** "; echo
 	$(MAKE) -C UserInterfaces secondobdb
 
 
@@ -274,7 +274,7 @@ update-config: config optsrv-msg showjni Documents/.Secondo-News.txt
 
 .PHONY: showjni
 showjni:
-	@echo -e $(JNITEXT)
+	@echo  $(JNITEXT)
 
 .PHONY: config
 config: $(CONFIG_FILES) 
@@ -282,12 +282,16 @@ config: $(CONFIG_FILES)
 
 # Alert for new information in Secondo-News
 Documents/.Secondo-News.txt : Documents/Secondo-News.txt
-	@touch $@ 
-	@echo -e "\n *** New information in the file $< *** \n"
+	@touch $@
+	@echo 
+	@echo  " *** New information in the file $< *** "
+	@echo
 	@sepLineNr=$$(grep -ine "=====" $< | sed -ne '2s/:.*//gp'); \
-         sepLineNr=$$[$$sepLineNr - 2]; \
-	head -n $$[$$sepLineNr] $< | sed -ne "10,$$sepLineNr p"
-	@echo -e "\n *** file truncated *** \n"
+         sepLineNr=$$(($$sepLineNr - 2)); \
+	head -n $$sepLineNr $< | sed -ne "10,$$sepLineNr p"
+	@echo 
+	@echo  " *** file truncated *** "
+	@echo
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)
