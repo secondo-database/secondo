@@ -383,6 +383,7 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
     errorMessage = "Protocol-Error: File not received correctly."; 
     resultList = nl->TheEmptyList();
   }
+  FileSystem::DeleteFileOrFolder(serverFileName);
   
   if (!csp->nextLine("</"+tag+">", errorMessage) )
   {
