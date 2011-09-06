@@ -96,12 +96,8 @@ sleep 5
 echo "StartOptServer"
 
 #start OptServer
-FIFO=$SECONDO_BUILD_DIR/Optimizer/inputOptServer
-rm -f $FIFO
-mkfifo $FIFO
 cd $SECONDO_BUILD_DIR/Optimizer
-StartOptServer -f $FIFO >$LOGFILEOPT 2>&1 &
-echo -e "\n" >$FIFO&
+StartOptServer -q  >$LOGFILEOPT 2>&1 &
 
 
 echo "Optimizer server is running"
@@ -143,8 +139,6 @@ fi
 
 
 echo "Terminate OptServer"
-echo "quit" >$FIFO&
-rm $FIFO
 echo "Terminate Monitor"
 kill -SIGTERM $mon 2>/dev/null 
 
