@@ -33,8 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "FTextAlgebra.h"
-#include "storage.h"
-#include "util.h"
 
 
 /*
