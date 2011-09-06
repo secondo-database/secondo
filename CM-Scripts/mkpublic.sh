@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # March 2006, M. Spiekermann
 #
@@ -8,7 +8,7 @@
 # makes a list of all files except those
 # specified in file $1 and writes them to $2
 
-if let $[$# < 2]; then
+if [ $# -lt 2 ]; then
   echo "Usage: $0 input-file output-file [prefix=secondo]"
   exit 1
 else
