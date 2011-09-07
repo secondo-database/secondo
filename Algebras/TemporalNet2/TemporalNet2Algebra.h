@@ -32,8 +32,8 @@ February 2008 -  Simone Jandt
 
 */
 
-#ifndef _TEMPORAL_NET_ALGEBRA_H_
-#define _TEMPORAL_NET_ALGEBRA_H_
+#ifndef _TEMPORAL_NET2_ALGEBRA_H_
+#define _TEMPORAL_NET2_ALGEBRA_H_
 
 #include <iostream>
 #include <sstream>
@@ -41,8 +41,8 @@ February 2008 -  Simone Jandt
 #include "NestedList.h"
 #include "QueryProcessor.h"
 
-#ifndef __NETWORK_ALGEBRA_H__
-#error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
+#ifndef __NETWORK2_ALGEBRA_H__
+#error Network2Algebra.h is needed by TemporalNet2Algebra.h. \
 Please include in *.cpp-File.
 #endif
 
@@ -51,18 +51,11 @@ Please include in *.cpp-File.
 Please include in *.cpp-File.
 #endif
 
-
+namespace temporalnet2 {
 
 using namespace datetime;
+using namespace network2;
 
-/*
-Instant
-
-This class represents a time instant, or a point in time. It will be
-used in the ~instant~ type constructor.
-
-*/
-typedef DateTime Instant;
 
 /*
 2 class MGPSecUnit
@@ -852,4 +845,6 @@ Restricts a ~mgpoint~ to the given unit intervals.
 };
 
 
-#endif // _TEMPORAL_NET_ALGEBRA_H_
+} // end of namepsace temporalnet2
+
+#endif // _TEMPORAL_NET2_ALGEBRA_H_

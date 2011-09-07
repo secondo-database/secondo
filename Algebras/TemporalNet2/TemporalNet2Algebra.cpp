@@ -41,10 +41,10 @@ Defines, includes, and constants
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
 #include "StandardTypes.h"
-#include "NetworkAlgebra.h"
+#include "Network2Algebra.h"
 #include "TemporalAlgebra.h"
-#include "TemporalNetAlgebra.h"
-#include "NetworkManager.h"
+#include "TemporalNet2Algebra.h"
+#include "Network2Manager.h"
 #include "ListUtils.h"
 #include "Symbols.h"
 #include <iostream>
@@ -58,6 +58,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 map<int,string> *netList;
 
+
+using namespace temporalnet2;
 
 /*
 
