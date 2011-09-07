@@ -50,18 +50,21 @@ April-Mai 2011 - Nina Wrede
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
 #include "SpatialAlgebra.h"
-#include "NetworkAlgebra.h"
+#include "Network2Algebra.h"
 #include "RectangleAlgebra.h"
 #include "StandardTypes.h"
 #include "Algebra.h"
 #include "Messages.h"
-#include "NetworkManager.h"
+#include "Network2Manager.h"
 #include "NestedList.h"
 #include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "../../include/ListUtils.h"
 #include "../../include/TypeMapUtils.h"
+
+
+using namespace network2;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

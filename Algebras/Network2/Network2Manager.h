@@ -30,13 +30,16 @@ Defines, includes, and constants
 
 */
 
-#ifndef NETWORKMANAGER_H_
-#define NETWORKMANAGER_H_
+#ifndef NETWORK2MANAGER_H_
+#define NETWORK2MANAGER_H_
 
-#ifndef __NETWORK_ALGEBRA_H__
-#error NetworkAlgebra.h is needed by NetworkManager.h. \
+#ifndef __NETWORK2_ALGEBRA_H__
+#error Network2Algebra.h is needed by NetworkManager.h. \
 Please include in *.cpp-File.
 #endif
+
+
+namespace network2 {
 
 /*
 "Static" class managing all networks in secondo.
@@ -60,5 +63,7 @@ Closes a network retrived via getNetwork.
 */
   static void CloseNetwork(Network* in_pNetwork);
 };
+
+} // end of namespace network2
 
 #endif /*NETWORKMANAGER_H_*/

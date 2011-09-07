@@ -39,10 +39,13 @@ Defines, includes, and constants
 #include "RelationAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "Geoid.h"
-#include "NetworkAlgebra.h"
-#include "NetworkManager.h"
+#include "Network2Algebra.h"
+#include "Network2Manager.h"
 
 extern NestedList* nl;
+
+using namespace network2;
+
 
 void InitNetList(map<int,string> *netList)
 {

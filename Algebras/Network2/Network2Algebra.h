@@ -26,8 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 1 Declarations Necessary for Algebra Network
 
 */
-#ifndef __NETWORK_ALGEBRA_H__
-#define __NETWORK_ALGEBRA_H__
+#ifndef __NETWORK2_ALGEBRA_H__
+#define __NETWORK2_ALGEBRA_H__
+
 
 #include "NestedList.h"
 #include "TupleIdentifier.h"
@@ -43,6 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <cstring>
 
+namespace network2 {
 /*
 2 Helping structs
 
@@ -3088,5 +3090,6 @@ private:
   DbArray<GPoint> m_xGPoints;
 };
 
+} // end of namspace network2
 
 #endif // __NETWORK_ALGEBRA_H__
