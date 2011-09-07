@@ -1,0 +1,11 @@
+
+(
+    (rel 
+        (tuple 
+            (
+                (SecID int) 
+                (Up bool)))) 
+    (
+        (1 TRUE) 
+        (2 FALSE) 
+        (8 FALSE)))
