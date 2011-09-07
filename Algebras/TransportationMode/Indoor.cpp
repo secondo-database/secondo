@@ -13146,7 +13146,8 @@ void Building::WritePathToFile(FILE* fp, Line3D* path, int entrance,
 //        cout<<oid_num[l];
         int expo = oid_num.size() - 1 - l;
         if(expo > 0)
-          path_oid += oid_num[l]*pow(10, expo);
+//          path_oid += oid_num[l]*pow(10, expo);
+          path_oid += oid_num[l]*pow((double)10, expo);
         else
           path_oid += oid_num[l];
     }
@@ -13337,7 +13338,8 @@ int GetIndooPathID(int entrance, int groom_oid, bool b)
     for(unsigned int l = 0;l < oid_num.size();l++){
         int expo = oid_num.size() - 1 - l;
         if(expo > 0)
-          path_oid += oid_num[l]*pow(10, expo);
+//          path_oid += oid_num[l]*pow(10, expo);
+          path_oid += oid_num[l]*pow((double)10, expo);
         else
           path_oid += oid_num[l];
     }
@@ -13375,7 +13377,8 @@ int GetIndooPathID2(int entrance, int groom_oid, int door_num, bool b)
     for(unsigned int l = 0;l < oid_num.size();l++){
         int expo = oid_num.size() - 1 - l;
         if(expo > 0)
-          path_oid += oid_num[l]*pow(10, expo);
+//          path_oid += oid_num[l]*pow(10, expo);
+          path_oid += oid_num[l]*pow((double)10, expo);
         else
           path_oid += oid_num[l];
     }
@@ -13591,6 +13594,12 @@ string IndoorInfra::RegId2BTreeTypeInfo = "(rel (tuple ((reg_id int) \
 (building_type2 string) (building_id int))) int)";
 
 
+string IndoorInfra::BuildingTypeRtreeInfo = "(rtree (tuple ((reg_id int)\
+(geoData rect) (poly_id int) (reg_type int) (building_type int)\
+(building_type2 string) (building_id int))) rect FALSE)";
+
+
+
 ListExpr IndoorInfraProperty()
 {
   return (nl->TwoElemList(
@@ -13696,8 +13705,8 @@ Word CreateIndoorInfra(const ListExpr typeInfo)
 void DeleteIndoorInfra(const ListExpr typeInfo, Word& w)
 {
 // cout<<"DeleteIndoorInfra()"<<endl;
-  IndoorInfra* indoor = (IndoorInfra*)w.addr;
-  delete indoor;
+  IndoorInfra* indoorinfra = (IndoorInfra*)w.addr;
+  delete indoorinfra;
   w.addr = NULL;
 }
 
@@ -13734,7 +13743,8 @@ bool CheckIndoorInfra( ListExpr type, ListExpr& errorInfo )
 
 IndoorInfra::IndoorInfra():def(false),indoor_id(0), digit_build_id(0),
 building_path(NULL),
-btree_reg_id1(NULL), building_type(NULL), btree_reg_id2(NULL)
+btree_reg_id1(NULL), building_type(NULL), btree_reg_id2(NULL),
+rtree_building(NULL)
 {
 
 
@@ -13743,7 +13753,8 @@ btree_reg_id1(NULL), building_type(NULL), btree_reg_id2(NULL)
 
 IndoorInfra::IndoorInfra(bool b, int id):def(b),indoor_id(id),digit_build_id(0),
 building_path(NULL), btree_reg_id1(NULL), 
-building_type(NULL), btree_reg_id2(NULL)
+building_type(NULL), btree_reg_id2(NULL),
+rtree_building(NULL)
 {
 
 
@@ -13753,7 +13764,8 @@ IndoorInfra::IndoorInfra(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo):def(false), indoor_id(0),
                    digit_build_id(0),
                    building_path(NULL), btree_reg_id1(NULL),
-                   building_type(NULL), btree_reg_id2(NULL)
+                   building_type(NULL), btree_reg_id2(NULL),
+                   rtree_building(NULL)
 {
 
   valueRecord.Read(&def, sizeof(bool), offset);
@@ -13807,6 +13819,18 @@ IndoorInfra::IndoorInfra(SmiRecord& valueRecord, size_t& offset,
      return;
    }
 
+  ///////////////////rtree on building rectangles//////////////////////////////
+  Word xValue;
+  if(!(rtree_building->Open(valueRecord,offset, BuildingTypeRtreeInfo,xValue))){
+     building_path->Delete();
+     delete btree_reg_id1;
+     building_type->Delete();
+     delete btree_reg_id2;
+     return;
+  }
+
+  rtree_building = ( R_Tree<2,TupleId>* ) xValue.addr;
+
 //  cout<<"open "<<building_type->GetNoTuples()<<endl;
 
 }
@@ -13817,6 +13841,7 @@ IndoorInfra::~IndoorInfra()
   if(btree_reg_id1 != NULL) delete btree_reg_id1;
   if(building_type != NULL) building_type->Close();
   if(btree_reg_id2 != NULL) delete btree_reg_id2;
+  if(rtree_building != NULL) delete rtree_building;
 
 }
 
@@ -13865,6 +13890,11 @@ bool IndoorInfra::Save(SmiRecord& valueRecord, size_t& offset,
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!btree_reg_id2->Save(valueRecord, offset, xNumericType))
      return false; 
+
+  ///////////////////////rtree on building rectangles ///////////////////////
+  if(!rtree_building->Save(valueRecord, offset)){
+    return false;
+  }
 
   return true;
 }
@@ -13945,7 +13975,7 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
     if(build_id > max_id) max_id = build_id;
     tuple->DeleteIfAllowed();
   }
-  
+
   char buf1[64], buf2[64];
   sprintf(buf1, "%d", min_id);
   sprintf(buf2, "%d", max_id);
@@ -13953,6 +13983,20 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
 
   //////////record how many numbers are used to recored building id//////////
   digit_build_id = strlen(buf1);
+
+
+  //////////////////////////////////////////////////
+  /////////////////building rtree /////////////////
+  /////////////////////////////////////////////////
+
+  ListExpr ptrList5 = listutils::getPtrList(building_type);
+
+  strQuery = "(bulkloadrtree(addid(feed (" + BuildingType_Info +
+         " (ptr " + nl->ToString(ptrList5) + ")))) geoData)";
+
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  rtree_building = ( R_Tree<2,TupleId>* ) xResult.addr;
 
 }
 

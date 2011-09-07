@@ -3614,7 +3614,9 @@ void GenMObject::DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                              Relation* rel,
                              Point query_loc, vector<int>& tid_list)
 {
-  const double max_dist = 500.0;
+//  const double max_dist = 500.0;
+  const double max_dist = NEARBUSSTOP;
+  
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
                   rtree->MinEntries(0), rtree->MaxEntries(0));
   for(int j = 0;j < node->EntryCount();j++){
@@ -4154,9 +4156,9 @@ void GenMObject::FindPosInMP(MPoint* mo_bus, Point* start_loc, Point* end_loc,
     Point p1 = unit.p0;
     Point p2 = unit.p1;
 
-//    cout<<start_loc->Distance(p1)<<" "<<start_loc->Distance(p2)<<endl;
-//    cout<<end_loc->Distance(p1)<<" "<<end_loc->Distance(p2)<<endl;
-//    cout<<"p1 "<<p1<<" p2 "<<p2<<endl;
+//     cout<<start_loc->Distance(p1)<<" "<<start_loc->Distance(p2)<<endl;
+//     cout<<end_loc->Distance(p1)<<" "<<end_loc->Distance(p2)<<endl;
+//     cout<<"p1 "<<p1<<" p2 "<<p2<<endl;
 
     if(start_loc->Distance(p1) < delta_dist && 
        start_loc->Distance(p2) > delta_dist){
@@ -5403,13 +5405,13 @@ void GenMObject::CreateBuildingPair3(IndoorInfra* i_infra,
     //////////////////check whether the building is available/////////////////
     ///////////////////there is no building and indoor graph ///////////////
     ///////////////////for personal houses/////////////////////////////////
-    if(type1 > 1 && maxrect->build_pointer[type1] == NULL){
+    if(type1 > BUILD_HOUSE && maxrect->build_pointer[type1] == NULL){
       tuple1->DeleteIfAllowed();
       tuple2->DeleteIfAllowed();
 //      cout<<"type1 not valid "<<endl;
       continue;
     }
-    if(type2 > 1 && maxrect->build_pointer[type2] == NULL){
+    if(type2 > BUILD_HOUSE && maxrect->build_pointer[type2] == NULL){
       tuple1->DeleteIfAllowed();
       tuple2->DeleteIfAllowed(); 
 //      cout<<"type2 not valid "<<endl;
@@ -6166,7 +6168,9 @@ void GenMObject::DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
                              Relation* rel,
                              Point query_loc, vector<int>& tid_list)
 {
-  const double max_dist = 1500.0;
+//  const double max_dist = 1500.0;
+  const double max_dist = NEARMETROSTOP;
+  
   R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
                   rtree->MinEntries(0), rtree->MaxEntries(0));
   for(int j = 0;j < node->EntryCount();j++){

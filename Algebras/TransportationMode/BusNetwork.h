@@ -69,6 +69,7 @@ Oct, 2010 Jianqiu xu
 #include "PaveGraph.h"
 #include "GeneralType.h"
 #include "RoadNetwork.h"
+#include "Indoor.h"
 
 /*
 store cell id and the number of road sections intersecting it.
@@ -1781,10 +1782,13 @@ improve join
 struct TM_Join{
 
   vector<int> id_list;
+  vector<int> rid_list;
   vector<int> cell_id_list;
   vector<Region> area_list;
   vector<int> count_list;
   vector<int> sec_list;
+  vector<int> type_list;
+  vector<Rectangle<2> > rect_list; 
   
   unsigned int count;
   TupleType* resulttype;
@@ -1801,7 +1805,27 @@ struct TM_Join{
   void DFTraverse(Relation* rel, R_Tree<2,TupleId>* rtree,
                            SmiRecordId adr, Line* l, vector<int>& id_list);
 
+  //////////for bus and metro stops, find nearby pavement areas/////////////
+  void NearStopPave(Space* sp, string type);
+  void NearBusStopPave(BusNetwork* bn, DualGraph* dg);
+  void DFTraverseBMS(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                           Relation* rel, Point query_loc, 
+                     vector<int>& tid_list, double);
+  void NearMetroStopPave(MetroNetwork* mn, DualGraph* dg);
+
+  //////////for bus and metro stops, find nearby buildings/////////////////
+  void NearStopBuilding(Space* sp, string type);
+  void NearBusStopBuilding(BusNetwork* bn, Relation* build_rel, 
+                           R_Tree<2,TupleId>* rtree);
+  void NearMetroStopBuilding(MetroNetwork* bn, Relation* build_rel, 
+                           R_Tree<2,TupleId>* rtree);
+  void DFTraverseBMS2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                           Relation* rel, Point query_loc, 
+                     vector<int>& tid_list, double);
 };
+
+void MyToPoint(Network* rn, GPoint* gp, Point& res);
+
 
 #endif
 

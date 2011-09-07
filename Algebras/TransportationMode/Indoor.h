@@ -1338,6 +1338,7 @@ class IndoorInfra{
   static string RegId1BTreeTypeInfo;
   static string BuildingType_Info;
   static string RegId2BTreeTypeInfo;
+  static string BuildingTypeRtreeInfo;
 
   enum IndoorInfra_Path{INDOORIF_REG_ID, INDOORIF_SP, INDOORIF_SP_INDEX,
                         INDOORIF_EP, INDOORIF_EP2, INDOORIF_EP2_GLOC,
@@ -1362,6 +1363,7 @@ class IndoorInfra{
   void Load(int id, Relation* rel1, Relation* rel2);
   Relation* BuildingPath_Rel(){return building_path;}
   Relation* BuildingType_Rel(){return building_type;}
+  R_Tree<2,TupleId>* BuildingRTree() {return rtree_building;}
   void GetPathIDFromTypeID(int reg_id, vector<int>& path_id_list);
   void GetTypeFromRegId(int reg_id, int& type, int& build_id);
   int Get_Digit_Build_ID(){return digit_build_id;}
@@ -1374,6 +1376,8 @@ class IndoorInfra{
     BTree* btree_reg_id1;  //btree on reg id. relation for paths 
     Relation* building_type; // the type of a building 
     BTree* btree_reg_id2;  //btree on reg id  relation for types 
+
+    R_Tree<2,TupleId>* rtree_building;    //rtree build on building type 
 
 };
 

@@ -7500,6 +7500,7 @@ bool RegionCom(const Region& r1, const Region& r2)
 
 /*
 query getcontour('Transportationmode/Polygon/GermanyPPPoly') count;
+read polygon data from a file
 
 */
 void Hole::GetContour()
@@ -10277,28 +10278,26 @@ void MaxRect::SetBuildingType(R_Tree<2,TupleId>* rtree, Space* gl_sp)
   /////////////////these buildings can be close to each other//////////////
   SetCinema(build_rect_list, 8, bbox);//maximum 8 cinemas 
   SetHotel(build_rect_list, 40, bbox);//maximum 40 hotels
-  SetShopMall(build_rect_list, 60, bbox);//maximum 60 shopping malls
-//   SetOffice24(build_rect_list, 200);//maximum 200 office24 
-//   SetOffice38(build_rect_list, 200);//maximum 200 office38
+  SetShopMall(build_rect_list, 80, bbox);//maximum 80 shopping malls
 
-  SetOffice24(build_rect_list, 500);//maximum 500 office24 
-  SetOffice38(build_rect_list, 500);//maximum 500 office38
+  SetOffice24(build_rect_list, 600);//maximum 500 office24 
+  SetOffice38(build_rect_list, 600);//maximum 500 office38
 
   ////////////can not be close to the above three/////////////////////////
   /////////////but may be close to school or houses, apartments//////////
 //  SetHospital(build_rect_list, 20);//maximum 20 hospitals
-  SetHospital(build_rect_list, 40);//maximum 20 hospitals
+  SetHospital(build_rect_list, 50);//maximum 50 hospitals
 
   ///////////////////////////////////////////////////////////////////////
   //////////////////school library//////////////////////////////////
   //////////////////////////////////////////////////////////////////
   SetLibrary(build_rect_list, 4);//maximum 4 libraries 
-  SetSchool(build_rect_list, 32);//maximum 32 schools 
-  SetUniversity(build_rect_list, 16);//maximum 16 universities  
+//  SetSchool(build_rect_list, 32);//maximum 32 schools, no school yet
+  SetUniversity(build_rect_list, 20);//maximum 20 universities  
 
   /////////////////////////////////////////////////////////////////////
-//  SetHouse(build_rect_list, 1000);//maximum 1000 houses and apartments
-  SetHouse(build_rect_list, 3000);//maximum 3000 houses and apartments 
+//  SetHouse(build_rect_list, 3000);//maximum 3000 houses and apartments 
+  SetHouse(build_rect_list, 5000);//maximum 5000 houses and apartments 
 
   ///////////////////////////////////////////////////////////////////
   int cur_max_ref_id = gl_sp->MaxRefId() + 1;
@@ -10994,7 +10993,7 @@ bool MaxRect::NoNeighborUniversity(vector<Build_Rect>& list, Build_Rect br)
 set the places for houses,  uniformly distributed in each quadrant 
 
 */
-#define HOUSE_AREA_MAX 1200.0
+#define HOUSE_AREA_MAX 1500.0
 
 void MaxRect::SetHouse(vector<Build_Rect>& list, unsigned int no)
 {
@@ -11008,16 +11007,16 @@ void MaxRect::SetHouse(vector<Build_Rect>& list, unsigned int no)
   
   for(int i = list.size() - 1;i >= 0;i--){
     if( list[i].rect.Area() < HOUSE_AREA_MAX &&
-//       (list[i].reg_type == 2 || list[i].reg_type == 3)&&
+
        list[i].init == false && NoNearbyNeighbors1(list, list[i])){
-//      cout<<"find a personal house site"<<endl;
-      if(quad_list[list[i].quadrant - 1] < no / 4){
+
+//      if(quad_list[list[i].quadrant - 1] < no / 4){
         list[i].build_type = BUILD_HOUSE;
         list[i].init = true;
         cand_list.push_back(list[i]);
         quad_list[list[i].quadrant - 1]++;
         if(cand_list.size() == no)return;
-      }
+//      }
     }
   }
 }
@@ -11028,19 +11027,26 @@ neighbor building limitations for personal houses and apartments
 */
 bool MaxRect::NoNearbyNeighbors1(vector<Build_Rect>& list, Build_Rect br)
 {
-  
-  const double min_dist1 = 800.0;
-  const double min_dist2 = 400.0;
-  const double min_dist3 = 200.0;
 
-  if(list.size() == 0) return true;
+//   const double min_dist1 = 800.0;/////////cinema, hotel
+//   const double min_dist2 = 400.0;//////shopping mall
+//   const double min_dist3 = 200.0;////////others 
+
+  const double min_dist1 = 500.0;/////////cinema,
+  const double min_dist2 = 300.0;//////shopping mall, hotel
+  const double min_dist3 = 100.0;////////others 
+
+  if(list.size() == 0){ 
+    return true;
+  }
+
   for(unsigned int i = 0;i < list.size();i++){
-    if((list[i].build_type == BUILD_CINEMA || 
-        list[i].build_type == BUILD_HOTEL) &&
+    if((list[i].build_type == BUILD_CINEMA) &&
         list[i].rect.Distance(br.rect) < min_dist1) return false;
 
-    if(list[i].build_type == BUILD_SHOPPINGMALL &&
-       list[i].rect.Distance(br.rect) < min_dist2) return false;
+    if((list[i].build_type == BUILD_SHOPPINGMALL ||
+        list[i].build_type == BUILD_HOTEL) &&
+        list[i].rect.Distance(br.rect) < min_dist2) return false;
 
     if(( list[i].build_type == BUILD_SCHOOL || 
          list[i].build_type == BUILD_HOSPITAL ||

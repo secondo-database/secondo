@@ -8497,6 +8497,25 @@ const string OpTMTMJoin1Spec  =
     "<text>query tm_join1(r, cell_box, rtree_box)</text--->"
     ") )";
 
+const string OpTMNearStopPaveSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>space x string "
+    " ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>nearstops_pave(space, string)</text--->"
+    "<text>find pavement areas near to bus stops</text--->"
+    "<text>query nearstops_pave(space, Bus)</text--->"
+    ") )";
+
+const string OpTMNearStopBuildingSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>space x string "
+    " ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>nearstops_building(space, string)</text--->"
+    "<text>find buildings near to bus stops</text--->"
+    "<text>query nearstops_building(space, Bus)</text--->"
+    ") )";
 ////////////////TypeMap function for operators//////////////////////////////
 
 /*
@@ -14819,6 +14838,97 @@ ListExpr OpTMTMJoin1TypeMap ( ListExpr args )
 
 }
 
+
+
+/*
+TypeMap fun for operator nearest stop pave
+
+*/
+ListExpr OpNearStopPaveTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "string")){
+      string err = "the second parameter should be string";
+      return listutils::typeError(err);
+  }
+
+  ListExpr result =
+
+        nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                                    nl->SymbolAtom("region"))                  )
+                )
+          );
+
+  return result; 
+
+}
+
+
+/*
+TypeMap fun for operator nearest stop pave
+
+*/
+ListExpr OpNearStopBuildingTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "string")){
+      string err = "the second parameter should be string";
+      return listutils::typeError(err);
+  }
+
+  ListExpr result =
+
+        nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Tid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Type"),
+                                    nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("Area"),
+                                    nl->SymbolAtom("rect"))
+                                    )
+                )
+          );
+
+  return result; 
+
+}
 int GetContourSelect(ListExpr args)
 {
     if(nl->IsEqual(nl->First(args),"text"))return 0;
@@ -21026,6 +21136,113 @@ int OpTMTMJoin1map ( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+for each bus stop, find the pavement areas neart to the bus stop or metro stop
+
+*/
+int OpNearStopPaveMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  TM_Join* tm_join;
+  switch(message){
+      case OPEN:{
+
+        Space* sp = (Space*)args[0].addr;
+        string type = ((CcString*)args[1].addr)->GetValue();
+
+        tm_join = new TM_Join(); 
+        tm_join->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        tm_join->NearStopPave(sp,type);
+        local.setAddr(tm_join);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          tm_join = (TM_Join*)local.addr;
+          if(tm_join->count == tm_join->id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(tm_join->resulttype);
+          tuple->PutAttribute(0, 
+                             new CcInt(true, tm_join->id_list[tm_join->count]));
+          tuple->PutAttribute(1, 
+                            new CcInt(true, tm_join->rid_list[tm_join->count]));
+          tuple->PutAttribute(2, 
+                      new Region(tm_join->area_list[tm_join->count]));
+
+          result.setAddr(tuple);
+          tm_join->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            tm_join = (TM_Join*)local.addr;
+            delete tm_join;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+
+  return 0;
+}
+
+
+/*
+for each bus stop, find the buildings nearest to the bus stop or metro stop
+
+*/
+int OpNearStopBuildingMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  TM_Join* tm_join;
+  switch(message){
+      case OPEN:{
+
+        Space* sp = (Space*)args[0].addr;
+        string type = ((CcString*)args[1].addr)->GetValue();
+
+        tm_join = new TM_Join(); 
+        tm_join->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        tm_join->NearStopBuilding(sp,type);
+        local.setAddr(tm_join);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          tm_join = (TM_Join*)local.addr;
+          if(tm_join->count == tm_join->id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(tm_join->resulttype);
+          tuple->PutAttribute(0, 
+                             new CcInt(true, tm_join->id_list[tm_join->count]));
+          tuple->PutAttribute(1, new CcString(true, 
+                           GetBuildingStr(tm_join->type_list[tm_join->count])));
+          tuple->PutAttribute(2, 
+                      new Rectangle<2>(tm_join->rect_list[tm_join->count]));
+
+          result.setAddr(tuple);
+          tm_join->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            tm_join = (TM_Join*)local.addr;
+            delete tm_join;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+
+  return 0;
+}
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -22091,6 +22308,21 @@ Operator tm_join1(
     OpTMTMJoin1TypeMap
 );
 
+Operator nearstops_pave(
+  "nearstops_pave",
+  OpTMNearStopPaveSpec,
+  OpNearStopPaveMap,
+  Operator::SimpleSelect,
+  OpNearStopPaveTypeMap
+);
+
+Operator nearstops_building(
+  "nearstops_building",
+  OpTMNearStopBuildingSpec,
+  OpNearStopBuildingMap,
+  Operator::SimpleSelect,
+  OpNearStopBuildingTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -22400,6 +22632,11 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&modifyline);
    AddOperator(&checkroads);
    AddOperator(&tm_join1);
+   ////////////////////////////////////////////////////////////////////
+   /////find pavement areas and buildings clost to bus,metro stops/////
+   ////////////////////////////////////////////////////////////////////
+   AddOperator(&nearstops_pave);
+   AddOperator(&nearstops_building);
 
   }
   ~TransportationModeAlgebra() {};

@@ -215,7 +215,7 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
     BuildRoute2(cell_list3, cell_list1, 1, true);//type 1
     BuildRoute2(cell_list2, cell_list1, 2, false);//type 2
 
-    unsigned int limit_no = 65;
+    unsigned int limit_no = 60;
 
     BuildRoute_Limit2(cell_list1, cell_list1, limit_no);
 
@@ -334,7 +334,7 @@ void BusRoute::BuildRoute2(vector<Section_Cell>& from_cell_list,
   for(unsigned int i = 0;i < from_cell_list.size();i++){
     Section_Cell elem = from_cell_list[i];
 
-      float dist_val = 30000.0;//Euclidean distance between two cells
+      float dist_val = 50000.0;//Euclidean distance between two cells
 
       int end_cellid = 
           FindEndCell1(from_cell_list[i],to_cell_list,dist_val, start); 
@@ -371,7 +371,7 @@ void BusRoute::BuildRoute_Limit2(vector<Section_Cell>& from_cell_list,
 
     if(from_cell_list[i].def == false) continue; 
 
-      float dist_val = 40000.0;//Euclidean distance between two cells
+      float dist_val = 80000.0;//Euclidean distance between two cells
       int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
 
       if(end_cellid >= 0){
@@ -397,7 +397,7 @@ void BusRoute::BuildRoute_Limit2(vector<Section_Cell>& from_cell_list,
 
       if(from_cell_list[i].def == false) continue; 
 
-      float dist_val = 40000.0;//Euclidean distance between two cells
+      float dist_val = 80000.0;//Euclidean distance between two cells
       int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
 
       if(end_cellid >= 0){
@@ -1241,7 +1241,6 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops1.push_back(2350.0);
     dist_for_stops1.push_back(2000.0);
     dist_for_stops1.push_back(2100.0);
-    dist_for_stops1.push_back(1900.0);
     dist_for_stops1.push_back(2300.0);
     dist_for_stops1.push_back(2400.0);
     dist_for_stops1.push_back(2200.0);
@@ -1269,7 +1268,6 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops2.push_back(2000.0);
     dist_for_stops2.push_back(2200.0);
     dist_for_stops2.push_back(2100.0);
-    dist_for_stops1.push_back(1900.0);
     dist_for_stops1.push_back(2600.0);
     dist_for_stops2.push_back(2700.0);
     dist_for_stops2.push_back(2300.0);
@@ -1298,7 +1296,6 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops3.push_back(2200.0);
     dist_for_stops3.push_back(2600.0);
     dist_for_stops3.push_back(2100.0); 
-    dist_for_stops1.push_back(1900.0);
     dist_for_stops3.push_back(2300.0); 
     dist_for_stops3.push_back(2400.0);
     dist_for_stops3.push_back(2500.0);
@@ -1372,15 +1369,19 @@ void BusRoute::CreateStops(int br_id, GLine* gl, Line* l,
       GPoint* gp = 
         new GPoint(true,n->GetId(),entry.rid,last_sec_gp_pos,None);
       bus_stop_loc_1.push_back(*gp);
-      Point* p = new Point();
-      gp->ToPoint(p);
-      bus_stop_loc_2.push_back(*p);
-      
-//      cout<<"gp start "<<*gp<<endl; 
-      
-      delete p;
+//       Point* p = new Point();
+//       gp->ToPoint(p);
+//       bus_stop_loc_2.push_back(*p);
+
+      Point res;
+      MyToPoint(n, gp, res);
+      assert(res.IsDefined());
+      bus_stop_loc_2.push_back(res);
+
+
+//      delete p;
       delete gp;
-      
+
       br_id_list.push_back(br_id);
       br_stop_id.push_back(stop_count + 1);
 
@@ -1493,15 +1494,19 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
    GPoint* gp = 
    new GPoint(true,n->GetId(),rid,last_sec_gp_pos,None);
    bus_stop_loc_1.push_back(*gp);
-   Point* p = new Point();
-   gp->ToPoint(p);
-   bus_stop_loc_2.push_back(*p);   
-   
-//   cout<<"stop1 "<<*gp<<endl; 
 
-   delete p;
+//    Point* p = new Point();
+//    gp->ToPoint(p);
+//    bus_stop_loc_2.push_back(*p);   
+//    delete p;
+
+      Point res;
+      MyToPoint(n, gp, res);
+      assert(res.IsDefined());
+      bus_stop_loc_2.push_back(res);
+
    delete gp;
-         
+
    return true; 
    
   }else{///from big to small 
@@ -1579,13 +1584,16 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
     
     GPoint* gp = new GPoint(true,n->GetId(),rid,last_sec_gp_pos,None);
     bus_stop_loc_1.push_back(*gp);
-    Point* p = new Point();
+/*    Point* p = new Point();
     gp->ToPoint(p);
     bus_stop_loc_2.push_back(*p);
+    delete p;*/
 
-//    cout<<" stop2 "<<*gp<<endl;
+    Point res;
+    MyToPoint(n, gp, res);
+    assert(res.IsDefined());
+    bus_stop_loc_2.push_back(res);
 
-    delete p;
     delete gp;
 
     return true; 
@@ -1638,8 +1646,12 @@ void BusRoute::CheckBusStopZC(unsigned int cur_size, Relation* pave_rel,
           GPoint* new_gp = new GPoint(gp);
           while(true){
             new_gp->SetPosition(new_gp->GetPosition() + delta);
-            Point* new_p = new Point();
-            new_gp->ToPoint(new_p);
+             Point* new_p = new Point();
+//             new_gp->ToPoint(new_p);
+
+             MyToPoint(n, new_gp, *new_p);
+             assert(new_p->IsDefined());
+
             if(new_p->Inside(*reg) == false){
               bus_stop_loc_1[cur_size] = *new_gp;
               bus_stop_loc_2[cur_size] = *new_p; 
@@ -1647,6 +1659,7 @@ void BusRoute::CheckBusStopZC(unsigned int cur_size, Relation* pave_rel,
               break; 
             } 
             delete new_p; 
+
             assert(new_gp->GetPosition() > m1 && new_gp->GetPosition() < m2); 
           }
           delete new_gp;
@@ -1753,12 +1766,18 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
     GPoint* gp = new GPoint(true,n->GetId(),stop_list[0].rid,stop_list[0].pos);
     bus_stop_loc_1.push_back(*gp); 
   
-    Point* p = new Point();
+/*    Point* p = new Point();
     gp->ToPoint(p);
     bus_stop_loc_2.push_back(*p);      
-    delete p; 
-    delete gp;   
-    
+    delete p; */
+
+    Point res;
+    MyToPoint(n, gp, res);
+    assert(res.IsDefined());
+    bus_stop_loc_2.push_back(res);
+
+    delete gp;
+
 //    point_id_list.push_back(point_id);
     sec_id_list.push_back(stop_list[0].sid);
 
@@ -1796,12 +1815,14 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
 //        cout<<"gp "<<*gp<<endl 
         
         Point* p = new Point();
-        gp->ToPoint(p);
-        bus_stop_loc_2.push_back(*p);      
+//        gp->ToPoint(p);
+        MyToPoint(n, gp, *p);
+        assert(p->IsDefined());
+        bus_stop_loc_2.push_back(*p);
         delete p; 
         delete gp;   
         count1++;
-        
+
         sec_id_list.push_back(stop_list[i].sid);
       }
       
@@ -1851,11 +1872,14 @@ void BusRoute::MergeBusStop1(vector<BusStop>& stop_list)
         br_stop_id.push_back(stop_list[i].br_stop_id); 
         GPoint* gp = new GPoint(true,n->GetId(),stop_list[i].rid,new_pos);
         bus_stop_loc_1.push_back(*gp); 
-  
+
         Point* p = new Point();
-        gp->ToPoint(p);
+//        gp->ToPoint(p);
+        MyToPoint(n, gp, *p);
+        assert(p->IsDefined());
         bus_stop_loc_2.push_back(*p);
         delete p; 
+
         delete gp; 
 
         sec_id_list.push_back(stop_list[i].sid);
@@ -2058,7 +2082,9 @@ void BusRoute::CreateBusStop3(int attr,int attr1,int attr2,int attr3)
       bus_stop_loc_1.push_back(*gp);
 
       Point* p = new Point();
-      gp->ToPoint(p);
+//      gp->ToPoint(p);
+      MyToPoint(n, gp, *p);
+      assert(p->IsDefined());
       bus_stop_loc_2.push_back(*p);
       delete p;
       delete gp;
@@ -2466,9 +2492,11 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
 
         int rid = bus_stop_list[bus_stop_index].rid; 
         double pos = bus_stop_list[bus_stop_index].pos;
-        GPoint* gp = new GPoint(true,n->GetId(),rid,pos,None); 
+        GPoint* gp = new GPoint(true, n->GetId(), rid, pos, None);
         Point* p = new Point();
-        gp->ToPoint(p);
+//        gp->ToPoint(p);
+        MyToPoint(n, gp, *p);
+        assert(p->IsDefined());
 
         //////////////////////////////////////////////////////////////
         if(initialize == false){
@@ -4663,7 +4691,7 @@ void RoadDenstiy::CreateBusTrip2(MPoint* mo,
     int64_t time1 = st.ToDouble()*86400000.0;
     int64_t time2 = et.ToDouble()*86400000.0;
     if(time1 == time2){/////////time is equal, unit is not valid
-        if((i + 1) < seq_halfseg.size()){
+        if((i + 1) < (int)seq_halfseg.size()){
           seq_halfseg[i + 1].from = from_loc; 
         }
         continue; 
@@ -14215,12 +14243,12 @@ void MetroStruct::CreateMRoute(DualGraph* dg, string type)
   int no_mroute;
   if(type == "Berlin")no_mroute = 10;
   else if(type == "Houston") no_mroute = 16;
-  
+
   vector<bool> cell_flag;
   for(int i = 1;i <= dg->node_rel->GetNoTuples();i++){
     cell_flag.push_back(false);
   }
-  
+
   //////////////////////////////////////////////////////////////////
   ///////////////get the center///////////////////////////////////
   ////////////////////////////////////////////////////////////////
@@ -14253,7 +14281,7 @@ void MetroStruct::CreateMRoute(DualGraph* dg, string type)
     min_dist2 = 1500.0;
   }else if(type == "Houston"){
     min_dist = 60000.0;
-    min_dist2 = 4000.0;
+    min_dist2 = 6000.0;
   }else{
     cout<<"not processed"<<endl;
     assert(false);
@@ -17623,6 +17651,25 @@ void MNNav::GetAdjNodeMG(MetroGraph* mg, int nodeid)
 
 }
 
+void MyToPoint(Network* rn, GPoint* gp, Point& res)
+{
+  Relation* routes = rn->GetRoutes();
+  if(routes == NULL){
+    cout<<"routes loading error"<<endl;
+    assert(false);
+    return; 
+  }
+ Tuple* road_tuple = routes->GetTuple(gp->GetRouteId(), false);
+
+ SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+ assert(sl->GetStartSmaller());
+
+ assert(sl->AtPosition(gp->GetPosition(), sl->GetStartSmaller(), res));
+
+ road_tuple->DeleteIfAllowed();
+
+}
+
 
 ///////////////////////////////////////////////////////////////////////
 ////////// improve join algorithm, not use symmjoin////////////////////
@@ -17740,3 +17787,356 @@ void TM_Join::DFTraverse(Relation* rel, R_Tree<2,TupleId>* rtree,
   delete node;
 }
 
+
+/*
+for each bus or metro stop, find the pavement areas nearby 
+
+*/
+void TM_Join::NearStopPave(Space* sp, string type)
+{
+
+  Pavement* pm = sp->LoadPavement(IF_REGION);
+  DualGraph* dg = pm->GetDualGraph();
+
+  if(type == "Bus"){
+    BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);
+    NearBusStopPave(bn, dg);
+    sp->CloseBusNetwork(bn);
+  }else if(type == "Metro"){
+    MetroNetwork* mn = sp->LoadMetroNetwork(IF_METRONETWORK);
+    NearMetroStopPave(mn, dg);
+    sp->CloseMetroNetwork(mn);
+  }else{
+
+    cout<<"invalid type "<<type<<endl;
+  }
+
+  pm->CloseDualGraph(dg);
+  sp->ClosePavement(pm);
+}
+
+/*
+for each bus stop, find its nearby pavement areas.
+  For the roads data Houston, if all pavement areas are randomly selected,
+  some may not find bus stops nearby
+
+*/
+void TM_Join::NearBusStopPave(BusNetwork* bn, DualGraph* dg)
+{
+  Relation* bs_rel = bn->GetBS_Rel();
+  Relation* tri_rel = dg->node_rel_sort;
+  R_Tree<2,TupleId>* rtree = dg->rtree_node;
+
+  
+  vector<int> unique_id_list;
+  for(int i = 1;i <= bs_rel->GetNoTuples();i++){
+    Tuple* bs_tuple = bs_rel->GetTuple(i, false);
+    Point* bs_loc = (Point*)bs_tuple->GetAttribute(BusNetwork::BS_GEO);
+//    cout<<*bs_loc<<endl;
+
+    vector<int> tid_list;
+    DFTraverseBMS(rtree, rtree->RootRecordId(), tri_rel, *bs_loc, 
+                  tid_list, NEARBUSSTOP);
+
+    for(unsigned int j = 0;j < tid_list.size();j++){
+        unique_id_list.push_back(tid_list[j]);
+    }
+    bs_tuple->DeleteIfAllowed();
+  }
+
+//  cout<<unique_id_list.size()<<endl;
+
+  sort(unique_id_list.begin(), unique_id_list.end());
+  vector<int>::iterator it = 
+                      unique(unique_id_list.begin(), unique_id_list.end());
+  unique_id_list.resize( it - unique_id_list.begin() ); 
+
+//  cout<<unique_id_list.size()<<endl;
+
+ for(it = unique_id_list.begin(); it != unique_id_list.end();it++){
+    Tuple* tri_tuple = tri_rel->GetTuple(*it, false);
+    int oid = ((CcInt*)tri_tuple->GetAttribute(DualGraph::OID))->GetIntval();
+    int rid = ((CcInt*)tri_tuple->GetAttribute(DualGraph::RID))->GetIntval();
+    Region* reg = (Region*)tri_tuple->GetAttribute(DualGraph::PAVEMENT);
+
+//   cout<<oid<<endl;
+    id_list.push_back(oid);
+    rid_list.push_back(rid);
+    area_list.push_back(*reg);
+
+   tri_tuple->DeleteIfAllowed();
+ }
+
+}
+
+/*
+for each metro stop, find its nearby pavement areas
+  
+*/
+void TM_Join::NearMetroStopPave(MetroNetwork* mn, DualGraph* dg)
+{
+//  cout<<"metro stop"<<endl;
+
+  Relation* ms_rel = mn->GetMS_Rel();
+  Relation* tri_rel = dg->node_rel_sort;
+  R_Tree<2,TupleId>* rtree = dg->rtree_node;
+
+
+  vector<int> unique_id_list;
+  for(int i = 1;i <= ms_rel->GetNoTuples();i++){
+      Tuple* ms_tuple = ms_rel->GetTuple(i, false);
+      Point* ms_loc = (Point*)ms_tuple->GetAttribute(MetroNetwork::M_STOP_GEO);
+//      cout<<*ms_loc<<endl;
+
+     vector<int> tid_list;
+     DFTraverseBMS(rtree, rtree->RootRecordId(), tri_rel, 
+                  *ms_loc, tid_list, NEARMETROSTOP);
+
+//     cout<<tid_list.size()<<endl;
+ 
+     for(unsigned int j = 0;j < tid_list.size();j++){
+         unique_id_list.push_back(tid_list[j]);
+     }
+      ms_tuple->DeleteIfAllowed();
+  }
+  
+//  cout<<unique_id_list.size()<<endl;
+
+  sort(unique_id_list.begin(), unique_id_list.end());
+  vector<int>::iterator it = 
+                      unique(unique_id_list.begin(), unique_id_list.end());
+  unique_id_list.resize( it - unique_id_list.begin() ); 
+
+//  cout<<unique_id_list.size()<<endl;
+
+ for(it = unique_id_list.begin(); it != unique_id_list.end();it++){
+    Tuple* tri_tuple = tri_rel->GetTuple(*it, false);
+    int oid = ((CcInt*)tri_tuple->GetAttribute(DualGraph::OID))->GetIntval();
+    int rid = ((CcInt*)tri_tuple->GetAttribute(DualGraph::RID))->GetIntval();
+    Region* reg = (Region*)tri_tuple->GetAttribute(DualGraph::PAVEMENT);
+
+//   cout<<oid<<endl;
+    id_list.push_back(oid);
+    rid_list.push_back(rid);
+    area_list.push_back(*reg);
+
+   tri_tuple->DeleteIfAllowed();
+ }
+
+}
+
+/*
+traverse the rtree to find nearby pavement areas for bus and metro stops 
+
+*/
+void TM_Join::DFTraverseBMS(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                           Relation* rel,
+                           Point query_loc, vector<int>& tid_list, 
+                            double max_dist)
+{
+  ////should be consist with the one used in GeneralType.cpp/////
+ //  const double max_dist = NEARBUSSTOP;
+
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              Region* reg = 
+                  (Region*)dg_tuple->GetAttribute(DualGraph::PAVEMENT);
+
+              if(reg->Distance(query_loc, NULL) < max_dist){
+                tid_list.push_back(e.info);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(query_loc.Distance(e.box) < max_dist){
+                DFTraverseBMS(rtree, e.pointer, rel, query_loc, 
+                              tid_list, max_dist);
+            }
+      }
+  }
+  delete node;
+}
+
+
+/*
+for each bus or metro stop, find the buildings nearby 
+
+*/
+void TM_Join::NearStopBuilding(Space* sp, string type)
+{
+  IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
+  
+  Relation* build_rel = i_infra->BuildingType_Rel();
+  R_Tree<2,TupleId>* rtree = i_infra->BuildingRTree();
+  
+  if(type == "Bus"){
+    BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);
+    NearBusStopBuilding(bn, build_rel, rtree);
+    sp->CloseBusNetwork(bn);
+  }else if(type == "Metro"){
+    MetroNetwork* mn = sp->LoadMetroNetwork(IF_METRONETWORK);
+    NearMetroStopBuilding(mn, build_rel, rtree);
+    sp->CloseMetroNetwork(mn);
+  }else{
+
+    cout<<"invalid type "<<type<<endl;
+  }
+
+  sp->CloseIndoorInfra(i_infra);  
+  
+}
+
+/*
+for each bus stop, find all buildings nearby 
+
+*/
+void TM_Join::NearBusStopBuilding(BusNetwork* bn, Relation* build_rel, 
+                           R_Tree<2,TupleId>* rtree)
+{
+  Relation* bs_rel = bn->GetBS_Rel();
+
+  vector<int> unique_id_list;
+  for(int i = 1;i <= bs_rel->GetNoTuples();i++){
+    Tuple* bs_tuple = bs_rel->GetTuple(i, false);
+    Point* bs_loc = (Point*)bs_tuple->GetAttribute(BusNetwork::BS_GEO);
+//    cout<<*bs_loc<<endl;
+
+     vector<int> tid_list;
+     DFTraverseBMS2(rtree, rtree->RootRecordId(), build_rel, *bs_loc, 
+                   tid_list, NEARBUSSTOP);
+ 
+     for(unsigned int j = 0;j < tid_list.size();j++){
+         unique_id_list.push_back(tid_list[j]);
+     }
+
+    bs_tuple->DeleteIfAllowed();
+  }
+
+//  cout<<unique_id_list.size()<<endl;
+
+  sort(unique_id_list.begin(), unique_id_list.end());
+  vector<int>::iterator it = 
+                      unique(unique_id_list.begin(), unique_id_list.end());
+  unique_id_list.resize( it - unique_id_list.begin() ); 
+
+//  cout<<unique_id_list.size()<<endl;
+
+ for(it = unique_id_list.begin(); it != unique_id_list.end();it++){
+    Tuple* tuple = build_rel->GetTuple(*it, false);
+    int Tid = *it;
+    int type = 
+   ((CcInt*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_TYPE))->GetIntval();
+    Rectangle<2>* reg = 
+      (Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+
+//   cout<<oid<<endl;
+    id_list.push_back(Tid);
+    type_list.push_back(type);
+    rect_list.push_back(*reg);
+
+    tuple->DeleteIfAllowed();
+ }
+
+
+}
+
+
+/*
+for each metro stop, find all buildings nearby 
+
+*/
+void TM_Join::NearMetroStopBuilding(MetroNetwork* mn, Relation* build_rel, 
+                           R_Tree<2,TupleId>* rtree)
+{
+  Relation* ms_rel = mn->GetMS_Rel();
+  
+  vector<int> unique_id_list;
+  for(int i = 1;i <= ms_rel->GetNoTuples();i++){
+      Tuple* ms_tuple = ms_rel->GetTuple(i, false);
+      Point* ms_loc = (Point*)ms_tuple->GetAttribute(MetroNetwork::M_STOP_GEO);
+//      cout<<*ms_loc<<endl;
+
+     vector<int> tid_list;
+     DFTraverseBMS2(rtree, rtree->RootRecordId(), build_rel, 
+                  *ms_loc, tid_list, NEARMETROSTOP);
+
+//     cout<<tid_list.size()<<endl;
+ 
+     for(unsigned int j = 0;j < tid_list.size();j++){
+         unique_id_list.push_back(tid_list[j]);
+     }
+      ms_tuple->DeleteIfAllowed();
+  }
+
+
+//  cout<<unique_id_list.size()<<endl;
+
+  sort(unique_id_list.begin(), unique_id_list.end());
+  vector<int>::iterator it = 
+                      unique(unique_id_list.begin(), unique_id_list.end());
+  unique_id_list.resize( it - unique_id_list.begin() ); 
+
+//  cout<<unique_id_list.size()<<endl;
+
+  for(it = unique_id_list.begin(); it != unique_id_list.end();it++){
+    Tuple* tuple = build_rel->GetTuple(*it, false);
+    int Tid = *it;
+    int type = 
+   ((CcInt*)tuple->GetAttribute(IndoorInfra::INDOORIF_BUILD_TYPE))->GetIntval();
+    Rectangle<2>* reg = 
+      (Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+
+//   cout<<oid<<endl;
+    id_list.push_back(Tid);
+    type_list.push_back(type);
+    rect_list.push_back(*reg);
+
+    tuple->DeleteIfAllowed();
+  }
+
+}
+
+
+/*
+traverse the rtree to find nearby pavement areas for bus and metro stops 
+
+*/
+void TM_Join::DFTraverseBMS2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                           Relation* rel,
+                           Point query_loc, vector<int>& tid_list, 
+                            double max_dist)
+{
+  ////should be consist with the one used in GeneralType.cpp/////
+ //  const double max_dist = NEARBUSSTOP;
+
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              Rectangle<2>* reg = 
+           (Rectangle<2>*)dg_tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+
+              if(query_loc.Distance(*reg) < max_dist){
+                tid_list.push_back(e.info);
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(query_loc.Distance(e.box) < max_dist){
+                DFTraverseBMS2(rtree, e.pointer, rel, query_loc, 
+                              tid_list, max_dist);
+            }
+      }
+  }
+  delete node;
+}

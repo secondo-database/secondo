@@ -1078,3 +1078,15 @@ Signature: relation x relation x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query tm_join1(r, cell_box, rtree_cell) count;
 Result   : 10
 
+
+Operator : nearstops_pave
+Number   : 1
+Signature: space x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query nearstops_pave(space, "Bus") count;
+Result   : 10
+
+Operator : nearstops_building
+Number   : 1
+Signature: space x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query nearstops_building(space, "Bus") count;
+Result   : 10

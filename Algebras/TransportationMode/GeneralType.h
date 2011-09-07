@@ -1211,6 +1211,9 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 
 
 #define obj_scale 3
+/////// the distance from pavements or buildings to bus and metro stops ////
+#define NEARBUSSTOP 500.0  //make it larger 800.0 
+#define NEARMETROSTOP 1200.0 // make it larger 1500.0 
 
 //////////////////////////////////////////////////////////////////////
 /////////////////////////////random number generator//////////////////
