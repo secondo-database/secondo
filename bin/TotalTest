@@ -142,6 +142,8 @@ echo "Terminate OptServer"
 echo "Terminate Monitor"
 kill -SIGTERM $mon 2>/dev/null 
 
+sleep 5 
+
 rm -rf $dir
 
 exit $errors
