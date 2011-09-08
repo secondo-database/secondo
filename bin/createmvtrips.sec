@@ -1,0 +1,56 @@
+create database mvtrips
+
+open database mvtrips
+
+# load raw data
+
+let KDRSchema = [const rel(tuple([
+  Latitude: real, 
+  Longitude: real, 
+  UTC: string, 
+  Altitude: int,
+  Distance: real,
+  Speed: int,
+  Date: string,
+  Name: string,
+  Sat: int
+])) 
+value ()]
+
+let Raw = KDRSchema csvimport['../bin/Trk110731.csv', 7, "#", ","] consume
+
+
+# create Trip for each day
+
+let onehour = [const duration value (0 3600000)]
+
+let DayTrips =  Raw feed 
+  extend[
+    I: str2instant(.Date + "-" + .UTC) + onehour, 
+    P: makepoint(.Longitude, .Latitude)] 
+  sortby[Date asc, I asc]
+  groupby[Date
+  ; DayTrip: group feed approximate[I, P, [const duration value (0 300000)]] ]
+consume
+
+
+# alternative representation: split by trips
+
+let Trips = DayTrips feed 
+  projectextendstream[Date
+  ; Trip: .DayTrip sim_trips[ [const duration value (0 300000)]] ]
+  consume
+
+
+# finding stops
+
+# starting and ending points for each trip
+
+let Stops =
+  Trips feed projectextend[Date; Time: inst(initial(.Trip)), Stop: val(initial(.Trip)), Kind: "start"]
+  Trips feed projectextend[Date; Time: inst(final(.Trip)), Stop: val(final(.Trip)), Kind: "end"]
+  concat
+  sortby[Date, Time]
+  consume
+
+close database
