@@ -2822,3 +2822,26 @@ Algebra* InitializeCollectionAlgebra(NestedList* nlRef, QueryProcessor* qpRef) {
   return new (collection::CollectionAlgebra);
 }
 
+
+namespace Vector{
+  const string BasicType() {return "vector"; };
+  const bool checkType(ListExpr list){
+     return collection::Collection::checkType(list, BasicType());
+  }
+}
+
+namespace Set{
+  const string BasicType() {return "set"; };
+  const bool checkType(ListExpr list){
+     return collection::Collection::checkType(list, BasicType());
+  }
+}
+
+namespace Multiset{
+  const string BasicType() {return "multiset"; };
+  const bool checkType(ListExpr list){
+     return collection::Collection::checkType(list, BasicType());
+  }
+}
+
+

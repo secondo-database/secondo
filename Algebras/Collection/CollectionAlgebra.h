@@ -357,24 +357,18 @@ Functions returning the Secondo type names
 
 */
 namespace Vector{
-  const string BasicType() {return "vector"; };
-  const bool checkType(ListExpr list){
-     return collection::Collection::checkType(list, BasicType());
-  }
+  const string BasicType();
+  const bool checkType(ListExpr list);
 }
 
 namespace Set{
-  const string BasicType() {return "set"; };
-  const bool checkType(ListExpr list){
-     return collection::Collection::checkType(list, BasicType());
-  }
+  const string BasicType();
+  const bool checkType(ListExpr list);
 }
 
 namespace Multiset{
-  const string BasicType() {return "multiset"; };
-  const bool checkType(ListExpr list){
-     return collection::Collection::checkType(list, BasicType());
-  }
+  const string BasicType();
+  const bool checkType(ListExpr list);
 }
 
 
