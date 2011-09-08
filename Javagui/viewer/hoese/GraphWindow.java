@@ -383,7 +383,7 @@ public class GraphWindow extends JLayeredPane
     Rectangle2D cbbi1 = iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
     Rectangle2D.Double cbbi;
     if(cbbi1 instanceof Rectangle2D.Double){
-       cbbi = (Rectangle2D.Double)iat.createTransformedShape(vpbounds.getBounds2D()).getBounds2D();
+       cbbi = (Rectangle2D.Double)cbbi1;
     } else {
         cbbi=new Rectangle2D.Double( cbbi1.getMinX(), cbbi1.getMinY(), cbbi1.getWidth(), cbbi1.getHeight());
     }
