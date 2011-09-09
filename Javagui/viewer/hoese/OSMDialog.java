@@ -19,6 +19,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
 import javax.swing.BoxLayout;
@@ -89,7 +90,14 @@ public class OSMDialog extends JDialog {
 
 	/** puts all the contained components at their places. **/
 	private void layoutComponents(Container root) {
-		root.setLayout(new BoxLayout(root,BoxLayout.Y_AXIS));
+
+
+    JPanel content = new JPanel();
+		content.setLayout(new BoxLayout(content,BoxLayout.Y_AXIS));
+
+    JScrollPane sp =  new JScrollPane(content);
+
+    root.add(sp);
 
 
 		// north ( preset type and name )
@@ -101,7 +109,7 @@ public class OSMDialog extends JDialog {
 		namePanel.add(new JLabel("Name:"));
 		namePanel.add(nameTF);
 		categoryPanel.add(namePanel);
-		root.add(categoryPanel);
+		content.add(categoryPanel);
 
 		// center
 		JPanel centerPanel = new JPanel(new BorderLayout());
@@ -216,7 +224,7 @@ public class OSMDialog extends JDialog {
 
 		centerPanel.add(infoTab, BorderLayout.SOUTH);
 
-		root.add(centerPanel);
+		content.add(centerPanel);
 		
 
     // create and add the command panel (south)
@@ -224,7 +232,7 @@ public class OSMDialog extends JDialog {
 		commandPanel.add(acceptBtn);
 		commandPanel.add(resetBtn);
 		commandPanel.add(cancelBtn);
-		root.add(commandPanel);
+		content.add(commandPanel);
 	}
 
 	/**
