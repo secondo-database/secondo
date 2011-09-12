@@ -1,0 +1,188 @@
+################################################################################
+### Creating networks from imported OSM data (11 / 11)
+################################################################################
+### Description:
+### - This script creates networks from imported OSM data.
+### Please, see tu_shp_import.sh for further details. 
+###
+### Preconditions:
+### - activated necessary algebras
+### - existing open database with successfully imported osm data
+### - extStreetsRel-relation
+### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
+###                    roadClass: string, oneWay: int, bridge: int,
+###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
+### - nodesRel-relation
+### nodesRel: rel{Node: point, NodeId: int}
+### - extSectionsRel-relation
+### extSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
+###                     EndNodeId: int, StreetId: int, GroupId: int,
+###                     SectionDist: real}
+###
+### Postconditions:
+### - cityRoads-relation
+### cityRoads: rel{Name: string, Road: int, Length: double, Geometry: line,
+###                Dual: bool, StartsSmaller: bool, RoadLevel: int}
+### - cityJunctions-relation
+### cityJunctions: rel{Road1: int, Pos1: double, Road2: int, Pos2: double,
+###                    JunctionType: int}
+### - cityNetwork-network
+###
+### Author:
+### - Thomas Uchdorf, t.uchdorf@arcor.de
+################################################################################
+
+# Removing duplicates
+#query (twoSecJuncBtwTwoSts feed
+#   threeSecJuncBtwTwoSts feed {a}
+#   hashjoin [Node,Node_a,99997]
+#   filter [(.Road1 = .Road1_a) and (.Road2 = .Road2_a)]
+#   project [Road1,Pos1,Road2,Pos2,JunctionType,
+#      Sec1,Sec2,Node,SecData1,SecData2])
+#   twoSecJuncBtwTwoSts deletedirect 
+#   consume;
+#...
+
+# Calculating and inserting road measures into a new relation containing
+# junction data
+# see also PaperMon-paper page 11
+let cityJunctionsTmp =
+   ((twoSecJuncBtwTwoSts feed
+     extend [numSecs: 2]
+     project [Road1,Pos1,Road2,Pos2,JunctionType,numSecs]
+     threeSecJuncBtwTwoSts feed
+     extend [numSecs: 3]
+     project [Road1,Pos1,Road2,Pos2,JunctionType,numSecs]
+     concat)
+    fourSecJuncBtwTwoSts feed
+    extend [numSecs: 4]
+    project [Road1,Pos1,Road2,Pos2,JunctionType,numSecs]
+    concat)
+   consume;
+# should not make a difference since the combined junctions are composed in a 
+# disjunct way 
+let cityJunctions =
+   cityJunctionsTmp feed
+   sortby[Road1,Pos1,Road2,Pos2]
+   groupby [Road1,Pos1,Road2,Pos2; 
+      NewJunctionType: group feed 
+         aggregateB [JunctionType; 
+                     fun(a:int,b:int) binor(a,b); 
+                     0]]
+   consume;
+#let cityJunctions =
+#   (fullSectionsView feed
+#    project [streetId,sectionId,startNodeId,streetData] {a}
+#    nodesRel feed
+#    hashjoin [startNodeId_a,NodeId,99997])
+#   fullSectionsView feed
+#   project [streetId,sectionId,startNodeId,streetData] {b} 
+#   hashjoin [startNodeId_a,startNodeId_b,99997]
+#   filter [.sectionId_a < .sectionId_b]
+#   projectextend [; 
+#      Road1: .streetId_a,
+#      Pos1: size(.streetData_a,create_geoid("WGS1984")) * 
+#         atpoint(.streetData_a,.Node,TRUE) / 
+#         size(.streetData_a),
+#      Road2: .streetId_b,
+#      Pos2: size(.streetData_b,create_geoid("WGS1984")) * 
+#         atpoint(.streetData_b,.Node,TRUE) / 
+#         size(.streetData_b),
+#      JunctionType: 16]
+#   consume;
+
+
+# Creating the network
+let cityNetwork = thenetwork(
+   1,
+   (cityRoads feed
+   project [Road, Length, Geometry, Dual, StartsSmaller]
+   consume),
+   cityJunctions);
+
+# Adding some gpoints for testing purposes
+let spot1 =
+   point2gpoint(cityNetwork,[const point value(6800.58 51236.37)]);
+let spot2 =
+   point2gpoint(cityNetwork,[const point value(6775.94 51238.47)]);
+#let spot3 =
+#   point2gpoint(cityNetwork,[const point value(6783.25 51263.80)]);
+
+# Finding junctions between unidirectional streets
+#             A   a   B
+# StartNode_a x------>x End_Node_a
+#             |       |
+#           b |       | b'
+#             |       |
+# EndNode_b   x<------x Start_Node_b
+#             D   a'  C
+# Parallelogram law
+# sum of the squares of the length of the sides = sum of the squares of the
+# length of the diagonals
+# a^2 + b'^2 + a'^2 +b^2 = diag1^2 +diag2^2
+# <=> 2 a^2 + 2 b^2 - diag1^2 - diag2^2 = 0
+# here we are looking for something close to a parallelogram, so we have
+# 2 a^2 + 2 b^2 - diag1^2 - diag2^2 < epsilon 
+query 
+(((extSectionsRel feed {a}
+nodesRel feed {n1}
+hashjoin [StartNodeId_a,NodeId_n1,99997])
+nodesRel feed {n2}
+hashjoin [EndNodeId_a,NodeId_n2,99997])
+extend [StartNode_a: .Node_n1, EndNode_a: .Node_n2]
+extStreetsRel feed {e1}
+hashjoin [StreetId_a,streetId_e1,99997])
+filter [.oneWay_e1 = 1] 
+(((extSectionsRel feed {b} 
+nodesRel feed {n3}
+hashjoin [StartNodeId_b,NodeId_n3,99997])
+nodesRel feed {n4}
+hashjoin [EndNodeId_b,NodeId_n4,99997])
+extend [StartNode_b: .Node_n3, EndNode_b: .Node_n4]
+extStreetsRel feed {e2}
+hashjoin [StreetId_b,streetId_e2,99997])
+filter [.oneWay_e2 = 1] 
+hashjoin [groupId_e1,groupId_e2,99997] 
+filter [.streetId_e1 < .streetId_e2]
+extend [a: distance(.StartNode_a,.EndNode_a),
+        aSharp: distance(.EndNode_b,.StartNode_b),
+        b: distance(.StartNode_a,.EndNode_b),
+        bSharp: distance(.EndNode_a,.StartNode_b),
+        diag1: distance(.StartNode_a,.StartNode_b),
+        diag2: distance(.EndNode_a,.EndNode_b)]
+sortby [groupId_e1] 
+filter [(abs(.a - .aSharp) < (0.1 * getMaxVal(.a,.aSharp))) 
+   and (abs(.b - .bSharp) < (0.1 * getMaxVal(.b,.bSharp)))
+   and (abs(2 * ((.a * .a) + (.b * .b)) - (.diag1 * .diag1) - (.diag2 * .diag2)) < 0.0001)]
+consume;
+
+#query 
+#extStreetsRel feed {a}
+#extend [StartNode_a: atposition(.geoData_a,0.0,TRUE),
+#   EndNode_a: atposition(.geoData_a,1.0,TRUE)]
+#filter [.oneWay_a = 1] 
+#extStreetsRel feed {b} 
+#extend [StartNode_b: atposition(.geoData_b,0.0,TRUE),
+#   EndNode_b: atposition(.geoData_b,1.0,TRUE)]
+#filter [.oneWay_b = 1] 
+#hashjoin [groupId_a,groupId_b,99997] 
+#filter [.streetId_a < .streetId_b]
+#extend [a: distance(.StartNode_a,.EndNode_a),
+#        aSharp: distance(.EndNode_b,.StartNode_b),
+#        b: distance(.StartNode_a,.EndNode_b),
+#        bSharp: distance(.EndNode_a,.StartNode_b),
+#        diag1: distance(.StartNode_a,.StartNode_b),
+#        diag2: distance(.EndNode_a,.EndNode_b)]
+#sortby [groupId_a] 
+#filter [(abs(.a - .aSharp) < (0.1 * getMaxVal(.a,.aSharp))) 
+#   and (abs(.b - .bSharp) < (0.1 * getMaxVal(.b,.bSharp)))
+#   and (abs(2 * ((.a * .a) + (.b * .b)) - (.diag1 * .diag1) - (.diag2 * .diag2)) < 0.0001)]
+#consume;
+
+# Checking whether the oneWay-Attribute is set correctly
+query extStreetsRel feed
+filter [(.roadClass = "motorway")
+   and not(.oneWay = 1)]
+consume
+
+close database;

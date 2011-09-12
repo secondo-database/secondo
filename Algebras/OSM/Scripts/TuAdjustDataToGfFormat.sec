@@ -1,0 +1,331 @@
+################################################################################
+### Adjusting imported OSM data to the standard geofabrik format (3 / 7)
+################################################################################
+### Description:
+### - This script is only needed, if the shape files used for import were
+### created manually. It adjusts the imported OSM data to the generic format
+### provided by shape files from the provider geofabrik.
+### Please, see tu_shp_import.sh for further details.
+###
+### Preconditions:
+### - existing open database
+### - streetsTmp-relation
+### streetsTmp: rel{geoData: sline, ID: int, part: int, attrib: string}
+###
+### Postconditions:
+### - streetsTmp-relation
+### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
+###                 type: string, oneway: int, bridge: int, maxspeed: int,
+###                 tunnel: bool, layer: int}
+### - pointsTmp-relation
+### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
+###                type: string}
+###
+### Author:
+### - Thomas Uchdorf, t.uchdorf@arcor.de
+################################################################################
+
+# --- Working on streets
+# Concatenating split up attrib-strings
+let streetsWholeAttrib =
+   streetsTmp feed 
+   sortby [ID,part]
+   extend [tags: trim(.attrib)]
+   remove [attrib] 
+   groupby [ID;  
+      AllTags: group feed  
+      aggregateB [tags;  
+         fun(a: text,b: text) 
+         (a + b); a 
+      ]]
+   extend [HelpId: .ID]
+   remove [ID]
+   streetsTmp feed
+   filter [.part = 0]
+   remove [part, attrib]
+   hashjoin [HelpId,ID,99997]
+   extend [attrib: .AllTags]
+   remove [AllTags]
+   consume;
+
+# Deleting temporary relation
+delete streetsTmp;
+
+# Ignoring unwanted data on railways, barriers and so on
+let interestingStreets =
+   streetsWholeAttrib feed
+   filter [.attrib contains "highway"]
+   consume;
+
+# Extending tags that are kept in one attribute
+let streetTags =
+   interestingStreets feed
+   extendstream [abc: tokenize(.attrib,"|")]
+   consume;
+
+# Creating temporary relations with data on the relevant tags
+let roadClassTags =
+   streetTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      roadClassTmp: group feed
+         aggregateB [abc; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "highway = ",
+                  trim(a),
+                  ifthenelse(b contains "highway = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'EMPTY']]
+   projectextend [; 
+      osmId: .ID,
+      roadClass: replace(.roadClassTmp,'highway = ',"")]
+   consume;
+
+# TODO add special treatment for one-ways in the opposite direction of the road
+#      (oneway = -1 or oneway = reverse) 
+let oneWayTags =
+   interestingStreets feed
+   projectextend [; 
+      osmId: .ID,
+      oneWay:
+         ifthenelse((.attrib contains "oneway = yes") or
+            (.attrib contains "oneway = 1") or
+            (.attrib contains "oneway = true"),
+            1,
+            ifthenelse((.attrib contains "oneway = -1") or
+               (.attrib contains "oneway = reverse"),-1,0))]   
+   consume;
+
+let nameTags =
+   streetTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      nameTmp: group feed
+         aggregateB [abc; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "name = ",
+                  trim(a),
+                  ifthenelse(b contains "name = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'UNKNOWN']]
+   projectextend [; 
+      osmId: .ID,
+      name: replace(.nameTmp,'name = ',"")]
+   consume;
+
+let layerTags =
+   streetTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      layerTmp: group feed
+         aggregateB [abc; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "layer = ",
+                  trim(a),
+                  ifthenelse(b contains "layer = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'UNKNOWN']]
+   projectextend [; 
+      osmId: .ID,
+      layer: replace(.layerTmp,'layer = ',"")]
+   consume;
+
+let tunnelTags =
+   interestingStreets feed
+   projectextend [; osmId: .ID, tunnel: (.attrib contains "tunnel = yes")]   
+   consume;
+
+let bridgeTags =
+   interestingStreets feed
+   projectextend [; 
+      osmId: .ID,
+      bridge: ifthenelse(.attrib contains "bridge = yes", 1, 0)]   
+   consume;
+
+let refTags =
+   streetTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      refTmp: group feed
+         aggregateB [abc; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "ref = ",
+                  trim(a),
+                  ifthenelse(b contains "ref = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'UNKNOWN']]
+   projectextend [; 
+      osmId: .ID,
+      ref: replace(.refTmp,'ref = ',"")]
+   consume;
+
+let maxSpeedTags =
+   streetTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      maxspeedTmp: group feed
+         aggregateB [abc; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "maxspeed = ",
+                  trim(a),
+                  ifthenelse(b contains "maxspeed = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'UNKNOWN']]
+   projectextend [; 
+      osmId: .ID,
+      maxspeed: replace(.maxspeedTmp,'maxspeed = ',"")]
+   consume;
+
+# Assembling the street data
+let streetsTmp =
+   (((((((roadClassTags feed
+          oneWayTags feed {a}
+          hashjoin [osmId, osmId_a, 999997])
+         nameTags feed {b}
+         hashjoin [osmId, osmId_b, 999997])
+        layerTags feed {c}
+        hashjoin [osmId, osmId_c, 999997])
+       tunnelTags feed {d}
+       hashjoin [osmId, osmId_d, 999997])
+      bridgeTags feed {e}
+      hashjoin [osmId, osmId_e, 999997])
+     refTags feed {f}
+     hashjoin [osmId, osmId_f, 999997])
+    maxSpeedTags feed {g}
+    hashjoin [osmId, osmId_g, 999997])
+   interestingStreets feed
+   hashjoin [osmId, ID, 999997]
+   projectextend [geoData; 
+      osm_id: .osmId,
+      type: tostring(.roadClass),
+      oneway: .oneWay_a,
+      name: tostring(.name_b),
+      layer: ifthenelse(.layer_c contains "UNKNOWN",
+                0,
+                toObject(.layer_c,1)),
+      tunnel: .tunnel_d,
+      bridge: .bridge_e,
+      ref: tostring(.ref_f),
+      maxspeed: ifthenelse(.maxspeed_g contains "UNKNOWN",
+                   0,
+                   toObject(.maxspeed_g,1))]
+   consume;
+
+# Deleting temporary relation
+delete interestingStreets;
+
+# Deleting tag-relations
+delete roadClassTags;
+delete oneWayTags;
+delete nameTags;
+delete layerTags;
+delete tunnelTags;
+delete bridgeTags;
+delete refTags;
+delete maxSpeedTags;
+delete streetTags;
+
+# --- Processing POIs
+# Concatenating split up attrib-strings
+let pointsWholeAttrib =
+   pointsTmp feed 
+   sortby [ID,part]
+   extend [tags: trim(.attrib)]
+   remove [attrib] 
+   groupby [ID;  
+      AllTags: group feed  
+      aggregateB [tags;  
+         fun(a: text,b: text) 
+         (a + b); a 
+      ]] 
+   consume;
+
+# Extending tags that are kept in one attribute
+let pointTags =
+   pointsWholeAttrib feed
+   extendstream [tags: tokenize(.AllTags,"|")]
+   consume;
+
+# Creating temporary relations with data on the relevant tags
+let nameTags =
+   pointTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      nameTmp: group feed
+         aggregateB [tags; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "name = ",
+                  trim(a),
+                  ifthenelse(b contains "name = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'UNKNOWN']]
+   projectextend [; 
+      osmId: .ID,
+      name: replace(.nameTmp,'name = ',"")]
+   consume;
+
+let amenityTags =
+   pointTags feed
+   sortby [ID]
+   groupby [ID; 
+      cnt: group count, 
+      amenityTmp: group feed
+         aggregateB [tags; 
+            fun(a: text,b: text)
+               ifthenelse(a contains "amenity = ",
+                  trim(a),
+                  ifthenelse(b contains "amenity = ",
+                     trim(b),
+                     'UNKNOWN')); 
+               'UNKNOWN']]
+   projectextend [; 
+      osmId: .ID,
+      type: replace(.amenityTmp,'amenity = ',"")]
+   consume;
+
+# Renaming pointsTmp
+let pointsHelp =
+   pointsTmp feed
+   consume;
+delete pointsTmp;
+
+# Restoring pointsTmp and inserting missing attributes from the temporary
+# tag-relations
+let pointsTmp = 
+   (pointsHelp feed
+    filter [.part = 0]
+    remove [part, attrib]
+    nameTags feed
+    smouterjoin [ID, osmId]
+    filter [isdefined(.ID)])
+   remove [osmId]
+   amenityTags feed
+   smouterjoin [ID, osmId]
+   filter [isdefined(.ID)]
+   remove [ID]
+   extend [osm_id: .osmId, timestamp: 0]
+   remove [osmId]
+   filter [not((isdefined(.name) and (.name = 'UNKNOWN'))
+      and (isdefined(.type) and (.type = 'UNKNOWN')))]
+   consume;
+
+# Deleting temporary relations
+delete pointsHelp;
+delete pointsWholeAttrib;
+
+# Deleting tag-relations
+delete pointTags;
+delete nameTags;
+delete amenityTags;
