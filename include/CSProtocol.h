@@ -255,7 +255,6 @@ The client can close the connection by sending
 #include "NestedList.h"
 #include "Messages.h"
 #include "NList.h"
-#include "SecondoSystem.h"
 #include "TraceMacros.h"
 #include "limits.h"
 
@@ -594,6 +593,7 @@ ReadResponse( ListExpr& resultList,
   {
     success = ReadList(endMessage, messageList, errorCode);
     if (success) {
+     
       msg->Send(messageList);
       getline( iosock, line );
       badbit = iosock.bad();

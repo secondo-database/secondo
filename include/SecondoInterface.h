@@ -128,7 +128,6 @@ in the treatment of the database state in database commands.
 #include <map>
 
 #include "NestedList.h"
-#include "AlgebraTypes.h"
 #include "StopWatch.h"
 #include "CSProtocol.h"
 
