@@ -114,6 +114,10 @@ string         SmiEnvironment::uid;
 bool           SmiEnvironment::dbOpened = false;
 string         SmiEnvironment::database;
 string         SmiEnvironment::registrar;
+
+
+bool traceDBHandles = RTFlag::isActive("SMI:traceHandles");
+
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
 u_int32_t
@@ -124,6 +128,7 @@ SmiEnvironment::Implementation::Implementation(const bool log_auto_remove)
     usrTxn( 0 ), txnStarted( false ), txnMustAbort( false ),
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
+
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
 #if DB_VERSION_REQUIRED(4,8)  
   if(log_auto_remove){
@@ -158,11 +163,9 @@ SmiEnvironment::Implementation::~Implementation()
 DbHandleIndex
 SmiEnvironment::Implementation::AllocateDbHandle()
 {
-  static bool traceHandles =
-	        RTFlag::isActive("SMI:traceHandles") ? true : false;
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
 
-  if (traceHandles)
+  if (traceDBHandles)
     cerr << "Allocate: firstFree idx = " << idx << endl;
 
   if ( idx == 0 )
@@ -190,7 +193,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   instance.impl->dbHandles[idx].setInUse(true);
   instance.impl->dbHandles[idx].setNextFree(0);
 
-  if (traceHandles)
+  if (traceDBHandles)
     cerr << "Allocate: returned idx = " << idx << endl;
 
   return (idx);
@@ -244,8 +247,6 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
-  static bool traceHandles =
-	        RTFlag::isActive("SMI:traceHandles") ? true : false;
   SmiEnvironment::Implementation& env = (*(instance.impl));
   unsigned int size = env.dbHandles.size();
   int closed = 0;
@@ -255,7 +256,7 @@ SmiEnvironment::Implementation::CloseDbHandles()
     flag = DB_NOSYNC;
   }
 
-  if (traceHandles)
+  if (traceDBHandles)
     cerr << "CloseDbHandles (size = " << size << ")" << endl;
   for ( DbHandleIndex idx = 1; idx < size; idx++ )
   {
@@ -264,7 +265,7 @@ SmiEnvironment::Implementation::CloseDbHandles()
     {
       closed++;
 
-      if (traceHandles)
+      if (traceDBHandles)
       {
 	        string f = instance.impl->dbHandles[idx].getFileName();
           cerr << "closing handle for idx = "
@@ -278,7 +279,7 @@ SmiEnvironment::Implementation::CloseDbHandles()
     }
   }
 
-  if ( traceHandles ) {
+  if ( traceDBHandles ) {
     cerr << "CloseDbHandles() - Report: size = " << size
          << ", closed = " << closed
          << ", nosync = " << dontSyncDiskCache << endl;
@@ -993,9 +994,6 @@ SmiEnvironment::DeleteTmpEnvironment()
 {
  // --- Remove the temporary environment
 
-  static bool traceHandles =
-	        RTFlag::isActive("SMI:traceHandles") ? true : false;
-
   DbEnv* dbtmp  = instance.impl->tmpEnv;
   int rc = dbtmp->close( 0 );
   SetBDBError( rc );
@@ -1004,7 +1002,7 @@ SmiEnvironment::DeleteTmpEnvironment()
   string bdbHome = instance.impl->bdbHome;
 
 
-  if (traceHandles) {
+  if (traceDBHandles) {
     cerr << "Removing temporary Berkeley-DB environment "
          << "tmpHome = " << tmpHome << endl
          << "bdbHome = " << bdbHome << endl;
@@ -1266,8 +1264,6 @@ Transactions, logging and locking are enabled.
 bool
 SmiEnvironment::ShutDown()
 {
-  static bool traceHandles =
-	        RTFlag::isActive("SMI:traceHandles") ? true : false;
 
   if ( !smiStarted )
   {
@@ -1299,7 +1295,7 @@ SmiEnvironment::ShutDown()
 
   instance.impl->CloseDbHandles();
 
-  if (traceHandles)
+  if (traceDBHandles)
     cerr << "Closing Berkeley-DB environment "
 	 << instance.impl->bdbHome << endl;
 
