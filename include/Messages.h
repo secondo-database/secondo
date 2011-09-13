@@ -157,7 +157,13 @@ class MessageCenter {
   void AddHandler(MessageHandler* handler) {
 
      msgHandler.push_back(handler);
-  } 
+  }
+
+  void RemoveHandler(MessageHandler* handler){
+     msgHandler.remove(handler);
+  }
+
+ 
 };
 
 #endif
