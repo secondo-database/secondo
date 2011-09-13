@@ -60,6 +60,7 @@ SecondoInterface::SecondoInterface(bool isServer /*= false*/)
   serverInstance = isServer;
   nl = new NestedList();
   al = nl;
+  csp = 0;
 }
 
 SecondoInterface::~SecondoInterface()
@@ -134,6 +135,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       if ( server != 0 && server->IsOk() )
       {
         iostream& iosock = server->GetSocketStream();
+        if(csp!=0){
+          delete csp;
+        }
         csp = new CSProtocol(nl, iosock);
         getline( iosock, line );
         if ( line == "<SecondoOk/>" )
@@ -209,6 +213,11 @@ SecondoInterface::Terminate()
     delete server;
     server = 0;
 
+  }
+
+  if (csp != 0){
+     delete csp;
+     csp = 0;
   }
 
   if (initialized)

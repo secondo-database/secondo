@@ -372,6 +372,12 @@ struct CSProtocol {
      msg->AddHandler(msgHandler);
    msgHandler->ignoreMsg(true);
  }
+
+
+ ~CSProtocol(){
+     msg->RemoveHandler(msgHandler);
+     delete msgHandler;
+  }
  
    
  void skipRestOfLine()
