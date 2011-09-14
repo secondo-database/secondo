@@ -1477,6 +1477,9 @@ int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
       {
         localInfo =
           (MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>*)local.addr;
+        if(localInfo->resultTupleType){
+           localInfo->resultTupleType->DeleteIfAllowed();
+        }
         delete localInfo;
         local.setAddr(Address(0));
       }
