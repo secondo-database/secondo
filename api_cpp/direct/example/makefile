@@ -1,0 +1,32 @@
+
+include ../../../makefile.env
+
+BDBINCLUDE=$(BERKELEY_DB_DIR)/include
+BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
+
+.PHONY: all
+all: Config.ini app
+
+
+
+Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
+	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
+	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/databases#g" Config.ini
+
+
+ALGDEPFLAGS=$(addprefix "-l", $(ALGEBRA_DEPS))
+
+app: Example.o
+	echo $(ALGEBRA_DEPS)
+	echo $(ALGDEPFLAGS)
+	gcc -o app $(LDFLAGS) Example.o -L../lib/ -lsecondo  -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lfl -ly -ldl $(ALGDEPFLAGS) 
+	rm -rf databases 
+	mkdir databases
+
+
+Example.o: Example.cpp
+	$(CC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDBINCLUDE) 
+
+.PHONY:clean
+clean:
+	rm -f Config.ini app Example.o
