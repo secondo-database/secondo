@@ -54,7 +54,7 @@ int main(int argc, char** argv){
    SecondoInterface* si = new SecondoInterface(true);
 
    // define the name of the configuration file
-   string config = "SecondoConfig.ini";
+   string config = "Config.ini";
 
    // read in runtime flags from the config file
    si->InitRTFlags(config);
