@@ -17,11 +17,11 @@ Operator : windowtimeintersectsS
 Number   : 1 
 Signature: network x montree x rel(tuple(X)) x rect x instant x instant -> stream(tuple(X))
 Example  : query net montree trains windowtimeintersectsS[w2, t1, t2] count;
-Result   : crashes
+Result   : 1
 
 Operator : createmontree
 Number   : 1
 Signature: network x rel(tuple(X)) x X -> montree
 Example  : query net trains createmontree [trip];
-Result   : crashes
+Result   : ((montree (tuple ( (id int) (trip mgpoint))) mgpoint TRUE) "OutMON_Tree")
 
