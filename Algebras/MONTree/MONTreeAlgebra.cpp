@@ -1024,15 +1024,23 @@ ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
     +monDescriptionStr+"'.");
   }
 
-  ListExpr monSymbol = nl->First(monDescription),
-           monTupleDescription = nl->Second(monDescription);
+  ListExpr monSymbol = nl->First(monDescription);
 
   /* handle rtree type constructor */
-  if(nl->IsEqual(monSymbol, "montree")){
+  if(!nl->IsEqual(monSymbol, "montree")){
+    return listutils::typeError(
+      "Operator windowtimeintersects expects a MON-Tree \n"
+      "as second argument.");
+  }
+
+  ListExpr monTupleDescription = nl->Second(monDescription);
+
+  /* handle rtree type constructor */
+/*  if(nl->IsEqual(monSymbol, "montree")){
     return listutils::typeError(
    "Operator windowtimeintersects expects a MON-Tree \n"
-   "as second argument.");
-  }
+   "as second argument.);
+  }*/
 
   /* handle rel part of argument */
   nl->WriteToString (relDescriptionStr, relDescription);
