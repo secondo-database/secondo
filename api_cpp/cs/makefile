@@ -19,15 +19,9 @@ DEPS2=$(HEADERS2)
 
 LIBD=$(BD)/lib
 
-CSLIBS:=$(LIBD)/libsdbnl.a
-CSLIBS+=$(LIBD)/libsdbsocket.a
-CSLIBS+=$(LIBD)/libsdbsys.a
-CSLIBS+=$(LIBD)/libsdbutils.a
-CSLIBS+=$(LIBD)/libsmibdb.a
 CSLIBS+=$(LIBD)/SecondoInterfaceCS.o
 CSLIBS+=$(LIBD)/SecondoInterfaceGeneral.o
 CSLIBS+=$(LIBD)/SecondoInterface.o
-CSLIBS+=$(LIBD)/libappCommon.a
 CSLIBS+=$(BD)/Tools/NestedLists/NestedList.o
 CSLIBS+=$(BD)/Tools/Utilities/WinUnix.o
 CSLIBS+=$(BD)/Tools/Utilities/Environment.o
