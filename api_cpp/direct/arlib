@@ -11,8 +11,25 @@ shift
 
 SOURCES=$*
 
+# for S in $SOURCES; do
+#  ar t $S | while read O; do ar x $S "$O"; ar rs $TARGET "$O"; rm "$O";  done
+# done
+
+rm -rf temp
+mkdir temp
+cd temp
 for S in $SOURCES; do
-  ar t $S | while read O; do ar x $S "$O"; ar rs $TARGET "$O"; rm "$O";  done
+  ar x $S
 done
+
+
+OBJ=$(ls *.o )
+
+ar rs $TARGET $OBJ
+
+cd ..
+
+rm -rf temp
+
 
 

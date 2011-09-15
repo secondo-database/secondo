@@ -83,7 +83,7 @@ lib:
 
 lib/libsecondo.$(LIBEXT): $(SECLIBS)
 	ar -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
-	./arlib lib/libsecondo.$(LIBEXT) $(SECLIBS)
+	@./arlib $(PWD)/lib/libsecondo.$(LIBEXT) $(SECLIBS)
 
 
 .PHONY:clean
@@ -91,6 +91,7 @@ clean:
 	rm -rf include
 	rm -rf lib
 	make -C example clean
+	rm -rf temp
 
 
 
