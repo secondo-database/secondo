@@ -62,6 +62,8 @@ SecondoInterface* si =0;
 int main(int argc, char** argv){
 
 
+   cout << "Start " << argv[0] << endl;
+
    // create an interface to the secondo functionality
    // the paramneter must be false to communicate with secondo directly
    si = new SecondoInterface(false);
