@@ -33,7 +33,7 @@ endif
 app$(EXEEXT): Example.o
 	@echo $(LDFLAGS)
 	gcc -o app$(EXEEXT) Example.o $(LDFLAGS)  
-	mkdir databases; echo "Use database directory databases"
+	mkdir -p databases
 
 
 Example.o: Example.cpp
