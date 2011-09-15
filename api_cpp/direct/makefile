@@ -66,8 +66,7 @@ all: api
 
 
 api: buildincludes buildlib
-
-#	make -C example all	
+	make -C example all	
 
 
 
