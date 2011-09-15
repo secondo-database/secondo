@@ -5,7 +5,7 @@ BDBINCLUDE=$(BERKELEY_DB_DIR)/include
 BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
 
 .PHONY: all
-all: Config.ini app
+all: Config.ini app$(EXEEXT)
 
 
 
@@ -20,8 +20,8 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/nltemp#g" Config.ini
 
 
-app: Example.o
-	$(CC) -o app Example.o  $(LDFLAGS)
+app$(EXEEXT): Example.o
+	$(CC) -o app$(EXEEXT) Example.o  $(LDFLAGS)
 	rm -rf nltemp
 	mkdir nltemp
 
@@ -31,5 +31,5 @@ Example.o: Example.cpp
 
 .PHONY:clean
 clean:
-	rm -f Config.ini app Example.o
+	rm -f Config.ini app$(EXEEXT) Example.o
 	rm -rf nltemp
