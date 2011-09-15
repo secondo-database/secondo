@@ -17,7 +17,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
-LDFLAGS:=-L../lib/ -lsecondo  -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lfl -ly  -lstdc++ $(ALGDEPFLAGS) 
+LDFLAGS:=-L../lib/ -lsecondo  -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lfl -ly  -lstdc++ $(ALGDEPFLAGS)  -lpthread
 
 
 ifneq ($(SECONDO_PLATFORM),win32)
