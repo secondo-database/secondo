@@ -78,7 +78,8 @@ ALL_TARGETS = makedirs \
 	java2 \
 	tests \
         examples \
-	update-config 
+	update-config  \
+  API
 
 .PHONY: all
 all: jnicheck $(ALL_TARGETS) 
