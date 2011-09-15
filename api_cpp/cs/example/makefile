@@ -9,13 +9,19 @@ all: Config.ini app
 
 
 
+LDFLAGS:=-L../lib/ -lsecondo   -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB)  -lfl -ly -lstdc++
+ifeq ($(SECONDO_PLATFORM),win32)
+LDFLAGS+=-lwsock32 -lws2_32
+endif
+
+
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
 	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/nltemp#g" Config.ini
 
 
 app: Example.o
-	gcc -o app $(LDFLAGS) Example.o -L../lib/ -lsecondo  -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lfl -ly
+	$(CC) -o app Example.o  $(LDFLAGS)
 	rm -rf nltemp
 	mkdir nltemp
 
