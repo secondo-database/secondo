@@ -5,7 +5,7 @@ BDBINCLUDE=$(BERKELEY_DB_DIR)/include
 BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
 
 .PHONY: all
-all: Config.ini app
+all: Config.ini app$(EXEEXT)
 
 
 
@@ -14,14 +14,26 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/databases#g" Config.ini
 
 
-ALGDEPFLAGS=$(addprefix "-l", $(ALGEBRA_DEPS))
 
-app: Example.o
-	echo $(ALGEBRA_DEPS)
-	echo $(ALGDEPFLAGS)
-	gcc -o app $(LDFLAGS) Example.o -L../lib/ -lsecondo  -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lfl -ly -ldl $(ALGDEPFLAGS) 
-	rm -rf databases 
-	mkdir databases
+ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
+
+LDFLAGS:=-L../lib/ -lsecondo  -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lfl -ly  -lstdc++ $(ALGDEPFLAGS) 
+
+
+ifneq ($(SECONDO_PLATFORM),win32)
+  LDFLAGS+=-ldl
+else
+  LDFLAGS+=-lwsock32 -lws2_32
+endif
+
+
+
+
+
+app$(EXEEXT): Example.o
+	@echo $(LDFLAGS)
+	gcc -o app$(EXEEXT) Example.o $(LDFLAGS)  
+	mkdir databases; echo "Use database directory databases"
 
 
 Example.o: Example.cpp
