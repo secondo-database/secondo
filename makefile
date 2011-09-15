@@ -78,7 +78,8 @@ ALL_TARGETS = makedirs \
 	java2 \
 	tests \
         examples \
-	update-config
+	update-config \
+	API
 
 .PHONY: all
 all: jnicheck $(ALL_TARGETS) 
@@ -109,6 +110,11 @@ ifeq ($(j2sdkIsPresent),"false")
 	@exit 1
 endif 
 endif
+
+
+.PHONY: API
+API:
+	$(MAKE) -C api_cpp
 
 
 .PHONY: show-vars
@@ -228,6 +234,7 @@ clean:
 	$(MAKE) -C Jpl clean
 	$(MAKE) -C OptServer clean
 	$(MAKE) -C Optimizer clean
+	$(MAKE) -C api_cpp clean
 	$(MAKE) -f ./makefile.libs clean
 	rm -f lib/*.a
 	rm -f lib/*.o
