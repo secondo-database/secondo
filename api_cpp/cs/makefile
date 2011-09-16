@@ -46,7 +46,9 @@ CSLIBS+=$(BD)/Tools/Flob/PersistentFlobCache.o
 
 
 
-
+ifneq ($(SECONDO_PLATFORM),mac_osx)
+  CPOPTION=-u
+endif
 
 
 
@@ -63,8 +65,8 @@ api: buildincludes buildlib
 buildincludes: 
 	@rm -rf include 
 	@mkdir include >/dev/null 2>&1; echo""
-	cp -u $(DEPS1) include
-	cp -u $(DEPS2) include
+	cp $(CPOPTION) $(DEPS1) include
+	cp $(CPOPTION) $(DEPS2) include
 
 buildlib: lib lib/libsecondo.$(LIBEXT)
 

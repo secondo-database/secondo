@@ -9,9 +9,15 @@ all: Config.ini app$(EXEEXT)
 
 
 
-LDFLAGS:=-L../lib/ -lsecondo   -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB)  -lfl -ly -lstdc++ -lpthread
+LDFLAGS:=-L../lib/ -lsecondo    -lfl -ly -lstdc++ -lpthread
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
+endif
+
+ifneq ($(SECONDO_PLATFORM),mac_osx)
+  LDFLAGS+=-L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB)
+else
+  LDFLAGS+= -l$(BERKELEY_DB_LIB)
 endif
 
 

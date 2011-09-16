@@ -68,13 +68,16 @@ all: api
 api: buildincludes buildlib
 	make -C example all	
 
-
+#max osx does ot support the -u option for cp command
+ifneq ($(SECONDO_PLATFORM),mac_osx)
+  CPOPTION=-u
+endif
 
 buildincludes: 
 	@rm -rf include 
 	@mkdir include >/dev/null 2>&1; echo""
-	cp -u $(DEPS1) include
-	cp -u $(DEPS2) include
+	cp $(CPOPTION) $(DEPS1) include
+	cp $(CPOPTION) $(DEPS2) include
 
 buildlib: lib lib/libsecondo.$(LIBEXT)
 
