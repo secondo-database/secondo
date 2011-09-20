@@ -35,3 +35,4 @@ operator mset2mregion alias MSET2MREGION pattern op(_,_,_)
 operator mset2mpoints alias MSET2MPOINTS pattern op(_,_,_)
 operator convexhull2 alias CONVEXHULL2 pattern op(_,_)
 operator collectintset alias COLLETINTSET pattern _ op
+operator generateboids alias GENERATEBOIDS pattern op(_,_,_,_)

@@ -426,7 +426,7 @@ bool CheckRemoveEntry::operator() (MSetIndex::NodeLogEntry& logEntry)
 bool MSetIndex::RemoveShortNodeEntries(int64_t dMS,
     map<int,  NodeLog>::iterator nodeIt, vector<ChangeRecord>& AllChanges)
 {
-  bool debugme= false;
+  //bool debugme= false;
   bool changed= false;
   NodeLog* nodeLog= &(*nodeIt).second;
   int nodeId= (*nodeIt).first;
@@ -766,12 +766,12 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
   }
   FindDynamicComponents(Accumlator, begin, end, edge2nodesMap, dMS, n, qts,
       resStream);
-  if(debugme)
+  if(debugme && 0)
   {
     list<CompressedMSet*>::iterator it= resStream->begin();
     while(it != resStream->end())
     {
-      //(*it)->Print(cerr);
+      (*it)->Print(cerr);
       CompressedMSet* tmp= EdgeMSet2NodeMSet(*it, edge2nodesMap);
       CompressedInMemMSet tmp1;
       tmp->WriteToCompressedInMemMSet(tmp1);
@@ -797,7 +797,7 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
   while(resStream->begin() != resStream->end())
   {
     curMSet= resStream->front();
-    if(debugme)
+    if(debugme && 0)
     {
       curMSet->Print(cerr);
       CompressedMSet* tmp= EdgeMSet2NodeMSet(curMSet, edge2nodesMap);
@@ -932,7 +932,7 @@ void GPatternHelper::FindDynamicComponents(CompressedInMemMSet& Accumlator,
     ++cur;
   }
 
-  if(debugme &&0)
+  if(debugme && 0)
   {
     cerr<< "\nfinalResStream contains "<<
       FinalResultStream->size() << " results\n";
@@ -1951,7 +1951,7 @@ FOREACH corresponding changesPart in changesParts
 
   while(!msetParts.empty())
   {
-    if(debugme)
+    if(debugme && 0)
     {
       MSet tmp(true);
       cerr<<"\nBefore Change: ";
@@ -1963,7 +1963,7 @@ FOREACH corresponding changesPart in changesParts
     delete msetParts.front();
     msetParts.pop_front();
     changeParts.pop_front();
-    if(debugme)
+    if(debugme && 0)
     {
       cerr<<"\nAfter Change: ";
       list<CompressedMSet*>::iterator it= resStream.begin();
@@ -2063,7 +2063,7 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
           CompressedMSet* resPart= new CompressedMSet(0);
           resPart->ReadFromCompressedInMemMSet(firstPart);
           resStream.push_back(resPart);
-          if(debugme)
+          if(debugme && 0)
             resStream.back()->Print(cerr);
         }
         list<CompressedInMemUSet>::iterator last= inMemMSet->units.end();
@@ -2081,6 +2081,19 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
       }
       else if(noComponents > 1)
       {
+        if(debugme)
+        {
+          inMemMSet->Print(cerr);
+          CompressedMSet tmp1(0);
+          tmp1.ReadFromCompressedInMemMSet(*inMemMSet);
+          CompressedMSet* tmp= EdgeMSet2NodeMSet(&tmp1, edge2nodesMap);
+          CompressedInMemMSet tmp2;
+          tmp->WriteToCompressedInMemMSet(tmp2);
+          MSet tmp3(true);
+          tmp2.WriteToMSet(tmp3);
+          tmp3.Print(cerr);
+          delete tmp;
+        }
         inMemMSet->MakeMinimal();
         FindDynamicComponents(*inMemMSet, inMemMSet->units.begin(),
             inMemMSet->units.end(), edge2nodesMap, dMS, n, qts, localResStream);
@@ -3300,6 +3313,87 @@ NoComponentsTM( ListExpr args )
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
+
+ListExpr GBoidsTM( ListExpr args )
+{
+  string errMsg= "";
+  if ( nl->ListLength( args ) != 4 )
+  {
+    errMsg= "generateboids expects 4 arguments, but got:"
+        + nl->ToString(args);
+    ErrorReporter::ReportError(errMsg);
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
+  }
+
+  ListExpr BoidSizes = nl->First(nl->First( args )),
+     Obstacles= nl->First(nl->Second( args )),
+     ObstaclesExpr= nl->Second(nl->Second( args )),
+     SimulationStartTime= nl->First(nl->Third( args )),
+     SimulationDuration= nl->First(nl->Fourth( args ));
+
+  ListExpr expected= nl->TwoElemList(nl->SymbolAtom(Vector::BasicType()),
+      nl->SymbolAtom(CcInt::BasicType()));
+  if(!nl->Equal(BoidSizes, expected))
+  {
+    errMsg= " generateboids expects "+ Vector::BasicType() +
+        nl->ToString(expected) +
+        " as first argument, but got:" + nl->ToString(BoidSizes);
+    ErrorReporter::ReportError(errMsg);
+    return nl->SymbolAtom( Symbol::TYPEERROR());
+  }
+
+  expected= nl->TwoElemList(nl->SymbolAtom(Vector::BasicType()),
+        nl->SymbolAtom(CcReal::BasicType()) );
+  if(! nl->Equal(Obstacles, expected))
+  {
+    errMsg= " generateboids expects "+
+        nl->ToString(expected) +
+        " as second argument, but got:" + nl->ToString(BoidSizes);
+    ErrorReporter::ReportError(errMsg);
+    return nl->SymbolAtom( Symbol::TYPEERROR());
+  }
+
+  if( nl->IsAtom(ObstaclesExpr) ||
+      nl->ListLength(ObstaclesExpr) < 4 ||
+      ((nl->ListLength(ObstaclesExpr) - 1) % 3) != 0)
+  {
+    errMsg= " generateboids expects as a second argument "
+        "a vector of obstacles (circles) in the "
+        "format x1, y1, r1, ..., xn, yn, rn, where (xk, yk) are the center of "
+        "an obstacle, and rk is its radius in meters. There must be at least "
+        "one obstacle representing the world boundaries. "
+        "The operator got:" + nl->ToString(ObstaclesExpr);
+    ErrorReporter::ReportError(errMsg);
+    return nl->SymbolAtom( Symbol::TYPEERROR());
+  }
+
+  if(! nl->IsEqual( SimulationStartTime, DateTime::BasicType()))
+  {
+    errMsg= " generateboids expects "+ DateTime::BasicType() +
+        " as third argument, but got:"  + nl->ToString(args);
+    ErrorReporter::ReportError(errMsg);
+    return nl->SymbolAtom( Symbol::TYPEERROR());
+  }
+
+  if(! nl->IsEqual( SimulationDuration, Duration::BasicType()))
+  {
+    errMsg= " generateboids expects " + Duration::BasicType() + ""
+        " as fourth argument, but got:" + nl->ToString(args);
+    ErrorReporter::ReportError(errMsg);
+    return nl->SymbolAtom( Symbol::TYPEERROR());
+  }
+
+  NList resTupleType =
+      NList(NList("BoidID"), NList(CcInt::BasicType())).enclose();
+  resTupleType.append(NList(NList("T"),NList(Instant::BasicType())));
+  resTupleType.append(NList(NList("X"),NList(CcReal::BasicType())));
+  resTupleType.append(NList(NList("Y"),NList(CcReal::BasicType())));
+  NList resType =
+        NList(NList(Symbol::STREAM()),
+              NList(NList(Tuple::BasicType()),resTupleType));
+
+  return resType.listExpr();
+}
 /*
 Value map ReportPattern
 
@@ -3880,7 +3974,7 @@ template <class Alfa>
 int CreateAlfaSetVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme= false;
+  //bool debugme= false;
   Word t, value;
   Tuple* tup;
   IntSet* res=0;
@@ -4226,7 +4320,7 @@ int
 MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
-  bool debugme=false;
+  //bool debugme=false;
 
   switch( message )
   {
@@ -4342,7 +4436,7 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
 int 
 ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme= false;
+  //bool debugme= false;
   Word Value;
   MPoint* mp=0;
   Instant* instant=0;
@@ -4511,6 +4605,97 @@ int NoComponentsVM(
   return 0;
 }
 
+struct GBoidLocalInfo
+{
+  GBoidLocalInfo(BoidGenerator* bg, TupleType* tt):
+    BGenerator(bg), resType(tt){}
+  BoidGenerator* BGenerator;
+  TupleType* resType;
+};
+
+int GBoidsVM(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  //bool debugme= false;
+  switch( message )
+  {
+  case OPEN:
+  {
+    Word value;
+    collection::Collection* BoidSizes=
+        static_cast<collection::Collection*>(args[0].addr);
+    collection::Collection* Obstacles=
+        static_cast<collection::Collection*>(args[1].addr);
+    Instant* SimulationStartTime= static_cast<Instant*>(args[2].addr);
+    Instant* SimulationDuration= static_cast<Instant*>(args[3].addr);
+
+    vector<int> boidSizes;
+    for(int i=0; i< BoidSizes->GetNoComponents(); ++i)
+    {
+      CcInt* elem= static_cast<CcInt*>(BoidSizes->GetComponent(i));
+      boidSizes.push_back(elem->GetIntval());
+      delete elem;
+    }
+    vector<double> obstacles;
+    for(int i=0; i< Obstacles->GetNoComponents(); ++i)
+    {
+      CcReal* elem= static_cast<CcReal*>(Obstacles->GetComponent(i));
+      obstacles.push_back(elem->GetRealval());
+      delete elem;
+    }
+
+    BoidGenerator* BGenerator= new BoidGenerator( boidSizes,
+        obstacles, SimulationStartTime, SimulationDuration);
+
+    TupleType* resType =  new TupleType(nl->Second(GetTupleResultType(s)));
+    GBoidLocalInfo* li= new GBoidLocalInfo(BGenerator, resType);
+    local.setAddr(li);
+    return 0;
+  }
+  case REQUEST:
+  { // return the next stream element
+    GBoidLocalInfo* li= static_cast<GBoidLocalInfo*>(local.addr);
+    BoidGenerator* BGenerator= li->BGenerator;
+    result = qp->ResultStorage( s );
+    CcInt* BoidID;
+    CcReal* X, *Y;
+    int boidID;
+    double x, y;
+    DateTime SampleTime(0, 0, durationtype);
+    if ( BGenerator->GetNext(boidID, SampleTime, x, y) != -1)
+    {
+      DateTime* sampleTime= new DateTime(SampleTime);
+      BoidID= new CcInt(true, boidID);
+      X= new CcReal(true, x);
+      Y= new CcReal(true, y);
+      Tuple* res= new Tuple(li->resType);
+      res->PutAttribute(0, (Attribute*)BoidID);
+      res->PutAttribute(1, (Attribute*)sampleTime);
+      res->PutAttribute(2, (Attribute*)X);
+      res->PutAttribute(3, (Attribute*)Y);
+      result= SetWord(res);
+      return YIELD;
+    }
+    else
+    {
+      // you should always set the result to null
+      // before you return a CANCEL
+      result.addr = 0;
+      return CANCEL;
+    }
+
+  }
+  case CLOSE: { // free the local storage
+    GBoidLocalInfo* li= static_cast<GBoidLocalInfo*>(local.addr);
+    delete li->BGenerator;
+    delete li->resType;
+    delete li;
+    local.addr = 0;
+  }
+  return 0;
+  }
+  return 0;
+}
 /*
 Operator properties
 
@@ -4724,6 +4909,29 @@ const string NoComponentsSpec =
   "<text>no_components ( mset1 )</text--->"
   ") )";
 
+const string GBoidsSpec =
+  "( ( \"Signature\" \"Syntax\"\"Meaning\" \"Example\" ) "
+  "( <text>(vector int) x int x (vector rect) x rect x instant x duration"
+  " -> stream(tuple((BoidID int)(T instant)(X real)(Y real)))</text--->"
+  "<text>generateboids(group sizes, number of freely moving boids, "
+  "obstacles, the rect defining the world, simulation start time, "
+  "simulation period)</text--->"
+  "<text>The operator uses the source code provided by Christopher John Kline "
+  "for creating boids. Boids are flying birds. Originally the code generates "
+  "3D coordinates. The operator, however, yields the X, Y only. You can create "
+  "several groups of boids, where every group try to flock together. The "
+  "first argument specifies the sizes of these groups. "
+  "The second argument specifies the number "
+  "of birds that move freely without flocking. The third argument specify "
+  "obstacles that the boids are required to avoid. The fourth argument is the "
+  "box defining the world. The fifth argument is used as the initial time "
+  "instant in the generated samples. There is one sample per boids per 5 "
+  "seconds. The last argument specifies the simulation duration. </text--->"
+  "<text>query generateboids(create_vector(15, 15), 40, "
+  "create_vector(rectangle2(0, 100, 9000, 9150)), "
+  "rectangle2(-10000, 5000, 7000, 10000), now(), "
+  "create_duration(0, 1000000)) count</text--->) )";
+
 struct collectIntSetInfo : OperatorInfo {
 
   collectIntSetInfo()
@@ -4885,6 +5093,12 @@ Operator nocomponents( "no_components",
     Operator::SimpleSelect,
     NoComponentsTM);
 
+Operator generateboids( "generateboids",
+    GBoidsSpec,
+    GBoidsVM,
+    Operator::SimpleSelect,
+    GBoidsTM);
+
 
 TypeConstructor intSetTC(
         "intset",       //name
@@ -4958,6 +5172,7 @@ The spattern and reportpattern operators are registered as lazy variables.
     reportpattern.SetRequestsArguments();
     gpattern.SetRequestsArguments();
     crosspattern.SetRequestsArguments();
+    generateboids.SetUsesArgsInTypeMapping();
     
     AddOperator(&GPattern::tconstraint);
     AddOperator(&GPattern::reportpattern);
@@ -4981,6 +5196,7 @@ The spattern and reportpattern operators are registered as lazy variables.
                 CollectIntSetTypeMap);
     AddOperator(&intersects);
     AddOperator(&nocomponents);
+    AddOperator(&generateboids);
   }
   ~GPatternAlgebra() {};
 };

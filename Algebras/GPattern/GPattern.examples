@@ -161,3 +161,9 @@ Signature: mset -> int
 Example  : query 1
 Result   : 1
 Remark   : query no_components (emptymset)
+
+Operator : generateboids
+Number   : 1
+Signature: (vector int) x int x (vectore rect) x rect x instant x duration -> stream(tuple((BoidID int)(T instant)(X real)(Y real)))
+Example  : query generateboids(create_vector(40, 15, 15), create_vector(1000.0,-3000.0, 20000.0), now(), create_duration(0, 1000000)) count
+Result   : 14070

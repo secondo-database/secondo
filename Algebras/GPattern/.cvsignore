@@ -1,3 +1,5 @@
 *.dep
 *.err
 *.toc
+*.zip
+makefileOld

@@ -49,11 +49,13 @@ JAN, 2010 Mahmoud Sakr
 #include "TemporalAlgebra.h"
 #include "STPatternAlgebra.h"
 #include "SpatialAlgebra.h"
+#include "CollectionAlgebra.h"
 #include "MSet.h"
 #include <map>
 #include <functional>
 #include <algorithm>
 #include "LightWeightGraph.h"
+#include "Boids/Boid.h"
 
 using namespace datetime;
 using namespace mset;
@@ -478,8 +480,6 @@ Connectivity rank as in the paper.
   int PickVariable();
 
 };
-
-
 
 } // namespace GPattern
 
