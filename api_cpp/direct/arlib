@@ -15,7 +15,7 @@ SOURCES=$*
 #  ar t $S | while read O; do ar x $S "$O"; ar rs $TARGET "$O"; rm "$O";  done
 # done
 
-
+rm -rf temp
 mkdir temp
 cd temp
 i=1
