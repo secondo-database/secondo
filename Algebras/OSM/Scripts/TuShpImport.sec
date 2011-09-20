@@ -14,26 +14,26 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
-@TuPreprocessImport.sec;
+@./TuPreprocessImport.sec;
 
-@TuImportOsmDataFromShpFiles.sec;
+@./TuImportOsmDataFromShpFiles.sec;
 
 # Skipping modifications due to the use of a different shp-file-format
-#@TuAdjustDataToGfFormat.sec;
+#@./TuAdjustDataToGfFormat.sec;
 
-@TuPostprocessImportedOsmData.sec;
+@./TuPostprocessImportedOsmData.sec;
 
-@TuDetermineSections.sec;
+@./TuDetermineSections.sec;
 
-@TuCreateGraph.sec;
+@./TuCreateGraph.sec;
 
-@TuPrepareNetworkCreation.sec;
+@./TuPrepareNetworkCreation.sec;
 
-@TuCreateNetworkStep1.sec;
+@./TuCreateNetworkStep1.sec;
 
-@TuCreateNetworkStep2.sec;
+@./TuCreateNetworkStep2.sec;
 
-@TuCreateNetworkStep3.sec;
+@./TuCreateNetworkStep3.sec;
 
-@TuCreateNetworkStep4.sec;
+@./TuCreateNetworkStep4.sec;
 

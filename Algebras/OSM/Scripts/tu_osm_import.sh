@@ -34,9 +34,9 @@
 #max_lat=51.601389
 
 # Düsseldorf
-name='hometown'
+#name='hometown'
 #name='duesseldorf'
-#name='beispiel'
+name='beispiel'
 min_lon=6.65
 max_lon=6.91
 min_lat=51.18
@@ -46,27 +46,38 @@ max_lat=51.28
 #min_lat=51.20
 #max_lat=51.25
 
+#fiktiv
+#name='beispiel'
+#min_lon=0
+#max_lon=100
+#min_lat=0
+#max_lat=100
+
+
 # Specifying the path to the directory in which the data is stored
-#src_dir_path="/Users/fernuni-student/secondo-data/shp-files/cloud-made/${name}/"
-#src_dir_path="/Users/fernuni-student/secondo-data/shp-files/geofabrik/${name}/"
-src_dir_path="/Users/fernuni-student/secondo-data/shp-files/osm2shp/${name}/"
-#src_dir_path="/Users/fernuni-student/secondo-data/osm-files/osm-api/${name}/"
-#src_dir_path="/Users/fernuni-student/secondo-data/osm-files/geofabrik/${name}/"
-#src_dir_path="/Users/fernuni-student/secondo-data/osm-files/cloud-made/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/shp-files/cloud-made/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/shp-files/osm2shp/${name}/"
+src_dir_path="/Users/fernuni-student/osm-data/osm-files/osm-api/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/osm-files/geofabrik/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/osm-files/cloud-made/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/osm-files/fiktiv/${name}/"
 
 # Limiting the region of interest if desired
 # north-west (NW), west (W), south-west (SW), north (N), centre (C), south (S),
 # north-east (NE), east (E), south-east (SE), or another random string
-part='C'
-#part='City'
+#part='C'
+part='City'
 
 # Defining the format of the shape-file that is to be processed
 #file_type='shp_geofabrik'
-file_type='shp_osm2shp'
-#file_type='osm'
+#file_type='shp_osm2shp'
+file_type='osm'
 
 # --- please only modify the subsequent lines if you exactly know what you are
 #     doing
+bin_dir_path="${SECONDO_BUILD_DIR}/bin"
+script_dir_path="${SECONDO_BUILD_DIR}/Algebras/OSM/Scripts"
 # Modifying a SECONDO-file that serves as template
 #capitalizedName=`echo ${name} | cut -c1 | tr '[a-z]' '[A-Z]'``echo ${name} | cut -c2-`
 inp='TuPreprocessImport.sec.tmpl'
@@ -79,14 +90,15 @@ expr4="s#<max_lon>#${max_lon}#g"
 expr5="s#<min_lat>#${min_lat}#g"
 expr6="s#<max_lat>#${max_lat}#g"
 expr7="s#<part>#${part}#g"
-sed -E ${expr1} ${inp}| sed -E  ${expr2} | sed -E  ${expr3}| sed -E  ${expr4}|
-sed -E  ${expr5}| sed -E  ${expr6} | sed -E  ${expr7} > ${outp}
+sed -E ${expr1} "${script_dir_path}/${inp}"| sed -E  ${expr2} |
+   sed -E  ${expr3}| sed -E  ${expr4}| sed -E  ${expr5}| 
+   sed -E  ${expr6} | sed -E  ${expr7} > "${script_dir_path}/${outp}"
 
 # Starting the import
 if test ${file_type} = 'osm'; then
-   SecondoTTYBDB -i TuOsmImport.sec
+   ${bin_dir_path}/SecondoTTYBDB -i "${script_dir_path}/TuOsmImport.sec"
 elif test ${file_type} = 'shp_geofabrik'; then
-   SecondoTTYBDB -i TuShpImport.sec
+   ${bin_dir_path}/SecondoTTYBDB -i "${script_dir_path}/TuShpImport.sec"
 else
-   SecondoTTYBDB -i TuCustomShpImport.sec
+   ${bin_dir_path}/SecondoTTYBDB -i "${script_dir_path}/TuCustomShpImport.sec"
 fi

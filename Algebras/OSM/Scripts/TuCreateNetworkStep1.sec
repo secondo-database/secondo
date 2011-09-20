@@ -47,10 +47,8 @@ let twoSecInZeroSecOut11JuncTmp =
    projectextend [; 
       Road1: .streetId_a,
       Pos1: atpoint(.streetData_a,.Node,TRUE),
-#         * size(.streetData_a,create_geoid("WGS1984")) / size(.streetData_a),
       Road2: .streetId_b,
       Pos2: atpoint(.streetData_b,.Node,TRUE), 
-#         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       JunctionType: getconnectivitycode(1,2,0,0,.oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
@@ -85,10 +83,8 @@ let oneSecInOneSecOut12JuncTmp =
    projectextend [; 
       Road1: .streetId_a,
       Pos1: atpoint(.streetData_a,.Node,TRUE), 
-#         * size(.streetData_a,create_geoid("WGS1984")) / size(.streetData_a),
       Road2: .streetId_b,
       Pos2: atpoint(.streetData_b,.Node,TRUE),
-#         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       JunctionType: getconnectivitycode(1,1,0,0,.oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
@@ -123,10 +119,8 @@ let oneSecInOneSecOut21JuncTmp =
    projectextend [; 
       Road1: .streetId_a,
       Pos1: atpoint(.streetData_a,.Node,TRUE), 
-#         * size(.streetData_a,create_geoid("WGS1984")) / size(.streetData_a),
       Road2: .streetId_b,
       Pos2: atpoint(.streetData_b,.Node,TRUE),
-#         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       JunctionType: getconnectivitycode(2,2,0,0,.oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
@@ -161,10 +155,8 @@ let zeroSecInTwoSecOut22JuncTmp =
    projectextend [; 
       Road1: .streetId_a,
       Pos1: atpoint(.streetData_a,.Node,TRUE),
-#         * size(.streetData_a,create_geoid("WGS1984")) / size(.streetData_a),
       Road2: .streetId_b,
       Pos2: atpoint(.streetData_b,.Node,TRUE),
-#         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       JunctionType: getconnectivitycode(2,1,0,0,.oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
