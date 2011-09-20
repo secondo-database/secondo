@@ -14,25 +14,25 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
-@./TuPreprocessImport.sec;
+@../Algebras/OSM/Scripts/TuPreprocessImport.sec;
 
-@./TuImportOsmDataFromShpFiles.sec;
+@../Algebras/OSM/Scripts/TuImportOsmDataFromShpFiles.sec;
 
-@./TuAdjustDataToGfFormat.sec;
+@../Algebras/OSM/Scripts/TuAdjustDataToGfFormat.sec;
 
-@./TuPostprocessImportedOsmData.sec;
+@../Algebras/OSM/Scripts/TuPostprocessImportedOsmData.sec;
 
-@./TuDetermineSections.sec;
+@../Algebras/OSM/Scripts/TuDetermineSections.sec;
 
-@./TuCreateGraph.sec;
+@../Algebras/OSM/Scripts/TuCreateGraph.sec;
 
-@./TuPrepareNetworkCreation.sec;
+@../Algebras/OSM/Scripts/TuPrepareNetworkCreation.sec;
 
-@./TuCreateNetworkStep1.sec;
+@../Algebras/OSM/Scripts/TuCreateNetworkStep1.sec;
 
-@./TuCreateNetworkStep2.sec;
+@../Algebras/OSM/Scripts/TuCreateNetworkStep2.sec;
 
-@./TuCreateNetworkStep3.sec;
+@../Algebras/OSM/Scripts/TuCreateNetworkStep3.sec;
 
-@./TuCreateNetworkStep4.sec;
+@../Algebras/OSM/Scripts/TuCreateNetworkStep4.sec;
 
