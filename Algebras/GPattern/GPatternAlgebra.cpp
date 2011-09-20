@@ -4911,7 +4911,7 @@ const string NoComponentsSpec =
 
 const string GBoidsSpec =
   "( ( \"Signature\" \"Syntax\"\"Meaning\" \"Example\" ) "
-  "( <text>(vector int) x int x (vector rect) x rect x instant x duration"
+  "( <text>(vector int) x (vector real) x instant x duration"
   " -> stream(tuple((BoidID int)(T instant)(X real)(Y real)))</text--->"
   "<text>generateboids(group sizes, number of freely moving boids, "
   "obstacles, the rect defining the world, simulation start time, "
@@ -4920,17 +4920,27 @@ const string GBoidsSpec =
   "for creating boids. Boids are flying birds. Originally the code generates "
   "3D coordinates. The operator, however, yields the X, Y only. You can create "
   "several groups of boids, where every group try to flock together. The "
-  "first argument specifies the sizes of these groups. "
-  "The second argument specifies the number "
-  "of birds that move freely without flocking. The third argument specify "
-  "obstacles that the boids are required to avoid. The fourth argument is the "
-  "box defining the world. The fifth argument is used as the initial time "
-  "instant in the generated samples. There is one sample per boids per 5 "
-  "seconds. The last argument specifies the simulation duration. </text--->"
-  "<text>query generateboids(create_vector(15, 15), 40, "
-  "create_vector(rectangle2(0, 100, 9000, 9150)), "
-  "rectangle2(-10000, 5000, 7000, 10000), now(), "
-  "create_duration(0, 1000000)) count</text--->) )";
+  "first argument is a vector that specifies the sizes of these groups. The "
+  "first entry in this vector is mandatory, and it specifies the number of "
+  "freely moving boids (i.e., boids that move in the background without "
+  "flocking). The second argument is a vector that specifies the obstacles "
+  "that boids are required to avoid. Obstacles are described as circles, "
+  "where every circle is described as x-coord of the center, y-coord of the "
+  "center, raduis in meters. The number of reals within this vector must be "
+  "a multiple of 3. The first three reals are mandatory and they describe the "
+  "world. Boids will respect this world while flying, and should never cross "
+  "its boundaries. The third argument is used as the initial time instant in "
+  "the generated samples. There is one sample per boids per 5 seconds. The "
+  "last argument specifies the simulation duration. The operator return a "
+  "stream of (BoidID, T, X, Y) tuples, each of which is representing a single "
+  "boid observation. This can be used in combination with other SECONDO "
+  "operators to generate the boid trajectories.</text--->"
+  "<text>query generateboids("
+  "create_vector(40, 15, 15), "
+  "create_vector(1000.0,-3000.0, 20000.0), "
+  "now(), "
+  "create_duration(0, 1000000)) "
+  "count</text--->) )";
 
 struct collectIntSetInfo : OperatorInfo {
 
