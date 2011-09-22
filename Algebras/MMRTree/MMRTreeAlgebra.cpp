@@ -100,11 +100,14 @@ where
   attrname2 : attribute name for an attribute of type rect in stream2
   min       : minimum number of entries within a node of the used rtree
   max       : maximum number of entries within a node of the used rtree
+  maxMem    : maximum memory available for storing tuples
 
 ----
 
 */
 ListExpr realJoinMMRTreeTM(ListExpr args){
+
+
 
   string err = "stream(tuple(A)) x stream(tuple(B)) x"
                " a_i x b_i x int x int [x int] expected";
@@ -522,6 +525,254 @@ Operator statMMRTree (
 
 
 
+/*
+1.4 Operator joinMMRTreeIt
+
+This operator does the same as the realjoinMMRTree operator. In contrast to 
+that operator, here an iterator is used to get all results instead of a 
+vector collecting all results within a single scan.
+
+1.4.1 Type Mapping
+
+Becaus the operator has the same  functionality as the realJoinMMRTree 
+operator, we can reuse the type mapping of that operator.
+
+*/
+
+template<int dim>
+class joinMMRTreeItLocalInfo{
+public:
+   joinMMRTreeItLocalInfo(Word& stream1, Word& stream2, 
+                          int min, int max, 
+                          int maxMem, 
+                          const int attrPos1, const int _attrPos2, 
+                          ListExpr resultType) : 
+                          s2(stream2),attrPos2(_attrPos2),
+                          index(min,max), buffer(maxMem){
+     Stream<Tuple> s1(stream1);
+     s1.open();
+     Tuple* tuple = s1.request();
+     while(tuple!=0){
+        TupleId id = buffer.AppendTuple(tuple);
+        Rectangle<dim>* box = (Rectangle<dim>*) tuple->GetAttribute(attrPos1); 
+        index.insert(*box,id);
+        tuple->DeleteIfAllowed();
+        tuple = s1.request();
+     } 
+     s1.close();
+     tt = new TupleType(resultType);
+     s2.open();
+     currentTuple = s2.request(); 
+     it = 0;
+   }
+
+   ~joinMMRTreeItLocalInfo(){
+      tt->DeleteIfAllowed();
+      if(it){
+        delete it;
+      }
+      s2.close();
+   }
+
+   Tuple* next(){
+     while(currentTuple!=0){
+        if(it==0){
+          it=index.find( *((Rectangle<dim>*) 
+                           currentTuple->GetAttribute(attrPos2)));
+        }
+        TupleId const* id = it->next();
+        if(id){ // new result found
+           Tuple* res = new Tuple(tt);
+           Tuple* t1 = buffer.GetTuple(*id);
+           Concat(t1,currentTuple,res);
+           t1->DeleteIfAllowed();
+           return res;
+        } else { // iterator exhausted, try next currentTuple
+          delete it;
+          it = 0;
+          currentTuple->DeleteIfAllowed();
+          currentTuple = s2.request();
+        }
+     }
+     return 0;
+   }
+
+
+private:
+   Stream<Tuple> s2;
+   int attrPos2;
+   mmrtree::RtreeT<dim, TupleId> index;
+   TupleStore buffer;
+   typename mmrtree::RtreeT<dim, TupleId>::iterator* it;
+   Tuple* currentTuple;
+   TupleType* tt;
+}; // class joinMMRTreeItLocalInfo
+
+
+template<int dim>
+class joinMMRTreeItVecLocalInfo{
+public:
+   joinMMRTreeItVecLocalInfo(Word& stream1, Word& stream2, 
+                          int min, int max, 
+                          int maxMem, 
+                          const int attrPos1, const int _attrPos2, 
+                          ListExpr resultType) : 
+                          s2(stream2),attrPos2(_attrPos2),
+                          index(min,max), buffer(){
+     Stream<Tuple> s1(stream1);
+     s1.open();
+     Tuple* tuple = s1.request();
+     while(tuple!=0){
+        TupleId id = (TupleId) buffer.size();
+        buffer.push_back(tuple);
+        Rectangle<dim>* box = (Rectangle<dim>*) tuple->GetAttribute(attrPos1); 
+        index.insert(*box,id);
+        tuple = s1.request();
+     } 
+     s1.close();
+     tt = new TupleType(resultType);
+     s2.open();
+     currentTuple = s2.request(); 
+     it = 0;
+   }
+
+   ~joinMMRTreeItVecLocalInfo(){
+      tt->DeleteIfAllowed();
+      if(it){
+        delete it;
+      }
+      s2.close();
+      for(size_t i=0;i<buffer.size();i++){
+         buffer[i]->DeleteIfAllowed();
+      }
+      buffer.clear();
+   }
+
+   Tuple* next(){
+     while(currentTuple!=0){
+        if(it==0){
+           it = index.find( *( (Rectangle<dim>*) 
+                               currentTuple->GetAttribute(attrPos2)));
+        }
+        TupleId const* id = it->next();
+        if(id){ // new result found
+           Tuple* res = new Tuple(tt);
+           Tuple* t1 = buffer[*id];
+           Concat(t1,currentTuple,res);
+           return res;
+        } else { // iterator exhausted, try next currentTuple
+          delete it;
+          it = 0;
+          currentTuple->DeleteIfAllowed();
+          currentTuple = s2.request();
+        }
+     }
+     return 0;
+   }
+
+
+private:
+   Stream<Tuple> s2;
+   int attrPos2;
+   mmrtree::RtreeT<dim, TupleId> index;
+   vector<Tuple*> buffer;
+   typename mmrtree::RtreeT<dim, TupleId>::iterator* it;
+   Tuple* currentTuple;
+   TupleType* tt;
+}; // class joinMMRTreeItVecLocalInfo
+
+
+
+template <int dim, class LocalInfo>
+int joinMMRTreeItVM( Word* args, Word& result, int message,
+                      Word& local, Supplier s ) {
+
+
+   LocalInfo* li = (LocalInfo*) local.addr;
+   switch (message){
+     case OPEN : {
+                   if(li){
+                     delete li;
+                     li = 0;
+                     local.setAddr(0);
+                   }
+                   CcInt* Min = (CcInt*) args[4].addr;
+                   CcInt* Max = (CcInt*) args[5].addr;
+                   CcInt* MaxMem = (CcInt*) args[6].addr;
+                   if(!Min->IsDefined() || !Max->IsDefined()){
+                      return 0; // invalid option
+                   }
+                   int min = Min->GetIntval();
+                   int max = Max->GetIntval();
+                   if(min<2 || max < 2*min){
+                       return 0;
+                   } 
+                   size_t maxMem = qp->MemoryAvailableForOperator()/1024;
+                   if(MaxMem->IsDefined() && MaxMem->GetValue() > 0){
+                      maxMem = MaxMem->GetValue();
+                   }
+                   local.setAddr(new LocalInfo(args[0], args[1], min, 
+                                               max, maxMem, 
+                                      ((CcInt*)args[7].addr)->GetIntval(),
+                                      ((CcInt*)args[8].addr)->GetIntval(),
+                                       nl->Second(GetTupleResultType(s)) ));
+                    return 0;
+                 }
+
+      case REQUEST : {
+                    if(!li){
+                      return CANCEL;
+                    }
+                    result.addr = li->next();
+                    return result.addr?YIELD:CANCEL;
+
+                 }
+      case CLOSE :{
+                   if(li){
+                     delete li;
+                     local.setAddr(0);
+                   }
+                   return 0;
+                 }
+   }
+  return -1;
+}
+
+
+ValueMapping joinMMRTreeItvm[] = {
+    joinMMRTreeItVM<2, joinMMRTreeItLocalInfo<2> >,
+    joinMMRTreeItVM<3, joinMMRTreeItLocalInfo<3> >
+};
+
+
+
+
+Operator joinMMRTreeIt (
+  "joinMMRTreeIt",
+  realJoinMMRTreeSpec,
+  2, 
+  joinMMRTreeItvm,
+  realJoinSelect ,
+  realJoinMMRTreeTM
+  );
+
+
+ValueMapping joinMMRTreeItVecvm[] = {
+    joinMMRTreeItVM<2, joinMMRTreeItVecLocalInfo<2> >,
+    joinMMRTreeItVM<3, joinMMRTreeItVecLocalInfo<3> >
+};
+
+
+
+
+Operator joinMMRTreeItVec (
+  "joinMMRTreeItVec",
+  realJoinMMRTreeSpec,
+  2, 
+  joinMMRTreeItVecvm,
+  realJoinSelect ,
+  realJoinMMRTreeTM
+  );
 
 
 /*
@@ -540,6 +791,8 @@ class MMRTreeAlgebra : public Algebra {
       AddOperator(&statMMRTree);
       AddOperator(&realJoinMMRTree);
       AddOperator(&realJoinMMRTreeVec);
+      AddOperator(&joinMMRTreeIt);
+      AddOperator(&joinMMRTreeItVec);
 
    }
 };
