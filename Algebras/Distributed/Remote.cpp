@@ -34,10 +34,11 @@ DServerCreator, DServerExecutor and RelationWriter
 #include "Remote.h"
 #include "SocketIO.h"
 #include "Processes.h"
-#include "RelationAlgebra.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
+#ifndef SINGLE_THREAD1
 #include "zthread/ThreadedExecutor.h"
+#endif
 #include "zthread/Mutex.h"
 #include "StringUtils.h"
 #include <iostream>
@@ -46,6 +47,8 @@ DServerCreator, DServerExecutor and RelationWriter
 //#define DS_CMD_CLOSE_WRITE_REL_DEBUG 1
 //#define DS_CMD_OPEN_WRITE_REL_DEBUG 1
 //#define DS_CMD_WRITE_REL_DEBUG 1
+//#define DS_CMD_READ_REL_DEBUG 1
+//#define DS_CMD_DELETE_DEBUG 1
 
 using namespace std;
 
@@ -59,13 +62,14 @@ string HostIP_;
 
 //Synchronisation of access to Flobs
 ZThread::Mutex Flob_Mutex;
+ZThread::Mutex Flob1_Mutex;
 //Synchronisation of access to read relations
 ZThread::Mutex Rel1_Mutex;
-ZThread::Mutex Rel2_Mutex;
 //Synchronisation of access to read non relations and write commands
 ZThread::Mutex Cmd_Mutex;
 //Synchronisation of access to nl -> ToString in DServer::DServer
 ZThread::Mutex Type_Mutex;
+
 
 /*
 
@@ -228,7 +232,7 @@ DServer::connectToWorker()
    HostIP = server->GetSocketAddress();
    HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
-   cout << "Connection to Worker on " << host << " established." << endl;
+   //cout << "Connection to Worker on " << host << " established." << endl;
    return true;
 }
 
@@ -265,6 +269,7 @@ void DServer::Terminate()
 
    if (m_cmd != NULL)
      delete m_cmd;
+
    m_cmd = NULL;
 }
 
@@ -323,10 +328,8 @@ void DServer::run()
       
       int algID,typID;
       extractIds(m_type,algID,typID);
-      
-      string daten;
                 
-      TypeConstructor* t = am->GetTC(algID,typID);
+      TypeConstructor* tc = am->GetTC(algID,typID);
       
       while(!m_cmd -> getDArrayIndex() -> empty())
       {
@@ -426,12 +429,12 @@ void DServer::run()
          delete [] buffer ;
 
          Attribute* a;
-         if(t->NumOfFLOBs() > 0 ) 
+         if(tc->NumOfFLOBs() > 0 ) 
             a = static_cast<Attribute*>((am->Cast(algID,typID))
                               (((*(m_cmd -> getElements()))[arg2]).addr));
          
          //Flobs are sent to worker
-         for(int i = 0; i < t->NumOfFLOBs(); i++)
+         for(int i = 0; i < tc->NumOfFLOBs(); i++)
          {
             Flob* f = a->GetFLOB(i);
          
@@ -487,10 +490,7 @@ void DServer::run()
 
       int algID,typID;
       extractIds(m_type,algID,typID);
-                
-      string daten;
-                
- 
+                               
       while(!m_cmd -> getDArrayIndex() -> empty())
         {
           arg2 = m_cmd -> getDArrayIndex() -> front();
@@ -547,7 +547,7 @@ void DServer::run()
               SmiRecordFile recF(false,0);
               SmiRecord rec;
               SmiRecordId recID;
-             Cmd_Mutex.acquire(); 
+              Cmd_Mutex.acquire(); 
               recF.Open("rec");
               recF.AppendRecord(recID,rec);
               rec.Write(buffer,size,0);
@@ -644,30 +644,42 @@ void DServer::run()
           
         }
    
-   }
-   if(m_cmd -> getCmdType() == DS_CMD_DELETE)
-   {
-      if(rel_open) return;
+    }
+  if(m_cmd -> getCmdType() == DS_CMD_DELETE)
+    {
+#ifdef DS_CMD_DELETE_DEBUG
+      cout << this << " DS_CMD_DELETE - start  (Rel:" 
+           << rel_open << ")" << endl;
+#endif
+      if(rel_open) 
+        {
+#ifdef DS_CMD_DELETE_DEBUG
+          cout << this << "   rel is open - bailing out" << endl;
+#endif
+          return;
+        }
 
       while(!m_cmd -> getDArrayIndex() ->empty())
-      {
-         arg2 = m_cmd -> getDArrayIndex() ->front();
-         m_cmd -> getDArrayIndex() ->pop_front();
-         
-         //Element is deleted on the worker
-         string line;
-         iostream& iosock = server->GetSocketStream();
-         iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
-                  << name << toString_d(arg2) << endl << "</Secondo>" 
-                  << endl;
+        {
+          arg2 = m_cmd -> getDArrayIndex() ->front();
+          m_cmd -> getDArrayIndex() ->pop_front();
+#ifdef DS_CMD_DELETE_DEBUG
+          cout << (unsigned long)this << "   Deleting index:" << arg2 << endl;
+#endif
+          //Element is deleted on the worker
+          string line;
+          iostream& iosock = server->GetSocketStream();
+          iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
+                 << name << toString_d(arg2) << endl << "</Secondo>" 
+                 << endl;
 
-         do
-         {
-            getline(iosock,line);
-            if(line.find("error") != string::npos)
-               errorText = "Worker reports error on deleteing element!";
-         }
-         while(line.find("</SecondoResponse>") == string::npos);
+          do
+            {
+              getline(iosock,line);
+              if(line.find("error") != string::npos)
+                errorText = "Worker reports error on deleteing element!";
+            }
+          while(line.find("</SecondoResponse>") == string::npos);
 
       }
    
@@ -760,11 +772,11 @@ void DServer::run()
    {
      assert(server != 0);
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG
-     cout << this << " DS_CMD_OPEN_WRITE_REL - start" << endl;
+     cout << (unsigned long)(this) << " DS_CMD_OPEN_WRITE_REL - start" << endl;
 #endif
       if(rel_open) 
       {
-        //cout << this 
+        //cout << (unsigned long)(this) 
         // << " DS_CMD_OPEN_WRITE_REL - rel is open ! - done" << endl;
         return;
       }
@@ -782,7 +794,7 @@ void DServer::run()
                      " = " + "d_receive_rel(" + HostIP_ + ",p" + port + ")";
           
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-      cout << this << " OR Send IO:" << "<Secondo>" << endl 
+      cout << (unsigned long)(this) << " OR Send IO:" << "<Secondo>" << endl 
            << "1" << endl << "delete r" 
            << name << toString_d(arg2)  << endl 
            << "</Secondo>" << endl;
@@ -797,14 +809,16 @@ void DServer::run()
         getline(iosock,line);
 
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-        cout << this << " OR Got IO:" << line << endl;
+        cout << (unsigned long)(this) << " OR Got IO:" << line << endl;
 #endif
       }
       while(line.find("</SecondoResponse") == string::npos);
             
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-        cout << this << " OR Send IO:" << "<Secondo>" << endl << "1" << endl 
-                  << com << endl << "</Secondo>" << endl;
+        cout << (unsigned long)(this) 
+             << " OR Send IO:" 
+             << "<Secondo>" << endl << "1" << endl 
+             << com << endl << "</Secondo>" << endl;
 #endif
       //The d_receive_rel operator is invoked
       iosock << "<Secondo>" << endl << "1" << endl 
@@ -818,7 +832,7 @@ void DServer::run()
       //Relation type is sent to type-mapping-fct of the d_receive_rel operator
       iostream& cbsock1 = cbworker->GetSocketStream();
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-        cout << this << " OR Send CB1:" 
+        cout << (unsigned long)(this) << " OR Send CB1:" 
              << "<TYPE>" << endl << m_typeStr 
              << endl << "</TYPE>" << endl;
 #endif
@@ -828,7 +842,7 @@ void DServer::run()
                                         
       getline(cbsock1,line);
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-        cout << this << " OR Got CB1:" << line << endl;
+        cout << (unsigned long)(this) << " OR Got CB1:" << line << endl;
 #endif
       if(line!="<CLOSE>")
          errorText = "Unexpected Response from worker (<Close> expected)!";
@@ -841,7 +855,7 @@ void DServer::run()
       cbworker = gate->Accept();
       iostream& cbsock2 = cbworker->GetSocketStream();
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-        cout << this << " OR Send CB2:" 
+        cout << (unsigned long)(this) << " OR Send CB2:" 
              << "<TYPE>" << endl << m_typeStr
              << endl << "</TYPE>" << endl;
 #endif
@@ -855,7 +869,7 @@ void DServer::run()
       rel_open = true;
 
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
-      cout << this << " DS_CMD_OPEN_WRITE_REL - done" << endl;
+      cout << (unsigned long)(this) << " DS_CMD_OPEN_WRITE_REL - done" << endl;
 #endif
                
    }
@@ -863,73 +877,103 @@ void DServer::run()
    if(m_cmd -> getCmdType() == DS_CMD_WRITE_REL)
    {
 #ifdef DS_CMD_WRITE_REL_DEBUG 
-     cout << this << " DS_CMD_WRITE_REL" << endl;
+     cout << (unsigned long)(this) << " DS_CMD_WRITE_REL" << endl;
 #endif
       //Writes a single tuple to an open tuple stream to the worker
-      if(!rel_open) return;
-               
+      if(!rel_open) 
+        {
+#ifdef DS_CMD_WRITE_REL_DEBUG 
+          cout << (unsigned long)(this) << " REL NOT OPEN" << endl;
+#endif
+          return;
+        }
+
       string line;
-               
+      string str_size;
+
       Tuple *tpl = (Tuple*)(*(m_cmd -> getElements()))[0].addr;
       
       //Get the tuple size
       size_t cS,eS,fS,size;
       size = tpl->GetBlockSize(cS,eS,fS);
-               
-               
+      int2Str(size, str_size);
+
       int num_blocks = (size / 1024) + 1;
                
       char* buffer = new char[num_blocks*1024];
       memset(buffer,0,1024*num_blocks);
-               
+                
       //Get the binary data of the tuple
-      Flob_Mutex.acquire();
-      tpl->WriteToBin(buffer,cS,eS,fS);
-      Flob_Mutex.release();
-               
+      Flob1_Mutex.acquire();
+      tpl -> WriteToBin(buffer,cS,eS,fS);
+      tpl -> DeleteIfAllowed();
+      Flob1_Mutex.release();
+
       iostream& cbsock = cbworker->GetSocketStream();
                
       //Send the size of the tuple to the worker
 #ifdef DS_CMD_WRITE_REL_DEBUG 
-        cout << this << " WR Send CB:" << "<TUPLE>" << endl << toString_d(size) 
-                  << endl << "</TUPLE>" << endl;
+        cout << (unsigned long)(this) 
+             << " WR Send CB:" << "<TUPLE>" << endl << str_size 
+             << endl << "</TUPLE>" << endl;
 #endif
-      cbsock << "<TUPLE>" << endl << toString_d(size) 
+      cbsock << "<TUPLE>" << endl << str_size
                   << endl << "</TUPLE>" << endl;
       
       getline(cbsock,line); 
-#ifdef DS_CMD_WRITE_REL_DEBUG 
-        cout << this << " WR Got CB:" << line << endl;
+#ifdef DS_CMD_WRITE_REL_DEBUG
+        cout << (unsigned long)(this) 
+             << " WR Got CB:" << line << endl;
 #endif
       if(line!= "<OK>") 
-         errorText = "Worker unable to receive tuple!";
+        {
+          errorText = "Worker unable to receive tuple!";
+#ifdef DS_CMD_WRITE_REL_DEBUG1
+        cout << (unsigned long)(this) 
+             << " WR Got CB (EXPETING <OK>!):" << line << endl;
+#endif
+        }
                
                
       getline(cbsock,line); 
-#ifdef DS_CMD_WRITE_REL_DEBUG 
-        cout << this << " WR Got CB:" << line << endl;
+#ifdef DS_CMD_WRITE_REL_DEBUG
+        cout << (unsigned long)(this) << " WR Got CBX:" << line << endl;
 #endif
       if(atoi(line.data()) != num_blocks) 
-         errorText = "Worker calculated wrong number of blocks!";
-      
-      getline(cbsock,line);
-#ifdef DS_CMD_WRITE_REL_DEBUG 
-        cout << this << " WR Got CB:" << line << endl;
+        {
+          errorText = "Worker calculated wrong number of blocks!";
+#ifdef DS_CMD_WRITE_REL_DEBUG1
+          cout << (unsigned long)(this) 
+               << " WR Got CB (EXPETING INT!):" 
+               << line << endl;
 #endif
+        }
+      getline(cbsock,line);
+#ifdef DS_CMD_WRITE_REL_DEBUG
+        cout << (unsigned long)(this) << " WR Got CB:" << line << endl;
+#endif
+        if(line!= "</OK>") 
+        {
+          errorText = "Worker unable to receive tuple!";
+#ifdef DS_CMD_WRITE_REL_DEBUG1
+          cout << (unsigned long)(this) 
+               << " WR Got CB (EXPETING </OK>!):" << line << endl;
+#endif
+        }
+
       //Send the tuple data to the worker
       for(int i = 0; i<num_blocks;i++)
-         cbsock.write(buffer+i*1024,1024);
-       
+         cbworker -> Write(buffer+i*1024,1024);
+
       delete buffer;
                
-      tpl->DeleteIfAllowed();
-          
    }
           
    if(m_cmd -> getCmdType() == DS_CMD_CLOSE_WRITE_REL)
    {
 #ifdef DS_CMD_CLOSE_WRITE_REL_DEBUG
-      cout << this << " CR Start: DS_CMD_CLOSE_WRITE_REL" << endl;
+      cout << (unsigned long)(this) 
+           << " CR Start: DS_CMD_CLOSE_WRITE_REL" << endl;
 #endif
       //Closes an open tuple stream to the worker
       if(!rel_open) return;
@@ -941,13 +985,13 @@ void DServer::run()
                
       //Sends the close signal and receive <FINISH>
 #ifdef DS_CMD_CLOSE_WRITE_REL_DEBUG
-      cout << this << " CR Send CB: <CLOSE>" << endl;
+      cout << (unsigned long)(this) << " CR Send CB: <CLOSE>" << endl;
 #endif
 
       cbsock << "<CLOSE>" << endl;
       getline(cbsock,line);
 #ifdef DS_CMD_CLOSE_WRITE_REL_DEBUG
-      cout << this << " CR Got CB: " << line << endl;
+      cout << (unsigned long)(this) << " CR Got CB: " << line << endl;
       int cnt = 0;
 #endif
       if(line != "<FINISH>")
@@ -958,12 +1002,13 @@ void DServer::run()
       {
          getline(iosock,line);
 #ifdef DS_CMD_CLOSE_WRITE_REL_DEBUG
-         cout << this << " CR Got IO: " << line << endl;
+         cout << (unsigned long)(this) << " CR Got IO: " << line << endl;
          assert(cnt++ < 10);
 #endif
          if(line.find("errror") != string::npos)
            errorText = "Worker reports error on closing relation!";
       }
+
       while(line.find("</SecondoResponse") == string::npos);
 
       rel_open = false;
@@ -972,17 +1017,19 @@ void DServer::run()
 
    if(m_cmd -> getCmdType() == DS_CMD_READ_REL)
    {
+#ifdef DS_CMD_READ_REL_DEBUG
+         cout << (unsigned long)(this) << " DS_CMD_READ_REL" << endl;
+#endif
       //Reads an entire relation from the worker
-      int algID,typID;
-      extractIds(m_type,algID,typID);
 
-      Rel2_Mutex.acquire(); 
-      TupleType* tt = new TupleType(nl->Second(m_type));
-      Rel2_Mutex.release(); 
+      Rel1_Mutex.acquire();   
+
+      TupleType tt(nl -> Second(m_type));
+
+      Rel1_Mutex.release(); 
 
       while(!m_cmd -> getDArrayIndex() ->empty())
       {
-       
          arg2 = m_cmd -> getDArrayIndex() ->front();
          m_cmd -> getDArrayIndex() ->pop_front();
          
@@ -1002,6 +1049,12 @@ void DServer::run()
 
          iostream& cbsock = worker->GetSocketStream();
 
+         //cout << "Reading Relation of index:" << arg2 << endl;
+        
+         //Relation *rel = new Relation(&tt);
+         //rel -> Clear();
+         //(*(m_cmd -> getElements()))[arg2] = SetWord(rel);
+
          GenericRelation* rel = 
            (Relation*)(*(m_cmd -> getElements()))[arg2].addr;
 
@@ -1017,7 +1070,7 @@ void DServer::run()
             getline(cbsock,line);
                      
             int num_blocks = (size / 1024) + 1;
-                  
+                   
             char* buffer = new char[num_blocks*1024];
             memset(buffer,0,num_blocks*1024);
                      
@@ -1026,17 +1079,16 @@ void DServer::run()
               {
                 cbsock.read(buffer+i*1024,1024);
               }
-            Tuple* t = new Tuple(tt);
                      
+            Tuple* t = new Tuple(&tt);
             //transform to tuple and append to relation
-            t->ReadFromBin(buffer);
+            Rel1_Mutex.acquire();
+            t -> ReadFromBin(buffer);
 
-            Rel1_Mutex.acquire(); 
-            rel->AppendTuple(t);
-            Rel1_Mutex.release(); 
+            rel -> AppendTuple(t);
 
-            t->DeleteIfAllowed();
-              
+            t -> DeleteIfAllowed(); 
+            Rel1_Mutex.release();
 
             delete buffer;
                      
@@ -1046,8 +1098,7 @@ void DServer::run()
          if(line != "<CLOSE>") 
             errorText = (string)"Unexpected Response from worker! " 
                               + "(<CLOSE> or <TUPLE> expected)";
-                
-
+           
          gate->Close(); delete gate; gate=0;
          worker->Close(); delete worker; worker=0;
 
@@ -1061,18 +1112,18 @@ void DServer::run()
 
       }
 
-       
-      delete tt;   
           
+#ifdef DS_CMD_READ_REL_DEBUG
+         cout << (unsigned long)(this) << " DS_CMD_READ_REL done" << endl;
+#endif
    }
 
-   delete m_cmd;
+   if (m_cmd != NULL)
+     delete m_cmd;
 
    m_cmd = NULL;
 
-   status = 0;   
-
-   //cout << this << " DS - done" << endl;       
+   //cout << (unsigned long)(this) << " DS - done" << endl;       
    return;
 }
 
@@ -1176,13 +1227,12 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                                ListExpr inType,
                                int sizeofarray)
 {
-   cout << "Connecting to Workers..." << endl;
+  cout << "Connecting to Workers... " << endl;
    
    array_size = sizeofarray;
    name = name_n;
    errorText = "OK";
    size = nl->ListLength(serverlist_n);
-   
    if(size==-1) 
       size=1;
                 
@@ -1191,7 +1241,9 @@ DServerManager::DServerManager(ListExpr serverlist_n,
         
    try
      {
+#ifndef SINGLE_THREAD1
        ZThread::ThreadedExecutor exec;
+#endif
        //create DServer-objects
        for(int i = 0; i<size; i++)
          {
@@ -1203,8 +1255,11 @@ DServerManager::DServerManager(ListExpr serverlist_n,
 
            m_serverlist.push_back( c -> createServer() );
 
+#ifdef SINGLE_THREAD1
+           c -> run();
+#else
            exec.execute(c);
-      
+#endif 
            if(i < size-1)
              {
                elem = nl->First(serverlist_n);
@@ -1212,14 +1267,16 @@ DServerManager::DServerManager(ListExpr serverlist_n,
              }
    
          }
-
+#ifndef SINGLE_THREAD1
        exec.wait();
+#endif
      } 
    catch(ZThread::Synchronization_Exception& e) 
      {
        errorText = string("Could not create DServers!\nError:") + 
          string(e.what());
        cerr << e.what() << endl;
+       m_status = false;
        return;
      }
 
@@ -1234,6 +1291,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
          insertList.push_front(i);
        m_idIndexMap[id] = insertList;
      }
+   m_status = true;
 }
 
 /*
@@ -1330,7 +1388,6 @@ void RelationWriter::run()
           
          worker->run();
          t->DeleteIfAllowed();
-      
          t = iter->GetNextTuple();
      
       }
@@ -1356,9 +1413,27 @@ void DServerExecutor::run()
   server->run(); 
 }
 
+void  DServerMultiCommand::run()
+{
+  bool runIt = true;
+  while(runIt)
+    {
+      DServer::RemoteCommand *rc = get();
+      if (rc != NULL)
+        {
+          m_server->setCmd(rc);
+          m_server -> run();
+        }
+      else
+        {
+          runIt = false;
+        }
+    }
+}
+
 /*
 
-6 Class DServerCreator
+7 Class DServerCreator
 
 */
 
@@ -1370,6 +1445,8 @@ DServerCreator::DServerCreator
     nl->ReadFromString(s_type,m_type);
   */
   assert(!(nl -> ToString(t).empty()));
+  //cout << "Creating server: "<< p << "@" 
+  //<< h << " "  << nl -> ToString(t) << endl;
   m_type = t;
   
   host = h; port = p; name = n;
@@ -1379,12 +1456,14 @@ DServer*
 DServerCreator::createServer()
 {
   m_server = new DServer(host,port,name,m_type);
+  //cout << "Server: "<< port << "@" << host << " created" << endl;
   return m_server;
 }
 
 
 void DServerCreator::run()
-{
+{ 
+  //cout << "Connecting Server: "<< port << "@" << host << endl;
   m_server -> connectToWorker();
 }
 
@@ -1441,14 +1520,19 @@ ostream& operator << (ostream &out, DServer::RemoteCommand& rc)
       out << *idx << " ";
     }
   else
-    cout << "NULL";
+    out << "NULL";
 
   out << " W:";
   if (rc.getElements() != NULL)
-    cout << rc.getElements() -> size();
+    out << rc.getElements() -> size();
   else
-    cout << "NULL";
+    out << "NULL";
 
   return out;
 }
 
+
+void DServer::print() const
+{
+  cout << (unsigned long)(this) << " : " << " " << host << " " << port << endl;
+}

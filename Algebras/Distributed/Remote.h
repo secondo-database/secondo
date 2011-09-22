@@ -37,18 +37,22 @@ RelationWriter and DServerCreator
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
  
-
+#include <deque>
 #include "StandardTypes.h"
 #include "SocketIO.h"
 #include "zthread/Runnable.h"
 #include "zthread/Thread.h"
+#include "zthread/Guard.h"
+#include "zthread/Condition.h"
+#include "zthread/Mutex.h"
+#include "RelationAlgebra.h"
+#define SINGLE_THREAD 1
 
 using namespace std;
 
-static int DServerCnt;
-
 class DServer
 {
+  DServer() : m_cmd(NULL) {}
 public:
 
   enum CmdType { DS_CMD_NONE = 0,  // undefined
@@ -89,13 +93,17 @@ public:
   const vector<DServer*> & getChilds() const { return m_childs; }
   void DestroyChilds();
             
-  int status;
   int getNumChilds() const { return m_numChilds;}
       
   bool checkServer() const;
   string getErrorText() { return errorText; }
-
-private:
+  void int2Str(int i, string& ret)
+  {
+    std::stringstream out;
+    out << i;
+    ret = out.str();
+  }
+public:
   class RemoteCommand
   {
   public:
@@ -116,6 +124,9 @@ private:
         m_fromNames = *inFromNames;
     }
 
+    virtual ~RemoteCommand()
+    {
+    }
     CmdType getCmdType() const { return m_cmdType; }
     list<int>* getDArrayIndex() { return &m_darrayIndex; }
     vector<Word>* getElements() const { return m_elements; }
@@ -136,10 +147,15 @@ private:
     vector<Word>* m_elements;
     vector<string> m_fromNames;
     RunType m_runType;
+    
   };
 public:
   
+
+  void setCmd(RemoteCommand* rc) { m_cmd = rc; }
+
   friend ostream& operator << (ostream&, RemoteCommand&) ;
+  void print() const;
 
 private:
 
@@ -166,10 +182,12 @@ private:
 class DServerManager
 {
    public:
+  DServerManager() : m_status(false) {}
       DServerManager(ListExpr serverlist_n, 
                      string name_n, 
                      ListExpr inType, int sizeofarray);
 
+  bool isOk() const { return m_status; }
       ~DServerManager();
   
 /*
@@ -245,19 +263,76 @@ private:
   int array_size;
   string name;
   
-  string errorText;
   map<int, list<int> > m_idIndexMap;
+
+  string errorText;
+  bool m_status;
   
 };
 
 class DServerExecutor : public ZThread::Runnable
 {
-   DServer* server;
-   public:
-   DServerExecutor(DServer* s) {server=s;}
+  DServer* server;
+public:
+  DServerExecutor(DServer* s) {server=s;}
      
-   void run();
+  void run();
 };
+
+class DServerMultiCommand : public ZThread::Runnable
+{
+private:
+  int m_index;
+  DServer* m_server;
+  ZThread::Mutex lock;
+  //ZThread::Condition cond;
+  std::deque<DServer::RemoteCommand *> data;
+  
+public:
+  DServerMultiCommand(int i, DServer* s) : 
+    m_index(i),
+    m_server(s)
+  {}
+
+  void put (DServer::RemoteCommand *rc)
+  { 
+    //assert(isRunning());
+    //ZThread::Guard<ZThread::Mutex> g(lock);
+    data.push_back(rc);
+    //cond.signal();
+  }
+
+  DServer::RemoteCommand* get()
+  {
+    //ZThread::Guard<ZThread::Mutex> g(lock);
+    /*
+    while(data.empty())
+      {
+        cond.wait();
+      }
+    */
+    if (data.empty())
+      {
+        return NULL;
+      }
+    
+    DServer::RemoteCommand *rc = data.front();
+    
+    data.pop_front();
+    return rc;
+  }
+
+  void run();
+
+  bool empt2y() 
+  {
+    ZThread::Guard<ZThread::Mutex> g(lock);
+    return data.empty();
+  }
+
+  DServer* getServer2() const { return m_server; }
+};
+
 
 class DServerCreator : public ZThread::Runnable
 {
@@ -291,7 +366,6 @@ public:
       {
       cerr << "Error multiplying Servers:" 
            << server -> getErrorText() << endl;
-      throw;
       }
   }
 };

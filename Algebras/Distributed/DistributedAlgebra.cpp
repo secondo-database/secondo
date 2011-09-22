@@ -50,13 +50,17 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "RelationAlgebra.h"
 #include "TypeMapUtils.h"
 #include "Remote.h"
+#ifndef SINGLE_THREAD1
 #include "zthread/ThreadedExecutor.h"
+#include "zthread/PoolExecutor.h"
+#endif
+#include "zthread/Mutex.h"
 #include "../FText/FTextAlgebra.h"
 #include "../Array/ArrayAlgebra.h"
 #include "DistributedAlgebra.h"
 #include "StringUtils.h"
 #include "Symbols.h"
-
+#include "Stream.h"
 
 //#define RECEIVE_REL_MAP_DEBUG 1
 //#define RECEIVE_REL_FUN_DEBUG 1
@@ -271,7 +275,6 @@ DArray::DArray()
 //It can be defined while all its elements are undefined
 DArray::DArray(ListExpr inType, string n, int s, ListExpr n_serverlist)
 {
-   defined = true;
 
    m_type = inType;
 
@@ -296,24 +299,33 @@ DArray::DArray(ListExpr inType, string n, int s, ListExpr n_serverlist)
 
    no++;
 
+   if (!(manager -> isOk()))
+     defined = false;
+   else
+     defined = true;
 }
 
 
 
 DArray::~DArray()
 {
-   no--;
+  //cout << "DArray::~DArray" << endl;
+  assert(no > 0);
+  no--;
    if(defined)
    {
-
       for(int i=0;i<size;i++)
       {
          //Elements that are present on the master are deleted
          //note that this deletes NOT the Secondo-objects on the workers
          //they need to be deleted seperately which can be done by
          //the remove-function
-         if(m_present[i])
-               (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
+        if(m_present[i])
+          {
+            //cout << "DEL EL: " << i << endl;
+            
+            (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
+          }
       }
       delete manager;
       m_present.clear();
@@ -323,24 +335,34 @@ DArray::~DArray()
 
 void DArray::remove()
 {
-
-   if(defined)
+  //cout << "DArray::remove()" << endl;
+  if(defined)
    {
+#ifndef SINGLE_THREAD1
       ZThread::ThreadedExecutor exec;
+#endif
       for(int i = 0;i<manager->getNoOfServers();i++)
       {
+        //cout << "Deleting server: " << i << endl;
          DServer* server = manager->getServerbyID(i);
          server->setCmd(DServer::DS_CMD_DELETE,
                         &(manager->getIndexList(i)),
                         &m_elements);
-         DServerExecutor* server_ex = new DServerExecutor(server);
-         exec.execute(server_ex);
+#ifndef SINGLE_THREAD1        
+         exec.execute(new DServerExecutor(server));
+#else
+          DServerExecutor*dsex = new DServerExecutor(server);
+          dsex -> run();
+          delete dsex;
+#endif
       }
+#ifndef SINGLE_THREAD1
+      exec.wait(); 
 
-      exec.wait();
+#endif
 
    }
-
+   //cout << "DArray::remove() ... done" << endl;
 }
 
 void DArray::refresh(int i)
@@ -359,7 +381,6 @@ void DArray::refresh(int i)
       server->setCmd(DServer::DS_CMD_READ_REL,&l,&m_elements);
       server->run();
    }
-
    else
    {
      server->setCmd(DServer::DS_CMD_READ,&l,&m_elements);
@@ -369,54 +390,68 @@ void DArray::refresh(int i)
    m_present[i] = 1; // true
 }
 
-
 void DArray::refresh()
 {
+
+  //cout << "DArray::refresh S:" << size 
+  //<< " (Rel:" << isRelation << ")" << endl;
+
+#ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
-   DServerExecutor* server_ex;
+#endif
 
    //Elements are deleted if they were present
    //If the darray has a relation-type new relations must be created
-   for(int i=0;i<size;i++)
-   {
-     if(m_present[i])
-       {
-         (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
-       }
+   assert(m_elements.size() == size);
 
-      if(isRelation)
-        {
-          m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(m_type).addr;
-        }
-   }
-
-   //elements are read, the DServer run as threads
+  
+   for (int i = 0; i <  size; ++i)
+     { 
+       if(m_present[i])
+         {
+           (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
+         }
+       
+       if(isRelation)
+         {
+           m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(m_type).addr;
+         }
+       
+     }
+   
+     //elements are read, the DServer run as threads
    for(int i = 0; i < manager->getNoOfServers(); i++)
-   {
-      DServer* server = manager->getServerbyID(i);
-      if(isRelation)
-      {
-        server->setCmd(DServer::DS_CMD_READ_REL,
-                       &(manager->getIndexList(i)),
-                       &m_elements);
-      }
-      else
-      {
-        server->setCmd(DServer::DS_CMD_READ,
-                       &(manager->getIndexList(i)),
-                       &m_elements);
-      }
-
-      server_ex = new DServerExecutor(server);
-      exec.execute(server_ex);
-   }
-
-    exec.wait();
-
+     {
+       DServer* server = manager->getServerbyID(i);
+       if(isRelation)
+         {
+           server->setCmd(DServer::DS_CMD_READ_REL,
+                          &(manager->getIndexList(i)),
+                          &m_elements);
+         }
+       else
+         {
+           server->setCmd(DServer::DS_CMD_READ,
+                          &(manager->getIndexList(i)),
+                          &m_elements);
+         }
+#ifndef SINGLE_THREAD1
+       exec.execute(new DServerExecutor(server));
+#else
+       DServerExecutor *dsex = new DServerExecutor(server);
+       dsex -> run();
+       delete dsex;
+#endif
+     }
+   
+#ifndef SINGLE_THREAD1
+   exec.wait();
+#endif
+   
      //All elements are present now
-    for(int i=0;i<size;i++) m_present[i] = 1;
+    for(int i=0;i<size;i++) m_present[i] = 1; 
+    //cout << "DArray::refresh ...done" << endl;
 }
-
 
 bool DArray::initialize(ListExpr inType,
                         string n, int s,
@@ -452,7 +487,9 @@ bool DArray::initialize(ListExpr inType,
    m_present = vector<int>(size, 1); // all true
 
    //sends the elements to the respective workers
+#ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
+#endif
 
    if(!isRelation)
      {
@@ -463,22 +500,37 @@ bool DArray::initialize(ListExpr inType,
            server->setCmd(DServer::DS_CMD_WRITE,
                           &(manager->getIndexList(i)),
                           &m_elements);
-           DServerExecutor* server_exec = new DServerExecutor(server);
-           exec.execute(server_exec);
+#ifndef SINGLE_THREAD1
+           exec.execute(new DServerExecutor(server));
+#else
+           DServerExecutor *dsex = new DServerExecutor(server);
+           dsex -> run();
+           delete dsex;
+#endif
          }
      }
    else
      {
        for(int i= 0;i<manager->getNoOfServers();i++)
          {
-           RelationWriter* write =
+#ifndef SINGLE_THREAD1
+           exec.execute(
              new RelationWriter(manager->getServerbyID(i),
                                 &m_elements,
-                                &(manager->getIndexList(i)));
-           exec.execute(write);
+                                &(manager->getIndexList(i))) );
+#else
+          RelationWriter *rw =   
+            new RelationWriter(manager->getServerbyID(i),
+                               &m_elements,
+                               &(manager->getIndexList(i)));
+          rw -> run();
+          delete rw;
+#endif
          }
      }
+#ifndef SINGLE_THREAD1
    exec.wait();
+#endif
 
    for(int i= 0;i<manager->getNoOfServers();i++)
      {
@@ -495,7 +547,7 @@ bool DArray::initialize(ListExpr inType,
 }
 
 bool DArray::initialize(ListExpr inType, string n,
-                  int s,
+                        int s,
                         ListExpr n_serverlist)
 {
    //initializes an undefined, no elements are given
@@ -533,17 +585,24 @@ bool DArray::initialize(ListExpr inType, string n,
 const Word& DArray::get(int i)
 {
    //returns an element of the elements-array
-   if(defined && m_present[i])
-   {
+  if(defined && i >=0 && i < size)
+    {
+      if (!m_present[i])
+        refresh(i);
+      
+      assert (m_present[i]);
+
       return m_elements[i];
-   }
+    }
    else
    {
-     cout << "Error: Array not ";
+     cout << "Error: ";
      if (!defined)
-       cout << "defined!!";
+       cout << "Array is not defined!!";
+     else if ( i < 0 || i >= size)
+       cout << "Index out of scope!!";
      else
-       cout << "present!!";
+       cout << "Element is not present!!";
 
      cout << " (Index: " << i << ")" << endl;
 
@@ -637,7 +696,7 @@ Word DArray::In( const ListExpr inTypeInfo, const ListExpr instance,
                         const int errorPos, ListExpr& errorInfo,
                         bool& correct )
 {
-
+  //cout << "DArray::In" << endl;
    Word e;
    int algID, typID;
 
@@ -665,19 +724,26 @@ Word DArray::In( const ListExpr inTypeInfo, const ListExpr instance,
 
    if(correct)
    {
+     //cout << " -> OK" << endl;
       return SetWord(a);
    }
-
+   //cout << "-> Error!" << endl;
    correct=false;
    return SetWord(Address(0));
-
 
 }
 
 
 ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
 {
+  //cout << "DArray::Out" << endl;
    DArray* a = (DArray*)value.addr;
+  
+   if(a == NULL || !(a->isDefined()))
+     {
+       //cout << " -> ERROR!" << endl;
+       return nl->SymbolAtom(Symbol::UNDEFINED());
+     }
 
    ListExpr list;
    ListExpr last;
@@ -699,12 +765,7 @@ ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
        }
      }
 
-   else
-   {
-      ListExpr err = nl->StringAtom("Error: DArray is undefined!");
-      return err;
-   }
-
+   //cout << " -> OK" << endl;
    return list;
 }
 
@@ -718,7 +779,8 @@ ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
 
 Word DArray::Create( const ListExpr inTypeInfo )
 {
-   return SetWord(new DArray());
+  //cout << "DArray::Create" << endl;
+  return SetWord(new DArray());
 }
 
 
@@ -728,15 +790,19 @@ Word DArray::Create( const ListExpr inTypeInfo )
 
 void DArray::Delete( const ListExpr inTypeInfo, Word& w )
 {
+  //cout << "DArray::Delete" << endl;
    ((DArray*)w.addr)->remove();
     delete (DArray*)w.addr;
    w.addr = 0;
+   //cout << " -> OK" << endl;
 }
 
 void DArray::Close( const ListExpr inTypeInfo, Word& w )
 {
+  //cout << "DArray::Close" << endl;
    delete (DArray*)w.addr;
    w.addr = 0;
+   //cout << " -> OK" << endl;
 }
 
 //A new DArray is created locally with the same type, size and serverlist
@@ -744,6 +810,7 @@ void DArray::Close( const ListExpr inTypeInfo, Word& w )
 //on the workers
 Word DArray::Clone( const ListExpr inTypeInfo, const Word& w )
 {
+  //cout << "DArray::Clone" << endl;
    DArray* alt = (DArray*)w.addr;
    DArray* neu;
 
@@ -768,7 +835,7 @@ Word DArray::Clone( const ListExpr inTypeInfo, const Word& w )
       alt->getServerManager()->getServerByIndex(i)->run();
    }
 
-
+   //cout << " -> OK" << endl;
    return SetWord(neu);
 }
 
@@ -778,6 +845,7 @@ bool DArray::Open( SmiRecord& valueRecord ,
                const ListExpr inTypeInfo ,
                Word& value )
 {
+  //cout << "DArray::Open" << endl;
    char* buffer;
    string name, type, server;
    int length;
@@ -822,6 +890,7 @@ bool DArray::Open( SmiRecord& valueRecord ,
 
 
    value.addr = ((Word)new DArray(typeList,name,size,serverlist)).addr;
+   //cout << " -> OK" << endl;
    return true;
 }
 
@@ -830,8 +899,12 @@ bool DArray::Save( SmiRecord& valueRecord ,
                const ListExpr inTypeInfo ,
                Word& value )
 {
+  //cout << "DArray::Save" << endl;
    int length;
-   int size = ((DArray*)value.addr)->getSize();
+   DArray*  darray = ((DArray*)value.addr);
+   assert (darray != NULL);
+
+   int size = darray->getSize();
 
    //Size of the array is saved
    valueRecord.Write(&size, sizeof(int),offset);
@@ -848,7 +921,7 @@ bool DArray::Save( SmiRecord& valueRecord ,
 
    //Workerlist of the array is saved
    string server;
-   nl->WriteToString( server, ((DArray*)value.addr)->getServerList());
+   nl->WriteToString( server, darray->getServerList());
    length = server.length();
    valueRecord.Write( &length, sizeof(length), offset);
    offset += sizeof(length);
@@ -856,14 +929,14 @@ bool DArray::Save( SmiRecord& valueRecord ,
    offset += length;
 
    //Name of the array is saved
-   string name = ((DArray*)value.addr)->getName();
+   string name = darray->getName();
    length = name.length();
    valueRecord.Write( &length, sizeof(length), offset);
    offset += sizeof(length);
    valueRecord.Write ( name.data(), length, offset);
    offset += length;
 
-
+   //cout << " -> OK" << endl;
 
    return true;
 }
@@ -1117,7 +1190,6 @@ static int getFun( Word* args,
 
   //result = qp->ResultStorage(s);
    result.addr = cloned.addr;
-
    return 0;
 }
 
@@ -1752,10 +1824,11 @@ static int receiverelFun( Word* args,
 
             
             rel->AppendTuple(t);
-
             t->DeleteIfAllowed();
 
             delete buffer;
+            
+            // expeting next <TUPLE>
             getline(iosock,line);
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO7:" << line << endl;
@@ -1872,7 +1945,6 @@ static int sendrelFun( Word* args,
 
          for(int i =0; i< num_blocks; i++)
             iosock.write(buffer+i*1024,1024);
-
          t->DeleteIfAllowed();
          delete buffer;
       }
@@ -2009,6 +2081,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 
    DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
+
    array->initialize(restype,getArrayName(DArray::no),
                      size, serverlist);
 
@@ -2017,13 +2090,31 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
    int server_no = man->getNoOfServers();
    int rel_server = (size / server_no);
-   
-   if (rel_server * server_no < size)
-     rel_server ++;
+   //cout << "Size : " << size 
+   //<< " Servers:" << server_no << " Relative:" 
+   //<< rel_server << endl;
 
-   ZThread::ThreadedExecutor ex;
+   if (server_no > size)
+     {
+       //cout << "Size " << size << " smaller than # servers" << endl;
+       rel_server = 1;
+       server_no = size;
+     }
+   else if (rel_server * server_no < size)
+     { 
+       //cout << "Size " << size 
+       //<< " does not fit needed # servers" 
+       //<< rel_server * server_no << endl;
+       rel_server ++;
+     }
+
+  
    try
      {
+#ifndef SINGLE_THREAD1
+       //ZThread::PoolExecutor threadEx (1);
+       ZThread::ThreadedExecutor threadEx;
+#endif
        cout << "Multiplying worker connections... (Servers:"
             << server_no << "/" << rel_server << ")" << endl;
        for(int i = 0; i<server_no;i++)
@@ -2032,11 +2123,19 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            if (rel_server * i > size)
              childCnt --;
            server = man->getServerbyID(i);
-           DServerMultiplyer* mult = new DServerMultiplyer(server,
-                                                           childCnt);
-           ex.execute(mult);
+#ifndef SINGLE_THREAD1
+           threadEx.execute(new DServerMultiplyer(server,
+                                          childCnt));
+#else
+           DServerMultiplyer* dm = new DServerMultiplyer(server,
+                                                         childCnt);
+           dm -> run();
+           delete dm;
+#endif
          }
-       ex.wait();
+#ifndef SINGLE_THREAD1
+       threadEx.wait();
+#endif
      }
    catch(ZThread::Synchronization_Exception& e)
      {
@@ -2045,8 +2144,13 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        return 1;
      }
 
+   vector<DServer*> serverList(size);
+   
    try
      {
+#ifndef SINGLE_THREAD1
+       ZThread::ThreadedExecutor poolEx2;
+#endif
        for(int i = 0; i < size; i++)
          {
            server = man->getServerByIndex(i);
@@ -2054,27 +2158,30 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
            if(child > -1)
              {
-               assert(child < server->getChilds().size());
+               assert((unsigned int)child < server->getChilds().size());
                server = (server->getChilds())[child];
              }
+
+           serverList[i] = server;
 
            list<int> l;
            l.push_front(i);
 
-           //cout << "Starting Server " << i 
-           //   << " :" << child << " " << server << endl;
            server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l);
-
-           DServerExecutor* run = new DServerExecutor(server);
-           ex.execute(run);
-           //server->run();
+#ifndef SINGLE_THREAD1
+           poolEx2.execute( new DServerExecutor(server) );
+#else
+           server->run();
+#endif
          }
-       ex.wait();
+#ifndef SINGLE_THREAD1
+       poolEx2.wait();
+#endif
 
      }
    catch(ZThread::Synchronization_Exception& e)
      {
-       cerr << "Could not initiate ddistibute command!" << endl;
+       cerr << "Could not initiate ddistribute command!" << endl;
        cerr << e.what() << endl;
        return 1;
      }
@@ -2084,84 +2191,90 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    ListExpr tupleType = nl->Second(restype);
    Word current = SetWord( Address (0) );
 
-   qp->Open(args[0].addr);
-   qp->Request(args[0].addr,current);
+   cout << "Reading Data ..." << endl;
+   Stream<Tuple> inTupleStream(args[0]);
+   inTupleStream.open();
 
+   Tuple* tuple1;
+#ifndef SINGLE_THREAD1
+   // setup CommandQuue for each server;
+   vector<DServerMultiCommand*> serverCommand(size); 
+   for(int i = 0; i < size; i++)
+     {
+       serverCommand[i] = new DServerMultiCommand(i, serverList[i]);
+     }
+#endif
+   while( (tuple1 = inTupleStream.request()) != 0)
+     {
+       Tuple* tuple2 = new Tuple(tupleType);
 
+       int j = 0;
+       for(int i = 0; i < tuple1->GetNoAttributes(); i++)
+         {
+           if(i != attrIndex)
+             tuple2->CopyAttribute(i,tuple1,j++);
+         }
+
+       int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
+          
+       assert (index >= 0);
+
+       index = index % size;
+
+       tuple1 -> DeleteIfAllowed();
+           
+       vector<Word> *w = new vector<Word> (1);
+       (*w)[0] = SetWord(tuple2);
+       tuple2->IncReference();
+#ifndef SINGLE_THREAD1
+       DServer::RemoteCommand* rc = 
+         new DServer::RemoteCommand(DServer::DS_CMD_WRITE_REL, 
+                                    0, w, 0);
+       serverCommand[index] -> put(rc);
+       //cout << "Send tuple " << number 
+       //           << " to server " << index << ":" << endl;
+#else
+       server = serverList[index];
+       server->setBusy();
+       server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
+       server -> run();
+       //cout << "Send tuple " << number 
+       //<< " to server " << index << ":" << endl;
+       //server -> print();
+#endif
+
+       tuple2 -> DeleteIfAllowed();
+
+       //number ++;
+     } // while (...)
    try
      {
-
-       while(qp->Received(args[0].addr))
+#ifndef SINGLE_THREAD1
+       //ZThread::PoolExecutor poolEx(2);
+       ZThread::ThreadedExecutor poolEx;
+       cout << "Sending data ..." << endl;
+       for(int i = 0; i < size; i++)
          {
-           Tuple* tuple1 = (Tuple*)current.addr;
-           Tuple* tuple2 = new Tuple(tupleType);
+           poolEx.execute(serverCommand[i]);
+         }
 
-
-           int j = 0;
-           for(int i = 0; i < tuple1->GetNoAttributes(); i++)
-             {
-               if(i != attrIndex)
-                 tuple2->CopyAttribute(i,tuple1,j++);
-             }
-
-           int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
-           tuple1->DeleteIfAllowed();
-
-           index = index % size;
-           int child = man->getMultipleServerIndex(index);
-           server = man->getServerByIndex(index);
-
-           if(child > -1)
-              {
-               assert(child < server->getChilds().size());
-               server = (server->getChilds())[child];
-              }
-
-           vector<Word> *w = new vector<Word> (1);
-           (*w)[0] = SetWord(tuple2);tuple2->IncReference();
-
-           while(server->status != 0)
-             ZThread::Thread::yield();
-
-           server->status = 1;
-           server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
-           DServerExecutor* exec = new DServerExecutor(server);
-
-           ex.execute(exec);
-
-           tuple2->DeleteIfAllowed();
-
-           qp->Request(args[0].addr,current);
-
-           number++;
-           if ( number % 1000 == 0 )
-             {
-               cout << toString_d(number) << " tuples sent!" << endl;
-             }
-         } // while (...)
-
-       ex.wait();
+       poolEx.wait();
+#endif
+       cout << "Closing connections ..." << endl;
+       inTupleStream.close();
 
      }
    catch(ZThread::Synchronization_Exception& e)
      {
-       cerr << "Could not distibute data!" << endl;
+       cerr << "Could not distribute data!" << endl;
        cerr << e.what() << endl;
        return 1;
      }
-
    try
      {
        for(int i = 0; i < size; i++)
          {
-           server = man->getServerByIndex(i);
-           int child = man->getMultipleServerIndex(i);
-           if(child > -1) 
-             {
-               assert(child < server->getChilds().size());
-               server = (server->getChilds())[child];
-             }
-
+           server = serverList[i];
            server->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
            server->run();
          }
@@ -2179,7 +2292,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       server = man->getServerbyID(i);
       server->DestroyChilds();
    }
-
 
    result.addr = array;
    return 0;
@@ -2295,8 +2407,10 @@ static int loopValueMap
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
    string command = ((FText*)args[dim + 2].addr)->GetValue();
 
-   ZThread::ThreadedExecutor exec;DServer* server;
-   DServerExecutor* ex;
+#ifndef SINGLE_THREAD1
+   ZThread::ThreadedExecutor exec;
+#endif
+   DServer* server;
 
    int size = 0;
    ListExpr serverList;
@@ -2346,10 +2460,17 @@ static int loopValueMap
        for(int i = 0; i<server_no;i++)
          {
            server = man->getServerbyID(i);
-           DServerMultiplyer* mult = new DServerMultiplyer(server,rel_server);
-           exec.execute(mult);
+#ifndef SINGLE_THREAD1
+           exec.execute(new DServerMultiplyer(server,rel_server));
+#else
+           DServerMultiplyer *dsm =  new DServerMultiplyer(server,rel_server);
+           dsm -> run();
+           delete dsm;
+#endif
          }
+#ifndef SINGLE_THREAD1
        exec.wait();
+#endif
      }
    catch(ZThread::Synchronization_Exception& e)
      {
@@ -2377,10 +2498,15 @@ static int loopValueMap
            list<int> l;
            l.push_front(i);
            server->setCmd(DServer::DS_CMD_EXEC, &l, &w, &from);
-           ex = new DServerExecutor(server);
-           exec.execute(ex);
+#ifndef SINGLE_THREAD1
+           exec.execute(new DServerExecutor(server));
+#else
+           server -> run();
+#endif
          }
+#ifndef SINGLE_THREAD1
        exec.wait();
+#endif
      }
 
    catch(ZThread::Synchronization_Exception& e)
@@ -2673,50 +2799,100 @@ dsummarizeTypeMap( ListExpr args )
 static int
 dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
+  //cout << "dsummarizeFun" << endl;
   struct DArrayIterator
   {
     private:
     int current;
-    DArray* darray;
+    int size;
     GenericRelationIterator* rit;
-
+    vector<Relation *> r;
+    Relation *cur_rel;
+    ListExpr m_type;
+    int m_algID, m_typID;
+      
     // create an Tuple iterater for the next array element
     bool makeNextRelIter()
     {
       if (rit)
-        delete rit;
+        {
+          //cout << "DELETE RIT" << endl;
+          assert(rit -> EndOfScan());
+          delete rit;
+          rit = 0;
+          //Word w (cur_rel);
+          //(am->DeleteObj(m_algID, m_typID))(m_type, w);
+          delete cur_rel;
+        }
 
-      while (current < darray->getSize())
-      {
-    Relation* r=static_cast<Relation*>(darray->get(current).addr);
-    if (r->GetNoTuples() > 0)
-    {
-      current++;
-      rit = r->MakeScan();
-      return true;
-    }
-    else
-    {
-      current++;
-      continue;
-    }
-      }
+      while (!r.empty() && current < size)
+        {
+          //cout << "Getting Rel Index:" << current << endl;
+          //if (current > 0)
+          //  darray->release(current - 1);
+          assert(rit == 0);
+          cur_rel = r.back();
+          r.pop_back();
+          assert( cur_rel != NULL);
+          assert(cur_rel->GetNoTuples() > 0);
+
+          rit = cur_rel->MakeScan();
+          current++;
+          return true;
+        }
 
       rit=0;
       return false;
     }
 
     public:
-    DArrayIterator(DArray* d, const int pos=0) : current(pos), darray(d), rit(0)
+DArrayIterator(DArray* d, ListExpr t, int aI, int tI) 
+  : current(0)
+  , size(d->getSize())
+  , rit(0)
+  , cur_rel(0)
+  , m_type(t)
+  , m_algID(aI)
+  , m_typID(tI)
     {
-      darray->refresh();
+      d->refresh();
+      for (int i = 0; i < d->getSize(); ++i)
+        {
+          //Word tmp_rel( static_cast <Relation *>(d->get(i).addr));
+          //if (((Relation *)tmp_rel.addr) -> GetNoTuples() > 0)
+          Relation *tmp_rel( static_cast <Relation *>(d->get(i).addr));
+          if (tmp_rel -> GetNoTuples() > 0)
+            {
+              //cout << "ADD: " << i << endl;
+              
+              //r.push_back 
+              // ( (Relation *) 
+              //((am->CloneObj(m_algID,m_typID))
+              //(m_type,tmp_rel) ).addr );
+              r.push_back(tmp_rel -> Clone()); 
+            }
+          /*
+          else
+            {
+              cout << "SKIP: " << i << endl;
+            }
+          */
+        }
       makeNextRelIter();
     }
 
     ~DArrayIterator()
     {
       if (rit)
-        delete rit;
+        {
+          //cout << "DEL RIT" << endl;
+          assert(rit -> EndOfScan());
+          delete rit;
+          //Word w (cur_rel);
+          //(am->DeleteObj(m_algID, m_typID))(m_type, w);
+          delete cur_rel;
+        }
+      rit = 0;
     }
 
     Tuple* getNextTuple() // try to get next tuple
@@ -2738,15 +2914,19 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   DArrayIterator* dait = 0;
   dait = (DArrayIterator*)local.addr;
-
+  
   switch (message) {
     case OPEN : {
-      dait = new DArrayIterator( (DArray*)args[0].addr );
+      //cout << "OPEN" << endl;
+      DArray *da = (DArray*)args[0].addr;
+      dait = 
+        new DArrayIterator( da, da -> getType(), 
+                            da -> getAlgID(), da -> getTypID() );
       local.addr = dait;
       return 0;
     }
     case REQUEST : {
-
+      //cout << "REQUEST" << endl;
       Tuple* t = dait->getNextTuple();
       if (t != 0) {
         result = SetWord(t);
@@ -2761,6 +2941,7 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
         delete dait;
         local = SetWord(Address(0));
       }
+      qp->Close(args[0].addr);
       return 0;
     }
     default : {
@@ -3087,7 +3268,7 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
         localInfo = (CwLocalInfo*)local.addr;
 
-    
+     
         qp->Request(args[0].addr, cTupleWord);
         if (qp->Received(args[0].addr))
           {
@@ -3096,9 +3277,7 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
               ((CcString*)(curTuple->GetAttribute(0)))->GetValue();
             int port =
               ((CcInt*)(curTuple->GetAttribute(1)))->GetValue();
-
             curTuple -> DeleteIfAllowed();
-
             string msg = "OK"; 
             
             bool retVal = checkWorkerRunning(host, port, 
