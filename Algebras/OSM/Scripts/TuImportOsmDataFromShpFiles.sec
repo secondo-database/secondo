@@ -40,6 +40,7 @@ let streetsTmp =
    addcounter[JoinId_dbf,1]
    mergejoin[JoinId_shp,JoinId_dbf]
    remove[JoinId_shp,JoinId_dbf]
+   filter[isdefined(.geoData)]
    filter[bbox(.geoData) intersects partRect]
    extend [tunnel: FALSE, layer: 0]
    consume;
@@ -52,6 +53,7 @@ let pointsTmp =
    addcounter[JoinId_dbf,1]
    mergejoin[JoinId_shp,JoinId_dbf]
    remove[JoinId_shp,JoinId_dbf]
+   filter[isdefined(.geoData)]
    filter[bbox(.geoData) intersects partRect]
    consume;
 
