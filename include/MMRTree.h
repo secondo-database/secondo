@@ -55,6 +55,7 @@ This section contains  __includes__,
 #include <set>
 #include <vector>
 #include <utility>
+#include <stack>
 
 #include "RectangleAlgebra.h"
 
@@ -211,6 +212,153 @@ Returns the memory used by this structure in bytes
 
 */
    size_t usedMem() const;
+
+
+/*
+1.1 An iterator class
+
+This class can be used to traverse the tree without collecting all results intersecting
+a given rectangle.
+
+
+*/
+
+
+class iterator{
+  public: 
+/*
+1.1.1 Constructor
+
+This constrfuctor should only be used by the RTreeT class.
+
+*/    
+   iterator(Node<dim,T>* root, const Rectangle<dim>& r) : path(), box(r){
+     if(root!=0 && root->box.Intersects(r)){
+        init(root);
+     }
+   }
+
+   iterator(Node<dim,T>* root): path(), box(false){
+     if(root!=0){
+        box = root->box;
+        init(root);
+     }
+   }
+
+
+/*
+Returns the next element from this tree. If no more elements are 
+avialable, 0 is returned. The caller must not destroy the  
+pointeri returned. 
+
+*/
+   T const * next() {
+     while(!path.empty()){
+       pair< Node<dim,T>*, int> t = path.top();
+       path.pop();
+       Node<dim,T>* node = t.first;
+       int pos  = t.second;
+       pos++;
+       // try to find an intersecting entry
+       while(pos < node->count){
+         if(node->sons[pos]->box.Intersects(this->box)){
+            t.second = pos;
+            path.push(t);
+            return &(node->sons[pos]->id);
+         } else {
+             pos++;
+         }
+       } 
+       computeNext();
+     }
+    return 0;
+
+   } 
+  
+
+  private:
+    // the current stack
+    stack<pair<Node<dim,T>*, int> > path;
+    // the search rectangle
+    Rectangle<dim> box;
+
+    // initialitzes the stack
+    void init(Node<dim,T>* root){
+      if(root->isLeaf()){
+        pair<Node<dim,T>*, int>  p(root,-1);
+        path.push(p);
+      } else {
+        pair<Node<dim,T>*, int>  p(root,-1);
+        path.push(p);
+        computeNext();
+      }
+    }
+
+/*
+~computeNext~
+
+This function searches the next leaf having an entry with a box intersecting
+the searchbox.
+
+*/    
+    void computeNext(){
+
+      bool found = false;
+      while(!path.empty() && !found){
+         // get the topmost entry
+         pair<Node<dim,T>*, int> t = path.top();
+         path.pop(); // temporary remove topmost element (must be updated)
+         Node<dim,T>* n = t.first;
+         int pos = t.second;
+         // use  the next pos
+         pos++;
+         bool changed = false;
+         while(pos<n->count && !changed){
+            Node<dim,T>* son = n->sons[pos];
+            if(son->box.Intersects(this->box)){ // try this path
+                pair<Node<dim,T>*,int> p(son,-1);
+                changed = true;
+                t.second = pos; // save new state
+                path.push(t);  
+                path.push(p);
+                found = son->isLeaf();
+            } else {
+                 pos++;
+            }
+         }
+      } 
+    } 
+    
+};
+
+ 
+/*
+~find~
+
+This function returns an iterator which returns all entries with a box intersecting ~r~.
+The caller is responsible to destroy the iterator after using it. Whenever the tree is
+changed (inserting or deleting objects), this iterator is invalid and will crash when 
+used anyway.
+
+*/ 
+   iterator* find(const Rectangle<dim>& r) const{
+      return new iterator(root, r);
+   }
+
+
+
+/*
+~entries~
+
+Returns an iterator traversing all entries of the tree.   
+
+*/
+   iterator* entries() const {
+      return new iterator(root);
+   }
+
+
+
 
 
 /*
