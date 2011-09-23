@@ -1863,6 +1863,21 @@ getPairs(Rels, Pairs) :-
 
 
 
+/*
+6.1 Printing the complete Catalog Info
+
+*/
+
+:-assert(helpLine(showCatalog,0,[],
+  'List all database objects with their internal and external spelling and their types.')).
+
+showCatalog :-
+  findall(_,
+          ( secondoCatalogInfo(A,B,C,D),
+            write_list([A, ' ', B,' ', C,' ', D]),
+            nl
+          ),
+          _), !.
 
 
 /*
