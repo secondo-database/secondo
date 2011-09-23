@@ -1,0 +1,104 @@
+################################################################################
+## Example on Creating User-Defined Functions for Moving Objects              ##
+## Author: Christian Duentgen                                                 ##
+## Date:   9/23/2011                                                          ##
+################################################################################
+#
+# Using the following operator, it has become quite easy to implement user
+# defined functions dealing with several moving objects at once:
+#
+#             Name: getRefinementPartion
+#        Signature: {mT1|uT1} x {mT2|uT2} -> stream(tuple((Tstart instant)(Tend
+#                   instant)(Tlc bool)(Trc bool)(Unit1 uT1)(Unit2 uT2)(UnitNo1
+#                   int)(UnitNo2 int))); T1, T2 in {point, real, int, bool,
+#                   string}
+#           Syntax: getRefinementPartion( M1, M2 )
+#          Meaning: Creates a stream representing the temporal refinement
+#                   partion of the two arguments as a stream of tuples. Each
+#                   result tuple contains a temporal interval (represented by
+#                   starting instant Tstart, ending instant Tend, and closedness
+#                   parameters Tlc (Tstart included), Trc (Tend includes)),
+#                   restrictions of both arguments, M1 and M2, to this interval,
+#                   and the position indexes of the according original units
+#                   within M1 (UnitNo1), M2 (UnitNo2). If for a given interval
+#                   one of the arguments is not defined, the according result
+#                   unit is set to UNDEFINED. If one argument is UNDEFINED, the
+#                   result contains the original units of the other, defined,
+#                   argument. If M1 and M2 are both undefined, or both are empty
+#                   (do not contain any unit) the result stream is empty.
+#          Example: query getRefinementPartion(train1, train5) count
+#
+# As an example, we provide a small function, that will do a vectorial summation
+# of two moving point objects. The result is a moving point, where for each
+# instant where both arguments, M1 and M2, are defined, the position is the
+# vectorial sum of the current position of M1 and M2:
+
+close database;
+open database berlintest:
+
+let mpplus = fun(M1: mpoint, M2: mpoint)
+  getRefinementPartion( M1, M2 )
+  filter[isdefined(.Unit1) and isdefined(.Unit2)]
+  projectextend[Tstart, Tend, Tlc, Trc ; P1:
+          val(initial(.Unit1))
+        + val(initial(.Unit2)), P2:val(final(.Unit1)) + val(final(.Unit2))]
+  projectextend[;U: the_unit( .P1, .P2, .Tstart, .Tend, .Tlc, .Trc )]
+  makemvalue[U];
+
+# The function can be called as follows:
+
+query mpplus(train1, train7);
+query Trains feed projectextend[; Trip: mpplus(train1,.Trip)] tconsume count;
+
+# You can easily extend this method, e.g. in order to explicitely deal with
+# periods, where only one of the objects (M1 or M2) is defined. The following
+# variant creates a mpoint, that is defined whereever at least one of the
+# arguments M1, M2 is defined. If only one argument is defined, the position of
+# the defined argument is forwarded (by substituting the position of the other
+# object with point (0,0):
+
+let mpplus2 = fun(M1: mpoint, M2: mpoint)
+  getRefinementPartion( M1, M2 )
+  filter[isdefined(.Unit1) or isdefined(.Unit2)]
+  projectextend[Tstart, Tend, Tlc, Trc ; P1:
+          ifthenelse(isdefined(.Unit1),val(initial(.Unit1)),makepoint(0,0))
+        + ifthenelse(isdefined(.Unit2),val(initial(.Unit2)),makepoint(0,0)),
+    P2:   ifthenelse(isdefined(.Unit1),val(final(.Unit1)),makepoint(0,0))
+        + ifthenelse(isdefined(.Unit2),val(final(.Unit2)),makepoint(0,0))]
+  projectextend[;U: the_unit( .P1, .P2, .Tstart, .Tend, .Tlc, .Trc )]
+  makemvalue[U];
+
+# It can be used the same way:
+
+query mpplus2(train1, train7);
+query Trains feed projectextend[; Trip: mpplus2(train1,.Trip)] tconsume count;
+
+# You can also think about passing additional arguments, telling the function
+# how to deal with instants not covered by both arguments, M1 and M2. The
+# following variant uses different 'offsets', SP1 and SP2, depending on whether
+# the 'missing' unit is from M1 or M2:
+
+let mpplus3 = fun(M1: mpoint, M2: mpoint, SP1: point, SP2: point)
+  getRefinementPartion( M1, M2 )
+  filter[isdefined(.Unit1) or isdefined(.Unit2)]
+  projectextend[Tstart, Tend, Tlc, Trc ; P1:
+          ifthenelse(isdefined(.Unit1),val(initial(.Unit1)),SP1)
+        + ifthenelse(isdefined(.Unit2),val(initial(.Unit2)),SP1),
+    P2:   ifthenelse(isdefined(.Unit1),val(final(.Unit1)),SP2)
+        + ifthenelse(isdefined(.Unit2),val(final(.Unit2)),SP2)]
+  projectextend[;U: the_unit( .P1, .P2, .Tstart, .Tend, .Tlc, .Trc )]
+  makemvalue[U];
+
+# It's used like this:
+
+query mpplus3(train1, train7, makepoint(-1000,-1000), makepoint(10000,10000));
+
+# The quintessence is, that you do not need to implement new operators to
+# provide new methods of combining temporal data requiring a refinement of
+# the moving objects.
+# In the same way, you may also test the concept of a new functionality before
+# implementing it as a Secondo operator.
+################################################################################
+close database;
+quit;
+
