@@ -5,14 +5,14 @@ Restore : No
 Operator : realJoinMMRTree
 Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
 Operator : realJoinMMRTree
 Number   : 2 
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTree[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 Operator : realJoinMMRTree
@@ -24,14 +24,14 @@ Result   : TRUE
 Operator : realJoinMMRTreeVec
 Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTreeVec[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTreeVec[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
 Operator : realJoinMMRTreeVec
 Number   : 2 
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTreeVec[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinMMRTreeVec[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 Operator : realJoinMMRTreeVec
@@ -63,14 +63,14 @@ Result   : TRUE
 Operator : joinMMRTreeIt
 Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeIt[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeIt[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
 Operator : joinMMRTreeIt
 Number   : 2 
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeIt[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeIt[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 Operator : joinMMRTreeIt
@@ -82,14 +82,14 @@ Result   : TRUE
 Operator : joinMMRTreeItVec
 Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeItVec[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeItVec[B,B_a,10,20] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
 Operator : joinMMRTreeItVec
 Number   : 2 
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeItVec[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} joinMMRTreeItVec[B,B_a,10,20, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 Operator : joinMMRTreeItVec
