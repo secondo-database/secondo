@@ -71,10 +71,10 @@ int realJoinSelect(ListExpr args){
 
   int index = listutils::findAttribute(attrList,name,type);
   assert(index>0);
-  if(Rectangle<2>::checkType(type)){
+  if(listutils::isKind(type,Kind::SPATIAL2D())){
      return 0;
   }
-  if(Rectangle<3>::checkType(type)){
+  if(listutils::isKind(type, Kind::SPATIAL3D())){
      return 1;
    }
    assert(false);
@@ -96,11 +96,11 @@ where
 ----
   stream1   : first input stream
   stream2   : second input stream
-  attrname1 : attribute name for an attribute of type rect in stream1
-  attrname2 : attribute name for an attribute of type rect in stream2
+  attrname1 : attribute name for an attribute of spatial type  in stream1
+  attrname2 : attribute name for an attribute of spatial type  in stream2
   min       : minimum number of entries within a node of the used rtree
   max       : maximum number of entries within a node of the used rtree
-  maxMem    : maximum memory available for storing tuples
+ [maxMem]    : maximum memory available for storing tuples
 
 ----
 
@@ -142,21 +142,41 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
      return listutils::typeError("Attribute " + name1 + 
                                  " not present in first stream");
    }
-   if(!Rectangle<2>::checkType(type1) && !Rectangle<3>::checkType(type1)){
-     return listutils::typeError("Attribute " + name1 + 
-                                 " not of type " + Rectangle<2>::BasicType());
-   }
+
    
    int index2 = listutils::findAttribute(attrList2, name2, type2);
    if(index2 == 0){
      return listutils::typeError("Attribute " + name2 + 
                                  " not present in second stream");
    }
-   if(!nl->Equal(type1,type2)){
-     return listutils::typeError("Attribute type in the second stream differs"
-                                 " from the attribute type in the first "
-                                 "stream" );
+
+   // check for spatial attribute
+   if(!listutils::isKind(type1,Kind::SPATIAL2D()) &&
+      !listutils::isKind(type1,Kind::SPATIAL3D())  ){
+     return listutils::typeError("Attribute " + name1 + 
+                                 " is not in Kind Spatial2D or Spatial3D");
    }
+   if(!listutils::isKind(type2,Kind::SPATIAL2D()) &&
+      !listutils::isKind(type2,Kind::SPATIAL3D())  ){
+     return listutils::typeError("Attribute " + name1 + 
+                                 " is not in Kind Spatial2D or Spatial3D");
+   }
+ 
+  // check for same dimension
+  if(listutils::isKind(type1,Kind::SPATIAL2D()) &&
+     !listutils::isKind(type2,Kind::SPATIAL2D())){
+    return listutils::typeError("Selected attributes have "
+                                "different dimensions"); 
+  }
+  if(listutils::isKind(type1,Kind::SPATIAL3D()) &&
+     !listutils::isKind(type2,Kind::SPATIAL3D())){
+    return listutils::typeError("Selected attributes have"
+                                " different dimensions"); 
+  }
+
+  bool rect1 = Rectangle<2>::checkType(type1) || Rectangle<3>::checkType(type1);
+  bool rect2 = Rectangle<2>::checkType(type2) || Rectangle<3>::checkType(type2);
+
  
    ListExpr attrList = listutils::concat(attrList1, attrList2);
 
@@ -171,13 +191,17 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
                                attrList));
    ListExpr appendList;
    if(len==7){
-      appendList =   nl->TwoElemList(nl->IntAtom(index1-1), 
-                                     nl->IntAtom(index2-1));
+      appendList =   nl->FourElemList(nl->IntAtom(index1-1), 
+                                     nl->IntAtom(index2-1),
+                                     nl->BoolAtom(rect1),
+                                     nl->BoolAtom(rect2));
    } else {
-      appendList =   nl->ThreeElemList(
+      appendList =   nl->FiveElemList(
                                      nl->IntAtom(-1),
                                      nl->IntAtom(index1-1), 
-                                     nl->IntAtom(index2-1));
+                                     nl->IntAtom(index2-1),
+                                     nl->BoolAtom(type1),
+                                     nl->BoolAtom(type2));
    }
 
    return nl->ThreeElemList(
@@ -554,8 +578,9 @@ public:
      Tuple* tuple = s1.request();
      while(tuple!=0){
         TupleId id = buffer.AppendTuple(tuple);
-        Rectangle<dim>* box = (Rectangle<dim>*) tuple->GetAttribute(attrPos1); 
-        index.insert(*box,id);
+        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*) 
+                              tuple->GetAttribute(attrPos1))->BoundingBox();
+        index.insert(box,id);
         tuple->DeleteIfAllowed();
         tuple = s1.request();
      } 
@@ -577,8 +602,9 @@ public:
    Tuple* next(){
      while(currentTuple!=0){
         if(it==0){
-          it=index.find( *((Rectangle<dim>*) 
-                           currentTuple->GetAttribute(attrPos2)));
+          Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+                        currentTuple->GetAttribute(attrPos2))->BoundingBox();
+          it=index.find( r );
         }
         TupleId const* id = it->next();
         if(id){ // new result found
@@ -625,8 +651,9 @@ public:
      while(tuple!=0){
         TupleId id = (TupleId) buffer.size();
         buffer.push_back(tuple);
-        Rectangle<dim>* box = (Rectangle<dim>*) tuple->GetAttribute(attrPos1); 
-        index.insert(*box,id);
+        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+                         tuple->GetAttribute(attrPos1))->BoundingBox(); 
+        index.insert(box,id);
         tuple = s1.request();
      } 
      s1.close();
@@ -651,8 +678,9 @@ public:
    Tuple* next(){
      while(currentTuple!=0){
         if(it==0){
-           it = index.find( *( (Rectangle<dim>*) 
-                               currentTuple->GetAttribute(attrPos2)));
+           Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+                     currentTuple->GetAttribute(attrPos2))->BoundingBox();
+           it = index.find(r);
         }
         TupleId const* id = it->next();
         if(id){ // new result found

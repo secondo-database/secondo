@@ -452,7 +452,7 @@ Operator statRindex (
 Signature is: stream(tuple(A)) x stream(tuple(B)) x a[_]i x b[_]j ->
                                   stream(tuple((TID1 : tid)(TID2: tid)))
 
-where a[_]i points to a rect attribute in A and b[_]j points to a rect 
+where a[_]i points to a spatial attribute in A and b[_]j points to a spatial
 attribute in B.
 
 */
@@ -483,9 +483,9 @@ ListExpr joinRindexTM(ListExpr args){
      return listutils::typeError("Attribute " + name1 + 
                                  " not present in first stream");
    }
-   if(!Rectangle<2>::checkType(type1)){
+   if(!listutils::isKind(type1, Kind::SPATIAL2D())){
      return listutils::typeError("Attribute " + name1 + 
-                                 " not of type " + Rectangle<2>::BasicType());
+                                 " not in kind " + Kind::SPATIAL2D());
    }
    
    int index2 = listutils::findAttribute(attrList2, name2, type2);
@@ -493,10 +493,11 @@ ListExpr joinRindexTM(ListExpr args){
      return listutils::typeError("Attribute " + name2 + 
                                  " not present in second stream");
    }
-   if(!Rectangle<2>::checkType(type2)){
+   if(!listutils::isKind(type2, Kind::SPATIAL2D())){
      return listutils::typeError("Attribute " + name2 + 
-                                 " not of type " + Rectangle<2>::BasicType());
+                                 " not in kind " + Kind::SPATIAL2D());
    }
+   
  
    ListExpr attrList = nl->TwoElemList( 
                           nl->TwoElemList(
@@ -576,9 +577,11 @@ ListExpr realJoinRindexTM(ListExpr args){
      return listutils::typeError("Attribute " + name1 + 
                                  " not present in first stream");
    }
-   if(!Rectangle<2>::checkType(type1) && !Rectangle<3>::checkType(type1)){
+   if(!listutils::isKind(type1, Kind::SPATIAL2D())  && 
+      !listutils::isKind(type1, Kind::SPATIAL3D())){
      return listutils::typeError("Attribute " + name1 + 
-                                 " not of type " + Rectangle<2>::BasicType());
+                                 " not in kind  " + Kind::SPATIAL2D() + 
+                                 " and not in kind " + Kind::SPATIAL3D());
    }
    
    int index2 = listutils::findAttribute(attrList2, name2, type2);
@@ -587,11 +590,21 @@ ListExpr realJoinRindexTM(ListExpr args){
                                  " not present in second stream");
    }
 
-   if(!nl->Equal(type1,type2)){
-      return listutils::typeError("Attribute type of the second stream "
-                                  "differs from the attribute of in the "
-                                  "first stream");
+   if(!listutils::isKind(type2, Kind::SPATIAL2D())  && 
+      !listutils::isKind(type2, Kind::SPATIAL3D())){
+     return listutils::typeError("Attribute " + name2 + 
+                                 " not in kind  " + Kind::SPATIAL2D() + 
+                                 " and not in kind " + Kind::SPATIAL3D());
    }
+
+   bool t12d = listutils::isKind(type1, Kind::SPATIAL2D());
+   bool t22d = listutils::isKind(type2, Kind::SPATIAL2D());
+   if(t12d != t22d){
+      return listutils::typeError("Attributes " + name1 + " and " + 
+                                  name2 + " have different dimensions" );
+   }  
+
+
 
  
    ListExpr attrList = listutils::concat(attrList1, attrList2);
@@ -665,8 +678,9 @@ arguments are:
         s1.open();
         Tuple* t = s1.request();
         while(t){
-           Rectangle<2>* r = (Rectangle<2>*)t->GetAttribute(_i1);
-           ind.insert(*r, t->GetTupleId());
+           Rectangle<2> r = ((StandardSpatialAttribute<2>*)
+                              t->GetAttribute(_i1))->BoundingBox();
+           ind.insert(r, t->GetTupleId());
            t->DeleteIfAllowed(); 
            t = s1.request();
         }
@@ -708,8 +722,9 @@ available.
             if(t==0){
                return 0;
             }
-            Rectangle<2>* r = (Rectangle<2>*) t->GetAttribute(i2);
-            ind.findSimple(*r, lastRes); 
+            Rectangle<2> r = ((StandardSpatialAttribute<2>*)
+                                t->GetAttribute(i2))->BoundingBox();
+            ind.findSimple(r, lastRes); 
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
             } else {
@@ -812,14 +827,15 @@ Returns the next result tuple or 0 if no more tuples are available.
               return 0;
             }
             int index = next?i1:i2;
-            Rectangle<2>* r = (Rectangle<2>*) t->GetAttribute(index);
+            Rectangle<2> r = ((StandardSpatialAttribute<2>*) 
+                               t->GetAttribute(index))->BoundingBox();
             currentTupleId = t->GetTupleId();
             if(next){
-              ind1.insert(*r, currentTupleId);
-              ind2.findSimple(*r, lastRes);
+              ind1.insert(r, currentTupleId);
+              ind2.findSimple(r, lastRes);
             } else {
-              ind2.insert(*r, currentTupleId);
-              ind1.findSimple(*r, lastRes);
+              ind2.insert(r, currentTupleId);
+              ind1.findSimple(r, lastRes);
             }   
             t->DeleteIfAllowed();
          }

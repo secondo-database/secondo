@@ -79,7 +79,8 @@ This typedef defines the tuplestore to use. They are several possibilities:
 
 ----
 
- TupleStore1: Uses a vector and after exhausting available memory a relation to store tuples
+ TupleStore1: Uses a vector and after exhausting available memory a relation to 
+ store tuples
  TupleStore2: Uses only a vector. All tuples are hold in main memory
  TupleStore3: Uses only a relation. All tuples are stored persistent.
 
@@ -115,7 +116,6 @@ The parameters are:
      _i2 : index of a rectangle<dim> attribute in _s2
      _tt : list describing the result tuple type
      _maxMem : maximum cache size for tuples of _s1 in kB
-
 ----
 
 The cinstructor is blocking. This means, the first stream is 
@@ -125,7 +125,8 @@ and into an Tree structure.
 */ 
 
      RealJoinTreeLocalInfo(Word& _s1, Word& _s2, int _i1, 
-                             int _i2, ListExpr _tt, size_t maxMem):
+                             int _i2, ListExpr _tt, size_t maxMem,
+                             bool _rect1 = true, bool _rect2=true):
          ind(), s2(_s2),  i2(_i2), tt(new TupleType(_tt)), lastRes(), 
          currentTuple(0), tb(0) {
          
@@ -202,8 +203,9 @@ Returns the next result tuple or 0 if no more tuples are available.
             if(t==0){
                return 0;
             }
-            Rectangle<dim>* r = (Rectangle<dim>*) t->GetAttribute(i2);
-            ind.findSimple(*r, lastRes); 
+            Rectangle<dim> r(((StandardSpatialAttribute<dim>*) 
+                               t->GetAttribute(i2))->BoundingBox());
+            ind.findSimple(r, lastRes); 
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
             } else {
@@ -241,8 +243,9 @@ Returns the next result tuple or 0 if no more tuples are available.
          }
          while(t){
             TupleId id = tb->AppendTuple(t);
-            Rectangle<dim>* r = (Rectangle<dim>*)t->GetAttribute(_i1);
-            ind.insert(*r, id);
+            Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+                                 t->GetAttribute(_i1))->BoundingBox();
+            ind.insert(r, id);
             t->DeleteIfAllowed(); 
             t = s1.request();
          }
@@ -363,8 +366,9 @@ Returns the next result tuple or 0 if no more tuples are available.
             if(t==0){
                return 0;
             }
-            Rectangle<dim>* r = (Rectangle<dim>*) t->GetAttribute(i2);
-            ind.findSimple(*r, lastRes); 
+            Rectangle<dim> r = ((StandardSpatialAttribute<dim>*) 
+                                 t->GetAttribute(i2))->BoundingBox();
+            ind.findSimple(r, lastRes); 
             if(lastRes.empty()){
                 t->DeleteIfAllowed();
             } else {
@@ -397,8 +401,9 @@ Returns the next result tuple or 0 if no more tuples are available.
          while(t){
             TupleId id = vec.size();
             vec.push_back(t);
-            Rectangle<dim>* r = (Rectangle<dim>*)t->GetAttribute(_i1);
-            ind.insert(*r, id);
+            Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+                                 t->GetAttribute(_i1))->BoundingBox();
+            ind.insert(r, id);
             t = s1.request();
          }
          s1.close();
