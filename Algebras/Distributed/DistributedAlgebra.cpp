@@ -646,21 +646,24 @@ void DArray::WriteRelation(int index)
 
    DServer* worker = manager->getServerByIndex(index);
 
-   Tuple* t;
 
+
+   Tuple* t = iter->GetNextTuple();
+
+   string attrIndex("EMPTY"), rec_type("EMPTY");
+   //open tuple stream to worker
    list<int> l;
    l.push_front(index);
+   vector<Word> open_words(2);
+   open_words[0].addr = &attrIndex;
+   open_words[1].addr = &rec_type;
 
-
-   vector<Word> word(1);
-
-   //open tuple stream to worker
-   t = iter->GetNextTuple();
-   word[0].addr = t;
    worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL,
-                  &l,&word);
+                  &l,&open_words);
    worker->run();
 
+   vector<Word> word(1);
+   
    //send each tuple
    while(t != 0)
    {
@@ -1745,7 +1748,7 @@ static int receiverelFun( Word* args,
    string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
    string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
 
-   ListExpr resultType;
+   ListExpr resultType, sendType;
 
    string line;
 
@@ -1765,70 +1768,192 @@ static int receiverelFun( Word* args,
       iostream& iosock = master->GetSocketStream();
 
       string line;
+      // <TYPE>
       getline(iosock, line);
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO1:" << line << endl;
 #endif
-      if(line == "<TYPE>")
-      {
-         getline(iosock,line);
+      if(line != "<TYPE>")
+        {
+          cerr << "ERROR: Expecting <TYPE> from sever! (Got:" 
+               << line << ")" << endl;
+          return 1;
+        }
+      // tupletype
+      getline(iosock,line);
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO2:" << line << endl;
 #endif
-         nl->ReadFromString(line,resultType);
-         resultType = nl->Second(resultType);
+      nl->ReadFromString(line,resultType);
+      resultType = nl->Second(resultType);
 #ifdef RECEIVE_REL_FUN_DEBUG
-         cout <<  " RRF Got Type:" << nl -> ToString(resultType) << endl;
+      cout <<  " RRF Got Type:" << nl -> ToString(resultType) << endl;
 #endif
-         TupleType* tupleType = new TupleType(resultType);
-         getline(iosock,line);
+      TupleType* tupleType = new TupleType(resultType);
+      // </TYPE>
+      getline(iosock,line);
 
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO3:" << line << endl;
 #endif
-         getline(iosock,line);
+      if(line != "</TYPE>")
+        {
+          cerr << "ERROR: Expecting </TYPE> from sever! (Got:" 
+               << line << ")" << endl;
+          return 1;
+        }
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout << "  RRF SEND: <OK/> " << endl;
+#endif
+      iosock << "<OK/>" << endl; 
+
+      // <INTYPE>
+      getline(iosock, line);
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout <<  " RRF Got IO1:" << line << endl;
+#endif
+      if(line != "<INTYPE>")
+        {
+          cerr << "ERROR: Expecting <INTYPE> from sever! (Got:" 
+               << line << ")" << endl;
+          return 1;
+        }
+      // tupletype
+      getline(iosock,line);
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout <<  " RRF Got IO2:" << line << endl;
+#endif
+      if (line == "EMPTY")
+        {
+          sendType = resultType;
+        }
+      else
+        {
+          nl->ReadFromString(line,sendType);
+        }
+#ifdef RECEIVE_REL_FUN_DEBUG
+          cout <<  " RRF Got Type:" << nl -> ToString(sendType) << endl;
+#endif
+      TupleType* sendTT = new TupleType(sendType);
+      // </INTYPE>
+      getline(iosock,line);
+
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout <<  " RRF Got IO3:" << line << endl;
+#endif
+      if(line != "</INTYPE>")
+        {
+          cerr << "ERROR: Expecting </INTYPE> from sever! (Got:" 
+               << line << ")" << endl;
+          return 1;
+        }
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout << "  RRF SEND: <OK/> " << endl;
+#endif
+      iosock << "<OK/>" << endl;
+
+      // <INDEX>
+      getline(iosock, line);
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout <<  " RRF Got IO1:" << line << endl;
+#endif
+      if(line != "<INDEX>")
+        {
+          cerr << "ERROR: Expecting <INTYPE> from sever! (Got:" 
+               << line << ")" << endl;
+          return 1;
+        }
+
+      // index
+      getline(iosock,line);
+      
+      int darrIndex = -1;
+
+      if (line != "EMPTY")
+        {
+          darrIndex = atoi(line.data());
+        }
+
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout <<  " RRF Got IO2:" << line << endl;
+#endif
+      // </INDEX>
+      getline(iosock,line);
+
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout <<  " RRF Got IO3:" << line << endl;
+#endif
+      if(line != "</INDEX>")
+        {
+          cerr << "ERROR: Expecting </INTYPE> from sever! (Got:" 
+               << line << ")" << endl;
+          return 1;
+        }
+#ifdef RECEIVE_REL_FUN_DEBUG
+      cout << "  RRF SEND: <OK/> " << endl;
+#endif
+      iosock << "<OK/>" << endl;
+
+      // first <TUPLE>
+      getline(iosock,line);
 
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO4:" << line << endl;
 #endif
-         while(line == "<TUPLE>")
-         {
-            getline(iosock,line);
+      while(line == "<TUPLE>")
+        {
+          getline(iosock,line);
 #ifdef RECEIVE_REL_FUN_DEBUG
-      cout <<  " RRF Got IO5:" << line << endl;
+          cout <<  " RRF Got IO5:" << line << endl;
 #endif
-            size_t size = atoi(line.data());
+          size_t size = atoi(line.data());
 
-            int num_blocks = (size / 1024) + 1;
-            getline(iosock,line);
+          int num_blocks = (size / 1024) + 1;
+          getline(iosock,line);
 
 #ifdef RECEIVE_REL_FUN_DEBUG
-      cout <<  " RRF Got IO6:" << line << endl;
+          cout <<  " RRF Got IO6:" << line << endl;
 #endif
 #ifdef RECEIVE_REL_FUN_DEBUG
-      cout <<  " RRF Send IO:"  << "<OK>" << endl << toString_d(num_blocks)
-                     << endl << "</OK>" << endl;
+          cout <<  " RRF Send IO:"  << "<OK>" << endl << toString_d(num_blocks)
+               << endl << "</OK>" << endl;
 #endif
-            iosock << "<OK>" << endl << toString_d(num_blocks)
-                     << endl << "</OK>" << endl;
+          iosock << "<OK>" << endl << toString_d(num_blocks)
+                 << endl << "</OK>" << endl;
 
-            char* buffer = new char[1024*num_blocks];
-            memset(buffer,0,1024*num_blocks);
+          char* buffer = new char[1024*num_blocks];
+          memset(buffer,0,1024*num_blocks);
 
-            for(int i = 0; i<num_blocks; i++)
-               master->Read(buffer+i*1024,1024);
+          // reading tuple data in biary format
+          // from server
+          for(int i = 0; i<num_blocks; i++)
+            master->Read(buffer+i*1024,1024);
 
-            Tuple* t = new Tuple(tupleType);
+          // creating tuple
+          Tuple* t = new Tuple(sendType);
+          Tuple* inTuple = new Tuple(tupleType);
 
-            t->ReadFromBin(buffer+sizeof(int),size);
-
+          // instantiating tuple
+          t->ReadFromBin(buffer+sizeof(int),size);
+          
             
-            rel->AppendTuple(t);
-            t->DeleteIfAllowed();
+          // removing attribute used for array indexing
 
-            delete buffer;
+          int j = 0;
+          for(int i = 0; i < t->GetNoAttributes(); i++)
+            {
+              if(i != darrIndex)
+                inTuple->CopyAttribute(i,t,j++);
+            }
+
+          // appending tuple to relation
+          rel->AppendTuple(inTuple);
+          t->DeleteIfAllowed();
+          inTuple->DeleteIfAllowed();
+
+          delete buffer;
             
-            // expeting next <TUPLE>
+          // expeting next <TUPLE>
             getline(iosock,line);
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO7:" << line << endl;
@@ -1858,8 +1983,6 @@ static int receiverelFun( Word* args,
            cout << "Line='" << line << "'" << endl;
            return 1;
          }
-
-      }
 
    }
 
@@ -2043,8 +2166,9 @@ static ListExpr distributeTypeMap( ListExpr inargs )
                   }
                   return nl->ThreeElemList(
                                  nl->SymbolAtom(Symbol::APPEND()),
-                                 nl->OneElemList(
-                                    nl->IntAtom(attrIndex)),
+                                 nl->TwoElemList(nl->IntAtom(attrIndex),
+                                     NList(NList(tuple_desc).convertToString(),
+                                                       true, true).listExpr()),
                                  nl->TwoElemList(
                                     nl->SymbolAtom(DArray::BasicType()),
                                     nl->TwoElemList(
@@ -2075,10 +2199,19 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
    int attrIndex = ((CcInt*)(args[4].addr))->GetIntval() - 1;
 
+   //Tuple* sendTuple = (Tuple*)args[5].addr;
+   
+   string sendTType = ((FText*)args[5].addr)->GetValue();
+
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+
+   ListExpr sendTypeNum;
+   nl->ReadFromString(sendTType,sendTypeNum);
+   sendTypeNum = sc->NumericType(sendTypeNum);
+   sendTType = nl -> ToString(sendTypeNum);
+
    ListExpr restype = nl->Second(qp->GetType(s));
    restype = sc->NumericType(restype);
-
 
    DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
 
@@ -2151,6 +2284,11 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 #ifndef SINGLE_THREAD1
        ZThread::ThreadedExecutor poolEx2;
 #endif
+       string attrIndexStr (toString_d(attrIndex));
+       vector<Word> open_words(2);
+       open_words[0].addr = &attrIndexStr;
+       open_words[1].addr = &sendTType;
+
        for(int i = 0; i < size; i++)
          {
            server = man->getServerByIndex(i);
@@ -2167,7 +2305,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            list<int> l;
            l.push_front(i);
 
-           server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l);
+           server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l, &open_words);
 #ifndef SINGLE_THREAD1
            poolEx2.execute( new DServerExecutor(server) );
 #else
@@ -2206,44 +2344,34 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 #endif
    while( (tuple1 = inTupleStream.request()) != 0)
      {
-       Tuple* tuple2 = new Tuple(tupleType);
-
-       int j = 0;
-       for(int i = 0; i < tuple1->GetNoAttributes(); i++)
-         {
-           if(i != attrIndex)
-             tuple2->CopyAttribute(i,tuple1,j++);
-         }
-
-       int index = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
+       // ArrayIndex
+       int arrIndex = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
           
-       assert (index >= 0);
+       assert (arrIndex >= 0);
 
-       index = index % size;
-
-       tuple1 -> DeleteIfAllowed();
+       arrIndex = arrIndex % size;
            
        vector<Word> *w = new vector<Word> (1);
-       (*w)[0] = SetWord(tuple2);
-       tuple2->IncReference();
+       (*w)[0] = SetWord(tuple1);
+       tuple1->IncReference();
 #ifndef SINGLE_THREAD1
        DServer::RemoteCommand* rc = 
          new DServer::RemoteCommand(DServer::DS_CMD_WRITE_REL, 
                                     0, w, 0);
-       serverCommand[index] -> put(rc);
+       serverCommand[arrIndex] -> put(rc);
        //cout << "Send tuple " << number 
-       //           << " to server " << index << ":" << endl;
+       //           << " to server " << arrIndex << ":" << endl;
 #else
-       server = serverList[index];
+       server = serverList[arrIndex];
        server->setBusy();
        server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
        server -> run();
        //cout << "Send tuple " << number 
-       //<< " to server " << index << ":" << endl;
+       //<< " to server " << arrIndex << ":" << endl;
        //server -> print();
 #endif
 
-       tuple2 -> DeleteIfAllowed();
+       tuple1 -> DeleteIfAllowed();
 
        //number ++;
      } // while (...)
@@ -2760,7 +2888,7 @@ The formal specification of type mapping is:
 ----
 
 Note that the operator ~dsummarize~ is not exactly inverse to the operator
-~ddistribute~ because the index of the relation is not appended to the
+~ddistribute~ because the indexy of the relation is not appended to the
 attributes of the outgoing tuples. If the darray has been constructed by the
 operator ~ddistribute~ the order of the resulting stream in most cases does not
 correspond to the order of the input stream of the operator ~ddistribute~.

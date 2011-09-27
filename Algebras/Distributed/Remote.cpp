@@ -788,6 +788,9 @@ void DServer::run()
       iostream& iosock = server->GetSocketStream();
               
       int arg2 = m_cmd -> getDArrayIndex() ->front();
+
+      string index_str=((string*)((*(m_cmd -> getElements()))[0].addr))->data();
+      string rec_type=((string*)((*(m_cmd -> getElements()))[1].addr))->data();
       
       string port =toString_d((1800+arg2)); 
       string com = "let r" + name + toString_d(arg2) + 
@@ -854,6 +857,8 @@ void DServer::run()
       //The callback connection from the value-mapping is opened and stored
       cbworker = gate->Accept();
       iostream& cbsock2 = cbworker->GetSocketStream();
+
+      // sending result tuple type
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
         cout << (unsigned long)(this) << " OR Send CB2:" 
              << "<TYPE>" << endl << m_typeStr
@@ -861,7 +866,44 @@ void DServer::run()
 #endif
       cbsock2 << "<TYPE>" << endl << m_typeStr
                      << endl << "</TYPE>" << endl;
-                
+
+      getline(cbsock2,line);
+#ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
+        cout << (unsigned long)(this) << " OR Got CB2:" << line << endl;
+#endif
+      if(line!="<OK/>")
+         errorText = "Unexpected Response from worker (<Close> expected)!";
+      
+      // sending input tuple type
+#ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
+        cout << (unsigned long)(this) << " OR Send CB2:" 
+             << "<INTYPE>" << endl << rec_type
+             << endl << "</INTYPE>" << endl;
+#endif
+      cbsock2 << "<INTYPE>" << endl << rec_type
+                     << endl << "</INTYPE>" << endl;
+      getline(cbsock2,line);
+#ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
+        cout << (unsigned long)(this) << " OR Got CB2:" << line << endl;
+#endif
+      if(line!="<OK/>")
+         errorText = "Unexpected Response from worker (<Close> expected)!"; 
+
+      // sending darray index position
+#ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
+        cout << (unsigned long)(this) << " OR Send CB2:" 
+             << "<INDEX>" << endl << index_str
+             << endl << "</INDEX>" << endl;
+#endif
+      cbsock2 << "<INDEX>" << endl << index_str
+                     << endl << "</INDEX>" << endl;
+      getline(cbsock2,line);
+#ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
+        cout << (unsigned long)(this) << " OR Got CB2:" << line << endl;
+#endif
+      if(line!="<OK/>")
+         errorText = "Unexpected Response from worker (<Close> expected)!";
+      
       gate->Close();
       delete gate;
       gate=0;
