@@ -93,6 +93,33 @@ public:
         delete r[i].MBR;
       }
     }
+    // delete functions arguments created in the constructor
+    ArgVectorPointer funargs = qp->Argument(pf);
+    if(dim == 2){
+       
+       delete (CcReal*)  (*funargs)[2].addr;
+       delete (CcReal*)  (*funargs)[3].addr;
+       delete (CcReal*)  (*funargs)[4].addr;
+       delete (CcReal*)  (*funargs)[5].addr;
+       delete (CcInt*)   (*funargs)[6].addr;
+       delete (CcReal*)  (*funargs)[7].addr;
+       delete (CcReal*)  (*funargs)[8].addr;
+    } else { // dim==3
+       delete (CcReal*)  (*funargs)[2].addr;
+       delete (CcReal*)  (*funargs)[3].addr;
+       delete (CcReal*)  (*funargs)[4].addr;
+       delete (CcReal*)  (*funargs)[5].addr;
+       delete (CcInt*)  (*funargs)[6].addr;
+       delete (CcReal*)  (*funargs)[7].addr;
+       delete (CcReal*)  (*funargs)[8].addr;
+       delete (CcReal*)  (*funargs)[9].addr;
+       delete (CcReal*)  (*funargs)[10].addr;
+       delete (CcInt*)  (*funargs)[11].addr;
+       delete (CcReal*)  (*funargs)[12].addr;
+    }
+    delete joinBox;
+
+
   }
 
 };

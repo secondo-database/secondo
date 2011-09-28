@@ -1039,14 +1039,18 @@ bool pj2LocalInfo::LoadTuples()
 
   //Clear the buffer
   if (ita){
-    delete ita; ita = 0;}
+    delete ita; ita = 0;
+  }
   if (tba){
-    delete tba; tba = 0;}
+    delete tba; tba = 0;
+  }
 
   if (itb){
-    delete itb; itb = 0;}
+    delete itb; itb = 0;
+  }
   if (tbb){
-    delete tbb; tbb = 0;}
+    delete tbb; tbb = 0;
+   }
 
   if (moreInputTuples)
   {
@@ -1054,7 +1058,8 @@ bool pj2LocalInfo::LoadTuples()
       cta.setTuple(NextTuple(streamA));
     }
     if (ctb == 0){
-      ctb = NextTuple(streamB);
+      
+      ctb.setTuple(NextTuple(streamB));
     }
   }
   if ( cta == 0 || ctb == 0)
@@ -1091,7 +1096,7 @@ bool pj2LocalInfo::LoadTuples()
       //a > b, get more b until a <= b
       while (cmp > 0)
       {
-        ctb = NextTuple(streamB);
+        ctb.setTuple(NextTuple(streamB));
         if ( ctb == 0 )
           {
             endOfStream = true;
