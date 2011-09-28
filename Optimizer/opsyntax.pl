@@ -534,6 +534,7 @@ secondoOp( today,             prefix, 0).
 secondoOp( tokenize,          prefix, 2).
 secondoOp( toprel,            prefix, 2).
 secondoOp((touchpoints),      infix, 2).
+secondoOp( trajectory,        prefix, 1).
 secondoOp( transformstream,   postfix, 1).
 secondoOp( translate,         postfixbrackets, 1).
 secondoOp( translateappendS,  postfixbrackets, 1).
