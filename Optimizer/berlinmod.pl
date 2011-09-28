@@ -57,7 +57,7 @@ globalBMODauxObjects([
   ]).
 
 % create an auxiliary object ~Name~ using the optimized ~Query~. Append the
-% command to strem ~S~ (unless ~S~ != none) and execute it, if necessary.
+% command to stream ~S~ (unless ~S~ != none) and execute it, if necessary.
 createBMODauxObject(Name, Query, S) :-
   optimize(Query, Plan, Cost),!,
   ( S = none
