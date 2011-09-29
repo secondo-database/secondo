@@ -121,6 +121,13 @@ public:
   //refresh must be called before calling get()
   void refresh(int);
   void refresh();
+  void refresh(TBQueue *tbIn, TBQueue* tbOut);
+  bool refreshTBRunning() 
+  { ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); return m_tbRunning; };
+  void initTBRefresh() 
+  {  ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); m_tbRunning = true; }
+  void tbRefreshDone() 
+  {  ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); m_tbRunning = false; }
 
   //Deletes all the remote elements on the workers
   void remove();
@@ -181,6 +188,8 @@ private:
 
   vector<Word> m_elements;
 
+  bool m_tbRunning;
+  static ZThread::Mutex ms_rTBlock;
 };
 
 #endif // _DISTRIBUTEDALGEBRA_H_

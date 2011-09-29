@@ -45,10 +45,51 @@ RelationWriter and DServerCreator
 #include "zthread/Guard.h"
 #include "zthread/Condition.h"
 #include "zthread/Mutex.h"
+#include "zthread/Mutex.h"
 #include "RelationAlgebra.h"
 #define SINGLE_THREAD 1
 
+#define DSUMMARIZE_MAX_QUEUE_SIZE 3
+
 using namespace std;
+
+class TupleBufferQueue
+{
+  ZThread::Mutex lock;
+  ZThread::Condition cond;
+  std::deque<TupleBuffer *> data;
+public:
+
+  TupleBufferQueue() : cond(lock) {}
+  virtual ~TupleBufferQueue() {  }
+
+  void put(TupleBuffer* tb) {
+    ZThread::Guard<ZThread::Mutex> g(lock);
+    data.push_back(tb);
+    cond.signal();
+  }
+
+  TupleBuffer* get() {
+    ZThread::Guard<ZThread::Mutex> g(lock);
+    while(data.empty())
+      cond.wait();
+    TupleBuffer* returnVal = data.front();
+    data.pop_front();
+    return returnVal;
+  }
+
+  unsigned int size() {
+    ZThread::Guard<ZThread::Mutex> g(lock);
+    return data.size();
+  }
+  bool empty() {
+    ZThread::Guard<ZThread::Mutex> g(lock);
+    return data.empty();
+  }
+};
+
+  typedef TupleBufferQueue* TBQueue;
+
 
 class DServer
 {
@@ -68,7 +109,11 @@ public:
                                    // on the worker
                  DS_CMD_CLOSE_WRITE_REL, // closes a relation on the worker
                  DS_CMD_READ_REL,  // reads a tuple from a relation on
-                                   // the worker
+                                   // the worker and puts it into a 
+                                   // relation on the server
+                 DS_CMD_READ_TB_REL,    // reads a tuple from a relation on
+                                        // the worker and puts it into a 
+                                        // tuplebuffer on the server
                  
   };
 
@@ -156,6 +201,9 @@ public:
 
   friend ostream& operator << (ostream&, RemoteCommand&) ;
   void print() const;
+
+  //Synchronisation of access to read relations
+  static ZThread::Mutex Rel1_Mutex;
 
 private:
 

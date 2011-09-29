@@ -71,6 +71,8 @@ using namespace mappings;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+ZThread::Mutex DArray::ms_rTBlock;
+
 /*
 2.0 Class LogOutput
 
@@ -451,6 +453,46 @@ void DArray::refresh()
      //All elements are present now
     for(int i=0;i<size;i++) m_present[i] = 1; 
     //cout << "DArray::refresh ...done" << endl;
+}
+
+void DArray::refresh(TBQueue *tbIn, TBQueue *tbOut)
+{
+#ifndef SINGLE_THREAD1
+   ZThread::ThreadedExecutor exec;
+#endif
+
+   //Elements are deleted if they were present
+   //If the darray has a relation-type new relations must be created
+   assert(m_elements.size() == size);
+   assert(isRelation);
+         
+   vector<Word> word (2);
+   word[0] = SetWord(tbIn);
+   word[1] = SetWord(tbOut);
+
+   //elements are read, the DServer run as threads
+   for(int i = 0; i < manager->getNoOfServers(); i++)
+     {
+       DServer* server = manager->getServerbyID(i);
+      
+       server->setCmd(DServer::DS_CMD_READ_TB_REL,
+                      &(manager->getIndexList(i)),
+                      &word);
+       
+#ifndef SINGLE_THREAD1
+       exec.execute(new DServerExecutor(server));
+#else
+       DServerExecutor *dsex = new DServerExecutor(server);
+       dsex -> run();
+       delete dsex;
+#endif
+     }
+   
+#ifndef SINGLE_THREAD1
+   exec.wait();
+#endif
+
+   tbRefreshDone();
 }
 
 bool DArray::initialize(ListExpr inType,
@@ -1930,7 +1972,7 @@ static int receiverelFun( Word* args,
             master->Read(buffer+i*1024,1024);
 
           // creating tuple
-          Tuple* t = new Tuple(sendType);
+          Tuple* t = new Tuple(sendTT);
           Tuple* inTuple = new Tuple(tupleType);
 
           // instantiating tuple
@@ -2324,9 +2366,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        return 1;
      }
 
-   int number = 0;
-
-   ListExpr tupleType = nl->Second(restype);
    Word current = SetWord( Address (0) );
 
    cout << "Reading Data ..." << endl;
@@ -2924,6 +2963,21 @@ dsummarizeTypeMap( ListExpr args )
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
+class DArrayIteratorRefreshThread : public ZThread::Runnable
+{
+public:
+  DArray *d;
+  TBQueue *tbIn;
+  TBQueue *tbOut;
+
+  void run()
+  {
+    d->refresh(tbIn, tbOut);
+  }
+  
+  ~DArrayIteratorRefreshThread() { }
+};
+
 static int
 dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2931,42 +2985,40 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
   struct DArrayIterator
   {
     private:
-    int current;
+    DArray *da;
     int size;
-    GenericRelationIterator* rit;
-    vector<Relation *> r;
-    Relation *cur_rel;
+    TupleBufferIterator* rit;
+    TupleBuffer *cur_rel;
     ListExpr m_type;
     int m_algID, m_typID;
-      
+    TBQueue m_tbIn, m_tbOut;
+    ZThread::ThreadedExecutor m_exe;
+
     // create an Tuple iterater for the next array element
     bool makeNextRelIter()
     {
       if (rit)
         {
-          //cout << "DELETE RIT" << endl;
-          assert(rit -> EndOfScan());
           delete rit;
           rit = 0;
-          //Word w (cur_rel);
-          //(am->DeleteObj(m_algID, m_typID))(m_type, w);
-          delete cur_rel;
+          DServer::Rel1_Mutex.acquire();
+          cur_rel -> Clear();
+          DServer::Rel1_Mutex.release();
+          m_tbIn -> put(cur_rel);
         }
 
-      while (!r.empty() && current < size)
+      while ( da -> refreshTBRunning() || !(m_tbOut -> empty()) )
         {
-          //cout << "Getting Rel Index:" << current << endl;
-          //if (current > 0)
-          //  darray->release(current - 1);
-          assert(rit == 0);
-          cur_rel = r.back();
-          r.pop_back();
-          assert( cur_rel != NULL);
-          assert(cur_rel->GetNoTuples() > 0);
-
-          rit = cur_rel->MakeScan();
-          current++;
-          return true;
+          cur_rel = m_tbOut -> get();
+          if (cur_rel -> GetNoTuples() > 0)
+            {
+              rit = new TupleBufferIterator (*cur_rel);
+              return true;
+            }
+          else
+            {
+              m_tbIn -> put(cur_rel);
+            }
         }
 
       rit=0;
@@ -2975,37 +3027,30 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
     public:
 DArrayIterator(DArray* d, ListExpr t, int aI, int tI) 
-  : current(0)
+  : da(d)
   , size(d->getSize())
   , rit(0)
   , cur_rel(0)
   , m_type(t)
   , m_algID(aI)
   , m_typID(tI)
+  , m_tbIn(new TupleBufferQueue())
+  , m_tbOut(new TupleBufferQueue())
     {
-      d->refresh();
-      for (int i = 0; i < d->getSize(); ++i)
-        {
-          //Word tmp_rel( static_cast <Relation *>(d->get(i).addr));
-          //if (((Relation *)tmp_rel.addr) -> GetNoTuples() > 0)
-          Relation *tmp_rel( static_cast <Relation *>(d->get(i).addr));
-          if (tmp_rel -> GetNoTuples() > 0)
-            {
-              //cout << "ADD: " << i << endl;
-              
-              //r.push_back 
-              // ( (Relation *) 
-              //((am->CloneObj(m_algID,m_typID))
-              //(m_type,tmp_rel) ).addr );
-              r.push_back(tmp_rel -> Clone()); 
-            }
-          /*
-          else
-            {
-              cout << "SKIP: " << i << endl;
-            }
-          */
-        }
+      for (int i = 0; i < DSUMMARIZE_MAX_QUEUE_SIZE; ++i)
+        m_tbIn -> put(new TupleBuffer());
+
+      DArrayIteratorRefreshThread *darrRefresh = 
+        new DArrayIteratorRefreshThread();
+      
+      d -> initTBRefresh();
+
+      darrRefresh -> d = d;
+      darrRefresh -> tbIn = &m_tbIn;
+      darrRefresh -> tbOut = &m_tbOut;
+      
+      m_exe.execute(darrRefresh);
+
       makeNextRelIter();
     }
 
@@ -3013,28 +3058,41 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
     {
       if (rit)
         {
-          //cout << "DEL RIT" << endl;
           assert(rit -> EndOfScan());
           delete rit;
-          //Word w (cur_rel);
-          //(am->DeleteObj(m_algID, m_typID))(m_type, w);
-          delete cur_rel;
+        }
+      
+      m_exe.wait();
+
+      assert(m_tbOut -> size() == 0);
+      assert(m_tbIn -> size() == DSUMMARIZE_MAX_QUEUE_SIZE);
+      for (int i = 0; i < DSUMMARIZE_MAX_QUEUE_SIZE; ++i)
+        {
+          TupleBuffer *tb = m_tbIn -> get();
+          delete tb;
         }
       rit = 0;
+      delete m_tbIn;
+      delete m_tbOut;
     }
 
     Tuple* getNextTuple() // try to get next tuple
     {
       if (!rit)
         return 0;
-
+      DServer::Rel1_Mutex.acquire();
       Tuple* t = rit->GetNextTuple();
+      DServer::Rel1_Mutex.release();
       if ( !t )
       {
          if (!makeNextRelIter())
            return 0;
          else
-           return rit->GetNextTuple();
+           {
+             DServer::Rel1_Mutex.acquire();
+             t = rit->GetNextTuple();
+             DServer::Rel1_Mutex.release();
+           }
       }
       return t;
     }
@@ -3058,6 +3116,7 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
       Tuple* t = dait->getNextTuple();
       if (t != 0) {
         result = SetWord(t);
+        //t -> DeleteIfAllowed();
         return YIELD;
       }
       return CANCEL;

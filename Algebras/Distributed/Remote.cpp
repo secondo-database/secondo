@@ -48,6 +48,7 @@ DServerCreator, DServerExecutor and RelationWriter
 //#define DS_CMD_OPEN_WRITE_REL_DEBUG 1
 //#define DS_CMD_WRITE_REL_DEBUG 1
 //#define DS_CMD_READ_REL_DEBUG 1
+//#define DS_CMD_READ_TB_REL_DEBUG 1
 //#define DS_CMD_DELETE_DEBUG 1
 
 using namespace std;
@@ -64,7 +65,7 @@ string HostIP_;
 ZThread::Mutex Flob_Mutex;
 ZThread::Mutex Flob1_Mutex;
 //Synchronisation of access to read relations
-ZThread::Mutex Rel1_Mutex;
+//ZThread::Mutex Rel1_Mutex;
 //Synchronisation of access to read non relations and write commands
 ZThread::Mutex Cmd_Mutex;
 //Synchronisation of access to nl -> ToString in DServer::DServer
@@ -83,6 +84,8 @@ A TCP-connection to the corresponding worker ist opened
 */
 
 //#define DEBUG_DISTRIBUTE 1
+
+ZThread::Mutex DServer::Rel1_Mutex;
 
 Word DServer::ms_emptyWord;
 
@@ -1064,11 +1067,11 @@ void DServer::run()
 #endif
       //Reads an entire relation from the worker
 
-      Rel1_Mutex.acquire();   
+      DServer::Rel1_Mutex.acquire();   
 
-      TupleType tt(nl -> Second(m_type));
+      TupleType *tt = new TupleType (nl -> Second(m_type));
 
-      Rel1_Mutex.release(); 
+      DServer::Rel1_Mutex.release(); 
 
       while(!m_cmd -> getDArrayIndex() ->empty())
       {
@@ -1090,12 +1093,6 @@ void DServer::run()
          Socket* worker = gate->Accept();
 
          iostream& cbsock = worker->GetSocketStream();
-
-         //cout << "Reading Relation of index:" << arg2 << endl;
-        
-         //Relation *rel = new Relation(&tt);
-         //rel -> Clear();
-         //(*(m_cmd -> getElements()))[arg2] = SetWord(rel);
 
          GenericRelation* rel = 
            (Relation*)(*(m_cmd -> getElements()))[arg2].addr;
@@ -1122,15 +1119,15 @@ void DServer::run()
                 cbsock.read(buffer+i*1024,1024);
               }
                      
-            Tuple* t = new Tuple(&tt);
+            Tuple* t = new Tuple(tt);
             //transform to tuple and append to relation
-            Rel1_Mutex.acquire();
+            DServer::Rel1_Mutex.acquire();
             t -> ReadFromBin(buffer);
 
             rel -> AppendTuple(t);
 
             t -> DeleteIfAllowed(); 
-            Rel1_Mutex.release();
+            DServer::Rel1_Mutex.release();
 
             delete buffer;
                      
@@ -1153,10 +1150,126 @@ void DServer::run()
          while(line.find("</SecondoResponse>") == string::npos);
 
       }
-
+      DServer::Rel1_Mutex.acquire();
+      tt -> DeleteIfAllowed();
+      DServer::Rel1_Mutex.release();
           
 #ifdef DS_CMD_READ_REL_DEBUG
-         cout << (unsigned long)(this) << " DS_CMD_READ_REL done" << endl;
+      cout << (unsigned long)(this) << " DS_CMD_READ_REL done" << endl;
+#endif
+   }
+
+   if(m_cmd -> getCmdType() == DS_CMD_READ_TB_REL)
+     {
+#ifdef DS_CMD_READ_TB_REL_DEBUG
+       cout << (unsigned long)(this) << " DS_CMD_READ_TB_REL" << endl;
+#endif
+       //Reads an entire relation from the worker
+       TBQueue* inQueue = (TBQueue*)(*(m_cmd -> getElements()))[0].addr;
+       TBQueue* outQueue = (TBQueue*)(*(m_cmd -> getElements()))[1].addr;
+
+       DServer::Rel1_Mutex.acquire();   
+
+       TupleType *tt = new TupleType(nl -> Second(m_type));
+
+       DServer::Rel1_Mutex.release(); 
+
+       // need to transfer even empty tubple buffers
+       // because we need to corretly count the size
+       // of the darray
+       TupleBuffer* tb = (*inQueue) -> get();
+
+#ifdef DS_CMD_READ_TB_REL_DEBUG
+       if (m_cmd -> getDArrayIndex() ->empty()) 
+         cout << (unsigned long)(this) 
+              << " DS_CMD_READ_TB_REL - no indizes!"  << endl;
+#endif
+       while(!m_cmd -> getDArrayIndex() ->empty())
+         {
+           arg2 = m_cmd -> getDArrayIndex() ->front();
+           m_cmd -> getDArrayIndex() ->pop_front();
+         
+           string line;        
+           string port =toString_d((1300+arg2));
+                
+           //start execution of d_send_rel
+           iostream& iosock = server->GetSocketStream();
+           iosock << "<Secondo>" << endl << "1" << endl 
+                  << "query d_send_rel (" << HostIP_ << ",p" << port << ",r"
+                  << name << toString_d(arg2) << ")" <<  endl 
+                  << "</Secondo>" << endl;
+                
+           //Open the callback connection
+           Socket* gate = Socket::CreateGlobal( HostIP, port);
+           Socket* worker = gate->Accept();
+
+           iostream& cbsock = worker->GetSocketStream();
+
+           //receive tuples
+           getline(cbsock,line);
+           while(line=="<TUPLE>")
+             {
+               //receive size of tuple
+               getline(cbsock,line);
+               size_t size = atoi(line.data());
+                     
+               getline(cbsock,line);
+                     
+               int num_blocks = (size / 1024) + 1;
+               
+               char* buffer = new char[num_blocks*1024];
+               memset(buffer,0,num_blocks*1024);
+                     
+               //receive tuple data
+               for(int i = 0; i < num_blocks; i++)
+                 {
+                   cbsock.read(buffer+i*1024,1024);
+                 }
+               
+               Tuple* t = new Tuple(tt);
+
+               //transform to tuple and append to relation
+               DServer::Rel1_Mutex.acquire();
+               t -> ReadFromBin(buffer);
+               
+               tb -> AppendTuple(t);
+
+               t -> DeleteIfAllowed(); 
+               DServer::Rel1_Mutex.release();
+
+               delete buffer;
+                     
+               getline(cbsock,line);
+             }
+                
+           if(line != "<CLOSE>") 
+             errorText = (string)"Unexpected Response from worker! " 
+               + "(<CLOSE> or <TUPLE> expected)";
+           
+           gate->Close(); delete gate; gate=0;
+           worker->Close(); delete worker; worker=0;
+
+           do
+             {
+               getline(iosock,line);
+               if(line.find("error") != string::npos)
+                 errorText = "worker reports error on sending relation!";
+             }
+           while(line.find("</SecondoResponse>") == string::npos);
+
+         } // while(!m_cmd -> getDArrayIndex() ->empty())
+          
+       if (tb -> GetNoTuples() > 0)
+         (*outQueue) -> put(tb);
+       else
+         (*inQueue) -> put(tb);
+
+       DServer::Rel1_Mutex.acquire();
+       tt -> DeleteIfAllowed();
+       DServer::Rel1_Mutex.release();
+
+#ifdef DS_CMD_READ_TB_REL_DEBUG
+         cout << (unsigned long)(this) << " DS_CMD_READ_TB_REL done" << endl;
 #endif
    }
 
@@ -1546,7 +1659,13 @@ ostream& operator << (ostream &out, DServer::RemoteCommand& rc)
       out << " CLOSE WRITE RELATION";
       break;
     case DServer::DS_CMD_READ_REL:  // reads a tuple from a relation 
-                                    // on the worker
+                                    // on the worker and puts it into
+                                    // a relation on the server
+      out << " READ RELATION";
+      break;
+    case DServer::DS_CMD_READ_TB_REL:  // reads a tuple from a relation 
+                                       // on the worker and puts it into 
+                                       // a tuplebuffer on the host
       out << " READ RELATION";
       break;
     default:
