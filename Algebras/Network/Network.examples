@@ -21,8 +21,8 @@ Result   : file
 
 Operator : thenetwork
 Number   : 1
-Signature: rel x rel -> network
-Example  : query thenetwork(1, B_ROUTES, B_JUNCTIONS);
+Signature: int x real x rel x rel -> network
+Example  : query thenetwork(1, 1.0, B_ROUTES, B_JUNCTIONS);
 Result   : file_platform
 
 Operator : spsearchvisited
@@ -441,4 +441,11 @@ Number   : 1
 Signature: gpoint x real -> gline
 Example  : query out_circlen([const gpoint value (1 1 30.0 2)], 15.5);
 Result   : (gline(1((1 14.5 45.5))))
+Tolerance: 0.01%
+
+Operator : netbbox
+Number   : 1
+Signature: network -> rect2
+Example  : query netbbox(B_NETWORK);
+Result   : (rect(7734.99999999 10542.00000001 8767.999999989999 10233.00000001))
 Tolerance: 0.01%

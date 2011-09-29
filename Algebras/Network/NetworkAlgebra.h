@@ -38,7 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../include/Attribute.h"
 #include "../Spatial/SpatialAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
-#include "ListUtils.h"
+#include "../../include/ListUtils.h"
+
 
 /*
 2 Helpful Data Types and Data Structures
@@ -638,9 +639,9 @@ Get and Set private values.
     return *this;
   }
 
-  bool Contains(const RouteInterval *ri) const;
+  bool Contains(const RouteInterval *ri, const double tolerance) const;
   bool Contains(const GPoint *gp)const;
-  bool Intersects(const RouteInterval *ri) const;
+  bool Intersects(const RouteInterval *ri, const double tolerance) const;
   ostream& Print(ostream& os) const;
 
 
@@ -958,10 +959,15 @@ Set Methods of ~gpoint~
 
     ostream& Print( ostream& os ) const
     {
+      if(IsDefined())
+      {
       os << "NetworkId: " << m_iNetworkId
           << " RouteId: " << m_xRouteLocation.rid
           << "  Position: " << m_xRouteLocation.d
           << " Side: " << m_xRouteLocation.side << endl;
+      }
+      else
+        os << "not defined." << endl;
       return os;
     }
 
@@ -1035,7 +1041,7 @@ Returns true if the gpoint is inside the gline false elsewhere.
 
 */
 
-    bool Inside( const GLine *gl) const;
+    bool Inside( const GLine *gl, const double tolerance) const;
 
 /*
 Returns true if two gpoint are identical.
@@ -1499,6 +1505,14 @@ Copy-Constructor
   {
   }
 
+  ostream& Print(ostream& os) const {
+    os << "1.Section: " << m_iFirstSectionTid
+       << " Up(!=0): " << m_bFirstUpDown
+       << " 2.Section: " << m_iSecondSectionTid
+       << " Up(!=0): " << m_bSecondUpDown << endl;
+    return os;
+  }
+
   ~DirectedSectionPair(){};
 
   bool operator<(const DirectedSectionPair& in_xOther) const
@@ -1869,7 +1883,7 @@ Loads a network given two relations containing the routes and junctions.
 This function corresponds to the operator ~thenetwork~.
 
 */
-    void Load(int in_iId,
+    void Load(int in_iId, double scalef,
               const Relation *in_pRoutes,
               const Relation *in_pJunctions);
 
@@ -1916,6 +1930,11 @@ Returns the id of this network
 
 */
     int GetId() const;
+
+double GetScalefactor() const
+{
+  return m_scalefactor;
+}
 
 /*
 GetRoutes
@@ -2225,6 +2244,16 @@ isDefined
 
   R_Tree<2,TupleId>* GetRTree(){ return m_pRTreeRoutes;}
 
+  inline static const string BasicType() { return "network"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
+
+  inline Rectangle<2> BoundingBox() const{
+    return m_pRTreeRoutes->BoundingBox();
+  }
+
 private:
 
 
@@ -2322,6 +2351,16 @@ The ID of the network
 
 */
   int m_iId;
+
+/*
+MapMatching needs information about dimension of data values.
+The scalefactor 1.0 tells, position of meter is right in front of the decimal
+point. 0.001 tells the position of meter  in the coordinates is at the third
+position behind the decimal point.
+
+*/
+
+  double m_scalefactor;
 
 /*
 True if all values of this network have been defined
@@ -2632,8 +2671,8 @@ Returns the Bounding GPoints of the GLine.
       return listutils::isSymbol(type, BasicType());
     }
 
-    bool Contains(const RouteInterval* ri)const ;
-    bool Intersects(const RouteInterval* ri)const ;
+    bool Contains(const RouteInterval* ri, const double tolerance)const ;
+    bool Intersects(const RouteInterval* ri, const double tolerance)const ;
 
   private:
 

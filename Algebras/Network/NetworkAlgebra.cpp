@@ -42,8 +42,6 @@ October 2008 - Jianqiu Xu
 #include <iterator>
 #include <algorithm>
 #include <limits>
-#include "Symbols.h"
-
 #include "../Relation-C++/RelationAlgebra.h"
 #include "../BTree/BTreeAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
@@ -52,6 +50,7 @@ October 2008 - Jianqiu Xu
 #include "../Rectangle/RectangleAlgebra.h"
 #include "../Network/NetworkManager.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
+#include "../../include/Symbols.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
 #include "../../include/StandardTypes.h"
@@ -62,6 +61,7 @@ October 2008 - Jianqiu Xu
 #include "../../include/TypeMapUtils.h"
 #include "../../include/Operator.h"
 #include "../../include/Attribute.h"
+
 
 
 extern NestedList* nl;
@@ -92,7 +92,7 @@ Computes a spatial BoundingBox of a RouteInterval
 
 Rectangle<2> RouteInterval::BoundingBox (const Network* pNetwork ) const
 {
-  if ( AlmostEqual ( m_dStart , m_dEnd ) )
+  if ( AlmostEqualAbsolute ( m_dStart , m_dEnd, pNetwork->GetScalefactor()))
   {
     Point *p = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
                           m_dStart ) ).ToPoint ( pNetwork );
@@ -138,15 +138,16 @@ Method for binary search after a route interval in a sorted ~GLine~. O(log n).
 Used for example by operator ~inside~.
 
 */
-bool RouteInterval::Contains(const RouteInterval *ri) const
+bool RouteInterval::Contains(const RouteInterval *ri,
+                             const double tolerance)const
 {
   double tstart = min(GetStartPos(),GetEndPos());
   double tend = max(GetStartPos(),GetEndPos());
   double start = min(ri->GetStartPos(),ri->GetEndPos());
   double end = max(ri->GetStartPos(),ri->GetEndPos());
   if (ri->GetRouteId() == GetRouteId() &&
-     ((tstart <= start || fabs ( tstart - start ) < 0.01) &&
-      (end  <= tend ||fabs (tend - end ) < 0.01 )))
+    ((tstart <= start || AlmostEqualAbsolute( tstart , start,tolerance )) &&
+     (end  <= tend ||AlmostEqualAbsolute(tend, end,tolerance ))))
     return true;
   else
     return false;
@@ -163,20 +164,23 @@ bool RouteInterval::Contains(const GPoint *gp)const
     return false;
 }
 
-bool RouteInterval::Intersects(const RouteInterval *ri)const
+bool RouteInterval::Intersects(const RouteInterval *ri,
+                               const double tolerance)const
 {
   double tstart = min(GetStartPos(),GetEndPos());
   double tend = max(GetStartPos(),GetEndPos());
   double start = min(ri->GetStartPos(),ri->GetEndPos());
   double end = max(ri->GetStartPos(),ri->GetEndPos());
-  if(ri->Contains(this) || Contains(ri) || (ri->GetRouteId() == GetRouteId() &&
-    ((start < tstart && tstart < end) || (start < tend && tend < end))))
+  if(ri->Contains(this, tolerance) || Contains(ri, tolerance) ||
+      (ri->GetRouteId() == GetRouteId() &&
+      ((start < tstart && tstart < end) || (start < tend && tend < end))))
     return true;
   else
     return false;
 }
 
 bool searchRouteInterval (const RouteInterval *ri, const GLine *pGLine,
+                          const double tolerance,
                           const int low, const int high )
 {
   RouteInterval rigl;
@@ -192,17 +196,17 @@ bool searchRouteInterval (const RouteInterval *ri, const GLine *pGLine,
       pGLine->Get ( mid, rigl );
       if ( rigl.GetRouteId() < ri->GetRouteId() )
       {
-        return searchRouteInterval ( ri, pGLine, mid+1, high );
+        return searchRouteInterval ( ri, pGLine, tolerance, mid+1, high );
       }
       else
       {
         if ( rigl.GetRouteId() > ri->GetRouteId() )
         {
-          return searchRouteInterval ( ri, pGLine, low, mid-1 );
+          return searchRouteInterval ( ri, pGLine, tolerance ,low, mid-1 );
         }
         else
         {
-          if (rigl.Contains(ri))
+          if (rigl.Contains(ri, tolerance))
           {
             return true;
           }
@@ -210,13 +214,13 @@ bool searchRouteInterval (const RouteInterval *ri, const GLine *pGLine,
           {
             if ( rigl.GetStartPos() > ri->GetEndPos())
             {
-              return searchRouteInterval ( ri, pGLine, low, mid-1 );
+              return searchRouteInterval ( ri, pGLine, tolerance,low, mid-1 );
             }
             else
             {
               if ( rigl.GetEndPos() < ri->GetStartPos() )
               {
-                return searchRouteInterval ( ri, pGLine, mid+1, high );
+               return searchRouteInterval ( ri, pGLine,tolerance, mid+1, high );
               }
               else
               {
@@ -239,6 +243,7 @@ Used for example by operator ~inside~.
 */
 
 bool searchRouteInterval ( const GPoint *pGPoint, const GLine *&pGLine,
+                           const double tolerance,
                            const size_t low, const size_t high )
 {
   RouteInterval rI;
@@ -255,18 +260,20 @@ bool searchRouteInterval ( const GPoint *pGPoint, const GLine *&pGLine,
       pGLine->Get ( mid, rI );
       if ( rI.GetRouteId() < pGPoint->GetRouteId() )
       {
-        return searchRouteInterval ( pGPoint, pGLine, mid+1, high );
+        return searchRouteInterval ( pGPoint, pGLine, tolerance, mid+1, high );
       }
       else
       {
         if ( rI.GetRouteId() > pGPoint->GetRouteId() )
         {
-          return searchRouteInterval ( pGPoint, pGLine, low, mid-1 );
+          return searchRouteInterval ( pGPoint, pGLine, tolerance, low, mid-1 );
         }
         else
         {
-          if ( fabs ( pGPoint->GetPosition() - rI.GetStartPos() ) < 0.01 ||
-                  fabs ( pGPoint->GetPosition() - rI.GetEndPos() ) < 0.01 )
+          if (AlmostEqualAbsolute(pGPoint->GetPosition(),
+                                  rI.GetStartPos(), tolerance ) ||
+              AlmostEqualAbsolute ( pGPoint->GetPosition() ,
+                                    rI.GetEndPos(),tolerance ))
           {
             return true;
           }
@@ -274,13 +281,15 @@ bool searchRouteInterval ( const GPoint *pGPoint, const GLine *&pGLine,
           {
             if ( rI.GetStartPos() > pGPoint->GetPosition() )
             {
-              return searchRouteInterval ( pGPoint, pGLine, low, mid-1 );
+              return searchRouteInterval ( pGPoint, pGLine, tolerance, low,
+                                           mid-1 );
             }
             else
             {
               if ( rI.GetEndPos() < pGPoint->GetPosition() )
               {
-                return searchRouteInterval ( pGPoint, pGLine, mid+1, high );
+                return searchRouteInterval ( pGPoint, pGLine, tolerance, mid+1,
+                                             high );
               }
               else
               {
@@ -427,7 +436,7 @@ Used by operator ~point2gpoint~
 */
 
 bool chkPoint ( SimpleLine *&route, const Point point,
-                const bool startSmaller,
+                const bool startSmaller,const double tolerance,
                 double &pos, double &difference )
 {
   bool result = false;
@@ -445,8 +454,10 @@ bool chkPoint ( SimpleLine *&route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ( ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) ||
-         ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
+    if ( ( AlmostEqualAbsolute ( x,xr,tolerance) &&
+           AlmostEqualAbsolute ( y,yr,tolerance)) ||
+         ( AlmostEqualAbsolute ( x,xl,tolerance) &&
+           AlmostEqualAbsolute ( y,yl,tolerance)))
     {
       difference = 0.0;
       result = true;
@@ -457,19 +468,19 @@ bool chkPoint ( SimpleLine *&route, const Point point,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 0.004 ) &&
+        if ( ( fabs ( k1-k2 ) < 0.004*tolerance/0.01 ) &&
              ( ( xl < xr &&
-                  ( x > xl || fabs ( x-xl ) < 0.01 ) &&
-                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+               ( x > xl || AlmostEqualAbsolute ( x,xl,tolerance )) &&
+               ( x < xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ||
                ( xl > xr &&
-                  ( x < xl || fabs ( x-xl ) <0.01 )  &&
-                  ( x > xr || fabs ( x-xr ) < 0.01 ) ) ) &&
+               ( x < xl || AlmostEqualAbsolute ( x,xl,tolerance ))  &&
+               ( x > xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ) &&
              ((( yl <= yr  &&
-                   ( y > yl || fabs ( y-yl ) <0.01 ) &&
-                   ( y < yr || fabs ( y-yr ) <0.01 ) ) ||
+                   ( y > yl || AlmostEqualAbsolute ( y,yl, tolerance )) &&
+                   ( y < yr || AlmostEqualAbsolute ( y,yr, tolerance ) ) ) ||
                ( yl > yr &&
-                   ( y < yl || fabs ( y-yl ) <0.01 ) &&
-                   ( y > yr || fabs ( y-yr ) <0.01 ) ) ) ))
+                   ( y < yl || AlmostEqualAbsolute ( y,yl,tolerance ) ) &&
+                   ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ) ))
         {
           difference = fabs ( k1-k2 );
           result = true;
@@ -478,13 +489,14 @@ bool chkPoint ( SimpleLine *&route, const Point point,
       }
       else
       {
-        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
+        if ( ( AlmostEqualAbsolute ( xl, xr,tolerance ) &&
+               AlmostEqualAbsolute ( xl,x,tolerance ) ) &&
             ( ( ( yl <= yr &&
-                  ( yl < y || fabs (yl-y ) < 0.01 ) &&
-                  ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+                  ( yl < y || AlmostEqualAbsolute (yl,y,tolerance))&&
+                  ( y < yr ||AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ||
                 ( yl > yr &&
-                  ( yl > y || fabs ( yl-y ) < 0.01) &&
-                  ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) ))
+                  ( yl > y || AlmostEqualAbsolute ( yl,y,tolerance) ) &&
+                  ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ) ))
         {
           difference = 0.0;
           result = true;
@@ -500,9 +512,9 @@ bool chkPoint ( SimpleLine *&route, const Point point,
       pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
       if ( startSmaller != route->GetStartSmaller() )
         pos = route->Length() - pos;
-      if ( fabs ( pos-0.0 ) < 0.01 )
+      if ( AlmostEqualAbsolute ( pos,0.0,tolerance ))
         pos = 0.0;
-      else if ( fabs ( pos-route->Length() ) <0.01 )
+      else if ( AlmostEqualAbsolute( pos, route->Length(),tolerance))
         pos = route->Length();
       return result;
     }
@@ -519,7 +531,7 @@ Used by operator ~point2gpoint~
 */
 
 bool chkPoint03 ( SimpleLine *&route, const Point point,
-                  const bool startSmaller,
+                  const bool startSmaller, const double tolerance,
                   double &pos, double &difference )
 {
   bool result = false;
@@ -537,8 +549,10 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ( ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) ||
-         ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
+          if ( ( AlmostEqualAbsolute ( x,xl,tolerance ) &&
+                 AlmostEqualAbsolute ( y,yl,tolerance )) ||
+               ( AlmostEqualAbsolute ( x,xr,tolerance ) &&
+                 AlmostEqualAbsolute ( y,yr,tolerance ) ) )
     {
       difference = 0.0;
       result = true;
@@ -549,19 +563,19 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 1.2 ) &&
+        if ( ( fabs ( k1-k2 ) < 1.2*tolerance/0.01 ) &&
              ( ( xl < xr &&
-                  ( x > xl || fabs ( x-xl ) < 0.01 ) &&
-                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+               ( x > xl || AlmostEqualAbsolute ( x,xl,tolerance ) ) &&
+               ( x < xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ||
                ( xl > xr &&
-                  ( x < xl || fabs ( x-xl ) < 0.01 )  &&
-                  ( x > xr || fabs ( x-xr ) < 0.01 ) ) ) &&
-             ( ( ( yl < yr || fabs ( yl-yr ) < 0.01 ) &&
-                  ( y > yl || fabs (y-yl ) <0.01 ) &&
-                  ( y < yr || fabs ( y-yr ) <0.01 ) ) ||
+               ( x < xl || AlmostEqualAbsolute ( x,xl,tolerance ))  &&
+               ( x > xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ) &&
+             ( ( ( yl < yr || AlmostEqualAbsolute ( yl,yr,tolerance )) &&
+                 ( y > yl || AlmostEqualAbsolute (y,yl,tolerance )) &&
+                 ( y < yr || AlmostEqualAbsolute ( y,yr,tolerance )) ) ||
                ( yl > yr &&
-                  ( y < yl || fabs ( y-yl ) <0.01 ) &&
-                  ( y > yr || fabs ( y-yr ) <0.01 ) ) ) )
+                 ( y < yl || AlmostEqualAbsolute ( y,yl,tolerance )) &&
+                 ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ) )
         {
           difference = fabs ( k1-k2 );
           result = true;
@@ -570,13 +584,14 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
       }
       else
       {
-        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-             ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) &&
-                    ( yl < y || fabs (yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+        if ( ( AlmostEqualAbsolute ( xl, xr,tolerance ) &&
+               AlmostEqualAbsolute ( xl,x,tolerance )) &&
+             ( ( ( yl < yr|| AlmostEqualAbsolute ( yl,yr,tolerance )) &&
+                 ( yl < y || AlmostEqualAbsolute (yl,y ,tolerance) ) &&
+                 ( y < yr || AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ||
                  ( yl > yr  &&
-                    ( yl > y || fabs ( yl-y ) < 0.01) &&
-                    ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+                 ( yl > y || AlmostEqualAbsolute ( yl,y,tolerance )) &&
+                 ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance )) ) ) )
         {
           difference = 0.0;
           result = true;
@@ -592,9 +607,9 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
       pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
       if ( startSmaller != route->GetStartSmaller() )
         pos = route->Length() - pos;
-      if ( fabs ( pos-0.0 ) < 0.01 )
+      if ( AlmostEqualAbsolute ( pos,0.0,tolerance ))
         pos = 0.0;
-      else if ( fabs ( pos-route->Length() ) <0.01 )
+      else if ( AlmostEqualAbsolute ( pos,route->Length(),tolerance ))
         pos = route->Length();
       return result;
     }
@@ -603,14 +618,14 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
 }
 
 /*
-Almost similar to operator ~chkPoint~ but allowing a greater difference if the
+Almost similar to operator ~chkPoint~ but not checking the difference if the
 point is not exactly on the ~sline~.
 
 Used by operator ~point2gpoint~
 
 */
 bool lastchkPoint03 ( SimpleLine *&route, const Point point,
-                      const bool startSmaller,
+                      const bool startSmaller, const double tolerance,
                       double &pos, double &difference )
 {
   bool result = false;
@@ -628,8 +643,10 @@ bool lastchkPoint03 ( SimpleLine *&route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ( ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) ||
-         ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
+          if ( ( AlmostEqualAbsolute ( x,xl,tolerance ) &&
+                 AlmostEqualAbsolute ( y,yl,tolerance )) ||
+               ( AlmostEqualAbsolute ( x,xr,tolerance ) &&
+                 AlmostEqualAbsolute ( y,yr,tolerance ) ) )
     {
       difference = 0.0;
       result = true;
@@ -640,18 +657,18 @@ bool lastchkPoint03 ( SimpleLine *&route, const Point point,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( ( xl < xr &&
-                  ( x > xl || fabs ( x-xl ) < 0.1 ) &&
-                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
-               ( xl > xr &&
-                  ( x < xl || fabs ( x-xl ) <0.01 ) &&
-                  ( x > xr || fabs ( x-xr ) < 0.01) ) ) &&
-             ( ( ( yl < yr || fabs ( yl-yr ) < 0.01 ) &&
-                  ( y > yl || fabs (y-yl ) < 0.01 ) &&
-                  ( y < yr || fabs ( y-yr ) < 0.01 ) ) ||
-               ( yl > yr &&
-                  ( y < yl || fabs ( y-yl ) <0.01 ) &&
-                  ( y > yr || fabs ( y-yr ) <0.01 ) ) ) )
+        if ((( xl < xr &&
+             ( x > xl || AlmostEqualAbsolute ( x,xl,tolerance ) ) &&
+             ( x < xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ||
+             ( xl > xr &&
+             ( x < xl || AlmostEqualAbsolute ( x,xl,tolerance ))  &&
+             ( x > xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ) &&
+           ( ( ( yl < yr || AlmostEqualAbsolute ( yl,yr,tolerance )) &&
+               ( y > yl || AlmostEqualAbsolute (y,yl,tolerance )) &&
+               ( y < yr || AlmostEqualAbsolute ( y,yr,tolerance )) ) ||
+             ( yl > yr &&
+             ( y < yl || AlmostEqualAbsolute ( y,yl,tolerance )) &&
+             ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ) )
         {
           difference = fabs ( k1-k2 );
           result = true;
@@ -660,13 +677,14 @@ bool lastchkPoint03 ( SimpleLine *&route, const Point point,
       }
       else
       {
-        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-             ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) &&
-                    ( yl < y || fabs ( yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
-                 ( yl > yr &&
-                    ( yl > y || fabs ( yl-y ) < 0.01 ) &&
-                    ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+        if ( ( AlmostEqualAbsolute ( xl, xr,tolerance ) &&
+               AlmostEqualAbsolute ( xl,x,tolerance )) &&
+             ( ( ( yl < yr|| AlmostEqualAbsolute ( yl,yr,tolerance )) &&
+                 ( yl < y || AlmostEqualAbsolute (yl,y ,tolerance) ) &&
+                 ( y < yr || AlmostEqualAbsolute ( y,yr,tolerance ) ) ) ||
+                 ( yl > yr  &&
+                 ( yl > y || AlmostEqualAbsolute ( yl,y,tolerance )) &&
+                 ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance )) ) ) )
         {
           difference = 0.0;
           result = true;
@@ -682,9 +700,10 @@ bool lastchkPoint03 ( SimpleLine *&route, const Point point,
       pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
       if ( startSmaller != route->GetStartSmaller() )
         pos = route->Length() - pos;
-      if ( pos < 0.0 || fabs ( pos - 0.0 ) < 0.01 )
+      if ( pos < 0.0 || AlmostEqualAbsolute ( pos, 0.0, tolerance ) )
         pos = 0.0;
-      else if ( pos > route->Length() || fabs ( pos - route->Length() ) < 0.01 )
+      else if ( pos > route->Length() ||
+                AlmostEqualAbsolute( pos,route->Length(),tolerance))
         pos = route->Length();
       return result;
     }
@@ -699,7 +718,7 @@ operator ~line2gline~.
 
 */
 bool checkPoint ( SimpleLine *&route, const Point point,
-                  const bool startSmaller,
+                  const bool startSmaller, const double tolerance,
                   double &pos )
 {
   bool result = false;
@@ -717,8 +736,10 @@ bool checkPoint ( SimpleLine *&route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ( ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) ||
-         ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
+    if ( ( AlmostEqualAbsolute ( x,xr,tolerance ) &&
+           AlmostEqualAbsolute ( y,yr,tolerance )) ||
+         ( AlmostEqualAbsolute ( x,xl,tolerance ) &&
+           AlmostEqualAbsolute ( y,yl,tolerance )) )
     {
       result = true;
     }
@@ -728,19 +749,19 @@ bool checkPoint ( SimpleLine *&route, const Point point,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 0.004 ) &&
+        if ( ( fabs ( k1-k2 ) < 0.004*tolerance/0.01 ) &&
              ( ( xl < xr &&
-                  ( x > xl || fabs ( x-xl ) < 0.01 ) &&
-                  ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+                  ( x > xl || AlmostEqualAbsolute ( x,xl,tolerance )) &&
+                  ( x < xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ||
                ( xl > xr &&
-                  ( x < xl || fabs ( x-xl ) < 0.01 )  &&
-                  ( x > xr || fabs ( x-xr ) < 0.01 ) ) ) &&
-             ( ( ( yl < yr || fabs ( yl-yr ) < 0.01 ) &&
-                  ( y > yl || fabs ( y-yl ) < 0.01 ) &&
-                  ( y < yr || fabs ( y-yr ) < 0.01 ) ) ||
+                  ( x < xl || AlmostEqualAbsolute ( x,xl,tolerance ))  &&
+                  ( x > xr || AlmostEqualAbsolute ( x,xr,tolerance )) ) ) &&
+             ( ( ( yl < yr || AlmostEqualAbsolute ( yl,yr,tolerance )) &&
+                  ( y > yl || AlmostEqualAbsolute ( y,yl,tolerance )) &&
+                  ( y < yr || AlmostEqualAbsolute ( y,yr,tolerance )) ) ||
                ( yl > yr &&
-                  ( y < yl || fabs ( y-yl ) < 0.01 ) &&
-                  ( y > yr || fabs ( y-yr ) < 0.01 ) ) ) )
+                  ( y < yl || AlmostEqualAbsolute ( y,yl,tolerance )) &&
+                  ( y > yr || AlmostEqualAbsolute ( y,yr,tolerance )) ) ) )
         {
           result = true;
         }
@@ -748,13 +769,14 @@ bool checkPoint ( SimpleLine *&route, const Point point,
       }
       else
       {
-        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
-             ( ( ( yl < yr|| fabs ( yl-yr ) < 0.01 ) &&
-                    ( yl < y || fabs ( yl-y ) <0.01 ) &&
-                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) ||
+        if ( ( AlmostEqualAbsolute ( xl, xr,tolerance ) &&
+               AlmostEqualAbsolute ( xl,x, tolerance)) &&
+             ( ( ( yl < yr|| AlmostEqualAbsolute ( yl,yr, tolerance )) &&
+                    ( yl < y || AlmostEqualAbsolute ( yl,y, tolerance ) ) &&
+                    ( y < yr ||AlmostEqualAbsolute ( y,yr, tolerance ) ) ) ||
                  ( yl > yr &&
-                    ( yl > y || fabs ( yl-y ) < 0.01) &&
-                    ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+                    ( yl > y || AlmostEqualAbsolute ( yl,y,tolerance )) &&
+                    ( y > yr || AlmostEqualAbsolute ( y,yr, tolerance ) ) ) ) )
         {
           result = true;
         }
@@ -769,9 +791,9 @@ bool checkPoint ( SimpleLine *&route, const Point point,
       pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
       if ( startSmaller != route->GetStartSmaller() )
         pos = route->Length() - pos;
-      if ( fabs ( pos-0.0 ) < 0.01 )
+      if ( AlmostEqualAbsolute( pos,0.0, tolerance ))
         pos = 0.0;
-      else if ( fabs ( pos-route->Length() ) <0.01 )
+      else if ( AlmostEqualAbsolute ( pos,route->Length(), tolerance ))
         pos = route->Length();
       return result;
 
@@ -875,7 +897,9 @@ class GPointList
         while ( !found && i < xJunctions.size() )
         {
           pCurrJunction = xJunctions[i];
-          if (fabs( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) < 0.01)
+          if (AlmostEqualAbsolute( pCurrJunction.GetRouteMeas(),
+                                   gp->GetPosition(),
+                                   pNetwork->GetScalefactor()*0-01))
           {
             found = true;
             aliasGP.Append ( GPoint( true, gp->GetNetworkId(),
@@ -888,7 +912,9 @@ class GPointList
         while ( found && i < xJunctions.size() )
         {
           pCurrJunction = xJunctions[i];
-          if ( fabs ( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) <0.01 )
+          if ( AlmostEqualAbsolute ( pCurrJunction.GetRouteMeas(),
+                                     gp->GetPosition(),
+                                     pNetwork->GetScalefactor()*0.01))
           {
             aliasGP.Append ( GPoint(true, gp->GetNetworkId(),
                           pCurrJunction.GetOtherRouteId(),
@@ -1059,7 +1085,7 @@ struct RIStack
     first = actElem;
   };
 
-  void StackToGLine ( GLine *gline ) const
+  void StackToGLine ( GLine *gline, const double tolerance ) const
   {
     int actRId = m_iRouteId;
     double actStartPos = m_dStart;
@@ -1068,7 +1094,7 @@ struct RIStack
     while ( actElem != 0 )
     {
       if ( actRId == actElem->m_iRouteId &&
-              AlmostEqual ( actEndPos,actElem->m_dStart ) )
+           AlmostEqualAbsolute ( actEndPos,actElem->m_dStart, tolerance ) )
       {
 
         actEndPos = actElem->m_dEnd;
@@ -2535,6 +2561,7 @@ string Network::distancestorageTypeInfo =
 
 Network::Network() :
     m_iId ( 0 ),
+    m_scalefactor(1.0),
     m_bDefined ( false ),
     m_pRoutes ( 0 ),
     m_pJunctions ( 0 ),
@@ -2565,6 +2592,8 @@ m_reverseSubAdjancencyList(0)
   in_xValueRecord.Read ( &m_iId, sizeof ( int ), inout_iOffset );
   inout_iOffset += sizeof ( int );
 
+  in_xValueRecord.Read ( &m_scalefactor, sizeof ( double ), inout_iOffset );
+  inout_iOffset += sizeof ( double );
   // Open routes
   ListExpr xType;
   nl->ReadFromString ( routesTypeInfo, xType );
@@ -2741,6 +2770,7 @@ Network::Network ( ListExpr in_xValue,
                    ListExpr& inout_xErrorInfo,
                    bool& inout_bCorrect ) :
     m_iId ( 0 ),
+    m_scalefactor(1.0),
     m_bDefined ( false ),
     m_pRoutes ( 0 ),
     m_pJunctions ( 0 ),
@@ -2758,9 +2788,9 @@ Network::Network ( ListExpr in_xValue,
 {
 
   // Check the list
-  if ( ! ( nl->ListLength ( in_xValue ) == 3 ) )
+  if ( ! ( nl->ListLength ( in_xValue ) == 4 ) )
   {
-    string strErrorMessage = "Network(): List length must be 3.";
+    string strErrorMessage = "Network(): List length must be 4.";
     inout_xErrorInfo =
         nl->Append ( inout_xErrorInfo, nl->StringAtom ( strErrorMessage ) );
     inout_bCorrect = false;
@@ -2777,8 +2807,9 @@ Network::Network ( ListExpr in_xValue,
 
   // Split into the three parts
   ListExpr xIdList = nl->First ( in_xValue );
-  ListExpr xRouteList = nl->Second ( in_xValue );
-  ListExpr xJunctionList = nl->Third ( in_xValue );
+  ListExpr xScalList = nl->Second(in_xValue);
+  ListExpr xRouteList = nl->Third ( in_xValue );
+  ListExpr xJunctionList = nl->Fourth ( in_xValue );
   // Sections will be calculated in the load-method
 
   // Read Id
@@ -2792,6 +2823,18 @@ Network::Network ( ListExpr in_xValue,
     return;
   }
   m_iId = nl->IntValue ( xIdList );
+
+  // Read Scalefactor
+  if ( !nl->IsAtom ( xScalList ) ||
+    nl->AtomType ( xScalList ) != RealType )
+  {
+    string strErrorMessage = "Network(): Scalefactor is missing.";
+    inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                    nl->StringAtom ( strErrorMessage ) );
+    inout_bCorrect = false;
+    return;
+  }
+    m_scalefactor = nl->RealValue ( xScalList );
 
   // Create new temporary relations.
   Relation* pRoutes = new Relation ( xRoutesNumType, false );
@@ -2920,6 +2963,7 @@ Network::Network ( ListExpr in_xValue,
   }
 
   Load ( m_iId,
+         m_scalefactor,
          pRoutes,
          pJunctions );
 
@@ -3006,11 +3050,12 @@ Load -- Create a network from two external relations
 
 */
 
-void Network::Load ( int in_iId,
+void Network::Load ( int in_iId, double scale,
                      const Relation* in_pRoutes,
                      const Relation* in_pJunctions )
 {
   m_iId = in_iId;
+  m_scalefactor = scale;
   FillRoutes ( in_pRoutes );
   FillJunctions ( in_pJunctions );
   FillSections();
@@ -3107,10 +3152,12 @@ JUNCTION_ROUTE1_ID );
     assert ( pRoute != 0 );
     SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
     assert ( pLine != 0 );
+    bool startSmaller =
+      ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
     CcReal* pMeas = ( CcReal* ) pNewJunction->GetAttribute (
 JUNCTION_ROUTE1_MEAS );
     Point* pPoint = new Point ( true );
-    pLine->AtPosition ( pMeas->GetRealval(), true, *pPoint );
+    pLine->AtPosition ( pMeas->GetRealval(), startSmaller, *pPoint );
     pNewJunction->PutAttribute ( JUNCTION_POS, pPoint );
 
     pRoute->DeleteIfAllowed();
@@ -3204,7 +3251,7 @@ void Network::FillSections()
   //
   // Iterate over all Routes
   //
-  Tuple* pRoute;
+  Tuple* pRoute = 0;
   TupleId iSectionTid = 0;
   while ( ( pRoute = pRoutesIt->GetNextTuple() ) != 0 )
   {
@@ -3249,12 +3296,14 @@ void Network::FillSections()
         if ( xCurrentEntry.m_bFirstRoute )
         {
           xIndices.push_back ( JUNCTION_SECTION_ADOWN_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
+          xAttrs.push_back ( new TupleIdentifier ( true,
+                                       0));
         }
         else
         {
           xIndices.push_back ( JUNCTION_SECTION_BDOWN_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
+          xAttrs.push_back ( new TupleIdentifier ( true,
+                                         0) );
         }
         m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
                                     xIndices,
@@ -3268,7 +3317,7 @@ void Network::FillSections()
       //
       // Section will only be created if the length is > 0. Otherwise the
       // one before remains valid.
-      if ( dEndPos - dStartPos > 0.01 )
+      if ( !AlmostEqualAbsolute(dEndPos, dStartPos,m_scalefactor*0.01))
       {
         // A sline for the section
         SimpleLine* pLine = new SimpleLine ( 0 );
@@ -3284,7 +3333,7 @@ void Network::FillSections()
 
         // Find out, if the orientation of the subline differs from the position
         // of the line. If so, the direction has to be changed.
-        bool bLineStartsSmaller;
+        /*bool bLineStartsSmaller;
         Point pStartPoint ( true );
         pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
         Point pEndPoint ( true );
@@ -3303,7 +3352,7 @@ void Network::FillSections()
         {
           // Opposite orientation
           bLineStartsSmaller = false;
-        }
+        }*/
 
         // The new section
         Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
@@ -3317,7 +3366,8 @@ void Network::FillSections()
                                     iTupleId ) );
         pNewSection->PutAttribute ( SECTION_CURVE, pLine );
         pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
-                                    new CcBool ( true, bLineStartsSmaller ) );
+                                    new CcBool ( true,
+                                                 pLine->GetStartSmaller()));
         pNewSection->PutAttribute ( SECTION_SID,
                                     new CcInt ( true,
                                                 m_pSections->GetNoTuples()+1 ));
@@ -3347,19 +3397,21 @@ void Network::FillSections()
       m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
                                   xIndices,
                                   xAttrs );
-      if ( pRouteCurve->Length() - xCurrentEntry.GetRouteMeas() < 0.01 )
+      if ( AlmostEqual(pRouteCurve->Length(), xCurrentEntry.GetRouteMeas()))
       {
         vector<int> xIndices;
         vector<Attribute*> xAttrs;
         if ( xCurrentEntry.m_bFirstRoute )
         {
           xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
+          xAttrs.push_back ( new TupleIdentifier ( true,
+                                   0 ) );
         }
         else
         {
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
+          xAttrs.push_back ( new TupleIdentifier ( true,
+                                   0));
         }
         m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
                                     xIndices,
@@ -3375,7 +3427,7 @@ void Network::FillSections()
     // The last section of the route is still missing, if the last
     // junction is not at the end of the route.
     //
-    if ( pRouteCurve->Length() - dCurrentPosOnRoute > 0.01 ||
+    if ( !AlmostEqual(pRouteCurve->Length(), dCurrentPosOnRoute) ||
             dCurrentPosOnRoute == 0.0 )
     {
       // Find values for the new section
@@ -3398,7 +3450,7 @@ void Network::FillSections()
 
       // Find out, if the orientation of the subline differs from the position
       // of the sline. If so, the direction has to be changed.
-      bool bLineStartsSmaller;
+      /*bool bLineStartsSmaller;
       Point pStartPoint ( true );
       pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
       Point pEndPoint ( true );
@@ -3417,7 +3469,7 @@ void Network::FillSections()
       {
         // Opposite orientation
         bLineStartsSmaller = false;
-      }
+      }*/
 
       // Create a new Section
       Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
@@ -3429,7 +3481,7 @@ void Network::FillSections()
                                   new TupleIdentifier ( true, iTupleId ) );
       pNewSection->PutAttribute ( SECTION_CURVE, pLine );
       pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
-                                  new CcBool ( true, bLineStartsSmaller ) );
+                                  new CcBool ( true, pLine->GetStartSmaller()));
       pNewSection->PutAttribute ( SECTION_SID,
                           new CcInt ( true, m_pSections->GetNoTuples() + 1 ) );
       m_pSections->AppendTuple ( pNewSection );
@@ -3483,7 +3535,7 @@ void Network::FillSections()
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
         vector<Attribute*> xAttrs;
-        if ( xEntryBehind.GetRouteMeas() - xEntry.GetRouteMeas() < 0.01 )
+        if ( AlmostEqual(xEntryBehind.GetRouteMeas(), xEntry.GetRouteMeas()))
         {
           // Two junctions at the same place. In this case they do have
           // the same up-pointers
@@ -3534,8 +3586,7 @@ void Network::FillSections()
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
         vector<Attribute*> xAttrs;
-        if ( fabs ( xEntry.GetRouteMeas() - xEntryBehind.GetRouteMeas() )
-              < 0.01)
+        if ( AlmostEqual( xEntry.GetRouteMeas(),xEntryBehind.GetRouteMeas()))
         {
           if ( xEntryBehind.m_bFirstRoute )
           {
@@ -3747,6 +3798,8 @@ void Network::FillAdjacencyLists()
 
   DirectedSectionPair xLastPair;
   int iLow = 0;
+  int iHigh = 0;
+  int iIndex = 0;
   for ( size_t i = 0; i < xList.size(); i++ )
   {
     // Get next
@@ -3755,7 +3808,7 @@ void Network::FillAdjacencyLists()
     {
       // Append new entry to sub-list
       m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
-                                   xPair.m_bSecondUpDown ) );
+                                                     xPair.m_bSecondUpDown ) );
       xLastPair = xPair;
     }
     // Entry in adjacency list if all sections adjacent to one section have
@@ -3771,13 +3824,12 @@ void Network::FillAdjacencyLists()
             )
        )
     {
-      int iHigh = m_xSubAdjacencyList.Size()-1;
-      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid,
-                                             false );
-      int iSectId =
-        ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
-      pSect->DeleteIfAllowed();
-      int iIndex = 2 * ( iSectId-1 );
+      iHigh = m_xSubAdjacencyList.Size()-1;
+      Tuple* sectTup =
+        (Tuple*) m_pSections->GetTuple(xLastPair.m_iFirstSectionTid,false);
+      int sid = ((CcInt*)sectTup->GetAttribute(SECTION_SID))->GetIntval();
+      sectTup->DeleteIfAllowed();
+      iIndex = 2 * ( sid-1 );
       iIndex += xLastPair.m_bFirstUpDown ? 1 : 0;
       m_xAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
       iLow = iHigh + 1;
@@ -3785,8 +3837,7 @@ void Network::FillAdjacencyLists()
 
     // Check if entry allready exists in list. As the list is sorted it
     // has to be the entry before.
-    if ( i == 0 ||
-            xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+    if (    xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
             xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
             xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
             xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown )
@@ -3809,6 +3860,8 @@ void Network::FillAdjacencyLists()
 
   DirectedSectionPair xLastReversePair;
   iLow = 0;
+  iHigh = 0;
+  iIndex = 0;
   for ( size_t i = 0; i < xReverseList.size(); i++ )
   {
     // Get next
@@ -3837,13 +3890,13 @@ void Network::FillAdjacencyLists()
       )
     )
     {
-      int iHigh = m_reverseSubAdjancencyList.Size()-1;
-      Tuple *pSect =
-        m_pSections->GetTuple ( xLastReversePair.m_iFirstSectionTid, false );
-      int iSectId =
-      ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
-      pSect->DeleteIfAllowed();
-      int iIndex = 2 * ( iSectId-1 );
+      iHigh = m_reverseSubAdjancencyList.Size()-1;
+      Tuple* sectTup =
+        (Tuple*)m_pSections->GetTuple(xLastReversePair.m_iFirstSectionTid,
+                                      false);
+      int sid = ((CcInt*)sectTup->GetAttribute(SECTION_SID))->GetIntval();
+      sectTup->DeleteIfAllowed();
+      iIndex = 2 * ( sid-1 );
       iIndex += xLastReversePair.m_bFirstUpDown ? 1 : 0;
       m_reverseAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
       iLow = iHigh + 1;
@@ -3851,12 +3904,11 @@ void Network::FillAdjacencyLists()
 
     // Check if entry allready exists in list. As the list is sorted it
     // has to be the entry before.
-    if ( i == 0 ||
-      xLastReversePair.m_iFirstSectionTid != xReversePair.m_iFirstSectionTid ||
-      xLastReversePair.m_bFirstUpDown != xReversePair.m_bFirstUpDown ||
-      xLastReversePair.m_iSecondSectionTid !=
-        xReversePair.m_iSecondSectionTid ||
-      xLastReversePair.m_bSecondUpDown != xReversePair.m_bSecondUpDown )
+    if(xLastReversePair.m_iFirstSectionTid != xReversePair.m_iFirstSectionTid ||
+       xLastReversePair.m_bFirstUpDown != xReversePair.m_bFirstUpDown ||
+       xLastReversePair.m_iSecondSectionTid !=
+         xReversePair.m_iSecondSectionTid ||
+       xLastReversePair.m_bSecondUpDown != xReversePair.m_bSecondUpDown )
     {
       // Append new entry to sub-list
       m_reverseSubAdjancencyList.Append (
@@ -3883,8 +3935,8 @@ void Network::FillAdjacencyPair ( const TupleId in_pFirstSection,
                                   vector<DirectedSectionPair> &inout_xPairs )
 {
   if ( in_pFirstSection != 0 &&
-          in_pSecondSection != 0 &&
-          in_xCc.IsPossible ( in_xTransition ) )
+    in_pSecondSection != 0 &&
+       in_xCc.IsPossible ( in_xTransition ) )
   {
     inout_xPairs.push_back ( DirectedSectionPair ( in_pFirstSection,
                              in_bFirstUp,
@@ -3902,8 +3954,8 @@ void Network::FillReverseAdjacencyPair ( const TupleId in_pFirstSection,
                                   vector<DirectedSectionPair> &inout_xPairs )
 {
   if ( in_pFirstSection != 0 &&
-    in_pSecondSection != 0 &&
-    in_xCc.IsPossible ( in_xTransition ) )
+       in_pSecondSection != 0 &&
+       in_xCc.IsPossible ( in_xTransition ) )
   {
     inout_xPairs.push_back ( DirectedSectionPair ( in_pSecondSection,
                                                    in_bSecondUp,
@@ -3970,24 +4022,24 @@ bool Network::InShortestPath ( GPoint*start, GPoint *to,
     Tuple* t = juns[i].m_pJunction;
     if ( ( ( CcInt* ) t->GetAttribute ( JUNCTION_ROUTE1_ID ) )->GetIntval() ==
             end->GetRouteId() &&
-            fabs ( ( ( CcReal* ) t->GetAttribute ( JUNCTION_ROUTE1_MEAS )
-)->GetRealval()-
-                   end->GetPosition() ) < 0.1 )
+            AlmostEqualAbsolute (
+              ((CcReal*)t->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval(),
+              end->GetPosition(), 0.1*m_scalefactor))
       junctionpoint = true;
     if ( ( ( CcInt* ) t->GetAttribute ( JUNCTION_ROUTE2_ID ) )->GetIntval() ==
             end->GetRouteId() &&
-            fabs ( ( ( CcReal* ) t->GetAttribute ( JUNCTION_ROUTE2_MEAS )
-)->GetRealval()-
-                   end->GetPosition() ) < 0.1 )
+            AlmostEqualAbsolute (
+              ((CcReal*)t->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval(),
+              end->GetPosition(), 0.1*m_scalefactor))
       junctionpoint = true;
   }
   vector<TupleId> secjunid;
   if ( junctionpoint )  //it is a junction point
   {
     vector<DirectedSection> sectionlist;
-    if ( fabs ( end->GetPosition()-
-                ( ( CcReal* ) endSection->GetAttribute ( SECTION_MEAS1 )
-)->GetRealval() ) < 0.1 )
+    if ( AlmostEqualAbsolute( end->GetPosition(),
+             ((CcReal*)endSection->GetAttribute(SECTION_MEAS1))->GetRealval(),
+             0.1*m_scalefactor))
       GetAdjacentSections ( endSection->GetTupleId(),false,sectionlist );
     else
       GetAdjacentSections ( endSection->GetTupleId(),true,sectionlist );
@@ -4020,11 +4072,9 @@ bool Network::InShortestPath ( GPoint*start, GPoint *to,
     PrioQueue *prioQ = new PrioQueue ( 0 );
     SectIDTree *visitedSect = 0;
     double sectMeas1 =
-        ( ( CcReal* ) startSection->GetAttribute ( SECTION_MEAS1 )
-)->GetRealval();
+      ((CcReal*)startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
     double sectMeas2 =
-        ( ( CcReal* ) startSection->GetAttribute ( SECTION_MEAS2 )
-)->GetRealval();
+      ((CcReal*)startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
     double dist = 0.0;
     vector<DirectedSection> adjSectionList;
     adjSectionList.clear();
@@ -4138,11 +4188,9 @@ bool Network::InShortestPath ( GPoint*start, GPoint *to,
       actPQEntry = prioQ->GetAndDeleteMin ( visitedSect );
       Tuple *actSection = GetSection ( actPQEntry->sectID );
       sectMeas1 =
-          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS1 )
-)->GetRealval();
+        ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
       sectMeas2 =
-          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS2 )
-)->GetRealval();
+        ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
       dist = actPQEntry->distFromStart + fabs ( sectMeas2 - sectMeas1 );
 
 //////////////////////////////////////
@@ -4155,11 +4203,9 @@ bool Network::InShortestPath ( GPoint*start, GPoint *to,
             lastSectTID = actPQEntry->sectID;
             Tuple* sect = GetSection ( lastSectTID );
             double m1 =
-                ( ( CcReal* ) sect->GetAttribute ( SECTION_MEAS1 )
-)->GetRealval();
+              ((CcReal*)sect->GetAttribute(SECTION_MEAS1))->GetRealval();
             double m2 =
-                ( ( CcReal* ) sect->GetAttribute ( SECTION_MEAS2 )
-)->GetRealval();
+              ((CcReal*)sect->GetAttribute(SECTION_MEAS2))->GetRealval();
             if ( actPQEntry->upDownFlag )
             {
               GPoint* temp = new GPoint ( true,end->GetNetworkId(),
@@ -4390,8 +4436,9 @@ void Network::FillDistanceStorage()
       Side side = None;
       Point* p1 = ( Point* ) jun1->GetAttribute ( JUNCTION_POS );
       Point* p2 = ( Point* ) jun2->GetAttribute ( JUNCTION_POS );
-      if ( fabs ( p1->GetX()-p2->GetX() ) < 0.1 &&
-              fabs ( p1->GetY()-p2->GetY() ) < 0.1 ) //different junction point
+      if ( AlmostEqualAbsolute( p1->GetX(),p2->GetX(),0.1*m_scalefactor) &&
+           AlmostEqualAbsolute( p1->GetY(),p2->GetY(),0.1*m_scalefactor))
+            //same junction point
         continue;
       GPoint* gp1 = new GPoint ( true,GetId(),rid1,pos1,side );
       GPoint* gp2 = new GPoint ( true,GetId(),rid2,pos2,side );
@@ -4508,7 +4555,8 @@ TupleId Network::GetTupleIdSectionOnRoute ( const GPoint* in_xGPoint )const
       }
       else
       {
-        if ( fabs ( in_xGPoint->GetPosition() - start ) <= 0.01 )
+        if ( AlmostEqualAbsolute( in_xGPoint->GetPosition(), start,
+                                  m_scalefactor*0.01))
         {
           delete pSectionIter;
           actSect->DeleteIfAllowed();
@@ -4516,13 +4564,15 @@ TupleId Network::GetTupleIdSectionOnRoute ( const GPoint* in_xGPoint )const
         }
         else
         {
-          if ( fabs ( in_xGPoint->GetPosition() - end ) <= 0.01 )
+          if ( AlmostEqualAbsolute( in_xGPoint->GetPosition(), end,
+                                    m_scalefactor*0.01 ))
           {
             Tuple *pRoute =
              GetRoute(((TupleIdentifier*)
               actSect->GetAttribute(SECTION_RRC))->GetTid());
-            if (fabs(((CcReal*)pRoute->GetAttribute(ROUTE_LENGTH))->GetRealval()
-                        - end ) <= 0.01 )
+            if (AlmostEqualAbsolute(
+                  ((CcReal*)pRoute->GetAttribute(ROUTE_LENGTH))->GetRealval(),
+                    end, m_scalefactor*0.01 ))
             {
               pRoute->DeleteIfAllowed();
               delete pSectionIter;
@@ -4598,12 +4648,12 @@ void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
           ( start <= ristart && end >= ristart ) ||
           ( start <= riend && end >= riend ))
     {
-      if (start < ristart && fabs(start - ristart) > 0.01)
+      if (start < ristart)
       {
         start = ristart;
         bsectstart = false;
       }
-      if (riend < end && fabs(end - riend) > 0.01)
+      if (riend < end)
       {
         end = riend;
         bsectend = false;
@@ -4643,9 +4693,9 @@ void Network::GetSectionsOfRoutInterval ( const RouteInterval *ri,
         ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
     double end =
         ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS2 ) )->GetRealval();
-    if ( fabs ( ristart - riend ) <= 0.01 &&
-            ( fabs ( ristart - start ) <= 0.01 || fabs ( ristart - end ) <= 0.01
-) )
+    if ( AlmostEqualAbsolute ( ristart, riend, m_scalefactor*0.01 ) &&
+      ( AlmostEqualAbsolute ( ristart, start, m_scalefactor*0.01 ) ||
+              AlmostEqualAbsolute ( ristart, end, m_scalefactor*0.01)))
     {
       res.push_back ( actSectTID );
       actSect->DeleteIfAllowed();
@@ -4656,8 +4706,8 @@ void Network::GetSectionsOfRoutInterval ( const RouteInterval *ri,
       if ( ( ( ristart <= start && end <= riend ) ||
               ( start <= ristart && end > ristart ) ||
               ( start < riend && riend <= end ) ) &&
-              ( ! ( fabs ( ristart - end ) <= 0.01 || fabs ( start - riend ) <=
-0.01 ) ) )
+            (!( AlmostEqualAbsolute ( ristart, end, m_scalefactor*0.01 ) ||
+                AlmostEqualAbsolute (start, riend, m_scalefactor*0.01 ))))
         res.push_back ( actSectTID );
     }
     actSect->DeleteIfAllowed();
@@ -4680,8 +4730,10 @@ void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )const
     pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId(), false );
   assert ( pRoute != 0 );
   SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+  bool startSmaller =
+    ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
   assert ( pLine != 0 );
-  pLine->AtPosition ( in_pGPoint->GetPosition(),pLine->StartsSmaller(), *res );
+  pLine->AtPosition ( in_pGPoint->GetPosition(), startSmaller, *res );
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
   /*return res;*/
@@ -4865,8 +4917,8 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
                                   Point p2 )const
 {
   if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
-  double difference;
-  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), end - 0.01 );
+  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(),
+                            end - m_scalefactor*0.01 );
   TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
   gp->DeleteIfAllowed();
   vector<DirectedSection> pAdjSect1;
@@ -4897,8 +4949,14 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
         Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
             ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        bool startSmaller =
+          ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+        /*
         if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
                 ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {*/
+        if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01, dpos, 0) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01, dpos2, 0))
         {
           pAdjSect1.clear();
           pAdjSect2.clear();
@@ -4926,8 +4984,13 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
         Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
             ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        bool startSmaller =
+            ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+        /*
         if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+        if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01,dpos, 0) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2, 0))
         {
           pAdjSect2.clear();
           chkStartEndA ( dpos, dpos2 );
@@ -4948,13 +5011,17 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
                                    int &rid, int &ridt, Point p1,
                                    Point p2 )const
 {
-  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
+  if ( AlmostEqualAbsolute ( p1.Distance ( p2 ), fabs ( end-start),
+                             m_scalefactor*0.01) )
+    return false;
   double difference = 0.0;
-  if ( start < end && end > 0.01 ) difference = end - 0.01;
+  if ( start < end && end > m_scalefactor*0.01 )
+    difference = end -m_scalefactor*0.01;
   else
-    if ( start < end && end <= 0.01 ) difference = 0.01;
+    if ( start < end && end <= m_scalefactor*0.01 )
+      difference = m_scalefactor*0.01;
     else
-      if ( start > end ) difference = end + 0.01;
+      if ( start > end ) difference = end + m_scalefactor*0.01;
       else difference = end; //start == end
   GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), difference );
   TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
@@ -4987,8 +5054,12 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
         Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
             ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        bool startSmaller =
+          ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+        /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2))
         {
           pAdjSect1.clear();
           pAdjSect2.clear();
@@ -5015,8 +5086,12 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
         Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
             ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        bool startSmaller =
+          ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+        /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2))
         {
           pAdjSect2.clear();
           pRoute->DeleteIfAllowed();
@@ -5071,7 +5146,7 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
   GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
   assert ( gpp1->IsDefined() && gpp2->IsDefined() );
   int rid, ridt;
-  double start, end, dpos, dpos2, difference;
+  double start, end, dpos, dpos2;
   if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
   {
     rid = gpp1->GetRouteId();
@@ -5100,7 +5175,10 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
     Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
     SimpleLine *pCurve =
         ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    bool startSmaller =
+      ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+    //if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    if (pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5126,7 +5204,10 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
     pRoute->DeleteIfAllowed();
     pRoute = GetRoute ( gpp2->GetRouteId() );
     pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+    startSmaller =
+      ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+    //if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+      if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01,dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5168,8 +5249,12 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
       pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      startSmaller =
+        ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+      /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
+        pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5206,8 +5291,12 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
       pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      startSmaller =
+            ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+      /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
+        pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5251,7 +5340,7 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
   GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
   assert ( gpp1->IsDefined() && gpp2->IsDefined() );
   int rid, ridt;
-  double start, end, dpos, dpos2, difference;
+  double start, end, dpos, dpos2;
   if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
   {
     rid = gpp1->GetRouteId();
@@ -5279,7 +5368,10 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
     Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
     SimpleLine *pCurve =
         ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    bool startSmaller =
+      ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+    //if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+      if (pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5304,7 +5396,10 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
     pRoute->DeleteIfAllowed();
     pRoute = GetRoute ( gpp2->GetRouteId() );
     pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+    startSmaller =
+        ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+    //if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5344,8 +5439,12 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
       pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      startSmaller =
+        ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+      /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
+        pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5380,8 +5479,12 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
       pCurrSect->DeleteIfAllowed();
       pRoute = GetRoute ( rid );
       pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
-      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
-              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      startSmaller =
+        ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+      /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
+      if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01,dpos) &&
+        pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5442,7 +5545,8 @@ void Network::GetTupleIdSectionOnRouteJun(const GPoint* in_xGPoint,
       }
       else
       {
-        if ( fabs ( in_xGPoint->GetPosition() - start ) <= 0.01 )
+        if ( AlmostEqualAbsolute ( in_xGPoint->GetPosition(), start,
+                                    m_scalefactor*0.01 ))
         {
 //          delete pSectionIter;
 //          actSect->DeleteIfAllowed();
@@ -5451,13 +5555,14 @@ void Network::GetTupleIdSectionOnRouteJun(const GPoint* in_xGPoint,
         }
         else
         {
-          if ( fabs ( in_xGPoint->GetPosition() - end ) <= 0.01 )
+          if ( AlmostEqualAbsolute ( in_xGPoint->GetPosition(), end,
+                                      m_scalefactor*0.01))
           {
            Tuple *pRoute = GetRoute(((TupleIdentifier* )
                           actSect->GetAttribute ( SECTION_RRC ))->GetTid() );
-            if ( fabs ( ( ( CcReal* )
-                          pRoute->GetAttribute ( ROUTE_LENGTH ) )->GetRealval()
-                        - end ) <= 0.01 )
+            if ( AlmostEqualAbsolute(
+                ((CcReal*)pRoute->GetAttribute ( ROUTE_LENGTH ) )->GetRealval(),
+                                     end, m_scalefactor*0.01 ))
             {
  //             pRoute->DeleteIfAllowed();
 //              delete pSectionIter;
@@ -5591,7 +5696,8 @@ ROUTE_STARTSSMALLER );
 
   delete pJunctionsIter;
 
-  return nl->ThreeElemList ( nl->IntAtom ( m_iId ),
+  return nl->FourElemList ( nl->IntAtom ( m_iId ),
+                             nl->RealAtom(m_scalefactor),
                              xRoutes,
                              xJunctions );
 }
@@ -5613,6 +5719,12 @@ ListExpr Network::Save ( SmiRecord& in_xValueRecord,
                           inout_iOffset );
   inout_iOffset += sizeof ( int );
 
+  // Save scalefactor of the network
+  double iScale = m_scalefactor;
+  in_xValueRecord.Write ( &iScale,
+                          sizeof ( double ),
+                          inout_iOffset );
+  inout_iOffset += sizeof ( double );
   // Save routes
   ListExpr xType;
   nl->ReadFromString ( routesTypeInfo, xType );
@@ -5862,14 +5974,14 @@ int Network::IsDefined() const
   return m_bDefined;
 }
 
-GPoint* Network::GetNetworkPosOfPoint ( const Point p ) const
+GPoint* Network::GetNetworkPosOfPoint(const Point p) const
 {
   const Rectangle<2> orig = p.BoundingBox();
   const Rectangle<2> bbox = Rectangle<2> ( true,
-                            orig.MinD ( 0 ) - 1.0,
-                            orig.MaxD ( 0 ) + 1.0,
-                            orig.MinD ( 1 ) - 1.0,
-                            orig.MaxD ( 1 ) + 1.0 );
+                            orig.MinD ( 0 ) - 1.0*m_scalefactor,
+                            orig.MaxD ( 0 ) + 1.0*m_scalefactor,
+                            orig.MinD ( 1 ) - 1.0*m_scalefactor,
+                            orig.MaxD ( 1 ) + 1.0*m_scalefactor);
   R_TreeLeafEntry<2,TupleId> res;
   Tuple *pCurrRoute = 0;
   if ( m_pRTreeRoutes->First ( bbox, res ) )
@@ -5879,114 +5991,79 @@ GPoint* Network::GetNetworkPosOfPoint ( const Point p ) const
   }
   else
   {
-    GPoint *result = new GPoint ( true );
-    pCurrRoute->DeleteIfAllowed();
+    GPoint *result = new GPoint ( false );
     return result;
   }
-  double dpos, difference;
-  SimpleLine* pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute (
-ROUTE_CURVE );
-  if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+  double dpos, mindiff, difference;
+  mindiff = numeric_limits<double>::max();
+  int minrid;
+  SimpleLine* pRouteCurve =
+    ( SimpleLine* ) pCurrRoute->GetAttribute (ROUTE_CURVE );
+  bool startSmaller =
+    ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+  int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+  /*if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )*/
+  if (pRouteCurve->AtPoint(p, startSmaller,m_scalefactor*0.01, dpos))
   {
-    int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
     GPoint *result = new GPoint ( true, GetId(), rid, dpos, None );
     pCurrRoute->DeleteIfAllowed();
     return result;
   }
   else
   {
+    minrid = rid;
+    mindiff = pRouteCurve->Distance(p,0);
     pCurrRoute->DeleteIfAllowed();
+    pCurrRoute = 0;
     while ( m_pRTreeRoutes->Next ( res ) )
     {
       pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
       pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-      if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+      startSmaller =
+        ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+      rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+      //if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+      if (pRouteCurve->AtPoint(p, startSmaller,m_scalefactor*0.01, dpos))
       {
-        int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
         GPoint *result = new GPoint ( true, GetId(),
                                       rid,
                                       dpos, None );
         pCurrRoute->DeleteIfAllowed();
         return result;
       }
+      difference = pRouteCurve->Distance(p,0);
+      if (difference < mindiff)
+      {
+        mindiff = difference;
+        minrid = rid;
+      }
       pCurrRoute->DeleteIfAllowed();
+      pCurrRoute = 0;
     }
 /*
-If the point exact hits a route the route should be found here. If the point
-value is not exact on the route curve we try to map it in the next step with
-bigger tolerance for the hit of the route curve.
+If no exact match route has been found map to the route nearest to the point.
+At the place nearest to the point.
 
 */
-    if ( m_pRTreeRoutes->First ( bbox, res ) )
-      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
+    pCurrRoute = GetRoute(minrid);
     pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-    if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+    startSmaller =
+        ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+        if (lastchkPoint03(pRouteCurve, p, startSmaller, m_scalefactor*0.01,
+                           dpos, difference))
     {
-      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
       GPoint *result = new GPoint ( true, GetId(),
-                                    rid,
+                                    minrid,
                                     dpos, None );
       pCurrRoute->DeleteIfAllowed();
       return result;
     }
-    else
+    GPoint *result = new GPoint ( false );
+    if (pCurrRoute != 0)
     {
       pCurrRoute->DeleteIfAllowed();
-      while ( m_pRTreeRoutes->Next ( res ) )
-      {
-        pCurrRoute = m_pRoutes->GetTuple ( res.info , false);
-        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-        if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-        {
-          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-          GPoint *result = new GPoint ( true, GetId(),
-                                        rid,
-                                        dpos, None );
-          pCurrRoute->DeleteIfAllowed();
-          return result;
-        }
-        pCurrRoute->DeleteIfAllowed();
-      }
+      pCurrRoute = 0;
     }
-
-    if ( m_pRTreeRoutes->First ( bbox, res ) )
-      pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-    if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-    {
-      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-      GPoint *result = new GPoint ( true, GetId(),
-                                    rid,
-                                    dpos, None );
-      pCurrRoute->DeleteIfAllowed();
-      return result;
-    }
-    else
-    {
-      pCurrRoute->DeleteIfAllowed();
-      while ( m_pRTreeRoutes->Next ( res ) )
-      {
-        pCurrRoute = m_pRoutes->GetTuple ( res.info, false );
-        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
-        if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
-        {
-          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
-)->GetIntval();
-          GPoint *result = new GPoint ( true, GetId(),
-                                        rid,
-                                        dpos, None );
-          pCurrRoute->DeleteIfAllowed();
-          return result;
-        }
-        pCurrRoute->DeleteIfAllowed();
-      }
-    } // should not be reached
-    GPoint *result = new GPoint ( true );
-    pCurrRoute->DeleteIfAllowed();
     return result;
   }
 }
@@ -6630,7 +6707,7 @@ bool GLine::operator== ( const GLine& l ) const
   {
     RouteInterval rIt, rIl;
     if ( m_xRouteIntervals.Size() == l.m_xRouteIntervals.Size() &&
-            AlmostEqual ( m_dLength, l.m_dLength ) )
+      AlmostEqual ( m_dLength, l.m_dLength ) )
     {
       if ( m_bSorted && l.m_bSorted )
       {
@@ -6813,7 +6890,7 @@ bool GLine::ShortestPathAStar(const GPoint *to, GLine *result,
     return false;
   }
   result->SetNetworkId(pNetwork->GetId());
-  if (to->Inside(this))
+  if (to->Inside(this, pNetwork->GetScalefactor()*0.01))
   {
     result->SetDefined(true);
     return true;
@@ -6916,7 +6993,7 @@ double GLine::NetdistanceNew(const GPoint* pgl2, const Network* pNetwork) const
   if (!IsDefined() || !pgl2->IsDefined() ||
       NoOfComponents() < 1 || GetNetworkId() != pgl2->GetNetworkId() )
     return res;
-  if (pgl2->Inside(this)) return 0.0;
+  if (pgl2->Inside(this,pNetwork->GetScalefactor()*0.01)) return 0.0;
   GPoints *bGPgl1 = new GPoints(true);
   GetBGP(pNetwork,bGPgl1);
   GPoints *bGPgl2 = new GPoints(true);
@@ -7357,7 +7434,7 @@ void GLine::Gline2line ( Line* res )const
   res->TrimToSize();
 }
 
-bool GLine::Intersects (const RouteInterval* ri)const
+bool GLine::Intersects (const RouteInterval* ri, const double tolerance)const
 {
   if (IsSorted())
   {
@@ -7369,7 +7446,7 @@ bool GLine::Intersects (const RouteInterval* ri)const
     for (int i = 0; i < NoOfComponents(); i++)
     {
       Get(i,rigl);
-      if (ri->Intersects(&rigl)) return true;
+      if (ri->Intersects(&rigl, tolerance)) return true;
     }
   }
   return false;
@@ -7467,7 +7544,7 @@ bool GLine::Includes(const GPoints* gps, const Network* pNetwork) const
     GPoint test = aliasGPoints->NextGPoint();
     while (test.IsDefined() && !res)
     {
-      if (test.Inside(this)) res = true;
+      if (test.Inside(this, pNetwork->GetScalefactor()*0.01)) res = true;
       test = aliasGPoints->NextGPoint();
     }
     aliasGPoints->Destroy();
@@ -7551,7 +7628,7 @@ Word GPoint::InGPoint ( const ListExpr typeInfo,
       return SetWord ( gp );
     }
   }
-  if (listutils::isSymbol( instance, "undef" ))
+  if (nl->IsEqual(instance, Symbol::UNDEFINED() ))
   {
     correct = true;
     return SetWord ( new GPoint(false));
@@ -7573,7 +7650,7 @@ ListExpr GPoint::OutGPoint ( ListExpr typeInfo, Word value )
                nl->RealAtom ( gp->GetPosition() ),
                nl->IntAtom ( gp->GetSide() ) );
   }
-  return nl->SymbolAtom ( "undef" );
+  return nl->SymbolAtom ( Symbol::UNDEFINED());
 }
 
 Word GPoint::CreateGPoint ( const ListExpr typeInfo )
@@ -7689,7 +7766,7 @@ double GPoint::NetdistanceNew (const GLine* toGLine, const Network* pNetwork)
   if (!IsDefined() || !toGLine->IsDefined() || toGLine->NoOfComponents() < 1 ||
       GetNetworkId() != toGLine->GetNetworkId())
     return res;
-  if (Inside(toGLine)) return 0.0;
+  if (Inside(toGLine, pNetwork->GetScalefactor()*0.01)) return 0.0;
   GLine *path = new GLine(0);
   if (ShortestPathAStar(toGLine,path,pNetwork,0))
     res = path->GetLength();
@@ -7756,14 +7833,15 @@ double GPoint::Distance ( const GPoint* pToGPoint ) const
 Returns true if the gpoint is inside the gline false elsewhere.
 
 */
-bool GPoint::Inside (const  GLine *gl )const
+bool GPoint::Inside (const  GLine *gl, const double tolerance )const
 {
   if ( ! ( gl->IsDefined() ) || !IsDefined() ||
           gl->NoOfComponents() < 1 ) return false;
   if ( GetNetworkId() != gl->GetNetworkId() ) return false;
   RouteInterval pCurrRInter;
   if ( gl->IsSorted() )
-    return ( searchRouteInterval ( this, gl, 0, gl->NoOfComponents()-1 ) );
+    return ( searchRouteInterval ( this, gl, tolerance, 0,
+                                   gl->NoOfComponents()-1 ) );
   else
   {
     int i = 0;
@@ -7772,15 +7850,17 @@ bool GPoint::Inside (const  GLine *gl )const
       gl->Get ( i, pCurrRInter );
       if ( pCurrRInter.GetRouteId() == GetRouteId() )
       {
-        if ( pCurrRInter.GetStartPos() < GetPosition() &&
-                GetPosition() < pCurrRInter.GetEndPos() )
+        if ( pCurrRInter.GetStartPos() <= GetPosition() &&
+                GetPosition() <= pCurrRInter.GetEndPos() )
           return true;
-        if ( pCurrRInter.GetStartPos() > GetPosition() &&
-                GetPosition() > pCurrRInter.GetEndPos() )
+        if ( pCurrRInter.GetStartPos() >= GetPosition() &&
+                GetPosition() >= pCurrRInter.GetEndPos() )
           return true;
-        if ( fabs ( pCurrRInter.GetStartPos() - GetPosition() ) < 0.1 )
+        if ( AlmostEqualAbsolute(pCurrRInter.GetStartPos(), GetPosition(),
+                                 tolerance))
           return true;
-        if ( fabs ( pCurrRInter.GetEndPos() - GetPosition() ) < 0.1 )
+        if ( AlmostEqualAbsolute( pCurrRInter.GetEndPos(), GetPosition(),
+                                  tolerance ))
           return true;
       }
       i++;
@@ -8153,7 +8233,9 @@ stack to turn in right order.
       bool end = false;
       bool upDown;
       //   if (startRI >= endRI) upDown = false;
-      if ( startRI > endRI || fabs ( startRI-endRI ) < 0.1 ) upDown = false;
+      if ( startRI > endRI ||
+           AlmostEqualAbsolute( startRI,endRI, pNetwork->GetScalefactor()*0.01))
+        upDown = false;
       else upDown = true;
       while ( !end && pElem > -1 && pElem < visitedSect->fFree)
       {
@@ -8255,7 +8337,7 @@ stack to turn in right order.
       return false;
     if (GetNetworkId() != ziel->GetNetworkId()) return false;
     result->SetNetworkId(GetNetworkId());
-    if (Inside(ziel))return true;
+    if (Inside(ziel,pNetwork->GetScalefactor()*0.01))return true;
     GPoints* start = new GPoints(1);
     start->MergeAdd(*this,pNetwork);
     GPoints* target = new GPoints(0);
@@ -9300,11 +9382,13 @@ void GLine::GetBGP(const Network* pNetwork, GPoints* result)const
             RouteInterval* pri =
               new RouteInterval(
               ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
-          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval()+1.0,
-          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval()-1.0);
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval() +
+              1.0*pNetwork->GetScalefactor(),
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval() -
+              1.0*pNetwork->GetScalefactor());
             actSection->DeleteIfAllowed();
             actSection = 0;
-            if (!Intersects(pri))
+            if (!Intersects(pri, pNetwork->GetScalefactor()*0.01))
             {
               result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
                                       nEntry.start),
@@ -9338,11 +9422,13 @@ void GLine::GetBGP(const Network* pNetwork, GPoints* result)const
             RouteInterval* pri1 =
               new RouteInterval(
                 ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval(),
-          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval()+1.0,
-          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval()-1.0);
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS1))->GetRealval() +
+              1.0 *pNetwork->GetScalefactor(),
+          ((CcReal*)actSection->GetAttribute(SECTION_MEAS2))->GetRealval() -
+              1.0*pNetwork->GetScalefactor());
             actSection->DeleteIfAllowed();
             actSection = 0;
-            if (!Intersects(pri1))
+            if (!Intersects(pri1, pNetwork->GetScalefactor()*0.01))
             {
               result->MergeAdd(GPoint(true, GetNetworkId(), nEntry.rid,
                                       nEntry.end),
@@ -9364,11 +9450,11 @@ void GLine::GetBGP(const Network* pNetwork, GPoints* result)const
   }
 };
 
-bool GLine::Contains(const RouteInterval* ri)const
+bool GLine::Contains(const RouteInterval* ri, const double tolerance)const
 {
   if (IsSorted())
   {
-    return searchRouteInterval(ri, this, 0, NoOfComponents()-1);
+    return searchRouteInterval(ri, this,tolerance, 0, NoOfComponents()-1);
   }
   else
   {
@@ -9376,7 +9462,7 @@ bool GLine::Contains(const RouteInterval* ri)const
     for (int i = 0; i < NoOfComponents(); i++)
     {
       Get(i,rigl);
-      if (rigl.Contains(ri)) return true;
+      if (rigl.Contains(ri, tolerance)) return true;
     }
   }
   return false;
@@ -9463,14 +9549,18 @@ bool GPoints::IsEmpty() const
 }
 ostream& GPoints::Print ( ostream& os ) const
 {
-  for ( int i = 0;i < m_xGPoints.Size();i++ )
+  if (IsDefined())
   {
-    GPoint pGP;
-    m_xGPoints.Get ( i,pGP );
-    os<<"GPoint:"<<i<<" rid "<<pGP.GetRouteId();
-    os<<" Position "<<pGP.GetPosition();
-    os<<" Side "<< ( int ) pGP.GetSide() <<endl;
+    for ( int i = 0;i < m_xGPoints.Size();i++ )
+    {
+      GPoint pGP;
+      m_xGPoints.Get ( i,pGP );
+      os<<"GPoint "<< i <<": ";
+      pGP.Print(os);
+      os << endl;
+    }
   }
+  else os << "not defined." << endl;
   return os;
 }
 
@@ -9652,7 +9742,6 @@ bool GPoints::ShortestPathAStar(const GPoints* bgp, GLine* res,
     res->SetNetworkId(pNetwork->GetId());
     return true;
   }
-
   DbArray<GPointsSections>* startSections = new DbArray<GPointsSections>(0);
   DbArray<GPointsSections>* endSections = new DbArray<GPointsSections>(0);
   GetSectionTupleIds(startSections,pNetwork);
@@ -9987,8 +10076,10 @@ Use priorityQueue to find shortestPath.
       {
         end = true;
         startSections->Get(firstSectPos,source);
-        if (!(Contains(GPoint(pNetwork->GetId(), actRouteId, sectMeas1, 2)) &&
-              Contains(GPoint(pNetwork->GetId(), actRouteId, sectMeas2, 2))))
+        if (!(Contains(GPoint(pNetwork->GetId(), actRouteId, sectMeas1, 2),
+                       pNetwork) &&
+              Contains(GPoint(pNetwork->GetId(), actRouteId, sectMeas2, 2),
+                       pNetwork)))
         {
           if (upDown)
             riStack->Push ( actRouteId, source.GetGP().GetPosition(),
@@ -9998,6 +10089,22 @@ Use priorityQueue to find shortestPath.
                                   sectMeas1);
         }
       }
+    }
+    else
+    {
+      actSection->DeleteIfAllowed();
+      startSections->Destroy();
+      endSections->Destroy();
+      delete startSections;
+      delete endSections;
+      endPoints->Destroy();
+      delete endPoints;
+      prioQ->Destroy();
+      delete prioQ;
+      visitedSect->Destroy();
+      delete visitedSect;
+      res->SetDefined(false);
+      return false;
     }
   }
   // Cleanup and return result
@@ -10027,7 +10134,7 @@ Use priorityQueue to find shortestPath.
   res->SetSorted ( false );
   res->SetDefined ( found);
   res->TrimToSize();
-  return found;
+  return true;
 }
 
 bool GPoints::ShortestPathAStar(const GPoint* gp, GLine* res,
@@ -10714,7 +10821,7 @@ int OpInsideValueMap ( Word* args, Word& result, int message,
   {
     pResult->Set ( false, false );
   }
-  pResult->Set ( true, pGPoint->Inside ( pGLine ) );
+  pResult->Set ( true, pGPoint->Inside ( pGLine ,0.0) );
   return 0;
 }
 
@@ -11203,14 +11310,20 @@ relations.
 */
 ListExpr OpNetworkTheNetworkTypeMap ( ListExpr in_xArgs )
 {
-  if ( nl->ListLength ( in_xArgs ) != 3 )
+  if ( nl->ListLength ( in_xArgs ) != 4 )
     return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
 
   ListExpr xIdDesc = nl->First ( in_xArgs );
-  ListExpr xRoutesRelDesc = nl->Second ( in_xArgs );
-  ListExpr xJunctionsRelDesc = nl->Third ( in_xArgs );
+  ListExpr xScaleDesc = nl->Second(in_xArgs);
+  ListExpr xRoutesRelDesc = nl->Third ( in_xArgs );
+  ListExpr xJunctionsRelDesc = nl->Fourth ( in_xArgs );
 
   if ( !nl->IsEqual ( xIdDesc, CcInt::BasicType() ) )
+  {
+    return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
+  }
+
+  if ( !nl->IsEqual ( xScaleDesc, CcReal::BasicType() ) )
   {
     return ( nl->SymbolAtom ( Symbol::TYPEERROR() ) );
   }
@@ -11254,9 +11367,11 @@ int OpNetworkTheNetworkValueMapping ( Word* args, Word& result,
     cerr << "NetworkId changed to: " << iId << endl;
   }
   netList->insert ( pair<int,string> ( iId, "" ) );
-  Relation* pRoutes = ( Relation* ) args[1].addr;
-  Relation* pJunctions = ( Relation* ) args[2].addr;
+  double scalef = ((CcReal*)args[1].addr)->GetRealval();
+  Relation* pRoutes = ( Relation* ) args[2].addr;
+  Relation* pJunctions = ( Relation* ) args[3].addr;
   pNetwork->Load ( iId,
+                   scalef,
                    pRoutes,
                    pJunctions );
   result = SetWord ( pNetwork );
@@ -11267,8 +11382,8 @@ int OpNetworkTheNetworkValueMapping ( Word* args, Word& result,
 struct theNetworkInfo:OperatorInfo{
   theNetworkInfo():OperatorInfo(){
     name = "thenetwork";
-    signature = "int X rel X rel -> network";
-    syntax = "thenetwork(_,_,_)";
+    signature = "int X real X rel X rel -> network";
+    syntax = "thenetwork(_,_,_,_)";
     meaning = "Creates the network with the given data.";
   }
 };
@@ -13037,6 +13152,48 @@ struct outCircleInfo:OperatorInfo{
 };
 
 /*
+5.28 Operator ~bbox~
+
+Returns the spatial bounding box of the ~network~
+
+*/
+
+ListExpr bboxTypeMap(ListExpr in_xArgs)
+{
+  NList param(in_xArgs);
+
+  if (param.length() != 1)
+    return listutils::typeError("one argument expected");
+
+  if (param.first().isSymbol(Network::BasicType()))
+    return nl->SymbolAtom( Rectangle<2>::BasicType() );
+  else
+    return listutils::typeError("network expected");
+}
+
+int bboxValueMap( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+  result = qp->ResultStorage( s );
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  Network* arg = static_cast<Network*>(args[0].addr);
+  if(!arg->IsDefined()){
+    box->SetDefined(false);
+  } else {
+    *box = arg->BoundingBox();
+  }
+  return 0;
+}
+
+struct OpBboxInfo:OperatorInfo{
+  OpBboxInfo(){
+    name = "netbbox";
+    signature = "network -> rect2";
+    syntax = "netbbox(_)";
+    meaning = "Returns the spatial bounding box of the network.";
+  }
+};
+
+/*
 7 Creating the ~NetworkAlgebra~
 
 */
@@ -13111,6 +13268,7 @@ class NetworkAlgebra : public Algebra
       AddOperator ( inCircleInfo(), inCircleValueMap, circleTypeMap);
       AddOperator ( outCircleInfo(), outCircleValueMap, circleTypeMap);
       AddOperator ( circleInfo(), circleValueMap, circleTypeMap);
+      AddOperator ( OpBboxInfo(), bboxValueMap, bboxTypeMap);
     }
 
     ~NetworkAlgebra()

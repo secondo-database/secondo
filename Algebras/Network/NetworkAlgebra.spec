@@ -29,3 +29,4 @@ operator getReverseAdjacentSections alias GETREVERSEADJACENTSECTIONS pattern op 
 operator circlen alias CIRCLEN pattern op( _ , _ )
 operator in_circlen alias IN_CIRCLEN pattern op( _ , _ )
 operator out_circlen alias OUT_CIRCLEN pattern op( _ , _ )
+operator netbbox alias NETBBOX pattern op( _ )
