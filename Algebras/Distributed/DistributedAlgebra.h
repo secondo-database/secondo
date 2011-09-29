@@ -50,7 +50,7 @@ debug messages into a file.
 #include <iostream>
 #include <fstream>
 #include <vector>
-
+#include "TupleBufferQueue.h"
 
 /*
 2 Class ~LogOutput~

@@ -50,6 +50,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "RelationAlgebra.h"
 #include "TypeMapUtils.h"
 #include "Remote.h"
+
 #ifndef SINGLE_THREAD1
 #include "zthread/ThreadedExecutor.h"
 #include "zthread/PoolExecutor.h"
@@ -64,6 +65,8 @@ Operations on the darray-elements are carried out on the remote machines.
 
 //#define RECEIVE_REL_MAP_DEBUG 1
 //#define RECEIVE_REL_FUN_DEBUG 1
+
+#define MAX_DSUMMARIZE_TB_QUEUE_SIZE 3
 
 using namespace std;
 using namespace mappings;
@@ -3037,7 +3040,7 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
   , m_tbIn(new TupleBufferQueue())
   , m_tbOut(new TupleBufferQueue())
     {
-      for (int i = 0; i < DSUMMARIZE_MAX_QUEUE_SIZE; ++i)
+      for (int i = 0; i < MAX_DSUMMARIZE_TB_QUEUE_SIZE; ++i)
         m_tbIn -> put(new TupleBuffer());
 
       DArrayIteratorRefreshThread *darrRefresh = 
@@ -3061,12 +3064,12 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
           assert(rit -> EndOfScan());
           delete rit;
         }
-      
+       
       m_exe.wait();
 
       assert(m_tbOut -> size() == 0);
-      assert(m_tbIn -> size() == DSUMMARIZE_MAX_QUEUE_SIZE);
-      for (int i = 0; i < DSUMMARIZE_MAX_QUEUE_SIZE; ++i)
+      assert(m_tbIn -> size() == MAX_DSUMMARIZE_TB_QUEUE_SIZE);
+      for (int i = 0; i < MAX_DSUMMARIZE_TB_QUEUE_SIZE; ++i)
         {
           TupleBuffer *tb = m_tbIn -> get();
           delete tb;

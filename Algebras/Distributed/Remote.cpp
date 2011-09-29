@@ -32,6 +32,7 @@ DServerCreator, DServerExecutor and RelationWriter
 */
 
 #include "Remote.h"
+#include "TupleBufferQueue.h"
 #include "SocketIO.h"
 #include "Processes.h"
 #include "zthread/Runnable.h"
@@ -51,7 +52,7 @@ DServerCreator, DServerExecutor and RelationWriter
 //#define DS_CMD_READ_TB_REL_DEBUG 1
 //#define DS_CMD_DELETE_DEBUG 1
 
-using namespace std;
+using namespace std; 
 
 
 void extractIds(const ListExpr,int&,int&);
