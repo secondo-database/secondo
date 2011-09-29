@@ -55,20 +55,20 @@ using namespace std;
 
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
-#include "Algebra.h"
-#include "NestedList.h"
-#include "ListUtils.h"
-#include "GenericTC.h"
-#include "QueryProcessor.h"
-#include "StandardTypes.h"
+#include "../../include/Algebra.h"
+#include "../../include/NestedList.h"
+#include "../../include/ListUtils.h"
+#include "../../include/GenericTC.h"
+#include "../../include/QueryProcessor.h"
+#include "../../include/StandardTypes.h"
 #include "SpatialAlgebra.h"
-#include "SecondoConfig.h"
-#include "AvlTree.h"
+#include "../../include/SecondoConfig.h"
+#include "../../include/AvlTree.h"
 #include "AVLSegment.h"
-#include "AlmostEqual.h"
+#include "../../include/AlmostEqual.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "RegionTools.h"
-#include "Symbols.h"
+#include "../../include/Symbols.h"
 
 #include <vector>
 #include <queue>
@@ -7004,34 +7004,25 @@ bool SimpleLine::EndBulkLoad(){
 Determines the startPoint of this simple line.
 
 */
+
+Point SimpleLine::StartPoint() const {
+  if( IsEmpty() || !IsDefined() ) return Point( false );
+  int pos = 0;
+  if (!startSmaller) pos = lrsArray.Size()-1;
+  LRS lrs;
+  lrsArray.Get( pos, lrs );
+  // Get half-segment
+  HalfSegment hs;
+  segments.Get( lrs.hsPos, &hs );
+  // Return one end of the half-segment depending
+  // on the start.
+  return startSmaller ? hs.GetDomPoint() : hs.GetSecPoint();
+}
+
 Point SimpleLine::StartPoint( bool startsSmaller ) const {
-  if( IsEmpty() || !IsDefined() ){
-    return Point( false );
-  }
-
-  // Find out which end should be the start of the line. This
-  // depends on the orientation of the curve and the parameter
-  // to this function.
-  bool startPointSmaller = startsSmaller && this->startSmaller;
-  int pos;
-  if( startPointSmaller ) {
-    // Start is at the smaller end of the array
-    pos = 0;
-   } else {
-    // Start is at the bigger end of the array
-    pos = lrsArray.Size()-1;
-   }
-
-   // Read entry from linear referencing system.
-   LRS lrs;
-   lrsArray.Get( pos, lrs );
-   // Get half-segment
-   HalfSegment hs;
-   segments.Get( lrs.hsPos, &hs );
-
-   // Return one end of the half-segment depending
-   // on the start.
-   return startPointSmaller ?  hs.GetDomPoint() : hs.GetSecPoint();
+  if( IsEmpty() || !IsDefined() ) return Point( false );
+  if (startsSmaller == startSmaller) return StartPoint();
+  else return EndPoint();
 }
 
 /*
@@ -7040,9 +7031,25 @@ Point SimpleLine::StartPoint( bool startsSmaller ) const {
 Returns the endpoint of this simple Line.
 
 */
+
+Point SimpleLine::EndPoint() const {
+  if( IsEmpty() || !IsDefined() ) return Point( false );
+  int pos = 0;
+  if (startSmaller) pos = lrsArray.Size()-1;
+  LRS lrs;
+  lrsArray.Get( pos, lrs );
+  // Get half-segment
+  HalfSegment hs;
+  segments.Get( lrs.hsPos, &hs );
+  // Return one end of the half-segment depending
+  // on the start.
+  return startSmaller ? hs.GetSecPoint() : hs.GetDomPoint();
+}
+
 Point SimpleLine::EndPoint( bool startsSmaller ) const {
-  // The end is opposite to the start.
-  return StartPoint(!startsSmaller);
+  if( IsEmpty() || !IsDefined() ) return Point( false );
+  if (startsSmaller == startSmaller) return EndPoint();
+  else return StartPoint();
 }
 
 bool SimpleLine::Contains( const Point& p,
@@ -7152,7 +7159,6 @@ double SimpleLine::Distance(const Rectangle<2>& r,
 }
 
 bool SimpleLine::AtPosition( double pos,
-                             bool startsSmaller,
                              Point& p,
                              const Geoid* geoid /* = 0 */) const {
   assert( ! geoid || geoid->IsDefined() );
@@ -7160,9 +7166,7 @@ bool SimpleLine::AtPosition( double pos,
     p.SetDefined( false );
     return false;
   }
-  if( startsSmaller != this->startSmaller ){
-    pos = length - pos;
-  }
+  if( !startSmaller ) pos = length - pos;
   LRS lrs( pos, 0 );
   int lrsPos;
   if( !Find( lrs,lrsPos ) ){
@@ -7178,12 +7182,83 @@ bool SimpleLine::AtPosition( double pos,
   return true;
 }
 
+bool SimpleLine::AtPosition( double pos,
+                             bool startsSmaller,
+                             Point& p,
+                             const Geoid* geoid /* = 0 */) const {
+  assert( ! geoid || geoid->IsDefined() );
+  if(IsEmpty() || (geoid && !geoid->IsDefined()) ){ // subsumes !IsDefined()
+    p.SetDefined( false );
+    return false;
+  }
+  if(startSmaller == startsSmaller) return AtPosition(pos, p, geoid);
+  else {
+    pos = length - pos;
+    return AtPosition(pos,p,geoid);
+  }
+}
+
 /*
 ~AtPoint~
 
 */
+
+bool SimpleLine::AtPoint( const Point& p,
+                          double& result,
+                          double tolerance /*=0.0*/,
+                          const Geoid* geoid /*=0*/) const {
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
+  if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    return false;
+  }
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+  bool found = false;
+  HalfSegment hs;
+  int pos;
+  if( Find( p, pos ) ) {
+    found = true;
+    segments.Get( pos, &hs );
+  } else {
+    if( pos < Size() ) {
+      for( ; pos >= 0; pos-- ) {
+        segments.Get( pos, hs );
+        if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+  if( found ){
+    LRS lrs;
+    lrsArray.Get( hs.attr.edgeno, lrs );
+    segments.Get( lrs.hsPos, &hs );
+    result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
+
+
+    if(!this->startSmaller )result = length - result;
+
+    if( AlmostEqualAbsolute( result, 0.0, tolerance ) ){
+      result = 0;
+    } else if( AlmostEqualAbsolute( result, length, tolerance ) ){
+      result = length;
+    }
+
+    assert( result >= 0.0 && result <= length );
+
+    return true;
+  }
+  return false;
+}
+
 bool SimpleLine::AtPoint( const Point& p,
                           bool startsSmaller,
+                          double tolerance,
                           double& result,
                           const Geoid* geoid /*=0*/) const {
  assert( !IsEmpty() );
@@ -7203,13 +7278,13 @@ bool SimpleLine::AtPoint( const Point& p,
    found = true;
    segments.Get( pos, &hs );
   } else if( pos < Size() ) {
-   for( ; pos >= 0; pos-- ) {
-     segments.Get( pos, hs );
-     if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
-       found = true;
-       break;
+     for( ; pos >= 0; pos-- ) {
+       segments.Get( pos, hs );
+       if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
+         found = true;
+         break;
+       }
      }
-   }
   }
 
   if( found ){
@@ -7219,19 +7294,11 @@ bool SimpleLine::AtPoint( const Point& p,
     result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
 
 
-    if( startsSmaller != this->startSmaller ){
-      result = length - result;
-    }
+    if(!startsSmaller) result = length - result;
 
-    /*
-    if( AlmostEqual( result, 0.0 ) ){
+    if( AlmostEqualAbsolute( result, 0.0, tolerance ) ){
       result = 0;
-    } else if( AlmostEqual( result, length ) ){
-      result = length;
-    }*/
-    if( AlmostEqualAbsolute( result, 0.0, 0.000001 ) ){
-      result = 0;
-    } else if( AlmostEqualAbsolute( result, length, 0.000001 ) ){
+    } else if( AlmostEqualAbsolute( result, length, tolerance ) ){
       result = length;
     }
 
@@ -7241,6 +7308,91 @@ bool SimpleLine::AtPoint( const Point& p,
   }
   return false;
 }
+
+void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
+  l.Clear();
+  if( !IsDefined() ){
+    l.SetDefined( false );
+    return;
+  }
+  l.SetDefined( true );
+
+  if( pos1 < 0 ){
+    pos1 = 0;
+  } else if( pos1 > length ){
+    pos1 = length;
+  }
+
+  if( pos2 < 0 ){
+    pos2 = 0;
+  } else if( pos2 > length ){
+    pos2 = length;
+  }
+
+  if( AlmostEqual( pos1, pos2 ) || pos1 > pos2 ){
+    return;
+  }
+
+  if(!this->startSmaller ) {
+    double aux = length - pos1;
+    pos1 = length - pos2;
+    pos2 = aux;
+  }
+
+  // First search for the first half segment
+  LRS lrs( pos1, 0 );
+  int lrsPos = 0;
+  Find( lrs, lrsPos );
+
+  LRS lrs2;
+  lrsArray.Get( lrsPos, lrs2 );
+
+  HalfSegment hs;
+  segments.Get( lrs2.hsPos, hs );
+
+  l.Clear();
+  l.StartBulkLoad();
+  int edgeno = 0;
+
+  HalfSegment auxHs;
+  if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs ) ) {
+    auxHs.attr.edgeno = ++edgeno;
+    l += auxHs;
+    auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
+    l += auxHs;
+  }
+
+  while( lrsPos < lrsArray.Size() - 1 &&
+       (lrs2.lrsPos + hs.Length() < pos2 ||
+        AlmostEqual( lrs2.lrsPos + hs.Length(), pos2 ) ) ) {
+    // Get the next half segment in the sequence
+    lrsArray.Get( ++lrsPos, lrs2 );
+    segments.Get( lrs2.hsPos, hs );
+
+    if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs)){
+      auxHs.attr.edgeno = ++edgeno;
+      l += auxHs;
+      auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
+      l += auxHs;
+    }
+  }
+  l.EndBulkLoad();
+  Point pStartPoint ( true );
+  AtPosition ( pos1, startSmaller, pStartPoint );
+  Point pEndPoint ( true );
+  AtPosition ( pos2, startSmaller, pEndPoint );
+  if ( pStartPoint.GetX() < pEndPoint.GetX() ||
+     ( pStartPoint.GetX() == pEndPoint.GetX() &&
+       pStartPoint.GetY() < pEndPoint.GetY()))
+  {
+    l.SetStartSmaller(true);
+  }
+  else
+  {
+    l.SetStartSmaller(false);
+  }
+}
+
 
 void SimpleLine::SubLine( double pos1, double pos2,
                          bool startsSmaller, SimpleLine& l ) const {
@@ -7267,7 +7419,7 @@ void SimpleLine::SubLine( double pos1, double pos2,
     return;
   }
 
-  if( startsSmaller != this->startSmaller ) {
+  if( !startsSmaller) {
     double aux = length - pos1;
     pos1 = length - pos2;
     pos2 = aux;
@@ -7312,6 +7464,20 @@ void SimpleLine::SubLine( double pos1, double pos2,
    }
 
    l.EndBulkLoad();
+   Point pStartPoint ( true );
+   AtPosition ( pos1, startSmaller, pStartPoint );
+   Point pEndPoint ( true );
+   AtPosition ( pos2, startSmaller, pEndPoint );
+   if ( pStartPoint.GetX() < pEndPoint.GetX() ||
+     ( pStartPoint.GetX() == pEndPoint.GetX() &&
+            pStartPoint.GetY() < pEndPoint.GetY()))
+   {
+     l.SetStartSmaller(true);
+   }
+   else
+   {
+     l.SetStartSmaller(false);
+   }
 }
 
 
@@ -7715,6 +7881,12 @@ int SimpleLine::Compare(const Attribute* arg)const{
 ostream& SimpleLine::Print(ostream& o)const{
   o << "SimpleLine def =" << IsDefined()
     << " size = " << Size() << endl;
+  for (int i = 0; i < Size(); i++)
+  {
+    HalfSegment hs;
+    Get(i, hs);
+    if (hs.IsLeftDomPoint()) hs.Print(o);
+  }
   return o;
 }
 
@@ -13510,7 +13682,7 @@ in the line as a real.
 
 */
 ListExpr
-SpatialAtPointMap( ListExpr args )
+SpatialAtPointTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2, arg3;
   if ( nl->ListLength( args ) == 3 )
@@ -13524,7 +13696,15 @@ SpatialAtPointMap( ListExpr args )
          nl->IsEqual( arg3, CcBool::BasicType() ) )
       return (nl->SymbolAtom( CcReal::BasicType() ));
   }
-  return listutils::typeError("");
+  if (nl->ListLength(args) == 2)
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
+         SpatialTypeOfSymbol( arg2 ) == stpoint)
+      return (nl->SymbolAtom( CcReal::BasicType() ));
+  }
+    return listutils::typeError("Expects sline, point and optional bool.");
 }
 
 /*
@@ -13535,7 +13715,7 @@ receives a line and a relative position and returns the corresponding point.
 
 */
 ListExpr
-SpatialAtPositionMap( ListExpr args )
+SpatialAtPositionTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2, arg3;
   if ( nl->ListLength( args ) == 3 )
@@ -13549,7 +13729,15 @@ SpatialAtPositionMap( ListExpr args )
          nl->IsEqual( arg3, CcBool::BasicType() ) )
       return (nl->SymbolAtom( Point::BasicType() ));
   }
-  return listutils::typeError("");
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
+         nl->IsEqual( arg2, CcReal::BasicType() ) )
+      return (nl->SymbolAtom( Point::BasicType() ));
+  }
+  return listutils::typeError("Expects sline, real and optional bool.");
 }
 
 /*
@@ -14789,8 +14977,23 @@ int SpatialSimplifySelect(ListExpr args){
 
 }
 
+int SpatialAtPointSelect(ListExpr args){
+  if (nl->ListLength(args) == 3)
+    return 0;
+  if (nl->ListLength(args) == 2)
+    return 1;
+  return -1;
+}
 
-static int SpatialSelectSize(ListExpr args){
+int SpatialAtPositionSelect(ListExpr args){
+  if (nl->ListLength(args) == 3)
+    return 0;
+  if (nl->ListLength(args) == 2)
+    return 1;
+  return -1;
+}
+
+int SpatialSelectSize(ListExpr args){
    SpatialType st = SpatialTypeOfSymbol(nl->First(args));
    if(st==stline){
      return 0;
@@ -14804,7 +15007,7 @@ static int SpatialSelectSize(ListExpr args){
    return -1;
 }
 
-static int SpatialSelectCrossings(ListExpr args){
+int SpatialSelectCrossings(ListExpr args){
    SpatialType st = SpatialTypeOfSymbol(nl->First(args));
    if(nl->ListLength(args)==2){
       if(st==stline){
@@ -14820,22 +15023,14 @@ static int SpatialSelectCrossings(ListExpr args){
 }
 
 
-static int utmSelect(ListExpr args){
+int utmSelect(ListExpr args){
   string t = nl->SymbolValue(nl->First(args));
   if(t==Point::BasicType()) return 0;
   if(t==Points::BasicType()) return 1;
-  return -1;
-}
-static int gkSelect(ListExpr args){
-  string t = nl->SymbolValue(nl->First(args));
-  if(t==Point::BasicType()) return 0;
-  if(t==Points::BasicType()) return 1;
-  if(t==Line::BasicType()) return 2;
-  if(t==Region::BasicType()) return 3;
   return -1;
 }
 
-static int reverseGkSelect(ListExpr args){
+int gkSelect(ListExpr args){
   string t = nl->SymbolValue(nl->First(args));
   if(t==Point::BasicType()) return 0;
   if(t==Points::BasicType()) return 1;
@@ -14844,8 +15039,17 @@ static int reverseGkSelect(ListExpr args){
   return -1;
 }
 
+int reverseGkSelect(ListExpr args){
+  string t = nl->SymbolValue(nl->First(args));
+  if(t==Point::BasicType()) return 0;
+  if(t==Points::BasicType()) return 1;
+  if(t==Line::BasicType()) return 2;
+  if(t==Region::BasicType()) return 3;
+  return -1;
+}
 
-static int SpatialCollectLineSelect(ListExpr args){
+
+int SpatialCollectLineSelect(ListExpr args){
   ListExpr T = nl->Second(nl->First(args));
   if(listutils::isSymbol(T, Point::BasicType())) return 0;
   if(listutils::isSymbol(T, SimpleLine::BasicType())) return 1;
@@ -14853,7 +15057,7 @@ static int SpatialCollectLineSelect(ListExpr args){
   return -1;
 }
 
-static int SpatialCollectPointsSelect(ListExpr args){
+int SpatialCollectPointsSelect(ListExpr args){
    ListExpr T = nl->Second(nl->First(args));
    if(listutils::isSymbol(T,Point::BasicType())) return 0;
    if(listutils::isSymbol(T,Points::BasicType())) return 1;
@@ -16137,7 +16341,7 @@ int SpatialBoundary_l(Word* args, Word& result, int message,
 
 */
 int
-SpatialAtPoint( Word* args, Word& result, int message,
+SpatialAtPointBool( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -16149,7 +16353,23 @@ SpatialAtPoint( Word* args, Word& result, int message,
   if( !l->IsEmpty() && // subsumes IsDefined()
       p->IsDefined() &&
       startsSmaller->IsDefined() &&
-      l->AtPoint( *p, startsSmaller->GetBoolval(), res ) )
+      l->AtPoint( *p, startsSmaller->GetBoolval(), 0.0, res ) )
+    ((CcReal*)result.addr)->Set( true, res );
+  else
+    ((CcReal*)result.addr)->SetDefined( false );
+  return 0;
+}
+
+int
+SpatialAtPoint( Word* args, Word& result, int message,
+                Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  SimpleLine *l = (SimpleLine*)args[0].addr;
+  Point *p = (Point*)args[1].addr;
+  double res;
+  if( !l->IsEmpty() && // subsumes IsDefined()
+      p->IsDefined() && l->AtPoint( *p, res, 0.0 ) )
     ((CcReal*)result.addr)->Set( true, res );
   else
     ((CcReal*)result.addr)->SetDefined( false );
@@ -16161,8 +16381,8 @@ SpatialAtPoint( Word* args, Word& result, int message,
 
 */
 int
-SpatialAtPosition( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
+SpatialAtPositionBool( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   SimpleLine *l = (SimpleLine*)args[0].addr;
@@ -16173,6 +16393,22 @@ SpatialAtPosition( Word* args, Word& result, int message,
   if( l->IsEmpty() || !pos->IsDefined() ||
       !startsSmaller->IsDefined() ||
       !l->AtPosition( pos->GetRealval(), startsSmaller->GetBoolval(), *p ) )
+    p->SetDefined( false );
+
+  return 0;
+}
+
+int
+SpatialAtPosition( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  SimpleLine *l = (SimpleLine*)args[0].addr;
+  CcReal *pos = (CcReal*)args[1].addr;
+  Point *p = (Point*)result.addr;
+
+  if( l->IsEmpty() || !pos->IsDefined() ||
+      !l->AtPosition( pos->GetRealval(), *p ) )
     p->SetDefined( false );
 
   return 0;
@@ -17654,7 +17890,11 @@ ValueMapping spatialsizemap[] = {
       SpatialSize<SimpleLine>
 };
 
+ValueMapping SpatialAtPointMap[]  = { SpatialAtPointBool,
+                                      SpatialAtPoint};
 
+ValueMapping SpatialAtPositionMap[]  = {SpatialAtPositionBool,
+                                        SpatialAtPosition };
 
 ValueMapping SpatialCrossingsMap[] = {
           SpatialCrossings<Line>,
@@ -18035,21 +18275,23 @@ const string SpatialSpecBoundary  =
 
 const string SpatialSpecAtPoint  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>sline x point x bool -> real</text--->"
+  "( <text>sline x point [x bool] -> real</text--->"
   "<text>atpoint(_, _, _)</text--->"
   "<text>Returns the relative position of the point on the line."
-  "The boolean flag indicates where the positions start, i.e. "
+  "The optional boolean flag indicates where the positions start, i.e. "
   "from the smaller point (TRUE) or from the bigger one (FALSE)."
+  "If the boolean flag is not given the orientation is taken from the sline"
   "</text---><text>query atpoint(l, p, TRUE)</text--->"
   ") )";
 
 const string SpatialSpecAtPosition  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>sline x real x bool -> point</text--->"
+  "( <text>sline x real [x bool] -> point</text--->"
   "<text>atposition(_, _, _)</text--->"
   "<text>Returns the point at a relative position in the line."
-  "The boolean flag indicates where the positions start, i.e. "
+  "The optional boolean flag indicates where the positions start, i.e. "
   "from the smaller point (TRUE) or from the bigger one (FALSE)."
+  "If the boolean flag is  not given the orientation is taken from the sline"
   "</text---><text>query atposition(l, 0.0, TRUE)</text--->"
   ") )";
 
@@ -18639,16 +18881,18 @@ Operator spatialsimplify (
 Operator spatialatpoint (
   "atpoint",
   SpatialSpecAtPoint,
-  SpatialAtPoint,
-  Operator::SimpleSelect,
-  SpatialAtPointMap );
+  2,
+  SpatialAtPointMap,
+  SpatialAtPointSelect,
+  SpatialAtPointTypeMap );
 
 Operator spatialatposition (
   "atposition",
   SpatialSpecAtPosition,
-  SpatialAtPosition,
-  Operator::SimpleSelect,
-  SpatialAtPositionMap );
+  2,
+  SpatialAtPositionMap,
+  SpatialAtPositionSelect,
+  SpatialAtPositionTypeMap );
 
 Operator spatialsubline (
   "subline",
@@ -19470,9 +19714,9 @@ int SpatialGetPointVM(Word* args, Word& result, int message,
     res->SetDefined(false);
   } else {
     if (start)
-      res->Set(l->StartPoint(l->GetStartSmaller()));
+      res->Set(l->StartPoint());
     else
-      res->Set(l->EndPoint(l->GetStartSmaller()));
+      res->Set(l->EndPoint());
   }
   return 0;
 }

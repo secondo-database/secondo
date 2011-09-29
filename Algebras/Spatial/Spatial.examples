@@ -42,6 +42,12 @@ Signature: sline x point x bool -> real
 Example  : query atpoint(fromline(trajectory(train7)), mehringdamm, TRUE)
 Result   : 18380.673536405186
 
+Operator : atpoint
+Number   : 2
+Signature: sline x point -> real
+Example  : query atpoint(fromline(trajectory(train7)), mehringdamm)
+Result   : 18380.673536405186
+
 
 Operator : atposition
 Number   : 1
@@ -49,12 +55,23 @@ Signature: sline x real x bool -> point
 Example  : query atposition(fromline(trajectory(train7)), 18380.673536405186, TRUE) = mehringdamm
 Result   : TRUE
 
-
 Operator : atposition
 Number   : 2
 Signature: sline x real x bool -> point
+Example  : query atposition(fromline(trajectory(train7)), 18380.673536405186, FALSE) = mehringdamm
+Result   : FALSE
+
+Operator : atposition
+Number   : 3
+Signature: sline x real x bool -> point
 Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.geoData intersects_new ..geoData_u] extend[Schnitt: intersection(.geoData, .geoData_u)] project[Schnitt] extend[Start: atposition(fromline(.Schnitt), 0.0, TRUE)] consume
 Result   : file
+
+Operator : atposition
+Number   : 4
+Signature: sline x real -> point
+Example  : query atposition(fromline(trajectory(train7)), 18380.673536405186) = mehringdamm
+Result   : TRUE
 
 Operator : bbox
 Number   : 1
@@ -881,7 +898,13 @@ Tolerance: 0.01%
 Operator : create_sline
 Number   : 1
 Signature: point x point -> sline
-Example  : query atposition(create_sline(makepoint(10,10),makepoint(0,0)),0.0,TRUE) = makepoint(10,10)
+Example  : query atposition(create_sline(makepoint(10,10),makepoint(0,0)),0.0,TRUE) = makepoint(0,0)
+Result   : TRUE
+
+Operator : create_sline
+Number   : 2
+Signature: point x point -> sline
+Example  : query atposition(create_sline(makepoint(10,10),makepoint(0,0)),0.0,FALSE) = makepoint(10,10)
 Result   : TRUE
 
 Operator : distanceOrthodrome

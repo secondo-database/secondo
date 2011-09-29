@@ -1668,6 +1668,7 @@ Returns the start point of this simple line.
 
 */
   Point StartPoint(const bool startSmaller) const;
+  Point StartPoint() const;
 
 /*
 ~EndPoint~
@@ -1676,6 +1677,7 @@ Returns the end point of this simple line.
 
 */
   Point EndPoint(const bool startSmaller) const;
+  Point EndPoint() const;
 
 /*
 ~Contains~
@@ -1787,15 +1789,17 @@ geometry.
 */
   bool AtPosition(double pos, const bool startsSmaller,
                   Point& p, const Geoid* geoid=0) const;
+  bool AtPosition(double pos, Point& p, const Geoid* geoid = 0) const;
 
 /*
 ~AtPoint~
 
 */
 
-  bool AtPoint(const Point& p, const bool startsSmaller,
+  bool AtPoint(const Point& p, const bool startsSmaller, const double tolerance,
                double& result, const Geoid* geoid=0) const;
-
+  bool AtPoint(const Point& p, double& result, const double tolerance = 0.0,
+               const Geoid* geoid=0) const;
 
 /*
 ~SubLine~
@@ -1803,6 +1807,7 @@ geometry.
 */
   void SubLine(const double pos1, const double pos2,
                bool startsSmaller, SimpleLine& l) const;
+  void SubLine(const double pos1, const double pos2, SimpleLine& l) const;
 
 /*
 ~Crossings~
