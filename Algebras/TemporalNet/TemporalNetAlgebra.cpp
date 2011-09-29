@@ -42,7 +42,7 @@ Defines, includes, and constants
 #include "../BTree/BTreeAlgebra.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
 #include "../Network/NetworkAlgebra.h"
-#include "../TemporalNet/TemporalNetAlgebra.h"
+#include "TemporalNetAlgebra.h"
 #include "../Temporal/TemporalAlgebra.h"
 #include "../Network/NetworkManager.h"
 #include "../../Tools/Flob/DbArray.h"
@@ -57,7 +57,9 @@ Defines, includes, and constants
 #include "../../include/ConstructorTemplates.h"
 #include "../../include/TypeMapUtils.h"
 #include "../../include/Operator.h"
-#include "Symbols.h"
+#include "../../include/Symbols.h"
+#include "../Rectangle/RectangleAlgebra.h"
+
 
 
 
@@ -181,8 +183,8 @@ bool searchRouteInterval(const GPoint *pGPoint,
         if (rI.GetRouteId() > pGPoint->GetRouteId()){
           return searchRouteInterval(pGPoint, tra, low, mid-1);
         } else {
-          if (fabs(pGPoint->GetPosition() - rI.GetStartPos()) < 0.01 ||
-              fabs(pGPoint->GetPosition() - rI.GetEndPos()) < 0.01) {
+          if (AlmostEqual(pGPoint->GetPosition(), rI.GetStartPos()) ||
+              AlmostEqual(pGPoint->GetPosition(), rI.GetEndPos())) {
             return true;
           } else {
             if (rI.GetStartPos() > pGPoint->GetPosition()) {
@@ -282,8 +284,8 @@ bool checkPoint (const SimpleLine *route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
-        (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01))
+    if ((AlmostEqual(x,xr) && AlmostEqual (y,yr)) ||
+        (AlmostEqual(x,xl) && AlmostEqual (y,yl)))
     {
       difference = 0.0;
       result = true;
@@ -293,17 +295,17 @@ bool checkPoint (const SimpleLine *route, const Point point,
         k2 = (yr - yl) / (xr - xl);
         if ((fabs(k1-k2) < 0.004) &&
             ((xl < xr &&
-              (x > xl || fabs(x-xl) < 0.01) &&
-              (x < xr || fabs(x-xr) < 0.01)) ||
+              (x > xl || AlmostEqual(x,xl)) &&
+              (x < xr || AlmostEqual(x,xr))) ||
             (xl > xr &&
-              (x < xl || fabs(x-xl)<0.01) &&
-              (x > xr || fabs(x-xr) < 0.01))) &&
-            (((yl < yr || fabs(yl-yr)<0.01) &&
-              (y > yl || fabs(y-yl)<0.01 ) &&
-              (y < yr || fabs(y-yr)<0.01)) ||
+              (x < xl || AlmostEqual(x,xl)) &&
+              (x > xr || AlmostEqual(x,xr)))) &&
+            (((yl < yr || AlmostEqual(yl,yr)) &&
+              (y > yl || AlmostEqual(y,yl)) &&
+              (y < yr || AlmostEqual(y,yr))) ||
             (yl > yr &&
-              (y < yl || fabs(y-yl) <0.01) &&
-              (y > yr || fabs(y-yr)<0.01))))
+              (y < yl || AlmostEqual(y,yl)) &&
+              (y > yr || AlmostEqual(y,yr)))))
         {
               difference = fabs(k1-k2);
               result = true;
@@ -312,13 +314,13 @@ bool checkPoint (const SimpleLine *route, const Point point,
       }
       else
       {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-            (((yl < yr|| fabs(yl-yr)<0.01) &&
-                (yl < y || fabs(yl-y) <0.01)&&
-                (y < yr ||fabs(y-yr)<0.01))||
+        if (( AlmostEqual(xl, xr) && AlmostEqual(xl,x)) &&
+            (((yl < yr|| AlmostEqual(yl,yr)) &&
+                (yl < y || AlmostEqual(yl,y))&&
+                (y < yr ||AlmostEqual(y,yr)))||
               (yl > yr &&
-                (yl > y || fabs(yl-y)<0.01)&&
-                (y > yr ||fabs(y-yr)<0.01))))
+                (yl > y || AlmostEqual(yl,y))&&
+                (y > yr || AlmostEqual(y,yr)))))
         {
               difference = 0.0;
               result = true;
@@ -333,9 +335,9 @@ bool checkPoint (const SimpleLine *route, const Point point,
         pos = lrs.lrsPos + point.Distance( hs.GetDomPoint() );
         if( startSmaller != route->GetStartSmaller())
           pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
+        if( AlmostEqual(pos,0.0))
           pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
+        else if (AlmostEqual(pos,route->Length()))
               pos = route->Length();
         return result;
 
@@ -362,8 +364,8 @@ bool checkPointN (const SimpleLine route, const Point point,
     yr = right.GetY(),
     x = point.GetX(),
     y = point.GetY();
-    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
-          (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01))
+    if ((AlmostEqual(x,xr) && AlmostEqual (y,yr)) ||
+          (AlmostEqual(x,xl) && AlmostEqual (y,yl)))
       result = true;
     else
     {
@@ -373,29 +375,29 @@ bool checkPointN (const SimpleLine route, const Point point,
         k2 = (yr - yl) / (xr - xl);
         if ((fabs(k1-k2) < 0.004) &&
               ((xl < xr &&
-                (x > xl || fabs(x-xl) < 0.01) &&
-                (x < xr || fabs(x-xr) < 0.01)) ||
+                (x > xl || AlmostEqual(x,xl)) &&
+                (x < xr || AlmostEqual(x,xr))) ||
               (xl > xr &&
-                (x < xl || fabs(x-xl) < 0.01) &&
-                (x > xr || fabs(x-xr) < 0.01))) &&
-              (((yl < yr || fabs(yl-yr) < 0.01) &&
-                (y > yl || fabs(y-yl) < 0.01) &&
-                (y < yr || fabs(y-yr) < 0.01)) ||
+                (x < xl || AlmostEqual(x,xl)) &&
+                (x > xr || AlmostEqual(x,xr)))) &&
+              (((yl < yr || AlmostEqual(yl,yr)) &&
+                (y > yl || AlmostEqual(y,yl)) &&
+                (y < yr || AlmostEqual(y,yr))) ||
               (yl > yr &&
-                (y < yl || fabs(y-yl) <0.01) &&
-                (y > yr || fabs(y-yr)<0.01))))
+                (y < yl || AlmostEqual(y,yl)) &&
+                (y > yr || AlmostEqual(y,yr)))))
           result = true;
         else result = false;
       }
       else
       {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-              (((yl < yr|| fabs(yl-yr)<0.01) &&
-                  (yl < y || fabs(yl-y) <0.01)&&
-                  (y < yr ||fabs(y-yr)<0.01))||
+        if (( AlmostEqual(xl, xr) && AlmostEqual(xl,x)) &&
+              (((yl < yr|| AlmostEqual(yl,yr)) &&
+                  (yl < y || AlmostEqual(yl,y))&&
+                  (y < yr ||AlmostEqual(y,yr)))||
                 (yl > yr &&
-                  (yl > y ||fabs(yl-y)<0.01)&&
-                  (y > yr ||fabs(y-yr)<0.01))))
+                  (yl > y ||AlmostEqual(yl,y))&&
+                  (y > yr ||AlmostEqual(y,yr)))))
           result = true;
         else result = false;
       }
@@ -407,9 +409,9 @@ bool checkPointN (const SimpleLine route, const Point point,
       pos = lrs.lrsPos + point.Distance( hs.GetDomPoint() );
       if( startSmaller != route.GetStartSmaller())
         pos = route.Length() - pos;
-      if( fabs(pos-0.0) < 0.01)
+      if( AlmostEqual(pos,0.0))
         pos = 0.0;
-      else if (fabs(pos-route.Length())<0.01)
+      else if (AlmostEqual(pos,route.Length()))
         pos = route.Length();
       return result;
     }
@@ -440,8 +442,8 @@ bool checkPoint03 (const SimpleLine *route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
-        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
+    if ((AlmostEqual(x,xl) && AlmostEqual (y,yl)) ||
+        (AlmostEqual(x,xr) && AlmostEqual (y,yr))) {
       difference = 0.0;
       result = true;
     } else {
@@ -450,17 +452,17 @@ bool checkPoint03 (const SimpleLine *route, const Point point,
         k2 = (yr - yl) / (xr - xl);
         if ((fabs(k1-k2) < 1.2) &&
             ((xl < xr &&
-                (x > xl || fabs(x-xl) < 0.01) &&
-                (x < xr || fabs(x-xr) < 0.01)) ||
+                (x > xl || AlmostEqual(x,xl)) &&
+                (x < xr || AlmostEqual(x,xr))) ||
              (xl > xr &&
-                (x < xl || fabs(x-xl) < 0.01) &&
-                ( x > xr || fabs(x-xr) < 0.01))) &&
-            (((yl < yr || fabs(yl-yr) < 0.01) &&
-                (y > yl || fabs(y-yl) < 0.01 ) &&
-                (y < yr || fabs(y-yr)<0.01)) ||
+                (x < xl || AlmostEqual(x,xl)) &&
+                ( x > xr || AlmostEqual(x,xr)))) &&
+            (((yl < yr || AlmostEqual(yl,yr)) &&
+                (y > yl || AlmostEqual(y,yl) ) &&
+                (y < yr || AlmostEqual(y,yr))) ||
             (yl > yr &&
-                (y < yl || fabs(y-yl) <0.01) &&
-                (y > yr || fabs(y-yr)<0.01))))
+                (y < yl || AlmostEqual(y,yl)) &&
+                (y > yr || AlmostEqual(y,yr)))))
         {
               difference = fabs(k1-k2);
               result = true;
@@ -469,13 +471,13 @@ bool checkPoint03 (const SimpleLine *route, const Point point,
       }
       else
       {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-            (((yl < yr|| fabs(yl-yr)<0.01) &&
-                  (yl < y || fabs(yl-y) <0.01)&&
-                  (y < yr ||fabs(y-yr)<0.01))||
+        if (( AlmostEqual(xl, xr) && AlmostEqual(xl,x)) &&
+            (((yl < yr|| AlmostEqual(yl,yr)) &&
+                  (yl < y || AlmostEqual(yl,y))&&
+                  (y < yr ||AlmostEqual(y,yr)))||
               (yl > yr &&
-                  (yl > y || fabs(yl-y)<0.01)&&
-                  (y > yr ||fabs(y-yr)<0.01))))
+                  (yl > y || AlmostEqual(yl,y))&&
+                  (y > yr ||AlmostEqual(y,yr)))))
         {
               difference = 0.0;
               result = true;
@@ -491,9 +493,9 @@ bool checkPoint03 (const SimpleLine *route, const Point point,
       pos = lrs.lrsPos + point.Distance( hs.GetDomPoint() );
       if( startSmaller != route->GetStartSmaller())
         pos = route->Length() - pos;
-      if( fabs(pos-0.0) < 0.01)
+      if( AlmostEqual(pos,0.0))
         pos = 0.0;
-      else if (fabs(pos-route->Length())<0.01)
+      else if (AlmostEqual(pos, route->Length()))
             pos = route->Length();
       return result;
     }
@@ -518,8 +520,8 @@ bool lastcheckPoint03 (const SimpleLine *route, const Point point,
           yr = right.GetY(),
           x = point.GetX(),
           y = point.GetY();
-    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
-        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
+    if ((AlmostEqual(x,xl) && AlmostEqual (y,yl)) ||
+        (AlmostEqual(x,xr) && AlmostEqual (y,yr))) {
       difference = 0.0;
       result = true;
     } else {
@@ -527,17 +529,17 @@ bool lastcheckPoint03 (const SimpleLine *route, const Point point,
         k1 = (y - yl) / (x - xl);
         k2 = (yr - yl) / (xr - xl);
         if (((xl < xr &&
-                (x > xl || fabs(x-xl) < 0.1) &&
-                (x < xr || fabs(x-xr) < 0.01)) ||
+                (x > xl || AlmostEqual(x,xl)) &&
+                (x < xr || AlmostEqual(x,xr))) ||
             (xl > xr &&
-                ( x < xl || fabs(x-xl)<0.01)  &&
-                ( x > xr || fabs(x-xr)<0.01))) &&
-            (((yl < yr || fabs(yl-yr)<0.01) &&
-                (y > yl || fabs(y-yl)<0.01 )&&
-                (y < yr || fabs(y-yr)<0.01)) ||
+                ( x < xl || AlmostEqual(x,xl))  &&
+                ( x > xr || AlmostEqual(x,xr)))) &&
+            (((yl < yr || AlmostEqual(yl,yr)) &&
+                (y > yl || AlmostEqual(y,yl))&&
+                (y < yr || AlmostEqual(y,yr))) ||
             (yl > yr &&
-                (y < yl || fabs(y-yl) <0.01) &&
-                (y > yr || fabs(y-yr)<0.01))))
+                (y < yl || AlmostEqual(y,yl)) &&
+                (y > yr || AlmostEqual(y,yr)))))
         {
               difference = fabs(k1-k2);
               result = true;
@@ -546,13 +548,13 @@ bool lastcheckPoint03 (const SimpleLine *route, const Point point,
       }
       else
       {
-        if (( fabs(xl - xr) < 0.1 && fabs(xl -x) < 0.1) &&
-            (((yl < yr|| fabs(yl-yr)<0.1) &&
-                  (yl < y || fabs(yl-y) <0.1)&&
-                  (y < yr || fabs(y-yr)<0.1))||
+        if (( AlmostEqual(xl, xr) && AlmostEqual(xl,x)) &&
+            (((yl < yr|| AlmostEqual(yl,yr)) &&
+                  (yl < y || AlmostEqual(yl,y))&&
+                  (y < yr || AlmostEqual(y,yr)))||
             (yl > yr &&
-                  (yl > y || fabs(yl-y)<0.1)&&
-                  (y > yr ||fabs(y-yr)<0.1))))
+                  (yl > y || AlmostEqual(yl,y))&&
+                  (y > yr || AlmostEqual(y,yr)))))
         {
               difference = 0.0;
               result = true;
@@ -567,9 +569,9 @@ bool lastcheckPoint03 (const SimpleLine *route, const Point point,
         pos = lrs.lrsPos + point.Distance( hs.GetDomPoint() );
         if( startSmaller != route->GetStartSmaller())
           pos = route->Length() - pos;
-        if( pos < 0.0 || fabs(pos - 0.0) < 0.01)
+        if( pos < 0.0 || AlmostEqual(pos , 0.0))
           pos = 0.0;
-        else if (pos > route->Length() || fabs(pos - route->Length()) < 0.01)
+        else if (pos > route->Length() || AlmostEqual(pos, route->Length()))
               pos = route->Length();
         return result;
     }
@@ -1682,7 +1684,7 @@ void* MGPoint::Cast(void* addr)
 bool MGPoint::Check(ListExpr type,
                     ListExpr& errorInfo)
 {
-  return (nl->IsEqual( type, "mgpoint" ));
+  return (nl->IsEqual( type, MGPoint::BasicType() ));
 }
 
 /*
@@ -2296,9 +2298,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
   }else{ //different section
   if(ug1->p0.GetSide() == 0){ //ug1 Down
     if(ug2->p0.GetSide() == 0){ //ug1 Down ug2 Down
-      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
-      if(ep2_1->Inside(gl1)){ //gl1
-        if(ep1_1->Inside(gl1)){
+      assert(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+             ep2_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+      if(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){ //gl1
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1-meas3);
           b.push_back(v1+v2);
         }
@@ -2306,11 +2309,13 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           c.push_back(meas1+dist1-meas3);
           b.push_back(v2-v1);
         }
-        assert(ep2_0->Inside(gl2) == false);
-        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) == false);
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+               ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
       }else{
-        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
-        if(ep1_1->Inside(gl1)){
+        assert(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+               ep1_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1+meas3);
           b.push_back(v1-v2);
         }
@@ -2319,9 +2324,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(-(v2+v1));
         }
       }
-      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
-      if(ep2_0->Inside(gl2)){//gl2
-        if(ep1_1->Inside(gl1)){
+      assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01)){//gl2
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist2-meas1-meas4);
           b.push_back(v1-v2);
         }else{
@@ -2329,7 +2335,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(-(v2+v1));
         }
       }else{
-          if(ep1_1->Inside(gl1)){
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
             c.push_back(dist2-meas1+meas4);
             b.push_back(v1+v2);
           }
@@ -2338,9 +2344,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
             b.push_back(v2-v1);
           }
         }
-      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
-      if(ep2_1->Inside(gl3)){//gl3
-        if(ep1_0->Inside(gl3)){
+              assert(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+                     ep2_1->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01)){//gl3
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist3-meas2-meas3);
           b.push_back(v2-v1);
         }
@@ -2349,8 +2356,9 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1+v2);
         }
       }else{
-        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
-        if(ep1_0->Inside(gl3)){
+        assert(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+               ep1_0->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist3-meas2+meas3);
           b.push_back(-(v1+v2));
         }
@@ -2359,9 +2367,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1-v2);
         }
       }
-      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
-      if(ep2_0->Inside(gl4)){ //gl4
-        if(ep1_0->Inside(gl4)){
+      assert(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline4,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){ //gl4
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist4-meas2-meas4);
           b.push_back(-(v2+v1));
         }else{
@@ -2369,7 +2378,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1-v2);
         }
       }else{
-        if(ep1_0->Inside(gl4)){
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
             c.push_back(dist4-meas2+meas4);
             b.push_back(v2-v1);
         }
@@ -2379,9 +2388,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
         }
       }
     }else{ //case2 ug1 down ug2 Up
-      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
-      if(ep2_1->Inside(gl1)){ //gl1
-        if(ep1_1->Inside(gl1)){
+      assert(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+             ep2_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+      if(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){ //gl1
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1-meas3);
           b.push_back(v1-v2);
         }
@@ -2389,11 +2399,13 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           c.push_back(meas1+dist1-meas3);
           b.push_back(-(v1+v2));
         }
-        assert(ep2_0->Inside(gl2) == false);
-        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) == false);
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+               ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
       }else{
-        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
-        if(ep1_1->Inside(gl1)){
+        assert(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+               ep1_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1+meas3);
           b.push_back(v1+v2);
         }
@@ -2402,9 +2414,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v2-v1);
         }
       }
-      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
-      if(ep2_0->Inside(gl2)){ //gl2
-        if(ep1_1->Inside(gl1)){
+      assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01)){ //gl2
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist2-meas1-meas4);
           b.push_back(v1+v2);
         }else{
@@ -2412,7 +2425,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v2-v1);
         }
       }else{
-          if(ep1_1->Inside(gl1)){
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
             c.push_back(dist2-meas1+meas4);
             b.push_back(v1-v2);
           }
@@ -2421,9 +2434,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
             b.push_back(-(v1+v2));
           }
         }
-      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
-      if(ep2_1->Inside(gl3)){ //gl3
-        if(ep1_0->Inside(gl3)){
+        assert(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+               ep2_1->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01)){ //gl3
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist3-meas2-meas3);
           b.push_back(-(v1+v2));
         }
@@ -2432,8 +2446,9 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1-v2);
         }
       }else{
-        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
-        if(ep1_0->Inside(gl3)){
+        assert(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+               ep1_0->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist3-meas2+meas3);
           b.push_back(v1-v2);
         }
@@ -2442,9 +2457,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v2+v1);
         }
       }
-      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
-      if(ep2_0->Inside(gl4)){ //gl4
-        if(ep1_0->Inside(gl4)){
+      assert(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline4,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){ //gl4
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist4-meas2-meas4);
           b.push_back(v2-v1);
         }else{
@@ -2452,7 +2468,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1+v2);
         }
       }else{
-        if(ep1_0->Inside(gl4)){
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
             c.push_back(dist4-meas2+meas4);
             b.push_back(-(v1+v2));
         }
@@ -2464,9 +2480,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
     }
   }else{ //ug1 Up
     if(ug2->p0.GetSide() == 0){ //case3 ug1 Up ug2 Down
-      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
-      if(ep2_1->Inside(gl1)){ //gl1
-        if(ep1_1->Inside(gl1)){
+      assert(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+             ep2_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+      if(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){ //gl1
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1-meas3);
           b.push_back(v2-v1);
         }
@@ -2474,11 +2491,13 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           c.push_back(meas1+dist1-meas3);
           b.push_back(v1+v2);
         }
-        assert(ep2_0->Inside(gl2) == false);
-        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) == false);
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+               ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
       }else{
-        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
-        if(ep1_1->Inside(gl1)){
+        assert(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+               ep1_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1+meas3);
           b.push_back(-(v2+v1));
         }
@@ -2487,9 +2506,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1-v2);
         }
       }
-      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
-      if(ep2_0->Inside(gl2)){ //gl2
-        if(ep1_1->Inside(gl2)){
+      assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01)){ //gl2
+        if(ep1_1->Inside(gl2,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist2-meas1-meas4);
           b.push_back(-(v2+v1));
         }else{
@@ -2497,7 +2517,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1-v2);
         }
       }else{
-          if(ep1_1->Inside(gl2)){
+        if(ep1_1->Inside(gl2,pNetwork->GetScalefactor()*0.01)){
             c.push_back(dist2-meas1+meas4);
             b.push_back(v2-v1);
           }
@@ -2506,9 +2526,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
             b.push_back(v2+v1);
           }
         }
-      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
-      if(ep2_1->Inside(gl3)){ //gl3
-        if(ep1_0->Inside(gl3)){
+        assert(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+               ep2_1->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01)){ //gl3
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist3-meas2-meas3);
           b.push_back(v1+v2);
         }
@@ -2517,8 +2538,9 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v2-v1);
         }
       }else{
-        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
-        if(ep1_0->Inside(gl3)){//gl3
+        assert(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+               ep1_0->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){//gl3
           c.push_back(dist3-meas2+meas3);
           b.push_back(v1-v2);
         }
@@ -2527,9 +2549,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(-(v2+v1));
         }
       }
-      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
-      if(ep2_0->Inside(gl4)){//gl4
-        if(ep1_0->Inside(gl4)){
+      assert(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline4,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){//gl4
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist4-meas2-meas4);
           b.push_back(v1-v2);
         }else{
@@ -2537,7 +2560,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(-(v2+v1));
         }
       }else{
-        if(ep1_0->Inside(gl4)){
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist4-meas2+meas4);
           b.push_back(v1+v2);
         }
@@ -2547,9 +2570,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
         }
       }
     }else{//case4 ug1 Up ug2 Up
-      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
-      if(ep2_1->Inside(gl1)){//gl1
-        if(ep1_1->Inside(gl1)){
+      assert(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+             ep2_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+      if(ep2_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){//gl1
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1-meas3);
           b.push_back(-(v1+v2));
         }
@@ -2557,11 +2581,13 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           c.push_back(meas1+dist1-meas3);
           b.push_back(v1-v2);
         }
-        assert(ep2_0->Inside(gl2) == false);
-        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) == false);
+        assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+               ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
       }else{
-        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
-        if(ep1_1->Inside(gl1)){
+        assert(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01) ==
+               ep1_1->Inside(gline1,pNetwork->GetScalefactor()*0.01));
+        if(ep1_1->Inside(gl1,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist1-meas1+meas3);
           b.push_back(v2-v1);
         }
@@ -2570,9 +2596,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1+v2);
         }
       }
-      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
-      if(ep2_0->Inside(gl2)){ //gl2
-        if(ep1_1->Inside(gl2)){
+      assert(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline2,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl2,pNetwork->GetScalefactor()*0.01)){ //gl2
+        if(ep1_1->Inside(gl2,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist2-meas1-meas4);
           b.push_back(v2-v1);
         }else{
@@ -2580,7 +2607,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v1+v2);
         }
       }else{
-          if(ep1_1->Inside(gl2)){
+        if(ep1_1->Inside(gl2,pNetwork->GetScalefactor()*0.01)){
             c.push_back(dist2-meas1+meas4);
             b.push_back(-(v1+v2));
           }
@@ -2588,10 +2615,11 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
             c.push_back(meas1+dist2+meas4);
             b.push_back(v1-v2);
           }
-        }
-      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
-      if(ep2_1->Inside(gl3)){ //gl3
-        if(ep1_0->Inside(gl3)){
+      }
+      assert(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+             ep2_1->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+      if(ep2_1->Inside(gl3,pNetwork->GetScalefactor()*0.01)){ //gl3
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist3-meas2-meas3);
           b.push_back(v1-v2);
         }
@@ -2600,8 +2628,9 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(-(v1+v2));
         }
       }else{
-        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
-        if(ep1_0->Inside(gl3)){//gl3
+        assert(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01) ==
+               ep1_0->Inside(gline3,pNetwork->GetScalefactor()*0.01));
+        if(ep1_0->Inside(gl3,pNetwork->GetScalefactor()*0.01)){//gl3
           c.push_back(dist3-meas2+meas3);
           b.push_back(v1+v2);
         }
@@ -2610,9 +2639,10 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v2-v1);
         }
       }
-      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
-      if(ep2_0->Inside(gl4)){//gl4
-        if(ep1_0->Inside(gl4)){
+      assert(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01) ==
+             ep2_0->Inside(gline4,pNetwork->GetScalefactor()*0.01));
+      if(ep2_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){//gl4
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist4-meas2-meas4);
           b.push_back(v1+v2);
         }else{
@@ -2620,7 +2650,7 @@ void MGPoint::DistanceFunction(const UGPoint* ug1, const UGPoint* ug2,
           b.push_back(v2-v1);
         }
       }else{
-        if(ep1_0->Inside(gl4)){
+        if(ep1_0->Inside(gl4,pNetwork->GetScalefactor()*0.01)){
           c.push_back(dist4-meas2+meas4);
           b.push_back(v1-v2);
         }
@@ -4186,24 +4216,24 @@ void MGPoint::Intersection(const MGPoint *mgp, MGPoint *res) const {
                     bool ok = true;
                     if (pCurr1.p0.GetPosition()!= pCurr1.p1.GetPosition())
                     {
-                      if (fabs(interPosition - pCurr1.p0.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr1.p0.GetPosition()))
                         ok = ok && pCurr1.timeInterval.lc;
-                      if (fabs(interPosition - pCurr1.p1.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition , pCurr1.p1.GetPosition()))
                         ok = ok && pCurr1.timeInterval.rc;
                     }
                     else
-                      if (fabs(interPosition - pCurr1.p0.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr1.p0.GetPosition()))
                         ok = true;
                       else ok = false;
                     if(pCurr2.p0.GetPosition() != pCurr2.p1.GetPosition())
                     {
-                      if (fabs(interPosition - pCurr2.p0.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr2.p0.GetPosition()))
                         ok = ok && pCurr2.timeInterval.lc;
-                      if (fabs(interPosition - pCurr2.p1.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr2.p1.GetPosition()))
                         ok = ok && pCurr2.timeInterval.rc;
                     }
                     else
-                      if (fabs(interPosition-pCurr2.p0.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr2.p0.GetPosition()))
                         ok = true;
                       else ok = false;
                     if (ok)
@@ -4243,13 +4273,13 @@ void MGPoint::Intersection(const MGPoint *mgp, MGPoint *res) const {
                   tinter2 = pCurr.TimeAtPos(r2meas);
                   if (tinter == tinter2) {
                     bool ok = true;
-                    if (fabs(r1meas - pCurr1.p0.GetPosition()) < 0.01)
+                    if (AlmostEqual(r1meas, pCurr1.p0.GetPosition()))
                       ok = ok && pCurr1.timeInterval.lc;
-                    if (fabs(r1meas - pCurr1.p1.GetPosition()) < 0.01)
+                    if (AlmostEqual(r1meas, pCurr1.p1.GetPosition()))
                       ok = ok && pCurr1.timeInterval.rc;
-                    if (fabs(r2meas - pCurr2.p0.GetPosition()) < 0.01)
+                    if (AlmostEqual(r2meas, pCurr2.p0.GetPosition()))
                       ok = ok && pCurr2.timeInterval.lc;
-                    if (fabs(r2meas - pCurr2.p1.GetPosition()) < 0.01)
+                    if (AlmostEqual(r2meas, pCurr2.p1.GetPosition()))
                       ok = ok && pCurr2.timeInterval.rc;
                     if (ok)
                       res->Add(UGPoint(Interval<Instant> (tinter, tinter,
@@ -4368,24 +4398,24 @@ bool MGPoint::Intersects(const MGPoint *mgp) const
                   bool ok = true;
                   if (pCurr1.p0.GetPosition()!= pCurr1.p1.GetPosition())
                   {
-                    if (fabs(interPosition - pCurr1.p0.GetPosition()) < 0.01)
+                    if (AlmostEqual(interPosition, pCurr1.p0.GetPosition()))
                       ok = ok && pCurr1.timeInterval.lc;
-                    if (fabs(interPosition - pCurr1.p1.GetPosition()) < 0.01)
+                    if (AlmostEqual(interPosition, pCurr1.p1.GetPosition()))
                       ok = ok && pCurr1.timeInterval.rc;
                   }
                   else
-                    if (fabs(interPosition - pCurr1.p0.GetPosition()) < 0.01)
+                    if (AlmostEqual(interPosition, pCurr1.p0.GetPosition()))
                       ok = true;
                     else ok = false;
                     if(pCurr2.p0.GetPosition() != pCurr2.p1.GetPosition())
                     {
-                      if (fabs(interPosition - pCurr2.p0.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr2.p0.GetPosition()))
                         ok = ok && pCurr2.timeInterval.lc;
-                      if (fabs(interPosition - pCurr2.p1.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition, pCurr2.p1.GetPosition()))
                         ok = ok && pCurr2.timeInterval.rc;
                     }
                     else
-                      if (fabs(interPosition-pCurr2.p0.GetPosition()) < 0.01)
+                      if (AlmostEqual(interPosition,pCurr2.p0.GetPosition()))
                         ok = true;
                       else ok = false;
                     if (ok)
@@ -4423,13 +4453,13 @@ bool MGPoint::Intersects(const MGPoint *mgp) const
                   if (tinter == tinter2)
                   {
                     bool ok = true;
-                    if (fabs(r1meas - pCurr1.p0.GetPosition()) < 0.01)
+                    if (AlmostEqual(r1meas, pCurr1.p0.GetPosition()))
                       ok = ok && pCurr1.timeInterval.lc;
-                    if (fabs(r1meas - pCurr1.p1.GetPosition()) < 0.01)
+                    if (AlmostEqual(r1meas, pCurr1.p1.GetPosition()))
                       ok = ok && pCurr1.timeInterval.rc;
-                    if (fabs(r2meas - pCurr2.p0.GetPosition()) < 0.01)
+                    if (AlmostEqual(r2meas, pCurr2.p0.GetPosition()))
                       ok = ok && pCurr2.timeInterval.lc;
-                    if (fabs(r2meas - pCurr2.p1.GetPosition()) < 0.01)
+                    if (AlmostEqual(r2meas, pCurr2.p1.GetPosition()))
                       ok = ok && pCurr2.timeInterval.rc;
                     if (ok)
                     {
@@ -4986,7 +5016,7 @@ void MGPoint::At(const GPoint *gp, MGPoint *res) const{
         if (pCurrentUnit.p0.GetRouteId() == gp->GetRouteId() &&
             (pCurrentUnit.p0.GetSide() == gp->GetSide() ||
             pCurrentUnit.p0.GetSide() ==2 || gp->GetSide()== 2)){
-          if (fabs(gp->GetPosition()-pCurrentUnit.p0.GetPosition()) < 0.01){
+          if (AlmostEqual(gp->GetPosition(),pCurrentUnit.p0.GetPosition())){
             if (pCurrentUnit.p0.GetPosition() ==
                 pCurrentUnit.p1.GetPosition()){
               res->Add(UGPoint(pCurrentUnit.timeInterval,
@@ -5005,7 +5035,7 @@ void MGPoint::At(const GPoint *gp, MGPoint *res) const{
               }
             }
           } else {
-            if(fabs(gp->GetPosition()-pCurrentUnit.p1.GetPosition())<0.01) {
+            if(AlmostEqual(gp->GetPosition(),pCurrentUnit.p1.GetPosition())) {
               if (pCurrentUnit.timeInterval.rc) {
                 if (i < GetNoComponents()-1){
                   i++;
@@ -5528,6 +5558,7 @@ MGPoint* MGPoint::Clone() const {
   {
     MGPoint* result = new MGPoint(0);
     result->SetDefined(false);
+    return result;
   }
 
   MGPoint* result = new MGPoint( GetNoComponents() );
@@ -6130,9 +6161,9 @@ void MGPoint::Union(const MGPoint *mp, MGPoint *res) const
 
 struct mgpInfo:ConstructorInfo{
   mgpInfo(){
-    name = "mgpoint";
+    name = MGPoint::BasicType();
     signature = "-> MAPPING";
-    typeExample = "mgpoint";
+    typeExample = MGPoint::BasicType();
     listRep = "(<list of ugpoint)>";
     valueExample = "(<ugpoint1> <ugpoint2> ...)";
     remarks = "Describes a single moving network position.";
@@ -6297,7 +6328,7 @@ SECONDO Integration of ~ugpoint~
 
 bool UGPoint::Check(ListExpr type, ListExpr& errorInfo)
 {
-  return (nl->IsEqual( type, "ugpoint" ));
+  return (nl->IsEqual( type, UGPoint::BasicType() ));
 }
 
 ListExpr UGPoint::Out(ListExpr typeInfo,
@@ -6515,8 +6546,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
   ugp.TemporalFunction(iv.start, rgp20, true);
   ugp.TemporalFunction(iv.end,   rgp21, true);
   if (rgp10.GetRouteId() == rgp20.GetRouteId() &&
-     fabs(rgp10.GetPosition()-rgp20.GetPosition()) < 0.01 &&
-     fabs(rgp11.GetPosition()-rgp21.GetPosition()) < 0.01)
+     AlmostEqual(rgp10.GetPosition(),rgp20.GetPosition()) &&
+     AlmostEqual(rgp11.GetPosition(),rgp21.GetPosition()))
   { // identical points -> zero distance!
     ur.a = 0.0;
     ur.b = 0.0;
@@ -7057,9 +7088,9 @@ void UGPoint::AtInterval( const Interval<Instant>& i,
 
 struct ugpointInfo:ConstructorInfo{
   ugpointInfo(){
-    name = "ugpoint";
+    name = UGPoint::BasicType();
     signature = "-> UNIT";
-    typeExample = "ugpoint";
+    typeExample = UGPoint::BasicType();
     listRep = "(<timeInterval> <gpoint1> <gpoint2>)";
     valueExample = "(<timeInterval><gpoint1><gpoint2>)";
     remarks = "Linear movement of a mgpoint in the network.";
@@ -7093,14 +7124,14 @@ TypeConstructor ugpointTC(ugpi,ugpf);
 
 bool CheckIntimeGPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "igpoint" ));
+  return (nl->IsEqual( type, IGPoint::BasicType() ));
 }
 
 struct igpointInfo:ConstructorInfo{
   igpointInfo(){
-    name = "igpoint";
+    name = IGPoint::BasicType();
     signature = "->TEMPORAL";
-    typeExample = "igpoint";
+    typeExample = IGPoint::BasicType();
     listRep = "(<instant> <gpoint>)";
     valueExample ="((instant) (1 1 3.0 1))";
     remarks = "Position of a mgpoint at a that point in time.";
@@ -7408,7 +7439,7 @@ Word MGPSecUnit::In(const ListExpr typeInfo, const ListExpr instance,
 
 bool MGPSecUnit::CheckKind( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "mgpsecunit" ));
+  return (nl->IsEqual( type, MGPSecUnit::BasicType() ));
 }
 
 int MGPSecUnit::NumOfFLOBs()const
@@ -7445,9 +7476,9 @@ struct mgpsecInfo:ConstructorInfo
 {
   mgpsecInfo()
   {
-    name = "mgpsecunit";
+    name = MGPSecUnit::BasicType();
     signature = "-> DATA";
-    typeExample = "mgpsecunit";
+    typeExample = MGPSecUnit::BasicType();
     listRep = "(<secId><part><dir><speed>(<timeinterval>))";
     valueExample = "(15 1 1 3.5 <timeinterval>)";
     remarks = "direction:down=0,up=1,none=2. Speed: m/s";
@@ -7479,7 +7510,7 @@ ListExpr OpMgp2mgpsecunitsTypeMap(ListExpr in_xArgs)
     ListExpr attr = type.second().listExpr();
     NList net = type.third();
     NList length = type.fourth();
-    if (net.isEqual("network") && length.isEqual(CcReal::BasicType())
+    if (net.isEqual(Network::BasicType()) && length.isEqual(CcReal::BasicType())
         && (!(nl->IsAtom(attr) && nl->AtomType(attr) != SymbolType))
         && IsRelDescription(rel))
     {
@@ -7487,13 +7518,13 @@ ListExpr OpMgp2mgpsecunitsTypeMap(ListExpr in_xArgs)
       ListExpr attrtype;
       ListExpr tupleDescr = nl->Second(rel);
       int j=listutils::findAttribute(nl->Second(tupleDescr),attrname, attrtype);
-      if (j!=0 && nl->IsEqual(attrtype, "mgpoint"))
+      if (j!=0 && nl->IsEqual(attrtype, MGPoint::BasicType()))
       {
         return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                                  nl->OneElemList(nl->IntAtom(j)),
-                                     nl->TwoElemList(
-                                         nl->SymbolAtom(Symbol::STREAM()),
-                                         nl->SymbolAtom("mgpsecunit")));
+                                 nl->TwoElemList(
+                                    nl->SymbolAtom(Symbol::STREAM()),
+                                    nl->SymbolAtom(MGPSecUnit::BasicType())));
       }
     }
   }
@@ -7639,13 +7670,15 @@ ListExpr OpMgp2mgpsecunits2TypeMap(ListExpr in_xArgs)
   {
     NList mgp = type.first();
     NList length = type.second();
-    if (mgp.isEqual("mgpoint") && length.isEqual(CcReal::BasicType()))
+    if (mgp.isEqual(MGPoint::BasicType()) &&
+        length.isEqual(CcReal::BasicType()))
     {
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                             nl->SymbolAtom("mgpsecunit"));
+                             nl->SymbolAtom(MGPSecUnit::BasicType()));
     }
   }
-  return NList::typeError( "Expected <mgpoint>, <real>.");
+  return NList::typeError( MGPoint::BasicType() + " and " + CcReal::BasicType()
+        + " expected.");
 }
 
 /*
@@ -7730,7 +7763,8 @@ struct mgp2mgpsecunits2Info : OperatorInfo {
   mgp2mgpsecunits2Info()
   {
     name      = "mgp2mgpsecunits2";
-    signature = "mgpoint x real -> stream(mgpsecunit)";
+    signature = MGPoint::BasicType() + " x " + CcReal::BasicType() + " -> " +
+                Symbol::STREAM() + "(" + MGPSecUnit::BasicType()+")";
     syntax    = "mgp2mgpsecunits2 (_ , _ )";
     meaning   = "Builds a stream of mgpsecunits from mgpoint.";
   }
@@ -7753,14 +7787,15 @@ ListExpr OpMgp2mgpsecunits3TypeMap(ListExpr in_xArgs)
   if (type.length() == 2)
   {
     NList stream = type.first();
-    NList mgp("mgpoint");
+    NList mgp(MGPoint::BasicType());
     NList partlength = type.second();
     if (stream.length() == 2 && stream.checkStream(mgp) &&
         partlength.isEqual(CcReal::BasicType()))
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                             nl->SymbolAtom("mgpsecunit"));
+                             nl->SymbolAtom(MGPSecUnit::BasicType()));
   }
-  return NList::typeError( "Expected ((stream mgpoint) real).");
+  return NList::typeError( "Expected a" + Symbol::STREAM() + " of " +
+      MGPoint::BasicType() + " and an " + CcReal::BasicType() + " value.");
 }
 
 /*
@@ -7890,7 +7925,9 @@ struct mgp2mgpsecunits3Info : OperatorInfo {
   mgp2mgpsecunits3Info()
   {
     name      = "mgp2mgpsecunits3";
-    signature = "stream(mgpoint) x real -> stream(mgpsecunit)";
+    signature = Symbol::STREAM() +"(" + MGPoint::BasicType() +") x " +
+                CcReal::BasicType() + " -> " + Symbol::STREAM() + "(" +
+                MGPSecUnit::BasicType() + ")";
     syntax    = "_ mgp2mgpsecunits3 ( _ ) ";
     meaning   = "Builds a stream of mgpsecunits from a stream of mgpoint.";
   }
@@ -7912,13 +7949,13 @@ ListExpr OpMPoint2MGPointTypeMap(ListExpr in_xArgs)
   if( param.length() != 2 )
     return listutils::typeError("two arguments expected");
 
-  if (!param.first().isSymbol("network"))
-    return listutils::typeError("first argument must be network");
+  if (!param.first().isSymbol(Network::BasicType()))
+    return listutils::typeError("1. argument must be " + Network::BasicType());
 
-  if (!param.second().isSymbol("mpoint"))
-    return listutils::typeError("second argument must be mpoint");
+  if (!param.second().isSymbol(MPoint::BasicType()))
+    return listutils::typeError("2. argument must be " + MPoint::BasicType());
 
-  return nl->SymbolAtom( "mgpoint" );
+  return nl->SymbolAtom( MGPoint::BasicType() );
 }
 
 /*
@@ -7955,7 +7992,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
     return 0;
   }
   MPoint *pMPoint = (MPoint*)args[1].addr;
-  if (pMPoint == 0 || !pMPoint->IsDefined())
+  if (pMPoint == 0 || !pMPoint->IsDefined() || pMPoint->IsEmpty())
   {
     res->SetDefined(false);
     return 0;
@@ -8015,7 +8052,8 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   {
     pMPoint->Get(i,pUPoint);
     double dNewEndPos;
-    if (checkPointN(pActRouteCurve, pUPoint.p1, true, dNewEndPos))
+    if (pActRouteCurve.AtPoint(pUPoint.p1, pActRouteCurve.GetStartSmaller(),
+                               pNetwork->GetScalefactor()*0.01,dNewEndPos))
     {
       /*
       End Found on same route like last ~ugpoint~
@@ -8023,10 +8061,10 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
       */
       if (((bMovingUp && aktUGPoint.GetUnitEndPos() <= dNewEndPos) ||
             (!bMovingUp && aktUGPoint.GetUnitEndPos() >= dNewEndPos)) &&
-          (fabs(aktUGPoint.Speed() -
+          (AlmostEqual(aktUGPoint.Speed(),
             ((fabs(aktUGPoint.GetUnitEndPos() - dNewEndPos))/
              ((pUPoint.timeInterval.end -
-            pUPoint.timeInterval.start).ToDouble()/0.00001157))) < 0.01))
+            pUPoint.timeInterval.start).ToDouble()/0.00001157)))))
       {
         /*
         0.00001157 =  miliseconds to seconds. Compare meter per second.
@@ -8206,13 +8244,354 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
 struct mpoint2mgpointInfo:OperatorInfo{
   mpoint2mgpointInfo(){
     name = "mpoint2mgpoint";
-    signature = "network X mpoint -> mgpoint";
+    signature = Network::BasicType() + " X " + MPoint::BasicType() + " -> " +
+    MGPoint::BasicType();
     syntax = "mpoint2mgpoint(_,_)";
     meaning = "Translates the mpoint into an mgpoint if possible.";
   }
 };
 
 
+/*
+1.2 MapMatching for not exact gps-Signals
+
+The operation tries to map the ~mpoint~ as well as possible to the given
+network. Missing route parts are approximated by shortest path search if any
+connection to the network can be established for two or more positions of
+he mpoint. Corresponding ugpoint units are written to the result.
+
+*/
+
+ListExpr OpMapMatchingTypeMap(ListExpr in_xArgs)
+{
+  NList param(in_xArgs);
+
+  if( param.length() != 2)
+    return listutils::typeError("two arguments expected");
+
+  if (!param.first().isSymbol(Network::BasicType()))
+    return listutils::typeError("1. argument must be " + Network::BasicType());
+
+  if (!param.second().isSymbol(MPoint::BasicType()))
+    return listutils::typeError("2. argument must be " + MPoint::BasicType());
+
+  return nl->SymbolAtom( MGPoint::BasicType() );
+}
+
+int OpMapMatchingValueMapping(Word* args,
+                                    Word& result,
+                                    int message,
+                                    Word& local,
+                                    Supplier in_xSupplier)
+{
+  // cout << "OpMapMatching called" << endl;
+  // Initialize Result. Load and Check Arguments.
+  result = qp->ResultStorage(in_xSupplier);
+  MGPoint* res = static_cast<MGPoint*>(result.addr);
+  res->Clear();
+  Network *pNetwork = (Network*) args[0].addr;
+  if (pNetwork == 0 || !pNetwork->IsDefined())
+  {
+    res->SetDefined(false);
+    return 0;
+  }
+  MPoint *pMPoint = (MPoint*)args[1].addr;
+  if (pMPoint == 0 || !pMPoint->IsDefined() || pMPoint->IsEmpty())
+  {
+    res->SetDefined(false);
+    return 0;
+  }
+  if (pMPoint->GetNoComponents() == 0)
+  {
+    res->SetDefined(false);
+    return 0;
+  }
+  // initialize values
+  res->SetDefined(true);
+  res->StartBulkLoad();
+  UGPoint* aktUGPoint = 0;
+  RITreeP *riTree = new RITreeP(0);
+  int iNetworkId = pNetwork->GetId();
+  UPoint pUPoint;
+  bool bMovingUp = true;
+  int i = 0;
+  pMPoint->Get(i,pUPoint);
+  GPoint* startGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p0);
+  do
+  {
+    if (aktUGPoint != 0) pMPoint->Get(i++,pUPoint);
+    while ((startGP == 0 || !startGP->IsDefined()) &&
+            i < pMPoint->GetNoComponents())
+    {
+      if (startGP != 0)
+      {
+        startGP->DeleteIfAllowed();
+        startGP = 0;
+      }
+      pMPoint->Get(i++,pUPoint);
+      startGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p0);
+    }
+    if (!startGP->IsDefined())
+    {
+      startGP->DeleteIfAllowed();
+      if (aktUGPoint != 0)
+      {
+        res->Add(*aktUGPoint);
+        riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                           aktUGPoint->GetStartPoint().GetPosition(),
+                           aktUGPoint->GetEndPoint().GetPosition());
+        aktUGPoint->DeleteIfAllowed();
+      }
+      res->EndBulkLoad(true);
+      res->SetDefined(!riTree->IsEmpty());
+      if (!riTree->IsEmpty())
+      {
+        riTree->TreeToDbArray(&res->m_trajectory,0);
+        res->SetTrajectoryDefined(true);
+        res->m_trajectory.TrimToSize();
+        res->SetBoundingBoxDefined(false);
+      }
+      riTree->Destroy();
+      delete riTree;
+      riTree=0;
+      return 0;
+    }
+    Instant startTime = pUPoint.timeInterval.start;
+    bool scl = pUPoint.timeInterval.lc;
+    GPoint* endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
+    while ((endGP == 0 || !endGP->IsDefined()) &&
+      i < pMPoint->GetNoComponents())
+    {
+      if (endGP != 0)
+      {
+        endGP->DeleteIfAllowed();
+        endGP =0;
+      }
+      pMPoint->Get(i++,pUPoint);
+      endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
+    }
+    if (!endGP->IsDefined())
+    {
+      startGP->DeleteIfAllowed();
+      endGP->DeleteIfAllowed();
+      if (aktUGPoint != 0)
+      {
+        res->Add(*aktUGPoint);
+        riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                           aktUGPoint->GetStartPoint().GetPosition(),
+                           aktUGPoint->GetEndPoint().GetPosition());
+        aktUGPoint->DeleteIfAllowed();
+      }
+      res->EndBulkLoad(true);
+      res->SetDefined(!riTree->IsEmpty());
+      if (!riTree->IsEmpty())
+      {
+        riTree->TreeToDbArray(&res->m_trajectory,0);
+        res->SetTrajectoryDefined(true);
+        res->m_trajectory.TrimToSize();
+        res->SetBoundingBoxDefined(false);
+      }
+      riTree->Destroy();
+      delete riTree;
+      riTree = 0;
+      return 0;
+    }
+    Instant endTime = pUPoint.timeInterval.end;
+    bool ecl = pUPoint.timeInterval.rc;
+    if (startGP->GetRouteId() == endGP->GetRouteId())
+    {
+      if (aktUGPoint == 0)
+      {
+        aktUGPoint = new UGPoint(Interval<Instant> (startTime, endTime,
+                                                    scl, ecl),
+                                 *startGP, *endGP);
+        riTree->InsertUnit(startGP->GetRouteId(), startGP->GetPosition(),
+                           endGP->GetPosition());
+      }
+      else
+      {
+        if (startGP->GetPosition() > endGP->GetPosition()) bMovingUp = false;
+        else bMovingUp = true;
+        if (aktUGPoint->GetStartPoint().GetRouteId() == startGP->GetRouteId())
+        {
+          if(((aktUGPoint->GetStartPoint().GetSide() == Up && bMovingUp &&
+               aktUGPoint->GetEndPoint().GetPosition() <= endGP->GetPosition())
+            ||(aktUGPoint->GetStartPoint().GetSide() == Down && !bMovingUp &&
+               aktUGPoint->GetEndPoint().GetPosition()>=endGP->GetPosition()))
+            && AlmostEqual(aktUGPoint->Speed(),
+                           (fabs(aktUGPoint->GetEndPoint().GetPosition() -
+                             endGP->GetPosition()))*0.00001157/
+                             (endTime - startTime).ToDouble()))
+          { // Direction and Speed almost similar extend aktugpoint
+            aktUGPoint->SetUnitEndPos(endGP->GetPosition());
+            aktUGPoint->SetUnitEndTime(endTime);
+          }
+          else
+          {
+            //speed or direction changed write aktUGPoint and initialize next
+            res->Add(*aktUGPoint);
+            riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                               aktUGPoint->GetStartPoint().GetPosition(),
+                               aktUGPoint->GetEndPoint().GetPosition());
+            aktUGPoint->DeleteIfAllowed();
+            aktUGPoint = new UGPoint(Interval<Instant> (startTime, endTime,
+                                                        scl, ecl),
+                                     *startGP, *endGP);
+          }
+        }
+        else
+        {
+          //changed route write aktUGPoint and initialize next one
+          res->Add(*aktUGPoint);
+          riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                             aktUGPoint->GetStartPoint().GetPosition(),
+                             aktUGPoint->GetEndPoint().GetPosition());
+          aktUGPoint->DeleteIfAllowed();
+          aktUGPoint = new UGPoint(Interval<Instant> (startTime, endTime,
+                                                      scl, ecl),
+                                   *startGP, *endGP);
+        }
+      }
+      *startGP = *endGP;
+      startTime = endTime;
+      scl = !ecl;
+      endGP->DeleteIfAllowed();
+      endGP = 0;
+    }
+    else
+    {
+      //write aktUGPoint if exists
+      if (aktUGPoint != 0)
+      {
+        res->Add(*aktUGPoint);
+        riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                           aktUGPoint->GetStartPoint().GetPosition(),
+                           aktUGPoint->GetEndPoint().GetPosition());
+        aktUGPoint->DeleteIfAllowed();
+        aktUGPoint = 0;
+      }
+      // Interpolate movement between start and end by shortest path search
+      GLine *gl = new GLine(0);
+      if (!startGP->ShortestPathAStar(endGP,gl,pNetwork))
+      {
+        //failure no path found stop computation
+        startGP->DeleteIfAllowed();
+        endGP->DeleteIfAllowed();
+        res->EndBulkLoad(true);
+        res->SetDefined(!riTree->IsEmpty());
+        if (!riTree->IsEmpty())
+        {
+          riTree->TreeToDbArray(&res->m_trajectory,0);
+          res->SetTrajectoryDefined(true);
+          res->m_trajectory.TrimToSize();
+          res->SetBoundingBoxDefined(false);
+        }
+        riTree->Destroy();
+        delete riTree;
+        gl->DeleteIfAllowed();
+        return 0;
+      }
+      else
+      {
+        RouteInterval gri;
+        Side s = None;
+        if (gl->NoOfComponents() == 0)
+        {
+          aktUGPoint = new UGPoint(Interval<Instant> (startTime, endTime,
+                                                      scl, ecl),
+                                   *endGP, *endGP);
+          *startGP = *endGP;
+          startTime = endTime;
+          scl = !ecl;
+          endGP->DeleteIfAllowed();
+          endGP = 0;
+        }
+        else
+        {
+          //success simulate trip over shortest path route intervals.
+          for (int k = 0; k < gl->NoOfComponents(); k++)
+          {
+            if (aktUGPoint != 0)
+            {
+              res->Add(*aktUGPoint);
+              riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                                 aktUGPoint->GetStartPoint().GetPosition(),
+                                 aktUGPoint->GetEndPoint().GetPosition());
+              aktUGPoint->DeleteIfAllowed();
+              aktUGPoint = 0;
+            }
+            gl->Get(k,gri);
+            Instant tpos =(endTime - startTime) *
+                          (fabs(gri.GetEndPos()-gri.GetStartPos())/
+                            gl->GetLength()) + startTime;
+            if (gri.GetRouteId() == endGP->GetRouteId() &&
+              AlmostEqual(gri.GetEndPos(),endGP->GetPosition()))
+              tpos = endTime;
+            if (gri.GetStartPos() > gri.GetEndPos()) s = Down;
+            else if (gri.GetStartPos() < gri.GetEndPos()) s = Up;
+            else s = None;
+            aktUGPoint = new UGPoint(Interval<Instant> (startTime, tpos,
+                                                        true, false),
+                                     iNetworkId,
+                                     gri.GetRouteId(),
+                                     s,
+                                     gri.GetStartPos(),
+                                     gri.GetEndPos());
+            startTime = tpos;
+          }
+          startGP->DeleteIfAllowed();
+          startGP = new GPoint(true, iNetworkId, gri.GetRouteId(),
+                               gri.GetEndPos(), s);
+          startTime = endTime;
+          endGP->DeleteIfAllowed();
+          endGP = 0;
+        }
+      }
+      gl->DeleteIfAllowed();
+    }
+  } while (i < pMPoint->GetNoComponents()-1);
+  // write last unit if exists
+  if (aktUGPoint != 0)
+  {
+    res->Add(*aktUGPoint);
+    riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                       aktUGPoint->GetStartPoint().GetPosition(),
+                       aktUGPoint->GetEndPoint().GetPosition());
+    aktUGPoint->DeleteIfAllowed();
+    aktUGPoint = 0;
+  }
+  res->EndBulkLoad(true);
+  res->SetDefined(!riTree->IsEmpty());
+  if (!riTree->IsEmpty())
+  {
+    riTree->TreeToDbArray(&res->m_trajectory,0);
+    res->m_trajectory.TrimToSize();
+    res->SetTrajectoryDefined(true);
+    res->SetBoundingBoxDefined(false);
+  }
+  riTree->Destroy();
+  delete riTree;
+  startGP->DeleteIfAllowed();
+  return 0;
+}
+
+const string OpMapMatchingSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> network X mpoint ->  mgpoint </text--->"
+  "<text>_ mapmatching (network,mpoint)</text--->"
+  "<text> The operation tries to map the mpoint to the given network as well"
+  " as possible. Parts of movement, which can not be mapped directly"
+  " are interpolated by shortest path computing. And trip simulation.</text--->"
+  "<text>query mapmatching(B_NETWORK, train7)</text--->) )";
+
+Operator mapmatching (
+    "mapmatching",               // name
+    OpMapMatchingSpec, // specification
+    OpMapMatchingValueMapping, // value mapping
+    Operator::SimpleSelect,
+    OpMapMatchingTypeMap    // type mapping
+  );
 /*
 5.2 Operator ~passes~
 
@@ -8227,12 +8606,13 @@ ListExpr OpPassesTypeMap( ListExpr args )
   if ( param.length() != 2 )
     return listutils::typeError("two arguments expected");
 
-  if ( !param.first().isSymbol("mgpoint"))
-    return listutils::typeError("first argument must be mgpoint");
+  if ( !param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1. argument must be " + MGPoint::BasicType());
 
-  if (!(param.second().isSymbol("gpoint") ||
-        param.second().isSymbol("gline")))
-    return listutils::typeError("second argument must be gpoint or gline");
+  if (!(param.second().isSymbol(GPoint::BasicType()) ||
+        param.second().isSymbol(GLine::BasicType())))
+    return listutils::typeError("2. argument must be " + GPoint::BasicType() +
+                        " or " + GLine::BasicType());
 
   return (nl->SymbolAtom( CcBool::BasicType() ));
 }
@@ -8273,9 +8653,9 @@ int OpPassesSelect( ListExpr args )
 {
   ListExpr arg2 = nl->Second( args );
 
-  if ( nl->SymbolValue(arg2) == "gpoint")
+  if ( nl->SymbolValue(arg2) == GPoint::BasicType())
     return 0;
-  if ( nl->SymbolValue(arg2) == "gline")
+  if ( nl->SymbolValue(arg2) == GLine::BasicType())
     return 1;
   return -1; // This point should never be reached
 }
@@ -8283,8 +8663,10 @@ int OpPassesSelect( ListExpr args )
 struct passesInfo:OperatorInfo{
   passesInfo(){
     name = "passes";
-    signature = "mgpoint X gpoint -> bool";
-    appendSignature("mgpoint X gline -> bool");
+    signature = MGPoint::BasicType() + " X " + GPoint::BasicType() + " -> " +
+                CcBool::BasicType();
+    appendSignature(MGPoint::BasicType() + " X " + GLine::BasicType() + " -> " +
+                    CcBool::BasicType());
     syntax = "_ passes _";
     meaning = "Returns true if the mgpoint passes the given places.";
   }
@@ -8308,13 +8690,13 @@ ListExpr OpSimplifyTypeMap(ListExpr in_xArgs)
   if (param.length()!= 2 )
     return listutils::typeError("two arguments expected");
 
-  if (!param.first().isSymbol("mgpoint"))
-    return listutils::typeError("first argument must be mgpoint");
+  if (!param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1. argument must be " + MGPoint::BasicType());
 
   if (!param.second().isSymbol(CcReal::BasicType()))
-    return listutils::typeError("second argument must be real");
+    return listutils::typeError("2. argument must be " + CcReal::BasicType());
 
-  return nl->SymbolAtom( "mgpoint" );
+  return nl->SymbolAtom( MGPoint::BasicType() );
 }
 
 int OpSimplifyValueMapping(Word* args,
@@ -8345,7 +8727,8 @@ int OpSimplifyValueMapping(Word* args,
 struct simplifyInfo:OperatorInfo{
   simplifyInfo(){
     name = "simplify";
-    signature = "mgpoint X real -> mgpoint";
+    signature = MGPoint::BasicType() + " X " + CcReal::BasicType() + " -> " +
+                MGPoint::BasicType();
     syntax = "simplify(_,_)";
     meaning = "Reduces the number of units by a speed deviation threshold.";
   }
@@ -8365,13 +8748,15 @@ ListExpr OpAtTypeMap(ListExpr in_xArgs)
   if (param.length()!= 2 )
     return listutils::typeError("two arguments expected");
 
-  if (!param.first().isSymbol("mgpoint"))
-    return listutils::typeError("first argument must be mgpoint");
+  if (!param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1. argument must be " + MGPoint::BasicType());
 
-  if (!(param.second().isSymbol("gpoint") || param.second().isSymbol("gline")))
-    return listutils::typeError("second argument must be gpoint or gline");
+  if (!(param.second().isSymbol(GPoint::BasicType()) ||
+        param.second().isSymbol(GLine::BasicType())))
+    return listutils::typeError("2. argument must be " + GPoint::BasicType() +
+          " or " + GLine::BasicType());
 
-  return (nl->SymbolAtom("mgpoint"));
+  return (nl->SymbolAtom(MGPoint::BasicType()));
 }
 
 template<class Arg2>
@@ -8411,9 +8796,9 @@ int OpAtSelect( ListExpr args )
 {
   ListExpr arg2 = nl->Second( args );
 
-  if (nl->SymbolValue(arg2) == "gpoint")
+  if (nl->SymbolValue(arg2) == GPoint::BasicType())
     return 0;
-  if (nl->SymbolValue(arg2) == "gline")
+  if (nl->SymbolValue(arg2) == GLine::BasicType())
     return 1;
   return -1; // This point should never be reached
 }
@@ -8421,8 +8806,10 @@ int OpAtSelect( ListExpr args )
 struct atInfo:OperatorInfo{
   atInfo(){
     name = "at";
-    signature = "mgpoint X gpoint -> mgpoint";
-    appendSignature("mgpoint X gline -> mgpoint");
+    signature = MGPoint::BasicType() + " X " + GPoint::BasicType() + " -> " +
+                MGPoint::BasicType();
+    appendSignature(MGPoint::BasicType() + " X " + GLine::BasicType() + " -> " +
+                    MGPoint::BasicType());
     syntax = "_ at _";
     meaning = "Restricts the mgpoint to the given places.";
   }
@@ -8441,13 +8828,12 @@ ListExpr OpAtinstantTypeMap(ListExpr in_xArgs)
 
   if( param.length() != 2 )
     return listutils::typeError("one argument expected");
+  if(!param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1. argument must be " + MGPoint::BasicType());
+  if(!param.second().isSymbol(Instant::BasicType()))
+    return listutils::typeError("2. argument must be " + Instant::BasicType());
 
-  if (!param.first().isSymbol("mgpoint"))
-    return listutils::typeError("first argument must be mgpoint");
-  if (!param.second().isSymbol(Instant::BasicType()))
-    return listutils::typeError("second argument must be instant");
-
-  return (nl->SymbolAtom( "igpoint" ));
+  return (nl->SymbolAtom( IGPoint::BasicType() ));
 }
 
 int OpAtinstantValueMapping(Word* args,
@@ -8483,7 +8869,8 @@ int OpAtinstantValueMapping(Word* args,
 struct atinstantInfo:OperatorInfo{
   atinstantInfo(){
     name = "atinstant";
-    signature = "mgpoint X instant -> igpoint";
+    signature = MGPoint::BasicType() + " X " + Instant::BasicType() + " -> " +
+                IGPoint::BasicType();
     syntax = "_ atinstant _";
     meaning = "Computes the position of mgpoint at the given instant.";
   }
@@ -8503,12 +8890,12 @@ ListExpr OpAtperiodsTypeMap(ListExpr in_xArgs)
   if( param.length() != 2 )
     return listutils::typeError("one argument expected");
 
-  if (!param.first().isSymbol("mgpoint"))
-    return listutils::typeError("first argument must be mgpoint");
-  if (!param.second().isSymbol("periods"))
-    return listutils::typeError("second argument must be periods");
+  if (!param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1. argument must be " + MGPoint::BasicType());
+  if (!param.second().isSymbol(Periods::BasicType()))
+    return listutils::typeError("2. argument must be " + Periods::BasicType());
 
-  return (nl->SymbolAtom( "mgpoint" ));
+  return (nl->SymbolAtom( MGPoint::BasicType() ));
 
 }
 
@@ -8547,7 +8934,8 @@ int OpAtperiodsValueMapping(Word* args,
 struct atperiodsInfo:OperatorInfo{
   atperiodsInfo(){
     name = "atperiods";
-    signature = "mgpoint X periods -> mgpoint";
+    signature = MGPoint::BasicType() + " X " + Periods::BasicType() + " -> " +
+                MGPoint::BasicType();
     syntax = "_ atperiods _";
     meaning = "Restricts the mgpoint to the given periods.";
   }
@@ -8569,11 +8957,12 @@ ListExpr OpDeftimeTypeMap(ListExpr in_xArgs)
   if( param.length() != 1 )
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint") ||
-      param.first().isSymbol("ugpoint"))
-    return (nl->SymbolAtom( "periods" ));
+  if (param.first().isSymbol(MGPoint::BasicType()) ||
+      param.first().isSymbol(UGPoint::BasicType()))
+    return (nl->SymbolAtom( Periods::BasicType()));
   else
-    return listutils::typeError("mgpoint or ugpoint expected");
+    return listutils::typeError(MGPoint::BasicType() + " or " +
+                                UGPoint::BasicType() + " expected.");
 }
 
 template<class Arg>
@@ -8594,9 +8983,9 @@ int OpDeftime(Word* args, Word& result, int message, Word& local,
 
 int OpDeftimeSelect(ListExpr args) {
   ListExpr arg = nl->First(args);
-  if ( nl->SymbolValue(arg) == "mgpoint")
+  if ( nl->SymbolValue(arg) == MGPoint::BasicType())
     return 0;
-  if ( nl->SymbolValue(arg) == "ugpoint")
+  if ( nl->SymbolValue(arg) == UGPoint::BasicType())
     return 1;
   return -1; // This point should never be reached
 };
@@ -8610,8 +8999,8 @@ ValueMapping OpDeftimeValueMapping [] = {
 struct deftimeInfo:OperatorInfo{
   deftimeInfo(){
     name = "deftime";
-    signature = "mgpoint -> periods";
-    appendSignature("upgoint -> periods");
+    signature = MGPoint::BasicType() + " -> " + Periods::BasicType();
+    appendSignature(UGPoint::BasicType() + " -> " + Periods::BasicType());
     syntax = "deftime(_)";
     meaning = "Returns the defintion times of the object.";
   }
@@ -8634,16 +9023,16 @@ ListExpr OpFinalInitialTypeMap(ListExpr in_xArgs)
   if( param.length() != 1 )
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint"))
-    return nl->SymbolAtom( "igpoint" );
+  if (param.first().isSymbol(MGPoint::BasicType()))
+    return nl->SymbolAtom( IGPoint::BasicType() );
   else
-    return listutils::typeError("mgpoint expected");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 }
 
 struct finalInfo:OperatorInfo{
   finalInfo(){
     name = "final";
-    signature = "mgpoint -> igpoint";
+    signature = MGPoint::BasicType() + " -> " + IGPoint::BasicType();
     syntax = "final(_)";
     meaning = "Returns the final time instant and position of the mgpoint.";
   }
@@ -8660,7 +9049,7 @@ Returns the start point and time of the ~MGPoint~ as ~IGPoint~.
 struct initialInfo:OperatorInfo{
   initialInfo(){
     name = "initial";
-    signature = "mgpoint -> igpoint";
+    signature = MGPoint::BasicType() + " -> " + IGPoint::BasicType();
     syntax = "initial(_)";
     meaning = "Returns the start time and position of the mgpoint.";
   }
@@ -8682,11 +9071,11 @@ ListExpr OpInsideTypeMapping(ListExpr in_xArgs)
   if ( param.length() != 2 )
     return listutils::typeError("two arguments expected");
 
-  if (!param.first().isSymbol("mgpoint"))
-    return listutils::typeError("first argument must be mgpoint");
+  if (!param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1. argument must be " + MGPoint::BasicType());
 
-  if (!param.second().isSymbol("gline"))
-    return listutils::typeError("Second argument must be gline");
+  if (!param.second().isSymbol(GLine::BasicType()))
+    return listutils::typeError("2. argument must be " + GLine::BasicType());
 
   return (nl->SymbolAtom(MBool::BasicType()));
 
@@ -8723,7 +9112,8 @@ int OpInsideValueMapping(Word* args,
 struct insideInfo:OperatorInfo{
   insideInfo(){
     name = "inside";
-    signature = "mgpoint X gline -> mbool";
+    signature = MGPoint::BasicType() + " X " + GLine::BasicType() + " -> " +
+                MBool::BasicType();
     syntax = "_ inside _";
     meaning = "True while mgpoint moves inside gline.";
   }
@@ -8745,16 +9135,16 @@ ListExpr OpInstTypeMap(ListExpr in_xArgs)
   if( param.length() != 1 )
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("igpoint"))
+  if (param.first().isSymbol(IGPoint::BasicType()))
     return nl->SymbolAtom( Instant::BasicType() );
   else
-    return listutils::typeError("igpoint expected");
+    return listutils::typeError(IGPoint::BasicType()+ " expected.");
 }
 
 struct instInfo:OperatorInfo{
   instInfo(){
     name = "inst";
-    signature = "igpoint -> instant";
+    signature = IGPoint::BasicType() + " -> " + Instant::BasicType();
     syntax = "inst(_)";
     meaning = "Returns the time instant of the igpoint.";
   }
@@ -8800,7 +9190,8 @@ int OpIntersectionValueMapping(Word* args,
 struct intersectionInfo:OperatorInfo{
   intersectionInfo(){
     name = "intersection";
-    signature = "mgpoint X mgpoint -> mgpoint";
+    signature = MGPoint::BasicType() + " X " + MGPoint::BasicType() +" ->  " +
+                MGPoint::BasicType();
     syntax = "intersection(_._)";
     meaning = "Returns times and places mgpoints met.";
   }
@@ -8820,9 +9211,9 @@ ListExpr OpIntersectsTypeMapping(ListExpr in_xArgs)
   if (param.length() != 2)
     return listutils::typeError("2 arguments expected");
 
-  if (!(param.first().isSymbol("mgpoint") &&
-        param.second().isSymbol("mgpoint")))
-    return listutils::typeError("2 mgpoint expected");
+  if (!(param.first().isSymbol(MGPoint::BasicType()) &&
+        param.second().isSymbol(MGPoint::BasicType())))
+    return listutils::typeError("Two " + MGPoint::BasicType() + " expected.");
 
   return (nl->SymbolAtom(CcBool::BasicType()));
 }
@@ -8858,7 +9249,8 @@ int OpIntersectsValueMapping(Word* args,
 struct intersectsInfo:OperatorInfo{
   intersectsInfo(){
     name = "intersects";
-    signature = "mgpoint X mgpoint -> bool";
+    signature = MGPoint::BasicType() + " X " + MGPoint::BasicType() +" -> " +
+                CcBool::BasicType();
     syntax = "_ intersects _";
     meaning = "Returns true if the mgpoint meet at any place.";
   }
@@ -8880,10 +9272,10 @@ ListExpr OpIsEmptyTypeMap(ListExpr in_xArgs)
   if( param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint"))
+  if (param.first().isSymbol(MGPoint::BasicType()))
     return nl->SymbolAtom( CcBool::BasicType() );
   else
-    return listutils::typeError("mgpoint expected.");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 }
 
 int OpIsEmptyValueMapping(Word* args,
@@ -8906,7 +9298,7 @@ int OpIsEmptyValueMapping(Word* args,
 struct isemptyInfo:OperatorInfo{
   isemptyInfo(){
     name = "isempty";
-    signature = "mgpoint -> bool";
+    signature = MGPoint::BasicType() + " -> " + CcBool::BasicType();
     syntax = "isempty(_)";
     meaning = "Returns true if the mgpoint has no units.";
   }
@@ -8926,11 +9318,12 @@ ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
   if( param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint") ||
-      param.first().isSymbol("ugpoint"))
+  if (param.first().isSymbol(MGPoint::BasicType()) ||
+      param.first().isSymbol(UGPoint::BasicType()))
     return nl->SymbolAtom( CcReal::BasicType() );
   else
-    return listutils::typeError("ugpoint or mgpoint expected.");
+    return listutils::typeError(MGPoint::BasicType() + " or " +
+                                UGPoint::BasicType() + " expected.");
 }
 
 template<class Arg>
@@ -8955,9 +9348,9 @@ int OpLength(Word* args,
 int OpLengthSelect(ListExpr args){
   ListExpr arg1 = nl->First( args );
 
-  if ( nl->SymbolValue(arg1) == "mgpoint")
+  if ( nl->SymbolValue(arg1) == MGPoint::BasicType())
     return 0;
-  if ( nl->SymbolValue(arg1) == "ugpoint")
+  if ( nl->SymbolValue(arg1) == UGPoint::BasicType())
     return 1;
   return -1; // This point should never be reached
 };
@@ -8971,8 +9364,8 @@ ValueMapping OpLengthValueMap[] = {
 struct lengthInfo:OperatorInfo{
   lengthInfo(){
     name = "length";
-    signature = "mgpoint -> real";
-    appendSignature("ugpoint -> real");
+    signature = MGPoint::BasicType() + " -> " + CcReal::BasicType();
+    appendSignature(UGPoint::BasicType() + " -> " + CcReal::BasicType());
     syntax = "length(_)";
     meaning = "Returns distance driven by the object.";
   }
@@ -8993,10 +9386,10 @@ ListExpr OpNoCompTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected.");
 
-  if (param.first().isSymbol("mgpoint"))
+  if (param.first().isSymbol(MGPoint::BasicType()))
     return nl->SymbolAtom(CcInt::BasicType());
   else
-    return listutils::typeError("mgpoint expected.");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 }
 
 int OpNoCompValueMapping(Word* args,
@@ -9021,7 +9414,7 @@ int OpNoCompValueMapping(Word* args,
 struct noComponentsInfo:OperatorInfo{
   noComponentsInfo(){
     name = "no_components";
-    signature = "mgpoint -> int";
+    signature = MGPoint::BasicType() + " -> " + CcInt::BasicType();
     syntax = "no_components(_)";
     meaning = "Returns the number of units of the mgpoint.";
   }
@@ -9042,12 +9435,13 @@ ListExpr OpPresentTypeMap(ListExpr in_xArgs)
   if(param.length() != 2 )
     return listutils::typeError("two arguments expected");
 
-  if (!param.first().isSymbol("mgpoint"))
-    return listutils::typeError("First argument must be mgpoint.");
+  if (!param.first().isSymbol(MGPoint::BasicType()))
+    return listutils::typeError("1.argument must be " + MGPoint::BasicType());
 
-  if (! (param.second().isSymbol("periods") ||
+  if (! (param.second().isSymbol(Periods::BasicType()) ||
          param.second().isSymbol(Instant::BasicType())))
-    return listutils::typeError("Second argument must be periods or instant.");
+    return listutils::typeError("2.argument must be " + Periods::BasicType() +
+                                " or " + Instant::BasicType());
 
   return nl->SymbolAtom(CcBool::BasicType());
 }
@@ -9081,10 +9475,10 @@ int OpPresentSelect(ListExpr args){
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( nl->SymbolValue(arg1) == "mgpoint" &&
-       nl->SymbolValue( arg2) == "periods" )
+  if ( nl->SymbolValue(arg1) == MGPoint::BasicType() &&
+       nl->SymbolValue( arg2) == Periods::BasicType() )
     return 0;
-  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+  if ( nl->SymbolValue(arg1) == MGPoint::BasicType() &&
        nl->SymbolValue( arg2) == Instant::BasicType())
     return 1;
   return -1; // This point should never be reached
@@ -9099,8 +9493,11 @@ ValueMapping OpPresentValueMap[] = {
 struct presentInfo:OperatorInfo{
   presentInfo(){
     name = "present";
-    signature = "mgpoint X instant -> bool";
-    appendSignature("mgpoint X periods -> bool");
+    signature = MGPoint::BasicType() + " X " + Instant::BasicType() + " -> " +
+                CcBool::BasicType();
+    appendSignature(MGPoint::BasicType() + " X " +
+                    Periods::BasicType() + " -> " +
+                    CcBool::BasicType());
     syntax = "_ present _";
     meaning = "True if mgpoint exists in time value.";
   }
@@ -9122,16 +9519,16 @@ ListExpr OpValTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("igpoint"))
-    return nl->SymbolAtom("gpoint");
+  if (param.first().isSymbol(IGPoint::BasicType()))
+    return nl->SymbolAtom(GPoint::BasicType());
   else
-    return listutils::typeError("igpoint expected");
+    return listutils::typeError(IGPoint::BasicType() + " expected.");
 }
 
 struct valInfo:OperatorInfo{
   valInfo(){
     name = "val";
-    signature = "igpoint -> gpoint";
+    signature = IGPoint::BasicType() + " -> " + GPoint::BasicType();
     syntax = "val(_)";
     meaning = "Returns the gpoint value of the igpoint.";
   }
@@ -9152,10 +9549,10 @@ ListExpr OpTrajectoryTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint"))
-    return nl->SymbolAtom("gline");
+  if (param.first().isSymbol(MGPoint::BasicType()))
+    return nl->SymbolAtom(GLine::BasicType());
   else
-    return listutils::typeError("mgpoint expected");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 }
 
 int OpTrajectoryValueMapping(Word* args,
@@ -9188,7 +9585,7 @@ int OpTrajectoryValueMapping(Word* args,
 struct trajectoryInfo:OperatorInfo{
   trajectoryInfo(){
     name = "trajectory";
-    signature = "mgpoint -> gline";
+    signature = MGPoint::BasicType() + " -> " + GLine::BasicType();
     syntax = "trajectory(_)";
     meaning = "Returns the places traversed by the mgpoint as gline.";
   }
@@ -9209,11 +9606,11 @@ ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint"))
+  if (param.first().isSymbol(MGPoint::BasicType()))
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                           nl->SymbolAtom("ugpoint"));
+                           nl->SymbolAtom(UGPoint::BasicType()));
   else
-    return listutils::typeError("mgpoint expected");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 
 
 }
@@ -9221,7 +9618,8 @@ ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
 struct unitsInfo:OperatorInfo{
   unitsInfo(){
     name = "units";
-    signature = "mgpoint -> stream(ugpoint)";
+    signature = MGPoint::BasicType() + " -> " + Symbol::STREAM() + "(" +
+                UGPoint::BasicType() + ")";
     syntax = "units(_)";
     meaning = "Builds a stream from the units of the mgpoint.";
   }
@@ -9245,10 +9643,10 @@ ListExpr OpUnitPosTimeTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("ugpoint"))
+  if (param.first().isSymbol(UGPoint::BasicType()))
     return nl->SymbolAtom(CcReal::BasicType());
   else
-    return listutils::typeError("ugpoint expected");
+    return listutils::typeError(UGPoint::BasicType() + " expected");
 }
 
 int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
@@ -9269,7 +9667,7 @@ int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
 struct unitendposInfo:OperatorInfo{
   unitendposInfo(){
     name = "unitendpos";
-    signature = "ugpoint -> real";
+    signature = UGPoint::BasicType() + " -> " + CcReal::BasicType();
     syntax = "unitendpos(_)";
     meaning = "Returns the end position of the ugpoint.";
   }
@@ -9303,7 +9701,7 @@ int OpUnitStartPosValueMapping( Word* args, Word& result, int message,
 struct unitstartposInfo:OperatorInfo{
   unitstartposInfo(){
     name = "unitstartpos";
-    signature = "ugpoint -> real";
+    signature = UGPoint::BasicType() + " -> " + CcReal::BasicType();
     syntax = "unitstartpos(_)";
     meaning = "Returns the start position of the ugpoint.";
   }
@@ -9336,7 +9734,7 @@ int OpUnitEndTimeValueMapping( Word* args, Word& result, int message,
 struct unitendtimeInfo:OperatorInfo{
   unitendtimeInfo(){
     name = "unitendtime";
-    signature = "ugpoint -> real";
+    signature = UGPoint::BasicType() + " -> " + CcReal::BasicType();
     syntax = "unitendtime(_)";
     meaning = "Returns double value of end time instant of ugpoint.";
   }
@@ -9371,7 +9769,7 @@ int OpUnitStartTimeValueMapping( Word* args, Word& result, int message,
 struct unitstarttimeInfo:OperatorInfo{
   unitstarttimeInfo(){
     name = "unitstarttime";
-    signature = "ugpoint -> real";
+    signature = UGPoint::BasicType() + " -> " + CcReal::BasicType();
     syntax = "unitstarttime(_)";
     meaning = "Returns the double value of the start time instant.";
   }
@@ -9404,7 +9802,7 @@ int OpUnitRidValueMapping( Word* args, Word& result, int message,
 struct unitridInfo:OperatorInfo{
   unitridInfo(){
     name = "unitrid";
-    signature = "ugpoint -> real";
+    signature = UGPoint::BasicType() + " -> " + CcReal::BasicType();
     syntax = "unitrid(_)";
     meaning = "Returns the route id of ugpoint as real value.";
   }
@@ -9434,7 +9832,7 @@ int OpUnitBoxValueMapping( Word* args, Word& result, int message,
 struct unitboxInfo:OperatorInfo{
   unitboxInfo(){
     name = "unitbox";
-    signature = "ugpoint -> rect3";
+    signature = UGPoint::BasicType() + " -> " + Rectangle<3>::BasicType();
     syntax = "unitbox(_)";
     meaning = "Returns the temporal netbox of ugpoint.";
 
@@ -9457,10 +9855,10 @@ ListExpr OpUnitBox2TypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("ugpoint"))
+  if (param.first().isSymbol(UGPoint::BasicType()))
     return nl->SymbolAtom( Rectangle<2>::BasicType() );
   else
-    return listutils::typeError("ugpoint expected");
+    return listutils::typeError(UGPoint::BasicType() + " expected.");
 }
 
 int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
@@ -9480,7 +9878,7 @@ int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
 struct unitbox2Info:OperatorInfo{
   unitbox2Info(){
     name = "unitbox2";
-    signature = "ugpoint -> rect";
+    signature = UGPoint::BasicType() + " -> " + Rectangle<2>::BasicType();
     syntax = "unitbox2(_)";
     meaning = "Returns netbox (<rid><rid><min(start,end)><max(start,end)>)";
   }
@@ -9502,10 +9900,10 @@ ListExpr OpUnitBoundingBoxTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("ugpoint"))
+  if (param.first().isSymbol(UGPoint::BasicType()))
     return nl->SymbolAtom( Rectangle<3>::BasicType() );
   else
-    return listutils::typeError("ugpoint expected");
+    return listutils::typeError(UGPoint::BasicType() + " expected");
 }
 
 int OpUnitBoundingBoxValueMapping( Word* args, Word& result, int message,
@@ -9525,7 +9923,7 @@ int OpUnitBoundingBoxValueMapping( Word* args, Word& result, int message,
 struct unitboundingboxInfo:OperatorInfo{
   unitboundingboxInfo(){
     name = "unitboundingbox";
-    signature = "ugpoint -> rect3";
+    signature = UGPoint::BasicType() + " -> " + Rectangle<3>::BasicType();
     syntax = "unitboundingbox(_)";
     meaning = "Returns the spatio-temporal bounding box of the ugpoint.";
   }
@@ -9545,10 +9943,10 @@ ListExpr OpMGPointBoundingBoxTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint"))
+  if (param.first().isSymbol(MGPoint::BasicType()))
     return nl->SymbolAtom( Rectangle<3>::BasicType() );
   else
-    return listutils::typeError("mgpoint expected");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 }
 
 int OpMGPointBoundingBoxValueMapping( Word* args, Word& result, int message,
@@ -9568,9 +9966,9 @@ int OpMGPointBoundingBoxValueMapping( Word* args, Word& result, int message,
 struct mgpbboxInfo:OperatorInfo{
   mgpbboxInfo(){
     name = "mgpbbox";
-    signature = "mgpoint -> rect3";
+    signature = MGPoint::BasicType() + " -> " + Rectangle<3>::BasicType();
     syntax = "mgpbbox(_)";
-    meaning = "Returns the spatial-temporal bounding box of the mgpoint.";
+    meaning = "Returns the spatio-temporal bounding box of the mgpoint.";
   }
 };
 
@@ -9588,10 +9986,10 @@ ListExpr OpMGPoint2MPointTypeMap(ListExpr in_xArgs)
   if (param.length() != 1)
     return listutils::typeError("one argument expected");
 
-  if (param.first().isSymbol("mgpoint"))
-    return nl->SymbolAtom( "mpoint" );
+  if (param.first().isSymbol(MGPoint::BasicType()))
+    return nl->SymbolAtom( MPoint::BasicType() );
   else
-    return listutils::typeError("mgpoint expected");
+    return listutils::typeError(MGPoint::BasicType() + " expected.");
 }
 
 int OpMGPoint2MPointValueMapping(Word* args,
@@ -9616,7 +10014,7 @@ int OpMGPoint2MPointValueMapping(Word* args,
 struct mgpoint2mpointInfo:OperatorInfo{
   mgpoint2mpointInfo(){
     name = "mgpoint2mpoint";
-    signature = "mgpoint -> mpoint";
+    signature = MGPoint::BasicType() + " -> " + MPoint::BasicType();
     syntax = "mgpoint2mpoint(_)";
     meaning = "Translates the mgpoint into an mpoint value.";
   }
@@ -9639,9 +10037,9 @@ ListExpr OpDistanceTypeMapping(ListExpr in_xArgs)
   if (param.length() != 2)
     return listutils::typeError("2 arguments expected");
 
-  if (!(param.first().isSymbol("mgpoint") &&
-        param.second().isSymbol("mgpoint")))
-    return listutils::typeError("2 mgpoint expected");
+  if (!(param.first().isSymbol(MGPoint::BasicType()) &&
+        param.second().isSymbol(MGPoint::BasicType())))
+    return listutils::typeError("Two " + MGPoint::BasicType() + " expected.");
 
   return (nl->SymbolAtom(MReal::BasicType()));
 }
@@ -9686,7 +10084,8 @@ int OpDistanceValueMapping(Word* args,
 struct distanceInfo:OperatorInfo{
   distanceInfo(){
     name = "distance";
-    signature = "mgpoint X mgpoint -> mreal";
+    signature = MGPoint::BasicType() + " X " + MGPoint::BasicType() + " -> " +
+                MReal::BasicType();
     syntax = "distance(_,_)";
     meaning = "Returns the Euclidean Distance between the two objects.";
   }
@@ -9711,11 +10110,11 @@ ListExpr OpUnionTypeMap(ListExpr in_xArgs)
   if (param.length() != 2)
     return listutils::typeError("2 arguments expected");
 
-  if (!(param.first().isSymbol("mgpoint") &&
-        param.second().isSymbol("mgpoint")))
-    return listutils::typeError("2 mgpoint expected");
+  if (!(param.first().isSymbol(MGPoint::BasicType()) &&
+        param.second().isSymbol(MGPoint::BasicType())))
+    return listutils::typeError("Two " + MGPoint::BasicType() + " expected.");
 
-  return (nl->SymbolAtom("mgpoint"));
+  return (nl->SymbolAtom(MGPoint::BasicType()));
 }
 
 int OpUnionValueMapping(Word* args,
@@ -9748,7 +10147,8 @@ int OpUnionValueMapping(Word* args,
 struct unionInfo:OperatorInfo{
   unionInfo(){
     name = "union";
-    signature = "mgpoint X mgpoint -> mgpoint";
+    signature = MGPoint::BasicType() +" X " + MGPoint::BasicType()+ " -> " +
+                MGPoint::BasicType();
     syntax = "_ union _";
     meaning = "Create the union of the two mgpoint if possible.";
   }
@@ -9768,8 +10168,8 @@ ListExpr OpEndStartunitinstTypeMap(ListExpr in_xArgs)
   if( param.length() != 1 )
     return listutils::typeError("One argument expected.");
 
-  if (!param.first().isSymbol("ugpoint"))
-    return listutils::typeError("ugpoint expected");
+  if (!param.first().isSymbol(UGPoint::BasicType()))
+    return listutils::typeError(UGPoint::BasicType() + " expected.");
 
   return nl->SymbolAtom(Instant::BasicType());
 }
@@ -9797,7 +10197,7 @@ int OpEndunitinstValueMapping(Word* args,
 struct endunitinstInfo:OperatorInfo{
   endunitinstInfo(){
     name = "endunitinst";
-    signature = "ugpoint -> instant";
+    signature = UGPoint::BasicType() + " -> " + Instant::BasicType();
     syntax = "endunitinst(_)";
     meaning = "Returns the final time instant form the ugpoint.";
   }
@@ -9838,7 +10238,7 @@ int OpStartunitinstValueMapping(Word* args,
 struct startunitinstInfo:OperatorInfo{
   startunitinstInfo(){
     name = "startunitinst";
-    signature = "ugpoint -> instant";
+    signature = UGPoint::BasicType() + " -> " + Instant::BasicType();
     syntax = "startunitinst(_)";
     meaning = "Returns the start time instant of the ugpoint.";
   }
@@ -9859,10 +10259,10 @@ ListExpr OpUgpoint2mgpointTypeMap(ListExpr in_xArgs)
   if( param.length() != 1 )
      return listutils::typeError("One argument expected.");
 
-  if (!param.first().isSymbol("ugpoint"))
-    return listutils::typeError("ugpoint expected");
+  if (!param.first().isSymbol(UGPoint::BasicType()))
+    return listutils::typeError(UGPoint::BasicType() + " expected.");
 
-  return nl->SymbolAtom("mgpoint");
+  return nl->SymbolAtom(MGPoint::BasicType());
 }
 
 int OpUgpoint2mgpointValueMapping(Word* args,
@@ -9894,7 +10294,7 @@ int OpUgpoint2mgpointValueMapping(Word* args,
 struct ugpoint2mgpointInfo:OperatorInfo{
   ugpoint2mgpointInfo(){
     name = "ugpoint2mgpoint";
-    signature = "ugpoint -> mgpoint";
+    signature = UGPoint::BasicType() + " -> " + MGPoint::BasicType();
     syntax = "ugpoint2mgpoint(_)";
     meaning = "Transfers the ugpoint to an mgpoint with a single unit.";
   }
@@ -9923,7 +10323,7 @@ ListExpr OpMgpsu2tupleTypeMap(ListExpr in_xArgs)
   if (type.length() == 1)
   {
     NList stream = type.first();
-    NList mgp("mgpsecunit");
+    NList mgp(MGPSecUnit::BasicType());
     if (stream.length() == 2 && stream.checkStream(mgp))
     {
       ListExpr retList;
@@ -9931,7 +10331,8 @@ ListExpr OpMgpsu2tupleTypeMap(ListExpr in_xArgs)
       return retList;
     }
   }
-  return NList::typeError( "Expected a stream of mgpsecunit.");
+  return NList::typeError( "Expected a " + Symbol::STREAM() + " of " +
+                            MGPSecUnit::BasicType() + ".");
 }
 
 /*
@@ -10000,7 +10401,8 @@ struct mgpsu2tupleInfo : OperatorInfo {
   mgpsu2tupleInfo()
   {
     name      = "mgpsu2tuple";
-    signature = "stream(mgpsecunit)-> stream(tuple((secid)..(flow))";
+    signature = Symbol::STREAM() + "("+ MGPSecUnit::BasicType() + ") -> " +
+                mgpSecTypeInfo;
     syntax    = "_ mgp2mgpsecunits3 ( _ ) ";
     meaning   = "Builds a stream of mgpsecunits from a stream of mgpoint.";
   }
@@ -10022,27 +10424,34 @@ ListExpr OpNetdistanceTypeMap( ListExpr args )
   NList firstArg(param.first());
   NList secondArg(param.second());
 
-  if (!(firstArg.isSymbol("gpoint") || firstArg.isSymbol("ugpoint") ||
-        firstArg.isSymbol("mgpoint")))
+  if (!(firstArg.isSymbol(GPoint::BasicType()) ||
+        firstArg.isSymbol(UGPoint::BasicType()) ||
+        firstArg.isSymbol(MGPoint::BasicType())))
     return
         listutils::typeError("1.argument must be gpoint, ugpoint or mgpoint.");
 
-  if (!(secondArg.isSymbol("gpoint") || secondArg.isSymbol("ugpoint") ||
-        secondArg.isSymbol("mgpoint")))
+  if (!(secondArg.isSymbol(GPoint::BasicType()) ||
+        secondArg.isSymbol(UGPoint::BasicType()) ||
+        secondArg.isSymbol(MGPoint::BasicType())))
     return
         listutils::typeError("2.argument must be gpoint,ugpoint or mgpoint.");
 
-  if ((firstArg.isSymbol("gpoint") && secondArg.isSymbol("mgpoint")) ||
-      (firstArg.isSymbol("mgpoint") && secondArg.isSymbol("gpoint")))
+  if ((firstArg.isSymbol(GPoint::BasicType()) &&
+       secondArg.isSymbol(MGPoint::BasicType())) ||
+      (firstArg.isSymbol(MGPoint::BasicType()) &&
+       secondArg.isSymbol(GPoint::BasicType())))
     return nl->SymbolAtom(MReal::BasicType());
 
-  if (firstArg.isSymbol("mgpoint") || secondArg.isSymbol("mgpoint"))
+  if (firstArg.isSymbol(MGPoint::BasicType()) ||
+      secondArg.isSymbol(MGPoint::BasicType()))
     return
-      listutils::typeError("netdistance mgpoint only defined for gpoint yet.");
+      listutils::typeError("Netdistance" + MGPoint::BasicType() + " only " +
+      "defined for " + GPoint::BasicType() + " yet.");
 
-  if (firstArg == secondArg && firstArg.isSymbol("gpoint"))
+  if (firstArg == secondArg && firstArg.isSymbol(GPoint::BasicType()))
     return
-      listutils::typeError("gpoint x gpoint is not covered here.");
+              listutils::typeError(GPoint::BasicType() + " x " +
+              GPoint::BasicType() + " is not covered here.");
 
   return nl->SymbolAtom ( UReal::BasicType() );
 }
@@ -10133,20 +10542,20 @@ int OpNetdistanceSelect( ListExpr args )
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( nl->SymbolValue(arg1) == "gpoint" &&
-       nl->SymbolValue(arg2) == "ugpoint")
+  if ( nl->SymbolValue(arg1) == GPoint::BasicType() &&
+       nl->SymbolValue(arg2) == UGPoint::BasicType())
     return 0;
-  if ( nl->SymbolValue(arg1) == "ugpoint" &&
-       nl->SymbolValue(arg2) == "gpoint")
+  if ( nl->SymbolValue(arg1) == UGPoint::BasicType() &&
+       nl->SymbolValue(arg2) == GPoint::BasicType())
     return 1;
-  if (nl->SymbolValue(arg1) == "ugpoint" &&
-      nl->SymbolValue(arg2) == "ugpoint")
+  if (nl->SymbolValue(arg1) == UGPoint::BasicType() &&
+      nl->SymbolValue(arg2) == UGPoint::BasicType())
     return 2;
-  if (nl->SymbolValue(arg1) == "gpoint" &&
-      nl->SymbolValue(arg2) == "mgpoint")
+  if (nl->SymbolValue(arg1) == GPoint::BasicType() &&
+      nl->SymbolValue(arg2) == MGPoint::BasicType())
     return 3;
-  if (nl->SymbolValue(arg1) == "mgpoint" &&
-      nl->SymbolValue(arg2) == "gpoint")
+  if (nl->SymbolValue(arg1) == MGPoint::BasicType() &&
+      nl->SymbolValue(arg2) == GPoint::BasicType())
     return 4;
   return -1; // This point should never be reached
 }
@@ -10154,11 +10563,21 @@ int OpNetdistanceSelect( ListExpr args )
 struct NetdistanceInfo:OperatorInfo{
   NetdistanceInfo(){
     name = "netdistance";
-    signature = "gpoint X ugpoint -> ureal";
-    appendSignature("ugpoint X gpoint -> ureal");
-    appendSignature("ugpoint X ugpoint -> ureal");
-    appendSignature("gpoint X mgpoint -> mreal");
-    appendSignature("mgpoint X gpoint -> mreal");
+    signature = GPoint::BasicType() + " X " +
+                UGPoint::BasicType() + " -> " +
+                UReal::BasicType();
+    appendSignature(UGPoint::BasicType() + " X " +
+                    GPoint::BasicType() + " -> " +
+                    UReal::BasicType());
+    appendSignature(UGPoint::BasicType() + " X " +
+                    UGPoint::BasicType() + " -> " +
+                    UReal::BasicType());
+    appendSignature(GPoint::BasicType() + " X " +
+                    MGPoint::BasicType() + " -> " +
+                    MReal::BasicType());
+    appendSignature(MGPoint::BasicType() + " X " +
+                    GPoint::BasicType() + " -> " +
+                    MReal::BasicType());
     syntax = "netdistance(_,_)";
     meaning = "Computes the netdistance from 1.to 2. argument";
   }
@@ -10183,16 +10602,20 @@ ListExpr OpNetdistanceNewTypeMap( ListExpr args )
     NList firstArg(param.first());
     NList secondArg(param.second());
 
-    if (!(firstArg.isSymbol("gpoint") || firstArg.isSymbol("mgpoint")))
+    if (!(firstArg.isSymbol(GPoint::BasicType()) ||
+          firstArg.isSymbol(MGPoint::BasicType())))
       return
         listutils::typeError("1.argument must be gpoint or mgpoint.");
 
-    if (!(secondArg.isSymbol("gpoint") || secondArg.isSymbol("mgpoint")))
+    if (!(secondArg.isSymbol(GPoint::BasicType()) ||
+          secondArg.isSymbol(MGPoint::BasicType())))
       return
         listutils::typeError("2.argument must be gpoint or mgpoint.");
 
-    if ((firstArg.isSymbol("gpoint") && secondArg.isSymbol("mgpoint")) ||
-        (firstArg.isSymbol("mgpoint") && secondArg.isSymbol("gpoint")))
+    if ((firstArg.isSymbol(GPoint::BasicType()) &&
+         secondArg.isSymbol(MGPoint::BasicType())) ||
+        (firstArg.isSymbol(MGPoint::BasicType()) &&
+         secondArg.isSymbol(GPoint::BasicType())))
       return nl->SymbolAtom(MReal::BasicType());
     else
       return
@@ -10256,11 +10679,11 @@ int OpNetdistanceNewSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
-  if (nl->SymbolValue(arg1) == "gpoint" &&
-    nl->SymbolValue(arg2) == "mgpoint")
+  if (nl->SymbolValue(arg1) == GPoint::BasicType() &&
+    nl->SymbolValue(arg2) == MGPoint::BasicType())
     return 0;
-  if (nl->SymbolValue(arg1) == "mgpoint" &&
-    nl->SymbolValue(arg2) == "gpoint")
+  if (nl->SymbolValue(arg1) == MGPoint::BasicType() &&
+    nl->SymbolValue(arg2) == GPoint::BasicType())
     return 1;
   return -1; // This point should never be reached
 }
@@ -10268,8 +10691,11 @@ int OpNetdistanceNewSelect( ListExpr args )
 struct NetdistanceNewInfo:OperatorInfo{
   NetdistanceNewInfo(){
     name = "netdistancenew";
-    signature = "gpoint X mgpoint -> mreal";
-    appendSignature("mgpoint X gpoint -> mreal");
+    signature = GPoint::BasicType() + " X " + MGPoint::BasicType() + " -> " +
+                MReal::BasicType();
+                appendSignature(MGPoint::BasicType() + " X " +
+                                GPoint::BasicType() + " -> " +
+                                MReal::BasicType());
     syntax = "netdistancenew(_,_)";
     meaning = "Computes the netdistance from 1.to 2. argument";
   }
@@ -10368,6 +10794,7 @@ class TemporalNetAlgebra : public Algebra
                 OpNetdistanceSelect, OpNetdistanceTypeMap);
     AddOperator(NetdistanceNewInfo(), OpNetdistanceNewValueMap,
                 OpNetdistanceNewSelect, OpNetdistanceNewTypeMap);
+    AddOperator(&mapmatching);
   }
 
 

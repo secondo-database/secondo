@@ -40,7 +40,8 @@ February 2008 -  Simone Jandt
 #include <string>
 #include "../../include/NestedList.h"
 #include "../../include/QueryProcessor.h"
-#include "Geoid.h"
+#include "../Spatial/Geoid.h"
+#include "../Network/NetworkAlgebra.h"
 
 #ifndef __NETWORK_ALGEBRA_H__
 #error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
@@ -64,6 +65,7 @@ used in the ~instant~ type constructor.
 
 */
 typedef DateTime Instant;
+typedef Intime<GPoint> IGPoint;
 
 /*
 2 class MGPSecUnit
@@ -160,6 +162,13 @@ Functions for Secondo integration.
 
     static void* Cast(void* addr);
 
+    inline static const string BasicType() { return "mgpsecunit"; }
+
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
+
+
 
 /*
 Function for Operations.
@@ -213,12 +222,31 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     {};
 
   UGPoint( const Interval<Instant>& interval,
-           const GPoint& p0,
-           const GPoint& p1 ):
+           const GPoint& ip0,
+           const GPoint& ip1 ):
     SpatialTemporalUnit<GPoint, 3>( interval ),
-    p0( p0 ),
-    p1( p1 )
-    {  }
+    p0( ip0 ),
+    p1( ip1 )
+    {
+      if (p0.GetPosition() < p1.GetPosition())
+      {
+        p0.SetSide(Up);
+        p1.SetSide(Up);
+      }
+      else
+      {
+        if (p0.GetPosition() > p1.GetPosition())
+        {
+          p0.SetSide(Down);
+          p1.SetSide(Down);
+        }
+        else
+        {
+          p0.SetSide(None);
+          p1.SetSide(None);
+        }
+      }
+    }
 
     UGPoint( const Interval<Instant>& interval,
            const int in_NetworkID,
@@ -668,6 +696,13 @@ Methods for Secondo integration.
 
     static void* Cast(void* addr);
 
+    inline static const string BasicType() { return "ugpoint"; }
+
+    static const bool checkType(const ListExpr type){
+      return listutils::isSymbol(type, BasicType());
+    }
+
+
     GPoint p0, p1;
 
 };
@@ -940,6 +975,12 @@ Returns the sections passed by the ~mgpoint~
 
   void GetMGPSecUnits(vector<MGPSecUnit> &res, double maxSectLength,
                       Network *pNet) const;
+
+  inline static const string BasicType() { return "mgpoint"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
 
   DbArray<RouteInterval> m_trajectory;
   private:

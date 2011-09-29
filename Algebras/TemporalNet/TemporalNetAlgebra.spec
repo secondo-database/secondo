@@ -39,3 +39,5 @@ operator mgpsu2tuple alias MGPSU2TUPLE pattern _ op
 operator intersects alias INTERSECTS pattern _ infixop _
 operator netdistance alias NETDISTANCE pattern op ( _ , _ )
 operator netdistancenew alias NETDISTANCENEW pattern op ( _ , _ )
+operator mapmatching alias MAPMATCHING pattern op( _ , _ )
+
