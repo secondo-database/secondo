@@ -25,8 +25,6 @@
 
 include ../../makefile.env
 
-#SECONDO_ACTIVATE_ALL_ALGEBRAS := true
-
 CCFLAGS = $(DEFAULTCCFLAGS)
 ALL_OBJS = AlgebraList.i $(DEP_FILES) \
 	   $(LIBDIR)/AlgebraList.$(OBJEXT) Algebra.$(OBJEXT) AlgebraManager.$(OBJEXT)
