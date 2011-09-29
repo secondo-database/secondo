@@ -7,6 +7,5 @@
                 (Up bool)))) 
     (
         (1 FALSE) 
-        (1 FALSE) 
         (2 TRUE) 
         (8 TRUE)))
