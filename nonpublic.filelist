@@ -81,8 +81,6 @@ Javagui/viewer/chess
 ###               ###
 
 nonpublic.filelist
-makefile.nonpublic
-makefile.wine
 Javagui/viewer/makefile.nonpublic
 CM-Scripts/makepublicsecondo
 
