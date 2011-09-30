@@ -26,8 +26,8 @@
 
 CURRENT_ALGEBRA := PointRectangleAlgebra
 
-#this algebra has no dependencies to other algebra modules
-ALGEBRA_DEPENDENCIES := 
+#this algebra depends only on the StandardAlgebra 
+ALGEBRA_DEPENDENCIES := StandardAlgebra
 
 
 # include global definitions
