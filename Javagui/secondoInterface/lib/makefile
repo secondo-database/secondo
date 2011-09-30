@@ -11,4 +11,4 @@ all:
 
 clean: 
 	make -C java_cup10 clean
-	rm -r java_cup_v10k.jar
+	rm -f java_cup_v10k.jar
