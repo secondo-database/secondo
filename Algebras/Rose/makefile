@@ -40,7 +40,9 @@ alljava:
 .PHONY: allcpp
 allcpp: $(OBJECTS) $(LIBOBJ)
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 # --- Standard Algebra C++ library ---
 

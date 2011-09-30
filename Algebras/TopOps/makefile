@@ -19,52 +19,31 @@
 
 ########################################################################
 #
-# SECONDO makefile for PointRectangle Algebra C++
+# generic makefile for an algebra module 
 #
 ########################################################################
 
+# inlcude global definitions
 include ../../makefile.env
 
-MODNAME = TopOpsAlgebra
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../TopRel -I../Rectangle\
-          -I../FText
-LATEX = latex -interaction=nonstopmode
+# expand compile flags if necessary
+CCFLAGS += $(ALG_INC_DIRS) 
 
-
+# create objects and algebra library. The values for the variables
+# OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
+# include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+# generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra -lRelationAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBOBJ) $(OBJECTS)
-endif
+	$(create-lib)
 
+# generic rule for cleaning all generated files
 .PHONY: clean
-clean: cleanpdf
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
-
-.PHONY: pdf
-pdf: $(MODNAME).cpp.ps
-	ps2pdf $<
-
-$(MODNAME).cpp.ps: $(MODNAME).cpp.dvi
-	dvips $<
-
-$(MODNAME).cpp.dvi: $(MODNAME).cpp.tex
-	$(LATEX) $<
-	$(LATEX) $<
-	$(LATEX) $<
-
-$(MODNAME).cpp.tex: $(MODNAME).cpp
-	pd2tex $<
-.PHONY: cleanpdf
-cleanpdf:
-	$(RM)  $(MODNAME).cpp.*
+clean:
+	$(clean-algebra)

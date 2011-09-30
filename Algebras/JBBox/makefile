@@ -44,7 +44,9 @@ alljava:
 .PHONY: allcpp
 allcpp: $(OBJECTS) $(LIBOBJ)
 
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 $(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)

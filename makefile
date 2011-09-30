@@ -244,6 +244,7 @@ realclean: clean
 	$(MAKE) -C Javagui clean
 	$(MAKE) -C Tests clean
 	$(MAKE) -C Algebras realclean
+	$(MAKE) -C Optimizer realclean
 	rm -f $(CONFIG_FILES) makefile.algebras 
 	rm -f Documents/.Secondo-News.txt 
 	rm -rf bin/tmp
