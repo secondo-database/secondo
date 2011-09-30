@@ -31,4 +31,5 @@ SecondoInterface.jar: all
 clean: 
 	make -C sj clean
 	make -C tools clean
+	make -C lib clean
 	rm -f SecondoInterface.jar
