@@ -32,6 +32,14 @@ clean:
 	if [ -d ./Entropy ]; then make -C ./Entropy clean; fi
 	rm -f SecondoConfig.ini
 
+.PHONY:realclean
+realclean: clean
+	rm -f stored*.pl
+	rm -f config_optimizer.pl
+	rm -f proglogt.csv
+	rm -f optree*.gv
+	rm -f sysDependentCostFactors.pl sysDependentOperatorTF.pl
+
 
 
 
