@@ -54,7 +54,9 @@ check_dependencies:
 
 
 # include pre-computed dependencies
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

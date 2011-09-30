@@ -35,7 +35,9 @@ CCFLAGS += $(ALG_INC_DIRS) -I/usr/local/include
 all: $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
+ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
+endif
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
