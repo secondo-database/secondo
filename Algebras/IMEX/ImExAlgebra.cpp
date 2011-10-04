@@ -2970,7 +2970,6 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
   int noRecords = (headerlength-32) / 32;
 
 
-
   f.seekg(0,ios::end);
   if(f.tellg() < headerlength){
     errorMessage = "invalid filesize";
@@ -2997,6 +2996,7 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
      unsigned char dc = buffer[17];
      unsigned char len = buffer[16];
      string type = "unknown";
+
      switch(typeCode){
       case 'C' : {
          type = len <= MAX_STRINGSIZE?CcString::BasicType():FText::BasicType();
@@ -3018,6 +3018,10 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
          type = dc==0?CcInt::BasicType():CcReal::BasicType();
          break;
       }
+			case 'F' : {
+         type = CcReal::BasicType();
+         break;
+      }
       default : {
          errorMessage = "unknown type ";
          f.close();
@@ -3025,6 +3029,7 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
          return listutils::typeError();
       }
      }
+
      ListExpr attr = nl->TwoElemList(nl->SymbolAtom(name),
                                      nl->SymbolAtom(type));
      if(i==0){ // first elem
@@ -3062,7 +3067,7 @@ int dbtypeVM(Word* args, Word& result,
 
   if(!correct){
      res->SetDefined(false);
-     cout << errorMessage;
+     cout << errorMessage << endl;
      return 0;
   }
 
@@ -3343,10 +3348,14 @@ private:
                       len = 10;
                    }
                    break;
-        case 'N' : type = dc==0?CcInt::BasicType():FText::BasicType();
+        case 'N' : type = dc==0?CcInt::BasicType():CcReal::BasicType();
                    isMemo.push_back(false);
                    break;
-        default : file.close();
+        case 'F' : type = CcReal::BasicType();
+                   isMemo.push_back(false);
+                   break;
+        default : cerr << "non supported type code:" << t << endl;
+                  file.close();
                   return false;
       }
       if(type!=types[i]){
