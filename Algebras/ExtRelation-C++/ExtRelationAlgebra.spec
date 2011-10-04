@@ -72,7 +72,7 @@ operator addcounter alias ADDCOUNTER pattern _  op [_ , _]
 operator ksmallest alias KSMALLEST pattern _ op [_ ; list  ] 
 operator kbiggest alias KBIGGEST pattern _ op [_ ; list  ] 
 
-operator extend_aggr alias EXTEND_AGGR pattern _ op [_ ; funlist ]
+operator extend_aggr alias EXTEND_AGGR pattern _ op [list  ; funlist ]
 
 
 

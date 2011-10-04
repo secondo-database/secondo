@@ -4225,7 +4225,7 @@ public:
 
   TupleType *resultTupleType;
   int stableValue;
-  bool sizesFinal;		//true after stableValue reached
+  bool sizesFinal;        //true after stableValue reached
   int noOldAttrs, noNewAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
@@ -4356,7 +4356,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->Size = 0.0;
           eli->SizeExt = 0.0;
 
-		//old attrs
+        //old attrs
           for (int i = 0; i < eli->noOldAttrs; i++)
           {
             eli->attrSize[i] = p1.attrSize[i];
@@ -4365,7 +4365,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-        	//new attrs
+            //new attrs
           if ( eli->read < eli->stableValue )
           {
             for (int j = 0; j < eli->noNewAttrs; j++)
@@ -4391,7 +4391,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->sizesInitialized = true;
           eli->sizesChanged = true;
         }
-		//ensure sizes are updated only once for passing the threshold
+        //ensure sizes are updated only once for passing the threshold
         if ( eli->read >= eli->stableValue ) eli->sizesFinal = true;
 
 
@@ -5988,7 +5988,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       ProgressInfo *pRes;
       const double uProjectExtend = 0.0012;    //millisecs per tuple
       const double vProjectExtend = 0.00085;   //millisecs per tuple
-	                                           //and attribute
+                                               //and attribute
 
       pRes = (ProgressInfo*) result.addr;
 
@@ -6010,10 +6010,10 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         if ( !eli->sizesInitialized || p1.sizesChanged ||
            ( eli->read >= eli->stableValue && !eli->sizesFinal ) )
         {
-	  eli->Size = 0.0;
-	  eli->SizeExt = 0.0;
+      eli->Size = 0.0;
+      eli->SizeExt = 0.0;
 
-          for( int i = 0; i < eli->noOldAttrs; i++)	//old attrs
+          for( int i = 0; i < eli->noOldAttrs; i++)    //old attrs
           {
             son = qp->GetSupplier(args[4].addr, i);
             qp->Request(son, elem2);
@@ -6024,7 +6024,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-          if ( eli->read < eli->stableValue )		//new attrs
+          if ( eli->read < eli->stableValue )        //new attrs
           {
             for (int j = 0; j < eli->noNewAttrs; j++)
             {
@@ -9944,7 +9944,7 @@ ListExpr extend_aggrTM(ListExpr args){
     return listutils::typeError(err);
   }
   ListExpr stream = nl->First(args);
-  ListExpr AttrName = nl->Second(args);
+  ListExpr AttrNameList = nl->Second(args);
   ListExpr FunList1 = nl->Third(args);
 
   if(!nl->HasLength(FunList1,1)){ // only one function is allowed
@@ -9963,7 +9963,14 @@ ListExpr extend_aggrTM(ListExpr args){
     return listutils::typeError(err + 
                                 " (first arg is not a tuple stream) ");
   }
-  if(!listutils::isSymbol(AttrName)){
+
+  int AttrNameListLength = nl->ListLength(AttrNameList);
+  if(AttrNameListLength!=1 && AttrNameListLength!=2){
+     return listutils::typeError(err);
+  }
+  ListExpr AttrName1 = nl->First(AttrNameList);
+  
+  if(!listutils::isSymbol(AttrName1)){
     return listutils::typeError(err + 
                         " (second arg is not a valid attribute name ");
   }
@@ -9979,13 +9986,13 @@ ListExpr extend_aggrTM(ListExpr args){
   ListExpr FunArgType2 = nl->Third(Fun);
   ListExpr FunResType = nl->Fourth(Fun);
   ListExpr AttrType;
-  string attrName = nl->SymbolValue(AttrName);
+  string attrName1 = nl->SymbolValue(AttrName1);
 
   ListExpr AttrList = nl->Second(nl->Second(stream));
 
-  int pos = listutils::findAttribute(AttrList, attrName, AttrType);
+  int pos = listutils::findAttribute(AttrList, attrName1, AttrType);
   if(pos==0){
-    return listutils::typeError("Attribute name " + attrName + 
+    return listutils::typeError("Attribute name " + attrName1 + 
                                 " not present in stream");
   }
 
@@ -10002,73 +10009,103 @@ ListExpr extend_aggrTM(ListExpr args){
                                 "function result type");
   }
 
-  ListExpr NewAttr = nl->OneElemList(nl->TwoElemList(NewAttrName, AttrType));
-  ListExpr ResAttrList = listutils::concat(AttrList, NewAttr);
+ListExpr NewAttr = nl->OneElemList(nl->TwoElemList(NewAttrName, AttrType));
+ListExpr ResAttrList = listutils::concat(AttrList, NewAttr);
 
-  if(!listutils::isAttrList(ResAttrList)){
+if(!listutils::isAttrList(ResAttrList)){
     return listutils::typeError("Attribute " + nl->ToString(NewAttr) +
                                 " already present in stream");
+}
+
+ListExpr Res = nl->TwoElemList(
+                             nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                             nl->TwoElemList(
+                                    nl->SymbolAtom(Tuple::BasicType()),
+                                    ResAttrList)) ;
+
+int resetPos = -1;
+if(AttrNameListLength==2){
+  ListExpr AttrName2 = nl->Second(AttrNameList);
+  if(!listutils::isSymbol(AttrName2)){
+    return listutils::typeError(err);
   }
+  string attrName2=nl->SymbolValue(AttrName2);
+  ListExpr at;
+  int index = listutils::findAttribute(AttrList,attrName2, at);
+  if(index==0){
+     return listutils::typeError("Attributre " + attrName2 + " not found");
+  }
+  if(!CcBool::checkType(at)){
+    return listutils::typeError("Attrbute " + attrName2 + " not of type bool");
+  } 
+  resetPos = index -1;
+}
 
-  ListExpr Res = nl->TwoElemList(
-                               nl->SymbolAtom(Stream<Tuple>::BasicType()),
-                               nl->TwoElemList(
-                                  nl->SymbolAtom(Tuple::BasicType()),
-                                  ResAttrList)) ;
-
-  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                           nl->OneElemList(nl->IntAtom(pos-1)),
-                           Res);
+return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                         nl->TwoElemList(nl->IntAtom(pos-1),
+                         nl->IntAtom(resetPos)
+                        ),
+                        Res);
 }
 
 
 
 class ExtendAggrInfo{
 
-  public: 
-     ExtendAggrInfo(Word& _stream, Supplier _fun, int _attrPos, ListExpr type):
-     stream(_stream),first(true), fun(_fun), attrPos(_attrPos), value(0) {
-       tupleType = new TupleType(type);
-       stream.open();
+public: 
+     ExtendAggrInfo(Word& _stream, Supplier _fun, int _attrPos, 
+                  int _resetPos, ListExpr type):
+     stream(_stream),first(true), fun(_fun), attrPos(_attrPos),
+   resetPos(_resetPos), value(0) {
+         tupleType = new TupleType(type);
+         stream.open();
      }
     
      ~ExtendAggrInfo(){
-        stream.close();
-        tupleType->DeleteIfAllowed();
-        if(value){
-           value->DeleteIfAllowed();
-        }
+            stream.close();
+            tupleType->DeleteIfAllowed();
+            if(value){
+                 value->DeleteIfAllowed();
+            }
      }
 
      Tuple* getNextTuple(){
 
-        Tuple* srcTuple = stream.request();
-        if(srcTuple==0){
-          return 0;
-        }
+            Tuple* srcTuple = stream.request();
+            if(srcTuple==0){
+                return 0;
+            }
 
-        Tuple* resTuple = new Tuple(tupleType); 
-        // copy old attributes
-        for(int i=0;i<srcTuple->GetNoAttributes(); i++){
-          resTuple->CopyAttribute(i,srcTuple,i);
-        }
-        if(first){ 
-          value = srcTuple->GetAttribute(attrPos)->Copy();
-          first = false;
-        } else {
-          // compute value from current value and next attribute
-          Attribute* attr = srcTuple->GetAttribute(attrPos);
-          ArgVectorPointer funargs = qp->Argument(fun);
-          (*funargs)[0] = value;
-          (*funargs)[1] = attr;
-          Word funres;
-          qp->Request(fun,funres);
-          value->DeleteIfAllowed();
-          value = ((Attribute*)funres.addr)->Copy(); 
-        }
-        resTuple->PutAttribute(srcTuple->GetNoAttributes(), value->Clone());
-        srcTuple->DeleteIfAllowed();
-        return resTuple;
+            Tuple* resTuple = new Tuple(tupleType); 
+            // copy old attributes
+            for(int i=0;i<srcTuple->GetNoAttributes(); i++){
+                resTuple->CopyAttribute(i,srcTuple,i);
+            }
+      bool reset=false;
+      if(resetPos>=0){
+        CcBool* b = (CcBool*) srcTuple->GetAttribute(resetPos);
+        reset = b->IsDefined() && b->GetValue();
+      }
+            if(first){ 
+                value = srcTuple->GetAttribute(attrPos)->Clone();
+                first = false;
+            } else if(reset){
+        value->DeleteIfAllowed();
+        value = srcTuple->GetAttribute(attrPos)->Clone();
+      } else {
+                // compute value from current value and next attribute
+                Attribute* attr = srcTuple->GetAttribute(attrPos);
+                ArgVectorPointer funargs = qp->Argument(fun);
+                (*funargs)[0] = value;
+                (*funargs)[1] = attr;
+                Word funres;
+                qp->Request(fun,funres);
+                value->DeleteIfAllowed();
+                value = ((Attribute*)funres.addr)->Copy(); 
+            }
+            resTuple->PutAttribute(srcTuple->GetNoAttributes(), value->Clone());
+            srcTuple->DeleteIfAllowed();
+            return resTuple;
      }
 
 private:
@@ -10076,6 +10113,7 @@ private:
     bool first;
     Supplier fun;
     int attrPos;
+  int resetPos;
     Attribute* value; 
     TupleType* tupleType;   
 };
@@ -10083,44 +10121,46 @@ private:
 
 int
 extend_aggrVM(Word* args, Word& result, int message,
-           Word& local, Supplier s1){
+                 Word& local, Supplier s1){
 
-  ExtendAggrInfo* li = (ExtendAggrInfo*) local.addr;
-  switch(message){
+   ExtendAggrInfo* li = (ExtendAggrInfo*) local.addr;
+   switch(message){
     case OPEN : {
-                    if(li){
-                      delete li;
-                    }
-                    int attrPos = ((CcInt*)args[3].addr)->GetValue();
-                    Supplier s = args[2].addr;
-                    Supplier s2 = qp->GetSupplier(s,0);
-                    Supplier s3 = qp->GetSupplier(s2,1);
-                    local.addr = new ExtendAggrInfo(args[0], s3, attrPos, 
-                                           nl->Second(GetTupleResultType(s1)));
-                    return 0;
-                 }
+                  if(li){
+                     delete li;
+                  }
+                  int attrPos = ((CcInt*)args[3].addr)->GetValue();
+                  int resetPos = ((CcInt*)args[4].addr)->GetValue();
+                  Supplier s = args[2].addr;
+                  Supplier s2 = qp->GetSupplier(s,0);
+                  Supplier s3 = qp->GetSupplier(s2,1);
+                  local.addr = new ExtendAggrInfo(args[0], s3, attrPos,
+                                      resetPos, 
+                                      nl->Second(GetTupleResultType(s1)));
+                  return 0;
+                  }
     case REQUEST: {
                      if(!li){
-                       return CANCEL;
+                        return CANCEL;
                      }
                      result.addr = li->getNextTuple();
                      return result.addr?YIELD:CANCEL;
-                  }
+                   }
     case CLOSE: {
                    if(li){
-                     delete li;
-                     local.addr=0;
-                   }
-                   return 0;
+                      delete li;
+                      local.addr=0;
+                    }
+                    return 0;
                 }
 
-  }
-  return -1;
+   }
+   return -1;
 }
 
 const string extend_aggrSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>stream(tuple(x)) x attrName x newAttrName x fun -> "
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>stream(tuple(x)) x attrName x newAttrName x fun -> "
   "stream(tuple(x @ newAttrName))</text--->"
   "<text>stream extend_aggr [ attrName ; newAttrName : fun ] )</text--->"
   "<text>Compute an aggrgation over an attribute of a tuple and stored all "
@@ -10209,7 +10249,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
 
     AddOperator(&extrelsortmergejoin);
-		AddOperator(&extrelsmouterjoin);
+    AddOperator(&extrelsmouterjoin);
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
@@ -10219,7 +10259,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
-		AddOperator(&extrelsymmouterjoin);
+    AddOperator(&extrelsymmouterjoin);
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
@@ -10239,8 +10279,8 @@ class ExtRelationAlgebra : public Algebra
    extrelrdup.EnableProgress();
    extrelmergejoin.EnableProgress();
    extrelsortmergejoin.EnableProgress();
-	 extrelsmouterjoin.EnableProgress();
-	 extrelsymmouterjoin.EnableProgress();
+   extrelsmouterjoin.EnableProgress();
+   extrelsymmouterjoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
    extrelgroupby.EnableProgress();
