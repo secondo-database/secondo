@@ -5413,6 +5413,10 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
 
 */
 
+#ifndef USE_PROGRESS
+
+// standard version
+
 struct ExtendStreamLocalInfo
 {
   Tuple *tupleX;
@@ -5549,6 +5553,283 @@ int ExtendStream(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+struct ExtendStreamLocalInfo: public ProgressLocalInfo
+{
+public:
+
+  ExtendStreamLocalInfo():
+	tupleX(0), resultTupleType(0) {};
+
+  ~ExtendStreamLocalInfo() {
+    if( streamY.addr != 0 )
+      qp->Close( streamY.addr );
+
+    if( tupleX != 0 )
+      tupleX->DeleteIfAllowed();
+
+    if( resultTupleType != 0 )
+      resultTupleType->DeleteIfAllowed();
+  }
+
+  Tuple *tupleX;
+  Word streamY;
+  TupleType *resultTupleType;
+
+  double newAttrSize, newAttrSizeExt;
+  int stableValue;
+  bool sizesFinal;
+};
+
+int ExtendStream(Word* args, Word& result, int message,
+                 Word& local, Supplier s)
+{
+  ArgVectorPointer funargs;
+  Word wTupleX, wValueY;
+  Tuple* tupleXY;
+
+  ExtendStreamLocalInfo *eli;
+  eli = (ExtendStreamLocalInfo*) local.addr;
+
+  Supplier supplier, supplier2, supplier3;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      if ( eli ) {
+        delete eli;
+      }
+
+      eli = new ExtendStreamLocalInfo;
+      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      eli->newAttrSize = 0.0;
+      eli->newAttrSizeExt = 0.0;
+      eli->stableValue = 50;
+      eli->sizesFinal = false;
+
+      // 1. open the input stream and initiate the arguments
+      qp->Open( args[0].addr );
+      qp->Request( args[0].addr, wTupleX );
+      if( qp->Received( args[0].addr ) )
+      {
+        eli->read = 1;
+
+        // 2. compute the result "stream y" from tuple x
+        // funargs = qp->Argument(args[1].addr);
+        // here should be changed to the following...
+        supplier = args[1].addr;
+        supplier2 = qp->GetSupplier( supplier, 0 );
+        supplier3 = qp->GetSupplier( supplier2, 1 );
+        funargs = qp->Argument( supplier3 );
+
+        (*funargs)[0] = wTupleX;
+        qp->Open( supplier3 );
+
+        // 3. save the local information
+ 
+        eli->tupleX = (Tuple*)wTupleX.addr;
+        eli->streamY.setAddr( supplier3 );
+        local.setAddr(eli);
+      }
+      else
+      {
+        local.setAddr(0);
+      }
+      return 0;
+    }
+    case REQUEST:
+    {
+      if( local.addr == 0 )
+        return CANCEL;
+
+      // prepare tupleX and wValueY.
+      // if wValueY is empty, then get next tupleX
+      wValueY.setAddr(0);
+      while( wValueY.addr == 0 )
+      {
+        qp->Request( eli->streamY.addr, wValueY );
+        if( !(qp->Received( eli->streamY.addr )) )
+        {
+          qp->Close( eli->streamY.addr );
+          eli->tupleX->DeleteIfAllowed();
+          qp->Request( args[0].addr, wTupleX );
+          if( qp->Received(args[0].addr) )
+          {
+            eli->read++;
+
+            supplier = args[1].addr;
+            supplier2 = qp->GetSupplier(supplier, 0);
+            supplier3 = qp->GetSupplier(supplier2, 1);
+            funargs = qp->Argument(supplier3);
+
+            eli->tupleX = (Tuple*)wTupleX.addr;
+            (*funargs)[0] = wTupleX;
+            qp->Open( supplier3 );
+
+            eli->tupleX = (Tuple*)wTupleX.addr;
+            eli->streamY.setAddr(supplier3);
+
+            wValueY.setAddr(0);
+          }
+          else  //streamx is exausted
+          {
+            eli->streamY.setAddr(0);
+            eli->tupleX = 0;
+            return CANCEL;
+          }
+        }
+      }
+
+      // 3. compute tupleXY from tupleX and wValueY
+      tupleXY = new Tuple( eli->resultTupleType );
+
+      for( int i = 0; i < eli->tupleX->GetNoAttributes(); i++ )
+        tupleXY->CopyAttribute( i, eli->tupleX, i );
+
+      tupleXY->PutAttribute( eli->tupleX->GetNoAttributes(),
+                             (Attribute*)wValueY.addr );
+
+      // for the first 50 tuples returned, observe attribute sizes of the 
+      // new attribute.
+      if ( eli->returned <= eli->stableValue )
+      {
+        eli->newAttrSize += 
+          tupleXY->GetSize( eli->tupleX->GetNoAttributes() );
+        eli->newAttrSizeExt += 
+          tupleXY->GetExtSize( eli->tupleX->GetNoAttributes() );
+      }
+
+      // setting the result
+      result.setAddr( tupleXY );
+      eli->returned++;
+      return YIELD;
+    }
+    case CLOSE:
+    {
+      qp->Close( args[0].addr );
+      return 0;
+    }
+
+    case CLOSEPROGRESS:
+    {
+      if ( eli ) {
+         delete eli;
+         local.setAddr(0);
+      }
+      return 0;
+    }
+
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      const double wExtendStream = 0.005963;    //millisecs per tuple read
+      const double uExtendStream = 0.0067;   //millisecs per tuple returned
+      const double vExtendStream = 0.00014405; //millisec per attr returned
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( !eli ) {
+        return CANCEL;
+      }
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+
+	// 1. attribute sizes
+        eli->sizesChanged = false;
+
+        if ( !eli->sizesInitialized )
+        {
+          eli->noAttrs = p1.noAttrs + 1;
+          eli->attrSize = new double[eli->noAttrs];
+          eli->attrSizeExt = new double[eli->noAttrs];
+        }
+
+        if ( !eli->sizesInitialized || p1.sizesChanged ||
+           ( eli->returned >= eli->stableValue && !eli->sizesFinal ) )
+        {
+	  eli->Size = 0.0;
+	  eli->SizeExt = 0.0;
+
+          for( int i = 0; i < eli->noAttrs - 1; i++)	//old attrs
+          {
+            eli->attrSize[i] = p1.attrSize[i];
+            eli->attrSizeExt[i] = p1.attrSizeExt[i];
+            eli->Size += eli->attrSize[i];
+            eli->SizeExt += eli->attrSizeExt[i];
+          }
+
+          if ( eli->returned < eli->stableValue )		//new attrs
+          {
+            eli->attrSize[eli->noAttrs - 1] = 144;
+            eli->attrSizeExt[eli->noAttrs - 1] = 144;
+                        // size yet unknown. The default 144 is taken from
+                        // the size of a upoint
+          }
+          else
+          {
+            eli->attrSize[eli->noAttrs - 1] = 
+              	eli->newAttrSize / ( eli->stableValue + 1 );
+            eli->attrSizeExt[eli->noAttrs - 1] = 
+		eli->newAttrSize / ( eli->stableValue + 1 );
+          }
+          eli->Size += eli->attrSize[eli->noAttrs - 1];
+          eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
+          
+          eli->sizesInitialized = true;
+          eli->sizesChanged = true;;
+        }
+        if ( eli->returned >= eli->stableValue ) eli->sizesFinal = true;
+
+        pRes->CopySizes(eli);
+
+
+        // 2. result cardinality
+
+        pRes->Card = 
+          p1.Card * ( (double) (eli->returned + 1) / (eli->read + 1) );
+
+
+	// 3. total time
+
+        pRes->Time = p1.Time +
+          p1.Card * wExtendStream +	// time per input tuple wo results
+          pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
+					// time per output tuple created
+
+	// 4. progress
+        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress =
+            (p1.Progress * p1.Time +
+            eli->read * wExtendStream +
+            eli->returned * (uExtendStream + eli->noAttrs * vExtendStream) )    
+            / pRes->Time;
+
+
+	// 5. blocking time and progress
+
+        pRes->CopyBlocking(p1);    //non-blocking operator
+
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+
+  }
+  return 0;
+}
+
+#endif
 
 /*
 2.19.3 Specification of operator ~extendstream~
@@ -10283,6 +10564,7 @@ class ExtRelationAlgebra : public Algebra
    extrelsymmouterjoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
+   extrelextendstream.EnableProgress();
    extrelgroupby.EnableProgress();
    extrelsymmjoin.EnableProgress();
    extrelprojectextend.EnableProgress();
