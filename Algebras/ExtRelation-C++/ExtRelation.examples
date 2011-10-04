@@ -332,3 +332,12 @@ Number   : 1
 Signature: stream(tuple((a1 t1)..(an tn))) -> stream(tuple((a1 t1)...(an tn)(id int)))
 Example  : query ten feed printrefs count;
 Result   : (int 10)
+
+
+Operator : extend_aggr 
+Number   : 1
+Signature: stream(tuple(X) x attrName x newAttrName x fun -> stream(tuple(X@(newAttrName))
+Example  : query ten feed extend_aggr[no; Ano : fun(i1: int, i2: int) i1 + i2 ] max[Ano]
+Result   : 55
+
+

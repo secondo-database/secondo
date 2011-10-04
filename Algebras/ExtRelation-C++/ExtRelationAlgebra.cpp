@@ -1617,7 +1617,6 @@ ListExpr  StatsTypeMap( ListExpr args )
                            NList(NList(Symbol::STREAM()),
                                  NList(NList(Tuple::BasicType()),resTupleType))
                          );
-//    cout << "Result of StatsTypeMap:" << resType << endl;
     return resType.listExpr();
   }
   else
@@ -9924,6 +9923,231 @@ int printrefs_vm( Word* args, Word& result, int message,
 
 
 /*
+2.113 Operator extend[_]aggr
+
+This operator computes the aggregation of an attribute of a tuple stream.
+Each provisonal result is appended to the original tuple.
+
+
+2.113.1 Type Mapping
+
+The Signature is:
+
+  tuplestream x attrName x newAttrName x fun
+
+*/
+
+ListExpr extend_aggrTM(ListExpr args){
+
+  string err = "stream(tuple(...)) x attr x newAttr x fun expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr AttrName = nl->Second(args);
+  ListExpr FunList1 = nl->Third(args);
+
+  if(!nl->HasLength(FunList1,1)){ // only one function is allowed
+     return listutils::typeError(err + " (only one fun allowed)");
+  }
+  ListExpr FunList2 = nl->First(FunList1);
+  if(!nl->HasLength(FunList2,2)){
+     return listutils::typeError(err + " invalid function");
+  }
+
+
+  ListExpr NewAttrName = nl->First(FunList2);
+  ListExpr Fun = nl->Second(FunList2);
+
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError(err + 
+                                " (first arg is not a tuple stream) ");
+  }
+  if(!listutils::isSymbol(AttrName)){
+    return listutils::typeError(err + 
+                        " (second arg is not a valid attribute name ");
+  }
+  if(!listutils::isSymbol(NewAttrName)){
+    return listutils::typeError(err + 
+                        " (third arg is not a valid attribute name ");
+  }
+  if(!listutils::isMap<2>(Fun)){
+    return listutils::typeError(err + 
+                        " (third arg is not a function");
+  }
+  ListExpr FunArgType1 = nl->Second(Fun);
+  ListExpr FunArgType2 = nl->Third(Fun);
+  ListExpr FunResType = nl->Fourth(Fun);
+  ListExpr AttrType;
+  string attrName = nl->SymbolValue(AttrName);
+
+  ListExpr AttrList = nl->Second(nl->Second(stream));
+
+  int pos = listutils::findAttribute(AttrList, attrName, AttrType);
+  if(pos==0){
+    return listutils::typeError("Attribute name " + attrName + 
+                                " not present in stream");
+  }
+
+  if(!nl->Equal(FunArgType1, AttrType)){
+    return listutils::typeError("Attribute type doesn't match "
+                                "function argument type");
+  }
+  if(!nl->Equal(FunArgType2, AttrType)){
+    return listutils::typeError("Attribute type doesn't match "
+                                "function argument type");
+  }
+  if(!nl->Equal(FunResType, AttrType)){
+    return listutils::typeError("Attribute type doesn't match "
+                                "function result type");
+  }
+
+  ListExpr NewAttr = nl->OneElemList(nl->TwoElemList(NewAttrName, AttrType));
+  ListExpr ResAttrList = listutils::concat(AttrList, NewAttr);
+
+  if(!listutils::isAttrList(ResAttrList)){
+    return listutils::typeError("Attribute " + nl->ToString(NewAttr) +
+                                " already present in stream");
+  }
+
+  ListExpr Res = nl->TwoElemList(
+                               nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                               nl->TwoElemList(
+                                  nl->SymbolAtom(Tuple::BasicType()),
+                                  ResAttrList)) ;
+
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->IntAtom(pos-1)),
+                           Res);
+}
+
+
+
+class ExtendAggrInfo{
+
+  public: 
+     ExtendAggrInfo(Word& _stream, Supplier _fun, int _attrPos, ListExpr type):
+     stream(_stream),first(true), fun(_fun), attrPos(_attrPos), value(0) {
+       tupleType = new TupleType(type);
+       stream.open();
+     }
+    
+     ~ExtendAggrInfo(){
+        stream.close();
+        tupleType->DeleteIfAllowed();
+        if(value){
+           value->DeleteIfAllowed();
+        }
+     }
+
+     Tuple* getNextTuple(){
+
+        Tuple* srcTuple = stream.request();
+        if(srcTuple==0){
+          return 0;
+        }
+
+        Tuple* resTuple = new Tuple(tupleType); 
+        // copy old attributes
+        for(int i=0;i<srcTuple->GetNoAttributes(); i++){
+          resTuple->CopyAttribute(i,srcTuple,i);
+        }
+        if(first){ 
+          value = srcTuple->GetAttribute(attrPos)->Copy();
+          first = false;
+        } else {
+          // compute value from current value and next attribute
+          Attribute* attr = srcTuple->GetAttribute(attrPos);
+          ArgVectorPointer funargs = qp->Argument(fun);
+          (*funargs)[0] = value;
+          (*funargs)[1] = attr;
+          Word funres;
+          qp->Request(fun,funres);
+          value->DeleteIfAllowed();
+          value = ((Attribute*)funres.addr)->Copy(); 
+        }
+        resTuple->PutAttribute(srcTuple->GetNoAttributes(), value->Clone());
+        srcTuple->DeleteIfAllowed();
+        return resTuple;
+     }
+
+private:
+    Stream<Tuple> stream;
+    bool first;
+    Supplier fun;
+    int attrPos;
+    Attribute* value; 
+    TupleType* tupleType;   
+};
+
+
+int
+extend_aggrVM(Word* args, Word& result, int message,
+           Word& local, Supplier s1){
+
+  ExtendAggrInfo* li = (ExtendAggrInfo*) local.addr;
+  switch(message){
+    case OPEN : {
+                    if(li){
+                      delete li;
+                    }
+                    int attrPos = ((CcInt*)args[3].addr)->GetValue();
+                    Supplier s = args[2].addr;
+                    Supplier s2 = qp->GetSupplier(s,0);
+                    Supplier s3 = qp->GetSupplier(s2,1);
+                    local.addr = new ExtendAggrInfo(args[0], s3, attrPos, 
+                                           nl->Second(GetTupleResultType(s1)));
+                    return 0;
+                 }
+    case REQUEST: {
+                     if(!li){
+                       return CANCEL;
+                     }
+                     result.addr = li->getNextTuple();
+                     return result.addr?YIELD:CANCEL;
+                  }
+    case CLOSE: {
+                   if(li){
+                     delete li;
+                     local.addr=0;
+                   }
+                   return 0;
+                }
+
+  }
+  return -1;
+}
+
+const string extend_aggrSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>stream(tuple(x)) x attrName x newAttrName x fun -> "
+  "stream(tuple(x @ newAttrName))</text--->"
+  "<text>stream extend_aggr [ attrName ; newAttrName : fun ] )</text--->"
+  "<text>Compute an aggrgation over an attribute of a tuple and stored all "
+  "provisional results into the" 
+  "  result tuples"
+  "</text--->"
+  "<text>query ten feed extend_aggr[no; aNo : "
+  "fun(i1: int, i2: int) i1 + i2 ] </text--->"
+  ") )";
+
+
+
+/*
+2.113.4 Operator instance
+
+*/
+
+Operator extend_aggr(
+          "extend_aggr",
+          extend_aggrSpec,
+          extend_aggrVM,
+          Operator::SimpleSelect,
+          extend_aggrTM);
+
+
+
+/*
 
 3 Class ~ExtRelationAlgebra~
 
@@ -10004,6 +10228,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&ksmallest);
     AddOperator(&kbiggest);
     AddOperator(&extrelslidingwindow);
+    AddOperator(&extend_aggr);
 
 #ifdef USE_PROGRESS
 // support for progress queries
