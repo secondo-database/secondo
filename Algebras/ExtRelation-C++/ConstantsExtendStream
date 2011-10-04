@@ -1,0 +1,117 @@
+Machine calibration
+===================
+
+We run the following standard query in database opt on the current machine:
+
+query plz feed ten feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume count
+
+13.48 secs, 14.52, 12.84; avg: 13.61 secs
+Result 412670
+
+
+On the reference machine (used earlier for determining constants) this query takes
+
+41, 44, 52 secs; avg 45.6 secs
+
+We conclude that the current machine is faster by a factor 45.6 / 13.61 = 3.35
+
+We call this the machine factor MF = 3.35.
+
+Constants determined below have to be multiplied by this factor to make query weights measured on 
+different machines (roughly) comparable.
+
+
+MF = 3.35
+
+
+
+
+Constants for extendstream
+==========================
+
+      const double wExtendStream = 0.005963;    //millisecs per tuple read
+      const double uExtendStream = 0.0067;   //millisecs per tuple returned
+      const double vExtendStream = 0.00014405;   //millisec per attribute returned
+
+
+let hundred = thousand feed filter[.no <= 100] consume
+
+let Trains100 = Trains feed hundred feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume
+
+query Trains100 feed count
+
+0.24 sec, 0.22, 0.29;  avg 0.25 secs
+
+query Trains100 feed extendstream[U: intstream(1, 0)] count
+
+Result 0
+
+0.36 secs, 0.35, 0.34; avg 0.35
+
+Time for extendstream to process input tuples without output: 0.35 - 0.25 = 0.1 secs
+
+Trains100 has 56200 tuples, hence time per tuple is 0.1 / 56200 = 0.00000178 secs = 0.00178 msecs
+
+
+wExtendStream = 0.00178 * 3.35 = 0.005963
+=========================================
+
+
+
+query Trains100 feed extendstream[UTrip: units(.Trip)] count
+
+11.74 secs, 11.6, 12.85; avg 12.0 secs
+Result 5154400
+
+
+query Trains100 feed extendstream[U: intstream(1, 100)] count
+
+7.98 secs, 7.92, 7.87
+Result 5620000
+
+
+Clearly the time required also depends on the cost of producing the stream elements, but we have 
+no way to determine this.
+
+We will use the constants of the units operation as this is the most important application.
+
+Version of Trains100 with more attributes:
+
+let Trains100B = Trains100 feed extend[IdB: .Id, LineB: .Line, UpB: .Up, TripB: .Trip, noB: .no] consume
+
+query Trains100B feed extendstream[UTrip: units(.Trip)] count
+
+13.00 secs, 13.42, 12.97; avg 13.13 secs
+Result 5154400
+
+Time difference to the same experiment with Trains100 is 1.13 secs = 1130 msecs. This is for processing 5154400 * 5 attributes. Hence the time per tuple per attribute is
+
+1130 / (5154400 * 5) = 0.000043 msecs
+
+
+vExtendStream = 0.000043 * 3.35 = 0.00014405
+============================================
+
+If we subtract the time for all 10 attributes from 13.13 secs (= 13.13 - (2 * 1.13)) we get 10.87 secs. We further subtract 0.25 secs for the empty query "Trains100 feed count". The rest must be the time per result tuple.
+
+10.87 - 0.25 = 10.53
+
+hence the time per result tuple in msecs is
+
+10530 / 5154400 = 0.002 msecs
+
+uExtendStream = 0.002 * 3.35 = 0.0067
+=====================================
+
+
+
+
+
+
+
+
+
+
+
+
+
