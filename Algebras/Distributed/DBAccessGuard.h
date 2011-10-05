@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] TupleBufferQueue
+[1] DBAccessGuard
 
 Oktober 2011 Thomas Achmann
 
@@ -86,7 +86,6 @@ Allocates a new object of TupleType
   TupleType* TT_New_2(const ListExpr& inTT_Rel)
   {
     ZThread::Guard<MyMutex> g(lock);
-    cout << "NEWTT:" << nl -> ToString(nl -> Second(inTT_Rel));
     return new TupleType(nl -> Second(inTT_Rel));
   }
 /*
