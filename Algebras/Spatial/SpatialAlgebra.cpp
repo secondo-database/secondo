@@ -7203,6 +7203,54 @@ bool SimpleLine::AtPosition( double pos,
 
 */
 
+bool SimpleLine::AtPoint(const Point& p, const bool startsSmaller, 
+		         double& result,
+                         const Geoid* geoid /*= 0*/) const
+{
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
+  if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    return false;
+  }
+    if(geoid){
+      cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+      <<endl;
+      assert(false); // TODO: Implement spherical geometry case.
+    }
+      bool found = false;
+      HalfSegment hs;
+      int pos;
+      if( Find( p, pos ) ) {
+        found = true;
+        segments.Get( pos, &hs );
+      } else {
+        if( pos < Size() ) {
+          for( ; pos >= 0; pos-- ) {
+            segments.Get( pos, hs );
+            if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
+              found = true;
+              break;
+            }
+          }
+        }
+      }
+        if( found ){
+          LRS lrs;
+          lrsArray.Get( hs.attr.edgeno, lrs );
+          segments.Get( lrs.hsPos, &hs );
+          result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
+          if(!this->startSmaller )result = length - result;
+          if( AlmostEqual( result, 0.0 ) ){
+            result = 0;
+          } else if( AlmostEqual( result, length ) ){
+            result = length;
+          }
+          assert( result >= 0.0 && result <= length );
+          return true;
+        }
+      return false;
+}
+
 bool SimpleLine::AtPoint( const Point& p,
                           double& result,
                           double tolerance /*=0.0*/,

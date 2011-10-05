@@ -1796,6 +1796,9 @@ geometry.
 
 */
 
+  bool AtPoint(const Point& p, const bool startsSmaller, double& result,
+               const Geoid* geoid= 0) const;
+
   bool AtPoint(const Point& p, const bool startsSmaller, const double tolerance,
                double& result, const Geoid* geoid=0) const;
   bool AtPoint(const Point& p, double& result, const double tolerance = 0.0,
