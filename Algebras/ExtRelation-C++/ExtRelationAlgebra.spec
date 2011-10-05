@@ -74,6 +74,8 @@ operator kbiggest alias KBIGGEST pattern _ op [_ ; list  ]
 
 operator extend_aggr alias EXTEND_AGGR pattern _ op [list  ; funlist ]
 
+operator extend_last alias EXTEND_LAST pattern _ op [funlist ; list] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
+
 
 
 

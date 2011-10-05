@@ -10469,6 +10469,234 @@ Operator extend_aggr(
 
 
 /*
+2.114 Operator extend[_]last
+
+This operator extends a tuple using values from that tuple and from
+values of the last tuple from the stream. For the first tuple, the 
+values are given in a separate list.
+
+
+2.114.1 Type Mapping
+
+signature is  stream(tuple) x funlist x list
+
+
+*/
+ListExpr extend_lastTM(ListExpr args){
+  string err = "stream(tuple) x funlist x list expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr funlist = nl->Second(args);
+  ListExpr defaultValues = nl->Third(args);
+
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError(err + " (first arg is not a tuple stream");
+  }
+  if(nl->ListLength(funlist) != nl->ListLength(defaultValues)){
+    return listutils::typeError(err + " (funlist and default value "
+                                      "list have different lengths)");
+  }
+  if(nl->IsEmpty(funlist)){
+    return listutils::typeError(err + " (funlist is empty)");
+  }
+  ListExpr TupleList  = nl->Second(stream);
+  ListExpr attrList   = nl->Second(TupleList);
+  ListExpr ExtList;
+  ListExpr last;
+  bool first = true;
+  while(!nl->IsEmpty(funlist)){
+    ListExpr firstFun = nl->First(funlist);
+    ListExpr firstDefault = nl->First(defaultValues);
+    funlist = nl->Rest(funlist);
+    if(!nl->HasLength(firstFun,2)){ // (name map)
+      return listutils::typeError(err + " (Invalid named function)");
+    }
+    ListExpr newName = nl->First(firstFun);
+    if(!listutils::isSymbol(newName)){
+       return listutils::typeError(err + " (invalid name for an attribute)");
+    }
+    ListExpr mapList = nl->Second(firstFun);
+    if(!listutils::isMap<2>(mapList)){
+       return listutils::typeError(err + " (invalid map found)"); 
+    } 
+    if(!nl->Equal(nl->Second(mapList),TupleList) ||
+       !nl->Equal(nl->Third(mapList),TupleList)){
+       return listutils::typeError(err + " ( invalid function arguments )");
+    } 
+    ListExpr resType = nl->Fourth(mapList);
+    if(!nl->Equal(resType,firstDefault)){
+       return listutils::typeError(err + " (type mismatch between fun "
+                                  "result and default)");
+    }
+    ListExpr dummy;
+    string name = nl->SymbolValue(newName);
+    if(listutils::findAttribute(attrList,name,dummy)>0){
+      return listutils::typeError(err + " ( attribute " + name +
+                                   " already exists"); 
+    }
+    ListExpr ext = nl->TwoElemList( newName, resType);
+    if(first){
+        ExtList = nl->OneElemList(ext);
+        last = ExtList;
+    } else {
+        last = nl->Append(last, ext);
+    }
+  }
+
+  ListExpr resAttrList = listutils::concat(attrList, ExtList);
+  return nl->TwoElemList(
+              nl->SymbolAtom(Stream<Tuple>::BasicType()),
+              nl->TwoElemList(
+                  nl->SymbolAtom(Tuple::BasicType()),
+                  resAttrList)); 
+}
+
+
+/*
+2.114.2 Value Mapping
+
+*/
+class ExtendLastInfo{
+  public:
+    ExtendLastInfo(Word& _stream, Supplier _s1, 
+                   Supplier _s2, ListExpr resType):
+     stream(_stream), s1(_s1), s2(_s2), first(true), lastTuple(0){
+      tupleType = new TupleType(resType);
+      stream.open();
+    }
+    ~ExtendLastInfo(){
+      stream.close();
+      tupleType->DeleteIfAllowed();
+      if(lastTuple){
+         lastTuple->DeleteIfAllowed();
+      }
+    }
+
+    Tuple* getNextTuple(){
+
+      Tuple* srcTuple = stream.request();
+      if(srcTuple==0){
+         return 0;
+      }
+      Tuple* resTuple = new Tuple(tupleType);
+      // copy the original attributesA
+      int no_attr = srcTuple->GetNoAttributes();
+      for(int i=0;i<no_attr; i++){
+        resTuple->CopyAttribute(i,srcTuple,i);
+      }
+
+      if(first){
+         // copy default values 
+         int noDefaults = qp->GetNoSons(s2);
+         for(int i=0;i<noDefaults;i++){
+            Supplier s = qp->GetSon(s2,i);
+            Word res;
+            qp->Request(s,res);
+            Attribute* resAttr = (Attribute*) res.addr;
+            resTuple->PutAttribute(i + no_attr, resAttr->Clone());
+         }
+         first = false;
+         lastTuple = srcTuple;
+      } else { // lastTuple is present, use functions
+         int noFuns = qp->GetNoSons(s1);
+         for(int i=0; i < noFuns; i++){
+            Supplier fun1 = qp->GetSon(s1,i); // (Name Function)
+
+            Supplier fun = qp->GetSon(fun1,1);
+            ArgVectorPointer funargs = qp->Argument(fun);
+            (*funargs)[0] = srcTuple;
+            (*funargs)[1] = lastTuple;
+            Word funres;
+            qp->Request(fun, funres);
+            resTuple->PutAttribute(i+no_attr,
+                              ((Attribute*) funres.addr)->Clone());
+         }
+         lastTuple->DeleteIfAllowed();
+         lastTuple = srcTuple;
+      }
+      return resTuple; 
+    }
+
+  private:
+    Stream<Tuple> stream;
+    Supplier s1;
+    Supplier s2;
+    bool first;
+    TupleType* tupleType;
+    Tuple* lastTuple;
+};
+
+
+
+
+int
+extend_lastVM(Word* args, Word& result, int message,
+                 Word& local, Supplier s1){
+
+   ExtendLastInfo* li = (ExtendLastInfo*) local.addr;
+   switch(message){
+    case OPEN : {
+                  if(li){
+                     delete li;
+                  }
+                  local.addr = new ExtendLastInfo(args[0], args[1].addr, 
+                                          args[2].addr, 
+                                          nl->Second(GetTupleResultType(s1)));
+                  return 0;
+                  }
+    case REQUEST: {
+                     if(!li){
+                        return CANCEL;
+                     }
+                     result.addr = li->getNextTuple();
+                     return result.addr?YIELD:CANCEL;
+                   }
+    case CLOSE: {
+                   if(li){
+                      delete li;
+                      local.addr=0;
+                    }
+                    return 0;
+                }
+
+   }
+   return -1;
+}
+
+
+
+
+const string extend_lastSpec  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>stream(tuple(x)) x funlist x list  -> "
+  "stream(tuple(x @ newAttributes))</text--->"
+  "<text>stream extend_last [ funlist ; list ] )</text--->"
+  "<text>Computes new attributes from the current tuple and the"
+  " last one in the stream. "
+  " For the first attributes, the default values are used instead"
+  " of some computation"
+  "</text--->"
+  "<text>query ten feed extend_last[ ANum : .no - ..no ; 3] tconsume "
+  " </text--->"
+  ") )";
+
+
+
+/*
+2.114.4 Operator instance
+
+*/
+
+Operator extend_last(
+          "extend_last",
+          extend_lastSpec,
+          extend_lastVM,
+          Operator::SimpleSelect,
+          extend_lastTM);
+
+/*
 
 3 Class ~ExtRelationAlgebra~
 
@@ -10550,6 +10778,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&kbiggest);
     AddOperator(&extrelslidingwindow);
     AddOperator(&extend_aggr);
+    AddOperator(&extend_last);
 
 #ifdef USE_PROGRESS
 // support for progress queries

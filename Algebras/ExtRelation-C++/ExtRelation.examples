@@ -341,3 +341,8 @@ Example  : query ten feed extend_aggr[no; Ano : fun(i1: int, i2: int) i1 + i2 ] 
 Result   : 55
 
 
+Operator : extend_last 
+Number   : 1
+Signature: stream(tuple(X) x funlist x list
+Example  : query ten feed extend_last[ A : .no - ..no; 0   ] max[A]
+Result   : 1
