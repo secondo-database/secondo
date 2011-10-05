@@ -7204,7 +7204,7 @@ bool SimpleLine::AtPosition( double pos,
 */
 
 bool SimpleLine::AtPoint(const Point& p, const bool startsSmaller, 
-		         double& result,
+                         double& result,
                          const Geoid* geoid /*= 0*/) const
 {
   assert( !IsEmpty() );
