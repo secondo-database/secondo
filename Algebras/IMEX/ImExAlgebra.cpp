@@ -3470,10 +3470,14 @@ private:
         if(s.size()==0){
            res->SetDefined(false);
         } else {
+
           istringstream buffer(s);
           int resInt;
           buffer >> resInt;
-          int year = resInt/10000 + 2000;
+          int year = resInt/10000;
+          if(year<100) {
+              year += 2000;
+          }
           int month = (resInt/100)%100;
           int day = resInt%100;
           res->Set(year,month,day);
