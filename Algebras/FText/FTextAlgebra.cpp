@@ -3052,14 +3052,29 @@ int FTextValMapIsEmpty( Word* args, Word& result, int message,
 
 Removes whitespaces from a text at the start and the end of the text.
 
+4.30.1 Type Mapping
 
 */
+
+ListExpr trimTM(ListExpr args) {
+ string err = "string or text expected";
+ if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+ }
+ ListExpr arg = nl->First(args);
+ if(FText::checkType(arg) || CcString::checkType(arg)){
+   return arg;
+ }
+ return  listutils::typeError(err);
+}
+
+template <class T>
 int FTextValMapTrim( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  FText* res = static_cast<FText*>(result.addr);
-  FText* src = static_cast<FText*>(args[0].addr);
+  T* res = static_cast<T*>(result.addr);
+  T* src = static_cast<T*>(args[0].addr);
   if(!src->IsDefined()){
      res->SetDefined(false);
   } else {
@@ -3071,6 +3086,20 @@ int FTextValMapTrim( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+ValueMapping trimVM[] = {FTextValMapTrim<FText>, FTextValMapTrim<CcString>};
+
+int trimSelect(ListExpr args){
+  if(FText::checkType(nl->First(args))){
+     return 0;
+  }
+  if(CcString::checkType(nl->First(args))){
+     return 1;
+  }
+  return -1;
+}
+
+
 
 
 
@@ -6072,7 +6101,7 @@ const string FTextisemptySpec =
 
 const string FTexttrimSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> text -> text </text--->"
+    "( <text> text -> text | string -> string</text--->"
     "<text>trim( t )</text--->"
     "<text>Removes whitespaces at the start and and end of"
     " the argument</text--->"
@@ -6774,9 +6803,10 @@ Operator ftexttrim
     (
     "trim",
     FTexttrimSpec,
-    FTextValMapTrim,
-    Operator::SimpleSelect,
-    TypeMap_text__text
+    2,
+    trimVM,
+    trimSelect,
+    trimTM
     );
 
 Operator ftextplus
