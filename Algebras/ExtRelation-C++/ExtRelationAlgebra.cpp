@@ -5729,6 +5729,9 @@ int ExtendStream(Word* args, Word& result, int message,
 
       ProgressInfo p1;
       ProgressInfo *pRes;
+
+      // for the determination of constants see file ConstantsExtendStream
+
       const double wExtendStream = 0.005963;    //millisecs per tuple read
       const double uExtendStream = 0.0067;   //millisecs per tuple returned
       const double vExtendStream = 0.00014405; //millisec per attr returned
@@ -5778,7 +5781,7 @@ int ExtendStream(Word* args, Word& result, int message,
             eli->attrSize[eli->noAttrs - 1] = 
               	eli->newAttrSize / ( eli->stableValue + 1 );
             eli->attrSizeExt[eli->noAttrs - 1] = 
-		eli->newAttrSize / ( eli->stableValue + 1 );
+		eli->newAttrSizeExt / ( eli->stableValue + 1 );
           }
           eli->Size += eli->attrSize[eli->noAttrs - 1];
           eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
@@ -6542,6 +6545,11 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
 2.19.2 Value mapping function of operator ~projectextendstream~
 
 */
+
+#ifndef USE_PROGRESS
+
+// standard version
+
 struct ProjectExtendStreamLocalInfo
 {
   Tuple *tupleX;
@@ -6688,6 +6696,308 @@ int ProjectExtendStream(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+
+struct ProjectExtendStreamLocalInfo: public ProgressLocalInfo
+{
+public:
+
+  ProjectExtendStreamLocalInfo():
+    tupleX(0), resultTupleType(0), noOldAttrs(0) { streamY.setAddr(0); };
+
+  ~ProjectExtendStreamLocalInfo() {
+    if( streamY.addr != 0 )
+          qp->Close( streamY.addr );
+
+    if( tupleX != 0 )
+          tupleX->DeleteIfAllowed();
+
+    if( resultTupleType != 0 )
+          resultTupleType->DeleteIfAllowed();
+  }
+
+  Tuple *tupleX;
+  Word streamY;
+  TupleType *resultTupleType;
+  vector<long> attrs;
+
+  int noOldAttrs;
+  double newAttrSize, newAttrSizeExt;
+  int stableValue;
+  bool sizesFinal;
+};
+
+
+int ProjectExtendStream(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  ArgVectorPointer funargs;
+  Word wTupleX, wValueY, elem2;
+  int index = 0;
+  Tuple* tupleXY;
+
+  ProjectExtendStreamLocalInfo *eli;
+  eli = (ProjectExtendStreamLocalInfo*) local.addr;
+
+  Supplier son, supplier, supplier2, supplier3;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      if ( eli ) {
+        delete eli;
+      }
+
+      eli = new ProjectExtendStreamLocalInfo;
+      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      eli->newAttrSize = 0.0;
+      eli->newAttrSizeExt = 0.0;
+      eli->stableValue = 50;
+      eli->sizesFinal = false;
+      eli->noOldAttrs = ((CcInt*)args[3].addr)->GetIntval();
+
+      // 1. open the input stream and initiate the arguments
+      qp->Open( args[0].addr );
+      qp->Request( args[0].addr, wTupleX );
+      if( qp->Received( args[0].addr ) )
+      {
+        eli->read = 1;
+
+        // 2. compute the result "stream y" from tuple x
+        supplier = args[2].addr;
+        supplier2 = qp->GetSupplier( supplier, 0 );
+        supplier3 = qp->GetSupplier( supplier2, 1 );
+        funargs = qp->Argument( supplier3 );
+
+        (*funargs)[0] = wTupleX;
+        qp->Open( supplier3 );
+
+        // 3. save the local information
+
+        eli->tupleX = (Tuple*)wTupleX.addr;
+        eli->streamY.setAddr( supplier3 );
+
+        // 4. get the attribute numbers
+        int noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
+        eli->noOldAttrs = noOfAttrs;
+        for( int i = 0; i < noOfAttrs; i++)
+        {
+          Supplier son = qp->GetSupplier(args[4].addr, i);
+          Word elem2;
+          qp->Request(son, elem2);
+          eli->attrs.push_back( ((CcInt*)elem2.addr)->GetIntval()-1 );
+        }
+
+        local.setAddr(eli);
+      }
+      else
+      {
+        local.setAddr(0);
+      }
+      return 0;
+    }
+    case REQUEST:
+    {
+      if( local.addr == 0 )
+        return CANCEL;
+
+      // 1. prepare tupleX and wValueY.
+      // if wValueY is empty, then get next tupleX
+      wValueY.setAddr(0);
+      while( wValueY.addr == 0 )
+      {
+        qp->Request( eli->streamY.addr, wValueY );
+        if( !(qp->Received( eli->streamY.addr )) )
+        {
+          qp->Close( eli->streamY.addr );
+          eli->tupleX->DeleteIfAllowed();
+          qp->Request( args[0].addr, wTupleX );
+          if( qp->Received(args[0].addr) )
+          {
+            eli->read++;
+
+            supplier = args[2].addr;
+            supplier2 = qp->GetSupplier(supplier, 0);
+            supplier3 = qp->GetSupplier(supplier2, 1);
+            funargs = qp->Argument(supplier3);
+
+            eli->tupleX = (Tuple*)wTupleX.addr;
+            (*funargs)[0] = wTupleX;
+            qp->Open( supplier3 );
+
+            eli->tupleX = (Tuple*)wTupleX.addr;
+            eli->streamY.setAddr(supplier3);
+
+            wValueY.setAddr(0);
+          }
+          else  //streamx is exausted
+          {
+            eli->streamY.setAddr(0);
+            eli->tupleX = 0;
+            return CANCEL;
+          }
+        }
+      }
+
+      // 2. compute tupleXY from tupleX and wValueY
+      tupleXY = new Tuple( eli->resultTupleType );
+
+      size_t i;
+      for(i = 0; i < eli->attrs.size(); i++ )
+        tupleXY->CopyAttribute( eli->attrs[i], eli->tupleX, i );
+
+      tupleXY->PutAttribute( eli->attrs.size(), 
+        			(Attribute*)wValueY.addr );
+
+      // for the first 50 tuples returned, observe attribute sizes of the 
+      // new attribute.
+      if ( eli->returned <= eli->stableValue )
+      {
+        eli->newAttrSize += 
+          tupleXY->GetSize( eli->attrs.size() );
+        eli->newAttrSizeExt += 
+          tupleXY->GetExtSize( eli->attrs.size() );
+      }
+
+      // setting the result
+      result.setAddr( tupleXY );
+      eli->returned++;
+      return YIELD;
+    }
+
+    case CLOSE:
+    {
+      qp->Close( args[0].addr );
+      return 0;
+    }
+
+    case CLOSEPROGRESS:
+    {
+      if ( eli ) {
+         delete eli;
+         local.setAddr(0);
+      }
+      return 0;
+    }
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+
+      // For the determination of constants see file ConstantsExtendStream.
+      // We assume the same constants are valid here.
+
+      const double wExtendStream = 0.005963;    //millisecs per tuple read
+      const double uExtendStream = 0.0067;   //millisecs per tuple returned
+      const double vExtendStream = 0.00014405; //millisec per attr returned
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( !eli ) {
+        return CANCEL;
+      }
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+
+	// 1. attribute sizes
+        eli->sizesChanged = false;
+
+        if ( !eli->sizesInitialized )
+        {
+          eli->noAttrs = eli->noOldAttrs + 1;
+          eli->attrSize = new double[eli->noAttrs];
+          eli->attrSizeExt = new double[eli->noAttrs];
+        }
+
+        if ( !eli->sizesInitialized || p1.sizesChanged ||
+           ( eli->returned >= eli->stableValue && !eli->sizesFinal ) )
+        {
+	  eli->Size = 0.0;
+	  eli->SizeExt = 0.0;
+
+          for( int i = 0; i < eli->noOldAttrs; i++)	//old attrs
+          {
+            son = qp->GetSupplier(args[4].addr, i);
+            qp->Request(son, elem2);
+            index = ((CcInt*)elem2.addr)->GetIntval();
+            eli->attrSize[i] = p1.attrSize[index-1];
+            eli->attrSizeExt[i] = p1.attrSizeExt[index-1];
+            eli->Size += eli->attrSize[i];
+            eli->SizeExt += eli->attrSizeExt[i];
+          }
+
+          if ( eli->returned < eli->stableValue )	//new attr
+          {
+            eli->attrSize[eli->noAttrs - 1] = 144;
+            eli->attrSizeExt[eli->noAttrs - 1] = 144;
+                        // size yet unknown. The default 144 is taken from
+                        // the size of a upoint
+          }
+          else
+          {
+            eli->attrSize[eli->noAttrs - 1] = 
+              	eli->newAttrSize / ( eli->stableValue + 1 );
+            eli->attrSizeExt[eli->noAttrs - 1] = 
+		eli->newAttrSizeExt / ( eli->stableValue + 1 );
+          }
+          eli->Size += eli->attrSize[eli->noAttrs - 1];
+          eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
+          
+          eli->sizesInitialized = true;
+          eli->sizesChanged = true;;
+        }
+        if ( eli->returned >= eli->stableValue ) eli->sizesFinal = true;
+
+        pRes->CopySizes(eli);
+
+
+        // 2. result cardinality
+
+        pRes->Card = 
+          p1.Card * ( (double) (eli->returned + 1) / (eli->read + 1) );
+
+
+	// 3. total time
+
+        pRes->Time = p1.Time +
+          p1.Card * wExtendStream +	// time per input tuple wo results
+          pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
+					// time per output tuple created
+
+	// 4. progress
+        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress =
+            (p1.Progress * p1.Time +
+            eli->read * wExtendStream +
+            eli->returned * (uExtendStream + eli->noAttrs * vExtendStream) )    
+            / pRes->Time;
+
+
+	// 5. blocking time and progress
+
+        pRes->CopyBlocking(p1);    //non-blocking operator
+
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+
+  }
+  return 0;
+}
+
+
+#endif
 
 /*
 2.19.3 Specification of operator ~projectextendstream~
@@ -10794,6 +11104,7 @@ class ExtRelationAlgebra : public Algebra
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
    extrelextendstream.EnableProgress();
+   extrelprojectextendstream.EnableProgress();
    extrelgroupby.EnableProgress();
    extrelsymmjoin.EnableProgress();
    extrelprojectextend.EnableProgress();
