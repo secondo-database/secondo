@@ -59,6 +59,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "../FText/FTextAlgebra.h"
 #include "../Array/ArrayAlgebra.h"
 #include "DistributedAlgebra.h"
+#include "DBAccessGuard.h"
 #include "StringUtils.h"
 #include "Symbols.h"
 #include "Stream.h"
@@ -74,6 +75,7 @@ using namespace mappings;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+// mutex for boolean flag running
 ZThread::Mutex DArray::ms_rTBlock;
 
 /*
@@ -2386,6 +2388,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 #endif
    while( (tuple1 = inTupleStream.request()) != 0)
      {
+       // this is a memory leak!
+       vector<Word> *w = new vector<Word> (1);
        // ArrayIndex
        int arrIndex = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
           
@@ -2393,7 +2397,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
        arrIndex = arrIndex % size;
            
-       vector<Word> *w = new vector<Word> (1);
        (*w)[0] = SetWord(tuple1);
        tuple1->IncReference();
 #ifndef SINGLE_THREAD1
@@ -2417,6 +2420,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
        //number ++;
      } // while (...)
+
    try
      {
 #ifndef SINGLE_THREAD1
@@ -3004,9 +3008,7 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
         {
           delete rit;
           rit = 0;
-          DServer::Rel1_Mutex.acquire();
-          cur_rel -> Clear();
-          DServer::Rel1_Mutex.release();
+          DBAccess::getInstance() -> TB_Clear(cur_rel);
           m_tbIn -> put(cur_rel);
         }
 
@@ -3083,18 +3085,14 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
     {
       if (!rit)
         return 0;
-      DServer::Rel1_Mutex.acquire();
-      Tuple* t = rit->GetNextTuple();
-      DServer::Rel1_Mutex.release();
+      Tuple* t = DBAccess::getInstance() -> TBI_GetNextTuple(rit);
       if ( !t )
       {
          if (!makeNextRelIter())
            return 0;
          else
            {
-             DServer::Rel1_Mutex.acquire();
-             t = rit->GetNextTuple();
-             DServer::Rel1_Mutex.release();
+             t = DBAccess::getInstance() -> TBI_GetNextTuple(rit);
            }
       }
       return t;

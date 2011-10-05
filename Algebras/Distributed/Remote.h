@@ -162,9 +162,6 @@ public:
   friend ostream& operator << (ostream&, RemoteCommand&) ;
   void print() const;
 
-  //Synchronisation of access to read relations
-  static ZThread::Mutex Rel1_Mutex;
-
 private:
 
   string host,name;

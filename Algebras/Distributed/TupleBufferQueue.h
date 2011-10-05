@@ -36,7 +36,6 @@ transferring data from the workers (e.g dsummarize command).
 #ifndef _TUPLEBUFFERQUEUE_H_
 #define _TUPLEBUFFERQUEUE_H_
 
-#include "StandardTypes.h"
 #include "zthread/Thread.h"
 #include "zthread/Guard.h"
 #include "zthread/Mutex.h"

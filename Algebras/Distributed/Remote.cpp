@@ -33,6 +33,7 @@ DServerCreator, DServerExecutor and RelationWriter
 
 #include "Remote.h"
 #include "TupleBufferQueue.h"
+#include "DBAccessGuard.h"
 #include "SocketIO.h"
 #include "Processes.h"
 #include "zthread/Runnable.h"
@@ -64,13 +65,8 @@ string HostIP_;
 
 //Synchronisation of access to Flobs
 ZThread::Mutex Flob_Mutex;
-ZThread::Mutex Flob1_Mutex;
-//Synchronisation of access to read relations
-//ZThread::Mutex Rel1_Mutex;
 //Synchronisation of access to read non relations and write commands
 ZThread::Mutex Cmd_Mutex;
-//Synchronisation of access to nl -> ToString in DServer::DServer
-ZThread::Mutex Type_Mutex;
 
 
 /*
@@ -85,8 +81,6 @@ A TCP-connection to the corresponding worker ist opened
 */
 
 //#define DEBUG_DISTRIBUTE 1
-
-ZThread::Mutex DServer::Rel1_Mutex;
 
 Word DServer::ms_emptyWord;
 
@@ -106,9 +100,7 @@ DServer::DServer(string n_host,int n_port,string n_name,
    name = n_name;
    m_type = inType;
 
-   Type_Mutex.acquire();
-   m_typeStr = nl -> ToString(m_type);
-   Type_Mutex.release();
+   DBAccess::getInstance() -> NL_ToString(m_type, m_typeStr);
 
    errorText = "OK";
    
@@ -950,10 +942,8 @@ void DServer::run()
       memset(buffer,0,1024*num_blocks);
                 
       //Get the binary data of the tuple
-      Flob1_Mutex.acquire();
-      tpl -> WriteToBin(buffer,cS,eS,fS);
-      tpl -> DeleteIfAllowed();
-      Flob1_Mutex.release();
+      DBAccess::getInstance() -> T_WriteToBin(tpl, buffer, cS, eS, fS);
+      DBAccess::getInstance() -> T_DeleteIfAllowed(tpl );
 
       iostream& cbsock = cbworker->GetSocketStream();
                
@@ -1062,98 +1052,91 @@ void DServer::run()
    
 
    if(m_cmd -> getCmdType() == DS_CMD_READ_REL)
-   {
+     {
 #ifdef DS_CMD_READ_REL_DEBUG
-         cout << (unsigned long)(this) << " DS_CMD_READ_REL" << endl;
+       cout << (unsigned long)(this) << " DS_CMD_READ_REL" << endl;
 #endif
-      //Reads an entire relation from the worker
+       //Reads an entire relation from the worker
 
-      DServer::Rel1_Mutex.acquire();   
+       TupleType *tt = 
+         DBAccess::getInstance() -> TT_New_2(m_type);
 
-      TupleType *tt = new TupleType (nl -> Second(m_type));
-
-      DServer::Rel1_Mutex.release(); 
-
-      while(!m_cmd -> getDArrayIndex() ->empty())
-      {
-         arg2 = m_cmd -> getDArrayIndex() ->front();
-         m_cmd -> getDArrayIndex() ->pop_front();
+       while(!m_cmd -> getDArrayIndex() ->empty())
+         {
+           arg2 = m_cmd -> getDArrayIndex() ->front();
+           m_cmd -> getDArrayIndex() ->pop_front();
          
-         string line;        
-         string port =toString_d((1300+arg2));
+           string line;        
+           string port =toString_d((1300+arg2));
                 
-         //start execution of d_send_rel
-         iostream& iosock = server->GetSocketStream();
-         iosock << "<Secondo>" << endl << "1" << endl 
+           //start execution of d_send_rel
+           iostream& iosock = server->GetSocketStream();
+           iosock << "<Secondo>" << endl << "1" << endl 
                   << "query d_send_rel (" << HostIP_ << ",p" << port << ",r"
                   << name << toString_d(arg2) << ")" <<  endl 
                   << "</Secondo>" << endl;
                 
-         //Open the callback connection
-         Socket* gate = Socket::CreateGlobal( HostIP, port);
-         Socket* worker = gate->Accept();
+           //Open the callback connection
+           Socket* gate = Socket::CreateGlobal( HostIP, port);
+           Socket* worker = gate->Accept();
 
-         iostream& cbsock = worker->GetSocketStream();
+           iostream& cbsock = worker->GetSocketStream();
 
-         GenericRelation* rel = 
-           (Relation*)(*(m_cmd -> getElements()))[arg2].addr;
+           GenericRelation* rel = 
+             (Relation*)(*(m_cmd -> getElements()))[arg2].addr;
 
                 
-         //receive tuples
-         getline(cbsock,line);
-         while(line=="<TUPLE>")
-         {
-            //receive size of tuple
-            getline(cbsock,line);
-            size_t size = atoi(line.data());
+           //receive tuples
+           getline(cbsock,line);
+           while(line=="<TUPLE>")
+             {
+               //receive size of tuple
+               getline(cbsock,line);
+               size_t size = atoi(line.data());
                      
-            getline(cbsock,line);
+               getline(cbsock,line);
                      
-            int num_blocks = (size / 1024) + 1;
+               int num_blocks = (size / 1024) + 1;
                    
-            char* buffer = new char[num_blocks*1024];
-            memset(buffer,0,num_blocks*1024);
+               char* buffer = new char[num_blocks*1024];
+               memset(buffer,0,num_blocks*1024);
                      
-            //receive tuple data
-            for(int i = 0; i < num_blocks; i++)
-              {
-                cbsock.read(buffer+i*1024,1024);
-              }
+               //receive tuple data
+               for(int i = 0; i < num_blocks; i++)
+                 {
+                   cbsock.read(buffer+i*1024,1024);
+                 }
                      
-            Tuple* t = new Tuple(tt);
-            //transform to tuple and append to relation
-            DServer::Rel1_Mutex.acquire();
-            t -> ReadFromBin(buffer);
+               Tuple* t = new Tuple(tt);
 
-            rel -> AppendTuple(t);
-
-            t -> DeleteIfAllowed(); 
-            DServer::Rel1_Mutex.release();
-
-            delete buffer;
+               //transform to tuple and append to relation
+               DBAccess::getInstance() -> T_ReadFromBin(t, buffer);
+               DBAccess::getInstance() -> REL_AppendTuple(rel, t);
+               DBAccess::getInstance() -> T_DeleteIfAllowed(t);
+            
+               delete buffer;
                      
-            getline(cbsock,line);
-         }
+               getline(cbsock,line);
+             }
                 
-         if(line != "<CLOSE>") 
-            errorText = (string)"Unexpected Response from worker! " 
-                              + "(<CLOSE> or <TUPLE> expected)";
+           if(line != "<CLOSE>") 
+             errorText = (string)"Unexpected Response from worker! " 
+               + "(<CLOSE> or <TUPLE> expected)";
            
-         gate->Close(); delete gate; gate=0;
-         worker->Close(); delete worker; worker=0;
+           gate->Close(); delete gate; gate=0;
+           worker->Close(); delete worker; worker=0;
 
-         do
-         {
-            getline(iosock,line);
-            if(line.find("error") != string::npos)
-               errorText = "worker reports error on sending relation!";
+           do
+             {
+               getline(iosock,line);
+               if(line.find("error") != string::npos)
+                 errorText = "worker reports error on sending relation!";
+             }
+           while(line.find("</SecondoResponse>") == string::npos);
+
          }
-         while(line.find("</SecondoResponse>") == string::npos);
 
-      }
-      DServer::Rel1_Mutex.acquire();
-      tt -> DeleteIfAllowed();
-      DServer::Rel1_Mutex.release();
+       DBAccess::getInstance() -> TT_DeleteIfAllowed(tt);
           
 #ifdef DS_CMD_READ_REL_DEBUG
       cout << (unsigned long)(this) << " DS_CMD_READ_REL done" << endl;
@@ -1169,11 +1152,8 @@ void DServer::run()
        TBQueue* inQueue = (TBQueue*)(*(m_cmd -> getElements()))[0].addr;
        TBQueue* outQueue = (TBQueue*)(*(m_cmd -> getElements()))[1].addr;
 
-       DServer::Rel1_Mutex.acquire();   
-
-       TupleType *tt = new TupleType(nl -> Second(m_type));
-
-       DServer::Rel1_Mutex.release(); 
+       TupleType *tt = 
+         DBAccess::getInstance() -> TT_New_2(m_type);
 
        // need to transfer even empty tubple buffers
        // because we need to corretly count the size
@@ -1230,13 +1210,9 @@ void DServer::run()
                Tuple* t = new Tuple(tt);
 
                //transform to tuple and append to relation
-               DServer::Rel1_Mutex.acquire();
-               t -> ReadFromBin(buffer);
-               
-               tb -> AppendTuple(t);
-
-               t -> DeleteIfAllowed(); 
-               DServer::Rel1_Mutex.release();
+               DBAccess::getInstance() -> T_ReadFromBin(t, buffer);
+               DBAccess::getInstance() -> REL_AppendTuple(tb, t);
+               DBAccess::getInstance() -> T_DeleteIfAllowed(t);
 
                delete buffer;
                      
@@ -1265,9 +1241,7 @@ void DServer::run()
        else
          (*inQueue) -> put(tb);
 
-       DServer::Rel1_Mutex.acquire();
-       tt -> DeleteIfAllowed();
-       DServer::Rel1_Mutex.release();
+       DBAccess::getInstance() -> TT_DeleteIfAllowed(tt);
 
 #ifdef DS_CMD_READ_TB_REL_DEBUG
          cout << (unsigned long)(this) << " DS_CMD_READ_TB_REL done" << endl;
