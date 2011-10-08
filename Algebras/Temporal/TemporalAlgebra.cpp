@@ -118,6 +118,7 @@ extern QueryProcessor* qp;
 #include "TemporalAlgebra.h"
 #include "GenericTC.h"
 #include "GenOps.h"
+#include "Stream.h"
 
 
 
@@ -9784,36 +9785,20 @@ ListExpr TypeMapLinearize2(ListExpr args){
 ListExpr TypeMapApproximate(ListExpr args){
 
   int len = nl->ListLength(args);
-  if( (len != 3) &&  (len != 4) && (len != 5)){
-      return listutils::typeError("three, four, or five arguments expected");
+  if( (len != 3) &&  (len != 4) && (len != 5) && (len!=6)){
+      return listutils::typeError("three, four, fivei,"
+                                  " or six arguments expected");
   }
 
-
+  
+  // check needed arguments 
   int durindex = -1;
-  // check the last (optional) parameter
-  if(len==4){
-     ListExpr fourth = nl->Fourth(args);
-     if(!listutils::isSymbol(fourth,Duration::BasicType()) &&
-        !listutils::isSymbol(fourth,CcBool::BasicType())){
-        return listutils::typeError("4th parameter must be of type "
-                                     "'duration' or 'bool'");
-     }
-     if(listutils::isSymbol(fourth,Duration::BasicType())){
-         durindex = 4;
-     }
-  }
+  int boolIndex = -1;
+  int breakAttrIndex = -1;
 
-  if(len==5){
-    ListExpr fourth = nl->Fourth(args);
-    ListExpr fifth = nl->Fifth(args);
-    if(!listutils::isSymbol(fourth,CcBool::BasicType()) ||
-      !listutils::isSymbol(fifth,Duration::BasicType())){
-      return listutils::typeError("4th parameter must be of type 'bool' and"
-                                  " the 5th one must be of type 'duration'");
-    }
-    durindex = 5;
-  }
-
+  string err = "stream(tuple) x attr_1 x attr_2 [ x bool] "
+               "[ x duration] [ x attr_3] expected"; 
+  
   ListExpr stream = nl->First(args);
   ListExpr attrname_time = nl->Second(args);
   ListExpr attrname_value = nl->Third(args);
@@ -9821,11 +9806,11 @@ ListExpr TypeMapApproximate(ListExpr args){
     return  listutils::typeError("first parameter must be a tuple stream");
   }
 
-  if(nl->AtomType(attrname_time)!=SymbolType){
+  if(!listutils::isSymbol(attrname_time)){
     return  listutils::typeError("second parameter must be an attribute name");
   }
 
-  if(nl->AtomType(attrname_value)!=SymbolType){
+  if(!listutils::isSymbol(attrname_value)){
     return  listutils::typeError("third parameter must be an attribute name");
   }
 
@@ -9840,7 +9825,7 @@ ListExpr TypeMapApproximate(ListExpr args){
     return listutils::typeError("attribute name " + name +
                                 " unknown in tuple stream");
   }
-  if(!listutils::isSymbol(type,Instant::BasicType())){
+  if(!DateTime::checkType(type)){
     return listutils::typeError("attribute '" + name +
     "' must be of type 'instant'");
   }
@@ -9870,12 +9855,101 @@ ListExpr TypeMapApproximate(ListExpr args){
                                  "(point, real, int, bool, string)");
   }
 
-  ListExpr ind = nl->ThreeElemList(nl->IntAtom(index1-1),
-                                 nl->IntAtom(index2-1),
-                                 nl->IntAtom(durindex-1));
+  // check optional arguments
+  if(len>3){
+     ListExpr fourth = nl->Fourth(args);
+     if(CcBool::checkType(fourth)){
+        boolIndex = 2;
+     }else if(Duration::checkType(fourth)){
+        durindex = 2;
+     } else if(listutils::isSymbol(fourth)){
+       ListExpr at;
+       breakAttrIndex = listutils::findAttribute(attrList,
+                                          nl->SymbolValue(fourth),at);
+       if(breakAttrIndex==0){
+          return listutils::typeError(err);
+       }
+       if(!CcBool::checkType(at)){
+          return listutils::typeError(err);
+       }
+       breakAttrIndex--;
+     } else {
+       return listutils::typeError(err);
+     }
+   }
+
+  if(len>4){
+     ListExpr fifth = nl->Fifth(args);
+     if(CcBool::checkType(fifth)){
+        if(boolIndex > 0){
+          return listutils::typeError(err);
+        }
+        boolIndex = 3;
+     }else if(Duration::checkType(fifth)){
+        if(durindex>0){
+          return listutils::typeError(err);
+        }
+        durindex = 3;
+     } else if(listutils::isSymbol(fifth)){
+       if(breakAttrIndex>=0){
+         return listutils::typeError(err);
+       }
+       ListExpr at;
+       breakAttrIndex = listutils::findAttribute(attrList,
+                                         nl->SymbolValue(fifth),at);
+       if(breakAttrIndex==0){
+          return listutils::typeError(err);
+       }
+       if(!CcBool::checkType(at)){
+          return listutils::typeError(err);
+       }
+       breakAttrIndex--;
+     } else {
+       return listutils::typeError(err);
+     }
+   }
+
+
+  if(len>5){
+     ListExpr sixth = nl->Sixth(args);
+     if(CcBool::checkType(sixth)){
+        if(boolIndex > 0){
+          return listutils::typeError(err);
+        }
+        boolIndex = 4;
+     }else if(Duration::checkType(sixth)){
+        if(durindex>0){
+          return listutils::typeError(err);
+        }
+        durindex = 4;
+     } else if(listutils::isSymbol(sixth)){
+       if(breakAttrIndex>=0){
+         return listutils::typeError(err);
+       }
+       ListExpr at;
+       breakAttrIndex = listutils::findAttribute(attrList,
+                                          nl->SymbolValue(sixth),at);
+       if(breakAttrIndex==0){
+          return listutils::typeError(err);
+       }
+       if(!CcBool::checkType(at)){
+          return listutils::typeError(err);
+       }
+       breakAttrIndex--;
+     } else {
+       return listutils::typeError(err);
+     }
+   }
+
+  ListExpr indexes = nl->FiveElemList(
+                       nl->IntAtom(index1-1),
+                       nl->IntAtom(index2-1),
+                       nl->IntAtom(durindex),
+                       nl->IntAtom(boolIndex),
+                       nl->IntAtom(breakAttrIndex)); 
 
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                           ind,
+                           indexes,
                            nl->SymbolAtom(restype));
 }
 
@@ -12308,40 +12382,33 @@ int ApproximateMvalue(Word* args, Word& result,
   result = qp->ResultStorage(s);
   MType* res = static_cast<MType*>(result.addr);
   res->Clear();
-  int no_args = qp->GetNoSons(s);
+  int noargs = qp->GetNoSons(s);
   DateTime dur(durationtype);
-  bool split = false;
 
-  int durindex = ((CcInt*)args[no_args-1].addr)->GetIntval();
-  bool makeContinious = isContinious;
+  int breakAttrIndex = ((CcInt*)args[noargs-1].addr)->GetValue();
+  int boolIndex = ((CcInt*)args[noargs-2].addr)->GetValue();
+  int durindex  = ((CcInt*)args[noargs-3].addr)->GetValue();
+  int index2  = ((CcInt*)args[noargs-4].addr)->GetValue();
+  int index1  = ((CcInt*)args[noargs-5].addr)->GetValue();
+  
+   bool split1 = false;
+   bool split2 = breakAttrIndex>=0;
+   bool makeContinious = isContinious;
 
-  if(durindex<0){
-    if(no_args == 7){ // optional boolean parameter
-      CcBool* MC = static_cast<CcBool*>(args[6].addr);
-      if(!MC->IsDefined()){
-        res->SetDefined(false);
-        return 0;
-      }
-      makeContinious &= MC->GetValue();
-    }
-  } else {
-    dur.CopyFrom(static_cast<Attribute*>(args[durindex].addr));
-    split = true;
-    if(no_args==8){ // optional boolean parameter
-      CcBool* MC = static_cast<CcBool*>(args[6].addr);
-      if(!MC->IsDefined()){
-        res->SetDefined(false);
-        return 0;
-      }
-      makeContinious &= MC->GetValue();
-    }
-  }
-
-  int index1 = ((CcInt*)args[no_args-3].addr)->GetIntval();
-  int index2 = ((CcInt*)args[no_args-2].addr)->GetIntval();
-
-
-  if( !split || dur.IsDefined() ){
+   if(boolIndex>=0){
+       CcBool* MC = static_cast<CcBool*>(args[boolIndex].addr);
+       if(!MC->IsDefined()){
+         res->SetDefined(false);
+         return 0;
+       }
+       makeContinious += MC->GetValue();
+   }
+   if(durindex>=0){
+     dur.CopyFrom(static_cast<Attribute*>(args[durindex].addr));
+     split1 = true;
+   } 
+  
+  if( !split1 || dur.IsDefined() ){
     res->SetDefined(true);
   } else { // undefined splitting duration parameter --> return UNDEF mpoint
     res->SetDefined(false);
@@ -12349,22 +12416,29 @@ int ApproximateMvalue(Word* args, Word& result,
   }
   Word actual;
 
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, actual);
 
   VType lastValue,currentValue;
   Instant lastInstant(instanttype),currentInstant(instanttype);
   bool first = true;
-  while (qp->Received(args[0].addr)) {
-    Tuple* tuple = (Tuple*)actual.addr;
+
+  Stream<Tuple> stream(args[0]);
+  stream.open();
+  Tuple* tuple = stream.request();
+  while (tuple!=0) {
     currentValue =  *((VType*)(tuple->GetAttribute(index2)));
     currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
+    bool splitHere = false;
+    if(split2){
+      CcBool* splitHere1 = (CcBool*) tuple->GetAttribute(breakAttrIndex);
+      splitHere = splitHere1->IsDefined() && splitHere1->GetBoolval();
+    }
+
     if(currentInstant.IsDefined()){ // ignore undefined instants
       if(currentValue.IsDefined()){
-        if(!first){
+        if(!first && !splitHere){
           // check order of instants - ignore wrong ordered elements
           if(currentInstant>lastInstant){
-            if(!(split && (currentInstant - lastInstant) > dur )) {
+            if(!(split1 && (currentInstant - lastInstant) > dur )) {
               Interval<Instant> interval(lastInstant, currentInstant,
                                          true ,false);
               if(isContinious){
@@ -12379,17 +12453,19 @@ int ApproximateMvalue(Word* args, Word& result,
             lastInstant = currentInstant;
           }
         } else {
+          if(first || lastInstant < currentInstant){
+            lastValue = currentValue;
+            lastInstant = currentInstant;
+          }
           first = false;
-          lastValue = currentValue;
-          lastInstant = currentInstant;
         }
       }
     }
     tuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, actual);
+    tuple=stream.request();
   }
 
-  qp->Close(args[0].addr);
+  stream.close();
   return 0;
 }
 
