@@ -2201,6 +2201,7 @@ class shpimportInfo{
      } else {
        defined = true;
        string name = fname->GetValue();
+       this->filename = name;
        file.open(name.c_str(),ios::binary);
        if(!file.good()){
          defined = false;
@@ -2239,6 +2240,7 @@ class shpimportInfo{
 
    bool defined;
    ifstream file;
+   string filename;
    uint32_t type;
    streampos fileend;
 
@@ -2418,7 +2420,8 @@ class shpimportInfo{
      uint32_t type = readLittleInt32();
      if(type==0){
        if(len!=2){
-          cerr << "Error in file detected" << endl;
+          cerr << "SHPIMPORT:: Error in file detected" 
+               << filename << endl;
           file.close();
           defined = false;
           return 0;
@@ -2447,7 +2450,7 @@ class shpimportInfo{
         parts.push_back(part);
      }
      if(!file.good()){
-       cerr << "error in reading file" << endl;
+       cerr << "SHPIMPORT:: error in reading file" << filename <<  endl;
        file.close();
        defined = false;
        return 0;
@@ -2482,7 +2485,7 @@ class shpimportInfo{
      }
      line->EndBulkLoad();
      if(!file.good()){
-       cerr << "Error in reading file" << endl;
+       cerr << "SHPIMPORT: Error in reading file " << filename << endl;
        delete line;
        file.close();
        defined = false;
@@ -3194,7 +3197,8 @@ public:
      name = fname->GetValue();
      file.open((name).c_str(),ios::binary);
      if(!file.good()) {
-        cerr << "error in reading file" << endl;
+        cerr << "DBIMPORT: error in reading file (open failed)" 
+             << name << endl;
         defined = false;
         return;
      }
@@ -3230,7 +3234,7 @@ public:
       // read buffer
       file.read(reinterpret_cast<char*>(buffer),recordSize);
 
-      if(!file.good()){ // error in reading file
+      if(!file.good()){ // error in reading file, end of file reached
         defined = false;
         return 0;
       }
@@ -3360,6 +3364,7 @@ private:
       }
       if(type!=types[i]){
         cerr << "non-matching types " << type << " <-> " << types[i] << endl;
+        cerr << "file is " << name << endl;
         file.close();
         return false;
       } else {
