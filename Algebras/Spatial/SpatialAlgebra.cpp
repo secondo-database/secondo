@@ -19805,6 +19805,363 @@ Operator spatialgetendpoint (
     GenTC<Geoid> geoid_t;
 
 
+
+/*
+9.23 Operator bufferLine
+
+9.23.1 Type Mapping
+
+Signature is :
+
+   line x real -> region
+
+*/
+
+ListExpr bufferLineTM(ListExpr args){
+  string err = "line x real [x bool] expected";
+  int len = nl->ListLength(args);
+  if((len!=2) && (len!=3 )){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!Line::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcReal::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  if(len==2){  
+    return nl->ThreeElemList( nl->SymbolAtom( Symbol::APPEND()),
+                          nl->OneElemList(nl->BoolAtom(false)),
+                          nl->SymbolAtom(Region::BasicType()));
+                                              
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(Region::BasicType());
+}
+
+
+/*
+9.23.2 Value Mapping
+
+
+Auxiliary Function seg2reg
+
+This funtion converts a halfsegment into a region by adding a buffer 
+zone of a given size.
+
+*/
+
+Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
+
+  Point p1 = hs.GetLeftPoint();
+  Point p2 = hs.GetRightPoint();
+
+  double len = hs.Length();
+ 
+  double dx = p2.GetX() - p1.GetX();
+  double dy = p2.GetY() - p1.GetY();
+
+  dx = (dx*buffer)/len;
+  dy = (dy*buffer)/len;
+
+  if(!round){ // use rectangular extension 
+     p1.Translate(-dx/2, -dy/2);
+     p2.Translate(dx/2, dy/2);
+  }
+
+
+  
+  Point r1(true, p1.GetX() + dy/2, p1.GetY() - dx/2);
+  Point r2(true, p1.GetX() - dy/2, p1.GetY() + dx/2);
+  
+  Point r3(true, p2.GetX() + dy/2, p2.GetY() - dx/2);
+  Point r4(true, p2.GetX() - dy/2, p2.GetY() + dx/2);
+
+  AttrType attr(0);
+  int edgeno = 0;
+
+  Region* res = new Region(8);
+
+  res->StartBulkLoad();
+
+
+  HalfSegment hs1(true,r1,r2);
+  hs1.attr.edgeno=edgeno;
+  hs1.attr.insideAbove = dy>0;
+  (*res) += hs1;
+  hs1.SetLeftDomPoint(false);
+  (*res) += hs1;
+  edgeno++;
+
+   
+  HalfSegment hs2(true,r1,r3);
+  hs2.attr.edgeno=edgeno;
+  hs2.attr.insideAbove = true;
+  (*res) += hs2;
+  hs2.SetLeftDomPoint(false);
+  (*res) += hs2;
+  edgeno++;
+  
+
+  HalfSegment hs3(true,r3,r4);
+  hs3.attr.edgeno=edgeno;
+  hs3.attr.insideAbove = dy<=0;
+  (*res) += hs3;
+  hs3.SetLeftDomPoint(false);
+  (*res) += hs3;
+  edgeno++;
+
+  
+  HalfSegment hs4(true,r2,r4);
+  hs4.attr.edgeno=edgeno;
+  hs4.attr.insideAbove = false;
+  (*res) += hs4;
+  hs4.SetLeftDomPoint(false);
+  (*res) += hs4;
+  edgeno++;
+  res->EndBulkLoad();
+
+  if(round){
+     Region* c1 = new Region(100);
+     Region* c2 = new Region(100);
+     double r = buffer/2;
+     int n = buffer/2;
+     if(n<8){
+       n=8;
+     }
+     if(n>100){
+       n = 100;
+     }
+     generateCircle(&p1,r,n,c1);
+     generateCircle(&p2,r,n,c2);
+     Region* tmp1 = new Region(200);
+     c1->Union(*c2,*tmp1);
+     delete c1;
+     c2->Clear();
+     res->Union(*tmp1,*c2);
+     delete res;
+     res = c2;
+  }
+  return res;
+} 
+
+
+
+
+int bufferLineVM(Word* args, Word& result, int message,
+                               Word& local, Supplier s){
+
+  Line* line = (Line*) args[0].addr;
+  CcReal* buffer = (CcReal*) args[1].addr;
+  CcBool* round1 = (CcBool*) args[2].addr;
+
+  bool round = round1->IsDefined() && round1->GetValue();
+
+  result = qp->ResultStorage(s);
+  Region* res = (Region*) result.addr; 
+
+  if(!line->IsDefined() || !buffer->IsDefined() || buffer->GetValue() <= 0){
+     res->SetDefined(false);
+     return 0;
+  }
+
+  double b = buffer->GetValue();
+
+  res->Clear();
+  Region* currentReg = 0;
+  Region* wholeReg = 0;
+  
+  // cout << "Process " << line->Size() << "HalfSegments " << endl;
+
+  for(int i=0;i<line->Size();i++){
+     HalfSegment hs;
+     line->Get(i,hs);
+     if(hs.IsLeftDomPoint()){
+        
+         // cout << "Process HalfSegment no " << i << endl;
+
+         currentReg = seg2reg(hs,b, round);
+
+
+         if(wholeReg==0){
+         //   cout << "This was the fisrt region" << endl;
+            wholeReg = currentReg;
+            currentReg = 0;
+         } else {
+          //  cout << "Not the first region, try to union" << endl;
+            Region* tmp = new Region(0);
+            wholeReg->Union(*currentReg,*tmp);
+            wholeReg->DeleteIfAllowed();
+            currentReg->DeleteIfAllowed();
+            wholeReg = tmp;
+            tmp=0;
+          //  cout << "union finished" << endl;
+         }
+      }
+  }
+  res->CopyFrom(wholeReg);
+  wholeReg->DeleteIfAllowed();
+  return 0;
+}
+
+
+const string bufferLineSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> line x real [ x round] -> region</text--->"
+"<text> bufferline(_,_ [, _]) </text--->"
+"<text>Converts a line into a region by adding a buffer.</text--->"
+"<text>query bufferLine(BGrenzenLinie,200)</text---> ) )";
+
+
+Operator bufferLine (
+  "bufferLine",
+  bufferLineSpec,
+  bufferLineVM,
+  Operator::SimpleSelect,
+  bufferLineTM
+);
+
+
+
+/*
+5.14 Operator ~circle~
+
+5.14.1 Type Mapping for ~circle~
+
+*/
+ListExpr
+circleTM( ListExpr args )
+{
+ string err = "point x real x int expected";
+ if(!nl->HasLength(args,3)){
+   return listutils::typeError(err);
+ }
+ if(!Point::checkType(nl->First(args)) ||
+    !CcReal::checkType(nl->Second(args)) ||
+    !CcInt::checkType(nl->Third(args))){
+   return listutils::typeError(err);
+ }
+ return nl->SymbolAtom(Region::BasicType());
+}
+
+void generateCircle(Point* p, double radius, int n , Region* res){
+  res->Clear();                // clear the result region
+  if (!p->IsDefined() ) { // Nothing to do
+      res->SetDefined( false );
+      return;
+  }
+  double x, y;
+  x = p->GetX();
+  y = p->GetY();
+  if(n<3 ||  n>100 || radius <=0){
+    res->SetDefined(false);
+    return;
+  }
+  
+  double valueX, valueY;
+  double angle;
+  int partnerno = 0;
+  HalfSegment hs;
+
+  res->SetDefined( true );
+  res->StartBulkLoad();
+
+  //  Calculate a polygon with (n) vertices and (n) edges.
+  //  To get the vertices, divide 360 degree in n parts using
+  //  a standardised circle around p with circumference U = 2 * PI * r.
+
+  for( int i = 0; i < n; i++ ) {
+      // The first point/vertex of the segment
+      angle = i * 2 * M_PI/n; // angle to starting vertex
+      valueX = x + radius * cos(angle);
+      valueY = y + radius * sin(angle);
+      Point v1(true, valueX ,valueY);
+
+      // The second point/vertex of the segment
+      if ((i+1) >= n){            // angle to end vertex
+        angle = 0 * 2 * M_PI/n;    // for inner vertex
+      } else {
+        angle = (i+1) * 2 * M_PI/n;// for ending = starting vertex
+      }
+      valueX = x + radius * cos(angle);
+      valueY = y + radius * sin(angle);
+      Point v2(true, valueX ,valueY);
+
+      // Create a halfsegment for this segment
+      hs.Set(true, v1, v2);
+      hs.attr.faceno = 0;         // only one face
+      hs.attr.cycleno = 0;        // only one cycle
+      hs.attr.edgeno = partnerno;
+      hs.attr.partnerno = partnerno++;
+      hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+
+      // Add halfsegments 2 times with opposite LeftDomPoints
+      *res += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      *res += hs;
+  }
+  res->EndBulkLoad();
+}
+
+
+/*
+5.14.2 Value Mapping for ~circle~
+
+*/
+int circleVM( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Point* p = (Point*)args[0].addr; // Centre of the circle
+  CcReal* r = (CcReal*)args[1].addr; // Radius of the circle.
+  CcInt* narg = (CcInt*)args[2].addr; // number of edges
+  Region *res = (Region*)result.addr;
+ 
+  if(!p->IsDefined() || !r->IsDefined() || !narg->IsDefined()){
+    res->SetDefined(false);
+  }  else {
+    generateCircle(p, r->GetValue(), narg->GetValue(), res);
+  }
+
+  return 0;
+}
+
+/*
+5.14.3 Specification for operator ~circle~
+
+*/
+const string
+circleSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>(point real int) -> region</text--->"
+"<text>circle ( p, r, n ) </text--->"
+"<text>Creates a region with a shape approximating a circle "
+"with a given a given center point p and radius r>0.0 by a "
+"regular polygon with 2<n<101 edges.\n"
+"Parameters out of the given perimeters result in an "
+"empty region, undef values in an undef one .</text--->"
+"<text>circle (p,10.0,10)</text---> ) )";
+
+/*
+5.14.4 Selection Function of operator ~circle~
+
+Not necessary.
+
+*/
+
+/*
+5.14.5  Definition of operator ~circle~
+
+*/
+Operator spatialcircle( "circle",
+                  circleSpec,
+                  circleVM,
+                  Operator::SimpleSelect,
+                  circleTM);
+
+
+
 /*
 11 Creating the Algebra
 
@@ -19920,6 +20277,9 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialDirectionToHeading );
     AddOperator( &spatialHeadingToDirection );
     AddOperator( &spatialCreateTriangle );
+    
+    AddOperator(&bufferLine);
+    AddOperator(&spatialcircle);
   }
   ~SpatialAlgebra() {};
 };

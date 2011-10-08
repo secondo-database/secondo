@@ -4481,5 +4481,18 @@ private:
   double rho;
 };
 
+/*
+Auxiliary Function
+
+This function creates a regular n-corder around p with radius radius.
+
+The point must be defined, the radius must be greater than zero. n must be
+between 3 and 100. Otherwise, the result will be undefined.
+
+
+*/
+void generateCircle(Point* p, double radius, int n , Region* res);
+
+
 
 #endif // __SPATIAL_ALGEBRA_H__
