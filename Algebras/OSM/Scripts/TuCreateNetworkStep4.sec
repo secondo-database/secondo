@@ -95,6 +95,7 @@ let cityJunctions =
 # Creating the network
 let cityNetwork = thenetwork(
    1,
+   1.0,
    (cityRoads feed
    project [Road, Length, Geometry, Dual, StartsSmaller]
    consume),
