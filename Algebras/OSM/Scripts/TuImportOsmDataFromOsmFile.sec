@@ -19,6 +19,9 @@
 ### - pointsTmp-relation
 ### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
 ###                type: string}
+### - restrictionsTmp-relation
+### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
+###                      restriction: string, type: string}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
