@@ -261,32 +261,65 @@ let three =
        and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
    project [Road1,Road2,Node]
    consume;
+#let four =
+#   (((nodesRel feed
+#      fullSectionsView feed
+#      sortby [sectionId]
+#      project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {a}
+#      symmjoin [((.NodeId = ..startNodeId_a)) or ((.NodeId = ..endNodeId_a))])
+#     fullSectionsView feed
+#     sortby [sectionId]
+#     project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {b}
+#     symmjoin [((.NodeId = ..startNodeId_b)) or ((.NodeId = ..endNodeId_b))]
+#     filter [.sectionId_a < .sectionId_b])
+#    fullSectionsView feed
+#    sortby [sectionId]
+#    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {c}
+#    symmjoin [((.NodeId = ..startNodeId_c)) or ((.NodeId = ..endNodeId_c))]
+#    filter [.sectionId_a < .sectionId_c])
+#   fullSectionsView feed
+#   sortby [sectionId]
+#   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {d}
+#   symmjoin [((.NodeId = ..startNodeId_d)) or ((.NodeId = ..endNodeId_d))]
+#   filter [.sectionId_b < .sectionId_d]
+#   extend [
+#      Road1: .streetId_a,
+#      Road2: .streetId_b,
+#      Road3: .streetId_c,
+#      Road4: .streetId_d]
+#   filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
+#   project [Road1,Road2,Node]
+#   consume;
 let four =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {a}
-      symmjoin [((.NodeId = ..startNodeId_a)) or ((.NodeId = ..endNodeId_a))])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {b}
-     symmjoin [((.NodeId = ..startNodeId_b)) or ((.NodeId = ..endNodeId_b))]
+   (((startSections feed
+     endSections feed
+     concat
+     sortby [sectionId]) {a}   
+    (startSections feed
+     endSections feed
+     concat
+     sortby [sectionId]) {b}
+     hashjoin [NodeId_a,NodeId_b]
      filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {c}
-    symmjoin [((.NodeId = ..startNodeId_c)) or ((.NodeId = ..endNodeId_c))]
-    filter [.sectionId_a < .sectionId_c])
-   fullSectionsView feed
-   sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {d}
-   symmjoin [((.NodeId = ..startNodeId_d)) or ((.NodeId = ..endNodeId_d))]
+    (startSections feed
+     endSections feed
+     concat
+     sortby [sectionId]) {c}
+     hashjoin [NodeId_a,NodeId_c]
+     filter [.sectionId_a < .sectionId_c])
+   (startSections feed
+   endSections feed
+   concat
+   sortby [sectionId]) {d}
+   hashjoin [NodeId_a,NodeId_d]
    filter [.sectionId_b < .sectionId_d]
    extend [
       Road1: .streetId_a,
       Road2: .streetId_b,
       Road3: .streetId_c,
-      Road4: .streetId_d]
+      Road4: .streetId_d,
+      NodeId: .NodeId_a,
+      Node: .Node_a]
    filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
    project [Road1,Road2,Node]
    consume;
