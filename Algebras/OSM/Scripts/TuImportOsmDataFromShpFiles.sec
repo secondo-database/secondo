@@ -1,5 +1,5 @@
 ################################################################################
-### Importing OSM data from shape files (2 / 7)
+### Importing OSM data from shape files (2 / 11)
 ################################################################################
 ### Description:
 ### - Reads data on streets and points of interest from shape files.
@@ -7,7 +7,7 @@
 ### on tunnels and layers are missing. Self-made shape-files, however, provide
 ### this data. To retrieve this data these files have to be treated specially
 ### which is done in a follow-up Secondo-script.
-### Please, see tu_shp_import.sh for further details.
+### Please, see tu_osm_import.sh for further details.
 ###
 ### Preconditions:
 ### - existing open database
@@ -23,6 +23,9 @@
 ### - pointsTmp-relation
 ### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
 ###                type: string}
+### - restrictionsTmp-relation
+### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
+###                      restriction: string, type: string}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
@@ -56,4 +59,10 @@ let pointsTmp =
    filter[isdefined(.geoData)]
    filter[bbox(.geoData) intersects partRect]
    consume;
+
+# Creating a dummy-relation for restrictions (data on restrictions is
+# unavailable in shape-files)
+let restrictionsTmp =  [const rel(tuple ([osm_id: int, from: int, via: int,
+   to: int, restriction: string, type: string]))
+   value ()];
 
