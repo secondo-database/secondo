@@ -145,23 +145,56 @@ derive fullSectionsView_endNode_rtree =
 #let targetRel =
 #   oneSecInOneSecOut12JuncTmp;
 # Determining all possible pairs of crossing streets
-let two =
-   (nodesRel feed
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {a}
-    symmjoin [((.NodeId = ..startNodeId_a) and (..streetStartNodeId_a = ..startNodeId_a)) or
-       ((.NodeId = ..endNodeId_a) and (..streetEndNodeId_a = ..endNodeId_a))])
+#let two =
+#   (nodesRel feed
+#    fullSectionsView feed
+#    sortby [sectionId]
+#    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {a}
+#    symmjoin [((.NodeId = ..startNodeId_a) and (..streetStartNodeId_a = ..startNodeId_a)) or
+#       ((.NodeId = ..endNodeId_a) and (..streetEndNodeId_a = ..endNodeId_a))])
+#   fullSectionsView feed
+#   sortby [sectionId]
+#   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {b}
+#   symmjoin [((.NodeId = ..startNodeId_b) and (..streetStartNodeId_b = ..startNodeId_b)) or
+#      ((.NodeId = ..endNodeId_b) and (..streetEndNodeId_b = ..endNodeId_b))]
+#   filter [.sectionId_a < .sectionId_b]
+#   projectextend [; 
+#      Road1: .streetId_a,
+#      Road2: .streetId_b,
+#      Node: .Node]
+#   filter [not(.Road1 = .Road2)]
+#   consume;
+let startSections =
+   nodesRel feed
    fullSectionsView feed
    sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {b}
-   symmjoin [((.NodeId = ..startNodeId_b) and (..streetStartNodeId_b = ..startNodeId_b)) or
-      ((.NodeId = ..endNodeId_b) and (..streetEndNodeId_b = ..endNodeId_b))]
+   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId]
+   filter [.streetStartNodeId = .startNodeId]
+   hashjoin [NodeId,startNodeId,99997]
+   consume;
+let endSections =
+   nodesRel feed
+   fullSectionsView feed
+   sortby [sectionId]
+   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId]
+   filter [.streetEndNodeId = .endNodeId]
+   hashjoin [NodeId,endNodeId,99997]
+   consume;
+let two =
+   (startSections feed
+    endSections feed
+    concat
+    sortby [sectionId]) {a}
+   (startSections feed
+    endSections feed
+    concat
+    sortby [sectionId]) {b}
+   hashjoin [NodeId_a,NodeId_b]
    filter [.sectionId_a < .sectionId_b]
    projectextend [; 
       Road1: .streetId_a,
       Road2: .streetId_b,
-      Node: .Node]
+      Node: .Node_a]
    filter [not(.Road1 = .Road2)]
    consume;
 let three =
