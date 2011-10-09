@@ -169,7 +169,6 @@ let startSections =
    fullSectionsView feed
    sortby [sectionId]
    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId]
-   filter [.streetStartNodeId = .startNodeId]
    hashjoin [NodeId,startNodeId,99997]
    consume;
 let endSections =
@@ -177,16 +176,23 @@ let endSections =
    fullSectionsView feed
    sortby [sectionId]
    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId]
-   filter [.streetEndNodeId = .endNodeId]
    hashjoin [NodeId,endNodeId,99997]
    consume;
+let startFromScratchSections =
+   startSections feed
+   filter [.streetStartNodeId = .startNodeId]
+   consume;
+let endFromScratchSections =
+   endSections feed
+   filter [.streetEndNodeId = .endNodeId]
+   consume;
 let two =
-   (startSections feed
-    endSections feed
+   (startFromScratchSections feed
+    endFromScratchSections feed
     concat
     sortby [sectionId]) {a}
-   (startSections feed
-    endSections feed
+   (startFromScratchSections feed
+    endFromScratchSections feed
     concat
     sortby [sectionId]) {b}
    hashjoin [NodeId_a,NodeId_b]
@@ -197,30 +203,62 @@ let two =
       Node: .Node_a]
    filter [not(.Road1 = .Road2)]
    consume;
+#let three =
+#   ((nodesRel feed
+#     fullSectionsView feed
+#     sortby [sectionId]
+#     project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {a}
+#     symmjoin [((.NodeId = ..startNodeId_a)) or
+#        ((.NodeId = ..endNodeId_a))])
+#    fullSectionsView feed
+#    sortby [sectionId]
+#    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {b}
+#    symmjoin [((.NodeId = ..startNodeId_b)) or
+#       ((.NodeId = ..endNodeId_b))]
+#    filter [.sectionId_a < .sectionId_b])
+#   fullSectionsView feed
+#   sortby [sectionId]
+#   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {c}
+#   symmjoin [((.NodeId = ..startNodeId_c)) or
+#      ((.NodeId = ..endNodeId_c))]
+#   extend [
+#      Road1: .streetId_a,
+#      Road2: .streetId_b,
+#      Road3: .streetId_c]
+#   filter [((((.NodeId = .startNodeId_b) and (.streetStartNodeId_b = .startNodeId_b)) or ((.NodeId = .endNodeId_b) and (.streetEndNodeId_b = .endNodeId_b))) and (.sectionId_a < .sectionId_c) and (.Road1 = .Road3) and not(.Road1 = .Road2)) or
+#      ((((.NodeId = .startNodeId_a) and (.streetStartNodeId_a = .startNodeId_a)) or ((.NodeId = .endNodeId_a) and (.streetEndNodeId_a = .endNodeId_a))) and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
+#   project [Road1,Road2,Node]
+#   consume;
 let three =
-   ((nodesRel feed
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {a}
-     symmjoin [((.NodeId = ..startNodeId_a)) or
-        ((.NodeId = ..endNodeId_a))])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {b}
-    symmjoin [((.NodeId = ..startNodeId_b)) or
-       ((.NodeId = ..endNodeId_b))]
+   ((startSections feed
+    endSections feed
+    concat
+    sortby [sectionId]) {a}   
+   (startSections feed
+    endSections feed
+    concat
+    sortby [sectionId]) {b}
+    hashjoin [NodeId_a,NodeId_b]
     filter [.sectionId_a < .sectionId_b])
-   fullSectionsView feed
-   sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {c}
-   symmjoin [((.NodeId = ..startNodeId_c)) or
-      ((.NodeId = ..endNodeId_c))]
+   (startSections feed
+    endSections feed
+    concat
+    sortby [sectionId]) {c}
+    hashjoin [NodeId_a,NodeId_c]
    extend [
       Road1: .streetId_a,
       Road2: .streetId_b,
-      Road3: .streetId_c]
-   filter [((((.NodeId = .startNodeId_b) and (.streetStartNodeId_b = .startNodeId_b)) or ((.NodeId = .endNodeId_b) and (.streetEndNodeId_b = .endNodeId_b))) and (.sectionId_a < .sectionId_c) and (.Road1 = .Road3) and not(.Road1 = .Road2)) or
-      ((((.NodeId = .startNodeId_a) and (.streetStartNodeId_a = .startNodeId_a)) or ((.NodeId = .endNodeId_a) and (.streetEndNodeId_a = .endNodeId_a))) and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
+      Road3: .streetId_c,
+      NodeId: .NodeId_a,
+      Node: .Node_a]
+   filter [
+      ((((.NodeId = .startNodeId_b) and (.streetStartNodeId_b = .startNodeId_b))
+        or ((.NodeId = .endNodeId_b) and (.streetEndNodeId_b = .endNodeId_b)))
+       and (.sectionId_a < .sectionId_c) and (.Road1 = .Road3) and not(.Road1 = .Road2))
+      or
+      ((((.NodeId = .startNodeId_a) and (.streetStartNodeId_a = .startNodeId_a))
+        or ((.NodeId = .endNodeId_a) and (.streetEndNodeId_a = .endNodeId_a)))
+       and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
    project [Road1,Road2,Node]
    consume;
 let four =
