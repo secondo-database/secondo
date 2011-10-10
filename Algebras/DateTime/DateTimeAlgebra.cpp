@@ -923,6 +923,9 @@ bool DateTime::readFrom(const string& value, const string& format){
     } 
   }
 
+  //cout << "Vector is " << endl;
+  //for(unsigned int i=0;i<f.size();i++) cout << f[i] << endl;
+
   // check vector
   
   bool year = false;
@@ -970,7 +973,7 @@ bool DateTime::readFrom(const string& value, const string& format){
      }
   }
 
-  if(!year || !month || !second){
+  if(!year || !month || !day){
      return false;
   }
 
@@ -1019,6 +1022,10 @@ bool DateTime::readFrom(const string& value, const string& format){
           default : return false;
       } 
    }
+
+   //cout << "res = " << Year << "-" << Month << "-" << Day <<"-"
+   //     << Hour << ":" << Minute << ":" << Second << "."
+   //     << Milli << endl;
 
 
    Set(Year, Month, Day, Hour, Minute, Second, Milli);
