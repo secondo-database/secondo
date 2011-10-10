@@ -32,51 +32,43 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
+# Creating a relation that maps road classes to numbers
+let roadClassesRel =
+   [const rel(tuple([RoadClassId: int, RoadClass: string, 
+      Description: string])) value (
+   (0 "other" "alle sonstigen Straßenarten (insb. Fußwege)")
+   (1 "motorway" "Autobahn")
+   (2 "motorway_link" "Autobahnauf-/abfahrt")
+   (3 "trunk" "autobahnähnliche Straße")
+   (4 "trunk_link" "Auf-/Abfahrt einer autobahnähnlichen Straße")
+   (5 "primary" "Bundesstraße")
+   (6 "primary_link" "Bundesstraßenauf-/abfahrt")
+   (7 "secondary" "Landstraße")
+   (8 "secondary_link" "Landstraßenauf-/abfahrt")
+   (9 "tertiary" "Kreisstraße")
+   (10 "tertiary_link" "Kreisstraßenabfahrt")
+   (11 "residential" "Wohngebietsstraße")
+   (12 "unclassified" "verbindende Gemeindestraße")
+   (13 "road" "unzugeordnete Straße")
+   (14 "living_street" "Straße in verkehrsberuhigtem Bereich")
+   (15 "service" "Erschließungsweg")
+   (16 "track" "Feld-/Waldweg")
+   )];
+
 # Making a relation with road data to enable network creation
 # see also PaperMon-paper page 11
 let cityRoads =
    extStreetsRel feed
+   extend [roadClassStr: tostring(.roadClass)]
+   roadClassesRel feed
+   smouterjoin [roadClassStr,RoadClass]
+   filter [isdefined(.streetId)]
    projectextend [; Name : .name, Road: .streetId,
      Length: size(.geoData),
-#     Length: size(.geoData,create_geoid("WGS1984")),
      Geometry: .geoData, Dual: .oneWay=0,
      StartsSmaller: get_startsmaller(.geoData),
-     RoadLevel : ifthenelse (.roadClass
-       contains "motorway",0,ifthenelse(.roadClass
-       contains "primary",1,ifthenelse(.roadClass
-       contains "secondary",2,ifthenelse(.roadClass
-       contains "tertiary",3,ifthenelse(.roadClass
-       contains "residential",4,ifthenelse(.roadClass
-       contains "unclassified",5,ifthenelse(.roadClass
-       contains "road",6,ifthenelse(.roadClass
-       contains "footway",7,-1))))))))]
+     RoadLevel : ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
    consume;
-
-# sligthly more elegant way of creating the cityRoads-relation
-#let roadClassesRel =
-#   [const rel(tuple([RoadClassId: int, RoadClass: string])) value (
-#   (0 "motorway")
-#   (1 "primary")
-#   (2 "secondary")
-#   (3 "tertiary")
-#   (4 "residential")
-#   (5 "unclassified")
-#   (6 "road")
-#   (7 "footway")
-#   )];
-#
-#let cityRoads =
-#   extStreetsRel feed {a}
-#   roadClassesRel feed {b}
-#   symmouterjoin [.roadClass_a contains ..RoadClass_b]
-#   projectextend [; 
-#   Name : .name_a,
-#   Road: .streetId_a,
-#   Length: size(.geoData_a,create_geoid("WGS1984")),
-#   Geometry: .geoData_a, Dual: .oneWay_a=0,
-#   StartsSmaller: get_startsmaller(.geoData_a),
-#   RoadLevel : ifthenelse(not(isdefined(.RoadClassId_b)),-1,.RoadClassId_b)]
-#   consume;
 
 let fullSectionsView =
    ((((extStreetsRel feed {a} 
