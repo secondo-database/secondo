@@ -79,6 +79,7 @@ by the ~StandardAlgebra~:
 #include "Symbols.h"
 #include "Serialize.h"
 #include "ListUtils.h"
+#include "StringUtils.h"
 
 
 /*
@@ -920,6 +921,16 @@ class CcString : public Attribute
     return listutils::isSymbol(list, BasicType());
   }
 
+  void trim(){
+    if(!IsDefined()){
+      return;
+    }
+    string s = GetValue();
+    stringutils::trim(s);
+    Set(true,s);
+  }
+
+
 #ifdef USE_SERIALIZATION
   inline virtual size_t SerializedSize() const
   {
@@ -1151,6 +1162,16 @@ class CcString : public Attribute
   }
   static const bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
+  }
+  
+
+  void trim(){
+    if(!IsDefined()){
+      return;
+    }
+    string s = GetValue();
+    stringutils::trim(s);
+    Set(true,s);
   }
 
 #ifdef USE_SERIALIZATION
