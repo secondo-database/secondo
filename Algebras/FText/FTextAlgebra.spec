@@ -83,4 +83,6 @@ operator svg2text alias SVG2TEXT pattern op( _ )
 operator text2svg alias TEXT2SVG pattern op( _ )
 operator tokenize alias TOKENIZE pattern op( _, _ )
 operator attr2text alias ATTR22TEXT pattern op(_)
+operator trimAll alias trimAll pattern _ op
+
 

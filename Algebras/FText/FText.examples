@@ -877,3 +877,25 @@ Signature : string x bool -> bool
 Example   : query isValidID("mehringdamm", TRUE)
 Result    : FALSE
 
+Operator  : trimAll
+Number    : 1
+Signature : stream(string) -> stream(string)
+Example   : query strassen feed projecttransformstream[Name] trimAll  count = strassen count
+Result    : TRUE
+
+
+Operator  : trimAll
+Number    : 2
+Signature : stream(text) -> stream(text)
+Example   : query strassen feed extend [TName :  '   ' + .Name] projecttransformstream[TName] trimAll count  = strassen count
+Result    : TRUE
+
+
+Operator  : trimAll
+Number    : 3
+Signature : stream(tuple(X)) -> stream(tuple(X))
+Example   : query strassen feed count  = strassen count
+Result    : TRUE
+
+
+

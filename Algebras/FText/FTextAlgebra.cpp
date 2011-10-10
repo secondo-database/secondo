@@ -91,6 +91,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <time.h>
 #include <sys/timeb.h>
 #include <limits>
+#include "Stream.h"
 
 // includes for debugging
 #define LOGMSG_OFF
@@ -1971,6 +1972,81 @@ ListExpr isValidIDTM(ListExpr args){
                            nl->SymbolAtom(CcBool::BasicType())); 
 
 }
+
+
+/*
+2.63 Operator trimAll
+
+This operator trims all occurences of text / string within a stream
+
+Type Mappings are:
+
+   stream(text) -> stream(text)
+   stream(string) -> stream(string)
+   stream(tuple(X)) -> stream(tuple(X))
+
+
+*/
+ListExpr trimAllTM(ListExpr args){
+  string err = "stream(string), stream(text), or stream(tuple(X)) expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + " (wrong number of arguments");
+  }
+  ListExpr arg = nl->First(args);
+
+  if(Stream<CcString>::checkType(arg)){
+    return arg;
+  }
+  if(Stream<FText>::checkType(arg)){
+    return arg;
+  }
+  if(!Stream<Tuple>::checkType(arg)){
+    return listutils::typeError(err);
+  }
+  // append the indexes of string/text elements
+  ListExpr attrList = nl->Second(nl->Second(arg));
+  ListExpr appendList=nl->TheEmptyList();
+  ListExpr last = appendList;
+  bool first = true;
+  int pos = -1;
+  while(!nl->IsEmpty(attrList)){
+    pos++;
+    ListExpr attr = nl->First(attrList);
+    attrList = nl->Rest(attrList);
+    ListExpr type = nl->Second(attr);
+    if(CcString::checkType(type)){
+      if(first){
+        appendList = nl->OneElemList(nl->IntAtom(pos));
+        last = appendList;
+        first = false;
+      } else {
+        last = nl->Append(last, nl->IntAtom(pos));
+      }
+      last = nl->Append(last, nl->BoolAtom(false));
+    }
+    if(FText::checkType(type)){
+      if(first){
+        appendList = nl->OneElemList(nl->IntAtom(pos));
+        last = appendList;
+        first = false;
+      } else {
+        last = nl->Append(last, nl->IntAtom(pos));
+      }
+      last = nl->Append(last, nl->BoolAtom(true));
+    }
+  }
+
+  if(nl->IsEmpty(appendList)){
+    return arg;
+  } 
+  return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+                            appendList,
+                            arg);
+}
+
+
+
+
 
 
 
@@ -5985,6 +6061,165 @@ int isValidIDVM( Word* args, Word& result, int message,
 }
 
 
+/*
+4.27 Value Mappings for trimAll
+
+4.27.1 Simple cases stream<text> and stream<string>
+
+*/
+template<class T>
+int trimAllVM1(Word* args, Word& result, int message,
+              Word& local,Supplier s){
+
+  switch(message){
+    case OPEN: {
+                qp->Open(args[0].addr);
+                return 0;
+               }
+    case REQUEST: {
+                 Word res;
+                 qp->Request(args[0].addr,res);
+                 if(qp->Received(args[0].addr)){
+                   result.addr = ((T*)res.addr)->Clone();
+                   ((T*)result.addr)->trim();
+                   ((T*)res.addr)->DeleteIfAllowed();
+                   return YIELD;
+                 } else {
+                   return CANCEL;
+                 }
+               }
+     case CLOSE : {
+                 qp->Close(args[0].addr);
+                 return 0;
+               }
+
+  }
+  return -1;
+} 
+
+/*
+
+4.27.2 trimAll for a tupleStream
+
+*/
+
+class TrimAllInfo{
+  public:
+
+  TrimAllInfo(Word& _stream, Supplier s, Word* args): 
+              stream(_stream), strings(){
+    
+     int count = qp->GetNoSons(s);
+
+     for(int i=1; i< count; i += 2){
+        pair<int, bool> p ( ((CcInt*)args[i].addr)->GetIntval(), 
+                           ((CcBool*)args[i+1].addr)->GetBoolval());
+     }
+     stream.open();
+  }
+
+  ~TrimAllInfo(){
+      stream.close();
+  }
+
+  Tuple* nextTuple(){
+    Tuple* src = stream.request();
+    if(!src){
+       return 0;
+    }
+    if(strings.size()==0u){ // nothing to do
+      return src;
+    }
+    Tuple* res = new Tuple(src->GetTupleType());
+
+    unsigned int vpos = 0;
+    int npos = strings[vpos].first;
+
+		for(int pos=0;pos<src->GetNoAttributes();pos++){
+      if(pos==npos){
+         bool isText = strings[vpos].second;
+         if(isText){
+            FText* t = ((FText*)src->GetAttribute(pos))->Clone();
+            t->trim();
+            res->PutAttribute(pos,t);
+         } else {
+            CcString* s = ((CcString*)src->GetAttribute(pos))->Clone();
+            s->trim();
+            res->PutAttribute(pos,s);
+         }
+         vpos++;
+         if(vpos<strings.size()){
+            npos = strings[vpos].first;
+         }  else {
+           npos = -1;
+         }
+      } else {
+        res->CopyAttribute(pos, src, pos);
+      }
+    }
+    src->DeleteIfAllowed();
+    return res;
+  }
+
+
+  private:
+    Stream<Tuple> stream;
+    vector< pair <int , bool> > strings;
+};
+
+
+int trimAllVM2(Word* args, Word& result, int message,
+              Word& local,Supplier s){
+
+
+  TrimAllInfo* li = (TrimAllInfo*) local.addr;
+  switch(message){
+    case OPEN: {
+                 if(li){
+                   delete li;
+                 }
+                 local.addr = new TrimAllInfo(args[0], s, args);
+                 return 0;
+               }
+    case REQUEST: {
+                 if(!li){
+                    return CANCEL;
+                 }
+                 result.addr = li->nextTuple();
+                 return result.addr?YIELD:CANCEL;
+               }
+     case CLOSE : {
+                  if(li){
+                    delete li;
+                    local.addr=0;
+                  }
+               }
+  }
+  return -1;
+} 
+
+
+/*
+Vampue MApping array and Selection function.
+
+*/
+
+ValueMapping trimAllVM[] = { trimAllVM1<CcString>, 
+                             trimAllVM1<FText>,
+                             trimAllVM2 };
+
+int trimAllSelect(ListExpr args){
+  ListExpr arg = nl->First(args);
+  if(Stream<CcString>::checkType(arg)){
+      return 0;
+  }
+  if(Stream<FText>::checkType(arg)){
+     return 1;
+  }
+  return 2;
+}
+
+
 
 /*
 3.4 Definition of Operators
@@ -6704,6 +6939,16 @@ const string isValidIDSpec =
     ") )";
 
 
+const string trimAllSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> stream(string> -> stream(string) , "
+    "stream(text) -> stream(text), stream(tuple(X)) -> stream(tuple(X))"
+    " </text--->"
+    "<text>  _ trimAll </text--->"
+    "<text>Trims all occurences of text and string within the stream,"
+    " </text--->"
+    "<text>query trains trimAll count </text--->"
+    ") )";
 /*
 Operator Definitions
 
@@ -7298,6 +7543,16 @@ Operator isValidID(
 
 
 
+Operator trimAll
+(
+ "trimAll",
+ trimAllSpec,
+ 3,
+ trimAllVM,
+ trimAllSelect,
+ trimAllTM
+);
+
 
 /*
 5 Creating the algebra
@@ -7380,6 +7635,7 @@ public:
     AddOperator( &charToText);
     AddOperator( &attr2text);
     AddOperator( &isValidID);
+    AddOperator( &trimAll);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

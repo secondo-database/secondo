@@ -45,6 +45,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include "IndexableAttribute.h"
 #include "../../Tools/Flob/Flob.h"
 #include "ListUtils.h"
+#include "StringUtils.h"
 
 // switch off log messages
 #undef LOGMSG
@@ -115,6 +116,15 @@ public:
 
   static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
+  }
+
+  void trim() {
+    if(!IsDefined()){
+      return;
+    }
+    string  s = GetValue();
+    stringutils::trim(s);
+    Set(true,s);
   }
 
 
