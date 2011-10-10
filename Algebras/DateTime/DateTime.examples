@@ -317,3 +317,8 @@ Example   : query str2instant("wrong")
 Result    : (instant undefined)
 
 
+Operator  : str2instant
+Number    : 3
+Signature : string -> instant
+Example   : query str2instant("1.1.2009 13:56", "D.M.Y h:m")
+Result    : (instant "2009-01-01-13:56")
