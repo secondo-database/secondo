@@ -10,7 +10,7 @@
 ### - existing open database with successfully imported osm data
 ### - extStreetsRel-relation
 ### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                    roadClass: string, oneWay: int, bridge: int,
+###                    roadClassRef: int, oneWay: int, bridge: int,
 ###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
 ### - nodesRel-relation
 ### nodesRel: rel{Node: point, NodeId: int}
@@ -32,44 +32,18 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
-# Creating a relation that maps road classes to numbers
-let roadClassesRel =
-   [const rel(tuple([RoadClassId: int, RoadClass: string, 
-      Description: string])) value (
-   (0 "other" "alle sonstigen Straßenarten (insb. Fußwege)")
-   (1 "motorway" "Autobahn")
-   (2 "motorway_link" "Autobahnauf-/abfahrt")
-   (3 "trunk" "autobahnähnliche Straße")
-   (4 "trunk_link" "Auf-/Abfahrt einer autobahnähnlichen Straße")
-   (5 "primary" "Bundesstraße")
-   (6 "primary_link" "Bundesstraßenauf-/abfahrt")
-   (7 "secondary" "Landstraße")
-   (8 "secondary_link" "Landstraßenauf-/abfahrt")
-   (9 "tertiary" "Kreisstraße")
-   (10 "tertiary_link" "Kreisstraßenabfahrt")
-   (11 "residential" "Wohngebietsstraße")
-   (12 "unclassified" "verbindende Gemeindestraße")
-   (13 "road" "unzugeordnete Straße")
-   (14 "living_street" "Straße in verkehrsberuhigtem Bereich")
-   (15 "service" "Erschließungsweg")
-   (16 "track" "Feld-/Waldweg")
-   )];
-
 # Making a relation with road data to enable network creation
 # see also PaperMon-paper page 11
 let cityRoads =
    extStreetsRel feed
-   extend [roadClassStr: tostring(.roadClass)]
-   roadClassesRel feed
-   smouterjoin [roadClassStr,RoadClass]
-   filter [isdefined(.streetId)]
    projectextend [; Name : .name, Road: .streetId,
      Length: size(.geoData),
      Geometry: .geoData, Dual: .oneWay=0,
      StartsSmaller: get_startsmaller(.geoData),
-     RoadLevel : ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
+     RoadLevel : .roadClassRef]
    consume;
 
+# Gathering data that will be used for network creation
 let fullSectionsView =
    ((((extStreetsRel feed {a} 
        extSectionsRel feed {b} 
@@ -88,7 +62,7 @@ let fullSectionsView =
           oneWay: .oneWay_a, 
           maxSpeed: .maxSpeed_a, 
           bridge: .bridge_a, 
-          roadClass: .roadClass_a,
+          roadClassRef: .roadClassRef_a,
           streetStartNode: atposition(.geoData_a,0.0,TRUE),
           streetEndNode: atposition(.geoData_a,size(.geoData_a),TRUE)]) 
       nodesRel feed {c} 
@@ -137,25 +111,6 @@ derive fullSectionsView_endNode_rtree =
 #let targetRel =
 #   oneSecInOneSecOut12JuncTmp;
 # Determining all possible pairs of crossing streets
-#let two =
-#   (nodesRel feed
-#    fullSectionsView feed
-#    sortby [sectionId]
-#    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {a}
-#    symmjoin [((.NodeId = ..startNodeId_a) and (..streetStartNodeId_a = ..startNodeId_a)) or
-#       ((.NodeId = ..endNodeId_a) and (..streetEndNodeId_a = ..endNodeId_a))])
-#   fullSectionsView feed
-#   sortby [sectionId]
-#   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {b}
-#   symmjoin [((.NodeId = ..startNodeId_b) and (..streetStartNodeId_b = ..startNodeId_b)) or
-#      ((.NodeId = ..endNodeId_b) and (..streetEndNodeId_b = ..endNodeId_b))]
-#   filter [.sectionId_a < .sectionId_b]
-#   projectextend [; 
-#      Road1: .streetId_a,
-#      Road2: .streetId_b,
-#      Node: .Node]
-#   filter [not(.Road1 = .Road2)]
-#   consume;
 let startSections =
    nodesRel feed
    fullSectionsView feed
@@ -195,32 +150,6 @@ let two =
       Node: .Node_a]
    filter [not(.Road1 = .Road2)]
    consume;
-#let three =
-#   ((nodesRel feed
-#     fullSectionsView feed
-#     sortby [sectionId]
-#     project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {a}
-#     symmjoin [((.NodeId = ..startNodeId_a)) or
-#        ((.NodeId = ..endNodeId_a))])
-#    fullSectionsView feed
-#    sortby [sectionId]
-#    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {b}
-#    symmjoin [((.NodeId = ..startNodeId_b)) or
-#       ((.NodeId = ..endNodeId_b))]
-#    filter [.sectionId_a < .sectionId_b])
-#   fullSectionsView feed
-#   sortby [sectionId]
-#   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay,streetStartNodeId,streetEndNodeId] {c}
-#   symmjoin [((.NodeId = ..startNodeId_c)) or
-#      ((.NodeId = ..endNodeId_c))]
-#   extend [
-#      Road1: .streetId_a,
-#      Road2: .streetId_b,
-#      Road3: .streetId_c]
-#   filter [((((.NodeId = .startNodeId_b) and (.streetStartNodeId_b = .startNodeId_b)) or ((.NodeId = .endNodeId_b) and (.streetEndNodeId_b = .endNodeId_b))) and (.sectionId_a < .sectionId_c) and (.Road1 = .Road3) and not(.Road1 = .Road2)) or
-#      ((((.NodeId = .startNodeId_a) and (.streetStartNodeId_a = .startNodeId_a)) or ((.NodeId = .endNodeId_a) and (.streetEndNodeId_a = .endNodeId_a))) and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
-#   project [Road1,Road2,Node]
-#   consume;
 let three =
    ((startSections feed
     endSections feed
@@ -253,35 +182,6 @@ let three =
        and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
    project [Road1,Road2,Node]
    consume;
-#let four =
-#   (((nodesRel feed
-#      fullSectionsView feed
-#      sortby [sectionId]
-#      project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {a}
-#      symmjoin [((.NodeId = ..startNodeId_a)) or ((.NodeId = ..endNodeId_a))])
-#     fullSectionsView feed
-#     sortby [sectionId]
-#     project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {b}
-#     symmjoin [((.NodeId = ..startNodeId_b)) or ((.NodeId = ..endNodeId_b))]
-#     filter [.sectionId_a < .sectionId_b])
-#    fullSectionsView feed
-#    sortby [sectionId]
-#    project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {c}
-#    symmjoin [((.NodeId = ..startNodeId_c)) or ((.NodeId = ..endNodeId_c))]
-#    filter [.sectionId_a < .sectionId_c])
-#   fullSectionsView feed
-#   sortby [sectionId]
-#   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,oneWay] {d}
-#   symmjoin [((.NodeId = ..startNodeId_d)) or ((.NodeId = ..endNodeId_d))]
-#   filter [.sectionId_b < .sectionId_d]
-#   extend [
-#      Road1: .streetId_a,
-#      Road2: .streetId_b,
-#      Road3: .streetId_c,
-#      Road4: .streetId_d]
-#   filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
-#   project [Road1,Road2,Node]
-#   consume;
 let four =
    (((startSections feed
      endSections feed

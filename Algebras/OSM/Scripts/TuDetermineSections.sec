@@ -11,7 +11,7 @@
 ### - existing open database with successfully imported osm data
 ### - extStreetsRel-relation
 ### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                    roadClass: string, oneWay: int, bridge: int,
+###                    roadClassRef: int, oneWay: int, bridge: int,
 ###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
 ###
 ### Postconditions:

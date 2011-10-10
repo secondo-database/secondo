@@ -22,7 +22,7 @@
 ### Postconditions:
 ### - streetsRel-relation
 ### streetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                 roadClass: string, oneWay: int, bridge: int, maxSpeed: int,
+###                 roadClassRef: int, oneWay: int, bridge: int, maxSpeed: int,
 ###                 tunnel: bool, layer: int}
 ### - pointsRel-relation
 ### pointsRel: rel{pointId: int, timestamp: int, name: string, geoData: point,
@@ -32,18 +32,44 @@
 ###                        groupedStreetsId: int}
 ### - extStreetsRel-relation
 ### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                    roadClass: string, oneWay: int, bridge: int,
+###                    roadClassRef: int, oneWay: int, bridge: int,
 ###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
+### - roadClassesRel-relation
+### roadClassesRel: rel{RoadClassId: int, RoadClass: string,
+###                     Description: string}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
+# Creating a relation that maps road classes to numbers
+let roadClassesRel =
+   [const rel(tuple([RoadClassId: int, RoadClass: string, 
+      Description: string])) value (
+   (0 "other" "alle sonstigen Straßenarten (insb. Fußwege)")
+   (1 "motorway" "Autobahn")
+   (2 "motorway_link" "Autobahnauf-/abfahrt")
+   (3 "trunk" "autobahnähnliche Straße")
+   (4 "trunk_link" "Auf-/Abfahrt einer autobahnähnlichen Straße")
+   (5 "primary" "Bundesstraße")
+   (6 "primary_link" "Bundesstraßenauf-/abfahrt")
+   (7 "secondary" "Landstraße")
+   (8 "secondary_link" "Landstraßenauf-/abfahrt")
+   (9 "tertiary" "Kreisstraße")
+   (10 "tertiary_link" "Kreisstraßenabfahrt")
+   (11 "residential" "Wohngebietsstraße")
+   (12 "unclassified" "verbindende Gemeindestraße")
+   (13 "road" "unzugeordnete Straße")
+   (14 "living_street" "Straße in verkehrsberuhigtem Bereich")
+   (15 "service" "Erschließungsweg")
+   (16 "track" "Feld-/Waldweg")
+   )];
+
 # Renaming the attribute 'type' which is a secondo keyword. Also
 # trimming the street names as well as the abbreviations and altering 
 # undefined names (since motorway names are often undefined generic names are 
 # introduced for them)
-let streetsRel =
+let streetsModified =
    streetsTmp feed
    renameattr [roadClass: "type",osmId: "osm_id",
                oneWay: "oneway",maxSpeed: "maxspeed",
@@ -64,6 +90,22 @@ let streetsRel =
 
 # Removing the help relation
 delete streetsTmp;
+
+# Changing the representation of the road class from string to a 
+# corresponding number and removing all unwanted roads
+let streetsRel =
+   streetsModified feed
+   extend [RoadClassStr: tostring(.roadClass)]
+   roadClassesRel feed
+   smouterjoin [RoadClassStr,RoadClass]
+   filter [isdefined(.streetId)]
+   extend [roadClassRef: ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
+   remove [roadClass,RoadClassStr,RoadClassId,RoadClass,Description]
+   filter [.roadClassRef > 0]
+   consume;
+
+# Removing the help relation
+delete streetsModified;
 
 # Adding indexes for faster access
 derive streetsRel_streetId_btree =

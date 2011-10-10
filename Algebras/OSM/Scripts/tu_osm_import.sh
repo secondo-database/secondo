@@ -46,6 +46,13 @@ max_lat=51.28
 #min_lat=51.20
 #max_lat=51.25
 
+# nrw
+#name='nrw'
+#min_lon=5.86
+#max_lon=9.45
+#min_lat=50.32
+#max_lat=52.54
+
 #fiktiv
 #name='beispiel'
 #min_lon=0
@@ -58,6 +65,7 @@ max_lat=51.28
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/cloud-made/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/osm2shp/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/bundeslaender/${name}/"
 src_dir_path="/Users/fernuni-student/osm-data/osm-files/osm-api/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/geofabrik/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/cloud-made/${name}/"
@@ -96,9 +104,9 @@ sed -E ${expr1} "${script_dir_path}/${inp}"| sed -E  ${expr2} |
 
 # Starting the import
 if test ${file_type} = 'osm'; then
-   ${bin_dir_path}/SecondoTTYBDB -i "${script_dir_path}/TuOsmImport.sec"
+   ${bin_dir_path}/SecondoTTYNT -i "${script_dir_path}/TuOsmImport.sec"
 elif test ${file_type} = 'shp_geofabrik'; then
-   ${bin_dir_path}/SecondoTTYBDB -i "${script_dir_path}/TuShpImport.sec"
+   ${bin_dir_path}/SecondoTTYNT -i "${script_dir_path}/TuShpImport.sec"
 else
-   ${bin_dir_path}/SecondoTTYBDB -i "${script_dir_path}/TuCustomShpImport.sec"
+   ${bin_dir_path}/SecondoTTYNT -i "${script_dir_path}/TuCustomShpImport.sec"
 fi
