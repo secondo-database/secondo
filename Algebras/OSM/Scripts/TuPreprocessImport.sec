@@ -28,7 +28,7 @@ query setscalefactory(1000);
 
 # Setting the path to the directory with the shape data:
 let SRC_DIR_PATH =
-   '/Users/fernuni-student/osm-data/osm-files/geofabrik/duesseldorf/';
+   '/Users/fernuni-student/osm-data/shp-files/geofabrik/duesseldorf/';
 let PART =
    'City';
 let SCALE_FACTOR_X =

@@ -216,7 +216,7 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
         CcInt::BasicType(),
         CcInt::BasicType(),
         CcInt::BasicType(),
-        FText::BasicType(),
+        CcString::BasicType(),
         CcString::BasicType(),
         FText::BasicType(),
         FText::BasicType(),

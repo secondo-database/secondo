@@ -182,7 +182,7 @@ consume;
 
 # Checking whether the oneWay-Attribute is set correctly
 query extStreetsRel feed
-filter [(.roadClass = "motorway")
+filter [(.roadClassRef = 1)
    and not(.oneWay = 1)]
 consume
 

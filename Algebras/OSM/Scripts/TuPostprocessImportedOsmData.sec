@@ -95,12 +95,11 @@ delete streetsTmp;
 # corresponding number and removing all unwanted roads
 let streetsRel =
    streetsModified feed
-   extend [RoadClassStr: tostring(.roadClass)]
    roadClassesRel feed
-   smouterjoin [RoadClassStr,RoadClass]
+   smouterjoin [roadClass,RoadClass]
    filter [isdefined(.streetId)]
    extend [roadClassRef: ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
-   remove [roadClass,RoadClassStr,RoadClassId,RoadClass,Description]
+   remove [roadClass,RoadClassId,RoadClass,Description]
    filter [.roadClassRef > 0]
    consume;
 
@@ -136,6 +135,7 @@ derive pointsRel_geoData_rtree =
 # groupedStreetsTmp: rel{name: string, numParts: int, geo: line}
 let groupedStreetsTmp =
    streetsRel feed
+   project [streetId,name,geoData]
    filter [isdefined(.name)]
    extend [lineData: toline(.geoData)]
    sortby [name]
