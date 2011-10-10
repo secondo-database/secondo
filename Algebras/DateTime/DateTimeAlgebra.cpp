@@ -868,6 +868,166 @@ bool DateTime::ReadFrom(const string Time1){
 }
 
 
+enum DATETIMECOMPONENT { YEAR, MONTH, DAY, HOUR, MINUTE, 
+                         SECOND, MILLI , error };
+
+DATETIMECOMPONENT getCode(char c){
+  switch(c){
+    case 'Y' : return YEAR;
+    case 'M' : return MONTH;
+    case 'D' : return DAY;
+    case 'h' : return HOUR;
+    case 'm' : return MINUTE;
+    case 's' : return SECOND;
+    case 'f' : return MILLI;
+  }
+  return error;
+}
+
+ostream& operator<<(ostream& o, const DATETIMECOMPONENT& c){
+  switch(c){
+    case YEAR: o << "YYYY"; break;
+    case MONTH: o << "MM"; break;
+    case DAY: o << "DD"; break;
+    case HOUR: o << "hh"; break;
+    case MINUTE: o << "mm"; break;
+    case SECOND: o << "ss"; break;
+    case MILLI: o << "ffff"; break;
+    case error : o << "error" ; break;
+  }
+  return o;
+
+}
+
+
+bool DateTime::readFrom(const string& value, const string& format){
+
+  vector<DATETIMECOMPONENT>  f;  //separator, date component
+
+
+
+  size_t pos = format.find_first_of("YMDhmsf");
+ 
+  while(f.size() <= 7 && (pos != string::npos)){
+    f.push_back(getCode(format[pos]));
+
+   string L = format.substr(pos,1);
+
+   pos = format.find_first_not_of(L,pos+1);
+
+   if(pos!=string::npos){
+       if(getCode(format[pos])!=error){ // separator missing
+          return false;
+       }
+       pos = format.find_first_of("YMDhmsf", pos+1);
+    } 
+  }
+
+  // check vector
+  
+  bool year = false;
+  bool month = false;
+  bool day = false;
+  bool hour = false;
+  bool minute = false;
+  bool second = false;
+  bool milli = false;
+
+
+  for(unsigned int i=0;i<f.size();i++){
+     DATETIMECOMPONENT comp = f[i];
+     switch(comp){
+         case YEAR : { if(year) return false;
+                       year = true;
+                       break;
+                      }
+
+         case MONTH : { if(month) return false;
+                       month = true;
+                       break;
+                      }
+         case DAY   : { if(day) return false;
+                       day = true;
+                       break;
+                      }
+         case HOUR : { if(hour) return false;
+                       hour = true;
+                       break;
+                      }
+         case MINUTE : { if(minute) return false;
+                       minute = true;
+                       break;
+                      }
+         case SECOND : { if(second) return false;
+                       second = true;
+                       break;
+                      }
+         case MILLI : { if(milli) return false;
+                       milli = true;
+                       break;
+                      }
+         default :    return false;
+     }
+  }
+
+  if(!year || !month || !second){
+     return false;
+  }
+
+  if(minute != hour) { 
+    return false;
+  }
+
+  if(second && !minute){
+     return false;
+  }  
+  if(milli && !second){
+     return false;
+  }
+
+  // format seem to be correct, analyse value
+
+  int Year = 0;
+  int Month = 0;
+  int Day = 0;
+  int Hour = 0;
+  int Minute = 0;
+  int Second = 0;
+  int Milli = 0;
+
+
+   size_t vpos = value.find_first_of("0123456789");
+
+   for(unsigned int i=0;i<f.size() && vpos !=string::npos;i++){
+      size_t nextPos = value.find_first_not_of("0123456789", vpos);
+      string ints = value.substr(vpos, 
+                  (nextPos==string::npos?value.size():nextPos) -vpos);
+      if(nextPos == string::npos){
+        vpos = string::npos;
+      } else {
+        vpos = value.find_first_of("0123456789", nextPos +1);
+      }
+      int v = atoi(ints.c_str());
+      switch(f[i]){
+          case YEAR : Year = v; break;
+          case MONTH : Month = v; break;
+          case DAY : Day = v; break;
+          case HOUR : Hour = v; break;
+          case MINUTE : Minute = v; break;
+          case SECOND : Second = v; break;
+          case MILLI : Milli = v; break;
+          default : return false;
+      } 
+   }
+
+
+   Set(Year, Month, Day, Hour, Minute, Second, Milli);
+   return true;
+}
+
+
+
+
 /*
 ~ReadFrom~
 
@@ -2045,12 +2205,17 @@ ListExpr InstantOrDurationIntTM(ListExpr args){
 
 
 ListExpr str2instantTM(ListExpr args){
-  if(!nl->HasLength(args,1)){
+  if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
     return listutils::typeError("string expected");
   }
   if(!listutils::isSymbol(nl->First(args),CcString::BasicType()) &&
      !listutils::isSymbol(nl->First(args),FText::BasicType())){
-    return listutils::typeError("string expected");
+    return listutils::typeError("{string | text} [x string} expected");
+  }
+  if(nl->HasLength(args,2)){
+    if(!CcString::checkType(nl->Second(args))){
+      return listutils::typeError("{string | text} [x string} expected");
+    }
   }
   return nl->SymbolAtom(DateTime::BasicType());
 
@@ -2454,13 +2619,26 @@ int str2instantVM(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   DateTime* res = static_cast<DateTime*>(result.addr);
   T* arg = static_cast<T*>(args[0].addr);
-  if(!arg->IsDefined()){
-    res->SetDefined(false);
-  } else {
-    if(!res->ReadFrom(arg->GetValue())){
+  if(qp->GetNoSons(s)==1){
+     if(!arg->IsDefined()){
        res->SetDefined(false);
+     } else {
+       if(!res->ReadFrom(arg->GetValue())){
+          res->SetDefined(false);
+       }
+     }
+  } else { // format string is given
+    CcString* Format = (CcString*) args[1].addr;
+    if(!arg->IsDefined() || !Format->IsDefined()){
+       res->SetDefined(false);
+    } else {
+       if(!res->readFrom(arg->GetValue(), Format->GetValue())){
+          res->SetDefined(false);
+       }
     }
+   
   }
+
   return 0;
 }
 
@@ -2675,9 +2853,11 @@ const string ToStringSpec =
 
 const string str2instantSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  " ( \"{string,text} -> instant \""
-   "\" str2instant(_)\" "
-   "'reads a instant from a string'  "
+  " ( \"{string,text} [ x string] -> instant \""
+   "\" str2instant(_ [,_])\" "
+   "'reads a instant from a string. The second (optional)"
+   " string specifies the format of the string. In fact, the format"
+   " string only specifies the order of the components.  '  "
    "\"query str2instant(tostring(now))  \" ))";
 
 

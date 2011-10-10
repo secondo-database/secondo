@@ -293,6 +293,30 @@ the CSV import.
         }
     }
 
+
+/*
+
+  ~ReadFrom~
+
+This version of the readFrom method reads the date from a string.
+The format of the String is given by the string format. The format 
+string consists of character blocks YYYY, MM, DD, HH, MM, SS, mmm
+specifying the position of the corresponding date or time component.
+These blocks are separated by characters which are used as separators.
+For example, format "YYY-MM-DD-HH:MM:SS.mmm" is Secondo's 
+standard format for instant values. The format "DD.MM.YYYY HH:MM:SS" 
+specifyies the german standard format.
+If one of the components is omitted, it's value is assumed to be zero. 
+t's not allowed to ommit any component, at least, the complete date must
+be given. If the hour is given, also the minute must be given. If Milliseconds
+are specified, all other components must also be given.
+
+*/
+   bool readFrom(const string& value, const string& format);
+
+
+
+
 /*
 ~ReadFrom~
 
