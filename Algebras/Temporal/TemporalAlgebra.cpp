@@ -9859,9 +9859,9 @@ ListExpr TypeMapApproximate(ListExpr args){
   if(len>3){
      ListExpr fourth = nl->Fourth(args);
      if(CcBool::checkType(fourth)){
-        boolIndex = 2;
+        boolIndex = 3;
      }else if(Duration::checkType(fourth)){
-        durindex = 2;
+        durindex = 3;
      } else if(listutils::isSymbol(fourth)){
        ListExpr at;
        breakAttrIndex = listutils::findAttribute(attrList,
@@ -9884,12 +9884,12 @@ ListExpr TypeMapApproximate(ListExpr args){
         if(boolIndex > 0){
           return listutils::typeError(err);
         }
-        boolIndex = 3;
+        boolIndex = 4;
      }else if(Duration::checkType(fifth)){
         if(durindex>0){
           return listutils::typeError(err);
         }
-        durindex = 3;
+        durindex = 4;
      } else if(listutils::isSymbol(fifth)){
        if(breakAttrIndex>=0){
          return listutils::typeError(err);
@@ -9916,12 +9916,12 @@ ListExpr TypeMapApproximate(ListExpr args){
         if(boolIndex > 0){
           return listutils::typeError(err);
         }
-        boolIndex = 4;
+        boolIndex = 5;
      }else if(Duration::checkType(sixth)){
         if(durindex>0){
           return listutils::typeError(err);
         }
-        durindex = 4;
+        durindex = 5;
      } else if(listutils::isSymbol(sixth)){
        if(breakAttrIndex>=0){
          return listutils::typeError(err);
@@ -12390,7 +12390,15 @@ int ApproximateMvalue(Word* args, Word& result,
   int durindex  = ((CcInt*)args[noargs-3].addr)->GetValue();
   int index2  = ((CcInt*)args[noargs-4].addr)->GetValue();
   int index1  = ((CcInt*)args[noargs-5].addr)->GetValue();
-  
+ 
+
+   //cout << "breakAttrIndex = " << breakAttrIndex << endl;
+   //cout << "boolIndex = " << boolIndex << endl;
+   //cout << " durindex  = " << durindex << endl;
+   //cout << " index2  = " << index2 << endl;
+   //cout << " index1  = " << index1 << endl;
+   
+ 
    bool split1 = false;
    bool split2 = breakAttrIndex>=0;
    bool makeContinious = isContinious;
