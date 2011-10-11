@@ -82,8 +82,11 @@ let streetsModified =
                        "UNKNOWN")),
            ref: ifthenelse(isdefined(.originalRef),
               tostring(trim(totext(.originalRef))),
-              "UNKNOWN")]
-   remove [originalName,originalRef]
+              "UNKNOWN"),
+           roadClassTrimmed: trim(.roadClass)]
+   remove [originalName,originalRef,roadClass]
+   extend [roadClass: .roadClassTrimmed]
+   remove [roadClassTrimmed]
    sortby [name]
    addcounter[streetId,1]
    consume;
