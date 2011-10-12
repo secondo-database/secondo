@@ -1091,6 +1091,12 @@ points where more than 2 segments have a common endpoint.
 */
     double Distance( const Line& l, const Geoid* Geoid=0 ) const;
 
+    CcBool DistanceSmallerThan(const Line& l, 
+                            const double  maxDist, 
+                            const bool allowEqual, 
+                            const Geoid* geoid=0) const;
+
+
 /*
 6.4.5 Operation ~distance~ (with ~rect2~)
 

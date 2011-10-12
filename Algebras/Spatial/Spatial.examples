@@ -169,6 +169,18 @@ Signature: (point||points||line x point||points||line) -> real
 Example  : query distance(mehringdamm, alexanderplatz)
 Result   : 3455.4536605198455
 
+Operator : distanceSmallerThan
+Number   : 1
+Signature: line x line x real x bool -> bool
+Example  : query distanceSmallerThan(mehringdamm, alexanderplatz, 4000.0, FALSE)
+Result   : FALSE
+
+
+Operator : distanceSmallerThan
+Number   : 2
+Signature: line x line x real x bool -> bool
+Example  : query distanceSmallerThan(mehringdamm, alexanderplatz, 3000.0, FALSE)
+Result   : TRUE
 
 Operator : get
 Number   : 1

@@ -5526,6 +5526,50 @@ double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
   return result;
 }
 
+CcBool Line::DistanceSmallerThan(const Line& l, 
+                              const double  maxDist, 
+                              const bool allowEqual,
+                              const Geoid* geoid) const{
+
+  assert( !IsEmpty() );   // includes !undef
+  assert( !l.IsEmpty() ); // includes !undef
+  assert(!geoid || geoid->IsDefined() );
+  if( IsEmpty() || l.IsEmpty()){
+    CcBool res(false,false);
+    return res;
+  }
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+
+  if(maxDist < 0 || (AlmostEqual(maxDist,0) && !allowEqual)){
+    CcBool res(true,false);
+    return res;
+  }
+
+  HalfSegment hs1, hs2;
+  double segDistance = -666.666;
+  for( int i = 0; i < Size(); i++ ){
+    Get( i, hs1 );
+    if( hs1.IsLeftDomPoint() ) {
+      for( int j = 0; j < l.Size(); j++ ) {
+        l.Get( j, hs2 );
+        if( hs1.Intersects( hs2, geoid ) ){
+          return 0.0;
+        }
+        segDistance = hs1.Distance( hs2, geoid );
+        if( (segDistance < maxDist) ||
+            (allowEqual && AlmostEqual(segDistance,maxDist))){
+           CcBool res(true,true);
+           return res;
+        }
+      }
+    }
+  }
+  CcBool res(true,false);
+  return res;
+}
+
+
 double Line::Distance( const Rectangle<2>& r,
                        const Geoid* geoid /*=0*/ ) const {
   assert( !IsEmpty() ); // includes !undef
@@ -5583,6 +5627,7 @@ double Line::MaxDistance( const Rectangle<2>& r,
   }
   return dist;
 }
+
 
 int Line::NoComponents() const {
   return noComponents;
@@ -13295,6 +13340,33 @@ SpatialDistanceMap( ListExpr args )
 }
 
 /*
+10.1.10 Type Mapping for distanceSmallerThan
+
+Signature is line x line x real x bool -> bool
+
+*/
+ListExpr distanceSmallerThanTM(ListExpr args){
+  string err = "line x line x real x bool expected";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err);
+  }
+
+  if(!Line::checkType(nl->First(args)) ||
+     !Line::checkType(nl->Second(args)) ||
+     !CcReal::checkType(nl->Third(args)) ||
+     !CcBool::checkType(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+
+
+
+
+
+
+/*
 10.1.10 Type mapping function for operator ~direction~ and ~heading~
 
 This type mapping function is used for the ~direction~ and for the
@@ -15493,6 +15565,39 @@ int SpatialDistance( Word* args, Word& result, int message,
    }
    return 0;
 }
+
+/*
+10.4.21 Value Mapping of operator ~distanceSmallerThan~
+
+Up to now, it's only emplemented for the Line type.
+
+*/
+template<class A , class B>
+int distanceSmallerThanVM(Word* args, 
+                          Word& result,
+                          int message,
+                          Word& local,
+                          Supplier s){
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+
+   A* a1 = (A*) args[0].addr;
+   B* a2 = (B*) args[1].addr;
+   CcReal* d = (CcReal*) args[2].addr;
+   CcBool* b = (CcBool*) args[3].addr;
+
+   if(!a1->IsDefined() || !a2->IsDefined() || 
+      !d->IsDefined() || !b->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   CcBool k = a1->DistanceSmallerThan(*a2,d->GetValue(), b->GetValue());
+   res->CopyFrom(&k);
+   return 0;
+}
+
+
 
 
 /*
@@ -18143,6 +18248,16 @@ const string SpatialSpecDistance  =
   "<text>query distance(point, line)</text--->"
   ") )";
 
+const string distanceSmallerThanSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>line x line x real x bool -> bool "
+  "</text--->"
+  "<text>distanceSmallerThan( _, _ ,_,_)</text--->"
+  "<text>Checks if the distance is smaller than a given value"
+  " If the boolean parameter is set to be true, also an"
+  " distance equals to the given max Dist is allowed. .</text--->"
+  "<text>query distanceSmallerThan(l1,l2,50.0,TRUE)</text--->"
+  ") )";
 const string SpatialSpecDirection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>point x point -> real</text--->"
@@ -18769,6 +18884,14 @@ Operator spatialdistance (
   spatialdistancemap,
   SpatialSelectDistance,
   SpatialDistanceMap );
+
+
+Operator distanceSmallerThan (
+  "distanceSmallerThan",
+  distanceSmallerThanSpec,
+  distanceSmallerThanVM<Line,Line>,
+  Operator::SimpleSelect,
+  distanceSmallerThanTM );
 
 Operator spatialdirection (
   "direction",
@@ -20218,6 +20341,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialcommonborder);
     AddOperator( &spatialsingle );
     AddOperator( &spatialdistance );
+    AddOperator( &distanceSmallerThan );
     AddOperator( &spatialdirection );
     AddOperator( &spatialheading );
     AddOperator( &spatialnocomponents );
