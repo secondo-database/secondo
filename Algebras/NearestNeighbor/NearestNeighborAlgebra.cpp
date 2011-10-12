@@ -249,6 +249,35 @@ distanceScanTypeMap( ListExpr args )
 ListExpr
 distanceScan3TypeMap( ListExpr args ) {
 
+   bool maxD = false;
+
+   if(nl->ListLength(args) > 2){
+     ListExpr last;
+     ListExpr args2;
+     bool first = true;
+     while(!nl->IsEmpty(args)){
+       ListExpr f = nl->First(args);
+       args = nl->Rest(args);
+       if(nl->IsEmpty(args)){ // f is the last argument
+          if(CcReal::checkType(f)){
+             maxD = true;            
+          } else {
+           last = nl->Append(last, f);
+          }
+       } else {
+         if(first){
+           args2 = nl->OneElemList(f);
+           last = args2;
+           first = false;
+         } else {
+           last = nl->Append(last, f);
+         }
+       }
+     }
+     args = args2;
+   }
+
+
    ListExpr res1;
    ListExpr rtreetype;
    int j = -1;
@@ -346,7 +375,8 @@ distanceScan3TypeMap( ListExpr args ) {
   }
   return nl->ThreeElemList(
                nl->SymbolAtom(Symbol::APPEND()),
-               nl->OneElemList( nl->IntAtom(j-1)),
+               nl->TwoElemList( nl->IntAtom(j-1),
+                                nl->BoolAtom(maxD)),
                res1);
 }
 
@@ -1518,6 +1548,10 @@ Check for a tuple entry.
        return 0;
     }
 
+    double getDistance() const{
+      return distance;
+    }
+
   private:
     bool isTuple;
     R_TreeNode<dim, TupleId>* node;
@@ -1540,7 +1574,18 @@ template <unsigned dim, class IndexedType, class QueryType, class DistFun>
 class DS3LocalInfo{
 public:
    DS3LocalInfo( R_Tree<dim, TupleId>* rtree, Relation* rel,
-                QueryType* queryObj, CcInt* k, int position){
+                QueryType* queryObj, CcInt* k, int position,
+                CcReal& _maxDist){
+
+     // process maxDist
+     if(!_maxDist.IsDefined()){
+        useMaxDist = false;
+        maxDist = 0.0;
+     } else {
+        useMaxDist = true;
+        maxDist = _maxDist.GetValue(); 
+     }
+
      // check if all things are defined
      this->position = position;
      if(rel->GetNoTuples()==0 ||
@@ -1645,6 +1690,16 @@ public:
        top = dsqueue.top();
      }
      dsqueue.pop();
+
+     if(useMaxDist && (top->getDistance()>maxDist)){ 
+       //cout << "maxDist reached" << endl;
+       //cout << "currentDist = " << top->getDistance();
+       //cout << "maxDist = " << maxDist << endl;
+       k = returned;
+       delete top;
+       return 0;
+     }
+
      // now we have a tuple
      returned++;
      Tuple* res = rel->GetTuple(top->getTupleId(), false);
@@ -1667,6 +1722,10 @@ private:
                    vector<DS3Entry<dim, IndexedType, QueryType, DistFun>* >,
                    DSE3Comp<dim, IndexedType, QueryType, DistFun>  > dsqueue;
    DistFun distFun;
+
+   bool useMaxDist;
+   double maxDist;
+
 };
 
 template <unsigned dim, class IndexedType, class QueryType, class DistFun>
@@ -1685,11 +1744,20 @@ int distanceScan3Fun (Word* args, Word& result, int message,
        Relation* rel = static_cast<Relation*>(args[1].addr);
        QueryType* queryObj = static_cast<QueryType*>(args[2].addr);
        CcInt* k = static_cast<CcInt*>(args[3].addr);
-       int index = qp->GetNoSons(s)-1;
+       int index = qp->GetNoSons(s)-2;
        int pos = (static_cast<CcInt*>(args[index].addr))->GetIntval();
+       
+       bool useMaxDist = (static_cast<CcBool*>
+                          (args[qp->GetNoSons(s)-1].addr))->GetValue();
+       CcReal maxD(false);
+       if(useMaxDist){
+          maxD.CopyFrom( (CcReal*)args[qp->GetNoSons(s)-3].addr);
+       }
+         
+
        local.addr = new
            DS3LocalInfo<dim,IndexedType,QueryType, DistFun>(rtree,
-                                                rel, queryObj, k, pos);
+                                                rel, queryObj, k, pos, maxD);
        return 0;
     }
 
@@ -6813,9 +6881,9 @@ const string distanceScan2Spec  =
 const string distanceScan3Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
-      " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k  x attrname->"
+      " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k  [x attrname] [x real] ->"
       " (stream (tuple ((x1 t1)...(xn tn))))\n"
-      "For T = ti and ti in {point, points, region, rect, rect?},"
+      "For T = ti and ti in {point, points, region, rect, rect},"
       " </text--->"
       "<text>_ _ distancescan [ _, _, _ ]</text--->"
       "<text>This operator returns the k nearest neighbours to a"
@@ -6829,6 +6897,8 @@ const string distanceScan3Spec  =
       " the tuples, this operator is slower than the distancescan2 operator."
       " For this reason, this operator should only ne used if the indexed "
       " spatial objects are not of type point or rectangle."
+      " If the last argument is a real value, the output stream is finished,"
+      " if the current distance overcomes the given value. "
       "</text--->"
       "<text> query Flaechen creatertree[geoData] Flaechen "
       "distancescan3[BGrenzenLine, 5] tconsume"
