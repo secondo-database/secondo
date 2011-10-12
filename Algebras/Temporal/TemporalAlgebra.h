@@ -2746,6 +2746,15 @@ Computes all events created by a UPoint moving across a regular grid.
 
   inline virtual bool Adjacent( const Attribute* arg ) const
   {
+    UPoint* up = (UPoint*) arg;
+    if(timeInterval.end == up->timeInterval.start){ // up after this
+       return AlmostEqual(p1, up->p0) && 
+             (timeInterval.rc || up->timeInterval.lc);
+    }
+    if(up->timeInterval.end == timeInterval.start){
+       return AlmostEqual(up->p1,p0) &&
+              (up->timeInterval.rc || timeInterval.lc);
+    }
     return false;
   }
 
@@ -3761,6 +3770,9 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
     void BreakPoints(Points& result, const DateTime& dur) const;
+    void BreakPoints(Points& result, const DateTime& dur, 
+                     const CcReal& epsilon, 
+                     const Geoid* geoid=0) const;
 
 
 /*

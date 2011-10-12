@@ -53,8 +53,10 @@ place.)
 The operator with the "right" syntax can be found in
 TemporalLiftedAlgebra.
 
-04.06.2009 Christian D[ue]ntgen renamed ~bbox~: ~rT~ [->] ~rT~ to ~mbrange~: ~rT~ [->] ~rT~
-           Added operators ~bbox~: ~periods~ [->] ~rect3~, ~bbox~: ~instant~ [->] ~rect3~.
+04.06.2009 Christian D[ue]ntgen 
+   renamed ~bbox~: ~rT~ [->] ~rT~ to ~mbrange~: ~rT~ [->] ~rT~
+   Added operators ~bbox~: 
+           ~periods~ [->] ~rect3~, ~bbox~: ~instant~ [->] ~rect3~.
 
 01.06.2006 Christian D[ue]ntgen added operator ~bbox~ for ~range~-types.
 
@@ -5408,6 +5410,90 @@ void MPoint::BreakPoints(Points& result, const DateTime& dur) const{
     result.EndBulkLoad();
 }
 
+void MPoint::BreakPoints(Points& result, const DateTime& dur, 
+                         const CcReal& epsilon, 
+                         const Geoid* geoid /*=0*/ ) const{
+
+    result.Clear();
+    if(!IsDefined() || !dur.IsDefined() || !epsilon.IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+
+    double eps = epsilon.GetValue();
+    if(eps<0){
+      return; // we cannot find distances smaller than zero 
+    }
+
+    result.SetDefined(true);
+    int size = GetNoComponents();
+    result.StartBulkLoad();
+    UPoint unit;
+    UPoint firstUnit;
+    Point firstPoint;
+    int firstIndex=0;
+    int index = 0;
+    DateTime currentDur(datetime::durationtype);
+
+    while(firstIndex < size){
+       
+      if(index == firstIndex){
+         Get(firstIndex,firstUnit);
+         if(firstUnit.p0.Distance(firstUnit.p1,geoid) > eps){
+            // this units overcomes the maximum epsilon value
+            index++;
+            firstIndex++;
+         } else { // try to find more points for this break
+           firstPoint = firstUnit.p0;
+           currentDur =  firstUnit.timeInterval.end - 
+                         firstUnit.timeInterval.end;
+           index++;
+           if(index>=size){
+             if(currentDur >= dur){
+               result += firstPoint;
+             }
+             firstIndex = index;
+
+           }
+         }
+      } else {
+        assert(index > firstIndex);
+        UPoint lastUnit;
+        Get(index-1, lastUnit);
+        Get(index, unit);
+        if(!lastUnit.Adjacent(&unit)){ // gap found, close chain
+           if(currentDur >= dur){
+              result += firstPoint;
+           }
+           firstIndex = index; // start a new try
+        } else {
+          Point rp = unit.p1;
+          if(firstPoint.Distance(rp,geoid) > eps){
+             // next unit does not contribute to break
+             if(currentDur >= dur){
+                result += firstPoint;
+             }
+             firstIndex = index; // start a new try
+          } else {
+            // extend the possible break   
+            currentDur += (unit.timeInterval.end - unit.timeInterval.start);
+            index++;
+            if(index >= size){
+               firstIndex = index;
+               if(currentDur >= dur){
+                  result += firstPoint;
+               }
+            }
+          } 
+        }
+      }
+    }
+    result.EndBulkLoad();
+}
+
+
+
+
 void MPoint::TranslateAppend(const MPoint& mp, const DateTime& dur){
    if( !IsDefined() || !mp.IsDefined() || !dur.IsDefined() ){
        Clear();
@@ -9603,18 +9689,19 @@ ListExpr MovingTypeMapSimplify(ListExpr args){
 */
 
 ListExpr MovingTypeMapBreakPoints(ListExpr args){
-   if(nl->ListLength(args)!=2){
-       ErrorReporter::ReportError("two arguments expected");
-       return nl->SymbolAtom(Symbol::TYPEERROR());
+   int len = nl->ListLength(args);
+   string err = "mpoint x duration [ x real] expected";
+   if( (len!=2) && (len!=3)){
+     return listutils::typeError(err + " (wrong number of args)");
    }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(nl->IsEqual(arg1,MPoint::BasicType()) &&
-      nl->IsEqual(arg2,Duration::BasicType())){
-       return nl->SymbolAtom(Points::BasicType());
+   if(!MPoint::checkType(nl->First(args)) ||
+      !Duration::checkType(nl->Second(args))){
+     return listutils::typeError(err );
+   }   
+   if((len==3) &&  !CcReal::checkType(nl->Third(args))){
+     return listutils::typeError(err);
    }
-   ErrorReporter::ReportError("mpoint x duration expected");
-   return nl->SymbolAtom(Symbol::TYPEERROR());
+   return nl->SymbolAtom(Points::BasicType());
 }
 
 /*
@@ -12516,7 +12603,13 @@ int MPointBreakPoints(Word* args, Word& result,
                    Supplier s){
   result = qp->ResultStorage( s );
   DateTime* dur = ((DateTime*)args[1].addr);
-  ((MPoint*)args[0].addr)->BreakPoints(*((Points*)result.addr),*dur );
+  if(qp->GetNoSons(s) == 2){
+     ((MPoint*)args[0].addr)->BreakPoints(*((Points*)result.addr),*dur );
+  } else {
+    CcReal* epsilon = (CcReal*)args[2].addr;
+   ((MPoint*)args[0].addr)->BreakPoints(*((Points*)result.addr),
+                                        *dur, *epsilon );
+  }
   return 0;
 }
 
@@ -14878,8 +14971,9 @@ int SquaredDistanceMPMPVM( Word* args, Word& result, int message, Word&
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
 
-Because almost all operators are overloaded, we have first do define an array of value
-mapping functions for each operator. For nonoverloaded operators there is also such and array
+Because almost all operators are overloaded, we have first do define 
+an array of value mapping functions for each operator. For 
+nonoverloaded operators there is also such and array
 defined, so it easier to make them overloaded.
 
 16.4.1 ValueMapping arrays
@@ -15514,10 +15608,13 @@ const string TemporalSpecMax =
 
 const string TemporalSpecBreakPoints =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x duration -> points</text--->"
-  "<text>breakpoints( m, d ) </text--->"
+  "( <text>mpoint x duration [x real] -> points</text--->"
+  "<text>breakpoints( m, d, e ) </text--->"
   "<text>Computes all points where the mpoint 'm' stops longer"
-  " than the given duration 'd'</text--->"
+  " than the given duration 'd'. If the argument e is set, "
+  " a stop is defined to move not more than e within the "
+  " duration time."
+  "</text--->"
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
