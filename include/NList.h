@@ -238,6 +238,22 @@ c)~.
     e( d.l ), 
     len(4)
   {}
+  NList(const NList& a, const NList& b, const NList& c, const NList& d,
+       const NList& _e) : 
+    nl(nlGlobal),
+    l( nl->FiveElemList(a.l, b.l, c.l, d.l, _e.l) ),
+    e( _e.l ), 
+    len(5)
+  {}
+
+  NList(const NList& a, const NList& b, const NList& c, const NList& d,
+       const NList& _e,const NList& f) : 
+    nl(nlGlobal),
+    l( nl->SixElemList(a.l, b.l, c.l, d.l, _e.l, f.l) ),
+    e( f.l ), 
+    len(6)
+  {}
+
 
   // INSTANTIATION PATTERNS:
   // (value), (value, false), (value, false, false) : symbolAtom  = DEFAULT1
