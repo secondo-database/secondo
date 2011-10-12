@@ -2373,7 +2373,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
    Word current = SetWord( Address (0) );
 
-   cout << "Reading Data ..." << endl;
    Stream<Tuple> inTupleStream(args[0]);
    inTupleStream.open();
 
@@ -2381,59 +2380,73 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 #ifndef SINGLE_THREAD1
    // setup CommandQuue for each server;
    vector<DServerMultiCommand*> serverCommand(size); 
-   for(int i = 0; i < size; i++)
-     {
-       serverCommand[i] = new DServerMultiCommand(i, serverList[i]);
-     }
+
 #endif
-   while( (tuple1 = inTupleStream.request()) != 0)
-     {
-       // this is a memory leak!
-       vector<Word> *w = new vector<Word> (1);
-       // ArrayIndex
-       int arrIndex = ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
-          
-       assert (arrIndex >= 0);
-
-       arrIndex = arrIndex % size;
-           
-       (*w)[0] = SetWord(tuple1);
-       tuple1->IncReference();
-#ifndef SINGLE_THREAD1
-       DServer::RemoteCommand* rc = 
-         new DServer::RemoteCommand(DServer::DS_CMD_WRITE_REL, 
-                                    0, w, 0);
-       serverCommand[arrIndex] -> put(rc);
-       //cout << "Send tuple " << number 
-       //           << " to server " << arrIndex << ":" << endl;
-#else
-       server = serverList[arrIndex];
-       server->setBusy();
-       server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
-       server -> run();
-       //cout << "Send tuple " << number 
-       //<< " to server " << arrIndex << ":" << endl;
-       //server -> print();
-#endif
-
-       tuple1 -> DeleteIfAllowed();
-
-       //number ++;
-     } // while (...)
-
    try
      {
 #ifndef SINGLE_THREAD1
        //ZThread::PoolExecutor poolEx(2);
        ZThread::ThreadedExecutor poolEx;
-       cout << "Sending data ..." << endl;
+       
        for(int i = 0; i < size; i++)
          {
+           serverCommand[i] = new DServerMultiCommand(i, serverList[i]);
            poolEx.execute(serverCommand[i]);
          }
-
-       poolEx.wait();
 #endif
+
+       cout << "Reading Data ..." << endl;
+       while( (tuple1 = inTupleStream.request()) != 0)
+         {
+           // this is a memory leak!
+           // vector<Word> *w = new vector<Word> (1);
+           // ArrayIndex
+           int arrIndex = 
+             ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
+          
+           assert (arrIndex >= 0);
+
+           arrIndex = arrIndex % size;
+           
+           //(*w)[0] = SetWord(tuple1);
+           //tuple1->IncReference();
+#ifndef SINGLE_THREAD1
+
+           serverCommand[arrIndex] -> AppendTuple(tuple1);
+
+           /*
+             DServer::RemoteCommand* rc = 
+             new DServer::RemoteCommand(DServer::DS_CMD_WRITE_REL, 
+             0, w, 0);
+             serverCommand[arrIndex] -> put(rc);
+           */
+           //cout << "Send tuple " << number 
+           //           << " to server " << arrIndex << ":" << endl;
+#else
+           vector<Word> *w = new vector<Word> (1);
+           (*w)[0] = SetWord(tuple1);
+           tuple1->IncReference();
+           server = serverList[arrIndex];
+           server->setBusy();
+           server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
+           server -> run();
+           //cout << "Send tuple " << number 
+           //<< " to server " << arrIndex << ":" << endl;
+           //server -> print();
+#endif
+
+           tuple1 -> DeleteIfAllowed();
+
+           //number ++;
+         } // while (...)
+
+       cout << "Reading Data done ..." << endl;
+       for(int i = 0; i < size; i++)
+         {
+           serverCommand[i] -> done();
+         }
+       poolEx.wait();
+
        cout << "Closing connections ..." << endl;
        inTupleStream.close();
 
@@ -2444,6 +2457,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        cerr << e.what() << endl;
        return 1;
      }
+
    try
      {
        for(int i = 0; i < size; i++)

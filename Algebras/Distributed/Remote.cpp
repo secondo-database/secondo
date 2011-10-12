@@ -1545,20 +1545,28 @@ void DServerExecutor::run()
 
 void  DServerMultiCommand::run()
 {
-  bool runIt = true;
-  while(runIt)
+  cout << "Starting DMC:" << m_index << " " << m_runit << endl;
+  TupleBuffer *tb;
+  Tuple *t;
+  vector<Word> w(1);
+  while(m_runit || !m_tbQueue.empty())
     {
-      DServer::RemoteCommand *rc = get();
-      if (rc != NULL)
+      tb = m_tbQueue.get();
+      cout << m_index << ": got " << tb -> GetNoTuples() << endl;
+      cout << "Sending:" << m_index << endl;
+      TupleBufferIterator *rit = new TupleBufferIterator(*tb);
+      while ((t = DBAccess::getInstance() -> TBI_GetNextTuple(rit)) != 0)
         {
-          m_server->setCmd(rc);
+          w[0] = SetWord(t);
+          m_server->setCmd(DServer::DS_CMD_WRITE_REL, 
+                           0, &w, 0);
           m_server -> run();
+          //DBAccess::T_DeleteIfAllowed(t);
         }
-      else
-        {
-          runIt = false;
-        }
+      delete tb;
+      cout << "Sending:" << m_index << " ... done" << endl;
     }
+  cout << "DMC:" << m_index << " ... done" << endl;
 }
 
 /*

@@ -46,6 +46,9 @@ RelationWriter and DServerCreator
 #include "zthread/Condition.h"
 #include "zthread/Mutex.h"
 #include "RelationAlgebra.h"
+#include "TupleBufferQueue.h"
+#include "DBAccessGuard.h"
+
 #define SINGLE_THREAD 1
 
 using namespace std;
@@ -287,55 +290,53 @@ public:
 class DServerMultiCommand : public ZThread::Runnable
 {
 private:
-  int m_index;
+  TupleBuffer *m_curTB;
+  TupleBufferQueue m_tbQueue;
+   int m_index;
   DServer* m_server;
-  ZThread::Mutex lock;
+  //ZThread::Mutex lock;
   //ZThread::Condition cond;
-  std::deque<DServer::RemoteCommand *> data;
+  //std::deque<DServer::RemoteCommand *> data;
+  unsigned int MAX_TB_SIZE;
+  bool m_runit;
   
 public:
   DServerMultiCommand(int i, DServer* s) : 
+    m_curTB(NULL),
     m_index(i),
-    m_server(s)
-  {}
-
-  void put (DServer::RemoteCommand *rc)
-  { 
-    //assert(isRunning());
-    //ZThread::Guard<ZThread::Mutex> g(lock);
-    data.push_back(rc);
-    //cond.signal();
+    m_server(s),
+    MAX_TB_SIZE(16*1024*1024),
+    m_runit(true)
+  {
   }
 
-  DServer::RemoteCommand* get()
+  void AppendTuple(Tuple* t)
   {
-    //ZThread::Guard<ZThread::Mutex> g(lock);
-    /*
-    while(data.empty())
+    if (m_curTB == NULL)
+      m_curTB = new TupleBuffer(MAX_TB_SIZE);
+
+    if (m_curTB -> GetTotalSize() + t -> GetSize() > MAX_TB_SIZE)
       {
-        cond.wait();
+        cout << "  -> add to queue (S:" <<  m_curTB -> GetTotalSize() 
+             << "/" << MAX_TB_SIZE << ")" << endl;
+        m_tbQueue.put(m_curTB);
+        m_curTB = new TupleBuffer(MAX_TB_SIZE);
       }
-    */
-    if (data.empty())
-      {
-        return NULL;
-      }
-    
-    DServer::RemoteCommand *rc = data.front();
-    
-    data.pop_front();
-    return rc;
+    DBAccess::getInstance() -> REL_AppendTuple(m_curTB, t);
+   }
+
+  void done()
+  {
+    if (m_curTB == NULL)
+      m_curTB = new TupleBuffer(MAX_TB_SIZE);
+        cout << "  -> add to queue (S:" <<  m_curTB -> GetTotalSize() 
+             << "/" << MAX_TB_SIZE << ")" << endl;
+     m_tbQueue.put(m_curTB);
+     m_curTB = NULL;
+     m_runit = false;
   }
 
   void run();
-
-  bool empt2y() 
-  {
-    ZThread::Guard<ZThread::Mutex> g(lock);
-    return data.empty();
-  }
-
-  DServer* getServer2() const { return m_server; }
 };
 
 
