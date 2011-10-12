@@ -13295,34 +13295,78 @@ int ThePeriod( Word* args, Word& result, int message, Word&
   pResult->Clear();
   if( !range1->IsDefined() || !range2->IsDefined() ){
     pResult->SetDefined( false );
+    return 0;
   }
   pResult->SetDefined( true );
-  if( !range1->IsEmpty() || !range2->IsEmpty() )
-  {
-    Interval<Instant> intv1, intv2;
-    if( range1->IsEmpty() )
-    {
-      range2->Get( 0, intv1 );
-      range2->Get( range2->GetNoComponents()-1, intv2 );
-    }
-    else if( range2->IsEmpty() )
-    {
-      range1->Get( 0, intv1 );
-      range1->Get( range1->GetNoComponents()-1, intv2 );
-    }
-    else
-    {
-      range1->Get( 0, intv1 );
-      range2->Get( range2->GetNoComponents()-1, intv2 );
-    }
-
-    Interval<Instant> timeInterval( intv1.start, intv2.end,
-     intv1.lc, intv2.rc );
-
-    pResult->StartBulkLoad();
-    pResult->Add( timeInterval );
-    pResult->EndBulkLoad( false, true );
+  if(range1->IsEmpty() && range2->IsEmpty()){
+     return 0;  // return empty periods value
   }
+
+
+  // range 1 is empty 
+  if(range1->IsEmpty()){
+    Interval<Instant> first;
+    Interval<Instant> last;
+    range2->Get(0,first);
+    range2->Get(range2->GetNoComponents()-1,last);
+    Interval<Instant> iv(first.start,last.end,first.lc,last.rc);
+    pResult->StartBulkLoad();
+    pResult->Add( iv );
+    pResult->EndBulkLoad( false, true );
+    return 0;
+  }
+  // symmetric case , range 2 is empty
+  if(range2->IsEmpty()){
+    Interval<Instant> first;
+    Interval<Instant> last;
+    range1->Get(0,first);
+    range1->Get(range1->GetNoComponents()-1,last);
+    Interval<Instant> iv(first.start,last.end,first.lc,last.rc);
+    pResult->StartBulkLoad();
+    pResult->Add( iv );
+    pResult->EndBulkLoad( false, true );
+    return 0;
+  }
+
+  // normal case both intervals are defined and non empty
+  Interval<Instant> first1;
+  Interval<Instant> last1;
+  range1->Get(0,first1);
+  range1->Get(range1->GetNoComponents()-1,last1);
+  Interval<Instant> first2;
+  Interval<Instant> last2;
+  range2->Get(0,first2);
+  range2->Get(range2->GetNoComponents()-1,last2);
+
+  Instant start(datetime::instanttype);
+  bool lc = false;
+  if(first1.start < first2.start){
+    start = first1.start;
+    lc = first1.lc;
+  } else if(first1.start > first2.start){
+     start = first2.start;
+     lc = first2.lc;
+  } else { // equal start instants
+     start = first1.start;
+     lc = first1.lc || first2.lc;
+  }
+
+  Instant end(datetime::instanttype);
+  bool rc = false;
+  if( last1.end > last2.end){
+     end = last1.end;
+     rc = last1.rc;
+  } else if(last1.end < last2.end){
+     end = last2.end;
+     rc = last2.rc;
+  } else { // equal end
+     end = last2.end;
+     rc = last1.rc || last2.rc;
+  }
+  Interval<Instant> iv(start,end,lc,rc);
+  pResult->StartBulkLoad();
+  pResult->Add( iv );
+  pResult->EndBulkLoad( false, true );
   return 0;
 }
 
