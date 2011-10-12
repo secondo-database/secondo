@@ -1091,9 +1091,10 @@ points where more than 2 segments have a common endpoint.
 */
     double Distance( const Line& l, const Geoid* Geoid=0 ) const;
 
-    CcBool DistanceSmallerThan(const Line& l, 
+    void DistanceSmallerThan(const Line& l, 
                             const double  maxDist, 
                             const bool allowEqual, 
+                            CcBool& result,
                             const Geoid* geoid=0) const;
 
 

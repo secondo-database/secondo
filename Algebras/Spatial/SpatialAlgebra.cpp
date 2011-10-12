@@ -5526,24 +5526,25 @@ double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
   return result;
 }
 
-CcBool Line::DistanceSmallerThan(const Line& l, 
+void Line::DistanceSmallerThan(const Line& l, 
                               const double  maxDist, 
                               const bool allowEqual,
+                              CcBool& result,
                               const Geoid* geoid) const{
 
   assert( !IsEmpty() );   // includes !undef
   assert( !l.IsEmpty() ); // includes !undef
   assert(!geoid || geoid->IsDefined() );
   if( IsEmpty() || l.IsEmpty()){
-    CcBool res(false,false);
-    return res;
+    result.SetDefined(false);
+    return;
   }
   assert( IsOrdered() );
   assert( l.IsOrdered() );
 
   if(maxDist < 0 || (AlmostEqual(maxDist,0) && !allowEqual)){
-    CcBool res(true,false);
-    return res;
+    result.SetDefined(false);
+    return;
   }
 
   HalfSegment hs1, hs2;
@@ -5554,19 +5555,19 @@ CcBool Line::DistanceSmallerThan(const Line& l,
       for( int j = 0; j < l.Size(); j++ ) {
         l.Get( j, hs2 );
         if( hs1.Intersects( hs2, geoid ) ){
-          return 0.0;
+          result.Set(true,true);
+          return;
         }
         segDistance = hs1.Distance( hs2, geoid );
         if( (segDistance < maxDist) ||
             (allowEqual && AlmostEqual(segDistance,maxDist))){
-           CcBool res(true,true);
-           return res;
+           result.Set(true,true); 
+           return;
         }
       }
     }
   }
-  CcBool res(true,false);
-  return res;
+  result.Set(true,false);
 }
 
 
@@ -15592,8 +15593,7 @@ int distanceSmallerThanVM(Word* args,
       res->SetDefined(false);
       return 0;
    }
-   CcBool k = a1->DistanceSmallerThan(*a2,d->GetValue(), b->GetValue());
-   res->CopyFrom(&k);
+   a1->DistanceSmallerThan(*a2,d->GetValue(), b->GetValue(), *res);
    return 0;
 }
 
