@@ -966,7 +966,7 @@ public class ViewConfig extends javax.swing.JDialog {
     }
     if(RendType.equals(RENDER_LINEWIDTH)){
        NewCat.setRenderMethod(Category.RENDER_LINEWIDTH); 
-      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
+      //NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
     }
     return  NewCat;
   }
