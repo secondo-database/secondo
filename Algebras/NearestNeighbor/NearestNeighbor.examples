@@ -29,7 +29,7 @@ Result   : 5
 Operator : distancescan3
 Number   : 2
 Signature: rtree x rel x T x int [x attrName] [ x double] > (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan3 [tiergarten,-1 , 600] count
+Example  : query Kinos creatertree[geoData] Kinos distancescan3 [tiergarten,-1 , 600.0] count
 Result   : 3
 
 Operator : distancescan4
