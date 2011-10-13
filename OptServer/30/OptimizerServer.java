@@ -29,6 +29,9 @@ import jpl.Variable;
 import jpl.fli.*;
 import jpl.Compound;
 import jpl.Util;
+import java.nio.charset.Charset;
+import java.util.SortedMap;
+
 
 
 public class OptimizerServer extends Thread{
@@ -47,7 +50,7 @@ static {
    /** shows a prompt at the console
      */
     private static void showPrompt(){
-       System.out.print("\n opt-server > ");
+       cout.print("\n opt-server > ");
     }
 
 
@@ -62,10 +65,10 @@ static {
        System.err.println("error in registering the secondo predicate ");
        return false;
     }
-    //System.out.println("registerSecondo successful");
+    //cout.println("registerSecondo successful");
     try{
       JPL.init();
-      System.out.println("initialisation successful");
+      cout.println("initialisation successful");
 
       // VTA - 18.09.2006 
       // I added this piece of code in order to run with newer versions
@@ -80,7 +83,7 @@ static {
       args[1] = jpl.Util.termArrayToList( new Term[] { new Atom("x") } );
       Query q = new Query("member",args);
       if(!q.hasSolution()){
-         System.out.println("error in the member call'");
+         cout.println("error in the member call'");
          return false;
       }
 
@@ -88,7 +91,7 @@ static {
       args[0] = new Atom("auxiliary");
       q = new Query("consult",args);
       if(!q.hasSolution()){
-         System.out.println("error in loading 'auxiliary.pl'");
+         cout.println("error in loading 'auxiliary.pl'");
          return false;
       }
 
@@ -96,12 +99,12 @@ static {
       args[0] = new Atom("calloptimizer");
       q = new Query("consult",args);
       if(!q.hasSolution()){
-         System.out.println("error in loading 'calloptimizer.pl'");
+         cout.println("error in loading 'calloptimizer.pl'");
          return false;
        }
        return true;
      } catch(Exception e){
-          System.out.println("Exception in initialization "+e);
+          cout.println("Exception in initialization "+e);
           return false;
      }
     }
@@ -128,7 +131,7 @@ static {
          return false;
       try{
          if(trace){
-           System.out.println("execute query: "+pl_query);
+           cout.println("execute query: "+pl_query);
          }
          String ret ="";
          int number =0; // the number of solutions
@@ -155,7 +158,7 @@ static {
          }
          if(number == 0){
             if(trace)
-               System.out.println("no solution found for' "+pl_query.goal() +"/"+pl_query.goal().arity());
+               cout.println("no solution found for' "+pl_query.goal() +"/"+pl_query.goal().arity());
             return false;
          } else{
              // check if the used database is changed
@@ -166,7 +169,7 @@ static {
                 String name = ""+sol.get(v);
                 if(!name.equals(openedDatabase)){
                   if(trace){
-                     System.out.println("use database "+  name);
+                     cout.println("use database "+  name);
                   }
                   openedDatabase=name;
                 }
@@ -179,7 +182,7 @@ static {
         }
         } catch(Exception e){
            if(trace)
-              System.out.println("exception in calling the "+pl_query.goal()+"-predicate"+e);
+              cout.println("exception in calling the "+pl_query.goal()+"-predicate"+e);
            return false;
         }
     }
@@ -201,12 +204,12 @@ static {
 
           Vector TMPVars = new Vector();
           if(trace){
-            System.out.println("analyse command: "+command);
+            cout.println("analyse command: "+command);
           }
           Query pl_query = new Query(command);
           if(pl_query==null){
              if(trace)
-                System.out.println("error in parsing command: "+command);
+                cout.println("error in parsing command: "+command);
              return  false;
           }
 
@@ -214,11 +217,11 @@ static {
 
           if(res & trace & Solution!=null){ // successful
              if(Solution.size()==0)
-                System.out.println("Yes");
+                cout.println("Yes");
              else
                for(int i=0;i<Solution.size();i++){
-                 System.out.println("*** Solution "+(i+1)+"  ****");
-                 System.out.println(Solution.get(i));
+                 cout.println("*** Solution "+(i+1)+"  ****");
+                 cout.println(Solution.get(i));
                }
 
           }
@@ -232,10 +235,10 @@ static {
       * otherwise the result will be the best query plan
       */
     private synchronized String optimize(String query){
-      //System.out.println("optimize called with argument \""+query+"\"");
+      //cout.println("optimize called with argument \""+query+"\"");
       try{
           if(trace){
-               System.out.println("\n optimization-input : "+query+"\n");
+               cout.println("\n optimization-input : "+query+"\n");
           }
 
           Query pl_query = new Query("sqlToPlan('"+query+"', X )");
@@ -248,7 +251,7 @@ static {
                 Hashtable solution = pl_query.nextSolution();
                 if(solution.size()!=1){
                    if(trace){
-                       System.out.println("Error: optimization returns more than a single binding");
+                       cout.println("Error: optimization returns more than a single binding");
                    }   
                    return query;
                 }
@@ -259,19 +262,19 @@ static {
           }
           if(number>1){
              if(trace){
-                System.out.println("Error: optimization returns more than one solution");
+                cout.println("Error: optimization returns more than one solution");
              }
              return query;
           }
 
           if(number==0){
              if(trace)
-                 System.out.println("optimization failed - no solution found");
+                 cout.println("optimization failed - no solution found");
              return query;
           }
           else{ 
              if(trace)
-                 System.out.println("\n optimization-result : "+ret+"\n");
+                 cout.println("\n optimization-result : "+ret+"\n");
              
              // free ret from enclosing ''
              ret = ret.trim();
@@ -287,7 +290,7 @@ static {
           }
          } catch(Exception e){
              if(trace)
-                System.out.println("\n Exception :"+e);
+                cout.println("\n Exception :"+e);
              showPrompt();
            return  query;
          }
@@ -305,7 +308,7 @@ static {
        Term[] arg = new Term[1];
        if(!openedDatabase.equals("")){
           if(trace)
-             System.out.println("close the opened database");
+             cout.println("close the opened database");
           Query Q = new Query("secondo('close database')");
           command(Q,null);
        }
@@ -323,15 +326,15 @@ static {
       /** creates a new Server from given socket */
       public Server(Socket S){
          this.S = S;
-         //System.out.println("requesting from client");
+         //cout.println("requesting from client");
          try{
             in = new BufferedReader(new InputStreamReader(S.getInputStream()));
             out = new BufferedWriter(new OutputStreamWriter(S.getOutputStream()));
             String First = in.readLine();
-            //System.out.println("receive :"+First);
+            //cout.println("receive :"+First);
             if(First==null){
                if(trace)
-                  System.out.println("connection broken");
+                  cout.println("connection broken");
                 showPrompt();
                 running=false;
                 return;
@@ -342,13 +345,13 @@ static {
                running = true;
              }else{
                 if(trace)
-                   System.out.println("protocol-error , close connection (expect: <who>, received :"+First);
+                   cout.println("protocol-error , close connection (expect: <who>, received :"+First);
                 showPrompt();
                 running = false;
              }
          }catch(Exception e){
              if(trace){
-                System.out.println("Exception occured "+e);
+                cout.println("Exception occured "+e);
                 e.printStackTrace();
              }
              showPrompt();
@@ -364,14 +367,14 @@ static {
               S.close();
         }catch(Exception e){
             if(trace){
-               System.out.println("Exception in closing connection "+e);
+               cout.println("Exception in closing connection "+e);
                e.printStackTrace();
             }
         }
         OptimizerServer.Clients--;
         if(trace){
-           System.out.println("\nbye client");
-           System.out.println("number of clients is :"+ OptimizerServer.Clients);
+           cout.println("\nbye client");
+           cout.println("number of clients is :"+ OptimizerServer.Clients);
         }
         if((OptimizerServer.Clients==0) && OptimizerServer.quitAfterDisconnect){
           // OptimizerServer.halt(); // not allowed from this tread
@@ -397,7 +400,7 @@ static {
              String input = in.readLine();
              if(input==null){
                 if(trace)
-                   System.out.println("connection is broken");
+                   cout.println("connection is broken");
                 disconnect();
                 return;
              }
@@ -405,36 +408,36 @@ static {
 
                if(!input.equals("<optimize>") && !input.equals("<execute>") ){ // protocol_error
                    if(trace)
-                      System.out.println("protocol error( expect: <optimize> or <execute> , found:"+input);
+                      cout.println("protocol error( expect: <optimize> or <execute> , found:"+input);
                    disconnect();
                    return;
                }
-               //System.out.println("receive "+input+" from client");
+               //cout.println("receive "+input+" from client");
 
                execFlag = input.equals("<execute>");
                // read the database name
                input = in.readLine();
                
-                //System.out.println("receive "+input+" from client");
+                //cout.println("receive "+input+" from client");
 
                if(input==null){
                   if(trace)
-                     System.out.println("connection is broken");
+                     cout.println("connection is broken");
                   disconnect();
                   return;
                }
                if(!input.equals("<database>")){ // protocol_error
                   if(trace)
-                     System.out.println("protocol error( expect: <database> , found:"+input);
+                     cout.println("protocol error( expect: <database> , found:"+input);
                   disconnect();
                   return;
                }
                String Database = in.readLine();
 
-               //System.out.println("receive "+Database+" from client");
+               //cout.println("receive "+Database+" from client");
 
                if(Database==null){
-                  System.out.println("connection is broken");
+                  cout.println("connection is broken");
                   disconnect();
                   return;
                }else {
@@ -442,11 +445,11 @@ static {
                }
                input = in.readLine();
 
-               //System.out.println("receive "+input+" from client");
+               //cout.println("receive "+input+" from client");
 
                if(input==null){
                 if(trace)
-                   System.out.println("connection is broken");
+                   cout.println("connection is broken");
                 disconnect();
                 return;
                }else{
@@ -454,17 +457,17 @@ static {
                }
                if(!input.equals("</database>")){ // protocol error
                    if(trace)
-                      System.out.println("protocol error( expect: </database> , found:"+input);
+                      cout.println("protocol error( expect: </database> , found:"+input);
                    disconnect();
                    return;
                }
                input = in.readLine();
 
-               //System.out.println("receive "+input+" from client");
+               //cout.println("receive "+input+" from client");
 
                if(input==null){
                 if(trace)
-                   System.out.println("connection is broken");
+                   cout.println("connection is broken");
                 disconnect();
                 return;
                 }else{
@@ -472,7 +475,7 @@ static {
                 }
                if(!input.equals("<query>")){ // protocol error
                    if(trace)
-                        System.out.println("protocol error( expect: <query> , found:"+input);
+                        cout.println("protocol error( expect: <query> , found:"+input);
                     disconnect();
                    return;
                }
@@ -481,22 +484,22 @@ static {
                // build the query from the next lines
                input = in.readLine();
                
-                //System.out.println("receive "+input+" from client");
+                //cout.println("receive "+input+" from client");
 
-               //System.out.println("receive"+input);
+               //cout.println("receive"+input);
                if(input==null){
                 if(trace)
-                   System.out.println("connection is broken");
+                   cout.println("connection is broken");
                 disconnect();
                 return;
                }
                while(!input.equals("</query>")){
                   res.append(input + "\n");
                   input = in.readLine();
-                  //System.out.println("receive"+input);
+                  //cout.println("receive"+input);
                   if(input==null){
                     if(trace)
-                       System.out.println("connection is broken");
+                       cout.println("connection is broken");
                     disconnect();
                     return;
                   }
@@ -504,24 +507,24 @@ static {
 
                input = in.readLine();
                  
-               //System.out.println("receive "+input+" from client");
+               //cout.println("receive "+input+" from client");
           
                if(input==null){
-                  System.out.println("connection is broken");
+                  cout.println("connection is broken");
                   disconnect();
                   return;
                }
 
                if(! (input.equals("</optimize>") & !execFlag)  & !(input.equals("</execute>") & execFlag)){ //protocol-error
                    if(trace)
-                     System.out.println("protocol error( expect: </optimize> or </execute>, found:"+input);
+                     cout.println("protocol error( expect: </optimize> or </execute>, found:"+input);
                    disconnect();
                    return;
                }
 
                String Request = res.toString().trim();
 
-               //System.out.println("Request is " + Request );
+               //cout.println("Request is " + Request );
 
                Vector V = new Vector();
                synchronized(SyncObj){
@@ -547,19 +550,19 @@ static {
                out.flush();
                input = in.readLine().trim();
                
-               //System.out.println("receive "+input+" from client");
+               //cout.println("receive "+input+" from client");
 
                if (input==null){
-                    System.out.println("connection broken");
+                    cout.println("connection broken");
                   showPrompt();
                   disconnect();
                   return;
                }
              } // while
-             System.out.println("connection ended normally");
+             cout.println("connection ended normally");
              showPrompt();
            }catch(IOException e){
-              System.out.println("error in socket-communication");
+              cout.println("error in socket-communication");
               disconnect();
               showPrompt();
               return;
@@ -581,11 +584,11 @@ static {
      try{
         SS = new ServerSocket(PortNr);
      } catch(java.net.BindException be){
-          System.out.println("BindException occured");
-          System.out.println("check if the port "+PortNr+" is already in use");
+          cout.println("BindException occured");
+          cout.println("check if the port "+PortNr+" is already in use");
           return false;
      } catch(Exception e){
-       System.out.println("unable to create a ServerSocket");
+       cout.println("unable to create a ServerSocket");
        e.printStackTrace();
        return false;
      }
@@ -596,20 +599,20 @@ static {
     *   for each new client a new socket communicationis created
     */
    public void run(){
-      System.out.println("\nwaiting for requests");
+      cout.println("\nwaiting for requests");
       showPrompt();
       while(running){
        try{
            Socket S = SS.accept();
            Clients++;
            if(trace){
-               System.out.println("\na new client is connected");
-               System.out.println("number of clients :"+Clients);
+               cout.println("\na new client is connected");
+               cout.println("number of clients :"+Clients);
                showPrompt();
            }
            (new Server(S)).start();
           } catch(Exception e){
-         System.out.println("error in communication");
+         cout.println("error in communication");
          showPrompt();
        }
      }
@@ -618,13 +621,14 @@ static {
 
 
   private static void showUsage(){
-     System.out.println("java -classpath .:<jplclasses> OptimizerServer  PORT [options] ");
-     System.out.println("<jplclasses> : jar file containing the JPL (prolog) API");
-     System.out.println("PORT : port for the server");
-     System.out.println("[Options can be :");
-     System.out.println("   -autoquit           : exits the server if the last client disconnects");
-     System.out.println("   -trace_methods      : enables tracing of method calls (for debugging)");
-     System.out.println("   -trace_instructions : enables tracing of instructions (for debugging)");
+     cout.println("java -classpath .:<jplclasses> OptimizerServer  PORT [options] ");
+     cout.println("<jplclasses> : jar file containing the JPL (prolog) API");
+     cout.println("PORT : port for the server");
+     cout.println("[Options can be :");
+     cout.println("   -autoquit           : exits the server if the last client disconnects");
+     cout.println("   -trace_methods      : enables tracing of method calls (for debugging)");
+     cout.println("   -trace_instructions : enables tracing of instructions (for debugging)");
+     cout.println("   -encoding enc       : switch the output encoding");
   }
 
 
@@ -635,6 +639,7 @@ static {
      * quit   : shuts down the server
      */
    public static void main(String[] args){
+       cout = System.out;
        if(args.length<1){
           showUsage();
           System.exit(1);
@@ -642,29 +647,55 @@ static {
        // process options
        Runtime rt = Runtime.getRuntime();
        int pos = 1;
+       String console_enc = "utf-8"; // standard
        while(pos<args.length){
            if(args[pos].equals("-trace_methods")){
                rt.traceMethodCalls(true); 
-               System.out.println("enable method tracing");
+               cout.println("enable method tracing");
                pos++;
            } else if(args[pos].equals("-trace_instructions")){
                rt.traceInstructions(true);
-               System.out.println("enable instruction tracing");
+               cout.println("enable instruction tracing");
                pos++;
            } else if(args[pos].equals("-autoquit")){
                quitAfterDisconnect=true;
-               System.out.println("auto quit enabled");
+               cout.println("auto quit enabled");
                pos++;
+           } else if(args[pos].equals("-encoding")){
+              if(pos+1>=args.length){
+                showUsage();
+                System.exit(1);
+              }
+              console_enc = args[pos+1];
+              pos++;
+              pos++;
            } else {
-               System.out.println("unknown option " + args[pos]);
+               cout.println("unknown option " + args[pos]);
                showUsage();
                System.exit(1);
            }
        }
 
-       System.out.println("\n\n");
-       printLicence(System.out);
-       System.out.println("\n");
+       if(!console_enc.equals("utf-8")){
+           SortedMap available = Charset.availableCharsets();
+           if(!available.containsKey(console_enc)){
+              cout.println("encoding " + console_enc + " unknown");
+              cout.println(" Available encodinga are : ");
+              cout.println(available.keySet());
+              System.exit(1);
+           }
+           try {
+              cout = new PrintStream(System.out, true, console_enc);
+           } catch(Exception e){
+              cout = System.out;
+              cout.println("Problem in changing output encoding, use utg-8");
+           }
+       } 
+
+
+       cout.println("\n\n");
+       printLicence(cout);
+       cout.println("\n");
        String arg = args[0];
        OptimizerServer OS = new OptimizerServer();
        try{
@@ -687,18 +718,18 @@ static {
         }
 
        if(! OS.initialize()){
-          System.out.println("initialization failed");
+          cout.println("initialization failed");
           System.exit(1);
        }
        if(!OS.createServer()){
-         System.out.println("creating Server failed");
+         cout.println("creating Server failed");
          System.exit(1);
        }
        OS.running = true;
        OS.start();
        try{
          BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-         System.out.print("optserver >");
+         cout.print("optserver >");
          String command = "";
          Vector ResVector = new Vector();
          while(!command.equals("quit")){
@@ -709,30 +740,30 @@ static {
             }
             command = command.trim();
            if(command.equals("clients")){
-              System.out.println("Number of Clients: "+ Clients);
+              cout.println("Number of Clients: "+ Clients);
            }else if(command.equals("quit")){
               if( Clients > 0){
-                 System.out.print("clients exists ! shutdown anyway (y/n) >");
+                 cout.print("clients exists ! shutdown anyway (y/n) >");
                  String answer = in.readLine().trim().toLowerCase();
                  if(!answer.startsWith("y"))
                      command="";
               }
            } else if(command.equals("trace-on")){
                trace=true;
-               System.out.println("tracing is activated");
+               cout.println("tracing is activated");
            } else if(command.equals("trace-off")){
                trace=false;
-               System.out.println("tracing is deactivated");
+               cout.println("tracing is deactivated");
            } else if(command.equals("help") | command.equals("?") ){
-                System.out.println("quit      : quits the server ");
-                System.out.println("clients   : prints out the number of connected clients");
-                System.out.println("trace-on  : prints out messages about command, optimized command, open database");
-                System.out.println("trace-off : disable messages");
+                cout.println("quit      : quits the server ");
+                cout.println("clients   : prints out the number of connected clients");
+                cout.println("trace-on  : prints out messages about command, optimized command, open database");
+                cout.println("trace-off : disable messages");
            } else if(command.startsWith("exec")){
              String cmdline = command.substring(4,command.length()).trim();
              execute(cmdline,ResVector);
            }else if(!command.equals("")){
-              System.out.println("unknow command, try help show a list of valid commands");
+              cout.println("unknow command, try help show a list of valid commands");
            }
            if(!command.equals("quit"))
               showPrompt();
@@ -741,7 +772,7 @@ static {
          OS.running = false;
        }catch(Exception e){
           OS.running = false;
-          System.out.println("error in reading commands");
+          cout.println("error in reading commands");
           if(trace)
              e.printStackTrace();
        }
@@ -757,13 +788,13 @@ static {
 
    /** Prints out the licence information of this software **/
    public static void printLicence(PrintStream out){
-       out.println(" Copyright (C) 2006, University in Hagen, ");
-       out.println(" Faculty of Mathematics and Computer Science,  ");
-       out.println(" Database Systems for New Applications. \n");
+       cout.println(" Copyright (C) 2006, University in Hagen, ");
+       cout.println(" Faculty of Mathematics and Computer Science,  ");
+       cout.println(" Database Systems for New Applications. \n");
 
-       out.println(" This is free software; see the source for copying conditions.");
-       out.println(" There is NO warranty; not even for MERCHANTABILITY or FITNESS ");
-       out.println(" FOR A PARTICULAR PURPOSE.");
+       cout.println(" This is free software; see the source for copying conditions.");
+       cout.println(" There is NO warranty; not even for MERCHANTABILITY or FITNESS ");
+       cout.println(" FOR A PARTICULAR PURPOSE.");
    }
 
 
@@ -776,6 +807,7 @@ static {
    private static String openedDatabase ="";
    private static boolean trace = true;
    private static Object SyncObj = new Object();
+   private static PrintStream cout;
 
 }
 
