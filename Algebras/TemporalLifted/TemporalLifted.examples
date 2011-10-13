@@ -1068,3 +1068,13 @@ Signature: mint x mint -> mint
 Example  : query zero() eplus zero()
 Result   : bug
 Remark   : alpha state
+
+Operator : createmint
+Number   : 1
+Signature : periods x int -> mint
+Example   : query maximum( createmint(deftime(train7),3)) = 3
+Result    : TRUE
+
+
+
+

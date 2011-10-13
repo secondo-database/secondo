@@ -34,7 +34,8 @@ December 2006: Christian D[ue]ntgen corrected code for ~SolvePoly(...)~
 and separated the solver methods to its own header file called
 ~PolySolver.h~ within the SECONDO ~include~ directory.
 
-September 2009 Simone Jandt: Changed TU\_VM\_ComparePredicateValue\_UReal to use new member function ~CompUReal~ of ~UReal~.
+September 2009 Simone Jandt: Changed TU\_VM\_ComparePredicateValue\_UReal 
+to use new member function ~CompUReal~ of ~UReal~.
 
 1 Overview
 
@@ -79,7 +80,8 @@ const bool TLA_DEBUG = false;
 /*
 1 Class template ~RefinementPartitionLift~
 
-This implementation was renamed ~RefinementPartition~ and moved to ~TemporalAlgebra.h~.
+This implementation was renamed ~RefinementPartition~ 
+and moved to ~TemporalAlgebra.h~.
 
 1 Methods used by the ValueMapping-Functions
 
@@ -571,7 +573,8 @@ int FindEqualTimes4Real(const UReal& u1, const UReal& u2, Instant t[4]){
 /*
 1.1 Method ~CompareUReal~
 
-Returns true iff for the temporal functions of the two uReals as such the comparison holds during the
+Returns true iff for the temporal functions of the two uReals as such the 
+comparison holds during the
 definition time of uBool.
 The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
@@ -5444,19 +5447,47 @@ static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
 }
 
 /*
-16.1 Type mapping function ~TemporalMIntTypeMap~
+16.1 Type mapping function ~periods2mint~
 
-Used by ~mint~:
+Signature: periods [ x periods] -> mint
 
 */
-static ListExpr TemporalMIntTypeMap(ListExpr args) {
+static ListExpr periods2mintTM(ListExpr args) {
 
-    if (nl->ListLength(args) == 1
-        && nl->IsEqual(nl->First(args), "periods"))
-        return nl->SymbolAtom(MInt::BasicType());
-    else
-        return nl->SymbolAtom(Symbol::TYPEERROR());
+    string err = "periods [ x periods] expected";
+    int len = nl->ListLength(args);
+    if((len!=1) && (len!=2)){
+       return listutils::typeError(err);
+    }
+    if(!Periods::checkType(nl->First(args))){
+       return listutils::typeError(err);
+    }
+    if((len==2) && !Periods::checkType(nl->Second(args))){
+       return listutils::typeError(err);
+    }
+    return nl->SymbolAtom(MInt::BasicType());
 }
+
+/*
+16.1 Type Mapping function ~createmint~
+
+Signature: periods x int -> mint
+
+*/
+static ListExpr createmintTM(ListExpr args){
+
+  string err = "periods x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " ( wrong number of arguments)");
+  }
+  if(!Periods::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err );
+  }
+  return  nl->SymbolAtom(MInt::BasicType());
+}
+
+
 
 /*
 16.1 Type mapping function ~TemporalPlusTypeMap~
@@ -7629,72 +7660,148 @@ Every interval in periods will be transformed into an UInt with
 value 1, The definition gaps will be transformed into UInts with value 0.
 
 */
-int TemporalMIntValueMap( Word* args, Word& result, int message,
+int periods2mintVM( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
-    if(TLA_DEBUG)
-      cout<<"TemporalMIntValueMap called"<<endl;
-    result = qp->ResultStorage( s );
-    Periods *pers = (Periods*)args[0].addr;
-    MInt *pResult = (MInt*)result.addr;
-    pResult->Clear();
-    if( !pers->IsDefined() ){
-      pResult->SetDefined( false );
+
+  Periods* src = (Periods*) args[0].addr;
+  result = qp->ResultStorage(s);
+  MInt* res = (MInt*) result.addr;
+  res->Clear();
+
+  if(!src->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  
+  Periods* extension = 0;
+
+  Periods maxInterval(1);
+  
+
+  if(qp->GetNoSons(s)==2){ // optional second periods value present
+    extension = (Periods*) args[1].addr;
+    if(!extension->IsDefined()){
+       extension = 0;
+    } else if(extension->IsEmpty()){
+      extension = 0;
+    }
+  } else {
+     DateTime maxTime(datetime::instanttype);
+     DateTime minTime(datetime::instanttype);
+     maxTime.ToMaximum();
+     minTime.ToMinimum();
+     Interval<Instant> iv(minTime, maxTime, true,true);
+     maxInterval.StartBulkLoad();
+     maxInterval.Add(iv);
+     maxInterval.EndBulkLoad();
+     extension = &maxInterval;
+  }
+
+  CcInt zero(true,0);
+  CcInt one(true,1);
+
+  if(src->IsEmpty()){
+    if(extension==0){
       return 0;
-    }
-    pResult->SetDefined( true );
-    Interval<Instant> per;
-    UInt uInt(true);
+    } 
+    // create a zero from extension
+    Interval<Instant> u1;
+    Interval<Instant> u2;
+    extension->Get(0,u1);
+    extension->Get(extension->GetNoComponents()-1,u2);
+    Interval<Instant> iv(u1.start, u2.end,u1.lc,u2.rc);
+    UInt v(iv,zero);
+    res->StartBulkLoad();
+    res->Add(v);
+    res->EndBulkLoad();
+    return 0;
+  }
 
-    pResult->StartBulkLoad();
-    if(pers->GetNoComponents() < 1){
-      uInt.timeInterval.lc = true;
-      uInt.timeInterval.start.ToMinimum();
-      uInt.timeInterval.start.SetType(instanttype);
-      uInt.timeInterval.rc = true;
-      uInt.timeInterval.end.ToMaximum();
-      uInt.timeInterval.end.SetType(instanttype);
-      uInt.constValue.Set(true, 0);
-      pResult->Add(uInt);
-    }
-    else{
-      uInt.timeInterval.lc = true;
-      uInt.timeInterval.start.ToMinimum();
-      uInt.timeInterval.start.SetType(instanttype);
-      for( int i = 0; i < pers->GetNoComponents(); i++) {
-        pers->Get(i, per);
-        if(!pers->IsDefined())
-          continue;
+  // normal case, src defined and non-empty
+  int size = src->GetNoComponents();
+  Interval<Instant> lastIv;
+  Interval<Instant> iv;
+  res->StartBulkLoad();
+  for(int i=0;i<size;i++){
 
-        uInt.timeInterval.rc = !per.lc;
-        uInt.timeInterval.end = per.start;
-        uInt.constValue.Set(true, 0);
-
-        if(uInt.timeInterval.start < uInt.timeInterval.end
-         || (uInt.timeInterval.start == uInt.timeInterval.end
-         && uInt.timeInterval.lc && uInt.timeInterval.rc))
-          pResult->MergeAdd(uInt);
-        uInt.timeInterval = per;
-        uInt.constValue.Set(true, 1);
-
-        pResult->MergeAdd(uInt);
-
-        uInt.timeInterval.lc = !per.rc;
-        uInt.timeInterval.start = per.end;
-      }
-      uInt.timeInterval.end.ToMaximum();
-      uInt.timeInterval.end.SetType(instanttype);
-      if(per.end < uInt.timeInterval.end){
-        uInt.timeInterval.rc = true;
-        uInt.constValue.Set(true, 0);
-
-        pResult->MergeAdd(uInt);;
-      }
-    }
-    pResult->EndBulkLoad(false);
-
+     if(i==0){
+        src->Get(0,lastIv);
+        if(extension!=0){
+           Interval<Instant> eiv;
+           extension->Get(0,eiv);
+           if( (eiv.start < lastIv.start) ||
+               ((eiv.start == lastIv.start) && eiv.lc && !lastIv.lc)){
+              Interval<Instant> cur(eiv.start, lastIv.start, 
+                                    eiv.lc, !lastIv.lc);
+              UInt v(cur,zero);
+              res->Add( v);
+           }
+        }
+        UInt v(lastIv,one);
+        res->Add( v);
+     } else { // not the first unit
+       src->Get(i,iv);
+       if((lastIv.end < iv.start) ||  
+          ( (lastIv.end == iv.start) && (lastIv.rc != iv.lc))) {
+         // fill gap
+         Interval<Instant> cur(lastIv.end, iv.start, !lastIv.rc, !iv.lc);
+         UInt v(cur,zero);
+       }
+       UInt v(iv,one);
+       res->Add( v);
+       lastIv = iv;
+     }
+  }
+  // extend if required
+  if(extension){
+     extension->Get(extension->GetNoComponents()-1, iv);
+     if( (lastIv.end < iv.end) ||
+         ( (lastIv.end == iv.end) && !lastIv.rc && iv.rc)){
+       Interval<Instant> cur(lastIv.end, iv.end, !lastIv.rc, iv.rc);
+       UInt v(cur,zero);
+       res->Add( v);
+     }
+  }
+  res->EndBulkLoad(false, true);
   return 0;
 }
+
+
+/*
+16.4 Value Mapping Operator ~createmint~
+
+*/
+
+int createmintVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  MInt* res = (MInt*) result.addr;
+  Periods* p = (Periods*) args[0].addr;
+  CcInt*   v = (CcInt*) args[1].addr;
+
+  res->Clear();
+  if(!p->IsDefined() || !v->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->SetDefined(true);
+  res->StartBulkLoad();
+  int size = p->GetNoComponents();
+  Interval<Instant> iv;
+  int value = v->GetValue();
+  for(int i=0;i<size;i++){
+     p->Get(i,iv);
+     UInt ui(iv,value);
+     res->Add(ui);
+  }
+  res->EndBulkLoad(false);
+  return 0;
+}
+
+
+
+
 
 
 int eplusVM( Word* args, Word& result, int message,
@@ -7718,7 +7825,8 @@ int eplusVM( Word* args, Word& result, int message,
 /*
 1.1 Value mapping functions of operator ~concat~
 
-Concats two mpoints. If intervals are not disjunct it creates an undefined value.
+Concats two mpoints. If intervals are not disjunct it creates 
+an undefined value.
 
 */
 int TemporalConcatValueMap(Word* args, Word& result, int message,
@@ -8284,13 +8392,25 @@ const string temporalzerospec
              " to maxInstant</text--->"
              "<text>zero()</text---> ) )";
 
-const string temporalmintspec
+const string periods2mintSpec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
              "( <text>periods -> mint</text--->"
-             "<text>mmint( _ )</text--->"
-             "<text>Creats a MInt from a periods-object with value 1"
+             "<text>periods2mint( _ )</text--->"
+             "<text>Creates an MInt from a periods-object with value 1"
              " for each existing period and 0 for every hole.</text--->"
+             "<text>periods2mint(per1)</text---> ) )";
+
+
+const string createmintSpec
+           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" ) "
+             "( <text>periods x int -> mint</text--->"
+             "<text>createmint( _ )</text--->"
+             "<text>Creates a moving int which is defined at the"
+             " intervals of the periods value and haves the given"
+             " int value during these intervals. " 
+             "</text--->"
              "<text>mmint(per1)</text---> ) )";
 
 const string eplusSpec
@@ -8486,10 +8606,18 @@ static Operator temporalzero("zero",
                             TemporalZeroTypeMap);
 
 static Operator temporalmint("periods2mint",
-                            temporalmintspec,
-                            TemporalMIntValueMap,
+                            periods2mintSpec,
+                            periods2mintVM,
                             Operator::SimpleSelect,
-                            TemporalMIntTypeMap);
+                            periods2mintTM);
+
+static Operator createmint(
+                    "createmint",
+                    createmintSpec,
+                    createmintVM,
+                    Operator::SimpleSelect,
+                    createmintTM);
+
 
 static Operator eplus("eplus",
                        eplusSpec,
@@ -8544,6 +8672,7 @@ class TemporalLiftedAlgebra : public Algebra
 
     AddOperator( &temporalzero);
     AddOperator( &temporalmint);
+    AddOperator( &createmint);
     AddOperator( &eplus);
     AddOperator( &temporalconcat);
     AddOperator( &temporalabs);
