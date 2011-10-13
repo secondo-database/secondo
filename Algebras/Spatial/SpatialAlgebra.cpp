@@ -55,20 +55,20 @@ using namespace std;
 
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
-#include "../../include/Algebra.h"
-#include "../../include/NestedList.h"
-#include "../../include/ListUtils.h"
-#include "../../include/GenericTC.h"
-#include "../../include/QueryProcessor.h"
-#include "../../include/StandardTypes.h"
+#include "Algebra.h"
+#include "NestedList.h"
+#include "ListUtils.h"
+#include "GenericTC.h"
+#include "QueryProcessor.h"
+#include "StandardTypes.h"
 #include "SpatialAlgebra.h"
-#include "../../include/SecondoConfig.h"
-#include "../../include/AvlTree.h"
+#include "SecondoConfig.h"
+#include "AvlTree.h"
 #include "AVLSegment.h"
-#include "../../include/AlmostEqual.h"
+#include "AlmostEqual.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "RegionTools.h"
-#include "../../include/Symbols.h"
+#include "Symbols.h"
 
 #include <vector>
 #include <queue>
@@ -1881,7 +1881,7 @@ TypeConstructor point(
   ClosePoint,    ClonePoint,  //object close, and clone
   CastPoint,                  //cast function
   SizeOfPoint,                //sizeof function
-  CheckPoint );               //kind checking function
+  CheckPoint);               //kind checking function
 
 /*
 5 Type Constructor ~points~
@@ -6694,6 +6694,13 @@ ostream& Line::Print( ostream &os ) const
   os.precision(8);
   os << *this;
   os.flags(oldOptions);
+  for (int i = 0; i < Size(); i++)
+  {
+    HalfSegment hs;
+    Get(i, hs);
+    if (hs.IsLeftDomPoint()) hs.Print(os);
+  }
+  return os;
   return os;
 
 }
@@ -7249,7 +7256,7 @@ bool SimpleLine::AtPosition( double pos,
 
 */
 
-bool SimpleLine::AtPoint(const Point& p, const bool startsSmaller, 
+bool SimpleLine::AtPoint(const Point& p, const bool startsSmaller,
                          double& result,
                          const Geoid* geoid /*= 0*/) const
 {
@@ -7263,38 +7270,38 @@ bool SimpleLine::AtPoint(const Point& p, const bool startsSmaller,
       <<endl;
       assert(false); // TODO: Implement spherical geometry case.
     }
-      bool found = false;
-      HalfSegment hs;
-      int pos;
-      if( Find( p, pos ) ) {
-        found = true;
-        segments.Get( pos, &hs );
-      } else {
-        if( pos < Size() ) {
-          for( ; pos >= 0; pos-- ) {
-            segments.Get( pos, hs );
-            if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
-              found = true;
-              break;
-            }
+    bool found = false;
+    HalfSegment hs;
+    int pos;
+    if( Find( p, pos ) ) {
+      found = true;
+      segments.Get( pos, &hs );
+    } else {
+      if( pos < Size() ) {
+        for( ; pos >= 0; pos-- ) {
+          segments.Get( pos, hs );
+          if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
+            found = true;
+            break;
           }
         }
       }
-        if( found ){
-          LRS lrs;
-          lrsArray.Get( hs.attr.edgeno, lrs );
-          segments.Get( lrs.hsPos, &hs );
-          result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
-          if(!this->startSmaller )result = length - result;
-          if( AlmostEqual( result, 0.0 ) ){
-            result = 0;
-          } else if( AlmostEqual( result, length ) ){
-            result = length;
-          }
-          assert( result >= 0.0 && result <= length );
-          return true;
-        }
-      return false;
+    }
+    if( found ){
+      LRS lrs;
+      lrsArray.Get( hs.attr.edgeno, lrs );
+      segments.Get( lrs.hsPos, &hs );
+      result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
+      if(!startsSmaller )result = length - result;
+      if( AlmostEqual( result, 0.0 ) ){
+        result = 0;
+      } else if( AlmostEqual( result, length ) ){
+        result = length;
+      }
+      assert( result >= 0.0 && result <= length );
+      return true;
+    }
+  return false;
 }
 
 bool SimpleLine::AtPoint( const Point& p,
@@ -7333,10 +7340,7 @@ bool SimpleLine::AtPoint( const Point& p,
     lrsArray.Get( hs.attr.edgeno, lrs );
     segments.Get( lrs.hsPos, &hs );
     result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
-
-
     if(!this->startSmaller )result = length - result;
-
     if( AlmostEqualAbsolute( result, 0.0, tolerance ) ){
       result = 0;
     } else if( AlmostEqualAbsolute( result, length, tolerance ) ){
@@ -7471,6 +7475,12 @@ void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
     }
   }
   l.EndBulkLoad();
+  if (!this->startSmaller)
+  {
+    double aux = pos1;
+    pos1 = pos2;
+    pos2 = aux;
+  }
   Point pStartPoint ( true );
   AtPosition ( pos1, startSmaller, pStartPoint );
   Point pEndPoint ( true );
@@ -7558,6 +7568,12 @@ void SimpleLine::SubLine( double pos1, double pos2,
    }
 
    l.EndBulkLoad();
+   if (!startsSmaller)
+   {
+     double aux = length - pos1;
+     pos1 = length - pos2;
+     pos2 = aux;
+   }
    Point pStartPoint ( true );
    AtPosition ( pos1, startSmaller, pStartPoint );
    Point pEndPoint ( true );
@@ -8174,7 +8190,7 @@ TypeConstructor sline(
      CloseSimpleLine, CloneSimpleLine,      //object close and clone
      CastSimpleLine,                       //cast function
      SizeOfSimpleLine,                     //sizeof function
-     CheckSimpleLine );
+     CheckSimpleLine);
 
 
 /*
@@ -14262,19 +14278,21 @@ ListExpr gkTypeMap(ListExpr args){
   if( (len < 1) || (len > 2) ){
     return listutils::typeError(" 1 or 2 arguments expected");
   }
-  string err = "point, points, line, or region  [ x int] expected";
+  string err = "point, points, (s)line, or region  [ x int] expected";
   ListExpr arg = nl->First(args);
   if(!listutils::isSymbol(arg)){
     return listutils::typeError(err);
   }
   string t = nl->SymbolValue(arg);
   if(!( t==Point::BasicType() || t==Points::BasicType() ||
-        t==Line::BasicType() || t==Region::BasicType())){
+        t==Line::BasicType() || t==Region::BasicType() ||
+        t==SimpleLine::BasicType())){
     return listutils::typeError(err);
   }
   if( (len==2) && listutils::isSymbol(nl->Second(args),CcInt::BasicType()) ){
     if( t==Point::BasicType() || t==Points::BasicType() ||
-        t==Line::BasicType() || t==Region::BasicType()){
+        t==Line::BasicType() || t==Region::BasicType() ||
+        t==SimpleLine::BasicType()){
       return nl->SymbolAtom(t); // Zone provided by user
     }
   } else if (len==1){
@@ -15157,6 +15175,7 @@ int gkSelect(ListExpr args){
   if(t==Points::BasicType()) return 1;
   if(t==Line::BasicType()) return 2;
   if(t==Region::BasicType()) return 3;
+  if(t==SimpleLine::BasicType()) return 4;
   return -1;
 }
 
@@ -18065,7 +18084,8 @@ ValueMapping gkVM[] = {
           gkVM_p,
           gkVM_ps,
           gkVM_x<Line>,
-          gkVM_x<Region>
+          gkVM_x<Region>,
+          gkVM_x<SimpleLine>
       };
 
 
@@ -19213,7 +19233,7 @@ Operator utmOp (
 Operator gkOp (
   "gk",
    gkSpec,
-   4,
+   5,
    gkVM,
    gkSelect,
    gkTypeMap );
@@ -19952,11 +19972,11 @@ ListExpr bufferLineTM(ListExpr args){
   if(!CcReal::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
-  if(len==2){  
+  if(len==2){
     return nl->ThreeElemList( nl->SymbolAtom( Symbol::APPEND()),
                           nl->OneElemList(nl->BoolAtom(false)),
                           nl->SymbolAtom(Region::BasicType()));
-                                              
+
   }
   if(!CcBool::checkType(nl->Third(args))){
     return listutils::typeError(err);
@@ -19971,7 +19991,7 @@ ListExpr bufferLineTM(ListExpr args){
 
 Auxiliary Function seg2reg
 
-This funtion converts a halfsegment into a region by adding a buffer 
+This funtion converts a halfsegment into a region by adding a buffer
 zone of a given size.
 
 */
@@ -19982,23 +20002,23 @@ Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
   Point p2 = hs.GetRightPoint();
 
   double len = hs.Length();
- 
+
   double dx = p2.GetX() - p1.GetX();
   double dy = p2.GetY() - p1.GetY();
 
   dx = (dx*buffer)/len;
   dy = (dy*buffer)/len;
 
-  if(!round){ // use rectangular extension 
+  if(!round){ // use rectangular extension
      p1.Translate(-dx/2, -dy/2);
      p2.Translate(dx/2, dy/2);
   }
 
 
-  
+
   Point r1(true, p1.GetX() + dy/2, p1.GetY() - dx/2);
   Point r2(true, p1.GetX() - dy/2, p1.GetY() + dx/2);
-  
+
   Point r3(true, p2.GetX() + dy/2, p2.GetY() - dx/2);
   Point r4(true, p2.GetX() - dy/2, p2.GetY() + dx/2);
 
@@ -20018,7 +20038,7 @@ Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
   (*res) += hs1;
   edgeno++;
 
-   
+
   HalfSegment hs2(true,r1,r3);
   hs2.attr.edgeno=edgeno;
   hs2.attr.insideAbove = true;
@@ -20026,7 +20046,7 @@ Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
   hs2.SetLeftDomPoint(false);
   (*res) += hs2;
   edgeno++;
-  
+
 
   HalfSegment hs3(true,r3,r4);
   hs3.attr.edgeno=edgeno;
@@ -20036,7 +20056,7 @@ Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
   (*res) += hs3;
   edgeno++;
 
-  
+
   HalfSegment hs4(true,r2,r4);
   hs4.attr.edgeno=edgeno;
   hs4.attr.insideAbove = false;
@@ -20068,7 +20088,7 @@ Region* seg2reg(HalfSegment& hs, double& buffer, const bool round = false){
      res = c2;
   }
   return res;
-} 
+}
 
 
 
@@ -20083,7 +20103,7 @@ int bufferLineVM(Word* args, Word& result, int message,
   bool round = round1->IsDefined() && round1->GetValue();
 
   result = qp->ResultStorage(s);
-  Region* res = (Region*) result.addr; 
+  Region* res = (Region*) result.addr;
 
   if(!line->IsDefined() || !buffer->IsDefined() || buffer->GetValue() <= 0){
      res->SetDefined(false);
@@ -20095,14 +20115,14 @@ int bufferLineVM(Word* args, Word& result, int message,
   res->Clear();
   Region* currentReg = 0;
   Region* wholeReg = 0;
-  
+
   // cout << "Process " << line->Size() << "HalfSegments " << endl;
 
   for(int i=0;i<line->Size();i++){
      HalfSegment hs;
      line->Get(i,hs);
      if(hs.IsLeftDomPoint()){
-        
+
          // cout << "Process HalfSegment no " << i << endl;
 
          currentReg = seg2reg(hs,b, round);
@@ -20182,7 +20202,7 @@ void generateCircle(Point* p, double radius, int n , Region* res){
     res->SetDefined(false);
     return;
   }
-  
+
   double valueX, valueY;
   double angle;
   int partnerno = 0;
@@ -20240,7 +20260,7 @@ int circleVM( Word* args, Word& result, int message, Word& local, Supplier s )
   CcReal* r = (CcReal*)args[1].addr; // Radius of the circle.
   CcInt* narg = (CcInt*)args[2].addr; // number of edges
   Region *res = (Region*)result.addr;
- 
+
   if(!p->IsDefined() || !r->IsDefined() || !narg->IsDefined()){
     res->SetDefined(false);
   }  else {
@@ -20401,7 +20421,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialDirectionToHeading );
     AddOperator( &spatialHeadingToDirection );
     AddOperator( &spatialCreateTriangle );
-    
+
     AddOperator(&bufferLine);
     AddOperator(&spatialcircle);
   }

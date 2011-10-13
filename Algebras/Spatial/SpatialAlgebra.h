@@ -60,7 +60,7 @@ shows examples of these spatial data types.
 #include <queue>
 #include "Attribute.h"
 #include "../../Tools/Flob/DbArray.h"
-#include "RectangleAlgebra.h"
+#include "../Rectangle/RectangleAlgebra.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
 #include "AlmostEqual.h"

@@ -765,7 +765,7 @@ Result    : (bool FALSE)
 
 Operator  : gk
 Number    : 1
-Signature : point -> point | points -> points | line -> line | region -> region
+Signature : point -> point | points -> points | line -> line | region -> region | sline -> sline
 Example   : query gk([const point value (1.0 1.0)])
 Result    : (point (1942837.210480324 110590.6736442424))
 Tolerance : 150.0
