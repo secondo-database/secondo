@@ -2047,6 +2047,7 @@ elsewhere. Used to translate spatial 2D positions into network positions.
 */
 
   GPoint* GetNetworkPosOfPoint(const Point p) const;
+  GPoint* GetNetworkPosOfPointOnRoute(const Point p, const int rid) const;
 
 /*
 GetSectionsInternal

@@ -46,21 +46,21 @@ October 2008 - Jianqiu Xu
 #include "../BTree/BTreeAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
 #include "../Spatial/SpatialAlgebra.h"
-#include "../Network/NetworkAlgebra.h"
+#include "NetworkAlgebra.h"
 #include "../Rectangle/RectangleAlgebra.h"
-#include "../Network/NetworkManager.h"
+#include "NetworkManager.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
-#include "../../include/Symbols.h"
+#include "Symbols.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
-#include "../../include/StandardTypes.h"
-#include "../../include/Algebra.h"
-#include "../../include/Messages.h"
-#include "../../include/ListUtils.h"
-#include "../../include/ConstructorTemplates.h"
-#include "../../include/TypeMapUtils.h"
-#include "../../include/Operator.h"
-#include "../../include/Attribute.h"
+#include "StandardTypes.h"
+#include "Algebra.h"
+#include "Messages.h"
+#include "ListUtils.h"
+#include "ConstructorTemplates.h"
+#include "TypeMapUtils.h"
+#include "Operator.h"
+#include "Attribute.h"
 
 
 
@@ -173,7 +173,7 @@ bool RouteInterval::Intersects(const RouteInterval *ri,
   double end = max(ri->GetStartPos(),ri->GetEndPos());
   if(ri->Contains(this, tolerance) || Contains(ri, tolerance) ||
       (ri->GetRouteId() == GetRouteId() &&
-      ((start < tstart && tstart < end) || (start < tend && tend < end))))
+      ((start <= tstart && tstart <= end) || (start <= tend && tend <= end))))
     return true;
   else
     return false;
@@ -563,7 +563,7 @@ bool chkPoint03 ( SimpleLine *&route, const Point point,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 1.2*tolerance/0.01 ) &&
+        if ( ( fabs ( k1-k2 ) < 1.2*tolerance ) &&
              ( ( xl < xr &&
                ( x > xl || AlmostEqualAbsolute ( x,xl,tolerance ) ) &&
                ( x < xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ||
@@ -749,7 +749,7 @@ bool checkPoint ( SimpleLine *&route, const Point point,
       {
         k1 = ( y - yl ) / ( x - xl );
         k2 = ( yr - yl ) / ( xr - xl );
-        if ( ( fabs ( k1-k2 ) < 0.004*tolerance/0.01 ) &&
+        if ( ( fabs ( k1-k2 ) < 0.004*tolerance ) &&
              ( ( xl < xr &&
                   ( x > xl || AlmostEqualAbsolute ( x,xl,tolerance )) &&
                   ( x < xr || AlmostEqualAbsolute ( x,xr,tolerance ) ) ) ||
@@ -1903,7 +1903,7 @@ struct SectIDTree
 
   void SetIndex ( const TupleId sectIdent, const int arrayIndex )
   {
-    Find ( sectIdent )->index = arrayIndex;
+    (Find( sectIdent ))->index = arrayIndex;
   };
 
   void SetIndex ( const int arrayIndex )
@@ -1923,12 +1923,12 @@ struct SectIDTree
 
   int GetIndex ( const int sectIdent )
   {
-    return Find ( sectIdent )->index;
+    return (Find ( sectIdent ))->index;
   };
 
   void SetBeforeSectId (const  TupleId sectIdent, const TupleId before )
   {
-    Find ( sectIdent )->beforeSectId = before;
+    (Find ( sectIdent ))->beforeSectId = before;
   };
 
   void SetBeforeSectId ( const TupleId before )
@@ -3223,13 +3223,13 @@ JUNCTION_ROUTE2_ID );
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
              " (ptr " + nl->ToString(ptrList) + "))" + " r1id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
-  assert ( QueryExecuted ); // no query with side effects, please!
+  assert ( QueryExecuted );
   m_pBTreeJunctionsByRoute1 = ( BTree* ) xResult.addr;
 
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
              " (ptr " + nl->ToString(ptrList) + "))" + " r2id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
-  assert ( QueryExecuted ); // no query with side effects, please!
+  assert ( QueryExecuted );
   m_pBTreeJunctionsByRoute2 = ( BTree* ) xResult.addr;
 }
 
@@ -3257,8 +3257,8 @@ void Network::FillSections()
   {
     // Current position on route - starting at the beginning of the route
     double dCurrentPosOnRoute = 0.0;
-    SimpleLine* pRouteCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE
-);
+    SimpleLine* pRouteCurve =
+      ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE);
     TupleId iTupleId = pRoute->GetTupleId();
     CcInt* xRouteId = ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID );
     int iRouteId = xRouteId->GetIntval();
@@ -4955,8 +4955,8 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
         if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
                 ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
         {*/
-        if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01, dpos, 0) &&
-          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01, dpos2, 0))
+        if (pCurve->AtPoint(p1, startSmaller, m_scalefactor, dpos, 0) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor, dpos2, 0))
         {
           pAdjSect1.clear();
           pAdjSect2.clear();
@@ -4989,8 +4989,8 @@ bool Network::ShorterConnection ( Tuple *route, double &start,
         /*
         if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
                 ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-        if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01,dpos, 0) &&
-          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2, 0))
+        if (pCurve->AtPoint(p1, startSmaller, m_scalefactor,dpos, 0) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor,dpos2, 0))
         {
           pAdjSect2.clear();
           chkStartEndA ( dpos, dpos2 );
@@ -5012,7 +5012,7 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
                                    Point p2 )const
 {
   if ( AlmostEqualAbsolute ( p1.Distance ( p2 ), fabs ( end-start),
-                             m_scalefactor*0.01) )
+                             m_scalefactor) )
     return false;
   double difference = 0.0;
   if ( start < end && end > m_scalefactor*0.01 )
@@ -5058,8 +5058,8 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
           ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
         /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
                 ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
-          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2))
+        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor, dpos) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor,dpos2))
         {
           pAdjSect1.clear();
           pAdjSect2.clear();
@@ -5090,8 +5090,8 @@ bool Network::ShorterConnection2 ( Tuple *route, double &start,
           ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
         /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
                 ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
-          pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2))
+        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor, dpos) &&
+          pCurve->AtPoint(p2, startSmaller, m_scalefactor,dpos2))
         {
           pAdjSect2.clear();
           pRoute->DeleteIfAllowed();
@@ -5154,8 +5154,8 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
     end = gpp2->GetPosition();
     chkStartEndA ( start,end );
     Tuple *pRoute = GetRoute ( rid );
-    if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
-) )
+    if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt,
+                             p1, p2) )
     {
       gpp1->DeleteIfAllowed();
       gpp2->DeleteIfAllowed();
@@ -5178,7 +5178,7 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
     bool startSmaller =
       ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
     //if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
-    if (pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos))
+    if (pCurve->AtPoint(p2, startSmaller, m_scalefactor,dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5207,7 +5207,7 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
     startSmaller =
       ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
     //if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
-      if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01,dpos))
+      if (pCurve->AtPoint(p1, startSmaller, m_scalefactor,dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5253,8 +5253,8 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
         ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
       /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
               ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
-        pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos2))
+      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor, dpos) &&
+        pCurve->AtPoint(p2, startSmaller,m_scalefactor, dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5295,8 +5295,8 @@ RouteInterval* Network::Find ( const Point p1, const Point p2 )const
             ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
       /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
               ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
-        pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos2))
+      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor, dpos) &&
+        pCurve->AtPoint(p2, startSmaller,m_scalefactor, dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5371,7 +5371,7 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
     bool startSmaller =
       ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
     //if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
-      if (pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos))
+      if (pCurve->AtPoint(p2, startSmaller,m_scalefactor, dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5399,7 +5399,7 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
     startSmaller =
         ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
     //if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
-        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos))
+        if (pCurve->AtPoint(p1, startSmaller,m_scalefactor, dpos))
     {
       rid =
           ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
@@ -5443,8 +5443,8 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
         ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
       /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
               ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor*0.01, dpos) &&
-        pCurve->AtPoint(p2, startSmaller,m_scalefactor*0.01, dpos2))
+      if (pCurve->AtPoint(p1, startSmaller,m_scalefactor, dpos) &&
+        pCurve->AtPoint(p2, startSmaller,m_scalefactor, dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -5483,8 +5483,8 @@ RouteInterval* Network::FindInterval ( const Point p1, const Point p2 )const
         ((CcBool*)pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
       /*if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
               ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )*/
-      if (pCurve->AtPoint(p1, startSmaller, m_scalefactor*0.01,dpos) &&
-        pCurve->AtPoint(p2, startSmaller, m_scalefactor*0.01,dpos2))
+      if (pCurve->AtPoint(p1, startSmaller, m_scalefactor,dpos) &&
+        pCurve->AtPoint(p2, startSmaller, m_scalefactor,dpos2))
       {
         start = dpos;
         end = dpos2;
@@ -6068,6 +6068,25 @@ At the place nearest to the point.
   }
 }
 
+GPoint* Network::GetNetworkPosOfPointOnRoute(const Point p, const int rid) const
+{
+  Tuple *pCurrRoute = GetRoute(rid);
+  if (pCurrRoute != 0)
+  {
+    double dpos;
+    SimpleLine* pRouteCurve =
+        ( SimpleLine* ) pCurrRoute->GetAttribute (ROUTE_CURVE );
+    bool startSmaller =
+        ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+    if (pRouteCurve->AtPoint(p, startSmaller,m_scalefactor*0.01, dpos))
+    {
+      pCurrRoute->DeleteIfAllowed();
+      return new GPoint ( true, GetId(), rid, dpos, None );
+    }
+  }
+  if (pCurrRoute != 0) pCurrRoute->DeleteIfAllowed();
+  return new GPoint(false);
+}
 
 /*
 ~GetJunctionsMeasForRoutes~
@@ -6174,9 +6193,9 @@ Secondo TypeConstructor for class ~Network~
 
 struct networkInfo:ConstructorInfo{
   networkInfo():ConstructorInfo(){
-    name = "network";
+    name = Network::BasicType();
     signature = "-> NETWORK";
-    typeExample = "network";
+    typeExample = Network::BasicType();
     listRep = "(<id> <routes-relation><junctions-relation>)";
     valueExample = "(1 (rel()) (rel()))";
     remarks = "Datatype containing all network information.";
