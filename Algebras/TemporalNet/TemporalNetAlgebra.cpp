@@ -47,17 +47,17 @@ Defines, includes, and constants
 #include "../Network/NetworkManager.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
-#include "../../include/StandardTypes.h"
-#include "../../include/ListUtils.h"
-#include "../../include/Symbols.h"
-#include "../../include/NestedList.h"
-#include "../../include/QueryProcessor.h"
-#include "../../include/Algebra.h"
-#include "../../include/DateTime.h"
-#include "../../include/ConstructorTemplates.h"
-#include "../../include/TypeMapUtils.h"
-#include "../../include/Operator.h"
-#include "../../include/Symbols.h"
+#include "StandardTypes.h"
+#include "ListUtils.h"
+#include "Symbols.h"
+#include "NestedList.h"
+#include "QueryProcessor.h"
+#include "Algebra.h"
+#include "DateTime.h"
+#include "ConstructorTemplates.h"
+#include "TypeMapUtils.h"
+#include "Operator.h"
+#include "Symbols.h"
 #include "../Rectangle/RectangleAlgebra.h"
 
 
@@ -8331,7 +8331,7 @@ int OpMapMatchingValueMapping(Word* args,
       pMPoint->Get(i++,pUPoint);
       startGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p0);
     }
-    if (!startGP->IsDefined())
+    if (startGP == 0 || !startGP->IsDefined())
     {
       startGP->DeleteIfAllowed();
       if (aktUGPoint != 0)
@@ -8358,7 +8358,9 @@ int OpMapMatchingValueMapping(Word* args,
     }
     Instant startTime = pUPoint.timeInterval.start;
     bool scl = pUPoint.timeInterval.lc;
-    GPoint* endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
+    GPoint* endGP =
+      pNetwork->GetNetworkPosOfPointOnRoute(pUPoint.p1,
+                                            startGP->GetRouteId());
     while ((endGP == 0 || !endGP->IsDefined()) &&
       i < pMPoint->GetNoComponents())
     {
@@ -8370,7 +8372,7 @@ int OpMapMatchingValueMapping(Word* args,
       pMPoint->Get(i++,pUPoint);
       endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
     }
-    if (!endGP->IsDefined())
+    if (endGP == 0 || !endGP->IsDefined())
     {
       startGP->DeleteIfAllowed();
       endGP->DeleteIfAllowed();
