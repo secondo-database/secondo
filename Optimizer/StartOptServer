@@ -102,7 +102,7 @@ if [ -n "$PSWD" ]; then
 fi
 
 
-cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT $AUTOQUIT"
+cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT $AUTOQUIT $*"
 
 echo $cmd 
 
