@@ -5472,8 +5472,12 @@ void MPoint::BreakPoints(Points& result, const DateTime& dur,
              // next unit does not contribute to break
              if(currentDur >= dur){
                 result += firstPoint;
-             }
-             firstIndex = index; // start a new try
+                firstIndex = index;
+             } else {
+                // start a new try
+                firstIndex++;
+                index = firstIndex; 
+            }
           } else {
             // extend the possible break   
             currentDur += (unit.timeInterval.end - unit.timeInterval.start);
