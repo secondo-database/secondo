@@ -110,8 +110,17 @@ public class Network
 
   }
 
+/**
+* Get scalefactor
+*
+* @return Scalefactor
+*/
+public double getScalefactor(){
+ return m_scalefactor;
+}
+
   /**
-   * Get the number of routes in teh network
+   * Get the number of routes in the network
    *
    * @return Number of routes
    */
