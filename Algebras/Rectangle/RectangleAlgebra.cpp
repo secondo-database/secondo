@@ -3009,6 +3009,208 @@ Operator rectanglecenter( RectangleCenter_INFO,
                           RectangleCenter_TM
 );
 
+
+/*
+3.27 partitionRect
+
+This operator devides a rectangle into x [*]  y pieces as a regular grid.
+So, a call partionRect(R,x,y) will create a grid of size x[*]y where the
+rectanglesi (grid cells) are regular, semi-disjoint (may share borders) and cover R.
+
+
+
+3.27.1 Type Mapping
+
+Signature: rect x int x int -> stream(rect)
+
+*/
+ListExpr partitionRectTM(ListExpr args){
+
+  string err = "rect x int x int expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(!Rectangle<2>::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args)) ||
+     !CcInt::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(Rectangle<2>::BasicType()));
+}
+
+/*
+3.27.2 Value Mapping
+
+The value mapping is more generic than the type mapping. It can anly any 
+dimension.
+
+3.27.2.1 LocalInfo
+
+*/
+template<int dim>
+class PartitionRectInfo{
+
+  public:
+
+  PartitionRectInfo(Rectangle<dim>* r, Word* args){
+
+    rect = r;
+    numbers = 0;
+    currentNumbers = 0;
+    if(!rect->IsDefined()){
+       rect = 0;
+       return;
+    }
+    numbers = new int[dim];
+    for(int i=0;i<dim && rect!=0; i++){
+      CcInt* ci = (CcInt*) args[i].addr;
+      if(!ci->IsDefined()){
+         rect = 0;
+       } else {
+          int n = ci->GetValue();
+          if(n<=0){
+             rect = 0;
+          } else {
+            numbers[i] = n;
+          }
+       }
+    }
+    if(rect==0){
+       delete[] numbers;
+       numbers = 0;
+       return;  
+     }
+     currentNumbers = new int[dim];
+     for(int i=0;i<dim;i++){
+       currentNumbers[i] = 0;
+     }
+  }
+
+  ~PartitionRectInfo(){
+      if(numbers){
+         delete[] numbers;
+      } 
+      if(currentNumbers){
+        delete[] currentNumbers;
+      }
+   }
+
+   Rectangle<dim>* nextRect(){
+     if(!rect){
+       return 0;
+     }
+     if(currentNumbers[dim-1] == numbers[dim-1]) { // all rectangles created
+        rect = 0;
+        return 0;
+     }
+     // create the output rectangle
+     double min[dim];
+     double max[dim];
+     for(int i=0;i<dim;i++){
+        min[i] = getPos(i,currentNumbers[i] , numbers[i]);    
+        max[i] = getPos(i,currentNumbers[i] + 1, numbers[i]);  
+     }
+     Rectangle<dim>* result = new Rectangle<dim>(true,min,max);
+     // increase the numbers
+     double found = false;
+     int pos = 0;
+     while(!found){
+       currentNumbers[pos]++;
+       if(currentNumbers[pos] == numbers[pos]){
+          if(pos<dim-1){
+              currentNumbers[pos] = 0;
+          }
+          pos++;
+          found = pos == dim;
+       } else {
+          found = true;
+       }
+     }
+     return result;
+   }
+  private:
+     Rectangle<dim>* rect;
+     int* numbers;
+     int* currentNumbers;
+
+   double getPos(int d, int cur, int end){
+     double min = rect->MinD(d);
+     double max = rect->MaxD(d);
+     double length = max - min;
+     return min + (length * (double)cur) / (double) end;
+   }
+
+
+};
+
+/*
+27.2.2.2 Value Mapping
+
+*/
+template<int dim>
+int partitionRectVM(Word* args, Word& result,
+                    int message, Word& local, Supplier s){
+
+ PartitionRectInfo<dim>* li = (PartitionRectInfo<dim>*)  local.addr;
+ switch(message){
+    case OPEN : {
+
+              if(li){
+                 delete li;
+               }
+              local.addr = new 
+                   PartitionRectInfo<dim>((Rectangle<dim>*)args[0].addr,
+                                                          &args[1]);
+              return 0;
+          }
+     case REQUEST : {
+             if(!li) {
+                 return CANCEL;
+             }
+             result.addr = li->nextRect();
+             return result.addr?YIELD:CANCEL;
+          }
+     case CLOSE : {
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            return 0;
+          }
+ }
+ return -1;
+}
+
+/*
+27.2.3 Specification
+
+*/
+
+const string partitionRectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>rect x int x int -> stream(rect)</text--->"
+    "<text>partitionRect(r,x,y)</text--->"
+    "<text>iCreates a  regular x * y grid from r. "
+    "</text--->"
+    "<text>query partitionRect(BGrenzenLine, 3,3) count = 9</text--->"
+    "<text></text--->"
+    ") )";
+
+
+/*
+27.3.3 Operator instance
+
+*/
+
+
+Operator partitionRect( "partitionRect",
+                        partitionRectSpec,
+                        partitionRectVM<2>,
+                        Operator::SimpleSelect,
+                        partitionRectTM);
+
+
 /*
 5 Creating the Algebra
 
@@ -3061,6 +3263,7 @@ class RectangleAlgebra : public Algebra
     AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
     AddOperator( &gridcell2rect);
     AddOperator( &rectanglecenter);
+    AddOperator( &partitionRect);
   }
   ~RectangleAlgebra() {};
 };

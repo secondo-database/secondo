@@ -238,3 +238,12 @@ Number   : 1
 Signature: (rect) -> point
 Example  : query center([const rect value (0.0 1.0 2.0 3.0)])
 Result   : (point (0.5 2.5))
+
+Operator : partitionRect
+Number   : 1
+Signature: rect x int x int -> stream(rect)
+Example  : query partitionRect(bbox(BGrenzenLine),2,2) count = 4
+Result   : TRUE
+
+
+

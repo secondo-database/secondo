@@ -40,3 +40,5 @@ operator cellnumber alias CELLNUMBER pattern op(_, _, _, _, _, _)
 operator gridintersects alias GRIDINTERSECTS pattern op (_, _, _, _, _, _, _, _)
 operator gridcell2rect alias GRIDCELL2RECT pattern op (_, _, _, _, _, _)
 operator center alias CENTER pattern op ( _ )
+operator partitionRect alias PARTITIONRECT pattern op (_,_,_)
+
