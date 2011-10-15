@@ -1,0 +1,28 @@
+################################################################################
+### Tests networks from imported OSM data (optional)
+################################################################################
+### Description:
+### - This script tests networks from imported OSM data.
+### Please, see tu_osm_import.sh for further details. 
+###
+### Preconditions:
+###
+### Postconditions:
+###
+### Author:
+### - Thomas Uchdorf, t.uchdorf@arcor.de
+################################################################################
+
+# Adding some gpoints for testing purposes
+let spot1 =
+   point2gpoint(cityNetwork,[const point value(6800.58 51236.37)]);
+let spot2 =
+   point2gpoint(cityNetwork,[const point value(6775.94 51238.47)]);
+#let spot3 =
+#   point2gpoint(cityNetwork,[const point value(6783.25 51263.80)]);
+
+# Checking whether the oneWay-Attribute is set correctly
+query extStreetsRel feed
+filter [(.roadClassRef = 1)
+   and not(.oneWay = 1)]
+consume
