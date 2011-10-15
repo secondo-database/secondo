@@ -127,11 +127,13 @@ let endSections =
    consume;
 let startFromScratchSections =
    startSections feed
-   filter [.streetStartNodeId = .startNodeId]
+   filter [(.streetStartNodeId = .startNodeId) and
+      not(.streetStartNodeId = .streetEndNodeId)]
    consume;
 let endFromScratchSections =
    endSections feed
-   filter [.streetEndNodeId = .endNodeId]
+   filter [(.streetEndNodeId = .endNodeId) and
+      not(.streetStartNodeId = .streetEndNodeId)]
    consume;
 let two =
    (startFromScratchSections feed
@@ -173,12 +175,16 @@ let three =
       NodeId: .NodeId_a,
       Node: .Node_a]
    filter [
-      ((((.NodeId = .startNodeId_b) and (.streetStartNodeId_b = .startNodeId_b))
-        or ((.NodeId = .endNodeId_b) and (.streetEndNodeId_b = .endNodeId_b)))
+      ((((.NodeId = .startNodeId_b) and ((.streetStartNodeId_b = .startNodeId_b) and
+         not(.streetStartNodeId_b = .streetEndNodeId_b)))
+        or ((.NodeId = .endNodeId_b) and ((.streetEndNodeId_b = .endNodeId_b) and
+         not(.streetStartNodeId_b = .streetEndNodeId_b))))
        and (.sectionId_a < .sectionId_c) and (.Road1 = .Road3) and not(.Road1 = .Road2))
       or
-      ((((.NodeId = .startNodeId_a) and (.streetStartNodeId_a = .startNodeId_a))
-        or ((.NodeId = .endNodeId_a) and (.streetEndNodeId_a = .endNodeId_a)))
+      ((((.NodeId = .startNodeId_a) and ((.streetStartNodeId_a = .startNodeId_a) and
+         not(.streetStartNodeId_a = .streetEndNodeId_a)))
+        or ((.NodeId = .endNodeId_a) and ((.streetEndNodeId_a = .endNodeId_a) and
+         not(.streetStartNodeId_a = .streetEndNodeId_a))))
        and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
    project [Road1,Road2,Node]
    consume;

@@ -35,12 +35,14 @@ let twoSecInZeroSecOut11JuncTmp =
    ((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       filter [.streetEndNodeId = .endNodeId]
+       filter [(.streetEndNodeId = .endNodeId) and
+          not(.streetStartNodeId = .streetEndNodeId)]
        project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      filter [.streetEndNodeId = .endNodeId]
+      filter [(.streetEndNodeId = .endNodeId) and
+         not(.streetStartNodeId = .streetEndNodeId)]
       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
@@ -71,12 +73,14 @@ let oneSecInOneSecOut12JuncTmp =
    ((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       filter [.streetEndNodeId = .endNodeId]
+       filter [(.streetEndNodeId = .endNodeId) and
+          not(.streetStartNodeId = .streetEndNodeId)]
        project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      filter [.streetStartNodeId = .startNodeId]
+      filter [(.streetStartNodeId = .startNodeId) and
+         not(.streetStartNodeId = .streetEndNodeId)]
       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
@@ -107,12 +111,14 @@ let oneSecInOneSecOut21JuncTmp =
    ((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       filter [.streetStartNodeId = .startNodeId]
+       filter [(.streetStartNodeId = .startNodeId) and
+          not(.streetStartNodeId = .streetEndNodeId)]
        project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      filter [.streetEndNodeId = .endNodeId]
+      filter [(.streetEndNodeId = .endNodeId) and
+         not(.streetStartNodeId = .streetEndNodeId)]
       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
@@ -143,12 +149,14 @@ let zeroSecInTwoSecOut22JuncTmp =
    ((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       filter [.streetStartNodeId = .startNodeId]
+       filter [(.streetStartNodeId = .startNodeId) and
+          not(.streetStartNodeId = .streetEndNodeId)]
        project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      filter [.streetStartNodeId = .startNodeId]
+      filter [(.streetStartNodeId = .startNodeId) and
+         not(.streetStartNodeId = .streetEndNodeId)]
       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
