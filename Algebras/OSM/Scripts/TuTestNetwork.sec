@@ -26,3 +26,13 @@ query extStreetsRel feed
 filter [(.roadClassRef = 1)
    and not(.oneWay = 1)]
 consume
+
+# Testing if any junctions were computed
+query (cityJunctions feed count) > 0
+
+# Checking whether there are duplicate junctions
+query ((cityJunctionsTmp feed count) - (cityJunctions feed count)) = 0
+query (cityJunctionsTmp feed
+   sortby [Road1,Pos1,Road2,Pos2]
+   groupby [Road1,Pos1,Road2,Pos2; Cnt: group count]
+   filter [.Cnt > 1] count) = 0

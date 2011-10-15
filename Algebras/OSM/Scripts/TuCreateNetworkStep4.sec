@@ -91,7 +91,6 @@ let cityJunctions =
 #      JunctionType: 16]
 #   consume;
 
-
 # Creating the network
 let cityNetwork = thenetwork(
    1,
