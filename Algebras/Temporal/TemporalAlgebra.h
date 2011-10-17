@@ -3662,6 +3662,7 @@ using a check on bbox.
   bool Present( const Periods& t ) const;
   void AtInstant( const Instant& t, Intime<Point>& result ) const;
   void AtPeriods( const Periods& p, MPoint& result ) const;
+  void AtRect(const Rectangle<2>& rect, MPoint& result) const;
 
 
   virtual Attribute* Clone() const

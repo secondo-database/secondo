@@ -659,3 +659,13 @@ Signature : {mT1|uT1} x {mT2|uT2} -> stream(tuple((Tstart instant)(Tend instant)
 Example   : query getRefinementPartion(train1, train5) count
 Result    : 173
 
+Operator  : atRect
+Number    : 1
+Signature : mpoint x rect -> mpoint
+Example   : query deftime(train7 atRect bbox(thecenter)) = deftime(train7 at (bbox(thecenter) rect2region))
+Result    : TRUE
+
+
+
+
+

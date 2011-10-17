@@ -88,3 +88,6 @@ operator gridcellevents alias GRIDCELLEVENTS pattern op(_)
 operator squareddistance alias SQUAREDDISTANCE pattern op ( _ , _ )
 operator getRefinementPartion alias GETREFINEMENTPARTION pattern op( _, _ )
 
+operator atRect alias atRect pattern _ infixop _
+
+

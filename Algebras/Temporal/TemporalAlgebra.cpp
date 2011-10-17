@@ -1861,6 +1861,16 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
     }
   }
 
+  // handle rounding errors
+  if(s<=timeInterval.start){
+     s = timeInterval.start;
+     lc = timeInterval.lc;
+  }
+  if(e>=timeInterval.end){
+     e = timeInterval.end;
+     rc = timeInterval.rc;
+  }
+
   if(e<s){
     cerr << "Warning e < s ; s = " << s << ", e = " << e << endl;
     result.SetDefined(false);
@@ -7474,6 +7484,41 @@ void MPoint::AtRegion(const Region *r, MPoint &result) const {
   }
   return;
 }
+
+void MPoint::AtRect(const Rectangle<2>& rect, MPoint& result) const{
+  result.Clear();
+  if(!IsDefined() || !rect.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  Rectangle<2u> bbox = BoundingBoxSpatial();
+  if(!bbox.Intersects(rect)){
+     return;  // dijoint, return empty 
+  }
+  if(rect.Contains(bbox)){
+     result.CopyFrom(this);
+     return;
+  }
+  // Bounding boxes overlap, check units
+  UPoint src;
+  UPoint dest(false);
+  result.StartBulkLoad();
+  for(int i=0;i<GetNoComponents();i++){
+    Get(i,src);
+    src.At(rect,dest);
+    if(dest.IsDefined()){
+       assert(dest.timeInterval.start.GetType()==datetime::instanttype);
+       assert(dest.timeInterval.end.GetType()==datetime::instanttype);
+
+       result.Add(dest);
+    }
+  }
+  result.EndBulkLoad(false);
+
+}
+
+
+
 
 /*
 4 Type Constructors
@@ -15048,7 +15093,7 @@ ValueMapping temporalisemptymap[] = { InstantIsEmpty,
 ValueMapping temporalequalmap[] = { InstantEqual,
                                     RangeEqual<RInt>,
                                     RangeEqual<RReal>,
-                                    RangeEqual<Instant>,
+                                    RangeEqual<Periods >,
                                     IntimeComparePredicates<CcBool,0>,
                                     IntimeComparePredicates<CcInt, 0>,
                                     IntimeComparePredicates<CcReal,0>,
@@ -16333,6 +16378,7 @@ Operator temporalat( "at",
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
 
+
 Operator temporalbox3d( "box3d",
                         Box3dSpec,
                         5,
@@ -17281,6 +17327,69 @@ Operator getrefinementpartition(
 );
 
 /*
+5.2.3 Operator atRect
+
+5.2.3.1 Type Maspping
+
+   Signature is: mpoint x rect -> mpoint
+
+*/
+
+ListExpr atRectTM(ListExpr args){
+  string err ="mpoint x rect expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!MPoint::checkType(nl->First(args)) ||
+     !Rectangle<2>::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(MPoint::BasicType());
+}
+
+/*
+5.2.3.2 Value Mapping
+
+*/
+
+int atRectVM( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
+  MPoint* mp = (MPoint*) args[0].addr;
+  Rectangle<2>* rect = (Rectangle<2>*) args[1].addr;
+  result = qp->ResultStorage(s);
+  MPoint* res = (MPoint*) result.addr;
+  mp->AtRect(*rect,*res);
+  return 0;
+}
+
+/*
+5.2.3.3 Specification
+
+*/
+const string atRectSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x rect -> mpoint </text---> "
+    "<text> mp atRect r  </text--->"
+    "<text>Restricts the moving point mp to the part inside r "
+    "</text--->"
+    "<text>query train7 atRect bbox(thecenter)</text--->"
+    ") )";
+
+/*
+5.2.3.4 Operator instance
+
+*/
+Operator atRect( "atRect",
+                 atRectSpec,
+                 atRectVM,
+                 Operator::SimpleSelect,
+                 atRectTM);
+
+
+
+
+
+/*
 6 Creating the Algebra
 
 */
@@ -17436,6 +17545,8 @@ class TemporalAlgebra : public Algebra
     AddOperator(&getrefinementpartition);
 
     AddOperator(&createCellGrid2D);
+    
+    AddOperator(&atRect);
 
 
 #ifdef USE_PROGRESS
