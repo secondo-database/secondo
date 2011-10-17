@@ -835,6 +835,7 @@ Operator spatialjoin2 (
          spatialJoinTypeMap       // type mapping
 );
 
+
 /*
 6 Parajoin2
 
@@ -845,20 +846,21 @@ and collect tuples have a same key attribute value,
 then use the parameter join function to process them.
 
 */
-struct paraJoin2Info : OperatorInfo
-{
-  paraJoin2Info()
-  {
-    name = "parajoin2";
-    signature =
-        "( (stream(tuple(T1))) x (stream(tuple(T2)))"
-        "x (map (stream(T1)) (stream(T2)) "
-        "(stream(T1 T2))) ) -> stream(tuple(T1 T2))";
-    syntax = "_ _ parajoin2 [ _, _ ; fun]";
-    meaning = "use parameter join function to merge join two "
-              "input sorted streams according to key values.";
-  }
-};
+
+// struct paraJoin2Info : OperatorInfo
+// {
+//   paraJoin2Info()
+//   {
+//     name = "parajoin2";
+//     signature =
+//        "( (stream(tuple(T1))) x (stream(tuple(T2)))"
+//        "x (map (stream(T1)) (stream(T2)) "
+//        "(stream(T1 T2))) ) -> stream(tuple(T1 T2))";
+//     syntax = "_ _ parajoin2 [ _, _ ; fun]";
+//     meaning = "use parameter join function to merge join two "
+//              "input sorted streams according to key values.";
+//   }
+// };
 
 
 /*
@@ -952,6 +954,10 @@ ListExpr paraJoin2TypeMap(ListExpr args)
       return nl->TypeError();
     }
 }
+
+#ifndef USE_PROGRESS
+
+// standard version
 
 int paraJoin2ValueMap(Word* args, Word& result,
                 int message, Word& local, Supplier s)
@@ -1192,6 +1198,365 @@ Tuple* pj2LocalInfo::getNextTuple()
   return 0;
 }
 
+#else
+
+// with support for progress queries
+
+
+int paraJoin2ValueMap(Word* args, Word& result,
+                int message, Word& local, Supplier s)
+{
+  pj2LocalInfo* li;
+  li = (pj2LocalInfo*)local.addr;
+
+  switch(message)
+  {
+    case OPEN:{
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      if (li)
+        delete li;
+      li = new pj2LocalInfo(args[0], args[1],
+                            args[5], args[6],
+                            args[4], s);
+      local.setAddr(li);
+      return 0;
+    }
+
+    case REQUEST:{
+      if (0 == local.addr)
+        return CANCEL;
+
+      result.setAddr(li->getNextTuple());
+      if (result.addr)
+      {
+        li->returned++;
+        return YIELD;
+      }
+      else
+        return CANCEL;
+    }
+
+    case (1*FUNMSG)+OPEN:{
+      return 0;
+    }
+
+    case (2*FUNMSG)+OPEN:{
+      return 0;
+    }
+
+    case (1*FUNMSG)+REQUEST:{
+      if (0 == local.addr)
+        return CANCEL;
+
+      result.setAddr(li->getNextInputTuple(tupBufferA));
+      if (result.addr)
+        return YIELD;
+      else
+        return CANCEL;
+    }
+
+    case (2*FUNMSG)+REQUEST:{
+      if (0 == local.addr)
+        return CANCEL;
+
+      result.setAddr(li->getNextInputTuple(tupBufferB));
+      if (result.addr)
+        return YIELD;
+      else
+        return CANCEL;
+    }
+
+    case (1*FUNMSG)+CLOSE:{
+      return 0;
+    }
+
+    case (2*FUNMSG)+CLOSE:{
+      return 0;
+    }
+
+    case CLOSE:{
+      if (0 == local.addr)
+        return CANCEL;
+
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+      return 0;
+    }
+
+
+    case CLOSEPROGRESS:
+      if ( li )
+      {
+         delete li;
+         local.setAddr(0);
+      }
+      return 0;
+
+
+    case REQUESTPROGRESS:
+    {
+      ProgressInfo p1, p2;
+      ProgressInfo *pRes;
+      const double uParajoin = 0.001;  // to be determined
+      const double wParajoin = 0.001;  // to be determined
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if (!li) {
+         return CANCEL;
+      }
+
+      if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2))
+      {
+        // Sizes
+        li->SetJoinSizes(p1, p2);
+        pRes->CopySizes(li);
+
+	// Cardinality
+        pRes->Card = p1.Card * p2.Card * 
+          ((double) li->returned + 1 ) / 
+          (((double) li->readFirst + 1 ) * ((double) li->readSecond + 1 ));
+
+        // Time
+        pRes->Time = p1.Time + p2.Time + 
+          p1.Card * uParajoin +
+          p2.Card * uParajoin +
+          pRes->Card * wParajoin;
+
+        // Progress
+        pRes->Progress = 
+          ( p1.Time * p1.Progress +
+          p2.Time * p2.Progress +
+          li->readFirst * uParajoin +
+          li->readSecond * uParajoin +
+          li->returned * wParajoin )
+          / pRes->Time;
+          
+        // Blocking Progress
+        pRes->CopyBlocking(p1, p2);  //non-blocking operator;
+
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+    }
+
+
+  }
+  //should never be here
+  return 0;
+}
+
+bool pj2LocalInfo::LoadTuples()
+{
+  bool loaded = false;
+
+  //Clear the buffer
+  if (ita){
+    delete ita; ita = 0;
+  }
+  if (tba){
+    delete tba; tba = 0;
+  }
+
+  if (itb){
+    delete itb; itb = 0;
+  }
+  if (tbb){
+    delete tbb; tbb = 0;
+   }
+
+  if (moreInputTuples)
+  {
+    if (cta == 0){
+      cta.setTuple(NextTuple(streamA));
+      if ( cta != 0 ) readFirst++;
+    }
+    if (ctb == 0){
+      ctb.setTuple(NextTuple(streamB));
+      if ( ctb != 0 ) readSecond++;
+    }
+  }
+  if ( cta == 0 || ctb == 0)
+  {
+    //one of the streams is exhausted
+    endOfStream = true;
+    moreInputTuples = false;
+    return loaded;
+  }
+
+  int cmp = CompareTuples(cta.tuple, keyAIndex,
+                          ctb.tuple, keyBIndex);
+
+  // Assume both streams are ordered by asc
+  while(0 != cmp)
+  {
+    if (cmp < 0)
+    {
+      //a < b, get more a until a >= b
+      while (cmp < 0)
+      {
+        cta.setTuple(NextTuple(streamA));
+        if ( cta != 0 ) readFirst++;
+        else // ( cta == 0 )
+        {
+          endOfStream = true;
+          return loaded;
+        }
+        cmp = CompareTuples(cta.tuple, keyAIndex,
+                            ctb.tuple, keyBIndex);
+      }
+    }
+    else if (cmp > 0)
+    {
+      //a > b, get more b until a <= b
+      while (cmp > 0)
+      {
+        ctb.setTuple(NextTuple(streamB));
+        if ( ctb != 0 ) readSecond++;
+        else // ( ctb == 0 )
+          {
+            endOfStream = true;
+            return loaded;
+          }
+        cmp = CompareTuples(cta.tuple, keyAIndex,
+                            ctb.tuple, keyBIndex);
+      }
+    }
+  }
+
+  //Take all tuples from streamA, until the next tuple is bigger
+  //than the current one.
+  tba = new TupleBuffer(maxMem);
+  int cmpa = 0;
+  RTuple lta;
+  while ( (cta != 0) && (0 == cmpa) )
+  {
+    lta = cta;
+    tba->AppendTuple(lta.tuple);
+    cta.setTuple(NextTuple(streamA));
+    if ( cta != 0 ) 
+    {
+      readFirst++;
+      cmpa = CompareTuples(lta.tuple, keyAIndex,
+                           cta.tuple, keyAIndex);
+    }
+  }
+
+  tbb = new TupleBuffer(maxMem);
+  int cmpb = 0;
+  RTuple ltb;
+  while ( (ctb != 0) && (0 == cmpb) )
+  {
+    ltb = ctb;
+    tbb->AppendTuple(ltb.tuple);
+    ctb.setTuple(NextTuple(streamB));
+    if ( ctb != 0 )
+    {
+      readSecond++;
+      cmpb = CompareTuples(ltb.tuple, keyBIndex,
+                           ctb.tuple, keyBIndex);
+    }
+  }
+  if ((cta == 0) || (ctb == 0)){
+    moreInputTuples = false;
+  }
+
+  if ((0 == tba->GetNoTuples()) || (0 == tbb->GetNoTuples()))
+  {
+    endOfStream = true;
+    return loaded;
+  }
+
+  ita = tba->MakeScan();
+  itb = tbb->MakeScan();
+  loaded = true;
+
+  return loaded;
+}
+
+int pj2LocalInfo::CompareTuples(Tuple* ta, int kai,
+                                Tuple* tb, int kbi)
+{
+  Attribute* a = static_cast<Attribute*>(ta->GetAttribute(kai));
+  Attribute* b = static_cast<Attribute*>(tb->GetAttribute(kbi));
+
+  if (!a->IsDefined() || !b->IsDefined()){
+    cerr << "Undefined Tuples are contained." << endl;
+    return -1;
+  }
+
+  int cmp = a->Compare(b);
+  return cmp;
+}
+
+Tuple* pj2LocalInfo::getNextTuple()
+{
+  Word funResult(Address(0));
+
+  while(!endOfStream)
+  {
+    qp->Request(pf, funResult);
+    if (funResult.addr)
+      return (Tuple*)funResult.addr;
+    else if (endOfStream)
+    {
+      qp->Close(pf);
+      return 0;
+    }
+    else
+    {
+      qp->Close(pf);
+      if (LoadTuples())
+        qp->Open(pf);
+    }
+  }
+
+  return 0;
+}
+
+
+
+#endif
+
+/*
+2.19.3 Specification of operator ~parajoin2~
+
+*/
+const string parajoin2Spec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+
+  "( <text>( (stream(tuple(T1))) x (stream(tuple(T2)))"
+  "x attrT1 x attrT2 x "
+  "( stream(tuple(T1))) x (stream(tuple(T2))) -> "
+  "stream(tuple(T1 T2)) ) -> stream(tuple(T1 T2))</text--->"
+
+  "<text>_ _ parajoin2 [_, _; fun ]</text--->"
+
+  "<text>use parameter join function to merge join two "
+  "input sorted streams according to key values.</text--->"
+
+  "<text>query plz feed sortby[Ort] {p1} "
+  " plz feed sortby[Ort] {p2} "
+  " parajoin2[Ort_p1, Ort_p2; . .. product] count</text--->"
+
+  ") )";
+
+/*
+2.19.4 Definition of operator ~parajoin2~
+
+*/
+Operator parajoin2 (
+         "parajoin2",                // name
+         parajoin2Spec,              // specification
+         paraJoin2ValueMap,          // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         paraJoin2TypeMap            // type mapping
+);
 
 /*
 4 Definition and initialization of ~SpatialJoin~ algebra
@@ -1203,8 +1568,15 @@ class SpatialJoinAlgebra : public Algebra
   SpatialJoinAlgebra() : Algebra()
   {
     AddOperator(&spatialjoin2);
-    AddOperator(paraJoin2Info(),
-        paraJoin2ValueMap, paraJoin2TypeMap);
+    AddOperator(&parajoin2);
+
+    // AddOperator(paraJoin2Info(),
+    //    paraJoin2ValueMap, paraJoin2TypeMap);
+
+#ifdef USE_PROGRESS
+// support for progress queries
+   parajoin2.EnableProgress();
+#endif
 
   }
   ~SpatialJoinAlgebra() {};
