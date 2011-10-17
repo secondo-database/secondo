@@ -1316,9 +1316,8 @@ int paraJoin2ValueMap(Word* args, Word& result,
         pRes->CopySizes(li);
 
 	// Cardinality
-        pRes->Card = p1.Card * p2.Card * 
-          ((double) li->returned + 1 ) / 
-          (((double) li->readFirst + 1 ) * ((double) li->readSecond + 1 ));
+        pRes->Card = ((double) li->returned + 1) * p1.Card
+            /  ((double) li->readFirst + 1);
 
         // Time
         pRes->Time = p1.Time + p2.Time + 
