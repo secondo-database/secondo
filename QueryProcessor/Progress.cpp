@@ -45,7 +45,7 @@ ostream& ProgressInfo::Print(ostream& out) const{
   }   
   out << " ]" << std::endl;
 
-  out  << "  attrSizeExt  = [ ";
+  out  << "   attrSizeExt  = [ ";
   for(int i=0; i< noAttrs; i++){
     if(i>0) out << ", ";
     out << attrSizeExt[i];
