@@ -34,6 +34,7 @@ using namespace std;
 #include "ListUtils.h"
 #include "RectangleAlgebra.h"
 #include "TupleBuffer2.h"
+#include "Progress.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -132,7 +133,7 @@ Assists ~parajoin2~ operator.
 */
 typedef enum { tupBufferA, tupBufferB } tupleBufferType;
 
-class pj2LocalInfo
+class pj2LocalInfo: public ProgressLocalInfo
 {
 private:
   Word streamA, streamB;
