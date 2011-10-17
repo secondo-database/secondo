@@ -18,21 +18,20 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-operator reportpattern alias REPORTPATTERN pattern _ op[funlist;list;_] implicit parameter streamelem type STREAMELEM !!
+operator reportpattern alias REPORTPATTERN pattern _ op[funlist;list] 
 operator gpattern alias GPATTERN pattern _ op[fun,fun,_,_,_] implicit parameter tuple type TUPLE
 operator crosspattern alias CROSSPATTERN pattern _ op[fun,fun,fun,_,_,_] implicit parameter tuple type TUPLE
 operator tconstraint alias TCONSTRAINT pattern op(_,_,_)
 operator emptymset alias EMPTYMSET pattern op()
-operator row alias ROW pattern op(_)
-operator col alias COL pattern op(_)
 operator emptymset alias EMPTYMSET pattern op()
 operator mbool2mset alias MBOOL2MSET pattern _op[_]
 operator union alias UNION pattern _ infixop _
 operator union2 alias UNION2 pattern _ infixop _
-operator cardinality alias CARDINALITY pattern _op
+operator cardinality alias CARDINALITY pattern op(_)
 operator intstream2set alias INTSTREAM2SET pattern _op[_]
-operator mset2mregion alias MSET2MREGION pattern op(_,_,_)
-operator mset2mpoints alias MSET2MPOINTS pattern op(_,_,_)
+operator boundingregion alias BOUNDINGREGION pattern op(_,_,_)
+operator members alias MEMBERS pattern op(_,_,_)
 operator convexhull2 alias CONVEXHULL2 pattern op(_,_)
 operator collectintset alias COLLETINTSET pattern _ op
 operator generateboids alias GENERATEBOIDS pattern op(_,_,_,_)
+operator issubset alias ISSUBSET pattern _ infixop _

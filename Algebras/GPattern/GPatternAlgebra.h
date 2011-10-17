@@ -293,18 +293,18 @@ void ComputeAddSubSets(InMemMSet& acc,
     unsigned int n,  int64_t dMS, vector<InMemMSet>* result);
 
 bool ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
-    vector<ChangeRecord>& Changes);
+    vector<ChangeRecord>& Changes, bool debugme);
 
 void UpdateResult(CompressedInMemMSet* curMSet,
     vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     vector<ChangeRecord>& Changes,
-    list<CompressedMSet*>& resStream);
+    list<CompressedMSet*>& resStream, bool debugme);
 
 void ApplyChanges(CompressedInMemMSet* msetPart,
     vector<ChangeRecord>& changesPart,
     vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     list<CompressedMSet*>& resStream, list<CompressedInMemMSet*>& msetParts,
-    list<vector<ChangeRecord> >& changeParts);
+    list<vector<ChangeRecord> >& changeParts, bool debugme);
 /*
 Private members
 

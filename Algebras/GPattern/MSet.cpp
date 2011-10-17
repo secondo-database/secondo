@@ -189,6 +189,28 @@ void IntSet::Union(IntSet& rhs, IntSet& res)
     res.Insert(rhs[i]);
 }
 
+void IntSet::Minus(IntSet& rhs, IntSet& res)
+{
+  res.Clear();
+  if(!(this->IsDefined() && rhs.IsDefined()))
+  {
+    res.SetDefined(false);
+    return;
+  }
+  res.SetDefined(true);
+  res.Clear();
+  set<int> l, r, diff;
+  for(int i=0; i < this->Count(); ++i)
+    l.insert((*this)[i]);
+  for(int i=0; i < rhs.Count(); ++i)
+    r.insert(rhs[i]);
+
+  set_difference(l.begin(), l.end(), r.begin(), r.end(),
+      inserter(diff, diff.begin()));
+  for(set<int>::iterator it= diff.begin(); it != diff.end(); ++it)
+    res.Insert(*it);
+}
+
 void IntSet::Union(IntSet& rhs)
 {
   if(!(this->IsDefined() && rhs.IsDefined()))
@@ -252,17 +274,17 @@ bool IntSet::IsSubset(const IntSet& rhs) const
 
 bool IntSet::operator==(const IntSet& rhs) const
 {
-  if(this->Count() != rhs.Count()) 
-    return false;
-  for(int i=0; i < this->Count() ; ++i)
-    if( (*this)[i] != rhs[i] )
-      return false;
-  return true;
+  return (Compare(&rhs) == 0);
 }
 
 bool IntSet::operator<(const IntSet& rhs) const
 {
-  return (this->Count() < rhs.Count());
+  return (Compare(&rhs) == -1);
+}
+
+bool IntSet::operator>(const IntSet& rhs) const
+{
+  return (Compare(&rhs) == 1);
 }
 
 IntSet* IntSet::Intersection(const IntSet& rhs) const
@@ -332,7 +354,7 @@ int IntSet::BinSearch(int elem)
   int curElem=0;
   int lb=0,ub=this->Count()-1,mid;    //lb=>lower bound,ub=>upper bound
 
-  for(;lb<ub;)
+  for(;lb<=ub;)
   {
     mid=(lb+ub)/2;
     points.Get(mid, curElem);
@@ -340,14 +362,13 @@ int IntSet::BinSearch(int elem)
       return mid;
 
     else
-      if(curElem < elem)
+      if(curElem > elem)
         ub=mid-1;
     else
-      if(curElem>elem)
+      if(curElem < elem)
         lb=mid+1;
   }
-  if(ub<lb)
-    return -1;
+
   return -1;
 }
 
@@ -362,8 +383,8 @@ void IntSet::Delete(const int elem)
       this->points.Get(i+1, tmp);
       this->points.Put(i, tmp);
     }
+    this->points.resize(this->points.Size()-1);
   }
-  this->points.resize(this->points.Size()-1);
 }
 
 int IntSet::Count()const
@@ -411,11 +432,37 @@ void IntSet::CopyFrom(const Attribute* rhs)
   }
 }
 
-int IntSet::Compare( const Attribute* rhs ) const
+int IntSet::Compare( const Attribute* arg ) const
 {
-  return Attribute::GenericCompare< IntSet >( this, 
-      dynamic_cast<IntSet* >(const_cast<Attribute*>(rhs)), 
-      this->IsDefined(), rhs->IsDefined() );
+  IntSet* rhs= (IntSet*)arg;
+  if( !this->IsDefined() && !rhs->IsDefined() )
+    return 0;
+  else if(!this->IsDefined())
+    return -1;
+  else if(!rhs->IsDefined())
+    return 1;
+
+  int cnt= min(this->Count(), rhs->Count());
+  int thiselem=0, rhselem=0;
+  for(int i=0; i < cnt ; ++i)
+  {
+    thiselem= (*this)[i];
+    rhselem=  (*rhs)[i];
+    if(thiselem < rhselem)
+      return -1;
+    else if(thiselem > rhselem)
+      return 1;
+  }
+  if(this->Count() < rhs->Count())
+    return -1;
+  else if(this->Count() > rhs->Count())
+    return 1;
+  return 0;
+}
+
+int IntSet::CompareAlmost( const Attribute* arg ) const
+{
+  return Compare(arg);
 }
 
 ostream& IntSet::Print( ostream &os ) const
@@ -451,7 +498,7 @@ Attribute* IntSet::Clone() const
 members required for SECONDO types
 
 */
-Word     IntSet::In( const ListExpr typeInfo, const ListExpr instance,
+Word IntSet::In( const ListExpr typeInfo, const ListExpr instance,
         int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if(nl->IsEqual(instance,"undef"))
@@ -525,7 +572,7 @@ Word     IntSet::Clone( const ListExpr typeInfo, const Word& w )
 
 void*    IntSet::Cast(void* addr)
 {
-  return (new (addr) IntSet());
+  return (new (addr) IntSet);
 }
 
 bool     IntSet::KindCheck( ListExpr type, ListExpr& errorInfo )
@@ -547,6 +594,7 @@ Flob* IntSet::GetFLOB(const int i)
   assert(i==0);
   return &points;
 }
+
 ListExpr IntSet::Property()
 {
   return (nl->TwoElemList(
@@ -2928,6 +2976,58 @@ Flob *MSet::GetFLOB(const int i)
   assert(0);
 }
 
+int MSet::Compare( const Attribute* arg ) const
+{
+  MSet* rhsMSet= (MSet*) arg;
+  USetRef lhsRef(0), rhsRef(0);
+  USet lhs(0), rhs(0);
+  int cnt= min(this->GetNoComponents(), rhsMSet->GetNoComponents());
+  int cmp=0;
+  for(int i=0; i < cnt; ++i)
+  {
+    this->Get(i, lhsRef);
+    lhsRef.GetUnit(this->data, lhs);
+
+    rhsMSet->Get(i, lhsRef);
+    rhsRef.GetUnit(rhsMSet->data, lhs);
+
+    cmp= lhs.Compare(&rhs);
+    if(cmp != 0)
+      return cmp;
+  }
+  if(this->GetNoComponents() < rhsMSet->GetNoComponents())
+    return -1;
+  else if(this->GetNoComponents() > rhsMSet->GetNoComponents())
+    return 1;
+  return 0;
+}
+int MSet::CompareAlmost( const Attribute* arg ) const
+{
+  MSet* rhsMSet= (MSet*) arg;
+  USetRef lhsRef(0), rhsRef(0);
+  USet lhs(0), rhs(0);
+  int cnt= min(this->GetNoComponents(), rhsMSet->GetNoComponents());
+  int cmp=0;
+  for(int i=0; i < cnt; ++i)
+  {
+    this->Get(i, lhsRef);
+    lhsRef.GetUnit(this->data, lhs);
+
+    rhsMSet->Get(i, lhsRef);
+    lhsRef.GetUnit(rhsMSet->data, lhs);
+
+    cmp= lhs.CompareAlmost(&rhs);
+    if(cmp != 0)
+      return cmp;
+  }
+  if(this->GetNoComponents() < rhsMSet->GetNoComponents())
+    return -1;
+  else if(this->GetNoComponents() > rhsMSet->GetNoComponents())
+    return 1;
+  else
+    return 0;
+}
+
 ostream& MSet::Print( ostream &os ) const
 {
   if( !IsDefined() )
@@ -3063,8 +3163,7 @@ ListExpr MSet::OutMSet(ListExpr typeInfo, Word value)
         ms->Get(i, unitRef);
         unitRef.GetUnit(ms->data, unit);
         ListExpr unitList = 
-          OutConstTemporalUnit<IntSet, IntSet::Out>(nl->TheEmptyList(), 
-              SetWord(&unit));
+          USet::OutUSet(nl->TheEmptyList(), SetWord(&unit));
           
         if (l == nl->TheEmptyList()) {
             l = nl->Cons(unitList, nl->TheEmptyList());
@@ -3102,7 +3201,7 @@ Word MSet::InMSet(const ListExpr typeInfo,
     {
         ListExpr first = nl->First(rest);
         rest = nl->Rest(rest);
-        unit = InConstTemporalUnit<IntSet, IntSet::In>(nl->TheEmptyList(),
+        unit = USet::InUSet(nl->TheEmptyList(),
             first,
             errorPos,
             errorInfo,
@@ -3262,6 +3361,12 @@ void MSet::LiftedUnion2(MSet& arg, MSet& res)
   if(debugme)
     cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
 
+  if(debugme)
+  {
+    int count1= this->GetNoComponents();
+    int count2= arg.GetNoComponents();
+    cerr<<"\nmset 1 has #units:"<< count1<< "mset 2 has #units:"<< count2;
+  }
   res.Resize(rp.Size());
   res.StartBulkLoad();
 
@@ -3297,7 +3402,7 @@ void MSet::LiftedUnion2(MSet& arg, MSet& res)
         << iv.start.ToString()<< " "<< iv.end.ToString()<< " "<< iv.lc
         << " "<< iv.rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
 
-      this->Get(u2Pos, u2);
+      arg.Get(u2Pos, u2);
       if(!u2.IsDefined())
         continue;
 
@@ -3372,6 +3477,57 @@ void MSet::LiftedUnion(MSet& arg)
       op1.constValue.Union(op2.constValue, resunit.constValue);
       resunit.timeInterval= iv;
       res.MergeAdd(resunit);     
+    }
+  }
+  res.EndBulkLoad(false);
+  res.Destroy();
+  this->Clear();
+  this->CopyFrom(&res);
+}
+
+void MSet::LiftedMinus(MSet& arg, MSet& res)
+{
+  bool debugme=false;
+  if( !this->IsDefined() || !arg.IsDefined()){
+    res.SetDefined( false );
+    return;
+  }
+  res.SetDefined( true );
+  USet un(true);  //part of the Result
+  RefinementPartition<MSet, MSet, USetRef, USetRef>  rp( *this, arg);
+  if(debugme)
+    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+
+  res.Resize(rp.Size());
+  res.StartBulkLoad();
+
+  Interval<Instant> iv;
+  int u1Pos, u2Pos;
+  USetRef u1, u2;
+  USet op1(true), op2(true), resunit(true);
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 || u2Pos == -1 )
+      continue;
+    else
+    {
+      if(debugme)
+        cout<<"Both operands existant in interval iv #"<<i<<" ["
+        << iv.start.ToString()<< " "<< iv.end.ToString()<< " "<< iv.lc
+        << " "<< iv.rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
+
+      this->Get(u1Pos, u1);
+      arg.Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined()))
+        continue;
+
+      u1.GetUnit(this->data, op1);
+      u2.GetUnit(arg.data, op2);
+
+      op1.constValue.Minus(op2.constValue, resunit.constValue);
+      resunit.timeInterval= iv;
+      res.MergeAdd(resunit);
     }
   }
   res.EndBulkLoad(false);
@@ -3474,6 +3630,189 @@ void MSet::LiftedUnion2(MSet& arg)
   this->Clear();
   this->CopyFrom(&res);
   res.Destroy();
+}
+
+void MSet::LiftedMinus2(MSet& arg, MSet& res)
+{
+  bool debugme=false;
+  if( this->IsDefined() && !arg.IsDefined())
+  {
+    res.CopyFrom(this);
+    return;
+  }
+  else if ( !this->IsDefined())
+  {
+    res.SetDefined(false);
+    return;
+  }
+
+  res.SetDefined( true );
+  USet un(true);  //part of the Result
+  RefinementPartition<MSet, MSet, USetRef, USetRef>  rp( *this, arg);
+  if(debugme)
+    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+
+  res.Resize(rp.Size());
+  res.StartBulkLoad();
+
+  Interval<Instant> iv;
+  int u1Pos, u2Pos;
+  USetRef u1, u2;
+  USet op1(true), op2(true), resunit(true);
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 && u2Pos == -1 )
+      continue;
+    else if (u1Pos != -1 && u2Pos == -1 )
+    {
+      if(debugme)
+        cout<<"Only operand 1 existant in interval iv #"<<i<<" ["
+        << iv.start.ToString()<< " "<< iv.end.ToString()<< " "<< iv.lc
+        << " "<< iv.rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
+
+      this->Get(u1Pos, u1);
+      if(!u1.IsDefined())
+        continue;
+
+      u1.GetUnit(this->data, op1);
+      resunit.constValue.CopyFrom(&op1.constValue) ;
+      resunit.timeInterval= iv;
+      res.MergeAdd(resunit);
+    }
+    else if (u1Pos == -1 && u2Pos != -1 )
+    {
+      if(debugme)
+        cout<<"Only operand 2 existant in interval iv #"<<i<<" ["
+        << iv.start.ToString()<< " "<< iv.end.ToString()<< " "<< iv.lc
+        << " "<< iv.rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
+
+      continue;
+    }
+    else
+    {
+      if(debugme)
+        cout<<"Both operands existant in interval iv #"<<i<<" ["
+        << iv.start.ToString()<< " "<< iv.end.ToString()<< " "<< iv.lc
+        << " "<< iv.rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
+
+      this->Get(u1Pos, u1);
+      arg.Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined()))
+        continue;
+
+      u1.GetUnit(this->data, op1);
+      u2.GetUnit(arg.data, op2);
+
+      op1.constValue.Minus(op2.constValue, resunit.constValue);
+      resunit.timeInterval= iv;
+      res.MergeAdd(resunit);
+    }
+  }
+  res.EndBulkLoad(false);
+  this->Clear();
+  this->CopyFrom(&res);
+  res.Destroy();
+}
+
+void MSet::LiftedIsSubset(MSet& arg2, MBool& res)
+{
+  bool debugme=false;
+  res.Clear();
+  if( !this->IsDefined() || !arg2.IsDefined())
+  {
+    res.SetDefined(false);
+    return;
+  }
+
+  res.SetDefined( true );
+  USet un(true);  //part of the Result
+  RefinementPartition<MSet, MSet, USetRef, USetRef>  rp( *this, arg2);
+  if(debugme)
+    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+
+  res.Resize(rp.Size());
+  res.StartBulkLoad();
+
+  Interval<Instant> iv;
+  int u1Pos, u2Pos;
+  USetRef u1, u2;
+  USet op1(true), op2(true);
+  UBool resunit(true);
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 || u2Pos == -1 )
+      continue;
+    else
+    {
+      this->Get(u1Pos, u1);
+      arg2.Get(u2Pos, u2);
+      if(!(u1.IsDefined() && u2.IsDefined()))
+        continue;
+
+      u1.GetUnit(this->data, op1);
+      u2.GetUnit(arg2.data, op2);
+
+      bool _res= op1.constValue.IsSubset(op2.constValue);
+      resunit.constValue.Set(true, _res);
+      resunit.timeInterval= iv;
+      res.MergeAdd(resunit);
+    }
+  }
+  res.EndBulkLoad(false);
+  if(res.GetNoComponents() == 0)
+    res.SetDefined(false);
+}
+
+void MSet::Initial( ISet& result ) const
+{
+  if( !IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+
+  assert( IsOrdered() );
+
+  if( IsEmpty() ){
+    result.SetDefined( false );
+  } else
+  {
+    USetRef usetRef;
+    units.Get( 0, &usetRef );
+
+    USet unit(true);
+    usetRef.GetUnit(this->data, unit);
+
+    result.SetDefined( true );
+    unit.TemporalFunction( unit.timeInterval.start, result.value, true );
+    result.instant.CopyFrom( &unit.timeInterval.start );
+  }
+}
+
+void MSet::Final( ISet& result ) const
+{
+  if( !IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+
+  assert( IsOrdered() );
+
+  if( IsEmpty() ){
+    result.SetDefined( false );
+  } else
+  {
+    USetRef usetRef;
+    units.Get( this->GetNoComponents() - 1, &usetRef );
+
+    USet unit(true);
+    usetRef.GetUnit(this->data, unit);
+
+    result.SetDefined( true );
+    unit.TemporalFunction( unit.timeInterval.start, result.value, true );
+    result.instant.CopyFrom( &unit.timeInterval.start );
+  }
 }
 
 void MSet::LiftedCount(MInt& res)
@@ -3654,11 +3993,6 @@ void MSet::AtPeriods( const Periods& periods, MSet& result ) const
   }
   result.EndBulkLoad( false );
 // VTA - The merge of the result is not implemented yet.
-}
-
-const string MSet::BasicType()
-{
-  return "mset";
 }
 
 USet::USet() {}
@@ -3843,27 +4177,54 @@ size_t USet::Sizeof() const
 
 int USet::Compare( const Attribute* arg ) const
 {
-  USet*  ctu = (USet*)arg;
-  // SPM: this pointer added since my windows gcc (v3.4.2) reports:
-  // 'timeInterval' undeclared (first use this function) which
-  // seems to be a compiler bug!
-  if (this->IsDefined() && !ctu->IsDefined())
+  USet* rhs= (USet*)arg;
+  if (this->IsDefined() && !rhs->IsDefined())
     return 0;
   if (!this->IsDefined())
     return -1;
-  if (!ctu->IsDefined())
+  if (!rhs->IsDefined())
     return 1;
 
-  int cmp = this->timeInterval.CompareTo(ctu->timeInterval);
-  if(cmp){
+  int cmp = this->timeInterval.CompareTo(rhs->timeInterval);
+  if(cmp != 0){
      return cmp;
   }
-  return constValue.Compare(&(ctu->constValue));
+  cmp= constValue.Compare(&(rhs->constValue));
+  return cmp;
+}
+
+int USet::CompareAlmost( const Attribute* arg ) const
+{
+  USet* rhs= (USet*)arg;
+  if (this->IsDefined() && !rhs->IsDefined())
+    return 0;
+  if (!this->IsDefined())
+    return -1;
+  if (!rhs->IsDefined())
+    return 1;
+
+  int cmp = this->timeInterval.CompareTo(rhs->timeInterval);
+  if(cmp != 0){
+     return cmp;
+  }
+  cmp= constValue.CompareAlmost(&(rhs->constValue));
+  return cmp;
 }
 
 bool USet::Adjacent( const Attribute* arg ) const
 {
   return false;
+}
+
+
+int USet::NumOfFLOBs()const
+{
+  return 1;
+}
+Flob* USet::GetFLOB(const int i)
+{
+  assert(i==0);
+  return &this->constValue.points;
 }
 
 ostream& USet::Print( ostream &os ) const
@@ -4109,12 +4470,132 @@ int USet::SizeOfUSet()
 */
 void* USet::CastUSet(void* addr)
 {
-  return new (addr) USet();
+  return new (addr) USet;
 }
 
-const string USet::BasicType()
+
+ISet::ISet() {}
+ISet::ISet(int i):Intime<IntSet>(i){}
+ISet::ISet( const Instant& _instant, const IntSet& alpha ):
+  Intime<IntSet>(_instant, alpha){}
+ISet::ISet( const ISet& intime ): Intime<IntSet>(0)
 {
-  return "uset";
+  this->CopyFrom(&intime);
+}
+ISet::~ISet(){}
+
+int ISet::NumOfFLOBs()const
+{
+  return 1;
+}
+
+Flob* ISet::GetFLOB(const int i)
+{
+  assert(i==0);
+  return &this->value.points;
+}
+
+int ISet::Compare( const Attribute* arg ) const
+{
+  ISet* rhs= (ISet*)arg;
+  int comp= this->instant.Compare(&(rhs->instant));
+  if(comp != 0)
+    return comp;
+  comp= this->value.Compare(&(rhs->value));
+  return(comp);
+}
+
+int ISet::CompareAlmost( const Attribute *arg ) const
+{
+  ISet* rhs= (ISet*)arg;
+  int comp= this->instant.CompareAlmost(&(rhs->instant));
+  if(comp != 0)
+    return comp;
+  comp= this->value.CompareAlmost(&(rhs->value));
+  return(comp);
+}
+
+const string ISet::BasicType()
+{
+  return "iset";
+}
+
+ListExpr  ISet::Property()
+{
+  return (nl->TwoElemList(
+      nl->FourElemList(nl->StringAtom("Signature"),
+          nl->StringAtom("Example Type List"),
+          nl->StringAtom("List Rep"),
+          nl->StringAtom("Example List")),
+          nl->FourElemList(nl->StringAtom("-> iset"),
+              nl->StringAtom("(iset) "),
+              nl->StringAtom("(instant intset) "),
+              nl->StringAtom("((instant 0.5) (intset (1 2 5)))"))));
+}
+
+
+
+Word ISet::Create( const ListExpr typeInfo )
+{
+  return (SetWord( new ISet(0) ));
+}
+
+/*
+5.3.4 ~Delete~-function
+
+*/
+void ISet::Delete( const ListExpr typeInfo, Word& w )
+{
+  static_cast<ISet*>(w.addr)->DeleteIfAllowed();
+  w.addr= 0;
+}
+
+/*
+5.3.5 ~Close~-function
+
+*/
+void ISet::Close( const ListExpr typeInfo, Word& w )
+{
+  static_cast<ISet*>(w.addr)->DeleteIfAllowed();
+  w.addr= 0;
+}
+
+/*
+5.3.6 ~Clone~-function
+
+*/
+Word ISet::Clone( const ListExpr typeInfo, const Word& w )
+{
+  ISet *constunit = (ISet *)w.addr;
+  return SetWord( new ISet( *constunit ) );
+}
+
+/*
+5.3.7 ~Sizeof~-function
+
+*/
+int ISet::SizeOf()
+{
+  return sizeof(ISet);
+}
+
+/*
+5.3.8 ~Cast~-function
+
+*/
+void* ISet::Cast(void* addr)
+{
+  return new (addr) ISet;
+}
+
+ISet* ISet::Clone() const
+{
+  return(new ISet(*this));
+}
+
+bool ISet::KindCheck(const  ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, ISet::BasicType() ));
 }
 
 
@@ -4444,7 +4925,7 @@ bool CompressedMSet::Concat(CompressedMSet* arg)
   if(debugme)
   {
     set<int>* finalSet= this->GetFinalSet();
-    assert(finalSet->size() == uset.count);
+    assertIf(finalSet->size() == uset.count);
   }
 
 

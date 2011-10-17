@@ -98,6 +98,7 @@ public:
 */
 
 class IntSet;
+class ISet;
 class USerRef;
 class USet;
 class MSet;
@@ -136,9 +137,11 @@ Set operations and predicates
   bool IsSubset(const IntSet& rhs) const;
   bool operator==(const IntSet& rhs) const;
   bool operator<(const IntSet& rhs) const;
+  bool operator>(const IntSet& rhs) const;
   IntSet* Intersection(const IntSet& arg) const;
   void Intersection2(const IntSet& arg);
   bool Intersects(const IntSet& rhs) const;
+  void Minus(IntSet& op2, IntSet& res);
   void Insert(const int elem);
   void Delete(const int elem);
   int Count()const;
@@ -152,15 +155,16 @@ members required for the Attribute interface
 */
   size_t HashValue() const; 
   void CopyFrom(const Attribute* right);
-  int Compare( const Attribute* rhs ) const;
+  virtual int Compare( const Attribute* rhs ) const;
+  virtual int CompareAlmost( const Attribute* arg ) const;
   ostream& Print( ostream &os ) const; 
   size_t Sizeof() const;
   bool Adjacent(const Attribute*) const ;
   Attribute* Clone() const ;
   int NumOfFLOBs()const;
   Flob *GetFLOB(const int i);
-  int CompareAlmost( const Attribute *arg ) const {return Compare(arg);}
   
+
 /*
 members required for SECONDO types
 
@@ -183,6 +187,55 @@ Data members
 */  
   DbArray<int> points;
 };
+
+
+
+/*
+3.1 The ISet Class
+
+*/
+class ISet: public Intime<IntSet> {
+public:
+  ISet();
+
+/*
+Constructors and the destructor
+
+*/
+
+  ISet(int i);
+  ISet( const Instant& _instant, const IntSet& alpha );
+  ISet( const ISet& intime );
+  ~ISet();
+
+
+/*
+members required for the Attribute interface
+
+*/
+  int NumOfFLOBs()const;
+  Flob *GetFLOB(const int i);
+  ISet* Clone() const ;
+  int Compare( const Attribute* rhs ) const;
+  int CompareAlmost( const Attribute* rhs ) const;
+/*
+members required for SECONDO types
+
+*/
+  static const string BasicType();
+  static Word     Create( const ListExpr typeInfo );
+  static void     Delete( const ListExpr typeInfo, Word& w );
+  static void     Close( const ListExpr typeInfo, Word& w );
+  static Word Clone( const ListExpr typeInfo, const Word& w );
+  static void*    Cast(void* addr);
+  static bool     KindCheck(const ListExpr type, ListExpr& errorInfo );
+  static int      SizeOf();
+  static ListExpr Property();
+};
+
+
+
+
 
 /*
 3.2 The USet Class
@@ -266,7 +319,10 @@ not modify this unit and return ~false~.
 
   virtual size_t Sizeof() const;
   virtual int Compare( const Attribute* arg ) const;
+  virtual int CompareAlmost( const Attribute *rhs ) const;
   virtual bool Adjacent( const Attribute* arg ) const;
+  virtual int NumOfFLOBs()const;
+  virtual Flob *GetFLOB(const int i);
   virtual ostream& Print( ostream &os ) const;
   virtual size_t HashValue() const;
   virtual USet* Clone() const;
@@ -298,6 +354,10 @@ The constant value of the temporal unit.
 */
 };
 
+const string USet::BasicType()
+{
+  return "uset";
+}
 /*
 3.3 The USetRef Class
 
@@ -431,16 +491,23 @@ public:
   void LiftedUnion2(MSet& arg, MSet& res);
   void LiftedUnion(MSet& arg);
   void LiftedUnion2(MSet& arg);
+  void LiftedMinus(MSet& arg, MSet& res);
+  void LiftedMinus2(MSet& arg, MSet& res);
+  void LiftedIsSubset(MSet& arg2, MBool& res);
   void LiftedCount(MInt& res);
   void MBool2MSet(MBool& mb, int elem);
   bool operator ==(MSet& rhs);
   bool operator !=(MSet& rhs);
   void Clear();
   void AtPeriods( const Periods& periods, MSet& result ) const;
-  inline MSet* Clone() const;
-  inline void CopyFrom( const Attribute* right );
+  void Initial( ISet& result ) const;
+  void Final( ISet& result ) const;
+  MSet* Clone() const;
+  void CopyFrom( const Attribute* right );
   int NumOfFLOBs()const;
   Flob *GetFLOB(const int i);
+  int Compare( const Attribute* rhs ) const;
+  int CompareAlmost( const Attribute* rhs ) const;
   virtual ostream& Print( ostream &os ) const;
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
   static ListExpr Property();  
@@ -456,6 +523,11 @@ public:
   inline static const string BasicType();
   DbArray<int> data;
 };
+
+const string MSet::BasicType()
+{
+  return "mset";
+}
 
 class InMemUSet
 {

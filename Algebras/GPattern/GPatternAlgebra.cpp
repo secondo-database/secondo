@@ -76,13 +76,17 @@ bool ChangeRecord::AppendToRemovedNodes(int node)
 
 ostream& ChangeRecord::Print(ostream& os)
 {
-  string statusText[]={"Unchanged", "EdgesRemoved", "UnitDeleted"};
+  string statusText[]={"Unchanged", "NodesRemoved", "UnitDeleted"};
   os<<"\n"<<statusText[this->status];
   if(this->status == ElemsRemoved)
   {
     os<<": ";
-    for(unsigned int i=0; i<this->removedNodes.size(); ++i)
-      os<<this->removedNodes[i]<<",";
+    PrintVector(this->removedNodes, os);
+    if(!this->removedNodesInRemoved.empty())
+    {
+      os<<endl<<"\tRemovedNodesInRemoved: ";
+      PrintVector(this->removedNodesInRemoved, os);
+    }
   }
   return os;
 }
@@ -246,19 +250,21 @@ MSetIndex::NodeLogEntry::NodeLogEntry(
 
 ostream& MSetIndex::NodeLogEntry::Print(ostream& os)
 {
-  os<<"\nunit indexes ["<< this->startUnitIndex<<"," <<this->endUnitIndex<<"]";
+//  os<<"\n\tunit indexes ["<< this->startUnitIndex<<","
+//      <<this->endUnitIndex<<"]";
   os<<",\t time [";
-  Instant i(instanttype);
-  i.ReadFrom(this->starttime); i.Print(os);
+  Instant i1(instanttype), i2(instanttype);
+  i1.ReadFrom(this->starttime); i1.Print(os);
   os<<",";
-  i.ReadFrom(this->endtime); i.Print(os);
+  i2.ReadFrom(this->endtime); i2.Print(os);
   os<<"]";
-  os<<",\t timeFromUnit ["<< (*this->startUnitIt).starttime<<"," ;
-  if(this->endUnitIndex == -1)
-    os<< -1<<"]";
-  else
-    os<<(*this->endUnitIt).starttime;
-  os<<"\nEdges"; PrintSet(this->associatedEdges, os);
+  os<<"\tDuration (min): "<< (i2 - i1).millisecondsToNull()/60000;
+//  os<<",\t timeFromUnit ["<< (*this->startUnitIt).starttime<<"," ;
+//  if(this->endUnitIndex == -1)
+//    os<< -1<<"]";
+//  else
+//    os<<(*this->endUnitIt).starttime;
+//  os<<"\n\tEdges"; PrintSet(this->associatedEdges, os);
   return os;
 }
 
@@ -277,6 +283,12 @@ bool MSetIndex::NodeLog::RemoveUnit(int index)
 {
 //needs tests
   bool debugme=false;
+  if(this->log.empty())
+  {
+    cerr<<"Trying to remove from an empty NodeLog. "
+      "Something is going wrong here!";
+    return false;
+  }
   if(index < this->log.front().startUnitIndex ||
       index > this->log.back().endUnitIndex) return false;
 
@@ -502,7 +514,7 @@ ostream& MSetIndex::Print(ostream& os)
   map<int,  NodeLog>::iterator nodesIt= this->nodes.begin();
   while(nodesIt != this->nodes.end())
   {
-    os<<"\nIndex Node: "<<(*nodesIt).first;
+    os<<"\n\nIndex Node: "<<(*nodesIt).first;
     (*nodesIt).second.Print(os);
     ++nodesIt;
   }
@@ -794,8 +806,10 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
   CompressedMSet* curMSet=0;
   vector<ChangeRecord> Changes;
   CompressedInMemMSet inMemMSet;
+  int cnt=0;
   while(resStream->begin() != resStream->end())
   {
+    ++cnt;
     curMSet= resStream->front();
     if(debugme && 0)
     {
@@ -812,11 +826,12 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
     curMSet->WriteToCompressedInMemMSet(inMemMSet);
     MSetIndex index(inMemMSet, edge2nodesMap);
     changed=
-        GPHelper.ApplyThresholds(index, n, dMS, Changes);
+        GPHelper.ApplyThresholds(index, n, dMS, Changes, false);
     if(changed)
     {
       GPHelper.UpdateResult(
-          &inMemMSet, edge2nodesMap, n, dMS, qts, Changes, localResStream);
+          &inMemMSet, edge2nodesMap, n, dMS, qts, Changes, localResStream,
+          false);
       resStream->splice(resStream->end(), localResStream);
       delete curMSet;
     }
@@ -1870,9 +1885,8 @@ void ClearChangeRecord(ChangeRecord& rec)
   rec.Clear();
 }
 bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
-    vector<ChangeRecord>& AllChanges)
+    vector<ChangeRecord>& AllChanges, bool debugme)
 {
-  bool debugme= false;
   for_each(AllChanges.begin(), AllChanges.end(), ClearChangeRecord);
   bool changed= true, globallyChanged= false;
   if(debugme)
@@ -1885,7 +1899,16 @@ bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
     globallyChanged |= changed;
   }
   if(debugme)
+  {
     index.Print(cerr);
+    cerr<<"The changes";
+    for(unsigned int i=0; i<AllChanges.size(); ++i)
+    {
+      cerr<<i<<"\t\t";
+      AllChanges[i].Print(cerr);
+    }
+  }
+
   return globallyChanged;
 }
 
@@ -1893,7 +1916,7 @@ bool GPatternHelper::ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
 void GPatternHelper::UpdateResult(CompressedInMemMSet* curMSet,
     vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     vector<ChangeRecord>& Changes,
-    list<CompressedMSet*>& resStream)
+    list<CompressedMSet*>& resStream, bool debugme)
 {
 /*
 Find the ChangeRecoreds marked as UnitDeleted, and partition curMSet and Changes
@@ -1906,7 +1929,7 @@ FOREACH corresponding changesPart in changesParts
 
 */
 
-  bool debugme= false;
+  //bool debugme= false;
   unsigned int offset=0, length=0, it=0;
   list<CompressedInMemUSet>::iterator begin= curMSet->units.begin(),
       usetIt= begin, end;
@@ -1948,18 +1971,29 @@ FOREACH corresponding changesPart in changesParts
   }
 
   assertIf(msetParts.size() == changeParts.size());
-
+  int cnt=0;
   while(!msetParts.empty())
   {
-    if(debugme && 0)
-    {
-      MSet tmp(true);
-      cerr<<"\nBefore Change: ";
-      msetParts.front()->WriteToMSet(tmp);
-      tmp.Print(cerr);
-    }
+    ++cnt;
+//    if(debugme )
+//    {
+//      //MSet tmp(true);
+//      cerr<<"\nBefore Change: ";
+//      //msetParts.front()->WriteToMSet(tmp);
+//      //tmp.Print(cerr);
+//      //inMemMSet->Print(cerr);
+//      CompressedMSet tmp1(0);
+//      tmp1.ReadFromCompressedInMemMSet(*msetParts.front());
+//      CompressedMSet* tmp= EdgeMSet2NodeMSet(&tmp1, edge2nodesMap);
+//      CompressedInMemMSet tmp2;
+//      tmp->WriteToCompressedInMemMSet(tmp2);
+//      MSet tmp3(true);
+//      tmp2.WriteToMSet(tmp3);
+//      tmp3.Print(cerr);
+//      delete tmp;
+//    }
     ApplyChanges(msetParts.front(), changeParts.front(), edge2nodesMap,
-        n, dMS, qts, resStream, msetParts, changeParts);
+        n, dMS, qts, resStream, msetParts, changeParts, false);
     delete msetParts.front();
     msetParts.pop_front();
     changeParts.pop_front();
@@ -1987,7 +2021,7 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
     vector<ChangeRecord>& changesPart,
     vector<pair<int,int> >& edge2nodesMap,int n, int64_t dMS, string qts,
     list<CompressedMSet*>& resStream, list<CompressedInMemMSet*>& msetParts,
-    list<vector<ChangeRecord> >& changeParts)
+    list<vector<ChangeRecord> >& changeParts, bool debugme)
 {
 
 
@@ -2014,7 +2048,7 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
 
 
 
-  bool debugme= false;
+  //bool debugme= false;
   list<CompressedMSet*>* localResStream= 0;
   CompressedInMemUSet* inMemUSet;
   list<CompressedInMemUSet>::iterator usetIt= inMemMSet->units.begin();
@@ -2032,7 +2066,7 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
     {
       inMemUSet= &(*usetIt);
       changed= inMemUSet->EraseNodes(ch->removedNodesInRemoved, edge2nodesMap);
-      assertIf(changed);
+      //assertIf(changed);
     }
     if(ch->status == ChangeRecord::NotChanged)
     {
@@ -2073,6 +2107,23 @@ void GPatternHelper::ApplyChanges(CompressedInMemMSet* inMemMSet,
           list<CompressedInMemUSet>::iterator it= usetIt; ++it;
           CompressedInMemMSet* lastPart= new CompressedInMemMSet(*inMemMSet,
               it, inMemMSet->units.end());
+//          if(debugme )
+//          {
+//            //MSet tmp(true);
+//            cerr<<"\nBefore Change: ";
+//            //msetParts.front()->WriteToMSet(tmp);
+//            //tmp.Print(cerr);
+//            //inMemMSet->Print(cerr);
+//            CompressedMSet tmp1(0);
+//            tmp1.ReadFromCompressedInMemMSet(*lastPart);
+//            CompressedMSet* tmp= EdgeMSet2NodeMSet(&tmp1, edge2nodesMap);
+//            CompressedInMemMSet tmp2;
+//            tmp->WriteToCompressedInMemMSet(tmp2);
+//            MSet tmp3(true);
+//            tmp2.WriteToMSet(tmp3);
+//            tmp3.Print(cerr);
+//            delete tmp;
+//          }
           msetParts.push_back(lastPart);
           vector<ChangeRecord> chPart(changeIt +1, changesPart.end());
           changeParts.push_back(chPart);
@@ -2484,33 +2535,6 @@ void GPatternSolver::WriteTuple(Tuple* tuple)
 
 */
 
-
-ListExpr RowColTM(ListExpr args)
-{
-  bool debugme= false;
-
-  string argstr;
-
-  if(debugme)
-  {
-    cout<<endl<< nl->ToString(args)<<endl;
-    cout.flush();
-  }
-  ListExpr errorInfo;
-  nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 1 &&
-      nl->IsAtom(nl->First(args)) &&
-      am->CheckKind(Kind::TEMPORAL(), nl->First(args), errorInfo),
-      "Operators row/col expect one argument of kind TEMPORAL \n but got: "
-      + argstr + ".");
-
-  if(debugme)
-  {
-    cout<<endl<<endl<<"Operator row/col accepted the input";
-    cout.flush();
-  }
-  return nl->First(args);
-}
 
 
 ListExpr CrossPatternTM(ListExpr args)
@@ -2970,18 +2994,75 @@ ListExpr MBool2MSetTM(ListExpr args)
   return result;
 }
 
-ListExpr UnionMSetTM(ListExpr args)
+ListExpr UnionTM(ListExpr args)
 {
   string argstr;
   nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 2 &&
-    nl->IsAtom(nl->First(args)) &&  
-    nl->SymbolValue(nl->First(args))== "mset" &&
-    nl->IsAtom(nl->Second(args)) &&  
-    nl->SymbolValue(nl->Second(args))== "mset",
-      "Operator union expects (mset mset)\n but got "+ argstr+ ".");
-  ListExpr result = nl->SymbolAtom("mset");
-  return result;
+  if(nl->ListLength(args) == 2 && nl->IsAtom(nl->First(args)) &&
+     nl->IsAtom(nl->Second(args)))
+  {
+    if(nl->IsEqual(nl->First(args), MSet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), MSet::BasicType()))
+      return nl->SymbolAtom(MSet::BasicType());
+    else if(nl->IsEqual(nl->First(args), IntSet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), IntSet::BasicType()))
+      return nl->SymbolAtom(IntSet::BasicType());
+  }
+  ErrorReporter::ReportError("Operator union expects (mset x mset) or "
+      "(intset x intset), but got " + argstr + ".");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+ListExpr EqualsTM(ListExpr args)
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if(nl->ListLength(args) == 2 && nl->IsAtom(nl->First(args)) &&
+     nl->IsAtom(nl->Second(args)))
+  {
+    if(nl->IsEqual(nl->First(args), MSet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), MSet::BasicType()))
+      return nl->SymbolAtom(CcBool::BasicType());
+    else if(nl->IsEqual(nl->First(args), IntSet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), IntSet::BasicType()))
+      return nl->SymbolAtom(CcBool::BasicType());
+  }
+  ErrorReporter::ReportError("Operator = expects (mset x mset) or "
+      "(intset x intset), but got " + argstr + ".");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+ListExpr DeftimeTM(ListExpr args)
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if(nl->ListLength(args) == 1 && nl->IsAtom(nl->First(args)))
+  {
+    if(nl->IsEqual(nl->First(args), MSet::BasicType()))
+      return nl->SymbolAtom(Periods::BasicType());
+    else if(nl->IsEqual(nl->First(args), USet::BasicType()))
+      return nl->SymbolAtom(Periods::BasicType());
+  }
+  ErrorReporter::ReportError("Operator = expects mset or uset, "
+      "but got " + argstr + ".");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+ListExpr ComponentsTM(ListExpr args)
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if (nl->ListLength(args) != 1 ||
+      !nl->IsAtom(nl->First(args)) ||
+      !nl->IsEqual(nl->First(args), mset::IntSet::BasicType()))
+  {
+    ErrorReporter::ReportError("Operator units expects (intset), but got "+
+        argstr+ ".");
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+   nl->SymbolAtom(CcInt::BasicType()));
+
 }
 
 ListExpr Union2MSetTM(ListExpr args)
@@ -2998,64 +3079,144 @@ ListExpr Union2MSetTM(ListExpr args)
   return result;
 }
 
-ListExpr CardinalityMSetTM(ListExpr args)
+ListExpr IsSubsetTM(ListExpr args)
 {
   string argstr;
   nl->WriteToString(argstr, args);
-  CHECK_COND( nl->ListLength(args)==1 &&  nl->IsAtom(nl->First(args)) &&  
-    nl->SymbolValue(nl->First(args))== "mset" ,
-      "Operator cardinality expects mset\n but got "+ argstr+ ".");
-  ListExpr result = nl->SymbolAtom(MInt::BasicType());
-  return result;
+  if(nl->ListLength(args) == 2 && nl->IsAtom(nl->First(args)) &&
+     nl->IsAtom(nl->Second(args)))
+  {
+    if(nl->IsEqual(nl->First(args), MSet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), MSet::BasicType()))
+      return nl->SymbolAtom(MBool::BasicType());
+    else if(nl->IsEqual(nl->First(args), USet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), USet::BasicType()))
+      return nl->SymbolAtom(MBool::BasicType());
+    else if(nl->IsEqual(nl->First(args), IntSet::BasicType()) &&
+        nl->IsEqual(nl->Second(args), IntSet::BasicType()))
+      return nl->SymbolAtom(CcBool::BasicType());
+  }
+  ErrorReporter::ReportError("Operator = expects (mset x mset), "
+      "(intset x intset), or (mset x mset), but got " + argstr + ".");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+ListExpr UnitsTM( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if (nl->ListLength(args) != 1 ||
+      !nl->IsAtom(nl->First(args)) ||
+      !nl->IsEqual(nl->First(args), mset::MSet::BasicType()))
+  {
+    ErrorReporter::ReportError("Operator units expects (mset), but got "+
+        argstr+ ".");
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+   nl->SymbolAtom(mset::USet::BasicType()));
+
+}
+
+ListExpr InitFinTM( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, MSet::BasicType() ) )
+      return nl->SymbolAtom( ISet::BasicType() );
+
+    if( nl->IsEqual( arg1, USet::BasicType() ) )
+      return nl->SymbolAtom( ISet::BasicType() );
+  }
+  ErrorReporter::ReportError("Operator initial/final expects (mset) or (uset),"
+      " but got "+  argstr+ ".");
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+ListExpr CardinalityTM(ListExpr args)
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+
+  if(nl->ListLength(args)==1 && nl->IsAtom(nl->First(args)))
+  {
+    if(nl->IsEqual(nl->First(args), MSet::BasicType()))
+      return nl->SymbolAtom(MInt::BasicType());
+    else if(nl->IsEqual(nl->First(args), USet::BasicType()))
+      return nl->SymbolAtom(CcInt::BasicType());
+    else if(nl->IsEqual(nl->First(args), ISet::BasicType()))
+      return nl->SymbolAtom(CcInt::BasicType());
+    else if(nl->IsEqual(nl->First(args), IntSet::BasicType()))
+      return nl->SymbolAtom(CcInt::BasicType());
+  }
+  ErrorReporter::ReportError("Operator cardinality expects any of {" +
+      MSet::BasicType()+ ", "+ USet::BasicType() + ", " + ISet::BasicType() +
+      ", "+ IntSet::BasicType() + "}\nbut got: " + argstr);
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+ListExpr MinusTM(ListExpr args)
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+
+  if(nl->ListLength(args)==2 && nl->IsAtom(nl->First(args)) &&
+      nl->IsAtom(nl->Second(args)))
+  {
+    if(nl->IsEqual(nl->First(args), MSet::BasicType()) &&
+       nl->IsEqual(nl->Second(args), MSet::BasicType()))
+      return nl->SymbolAtom(MSet::BasicType());
+    else if(nl->IsEqual(nl->First(args), IntSet::BasicType()) &&
+            nl->IsEqual(nl->Second(args), IntSet::BasicType()))
+      return nl->SymbolAtom(IntSet::BasicType());
+  }
+  ErrorReporter::ReportError("Operator cardinality expects any of {" +
+      MSet::BasicType()+ ", "+ USet::BasicType() + ", " + ISet::BasicType() +
+      ", "+ IntSet::BasicType() + "}\nbut got: " + argstr);
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+ListExpr ValTM( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, ISet::BasicType() ) )
+      return nl->SymbolAtom( IntSet::BasicType() );
+  }
+  ErrorReporter::ReportError("Operator val expects (iset), but got "+
+      argstr+ ".");
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+ListExpr InstTM( ListExpr args )
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, ISet::BasicType() ))
+      return nl->SymbolAtom( Instant::BasicType() );
+  }
+  ErrorReporter::ReportError("Operator inst expects (iset), but got "+
+      argstr+ ".");
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
 /*
 TConstraint
 
 */
-
-ListExpr TConstraintTM(ListExpr args)
-{
-  bool debugme= false;
-
-  string argstr;
-
-  if(debugme)
-  {
-    cout<<endl<< nl->ToString(args)<<endl;
-    cout.flush();
-  }
-
-  ListExpr alias1 = nl->First(args),   
-  alias2  = nl->Second(args),      
-  temporalconnector = nl->Third(args); 
-
-  nl->WriteToString(argstr, alias1);
-  CHECK_COND(( nl->IsAtom(alias1)&&
-      nl->SymbolValue(alias1)== CcString::BasicType()),
-      "Operator tconstraint expects a predicate label as first "
-      "argument.\n But got '" + argstr + "'.");
-
-  nl->WriteToString(argstr, alias2);
-  CHECK_COND(( nl->IsAtom(alias2)&&
-      nl->SymbolValue(alias2)== CcString::BasicType()),
-      "Operator tconstraint: expects a predicate label as second "
-      "argument.\n But got '" + argstr + "'.");
-
-  nl->WriteToString(argstr, temporalconnector);
-  CHECK_COND(( nl->IsAtom(temporalconnector)&&
-      nl->SymbolValue(temporalconnector)== "stvector"),
-      "Operator tconstraint: expects a temporal connector as third "
-      "argument.\n But got '" + argstr + "'.");
-
-  ListExpr result = nl->SymbolAtom(CcBool::BasicType());
-  if(debugme)
-  {
-    cout<<endl<<endl<<"Operator tconstraint accepted the input";
-    cout.flush();
-  }
-  return result;
-}
 
 //operators
 template <int Alfa>
@@ -3119,56 +3280,72 @@ ListExpr CreateAlfaSetTM(ListExpr args)
   return res;
 }
 
-ListExpr MSet2MRegionTM(ListExpr args)
+ListExpr BoundingRegionTM(ListExpr args)
 {
   string msg= nl->ToString(args);
-  if(nl->ListLength(args) != 3)
+  if(nl->ListLength(args) < 2)
   {
-    ErrorReporter::ReportError("Operator mset2mregion expects 3 arguments."
-        "\nBut got: " + msg + ".");
-    return nl->SymbolAtom("typeerror");
+    ErrorReporter::ReportError("Operator boundingregion expects atleast 2 "
+        "arguments.\nBut got: " + msg + ".");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   };
   
-  msg= nl->ToString(nl->First(args));
-  if(!listutils::isTupleStream(nl->First(args)))
+  ListExpr muiset= nl->Second(args);
+  msg= nl->ToString(muiset);
+  if(!nl->IsAtom(muiset))
   {
-    ErrorReporter::ReportError("Operator mset2mregion expects stream(tuple(X)) "
-        "as first argument.\nBut got: " + msg + ".");
-    return nl->SymbolAtom("typeerror");
+    ErrorReporter::ReportError("Operator boundingregion expects any of {"
+        + MSet::BasicType() + "," + USet::BasicType() + "," + ISet::BasicType()
+        + "} as second argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+
+  ListExpr stream= nl->First(args);
+  msg= nl->ToString(stream);
+  if(!listutils::isTupleStream(stream))
+  {
+    ErrorReporter::ReportError("Operator boundingregion expects "
+        "stream(tuple(" + CcInt::BasicType() +"," + MPoint::BasicType() +
+        ")) as first argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  };
+  ListExpr tuple = nl->Second(nl->Second(stream));
+  msg= nl->ToString(tuple);
+  if(nl->ListLength(tuple) != 2 ||
+     !nl->IsAtom(nl->Second(nl->First(tuple))) ||
+     nl->SymbolValue(nl->Second(nl->First (tuple)))!= CcInt::BasicType() ||
+     !nl->IsAtom(nl->Second(nl->Second(tuple))) ||
+     nl->SymbolValue(nl->Second(nl->Second(tuple)))!= MPoint::BasicType())
+  {
+    ErrorReporter::ReportError("Operator boundingregion expects "
+        "stream(tuple(" + CcInt::BasicType() +"," + MPoint::BasicType() +
+        ")) as first argument.\nBut got: stream(tuple(" + msg + ")).");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
   };
 
-  msg= nl->ToString(nl->Second(args));
-  if(!nl->IsAtom(nl->Second(args)||nl->SymbolValue(nl->Second(args))!="mset"))
+  if(nl->IsEqual(muiset, MSet::BasicType()) ||
+     nl->IsEqual(muiset, USet::BasicType()))
   {
-    ErrorReporter::ReportError("Operator mset2mregion expects an mset as second"
-        " argument.\nBut got: " + msg + ".");
-    return nl->SymbolAtom("typeerror");
-  };
+    ListExpr duration= nl->Third(args);
+    msg= nl->ToString(duration);
+    if(!nl->IsAtom(duration)|| !nl->IsEqual(duration,  Duration::BasicType()))
+    {
+      ErrorReporter::ReportError("Operator boundingregion expects "
+          + Duration::BasicType() + " as third argument.\nBut got: " +
+          msg + ".");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
+    };
+    return nl->SymbolAtom(MRegion::BasicType());
+  }
+  else if(nl->IsEqual(muiset, ISet::BasicType()))
+  {
+    return nl->SymbolAtom(Region::BasicType());
+  }
 
-  msg= nl->ToString(nl->Third(args));
-  if(!nl->IsAtom(nl->Third(args)||
-      nl->SymbolValue(nl->Third(args))!= Duration::BasicType()))
-  {
-    ErrorReporter::ReportError("Operator mset2mregion expects duration as "
-        "third argument.\nBut got: " + msg + ".");
-    return nl->SymbolAtom("typeerror");
-  };
-  
-  ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
-  msg= nl->ToString(tuple1);
-  if(nl->ListLength(tuple1) != 2 ||
-     !nl->IsAtom(nl->Second(nl->First (tuple1))) ||
-     nl->SymbolValue(nl->Second(nl->First (tuple1)))!= CcInt::BasicType() ||
-     !nl->IsAtom(nl->Second(nl->Second(tuple1))) ||
-     nl->SymbolValue(nl->Second(nl->Second(tuple1)))!= MPoint::BasicType())
-  {
-    ErrorReporter::ReportError("Operator mset2mregion expects "
-        "stream(tuple(int mpoint)) as first "
-        "argument.\nBut got: stream(tuple(" + msg + ")).");
-    return nl->SymbolAtom("typeerror");
-  };
-  
-  return nl->SymbolAtom(MRegion::BasicType());
+  ErrorReporter::ReportError("Operator boundingregion expects any of {"
+      + MSet::BasicType() + "," + USet::BasicType() + "," + ISet::BasicType()
+      + "} as second argument.\nBut got: " + msg + ".");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 ListExpr ConvexHullTM(ListExpr args)
@@ -3196,41 +3373,74 @@ ListExpr ConvexHullTM(ListExpr args)
   return nl->SymbolAtom(Region::BasicType());
 }
 
-ListExpr MSet2MPointsTM(ListExpr args)
+ListExpr MembersTM(ListExpr args)
 {
   string msg= nl->ToString(args);
-  CHECK_COND( nl->ListLength(args) == 3 ,
-      "Operator mset2mpoints expects 3 arguments.\nBut got: " + msg + ".");
-  
-  msg= nl->ToString(nl->First(args));
-  CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
-      "Operator mset2mpoints expects stream(tuple(X)) as first argument."
-      "\nBut got: " + msg + ".");
+  if(nl->ListLength(args) != 3)
+  {
+    ErrorReporter::ReportError("Operator members expects 3 "
+        "arguments.\nBut got: " + msg + ".");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  };
 
-  msg= nl->ToString(nl->Second(args));
-  CHECK_COND( nl->IsAtom(nl->Second(args)) && 
-      nl->SymbolValue(nl->Second(args)) == "mset",
-      "Operator mset2mpoints expects an mset as second argument."
-      "\nBut got: " + msg + ".");
+  ListExpr muiset= nl->Second(args);
+  msg= nl->ToString(muiset);
+  if(!nl->IsAtom(muiset))
+  {
+    ErrorReporter::ReportError("Operator members expects any of {"
+        + MSet::BasicType() + "," + USet::BasicType() + "," + ISet::BasicType()
+        + "} as second argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
 
-  msg= nl->ToString(nl->Third(args));
-  CHECK_COND( nl->IsAtom(nl->Third(args)) &&
-      nl->SymbolValue(nl->Third(args)) == CcBool::BasicType(),
-      "Operator mset2mpoints expects a bool as third argument."
-      "\nBut got: " + msg + ".");
-    
-  ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
-  msg= nl->ToString(tuple1);
-  CHECK_COND( nl->ListLength(tuple1) == 2 &&
-    nl->IsAtom     (nl->Second(nl->First (tuple1))) &&
-    nl->SymbolValue(nl->Second(nl->First (tuple1)))== CcInt::BasicType() &&
-    nl->IsAtom     (nl->Second(nl->Second(tuple1))) &&
-    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== MPoint::BasicType(),
-        "Operator mset2mpoints expects stream(tuple(int mpoint)) as first "
-        "argument.\nBut got: stream(tuple(" + msg + ")).");
+  ListExpr stream= nl->First(args);
+  msg= nl->ToString(stream);
+  if(!listutils::isTupleStream(stream))
+  {
+    ErrorReporter::ReportError("Operator members expects "
+        "stream(tuple(" + CcInt::BasicType() +"," + MPoint::BasicType() +
+        ")) as first argument.\nBut got: " + msg + ".");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  };
+  ListExpr tuple = nl->Second(nl->Second(stream));
+  msg= nl->ToString(tuple);
+  if(nl->ListLength(tuple) != 2 ||
+     !nl->IsAtom(nl->Second(nl->First (tuple))) ||
+     nl->SymbolValue(nl->Second(nl->First (tuple)))!= CcInt::BasicType() ||
+     !nl->IsAtom(nl->Second(nl->Second(tuple))) ||
+     nl->SymbolValue(nl->Second(nl->Second(tuple)))!= MPoint::BasicType())
+  {
+    ErrorReporter::ReportError("Operator members expects "
+        "stream(tuple(" + CcInt::BasicType() +"," + MPoint::BasicType() +
+        ")) as first argument.\nBut got: stream(tuple(" + msg + ")).");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  };
 
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         nl->SymbolAtom(MPoint::BasicType()));
+  if(nl->IsEqual(muiset, MSet::BasicType()) ||
+     nl->IsEqual(muiset, USet::BasicType()))
+  {
+    ListExpr restrictTraj= nl->Third(args);
+    msg= nl->ToString(restrictTraj);
+    if(!nl->IsAtom(restrictTraj)||
+       !nl->IsEqual(restrictTraj,  CcBool::BasicType()))
+    {
+      ErrorReporter::ReportError("Operator members expects "
+          + CcBool::BasicType() + " as third argument.\nBut got: " +
+          msg + ".");
+      return nl->SymbolAtom(Symbol::TYPEERROR());
+    };
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->SymbolAtom(MPoint::BasicType()));
+  }
+  else if(nl->IsEqual(muiset, ISet::BasicType()))
+  {
+    return nl->SymbolAtom(Points::BasicType());
+  }
+
+  ErrorReporter::ReportError("Operator members expects any of {"
+      + MSet::BasicType() + "," + USet::BasicType() + "," + ISet::BasicType()
+      + "} as second argument.\nBut got: " + msg + ".");
+  return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
 
@@ -3486,16 +3696,6 @@ ReportPatternVM(Word* args, Word& result,int message, Word& local, Supplier s)
 
   return 0;
   }
-  return 0;
-}
-
-
-int TConstraintVM 
-(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  cerr<< "\nThe operator tconstraint is a facked operator. It may only be "
-      "called within the reportpattern operator.";
-  assert(0); //this function should never be invoked.
   return 0;
 }
 
@@ -3773,50 +3973,32 @@ performed in this step.
     }
 
     accumlator.ConstructFromBuffer();
+
     qp->Close(TheStream);
 
     if(debugme )
     {
-      MSet tmp1(0), tmp2(0);
-      accumlator.WriteToMSet(tmp1);
-      //accumlator2.WriteToMSet(tmp2);
-      if(tmp1 != tmp2)
-      {
-        tmp1.Print(cerr);
-        //tmp2.Print(cerr);
-      }
-    }
-    bool changed= true;
-    while(changed && accumlator.GetNoComponents() > 0 && 0)
-    {
-      //accumlator2.RemoveSmallUnits(n);
-   //changed= GPHelper.RemoveUnitsHavingFewNodes(accumlator, edge2nodesMap, n);
+      time_t rawtime;
+      time ( &rawtime );
+      cerr<<"\nAccumlator Constructed "<< ctime (&rawtime);
 
-      //accumlator2.RemoveShortElemParts(d);
-      //This function removes short edges. This is incorrect. It should instead
-      //remove short nodes
-      //changed= (accumlator.RemoveShortElemParts(d) || changed );
+//      MSet tmp1(0), tmp2(0);
+//      accumlator.WriteToMSet(tmp1);
+//      //accumlator2.WriteToMSet(tmp2);
+//      if(tmp1 != tmp2)
+//      {
+//        tmp1.Print(cerr);
+//        //tmp2.Print(cerr);
+//      }
     }
-    
-    if(debugme && 0)
-    {
-      MSet tmp1(0), tmp2(0);
-      accumlator.WriteToMSet(tmp1);
-      //accumlator2.WriteToMSet(tmp2);
-      if(tmp1 != tmp2)
-      {
-        tmp1.Print(cerr);
-        tmp2.Print(cerr);
-      }
-    }
-    
+
     list<CompressedInMemUSet>::iterator begin= 
       accumlator.units.begin(), end, tmp;
     //cast the CompressedInMemMSet into an InMemMSet
     while(begin != accumlator.units.end())
     {
       end= accumlator.GetPeriodEndUnit(begin);
-      if(debugme)
+      if(debugme && 0)
       {
         accumlator.Print(cerr);
         (*begin).Print(cerr);
@@ -3828,7 +4010,7 @@ performed in this step.
         if(begin != accumlator.units.begin())
         {
           CompressedInMemMSet accumlatorPart(accumlator, begin, end);
-          if(debugme)
+          if(debugme && 0)
           {
             MSet tmp1(0);
             //accumlatorPart.WriteToMSet(tmp1);
@@ -3856,7 +4038,7 @@ performed in this step.
     for(list<CompressedMSet*>::iterator 
         it= resStream->begin(); it!= resStream->end(); ++it)
     {
-      if(debugme)
+      if(debugme && 0)
         (*it)->Print(cerr);
       resStreamFinal->push_back(GPHelper.EdgeMSet2NodeMSet(*it, edge2nodesMap));
       delete *it;
@@ -3930,6 +4112,7 @@ int MBool2MSetVM
   return 0;
 }
 
+
 int UnionMSetVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -3940,6 +4123,66 @@ int UnionMSetVM
   op1->LiftedUnion(*op2, *res);
   return 0;
 }
+
+int UnionIntSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  IntSet* res= static_cast<IntSet*>(result.addr);
+  IntSet* op1= static_cast<IntSet*>(args[0].addr);
+  IntSet* op2= static_cast<IntSet*>(args[1].addr);
+  op1->Union(*op2, *res);
+  return 0;
+}
+
+
+ValueMapping UnionVMMap[] = {
+  UnionMSetVM,
+  UnionIntSetVM
+};
+
+template<bool equals>
+int EqualsMSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  CcBool* res= static_cast<CcBool*>(result.addr);
+  MSet* op1= static_cast<MSet*>(args[0].addr);
+  MSet* op2= static_cast<MSet*>(args[1].addr);
+  bool r= ((*op1) == (*op2));
+  if(equals)
+    res->Set(true, r);
+  else
+    res->Set(true, !r);
+  return 0;
+}
+
+template<bool equals>
+int EqualsIntSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  CcBool* res= static_cast<CcBool*>(result.addr);
+  IntSet* op1= static_cast<IntSet*>(args[0].addr);
+  IntSet* op2= static_cast<IntSet*>(args[1].addr);
+  bool r= ((*op1) == (*op2));
+  if(equals)
+    res->Set(true, r);
+  else
+    res->Set(true, !r);
+  return 0;
+}
+
+
+ValueMapping NEqualsVMMap[] = {
+  EqualsMSetVM<false>,
+  EqualsIntSetVM<false>
+};
+
+ValueMapping EqualsVMMap[] = {
+  EqualsMSetVM<true>,
+  EqualsIntSetVM<true>
+};
 
 int Union2MSetVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
@@ -3952,6 +4195,157 @@ int Union2MSetVM
   return 0;
 }
 
+int MinusMSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  MSet* res= static_cast<MSet*>(result.addr);
+  MSet* op1= static_cast<MSet*>(args[0].addr);
+  MSet* op2= static_cast<MSet*>(args[1].addr);
+  op1->LiftedMinus(*op2, *res);
+  return 0;
+}
+
+int MinusSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  IntSet* res= static_cast<IntSet*>(result.addr);
+  IntSet* op1= static_cast<IntSet*>(args[0].addr);
+  IntSet* op2= static_cast<IntSet*>(args[1].addr);
+  op1->Minus(*op2, *res);
+  return 0;
+}
+
+ValueMapping MinusVMMap[] = {
+  MinusMSetVM,
+  MinusSetVM};
+
+
+int IsSubsetMSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  MBool* res= static_cast<MBool*>(result.addr);
+  MSet* op1= static_cast<MSet*>(args[0].addr);
+  MSet* op2= static_cast<MSet*>(args[1].addr);
+  op1->LiftedIsSubset(*op2, *res);
+  return 0;
+}
+
+int IsSubsetUSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  MBool* res= static_cast<MBool*>(result.addr);
+  USet* op1= static_cast<USet*>(args[0].addr);
+  USet* op2= static_cast<USet*>(args[1].addr);
+  MSet op1Container(0), op2Container(0);
+  op1Container.Add(*op1);
+  op2Container.Add(*op2);
+  op1Container.LiftedIsSubset(op2Container, *res);
+  return 0;
+}
+
+int IsSubsetSetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  CcBool* res= static_cast<CcBool*>(result.addr);
+  IntSet* op1= static_cast<IntSet*>(args[0].addr);
+  IntSet* op2= static_cast<IntSet*>(args[1].addr);
+  bool r= op1->IsSubset(*op2);
+  res->Set(true, r);
+  return 0;
+}
+
+ValueMapping IsSubsetVMMap[] = {
+  IsSubsetMSetVM,
+  IsSubsetUSetVM,
+  IsSubsetSetVM
+};
+
+template<int argIndex>
+int MUSSetSelect( ListExpr args )
+{
+  ListExpr arg = nl->Nth(argIndex + 1, args );
+
+  if (nl->IsAtom( arg ) )
+  {
+    if( nl->SymbolValue( arg ) == MSet::BasicType() )
+      return 0;
+    else if( nl->SymbolValue( arg ) == USet::BasicType() )
+      return 1;
+    else if( nl->SymbolValue( arg ) == IntSet::BasicType() )
+      return 2;
+  }
+  return -1;
+}
+
+struct UnitsLocalInfo
+{
+  Word mWord;     // the address of the moving point/int/real value
+  int unitIndex;  // current item index
+};
+
+int UnitsVM(Word* args, Word& result,
+                   int message, Word& local, Supplier s)
+{
+  MSet* m;
+  USetRef usetref(true);
+  USet* uset;
+  UnitsLocalInfo* localinfo;
+  switch( message )
+  {
+    case OPEN:
+      localinfo = new UnitsLocalInfo;
+      m = static_cast<MSet*>(args[0].addr);
+      if(m->IsDefined()){
+        localinfo->mWord = args[0];
+        localinfo->unitIndex = 0;
+        local = SetWord(localinfo);
+      } else {
+        local.setAddr( 0 );
+      }
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = static_cast<UnitsLocalInfo *>(local.addr);
+      m = (MSet*)localinfo->mWord.addr;
+      while( (0 <= localinfo->unitIndex)
+          && (localinfo->unitIndex < m->GetNoComponents()) )
+      {
+        m->Get(localinfo->unitIndex, usetref);
+        ++localinfo->unitIndex;
+        if(!usetref.IsDefined() )
+          continue;
+
+        uset= new USet(true);
+        usetref.GetUnit(m->data, *uset);
+        result.setAddr(uset);
+
+        return YIELD;
+      }
+      return CANCEL;
+
+    case CLOSE:
+
+      if( local.addr != 0 )
+      {
+        delete (UnitsLocalInfo *)local.addr;
+        local = SetWord(Address(0));
+      }
+      return 0;
+  }
+
+  // should not happen
+  return -1;
+}
+
+
 int CardinalityMSetVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -3962,12 +4356,84 @@ int CardinalityMSetVM
   return 0;
 }
 
-
-template <bool Row>
-int RowColVM 
+int CardinalityUSetVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  result= qp->ResultStorage(s);
+  CcInt* res= static_cast<CcInt*>(result.addr);
+  USet* arg= static_cast<USet*>(args[0].addr);
+  if(!arg->IsDefined())
+    res->SetDefined(false);
+  else
+    res->Set(true, arg->constValue.Count());
   return 0;
+}
+
+int CardinalityISetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  CcInt* res= static_cast<CcInt*>(result.addr);
+  ISet* arg= static_cast<ISet*>(args[0].addr);
+  if(!arg->IsDefined())
+    res->SetDefined(false);
+  else
+    res->Set(true, arg->value.Count());
+  return 0;
+}
+
+int CardinalitySetVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result= qp->ResultStorage(s);
+  CcInt* res= static_cast<CcInt*>(result.addr);
+  IntSet* arg= static_cast<IntSet*>(args[0].addr);
+  if(!arg->IsDefined())
+    res->SetDefined(false);
+  else
+    res->Set(true, arg->Count());
+  return 0;
+}
+
+ValueMapping CardinalityVMMap[] = {
+  CardinalityMSetVM,
+  CardinalityUSetVM,
+  CardinalityISetVM,
+  CardinalitySetVM,
+};
+
+template<int argIndex>
+int MSSetSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->Nth(argIndex + 1, args );
+
+  if (nl->IsAtom( arg1 ) )
+  {
+    if( nl->SymbolValue( arg1 ) == MSet::BasicType() )
+      return 0;
+    else if( nl->SymbolValue( arg1 ) == IntSet::BasicType() )
+      return 1;
+  }
+  return -1;
+}
+
+template<int argIndex>
+int MUISSetSelect( ListExpr args )
+{
+  ListExpr arg = nl->Nth(argIndex + 1, args );
+
+  if (nl->IsAtom( arg ) )
+  {
+    if( nl->SymbolValue( arg ) == MSet::BasicType() )
+      return 0;
+    else if( nl->SymbolValue( arg ) == USet::BasicType() )
+      return 1;
+    else if( nl->SymbolValue( arg ) == ISet::BasicType() )
+      return 2;
+    else if( nl->SymbolValue( arg ) == IntSet::BasicType() )
+      return 3;
+  }
+  return -1;
 }
 
 template <class Alfa>
@@ -3997,6 +4463,71 @@ int CreateAlfaSetVM
   }
   qp->Close(args[0].addr);
   return 0;
+}
+
+template <int initfin>
+int USetInitialFinal( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  USet* unit = ((USet*)args[0].addr);
+  ISet* res = ((ISet*)result.addr);
+  Instant inst(0, 0, instanttype);
+  if(initfin == 0)
+    inst.CopyFrom(&unit->timeInterval.start);
+  else if(initfin == 1)
+    inst.CopyFrom(&unit->timeInterval.end);
+  else
+    assert(false);
+
+  if( !unit->IsDefined() || !(inst.IsDefined()) )
+     res->SetDefined( false );
+  else
+   {
+     unit->TemporalFunction( inst, res->value, true );
+     res->instant.CopyFrom( &inst );
+     res->SetDefined( true );
+   }
+  return 0;
+}
+
+int MSetInitial( Word* args, Word& result,
+                    int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((MSet*)args[0].addr)->Initial( *((ISet*)result.addr) );
+  return 0;
+}
+
+int MSetFinal( Word* args, Word& result,
+                    int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((MSet*)args[0].addr)->Final( *((ISet*)result.addr) );
+  return 0;
+}
+
+ValueMapping InitVMMap[] = {
+  MSetInitial,
+  USetInitialFinal<0>};
+
+ValueMapping FinVMMap[] = {
+  MSetFinal,
+  USetInitialFinal<1>};
+
+int InitFinSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if (nl->IsAtom( arg1 ) )
+  {
+    if( nl->SymbolValue( arg1 ) == MSet::BasicType() )
+      return 0;
+    if( nl->SymbolValue( arg1 ) == USet::BasicType() )
+      return 1;
+  }
+  return -1;
 }
 
 void 
@@ -4136,36 +4667,24 @@ Adding the last instant in the unit
 }
 
 /*
-Value map MSet2MRegion
+Value maps BoundingRegion
 
 */
-
-int 
-MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
+void MSet2MRegion(Supplier stream, MSet* mset, Instant* d, MRegion* res)
 {
-  bool debugme=false;
-  result = qp->ResultStorage(s);
-  MRegion* res = static_cast<MRegion*>( result.addr);
+  bool debugme= false;
+
+try{
   res->Clear();
-  Word Value;
-  Supplier arg0= qp->GetSon(s,0);
-  Supplier arg1= qp->GetSon(s,1);
-  Supplier arg2= qp->GetSon(s,2);
-  try{
-  qp->Request(arg1, Value);
-  MSet* mset= static_cast<MSet*>(Value.addr);
   if(debugme)
     mset->Print(cerr);
-
   
   if(!mset->IsDefined() || mset->GetNoComponents()==0)
   {
     res->SetDefined(false);
-    return 0;
+    return;
   }
   
-  qp->Request(arg2, Value);
-  Instant* d= static_cast<Instant*>(Value.addr);
   USetRef usetref;
   USet uset(true);
   set<int> idset;
@@ -4174,18 +4693,25 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     mset->Get(i, usetref);
     usetref.GetUnit(mset->data, uset);
-    if(uset.constValue.Count()!= 0)
+    if(uset.constValue.Count() > 2)
     {
       for(int k=0; k< uset.constValue.Count(); ++k)
         idset.insert(uset.constValue[k]);
     }
+    else
+    {
+      //Cannot construct a region using less than 3 points
+      res->SetDefined(false);
+      return;
+    }
   }
   
+  Word Value;
   map<int, MPoint*> mpoints;
   vector<Tuple*> tuplesToDelete(0);
-  qp->Open(arg0);
-  qp->Request(arg0, Value);
-  while(qp->Received(arg0) &&  (mpoints.size() < idset.size()))
+  qp->Open(stream);
+  qp->Request(stream, Value);
+  while(qp->Received(stream) &&  (mpoints.size() < idset.size()))
   {
     Tuple* tuple= static_cast<Tuple*>(Value.addr);
     int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
@@ -4200,9 +4726,9 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
     else
       tuple->DeleteIfAllowed();
       
-    qp->Request(arg0, Value);
+    qp->Request(stream, Value);
   }
-  qp->Close(arg0);  
+  qp->Close(stream);
   if(mpoints.size() != idset.size())
   {
     res->SetDefined(false);
@@ -4210,7 +4736,7 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
     "found in the mpoint stream\n";
     for(unsigned int k=0; k<tuplesToDelete.size(); ++k)
       tuplesToDelete[k]->DeleteIfAllowed();
-    return 0;
+    return;
   }
   
   for(int i=0; i<mset->GetNoComponents(); ++i)
@@ -4230,87 +4756,226 @@ MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   catch(...)
   {
-    cerr<<"\nUnhandeled exception in mset2mregion ValueMap. "
+    cerr<<"\nUnhandeled exception in boundingregion ValueMap. "
         "Yielding undefined result.\n";
     res->Clear();
     res->SetDefined(false);
-    return 0;
+    return;
   }
+  return;
+}
+
+
+void USet2MRegion(Supplier stream, USet* uset, Instant* d, MRegion* res)
+{
+  bool debugme= false;
+
+try{
+  res->Clear();
+  if(debugme)
+    uset->Print(cerr);
+
+  if(!uset->IsDefined())
+  {
+    res->SetDefined(false);
+    return;
+  }
+
+  set<int> idset;
+  set<int>::iterator setIt;
+  if(uset->constValue.Count() > 2)
+  {
+    for(int k=0; k< uset->constValue.Count(); ++k)
+      idset.insert(uset->constValue[k]);
+  }
+  else
+  {
+    //Cannot construct a region using less than 3 points
+    res->SetDefined(false);
+    return;
+  }
+
+  Word Value;
+  map<int, MPoint*> mpoints;
+  vector<Tuple*> tuplesToDelete(0);
+  qp->Open(stream);
+  qp->Request(stream, Value);
+  while(qp->Received(stream) &&  (mpoints.size() < idset.size()))
+  {
+    Tuple* tuple= static_cast<Tuple*>(Value.addr);
+    int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+    setIt= idset.find(id);
+    if(setIt != idset.end())
+    {
+      MPoint* elem=dynamic_cast<MPoint*>(
+          dynamic_cast<MPoint*>(tuple->GetAttribute(1)));
+      mpoints[id]= elem;
+      tuplesToDelete.push_back(tuple);
+    }
+    else
+      tuple->DeleteIfAllowed();
+
+    qp->Request(stream, Value);
+  }
+  qp->Close(stream);
+  if(mpoints.size() != idset.size())
+  {
+    res->SetDefined(false);
+    cerr<<"mset2mregion: not all ids in the mset are "
+    "found in the mpoint stream\n";
+    for(unsigned int k=0; k<tuplesToDelete.size(); ++k)
+      tuplesToDelete[k]->DeleteIfAllowed();
+    return;
+  }
+
+  if(uset->constValue.Count()!= 0)
+  {
+    idset.clear();
+    for(int k=0; k< uset->constValue.Count(); ++k)
+      idset.insert(uset->constValue[k]);
+    AppendMRegionPart(idset, mpoints, uset->timeInterval, *d , *res);
+  }
+
+  for(unsigned int k=0; k<tuplesToDelete.size(); ++k)
+    tuplesToDelete[k]->DeleteIfAllowed();
+  }
+  catch(...)
+  {
+    cerr<<"\nUnhandeled exception in boundingregion ValueMap. "
+        "Yielding undefined result.\n";
+    res->Clear();
+    res->SetDefined(false);
+    return;
+  }
+  return;
+}
+
+void ISet2Region(Supplier stream, ISet* iset, Region* res)
+{
+  bool debugme= false;
+
+try{
+  res->Clear();
+  if(debugme)
+    iset->Print(cerr);
+
+  if(!iset->IsDefined())
+  {
+    res->SetDefined(false);
+    return;
+  }
+
+  set<int> idset;
+  set<int>::iterator setIt;
+  if(iset->value.Count() > 2)
+  {
+    for(int k=0; k< iset->value.Count(); ++k)
+      idset.insert(iset->value[k]);
+  }
+  else
+  {
+    //Cannot construct a region using less than 3 points
+    res->SetDefined(false);
+    return;
+  }
+
+  Word Value;
+  Intime<Point> pt(0);
+  Points pts(0);
+  qp->Open(stream);
+  qp->Request(stream, Value);
+  while(qp->Received(stream))
+  {
+    Tuple* tuple= static_cast<Tuple*>(Value.addr);
+    int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+    setIt= idset.find(id);
+    if(setIt != idset.end())
+    {
+      MPoint* elem=dynamic_cast<MPoint*>(
+          dynamic_cast<MPoint*>(tuple->GetAttribute(1)));
+      elem->AtInstant(iset->instant, pt);
+      if(pt.IsDefined()) pts += pt.value;
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(stream, Value);
+  }
+  qp->Close(stream);
+
+  if(pts.Size() < 3)
+  {
+    res->SetDefined(false);
+    cerr<<"boundingregion: "
+        "Cannot construct a region using less than 3 points \n";
+    return;
+  }
+  GrahamScan::convexHull(&pts, res);
+}
+catch(...)
+{
+  cerr<<"\nUnhandeled exception in boundingregion ValueMap. "
+      "Yielding undefined result.\n";
+  res->Clear();
+  res->SetDefined(false);
+  return;
+}
+  return;
+}
+
+
+int
+MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  MRegion* res = static_cast<MRegion*>( result.addr);
+  Word Value;
+  Supplier stream= qp->GetSon(s,0);
+  Supplier arg1= qp->GetSon(s,1);
+  Supplier arg2= qp->GetSon(s,2);
+
+  qp->Request(arg1, Value);
+  MSet* mset= static_cast<MSet*>(Value.addr);
+  qp->Request(arg2, Value);
+  Instant* d= static_cast<Instant*>(Value.addr);
+
+  MSet2MRegion(stream, mset, d, res);
   return 0;
 }
 
-//int 
-//MSet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
-//{
-//  bool debugme=false;
-//  result = qp->ResultStorage(s);
-//  MRegion* res = static_cast<MRegion*>( result.addr);
-//  res->Clear();
-//  Word Value;
-//  Supplier arg0= qp->GetSon(s,0);
-//  Supplier arg1= qp->GetSon(s,1);
-//  Supplier arg2= qp->GetSon(s,2);
-//  
-//  qp->Request(arg1, Value);
-//  MSet* mset= static_cast<MSet*>(Value.addr);
-//  if(debugme)
-//    mset->Print(cerr);
-//
-//  
-//  if(!mset->IsDefined() || mset->GetNoComponents()==0)
-//  {
-//    res->SetDefined(false);
-//    return 0;
-//  }
-//  
-//  qp->Request(arg2, Value);
-//  Instant* d= static_cast<Instant*>(Value.addr);
-//  USetRef usetref;
-//  USet uset(true);
-//  set<int> idset;
-//  set<int>::iterator setIt;
-//  for(int i=0; i<mset->GetNoComponents(); ++i)
-//  {
-//    mset->Get(i, usetref);
-//    usetref.GetUnit(mset->data, uset);
-//    if(uset.constValue.Count()!= 0)
-//    {
-//      idset.clear();
-//      for(int k=0; k< uset.constValue.Count(); ++k)
-//        idset.insert(uset.constValue[k]);
-//      vector<MPoint*> mpoints(0);
-//      qp->Open(arg0);
-//      qp->Request(arg0, Value);
-//      while(qp->Received(arg0))
-//      {
-//        Tuple* tuple= static_cast<Tuple*>(Value.addr);
-//        int id= dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
-//        setIt= idset.find(id);
-//        if(setIt != idset.end())
-//        {
-//          MPoint* elem=dynamic_cast<MPoint*>( 
-//            dynamic_cast<MPoint*>(tuple->GetAttribute(1))->Clone());
-//          mpoints.push_back(elem);
-//        }
-//        tuple->DeleteIfAllowed();
-//        qp->Request(arg0, Value);
-//      }
-//      if(mpoints.size() != idset.size())
-//      {
-//        res->SetDefined(false);
-//        cerr<<"mset2mregion: not all ids in the mset are "
-//        "found in the mpoint stream\n";
-//        return 0;
-//      }
-//      qp->Close(arg0);
-//      AppendMRegionPart(mpoints, usetref.timeInterval, *d , *res);
-//      for(unsigned int k=0; k<mpoints.size(); ++k)
-//        delete mpoints[k];
-//    }
-//  }
-//  return 0;
-//}
+int
+USet2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  MRegion* res = static_cast<MRegion*>( result.addr);
+  Word Value;
+  Supplier stream= qp->GetSon(s,0);
+  Supplier arg1= qp->GetSon(s,1);
+  Supplier arg2= qp->GetSon(s,2);
 
+  qp->Request(arg1, Value);
+  USet* uset= static_cast<USet*>(Value.addr);
+  qp->Request(arg2, Value);
+  Instant* d= static_cast<Instant*>(Value.addr);
+
+  USet2MRegion(stream, uset, d, res);
+  return 0;
+}
+
+int
+ISet2RegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  Region* res = static_cast<Region*>( result.addr);
+  Word Value;
+  Supplier stream= qp->GetSon(s,0);
+  Supplier arg1= qp->GetSon(s,1);
+
+  qp->Request(arg1, Value);
+  ISet* iset= static_cast<ISet*>(Value.addr);
+
+
+  ISet2Region(stream, iset, res);
+  return 0;
+}
 /*
 Value map MSet2MPoints
 
@@ -4432,6 +5097,163 @@ MSet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
+struct USet2MPointsLocalInfo
+{
+public:
+  Periods usetPeriods;
+  set<int> ids;
+  bool restrictMPoints;
+  USet2MPointsLocalInfo(USet* uset, bool r):usetPeriods(0), restrictMPoints(r)
+  {
+    usetPeriods.Add(uset->timeInterval);
+    for(int i=0; i<uset->constValue.Count(); ++i)
+      ids.insert(uset->constValue[i]);
+  }
+};
+
+int
+USet2MPointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+
+  //bool debugme=false;
+
+  switch( message )
+  {
+  case OPEN: {
+    Word Value;
+    Supplier arg1= qp->GetSon(s,1);
+    Supplier arg2= qp->GetSon(s,2);
+    qp->Request(arg1, Value);
+    USet* uset= static_cast<USet*>(Value.addr);
+    qp->Request(arg2, Value);
+    bool restrictMPoints= static_cast<CcBool*>(Value.addr)->GetBoolval();
+    USet2MPointsLocalInfo* localinfo=
+        new USet2MPointsLocalInfo(uset, restrictMPoints);
+    local.setAddr(localinfo);
+    qp->Open( args[0].addr );
+    return 0;
+  }
+  case REQUEST: { // return the next stream element
+    Word Value;
+    USet2MPointsLocalInfo* localinfo=
+        static_cast<USet2MPointsLocalInfo*>(local.addr);
+    if(localinfo->ids.empty())
+      return CANCEL;
+
+    qp->Request(args[0].addr, Value);
+    while(qp->Received(args[0].addr))
+    {
+      Tuple* tuple= static_cast<Tuple*>(Value.addr);
+      int idFromTuple=
+          dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+      if(localinfo->ids.find(idFromTuple) != localinfo->ids.end())
+      {
+        MPoint* res= new MPoint(0);
+        if(localinfo->restrictMPoints)
+        {
+          MPoint* tmp = dynamic_cast<MPoint*>(tuple->GetAttribute(1));
+          tmp->AtPeriods(localinfo->usetPeriods, *res);
+        }
+        else
+        {
+          MPoint* tmp = dynamic_cast<MPoint*>(tuple->GetAttribute(1));
+          res->CopyFrom(tmp);
+        }
+        localinfo->ids.erase(idFromTuple);
+        result= SetWord(res);
+        return YIELD;
+      }
+      tuple->DeleteIfAllowed();
+      qp->Request(args[0].addr, Value);
+    }
+
+    cerr<<"operator members: some uset elements are not found in "
+        "the stream";
+    return FAILURE;
+  }
+  case CLOSE: { // free the local storage
+    USet2MPointsLocalInfo* localinfo=
+        static_cast<USet2MPointsLocalInfo*>(local.addr);
+    delete localinfo;
+    qp->Close(args[0].addr);
+    result.addr=0;
+    return 0;
+  }
+  return 0;
+  }
+  return 0;
+}
+
+int
+ISet2PointsVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word Value;
+  Supplier arg1= qp->GetSon(s,1);
+  qp->Request(arg1, Value);
+  ISet* iset= static_cast<ISet*>(Value.addr);
+  set<int> ids;
+  for(int i=0; i<iset->value.Count(); ++i)
+    ids.insert(iset->value[i]);
+  Intime<Point> pt(0);
+  result = qp->ResultStorage(s);
+  Points* res = static_cast<Points*>( result.addr);
+  res->Clear();
+  qp->Request(args[0].addr, Value);
+  while(qp->Received(args[0].addr))
+  {
+    Tuple* tuple= static_cast<Tuple*>(Value.addr);
+    int idFromTuple=
+        dynamic_cast<CcInt*>(tuple->GetAttribute(0))->GetIntval();
+    if(ids.find(idFromTuple) != ids.end())
+    {
+      MPoint* tmp = dynamic_cast<MPoint*>(tuple->GetAttribute(1));
+      tmp->AtInstant(iset->instant, pt);
+      if(pt.IsDefined())
+        (*res) +=pt.value;
+      ids.erase(idFromTuple);
+      tuple->DeleteIfAllowed();
+      qp->Request(args[0].addr, Value);
+    }
+  }
+  qp->Close(args[0].addr);
+  if(! ids.empty())
+  {
+    cerr<<"operator members: some iset elements are not found in the stream";
+    return FAILURE;
+  }
+  return 0;
+}
+
+
+ValueMapping BoundingRegionVMMap[] = {
+  MSet2MRegionVM,
+  USet2MRegionVM,
+  ISet2RegionVM};
+
+ValueMapping MembersVMMap[] = {
+  MSet2MPointsVM,
+  USet2MPointsVM,
+  ISet2PointsVM
+};
+
+template<int argIndex>
+int MUISetSelect( ListExpr args )
+{
+  ListExpr arg = nl->Nth(argIndex + 1, args );
+
+  if (nl->IsAtom( arg ) )
+  {
+    if( nl->SymbolValue( arg ) == MSet::BasicType() )
+      return 0;
+    else if( nl->SymbolValue( arg ) == USet::BasicType() )
+      return 1;
+    else if( nl->SymbolValue( arg ) == ISet::BasicType() )
+      return 2;
+  }
+  return -1;
+}
+
 
 int 
 ConvexHullVM(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -4696,6 +5518,102 @@ int GBoidsVM(
   }
   return 0;
 }
+
+
+int DefTimeUSet( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Periods* r = ((Periods*) result.addr);
+  USet*    m = ((USet*)    args[0].addr);
+
+  r->Clear();
+  if ( !m->IsDefined() )
+    r->SetDefined( false );
+  else
+    {
+      r->SetDefined( true );
+      r->StartBulkLoad();
+      r->Add( m->timeInterval );
+      r->EndBulkLoad( false );
+    }
+  return 0;
+}
+
+
+ValueMapping DeftimeVMMap[] = {
+  MappingDefTime<MSet>,
+  DefTimeUSet};
+
+template<int argIndex>
+int MUSetSelect( ListExpr args )
+{
+  ListExpr arg = nl->Nth(argIndex + 1, args );
+
+  if (nl->IsAtom( arg ) )
+  {
+    if( nl->SymbolValue( arg ) == MSet::BasicType() )
+      return 0;
+    else if( nl->SymbolValue( arg ) == USet::BasicType() )
+      return 1;
+  }
+  return -1;
+}
+
+
+struct ComponentsLocalInfo
+{
+  IntSet* theset;     // the address of the moving point/int/real value
+  int elemIndex;  // current item index
+};
+
+int ComponentsVM(Word* args, Word& result,
+                   int message, Word& local, Supplier s)
+{
+  ComponentsLocalInfo* localinfo;
+  switch( message )
+  {
+    case OPEN:
+      localinfo = new ComponentsLocalInfo();
+      localinfo->theset = static_cast<IntSet*>(args[0].addr);
+      if(localinfo->theset->IsDefined()){
+        localinfo->elemIndex = 0;
+        local = SetWord(localinfo);
+      } else {
+        local.setAddr( 0 );
+      }
+      return 0;
+
+    case REQUEST:
+
+      if( local.addr == 0 )
+        return CANCEL;
+      localinfo = static_cast<ComponentsLocalInfo *>(local.addr);
+      int elem;
+      if( (0 <= localinfo->elemIndex)
+          && (localinfo->elemIndex < localinfo->theset->Count()) )
+      {
+        elem= (*(localinfo->theset))[localinfo->elemIndex];
+        ++localinfo->elemIndex;
+        CcInt* res= new CcInt(true, elem);
+        result.setAddr(res);
+        return YIELD;
+      }
+      return CANCEL;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        delete (ComponentsLocalInfo *)local.addr;
+        local = SetWord(Address(0));
+      }
+      return 0;
+  }
+  // should not happen
+  return -1;
+}
+
+
 /*
 Operator properties
 
@@ -4753,23 +5671,6 @@ const string ReportPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "[const duration value (1 0)] ]] count  </text--->"
   ") )";
 
-const string TConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>string X string X stvector -> bool</text--->"
-  "<text>_ stconstraint( string, string, vec(_))</text--->"
-  "<text>The operator is used only within the stpattern and reportpattern "
-  "operators. It is used to express a spatiotemporal constraint. The operator "
-  "doesn't have a value mapping function because it is evaluated within the "
-  "stpattern. It should never be called elsewhere."
-  "</text--->"
-  "<text>query Trains feed filter[. stpattern[a: .Trip inside msnow,"
-  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
-  "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
-  "stconstraint(\"b\",\"c\",vec(\"bbaa\"));"
-  "(end(\"b\") - start(\"a\")) < "
-  "[const duration value (1 0)] ]] count </text--->"
-  ") )";
-
 const string CreateIntSetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(.)) X symbol -> elemset</text--->"
@@ -4802,9 +5703,9 @@ const string MBool2MSetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "</text--->"
   ") )";
 
-const string UnionMSetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string UnionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> mset x mset -> mset</text--->"
+  "( <text> mset x mset -> mset, intset x intset -> intset</text--->"
   "<text>_ union _</text--->"
   "<text>The operator is a lifted union for msets."
   "</text--->"
@@ -4833,7 +5734,70 @@ const string Union2MSetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "</text--->"
   ") )";
 
-const string CardinalityMSetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string MinusSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> mset x mset -> mset, intset x intset -> intset</text--->"
+  "<text>_ - _</text--->"
+  "<text>Computes the set difference.</text--->"
+  "<text>query speed(train7)>15 mbool2mset(7) union emptymset() nocomponents"
+  "</text--->"
+  ") )";
+
+const string EqualsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> mset x mset -> bool, intset x intset -> bool</text--->"
+  "<text>_ = _, _ # _</text--->"
+  "<text>Checks the two operands for equality.</text--->"
+  "<text>query speed(train7)>15 mbool2mset(7) union emptymset() nocomponents"
+  "</text--->"
+  ") )";
+
+const string IsSubsetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> mset x mset -> mbool</text--->"
+  "<text>_ issubset _</text--->"
+  "<text>The operator is a lifted issubset for msets. It yields an mbool which "
+  "is undefined whenever any of the two operands is undefined, true whenever "
+  "the first operand is a subset of the second operand, and flase otherwise."
+  "</text--->"
+  "<text>query speed(train7)>15 mbool2mset(7) issubset emptymset() nocomponents"
+  "</text--->"
+  ") )";
+
+const string ValSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>iT -> x</text--->"
+  "<text>val ( _ )</text--->"
+  "<text>Return an intime value's value.</text--->"
+  "<text>val ( i1 )</text--->"
+  ") )";
+
+const string InstSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>iT -> instant</text--->"
+  "<text>inst ( _ )</text--->"
+  "<text>Return an intime instant's value.</text--->"
+  "<text>inst ( i1 )</text--->"
+  ") )";
+
+const string UnitsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> mset  -> stream(uset)</text--->"
+  "<text> units(_) </text--->"
+  "<text>The operator create the stream of all usets contained in the mset."
+  "</text---> <text>query units(speed(train7)>15 mbool2mset(7)) count"
+  "</text--->"
+  ") )";
+
+const string InitFinSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(uset) -> iset, (mset) -> iset</text--->"
+  "<text>initial( _ ), final( _ )</text--->"
+  "<text>From an mset or uset, get the intime value corresponding to the "
+  "(overall) initial/final instant.</text--->"
+  "<text>initial( uset1 )</text---> ) )";
+
+const string CardinalitySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text> mset -> mint</text--->"
   "<text>_ cardinality</text--->"
@@ -4843,7 +5807,7 @@ const string CardinalityMSetSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "</text--->"
   ") )";
 
-const string MSet2MPointsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string MembersSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text> mset -> mint</text--->"
   "<text>_ cardinality</text--->"
@@ -4864,15 +5828,20 @@ const string ConvexHullSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   ") )";
 
 
-const string MSet2MRegionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string BoundingRegionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> stream(tuple(int mpoint)) x mset x duration -> movingregion"
-  "</text--->"
+  "( <text> stream(tuple(int mpoint)) x mset x duration -> mregion,\n"
+  "stream(tuple(int mpoint)) x uset x duration -> mregion,\n"
+  "stream(tuple(int mpoint)) x iset -> region</text--->"
   "<text>Trains feed addcounter[Cnt, 1] project[Cnt, Trip] Flocks feed "
-  "mflocks2mregions[create_duration(0, 10000)]</text--->"
-  "<text>Creates mving region representation for the mflocks. The resulting "
-  "mregions are the interpolation of the convex hull regions taken at time "
-  "intervals of duration at most.</text--->"
+  "boundingregion[create_duration(0, 10000)]</text--->"
+  "<text>Creates the bounding region/mregion of the group of moving points "
+  "whoes identifiers are within the mset/uset/iset. The resulting "
+  "region/mregion is the interpolation of the convex hulls of mpoint positions "
+  "sampled at time intervals of 'duration'. The initial and final time "
+  "instants of the mset/uset are included in the samples. If the number of "
+  "elems in the mset/uset/iset is ever below 3, the result is undefined. If "
+  "the mset contains definition gaps, the result is undefined.</text--->"
   "<text>query Trains feed addcounter[Cnt, 1] project[Cnt, Trip] Flocks feed "
   "mflocks2mregions[create_duration(0, 10000)] consume</text--->"
   ") )";
@@ -4917,7 +5886,8 @@ const string GBoidsSpec =
   "obstacles, the rect defining the world, simulation start time, "
   "simulation period)</text--->"
   "<text>The operator uses the source code provided by Christopher John Kline "
-  "for creating boids. Boids are flying birds. Originally the code generates "
+  "for creating boids. Boids are bird-like objects. "
+  "Originally the code generates "
   "3D coordinates. The operator, however, yields the X, Y only. You can create "
   "several groups of boids, where every group try to flock together. The "
   "first argument is a vector that specifies the sizes of these groups. The "
@@ -4942,6 +5912,24 @@ const string GBoidsSpec =
   "create_duration(0, 1000000)) "
   "count</text--->) )";
 
+const string DeftimeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>moving(x) -> periods</text--->"
+  "<text>deftime( _ )</text--->"
+  "<text>Get the defined time of the corresponding moving data "
+  "objects.</text--->"
+  "<text>deftime( mp1 )</text--->"
+  ") )";
+
+
+const string ComponentsSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>components(x) -> stream(int)</text--->"
+  "<text>components( _ )</text--->"
+  "<text>Stream the components of an intset.</text--->"
+  "<text>components( iset1 )</text--->"
+  ") )";
+
 struct collectIntSetInfo : OperatorInfo {
 
   collectIntSetInfo()
@@ -4953,22 +5941,6 @@ struct collectIntSetInfo : OperatorInfo {
   }
 
 };
-
-Operator row (
-    "row",    //name
-    RowColSpec,     //specification
-    RowColVM<true>,       //value mapping
-    Operator::SimpleSelect, //trivial selection function
-    RowColTM        //type mapping
-);
-
-Operator col (
-    "col",    //name
-    RowColSpec,     //specification
-    RowColVM<false>,       //value mapping
-    Operator::SimpleSelect, //trivial selection function
-    RowColTM        //type mapping
-);
 
 Operator crosspattern (
     "crosspattern",    //name
@@ -4994,14 +5966,6 @@ Operator reportpattern (
     ReportPatternTM        //type mapping
 );
 
-Operator tconstraint (
-    "tconstraint",    //name
-    TConstraintSpec,     //specification
-    TConstraintVM,       //value mapping
-    Operator::SimpleSelect, //trivial selection function
-    TConstraintTM        //type mapping
-);
-
 Operator emptymset (
     "emptymset",    //name
     EmptyMSetSpec,     //specification
@@ -5020,10 +5984,11 @@ Operator mbool2mset (
 
 Operator unionmset (
     "union",    //name
-    UnionMSetSpec,     //specification
-    UnionMSetVM,       //value mapping
-    Operator::SimpleSelect, //trivial selection function
-    UnionMSetTM        //type mapping
+    UnionSpec,     //specification
+    2,
+    UnionVMMap,       //value mapping
+    MSSetSelect<0>, //trivial selection function
+    UnionTM        //type mapping
 );
 
 Operator intersects (
@@ -5042,12 +6007,40 @@ Operator union2mset (
     Union2MSetTM        //type mapping
 );
 
-Operator cardinalitymset (
+Operator equals (
+    "=",    //name
+    EqualsSpec,     //specification
+    2,
+    EqualsVMMap,       //value mapping
+    MSSetSelect<0>, //trivial selection function
+    EqualsTM        //type mapping
+);
+
+Operator nequals (
+    "#",    //name
+    EqualsSpec,     //specification
+    2,
+    NEqualsVMMap,       //value mapping
+    MSSetSelect<0>, //trivial selection function
+    EqualsTM        //type mapping
+);
+
+Operator minus (
+    "-",    //name
+    MinusSpec,     //specification
+    2,
+    MinusVMMap,       //value mapping
+    MSSetSelect<0>, //trivial selection function
+    MinusTM        //type mapping
+);
+
+Operator cardinality (
     "cardinality",    //name
-    CardinalityMSetSpec,     //specification
-    CardinalityMSetVM,       //value mapping
-    Operator::SimpleSelect, //trivial selection function
-    CardinalityMSetTM        //type mapping
+    CardinalitySpec,     //specification
+    4,
+    CardinalityVMMap,       //value mapping
+    MUISSetSelect<0>,
+    CardinalityTM        //type mapping
 );
 
 Operator intstream2set (
@@ -5059,20 +6052,22 @@ Operator intstream2set (
 );
 
 
-Operator mset2mregion (
-    "mset2mregion",               // name
-    MSet2MRegionSpec,             // specification
-    MSet2MRegionVM,                 // value mapping
-    Operator::SimpleSelect, // trivial selection function
-    MSet2MRegionTM          // type mapping
+Operator boundingregion (
+    "boundingregion",               // name
+    BoundingRegionSpec,             // specification
+    3,
+    BoundingRegionVMMap,                 // value mapping
+    MUISetSelect<1>, // trivial selection function
+    BoundingRegionTM          // type mapping
 );
 
-Operator mset2mpoints (
-    "mset2mpoints",               // name
-    MSet2MPointsSpec,             // specification
-    MSet2MPointsVM,                 // value mapping
-    Operator::SimpleSelect, // trivial selection function
-    MSet2MPointsTM          // type mapping
+Operator members (
+    "members",               // name
+    MembersSpec,             // specification
+    3,
+    MembersVMMap,                 // value mapping
+    MUISetSelect<1>, // trivial selection function
+    MembersTM          // type mapping
 );
 
 Operator convexhull (
@@ -5109,9 +6104,63 @@ Operator generateboids( "generateboids",
     Operator::SimpleSelect,
     GBoidsTM);
 
+Operator issubset (    "issubset",    //name
+    IsSubsetSpec,     //specification
+    3,
+    IsSubsetVMMap,       //value mapping
+    MUSSetSelect<0>, //trivial selection function
+    IsSubsetTM        //type mapping
+);
+
+Operator val( "val",
+    ValSpec,     //specification
+    IntimeVal<IntSet>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    ValTM        //type mapping
+);
+
+Operator inst( "inst",
+    InstSpec,     //specification
+    IntimeInst<IntSet>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    InstTM        //type mapping
+);
+
+Operator msetunits("units",
+    UnitsSpec,
+    UnitsVM,
+    Operator::SimpleSelect,
+    UnitsTM);
+
+Operator init( "initial",
+    InitFinSpec,
+    2,
+    InitVMMap,
+    InitFinSelect,
+    InitFinTM );
+
+Operator final( "final",
+    InitFinSpec,
+    2,
+    FinVMMap,
+    InitFinSelect,
+    InitFinTM );
+
+Operator deftime( "deftime",
+    DeftimeSpec,
+    2,
+    DeftimeVMMap,
+    MUSetSelect<0>,
+    DeftimeTM );
+
+Operator components( "components",
+    ComponentsSpec,
+    ComponentsVM,
+    Operator::SimpleSelect,
+    ComponentsTM );
 
 TypeConstructor intSetTC(
-        "intset",       //name
+        IntSet::BasicType(),       //name
         IntSet::Property, //property function describing signature
         IntSet::Out,
         IntSet::In,     //Out and In functions
@@ -5125,6 +6174,23 @@ TypeConstructor intSetTC(
         IntSet::SizeOfObj, //sizeof function
         IntSet::KindCheck );  
 
+TypeConstructor isetTC(
+        ISet::BasicType(),    //name
+        ISet::Property,             //property function describing signature
+        OutIntime<IntSet, IntSet::Out>,
+        InIntime<IntSet, IntSet::In>,     //Out and In functions
+        0,
+        0,     //SaveToList and RestoreFromList functions
+        ISet::Create,
+        ISet::Delete,           //object creation and deletion
+        0, 0,
+        ISet::Close,
+        ISet::Clone,            //object close and clone
+        ISet::Cast,             //cast function
+        ISet::SizeOf,           //sizeof function
+        ISet::KindCheck);              //kind checking function
+
+
 TypeConstructor usetTC(
         "uset",        //name
         mset::USet::USetProperty,    //property function describing signature
@@ -5133,8 +6199,9 @@ TypeConstructor usetTC(
         0,     0,  //SaveToList and RestoreFromList functions
         mset::USet::CreateUSet,
         mset::USet::DeleteUSet,          //object creation and deletion
-        OpenAttribute<USet>,
-        SaveAttribute<USet>,  // object open and save
+        0,0,
+//        OpenAttribute<USet>,
+//        SaveAttribute<USet>,  // object open and save
         mset::USet::CloseUSet,
         mset::USet::CloneUSet,           //object close and clone
         mset::USet::CastUSet,            //cast function
@@ -5160,6 +6227,7 @@ TypeConstructor msetTC(
         MSet::KindCheck );   
 
 
+
 class GPatternAlgebra : public Algebra
 {
 public:
@@ -5167,11 +6235,14 @@ public:
   {
 
     AddTypeConstructor( &intSetTC );
+    AddTypeConstructor( &isetTC );
     AddTypeConstructor( &usetTC );
     AddTypeConstructor( &msetTC );
 
     intSetTC.AssociateKind( Kind::DATA() );
-    usetTC.AssociateKind(Kind::TEMPORAL() );
+    isetTC.AssociateKind( Kind::TEMPORAL() );
+    isetTC.AssociateKind( Kind::DATA() );
+    usetTC.AssociateKind( Kind::TEMPORAL() );
     usetTC.AssociateKind( Kind::DATA() );
     msetTC.AssociateKind( Kind::TEMPORAL() );
     msetTC.AssociateKind( Kind::DATA() );
@@ -5184,21 +6255,18 @@ The spattern and reportpattern operators are registered as lazy variables.
     crosspattern.SetRequestsArguments();
     generateboids.SetUsesArgsInTypeMapping();
     
-    AddOperator(&GPattern::tconstraint);
     AddOperator(&GPattern::reportpattern);
     AddOperator(&GPattern::emptymset);
     AddOperator(&GPattern::gpattern);
     AddOperator(&GPattern::crosspattern);
-    AddOperator(&GPattern::row);
-    AddOperator(&GPattern::col);
-    AddOperator(&intstream2set);
+    //AddOperator(&intstream2set);
     AddOperator(&emptymset);
     AddOperator(&mbool2mset);
     AddOperator(&unionmset);
     AddOperator(&union2mset);
-    AddOperator(&cardinalitymset);
-    AddOperator(&mset2mregion);
-    AddOperator(&mset2mpoints);
+    AddOperator(&cardinality);
+    AddOperator(&boundingregion);
+    AddOperator(&members);
     AddOperator(&convexhull);
     AddOperator(&theunit);
     AddOperator(&themvalue );
@@ -5207,6 +6275,18 @@ The spattern and reportpattern operators are registered as lazy variables.
     AddOperator(&intersects);
     AddOperator(&nocomponents);
     AddOperator(&generateboids);
+    AddOperator(&issubset);
+    AddOperator(&msetunits);
+    AddOperator(&val);
+    AddOperator(&inst);
+    AddOperator(&init);
+    AddOperator(&final);
+    AddOperator(&minus);
+    AddOperator(&equals);
+    AddOperator(&nequals);
+    AddOperator(&deftime);
+    AddOperator(&components);
+
   }
   ~GPatternAlgebra() {};
 };
