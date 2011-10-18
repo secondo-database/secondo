@@ -668,11 +668,21 @@ Result    : TRUE
 Operator  : moveTo
 Number    : 1
 Signature : mT x instant -> mT , T in {point,int,real,bool}
-Example   : query get_duration(train7) = getDuration( train7 moveTo[now()])
+Example   : query get_duration(deftime(train7)) = get_duration( deftime(train7 moveTo[now()]))
+Result    : TRUE
+
+Operator  : fillGaps
+Number    : 1
+Signature : periods -> periods
+Example   : query theperiod(deftime(train7), deftime(train7))  = fillGaps(deftime(train7))
 Result    : TRUE
 
 
-
+Operator  : fillGaps
+Number    : 2
+Signature : periods x duration -> periods
+Example   : query theperiod(deftime(train7), deftime(train7)) = fillGaps(deftime(train7), [const duration value (0 1000)])
+Result    : TRUE
 
 
 

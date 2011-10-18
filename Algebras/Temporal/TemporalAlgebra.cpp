@@ -17491,6 +17491,121 @@ Operator moveTo(
           moveToTM);
 
 
+/*
+5.2.4 Operator fillGaps
+
+This operator removes gaps within a periods value. 
+If the optional parameter ~d~ of type duration is given,
+only such gaps having a duration smaller than or equal
+to ~d~ are removed.
+
+5.2.4.1 Type Mapping
+
+*/
+ListExpr fillGapsTM(ListExpr args){
+  int len = nl->ListLength(args);
+  string err = "periods [x duration] expected";
+  if( (len!=1) && (len!=2)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!Periods::checkType(nl->First(args))){
+    return listutils::typeError(err 
+                             + " (first argument not of type periods)");
+  }
+  if( (len==2) && !Duration::checkType(nl->Second(args))){
+    return listutils::typeError(err 
+                          + " ( second parameter is not a duration)");
+  }
+  return nl->SymbolAtom(Periods::BasicType());
+}
+
+/*
+5.2.4.2 Value Mapping
+
+*/
+int fillGapsVM( Word* args, Word& result, int message, Word&
+              local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  Periods* res = (Periods*) result.addr;
+ 
+  Periods* p = (Periods*) args[0].addr;
+
+  res->Clear();
+
+  if(!p->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  res->SetDefined(true);
+  if(p->IsEmpty()){ // no content, no gap
+     return 0; 
+  }
+  if(qp->GetNoSons(s)==1){ // without duration
+    Interval<Instant> iv1;
+    p->Get(0,iv1);
+    Interval<Instant> iv2;
+    p->Get(p->GetNoComponents()-1, iv2);
+    Interval<Instant> iv(iv1.start, iv2.end, iv1.lc, iv2.rc);
+    res->StartBulkLoad();
+    res->Add(iv);
+    res->EndBulkLoad(false);
+    return 0;
+  }
+  // the second parameter is given
+  DateTime* dur = (DateTime*) args[1].addr;
+  if(!dur->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  res->StartBulkLoad();
+  int size = p->GetNoComponents();
+  for(int i=0;i<size;i++){
+    Interval<Instant> iv1;
+    p->Get(i,iv1);
+    res->MergeAdd(iv1);
+    if(i<size-1){ // compute gap
+      Interval<Instant> iv2;
+      p->Get(i+1,iv2);
+      if((iv2.start-iv1.end) <= (*dur)){
+         Interval<Instant> iv(iv1.end, iv2.start, !iv1.rc, !iv2.lc);
+         res->MergeAdd(iv);
+      }
+    }
+  }
+  res->EndBulkLoad(false);
+  return 0; 
+}
+
+/*
+5.2.4.3 Specification
+
+*/
+
+const string fillGapsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> periods [x duration] -> periods"
+    "</text---> "
+    "<text> fillgaps(_ [,_] ) </text--->"
+    "<text>Fills gaps within a periods value. If the optional  "
+    " argument d is given, only gaps shorter or having the same"
+    " duration as d are removed."
+    "</text--->"
+    "<text>query train7 moveTo[ now() ]</text--->"
+    ") )";
+
+/*
+5.2.4.4 Operator Instance
+
+*/
+Operator fillGaps(
+           "fillGaps",
+           fillGapsSpec,
+           fillGapsVM,
+           Operator::SimpleSelect,
+           fillGapsTM);
+
+
 
 
 /*
@@ -17652,6 +17767,7 @@ class TemporalAlgebra : public Algebra
     
     AddOperator(&atRect);
     AddOperator(&moveTo);
+    AddOperator(&fillGaps);
 
 
 #ifdef USE_PROGRESS
