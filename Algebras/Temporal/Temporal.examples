@@ -665,6 +665,16 @@ Signature : mpoint x rect -> mpoint
 Example   : query deftime(train7 atRect bbox(thecenter)) = deftime(train7 at (bbox(thecenter) rect2region))
 Result    : TRUE
 
+Operator  : moveTo
+Number    : 1
+Signature : mT x instant -> mT , T in {point,int,real,bool}
+Example   : query get_duration(train7) = getDuration( train7 moveTo[now()])
+Result    : TRUE
+
+
+
+
+
 
 
 

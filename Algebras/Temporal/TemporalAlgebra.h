@@ -3359,6 +3359,16 @@ type name used in Secondo
   }
 
 /*
+~Move in time~
+
+*/
+  void timeMove(const DateTime& duration, Mapping<Unit, Alpha>& result) const;
+
+  void moveTo(const DateTime& instant, Mapping<Unit,Alpha>& result) const;
+
+
+
+/*
 3.10.7 Attributes
 
 */
@@ -6841,6 +6851,51 @@ void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
    }
    result.EndBulkLoad(false);
 }
+
+template<class Unit, class Alpha>
+void Mapping<Unit,Alpha>::timeMove(const DateTime& duration, 
+                                   Mapping<Unit,Alpha>& result) const{
+  assert(duration.GetType()==datetime::durationtype);
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  result.StartBulkLoad();
+  Unit unit;
+  for(int i=0;i<GetNoComponents();i++){
+    Get(i,unit);
+    unit.timeInterval.start += duration;
+    unit.timeInterval.end += duration;
+    result.Add(unit);
+  }
+  result.EndBulkLoad();
+}
+
+
+template<class Unit, class Alpha>
+void Mapping<Unit,Alpha>::moveTo(const DateTime& instant, 
+                                 Mapping<Unit,Alpha>& result) const{
+
+  assert(instant.GetType()==datetime::instanttype);
+  result.Clear();
+  if(!IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  if(IsEmpty()){
+    result.SetDefined(true);
+    return;
+  }
+  Unit unit;
+  Get(0,unit);
+  DateTime dur = instant - unit.timeInterval.start;
+  timeMove(dur, result);
+}
+
+
+
+
 
 /*
 5 Type Constructor template functions

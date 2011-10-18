@@ -14183,7 +14183,7 @@ int Avg_SpeedVM( Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    CcReal* res = static_cast<CcReal*>(result.addr);
    MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
-   if(!arg1->IsDefined()){
+   if(!arg1->IsDefined() || arg1->IsEmpty()){
      res->Set(false, 0.0);
      return 0;
    }
@@ -17386,6 +17386,110 @@ Operator atRect( "atRect",
                  atRectTM);
 
 
+/*
+5.2.4 Operator moveTo
+
+This operator changes the start instant of a moving object
+to the given object.
+
+5.2.4.1 Type Mapping
+
+Signature:  mT x instant -> mT with T in { point, int, real }
+
+*/
+ListExpr moveToTM(ListExpr args){
+   string err = "mt x instant with T in {point, int, real, bool} expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err + " (wrong number of arguments)");
+   }
+   if(!Instant::checkType(nl->Second(args))){
+     return listutils::typeError(err + 
+                                " (second argument is not an instant)");
+   }
+   ListExpr first = nl->First(args);
+   if( MPoint::checkType(first) ||
+       MInt::checkType(first) ||
+       MReal::checkType(first) ||
+       MBool::checkType(first)  ){ // extend this list 
+      return first;
+   }
+   return listutils::typeError(err + " (unsupported first argument)");
+}
+
+/*
+5.2.4.2 Value Mappings 
+
+*/
+
+template<class MT>
+int moveToVM1( Word* args, Word& result, int message, Word&
+              local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  MT* res = (MT*) result.addr;
+  MT* arg1 = (MT*) args[0].addr;
+  DateTime* instant = (DateTime*) args[1].addr;
+  arg1->moveTo(*instant, *res);
+  return 0;
+}
+
+
+/*
+5.2.4.3 Value Mapping array and Selection function
+
+*/
+ValueMapping moveToVM[] = {
+        moveToVM1<MPoint>,
+        moveToVM1<MInt>,
+        moveToVM1<MReal>,
+        moveToVM1<MBool>   
+     };
+
+
+int moveToSelect(ListExpr args){
+  ListExpr f = nl->First(args);
+  if(MPoint::checkType(f)) {
+     return 0;
+  }
+  if(MInt::checkType(f)) {
+     return 1;
+  }
+  if(MReal::checkType(f)) {
+     return 2;
+  }
+  if(MBool::checkType(f)) {
+     return 3;
+  }
+  return -1;
+}
+
+/*
+5.2.3.4 Specification
+
+*/
+
+const string moveToSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mT x instant -> mT with T in {point, int, real, bool)"
+    "</text---> "
+    "<text> mT moveTo [instant] </text--->"
+    "<text>Changes the start instant of an moving object "
+    "</text--->"
+    "<text>query train7 moveTo[ now() ]</text--->"
+    ") )";
+
+/*
+5.2.3.5 Operator Instance
+
+*/
+Operator moveTo(
+          "moveTo",
+          moveToSpec,
+          4,
+          moveToVM,
+          moveToSelect,
+          moveToTM);
+
 
 
 
@@ -17547,6 +17651,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&createCellGrid2D);
     
     AddOperator(&atRect);
+    AddOperator(&moveTo);
 
 
 #ifdef USE_PROGRESS
