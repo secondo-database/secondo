@@ -7555,6 +7555,212 @@ Operator trimAll
 
 
 /*
+~Operator~ str2real
+
+Type Mapping
+
+*/
+ListExpr str2realTM(ListExpr args){
+   string err =" string or text expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr arg = nl->First(args);
+   if(!FText::checkType(arg) &&
+      !CcString::checkType(arg)){
+      return listutils::typeError(err);
+   }
+   return nl->SymbolAtom(CcReal::BasicType());
+}
+
+/*
+Value Mapping
+
+*/
+template<class T>
+int str2realVM1( Word* args, Word& result, int message,
+                      Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  string str = arg->GetValue();
+  stringutils::trim(str);
+  if(str.length()==0){
+     res->SetDefined(false);
+     return 0;
+  }
+  stringstream ss;
+  ss.str(str);
+  double r;
+  ss >> r;
+  if(r!=r || !ss.eof()){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,r);
+  }
+  return 0;
+}
+
+
+/*
+Selection function and Value Mapping array
+
+*/
+
+int str2realSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+     return 0;
+  }
+  return 1; // text
+}
+
+ValueMapping str2realVM[] = {
+                str2realVM1<CcString>,
+                str2realVM1<FText>
+            };
+
+
+/*
+Specification
+
+*/
+const string str2realSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> text | string -> real </text--->"
+    "<text> str2real(_) </text--->"
+    "<text>Converts a string or text to a real value. "
+    " </text--->"
+    "<text>query str2real('3.14')  </text--->"
+    ") )";
+
+/*
+Operator instance
+
+*/
+
+
+Operator str2real
+(
+"str2real",             //name
+ str2realSpec,         //specification
+ 2,                           // no of VM functions
+ str2realVM,        //value mapping
+ str2realSelect,   //trivial selection function
+ str2realTM        //type mapping
+);
+
+
+
+/*
+~Operator~ str2int
+
+Type Mapping
+
+*/
+ListExpr str2intTM(ListExpr args){
+   string err =" string or text expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr arg = nl->First(args);
+   if(!FText::checkType(arg) &&
+      !CcString::checkType(arg)){
+      return listutils::typeError(err);
+   }
+   return nl->SymbolAtom(CcInt::BasicType());
+}
+
+/*
+Value Mapping
+
+*/
+template<class T>
+int str2intVM1( Word* args, Word& result, int message,
+                      Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  T* arg = (T*) args[0].addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  string str = arg->GetValue();
+  stringutils::trim(str);
+  if(str.length()==0){
+     res->SetDefined(false);
+     return 0;
+  }
+  stringstream ss;
+  ss.str(str);
+  int r;
+  ss >> r;
+  if(r!=r || (!ss.eof())){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,r);
+  }
+  return 0;
+}
+
+
+/*
+Selection function and Value Mapping array
+
+*/
+
+int str2intSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+     return 0;
+  }
+  return 1; // text
+}
+
+ValueMapping str2intVM[] = {
+                str2intVM1<CcString>,
+                str2intVM1<FText>
+            };
+
+
+/*
+Specification
+
+*/
+const string str2intSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> text | string -> int </text--->"
+    "<text> str2int(_) </text--->"
+    "<text>Converts a string or text to a int value. "
+    " </text--->"
+    "<text>query str2int('666')  </text--->"
+    ") )";
+
+/*
+Operator instance
+
+*/
+
+
+Operator str2int
+(
+"str2int",             //name
+ str2intSpec,         //specification
+ 2,                           // no of VM functions
+ str2intVM,        //value mapping
+ str2intSelect,   //trivial selection function
+ str2intTM        //type mapping
+);
+
+
+
+
+
+/*
 5 Creating the algebra
 
 */
@@ -7636,6 +7842,8 @@ public:
     AddOperator( &attr2text);
     AddOperator( &isValidID);
     AddOperator( &trimAll);
+    AddOperator(&str2real);
+    AddOperator(&str2int);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
