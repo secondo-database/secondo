@@ -17586,12 +17586,12 @@ const string fillGapsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> periods [x duration] -> periods"
     "</text---> "
-    "<text> fillgaps(_ [,_] ) </text--->"
+    "<text> fillGaps(_ [,_] ) </text--->"
     "<text>Fills gaps within a periods value. If the optional  "
     " argument d is given, only gaps shorter or having the same"
     " duration as d are removed."
     "</text--->"
-    "<text>query train7 moveTo[ now() ]</text--->"
+    "<text>query fillGaps(deftime(train7))</text--->"
     ") )";
 
 /*
@@ -17605,6 +17605,91 @@ Operator fillGaps(
            Operator::SimpleSelect,
            fillGapsTM);
 
+
+/*
+5.3.5 Operator removeShort
+
+This operator removes intervals shorther an a given duration from 
+a periods value.
+
+5.3.5.1 Type Mapping
+
+Signature: periods x duration -> periods
+
+*/
+ListExpr removeShortTM(ListExpr args){
+  string err = "periods x duration expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of arguments");
+  }
+  if(!Periods::checkType(nl->First(args)) ||
+     !Duration::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(Periods::BasicType());
+}
+
+/*
+5.3.5.2 Value Mapping 
+
+*/
+
+int removeShortVM( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   Periods* res = (Periods*) result.addr;
+   Periods* p = (Periods*) args[0].addr;
+   DateTime* dur = (DateTime*) args[1].addr;
+
+   res->Clear();
+   if(!p->IsDefined() || !dur->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   res->SetDefined(true);
+   res->StartBulkLoad();
+   Interval<Instant> iv;
+   int size = p->GetNoComponents();
+   for(int i=0;i<size;i++){
+      p->Get(i,iv);
+      DateTime d(datetime::durationtype);
+      d = iv.end - iv.start;
+      if( (d > (*dur))  ||
+          (d == (*dur)   && iv.lc && iv.rc)){
+         res->Add(iv);
+      }
+   }
+   res->EndBulkLoad(false);
+   return 0;
+}
+
+/*
+5.3.5.3 Specification
+
+*/
+
+const string removeShortSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> periods x duration -> periods"
+    "</text---> "
+    "<text> removeShort( p ,d ) </text--->"
+    "<text>Removes intervals shorter than d from p. "
+    "</text--->"
+    "<text>query removeShort(deftime(train7),"
+    "[const duration value (1 0)]) </text--->"
+    ") )";
+
+/*
+5.2.5.4 Operator instance
+
+*/
+Operator removeShort(
+           "removeShort",
+           removeShortSpec,
+           removeShortVM,
+           Operator::SimpleSelect,
+           removeShortTM);
 
 
 
@@ -17768,6 +17853,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&atRect);
     AddOperator(&moveTo);
     AddOperator(&fillGaps);
+    AddOperator(&removeShort);
 
 
 #ifdef USE_PROGRESS

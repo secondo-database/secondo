@@ -92,5 +92,5 @@ operator atRect alias atRect pattern _ infixop _
 operator moveTo alias moveTo pattern _ op [_]
 
 operator fillGaps alias fillGaps pattern op(_,_)
-
+operator removeShort alias REMOVESHORT pattern op(_,_)
 

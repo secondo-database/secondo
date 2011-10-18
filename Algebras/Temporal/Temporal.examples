@@ -686,6 +686,11 @@ Result    : TRUE
 
 
 
+Operator  : removeShort 
+Number    : 1
+Signature : periods x duration -> periods
+Example   : query removeShort(deftime(train7), [const duration value (1 0)])
+Result    : (periods ())
 
 
 
