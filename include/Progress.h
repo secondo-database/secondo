@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[ue] [\"u]
 //[ss] [{\ss}]
 //[<=] [$\leq$]
-//[#]  [\neq]
+//[#]  [$\neq$]
 //[tilde] [\verb|~|]
 
 1 Header File Progress.h
@@ -47,6 +47,7 @@ messages. This is still work in progress!
 #define CLASS_PROGRESS_H
 
 #include <iostream>
+#include <map>
 
 
 using namespace std;
@@ -228,6 +229,47 @@ class LocalInfo : public ProgressLocalInfo {
 
     T* ptr;
 };
+
+
+/*
+Class ~ProgressConstants~
+
+This class manages constants used by operators in progress estimation.
+
+*/
+class ProgressConstants{
+  public:
+
+/*
+~readConstants~
+
+This function read constants from a csv file having the following format
+
+Algebra, Operator, ConstantName, ConstantValue, ;Meaning, Meaning1
+
+for each line. Lines starting with '[#]' are ignored (comment).
+
+*/  
+     static bool readConstants(const std::string& filename);
+
+     static double getValue(const string& AlgName,
+                              const string& OpName,
+                              const string& ConstantName);
+
+
+  private:
+     ProgressConstants(); // pure static class don't allow to 
+                          // create an instance
+
+     static map<string,double> values;
+
+
+};
+
+
+
+
+
 
 
 #endif

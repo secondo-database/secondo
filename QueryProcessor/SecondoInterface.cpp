@@ -142,6 +142,7 @@ using namespace std;
 #include "DbVersion.h"
 
 #include "ProgressView.h"
+#include "Progress.h"
 #include "AlmostEqual.h"
 
 extern bool USE_AUTO_BUFFER;
@@ -310,6 +311,23 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
      pwd.close();
   }
 
+
+  string progressConstantsFile = SmiProfile::GetParameter(
+                                      "ProgressEstimation",
+                                      "PROGRESS_CONSTANTS_FILE",
+                                      "ProgressConstants.csv",
+                                      parmFile);
+
+  bool progressConstantsOk = 
+            ProgressConstants::readConstants(progressConstantsFile);
+
+  if(!progressConstantsOk){
+     cmsg.error() << "Problem in reading progress constants" << endl
+                  << "File " << progressConstantsFile << " missing or corrupt"
+                  << endl;
+     cmsg.send();
+     // TODO: stop initialisation or disable Progress 
+  }
 
 
   // create directory tmp below current dir

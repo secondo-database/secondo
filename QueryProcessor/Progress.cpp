@@ -24,6 +24,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Progress.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include "StringUtils.h"
 
 
 ProgressInfo::ProgressInfo():
@@ -211,6 +215,58 @@ void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
 }
 
 
+  map<string, double> ProgressConstants::values;
+
+	bool ProgressConstants::readConstants(const string& filename){
+		 ifstream in(filename.c_str());
+		 if(!in.good()){
+			 return false;
+		 }
+		 while(in.good() && !in.eof()){
+			 string line;
+			 getline(in,line);
+			 stringutils::trim(line);
+			 if(line.size()>0 && line[0]!='#'){
+       stringutils::StringTokenizer st(line,",");
+       string alg = st.nextToken();
+       string op  = st.nextToken();
+       string co = st.nextToken();
+       string val = st.nextToken();
+       stringutils::trim(alg);
+       stringutils::trim(op);
+       stringutils::trim(co);
+       stringutils::trim(val);
+       if( (alg.size()==0) || (op.size()==0) || (co.size()==0) ||
+            val.size()==0){
+         cerr << "Problem in progressconstants :" << line << endl;
+       } else {
+         double value=0.0;
+         istringstream iss;
+         iss.str(val);
+         iss >> value;
+         string complete = alg+"|"+op+"|"+co;
+         values[complete] = value;
+       }
+     }
+   }
+   if(!in.eof()){
+     cerr << "Problem in reading file " + filename;
+     return false;
+   }
+   in.close();
+   return true;
+}
+
+double ProgressConstants::getValue(const string& alg,
+                                   const string& op,
+                                   const string& co){
+ string complete = alg+"|"+op+"|"+co;
+ if(values.count(complete)){
+   return values[complete];
+ } 
+ cerr << "Problem in accessing progress constant" << complete << endl;
+ return 0.001;  // default constant
+}
 
 
 
