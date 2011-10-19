@@ -34,9 +34,9 @@ delete x6;
 #
 # Cost formula:
 #
-#        pRes->Time = p1.Time +
-#          p1.Card * wExtendStream +	// time per input tuple wo results
-#          pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
+# pRes->Time = p1.Time +
+#   p1.Card * wExtendStream +	// time per input tuple without results
+#   pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
 #					// time per output tuple created
 #
 #####################################################################
@@ -154,12 +154,268 @@ let uExtendStream = (MF * (x5 * 1000)) / 5154400
 
 query ProgressConstants inserttuple["ExtRelation-C++", "extendstream", "uExtendStream", uExtendStream, "msecs per result tuple", ""] consume
 
-#######################
-
 #########################################################################
 
 
-query ProgressConstants feed csvexport['ProgressConstants2.csv', FALSE, TRUE] count
+
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+# feed ##############################################################
+#
+# Cost formula:
+#
+# pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
+#
+#####################################################################
+
+delete uFeed;
+delete vFeed;
+
+##### vFeed: time per byte in input tuple
+
+let plz50Width10 = 
+  plz50 feed extend[
+    PLZ2: .PLZ,
+    Ort2: .Ort,
+     no2: .no,
+    PLZ3: .PLZ,
+    Ort3: .Ort,
+     no3: .no,
+    PLZ4: .PLZ,
+    Ort4: .Ort,
+     no4: .no,
+    PLZ5: .PLZ,
+    Ort5: .Ort,
+     no5: .no,
+    PLZ6: .PLZ,
+    Ort6: .Ort,
+     no6: .no,
+    PLZ7: .PLZ,
+    Ort7: .Ort,
+     no7: .no,
+    PLZ8: .PLZ,
+    Ort8: .Ort,
+     no8: .no,
+    PLZ9: .PLZ,
+    Ort9: .Ort,
+     no9: .no,
+   PLZ10: .PLZ,
+   Ort10: .Ort,
+    no10: .no]
+  consume
+
+# query plz50 tuplesize = 25.0074151259 ≃ 25
+
+# query plz50Width10 tuplesize = 250.0741512589 ≃ 250
+
+query plz50 feed count;
+query plz50 feed count;
+query plz50 feed count;
+query plz50 feed count;
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x1 = 3.6913163333
+
+query plz50Width10 feed count;
+query plz50Width10 feed count;
+query plz50Width10 feed count;
+query plz50Width10 feed count;
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x2 = 20.4570833333
+
+let x3 = (plz50Width10 tuplesize - plz50 tuplesize) * (plz50 count)
+
+# query x3 = 464391450
+
+# hence the time per byte in milliseconds is
+
+let x4 = ((x2 - x1) * 1000) / x3 
+
+# query x4 = 3.61027e-05
+
+let vFeed = x4 * MF
+
+# query vFeed = 0.0001209439 
+
+query ProgressConstants inserttuple["Relation-C++", "feed", "vFeed", vFeed, "msecs per byte in input tuple", ""] consume
+
+##### uFeed: time per input tuple (disregarding size)
+
+let x5 = x1 - ((x2 - x1) / 9)
+
+# query x5 = 1.8284533333 secs
+#
+# this is the time for processing the tuples
+
+let x6 = (x5 / (plz50 count)) * 1000
+
+# query x6 = 0.0008861576 msecs
+
+let uFeed = x6 * MF
+
+# query uFeed = 0.002968628
+
+query ProgressConstants inserttuple["Relation-C++", "feed", "uFeed", uFeed, "msecs per input tuple", ""] consume
+
+#####################################################################
+
+
+
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+# consume ###########################################################
+#
+# Cost formula:
+#
+#       pRes->Time = p1.Time +
+#       p1.Card * (uConsume + p1.SizeExt * vConsume
+#         + (p1.Size - p1.SizeExt) * wConsume);
+#
+# previous values
+#     const double uConsume = 0.024;     //millisecs per tuple
+#     const double vConsume = 0.0003;    //millisecs per byte in
+#                                        //  root/extension
+#     const double wConsume = 0.001338;  //millisecs per byte in FLOB
+#
+#####################################################################
+
+delete uConsume;
+delete vConsume;
+delete wConsume
+
+
+##### vConsume: time per byte in root/extension
+
+query plz50 feed head[200000] consume count;
+query plz50 feed head[200000] consume count;
+query plz50 feed head[200000] consume count;
+query plz50 feed head[200000] consume count;
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# query x1 = 3.8398513333
+
+query plz50Width10 feed head[200000] consume count;
+query plz50Width10 feed head[200000] consume count;
+query plz50Width10 feed head[200000] consume count;
+query plz50Width10 feed head[200000] consume count;
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x2 = 8.2118556667
+
+let x3 = (plz50Width10 tuplesize - plz50 tuplesize) * 200000
+
+# query x3 = 45013347.22659753
+
+# time per byte in msecs
+
+let x4 = ((x2 - x1) / x3) * 1000
+
+# query x4 = 9.71268e-05
+
+let vConsume = x4 * MF
+
+# query vConsume = 0.0003253749
+
+query ProgressConstants inserttuple["Relation-C++", "consume", "vConsume", vConsume, "msecs per byte in root/extension tuple", ""] consume
+
+
+##### uConsume: time per tuple
+
+
+query plz50 feed count;
+query plz50 feed count;
+query plz50 feed count;
+query plz50 feed count;
+let x5 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x5 = 3.5346763333
+
+query plz50 feed consume count;
+query plz50 feed consume count;
+query plz50 feed consume count;
+query plz50 feed consume count;
+let x6 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x6 = 36.8306773333
+
+# the time difference between x6 and x5 is the time used for consume. From 
+# this we subtract the time corresponding to the number of bytes written
+
+let x10 = (plz50 tuplesize * plz50 count) * ((x2 - x1) / x3)
+
+# query x10 = 5.0116528562 secs
+
+let x11 = (((x6 - x5) - x10) / (plz50 count)) * 1000
+
+# query x11 = 0.013707974
+
+let uConsume = x11 * MF
+
+# query uConsume = 0.0459217129
+
+
+query ProgressConstants inserttuple["Relation-C++", "consume", "uConsume", uConsume, "msecs per tuple", ""] consume
+
+
+##### wConsume: time per byte in FLOBs
+
+query Trains100 feed project[Id, Line, Up] consume count;
+query Trains100 feed project[Id, Line, Up] consume count;
+query Trains100 feed project[Id, Line, Up] consume count;
+query Trains100 feed project[Id, Line, Up] consume count;
+let x7 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x7 = 1.440998 
+
+query Trains100 feed project[Id, Line, Up, Trip] consume count;
+query Trains100 feed project[Id, Line, Up, Trip] consume count;
+query Trains100 feed project[Id, Line, Up, Trip] consume count;
+query Trains100 feed project[Id, Line, Up, Trip] consume count;
+let x8 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# query x8 = 25.8285243333
+
+# The difference between the two queries is storing the Trip attribute. 
+# This attribute has size
+
+# query Trains100 extattrsize[Trip] = 144
+# query Trains100 attrsize[Trip] = 13351.0035587189
+
+# we consider the entire time difference as spent on writing FLOB attributes.
+# Hence we have the time per byte in milliseconds for writing FLOBs:
+
+let x9 = ((x8 - x7) / (13351 * 56200)) * 1000
+
+# query x9 = 3.25026e-05
+
+let wConsume = x9 * MF
+
+# query wConsume = 0.0001088836
+
+query ProgressConstants inserttuple["Relation-C++", "consume", "wConsume", wConsume, "msecs per FLOB byte written", ""] consume
+
+#####################################################################
+
+
+query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
 
 close database
 
