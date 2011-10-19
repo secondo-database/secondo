@@ -5731,10 +5731,17 @@ int ExtendStream(Word* args, Word& result, int message,
       ProgressInfo *pRes;
 
       // for the determination of constants see file ConstantsExtendStream
+      // and file bin/UpdateProgressConstants
 
-      const double wExtendStream = 0.005963;    //millisecs per tuple read
-      const double uExtendStream = 0.0067;   //millisecs per tuple returned
-      const double vExtendStream = 0.00014405; //millisec per attr returned
+      static const double wExtendStream = 
+        ProgressConstants::getValue("ExtRelation-C++", "extendstream",
+          "wExtendStream"); // 0.005963; millisecs per tuple read
+      static const double vExtendStream = 
+        ProgressConstants::getValue("ExtRelation-C++", "extendstream",
+          "vExtendStream"); //  0.00014405; millisecs per attr returned
+      static const double uExtendStream = 
+        ProgressConstants::getValue("ExtRelation-C++", "extendstream",
+          "uExtendStream"); // 0.0067; millisecs per tuple returned
 
       pRes = (ProgressInfo*) result.addr;
 
