@@ -111,6 +111,7 @@ using namespace std;
 
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
 
 //#define TRACE_ON 1
 #undef TRACE_ON
@@ -326,7 +327,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                   << "File " << progressConstantsFile << " missing or corrupt"
                   << endl;
      cmsg.send();
-     // TODO: stop initialisation or disable Progress 
+
+     sleep(10);
   }
 
 
