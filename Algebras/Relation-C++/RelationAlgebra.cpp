@@ -1138,10 +1138,15 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes=0;
-      const double uFeed = 0.00194;    //milliseconds per tuple
-      const double vFeed = 0.0000196;  //milliseconds per Byte
 
+      // Determination of constants in file bin/UpdateProgressConstants
 
+      static const double uFeed = 
+        ProgressConstants::getValue("Relation-C++", "feed", "uFeed");
+          // 0.00194;  milliseconds per tuple
+      static const double vFeed = 
+        ProgressConstants::getValue("Relation-C++", "feed", "vFeed");
+          // 0.0000196; milliseconds per Byte
 
       pRes = (ProgressInfo*) result.addr;
       fli = (FeedLocalInfo*) local.addr;
@@ -1750,10 +1755,15 @@ Consume(Word* args, Word& result, int message,
     }
     ProgressInfo p1;
     ProgressInfo* pRes;
-    const double uConsume = 0.024;   //millisecs per tuple
-    const double vConsume = 0.0003;  //millisecs per byte in
-                                     //  root/extension
-    const double wConsume = 0.001338;  //millisecs per byte in FLOB
+    static const double uConsume = 
+      ProgressConstants::getValue("Relation-C++", "consume", "uConsume");
+        // 0.024; millisecs per tuple
+    static const double vConsume = 
+      ProgressConstants::getValue("Relation-C++", "consume", "vConsume");
+        // 0.0003;  millisecs per byte in root/extension
+    const double wConsume = 
+      ProgressConstants::getValue("Relation-C++", "consume", "wConsume");
+        // 0.001338; millisecs per byte in FLOB
 
     cli = (consumeLocalInfo*) local.addr;
     pRes = (ProgressInfo*) result.addr;
