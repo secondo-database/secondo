@@ -1,0 +1,186 @@
+open database berlintest
+
+delete ProgressConstants
+
+let ProgressConstants = [const rel(tuple([
+  Algebra: string,
+  Operator: string,
+  ConstantName: string,
+  ConstantValue: real,
+  Meaning: string,
+  Meaning2: string
+]))
+value ()] 
+
+# ... csvimport['ProgressConstants.csv', 1, ""] consume
+
+# machine factor, needed as long as not all constants are determined in this way.
+
+let MF = 3.35 
+
+
+
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+# extendstream #######################################################
+#
+# Cost formula:
+#
+#        pRes->Time = p1.Time +
+#          p1.Card * wExtendStream +	// time per input tuple wo results
+#          pRes->Card * (uExtendStream + eli->noAttrs * vExtendStream);
+#					// time per output tuple created
+#
+#####################################################################
+
+delete uExtendStream;
+delete vExtendStream;
+delete wExtendStream;
+
+let fifty = thousand feed filter[.no <= 50] consume
+
+let hundred = thousand feed filter[.no <= 100] consume
+
+let Trains100 = Trains feed hundred feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume
+
+# has 56200 tuples
+
+let plz50 = plz feed fifty feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume
+
+# has 2063350 tuples
+
+
+######### wExtendStream: time per tuple read
+
+# measure time for query plz50 feed count
+# we always run 4 times and take the time of the last three, to have consistent
+# warm state
+
+query plz50 feed count
+
+query plz50 feed count
+
+query plz50 feed count
+
+query plz50 feed count
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# measure time with extendstream on 2063350 tuples added
+
+query plz50 feed extendstream[U: intstream(1, 0)] count
+
+query plz50 feed extendstream[U: intstream(1, 0)] count
+
+query plz50 feed extendstream[U: intstream(1, 0)] count
+
+query plz50 feed extendstream[U: intstream(1, 0)] count
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# get the time difference and divide by 2063350. Yields time in seconds. 
+# Multiply by 1000 to get the time in milliseconds
+
+let wExtendStream = ((x2 - x1) / 2063350) * 1000.0 * MF
+
+query ProgressConstants inserttuple["ExtRelation-C++", "extendstream", "wExtendStream", wExtendStream, "msecs per input tuple", ""] consume
+
+######### vExtendStream: time per attribute returned
+
+query Trains100 feed extendstream[UTrip: units(.Trip)] count
+
+query Trains100 feed extendstream[UTrip: units(.Trip)] count
+
+query Trains100 feed extendstream[UTrip: units(.Trip)] count
+
+query Trains100 feed extendstream[UTrip: units(.Trip)] count
+
+let x3 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# Result 5154400
+
+
+# Version of Trains100 with more attributes:
+
+let Trains100B = Trains100 feed extend[IdB: .Id, LineB: .Line, UpB: .Up, TripB: .Trip, noB: .no] consume
+
+query Trains100B feed extendstream[UTrip: units(.Trip)] count
+
+query Trains100B feed extendstream[UTrip: units(.Trip)] count
+
+query Trains100B feed extendstream[UTrip: units(.Trip)] count
+
+query Trains100B feed extendstream[UTrip: units(.Trip)] count
+
+let x4 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# the time difference between x3 and x4 is for processing 5 more attributes
+# for 5154400 tuples. Hence we have
+
+let vExtendStream = (((x4 -x3) * 1000) / (5 * 5154400)) * MF
+
+query ProgressConstants inserttuple["ExtRelation-C++", "extendstream", "vExtendStream", vExtendStream, "msecs per attribute", ""] consume
+
+########### uExtendStream: time per tuple rreturned
+
+# If we subtract the time for all 10 attributes from x4 (= x4 - 2 * (x4 - x3)) and 
+# further subtract the time for the empty query "Trains100 feed count", the 
+# remainder must be the time per result tuple.
+
+query Trains100 feed count
+
+query Trains100 feed count
+
+query Trains100 feed count
+
+query Trains100 feed count
+
+let x6 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x5 = (x4 - (2 * (x4 - x3))) - x6
+
+let uExtendStream = (MF * (x5 * 1000)) / 5154400 
+
+query ProgressConstants inserttuple["ExtRelation-C++", "extendstream", "uExtendStream", uExtendStream, "msecs per result tuple", ""] consume
+
+#######################
+
+#########################################################################
+
+
+query ProgressConstants feed csvexport['ProgressConstants2.csv', FALSE, TRUE] count
+
+close database
+
+
+# query ProgressConstants feed filter[.ConstantName = "vExtendStream"] 
+# ProgressConstants updatedirect[ConstantValue: uExtendStream] consume
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
