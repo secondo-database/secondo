@@ -8,6 +8,9 @@ query plz feed ten feed product extend[N: randint(999999)] sortby[N asc] remove[
 13.48 secs, 14.52, 12.84; avg: 13.61 secs
 Result 412670
 
+query plz feed hundred feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume count
+
+
 
 On the reference machine (used earlier for determining constants) this query takes
 
