@@ -243,7 +243,7 @@ class ProgressConstants{
 /*
 ~readConstants~
 
-This function read constants from a csv file having the following format
+This function reads constants from a csv file having the following format
 
 Algebra, Operator, ConstantName, ConstantValue, ;Meaning, Meaning1
 
