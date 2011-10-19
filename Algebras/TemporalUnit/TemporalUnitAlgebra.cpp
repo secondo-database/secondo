@@ -256,6 +256,7 @@ helping operators for indexing instant values in R-trees.
 #include "PolySolver.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -986,6 +987,23 @@ ListExpr TU_TM_themvalue( ListExpr args )
   return listutils::typeError(errmsg);
 }
 
+ListExpr the_mvalue2TM(ListExpr args){
+  string err = "stream(UT) , T in {bool. int, real, string, point} expected";
+  if(!nl->HasLength(args,1)){
+    return  listutils::typeError(err);
+  }
+  ListExpr a = nl->First(args);
+  if(Stream<UBool>::checkType(a)) return nl->SymbolAtom(MBool::BasicType());
+  if(Stream<UInt>::checkType(a)) return nl->SymbolAtom(MInt::BasicType());
+  if(Stream<UString>::checkType(a)) return nl->SymbolAtom(MString::BasicType());
+  if(Stream<UReal>::checkType(a)) return nl->SymbolAtom(MReal::BasicType());
+  if(Stream<UPoint>::checkType(a)) return nl->SymbolAtom(MPoint::BasicType());
+  return  listutils::typeError(err);
+}
+
+
+
+
 ListExpr MovingTypeMapMakemvalue( ListExpr args )
 
 {
@@ -1188,6 +1206,69 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
 
   return 0;
 }
+
+
+template<class Mapping, class Unit>
+int the_mvalue2VM1(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  Mapping* res = (Mapping*)result.addr;
+  res->Clear();
+  res->StartBulkLoad();
+  res->SetDefined(true);
+  Stream<Unit> stream(args[0]);
+  Unit* unit;
+  stream.open();
+  unit = stream.request();
+  Unit* lastUnit = 0;
+  while(unit){
+    if(unit->IsDefined()){
+      if(lastUnit==0){ // first Unit
+         res->MergeAdd(*unit);
+         lastUnit = unit;
+      } else { // not the first unit
+         if((unit->timeInterval.start > lastUnit->timeInterval.end) ||
+            ( (unit->timeInterval.start == lastUnit->timeInterval.end) &&
+              (!unit->timeInterval.lc || !lastUnit->timeInterval.rc))){
+             // case : unit starts after lastUnit
+            res->MergeAdd(*unit);
+            lastUnit->DeleteIfAllowed();
+            lastUnit = unit;
+         } else if((unit->timeInterval.end < lastUnit->timeInterval.end) ||
+                   ((unit->timeInterval.end ==lastUnit->timeInterval.end) && 
+                    (!unit->timeInterval.rc || lastUnit->timeInterval.rc))) {
+            // no part of the unit if after the last unit
+            // ignore this unit
+            unit->DeleteIfAllowed();
+         } else {
+            // unit overlaps lastUnit, but is longer than lastUnit
+           Interval<Instant> iv = unit->timeInterval;
+           iv.start = lastUnit->timeInterval.end;
+           iv.lc = !lastUnit->timeInterval.rc;
+           Unit nUnit(true);
+           unit->AtInterval(iv,nUnit);
+           res->MergeAdd(nUnit);
+           lastUnit->DeleteIfAllowed();
+           lastUnit = unit;;  
+         }
+      }
+    } // unit is defined
+    unit = stream.request();
+  }
+  if(lastUnit){
+     lastUnit->DeleteIfAllowed();
+  }
+  stream.close();
+
+  res->EndBulkLoad(false); 
+  return 0;
+}
+
+
+
+
+
 // here comes the version for mregion, where URegion has a rather
 // ugly implementation and thus needs a specialized treatment!
 int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
@@ -1305,6 +1386,22 @@ TemporalSpecThemvalue  =
 "unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
 "<text>query units(zug5) the_mvalue</text---> ) )";
 
+
+const string
+the_mvalue2Spec  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>For T in {bool, int, string, real, point}:\n"
+"(stream uT) -> mT\n"
+"</text--->"
+"<text>_ the_mvalue2</text--->"
+"<text>Create a moving object from a sorted "
+"object stream containing units. "
+"Two units may overlap in time. The second unit will be shortened. "
+"</text--->"
+"<text>query units(zug5) the_mvalue2</text---> ) )";
+
+
+
 /*
 5.5.4 Selection Function of operators ~makemvalue~, ~the\_mvalue~
 
@@ -1321,6 +1418,18 @@ ThemvalueSelect( ListExpr args )
   if ( argstr == "((stream upoint))" )  return 4;
   if ( argstr == "((stream uregion))" ) return 5;
   return -1; // This point should never be reached
+}
+
+int
+the_mvalue2Select( ListExpr args )
+{
+  ListExpr t = nl->Second(nl->First(args));
+  if(UBool::checkType(t)) return 0;
+  if(UInt::checkType(t)) return 1;
+  if(UString::checkType(t)) return 2;
+  if(UReal::checkType(t)) return 3;
+  if(UPoint::checkType(t)) return 4;
+  return -1;
 }
 
 int
@@ -1387,6 +1496,14 @@ ValueMapping temporalthemvaluemap[] = {
       MappingMakemvaluePlain<MPoint, UPoint>,
       MappingMakemvalue_movingregionPlain };
 
+
+ValueMapping the_mvalue2VM[] = {
+      the_mvalue2VM1<MBool, UBool>,
+      the_mvalue2VM1<MInt, UInt>,
+      the_mvalue2VM1<MString, UString>,
+      the_mvalue2VM1<MReal, UReal>,
+      the_mvalue2VM1<MPoint, UPoint> };
+
 /*
 5.5.5  Definition of operators ~makemvalue~, ~the\-mvalue~
 
@@ -1404,6 +1521,14 @@ Operator temporalunitthemvalue( "the_mvalue",
                         temporalthemvaluemap,
                         ThemvalueSelect,
                         TU_TM_themvalue );
+
+
+Operator the_mvalue2( "the_mvalue2",
+                      the_mvalue2Spec,
+                      5,
+                      the_mvalue2VM,
+                      the_mvalue2Select,
+                      the_mvalue2TM);
 
 /*
 5.6 Operator ~trajectory~
@@ -10034,6 +10159,7 @@ public:
   {
     AddOperator( &temporalunitmakemvalue );
     AddOperator( &temporalunitthemvalue );
+    AddOperator( &the_mvalue2 );
     AddOperator( &temporalunitqueryrect2d );
     AddOperator( &temporalunitpoint2d );
     AddOperator( &temporalunitisempty );

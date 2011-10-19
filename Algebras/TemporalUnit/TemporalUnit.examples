@@ -589,6 +589,11 @@ Signature: (stream uT) -> mT
 Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE) feed the_mvalue
 Result   : (mpoint ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0))))
 
+Operator : the_mvalue2
+Number   : 1
+Signature: (stream uT) -> mT
+Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE) feed the_mvalue2
+Result   : (mpoint ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)(9396.0 9871.0 11068.0 12895.0))))
 
 Operator : the_unit
 Number   : 1
