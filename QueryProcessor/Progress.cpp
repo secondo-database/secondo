@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <assert.h>
 
 #include "StringUtils.h"
 
@@ -265,6 +266,8 @@ double ProgressConstants::getValue(const string& alg,
    return values[complete];
  } 
  cerr << "Problem in accessing progress constant" << complete << endl;
+ bool constantFound = false;
+ assert(constantFound);
  return 0.001;  // default constant
 }
 
