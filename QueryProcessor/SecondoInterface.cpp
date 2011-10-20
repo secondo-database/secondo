@@ -312,12 +312,22 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
      pwd.close();
   }
 
+  string progressConstantsFileDefault="ProgressConstants.csv";
+ 
+  string sbd = getenv("SECONDO_BUILD_DIR");
+  if(sbd.length()>0){
+     progressConstantsFileDefault = sbd + CFile::pathSep + "bin"
+                                    + CFile::pathSep
+                                    + progressConstantsFileDefault;
+  }
 
   string progressConstantsFile = SmiProfile::GetParameter(
                                       "ProgressEstimation",
                                       "PROGRESS_CONSTANTS_FILE",
-                                      "ProgressConstants.csv",
+                                      progressConstantsFileDefault,
                                       parmFile);
+  trim(progressConstantsFile);
+  expandVarRef(progressConstantsFile);
 
   bool progressConstantsOk = 
             ProgressConstants::readConstants(progressConstantsFile);
