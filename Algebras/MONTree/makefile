@@ -23,6 +23,18 @@
 #
 ########################################################################
 
+CURRENT_ALGEBRA := MONTreeAlgebra
+
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += RTreeAlgebra
+ALGEBRA_DEPENDENCIES += HashAlgebra
+ALGEBRA_DEPENDENCIES += TemporalAlgebra
+ALGEBRA_DEPENDENCIES += RectangleAlgebra
+ALGEBRA_DEPENDENCIES += SpatialAlgebra
+ALGEBRA_DEPENDENCIES += HashAlgebra
+ALGEBRA_DEPENDENCIES += NetworkAlgebra
+ALGEBRA_DEPENDENCIES += TemporalNetAlgebra
+
 # inlcude global definitions
 include ../../makefile.env
 
@@ -32,7 +44,10 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
