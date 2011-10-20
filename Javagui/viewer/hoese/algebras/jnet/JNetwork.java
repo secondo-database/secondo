@@ -36,17 +36,17 @@ public class JNetwork
   /**
    * The id of this network
    */
-  private String netId;
+  private String id;
 
   /**
    * All routes of this network
    */
-  private JSection[] sects;
+  private JRoute[] routes;
 
   /**
    * All junctions of this network
    */
-  private JJunction[] juncts;
+  private JJunction[] junctions;
 
   /**
    * Constructor
@@ -59,6 +59,7 @@ public class JNetwork
   {
     Vector sectv = new Vector();
     Vector junctv = new Vector();
+    Vector routev = new Vector();
 
     // As a jnetwork consists of identifier, routes, junctions and sections,
     // the length of the list should be four.
@@ -68,15 +69,26 @@ public class JNetwork
       Reporter.writeError("Error in ListExpr");
     }
 
-    // Split into the three parts
+    // Split into the four parts
     ListExpr idList = in_xValue.first();
     ListExpr juncList = in_xValue.second();
     ListExpr sectList = in_xValue.third();
+    ListExpr routeList = in_xValue.fourth();
+
 
     // Transfer Network-ID
-    netId = idList.stringValue();
+    id = idList.stringValue();
 
-    // Read routes from list
+    // Read Junctions from list
+    while(!juncList.isEmpty()){
+      ListExpr currJuncList = juncList.first();
+      junctv.add(new JJunction(currJuncList));
+      juncList = juncList.rest();
+    }
+
+    junctions = (JJunction[])junctv.toArray(new JJunction[0]);
+
+    // Read sections from list
     while(!sectList.isEmpty()){
 
       ListExpr currSectList = sectList.first();
@@ -84,41 +96,38 @@ public class JNetwork
       sectList = sectList.rest();
     }
 
-    // Read Junctions from list
-    while(!juncList.isEmpty()){
+    JSection[] section = (JSection[])sectv.toArray(new JSection[0]);
 
-      ListExpr currJuncList = juncList.first();
-      junctv.add(new JJunction(currJuncList));
-      juncList = juncList.rest();
+    //Read Routes from List
+    while(!routeList.isEmpty()){
+      ListExpr currRouteList = routeList.first();
+      routev.add(new JRoute(currRouteList, section));
+      routeList = routeList.rest();
     }
 
-    sects = (JSection[])sectv.toArray(new JSection[0]);
-    juncts = (JJunction[])junctv.toArray(new JJunction[0]);
+    routes = (JRoute[])routev.toArray(new JRoute[0]);
 
     JNetManager.getInstance().addNetwork(this);
 
   }
 
   /**
-   * Get the number of sections in the network
-   *
-   * @return Number of routes
+   * Get the id of this network
+   * @return An id
    */
-  public int getSectionCount()
+  public String getId()
   {
-    return sects.length;
+    return id;
   }
 
   /**
-   * Get a section in the network.
-   * @param in_iIndex between 0 and <code>getSectionCount()</code>
-   * @return
-   */
-  public JSection getSectionAt(int index)
-  {
-    return sects[index];
+  * Get the number of routes in the network
+  *
+  * @return Number of routes
+  */
+  public int getRouteCount() {
+    return routes.length;
   }
-
 
   /**
    * Get the number of junctions in the network
@@ -127,111 +136,41 @@ public class JNetwork
    */
   public int getJunctionCount()
   {
-    return juncts.length;
+    return junctions.length;
+  }
+
+   /**
+   * Get a route in the network.
+   * @param in_iIndex between 0 and <code>getRouteCount()</code>
+   * @return
+   */
+  public JRoute getRouteAt(int index)
+  {
+    return routes[index];
   }
 
   /**
-   * Get a junction of the network
-   *
-   * @param in_iIndex between 0 and <code>getJunctionCount</code>
-   * @return A junction
-   */
+  * Get route by id
+  * @param rid route identifier
+  * @return route with id rid
+  */
+  public JRoute getRouteById(int rid)
+  {
+    for (int i = 0; i < routes.length; i++)
+    {
+      JRoute actRoute = routes[i];
+      if (actRoute.getId() == rid) return actRoute;
+    }
+    throw new RuntimeException("Route with id: " + rid + " not found.");
+  }
+
+  /**
+  * Get junction
+  * @param index arrayposition
+  * @return junction at arrayposition
+  */
   public JJunction getJunctionAt(int index)
   {
-    return juncts[index];
-  }
-
-  /**
-   * Searches for a section
-   *
-   * @param in_iId of the section
-   * @return A route.
-   */
-  public JSection getSectionById(int id)
-  {
-    for (int i = 0; i < sects.length; i++)
-    {
-      JSection currSection = sects[i];
-      if(currSection.getId() == id)
-      {
-        return currSection;
-      }
-    }
-    // No route found
-    throw new RuntimeException("Section with id " + id + " not found.");
-  }
-
-  /**
-   * Searches the section a route id and a position
-   *
-   * @param rid routeid of the position
-   * @param pos distance of the position from the start of the route
-   * @param side direction
-   * @return A section
-   */
-  public JSection getSection(int rid, double pos, String side)
-  {
-    return getSection(new JRouteLocation(rid, pos, side));
-  }
-
-  /**
-   * Searches the section a route id and a position
-   *
-   * @param rloc JRouteLocation
-   * @return A section
-   */
-  public JSection getSection(JRouteLocation rloc)
-  {
-    for (int i = 0; i < sects.length; i++)
-    {
-      JSection currSection = sects[i];
-      if (currSection.contains(rloc))
-        return currSection;
-    }
-    // No route found
-    throw new RuntimeException("No Section containing route location found.");
-  }
-
-  /**
-   * Searches the section a route id, a start position, a end position and a
-   * side value
-   *
-   * @param rid routeid of the position
-   * @param from distance of the start from the start of the route
-   * @param to distance of the end from the start of the route
-   * @param side
-   * @return A section
-   */
-
-  public JSection[] getSections(int rid, double from, double to, String side)
-  {
-    return getSections(new JRouteInterval(rid, from, to, side));
-  }
-
-  /**
-   * Searches the section a route id and a position
-   *
-   * @param rint JRouteInterval
-   * @return A section
-   */
-  public JSection[] getSections(JRouteInterval rint)
-  {
-    Vector sectsv = new Vector();
-    for (int i = 0; i < sects.length; i++)
-    {
-      JSection currSection = sects[i];
-      if (currSection.intersects(rint))
-        sectsv.add(currSection);
-    }
-    return (JSection[])sectsv.toArray(new JSection[0]);
-  }
-
-  /**
-   * Returns the id of this network
-   * @return An id
-   */
-  public String getId()
-  {
-    return netId;
+    return junctions[index];
   }
 }

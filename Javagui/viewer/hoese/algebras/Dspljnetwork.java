@@ -60,13 +60,13 @@ public class Dspljnetwork extends DisplayGraph
 	public Shape getRenderObject(int in_iIndex,
 	                             AffineTransform in_xAf)
   {
-		if(in_iIndex < jnet.getSectionCount())
+		if(in_iIndex < jnet.getRouteCount())
     {
-			return jnet.getSectionAt(in_iIndex).getRenderObject();
+			return jnet.getRouteAt(in_iIndex).getRenderObject();
 		}
     else
     {
-			int iAdjustedIndex = in_iIndex - jnet.getSectionCount();
+			int iAdjustedIndex = in_iIndex - jnet.getRouteCount();
 
       Point2D.Double xPoint = jnet.getJunctionAt(iAdjustedIndex).getRenderObject();
 
@@ -101,7 +101,7 @@ public class Dspljnetwork extends DisplayGraph
    */
 	public int numberOfShapes()
   {
-		return jnet.getSectionCount() + jnet.getJunctionCount();
+		return jnet.getRouteCount() + jnet.getJunctionCount();
 	}
 
   /**
@@ -112,7 +112,7 @@ public class Dspljnetwork extends DisplayGraph
    */
 	public boolean isPointType(int in_iIndex)
   {
-    boolean bPointType = in_iIndex >= jnet.getSectionCount();
+    boolean bPointType = in_iIndex >= jnet.getRouteCount();
     return bPointType;
 	}
 
@@ -124,7 +124,7 @@ public class Dspljnetwork extends DisplayGraph
    */
 	public boolean isLineType(int in_iIndex)
   {
-	  boolean bLineType = in_iIndex < jnet.getSectionCount();
+	  boolean bLineType = in_iIndex < jnet.getRouteCount();
     return bLineType;
 	}
 
@@ -136,8 +136,8 @@ public class Dspljnetwork extends DisplayGraph
  public Rectangle2D.Double getBounds ()
  {
    Rectangle2D.Double xBounds = null;
-   for (int i = 0; i < jnet.getSectionCount(); i++) {
-     Shape xShape = jnet.getSectionAt(i).getRenderObject();
+   for (int i = 0; i < jnet.getRouteCount(); i++) {
+     Shape xShape = jnet.getRouteAt(i).getRenderObject();
      Rectangle2D xShapeBounds= xShape.getBounds2D();
      if(xBounds == null){
        xBounds = new Rectangle2D.Double(xShapeBounds.getX(),

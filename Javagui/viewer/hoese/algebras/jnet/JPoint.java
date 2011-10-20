@@ -47,37 +47,6 @@ public class JPoint
   */
   private Point2D.Double pos;
 
-
-  private Point2D.Double computePos(String netId, JRouteLocation loc)
-    throws JNetworkNotAvailableException, Exception
-  {
-    // Check if the network is available. This will throw an exception
-    // if it is not.
-    // Get Network. If the network is not loaded an exception is
-    // thrown
-    JNetwork network = JNetManager.getInstance().getJNetwork(netId);
-
-    // Calculate the point in absolute coordinates
-    JSection sect = network.getSection(loc);
-    JRouteInterval rint = sect.getRouteInterval(loc);
-
-    return sect.getPointOnSection(loc.getPosition(), rint.getStartPosition());
-  }
-
-  /**
-   * Constructor
-   *
-   * @param netId Networkidentifier
-   * @param loc Position in Network
-   */
-  public JPoint(String netId, JRouteLocation loc)
-    throws JNetworkNotAvailableException, Exception
-  {
-    nid = netId;
-    rloc = loc;
-    pos = computePos(nid,rloc);
-  }
-
   /**
    * Constructor.
    *
@@ -90,19 +59,10 @@ public class JPoint
     // TODO: Check format before reading out the values
 
     nid = inList.first().stringValue();
+    JNetwork net = JNetManager.getInstance().getJNetwork(nid);
     rloc = new JRouteLocation(inList.second());
-    pos = computePos(nid,rloc);
-  }
-
-
-  /**
-   * Returns the position of the JPoint
-   *
-   * @return position
-   */
-  public JRouteLocation getPosition()
-  {
-    return rloc;
+    JRoute route = net.getRouteById(rloc.getRouteId());
+    pos = route.getPointOnRoute(rloc.getPosition());
   }
 
 
@@ -116,19 +76,8 @@ public class JPoint
     return nid;
   }
 
-
-  /**
-  * Return SpatialPosition of JPoint
-  *
-  * @return pos
-  */
-  public Point2D.Double getSpatialPosition()
-  {
-    return pos;
-  }
-
    /**
-   * Returns this <code>GPoint</code> in a representation suitable for
+   * Returns this <code>JPoint</code> in a representation suitable for
    * displaying in the HoeseViewer.
    *
    * @return A point

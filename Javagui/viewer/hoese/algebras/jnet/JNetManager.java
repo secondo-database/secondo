@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 /**
- * JPoints, JLines and their moving counterparts can only be displayed in the
+ * JPoint, JLine and their moving counterparts can only be displayed in the
  * HoeseViewer if the jnetwork they belong two has allready been loaded.
  *
  * Each JNetwork will be registered at this JNetManager. When

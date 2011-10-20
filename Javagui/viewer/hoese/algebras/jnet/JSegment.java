@@ -21,7 +21,7 @@ package viewer.hoese.algebras.jnet;
 import java.awt.geom.Point2D;
 
 /**
- * A linear part of a section in a network.
+ * A linear part of a curve in the network.
  *
  * @author Simone Jandt
  *
@@ -56,6 +56,7 @@ public class JSegment
    * it starts with point1 or point2
    */
   private boolean starts;
+
   /**
    * Constructor
    *
@@ -99,11 +100,11 @@ public class JSegment
   }
 
   /**
-   * Returns the starting point of the segment.
+   * Returns the startpoint of the segment.
    *
    * @return Starting point
    */
-  public Point2D.Double getFirstPoint()
+  public Point2D.Double getStartPoint()
   {
     if (starts)
       return startPos;
@@ -112,17 +113,15 @@ public class JSegment
   }
 
   /**
-   * Returns the Endpoint of the segment
+   * Returns the endpoint of the segment
    *
    * @return Endpoint
    */
-  public Point2D.Double getLastPoint()
+  public Point2D.Double getEndPoint()
   {
     if (starts) return endPos;
     else return startPos;
   }
-
-
 
 
   /**
@@ -194,7 +193,7 @@ public class JSegment
   /**
    * Sets the orientation of the segment
    *
-   * @param in_iStarts STARTS_SMALLER or STARTS_BIGGER
+   * @param in_iStarts true => starts smaller
    */
   public void setStarts(boolean in_iStarts)
   {
@@ -204,7 +203,7 @@ public class JSegment
   /**
    * Returns the orientation of the segment
    *
-   * @return STARTS_SMALLER or STARTS_BIGGER
+   * @return true for smaller startpoint
    */
   public boolean getStarts()
   {
@@ -219,10 +218,10 @@ public class JSegment
    * @return
    */
   public JSegment subSegment(double start,
-                           double end)
+                             double end)
   {
     return new JSegment(getPointOnSegment(start),
-                       getPointOnSegment(end));
+                        getPointOnSegment(end));
   }
 
   /**

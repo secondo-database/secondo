@@ -59,10 +59,7 @@ public class JJunction
     double koord[] = new double[2];
     if (pointList.listLength() != 2)
     {
-      // TODO: Handle undefined point in networks
-      pos = new Point2D.Double();
-      boolean bSuccess = ProjectionManager.project(1, 1, pos);
-      return;
+      throw new RuntimeException("Position of junction not defined.");
     }
 
     // Create Point

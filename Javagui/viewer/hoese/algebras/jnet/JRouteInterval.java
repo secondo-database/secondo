@@ -72,11 +72,15 @@ public class JRouteInterval
    */
    public JRouteInterval(ListExpr inList)
   {
-    // TODO: Check format before reading out the values
-
     rid =  inList.first().intValue();
     from = inList.second().realValue();
     to = inList.third().realValue();
+    if (from > to)
+    {
+    double aux = from;
+    from = to;
+    to = aux;
+    }
     side = inList.fourth().first().stringValue();
   }
 
@@ -96,8 +100,7 @@ public class JRouteInterval
    */
   public double getStartPosition()
   {
-    if (side == "Down") return to;
-    else return from;
+    return from;
   }
 
   /**
@@ -107,8 +110,7 @@ public class JRouteInterval
    */
   public double getEndPosition()
   {
-    if (side == "Down") return from;
-    else return to;
+    return to;
   }
 
   /**
@@ -129,36 +131,5 @@ public class JRouteInterval
   public int getRouteId()
   {
     return rid;
-  }
-
-  /**
-  * Tests if the route Interval contains the route location.
-  *
-  * @param rloc
-  * @return bool
-  */
-  public boolean contains(JRouteLocation rloc)
-  {
-    if (rid == rloc.getRouteId() &&
-        from <= rloc.getPosition() && rloc.getPosition() <= to)
-      return true;
-    else
-      return false;
-  }
-
-  /**
-  * Tests if the route Interval intersects the route interval.
-  *
-  * @param rint
-  * @return bool
-  */
-  public boolean intersects(JRouteInterval rint)
-  {
-    if (rid == rint.getRouteId() &&
-        ((from <= rint.getStartPosition() && rint.getStartPosition() <= to) ||
-         (from <= rint.getEndPosition() && rint.getEndPosition() <= to)))
-      return true;
-    else
-      return false;
   }
 }
