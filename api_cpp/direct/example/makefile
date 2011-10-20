@@ -4,6 +4,12 @@ include ../../../makefile.env
 BDBINCLUDE=$(BERKELEY_DB_DIR)/include
 BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
 
+ifndef $(BERKELEY_DB_LIB)
+	  BERKELEY_DB_LIB=db_cxx # special patch for Simone
+endif
+
+
+
 .PHONY: all
 all: Config.ini app$(EXEEXT)
 

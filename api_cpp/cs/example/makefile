@@ -8,6 +8,10 @@ BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
 all: Config.ini app$(EXEEXT)
 
 
+ifndef $(BERKELEY_DB_LIB)
+  BERKELEY_DB_LIB=db_cxx # special patch for Simone
+endif
+
 
 LDFLAGS:=-L../lib/ -lsecondo    -lfl -ly -lstdc++ -lpthread
 ifeq ($(SECONDO_PLATFORM),win32)
