@@ -4563,7 +4563,7 @@ void Range<Alpha>::Get( const int i, Interval<Alpha> &interval ) const
 {
   assert( IsDefined() );
   assert(i>=0);
-  assert(intervals.Size());
+  assert(i<intervals.Size());
   intervals.Get( i, &interval );
   assert( interval.IsValid() );
 }
@@ -5044,6 +5044,9 @@ void Range<Alpha>::Intersection( const Range<Alpha>& r,
     return;
   }
   result.SetDefined( true );
+  if( (GetNoComponents()==0) || (r.GetNoComponents()==0)){
+     return; 
+  }
 
   Interval<Alpha> thisInterval, interval;
   int i = 0, j = 0;
