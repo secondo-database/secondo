@@ -214,6 +214,9 @@ Persistent_AvgSize=512
 # Disable progress estimation
 #RTFlags += QP:ProgDisable
 
+# define the file containing the progress constats, default "ProgressConstants.csv"
+#PROGRESS_CONSTANTS_FILE = ProgressConstants.csv
+
 # ProgNorm normalizes the progressbar to n points
 # Example: ProgNorm=50
 ProgNorm=50
