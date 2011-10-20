@@ -72,15 +72,15 @@ which will be read.
 #include <map>
 #include <algorithm>
 
-#include "../include/DisplayTTY.h"
-#include "../include/NestedList.h"
-#include "../include/NList.h"
-#include "../include/SecondoInterface.h"
-#include "../include/AlgebraTypes.h"
-#include "../include/Base64.h"
-#include "../include/CharTransform.h"
-#include "../include/NList.h"
-#include "../include/Symbols.h"
+#include "DisplayTTY.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "SecondoInterface.h"
+#include "AlgebraTypes.h"
+#include "Base64.h"
+#include "CharTransform.h"
+#include "NList.h"
+#include "Symbols.h"
 
 /*
 Auxiliary global variables and functions
@@ -3029,6 +3029,195 @@ struct DisplayJPoint : DisplayFunction {
   }
 };
 
+struct DisplayJNetwork : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "Network: ";
+    NList in_inst(value);
+
+    if (in_inst.length() ==  1 && in_inst.hasStringValue())
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList id(in_inst.first());
+      cout << id.str() << endl;
+
+      NList junct(in_inst.second());
+      cout << "Junctions: " << endl;
+      while (!junct.isEmpty())
+      {
+        NList actJunct(junct.first());
+        junct.rest();
+        cout << "id: " << actJunct.first() << endl;
+        cout << "pos: " << actJunct.second() << endl;
+
+        cout << "route positions of junction: " << endl;
+        NList junctRoutePos(actJunct.third());
+        while (!junctRoutePos.isEmpty())
+        {
+          NList actRoutePos(junctRoutePos.first());
+          junctRoutePos.rest();
+          cout << "TupleId: " << actRoutePos.first()
+               << ", rid: " << actRoutePos.second().first().intval()
+               << ", pos: " << actRoutePos.second().second().realval()
+               << ", side: " << actRoutePos.second().third().first().str()
+               << endl;
+        }
+
+        cout << "in sections of junction: " << endl;
+        NList inSections(actJunct.fourth());
+        while (!inSections.isEmpty())
+        {
+          NList actSect(inSections.first());
+          inSections.rest();
+          cout << "TupleId: " << actSect.first().intval() << endl;
+        }
+
+        cout << "out sections of junction: " << endl;
+        NList outSections(actJunct.fifth());
+        while (!outSections.isEmpty())
+        {
+          NList actSect(outSections.first());
+          outSections.rest();
+          cout << "TupleId: " << actSect.first().intval() << endl;
+        }
+
+        cout << "Netdistances from junction: " << endl;
+        NList ndgList(actJunct.sixth());
+        while (!ndgList.isEmpty())
+        {
+          NList actNDG(ndgList.first());
+          ndgList.rest();
+          cout << "target: " << actNDG.first().intval()
+               << ", next section: " << actNDG.second().intval()
+               << ", next junction: " << actNDG.third().intval()
+               << ", distance: " << actNDG.fourth().realval() << endl;
+        }
+        cout << endl;
+      }
+      cout << endl;
+
+      NList routes(in_inst.fourth());
+      cout << "Routes: " << endl;
+      while (!routes.isEmpty())
+      {
+        NList actRoute(routes.first());
+        routes.rest();
+        cout << "id: " << actRoute.first().intval() << endl;
+        cout << "length: " << actRoute.fourth().realval() << endl;
+
+        cout << "Junctions of Route: " << endl;
+        NList junc(actRoute.second());
+        while (!junc.isEmpty())
+        {
+          NList actJunct(junc.first());
+          junc.rest();
+          cout << "TupleId: " << actJunct.first()
+          << ", rid: " << actJunct.second().first().intval()
+          << ", pos: " << actJunct.second().second().realval()
+          << ", side: " << actJunct.second().third().first().str()
+          << endl;
+        }
+
+        cout << "Sections of Route: " << endl;
+        NList sect(actRoute.third());
+        while (!sect.isEmpty())
+        {
+          NList actSect(sect.first());
+          sect.rest();
+          cout << "TupleId: " << actSect.first()
+          << ", rid: " << actSect.second().first().intval()
+          << ", from: " << actSect.second().second().realval()
+          << ", to: " << actSect.second().third().realval()
+          << ", side: " << actSect.second().fourth().first().str()
+          << endl;
+        }
+        cout << endl;
+      }
+      cout << endl;
+
+      cout << "Sections: " << endl;
+      NList sections(in_inst.third());
+      while (!sections.isEmpty())
+      {
+        NList actSection(sections.first());
+        sections.rest();
+
+        cout << "Id: " << actSection.first().intval() << endl;
+        cout << "Length: " << actSection.tenth().realval() << endl;
+        cout << "Speedlimit: " << actSection.eleventh().realval() << endl;
+        cout << "Direction: " << actSection.twelfth().first().str() << endl;
+        cout << "Startjunction: " << actSection.third().intval() << endl;
+        cout << "Targetjunction: " << actSection.fourth().intval() << endl;
+        cout << "Curve: startsSmaller: ";
+        if (actSection.second().second().boolval()) cout << "TRUE" << endl;
+        else cout << "FALSE" << endl;
+
+        NList curve(actSection.second().first());
+        while(!curve.isEmpty())
+        {
+          NList segment(curve.first());
+          curve.rest();
+
+          cout << "(" << segment.first() << ", " << segment.second() << ")"
+            << "-> (" << segment.third() << ", " << segment.fourth() << ")"
+            << endl;
+        }
+
+        cout << "Represented route parts: " << endl;
+        NList routePart(actSection.fifth());
+        while (!routePart.isEmpty())
+        {
+          NList actPart(routePart.first());
+          routePart.rest();
+          cout << "TupleId: " << actPart.first()
+              << ", rid: " << actPart.second().first().intval()
+              << ", from: " << actPart.second().second().realval()
+              << ", to: " << actPart.second().third().realval()
+              << ", side: " << actPart.second().fourth().first().str()
+              << endl;
+        }
+
+        cout << "Adjacent Sections Up: " << endl;
+        NList adjUp(actSection.sixth());
+        while (!adjUp.isEmpty())
+        {
+          NList up(adjUp.first());
+          adjUp.rest();
+          cout << "Tupleid: " << up.first().intval() << endl;
+        }
+
+        cout << "Adjacent Sections Down: " << endl;
+        NList adjDown(actSection.seventh());
+        while (!adjDown.isEmpty())
+        {
+          NList down(adjDown.first());
+          adjDown.rest();
+          cout << "Tupleid: " << down.first().intval() << endl;
+        }
+
+        cout << "Reverse adjacent sections Up: " << endl;
+        NList revadjUp(actSection.eigth());
+        while (!revadjUp.isEmpty())
+        {
+          NList revup(revadjUp.first());
+          revadjUp.rest();
+          cout << "Tupleid: " << revup.first().intval() << endl;
+        }
+
+        cout << "Reverse adjacent Sections Down: " << endl;
+        NList revadjDown(actSection.nineth());
+        while (!revadjDown.isEmpty())
+        {
+          NList revdown(revadjDown.first());
+          revadjDown.rest();
+          cout << "Tupleid: " << revdown.first().intval() << endl;
+        }
+        cout << endl;
+      }
+    }
+  }
+};
 /*
 Display Hadoop file list
 
@@ -3187,6 +3376,7 @@ DisplayTTY::Initialize()
   d.Insert( "netdistancegroup", new DisplayNetDistanceGroup());
   d.Insert( "listnetdistgrp", new DisplayListNDG());
   d.Insert( "jpoint", new DisplayJPoint());
+  d.Insert( "jnetwork", new DisplayJNetwork());
 }
 
 /*
