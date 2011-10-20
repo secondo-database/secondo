@@ -5548,8 +5548,10 @@ bool MGPoint::Passes(GLine *gl){
     help->DeleteIfAllowed();
   }
   DbArray<RouteInterval>* gltra = gl->GetRouteIntervals();
-  if (RIsIntersects(m_trajectory, *gltra, true, gl->IsSorted())) return true;
-  else return false;
+  bool result = RIsIntersects(m_trajectory, *gltra, true, gl->IsSorted());
+  gltra->Destroy();
+  delete gltra;
+  return result;
 }
 
 

@@ -23,6 +23,16 @@
 #
 ########################################################################
 
+CURRENT_ALGEBRA := TemporalNetAlgebra
+
+ALGEBRA_DEPENDENCIES := NetworkAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += BTreeAlgebra
+ALGEBRA_DEPENDENCIES += StandardAlgebra
+ALGEBRA_DEPENDENCIES += RectangleAlgebra
+ALGEBRA_DEPENDENCIES += SpatialAlgebra
+ALGEBRA_DEPENDENCIES += TemporalAlgebra
+
 # inlcude global definitions
 include ../../makefile.env
 
@@ -32,7 +42,10 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)

@@ -38,8 +38,8 @@ February 2008 -  Simone Jandt
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "../../include/NestedList.h"
-#include "../../include/QueryProcessor.h"
+#include "NestedList.h"
+#include "QueryProcessor.h"
 #include "../Spatial/Geoid.h"
 #include "../Network/NetworkAlgebra.h"
 
