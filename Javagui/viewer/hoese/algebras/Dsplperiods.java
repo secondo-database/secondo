@@ -27,13 +27,15 @@ import  java.util.*;
 import  javax.swing.*;
 import  javax.swing.border.*;
 import  java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 import tools.Reporter;
 
 
 /**
  * A displayclass for the periods-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplperiods extends DsplGeneric implements Timed {
+public class Dsplperiods extends DsplGeneric implements Timed, ExternDisplay {
   protected Vector Intervals = new Vector(10, 5);
   protected Interval TimeBounds;
   protected boolean err=true;
@@ -155,6 +157,85 @@ public class Dsplperiods extends DsplGeneric implements Timed {
   public Vector getIntervals(){
     return Intervals;
     } 
+
+
+   public boolean isExternDisplayed(){
+     if(display==null){
+        return false;
+     }
+     return display.isVisible() && this.equals(display.getSource());
+   }
+
+   public void displayExtern(){
+       if(display==null){
+         display = new Display();
+       }
+       display.setSource(this);
+       display.setVisible(true);
+   }
+
+   private static Display display;
+
+   static class Display extends JFrame{
+     private Dsplperiods src;
+     private JTextArea textArea;
+     private JButton closeBtn;
+
+     Display(){
+        getContentPane().setLayout(new BorderLayout());
+        textArea = new JTextArea(40,20);
+        textArea.setEditable(false);
+        JScrollPane sp = new JScrollPane(textArea);
+        getContentPane().add(sp, BorderLayout.CENTER);
+        closeBtn = new JButton("close");
+        closeBtn.addActionListener(new ActionListener(){
+             public void actionPerformed(ActionEvent evt){
+                 Display.this.setVisible(false);
+             }
+         });
+         getContentPane().add(closeBtn,BorderLayout.SOUTH);
+         setSize(640,480);
+     }
+
+
+     Dsplperiods getSource(){ 
+        return src;
+     }
+
+     void setSource(Dsplperiods src){
+        this.src = src;
+        recomputeText();
+     }
+     
+     
+     private void recomputeText(){
+        if(src==null){
+           textArea.setText("No periods available");
+           return;
+        }
+        if(src.err){
+           textArea.setText("Wrong format of a periods value detected");
+           return;
+        }
+        if(!src.defined){
+           textArea.setText("Undefined");
+           return;
+        }
+        if(src.Intervals.size()==0){
+           textArea.setText("empty");
+           return;
+        }
+        StringBuffer buff = new StringBuffer();
+        for(int i=0;i<src.Intervals.size();i++){
+          Interval iv = (Interval) src.Intervals.get(i);
+          buff.append(""+iv+"\n");
+        } 
+        textArea.setText(buff.toString());
+
+     }
+
+   }
+
 
 }
 
