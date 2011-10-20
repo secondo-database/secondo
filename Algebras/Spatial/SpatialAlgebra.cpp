@@ -5526,8 +5526,8 @@ double Line::Distance( const Line& l, const Geoid* geoid /* = 0 */ ) const
   return result;
 }
 
-void Line::DistanceSmallerThan(const Line& l, 
-                              const double  maxDist, 
+void Line::DistanceSmallerThan(const Line& l,
+                              const double  maxDist,
                               const bool allowEqual,
                               CcBool& result,
                               const Geoid* geoid) const{
@@ -5561,7 +5561,7 @@ void Line::DistanceSmallerThan(const Line& l,
         segDistance = hs1.Distance( hs2, geoid );
         if( (segDistance < maxDist) ||
             (allowEqual && AlmostEqual(segDistance,maxDist))){
-           result.Set(true,true); 
+           result.Set(true,true);
            return;
         }
       }
@@ -7575,9 +7575,9 @@ void SimpleLine::SubLine( double pos1, double pos2,
      pos2 = aux;
    }
    Point pStartPoint ( true );
-   AtPosition ( pos1, startSmaller, pStartPoint );
+   AtPosition ( pos1, startsSmaller, pStartPoint );
    Point pEndPoint ( true );
-   AtPosition ( pos2, startSmaller, pEndPoint );
+   AtPosition ( pos2, startsSmaller, pEndPoint );
    if ( pStartPoint.GetX() < pEndPoint.GetX() ||
      ( pStartPoint.GetX() == pEndPoint.GetX() &&
             pStartPoint.GetY() < pEndPoint.GetY()))
@@ -15593,7 +15593,7 @@ Up to now, it's only emplemented for the Line type.
 
 */
 template<class A , class B>
-int distanceSmallerThanVM(Word* args, 
+int distanceSmallerThanVM(Word* args,
                           Word& result,
                           int message,
                           Word& local,
@@ -15607,7 +15607,7 @@ int distanceSmallerThanVM(Word* args,
    CcReal* d = (CcReal*) args[2].addr;
    CcBool* b = (CcBool*) args[3].addr;
 
-   if(!a1->IsDefined() || !a2->IsDefined() || 
+   if(!a1->IsDefined() || !a2->IsDefined() ||
       !d->IsDefined() || !b->IsDefined()){
       res->SetDefined(false);
       return 0;
