@@ -29,16 +29,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef __NETWORK_ALGEBRA_H__
 #define __NETWORK_ALGEBRA_H__
 
-#include "../../include/NestedList.h"
+#include "NestedList.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "../BTree/BTreeAlgebra.h"
 #include "../../Tools/Flob/DbArray.h"
 #include "../../Tools/Flob/Flob.h"
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "../Spatial/SpatialAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
-#include "../../include/ListUtils.h"
+#include "ListUtils.h"
 
 
 /*
