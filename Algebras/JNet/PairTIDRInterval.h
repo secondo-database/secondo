@@ -26,7 +26,7 @@ May 2011 Simone Jandt
 #define PAIRTIDRINT_H
 
 #include <ostream>
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
 #include "JRouteInterval.h"
 
@@ -112,6 +112,7 @@ static bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value );
 static bool Open(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value );
+static ListExpr Property();
 
 /*
 1.6 Helpful Operators

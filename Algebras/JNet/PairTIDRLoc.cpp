@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "PairTIDRLoc.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "Symbols.h"
 
 /*
 1. Implementation of PairTIDRLoc
@@ -153,16 +153,17 @@ size_t PairTIDRLoc::Sizeof() const
 
 ostream& PairTIDRLoc::Print(ostream& os) const
 {
+  os << "Pair ";
   if (IsDefined())
   {
-    os << "Pair of TupleId: ";
+    os << "of TupleId: ";
     tid.Print(os);
     os << " and RouteLocation: ";
     rloc.Print(os);
   }
   else
   {
-    os << Symbol::UNDEFINED();
+    os << Symbol::UNDEFINED() << endl;
   }
   return os;
 }
@@ -252,23 +253,23 @@ Word PairTIDRLoc::In(const ListExpr typeInfo, const ListExpr instance,
         else
         {
           correct = false;
-          nl->Append(errorInfo,
-                     nl->StringAtom("2.Elem must be routelocation."));
+          cmsg.inFunError("Second element must be " +
+            RouteLocation::BasicType());
           return (SetWord(Address(0)));
         }
       }
       else
       {
         correct = false;
-        nl->Append(errorInfo,
-                   nl->StringAtom("1.Element must be an TupleIdentifier."));
+        cmsg.inFunError("First element must be " +
+          TupleIdentifier::BasicType());
         return (SetWord(Address(0)));
       }
     }
     else
     {
       correct = false;
-      nl->Append(errorInfo, nl->StringAtom("ListLength must be 1 or 2."));
+      cmsg.inFunError("ListLength must be one or two.");
       return (SetWord(Address(0)));
     }
   }
@@ -342,4 +343,21 @@ bool PairTIDRLoc::Open(SmiRecord& valueRecord, size_t& offset,
   }
   value = SetWord(Address(0));
   return false;
+}
+
+ListExpr PairTIDRLoc::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("("+ TupleIdentifier::BasicType() + " " +
+                     RouteLocation::BasicType()+ "), pair connecting the tuple"+
+                     " of the junctions relation with an position on a route."),
+      nl->StringAtom("(34 (1 5.6 Up))")));
 }

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define NETDISTANCEGROUP_H
 
 #include <ostream>
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
 
 /*
@@ -95,12 +95,14 @@ size_t Sizeof() const;
 ostream& Print ( ostream& os ) const;
 static const string BasicType();
 static const bool checkType(const ListExpr type);
+
 /*
 1.4 Standard Operators
 
 */
-    virtual NetDistanceGroup& operator= ( const NetDistanceGroup& other );
-    virtual bool operator== ( const NetDistanceGroup& other ) const;
+
+NetDistanceGroup& operator= ( const NetDistanceGroup& other );
+bool operator== ( const NetDistanceGroup& other ) const;
 
 /*
 1.5 SecondoIntegration
@@ -121,6 +123,7 @@ static bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value );
 static bool Open(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value );
+static ListExpr Property();
 
 /*
 1.6 Helpful Operators

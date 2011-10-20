@@ -23,11 +23,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "RouteLocation.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/NList.h"
-#include "../../include/Symbols.h"
-#include "../../include/LogMsg.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "Symbols.h"
+#include "LogMsg.h"
+#include "StandardTypes.h"
 
 
 /*
@@ -131,8 +132,8 @@ Attribute* RouteLocation::Clone() const
 bool RouteLocation::Adjacent(const RouteLocation attrib) const
 {
   if (rid  == attrib.GetRouteId() &&
-      AlmostEqual(pos, attrib.GetPosition()) &&
-      side.SameSide(attrib.GetSide()))
+      pos == attrib.GetPosition() &&
+      side.SameSide(attrib.GetSide(),false))
     return true;
   else
     return false;
@@ -175,8 +176,8 @@ ostream& RouteLocation::Print(ostream& os) const
     side.Print(os);
   }
   else
-    os << Symbol::UNDEFINED;
-  os << endl;
+    os << Symbol::UNDEFINED << endl;
+
   return os;
 }
 
@@ -262,7 +263,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cmsg.inFunError("RouteLocation: First Element must be int");
+        cmsg.inFunError("First Element must be " + CcInt::BasicType());
         return SetWord(Address(0));
       }
       if (posList.isReal())
@@ -270,7 +271,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cmsg.inFunError("RouteLocation:Second Element must be real");
+        cmsg.inFunError("Second Element must be " + CcReal::BasicType());
         return SetWord(Address(0));
       }
       correct = true;
@@ -289,7 +290,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
                                  correct);
       if (!correct)
       {
-        cmsg.inFunError("RouteLocation: Third element must be jdirection");
+        cmsg.inFunError("Third element must be " + Direction::BasicType());
         return SetWord(Address(0));
       }
       Direction* sideofroad =(Direction*)sideaddr.addr;
@@ -299,7 +300,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
     }
   }
   correct = false;
-  cmsg.inFunError("list length should be 1 or 3");;
+  cmsg.inFunError("list length should be one or three");;
   return SetWord(Address(0));
 }
 
@@ -392,6 +393,24 @@ bool RouteLocation::Open(SmiRecord& valueRecord, size_t& offset,
   return false;
 }
 
+ListExpr RouteLocation::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> "+ Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("(" + CcInt::BasicType() + " "+ CcReal::BasicType() + " " +
+                     Direction::BasicType() + "), which means route id, " +
+                     "distance from start of route, reachable from side " +
+                     "of route."),
+      nl->StringAtom("(1 2.0 Up)")));
+}
+
 /*
 1.6 Helpful operations
 
@@ -399,8 +418,10 @@ Returns true if the side values are identic or at least one of them is ~Both~.
 
 */
 
-bool RouteLocation::SameSide(const RouteLocation& rloc) const
+bool RouteLocation::SameSide(const RouteLocation& rloc,
+                             const bool strict /*true*/) const
 {
+  if (!IsDefined() && !IsDefined()) return true;
   if (!IsDefined() || !rloc.IsDefined()) return false;
-  else return side.SameSide(rloc.GetSide());
+  else return side.SameSide(rloc.GetSide(), strict);
 }

@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 #include "../../Tools/Flob/DbArray.h"
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "../TupleIdentifier/TupleIdentifier.h"
 
 /*
@@ -114,7 +114,7 @@ void SetList(const DbArray<TupleIdentifier> inList);
                    const ListExpr typeInfo, Word& value );
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
-
+  static ListExpr Property();
 /*
 1.6 Helpful Operators
 

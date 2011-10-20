@@ -25,15 +25,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Direction.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/NList.h"
-#include "../../include/Symbols.h"
-#include "../../include/LogMsg.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "Symbols.h"
+#include "LogMsg.h"
 
 extern NestedList* nl;
-
-static bool DEBUG = false;
 
 /*
 1 Constructors and Deconstructors
@@ -43,29 +41,23 @@ The default constructor should only be used in the Cast-Function.
 */
 
 Direction::Direction():Attribute()
-{
-  if (DEBUG) cout << "Direction::Direction()" << endl;
-}
+{}
 
 Direction::Direction(const bool defined): Attribute(defined)
-{
-  if (DEBUG) cout << "Direction::Direction(bool)" << endl;
-}
+{}
 
 Direction::Direction(const Direction& other):Attribute(other.IsDefined())
 {
-  if (DEBUG) cout << "Direction::Direction(other)" << endl;
   if (other.IsDefined()) side = other.GetDirection();
 }
 
 Direction::Direction(const JSide inside):Attribute(true)
 {
-  if (DEBUG) cout << "Direction::Direction(jside)" << endl;
   side = inside;
 }
 
 Direction::~Direction()
-{if (DEBUG) cout << "Direction::~Direction()" << endl;}
+{}
 
 /*
 1 Getter and Setter
@@ -89,7 +81,6 @@ void Direction::SetDirection(const JSide inside)
 
 void Direction::CopyFrom(const Attribute* right)
 {
-  if (DEBUG) cout << "Direction::CopeFrom()" << endl;
   Direction* in = (Direction*) right;
   SetDefined(in->IsDefined());
   side = in->GetDirection();
@@ -103,32 +94,27 @@ Attribute::StorageType Direction::GetStorageType() const
 
 size_t Direction::HashValue() const
 {
-  if (DEBUG) cout << "Direction::HashValue()" << endl;
   return (size_t) side;
 }
 
 Attribute* Direction::Clone() const
 {
-  if (DEBUG) cout << "Direction::Clone()" << endl;
   return new Direction(*this);
 }
 
 bool Direction::Adjacent(const Attribute* attrib) const
 {
-  if (DEBUG) cout << "Direction::Adjacent()" << endl;
   return false;
 }
 
 int Direction::Compare(const Attribute* rhs) const
 {
-  if (DEBUG) cout << "Direction::Compare(attr)" << endl;
   Direction* in = (Direction*) rhs;
   return Compare(*in);
 }
 
 int Direction::Compare(const Direction& indir) const
 {
-  if (DEBUG) cout << "Direction::Compare(Direction)" << endl;
   if (indir.IsDefined() && !IsDefined()) return -1;
   if (!indir.IsDefined() && IsDefined()) return 1;
   return Compare(side, indir.GetDirection());
@@ -145,13 +131,11 @@ int Direction::Compare(const JSide& a, const JSide& b) const
 
 size_t Direction::Sizeof() const
 {
-  if (DEBUG) cout << "Direction::Sizeof" << endl;
   return sizeof(Direction);
 }
 
 ostream& Direction::Print(ostream& os) const
 {
-  if (DEBUG) cout << "Direction::Print" << endl;
   os << "Direction: ";
   if (IsDefined())
   {
@@ -195,7 +179,6 @@ const bool Direction::checkType(const ListExpr type)
 
 Direction& Direction::operator=(const Direction& other)
 {
-  if (DEBUG) cout << "Direction::operator=" << endl;
   SetDefined(other.IsDefined());
   if (IsDefined()) side = other.GetDirection();
   return *this;
@@ -203,28 +186,24 @@ Direction& Direction::operator=(const Direction& other)
 
 bool Direction::operator==(const Direction& other) const
 {
-  if (DEBUG) cout << "Direction::operator==(Direction)" << endl;
   if (Compare(&other) == 0) return true;
   else return false;
 }
 
 bool Direction::operator==(const JSide& other) const
 {
-  if (DEBUG) cout << "Direction::operator==(JSide)" << endl;
   if (IsDefined() && Compare(side, other) == 0) return true;
   else return false;
 }
 
 bool Direction::operator<(const Direction& other) const
 {
-  if (DEBUG) cout << "Direction::operator<" << endl;
   if (Compare(&other) < 0) return true;
   else return false;
 }
 
 bool Direction::operator<(const JSide& other) const
 {
-  if (DEBUG) cout << "Direction::operator<" << endl;
   if (IsDefined() && Compare(side, other) < 0) return true;
   else return false;
 }
@@ -239,18 +218,12 @@ bool Direction::operator<(const JSide& other) const
 ListExpr Direction::Out(ListExpr typeInfo, Word value)
 {
   Direction* source = (Direction*) value.addr;
-  if (DEBUG)
-  {
-    cout << "Direction::Out";
-    source->Print(cout);
-  }
   if (source->IsDefined())
   {
     switch(source->GetDirection())
     {
       case Up:
       {
-        if (DEBUG) cout << "Case Up" << endl;
         NList res("Up");
         return res.enclose().listExpr();
         break;
@@ -258,7 +231,6 @@ ListExpr Direction::Out(ListExpr typeInfo, Word value)
 
       case Down:
       {
-        if (DEBUG) cout << "Case Down" << endl;
         NList res("Down");
         return res.enclose().listExpr();
         break;
@@ -266,7 +238,6 @@ ListExpr Direction::Out(ListExpr typeInfo, Word value)
 
       case Both:
       {
-        if (DEBUG) cout << "Case Both" << endl;
         NList res("Both");
         return res.enclose().listExpr();
         break;
@@ -274,7 +245,6 @@ ListExpr Direction::Out(ListExpr typeInfo, Word value)
 
     }
   }
-  if (DEBUG) cout << "Case undef" << endl;
   NList res(Symbol::UNDEFINED());
   return res.enclose().listExpr();
 }
@@ -288,11 +258,6 @@ Word Direction::In(const ListExpr typeInfo, const ListExpr instance,
                    const int errorPos, ListExpr& errorInfo, bool& correct)
 {
   NList in_inst(instance);
-  if (DEBUG)
-  {
-    cout << "Direction::In";
-    in_inst.writeAsStringTo(cout);
-  }
   if (in_inst.length() == 1)
   {
     NList first = in_inst.first();
@@ -301,24 +266,20 @@ Word Direction::In(const ListExpr typeInfo, const ListExpr instance,
       string s = first.str();
       if (s == "Up")
       {
-        if (DEBUG) cout << "Case Up" << endl;
         correct = true;
         return SetWord(new Direction((JSide)Up));
       }
       if (s == "Down"){
-        if (DEBUG) cout << "Case Down" << endl;
         correct = true;
         return SetWord(new Direction((JSide)Down));
       }
       if (s == "Both")
       {
-        if (DEBUG) cout << "Case Both" << endl;
         correct = true;
         return SetWord(new Direction((JSide)Both));
       }
       if ( s == Symbol::UNDEFINED())
       {
-        if (DEBUG) cout << "Case undefined" << endl;
         correct = true;
         return SetWord(new Direction(false));
       }
@@ -331,27 +292,23 @@ Word Direction::In(const ListExpr typeInfo, const ListExpr instance,
 
 Word Direction::Create(const ListExpr typeInfo)
 {
-  if (DEBUG) cout << "Direction::Create" << endl;
   return SetWord(new Direction(false));
 }
 
 void Direction::Delete( const ListExpr typeInfo, Word& w )
 {
-  if (DEBUG) cout << "Direction::Delete" << endl;
   ((Direction*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
 void Direction::Close( const ListExpr typeInfo, Word& w )
 {
-  if (DEBUG) cout << "Direction::Close" << endl;
   ((Direction*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
 
 Word Direction::Clone( const ListExpr typeInfo, const Word& w )
 {
-  if (DEBUG) cout << "Direction::Clone" << endl;
    return SetWord(new Direction(*(Direction*) w.addr));
 }
 
@@ -362,13 +319,11 @@ void* Direction::Cast( void* addr )
 
 bool Direction::KindCheck ( ListExpr type, ListExpr& errorInfo )
 {
-  if(DEBUG) cout << "Direction::kindCheck" << endl;
   return checkType(type);
 }
 
 int Direction::SizeOf()
 {
-  if (DEBUG) cout << "Direction::SizeOf" << endl;
   return sizeof(Direction);
 }
 
@@ -377,32 +332,24 @@ bool Direction::Save(SmiRecord& valueRecord, size_t& offset,
 {
   int i = -1;
   Direction* toSave = (Direction*) value.addr;
-  if (DEBUG)
-  {
-    cout << "Direction: Save:";
-    toSave->Print(cout);
-  }
   if (toSave->IsDefined())
   {
     switch(toSave->GetDirection())
     {
       case Up:
       {
-        if (DEBUG) cout << "case Up" << endl;
         i = 0;
         break;
       }
 
       case Down:
       {
-        if (DEBUG) cout << "case Down" << endl;
         i = 1;
         break;
       }
 
       case Both:
       {
-        if (DEBUG) cout << "case Both" << endl;
         i = 2;
         break;
       }
@@ -419,12 +366,10 @@ bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
   int i = -1;
   valueRecord.Read(&i, sizeof(int), offset);
   offset += sizeof(int);
-  if (DEBUG) cout << "Direction: Open i = " << i << endl;
   switch (i)
   {
     case 0:
     {
-      if (DEBUG) cout << "case Up" << endl;
       value = SetWord(new Direction((JSide)Up));
       return true;
       break;
@@ -432,7 +377,6 @@ bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
 
     case 1:
     {
-      if (DEBUG) cout << "case Down" << endl;
       value = SetWord(new Direction((JSide)Down));
       return true;
       break;
@@ -440,7 +384,6 @@ bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
 
     case 2:
     {
-      if (DEBUG) cout << "case Both" << endl;
       value = SetWord(new Direction((JSide)Both));
       return true;
       break;
@@ -448,7 +391,6 @@ bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
 
     case -1:
     {
-      if (DEBUG) cout << "case undef" << endl;
       value = SetWord(new Direction(false));
       return true;
       break;
@@ -456,12 +398,26 @@ bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
 
     default: // should never happen
     {
-      if (DEBUG) cout << "default" << endl;
       value = SetWord(Address(0));
       return false;
       break;
     }
   }
+}
+
+ListExpr Direction::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("(<JSide>) where JSide is Up, Down or Both"),
+      nl->StringAtom("(Up)")));
 }
 
 /*
@@ -473,17 +429,26 @@ Returns true if the both direction values are equal or one of them is ~Both~.
 
 */
 
-bool Direction::SameSide(const Direction& dir) const
+bool Direction::SameSide(const Direction& dir, const bool strict /*true*/)const
 {
-  if (DEBUG) cout << "Direction::SameSide" << endl;
-  if (IsDefined() && dir.IsDefined())
-  {
-    if (side == dir.GetDirection() ||
-        side == Both || dir.GetDirection() == Both)
-      return true;
-    else
-      return false;
-  }
+  if (!IsDefined() && !dir.IsDefined())
+    return true;
   else
-    return false;
+  {
+    if (!IsDefined() || !dir.IsDefined())
+      return false;
+    else
+    {
+      if (strict)
+        return side == dir.GetDirection();
+      else
+      {
+        if (side == dir.GetDirection() ||
+            side == Both || dir.GetDirection() == Both)
+          return true;
+        else
+          return false;
+      }
+    }
+  }
 }

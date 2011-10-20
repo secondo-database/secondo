@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define NLOC_H
 
 #include <ostream>
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "Direction.h"
 
 /*
@@ -88,6 +88,7 @@ size_t Sizeof() const;
 ostream& Print(ostream& os) const;
 static const string BasicType();
 static const bool checkType(const ListExpr type);
+
 /*
 1.4 Standard Operators
 
@@ -115,6 +116,7 @@ static bool Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value );
 static bool Open(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value );
+static ListExpr Property();
 
 /*
 1.6 Helpful operations
@@ -123,7 +125,7 @@ Returns true if the side values are identic or at least one of them is ~Both~.
 
 */
 
-bool SameSide(const RouteLocation& rloc) const;
+bool SameSide(const RouteLocation& rloc, const bool strict = true) const;
 
 private:
 

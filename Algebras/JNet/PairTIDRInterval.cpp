@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "PairTIDRInterval.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "Symbols.h"
 
 /*
 1. Implementation of PairTIDRInteval
@@ -157,18 +157,18 @@ size_t PairTIDRInterval::Sizeof() const
 
 ostream& PairTIDRInterval::Print(ostream& os) const
 {
+  os << "Pair ";
   if (IsDefined())
   {
-    os << "Pair of TupleId: ";
+    os << "of TupleId: ";
     tid.Print(os);
     os << " and RouteInterval: ";
     rint.Print(os);
   }
   else
   {
-    os << Symbol::UNDEFINED();
+    os << Symbol::UNDEFINED() << endl;
   }
-  os << endl;
   return os;
 }
 
@@ -256,7 +256,8 @@ Word PairTIDRInterval::In(const ListExpr typeInfo, const ListExpr instance,
         else
         {
           correct = false;
-          cerr << "Second element must be JRouteInterval." << endl;
+          cmsg.inFunError("Second element must be " +
+            JRouteInterval::BasicType());
           t->DeleteIfAllowed();
           return (SetWord(Address(0)));
         }
@@ -264,14 +265,16 @@ Word PairTIDRInterval::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cerr << "First element must be TupleIdentifier." << endl;
+        cmsg.inFunError("First element must be " +
+          TupleIdentifier::BasicType());
         return (SetWord(Address(0)));
       }
     }
     else
     {
       correct = false;
-      cerr << "List should be (<tid> <rint>)." << endl;
+      cmsg.inFunError("List should be (" + TupleIdentifier::BasicType() + " " +
+        JRouteInterval::BasicType() + ").");
       return (SetWord(Address(0)));
     }
   }
@@ -348,4 +351,21 @@ bool PairTIDRInterval::Open(SmiRecord& valueRecord, size_t& offset,
   }
   value = SetWord(Address(0));
   return false;
+}
+
+ListExpr PairTIDRInterval::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("("+ TupleIdentifier::BasicType() + " " +
+                    JRouteInterval::BasicType()+ "), pair connecting the tuple"+
+                   " of the sections relation with an part of a route."),
+      nl->StringAtom("(34 (1 5.6 15.5 Down))")));
 }

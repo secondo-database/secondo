@@ -29,10 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <map>
 #include <string>
-#include "../../include/SecondoSMI.h"
-#include "../../include/NestedList.h"
-#include "../../include/NList.h"
-#include "../../include/StandardTypes.h"
+#include "SecondoSMI.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "StandardTypes.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "../BTree/BTreeAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
@@ -80,6 +80,9 @@ The default constructor should only be used in the cast function.
   Relation* GetJunctionsCopy() const;
   Relation* GetRoutesCopy() const;
   Relation* GetSectionsCopy() const;
+  static const string GetRoutesTypeInfo();
+  static const string GetJunctionsTypeInfo();
+  static const string GetSectionsTypeInfo();
 
   void SetDefined(const bool def);
   void SetId(const string nid);
@@ -102,6 +105,7 @@ The default constructor should only be used in the cast function.
                    const ListExpr typeInfo, Word& value );
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
+  static ListExpr Property();
 
 /*
 1.4 StandardOperations
@@ -158,19 +162,6 @@ Opens the Network Object in Secondo
   static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo);
 
-/*
-1.1 Relation Descriptors
-
-*/
-  static string sectionsTypeInfo;
-  static string junctionsTypeInfo;
-  static string routesTypeInfo;
-  static string sectionsBTreeTypeInfo;
-  static string sectionsRTreeTypeInfo;
-  static string junctionsBTreeTypeInfo;
-  static string junctionsRTreeTypeInfo;
-  static string routesBTreeTypeInfo;
-
 private:
 
 /*
@@ -192,8 +183,19 @@ private:
   BTree* routesBTree;     //supports fast access to routes by route id
 
 /*
-1.7 Description of internal relations
+1.1 Relation Descriptors
 
+*/
+static string sectionsTypeInfo;
+static string junctionsTypeInfo;
+static string routesTypeInfo;
+static string sectionsBTreeTypeInfo;
+static string sectionsRTreeTypeInfo;
+static string junctionsBTreeTypeInfo;
+static string junctionsRTreeTypeInfo;
+static string routesBTreeTypeInfo;
+
+/*
 1.7.1 Enumerations of coloumns of internal relations
 
 */
@@ -286,6 +288,8 @@ private:
 /*
 1.8.5.1 Creates BTree
 
+Creates the BTree over the route ids of the given relation.
+
 */
 
   BTree* CreateBTree(const Relation* rel, const string descriptor,
@@ -294,8 +298,11 @@ private:
 /*
 1.8.5.1 Create RTree
 
+Creates the RTree over the spatial attribute of the given relation.
+
 */
- R_Tree<2,TupleId>* CreateRTree(const Relation* rel, const string descriptor,
+
+  R_Tree<2,TupleId>* CreateRTree(const Relation* rel, const string descriptor,
                                  const string attr);
 
 

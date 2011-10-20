@@ -23,7 +23,15 @@
 #
 ########################################################################
 
-# inlcude global definitions
+CURRENT_ALGEBRA := JNetAlgebra
+
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES += BTreeAlgebra
+ALGEBRA_DEPENDENCIES += RTreeAlgebra
+ALGEBRA_DEPENDENCIES += SpatialAlgebra
+
+# include global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary
@@ -32,7 +40,10 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)

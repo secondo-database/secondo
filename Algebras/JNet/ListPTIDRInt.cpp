@@ -23,10 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "ListPTIDRInt.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/AlgebraTypes.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "AlgebraTypes.h"
+#include "Symbols.h"
 
 
 /*
@@ -184,17 +184,17 @@ size_t ListPTIDRInt::Sizeof() const
 
 ostream& ListPTIDRInt::Print(ostream& os) const
 {
-  os << "List of pairs of TupleIds and RouteIntervals: ";
+  os << "List: " ;
   if (IsDefined())
   {
     PairTIDRInterval p;
     for (int i = 0; i < elemlist.Size(); i++)
     {
       elemlist.Get(i,p);
-      os << i+1 << ".Pair: ";
+      os << i+1 << ". ";
       p.Print(os);
     }
-    os << "end of list of pairs of TupleIds and RouteIntervals." << endl;
+    os << "end of list." << endl;
   }
   else
   {
@@ -389,6 +389,22 @@ bool ListPTIDRInt::Open(SmiRecord& valueRecord, size_t& offset,
   return true;
 }
 
+ListExpr ListPTIDRInt::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("("+ PairTIDRInterval::BasicType() + " ... " +
+            PairTIDRInterval::BasicType() + "), list of parts of a route."),
+      nl->StringAtom("((34 (1 17.5 35.0 Up))(57 (5 0.0 24.5 Down)))")));
+}
+
 /*
 1.6 Helpful Operators
 
@@ -406,10 +422,12 @@ int ListPTIDRInt::GetNoOfComponents() const
 
 void ListPTIDRInt::Get(const int i, PairTIDRInterval& p) const
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Get(i,p);
 }
 
 void ListPTIDRInt::Put(const int i, const PairTIDRInterval& p)
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Put(i,p);
 }

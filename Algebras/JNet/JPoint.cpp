@@ -23,10 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "JPoint.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/NList.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "NList.h"
+#include "Symbols.h"
 
 
 /*
@@ -353,6 +353,24 @@ bool JPoint::Open(SmiRecord& valueRecord, size_t& offset,
   }
   return false;
 }
+
+ListExpr JPoint::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("(" + CcString::BasicType() + " " +
+                    RouteLocation::BasicType() + "), describes a position in " +
+                    "the given network."),
+      nl->StringAtom("(netname (1 5.8 Both))")));
+}
+
 
 /*
 1.1 Other Operations

@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 #include <string>
-#include "../../include/Attribute.h"
-#include "../../include/StandardTypes.h"
+#include "Attribute.h"
+#include "StandardTypes.h"
 #include "RouteLocation.h"
 
 /*
@@ -112,6 +112,7 @@ The default constructor should only be used in the Cast-Function.
                    const ListExpr typeInfo, Word& value );
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
+  static ListExpr Property();
 
 /*
 1.1 Other Operations

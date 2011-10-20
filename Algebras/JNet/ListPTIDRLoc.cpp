@@ -23,11 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "ListPTIDRLoc.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "Symbols.h"
 
-static bool DEBUG = false;
 /*
 
 1 Implementation of class ~JPairTIDRLocList~
@@ -161,13 +160,11 @@ int ListPTIDRLoc::Compare(const ListPTIDRLoc& in) const
 
 int ListPTIDRLoc::NumOfFLOBs() const
 {
-  if (DEBUG) cout << "ListPTIDRLoc::NumOfFLOBs" << endl;
   return 1;
 }
 
 Flob* ListPTIDRLoc::GetFLOB(const int n)
 {
-  if (DEBUG) cout << "ListPTIDRLoc::GetFLOB: " << n << endl;
   if (n == 0) return &elemlist;
   else return 0;
 }
@@ -184,17 +181,17 @@ size_t ListPTIDRLoc::Sizeof() const
 
 ostream& ListPTIDRLoc::Print(ostream& os) const
 {
-  os << "List of pairs of tuple ids and route locations: ";
+  os << "List: ";
   if (IsDefined())
   {
     PairTIDRLoc p;
     for (int i = 0; i < elemlist.Size(); i++)
     {
-      os << i+1 << ".PairTIDRLoc: ";
+      os << i+1 << ". ";
       elemlist.Get(i,p);
       p.Print(os);
     }
-    os << "end of list of pairs of tuple ids and route locations." << endl;
+    os << "end of List." << endl;
   }
   else
   {
@@ -389,6 +386,22 @@ bool ListPTIDRLoc::Open(SmiRecord& valueRecord, size_t& offset,
   return true;
 }
 
+ListExpr ListPTIDRLoc::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("("+ PairTIDRLoc::BasicType() + " ... " +
+        PairTIDRLoc::BasicType() + "), list of junctions on a route."),
+      nl->StringAtom("((34 (1 17.5 Up))(57 (5 0.0 Down)))")));
+}
+
 /*
 1.6 Helpful Operators
 
@@ -406,11 +419,13 @@ int ListPTIDRLoc::GetNoOfComponents()const
 
 void ListPTIDRLoc::Get(const int i, PairTIDRLoc& res) const
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Get(i, res);
 }
 
 void ListPTIDRLoc::Put(const int i, const PairTIDRLoc& p)
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Put(i,p);
 }
 

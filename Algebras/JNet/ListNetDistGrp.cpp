@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "ListNetDistGrp.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "Symbols.h"
 
 /*
 
@@ -179,17 +179,17 @@ size_t ListNetDistGrp::Sizeof() const
 
 ostream& ListNetDistGrp::Print(ostream& os) const
 {
-  os << "List of network distance groups: ";
+  os << "List: ";
   if (IsDefined())
   {
     NetDistanceGroup n;
     for(int i = 0; i < elemlist.Size(); i++)
     {
-      os << i+1 << ".NetDistanceGroup: ";
+      os << i+1 << ". ";
       elemlist.Get(i,n);
       n.Print(os);
     }
-    os << "end of list of netdistance groups." << endl;
+    os << "end of list." << endl;
   }
   else
   {
@@ -383,6 +383,25 @@ bool ListNetDistGrp::Open(SmiRecord& valueRecord, size_t& offset,
   return true;
 }
 
+ListExpr ListNetDistGrp::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("("+ NetDistanceGroup::BasicType() + " ... " +
+                        NetDistanceGroup::BasicType() + "), junctions and " +
+                   "network distances, with some additional information see" +
+                   NetDistanceGroup::BasicType() +"."),
+      nl->StringAtom("((34 1 25 17.5)(57 5 46 24.5))")));
+}
+
+
 /*
 1.6 Helpful Operators
 
@@ -400,10 +419,12 @@ int ListNetDistGrp::GetNoOfComponents() const
 
 void ListNetDistGrp::Get(const int i, NetDistanceGroup& e) const
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Get(i,e);
 }
 
 void ListNetDistGrp::Put(const int i, NetDistanceGroup& e)
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Put(i,e);
 }

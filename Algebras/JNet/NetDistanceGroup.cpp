@@ -23,8 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "NetDistanceGroup.h"
-#include "../../include/ListUtils.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "Symbols.h"
 
 /*
 1. Implementation of ~NetDistanceGroup~
@@ -307,7 +307,7 @@ Word NetDistanceGroup::In(const ListExpr typeInfo, const ListExpr instance,
               targ->DeleteIfAllowed();
               tNextSect->DeleteIfAllowed();
               tNextJunc->DeleteIfAllowed();
-              nl->AppendText(errorInfo, "4. Element must be real atom.");
+              cmsg.inFunError("Fourth element must be " + CcReal::BasicType());
               return SetWord(Address(0));
             }
           }
@@ -315,27 +315,32 @@ Word NetDistanceGroup::In(const ListExpr typeInfo, const ListExpr instance,
           {
             targ->DeleteIfAllowed();
             tNextSect->DeleteIfAllowed();
-            nl->AppendText(errorInfo, "3. Element must be tid.");
+            cmsg.inFunError("Third element must be " +
+              TupleIdentifier::BasicType());
             return SetWord(Address(0));
           }
         }
         else
         {
           targ->DeleteIfAllowed();
-          nl->AppendText(errorInfo, "2. Element must be tid.");
+          cmsg.inFunError("Second element must be "  +
+                        TupleIdentifier::BasicType());
           return SetWord(Address(0));
         }
       }
       else
       {
-        nl->AppendText(errorInfo, "1. Element must be tid.");
+        cmsg.inFunError("First element must be "  +
+          TupleIdentifier::BasicType());
         return SetWord(Address(0));
       }
     }
     else
     {
       correct = false;
-      nl->AppendText(errorInfo, "Expected list (<tid><tid><tid><real>)");
+      cmsg.inFunError("Expected list (" + TupleIdentifier::BasicType()  +
+            TupleIdentifier::BasicType()  + TupleIdentifier::BasicType() +
+            CcReal::BasicType()+")");
       return SetWord(Address(0));
     }
   }
@@ -429,6 +434,25 @@ bool NetDistanceGroup::Open(SmiRecord& valueRecord, size_t& offset,
   }
   value = SetWord(Address(0));
   return false;
+}
+
+ListExpr NetDistanceGroup::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("("+ TupleIdentifier::BasicType() + " " +
+            TupleIdentifier::BasicType() + " " + TupleIdentifier::BasicType() +
+            " " + CcReal::BasicType()+ "), identifying target junction, " +
+            "next junction and next section on the way to target and network " +
+            "distance to target node."),
+      nl->StringAtom("(34 25 64 18.5)")));
 }
 
 /*

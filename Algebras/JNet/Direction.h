@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define DIRECTION_H
 
 #include <ostream>
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "JSide.h"
 
 /*
@@ -46,9 +46,10 @@ public:
 /*
 1.1 Constructors and Deconstructors
 
-The default constructor should only be used in the Cast-Function.
+The default Constructor should only be used in the cast-Function.
 
 */
+
   Direction();
   Direction(const bool defined);
   Direction(const Direction& other);
@@ -56,7 +57,7 @@ The default constructor should only be used in the Cast-Function.
   ~Direction();
 
 /*
-1.2 Getter and Setter
+1.2 Getter and Setter for private attributes
 
 */
 
@@ -74,7 +75,6 @@ The default constructor should only be used in the Cast-Function.
   bool Adjacent(const Attribute* attrib) const;
   int Compare(const Attribute* rhs) const;
   int Compare(const Direction& indir) const;
-  int Compare(const JSide& a, const JSide& b) const;
   size_t Sizeof() const;
   ostream& Print(ostream& os) const;
   static const string BasicType();
@@ -109,6 +109,7 @@ The default constructor should only be used in the Cast-Function.
                    const ListExpr typeInfo, Word& value );
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
+  static ListExpr Property();
 
 /*
 1.6 Helpful Operations
@@ -119,16 +120,23 @@ Returns true if the both direction values are equal or one of them is ~Both~.
 
 */
 
-  bool SameSide(const Direction& dir) const;
+  bool SameSide(const Direction& dir, const bool strict = true) const;
 
 private:
 
 /*
-2 Private Attributes
+1.1 Private Attributes
 
 */
 
   JSide side;
+
+/*
+1.1 Private helper functions
+
+*/
+
+int Compare(const JSide& a, const JSide& b) const;
 
 };
 

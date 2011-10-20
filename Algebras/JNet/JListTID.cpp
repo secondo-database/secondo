@@ -25,11 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "JListTID.h"
-#include "../../include/ListUtils.h"
-#include "../../include/NestedList.h"
-#include "../../include/Symbols.h"
+#include "ListUtils.h"
+#include "NestedList.h"
+#include "Symbols.h"
 
-static bool DEBUG = false;
 /*
 
 1 Implementation of class ~JTupleIdList~
@@ -40,24 +39,17 @@ static bool DEBUG = false;
 
 
 JListTID::JListTID():Attribute()
-{
-  if(DEBUG) cout << "JListTID::jListTID()" << endl;
-}
+{}
 
 JListTID::JListTID(bool defined): Attribute(defined), elemlist(0)
-{
-  if(DEBUG) cout << "JListTID::jListTID(bool)" << endl;
-}
+{}
 
 JListTID::JListTID(const JListTID& other) :
   Attribute(other.IsDefined()), elemlist(other.GetList())
-{
-  if(DEBUG) cout << "JListTID::JListTID(JListTID)" << endl;
-}
+{}
 
 JListTID::JListTID(const TupleIdentifier& inId) :  Attribute(true), elemlist(0)
 {
-  if(DEBUG) cout << "JListTID::jListTID(TupleIdentifier)" << endl;
   elemlist.Append(inId);
 }
 
@@ -71,13 +63,11 @@ JListTID::~JListTID()
 
 DbArray<TupleIdentifier> JListTID::GetList() const
 {
-  if(DEBUG) cout << "JListTID::getlist" << endl;
   return elemlist;
 }
 
 void JListTID::SetList(const DbArray<TupleIdentifier> inList)
 {
-  if(DEBUG) cout << "JListTID::setlist" << endl;
   elemlist.copyFrom(inList);
 }
 
@@ -88,7 +78,6 @@ void JListTID::SetList(const DbArray<TupleIdentifier> inList)
 
 void JListTID::CopyFrom(const Attribute* right)
 {
-  if(DEBUG) cout << "JListTID::copyfrom" << endl;
   SetDefined(right->IsDefined());
   if (right->IsDefined())
   {
@@ -104,7 +93,6 @@ Attribute::StorageType JListTID::GetStorageType() const
 
 size_t JListTID::HashValue() const
 {
-  if(DEBUG) cout << "JListTID::hashvalue" << endl;
   size_t result = 0;
   if (IsDefined())
   {
@@ -120,27 +108,24 @@ size_t JListTID::HashValue() const
 
 Attribute* JListTID::Clone() const
 {
-  if(DEBUG) cout << "JListTID::clone" << endl;
   return new JListTID(*this);
 }
 
 
 bool JListTID::Adjacent(const Attribute* attrib) const
-{if(DEBUG) cout << "JListTID::adjacent" << endl;
+{
   return false;
 }
 
 
 int JListTID::Compare(const Attribute* rhs) const
 {
-  if(DEBUG) cout << "JListTID::compare attr" << endl;
   JListTID* in = (JListTID*) rhs;
   return Compare(*in);
 }
 
 int JListTID::Compare(const JListTID& in) const
 {
-  if(DEBUG) cout << "JListTID::compare" << endl;
   if (!IsDefined() && !in.IsDefined()) return 0;
   else
   {
@@ -175,54 +160,44 @@ int JListTID::Compare(const JListTID& in) const
 
 int JListTID::NumOfFLOBs() const
 {
-  if(DEBUG) cout << "JListTID::numofflobs" << endl;
   return 1;
 }
 
 Flob* JListTID::GetFLOB(const int n)
 {
-  if(DEBUG)
-  {
-    cout << "JListTID::getflob: " << n << endl;
-    this->Print(cout);
-  }
   if (n == 0) return &elemlist;
   else return 0;
 }
 
 void JListTID::Destroy()
 {
-  if(DEBUG) cout << "JListTID::destroy" << endl;
   elemlist.Destroy();
 }
 
 size_t JListTID::Sizeof() const
 {
-  if(DEBUG) cout << "JListTID::sizeof" << endl;
   return sizeof(JListTID);
 }
 
 ostream& JListTID::Print(ostream& os) const
 {
-  if (DEBUG) cout << "JListTID::Print" << endl;
-  os << "List of tuple ids: " << endl;
+  os << "List ";
   if (IsDefined())
   {
     TupleIdentifier t;
     for(int i = 0; i < elemlist.Size(); i++)
     {
-      os << i+1 << ".TupleId: " ;
+      os << i+1 << ". " ;
       elemlist.Get(i,t);
       t.Print(os);
       os << endl;
     }
-    os << "end of tuple id list.";
+    os << "end of list." << endl;
   }
   else
   {
-    os << Symbol::UNDEFINED();
+    os << Symbol::UNDEFINED()<< endl;
   }
-  os << endl;
   return os;
 }
 
@@ -244,7 +219,6 @@ const bool JListTID::checkType(const ListExpr type)
 
 JListTID& JListTID::operator=(const JListTID& other)
 {
-  if(DEBUG) cout << "JListTID::operator=" << endl;
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
@@ -255,7 +229,6 @@ JListTID& JListTID::operator=(const JListTID& other)
 
 bool JListTID::operator==(const JListTID& other) const
 {
-  if(DEBUG) cout << "JListTID::operator==" << endl;
   if (Compare(other) == 0) return true;
   else return false;
 }
@@ -267,9 +240,7 @@ bool JListTID::operator==(const JListTID& other) const
 
 ListExpr JListTID::Out(ListExpr typeInfo, Word value)
 {
-  if (DEBUG) cout << "JListTID::Out" << endl;
   JListTID* source = (JListTID*) value.addr;
-  if (DEBUG) source->Print(cout);
   if (source->IsDefined())
   {
     if(source->elemlist.Size() == 0) return nl->TheEmptyList();
@@ -306,12 +277,6 @@ ListExpr JListTID::Out(ListExpr typeInfo, Word value)
 Word JListTID::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  if (DEBUG)
-  {
-    cout << "JListTID::in" << endl;
-    NList inst(instance);
-    inst.writeAsStringTo(cout);
-  }
   if(nl->IsEqual(instance,Symbol::UNDEFINED()))
   {
     correct=true;
@@ -337,28 +302,23 @@ Word JListTID::In(const ListExpr typeInfo, const ListExpr instance,
     }
     else
     {
-
-      nl->Append(errorInfo,
-                 nl->StringAtom("Incorrect TupleIdentifier in list."));
+      cmsg.inFunError("Incorrect " + TupleIdentifier::BasicType()+ " in list.");
       in->DeleteIfAllowed();
       delete in;
       return SetWord(Address(0));
     }
   }
-  if (DEBUG) in->Print(cout);
   return SetWord(in);
 }
 
 Word JListTID::Create(const ListExpr typeInfo)
 {
-  if(DEBUG) cout << "JListTID::create" << endl;
   return SetWord(new JListTID(true));
 }
 
 
 void JListTID::Delete( const ListExpr typeInfo, Word& w )
 {
-  if(DEBUG) cout << "JListTID::delete" << endl;
  JListTID* obj = (JListTID*) w.addr;
  obj->DeleteIfAllowed();
  w.addr = 0;
@@ -367,7 +327,6 @@ void JListTID::Delete( const ListExpr typeInfo, Word& w )
 
 void JListTID::Close( const ListExpr typeInfo, Word& w )
 {
-  if(DEBUG) cout << "JListTID::close" << endl;
   ((JListTID*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
 }
@@ -375,22 +334,18 @@ void JListTID::Close( const ListExpr typeInfo, Word& w )
 
 Word JListTID::Clone( const ListExpr typeInfo, const Word& w )
 {
-
-  if(DEBUG) cout << "JListTID::clone" << endl;
   return new JListTID(*((JListTID*) w.addr));
 }
 
 
 void* JListTID::Cast( void* addr )
 {
-  if(DEBUG) cout << "JListTID::cast" << endl;
   return (new (addr) JListTID);
 }
 
 
 bool JListTID::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
-  if(DEBUG) cout << "JListTID::kindcheck" << endl;
   return checkType(type);
 }
 
@@ -398,17 +353,13 @@ bool JListTID::KindCheck( ListExpr type, ListExpr& errorInfo )
 
 int JListTID::SizeOf()
 {
-  if(DEBUG) cout << "JListTID::sizeof" << endl;
   return sizeof(JListTID);
 }
-
 
 bool JListTID::Save(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr typeInfo, Word& value )
 {
-  if (DEBUG) cout << "JListTID::save" << endl;
   JListTID* obj = (JListTID*) value.addr;
-  if (DEBUG) obj->Print(cout);
   for( int i = 0; i < obj->NumOfFLOBs(); i++ )
   {
     Flob *tmpFlob = obj->GetFLOB(i);
@@ -426,15 +377,32 @@ bool JListTID::Save(SmiRecord& valueRecord, size_t& offset,
 bool JListTID::Open(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr typeInfo, Word& value )
 {
-  if (DEBUG) cout << "JListTID::open" << endl;
   JListTID* obj = new JListTID (true);
   valueRecord.Read( obj, obj->SizeOf(), offset );
   obj->del.refs = 1;
   obj->del.SetDelete();
   offset += obj->SizeOf();
   value = SetWord( obj );
-  if (DEBUG) obj->Print(cout);
   return true;
+}
+
+ListExpr JListTID::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::DATA()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("(" + TupleIdentifier::BasicType() + " ... " +
+                    TupleIdentifier::BasicType() + "), " +
+                    "a list of " + TupleIdentifier::BasicType() + "s, " +
+                    "of the tuples of the in-, out-, adjacent, and reverse " +
+                    "adjacent sections of a section or a junction."),
+      nl->StringAtom("(154 252 357)")));
 }
 
 /*
@@ -444,27 +412,22 @@ bool JListTID::Open(SmiRecord& valueRecord, size_t& offset,
 
 void JListTID::Append (const TupleIdentifier& e)
 {
-  if(DEBUG)
-  {
-    cout << "JListTID::Append" << endl;
-    e.Print(cout);
-  }
   elemlist.Append(e);
 }
 
 int JListTID::GetNoOfComponents() const
 {
-  if(DEBUG)
-    cout << "JListTID::GetNoComponents: " << elemlist.Size() << endl;
   return elemlist.Size();
 }
 
 void JListTID::Get(const int i, TupleIdentifier& e) const
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Get(i,e);
 }
 
 void JListTID::Put(const int i, const TupleIdentifier& e)
 {
+  assert (0 <= i && i < elemlist.Size());
   elemlist.Put(i,e);
 }

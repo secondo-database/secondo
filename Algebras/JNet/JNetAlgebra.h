@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef JNETALGEBRA_H
 #define JNETALGEBRA_H
 
-#include "../../include/Algebra.h"
+#include "Algebra.h"
 
 
 /*

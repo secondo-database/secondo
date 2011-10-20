@@ -25,11 +25,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include <assert.h>
-#include "../../include/AlgebraTypes.h"
-#include "../../include/ListUtils.h"
-#include "../../include/SecondoSystem.h"
-#include "../../include/Symbols.h"
-#include "../../include/LogMsg.h"
+#include "AlgebraTypes.h"
+#include "ListUtils.h"
+#include "SecondoSystem.h"
+#include "Symbols.h"
+#include "LogMsg.h"
 #include "../Spatial/Point.h"
 #include "Direction.h"
 #include "JNetwork.h"
@@ -38,8 +38,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 extern NestedList* nl;
-
-static bool DEBUG = false;
 
 /*
 2 Constructors and Deconstructor
@@ -56,32 +54,26 @@ JNetwork::JNetwork() : nDef(false),
                        junctionsBTree(0),
                        junctionsRTree(0),
                        routesBTree(0)
-{
-  if (DEBUG) cout << "JNetwork::Network()" << endl;
-}
+{}
 
 JNetwork::JNetwork(const bool def) : nDef(def), id(""),
                                      junctions(0), sections(0), routes(0),
                                      sectionsBTree(0), sectionsRTree(0),
                                      junctionsBTree(0), junctionsRTree(0),
                                      routesBTree(0)
-{
-  if (DEBUG) cout << "JNetwork::Network(bool)" << endl;
-}
+{}
 
 JNetwork::JNetwork(const string nid, Relation* injunctions,
                    Relation* insections, Relation* inroutes) :
   nDef(true), id(nid), junctions(injunctions), sections(insections),
   routes(inroutes)
 {
-  if (DEBUG) cout << "JNetwork::Network(string, rel, rel, rel)" << endl;
   CreateTrees();
 }
 
 JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo) : nDef(false), id("")
 {
-  if (DEBUG) cout << "JNetwork::Network(smirecord, ...)" << endl;
   Word w;
   ListExpr idLE;
   nl->ReadFromString(CcString::BasicType(), idLE);
@@ -181,9 +173,7 @@ JNetwork::JNetwork(const JNetwork& net) : nDef(net.IsDefined()),
                                           junctionsBTree(net.junctionsBTree),
                                           junctionsRTree(net.junctionsRTree),
                                           routesBTree(net.routesBTree)
-{
-  if (DEBUG) cout << "JNetwork::Network(JNetwork)" << endl;
-}
+{}
 
 JNetwork::JNetwork(const ListExpr instance, const int errorPos,
                    ListExpr& errorInfo, bool& correct) :
@@ -198,7 +188,6 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   junctionsRTree(0),
   routesBTree(0)
 {
-  if (DEBUG) cout << "JNetwork::JNetwork(instance..)" << endl;
   NList inlist(instance);
 
   if (inlist.length() == 1 && inlist.isAtom() &&
@@ -220,7 +209,7 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
   NList juncList(inlist.second());
   NList sectList(inlist.third());
   NList routeList(inlist.fourth());
-  if (DEBUG) cout << "Read id from: " << netId.str()<< endl;
+
   if (!(netId.isAtom() && netId.isString()))
   {
     correct = false;
@@ -230,7 +219,6 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
 
   id = netId.str();
 
-  if (DEBUG) cout << "Read junctions" << endl;
   ListExpr typeInf = nl->TheEmptyList();
   nl->ReadFromString(junctionsTypeInfo, typeInf);
   ListExpr relNumericType = SecondoSystem::GetCatalog()->NumericType(typeInf);
@@ -242,7 +230,6 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
     return;
   }
 
-  if (DEBUG) cout << "Read sections" << endl;
   nl->ReadFromString(sectionsTypeInfo, typeInf);
   relNumericType = SecondoSystem::GetCatalog()->NumericType(typeInf);
   sections = (Relation*)Relation::In(relNumericType, sectList.listExpr(),
@@ -254,7 +241,6 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
     return;
   }
 
-  if (DEBUG) cout << "Read routes" << endl;
   nl->ReadFromString(routesTypeInfo, typeInf);
   relNumericType = SecondoSystem::GetCatalog()->NumericType(typeInf);
   routes = (Relation*) Relation::In(relNumericType, routeList.listExpr(),
@@ -273,7 +259,6 @@ JNetwork::JNetwork(const ListExpr instance, const int errorPos,
 
 JNetwork::~JNetwork()
 {
-  if (DEBUG) cout << "JNetwork::~JNetwork()" << endl;
   delete junctions;
   delete sections;
   delete routes;
@@ -314,6 +299,22 @@ Relation* JNetwork::GetSectionsCopy() const
   return GetRelationCopy(sectionsTypeInfo, sections);
 }
 
+const string JNetwork::GetRoutesTypeInfo()
+{
+  return routesTypeInfo;
+}
+
+const string JNetwork::GetJunctionsTypeInfo()
+{
+  return junctionsTypeInfo;
+}
+
+const string JNetwork::GetSectionsTypeInfo()
+{
+  return sectionsTypeInfo;
+}
+
+
 void JNetwork::SetDefined(const bool def)
 {
   nDef = def;
@@ -332,7 +333,6 @@ void JNetwork::SetId(const string nid)
 
 ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
 {
-  if (DEBUG) cout << "JNetwork::Out" << endl;
 
   JNetwork* source = (JNetwork*) value.addr;
   if (!source->IsDefined())
@@ -352,7 +352,6 @@ ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
 Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
                   const int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  if (DEBUG) cout << "JNetwork::In " << endl;
   JNetwork* net = new JNetwork(instance, errorPos, errorInfo, correct);
   if (correct)
     return SetWord(net);
@@ -365,13 +364,11 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
 
 Word JNetwork::Create(const ListExpr typeInfo)
 {
-  if (DEBUG) cout << "JNetwork::Create" << endl;
   return SetWord ( new JNetwork(false));
 }
 
 void JNetwork::Delete( const ListExpr typeInfo, Word& w )
 {
-  if (DEBUG) cout << "JNetwork::Delete" << endl;
   JNetwork* net = (JNetwork*) w.addr;
   delete net;
   w.addr = 0;
@@ -379,14 +376,12 @@ void JNetwork::Delete( const ListExpr typeInfo, Word& w )
 
 void JNetwork::Close( const ListExpr typeInfo, Word& w )
 {
-  if (DEBUG) cout << "JNetwork::Close" << endl;
   delete static_cast<JNetwork*> ( w.addr );
   w.addr = 0;
 }
 
 Word JNetwork::Clone( const ListExpr typeInfo, const Word& w )
 {
-  if (DEBUG) cout << "JNetwork::Clone" << endl;
   JNetwork* clone = new JNetwork(*((JNetwork*)w.addr));
   clone->SetId(clone->GetId()+"clone");
   return SetWord (clone);
@@ -394,26 +389,22 @@ Word JNetwork::Clone( const ListExpr typeInfo, const Word& w )
 
 void* JNetwork::Cast( void* addr )
 {
-  if (DEBUG) cout << "JNetwork::Cast" << endl;
   return (new (addr) JNetwork);
 }
 
 bool JNetwork::KindCheck ( ListExpr type, ListExpr& errorInfo )
 {
-  if (DEBUG) cout << "JNetwork::KindCheck" << endl;
   return checkType(type);
 }
 
 int JNetwork::SizeOf()
 {
-  if (DEBUG) cout << "JNetwork::SizeOf" << endl;
   return sizeof(JNetwork);
 }
 
 bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr typeInfo, Word& value)
 {
-  if (DEBUG) cout << "JNetwork::Save(...value)" << endl;
   JNetwork* source = (JNetwork*) value.addr;
   if (source->IsDefined())
     return source->Save(valueRecord, offset, typeInfo);
@@ -434,7 +425,6 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
 bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr  typeInfo)
 {
-  if (DEBUG) cout << "JNetwork::Save" << endl;
   Word w;
   w.setAddr(new CcString(true,id));
   ListExpr idLE;
@@ -493,10 +483,26 @@ JNetwork* JNetwork::Open(SmiRecord& valueRecord, size_t& offset,
 bool JNetwork::Open(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr typeInfo, Word& value )
 {
-  if (DEBUG) cout << "JNetwork::Open(..value)" << endl;
-
   value.addr = JNetwork::Open(valueRecord, offset, typeInfo);
   return value.addr != 0;
+}
+
+ListExpr JNetwork::Property()
+{
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List")),
+    nl->FourElemList(
+      nl->StringAtom("-> " + Kind::JNETWORK()),
+      nl->StringAtom(BasicType()),
+      nl->TextAtom("(" + CcString::BasicType() + " " + junctionsTypeInfo + " " +
+        sectionsTypeInfo + " " + routesTypeInfo +"), the string defines the" +
+        "name of the network, it is followed by the network data for " +
+        "junctions, sections, and routes in nested list format."),
+      nl->TextAtom("(netname junctionsrel sectionsrel routesrel)")));
 }
 
 /*
@@ -506,7 +512,6 @@ bool JNetwork::Open(SmiRecord& valueRecord, size_t& offset,
 
 JNetwork& JNetwork::operator=(const JNetwork& net)
 {
-  if (DEBUG) cout << "JNetwork::operator=" << endl;
   nDef = net.IsDefined();
   if (net.IsDefined())
   {
@@ -525,14 +530,12 @@ JNetwork& JNetwork::operator=(const JNetwork& net)
 
 bool JNetwork::operator==(const JNetwork& net) const
 {
-  if (DEBUG) cout << "JNetwork::operator==" << endl;
   if (Compare(net) == 0) return true;
   else return false;
 }
 
 int JNetwork::Compare(const JNetwork& net) const
 {
-  if (DEBUG) cout << "JNetwork::compare" << endl;
   if (!IsDefined() && !net.IsDefined()) return 0;
   if (!IsDefined() && net.IsDefined()) return -1;
   if (IsDefined() && !net.IsDefined()) return 1;
@@ -541,10 +544,9 @@ int JNetwork::Compare(const JNetwork& net) const
 
 ostream& JNetwork::Print(ostream& os) const
 {
-  if (DEBUG) cout << "JNetwork::Print" << endl;
   os << "Network: ";
   if (!IsDefined())
-    os << Symbol::UNDEFINED();
+    os << Symbol::UNDEFINED() << endl;
   else
   {
     os << "Id: " << id << endl;
@@ -579,7 +581,6 @@ const bool JNetwork::checkType(const ListExpr type)
 void JNetwork::CreateNetwork(const string netid, const Relation* juncRel,
                              const Relation* routesRel)
 {
-  if (DEBUG) cout << "JNetwork::CreateNetwork" << endl;
   id = netid;
   nDef = true;
 
@@ -596,8 +597,9 @@ void JNetwork::CreateNetwork(const string netid, const Relation* juncRel,
   UpdateSections();
 
   //Build spatial indices
-  junctionsRTree = CreateRTree(junctions, junctionsTypeInfo, (string) "pos");
-  sectionsRTree = CreateRTree(sections, sectionsTypeInfo, (string) "curve");
+  junctionsRTree =
+    CreateRTree(junctions, junctionsTypeInfo, (string) "geoData");
+  sectionsRTree = CreateRTree(sections, sectionsTypeInfo, (string) "geoData");
 }
 
 /*
@@ -605,43 +607,67 @@ void JNetwork::CreateNetwork(const string netid, const Relation* juncRel,
 
 */
 
-string JNetwork::sectionsTypeInfo = "(rel ( tuple ( (id int) (curve sline)"
-  "(startjunc tid) (endjunc tid) (listsectrint listptidrint) "
-  "(listadjsectup jlisttid) (listadjsectdown jlisttid) "
-  "(listrevadjsectup jlisttid) (listrevadjsectdown jlisttid)"
-  "(lenth real) (vmax real) (sectdir jdirection))))";
+string JNetwork::sectionsTypeInfo = "("+ Relation::BasicType() + "(" +
+  Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
+  SimpleLine::BasicType() + ") (startjunc " + TupleIdentifier::BasicType() +
+  ") (endjunc " + TupleIdentifier::BasicType() + ") (listsectrint " +
+  ListPTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
+  ") (listadjsectdown " + JListTID::BasicType() + ") (listrevadjsectup " +
+  JListTID::BasicType() + ") (listrevadjsectdown " + JListTID::BasicType() +
+  ") (lenth " + CcReal::BasicType() +") (vmax " + CcReal::BasicType() +
+  ") (sectdir " + Direction::BasicType() + "))))";
 
-string JNetwork::junctionsTypeInfo = "(rel (tuple( (id int) (pos point)"
-  "(listjuncpos listptidrloc) (listinsections jlisttid)"
-  "(listoutsections jlisttid) (listdistances listnetdistgrp))))";
+string JNetwork::junctionsTypeInfo = "("+ Relation::BasicType() + "(" +
+  Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
+  Point::BasicType() + ") (listjuncpos " + ListPTIDRLoc::BasicType() +
+  ") (listinsections " + JListTID::BasicType() + ") (listoutsections " +
+  JListTID::BasicType() + ") (listdistances " + ListNetDistGrp::BasicType() +
+  "))))";
 
-string JNetwork::routesTypeInfo = "(rel (tuple ( (id int) "
-  "(listjunctions listptidrloc) (listsections listptidrint)"
-  "(lenth real))))";
+string JNetwork::routesTypeInfo = "("+ Relation::BasicType() + "(" +
+  Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (listjunctions " +
+  ListPTIDRLoc::BasicType() + ") (listsections " + ListPTIDRInt::BasicType() +
+  ") (lenth " + CcReal::BasicType() + "))))";
 
-string JNetwork::sectionsBTreeTypeInfo = "(btree(tuple((id int)"
-  "(curve sline) (startjunc tid) (endjunc tid) (listsectrint listptidrint) "
-  "(listadjsectup jlisttid) (listadjsectdown jlisttid) "
-  "(listrevadjsectup jlisttid) (listrevadjsectdown jlisttid)"
-  "(lenth real) (vmax real) (sectdir jdirection))) int)";
+string JNetwork::sectionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
+  Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
+  SimpleLine::BasicType() + ") (startjunc " + TupleIdentifier::BasicType() +
+  ") (endjunc " + TupleIdentifier::BasicType() + ") (listsectrint " +
+  ListPTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
+  ") (listadjsectdown " + JListTID::BasicType() + ") (listrevadjsectup " +
+  JListTID::BasicType() + ") (listrevadjsectdown " + JListTID::BasicType() +
+  ") (lenth " + CcReal::BasicType() +") (vmax " + CcReal::BasicType() +
+  ") (sectdir " + Direction::BasicType() + ")))" + CcInt::BasicType() + ")";
 
-string JNetwork::sectionsRTreeTypeInfo = "(rtree ( tuple ((id int)"
-  "(curve sline) (startjunc tid) (endjunc tid) (listsectrint listptidrint) "
-  "(listadjsectup jlisttid) (listadjsectdown jlisttid) "
-  "(listrevadjsectup jlisttid) (listrevadjsectdown jlisttid)"
-  "(lenth real) (vmax real) (sectdir jdirection))) sline FALSE)";
+string JNetwork::sectionsRTreeTypeInfo = "("+ R_Tree<2, TupleId>::BasicType() +
+ "(" + Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
+  SimpleLine::BasicType() + ") (startjunc " + TupleIdentifier::BasicType() +
+  ") (endjunc " + TupleIdentifier::BasicType() + ") (listsectrint " +
+  ListPTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
+  ") (listadjsectdown " + JListTID::BasicType() + ") (listrevadjsectup " +
+  JListTID::BasicType() + ") (listrevadjsectdown " + JListTID::BasicType() +
+  ") (lenth " + CcReal::BasicType() +") (vmax " + CcReal::BasicType() +
+  ") (sectdir " + Direction::BasicType() + ")))" + SimpleLine::BasicType() +
+  " FALSE)";
 
-string JNetwork::junctionsBTreeTypeInfo = "(btree (tuple((id int)"
-  "(pos point) (listjuncpos listptidrloc) (listinsections jlisttid)"
-  "(listoutsections jlisttid) (listdistances listnetdistgrp))) int)";
+string JNetwork::junctionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
+  Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
+  Point::BasicType() + ") (listjuncpos " + ListPTIDRLoc::BasicType() +
+  ") (listinsections " + JListTID::BasicType() + ") (listoutsections " +
+  JListTID::BasicType() + ") (listdistances " + ListNetDistGrp::BasicType() +
+  ")))" + CcInt::BasicType() + ")";
 
-string JNetwork::junctionsRTreeTypeInfo = "(rtree (tuple((id int) "
-  "(pos point) (listjuncpos listptidrloc) (listinsections jlisttid)"
-  "(listoutsections jlisttid) (listdistances listnetdistgrp))) point FALSE)";
+string JNetwork::junctionsRTreeTypeInfo = "("+ R_Tree<2,TupleId>::BasicType() +
+  "(" + Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
+  Point::BasicType() + ") (listjuncpos " + ListPTIDRLoc::BasicType() +
+  ") (listinsections " + JListTID::BasicType() + ") (listoutsections " +
+  JListTID::BasicType() + ") (listdistances " + ListNetDistGrp::BasicType() +
+  ")))" + Point::BasicType() + " FALSE)";
 
-string JNetwork::routesBTreeTypeInfo = "(btree (tuple ( (id int) "
-  "(listjunctions listptidrloc) (listsections listptidrint)"
-  "(lenth real))) int)";
+string JNetwork::routesBTreeTypeInfo = "("+BTree::BasicType() + "(" +
+  Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (listjunctions " +
+  ListPTIDRLoc::BasicType() + ") (listsections " + ListPTIDRInt::BasicType() +
+  ") (lenth " + CcReal::BasicType() + ")))" + CcInt::BasicType() + ")";
 
 
 /*
@@ -653,19 +679,16 @@ string JNetwork::routesBTreeTypeInfo = "(btree (tuple ( (id int) "
 
 ListExpr JNetwork::JunctionsToList() const
 {
-  if (DEBUG) cout << "JNetwork::JunctionsToList" << endl;
   return RelationToList(junctions, junctionsTypeInfo);
 }
 
 ListExpr JNetwork::SectionsToList() const
 {
-  if (DEBUG) cout << "JNetwork::SectionsToList" << endl;
   return RelationToList(sections, sectionsTypeInfo);
 }
 
 ListExpr JNetwork::RoutesToList() const
 {
-  if (DEBUG) cout << "JNetwork::RouteToList" << endl;
   return RelationToList(routes, routesTypeInfo);
 }
 
@@ -725,7 +748,6 @@ BTree* JNetwork::GetRoutesBTree() const
 
 void JNetwork::InitJunctions(const Relation* junRel)
 {
-  if (DEBUG) cout << "JNetwork::InitJunctions" << endl;
   ListExpr junctionsNumType;
   junctions = CreateRelation(junctionsTypeInfo, junctionsNumType);
   GenericRelationIterator* itJuncRel = junRel->MakeScan();
@@ -792,7 +814,6 @@ void JNetwork::InitJunctions(const Relation* junRel)
 
 void JNetwork::InitRoutesAndSections(const Relation* routesRel)
 {
-  if (DEBUG) cout << "JNetwork::InitRouteAndSections" << endl;
   ListExpr routesNumType;
   ListExpr sectionsNumType;
   routes = CreateRelation(routesTypeInfo,routesNumType);
@@ -834,7 +855,7 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
         new SimpleLine(*(SimpleLine*)actRouteTup->GetAttribute(4));
       curRouteLength = curRouteCurve->Length();
       curMaxSpeed =
-         (double)(((CcInt*)actRouteTup->GetAttribute(3))->GetIntval());
+         (double)(((CcReal*)actRouteTup->GetAttribute(3))->GetRealval());
       curJid = ((CcInt*)actRouteTup->GetAttribute(1))->GetIntval();
       curJunTID = GetJunctionTupleId(curJid);
       curJuncPosOnRoute = ((CcReal*)actRouteTup->GetAttribute(2))->GetRealval();
@@ -852,7 +873,6 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
         ((CcReal*)actRouteTup->GetAttribute(2))->GetRealval();
       curRouteCurve->SubLine(curJuncPosOnRoute,
                              actJuncPosOnRoute,
-                             curRouteCurve->GetStartSmaller(),
                              *sectCurve);
       dir = ((Direction*) actRouteTup->GetAttribute(5))->GetDirection();
       //write new section tuple
@@ -895,7 +915,6 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
 
 void JNetwork::UpdateJunctions()
 {
-  if (DEBUG) cout << "JNetwork::UpdateJunctions" << endl;
   GenericRelationIterator* jit = junctions->MakeScan();
   Tuple* actJunction = 0;
   while ((actJunction = jit->GetNextTuple()) != 0 )
@@ -974,7 +993,6 @@ void JNetwork::UpdateJunctions()
 
 void JNetwork::UpdateSections()
 {
-  if (DEBUG) cout << "JNetwork::UpdateSections" << endl;
   GenericRelationIterator* sit = sections->MakeScan();
   Tuple* actSection = 0;
   while ((actSection = sit->GetNextTuple()) != 0 )
@@ -1071,7 +1089,6 @@ void JNetwork::UpdateSections()
 
 Relation* JNetwork::CreateRelation(const string descriptor, ListExpr& numType)
 {
-  if (DEBUG) cout << "JNetwork::CreateRelation:" << endl;
     ListExpr xType;
     nl->ReadFromString ( descriptor, xType );
     numType = SecondoSystem::GetCatalog()->NumericType ( xType );
@@ -1086,9 +1103,9 @@ Relation* JNetwork::CreateRelation(const string descriptor, ListExpr& numType)
 void JNetwork::CreateTrees()
 {
   sectionsBTree = CreateBTree(sections, sectionsTypeInfo, "id");
-  sectionsRTree = CreateRTree(sections, sectionsTypeInfo, "curve");
+  sectionsRTree = CreateRTree(sections, sectionsTypeInfo, "geoData");
   junctionsBTree = CreateBTree(junctions, junctionsTypeInfo, "id");
-  junctionsRTree = CreateRTree(junctions, junctionsTypeInfo, "pos");
+  junctionsRTree = CreateRTree(junctions, junctionsTypeInfo, "geoData");
   routesBTree = CreateBTree(routes, routesTypeInfo,"id");
 }
 
@@ -1100,7 +1117,6 @@ void JNetwork::CreateTrees()
 BTree* JNetwork::CreateBTree(const Relation* rel, const string descriptor,
                              const string attr)
 {
-  if (DEBUG) cout << "JNetwork::CreateBTree: " << endl;
   ListExpr relPtr = listutils::getPtrList(rel);
   string strQuery = "(createbtree (" + descriptor +
                     " (ptr " + nl->ToString(relPtr) + "))" + attr + ")";
@@ -1119,7 +1135,6 @@ R_Tree<2,TupleId>* JNetwork::CreateRTree(const Relation* rel,
                                          const string descriptor,
                                          const string attr)
 {
-  if (DEBUG) cout << "JNetwork::CreateRTree:" << endl;
   ListExpr relPtr = listutils::getPtrList(rel);
   string strQuery = "(bulkloadrtree(sortby(addid(feed (" + descriptor +
            " (ptr " + nl->ToString(relPtr) + "))))((" + attr +" asc)))" +
@@ -1140,7 +1155,6 @@ R_Tree<2,TupleId>* JNetwork::CreateRTree(const Relation* rel,
 Relation* JNetwork::OpenRelation(const std::string descriptor,
                                  SmiRecord& valueRecord, size_t& offset)
 {
-  if (DEBUG) cout << "JNetwork::OpenRelation:" << endl;
   ListExpr relType;
   nl->ReadFromString ( descriptor, relType );
   ListExpr relNumericType = SecondoSystem::GetCatalog()->NumericType(relType);
@@ -1155,7 +1169,6 @@ Relation* JNetwork::OpenRelation(const std::string descriptor,
 BTree* JNetwork::OpenBTree(const std::string descriptor,
                            SmiRecord& valueRecord, size_t& offset)
 {
-  if (DEBUG) cout << "JNetwork::OpenBTree: " << endl;
   ListExpr treeType;
   nl->ReadFromString(descriptor,treeType);
   ListExpr treeNumType = SecondoSystem::GetCatalog()->NumericType(treeType);
@@ -1170,7 +1183,6 @@ BTree* JNetwork::OpenBTree(const std::string descriptor,
 
 TupleId JNetwork::GetTupleId(BTree* tree, const int ident)const
 {
-  if (DEBUG) cout << "JNetwork::GetTupleId: " << endl;
   CcInt* identify = new CcInt(true, ident);
   BTreeIterator* bit = tree->ExactMatch ( identify );
   int nextIter = bit->Next();
@@ -1190,7 +1202,6 @@ TupleId JNetwork::GetTupleId(BTree* tree, const int ident)const
 
 TupleId JNetwork::GetJunctionTupleId(const int jid) const
 {
-  if (DEBUG) cout << "JNetwork::GetJunctionTupleId: " << endl;
   return GetTupleId(junctionsBTree, jid);
 }
 
@@ -1201,8 +1212,6 @@ TupleId JNetwork::GetJunctionTupleId(const int jid) const
 
 TupleId JNetwork::GetRoutesTupleId(const int rid) const
 {
- if (DEBUG) cout << "JNetwork::GetRoutesTupleId: " << endl;
-
  return GetTupleId(routesBTree, rid);
 }
 
@@ -1213,8 +1222,6 @@ TupleId JNetwork::GetRoutesTupleId(const int rid) const
 
 TupleId JNetwork::GetSectionsTupleId(const int sid) const
 {
-  if (DEBUG) cout << "JNetwork::GetSectionsTupleId: " << endl;
-
   return GetTupleId(sectionsBTree, sid);
 }
 

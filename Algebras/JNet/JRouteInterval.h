@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define JROUTEINTERVAL_H
 
 #include <ostream>
-#include "../../include/Attribute.h"
+#include "Attribute.h"
 #include "Direction.h"
 #include "RouteLocation.h"
 
@@ -123,19 +123,10 @@ The default constructor should never been used, except in the Cast-Function.
                    const ListExpr typeInfo, Word& value );
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
-
+  static ListExpr Property();
 /*
 1.6 Helpful Operators
 
-1.1.1 IsOneSided
-
-Returns true if the route interval covers only one side of the route.
-
-*/
-
-    bool IsOneSided() const;
-
-/*
 1.1.1 SameSide
 
 Returns true if the ~route intervals~ have identic side value or at least one
@@ -143,32 +134,18 @@ of them is both.
 
 */
 
-  bool SameSide(const JRouteInterval& other) const;
-
-/*
-1.1.1 Intersects
-
-Returns true if the ~jrouteintervals~ are on the same route and intersect.
-
-*/
-
-  bool Intersects(const JRouteInterval& other) const;
+  bool SameSide(const JRouteInterval& other, const bool strict = true) const;
 
 /*
 1.1.1 contains
 
-Returns true if the ~routelocation~ is covered by the ~routeinterval~.
+Returns true if the ~routelocation~, respectively the ~route interval~ is
+covered by the ~routeinterval~.
 
 */
 
   bool Contains(const RouteLocation& rloc) const;
-
-/*
-Returns true if the ~jrouteinterval~ covers the ~jrouteinterval~.
-
-*/
-
-  bool Contains(const JRouteInterval& rloc) const;
+  bool Contains(const JRouteInterval& rint) const;
 
 private:
 
