@@ -318,8 +318,8 @@ Result   : 70
 
 Operator : set_cache_limit_type
 Number   : 1
-Signature: (btree2 Tk Td u) x {fixed | memory } -> bool
-Example  : query set_cache_limit_type(Staedte_Bev_btree2, memory)
+Signature: (btree2 Tk Td u) x {fixed | mem } -> bool
+Example  : query set_cache_limit_type(Staedte_Bev_btree2, mem)
 Result   : ((bool) TRUE)
 
 
