@@ -206,6 +206,10 @@ Persistent_AvgSize=512
 # default is 16348
 # MaxMemPerOperator=4096
 
+# Global memory available for all operators in MB
+# default is 512
+# GlobalMemory=1024
+
 
 # --- ProgressEstimation Section ---
 
