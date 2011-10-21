@@ -318,15 +318,15 @@ Word ListPTIDRLoc::Create(const ListExpr typeInfo)
 
 void ListPTIDRLoc::Delete( const ListExpr typeInfo, Word& w )
 {
- ListPTIDRLoc* obj = (ListPTIDRLoc*) w.addr;
- obj->DeleteIfAllowed();
+ ((ListPTIDRLoc*) w.addr)->Destroy();
+ delete ((ListPTIDRLoc*) w.addr);
   w.addr = 0;
 }
 
 
 void ListPTIDRLoc::Close( const ListExpr typeInfo, Word& w )
 {
-  ((ListPTIDRLoc*) w.addr)->DeleteIfAllowed();
+  delete ((ListPTIDRLoc*) w.addr);
   w.addr = 0;
 }
 

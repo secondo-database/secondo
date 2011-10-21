@@ -132,6 +132,7 @@ private:
 */
 
   DbArray<TupleIdentifier> elemlist;
+
 };
 
 #endif // JTUPLEIDLIST_H

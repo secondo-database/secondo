@@ -499,7 +499,7 @@ ListExpr JNetwork::Property()
       nl->StringAtom("-> " + Kind::JNETWORK()),
       nl->StringAtom(BasicType()),
       nl->TextAtom("(" + CcString::BasicType() + " " + junctionsTypeInfo + " " +
-        sectionsTypeInfo + " " + routesTypeInfo +"), the string defines the" +
+        sectionsTypeInfo + " " + routesTypeInfo +"), the string defines the " +
         "name of the network, it is followed by the network data for " +
         "junctions, sections, and routes in nested list format."),
       nl->TextAtom("(netname junctionsrel sectionsrel routesrel)")));

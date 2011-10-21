@@ -319,15 +319,15 @@ Word JListTID::Create(const ListExpr typeInfo)
 
 void JListTID::Delete( const ListExpr typeInfo, Word& w )
 {
- JListTID* obj = (JListTID*) w.addr;
- obj->DeleteIfAllowed();
+ ((JListTID*) w.addr)->Destroy();
+ delete ((JListTID*) w.addr);
  w.addr = 0;
 }
 
 
 void JListTID::Close( const ListExpr typeInfo, Word& w )
 {
-  ((JListTID*) w.addr)->DeleteIfAllowed();
+  delete ((JListTID*) w.addr);
   w.addr = 0;
 }
 

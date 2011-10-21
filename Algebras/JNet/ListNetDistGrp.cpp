@@ -315,15 +315,15 @@ Word ListNetDistGrp::Create(const ListExpr typeInfo)
 
 void ListNetDistGrp::Delete( const ListExpr typeInfo, Word& w )
 {
-  ListNetDistGrp* obj = (ListNetDistGrp*) w.addr;
-  obj->DeleteIfAllowed();
+  ((ListNetDistGrp*) w.addr)->Destroy();
+  delete ((ListNetDistGrp*) w.addr);
   w.addr = 0;
 }
 
 
 void ListNetDistGrp::Close( const ListExpr typeInfo, Word& w )
 {
-  ((ListNetDistGrp*) w.addr)->DeleteIfAllowed();
+  delete ((ListNetDistGrp*) w.addr);
   w.addr = 0;
 }
 

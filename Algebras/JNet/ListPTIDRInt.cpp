@@ -321,15 +321,15 @@ Word ListPTIDRInt::Create(const ListExpr typeInfo)
 
 void ListPTIDRInt::Delete( const ListExpr typeInfo, Word& w )
 {
-  ListPTIDRInt* obj = (ListPTIDRInt*) w.addr;
-  obj->DeleteIfAllowed();
+  ((ListPTIDRInt*) w.addr)->Destroy();
+  delete ((ListPTIDRInt*) w.addr);
   w.addr = 0;
 }
 
 
 void ListPTIDRInt::Close( const ListExpr typeInfo, Word& w )
 {
-  ((ListPTIDRInt*) w.addr)->DeleteIfAllowed();
+  delete ((ListPTIDRInt*) w.addr);
   w.addr = 0;
 }
 

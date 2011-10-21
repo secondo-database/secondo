@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListNetDistGrp.h"
 #include "JNetwork.h"
 #include "JPoint.h"
+#include "JLine.h"
 
 using namespace std;
 using namespace mappings;
@@ -264,6 +265,24 @@ TypeConstructor jPointTC(
   JPoint::Cast,               //cast function
   JPoint::SizeOf,             //sizeof function
   JPoint::KindCheck );        //kind checking function
+
+/*
+1.1 ~JLine~
+
+*/
+
+TypeConstructor jLineTC(
+  JLine::BasicType(),      //name
+  JLine::Property,         //describing signature
+  JLine::Out, JLine::In, //Out and In functions
+  0, 0,                       //SaveTo and RestoreFrom List functions
+  JLine::Create, JLine::Delete, //obj creation and deletion
+  /*JLine::Open, JLine::Save, // object open and save*/
+  OpenAttribute<JLine>, SaveAttribute<JLine>,
+  JLine::Close, JLine::Clone,  //object close and clone
+  JLine::Cast,               //cast function
+  JLine::SizeOf,             //sizeof function
+  JLine::KindCheck );        //kind checking function
 
 /*
 2 Secondo Operators
@@ -984,6 +1003,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
   AddTypeConstructor(&jPointTC);
   jPointTC.AssociateKind(Kind::DATA());
+
+  AddTypeConstructor(&jLineTC);
+  jLineTC.AssociateKind(Kind::DATA());
 
 /*
 3.1.2 Integration of Operators

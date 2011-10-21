@@ -124,7 +124,9 @@ StorageType GetStorageType() const;
   void Put(const int i, NetDistanceGroup& e);
 
 private:
+
   DbArray<NetDistanceGroup> elemlist;
+
 };
 
 #endif // LISTNETDISTGRP_H

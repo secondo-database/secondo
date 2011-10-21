@@ -126,6 +126,7 @@ void SetList(const DbArray<PairTIDRInterval> inList);
 private:
 
   DbArray<PairTIDRInterval> elemlist;
+
 };
 
 #endif // LISTPTIDRINT_H
