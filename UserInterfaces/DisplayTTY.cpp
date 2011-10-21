@@ -3029,6 +3029,35 @@ struct DisplayJPoint : DisplayFunction {
   }
 };
 
+struct DisplayJLine : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "JLine: ";
+    NList inlist(value);
+
+    if (inlist.length() ==  1 && inlist.hasStringValue())
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList id(inlist.first());
+      cout << " NetworkId: " << id.str() << endl;
+
+      NList rints(inlist.second());
+      while (!rints.isEmpty())
+      {
+        NList actRint(rints.first());
+        rints.rest();
+
+        cout << "rid: " << actRint.first().intval()
+        << ", from: " << actRint.second().realval()
+        << ", to: " << actRint.third().realval()
+        << ", side: " << actRint.fourth().first().str()
+        << endl;
+      }
+    }
+  }
+};
+
 struct DisplayJNetwork : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
@@ -3377,6 +3406,7 @@ DisplayTTY::Initialize()
   d.Insert( "listnetdistgrp", new DisplayListNDG());
   d.Insert( "jpoint", new DisplayJPoint());
   d.Insert( "jnetwork", new DisplayJNetwork());
+  d.Insert( "jline", new DisplayJLine());
 }
 
 /*
