@@ -1765,10 +1765,12 @@ class ExtRelation2Algebra : public Algebra
  public:
    ExtRelation2Algebra() : Algebra()
   {
-    AddOperator(&extrel2::extrelsort);
+    AddOperator(&extrel2::extrelsort); 
+      extrel2::extrelsort.SetUsesMemory(); 
     AddOperator(&extrel2::extrelsortParam);
 
     AddOperator(&extrel2::extrelsortby);
+      extrel2::extrelsortby.SetUsesMemory(); 
     AddOperator(&extrel2::extrelsortbyParam);
 
     AddOperator(&extrel2::extrelhybridhashjoin);
