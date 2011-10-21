@@ -18,7 +18,11 @@
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.hoese.algebras.jnet;
 
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+
 import sj.lang.ListExpr;
+
 
 /**
  * A part of a route in a network.
@@ -47,6 +51,11 @@ public class JRouteInterval
   * Side of the route the JRouteInterval is allocated
   */
   private String side;
+
+  /**
+  * Describes the part of the route for the interval
+  */
+  private JRoute routepart;
 
   /**
    * Constructor
@@ -82,6 +91,40 @@ public class JRouteInterval
     to = aux;
     }
     side = inList.fourth().first().stringValue();
+  }
+
+   /**
+   * Constructor.
+   *
+   * @param inList List in secondo-format
+   */
+   public JRouteInterval(ListExpr inList, JNetwork net)
+  {
+    rid =  inList.first().intValue();
+    from = inList.second().realValue();
+    to = inList.third().realValue();
+    if (from > to)
+    {
+    double aux = from;
+    from = to;
+    to = aux;
+    }
+    side = inList.fourth().first().stringValue();
+
+    JRoute route = net.getRouteById(rid);
+    routepart = route.getPartOfRoute(from, to);
+  }
+
+  /**
+   * Returns a Shape to display this routepart in the HoeseViewer.
+   *
+   * @return
+   * @throws JNetworkNotAvailableException
+   */
+  public Shape getRenderObject()
+    throws JNetworkNotAvailableException
+  {
+    return routepart.getRenderObject();
   }
 
   /**
