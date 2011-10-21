@@ -60,6 +60,8 @@ An operator instance consists of
 
   * a boolean indicating whether this operator needs arguments to be passed to type mapping functions, default is false.
 
+  * a boolean indicating whether this operator uses (large) main memory buffers, default is false.
+
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
 number is set in the constructor (~noF~).
@@ -77,6 +79,7 @@ struct OperatorInfo {
   bool supportsProgress;
   bool requestsArgs;
   bool usesArgsInTypeMapping;
+  bool usesMemory;
    
   OperatorInfo() :
     name(""),  
@@ -87,7 +90,8 @@ struct OperatorInfo {
     remark(""),
     supportsProgress(false),	
     requestsArgs(false),
-    usesArgsInTypeMapping(false)	
+    usesArgsInTypeMapping(false),
+    usesMemory(false)	
   {}
 
   OperatorInfo(const OperatorInfo& o) :
@@ -99,7 +103,8 @@ struct OperatorInfo {
     remark(o.remark),
     supportsProgress(o.supportsProgress),	
     requestsArgs(o.requestsArgs),
-    usesArgsInTypeMapping(o.usesArgsInTypeMapping)	
+    usesArgsInTypeMapping(o.usesArgsInTypeMapping),
+    usesMemory(o.usesMemory)	
   {}
 
   OperatorInfo( const string& _name,
@@ -117,6 +122,7 @@ struct OperatorInfo {
    supportsProgress = false;
    requestsArgs = false;
    usesArgsInTypeMapping = false;
+   usesMemory = false;
  } 
 
  OperatorInfo( const string& opName, const string& specStr);
@@ -137,7 +143,8 @@ struct OperatorInfo {
      <<  remark << ", "
      << "supportsProgress = " << supportsProgress << ", "
      << "requestsArgs = " <<  requestsArgs << ", "
-     << "usesArgsInTypeMapping = " <<  usesArgsInTypeMapping << "]";
+     << "usesArgsInTypeMapping = " <<  usesArgsInTypeMapping << ", "
+     << "usesMemory = " <<  usesMemory << "]";
    return o;
  }
  
@@ -275,22 +282,17 @@ Returns the specification string of the operator.
 */
 
 
-
-
   void EnableProgress() { supportsProgress = true; }
 /*
 Sets the ~supportsProgress~ field.
 
 */
 
-
-
   bool SupportsProgress() { return supportsProgress; }
 /*
 Checks the ~supportsProgress~ field.
 
 */
-
 
 
   void SetRequestsArguments() { requestsArgs = true; }
@@ -300,13 +302,11 @@ Sets the ~requestsArgs~ field.
 */
 
 
-
   bool RequestsArguments() { return requestsArgs; }
 /*
 Checks the ~requestsArgs~ field.
 
 */
-
 
 
   void SetUsesArgsInTypeMapping() { usesArgsInTypeMapping = true; }
@@ -321,6 +321,21 @@ Sets the ~ usesArgsInTypeMapping ~ field.
 Checks the ~ usesArgsInTypeMapping ~ field.
 
 */
+
+
+  void SetUsesMemory() { usesMemory = true; }
+/*
+Sets the ~ usesMemory ~ field.
+
+*/
+
+
+  bool UsesMemory() { return usesMemory; }
+/*
+Checks the ~ usesMemory ~ field.
+
+*/
+
 
 
   inline int GetNumOfFun(){
@@ -386,7 +401,9 @@ Adds a value mapping function to the list of overloaded operator functions.
 						//evaluation of its arguments
     bool           usesArgsInTypeMapping;  // Operator needs arguments
 	                    // to be passed to its type mapping 
-						// function 	
+						// function 
+    bool           usesMemory;     // Operator uses a large memory buffer
+                                   // like a tuple buffer	
 };
 
 

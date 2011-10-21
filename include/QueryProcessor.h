@@ -356,6 +356,8 @@ From a given supplier ~s~ get its Predicate Cost
 
 */
 
+
+
   void SetSelectivity( const Supplier s, const double selectivity);
 /*
 For a given supplier ~s~ set its Selectivity ~selectivity~
@@ -367,6 +369,7 @@ For a given supplier ~s~ set its Selectivity ~selectivity~
 For a given supplier ~s~ set its Predicate Cost ~predCost~
 
 */
+
 
   void CheckProgress();
 
@@ -547,6 +550,24 @@ Sets the maximum memory available per operator.
 Returns the maximum memory available per operator.
 
 */
+
+  void SetGlobalMemory(int value) 
+  { 
+    globalMemory = value; 
+  }
+/*
+Sets the global memory available for all operators together. To be distributed 
+by query processor or optimizer.
+
+*/
+
+
+  int GetMemorySize( const Supplier s);
+/*
+From a given supplier ~s~ get its Memory Size
+
+*/
+
 
   static bool ExecuteQuery( const string& queryListStr,
                             Word& queryResult);
@@ -809,6 +830,14 @@ of the type constructor associated with the ~value~.
 The maximum memory available per operator.
 
 */
+
+  int globalMemory;
+/*
+The global memory available for all operators. To be distributed by query 
+processor.
+
+*/
+
 
   OpTree QueryTree;
 

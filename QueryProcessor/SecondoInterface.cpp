@@ -500,6 +500,14 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     cmsg.info() << "Memory usage per operator limited by "
                 << keyVal << "kb" << endl;
 
+
+    int globalMem =
+      SmiProfile::GetParameter("QueryProcessor", "GlobalMemory",
+                               512, parmFile);
+    qp.SetGlobalMemory(globalMem);
+    cmsg.info() << "Global memory limited by "
+                << globalMem << " MB" << endl;
+
     keyVal =
       SmiProfile::GetParameter("System", "FLOBCacheSize",
                                16*1024, parmFile);

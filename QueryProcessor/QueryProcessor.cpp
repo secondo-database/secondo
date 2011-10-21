@@ -1,4 +1,8 @@
 /*
+//[<] [$<$]
+//[>] [$>$]
+
+
 ----
 This file is part of SECONDO.
 
@@ -577,6 +581,9 @@ arguments. In this case the operator must
       double predCost;          //implementing predicates to get and set
                                 //such properties, e.g. for progress est.
       bool supportsProgress;
+      bool usesMemory;          // true if the operator uses a memory buffer
+      int memorySize;           // amount of memory assigned to this operator
+                                // in MB
     } op;
   } u;
 
@@ -637,6 +644,8 @@ OpNode(OpNodeType type) :
       u.op.selectivity = 0.1;
       u.op.predCost = 0.1;
       u.op.supportsProgress = false;
+      u.op.usesMemory = false;
+      u.op.memorySize = 0;      
       break;
     }
     default :
@@ -711,7 +720,7 @@ OpNode(OpNodeType type) :
 
 
 private:
-  OpNode(){} // bad idea to use an uninitatized object
+  OpNode(){} // bad idea to use an uninitialized object
 
 };
 
@@ -844,7 +853,11 @@ ostream& operator<<(ostream& os, const OpNode& node) {
              << t1 << "predCost = "
              << node.u.op.predCost << endl
              << tab(f) << "supportsProgress = "
-             << node.u.op.supportsProgress << endl;
+             << node.u.op.supportsProgress 
+             << t1 << "usesMemory = "
+             << node.u.op.usesMemory
+             << t2 << "memorySize = "
+             << node.u.op.memorySize << endl;
 
           break;
         }
@@ -870,8 +883,6 @@ ostream& operator<<(ostream& os, const OpNode& node) {
      } 
 
   }
-
-
 
 
   /*
@@ -962,6 +973,11 @@ ostream& operator<<(ostream& os, const OpNode& node) {
 
     * ~supportsProgress~: whether this operator replies to PROGRESS messages.
        Can be set by an operator's evaluation function via ~enableProgress~.
+
+    * ~usesMemory~: whether this operator uses internal memory (i.e., a 
+      large memory buffer.
+
+    * ~memorySize~: the amount of memory allocated to this operator, in MB
 
 
   The three kinds of nodes will be represented graphically as follows:
@@ -2949,6 +2965,9 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.counterNo = 0;
       node->u.op.supportsProgress = !RTFlag::isActive("QP:ProgDisable") &&
               algebraManager->getOperator(algebraId, opId)->SupportsProgress();
+      node->u.op.usesMemory = 
+              algebraManager->getOperator(algebraId, opId)->UsesMemory();
+      node->u.op.memorySize = 0;
       if (traceNodes)
       {
         cout << "QP_OPERATOR:" << endl;
@@ -3208,6 +3227,97 @@ QueryProcessor::Subtree( const ListExpr expr,
 
 }
 
+
+
+/************************************************************************
+3.5 Memory Management
+
+This is a relatively recent addition to the query processor. Up to now 
+(October 2011) the memory usage of operators was controlled by a configuration parameter MaxMemPerOperator, 16 MB by default. That is, each operator could use the amout of memory provided by this constant. Since one does not know how many such operators will occur in a query, this constant has to be relatively small, even if a large main memory space is available.
+
+The new simple concept for memory management has two aspects:
+
+  * Memory can be assigned explicitly and individually in a query to a memory using operator, using a notation {memory [<]size[>]} where size is an int specifying the amount of memory for this operator in MB. For example:
+
+----	query plz100 feed sortby[Ort asc] {memory 512} consume
+----
+
+Hence the ~sortby~ operator can use 512 MB. This has yet to be implemented.
+
+  * A global parameter ~GlobalMemory~ is introduced, by default 512 MB. Further, each operator using memory registers with a function [<]operator[>].UsesMemory() (analogous to functions such as [<]operator[>].EnableProgress()). Hence the query processor is aware of which operators need internal memory. It distributes the available global memory equally to such operators.
+
+The two techniques are implemented as follows. We start with the second technique.
+
+  * Class ~operator~ (in include/Operator.h) gets a new field ~usesMemory~, by default false. By the method ~SetUsesMemory~ this field can be set to true. This is done in the registration of an operator, e.g. in Algebras/ExtRelation-2/ExtRelation2Algebra.cpp for the ~sortby~ operator:
+
+----	AddOperator(&extrel2::extrelsortby); 
+	  extrel2::extrelsortby.SetUsesMemory(); 
+----
+
+By the method ~UsesMemory~ one can check whether an operator has registered to use memory.
+
+  * In the query processor, the operator tree node structure (~OpNode~) gets two additional fields ~usesMemory~  (default false) and ~memorySize~ (default 0). In the construction of the operator tree (~SubtreeX~), the query processor checks for an operator node whether this operator has registered to use memory and in this case sets the ~usesMemory~ field to true.
+
+  * The configuration file SecondoConfig.ini is extended by a parameter ~GlobalMemory~:
+
+----    # Global memory available for all operators in MB
+        # default is 512
+        GlobalMemory=1024
+----
+
+  * The query processor gets a new member ~globalMemory~ and a method ~SetGlobalMemory~ (QueryProcessor.h). This is used in SecondoInterface.cpp to set the value to the parameter ~GlobalMemory~ from secondoConfig.ini. Also the query processor gets a new method ~GetMemorySize(s)~ that can be used by an operator to check the memory size stored in its operator tree node.
+
+Two new functions ~countMemoryOperators~ and ~distributeMemory~, introduced in this section, are used as follows. The first traverses the operator tree after its construction and counts the number of operators using memory. Based on this, the amount of memory available per operator is computed. The second function then traverses the tree again and for each memory using operator sets its ~memorySize~ field to this amount. This happens within ~Construct~.
+
+
+
+*/
+
+/*
+Count the number of operators in the operator tree ~node~ that are registered to use memory buffers.
+
+*/
+
+  int countMemoryOperators(OpNode* node){
+    int memOps = 0;
+    if(!node){
+      cout << "the tree is null" << endl;
+      return 0;
+    }
+    if(node->nodetype == Operator){
+      if ( node->u.op.usesMemory ) memOps = 1;
+      for(int i=0; i<node->u.op.noSons; i++){
+        memOps += countMemoryOperators(
+          static_cast<OpNode*>(node->u.op.sons[i].addr));
+      }
+    } 
+    return memOps;
+  }
+
+/*
+Assign to each operator in the tree ~node~ that is registered as using memory an amount of memory ~perMemoryOperator~.
+
+*/
+
+  void distributeMemory(OpNode* node, int perMemoryOperator){
+    if(!node){
+      cout << "the tree is null" << endl;
+      return;
+    }
+    if(node->nodetype == Operator){
+      if ( node->u.op.usesMemory && node->u.op.memorySize == 0) 
+        node->u.op.memorySize = perMemoryOperator;
+      for(int i=0; i<node->u.op.noSons; i++){
+        distributeMemory(
+          static_cast<OpNode*>(node->u.op.sons[i].addr), 
+            perMemoryOperator);
+      }
+    } 
+    return;
+  }
+
+
+
 /*****************************************************************************
 3.6 Building a Tree from a Query: Procedures ~construct~ and ~destroy~
 
@@ -3305,6 +3415,19 @@ the function in a database object.
   }
 
   tree = SubtreeX( list );
+  
+  // distribute global memory evenly to operators using main memory
+
+  int noMemoryOperators = countMemoryOperators( tree );
+  int perOperator = 0;
+  if ( noMemoryOperators > 0 ) {
+    perOperator = globalMemory / noMemoryOperators;
+    distributeMemory( tree, perOperator );
+  }
+        // cout << "noMemoryOperators = " << noMemoryOperators << endl;
+        // cout << "perOperator = " << perOperator << endl;
+        // print(cout, tree);
+
   QueryTree = tree;
   ResetCounters();
 
@@ -4092,6 +4215,30 @@ QueryProcessor::SetPredCost( const Supplier s, const double predCost)
   OpTree node = (OpTree) s;
   node->u.op.predCost = predCost;
 }
+
+
+/*
+From a given supplier ~s~ get its Memory Size
+
+*/
+
+
+int
+QueryProcessor::GetMemorySize( const Supplier s)
+{
+  OpTree node = (OpTree) s;
+  return node->u.op.memorySize;
+}
+
+
+
+
+
+
+
+
+
+
 
 /*
 >From a given supplier ~s~ that must not represent an argument list,
