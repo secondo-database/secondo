@@ -632,6 +632,15 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
         NestedText::Concat($1,
         NestedText::AtomC(")")     ))))));}
 
+    | valueexpr '{' ZZMEMORY ZZINTEGER '}'
+      {$$ = NestedText::Concat(NestedText::AtomC("(memory "),
+        NestedText::Concat(NestedText::AtomC(" "),
+        NestedText::Concat($4,
+        NestedText::Concat(NestedText::AtomC(" "),
+        NestedText::Concat($1,
+        NestedText::AtomC(")")     )))));}
+
+
     | valueexpr ZZINFIXOP valueexpr
       {$$ = NestedText::Concat(NestedText::AtomC("("),
         NestedText::Concat($2,
