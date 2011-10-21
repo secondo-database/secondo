@@ -495,6 +495,8 @@ one of these symbols, then the value ~error~ is returned.
     else if ( s == "counterdef"  ) return (QP_COUNTERDEF);
     else if ( s == "predinfo"    ) return (QP_PREDINFO);
     else if ( s == "predinfodef" ) return (QP_PREDINFODEF);
+    else if ( s == "memory"     ) return (QP_MEMORY);
+    else if ( s == "memorydef"     ) return (QP_MEMORYDEF);
     else if ( s == "pointer"     ) return (QP_POINTER);
     else                           return (QP_ERROR);
   }
@@ -1361,8 +1363,13 @@ Case (iii-f): ~s~ is a symbol atom: none of the forms before, but equal to ``pre
 ----    predinfo         ->      ((predinfo predinfo) typeerror)
 ----
 
+Case (iii-g): ~s~ is a symbol atom: none of the forms before, but equal to ``memory''.
 
-Case (iii-g): ~s~ is a symbol atom: neither operator nor object nor variable nor any other form before
+----    memory         ->      ((memory memory) typeerror)
+----
+
+
+Case (iii-h): ~s~ is a symbol atom: neither operator nor object nor variable nor any other form before
 
 ----    pop             ->      ((pop identifier) pop)
 
@@ -1437,7 +1444,9 @@ result. The first element of the result list can be:
 
   5 a predinfo definition ((. predinfo) .)
 
-  6 something else ((. [constant|object|variable|identifier] .) .), that is a constant, a database object, a variable, an identifier, or an empty list.
+  6 a memory definition ((. memory) .)
+
+  7 something else ((. [constant|object|variable|identifier] .) .), that is a constant, a database object, a variable, an identifier, or an empty list.
 
 Case (1): In the first case we have an operator application (~op~ ~arg1~
 ... ~argn~). We first compute the ~resulttype~ by applying the
@@ -1573,6 +1582,31 @@ The result is
 ----
 
 The result type is taken from the subexpression.
+
+Case (6): This is a definition of a memory pseudo operator associated with the subexpressions. A memory size is defined in a query in the form
+
+----    (memory 512 <subexpr>)
+----
+
+Hence after annotation it is
+
+----    (
+          ((memory memory) typeerror)
+          ((512 constant 1) int)
+          ann(subexpr)
+        )
+----
+
+The result is
+
+----    (
+          (none memorydef 512 ann(subexpr))
+          <resulttype>
+        )
+----
+
+The result type is taken from the subexpression.
+
 
 Case (6): The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions.
@@ -1911,9 +1945,19 @@ function index.
                      nl->SymbolAtom( "predinfo" ) ),
                    nl->SymbolAtom( "typeerror" ) );
         }
+        else if ( TypeOfSymbol( expr ) == QP_MEMORY )
+        {
+          // case (iii-g): a memory pseudo operator,
+          // return ((memory memory) typeerror)
+          return nl->TwoElemList(
+                   nl->TwoElemList(
+                     expr,
+                     nl->SymbolAtom( "memory" ) ),
+                   nl->SymbolAtom( "typeerror" ) );
+        }
         else
         {
-          // case (iii-g): nothing of the above => identifier
+          // case (iii-h): nothing of the above => identifier
           // return ((<ident> identifier) <ident>)
           string typeName;
           int algId, typeId;
@@ -2389,13 +2433,26 @@ will be processed.
                          nl->Second(nl->Fourth(list)));
             }
 
+            case QP_MEMORY:
+            {
+              if (traceMode)
+                cout << "Case 6: A memory definition." << endl;
+
+                return nl->TwoElemList(
+                         nl->FourElemList(
+                           nl->SymbolAtom("none"),
+                           nl->SymbolAtom("memorydef"),
+                           nl->First(nl->First(nl->Second(list))),
+                           nl->Third(list)),
+                         nl->Second(nl->Third(list)));
+            }
 
             default:
-            {  /* we have a list of terms, case (6) above)
+            {  /* we have a list of terms, case (7) above)
                   Again extract the list of types. We know the
                   list "list" is not empty */
               if (traceMode) {
-               cout << "Case 5: A constant, a database obj., "
+               cout << "Case 7: A constant, a database obj., "
                     << " an identifier or an empty list! " << endl;
               }
               rest = list;
@@ -3214,6 +3271,28 @@ QueryProcessor::Subtree( const ListExpr expr,
       }
       return(node);
     }
+    case QP_MEMORYDEF:
+    {
+      node = Subtree( nl->Fourth( nl->First( expr )), first, node);
+
+      if ( node->nodetype == Operator ) {
+        if ( node->u.op.usesMemory )
+          node->u.op.memorySize =
+            nl->IntValue(nl->Third(nl->First(expr)));
+        else {
+          cout << "Operator " << node->u.op.theOperator->GetName() <<
+            " does not support memory assignment." << endl;
+          cout << "Memory assignment ignored." << endl;
+        }
+      }
+      if (traceNodes)
+      {
+        cout << "QP_MEMORYDEF:" << endl;
+        cout << *node << endl;
+      }
+      return(node);
+    }
+
 
     default:
     {
@@ -3233,7 +3312,7 @@ QueryProcessor::Subtree( const ListExpr expr,
 3.5 Memory Management
 
 This is a relatively recent addition to the query processor. Up to now 
-(October 2011) the memory usage of operators was controlled by a configuration parameter MaxMemPerOperator, 16 MB by default. That is, each operator could use the amout of memory provided by this constant. Since one does not know how many such operators will occur in a query, this constant has to be relatively small, even if a large main memory space is available.
+(October 2011) the memory usage of operators was controlled by a configuration parameter MaxMemPerOperator, 16 MB by default. That is, each operator could use the amount of memory provided by this constant. Since one does not know how many such operators will occur in a query, this constant has to be relatively small, even if a large main memory space is available.
 
 The new simple concept for memory management has two aspects:
 
@@ -3242,7 +3321,7 @@ The new simple concept for memory management has two aspects:
 ----	query plz100 feed sortby[Ort asc] {memory 512} consume
 ----
 
-Hence the ~sortby~ operator can use 512 MB. This has yet to be implemented.
+Hence the ~sortby~ operator can use 512 MB. 
 
   * A global parameter ~GlobalMemory~ is introduced, by default 512 MB. Further, each operator using memory registers with a function [<]operator[>].UsesMemory() (analogous to functions such as [<]operator[>].EnableProgress()). Hence the query processor is aware of which operators need internal memory. It distributes the available global memory equally to such operators.
 
@@ -3267,28 +3346,37 @@ By the method ~UsesMemory~ one can check whether an operator has registered to u
 
   * The query processor gets a new member ~globalMemory~ and a method ~SetGlobalMemory~ (QueryProcessor.h). This is used in SecondoInterface.cpp to set the value to the parameter ~GlobalMemory~ from secondoConfig.ini. Also the query processor gets a new method ~GetMemorySize(s)~ that can be used by an operator to check the memory size stored in its operator tree node.
 
-Two new functions ~countMemoryOperators~ and ~distributeMemory~, introduced in this section, are used as follows. The first traverses the operator tree after its construction and counts the number of operators using memory. Based on this, the amount of memory available per operator is computed. The second function then traverses the tree again and for each memory using operator sets its ~memorySize~ field to this amount. This happens within ~Construct~.
+Two new functions ~countMemoryOperators~ and ~distributeMemory~, introduced in this section, are used as follows. The first traverses the operator tree after its construction and counts the number of operators using memory. It also observes to which operators memory has already been assigned explicitly. Based on this, the amount of memory available per operator is computed. The second function then traverses the tree again and for each memory using operator sets its ~memorySize~ field to this amount. This happens within ~Construct~.
 
+The first technique (explicit annotation of an operator) is implemented by extending the parser to translate the notation  [<]expr[>] {memory 512} into the use of a pseudo operator:
 
+----    (memory 512 translate(<expr>))
+----
+
+This pseudo-operator is then used in the annotation of the query and the construction of the operator tree to move the value 512 into the operator node's memorySize field.
 
 */
 
 /*
-Count the number of operators in the operator tree ~node~ that are registered to use memory buffers.
+Count the number of operators in the operator tree ~node~ that are registered to use memory buffers and do not yet have memory assigned, and determine the amount of memory already used by explicit assignments.
 
 */
 
-  int countMemoryOperators(OpNode* node){
+  int countMemoryOperators(OpNode* node, int& spentAlready){
     int memOps = 0;
     if(!node){
       cout << "the tree is null" << endl;
       return 0;
     }
     if(node->nodetype == Operator){
-      if ( node->u.op.usesMemory ) memOps = 1;
+      if ( node->u.op.usesMemory ) {
+        if ( node->u.op.memorySize == 0 )
+          memOps = 1;
+        else spentAlready += node->u.op.memorySize;
+      }
       for(int i=0; i<node->u.op.noSons; i++){
         memOps += countMemoryOperators(
-          static_cast<OpNode*>(node->u.op.sons[i].addr));
+          static_cast<OpNode*>(node->u.op.sons[i].addr), spentAlready);
       }
     } 
     return memOps;
@@ -3416,17 +3504,21 @@ the function in a database object.
 
   tree = SubtreeX( list );
   
-  // distribute global memory evenly to operators using main memory
+  // Distribute remaining global memory (after explicit assignments)
+  // evenly to operators using main memory. In any case such operators get
+  // a minimum of 16 MB.
 
-  int noMemoryOperators = countMemoryOperators( tree );
+  int memorySpent = 0;
+  int noMemoryOperators = countMemoryOperators( tree, memorySpent );
   int perOperator = 0;
   if ( noMemoryOperators > 0 ) {
-    perOperator = globalMemory / noMemoryOperators;
+    perOperator = (globalMemory - memorySpent) / noMemoryOperators;
+    if ( perOperator < 16 ) perOperator = 16;
     distributeMemory( tree, perOperator );
   }
-        // cout << "noMemoryOperators = " << noMemoryOperators << endl;
-        // cout << "perOperator = " << perOperator << endl;
-        // print(cout, tree);
+         // cout << "noMemoryOperators = " << noMemoryOperators << endl;
+         // cout << "perOperator = " << perOperator << endl;
+         // print(cout, tree);
 
   QueryTree = tree;
   ResetCounters();
