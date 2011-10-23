@@ -334,8 +334,10 @@ ListExpr binDecode(string binStr)
   ListExpr nestList;
   iss << binStr;
   b64.decodeStream(iss, oss);
-  nl->ReadBinaryFrom(oss, nestList);
-  return nestList;
+  if (nl->ReadBinaryFrom(oss, nestList))
+    return nestList;
+  else
+    return nl->TheEmptyList();
 }
 
 /*
@@ -1451,7 +1453,7 @@ int add0TupleValueMap(Word* args, Word& result,
 }
 
 //Set up the remote copy command options uniformly.
-const string scpCommand = "scp -o Connecttimeout=5 ";
+const string scpCommand = "scp -o Connecttimeout=5 -o ConnectionAttempts=5 ";
 
 
 
@@ -1489,75 +1491,136 @@ In principle, the information of the config file should be
 in conformity with the list files, or else operators like ~fconsume~
 may goes wrong.
 
+
+Updated in 12th Sept.
+The clusterInfo reads both master and slave files together,
+and mixed the master and slaves in one list.
+The master only has one machine, while its series number is 0.
+The slaves contains several machines, and their series numbers
+start from 1.
+The master node's IP can be repeatable in slaves, in case we want
+to use a master as slaves too.
+
+Nodes are separated from each other according to their series numbers,
+a same node may exist several times during the list,
+especially when a node is viewed as a master and slave at a same time.
+We increase the checking before inserting a new node into the list,
+and forbid using repeated slave nodes in the lists.
+If a non-master node repeats in the slaves, then the construction fails.
+But if the master node is viewed as a slave node too,
+then it will be viewed as two different nodes,
+files can be copied to its local disk, attached with its IP address
+as file names' postfixes.
+
+Usually, master node doesn't involved into the parallel processing,
+we set it only in case we need to gather the parallel results into
+the master node.
+
 */
-clusterInfo::clusterInfo(bool _im) :
+clusterInfo::clusterInfo() :
     ps_master("PARALLEL_SECONDO_MASTER"),
     ps_slaves("PARALLEL_SECONDO_SLAVES"),
-    isMaster(_im), localNode(-1)
+    localNode(-1), masterNode(0)
 {
-  char *fn;
-  if (isMaster)
-    fn = getenv(ps_master.c_str());
-  else
-    fn = getenv(ps_slaves.c_str());
   ok = false;
 
-  if (fn == 0){
-    cerr << "Environment variable "
-         << (isMaster ? ps_master : ps_slaves)
-         << " is not defined." << endl;
-    return;
-  }
-
-  fileName = string(fn);
-
-  if (fileName.length() == 0){
-      cerr << "Environment variable "
-           << (isMaster ? ps_master : ps_slaves)
-           << " is set as empty." << endl;
-    return;
-  }
-
-  if (!FileSystem::FileOrFolderExists(fileName))
-    cerr << "File (" << fileName << ") is not exist." << endl;
-  if (FileSystem::IsDirectory(fileName))
-    cerr << fileName << " is a directory" << endl;
-
-  ifstream fin(fileName.c_str());
-  string line;
-  disks = new vector<pair<string, pair<string, int> > >();
-  while (getline(fin, line))
+  //Scan both master and slave lists
+  for (int i = 0; i < 2; i++)
   {
-    if (line.length() == 0)
-      continue;  //Avoid warning message for an empty line
-    istringstream iss(line);
-    string ipAddr, cfPath, sport;
-    getline(iss, ipAddr, ':');
-    getline(iss, cfPath, ':');
-    getline(iss, sport, ':');
-    if ((ipAddr.length() == 0) ||
-        (cfPath.length() == 0) ||
-        (sport.length() == 0))
-    {
-      cerr << "Format in file " << fileName << " is not correct.\n";
-      break;
+    bool isMaster = ( (0 == i) ? true : false);
+    if ( 0 == i )
+      disks = new vector<pair<string, pair<string, int> > >();
+
+    char *ev;
+    ev = isMaster ?
+        getenv(ps_master.c_str()) :
+        getenv(ps_slaves.c_str());
+
+    if ( 0 == ev ){
+      cerr << "Environment variable "
+           << ( isMaster ? ps_master : ps_slaves )
+           << " is not correctly defined." << endl;
+      return;
     }
 
-    //Remove the slash tail
-    if (cfPath.find_last_of("/") == cfPath.length() - 1)
-      cfPath = cfPath.substr(0, cfPath.length() - 1);
+    fileName = string(ev);
+    if (fileName.length() == 0){
+        cerr << "Environment variable "
+             << (isMaster ? ps_master : ps_slaves)
+             << " is set as empty." << endl;
+      return;
+    }
+    else if (
+      !FileSystem::FileOrFolderExists(fileName) ||
+      FileSystem::IsDirectory(fileName)){
+      cerr << "Node list file: " << fileName << endl
+          << " does NOT exist." << endl;
+      return;
+    }
 
-    int port = atoi(sport.c_str());
-    disks->push_back(pair<string, pair<string, int> >(
-        ipAddr, pair<string, int>(cfPath, port)));
+    ifstream fin(fileName.c_str());
+    string line;
+    while (getline(fin, line))
+    {
+      if (line.length() == 0)
+        continue;  //Avoid warning message for an empty line
+      istringstream iss(line);
+      string ipAddr, cfPath, sport;
+      getline(iss, ipAddr, ':');
+      getline(iss, cfPath, ':');
+      getline(iss, sport, ':');
+      if ((ipAddr.length() == 0) ||
+          (cfPath.length() == 0) ||
+          (sport.length() == 0))
+      {
+        cerr << "Format in file " << fileName << " is not correct.\n";
+        break;
+      }
+
+      //Remove the slash tail
+      if (cfPath.find_last_of("/") == cfPath.length() - 1)
+        cfPath = cfPath.substr(0, cfPath.length() - 1);
+      int port = atoi(sport.c_str());
+
+      bool noRepeat = true;
+      if (disks->size() > 0)
+      {
+        int csn = disks->size();  // Current node series number
+        for (vector<diskDesc>::iterator dit = disks->begin();
+             dit != disks->end(); dit++)
+        {
+          if ( 0 == dit->first.compare(ipAddr) &&
+               (dit->second.second == port) &&
+               0 == dit->second.first.compare(cfPath))
+          {
+            if ( dit == disks->begin())
+              masterNode = csn;
+            else
+              noRepeat = false;
+          }
+        }
+      }
+      if (noRepeat){
+        disks->push_back(pair<string, pair<string, int> >(
+            ipAddr, pair<string, int>(cfPath, port)));
+      }
+      else{
+        cerr << "Exist repeated slave nodes in the list" << endl;
+        return;
+      }
+    }
+    fin.close();
+
+    if (isMaster && (disks->size() != 1)){
+      cerr << "Master list requires one line" << endl;
+      return;
+    }
+    else if (!isMaster && (disks->size() <= 1)){
+      cerr << "Slave list should not be empty" << endl;
+      return;
+    }
   }
-  fin.close();
-  if (disks->size() > 0)
-  {
-    ok = true;
-    if (isMaster && (disks->size() > 1))
-      cerr << "Master list can only have one line" << endl;
-  }
+  ok = true;
 }
 
 /*
@@ -1624,6 +1687,8 @@ vector<string>* clusterInfo::getAvailableIPAddrs()
   getifaddrs(&ifAddrStruct);
   for (ifa = ifAddrStruct; ifa != 0; ifa = ifa->ifa_next)
   {
+    if (0 == ifa->ifa_addr)
+      continue;
     if (ifa->ifa_addr->sa_family == AF_INET)
     {
       // IPv4 Address
@@ -1663,13 +1728,7 @@ string clusterInfo::getRemotePath(size_t loc, string filePrefix,
 {
   string remotePath = "";
 
-  if (!round)
-  {
-    assert(loc <= disks->size());
-    loc -= 1;
-  }
-  else
-    loc = (loc - 1) % disks->size();
+  loc = getInterIndex(loc, round);
 
   string IPAddr = (*disks)[loc].first;
   string rfPath = (*disks)[loc].second.first;
@@ -1684,19 +1743,23 @@ string clusterInfo::getRemotePath(size_t loc, string filePrefix,
   return remotePath;
 }
 
-
-
-string clusterInfo::getIP(size_t loc, bool round)
+string clusterInfo::getIP(size_t loc, bool round /* = false*/)
 {
-  if (!round)
-  {
-    assert(loc <= disks->size());
-    loc -= 1;
-  }
-  else
-    loc = (loc - 1) % disks->size();
-
+  if ( 0 == loc)
+    loc = masterNode;
+  loc = getInterIndex(loc, round);
   return (*disks)[loc].first;
+}
+
+size_t clusterInfo::getInterIndex(size_t loc, bool round){
+  assert(disks->size() > 1);
+  if (!round){
+    assert(loc < disks->size());
+    return loc;
+  }
+  else{
+    return (loc % disks->size());
+  }
 }
 
 int clusterInfo::searchLocalNode()
@@ -1704,7 +1767,7 @@ int clusterInfo::searchLocalNode()
   string localPath = getLocalPath();
   string localIP = getLocalIP();
 
-  int local = -1, cnt = 1;
+  int local = -1, cnt = 0;
   if (localIP.length() != 0 &&
       localPath.length() != 0)
   {
@@ -1720,9 +1783,17 @@ int clusterInfo::searchLocalNode()
     }
   }
   else
-    cerr << "\nThe local IP or Path is not correctly defined. "
-        "They should match one line in PARALLEL_SECONDO_SLAVES list"
-        "Check the SECONDO_CONFIG file please." << endl;
+    cerr << "\nThe local IP or Path is not correctly defined. \n"
+      "They should match one line in PARALLEL_SECONDO_SLAVES list.\n"
+      "Check the SECONDO_CONFIG file please." << endl;
+
+/*
+If a master is used as a slave too,
+then it will be viewed as a normal slave node.
+
+*/
+  if ( 0 == local)
+    local = masterNode;
 
   return local;
 }
@@ -1731,7 +1802,7 @@ void clusterInfo::print()
 {
   if (ok)
   {
-    int counter = 1;
+    int counter = 0;
     cout << "\n---- PARALLEL_SECONDO_SLAVES list ----" << endl;
     vector<diskDesc>::iterator iter;
     for (iter = disks->begin(); iter != disks->end();
@@ -1953,8 +2024,9 @@ ListExpr FConsumeTypeMap(ListExpr args)
   string err5 = "ERROR!Expect the file suffix.";
   string err6 = "ERROR!Expect the target index and dupTimes.";
   string err7 = "ERROR!Remote node for type file is out of range";
-  string err8 = "ERROR!The slave list file does not exist."
-      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+  string err8 = "ERROR!Building up master and slave list fails, "
+      "is $PARALLEL_SECONDO_SLAVES and $PARALLEL_SECONDO_MASTERS "
+      "correctly set up ?";
   string err9 = "ERROR!Remote copy type file fail.";
 
   int len = l.length();
@@ -2074,18 +2146,21 @@ ListExpr FConsumeTypeMap(ListExpr args)
     //Copy type files to remote location
     for (int i = 0; i < 2; i++)
     {
-      if (tNode[i] > 0)
+      if (tNode[i] >= 0)
       {
-        if (tNode[i] > sLen)
+        if ( tNode[i] < sLen )
+        {
+          string rPath = ci->getRemotePath(tNode[i], filePrefix);
+          cerr << "Copy type file to -> \t" << rPath << endl;
+          if ( 0 !=
+              (system((scpCommand + filePath + " " + rPath).c_str())))
+            return l.typeError(err9);
+        }
+        else
         {
           ci->print();
           return l.typeError(err7);
         }
-        string rPath = ci->getRemotePath(tNode[i], filePrefix);
-        cerr << "Copy type file to -> \t" << rPath << endl;
-        if ( 0 !=
-            (system((scpCommand + filePath + " " + rPath).c_str())))
-          return l.typeError(err9);
       }
     }
   }
@@ -2242,7 +2317,7 @@ int FConsumeValueMap(Word* args, Word& result,
     {
       bool keepLocal = false;
       int localNode = ci->getLocalNode();
-      if (localNode < 1)
+      if (localNode < 0)
       {
         cerr
           << "ERROR! Cannot find the local position " << endl
@@ -2254,21 +2329,27 @@ int FConsumeValueMap(Word* args, Word& result,
         return 0;
       }
 
-      string cName = ci->getIP(localNode);
-      string newFileName = relName + fileSuffix + "_" + cName;
+      //Attach producer's IP to file's name if it's duplicated.
+      string pdrIP = ci->getIP(localNode);
 
       //Avoid copying file to a same node repeatedly
       int cLen = ci->getLines();
-      bool copyList[cLen + 1];
-      memset(copyList, false, (cLen + 1));
+      bool copyList[cLen];
+      memset(copyList, false, cLen);
       for (int i = 0; i < dt; i++, ti++)
-        copyList[((ti - 1)%cLen + 1)] = true;
+        copyList[ ti % cLen ] = true;
+      //Synchronize the copy status of master node
+      if ( (ci->getMasterNode() != 0) &&
+           (copyList[0] || copyList[ci->getMasterNode()] ))
+        copyList[0] = copyList[ci->getMasterNode()] = true;
 
-      for (int i = 1; i <= cLen; i++)
+      for (int i = 0; i < cLen; i++)
       {
         if (copyList[i])
         {
-          if (localNode == i)
+          if ((localNode == i) ||  //slaves
+              ((0 == i) &&         //master
+               (localNode == ci->getMasterNode())))
           {
             keepLocal = true;
             continue;
@@ -2277,8 +2358,10 @@ int FConsumeValueMap(Word* args, Word& result,
           {
             string rPath = ci->getRemotePath(
                 i, relName, true, true, true, true);
-            FileSystem::AppendItem(rPath, (relName + fileSuffix));
-            cerr << "Copy " << filePath << "\n->\t" << rPath << endl;
+            FileSystem::AppendItem(rPath,
+                (relName + fileSuffix + "_" + pdrIP ));
+            cerr << "Copy " << filePath
+                << "\n->\t" << rPath << endl;
             if ( 0 != ( system(
                 (scpCommand + filePath + " " + rPath).c_str())))
             {
@@ -2590,7 +2673,7 @@ ListExpr FFeedTypeMap(ListExpr args)
     drMode = true;
   }
 
-  if (tnIndex > 0)
+  if (tnIndex >= 0)
   {
     //copy the type file from remote to here
     clusterInfo *ci = new clusterInfo();
@@ -2792,9 +2875,10 @@ bool FFeedLocalInfo::isLocalFileExist(string fp)
 }
 
 /*
+
   * pdi: producer node index
   * tgi: target node index
-
+  * att: attempt times
 
 */
 bool FFeedLocalInfo::fetchBlockFile(
@@ -2831,16 +2915,20 @@ Or else, the fileFound is false.
           "correctly set up." << endl;
       return false;
     }
-    if (tgi > ci->getLines())
+    if ((tgi >= ci->getLines()) || (pdi >= ci->getLines()))
     {
-      cerr << "ERROR!The first target's index is out of "
+      cerr << "ERROR!Producer or target serious number is out of"
           "the range of the slave list." << endl;
       ci->print();
       return false;
     }
 
+    if ( 0 == pdi )
+      pdi = ci->getMasterNode();
     pdrIP = ci->getIP(pdi);
-    string subFolder = "";
+    if (ci->getLocalIP().compare(pdrIP) != 0){
+      localFilePath += ("_" + pdrIP);
+    }
 
     while (!fileFound && (att-- > 0))
     {
@@ -2853,21 +2941,31 @@ the file's name has to be extended with the producer's IP address.
 
 */
       string rFilePath;
-      tgtIP = ci->getIP(tgi, true);
+      int targetIndex = ((tgi == 0) ? ci->getMasterNode() : tgi);
+      tgtIP = ci->getIP(targetIndex, true);
       bool attachProducerIP;
-      if (tgi == pdi)
+      if (targetIndex == pdi)
         attachProducerIP = false;
       else
         attachProducerIP = true;
-      rFilePath = ci->getRemotePath(tgi, fileName, true, false,
+      rFilePath = ci->getRemotePath(targetIndex, fileName, true, false,
           false, attachProducerIP, pdrIP);
-      FileSystem::AppendItem(rFilePath, fileName + fileSuffix);
+      FileSystem::AppendItem(rFilePath,
+          fileName + fileSuffix +
+          (attachProducerIP ? ("_" + pdrIP) : ""));
+
+      fileFound = true;
       if (ci->getLocalIP().compare(tgtIP) == 0)
       {
         // Fetch the file in local, but is produced by another node
         localFilePath = rFilePath;
         fileFound = isLocalFileExist(localFilePath);
       }
+/*
+Disable the pre-positive file checking,
+since it only introduces addtional overhead.
+
+*/
       else
       {
         // Fetch the file in remote machine
@@ -2923,6 +3021,7 @@ In some cases, when the the file is stored in the local node,
 then nothing to be done, since the file is already found.
 
 */
+
           if (isLocalFileExist(localFilePath))
           {
             cerr << "Delete the local file with the same name\n";
@@ -2935,11 +3034,12 @@ then nothing to be done, since the file is already found.
               cerr << "Warning! Copy remote file fail." << endl;
           }while ((--copyTimes > 0) &&
               !FileSystem::FileOrFolderExists(localFilePath));
-          if (copyTimes < 0)
+          if (copyTimes <= 0)
           {
             cerr << "Warning! Cannot copy the remote file: "
                 << rFilePath << endl;
             fileFound = false;
+            tgi++;
           }
         }
       }
@@ -2977,6 +3077,11 @@ then nothing to be done, since the file is already found.
   tupleBlockFile->seekg(0, ios::beg);
 
   NList descList = NList(binDecode(string(descStr)));
+  if (descList.isEmpty())
+  {
+    cerr << "\nERROR! Reading ending description list fail." << endl;
+    return false;
+  }
 
   //Initialize the sizes of progress local info
   noAttrs = tupleType->GetNoAttributes();
@@ -3254,9 +3359,9 @@ int hdpJoinValueMap(Word* args, Word& result,
         << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
         << rtNum << " " << rName << endl;
       int rtn;
-//      cout << queryStr.str() << endl;   //Used for debug only
-      rtn = system("hadoop dfs -rmr OUTPUT");
-      rtn = system(queryStr.str().c_str());
+      cout << queryStr.str() << endl;   //Used for debug only
+//      rtn = system("hadoop dfs -rmr OUTPUT");
+//      rtn = system(queryStr.str().c_str());
 
       //2 get the result file list
       if (hjli)
@@ -3265,8 +3370,8 @@ int hdpJoinValueMap(Word* args, Word& result,
 
       FILE *fs;
       char buf[MAX_STRINGSIZE];
-//      fs = popen("cat pjResult", "r");  //Used for debug only
-      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+      fs = popen("cat pjResult", "r");  //Used for debug only
+//      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
       if (NULL != fs)
       {
         while(fgets(buf, sizeof(buf), fs))
@@ -3501,9 +3606,9 @@ ListExpr FDistributeTypeMap(ListExpr args)
   string filePath = fpList.str();
 
   // Partition attribute
-  if (!pType.third().isAtom())
+  if (!pType.third().isSymbol())
     return l.typeError(typeErr + "\n" + err4);
-  string attrName = pValue.third().str();
+  string attrName = pValue.third().convertToString();
   ListExpr attrType;
   int attrIndex = listutils::findAttribute(
       attrsList.listExpr(), attrName, attrType);
@@ -3586,6 +3691,10 @@ ListExpr FDistributeTypeMap(ListExpr args)
   int tNode[2] = {-1, -1};
   if (!pType.isEmpty())
   {
+    ci = new clusterInfo();
+    if (!ci->isOK())
+      return l.typeError(err8);
+
     //Get the type index and duplicate the type file.
     if (pType.length() > 2)
       return l.typeError(err5);
@@ -3608,24 +3717,24 @@ ListExpr FDistributeTypeMap(ListExpr args)
     }
 
     //scp filePath .. IP:loc/typeFileName
-    ci = new clusterInfo();
-    if (!ci->isOK())
-      return l.typeError(err8);
     int sLen = ci->getLines();
     for (int i = 0; i < 2; i++)
     {
-      if (tNode[i] > 0)
+      if (tNode[i] >= 0)
       {
-        if (tNode[i] > sLen)
+        if (tNode[i] < sLen)
+        {
+          string rPath = ci->getRemotePath(tNode[i], filePrefix);
+          cerr << "Copy the type file to -> \t" << rPath << endl;
+          if (0 != system(
+               (scpCommand + filePath + " " + rPath).c_str()))
+            return l.typeError(err10);
+        }
+        else
         {
           ci->print();
           return l.typeError(err9);
         }
-        string rPath = ci->getRemotePath(tNode[i], filePrefix);
-        cerr << "Copy the type file to -> \t" << rPath << endl;
-        if (0 != system(
-             (scpCommand + filePath + " " + rPath).c_str()))
-          return l.typeError(err10);
       }
     }
   }
@@ -3823,13 +3932,19 @@ bool FDistributeLocalInfo::insertTuple(Word tupleWord)
   }
   ok = openFile(fp);
 
-  if (!(ok &&
-        fp->writeTuple(tuple, tupleCounter,
-                       attrIndex, exportTupleType, kpa)))
-    cerr << "Block File " << fp->getFilePath() << " Write Fail.\n";
-  tupleCounter++;
-  tuple->DeleteIfAllowed();
-
+  if (ok)
+  {
+    if (!fp->writeTuple(tuple, tupleCounter,
+        attrIndex, exportTupleType, kpa))
+    {
+      cerr << "Block File " << fp->getFilePath() << " Write Fail.\n";
+    }
+    else
+    {
+      tupleCounter++;
+      tuple->DeleteIfAllowed();
+    }
+  }
   return ok;
 }
 
@@ -3844,19 +3959,26 @@ bool FDistributeLocalInfo::openFile(fileInfo* tgtFile)
     sort(openFileList.begin(), openFileList.end(), compFileInfo);
     //The last one of the vector is the idler
     bool poped = false;
-    while(!poped)
+    while(!poped && openFileList.size() > 0)
     {
-      if (openFileList.back()->isFileOpen())
+      fileInfo* oldestFile = openFileList.back();
+      if (oldestFile)
       {
-        openFileList.back()->closeFile();
-        poped = true;
+        if (oldestFile->isFileOpen())
+        {
+          oldestFile->closeFile();
+          poped = true;
+        }
       }
       openFileList.pop_back();
     }
   }
 
   bool ok = tgtFile->openFile();
-  openFileList.push_back(tgtFile);
+  if (ok){
+    // Only opened file are inserted into list
+    openFileList.push_back(tgtFile);
+  }
   return ok;
 }
 
@@ -3881,14 +4003,18 @@ bool FDistributeLocalInfo::startCloseFiles()
     }
 
     int cLen = ci->getLines();
-    copyList = new bool[cLen + 1];
-    memset(copyList, false, (cLen + 1));
+    copyList = new bool[cLen];
+    memset(copyList, false, cLen);
     int ti = firstDupTarget;
     for (int i = 0; i < dupTimes; i++, ti++)
-      copyList[((ti - 1)%cLen + 1)] = true;
+      copyList[ ti % cLen ] = true;
+    //Synchronize the copy status of master node
+    if ( (ci->getMasterNode() != 0) &&
+         (copyList[0] || copyList[ci->getMasterNode()] ))
+      copyList[0] = copyList[ci->getMasterNode()] = true;
 
     localIndex = ci->getLocalNode();
-    if (localIndex < 1)
+    if (localIndex < 0)
     {
       cerr << "ERROR! Cannot find the local position " << endl
           << ci->getLocalIP() << ":" << ci->getLocalPath() << endl
@@ -3942,11 +4068,13 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
     string filePath = fi->getFilePath();
     int cLen = ci->getLines();
     bool keepLocal = false;
-    for (int i = 1; i <= cLen; i++)
+    for (int i = 0; i < cLen; i++)
     {
       if (copyList[i])
       {
-        if ((i == localIndex))
+        if (( localIndex == i) ||  //slave
+            ( (0 == i) &&          //master
+               (localIndex == ci->getMasterNode())))
         {
           keepLocal = true;
           continue;
@@ -3955,10 +4083,21 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
         {
           string rPath =
               ci->getRemotePath(i,fileBaseName, true, true, true, true);
-          FileSystem::AppendItem(rPath,fi->getFileName());
-          if (system((scpCommand + filePath + " " + rPath).c_str()))
+          FileSystem::AppendItem(rPath,
+              (fi->getFileName() + "_" + cnIP));
+          int copyTimes = MAX_COPYTIMES;
+          while(copyTimes-- > 0)
           {
-            cerr << "Copy remote file fail." << endl;
+            if ( 0 == system((scpCommand + filePath + " " + rPath).c_str())){
+              break;
+            }else{
+            cerr << "Warning! Duplicate file " << filePath << " fail."
+                << strerror(errno) << endl;
+            }
+          }
+          if (copyTimes <= 0)
+          {
+            cerr << "Error! Copy remote file fail." << endl;
             return false;
           }
         }

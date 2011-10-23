@@ -334,7 +334,7 @@ This class is used to verify these two files.
 class clusterInfo
 {
 public:
-  clusterInfo(bool _isMaster = false);
+  clusterInfo();
 
   string getRemotePath(size_t loc, string filePrefix,
       bool round = false,
@@ -348,6 +348,10 @@ public:
     if (localNode < 0)
       localNode = searchLocalNode();
     return localNode;
+  }
+
+  inline int getMasterNode(){
+    return masterNode;
   }
 
   string getLocalIP();
@@ -382,14 +386,15 @@ then the default path cannot be used anymore.
 private:
   string ps_master;
   string ps_slaves;
-  bool isMaster;
   string fileName;
   typedef pair<string, pair<string, int> > diskDesc;
   vector<diskDesc> *disks;
   bool ok;
   int localNode;
+  int masterNode;
 
   int searchLocalNode();
+  size_t getInterIndex(size_t loc, bool round);
   vector<string>* getAvailableIPAddrs();
 };
 
@@ -559,6 +564,9 @@ public:
   bool writeTuple(Tuple* tuple, size_t tupleIndex,
        int attrIndex, TupleType* exTupleType, bool kpa)
   {
+    if (!fileOpen)
+      return false;
+
     size_t coreSize = 0;
     size_t extensionSize = 0;
     size_t flobSize = 0;
