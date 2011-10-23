@@ -1,8 +1,9 @@
 ################################################################################
-### Tests networks from imported OSM data (optional)
+### Compares possible transistions with connectivity codes (optional)
 ################################################################################
 ### Description:
-### - This script tests networks from imported OSM data.
+### - This script tests if transistions at junctions correspond to the computed
+### connectivity codes in networks from imported OSM data.
 ### Please, see tu_osm_import.sh for further details. 
 ###
 ### Preconditions:
@@ -13,36 +14,30 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
-# Adding some gpoints for testing purposes
-let spot1 =
-   point2gpoint(cityNetwork,[const point value(6800.58 51236.37)]);
-let spot2 =
-   point2gpoint(cityNetwork,[const point value(6775.94 51238.47)]);
-#let spot3 =
-#   point2gpoint(cityNetwork,[const point value(6783.25 51263.80)]);
+delete cityNetwork;
+delete testRoads;
+delete testJunctions;
 
-# Checking whether the oneWay-Attribute is set correctly
-query extStreetsRel feed
-filter [(.roadClassRef = 1)
-   and not(.oneWay = 1)]
-consume;
-
-# Testing if any junctions were computed
-query (cityJunctions feed count) > 0;
-
-# Checking whether there are duplicate junctions
-query ((cityJunctionsTmp feed count) - (cityJunctions feed count)) = 0;
-query (cityJunctionsTmp feed
-   sortby [Road1,Pos1,Road2,Pos2]
-   groupby [Road1,Pos1,Road2,Pos2; Cnt: group count]
-   filter [.Cnt > 1] count) = 0;
-
-query cityJunctions feed
-   cityRoads feed {a}
-   hashjoin[Road1,Road_a,99997]
-   cityRoads feed {b}
-   hashjoin[Road2,Road_b,99997]
+let testRoads =
+   cityRoads feed
+   filter [(.Road = 1) or (.Road = 22)]
+   projectextend [Road, Length, Geometry; 
+      Dual: ifthenelse(.Road = 1,<Road1Dual>,<Road2Dual>),
+      StartsSmaller: .StartsSmaller]
    consume;
+
+let testJunctions =
+   cityJunctions feed
+   filter [(.Road1 = 1) and (.Road2 = 22)]
+   remove [NewJunctionType]
+   extend [NewJunctionType: <ConnectivityCode>]
+   consume
+ 
+let cityNetwork = thenetwork(
+   1,
+   1.0,
+   testRoads,
+   testJunctions);
 
 # Testing transitions at junctions
 #        |
@@ -80,6 +75,7 @@ let spot7 =
    point2gpoint(cityNetwork,[const point value(6801.5182 51235.9436)]);
 let spot8 =
    point2gpoint(cityNetwork,[const point value(6801.2491 51236.7506)]);
+
 query makearray(
    ifthenelse(isdefined(shortest_path(spot1,spot3)),1,0),
    ifthenelse(isdefined(shortest_path(spot1,spot5)),1,0),
@@ -98,22 +94,3 @@ query makearray(
    ifthenelse(isdefined(shortest_path(spot4,spot8)),1,0),
    ifthenelse(isdefined(shortest_path(spot4,spot2)),1,0));
 
-query cityRoads feed filter [(.Road = 1) or (.Road = 22)] consume
-query cityJunctions feed filter [(.Road1 = 1) and (.Road2 = 22)] consume
-let cityNetwork = thenetwork(
-   1,
-   1.0,
-   (cityRoads feed filter [(.Road = 1) or (.Road = 22)]
-   project [Road, Length, Geometry, Dual, StartsSmaller]
-   consume),
-   (cityJunctions feed filter [(.Road1 = 1) and (.Road2 = 22)] consume));
-# Playing around
-let cityNetwork = thenetwork(
-   1,
-   1.0,
-   (cityRoads feed filter [(.Road = 1) or (.Road = 22)]
-   projectextend [Road, Length, Geometry; Dual: TRUE, StartsSmaller: .StartsSmaller]
-   consume),
-   (cityJunctions feed filter [(.Road1 = 1) and (.Road2 = 22)]
-    remove [NewJunctionType] extend [NewJunctionType: 1911]
-    consume));

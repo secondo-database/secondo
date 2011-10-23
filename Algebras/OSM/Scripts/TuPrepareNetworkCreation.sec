@@ -146,11 +146,19 @@ let two =
     sortby [sectionId]) {b}
    hashjoin [NodeId_a,NodeId_b]
    filter [.sectionId_a < .sectionId_b]
+   filter [not(.streetId_a = .streetId_b)]
    projectextend [; 
+      Node: .Node_a,
       Road1: .streetId_a,
+      Pos1: atpoint(.streetData_a,.Node_a,TRUE),
       Road2: .streetId_b,
-      Node: .Node_a]
-   filter [not(.Road1 = .Road2)]
+      Pos2: atpoint(.streetData_b,.Node_a,TRUE),
+      JunctionType: getconnectivitycode(
+         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
+         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
+         0,
+         0,
+         .oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE)]
    consume;
 let three =
    ((startSections feed
@@ -186,7 +194,19 @@ let three =
         or ((.NodeId = .endNodeId_a) and ((.streetEndNodeId_a = .endNodeId_a) and
          not(.streetStartNodeId_a = .streetEndNodeId_a))))
        and (.sectionId_c < .sectionId_b) and (.Road2 = .Road3) and not(.Road1 = .Road2))]
-   project [Road1,Road2,Node]
+   projectextend [Node; 
+      Road1: .Road1,
+      Pos1: atpoint(.streetData_a,.Node,TRUE),
+      Road2: .Road2,
+      Pos2: atpoint(.streetData_b,.Node,TRUE),
+      JunctionType: getconnectivitycode(
+         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
+         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
+         ifthenelse(.Road1 = .Road3, ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),0),
+         ifthenelse(.Road2 = .Road3, ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),0),
+         .oneWay_a = 1,.oneWay_b = 1,
+         ifthenelse(.Road1 = .Road3, .oneWay_c = 1, FALSE),
+         ifthenelse(.Road2 = .Road3, .oneWay_c = 1, FALSE))]
    consume;
 let four =
    (((startSections feed
@@ -219,12 +239,27 @@ let four =
       NodeId: .NodeId_a,
       Node: .Node_a]
    filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
-   project [Road1,Road2,Node]
+   projectextend [Node; 
+      Road1: .Road1,
+      Pos1: atpoint(.streetData_a,.Node,TRUE),
+      Road2: .Road2,
+      Pos2: atpoint(.streetData_b,.Node,TRUE),
+      JunctionType: getconnectivitycode(
+         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
+         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
+         ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),
+         ifthenelse(.NodeId_d = .endNodeId_d, 1, 2),
+         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1)]
    consume;
 let targetRel =
    (two feed
-    three feed concat)
-   four feed concat
+    project [Road1,Road2,Node]
+    three feed 
+    project [Road1,Road2,Node]
+    concat)
+   four feed
+   project [Road1,Road2,Node]
+   concat
    consume;
 
 # Using left outer join to add the different restrictions to crossings
@@ -350,3 +385,10 @@ let road2ToRoad1 =
    consume;
 
 #TODO Add road1ToRoad1 and road2ToRoad2
+
+let twoSecJuncBtwTwoSts =
+   two feed consume;
+let threeSecJuncBtwTwoSts =
+   three feed consume;
+let fourSecJuncBtwTwoSts =
+   four feed consume;

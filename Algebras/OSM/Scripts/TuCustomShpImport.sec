@@ -28,11 +28,11 @@
 
 @../Algebras/OSM/Scripts/TuPrepareNetworkCreation.sec;
 
-@../Algebras/OSM/Scripts/TuCreateNetworkStep1.sec;
+#@../Algebras/OSM/Scripts/TuCreateNetworkStep1.sec;
 
-@../Algebras/OSM/Scripts/TuCreateNetworkStep2.sec;
+#@../Algebras/OSM/Scripts/TuCreateNetworkStep2.sec;
 
-@../Algebras/OSM/Scripts/TuCreateNetworkStep3.sec;
+#@../Algebras/OSM/Scripts/TuCreateNetworkStep3.sec;
 
 @../Algebras/OSM/Scripts/TuCreateNetworkStep4.sec;
 
