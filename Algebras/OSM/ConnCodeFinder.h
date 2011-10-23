@@ -52,12 +52,16 @@ public:
    // Default-Constructor
    ConnCodeFinder ();
 
-   ConnCodeFinder (int west, int north, int east, int south);
+   ConnCodeFinder (int lowerA, int higherB, int higherA, int lowerB);
 
    // Destructor
    ~ConnCodeFinder ();
 
    // --- Class-functions
+   static void assignSections (int sec1, int sec2, bool ow1, bool ow2,
+                               int *pLowerDir, int *pHigherDir,
+                               bool *pLowerOw, bool *pHigherOw);
+
    // Returns the connectivity code for a junction between up to four sections
    //      |
    //      |-dir2
@@ -79,22 +83,22 @@ public:
 
    static void printAllConnectivityCodes ();
 
-   static void printVerticalArrows (int iNorthSouth);
+   static void printVerticalArrows (int iHigherBLowerB);
 
-   static void printHorizontalArrows (int iWestEast);
+   static void printHorizontalArrows (int iLowerAHigherA);
 
    // --- Methods
    void computeConnCode ();
 
    bool isJunctionBtwAtLeastTwoSections () const;
 
-   int getWest () const;
+   int getLowerA () const;
 
-   int getNorth () const;
+   int getHigherB () const;
 
-   int getEast () const;
+   int getHigherA () const;
 
-   int getSouth () const;
+   int getLowerB () const;
 
    int getConnCode () const;
    
@@ -103,13 +107,13 @@ public:
    private:
 
    // --- Members
-   int m_west;
+   int m_lowerA;
 
-   int m_north;
+   int m_higherB;
 
-   int m_east;
+   int m_higherA;
 
-   int m_south;
+   int m_lowerB;
    
    int m_connCode;
 

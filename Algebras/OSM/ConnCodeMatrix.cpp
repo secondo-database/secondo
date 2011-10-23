@@ -151,13 +151,13 @@ void ConnCodeMatrix::computeConnCode ()
 {
    assert (m_values);
    int sum = 0;
-   int i = 15;
+   int i = 0;
    int elem = 0;
    for (int iRow = 0; iRow < 4; ++iRow)  {
       for (int iCol = 0; iCol < 4; ++iCol)  {
          elem = (m_values[iRow][iCol]<<i);
          sum += elem;
-         --i;
+         ++i;
       } 
    } 
    m_connCode = sum;
@@ -165,9 +165,9 @@ void ConnCodeMatrix::computeConnCode ()
 
 int ConnCodeMatrix::getConnCode () const
 {
-   //return m_connCode;
+   return m_connCode;
    // Temporarily returning a fix connectivity code
-   return 65535;
+   //return 65535;
 }
 
 void ConnCodeMatrix::print () const

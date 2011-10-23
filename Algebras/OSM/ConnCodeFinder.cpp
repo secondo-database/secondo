@@ -57,15 +57,16 @@ For more detailed information see ConnCodeFinder.h.
 // --- Constructors
 // Default-Constructor
 ConnCodeFinder::ConnCodeFinder ()
-  : m_west (0), m_north (0), m_east (0), m_south (0), m_connCode (0),
+  : m_lowerA (0), m_higherB (0), m_higherA (0), m_lowerB (0), m_connCode (0),
   m_matrix ()
 {
    // empty
 }
 
-ConnCodeFinder::ConnCodeFinder (int west, int north, int east, int south)
-  : m_west (west), m_north (north), m_east (east), m_south (south),
-  m_connCode (0), m_matrix ()
+ConnCodeFinder::ConnCodeFinder (int lowerA, int higherB, int higherA,
+                                int lowerB)
+  : m_lowerA (lowerA), m_higherB (higherB), m_higherA (higherA),
+  m_lowerB (lowerB), m_connCode (0), m_matrix ()
 {
    computeConnCode ();
 }
@@ -77,69 +78,119 @@ ConnCodeFinder::~ConnCodeFinder ()
 }
 
 // --- Methods
+void ConnCodeFinder::assignSections (int sec1, int sec2, bool ow1, bool ow2,
+   int *pLowerDir, int *pHigherDir, bool *pLowerOw, bool *pHigherOw)
+{
+   // 1: incoming, 2: outgoing
+   static int INCOMING = 1;
+   static int OUTGOING = 2;
+   static int UNDEFINED = 0;
+   int &lowerDir = (*pLowerDir);
+   int &higherDir = (*pHigherDir);
+   bool &lowerOw = (*pLowerOw);
+   bool &higherOw = (*pHigherOw);
+   if (sec1 == INCOMING && sec2 == OUTGOING)  {
+      lowerDir = 1;
+      higherDir = 1;
+      lowerOw = ow1;
+      higherOw = ow2;
+   } else if (sec1 == OUTGOING && sec2 == INCOMING)  {
+      lowerDir = 1;
+      higherDir = 1;
+      lowerOw = ow2;
+      higherOw = ow1;
+   } else if (sec1 == INCOMING && sec2 == UNDEFINED)  {
+      lowerDir = 1;
+      higherDir = 0;
+      lowerOw = ow1;
+      higherOw = false;
+   } else if (sec1 == OUTGOING && sec2 == UNDEFINED)  {
+      lowerDir = 0;
+      higherDir = 1;
+      lowerOw = false;
+      higherOw = ow1;
+   } else if (sec1 == UNDEFINED && sec2 == INCOMING)  {
+      lowerDir = 1;
+      higherDir = 0;
+      lowerOw = ow2;
+      higherOw = false;
+   } else if (sec1 == UNDEFINED && sec2 == OUTGOING)  {
+      lowerDir = 0;
+      higherDir = 1;
+      lowerOw = false;
+      higherOw = ow2;
+   } else {
+      assert (false);
+   } 
+}
+
 int ConnCodeFinder::getConnectivityCode (
-   int dir1, int dir2, int dir3, int dir4, 
+   int inout1, int inout2, int inout3, int inout4, 
    bool ow1, bool ow2, bool ow3, bool ow4)
 {
-   assert (dir1 >= 0 && dir1 <= 2);
-   assert (dir2 >= 0 && dir2 <= 2);
-   assert (dir3 >= 0 && dir3 <= 2);
-   assert (dir4 >= 0 && dir4 <= 2);
+   assert (inout1 >= 0 && inout1 <= 2);
+   assert (inout2 >= 0 && inout2 <= 2);
+   assert (inout3 >= 0 && inout3 <= 2);
+   assert (inout4 >= 0 && inout4 <= 2);
+   // Testing if the street direction is opposite to the section direction
+   assert (!(((inout1 == 1 || inout1 == 2) && inout1 == inout3))
+           && !(((inout2 == 1 || inout2 == 2) && inout2 == inout4)));
 
-   // Swapping vertical directions since networks require them in opposite
-   // order
-   //if (dir2 == 1) { dir2 = 2; } else if (dir2 == 2) { dir2 = 1; }
-   //if (dir4 == 1) { dir4 = 2; } else if (dir4 == 2) { dir4 = 1; }
+   // --- Mapping the section values to a fix coordinate system
+   int dir1(0), dir2(0), dir3(0), dir4(0);
+   bool oneway1(false), oneway2(false), oneway3(false), oneway4(false);
+   assignSections (inout1, inout3, ow1, ow3, &dir1, &dir3, &oneway1, &oneway3);
+   assignSections (inout2, inout4, ow2, ow4, &dir2, &dir4, &oneway2, &oneway4);
 
    // if oneway == true or dir == 0 then do nothing
    // if oneway == false and dir != 0
    //    then 00000001 -> 00000011 or 00000010 -> 00000011
    ConnCodeFinder ccFinder =
-      ConnCodeFinder ((!ow1 && dir1 != 0)? 3 : dir1,
-                      (!ow2 && dir2 != 0)? 3 : dir2,
-                      (!ow3 && dir3 != 0)? 3 : dir3,
-                      (!ow4 && dir4 != 0)? 3 : dir4);
+      ConnCodeFinder ((!oneway1 && dir1 != 0)? 3 : dir1,
+                      (!oneway2 && dir2 != 0)? 3 : dir2,
+                      (!oneway3 && dir3 != 0)? 3 : dir3,
+                      (!oneway4 && dir4 != 0)? 3 : dir4);
    return ccFinder.getConnCode ();
 }
 
 void ConnCodeFinder::computeConnCode ()
 {
    int matrix [4][4] =
-      {{is_bit_set(getWest (),1)&is_bit_set(getEast (),1),     //AupAup
-        is_bit_set(getWest (),1)&is_bit_set(getWest (),2),     //AupAdown
-        is_bit_set(getWest (),1)&is_bit_set(getNorth (),1),    //AupBup
-        is_bit_set(getWest (),1)&is_bit_set(getSouth (),2)},   //AupBdown
-       {is_bit_set(getEast (),2)&is_bit_set(getEast (),1),     //AdownAup
-        is_bit_set(getEast (),2)&is_bit_set(getWest (),2),     //AdownAdown
-        is_bit_set(getEast (),2)&is_bit_set(getNorth (),1),    //AdownBup
-        is_bit_set(getEast (),2)&is_bit_set(getSouth (),2)},   //AdownBdown
-       {is_bit_set(getSouth (),1)&is_bit_set(getEast (),1),    //BupAup
-        is_bit_set(getSouth (),1)&is_bit_set(getWest (),2),    //BupAdown
-        is_bit_set(getSouth (),1)&is_bit_set(getNorth (),1),   //BupBup
-        is_bit_set(getSouth (),1)&is_bit_set(getSouth (),2)},  //BupBdown
-       {is_bit_set(getNorth (),2)&is_bit_set(getEast (),1),    //BdownAup
-        is_bit_set(getNorth (),2)&is_bit_set(getWest (),2),    //BdownAdown
-        is_bit_set(getNorth (),2)&is_bit_set(getNorth (),1),   //BdownBup
-        is_bit_set(getNorth (),2)&is_bit_set(getSouth (),2)}}; //BdownBdown
+      {{is_bit_set(getLowerA (),1)&is_bit_set(getHigherA (),1),   //AupAup
+        is_bit_set(getLowerA (),1)&is_bit_set(getLowerA (),2),    //AupAdown
+        is_bit_set(getLowerA (),1)&is_bit_set(getHigherB (),1),   //AupBup
+        is_bit_set(getLowerA (),1)&is_bit_set(getLowerB (),2)},   //AupBdown
+       {is_bit_set(getHigherA (),2)&is_bit_set(getHigherA (),1),  //AdownAup
+        is_bit_set(getHigherA (),2)&is_bit_set(getLowerA (),2),   //AdownAdown
+        is_bit_set(getHigherA (),2)&is_bit_set(getHigherB (),1),  //AdownBup
+        is_bit_set(getHigherA (),2)&is_bit_set(getLowerB (),2)},  //AdownBdown
+       {is_bit_set(getLowerB (),1)&is_bit_set(getHigherA (),1),   //BupAup
+        is_bit_set(getLowerB (),1)&is_bit_set(getLowerA (),2),    //BupAdown
+        is_bit_set(getLowerB (),1)&is_bit_set(getHigherB (),1),   //BupBup
+        is_bit_set(getLowerB (),1)&is_bit_set(getLowerB (),2)},   //BupBdown
+       {is_bit_set(getHigherB (),2)&is_bit_set(getHigherA (),1),  //BdownAup
+        is_bit_set(getHigherB (),2)&is_bit_set(getLowerA (),2),   //BdownAdown
+        is_bit_set(getHigherB (),2)&is_bit_set(getHigherB (),1),  //BdownBup
+        is_bit_set(getHigherB (),2)&is_bit_set(getLowerB (),2)}}; //BdownBdown
    m_matrix.setValues (matrix);
    // Transforming the matrix
    //m_matrix.transform ();
 
    // Checking whether the connectivity code is searched for a dual and a 
    // simple street
-   if ((getWest () == 3 && getEast () == 3) &&
-       (getSouth () == 1 && getNorth () == 1))  {
+   /*if ((getLowerA () == 3 && getHigherA () == 3) &&
+       (getLowerB () == 1 && getHigherB () == 1))  {
       m_matrix.shrinkTo3x3Mat (3);
-   } else if ((getWest () == 3 && getEast () == 3) &&
-              (getSouth () == 2 && getNorth () == 2))  {
+   } else if ((getLowerA () == 3 && getHigherA () == 3) &&
+              (getLowerB () == 2 && getHigherB () == 2))  {
       m_matrix.shrinkTo3x3Mat (2);
-   } else if ((getWest () == 1 && getEast () == 1) && 
-              (getSouth () == 3 && getNorth () == 3))  {
+   } else if ((getLowerA () == 1 && getHigherA () == 1) && 
+              (getLowerB () == 3 && getHigherB () == 3))  {
       m_matrix.shrinkTo3x3Mat (1);
-   } else if ((getWest () == 2 && getEast () == 2) && 
-              (getSouth () == 3 && getNorth () == 3))  {
+   } else if ((getLowerA () == 2 && getHigherA () == 2) && 
+              (getLowerB () == 3 && getHigherB () == 3))  {
       m_matrix.shrinkTo3x3Mat (0);
-   }
+   }*/
    // if the junction lies between two simple streets the code is ignored
    // anyway
    m_matrix.computeConnCode ();
@@ -152,9 +203,9 @@ int ConnCodeFinder::getConnCode () const
    return m_connCode;
 }
 
-void ConnCodeFinder::printVerticalArrows (int iNorthSouth)
+void ConnCodeFinder::printVerticalArrows (int b)
 {
-   switch (iNorthSouth)  {
+   switch (b)  {
       case (0):
           std::cout << " ×" << std::endl; break;
       case (1):
@@ -169,9 +220,9 @@ void ConnCodeFinder::printVerticalArrows (int iNorthSouth)
    }
 }
 
-void ConnCodeFinder::printHorizontalArrows (int iWestEast)
+void ConnCodeFinder::printHorizontalArrows (int a)
 {
-   switch (iWestEast)  {
+   switch (a)  {
       case (0):
           std::cout << "×"; break;
       case (1):
@@ -191,11 +242,12 @@ void ConnCodeFinder::printAllConnectivityCodes ()
    ConnCodeFinder *ccFinder = NULL;
    //std::cout <<  "256 Fälle - 13 Fälle, in denen sich keine
    //  2 Straßen kreuzen" << std::endl;
-   for (int iWest = 0; iWest < 4; ++iWest)  {
-      for (int iNorth = 0; iNorth < 4; ++iNorth)  {
-         for (int iEast = 0; iEast < 4; ++iEast)  {
-            for (int iSouth = 0; iSouth < 4; ++iSouth)  {
-               ccFinder = new ConnCodeFinder (iWest, iNorth, iEast, iSouth);
+   for (int iLowerA = 0; iLowerA < 4; ++iLowerA)  {
+      for (int iHigherB = 0; iHigherB < 4; ++iHigherB)  {
+         for (int iHigherA = 0; iHigherA < 4; ++iHigherA)  {
+            for (int iLowerB = 0; iLowerB < 4; ++iLowerB)  {
+               ccFinder = new ConnCodeFinder (iLowerA, iHigherB, iHigherA,
+                  iLowerB);
                   if (ccFinder->isJunctionBtwAtLeastTwoSections ()) {
                        ccFinder->print (); 
                   }
@@ -209,42 +261,42 @@ void ConnCodeFinder::printAllConnectivityCodes ()
 // --- Methods
 bool ConnCodeFinder::isJunctionBtwAtLeastTwoSections () const
 {
-   return !((getWest () == 0 && getNorth () == 0 && 
-             getEast () == 0 && getSouth () == 0) ||
-            (getWest () == 0 && getNorth () == 0 && getEast () == 0) ||
-            (getWest () == 0 && getNorth () == 0 && getSouth () == 0) ||
-            (getWest () == 0 && getEast () == 0 && getSouth () == 0) ||
-            (getNorth () == 0 && getEast () == 0 && getSouth () == 0));
+   return !((getLowerA () == 0 && getHigherB () == 0 && 
+             getHigherA () == 0 && getLowerB () == 0) ||
+            (getLowerA () == 0 && getHigherB () == 0 && getHigherA () == 0) ||
+            (getLowerA () == 0 && getHigherB () == 0 && getLowerB () == 0) ||
+            (getLowerA () == 0 && getHigherA () == 0 && getLowerB () == 0) ||
+            (getHigherB () == 0 && getHigherA () == 0 && getLowerB () == 0));
 }
 
-int ConnCodeFinder::getWest () const
+int ConnCodeFinder::getLowerA () const
 {
-   return m_west;
+   return m_lowerA;
 }
 
-int ConnCodeFinder::getNorth () const
+int ConnCodeFinder::getHigherB () const
 {
-   return m_north;
+   return m_higherB;
 }
 
-int ConnCodeFinder::getEast () const
+int ConnCodeFinder::getHigherA () const
 {
-   return m_east;
+   return m_higherA;
 }
 
-int ConnCodeFinder::getSouth () const
+int ConnCodeFinder::getLowerB () const
 {
-   return m_south;
+   return m_lowerB;
 }
 
 void ConnCodeFinder::print () const
 {
-   printVerticalArrows (getNorth ()); 
-   printHorizontalArrows (getWest ());
+   printVerticalArrows (getHigherB ()); 
+   printHorizontalArrows (getLowerA ());
    std::cout << "  ";
-   printHorizontalArrows (getEast ());
+   printHorizontalArrows (getHigherA ());
    std::cout << std::endl;
-   printVerticalArrows (getSouth ());
+   printVerticalArrows (getLowerB ());
    std::cout << std::endl;
    m_matrix.print ();
    std::cout << "Dezimalwert: " << getConnCode () << std::endl; 
