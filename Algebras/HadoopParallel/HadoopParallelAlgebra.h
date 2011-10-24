@@ -164,7 +164,7 @@ private:
   TupleBuffer *joinedTuples;
   GenericRelationIterator *tupleIterator;
 
-  GenericRelationIterator* getNewProducts();
+  GenericRelationIterator* getNewProducts( Supplier s);
 
 public:
   phjLocalInfo(Word _stream, Supplier s,
@@ -191,7 +191,7 @@ public:
     tupleIterator = 0;
   }
 
-  Word nextJoinTuple();
+  Word nextJoinTuple( Supplier s );
 };
 
 

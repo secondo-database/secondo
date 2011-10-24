@@ -62,9 +62,9 @@ namespace extrel2
  const double HybridHashJoinProgressLocalInfo::t_result = 0.0044;
 
 
-HybridHashJoinProgressLocalInfo::HybridHashJoinProgressLocalInfo()
+HybridHashJoinProgressLocalInfo::HybridHashJoinProgressLocalInfo( Supplier s )
 : ProgressLocalInfo()
-, maxOperatorMemory(qp->MemoryAvailableForOperator())
+, maxOperatorMemory((qp->GetMemorySize(s) * 1024 * 1024))
 , tuplesProcessedSinceLastResult(0)
 , traceMode(false)
 {
@@ -535,7 +535,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
   progress->state = 0;
 
   // Set operator's main memory
-  setMemory(maxMemSize);
+  setMemory(maxMemSize, s);
 
   // Set I/O buffer size for tuple buffers
   setIoBuffer(ioBufferSize);
@@ -723,11 +723,11 @@ void HybridHashJoinAlgorithm::setIoBuffer(size_t bytes)
   }
 }
 
-void HybridHashJoinAlgorithm::setMemory(size_t maxMemory)
+void HybridHashJoinAlgorithm::setMemory(size_t maxMemory, Supplier s)
 {
   if ( maxMemory == UINT_MAX )
   {
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
   }
   else if ( maxMemory < MIN_USER_DEF_MEMORY )
   {
@@ -1069,7 +1069,7 @@ int HybridHashJoinValueMap( Word* args, Word& result,
         delete li;
       }
 
-      li = new HybridHashJoinLocalInfo();
+      li = new HybridHashJoinLocalInfo( s );
       local.addr = li;
 
       // at this point the local value is well defined

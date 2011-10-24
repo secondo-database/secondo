@@ -2073,7 +2073,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       Word& local, Supplier s)
   {
     Word elem;
-    const size_t MAX_MEMORY = qp->MemoryAvailableForOperator();
+    const size_t MAX_MEMORY = qp->FixedMemory();
     TupleBuffer* buffer = new TupleBuffer(MAX_MEMORY);
 
     // The query processor provided an empty Histogram2d-instance:
@@ -2867,7 +2867,7 @@ Argument 0 Histogram2d, 1 real value
       size_t i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
       bool newRelation = true;
 
-      MAX_MEMORY = qp->MemoryAvailableForOperator();
+      MAX_MEMORY = qp->FixedMemory();
       cmsg.info("ERA:ShowMemInfo")
       << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
       cmsg.send();
@@ -3173,7 +3173,7 @@ Argument 0 Histogram2d, 1 real value
       size_t i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
       bool newRelation = true;
 
-      MAX_MEMORY = qp->MemoryAvailableForOperator();
+      MAX_MEMORY = qp->FixedMemory();
       cmsg.info("ERA:ShowMemInfo")
       << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
       cmsg.send();

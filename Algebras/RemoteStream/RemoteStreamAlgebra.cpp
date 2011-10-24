@@ -678,11 +678,11 @@ TReceiveStream(Word* args, Word& result,
       tupleBuffer = 0;
     }
 
-    Tuple* LoadTuples(char* buf, u_int32_t curPos)
+    Tuple* LoadTuples(char* buf, u_int32_t curPos, Supplier s)
     {
 
       tupleBuffer = new TupleBuffer(
-          qp->MemoryAvailableForOperator());
+          (qp->GetMemorySize(s) * 1024 * 1024));
 
       u_int32_t offset = 0;
       Tuple* tuple = 0;
@@ -790,7 +790,7 @@ TReceiveStream(Word* args, Word& result,
           {
             offset += SOCKTUP_SIZE;
             //Load the tuples from the buffer
-            tuple = remoteStreamInfo->LoadTuples(tupleBlock, offset);
+            tuple = remoteStreamInfo->LoadTuples(tupleBlock, offset, s);
             if (tuple)
             {
               result.setAddr(tuple);
@@ -889,6 +889,7 @@ class RemoteStreamAlgebra : public Algebra
     TSend.SetUsesArgsInTypeMapping();
     AddOperator( &TReceive );
     TReceive.SetUsesArgsInTypeMapping();
+    TReceive.SetUsesMemory();
   }
   ~RemoteStreamAlgebra() {};
 };

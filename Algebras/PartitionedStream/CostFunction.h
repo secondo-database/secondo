@@ -223,7 +223,7 @@ class CostFunction {
     index(inIndex),
     scale(inScale)
   {
-    maxMem = qp->MemoryAvailableForOperator();
+    maxMem = qp->FixedMemory();
   }    
   virtual ~CostFunction() {} 
     

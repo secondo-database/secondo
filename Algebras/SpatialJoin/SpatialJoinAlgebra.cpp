@@ -407,8 +407,8 @@ SpatialJoin2LocalInfo<dim>::SpatialJoin2LocalInfo(
   r[1].isRel = _isRR;
   r[1].streamWord = rightStreamWord;
 
-  scanStream(aiLeft, leftStream);
-  scanStream(aiRight, rightStream);
+  scanStream(aiLeft, leftStream, s);
+  scanStream(aiRight, rightStream, s);
   joinBox =
       new Rectangle<dim>(r[0].MBR->Intersection(*(r[1].MBR)));
 
@@ -564,7 +564,7 @@ we enlarge the cell size for 2D space with 10 times.
 template<unsigned dim>
 void
 SpatialJoin2LocalInfo<dim>::scanStream( int attrIndex,
-                                       streamType loc)
+                                       streamType loc, Supplier s )
 {
   Rectangle<dim> *MBR = 0;
   r[loc].streamBuffer = 0;
@@ -612,7 +612,7 @@ SpatialJoin2LocalInfo<dim>::scanStream( int attrIndex,
     qp->Open(r[loc].streamWord.addr);
     qp->Request(r[loc].streamWord.addr, streamTupleWord);
     r[loc].streamBuffer =
-        new TupleBuffer2(qp->MemoryAvailableForOperator());
+        new TupleBuffer2((qp->GetMemorySize(s) * 1024 * 1024));
     while (qp->Received(r[loc].streamWord.addr))
     {
       Tuple *nextTup = (Tuple*)streamTupleWord.addr;
@@ -1567,7 +1567,9 @@ class SpatialJoinAlgebra : public Algebra
   SpatialJoinAlgebra() : Algebra()
   {
     AddOperator(&spatialjoin2);
+      spatialjoin2.SetUsesMemory();
     AddOperator(&parajoin2);
+      parajoin2.SetUsesMemory();
 
     // AddOperator(paraJoin2Info(),
     //    paraJoin2ValueMap, paraJoin2TypeMap);

@@ -1162,9 +1162,9 @@ Returns the partition size in bytes including FLOBs.
 
 */
 
-    inline bool Overflows()
+    inline bool Overflows( Supplier s)
     {
-      return ( this->GetTotalExtSize() > qp->MemoryAvailableForOperator() );
+      return ( this->GetTotalExtSize() > (qp->GetMemorySize(s) * 1024 * 1024) );
     }
 /*
 Returns true if the partition's size exceeds ~maxMemorySize~.

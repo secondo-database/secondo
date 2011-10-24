@@ -122,7 +122,7 @@ class SortByLocalInfo2 : protected ProgressWrapper
     c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
     newRelation = true;
 
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = qp->FixedMemory();
     cmsg.info("ERA:ShowMemInfo")
       << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
     cmsg.send();
@@ -821,7 +821,7 @@ public:
                 SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = qp->FixedMemory();
 
     cmsg.info("ERA:ShowMemInfo")
       << "MergeJoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;

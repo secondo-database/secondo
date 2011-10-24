@@ -72,8 +72,14 @@ namespace hgr
   AddOperator(CreateHistogram2dEquiwidthInfo(),
     CreateHistogram2dEquiwidthFun, CreateHistogram2dEquiwidthTypeMap);
 
+  Operator* create_histogram1d_equicount =
   AddOperator(CreateHistogram1dEquicountInfo(),
       CreateHistogram1dEquicountFun, CreateHistogram1dEquicountTypeMap);
+    create_histogram1d_equicount->SetUsesMemory();
+
+
+
+
   AddOperator(CreateHistogram2dEquicountInfo(),
       CreateHistogram2dEquicountFun, CreateHistogram2dEquicountTypeMap);
 

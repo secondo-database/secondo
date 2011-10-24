@@ -890,9 +890,10 @@ class SortAlgorithm
     SortAlgorithm( Word stream,
                    const SortOrderSpecification& spec,
                    SortProgressLocalInfo* p,
+                   Supplier s,
                    size_t maxFanIn = UINT_MAX,
                    size_t maxMemSize = UINT_MAX,
-                   size_t ioBufferSize = UINT_MAX );
+                   size_t ioBufferSize = UINT_MAX);
 /*
 The constructor. Consumes all tuples of the tuple stream ~stream~ immediately
 into sorted runs of approximately two times the size of the operators main
@@ -928,11 +929,11 @@ have been processed the method returns 0.
 
   private:
 
-    void setMemory(size_t maxMemory);
+    void setMemory(size_t maxMemory, Supplier s);
 /*
 Sets the usable main memory for the operator in bytes. If ~maxMemory~
 has value ~UINT\_MAX~ the usable main memory is requested from the
-query processor.
+query processor which reads it from the operator's node.
 
 */
 

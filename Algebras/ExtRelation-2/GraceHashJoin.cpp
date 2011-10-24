@@ -67,9 +67,9 @@ const double GraceHashJoinProgressLocalInfo::t_result = 0.0044;
 
 */
 
-GraceHashJoinProgressLocalInfo::GraceHashJoinProgressLocalInfo()
+GraceHashJoinProgressLocalInfo::GraceHashJoinProgressLocalInfo( Supplier s )
 : ProgressLocalInfo()
-, maxOperatorMemory(qp->MemoryAvailableForOperator())
+, maxOperatorMemory((qp->GetMemorySize(s) * 1024 * 1024))
 , tuplesProcessedSinceLastResult(0)
 , traceMode(false)
 {
@@ -503,7 +503,7 @@ GraceHashJoinAlgorithm::GraceHashJoinAlgorithm( Word streamA,
   progress->state = 0;
 
   // Set operator's main memory
-  setMemory(maxMemSize);
+  setMemory(maxMemSize, s);
 
   // Set I/O buffer size for tuple buffers
   setIoBuffer(ioBufferSize);
@@ -687,11 +687,11 @@ void GraceHashJoinAlgorithm::setIoBuffer(size_t bytes)
   }
 }
 
-void GraceHashJoinAlgorithm::setMemory(size_t maxMemory)
+void GraceHashJoinAlgorithm::setMemory(size_t maxMemory, Supplier s)
 {
   if ( maxMemory == UINT_MAX )
   {
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
   }
   else if ( maxMemory < MIN_USER_DEF_MEMORY )
   {
@@ -980,7 +980,7 @@ int GraceHashJoinValueMap( Word* args, Word& result,
         delete li;
       }
 
-      li = new GraceHashJoinLocalInfo();
+      li = new GraceHashJoinLocalInfo( s );
       local.addr = li;
 
       // at this point the local value is well defined

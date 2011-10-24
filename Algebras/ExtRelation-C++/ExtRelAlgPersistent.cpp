@@ -285,7 +285,7 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
         li->ptr = new SortByLocalInfo( args[0],
 		                     lexicographically,
-                                     tupleCmp, li       );
+                                     tupleCmp, li, s    );
       }
 
       SortByLocalInfo* sli = li->ptr;
@@ -562,7 +562,7 @@ public:
     cmp = 0;
     continueMerge = false;
 
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
     grpB = new TupleBuffer( MAX_MEMORY );
 
     cmsg.info("ERA:ShowMemInfo")
@@ -925,13 +925,13 @@ public:
       progress->firstLocalInfo = liA;
       sliA = new SortByLocalInfo( streamA,
 				  false,
-				  tupleCmpA, liA );
+				  tupleCmpA, liA, s );
 
       liB = new LocalInfo<SortByLocalInfo>();
       progress->secondLocalInfo = liB;
       sliB = new SortByLocalInfo( streamB,
 				  false,
-				  tupleCmpB, liB );
+				  tupleCmpB, liB, s );
 
     }
 
@@ -949,7 +949,7 @@ public:
     cmp = 0;
     continueMerge = false;
 
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
     grpB = new TupleBuffer( MAX_MEMORY );
 
     cmsg.info("ERA:ShowMemInfo")
@@ -1402,7 +1402,7 @@ private:
 
   bool FillHashBucketsB()
   {
-    bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
+    bucketsB_Mem = (3 * (qp->GetMemorySize(s) * 1024 * 1024))/4;
     if( firstPassA )
     {
       qp->Request(streamB.addr, wTupleB);
@@ -1411,12 +1411,12 @@ private:
         // reserve 3/4 of memory for buffering tuples of B;
         // Before retrieving the allowed memory size from the
         // configuration file it was set to 12MB for B and 4MB for A (see below)
-        relA_Mem = qp->MemoryAvailableForOperator()/4;
+        relA_Mem = (qp->GetMemorySize(s) * 1024 * 1024)/4;
 
 	if (showMemInfo) {
         cmsg.info()
           << "HashJoin.MAX_MEMORY ("
-          << qp->MemoryAvailableForOperator()/1024
+          << (qp->GetMemorySize(s) * 1024 * 1024)/1024
           << " kb - A: " << relA_Mem/1024 << "kb B: "
           << bucketsB_Mem/1024 << "kb)" << endl
           << "Stream A is stored in a Tuple Buffer" << endl;
@@ -1483,8 +1483,8 @@ public:
     attrIndexA = StdTypes::GetInt( attrIndexAWord ) - 1;
     attrIndexB = StdTypes::GetInt( attrIndexBWord ) - 1;
     nBuckets = StdTypes::GetInt( nBucketsWord );
-    if(nBuckets > qp->MemoryAvailableForOperator() / 1024)
-      nBuckets = qp->MemoryAvailableForOperator() / 1024;
+    if(nBuckets > qp->GetMemorySize(s) * 1024  // in kB
+      nBuckets = qp->GetMemorySize(s) * 1024;  // in KB
     if(nBuckets < MIN_BUCKETS)
       nBuckets = MIN_BUCKETS;
 
@@ -1733,9 +1733,9 @@ private:
     }
   }
 
-  bool FillHashBucketsB()
+  bool FillHashBucketsB( Supplier s)
   {
-    bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
+    bucketsB_Mem = (3 * (qp->GetMemorySize(s) * 1024 * 1024)) /4; // in bytes
     if( firstPassA )
     {
       qp->Request(streamB.addr, wTupleB);
@@ -1744,7 +1744,7 @@ private:
         // reserve 3/4 of memory for buffering tuples of B;
         // Before retrieving the allowed memory size from the
         // configuration file it was set to 12MB for B and 4MB for A (see below)
-        relA_Mem = qp->MemoryAvailableForOperator()/4;
+        relA_Mem = (qp->GetMemorySize(s) * 1024 * 1024)/4; // in bytes
 
 	progress->memoryFirst = relA_Mem;
 	progress->memorySecond = bucketsB_Mem;
@@ -1752,7 +1752,7 @@ private:
 	if (showMemInfo) {
         cmsg.info()
           << "HashJoin.MAX_MEMORY ("
-          << qp->MemoryAvailableForOperator()/1024
+          << (qp->GetMemorySize(s) * 1024 * 1024)/1024
           << " kb - A: " << relA_Mem/1024 << "kb B: "
           << bucketsB_Mem/1024 << "kb)" << endl
           << "Stream A is stored in a Tuple Buffer" << endl;
@@ -1821,8 +1821,8 @@ public:
     attrIndexA = StdTypes::GetInt( attrIndexAWord ) - 1;
     attrIndexB = StdTypes::GetInt( attrIndexBWord ) - 1;
     nBuckets = StdTypes::GetInt( nBucketsWord );
-    if(nBuckets > qp->MemoryAvailableForOperator() / 1024)
-      nBuckets = qp->MemoryAvailableForOperator() / 1024;
+    if(nBuckets > qp->GetMemorySize(s) * 1024) // in kB
+      nBuckets = qp->GetMemorySize(s) * 1024;  // in kB
     if(nBuckets < MIN_BUCKETS)
       nBuckets = MIN_BUCKETS;
 
@@ -1834,7 +1834,7 @@ public:
 
 
     streamBClosed = false;
-    remainTuplesB = FillHashBucketsB();
+    remainTuplesB = FillHashBucketsB(s);
     bFitsInMemory  = !remainTuplesB;
 
     if( !bFitsInMemory )
@@ -1935,7 +1935,7 @@ bucket that the tuple coming from A hashes is also initialized.
     return true;
   }
 
-  Tuple* NextResultTuple()
+  Tuple* NextResultTuple( Supplier s)
   {
     while( tupleA != 0 )
     {
@@ -1963,7 +1963,7 @@ bucket that the tuple coming from A hashes is also initialized.
 	    cmsg.send();
           }
           ClearBucketsB();
-          remainTuplesB = FillHashBucketsB();
+          remainTuplesB = FillHashBucketsB(s);
           iterTuplesRelA = relA->MakeScan();
           NextTupleA();
         }
@@ -2020,7 +2020,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       hli = li->ptr;
-      result.setAddr( hli->NextResultTuple() );
+      result.setAddr( hli->NextResultTuple(s) );
       li->returned++;
 
       return result.addr != 0 ? YIELD : CANCEL;

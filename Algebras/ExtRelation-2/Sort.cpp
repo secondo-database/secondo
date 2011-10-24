@@ -361,9 +361,10 @@ SortProgressLocalInfo::SortProgressLocalInfo()
 SortAlgorithm::SortAlgorithm( Word stream,
                               const SortOrderSpecification& spec,
                               SortProgressLocalInfo* p,
+                              Supplier s,
                               size_t maxFanIn,
                               size_t maxMemSize,
-                              size_t ioBufferSize )
+                              size_t ioBufferSize)
 : F0(0)
 , W(0)
 , nextRunNumber(1)
@@ -385,7 +386,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
   setMaxFanIn(maxFanIn);
 
   // Check specified main memory for this operation
-  setMemory(maxMemSize);
+  setMemory(maxMemSize, s);
 
   // Check I/O buffer size for this operation
   setIoBuffer(ioBufferSize);
@@ -543,11 +544,11 @@ SortAlgorithm::~SortAlgorithm()
   }
 }
 
-void SortAlgorithm::setMemory(size_t maxMemory)
+void SortAlgorithm::setMemory(size_t maxMemory, Supplier s)
 {
   if ( maxMemory == UINT_MAX )
   {
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = qp->GetMemorySize(s) * 1024 * 1024; // in bytes
   }
   else if ( maxMemory < SORT_MINIMUM_MEMORY )
   {
@@ -970,11 +971,11 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           size_t mem = maxMemSize < 0 ? UINT_MAX : (size_t)maxMemSize;
           size_t buf = ioBufferSize < 0 ? UINT_MAX : (size_t)ioBufferSize;
 
-          li->ptr = new SortAlgorithm(args[0], spec, li, fan, mem, buf);
+          li->ptr = new SortAlgorithm(args[0], spec, li, s, fan, mem, buf);
         }
         else
         {
-          li->ptr = new SortAlgorithm(args[0], spec, li);
+          li->ptr = new SortAlgorithm(args[0], spec, li, s);
         }
       }
 

@@ -200,11 +200,11 @@ If all tuples have been processed the method returns 0.
 
 */
 
-    void setMemory(size_t maxMemory);
+    void setMemory(size_t maxMemory, Supplier s);
 /*
 Sets the usable main memory for the operator in bytes. If ~maxMemory~
 has value ~UINT\_MAX~ the usable main memory is requested from the
-query processor.
+query processor which reads it from the operator's node.
 
 */
 

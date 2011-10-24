@@ -62,7 +62,7 @@ private:
     double avgSize[dim];
   }r[2];
 
-  void scanStream(int attrIndex, streamType loc);
+  void scanStream(int attrIndex, streamType loc, Supplier s);
 
 public:
   SpatialJoin2LocalInfo(Word leftStreamWord, bool isLRel,
@@ -187,7 +187,7 @@ public:
     qp->SetupStreamArg(pf, 2, s);
     qp->Open(pf);
 
-    maxMem = qp->MemoryAvailableForOperator();
+    maxMem = (qp->GetMemorySize(s) * 1024 * 1024);
   }
 
   ~pj2LocalInfo()

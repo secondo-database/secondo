@@ -1358,7 +1358,7 @@ VarValueMapping(Word* args, Word& result, int message,
 {
   TupleBuffer *tp = 0;
   GenericRelationIterator *relIter = 0;
-  long MaxMem = qp->MemoryAvailableForOperator();
+  long MaxMem = qp->FixedMemory();
 
   T sum = 0;
   int number = 0;
@@ -1678,7 +1678,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
 
   TupleBuffer *tp = 0;
   GenericRelationIterator *relIter = 0;
-  long MaxMem = qp->MemoryAvailableForOperator();
+  long MaxMem = qp->FixedMemory();
 
   bool *finished = 0;
   TupleType *resultTupleType = 0;
@@ -7636,7 +7636,7 @@ int GroupByValueMapping
         gbli->t->IncReference();
         ListExpr resultType = GetTupleResultType( supplier );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
-        gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
+        gbli->MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
         local.setAddr(gbli);
 
         cmsg.info("ERA:ShowMemInfo")
@@ -7825,9 +7825,9 @@ public:
 };
 
 int GroupByValueMapping
-(Word* args, Word& result, int message, Word& local, Supplier supplier)
+(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Tuple *s = 0;
+  Tuple *ss = 0;
   Word sWord(Address(0));
   TupleBuffer* tp = 0;
   GenericRelationIterator* relIter = 0;
@@ -7892,9 +7892,9 @@ int GroupByValueMapping
         gbli->read++;
         gbli->t = (Tuple*)sWord.addr;
         //gbli->t->IncReference();
-        ListExpr resultType = GetTupleResultType( supplier );
+        ListExpr resultType = GetTupleResultType( s );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
-        gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
+        gbli->MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
 
 
         cmsg.info("ERA:ShowMemInfo")
@@ -7930,7 +7930,7 @@ int GroupByValueMapping
       while ((qp->Received(args[0].addr)) && ifequal)
       {
         gbli->read++;
-        s = (Tuple*)sWord.addr;
+        ss = (Tuple*)sWord.addr;
         for (k = 0; k < numberatt; k++) // check if  tuples t = s
         {
           // loop over all grouping attributes
@@ -7938,7 +7938,7 @@ int GroupByValueMapping
             ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)gbli->t->GetAttribute(j))->
-               Compare((Attribute *)s->GetAttribute(j)))
+               Compare((Attribute *)ss->GetAttribute(j)))
           {
             ifequal = false;
             break;
@@ -7947,8 +7947,8 @@ int GroupByValueMapping
 
         if (ifequal) // store in tuple buffer
         {
-          tp->AppendTuple(s);
-          s->DeleteIfAllowed();
+          tp->AppendTuple(ss);
+          ss->DeleteIfAllowed();
           qp->Request(args[0].addr, sWord);
           // get next tuple
         }
@@ -7956,7 +7956,7 @@ int GroupByValueMapping
         {
           // store tuple pointer in local info
           gbli->t->DeleteIfAllowed();
-          gbli->t = s;
+          gbli->t = ss;
           //gbli->t->IncReference();
         }
       }
@@ -7970,16 +7970,16 @@ int GroupByValueMapping
       // create result tuple
       Tuple *t = new Tuple( gbli->resultTupleType );
       relIter = tp->MakeScan();
-      s = relIter->GetNextTuple();
+      ss = relIter->GetNextTuple();
 
       // copy in grouping attributes
       for(i = 0; i < numberatt; i++)
       {
         attribIdx =
           ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
-        t->CopyAttribute(attribIdx - 1, s, i);
+        t->CopyAttribute(attribIdx - 1, ss, i);
       }
-      s->DeleteIfAllowed();
+      ss->DeleteIfAllowed();
       value2 = (Supplier)args[2].addr; // list of functions
       noOffun  =  qp->GetNoSons(value2);
       delete relIter;
@@ -8828,9 +8828,9 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " kB): " << endl;
       cmsg.send();
       pli = new SymmJoinLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -9120,7 +9120,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
     {
 
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
@@ -9632,7 +9632,7 @@ SymmProductExtend(Word* args, Word& result,
   {
     case OPEN :
     {
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("ERA:ShowMemInfo") << "SymmProductExtend.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
@@ -10000,9 +10000,9 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " kB): " << endl;
       cmsg.send();
       pli = new SymmProductLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -11049,7 +11049,11 @@ class ExtRelationAlgebra : public Algebra
     ValueMapping varFuns[] = { VarValueMapping<int,CcInt>,
                          VarValueMapping<SEC_STD_REAL,CcReal>, 0 };
 
+    // Operator* extrelavg =
     AddOperator(avgInfo(), avgFuns, AvgSumSelect, AvgSumTypeMap<true>);
+      // extrelavg->SetUsesMemory();
+
+
     AddOperator(sumInfo(), sumFuns, AvgSumSelect, AvgSumTypeMap<false>);
 
     AddOperator(printrefsInfo(), printrefs_vm, printrefs_tm);
@@ -11067,27 +11071,38 @@ class ExtRelationAlgebra : public Algebra
 
     AddOperator(&extrelhead);
     AddOperator(&extrelsortby);
+      extrelsortby.SetUsesMemory();
     AddOperator(&extrelsort);
+      extrelsort.SetUsesMemory();
     AddOperator(&extrelrdup);
     AddOperator(&extrelmergesec);
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
+      extrelmergejoin.SetUsesMemory();
 
     AddOperator(&extrelsortmergejoin);
+      extrelsortmergejoin.SetUsesMemory();
     AddOperator(&extrelsmouterjoin);
+      extrelsmouterjoin.SetUsesMemory();
     AddOperator(&extrelhashjoin);
+      extrelhashjoin.SetUsesMemory();
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
+      extrelgroupby.SetUsesMemory();
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
+     extrelsymmjoin.SetUsesMemory();
     AddOperator(&extrelsymmouterjoin);
+      extrelsymmouterjoin.SetUsesMemory();
     AddOperator(&extrelsymmproductextend);
+      extrelsymmproductextend.SetUsesMemory();
     AddOperator(&extrelsymmproduct);
+      extrelsymmproduct.SetUsesMemory();
     AddOperator(&extrelprojectextend);
     AddOperator(&krdup);
     AddOperator(&extreladdcounter);

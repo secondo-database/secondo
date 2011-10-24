@@ -892,7 +892,7 @@ int joinRindexVM( Word* args, Word& result, int message,
                local.addr = 0;
              }
              CcInt* MaxMem = (CcInt*) args[4].addr;
-             size_t maxMem = qp->MemoryAvailableForOperator()/1024;
+             size_t maxMem = (qp->GetMemorySize(s) * 1024); // in kB
              if(MaxMem->IsDefined()  && MaxMem->GetValue()>0){
                   maxMem = MaxMem->GetValue();
              }
@@ -1058,10 +1058,13 @@ class RIndexAlgebra : public Algebra {
       AddOperator(&findRindex);
       AddOperator(&statRindex);
       AddOperator(&joinRindex);
+        joinRindex.SetUsesMemory();
       AddOperator(&symmJoinRindex);
+        symmJoinRindex.SetUsesMemory();
       AddOperator(&realJoinRindex);
-
+        realJoinRindex.SetUsesMemory();
       AddOperator(&realJoinRindexVec);
+        realJoinRindexVec.SetUsesMemory();
       
    }
 };

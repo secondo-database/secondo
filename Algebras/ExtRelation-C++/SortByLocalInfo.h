@@ -78,7 +78,7 @@ class SortByLocalInfo : protected ProgressWrapper
 {
   public:
     SortByLocalInfo( Word stream, const bool lexicographic, 
-		void *tupleCmp, ProgressLocalInfo* p);
+		void *tupleCmp, ProgressLocalInfo* p, Supplier s);
 		~SortByLocalInfo();
     Tuple* NextResultTuple();		
     size_t TupleCount(){

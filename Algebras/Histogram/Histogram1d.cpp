@@ -1474,7 +1474,7 @@ The function makes use of four arguments:
       Word& local, Supplier s)
   {
     Word elem;
-    const size_t MAX_MEMORY = qp->MemoryAvailableForOperator();
+    const size_t MAX_MEMORY = qp->FixedMemory();
     TupleBuffer* buffer = new TupleBuffer(MAX_MEMORY);
 
     // The query processor provided an empty Histogram1d-instance:
@@ -2052,7 +2052,7 @@ The function makes use of four arguments:
 
       ProgressLocalInfo prog;
       SortByLocalInfo* sli = new SortByLocalInfo(args[0], false,
-                                                 tupleCmp, &prog);
+                                                 tupleCmp, &prog, s);
 
       int noTuples = sli->TupleCount();
       int noBins = noTuples / maxCategories->GetIntval();

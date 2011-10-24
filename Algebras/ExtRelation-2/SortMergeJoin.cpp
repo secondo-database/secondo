@@ -82,11 +82,11 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
   liA = new SortProgressLocalInfo();
   progress->firstLocalInfo = liA;
-  sliA = new SortAlgorithm(streamA, specA, liA);
+  sliA = new SortAlgorithm(streamA, specA, liA, s);
 
   liB = new SortProgressLocalInfo();
   progress->secondLocalInfo = liB;
-  sliB = new SortAlgorithm(streamB, specB, liB);
+  sliB = new SortAlgorithm(streamB, specB, liB, s);
 
   ListExpr resultType =
               SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
@@ -97,7 +97,7 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
   ptB.setTuple( NextTupleB() );
 
   // set available main memory (MAX_MEMORY)
-  setMemory(maxMemSize);
+  setMemory(maxMemSize, s);
 
   grpB = new TupleBuffer2( MAX_MEMORY );
 
@@ -151,11 +151,11 @@ SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
   resultTupleType->DeleteIfAllowed();
 }
 
-void SortMergeJoinLocalInfo::setMemory(size_t maxMemory)
+void SortMergeJoinLocalInfo::setMemory(size_t maxMemory, Supplier s)
 {
   if ( maxMemory == UINT_MAX )
   {
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = qp->GetMemorySize(s) * 1024 * 1024; // in bytes
   }
   else if ( maxMemory < MIN_USER_DEF_MEMORY )
   {

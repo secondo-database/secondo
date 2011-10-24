@@ -332,7 +332,7 @@ public:
     cmp = 0;
     continueMerge = false;
 
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
     grpB = new TupleBuffer( MAX_MEMORY );
 
     cmsg.info("ERA:ShowMemInfo")
@@ -843,13 +843,13 @@ public:
       progress->firstLocalInfo = liA;
       sliA = new SortByLocalInfo( streamA,
                   false,
-                  tupleCmpA, liA );
+                  tupleCmpA, liA, s);
 
       liB = new LocalInfo<SortByLocalInfo>();
       progress->secondLocalInfo = liB;
       sliB = new SortByLocalInfo( streamB,
                   false,
-                  tupleCmpB, liB );
+                  tupleCmpB, liB, s );
 
     }
 
@@ -882,7 +882,7 @@ public:
     lastB = 0;
     continueMerge = false;
 
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
     grpB = new TupleBuffer( MAX_MEMORY );
 
     cmsg.info("ERA:ShowMemInfo")
@@ -1429,9 +1429,9 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " kB): " << endl;
       cmsg.send();
       pli = new SymmOuterJoinLocalInfo(args[0],args[1]);
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -1926,9 +1926,9 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
     {
 
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " kB): " << endl;
       cmsg.send();
 
 

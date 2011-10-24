@@ -735,7 +735,7 @@ int joinMMRTreeItVM( Word* args, Word& result, int message,
                    if(min<2 || max < 2*min){
                        return 0;
                    } 
-                   size_t maxMem = qp->MemoryAvailableForOperator()/1024;
+                   size_t maxMem = (qp->GetMemorySize(s) * 1024); // in kB
                    if(MaxMem->IsDefined() && MaxMem->GetValue() > 0){
                       maxMem = MaxMem->GetValue();
                    }
@@ -818,9 +818,13 @@ class MMRTreeAlgebra : public Algebra {
       AddOperator(&insertMMRTree);
       AddOperator(&statMMRTree);
       AddOperator(&realJoinMMRTree);
+        realJoinMMRTree.SetUsesMemory();
       AddOperator(&realJoinMMRTreeVec);
+        realJoinMMRTreeVec.SetUsesMemory();
       AddOperator(&joinMMRTreeIt);
+        joinMMRTreeIt.SetUsesMemory();
       AddOperator(&joinMMRTreeItVec);
+        joinMMRTreeItVec.SetUsesMemory();
 
    }
 };

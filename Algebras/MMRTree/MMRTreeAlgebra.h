@@ -441,7 +441,7 @@ int joinRTreeVM( Word* args, Word& result, int message,
                li = 0;
              }
              CcInt* MaxMem = (CcInt*) args[6].addr;
-             size_t maxMem = qp->MemoryAvailableForOperator()/1024;
+             size_t maxMem = (qp->GetMemorySize(s) * 1024); // in kB
              if(MaxMem->IsDefined() && MaxMem->GetValue() > 0){
                 maxMem = MaxMem->GetValue();
              }

@@ -4066,7 +4066,7 @@ class TailLocalInfo
         finished       ( true ),
         bufferSize     ( 0 ),
         returnedResults( 0 ),
-        buffer         ( qp->MemoryAvailableForOperator() )
+        buffer         ( qp->FixedMemory() )
       {
         // member translationTable initialized automatically
       };

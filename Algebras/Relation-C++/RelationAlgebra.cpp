@@ -3179,7 +3179,7 @@ Product(Word* args, Word& result, int message,
     case OPEN :
     {
 
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
       cmsg.info("RA:ShowMemInfo")
         << "Product.MAX_MEMORY ("
         << MAX_MEMORY/1024 << " MB): " << endl;
@@ -3355,10 +3355,10 @@ Product(Word* args, Word& result, int message,
   {
     case OPEN:
     {
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024); // in bytes
       cmsg.info("RA:ShowMemInfo")
         << "Product.MAX_MEMORY ("
-        << MAX_MEMORY/1024 << " MB): " << endl;
+        << MAX_MEMORY/1024 << " kB): " << endl;
       cmsg.send();
 
       if ( pli ) delete pli;
@@ -5887,7 +5887,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgfilter); relalgfilter.SetUsesArgsInTypeMapping();
     AddOperator(&relalgproject);
     AddOperator(&relalgremove);
-    AddOperator(&relalgproduct);
+    AddOperator(&relalgproduct); relalgproduct.SetUsesMemory();
     AddOperator(&relalgcount);
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);

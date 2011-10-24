@@ -524,7 +524,7 @@ int paraHashJoinValueMap(Word* args, Word& result,
     return 0;
   case REQUEST:
     localInfo = (phjLocalInfo*) local.addr;
-    result = localInfo->nextJoinTuple();
+    result = localInfo->nextJoinTuple( s );
 
     return result.addr !=0 ? YIELD : CANCEL;
   case CLOSE:
@@ -564,7 +564,7 @@ If there's no more tuples inside ~joinedTuples~,
 then invoke ~getNewProducts~ to get new results.
 
 */
-Word phjLocalInfo::nextJoinTuple()
+Word phjLocalInfo::nextJoinTuple( Supplier s )
 {
   Tuple *tuple;
 
@@ -579,7 +579,7 @@ Word phjLocalInfo::nextJoinTuple()
     }
   }
 
-  if ((tupleIterator = getNewProducts()) != 0)
+  if ((tupleIterator = getNewProducts( s )) != 0)
   {
     tuple = tupleIterator->GetNextTuple();
     return SetWord(tuple);
@@ -602,7 +602,7 @@ Or else, make the products, and put the result tuples into the ~joinedTuples~.
 
 */
 
-GenericRelationIterator* phjLocalInfo::getNewProducts()
+GenericRelationIterator* phjLocalInfo::getNewProducts( Supplier s) 
 {
 
   TupleBuffer *tbA = 0;
@@ -610,7 +610,7 @@ GenericRelationIterator* phjLocalInfo::getNewProducts()
   GenericRelationIterator *iteratorA = 0, *iteratorB = 0;
   Tuple *tupleA = 0, *tupleB = 0;
   string tupStr, sTupStr;
-  long MaxMem = qp->MemoryAvailableForOperator();
+  long MaxMem = (qp->GetMemorySize(s) * 1024 * 1024);
 
   //  Traverse the stream, until there is no more tuples exists,
   //  or the ~joinedTuples~ is filled.
@@ -1034,7 +1034,7 @@ int paraJoinValueMap(Word* args, Word& result,
 
     localInfo = new pjLocalInfo(args[0], args[3].addr, s,
         aTupleTypeList, bTupleTypeList,
-        qp->MemoryAvailableForOperator());
+        (qp->GetMemorySize(s) * 1024 * 1024));
 
     local.setAddr(localInfo);
     return 0;
@@ -4752,11 +4752,16 @@ public:
 
     AddOperator(doubleExportInfo(),
         doubleExportValueMap, doubleExportTypeMap);
+
+    Operator* parahashjoin =
     AddOperator(paraHashJoinInfo(),
         paraHashJoinValueMap, paraHashJoinTypeMap);
+      parahashjoin->SetUsesMemory();
 
+    Operator* parajoin =
     AddOperator(paraJoinInfo(),
         paraJoinValueMap, paraJoinTypeMap);
+      parajoin->SetUsesMemory();
 
     AddOperator(add0TupleInfo(),
         add0TupleValueMap, add0TupleTypeMap);

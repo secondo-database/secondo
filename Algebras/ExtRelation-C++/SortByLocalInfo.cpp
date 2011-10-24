@@ -74,7 +74,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
         bool newRelation = true;
 
 
-        MAX_MEMORY = qp->MemoryAvailableForOperator();
+        MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
         cmsg.info("ERA:ShowMemInfo")
           << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
         cmsg.send();
@@ -339,7 +339,7 @@ In this case we need to delete also all tuples stored in memory.
 // {
   // public:
     SortByLocalInfo::SortByLocalInfo( Word stream, const bool lexicographic,
-		     void *tupleCmp, ProgressLocalInfo* p            ):
+		     void *tupleCmp, ProgressLocalInfo* p, Supplier s ):
       ProgressWrapper(p),
       stream( stream ),
       currentIndex( 0 ),
@@ -365,7 +365,7 @@ In this case we need to delete also all tuples stored in memory.
         bool newRelation = true;
 
 
-        MAX_MEMORY = qp->MemoryAvailableForOperator();
+        MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
         cmsg.info("ERA:ShowMemInfo")
           << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
         cmsg.send();
