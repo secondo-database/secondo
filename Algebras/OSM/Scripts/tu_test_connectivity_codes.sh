@@ -25,4 +25,6 @@ do
    let i=$i+1
 done
 
-sh -c 'for i in `ls Exported/*.txt`; do echo "$i `tail -n 1 ${i}|cut -c 6-36`"|sed "s# #,#g"; done'>ConnectivityCodesVsTransitions.csv
+#sh -c 'for i in `ls Exported/*.txt`; do echo "$i `tail -n 1 ${i}|cut -c 6-36`"|sed "s# #,#g"; done'>ConnectivityCodesVsTransitions.csv
+sh -c 'i=0;while (test ${i} -lt 65636); do echo "${i} `tail -n 1 Exported/${i}.txt|cut -c 6-36`"|sed "s# #,#g"; let i=$i+1;done'>ConnectivityCodesVsTransitions.csv
+
