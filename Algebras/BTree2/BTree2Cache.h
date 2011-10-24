@@ -361,7 +361,7 @@ BTree2Cache<KEYTYPE,VALUETYPE>::BTree2Cache(BTree2* _btree) {
   // fixed sizes (do not need to call getMem etc.) Maybe useless.
   cacheWithFixedElements = false;
   cacheElementLimit = 300;
-  cacheMemoryLimit = qp->MemoryAvailableForOperator();
+  cacheMemoryLimit = qp->FixedMemory();
   cacheHitCounter = 0;
   peakCacheMemoryUsage = 0;
   peakCacheElements = 0;

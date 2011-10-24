@@ -1768,19 +1768,27 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::extrelsort); 
       extrel2::extrelsort.SetUsesMemory(); 
     AddOperator(&extrel2::extrelsortParam);
+      extrel2::extrelsortParam.SetUsesMemory(); 
 
     AddOperator(&extrel2::extrelsortby);
       extrel2::extrelsortby.SetUsesMemory(); 
     AddOperator(&extrel2::extrelsortbyParam);
+      extrel2::extrelsortbyParam.SetUsesMemory(); 
 
     AddOperator(&extrel2::extrelhybridhashjoin);
+      extrel2::extrelhybridhashjoin.SetUsesMemory();
     AddOperator(&extrel2::extrelhybridhashjoinParam);
+      extrel2::extrelhybridhashjoinParam.SetUsesMemory();
 
     AddOperator(&extrel2::extrelgracehashjoin);
+      extrel2::extrelgracehashjoin.SetUsesMemory();
     AddOperator(&extrel2::extrelgracehashjoinParam);
+      extrel2::extrelgracehashjoinParam.SetUsesMemory();
 
     AddOperator(&extrel2::extrelsortmergejoin);
+      extrel2::extrelsortmergejoin.SetUsesMemory(); 
     AddOperator(&extrel2::extrelsortmergejoinParam);
+      extrel2::extrelsortmergejoinParam.SetUsesMemory(); 
 
     AddOperator(&extrel2::tuplefiletest);
     AddOperator(&extrel2::tuplebuffer);
