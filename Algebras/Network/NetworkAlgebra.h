@@ -1332,17 +1332,17 @@ all possibilities.
                          (in_bAup_Bup && AUP_BUP) |
                          (in_bAup_Bdown && AUP_BDOWN) |
                          (in_bAdown_Aup && ADOWN_AUP) |
-                         (in_bAdown_Adown && AUP_ADOWN) |
+                         (in_bAdown_Adown && ADOWN_ADOWN) |
                          (in_bAdown_Bup && ADOWN_BUP) |
-                         (in_bAdown_Bdown && AUP_BDOWN) |
+                         (in_bAdown_Bdown && ADOWN_BDOWN) |
                          (in_bBup_Aup && BUP_AUP) |
                          (in_bBup_Adown && BUP_ADOWN) |
                          (in_bBup_Bup && BUP_BUP) |
                          (in_bBup_Bdown && BUP_BDOWN) |
                          (in_bBdown_Aup && BDOWN_AUP) |
-                         (in_bBdown_Adown && BUP_ADOWN) |
+                         (in_bBdown_Adown && BDOWN_ADOWN) |
                          (in_bBdown_Bup && BDOWN_BUP) |
-                         (in_bBdown_Bdown && BUP_BDOWN) )
+                         (in_bBdown_Bdown && BDOWN_BDOWN) )
   {
   }
 
