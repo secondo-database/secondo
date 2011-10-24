@@ -1822,9 +1822,6 @@ function index.
         if ( GetCatalog()->IsObjectName( name ) )
         {
           int algId, typeId;
-
-            cout << "GetCatalog() name = " << name << endl;
-
           GetCatalog()->GetObjectExpr( name, typeName, typeExpr,
                                        values[valueno].value,
                                        definedValue, hasNamedType );
