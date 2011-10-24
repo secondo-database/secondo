@@ -1821,7 +1821,7 @@ function index.
 
         if ( GetCatalog()->IsObjectName( name ) )
         {
-          int algId, typeId;
+          int algId, typeId; 
           GetCatalog()->GetObjectExpr( name, typeName, typeExpr,
                                        values[valueno].value,
                                        definedValue, hasNamedType );
@@ -3512,7 +3512,8 @@ the function in a database object.
   int noMemoryOperators = countMemoryOperators( tree, memorySpent );
   size_t perOperator = 0;
   if ( noMemoryOperators > 0 ) {
-    perOperator = (globalMemory - memorySpent) / noMemoryOperators;
+    if ( globalMemory > memorySpent )
+      perOperator = (globalMemory - memorySpent) / noMemoryOperators;
     if ( perOperator < 16 ) perOperator = 16;
     distributeMemory( tree, perOperator );
   }
