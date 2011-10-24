@@ -495,16 +495,16 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 
     long keyVal =
       SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator",
-                               16 * 1024, parmFile);
-    qp.SetMaxMemPerOperator(keyVal*1024);
+                               16 * 1024, parmFile);   // in kB
+    qp.SetMaxMemPerOperator(keyVal*1024);   // in bytes
     cmsg.info() << "Memory usage per operator limited by "
                 << keyVal << "kb" << endl;
 
 
-    int globalMem =
+    size_t globalMem =
       SmiProfile::GetParameter("QueryProcessor", "GlobalMemory",
-                               512, parmFile);
-    qp.SetGlobalMemory(globalMem);
+                               512, parmFile);     // in MB
+    qp.SetGlobalMemory(globalMem);   // in MB
     cmsg.info() << "Global memory limited by "
                 << globalMem << " MB" << endl;
 

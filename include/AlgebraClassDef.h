@@ -127,11 +127,11 @@ Returns a reference to the operator identified by ~index~.
 */
  protected:
   void AddTypeConstructor( TypeConstructor* tc, const bool nonstatic = false );
-  void AddOperator( Operator* op, const bool nonstatic = false );
+  Operator* AddOperator( Operator* op, const bool nonstatic = false );
 
-  void AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm);
+  Operator* AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm);
   
-  void AddOperator( OperatorInfo oi, ValueMapping vms[], 
+  Operator* AddOperator( OperatorInfo oi, ValueMapping vms[], 
 		    SelectFunction sf,TypeMapping tm);
 
 /*

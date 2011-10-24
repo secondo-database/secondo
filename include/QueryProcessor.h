@@ -533,28 +533,36 @@ Sets the debug level for the query processor. The following levels are defined:
 
 */
 
-  void SetMaxMemPerOperator(size_t value) 
-  { 
-    maxMemPerOperator = value; 
-  }
+  void SetMaxMemPerOperator(size_t value);
+
 /*
 Sets the maximum memory available per operator.
 
 */
 
-  size_t MemoryAvailableForOperator() 
-  { 
-    return maxMemPerOperator; 
-  }
+  size_t MemoryAvailableForOperator( const Supplier s );
+
 /*
 Returns the maximum memory available per operator.
 
+DEPRECATED method, not to be used any more. Just left here to produce compile errors.
+
+Use the combination of <Operator>.SetUsesMemory() and qp->GetMemorySize(s) instead.
+
 */
 
-  void SetGlobalMemory(int value) 
-  { 
-    globalMemory = value; 
-  }
+size_t FixedMemory();
+
+/*
+Replaces MemoryAvailableForOperator() for some operators that are unable to register as using memory.
+
+Usable but not recommended, will be removed.
+
+*/
+
+
+  void SetGlobalMemory(size_t value);
+
 /*
 Sets the global memory available for all operators together. To be distributed 
 by query processor or optimizer.
@@ -562,9 +570,11 @@ by query processor or optimizer.
 */
 
 
-  int GetMemorySize( const Supplier s);
+  size_t GetMemorySize( const Supplier s);
 /*
-From a given supplier ~s~ get its Memory Size
+From a given supplier ~s~ get its Memory Size.
+
+MUST be used in combination with SetUsesMemory() (see include/Operator.h) in operator registration. See for example the ExtRelationAlgebra.
 
 */
 
@@ -831,7 +841,7 @@ The maximum memory available per operator.
 
 */
 
-  int globalMemory;
+  size_t globalMemory;
 /*
 The global memory available for all operators. To be distributed by query 
 processor.

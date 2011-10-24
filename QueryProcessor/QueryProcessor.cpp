@@ -584,7 +584,7 @@ arguments. In this case the operator must
                                 //such properties, e.g. for progress est.
       bool supportsProgress;
       bool usesMemory;          // true if the operator uses a memory buffer
-      int memorySize;           // amount of memory assigned to this operator
+      size_t memorySize;        // amount of memory assigned to this operator
                                 // in MB
     } op;
   } u;
@@ -1822,6 +1822,9 @@ function index.
         if ( GetCatalog()->IsObjectName( name ) )
         {
           int algId, typeId;
+
+            cout << "GetCatalog() name = " << name << endl;
+
           GetCatalog()->GetObjectExpr( name, typeName, typeExpr,
                                        values[valueno].value,
                                        definedValue, hasNamedType );
@@ -3362,7 +3365,7 @@ Count the number of operators in the operator tree ~node~ that are registered to
 
 */
 
-  int countMemoryOperators(OpNode* node, int& spentAlready){
+  int countMemoryOperators(OpNode* node, size_t& spentAlready){
     int memOps = 0;
     if(!node){
       cout << "the tree is null" << endl;
@@ -3387,7 +3390,7 @@ Assign to each operator in the tree ~node~ that is registered as using memory an
 
 */
 
-  void distributeMemory(OpNode* node, int perMemoryOperator){
+  void distributeMemory(OpNode* node, size_t perMemoryOperator){
     if(!node){
       cout << "the tree is null" << endl;
       return;
@@ -3508,16 +3511,16 @@ the function in a database object.
   // evenly to operators using main memory. In any case such operators get
   // a minimum of 16 MB.
 
-  int memorySpent = 0;
+  size_t memorySpent = 0;
   int noMemoryOperators = countMemoryOperators( tree, memorySpent );
-  int perOperator = 0;
+  size_t perOperator = 0;
   if ( noMemoryOperators > 0 ) {
     perOperator = (globalMemory - memorySpent) / noMemoryOperators;
     if ( perOperator < 16 ) perOperator = 16;
     distributeMemory( tree, perOperator );
   }
-         // cout << "noMemoryOperators = " << noMemoryOperators << endl;
-         // cout << "perOperator = " << perOperator << endl;
+         cout << "noMemoryOperators = " << noMemoryOperators << endl;
+         cout << "perOperator = " << perOperator << endl;
          // print(cout, tree);
 
   QueryTree = tree;
@@ -4309,26 +4312,75 @@ QueryProcessor::SetPredCost( const Supplier s, const double predCost)
 }
 
 
+
 /*
-From a given supplier ~s~ get its Memory Size
+Sets the maximum memory available per operator.
+
+*/
+void QueryProcessor::SetMaxMemPerOperator(size_t value) 
+{ 
+  maxMemPerOperator = value; 
+}
+
+
+/*
+Returns the maximum memory available per operator.
+
+*/
+size_t QueryProcessor::MemoryAvailableForOperator( const Supplier s ) 
+{ 
+  cout << "MemoryAvailableForOperator = " << maxMemPerOperator;
+  assert(false);
+
+  return maxMemPerOperator; 
+}
+
+
+size_t QueryProcessor::FixedMemory()
+{
+  return 16 * 1024 * 1024;
+}
+
+/*
+Replaces MemoryAvailableForOperator() for some (very rare) operators that are unable to register as using memory. Fixed amount of 16 MB.
 
 */
 
 
-int
-QueryProcessor::GetMemorySize( const Supplier s)
-{
-  OpTree node = (OpTree) s;
-  return node->u.op.memorySize;
+
+
+/*
+Sets the global memory available for all operators together. To be distributed 
+by query processor or optimizer.
+
+*/
+void QueryProcessor::SetGlobalMemory(size_t value) 
+{ 
+  globalMemory = value; 
 }
 
 
 
+/*
+From a given supplier ~s~ get its Memory Size
 
+*/
+size_t
+QueryProcessor::GetMemorySize( const Supplier s)
+{
+  OpTree node = (OpTree) s;
 
+  if ( node->u.op.memorySize == 0 ) {
+    cout << "Operator " << node->u.op.theOperator->GetName() <<
+    " requests memory from query processor"  << endl <<
+    "although it did not register as using memory." << endl;
+    assert(false);
+  }
 
-
-
+  // cout << node->u.op.memorySize << " assigned to operator " << 
+  //   node->u.op.theOperator->GetName() << "." << endl;
+  return node->u.op.memorySize;
+}
 
 
 
