@@ -137,6 +137,8 @@ Operator::Operator( const string& nm,
   supportsProgress = false;
   requestsArgs   = false;
   usesArgsInTypeMapping = false;
+  usesMemory     = false;
+  
 
   for ( int i = 0; i < numOfFunctions; i++ ){
     calls[i] = 0;
@@ -168,6 +170,7 @@ Operator::Operator( const string& nm,
   supportsProgress = false;
   requestsArgs   = false;
   usesArgsInTypeMapping = false;
+  usesMemory     = false;
 }
 
 Operator::Operator( const OperatorInfo& oi,
@@ -197,6 +200,7 @@ Operator::Operator( const OperatorInfo& oi,
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
   usesArgsInTypeMapping = oi.usesArgsInTypeMapping ? true : false;
+  usesMemory     = oi.usesMemory;
 
 }
 
@@ -220,6 +224,7 @@ Operator::Operator( const OperatorInfo& oi,
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
   usesArgsInTypeMapping = oi.usesArgsInTypeMapping ? true : false;
+  usesMemory     = oi.usesMemory;
 
   for ( int i = 0; i < max; i++ ) {
     //cout << "Adding " << i << endl;
@@ -638,26 +643,29 @@ Algebra::AddTypeConstructor( TypeConstructor* tc,
 
 }
 
-void
+Operator*
 Algebra::AddOperator( Operator* op, const bool nonstatic /* = false */)
 {
   ops.push_back( op );
   opdel.push_back(nonstatic);
   opsNum++;
+  return op;
 }
 
-void
+Operator*
 Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
 {
   Operator* newOp = new Operator(oi, vm, tm);
-  AddOperator(newOp,true);
+  AddOperator(newOp, true);
+  return newOp;
 }
 
-void
+Operator*
 Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[],
 		      SelectFunction sf, TypeMapping tm   )
 {
   Operator* newOp = new Operator(oi, vms, sf, tm);
-  AddOperator(newOp,true);
+  AddOperator(newOp, true);
+  return newOp;
 }
 
