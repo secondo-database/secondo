@@ -27,21 +27,6 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
-# Creating one polyline from all the streets
-let allStreetsTmp =
-   extStreetsRel feed
-   projecttransformstream [geoData]
-   collect_line [TRUE];
-
-# Sorting them according to the number of their segments
-let allStreetsLine =
-   components(allStreetsTmp) transformstream
-   extend[numSeg: no_segments(.elem)]
-   sortby[numSeg desc] extract[elem];
-
-# Removing the help line
-delete allStreetsTmp;
-
 # Computing all junctions and terminating points by finding the existing
 # crossings between streets and adding terminating points
 let juncTermPts =
@@ -49,8 +34,7 @@ let juncTermPts =
     extStreetsRel feed {s2}
     spatialjoin [geoData_s1, geoData_s2]
     filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
-    extend[Crossroads: crossings(.geoData_s1, .geoData_s2)]
-    project[Crossroads]
+    projectextend[; Crossroads: crossings(.geoData_s1, .geoData_s2)]
     filter[not(isempty(.Crossroads))]
     aggregateB[Crossroads; 
        fun(P1: points, P2: points) P1 union P2; 
@@ -63,58 +47,68 @@ let juncTermPts =
           [const points value ()]]
    );
 
-# Splitting up all streets into sections and creating a relation
-let sectionsTmp =
-   allStreetsLine polylines[FALSE, juncTermPts]
-   namedtransformstream[Section]
-   addcounter[SectionId, 1]
-   extend [Help: fromline(.Section)]
-   extend [Pts: boundary(.Section)]
-   projectextend [SectionId, Section, Help; 
-      Node1: get(.Pts,0),
-      Node2: get(.Pts,1)]
+# Splitting up all streets into sections
+let stsPlusSecsTmp =
+   extStreetsRel feed
+   projectextend [; 
+      GroupId: .groupId, 
+      StreetId: .streetId,
+      Street: .geoData,
+      UndirStreet: toline(.geoData)]
+   projectextendstream [GroupId,StreetId,Street; 
+      Section: (
+         .UndirStreet polylines [FALSE,
+            intersection(juncTermPts,.UndirStreet)])]
    consume;
 
-# Removing the help line
-delete allStreetsLine;
+# Creating a relation for the sections by removing duplicates
+let sectionsTmp =
+   stsPlusSecsTmp feed
+   project [Section]
+   sortby [Section]
+   rdup
+   addcounter[SectionId, 1] 
+   extend [Pts: boundary(.Section)] 
+   projectextend [SectionId, Section;  
+      Help: fromline(.Section),
+      Node1: get(.Pts,0), 
+      Node2: get(.Pts,1)]
+   consume;
 
 # Removing the help points
 delete juncTermPts;
 
-# Collecting all nodes (junctions and end points) in one point array
-let nodesTmp =
-   sectionsTmp feed
-   projectextend[; EndPoints: boundary(.Section)]
-   aggregateB[EndPoints; 
-      fun(P1: points, P2: points) P1 union P2 ; 
-         [const points value ()]];
-
-# Adding IDs to the nodes to form a relation
+# Collecting all nodes (junctions and end points) in one point array and
+# adding IDs to the nodes to form a relation
 let nodesRel =
-   components(nodesTmp) namedtransformstream[Node]
-   addcounter[NodeId,1]
+   components(
+      sectionsTmp feed
+      projectextend[; EndPoints: boundary(.Section)]
+      aggregateB[EndPoints; 
+         fun(P1: points, P2: points) P1 union P2 ; 
+            [const points value ()]])
+   namedtransformstream [Node]
+   addcounter [NodeId,1]
    consume;
 
-# Removing the help points
-delete nodesTmp;
-
-# Adding an index for faster access
+# Adding indexes for faster access
 derive nodesRel_NodeId_btree =
    nodesRel createbtree[NodeId];
+derive nodesRel_Node_rtree =
+   nodesRel creatertree[Node];
 
 # Combining source and destination points with sections between them
 # (adding references to nodes)
 # sectionsRel: rel{SectionId: int, Section: line, Node1: point,
 #                  Node2: point, Node1Id: int, Node2Id: int}
 let sectionsRel =
-   (sectionsTmp feed {a}
-    nodesRel feed {b}
-    hashjoin[Node1_a, Node_b, 99997])
-   nodesRel feed {c}
-   hashjoin[Node2_a, Node_c, 99997]
-   projectextend [; 
-      SectionId: .SectionId_a, Section: .Section_a, Help: .Help_a,
-      Node1: .Node1_a, Node2: .Node2_a, Node1Id: .NodeId_b, Node2Id: .NodeId_c]
+   (sectionsTmp feed
+    nodesRel feed {a}
+    hashjoin[Node1, Node_a, 99997])
+   nodesRel feed {b}
+   hashjoin[Node2, Node_b, 99997]
+   projectextend [SectionId, Section, Help, Node1, Node2; 
+      Node1Id: .NodeId_a, Node2Id: .NodeId_b]
    consume;
 
 # Removing the help relation
@@ -131,44 +125,38 @@ derive sectionsRel_Section_rtree =
    sectionsRel creatertree[Section];
 
 # Creating a relation that enables linking sections to additional street
-# data like speed limits or names
-let extSectionsTmp =
-   extStreetsRel feed
-   projectextend [geoData; StreetId: .streetId, Street: toline(.geoData),
-      GroupId: .groupId]
-   sectionsRel feed
-   spatialjoin [Street,Section]
-   filter[ not(isempty(intersection(.Street,.Section))) ]
-   remove [Section]
-   extend [
-      Node1Dist: atpoint(.geoData,.Node1,TRUE),
-      Node2Dist: atpoint(.geoData,.Node2,TRUE)]
-   extend [startNode: ifthenelse(.Node1Dist < .Node2Dist, .Node1, .Node2),
-           endNode: ifthenelse(.Node1Dist < .Node2Dist, .Node2, .Node1),
-           StartNodeId: ifthenelse(.Node1Dist < .Node2Dist, .Node1Id, .Node2Id),
-           EndNodeId: ifthenelse(.Node1Dist < .Node2Dist, .Node2Id, .Node1Id)]
-   extend [Section:
-      set_startsmaller(.Help,
-         get_startsmaller(create_sline(.startNode,.endNode)))]
-#   extend [Section: create_sline(.startNode,.endNode)]
-   extend [SectionDist: size(.Section)]
-   extend [StreetDist: ifthenelse(.Node1Dist < .Node2Dist, .Node2Dist, .Node1Dist)]
-   project[SectionId, Section, StartNodeId, EndNodeId, StreetId, GroupId,
-      SectionDist, StreetDist]
-   consume;
-# Combining the order by group ID, street ID and distance on street with the
-# section ID
+# data like speed limits or names and combining the order by group ID, 
+# street ID and distance on street with the section ID
 let extSectionsRel =
-   extSectionsTmp feed
+   (stsPlusSecsTmp feed
+    projectextend [GroupId,StreetId,Street; Part: .Section]
+    sectionsRel feed
+    hashjoin [Part,Section,99997]
+    remove [Part,Section]
+    extend [
+       Node1Dist: atpoint(.Street,.Node1,TRUE),
+       Node2Dist: atpoint(.Street,.Node2,TRUE)]
+    extend [startNode: ifthenelse(.Node1Dist < .Node2Dist, .Node1, .Node2),
+            endNode: ifthenelse(.Node1Dist < .Node2Dist, .Node2, .Node1),
+            StartNodeId: ifthenelse(.Node1Dist < .Node2Dist, .Node1Id, .Node2Id),
+            EndNodeId: ifthenelse(.Node1Dist < .Node2Dist, .Node2Id, .Node1Id)]
+    extend [Section:
+       set_startsmaller(.Help,
+          get_startsmaller(create_sline(.startNode,.endNode)))]
+    projectextend[
+       SectionId, Section, StartNodeId, EndNodeId, GroupId, StreetId; 
+       StreetDist: ifthenelse(.Node1Dist < .Node2Dist,
+          .Node2Dist, .Node1Dist),
+       SectionDist: size(.Section)])
    remove [SectionId]
    sortby [GroupId,StreetId,StreetDist]
    addcounter[SectionId, 1]
    remove [StreetDist]
    consume;
 
-# Removing the help relation
-delete extSectionsTmp;
+# Removing the help relations
 delete sectionsRel;
+delete stsPlusSecsTmp;
 
 # Adding indexes for faster access
 derive extSectionsRel_SectionId_btree =
@@ -184,12 +172,13 @@ derive extSectionsRel_GroupId_btree =
 derive extSectionsRel_Section_rtree =
    extSectionsRel creatertree[Section];
 
-let streetToNumSections =
-   extSectionsRel feed
-   sortby_old [StreetId]
-   groupby [StreetId; NumSections: group count]
-   consume;
+#let streetToNumSections =
+#   extSectionsRel feed
+#   sortby [StreetId]
+#   groupby [StreetId; NumSections: group count]
+#   consume;
 
+# Extending the restrictions-relation by references to the junction points
 let extRestrictionsRel = 
    restrictionsRel feed
    nodesRel feed
@@ -198,6 +187,10 @@ let extRestrictionsRel =
    viaNodeRef: .NodeId, viaNode: .viaPoint]
    remove [fromStreet, toStreet, viaPoint, NodeId, Node]
    consume;
+
+# Removing the help relation
+delete restrictionsRel;
+
 # Splitting up the restrictions relation and distributing the restrictions to
 # different relations
 let onlyRestrictions =
