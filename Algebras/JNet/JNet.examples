@@ -26,7 +26,7 @@ Operator : createlistj
 Number   : 1
 Signature: stream(tid) -> listtid
 Example  : query createstreamj(list1tid) createlistj;
-Result   : (listtid((1) (2) (3) (4) (5)))
+Result   : (listtid(1 2 3 4 5))
 Tolerance: 0.01%
 
 Operator : createlistj
@@ -54,7 +54,7 @@ Operator : createstreamj
 Number   : 1
 Signature: listtid -> stream(tid)
 Example  : query createstreamj(list1tid) createlistj;
-Result   : (listtid((1) (2) (3) (4) (5)))
+Result   : (listtid(1 2 3 4 5))
 Tolerance: 0.01%
 
 Operator : createstreamj

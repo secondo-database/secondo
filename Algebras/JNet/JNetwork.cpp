@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JNetwork.h"
 #include "RouteLocation.h"
 #include "JRouteInterval.h"
-//#include "PairTIDRLoc.h"
 #include "PairTID.h"
 
 
@@ -613,7 +612,7 @@ string JNetwork::sectionsTypeInfo = "("+ Relation::BasicType() + "(" +
   Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
   SimpleLine::BasicType() + ") (startjunc " + TupleIdentifier::BasicType() +
   ") (endjunc " + TupleIdentifier::BasicType() + ") (listsectrint " +
-  ListPTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
+  ListPairTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
   ") (listadjsectdown " + JListTID::BasicType() + ") (listrevadjsectup " +
   JListTID::BasicType() + ") (listrevadjsectdown " + JListTID::BasicType() +
   ") (lenth " + CcReal::BasicType() +") (vmax " + CcReal::BasicType() +
@@ -621,21 +620,21 @@ string JNetwork::sectionsTypeInfo = "("+ Relation::BasicType() + "(" +
 
 string JNetwork::junctionsTypeInfo = "("+ Relation::BasicType() + "(" +
   Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
-  Point::BasicType() + ") (listjuncpos " + ListPTIDRLoc::BasicType() +
+  Point::BasicType() + ") (listjuncpos " + ListPairTIDRLoc::BasicType() +
   ") (listinsections " + JListTID::BasicType() + ") (listoutsections " +
   JListTID::BasicType() + ") (listdistances " + ListNetDistGrp::BasicType() +
   "))))";
 
 string JNetwork::routesTypeInfo = "("+ Relation::BasicType() + "(" +
   Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (listjunctions " +
-  ListPTIDRLoc::BasicType() + ") (listsections " + ListPTIDRInt::BasicType() +
-  ") (lenth " + CcReal::BasicType() + "))))";
+  ListPairTIDRLoc::BasicType() + ") (listsections " +
+  ListPairTIDRInt::BasicType() + ") (lenth " + CcReal::BasicType() + "))))";
 
 string JNetwork::sectionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
   Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
   SimpleLine::BasicType() + ") (startjunc " + TupleIdentifier::BasicType() +
   ") (endjunc " + TupleIdentifier::BasicType() + ") (listsectrint " +
-  ListPTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
+  ListPairTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
   ") (listadjsectdown " + JListTID::BasicType() + ") (listrevadjsectup " +
   JListTID::BasicType() + ") (listrevadjsectdown " + JListTID::BasicType() +
   ") (lenth " + CcReal::BasicType() +") (vmax " + CcReal::BasicType() +
@@ -645,7 +644,7 @@ string JNetwork::sectionsRTreeTypeInfo = "("+ R_Tree<2, TupleId>::BasicType() +
  "(" + Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
   SimpleLine::BasicType() + ") (startjunc " + TupleIdentifier::BasicType() +
   ") (endjunc " + TupleIdentifier::BasicType() + ") (listsectrint " +
-  ListPTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
+  ListPairTIDRInt::BasicType() + ") (listadjsectup " + JListTID::BasicType() +
   ") (listadjsectdown " + JListTID::BasicType() + ") (listrevadjsectup " +
   JListTID::BasicType() + ") (listrevadjsectdown " + JListTID::BasicType() +
   ") (lenth " + CcReal::BasicType() +") (vmax " + CcReal::BasicType() +
@@ -654,22 +653,23 @@ string JNetwork::sectionsRTreeTypeInfo = "("+ R_Tree<2, TupleId>::BasicType() +
 
 string JNetwork::junctionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
   Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
-  Point::BasicType() + ") (listjuncpos " + ListPTIDRLoc::BasicType() +
+  Point::BasicType() + ") (listjuncpos " + ListPairTIDRLoc::BasicType() +
   ") (listinsections " + JListTID::BasicType() + ") (listoutsections " +
   JListTID::BasicType() + ") (listdistances " + ListNetDistGrp::BasicType() +
   ")))" + CcInt::BasicType() + ")";
 
 string JNetwork::junctionsRTreeTypeInfo = "("+ R_Tree<2,TupleId>::BasicType() +
   "(" + Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (geoData " +
-  Point::BasicType() + ") (listjuncpos " + ListPTIDRLoc::BasicType() +
+  Point::BasicType() + ") (listjuncpos " + ListPairTIDRLoc::BasicType() +
   ") (listinsections " + JListTID::BasicType() + ") (listoutsections " +
   JListTID::BasicType() + ") (listdistances " + ListNetDistGrp::BasicType() +
   ")))" + Point::BasicType() + " FALSE)";
 
 string JNetwork::routesBTreeTypeInfo = "("+BTree::BasicType() + "(" +
   Tuple::BasicType() + "((id " + CcInt::BasicType() + ") (listjunctions " +
-  ListPTIDRLoc::BasicType() + ") (listsections " + ListPTIDRInt::BasicType() +
-  ") (lenth " + CcReal::BasicType() + ")))" + CcInt::BasicType() + ")";
+  ListPairTIDRLoc::BasicType() + ") (listsections " +
+  ListPairTIDRInt::BasicType() + ") (lenth " + CcReal::BasicType() + ")))" +
+  CcInt::BasicType() + ")";
 
 
 /*
@@ -753,7 +753,7 @@ void JNetwork::InitJunctions(const Relation* junRel)
   ListExpr junctionsNumType;
   junctions = CreateRelation(junctionsTypeInfo, junctionsNumType);
   GenericRelationIterator* itJuncRel = junRel->MakeScan();
-  ListPTIDRLoc* listRLoc = new ListPTIDRLoc(true);
+  ListPairTIDRLoc* listRLoc = new ListPairTIDRLoc(true);
   JListTID* listInSections = new JListTID(true);
   JListTID* listOutSections = new JListTID(true);
   ListNetDistGrp* listDistances = new ListNetDistGrp(true);
@@ -775,7 +775,7 @@ void JNetwork::InitJunctions(const Relation* junRel)
                            listOutSections, listDistances, junctionsNumType);
 
         //Reinitialize result tuple values
-        listRLoc = new ListPTIDRLoc(true);
+        listRLoc = new ListPairTIDRLoc(true);
         listInSections = new JListTID(true);
         listOutSections = new JListTID(true);
         listDistances = new ListNetDistGrp(true);;
@@ -832,8 +832,8 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
   int curRouteId = -1;
   SimpleLine* curRouteCurve = 0;
   JSide dir = Both;
-  ListPTIDRLoc* juncList = new ListPTIDRLoc(true);
-  ListPTIDRInt* sectList = new ListPTIDRInt(true);
+  ListPairTIDRLoc* juncList = new ListPairTIDRLoc(true);
+  ListPairTIDRInt* sectList = new ListPairTIDRInt(true);
   double curMaxSpeed = 0.0;
   bool first = true;
   while ((actRouteTup = itRoutesRel->GetNextTuple()) != 0)
@@ -846,8 +846,8 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
         //Write Tuple to routes Relation
         WriteRoutesTuple(curRouteId, curRouteLength, juncList, sectList,
                          routesNumType);
-        juncList = new ListPTIDRLoc(true);
-        sectList = new ListPTIDRInt(true);
+        juncList = new ListPairTIDRLoc(true);
+        sectList = new ListPairTIDRInt(true);
       }
       first = false;
       //initialize result tuple values
@@ -923,9 +923,9 @@ void JNetwork::UpdateJunctions()
   {
     vector<int> indices;
     vector<Attribute*> attrs;
-    ListPTIDRLoc* listRLocOld =
-      (ListPTIDRLoc*) actJunction->GetAttribute(JUNC_LIST_ROUTEPOSITIONS);
-    ListPTIDRLoc* listRLocNew = new ListPTIDRLoc(true);
+    ListPairTIDRLoc* listRLocOld =
+      (ListPairTIDRLoc*) actJunction->GetAttribute(JUNC_LIST_ROUTEPOSITIONS);
+    ListPairTIDRLoc* listRLocNew = new ListPairTIDRLoc(true);
     JListTID* listInSections = new JListTID(true);
     JListTID* listOutSections = new JListTID(true);
     PairTIDRLoc pairRLoc;
@@ -939,8 +939,8 @@ void JNetwork::UpdateJunctions()
       listRLocNew->Append(pairRLoc);
       //Fill Lists of in and out sections
       Tuple* actRoute = routes->GetTuple(rtid,false);
-      ListPTIDRInt* listRouteSections =
-      (ListPTIDRInt*) actRoute->GetAttribute(ROUTE_LIST_SECTIONS);
+      ListPairTIDRInt* listRouteSections =
+      (ListPairTIDRInt*) actRoute->GetAttribute(ROUTE_LIST_SECTIONS);
       PairTIDRInt actRouteInterval;
       for (int j = 0; j < listRouteSections->GetNoOfComponents(); j++)
       {
@@ -1001,9 +1001,9 @@ void JNetwork::UpdateSections()
   {
     vector<int> indices;
     vector<Attribute*> attrs;
-    ListPTIDRInt* listSectOld =
-      (ListPTIDRInt*) actSection->GetAttribute(SEC_LIST_ROUTEINTERVALS);
-    ListPTIDRInt* listSectNew = new ListPTIDRInt(true);
+    ListPairTIDRInt* listSectOld =
+      (ListPairTIDRInt*) actSection->GetAttribute(SEC_LIST_ROUTEINTERVALS);
+    ListPairTIDRInt* listSectNew = new ListPairTIDRInt(true);
     PairTIDRInt actPTIDRI;
     for (int i = 0 ; i < listSectOld->GetNoOfComponents(); i++)
     {
@@ -1235,7 +1235,7 @@ TupleId JNetwork::GetSectionsTupleId(const int sid) const
 */
 
 void JNetwork::WriteJunctionTuple(const int jid, Point* pos,
-                                  ListPTIDRLoc* listRLoc,
+                                  ListPairTIDRLoc* listRLoc,
                                   JListTID* listinsect,
                                   JListTID* listoutsect,
                                   ListNetDistGrp* listdist,
@@ -1260,8 +1260,8 @@ void JNetwork::WriteJunctionTuple(const int jid, Point* pos,
 
 void JNetwork::WriteRoutesTuple(const int rid,
                                 const double length,
-                                ListPTIDRLoc* listjunc,
-                                ListPTIDRInt* listsect,
+                                ListPairTIDRLoc* listjunc,
+                                ListPairTIDRInt* listsect,
                                 const ListExpr routesNumType)
 {
   Tuple* newRouteTup = new Tuple(nl->Second(routesNumType));
@@ -1298,7 +1298,7 @@ void JNetwork::WriteSectionTuple(const int sectId,
   actSectTup->PutAttribute(SEC_TID_ENDNODE,
                            new TupleIdentifier(true, actJunTID));
   actSectTup->PutAttribute(SEC_LIST_ROUTEINTERVALS,
-                           new ListPTIDRInt(
+                           new ListPairTIDRInt(
                               PairTIDRInt(TupleIdentifier(false,0),
                                           JRouteInterval(actRouteId,
                                                          curJuncPosOnRoute,

@@ -36,10 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../BTree/BTreeAlgebra.h"
 #include "../RTree/RTreeAlgebra.h"
 #include "../Spatial/SpatialAlgebra.h"
-#include "ListPTIDRLoc.h"
-#include "JListTID.h"
-#include "ListNetDistGrp.h"
-#include "ListPTIDRInt.h"
+#include "JList.h"
 
 /*
 1 Class ~JNetwork~
@@ -331,7 +328,7 @@ Creates the RTree over the spatial attribute of the given relation.
 */
 
   void WriteJunctionTuple(const int jid, Point* pos,
-                        ListPTIDRLoc* listRLoc,
+                        ListPairTIDRLoc* listRLoc,
                         JListTID* listinsect,
                         JListTID* listoutsect,
                         ListNetDistGrp* listdist,
@@ -339,8 +336,8 @@ Creates the RTree over the spatial attribute of the given relation.
 
   void WriteRoutesTuple(const int rid,
                       const double length,
-                      ListPTIDRLoc* listjunc,
-                      ListPTIDRInt* listsect,
+                      ListPairTIDRLoc* listjunc,
+                      ListPairTIDRInt* listsect,
                       const ListExpr routesNumType);
 
   void WriteSectionTuple(const int sectId,

@@ -38,14 +38,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Direction.h"
 #include "RouteLocation.h"
 #include "JRouteInterval.h"
-#include "JListTID.h"
-//#include "PairTIDRLoc.h"
-#include "ListPTIDRLoc.h"
-//#include "PairTIDRInt.h"
 #include "PairTID.h"
-#include "ListPTIDRInt.h"
+#include "JList.h"
 #include "NetDistanceGroup.h"
-#include "ListNetDistGrp.h"
 #include "JNetwork.h"
 #include "JPoint.h"
 #include "JLine.h"
@@ -151,16 +146,16 @@ TypeConstructor pTIDRLocTC(
 */
 
 TypeConstructor listPTIDRLocTC(
-  ListPTIDRLoc::BasicType(),                //name
-  ListPTIDRLoc::Property,                   //describing signature
-  ListPTIDRLoc::Out, ListPTIDRLoc::In,     //Out and In functions
+  ListPairTIDRLoc::BasicType(),                //name
+  ListPairTIDRLoc::Property,                   //describing signature
+  ListPairTIDRLoc::Out, ListPairTIDRLoc::In,     //Out and In functions
   0, 0,                                  //SaveTo and RestoreFrom List functions
-  ListPTIDRLoc::Create, ListPTIDRLoc::Delete,//obj creation and deletion
-  ListPTIDRLoc::Open, ListPTIDRLoc::Save,  // object open and save
-  ListPTIDRLoc::Close, ListPTIDRLoc::Clone,//object close and clone
-  ListPTIDRLoc::Cast,                       //cast function
-  ListPTIDRLoc::SizeOf,                     //sizeof function
-  ListPTIDRLoc::KindCheck );                //kind checking function
+  ListPairTIDRLoc::Create, ListPairTIDRLoc::Delete,//obj creation and deletion
+  ListPairTIDRLoc::Open, ListPairTIDRLoc::Save,  // object open and save
+  ListPairTIDRLoc::Close, ListPairTIDRLoc::Clone,//object close and clone
+  ListPairTIDRLoc::Cast,                       //cast function
+  ListPairTIDRLoc::SizeOf,                     //sizeof function
+  ListPairTIDRLoc::KindCheck );                //kind checking function
 
 /*
 1.7 ~PairTIDRInt~
@@ -180,23 +175,23 @@ TypeConstructor pTIDRIntTC(
   PairTIDRInt::KindCheck );          //kind checking function
 
 /*
-1.8 ~ListPTIDRInt~
+1.8 ~ListPairTIDRInt~
 
 */
 
 TypeConstructor listPTIDRIntTC(
-  ListPTIDRInt::BasicType(),      //name
-  ListPTIDRInt::Property,         //describing signature
-  ListPTIDRInt::Out, ListPTIDRInt::In,   //Out and In functions
+  ListPairTIDRInt::BasicType(),      //name
+  ListPairTIDRInt::Property,         //describing signature
+  ListPairTIDRInt::Out, ListPairTIDRInt::In,   //Out and In functions
   0, 0,                                  //SaveTo and RestoreFrom List functions
-  ListPTIDRInt::Create, ListPTIDRInt::Delete,
+  ListPairTIDRInt::Create, ListPairTIDRInt::Delete,
                                            //obj creation and deletion
-  ListPTIDRInt::Open, ListPTIDRInt::Save,// object open and save
-  ListPTIDRInt::Close, ListPTIDRInt::Clone,
+  ListPairTIDRInt::Open, ListPairTIDRInt::Save,// object open and save
+  ListPairTIDRInt::Close, ListPairTIDRInt::Clone,
                                             //object close and clone
-  ListPTIDRInt::Cast,               //cast function
-  ListPTIDRInt::SizeOf,             //sizeof function
-  ListPTIDRInt::KindCheck );        //kind checking function
+  ListPairTIDRInt::Cast,               //cast function
+  ListPairTIDRInt::SizeOf,             //sizeof function
+  ListPairTIDRInt::KindCheck );        //kind checking function
 
 /*
 1.9 ~NetDistanceGroup~
@@ -444,11 +439,11 @@ ListExpr CreateListTypeMap ( ListExpr args )
 
     NList ptidrloc(PairTIDRLoc::BasicType());
     if (stream.checkStream(ptidrloc))
-      return nl->SymbolAtom(ListPTIDRLoc::BasicType());
+      return nl->SymbolAtom(ListPairTIDRLoc::BasicType());
 
     NList ptidrint(PairTIDRInt::BasicType());
     if (stream.checkStream(ptidrint))
-      return nl->SymbolAtom(ListPTIDRInt::BasicType());
+      return nl->SymbolAtom(ListPairTIDRInt::BasicType());
 
     NList ndg(NetDistanceGroup::BasicType());
     if (stream.checkStream(ndg))
@@ -485,8 +480,8 @@ int CreateListValueMap( Word* args, Word& result, int message,
 ValueMapping CreateListMap [] =
 {
   CreateListValueMap<JListTID, TupleIdentifier>,
-  CreateListValueMap<ListPTIDRLoc, PairTIDRLoc>,
-  CreateListValueMap<ListPTIDRInt, PairTIDRInt>,
+  CreateListValueMap<ListPairTIDRLoc, PairTIDRLoc>,
+  CreateListValueMap<ListPairTIDRInt, PairTIDRInt>,
   CreateListValueMap<ListNetDistGrp, NetDistanceGroup>
 };
 
@@ -504,12 +499,12 @@ const string CreateListSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text> " + Symbol::STREAM() + "(T) -> ListT</text--->"
   "<text> createlistj(_) </text--->"
-  "<text> Collects streams of the datatypes " + TupleIdentifier::BasicType() +
+  "<text> Collects a stream of the data type " + TupleIdentifier::BasicType() +
   ", " + PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() +
-  ", and " + NetDistanceGroup::BasicType() +" of JNetAlgebra into single "
-  "list objects of the datatypes as there are: "+ JListTID::BasicType() + ", " +
-  ListPTIDRLoc::BasicType() + ", " + ListPTIDRInt::BasicType() + ", and " +
-  ListNetDistGrp::BasicType() + ".</text--->"
+  ", or " + NetDistanceGroup::BasicType() +" of JNetAlgebra into a single "
+  "list object of the data type as there are: "+ JListTID::BasicType() + ", " +
+  ListPairTIDRLoc::BasicType() + ", " + ListPairTIDRInt::BasicType() + ", and "
+  + ListNetDistGrp::BasicType() + ".</text--->"
   "<text> query createsteramj(tupleidlist) createlistj</text--->))";
 
 Operator jnetcreatelistj(
@@ -546,11 +541,11 @@ ListExpr CreateStreamTypeMap ( ListExpr args )
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(TupleIdentifier::BasicType()));
 
-    if (param.first().isEqual(ListPTIDRLoc::BasicType()))
+    if (param.first().isEqual(ListPairTIDRLoc::BasicType()))
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(PairTIDRLoc::BasicType()));
 
-    if (param.first().isEqual(ListPTIDRInt::BasicType()))
+    if (param.first().isEqual(ListPairTIDRInt::BasicType()))
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(PairTIDRInt::BasicType()));
 
@@ -559,7 +554,7 @@ ListExpr CreateStreamTypeMap ( ListExpr args )
                              nl->SymbolAtom(NetDistanceGroup::BasicType()));
   }
   return listutils::typeError("Expected " + JListTID::BasicType() + ", " +
-    ListPTIDRLoc::BasicType() + ", " + ListPTIDRInt::BasicType() + ", " +
+    ListPairTIDRLoc::BasicType() + ", " + ListPairTIDRInt::BasicType() + ", " +
     ListNetDistGrp::BasicType());
 }
 
@@ -635,8 +630,8 @@ int CreateStreamValueMap( Word* args, Word& result, int message,
 ValueMapping CreateStreamMap [] =
 {
   CreateStreamValueMap<TupleIdentifier, JListTID>,
-  CreateStreamValueMap<PairTIDRLoc, ListPTIDRLoc>,
-  CreateStreamValueMap<PairTIDRInt, ListPTIDRInt>,
+  CreateStreamValueMap<PairTIDRLoc, ListPairTIDRLoc>,
+  CreateStreamValueMap<PairTIDRInt, ListPairTIDRInt>,
   CreateStreamValueMap<NetDistanceGroup, ListNetDistGrp>
 };
 
@@ -644,8 +639,8 @@ int CreateStreamSelect ( ListExpr args )
 {
   NList param(args);
   if (param.first() == JListTID::BasicType()) return 0;
-  if (param.first() == ListPTIDRLoc::BasicType()) return 1;
-  if (param.first() == ListPTIDRInt::BasicType()) return 2;
+  if (param.first() == ListPairTIDRLoc::BasicType()) return 1;
+  if (param.first() == ListPairTIDRInt::BasicType()) return 2;
   if (param.first() == ListNetDistGrp::BasicType()) return 3;
   return -1; // this point should never been reached.
 }
@@ -654,11 +649,11 @@ const string CreateStreamJSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text> ListT -> " + Symbol::STREAM() + "(T)</text--->"
   "<text> createstreamj(_) </text--->"
-  "<text> Expands the listdatatypes" + JListTID::BasicType() + ", " +
-  ListPTIDRLoc::BasicType() + ", " + ListPTIDRInt::BasicType() + ", and " +
-  ListNetDistGrp::BasicType() + " of JNetAlgebra into a stream of the "
-  "corresponding datatypes "+ TupleIdentifier::BasicType() + ", " +
-  PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() + ", and " +
+  "<text> Expands a list of data type" + JListTID::BasicType() + ", " +
+  ListPairTIDRLoc::BasicType() + ", " + ListPairTIDRInt::BasicType() + ", or "
+  +  ListNetDistGrp::BasicType() + " of JNetAlgebra into a stream of the "
+  "corresponding data type "+ TupleIdentifier::BasicType() + ", " +
+  PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() + ", or " +
   NetDistanceGroup::BasicType() + "</text--->"
   "<text> query createsteramj(tupleidlist) createlistj</text--->))";
 
