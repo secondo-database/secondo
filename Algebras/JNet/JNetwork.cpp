@@ -34,7 +34,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Direction.h"
 #include "JNetwork.h"
 #include "RouteLocation.h"
-#include "PairTIDRLoc.h"
+#include "JRouteInterval.h"
+//#include "PairTIDRLoc.h"
+#include "PairTID.h"
 
 
 extern NestedList* nl;
@@ -884,7 +886,7 @@ void JNetwork::InitRoutesAndSections(const Relation* routesRel)
       juncList->Append(PairTIDRLoc(TupleIdentifier(true,actJunTID),
                                  RouteLocation(curRouteId, actJuncPosOnRoute,
                                                Direction(dir))));
-      sectList->Append(PairTIDRInterval(TupleIdentifier(true,secTID),
+      sectList->Append(PairTIDRInt(TupleIdentifier(true,secTID),
                           JRouteInterval(actRouteId, curJuncPosOnRoute,
                                          actJuncPosOnRoute, Direction(dir))));
 
@@ -932,35 +934,35 @@ void JNetwork::UpdateJunctions()
       //Update list of route locations with tuple ids
       listRLocOld->Get(i, pairRLoc);
       TupleId rtid =
-        GetRoutesTupleId((pairRLoc.GetRouteLocation()).GetRouteId());
+        GetRoutesTupleId((pairRLoc.GetElement()).GetRouteId());
       pairRLoc.SetTID(TupleIdentifier(true, rtid));
       listRLocNew->Append(pairRLoc);
       //Fill Lists of in and out sections
       Tuple* actRoute = routes->GetTuple(rtid,false);
       ListPTIDRInt* listRouteSections =
       (ListPTIDRInt*) actRoute->GetAttribute(ROUTE_LIST_SECTIONS);
-      PairTIDRInterval actRouteInterval;
+      PairTIDRInt actRouteInterval;
       for (int j = 0; j < listRouteSections->GetNoOfComponents(); j++)
       {
         listRouteSections->Get(j,actRouteInterval);
-        if (AlmostEqual(actRouteInterval.GetRouteInterval().GetStartPosition(),
-                        pairRLoc.GetRouteLocation().GetPosition()))
+        if (AlmostEqual(actRouteInterval.GetElement().GetStartPosition(),
+                        pairRLoc.GetElement().GetPosition()))
         {
-          if (actRouteInterval.GetRouteInterval().GetSide() == (JSide) Up ||
-            actRouteInterval.GetRouteInterval().GetSide() == (JSide) Both)
+          if (actRouteInterval.GetElement().GetSide() == (JSide) Up ||
+            actRouteInterval.GetElement().GetSide() == (JSide) Both)
             listOutSections->Append(actRouteInterval.GetTID());
-          if (actRouteInterval.GetRouteInterval().GetSide() == (JSide) Down ||
-            actRouteInterval.GetRouteInterval().GetSide() == (JSide) Both)
+          if (actRouteInterval.GetElement().GetSide() == (JSide) Down ||
+            actRouteInterval.GetElement().GetSide() == (JSide) Both)
             listInSections->Append(actRouteInterval.GetTID());
         }
-        if (AlmostEqual(actRouteInterval.GetRouteInterval().GetEndPosition(),
-            pairRLoc.GetRouteLocation().GetPosition()))
+        if (AlmostEqual(actRouteInterval.GetElement().GetEndPosition(),
+            pairRLoc.GetElement().GetPosition()))
         {
-          if (actRouteInterval.GetRouteInterval().GetSide() == (JSide) Up ||
-            actRouteInterval.GetRouteInterval().GetSide() == (JSide) Both)
+          if (actRouteInterval.GetElement().GetSide() == (JSide) Up ||
+            actRouteInterval.GetElement().GetSide() == (JSide) Both)
             listInSections->Append(actRouteInterval.GetTID());
-          if (actRouteInterval.GetRouteInterval().GetSide() == (JSide) Down ||
-            actRouteInterval.GetRouteInterval().GetSide() == (JSide) Both)
+          if (actRouteInterval.GetElement().GetSide() == (JSide) Down ||
+            actRouteInterval.GetElement().GetSide() == (JSide) Both)
             listOutSections->Append(actRouteInterval.GetTID());
         }
       }
@@ -1002,12 +1004,12 @@ void JNetwork::UpdateSections()
     ListPTIDRInt* listSectOld =
       (ListPTIDRInt*) actSection->GetAttribute(SEC_LIST_ROUTEINTERVALS);
     ListPTIDRInt* listSectNew = new ListPTIDRInt(true);
-    PairTIDRInterval actPTIDRI;
+    PairTIDRInt actPTIDRI;
     for (int i = 0 ; i < listSectOld->GetNoOfComponents(); i++)
     {
       listSectOld->Get(i, actPTIDRI);
       actPTIDRI.SetTID(
-        GetRoutesTupleId(actPTIDRI.GetRouteInterval().GetRouteId()));
+        GetRoutesTupleId(actPTIDRI.GetElement().GetRouteId()));
       listSectNew->Append(actPTIDRI);
     }
     JListTID* listAdjSecUp = new JListTID(true);
@@ -1297,11 +1299,11 @@ void JNetwork::WriteSectionTuple(const int sectId,
                            new TupleIdentifier(true, actJunTID));
   actSectTup->PutAttribute(SEC_LIST_ROUTEINTERVALS,
                            new ListPTIDRInt(
-                              PairTIDRInterval(TupleIdentifier(false,0),
-                                               JRouteInterval(actRouteId,
-                                                           curJuncPosOnRoute,
-                                                           actJuncPosOnRoute,
-                                                           Direction(dir)))));
+                              PairTIDRInt(TupleIdentifier(false,0),
+                                          JRouteInterval(actRouteId,
+                                                         curJuncPosOnRoute,
+                                                         actJuncPosOnRoute,
+                                                         Direction(dir)))));
   actSectTup->PutAttribute(SEC_LIST_ADJSECTIONS_UP, new JListTID(true));
   actSectTup->PutAttribute(SEC_LIST_ADJSECTIONS_DOWN, new JListTID(true));
   actSectTup->PutAttribute(SEC_LIST_REV_ADJSECTIONS_UP, new JListTID(true));

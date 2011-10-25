@@ -1359,6 +1359,12 @@ Checks if a transition is possible.
     return in_xTransition & m_iConnectivityCode;
   }
 
+  ostream& Print(ostream& os) const
+  {
+    os << m_iConnectivityCode << endl;
+    return os;
+  }
+
   private:
 
 /*
@@ -1522,12 +1528,12 @@ Copy-Constructor
     if (m_iFirstSectionTid > in_xOther.m_iFirstSectionTid)
       return false;
     if(m_bFirstUpDown != in_xOther.m_bFirstUpDown)
-      return m_bFirstUpDown;
+      return !m_bFirstUpDown;
     if (m_iSecondSectionTid < in_xOther.m_iSecondSectionTid)
       return true;
     if (m_iSecondSectionTid > in_xOther.m_iSecondSectionTid)
       return false;
-    return m_bSecondUpDown;
+    return !m_bSecondUpDown;
   }
 
 

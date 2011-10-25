@@ -3395,14 +3395,14 @@ DisplayTTY::Initialize()
 
   // JNetAlgebra
   d.Insert( "jdirection", new DisplayJDirection() );
-  d.Insert( "routelocation", new DisplayRouteLocation());
-  d.Insert( "jrouteinterval", new DisplayJRouteInterval());
-  d.Insert( "jlisttid", new DisplayJListTID());
+  d.Insert( "rloc", new DisplayRouteLocation());
+  d.Insert( "jrint", new DisplayJRouteInterval());
+  d.Insert( "listtid", new DisplayJListTID());
   d.Insert( "pairtidrloc", new DisplayPairTIDRLoc());
-  d.Insert( "listptidrloc", new DisplayListPTIDRLoc());
-  d.Insert( "pairtidrint", new DisplayPairTIDRInt());
-  d.Insert( "listptidrint", new DisplayListPTIDRInt());
-  d.Insert( "netdistancegroup", new DisplayNetDistanceGroup());
+  d.Insert( "listpairtidrloc", new DisplayListPTIDRLoc());
+  d.Insert( "pairtidjrint", new DisplayPairTIDRInt());
+  d.Insert( "listpairtidjrint", new DisplayListPTIDRInt());
+  d.Insert( "netdistgrp", new DisplayNetDistanceGroup());
   d.Insert( "listnetdistgrp", new DisplayListNDG());
   d.Insert( "jpoint", new DisplayJPoint());
   d.Insert( "jnetwork", new DisplayJNetwork());

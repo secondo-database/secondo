@@ -194,7 +194,7 @@ ostream& NetDistanceGroup::Print ( ostream& os ) const
 
 const string NetDistanceGroup::BasicType()
 {
-  return "netdistancegroup";
+  return "netdistgrp";
 }
 
 const bool NetDistanceGroup::checkType(const ListExpr type)

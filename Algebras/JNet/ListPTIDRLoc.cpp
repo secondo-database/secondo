@@ -202,7 +202,7 @@ ostream& ListPTIDRLoc::Print(ostream& os) const
 
 const std::string ListPTIDRLoc::BasicType()
 {
-  return "listptidrloc";
+  return "listpairtidrloc";
 }
 
 const bool ListPTIDRLoc::checkType(const ListExpr type)

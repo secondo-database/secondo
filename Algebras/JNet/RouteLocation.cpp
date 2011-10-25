@@ -183,7 +183,7 @@ ostream& RouteLocation::Print(ostream& os) const
 
 const string RouteLocation::BasicType()
 {
-  return "routelocation";
+  return "rloc";
 }
 
 const bool RouteLocation::checkType(const ListExpr type)

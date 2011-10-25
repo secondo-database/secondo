@@ -216,7 +216,7 @@ ostream& JRouteInterval::Print(ostream& os) const
 
 const string JRouteInterval::BasicType()
 {
-  return "jrouteinterval";
+  return "jrint";
 }
 
 const bool JRouteInterval::checkType(const ListExpr type)
@@ -300,7 +300,7 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cmsg.inFunError("First should be int.");
+        cmsg.inFunError("First should be " + CcInt::BasicType());
         return SetWord(Address(0));
       }
       if (startPosList.isReal())
@@ -308,7 +308,7 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cmsg.inFunError("Second should be real.");
+        cmsg.inFunError("Second should be " + CcReal::BasicType());
         return SetWord(Address(0));
       }
       if (endPosList.isReal())
@@ -316,7 +316,7 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
       else
       {
         correct = false;
-        cmsg.inFunError("Third should be real");
+        cmsg.inFunError("Third should be " + CcReal::BasicType());
         return SetWord(Address(0));
       }
       correct = true;

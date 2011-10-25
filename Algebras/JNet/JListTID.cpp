@@ -203,7 +203,7 @@ ostream& JListTID::Print(ostream& os) const
 
 const string JListTID::BasicType()
 {
-  return "jlisttid";
+  return "listtid";
 }
 
 const bool JListTID::checkType(const ListExpr type)

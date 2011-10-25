@@ -28,11 +28,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ostream>
 #include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
-#include "PairTIDRInterval.h"
+//#include "PairTIDRInt.h"
+#include "PairTID.h"
 
 /*
 1. class ~ListPTIDRInt~
-Enables us to use a list of ~PairTIDRInterval~s as attributes in relations.
+Enables us to use a list of ~PairTIDRInt~s as attributes in relations.
 
 */
 
@@ -51,7 +52,7 @@ The default constructor should only be used in the cast-Function.
 ListPTIDRInt();
 ListPTIDRInt(bool defined);
 ListPTIDRInt(const ListPTIDRInt& other);
-ListPTIDRInt(const PairTIDRInterval& ptidrint);
+ListPTIDRInt(const PairTIDRInt& ptidrint);
 
 ~ListPTIDRInt();
 
@@ -60,9 +61,9 @@ ListPTIDRInt(const PairTIDRInterval& ptidrint);
 
 */
 
-DbArray<PairTIDRInterval> GetList() const;
+DbArray<PairTIDRInt> GetList() const;
 
-void SetList(const DbArray<PairTIDRInterval> inList);
+void SetList(const DbArray<PairTIDRInt> inList);
 
 /*
 1.3 Override Methods from Attribute
@@ -118,14 +119,14 @@ void SetList(const DbArray<PairTIDRInterval> inList);
 
 */
 
-  void Append (const PairTIDRInterval& e);
+  void Append (const PairTIDRInt& e);
   int GetNoOfComponents() const;
-  void Get(const int i, PairTIDRInterval& p) const;
-  void Put(const int i, const PairTIDRInterval& p);
+  void Get(const int i, PairTIDRInt& p) const;
+  void Put(const int i, const PairTIDRInt& p);
 
 private:
 
-  DbArray<PairTIDRInterval> elemlist;
+  DbArray<PairTIDRInt> elemlist;
 
 };
 

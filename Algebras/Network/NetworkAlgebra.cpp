@@ -3717,6 +3717,7 @@ void Network::FillAdjacencyLists()
     // If a section is existing and the transition is possible
     // it will be added to the adjacency list.
     //
+
     FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList );
     FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
                         xList);
@@ -3794,6 +3795,7 @@ void Network::FillAdjacencyLists()
   // Now - as the second step the adjacency lists are filled.
   //
   // Sort the lists by the first directed section
+
   stable_sort ( xList.begin(), xList.end() );
 
   DirectedSectionPair xLastPair;
@@ -3935,7 +3937,7 @@ void Network::FillAdjacencyPair ( const TupleId in_pFirstSection,
                                   vector<DirectedSectionPair> &inout_xPairs )
 {
   if ( in_pFirstSection != 0 &&
-    in_pSecondSection != 0 &&
+       in_pSecondSection != 0 &&
        in_xCc.IsPossible ( in_xTransition ) )
   {
     inout_xPairs.push_back ( DirectedSectionPair ( in_pFirstSection,

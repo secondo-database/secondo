@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "QueryProcessor.h"
+#include "Attribute.h"
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "ConstructorTemplates.h"
@@ -38,9 +39,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "JRouteInterval.h"
 #include "JListTID.h"
-#include "PairTIDRLoc.h"
+//#include "PairTIDRLoc.h"
 #include "ListPTIDRLoc.h"
-#include "PairTIDRInterval.h"
+//#include "PairTIDRInt.h"
+#include "PairTID.h"
 #include "ListPTIDRInt.h"
 #include "NetDistanceGroup.h"
 #include "ListNetDistGrp.h"
@@ -161,21 +163,21 @@ TypeConstructor listPTIDRLocTC(
   ListPTIDRLoc::KindCheck );                //kind checking function
 
 /*
-1.7 ~PairTIDRInterval~
+1.7 ~PairTIDRInt~
 
 */
 
 TypeConstructor pTIDRIntTC(
-  PairTIDRInterval::BasicType(),         //name
-  PairTIDRInterval::Property,            //describing signature
-  PairTIDRInterval::Out, PairTIDRInterval::In, //Out and In functions
+  PairTIDRInt::BasicType(),         //name
+  PairTIDRInt::Property,            //describing signature
+  PairTIDRInt::Out, PairTIDRInt::In, //Out and In functions
   0, 0,                                //SaveTo and RestoreFrom List functions
-  PairTIDRInterval::Create, PairTIDRInterval::Delete,//obj creation and deletion
-  PairTIDRInterval::Open, PairTIDRInterval::Save, // object open and save
-  PairTIDRInterval::Close, PairTIDRInterval::Clone, //object close and clone
-  PairTIDRInterval::Cast,                 //cast function
-  PairTIDRInterval::SizeOf,               //sizeof function
-  PairTIDRInterval::KindCheck );          //kind checking function
+  PairTIDRInt::Create, PairTIDRInt::Delete,//obj creation and deletion
+  PairTIDRInt::Open, PairTIDRInt::Save, // object open and save
+  PairTIDRInt::Close, PairTIDRInt::Clone, //object close and clone
+  PairTIDRInt::Cast,                 //cast function
+  PairTIDRInt::SizeOf,               //sizeof function
+  PairTIDRInt::KindCheck );          //kind checking function
 
 /*
 1.8 ~ListPTIDRInt~
@@ -277,12 +279,11 @@ TypeConstructor jLineTC(
   JLine::Out, JLine::In, //Out and In functions
   0, 0,                       //SaveTo and RestoreFrom List functions
   JLine::Create, JLine::Delete, //obj creation and deletion
-  /*JLine::Open, JLine::Save, // object open and save*/
-  OpenAttribute<JLine>, SaveAttribute<JLine>,
+  OpenAttribute<JLine>, SaveAttribute<JLine>, //Open and Save
   JLine::Close, JLine::Clone,  //object close and clone
   JLine::Cast,               //cast function
   JLine::SizeOf,             //sizeof function
-  JLine::KindCheck );        //kind checking function
+  JLine::KindCheck);        //kind checking function
 
 /*
 2 Secondo Operators
@@ -295,10 +296,10 @@ Creates Pairs of ~TupleId~s and ~RouteLocation~s and ~RouteInterval~s.
 
 const string maps_createPair[2][3] =
 {
-  {TupleIdentifier::BasicType(), RouteLocation::BasicType(),
-     PairTIDRLoc::BasicType()},
-  {TupleIdentifier::BasicType(), JRouteInterval::BasicType(),
-     PairTIDRInterval::BasicType()},
+  {TupleIdentifier::BasicType(),  RouteLocation::BasicType(),
+    PairTIDRLoc::BasicType()},
+  {TupleIdentifier::BasicType(),  JRouteInterval::BasicType(),
+    PairTIDRInt::BasicType()},
 };
 
 ListExpr CreatePairTypeMap ( ListExpr args )
@@ -332,14 +333,14 @@ int CreatePairValueMap( Word* args, Word& result, int message,
 ValueMapping CreatePairMap [] =
 {
   CreatePairValueMap<RouteLocation, PairTIDRLoc>,
-  CreatePairValueMap<JRouteInterval, PairTIDRInterval>
+  CreatePairValueMap<JRouteInterval, PairTIDRInt>
 };
 
 const string CreatePairSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" + TupleIdentifier::BasicType() + " x " + RouteLocation::BasicType()
   + " -> " + PairTIDRLoc::BasicType() + ", " + TupleIdentifier::BasicType() +
-  " x " + JRouteInterval::BasicType() + " -> " + PairTIDRInterval::BasicType()
+  " x " + JRouteInterval::BasicType() + " -> " + PairTIDRInt::BasicType()
   + "</text--->"
   "<text> createpair(_,_) </text--->"
   "<text> Creates a pair of " + TupleIdentifier::BasicType() + " and " +
@@ -445,7 +446,7 @@ ListExpr CreateListTypeMap ( ListExpr args )
     if (stream.checkStream(ptidrloc))
       return nl->SymbolAtom(ListPTIDRLoc::BasicType());
 
-    NList ptidrint(PairTIDRInterval::BasicType());
+    NList ptidrint(PairTIDRInt::BasicType());
     if (stream.checkStream(ptidrint))
       return nl->SymbolAtom(ListPTIDRInt::BasicType());
 
@@ -455,7 +456,7 @@ ListExpr CreateListTypeMap ( ListExpr args )
   }
   return listutils::typeError("Expected " + Symbol::STREAM() + "(T) with T "
     + "in: "+ TupleIdentifier::BasicType() + ", " + PairTIDRLoc::BasicType() +
-    ", " + PairTIDRInterval::BasicType() + ", or " +
+    ", " + PairTIDRInt::BasicType() + ", or " +
     NetDistanceGroup::BasicType());
 }
 
@@ -485,7 +486,7 @@ ValueMapping CreateListMap [] =
 {
   CreateListValueMap<JListTID, TupleIdentifier>,
   CreateListValueMap<ListPTIDRLoc, PairTIDRLoc>,
-  CreateListValueMap<ListPTIDRInt, PairTIDRInterval>,
+  CreateListValueMap<ListPTIDRInt, PairTIDRInt>,
   CreateListValueMap<ListNetDistGrp, NetDistanceGroup>
 };
 
@@ -494,7 +495,7 @@ int CreateListSelect ( ListExpr args )
   NList param(args);
   if (param.first().second() == TupleIdentifier::BasicType()) return 0;
   if (param.first().second() == PairTIDRLoc::BasicType()) return 1;
-  if (param.first().second() == PairTIDRInterval::BasicType()) return 2;
+  if (param.first().second() == PairTIDRInt::BasicType()) return 2;
   if (param.first().second() == NetDistanceGroup::BasicType()) return 3;
   return -1; // this point should never been reached.
 }
@@ -504,7 +505,7 @@ const string CreateListSpec =
   "(<text> " + Symbol::STREAM() + "(T) -> ListT</text--->"
   "<text> createlistj(_) </text--->"
   "<text> Collects streams of the datatypes " + TupleIdentifier::BasicType() +
-  ", " + PairTIDRLoc::BasicType() + ", " + PairTIDRInterval::BasicType() +
+  ", " + PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() +
   ", and " + NetDistanceGroup::BasicType() +" of JNetAlgebra into single "
   "list objects of the datatypes as there are: "+ JListTID::BasicType() + ", " +
   ListPTIDRLoc::BasicType() + ", " + ListPTIDRInt::BasicType() + ", and " +
@@ -551,7 +552,7 @@ ListExpr CreateStreamTypeMap ( ListExpr args )
 
     if (param.first().isEqual(ListPTIDRInt::BasicType()))
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                             nl->SymbolAtom(PairTIDRInterval::BasicType()));
+                             nl->SymbolAtom(PairTIDRInt::BasicType()));
 
     if (param.first().isEqual(ListNetDistGrp::BasicType()))
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
@@ -635,7 +636,7 @@ ValueMapping CreateStreamMap [] =
 {
   CreateStreamValueMap<TupleIdentifier, JListTID>,
   CreateStreamValueMap<PairTIDRLoc, ListPTIDRLoc>,
-  CreateStreamValueMap<PairTIDRInterval, ListPTIDRInt>,
+  CreateStreamValueMap<PairTIDRInt, ListPTIDRInt>,
   CreateStreamValueMap<NetDistanceGroup, ListNetDistGrp>
 };
 
@@ -657,7 +658,7 @@ const string CreateStreamJSpec =
   ListPTIDRLoc::BasicType() + ", " + ListPTIDRInt::BasicType() + ", and " +
   ListNetDistGrp::BasicType() + " of JNetAlgebra into a stream of the "
   "corresponding datatypes "+ TupleIdentifier::BasicType() + ", " +
-  PairTIDRLoc::BasicType() + ", " + PairTIDRInterval::BasicType() + ", and " +
+  PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() + ", and " +
   NetDistanceGroup::BasicType() + "</text--->"
   "<text> query createsteramj(tupleidlist) createlistj</text--->))";
 

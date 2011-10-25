@@ -5,9 +5,9 @@
             (
                 (id int) 
                 (geoData point) 
-                (listjuncpos listptidrloc) 
-                (listinsections jlisttid) 
-                (listoutsections jlisttid) 
+                (listjuncpos listpairtidrloc) 
+                (listinsections listtid) 
+                (listoutsections listtid) 
                 (listdistances listnetdistgrp)))) 
     (
         (2 

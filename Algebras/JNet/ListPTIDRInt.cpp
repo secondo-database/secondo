@@ -50,7 +50,7 @@ ListPTIDRInt::ListPTIDRInt(const ListPTIDRInt& other) :
   if (other.IsDefined()) elemlist.copyFrom(other.GetList());
 }
 
-ListPTIDRInt::ListPTIDRInt(const PairTIDRInterval& inId) :
+ListPTIDRInt::ListPTIDRInt(const PairTIDRInt& inId) :
   Attribute(true), elemlist(0)
 {
   elemlist.Append(inId);
@@ -64,12 +64,12 @@ ListPTIDRInt::~ListPTIDRInt()
 
 */
 
-DbArray<PairTIDRInterval> ListPTIDRInt::GetList() const
+DbArray<PairTIDRInt> ListPTIDRInt::GetList() const
 {
   return elemlist;
 }
 
-void ListPTIDRInt::SetList(const DbArray<PairTIDRInterval> inList)
+void ListPTIDRInt::SetList(const DbArray<PairTIDRInt> inList)
 {
   elemlist.copyFrom(inList);
 }
@@ -99,7 +99,7 @@ size_t ListPTIDRInt::HashValue() const
   size_t result = 0;
   if (IsDefined())
   {
-    PairTIDRInterval p;
+    PairTIDRInt p;
     for (int i = 0; i < elemlist.Size(); i++)
     {
       elemlist.Get(i,p);
@@ -144,7 +144,7 @@ int ListPTIDRInt::Compare(const ListPTIDRInt& in) const
           if (elemlist.Size() > in.elemlist.Size()) return 1;
           else
           {
-            PairTIDRInterval p1, p2;
+            PairTIDRInt p1, p2;
             for (int i = 0; i < elemlist.Size(); i++)
             {
               elemlist.Get(i,p1);
@@ -187,7 +187,7 @@ ostream& ListPTIDRInt::Print(ostream& os) const
   os << "List: " ;
   if (IsDefined())
   {
-    PairTIDRInterval p;
+    PairTIDRInt p;
     for (int i = 0; i < elemlist.Size(); i++)
     {
       elemlist.Get(i,p);
@@ -205,7 +205,7 @@ ostream& ListPTIDRInt::Print(ostream& os) const
 
 const string ListPTIDRInt::BasicType()
 {
-  return "listptidrint";
+  return "listpairtidjrint";
 }
 
 const bool ListPTIDRInt::checkType(const ListExpr type)
@@ -249,13 +249,13 @@ ListExpr ListPTIDRInt::Out(ListExpr typeInfo, Word value)
     else
     {
       NList result(nl->TheEmptyList());
-      PairTIDRInterval e;
+      PairTIDRInt e;
       bool first = true;
       for (int i = 0; i < source->elemlist.Size(); i++)
       {
         source->elemlist.Get(i,e);
         Word w = SetWord(&e);
-        NList elem(PairTIDRInterval::Out(nl->TheEmptyList(), w));
+        NList elem(PairTIDRInt::Out(nl->TheEmptyList(), w));
         if (first)
         {
           result = elem.enclose();
@@ -294,11 +294,11 @@ Word ListPTIDRInt::In(const ListExpr typeInfo, const ListExpr instance,
     first = nl->First( rest );
     rest = nl->Rest( rest );
     Word w =
-      PairTIDRInterval::In(nl->TheEmptyList(), first, errorPos,
+      PairTIDRInt::In(nl->TheEmptyList(), first, errorPos,
                            errorInfo, correct);
     if (correct)
     {
-      PairTIDRInterval* e = (PairTIDRInterval*) w.addr;
+      PairTIDRInt* e = (PairTIDRInt*) w.addr;
       in->Append(*e);
       e->DeleteIfAllowed();
       e = 0;
@@ -400,8 +400,8 @@ ListExpr ListPTIDRInt::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::DATA()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ PairTIDRInterval::BasicType() + " ... " +
-            PairTIDRInterval::BasicType() + "), list of parts of a route."),
+      nl->TextAtom("("+ PairTIDRInt::BasicType() + " ... " +
+            PairTIDRInt::BasicType() + "), list of parts of a route."),
       nl->StringAtom("((34 (1 17.5 35.0 Up))(57 (5 0.0 24.5 Down)))")));
 }
 
@@ -410,7 +410,7 @@ ListExpr ListPTIDRInt::Property()
 
 */
 
-void ListPTIDRInt::Append (const PairTIDRInterval& e)
+void ListPTIDRInt::Append (const PairTIDRInt& e)
 {
   elemlist.Append(e);
 }
@@ -420,13 +420,13 @@ int ListPTIDRInt::GetNoOfComponents() const
   return elemlist.Size();
 }
 
-void ListPTIDRInt::Get(const int i, PairTIDRInterval& p) const
+void ListPTIDRInt::Get(const int i, PairTIDRInt& p) const
 {
   assert (0 <= i && i < elemlist.Size());
   elemlist.Get(i,p);
 }
 
-void ListPTIDRInt::Put(const int i, const PairTIDRInterval& p)
+void ListPTIDRInt::Put(const int i, const PairTIDRInt& p)
 {
   assert (0 <= i && i < elemlist.Size());
   elemlist.Put(i,p);
