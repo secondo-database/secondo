@@ -21,7 +21,7 @@
 ###                type: string}
 ### - restrictionsTmp-relation
 ### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
-###                      restriction: string, type: string}
+###                      restriction: string}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
@@ -43,6 +43,8 @@ let osmWaysTmp =
 # on restrictions
 let osmRestrictionsRel =
    osmimport(SRC_DIR_PATH + 'City.osm','restriction')
+   filter[.osmType = "restriction"]
+   remove [osmType]
    consume;
 
 # Extending the references to osm nodes

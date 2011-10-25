@@ -197,7 +197,7 @@ let onlyRestrictions =
    extRestrictionsRel feed
    extend [only: tostring(.restriction) starts "only"]
    filter [.only]
-   remove [osmId,relationType,restrictionId]
+   remove [osmId,restrictionId]
    consume;
 # restrictive restrictions have to be viewed separately since they otherwise
 # multiply tuples in conjunction with crossings
@@ -205,24 +205,24 @@ let noUturnRestrictions =
    extRestrictionsRel feed
    filter [.restriction = "no_u_turn"]
    extend [noUturn: TRUE]
-   remove [osmId,restriction,relationType,restrictionId]
+   remove [osmId,restriction,restrictionId]
    consume;
 let noLeftTurnRestrictions =
    extRestrictionsRel feed
    filter [.restriction = "no_left_turn"]
    extend [noLeftTurn: TRUE]
-   remove [osmId,restriction,relationType,restrictionId]
+   remove [osmId,restriction,restrictionId]
    consume;
 let noStraightOnRestrictions =
    extRestrictionsRel feed
    filter [.restriction = "no_straight_on"]
    extend [noStraightOn: TRUE]
-   remove [osmId,restriction,relationType,restrictionId]
+   remove [osmId,restriction,restrictionId]
    consume;
 let noRightTurnRestrictions =
    extRestrictionsRel feed
    filter [.restriction = "no_right_turn"]
    extend [noRightTurn: TRUE]
-   remove [osmId,restriction,relationType,restrictionId]
+   remove [osmId,restriction,restrictionId]
    consume;
 

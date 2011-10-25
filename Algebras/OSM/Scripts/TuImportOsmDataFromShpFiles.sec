@@ -25,7 +25,7 @@
 ###                type: string}
 ### - restrictionsTmp-relation
 ### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
-###                      restriction: string, type: string}
+###                      restriction: string}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
@@ -63,6 +63,6 @@ let pointsTmp =
 # Creating a dummy-relation for restrictions (data on restrictions is
 # unavailable in shape-files)
 let restrictionsTmp =  [const rel(tuple ([osm_id: int, from: int, via: int,
-   to: int, restriction: string, type: string]))
+   to: int, restriction: string]))
    value ()];
 

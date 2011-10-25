@@ -236,7 +236,7 @@ ListExpr OsmImportOperator::getOsmRestrictionAttrList ()
         "via",
         "to",
         "restriction",
-        "type"
+        "osmType"
     }; 
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),

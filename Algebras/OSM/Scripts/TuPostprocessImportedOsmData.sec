@@ -17,7 +17,7 @@
 ###                type: string}
 ### - restrictionsTmp-relation
 ### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
-###                      restriction: string, type: string}
+###                      restriction: string}
 ###
 ### Postconditions:
 ### - streetsRel-relation
@@ -192,8 +192,7 @@ derive extStreetsRel_geoData_rtree =
 
 let restrictionsHelp =
    restrictionsTmp feed
-   renameattr [relationType: "type", osmFrom: "from",
-               osmTo: "to", osmVia: "via", osmId: "osm_id"]
+   renameattr [osmFrom: "from", osmTo: "to", osmVia: "via", osmId: "osm_id"]
    consume;
 
 # Updating the references in the restrictions-relation so that the new
