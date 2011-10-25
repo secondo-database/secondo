@@ -2798,8 +2798,8 @@ struct DisplayJListTID : DisplayFunction {
         first = nl->First( rest );
         rest = nl->Rest( rest );
         cout << "TupleId: ";
-        if (nl->IntAtom(nl->First(first)))
-          cout << nl->IntValue(nl->First(first)) << endl;
+        if (nl->IntAtom(first))
+          cout << nl->IntValue(first) << endl;
         else
           cout << Symbol::UNDEFINED() << endl;
       }
@@ -3099,7 +3099,7 @@ struct DisplayJNetwork : DisplayFunction {
         {
           NList actSect(inSections.first());
           inSections.rest();
-          cout << "TupleId: " << actSect.first().intval() << endl;
+          cout << "TupleId: " << actSect.intval() << endl;
         }
 
         cout << "out sections of junction: " << endl;
@@ -3108,7 +3108,7 @@ struct DisplayJNetwork : DisplayFunction {
         {
           NList actSect(outSections.first());
           outSections.rest();
-          cout << "TupleId: " << actSect.first().intval() << endl;
+          cout << "TupleId: " << actSect.intval() << endl;
         }
 
         cout << "Netdistances from junction: " << endl;
@@ -3213,7 +3213,7 @@ struct DisplayJNetwork : DisplayFunction {
         {
           NList up(adjUp.first());
           adjUp.rest();
-          cout << "Tupleid: " << up.first().intval() << endl;
+          cout << "Tupleid: " << up.intval() << endl;
         }
 
         cout << "Adjacent Sections Down: " << endl;
@@ -3222,7 +3222,7 @@ struct DisplayJNetwork : DisplayFunction {
         {
           NList down(adjDown.first());
           adjDown.rest();
-          cout << "Tupleid: " << down.first().intval() << endl;
+          cout << "Tupleid: " << down.intval() << endl;
         }
 
         cout << "Reverse adjacent sections Up: " << endl;
@@ -3231,7 +3231,7 @@ struct DisplayJNetwork : DisplayFunction {
         {
           NList revup(revadjUp.first());
           revadjUp.rest();
-          cout << "Tupleid: " << revup.first().intval() << endl;
+          cout << "Tupleid: " << revup.intval() << endl;
         }
 
         cout << "Reverse adjacent Sections Down: " << endl;
@@ -3240,7 +3240,7 @@ struct DisplayJNetwork : DisplayFunction {
         {
           NList revdown(revadjDown.first());
           revadjDown.rest();
-          cout << "Tupleid: " << revdown.first().intval() << endl;
+          cout << "Tupleid: " << revdown.intval() << endl;
         }
         cout << endl;
       }
@@ -3263,7 +3263,6 @@ struct DisplayFileList : DisplayFunction {
       ListExpr nodeList = nl->Third(value);
       ListExpr locList = nl->Fourth(value);
       size_t dupTimes = nl->IntValue(nl->Fifth(value));
-
       cout << "Name : " << objName << endl;
       string typeStr;
       nl->WriteToString(typeStr, objType);
