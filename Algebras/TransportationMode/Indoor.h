@@ -1205,6 +1205,7 @@ inline int GetBuildingType(string s)
   }
   return -1;
 }
+
 inline string GetBuildingStr(int build)
 {
   int build_size = ARR_SIZE(str_build_type); 
@@ -1422,6 +1423,9 @@ struct IndoorPath{
 
 ///////////////whether the indoor paths are stored already ////////////////
 #define INDOOR_PATH TRUE
+
+////////a very small value for comparing wait time --1 means 1day///100ms/////
+#define WT_EPS 1/(86400.0*10)
 
 
 #endif // __INDOOR_H__

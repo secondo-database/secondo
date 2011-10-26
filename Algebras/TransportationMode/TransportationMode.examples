@@ -999,6 +999,11 @@ Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) 
 Example  : query generate_genmo6(space_1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave) count; 
 Result   : 20
 
+Operator : generate_genmo6_ext
+Number   : 1
+Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo6_ext(space_1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave, building_rel) count; 
+Result   : 20
 
 Operator : navigation1
 Number   : 1
@@ -1018,6 +1023,13 @@ Operator : generate_genmo8
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop)count;
+Result   : 10
+
+
+Operator : generate_genmo8_ext
+Number   : 1
+Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_genmo8_ext(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop, mstops_build) count;
 Result   : 10
 
 Operator : get_rg_nodes

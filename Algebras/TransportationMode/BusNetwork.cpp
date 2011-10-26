@@ -7702,6 +7702,7 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
   assert(br_uoid > 0);
 
 //  cout<<"br_uoid "<<br_uoid<<endl;
+//  cout<<"time "<<t<<endl;
   ///////////////////////////////////////////////////////////////
   ///////////////get moving buses moving on the route///////////
   ///////////////////////////////////////////////////////////////
@@ -7720,6 +7721,7 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
       MPoint* mo_bus = (MPoint*)tuple->GetAttribute(BN_BUSTRIP_MP);
       Periods* peri = new Periods(0);
       mo_bus->DefTime(*peri);
+//      cout<<"periods "<<*peri<<endl;
       if(peri->Contains(t)){
 //        cout<<"periods "<<*peri<<endl;
         for(int i = 0;i < mo_bus->GetNoComponents();i++){
@@ -11423,7 +11425,7 @@ for the start bus stop, it does not consider the walk segment connection
 */
 void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 {
-
+//  cout<<"ShortestPath_Time2"<<endl;
   BusGraph* bg = bn->GetBusGraph(); 
   if(bg == NULL){
     cout<<"bus graph is invalid"<<endl; 
@@ -11853,6 +11855,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     Instant t1 = *qt;
 //    int no_transfer = 0;
 
+    t_cost = 0.0;
     for(int i = id_list.size() - 1;i >= 0;i--){
       BNPath_elem elem = expand_queue[id_list[i]];
       ////////////////////////////////////////////////////////////
@@ -11893,10 +11896,10 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           tm_list.push_back("none"); 
       }
 
-
+//      cout<<" elem.valid "<<elem.valid<<endl;
       ////////////////////////////////////////////////////////////////////
-      ////////////////we also return///////////////////////////////////////
-      ////////the start and end bus stops connected by the path ////////////
+      ////////////////we also return//////////////////////////////////////
+      ////////the start and end bus stops connected by the path //////////
       ////////////////////////////////////////////////////////////////////
       char buf1[256], buf2[256];
 
@@ -11939,10 +11942,13 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
         //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
@@ -11962,10 +11968,13 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
         //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
@@ -11998,10 +12007,13 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
           //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
 
           time_span.start = t1;
           time_span.lc = true;
@@ -12377,7 +12389,6 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           tm_list.push_back("none"); 
       }
 
-
       ////////////////////////////////////////////////////////////////////
       ////////////////we also return///////////////////////////////////////
       ////////the start and end bus stops connected by the path ////////////
@@ -12446,7 +12457,7 @@ void BNNav::ShortestPath_Transfer(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
 
-        //time cost in seconds 
+          //time cost in seconds 
           if(elem.valid)
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
           else //doing transfer without moving 
@@ -13043,7 +13054,8 @@ for the first bus stop, do not consider walk segment connection
 */
 void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 {
-
+//  cout<<"ShortestPath_Transfer2"<<endl;
+  
   BusGraph* bg = bn->GetBusGraph(); 
   if(bg == NULL){
     cout<<"bus graph is invalid"<<endl; 
@@ -13382,7 +13394,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     Bus_Stop bs_last = *bs1; 
     Instant t1 = *qt;
 
-
+    t_cost = 0.0;
     for(int i = id_list.size() - 1;i >= 0;i--){
       BNPath_elem2 elem = expand_queue[id_list[i]];
 
@@ -13470,11 +13482,14 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
         //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
-          
+            t_cost += 0.0;
+          }
+
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
@@ -13494,10 +13509,14 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
         //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
+
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
@@ -13530,10 +13549,13 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
           //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
 
           time_span.start = t1;
           time_span.lc = true;
@@ -14867,6 +14889,8 @@ void MetroStruct::CopyMetroTrip(GenMO* genmo, MPoint* mo,
     new_mo->StartBulkLoad();
     new_genmo->StartBulkLoad();
 
+
+    assert(mo->GetNoComponents() == genmo->GetNoComponents()); 
 
     for(int i = 0;i < mo->GetNoComponents();i++){
         UPoint up;

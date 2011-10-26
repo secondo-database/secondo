@@ -365,6 +365,11 @@ public:
   static const string BasicType(){
        return "genloc";
   } 
+  bool IsLocDef() const{
+    if(loc.loc1 < 0 && loc.loc2 < 0) return false;
+    else
+      return true;
+  }
   private:
     unsigned int oid;
     Loc loc; 
@@ -778,8 +783,11 @@ struct GenMObject{
   static string StreetSpeedInfo;
   static string CommPathInfo;
   static string RTreeCellInfo;
+  static string BuildingInfo; 
+  
   enum StreeSpeed{SPEED_RID = 0, SPEED_VAL}; 
-  enum CommPath{CELL_ID1,CELL_AREA1,CELL_ID2,CELL_AREA2,CELL_PATH};
+  enum CommPath{CELL_ID1 = 0,CELL_AREA1,CELL_ID2,CELL_AREA2,CELL_PATH};
+  enum BuildInfo{Build_ID = 0, Build_Type, Build_Area};
 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list; 
@@ -978,9 +986,16 @@ struct GenMObject{
                                     int entrance_index, int reg_id,
                                     MaxRect* maxrect, Periods* peri,
                                      MPoint3D*);
-  //////////////////////////////////////////////////////////////////////
+  void GenerateGenMO6Ext(Space* sp, Periods* peri, int mo_no, int type, 
+                      Relation* rel1, Relation* rel2,
+                      R_Tree<2,TupleId>* rtree, Relation* rel3);
+  void CreateBuildingPair4(IndoorInfra* i_infra, 
+                          vector<RefBuild>& build_id1_list,
+                          vector<RefBuild>& build_id2_list, int no, 
+                          MaxRect* maxrect, Relation* rel);
+  ////////////////////////////////////////////////////////////////////
   ////////////////////// Metro Walk///////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
   void GenerateGenMO7(Space* sp, Periods* peri, int mo_no, 
                       int type, Relation*, Relation*, R_Tree<2,TupleId>*);
   bool NearestMetroStop(GenLoc loc, Relation* rel2, 
@@ -999,6 +1014,10 @@ struct GenMObject{
     void GenerateGenMO8(Space* sp, Periods* peri, int mo_no, int type, 
                       Relation* rel1, Relation* rel2,
                       R_Tree<2,TupleId>* rtree);
+
+    void GenerateGenMO8Ext(Space* sp, Periods* peri, int mo_no, int type, 
+                      Relation* rel1, Relation* rel2,
+                      R_Tree<2,TupleId>* rtree, Relation* rel3);
 
 };
 

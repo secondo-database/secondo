@@ -1201,6 +1201,8 @@ struct BNNav{
   unsigned int count;
   TupleType* resulttype;
   
+  double t_cost;//summarize time in seconds
+  
   int type; 
   BNNav(){count = 0; resulttype = NULL;}
   BNNav(BusNetwork* n):bn(n)

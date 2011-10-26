@@ -3293,6 +3293,16 @@ const string SpatialSpecGenerateGMO6TMList =
 "<text>query generate_genmo6(space_1, TwoDays, 30.0, 13,"
 "tri_reg_new, bs_pave_sort, rtree_bs_pave) </text---> ) )";
 
+const string SpatialSpecGenerateGMO6ExtTMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x  periods x real x int x rel x btree x rtree x rel"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_genmo6 (space, periods, real, int, rel, "
+"btree, rtree, rel) </text--->"
+"<text>generate generic moving objects </text--->"
+"<text>query generate_genmo6(space_1, TwoDays, 30.0, 13,"
+"tri_reg_new, bs_pave_sort, rtree_bs_pave, buildingrel) </text---> ) )";
+
 const string SpatialSpecGenerateGMO7TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text> space x periods x real x int x rel x rel x rtree"
@@ -3310,6 +3320,15 @@ const string SpatialSpecGenerateGMO8TMList =
 "<text>generate generic moving objects </text--->"
 "<text>query generate_genmo8(space_1, TwoDays, 30.0, 15, tri_reg_new,"
 "msneighbor, rtree_ms_stop) </text---> ) )";
+
+const string SpatialSpecGenerateGMO8ExtTMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x periods x real x int x rel x rel x rtree x rel"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_genmo8_ext (space, periods, int, int, rel,rel, rtree)</text--->"
+"<text>generate generic moving objects </text--->"
+"<text>query generate_genmo8(space_1, TwoDays, 30.0, 15, tri_reg_new,"
+"msneighbor, rtree_ms_stop, mstops_build) </text---> ) )";
 
 const string SpatialSpecGetRGNodesTMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -4853,6 +4872,72 @@ int GenerateGMO6ListValueMap(Word* args, Word& result, int message,
 }
 
 /*
+create generic moving objects for Walk Indoor + bus
+with input building relations
+
+*/
+int GenerateGMO6ExtListValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        int type = ((CcInt*)args[3].addr)->GetIntval();
+        Relation* rel1 = (Relation*)args[4].addr;
+        Relation* rel2 = (Relation*)args[5].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[6].addr;
+        Relation* rel3 = (Relation*)args[7].addr;
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateGenMO6Ext(sp, peri, mo_no, type, rel1, rel2, rtree, rel3);
+        local.setAddr(mo);
+
+        return 0;
+      }
+
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->trip1_list.size())return CANCEL;
+          Tuple* tuple = new Tuple(mo->resulttype);
+
+
+           tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+           tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
+           tuple->PutAttribute(2,new MPoint3D(mo->indoor_mo_list1[mo->count]));
+           tuple->PutAttribute(3,
+               new CcString(GetBuildingStr(mo->build_type_list1[mo->count])));
+ 
+           tuple->PutAttribute(4,new MPoint3D(mo->indoor_mo_list2[mo->count]));
+           tuple->PutAttribute(5,
+               new CcString(GetBuildingStr(mo->build_type_list2[mo->count])));
+
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
 create generic moving objects for Walk Metro
 
 */
@@ -4982,6 +5067,76 @@ int GenerateGMO8ListValueMap(Word* args, Word& result, int message,
   
 }
 
+
+/*
+create generic moving objects for Indoor Walk Metro + building relation 
+
+*/
+int GenerateGMO8ExtListValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        int type = ((CcInt*)args[3].addr)->GetIntval();
+        Relation* rel1 = (Relation*)args[4].addr;
+        Relation* rel2 = (Relation*)args[5].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[6].addr; 
+        Relation* rel3 = (Relation*)args[7].addr; 
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateGenMO8Ext(sp, peri, mo_no, type, rel1, rel2, rtree, rel3);
+        local.setAddr(mo);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+//          if(mo->count == mo->line_list1.size()) return CANCEL;
+          if(mo->count == mo->trip1_list.size()) return CANCEL;
+
+           Tuple* tuple = new Tuple(mo->resulttype);
+
+//           tuple->PutAttribute(0,
+//              new CcString(GetBuildingStr(mo->build_type_list1[mo->count])));
+//           tuple->PutAttribute(1,
+//              new CcString(GetBuildingStr(mo->build_type_list2[mo->count])));
+
+
+          tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+          tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
+          tuple->PutAttribute(2,new MPoint3D(mo->indoor_mo_list1[mo->count]));
+          tuple->PutAttribute(3,
+              new CcString(GetBuildingStr(mo->build_type_list1[mo->count])));
+
+          tuple->PutAttribute(4,new MPoint3D(mo->indoor_mo_list2[mo->count]));
+          tuple->PutAttribute(5,
+             new CcString(GetBuildingStr(mo->build_type_list2[mo->count])));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
 
 /*
 get road graph nodes relation
@@ -6096,12 +6251,6 @@ ListExpr GenerateGMO6ListTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
 
-//   ListExpr arg2 = nl->Second(args);
-//   if(!nl->IsEqual(arg2, "indoorinfra")){
-//       string err = "the second parameter should be indoor infra";
-//       return listutils::typeError(err);
-//   }
-
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2, "periods")){
       string err = "the second parameter should be periods";
@@ -6143,26 +6292,99 @@ ListExpr GenerateGMO6ListTypeMap(ListExpr args)
       return listutils::typeError("para7 should be a rtree");
 
 
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->FiveElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path1"),
-//                                      nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path"),
-//                                      nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
-//                                      nl->SymbolAtom("line")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                      nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                      nl->SymbolAtom("mpoint"))
-//                   )
-//                 )
-//           );
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                     nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                     nl->SymbolAtom("mpoint")),
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip1"),
+                                     nl->SymbolAtom("mpoint3d")),
+                        nl->TwoElemList(nl->SymbolAtom("Building1"),
+                                     nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip2"),
+                                     nl->SymbolAtom("mpoint3d")),
+                        nl->TwoElemList(nl->SymbolAtom("Building2"),
+                                     nl->SymbolAtom("string"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+/*
+TypeMap function for operator generate genmo6ext
+
+*/
+ListExpr GenerateGMO6ExtListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 8){
+      string err = "eight input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 parameter should be real and 4 parameter be int";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType1);
+
+  if(!(CompareSchemas(arg5, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg6 = nl->Sixth(args);
+  if (!(listutils::isRelDescription(arg6)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType2);
+
+  if(!(CompareSchemas(arg6, xType2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg7 = nl->Nth(7, args);
+  if(!listutils::isRTreeDescription(arg7))
+      return listutils::typeError("para7 should be a rtree");
+
+  ListExpr arg8 = nl->Nth(8, args);
+  if (!(listutils::isRelDescription(arg8)))
+    return nl->SymbolAtom ( "typeerror" );
+  
+  ListExpr xType3;
+  nl->ReadFromString(GenMObject::BuildingInfo, xType3);
+
+  if(!(CompareSchemas(arg8, xType3)))
+    return nl->SymbolAtom ( "typeerror" );
+
 
     ListExpr result =
           nl->TwoElemList(
@@ -6319,6 +6541,98 @@ ListExpr GenerateGMO8ListTypeMap(ListExpr args)
   if(!listutils::isRTreeDescription(arg7))
     return listutils::typeError("para7 should be a rtree");
 
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                     nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                     nl->SymbolAtom("mpoint")),
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip1"),
+                                     nl->SymbolAtom("mpoint3d")),
+                        nl->TwoElemList(nl->SymbolAtom("Building1"),
+                                     nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip2"),
+                                     nl->SymbolAtom("mpoint3d")),
+                        nl->TwoElemList(nl->SymbolAtom("Building2"),
+                                     nl->SymbolAtom("string"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo8 ext
+
+*/
+ListExpr GenerateGMO8ExtListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 8){
+      string err = "eight input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 parameter should be real and 4 parameter be int";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType);
+
+  if(!(CompareSchemas(arg5, xType)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg6 = nl->Sixth(args);
+  if (!(listutils::isRelDescription(arg6)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(MetroNetwork::MetroPaveTypeInfo, xType1);
+
+  if(!(CompareSchemas(arg6, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg7 = nl->Nth(7, args);
+  if(!listutils::isRTreeDescription(arg7))
+    return listutils::typeError("para7 should be a rtree");
+
+  ListExpr arg8 = nl->Nth(8, args);
+  if (!(listutils::isRelDescription(arg8)))
+    return nl->SymbolAtom ( "typeerror" );
+  
+  ListExpr xType3;
+  nl->ReadFromString(GenMObject::BuildingInfo, xType3);
+
+  if(!(CompareSchemas(arg8, xType3)))
+    return nl->SymbolAtom ( "typeerror" );
 
     ListExpr result =
           nl->TwoElemList(
@@ -7328,6 +7642,18 @@ Operator generate_genmo6("generate_genmo6",
 );
 
 /*
+indoor + walk + bus with a relation specifying building relations
+
+*/
+
+Operator generate_genmo6_ext("generate_genmo6_ext",
+    SpatialSpecGenerateGMO6ExtTMList,
+    GenerateGMO6ExtListValueMap,
+    Operator::SimpleSelect,
+    GenerateGMO6ExtListTypeMap
+);
+
+/*
 metro + walk
 
 */
@@ -7348,6 +7674,19 @@ Operator generate_genmo8("generate_genmo8",
     GenerateGMO8ListValueMap,
     Operator::SimpleSelect,
     GenerateGMO8ListTypeMap
+);
+
+
+/*
+indoor + metro + walk + building relation 
+
+*/
+
+Operator generate_genmo8_ext("generate_genmo8_ext",
+    SpatialSpecGenerateGMO8ExtTMList,
+    GenerateGMO8ExtListValueMap,
+    Operator::SimpleSelect,
+    GenerateGMO8ExtListTypeMap
 );
 
 /*
@@ -14266,21 +14605,6 @@ ListExpr OpTMMapMsToPaveTypeMap ( ListExpr args )
                          nl->SymbolAtom("point"))
                      )));
 
-//    ListExpr res = nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//               nl->TwoElemList(
-//                   nl->SymbolAtom("tuple"),
-//                   nl->ThreeElemList(
-//                       nl->TwoElemList(
-//                           nl->SymbolAtom("Tri_Oid"),
-//                           nl->SymbolAtom("int")),
-//                       nl->TwoElemList(
-//                           nl->SymbolAtom("Neighbor"),
-//                           nl->SymbolAtom("region")),
-//                       nl->TwoElemList(
-//                           nl->SymbolAtom("ms_loc"),
-//                           nl->SymbolAtom("point"))
-//                       )));
   return res;
 }
 
@@ -14531,31 +14855,6 @@ ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
                               nl->SymbolAtom("line")))
                     )));
 
-//   ListExpr res = nl->TwoElemList(
-//             nl->SymbolAtom("stream"),
-//             nl->TwoElemList(
-//                 nl->SymbolAtom("tuple"),
-//                       nl->SixElemList(
-//                             nl->TwoElemList(
-//                               nl->SymbolAtom("reg_id"),
-//                               nl->SymbolAtom("int")),
-//                             nl->TwoElemList(
-//                               nl->SymbolAtom("sp"),
-//                               nl->SymbolAtom("point")),
-//                             nl->TwoElemList(
-//                               nl->SymbolAtom("ep"),
-//                               nl->SymbolAtom("point")),
-//                             nl->TwoElemList(
-//                               nl->SymbolAtom("ep2"),
-//                               nl->SymbolAtom("point")),
-//                             nl->TwoElemList(
-//                               nl->SymbolAtom("ep2_gloc"),
-//                               nl->SymbolAtom("genloc")),
-//                             nl->TwoElemList(
-//                               nl->SymbolAtom("Path"),
-//                               nl->SymbolAtom("line"))
-//                      )));
-
     return res;
 }
 
@@ -14736,9 +15035,6 @@ ListExpr OpTMCheckRoadsTypeMap ( ListExpr args )
     return listutils::typeError("param2 should be an rtree" );
 
 
-//  return nl->SymbolAtom ( "bool" );
-
-
   ListExpr result =
 
         nl->TwoElemList(
@@ -14761,8 +15057,7 @@ ListExpr OpTMCheckRoadsTypeMap ( ListExpr args )
           );
 
   return result; 
-  
-  
+
 }
 
 
@@ -14810,10 +15105,6 @@ ListExpr OpTMTMJoin1TypeMap ( ListExpr args )
 
  if(!listutils::isRTreeDescription(param3) )
     return listutils::typeError("param3 should be an rtree" );
-
-
-//  return nl->SymbolAtom ( "bool" );
-
 
   ListExpr result =
 
@@ -22609,8 +22900,10 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_genmo4);//indoor + walk
    AddOperator(&generate_genmo5);//indoor + walk + car(taxi)
    AddOperator(&generate_genmo6);//indoor + walk + bus
+   AddOperator(&generate_genmo6_ext);//indoor + walk + bus (building relation)
    AddOperator(&generate_genmo7);//metro + walk
    AddOperator(&generate_genmo8);//indoor + metro + walk
+   AddOperator(&generate_genmo8_ext);//indoor + metro + walk (building relation)
    /////////////////////////////////////////////////////////////////////////
    //////////////// improve shortest path computing in road network////////
    ///////////////////////////////////////////////////////////////////////
