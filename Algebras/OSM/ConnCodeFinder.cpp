@@ -133,6 +133,7 @@ int ConnCodeFinder::getConnectivityCode (
    assert (inout3 >= 0 && inout3 <= 2);
    assert (inout4 >= 0 && inout4 <= 2);
    // Testing if the street direction is opposite to the section direction
+   // (the opposing sections can neither both be incoming nor outgoing)
    assert (!(((inout1 == 1 || inout1 == 2) && inout1 == inout3))
            && !(((inout2 == 1 || inout2 == 2) && inout2 == inout4)));
 
