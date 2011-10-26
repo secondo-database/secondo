@@ -19,8 +19,8 @@
 ################################################################################
 
 # Creating and opening a new database
-create database beispielCity;
-open database beispielCity;
+create database duesseldorfCity;
+open database duesseldorfCity;
 
 # Changing the scaling applied to all coordinates during import
 query setscalefactorx(1000);
@@ -28,7 +28,7 @@ query setscalefactory(1000);
 
 # Setting the path to the directory with the shape data:
 let SRC_DIR_PATH =
-   '/Users/fernuni-student/osm-data/osm-files/osm-api/beispiel/';
+   '/Users/fernuni-student/osm-data/osm-files/geofabrik/duesseldorf/';
 let PART =
    'City';
 let SCALE_FACTOR_X =
