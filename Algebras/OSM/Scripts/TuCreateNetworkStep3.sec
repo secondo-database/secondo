@@ -9,9 +9,10 @@
 ### - activated necessary algebras
 ### - existing open database with successfully imported osm data
 ### - extStreetsRel-relation
-### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                    roadClass: string, oneWay: int, bridge: int,
-###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
+### extStreetsRel: rel{geoData: sline, streetId: int, name: string,
+###                    ref: string, roadClass: string, oneWay: int,
+###                    bridge: int, maxSpeed: int, tunnel: bool,
+###                    layer: int, groupId: int}
 ### - nodesRel-relation
 ### nodesRel: rel{Node: point, NodeId: int}
 ### - extSectionsRel-relation
@@ -46,11 +47,13 @@ let fourSecInZeroSecOut1111JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -72,7 +75,9 @@ let fourSecInZeroSecOut1111JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,2,2,1,.oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,2,2,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -98,11 +103,13 @@ let threeSecInOneSecOut2111JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -124,8 +131,9 @@ let threeSecInOneSecOut2111JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,2,2,1,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,2,2,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -151,11 +159,13 @@ let threeSecInOneSecOut1211JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -177,8 +187,9 @@ let threeSecInOneSecOut1211JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,1,2,1,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,1,2,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -204,16 +215,19 @@ let threeSecInOneSecOut1121JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
@@ -230,8 +244,9 @@ let threeSecInOneSecOut1121JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,2,1,1,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,2,1,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -257,11 +272,13 @@ let threeSecInOneSecOut1112JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -271,7 +288,8 @@ let threeSecInOneSecOut1112JuncTmp =
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -283,8 +301,9 @@ let threeSecInOneSecOut1112JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,2,2,2,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,2,2,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -310,11 +329,13 @@ let twoSecInTwoSecOut2211JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -336,8 +357,9 @@ let twoSecInTwoSecOut2211JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,1,2,1,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,1,2,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -363,16 +385,19 @@ let twoSecInTwoSecOut2121JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
@@ -389,8 +414,9 @@ let twoSecInTwoSecOut2121JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,2,1,1,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,2,1,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -416,11 +442,13 @@ let twoSecInTwoSecOut2112JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -430,7 +458,8 @@ let twoSecInTwoSecOut2112JuncTmp =
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -442,8 +471,9 @@ let twoSecInTwoSecOut2112JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,2,2,2,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,2,2,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -469,16 +499,19 @@ let twoSecInTwoSecOut1221JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
@@ -495,8 +528,9 @@ let twoSecInTwoSecOut1221JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,1,1,1,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,1,1,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -522,11 +556,13 @@ let twoSecInTwoSecOut1212JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -536,7 +572,8 @@ let twoSecInTwoSecOut1212JuncTmp =
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -548,8 +585,9 @@ let twoSecInTwoSecOut1212JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,1,2,2,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,1,2,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -575,21 +613,25 @@ let twoSecInTwoSecOut1122JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -601,8 +643,9 @@ let twoSecInTwoSecOut1122JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,2,1,2,
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,2,1,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -628,16 +671,19 @@ let oneSecInThreeSecOut2221JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
@@ -654,7 +700,9 @@ let oneSecInThreeSecOut2221JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,1,1,1,.oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,1,1,1,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -680,11 +728,13 @@ let oneSecInThreeSecOut2212JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
@@ -694,7 +744,8 @@ let oneSecInThreeSecOut2212JuncTmp =
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -706,7 +757,9 @@ let oneSecInThreeSecOut2212JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,1,2,2,.oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,1,2,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -732,21 +785,25 @@ let oneSecInThreeSecOut2122JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,endNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,endNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -758,7 +815,8 @@ let oneSecInThreeSecOut2122JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,2,1,2,.oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType: getconnectivitycode(2,2,1,2,
+         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -784,21 +842,25 @@ let oneSecInThreeSecOut1222JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,endNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, endNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -810,7 +872,9 @@ let oneSecInThreeSecOut1222JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(1,1,1,2,.oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(1,1,1,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,
@@ -836,21 +900,25 @@ let zeroSecInFourSecOut2222JuncTmp =
    ((((nodesRel feed
        fullSectionsView feed
        sortby [sectionId]
-       project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {a}     
+       project [streetId,sectionId,startNodeId,streetData,sectionData,
+          oneWay] {a}     
        hashjoin [NodeId, startNodeId_a,99997])
       fullSectionsView feed
       sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {b} 
+      project [streetId,sectionId,startNodeId,streetData,sectionData,
+         oneWay] {b} 
       hashjoin [NodeId,startNodeId_b,99997]
       filter [.sectionId_a < .sectionId_b])
      fullSectionsView feed
      sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
+     project [streetId,sectionId,startNodeId,streetData,sectionData,
+        oneWay] {c}
      hashjoin [NodeId,startNodeId_c,99997]
      filter [.sectionId_a < .sectionId_c])
     fullSectionsView feed
     sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {d} 
+    project [streetId,sectionId,startNodeId,streetData,sectionData,
+       oneWay] {d} 
     hashjoin [NodeId,startNodeId_d,99997]
     filter [.sectionId_b < .sectionId_d])
    projectextend [; 
@@ -862,7 +930,9 @@ let zeroSecInFourSecOut2222JuncTmp =
 #         * size(.streetData_b,create_geoid("WGS1984")) / size(.streetData_b),
       Road3: .streetId_c,
       Road4: .streetId_d,
-      JunctionType: getconnectivitycode(2,1,1,2,.oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
+      JunctionType:
+         getconnectivitycode(2,1,1,2,
+            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1),
       Sec1: .sectionId_a,
       Sec2: .sectionId_b,
       Sec3: .sectionId_c,

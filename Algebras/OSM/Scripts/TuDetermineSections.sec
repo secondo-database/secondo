@@ -10,9 +10,10 @@
 ### for spatialjoin-operator HadoopParallelAlgebra
 ### - existing open database with successfully imported osm data
 ### - extStreetsRel-relation
-### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                    roadClassRef: int, oneWay: int, bridge: int,
-###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
+### extStreetsRel: rel{geoData: sline, streetId: int, name: string,
+###                    ref: string, roadClassRef: int, oneWay: int,
+###                    bridge: int, maxSpeed: int, tunnel: bool,
+###                    layer: int, groupId: int}
 ###
 ### Postconditions:
 ### - already existing relations
@@ -136,10 +137,14 @@ let extSectionsRel =
     extend [
        Node1Dist: atpoint(.Street,.Node1,TRUE),
        Node2Dist: atpoint(.Street,.Node2,TRUE)]
-    extend [startNode: ifthenelse(.Node1Dist < .Node2Dist, .Node1, .Node2),
-            endNode: ifthenelse(.Node1Dist < .Node2Dist, .Node2, .Node1),
-            StartNodeId: ifthenelse(.Node1Dist < .Node2Dist, .Node1Id, .Node2Id),
-            EndNodeId: ifthenelse(.Node1Dist < .Node2Dist, .Node2Id, .Node1Id)]
+    extend [startNode:
+               ifthenelse(.Node1Dist < .Node2Dist, .Node1, .Node2),
+            endNode:
+               ifthenelse(.Node1Dist < .Node2Dist, .Node2, .Node1),
+            StartNodeId:
+               ifthenelse(.Node1Dist < .Node2Dist, .Node1Id, .Node2Id),
+            EndNodeId:
+               ifthenelse(.Node1Dist < .Node2Dist, .Node2Id, .Node1Id)]
     extend [
        LowerStreetDist: ifthenelse(.Node1Dist < .Node2Dist,
           .Node1Dist, .Node2Dist),
@@ -195,12 +200,21 @@ update extSectionsRel := (((((extStreetsRel feed
    extSectionsRel feed
    smouterjoin [SectionId_n,SectionId]
    projectextend [GroupId,StreetId; 
-      Section: ifthenelse(isdefined(.SectionId_n),.NewSection_n,.Section),
-      StartNodeId: ifthenelse(isdefined(.SectionId_n),.NewStartNodeId_n,.StartNodeId),
-      EndNodeId: ifthenelse(isdefined(.SectionId_n),.NewEndNodeId_n,.EndNodeId),
-      LowerStreetDist: ifthenelse(isdefined(.SectionId_n),.NewLowerStreetDist_n,.LowerStreetDist),
-      HigherStreetDist: ifthenelse(isdefined(.SectionId_n),.NewHigherStreetDist_n,.HigherStreetDist),
-      SectionDist: ifthenelse(isdefined(.SectionId_n),.NewSectionDist_n,.SectionDist)]
+      Section:
+         ifthenelse(isdefined(.SectionId_n),.NewSection_n,.Section),
+      StartNodeId:
+         ifthenelse(isdefined(.SectionId_n),.NewStartNodeId_n,.StartNodeId),
+      EndNodeId:
+         ifthenelse(isdefined(.SectionId_n),.NewEndNodeId_n,.EndNodeId),
+      LowerStreetDist:
+         ifthenelse(isdefined(.SectionId_n),
+            .NewLowerStreetDist_n,.LowerStreetDist),
+      HigherStreetDist:
+         ifthenelse(isdefined(.SectionId_n),
+            .NewHigherStreetDist_n,.HigherStreetDist),
+      SectionDist:
+         ifthenelse(isdefined(.SectionId_n),
+            .NewSectionDist_n,.SectionDist)]
    sortby [GroupId,StreetId,HigherStreetDist,LowerStreetDist]
    addcounter[SectionId, 1]
    consume);
