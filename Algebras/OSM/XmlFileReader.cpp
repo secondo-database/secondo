@@ -100,6 +100,17 @@ void XmlFileReader::open ()
     m_reader = new xmlTextReaderPtr ();
     const char *fileName = getFileName ().c_str();
     (*m_reader) = xmlReaderForFile(fileName, NULL, 0);
+    //(*m_reader) = xmlReaderForFd(
+    //    XmlFdCache::getInstance ().getFd (fileName), NULL, NULL, 0);
+    //ifstream infile;
+    // Opening a file for reading
+    //infile.open (fileName, fstream::in);
+    // Determining the file size
+    //infile.seekg (0, ios::end);
+    //length = infile.tellg();
+    // Setting the position of the file descriptor
+    //infile.seekg (0, ios::beg);
+    //infile.close();
     assert (m_reader);
 }
 
