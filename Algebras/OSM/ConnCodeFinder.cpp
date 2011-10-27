@@ -208,13 +208,25 @@ void ConnCodeFinder::printVerticalArrows (int b)
 {
    switch (b)  {
       case (0):
-          std::cout << " ×" << std::endl; break;
+          std::cout << " x" << std::endl;
+          std::cout << " x" << std::endl;
+          std::cout << " x" << std::endl;
+          break;
       case (1):
-          std::cout << " ↑" << std::endl; break;
+          std::cout << " ^" << std::endl;
+          std::cout << " |" << std::endl;
+          std::cout << " |" << std::endl;
+          break;
       case (2):
-          std::cout << " ↓" << std::endl; break;
+          std::cout << " |" << std::endl;
+          std::cout << " |" << std::endl;
+          std::cout << " v" << std::endl;
+          break;
       case (3):
-          std::cout << " ↕" << std::endl; break;
+          std::cout << " ^" << std::endl;
+          std::cout << " |" << std::endl;
+          std::cout << " v" << std::endl;
+          break;
       default:
           assert (false);
           break;
@@ -225,13 +237,13 @@ void ConnCodeFinder::printHorizontalArrows (int a)
 {
    switch (a)  {
       case (0):
-          std::cout << "×"; break;
+          std::cout << "xxx"; break;
       case (1):
-          std::cout << "→"; break;
+          std::cout << "-->"; break;
       case (2):
-          std::cout << "←"; break;
+          std::cout << "<--"; break;
       case (3):
-          std::cout << "↔"; break;
+          std::cout << "<->"; break;
       default:
           assert (false);
           break;
@@ -241,8 +253,8 @@ void ConnCodeFinder::printHorizontalArrows (int a)
 void ConnCodeFinder::printAllConnectivityCodes ()
 {
    ConnCodeFinder *ccFinder = NULL;
-   //std::cout <<  "256 Fälle - 13 Fälle, in denen sich keine
-   //  2 Straßen kreuzen" << std::endl;
+   //std::cout <<  "256 cases - 13 cases, in which less than
+   //  2 streets cross each other" << std::endl;
    for (int iLowerA = 0; iLowerA < 4; ++iLowerA)  {
       for (int iHigherB = 0; iHigherB < 4; ++iHigherB)  {
          for (int iHigherA = 0; iHigherA < 4; ++iHigherA)  {
@@ -300,5 +312,5 @@ void ConnCodeFinder::print () const
    printVerticalArrows (getLowerB ());
    std::cout << std::endl;
    m_matrix.print ();
-   std::cout << "Dezimalwert: " << getConnCode () << std::endl; 
+   std::cout << "Decimal value: " << getConnCode () << std::endl; 
 }
