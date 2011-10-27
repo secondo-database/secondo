@@ -173,7 +173,7 @@ int ConnCodeMatrix::getConnCode () const
 void ConnCodeMatrix::print () const
 {
    std::ostringstream calc;
-   std::cout << "Übergangscode-Matrix:" << std::endl;
+   std::cout << "Matrix of the connectivity code:" << std::endl;
    int i = 15;
    for (int iRow = 0; iRow < 4; ++iRow)  {
       for (int iCol = 0; iCol < 4; ++iCol)  {
@@ -186,5 +186,5 @@ void ConnCodeMatrix::print () const
       std::cout << std::endl;
    } 
    calc << "0";
-   std::cout << "Rechnung: " << calc.str () << std::endl;
+   std::cout << "Calculation: " << calc.str () << std::endl;
 }
