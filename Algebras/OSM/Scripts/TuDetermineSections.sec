@@ -56,10 +56,9 @@ let stsPlusSecsTmp =
       StreetId: .streetId,
       Street: .geoData,
       UndirStreet: toline(.geoData)]
+   extend [Pts: intersection(juncTermPts,.UndirStreet)]
    projectextendstream [GroupId,StreetId,Street; 
-      Section: (
-         .UndirStreet polylines [FALSE,
-            intersection(juncTermPts,.UndirStreet)])]
+      Section: (.UndirStreet polylines [FALSE,.Pts])]
    consume;
 
 # Creating a relation for the sections by removing duplicates
