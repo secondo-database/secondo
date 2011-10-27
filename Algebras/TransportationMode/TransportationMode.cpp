@@ -8192,13 +8192,13 @@ const string OpTMCellBoxSpec  =
 const string OpTMCreateBusRouteSpec1  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>network x rel x attr1 x attr2 x attr3 x attr4 x btree x string"
+    "( <text>network x rel x attr1 x attr2 x attr3 x attr4 x btree x rel"
     "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_bus_route1(n,rel,attr1,attr2,attr3,attr4,btree,string);"
+    "<text>create_bus_route1(n,rel,attr1,attr2,attr3,attr4,btree,rel);"
     "</text--->"
     "<text>create bus route1</text--->"
     "<text>query create_bus_route1(n,street_sections_cell,sid_s,cellid_w_a_c,"
-    "Cnt_a_c,cover_area_b_c,section_cell_index,Berlin) count;</text--->"
+    "Cnt_a_c,cover_area_b_c,section_cell_index, bus_para) count;</text--->"
     ") )";
     
 const string OpTMCreateBusRouteSpec2  =
@@ -11001,20 +11001,24 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
   ListExpr index = nl->Sixth(args);
   if(!listutils::isBTreeDescription(index))
       return  nl->SymbolAtom ( "parameter 6 should be btree" );
-    
-  
-  ListExpr param7 = nl->Nth (7, args );
-  if(!(nl->IsAtom(param7) && nl->AtomType(param7) == SymbolType &&  
-     nl->SymbolValue(param7) == "string")){
-      return nl->SymbolAtom ( "typeerror: param7 should be network" );
-  }
 
+
+  ListExpr param7 = nl->Nth (7, args );
+  if(!IsRelDescription(param7))
+    return nl->SymbolAtom ( "typeerror: param7 should be relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(BusRoute::BusNetworkParaInfo, xType2); 
+  if(!CompareSchemas(param7, xType2)){
+    return listutils::typeError("rel scheam should be" + 
+                                BusRoute::BusNetworkParaInfo);
+  }
 
      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                
+
 /*                nl->TwoElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("bus_route_id"),
@@ -17868,7 +17872,7 @@ int OpTMCreateBusRouteValueMap1 ( Word* args, Word& result, int message,
         Network* n = (Network*)args[0].addr;
         Relation* r = (Relation*)args[1].addr; 
         BTree* btree = (BTree*)args[5].addr;
-        string type = ((CcString*)args[6].addr)->GetValue();
+        Relation* bus_para = (Relation*)args[6].addr;
 
 
         int attr1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
@@ -17880,7 +17884,7 @@ int OpTMCreateBusRouteValueMap1 ( Word* args, Word& result, int message,
         br->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         
-        br->CreateRoute1(attr1,attr2,attr3, type);
+        br->CreateRoute1(attr1,attr2,attr3, bus_para);
         local.setAddr(br);
         return 0;
       }

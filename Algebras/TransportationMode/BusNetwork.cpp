@@ -59,6 +59,8 @@ string BusRoute::BusStopTemp1TypeInfo =
 "(rel (tuple ((br_id int) (bus_stop_id int) (bus_stop1 gpoint)\
 (bus_stop2 point))))";
 
+string BusRoute::BusNetworkParaInfo = "(rel (tuple ((para real))))";
+
 
 /*
 create route bus route 
@@ -75,7 +77,7 @@ low density - lowdenstiy;
 Berlin and Houston have different roads distribution.
 
 */
-void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
+void BusRoute::CreateRoute1(int attr1,int attr2,int attr3, Relation* bus_para)
 {
 //  cout<<"attr1 "<<attr1<<" attr2 "<<attr2<<" attr3 "<<attr3<<endl; 
 //  cout<<"CreateBusRoute()"<<endl; 
@@ -199,30 +201,57 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3,string type)
 //    cout<<cell_list3.size()<<" "
 //        <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
 
-   if(type == "Berlin"){
+//    if(type == "Berlin"){
+// 
+//     BuildRoute1(cell_list3, cell_list1, 1, true);//type 1
+// 
+//     BuildRoute1(cell_list2, cell_list1, 2, false);//type 2
+// 
+//   //  unsigned int limit_no = 20;
+//       unsigned int limit_no = 45;
+// //    unsigned int limit_no = 30;
+// 
+//     BuildRoute_Limit(cell_list1, cell_list1, limit_no);
+//    }else if(type == "Houston"){
+// 
+//     BuildRoute2(cell_list3, cell_list1, 1, true);//type 1
+//     BuildRoute2(cell_list2, cell_list1, 2, false);//type 2
+// 
+//     unsigned int limit_no = 60;
+// 
+//     BuildRoute_Limit2(cell_list1, cell_list1, limit_no);
+// 
+//    }else{
+//     cout<<"type: "<<type<<" not processed"<<endl;
+//     assert(false);
+//    }
 
-    BuildRoute1(cell_list3, cell_list1, 1, true);//type 1
 
-    BuildRoute1(cell_list2, cell_list1, 2, false);//type 2
+    if(bus_para->GetNoTuples() != 3){
+      cout<<"wrong bus parameter relation"<<endl;
+      return;
+    }
+    
+    Tuple* tuple1 = bus_para->GetTuple(1, false);
+    unsigned int limit_no = 
+        (unsigned int)((CcReal*)tuple1->GetAttribute(0))->GetRealval();
+    tuple1->DeleteIfAllowed();
 
-  //  unsigned int limit_no = 20;
-      unsigned int limit_no = 45;
-//    unsigned int limit_no = 30;
 
-    BuildRoute_Limit(cell_list1, cell_list1, limit_no);
-   }else if(type == "Houston"){
+    Tuple* tuple2 = bus_para->GetTuple(2, false);
+    float dist_para1 = ((CcReal*)tuple2->GetAttribute(0))->GetRealval();
+    tuple2->DeleteIfAllowed();
+    
+    Tuple* tuple3 = bus_para->GetTuple(3, false);
+    float dist_para2 = ((CcReal*)tuple3->GetAttribute(0))->GetRealval();
+    tuple3->DeleteIfAllowed();
 
-    BuildRoute2(cell_list3, cell_list1, 1, true);//type 1
-    BuildRoute2(cell_list2, cell_list1, 2, false);//type 2
+//    cout<<limit_no<<" "<<dist_para1<<" "<<dist_para2<<endl;
 
-    unsigned int limit_no = 60;
-
-    BuildRoute_Limit2(cell_list1, cell_list1, limit_no);
-
-   }else{
-    cout<<"type: "<<type<<" not processed"<<endl;
-    assert(false);
-   }
+    BuildRoute1(cell_list3, cell_list1, 1, true, dist_para1);//type 1
+    BuildRoute1(cell_list2, cell_list1, 2, false, dist_para1);//type 2
+    BuildRoute2(cell_list1, cell_list1, limit_no, dist_para2); //type 3
+    
 
 }
 
@@ -232,17 +261,10 @@ highest density area with low density area
 */
 void BusRoute::BuildRoute1(vector<Section_Cell>& from_cell_list,
                              vector<Section_Cell> to_cell_list,
-                             int type, bool start)
+                             int type, bool start, float dist_val)
 {
   for(unsigned int i = 0;i < from_cell_list.size();i++){
-    Section_Cell elem = from_cell_list[i];
-
-//      float dist_val = 10000.0;//Euclidean distance between two cells
-
-//      float dist_val = 12000.0;//Euclidean distance between two cells
-
-      float dist_val = 16000.0;//Euclidean distance between two cells
-
+      Section_Cell elem = from_cell_list[i];
       int end_cellid = 
           FindEndCell1(from_cell_list[i],to_cell_list,dist_val, start); 
 
@@ -265,20 +287,19 @@ void BusRoute::BuildRoute1(vector<Section_Cell>& from_cell_list,
 /*
 lown density area with low density area
 with the limit number of bus routes 
+Houston larger area than Berlin, so the distance value is also large, given
+by the input parameter 
 
 */
-void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
+void BusRoute::BuildRoute2(vector<Section_Cell>& from_cell_list,
                              vector<Section_Cell> to_cell_list,
-                             unsigned int limit_no)
+                             unsigned int limit_no, float dist_val)
 {
   unsigned int count = 0;
   for(unsigned int i = 0;i < from_cell_list.size();i++){
     Section_Cell elem = from_cell_list[i];
 
     if(from_cell_list[i].def == false) continue; 
-
-//      float dist_val = 15000.0;//Euclidean distance between two cells
-      float dist_val = 22000.0;//Euclidean distance between two cells
       int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
 
       if(end_cellid >= 0){
@@ -304,8 +325,6 @@ void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
     Section_Cell elem = from_cell_list[i];
 
     if(from_cell_list[i].def == false) continue; 
-
-      float dist_val = 22000.0;//Euclidean distance between two cells
       int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
 
       if(end_cellid >= 0){
@@ -327,96 +346,6 @@ void BusRoute::BuildRoute_Limit(vector<Section_Cell>& from_cell_list,
 }
 
 
-void BusRoute::BuildRoute2(vector<Section_Cell>& from_cell_list,
-                             vector<Section_Cell> to_cell_list,
-                             int type, bool start)
-{
-  for(unsigned int i = 0;i < from_cell_list.size();i++){
-    Section_Cell elem = from_cell_list[i];
-
-      float dist_val = 50000.0;//Euclidean distance between two cells
-
-      int end_cellid = 
-          FindEndCell1(from_cell_list[i],to_cell_list,dist_val, start); 
-
-      if(end_cellid >= 0){
-//        cout<<"start cell "<<from_cell_list[i].cell_id
-//          <<" end cell "<<to_cell_list[end_cellid].cell_id<<endl; 
-
-          start_cells.push_back(from_cell_list[i].reg);
-          end_cells.push_back(to_cell_list[end_cellid].reg);
-          start_cell_id.push_back(from_cell_list[i].cell_id);
-          end_cell_id.push_back(to_cell_list[end_cellid].cell_id);
-
-
-          bus_route_type.push_back(type);
-      }
-  }
-
-}
-
-/*
-lown density area with low density area
-with the limit number of bus routes for Houston 
-larger area than Berlin, so the distance value is also large
-
-*/
-void BusRoute::BuildRoute_Limit2(vector<Section_Cell>& from_cell_list,
-                             vector<Section_Cell> to_cell_list,
-                             unsigned int limit_no)
-{
-  unsigned int count = 0;
-  for(unsigned int i = 0;i < from_cell_list.size();i++){
-    Section_Cell elem = from_cell_list[i];
-
-    if(from_cell_list[i].def == false) continue; 
-
-      float dist_val = 80000.0;//Euclidean distance between two cells
-      int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
-
-      if(end_cellid >= 0){
-
-          start_cells.push_back(from_cell_list[i].reg);
-          end_cells.push_back(to_cell_list[end_cellid].reg);
-          start_cell_id.push_back(from_cell_list[i].cell_id);
-          end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
-
-          bus_route_type.push_back(3);//the lowest route 
-
-          to_cell_list[i].def = false; 
-          from_cell_list[end_cellid].def = false; 
-          count++;
-    }
-    if(count > limit_no/2) break; 
-
-  }
-  
-    count = 0;
-    for(int i = from_cell_list.size() - 1;i >= 0;i--){
-      Section_Cell elem = from_cell_list[i];
-
-      if(from_cell_list[i].def == false) continue; 
-
-      float dist_val = 80000.0;//Euclidean distance between two cells
-      int end_cellid = FindEndCell2(from_cell_list[i],to_cell_list,dist_val); 
-
-      if(end_cellid >= 0){
-
-          start_cells.push_back(from_cell_list[i].reg);
-          end_cells.push_back(to_cell_list[end_cellid].reg);
-          start_cell_id.push_back(from_cell_list[i].cell_id);
-          end_cell_id.push_back(to_cell_list[end_cellid].cell_id); 
-
-          bus_route_type.push_back(3);//the lowest route 
-
-          to_cell_list[i].def = false; 
-          from_cell_list[end_cellid].def = false; 
-          count++;
-    }
-    if(count > limit_no/2) break; 
-  }
-
-}
 
 /*
 use the first paramter as the start cell and find a cell from the

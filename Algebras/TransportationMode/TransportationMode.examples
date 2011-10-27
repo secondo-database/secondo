@@ -299,8 +299,8 @@ Result   : 100
 
 Operator : create_bus_route1
 Number   : 2
-Signature: network x rel x attr_1 x attr_2 x attr_3 x btree x string-> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_route1(n,street_sections_cell,cellid_w_a_c,Cnt_a_c,cover_area_b_c, section_cell_index, "Berlin") count; 
+Signature: network x rel x attr_1 x attr_2 x attr_3 x btree x rel-> (stream(((x1 t1) ... (xn tn))))
+Example  : query create_bus_route1(n,street_sections_cell,cellid_w_a_c,Cnt_a_c,cover_area_b_c, section_cell_index, bus_para) count; 
 Result   : 75 
 
 

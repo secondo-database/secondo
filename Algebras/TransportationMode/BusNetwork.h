@@ -292,19 +292,17 @@ struct BusRoute{
   static string NewBusRoutesTmpTypeInfo;
   static string FinalBusRoutesTypeInfo;
   static string BusStopTemp1TypeInfo;
-  
+  static string BusNetworkParaInfo;
+
   ////////////rough description of bus routes/////////////////////////////
-  void CreateRoute1(int attr2,int attr3,int attr4,string type); 
+  void CreateRoute1(int attr2,int attr3,int attr4, Relation* bus_para); 
   void BuildRoute1(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1,int type,bool);
+                     vector<Section_Cell> cell_list1,int type,bool, float);
 
   void BuildRoute2(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1,int type,bool);
+                   vector<Section_Cell> cell_list1,unsigned int limit_no,
+                   float);
 
-  void BuildRoute_Limit(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1,unsigned int limit_no);
-  void BuildRoute_Limit2(vector<Section_Cell>& cell_list3,
-                     vector<Section_Cell> cell_list1, unsigned int limit_no);
   int FindEndCell1(Section_Cell& start_cell, vector<Section_Cell>& cell_list, 
                   float dist_val, bool start); 
   int FindEndCell2(Section_Cell& start_cell, vector<Section_Cell>& cell_list,

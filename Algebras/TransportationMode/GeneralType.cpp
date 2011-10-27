@@ -2598,8 +2598,8 @@ void GenMObject::CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg,
  //   cout<<"dist "<<dist<<" time "<<time<<endl; 
     ///////////////////////////////////////////////////////////////////
     if(dist < dist_delta){//ignore such small segment 
-        if((i + 1) < (int)seq_halfseg.size()){
-          seq_halfseg[i+1].from = from_loc; 
+        if((i - 1) >= 0 ){
+          seq_halfseg[i - 1].to = from_loc; 
         }
         continue; 
     }
@@ -2611,8 +2611,8 @@ void GenMObject::CreateCarTrip2(MPoint* mo, vector<MyHalfSegment> seq_halfseg,
     int64_t start_time = st.ToDouble()*86400000.0;
     int64_t end_time = et.ToDouble()*86400000.0;
     if(start_time == end_time){/////////time is equal, unit is not valid
-        if((i + 1) < seq_halfseg.size()){
-          seq_halfseg[i + 1].from = from_loc; 
+        if((i - 1) >= 0 ){
+          seq_halfseg[i - 1].to = from_loc; 
         }
         continue; 
     }
