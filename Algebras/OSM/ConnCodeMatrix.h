@@ -38,6 +38,7 @@ This header file essentially contains the definition of the class
 2 Defines and includes
 
 */
+// [...]
 #ifndef __CONN_CODE_MATRIX_H__
 #define __CONN_CODE_MATRIX_H__
 

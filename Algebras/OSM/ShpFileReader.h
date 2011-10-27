@@ -37,6 +37,7 @@ This header file essentially contains the definition of the class ~ShpFileReader
 2 Defines and includes
 
 */
+// [...]
 #ifndef __SHP_FILE_READER_H__
 #define __SHP_FILE_READER_H__
 
