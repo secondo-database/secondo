@@ -37,6 +37,7 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 2 Defines and includes
 
 */
+// [...]
 #ifndef __OSM_ALGEBRA_H__
 #define __OSM_ALGEBRA_H__
 
