@@ -38,6 +38,7 @@ This header file essentially contains the definition of the class
 2 Defines and includes
 
 */
+// [...]
 #ifndef __ELEMENT_H__
 #define __ELEMENT_H__
 

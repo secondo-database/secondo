@@ -38,6 +38,7 @@ This header file essentially contains the definition of the class
 2 Defines and includes
 
 */
+// [...]
 #ifndef __XML_PARSER_INTERFACE_H__
 #define __XML_PARSER_INTERFACE_H__
 

@@ -38,6 +38,7 @@ This header file essentially contains the definition of the class
 2 Defines and includes
 
 */
+// [...]
 #ifndef __OSM_PARSER_H__
 #define __OSM_PARSER_H__
 

@@ -38,6 +38,7 @@ This header file essentially contains the definition of the class
 2 Defines and includes
 
 */
+// [...]
 #ifndef __BIT_OPERATIONS_H__
 #define __BIT_OPERATIONS_H__
 

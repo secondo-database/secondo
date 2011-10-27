@@ -37,6 +37,7 @@ This header file essentially contains the definition of the class ~ScalingEngine
 2 Defines and includes
 
 */
+// [...]
 #ifndef __SCALING_ENGINE_H__
 #define __SCALING_ENGINE_H__
 

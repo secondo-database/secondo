@@ -40,7 +40,7 @@ For more detailed information see OsmParser.h.
 2 Defines and Includes
 
 */
-
+// [...]
 #undef __TRACE__
 //#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 #define __TRACE__
