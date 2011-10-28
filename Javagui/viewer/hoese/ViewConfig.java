@@ -960,14 +960,6 @@ public class ViewConfig extends javax.swing.JDialog {
       NewCat.setColorRange(Color.BLUE,Color.GREEN);
       NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
     }
-    if (RendType.equals(RENDER_POINTSIZE)) {
-       NewCat.setRenderMethod(Category.RENDER_POINTSIZE); 
-      NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
-    }
-    if(RendType.equals(RENDER_LINEWIDTH)){
-       NewCat.setRenderMethod(Category.RENDER_LINEWIDTH); 
-      //NewCat.setRenderMethod(Category.RENDER_LINE_COLOR);
-    }
     return  NewCat;
   }
 
