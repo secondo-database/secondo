@@ -1269,22 +1269,22 @@ Enum defining binary coding for the possible transitions between to routes.
 */
   enum Transition
   {
-    AUP_AUP     = 0x0001,
-    AUP_ADOWN   = 0x0002,
-    AUP_BUP     = 0x0004,
-    AUP_BDOWN   = 0x0008,
-    ADOWN_AUP   = 0x0010,
-    ADOWN_ADOWN = 0x0020,
-    ADOWN_BUP   = 0x0040,
-    ADOWN_BDOWN = 0x0080,
-    BUP_AUP     = 0x0100,
-    BUP_ADOWN   = 0x0200,
-    BUP_BUP     = 0x0400,
-    BUP_BDOWN   = 0x0800,
-    BDOWN_AUP   = 0x1000,
-    BDOWN_ADOWN = 0x2000,
-    BDOWN_BUP   = 0x4000,
-    BDOWN_BDOWN = 0x8000
+    AUP_AUP     = 1,
+    AUP_ADOWN   = 2,
+    AUP_BUP     = 4,
+    AUP_BDOWN   = 8,
+    ADOWN_AUP   = 16,
+    ADOWN_ADOWN = 32,
+    ADOWN_BUP   = 64,
+    ADOWN_BDOWN = 128,
+    BUP_AUP     = 256,
+    BUP_ADOWN   = 512,
+    BUP_BUP     = 1024,
+    BUP_BDOWN   = 2048,
+    BDOWN_AUP   = 4096,
+    BDOWN_ADOWN = 8192,
+    BDOWN_BUP   = 16384,
+    BDOWN_BDOWN = 32768
   };
 
 class ConnectivityCode
@@ -1443,9 +1443,12 @@ Redefinition of the assignment operator.
   ostream& Print(ostream& os) const
   {
     os << "Directed Section: TupleId: " << (long) m_iSectionTid;
-    os << ", UpDownFlag(false = 0 = down): " << m_bUpDown << endl;
+    os << ", UpDownFlag: ";
+    if (m_bUpDown ) os << "Up" << endl;
+    else os << "Down" << endl;
     return os;
   }
+
   private:
 
 /*
@@ -1512,10 +1515,12 @@ Copy-Constructor
   }
 
   ostream& Print(ostream& os) const {
-    os << "1.Section: " << m_iFirstSectionTid
-       << " Up(!=0): " << m_bFirstUpDown
-       << " 2.Section: " << m_iSecondSectionTid
-       << " Up(!=0): " << m_bSecondUpDown << endl;
+    os << "1.Section: " << m_iFirstSectionTid;
+    if (m_bFirstUpDown) os << " Up";
+    else os << " Down";
+    os << " 2.Section: " << m_iSecondSectionTid;
+    if (m_bSecondUpDown) os << " Up" << endl;
+    else os << " Down" << endl;
     return os;
   }
 
@@ -1528,12 +1533,12 @@ Copy-Constructor
     if (m_iFirstSectionTid > in_xOther.m_iFirstSectionTid)
       return false;
     if(m_bFirstUpDown != in_xOther.m_bFirstUpDown)
-      return !m_bFirstUpDown;
+      return m_bFirstUpDown;
     if (m_iSecondSectionTid < in_xOther.m_iSecondSectionTid)
       return true;
     if (m_iSecondSectionTid > in_xOther.m_iSecondSectionTid)
       return false;
-    return !m_bSecondUpDown;
+    return m_bSecondUpDown;
   }
 
 

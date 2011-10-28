@@ -3806,13 +3806,30 @@ void Network::FillAdjacencyLists()
   {
     // Get next
     DirectedSectionPair xPair = xList[i];
+    xPair.Print(cout);
     if ( i == 0 )
     {
       // Append new entry to sub-list
-      m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
-                                                     xPair.m_bSecondUpDown ) );
+      m_xSubAdjacencyList.Append (
+                DirectedSection ( xPair.m_iSecondSectionTid,
+                                  xPair.m_bSecondUpDown ) );
       xLastPair = xPair;
     }
+    else
+    {
+      // Check if entry allready exists in list. As the list is sorted it
+      // has to be the entry before.
+      if ( xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+           xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
+           xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
+           xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown )
+      {
+        // Append new entry to sub-list
+        m_xSubAdjacencyList.Append(DirectedSection ( xPair.m_iSecondSectionTid,
+                                                     xPair.m_bSecondUpDown ) );
+      }
+    }
+
     // Entry in adjacency list if all sections adjacent to one section have
     // been found. This is the case every time the first section changes. Never
     // at the first entry and always at the last.
@@ -3826,7 +3843,8 @@ void Network::FillAdjacencyLists()
             )
        )
     {
-      iHigh = m_xSubAdjacencyList.Size()-1;
+      if (i == xList.size() -1 ) iHigh = m_xSubAdjacencyList.Size()-1;
+      else iHigh = m_xSubAdjacencyList.Size()-2;
       Tuple* sectTup =
         (Tuple*) m_pSections->GetTuple(xLastPair.m_iFirstSectionTid,false);
       int sid = ((CcInt*)sectTup->GetAttribute(SECTION_SID))->GetIntval();
@@ -3835,18 +3853,6 @@ void Network::FillAdjacencyLists()
       iIndex += xLastPair.m_bFirstUpDown ? 1 : 0;
       m_xAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
       iLow = iHigh + 1;
-    }
-
-    // Check if entry allready exists in list. As the list is sorted it
-    // has to be the entry before.
-    if (    xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
-            xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
-            xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
-            xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown )
-    {
-      // Append new entry to sub-list
-      m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
-                                   xPair.m_bSecondUpDown ) );
     }
     xLastPair = xPair;
   }
@@ -3876,6 +3882,23 @@ void Network::FillAdjacencyLists()
                           xReversePair.m_bSecondUpDown ) );
       xLastReversePair = xReversePair;
     }
+    else
+    {
+      // Check if entry allready exists in list. As the list is sorted it
+      // has to be the entry before.
+      if(xLastReversePair.m_iFirstSectionTid !=
+                                            xReversePair.m_iFirstSectionTid ||
+         xLastReversePair.m_bFirstUpDown != xReversePair.m_bFirstUpDown ||
+         xLastReversePair.m_iSecondSectionTid !=
+                                           xReversePair.m_iSecondSectionTid ||
+         xLastReversePair.m_bSecondUpDown != xReversePair.m_bSecondUpDown )
+      {
+        // Append new entry to sub-list
+        m_reverseSubAdjancencyList.Append (
+        DirectedSection ( xReversePair.m_iSecondSectionTid,
+                          xReversePair.m_bSecondUpDown ) );
+      }
+    }
     // Entry in adjacency list if all sections adjacent to one section have
     // been found. This is the case every time the first section changes. Never
     // at the first entry and always at the last.
@@ -3892,7 +3915,10 @@ void Network::FillAdjacencyLists()
       )
     )
     {
-      iHigh = m_reverseSubAdjancencyList.Size()-1;
+      if (i == xReverseList.size() -1 )
+        iHigh = m_reverseSubAdjancencyList.Size()-1;
+      else
+        iHigh = m_reverseSubAdjancencyList.Size()-2;
       Tuple* sectTup =
         (Tuple*)m_pSections->GetTuple(xLastReversePair.m_iFirstSectionTid,
                                       false);
@@ -3902,20 +3928,6 @@ void Network::FillAdjacencyLists()
       iIndex += xLastReversePair.m_bFirstUpDown ? 1 : 0;
       m_reverseAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
       iLow = iHigh + 1;
-    }
-
-    // Check if entry allready exists in list. As the list is sorted it
-    // has to be the entry before.
-    if(xLastReversePair.m_iFirstSectionTid != xReversePair.m_iFirstSectionTid ||
-       xLastReversePair.m_bFirstUpDown != xReversePair.m_bFirstUpDown ||
-       xLastReversePair.m_iSecondSectionTid !=
-         xReversePair.m_iSecondSectionTid ||
-       xLastReversePair.m_bSecondUpDown != xReversePair.m_bSecondUpDown )
-    {
-      // Append new entry to sub-list
-      m_reverseSubAdjancencyList.Append (
-        DirectedSection ( xReversePair.m_iSecondSectionTid,
-                          xReversePair.m_bSecondUpDown ) );
     }
     xLastReversePair = xReversePair;
   }
@@ -8106,7 +8118,7 @@ Use priorityQueue to find shortestPath.
     if ( actPQEntry->sectID != lastSectTID )
     {
 /*
-Search in the network unitl reached last section.
+Search in the network until reached last section.
 Get adjacent sections and insert into priority Queue.
 
 */
