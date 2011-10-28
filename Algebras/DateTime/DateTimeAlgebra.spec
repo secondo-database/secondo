@@ -45,6 +45,7 @@ operator mininstant alias MININSTANT pattern op()
 operator maxnstant alias MAXINSTANT pattern op()
 operator minduration alias MINDURATION pattern op()
 operator maxduration alias MAXDURATION pattern op()
+operator div alias DIV pattern _ infixop _
 
 
 

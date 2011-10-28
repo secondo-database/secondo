@@ -2107,6 +2107,18 @@ ListExpr DivTM(ListExpr args){
    return nl->SymbolAtom(CcInt::BasicType());
 }
 
+ListExpr DivTM2(ListExpr args){
+  string err ="duration x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!Duration::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(Duration::BasicType());
+}
+
 ListExpr MinMaxInstantTM(ListExpr args){
    if(nl->IsEmpty(args)){
        return nl->SymbolAtom(DateTime::BasicType());
@@ -2459,11 +2471,36 @@ int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
   DateTime* T1 = (DateTime*) args[0].addr;
   DateTime* T2 = (DateTime*) args[1].addr;
+  CcInt* res = (CcInt*) result.addr;
+  if(!T1->IsDefined() || !T2->IsDefined() || T2->IsZero()){
+     res->SetDefined(false);
+     return 0;
+  }
   DateTime Remainder(durationtype);
-  int32_t res = (int32_t) (T1->Div( (*T2),Remainder));
-  ((CcInt*) result.addr)->Set(true,res);
+  int32_t ires = (int32_t) (T1->Div( (*T2),Remainder));
+  res->Set(true,ires);
   return 0;
 }
+
+
+int DivFun2(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  DateTime* res = (DateTime*) result.addr;
+  DateTime* T1 = (DateTime*) args[0].addr;
+  CcInt* T2 = (CcInt*) args[1].addr;
+  if(!T1->IsDefined() || !T2->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }	 
+  int value = T2->GetValue();
+  if(value==0){
+    res->SetDefined(false);
+    return 0;
+  }
+  (*res) = (*T1) / value;
+  return 0;
+}
+
 
 int MinFun(Word* args, Word& result, int message,
                   Word& local, Supplier s){
@@ -2791,6 +2828,13 @@ const string DivSpec =
    " 'Computes how often the second argument is part of the first one' "
    "   \"query a / b \" ))";
 
+const string DivSpec2 =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"duration x int -> duration\""
+   " \"  _ div _  \" "
+   " 'Divides a duration value by an integer' "
+   "   \"query a div b \" ))";
+
 const string MinInstantSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> instant\""
@@ -3027,6 +3071,13 @@ Operator dt_div(
        Operator::SimpleSelect,
        DivTM);
 
+Operator dt_div2(
+       "div", // name
+       DivSpec2, // specification
+       DivFun2,
+       Operator::SimpleSelect,
+       DivTM2);
+
 Operator dt_minInstant(
        "minInstant", // name
        MinInstantSpec, // specification
@@ -3186,6 +3237,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_today);
     AddOperator(&dt_theInstant);
     AddOperator(&dt_div);
+    AddOperator(&dt_div2);
     AddOperator(&dt_minInstant);
     AddOperator(&dt_maxInstant);
     AddOperator(&dt_minDuration);

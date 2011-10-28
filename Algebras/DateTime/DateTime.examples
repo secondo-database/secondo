@@ -322,3 +322,10 @@ Number    : 3
 Signature : string -> instant
 Example   : query str2instant("1.1.2009 13:56", "D.M.Y h:m")
 Result    : (instant "2009-01-01-13:56")
+
+Operator  : div
+Number    : 1
+Signature : duration x int -> duration
+Example   : query [const duration value (0 8) ] div 3
+Result    : (duration (0 2))
+
