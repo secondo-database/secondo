@@ -111,9 +111,9 @@ public class Category
  private int attrRenderMethod = RENDER_COLOR;
  
  /** the minimum pointsize used in reference depending rendering **/
- private static final int minPointSize = 1;
+ private static final int minPointSize = 2;
  /** the maximum pointsize used in reference depending rendering **/
- private static final int maxPointSize = 32;
+ private static final int maxPointSize = 16;
  /** the minimum linewidth used for reference depending rendering **/
  private static final int minLinewidth=1;
  /** the maximum linewidth used for reference depending rendering **/
