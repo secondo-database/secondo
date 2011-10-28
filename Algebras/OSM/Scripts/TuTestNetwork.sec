@@ -117,3 +117,76 @@ let cityNetwork = thenetwork(
    (cityJunctions feed filter [(.Road1 = 1) and (.Road2 = 22)]
     remove [NewJunctionType] extend [NewJunctionType: 1911]
     consume));
+
+# adjacent sections starting at lower part of A in opposite direction in
+# respect to the junction
+# (should return nothing - street ends)
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,1,FALSE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at lower part of A
+# (should return
+#  1 FALSE [AUP->ADOWN], 2 TRUE [AUP->AUP], 4 TRUE[AUP->BUP])
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,1,TRUE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at upper part of A
+# (should return
+#  1 FALSE [ADOWN->ADOWN], 2 TRUE [ADOWN->AUP], 4 TRUE [ADOWN->BUP])
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,2,FALSE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at upper part of A in opposite direction in
+# respect to the junction
+# (should return nothing - street ends)
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,2,TRUE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at lower part of B in opposite direction in
+# respect to the junction
+# (should return nothing - street ends)
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,3,FALSE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at lower part of B
+# (should return
+#  1 FALSE [BUP->ADOWN], 2 TRUE [BUP->AUP], 4 TRUE[BUP->BUP]) WRONG!!!
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,3,TRUE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at upper part of B
+# (should return nothing - oneway-street) WRONG!!!
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,4,FALSE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+# adjacent sections starting at upper part of B in opposite direction in
+# respect to the junction
+# (should return nothing - street ends)
+query sections(cityNetwork)
+   feed project [sid,curve] {a}
+   getAdjacentSections(cityNetwork,4,TRUE)
+   hashjoin [sid_a,SecID,99997]
+   consume;
+
+

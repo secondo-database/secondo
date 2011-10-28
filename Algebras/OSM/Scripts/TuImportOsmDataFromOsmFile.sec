@@ -69,8 +69,8 @@ let osmWayNodeRefsTmp =
 #   remove [geoData_p]
 #   consume;
 let osmWayPointsTmp =
-   osmNodesRel feed {p}
-   project [osm_id_p,geoData_p]
+   osmNodesRel feed
+   project [osm_id,geoData] {p}
    osmWayNodeRefsTmp feed
    smouterjoin [osm_id_p,nodeRef]
    filter [isdefined(.nodeRef)]
