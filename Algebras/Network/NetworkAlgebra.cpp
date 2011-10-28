@@ -3717,72 +3717,145 @@ void Network::FillAdjacencyLists()
     // If a section is existing and the transition is possible
     // it will be added to the adjacency list.
     //
-
-    FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList );
-    FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
+///////////////////////////////////////////////////////////////////////////////
+// Implementationversion
+///////////////////////////////////////////////////////////////////////////////
+//     FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList );
+//     FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
+//                         xList);
+//     FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP, xList );
+//     FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN,
+//                         xList);
+//
+//  FillAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP, xList );
+//     FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc, ADOWN_ADOWN,
+//                         xList);
+//  FillAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP, xList );
+//     FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc, ADOWN_BDOWN,
+//                         xList);
+//
+//     FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP, xList );
+//     FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN,
+//                         xList);
+//     FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP, xList );
+//     FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN,
+//                         xList);
+//
+//  FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP, xList );
+//     FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,
+//                         xList);
+//  FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BDOWN_BUP, xList );
+//     FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc, BDOWN_BDOWN,
+//                         xList);
+////////////////////////////////////////////////////////////////////////////////
+// Paperversion
+///////////////////
+    FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, ADOWN_AUP, xList );
+    FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, ADOWN_ADOWN,
                         xList);
-    FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP, xList );
-    FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN,
+    FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, ADOWN_BUP, xList );
+    FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, ADOWN_BDOWN,
                         xList);
 
-    FillAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP, xList );
-    FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc, ADOWN_ADOWN,
+    FillAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, AUP_AUP, xList );
+    FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc, AUP_ADOWN,
                         xList);
-    FillAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP, xList );
-    FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc, ADOWN_BDOWN,
-                        xList);
-
-    FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP, xList );
-    FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN,
-                        xList);
-    FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP, xList );
-    FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN,
+    FillAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, AUP_BUP, xList );
+    FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc, AUP_BDOWN,
                         xList);
 
-    FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP, xList );
-    FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,
+    FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BDOWN_AUP, xList );
+    FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BDOWN_ADOWN,
                         xList);
-    FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BDOWN_BUP, xList );
-    FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc, BDOWN_BDOWN,
+    FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BDOWN_BUP, xList );
+    FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BDOWN_BDOWN,
                         xList);
 
-    //////////////////////////////////////////////////////////////////////////
-    // And the reverse adjacency list.
-    FillReverseAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
-                               xReverseList);
-    FillReverseAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN,
-                               xReverseList);
+    FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BUP_AUP, xList );
+    FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BUP_ADOWN,
+                        xList);
+    FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BUP_BUP, xList );
+    FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc, BUP_BDOWN,
+                        xList);
+//////////////////////////////////////////////////////////////////////////
+// And the reverse adjacency list.
+//////////////////////////////////////////////////////////////////////////////
+// Implementationversion
+///////////////////////////////////////////////////////////////////////////////
 
-    FillReverseAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,
-                               ADOWN_ADOWN, xReverseList);
-    FillReverseAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,
-                               ADOWN_BDOWN, xReverseList);
+//     FillReverseAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP,
+//                                xReverseList );
+// FillReverseAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN,
+//                                xReverseList);
+//     FillReverseAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP,
+//                                xReverseList );
+//  FillReverseAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN,
+//                                xReverseList);
+//
+//    FillReverseAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP,
+//                                xReverseList );
+//     FillReverseAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,
+//                                ADOWN_ADOWN, xReverseList);
+//    FillReverseAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP,
+//                                xReverseList );
+//     FillReverseAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,
+//                                ADOWN_BDOWN, xReverseList);
+//
+//     FillReverseAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP,
+//                                xReverseList );
+//  FillReverseAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN,
+//                                xReverseList);
+//     FillReverseAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP,
+//                                xReverseList );
+//  FillReverseAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN,
+//                                xReverseList);
+//
+//    FillReverseAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP,
+//                                xReverseList );
+//     FillReverseAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,
+//                                BDOWN_ADOWN, xReverseList);
+//   FillReverseAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BDOWN_BUP,
+//                                xReverseList );
+//     FillReverseAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,
+//                                BDOWN_BDOWN, xReverseList);
+////////////////////////////////////////////////////////////////////////////////
+// Paperversion
+////////////////////////////////
+  FillReverseAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, ADOWN_AUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, ADOWN_ADOWN,
+                             xReverseList);
+  FillReverseAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, ADOWN_BUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, ADOWN_BDOWN,
+                             xReverseList);
 
-    FillReverseAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN,
-                               xReverseList);
-    FillReverseAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN,
-                               xReverseList);
+  FillReverseAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, AUP_AUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,
+                             AUP_ADOWN, xReverseList);
+  FillReverseAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, AUP_BUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,
+                             AUP_BDOWN, xReverseList);
 
-    FillReverseAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,
-                               BDOWN_ADOWN, xReverseList);
-    FillReverseAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BDOWN_BUP,
-                               xReverseList );
-    FillReverseAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,
-                               BDOWN_BDOWN, xReverseList);
+  FillReverseAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BDOWN_AUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BDOWN_ADOWN,
+                             xReverseList);
+  FillReverseAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BDOWN_BUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BDOWN_BDOWN,
+                             xReverseList);
+
+  FillReverseAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BUP_AUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,
+                             BUP_ADOWN, xReverseList);
+  FillReverseAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc, BUP_BUP,
+                             xReverseList );
+  FillReverseAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,
+                             BUP_BDOWN, xReverseList);
 
 
     pCurrentJunction->DeleteIfAllowed();
@@ -3806,7 +3879,6 @@ void Network::FillAdjacencyLists()
   {
     // Get next
     DirectedSectionPair xPair = xList[i];
-    xPair.Print(cout);
     if ( i == 0 )
     {
       // Append new entry to sub-list
