@@ -31,8 +31,10 @@
 # Computing all junctions and terminating points by finding the existing
 # crossings between streets and adding terminating points
 let juncTermPts =
-   (extStreetsRel feed {s1}
-    extStreetsRel feed {s2}
+   (extStreetsRel feed
+    project [streetId,geoData,layer] {s1}
+    extStreetsRel feed
+    project [streetId,geoData,layer] {s2}
     spatialjoin [geoData_s1, geoData_s2]
     filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
     projectextend[; Crossroads: crossings(.geoData_s1, .geoData_s2)]
@@ -47,6 +49,53 @@ let juncTermPts =
        fun(P3 : points, P4 : points) P3 union P4; 
           [const points value ()]]
    );
+
+# Alternative much faster solution (unfortunately not working due to rounding
+# errors)
+#TODO Continue iff there is any time left
+#let sectionPts =
+#   (extStreetsRel feed
+#    project [streetId,geoData,layer] {s1}
+#    extStreetsRel feed
+#    project [streetId,geoData,layer] {s2}
+#    spatialjoin [geoData_s1, geoData_s2]
+#    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
+#    filter[.geoData_s1 intersects .geoData_s2]
+#    projectextend[; 
+#       Road1: .streetId_s1,
+#       Road2: .streetId_s2,
+#       Crossroads: crossings(.geoData_s1, .geoData_s2)]
+#    filter[(isdefined(.Crossroads)) and (not(isempty(.Crossroads)))]
+#    projectextendstream [Road1,Road2; Pt: components(.Crossroads)])
+#   (extStreetsRel feed
+#    projectextend [; 
+#       Road1: .streetId,
+#       Road2: .streetId,
+#       B: boundary(toline(.geoData))]
+#    projectextendstream [Road1,Road2; Pt: components(.B)]
+#   )
+#   concat
+#   consume;
+#query
+#   (extStreetsRel feed
+#    project [streetId,geoData] {s1}
+#    sectionPts feed
+#    hashjoin [streetId_s1,Road1,99997])
+#   extStreetsRel feed
+#   project [streetId,geoData] {s2}
+#   hashjoin[Road2,streetId_s2,99997]
+#   filter [(.Pt inside toline(.geoData_s1)) and
+#           (.Pt inside toline(.geoData_s2))]
+#   extend [
+#      dist1:
+#         ifthenelse(.Road1=.Road2,
+#            0.,atpoint(.geoData_s1,.Pt,TRUE)),
+#      dist2:
+#         ifthenelse(.Road1=.Road2,
+#            size(.geoData_s1),atpoint(.geoData_s2,.Pt,TRUE))]
+#   sortby [Road1,dist1,dist2]
+#   addcounter[sectionID,1]
+#   count
 
 # Splitting up all streets into sections
 let stsPlusSecsTmp =
@@ -171,52 +220,53 @@ let extSectionsRel =
 # point as well as their positions on the street can not be distinguished
 # separately)
 #...
-update extSectionsRel := (((((extStreetsRel feed
-   extend [
-      streetStartNode: atposition(.geoData,0.0,TRUE),
-      streetEndNode: atposition(.geoData,size(.geoData),TRUE)]
-   filter [.streetStartNode = .streetEndNode]
-   extSectionsRel feed
-   hashjoin [streetId,StreetId,99997])
-   extSectionsRel feed {a}
-   hashjoin [StreetId,StreetId_a,99997]
-   filter [(.HigherStreetDist = .HigherStreetDist_a) and
-      (.SectionId < .SectionId_a)])
-   nodesRel feed {e} 
-   hashjoin [streetStartNode,Node_e,99997] 
-   remove [Node_e])
-   nodesRel feed {f} 
-   hashjoin [streetEndNode,Node_f,99997] 
-   remove [Node_f]
-   extend [StreetStartNodeId: .NodeId_e,StreetEndNodeId: .NodeId_f]
-   projectextend [GroupId,StreetId,SectionId; 
-      NewSection: set_startsmaller(.Section,not(get_startsmaller(.Section))),
-      NewStartNodeId: .StreetStartNodeId,
-      NewEndNodeId: .StartNodeId,
-      NewHigherStreetDist: .LowerStreetDist,
-      NewLowerStreetDist: .HigherStreetDist,
-      NewSectionDist: .SectionDist] {n})
-   extSectionsRel feed
-   smouterjoin [SectionId_n,SectionId]
-   projectextend [GroupId,StreetId; 
-      Section:
-         ifthenelse(isdefined(.SectionId_n),.NewSection_n,.Section),
-      StartNodeId:
-         ifthenelse(isdefined(.SectionId_n),.NewStartNodeId_n,.StartNodeId),
-      EndNodeId:
-         ifthenelse(isdefined(.SectionId_n),.NewEndNodeId_n,.EndNodeId),
-      LowerStreetDist:
-         ifthenelse(isdefined(.SectionId_n),
-            .NewLowerStreetDist_n,.LowerStreetDist),
-      HigherStreetDist:
-         ifthenelse(isdefined(.SectionId_n),
-            .NewHigherStreetDist_n,.HigherStreetDist),
-      SectionDist:
-         ifthenelse(isdefined(.SectionId_n),
-            .NewSectionDist_n,.SectionDist)]
-   sortby [GroupId,StreetId,HigherStreetDist,LowerStreetDist]
-   addcounter[SectionId, 1]
-   consume);
+update extSectionsRel :=
+   (((((extStreetsRel feed
+        extend [
+           streetStartNode: atposition(.geoData,0.0,TRUE),
+           streetEndNode: atposition(.geoData,size(.geoData),TRUE)]
+        filter [.streetStartNode = .streetEndNode]
+        extSectionsRel feed
+        hashjoin [streetId,StreetId,99997])
+        extSectionsRel feed {a}
+        hashjoin [StreetId,StreetId_a,99997]
+        filter [(.HigherStreetDist = .HigherStreetDist_a) and
+           (.SectionId < .SectionId_a)])
+        nodesRel feed {e} 
+        hashjoin [streetStartNode,Node_e,99997] 
+        remove [Node_e])
+        nodesRel feed {f} 
+        hashjoin [streetEndNode,Node_f,99997] 
+        remove [Node_f]
+        extend [StreetStartNodeId: .NodeId_e,StreetEndNodeId: .NodeId_f]
+        projectextend [GroupId,StreetId,SectionId; 
+           NewSection: set_startsmaller(.Section,not(get_startsmaller(.Section))),
+           NewStartNodeId: .StreetStartNodeId,
+           NewEndNodeId: .StartNodeId,
+           NewHigherStreetDist: .LowerStreetDist,
+           NewLowerStreetDist: .HigherStreetDist,
+           NewSectionDist: .SectionDist] {n})
+    extSectionsRel feed
+    smouterjoin [SectionId_n,SectionId]
+    projectextend [GroupId,StreetId; 
+       Section:
+          ifthenelse(isdefined(.SectionId_n),.NewSection_n,.Section),
+       StartNodeId:
+          ifthenelse(isdefined(.SectionId_n),.NewStartNodeId_n,.StartNodeId),
+       EndNodeId:
+          ifthenelse(isdefined(.SectionId_n),.NewEndNodeId_n,.EndNodeId),
+       LowerStreetDist:
+          ifthenelse(isdefined(.SectionId_n),
+             .NewLowerStreetDist_n,.LowerStreetDist),
+       HigherStreetDist:
+          ifthenelse(isdefined(.SectionId_n),
+             .NewHigherStreetDist_n,.HigherStreetDist),
+       SectionDist:
+          ifthenelse(isdefined(.SectionId_n),
+             .NewSectionDist_n,.SectionDist)]
+    sortby [GroupId,StreetId,HigherStreetDist,LowerStreetDist]
+    addcounter[SectionId, 1]
+    consume);
 
 # Removing the help relations
 delete sectionsRel;

@@ -17,7 +17,7 @@
 ###                type: string}
 ### - restrictionsTmp-relation
 ### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
-###                      restriction: string}
+###                      restriction: text}
 ###
 ### Postconditions:
 ### - streetsRel-relation

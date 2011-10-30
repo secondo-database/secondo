@@ -1,5 +1,5 @@
 ################################################################################
-### Importing OSM data from shape files (2 / 7)
+### Importing OSM data from osm-files (2 / 7)
 ################################################################################
 ### Description:
 ### - Reads data on streets and points of interest from osm-files.
@@ -7,12 +7,10 @@
 ###
 ### Preconditions:
 ### - existing open database
+### - enabled libxml2 support
 ###
 ### Postconditions:
 ### - streetsTmp-relation
-### either self-made shape-files in a custom format:
-### streetsTmp: rel{geoData: sline, ID: int, part: int, attrib: string}
-### or shape-files in the free standard geofabrik-format:
 ### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
 ###                 type: string, oneway: int, bridge: int, maxspeed: int,
 ###                 tunnel: bool, layer: int}
@@ -21,7 +19,7 @@
 ###                type: string}
 ### - restrictionsTmp-relation
 ### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
-###                      restriction: string}
+###                      restriction: text}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de

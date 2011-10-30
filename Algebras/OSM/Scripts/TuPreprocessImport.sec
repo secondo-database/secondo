@@ -19,8 +19,8 @@
 ################################################################################
 
 # Creating and opening a new database
-create database duesseldorfCity;
-open database duesseldorfCity;
+create database mvCity;
+open database mvCity;
 
 # Changing the scaling applied to all coordinates during import
 query setscalefactorx(1000);
@@ -28,7 +28,7 @@ query setscalefactory(1000);
 
 # Setting the path to the directory with the shape data:
 let SRC_DIR_PATH =
-   '/Users/fernuni-student/osm-data/osm-files/geofabrik/duesseldorf/';
+   '/Users/fernuni-student/osm-data/shp-files/geofabrik/bundeslaender/mv/';
 let PART =
    'City';
 let SCALE_FACTOR_X =
@@ -40,10 +40,10 @@ let SCALE_FACTOR_Y =
 # Defining the clipping rectangle used to restrict the data to the city area
 let cityRect =
    rectangle2 (
-      (6.65 * SCALE_FACTOR_X),
-      (6.91 * SCALE_FACTOR_X),
-      (51.18 * SCALE_FACTOR_Y),
-      (51.28 * SCALE_FACTOR_Y));
+      (10.5932460856 * SCALE_FACTOR_X),
+      (14.4122799503 * SCALE_FACTOR_X),
+      (53.1158637944 * SCALE_FACTOR_Y),
+      (54.6849886830 * SCALE_FACTOR_Y));
 
 # Dividing the main city rectangle into 9 parts for each orientation
 let districtWidth =
