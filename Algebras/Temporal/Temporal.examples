@@ -151,6 +151,14 @@ Example  : query breakpoints( train7, [const duration value (0 1000)] )
 Result   : file
 
 
+Operator : breaks
+Number   : 1
+Signature: mpoint x duration x real -> periods
+Example  : query no_components(breakpoints( train7, [const duration value (0 1000)], 20.0)) = no_components(breaks( train7, [const duration value (0 1000)], 20.0))
+Result   : TRUE
+
+
+
 Operator : deftime
 Number   : 1
 Signature: moving(x) -> periods

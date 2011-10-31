@@ -3785,6 +3785,17 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
                      const CcReal& epsilon, 
                      const Geoid* geoid=0) const;
 
+/*
+3.10.5.6 Operatiopn ~Breaks~
+
+This function computes the timeIntervalls for Breaks
+
+*/
+ 
+    void Breaks(Periods& result, const DateTime& dur, 
+                const CcReal& epsilon, 
+                const Geoid* geoid=0) const;
+
 
 /*
 3.10.5.5 Operation ~Vertices~

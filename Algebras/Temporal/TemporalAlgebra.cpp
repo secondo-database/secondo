@@ -5446,8 +5446,7 @@ void MPoint::BreakPoints(Points& result, const DateTime& dur,
     DateTime currentDur(datetime::durationtype);
 
     while(firstIndex < size){
-       
-      if(index == firstIndex){
+      if(index == firstIndex){ 
          Get(firstIndex,firstUnit);
          if(firstUnit.p0.Distance(firstUnit.p1,geoid) > eps){
             // this units overcomes the maximum epsilon value
@@ -5456,7 +5455,7 @@ void MPoint::BreakPoints(Points& result, const DateTime& dur,
          } else { // try to find more points for this break
            firstPoint = firstUnit.p0;
            currentDur =  firstUnit.timeInterval.end - 
-                         firstUnit.timeInterval.end;
+                         firstUnit.timeInterval.start;
            index++;
            if(index>=size){
              if(currentDur >= dur){
@@ -5506,6 +5505,98 @@ void MPoint::BreakPoints(Points& result, const DateTime& dur,
 }
 
 
+void MPoint::Breaks(Periods& result, const DateTime& dur, 
+                         const CcReal& epsilon, 
+                         const Geoid* geoid /*=0*/ ) const{
+
+    result.Clear();
+    if(!IsDefined() || !dur.IsDefined() || !epsilon.IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+
+    double eps = epsilon.GetValue();
+    if(eps<0){
+      return; // we cannot find distances smaller than zero 
+    }
+
+    result.SetDefined(true);
+    int size = GetNoComponents();
+    result.StartBulkLoad();
+    UPoint unit;
+    UPoint firstUnit;
+    Point firstPoint;
+    DateTime firstTime;
+    int firstIndex=0;
+    int index = 0;
+    DateTime currentDur(datetime::durationtype);
+
+    while(firstIndex < size){
+      if(index == firstIndex){ 
+         Get(firstIndex,firstUnit);
+         if(firstUnit.p0.Distance(firstUnit.p1,geoid) > eps){
+            // this units overcomes the maximum epsilon value
+            index++;
+            firstIndex++;
+         } else { // try to find more points for this break
+           firstPoint = firstUnit.p0;
+           firstTime = firstUnit.timeInterval.start;
+           currentDur =  firstUnit.timeInterval.end - 
+                         firstUnit.timeInterval.start;
+           index++;
+           if(index>=size){
+             if(currentDur >= dur){
+               Interval<Instant> iv(firstTime, firstTime+currentDur,true,true);
+               result.MergeAdd(iv);
+             }
+             firstIndex = index;
+
+           }
+         }
+      } else {
+        assert(index > firstIndex);
+        UPoint lastUnit;
+        Get(index-1, lastUnit);
+        Get(index, unit);
+        if(!lastUnit.Adjacent(&unit)){ // gap found, close chain
+           if(currentDur >= dur){
+              Interval<Instant> iv(firstTime,firstTime + currentDur, 
+                                   true, true); 
+              result.MergeAdd(iv);
+           }
+           firstIndex = index; // start a new try
+        } else {
+          Point rp = unit.p1;
+          if(firstPoint.Distance(rp,geoid) > eps){
+             // next unit does not contribute to break
+             if(currentDur >= dur){
+                Interval<Instant> iv(firstTime,firstTime + currentDur, 
+                                     true, true); 
+                result.MergeAdd(iv);
+                firstIndex = index;
+             } else {
+                // start a new try
+                firstIndex++;
+                index = firstIndex; 
+            }
+          } else {
+            // extend the possible break   
+            currentDur += (unit.timeInterval.end - unit.timeInterval.start);
+            index++;
+            if(index >= size){
+               firstIndex = index;
+               if(currentDur >= dur){
+                Interval<Instant> iv(firstTime,firstTime + currentDur,
+                                     true, true); 
+                result.MergeAdd(iv);
+               }
+            }
+          } 
+        }
+      }
+    }
+    result.EndBulkLoad();
+}
 
 
 void MPoint::TranslateAppend(const MPoint& mp, const DateTime& dur){
@@ -9754,6 +9845,32 @@ ListExpr MovingTypeMapBreakPoints(ListExpr args){
 }
 
 /*
+16.1.12 Type Mapping for Operator ~breaks~
+
+Signature:  mpoint x duration x real -> periods
+
+*/
+ListExpr breaksTM(ListExpr args){
+  string err = " mpoint x duration x real expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err);
+  }
+  if(!MPoint::checkType(nl->First(args)) ||
+     !Duration::checkType(nl->Second(args)) ||
+     !CcReal::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(Periods::BasicType());
+ 
+
+}
+
+
+
+
+
+
+/*
 16.1.12 Type mapping for the gk  operator
 
 */
@@ -12661,6 +12778,27 @@ int MPointBreakPoints(Word* args, Word& result,
   }
   return 0;
 }
+
+
+
+/*
+16.3.29 Value mapping function for the operator ~breaks~
+
+*/
+int breaksVM(Word* args, Word& result,
+                   int message, Word& local,
+                   Supplier s){
+
+  result= qp->ResultStorage(s);
+  Periods* res = (Periods*) result.addr;
+  MPoint* mp = (MPoint*) args[0].addr;
+  DateTime* dur = (DateTime*) args[1].addr;
+  CcReal* eps = (CcReal*) args[2].addr;
+  mp->Breaks(*res, *dur, *eps);
+  return 0;
+}
+
+
 
 /*
 16.3.29 Value mapping function for the operator ~gk~
@@ -15711,6 +15849,16 @@ const string TemporalSpecBreakPoints =
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
+const string breaksSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint x duration x real -> peridos</text--->"
+  "<text>breaks( m, d, e ) </text--->"
+  "<text>Computes all intervals where the mpoint 'm' stops longer"
+  " than the given duration 'd'.A stop is defined to move not more "
+  "than e within the  duration time."
+  "</text--->"
+  "<text>breaks( train7, [const duration value (0 1000), 30.0] )</text--->"
+  ") )";
 /*
 1.1.1 Spec for ~gk~
 
@@ -16479,6 +16627,12 @@ Operator temporalbreakpoints( "breakpoints",
                            MPointBreakPoints,
                            Operator::SimpleSelect,
                            MovingTypeMapBreakPoints );
+
+Operator breaks( "breaks",
+                 breaksSpec,
+                 breaksVM,
+                 Operator::SimpleSelect,
+                 breaksTM);
 
 Operator temporalgk( "gk",
                      TemporalSpecgk,
@@ -17805,6 +17959,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );
+    AddOperator( &breaks);
     AddOperator( &temporalgk );
     AddOperator( &temporalvertices );
     AddOperator( &temporaltranslate );
