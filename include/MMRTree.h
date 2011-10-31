@@ -564,6 +564,7 @@ template<unsigned dim, class T>
 class Node{
 
 friend class RtreeT<dim,T>;
+friend class RtreeT<dim,T>::iterator;
 private:
 /*
 1.1 Constructors
