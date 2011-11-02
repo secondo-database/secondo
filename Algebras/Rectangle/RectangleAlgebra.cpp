@@ -882,8 +882,8 @@ ListExpr
 cellNumberTM( ListExpr args )
 {
   NList l(args);
-  string err = "cellnumber expects(rect, x0, y0, xw, yw, nx) "
-      "or (rect3, x0, y0, z0, xw, yw, zw, nx, ny) ";
+  string err = "cellnumber expects(rect, real, real, real, real, int) "
+      "or (rect3, real, real, real, real, real, real, int, int) ";
 
   bool is3D = false;
   int len = l.length();
