@@ -318,7 +318,7 @@ struct a0tLocalInfo
 1.6 clusterInfo
 
 We define two list files in all nodes involved in a parallel Secondo.
-These files lists all nodes' ip adresses, cell file locations,
+These files list all nodes' ip addresses, cell file locations,
 and Secondo Monitor's access ports.
 
 These two files are separated to master and slaves list.
@@ -326,7 +326,7 @@ The master list only have one line, and the slave list have lines of
 as same as the disks of the slaves.
 These two files are specified in nodes, by setting their
 PARALLEL\_SECONDO\_MASTER and PARALLEL\_SECONDO\_SLAVES
-environment virables.
+environment variables.
 
 This class is used to verify these two files.
 
@@ -357,8 +357,11 @@ public:
   string getLocalIP();
 
 /*
-If the Parallel Secondo system is involved,
-then the default path cannot be used anymore.
+~getLocalPath~ function can only return the constant value
+SecondoFilePath that is defined in SECONDO\_CONFIG file.
+If the file location defined in PARALLEL\_SECONDO\_SLAVES
+is different from the default value,
+then the ~searchLocalNode~ function cannot return a correct result.
 
 */
   inline string getLocalPath()

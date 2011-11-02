@@ -1524,7 +1524,8 @@ clusterInfo::clusterInfo() :
 {
   ok = false;
 
-  //Scan both master and slave lists
+  //Scan both master and slave lists,
+  //and build up a machine list, which insert the master first.
   for (int i = 0; i < 2; i++)
   {
     bool isMaster = ( (0 == i) ? true : false);
@@ -1577,11 +1578,15 @@ clusterInfo::clusterInfo() :
         break;
       }
 
+      //TODO verify the correctness of the IP address
+
       //Remove the slash tail
       if (cfPath.find_last_of("/") == cfPath.length() - 1)
         cfPath = cfPath.substr(0, cfPath.length() - 1);
+
       int port = atoi(sport.c_str());
 
+      //TODO require a light method to remove duplicated records
       bool noRepeat = true;
       if (disks->size() > 0)
       {
@@ -1611,15 +1616,28 @@ clusterInfo::clusterInfo() :
     }
     fin.close();
 
-    if (isMaster && (disks->size() != 1)){
-      cerr << "Master list requires one line" << endl;
-      return;
+// Master list must contain one fully defined node
+// Slaves list must contain at least one fully defined node
+// Fully defined means all three elements are correctly indicated.
+    if (isMaster)
+    {
+      if (disks->size() != 1)
+      {
+        cerr << "Master list requires one line" << endl;
+        return;
+      }
     }
-    else if (!isMaster && (disks->size() <= 1)){
-      cerr << "Slave list should not be empty" << endl;
-      return;
+    else
+    {
+      if (disks->size() < 2)
+      {
+        cerr << "Slave list should not be empty" << endl;
+        return;
+      }
     }
   }
+
+  // The node list is built up correctly.
   ok = true;
 }
 
@@ -2647,6 +2665,7 @@ ListExpr FFeedTypeMap(ListExpr args)
   string filePath = fpList.str();
   filePath = getLocalFilePath(filePath, fileName, "_type");
 
+
   NList tr = l.third();
   pType = tr.first();
   int tnIndex = -1;
@@ -2689,7 +2708,10 @@ ListExpr FFeedTypeMap(ListExpr args)
 
     string rPath = ci->getRemotePath(tnIndex, fileName, false, false);
     FileSystem::AppendItem(rPath, fileName + "_type");
-    cerr << "Copy the type file from <-" << "\t" << rPath << endl;
+    //put the type file into a temporary file
+    filePath = FileSystem::MakeTemp(filePath);
+    cerr << "Copy the type file " << filePath
+        << " from <-" << "\t" << rPath << endl;
     if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
       return l.typeError(err11);
   }
@@ -2760,7 +2782,11 @@ int FFeedValueMap(Word* args, Word& result,
           getLocalFilePath(filePath, relName, fileSuffix, false);
 
       ffli = (FFeedLocalInfo*) local.addr;
-      if (ffli) delete ffli;
+      if (ffli)
+      {
+        delete ffli;
+        ffli = 0;
+      }
       ffli = new FFeedLocalInfo(qp->GetType(s));
 
       if (ffli->fetchBlockFile(
@@ -2769,6 +2795,12 @@ int FFeedValueMap(Word* args, Word& result,
       {
         ffli->returned = 0;
         local.setAddr(ffli);
+      }
+      else
+      {
+        delete ffli;
+        ffli = 0;
+        local.setAddr(0);
       }
 
       return 0;
@@ -2788,7 +2820,6 @@ int FFeedValueMap(Word* args, Word& result,
         result.setAddr(t);
         return YIELD;
       }
-
     }
     case CLOSE: {
       ffli = (FFeedLocalInfo*)local.addr;
@@ -3177,6 +3208,50 @@ x (map stream(tuple(T1)) stream(tuple(T2) stream(tuple(T1 T2)))))
 -> stream(tuple((MIndex int)(PIndex int)))
 ----
 
+Update in 23/10/2011
+Add a new optional parameter, named data path.
+Usually, the hadoop job of hadoop join operator reads data
+in map step, from Secondo databases in every slave.
+But in the CLOUD environment, like the Amazon EC2,
+data are kept as disk files in additional storage devices,
+as to re-use them in different scale clusters.
+In this case, hadoop join should tell each map task to read data
+from files, not from databases.
+
+The parameter is named as dataFilePath, in text type.
+It's an optional parameter, if it's not indicated, then the hadoop
+job reads data from Secondo databases on each slave.
+Or else data are read from disk files.
+
+Now the operator maps
+
+----
+stream(tuple(T1) x stream(tuple(T2))
+x partAttr1 x partAttr2 x partitionNum x resultName x dataFilePath
+x (map stream(tuple(T1)) stream(tuple(T2) stream(tuple(T1 T2)))))
+-> stream(tuple((MIndex int)(PIndex int)))
+----
+
+Update in 31/10/2011
+Replace the optional parameter ~dataFilePath~ to be an optional
+parameter ~dataLocRel~, which is a relation that contains two fields:
+SIndex:int and DPath:text.
+
+Through this change, ~hadoopjoin~ can read data in a more flexible way,
+in the past, every slave is assumed to have the data in its own Secondo database.
+After this improvement, they can either read the data from Secondo database
+or local file system, and may don't need to perform the map tasks.
+
+The SIndex indicates the series number of a slave which contains the
+data that ~hadoopjoin~ need read. And the DPath indicates the location
+of the data. Normally it's the data file path, when it's denoted as
+a special string <READ DB/>, then the data is kept in the slave's
+Secondo database. When a slave is not included in this relation,
+then it doesn't need to execute the map task.
+
+This parameter is an optional parameter too, when it's not given,
+then all slaves read data from their own Secondo databases.
+
 */
 
 struct HdpJoinInfo : OperatorInfo {
@@ -3185,12 +3260,14 @@ struct HdpJoinInfo : OperatorInfo {
     name = "hadoopjoin";
     signature =
         "(stream(tuple(T1)) x stream(tuple(T2)) x "
+        "rel(tuple(SIndex:int DPath:text)) x "
         " partAttr1 x partAttr2 x int x string x "
         " (map stream(tuple(T1)) "
         "  stream(tuple(T2) stream(tuple(T1 T2)))))"
         "-> stream(tuple(int int))";
     syntax = "stream(tuple(T1) stream(tuple(T2)) "
-        "hadoopjoin[partAttr1, partAttr2, partitionNum, resultName; "
+        "hadoopjoin[partAttr1, partAttr2, dataLocRel"
+        "partitionNum, resultName; "
         "joinQuery]";
     meaning =
         "Evaluating a join operation on parallel Secondo "
@@ -3200,7 +3277,8 @@ struct HdpJoinInfo : OperatorInfo {
         "The result tuples are encapsulated into several files, "
         "stored on different nodes. "
         "The output stream of this operator denotes the locations "
-        "of these result data files.";
+        "of these result data files."
+        "The third relation parameter is an optional parameter. ";
   }
 };
 
@@ -3215,20 +3293,22 @@ ListExpr hdpJoinTypeMap(ListExpr args)
       "of seven arguments. ";
   string typeErr = "operator hadoopjoin expects "
       "(stream(tuple(T1)), stream(tuple(T2)), "
-      "partAttr1, partAttr2, int, string,"
-      "(map (stream(tuple(T1))) stream(tuple(T2))"
+      "[rel(tuple(int, text))] "
+      "partAttr1, partAttr2, int, string, "
+      "(map (stream(tuple(T1))) stream(tuple(T2)) "
       "  stream(tuple(T1 T2))) )";
   string err1 =
       "ERROR! Infeasible evaluation in TM for attribute ";
 
   NList l(args);
-
-  if (l.length() != 7)
+  bool dre = false;  // Dataloc Relation Exist
+  if (l.length() != 8)
     return l.typeError(lengErr);
 
   string ss[2] = {"", ""};  // nested list of input streams
   string an[2] = {"", ""};  // attribute name
-  //Both input are tuple streams,
+  int attrOffset = 2;       //The offset of argument parameter
+  //Check both input are tuple streams,
   //and the partition attribute is included in respective stream
   for (int argIndex = 1; argIndex <= 2; argIndex++)
   {
@@ -3237,7 +3317,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     if (!streamList.checkStreamTuple(attrList))
       return l.typeError(typeErr);
 
-    NList partAttr = l.elem(argIndex + 2).first();
+    NList partAttr = l.elem(argIndex + attrOffset).first();
     if (!partAttr.isAtom())
       return l.typeError(typeErr);
 
@@ -3266,8 +3346,26 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     return l.typeError(err1 + " resultName");
   string resultName = rnList.str();
 
-  string mapStr = l.elem(7).second().fourth().convertToString();
-  NList mapList = l.elem(7).first();
+  NList drList = l.elem(7).first();
+  if (!drList.isEmpty())
+  {
+    cerr << "I want get the relation " << drList.convertToString() << endl;
+    // Check the dataLocRel
+    dre = true;
+    NList drType = drList.first();
+    NList drAttrList;
+    if (!drType.checkRel(drAttrList)){
+      return l.typeError(typeErr);
+    }
+
+    if (!(  drAttrList.first().second().isSymbol(CcInt::BasicType())
+         && drAttrList.second().second().isSymbol(FText::BasicType()))){
+      return l.typeError(typeErr);
+    }
+  }
+
+  string mapStr = l.elem(8).second().fourth().convertToString();
+  NList mapList = l.elem(8).first();
 
   NList attrAB;
   if (! (mapList.first().isSymbol(Symbol::MAP())
@@ -3311,13 +3409,21 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     appList.append(NList(mapStr, true, true));
     appList.append(NList(an[0], true, false));
     appList.append(NList(an[1], true, false));
+    appList.append(NList(dre, false));
 
-    return NList(NList(Symbol::APPEND()), appList, result).
-        listExpr();
+    return NList(NList(Symbol::APPEND()), appList, result).listExpr();
 }
 
 /*
 7.2 Value mapping
+
+
+The dataFilePath is an optional parameter.
+If it's not defined, then a special string <READ DB\/> is
+sent to the hadoop job, which will read data from Secondo
+databases on each slave, during the map step.
+If it's defined, then the hadoop job reads data from file system.
+
 
 */
 
@@ -3329,6 +3435,12 @@ int hdpJoinValueMap(Word* args, Word& result,
   switch(message)
   {
     case OPEN:{
+      if (hjli)
+      {
+        delete hjli;
+        hjli = 0;
+      }
+
       //0 Set the parameters
       //0.1 assume the operation happens on
       //all nodes' Secondo databases with a same name
@@ -3338,20 +3450,58 @@ int hdpJoinValueMap(Word* args, Word& result,
       //0.2 set other arguments
       int rtNum = ((CcInt*)args[4].addr)->GetIntval();
       string rName = ((CcString*)args[5].addr)->GetValue();
+
       string mrQuery[3] = {
-          ((FText*)args[7].addr)->GetValue(),
           ((FText*)args[8].addr)->GetValue(),
-          ((FText*)args[9].addr)->GetValue()
+          ((FText*)args[9].addr)->GetValue(),
+          ((FText*)args[10].addr)->GetValue()
       };
       string attrName[2] = {
-          ((CcString*)args[10].addr)->GetValue(),
-          ((CcString*)args[11].addr)->GetValue()
+          ((CcString*)args[11].addr)->GetValue(),
+          ((CcString*)args[12].addr)->GetValue()
       };
+
+      bool dre = ((CcBool*)args[13].addr)->GetValue();
+      NList dlList;
+      if (dre){
+        // Build the fileLocList based on the given relation
+        GenericRelation* dlr =
+            (GenericRelation*)(qp->Request(
+                qp->GetSupplierSon(args[6].addr, 0)).addr);
+        GenericRelationIterator *iter = dlr->MakeScan();
+        Tuple* nextTuple = iter->GetNextTuple();
+        while(!iter->EndOfScan()){
+          int sIndex = ((CcInt*)nextTuple->GetAttribute(0))->GetValue();
+          string dLoc = ((FText*)nextTuple->GetAttribute(1))->GetValue();
+          dlList.append(NList(NList(sIndex), NList(dLoc, true, true)));
+
+          nextTuple->DeleteIfAllowed();
+          nextTuple = iter->GetNextTuple();
+        }
+        delete iter;
+      }else{
+        // Build the fileLocList based on the slave list
+        clusterInfo *ci = new clusterInfo();
+        if (!ci->isOK()){
+          cerr << "\n\nERROR!\n====================\n"
+              "The parallel Secondo environment is not correctly set up. "
+              "Check whether $PARALLEL_SECONDO_SLAVES is defined ? \n"
+              "-----------------" << endl;
+          return 0;
+        }
+        int sIndex = 1;
+        while (sIndex < ci->getLines()){
+          dlList.append(NList(NList(sIndex),
+                              NList("<READ DB/>", true, true)));
+          sIndex++;
+        }
+      }
+      string drlStr = dlList.convertToString();
 
       //1 evaluate the hadoop program
       stringstream queryStr;
       queryStr << "hadoop jar HdpSec.jar dna.HSJoin \\\n"
-        << dbName << " \\\n"
+        << dbName << " \"" << drlStr << "\"" << " \\\n"
         << "\"" << tranStr(mrQuery[0], "\"", "\\\"") << "\" \\\n"
         << "\"" << attrName[0] << "\" \\\n"
         << "\"" << tranStr(mrQuery[1], "\"", "\\\"") << "\" \\\n"
@@ -3360,18 +3510,26 @@ int hdpJoinValueMap(Word* args, Word& result,
         << rtNum << " " << rName << endl;
       int rtn;
       cout << queryStr.str() << endl;   //Used for debug only
-//      rtn = system("hadoop dfs -rmr OUTPUT");
-//      rtn = system(queryStr.str().c_str());
+      rtn = system("hadoop dfs -rmr OUTPUT");
+      rtn = system(queryStr.str().c_str());
 
-      //2 get the result file list
-      if (hjli)
-        delete hjli;
+
+      if (rtn != 0)
+      {
+        cerr << "\n\nERROR!\n====================\n"
+            "The hadoop job cannot be successfully executed, "
+            "check whether the Hadoop Runtime is correctly installed "
+            "and started up.\n"
+            "-----------------" << endl;
+        return 0;
+      }
+
       hjli = new hdpJoinLocalInfo(s);
 
       FILE *fs;
       char buf[MAX_STRINGSIZE];
-      fs = popen("cat pjResult", "r");  //Used for debug only
-//      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+//      fs = popen("cat pjResult", "r");  //Used for debug only
+      fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
       if (NULL != fs)
       {
         while(fgets(buf, sizeof(buf), fs))
@@ -4666,7 +4824,7 @@ data files produced by ~fconsume~, ~ffeed~ and ~fdistribute~ operators.
 If a specified file path is not given, then it reads the
 ~SecondoFilePath~ variable set in the SecondoConfig.ini that is
 denoted by SECONDO\_CONFIG parameter.
-And the path must be an absoloute path.
+And the path must be an absolute path.
 By default, the path will be set to SECONDO\_BUILD\_DIR/bin/parallel
 
 If an non-default path is unavailable or not exist,
