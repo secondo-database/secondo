@@ -30,62 +30,78 @@
 
 # Computing all junctions and terminating points by finding the existing
 # crossings between streets and adding terminating points
-let juncTermPts =
-   (extStreetsRel feed
-    project [streetId,geoData,layer] {s1}
-    extStreetsRel feed
-    project [streetId,geoData,layer] {s2}
-    spatialjoin [geoData_s1, geoData_s2]
-    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
-    projectextend[; Crossroads: crossings(.geoData_s1, .geoData_s2)]
-    filter[not(isempty(.Crossroads))]
-    aggregateB[Crossroads; 
-       fun(P1: points, P2: points) P1 union P2; 
-          [const points value ()]])
-    union
-   (extStreetsRel feed
-    projectextend[; B : boundary(toline(.geoData))]
-    aggregateB[B; 
-       fun(P3 : points, P4 : points) P3 union P4; 
-          [const points value ()]]
-   );
-
-# Alternative much faster solution (unfortunately not working due to rounding
-# errors)
-#TODO Continue iff there is any time left
-#let sectionPts =
+#let juncTermPts =
 #   (extStreetsRel feed
 #    project [streetId,geoData,layer] {s1}
 #    extStreetsRel feed
 #    project [streetId,geoData,layer] {s2}
 #    spatialjoin [geoData_s1, geoData_s2]
 #    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
-#    filter[.geoData_s1 intersects .geoData_s2]
-#    projectextend[; 
-#       Road1: .streetId_s1,
-#       Road2: .streetId_s2,
-#       Crossroads: crossings(.geoData_s1, .geoData_s2)]
-#    filter[(isdefined(.Crossroads)) and (not(isempty(.Crossroads)))]
-#    projectextendstream [Road1,Road2; Pt: components(.Crossroads)])
+#    projectextend[; Crossroads: crossings(.geoData_s1, .geoData_s2)]
+#    filter[not(isempty(.Crossroads))]
+#    aggregateB[Crossroads; 
+#       fun(P1: points, P2: points) P1 union P2; 
+#          [const points value ()]])
+#    union
 #   (extStreetsRel feed
-#    projectextend [; 
-#       Road1: .streetId,
-#       Road2: .streetId,
-#       B: boundary(toline(.geoData))]
-#    projectextendstream [Road1,Road2; Pt: components(.B)]
-#   )
-#   concat
-#   consume;
-#query
-#   (extStreetsRel feed
+#    projectextend[; B : boundary(toline(.geoData))]
+#    aggregateB[B; 
+#       fun(P3 : points, P4 : points) P3 union P4; 
+#          [const points value ()]]
+#   );
+let sectionPtsTmp =
+   (extStreetsRel feed
+    project [streetId,geoData,layer] {s1}
+    extStreetsRel feed
+    project [streetId,geoData,layer] {s2}
+    spatialjoin [geoData_s1, geoData_s2]
+    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
+    filter[.geoData_s1 intersects .geoData_s2]
+    projectextend[; 
+       Road1: .streetId_s1,
+       Road2: .streetId_s2,
+       Crossroads: crossings(.geoData_s1, .geoData_s2)]
+    filter[(isdefined(.Crossroads)) and (not(isempty(.Crossroads)))]
+    projectextendstream [Road1,Road2; Pt: components(.Crossroads)])
+   (extStreetsRel feed
+    projectextend [; 
+       Road1: .streetId,
+       Road2: .streetId,
+       B: boundary(toline(.geoData))]
+    projectextendstream [Road1,Road2; Pt: components(.B)]
+   )
+   concat
+   consume;
+let stSecPts =
+   (sectionPtsTmp feed
+    projectextend [Pt; Street: .Road1]
+    sectionPtsTmp feed
+    projectextend [Pt; Street: .Road2]
+    concat
+    sortby [Street,Pt]
+    rdup
+    sortby [Street]
+    groupby [Street; 
+       SecPts: group feed
+          projecttransformstream [Pt]
+          collect_points [TRUE]]
+    consume);
+#let sectionPtsRel =
+#   (sectionPtsTmp feed
+#    extStreetsRel feed
 #    project [streetId,geoData] {s1}
-#    sectionPts feed
-#    hashjoin [streetId_s1,Road1,99997])
+#    hashjoin [Road1,streetId_s1,99997])
 #   extStreetsRel feed
 #   project [streetId,geoData] {s2}
 #   hashjoin[Road2,streetId_s2,99997]
-#   filter [(.Pt inside toline(.geoData_s1)) and
-#           (.Pt inside toline(.geoData_s2))]
+#   filter [((.Road1=.Road2) and
+#            (.Pt inside toline(.geoData_s1)) and
+#            (distance(.Pt,.geoData_s1) = 0)) or
+#           (not(.Road1=.Road2) and
+#            (.Pt inside toline(.geoData_s1)) and
+#            (.Pt inside toline(.geoData_s2)) and
+#            (distance(.Pt,.geoData_s1) = 0) and
+#            (distance(.Pt,.geoData_s2) = 0))]
 #   extend [
 #      dist1:
 #         ifthenelse(.Road1=.Road2,
@@ -94,20 +110,21 @@ let juncTermPts =
 #         ifthenelse(.Road1=.Road2,
 #            size(.geoData_s1),atpoint(.geoData_s2,.Pt,TRUE))]
 #   sortby [Road1,dist1,dist2]
-#   addcounter[sectionID,1]
-#   count
+#   addcounter[sectionId,1]
+#   consume;
 
 # Splitting up all streets into sections
 let stsPlusSecsTmp =
+   stSecPts feed {a}
    extStreetsRel feed
    projectextend [; 
       GroupId: .groupId, 
       StreetId: .streetId,
       Street: .geoData,
       UndirStreet: toline(.geoData)]
-   extend [Pts: intersection(juncTermPts,.UndirStreet)]
+   hashjoin [Street_a,StreetId,99997]
    projectextendstream [GroupId,StreetId,Street; 
-      Section: (.UndirStreet polylines [FALSE,.Pts])]
+      Section: (.UndirStreet polylines [FALSE,.SecPts_a])]
    consume;
 
 # Creating a relation for the sections by removing duplicates
@@ -125,7 +142,7 @@ let sectionsTmp =
    consume;
 
 # Removing the help points
-delete juncTermPts;
+#delete juncTermPts;
 
 # Collecting all nodes (junctions and end points) in one point array and
 # adding IDs to the nodes to form a relation
