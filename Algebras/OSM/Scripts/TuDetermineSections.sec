@@ -144,6 +144,10 @@ let sectionsTmp =
 # Removing the help points
 #delete juncTermPts;
 
+# Removing the help relations
+delete sectionPtsTmp;
+delete stSecPts;
+
 # Collecting all nodes (junctions and end points) in one point array and
 # adding IDs to the nodes to form a relation
 let nodesRel =
