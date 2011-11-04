@@ -2167,8 +2167,8 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 //      double w = top.real_w + fabs(ri.GetStartPos() - ri.GetEndPos());
       double l = fabs(ri.GetStartPos() - ri.GetEndPos());
 
-      double w; 
-      if(l > 10.0)
+      double w;
+      if(l > 50.0) ////////10 ?
         w = top.real_w + GetRandom() % (int)l;
       else 
         w = top.real_w + l;

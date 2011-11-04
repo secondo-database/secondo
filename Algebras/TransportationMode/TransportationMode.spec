@@ -101,11 +101,10 @@ operator set_br_speed alias SET_BR_SPEED pattern op(_,_,_,_,_,_,_,_)
 operator create_bus_segment_speed alias CREATE_BUS_SEGMENT_SPEED pattern op(_,_,_,_,_,_,_,_,_,_,_)
 operator create_night_bus_mo alias CREATE_NIGHT_BUS_MO pattern op(_,_,_)
 operator create_daytime_bus_mo alias CREATE_DAYTIME_BUS_MO pattern op(_,_,_)
-operator create_time_table1 alias CREATE_TIME_TABLE1 pattern op(_,_,_)
+
 operator create_time_table1_new alias CREATE_TIME_TABLE1_NEW pattern op(_,_,_,_,_)
 
 
-operator create_time_table2 alias CREATE_TIME_TABLE2 pattern op(_,_,_)
 operator create_time_table2_new alias CREATE_TIME_TABLE2_NEW pattern op(_,_,_)
 operator refmo2genmo alias REFMO2GENMO pattern op(_,_,_)
 operator themetronetwork alias THEMETRONETWORK pattern op(_,_,_,_)
@@ -172,16 +171,15 @@ operator genmo_tm_list alias GENMO_TM_LIST pattern op(_)
 
 operator generate_genmo2 alias GENERATE_GENMO2 pattern op(_,_,_,_,_,_,_)
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
-operator generate_car_ext alias GENERATE_CAR_EXT pattern op(_,_,_,_,_)
 
 operator generate_genmo3 alias GENERATE_GENMO3 pattern op(_,_,_,_,_,_,_)
 operator generate_genmo4 alias GENERATE_GENMO4 pattern op(_,_,_,_,_)
 operator generate_genmo5 alias GENERATE_GENMO5 pattern op(_,_,_,_,_,_,_)
-operator generate_genmo6 alias GENERATE_GENMO6 pattern op(_,_,_,_,_,_,_)
-operator generate_genmo6_ext alias GENERATE_GENMO6_EXT pattern op(_,_,_,_,_,_,_,_)
+
+operator generate_genmo6 alias GENERATE_GENMO6 pattern op(_,_,_,_,_,_,_,_)
 operator generate_genmo7 alias GENERATE_GENMO7 pattern op(_,_,_,_,_,_,_)
-operator generate_genmo8 alias GENERATE_GENMO8 pattern op(_,_,_,_,_,_,_)
-operator generate_genmo8_ext alias GENERATE_GENMO8_EXT pattern op(_,_,_,_,_,_,_,_)
+
+operator generate_genmo8 alias GENERATE_GENMO8 pattern op(_,_,_,_,_,_,_,_)
 
 operator get_rg_nodes alias GET_RG_NODES pattern op(_)
 operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)

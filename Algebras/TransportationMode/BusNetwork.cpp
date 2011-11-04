@@ -198,33 +198,8 @@ void BusRoute::CreateRoute1(int attr1,int attr2,int attr3, Relation* bus_para)
 
   //3---10 2---8 1---619 //houston roads
 
-//    cout<<cell_list3.size()<<" "
-//        <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
-
-//    if(type == "Berlin"){
-// 
-//     BuildRoute1(cell_list3, cell_list1, 1, true);//type 1
-// 
-//     BuildRoute1(cell_list2, cell_list1, 2, false);//type 2
-// 
-//   //  unsigned int limit_no = 20;
-//       unsigned int limit_no = 45;
-// //    unsigned int limit_no = 30;
-// 
-//     BuildRoute_Limit(cell_list1, cell_list1, limit_no);
-//    }else if(type == "Houston"){
-// 
-//     BuildRoute2(cell_list3, cell_list1, 1, true);//type 1
-//     BuildRoute2(cell_list2, cell_list1, 2, false);//type 2
-// 
-//     unsigned int limit_no = 60;
-// 
-//     BuildRoute_Limit2(cell_list1, cell_list1, limit_no);
-// 
-//    }else{
-//     cout<<"type: "<<type<<" not processed"<<endl;
-//     assert(false);
-//    }
+    cout<<cell_list3.size()<<" "
+        <<cell_list2.size()<<" "<<cell_list1.size()<<endl;
 
 
     if(bus_para->GetNoTuples() != 3){
@@ -1105,15 +1080,14 @@ for each bus route, it creates a sequence of points on it as bus stops
 */
 void BusRoute::CreateBusStop1(int attr1, int attr2, int attr3, 
                               int attr4, Relation* pave_rel, 
-                              BTree* btree_pave, string type)
+                              BTree* btree_pave, Relation* stop_para)
 {
     ////////////initialize distance for stops///////////////////////
-    vector<double> dist_stops1;//for type 1
-    vector<double> dist_stops2;//for type 2
-    vector<double> dist_stops3;//for type 3
-    InitializeDistStop(dist_stops1, dist_stops2, dist_stops3, type);
+    vector<double> dist_stops;// distance between two bus stops
+
+    InitializeDistStop(dist_stops, stop_para);
     ///////////////////////////////////////////////////////
-  
+
     for(int i = 1;i <= rel1->GetNoTuples();i++){
 
       Tuple* tuple_bus_route = rel1->GetTuple(i, false);
@@ -1133,8 +1107,7 @@ void BusRoute::CreateBusStop1(int attr1, int attr2, int attr3,
 
       unsigned int cur_size = bus_stop_loc_1.size(); 
 
-      CreateStops(br_id, gl,l, route_type, 
-                  dist_stops1, dist_stops2, dist_stops3);
+      CreateStops(br_id, gl,l, route_type, dist_stops);
       tuple_bus_route->DeleteIfAllowed();
 
       ///modify the bus stops if they are located on the zebracrossing/////
@@ -1146,12 +1119,26 @@ void BusRoute::CreateBusStop1(int attr1, int attr2, int attr3,
 set the distance value for two adjacent bus stops
 
 */
-void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
-                                  vector<double>& dist_for_stops2,
-                                  vector<double>& dist_for_stops3, 
-                                  string type)
+void BusRoute::InitializeDistStop(vector<double>& dist_for_stops,
+                                  Relation* stop_para)
 {
-  if(type == "Berlin"){
+//   cout<<stop_para->GetNoTuples()<<endl;
+    int index = 1;
+    Tuple* tuple_tmp = stop_para->GetTuple(index, false);
+    int no_1 = (int)((CcReal*)tuple_tmp->GetAttribute(0))->GetRealval();
+//        cout<<no_1<<endl;
+    for(int i = index + 1; i <= index + no_1;i++){
+        Tuple* tuple = stop_para->GetTuple(i, false);
+        float dist = ((CcReal*)tuple->GetAttribute(0))->GetRealval();
+//       cout<<dist<<endl;
+        tuple->DeleteIfAllowed();
+        dist_for_stops.push_back(dist);
+    }
+
+    tuple_tmp->DeleteIfAllowed();
+
+
+/*  if(type == "Berlin"){
     dist_for_stops1.push_back(1000.0);
     dist_for_stops1.push_back(900.0);
     dist_for_stops1.push_back(1100.0);
@@ -1176,11 +1163,7 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops1.push_back(2500.0);
     dist_for_stops1.push_back(2700.0);
 
-  }else {
-    cout<<"not processed"<<endl;
-    assert(false);
   }
-
 
   if(type == "Berlin"){
     dist_for_stops2.push_back(900.0);
@@ -1203,9 +1186,6 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops2.push_back(2400.0);
     dist_for_stops2.push_back(2500.0);
 
-  }else{
-    cout<<"not processed"<<endl;
-    assert(false);
   }
   
   if(type == "Berlin"){
@@ -1230,11 +1210,8 @@ void BusRoute::InitializeDistStop(vector<double>& dist_for_stops1,
     dist_for_stops3.push_back(2500.0);
     dist_for_stops3.push_back(2700.0);
 
-  }else{
-    cout<<"not processed"<<endl;
-    assert(false);
   }
-
+  */
 
 }
 
@@ -1244,9 +1221,7 @@ for such a gline, create a set of points on it
 */
 
 void BusRoute::CreateStops(int br_id, GLine* gl, Line* l, 
-                           int route_type,vector<double> dist_for_stops1,
-                           vector<double> dist_for_stops2, 
-                           vector<double> dist_for_stops3)
+                           int route_type,vector<double> dist_for_stops)
 {
 
 
@@ -1320,14 +1295,10 @@ void BusRoute::CreateStops(int br_id, GLine* gl, Line* l,
   //////////////create more bus stops////////////////////////////////////////
   while(true){
     double next_stop_dist;
-    if(route_type == 1)
-      next_stop_dist = dist_for_stops1[(stop_count-1)% dist_for_stops1.size()];
-    else if(route_type == 2)
-      next_stop_dist = dist_for_stops2[(stop_count-1)% dist_for_stops2.size()];
-    else if(route_type == 3)
-      next_stop_dist = dist_for_stops3[(stop_count-1)% dist_for_stops3.size()];
+    if(route_type == 1 || route_type == 2 || route_type == 3)
+      next_stop_dist = dist_for_stops[(stop_count - 1)% dist_for_stops.size()];
     else assert(false);
-      
+
 /*    cout<<"stop_id "<<stop_count
         <<" current dist stop "<<next_stop_dist<<endl; */
     //////////////////////////////////////////////////////////////////////
@@ -4992,159 +4963,6 @@ void RoadDenstiy::CreateDayTimeBus()
   }
 }
 
-/*
-create time table at each spatial location. several bus stops from different
-bus routes can locate at the same spatial location 
-
-*/
-void RoadDenstiy::CreateTimeTable()
-{
-  ////////////collect all bus stops /////////////////////////////////
-  vector<BusStop_Ext> bus_stop_list;
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* tuple_bus_stop = rel1->GetTuple(i, false);
-    int br_id = ((CcInt*)tuple_bus_stop->GetAttribute(BR_ID4))->GetIntval();
-    int stop_id = 
-        ((CcInt*)tuple_bus_stop->GetAttribute(BUS_STOP_ID))->GetIntval();
-    Point* loc = (Point*)tuple_bus_stop->GetAttribute(BUS_LOC);
-    bool start_small = 
-          ((CcBool*)tuple_bus_stop->GetAttribute(STOP_DIRECTION))->GetBoolval();
-
-    BusStop_Ext* bse = new BusStop_Ext(br_id,stop_id,0,*loc,start_small);
-    bus_stop_list.push_back(*bse);
-    delete bse; 
-    tuple_bus_stop->DeleteIfAllowed();
-  }    
-  
-  sort(bus_stop_list.begin(), bus_stop_list.end());
-//  cout<<"bus_stop_list size "<<bus_stop_list.size()<<endl; 
-  
-  const double dist_delta = 0.01; 
-  unsigned int temp_count = 1;
-  for(unsigned int i = 0;i < bus_stop_list.size();i++){
-    vector<BusStop_Ext> bus_stop_list_new; 
-  
-    bus_stop_list_new.push_back(bus_stop_list[i]);
-  
-    ////////collect all bus stops mapping to the same 2D point in space/////
-    unsigned int j = i + 1;
-    BusStop_Ext bse = bus_stop_list_new[0]; 
-//    bse.Print();
-    
-    while(j < bus_stop_list.size() &&
-        bus_stop_list[j].loc.Distance(bse.loc) < dist_delta ){
-        bus_stop_list_new.push_back(bus_stop_list[j]);
-        j++; 
-    }
-    i = j - 1; 
-    ///////////////////process bus stop list new ///////////////////////////
-//    cout<<"sub size "<<bus_stop_list_new.size()<<endl; 
-    CreateLocTable(bus_stop_list_new,temp_count);
-    
-    temp_count++; 
-//    if(temp_count > 2)break; 
-  }  
-}
-
-/*
-create time table for such spatial location 
-
-*/
-void RoadDenstiy::CreateLocTable(vector<BusStop_Ext> bus_stop_list_new, 
-                                 int count_id)
-{
-  Point loc = bus_stop_list_new[0].loc; 
-  
-//  cout<<"bus stop location "<<loc<<endl; 
-  
-  const double dist_delta = 0.01; 
-  const double stop_time = 30.0/(24.0*60.0*60.0); //30 seconds 
-  
-  for(unsigned int i = 0;i < bus_stop_list_new.size();i++){
-      int br_id = bus_stop_list_new[i].br_id;
-      bool direction = bus_stop_list_new[i].start_small;
-      int stop_id = bus_stop_list_new[i].br_stop_id;
-      /////use btree to find all bus trips of this route ///////
-     CcInt* search_trip_id = new CcInt(true, br_id);
-     BTreeIterator* btree_iter = btree->ExactMatch(search_trip_id);
-     while(btree_iter->Next()){
-        Tuple* tuple_trip = rel2->GetTuple(btree_iter->GetId(), false);
-        int br_trip_id = 
-            ((CcInt*)tuple_trip->GetAttribute(BR_ID5))->GetIntval();
-        bool trip_direction = 
-            ((CcBool*)tuple_trip->GetAttribute(MO_BUS_DIRECTION))->GetBoolval();
-        assert(br_id == br_trip_id);
-        if(direction == trip_direction){
-          MPoint* mo = (MPoint*)tuple_trip->GetAttribute(BUS_TRIP);
-          string bus_day = 
-            ((CcString*)tuple_trip->GetAttribute(BUS_DAY))->GetValue();
-//          cout<<*mo<<endl; 
-          ////////////////////traverse the trip to find the point/////////////  
-          int j = 0;
-          for(;j < mo->GetNoComponents();j++){
-            UPoint up;
-            mo->Get(j, up);
-            Point loc1 = up.p0;
-            Point loc2 = up.p1; 
-//            cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
-            bool find = false; 
-            Instant schedule_t; 
-            if(loc1.Distance(loc2) < dist_delta && 
-               loc1.Distance(loc) < dist_delta){ //find the place 
-              Instant st = up.timeInterval.start;
-              Instant et = up.timeInterval.end; 
-              double d_st = st.ToDouble();
-              double d_et = et.ToDouble();
-              assert(AlmostEqual(fabs(d_st-d_et), stop_time));//check 30 seconds
-              schedule_t = st; 
-              find = true;
-            }  
-            //////////after add waiting 30 seconds for the last stop //////
-            //////////revmoe the following code  //////////////////////////
-/*            if(j == mo->GetNoComponents() - 1 &&  //end location 
-               loc2.Distance(loc) < dist_delta){
-               find = true;
-               schedule_t = up.timeInterval.end; 
-            }
-            /////////////////////////////////////////////////////////////////
-            if(j == 0 && loc1.Distance(loc) < dist_delta){//start location 
-               find = true;
-               schedule_t = up.timeInterval.start; 
-            }*/
-            /////////////////////add result////////////////////////
-            if(find){
-              bus_stop_loc.push_back(loc);
-              br_id_list.push_back(br_id);
-              br_direction.push_back(direction);
-              trip_day.push_back(bus_day);
-              bus_stop_id_list.push_back(stop_id);
-              
-              ///////////////cut second and millisecond value/////////////////
-/*              int second_val = schedule_t.GetSecond(); 
-              int msecond_val = schedule_t.GetMillisecond(); 
-              double double_s = schedule_t.ToDouble() - 
-                                second_val/(24.0*60.0*60.0) -
-                                msecond_val/(24.0*60.0*60.0*1000.0);*/
-
-              //we should consider second and millisecond 
-              double double_s = schedule_t.ToDouble();
-
-              schedule_t.ReadFrom(double_s);
-              schedule_time.push_back(schedule_t);
-              unique_id_list.push_back(count_id);
-              break; 
-            }
-          }  
-          assert(j != mo->GetNoComponents());
-
-        }
-        tuple_trip->DeleteIfAllowed();
-     }
-     delete btree_iter;
-     delete search_trip_id;
-    ////////////////////////////////////////////////////////////////////
-  }
-}
 
 /*
 create time table at each spatial location. several bus stops from different
@@ -7786,14 +7604,16 @@ map bus stops to the pavements
 */
 
 void BN::MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, 
-                          int w, string type)
+                          int w, float para)
 {
-  if(type == "Berlin") w = 2*w;
-  else if(type == "Houston") w = 4*w;
-  else{
-      cout<<"invalid value "<<type<<endl;
-      assert(false);
-  }
+//   if(type == "Berlin") w = 2*w;
+//   else if(type == "Houston") w = 4*w;
+//   else{
+//       cout<<"invalid value "<<type<<endl;
+//       assert(false);
+//   }
+
+  w = ((int)para)*w; 
 
   vector<Bus_Stop> stop_list;
 
@@ -10919,8 +10739,8 @@ void BNNav::ShortestPath_TimeNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     /////////////////////////////////////////////////////////////////////
     //////////////////////connection 2 same spatial location/////////////
     ////////////////////////////////////////////////////////////////////
-    if(top.tm == TM_WALK || top.tm == TM_BUS){
-
+//    if(top.tm == TM_WALK || top.tm == TM_BUS){
+    if(top.tm == TM_BUS){
       vector<int> adj_list2;
       bg->FindAdj2(top.tri_index, adj_list2);
 
@@ -11354,7 +11174,7 @@ for the start bus stop, it does not consider the walk segment connection
 */
 void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 {
-//  cout<<"ShortestPath_Time2"<<endl;
+
   BusGraph* bg = bn->GetBusGraph(); 
   if(bg == NULL){
     cout<<"bus graph is invalid"<<endl; 
@@ -11369,13 +11189,15 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
   /////////////////////////////////////////////////////////////////////
   ////////// initialize counter for searhcing periods/////////////////
   ///////////////////////////////////////////////////////////////////
-  vector<int> counter_up;
+/*  vector<int> counter_up;
   vector<int> counter_down;
   for(int i = 0;i < bn->GetBR_Rel()->GetNoTuples();i++){
     counter_up.push_back(0);
     counter_down.push_back(0);
-  }
-  
+  }*/
+
+  vector<int> counter_up(bn->GetBR_Rel()->GetNoTuples(), 0);
+  vector<int> counter_down(bn->GetBR_Rel()->GetNoTuples(), 0);
 
   Point start_p, end_p; 
   bn->GetBusStopGeoData(bs1, &start_p);
@@ -11399,7 +11221,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
            qt->GetHour(), qt->GetMinute(), qt->GetSecond(),
            qt->GetMillisecond());
 //    cout<<"Sunday"<<endl; 
-    
+
   }else{ //Monday-Saturday 
     ////////////////////////////to Monday///////////////////////
     new_st.Set(bg_min.GetYear(),bg_min.GetMonth(),bg_min.GetGregDay() + 1, 
@@ -11413,7 +11235,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
   priority_queue<BNPath_elem> path_queue;
   vector<BNPath_elem> expand_queue;
 
-  vector<bool> visit_flag1;////////////bus stop visit 
+/*  vector<bool> visit_flag1;////////////bus stop visit 
   vector<bool> visit_flag2;
   vector<int> visit_flag3;
   vector<string> tm_list1;
@@ -11424,7 +11246,13 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     visit_flag3.push_back(0);
     tm_list1.push_back("empty");
     tm_list2.push_back("empty");
-  }
+  }*/
+
+  vector<bool> visit_flag1(bg->node_rel->GetNoTuples(), false);
+  vector<bool> visit_flag2(bg->node_rel->GetNoTuples(), false);
+  vector<int> visit_flag3(bg->node_rel->GetNoTuples(), 0);
+  vector<string> tm_list1(bg->node_rel->GetNoTuples(), "empty");
+  vector<string> tm_list2(bg->node_rel->GetNoTuples(), "empty");
 
   //////////////////////////////////////////////////////////////////
   /////////////from bus network, get the maximum speed of the bus///
@@ -11449,7 +11277,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     BNPath_elem top = path_queue.top();
     path_queue.pop();
 
-    if(visit_flag1[top.tri_index - 1])continue; 
+    if(visit_flag1[top.tri_index - 1]) continue;
 
 //    top.Print();
 
@@ -11461,6 +11289,7 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     int pos_expand_path;
     int cur_size; 
     pos_expand_path = top.cur_index;
+
 
     ///////////////////////////////////////////////////////////////////////
     //////////////////////connection 1 by pavements ///////////////////////
@@ -11538,8 +11367,8 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
     /////////////////////////////////////////////////////////////////////
     //////////////////////connection 2 same spatial location/////////////
     ////////////////////////////////////////////////////////////////////
-    if(top.tm == TM_WALK || top.tm == TM_BUS){
-
+//    if(top.tm == TM_WALK || top.tm == TM_BUS){
+    if(top.tm == TM_BUS){
       vector<int> adj_list2;
       bg->FindAdj2(top.tri_index, adj_list2);
 
@@ -13670,148 +13499,6 @@ void BNNav::MPToGenMO(MPoint* mp,unsigned int br_id, bool dir, Relation* br_rel,
 //////////////////        Create UBahn Trains    ///////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-
-/*
-create time tables for trains 
-
-*/
-void UBTrain::CreateTimeTable()
-{
-  ////////////////////    collect all train stations   /////////////////
-  vector<BusStop_Ext> station_list; 
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-      Tuple* tuple_stop = rel1->GetTuple(i, false);
-      int lineid = ((CcInt*)tuple_stop->GetAttribute(T_LINEID))->GetIntval();
-      Point* loc = (Point*)tuple_stop->GetAttribute(T_STOP_LOC);
-      int stopid = ((CcInt*)tuple_stop->GetAttribute(T_STOP_ID))->GetIntval(); 
-      BusStop_Ext* bs_e = new BusStop_Ext(lineid,stopid,0.0,*loc,true);
-      station_list.push_back(*bs_e);
-      delete bs_e; 
-      tuple_stop->DeleteIfAllowed(); 
-  }
-  sort(station_list.begin(), station_list.end());
-  
-  const double dist_delta = 0.01; 
-  unsigned int temp_count = 1;
-  for(unsigned int i = 0;i < station_list.size();i++){
-    vector<BusStop_Ext> station_list_new; 
-  
-    station_list_new.push_back(station_list[i]);
-  
-    ////////collect all bus stops mapping to the same 2D point in space/////
-    unsigned int j = i + 1;
-    BusStop_Ext bse = station_list_new[0]; 
-//    bse.Print();
-    
-    while(j < station_list.size() &&
-        station_list[j].loc.Distance(bse.loc) < dist_delta ){
-        station_list_new.push_back(station_list[j]);
-        j++; 
-    }
-    i = j - 1; 
-    ///////////////////process train station list new /////////////////////
-    CreateLocTable(station_list_new,temp_count);
-    temp_count++; 
-
-  }  
-
-//  cout<<"different spatial locations "<<temp_count - 1<<endl; 
-
-}
-
-/*
-find the time table for one spatial location 
-Time tables for trains are the same on Sunday and Monday 
-
-*/
-
-void UBTrain::CreateLocTable(vector<BusStop_Ext> station_list_new,int count_id)
-{
-//  cout<<"size "<<station_list_new.size()<<endl; 
-
-  Point loc = station_list_new[0].loc; 
-  
-//  cout<<"bus stop location "<<loc<<endl; 
-  
-  const double dist_delta = 0.01; 
-  const double stop_time = 10.0/(24.0*60.0*60.0); //10 seconds for trains 
-  
-  for(unsigned int i = 0;i < station_list_new.size();i++){
-      int br_id = station_list_new[i].br_id;
-      int stop_id = station_list_new[i].br_stop_id;
-      /////use btree to find all bus trips of this route ///////
-     CcInt* search_trip_id = new CcInt(true, br_id);
-     BTreeIterator* btree_iter = btree1->ExactMatch(search_trip_id);
-     while(btree_iter->Next()){
-        Tuple* tuple_trip = rel2->GetTuple(btree_iter->GetId(), false);
-        int br_trip_id = 
-            ((CcInt*)tuple_trip->GetAttribute(T_LINE))->GetIntval();
-        bool trip_direction = 
-            ((CcBool*)tuple_trip->GetAttribute(T_UP))->GetBoolval();
-        assert(br_id == br_trip_id);
-
-        MPoint* mo = (MPoint*)tuple_trip->GetAttribute(T_TRIP);
-//        cout<<"br_trip_id "<<br_trip_id
-//            <<"direction "<<trip_direction<<endl; 
-
-//          cout<<*mo<<endl; 
-        ////////////////////traverse the trip to find the point/////////////  
-          int j = 0;
-          for(;j < mo->GetNoComponents();j++){
-            UPoint up;
-            mo->Get(j, up);
-            Point loc1 = up.p0;
-            Point loc2 = up.p1; 
-//            cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl; 
-            bool find = false; 
-            Instant schedule_t; 
-            if(loc1.Distance(loc2) < dist_delta && 
-               loc1.Distance(loc) < dist_delta){ //find the place 
-              Instant st = up.timeInterval.start;
-              Instant et = up.timeInterval.end; 
-              double d_st = st.ToDouble();
-              double d_et = et.ToDouble();
-//              cout<<"st "<<st<<" et "<<et<<endl; 
-              assert(AlmostEqual(fabs(d_st-d_et), stop_time) || 
-                     fabs(d_st-d_et) > stop_time);//check 10 seconds
-              schedule_t = st; 
-              find = true;
-            }  
-            //////////after add waiting 10 seconds for the last stop //////
-            /////////////////////add result////////////////////////
-            if(find){
-              stop_loc_list.push_back(loc);
-              line_id_list.push_back(br_id);
-              direction_list.push_back(trip_direction);
-              stop_id_list.push_back(stop_id);
-
-              ///////////////cut second and millisecond value/////////////////
-/*              int second_val = schedule_t.GetSecond(); 
-              int msecond_val = schedule_t.GetMillisecond(); 
-              double double_s = schedule_t.ToDouble() - 
-                                second_val/(24.0*60.0*60.0) -
-                                msecond_val/(24.0*60.0*60.0*1000.0);*/
-
-              //we should consider second and millisecond  
-              double double_s = schedule_t.ToDouble();
-
-              schedule_t.ReadFrom(double_s);
-              schedule_time.push_back(schedule_t);
-              loc_id_list.push_back(count_id);
-              break; 
-            }
-          }  
-          assert(j != mo->GetNoComponents());
-
-        tuple_trip->DeleteIfAllowed();
-     }
-     delete btree_iter;
-     delete search_trip_id;
-    ////////////////////////////////////////////////////////////////////
-  }
-
-}
-
 /*
 compact storage of time tables.
 Instead of storing each time instant for every bus trip, 
@@ -14182,19 +13869,27 @@ string MetroStruct::MetroRouteInfo =
 string MetroStruct::MetroTripTypeInfo_Com = "(rel (tuple ((mtrip1 genmo)\
 (mtrip2 mpoint) (mr_id int) (Up bool) (mr_oid int) (oid int))))";
 
+string MetroStruct::MetroParaInfo = "(rel (tuple ((para real))))";
 
 /*
 create metro routes 
 
 */
-void MetroStruct::CreateMRoute(DualGraph* dg, string type)
+void MetroStruct::CreateMRoute(DualGraph* dg, Relation* metro_para)
 {
 //  int no_mroute = 10;
   
-  int no_mroute;
-  if(type == "Berlin")no_mroute = 10;
-  else if(type == "Houston") no_mroute = 16;
+//   int no_mroute;
+//   if(type == "Berlin")no_mroute = 10;
+//   else if(type == "Houston") no_mroute = 16;
 
+  Tuple* m_tuple1 = metro_para->GetTuple(1, false);
+  unsigned int no_mroute = 
+        (unsigned int)((CcReal*)m_tuple1->GetAttribute(0))->GetRealval();
+  m_tuple1->DeleteIfAllowed();
+
+//  cout<<"no mroute "<<no_mroute<<endl;
+  
   vector<bool> cell_flag;
   for(int i = 1;i <= dg->node_rel->GetNoTuples();i++){
     cell_flag.push_back(false);
@@ -14222,21 +13917,33 @@ void MetroStruct::CreateMRoute(DualGraph* dg, string type)
 
 
   vector<int> find_cell_list; 
-  int count = 1;
+  unsigned int count = 1;
   
 //  double min_dist = 22000.0;//minimum distance for a ubahn 
-  double min_dist;
-  double min_dist2;
-  if(type == "Berlin"){
-    min_dist = 25000.0;
-    min_dist2 = 1500.0;
-  }else if(type == "Houston"){
-    min_dist = 60000.0;
-    min_dist2 = 6000.0;
-  }else{
-    cout<<"not processed"<<endl;
-    assert(false);
-  }
+//   double min_dist;
+//   double min_dist2;
+//   if(type == "Berlin"){
+//     min_dist = 25000.0;
+//     min_dist2 = 1500.0;
+//   }else if(type == "Houston"){
+//     min_dist = 60000.0;
+//     min_dist2 = 6000.0;
+//   }else{
+//     cout<<"not processed"<<endl;
+//     assert(false);
+//   }
+
+    //////////////////////////////////////////////////////////////////
+    Tuple* m_tuple2 = metro_para->GetTuple(2, false);
+    double min_dist = ((CcReal*)m_tuple2->GetAttribute(0))->GetRealval();
+    m_tuple2->DeleteIfAllowed();
+
+    Tuple* m_tuple3 = metro_para->GetTuple(3, false);
+    double min_dist2 = ((CcReal*)m_tuple3->GetAttribute(0))->GetRealval();
+    m_tuple3->DeleteIfAllowed();
+
+//    cout<<"dist1 "<<min_dist<<" dist2 "<<min_dist2<<endl;
+    ///////////////////////////////////////////////////////////////////
 
 
   while(count <= no_mroute){

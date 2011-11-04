@@ -6334,11 +6334,10 @@ void IndoorNav::AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& p3d_list,
       Instant end = start_time;
       end.ReadFrom(start_time.ToDouble() + wait_time);
       up_interval.end = end;
-      start_time = end; 
-      
+
       int64_t st = start_time.ToDouble()*86400000.0;
       int64_t et = end.ToDouble()*86400000.0;
-      
+
       if(st != et){
           up_interval.lc = true;
           up_interval.rc = false; 
@@ -6348,6 +6347,7 @@ void IndoorNav::AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& p3d_list,
           delete unit;
       }
 
+      start_time = end;
     }
   ////////////////////////////////////////////////////////////////////////////
   for(int i = 0;i < (int) p3d_list.size();i++){
@@ -6446,8 +6446,6 @@ void IndoorNav::AddUnitToMO_Elevator2(MPoint3D* mp3d,
       end.ReadFrom(start_time.ToDouble() + wait_time);
       up_interval.end = end;
 
-      start_time = end; 
-
       int64_t st = start_time.ToDouble()*86400000.0;
       int64_t et = end.ToDouble()*86400000.0;
 
@@ -6514,6 +6512,8 @@ void IndoorNav::AddUnitToMO_Elevator2(MPoint3D* mp3d,
           genmo->Add(*ugenloc);
           delete ugenloc;
       }
+
+      start_time = end; 
     }
   ////////////////////////////////////////////////////////////////////////////
   for(int i = 0;i < (int) p3d_list.size();i++){
@@ -6989,10 +6989,9 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
       end.ReadFrom(start_time.ToDouble() + wait_time);
       up_interval.end = end;
 
-      start_time = end; 
-
       int64_t st = start_time.ToDouble()*86400000.0;
       int64_t et = end.ToDouble()*86400000.0;
+      
       if(st != et){
           up_interval.lc = true;
           up_interval.rc = false; 
@@ -7001,6 +7000,8 @@ void IndoorNav::AddUnitToMO_Elevator_New(MPoint3D* mp3d,
           mp3d->Add(*unit); 
           delete unit;
       }
+
+      start_time = end; 
     }
   ////////////////////////////////////////////////////////////////////////////
   for(int i = 0;i < (int) p3d_list.size();i++){
@@ -7131,7 +7132,6 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
       end.ReadFrom(start_time.ToDouble() + wait_time);
       up_interval.end = end;
 
-      start_time = end; 
 
       int64_t st = start_time.ToDouble()*86400000.0;
       int64_t et = end.ToDouble()*86400000.0;
@@ -7143,8 +7143,7 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
           UPoint3D* unit = new UPoint3D(up_interval, p, p); 
           mp3d->Add(*unit); 
           delete unit;
-      
-      
+
           /////////////////////////////////////////////
           /////////genric units///////////////////////
           /////////////////////////////////////////////
@@ -7199,6 +7198,7 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
           genmo->Add(*ugenloc);
           delete ugenloc;
       }
+      start_time = end; 
     }
   ////////////////////////////////////////////////////////////////////////////
   for(int i = 0;i < (int) p3d_list.size();i++){

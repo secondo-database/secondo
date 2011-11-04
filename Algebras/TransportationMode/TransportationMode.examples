@@ -341,7 +341,7 @@ Result   : 10
 Operator : create_bus_stop1
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x attr3 x attr4 x rel2 x btree x string-> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type,subpaves2, btree_pave2, "Berlin") count; 
+Example  : query create_bus_stop1(n,busroutes,br_id,bus_route1,bus_route2,route_type,subpaves2, btree_pave2, stop_para) count; 
 Result   : 10
 
 
@@ -433,8 +433,8 @@ Result   : 20
 
 Operator : mapbstopave
 Number   : 2
-Signature: busnetwork x rtree x rel x int x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query mapbstopave(bn1, rtree_dg, dg_node, roadwidth, Berlin) count;
+Signature: busnetwork x rtree x rel x int x real -> (stream(((x1 t1) ... (xn tn))))
+Example  : query mapbstopave(bn1, rtree_dg, dg_node, roadwidth, 2.0) count;
 Result   : 20
 
 
@@ -535,23 +535,10 @@ Example  : query create_daytime_bus_mo(ts_daybus,bus_segment_speed,btree_seg_spe
 Result   : 10.0
 
 
-Operator : create_time_table1
-Number   : 2
-Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table1(final_busstops,all_bus_rel,btree_mo) count;
-Result   : 10.0
-
 Operator : create_time_table1_new
 Number   : 2
 Signature: rel1 x rel2 x btree x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
 Example  : query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,night1,night2) count;
-Result   : 10.0
-
-
-Operator : create_time_table2
-Number   : 2
-Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table2(train_stops,ubtrains,btree_train) count;
 Result   : 10.0
 
 
@@ -597,8 +584,8 @@ Result   : file_platform
 
 Operator : createmetroroute
 Number   : 2
-Signature: dualgraph x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query createmetroroute(dg_cell, "Berlin") count;
+Signature: dualgraph x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query createmetroroute(dg_cell, metro_para) count;
 Result   : 10
 
 Operator : createmetrostop
@@ -967,12 +954,6 @@ Signature: network x periods x real x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_car(rn, TwoDays, 10.0, streets_speed) count;
 Result   : 10
 
-Operator : generate_car_ext
-Number   : 1
-Signature: network x periods x real x rel x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_car_ext(rn, TwoDays, 10.0, streets_speed, mergepaths) count;
-Result   : 10
-
 Operator : generate_genmo3
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
@@ -993,16 +974,11 @@ Example  : query generate_genmo5(space_1, TwoDays, 20.0, 13, dg_node_rid, btree_
 Result   : 20
 
 
+
 Operator : generate_genmo6
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo6(space_1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave) count; 
-Result   : 20
-
-Operator : generate_genmo6_ext
-Number   : 1
-Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo6_ext(space_1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave, building_rel) count; 
+Example  : query generate_genmo6(space_1, TwoDays, 20.0, 14, tri_reg_new, bs_pave_sort, rtree_bs_pave, bstops_build) count; 
 Result   : 20
 
 Operator : navigation1
@@ -1022,14 +998,7 @@ Result   : 10
 Operator : generate_genmo8
 Number   : 1
 Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop)count;
-Result   : 10
-
-
-Operator : generate_genmo8_ext
-Number   : 1
-Signature: space x periods x real x int x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query generate_genmo8_ext(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop, mstops_build) count;
+Example  : query generate_genmo8(space_1, TwoDays, 10.0, 15, tri_reg_new, msneighbor, rtree_ms_stop, mstops_build) count;
 Result   : 10
 
 Operator : get_rg_nodes

@@ -318,11 +318,10 @@ struct BusRoute{
   float BusRouteInRoad(int);
   /////////////////////////////create bus stops/////////////////////
   void CreateBusStop1(int attr1,int attr2,int attr3, int attr4,
-                      Relation*, BTree*, string type); 
-  void InitializeDistStop(vector<double>&, vector<double>&, vector<double>&,
-                          string type);
+                      Relation*, BTree*, Relation* stop_para); 
+  void InitializeDistStop(vector<double>&, Relation* stop_para);
   void CreateStops(int br_id, GLine* gl, Line* l, int route_type,
-                   vector<double>, vector<double>, vector<double>);
+                   vector<double>);
   bool FindNextStop(vector<SectTreeEntry> sec_list,
                     unsigned int& last_sec_index,double& last_sec_start,
                     double& last_sec_end, double& last_sec_gp_pos,
@@ -554,8 +553,6 @@ struct RoadDenstiy{
   //////add night or daytime, and Sunday or Monday/////////////////
   void AddTypeandDay(MPoint* mo, bool daytime);
   ////////////////////////create time table/////////////////////////////////
-  void CreateTimeTable();
-  void CreateLocTable(vector<BusStop_Ext> bus_stop_list_new,int count_id);
   ///////////////////////Compact Storage ///////////////////////////////
   void CreateTimeTable_Compact(Periods*,Periods*);
   void CreateLocTable_Compact(vector<BusStop_Ext>,int count_id,
@@ -917,7 +914,7 @@ struct BN{
   void GetRoutes();
   
   void MapBSToPavements(R_Tree<2,TupleId>* rtree, Relation* pave_rel, 
-                        int w, string);
+                        int w, float);
   void MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
                     Relation* pave_rel, int w);
   void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel, 
@@ -1417,8 +1414,6 @@ struct UBTrain{
   unsigned int count;
   TupleType* resulttype;
 
-  void CreateTimeTable();
-  void CreateLocTable(vector<BusStop_Ext> station_list_new,int count_id);
   ////////////////  Compact Storage of Time Tables //////////////
   void CreateTimeTable_Compact();
   void CreateLocTable_Compact(vector<BusStop_Ext> station_list_new,
@@ -1448,6 +1443,7 @@ struct MetroStruct{
 
   static string MetroRouteInfo; 
   static string MetroTripTypeInfo_Com;
+  static string MetroParaInfo;
 
   enum MetroRouteInfo{MR_ID,MR_ROUTE,MR_OID};
   enum MetroTripInfoCom{M_GENMO_COM,M_MP_COM,M_R_ID_COM,M_DIR_COM,M_R_OID_COM,
@@ -1483,7 +1479,7 @@ struct MetroStruct{
  //////////////////create railway routes and stops/////////////////////////
  //////////////////not use the data from berlintest or berlinmod////////////
  ////////////////////////////////////////////////////////////////////////////
- void CreateMRoute(DualGraph* dg, string);
+ void CreateMRoute(DualGraph* dg, Relation* metro_para);
  bool BuildMetroRoute(vector<int> path_list, DualGraph* dg, int count);
 
  void CreateMStop(Relation*);
