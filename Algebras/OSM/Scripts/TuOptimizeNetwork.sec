@@ -17,49 +17,57 @@
 #             A   a   B
 # StartNode_a x------>x End_Node_a
 #             |       |
-#           b |       | b'
+#           b |       | d
 #             |       |
 # EndNode_b   x<------x Start_Node_b
-#             D   a'  C
+#             D   c  C
 # Parallelogram law
 # sum of the squares of the length of the sides = sum of the squares of the
 # length of the diagonals
-# a^2 + b'^2 + a'^2 +b^2 = diag1^2 +diag2^2
+# a^2 + b^2 + c^2 + d^2 = diag1^2 +diag2^2
 # <=> 2 a^2 + 2 b^2 - diag1^2 - diag2^2 = 0
 # here we are looking for something close to a parallelogram, so we have
 # 2 a^2 + 2 b^2 - diag1^2 - diag2^2 < epsilon 
 query 
-(((extSectionsRel feed {a}
-nodesRel feed {n1}
-hashjoin [StartNodeId_a,NodeId_n1,99997])
-nodesRel feed {n2}
-hashjoin [EndNodeId_a,NodeId_n2,99997])
-extend [StartNode_a: .Node_n1, EndNode_a: .Node_n2]
-extStreetsRel feed {e1}
-hashjoin [StreetId_a,streetId_e1,99997])
-filter [.oneWay_e1 = 1] 
-(((extSectionsRel feed {b} 
-nodesRel feed {n3}
-hashjoin [StartNodeId_b,NodeId_n3,99997])
-nodesRel feed {n4}
-hashjoin [EndNodeId_b,NodeId_n4,99997])
-extend [StartNode_b: .Node_n3, EndNode_b: .Node_n4]
-extStreetsRel feed {e2}
-hashjoin [StreetId_b,streetId_e2,99997])
-filter [.oneWay_e2 = 1] 
-hashjoin [groupId_e1,groupId_e2,99997] 
-filter [.streetId_e1 < .streetId_e2]
-extend [a: distance(.StartNode_a,.EndNode_a),
-        aSharp: distance(.EndNode_b,.StartNode_b),
-        b: distance(.StartNode_a,.EndNode_b),
-        bSharp: distance(.EndNode_a,.StartNode_b),
-        diag1: distance(.StartNode_a,.StartNode_b),
-        diag2: distance(.EndNode_a,.EndNode_b)]
-sortby [groupId_e1] 
-filter [(abs(.a - .aSharp) < (0.1 * getMaxVal(.a,.aSharp))) 
-   and (abs(.b - .bSharp) < (0.1 * getMaxVal(.b,.bSharp)))
-   and (abs(2 * ((.a * .a) + (.b * .b)) - (.diag1 * .diag1) - (.diag2 * .diag2)) < 0.0001)]
-consume;
+   (((extSectionsRel feed
+      project [StreetId,StartNodeId,EndNodeId,Section] {a}
+      nodesRel feed {n1}
+      hashjoin [StartNodeId_a,NodeId_n1,99997])
+     nodesRel feed {n2}
+     hashjoin [EndNodeId_a,NodeId_n2,99997])
+    extend [StartNode_a: .Node_n1, EndNode_a: .Node_n2]
+    extStreetsRel feed
+    filter [.oneWay = 1]
+    project [groupId,streetId,geoData,name] {e1} 
+    hashjoin [StreetId_a,streetId_e1,99997])
+   (((extSectionsRel feed
+      project [StreetId,StartNodeId,EndNodeId,Section] {b} 
+      nodesRel feed {n3}
+      hashjoin [StartNodeId_b,NodeId_n3,99997])
+     nodesRel feed {n4}
+     hashjoin [EndNodeId_b,NodeId_n4,99997])
+    extend [StartNode_b: .Node_n3, EndNode_b: .Node_n4]
+    extStreetsRel feed
+    filter [.oneWay = 1]
+    project [groupId,streetId,geoData] {e2} 
+    hashjoin [StreetId_b,streetId_e2,99997])
+   hashjoin [groupId_e1,groupId_e2,99997] 
+   filter [.streetId_e1 < .streetId_e2]
+   projectextend [
+      StreetId_a,name_e1,groupId_e1,
+      Section_a,Section_b,geoData_e1,geoData_e2; 
+      a: distance(.StartNode_a,.EndNode_a),
+      b: distance(.StartNode_a,.EndNode_b),
+      c: distance(.EndNode_b,.StartNode_b),
+      d: distance(.EndNode_a,.StartNode_b),
+      diag1: distance(.StartNode_a,.StartNode_b),
+      diag2: distance(.EndNode_a,.EndNode_b)]
+   sortby [groupId_e1] 
+   filter [(abs(.a - .c) < (0.1 * getMaxVal(.a,.c))) 
+      and (abs(.b - .d) < (0.1 * getMaxVal(.b,.d)))
+      and (abs(2 * ((.a * .a) + (.b * .b)) - 
+         (.diag1 * .diag1) - (.diag2 * .diag2)) < 0.0001)]
+   consume;
 
 #query 
 #extStreetsRel feed {a}
