@@ -3,17 +3,19 @@
 ################################################################################
 ### Description:
 ### - This script determines sections within streets.
-### Please, see tu_shp_import.sh for further details.
+### Please, see tu_osm_import.sh for further details.
 ###
 ### Preconditions:
 ### - activated necessary algebras
-### for spatialjoin-operator HadoopParallelAlgebra
 ### - existing open database with successfully imported osm data
 ### - extStreetsRel-relation
 ### extStreetsRel: rel{geoData: sline, streetId: int, name: string,
 ###                    ref: string, roadClassRef: int, oneWay: int,
 ###                    bridge: int, maxSpeed: int, tunnel: bool,
 ###                    layer: int, groupId: int}
+### - restrictionsRel-relation
+### restrictionsRel: rel{fromStreet: int, toStreet: int, viaPoint: point,
+###                      restriction: text}
 ###
 ### Postconditions:
 ### - already existing relations
@@ -23,6 +25,26 @@
 ###                     SectionDist: real}
 ### - nodesRel-relation
 ### nodesRel: rel{Node: point, NodeId: int}
+### - onlyRestrictions
+### onlyRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                       viaNodeRef: int, viaNode: point,
+###                       only: bool, restriction: text}
+### - noUturnRestrictions
+### noUturnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                          viaNodeRef: int, viaNode: point,
+###                          noUturn: bool}
+### - noLeftTurnRestrictions
+### noLeftTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                             viaNodeRef: int, viaNode: point,
+###                             noLeftTurn: bool}
+### - noRightTurnRestrictions
+### noRightTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                              viaNodeRef: int, viaNode: point,
+###                              noRightTurn: bool}
+### - noStraightOnRestrictions
+### noStraightOnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                               viaNodeRef: int, viaNode: point,
+###                               noStraightOn: bool}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de

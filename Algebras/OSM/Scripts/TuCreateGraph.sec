@@ -1,9 +1,9 @@
 ################################################################################
-### Creating a graph from imported OSM data (6 / 7)
+### Creating a graph from imported OSM data (6 / 11)
 ################################################################################
 ### Description:
 ### - This script creates a graph from imported OSM data.
-### Please, see tu_shp_import.sh for further details.
+### Please, see tu_osm_import.sh for further details.
 ###
 ### Precondition:
 ### - activated necessary algebras

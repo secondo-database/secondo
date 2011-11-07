@@ -1,9 +1,9 @@
 ################################################################################
-### Creating networks from imported OSM data (7 / 11)
+### Preparing network creation from imported OSM data (7 / 11)
 ################################################################################
 ### Description:
-### - This script creates networks from imported OSM data.
-### Please, see tu_shp_import.sh for further details. 
+### - This script prepares network creation from imported OSM data.
+### Please, see tu_osm_import.sh for further details. 
 ###
 ### Preconditions:
 ### - activated necessary algebras
@@ -19,30 +19,41 @@
 ### extSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
 ###                     EndNodeId: int, StreetId: int, GroupId: int,
 ###                     SectionDist: real}
+### - onlyRestrictions
+### onlyRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                       viaNodeRef: int, viaNode: point,
+###                       only: bool, restriction: text}
+### - noUturnRestrictions
+### noUturnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                          viaNodeRef: int, viaNode: point,
+###                          noUturn: bool}
+### - noLeftTurnRestrictions
+### noLeftTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                             viaNodeRef: int, viaNode: point,
+###                             noLeftTurn: bool}
+### - noRightTurnRestrictions
+### noRightTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                              viaNodeRef: int, viaNode: point,
+###                              noRightTurn: bool}
+### - noStraightOnRestrictions
+### noStraightOnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
+###                               viaNodeRef: int, viaNode: point,
+###                               noStraightOn: bool}
 ###
 ### Postconditions:
-### - cityRoads-relation
-### cityRoads: rel{Name: string, Road: int, Length: double, Geometry: line,
-###                Dual: bool, StartsSmaller: bool, RoadLevel: int}
-### - cityJunctions-relation
-### cityJunctions: rel{Road1: int, Pos1: double, Road2: int, Pos2: double,
-###                    JunctionType: int}
-### - city-network
+### - twoSecJuncBtwTwoSts-relation
+### twoSecJuncBtwTwoSts: rel{Road1: int, Pos1: double, Road2: int,
+###                          Pos2: double, JunctionType: int}
+### - threeSecJuncBtwTwoSts-relation
+### threeSecJuncBtwTwoSts: rel{Road1: int, Pos1: double, Road2: int,
+###                            Pos2: double, JunctionType: int}
+### - fourSecJuncBtwTwoSts-relation
+### fourSecJuncBtwTwoSts: rel{Road1: int, Pos1: double, Road2: int,
+###                           Pos2: double, JunctionType: int}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
-
-# Making a relation with road data to enable network creation
-# see also PaperMon-paper page 11
-let cityRoads =
-   extStreetsRel feed
-   projectextend [; Name : .name, Road: .streetId,
-     Length: size(.geoData),
-     Geometry: .geoData, Dual: .oneWay=0,
-     StartsSmaller: get_startsmaller(.geoData),
-     RoadLevel : .roadClassRef]
-   consume;
 
 # Gathering data that will be used for network creation
 let fullSectionsView =
@@ -82,6 +93,7 @@ let fullSectionsView =
       streetStartNodeId: "NodeId_e",streetEndNodeId: "NodeId_f"] 
    consume;
 
+# Building indexes to speed up queries
 derive fullSectionsView_groupId_btree =
    fullSectionsView createbtree[groupId];
 derive fullSectionsView_streetId_btree =
@@ -101,16 +113,6 @@ derive fullSectionsView_startNode_rtree =
 derive fullSectionsView_endNode_rtree =
    fullSectionsView creatertree[endNode];
 
-# Updating the connectivity code according to the restrictions
-# (only_right_turn, only_left_turn, only_straight_on,
-# no_left_turn, no_right_turn, no_straight_on,
-# no_u_turn)
-# since streets have to be separated at restriction nodes according to osm
-# policy, it is sufficient to take a look at junctions between two sections
-# belonging to two streets
-# Storing the work relation under a different name
-#let targetRel =
-#   oneSecInOneSecOut12JuncTmp;
 # Determining all possible pairs of crossing streets
 let startSections =
    nodesRel feed
@@ -397,6 +399,13 @@ let road2ToRoad1 =
 
 #TODO Add road1ToRoad1 and road2ToRoad2
 
+# Updating the connectivity code according to the restrictions
+# (only_right_turn, only_left_turn, only_straight_on,
+# no_left_turn, no_right_turn, no_straight_on,
+# no_u_turn)
+# since streets have to be separated at restriction nodes according to osm
+# policy, it is sufficient to take a look at junctions between two sections
+# belonging to two streets
 let twoSecJuncBtwTwoSts =
    two feed consume;
 let threeSecJuncBtwTwoSts =

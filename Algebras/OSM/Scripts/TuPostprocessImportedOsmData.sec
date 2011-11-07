@@ -1,13 +1,14 @@
 ################################################################################
 ### Postprocessing imported OSM data (4 / 11)
 ################################################################################
-### This script postprocesses OSM data imported from shape-files. Some values
+### This script postprocesses OSM data imported from various files. Some values
 ### are modified, indexes are introduced and new relations collecting data on
 ### equally named streets are created.
-### Please, see tu_shp_import.sh for further details.
+### Please, see tu_osm_import.sh for further details.
 ###
 ### Preconditions:
-### - existing open database
+### - activated necessary algebras
+### - existing open database with successfully imported osm data
 ### - streetsTmp-relation
 ### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
 ###                 type: string, oneway: int, bridge: int, maxspeed: int,
@@ -37,6 +38,9 @@
 ### - roadClassesRel-relation
 ### roadClassesRel: rel{RoadClassId: int, RoadClass: string,
 ###                     Description: string}
+### - restrictionsRel-relation
+### restrictionsRel: rel{fromStreet: int, toStreet: int, viaPoint: point,
+###                      restriction: text}
 ###
 ### Author:
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
@@ -221,6 +225,8 @@ let restrictionsRel =
    addcounter[restrictionId,1]
    consume;
 
-# Removing the help relation
+# Removing the help relations
 delete pointsTmp;
+delete restrictionsHelp;
+delete restrictionsTmp;
 

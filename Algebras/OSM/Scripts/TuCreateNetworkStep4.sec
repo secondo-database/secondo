@@ -3,7 +3,7 @@
 ################################################################################
 ### Description:
 ### - This script creates networks from imported OSM data.
-### Please, see tu_shp_import.sh for further details. 
+### Please, see tu_oms_import.sh for further details. 
 ###
 ### Preconditions:
 ### - activated necessary algebras
@@ -12,12 +12,15 @@
 ### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
 ###                    roadClass: string, oneWay: int, bridge: int,
 ###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
-### - nodesRel-relation
-### nodesRel: rel{Node: point, NodeId: int}
-### - extSectionsRel-relation
-### extSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
-###                     EndNodeId: int, StreetId: int, GroupId: int,
-###                     SectionDist: real}
+### - twoSecJuncBtwTwoSts-relation
+### twoSecJuncBtwTwoSts: rel{Road1: int, Pos1: double, Road2: int,
+###                          Pos2: double, JunctionType: int}
+### - threeSecJuncBtwTwoSts-relation
+### threeSecJuncBtwTwoSts: rel{Road1: int, Pos1: double, Road2: int,
+###                            Pos2: double, JunctionType: int}
+### - fourSecJuncBtwTwoSts-relation
+### fourSecJuncBtwTwoSts: rel{Road1: int, Pos1: double, Road2: int,
+###                           Pos2: double, JunctionType: int}
 ###
 ### Postconditions:
 ### - cityRoads-relation
@@ -32,16 +35,16 @@
 ### - Thomas Uchdorf, t.uchdorf@arcor.de
 ################################################################################
 
-# Removing duplicates
-#query (twoSecJuncBtwTwoSts feed
-#   threeSecJuncBtwTwoSts feed {a}
-#   hashjoin [Node,Node_a,99997]
-#   filter [(.Road1 = .Road1_a) and (.Road2 = .Road2_a)]
-#   project [Road1,Pos1,Road2,Pos2,JunctionType,
-#      Sec1,Sec2,Node,SecData1,SecData2])
-#   twoSecJuncBtwTwoSts deletedirect 
-#   consume;
-#...
+# Making a relation with road data to enable network creation
+# see also PaperMon-paper page 11
+let cityRoads =
+   extStreetsRel feed
+   projectextend [; Name : .name, Road: .streetId,
+     Length: size(.geoData),
+     Geometry: .geoData, Dual: .oneWay=0,
+     StartsSmaller: get_startsmaller(.geoData),
+     RoadLevel : .roadClassRef]
+   consume;
 
 # Calculating and inserting road measures into a new relation containing
 # junction data
@@ -70,26 +73,6 @@ let cityJunctions =
                      fun(a:int,b:int) binor(a,b); 
                      0]]
    consume;
-#let cityJunctions =
-#   (fullSectionsView feed
-#    project [streetId,sectionId,startNodeId,streetData] {a}
-#    nodesRel feed
-#    hashjoin [startNodeId_a,NodeId,99997])
-#   fullSectionsView feed
-#   project [streetId,sectionId,startNodeId,streetData] {b} 
-#   hashjoin [startNodeId_a,startNodeId_b,99997]
-#   filter [.sectionId_a < .sectionId_b]
-#   projectextend [; 
-#      Road1: .streetId_a,
-#      Pos1: size(.streetData_a,create_geoid("WGS1984")) * 
-#         atpoint(.streetData_a,.Node,TRUE) / 
-#         size(.streetData_a),
-#      Road2: .streetId_b,
-#      Pos2: size(.streetData_b,create_geoid("WGS1984")) * 
-#         atpoint(.streetData_b,.Node,TRUE) / 
-#         size(.streetData_b),
-#      JunctionType: 16]
-#   consume;
 
 # Creating the network
 let cityNetwork = thenetwork(
