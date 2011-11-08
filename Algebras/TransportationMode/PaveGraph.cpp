@@ -8770,6 +8770,8 @@ string MaxRect::BuildingRectExtTypeInfo =
 "(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int) \
 (building_type int) (building_type2 string) (building_id int))))";
 
+string MaxRect::BuildingParaInfo = "(rel (tuple ((para real))))";
+
 /*
 remove some dirty data for regions. two subregions intersect at a point 
 
@@ -9172,9 +9174,17 @@ bool RegContainRect(Region* reg, Rectangle<2>& rect)
 for the input relation, it gets a maximum rectangle for each region 
 
 */
-void MaxRect::GetRectangle1(int attr1, int attr2, string type)
+void MaxRect::GetRectangle1(int attr1, int attr2, Relation* building_para)
 {
-
+   if(building_para->GetNoTuples() == 0){
+      cout<<"para relation empty"<<endl;
+      return;
+   }
+   Tuple* para_tuple = building_para->GetTuple(1, false);
+   float area_para = ((CcReal*)para_tuple->GetAttribute(0))->GetRealval();
+   para_tuple->DeleteIfAllowed();
+  
+  
   int reg_id = 1; 
   for(int i = 1;i <= rel1->GetNoTuples();i++){
 //  for(int i = 1;i <= 50;i++){
@@ -9205,17 +9215,25 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
           if(ValidRegion(&ct->triangles[j])){//coordinates should be positive 
 
             Rectangle<2> rect_box;
-            if(type == "Berlin"){
-              rect_box = GetMaxRect(&ct->triangles[j]); 
-            }else if(type == "Houston"){
-              if(ct->triangles[j].Area() > 0.9 * maxi_tri_area){
-                rect_box = GetMaxRect(&ct->triangles[j]);
+            
+//             if(type == "Berlin"){
+//               rect_box = GetMaxRect(&ct->triangles[j]); 
+//             }else if(type == "Houston"){
+//               if(ct->triangles[j].Area() > 0.9 * maxi_tri_area){
+//                 rect_box = GetMaxRect(&ct->triangles[j]);
+//               }else{
+//                 rect_box = GetMaxRect2(&ct->triangles[j]);
+//               }
+//             }else {
+//               assert(false);
+//             }
+
+              if(ct->triangles[j].Area() > area_para * maxi_tri_area){
+                 rect_box = GetMaxRect(&ct->triangles[j]);
               }else{
-                rect_box = GetMaxRect2(&ct->triangles[j]);
+                 rect_box = GetMaxRect2(&ct->triangles[j]);
               }
-            }else {
-              assert(false);
-            }
+
 
 //            cout<<rect_box<<endl;
             if(rect_box.IsDefined()){
@@ -9241,18 +9259,25 @@ void MaxRect::GetRectangle1(int attr1, int attr2, string type)
             assert(ValidRegion(r));
 
             Rectangle<2> rect_box;
-            if(type == "Berlin"){
-                rect_box = GetMaxRect(r);
-            }else if(type == "Houston"){
-                if(r->Area() > 0.9 * maxi_tri_area){
+            
+//             if(type == "Berlin"){
+//                 rect_box = GetMaxRect(r);
+//             }else if(type == "Houston"){
+//                 if(r->Area() > 0.9 * maxi_tri_area){
+//                   rect_box = GetMaxRect(r);
+//                 }else{
+//                   rect_box = GetMaxRect2(r);
+//                 }
+//             }else{
+//               assert(false);
+// 
+//             }
+
+                if(r->Area() > area_para * maxi_tri_area){
                   rect_box = GetMaxRect(r);
                 }else{
                   rect_box = GetMaxRect2(r);
                 }
-            }else{
-              assert(false);
-
-            }
 
             if(rect_box.IsDefined()){
                 double x = fabs(rect_box.MaxD(0) - rect_box.MinD(0));

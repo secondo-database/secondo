@@ -1,4 +1,4 @@
-Database: tmtest
+Database: testgenmo
 Restore : yes
 
 Operator : checksline
@@ -18,22 +18,22 @@ Result   : 1
 Operator : segment2region
 Number   : 2
 Signature: relation x attr x int-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query segment2region(r,curve,2) count;
-Result   : 1
+Example  : query segment2region(r,curve,4) count;
+Result   : 630
 
 
 Operator : paveregion
 Number   : 2
 Signature: network x rel1 x attr x rel2 x attr1 x attr2 x int -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query paveregion(n, allregions_in, inborder, allregions_pave, pave1, pave2, roadwidth) count;
-Result   : 1
+Example  : query paveregion(rn,allregions_in,inborder,allregions_pave,pave1,pave2,roadwidth) count;
+Result   : 630
 
 
 Operator : junregion
 Number   : 2
 Signature: network x rel1 x attr1 x attr2 x int x rel2 x attr-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query junregion(n, pave_regions1, pavement1, pavement2, roadwidth,allregions_in,inborder) count;
-Result   : 1
+Example  : query junregion(rn,pave_regions1,pavement1,pavement2,roadwidth,allregions_in,inborder) count;
+Result   : 630
 
 Operator : decomposeregion
 Number   : 2
@@ -41,38 +41,17 @@ Signature: region -> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query decomposeregion([const region value ((((1 1)(5 1)(5 5)(1 5))))]) count;
 Result   : 1
 
-Operator : fillpavement
-Number   : 2
-Signature: network x rel x attr1 x attr2 x int-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query fillpavement(n, allregions_pave, pave1, pave2, roadwidth) count;
-Result   : 1
-
-
 Operator : getpavenode1
 Number   : 2
 Signature: network x rel x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpavenode1(n, pave_regions1, oid, pavement1, pavement2) count;
-Result   : 1
-
-Operator : getpaveedge1
-Number   : 2
-Signature: network x rel x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpaveedge1(n, subpaves, btree_pave, oid, rid, pavement) count;
-Result   : 1
+Example  : query getpavenode1(rn,pave_regions1,rid,pavement1,pavement2) count;
+Result   : 2526
 
 Operator : getpavenode2
 Number   : 2
 Signature: int x rel x attr1 x attr2 -> (stream(tuple ((x1 t1) ... (xn tn))))
 Example  : query getpavenode2(subpaves1 count, pave_regions2, rid, crossreg) count;
-Result   : 1
-
-
-Operator : getpaveedge2
-Number   : 2
-Signature: rel1 x rel2 x btree x attr1 x attr2 x attr3-> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query getpaveedge2(subpaves2, subpaves1, btree_pave, oid, rid, pavement) count;
-Result   : 1
-
+Result   : 2343
 
 Operator : triangulation
 Number   : 2
@@ -103,14 +82,14 @@ Result   : 1
 Operator : createdualgraph
 Number   : 2
 Signature: int x rel x rel -> dualgraph
-Example  : query createdualgraph(1, edge_rel, node_rel);
-Result   : file_platform
+Example  : query getadjnode(createdualgraph(1, dg_node, dg_edge), 631) count;
+Result   : 1
 
 Operator : nodedualgraph
 Number   : 2
 Signature: dualgraph -> rel
-Example  : query nodedualgraph(dg1) count;
-Result   : 77
+Example  : query nodedualgraph(dg) count;
+Result   : 29472
 
 Operator : walk_sp_old
 Number   : 2
@@ -802,8 +781,8 @@ Result   : 4
 
 Operator : getrect1 
 Number   : 1
-Signature: rel x attr1 x attr2 x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getrect1(new_region_elems, id, covarea, "Berlin") count;
+Signature: rel x attr1 x attr2 x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getrect1(new_region_elems, id, covarea, building_para) count;
 Result   : 20 
 
 

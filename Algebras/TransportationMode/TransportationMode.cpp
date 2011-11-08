@@ -8236,11 +8236,11 @@ const string OpTMMaxRectSpec  =
 const string OpTMGetRect1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x attr1 x attr2 x string->"
+    "( <text>rel x attr1 x attr2 x rel->"
     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>getrect1(rel, attr, attr, string);</text--->"
+    "<text>getrect1(rel, attr, attr, rel);</text--->"
     "<text>get the maximum rectangle area for a region</text--->"
-    "<text>query getrect1(new_region_elems2, id, covarea, Berlin);</text--->"
+    "<text>query getrect1(new_region_elems2, id, covarea, para_rel);</text--->"
     ") )";
 
 /*
@@ -14085,6 +14085,13 @@ ListExpr OpTMGetRect1TypeMap ( ListExpr args )
   if(!IsRelDescription(param1))
     return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
 
+  ListExpr xType1;
+  nl->ReadFromString(MaxRect::RegionElemTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+      string err = "rel (tuple ((id int) (covarea region))) expected";
+      return listutils::typeError(err);
+  }
+  
   
   ListExpr attrName1 = nl->Second ( args );
   ListExpr attrType1;
@@ -14109,10 +14116,17 @@ ListExpr OpTMGetRect1TypeMap ( ListExpr args )
   }
 
   ListExpr param4 = nl->Fourth(args);
-  if(!(nl->SymbolValue(param4) == "string")){
-    return nl->SymbolAtom ( "typeerror: param4 should be a string" );
-    
+  if(!IsRelDescription(param4))
+    return nl->SymbolAtom ( "typeerror: param4 should be a relation" );
+
+
+  ListExpr xType2;
+  nl->ReadFromString(MaxRect::BuildingParaInfo, xType2); 
+  if(!CompareSchemas(param4, xType2)){
+      string err = "rel (tuple ((para real))) expected";
+      return listutils::typeError(err);
   }
+
 
   ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -20305,7 +20319,7 @@ int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
       case OPEN:{
 
         Relation* r = (Relation*)args[0].addr;
-        string type = ((CcString*)args[3].addr)->GetValue();
+        Relation* para = (Relation*)args[3].addr;
 
         int attr1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
         int attr2 = ((CcInt*)args[5].addr)->GetIntval() - 1; 
@@ -20314,7 +20328,7 @@ int OpTMGetRect1ValueMap ( Word* args, Word& result, int message,
         max_rect->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        max_rect->GetRectangle1(attr1, attr2, type);
+        max_rect->GetRectangle1(attr1, attr2, para);
         local.setAddr(max_rect);
         return 0;
       }
@@ -20822,6 +20836,7 @@ Operator decomposeregion(
     OpTMDecomposeRegionTypeMap        // type mapping
 );
 
+/*
 Operator fillpavement(
     "fillpavement",               // name
     OpTMFillPavementSpec,          // specification
@@ -20829,6 +20844,8 @@ Operator fillpavement(
     Operator::SimpleSelect,        // selection function
     OpTMFillPavementTypeMap        // type mapping
 );
+
+*/
 
 Operator getpavenode1(
     "getpavenode1",               // name
@@ -20838,7 +20855,7 @@ Operator getpavenode1(
     OpTMGetPaveNode1TypeMap        // type mapping
 );
 
-
+/*
 Operator getpaveedge1(
     "getpaveedge1",               // name
     OpTMGetPaveEdge1Spec,          // specification
@@ -20847,6 +20864,7 @@ Operator getpaveedge1(
     OpTMGetPaveEdge1TypeMap        // type mapping
 );
 
+*/
 
 Operator getpavenode2(
     "getpavenode2",               // name
@@ -20856,6 +20874,7 @@ Operator getpavenode2(
     OpTMGetPaveNode2TypeMap        // type mapping
 );
 
+/*
 Operator getpaveedge2(
     "getpaveedge2",               // name
     OpTMGetPaveEdge2Spec,          // specification
@@ -20863,6 +20882,8 @@ Operator getpaveedge2(
     Operator::SimpleSelect,        // selection function
     OpTMGetPaveEdge2TypeMap        // type mapping
 );
+
+*/
 
 Operator triangulation(
     "triangulation",               // name
@@ -21916,13 +21937,13 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&paveregion);
     AddOperator(&junregion);
     AddOperator(&decomposeregion);
-    AddOperator(&fillpavement);
+//    AddOperator(&fillpavement); //////comment it out for debuging
 
     //////////operators for building the graph model on pavements//////////
     AddOperator(&getpavenode1);
-    AddOperator(&getpaveedge1);
+//    AddOperator(&getpaveedge1);//comment it out for debuging 
     AddOperator(&getpavenode2);
-    AddOperator(&getpaveedge2);
+//    AddOperator(&getpaveedge2);  ///comment it out for debuging 
     AddOperator(&triangulation);
     AddOperator(&triangulation2);
     AddOperator(&convex);

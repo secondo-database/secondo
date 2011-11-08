@@ -811,6 +811,7 @@ struct MaxRect{
     static string BuildingRectTypeInfo;
     static string RegionElemTypeInfo;
     static string BuildingRectExtTypeInfo; 
+    static string BuildingParaInfo;
 
     bool fixed;
     int fixedX, fixedY;
@@ -916,7 +917,7 @@ struct MaxRect{
     /////////////whether two triangle have a commone edge////////////////
     bool NeighborTriangle(Region* r1, Region* r2); 
     /////////get the maximum rectangle for each region/////////////////
-    void GetRectangle1(int attr1, int attr2, string type);
+    void GetRectangle1(int attr1, int attr2, Relation*);
 
     ////////////////check whether all coordinates are positive///////////////
     ////////////because the function to get maximum rectangle needs all ////

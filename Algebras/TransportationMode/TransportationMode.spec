@@ -23,11 +23,10 @@ operator segment2region alias SEGMENT2REGION pattern op(_,_)
 operator paveregion alias PAVEREGION pattern op(_,_,_,_,_,_,_)
 operator junregion alias JUNREGION pattern op(_,_,_,_,_,_,_)
 operator decomposeregion alias DECOMPOSEREGION pattern op(_)
-operator fillpavement alias FILLPAVEMENT pattern op(_,_,_,_,_)
 operator getpavenode1 alias GETPAVENODE1 pattern op(_,_,_,_,_)
-operator getpaveedge1 alias GETPAVEEDGE1 pattern op(_,_,_,_,_,_)
+
 operator getpavenode2 alias GETPAVENODE2 pattern op(_,_,_,_)
-operator getpaveedge2 alias GETPAVEEDGE2 pattern op(_,_,_,_,_,_)
+
 operator triangulation  alias TRIANGULATION pattern op(_)
 operator triangulation2  alias TRIANGULATION2 pattern op(_)
 operator convex alias CONVEX pattern op(_)
