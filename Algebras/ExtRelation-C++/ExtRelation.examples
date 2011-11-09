@@ -26,6 +26,11 @@ Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
 Example  : query no_components(Flaechen feed aggregateB[geoData; fun(r1:region, r2:region) r1 union r2; [const region value ()]])
 Result   : 139
 
+Operator : aggregateC
+Number   : 1
+Signature: stream(tuple(X)) x (tuple(X) x t -> t) x t , t in DATA 
+Example  : query ten feed aggregateC[ fun( t : TUPLE, i : int) attr(t,no) + i ; 5]
+Result   : 60
 
 Operator : avg
 Number   : 1

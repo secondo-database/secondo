@@ -8539,6 +8539,118 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 #endif
+
+
+/* 
+2.19 ~aggregateC~
+
+This operator works similar to the ~aggregate~ operator. In constrast, the
+aggregateC operator uses a function tuple x t -> t, t in 
+DATA for aggregation.
+
+2.19.1 Type Mapping
+
+ 
+*/
+ListExpr aggregateCTM(ListExpr args){
+
+   string err = "stream(tuple(X)) x  (tuple(X) x t ->t ) x t, "
+                "t in DATA expected";
+   if(!nl->HasLength(args,3)){
+      return listutils::typeError(err);
+   }	   
+
+   ListExpr stream = nl->First(args); 
+   if(!Stream<Tuple>::checkType(stream)){
+      return listutils::typeError(err);
+   }	   
+
+   ListExpr start = nl->Third(args);
+   if(!listutils::isDATA(start)){
+      return listutils::typeError(err);
+   }
+
+   ListExpr map = nl->Second(args);
+   if(!listutils::isMap<2>(map)){
+	   return listutils::typeError(err);
+   }
+
+   ListExpr t = nl->Second(stream);
+   if(!nl->Equal(t, nl->Second(map))){
+      return listutils::typeError("map argument 1 unequals to tuple in stream");
+   }
+   if(!nl->Equal(start,nl->Third(map))){
+     return listutils::typeError("second map argument unequal to start value");
+   } 
+
+   if(!nl->Equal(start, nl->Fourth(map))){
+      return listutils::typeError("result of function differs from "
+                                  "start value");
+   }
+
+   return start;
+}
+
+/*
+2.19.2 Value Mapping
+
+*/
+
+int aggregateCVM(Word* args, Word& result, int message,
+               Word& local, Supplier s)
+{
+
+
+   Stream<Tuple> stream(args[0]);
+
+   ArgVectorPointer funargs;
+
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+
+   Attribute* tmp = ((Attribute*) args[2].addr)->Clone();
+
+   stream.open();
+   Tuple* nextTuple = stream.request();
+   funargs= qp->Argument(args[1].addr);
+   while(nextTuple){
+     (*funargs)[0].setAddr(nextTuple);
+     (*funargs)[1].setAddr(tmp);
+     Word funres;
+     qp->Request(args[1].addr, funres);
+     tmp->DeleteIfAllowed();
+     tmp = ((Attribute*) funres.addr)->Clone();
+     nextTuple->DeleteIfAllowed();
+     nextTuple = stream.request();
+   }
+
+   res->CopyFrom(tmp);
+   tmp->DeleteIfAllowed();
+   stream.close();
+   return 0;
+}
+
+
+const string aggregateCSpec  = 
+       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+     "('stream(tuple(X)) x (tuple(X) x t -> t ) x t, t in DATA -> t'"
+    "' _ aggregateC [ fun, t ] '"
+    "' Aggregates values of a tuple stream'"
+    "' query ten feed aggregateC[ fun( t : TUPLE, "
+    "i : int) attr(t,no) + i ; 5] '"
+    ") )";
+
+
+Operator aggregateC (
+         "aggregateC",              // name
+         aggregateCSpec,            // specification
+         aggregateCVM,                // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         aggregateCTM          // type mapping
+);
+
+
+
 /*
 2.18.2 Value mapping function of operator ~aggregateB~
 
@@ -11111,6 +11223,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelslidingwindow);
     AddOperator(&extend_aggr);
     AddOperator(&extend_last);
+    AddOperator(&aggregateC);
 
 #ifdef USE_PROGRESS
 // support for progress queries
