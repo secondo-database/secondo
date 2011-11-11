@@ -145,6 +145,7 @@ using namespace std;
 #include "ProgressView.h"
 #include "Progress.h"
 #include "AlmostEqual.h"
+#include "WinUnix.h"
 
 extern bool USE_AUTO_BUFFER;
 
@@ -338,7 +339,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                   << endl;
      cmsg.send();
 
-     sleep(10);
+     WinUnix::sleep(10);
   }
 
 
