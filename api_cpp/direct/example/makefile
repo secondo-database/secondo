@@ -23,7 +23,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
-LDFLAGS:=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPFLAGS)  -lpthread
+LDFLAGS:=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPFLAGS)  -lpthread $(DEFAULTLIB)
 
 
 ifneq ($(SECONDO_PLATFORM),win32)
@@ -42,7 +42,6 @@ endif
 
 
 app$(EXEEXT): Example.o
-	@echo $(LDFLAGS)
 	gcc -o app$(EXEEXT) Example.o $(LDFLAGS)  
 	mkdir -p databases
 

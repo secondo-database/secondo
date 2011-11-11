@@ -925,3 +925,20 @@ Signature : string -> int
 Example   : query str2int("3")
 Result    : 3
 
+
+Operator  : recode 
+Number    : 1
+Signature : text x string x string -> text
+Example   : query 'Hello' recode ["latin1", "utf8"]
+Result    : (text 'Hello')
+
+
+Operator  : recode
+Number    : 2
+Signature : string x string x string -> string
+Example   : query  "Hello" recode ["utf8","latin1"]
+Result    : (string "Hello")
+
+
+
+

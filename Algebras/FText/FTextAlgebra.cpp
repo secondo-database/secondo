@@ -64,6 +64,12 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <functional>
 #include <sstream>
 
+#ifdef RECODE
+#include <recode.h>
+#endif
+
+
+
 #include "FTextAlgebra.h"
 #include "Attribute.h"
 #include "Algebra.h"
@@ -6135,7 +6141,7 @@ class TrimAllInfo{
     unsigned int vpos = 0;
     int npos = strings[vpos].first;
 
-		for(int pos=0;pos<src->GetNoAttributes();pos++){
+    for(int pos=0;pos<src->GetNoAttributes();pos++){
       if(pos==npos){
          bool isText = strings[vpos].second;
          if(isText){
@@ -7756,137 +7762,270 @@ Operator str2int
  str2intTM        //type mapping
 );
 
-
-
-
+#ifdef RECODE
 
 /*
-5 Creating the algebra
+4.12 Operator ~recode~
+
+
+Type Mapping
+
+Signature: text x string x string -> text
+         : string x string x string -> string
+Meaning: recodes a text from one charset into another one
 
 */
+ListExpr recodeTM(ListExpr args){
+   string err = " t x string x string ->  t, t in {string, text} expected";
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError(err);
+   }
+   ListExpr f = nl->First(args);
+   if(!CcString::checkType(f) && !FText::checkType(f)){
+     return listutils::typeError(err);
+   }
+   if(!CcString::checkType(nl->Second(args)) ||
+      !CcString::checkType(nl->Third(args))) {
+     return listutils::typeError(err);
+   }
+   return f;
+}
 
-class FTextAlgebra : public Algebra
-{
-public:
-  FTextAlgebra() : Algebra()
-  {
-    if(traces)
-      cout <<'\n'<<"Start FTextAlgebra() : Algebra()"<<'\n';
-    AddTypeConstructor( &ftext );
-    AddTypeConstructor( &svg );
-    ftext.AssociateKind(Kind::DATA());
-    svg.AssociateKind(Kind::DATA());
-    ftext.AssociateKind(Kind::INDEXABLE());
-    ftext.AssociateKind(Kind::CSVIMPORTABLE());
-    AddOperator( &contains );
-    AddOperator( &length );
-    AddOperator( &getkeywords );
-    AddOperator( &getsentences );
-    AddOperator( &diceCoeff);
-    AddOperator( &ftextgetcatalog );
-    AddOperator( &ftextsubstr );
-    AddOperator( &ftextsubtext );
-    AddOperator( &ftextfind );
-    AddOperator( &ftextisempty );
-    AddOperator( &ftexttrim );
-    AddOperator( &ftextplus );
-    AddOperator( &ftextless );
-    AddOperator( &ftextlesseq );
-    AddOperator( &ftexteq );
-    AddOperator( &ftextbiggereq );
-    AddOperator( &ftextbigger );
-    AddOperator( &ftextneq );
-    AddOperator( &ftextevaluate );
-    AddOperator( &ftextreplace );
-    AddOperator( &ftexttoupper );
-    AddOperator( &ftexttolower );
-    AddOperator( &ftexttostring );
-    AddOperator( &ftexttotext );
-    AddOperator( &isDBObject);
-    AddOperator( &getTypeNL );
-    AddOperator( &getValueNL );
-    AddOperator( &ftexttoobject );
-    AddOperator( &chartext );
-    AddOperator( &ftsendtextUDP );
-    AddOperator( &ftreceivetextUDP );
-    AddOperator( &ftreceivetextstreamUDP );
-    AddOperator( &svg2text );
-    AddOperator( &text2svg );
-    AddOperator( &crypt);
-    AddOperator( &checkpw);
-    AddOperator( &md5);
-    AddOperator( &blowfish_encode);
-    AddOperator( &blowfish_decode);
-    AddOperator( &ftextletObject);
-    AddOperator( &ftextdeleteObject);
-    AddOperator( &ftextcreateObject);
-//     AddOperator( &ftextderiveObject);
-//     AddOperator( &ftextupdateObject);
-    AddOperator( &ftextgetObjectTypeNL);
-    AddOperator( &ftextgetObjectValueNL);
-    AddOperator( &getDatabaseName);
-    AddOperator( &matchingOperatorNames);
-    AddOperator( &matchingOperators);
-    AddOperator( &sysgetMatchingOperators);
-    AddOperator( &sysgetAlgebraName);
-    AddOperator( &sysgetAlgebraId);
-//     AddOperator( &sysgetOperatorInfo);
-//     AddOperator( &sysgetTypeConstructorInfo);
-//     AddOperator( &sysgetNoAlgebras);
-    AddOperator( &checkOperatorTypeMap);
-    AddOperator( &checkOperatorTypeMap2);
-    AddOperator( &strequal);
-    AddOperator( &tokenize);
-    AddOperator( &sendtextstreamTCP);
-    AddOperator( &charToText);
-    AddOperator( &attr2text);
-    AddOperator( &isValidID);
-    AddOperator( &trimAll);
-    AddOperator(&str2real);
-    AddOperator(&str2int);
+/*
+ Value Mapping
 
-    LOGMSG( "FText:Trace",
-      cout <<"End FTextAlgebra() : Algebra()"<<'\n';
-    )
+*/
+  template<class T>
+  int recodeVM1( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+     result = qp->ResultStorage(s);
+     T* res = (T*) result.addr;
+     T* text1 = (T*) args[0].addr;
+     CcString* from1 =  (CcString*) args[1].addr;
+     CcString* to1 = (CcString*) args[2].addr;
+     if(!text1->IsDefined() || !from1->IsDefined() || !to1->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+     }
+     string text = text1->GetValue();
+     string from = from1->GetValue();
+     string to = to1->GetValue();
+
+     string rs = trim(from)+".."+trim(to);
+     
+     // use recode lib
+
+     RECODE_OUTER outer = recode_new_outer(true);
+     RECODE_REQUEST request = recode_new_request(outer);
+
+     bool success = recode_scan_request (request, rs.c_str());
+     if(!success){
+         recode_delete_request(request);
+         recode_delete_outer(outer);
+         res->SetDefined(false);
+         return 0;
+     }
+
+     char* recoded = recode_string(request, text.c_str());
+
+      // make clean
+     recode_delete_request(request);
+     recode_delete_outer(outer);
+     if(recoded==0){
+        res->SetDefined(false);
+        return 0;
+     }
+     res->Set(true, recoded);
+     free(recoded);
+     return 0;
   }
 
-  ~FTextAlgebra() {};
-};
-
-} // end namespace ftext
-
+  
 /*
-Type name for data type svg in Secondo
-
-*/
-const string SVG::BasicType() {
-  return "svg";
-}
-
-/*
-6 Initialization
-
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
-
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
+Value Mapping Array and Selection function
 
 */
 
-extern "C"
-Algebra*
-InitializeFTextAlgebra( NestedList* nlRef,
-                        QueryProcessor* qpRef,
-                        AlgebraManager* amRef )
-{
-  if(traces)
-    cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
-  ftext::FTextAlgebra* ptr = new ftext::FTextAlgebra();
-  ptr->Init(nl, qp, am);
-  return ptr;
-}
+ValueMapping recodeVM [] = {recodeVM1<CcString>,
+                            recodeVM1<FText>};
+
+int recodeSelect(ListExpr args){
+   ListExpr f = nl->First(args);
+   if(CcString::checkType(f)) return 0;
+   if(FText::checkType(f)) return 1;
+   return -1;
+}     
+
+/*
+Specification
+
+
+*/
+
+  const string recodeSpec =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+      "( <text>  t x string x string  -> t, t uin {text,string} </text--->"
+      "<text> _ recode [_ , _]  </text--->"
+      "<text>Recodes a string/text from one charset to another one "
+      " </text--->"
+      "<text>query 'Häßlich' recode [\"utf8\", \"latin1\"] </text--->"
+      ") )";
+
+  /*
+  Operator instance
+
+  */
+
+
+  Operator recode
+  (
+  "recode",             //name
+   recodeSpec,         //specification
+   2,                           // no of VM functions
+   recodeVM,        //value mapping
+   recodeSelect,   //trivial selection function
+   recodeTM        //type mapping
+  );
+
+#endif
+
+
+
+
+
+
+  /*
+  5 Creating the algebra
+
+  */
+
+  class FTextAlgebra : public Algebra
+  {
+  public:
+    FTextAlgebra() : Algebra()
+    {
+      if(traces)
+        cout <<'\n'<<"Start FTextAlgebra() : Algebra()"<<'\n';
+      AddTypeConstructor( &ftext );
+      AddTypeConstructor( &svg );
+      ftext.AssociateKind(Kind::DATA());
+      svg.AssociateKind(Kind::DATA());
+      ftext.AssociateKind(Kind::INDEXABLE());
+      ftext.AssociateKind(Kind::CSVIMPORTABLE());
+      AddOperator( &contains );
+      AddOperator( &length );
+      AddOperator( &getkeywords );
+      AddOperator( &getsentences );
+      AddOperator( &diceCoeff);
+      AddOperator( &ftextgetcatalog );
+      AddOperator( &ftextsubstr );
+      AddOperator( &ftextsubtext );
+      AddOperator( &ftextfind );
+      AddOperator( &ftextisempty );
+      AddOperator( &ftexttrim );
+      AddOperator( &ftextplus );
+      AddOperator( &ftextless );
+      AddOperator( &ftextlesseq );
+      AddOperator( &ftexteq );
+      AddOperator( &ftextbiggereq );
+      AddOperator( &ftextbigger );
+      AddOperator( &ftextneq );
+      AddOperator( &ftextevaluate );
+      AddOperator( &ftextreplace );
+      AddOperator( &ftexttoupper );
+      AddOperator( &ftexttolower );
+      AddOperator( &ftexttostring );
+      AddOperator( &ftexttotext );
+      AddOperator( &isDBObject);
+      AddOperator( &getTypeNL );
+      AddOperator( &getValueNL );
+      AddOperator( &ftexttoobject );
+      AddOperator( &chartext );
+      AddOperator( &ftsendtextUDP );
+      AddOperator( &ftreceivetextUDP );
+      AddOperator( &ftreceivetextstreamUDP );
+      AddOperator( &svg2text );
+      AddOperator( &text2svg );
+      AddOperator( &crypt);
+      AddOperator( &checkpw);
+      AddOperator( &md5);
+      AddOperator( &blowfish_encode);
+      AddOperator( &blowfish_decode);
+      AddOperator( &ftextletObject);
+      AddOperator( &ftextdeleteObject);
+      AddOperator( &ftextcreateObject);
+  //     AddOperator( &ftextderiveObject);
+  //     AddOperator( &ftextupdateObject);
+      AddOperator( &ftextgetObjectTypeNL);
+      AddOperator( &ftextgetObjectValueNL);
+      AddOperator( &getDatabaseName);
+      AddOperator( &matchingOperatorNames);
+      AddOperator( &matchingOperators);
+      AddOperator( &sysgetMatchingOperators);
+      AddOperator( &sysgetAlgebraName);
+      AddOperator( &sysgetAlgebraId);
+  //     AddOperator( &sysgetOperatorInfo);
+  //     AddOperator( &sysgetTypeConstructorInfo);
+  //     AddOperator( &sysgetNoAlgebras);
+      AddOperator( &checkOperatorTypeMap);
+      AddOperator( &checkOperatorTypeMap2);
+      AddOperator( &strequal);
+      AddOperator( &tokenize);
+      AddOperator( &sendtextstreamTCP);
+      AddOperator( &charToText);
+      AddOperator( &attr2text);
+      AddOperator( &isValidID);
+      AddOperator( &trimAll);
+      AddOperator(&str2real);
+      AddOperator(&str2int);
+
+#ifdef RECODE
+      AddOperator(&recode);
+#endif
+
+
+      LOGMSG( "FText:Trace",
+        cout <<"End FTextAlgebra() : Algebra()"<<'\n';
+      )
+    }
+
+    ~FTextAlgebra() {};
+  };
+
+  } // end namespace ftext
+
+  /*
+  Type name for data type svg in Secondo
+
+  */
+  const string SVG::BasicType() {
+    return "svg";
+  }
+
+  /*
+  6 Initialization
+
+  Each algebra module needs an initialization function. The algebra manager
+  has a reference to this function if this algebra is included in the list
+  of required algebras, thus forcing the linker to include this module.
+
+  The algebra manager invokes this function to get a reference to the instance
+  of the algebra class and to provide references to the global nested list
+  container (used to store constructor, type, operator and object information)
+  and to the query processor.
+
+  */
+
+  extern "C"
+  Algebra*
+  InitializeFTextAlgebra( NestedList* nlRef,
+                          QueryProcessor* qpRef,
+                          AlgebraManager* amRef )
+  {
+    if(traces)
+      cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
+    ftext::FTextAlgebra* ptr = new ftext::FTextAlgebra();
+    ptr->Init(nl, qp, am);
+    return ptr;
+  }
 

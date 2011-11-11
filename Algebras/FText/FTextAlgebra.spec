@@ -86,5 +86,7 @@ operator attr2text alias ATTR22TEXT pattern op(_)
 operator trimAll alias trimAll pattern _ op
 operator str2real alias STRTOREAL pattern  op(_)
 operator str2int alias STRTOINT pattern  op(_)
+operator recode alias RECODE pattern _ op [_, _]
+
 
 
