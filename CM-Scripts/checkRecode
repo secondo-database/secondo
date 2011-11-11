@@ -1,0 +1,15 @@
+#!/bin/bash
+
+g++ -o /dev/null $SECONDO_BUILD_DIR/CM-Scripts/recodetest.cpp 2>/dev/null
+
+OK=$?
+
+if [ "$OK" == "0" ]; then
+  echo "true"
+else
+  echo "false" 
+fi
+
+
+
+
