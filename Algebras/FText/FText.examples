@@ -930,14 +930,16 @@ Operator  : recode
 Number    : 1
 Signature : text x string x string -> text
 Example   : query 'Hello' recode ["latin1", "utf8"]
-Result    : (text 'Hello')
+Result    : unpredictable
+Remark    : Operator not available without Recode library
 
 
 Operator  : recode
 Number    : 2
 Signature : string x string x string -> string
 Example   : query  "Hello" recode ["utf8","latin1"]
-Result    : (string "Hello")
+Result    : unpredictable
+Remark    : Operator not available without Recode library
 
 
 
