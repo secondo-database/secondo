@@ -103,6 +103,7 @@ whilecommand  :  ZZWHILE valueexpr ZZDO command ZZENDWHILE
       PRINTF(" endwhile)\n");
       $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
+   ;
 
 commandblock  :  '{' commandseq '}'
     { CLEAR();
