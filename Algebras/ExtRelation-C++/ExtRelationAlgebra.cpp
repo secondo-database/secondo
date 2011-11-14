@@ -10969,6 +10969,7 @@ ListExpr extend_lastTM(ListExpr args){
     if(first){
         ExtList = nl->OneElemList(ext);
         last = ExtList;
+        first = false;
     } else {
         last = nl->Append(last, ext);
     }
@@ -11103,9 +11104,11 @@ const string extend_lastSpec  =
   "stream(tuple(x @ newAttributes))</text--->"
   "<text>stream extend_last [ funlist ; list ] )</text--->"
   "<text>Computes new attributes from the current tuple and the"
-  " last one in the stream. "
-  " For the first attributes, the default values are used instead"
-  " of some computation"
+  " previous one in the stream.  The current tuple can be accessed using"
+  " the dot(.). Attribute values from the previous  tuple can be accessed "
+  " by ..\n"
+  " For the first tuple, no previous tuple is available. For this reason,"
+  " the default value from the list is usied instead of the funtion."
   "</text--->"
   "<text>query ten feed extend_last[ ANum : .no - ..no ; 3] tconsume "
   " </text--->"
