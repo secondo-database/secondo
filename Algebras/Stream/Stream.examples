@@ -139,6 +139,20 @@ Signature: ((stream X) (map X (stream Y))) -> (stream Y)
 Example  : query intstream(1,5) use[ fun(i:int) intstream(i,5) ] count;
 Result   : 15
 
+Operator : use
+Number   : 3
+Signature: ((stream tuple(X)) (map tuple(X) Y)) -> (stream Y)
+Example  : query intstream(1,5) transformstream use[ fun(i:TUPLE) (attr(i,elem) + 5) ] count;
+Result   : 5
+
+Operator : use
+Number   : 4
+Signature: ((stream tuple(X)) (map tuple(X) (stream Y))) -> (stream Y)
+Example  : query intstream(1,5) transformstream use[ fun(i:TUPLE) intstream(attr(i,elem),5) ] count;
+Result   : 15
+
+
+
 Operator : ensure
 Number   : 1
 Signature: stream(T) -> bool

@@ -366,148 +366,35 @@ scalar values or streams of values:
 ListExpr
 TypeMapUse( ListExpr args )
 {
-  string outstr1, outstr2;            // output strings
-  ListExpr errorInfo;
-  ListExpr sarg1, map;                // arguments to use
-  ListExpr marg1, mres;               // argument to mapping
-  ListExpr sarg1Type, sresType;       // 'flat' arg type
+  string err="stream(S) x ( S -> T) , S,T in DATA expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args)) &&
+     !Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!listutils::isMap<1>(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  ListExpr streamType = nl->Second(nl->First(args));
+  ListExpr funArg = nl->Second(nl->Second(args));
+  ListExpr funRes = nl->Third(nl->Second(args));
+  if(!nl->Equal(streamType,funArg)){
+    return listutils::typeError(err + " (stream type different "
+                               "to function argument)");
+  }
+  
+  if(Stream<Attribute>::checkType(funRes)){
+    return funRes;
+  }
 
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-
-  if ( (nl->ListLength( args ) != 2) )
-    {
-      ErrorReporter::ReportError("Operator use expects a list of length two ");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // get use arguments
-  sarg1 = nl->First( args );
-  map = nl->Second( args );
-
-  // check sarg1 for being a stream
-  if(     nl->IsAtom( sarg1 )
-          || ( nl->ListLength( sarg1 ) != 2)
-          || !(TypeOfRelAlgSymbol(nl->First(sarg1) == stream )) )
-    {
-      ErrorReporter::ReportError(
-        "Operator use expects its first Argument to "
-        "be of type '(stream T), for T in kind DATA)'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-  sarg1Type = nl->Second(sarg1);
-
-  // check sarg1 to be a (stream T) for T in kind DATA
-  // or T of type tuple(X)
-  if(    !nl->IsAtom( sarg1Type )
-      && !am->CheckKind(Kind::DATA(), nl->Second( sarg1Type ), errorInfo) )
-    {
-      nl->WriteToString(outstr1, sarg1Type);
-      ErrorReporter::ReportError("Operator use expects its 1st argument "
-                                 "to be '(stream T)', T of kind DATA, but"
-                                 "receives '" + outstr1 + "' as T.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // This check can be removed when operators working on tuplestreams have
-  // been implemented:
-  if ( !nl->IsAtom( sarg1Type ) &&
-       (nl->ListLength( sarg1Type ) == 2) &&
-       nl->IsEqual( nl->First(sarg1Type), Tuple::BasicType()) )
-    {
-      ErrorReporter::ReportError("Operator use still not implemented for "
-                                 "arguments of type 'tuple(X)' or "
-                                 "'(stream tuple(X))'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  if ( !nl->IsAtom( sarg1Type ) &&
-       ( (nl->ListLength( sarg1Type ) != 2) ||
-         !nl->IsEqual( nl->First(sarg1Type), Tuple::BasicType()) ||
-         !IsTupleDescription(nl->Second(sarg1Type))
-         )
-       )
-    {
-      nl->WriteToString(outstr1, sarg1);
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // check for map
-  if (  nl->IsAtom( map ) || !( nl->IsEqual(nl->First(map), Symbol::MAP()) ) )
-    {
-      nl->WriteToString(outstr1, map);
-      ErrorReporter::ReportError("Operator use expects a map as "
-                                 "2nd argument, but gets '" + outstr1 +
-                                 "' instead.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  if ( nl->ListLength(map) != 3 )
-    {
-      ErrorReporter::ReportError("Number of map arguments must be 1 "
-                                 "for operator use.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // get map arguments
-  marg1 = nl->Second(map);
-  mres  = nl->Third(map);
-
-  // check marg1
-
-  if ( !( nl->Equal(marg1, sarg1Type) ) )
-    {
-      nl->WriteToString(outstr1, sarg1Type);
-      nl->WriteToString(outstr2, marg1);
-      ErrorReporter::ReportError("Operator use: 1st argument's stream"
-                                 "type does not match the type of the "
-                                 "mapping's 1st argument. If e.g. the first "
-                                 "is 'stream X', then the latter must be 'X'."
-                                 "The types passed are '" + outstr1 +
-                                 "' and '" + outstr2 + "'.");
-      return nl->SymbolAtom( Symbol::TYPEERROR() );
-    }
-
-  // get map result type 'sresType'
-  if( !( nl->IsAtom( mres ) ) && ( nl->ListLength( mres ) == 2) )
-    {
-
-      if (  TypeOfRelAlgSymbol(nl->First(mres) == stream ) )
-        {
-          if ( !am->CheckKind(Kind::DATA(), nl->Second(mres), errorInfo) )
-            {
-              ErrorReporter::ReportError(
-                "Operator use expects its 2nd Argument to "
-                "return a '(stream T)', T of kind DATA'.");
-              return nl->SymbolAtom( Symbol::TYPEERROR() );
-            }
-          sresType = mres; // map result type is already a stream
-          nl->WriteToString(outstr1, sresType);
-#ifdef GSA_DEBUG
-          cout << "\nTypeMapUse Resulttype (1): "
-               << outstr1 << "\n";
-#endif
-          return sresType;
-        }
-    }
-  else // map result type is not a stream, so encapsulate it
-    {
-      if ( !am->CheckKind(Kind::DATA(), mres, errorInfo) )
-        {
-          ErrorReporter::ReportError(
-            "Operator use expects its 2nd Argument to "
-            "return a type of kind DATA.");
-          return nl->SymbolAtom( Symbol::TYPEERROR() );
-        }
-      sresType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), mres);
-      nl->WriteToString(outstr1, sresType);
-#ifdef GSA_DEBUG
-      cout << "\nTypeMapUse Resulttype (2): " << outstr1 << "\n";
-#endif
-      return sresType;
-    }
-
-  // otherwise (some unmatched error)
-  return nl->SymbolAtom( Symbol::TYPEERROR() );
+  if(!listutils::isDATA(funRes)){
+    return listutils::typeError(err + " (result of function "
+                               "not in kind DATA)");
+  }
+  return nl->TwoElemList( nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                          funRes);
 }
 
 
@@ -996,6 +883,124 @@ int Use_SS( Word* args, Word& result, int message,
   cout << "\nUse_SS received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }
+
+  // case stream(Tuple) x (tuple -> DATA)
+int Use_TsN( Word* args, Word& result, int message,
+             Word& local, Supplier s ) {
+
+  switch(message){
+     case OPEN: {
+       qp->Open(args[0].addr);
+       return 0;
+     }
+
+     case REQUEST: {
+        Word tuple;
+        qp->Request(args[0].addr, tuple);
+        if(qp->Received(args[0].addr)){
+          ArgVectorPointer funarg = qp->Argument(args[1].addr);
+          (*funarg)[0] = tuple;
+          Word funRes;
+          qp->Request(args[1].addr, funRes);
+          Attribute* res = (Attribute*) funRes.addr;
+          result.addr = res->Clone();
+          ((Tuple*) tuple.addr)->DeleteIfAllowed();
+          return YIELD;
+        } else {
+          return CANCEL;
+        }
+     }
+
+     case CLOSE: {
+       qp->Close(args[0].addr);
+       return 0;
+     }
+
+     default: assert(false); // unknonwn message
+  }
+
+}
+
+
+ struct UseTsSLocal{
+    UseTsSLocal(): funOpened(false), currentTuple(0){}
+    bool funOpened;
+    Tuple* currentTuple;
+ };
+
+ // case stream(Tuple) x (tuple -> stream(DATA) )
+int Use_TsS( Word* args, Word& result, int message,
+             Word& local, Supplier s ) {
+
+   UseTsSLocal* li = (UseTsSLocal*) local.addr;
+   switch (message){
+      case OPEN: {
+        if(li){
+           if(li->funOpened){
+             qp->Close(args[1].addr);
+             li->funOpened = false;
+           }
+           if(li->currentTuple){
+              li->currentTuple->DeleteIfAllowed();
+              li->currentTuple = 0;
+           }
+        } else {
+          local.addr = new UseTsSLocal();
+        }
+        qp->Open(args[0].addr);
+        return 0;
+      }
+      case REQUEST: {
+        if(!li){
+          return CANCEL;
+        }
+        result.addr = 0;
+        while(!result.addr){
+          if(!li->funOpened){ // next elem from input stream required
+             Word t;
+             qp->Request(args[0].addr,t);
+             if(!qp->Received(args[0].addr)){
+               return CANCEL;
+             }
+             if(li->currentTuple){
+               li->currentTuple->DeleteIfAllowed();
+             }
+             li->currentTuple = (Tuple*) t.addr;
+             ArgVectorPointer funargs = qp->Argument(args[1].addr);
+             (*funargs)[0] = t;
+             qp->Open(args[1].addr);
+             li->funOpened = true;
+          }
+          // evaluate function
+          Word funRes;
+          qp->Request(args[1].addr, funRes);
+          if(qp->Received(args[1].addr)){
+             result.addr = funRes.addr;
+          } else {
+            qp->Close(args[1].addr);
+            li->funOpened = false;
+          }
+        }
+        return YIELD;
+      }
+
+      case CLOSE: {
+          if(li){
+             if(li->funOpened){
+                qp->Close(args[1].addr);
+             }
+             if(li->currentTuple){
+                li->currentTuple->DeleteIfAllowed();
+             }
+             delete li;
+             local.addr = 0;
+          }
+          return 0;
+      }
+      default : return -1; 
+   }
+}
+
 
 
 // (stream X) Y          (map X Y Z) -> (stream Z)
@@ -1690,47 +1695,24 @@ StreamSpecUse2=
 
 ValueMapping streamusemap[] =
   { Use_SN,
-    Use_SS
-    //    ,
-    //    Use_TsN,
-    //    Use_TsS
+    Use_SS,
+    Use_TsN,
+    Use_TsS
   };
 
 int
 streamUseSelect( ListExpr args )
 {
-  ListExpr sarg1     = nl->First( args );
-  ListExpr mapresult = nl->Third(nl->Second(args));
-  bool     isStream  = false;
-  bool     isTuple   = false;
+  ListExpr stream = nl->First(args);
+  ListExpr funRes = nl->Third(nl->Second(args));
+  bool ts = !Stream<Attribute>::checkType(stream);
+  bool streamRes = listutils::isStream(funRes);
 
-  // check type of sarg1
-  if( TypeOfRelAlgSymbol(nl->First(sarg1)) == stream &&
-      (!nl->IsAtom(nl->Second(sarg1))) &&
-      (nl->ListLength(nl->Second(sarg1)) == 2) &&
-      TypeOfRelAlgSymbol(nl->First(nl->Second(sarg1))) == tuple &&
-      IsTupleDescription(nl->Second((nl->Second(sarg1)))) )
-    isTuple = true;
-  else
-    isTuple = false;
+  if(!ts && !streamRes) return 0; // SN
+  if(!ts && streamRes) return 1;  // SS
+  if(ts && !streamRes) return 2;  // TsN
+  if(ts && streamRes) return 3;   // TsS
 
-  // check type of map result (stream or non-stream type)
-  if(   !( nl->IsAtom(mapresult) )
-        && ( nl->ListLength( mapresult ) == 2)
-        && TypeOfRelAlgSymbol(nl->First(sarg1) == stream ) )
-    isStream = true;
-  else
-    isStream = false;
-
-  // compute index without offset
-  if      (!isTuple && !isStream) return 0;
-  else if (!isTuple &&  isStream) return 1;
-  else if ( isTuple && !isStream) return 2;
-  else if ( isTuple &&  isStream) return 3;
-  else
-    {
-      cout << "\nstreamUseSelect: Something's wrong!\n";
-    }
   return -1;
 }
 
@@ -1844,7 +1826,7 @@ streamUse2Select( ListExpr args )
 
 Operator streamuse( "use",
                            StreamSpecUse,
-                           2,
+                           4,
                            streamusemap,
                            streamUseSelect,
                            TypeMapUse);
