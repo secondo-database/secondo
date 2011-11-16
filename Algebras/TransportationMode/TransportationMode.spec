@@ -46,9 +46,9 @@ operator zcurve alias ZCURVE pattern op(_,_)
 operator regvertex alias REGVERTEX pattern op(_)
 operator triangulation_new  alias TRIANGULATION_NEW pattern op(_)
 operator triangulation_new2  alias TRIANGULATION_NEW2 pattern op(_)
-
-operator get_dg_edge alias GET_DG_EDGE pattern op(_,_)
 operator smcdgte alias SMCDGTE pattern op(_,_)
+operator get_dg_edge alias GET_DG_EDGE pattern op(_,_)
+
 operator getvnode alias GETVNODE pattern op(_,_,_,_,_,_)
 operator getvgedge alias GETVGEDGE pattern op(_,_,_,_,_)
 operator myinside alias MYINSIDE pattern _ infixop _
@@ -60,7 +60,7 @@ operator getpolygon alias GETPOLYGON pattern op(_,_)
 operator getallpoints alias GETALLPOINTS pattern op(_)
 operator rotationsweep alias ROTATIONSWEEP pattern op(_,_,_,_,_)
 operator gethole alias GETHOLE pattern op(_)
-operator getsections alias GETSECTIONS pattern op(_,_,_,_,_,_)
+
 operator geninterestp1 alias GENINTERESTP1 pattern op(_,_,_,_,_,_,_)
 operator geninterestp2 alias GENINTERESTP2 pattern op(_,_,_,_,_,_)
 operator thepavement alias THEPAVEMENT pattern op(_,_)

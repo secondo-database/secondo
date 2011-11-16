@@ -112,12 +112,12 @@ symbols for data type. to make it more readable, I use string insteand of enum
 */ 
 enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN, IF_BUSNETWORK,
 IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE, IF_METRONETWORK, IF_METROSTOP,
-IF_METROROUTE, IF_METRO, IF_TRAINNETWORK}; 
+IF_METROROUTE, IF_METRO, IF_INDOOR, IF_TRAINNETWORK}; 
 
 const string symbol_type[] = 
 {"BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
 "REGION", "LINE", "FREESPACE", "METRONETWORK", "METROSTOP", "METROROUTE", 
-"METRO", "TRAINNETWORK"};
+"METRO", "INDOOR", "TRAINNETWORK"};
 
 inline int GetSymbol(string s)
 {

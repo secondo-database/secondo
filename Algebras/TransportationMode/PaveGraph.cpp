@@ -1003,10 +1003,12 @@ bool CompTriangle::PolygonConvex()
     cout<<"can't covert the boundary to a sline"<<endl;
     delete boundary;
     delete sboundary;
+    delete sp;
     return false;
   }
   delete boundary;
   delete sboundary;
+  delete sp;
 
 /*  for(unsigned int i = 0;i < mhs.size();i++)
         mhs[i].Print();*/
@@ -4621,6 +4623,8 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
 
               last_tri = start_tri;
               start_tri = tri_id;
+              delete res;
+              tuple->DeleteIfAllowed();
               break;
            }
            delete res;
@@ -7499,7 +7503,7 @@ bool RegionCom(const Region& r1, const Region& r2)
 }
 
 /*
-query getcontour('Transportationmode/Polygon/GermanyPPPoly') count;
+query getcontour('Transportationmode/Polygon-Data/GermanyPPPoly') count;
 read polygon data from a file
 
 */

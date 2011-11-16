@@ -7007,6 +7007,11 @@ ListExpr GetInfraTypeMap(ListExpr args)
       ListExpr xType;
       nl->ReadFromString(MetroNetwork::MetroTripTypeInfo, xType);
       return xType;
+    }else if(GetSymbol(type) == IF_INDOOR){//indoor, outdoor area for buildings
+      ListExpr xType;
+      nl->ReadFromString(IndoorInfra::BuildingType_Info, xType);
+      return xType;
+
     }else{
       string err = "infrastructure type error";
       return listutils::typeError(err);
@@ -9543,7 +9548,7 @@ ListExpr OpTMZcurveTypeMap ( ListExpr args )
                       aname1, attrType1);
 
   if(j1 == 0 || !listutils::isSymbol(attrType1,"point")){
-      return listutils::typeError("attr name" + aname1 + "not found"
+      return listutils::typeError("attr name " + aname1 + " not found "
                       "or not of type point");
   }
 
@@ -21122,6 +21127,7 @@ Operator get_dg_edge(
     OpTMGetDgEdgeTypeMap
 );
 
+
 Operator smcdgte(
     "smcdgte",
     OpTMSMCDGTESpec,
@@ -21129,6 +21135,7 @@ Operator smcdgte(
     Operator::SimpleSelect,
     OpTMSMCDGTETypeMap
 );
+
 
 Operator getvnode(
     "getvnode",
@@ -21220,6 +21227,7 @@ Operator gethole(
     OpTMGetHoleTypeMap
 );
 
+/*
 Operator getsections(
     "getsections",
     OpTMGetSectionsSpec,
@@ -21227,6 +21235,8 @@ Operator getsections(
     Operator::SimpleSelect,
     OpTMGetSectionsTypeMap
 );
+
+*/
 
 Operator geninterestp1(
     "geninterestp1",
@@ -21937,13 +21947,12 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&paveregion);
     AddOperator(&junregion);
     AddOperator(&decomposeregion);
-//    AddOperator(&fillpavement); //////comment it out for debuging
+
 
     //////////operators for building the graph model on pavements//////////
     AddOperator(&getpavenode1);
-//    AddOperator(&getpaveedge1);//comment it out for debuging 
-    AddOperator(&getpavenode2);
-//    AddOperator(&getpaveedge2);  ///comment it out for debuging 
+ 
+    AddOperator(&getpavenode2); 
     AddOperator(&triangulation);
     AddOperator(&triangulation2);
     AddOperator(&convex);
@@ -21964,22 +21973,23 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&walk_sp);//trip planning for pedestrian 
     AddOperator(&setpave_rid);//set rid value for each pavement 
     AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
-    ///////////////////dual graph/////////////////////////////////////
+    ////////////////////////////////////////////////////////////////
+    ////////////////     dual graph         ////////////////////////
+    ////////////////////////////////////////////////////////////////
     AddOperator(&zval);//z-order value of a point
     AddOperator(&zcurve);//create a curve for the points sorted by z-order
     AddOperator(&regvertex);
     AddOperator(&triangulation_new);
     AddOperator(&triangulation_new2);
     AddOperator(&get_dg_edge);//create dual graph edge relation 
-
-    AddOperator(&smcdgte);//simple method to create dual graph, traverse RTree
+    AddOperator(&smcdgte);//find adjacent dual graph nodes,used for build metro
     ////////////////////data process///////////////////////////////////
     AddOperator(&generate_wp1);
     AddOperator(&generate_wp2);
     AddOperator(&generate_wp3);
     AddOperator(&getcontour);
     AddOperator(&getpolygon);
-    AddOperator(&getsections);  
+  
     AddOperator(&geninterestp1);
     AddOperator(&geninterestp2);
     AddOperator(&thepavement); //create region based outdoor infrastructure 
@@ -22170,6 +22180,16 @@ class TransportationModeAlgebra : public Algebra
    ////////////////////////////////////////////////////////////////////
    AddOperator(&nearstops_pave);
    AddOperator(&nearstops_building);
+   ///////////////////////////////////////////////////////////////////
+   ///////////////  operators for debuging           ////////////////
+   ////////////// comment them out when for testing  ////////////////
+   //////////////////////////////////////////////////////////////////
+   //    AddOperator(&fillpavement); //////comment it out for debuging
+   ////// simple method to create dual graph, traverse RTree///////////////
+   
+   //    AddOperator(&getsections); //get road network sections 
+   //    AddOperator(&getpaveedge1);//comment it out for debuging
+   //    AddOperator(&getpaveedge2);  ///comment it out for debuging
 
   }
   ~TransportationModeAlgebra() {};

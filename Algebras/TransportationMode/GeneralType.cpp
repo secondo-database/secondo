@@ -3758,13 +3758,15 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
       double t = bn_nav->time_cost_list[i];
       int tm = GetTM(bn_nav->tm_list[i]);
       /////////////////////////////////////////////////////////////
+//       cout<<bs1<<" "<<bs2<<" "<<bn_nav->tm_list[i]<<" "
+//           <<sl->Size()<<" cost: "<<t<<" "<<"st "<<start_time<<endl;
 
       Point* start_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs1, start_loc);
       Point* end_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs2, end_loc);
 
-
+//      cout<<*start_loc<<" "<<*end_loc<<endl;
       /////filter the first part and transfer without movement ////////
       if(sl->Size() == 0 && AlmostEqual(t, 0.0)) continue;
 
@@ -3797,9 +3799,11 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
         for(int j = 0;j < sl->Size();j++){
           HalfSegment hs1;
           sl->Get(j, hs1);
-          if(!hs1.IsLeftDomPoint())continue;
+          if(!hs1.IsLeftDomPoint()) continue;
           Point lp = hs1.GetLeftPoint();
           Point rp = hs1.GetRightPoint();
+/*          cout<<start_loc->Distance(lp)<<" "<<start_loc->Distance(rp)<<" "
+              <<end_loc->Distance(lp)<<" "<<end_loc->Distance(rp)<<endl;*/
           if(start_loc->Distance(lp) < delta_dist){
             new_start_loc = rp;
             init_start = true;
@@ -5829,6 +5833,8 @@ void GenMObject::GenerateGenMO6(Space* sp, Periods* peri,
     /////////////////////////////////////////////////////////////////
     BNNav* bn_nav = new BNNav(bn);
 
+//    cout<<"start time "<<start_time<<endl;
+
      if(count % time_and_type != 0) 
          bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
      else bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
@@ -7755,6 +7761,22 @@ Relation* Space::GetInfra(string type)
                 SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
         result = new Relation(xNumType, true);
       }
+   }else if(infra_type == IF_INDOOR){ // indoor, outdoor areas of buildings 
+
+      IndoorInfra* i_infra = LoadIndoorInfra(IF_GROOM);
+
+      if(i_infra != NULL){ 
+        result = i_infra->BuildingType_Rel()->Clone();
+        CloseIndoorInfra(i_infra);
+      }else{
+        cout<<"indoor infrastructure does exist "<<endl; 
+        ListExpr xTypeInfo;
+        nl->ReadFromString(IndoorInfra::BuildingType_Info, xTypeInfo);
+        ListExpr xNumType = 
+                SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
+        result = new Relation(xNumType, true);
+      }
+
    }else{
         cout<<"wrong type or does not exist"<<endl;
    }

@@ -94,34 +94,34 @@ Result   : 29472
 Operator : walk_sp_old
 Number   : 2
 Signature: dualgraph x visualgraph x rel1 x rel2 x rel3  -> line
-Example  : query walk_sp_old(dg1, vg1, query_loc1, query_loc2, tri_reg_new);
-Result   : file_platform
+Example  : query no_components(walk_sp_old(dg, vg, query_loc1 feed addcounter[id,1] filter[.id = 200] remove[id] consume,query_loc1 feed addcounter[id,1] filter[.id = 111] remove[id] consume, tri_reg_new));
+Result   : 1
 
 Operator : walk_sp
 Number   : 2
 Signature: pavement x rel1 x rel2 x rel3  -> line
-Example  : query walk_sp(pn, query_loc1, query_loc2, tri_reg_new);
-Result   : file_platform
+Example  : query no_components(walk_sp(pn, query_loc1 feed addcounter[id,1] filter[.id = 32] remove[id] consume,query_loc1 feed addcounter[id,1] filter[.id = 26] remove[id] consume, tri_reg_new));
+Result   : 1
 
 
 Operator : test_walk_sp
 Number   : 2
-Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 -> line
-Example  : query test_walk_sp(dg1, vg1, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new);
-Result   : file_platform
+Signature: dualgraph x visualgraph x rel1 x rel2 x rel3 -> (stream(tuple ((x1 t1) ... (xn tn))))
+Example  : query test_walk_sp(dg, vg, query_loc1 feed head[1] consume, query_loc1 feed head[2] consume, tri_reg_new);
+Result   : 1
 
 Operator: setpave_rid
 Number  : 2
 Signature: rel1 x rel2 x rtree -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query setpave_rid(dg_node, graph_node, rtree_pave)  count;
+Example  : query setpave_rid(dg_node feed head[1] consume, graph_node1, rtree_pave1) count;
 Result   : 1
 
 
 Operator : pave_loc_togp
 Number   : 2
 Signature: rel1 x rel2 x btree x network -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query pave_loc_togp(query_loc1, dg_node, btree_dg, n) count;
-Result   : 1
+Example  : query pave_loc_togp(query_loc1, dg_node_rid, btree_dg_rid, rn) count;
+Result   : 200
 
 
 Operator : generate_wp1
@@ -151,8 +151,8 @@ Result   : 0
 Operator : zcurve
 Number   : 2
 Signature: rel x attr  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query no_components(zcurve(vg_node,elem));
-Result   : 2
+Example  : query zcurve(vgnodes feed head[1] consume, loc) count;
+Result   : 0
 
 Operator : regvertex
 Number   : 2
@@ -177,25 +177,20 @@ Result   : 1
 Operator : get_dg_edge
 Number   : 2
 Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn)))
-Example  : query get_dg_edge(tri_reg_new_sort,regnodes) count;
-Result   : 1
+Example  : query get_dg_edge(tri_reg_new_sort, regnodes) count;
+Result   : 31513
 
-Operator : smcdgte
-Number   : 2
-Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn)))
-Example  : query smcdgte(dg_node, rtree_dg) count;
-Result   : 1
 
 Operator : getvnode
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree-> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvnode(dg1, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid) count;
-Result   : 1
+Example  : query getvnode(dg, query_loc1, tri_reg_new, vgnodes, vertex_tri, btr_vid) count;
+Result   : 15
 
 Operator : getvgedge
 Number   : 2
 Signature: dualgraph x rel1 x rel2 x rel3 x btree -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getvgedge(dg1, vgnodes, tri_reg_new, vertex_tri, btr_vid) feed head[1] count;
+Example  : query getvgedge(dg, vgnodes, tri_reg_new, vertex_tri, btr_vid) head[1] count;
 Result   : 1
 
 Operator : myinside
@@ -209,26 +204,27 @@ Operator : decomposetri
 Number   : 2
 Signature: rel -> (stream(((x1 t1) ... (xn tn)))
 Example  : query decomposetri(tri_reg_new_sort) count;
-Result   : 10
+Result   : 88416
 
 Operator : createvgraph
 Number   : 2
 Signature: int x rel x rel -> visibilitygraph
-Example  : query createvgraph(1, edge_rel, node_rel);
-Result   : file_platform
+Example  : query getadjnode(createvgraph(1, vgnodes, vgedges), 1) count;
+Result   : 7
+
 
 Operator : getcontour
 Number   : 2
-Signature: text -> (stream(((x1 t1) ... (xn tn)))
-Example  : query getcontour('pppoly') count;
-Result   : 2014
+Signature: int -> (stream(((x1 t1) ... (xn tn)))
+Example  : query getcontour(2) count;
+Result   : 2
 
 
 Operator : getpolygon
 Number   : 2
 Signature: rel x attr -> region
-Example  : query getpolygon(allcontours,hole);
-Result   : file_platform
+Example  : query no_components(getpolygon(allcontours, hole));
+Result   : 1
 
 Operator : getallpoints
 Number   : 2
@@ -239,8 +235,8 @@ Result   : 3
 Operator : rotationsweep
 Number   : 2
 Signature: rel x rel x rect x rel x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query rotationsweep(query_loc1, allpoints, rect, allholes, hole) count;
-Result   : 4
+Example  : query rotationsweep(query_loc2 feed addcounter[id,1] filter[.id = 1] remove[id] consume, allpoints, bbox(temp_reg), allholes, hole) count;
+Result   : 498
 
 Operator : gethole
 Number   : 2
@@ -249,18 +245,17 @@ Example  : query gethole([const region value ((((0 0)(0 5)(2 5))))]) count;
 Result   : 1
 
 
-Operator : getsections
-Number   : 2
-Signature: network x rel x rel x attr x attr x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query getsections(n, r, paveregions, curve, rid, crossreg) count;
-Result   : 2
-
-
 Operator : geninterestp1
 Number   : 2
 Signature: rel x rel x attr x attr x attr x attr x int -> (stream(((x1 t1) ... (xn tn))))
 Example  : query geninterestp1(subsections, pave_regions1, rid, sec, pavement1, pavement2,2) count;
 Result   : 2
+
+Operator : smcdgte
+Number   : 2
+Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn)))
+Example  : query smcdgte(dg_node, rtree_dg) count;
+Result   : 1
 
 
 Operator : geninterestp2

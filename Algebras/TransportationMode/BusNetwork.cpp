@@ -7476,6 +7476,7 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
           mo_bus->Get(i, unit);
           Point p0 = unit.p0;
           Point p1 = unit.p1;
+
           if(bs_loc->Distance(p0) < delta_dist &&
               unit.timeInterval.Contains(t)){
               mp = *mo_bus;
@@ -11699,23 +11700,27 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           t2.ReadFrom(elem.real_w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
 
-        //time cost in seconds 
-          if(elem.valid){
-            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
-          }else{ //doing transfer without moving 
-            time_cost_list.push_back(0.0); 
-            t_cost += 0.0;
-          }
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
           time_span.end = t2;
           time_span.rc = false; 
 
+        //time cost in seconds 
+//          if(elem.valid){
+          if(elem.valid && time_span.IsValid()){
+            time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }else{ //doing transfer without moving 
+            time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
+
           Periods* peri = new Periods(0);
           peri->StartBulkLoad();
-          if(elem.valid)
+//          cout<<time_span<<endl;
+//          if(elem.valid)
+          if(elem.valid && time_span.IsValid())
             peri->MergeAdd(time_span);
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
@@ -11725,23 +11730,26 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           t2.ReadFrom(elem.w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
 
+          Interval<Instant> time_span;
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false;
+          
         //time cost in seconds 
-          if(elem.valid){
+//          if(elem.valid){
+          if(elem.valid && time_span.IsValid()){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
             t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
           }else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
             t_cost += 0.0;
           }
-          Interval<Instant> time_span;
-          time_span.start = t1;
-          time_span.lc = true;
-          time_span.end = t2;
-          time_span.rc = false; 
-
+ 
           Periods* peri1 = new Periods(0);
           peri1->StartBulkLoad();
-          if(elem.valid)
+//          if(elem.valid)
+          if(elem.valid && time_span.IsValid())
             peri1->MergeAdd(time_span);
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
@@ -11764,8 +11772,14 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           t2.ReadFrom(elem.real_w + qt->ToDouble());
 //        cout<<t1<<" "<<t2<<endl; 
 
+          time_span.start = t1;
+          time_span.lc = true;
+          time_span.end = t2;
+          time_span.rc = false; 
+
           //time cost in seconds 
-          if(elem.valid){
+//          if(elem.valid){
+          if(elem.valid && time_span.IsValid()){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
             t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
           }else{ //doing transfer without moving 
@@ -11773,14 +11787,11 @@ void BNNav::ShortestPath_Time2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
             t_cost += 0.0;
           }
 
-          time_span.start = t1;
-          time_span.lc = true;
-          time_span.end = t2;
-          time_span.rc = false; 
 
           Periods* peri2 = new Periods(0);
           peri2->StartBulkLoad();
-          if(elem.valid)
+//          if(elem.valid)
+          if(elem.valid && time_span.IsValid())
             peri2->MergeAdd(time_span);
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
@@ -13256,7 +13267,8 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
           Periods* peri = new Periods(0);
           peri->StartBulkLoad();
-          if(elem.valid)
+//          if(elem.valid)
+          if(elem.valid && time_span.IsValid())
             peri->MergeAdd(time_span);
           peri->EndBulkLoad();
           peri_list.push_back(*peri); 
@@ -13283,7 +13295,8 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
           Periods* peri1 = new Periods(0);
           peri1->StartBulkLoad();
-          if(elem.valid)
+//          if(elem.valid)
+          if(elem.valid && time_span.IsValid())
             peri1->MergeAdd(time_span);
           peri1->EndBulkLoad();
           peri_list.push_back(*peri1); 
@@ -13322,7 +13335,8 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
           Periods* peri2 = new Periods(0);
           peri2->StartBulkLoad();
-          if(elem.valid)
+//          if(elem.valid)
+          if(elem.valid && time_span.IsValid())
             peri2->MergeAdd(time_span);
           peri2->EndBulkLoad();
           peri_list.push_back(*peri2); 
@@ -13334,7 +13348,6 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           bs2_list.push_back(str); 
 
         }
-
     }
 
   }else{
