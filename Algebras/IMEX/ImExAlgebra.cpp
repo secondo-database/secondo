@@ -1756,7 +1756,15 @@ public:
    void writeMemo(string memo){
      string no ="          "; // 10 spaces
      if(firstMemo){
-        fmemo.open((this->fname+".dbt").c_str(),
+        string memoname;
+        size_t pos = fname.rfind(".dbf");
+        bool endsWith = pos == fname.size()-4;
+        if(endsWith){
+           memoname = fname.substr(0,fname.size()-4) + ".dbt";
+        } else {
+          memoname = fname +".dbt"; 
+        }
+        fmemo.open(memoname.c_str(),
                    ios::out | ios::trunc | ios::binary);
         memNumber = 1;
         firstMemo = false;
@@ -3219,9 +3227,18 @@ public:
         found = isMemo[i];
      }
      if(found){
-        memofile.open((name+".dbt").c_str(),ios::binary);
+         
+        string memoname;
+        size_t pos = name.rfind(".dbf");
+        bool endsWith = pos == name.size()-4;
+        if(endsWith){
+           memoname = name.substr(0,name.size()-4) + ".dbt";
+        } else {
+          memoname = name +".dbt"; 
+        }
+        memofile.open(memoname.c_str(),ios::binary);
         if(!memofile.good()){
-           cerr << "cannot open dbt file " + name + ".dbt" << endl;
+           cerr << "cannot open dbt file " + memoname << endl;
         }
      }
    }
