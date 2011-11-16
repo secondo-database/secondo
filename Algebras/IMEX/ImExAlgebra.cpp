@@ -1757,10 +1757,24 @@ public:
      string no ="          "; // 10 spaces
      if(firstMemo){
         string memoname;
-        size_t pos = fname.rfind(".dbf");
-        bool endsWith = pos == fname.size()-4;
+        bool endsWith = true;
+        if(fname.size() < 4){
+           endsWith = false;
+        } else { 
+           size_t s = fname.size();
+           endsWith = (fname[s-4] == '.') &&
+                      ((fname[s-3]=='d') || (fname[s-3]=='D') ) &&
+                      ((fname[s-2]=='b') || (fname[s-2]=='B') ) &&
+                      ((fname[s-1]=='f') || (fname[s-1]=='F') ) ;
+        }
         if(endsWith){
-           memoname = fname.substr(0,fname.size()-4) + ".dbt";
+           memoname = fname;
+           size_t p = fname.size()-1;
+           if(memoname[p] == 'f'){
+             memoname[p] = 't';
+           } else {
+             memoname[p] = 'T';
+           }
         } else {
           memoname = fname +".dbt"; 
         }
@@ -3227,12 +3241,25 @@ public:
         found = isMemo[i];
      }
      if(found){
-         
+        bool endsWith = true;
+        if(name.size() < 4){
+           endsWith = false;
+        } else { 
+           size_t s = name.size();
+           endsWith = (name[s-4] == '.') &&
+                      ((name[s-3]=='d') || (name[s-3]=='D') ) &&
+                      ((name[s-2]=='b') || (name[s-2]=='B') ) &&
+                      ((name[s-1]=='f') || (name[s-1]=='F') ); 
+        }
         string memoname;
-        size_t pos = name.rfind(".dbf");
-        bool endsWith = pos == name.size()-4;
         if(endsWith){
-           memoname = name.substr(0,name.size()-4) + ".dbt";
+           memoname = name;
+           size_t p = name.size()-1;
+           if(memoname[p] == 'f'){
+             memoname[p] = 't';
+           } else {
+             memoname[p] = 'T';
+           }
         } else {
           memoname = name +".dbt"; 
         }
