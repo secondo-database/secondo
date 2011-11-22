@@ -323,6 +323,19 @@ class CcInt : public Attribute
     return listutils::isSymbol(list, BasicType());
   }
 
+  virtual bool hasTextRepresentation() const{
+    return true;
+  }
+  virtual string toText() const{
+    return getCsvStr();
+  }
+
+  virtual bool fromText(const string& value){
+    ReadFromString(value);
+    return IsDefined();
+  }
+
+
 
   inline virtual size_t SerializedSize() const
   {
@@ -538,6 +551,20 @@ class CcReal : public Attribute
       }
   }
 
+  virtual bool hasTextRepresentation() const{
+    return true;
+  }
+  virtual string toText() const{
+    return getCsvStr();
+  }
+
+  virtual bool fromText(const string& value){
+    ReadFromString(value);
+    return IsDefined();
+  }
+
+
+
   static const string BasicType(){
     return "real";
   }
@@ -707,6 +734,20 @@ class CcBool : public Attribute
        }
      }
   }
+
+  virtual bool hasTextRepresentation() const{
+     return true;
+  }
+
+  virtual string toText() const{
+     return getCsvStr();
+  }
+
+  virtual bool fromText(const string& value) {
+     ReadFromString(value);
+     return IsDefined();
+  }
+
 
   static const string BasicType(){
      return "bool";
@@ -913,6 +954,20 @@ class CcString : public Attribute
      }
      Set(true,value);
   }
+
+  virtual bool hasTextRepresentation() const{
+    return true;
+  }
+
+  virtual string toText() const{
+    return getCsvStr();
+  }
+
+  virtual bool fromText(const string& value) {
+     ReadFromString(value);
+     return IsDefined();
+  }
+
 
   static const string BasicType(){
     return "string";
@@ -1156,6 +1211,21 @@ class CcString : public Attribute
      }
      Set(true,value);
   }
+
+  virtual bool hasTextRepresentation() const{
+    return true;
+  }
+
+  virtual string toText() const{
+     return getCsvStr();
+  }
+
+  virtual bool fromText(const string& value) {
+    ReadFromString(value);
+    return IsDefined();
+  }
+
+
 
   static const string BasicType(){
     return "string";

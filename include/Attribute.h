@@ -594,6 +594,24 @@ Print the delete reference info to a string (for debugging)
 
 */
 
+
+
+  virtual bool hasTextRepresentation() const{
+    return false;
+  }
+
+  virtual string toText() const{
+    assert(false);
+    return "";
+  }
+
+  virtual bool fromText(const string& value) {
+    SetDefined(false);
+    return false;
+  }
+
+
+
   virtual bool hasBox() const { return false; }
 
   virtual void writeShape(ostream& o, uint32_t RecNo) const{

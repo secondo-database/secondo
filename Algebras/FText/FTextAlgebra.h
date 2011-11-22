@@ -127,6 +127,18 @@ public:
     Set(true,s);
   }
 
+  virtual bool hasTextRepresentation() const{
+    return true;
+  }
+
+  virtual string toText() const{
+    return GetValue();
+  }
+
+  virtual bool fromText(const string& value) {
+    Set(true,value);
+    return true;
+  }
 
 private:
   Flob theText;
