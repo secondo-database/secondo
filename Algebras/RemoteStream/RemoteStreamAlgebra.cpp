@@ -338,7 +338,7 @@ without reading the tuple themselves.
 static const u_int32_t MAX_TOTALTUPLESIZE = 655359;
 //(10*2^16 - 1) including huge flobs
 
-static const u_int32_t SOCKET_SIZE = 1024; //Copy from StreamBuffer
+static const u_int32_t SOCKET_SIZE = 65536;
 static const u_int32_t SOCKET_METASIZE = 2 * sizeof(u_int32_t);
 const u_int32_t SOCKTUP_SIZE = SOCKET_SIZE - SOCKET_METASIZE;
 
@@ -546,6 +546,7 @@ is shown below:
       tupleBlockSize = tuple->GetBlockSize(coreSize, extensionSize, flobSize);
       // tupleBlockSize =  sizeof(uint32_t) + sizeof(uint16_t)
       //                   + coreSize + extensionSize + flobSize
+      //TODO when the tuple has a huge flob, then it cannot be send here.
       assert(tupleBlockSize < MAX_TOTALTUPLESIZE);
 
       if(haveKey && (CcString::BasicType() == keyTypeName))
