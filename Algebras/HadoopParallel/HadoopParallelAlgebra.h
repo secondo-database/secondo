@@ -411,61 +411,37 @@ Support progress estimation.
 class FFeedLocalInfo: public ProgressLocalInfo
 {
 public:
-  FFeedLocalInfo( ListExpr streamTypeList)
-  : tupleBlockFile(0)
+  FFeedLocalInfo( Supplier s)
+  : tupleBlockFile(0), fileFound(false)
   {
-
+    ListExpr streamTypeList = qp->GetType(s);
     tupleType = new TupleType(SecondoSystem::GetCatalog()
                     ->NumericType(nl->Second(streamTypeList)));
   }
 
   ~FFeedLocalInfo() {
-    if (tupleBlockFile)
-    {
+    if (tupleBlockFile){
       tupleBlockFile->close();
       delete tupleBlockFile;
       tupleBlockFile = 0;
     }
-    if (tupleType)
-    {
+    if (tupleType){
       tupleType->DeleteIfAllowed();
     }
   }
 
   bool fetchBlockFile(
-      string relName, string fileSuffix, string filePath,
+      string relName, string fileSuffix, string filePath, Supplier s,
       int pdi = -1, int tgi = -1, int att = -1);
 
-  Tuple* getNextTuple(){
-    if (0 == tupleBlockFile )
-      return 0;
-
-    Tuple* t = 0;
-    u_int32_t blockSize;
-    assert(tupleBlockFile->good());
-    tupleBlockFile->read(
-        reinterpret_cast<char*>(&blockSize),
-        sizeof(blockSize));
-    if (!tupleBlockFile->eof() && (blockSize > 0))
-    {
-      blockSize -= sizeof(blockSize);
-      char *tupleBlock = new char[blockSize];
-      tupleBlockFile->read(tupleBlock, blockSize);
-
-      t = new Tuple(tupleType);
-      t->ReadFromBin(tupleBlock, blockSize);
-      delete[] tupleBlock;
-    }
-
-    return t;
-  }
+  Tuple* getNextTuple();
 
   ifstream *tupleBlockFile;
   TupleType* tupleType;
 
 private:
   bool isLocalFileExist(string filePath);
-
+  bool fileFound;
 };
 
 /*
@@ -660,8 +636,8 @@ private:
   ofstream blockFile;
 
   int cnt;
-  int totalExtSize;
-  int totalSize;
+  double totalExtSize;
+  double totalSize;
   vector<double>* attrExtSize;
   vector<double>* attrSize;
 
