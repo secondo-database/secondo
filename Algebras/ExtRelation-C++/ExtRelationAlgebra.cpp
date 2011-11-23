@@ -114,6 +114,8 @@ variance on a stream.
 #include "Outerjoin.h"
 #include "DateTime.h"
 #include "Stream.h"
+#include "FTextAlgebra.h"
+#include "SecondoCatalog.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -11131,6 +11133,241 @@ Operator extend_last(
 
 /*
 
+
+2.115 Operator ~toFields~
+
+
+*/
+
+/*
+
+2.115.1 Type mapping for ~toFields~ is
+(stream(tuple(a1:d1, ..., an:dn))) x (aj) -> (stream(tuple(aj:dj, Field: string, Type: text, Value:text)))
+ 
+*/
+ListExpr toFieldsType( ListExpr args ) {
+  if ( !nl->HasLength( args, 2 ) ) {
+    return listutils::typeError( "two arguments expected" );
+  }
+  if ( !Stream<Tuple>::checkType( nl->First( args ) ) ) {
+    return listutils::typeError( "first argument must be a stream of tuples" );
+  }
+  if ( !listutils::isSymbol( nl->Second( args )) ) {
+    return listutils::typeError( "second argument must be an attribute name" );
+  }
+  ListExpr attrlist = nl->Second(nl->Second(nl->First( args )));
+  string attrname = nl->SymbolValue(nl->Second( args ));
+  ListExpr type;
+  int attrpos = listutils::findAttribute(attrlist, attrname, type);
+  if ( !attrpos ) {
+    return listutils::typeError( "attribute " + attrname + " does not exist" );
+  }
+  ListExpr resultattrlist = nl->FourElemList(
+	nl->TwoElemList( nl->SymbolAtom( attrname ),
+			 type ),
+	nl->TwoElemList( nl->SymbolAtom( "Field" ),
+			 nl->SymbolAtom( CcString::BasicType() ) ),
+	nl->TwoElemList( nl->SymbolAtom( "Type" ),
+			 nl->SymbolAtom( FText::BasicType() ) ),
+	nl->TwoElemList( nl->SymbolAtom( "Value" ),
+			 nl->SymbolAtom( FText::BasicType() ) ) );
+  ListExpr resultlist = nl->TwoElemList(
+	nl->SymbolAtom( Stream<Tuple>::BasicType() ), 
+	nl->TwoElemList( nl->SymbolAtom( Tuple::BasicType() ),
+			 resultattrlist ) );
+  
+  ListExpr attrs = nl->OneElemList( nl->StringAtom( nl->SymbolValue
+                                  ( nl->First( nl->First( attrlist ) ) ) ) );
+  ListExpr lastAttr = attrs;
+  ListExpr types = nl->OneElemList( nl->TextAtom( nl->SymbolValue
+                                  ( nl->Second( nl->First( attrlist ) ) ) ) );
+  ListExpr lastType = types;
+  attrlist = nl->Rest( attrlist );
+  while ( !nl->IsEmpty( attrlist ) ) {
+    ListExpr first = nl->First( attrlist );
+    ListExpr firstfirst = nl->First( first );
+    ListExpr firstsecond = nl->Second( first );
+    lastAttr = nl->Append( lastAttr, nl->StringAtom
+    ( nl->SymbolValue( firstfirst ) ) );
+    lastType = nl->Append( lastType, nl->TextAtom
+                                   ( nl->SymbolValue( firstsecond ) ) );
+    attrlist = nl->Rest( attrlist ); // Iteration
+  }
+  
+  ListExpr infolist1 = nl->OneElemList( nl->IntAtom( attrpos ) );
+  ListExpr infolist2 = listutils::concat(infolist1,attrs);
+  ListExpr infolist = listutils::concat( infolist2, types );
+  
+  ListExpr result = nl->ThreeElemList( nl->SymbolAtom( "APPEND" ),
+				       infolist,
+				       resultlist );
+  return result;
+}
+
+/*
+
+2.155.2 Class ~ToFieldsInfo~
+
+*/
+
+class ToFieldsInfo {
+  public:
+    ToFieldsInfo( Word& is, vector<string> &fields1, vector<string> &types1,
+		  int position, ListExpr tl );
+    ~ToFieldsInfo();
+    Tuple* nextTuple();
+  private:
+    Stream<Tuple> stream;
+    Tuple* tuple;
+    unsigned int pos;
+    int keypos;
+    vector<string> fields, types;
+    TupleType* tt;
+    int algid, typid, attrno;
+    bool istype;
+    //string type;
+    vector<OutObject> outfuns;
+    vector<ListExpr> typelists;
+    ListExpr typelist, output;
+};
+
+ToFieldsInfo::ToFieldsInfo( Word& is, vector<string> &fields1,
+			    vector<string> &types1, int position,
+			    ListExpr tl ) : 
+			    stream( is ), tuple( 0 ), pos(0),
+			    keypos( position ), fields(fields1),
+			    types(types1) {
+  stream.open();
+  tuple = stream.request();
+  tt = new TupleType( tl );
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  for ( int i = 0; i < tuple->GetNoAttributes(); i++ ) {
+    istype = sc->GetTypeId( types[ i ], algid, typid );
+    // get and save the Out functions
+    // depending on the algebra- and type-id of the attributes
+    outfuns.push_back( am->OutObj( algid, typid ) );
+    bool listok = nl->ReadFromString( types[ i ], typelist );
+    if ( !listok ) {
+      cout << "unknown type" << endl;
+    }
+    typelists.push_back( typelist );
+  }
+}
+
+ToFieldsInfo::~ToFieldsInfo() {
+  if ( tuple ) {
+    tuple->DeleteIfAllowed();
+  }
+  stream.close();
+  tt->DeleteIfAllowed();
+}
+
+Tuple* ToFieldsInfo::nextTuple() {
+  if ( !tuple ) {
+    return 0;
+  }
+  if ( pos == fields.size() ) {   // tuple finished
+    tuple->DeleteIfAllowed();
+    tuple = stream.request();
+    pos = 0;
+    if ( !tuple ) {   // last tuple finished
+      return 0;
+    }
+  }
+  Tuple* result = new Tuple( tt );
+  // set 1st entry to key attribute
+  result->PutAttribute( 0, tuple->GetAttribute(keypos-1)->Copy() );
+  // set 2nd entry to field name
+  result->PutAttribute( 1, new CcString( true, fields[ pos ] ) ); 
+  // set 3rd entry to attribute type
+  result->PutAttribute( 2, new FText( true, types[ pos ] ) ); 
+  string value;
+  Attribute* attrvalue = tuple->GetAttribute( pos );
+  if ( attrvalue->hasTextRepresentation() ) {
+    value = attrvalue->toText(); 
+  }
+  else {
+     // call the Out function if necessary
+    ListExpr output = outfuns[ pos ]( typelists[ pos ], attrvalue ); 
+    value = nl->ToString( output );
+  }
+  // set 4th entry to attribute value  
+  result->PutAttribute( 3, new FText( true, value ) );
+  pos++; // proceed through input tuple
+  return result;
+}
+
+/*
+
+2.155.3 Value mapping for ~toFields~
+
+*/
+
+int toFieldsFun ( Word* args, Word& result, int message,
+		  Word& local, Supplier s ) {
+  ToFieldsInfo* tfi = (ToFieldsInfo*) local.addr;
+  switch( message ) {
+    case OPEN: {
+      if ( tfi ) {
+	delete tfi;
+      }
+      int pos = ( (CcInt*)args[ 2 ].addr )->GetIntval();
+      vector<string> fields, types;
+      int n = qp->GetNoSons( s );
+      // there are 2*n+3 arguments
+      int noattrs = ( n-3 ) / 2;
+      for ( int i = 0; i < noattrs; i++ ) {
+	fields.push_back( ( (CcString*)args[ i + 3 ].addr )->GetValue() );
+	types.push_back( ( (FText*)args[ i + noattrs + 3 ].addr )->GetValue() );
+      }      
+      local.addr = new ToFieldsInfo( args[ 0 ], fields, types, pos,
+				   nl->Second( GetTupleResultType( s ) ) );
+      return 0;
+    }
+    case REQUEST: {
+      if ( !tfi ) {
+	return CANCEL;
+      }
+      result.addr = tfi->nextTuple();
+      return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE: {
+      if ( tfi ) {
+	delete tfi;
+	local.addr = 0;
+      }
+      return 0;
+    }
+    default: {
+      return -1;
+    }
+  }
+}
+
+/*
+ 
+2.155.4 Description for operator ~toFields~
+
+*/
+
+struct toFieldsInfo : OperatorInfo {
+
+  toFieldsInfo() : OperatorInfo() {
+
+    name      = "toFields";
+    signature = "((stream (tuple([a1:d1, ...,an:dn]))) x ai) -> "
+		"stream(tuple([ai, attrname, dj, aj]))";
+    syntax    = "_ feed toFields [ _ ]";
+    meaning   = "Decomposes a stream of tuples into its items.";
+  }
+
+};
+
+
+
+/*
+
 3 Class ~ExtRelationAlgebra~
 
 A new subclass ~ExtRelationAlgebra~ of class ~Algebra~ is declared. The only
@@ -11228,6 +11465,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extend_aggr);
     AddOperator(&extend_last);
     AddOperator(&aggregateC);
+    AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
 
 #ifdef USE_PROGRESS
 // support for progress queries
