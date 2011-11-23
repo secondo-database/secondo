@@ -10939,6 +10939,7 @@ ListExpr extend_lastTM(ListExpr args){
     ListExpr firstFun = nl->First(funlist);
     ListExpr firstDefault = nl->First(defaultValues);
     funlist = nl->Rest(funlist);
+    defaultValues = nl->Rest(defaultValues);
     if(!nl->HasLength(firstFun,2)){ // (name map)
       return listutils::typeError(err + " (Invalid named function)");
     }
