@@ -134,6 +134,11 @@ struct Symbols {
 };
 
 
+class NList;
+
+ostream& operator<<(ostream& os, const NList& n);
+
+
 // defined in Secondointerface.cpp
 extern Symbols sym;
 
@@ -202,49 +207,60 @@ c)~.
     e(nl->Empty()),
     len(0)
   {}
+
   NList(const NList& rhs) :
     nl(rhs.nl),
     l(rhs.l),
     e(rhs.e),
     len(rhs.len)
   {}
+
   NList(const ListExpr list, NestedList* ptr = nlGlobal) :
     nl(ptr),
     l(list),
-    e(nl->Empty()),
-    len(nl->ListLength(list))
-  {}
+    e(nl->Empty())
+  { findEnd();
+  }
+
+
   NList(const ListExpr list, int knownLen, NestedList* ptr = nlGlobal) :
     nl(ptr),
     l(list),
     e(nl->Empty()),
     len(knownLen)
-  {}
+  {
+    findEnd();
+  }
+
   NList(const NList& a, const NList& b) :
     nl(nlGlobal),
     l( nl->TwoElemList(a.l, b.l) ),
     e( b.l ),
     len(2)
-  {}
+  { findEnd(); }
+
   NList(const NList& a, const NList& b, const NList& c) :
     nl(nlGlobal),
     l( nl->ThreeElemList(a.l, b.l, c.l) ),
     e( c.l ),
     len(3)
-  {}
+  { findEnd(); }
+
   NList(const NList& a, const NList& b, const NList& c, const NList& d) :
     nl(nlGlobal),
     l( nl->FourElemList(a.l, b.l, c.l, d.l) ),
     e( d.l ),
     len(4)
-  {}
+  { findEnd(); }
+
+
   NList(const NList& a, const NList& b, const NList& c, const NList& d,
        const NList& _e) :
     nl(nlGlobal),
     l( nl->FiveElemList(a.l, b.l, c.l, d.l, _e.l) ),
     e( _e.l ),
     len(5)
-  {}
+  { findEnd(); }
 
   NList(const NList& a, const NList& b, const NList& c, const NList& d,
        const NList& _e,const NList& f) :
@@ -252,13 +268,14 @@ c)~.
     l( nl->SixElemList(a.l, b.l, c.l, d.l, _e.l, f.l) ),
     e( f.l ),
     len(6)
-  {}
+  { findEnd();}
 
 
   // INSTANTIATION PATTERNS:
   // (value), (value, false), (value, false, false) : symbolAtom  = DEFAULT1
   // (value, true),           (value, true,  false) : stringAtom  = DEFAULT2
   // (value, true,  true )                          : textAtom
+
   NList(const string& s, const bool isStr = false, const bool isText = false):
     nl(nlGlobal),
     e( nl->Empty() ),
@@ -444,7 +461,7 @@ list stucture and to extract subexpressions or atom values.
       throw NListErr(n,len);
     }
 
-    if ( (n == 1) && isAtom() ) {
+    if ( (n >= 1) && isAtom() ) {
       throw NListErr("Element 1 requested but list is an Atom!");
     }
 
@@ -524,6 +541,7 @@ used to convert a symbol or text atom into a string atom.
 
 */
   inline string convertToString() const { return nl->ToString(l); }
+
   inline NList toStringAtom() {
     const string& s = str();
     return NList(s, true);
@@ -590,13 +608,43 @@ Construction of bigger lists
 
   inline void append(const NList& tail)
   {
-     if (len == 0) {
-       makeHead(tail);
-     } else {
-       e = nl->Append(e, tail.l);
-       len++;
+     if(this->isEmpty()){
+       *this = tail;
+       makeHead(*this);
+       return;
+     }
+
+     if (len == 0) { // an atom
+       makeHead((*this));
+     } 
+     e = nl->Append(e, tail.l);
+     len++;
+  }
+
+  inline void concat(const NList& tail){
+     if(this->isEmpty()){
+       (*this)  = tail;
+       return;
+     }
+     if(tail.isEmpty()){
+       return;
+     }
+     if(tail.isAtom()){
+       append(tail);
+       return;
+     }
+     if(isAtom()){
+       makeHead(*this);
+     }
+     NList rest(tail);
+     while(!rest.isEmpty()){
+        append(rest.first());
+					rest.rest();
      }
   }
+
+
+
 
 /*
 Iteration over lists
@@ -605,7 +653,12 @@ The function ~rest~ removes the first element of a list.
 
 */
 
-  inline void rest() { l = nl->Rest(l); }
+  inline void rest() { 
+       l = nl->Rest(l); 
+       if(nl->IsEmpty(l)){
+         e = nl->TheEmptyList();
+       }
+  }
 
 
 /*
@@ -726,13 +779,22 @@ Use with care! Normally you will not need this.
     cerr << "nl:" << nl << endl;
  }
 
+
+  ostream& print(ostream& o){
+    o << "[NList :  l =" << nl->ToString(l) << ",  e = " <<  nl->ToString(e) 
+      << ", len = " << len << "]";
+    return o; 
+  }
+
+
  private:
   static NestedList* nlGlobal;
   NestedList* nl;
   ListExpr l;
   ListExpr e; // points to the last element of a list
   Cardinal len;
-  inline bool isNodeType(const int n, const NodeType t) const
+ 
+   inline bool isNodeType(const int n, const NodeType t) const
   {
     if ( !n )
       return ( /*nl->IsAtom(l) &&*/ (nl->AtomType(l) == t) );
@@ -764,8 +826,31 @@ Use with care! Normally you will not need this.
   return true;
   }
 
+/*
+~findEnd~ sets the internal pointer to the end of the list to the correct value.
+If the list is just an atom, the end will be an empty list.
+
+*/
+
+  void findEnd(){
+     if(nl->IsAtom(l)){
+       e = nl->TheEmptyList();
+       len = 0;
+     } else if(nl->IsEmpty(l)){
+       e = l;
+       len = 0;
+     } else {
+       e = l;
+       len = 1;
+       while(!nl->IsEmpty(nl->Rest(e))){
+          e = nl->Rest(e);
+          len++;
+       }
+     }
+  }
+
+
 };
 
-ostream& operator<<(ostream& os, const NList& n);
 
 #endif
