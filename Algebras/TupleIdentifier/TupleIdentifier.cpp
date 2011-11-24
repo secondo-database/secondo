@@ -149,7 +149,7 @@ TupleIdentifierProperty()
             nl->FiveElemList(nl->StringAtom("-> DATA"),
               nl->StringAtom(TupleIdentifier::BasicType()),
                   nl->StringAtom("(<tid>)"),
-                  nl->StringAtom("(50060)"),
+                  nl->StringAtom("("+TupleIdentifier::Example()+")"),
                   nl->StringAtom("The tupleidentifier is a long."))));
 }
 Word

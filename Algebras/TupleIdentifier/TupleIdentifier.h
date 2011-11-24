@@ -145,10 +145,19 @@ Basic Type
 static const string BasicType(){
      return "tid";
   }
-  static const bool checkType(const ListExpr type){
+
+static const bool checkType(const ListExpr type){
     return listutils::isSymbol(type, BasicType());
   }
 
+/*
+Example String for external Property Files includin TupleIds
+
+*/
+
+static const string Example(){
+  return "50060";
+}
 
  private:
   TupleId tid;
