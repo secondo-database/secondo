@@ -7549,6 +7549,9 @@ string BN::BusTimeTableTypeInfo =
 "(rel (tuple ((stop_loc point) (bus_stop busstop) (whole_time periods) \
 (schedule_interval real) (loc_id int) (bus_uoid int))))";
 
+string BN::RTreeBusStopsPaveTypeInfo = 
+"(rtree (tuple ((bus_stop busstop) (pave_loc1 genloc)\
+(pave_loc2 point)(bus_stop_loc point))) point FALSE)";
 
 BN::BN(BusNetwork* n):bn(n), count(0), resulttype(NULL)
 {
@@ -15049,6 +15052,11 @@ string MetroNetwork::MetroPaveTypeInfo =
 "(rel (tuple ((loc1 genloc) (loc2 point) (ms_stop busstop)\
 (ms_stop_loc point))))";
 
+string MetroNetwork::RTreeMetroPaveTypeInfo = 
+"(rtree (tuple ((loc1 genloc) (loc2 point) (ms_stop busstop)\
+(ms_stop_loc point))) point FALSE)";
+
+
 ListExpr MetroNetworkProperty()
 {
   return (nl->TwoElemList(
@@ -17644,16 +17652,28 @@ for each bus or metro stop, find the buildings nearby
 void TM_Join::NearStopBuilding(Space* sp, string type)
 {
   IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
-  
+  if(i_infra == NULL){
+    cout<<"indoor infrastructure does not exist "<<endl;
+    return;
+  }
+
   Relation* build_rel = i_infra->BuildingType_Rel();
   R_Tree<2,TupleId>* rtree = i_infra->BuildingRTree();
   
   if(type == "Bus"){
     BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);
+    if(bn == NULL){
+      cout<<"bus network does not exist "<<endl;
+      return;
+    }
     NearBusStopBuilding(bn, build_rel, rtree);
     sp->CloseBusNetwork(bn);
   }else if(type == "Metro"){
     MetroNetwork* mn = sp->LoadMetroNetwork(IF_METRONETWORK);
+    if(mn == NULL){
+      cout<<"metro network does not exist"<<endl;
+      return;
+    }
     NearMetroStopBuilding(mn, build_rel, rtree);
     sp->CloseMetroNetwork(mn);
   }else{

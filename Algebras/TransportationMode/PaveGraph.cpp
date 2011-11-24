@@ -3234,6 +3234,8 @@ it can be found efficiently*/
 
 string DualGraph::NodeTypeInfo =
   "(rel(tuple((oid int)(rid int)(pavement region))))";
+string DualGraph::BTreeNodeTypeInfo = 
+  "(btree(tuple((oid int)(rid int)(pavement region))) int)";
 string DualGraph::EdgeTypeInfo =
   "(rel(tuple((oid1 int)(oid2 int)(commarea line))))";
 string DualGraph::NodeRTreeTypeInfo =  "(rtree (tuple ((oid int)(rid int)\

@@ -892,6 +892,8 @@ struct BN{
   enum BusStopTimeTable{BN_T_GEOBS = 0, BN_T_BS, BN_T_P, 
                         BN_T_S,BN_T_LOC_ID, BN_T_BUS_UOID}; 
 
+  static string RTreeBusStopsPaveTypeInfo;
+  
   vector<Bus_Stop> bs_list1;
   vector<Bus_Stop> bs_list2;
   vector<Line> path_list; 
@@ -1583,6 +1585,7 @@ class MetroNetwork{
     static string MetroTypeBTreeTypeInfo;
 
     static string MetroPaveTypeInfo;
+    static string RTreeMetroPaveTypeInfo;
 
     enum METRO_STOP_INFO{M_STOP, M_STOP_GEO, M_R_ID};
     enum METRO_ROUTE_INFO{M_ROUTE_ID,M_ROUTE,M_R_OID};
@@ -1788,6 +1791,7 @@ struct TM_Join{
   
   unsigned int count;
   TupleType* resulttype;
+  string type;
   
   TM_Join(){count = 0; resulttype = NULL;}
   ~TM_Join(){if(resulttype != NULL) delete resulttype;}

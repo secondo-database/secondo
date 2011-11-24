@@ -1466,8 +1466,13 @@ string GenMObject::CommPathInfo = "(rel (tuple ((cell_id1 int) \
 (cell_area1 rect) (cell_id2 int) (cell_area2 rect) (path1 gline))))";
 string GenMObject::RTreeCellInfo = "(rtree (tuple ((cell_id1 int) \
 (cell_area1 rect) (cell_id2 int) (cell_area2 rect) (path1 gline))) rect FALSE)";
-string GenMObject::BuildingInfo = "(rel (tuple ((Tid int) (Type string)\
-(Area rect))))";
+// string GenMObject::BuildingInfo = "(rel (tuple ((Tid int) (Type string)\
+// (Area rect))))";
+string GenMObject::BuildingInfoB = "(rel (tuple ((Tid int) (Type string)\
+(Area_B rect))))";
+string GenMObject::BuildingInfoM = "(rel (tuple ((Tid int) (Type string)\
+(Area_M rect)(M bool))))";
+
 
 void GenMObject::GetMode(GenMO* mo)
 {
@@ -1554,6 +1559,113 @@ void GenMObject::GetIdList(GenRange* gr)
       id_list.push_back(elem.oid); 
     }
 }
+
+
+/*
+according to type value, different sub functions are called 
+7: car + walk
+8: bus + walk
+9: indoor + walk 
+10: metro + walk 
+11: taxi + walk;
+13: car + indoor + walk;
+14: bus + indoor + walk 
+15: metro + indoor + walk 
+16: taxi + indoor + walk 
+
+*/
+void GenMObject::GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type)
+{
+  
+  if(type == 7 || type == 11){ //car taxi + walk 
+
+      Relation* rel1 = sp->GetDualNodeRel();
+      BTree* btree = sp->GetDGNodeBTree();
+      Relation* rel2 = sp->GetSpeedRel();
+      if(rel1 == NULL || btree == NULL || rel2 == NULL){
+          cout<<"auxiliary relation empty"<<endl;
+          return;
+      }else{
+        GenerateGenMO2(sp, peri, mo_no, type, rel1, btree, rel2);
+      }
+
+  }else if(type == 9){//indoor + walk
+
+        Relation* rel = sp->GetNewTriRel();
+        if(rel == NULL){
+            cout<<"auxiliary rel empty "<<endl;
+            return;
+        }else{
+            GenerateGenMO4(sp, peri, mo_no, type, rel);
+        }
+  }else if(type == 13 || type == 16){//car or taxi + indoor + walk 
+    
+        Relation* rel1 = sp->GetDualNodeRel();
+        BTree* btree = sp->GetDGNodeBTree();
+        Relation* rel2 = sp->GetSpeedRel();
+        if(rel1 == NULL || btree == NULL || rel2 == NULL){
+          cout<<"auxiliary relation empty "<<endl;
+          return;
+        }else{
+          GenerateGenMO5(sp, peri, mo_no, type, rel1, btree, rel2);
+        }
+  }else if(type ==10){//metro + walk 
+
+        Relation* rel1 = sp->GetNewTriRel();
+        Relation* rel2 = sp->GetMSPaveRel();
+        R_Tree<2,TupleId>* rtree = sp->GetMSPaveRtree();
+        if(rel1 == NULL || rel2 == NULL || rtree == NULL){
+          cout<<"auxiliary relation empty "<<endl;
+          return;
+        }else{
+          GenerateGenMO7(sp, peri, mo_no, type, rel1, rel2, rtree);
+        }
+  }else if(type == 15){//indoor + metro + walk 
+        Relation* rel1 = sp->GetNewTriRel();
+        Relation* rel2 = sp->GetMSPaveRel();
+        Relation* rel3 = sp->GetMSBuildRel();
+        R_Tree<2,TupleId>* rtree = sp->GetMSPaveRtree();
+        if(rel1 == NULL || rel2 == NULL || rtree == NULL || rel3 == NULL){
+          cout<<"auxiliary relation empty "<<endl;
+          return;
+        }else{
+          GenerateGenMO8(sp, peri, mo_no, type, rel1, rel2, rtree, rel3);
+        }
+
+  }else if(type ==8){ // bus + walk 
+  
+        Relation* rel1 = sp->GetNewTriRel();
+        Relation* rel2 = sp->GetBSPaveRel();
+        R_Tree<2,TupleId>* rtree = sp->GetBSPaveRtree();
+        if(rel1 == NULL || rel2 == NULL || rtree == NULL){
+          cout<<"auxiliary relation empty "<<endl;
+          return;
+        }else{
+
+          GenerateGenMO3(sp, peri, mo_no, type, rel1, rel2, rtree);
+        }
+  
+  }else if(type == 14){// bus + indoor + walk 
+
+        Relation* rel1 = sp->GetNewTriRel();
+        Relation* rel2 = sp->GetBSPaveRel();
+        Relation* rel3 = sp->GetBSBuildRel();
+        R_Tree<2,TupleId>* rtree = sp->GetBSPaveRtree();
+        if(rel1 == NULL || rel2 == NULL || rtree == NULL || rel3 == NULL){
+          cout<<"auxiliary relation empty "<<endl;
+          return;
+        }else{
+          GenerateGenMO6(sp, peri, mo_no, type, rel1, rel2, rtree, rel3);
+        }
+
+  }else{
+    cout<<"invalid type "<<type<<endl;
+    return; 
+  }
+
+}
+
+
 
 /*
 create generic moving objects
@@ -7422,12 +7534,35 @@ ListExpr OutSpace( ListExpr typeInfo, Word value )
   }else
     xLast = nl->Append(xLast,xNext);
  }
- 
- ListExpr rg_list = nl->TwoElemList(nl->StringAtom("RoadGraph Id:"),
+
+  ListExpr rg_list = nl->TwoElemList(nl->StringAtom("RoadGraph Id:"),
                         nl->IntAtom(sp->GetRGId())); 
 
+  if(sp->GetSpeedRel() != NULL)
+    cout<<"speed rel no. "<<sp->GetSpeedRel()->GetNoTuples()<<endl;
+
+  if(sp->GetDualNodeRel() != NULL)
+    cout<<"dg node rel no. "<<sp->GetDualNodeRel()->GetNoTuples()<<endl;
+
+  if(sp->GetNewTriRel() != NULL)
+    cout<<"new tri rel no. "<<sp->GetNewTriRel()->GetNoTuples()<<endl;
+
+  if(sp->GetBSPaveRel() != NULL)
+    cout<<"bus stops pave rel no."<<sp->GetBSPaveRel()->GetNoTuples()<<endl;
+
+  if(sp->GetMSPaveRel() != NULL)
+    cout<<"metro stops pave rel no. "<<sp->GetMSPaveRel()->GetNoTuples()<<endl;
+
+  if(sp->GetBSBuildRel() != NULL)
+    cout<<"bus stops and building rel no. "
+        <<sp->GetBSBuildRel()->GetNoTuples()<<endl;
+
+   if(sp->GetMSBuildRel() != NULL)
+     cout<<"metro stops and building rel no. "
+         <<sp->GetMSBuildRel()->GetNoTuples()<<endl;
+
 // return nl->TwoElemList(space_list, infra_list);
- return nl->ThreeElemList(space_list, infra_list, rg_list);
+   return nl->ThreeElemList(space_list, infra_list, rg_list);
 
 }
 
@@ -7475,70 +7610,673 @@ Word CloneSpace( const ListExpr typeInfo, const Word& w )
   return SetWord(Address(0));
 }
 
-
-Space::Space(const Space& sp):Attribute(sp.IsDefined()), infra_list(0)
-//pave_rid_list(0), entry_list(0)
+Space::Space():def(false), space_id(0), rg_id(0), 
+speed_exist(false), tri_new_exist(false), 
+dg_node_exist(false), bs_pave_exist(false), ms_pave_exist(false),
+build_exist_b(false), build_exist_m(false),
+infra_list(0),
+street_speed(NULL), tri_new(NULL), dg_node_rid(NULL),
+btree_dg_node(NULL), bs_pave_sort(NULL), rtree_bs_pave(NULL),
+ms_neighbor(NULL), rtree_ms_pave(NULL),
+bs_building(NULL), ms_building(NULL)
 {
-  if(sp.IsDefined()){
-    def = sp.def;
-    space_id = sp.space_id; 
-    rg_id = sp.rg_id;
-    for(int i = 0;i < sp.Size();i++){
-      InfraRef inf_ref; 
-      sp.Get(i, inf_ref); 
-      infra_list.Append(inf_ref);
+
+}
+Space::Space(bool d, int id):Attribute(d), def(true), 
+space_id(id), rg_id(0), 
+speed_exist(false), tri_new_exist(false),
+dg_node_exist(false), bs_pave_exist(false), ms_pave_exist(false),
+build_exist_b(false), build_exist_m(false),
+infra_list(0),
+street_speed(NULL), tri_new(NULL), dg_node_rid(NULL),
+btree_dg_node(NULL), bs_pave_sort(NULL), rtree_bs_pave(NULL),
+ms_neighbor(NULL), rtree_ms_pave(NULL),
+bs_building(NULL), ms_building(NULL)
+
+{
+
+
+}
+
+/*
+initialization function for space 
+
+*/
+Space::Space(ListExpr in_xValue, int in_iErrorPos, ListExpr& inout_xErrorInfo,
+        bool& inout_bCorrect):def(false), space_id(0), rg_id(0), 
+        speed_exist(false), tri_new_exist(false),
+        dg_node_exist(false), bs_pave_exist(false), ms_pave_exist(false),
+        build_exist_b(false), build_exist_m(false),
+        infra_list(0),
+        street_speed(NULL), tri_new(NULL), dg_node_rid(NULL),
+        btree_dg_node(NULL), bs_pave_sort(NULL), rtree_bs_pave(NULL),
+        ms_neighbor(NULL), rtree_ms_pave(NULL), 
+        bs_building(NULL), ms_building(NULL)
+{
+
+
+}
+
+/*
+construct space from records 
+
+*/
+Space::Space(SmiRecord& in_xValueRecord, size_t& inout_iOffset, 
+             const ListExpr in_xTypeInfo):def(false), 
+             space_id(0), rg_id(0), 
+             speed_exist(false), tri_new_exist(false), 
+             dg_node_exist(false), bs_pave_exist(false), ms_pave_exist(false),
+             build_exist_b(false), build_exist_m(false),
+             infra_list(0),
+             street_speed(NULL), tri_new(NULL), dg_node_rid(NULL),
+             btree_dg_node(NULL), rtree_bs_pave(NULL),
+             ms_neighbor(NULL), rtree_ms_pave(NULL), 
+             bs_building(NULL), ms_building(NULL)
+{
+
+  in_xValueRecord.Read(&def, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Read(&space_id, sizeof(int), inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+  in_xValueRecord.Read(&rg_id, sizeof(int), inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+  in_xValueRecord.Read(&speed_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Read(&tri_new_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+  
+  in_xValueRecord.Read(&dg_node_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Read(&bs_pave_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Read(&ms_pave_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+  
+  in_xValueRecord.Read(&build_exist_b, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+  
+  in_xValueRecord.Read(&build_exist_m, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   SmiSize offset = 0;
+   char* buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   infra_list.restoreHeader(buf,offset);
+   free(buf);
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /***********************Open relation for speed*********************/
+  nl->ReadFromString(GenMObject::StreetSpeedInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(speed_exist){
+    street_speed = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!street_speed) {
+      return;
+    }
+  }
+  ///////////////////////trinew relation ///////////////////////////
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(tri_new_exist){
+    tri_new = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!tri_new) {
+      street_speed->Delete();
+      return;
+    }
+  }
+  
+  /////////////////dual graph node + route id //////////////////////
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(dg_node_exist){
+    dg_node_rid = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!dg_node_rid) {
+      street_speed->Delete();
+      tri_new->Delete();
+      return;
     }
 
-    ////////////////////////////////////////////////////
-//     for(int i = 0; i < sp.Pave_Rid_Size();i++){
-//       int rid;
-//       sp.GetRid(i, rid);
-//       pave_rid_list.Append(rid);
-// 
+   nl->ReadFromString(DualGraph::BTreeNodeTypeInfo,xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_dg_node = BTree::Open(in_xValueRecord, inout_iOffset, xNumericType);
+   if(!btree_dg_node) {
+     dg_node_rid->Delete();
+     street_speed->Delete();
+     tri_new->Delete();
+     return;
+   }
+
+   /////////////////////test btree on dgnode relation///////////////////////
+/*    for(int i = 1;i <= dg_node_rid->GetNoTuples();i++){
+        Tuple* node_tuple = dg_node_rid->GetTuple(i, false);
+        int oid = 
+            ((CcInt*)node_tuple->GetAttribute(DualGraph::OID))->GetIntval();
+
+      CcInt* search_id = new CcInt(true, oid);
+      BTreeIterator* btree_iter = btree_dg_node->ExactMatch(search_id);
+
+      while(btree_iter->Next()){
+         cout<<"tid1 "<<node_tuple->GetTupleId()
+             <<"tid2 "<<btree_iter->GetId()<<endl;
+      }
+      delete btree_iter;
+      delete search_id;
+      node_tuple->DeleteIfAllowed();
+    }*/
+
+  }
+
+  ///////////////bus stops and pavement relation //////////////////////
+  nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(bs_pave_exist){
+    bs_pave_sort = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!bs_pave_sort) {
+      street_speed->Delete();
+      tri_new->Delete();
+      dg_node_rid->Delete();
+      delete btree_dg_node;
+      return;
+    }
+
+    Word xValue;
+    if(!(rtree_bs_pave->Open(in_xValueRecord, inout_iOffset, 
+                      BN::RTreeBusStopsPaveTypeInfo, xValue))){
+      bs_pave_sort->Delete();
+      street_speed->Delete();
+      tri_new->Delete();
+      dg_node_rid->Delete();
+      delete btree_dg_node;
+      return;
+    }
+    rtree_bs_pave = ( R_Tree<2,TupleId>* ) xValue.addr;
+
+   /////////////////////test rtree on bs pave relation///////////////////////
+//     for(int i = 1;i <= bs_pave_sort->GetNoTuples();i++){
+//        Tuple* node_tuple = bs_pave_sort->GetTuple(i, false);
+//        Point* pave_loc = (Point*)node_tuple->GetAttribute(BN::BN_PAVE_LOC2);
+//        vector<int> tid_list;
+//        double min_dist = 500.0;
+//        DFTraverse_BS(rtree_bs_pave, bs_pave_sort, 
+//               rtree_bs_pave->RootRecordId(), pave_loc, tid_list, min_dist);
+//       cout<<i<<" neighbor size "<<tid_list.size()<<endl;
+//       node_tuple->DeleteIfAllowed();
 //     }
-//     for(int i = 0;i < sp.Entry_List_Size();i++){
-//       EntryItem entry;
-//       sp.GetEntry(i, entry);
-//       entry_list.Append(entry);
+    //////////////////////////////////////////////////////////////////////
+
+  }
+
+  ///////////////metro stops and pavement relation //////////////////////
+  nl->ReadFromString(MetroNetwork::MetroPaveTypeInfo, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(ms_pave_exist){
+    ms_neighbor = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!ms_neighbor) {
+      street_speed->Delete();
+      tri_new->Delete();
+      dg_node_rid->Delete();
+      delete btree_dg_node;
+      delete rtree_bs_pave;
+      return;
+    }
+
+    Word xValue;
+    if(!(rtree_ms_pave->Open(in_xValueRecord, inout_iOffset, 
+                      MetroNetwork::RTreeMetroPaveTypeInfo, xValue))){
+      street_speed->Delete();
+      tri_new->Delete();
+      dg_node_rid->Delete();
+      delete btree_dg_node;
+      delete rtree_bs_pave;
+      ms_neighbor->Delete();
+      return;
+    }
+    rtree_ms_pave = ( R_Tree<2,TupleId>* ) xValue.addr;
+
+//     ///////////////////test rtree on ms pave relation////////////////////
+//     for(int i = 1;i <= ms_neighbor->GetNoTuples();i++){
+//       Tuple* node_tuple = ms_neighbor->GetTuple(i, false);
+//       Point* pave_loc = 
+//           (Point*)node_tuple->GetAttribute(MetroNetwork::METRO_PAVE_LOC2);
+//       vector<int> tid_list;
+//       double min_dist = 500.0;
+//       DFTraverse_MS(rtree_ms_pave, ms_neighbor, 
+//                rtree_ms_pave->RootRecordId(), pave_loc, tid_list, min_dist);
+//       cout<<i<<" neighbor size "<<tid_list.size()<<endl;
+//       node_tuple->DeleteIfAllowed();
 //     }
-    ///////////////////////////////////////////
+
+  }
+  
+  /////////////////bus stops and building //////////////////////
+  nl->ReadFromString(GenMObject::BuildingInfoB, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(build_exist_b){
+    bs_building = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!bs_building) {
+      street_speed->Delete();
+      tri_new->Delete();
+      dg_node_rid->Delete();
+      delete btree_dg_node;
+      delete rtree_bs_pave;
+      ms_neighbor->Delete();
+      delete rtree_ms_pave;
+      return;
+    }
+  }
+  
+   /////////////////metro stops and building //////////////////////
+    nl->ReadFromString(GenMObject::BuildingInfoM, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(build_exist_m){
+     ms_building = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+    if(!ms_building) {
+      street_speed->Delete();
+      tri_new->Delete();
+      dg_node_rid->Delete();
+      delete btree_dg_node;
+      delete rtree_bs_pave;
+      ms_neighbor->Delete();
+      delete rtree_ms_pave;
+      bs_building->Delete();
+      return;
+    }
   }
 
 }
 
+/*
+traverse the rtree to find all points with a certain distance 
 
-Space& Space::operator=(const Space& sp)
+*/
+void Space::DFTraverse_BS(R_Tree<2,TupleId>* rtree, Relation* rel,
+                             SmiRecordId adr, Point* loc, 
+                             vector<int>& tid_list, double& min_dist)
 {
-  SetDefined(sp.IsDefined());
-  if(def){
-    space_id = sp.space_id;
-    rg_id = sp.rg_id; 
-    for(int i = 0;i < sp.Size();i++){
-      InfraRef inf_ref; 
-      sp.Get(i, inf_ref); 
-      infra_list.Append(inf_ref);
-    }
-    ////////////////////////////////////////////////////
-//     for(int i = 0; i < sp.Pave_Rid_Size();i++){
-//       int rid;
-//       sp.GetRid(i, rid);
-//       pave_rid_list.Append(rid);
-// 
-//     }
-//     for(int i = 0;i < sp.Entry_List_Size();i++){
-//       EntryItem entry;
-//       sp.GetEntry(i, entry);
-//       entry_list.Append(entry);
-//     }
 
-    ///////////////////////////////////////////
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* tuple = rel->GetTuple(e.info, false);
+              Point* p = (Point*)tuple->GetAttribute(BN::BN_PAVE_LOC2);
+
+              double d = p->Distance(*loc);
+              if(d < min_dist){
+                  tid_list.push_back(e.info);
+              }
+              tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(loc->Distance(e.box) < min_dist){
+                DFTraverse_BS(rtree, rel, e.pointer, loc, tid_list, min_dist);
+            }
+      }
   }
-  return *this; 
+  delete node;
 }
 
+void Space::DFTraverse_MS(R_Tree<2,TupleId>* rtree, Relation* rel,
+                             SmiRecordId adr, Point* loc, 
+                             vector<int>& tid_list, double& min_dist)
+{
+
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* tuple = rel->GetTuple(e.info, false);
+              Point* p = 
+                (Point*)tuple->GetAttribute(MetroNetwork::METRO_PAVE_LOC2);
+
+              double d = p->Distance(*loc);
+              if(d < min_dist){
+                  tid_list.push_back(e.info);
+              }
+              tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(loc->Distance(e.box) < min_dist){
+                DFTraverse_MS(rtree, rel, e.pointer, loc, tid_list, min_dist);
+            }
+      }
+  }
+  delete node;
+}
 
 Space::~Space()
 {
+  if(speed_exist && street_speed != NULL) street_speed->Close();
+  if(tri_new_exist && tri_new != NULL) tri_new->Close();
+  if(dg_node_exist){
+      if(dg_node_rid != NULL) dg_node_rid->Close(); 
+      if(btree_dg_node != NULL) delete btree_dg_node;
+  }
+
+  if(bs_pave_exist){
+    if(bs_pave_sort != NULL) bs_pave_sort->Close();
+    if(rtree_bs_pave != NULL) delete rtree_bs_pave;
+  }
+
+  if(ms_pave_exist){
+    if(ms_neighbor != NULL) ms_neighbor->Close();
+    if(rtree_ms_pave != NULL) delete rtree_ms_pave;
+  }
+  
+  if(build_exist_b){
+    if(bs_building != NULL) bs_building->Close();
+  }
+
+  if(build_exist_m){
+    if(ms_building != NULL) ms_building->Close();
+  }
+}
+
+
+bool Space::SaveSpace(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveSpace()"<<endl;
+  Space* sp = (Space*)value.addr;
+  bool result = sp->Save(valueRecord, offset, typeInfo);
+
+  return result;
+}
+
+
+bool Space::OpenSpace(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenSpace()"<<endl;
+  value.addr = Space::Open(valueRecord, offset, typeInfo);
+  bool result = (value.addr != NULL);
+
+  return result;
+}
+
+Space* Space::Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo)
+{
+  return new Space(valueRecord,offset,typeInfo);
+}
+
+bool Space::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo)
+{
+//  cout<<"save "<<endl; 
+  in_xValueRecord.Write(&def, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Write(&space_id, sizeof(int), inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+  in_xValueRecord.Write(&rg_id, sizeof(int), inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+  in_xValueRecord.Write(&speed_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Write(&tri_new_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Write(&dg_node_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Write(&bs_pave_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  in_xValueRecord.Write(&ms_pave_exist, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+  
+  in_xValueRecord.Write(&build_exist_b, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+  
+  in_xValueRecord.Write(&build_exist_m, sizeof(bool), inout_iOffset);
+  inout_iOffset += sizeof(bool);
+
+  /////////////////adjacency list 1//////////////////////////////
+   SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
+   SmiRecordFile *rf = ctlg->GetFlobFile();
+
+   infra_list.saveToFile(rf, infra_list);
+   SmiSize offset = 0;
+   size_t bufsize = infra_list.headerSize()+ 2*sizeof(int);
+   char* buf = (char*) malloc(bufsize);
+   infra_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   
+    ListExpr xType;
+    ListExpr xNumericType;
+    ////////////////////street speed relation//////////////////////////
+    nl->ReadFromString(GenMObject::StreetSpeedInfo, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(speed_exist){
+      if(!street_speed->Save(in_xValueRecord, inout_iOffset, xNumericType))
+      return false;
+    }
+ 
+    ////////////////// triangle new relation //////////////////////
+    nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(tri_new_exist){
+      if(!tri_new->Save(in_xValueRecord, inout_iOffset, xNumericType))
+      return false;
+    }
+
+    ////////////dual graph node + route id relation//////////////////////////
+    nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(dg_node_exist){
+      if(!dg_node_rid->Save(in_xValueRecord, inout_iOffset, xNumericType))
+        return false;
+
+      nl->ReadFromString(DualGraph::BTreeNodeTypeInfo, xType);
+      xNumericType = SecondoSystem::GetCatalog()->NumericType(xType); 
+      if(!btree_dg_node->Save(in_xValueRecord, inout_iOffset, xNumericType))
+          return false; 
+
+    }
+
+    ///////////bus stops and pavement + rtree ////////////////////////
+    nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(bs_pave_exist){
+      if(!bs_pave_sort->Save(in_xValueRecord, inout_iOffset, xNumericType))
+        return false;
+
+      if(!rtree_bs_pave->Save(in_xValueRecord, inout_iOffset)){
+        return false;
+      }
+    }
+
+
+    ///////////metro stops and pavement + rtree ////////////////////////
+    nl->ReadFromString(MetroNetwork::MetroPaveTypeInfo, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(ms_pave_exist){
+      if(!ms_neighbor->Save(in_xValueRecord, inout_iOffset, xNumericType))
+        return false;
+
+      if(!rtree_ms_pave->Save(in_xValueRecord, inout_iOffset)){
+         return false;
+      }
+    }
+
+    ///////////////bus stops and building relation///////////////////////
+    nl->ReadFromString(GenMObject::BuildingInfoB, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(build_exist_b){
+      if(!bs_building->Save(in_xValueRecord, inout_iOffset, xNumericType))
+      return false;
+    }
+
+    ///////////////metro stops and building relation///////////////////////
+    nl->ReadFromString(GenMObject::BuildingInfoM, xType);
+    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+    if(build_exist_m){
+      if(!ms_building->Save(in_xValueRecord, inout_iOffset, xNumericType))
+      return false;
+    }
+
+   return true; 
+}
+
+/*
+put auxiliary relation into the space
+
+*/
+void Space::AddRelation(Relation* rel, int type)
+{
+  if(rel->GetNoTuples() > 0){
+    if(type == SPEED_REL){ /////street speed 
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + GenMObject::StreetSpeedInfo +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        street_speed = (Relation*)xResult.addr; 
+
+        if(street_speed != NULL) speed_exist = true;
+    } else if(type == DGNODE_REL){ //dual graph node 
+
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + DualGraph::NodeTypeInfo +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        dg_node_rid = (Relation*)xResult.addr; 
+
+      ///////////////////////////btree on nodes///////////////////////////
+      ListExpr ptrList2 = listutils::getPtrList(dg_node_rid);
+
+      strQuery = "(createbtree (" + DualGraph::NodeTypeInfo +
+             "(ptr " + nl->ToString(ptrList2) + "))" + "oid)";
+      QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+      assert(QueryExecuted);
+      btree_dg_node = (BTree*)xResult.addr;
+
+      if(dg_node_rid != NULL && btree_dg_node != NULL)
+          dg_node_exist = true;
+
+    } else if(type == TRINEW_REL){ //tri new 
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + DualGraph::TriangleTypeInfo3 +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        tri_new = (Relation*)xResult.addr; 
+
+        if(tri_new != NULL) tri_new_exist = true; 
+
+    }else if(type == BSPAVESORT_REL){//bus stop pave
+
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + BN::BusStopsPaveTypeInfo +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        bs_pave_sort = (Relation*)xResult.addr; 
+
+        /////////////////////rtree on nodes///////////////////////////
+        ListExpr ptrList2 = listutils::getPtrList(bs_pave_sort);
+
+        strQuery = "(bulkloadrtree(sortby(addid(feed (" + 
+                    BN::BusStopsPaveTypeInfo +
+                   " (ptr " + nl->ToString(ptrList2) + 
+                   "))))((pave_loc2 asc))) pave_loc2)";
+
+        QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+        assert ( QueryExecuted );
+        rtree_bs_pave = ( R_Tree<2,TupleId>* ) xResult.addr;
+
+        if(bs_pave_sort != NULL && rtree_bs_pave != NULL)
+            bs_pave_exist = true; 
+    }else if(type == MSPAVE_REL){ //metro stops pave 
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + MetroNetwork::MetroPaveTypeInfo +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        ms_neighbor = (Relation*) xResult.addr; 
+
+        /////////////////////rtree on ms nodes ////////////////////////
+        ListExpr ptrList2 = listutils::getPtrList(ms_neighbor);
+
+        strQuery = "(bulkloadrtree(sortby(addid(feed (" + 
+                    MetroNetwork::MetroPaveTypeInfo +
+                   " (ptr " + nl->ToString(ptrList2) + 
+                   "))))((loc2 asc))) loc2)";
+
+        QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+        assert ( QueryExecuted );
+        rtree_ms_pave = ( R_Tree<2,TupleId>* ) xResult.addr;
+
+        if(ms_neighbor != NULL && rtree_ms_pave != NULL)
+            ms_pave_exist = true;
+
+    }else if(type == BSBUILD_REL){ //bus stops and building relation 
+
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + GenMObject::BuildingInfoB +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        bs_building = (Relation*) xResult.addr; 
+
+        if(bs_building != NULL) build_exist_b = true;
+
+    }else if(type == MSBUILD_REL){ // metro stops and building relation 
+    
+        ListExpr ptrList1 = listutils::getPtrList(rel);
+
+        string strQuery = "(consume(feed(" + GenMObject::BuildingInfoM +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+        Word xResult;
+        int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+        assert(QueryExecuted);
+        ms_building = (Relation*) xResult.addr; 
+
+        if(ms_building != NULL) build_exist_m = true;
+
+    }
+
+  }else{
+    cout<<"empty relation "<<endl;
+  }
 
 }
 

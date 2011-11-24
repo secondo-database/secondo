@@ -783,8 +783,9 @@ struct GenMObject{
   static string StreetSpeedInfo;
   static string CommPathInfo;
   static string RTreeCellInfo;
-  static string BuildingInfo; 
-  
+//  static string BuildingInfo; 
+  static string BuildingInfoB; 
+  static string BuildingInfoM; 
   enum StreeSpeed{SPEED_RID = 0, SPEED_VAL}; 
   enum CommPath{CELL_ID1 = 0,CELL_AREA1,CELL_ID2,CELL_AREA2,CELL_PATH};
   enum BuildInfo{Build_ID = 0, Build_Type, Build_Area};
@@ -830,6 +831,7 @@ struct GenMObject{
   void GetIdList(GenRange* gr); 
   void GetRef(GenMO* mo);
   ///////////////////create generic moving objects///////////////////////
+  void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type);
 
   void GenerateGenMO2(Space* sp, Periods* peri, int mo_no, 
                       int type, Relation*, BTree*, Relation*);
@@ -1100,12 +1102,20 @@ class Space:public Attribute{
   public:
   static string FreeSpaceTypeInfo; 
   
-  Space():Attribute(){}
-  Space(const Space& sp);
-  Space(bool d, int id = 0):Attribute(d), def(true), 
-                            space_id(id), rg_id(0), infra_list(0){}
+  enum RelTypeInfo{SPEED_REL = 0, TRINEW_REL, DGNODE_REL, 
+                   BSPAVESORT_REL, MSPAVE_REL, BSBUILD_REL, MSBUILD_REL};
+//  Space():Attribute(){}
+//  Space(const Space& sp);
+//  Space& operator=(const Space& sp); 
+/*  Space(bool d, int id = 0):Attribute(d), def(true), 
+                            space_id(id), rg_id(0), infra_list(0){}*/
 
-  Space& operator=(const Space& sp); 
+  Space();
+  Space(bool d, int id = 0);
+  Space(ListExpr in_xValue, int in_iErrorPos, ListExpr& inout_xErrorInfo,
+        bool& inout_bCorrect);
+  Space(SmiRecord&, size_t&, const ListExpr);
+
   ~Space();
   void SetId(int id);
   static void* Cast(void* addr){return new (addr)Space();}
@@ -1121,6 +1131,16 @@ class Space:public Attribute{
   size_t HashValue() const{return (size_t)0;}
   void CopyFrom(const Attribute* right){*this = *(const Space*)right;}
   
+  static bool SaveSpace(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+  static bool OpenSpace(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value);
+
+  static Space* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+
+  bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo);
   /////////////very important two functions////////////////////
    inline int NumOfFLOBs() const { return 1;}
    inline Flob* GetFLOB(const int i) { return &infra_list;}
@@ -1135,6 +1155,7 @@ class Space:public Attribute{
 //       return &entry_list;
 //   }
 
+  void AddRelation(Relation*, int);
 
   inline int Size() const {return infra_list.Size();}
   void Get(int i, InfraRef& inf_ref) const;
@@ -1175,8 +1196,55 @@ class Space:public Attribute{
   void OpenInfra(vector<void*>&);
   void CloseInfra(vector<void*>&);
 
-
   int MaxRefId();
+  
+  Relation* GetSpeedRel(){
+    if(speed_exist) return street_speed;
+    else return NULL;
+  }
+  Relation* GetNewTriRel(){
+    if(tri_new_exist) return tri_new;
+    else return NULL;
+  }
+  Relation* GetDualNodeRel(){
+    if(dg_node_exist) return dg_node_rid;
+    else return NULL;
+  }
+  BTree* GetDGNodeBTree(){
+    if(dg_node_exist) return btree_dg_node;
+    else return NULL;
+  }
+  Relation* GetBSPaveRel(){
+    if(bs_pave_exist) return bs_pave_sort;
+    else return NULL;
+  }
+  R_Tree<2,TupleId>* GetBSPaveRtree(){
+    if(bs_pave_exist) return rtree_bs_pave;
+    else return NULL;
+  }
+  void DFTraverse_BS(R_Tree<2,TupleId>* rtree, Relation* rel,
+                             SmiRecordId adr, Point* loc, 
+                             vector<int>& tid_list, double& min_dist);
+  Relation* GetMSPaveRel(){
+    if(ms_pave_exist) return ms_neighbor;
+    else return NULL;
+  }
+  R_Tree<2,TupleId>* GetMSPaveRtree(){
+    if(ms_pave_exist) return rtree_ms_pave;
+    else return NULL;
+  }
+  void DFTraverse_MS(R_Tree<2,TupleId>* rtree, Relation* rel,
+                             SmiRecordId adr, Point* loc, 
+                             vector<int>& tid_list, double& min_dist);
+  Relation* GetBSBuildRel(){
+    if(build_exist_b) return bs_building;
+    else return NULL;
+  }
+
+  Relation* GetMSBuildRel(){
+    if(build_exist_m) return ms_building;
+    else return NULL;
+  }
   //////////////////////////////////////////////////////////////////////////
   ////////////get the submovement in an infrastructure object///////////////
   /////////////////////////////////////////////////////////////////////////
@@ -1198,12 +1266,30 @@ class Space:public Attribute{
   private:
     bool def; 
     int space_id;
-    
+
     int rg_id;//road graph id 
+    bool speed_exist; //whether speed relation is initialized 
+    bool tri_new_exist;//whether the triangle new relation is initialized 
+    bool dg_node_exist;//whether dual graph node relation is initialized
+    bool bs_pave_exist;//whether the bus and pave sort relation is initialized 
+    bool ms_pave_exist;//whether the metro and pave relation is initialized 
+    bool build_exist_b;//whether bus stops and building relation is initialized
+    bool build_exist_m;//whether m stops and building relation is initialized
     DbArray<InfraRef> infra_list; 
 
 //     DbArray<int> pave_rid_list; //all rids for such a  oid 
 //     DbArray<EntryItem> entry_list;//dual graph oid as indices
+
+    Relation* street_speed;///speed relation
+    Relation* tri_new;//tri new relation 
+    Relation* dg_node_rid;//dual graph + route id 
+    BTree* btree_dg_node; //btree on oid 
+    Relation* bs_pave_sort; //bus stops and pave relation
+    R_Tree<2, TupleId>* rtree_bs_pave;//rtree on bus stops and pavements 
+    Relation* ms_neighbor; //metro stops and pave relation 
+    R_Tree<2, TupleId>* rtree_ms_pave;//rtree on metro stops and pavements 
+    Relation* bs_building;//bus stops and buildings relation 
+    Relation* ms_building;//metro stops and buildings relation 
 
 };
 ListExpr SpaceProperty(); 

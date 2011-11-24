@@ -275,6 +275,7 @@ public:
 class DualGraph:public BaseGraph{
 public:
     static string NodeTypeInfo;
+    static string BTreeNodeTypeInfo;
     static string EdgeTypeInfo;
     static string NodeRTreeTypeInfo;
 

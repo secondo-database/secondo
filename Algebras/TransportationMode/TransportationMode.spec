@@ -164,21 +164,14 @@ operator getmode alias GETMODE pattern op(_)
 operator getref alias GETREF pattern op(_)
 operator thespace alias THESPACE pattern op(_)
 operator putinfra alias PUTINFRA pattern op(_,_)
+operator putrel alias PUTREL pattern op(_,_)
 operator getinfra alias GETINFRA pattern op(_,_)
 operator addinfragraph alias ADDINFRAGRAPH pattern op(_,_)
 operator genmo_tm_list alias GENMO_TM_LIST pattern op(_)
 
-operator generate_genmo2 alias GENERATE_GENMO2 pattern op(_,_,_,_,_,_,_)
+operator generate_genmo alias GENERATE_GENMO pattern op(_,_,_,_)
+
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
-
-operator generate_genmo3 alias GENERATE_GENMO3 pattern op(_,_,_,_,_,_,_)
-operator generate_genmo4 alias GENERATE_GENMO4 pattern op(_,_,_,_,_)
-operator generate_genmo5 alias GENERATE_GENMO5 pattern op(_,_,_,_,_,_,_)
-
-operator generate_genmo6 alias GENERATE_GENMO6 pattern op(_,_,_,_,_,_,_,_)
-operator generate_genmo7 alias GENERATE_GENMO7 pattern op(_,_,_,_,_,_,_)
-
-operator generate_genmo8 alias GENERATE_GENMO8 pattern op(_,_,_,_,_,_,_,_)
 
 operator get_rg_nodes alias GET_RG_NODES pattern op(_)
 operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)
