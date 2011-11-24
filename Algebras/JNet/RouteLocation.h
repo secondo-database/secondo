@@ -121,6 +121,19 @@ static ListExpr Property();
 /*
 1.6 Helpful operations
 
+
+1.1.1 Example
+
+Provides example string for list representation can be used by external
+property definitions for part of route location representation.
+
+*/
+
+static string Example();
+
+/*
+1.1.1 SameSide
+
 Returns true if the side values are identic or at least one of them is ~Both~.
 
 */

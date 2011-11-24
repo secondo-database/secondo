@@ -114,6 +114,16 @@ The default Constructor should only be used in the cast-Function.
 /*
 1.6 Helpful Operations
 
+1.1.1 Example
+
+Provides example string for list representation can be used by external
+property definitions for part of Direction representation.
+
+*/
+
+static string Example();
+
+/*
 1.6.1 SameSide
 
 Returns true if the both direction values are equal or one of them is ~Both~.

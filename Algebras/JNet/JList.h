@@ -118,6 +118,7 @@ static bool Save(SmiRecord& valueRecord, size_t& offset,
 static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
 static ListExpr Property();
+static string Example();
 
 /*
 1.6 Helpful Operators
@@ -530,92 +531,14 @@ ListExpr JList<ListElem>::Property()
       nl->StringAtom(BasicType()),
       nl->TextAtom("("+ ListElem::BasicType() + " ... " +
                      ListElem::BasicType() + "), list of " +
-                     TupleIdentifier::BasicType() + ", " +
-                     NetDistanceGroup::BasicType() + ", " +
-                     PairTIDRLoc::BasicType() + ", or " +
-                     PairTIDRInt::BasicType() + ". "+
-                     "The example list is given for " +
-                     PairTIDRLoc::BasicType() + "."),
-      nl->StringAtom("((34 (1 17.5 Up))(57 (5 0.0 Down)))")));
+                     ListElem::BasicType()+"."),
+      nl->TextAtom("("+ Example() + ")")));
 }
 
-  /*
-template<>
-ListExpr JList<TupleIdentifier>::Property()
-{
-  return nl->TwoElemList(
-    nl->FourElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List")),
-    nl->FourElemList(
-      nl->StringAtom("-> " + Kind::DATA()),
-      nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ TupleIdentifier::BasicType() + " ... " +
-                        TupleIdentifier::BasicType() +"), list of tuple ids " +
-                        " of sections relation defining in-/out-sections, " +
-                        "respectively adjacent and reverse adjacent sections" +
-                        " of a section or junction"),
-      nl->StringAtom("(34 65 75)")));
+template<class ListElem>
+string JList<ListElem>::Example(){
+  return ListElem::Example();
 }
-
-template<>
-ListExpr JList<NetDistanceGroup>::Property()
-{
-  return nl->TwoElemList(
-    nl->FourElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List")),
-    nl->FourElemList(
-      nl->StringAtom("-> " + Kind::DATA()),
-      nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ NetDistanceGroup::BasicType() + " ... " +
-                   NetDistanceGroup::BasicType() +"), list of network " +
-                   "distances."),
-      nl->StringAtom("((34 65 75 15.5)(2 34 48 78.6))")));
-}
-
-template<>
-ListExpr JList<PairTIDRLoc>::Property()
-{
-  return nl->TwoElemList(
-    nl->FourElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List")),
-    nl->FourElemList(
-      nl->StringAtom("-> " + Kind::DATA()),
-      nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ PairTIDRLoc::BasicType() + " ... " +
-                      PairTIDRLoc::BasicType() +"), list of pairs of tuple ids "
-                      + " and single network positions. Connecting junctions " +
-                      "relation and route relation of the network"),
-      nl->StringAtom("((34 (1 17.5 Up))(57 (5 0.0 Down)))")));
-}
-
-template<>
-ListExpr JList<PairTIDRInt>::Property()
-{
-  return nl->TwoElemList(
-    nl->FourElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List")),
-    nl->FourElemList(
-      nl->StringAtom("-> " + Kind::DATA()),
-      nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ PairTIDRInt::BasicType() + " ... " +
-                     PairTIDRInt::BasicType() +"), list of pairs of tuple ids "
-                   + "and route parts. Connecting sections relation and " +
-                   " routes relation of the network."),
-      nl->StringAtom("((34 (1 17.5 84.5 Up))(57 (5 0.0 64.5 Down)))")));
-} */
-
 
 /*
 1.6 Helpful Operators

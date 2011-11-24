@@ -392,7 +392,7 @@ ListExpr JLine::Property()
       JRouteInterval::BasicType() + ") ...("+ JRouteInterval::BasicType() +
       "))), part of network named by string represented by a list of route " +
       "intervals."),
-      nl->TextAtom("(netname ((1 17.5 35.0 Up)(5 0.0 24.5 Down)))")));
+      nl->TextAtom(Example())));
 }
 
 
@@ -400,6 +400,12 @@ ListExpr JLine::Property()
 1.1 Other helpful operators
 
 */
+
+string JLine::Example()
+{
+  return "(netname ("+ JRouteInterval::Example() + "))";
+}
+
 
 int JLine::GetNoComponents() const
 {

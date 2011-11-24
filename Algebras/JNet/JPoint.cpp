@@ -368,7 +368,7 @@ ListExpr JPoint::Property()
       nl->TextAtom("(" + CcString::BasicType() + " " +
                     RouteLocation::BasicType() + "), describes a position in " +
                     "the given network."),
-      nl->StringAtom("(netname (1 5.8 Both))")));
+      nl->StringAtom(Example())));
 }
 
 
@@ -376,3 +376,8 @@ ListExpr JPoint::Property()
 1.1 Other Operations
 
 */
+
+string JPoint::Example()
+{
+  return "(netname " + RouteLocation::Example() + ")";
+}

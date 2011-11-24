@@ -120,7 +120,14 @@ static ListExpr Property();
 /*
 1.6 Helpful Operators
 
+1.1.1 Example
+
+Provides example string for list representation can be used by external
+property definitions for Pairs representation.
+
 */
+
+static string Example();
 
 private:
 
@@ -497,51 +504,16 @@ ListExpr PairTID<Elem>::Property()
       nl->StringAtom("-> " + Kind::DATA()),
       nl->StringAtom(BasicType()),
       nl->TextAtom("("+ TupleIdentifier::BasicType() + " " + Elem::BasicType()
-      + "), pair connecting of tuple id and attribute data type. Connecting "+
-      "relations and values. Example list is tuple id and route location."),
-      nl->TextAtom("((34 (1 5.6 Up))(25 (6 546.6 Down)))")));
+      + "), pair connecting of " + TupleIdentifier::BasicType() + " and " +
+      Elem::BasicType() +". Connecting values and relations."),
+      nl->TextAtom(Example())));
 }
 
-    /*
-template<>
-ListExpr PairTID<RouteLocation>::Property()
+template<class Elem>
+string PairTID<Elem>::Example()
 {
-  return nl->TwoElemList(
-    nl->FourElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List")),
-    nl->FourElemList(
-      nl->StringAtom("-> " + Kind::DATA()),
-      nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ TupleIdentifier::BasicType() + " " +
-                      RouteLocation::BasicType() +
-                    "), pair connecting the tuples of an junctions relation" +
-                    " with the network position on the route."),
-      nl->TextAtom("((34 (1 5.6 Up))(25 (6 546.6 Down)))")));
+  return "(" + TupleIdentifier::Example() + " " + Elem::Example() + ")";
 }
-
-
-template<>
-ListExpr PairTID<JRouteInterval>::Property()
-{
-  return nl->TwoElemList(
-    nl->FourElemList(
-      nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List")),
-    nl->FourElemList(
-      nl->StringAtom("-> " + Kind::DATA()),
-      nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ TupleIdentifier::BasicType() + " " +
-                   JRouteInterval::BasicType()
-                   + "), pair connecting the tuples of sections relation, " +
-                   "respectively routes relation with corresponding network " +
-                   "part."),
-      nl->TextAtom("((34 (1 5.6 17.5 Up)) or (25 (6 5.8 546.6 Down)))")));
-} */
 
 #endif // PAIRTIDRLOC_H
 

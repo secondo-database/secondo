@@ -408,7 +408,7 @@ ListExpr RouteLocation::Property()
                      Direction::BasicType() + "), which means route id, " +
                      "distance from start of route, reachable from side " +
                      "of route."),
-      nl->StringAtom("(1 2.0 Up)")));
+      nl->StringAtom(Example())));
 }
 
 /*
@@ -417,6 +417,11 @@ ListExpr RouteLocation::Property()
 Returns true if the side values are identic or at least one of them is ~Both~.
 
 */
+
+string RouteLocation::Example()
+{
+  return "(1 2.0 " + Direction::Example() +")";
+}
 
 bool RouteLocation::SameSide(const RouteLocation& rloc,
                              const bool strict /*true*/) const

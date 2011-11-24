@@ -325,7 +325,7 @@ int CreatePairValueMap( Word* args, Word& result, int message,
   return 1;
 }
 
-ValueMapping CreatePairMap [] =
+ValueMapping CreatePairMap[] =
 {
   CreatePairValueMap<RouteLocation, PairTIDRLoc>,
   CreatePairValueMap<JRouteInterval, PairTIDRInt>
@@ -497,14 +497,17 @@ int CreateListSelect ( ListExpr args )
 
 const string CreateListSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text> " + Symbol::STREAM() + "(T) -> ListT</text--->"
+  "(<text> " + Symbol::STREAM() + "(" + TupleIdentifier::BasicType()  +
+  ") -> " + JListTID::BasicType() +", "+
+  Symbol::STREAM() + "(" + PairTIDRLoc::BasicType()  +
+  ") -> " + ListPairTIDRLoc::BasicType() +", "+
+  Symbol::STREAM() + "(" + PairTIDRInt::BasicType()  +
+  ") -> " + ListPairTIDRInt::BasicType()+ ", "+
+  Symbol::STREAM() + "(" + NetDistanceGroup::BasicType()  +
+  ") -> " + ListNetDistGrp::BasicType() + "</text--->"
   "<text> createlistj(_) </text--->"
-  "<text> Collects a stream of the data type " + TupleIdentifier::BasicType() +
-  ", " + PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() +
-  ", or " + NetDistanceGroup::BasicType() +" of JNetAlgebra into a single "
-  "list object of the data type as there are: "+ JListTID::BasicType() + ", " +
-  ListPairTIDRLoc::BasicType() + ", " + ListPairTIDRInt::BasicType() + ", and "
-  + ListNetDistGrp::BasicType() + ".</text--->"
+  "<text> Collects a stream of the data type T of JNetAlgebra into a single "
+  "ListT  of the data type.</text--->"
   "<text> query createsteramj(tupleidlist) createlistj</text--->))";
 
 Operator jnetcreatelistj(
@@ -647,14 +650,17 @@ int CreateStreamSelect ( ListExpr args )
 
 const string CreateStreamJSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text> ListT -> " + Symbol::STREAM() + "(T)</text--->"
+  "(<text>" + JListTID::BasicType() + " -> " + Symbol::STREAM() + "(" +
+    TupleIdentifier::BasicType() + "), "
+    + ListPairTIDRLoc::BasicType() + " -> " + Symbol::STREAM() + "("+
+    PairTIDRLoc::BasicType() + "), " +
+    ListPairTIDRInt::BasicType() + " -> " + Symbol::STREAM() + "("+
+    PairTIDRInt::BasicType() + "), " +
+    ListNetDistGrp::BasicType() + " -> " + Symbol::STREAM() + "("+
+    NetDistanceGroup::BasicType() + ")</text--->"
   "<text> createstreamj(_) </text--->"
-  "<text> Expands a list of data type" + JListTID::BasicType() + ", " +
-  ListPairTIDRLoc::BasicType() + ", " + ListPairTIDRInt::BasicType() + ", or "
-  +  ListNetDistGrp::BasicType() + " of JNetAlgebra into a stream of the "
-  "corresponding data type "+ TupleIdentifier::BasicType() + ", " +
-  PairTIDRLoc::BasicType() + ", " + PairTIDRInt::BasicType() + ", or " +
-  NetDistanceGroup::BasicType() + "</text--->"
+  "<text> Expands a list of data type ListT of JNetAlgebra into a stream of "+
+  " the corresponding data type T.</text--->"
   "<text> query createsteramj(tupleidlist) createlistj</text--->))";
 
 Operator jnetcreatestreamj(

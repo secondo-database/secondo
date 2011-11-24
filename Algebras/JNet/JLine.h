@@ -116,6 +116,10 @@ The default Constructor  should not be used outside the cast function.
 /*
 1.1 Other helpful operators
 
+*/
+
+  static string Example();
+/*
 1.1.1 GetNoComponents
 
 Returns the number of routeintervals of the jline.

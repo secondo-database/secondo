@@ -417,12 +417,21 @@ ListExpr Direction::Property()
       nl->StringAtom("-> " + Kind::DATA()),
       nl->StringAtom(BasicType()),
       nl->TextAtom("(<JSide>) where JSide is Up, Down or Both"),
-      nl->StringAtom("(Up)")));
+      nl->StringAtom("("+ Example() +")")));
 }
 
 /*
 1 Helpful Operations
 
+*/
+
+string Direction::Example()
+{
+  return "Up";
+}
+
+
+/*
 1.1 SameSide
 
 Returns true if the both direction values are equal or one of them is ~Both~.

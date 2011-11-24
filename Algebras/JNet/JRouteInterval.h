@@ -124,9 +124,20 @@ The default constructor should never been used, except in the Cast-Function.
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
   static ListExpr Property();
+
 /*
 1.6 Helpful Operators
 
+1.1.1 Example
+
+Provides example string for list representation can be used by external
+property definitions for part of route interval representation.
+
+*/
+
+static string Example();
+
+/*
 1.1.1 SameSide
 
 Returns true if the ~route intervals~ have identic side value or at least one

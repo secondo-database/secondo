@@ -463,13 +463,21 @@ ListExpr JRouteInterval::Property()
                     "which means route id, part of the route described by the" +
                     " distance from the start of the route , side of route" +
                     "part."),
-      nl->StringAtom("(1 2.0 6.8 Down)")));
+      nl->StringAtom(Example())));
 }
 
 
 /*
 1.6 Helpful Operators
 
+*/
+
+string JRouteInterval::Example()
+{
+  return "(1 0.5 3.75 "+ Direction::Example() + ")";
+}
+
+/*
 1.1 ~SameSide~
 
 Returns true if the ~route intervals~ have identic ~side~ values or at least one

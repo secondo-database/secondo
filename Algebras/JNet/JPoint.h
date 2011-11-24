@@ -118,6 +118,7 @@ The default constructor should only be used in the Cast-Function.
 1.1 Other Operations
 
 */
+  static string Example();
 
 private:
 

@@ -128,7 +128,14 @@ static ListExpr Property();
 /*
 1.6 Helpful Operators
 
+1.1.1 Example
+
+Provides example string for list representation can be used by external
+property definitions for net distance group representation.
+
 */
+
+static string Example();
 
 private:
 

@@ -452,10 +452,15 @@ ListExpr NetDistanceGroup::Property()
             " " + CcReal::BasicType()+ "), identifying target junction, " +
             "next junction and next section on the way to target and network " +
             "distance to target node."),
-      nl->StringAtom("(34 25 64 18.5)")));
+      nl->TextAtom(Example())));
 }
 
 /*
 1.6 Helpful Operators
 
 */
+
+string NetDistanceGroup::Example()
+{
+  return "(34 25 64 18.5)";
+}
