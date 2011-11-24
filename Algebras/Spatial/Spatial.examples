@@ -21,6 +21,17 @@ Signature: (point point) -> bool, (points points) -> bool, (line line) -> bool, 
 Example  : query tiergarten = zoogarten
 Result   : FALSE
 
+Operator : <
+Number   : 1
+Signature: point x point -> bool
+Example  : query [const point value (0.0 2.5)] < [const point value (1.0 2.5)]
+Result   : TRUE
+
+Operator : <
+Number   : 2
+Signature: point x point -> bool
+Example  : query [const point value (1.0 2.5)] < [const point value (0.0 2.5)]
+Result   : FALSE
 
 Operator : adjacent
 Number   : 1

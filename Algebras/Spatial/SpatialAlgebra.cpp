@@ -7340,11 +7340,20 @@ bool SimpleLine::AtPoint( const Point& p,
     lrsArray.Get( hs.attr.edgeno, lrs );
     segments.Get( lrs.hsPos, &hs );
     result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
+
     if(!this->startSmaller )result = length - result;
-    if( AlmostEqualAbsolute( result, 0.0, tolerance ) ){
-      result = 0;
-    } else if( AlmostEqualAbsolute( result, length, tolerance ) ){
-      result = length;
+
+    if (tolerance != 0.0)
+    {
+      if( AlmostEqualAbsolute( result, 0.0, tolerance ) ) result = 0;
+      else
+        if(AlmostEqualAbsolute( result, length, tolerance)) result = length;
+    }
+    else
+    {
+      if (AlmostEqual(result,0.0)) result = 0.0;
+      else
+        if (AlmostEqual(result, length)) result = length;
     }
 
     assert( result >= 0.0 && result <= length );
@@ -7394,10 +7403,17 @@ bool SimpleLine::AtPoint( const Point& p,
 
     if(!startsSmaller) result = length - result;
 
-    if( AlmostEqualAbsolute( result, 0.0, tolerance ) ){
-      result = 0;
-    } else if( AlmostEqualAbsolute( result, length, tolerance ) ){
-      result = length;
+    if (tolerance != 0.0)
+    {
+      if( AlmostEqualAbsolute( result, 0.0, tolerance ) ) result = 0;
+      else
+        if(AlmostEqualAbsolute( result, length, tolerance)) result = length;
+    }
+    else
+    {
+      if (AlmostEqual(result,0.0)) result = 0.0;
+      else
+        if (AlmostEqual(result, length)) result = length;
     }
 
     assert( result >= 0.0 && result <= length );
@@ -12850,6 +12866,23 @@ ListExpr SpatialTypeMapEqual(ListExpr args){
   return listutils::typeError(err + " (only spatial types allowed");
 }
 
+ListExpr SpatialTypeMapIsLess(ListExpr args){
+  string err = "point x point expected";
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError(err + " wrong number of arguments");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg1) || !listutils::isSymbol(arg2)){
+    return listutils::typeError(err + " composite type detected");
+  }
+  string s1 = nl->SymbolValue(arg1);
+  string s2 = nl->SymbolValue(arg2);
+  if(s1==s2 &&  s1==Point::BasicType())
+    return nl->SymbolAtom(CcBool::BasicType());
+  else
+    return listutils::typeError(err);
+}
 
 /*
 10.1.2 Type mapping function GeoGeoMapBool
@@ -14589,6 +14622,15 @@ int SpatialSelectEqual(ListExpr args){
    return -1;
 }
 
+int SpatialSelectIsLess(ListExpr args){
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  string s1 = nl->SymbolValue(a1);
+  if(nl->Equal(a1,a2)){
+    if(s1 == Point::BasicType()) return 0;
+  }
+  return -1;
+}
 
 /*
 10.3.4 Selection function ~SpatialSelectIntersects~
@@ -15249,6 +15291,27 @@ SpatialEqual( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+10.4.2 Value mapping functions of operator ~$<$~
+
+*/
+
+template<class T1, class T2>
+int SpatialIsLess(Word* args, Word& result, int message, Word& local,
+                  Supplier s)
+{
+  result = qp->ResultStorage( s );
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T1* a1 = static_cast<T1*>(args[0].addr);
+  T2* a2 = static_cast<T2*>(args[1].addr);
+  if(!a1->IsDefined() || !a2->IsDefined()){
+    res->Set(false,false);
+    return 0;
+  }
+    bool e = (*a1) < (*a2);
+    res->Set(true,e);
+    return 0;
+}
 
 /*
 10.4.3 Value mapping functions of operator ~$\neq$~
@@ -17845,6 +17908,8 @@ ValueMapping spatialequalmap[] = {
   SpatialEqual<Point,Points>,
   SpatialEqual<Points, Point>};
 
+ValueMapping spatialislessmap[] = { SpatialIsLess<Point, Point>};
+
 ValueMapping spatialnotequalmap[] = {
   SpatialNotEqual<Point>,
   SpatialNotEqual<Points>,
@@ -18137,6 +18202,14 @@ const string SpatialSpecEqual  =
   "<text>TRUE, iff both arguments are equal.</text--->"
   "<text>query point1 = point2</text--->"
   ") )";
+
+const string SpatialSpecIsLess =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+"( <text>(point point) -> bool </text--->"
+"<text>_ < _</text--->"
+"<text>TRUE, iff first argument is smaller than second argument.</text--->"
+"<text>query point1 < point2</text--->"
+") )";
 
 const string SpatialSpecNotEqual  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -18803,6 +18876,14 @@ Operator spatialequal (
   spatialequalmap,
   SpatialSelectEqual,
   SpatialTypeMapEqual );
+
+Operator spatialisless (
+  "<",
+  SpatialSpecIsLess,
+  1,
+  spatialislessmap,
+  SpatialSelectIsLess,
+  SpatialTypeMapIsLess );
 
 Operator spatialnotequal (
   "#",
@@ -20346,6 +20427,7 @@ class SpatialAlgebra : public Algebra
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
+    AddOperator( &spatialisless);
     AddOperator( &spatialnotequal );
     AddOperator( &spatialintersects );
     AddOperator( &spatialinside );

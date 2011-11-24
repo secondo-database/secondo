@@ -25,6 +25,7 @@ operator vertices alias VERTICES pattern op ( _ )
 operator isempty alias ISEMPTY pattern op(_)
 operator = alias EQ pattern _ infixop _
 operator # alias NEQ pattern _ infixop _
+operator < alias LT pattern _ infixop _
 operator intersects alias INTERSECTS pattern _ infixop _
 operator inside alias INSIDE pattern _ infixop _
 operator intersection alias INTERSECTION pattern op(_,_)
