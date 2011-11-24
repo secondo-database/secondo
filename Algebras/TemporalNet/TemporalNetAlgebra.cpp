@@ -8335,6 +8335,7 @@ int OpMapMatchingValueMapping(Word* args,
     }
     if (startGP == 0 || !startGP->IsDefined())
     {
+      cout << "no (further) start gp found in network" << endl;
       startGP->DeleteIfAllowed();
       if (aktUGPoint != 0)
       {
@@ -8363,6 +8364,9 @@ int OpMapMatchingValueMapping(Word* args,
     GPoint* endGP =
       pNetwork->GetNetworkPosOfPointOnRoute(pUPoint.p1,
                                             startGP->GetRouteId());
+    if (endGP == 0 || !endGP->IsDefined())
+        endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
+
     while ((endGP == 0 || !endGP->IsDefined()) &&
       i < pMPoint->GetNoComponents())
     {
@@ -8374,6 +8378,7 @@ int OpMapMatchingValueMapping(Word* args,
       pMPoint->Get(i++,pUPoint);
       endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
     }
+
     if (endGP == 0 || !endGP->IsDefined())
     {
       startGP->DeleteIfAllowed();
@@ -8582,9 +8587,9 @@ int OpMapMatchingValueMapping(Word* args,
 const string OpMapMatchingSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> network X mpoint ->  mgpoint </text--->"
-  "<text>_ mapmatching (network,mpoint)</text--->"
-  "<text> The operation tries to map the mpoint to the given network as well"
+  "( <text>network X mpoint ->  mgpoint </text--->"
+  "<text>mapmatching (network,mpoint)</text--->"
+  "<text>The operation tries to map the mpoint to the given network as well"
   " as possible. Parts of movement, which can not be mapped directly"
   " are interpolated by shortest path computing. And trip simulation.</text--->"
   "<text>query mapmatching(B_NETWORK, train7)</text--->) )";
