@@ -5,13 +5,13 @@ Operator : distancescan
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [[const point value (10539.0 14412.0)], 5] count;
-Result   : 0
+Result   : 5
 
 Operator : distancescan
 Number   : 2
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] count;
-Result   : 0
+Result   : 5
 
 
 Operator : distancescan2
@@ -81,20 +81,21 @@ Result    : TRUE
 Operator  : coverage
 Number    : 1
 Signature : rtree3 -> stream( tuple(NodeId : int) (Coverage uint))
-Example   : query coverage(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count
-Result    : 2416
+Example   : query coverage(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count >= no_nodes(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip] )
+Result    : TRUE
+Remark    : for each node in the r-tree up to three entries are inserted into the relation
 
 Operator  : coverage2
 Number    : 1
 Signature : rtree3 -> stream( tuple( NodeId : int, Level : int, Coverage: mint))
-Example   : query coverage2(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count 
-Result    : 847
+Example   : query coverage2(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count = no_nodes( UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip])
+Result    : TRUE
 
 
 Operator : knearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))(btree (tuple ((x1 t1)...(xn tn))) ti)(rel2 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_rtree UTOrdered btree numbers knearestfilter[UTrip,train1, 3] knearest[UTrip, train1, 3] count
+Example  : query UTOrdered_rtree UTOrdered numbers_btree  numbers knearestfilter[UTrip, train1, 3] knearest[UTrip, train1, 3] count
 Result   : 330
 
 Operator : greeceknearest
