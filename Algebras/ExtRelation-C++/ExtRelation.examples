@@ -266,7 +266,7 @@ Result   : file
 Operator : toFields
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ...,an:dn]))) x ai) -> stream(tuple([ai, attrname, dj, aj]))
-Example  : query Orte feed toFields [PLZ]
+Example  : query Staedte feed toFields [SName] head[10] tconsume
 Result   : file
 
 
