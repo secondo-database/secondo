@@ -1,0 +1,7 @@
+ 
+((trel (tuple ((SName string) (Field string) (Type text) (Value text))))   
+(("Aachen" "SName" 'string' 'Aachen') ("Aachen" "Bev" 'int' '239000') ("Aachen" 
+"PLZ" 'int' '5100') ("Aachen" "Vorwahl" 'string' '0241') ("Aachen" 
+"Kennzeichen" 'string' 'AC') ("Berlin" "SName" 'string' 'Berlin') ("Berlin" 
+"Bev" 'int' '1859000') ("Berlin" "PLZ" 'int' '1000') ("Berlin" "Vorwahl" 
+'string' '030') ("Berlin" "Kennzeichen" 'string' 'B')))
