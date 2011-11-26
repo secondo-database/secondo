@@ -2970,7 +2970,7 @@ if the target machine is not the producer.
 
 */
       bool attachProducerIP = !(targetIndex == pdi);
-      rFilePath = ci->getRemotePath(targetIndex, fileName,
+      rFilePath = ci->getRemotePath(targetIndex, fileName + fileSuffix,
           true,   // may traverse the whole array
           false,  // not create sub-folder
           true,   // attach with target node IP
