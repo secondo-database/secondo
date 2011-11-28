@@ -287,6 +287,14 @@ ALGEBRAS     += RecordAlgebra
 ALGEBRA_DIRS += SpatialJoin
 ALGEBRAS     += SpatialJoinAlgebra
 
+#ALGEBRA_DIRS += OSM
+#ALGEBRAS     += OsmAlgebra
+#ALGEBRA_DEPS += xml2
+# on max os X the framework CoreServices must be added
+# uncomment the next line if you use mac os
+#ALGEBRA_LINK_FLAGS += -framework CoreServices
+
+ 
 
 #ALGEBRA_DIRS  += RIndex
 #ALGEBRAS     += RIndexAlgebra
