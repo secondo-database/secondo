@@ -56,7 +56,7 @@ opt_earlyExit="no"
 # options for automatic mails  
 LU_SENDMAIL="true"
 LU_SENDMAIL_FROM="spieker@bassi"
-failedBuild_DefaultRecipients="spieker@bassi behr@bassi duentgen@bassi jandt@bassi"
+failedBuild_DefaultRecipients="spieker@bassi behr@bassi valdes@bassi duentgen@bassi jandt@bassi"
 newTarFile_MailRecipients="spieker@bassi jandt@bassi"
 
 LU_LOG_SCREEN="true"
