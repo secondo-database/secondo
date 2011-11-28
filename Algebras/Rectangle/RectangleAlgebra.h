@@ -251,7 +251,7 @@ of the rectangle.
 
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
-    } 
+    }
 
     inline size_t Sizeof() const { return sizeof( *this ); }
 
@@ -766,8 +766,8 @@ inline Rectangle<dim>
 Rectangle<dim>::Intersection( const Rectangle<dim>& r,
                               const Geoid* geoid /*=0*/ ) const
 {
-  if( !this->del.isDefined || !r.IsDefined() || (geoid && !geoid->IsDefined())
-                           || !Intersects( r,geoid ) )
+  if( !this->del.isDefined || !r.IsDefined() || (geoid && (!geoid->IsDefined()
+                           || !Intersects( r,geoid ) )))
     return Rectangle<dim>( false );
 
   double auxmin[dim], auxmax[dim];
