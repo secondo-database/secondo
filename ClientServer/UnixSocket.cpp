@@ -61,6 +61,9 @@ For a description of the public interface see the ~SocketIO~ header file.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/utsname.h>
+#ifndef offsetof
+#include <stddef.h>
+#endif
 
 #ifdef ACHMANNPATCH
 #include <sys/un.h>

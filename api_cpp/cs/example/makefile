@@ -31,13 +31,13 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 
 app$(EXEEXT): Example.o
-	$(CC) -o app$(EXEEXT) Example.o  $(LDFLAGS)
+	$(CPPC) -o app$(EXEEXT) Example.o  $(LDFLAGS)
 	rm -rf nltemp
 	mkdir nltemp
 
 
 Example.o: Example.cpp
-	$(CC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDBINCLUDE) 
+	$(CPPC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDBINCLUDE) 
 
 .PHONY:clean
 clean:
