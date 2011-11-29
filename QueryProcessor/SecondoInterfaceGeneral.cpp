@@ -360,7 +360,7 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
         break;
       }
       nl->WriteListExpr( first, os );
-      ListExpr params = nl->Rest(first);
+//      ListExpr params = nl->Rest(first); //come after error checking 
 
       ListExpr listErrorCode = nl->Empty();
       if (!nl->IsAtom(first))
@@ -375,6 +375,7 @@ SecondoInterface::WriteErrorList ( ListExpr list, ostream& os /* = cerr */ )
         break;
       }
       errorCode = nl->IntValue( listErrorCode );
+      ListExpr params = nl->Rest(first);
       errorText = GetErrorMessage( errorCode, params );
       os << endl << "=> " << errorText << endl;
       list = nl->Rest( list );
