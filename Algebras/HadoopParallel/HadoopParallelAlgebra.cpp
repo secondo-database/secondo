@@ -4204,8 +4204,11 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
         else
         {
           string rPath =
-              ci->getRemotePath(i,(fi->getFileName() + "_" + cnIP),
-              true, true, true, true);
+              ci->getRemotePath(i,(fi->getFileName()),
+              true, // round
+              true, // createPath
+              true, // attachIP
+              true); // attachProducerIP
 //          FileSystem::AppendItem(rPath,
 //              (fi->getFileName() + "_" + cnIP));
           int copyTimes = MAX_COPYTIMES;
