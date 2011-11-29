@@ -8563,26 +8563,28 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
         nl->IsAtom( nl->Fourth( first ) ) &&
         nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
+
       correct = true;
       Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
-       nl->First( first ),
-        errorPos, errorInfo, correct ).addr;
+              nl->First( first ), errorPos, errorInfo, correct ).addr;
 
-      if( !correct || !start->IsDefined() )
+      if( !correct || start == NULL || !start->IsDefined())
       {
-        errmsg = "InUPoint(): Error in first instant (Must be defined!).";
+//        "InUPoint(): Error in first instant (Must be defined!).";
+        errmsg = "InUPoint(): first instant must be defined!.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
       }
 
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
-       nl->Second( first ),
-                                           errorPos, errorInfo, correct ).addr;
+                      nl->Second( first ),
+                      errorPos, errorInfo, correct ).addr;
 
-      if( !correct  || !end->IsDefined() )
+      if( !correct  || end == NULL || !end->IsDefined() )
       {
-        errmsg = "InUPoint(): Error in second instant (Must be defined!).";
+//        errmsg = "InUPoint(): Error in second instant (Must be defined!).";
+        errmsg = "InUPoint(): second instant must be defined!.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
