@@ -62,7 +62,7 @@ operator sample alias SAMPLEFEED pattern _ op [_, _]
 
 operator aggregate alias AGGREGATE pattern _ op [ _; _; _ ] 
 operator aggregateB alias AGGREGATEB pattern _ op [ _; _; _ ] 
-operator aggregateC alias AGGREGATEC pattern _ op [  _; _ ] 
+operator aggregateC alias AGGREGATEC pattern _ op [  _  ] 
 
 operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2 !!
 
@@ -77,7 +77,7 @@ operator kbiggest alias KBIGGEST pattern _ op [_ ; list  ]
 
 operator extend_aggr alias EXTEND_AGGR pattern _ op [list  ; funlist ]
 
-operator extend_last alias EXTEND_LAST pattern _ op [funlist ; list] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
+operator extend_last alias EXTEND_LAST pattern _ op [funlist ] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
 
 
 

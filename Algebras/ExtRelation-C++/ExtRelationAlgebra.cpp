@@ -8559,7 +8559,10 @@ DATA for aggregation.
 */
 ListExpr aggregateCTM(ListExpr args){
 
-   string err = "stream(tuple(X)) x  (tuple(X) x t ->t ) x t, "
+
+   cout << "TypeMap aggregateC with " << nl->ToString(args) << endl;
+
+   string err = "stream(tuple(X)) x  (tuple(X) x t ->t ) x t"
                 "t in DATA expected";
    if(!nl->HasLength(args,3)){
       return listutils::typeError(err);
@@ -8569,6 +8572,7 @@ ListExpr aggregateCTM(ListExpr args){
    if(!Stream<Tuple>::checkType(stream)){
       return listutils::typeError(err);
    }	   
+
 
    ListExpr start = nl->Third(args);
    if(!listutils::isDATA(start)){
@@ -8592,6 +8596,8 @@ ListExpr aggregateCTM(ListExpr args){
       return listutils::typeError("result of function differs from "
                                   "start value");
    }
+
+   cout << "Type mapping finished, return " << nl->ToString(start) << endl;
 
    return start;
 }
@@ -10917,37 +10923,34 @@ signature is  stream(tuple) x funlist x list
 
 */
 ListExpr extend_lastTM(ListExpr args){
-  string err = "stream(tuple) x funlist x list expected";
-  if(!nl->HasLength(args,3)){
+  string err = "stream(tuple) x funlist with defaults expected";
+  if(!nl->HasLength(args, 2)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   ListExpr stream = nl->First(args);
-  ListExpr funlist = nl->Second(args);
-  ListExpr defaultValues = nl->Third(args);
+  ListExpr fundeflist = nl->Second(args);
 
   if(!Stream<Tuple>::checkType(stream)){
     return listutils::typeError(err + " (first arg is not a tuple stream");
   }
-  if(nl->ListLength(funlist) != nl->ListLength(defaultValues)){
-    return listutils::typeError(err + " (funlist and default value "
-                                      "list have different lengths)");
-  }
-  if(nl->IsEmpty(funlist)){
+  if(nl->IsEmpty(fundeflist)){
     return listutils::typeError(err + " (funlist is empty)");
   }
+
   ListExpr TupleList  = nl->Second(stream);
   ListExpr attrList   = nl->Second(TupleList);
   ListExpr ExtList;
   ListExpr last;
   bool first = true;
-  while(!nl->IsEmpty(funlist)){
-    ListExpr firstFun = nl->First(funlist);
-    ListExpr firstDefault = nl->First(defaultValues);
-    funlist = nl->Rest(funlist);
-    defaultValues = nl->Rest(defaultValues);
-    if(!nl->HasLength(firstFun,2)){ // (name map)
+
+
+  while(!nl->IsEmpty(fundeflist)){
+    ListExpr firstFun = nl->First(fundeflist);
+    fundeflist = nl->Rest(fundeflist);
+    if(!nl->HasLength(firstFun,3)){ // (name map default)
       return listutils::typeError(err + " (Invalid named function)");
     }
+
     ListExpr newName = nl->First(firstFun);
     if(!listutils::isSymbol(newName)){
        return listutils::typeError(err + " (invalid name for an attribute)");
@@ -10961,7 +10964,8 @@ ListExpr extend_lastTM(ListExpr args){
        return listutils::typeError(err + " ( invalid function arguments )");
     } 
     ListExpr resType = nl->Fourth(mapList);
-    if(!nl->Equal(resType,firstDefault)){
+    ListExpr defType = nl->Third(firstFun);
+    if(!nl->Equal(resType,defType)){
        return listutils::typeError(err + " (type mismatch between fun "
                                   "result and default)");
     }
@@ -10997,8 +11001,8 @@ ListExpr extend_lastTM(ListExpr args){
 class ExtendLastInfo{
   public:
     ExtendLastInfo(Word& _stream, Supplier _s1, 
-                   Supplier _s2, ListExpr resType):
-     stream(_stream), s1(_s1), s2(_s2), first(true), lastTuple(0){
+                   ListExpr resType):
+     stream(_stream), s1(_s1), first(true), lastTuple(0){
       tupleType = new TupleType(resType);
       stream.open();
     }
@@ -11025,9 +11029,9 @@ class ExtendLastInfo{
 
       if(first){
          // copy default values 
-         int noDefaults = qp->GetNoSons(s2);
+         int noDefaults = qp->GetNoSons(s1);
          for(int i=0;i<noDefaults;i++){
-            Supplier s = qp->GetSon(s2,i);
+            Supplier s = qp->GetSon(qp->GetSon(s1,i),2);
             Word res;
             qp->Request(s,res);
             Attribute* resAttr = (Attribute*) res.addr;
@@ -11038,9 +11042,9 @@ class ExtendLastInfo{
       } else { // lastTuple is present, use functions
          int noFuns = qp->GetNoSons(s1);
          for(int i=0; i < noFuns; i++){
-            Supplier fun1 = qp->GetSon(s1,i); // (Name Function)
+            Supplier fun1 = qp->GetSon(s1,i); // (Name Function default)
 
-            Supplier fun = qp->GetSon(fun1,1);
+            Supplier fun = qp->GetSon(fun1,1); // get function
             ArgVectorPointer funargs = qp->Argument(fun);
             (*funargs)[0] = srcTuple;
             (*funargs)[1] = lastTuple;
@@ -11058,7 +11062,6 @@ class ExtendLastInfo{
   private:
     Stream<Tuple> stream;
     Supplier s1;
-    Supplier s2;
     bool first;
     TupleType* tupleType;
     Tuple* lastTuple;
@@ -11078,7 +11081,6 @@ extend_lastVM(Word* args, Word& result, int message,
                      delete li;
                   }
                   local.addr = new ExtendLastInfo(args[0], args[1].addr, 
-                                          args[2].addr, 
                                           nl->Second(GetTupleResultType(s1)));
                   return 0;
                   }

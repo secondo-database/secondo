@@ -348,8 +348,8 @@ Result   : 55
 
 Operator : extend_last 
 Number   : 1
-Signature: stream(tuple(X) x funlist x list
-Example  : query ten feed extend_last[ A : .no - ..no; 0   ] max[A]
+Signature: stream(tuple(X) x funlist with defaults 
+Example  : query ten feed extend_last[ A : .no + ..no :: 0 , B : .no - ..no :: 0  ] max[B]
 Result   : 1
 
 

@@ -450,7 +450,7 @@ namedfunction  :  naming valueexpr
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($2,
           NestedText::AtomC(")")))));}
-    ;
+      ;
 
 function  : ZZFUN '(' args ')' valueexpr
         {$$ = NestedText::Concat(NestedText::AtomC("(fun "),
@@ -463,6 +463,25 @@ function  : ZZFUN '(' args ')' valueexpr
               NestedText::Concat($4, NestedText::AtomC(")")) );}
     | ZZFUN  ZZIDENTIFIER
         {$$ =  $2;}
+
+    | ZZFUN '(' args ')' valueexpr  ZZDEFAULTSEP valueexpr
+    {
+       $$ = NestedText::Concat(NestedText::AtomC("(fun "),
+        NestedText::Concat($3,
+        NestedText::Concat(NestedText::AtomC("  "),
+        NestedText::Concat($5,
+        NestedText::Concat(NestedText::AtomC(" ) "),
+        NestedText::Concat($7,
+        NestedText::AtomC(" ")     ))))));
+      }
+    | ZZFUN '(' ')' valueexpr  ZZDEFAULTSEP valueexpr
+    {
+       $$ = NestedText::Concat(NestedText::AtomC(" (fun "),
+        NestedText::Concat($4,
+        NestedText::Concat(NestedText::AtomC(" ) "),
+        NestedText::Concat($6,
+        NestedText::AtomC(" ")     ))));
+      }
     ;
 
 arg    : ZZNAMING typeexpr

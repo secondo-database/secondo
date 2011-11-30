@@ -596,6 +596,7 @@ void print_complex_postfix(){
     (*yaccrules2) << endl << "/*" << endl
                   << "~Function~" << endl
                   << endl << "*/" << endl;
+    // case 1 a named function
     (*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
     (*yaccrules2) << "      ";
     if(currenttranslation.bufferForced){
@@ -618,7 +619,39 @@ void print_complex_postfix(){
     } else {
        (*yaccrules2) << "            NestedText::AtomC(\")\")  ))));} " << endl;
     }
+    // case 2: a named function with default value
+    (*yaccrules2) <<  "    |   naming "<< funname << "_1  ZZDEFAULTSEP valueexpr" <<  endl;
+    (*yaccrules2) << "      ";
+    if(currenttranslation.bufferForced){
+       (*yaccrules2)  << "{$$ = NestedText::Concat( "
+                      << "      (USE_AUTO_BUFFER?NestedText::AtomC(\"( ! (\")"
+                      << "                      :NestedText::AtomC(\"(\")), ";
+     } else {
+       (*yaccrules2)  << "{$$ = NestedText::Concat(NestedText::AtomC(\"(\"), ";
+     } 
+    (*yaccrules2) << endl;
+    (*yaccrules2) << "            NestedText::Concat($1, " << endl;
+    (*yaccrules2) << "            " 
+                  << "NestedText::Concat(NestedText::AtomC(\" \")," 
+                  << endl;
+    (*yaccrules2) << "            NestedText::Concat($2, " << endl;
+    (*yaccrules2) << "              NestedText::Concat(NestedText::AtomC(\" \"),";
+    (*yaccrules2) << "              NestedText::Concat(  $4 ,";
+
+
+    if(currenttranslation.bufferForced){
+       (*yaccrules2) << "            (USE_AUTO_BUFFER?NestedText::AtomC(\"))\")"
+                     << "                            :NestedText::AtomC(\")\"))"
+                     << "   ))))));} " << endl;
+    } else {
+       (*yaccrules2) << "            NestedText::AtomC(\")\")  ))))));} " << endl;
+    }
+    // case 3:  unnamed function
     (*yaccrules2) << "      | " << funname << "_1   {$$ = $1;} " << endl;
+    // case 4:  unnamed function with default value
+    (*yaccrules2) << "      | " << funname << "_1  ZZDEFAULTSEP valueexpr " << endl;
+    (*yaccrules2) << "      {$$ = NestedText::Concat($1, NestedText::Concat(NestedText::AtomC(\" \"), $3));";
+    (*yaccrules2) << "               } " << endl;
     (*yaccrules2) << "     ; " << endl;
   }
 
