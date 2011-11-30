@@ -27,6 +27,7 @@ operator sum alias SUM pattern _ op [ _ ]
 operator var alias VAR pattern _ op [ _ ]
 operator stats alias STATS pattern _ op [ _ , _ ]
 operator toFields alias TOFIELDS pattern _ op [ _ ]
+operator fromFields alias FROMFIELDS pattern _op [ _ ]
 
 operator concat alias CONCAT pattern _ _ op
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE

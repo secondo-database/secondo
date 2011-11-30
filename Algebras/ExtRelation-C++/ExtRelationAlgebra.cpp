@@ -82,6 +82,9 @@ examples for the practical course.
 January 2008, C. D[ue]ntgen adds aggregation operator ~var~, computing the
 variance on a stream.
 
+November 2011, F. Valdes. Operator ~toFields~ added, decomposing a stream of
+tuples into its items.
+
 [TOC]
 
 1 Includes and defines
@@ -11225,7 +11228,6 @@ class ToFieldsInfo {
     TupleType* tt;
     int algid, typid, attrno;
     bool istype;
-    //string type;
     vector<OutObject> outfuns;
     vector<ListExpr> typelists;
     ListExpr typelist, output;
@@ -11364,7 +11366,321 @@ struct toFieldsInfo : OperatorInfo {
 
 };
 
+/*
 
+
+2.116 Operator ~fromFields~
+inverts the operator toFields
+
+*/
+
+/*
+
+2.116.1 Type mapping for ~fromFields~ is
+(stream(tuple(keyvalue: keytype, Field: string, Type: text, Value: text))) 
+x (relation(X)) -> (stream(X))
+
+*/
+
+ListExpr fromFieldsType( ListExpr args ) {
+  if ( !nl->HasLength( args, 2 ) ) {
+    return listutils::typeError( "two arguments expected" );
+  }
+  if ( !Stream<Tuple>::checkType( nl->First( args ) ) ) {
+    return listutils::typeError( "first argument must be a stream of tuples" );
+  }
+  if ( !listutils::isRelDescription( nl->Second( args ) ) ) {
+    return listutils::typeError( "second argument must be a relation" );
+  }
+  ListExpr attrlist = nl->Second( nl->Second( nl->First( args ) ) );
+  if ( !nl->HasLength( attrlist, 4 ) ) {
+    return listutils::typeError
+                  ( "tuples in the first argument must have 4 attributes" );
+  }
+  string error = "stream must contain tuples of type"
+                 "((x y) (Field string) (Type text) (Value text))";
+  if ( !CcString::checkType( nl->Second( nl->Second( attrlist ) ) )
+    || ( !listutils::isSymbol( nl->First( nl->Second(attrlist)), "Field"))) {
+    return listutils::typeError( error );
+  }
+  if ( !FText::checkType( nl->Second( nl->Third( attrlist ) ) )
+    || ( !listutils::isSymbol( nl->First( nl->Third(attrlist)), "Type"))) {
+    return listutils::typeError( error );
+  }
+  if ( !FText::checkType( nl->Second( nl->Fourth( attrlist ) ) )
+    || ( !listutils::isSymbol( nl->First( nl->Fourth(attrlist)), "Value"))) {
+    return listutils::typeError( error );
+  }
+  ListExpr tuple = nl->Second( nl->Second( args ) );
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType() ) , tuple );
+}
+/*
+
+2.116.2 Class ~fromFieldsInfo~
+
+*/
+
+class FromFieldsInfo {
+  private:
+    Stream<Tuple> stream;
+    Tuple* tuple;
+    Tuple* inTuple;
+    TupleType* tt;
+    vector<InObject> infuns;
+    vector<ObjectCreation> createfuns;
+    map<string,int> field2pos;
+    map<string,int>::iterator attrPos;
+    int attrMax; // number of attributes in every complete output tuple
+    Attribute* key;
+    vector<ListExpr> typelists;
+    
+    pair<int, int> getMainType( ListExpr type ){
+      while( !( nl->IsAtom( nl->First( type ) ) &&
+              ( nl->AtomType( nl->First( type ) == IntType ) ) ) ) {
+        type = nl->First( type );
+      }
+      pair<int, int> result( nl->IntValue( nl->First( type ) ),
+                             nl->IntValue( nl->Second( type ) ) );
+      return result;
+    }
+    
+  public:
+    FromFieldsInfo( Word& is, ListExpr tl ): 
+                    stream( is ), tuple( 0 ) {
+      inTuple = 0;                      
+      key = 0;                        
+      stream.open();
+      tt = new TupleType ( tl ); 
+      AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+      ListExpr attrList = nl->Second( tl );
+      int pos = -1;
+      while( !nl->IsEmpty( attrList ) ) {
+        pos++;
+        ListExpr attr = nl->First( attrList );
+        attrList = nl->Rest( attrList );
+        string field = nl->SymbolValue( nl->First( attr ) );
+        field2pos[field] = pos; // assign each attribute name to its position
+        pair<int, int> t = getMainType( nl->Second( attr ) );
+        // collect In functions, typelists and Create functions
+        infuns.push_back( am->InObj( t.first, t.second ) );
+        typelists.push_back( nl->Second( attr ) );
+        createfuns.push_back( am->CreateObj( t.first, t.second ) );
+      }
+      pos++;
+      attrMax = pos;
+    }
+    
+    ~FromFieldsInfo(){
+      if ( tuple ) {
+        tuple->DeleteIfAllowed();
+      }
+      stream.close();
+      tt->DeleteIfAllowed(); 
+      if ( key ) {
+        key->DeleteIfAllowed();
+      }
+    }
+    
+    // this function converts an inTuple into a tuple attribute
+    bool processTuple( Tuple* inTuple, Tuple* tuple ){
+      CcString* fieldCc = ( CcString* ) inTuple->GetAttribute( 1 );
+      if ( fieldCc->IsDefined() ) {
+        attrPos = field2pos.find( fieldCc->GetValue() );
+        if( attrPos != field2pos.end() ) {       
+          FText* attrvalue = (FText*) inTuple->GetAttribute( 3 );
+          string valuestr;
+          if ( attrvalue->IsDefined() ) {
+            valuestr = attrvalue->GetValue();
+          }
+          // call Create function depending on attribute
+          Word creation = createfuns[ attrPos->second ]
+                        ( typelists[ attrPos->second ] );
+          Attribute* newAttr = (Attribute*)creation.addr;                 
+          if ( newAttr->hasTextRepresentation() ) {
+            bool fromtextok = newAttr->fromText( valuestr );
+            if ( !fromtextok ) {
+              cout << "string could not be read" << endl;
+              newAttr->SetDefined(false);
+            }
+          }
+          else { // In function necessary
+            ListExpr instance; // needed to call the In function
+            bool instanceok = nl->ReadFromString( valuestr, instance );
+            if( !instanceok ) {
+              cout << "string could not be read" << endl;
+              newAttr->SetDefined(false);
+            }
+            else {
+              int errorPos = 0;
+              ListExpr errorInfo;
+              bool correct;
+              Word in = infuns[ attrPos->second ] // call In function
+                      ( typelists[ attrPos->second ],
+                        instance, errorPos, errorInfo, correct );
+              if ( correct ) {
+                newAttr->DeleteIfAllowed();
+                newAttr = ( Attribute* )in.addr;             
+              }
+              else {
+                  cout << "In function failed" << endl;
+                  newAttr->SetDefined(false);
+              }
+            }           
+          }
+          // attribute already set -> overwrite
+          if ( tuple->GetAttribute( attrPos->second ) != 0 ) {
+            cout << "attribute " << inTuple->GetAttribute( 1 ) <<
+                 " was already defined for key " << key <<
+                 " and is now overwritten" << endl;
+          }            
+          tuple->PutAttribute( attrPos->second, newAttr );
+        } 
+        else { // attribute does not exist -> input tuple is ignored
+          cout << "attribute " << inTuple->GetAttribute( 1 ) <<
+               " does not exist" << endl;
+          return 0;           
+        }                                              
+      }
+      else { // undefined attribute -> input tuple is ignored
+        cout << "undefined attribute " << endl;
+        return 0;
+      }     
+      return true;   
+    }
+    
+    // fills the output tuple with undefined values if necessary
+    bool fillTuple( Tuple* tuple ){
+      for ( int pos = 0; pos < attrMax; pos++ ) {
+        if ( !tuple->GetAttribute( pos ) ) {
+          Word creation = createfuns[ pos ]( typelists[ pos ] );
+          Attribute* emptyAttr = ( Attribute* )creation.addr;
+          emptyAttr->SetDefined( false );
+          tuple->PutAttribute( pos, emptyAttr );
+        }
+      }
+      return true;
+    }
+    
+    Tuple* nextTuple() {
+      Tuple* tuple = new Tuple( tt );
+      int attrsStored = 0; // #attributes currently stored in the output tuple
+      while ( attrsStored < attrMax ) {
+        if ( !inTuple ) {
+          inTuple = stream.request(); 
+        }
+        // not enough attributes for output tuple -> fill
+        if ( ( !inTuple && attrsStored < attrMax - 1 && attrsStored > 0 ) ) {
+          bool filled = fillTuple( tuple );
+          if ( filled ) {
+            cout << "not enough attributes for key " << key
+                 << ", tuple filled with undefined values" << endl;
+            return tuple;
+          }
+          else {
+            tuple->DeleteIfAllowed();
+            return 0;
+          }
+        }
+        if ( !inTuple ) {
+          tuple->DeleteIfAllowed();
+          return 0;
+        }
+        // new key, output tuple not completed -> fill
+        if ( key && key->Compare( inTuple->GetAttribute( 0 ) )
+                 && attrsStored < attrMax - 1 && attrsStored > 0 ) {
+          bool filled = fillTuple( tuple );
+          cout << "unexpected new key " << key
+               << ", tuple filled with undefined values" << endl;
+          if ( filled ) {
+            return tuple;
+          }
+          else {
+            tuple->DeleteIfAllowed();
+            return 0;
+          }
+        }
+        if ( key ) {
+          key->DeleteIfAllowed();
+        }
+        key = inTuple->GetAttribute( 0 )->Copy();
+        bool ok = processTuple( inTuple, tuple ); // the operator's main task
+        if ( !ok ) {
+          cout << "input tuple not processed" << endl;
+          bool filled = fillTuple( tuple );
+          if ( filled ) {
+            return tuple;
+          }
+          else {
+            tuple->DeleteIfAllowed();
+            return 0;
+          }
+        }
+        else {
+          attrsStored++;
+        }
+        inTuple->DeleteIfAllowed();
+        inTuple = 0;
+      }
+      return tuple;
+    }   
+};
+
+
+
+/*
+
+2.116.3 Value mapping for ~fromFields~
+
+*/
+
+int fromFieldsFun( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+  FromFieldsInfo* ffi = (FromFieldsInfo*) local.addr;
+  switch( message ) {
+    case OPEN: {
+      if ( ffi ) {
+	       delete ffi;
+      }
+      local.addr = new FromFieldsInfo(args[0],
+                                      nl->Second(GetTupleResultType(s)));
+      return 0;
+    }
+    case REQUEST: {
+      if ( !ffi ) {
+	       return CANCEL;
+      }
+      result.addr = ffi->nextTuple();
+      return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE: {
+      if ( ffi ) {
+	       delete ffi;
+	       local.addr = 0;
+      }
+      return 0;
+    }
+    default: {
+      return -1;
+    }
+  }
+}
+       
+/*
+
+2.116.4 Description for Operator ~fromFields~
+
+*/
+
+struct fromFieldsInfo : OperatorInfo {
+  fromFieldsInfo() : OperatorInfo() {
+    name      = "fromFields";
+    signature = "(stream(tuple(keyvalue: keytype, Field: string, "
+			      "Type: text, Value: text))) x (rel(tuple(X))) "
+		  "-> (stream(tuple(X)))";
+    syntax    = "_ feed fromFields [ _ ]";
+    meaning   = "Composes a stream of tuple items into a certain relation.";
+  }
+};
 
 /*
 
@@ -11466,6 +11782,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extend_last);
     AddOperator(&aggregateC);
     AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
+    AddOperator(fromFieldsInfo(), fromFieldsFun, fromFieldsType );
 
 #ifdef USE_PROGRESS
 // support for progress queries

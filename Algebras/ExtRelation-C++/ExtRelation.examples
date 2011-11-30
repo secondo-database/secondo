@@ -263,13 +263,6 @@ Example  : query ten feed {a} ten feed {b} symmproductextend[prod: .no_a * ..no_
 Result   : file
 
 
-Operator : toFields
-Number   : 1
-Signature: ((stream (tuple([a1:d1, ...,an:dn]))) x ai) -> stream(tuple([ai, attrname, dj, aj]))
-Example  : query Staedte feed toFields [SName] head[10] tconsume
-Result   : file
-
-
 Operator : krdup
 Number   : 1
 Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn)))
@@ -358,3 +351,17 @@ Number   : 1
 Signature: stream(tuple(X) x funlist x list
 Example  : query ten feed extend_last[ A : .no - ..no; 0   ] max[A]
 Result   : 1
+
+
+Operator : toFields
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ...,an:dn]))) x ai) -> stream(tuple([ai, attrname, dj, aj]))
+Example  : query Staedte feed toFields [SName] head[10] tconsume
+Result   : file
+
+
+Operator : fromFields
+Number   : 1
+Signature: "(stream(tuple(keyvalue: keytype, Field: string, Type: text, Value: text))) x (rel(tuple(X))) -> (stream(tuple(X)))
+Example  : query Staedte feed toFields [SName] head[12] sortby[Value] sortby[SName] fromFields[Staedte] tconsume
+Result   : file
