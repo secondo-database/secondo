@@ -766,9 +766,10 @@ inline Rectangle<dim>
 Rectangle<dim>::Intersection( const Rectangle<dim>& r,
                               const Geoid* geoid /*=0*/ ) const
 {
-  if( !this->del.isDefined || !r.IsDefined() || (geoid && (!geoid->IsDefined()
-                           || !Intersects( r,geoid ) )))
+  if( !this->del.isDefined || !r.IsDefined() || (geoid && (!geoid->IsDefined()))
+      || !Intersects( r,geoid ) ){
     return Rectangle<dim>( false );
+  }
 
   double auxmin[dim], auxmax[dim];
   for( unsigned i = 0; i < dim; i++ )
