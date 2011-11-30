@@ -29,6 +29,7 @@ operator velocity alias VELOCITY pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )
 operator atperiods alias ATPERIODS pattern _ infixop _
+operator when alias WHEN pattern _ op[_]
 operator at alias AT pattern _ infixop _
 operator atmax alias ATMAX pattern op ( _ )
 operator atmin alias ATMIN pattern op ( _ )

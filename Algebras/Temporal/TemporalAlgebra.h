@@ -7838,6 +7838,25 @@ int MappingAtPeriods( Word* args, Word& result, int message,
 }
 
 /*
+Value mapping functions of operator ~when~
+
+*/
+template <class Mapping>
+int MappingWhen( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MBool* mb= static_cast<MBool*>(args[1].addr);
+  MBool mbTrue(0);
+  CcBool tru(true, true);
+  mb->At(tru, mbTrue);
+  Periods p(0);
+  mbTrue.DefTime(p);
+  ((Mapping*)args[0].addr)->AtPeriods( p, *((Mapping*)result.addr) );
+  return 0;
+}
+
+/*
 6.9 Value mapping functions of operator ~deftime~
 
 */

@@ -72,6 +72,7 @@ mint2mbool
 
 27.09.2010 Christian D[ue]ntgen added operator ~turns~.
 
+30.11.2011 Mahmoud Sakr added operator ~when~.
 [TOC]
 
 1 Overview
@@ -9500,6 +9501,31 @@ MovingInstantTypeMapIntime( ListExpr args )
 }
 
 /*
+16.1.7 Type mapping function ~WhenTM~
+
+It is for the operator ~when~.
+
+*/
+ListExpr WhenTM( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr mx = nl->First( args ),
+             mb = nl->Second( args );
+
+    if( nl->IsEqual( mb, MBool::BasicType() ) )
+    {
+      if( nl->IsEqual( mx, MBool::BasicType() ) ||
+          nl->IsEqual( mx, MInt::BasicType() )  ||
+          nl->IsEqual( mx, MReal::BasicType() ) ||
+          nl->IsEqual( mx, MPoint::BasicType() ))
+        return mx;
+    }
+  }
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+/*
 16.1.7 Type mapping function ~MovingPeriodsTypeMapMoving~
 
 It is for the operator ~atperiods~.
@@ -15354,6 +15380,11 @@ ValueMapping temporalatperiodsmap[] = { MappingAtPeriods<MBool>,
                                         MappingAtPeriods<MReal>,
                                         MPointAtPeriods };
 
+ValueMapping temporalwhenmap[] = { MappingWhen<MBool>,
+                                        MappingWhen<MInt>,
+                                        MappingWhen<MReal>,
+                                        MappingWhen<MPoint> };
+
 ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MInt>,
                                       MappingDefTime<MReal>,
@@ -15686,6 +15717,15 @@ const string TemporalSpecAtPeriods =
   "<text>_ atperiods _ </text--->"
   "<text>Restrict the moving object to the given periods.</text--->"
   "<text>mpoint1 atperiods periods1</text--->"
+  ") )";
+
+const string TemporalSpecWhen =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(mT mbool) -> mT</text--->"
+  "<text>_ when[_] </text--->"
+  "<text>Restrict the moving object to the times on which the mbool is "
+  "true.</text--->"
+  "<text>mpoint1 when[speed(mpoint1) > 10.0]</text--->"
   ") )";
 
 const string TemporalSpecDefTime  =
@@ -16480,6 +16520,13 @@ Operator temporalatperiods( "atperiods",
                             MovingSimpleSelect,
                             MovingPeriodsTypeMapMoving );
 
+Operator temporalwhen( "when",
+                            TemporalSpecWhen,
+                            4,
+                            temporalwhenmap,
+                            MovingSimpleSelect,
+                            WhenTM );
+
 Operator temporaldeftime( "deftime",
                           TemporalSpecDefTime,
                           4,
@@ -16527,7 +16574,6 @@ Operator temporalat( "at",
                      temporalatmap,
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
-
 
 Operator temporalbox3d( "box3d",
                         Box3dSpec,
@@ -17938,6 +17984,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalval );
     AddOperator( &temporalatinstant );
     AddOperator( &temporalatperiods );
+    AddOperator( &temporalwhen );
     AddOperator( &temporaldeftime );
     AddOperator( &temporaltrajectory );
     AddOperator( &temporalpresent );

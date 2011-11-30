@@ -27,6 +27,7 @@ operator inst alias INST pattern op ( _ )
 operator val alias VAL pattern op ( _ )
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator atperiods alias ATPERIODS pattern _ infixop _
+operator when alias WHEN pattern _ op [_] 
 operator deftime alias DEFTIME pattern op ( _ )
 operator trajectory alias TRAJECTORY pattern op ( _ )
 operator present alias PRESENT pattern _ infixop _

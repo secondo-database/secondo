@@ -1401,7 +1401,6 @@ the_mvalue2Spec  =
 "<text>query units(zug5) the_mvalue2</text---> ) )";
 
 
-
 /*
 5.5.4 Selection Function of operators ~makemvalue~, ~the\_mvalue~
 
@@ -1431,6 +1430,7 @@ the_mvalue2Select( ListExpr args )
   if(UPoint::checkType(t)) return 4;
   return -1;
 }
+
 
 int
 MakemvalueSelect( ListExpr args )
@@ -10111,6 +10111,493 @@ Operator temporalunitcanmeet( "canmeet",
                                Operator::SimpleSelect,
                                TypeMapTemporalUnitCanMeet);
 
+
+/*
+5.46 Operator ~when~
+
+5.46.1 Type Mapping for ~when~
+
+*/
+ListExpr
+UnitWhenTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  string argstr;
+
+  if ( nl->ListLength( args ) != 2 )
+    {
+      ErrorReporter::ReportError("Operator when expects a list of length 2.");
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
+    }
+
+  arg1 = nl->First( args );
+  arg2 = nl->Second( args );
+
+  nl->WriteToString(argstr, arg2);
+  if ( !( nl->IsEqual( arg2, MBool::BasicType() ) ) )
+    {
+      ErrorReporter::ReportError("Operator when expects a second argument"
+            " of type " + MBool::BasicType() + " but gets '" + argstr + "'.");
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
+    }
+
+  if( nl->IsAtom( arg1 ) )
+    {
+      if( nl->IsEqual( arg1, UBool::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+               nl->SymbolAtom(UBool::BasicType()));
+      if( nl->IsEqual( arg1, UInt::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+               nl->SymbolAtom(UInt::BasicType()));
+      if( nl->IsEqual( arg1, UReal::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+               nl->SymbolAtom(UReal::BasicType()));
+      if( nl->IsEqual( arg1, UPoint::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                               nl->SymbolAtom(UPoint::BasicType()));
+      if( nl->IsEqual( arg1, UString::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+               nl->SymbolAtom(UString::BasicType()));
+
+      nl->WriteToString(argstr, arg1);
+      ErrorReporter::ReportError("Operator when expects a first argument "
+                                 "of type T in {ubool, uint, ureal, upoint, "
+                                 "ustring, uregion} but gets a '"
+                                 + argstr + "'.");
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
+    }
+
+  if( !( nl->IsAtom( arg1 ) ) && ( nl->ListLength( arg1 ) == 2) )
+    {
+      nl->WriteToString(argstr, arg1);
+      if ( !( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
+        {
+          ErrorReporter::ReportError("Operator when expects as first "
+                                     "argument a list with structure 'T' or "
+                                     "'stream(T)', T in {ubool, uint, ureal, "
+                                     "upoint, ustring, ureagion} but gets a "
+                                     "list with structure '" + argstr + "'.");
+          return nl->SymbolAtom( Symbol::TYPEERROR() );
+        }
+
+      if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                               nl->SymbolAtom(UBool::BasicType()));
+      if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                               nl->SymbolAtom(UInt::BasicType()));
+      if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                nl->SymbolAtom(UReal::BasicType()));
+      if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                 nl->SymbolAtom(UPoint::BasicType()));
+      if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
+         return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                 nl->SymbolAtom(UString::BasicType()));
+
+      nl->WriteToString(argstr, nl->Second(arg1));
+      ErrorReporter::ReportError("Operator when expects a type "
+                              "(stream T); T in {ubool, uint, ureal, upoint, "
+                              "ustring, uregion} but gets '(stream "
+                              + argstr + ")'.");
+      return nl->SymbolAtom( Symbol::TYPEERROR() );
+    };
+
+  nl->WriteToString( argstr, args );
+  ErrorReporter::ReportError("Operator when encountered an "
+                             "unmatched typerror for arguments '"
+                             + argstr + "'.");
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+/*
+5.46.2 Value Mapping for ~atperiods~
+
+*/
+struct WhenLocalInfo
+{
+  Word uWord;     // the address of the unit value
+  Word pWord;    //  the adress of the periods value
+  int  j;       //   save the number of the interval
+};
+
+/*
+Variant 1: first argument is a scalar value
+
+*/
+
+template <class Alpha>
+int MappingUnitWhen( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  AtPeriodsLocalInfo *localinfo;
+  Interval<Instant> interval;
+  Alpha *unit;
+  Alpha r(true);
+  Periods* periods;
+
+  switch( message )
+  {
+  case OPEN:
+  {
+// #ifdef TUA_DEBUG
+//     cout << "\nMappingUnitAtPeriods: OPEN" << endl;
+// #endif
+    Periods* p= new Periods(0);
+    MBool* mb= static_cast<MBool*>(args[1].addr);
+    CcBool tru(true, true);
+    MBool mbTrue(0);
+    mb->At(tru, mbTrue);
+    mbTrue.DefTime(*p);
+
+    localinfo = new AtPeriodsLocalInfo;
+    localinfo->uWord = args[0];
+    localinfo->pWord = SetWord(p);
+    localinfo->j = 0;
+    local.setAddr(localinfo);
+    return 0;
+  }break;
+  case REQUEST:
+  {
+// #ifdef TUA_DEBUG
+//     cout << "\nMappingUnitAtPeriods: REQUEST" << endl;
+// #endif
+    if( local.addr == 0 )
+      return CANCEL;
+    localinfo = (AtPeriodsLocalInfo *)local.addr;
+    unit      =   (Alpha*)localinfo->uWord.addr;
+    periods   = (Periods*)localinfo->pWord.addr;
+
+    if( !unit->IsDefined()    ||
+        !periods->IsDefined() ||
+        periods->IsEmpty()       )
+    {
+      result.setAddr(0);
+      return CANCEL;
+    }
+// #ifdef TUA_DEBUG
+//     cout << "   Unit's timeInterval u="
+//          << TUPrintTimeInterval( unit->timeInterval ) << endl;
+// #endif
+    if( localinfo->j >= periods->GetNoComponents() )
+      {
+        result.setAddr(0);
+// #ifdef TUA_DEBUG
+//           cout << "Maquery train7 inside train7sectionsppingUnitAtPeriods: "
+//                << "REQUEST finished: CANCEL (1)"
+//                << endl;
+// #endif
+        return CANCEL;
+      }
+    periods->Get( localinfo->j, interval );
+    localinfo->j++;
+// #ifdef TUA_DEBUG
+//     cout << "   Probing timeInterval p ="
+//          << TUPrintTimeInterval(interval)
+//          << endl;
+// #endif
+    while( interval.Before( unit->timeInterval ) &&
+           localinfo->j < periods->GetNoComponents() )
+    { // forward to first candidate interval
+        periods->Get(localinfo->j, interval);
+        localinfo->j++;
+// #ifdef TUA_DEBUG
+//         cout << "   Probing timeInterval="
+//             << TUPrintTimeInterval(interval)
+//             << endl;
+//         if (interval.Before( unit->timeInterval ))
+//           cout << "     p is before u" << endl;
+//         if (localinfo->j < periods->GetNoComponents())
+//           cout << "   j < #Intervals" << endl;
+// #endif
+    }
+
+    if( unit->timeInterval.Before( interval ) )
+      { // interval after unit-deftime --> finished
+        result.addr = 0;
+// #ifdef TUA_DEBUG
+//           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (2)"
+//                << endl;
+// #endif
+        return CANCEL;
+    }
+
+    if(unit->timeInterval.Intersects( interval ))
+    { // interval intersectd unit's deftime --> produce result
+        // create unit restricted to interval
+        unit->AtInterval( interval, r );
+        Alpha* aux = new Alpha( r );
+        result.setAddr( aux );
+// #ifdef TUA_DEBUG
+//             cout << "   Result interval="
+//                  << TUPrintTimeInterval(aux->timeInterval)
+//                  << endl;
+//             cout << "   Result defined=" << aux->IsDefined()
+//                  << endl;
+//             cout << "MappingUnitAtPeriods: REQUEST finished: YIELD"
+//                  << endl;
+// #endif
+        return YIELD;
+    }
+
+    if( localinfo->j >= periods->GetNoComponents() )
+    { // Passed last interval --> finished
+      result.addr = 0;
+// #ifdef TUA_DEBUG
+//       cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (3)"
+//         << endl;
+// #endif
+      return CANCEL;
+    }
+
+    result.setAddr(0 );
+    cout << "MappingUnitWhen: REQUEST finished: CANCEL (4)"
+         << endl;
+    cout << "Intervals should overlap: " << endl;
+    cout << "  Unit's timeInterval = ";
+    TUPrintTimeInterval(unit->timeInterval);
+    cout << "  Current Period's interval = ";
+    TUPrintTimeInterval(interval);
+    cout << endl;
+    assert( false );
+    return CANCEL; // should not happen
+  }break;
+  case CLOSE:
+  {
+    if( local.addr != 0 )
+    {
+      AtPeriodsLocalInfo *li= static_cast<AtPeriodsLocalInfo *>(local.addr);
+      Periods* p = static_cast<Periods*>(li->pWord.addr);
+      delete p;
+      delete li;
+      local.setAddr(Address(0));
+    }
+    return 0;
+  }
+  }
+  // should not happen:
+  return -1;
+}
+
+/*
+Variant 2: first argument is a stream
+
+*/
+
+struct WhenLocalInfoUS
+{
+  Word uWord;  // address of the input stream
+  Word pWord;  // address of the input periods value
+  int j;       // interval counter for within periods
+};
+
+
+template <class Alpha>
+int MappingUnitStreamWhen( Word* args, Word& result, int message,
+                                Word& local, Supplier s )
+{
+  AtPeriodsLocalInfoUS *localinfo;
+  Alpha *unit, *aux;
+  Alpha resultUnit(true);
+  Periods *periods;
+  Interval<Instant> interval;
+  bool foundUnit = false;
+
+  switch( message )
+  {
+  case OPEN:
+  {
+    Periods* p= new Periods(0);
+    MBool* mb= static_cast<MBool*>(args[1].addr);
+    CcBool tru(true, true);
+    MBool mbTrue(0);
+    mb->At(tru, mbTrue);
+    mbTrue.DefTime(*p);
+
+    localinfo = new AtPeriodsLocalInfoUS;
+    localinfo->pWord = p;
+    localinfo->j = 0;                              // init interval counter
+    qp->Open( args[0].addr );                      // open stream of units
+    qp->Request( args[0].addr, localinfo->uWord ); // request first unit
+    if ( !( qp->Received( args[0].addr) ) ){
+      localinfo->uWord.addr = 0;
+      result.addr = 0;
+      return CANCEL;
+    }
+    local.setAddr(localinfo);                    // pass up link to localinfo
+    return 0;
+  }break;
+  case REQUEST:
+  {
+      if ( local.addr == 0 )
+        return CANCEL;
+      localinfo = (AtPeriodsLocalInfoUS *) local.addr; // restore local data
+      if ( localinfo->uWord.addr == 0 ) { result.addr = 0; return CANCEL; }
+      unit = (Alpha *) localinfo->uWord.addr;
+      if ( localinfo->pWord.addr == 0 ) { result.addr = 0; return CANCEL; }
+      periods = (Periods *) localinfo->pWord.addr;
+
+      if( !periods->IsDefined() || periods->IsEmpty()       )
+        return CANCEL;
+
+      // search for a pair of overlapping unit/interval:
+      while (1){
+        if ( localinfo->j == periods->GetNoComponents() ){// redo first interval
+          localinfo->j = 0;
+          unit->DeleteIfAllowed();                // delete original unit?
+          localinfo->uWord.addr = 0;
+          foundUnit = false;
+          while(!foundUnit){
+            qp->Request(args[0].addr, localinfo->uWord);  // get new unit
+            if( qp->Received( args[0].addr ) )
+              unit = (Alpha *) localinfo->uWord.addr;
+            else {
+              localinfo->uWord.addr = 0;
+              result.addr = 0;
+              return CANCEL;
+            }   // end of unit stream
+            foundUnit = unit->IsDefined();
+          }
+        }
+        periods->Get(localinfo->j, interval);       // get an interval
+        if (    !( interval.Before( unit->timeInterval ) )
+                  && !( unit->timeInterval.Before( interval) ) )
+          break;                           // found candidate, break while
+        localinfo->j++;                             // next interval, loop
+      }
+
+      // We have an interval overlapping the unit's interval now
+      // Return unit restricted to overlapping part of both intervals
+      if (!unit->timeInterval.Intersects( interval) ){ // This may not happen!
+        cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
+             << ": Intervals do not overlap, but should do so:" << endl;
+        cout << "  Unit's timeInterval = ";
+        TUPrintTimeInterval(unit->timeInterval);
+        cout << endl << "  Current Period's interval = ";
+        TUPrintTimeInterval(interval);
+        cout << endl;
+        assert(false);
+      }
+      unit->AtInterval( interval, resultUnit); // intersect unit and interval
+      aux = new Alpha( resultUnit );
+      result.setAddr( aux );
+      localinfo->j++;                           // increase interval counter
+      return YIELD;
+  }break;
+  case CLOSE:
+  {
+    if ( local.addr != 0 )
+      {
+        qp->Close( args[0].addr );
+        localinfo = (AtPeriodsLocalInfoUS *) local.addr;
+        if ( localinfo->uWord.addr != 0 )
+        {
+          unit = (Alpha *) localinfo->uWord.addr;
+          unit->DeleteIfAllowed();   // delete remaining original unit
+        }
+        Periods* p = static_cast<Periods*>(localinfo->pWord.addr);
+        delete p;
+        delete (AtPeriodsLocalInfoUS *)localinfo;
+        local.setAddr(Address(0));
+      }
+    return 0;
+  }
+
+  } // end switch
+
+  return -1; // should never be reached
+
+} // end MappingUnitStreamAtPeriods
+
+/*
+5.46.3 Specification for operator ~atperiods~
+
+*/
+const string
+TemporalSpecWhen  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
+"( <text>For T in {int, bool, real, string, point, region}:\n"
+"(uT periods) -> stream uT\n"
+"((stream uT) periods) -> stream uT</text--->"
+"<text>_ when[_] </text--->"
+"<text>restrict the movement to the times on which the given mbool is true."
+"</text--->"
+"<text>units(mpoint1) when[speed(mpoint1) > 20.0] </text--->) )";
+
+/*
+5.46.4 Value map of operator ~when~
+
+*/
+
+ValueMapping temporalunitwhenmap[] =
+  { MappingUnitWhen<UBool>,
+    MappingUnitWhen<UInt>,
+    MappingUnitWhen<UReal>,
+    MappingUnitWhen<UPoint>,
+    MappingUnitWhen<UString>,
+    MappingUnitStreamWhen<UBool>,
+    MappingUnitStreamWhen<UInt>,
+    MappingUnitStreamWhen<UReal>,
+    MappingUnitStreamWhen<UPoint>,
+    MappingUnitStreamWhen<UString>
+  };
+
+/*
+5.46.4 Selection Function of operator ~when~
+
+*/
+
+int
+WhenSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if (nl->IsAtom( arg1 ) )
+    {
+      if( nl->SymbolValue( arg1 ) == UBool::BasicType() )
+        return 0;
+      if( nl->SymbolValue( arg1 ) == UInt::BasicType() )
+        return 1;
+      if( nl->SymbolValue( arg1 ) == UReal::BasicType() )
+        return 2;
+      if( nl->SymbolValue( arg1 ) == UPoint::BasicType() )
+        return 3;
+      if( nl->SymbolValue( arg1 ) == UString::BasicType() )
+        return 4;
+    }
+
+  if(   !( nl->IsAtom( arg1 ) )
+      && ( nl->ListLength(arg1) == 2 )
+      && ( TypeOfRelAlgSymbol(nl->First(arg1)) == stream ) )
+    { if( nl->IsEqual( nl->Second(arg1), UBool::BasicType() ) )
+        return 5;
+      if( nl->IsEqual( nl->Second(arg1), UInt::BasicType() ) )
+        return 6;
+      if( nl->IsEqual( nl->Second(arg1), UReal::BasicType() ) )
+        return 7;
+      if( nl->IsEqual( nl->Second(arg1), UPoint::BasicType() ) )
+        return 8;
+      if( nl->IsEqual( nl->Second(arg1), UString::BasicType() ) )
+        return 9;
+    }
+
+  return -1; // This point should never be reached
+}
+
+/*
+5.46.6  Definition of operator ~when~
+
+*/
+Operator temporalunitwhen( "when",
+                            TemporalSpecWhen,
+                            10,
+                            temporalunitwhenmap,
+                            WhenSelect,
+                            UnitWhenTypeMap );
+
+
+
 /*
 5.44 Operator ~~
 
@@ -10169,6 +10656,7 @@ public:
     AddOperator( &temporalunitfinal );
     AddOperator( &temporalunitatinstant );
     AddOperator( &temporalunitatperiods );
+    AddOperator( &temporalunitwhen );
     AddOperator( &temporalunitat );
     AddOperator( &temporalunitatmax );
     AddOperator( &temporalunitatmin );
