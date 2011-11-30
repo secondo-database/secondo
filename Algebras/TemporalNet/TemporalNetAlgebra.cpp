@@ -8319,9 +8319,11 @@ int OpMapMatchingValueMapping(Word* args,
   int i = 0;
   pMPoint->Get(i,pUPoint);
   GPoint* startGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p0);
+  bool first = true;
   do
   {
-    if (aktUGPoint != 0) pMPoint->Get(i++,pUPoint);
+    if (!first) pMPoint->Get(i++,pUPoint);
+    first = false;
     while ((startGP == 0 || !startGP->IsDefined()) &&
             i < pMPoint->GetNoComponents())
     {
@@ -8464,8 +8466,6 @@ int OpMapMatchingValueMapping(Word* args,
       *startGP = *endGP;
       startTime = endTime;
       scl = !ecl;
-      endGP->DeleteIfAllowed();
-      endGP = 0;
     }
     else
     {
@@ -8512,8 +8512,6 @@ int OpMapMatchingValueMapping(Word* args,
           *startGP = *endGP;
           startTime = endTime;
           scl = !ecl;
-          endGP->DeleteIfAllowed();
-          endGP = 0;
         }
         else
         {
@@ -8552,12 +8550,12 @@ int OpMapMatchingValueMapping(Word* args,
           startGP = new GPoint(true, iNetworkId, gri.GetRouteId(),
                                gri.GetEndPos(), s);
           startTime = endTime;
-          endGP->DeleteIfAllowed();
-          endGP = 0;
         }
       }
       gl->DeleteIfAllowed();
     }
+    endGP->DeleteIfAllowed();
+    endGP = 0;
   } while (i < pMPoint->GetNoComponents()-1);
   // write last unit if exists
   if (aktUGPoint != 0)
