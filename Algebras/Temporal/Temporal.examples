@@ -80,12 +80,6 @@ Signature: (mT periods) -> mT
 Example  : query train7 atperiods [const periods value (("2003-11-20-07:01:40" "20003-11-20-07:45" TRUE TRUE))]
 Result   : (mpoint((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)(-3519.76750330251 14374.09577278732 -3544.0 14312.0))(("2003-11-20-07:01:44.586" "2003-11-20-07:01:50" TRUE FALSE)(-3544.0 14312.0 -3560.0 14235.0))(("2003-11-20-07:01:50" "2003-11-20-07:02" TRUE FALSE)(-3560.0 14235.0 -3560.0 14235.0))))
 
-Operator : when
-Number   : 1
-Signature: (mT mbool) -> mT
-Example  : query train7 when[speed(train7) > 24.0]
-Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)        (13592.0 5253.0 13540.0 5518.0))    (        ("2003-11-20-06:16:11.187" "2003-11-20-06:16:16.201" TRUE FALSE)       (13540.0 5518.0 13537.0 5639.0))   (        ("2003-11-20-06:16:16.201" "2003-11-20-06:16:20.430" TRUE FALSE)        (13537.0 5639.0 13552.0 5740.0))    (       ("2003-11-20-06:16:20.430" "2003-11-20-06:16:25.041" TRUE FALSE)        (13552.0 5740.0 13525.0 5848.0))    (        ("2003-11-20-06:16:25.041" "2003-11-20-06:16:50" TRUE FALSE)        (13525.0 5848.0 13262.0 6390.0))))
-
 Operator : bbox
 Number   : 1
 Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
@@ -698,13 +692,15 @@ Signature : periods x duration -> periods
 Example   : query theperiod(deftime(train7), deftime(train7)) = fillGaps(deftime(train7), [const duration value (0 1000)])
 Result    : TRUE
 
-
-
 Operator  : removeShort 
 Number    : 1
 Signature : periods x duration -> periods
 Example   : query removeShort(deftime(train7), [const duration value (1 0)])
 Result    : (periods ())
 
-
+Operator : when
+Number   : 1
+Signature: (mT mbool) -> mT
+Example  : query train7 when[speed(train7) > 24.0]
+Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)        (13592.0 5253.0 13540.0 5518.0))    (        ("2003-11-20-06:16:11.187" "2003-11-20-06:16:16.201" TRUE FALSE)       (13540.0 5518.0 13537.0 5639.0))   (        ("2003-11-20-06:16:16.201" "2003-11-20-06:16:20.430" TRUE FALSE)        (13537.0 5639.0 13552.0 5740.0))    (       ("2003-11-20-06:16:20.430" "2003-11-20-06:16:25.041" TRUE FALSE)        (13552.0 5740.0 13525.0 5848.0))    (        ("2003-11-20-06:16:25.041" "2003-11-20-06:16:50" TRUE FALSE)        (13525.0 5848.0 13262.0 6390.0))))
 

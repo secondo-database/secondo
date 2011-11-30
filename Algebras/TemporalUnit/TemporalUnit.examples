@@ -196,18 +196,6 @@ Example  : query (the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, FALS
 Result   : (mpoint ((("2003-11-20-08:30" "2003-11-20-08:30:01" TRUE FALSE)(10733.6 12290.2 10733.785777777777 12290.536))))
 
 
-Operator : when
-Number   : 1
-Signature: (uT mbool) -> stream uT
-Example  : query units(train7) namedtransformstream[utrain] filter[sometimes(distance(.utrain, mehringdamm) < 50.0)] head[1] extendstream[utrainClose: .utrain when[distance(train7, mehringdamm) < 50.0]] extract[utrainClose]
-Result   : (upoint(    ("2003-11-20-06:27:46.760" "2003-11-20-06:27:50" FALSE FALSE)    (9380.360189573459 9823.511848341232 9396.0 9871.0)))
-
-Operator : when
-Number   : 2
-Signature: ((stream uT) periods) -> stream uT
-Example  : query units(train7) when[speed(train7) > 24.0] the_mvalue
-Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)        (13592.0 5253.0 13540.0 5518.0))    (       ("2003-11-20-06:16:11.187" "2003-11-20-06:16:16.201" TRUE FALSE)        (13540.0 5518.0 13537.0 5639.0))    (       ("2003-11-20-06:16:16.201" "2003-11-20-06:16:20.430" TRUE FALSE)        (13537.0 5639.0 13552.0 5740.0))    (       ("2003-11-20-06:16:20.430" "2003-11-20-06:16:25.041" TRUE FALSE)        (13552.0 5740.0 13525.0 5848.0))    (       ("2003-11-20-06:16:25.041" "2003-11-20-06:16:50" TRUE FALSE)        (13525.0 5848.0 13262.0 6390.0))))
-
 Operator : deftime
 Number   : 1
 Signature: ubool -> periods
@@ -689,3 +677,16 @@ Number   : 1
 Signature: (upoint upoint real duration) -> bool
 Example  : query units(train7) transformstream {a} units(train7down) transformstream {b} symmjoin[deftime(.elem_a) intersects deftime(..elem_b)] filter[canmeet(.elem_a, .elem_b, 100.0, create_duration(0, 60000))] count
 Result   : 6
+
+
+Operator : when
+Number   : 1
+Signature: (uT mbool) -> stream uT
+Example  : query units(train7) namedtransformstream[utrain] filter[sometimes(distance(.utrain, mehringdamm) < 50.0)] head[1] extendstream[utrainClose: .utrain when[distance(train7, mehringdamm) < 50.0]] extract[utrainClose]
+Result   : (upoint(    ("2003-11-20-06:27:46.760" "2003-11-20-06:27:50" FALSE FALSE)    (9380.360189573459 9823.511848341232 9396.0 9871.0)))
+
+Operator : when
+Number   : 2
+Signature: ((stream uT) periods) -> stream uT
+Example  : query units(train7) when[speed(train7) > 24.0] the_mvalue
+Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)        (13592.0 5253.0 13540.0 5518.0))    (       ("2003-11-20-06:16:11.187" "2003-11-20-06:16:16.201" TRUE FALSE)        (13540.0 5518.0 13537.0 5639.0))    (       ("2003-11-20-06:16:16.201" "2003-11-20-06:16:20.430" TRUE FALSE)        (13537.0 5639.0 13552.0 5740.0))    (       ("2003-11-20-06:16:20.430" "2003-11-20-06:16:25.041" TRUE FALSE)        (13552.0 5740.0 13525.0 5848.0))    (       ("2003-11-20-06:16:25.041" "2003-11-20-06:16:50" TRUE FALSE)        (13525.0 5848.0 13262.0 6390.0))))
