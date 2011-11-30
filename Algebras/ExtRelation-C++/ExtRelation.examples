@@ -363,5 +363,5 @@ Result   : file
 Operator : fromFields
 Number   : 1
 Signature: "(stream(tuple(keyvalue: keytype, Field: string, Type: text, Value: text))) x (rel(tuple(X))) -> (stream(tuple(X)))
-Example  : query Staedte feed toFields [SName] head[12] sortby[Value] sortby[SName] fromFields[Staedte] tconsume
+Example  : query Staedte feed toFields[SName] head[12] sortby[Value] sortby[SName] Staedte fromFields tconsume
 Result   : file

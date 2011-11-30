@@ -26,8 +26,6 @@ operator avg alias AVG pattern _ op [ _ ]
 operator sum alias SUM pattern _ op [ _ ]
 operator var alias VAR pattern _ op [ _ ]
 operator stats alias STATS pattern _ op [ _ , _ ]
-operator toFields alias TOFIELDS pattern _ op [ _ ]
-operator fromFields alias FROMFIELDS pattern _op [ _ ]
 
 operator concat alias CONCAT pattern _ _ op
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
@@ -78,6 +76,10 @@ operator kbiggest alias KBIGGEST pattern _ op [_ ; list  ]
 operator extend_aggr alias EXTEND_AGGR pattern _ op [list  ; funlist ]
 
 operator extend_last alias EXTEND_LAST pattern _ op [funlist ] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
+
+operator toFields alias TOFIELDS pattern _ op [ _ ]
+operator fromFields alias FROMFIELDS pattern _ _ op
+
 
 
 
