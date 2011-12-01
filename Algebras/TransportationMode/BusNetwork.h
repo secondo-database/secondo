@@ -806,6 +806,9 @@ class BusNetwork{
   void SetGraphId(int g_id);
   bool IsGraphInit(){return graph_init;}
   unsigned int GraphId(){return graph_id;}
+  double GetStartTime(){return start_time;}
+  double GetEndTime(){return end_time;}
+
   BusGraph* GetBusGraph();
   void CloseBusGraph(BusGraph* bg);
 
@@ -822,7 +825,9 @@ class BusNetwork{
     double max_bus_speed;//maximum speed of all moving buses (heuristic value)
     unsigned int min_br_oid;//smallest bus route oid
     unsigned int min_bt_oid; //smallest bus trip oid 
-    
+    double start_time; //start time of first bus trip 
+    double end_time; //end time of last bus trip 
+
     Relation* stops_rel; //a relation for bus stops
     BTree* btree_bs; //a btree on bus stops
     Relation* routes_rel;  //a relaton for bus routes
@@ -1559,6 +1564,8 @@ class MetroNetwork{
     void GetMetroStopGeoData(Bus_Stop* ms, Point* p);
     int GetMOMetro_Oid(Bus_Stop* ms, Point*, Instant& t);
     int GetMOMetro_MP(Bus_Stop* bs, Point*, Instant t, MPoint& mp);
+    double GetStartTime(){return start_time;}
+    double GetEndTime(){return end_time;}
 
     ///////////////used for the real data, (ubahn converting)////////////////
     static string UBAHNStopsTypeInfo;
@@ -1603,6 +1610,8 @@ class MetroNetwork{
     double max_metro_speed;//maximum speed of all moving buses (heuristic value)
     unsigned int min_mr_oid;//smallest metro route oid
     unsigned int min_mt_oid; //smallest metro trip oid 
+    double start_time;//start time of first trip
+    double end_time; //end time of last trip 
 
     Relation* stops_rel; //a relation for metro stops
     BTree* btree_ms; //a btree on metro stops on line id 

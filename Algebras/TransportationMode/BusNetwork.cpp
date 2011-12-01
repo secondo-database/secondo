@@ -2575,13 +2575,13 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       bool sm = bs_ext.start_small; 
       double pos1,pos2;
 
-//      cout<<"br_id "<<bs_ext.br_id<<"bs_stop_id "<<bs_ext.br_stop_id<<endl;
+      cout<<"br_id "<<bs_ext.br_id<<"bs_stop_id "<<bs_ext.br_stop_id<<endl;
 
       Line* l1 = &line_list2[(bs_ext.br_id * 2 - 1) - 1];
       Line* l2 = &line_list2[(bs_ext.br_id * 2) - 1];
 
       vector<MyPoint> intersect_ps;
-      GetInterestingPoints(hs,bse_0.loc,intersect_ps,l1,l2);
+      GetInterestingPoints(hs, bse_0.loc, intersect_ps, l1, l2);
 
       assert(intersect_ps.size() == 2); 
 
@@ -2713,20 +2713,60 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
         *line1 += hs;
         line1->EndBulkLoad();
       }
-        
-//        cout<<"ip "<<ip<<" created line "<<*line1<<endl;
+
+        cout<<"ip "<<ip<<" created line "<<*line1<<endl;
 
         Points* ps1 = new Points(0);
         Points* ps2 = new Points(0);
         line1->Crossings(*reg1, *ps1);
         line1->Crossings(*reg2, *ps2);
-//        cout<<l1->Size()<<" "<<l2->Size()<<endl; 
+
+//        cout<<l1->Size()<<" "<<l2->Size()<<endl;
+//        cout<<*line1<<endl;
+//        cout<<ps1->Size()<<" "<<ps2->Size()<<endl; 
+
+        if(ps1->Size() ==0 || ps2->Size() == 0){
+            SpacePartition* sp = new SpacePartition();
+
+            vector<MyPoint> temp1;
+            for(int i = 0;i < reg1->Size();i++){
+              HalfSegment hs;
+              reg1->Get(i, hs);
+              if(!hs.IsLeftDomPoint()) continue;
+              Point cp;
+              sp->GetClosestPoint(hs, ip , cp);
+              MyPoint mp(cp, ip.Distance(cp));
+              temp1.push_back(mp);
+            }
+            sort(temp1.begin(),temp1.end());
+            list.push_back(temp1[0]); 
+
+
+            vector<MyPoint> temp2;
+            for(int i = 0;i < reg2->Size();i++){
+              HalfSegment hs;
+              reg2->Get(i, hs);
+              if(!hs.IsLeftDomPoint()) continue;
+              Point cp;
+              sp->GetClosestPoint(hs, ip , cp);
+              MyPoint mp(cp, ip.Distance(cp));
+              temp2.push_back(mp);
+            }
+            sort(temp2.begin(),temp2.end());
+            list.push_back(temp2[0]); 
+
+            delete sp;
+            delete ps1;
+            delete ps2;
+            delete line1; 
+            return;
+        }
 
         assert(ps1->Size() >= 1 && ps2->Size() >= 1);
-        
+
 //        cout<<*ps1<<" "<<*ps2<<endl; 
 
-        /////////////calculate the distanc to ip and get the two closest/////
+        /////////////calculate the distance to ip and get the two closest/////
         vector<MyPoint> temp1; 
         for(int i = 0;i <ps1->Size();i++){
           Point p;
@@ -6679,7 +6719,7 @@ bool CheckBusNetwork( ListExpr type, ListExpr& errorInfo )
 
 BusNetwork::BusNetwork():
 def(false), bn_id(0), graph_init(false), graph_id(0), max_bus_speed(0),
-min_br_oid(0), min_bt_oid(0), 
+min_br_oid(0), min_bt_oid(0), start_time(0), end_time(0),
 stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL), btree_bs_uoid(NULL), rtree_bs(NULL),
 btree_br_uoid(NULL), bustrips_rel(NULL), btree_trip_oid(NULL),
@@ -6691,7 +6731,7 @@ btree_trip_br_id(NULL)
 
 BusNetwork::BusNetwork(bool d, unsigned int i): def(d), bn_id(i), 
 graph_init(false), graph_id(0), max_bus_speed(0),
-min_br_oid(0), min_bt_oid(0), 
+min_br_oid(0), min_bt_oid(0), start_time(0), end_time(0),
 stops_rel(NULL), btree_bs(NULL), routes_rel(NULL), btree_br(NULL),
 btree_bs_uoid(NULL), rtree_bs(NULL), btree_br_uoid(NULL), bustrips_rel(NULL),
 btree_trip_oid(NULL), btree_trip_br_id(NULL)
@@ -6706,7 +6746,7 @@ read the data from record
 BusNetwork::BusNetwork(SmiRecord& valueRecord, size_t& offset, 
                        const ListExpr typeInfo):
 def(false), bn_id(0), graph_init(false), graph_id(0), max_bus_speed(0),
-min_br_oid(0), min_bt_oid(0), 
+min_br_oid(0), min_bt_oid(0), start_time(0), end_time(0),
 stops_rel(NULL), btree_bs(NULL), 
 routes_rel(NULL), btree_br(NULL), btree_bs_uoid(NULL), rtree_bs(NULL),
 btree_br_uoid(NULL), bustrips_rel(NULL), btree_trip_oid(NULL),
@@ -6732,6 +6772,12 @@ btree_trip_br_id(NULL)
 
   valueRecord.Read(&min_bt_oid, sizeof(unsigned int), offset);
   offset += sizeof(unsigned int);
+
+  valueRecord.Read(&start_time, sizeof(double), offset);
+  offset += sizeof(double);
+
+  valueRecord.Read(&end_time, sizeof(double), offset); 
+  offset += sizeof(double);
 
   ListExpr xType;
   ListExpr xNumericType;
@@ -6903,6 +6949,12 @@ bool BusNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   valueRecord.Write(&min_bt_oid, sizeof(unsigned int), offset); 
   offset += sizeof(unsigned int); 
 
+  valueRecord.Write(&start_time, sizeof(double), offset);
+  offset += sizeof(double);
+  
+  valueRecord.Write(&end_time, sizeof(double), offset);
+  offset += sizeof(double);
+  
   ListExpr xType;
   ListExpr xNumericType;
 
@@ -6964,7 +7016,8 @@ bool BusNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!btree_trip_br_id->Save(valueRecord,offset,xNumericType))
       return false;
-  
+
+
   return true; 
 }
 
@@ -7136,9 +7189,28 @@ void BusNetwork:: LoadBuses(Relation* r3)
  //////////////////////set maximum bus speed///////////////////////////
  /////////////////////////////////////////////////////////////////////
  int temp_id = numeric_limits<int>::max();
+ 
  for(int i = 1;i <= bustrips_rel->GetNoTuples();i++){
   Tuple* bus_tuple = bustrips_rel->GetTuple(i, false);
   GenMO* mo = (GenMO*)bus_tuple->GetAttribute(BN_BUSTRIP);
+
+  /////////////get the start and end time of all bus trips//////////////
+  Periods* peri = new Periods(0);
+  mo->DefTime(*peri);
+  Interval<Instant> time_span;
+  peri->Get(0, time_span);
+//  cout<<time_span.start<<" "<<time_span.end<<endl;
+  if(i == 1){
+    start_time = time_span.start.ToDouble();
+    end_time = time_span.end.ToDouble();
+  }else{
+    if(time_span.start.ToDouble() < start_time)
+        start_time = time_span.start.ToDouble();
+    if(time_span.end.ToDouble() > end_time)
+        end_time = time_span.end.ToDouble();
+  }
+  delete peri;
+  //////////////////////////////////////////////////////////////////////
 
   for( int j = 0; j < mo->GetNoComponents(); j++ ){
       UGenLoc unit;
@@ -7189,6 +7261,12 @@ void BusNetwork:: LoadBuses(Relation* r3)
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   btree_trip_br_id = (BTree*)xResult.addr;
+
+
+//  Instant t1(start_time);
+//  Instant t2(end_time);
+
+//  cout<<t1<<" "<<t2<<endl;
 
 }
 
@@ -7490,6 +7568,9 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
       delete peri;
       tuple->DeleteIfAllowed();
   }
+
+  if(bus_oid <= 0) cout<<"time "<<t<<" br_uoid "<<br_uoid<<endl;
+
   delete btree_iter2;
   delete search_id2;
   assert(bus_oid > 0);
@@ -12857,7 +12938,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
   assert(bg_min.GetWeekday() == 6);//start from Sunday 
   
   if(qt->GetWeekday() == 6){
-    new_st.Set(bg_min.GetYear(),bg_min.GetMonth(),bg_min.GetGregDay(),
+    new_st.Set(bg_min.GetYear(), bg_min.GetMonth(), bg_min.GetGregDay(),
            qt->GetHour(), qt->GetMinute(), qt->GetSecond(),
            qt->GetMillisecond());
 //    cout<<"Sunday"<<endl; 
@@ -12869,7 +12950,7 @@ void BNNav::ShortestPath_Transfer2(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
            qt->GetMillisecond());
 //    cout<<"workday --->Monday"<<endl; 
   }
-//  cout<<"mapping start time"<<new_st<<endl; 
+
   //////////////////////////////////////////////////////////////////////////
 
   priority_queue<BNPath_elem2> path_queue;
@@ -15283,7 +15364,7 @@ bool CheckMetroNetwork( ListExpr type, ListExpr& errorInfo )
 
 MetroNetwork::MetroNetwork():
 def(false), mn_id(0), graph_init(false), graph_id(0), max_metro_speed(0),
-min_mr_oid(0), min_mt_oid(0), 
+min_mr_oid(0), min_mt_oid(0), start_time(0), end_time(0), 
 stops_rel(NULL), btree_ms(NULL), rtree_ms(NULL),
 routes_rel(NULL), btree_mr(NULL), btree_mr_uoid(NULL),
 metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
@@ -15294,7 +15375,7 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
 
 MetroNetwork::MetroNetwork(bool d, unsigned int i): def(d), mn_id(i), 
 graph_init(false), graph_id(0), max_metro_speed(0),
-min_mr_oid(0), min_mt_oid(0),
+min_mr_oid(0), min_mt_oid(0), start_time(0), end_time(0), 
 stops_rel(NULL), btree_ms(NULL), rtree_ms(NULL),
 routes_rel(NULL), btree_mr(NULL), btree_mr_uoid(NULL),
 metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
@@ -15310,7 +15391,7 @@ read the data from record
 MetroNetwork::MetroNetwork(SmiRecord& valueRecord, size_t& offset, 
                        const ListExpr typeInfo):
 def(false), mn_id(0), graph_init(false), graph_id(0), max_metro_speed(0),
-min_mr_oid(0), min_mt_oid(0),
+min_mr_oid(0), min_mt_oid(0), start_time(0), end_time(0),
 stops_rel(NULL), btree_ms(NULL), rtree_ms(NULL),
 routes_rel(NULL), btree_mr(NULL), btree_mr_uoid(NULL),
 metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
@@ -15336,6 +15417,12 @@ metrotrips_rel(NULL), btree_trip_br_id(NULL), btree_trip_oid(NULL)
   valueRecord.Read(&min_mt_oid, sizeof(unsigned int), offset);
   offset += sizeof(unsigned int);
 
+  valueRecord.Read(&start_time, sizeof(double), offset);
+  offset += sizeof(double);
+  
+  valueRecord.Read(&end_time, sizeof(double), offset);
+  offset += sizeof(double);
+  
   ListExpr xType;
   ListExpr xNumericType;
   ////////////////Open relation for metro stops///////////////////////
@@ -15487,6 +15574,12 @@ bool MetroNetwork::Save(SmiRecord& valueRecord, size_t& offset,
 
   valueRecord.Write(&min_mt_oid, sizeof(unsigned int), offset); 
   offset += sizeof(unsigned int); 
+
+  valueRecord.Write(&start_time, sizeof(double), offset);
+  offset += sizeof(double);
+  
+  valueRecord.Write(&end_time, sizeof(double), offset);
+  offset += sizeof(double);
 
   ListExpr xType;
   ListExpr xNumericType;
@@ -15708,6 +15801,24 @@ void MetroNetwork::LoadMetros(Relation* r3)
   Tuple* metro_tuple = metrotrips_rel->GetTuple(i, false);
   MPoint* mo = (MPoint*)metro_tuple->GetAttribute(M_TRIP_MP);
 
+  /////////////get the start and end time of all bus trips//////////////
+  Periods* peri = new Periods(0);
+  mo->DefTime(*peri);
+  Interval<Instant> time_span;
+  peri->Get(0, time_span);
+//  cout<<time_span.start<<" "<<time_span.end<<endl;
+  if(i == 1){
+    start_time = time_span.start.ToDouble();
+    end_time = time_span.end.ToDouble();
+  }else{
+    if(time_span.start.ToDouble() < start_time)
+        start_time = time_span.start.ToDouble();
+    if(time_span.end.ToDouble() > end_time)
+        end_time = time_span.end.ToDouble();
+  }
+  delete peri;
+  ///////////////////////////////////////////////////////////////////////
+
   for( int j = 0; j < mo->GetNoComponents(); j++ ){
       UPoint unit;
       mo->Get( j, unit );
@@ -15760,6 +15871,11 @@ void MetroNetwork::LoadMetros(Relation* r3)
   assert(QueryExecuted);
   btree_trip_oid = (BTree*)xResult.addr;
 
+  
+/*  Instant t1(start_time);
+  Instant t2(end_time);
+  cout<<t1<<" "<<t2<<endl; */
+  
 }
 
 /*

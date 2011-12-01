@@ -200,6 +200,12 @@ Example  : query [const line value ((2 2 3 3))] myinside [const region value (((
 Result   : FALSE
 
 
+Operator : at_point
+Number   : 2
+Signature: sline x point x bool -> real
+Example  : query at_point([const sline value ((2 2 3 3))], [const point value (2 2)], TRUE);
+Result   : 0.0
+
 Operator : decomposetri
 Number   : 2
 Signature: rel -> (stream(((x1 t1) ... (xn tn)))
@@ -822,6 +828,49 @@ Signature: genmo x string -> genmo
 Example  : query no_components(tm_at([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], "Indoor"));
 Result   : 1
 
+Operator : tm_val
+Number   : 1
+Signature: igenloc -> genloc
+Example  : query tm_val([const igenloc value ((instant "2011-3-1-13:00") (2 (2.0 3.0)))]);
+Result   : (2 (2.0 3.0))
+
+Operator : tm_contain
+Number   : 1
+Signature: genmo x string -> bool
+Example  : query tm_contain([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], "Indoor");
+Result   : TRUE
+
+Operator : tm_duration
+Number   : 1
+Signature: periods x string -> real
+Example  : query tm_duration([const periods value (("2010-11-20-07:01" "2010-11-20-07:45" TRUE TRUE))], "M");
+Result   : 43.9999999998
+
+
+Operator : tm_initial
+Number   : 1
+Signature: genmo -> igenloc
+Example  : query tm_initial([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
+Result   : (("2010-12-7-8:03:25") (1 (2.0 3.0)))
+
+Operator : tm_final
+Number   : 1
+Signature: genmo -> igenloc
+Example  : query tm_final([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
+Result   : (("2010-12-7-8:04:10") (1 (3.0 3.0)))
+
+Operator : tm_build_id
+Number   : 1
+Signature: int x space -> int
+Example  : query tm_build_id(0, space_1);
+Result   : 0
+
+Operator : tm_plus_id
+Number   : 1
+Signature: int x int -> int
+Example  : query tm_plus_id(20, 133);
+Result   : 20133
+
 
 Operator : setref_id
 Number   : 1
@@ -881,7 +930,15 @@ Operator : getref
 Number   : 1
 Signature: genmo -> (stream(((x1 t1) ... (xn tn))))
 Example  : query getref([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))]) count;
-Result   : 1 
+Result   : 1
+
+
+Operator : tm_atinstant 
+Number   : 1
+Signature: genmo x instant -> igenloc
+Example  : query [const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))] tm_atinstant  [const instant value "2010-12-7-8:03:25"];
+Result   : ("2010-12-7-8:03:25" (1 (2.0 -1.0))))
+
 
 Operator : thespace 
 Number   : 1
@@ -926,6 +983,12 @@ Operator : generate_genmo
 Number   : 1
 Signature: space x periods x real x int -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_genmo(space_1, TwoDays, 5.0, 7) count;
+Result   : 5
+
+Operator : generate_bench_r1
+Number   : 1
+Signature: space x periods x real x rel x rel x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_bench_r1(space_1, hw_time, 5.0, distri_para1, H_Building, W_Building) count;
 Result   : 5
 
 Operator : generate_car
