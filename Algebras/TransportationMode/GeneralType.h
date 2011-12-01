@@ -81,11 +81,11 @@ instead of int, real, or enum
 */
 
 
-enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO, 
-TM_TRAIN, TM_BICYCLE, TM_TAXI, TM_FREE};
+enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO,
+TM_TRAIN, TM_BIKE, TM_TAXI, TM_FREE};
 
 const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
-                         "Train", "Bicycle", "Taxi", "Free"};
+                         "Train", "Bike", "Taxi", "Free"};
 inline int GetTM(string s)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -159,7 +159,7 @@ inline int TM2InfraLabel(int tm)
     case TM_TRAIN:
           label = IF_TRAINNETWORK;
           break;
-    case TM_BICYCLE:
+    case TM_BIKE:
           label = IF_LINE;
           break;
     case TM_TAXI:
@@ -391,6 +391,10 @@ int SizeOfGenLoc();
 bool CheckGenLoc( ListExpr type, ListExpr& errorInfo );
 ostream& operator<<(ostream& o, const GenLoc& gloc); 
 
+
+typedef Intime<GenLoc> IGenLoc; 
+ListExpr IntimeGenLocProperty();
+bool CheckIntimeGenLoc(ListExpr type, ListExpr& errorInfo);
 ///////////////////////////////////////////////////////////////////////////
 //////////////////////  GenRange /////////////////////////////////////////
 ////////////////////// oid = 0 is for free space  ///////////////////////
@@ -701,7 +705,7 @@ const string genmo_tmlist[] =
 {"Walk", "Indoor", "Bus", "Car", "Metro", "Taxi",
 "Walk;Car", "Walk;Bus", "Walk;Indoor", "Walk;Metro", "Walk;Taxi",
 "Walk;Bus;Metro", "Walk;Indoor;Car", "Walk;Indoor;Bus","Walk;Indoor;Metro",
-"Walk;Indoor;Taxi", "Walk;Indoor;Bus;Metro"};
+"Walk;Indoor;Taxi", "Walk;Bike", "Walk;Indoor;Bike"};
 
 class Space;
 
@@ -721,6 +725,8 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
       del.SetDelete();
       del.isDefined = true;
     }
+    static const string BasicType(){return "genmo";}
+    
     GenMO(const GenMO& mo);
     void Clear();
     void CopyFrom(const Attribute* right); 
@@ -731,6 +737,9 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     void Trajectory(GenRange* genrange, Space* sp);
     
     void AtMode(string tm, GenMO* sub);
+    void AtInstant(const Instant& t, Intime<GenLoc>& result) const; 
+    bool Contain(string tm);
+
 };
 
 
@@ -767,7 +776,8 @@ struct GenMO_MP{
 
 struct MNNav;
 class RoadGraph;
-
+class BusNetwork; 
+class MetroNetwork;
 
 
 /*
@@ -789,6 +799,9 @@ struct GenMObject{
   enum StreeSpeed{SPEED_RID = 0, SPEED_VAL}; 
   enum CommPath{CELL_ID1 = 0,CELL_AREA1,CELL_ID2,CELL_AREA2,CELL_PATH};
   enum BuildInfo{Build_ID = 0, Build_Type, Build_Area};
+
+  static string BenchModeDISTR;
+  enum BenchModeDISTRIInfo{BENCH_MODE = 0, BENCH_PARA};
 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list; 
@@ -876,9 +889,9 @@ struct GenMObject{
   void GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc, 
                             GenMO* genmo, MPoint* mo, Instant& start_time);
   //////////////////////////////////////////////////////////////////////////
-  //////////////////////Mode: Walk, Car//////////////////////////////////////
+  //////////////////////Mode: Walk, Car Taxi Bike ////////////////////////////
   //////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO_CarTaxiWalk(Space* sp, Periods* peri, int mo_no, 
+  void GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no, 
                              Relation* rel, BTree* btree, Relation*, string);
   void PaveLoc2GPoint(GenLoc loc1, GenLoc loc2, Space* sp, Relation* rel, 
                       BTree* btree, vector<GPoint>& gp_list, 
@@ -906,7 +919,7 @@ struct GenMObject{
   void DFTraverse1(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                              Relation* rel,
                              Point query_loc, vector<int>& tid_list);
-  void ConnectStartBusStop(DualGraph* dg, VisualGraph* vg, Relation*,
+  void ConnectStartStop(DualGraph* dg, VisualGraph* vg, Relation*,
                            GenLoc loc1, vector<Point> ps_list1, int oid,
                            GenMO* genmo, MPoint* mo, 
                            Instant& start_time, Line* res_path);
@@ -916,7 +929,7 @@ struct GenMObject{
   void NearestBusStop2(Point q, Relation* rel2, 
                       R_Tree<2,TupleId>* rtree, Point& res, int& oid);
 
-  void ConnectEndBusStop(DualGraph* dg, VisualGraph* vg, Relation*,
+  void ConnectEndStop(DualGraph* dg, VisualGraph* vg, Relation*,
                            GenLoc loc1, vector<Point> ps_list1, int oid,
                          GenMO* genmo, MPoint* mo, 
                          Instant& start_time, Line* res_path);
@@ -957,13 +970,16 @@ struct GenMObject{
   /////////////////////////////////////////////////////////////////////////
   ////////////////////  Indoor Walk Car(Taxi) /////////////////////////////
   /////////////////////////////////////////////////////////////////////////
-  void GenerateGenMO5(Space* sp, Periods* peri, 
-                      int mo_no, int type, Relation* rel1, BTree* btree, 
-                      Relation* rel2);
-  void GenerateGenMO_IndoorWalkCarTaxi(Space* sp, IndoorInfra* i_infra, 
-                                       Periods* peri, int mo_no, 
-                                       Relation* rel1, BTree* btree, 
-                                       Relation* rel2, string);
+  void GenerateGenMO5(Space* sp, Periods* peri, int mo_no, int type);
+  void GenerateGenMO_IndoorWalkCTB(Space* sp, Periods* peri, int mo_no, 
+                                   string, int);
+  void GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
+                           IndoorInfra* i_infra,
+                           Pavement* pm, Network* rn,
+                           RoadGraph* rg, Periods* peri, int mo_no, string,
+                           vector<RefBuild> build_id1_list,
+                           vector<RefBuild> build_id2_list, int);
+
   void CreateBuildingPair2(IndoorInfra* i_infra, 
                           vector<RefBuild>& build_id1_list,
                           vector<RefBuild>& build_id2_list, int no, 
@@ -982,9 +998,14 @@ struct GenMObject{
                                     int entrance_index, int reg_id,
                                     MaxRect* maxrect, Periods* peri,
                                      MPoint3D*);
-  void GenerateGenMO6(Space* sp, Periods* peri, int mo_no, int type, 
-                      Relation* rel1, Relation* rel2,
-                      R_Tree<2,TupleId>* rtree, Relation* rel3);
+  void GenerateGenMO6(Space* sp, Periods* peri, int mo_no, int type, int para);
+  void GenerateGenIBW(Space* sp, MaxRect* maxrect, IndoorInfra* i_infra,
+                                Pavement* pm, DualGraph* dg,
+                                VisualGraph* vg, BusNetwork* bn,
+                                Periods* peri, int mo_no, 
+                                vector<RefBuild> build_id1_list,
+                                vector<RefBuild> build_id2_list, int);
+
   void CreateBuildingPair4(IndoorInfra* i_infra, 
                           vector<RefBuild>& build_id1_list,
                           vector<RefBuild>& build_id2_list, int no, 
@@ -1007,10 +1028,39 @@ struct GenMObject{
   //////////////////////////////////////////////////////////////////////
   ////////////////Indoor Metro Walk/////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
-    void GenerateGenMO8(Space* sp, Periods* peri, int mo_no, int type, 
-                      Relation* rel1, Relation* rel2,
-                      R_Tree<2,TupleId>* rtree, Relation* rel3);
+  void GenerateGenMO8(Space* sp, Periods* peri, int mo_no, int type, int para);
+  void GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
+                                  MaxRect* maxrect, Pavement* pm, 
+                                  DualGraph* dg, VisualGraph* vg, 
+                                  MetroNetwork* mn, 
+                                  Periods* peri, int mo_no, 
+                                  int type, 
+                                  vector<RefBuild> build_id1_list,
+                                  vector<RefBuild> build_id2_list, int para);
 
+   ////////////////////////////////////////////////////////////////////
+   ////////////////////Benchmark Function ///////////////////////////
+   ///////////////////////////////////////////////////////////////
+   void GenerateGenMOBenchR1(Space* sp, Periods* peri, int mo_no,
+                            Relation* distri, Relation* home, Relation* work);
+   void GetSelectedBuilding(IndoorInfra* i_infra,
+                          vector<RefBuild>& build_tid1_list,
+                          vector<RefBuild>& build_tid2_list, MaxRect* maxrect, 
+                          Relation* rel1, Relation* rel2);
+
+   void CreateBuildingPair5(
+                          vector<RefBuild> b_list1,
+                          vector<RefBuild> b_list2,
+                          vector<RefBuild>& build_tid1_list,
+                          vector<RefBuild>& build_tid2_list, 
+                          int build_no, bool);
+
+   /////// buildings should also not be very far away from bus stops /////////
+   void GetSelectedBuilding2(IndoorInfra* i_infra,
+                          vector<RefBuild>& build_tid1_list,
+                          vector<RefBuild>& build_tid2_list, MaxRect* maxrect, 
+                          Relation* rel1, Relation* rel2, Relation* rel3);
+  
 };
 
 
@@ -1088,8 +1138,7 @@ struct InfraRef{
 }; 
 
 
-class BusNetwork; 
-class MetroNetwork;
+
 
 struct EntryItem{
   EntryItem(){} //do not initialize the members

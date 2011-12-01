@@ -610,6 +610,7 @@ bool MyRegIntersects(const Region* reg1, const Region* reg2);
 bool MyHSIntersects(const HalfSegment* hs1, const HalfSegment* hs2);
 bool MyInside(Line*,Region*);
 bool RegContainHS(Region* r, HalfSegment hs);
+double PointOnSline(SimpleLine* sl, Point* loc, bool b);
 
 /*
 for storing line or sline in such a way:

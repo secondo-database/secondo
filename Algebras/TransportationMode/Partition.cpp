@@ -6721,3 +6721,63 @@ void DataClean::DFTraverse2(Relation* rel,
   delete node;
 
 }
+
+/////////////////////////////////////////////////////////////////////
+////////a robust method to get the position of a point on a sline///
+/////////////////////////////////////////////////////////////////////
+double PointOnSline(SimpleLine* sl, Point* loc, bool b)
+{
+  double res = -1.0;
+  double min_dist = 0.001;
+  
+  SpacePartition* sp = new SpacePartition();
+  vector<MyHalfSegment> mhs_temp;
+  sp->ReorderLine(sl, mhs_temp);
+  delete sp;
+
+  Point start;
+  sl->AtPosition(0.0, b, start);
+  vector<MyHalfSegment> mhs;
+  if(mhs_temp[0].from.Distance(start) < min_dist){
+    for(unsigned int i = 0;i < mhs_temp.size();i++)
+      mhs.push_back(mhs_temp[i]);
+  }else{
+    for(int i = mhs_temp.size() - 1;i >= 0;i--){
+      MyHalfSegment seg = mhs_temp[i];
+      seg.Print();
+      seg.Exchange();
+      seg.Print();
+      mhs.push_back(seg);
+    }
+  }
+  double l = 0.0;
+  for(unsigned int i = 0;i < mhs.size();i++){
+    HalfSegment hs(true, mhs[i].from, mhs[i].to);
+    if(hs.Contains(*loc)){
+      l += loc->Distance(mhs[i].from);
+      res = l;
+      break;
+    }else
+      l += hs.Length();
+  }
+
+  if(fabs(res) < 0.000001) res = 0.0;
+
+  if(fabs(res - sl->Length()) < 0.000001) res = sl->Length();
+
+  double result; 
+  if(sl->AtPoint(*loc, b, result) == false){
+    cout<<"error"<<endl;
+  }
+  
+  if(fabs(res - result) > 0.001){
+    cout<<"too large deviation "<<endl;
+    cout<<"res "<<res<<" atpoint "<<result<<endl;
+  }
+
+  if(res < 0.0){
+    cout<<"error:not found on the sline "<<endl;
+  }
+  return res;
+
+}

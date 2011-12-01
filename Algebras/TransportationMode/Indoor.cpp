@@ -6009,7 +6009,7 @@ void IndoorNav::GenerateMO3_Start(IndoorGraph* ig, BTree* btree,
       int door_index = entrance_index - 1;
       GenLoc loc1 = doorloc_list[door_index];
 
-      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
 
       bool find_path = false;
 #ifdef INDOOR_PATH
@@ -6164,7 +6164,7 @@ void IndoorNav::GenerateMO3_End(IndoorGraph* ig, BTree* btree,
       loc1 = temp_gloc;*/
       //////////////////////////////////////////////
 
-      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
 
       bool find_path = false;
 #ifdef INDOOR_PATH
@@ -7609,7 +7609,8 @@ void IndoorNav::GenerateMO3_New_Start(IndoorGraph* ig, BTree* btree,
       int door_index = i % doorloc_list.size();
       GenLoc loc1 = doorloc_list[door_index];
 
-      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+
       bool find_path = false;
 #ifdef INDOOR_PATH
       int path_oid = GetIndooPathID(entrance_index, loc2.GetOid(), true);
@@ -7766,7 +7767,8 @@ void IndoorNav::GenerateMO3_New_End(IndoorGraph* ig, BTree* btree,
       int door_index = i % doorloc_list.size();
       GenLoc loc2 = doorloc_list[door_index];
 
-      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+
       bool find_path = false;
 #ifdef INDOOR_PATH
       int path_oid = GetIndooPathID(entrance_index, loc1.GetOid(), true);
@@ -12412,7 +12414,7 @@ Word InUPoint3D( const ListExpr typeInfo, const ListExpr instance,
         errorPos, errorInfo, correct ).addr;
 
       if( !correct || !start->IsDefined() ){
-        errmsg = "InUPoint3D(): Error in first instant (Must be defined!).";
+        errmsg = "InUPoint3D(): first instant must be defined!.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
@@ -12424,7 +12426,7 @@ Word InUPoint3D( const ListExpr typeInfo, const ListExpr instance,
 
       if( !correct  || !end->IsDefined() )
       {
-        errmsg = "InUPoint3D(): Error in second instant (Must be defined!).";
+        errmsg = "InUPoint3D(): second instant must be defined!.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
@@ -12448,7 +12450,7 @@ Word InUPoint3D( const ListExpr typeInfo, const ListExpr instance,
       //////////////////////////////////////////////////////////////////
       ListExpr second = nl->Second( instance );
       if(nl->ListLength(second) != 3){
-        errmsg = "InUPoint3D(): the length for Point3D should be 3.";
+        errmsg = "InUPoint3D(): three parameters for Point3D.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         return SetWord( Address(0) );
       }
@@ -12465,7 +12467,7 @@ Word InUPoint3D( const ListExpr typeInfo, const ListExpr instance,
       /////////////////////////////////////////////////////////////////////
       ListExpr third = nl->Third(instance); 
       if(nl->ListLength(third) != 3){
-        errmsg = "InUPoint3D(): the length for Point3D should be 3.";
+        errmsg = "InUPoint3D(): three parameters for Point3D.";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         return SetWord( Address(0) );
       }
