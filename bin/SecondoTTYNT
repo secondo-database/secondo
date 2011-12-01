@@ -12,12 +12,33 @@ export SECONDO_PARAM_NodeMem=32000
 export SECONDO_PARAM_StringMem=8000
 export SECONDO_PARAM_TextMem=8000
 
+
+VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=vgs.txt --error-limit=no --smc-check=all --track-origins=yes"
+
+if [ "$1" == "--valgrind" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS  $(which SecondoBDB)"
+else 
+if [ "$1" == "--valgrindlc" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $(which SecondoBDB)"
+else  
+if [ "$1" == "--profile" ]; then
+  shift
+  runner="valgrind --tool=callgrind --dump-instr=yes  --trace-jump=yes  $(which SecondoBDB)"
+else
+  runner="$(which SecondoBDB)"
+fi
+fi
+fi  
+
+
 # check if nice command is present
 ncmd=$(which nice)
 if [ $? -ne 0 ]; then
-   SecondoBDB $*
+   $runner $*
 else
-  nice -n 19  SecondoBDB $*
+  nice -n 19 $runner $*
 fi
 
 rc=$?
