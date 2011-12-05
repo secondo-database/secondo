@@ -14,7 +14,7 @@
 ### and executes another script which controls the import process.
 ###
 ### Author:
-### - Thomas Uchdorf, t.uchdorf@arcor.de
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # --- feel free to perform manual changes in the following part
@@ -35,12 +35,12 @@
 
 # Duesseldorf
 #name='hometown'
-name='duesseldorf'
+#name='duesseldorf'
 #name='beispiel'
-min_lon=6.65
-max_lon=6.91
-min_lat=51.18
-max_lat=51.28
+#min_lon=6.65
+#max_lon=6.91
+#min_lat=51.18
+#max_lat=51.28
 #min_lon=6.70
 #max_lon=6.80
 #min_lat=51.20
@@ -67,11 +67,11 @@ max_lat=51.28
 #max_lon=14.7647105012
 #min_lat=51.3606627053
 #max_lat=53.5579500214
-#name='bremen'
-#min_lon=8.4813576818
-#max_lon=8.9830477728
-#min_lat=53.0103701114
-#max_lat=53.6061664164
+name='bremen'
+min_lon=8.4813576818
+max_lon=8.9830477728
+min_lat=53.0103701114
+max_lat=53.6061664164
 #name='hamburg'
 #min_lon=8.4213643278
 #max_lon=10.3242585128
@@ -82,6 +82,7 @@ max_lat=51.28
 #max_lon=10.2340156149
 #min_lat=49.3948229196
 #max_lat=51.6540496066
+#name='mv'
 #name='mecklenburg-vorpommern'
 #min_lon=10.5932460856
 #max_lon=14.4122799503
@@ -92,11 +93,13 @@ max_lat=51.28
 #max_lon=11.59769814
 #min_lat=51.2954150799
 #max_lat=53.8941514415
+#name='nrw'
 #name='nordrhein-westfalen'
 #min_lon=5.8659988131
 #max_lon=9.4476584861
 #min_lat=50.3226989435
 #max_lat=52.5310351488
+#name='rp'
 #name='rheinland-pfalz'
 #min_lon=6.1173598760
 #max_lon=8.5084754437
@@ -112,11 +115,13 @@ max_lat=51.28
 #max_lon=15.0377433357
 #min_lat=50.1715419914
 #max_lat=51.6831408995
+#name='sa'
 #name='sachsen-anhalt'
 #min_lon=10.5614755400
 #max_lon=13.1865600846
 #min_lat=50.9379979829
 #max_lat=53.0421316033
+#name='sh'
 #name='schleswig-holstein'
 #min_lon=7.8685145620
 #max_lon=11.3132037822
@@ -139,9 +144,9 @@ max_lat=51.28
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/cloud-made/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/osm2shp/${name}/"
-#src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/bundeslaender/${name}/"
+src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/bundeslaender/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/osm-api/${name}/"
-src_dir_path="/Users/fernuni-student/osm-data/osm-files/geofabrik/${name}/"
+#src_dir_path="/Users/fernuni-student/osm-data/osm-files/geofabrik/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/cloud-made/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/fiktiv/${name}/"
 
@@ -152,9 +157,9 @@ src_dir_path="/Users/fernuni-student/osm-data/osm-files/geofabrik/${name}/"
 part='City'
 
 # Defining the format of the shape-file that is to be processed
-#file_type='shp_geofabrik'
+file_type='shp_geofabrik'
 #file_type='shp_osm2shp'
-file_type='osm'
+#file_type='osm'
 
 # --- please only modify the subsequent lines if you exactly know what you are
 #     doing

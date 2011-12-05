@@ -24,7 +24,7 @@ let testRoads =
    cityRoads feed
    filter [(.Road = 1) or (.Road = 22)]
    projectextend [Road, Length, Geometry; 
-      Dual: ifthenelse(.Road = 1,<Road1Dual>,<Road2Dual>),
+      Dual: ifthenelse(.Road = 1,TRUE,TRUE),
       StartsSmaller: .StartsSmaller]
    consume;
 
@@ -32,7 +32,7 @@ let testJunctions =
    cityJunctions feed
    filter [(.Road1 = 1) and (.Road2 = 22)]
    remove [NewJunctionType]
-   extend [NewJunctionType: <ConnectivityCode>]
+   extend [NewJunctionType: 10920]
    consume;
  
 let cityNetwork = thenetwork(
@@ -96,7 +96,7 @@ let transitions =
       ifthenelse(isdefined(shortest_path(spot4,spot1)),1,0),
       ifthenelse(isdefined(shortest_path(spot4,spot8)),1,0),
       ifthenelse(isdefined(shortest_path(spot4,spot2)),1,0));
-save transitions to '<ExportFile>';
+save transitions to '/Users/fernuni-student/secondo/Algebras/OSM/Scripts/Exported/10920.txt';
 #let transitions =
 #   [const rel(tuple([
 #      AupAup: int, 
@@ -135,5 +135,5 @@ save transitions to '<ExportFile>';
 #      ifthenelse(isdefined(shortest_path(spot4,spot1)),1,0) 
 #      ifthenelse(isdefined(shortest_path(spot4,spot8)),1,0) 
 #      ifthenelse(isdefined(shortest_path(spot4,spot2)),1,0) 
-#      <ConnectivityCode>);
+#      10920);
 close database;

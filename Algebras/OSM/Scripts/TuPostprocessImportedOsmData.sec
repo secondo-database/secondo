@@ -43,7 +43,7 @@
 ###                      restriction: text}
 ###
 ### Author:
-### - Thomas Uchdorf, t.uchdorf@arcor.de
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # Creating a relation that maps road classes to numbers

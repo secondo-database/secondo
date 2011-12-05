@@ -11,7 +11,7 @@
 ### - existing database containing all imported and processed city data
 ###
 ### Author:
-### - Thomas Uchdorf, t.uchdorf@arcor.de
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 @../Algebras/OSM/Scripts/TuPreprocessImport.sec;

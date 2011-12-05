@@ -1,4 +1,13 @@
-#/bin/sh
+#!/bin/sh
+
+################################################################################
+### Description:
+### - This shell-script performs tests concerning the computation of
+### connectivity codes.
+###
+### Author:
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
+################################################################################
 
 i=0
 inp='TuTestConnectivityCodes.sec.tmpl'

@@ -32,7 +32,7 @@
 ### - cityNetwork-network
 ###
 ### Author:
-### - Thomas Uchdorf, t.uchdorf@arcor.de
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # Making a relation with road data to enable network creation

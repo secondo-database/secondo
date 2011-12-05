@@ -15,20 +15,20 @@
 ### - existing open database with some specifications on the corresponding city
 ###
 ### Author:
-### - Thomas Uchdorf, t.uchdorf@arcor.de
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # Creating and opening a new database
-create database duesseldorfCity;
-open database duesseldorfCity;
+create database bremenCity;
+open database bremenCity;
 
 # Changing the scaling applied to all coordinates during import
-#query setscalefactorx(1000);
-#query setscalefactory(1000);
+query setscalefactorx(1000);
+query setscalefactory(1000);
 
 # Setting the path to the directory with the shape data:
 let SRC_DIR_PATH =
-   '/Users/fernuni-student/osm-data/shp-files/geofabrik/duesseldorf/';
+   '/Users/fernuni-student/osm-data/shp-files/geofabrik/bundeslaender/bremen/';
 let PART =
    'City';
 let SCALE_FACTOR_X =
@@ -40,10 +40,10 @@ let SCALE_FACTOR_Y =
 # Defining the clipping rectangle used to restrict the data to the city area
 let cityRect =
    rectangle2 (
-      (6.65 * SCALE_FACTOR_X),
-      (6.91 * SCALE_FACTOR_X),
-      (51.18 * SCALE_FACTOR_Y),
-      (51.28 * SCALE_FACTOR_Y));
+      (8.4813576818 * SCALE_FACTOR_X),
+      (8.9830477728 * SCALE_FACTOR_X),
+      (53.0103701114 * SCALE_FACTOR_Y),
+      (53.6061664164 * SCALE_FACTOR_Y));
 
 # Dividing the main city rectangle into 9 parts for each orientation
 let districtWidth =

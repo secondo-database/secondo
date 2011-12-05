@@ -47,7 +47,7 @@
 ###                               noStraightOn: bool}
 ###
 ### Author:
-### - Thomas Uchdorf, t.uchdorf@arcor.de
+### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # Computing all junctions and terminating points by finding the existing
