@@ -19,16 +19,16 @@
 ################################################################################
 
 # Creating and opening a new database
-create database bremenCity;
-open database bremenCity;
+create database ruegenCity;
+open database ruegenCity;
 
 # Changing the scaling applied to all coordinates during import
-query setscalefactorx(1000);
-query setscalefactory(1000);
+query setscalefactorx(1);
+query setscalefactory(1);
 
 # Setting the path to the directory with the shape data:
 let SRC_DIR_PATH =
-   '/Users/fernuni-student/osm-data/shp-files/geofabrik/bundeslaender/bremen/';
+   '/home/jandt/Downloads/OSM-Dateien/';
 let PART =
    'City';
 let SCALE_FACTOR_X =
@@ -40,10 +40,10 @@ let SCALE_FACTOR_Y =
 # Defining the clipping rectangle used to restrict the data to the city area
 let cityRect =
    rectangle2 (
-      (8.4813576818 * SCALE_FACTOR_X),
-      (8.9830477728 * SCALE_FACTOR_X),
-      (53.0103701114 * SCALE_FACTOR_Y),
-      (53.6061664164 * SCALE_FACTOR_Y));
+      (11.837 * SCALE_FACTOR_X),
+      (14.268 * SCALE_FACTOR_X),
+      (53.610 * SCALE_FACTOR_Y),
+      (54.783 * SCALE_FACTOR_Y));
 
 # Dividing the main city rectangle into 9 parts for each orientation
 let districtWidth =

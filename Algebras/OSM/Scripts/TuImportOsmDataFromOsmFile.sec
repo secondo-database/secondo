@@ -28,19 +28,19 @@
 # Importing the raw data from an osm-file
 # on POIs and converting the (longitude,latitude)-coordinates into points
 let osmNodesRel =
-   osmimport(SRC_DIR_PATH + 'City.osm','node')
+   osmimport(SRC_DIR_PATH + 'duesseldorf.osm','node')
    extend [geoData: makepoint(.lon,.lat)]
    remove [lon,lat]
    filter[bbox(.geoData) intersects partRect]
    consume;
 # on streets
 let osmWaysTmp =
-   osmimport(SRC_DIR_PATH + 'City.osm','way')
+   osmimport(SRC_DIR_PATH + 'duesseldorf.osm','way')
    filter [isdefined(.type)]
    consume;
 # on restrictions
 let osmRestrictionsRel =
-   osmimport(SRC_DIR_PATH + 'City.osm','restriction')
+   osmimport(SRC_DIR_PATH + 'duesseldorf.osm','restriction')
    filter[.osmType = "restriction"]
    remove [osmType]
    consume;

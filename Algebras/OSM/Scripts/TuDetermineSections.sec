@@ -352,7 +352,7 @@ delete restrictionsRel;
 # different relations
 let onlyRestrictions =
    extRestrictionsRel feed
-   extend [only: tostring(.restriction) starts "only"]
+   extend [only: .restriction starts "only"]
    filter [.only]
    remove [osmId,restrictionId]
    consume;
