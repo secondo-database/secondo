@@ -64,7 +64,7 @@ const char * OsmImportOperator::ATTRIBUTE_VALUE_UNKNOWN = "VALUE_UNKNOWN";
 // Default-Constructor
 OsmImportOperator::OsmImportOperator ()
   : m_parser (NULL), m_elementType (ELEMENT_TYPE_UNKNOWN), m_tupleType (NULL),
-    m_tupleTemplate (NULL), m_attributeTemplates (NULL)
+    m_tupleTemplate (NULL), m_attributeTemplates ()
 {
     // empty
 }
@@ -74,9 +74,9 @@ OsmImportOperator::OsmImportOperator (const std::string &fileName,
     const std::string &elementType,
     ListExpr type)
   : m_parser (NULL), m_elementType (ELEMENT_TYPE_UNKNOWN), m_tupleType (NULL),
-    m_tupleTemplate (NULL), m_attributeTemplates (NULL)
+    m_tupleTemplate (NULL), m_attributeTemplates ()
 {
-    m_parser = new OsmParser(fileName); 
+    m_parser = new OsmParser(fileName);
     m_parser->openOsmFile ();
 
     if (elementType == "node")  {
@@ -101,7 +101,7 @@ OsmImportOperator::OsmImportOperator (const std::string &fileName,
 OsmImportOperator::~OsmImportOperator ()
 {
     if (m_parser)  {
-        m_parser->closeOsmFile (); 
+        m_parser->closeOsmFile ();
         delete m_parser;
     }
 
@@ -184,14 +184,14 @@ ListExpr OsmImportOperator::getOsmNodeAttrList ()
         "lat",
         "type",
         "name"
-    }; 
+    };
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
         CcReal::BasicType(),
         CcReal::BasicType(),
         FText::BasicType(),
         FText::BasicType()
-    }; 
+    };
     return OsmImportOperator::getAttrList (attributeNames, attributeTypes,
         NUM_ATTR);
 }
@@ -210,7 +210,7 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
         "tunnel",
         "ref",
         "nodeRefs"
-    }; 
+    };
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
         CcInt::BasicType(),
@@ -222,7 +222,7 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
         FText::BasicType(),
         CcString::BasicType(),
         FText::BasicType()
-    }; 
+    };
     return OsmImportOperator::getAttrList (attributeNames, attributeTypes,
         NUM_ATTR);
 }
@@ -237,7 +237,7 @@ ListExpr OsmImportOperator::getOsmRestrictionAttrList ()
         "to",
         "restriction",
         "osmType"
-    }; 
+    };
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
         CcInt::BasicType(),
@@ -245,7 +245,7 @@ ListExpr OsmImportOperator::getOsmRestrictionAttrList ()
         CcInt::BasicType(),
         FText::BasicType(),
         FText::BasicType()
-    }; 
+    };
     return OsmImportOperator::getAttrList (attributeNames, attributeTypes,
         NUM_ATTR);
 }
@@ -270,7 +270,7 @@ ListExpr OsmImportOperator::getAttrList (std::string attributeNames [],
     }
     return attrList;
 }
-        
+
 const char * OsmImportOperator::getUndefinedStr ()
 {
     return OsmImportOperator::ATTRIBUTE_VALUE_UNDEFINED;
