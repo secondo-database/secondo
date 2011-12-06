@@ -42,12 +42,12 @@ endif
 
 
 app$(EXEEXT): Example.o
-	gcc -o app$(EXEEXT) Example.o $(LDFLAGS)  
+	$(CPPC) -o app$(EXEEXT) Example.o $(LDFLAGS)  
 	mkdir -p databases
 
 
 Example.o: Example.cpp
-	$(CC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDBINCLUDE) 
+	$(CPPC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDBINCLUDE) 
 
 .PHONY:clean
 clean:
