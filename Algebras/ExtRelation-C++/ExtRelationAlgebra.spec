@@ -81,6 +81,7 @@ operator toFields alias TOFIELDS pattern _ op [ _ ]
 operator fromFields alias FROMFIELDS pattern _ _ op
 
 
+operator processAll alias PROCESSALL pattern _ op [ _ ]
 
 
 

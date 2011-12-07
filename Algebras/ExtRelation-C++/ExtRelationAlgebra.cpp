@@ -11684,6 +11684,203 @@ struct fromFieldsInfo : OperatorInfo {
   }
 };
 
+
+
+/*
+2.117 Operator ~processAll~
+
+This operator receives a tuple stream as well as a function  t -> x, x,t in DATA
+and applies this function to all attributes of type t within each tuple. The 
+attribute is replaced by the new value.
+
+2.117.1 Type Mapping
+
+*/
+ListExpr processAllTM(ListExpr args){
+   string err = "stream(Tuple) x (DATA -> DATA) expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err + " (wrong number of arguments)");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+     return listutils::typeError(err + " (first arg is not a tuple stream)");
+   }
+   ListExpr fun = nl->Second(args);
+   if(!listutils::isMap<1>(fun)){
+     return listutils::typeError(err +" (second arg is not a function)");
+   }
+   ListExpr funArg = nl->Second(fun);
+   ListExpr funRes = nl->Third(fun);
+   if(!listutils::isDATA(funArg) || !listutils::isDATA(funRes)){
+     return listutils::typeError(err + " ( function not of type DATA -> DATA");
+   }
+
+   // tests are ok, build result lists
+   ListExpr resList;
+   ListExpr resLast;
+   ListExpr replaceList = nl->TheEmptyList();
+   ListExpr replaceLast;
+
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   bool firstRes = true;
+   bool firstReplace = true;
+   int attrNo = 0;
+
+   while(!nl->IsEmpty(attrList)){
+     ListExpr attr = nl->First(attrList);
+     if(nl->Equal(funArg, nl->Second(attr))){
+        if(firstReplace) {
+          replaceList = nl->OneElemList(nl->IntAtom(attrNo));
+          replaceLast = replaceList;
+          firstReplace = false;
+        } else {
+          replaceLast = nl->Append(replaceLast, nl->IntAtom(attrNo));
+        }
+        attr = nl->TwoElemList( nl->First(attr), funRes);
+     }
+     if(firstRes){
+        resList = nl->OneElemList(attr);
+        resLast = resList;
+        firstRes = false;
+     } else {
+        resLast = nl->Append(resLast, attr);
+    }
+    attrNo++;
+    attrList = nl->Rest(attrList);
+   }
+
+   return nl->ThreeElemList(
+                nl->SymbolAtom(Symbols::APPEND()),
+                replaceList,
+                 nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                    nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                                     resList)));
+}
+
+/*
+2.117.2 LocalInfo for processAll operator
+
+*/
+
+class processAllLocalInfo{
+
+ public:
+   
+   processAllLocalInfo(Word& s, Word& f, vector<int>& pos, ListExpr resType):
+       stream(s), fun(f), positions(pos) {
+       stream.open();
+       tt = new TupleType(resType);
+       positions.push_back(-1);
+   }
+   ~processAllLocalInfo(){
+       tt->DeleteIfAllowed();
+       stream.close();
+    }
+
+   Tuple* nextTuple(){
+     Tuple* inTuple = stream.request();
+     if(!inTuple){
+       return 0;
+     }
+     if(positions.empty()){
+        return inTuple;
+     }
+     int p_index=0;
+     int p = positions[p_index];
+     Tuple* resTuple = new Tuple(tt);
+     for(int i=0;i<inTuple->GetNoAttributes();i++){
+       if(i!=p){  // do not apply the function
+          resTuple->CopyAttribute(i,inTuple, i);
+       } else {
+         Attribute* inAttr = inTuple->GetAttribute(i); 
+         ArgVectorPointer funArgs = qp->Argument(fun.addr);
+         (*funArgs)[0] = inAttr;
+          Word funRes;
+          qp->Request(fun.addr, funRes);
+          resTuple->PutAttribute(i, ((Attribute*)funRes.addr)->Clone());
+          p_index++;
+          p = positions[p_index];
+       }
+     }
+     return resTuple;
+   }
+
+
+ private:
+    Stream<Tuple> stream;
+    Word fun;
+    vector<int> positions;
+    TupleType* tt;
+};
+
+
+/*
+2.117.3 ValueMapping for processAll
+
+*/
+
+int processAllVM( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+
+
+  processAllLocalInfo* li = (processAllLocalInfo*) local.addr;
+ 
+  switch(message){
+    case OPEN: {
+                  if(li){
+                    delete li;
+                  }
+                  vector<int> attrPos;
+                  for(int i=2;i<qp->GetNoSons(s); i++){
+                     attrPos.push_back(((CcInt*)args[i].addr)->GetValue());
+                  }  
+                  local.addr = new processAllLocalInfo(args[0], args[1], 
+                                                      attrPos, 
+                                        nl->Second(GetTupleResultType(s)));
+                  return 0;
+               }
+     case REQUEST: {
+                     if(!li){
+                       return CANCEL;
+                     }
+                     result.addr = li->nextTuple();
+                     return result.addr?YIELD:CANCEL;
+                   }
+    case CLOSE: {
+                   if(li){
+                     delete li;
+                     local.addr=0;
+                   }
+                   return  0;
+                }
+                 
+  }
+  return -1; 
+}
+
+
+const string processAllSpec  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>stream(tuple(x)) x fun  -> stream(tuple(y))"
+  "</text--->"
+  "<text>stream processAll [ fun  ] </text--->"
+  "<text>Replaces all attributes of argument type of fun by the "
+  " result of the function."
+  "</text--->"
+  "<text>query ten feed processAll[ fun(int i) i * i] tconsume "
+  " </text--->"
+  ") )";
+
+
+Operator processAll(
+          "processAll",
+          processAllSpec,
+          processAllVM,
+          Operator::SimpleSelect,
+          processAllTM);
+
+
+
+
 /*
 
 3 Class ~ExtRelationAlgebra~
@@ -11785,6 +11982,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&aggregateC);
     AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
     AddOperator(fromFieldsInfo(), fromFieldsFun, fromFieldsType );
+    AddOperator(&processAll);
 
 #ifdef USE_PROGRESS
 // support for progress queries
