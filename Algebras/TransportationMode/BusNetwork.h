@@ -1762,6 +1762,7 @@ struct MNNav{
   
   unsigned int count;
   TupleType* resulttype;
+  double t_cost;//summarize time in seconds
   
   MNNav(){count = 0; resulttype = NULL;}
   MNNav(MetroNetwork* n):mn(n)

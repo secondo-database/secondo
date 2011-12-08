@@ -112,12 +112,12 @@ symbols for data type. to make it more readable, I use string insteand of enum
 */ 
 enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN, IF_BUSNETWORK,
 IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE, IF_METRONETWORK, IF_METROSTOP,
-IF_METROROUTE, IF_METRO, IF_INDOOR, IF_TRAINNETWORK}; 
+IF_METROROUTE, IF_METRO, IF_INDOOR, IF_TRAINNETWORK, IF_INDOORPATH}; 
 
 const string symbol_type[] = 
 {"BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
 "REGION", "LINE", "FREESPACE", "METRONETWORK", "METROSTOP", "METROROUTE", 
-"METRO", "INDOOR", "TRAINNETWORK"};
+"METRO", "INDOOR", "TRAINNETWORK", "INDOORPATH"};
 
 inline int GetSymbol(string s)
 {
@@ -737,11 +737,17 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     void Trajectory(GenRange* genrange, Space* sp);
     
     void AtMode(string tm, GenMO* sub);
-    void AtInstant(const Instant& t, Intime<GenLoc>& result) const; 
+    void AtInstant(Instant& t, Intime<GenLoc>& result); 
+    void AtPeriods(Periods* peri, GenMO& result); 
+    Intime<GenLoc> GetUnitInstant(UGenLoc& unit, Instant& t);
     bool Contain(string tm);
+    bool Contain(int refid);
 
+    bool Passes(Region* reg, Space* sp);
+    
 };
 
+void GetLine(Point& p1, Point& p2, Line* l);
 
 bool CheckGenMO( ListExpr type, ListExpr& errorInfo );
 ListExpr GenMOProperty();
@@ -1034,14 +1040,13 @@ struct GenMObject{
                                   DualGraph* dg, VisualGraph* vg, 
                                   MetroNetwork* mn, 
                                   Periods* peri, int mo_no, 
-                                  int type, 
                                   vector<RefBuild> build_id1_list,
                                   vector<RefBuild> build_id2_list, int para);
 
    ////////////////////////////////////////////////////////////////////
    ////////////////////Benchmark Function ///////////////////////////
    ///////////////////////////////////////////////////////////////
-   void GenerateGenMOBenchR1(Space* sp, Periods* peri, int mo_no,
+   void GenerateGenMOBench1(Space* sp, Periods* peri, int mo_no,
                             Relation* distri, Relation* home, Relation* work);
    void GetSelectedBuilding(IndoorInfra* i_infra,
                           vector<RefBuild>& build_tid1_list,
@@ -1061,6 +1066,13 @@ struct GenMObject{
                           vector<RefBuild>& build_tid2_list, MaxRect* maxrect, 
                           Relation* rel1, Relation* rel2, Relation* rel3);
   
+   void GenerateGenMOBench2(Space* sp, Periods* peri, int mo_no,
+                            Relation* id_rel, string type);
+   void GenMOBenchRBO(Space* sp, Periods* peri, int mo_no, Relation* id_rel);
+   void GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no, Relation* id_rel);
+   void GetSelectedBuilding3(IndoorInfra* i_infra,
+                          vector<RefBuild>& build_tid1_list,
+                          MaxRect* maxrect, Relation* rel);
 };
 
 

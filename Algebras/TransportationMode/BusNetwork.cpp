@@ -17155,6 +17155,7 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
     Bus_Stop ms_last = *ms1; 
     Instant t1 = *qt;
 //    int no_transfer = 0; 
+    t_cost = 0.0; 
 
     for(int i = id_list.size() - 1;i >= 0;i--){
       BNPath_elem elem = expand_queue[id_list[i]];
@@ -17230,10 +17231,14 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
         //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }
+          else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
@@ -17253,10 +17258,14 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
         //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }
+          else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
           Interval<Instant> time_span;
           time_span.start = t1;
           time_span.lc = true;
@@ -17288,10 +17297,14 @@ void MNNav::ShortestPath_Time(Bus_Stop* ms1, Bus_Stop* ms2, Instant* qt)
 //        cout<<t1<<" "<<t2<<endl; 
 
           //time cost in seconds 
-          if(elem.valid)
+          if(elem.valid){
             time_cost_list.push_back((t2.ToDouble() - t1.ToDouble())*86400.0);
-          else //doing transfer without moving 
+            t_cost += (t2.ToDouble() - t1.ToDouble())*86400.0;
+          }
+          else{ //doing transfer without moving 
             time_cost_list.push_back(0.0); 
+            t_cost += 0.0;
+          }
 
           time_span.start = t1;
           time_span.lc = true;

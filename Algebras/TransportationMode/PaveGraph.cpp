@@ -4841,6 +4841,70 @@ void Walk_SP::GenerateData3(int no_p)
 }
 
 /*
+create a random point on the given triangle 
+
+*/
+bool Walk_SP::GenerateData4(int tid)
+{
+  if(rel1 == NULL){
+    cout<<"realtion no initialize "<<endl;
+    return false;
+  }
+  int no_node_graph = rel1->GetNoTuples();
+  assert(1 <= tid && tid <= no_node_graph);
+
+  Tuple* tuple = rel1->GetTuple(tid, false);
+  int oid = ((CcInt*)tuple->GetAttribute(DualGraph::OID))->GetIntval(); 
+  Region* reg = (Region*)tuple->GetAttribute(DualGraph::PAVEMENT);
+
+  if(reg->Area() < 0.5){ //too small area, not useful for a human
+      tuple->DeleteIfAllowed();
+      return false;
+  }
+
+
+  BBox<2> bbox = reg->BoundingBox();
+  int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
+  int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
+
+  Point p1;
+  Point p2;
+  bool inside = false;
+  int count_tmp = 1;
+  while(inside == false && count_tmp <= 100){
+
+        int x = GetRandom() % (xx*100);
+        int y = GetRandom() % (yy*100);
+
+
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+
+        Coord x_cord = coord_x + bbox.MinD(0);
+        Coord y_cord = coord_y + bbox.MinD(1);
+        p2.Set(x_cord, y_cord);
+        p1.Set(coord_x, coord_y); //set back to relative position
+        //lower the precision
+        Modify_Point_3(p1);
+        Modify_Point_3(p2);
+        inside = p2.Inside(*reg);
+        count_tmp++;
+  }
+  tuple->DeleteIfAllowed();
+  if(inside){
+//        oids.push_back(m);
+        oids.push_back(oid); 
+        q_loc1.push_back(p1);
+        q_loc2.push_back(p2);
+        return true;
+  }
+  
+  return false;
+
+}
+
+
+/*
 set pavement rid 
 
 */

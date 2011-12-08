@@ -161,6 +161,7 @@ operator tm_initial alias TM_INITIAL pattern op(_)
 operator tm_final alias TM_FINAL pattern op(_)
 operator tm_build_id alias TM_BUILD_ID pattern op(_,_)
 operator tm_plus_id alias TM_PLUS_ID pattern op(_,_)
+operator tm_passes alias TM_PASSES pattern op(_,_,_)
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)
 operator no_components alias NO_COMPONENTS pattern op (_)
@@ -171,6 +172,8 @@ operator genrangevisible alias GENRANGEVISIBLE pattern op(_,_)
 operator getmode alias GETMODE pattern op(_)
 operator getref alias GETREF pattern op(_,_)
 operator tm_atinstant alias TM_ATINSTANT pattern _ infixop _
+operator tm_atperiods alias TM_ATPERIODS pattern _ infixop _
+
 operator thespace alias THESPACE pattern op(_)
 operator putinfra alias PUTINFRA pattern op(_,_)
 operator putrel alias PUTREL pattern op(_,_)
@@ -180,7 +183,8 @@ operator genmo_tm_list alias GENMO_TM_LIST pattern op(_)
 
 operator generate_genmo alias GENERATE_GENMO pattern op(_,_,_,_)
 
-operator generate_bench_r1 alias GENERATE_BENCH_R1 pattern op(_,_,_,_,_,_)
+operator generate_bench_1 alias GENERATE_BENCH_1 pattern op(_,_,_,_,_,_)
+operator generate_bench_2 alias GENERATE_BENCH_2 pattern op(_,_,_,_,_)
 
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
 

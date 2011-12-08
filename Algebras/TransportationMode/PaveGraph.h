@@ -424,7 +424,7 @@ struct Walk_SP{
   void GenerateData1(int no_p);
   void GenerateData2(int no_p);
   void GenerateData3(int no_p);
-  
+  bool GenerateData4(int oid);
   
   void DFTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Region* reg, 
                   vector<int>& r_id_list);
