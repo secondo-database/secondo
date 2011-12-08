@@ -49,6 +49,13 @@ TemporalNet2Algebra TemporalNet2
 UGridAlgebra UGrid
 UrelAlgebra Urel
 WebAlgebra Web
+GroupbyAlgebra Groupby
+DistributedAlgebra Distributed
+MapMatchingAlgebra MapMatching
+MovingRegion2Algebra MovingRegion2
+NestedRelation2Algebra NestedRelation2
+SpatialJoin2Algebra SpatialJoin2
+SymbolicTrajectoryAlgebra SymbolicTrajetory
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
@@ -65,6 +72,8 @@ OldRelationAlgebra OldRelation-C++
 
 Optimizer/Entropy
 Optimizer/Correlations
+Optimizer/LargeQueries
+Optimizer/Subqueries
 Data/Databases/spatial
 Data/Objects/Brasil
 Data/Objects/Distrikte
@@ -93,6 +102,9 @@ CM-Scripts/rmoptext.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
 CM-Scripts/public-version.pd
+CM-Scripts/cvs-documentation.txt
+CM-Scripts/cvspass.odg
+CM-Scripts/studentlist.ods
 
 Algebras/Relation-C++/Measurements-feed-project-consume.sxc
 Algebras/Relation-C++/Measurements-feed-project-consume.xls
