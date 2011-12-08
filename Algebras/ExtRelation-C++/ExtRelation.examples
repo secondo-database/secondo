@@ -368,9 +368,9 @@ Result   : file
 
 
 
-Operator : processAll 
+Operator : applyToAll 
 Number   : 1
 Signature: stream(tuple(X)) x fun -> stream(tuple(Y)) 
-Example  : query ten feed processAll[ fun(i : int) i + 1] sum[no]
+Example  : query ten feed applyToAll[ fun(i : int) i + 1] sum[no]
 Result   : 65
 

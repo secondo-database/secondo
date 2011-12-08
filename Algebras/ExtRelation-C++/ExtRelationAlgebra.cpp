@@ -11687,7 +11687,7 @@ struct fromFieldsInfo : OperatorInfo {
 
 
 /*
-2.117 Operator ~processAll~
+2.117 Operator ~applyToAll~
 
 This operator receives a tuple stream as well as a function  t -> x, x,t in DATA
 and applies this function to all attributes of type t within each tuple. The 
@@ -11696,7 +11696,7 @@ attribute is replaced by the new value.
 2.117.1 Type Mapping
 
 */
-ListExpr processAllTM(ListExpr args){
+ListExpr applyToAllTM(ListExpr args){
    string err = "stream(Tuple) x (DATA -> DATA) expected";
    if(!nl->HasLength(args,2)){
      return listutils::typeError(err + " (wrong number of arguments)");
@@ -11757,21 +11757,21 @@ ListExpr processAllTM(ListExpr args){
 }
 
 /*
-2.117.2 LocalInfo for processAll operator
+2.117.2 LocalInfo for applyToAll operator
 
 */
 
-class processAllLocalInfo{
+class applyToAllLocalInfo{
 
  public:
    
-   processAllLocalInfo(Word& s, Word& f, vector<int>& pos, ListExpr resType):
+   applyToAllLocalInfo(Word& s, Word& f, vector<int>& pos, ListExpr resType):
        stream(s), fun(f), positions(pos) {
        stream.open();
        tt = new TupleType(resType);
        positions.push_back(-1);
    }
-   ~processAllLocalInfo(){
+   ~applyToAllLocalInfo(){
        tt->DeleteIfAllowed();
        stream.close();
     }
@@ -11814,15 +11814,15 @@ class processAllLocalInfo{
 
 
 /*
-2.117.3 ValueMapping for processAll
+2.117.3 ValueMapping for applyToAll
 
 */
 
-int processAllVM( Word* args, Word& result, int message,
+int applyToAllVM( Word* args, Word& result, int message,
 		   Word& local, Supplier s ) {
 
 
-  processAllLocalInfo* li = (processAllLocalInfo*) local.addr;
+  applyToAllLocalInfo* li = (applyToAllLocalInfo*) local.addr;
  
   switch(message){
     case OPEN: {
@@ -11833,7 +11833,7 @@ int processAllVM( Word* args, Word& result, int message,
                   for(int i=2;i<qp->GetNoSons(s); i++){
                      attrPos.push_back(((CcInt*)args[i].addr)->GetValue());
                   }  
-                  local.addr = new processAllLocalInfo(args[0], args[1], 
+                  local.addr = new applyToAllLocalInfo(args[0], args[1], 
                                                       attrPos, 
                                         nl->Second(GetTupleResultType(s)));
                   return 0;
@@ -11858,25 +11858,25 @@ int processAllVM( Word* args, Word& result, int message,
 }
 
 
-const string processAllSpec  =
+const string applyToAllSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>stream(tuple(x)) x fun  -> stream(tuple(y))"
   "</text--->"
-  "<text>stream processAll [ fun  ] </text--->"
+  "<text>stream applyToAll [ fun  ] </text--->"
   "<text>Replaces all attributes of argument type of fun by the "
   " result of the function."
   "</text--->"
-  "<text>query ten feed processAll[ fun(int i) i * i] tconsume "
+  "<text>query ten feed applyToAll[ fun(int i) i * i] tconsume "
   " </text--->"
   ") )";
 
 
-Operator processAll(
-          "processAll",
-          processAllSpec,
-          processAllVM,
+Operator applyToAll(
+          "applyToAll",
+          applyToAllSpec,
+          applyToAllVM,
           Operator::SimpleSelect,
-          processAllTM);
+          applyToAllTM);
 
 
 
@@ -11982,7 +11982,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&aggregateC);
     AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
     AddOperator(fromFieldsInfo(), fromFieldsFun, fromFieldsType );
-    AddOperator(&processAll);
+    AddOperator(&applyToAll);
 
 #ifdef USE_PROGRESS
 // support for progress queries
