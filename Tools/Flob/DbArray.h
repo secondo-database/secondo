@@ -189,6 +189,47 @@ inline bool Append(const DbArray<DbArrayElement>& a){
   return ok;
 }
 
+/*
+This function copies a range from this DbArray into dest. The destOffset must
+be less than or equal to the size of dest. That is, it allows only for
+overwriting dest elems or appending to them, such that no gaps of uninitialized
+values occur within dest. If the size of dest doesn't fit the copied range, it
+will be resized automatically.
+
+*/
+inline bool copyTo(DbArray<DbArrayElement>& dest, int sourceOffset,
+    int numberOfElems, int destOffset)
+{
+  if( numberOfElems == 0)  { // nothing to do
+    return true;
+  }
+  if( numberOfElems < 0 || sourceOffset < 0 || destOffset < 0 ||
+      nElements < sourceOffset + numberOfElems ||
+      destOffset > dest.nElements) { //wrong arguments
+    return false;
+  }
+
+  if(dest.maxElements < destOffset + numberOfElems){
+    // resize of the destination Flob
+    if(!dest.resize(destOffset + numberOfElems)){
+       return false;
+    }
+  }
+  // copy the FlobData
+  size_t size = numberOfElems * sizeof(DbArrayElement);
+  size_t readOffset = sourceOffset * sizeof(DbArrayElement);
+  char* buffer = new char[size];
+  if(!Flob::read(buffer, size, readOffset)){
+     return false;
+  }
+  size_t writeOffset = destOffset * sizeof(DbArrayElement);
+  bool ok = dest.Flob::write(buffer, size, writeOffset);
+  delete [] buffer;
+  dest.nElements = (dest.nElements > (numberOfElems + destOffset))?
+      dest.nElements: (numberOfElems + destOffset);
+  return ok;
+}
+
 
 
 /*
