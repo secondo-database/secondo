@@ -83,7 +83,10 @@ January 2008, C. D[ue]ntgen adds aggregation operator ~var~, computing the
 variance on a stream.
 
 November 2011, F. Valdes. Operator ~toFields~ added, decomposing a stream of
-tuples into its items.
+tuples from a relation schema into its items.
+
+December 2011, F. Valdes. Operator ~fromFields~ added, composing a stream of
+tuples into a relation schema.
 
 [TOC]
 
@@ -11291,7 +11294,6 @@ Tuple* ToFieldsInfo::nextTuple() {
   result->PutAttribute( 2, new FText( true, types[ pos ] ) ); 
   string value;
   Attribute* attrvalue = tuple->GetAttribute( pos );
-  cout << nl->ToString( typelists[ pos ] ) << endl;
   if ( attrvalue->hasTextRepresentation() ) {
     value = attrvalue->toText(); 
   }
@@ -11399,22 +11401,47 @@ ListExpr fromFieldsType( ListExpr args ) {
     return listutils::typeError( "second argument must be a relation" );
   }
   ListExpr attrlist = nl->Second( nl->Second( nl->First( args ) ) );
-  if ( !nl->HasLength( attrlist, 4 ) ) {
+  if ( ( !nl->HasLength( attrlist, 4 ) )
+    && ( !nl->HasLength( attrlist, 3 ) ) ) {
     return listutils::typeError
-                  ( "tuples in the first argument must have 4 attributes" );
+        ( "tuples in the first argument must have 3 or 4 attributes" );
   }
   string error = "stream must contain tuples of type"
-                 "((x y) (Field string) (Type text) (Value text))";
-  if ( !CcString::checkType( nl->Second( nl->Second( attrlist ) ) )
-    || ( !listutils::isSymbol( nl->First( nl->Second(attrlist)), "Field"))) {
-    return listutils::typeError( error );
+                 "((x y) (Field string) (Value text)) [in arbitrary order]";
+  // retrieve the input tuple positions of key, field and value, ignore type
+  int posV = -1;
+  int posK = -1;
+  int posF = -1;
+  int pos = 0;
+  while ( !nl->IsEmpty( attrlist ) ) {
+    ListExpr attr = nl->First( attrlist );
+    attrlist = nl->Rest( attrlist );
+    if ( CcString::checkType( nl->Second( attr ) )
+        && ( listutils::isSymbol( nl->First( attr ), "Field" ) ) ) {
+      posF = pos;
+    }
+    else if ( FText::checkType( nl->Second( attr ) )
+        && ( listutils::isSymbol( nl->First( attr ), "Value" ) ) ) {
+      posV = pos;
+    }
+    else if ( !listutils::isSymbol( nl->First( attr ), "Type" ) ) {
+      posK = pos;
+    }
+    pos++;
   }
-  if ( !FText::checkType( nl->Second( nl->Fourth( attrlist ) ) )
-    || ( !listutils::isSymbol( nl->First( nl->Fourth(attrlist)), "Value"))) {
-    return listutils::typeError( error );
+  // value, field or key were not found
+  if ( posV == -1 || posK == -1 || posF == -1 || posV == posK || posK == posF
+    || posV == posF ) {
+      return listutils::typeError( error );
   }
   ListExpr tuple = nl->Second( nl->Second( args ) );
-  return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType() ) , tuple );
+  ListExpr result = nl->TwoElemList( nl->SymbolAtom
+                                   ( Stream<Tuple>::BasicType() ) , tuple );
+  return nl->ThreeElemList( nl->SymbolAtom( "APPEND" ),
+                            nl->ThreeElemList( nl->IntAtom( posF ),
+                                               nl->IntAtom( posK ),
+                                               nl->IntAtom( posV ) ),
+                            result );
 }
 /*
 
@@ -11435,6 +11462,7 @@ class FromFieldsInfo {
     int attrMax; // number of attributes in every complete output tuple
     Attribute* key;
     vector<ListExpr> typelists;
+    int posF, posK, posV; // input tuple positions of Field, Key and Value
     
     pair<int, int> getMainType( ListExpr type ){
       while( !( nl->IsAtom( nl->First( type ) ) &&
@@ -11447,8 +11475,8 @@ class FromFieldsInfo {
     }
     
   public:
-    FromFieldsInfo( Word& is, ListExpr tl ): 
-                    stream( is ), tuple( 0 ) {
+    FromFieldsInfo( Word& is, ListExpr tl , int pF, int pK, int pV ): 
+              stream( is ), tuple( 0 ), posF( pF ), posK( pK ), posV( pV ) {
       inTuple = 0;                      
       key = 0;                        
       stream.open();
@@ -11485,11 +11513,11 @@ class FromFieldsInfo {
     
     // this function converts an inTuple into a tuple attribute
     bool processTuple( Tuple* inTuple, Tuple* tuple ){
-      CcString* fieldCc = ( CcString* ) inTuple->GetAttribute( 1 );
+      CcString* fieldCc = ( CcString* ) inTuple->GetAttribute( posF );
       if ( fieldCc->IsDefined() ) {
         attrPos = field2pos.find( fieldCc->GetValue() );
         if( attrPos != field2pos.end() ) {       
-          FText* attrvalue = (FText*) inTuple->GetAttribute( 3 );
+          FText* attrvalue = (FText*) inTuple->GetAttribute( posV );
           string valuestr;
           if ( attrvalue->IsDefined() ) {
             valuestr = attrvalue->GetValue();
@@ -11532,7 +11560,7 @@ class FromFieldsInfo {
           // attribute already set -> overwrite
           if ( tuple->GetAttribute( attrPos->second ) != 0 ) {
             cout << "attribute " ;
-            inTuple->GetAttribute( 1 )->Print(cout) <<
+            inTuple->GetAttribute( posF )->Print(cout) <<
                  " was already defined for key " << key <<
                  " and is now overwritten" << endl;
             // delete old attribute value
@@ -11542,7 +11570,7 @@ class FromFieldsInfo {
         } 
         else { // attribute does not exist -> input tuple is ignored
           cout << "attribute ";
-          inTuple->GetAttribute( 1 )->Print(cout) <<
+          inTuple->GetAttribute( posF )->Print(cout) <<
                " does not exist" << endl;
           return false;           
         }                                              
@@ -11578,7 +11606,7 @@ class FromFieldsInfo {
         if ( ( !inTuple && attrsStored < attrMax - 1 && attrsStored > 0 ) ) {
           bool filled = fillTuple( tuple );
           if ( filled ) {
-            cout << "not enough attributes for key " << key
+            cout << "not enough attributes for key " << key->toText()
                  << ", tuple filled with undefined values" << endl;
             return tuple;
           }
@@ -11592,7 +11620,7 @@ class FromFieldsInfo {
           return 0;
         }
         // new key, output tuple not completed -> fill
-        if ( key && key->Compare( inTuple->GetAttribute( 0 ) )
+        if ( key && key->Compare( inTuple->GetAttribute( posK ) )
                  && attrsStored < attrMax - 1 && attrsStored > 0 ) {
           bool filled = fillTuple( tuple );
           cout << "unexpected new key " << key
@@ -11608,7 +11636,7 @@ class FromFieldsInfo {
         if ( key ) {
           key->DeleteIfAllowed();
         }
-        key = inTuple->GetAttribute( 0 )->Copy();
+        key = inTuple->GetAttribute( posK )->Copy();
         bool ok = processTuple( inTuple, tuple ); // the operator's main task
         if ( ok ) {
           attrsStored++;
@@ -11636,8 +11664,12 @@ int fromFieldsFun( Word* args, Word& result, int message,
       if ( ffi ) {
 	       delete ffi;
       }
-      local.addr = new FromFieldsInfo(args[0],
-                                      nl->Second(GetTupleResultType(s)));
+      int posF = ( ( CcInt* )args[ 2 ].addr )->GetValue();
+      int posK = ( ( CcInt* )args[ 3 ].addr )->GetValue();
+      int posV = ( ( CcInt* )args[ 4 ].addr )->GetValue();
+      local.addr = new FromFieldsInfo( args[ 0 ],
+                                       nl->Second( GetTupleResultType( s ) ),
+                                       posF, posK, posV );
       return 0;
     }
     case REQUEST: {
