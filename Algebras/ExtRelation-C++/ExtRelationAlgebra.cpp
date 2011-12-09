@@ -11527,21 +11527,25 @@ class FromFieldsInfo {
           }
           // attribute already set -> overwrite
           if ( tuple->GetAttribute( attrPos->second ) != 0 ) {
-            cout << "attribute " << inTuple->GetAttribute( 1 ) <<
+            cout << "attribute " ;
+            inTuple->GetAttribute( 1 )->Print(cout) <<
                  " was already defined for key " << key <<
                  " and is now overwritten" << endl;
+            // delete old attribute value
+            tuple->GetAttribute( attrPos->second )->DeleteIfAllowed();
           }            
           tuple->PutAttribute( attrPos->second, newAttr );
         } 
         else { // attribute does not exist -> input tuple is ignored
-          cout << "attribute " << inTuple->GetAttribute( 1 ) <<
+          cout << "attribute ";
+          inTuple->GetAttribute( 1 )->Print(cout) <<
                " does not exist" << endl;
-          return 0;           
+          return false;           
         }                                              
       }
       else { // undefined attribute -> input tuple is ignored
         cout << "undefined attribute " << endl;
-        return 0;
+        return false;
       }     
       return true;   
     }
@@ -11602,18 +11606,7 @@ class FromFieldsInfo {
         }
         key = inTuple->GetAttribute( 0 )->Copy();
         bool ok = processTuple( inTuple, tuple ); // the operator's main task
-        if ( !ok ) {
-          cout << "input tuple not processed" << endl;
-          bool filled = fillTuple( tuple );
-          if ( filled ) {
-            return tuple;
-          }
-          else {
-            tuple->DeleteIfAllowed();
-            return 0;
-          }
-        }
-        else {
+        if ( ok ) {
           attrsStored++;
         }
         inTuple->DeleteIfAllowed();
