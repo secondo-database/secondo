@@ -73,7 +73,6 @@ OldRelationAlgebra OldRelation-C++
 Optimizer/Entropy
 Optimizer/Correlations
 Optimizer/LargeQueries
-Optimizer/Subqueries
 Data/Databases/spatial
 Data/Objects/Brasil
 Data/Objects/Distrikte
