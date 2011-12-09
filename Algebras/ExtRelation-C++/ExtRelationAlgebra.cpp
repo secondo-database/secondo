@@ -11168,8 +11168,8 @@ ListExpr toFieldsType( ListExpr args ) {
     return listutils::typeError( "attribute " + attrname + " does not exist" );
   }
   ListExpr resultattrlist = nl->FourElemList(
-	nl->TwoElemList( nl->SymbolAtom( attrname ),
-			 type ),
+  nl->TwoElemList( nl->SymbolAtom( attrname ),
+    type ),
 	nl->TwoElemList( nl->SymbolAtom( "Field" ),
 			 nl->SymbolAtom( CcString::BasicType() ) ),
 	nl->TwoElemList( nl->SymbolAtom( "Type" ),
@@ -11236,22 +11236,25 @@ class ToFieldsInfo {
 };
 
 ToFieldsInfo::ToFieldsInfo( Word& is, vector<string> &fields1,
-			    vector<string> &types1, int position,
-			    ListExpr tl ) : 
-			    stream( is ), tuple( 0 ), pos(0),
-			    keypos( position ), fields(fields1),
-			    types(types1) {
+                            vector<string> &types1, int position, ListExpr tl): 
+    stream( is ), tuple( 0 ), pos(0), keypos( position ), fields( fields1 ),
+    types(types1) {
   stream.open();
   tuple = stream.request();
   tt = new TupleType( tl );
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
   for ( int i = 0; i < tuple->GetNoAttributes(); i++ ) {
-    istype = sc->GetTypeId( types[ i ], algid, typid );
-    // get and save the Out functions
-    // depending on the algebra- and type-id of the attributes
-    outfuns.push_back( am->OutObj( algid, typid ) );
+    // check whether types[ i ] is an atomic type. Otherwise cut the nested list
     bool listok = nl->ReadFromString( types[ i ], typelist );
+    while ( !nl->IsAtom( typelist ) ) {
+      typelist = nl->First( typelist );
+    }   
+    istype = sc->GetTypeId( nl->ToString( typelist ), algid, typid );
+    // get and save the Out functions
+    // depending on algebra id and type id of the attributes
+    outfuns.push_back( am->OutObj( algid, typid ) );
+    listok = nl->ReadFromString( types[ i ], typelist );
     if ( !listok ) {
       cout << "unknown type" << endl;
     }
@@ -11288,6 +11291,7 @@ Tuple* ToFieldsInfo::nextTuple() {
   result->PutAttribute( 2, new FText( true, types[ pos ] ) ); 
   string value;
   Attribute* attrvalue = tuple->GetAttribute( pos );
+  cout << nl->ToString( typelists[ pos ] ) << endl;
   if ( attrvalue->hasTextRepresentation() ) {
     value = attrvalue->toText(); 
   }
