@@ -154,8 +154,10 @@ timeOut=1800
 for testName in $exTest $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
-  if isCmdPresent "nice"; then
-    niceOpt="nice -n 19"
+  if [ "$SECONDO_PLATFORM" != "win32" ]; then
+    if isCmdPresent "nice"; then
+      niceOpt="nice -n 19"
+    fi
   fi
   runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}" $timeOut
   wait $! 
