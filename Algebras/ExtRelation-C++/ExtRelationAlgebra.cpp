@@ -11195,7 +11195,7 @@ ListExpr toFieldsType( ListExpr args ) {
     lastAttr = nl->Append( lastAttr, nl->StringAtom
     ( nl->SymbolValue( firstfirst ) ) );
     lastType = nl->Append( lastType, nl->TextAtom
-                                   ( nl->SymbolValue( firstsecond ) ) );
+                                   ( nl->ToString( firstsecond ) ) );
     attrlist = nl->Rest( attrlist ); // Iteration
   }
   
@@ -11403,10 +11403,6 @@ ListExpr fromFieldsType( ListExpr args ) {
                  "((x y) (Field string) (Type text) (Value text))";
   if ( !CcString::checkType( nl->Second( nl->Second( attrlist ) ) )
     || ( !listutils::isSymbol( nl->First( nl->Second(attrlist)), "Field"))) {
-    return listutils::typeError( error );
-  }
-  if ( !FText::checkType( nl->Second( nl->Third( attrlist ) ) )
-    || ( !listutils::isSymbol( nl->First( nl->Third(attrlist)), "Type"))) {
     return listutils::typeError( error );
   }
   if ( !FText::checkType( nl->Second( nl->Fourth( attrlist ) ) )
