@@ -11401,11 +11401,6 @@ ListExpr fromFieldsType( ListExpr args ) {
     return listutils::typeError( "second argument must be a relation" );
   }
   ListExpr attrlist = nl->Second( nl->Second( nl->First( args ) ) );
-  if ( ( !nl->HasLength( attrlist, 4 ) )
-    && ( !nl->HasLength( attrlist, 3 ) ) ) {
-    return listutils::typeError
-        ( "tuples in the first argument must have 3 or 4 attributes" );
-  }
   string error = "stream must contain tuples of type"
                  "((x y) (Field string) (Value text)) [in arbitrary order]";
   // retrieve the input tuple positions of key, field and value, ignore type
@@ -11424,14 +11419,14 @@ ListExpr fromFieldsType( ListExpr args ) {
         && ( listutils::isSymbol( nl->First( attr ), "Value" ) ) ) {
       posV = pos;
     }
-    else if ( !listutils::isSymbol( nl->First( attr ), "Type" ) ) {
+    else if ( !listutils::isSymbol( nl->First( attr ), "Type" )
+        && ( posK < 0 ) ) {
       posK = pos;
     }
     pos++;
   }
   // value, field or key were not found
-  if ( posV == -1 || posK == -1 || posF == -1 || posV == posK || posK == posF
-    || posV == posF ) {
+  if ( posV == -1 || posK == -1 || posF == -1 ) {
       return listutils::typeError( error );
   }
   ListExpr tuple = nl->Second( nl->Second( args ) );
