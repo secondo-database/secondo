@@ -72,6 +72,11 @@ query Trains feed filter[.Trip passes tiergarten] count
 #yields success
 query Trains feed filter[.Trip passes tiergarten] consume
 
+#testcase enable autosamples
+#yields success
+optimizer setOption(autoSamples)
+
+
 #testcase selectTrainsOptCount
 #yields (int 122)
 select count(*) from trains where trip passes mehringdamm
