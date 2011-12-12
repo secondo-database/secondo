@@ -2709,6 +2709,7 @@ opSignature(isknn, nearestneighbor, [IDType, int, mpoint, string, string, string
 
 
 % Section:Start:opSignature_5_e
+% Section:End:opSignature_5_e
 /*
 STPatternAlgebra
 
@@ -2729,7 +2730,7 @@ opSignature(as, stpattern, [mbool,X], namedPred,[]):-
 opSignature(randomdelay, stpattern, [mpoint, duration], mpoint,[]).
 opSignature(passmbool, stpattern, [mbool], mbool,[]).
 opSignature(randommbool, stpattern, [instant], mbool,[]).
-% Section:End:opSignature_5_e
+
 
 /*
 2.2 Checking Operators for Certain Properties

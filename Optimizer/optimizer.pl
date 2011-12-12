@@ -1356,6 +1356,7 @@ rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
 % Section:Start:plan_to_atom_2_b
+% Section:End:plan_to_atom_2_b
 
 plan_to_atom( stconstraint(LiftedPred1, LiftedPred2, TempConstraint) , Result):-
  plan_to_atom( LiftedPred1, LP1 ),
@@ -1396,7 +1397,7 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
  concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2,
               '; ', Filter2, ']'],'',  Result),
  !.
-% Section:End:plan_to_atom_2_b
+
 /*
 The iskNN faked operator
 
@@ -3605,6 +3606,8 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 */
 
 % Section:Start:translationRule_2_e
+% Section:End:translationRule_2_e
+
 % translation rule for sometimes(Pred). It is necessary for STPattern
 indexselect(arg(N), pr(sometimes(InnerPred), _)) => filter(ISL, sometimes(InnerPred)) :-
   indexselectLifted(arg(N), InnerPred)=> ISL.
@@ -3842,8 +3845,6 @@ indexselectLifted(arg(N), Pred ) =>
    (memberchk(T2, [int, string, bool]), Y= Arg2)),
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
-% Section:End:translationRule_2_e
-
 
 %     isOfFirst(Res, X, Y)
 % Returns X or Y, depending on which of them comes from the first stream
@@ -6458,7 +6459,6 @@ lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
   lookupPred(Pred, Pred2), !.
 
-% Section:Start:lookupPred_2_b
 /*
 Used within the spatiotemporal pattern predicate.
 If Pred is among the additional predicates list, it
@@ -6475,6 +6475,8 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
   lookupPred1(Pred, Pred2, [], [Rel]), !,
   retract(removefilter(Pred)),
   assert(removefilter(Pred2)).
+
+% Section:Start:lookupPred_2_b
 % Section:End:lookupPred_2_b
 
 
@@ -6519,6 +6521,8 @@ The relation list is updated and returned in ~RelsAfter~.
 */
 
 % Section:Start:lookupPred1_2_b
+% Section:End:lookupPred1_2_b
+
 /*
 Used within the spatiotemporal pattern predicates stpattern.
 The only component of the STPP that need lookup is the
@@ -6556,7 +6560,6 @@ lookupPred1(patternex(Preds,C, F),patternex(Res,C1, F1),RelsBefore,RelsAfter) :-
   lookupPred1(C, C1, RelsAfterMee, RelsAfter)),
   !.
 
-% Section:End:lookupPred1_2_b
 
 lookupPred1(Pred, Pred2, RelsBefore, RelsAfter) :-
   optimizerOption(subqueries),
@@ -8612,6 +8615,8 @@ sqlExample( 404,
   ).
 
 % Section:Start:sqlExample_1_e
+% Section:End:sqlExample_1_e
+
 % Example: spatio temporal pattern query (database berlintest)
 sqlExample( 500,
   select count(*)
@@ -8630,7 +8635,7 @@ sqlExample( 501,
                 [stconstraint("preda","predb",vec("aabb")),
                  stconstraint("predb","predc",vec("aabb"))
                 ])).
-% Section:End:sqlExample_1_e
+
 
 example14 :- example(14).
 example15 :- example(15).
@@ -8991,6 +8996,8 @@ bestPlanConsume :-
 
 
 % Section:Start:auxiliaryPredicates
+% Section:End:auxiliaryPredicates
+
 /*
 Used within the spatiotemporal pattern predicates.
 Looks up the aliased lifted predicate list within the
@@ -9091,7 +9098,7 @@ isLiftedRightRangePred(Term) :-
   compound(Term), not(is_list(Term)),
   checkOpProperty(Term,liftedrightrange), !.
 
-% Section:End:auxiliaryPredicates
+
 
 /*
 14 Query Rewriting

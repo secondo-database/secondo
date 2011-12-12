@@ -603,8 +603,6 @@ inferPredicate(Premises, [everNearerThan(O1, O2, Dist)]) :-
   O1 \= O2, O1 \= Dist, O2 \= Dist.
 
 
-
-% Section:Start:inferPredicate_2_e
 /*
 Inferring the predicates for spatiotemporal pattern predicate.
 The aliases of the lifted predicates are first removed by
@@ -630,6 +628,8 @@ inferPredicate(Premises, AdditionalConditions):-
   removeAliases(NamedPredList, PredList, _),
   inferPatternPredicates(PredList, AdditionalConditions),
   !.
+
+% Section:Start:inferPredicate_2_e
 % Section:End:inferPredicate_2_e
 
 /*
@@ -2781,7 +2781,6 @@ usedAttributes(Term,Attrs) :-
 % Section:End:helperPredicates_b
 
 
-% Section:Start:helperPredicates_m
 /*
 Auxiliary Predicates for Inference of Conditions
 
@@ -2820,6 +2819,8 @@ removeAliases( [AP| NPListRest] , [P | PListRest], [A | AListRest]):-
   parseNPred(AP, P, A),
   removeAliases(NPListRest, PListRest, AListRest),!.
 removeAliases( [] , [], [] ):- !.
+
+% Section:Start:helperPredicates_m
 % Section:End:helperPredicates_m
 
 /*
