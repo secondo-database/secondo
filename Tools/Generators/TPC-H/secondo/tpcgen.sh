@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # February 2005, M. Spiekermann
 

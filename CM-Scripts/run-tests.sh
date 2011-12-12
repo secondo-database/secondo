@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # run-tests.sh $1 $2 $3
 #
