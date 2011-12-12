@@ -476,8 +476,8 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
     sa_len = offsetof( sockaddr_un, sun_path ) +
              sprintf( u.sock_unix.sun_path, "%s%s",
                       unixSocketDir.c_str(), hostAddress.c_str() );
-    unlink( u.sock_unix.sun_path ); // remove file if existed
-    createFile = true;
+    //unlink( u.sock_unix.sun_path ); // remove file if existed
+    //createFile = true;
 #else
     u.sock.sa_family = AF_UNIX;
     sa_len = offsetof( sockaddr, sa_data ) +
