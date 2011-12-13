@@ -1715,7 +1715,7 @@ CompressedMSet* GPatternHelper::EdgeMSet2NodeMSet(
 
 void GPatternHelper::ComputeAddSubSets(InMemMSet& acc,
     list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
-    unsigned int n,  int64_t dMS, vector<InMemMSet>* result)
+    unsigned int n,  int64_t dMS, vector<InMemMSet*>* result)
 {
   bool debugme= false;
   assert(acc.GetNoComponents() > 0 );
@@ -1782,13 +1782,13 @@ void GPatternHelper::ComputeAddSubSets(InMemMSet& acc,
   multimap< set<int>, Int64Interval>::iterator i;
   for(i= res.begin(); i != res.end(); ++i)
   {
-    InMemMSet mset;
+    InMemMSet* mset= new InMemMSet();
     InMemUSet uset( (*i).first, (*i).second.start, (*i).second.end,
         (*i).second.lc, (*i).second.rc);
-    mset.units.push_back(uset);
+    mset->units.push_back(uset);
     if(debugme)
     {
-      cerr<<"Adding  \n"; mset.Print(cerr);
+      cerr<<"Adding  \n"; mset->Print(cerr);
     }
     result->push_back(mset);
   }
@@ -3717,7 +3717,7 @@ Defining local variables
     MBool* mbool;
     int id;
     CompressedInMemMSet accumlator;
-    vector<InMemMSet>* resStream = new vector<InMemMSet>();
+    vector<InMemMSet*>* resStream = new vector<InMemMSet*>();
     GPatternHelper GPHelper;
 
 /*
@@ -3823,7 +3823,7 @@ Evaluating the gpattern results
           mset->WriteToMSet(tmp1);
           tmp1.Print(cerr);
         }        
-        resStream->push_back(*mset);
+        resStream->push_back(mset);
       }
       else
       {
@@ -3850,12 +3850,16 @@ Evaluating the gpattern results
   }
   case REQUEST: { // return the next stream element
 
-    vector<InMemMSet>* resStreams= static_cast<vector<InMemMSet>*>(local.addr); 
-    if ( resStreams->size() != 0)
+    vector<InMemMSet*>* resStream=
+        static_cast<vector<InMemMSet*>*>(local.addr);
+    InMemMSet* curRes=0;
+    if ( resStream->size() != 0)
     {
       MSet* res= new MSet(0);
-      (*resStreams->begin()).WriteToMSet(*res);
-      resStreams->erase(resStreams->begin());
+      curRes= *resStream->begin();
+      curRes->WriteToMSet(*res);
+      delete curRes;
+      resStream->erase(resStream->begin());
       result= SetWord(res);  
       return YIELD;
     }
@@ -3869,8 +3873,13 @@ Evaluating the gpattern results
 
   }
   case CLOSE: { // free the local storage
-    vector<InMemMSet>* resStream= static_cast<vector<InMemMSet>* >(local.addr);
-    resStream->clear();
+    vector<InMemMSet*>* resStream=
+        static_cast<vector<InMemMSet*>* >(local.addr);
+    while(!resStream->empty())
+    {
+      delete *resStream->begin();
+      resStream->erase(resStream->begin());
+    }
     delete resStream;
     local.addr = 0;
   }

@@ -290,7 +290,7 @@ CompressedMSet* EdgeMSet2NodeMSet(
 
 void ComputeAddSubSets(InMemMSet& acc,
     list<InMemUSet>::iterator t1, list<InMemUSet>::iterator t2,
-    unsigned int n,  int64_t dMS, vector<InMemMSet>* result);
+    unsigned int n,  int64_t dMS, vector<InMemMSet*>* result);
 
 bool ApplyThresholds(MSetIndex& index, int n, int64_t dMS,
     vector<ChangeRecord>& Changes, bool debugme);
