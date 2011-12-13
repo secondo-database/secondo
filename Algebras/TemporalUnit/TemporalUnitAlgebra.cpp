@@ -1193,7 +1193,7 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
              << endl;
         assert( false );
       } else if(unit->IsDefined()) {
-        m->Add( *unit );
+        m->MergeAdd( *unit );
       } else {
         cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
              << endl;
