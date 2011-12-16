@@ -29,16 +29,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[>] [\ensuremath{>}]
 //[<] [\ensuremath{<}]
 
+ 
 
-[1] Implementation of Module Groupby Algebra
+Dieter Capek: Module Groupby Algebra
 
-[1] Using Storage Manager Berkeley DB
+from Sept. 2011    Implementation of Module Groupby Algebra
+15.12.2011	   changed data type for hash buckets to STL vectors 	
 
-December 2011 Dieter Capek
-
-[TOC]
-
-1 Includes and defines
 
 */
 
@@ -50,7 +47,6 @@ December 2011 Dieter Capek
 #include <limits.h>
 #include <set>
 
-//#define TRACE_ON
 #undef TRACE_ON
 #include "LogMsg.h"
 #define TRACE_OFF
@@ -79,31 +75,31 @@ using namespace listutils;
 
 
 
-//=================================================================== CAPs Code
-
-
 // Type Mapping Funktion für groupby2
 ListExpr GroupByTypeMapCap(ListExpr args)
 {
-  ListExpr first, second, third, fourth;     // list used for analysing input
+  ListExpr first, second, third;     // list used for analysing input
   ListExpr listn, lastlistn, listp;  // list used for constructing output
-  ListExpr first2;
+  ListExpr first2, t, result, attrtype;
+  ListExpr rest, lastlistp, firstr, newAttr, mapDef, firstInit, mapOut;
+
+
   string err = 
     "stream(tuple(X)) x (g1..gn) x (tuple(X)xtxt -> t), t in DATA expected";
   string resstring;
 
-
+/* Diagnose
   nl->WriteToString(resstring, args);
   cout << "GroupbyTypeMapCap Input = " << resstring << endl;
-
-  first = second = third = fourth = nl->TheEmptyList();
+*/
+  first = second = third = nl->TheEmptyList();
   listn = lastlistn = listp = nl->TheEmptyList();
 
   string relSymbolStr = Relation::BasicType();
   string tupleSymbolStr = Tuple::BasicType();
 
  
-  // Die Anzahl der Eingabewerte muss gleich vier sein
+  // Die Anzahl der Eingabewerte muss gleich drei sein
   if(! nl->HasLength(args,3))	
     return listutils::typeError("Need to specify three parameters.");
 
@@ -120,16 +116,14 @@ ListExpr GroupByTypeMapCap(ListExpr args)
   if(!Stream<Tuple>::checkType(first))	
     return listutils::typeError("First argument must be of type stream.");
 
-
   // Each grouping attribute must be part of the input stream
-  // Diese Prüfung habe ich aus dem groupby übernommen
-  ListExpr rest = second;
-  ListExpr lastlistp = nl->TheEmptyList();
+  rest = second;
+  lastlistp = nl->TheEmptyList();
   bool firstcall = true;
 
   while (!nl->IsEmpty(rest))
   {
-    ListExpr attrtype = nl->TheEmptyList();
+    attrtype = nl->TheEmptyList();
     first2 = nl->First(rest);
     if(nl->AtomType(first2)!=SymbolType){
       ErrorReporter::ReportError("Wrong format for an attribute name");
@@ -141,8 +135,7 @@ ListExpr GroupByTypeMapCap(ListExpr args)
     // calculate index of attribute in tuple
     int j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
 
-    if (j)
-    {
+    if (j) {
       if (!firstcall)
       {
         lastlistn = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
@@ -154,9 +147,8 @@ ListExpr GroupByTypeMapCap(ListExpr args)
         listp = nl->OneElemList(nl->IntAtom(j));
         lastlistp = listp;
       }
-    }
-    else // grouping attribute not in input stream
-    {
+    } else {
+      // grouping attribute not in input stream
       string errMsg = "groupby2: Attribute " + attrname + 
         " not present in input stream";
       ErrorReporter::ReportError(errMsg);
@@ -164,7 +156,6 @@ ListExpr GroupByTypeMapCap(ListExpr args)
     }
     rest = nl->Rest(rest);
   } // end while; Prüfung der grouping Attribute
-
 
   // Es muss mindestens eine Funktion angegeben sein
   if(nl->ListLength(third) < 1)
@@ -175,16 +166,16 @@ ListExpr GroupByTypeMapCap(ListExpr args)
   while (!(nl->IsEmpty(rest))) 
   {
     // iterate over function list and initial values
-    ListExpr firstr = nl->First(rest);  // functions
+    firstr = nl->First(rest);  // functions
     rest = nl->Rest(rest);
 
-    // Es muss mindestens eine Funktion angegeben sein
+    // Format muss Name:Funktion::Startwert sein
     if(nl->ListLength(firstr) != 3)
       return listutils::typeError("Each function must have three elements.");
 
-    ListExpr newAttr  = nl->First(firstr);
-    ListExpr mapDef   = nl->Second(firstr);
-    ListExpr firstInit = nl->Third(firstr);
+    newAttr  = nl->First(firstr);
+    mapDef   = nl->Second(firstr);
+    firstInit = nl->Third(firstr);
 
     // Prüfung des Attributnames
     if ( !(nl->IsAtom(newAttr)) || !(nl->AtomType(newAttr) == SymbolType) )
@@ -194,16 +185,15 @@ ListExpr GroupByTypeMapCap(ListExpr args)
     if(!listutils::isDATA(firstInit))   
       return listutils::typeError("Initial values must all be of kind DATA.");
 
-
     // Prüfung der Funktion
     if(!listutils::isMap<2>(mapDef))  
       return listutils::typeError("Aggregation function is not valid.");
 
     // zuvor muss die Gültigkeit der Funktion auf typeerror geprüft sein
-    ListExpr mapOut = nl->Third(mapDef);
+    mapOut = nl->Third(mapDef);
 
     // Das Tupel muss das erste Funktionsargument sein
-    ListExpr t = nl->Second(first);
+    t = nl->Second(first);
     if(!nl->Equal(t, nl->Second(mapDef)))
       return listutils::typeError("Map argument 1 must be tuple from stream.");
    
@@ -235,7 +225,7 @@ ListExpr GroupByTypeMapCap(ListExpr args)
     return listutils::typeError("Attribute names are not unique.");
 
   // Type mapping is correct, return result type.
-  ListExpr result =
+  result =
     nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND()),
       nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
@@ -244,10 +234,10 @@ ListExpr GroupByTypeMapCap(ListExpr args)
         nl->TwoElemList( nl->SymbolAtom(tupleSymbolStr), listn))
     );
  
-  // Testausgabe
+/* Testausgabe
   nl->WriteToString(resstring, result);
   cout << "groupbyTypeMapCap Result = " << resstring << endl;
-
+*/
   // Hilfe für den Test der Type Mapping Funktion
   // return listutils::typeError("Ende des groupby2 Type Mapping.");
 
@@ -264,12 +254,12 @@ struct GroupByLocalInfo2
   TupleType *resultTupleType;
   long MAX_MEMORY;
   bool FirstREQUEST;
-  TupleBuffer gBucket[CAPBUCKETS];
-  GenericRelationIterator* ReturnRit;
-  int ReturnBucket;
+  unsigned int ReturnBucket, ReturnElem;
+
+  vector<Tuple*> hBucket[CAPBUCKETS];   // data structure for hash buckets
 
   GroupByLocalInfo2() : t(0), resultTupleType(0), MAX_MEMORY(0), 
-  FirstREQUEST(true), ReturnRit(0), ReturnBucket(0) {}
+  FirstREQUEST(true), ReturnBucket(0) {}
 };
 
 
@@ -303,7 +293,6 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
   int startIndexOfExtraArguments = indexOfCountArgument + 1; 
   int i, j, k; 
   Attribute *sattr, *tattr;
-  GenericRelationIterator* rit;
   int AnzahlTupelimBucket = 0;
   size_t myhash1, myhash2;
   bool GruppeGleich, GruppeDoppelt;
@@ -331,6 +320,11 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
         gbli->resultTupleType = new TupleType(nl->Second(resultType));
 
         local.setAddr(gbli);
+
+        gbli->MAX_MEMORY = (qp->GetMemorySize(supplier) * 1024 * 1024);
+        cmsg.info("ERA:ShowMemInfo") << "groupby2.MAX_MEMORY ("
+                   << (gbli->MAX_MEMORY)/1024 << " MB): " << endl;
+        cmsg.send();
       } else {
         local.setAddr(0);	// kein Tupel erhalten
       }
@@ -434,15 +428,16 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
 
           // Durchsuche das zugehörige Hash Bucket, ob es die Gruppe schon gibt
           GruppeDoppelt = false;
-          rit = gbli->gBucket[myhash2].MakeScan();
-          AnzahlTupelimBucket = gbli->gBucket[myhash2].GetNoTuples();
+ 
+          AnzahlTupelimBucket = gbli->hBucket[myhash2].size();
 
           // Vergleich des neuen Tupels (s) mit denen im Bucket (current)
           // s: Gruppenattribute Gi o Nichtgruppenattribute Ai
           // Tuple im Tuple Buffer: Gruppenattribute Gi o Funktionswert
           for (i=0; (i<AnzahlTupelimBucket) && !GruppeDoppelt; i++) {
-            current = rit->GetNextTuple();
+            current = gbli->hBucket[myhash2][i];
             if (!current) break;
+
             // Vergleich des neuen Tupel mit einem aus dem Bucket 
             GruppeGleich = true;
 
@@ -460,7 +455,7 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
             } // end-for
             if (GruppeGleich) GruppeDoppelt = true;
           } // end for
-          delete rit;
+
 
           if (GruppeDoppelt == false) {  // Gruppe ist neu
             // Bilde das Gruppentupel: Gruppierungsattribute o Funktionswerte
@@ -495,7 +490,7 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
             }
 
             // Speichere das Gruppentupel im Hash Bucket
-            gbli->gBucket[myhash2].AppendTuple(tres);
+            gbli->hBucket[myhash2].push_back(tres);
 
           } else {  // Gruppe kommt schon vor
             // Berechne Funktionswerte n+1 aus neuen Tupel und Funktionswert n 
@@ -531,13 +526,12 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
 	result.addr = 0;
 	// Suche das erste Hash Bucket, das ein Ergebnis Tupel enthält
         for(i = 0; i<CAPBUCKETS; i++) {
-          rit = gbli->gBucket[i].MakeScan();
-          AnzahlTupelimBucket = gbli->gBucket[i].GetNoTuples();
+          AnzahlTupelimBucket = gbli->hBucket[i].size();
 
           if (AnzahlTupelimBucket > 0) {
-            gbli->ReturnRit = rit;       // diesen Scan weitergeführen
-            gbli->ReturnBucket = i+1;    // dieses Bucket muss als nächstes 
-            current = rit->GetNextTuple();
+            gbli->ReturnElem = 1;        // das nächste Element (0 basiert)
+            gbli->ReturnBucket = i+1;    // dieses Bucket als nächstes 
+            current = gbli->hBucket[i][0];
             result.setAddr(current);
 
             // Test: Ausgabe des Ergebnis Tuple
@@ -545,7 +539,6 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
 
             return YIELD;
           }
-          delete rit;
         } // end-for
         // Das Ergebnis des Operators ist leer
         return CANCEL;
@@ -560,30 +553,33 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
 
         // Falls noch ein Bucket Scan aktiv ist oder 
         // noch Buckets zu verarbeiten sind
-        if (gbli->ReturnRit || gbli->ReturnBucket < CAPBUCKETS) {
+        if (gbli->ReturnElem || gbli->ReturnBucket < CAPBUCKETS) {
           // Finde das nächste Ergebnis Tupel
           // Verarbeite einen aktiven Scan
-          if (gbli->ReturnRit) { 
-            current = (gbli->ReturnRit)->GetNextTuple();
-            if (current)            
+          if (gbli->ReturnElem) { 
+            // es gibt noch Tupel in diesem Bucket
+            if (gbli->ReturnElem 
+                < gbli->hBucket[(gbli->ReturnBucket)-1].size() ) {
+              current = gbli->hBucket[(gbli->ReturnBucket)-1][gbli->ReturnElem];
+              (gbli->ReturnElem)++;
               result.setAddr(current);            
-            else
-              delete gbli->ReturnRit;
+            } else
+              gbli->ReturnElem = 0;
           } // end-if
 
           // Noch kein Tupel gefunden, suche in den nächsten Buckets
           if (result.addr == 0 && (gbli->ReturnBucket) < CAPBUCKETS) {
             for(i = gbli->ReturnBucket; i<CAPBUCKETS; i++) {
-              gbli->ReturnRit = gbli->gBucket[i].MakeScan();
-              AnzahlTupelimBucket = gbli->gBucket[i].GetNoTuples();
+              AnzahlTupelimBucket = gbli->hBucket[i].size();
 
               if (AnzahlTupelimBucket > 0) {
-                gbli->ReturnBucket = i+1;    // nächstes Bucket
-                current = (gbli->ReturnRit)->GetNextTuple();
+                current = gbli->hBucket[i][0];      // erstes Tupel im Bucket
                 result.setAddr(current);
+                gbli->ReturnElem = 1;        // nächstes Tupel
+                gbli->ReturnBucket = i+1;    // nächstes Bucket
                 break;
               } else {
-                delete gbli->ReturnRit;
+                gbli->ReturnElem = 0;
               }
             } // end-for
           }  // end-if
@@ -617,26 +613,22 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
 } // Ende GroupByValueMapping2
 
 
-// noch alt;
-const string GroupBySpec2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple (a1:d1 ... an:dn))) "
-                            "(ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1"
-                            " ... an:dn))) (_))) ... (bjl (fun (rel (tuple"
-                            " (a1:d1 ... an:dn))) (_))))) -> (stream (tuple"
-                            " (ai1:di1 ... aik:dik bj1 ... bjl)))</text--->"
-                            "<text>_ groupby2 [list; funlist]</text--->"
-              "<text>Capek groupby: Groups a relation according to attributes "
-                            "ai1, ..., aik and feeds the groups to other "
-                            "functions. The results of those functions are "
-                            "appended to the grouping attributes. The empty "
-                            "list is allowed for the grouping attributes (this "
-                            "results in a single group with all input tuples)."
-                            "</text--->"
-                            "<text>query Employee feed "
-                            "groupby2[DeptNr; anz : group feed count] consume"
-                            "</text--->"
-                            ") )";
+const string GroupBySpec2  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\"  ) "
+  "( <text>stream(Tuple) x AttrList x "
+  "(NewAttr-1 x (Tuple x Data -> Data) x Data) .. "
+  "(NewAttr-j  x (Tuple x Data -> Data) x Data) -> "
+  "stream(Tuple(Attrlist) o Tuple([NewAttr-1: Data]..[NewAttr-j: Data])"
+  "</text--->"
+
+  "<text>_ groupby2 [list; funlist]</text--->"
+  
+  "<text>groupby2: Groups a tuple stream according to the attributes "
+  "in AttrList and computes aggregate functions for each group. "
+  "The result functions are appended to the grouping attributes." 
+  "</text--->"
+  ") )";
+
 
 
 Operator groupby2 (
@@ -669,6 +661,7 @@ class GroupbyAlgebra : public Algebra
   GroupbyAlgebra() : Algebra()
   {
     AddOperator(&groupby2);    
+    groupby2.SetUsesMemory();
   }
 
   ~GroupbyAlgebra() {};
@@ -703,4 +696,6 @@ InitializeGroupbyAlgebra(     NestedList* nlRef,
   am = amRef;
   return (new GroupbyAlgebra());
 }
+
+
 
