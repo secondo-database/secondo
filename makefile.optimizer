@@ -72,8 +72,12 @@ ifeq ($(platform2),linux)
   PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -L$(AUXLIBS) $(LD_GMP)
 endif
 
+ifndef LIBREADLINE
+LIBREADLINE=$(AUXLIBS)/libreadline.a
+endif
+
 ifeq ($(platform),mac_osx)
-PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(AUXLIBS)/libreadline.a  -lncurses -lm 
+PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(LIBREADLINE)  -lncurses -lm 
 endif
 
 PLLDFLAGS += -loptparser
