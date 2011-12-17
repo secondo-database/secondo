@@ -1169,13 +1169,25 @@ int MappingMakemvalue(Word* args,Word& result,int message,
   return 0;
 }
 
+template <class Unit>
+int UCompare( const void *a, const void *b )
+{
+  Unit *unita = new ((void*)a) Unit,
+       *unitb = new ((void*)b) Unit;
+
+  int cmp= unita->Compare(unitb);
+  return cmp;
+}
+
 template <class Mapping, class Unit>
 int MappingMakemvaluePlain(Word* args,Word& result,int message,
                       Word& local,Supplier s)
 {
   Word currentUnit;
   Unit* unit;
-
+  Instant lastInst(instanttype, 0);
+  bool lastRC= false;
+  DbArray<Unit> allUnits(0);
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentUnit);
 
@@ -1184,8 +1196,6 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
   m->Clear();
   m->SetDefined( true );
 
-  m->StartBulkLoad();
-
   while ( qp->Received(args[0].addr) ) { // get all tuples
       unit = static_cast<Unit*>(currentUnit.addr);
       if(unit == 0) {
@@ -1193,16 +1203,31 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
              << endl;
         assert( false );
       } else if(unit->IsDefined()) {
-        m->MergeAdd( *unit );
+          allUnits.Append(*unit);
       } else {
         cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
              << endl;
       }
-      unit->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
   }
-  m->EndBulkLoad( true, true ); // force Mapping to sort the units
-  qp->Close(args[0].addr);      // and mark invalid Mapping as undefined
+  qp->Close(args[0].addr);
+  if(allUnits.Size() == 0) return 0;
+
+  allUnits.Sort( UCompare<Unit> );
+  allUnits.Get(0, *unit);
+  lastInst= unit->timeInterval.start;
+  for(int i=0; i< allUnits.Size(); ++i)
+  {
+    allUnits.Get(i, *unit);
+    if(unit->timeInterval.start > lastInst ||
+        ((unit->timeInterval.start == lastInst) &&
+          !(unit->timeInterval.lc && lastRC) ))
+    {
+      m->MergeAdd( *unit );
+      lastInst= unit->timeInterval.end;
+      lastRC= unit->timeInterval.rc;
+    }
+  }
 
   return 0;
 }
@@ -1380,10 +1405,11 @@ TemporalSpecThemvalue  =
 "*: Not yet available</text--->"
 "<text>_ the_mvalue</text--->"
 "<text>Create a moving object from a (not necessarily sorted) "
-"object stream containing units. "
-"No two unit timeintervals may overlap. Undefined units are "
-"allowed and will be ignored. A stream with less than 1 defined "
-"unit will result in an 'empty' moving object, not in an 'undef'.</text--->"
+"object stream containing units. If two unit time intervals overlap, the unit "
+"that starts first is kept in the result, and the unit that starts later is "
+"ignored. Undefined units are allowed and will be ignored. A stream with less "
+"than 1 defined unit will result in an 'empty' moving object, not in an "
+"'undef'.</text--->"
 "<text>query units(zug5) the_mvalue</text---> ) )";
 
 
