@@ -3,7 +3,7 @@
 # --------------------------------------------
 # configuration
 
-TESTHOME=$SECONDO_BUILD_DIR/Algebras/ExtRelation-2/tests
+TESTHOME=$SECONDO_BUILD_DIR/Algebras/ExtRelation-2/Tests
 TESTLOGDIR=$TESTHOME/logs
 TESTSUMMARY=$TESTHOME/logs/functional_tests_summary.$(date +%d%m%y_%k%M%S).log
 TESTEXT=test
