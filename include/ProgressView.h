@@ -150,13 +150,19 @@ class ProgressView
 
 
        ofs << clocks << ";" ;
-       char progstr[7];
-       sprintf (progstr, "%6.2f", currentProgress * 100.0);
-       progstr [3] = ',';
+
+
 
         ofs << (int) progress.Card << ";";
         ofs << (int) progress.Time << ";";
-        ofs << progstr << ";" ;
+        // write progress as a,b where b has two digits 
+        currentProgress = currentProgress*100.0;
+        ofs << (int) currentProgress << ",";
+        int afterComma = (int) (currentProgress*100.0 + 0.5) % 100;
+        if(afterComma<10){
+          ofs << "0";
+        }
+        ofs << afterComma << ";";
         ofs << endl;
       }
     }
