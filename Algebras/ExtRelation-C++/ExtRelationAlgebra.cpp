@@ -4337,8 +4337,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uExtend = 0.0012;   //millisecs per tuple
-      const double vExtend = 0.00085;   //millisecs per tuple and attribute
+      const double uExtend = 0.0034;   //millisecs per tuple
+      const double vExtend = 0.0067;   //millisecs per tuple and attribute
+
+      // see determination of constants in file ConstantsExtendStream
 
       pRes = (ProgressInfo*) result.addr;
 
