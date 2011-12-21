@@ -1299,8 +1299,15 @@ int paraJoin2ValueMap(Word* args, Word& result,
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
-      const double uParajoin = 0.001;  // to be determined
-      const double wParajoin = 0.001;  // to be determined
+      const double uParajoin = 0.0001742;  // msecs per input tuple
+        // assuming that the parameter function is 
+        // parajoin2[Cell_r1, Cell_r2
+        // ; . .. realJoinMMRTreeVec[Box_r1, Box_r2, 10, 20]
+        //   filter[.osm_id_r1 < .osm_id_r2]
+        //   filter[gridintersects(5.5, 50.0, 0.2, 0.2, 50, 
+        //     .Box_r1, .Box_r2, .Cell_r1)] ] 
+        // taken from the nrw Roads relation.
+       
 
       pRes = (ProgressInfo*) result.addr;
 
@@ -1316,22 +1323,23 @@ int paraJoin2ValueMap(Word* args, Word& result,
         pRes->CopySizes(li);
 
 	// Cardinality
-        pRes->Card = ((double) li->returned + 1) * p1.Card
-            /  ((double) li->readFirst + 1);
+        if ( li->returned > enoughSuccessesJoin )
+          pRes->Card = ((double) li->returned + 1) * p1.Card
+            /  ((double) li->readFirst + 1);   
+        else
+          pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
 
         // Time
         pRes->Time = p1.Time + p2.Time + 
           p1.Card * uParajoin +
-          p2.Card * uParajoin +
-          pRes->Card * wParajoin;
+          p2.Card * uParajoin;
 
         // Progress
         pRes->Progress = 
           ( p1.Time * p1.Progress +
           p2.Time * p2.Progress +
           li->readFirst * uParajoin +
-          li->readSecond * uParajoin +
-          li->returned * wParajoin )
+          li->readSecond * uParajoin )
           / pRes->Time;
           
         // Blocking Progress
