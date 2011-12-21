@@ -1299,7 +1299,7 @@ int paraJoin2ValueMap(Word* args, Word& result,
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
-      const double uParajoin = 0.0001742;  // msecs per input tuple
+      const double uParajoin = 0.1742;  // msecs per input tuple
         // assuming that the parameter function is 
         // parajoin2[Cell_r1, Cell_r2
         // ; . .. realJoinMMRTreeVec[Box_r1, Box_r2, 10, 20]
@@ -1307,6 +1307,8 @@ int paraJoin2ValueMap(Word* args, Word& result,
         //   filter[gridintersects(5.5, 50.0, 0.2, 0.2, 50, 
         //     .Box_r1, .Box_r2, .Cell_r1)] ] 
         // taken from the nrw Roads relation.
+
+      // see determination of progress constants in file ProgressConstants.txt
        
 
       pRes = (ProgressInfo*) result.addr;
