@@ -1008,10 +1008,17 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uSortBy = 0.000396;   //millisecs per byte input and sort
-      const double vSortBy = 0.000194;   //millisecs per byte output
+      const double uSortBy = 0.0000873; //millisecs per byte input and sort
+	// old constant 0.000396;   
+      const double vSortBy = 0.0000243;  //millisecs per byte output
+        // old constant 0.000194;  
       const double oSortBy = 0.00004;   //offset due to writing to disk
             //not yet measurable
+
+      // constants determined in file ExtRelation-C++/ConstantsExtendStream
+
+
+
       pRes = (ProgressInfo*) result.addr;
 
       if( !li )
@@ -1034,9 +1041,9 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           // -------------------------------------------
 
           pRes->Time = p1.Time
-                       + pRes->Card * p1.Size * (uSortBy + oSortBy * li->state)
-                       + pRes->Card * p1.Size * vSortBy
-                       + li->intTuplesTotal * p1.Size * (2 * vSortBy);
+            + pRes->Card * p1.SizeExt * (uSortBy + oSortBy * li->state)
+            + pRes->Card * p1.SizeExt * vSortBy
+            + li->intTuplesTotal * p1.Size * (2 * vSortBy);
 
           // -------------------------------------------
           // Total progress
@@ -1044,9 +1051,9 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Progress =
             (p1.Progress * p1.Time
-             + li->read * p1.Size * (uSortBy + oSortBy * li->state)
-             + li->returned * p1.Size * vSortBy
-             + li->intTuplesProc * p1.Size * (2 * vSortBy) )
+             + li->read * p1.SizeExt * (uSortBy + oSortBy * li->state)
+             + li->returned * p1.SizeExt * vSortBy
+             + li->intTuplesProc * p1.SizeExt * (2 * vSortBy) )
             / pRes->Time;
 
           // -------------------------------------------
@@ -1055,8 +1062,8 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 
           // Estimated time until first result tuple is ready
           pRes->BTime = p1.Time
-                        + pRes->Card * p1.Size * (uSortBy + oSortBy * li->state)
-                        + li->intTuplesTotal * p1.Size * (2 * vSortBy);
+            + pRes->Card * p1.SizeExt * (uSortBy + oSortBy * li->state)
+            + li->intTuplesTotal * p1.SizeExt * (2 * vSortBy);
 
           // -------------------------------------------
           // Blocking progress
@@ -1064,8 +1071,8 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->BProgress =
             (p1.Progress * p1.Time
-                + li->read * p1.Size * (uSortBy + oSortBy * li->state)
-                + li->intTuplesProc * p1.Size * (2 * vSortBy))
+                + li->read * p1.SizeExt * (uSortBy + oSortBy * li->state)
+                + li->intTuplesProc * p1.SizeExt * (2 * vSortBy))
                 / pRes->BTime;
 
           if ( traceProgress )
