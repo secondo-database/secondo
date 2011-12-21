@@ -5811,8 +5811,16 @@ int ExtendStream(Word* args, Word& result, int message,
 
         // 2. result cardinality
 
-        pRes->Card = 
-          p1.Card * ( (double) (eli->returned + 1) / (eli->read + 1) );
+        if ( eli->returned > enoughSuccessesSelection )
+          pRes->Card = 
+            p1.Card * ( (double) (eli->returned + 1) / (eli->read + 1) );
+        else
+        {
+          if ( qp->GetSelectivity(s) != 0.1 )
+            pRes->Card = p1.Card * qp->GetSelectivity(s);
+          else
+            pRes->Card = p1.Card;
+        }
 
 
 	// 3. total time
