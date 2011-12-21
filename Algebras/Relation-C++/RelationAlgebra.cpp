@@ -1143,10 +1143,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       static const double uFeed = 
         ProgressConstants::getValue("Relation-C++", "feed", "uFeed");
-          // 0.00194;  milliseconds per tuple
+          // 0.00296863;  milliseconds per tuple
       static const double vFeed = 
         ProgressConstants::getValue("Relation-C++", "feed", "vFeed");
-          // 0.0000196; milliseconds per Byte
+          // 0.0010081649; milliseconds per attribute
 
       pRes = (ProgressInfo*) result.addr;
       fli = (FeedLocalInfo*) local.addr;
@@ -1187,11 +1187,11 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->Card = (double) fli->total;
           pRes->CopySizes(fli);  //copy all sizes
 
-          pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
+          pRes->Time = (fli->total + 1) * (uFeed + fli->noAttrs * vFeed);
 
           //any time value created must be > 0; so we add 1
 
-          pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed)
+          pRes->Progress = fli->returned * (uFeed + fli->noAttrs * vFeed)
             / pRes->Time;
 
           pRes->BTime = 0.001; //time must not be 0
@@ -1209,11 +1209,11 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->CopySizes(p1);
 
-          pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
+          pRes->Time = p1.Time + p1.Card * (uFeed + p1.noAttrs * vFeed);
 
           pRes->Progress =
              ((p1.Progress * p1.Time) +
-              (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
+              (fli ? fli->returned : 0) * (uFeed + p1.noAttrs * vFeed))
               / pRes->Time;
 
           pRes->BTime = p1.Time;
