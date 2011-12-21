@@ -109,12 +109,75 @@ uExtendStream = 0.002 * 3.35 = 0.0067
 
 
 
+*******************   extend   ***********************************************
+
+Database nrw
+
+query Roads feed count
+
+3.2 secs
 
 
+query  Roads feed extend[Box: bbox(.geoData)] count
+
+5.45 secs
+
+query  Roads feed extend[Box: bbox(.geoData), Box2: bbox(.geoData)] count
+
+6.95 secs
+
+Cost per tuple per attribute is 
+
+1000 * (6.95 - 5.45) / 735683 msecs = 0.0020 msecs
+
+With machine factor 0.0020 * 3.35 = 0.0067 msecs per tuple per attribute =: vExtend
+
+5.45 - (6.95 - 5.45) - 3.2 = 0.75 secs is the cost per tuple extend
+
+1000 * (0.75 / 735683) msecs = 0.0010194608
+
+With machine factor 0.0010194608 * 3.35 = 0.0034151937 msecs per tuple =: uExtend
 
 
+***********************   sortby   *****************************
 
+query            
+  Roads feed extend[Box: bbox(.geoData)]  
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01} 
+    count
 
+10.5 secs
 
+query            
+  Roads feed extend[Box: bbox(.geoData)]  
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01} 
+    sortby[Cell] {r1} count
 
+19.2 secs
 
+Difference is 8.7 secs for sorting
+
+Number of tuples sorted is 749848
+
+TuplesizeExt is 347.80859375
+
+query            
+  Roads feed extend[Box: bbox(.geoData)]  
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01} 
+    sortby[Cell] {r1} head[1] count
+
+17.31, 17.25, 18.8, 17.33 secs => 17.3 secs
+
+Difference is 17.3 - 10.5 secs = 6.8 secs for handling input tuples in sorting
+
+(1000 * 6.8) / (749848 * 348) = 2.60589e-05 msecs per byte input
+
+With machine factor 2.60589e-05 * 3.35 = 8.72973e-05 =: uSortBy
+
+Remining time for output.
+
+8.7 - 6.8 = 1.9 secs
+
+(1000 * 1.9) / (749848 * 348) = 7.2812e-06 msecs per byte output
+
+With machine factor 7.2812e-06 * 3.35 = 0.0000243 =: vSortby
