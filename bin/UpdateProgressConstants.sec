@@ -131,7 +131,7 @@ let vExtendStream = (((x4 -x3) * 1000) / (5 * 5154400)) * MF
 
 query ProgressConstants inserttuple["ExtRelation-C++", "extendstream", "vExtendStream", vExtendStream, "msecs per attribute", ""] consume
 
-########### uExtendStream: time per tuple rreturned
+########### uExtendStream: time per tuple returned
 
 # If we subtract the time for all 10 attributes from x4 (= x4 - 2 * (x4 - x3)) and 
 # further subtract the time for the empty query "Trains100 feed count", the 
@@ -172,14 +172,14 @@ delete x6;
 #
 # Cost formula:
 #
-# pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
+# pRes->Time = p1.Time + p1.Card * (uFeed + p1.noAttrs * vFeed);
 #
 #####################################################################
 
 delete uFeed;
 delete vFeed;
 
-##### vFeed: time per byte in input tuple
+##### vFeed: time per attribute in input tuple
 
 let plz50Width10 = 
   plz50 feed extend[
@@ -212,9 +212,9 @@ let plz50Width10 =
     no10: .no]
   consume
 
-# query plz50 tuplesize = 25.0074151259 ≃ 25
+#  plz50 has 3 attributes
 
-# query plz50Width10 tuplesize = 250.0741512589 ≃ 250
+#  plz50Width10 has 30 attributes
 
 query plz50 feed count;
 query plz50 feed count;
@@ -232,21 +232,21 @@ let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 
 # query x2 = 20.4570833333
 
-let x3 = (plz50Width10 tuplesize - plz50 tuplesize) * (plz50 count)
+let x3 = (30 - 3) * (plz50 count)
 
-# query x3 = 464391450
+# query x3 = 55710450
 
-# hence the time per byte in milliseconds is
+# hence the time per attribute in milliseconds is
 
 let x4 = ((x2 - x1) * 1000) / x3 
 
-# query x4 = 3.61027e-05
+# query x4 = 0.0003009447
 
 let vFeed = x4 * MF
 
-# query vFeed = 0.0001209439 
+# query vFeed = 0.0010081649 
 
-query ProgressConstants inserttuple["Relation-C++", "feed", "vFeed", vFeed, "msecs per byte in input tuple", ""] consume
+query ProgressConstants inserttuple["Relation-C++", "feed", "vFeed", vFeed, "msecs per attribute in input tuple", ""] consume
 
 ##### uFeed: time per input tuple (disregarding size)
 
