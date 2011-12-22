@@ -4449,10 +4449,10 @@ int  Interval<Alpha>::CompareTo( const Interval<Alpha>& i) const{
     return cmp;
   }
   if(!lc && i.lc){
-    return -1;
+    return 1;
   }
   if(lc && !i.lc){
-    return 1;
+    return -1;
   }
   cmp = end.Compare( &(i.end) );
     if( cmp != 0 ){
