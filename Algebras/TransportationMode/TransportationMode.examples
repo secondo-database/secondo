@@ -627,11 +627,6 @@ Signature: door3d -> bool
 Example  : query type_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE));
 Result   : FALSE
 
-Operator : oid_of_door
-Number   : 1
-Signature: door3d x int -> int
-Example  : query oid_of_door(thedoor(1, [const line value ((2 2 3 3))], 2, [const line value ((2 2 3 3))], [const mbool value ((("begin of time" "2010-10-10" TRUE FALSE) TRUE) (("2010-10-11" "end of time" TRUE FALSE) TRUE))],FALSE),1);
-Result   : 1
 
 
 Operator : loc_of_door
@@ -828,16 +823,23 @@ Signature: genmo x string -> genmo
 Example  : query no_components(tm_at([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], "Indoor"));
 Result   : 1
 
-Operator : tm_val
+Operator : val
 Number   : 1
 Signature: igenloc -> genloc
-Example  : query tm_val([const igenloc value ((instant "2011-3-1-13:00") (2 (2.0 3.0)))]);
+Example  : query val([const igenloc value ((instant "2011-3-1-13:00") (2 (2.0 3.0)))]);
 Result   : (2 (2.0 3.0))
 
-Operator : tm_contain
+Operator : inst
+Number   : 1
+Signature: igenloc -> instant
+Example  : query inst([const igenloc value ((instant "2011-3-1-13:00") (2 (2.0 3.0)))]);
+Result   : (instant "2011-3-1-13:00")
+
+
+Operator : contains
 Number   : 1
 Signature: genmo x string -> bool
-Example  : query tm_contain([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], "Indoor");
+Example  : query [const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))] contains "Indoor";
 Result   : TRUE
 
 Operator : tm_duration
@@ -847,23 +849,31 @@ Example  : query tm_duration([const periods value (("2010-11-20-07:01" "2010-11-
 Result   : 43.9999999998
 
 
-Operator : tm_initial
+Operator : initial
 Number   : 1
 Signature: genmo -> igenloc
-Example  : query tm_initial([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
+Example  : query initial([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
 Result   : (("2010-12-7-8:03:25") (1 (2.0 3.0)))
 
-Operator : tm_final
+Operator : final
 Number   : 1
 Signature: genmo -> igenloc
-Example  : query tm_final([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
+Example  : query final([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]);
 Result   : (("2010-12-7-8:04:10") (1 (3.0 3.0)))
 
 Operator : tm_build_id
 Number   : 1
 Signature: int x space -> int
 Example  : query tm_build_id(0, space_1);
-Result   : 0
+Result   : -1
+
+
+Operator : tm_room_id
+Number   : 1
+Signature: int x space -> int
+Example  : query tm_room_id(0, space_1);
+Result   : -1
+
 
 Operator : tm_plus_id
 Number   : 1
@@ -877,6 +887,18 @@ Number   : 1
 Signature: genmo x region x space -> bool
 Example  : query tm_passes([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 3.0)) (0 (3.0 3.0)) "Free"))], [const region value ((((0.0 0.0)(20.0 0.0)(20.0 10.0)(0.0 10.0))))], [const space value (1)]);
 Result   : TRUE
+
+Operator : tm_distance
+Number   : 1
+Signature: genloc x point x space -> real
+Example  : query tm_distance([const genloc value (0 (2.0 3.0))], [const point value (2.0 3.0)], [const space value (1)]);
+Result   : 0.0
+
+Operator : tm_genloc
+Number   : 1
+Signature: int x real x real -> genloc
+Example  : query ref_id(tm_genloc(100, 2.0, 2.0));
+Result   : 100
 
 
 Operator : setref_id
@@ -940,17 +962,23 @@ Example  : query getref([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:0
 Result   : 1
 
 
-Operator : tm_atinstant 
+Operator : atinstant 
 Number   : 1
 Signature: genmo x instant -> igenloc
-Example  : query [const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))] tm_atinstant  [const instant value "2010-12-7-8:03:25"];
+Example  : query [const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))] atinstant  [const instant value "2010-12-7-8:03:25"];
 Result   : ("2010-12-7-8:03:25" (1 (2.0 -1.0))))
 
 
-Operator : tm_atperiods 
+Operator : atperiods 
 Number   : 1
 Signature: genmo x periods -> genmo
-Example  : query no_components([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))] tm_atperiods  [const periods value (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE TRUE))]);
+Example  : query no_components([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))] atperiods  [const periods value (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE TRUE))]);
+Result   : 1
+
+Operator : mapgenmo 
+Number   : 1
+Signature: genmo x mpoint -> mpoint
+Example  : query no_components(mapgenmo([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (10 (-1.0 -1.0)) (10 (-1.0 -1.0)) "Bus"))], [const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)))])) count;
 Result   : 1
 
 
@@ -1010,6 +1038,20 @@ Number   : 1
 Signature: space x periods x real x rel x string -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_bench_2(space_1, rr_time_thursday, 5.0, d_area, "REGION") count;
 Result   : 5
+
+
+Operator : generate_bench_3
+Number   : 1
+Signature: space x periods x real x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_bench_3(space_1, ww_time_monday, 3.0, NN_Building, rtree_NNB) count;
+Result   : 3
+
+
+Operator : generate_bench_4
+Number   : 1
+Signature: space x periods x real x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_bench_4(space_1, ww_time_thursday, 20.0, distri_para2, NN_Building) count;
+Result   : 20
 
 
 Operator : generate_car

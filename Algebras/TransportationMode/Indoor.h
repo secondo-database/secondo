@@ -896,7 +896,7 @@ struct IndoorNav{
                      Instant& start_time, Instant& st, vector<Elevator>&,
                      int index, Line3D* l_room, int build_id, GenMO* genmo);
 
-   int GetRef_RoomTid(int, Line3D*);
+   int GetRef_RoomTid(int, Line3D*, bool E);
 
    void ToGenLoc(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree);
    void ToGenLoc2(MPoint3D* mp3d, R_Tree<3,TupleId>* rtree, 
@@ -1196,7 +1196,13 @@ const string str_build_type[] = {"BUILDING_NONE", "HOUSE",
 "CINEMA", "TRAINSTATION", "HOTEL", "AIRPORT", 
 "HOSPITAL", "SHOPPINGMALL", "SCHOOL", "LIBRARY", "OFFICE38"};
 
-
+inline bool WorkBuilding(int type)
+{
+  if(type == BUILD_UNIVERSITY || type == BUILD_OFFICE24 ||
+     type == BUILD_OFFICE38 || type == BUILD_HOSPITAL)return true;
+  else
+  return false;
+}
 inline int GetBuildingType(string s)
 {
   int build_size = ARR_SIZE(str_build_type);

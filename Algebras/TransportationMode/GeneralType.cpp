@@ -59,6 +59,7 @@ Jan, 2011 Jianqiu xu
 #include "RoadNetwork.h"
 #include <sys/timeb.h>
 
+
 ///////////////////////////random number generator//////////////////////////
 unsigned long GetRandom()
 {
@@ -272,21 +273,62 @@ ListExpr OutGenLoc( ListExpr typeInfo, Word value )
   if( genl->IsEmpty() ){
     return nl->TheEmptyList();
   }
-  
+
+//   if(genl->GetOid() > 0){
+//       Loc loc = genl->GetLoc();
+//       if(loc.loc1 >= 0.0 && loc.loc2 >= 0.0){
+//           ListExpr loc_list = nl->TwoElemList(
+//                     nl->RealAtom(loc.loc1),
+//                     nl->RealAtom(loc.loc2));
+//       return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+//       }else if(loc.loc1 >= 0.0 && loc.loc2 < 0.0){
+//         ListExpr loc_list = nl->OneElemList(nl->RealAtom(loc.loc1));
+//         return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+//       }else if(loc.loc1 < 0.0 && loc.loc2 < 0.0){
+//         return nl->OneElemList(nl->IntAtom(genl->GetOid()));
+//       }else
+//       return nl->TheEmptyList(); 
+//   }else{  //free space oid = 0 
+//           Loc loc = genl->GetLoc();
+//           ListExpr loc_list = nl->TwoElemList(
+//                     nl->RealAtom(loc.loc1),
+//                     nl->RealAtom(loc.loc2));
+//           return nl->OneElemList(loc_list);
+//   }
+
+  const double delta = 0.01;
   if(genl->GetOid() > 0){
       Loc loc = genl->GetLoc();
+//      cout<<loc.loc1<<" "<<loc.loc2<<endl;
       if(loc.loc1 >= 0.0 && loc.loc2 >= 0.0){
           ListExpr loc_list = nl->TwoElemList(
                     nl->RealAtom(loc.loc1),
                     nl->RealAtom(loc.loc2));
-      return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+          return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
       }else if(loc.loc1 >= 0.0 && loc.loc2 < 0.0){
-        ListExpr loc_list = nl->OneElemList(nl->RealAtom(loc.loc1));
-        return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+        if(fabs(loc.loc2 - UNDEFVAL) < delta){
+            ListExpr loc_list = nl->OneElemList(nl->RealAtom(loc.loc1));
+            return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+        }else{
+          ListExpr loc_list = nl->TwoElemList(
+                    nl->RealAtom(loc.loc1),
+                    nl->RealAtom(loc.loc2));
+          return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+        }
       }else if(loc.loc1 < 0.0 && loc.loc2 < 0.0){
+        if(fabs(loc.loc1 - UNDEFVAL) < delta && 
+               fabs(loc.loc2 - UNDEFVAL) < delta)
         return nl->OneElemList(nl->IntAtom(genl->GetOid()));
+
+        else{
+          if(fabs(loc.loc2 - UNDEFVAL) < delta){
+            ListExpr loc_list = nl->OneElemList(nl->RealAtom(loc.loc1));
+            return nl->TwoElemList(nl->IntAtom(genl->GetOid()), loc_list);
+          }
+        }
+
       }else
-      return nl->TheEmptyList(); 
+          return nl->TheEmptyList(); 
   }else{  //free space oid = 0 
           Loc loc = genl->GetLoc();
           ListExpr loc_list = nl->TwoElemList(
@@ -1457,7 +1499,7 @@ void GenMO::Trajectory(GenRange* genrange, Space* sp)
 get the sub movement of a generic moving object according to a mode
 
 */
-void GenMO::AtMode(string tm, GenMO* sub)
+void GenMO::GenMOAt(string tm, GenMO* sub)
 {
   int mode = GetTM(tm);
   if(mode < 0 || mode >= (int)(ARR_SIZE(str_tm))){
@@ -1471,6 +1513,57 @@ void GenMO::AtMode(string tm, GenMO* sub)
     Get( i, unit );
     if(unit.GetTM() == mode)
       sub->Add(unit);
+  }
+
+  sub->EndBulkLoad();
+}
+
+/*
+get the sub movement of a generic moving object according to a genloc
+
+*/
+void GenMO::GenMOAt(GenLoc* genloc, GenMO* sub)
+{
+  if(!genloc->IsDefined()){
+    return;
+  }
+
+  sub->Clear();
+  sub->StartBulkLoad();
+  for(int i = 0 ;i < GetNoComponents();i++){
+    UGenLoc unit;
+    Get( i, unit );
+    if(unit.GetOid() == (int)genloc->GetOid())
+      sub->Add(unit);
+  }
+
+  sub->EndBulkLoad();
+}
+
+/*
+get the sub movement of a generic moving object according to a point
+
+*/
+void GenMO::GenMOAt(Point* p, GenMO* sub)
+{
+  if(!p->IsDefined()){
+    return;
+  }
+
+  sub->Clear();
+  sub->StartBulkLoad();
+  for(int i = 0 ;i < GetNoComponents();i++){
+    UGenLoc unit;
+    Get( i, unit );
+    if(unit.tm == TM_FREE){
+      assert(unit.GetOid() == 0);
+      Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
+      Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
+      if(p1.Distance(p2) < EPSDIST && p->Distance(p1) < EPSDIST){
+          sub->Add(unit);
+      }
+    }
+
   }
 
   sub->EndBulkLoad();
@@ -1510,7 +1603,7 @@ get the movement in a given time period
 void GenMO::AtPeriods(Periods* peri_q, GenMO& result) 
 {
   result.Clear();
-  if(IsDefined() && GetNoComponents() >0 && peri_q->IsDefined()){
+  if(IsDefined() && GetNoComponents() > 0 && peri_q->IsDefined()){
     Periods* peri = new Periods(0);
     DefTime(*peri);
     Instant s_q, e_q; 
@@ -1521,13 +1614,12 @@ void GenMO::AtPeriods(Periods* peri_q, GenMO& result)
     peri->Minimum(s_mo);
     peri->Maximum(e_mo);
     if(s_q > e_mo || e_q < s_mo){
-      result.SetDefined(false);
       delete peri;
       return;
     }
     delete peri;
     result.StartBulkLoad();
-    result.SetDefined(false);
+
     int64_t st = s_q.ToDouble()*86400000.0;
     int64_t et = e_q.ToDouble()*86400000.0;
 
@@ -1545,12 +1637,11 @@ void GenMO::AtPeriods(Periods* peri_q, GenMO& result)
 
       if(st <= u_s_t && u_e_t <= et){
         result.Add(unit);
-        result.SetDefined(true);
+
         continue; 
       }
 
       if(u_s_t <= st && et <= u_e_t){//query time is contained by a unit 
-
           Intime<GenLoc> igloc1, igloc2;
           igloc1 = GetUnitInstant(unit, s_q);
           igloc2 = GetUnitInstant(unit, e_q);
@@ -1572,7 +1663,7 @@ void GenMO::AtPeriods(Periods* peri_q, GenMO& result)
           unit_tmp.gloc2 = igloc2.value;
           unit_tmp.tm = unit.tm;
           result.Add(unit_tmp);
-          result.SetDefined(true);
+
           break;
       }
       ///////////////////////////////////////////////////////////////////
@@ -1606,14 +1697,12 @@ void GenMO::AtPeriods(Periods* peri_q, GenMO& result)
 
       s_q = MAX(s_q, u_s);
       st = s_q.ToDouble()*86400000.0;
-      result.SetDefined(true);
+
       ///////////////////////////////////////////////////////////////////
     }
     result.EndBulkLoad();
 
-  }else
-    result.SetDefined(false);
-
+  }
 }
 
 /*
@@ -1787,6 +1876,83 @@ bool GenMO::Passes(Region* reg, Space* sp)
 
 }
 
+/*
+map a genmo to a mpoint 
+now it only supports bus 
+
+
+*/
+
+void GenMO::MapGenMO(MPoint* in, MPoint& res)
+{
+  res.Clear();
+
+  Periods* peri1 = new Periods(0);
+  Periods* peri2 = new Periods(0);
+  DefTime(*peri1);
+  in->DefTime(*peri2);
+//  cout<<*peri1<<" "<<*peri2<<endl;
+
+
+  Interval<Instant> time_span1;
+  Interval<Instant> time_span2;
+  peri1->Get(0, time_span1);
+  peri2->Get(0, time_span2);
+  int day1 = time_span1.start.GetDay();
+  int day2 = time_span2.start.GetDay();
+//  cout<<day1<<" "<<day2<<endl;
+  if(day1 == day2){
+    in->AtPeriods(*peri1, res);
+
+  }else{
+
+    Periods* peri_new = new Periods(0);
+    peri_new->StartBulkLoad();
+
+    Instant st1 = time_span1.start;
+    Instant et1 = time_span1.end;
+
+    Instant st2 = time_span2.start;
+    Instant et2 = time_span2.end;
+
+    if(st1.GetDay() != et1.GetDay() || st2.GetDay() != et2.GetDay()){
+      cout<<"time should be in one day"<<endl;
+      return;
+    }
+
+    Instant st = st1;
+    Instant et = st2;
+
+    st.Set(st2.GetYear(), st2.GetMonth(), st2.GetGregDay(), 
+           st1.GetHour(), st1.GetMinute(), 
+           st1.GetSecond(), st1.GetMillisecond());
+
+    et.Set(et2.GetYear(), et2.GetMonth(), et2.GetGregDay(), 
+           et1.GetHour(), et1.GetMinute(), 
+           et1.GetSecond(), et1.GetMillisecond());
+
+    Interval<Instant> time_span_new;
+
+    time_span_new.start = st;
+    time_span_new.lc = time_span1.lc;
+    time_span_new.end = et; 
+    time_span_new.rc = time_span1.rc;
+
+    peri_new->MergeAdd(time_span_new);
+    peri_new->EndBulkLoad();
+
+//    cout<<"new periods "<<*peri_new<<endl;
+    in->AtPeriods(*peri_new, res);
+
+    delete peri_new;
+  }
+
+  delete peri2; 
+  delete peri1; 
+
+}
+
+
 void GetLine(Point& p1, Point& p2, Line* l)\
 {
     l->StartBulkLoad();
@@ -1817,6 +1983,8 @@ string GenMObject::BuildingInfoM = "(rel (tuple ((Tid int) (Type string)\
 string GenMObject::BenchModeDISTR = 
 "(rel (tuple ((mode string) (para real))))";
 
+string GenMObject::NNBuilding = 
+"(rel (tuple ((b_id int) (geoData rect))))";
 
 void GenMObject::GetMode(GenMO* mo)
 {
@@ -1904,6 +2072,13 @@ void GenMObject::GetIdList(GenRange* gr)
     }
 }
 
+void GenMObject::GetIdList(Door3D* d)
+{
+   int oid1 = d->GetOid(1);
+   int oid2 = d->GetOid(2);
+   id_list.push_back(oid1); 
+   id_list.push_back(oid2); 
+}
 
 /*
 according to type value, different sub functions are called 
@@ -1928,7 +2103,7 @@ void GenMObject::GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type)
       BTree* btree = sp->GetDGNodeBTree();
       Relation* rel2 = sp->GetSpeedRel();
       if(rel1 == NULL || btree == NULL || rel2 == NULL){
-          cout<<"auxiliary relation empty"<<endl;
+          cout<<"auxiliary relation empty car"<<endl;
           return;
       }else{
         GenerateGenMO2(sp, peri, mo_no, type, rel1, btree, rel2);
@@ -1958,7 +2133,7 @@ void GenMObject::GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type)
         Relation* rel2 = sp->GetMSPaveRel();
         R_Tree<2,TupleId>* rtree = sp->GetMSPaveRtree();
         if(rel1 == NULL || rel2 == NULL || rtree == NULL){
-          cout<<"auxiliary relation empty "<<endl;
+          cout<<"auxiliary relation empty metro "<<endl;
           return;
         }else{
           GenerateGenMO7(sp, peri, mo_no, type, rel1, rel2, rtree);
@@ -1977,7 +2152,7 @@ void GenMObject::GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type)
         Relation* rel2 = sp->GetBSPaveRel();
         R_Tree<2,TupleId>* rtree = sp->GetBSPaveRtree();
         if(rel1 == NULL || rel2 == NULL || rtree == NULL){
-          cout<<"auxiliary relation empty "<<endl;
+          cout<<"auxiliary relation empty bus"<<endl;
           return;
         }else{
 
@@ -2185,7 +2360,7 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
 
   mo_gp->SetDefined(true);/////////no bulkload for moving gpoint
 
-  const double delta_dist = 0.01;
+//  const double delta_dist = 0.01;
   bool correct = true;
   
   for(int i = 0;i < newgl->Size();i++){
@@ -2238,7 +2413,8 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
 //    cout<<"dist1 "<<start_loc.Distance(temp_sp1)
 //        <<" dist2 "<<start_loc.Distance(temp_sp2)<<endl;
 
-    if(start_loc.Distance(temp_sp1) < delta_dist){
+//    if(start_loc.Distance(temp_sp1) < delta_dist){
+    if(start_loc.Distance(temp_sp1) < EPSDIST){
 
       if(start_pos > end_pos){
 
@@ -2252,8 +2428,9 @@ void GenMObject::GenerateCarMO(Network* rn, int i, Periods* peri,
       }
 
       start_loc = temp_sp2;
-//      cout<<"start"<<endl;
-    }else if(start_loc.Distance(temp_sp2) < delta_dist){
+
+//    }else if(start_loc.Distance(temp_sp2) < delta_dist){
+    }else if(start_loc.Distance(temp_sp2) < EPSDIST){
 
       if(start_pos > end_pos ){
 
@@ -2308,7 +2485,7 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
                       int networkId, int routeId, Side side, 
                                  double pos_len, bool increase)
 {
-  const double dist_delta = 0.01; 
+//  const double dist_delta = 0.01; 
 
   Instant st = start_time;
   Instant et = start_time; 
@@ -2323,7 +2500,8 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
  //   cout<<"dist "<<dist<<" time "<<time<<endl; 
 //    printf("%.10f, %.10f",dist, time); 
     //////////////////////////////////////////////////////////////
-    if(dist < dist_delta){//ignore such small segment 
+//    if(dist < dist_delta){//ignore such small segment
+    if(dist < EPSDIST){//ignore such small segment 
         if((i + 1) < seq_halfseg.size()){
           seq_halfseg[i + 1].from = from_loc; 
         }
@@ -2362,7 +2540,8 @@ void GenMObject::CreateCarMPMGP1(MPoint* mo, MGPoint* mgp,
     else
       end_pos = start_pos - from_loc.Distance(to_loc);
 
-    if(fabs(end_pos) < dist_delta) end_pos = 0.0;
+//    if(fabs(end_pos) < dist_delta) end_pos = 0.0;
+    if(fabs(end_pos) < EPSDIST) end_pos = 0.0;
 
     pos_len = end_pos;
 
@@ -2400,7 +2579,7 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
                                  double pos_len, bool increase)
 {
 
-  const double dist_delta = 0.01;
+//  const double dist_delta = 0.01;
 
 //  cout<<"trip2 max speed "<<speed_val<<" start time "<<start_time<<endl; 
   Instant st = start_time;
@@ -2414,7 +2593,8 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
 
  //   cout<<"dist "<<dist<<" time "<<time<<endl; 
     ///////////////////////////////////////////////////////////////////
-    if(dist < dist_delta){//ignore such small segment 
+//    if(dist < dist_delta){//ignore such small segment
+    if(dist < EPSDIST){//ignore such small segment 
         if((i - 1) >= 0 ){
           seq_halfseg[i - 1].to = from_loc; 
         }
@@ -2452,7 +2632,8 @@ void GenMObject::CreateCarMPMGP2(MPoint* mo, MGPoint* mgp,
     else
       end_pos = start_pos - from_loc.Distance(to_loc);
 
-    if(fabs(end_pos) < dist_delta) end_pos = 0.0;
+//    if(fabs(end_pos) < dist_delta) end_pos = 0.0;
+    if(fabs(end_pos) < EPSDIST) end_pos = 0.0;
 
     pos_len = end_pos;
 
@@ -2516,7 +2697,8 @@ relative position according to the triangle !!!
 
 */
 void GenMObject::GenerateLocPave(Pavement* pm, int mo_no, 
-                                 vector<GenLoc>& genloc_list)
+                                 vector<GenLoc>& genloc_list, 
+                                 vector<Point>& p_loc_list)
 {
   Walk_SP* wsp = new Walk_SP(NULL, NULL, pm->GetPaveRel(), NULL);
   wsp->GenerateData1(mo_no*2);
@@ -2532,6 +2714,9 @@ void GenMObject::GenerateLocPave(Pavement* pm, int mo_no,
     Loc loc(loc1, loc2);
     GenLoc genloc(oid, loc);
     genloc_list.push_back(genloc);
+
+    Point p(true, loc1, loc2);
+    p_loc_list.push_back(p);
   }
 
   delete wsp;
@@ -2556,7 +2741,7 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
    delete path;
    Point temp_sp1 = seq_halfseg[0].from; 
    Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
-   const double delta_dist = 0.01;
+//   const double delta_dist = 0.01;
 
   ///////////////////////////////////////////////////////////////
    ////////we reference to the big overall large polygon/////////////
@@ -2567,7 +2752,8 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
 //    cout<<bbox<<endl;
    ///////////////////////////////////////////////////////////////////
 
-   if(start_loc.Distance(temp_sp1) < delta_dist){
+//   if(start_loc.Distance(temp_sp1) < delta_dist){
+   if(start_loc.Distance(temp_sp1) < EPSDIST){
         Instant st = start_time;
         Instant et = start_time; 
         Interval<Instant> up_interval; 
@@ -2578,7 +2764,8 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
             double dist = from_loc.Distance(to_loc);
             double time = dist; //assume the speed for pedestrian is 1.0m
  
-            if(dist < delta_dist){//ignore such small segment 
+//            if(dist < delta_dist){//ignore such small segment
+            if(dist < EPSDIST){//ignore such small segment 
                 if((i + 1) < seq_halfseg.size()){
                 seq_halfseg[i+1].from = from_loc; 
                 }
@@ -2609,7 +2796,8 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
             genmo->Add(*unit); 
             delete unit; 
         }
-   }else if(start_loc.Distance(temp_sp2) < delta_dist){
+//   }else if(start_loc.Distance(temp_sp2) < delta_dist){
+   }else if(start_loc.Distance(temp_sp2) < EPSDIST){
               Instant st = start_time;
               Instant et = start_time; 
               Interval<Instant> up_interval; 
@@ -2618,7 +2806,8 @@ void GenMObject::GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc,
                   Point to_loc = seq_halfseg[i].from; 
                   double dist = from_loc.Distance(to_loc);
                   double time = dist; 
-                  if(dist < delta_dist){//ignore such small segment 
+//                  if(dist < delta_dist){//ignore such small segment
+                  if(dist < EPSDIST){//ignore such small segment 
                         if((i + 1) < (int) seq_halfseg.size()){
                             seq_halfseg[i+1].from = from_loc; 
                         }
@@ -2672,10 +2861,11 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
    delete path;
    Point temp_sp1 = seq_halfseg[0].from; 
    Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
-   const double delta_dist = 0.01;
+//   const double delta_dist = 0.01;
    ///////////////////////////////////////////////////////////////////
 
-   if(start_loc.Distance(temp_sp1) < delta_dist){
+//   if(start_loc.Distance(temp_sp1) < delta_dist){
+   if(start_loc.Distance(temp_sp1) < EPSDIST){
         Instant st = start_time;
         Instant et = start_time; 
         Interval<Instant> up_interval; 
@@ -2686,7 +2876,8 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
             double dist = from_loc.Distance(to_loc);
             double time = dist; //assume the speed for pedestrian is 1.0m
  
-            if(dist < delta_dist){//ignore such small segment 
+//            if(dist < delta_dist){//ignore such small segment
+            if(dist < EPSDIST){//ignore such small segment 
                 if((i + 1) < seq_halfseg.size()){
                   seq_halfseg[i+1].from = from_loc; 
                 }
@@ -2715,7 +2906,8 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
             genmo->Add(*unit); 
             delete unit; 
         }
-   }else if(start_loc.Distance(temp_sp2) < delta_dist){
+//   }else if(start_loc.Distance(temp_sp2) < delta_dist){
+   }else if(start_loc.Distance(temp_sp2) < EPSDIST){
               Instant st = start_time;
               Instant et = start_time; 
               Interval<Instant> up_interval; 
@@ -2724,7 +2916,8 @@ void GenMObject::GenerateFreeMovement(Line* l, Point start_loc,
                   Point to_loc = seq_halfseg[i].from; 
                   double dist = from_loc.Distance(to_loc);
                   double time = dist; 
-                  if(dist < delta_dist){//ignore such small segment 
+//                  if(dist < delta_dist){//ignore such small segment
+                  if(dist < EPSDIST){//ignore such small segment 
                         if((i + 1) < (int)seq_halfseg.size()){
                             seq_halfseg[i+1].from = from_loc; 
                         }
@@ -2766,8 +2959,9 @@ void GenMObject::GenerateFreeMovement2(Point start_loc, Point end_loc,
                             GenMO* genmo, MPoint* mo, Instant& start_time)
 {
    string mode = "Free";
-   const double delta_dist = 0.01;
-   if(start_loc.Distance(end_loc) < delta_dist) return;
+//   const double delta_dist = 0.01;
+//   if(start_loc.Distance(end_loc) < delta_dist) return;
+   if(start_loc.Distance(end_loc) < EPSDIST) return;
    ///////////////////////////////////////////////////////////////////
     Instant st = start_time;
     Instant et = start_time; 
@@ -2994,7 +3188,9 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
   const double min_len = 100.0;
   Pavement* pm = sp->LoadPavement(IF_REGION);
   vector<GenLoc> genloc_list;
-  GenerateLocPave(pm, mo_no, genloc_list);//generate locations on pavements 
+  vector<Point> p_loc_list;
+  //generate locations on pavements 
+  GenerateLocPave(pm, mo_no, genloc_list, p_loc_list);
   int count = 1;
   Network* rn = sp->LoadRoadNetwork(IF_LINE);
   if(rn == NULL){
@@ -3063,7 +3259,7 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
     ////////////2 connect the path to the end point//////////////////////
     //////////////////////////////////////////////////////////////////////
 
-    ConnectStartMove(loc1, start_loc, mo, genmo, start_time, pm, mode);
+    ConnectStartMove(loc1, start_loc, mo, genmo, start_time, pm);
 
     //////////////////////////////////////////////////////////////////////
     ///////////3 shortest path between two gpoints////////////////////////
@@ -3078,7 +3274,7 @@ void GenMObject::GenerateGenMO_CTBWalk(Space* sp, Periods* peri, int mo_no,
     ////////////4 connect the path to the end point//////////////////////
     //////////////////////////////////////////////////////////////////////
 
-    ConnectEndMove(end_loc, loc2, mo, genmo, start_time, pm, mode);
+    ConnectEndMove(end_loc, loc2, mo, genmo, start_time, pm);
 
     ////////////////////////////////////////////////////////////////////
     cout<<count<<" moving object"<<endl;
@@ -3190,9 +3386,9 @@ loc1: point on the pavement; end loc: point maps to a gpoint
 */
 void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
                         GenMO* genmo, Instant& start_time, 
-                                  Pavement* pm, string mode)
+                                  Pavement* pm)
 {
-  const double delta_dist = 0.01;
+//  const double delta_dist = 0.01;
   DualGraph* dg = pm->GetDualGraph();
 
   Point start_loc(true, loc1.GetLoc().loc1, loc1.GetLoc().loc2);
@@ -3216,7 +3412,8 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
       double slowspeed = 10.0*1000.0/3600.0;
       double time = dist/slowspeed;///// define as free space 
     //////////////////////////////////////////////////////////////
-      if(dist > delta_dist){//ingore too small segment 
+//      if(dist > delta_dist){//ingore too small segment
+      if(dist > EPSDIST){//ingore too small segment 
           Instant st = start_time;
           Instant et = start_time; 
           Interval<Instant> up_interval; 
@@ -3272,14 +3469,16 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
   ///////////////////////////////////////////////////////////////////////
   //////////// the intersection line still belongs to pavement area//////
   //////////////////////////////////////////////////////////////////////
-  if(fabs(l->Length() - line->Length()) < delta_dist){///////one movement
+//  if(fabs(l->Length() - line->Length()) < delta_dist){///////one movement
+  if(fabs(l->Length() - line->Length()) < EPSDIST){///////one movement
 
 //        cout<<"still on pavement "<<endl;
 
         double dist = start_loc.Distance(end_loc);
         double time = dist/1.0;///// define as walk
     //////////////////////////////////////////////////////////////
-       if(dist > delta_dist){//ingore too small segment 
+//       if(dist > delta_dist){//ingore too small segment
+       if(dist > EPSDIST){//ingore too small segment 
 
           Instant st = start_time;
           Instant et = start_time; 
@@ -3330,7 +3529,8 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
   ////////////////////movement---1//////from pavement to border/////////////
       double dist1 = start_loc.Distance(middle_loc);
       double time1 = dist1/1.0;///// define as walk
-      if(dist1 > delta_dist){//ingore too small segment 
+//      if(dist1 > delta_dist){//ingore too small segment
+      if(dist1 > EPSDIST){//ingore too small segment 
 
           Instant st = start_time;
           Instant et = start_time; 
@@ -3365,7 +3565,8 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
       double dist2 = middle_loc.Distance(end_loc);
       double lowspeed = 10.0*1000/3600.0;
       double time2 = dist2/lowspeed;///// define as car (slow speed)
-      if(dist2 > delta_dist){//ingore too small segment 
+//      if(dist2 > delta_dist){//ingore too small segment
+      if(dist2 > EPSDIST){//ingore too small segment 
 
           Instant st = start_time;
           Instant et = start_time; 
@@ -3392,7 +3593,7 @@ void GenMObject::ConnectStartMove(GenLoc loc1, Point end_loc, MPoint* mo,
 //          int tm = GetTM(mode);
           int tm = GetTM("Free");//free space 
 //          cout<<up_interval<<" "<<middle_loc<<" "<<end_loc<<endl;
-          
+
           UGenLoc* unit = new UGenLoc(up_interval, gloc1, gloc2, tm);
           genmo->Add(*unit);
           delete unit;
@@ -3528,10 +3729,9 @@ loc: point on the pavement; start loc: point maps to a gpoint
 
 */
 void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo, 
-                        GenMO* genmo, Instant& start_time, 
-                                Pavement* pm, string mode)
+                        GenMO* genmo, Instant& start_time, Pavement* pm)
 {
-  const double delta_dist = 0.01;
+//  const double delta_dist = 0.01;
   DualGraph* dg = pm->GetDualGraph();
 
   Point end_loc(true, loc.GetLoc().loc1, loc.GetLoc().loc2);
@@ -3556,7 +3756,8 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
       double slowspeed = 10.0*1000.0/3600.0;
       double time = dist/slowspeed;///// define as free 
     //////////////////////////////////////////////////////////////
-      if(dist > delta_dist){//ingore too small segment 
+//      if(dist > delta_dist){//ingore too small segment
+      if(dist > EPSDIST){//ingore too small segment 
           Instant st = start_time;
           Instant et = start_time; 
           Interval<Instant> up_interval; 
@@ -3611,14 +3812,16 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
   ///////////////////////////////////////////////////////////////////////
   //////////// the intersection line still belongs to pavement area//////
   //////////////////////////////////////////////////////////////////////
-  if(fabs(l->Length() - line->Length()) < delta_dist){///////one movement
+//  if(fabs(l->Length() - line->Length()) < delta_dist){///////one movement
+  if(fabs(l->Length() - line->Length()) < EPSDIST){///////one movement
 
 //        cout<<"still on pavement "<<endl;
 
         double dist = start_loc.Distance(end_loc);
         double time = dist/1.0;///// define as walk
     //////////////////////////////////////////////////////////////
-       if(dist > delta_dist){//ingore too small segment 
+//       if(dist > delta_dist){//ingore too small segment
+       if(dist > EPSDIST){//ingore too small segment 
 
           Instant st = start_time;
           Instant et = start_time; 
@@ -3665,7 +3868,8 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
         double dist1 = start_loc.Distance(middle_loc);
         double lowspeed = 10*1000/3600.0;
         double time1 = dist1/lowspeed;///// define as free 
-        if(dist1 > delta_dist){//ingore too small segment 
+//        if(dist1 > delta_dist){//ingore too small segment
+        if(dist1 > EPSDIST){//ingore too small segment 
 
           Instant st = start_time;
           Instant et = start_time; 
@@ -3698,7 +3902,8 @@ void GenMObject::ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo,
         ///movement---2/////from pavement border to pavement loc///free space//
         double dist2 = middle_loc.Distance(end_loc);
         double time2 = dist2/1.0;///// define as walk
-        if(dist2 > delta_dist){//ingore too small segment 
+//        if(dist2 > delta_dist){//ingore too small segment
+        if(dist2 > EPSDIST){//ingore too small segment 
 
           Instant st = start_time;
           Instant et = start_time; 
@@ -3763,7 +3968,8 @@ void GenMObject::GenerateGenMO_BusWalk(Space* sp, Periods* peri, int mo_no,
 
     vector<GenLoc> genloc_list;
     //generate locations on pavements
-    GenerateLocPave(pm, obj_scale*mo_no, genloc_list);
+    vector<Point> p_loc_list;
+    GenerateLocPave(pm, obj_scale*mo_no, genloc_list, p_loc_list);
     DualGraph* dg = pm->GetDualGraph();
     VisualGraph* vg = pm->GetVisualGraph();
 
@@ -4164,12 +4370,15 @@ create the moving object between bus stops in bus network
 
 */
 int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
-                                    GenMO* genmo, MPoint* mo, 
+                                    GenMO* genmo_input, MPoint* mo, 
                                     Instant& start_time, 
                                     DualGraph* dg, Line* res_path)
 {
+    GenMO* genmo = new GenMO(0);
+    genmo->StartBulkLoad();
+
     const double delta_t = 0.01;//seconds
-    const double delta_dist = 0.01;
+//    const double delta_dist = 0.01;
 
     Line* l = new Line(0); ////////trajectory in bus network
     l->StartBulkLoad();
@@ -4256,22 +4465,26 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
           Point rp = hs1.GetRightPoint();
 /*          cout<<start_loc->Distance(lp)<<" "<<start_loc->Distance(rp)<<" "
               <<end_loc->Distance(lp)<<" "<<end_loc->Distance(rp)<<endl;*/
-          if(start_loc->Distance(lp) < delta_dist){
+//          if(start_loc->Distance(lp) < delta_dist){
+          if(start_loc->Distance(lp) < EPSDIST){
             new_start_loc = rp;
             init_start = true;
             continue;
           }
-          if(start_loc->Distance(rp) < delta_dist){
+//          if(start_loc->Distance(rp) < delta_dist){
+          if(start_loc->Distance(rp) < EPSDIST){
             new_start_loc = lp;
             init_start = true;
             continue;
           }
-          if(end_loc->Distance(lp) < delta_dist){
+//          if(end_loc->Distance(lp) < delta_dist){
+          if(end_loc->Distance(lp) < EPSDIST){
             new_end_loc = rp;
             init_end = true;
             continue;
           }
-          if(end_loc->Distance(rp) < delta_dist){
+//          if(end_loc->Distance(rp) < delta_dist){
+          if(end_loc->Distance(rp) < EPSDIST){
             new_end_loc = lp;
             init_end = true;
             continue;
@@ -4315,7 +4528,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             up_interval.rc = false; 
 
 //            if(AlmostEqual(t, 30.0)){///bus waiting at the bus stop
-            if(fabs(t - 30.0) < delta_t){///bus waiting at the bus stop
+            if(fabs(t - BUSWAITING) < delta_t){///bus waiting at the bus stop
                   ////////generic moving objects/////////////////
                   ////////reference to the bus///////////////////
                   /////with bs find br, with br.uoid find mobus///
@@ -4338,8 +4551,9 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
 //                 printf("%.4f\n", time1);
 
 
-                Loc loc1(-1.0, -1.0);
-                Loc loc2(-1.0, -1.0);
+                Loc loc1(UNDEFVAL, UNDEFVAL);
+                Loc loc2(UNDEFVAL, UNDEFVAL);
+
                 GenLoc gloc1(mbus_oid, loc1);
                 GenLoc gloc2(mbus_oid, loc2);
                 int tm = GetTM("Bus");
@@ -4405,6 +4619,9 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             int pos2 = -1;
             /////////find the range in mpoint for bs1, bs2//////////////
             FindPosInMP(&mo_bus, start_loc, end_loc, pos1, pos2, 0);
+
+//          cout<<"bus oid "<<mobus_oid<<" "<<*start_loc<<" "<<*end_loc<<endl;
+
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
 
             /////////////////////////////////////////////////////////////
@@ -4426,7 +4643,6 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             int pos2 = -1;
             /////////find the range in mpoint for bs1, bs2//////////////
             FindPosInMP(&mo_bus, start_loc, end_loc, pos1, pos2, mo_bus_index);
-
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
 
             SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
@@ -4457,7 +4673,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
             /////////find the range in mpoint for bs1, bs2//////////////
               FindPosInMP(&mo_bus, start_loc, end_loc, pos1, pos2, 0);
               assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
-             SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
+              SetMO_GenMO(&mo_bus, pos1, pos2, start_time, mo, 
                          genmo, mobus_oid, "Bus");
              ///////////////////////////////////////////////////////////////
               mo_bus_index = pos2; 
@@ -4502,7 +4718,53 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
     delete l;
 
 
-    return last_walk_id;
+    genmo->EndBulkLoad();
+    /////////////////////////////////////////////////////////////////
+    //////////////merge bus units referenc to the same bus /////////
+    /////////////////////////////////////////////////////////////////
+    vector<UGenLoc> ugloc_list;
+    for(int i = 0;i < genmo->GetNoComponents();i++){
+      UGenLoc u(true);
+      genmo->Get(i, u);
+      if(ugloc_list.size() == 0 || u.tm != TM_BUS){
+        ugloc_list.push_back(u);
+
+      }else{
+        UGenLoc v = ugloc_list[ugloc_list.size() - 1];
+        if(u.GetOid() != v.GetOid()){
+            ugloc_list.push_back(u);
+
+        }else{ //merge bus units 
+            UGenLoc w = u;
+            while(u.GetOid() == v.GetOid() && u.tm == v.tm &&
+                  u.tm == TM_BUS && i < genmo->GetNoComponents()){
+                w = u;
+                i++;
+//                cout<<"i "<<i<<endl;
+                if(i < genmo->GetNoComponents())
+                   genmo->Get(i, u);
+          }
+          assert(v.GetOid() == w.GetOid());
+          Interval<Instant> up_interval; 
+          up_interval.start = v.timeInterval.start;
+          up_interval.lc = v.timeInterval.lc;
+          up_interval.end = w.timeInterval.end;
+          up_interval.rc = w.timeInterval.rc;
+
+          UGenLoc* unit = new UGenLoc(up_interval, v.gloc1, w.gloc2, v.tm);
+          ugloc_list[ugloc_list.size() - 1] = *unit;
+          delete unit; 
+
+          if(i < genmo->GetNoComponents())i--;
+        }
+      }
+    }
+    for(unsigned int i = 0;i < ugloc_list.size();i++)
+      genmo_input->Add(ugloc_list[i]);
+   ////////////////////////////////////////////////////
+   delete genmo; 
+
+   return last_walk_id;
 }
 
 
@@ -4600,27 +4862,38 @@ void GenMObject::ShortMovement(GenMO* genmo, MPoint* mo, Instant& start_time,
 find the two positions in dbarray units that their spatial location equal to
 the two input locations, the start entry is given by the input index
 
+
 */
 void GenMObject::FindPosInMP(MPoint* mo_bus, Point* start_loc, Point* end_loc,
                    int& pos1, int& pos2, int index)
+
 {
 //  cout<<"index "<<index<<endl; 
 //  cout<<*start_loc<<" "<<*end_loc<<endl; 
 
-  const double delta_dist = 0.01;
+
+//  const double delta_dist = 0.01;
+  const double delta_dist = 0.05;
+
   for(int i = index;i < mo_bus->GetNoComponents();i++){
     UPoint unit;
     mo_bus->Get(i, unit);
     Point p1 = unit.p0;
     Point p2 = unit.p1;
 
-//     cout<<start_loc->Distance(p1)<<" "<<start_loc->Distance(p2)<<endl;
-//     cout<<end_loc->Distance(p1)<<" "<<end_loc->Distance(p2)<<endl;
+/*    if(start_loc->Distance(p1) < 1.0)
+      cout<<"s-p1 "<<start_loc->Distance(p1)<<endl;
+    if(start_loc->Distance(p2) < 1.0)
+      cout<<"s-p2 "<<start_loc->Distance(p2)<<endl;
+    if(end_loc->Distance(p1) < 1,0)
+      cout<<"e-p1 "<<end_loc->Distance(p1)<<endl;
+    if(end_loc->Distance(p2) < 1.0)
+      cout<<"e-p2 "<<end_loc->Distance(p2)<<endl;*/
 //     cout<<"p1 "<<p1<<" p2 "<<p2<<endl;
-
     if(start_loc->Distance(p1) < delta_dist && 
        start_loc->Distance(p2) > delta_dist){
       pos1 = i;
+
     }
     if(end_loc->Distance(p1) > delta_dist && 
        end_loc->Distance(p2) < delta_dist){
@@ -4641,10 +4914,12 @@ void GenMObject::SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2,
                              Instant& start_time,  MPoint* mo, GenMO* genmo, 
                              int mobus_oid, string str_tm)
 {
+//      cout<<"pos1 "<<pos1<<" "<<pos2<<endl;
 
       Instant st_temp = start_time;
       Interval<Instant> up_interval;
       bool first_time = true;
+
       for(; pos1 <= pos2;pos1++){
           UPoint unit;
           mo_bus->Get(pos1, unit);
@@ -4685,9 +4960,11 @@ void GenMObject::SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2,
 
       ////////////////////////////////////////////////////////////
       ////////////////generic moving object//////////////////////
-      ////////////////////////////////////////////////////////////
-      Loc loc1(-1.0, -1.0);
-      Loc loc2(-1.0, -1.0);
+
+      /////////////record the start and end position of such a unit/////////
+      Loc loc1(UNDEFVAL, UNDEFVAL);
+      Loc loc2(UNDEFVAL, UNDEFVAL);
+
       GenLoc gloc1(mobus_oid, loc1);
       GenLoc gloc2(mobus_oid, loc2);
 //      int tm = GetTM("Bus");
@@ -5092,9 +5369,9 @@ void GenMObject::GenerateGenMO4(Space* sp,
     delete path; 
 
     //////////////////path2: from pavement to building/////////////////////////
-    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
-
     GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+
+    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
     if(path2->Length() > min_path)
       GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
@@ -5107,7 +5384,11 @@ void GenMObject::GenerateGenMO4(Space* sp,
                                    INDOORIF_SP_INDEX))->GetIntval();
    int reg_id2 =  ((CcInt*)path_tuple2->GetAttribute(IndoorInfra::
                                               INDOORIF_REG_ID))->GetIntval();
-    GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+   if(WorkBuilding(build_id2_list[count].type))
+      GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp2, 
+                                   entrance_index2, reg_id2, maxrect, peri);
+   else
+      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
                                    entrance_index2, reg_id2, maxrect, peri);
 
 //    cout<<"reg_id1 "<<reg_id1<<" reg_id2 "<<reg_id2<<endl;
@@ -5392,6 +5673,7 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
                                 build_id, entrance_index,mp3d,genmo, peri);
       Instant t2 = start_time;
 
+      
       ////////////////////////////////////////////////////////////////////
       ///////////////set up outdoor movement/////////////////////////////
       //////////////////////////////////////////////////////////////////
@@ -5434,6 +5716,139 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
   }
 
 }
+
+/*
+for working building (office, university), it create a unit without anymovement 
+to represent the case that people stay in the room for some time 
+almost the same as GenerateIndoorMovementFromExit
+
+*/
+void GenMObject::GenerateIndoorMovementFromExit2(IndoorInfra* i_infra,
+                                              GenMO* genmo, MPoint* mo, 
+                                              Instant& start_time, Point loc,
+                                              int entrance_index, 
+                                              int reg_id,  
+                                              MaxRect* maxrect, Periods* peri)
+{
+  ///////////////////////////////////////////////////////////////////////////
+  //////////load the building: with reg id , we know the building type///////
+  ///////////////////////////////////////////////////////////////////////////
+  int build_type;
+  int build_id;
+  i_infra->GetTypeFromRegId(reg_id, build_type, build_id);
+//  cout<<"from exit buiding: "<<GetBuildingStr(build_type)<<endl;
+  if(build_type == BUILD_HOUSE){///not necessary to load the indoor graph
+    MPoint3D* mp3d = new MPoint3D(0); 
+    indoor_mo_list2.push_back(*mp3d);
+    delete mp3d;
+  }else{
+    int t_span = 4*60; //4 hours 
+
+//    cout<<"load indoor graph (from exit)"<<endl;
+    assert(maxrect->igraph_pointer[build_type] != NULL);
+
+    assert(maxrect->build_pointer[build_type] != NULL);
+    Building* build = maxrect->build_pointer[build_type];
+    Relation* room_rel = build->GetRoom_Rel();
+    IndoorNav* indoor_nav = new IndoorNav(room_rel, NULL);
+    unsigned int num_elev = indoor_nav->NumerOfElevators();
+
+    IndoorGraph* ig = maxrect->igraph_pointer[build_type];
+    BTree* btree_room = build->GetBTree();
+    R_Tree<3, TupleId>* rtree_room = build->GetRTree();
+
+
+    ////////////////indoor paths and rooms id list ///////////////////
+#ifdef INDOOR_PATH
+    indoor_nav->indoor_paths_list = indoor_paths_list[build_type];
+    indoor_nav->rooms_list = rooms_id_list[build_type];
+#endif 
+
+    indoor_nav->ig = ig;
+    /////////////////////////////////////////////////
+
+
+    MPoint3D* mp3d = new MPoint3D(0); 
+    if(num_elev <= 1){
+      Instant t1 = start_time;
+
+      indoor_nav->GenerateMO3_Start(ig, btree_room, rtree_room, start_time,
+                                build_id, entrance_index,mp3d,genmo, peri);
+      Instant t2 = start_time;
+
+
+      ////////////////////////////////////////////////////////////////////
+      ///set up outdoor movement and stay in the room for a while ////////
+      ///////////////////////////////////////////////////////////////////
+      Instant t3 = t2;
+      Interval<Instant> up_interval; 
+      up_interval.start = t1;
+      up_interval.lc = true;
+      ////////////// at least 5 minutes, use float, otherwise get zero/////////
+      t3.ReadFrom(t3.ToDouble() + (GetRandom()%t_span + 5)/(24*60.0));
+      up_interval.end = t3;
+      up_interval.rc = false; 
+      UPoint* up = new UPoint(up_interval, loc, loc);
+      mo->Add(*up);
+      delete up; 
+
+      UPoint3D unit1;
+      mp3d->Get(mp3d->GetNoComponents() - 1, unit1);
+      up_interval.start = t2;
+      unit1.timeInterval = up_interval;
+      mp3d->Add(unit1);
+
+      UGenLoc unit2;
+      genmo->Get(genmo->GetNoComponents() - 1, unit2);
+      unit2.timeInterval = up_interval;
+      genmo->Add(unit2);
+
+    }else{
+//      cout<<"several elevators "<<endl;
+      Instant t1 = start_time;
+
+      indoor_nav->GenerateMO3_New_Start(ig, btree_room, rtree_room, start_time,
+                          build_id, entrance_index,mp3d,genmo,peri,num_elev);
+
+      Instant t2 = start_time;
+
+      ////////////////////////////////////////////////////////////////////
+      ///set up outdoor movement and stay in the room for a while ////////
+      //////////////////////////////////////////////////////////////////
+      Instant t3 = t2;
+      Interval<Instant> up_interval; 
+      up_interval.start = t1;
+      up_interval.lc = true;
+      ////////////// at least 5 minutes, use float, otherwise get zero/////////
+      t3.ReadFrom(t3.ToDouble() + (GetRandom()%t_span + 5)/(24*60.0));
+      up_interval.end = t3;
+      up_interval.rc = false; 
+      UPoint* up = new UPoint(up_interval, loc, loc);
+      mo->Add(*up);
+      delete up; 
+
+      UPoint3D unit1;
+      mp3d->Get(mp3d->GetNoComponents() - 1, unit1);
+      up_interval.start = t2;
+      unit1.timeInterval = up_interval;
+      mp3d->Add(unit1);
+
+      UGenLoc unit2;
+      genmo->Get(genmo->GetNoComponents() - 1, unit2);
+      unit2.timeInterval = up_interval;
+      genmo->Add(unit2);
+
+
+    }
+
+    indoor_mo_list2.push_back(*mp3d);
+    delete mp3d;
+
+    delete indoor_nav;
+  }
+
+}
+
 
 /*
 create generic moving objects with modes: walk + indoor + car (taxi)
@@ -5560,8 +5975,9 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
    Relation* dg_node_rel = sp->GetDualNodeRel();
    BTree* btree = sp->GetDGNodeBTree();
    Relation* speed_rel = sp->GetSpeedRel();
+
    if(dg_node_rel == NULL || btree == NULL || speed_rel == NULL){
-      cout<<"auxiliary relation empty "<<endl;
+      cout<<"GenerateGenMO_IWCTB():auxiliary relation empty IWCTB"<<endl;
       return;
    }
 
@@ -5580,7 +5996,8 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
    const double min_path = 0.1;
    int real_count = 1;
 
-   while(real_count <= mo_no && count < obj_scale*mo_no){
+   while(real_count <= mo_no && count < obj_scale*mo_no &&
+         count < (int)build_id1_list.size()){
 
    //////////////////////////////start time///////////////////////////
    if(count % 3 == 0)
@@ -5608,10 +6025,9 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
      count++;
      continue;
    }
-
-   //////////////////////////////////////////////////////////////////////
-   cout<<"building 1 "<<GetBuildingStr(build_id1_list[count].type)
-        <<" building 2 "<<GetBuildingStr(build_id2_list[count].type)<<endl;
+/*   cout<<"count "<<count<<" "<<build_id1_list.size()<<" "
+       <<build_id1_list[count].type<<" "
+       <<build_id2_list[count].type<<endl;*/
 
    int path_tid1 = path_id_list1[GetRandom() % path_id_list1.size()];
    int path_tid2 = path_id_list2[GetRandom() % path_id_list2.size()];
@@ -5654,6 +6070,8 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
 
     if(correct == false){
         count++;
+        path_tuple1->DeleteIfAllowed();
+        path_tuple2->DeleteIfAllowed();
         continue;
     }
 
@@ -5697,7 +6115,7 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
     /////////////////////////////////////////////////////////////////////
     //////////////////4 pavement to network (start location)/////////////
     ////////////////////////////////////////////////////////////////////
-    ConnectStartMove(newgloc1, start_loc, mo, genmo, start_time, pm, mode);
+    ConnectStartMove(newgloc1, start_loc, mo, genmo, start_time, pm);
 
     /////////////////////////////////////////////////////////////////////
     //////////////////5 road network movement //////////////////////////
@@ -5709,18 +6127,18 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
     /////////////////////////////////////////////////////////////////////
     //////////////////6 end network location to pavement//////////////////
     ////////////////////////////////////////////////////////////////////
-    ConnectEndMove(end_loc, newgloc2, mo, genmo, start_time, pm, mode);
+    ConnectEndMove(end_loc, newgloc2, mo, genmo, start_time, pm);
 
     /////////////////////////////////////////////////////////////////////
     ////////7 pavement to building entrance + indoor movement2//////////
     ////////////////////////////////////////////////////////////////////
 
     ////////////////outdoor movement/////////////////////////////////////////
-    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
-//    line_list2.push_back(*path2);
     GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
 
 //    cout<<"length "<<path2->Length()<<endl;
+    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
+//    line_list2.push_back(*path2);
     if(path2->Length() > min_path)
       GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
@@ -5731,9 +6149,13 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
                                    INDOORIF_SP_INDEX))->GetIntval();
     int reg_id2 =  ((CcInt*)path_tuple2->GetAttribute(IndoorInfra::
                                               INDOORIF_REG_ID))->GetIntval();
-    GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
-                                   entrance_index2, reg_id2, maxrect, peri);
 
+    if(WorkBuilding(build_id2_list[count].type))
+      GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp2, 
+                                   entrance_index2, reg_id2, maxrect, peri);
+    else
+       GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                                   entrance_index2, reg_id2, maxrect, peri);
    /////////////////////////////////////////////////////////////////////////
 
     mo->EndBulkLoad();
@@ -5752,6 +6174,11 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
 
     path_tuple1->DeleteIfAllowed();
     path_tuple2->DeleteIfAllowed();
+
+
+   //////////////////////////////////////////////////////////////////////
+   cout<<"building 1 "<<GetBuildingStr(build_id1_list[count].type)
+        <<" building 2 "<<GetBuildingStr(build_id2_list[count].type)<<endl;
 
     count++;
     cout<<real_count<<" moving object"<<endl;
@@ -6176,7 +6603,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
   Relation* rel3 = sp->GetBSBuildRel();
   R_Tree<2,TupleId>* rtree = sp->GetBSPaveRtree();
   if(rel1 == NULL || rel2 == NULL || rtree == NULL || rel3 == NULL){
-      cout<<"auxiliary relation empty "<<endl;
+      cout<<"auxiliary relation empty IBW"<<endl;
       return;
    }
 
@@ -6295,7 +6722,6 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
       continue;
    }
 
-
     int path_tid1 = path_id_list1[GetRandom() % path_id_list1.size()];
     int path_tid2 = path_id_list2[GetRandom() % path_id_list2.size()];
 
@@ -6352,18 +6778,14 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
     Point start_p, end_p; 
     bn->GetBusStopGeoData(&bs1, &start_p);
     bn->GetBusStopGeoData(&bs2, &end_p);
-    const double delta_dist = 0.01; 
 
-    if(start_p.Distance(end_p) < delta_dist){
+    if(start_p.Distance(end_p) < min_path){
       path_tuple1->DeleteIfAllowed();
       path_tuple2->DeleteIfAllowed();
       count++;
       delete peri;
       continue;
     }
-
-
-
 
 //    cout<<"bs1 "<<bs1<<" bs2 "<<bs2<<endl;
 
@@ -6450,7 +6872,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
 //    line_list1.push_back(*path1);
 
-    ////////////////////////////////////////////////////////////////////////
+
     ///////////////////////////////////////////////////////////////////////
 
 //         int temp_index  = 0;
@@ -6520,10 +6942,10 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
 
      ////////////////outdoor movement/////////////////////////////////////////
-    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
+
 //    line_list2.push_back(*path2);
     GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
-
+    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
     if(path2->Length() > min_path)
         GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
@@ -6535,13 +6957,21 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
     int reg_id2 =  ((CcInt*)path_tuple2->GetAttribute(IndoorInfra::
                                               INDOORIF_REG_ID))->GetIntval();
 
-    if(time_transform)
-      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+    if(time_transform){
+      if(WorkBuilding(build_id2_list[index2].type))
+        GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp2, 
                                   entrance_index2, reg_id2, maxrect, peri);
-    else
-      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+      else
+        GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                                  entrance_index2, reg_id2, maxrect, peri);
+    }else{
+      if(WorkBuilding(build_id2_list[index2].type))
+          GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp2,
                                entrance_index2, reg_id2, maxrect, peri_input);
-
+      else
+          GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2,
+                               entrance_index2, reg_id2, maxrect, peri_input);
+    }
     //////////////////////////////////////////////////////////////////////
      mo->EndBulkLoad();
      genmo->EndBulkLoad();
@@ -6623,9 +7053,12 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
     path_tuple2->DeleteIfAllowed();
 
     ///////////////////////store building type//////////////////////////////
-    build_type_list1.push_back(build_id1_list[index1].type);
-    build_type_list2.push_back(build_id2_list[index2].type); 
+//    build_type_list1.push_back(build_id1_list[index1].type);
+//    build_type_list2.push_back(build_id2_list[index2].type); 
 
+
+//     cout<<"building 1 "<<GetBuildingStr(build_id1_list[index1].type)
+//         <<" building 2 "<<GetBuildingStr(build_id2_list[index2].type)<<endl;
 
     //////////////////////////////////////////////////////////////////
     ////////////reduce the time cost of generating moving object//////
@@ -6637,22 +7070,11 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
     if(obj_no_rep == max_obj) obj_no_rep = 0;
     ///////////////////////////////////////////////////////////////////////
 
-    cout<<"building 1 "<<GetBuildingStr(build_id1_list[index1].type)
-        <<" building 2 "<<GetBuildingStr(build_id2_list[index2].type)<<endl;
-
     cout<<real_count<<" moving object "<<endl;
     real_count++;
     count++;
 
   }
-  
-  
-
-//   cout<<trip1_list.size()<<" "<<trip2_list.size()
-//       <<" "<<indoor_mo_list1.size()<<" "<<build_type_list1.size()
-//       <<" "<<indoor_mo_list2.size()<<" "<<build_type_list2.size()<<endl;
-
- 
 
 }
 
@@ -6768,9 +7190,9 @@ void GenMObject::GenerateGenMO7(Space* sp, Periods* peri, int mo_no,
     Pavement* pm = sp->LoadPavement(IF_REGION);
     MetroNetwork* mn = sp->LoadMetroNetwork(IF_METRONETWORK);
     vector<GenLoc> genloc_list;
-
+    vector<Point> p_loc_list;
     //generate locations on pavements
-    GenerateLocPave(pm, obj_scale*mo_no, genloc_list);
+    GenerateLocPave(pm, obj_scale*mo_no, genloc_list, p_loc_list);
 
     DualGraph* dg = pm->GetDualGraph();
     VisualGraph* vg = pm->GetVisualGraph();
@@ -7031,10 +7453,12 @@ create the moving object between two metro stops in metro network
 
 */
 void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, 
-                                     GenMO* genmo,
+                                     GenMO* genmo_input,
                           MPoint* mo, Instant& start_time,
                           DualGraph* dg, Line* res_path)
 {
+    GenMO* genmo = new GenMO(0);
+    genmo->StartBulkLoad();
 
     const double delta_t = 0.01;//seconds
 
@@ -7104,8 +7528,9 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
                       mn_nav->mn->GetMOMetro_Oid(&ms1, start_loc, start_time);
                 }
 
-                Loc loc1(-1.0, -1.0);
-                Loc loc2(-1.0, -1.0);
+                 Loc loc1(UNDEFVAL, UNDEFVAL);
+                 Loc loc2(UNDEFVAL, UNDEFVAL);
+
                 GenLoc gloc1(metro_oid, loc1);
                 GenLoc gloc2(metro_oid, loc2);
                 int tm = GetTM("Metro");
@@ -7162,6 +7587,7 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
             int pos2 = -1;
             /////////find the range in mpoint for ms1, ms2//////////////
             FindPosInMP(&mo_metro, start_loc, end_loc, pos1, pos2, 0);
+
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
 //            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl;
             /////////////////////////////////////////////////////////////
@@ -7184,6 +7610,7 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
             /////////find the range in mpoint for bs1, bs2//////////////
             FindPosInMP(&mo_metro, start_loc, end_loc, pos1, pos2, 
                        mo_metro_index);
+
 //            cout<<"pos1 "<<pos1<<" pos2 "<<pos2<<endl; 
             assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
 
@@ -7214,6 +7641,7 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
               int pos2 = -1;
             /////////find the range in mpoint for ms1, ms2//////////////
               FindPosInMP(&mo_metro, start_loc, end_loc, pos1, pos2, 0);
+
               assert(pos1 >= 0 && pos2 >= 0 && pos1 <= pos2);
               SetMO_GenMO(&mo_metro, pos1, pos2, start_time, mo,
                          genmo, mometro_oid, "Metro");
@@ -7255,6 +7683,52 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
 
     delete l;
 
+
+    genmo->EndBulkLoad();
+    /////////////////////////////////////////////////////////////////
+    //////////////merge metro units referenc to the same metro /////////
+    /////////////////////////////////////////////////////////////////
+    vector<UGenLoc> ugloc_list;
+    for(int i = 0;i < genmo->GetNoComponents();i++){
+      UGenLoc u(true);
+      genmo->Get(i, u);
+      if(ugloc_list.size() == 0 || u.tm != TM_METRO){
+        ugloc_list.push_back(u);
+
+      }else{
+        UGenLoc v = ugloc_list[ugloc_list.size() - 1];
+        if(u.GetOid() != v.GetOid()){
+            ugloc_list.push_back(u);
+
+        }else{ //merge metro units 
+            UGenLoc w = u;
+            while(u.GetOid() == v.GetOid() && u.tm == v.tm &&
+                  u.tm == TM_METRO && i < genmo->GetNoComponents()){
+                w = u;
+                i++;
+//                cout<<"i "<<i<<endl;
+                if(i < genmo->GetNoComponents())
+                   genmo->Get(i, u);
+          }
+          assert(v.GetOid() == w.GetOid());
+          Interval<Instant> up_interval; 
+          up_interval.start = v.timeInterval.start;
+          up_interval.lc = v.timeInterval.lc;
+          up_interval.end = w.timeInterval.end;
+          up_interval.rc = w.timeInterval.rc;
+
+          UGenLoc* unit = new UGenLoc(up_interval, v.gloc1, w.gloc2, v.tm);
+          ugloc_list[ugloc_list.size() - 1] = *unit;
+          delete unit; 
+
+          if(i < genmo->GetNoComponents())i--;
+        }
+      }
+    }
+    for(unsigned int i = 0;i < ugloc_list.size();i++)
+      genmo_input->Add(ugloc_list[i]);
+   ////////////////////////////////////////////////////
+   delete genmo; 
 }
 
 /*
@@ -7344,7 +7818,7 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
   Relation* rel3 = sp->GetMSBuildRel();
   R_Tree<2,TupleId>* rtree = sp->GetMSPaveRtree();
   if(rel1 == NULL || rel2 == NULL || rtree == NULL || rel3 == NULL){
-      cout<<"auxiliary relation empty "<<endl;
+      cout<<"auxiliary relation empty MIW"<<endl;
       return;
   }
 
@@ -7521,9 +7995,10 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
     Point start_p, end_p; 
     mn->GetMetroStopGeoData(&ms1, &start_p);
     mn->GetMetroStopGeoData(&ms2, &end_p);
-    const double delta_dist = 0.01; 
+//    const double delta_dist = 0.01; 
 
-    if(start_p.Distance(end_p) < delta_dist){
+//    if(start_p.Distance(end_p) < delta_dist){
+    if(start_p.Distance(end_p) < EPSDIST){
       path_tuple1->DeleteIfAllowed();
       path_tuple2->DeleteIfAllowed();
       count++;
@@ -7665,9 +8140,10 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
      ////////////////////////////////////////////////////////////////////
 
     ////////////////outdoor movement/////////////////////////////////////////
-    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
+
 //    line_list2.push_back(*path2);
     GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+    Line* path2 = (Line*)path_tuple2->GetAttribute(IndoorInfra::INDOORIF_PATH);
     if(path2->Length() > min_path)
        GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
 
@@ -7679,13 +8155,21 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
     int reg_id2 =  ((CcInt*)path_tuple2->GetAttribute(IndoorInfra::
                                               INDOORIF_REG_ID))->GetIntval();
 
-    if(time_transform)
-      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+    if(time_transform){
+      if(WorkBuilding(build_id2_list[count].type))
+        GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp2, 
                                    entrance_index2, reg_id2, maxrect, peri);
-    else
-      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+      else
+        GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2,
+                                   entrance_index2, reg_id2, maxrect, peri);
+    }else{
+      if(WorkBuilding(build_id2_list[count].type))
+        GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp2, 
                                entrance_index2, reg_id2, maxrect, peri_input);
-
+      else
+        GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                               entrance_index2, reg_id2, maxrect, peri_input);
+    }
     //////////put the first part of movement inside a building//////////////
     indoor_mo_list1.push_back(*mp3d);
     delete mp3d; 
@@ -7896,7 +8380,8 @@ void GenMObject::GenerateGenMOBench1(Space* sp, Periods* peri, int mo_no,
           vector<RefBuild> build_list2;
 
           CreateBuildingPair5(build_id1_list, build_id2_list,
-                              build_list1, build_list2, genmo_no, false);
+                              build_list1, build_list2, 
+                              genmo_no * obj_scale_min, false);
 
           GenerateGenMO_IWCTB(sp, maxrect, i_infra, 
                               pm, rn, rg, peri, genmo_no, mode,
@@ -7908,10 +8393,11 @@ void GenMObject::GenerateGenMOBench1(Space* sp, Periods* peri, int mo_no,
           vector<RefBuild> build_list1;
           vector<RefBuild> build_list2;
 
-          CreateBuildingPair5(build_id1_list, build_id2_list, 
-                              build_list1, build_list2, genmo_no, true);
+          CreateBuildingPair5(build_id1_list, build_id2_list,
+                              build_list1, build_list2,
+                              genmo_no * obj_scale_min, true);
 
-          GenerateGenMO_IWCTB(sp, maxrect, i_infra, pm, rn, rg, 
+          GenerateGenMO_IWCTB(sp, maxrect, i_infra, pm, rn, rg,
                               peri, genmo_no, mode,
                               build_list1, build_list2, para);
 
@@ -8032,7 +8518,7 @@ void GenMObject::GenMOBenchRBO(Space* sp, Periods* peri, int mo_no,
 
     Relation* tri_rel = sp->GetNewTriRel();
     if(tri_rel == NULL){
-        cout<<"auxiliary rel empty "<<endl;
+        cout<<"auxiliary trirel empty "<<endl;
         return;
     }
 
@@ -8277,10 +8763,14 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
     if(count % 2 == 0)
       GenerateIndoorMovementToExit(i_infra, genmo, mo, start_time, *sp,
                                   entrance_index, reg_id, maxrect, peri);
-    else
-      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp, 
+    else{
+      if(WorkBuilding(build_tid_list[index].type))
+        GenerateIndoorMovementFromExit2(i_infra, genmo,mo,start_time, *sp, 
                                    entrance_index, reg_id, maxrect, peri);
-
+      else
+        GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp,
+                                   entrance_index, reg_id, maxrect, peri);
+    }
 
     mo->EndBulkLoad();
     genmo->EndBulkLoad();
@@ -8292,7 +8782,7 @@ void GenMObject::GenMOBenchIndoor(Space* sp, Periods* peri, int mo_no,
     delete genmo;
 
     path_tuple->DeleteIfAllowed();
-
+    cout<<count<<" moving objects "<<endl;
     count++;
   }
 
@@ -8665,6 +9155,1195 @@ void GenMObject::CreateBuildingPair5(
 
 }
 
+/*
+create moving objects based on NN searching, start location in road network
+
+*/
+void GenMObject::GenerateGenMOBench3(Space* sp, Periods* peri, int mo_no, 
+                                     Relation* build_rel, 
+                                     R_Tree<2,TupleId>* rtree)
+{
+   if(mo_no < 1){
+      cout<<" invalid number of moving objects "<<mo_no<<endl;
+      return;
+   }
+
+  IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
+
+  if(i_infra == NULL){
+    cout<<"indoor infrastructure does not exist "<<endl;
+    return;
+  }
+
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  if(rn == NULL){
+    cout<<"road network loading error"<<endl;
+    sp->CloseIndoorInfra(i_infra);
+    return;
+  }
+
+  //////////////////////////////////////////////////////////////////
+  ////////////////load all buildings and indoor graphs/////////////
+  ////////////////// and indoor paths//////////////////////////////
+  MaxRect* maxrect = new MaxRect();
+  maxrect->OpenBuilding();
+  maxrect->OpenIndoorGraph();
+
+#ifdef INDOOR_PATH
+  maxrect->LoadIndoorPaths(indoor_paths_list, rooms_id_list);
+  assert(indoor_paths_list.size() == rooms_id_list.size());
+#endif 
+
+  ////////////////////////////////////////////////////////////////
+  ////////////select a pair of buildings/////////////////////////
+  //////////////////////////////////////////////////////////////
+
+  vector<GPoint> gp_loc_list;
+  vector<Point> p_loc_list;
+  GenerateGPoint2(rn, obj_scale_min*mo_no, gp_loc_list, p_loc_list);
+
+/*  for(unsigned int i = 0;i < gp_loc_list.size();i++)
+    cout<<gp_loc_list[i]<<" "<<p_loc_list[i]<<endl;*/
+
+  vector<RefBuild> nn_build_list;
+  FindNNBuilding(p_loc_list, build_rel, rtree, i_infra->BuildingType_Rel(),
+                 nn_build_list);
+
+  ///////////////////open infrastructures/////////////////////////////
+  Pavement* pm = sp->LoadPavement(IF_REGION);
+  if(pm == NULL){
+    cout<<"pavement loading error"<<endl;
+    sp->CloseRoadNetwork(rn);
+    sp->CloseIndoorInfra(i_infra);
+    maxrect->CloseIndoorGraph();
+    maxrect->CloseBuilding();
+    delete maxrect;
+    return;
+  }
+
+  RoadGraph* rg = sp->LoadRoadGraph();
+  if(rg == NULL){
+    cout<<"road graph loading error"<<endl;
+    sp->CloseRoadNetwork(rn);
+    sp->ClosePavement(pm);
+    sp->CloseIndoorInfra(i_infra);
+    maxrect->CloseIndoorGraph();
+    maxrect->CloseBuilding();
+    delete maxrect;
+    return;
+  }
+
+  //////////////////////Initialization/////////////////////////////
+
+   Relation* dg_node_rel = sp->GetDualNodeRel();
+   BTree* btree = sp->GetDGNodeBTree();
+   Relation* speed_rel = sp->GetSpeedRel();
+
+   if(dg_node_rel == NULL || btree == NULL || speed_rel == NULL){
+      cout<<"auxiliary relation empty IWCTB"<<endl;
+      sp->CloseRoadGraph(rg);
+      sp->CloseRoadNetwork(rn);
+      sp->ClosePavement(pm);
+      sp->CloseIndoorInfra(i_infra);
+      maxrect->CloseIndoorGraph();
+      maxrect->CloseBuilding();
+      delete maxrect;
+
+      return;
+   }
+  //////////////////////////////////////////////////////////////////////////
+
+
+  RoadNav* road_nav = new RoadNav();
+  ///////////////////////////////////////////////////////////////////
+  Relation* build_path_rel = i_infra->BuildingPath_Rel();
+  ///////////////start time///////////////////////////////////////
+  Interval<Instant> periods;
+  peri->Get(0, periods);
+  Instant start_time = periods.start;
+  
+  int h1 = periods.start.GetHour();
+  int h2 = periods.end.GetHour();
+  int time_range = (h2 - h1)*60;
+
+  ////////////////////////////////////////////////////////////
+  int count_tmp = 0;
+  const double min_path = 0.1;
+  int real_count = 1;
+  while(real_count <= mo_no && count < obj_scale_min*mo_no &&
+         count_tmp < (int)nn_build_list.size()){
+
+
+   //////////////////////////////start time///////////////////////////
+   if(count_tmp % 2 == 0)
+     start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+   else
+     start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+
+//    cout<<"start time "<<start_time<<endl;
+
+    /////////////////////load all paths from this building////////////////
+    vector<int> path_id_list;
+    i_infra->GetPathIDFromTypeID(nn_build_list[count_tmp].reg_id, path_id_list);
+
+
+
+   ////////////////////////////////////////////////////////////////////
+   //////////////if a building has several entrances///////////////////
+   ///////////it randomly selects an entrance  ///////////////////////
+   ////////////the buildings are far away from each///////////////////
+   //////////which entrance to go out does not influence the distance a lot///
+   ////////////////////////////////////////////////////////////////////
+   if(path_id_list.size() == 0){
+     count_tmp++;
+     continue;
+   }
+
+
+   int path_tid = path_id_list[GetRandom() % path_id_list.size()];
+
+   Tuple* path_tuple = build_path_rel->GetTuple(path_tid, false);
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////1 get buildings and two positions for network /////
+    ////////////////// the end point of path in pavement/////////////////
+    ////////////////////////////////////////////////////////////////////
+
+    GenLoc* gloc2 = 
+        (GenLoc*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP2_GLOC);
+    Point* ep2_1 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP);
+    Point* ep2_2 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP2);
+
+    /////////////reset the general location//////////////////////
+    Loc loc2(ep2_2->GetX(), ep2_2->GetY());
+    GenLoc newgloc2(gloc2->GetOid(), loc2);
+
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////2 map positions to gpoints////////////////////
+    /////////////////get the start and end location of the trip/////////
+    ////////////////////////////////////////////////////////////////////
+    vector<GPoint> gpoint_list;
+    vector<Point> p_list;
+    bool correct;
+    PaveLoc2GPoint(newgloc2, newgloc2, sp, dg_node_rel,
+                   btree, gpoint_list, p_list, correct, rn);
+    if(correct == false){
+        count_tmp++;
+        path_tuple->DeleteIfAllowed();
+        continue;
+    }
+
+    GPoint gp1 = gp_loc_list[count_tmp];
+    GPoint gp2 = gpoint_list[1];
+    Point start_loc = p_loc_list[count_tmp];
+    Point end_loc = p_list[1];
+    
+    if(start_loc.Distance(end_loc) < min_path){
+        count_tmp++;
+        path_tuple->DeleteIfAllowed();
+        continue;
+    }
+
+    MPoint* mo = new MPoint(0);
+    GenMO* genmo = new GenMO(0);
+    mo->StartBulkLoad();
+    genmo->StartBulkLoad();
+
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////5 road network movement //////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    GLine* gl = new GLine(0);
+    road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Car");
+    delete gl;
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////6 end network location to pavement//////////////////
+    ////////////////////////////////////////////////////////////////////
+    ConnectEndMove(end_loc, newgloc2, mo, genmo, start_time, pm);
+
+    /////////////////////////////////////////////////////////////////////
+    ////////7 pavement to building entrance + indoor movement2//////////
+    ////////////////////////////////////////////////////////////////////
+
+    ////////////////outdoor movement/////////////////////////////////////////
+    Line* path2 = (Line*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_PATH);
+    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+
+    if(path2->Length() > min_path)
+      GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
+
+
+    ///////////////////indoor movement//////////////////////////////////////
+    ////////////////////to show which entrance it is////////////////////
+    Point* sp2 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_SP);
+    int entrance_index2 = ((CcInt*)path_tuple->GetAttribute(IndoorInfra::
+                                   INDOORIF_SP_INDEX))->GetIntval();
+    int reg_id2 =  ((CcInt*)path_tuple->GetAttribute(IndoorInfra::
+                                              INDOORIF_REG_ID))->GetIntval();
+    GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                                   entrance_index2, reg_id2, maxrect, peri);
+
+
+    mo->EndBulkLoad();
+    genmo->EndBulkLoad();
+
+    trip1_list.push_back(*genmo);
+    trip2_list.push_back(*mo);
+
+//    loc_list1.push_back(p_loc_list[count_tmp]);
+//    rect_list1.push_back(nn_build_list[count_tmp].rect);
+
+    delete mo; 
+    delete genmo; 
+
+    path_tuple->DeleteIfAllowed();   
+   //////////////////////////////////////////////////////////////////////
+    cout<<"building  "<<GetBuildingStr(nn_build_list[count_tmp].type)<<endl;
+
+    count_tmp++;
+    cout<<real_count<<" moving object"<<endl;
+
+    real_count++;
+  }
+
+
+  delete road_nav;
+ //////////////////////////////////////////////////////////////////////////
+  maxrect->CloseIndoorGraph();
+  maxrect->CloseBuilding();
+  delete maxrect;
+
+  sp->CloseRoadGraph(rg);
+  sp->ClosePavement(pm);
+  sp->CloseRoadNetwork(rn);
+  sp->CloseIndoorInfra(i_infra);
+}
+
+/*
+for each network point, it finds the nn building
+
+*/
+void GenMObject::FindNNBuilding(vector<Point> p_loc_list,
+                                Relation* build_rel, R_Tree<2,TupleId>* rtree,
+                                Relation* build_type_rel,
+                                vector<RefBuild>& nn_build_list)
+{
+
+  vector<int> nn_build_tid;
+  SmiRecordId adr = rtree->RootRecordId();
+  for(unsigned int i = 0; i < p_loc_list.size();i++){
+    Point q_loc = p_loc_list[i];
+
+    int b_tid = -1;
+    double min_dist= numeric_limits<double>::max();
+    bool dist_init = false;
+    NNBTraverse(rtree, adr, build_rel, q_loc, b_tid, 
+                        min_dist, dist_init);
+    assert(1 <= b_tid && b_tid <= build_rel->GetNoTuples());
+  
+//    cout<<b_tid<<endl;
+    nn_build_tid.push_back(b_tid);
+  }
+
+  for(unsigned int i = 0;i < nn_build_tid.size();i++){
+//     loc_list1.push_back(p_loc_list[i]);
+     Tuple* b_tuple = build_rel->GetTuple(nn_build_tid[i], false);
+     int b_tid = ((CcInt*)b_tuple->GetAttribute(BM_NNB_ID))->GetIntval();
+//  Rectangle<2>* b_area = (Rectangle<2>*)b_tuple->GetAttribute(BM_NNB_GEODATA);
+//     rect_list1.push_back(*b_area);
+     b_tuple->DeleteIfAllowed();
+
+    Tuple* tuple = build_type_rel->GetTuple(b_tid, false);
+
+    Rectangle<2>* bbox = 
+        (Rectangle<2>*)tuple->GetAttribute(IndoorInfra::INDOORIF_GEODATA);
+    int type = ((CcInt*)tuple->GetAttribute(IndoorInfra::
+                INDOORIF_BUILD_TYPE))->GetIntval();
+    assert(type > BUILD_HOUSE);
+    int reg_id = ((CcInt*)tuple->GetAttribute(IndoorInfra::
+                INDOORIF_REG_ID))->GetIntval();
+
+    int build_id = ((CcInt*)tuple->GetAttribute(IndoorInfra::
+                INDOORIF_BUILD_ID))->GetIntval();
+
+    RefBuild ref_b(true, reg_id, build_id, type, *bbox, b_tid);
+    nn_build_list.push_back(ref_b);
+    tuple->DeleteIfAllowed();
+
+  }
+
+}
+
+/*
+find the closest building to the query point 
+
+*/
+void GenMObject::NNBTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                    Relation* build_rel, Point q_loc, int& b_tid,
+                    double& min_dist, bool& dist_init)
+{
+  const double NN_dist = 1.0;
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* tuple = build_rel->GetTuple(e.info, false);
+              Rectangle<2>* rect = 
+                (Rectangle<2>*)tuple->GetAttribute(BM_NNB_GEODATA);
+
+              if(dist_init == false){
+                dist_init = q_loc.Distance(*rect);
+                if(dist_init > NN_dist){//////larger than a value 
+                  dist_init = true;
+                  b_tid = e.info;
+                }
+              }else{
+                if(q_loc.Distance(*rect) < min_dist){
+                  b_tid = e.info;
+                  min_dist = q_loc.Distance(*rect);
+                }
+              }
+              tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(dist_init == false)
+               NNBTraverse(rtree, e.pointer, build_rel, 
+                           q_loc, b_tid, min_dist, dist_init);
+            else{
+                if(q_loc.Distance(e.box) < min_dist){
+                  NNBTraverse(rtree, e.pointer, build_rel, q_loc, b_tid,
+                              min_dist, dist_init);
+                }
+            }
+      }
+  }
+  delete node;
+
+}
+
+
+
+/*
+create moving objects based on NN searching, 
+start location in region-based outdoor, use taxi, bus or metro 
+
+*/
+void GenMObject::GenerateGenMOBench4(Space* sp, Periods* peri, int mo_no, 
+                               Relation* para_rel,
+                               Relation* build_rel, R_Tree<2,TupleId>* rtree)
+{
+
+    if(mo_no < 1){
+      cout<<" invalid number of moving objects "<<mo_no<<endl;
+      return;
+    }
+
+  ///////////////////////////////////////////////////////////////
+  //////////  Initialization open infrastructures  /////////////
+  //////////////////////////////////////////////////////////////
+
+  IndoorInfra* i_infra = sp->LoadIndoorInfra(IF_GROOM);
+  if(i_infra == NULL){
+      cout<<"indoor infrastructure does not exist "<<endl;
+     return;
+  }
+
+  Pavement* pm = sp->LoadPavement(IF_REGION);
+  if(pm == NULL){
+    cout<<"pavement loading error"<<endl;
+    sp->CloseIndoorInfra(i_infra);
+    return;
+  }
+  
+  //////////////////////////////////////////////////////////////////
+  ////////////////load all buildings and indoor graphs/////////////
+  ////////////////// and indoor paths//////////////////////////////
+  MaxRect* maxrect = new MaxRect();
+  maxrect->OpenBuilding();
+  maxrect->OpenIndoorGraph();
+
+#ifdef INDOOR_PATH
+  maxrect->LoadIndoorPaths(indoor_paths_list, rooms_id_list);
+  assert(indoor_paths_list.size() == rooms_id_list.size());
+#endif 
+
+  for(int i = 1;i <= para_rel->GetNoTuples();i++){
+      Tuple* dis_tuple = para_rel->GetTuple(i, false);
+      float dis_para = 
+          ((CcReal*)dis_tuple->GetAttribute(BENCH_PARA))->GetRealval();
+      int genmo_no = (int)(mo_no*dis_para);
+      string mode = 
+        ((CcString*)dis_tuple->GetAttribute(BENCH_MODE))->GetValue();
+
+      if(GetTM(mode) == TM_TAXI){ ///by taxi 
+//        cout<<"taxi "<<genmo_no<<endl;
+        vector<GenLoc> genloc_list;
+        vector<Point> p_loc_list;
+       //generate locations on pavements
+       GenerateLocPave(pm, obj_scale_min*genmo_no, genloc_list, p_loc_list);
+       ///////get nn building //////////////
+       vector<RefBuild> nn_build_list;
+       FindNNBuilding(p_loc_list, build_rel, rtree, 
+                      i_infra->BuildingType_Rel(), nn_build_list);
+
+//        for(unsigned int j = 0;j < p_loc_list.size();j++){
+//           loc_list1.push_back(p_loc_list[j]);
+//           rect_list1.push_back(nn_build_list[j].rect);
+//        }
+
+
+         GenerateBench4_Taxi(sp, i_infra, maxrect, pm, genmo_no, peri, 
+                             genloc_list, p_loc_list, nn_build_list);
+
+
+      }else if(GetTM(mode) == TM_BUS){
+        vector<GenLoc> genloc_list;
+        vector<Point> p_loc_list;
+       //generate locations on pavements
+       GenerateLocPave(pm, obj_scale*genmo_no, genloc_list, p_loc_list);
+
+       vector<RefBuild> nn_build_list;
+       FindNNBuilding(p_loc_list, build_rel, rtree, 
+                      i_infra->BuildingType_Rel(), nn_build_list);
+
+       GenerateBench4_Bus(sp, i_infra, maxrect, pm, genmo_no, peri, 
+                          genloc_list, p_loc_list, nn_build_list);
+
+      }else{
+
+        cout<<"invalid type "<<endl;
+      }
+
+       dis_tuple->DeleteIfAllowed();
+  }
+
+
+  maxrect->CloseIndoorGraph();
+  maxrect->CloseBuilding();
+  delete maxrect;
+  sp->ClosePavement(pm);
+  sp->CloseIndoorInfra(i_infra);
+}
+
+
+/*
+a pedestrian on the pavement goes to the nn building by taxi 
+
+*/
+void GenMObject::GenerateBench4_Taxi(Space* sp, IndoorInfra* i_infra, 
+                                     MaxRect* maxrect,
+                                     Pavement* pm, 
+                                     int mo_no, Periods* peri, 
+                                     vector<GenLoc> genloc_list, 
+                                     vector<Point> p_loc_list,
+                                     vector<RefBuild> nn_build_list)
+{
+  Network* rn = sp->LoadRoadNetwork(IF_LINE);
+  if(rn == NULL){
+    cout<<"road network loading error"<<endl;
+    return;
+  }
+
+  RoadGraph* rg = sp->LoadRoadGraph();
+  if(rg == NULL){
+    cout<<"road graph loading error"<<endl;
+    sp->CloseRoadNetwork(rn);
+    return;
+  }
+  DualGraph* dg = pm->GetDualGraph();
+  VisualGraph* vg = pm->GetVisualGraph();
+    
+  if(dg == NULL || vg == NULL){
+    cout<<"dual graph or visual graph error "<<endl;
+    sp->CloseRoadGraph(rg);
+    sp->CloseRoadNetwork(rn);
+    return;
+  }
+  
+  int no_triangle = dg->GetNodeRel()->GetNoTuples();
+  int mini_oid = dg->min_tri_oid_1;
+  //////////////////////Initialization/////////////////////////////
+
+   Relation* dg_node_rel = sp->GetDualNodeRel();
+   BTree* btree = sp->GetDGNodeBTree();
+   Relation* speed_rel = sp->GetSpeedRel();
+
+   if(dg_node_rel == NULL || btree == NULL || speed_rel == NULL){
+      cout<<"auxiliary relation empty IWCTB"<<endl;
+      sp->CloseRoadGraph(rg);
+      sp->CloseRoadNetwork(rn);
+      return;
+   }
+
+  //////////////////////////////////////////////////////////////////////////
+  RoadNav* road_nav = new RoadNav();
+  
+   ///////////////////////////////////////////////////////////////////
+  Relation* build_path_rel = i_infra->BuildingPath_Rel();
+  ///////////////start time///////////////////////////////////////
+  Interval<Instant> periods;
+  peri->Get(0, periods);
+  Instant start_time = periods.start;
+  
+  int h1 = periods.start.GetHour();
+  int h2 = periods.end.GetHour();
+  int time_range = (h2 - h1)*60;
+  
+  ////////////////////////////////////////////////////////////
+  int count_tmp = 0;
+  const double min_path = 0.1;
+  int real_count = 1;
+
+  while(real_count <= mo_no && count < obj_scale_min*mo_no &&
+         count_tmp < (int)nn_build_list.size()){
+
+   //////////////////////////////start time///////////////////////////
+   if(count_tmp % 2 == 0)
+     start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+   else
+     start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+
+//    cout<<"start time "<<start_time<<endl;
+    /////////////////////load all paths from this building////////////////
+    vector<int> path_id_list;
+    i_infra->GetPathIDFromTypeID(nn_build_list[count_tmp].reg_id, path_id_list);
+
+   ////////////////////////////////////////////////////////////////////
+   //////////////if a building has several entrances///////////////////
+   ///////////it randomly selects an entrance  ///////////////////////
+   ////////////the buildings are far away from each///////////////////
+   //////////which entrance to go out does not influence the distance a lot///
+   ////////////////////////////////////////////////////////////////////
+   if(path_id_list.size() == 0){
+     count_tmp++;
+     continue;
+   }
+
+   int path_tid = path_id_list[GetRandom() % path_id_list.size()];
+
+   GenLoc loc1 = genloc_list[count_tmp];
+    ////////////////////////////////////////////////////////////////////////
+    /////////////1 map the pavement position to gpoint/////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    vector<GPoint> gpoint_list1;
+    vector<Point> p_list1;
+    bool correct1;
+    PaveLoc2GPoint(loc1, loc1, sp, dg_node_rel, btree, gpoint_list1, p_list1, 
+                   correct1, rn);
+    if(correct1 == false){
+      count_tmp++;
+      continue;
+    }
+
+   Tuple* path_tuple = build_path_rel->GetTuple(path_tid, false);
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////2 get buildings and two positions for network /////
+    ////////////////// the end point of path in pavement/////////////////
+    ////////////////////////////////////////////////////////////////////
+
+    GenLoc* gloc2 = 
+        (GenLoc*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP2_GLOC);
+    Point* ep2_1 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP);
+    Point* ep2_2 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP2);
+
+    /////////////reset the general location//////////////////////
+    Loc loc2(ep2_2->GetX(), ep2_2->GetY());
+    GenLoc newgloc2(gloc2->GetOid(), loc2);
+
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////3 map positions to gpoints////////////////////
+    /////////////////get the start and end location of the trip/////////
+    ////////////////////////////////////////////////////////////////////
+    vector<GPoint> gpoint_list2;
+    vector<Point> p_list2;
+    bool correct2;
+    PaveLoc2GPoint(newgloc2, newgloc2, sp, dg_node_rel,
+                   btree, gpoint_list2, p_list2, correct2, rn);
+    if(correct2 == false){
+        count_tmp++;
+        path_tuple->DeleteIfAllowed();
+        continue;
+    }
+
+
+    GPoint gp1 = gpoint_list1[0];
+    GPoint gp2 = gpoint_list2[1];
+    Point start_loc = p_list1[0];
+    Point end_loc = p_list2[1];
+
+
+    MPoint* mo = new MPoint(0);
+    GenMO* genmo = new GenMO(0);
+    mo->StartBulkLoad();
+    genmo->StartBulkLoad();
+
+    //////////////////////////////////////////////////////////////////////
+    ////////////4 from Region based Outdoor to Road Network Point ////////
+    //////////////////////////////////////////////////////////////////////
+    if(start_loc.Distance(end_loc) < BENCH_NN_DIST){//small, directly by walk 
+        Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+        wsp->rel3 = sp->GetNewTriRel();
+
+
+        Point p1 = p_loc_list[count_tmp];
+        Point p2 = *ep2_2;
+
+
+        int oid1 = loc1.GetOid() - mini_oid;
+        int oid2 = newgloc2.GetOid() - mini_oid;
+
+        assert(1 <= oid1 && oid1 <= no_triangle);
+        assert(1 <= oid2 && oid2 <= no_triangle);
+
+        Line* w_path = new Line(0);
+
+        ///////////////////walk segment////////////////////////////////////
+        wsp->WalkShortestPath2(oid1, oid2, p1, p2, w_path);
+
+        ///////////create moving objects///////////////////////////////////
+        if(w_path->IsDefined() && w_path->Length() > min_path)
+           GenerateWalkMovement(dg, w_path, p1, genmo, mo, start_time);
+
+        delete w_path; 
+
+        delete wsp;
+
+    }else{////////long distance, by taxi 
+
+    ConnectStartMove(loc1, start_loc, mo, genmo, start_time, pm);
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////5 road network movement //////////////////////////
+    ////////////////////////////////////////////////////////////////////
+    GLine* gl = new GLine(0);
+    road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Taxi");
+    delete gl;
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////6 end network location to pavement//////////////////
+    ////////////////////////////////////////////////////////////////////
+    ConnectEndMove(end_loc, newgloc2, mo, genmo, start_time, pm);
+
+    }
+
+    /////////////////////////////////////////////////////////////////////
+    ////////7 pavement to building entrance + indoor movement2//////////
+    ////////////////////////////////////////////////////////////////////
+
+    ////////////////outdoor movement/////////////////////////////////////////
+    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+
+    Line* path2 = (Line*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_PATH);
+    if(path2->Length() > min_path)
+      GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
+
+
+    ///////////////////indoor movement//////////////////////////////////////
+    ////////////////////to show which entrance it is////////////////////
+    Point* sp2 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_SP);
+    int entrance_index2 = ((CcInt*)path_tuple->GetAttribute(IndoorInfra::
+                                   INDOORIF_SP_INDEX))->GetIntval();
+    int reg_id2 =  ((CcInt*)path_tuple->GetAttribute(IndoorInfra::
+                                              INDOORIF_REG_ID))->GetIntval();
+    GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                                   entrance_index2, reg_id2, maxrect, peri);
+
+
+    mo->EndBulkLoad();
+    genmo->EndBulkLoad();
+
+    trip1_list.push_back(*genmo);
+    trip2_list.push_back(*mo);
+
+//    loc_list1.push_back(p_loc_list[count_tmp]);
+//    rect_list1.push_back(nn_build_list[count_tmp].rect);
+
+    delete mo; 
+    delete genmo; 
+    
+    path_tuple->DeleteIfAllowed(); 
+
+    //////////////////////////////////////////////////////////////////////
+    cout<<"building  "<<GetBuildingStr(nn_build_list[count_tmp].type)<<endl;
+
+    count_tmp++;
+    cout<<real_count<<" moving object"<<endl;
+
+    real_count++;
+
+  }
+
+  delete road_nav;
+  sp->CloseRoadGraph(rg);
+  sp->CloseRoadNetwork(rn);
+  pm->CloseDualGraph(dg);
+  pm->CloseVisualGraph(vg);
+}
+
+
+
+/*
+a pedestrian on the pavement goes to the nn building by bus 
+
+*/
+void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra, 
+                                     MaxRect* maxrect,
+                                     Pavement* pm, 
+                                     int mo_no, Periods* peri_input, 
+                                     vector<GenLoc> genloc_list, 
+                                     vector<Point> p_loc_list,
+                                     vector<RefBuild> nn_build_list)
+{
+  BusNetwork* bn = sp->LoadBusNetwork(IF_BUSNETWORK);
+  if(bn == NULL){
+    cout<<"open bus network error "<<endl;
+    return;
+  }
+
+  DualGraph* dg = pm->GetDualGraph();
+  VisualGraph* vg = pm->GetVisualGraph();
+  if(dg == NULL || vg == NULL){
+    cout<<"dual graph or visual graph open error "<<endl;
+    sp->CloseBusNetwork(bn);
+    return;
+  }
+
+  int no_triangle = dg->GetNodeRel()->GetNoTuples();
+  int mini_oid = dg->min_tri_oid_1;
+
+  Relation* rel1 = sp->GetNewTriRel();
+  Relation* rel2 = sp->GetBSPaveRel();
+  Relation* rel3 = sp->GetBSBuildRel();
+  R_Tree<2,TupleId>* rtree = sp->GetBSPaveRtree();
+  if(rel1 == NULL || rel2 == NULL || rtree == NULL || rel3 == NULL){
+      cout<<"auxiliary relation empty IBW"<<endl;
+      return;
+   }
+
+  ///////////////////////////////////////////////////////////////////
+  Relation* build_path_rel = i_infra->BuildingPath_Rel();
+  //////////////////////////////////////////////////////////////////
+  ///////////////start time///////////////////////////////////////
+  Interval<Instant> periods;
+  peri_input->Get(0, periods);
+  Instant start_time = periods.start;
+  
+  int h1 = periods.start.GetHour();
+  int h2 = periods.end.GetHour();
+  int time_range = (h2 - h1)*60;
+
+  ////////////////////////////////////////////////////////////
+  
+   int obj_no_rep = 0;
+   int max_obj = 1;
+   if(mo_no <= 500) max_obj = 2;
+   else if(mo_no <= 1000) max_obj = 3;
+   else if(mo_no <= 5000) max_obj = 4;
+   else max_obj = 5;
+
+  int count_tmp = 0; 
+  int real_count = 1;
+
+  const double min_path = 0.1;
+
+   ////////////////////////////////////////////////////
+   //////////bus network time periods ////////////////
+   //////////////////////////////////////////////////
+   BusGraph* bg = bn->GetBusGraph(); 
+   if(bg == NULL){
+    cout<<"bus graph is invalid"<<endl; 
+    return;
+   }
+   Instant bs_start(bn->GetStartTime());
+   Instant bs_end(bn->GetEndTime());
+   Instant bg_min(instanttype);
+   bg_min.ReadFrom(bg->min_t);
+   bn->CloseBusGraph(bg);
+   while(real_count <= mo_no && count_tmp < obj_scale*mo_no){
+
+   //////////////////////////////start time///////////////////////////
+   if(count_tmp % 2 == 0) //less movement on sunday 
+     start_time.ReadFrom(periods.start.ToDouble() + 
+                        (GetRandom() % time_range)/(24.0*60.0));
+   else
+     start_time.ReadFrom(periods.end.ToDouble() -
+                        (GetRandom() % time_range)/(24.0*60.0));
+
+   ////////////////////////////////////////////////////////////////////
+    bool time_transform = false;
+    int day_deviation = 0;
+    Instant old_st(start_time);
+
+
+    Periods* peri = new Periods(0);
+    peri->StartBulkLoad();
+    if(start_time < bs_start || start_time > bs_end){
+        time_transform = true;
+
+        if(start_time.GetWeekday() == 6){
+          start_time.Set(bg_min.GetYear(), bg_min.GetMonth(), 
+                         bg_min.GetGregDay(), 
+                         start_time.GetHour(), start_time.GetMinute(), 
+                         start_time.GetSecond(), start_time.GetMillisecond());
+
+        }else{ //Monday-Saturday 
+          start_time.Set(bg_min.GetYear(), bg_min.GetMonth(), 
+                         bg_min.GetGregDay() + 1,
+                         start_time.GetHour(), start_time.GetMinute(), 
+                         start_time.GetSecond(), start_time.GetMillisecond());
+
+        }
+        day_deviation = old_st.GetDay() - start_time.GetDay();
+//        cout<<" day deviation "<<day_deviation<<endl;
+
+        Interval<Instant> time_span;
+        time_span.start = periods.start;
+        time_span.start.ReadFrom(periods.start.ToDouble() - day_deviation);
+        time_span.lc = true;
+        time_span.end = periods.end;
+        time_span.end.ReadFrom(periods.end.ToDouble() - day_deviation);
+        time_span.rc = false;
+        peri->MergeAdd(time_span);
+    }
+
+    peri->EndBulkLoad();
+
+//    cout<<"start time "<<start_time<<endl;
+    /////////////////////load all paths from this building////////////////
+   vector<int> path_id_list;
+   i_infra->GetPathIDFromTypeID(nn_build_list[count_tmp].reg_id, path_id_list);
+
+   int path_tid = path_id_list[GetRandom() % path_id_list.size()];
+   GenLoc loc1 = genloc_list[count_tmp];
+   ////////////////////////////////////////////////////////////////////
+   //////////////if a building has several entrances///////////////////
+   ///////////it randomly selects an entrance  ///////////////////////
+   ////////////the buildings are far away from each///////////////////
+   //////////which entrance to go out does not influence the distance a lot///
+   ////////////////////////////////////////////////////////////////////
+   if(path_id_list.size() == 0){
+     count_tmp++;
+     delete peri;
+     continue;
+   }
+
+    Tuple* path_tuple = build_path_rel->GetTuple(path_tid, false);
+
+    /////////////////////////////////////////////////////////////////////
+    //////////////////2 get buildings and two positions for network /////
+    ////////////////// the end point of path in pavement/////////////////
+    ////////////////////////////////////////////////////////////////////
+
+    GenLoc* build_gloc2 = 
+        (GenLoc*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP2_GLOC);
+    Point* ep2_1 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP);
+    Point* ep2_2 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_EP2);
+
+    /////////////reset the general location//////////////////////
+    Loc loc2(ep2_2->GetX(), ep2_2->GetY());
+    GenLoc newgloc2(build_gloc2->GetOid(), loc2);
+    ///////////////////////////////////////////////////////////////
+    MPoint* mo = new MPoint(0);
+    GenMO* genmo = new GenMO(0);
+    mo->StartBulkLoad();
+    genmo->StartBulkLoad();
+
+    //small distance, by walk 
+    if(ep2_2->Distance(p_loc_list[count_tmp]) < BENCH_NN_DIST){
+
+        Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+        wsp->rel3 = rel1;
+
+        Point p1 = p_loc_list[count_tmp];
+        Point p2 = *ep2_2;
+
+        int oid1 = loc1.GetOid() - mini_oid;
+        int oid2 = newgloc2.GetOid() - mini_oid;
+
+        assert(1 <= oid1 && oid1 <= no_triangle);
+        assert(1 <= oid2 && oid2 <= no_triangle);
+
+        Line* w_path = new Line(0);
+
+        ///////////////////walk segment////////////////////////////////////
+        wsp->WalkShortestPath2(oid1, oid2, p1, p2, w_path);
+
+        ///////////create moving objects///////////////////////////////////
+        if(w_path->IsDefined() && w_path->Length() > min_path)
+           GenerateWalkMovement(dg, w_path, p1, genmo, mo, start_time);
+
+        delete w_path; 
+
+        delete wsp;
+
+    }else{
+
+    //////////////////////////////////////////////////////////////////////////
+    //////find closest bus stops to the two locations on the pavement/////////
+    Bus_Stop bs1(true, 0, 0, true);
+    vector<Point> ps_list1;//1 point on the pavement 2 point of bus stop
+    GenLoc gloc1(0, Loc(0, 0));//bus stop on pavement by genloc 
+    bool b1 = true;
+    b1 = NearestBusStop(genloc_list[count_tmp],  rel2, rtree, bs1, 
+                        ps_list1, gloc1, true);
+
+    Bus_Stop bs2(true, 0, 0, true);
+    vector<Point> ps_list2;//1. point on the pavement 2. point of bus stop
+    GenLoc gloc2(0, Loc(0, 0));//bus stop on pavement by genloc
+    bool b2 = true;
+    b2 = NearestBusStop(newgloc2,  rel2, rtree, bs2, ps_list2, gloc2, false);
+
+
+    if((b1 && b2) == false){
+      path_tuple->DeleteIfAllowed();
+      count_tmp++;
+      delete peri;
+      continue;
+    }
+
+    Point start_p, end_p; 
+    bn->GetBusStopGeoData(&bs1, &start_p);
+    bn->GetBusStopGeoData(&bs2, &end_p);
+
+    if(start_p.Distance(end_p) < min_path){
+      path_tuple->DeleteIfAllowed();
+      count_tmp++;
+      delete peri;
+      continue;
+    }
+
+//     loc_list1.push_back(p_loc_list[count_tmp]);////
+//     loc_list2.push_back(start_p);//start bus stop 
+//     rect_list1.push_back(nn_build_list[count_tmp].rect); 
+//     loc_list3.push_back(end_p);///end bus stop
+
+    
+    ///////////////////////////////////////////////////////////////////
+    ////////////////2. path (walk + bus)///////////////////////////////
+    ///////////////////////////////////////////////////////////////////
+
+    ////////2.1 connect from pavement to start bus stop////////////////////
+    Line* res_path = new Line(0);
+    ConnectStartStop(dg, vg, rel1, loc1, ps_list1, gloc1.GetOid(),
+                            genmo, mo, start_time, res_path);
+
+    /////////////////////////////////////////////////////////////////
+    //////2.2. get the path in bus network////////////////////////////
+    /////////////////////////////////////////////////////////////////
+    BNNav* bn_nav = new BNNav(bn);
+
+     if(count % 2 != 0) 
+         bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
+     else bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
+
+    if(bn_nav->path_list.size() == 0){
+//        cout<<"two unreachable bus stops"<<endl;
+        mo->EndBulkLoad();
+        genmo->EndBulkLoad();
+
+        delete mo;
+        delete genmo;
+        delete bn_nav;
+        delete res_path;
+        delete peri;
+        path_tuple->DeleteIfAllowed();
+        count_tmp++;
+        continue;
+    }
+
+     Interval<Instant> temp_periods;
+     if(time_transform)
+          temp_periods.start = old_st;
+     else
+          temp_periods.start = start_time;
+
+     temp_periods.lc = true;
+     Instant temp_end(instanttype);
+
+
+     temp_end.ReadFrom(temp_periods.start.ToDouble() + 
+                          bn_nav->t_cost/86400.0);
+
+     temp_periods.end = temp_end;
+     temp_periods.lc = false;
+
+     if(periods.Contains(temp_periods) == false ){
+          mo->EndBulkLoad();
+          genmo->EndBulkLoad();
+
+          delete mo;
+          delete genmo;
+          delete bn_nav;
+          delete res_path;
+          delete peri;
+          path_tuple->DeleteIfAllowed();
+
+          count_tmp++;
+          continue;
+      }
+
+     /////////////////////////////////////////////////////////////////////
+     int last_walk_id = ConnectTwoBusStops(bn_nav, ps_list1[1], ps_list2[1],
+                           genmo, mo, start_time, dg, res_path);
+    ///////////////////////////////////////////////////////////
+    if(last_walk_id > 0){
+          //////change the last bus stop/////////
+          ///change  ps list2, gloc2.oid ///
+          Bus_Stop cur_bs1(true, 0, 0, true);
+          StringToBusStop(bn_nav->bs1_list[last_walk_id], 
+                          cur_bs1);
+          ChangeEndBusStop(bn, dg, cur_bs1, ps_list2, gloc2, rel2, rtree);
+    }
+
+    ////////////////////////////////////////////////////////////
+    delete bn_nav;
+
+    /////////////////2.3 connect from end bus stop to pavement///////////
+    ConnectEndStop(dg, vg, rel1, newgloc2, ps_list2, gloc2.GetOid(),
+                          genmo, mo, start_time, res_path);
+//    cout<<"path3 length "<<res_path->Length()<<endl;
+
+     ////////////////////////////////////////////////////////////////////
+
+    delete res_path; 
+
+    }
+
+    /////////////////////////////////////////////////////////////////////
+    ////////7 pavement to building entrance + indoor movement2//////////
+    ////////////////////////////////////////////////////////////////////
+
+    ////////////////outdoor movement/////////////////////////////////////////
+    GenerateFreeMovement2(*ep2_2, *ep2_1, genmo, mo, start_time);
+
+    Line* path2 = (Line*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_PATH);
+    if(path2->Length() > min_path)
+      GenerateFreeMovement(path2, *ep2_1, genmo, mo, start_time);
+
+    ///////////////////indoor movement//////////////////////////////////////
+    ////////////////////to show which entrance it is////////////////////
+    Point* sp2 = (Point*)path_tuple->GetAttribute(IndoorInfra::INDOORIF_SP);
+    int entrance_index2 = ((CcInt*)path_tuple->GetAttribute(IndoorInfra::
+                                   INDOORIF_SP_INDEX))->GetIntval();
+    int reg_id2 =  ((CcInt*)path_tuple->GetAttribute(IndoorInfra::
+                                              INDOORIF_REG_ID))->GetIntval();
+
+    if(time_transform)
+      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                                  entrance_index2, reg_id2, maxrect, peri);
+    else
+      GenerateIndoorMovementFromExit(i_infra, genmo,mo,start_time, *sp2, 
+                               entrance_index2, reg_id2, maxrect, peri_input);
+
+
+    mo->EndBulkLoad();
+    genmo->EndBulkLoad();
+
+     //////////////////////////////////change the time ///////////////////////
+     if(time_transform){
+            MPoint* mo_tmp = new MPoint(0);
+            GenMO* genmo_tmp = new GenMO(0);
+            mo_tmp->StartBulkLoad();
+            genmo_tmp->StartBulkLoad();
+            for(int i = 0;i < mo->GetNoComponents();i++){
+               UPoint unit1;
+               mo->Get(i, unit1);
+
+               Instant st = unit1.timeInterval.start;
+               Instant et = unit1.timeInterval.end;
+  
+               st.ReadFrom(st.ToDouble() + day_deviation);
+               et.ReadFrom(et.ToDouble() + day_deviation);
+
+               Interval<Instant> up_interval;
+               up_interval.start = st;
+               up_interval.lc = true;
+               up_interval.end = et;
+               up_interval.rc = false; 
+
+               UPoint* up = new UPoint(up_interval, unit1.p0, unit1.p1);
+               mo_tmp->Add(*up);
+               delete up;     
+            }
+
+            for(int i = 0;i < genmo->GetNoComponents(); i++){
+                UGenLoc ugloc;
+                genmo->Get(i, ugloc);
+
+                Instant st = ugloc.timeInterval.start;
+                Instant et = ugloc.timeInterval.end;
+  
+                st.ReadFrom(st.ToDouble() + day_deviation);
+                et.ReadFrom(et.ToDouble() + day_deviation);
+
+                Interval<Instant> up_interval;
+                up_interval.start = st;
+                up_interval.lc = true;
+                up_interval.end = et;
+                up_interval.rc = false; 
+
+                UGenLoc* unit_new = new UGenLoc(up_interval, ugloc.gloc1,
+                                    ugloc.gloc2, ugloc.tm);
+                genmo_tmp->Add(*unit_new);
+                delete unit_new;
+            }
+
+            mo_tmp->EndBulkLoad();
+            genmo_tmp->EndBulkLoad();
+
+            trip1_list.push_back(*genmo_tmp);
+            trip2_list.push_back(*mo_tmp);
+
+            delete genmo_tmp;
+            delete mo_tmp;
+
+     }else{
+
+      trip1_list.push_back(*genmo);
+      trip2_list.push_back(*mo);
+     }
+
+    delete mo; 
+    delete genmo; 
+
+    path_tuple->DeleteIfAllowed();
+    delete peri;
+    //////////////////////////////////////////////////////////////////
+    ////////////reduce the time cost of generating moving object//////
+    ////////////if two bus stops are reachable, it generates the second////
+    //////// moving object, but different time intervals //////////////////
+    ///////////////////////////////////////////////////////////////////////
+
+    obj_no_rep++;
+    if(obj_no_rep == max_obj) obj_no_rep = 0;
+    ///////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
+    cout<<"building  "<<GetBuildingStr(nn_build_list[count_tmp].type)<<endl;
+
+    cout<<real_count<<" moving object "<<endl;
+    real_count++;
+    count_tmp++;
+
+  }
+   pm->CloseDualGraph(dg);
+   pm->CloseVisualGraph(vg);
+
+   sp->CloseBusNetwork(bn);
+
+}
 
 
 
@@ -11058,4 +12737,198 @@ void Space::GetLineInGRoom(int oid, GenLoc gl1, GenLoc gl2, Line* l)
 
 }
 
+/*
+get the distance betwene a genloc and a point 
+
+*/
+
+double Space::Distance(GenLoc* gloc, Point* p)
+{
+  int oid = gloc->GetOid();
+  int type = GetInfraType(oid);
+  if(type < 0){
+    cout<<"invalid location"<<endl;
+    return -1;
+  }
+  double res = -1;
+
+  if(type == IF_FREESPACE){
+      Point loc(true, gloc->GetLoc().loc1, gloc->GetLoc().loc2);
+      res = p->Distance(loc);
+  }else if(type == IF_LINE){
+//      cout<<"road network"<<endl;
+      Point loc;
+      if(GetLocOnRoad(gloc, loc)){
+        res = p->Distance(loc);
+      }
+  }else if(type == IF_BUSNETWORK){
+    Point loc;
+    if(GetLocInBN(gloc, loc)){
+      res = p->Distance(loc);
+    }
+  }else{
+
+    cout<<"invalid type"<<endl;
+  }
+
+  return res;
+
+}
+/*
+get the distance between a genloc and a line 
+
+*/
+double Space::Distance(GenLoc* gloc, Line* l)
+{
+  int oid = gloc->GetOid();
+  int type = GetInfraType(oid);
+  if(type < 0){
+    cout<<"invalid location"<<endl;
+    return -1;
+  }
+
+  double res = -1;
+
+  if(type == IF_FREESPACE){
+      Point loc(true, gloc->GetLoc().loc1, gloc->GetLoc().loc2);
+      res = l->Distance(loc);
+  }else if(type == IF_LINE){
+//      cout<<"road network "<<endl;
+      Point loc;
+      if(GetLocOnRoad(gloc, loc)){
+        res = l->Distance(loc);
+//        cout<<"dist "<<res<<endl;
+      }
+  }else if(type == IF_BUSNETWORK){
+    Point loc;
+    if(GetLocInBN(gloc, loc)){
+      res = l->Distance(loc);
+    }
+  }else{
+
+    cout<<"invalid type"<<endl;
+  }
+
+  return res;
+}
+
+/*
+get the point of a genloc on a road 
+
+*/
+bool Space::GetLocOnRoad(GenLoc* gloc, Point& loc)
+{
+
+  static unsigned long line_init;
+  static unsigned long cmd_no; 
+  static vector<SimpleLine> roads;
+  static vector<bool> dir;
+  static vector<unsigned int> oid_list;
+
+
+  if(line_init == 0){ ////3030 cars 1.68 seconds 
+    Network* rn = LoadRoadNetwork(IF_LINE);
+    if(rn == NULL) return false;
+    Relation* roads_rel = rn->GetRoutes();
+    for(int i = 1;i <= roads_rel->GetNoTuples();i++){
+      Tuple* tuple = roads_rel->GetTuple(i, false);
+      int rid = ((CcInt*)tuple->GetAttribute(ROUTE_ID))->GetIntval();
+      SimpleLine* sl = (SimpleLine*)tuple->GetAttribute(ROUTE_CURVE);
+      roads.push_back(*sl);
+      dir.push_back(sl->GetStartSmaller());
+      oid_list.push_back(rid);
+      tuple->DeleteIfAllowed();
+    }
+    CloseRoadNetwork(rn);
+    line_init = (unsigned long)this;
+
+    /////////get the command number ///////////////////////
+    SystemTables& st = SystemTables::getInstance();
+    const SystemInfoRel* sysinfo = st.getInfoRel("SEC2COMMANDS");
+    cmd_no = sysinfo->tuples.size();
+
+  }else{
+    unsigned long sp_addr = (unsigned long)this;  
+    if(line_init != sp_addr){
+      Network* rn = LoadRoadNetwork(IF_LINE);
+      if(rn == NULL) return false;
+      Relation* roads_rel = rn->GetRoutes();
+      roads.clear();
+      dir.clear();
+      oid_list.clear();
+      for(int i = 1;i <= roads_rel->GetNoTuples();i++){
+        Tuple* tuple = roads_rel->GetTuple(i, false);
+        int rid = ((CcInt*)tuple->GetAttribute(ROUTE_ID))->GetIntval();
+        SimpleLine* sl = (SimpleLine*)tuple->GetAttribute(ROUTE_CURVE);
+        roads.push_back(*sl);
+        dir.push_back(sl->GetStartSmaller());
+        oid_list.push_back(rid);
+        tuple->DeleteIfAllowed();
+      }
+      CloseRoadNetwork(rn);
+      line_init = (unsigned long)this;
+    }else{
+        SystemTables& st = SystemTables::getInstance();
+        const SystemInfoRel* sysinfo = st.getInfoRel("SEC2COMMANDS");
+        if(cmd_no != sysinfo->tuples.size()){
+
+            Network* rn = LoadRoadNetwork(IF_LINE);
+            if(rn == NULL) return false;
+            Relation* roads_rel = rn->GetRoutes();
+            roads.clear();
+            dir.clear();
+            oid_list.clear();
+            for(int i = 1;i <= roads_rel->GetNoTuples();i++){
+              Tuple* tuple = roads_rel->GetTuple(i, false);
+              int rid = ((CcInt*)tuple->GetAttribute(ROUTE_ID))->GetIntval();
+              SimpleLine* sl = (SimpleLine*)tuple->GetAttribute(ROUTE_CURVE);
+              roads.push_back(*sl);
+              dir.push_back(sl->GetStartSmaller());
+              oid_list.push_back(rid);
+              tuple->DeleteIfAllowed();
+            }
+            CloseRoadNetwork(rn);
+            line_init = (unsigned long)this;
+            cmd_no = sysinfo->tuples.size();
+        }
+    }
+  }
+
+//   Network* rn = LoadRoadNetwork(IF_LINE); //3030 cars, 36 seconds 
+//   if(rn == NULL) return false;
+//   CloseRoadNetwork(rn);
+  if((int)(roads.size()) == 0 || (int)(dir.size()) == 0) return false;
+  ///////////get the position on the road ///////////////////
+  if(gloc->GetOid() != oid_list[gloc->GetOid() - 1]){
+    cout<<"roads should be inserted first into space"<<endl;
+    cout<<"roads should be ordered by rid"<<endl;
+  }
+  assert(gloc->GetOid() == oid_list[gloc->GetOid() - 1]);
+//  cout<<gloc->GetOid()<<" "<<oid_list[gloc->GetOid() - 1]<<endl;
+  int index = gloc->GetOid();
+
+//  cout<<roads.size()<<" size "<<roads[0].Length()<<endl;
+
+  assert(roads[index - 1].AtPosition(gloc->GetLoc().loc1, 
+                                     dir[index - 1], loc));
+//  cout<<loc<<endl;
+  return true;
+}
+
+
+/*
+get a location on bus network 
+
+*/
+
+bool Space::GetLocInBN(GenLoc* gloc, Point& loc)
+{
+  double x = gloc->GetLoc().loc1;
+  double y = gloc->GetLoc().loc2;
+  if(x < 0.0 || y < 0.0) return false;
+  
+  loc.Set(x, y);
+  return true;
+
+}
 

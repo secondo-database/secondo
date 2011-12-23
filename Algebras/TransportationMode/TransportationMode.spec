@@ -121,7 +121,7 @@ operator thefloor alias THEFLOOR pattern op(_,_)
 operator getheight alias GETHEIGHT pattern op(_)
 operator getregion alias GETREGION pattern op(_)
 operator thedoor alias THEDOOR pattern op(_,_,_,_,_,_)
-operator oid_of_door alias TYPE_OF_DOOR pattern op(_)
+
 operator type_of_door alias TYPE_OF_DOOR pattern op(_)
 operator loc_of_door alias LOC_OF_DOOR pattern op(_,_)
 operator state_of_door alias STATE_OF_DOOR pattern op(_)
@@ -154,14 +154,19 @@ operator path_to_building alias PATH_TO_BUILDING pattern op(_,_,_,_,_)
 operator set_building_type alias SET_BUILDING_TYPE pattern op(_,_,_)
 operator ref_id alias REF_ID pattern op(_)
 operator tm_at alias TM_AT pattern op(_,_)
-operator tm_val alias TM_VAL pattern op(_)
-operator tm_contain alias TM_CONTAIN pattern op(_,_)
+operator val alias VAL pattern op(_)
+operator inst alias INST pattern op(_)
+operator contains alias CONTAINS pattern _ infixop _ 
 operator tm_duration alias TM_DURATION pattern op(_,_)
-operator tm_initial alias TM_INITIAL pattern op(_)
-operator tm_final alias TM_FINAL pattern op(_)
+operator initial alias INITIAL pattern op(_)
+operator final alias FINAL pattern op(_)
 operator tm_build_id alias TM_BUILD_ID pattern op(_,_)
+operator tm_room_id alias TM_ROOM_ID pattern op(_,_)
 operator tm_plus_id alias TM_PLUS_ID pattern op(_,_)
 operator tm_passes alias TM_PASSES pattern op(_,_,_)
+operator tm_distance alias TM_DISTANCE pattern op(_,_,_)
+operator tm_genloc alias TM_GENLOC pattern op(_,_,_)
+
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)
 operator no_components alias NO_COMPONENTS pattern op (_)
@@ -171,8 +176,9 @@ operator gentrajectory alias GENTRAJECTORY pattern op(_,_)
 operator genrangevisible alias GENRANGEVISIBLE pattern op(_,_)
 operator getmode alias GETMODE pattern op(_)
 operator getref alias GETREF pattern op(_,_)
-operator tm_atinstant alias TM_ATINSTANT pattern _ infixop _
-operator tm_atperiods alias TM_ATPERIODS pattern _ infixop _
+operator atinstant alias ATINSTANT pattern _ infixop _
+operator atperiods alias ATPERIODS pattern _ infixop _
+operator mapgenmo alias MAPGENMO pattern op(_,_)
 
 operator thespace alias THESPACE pattern op(_)
 operator putinfra alias PUTINFRA pattern op(_,_)
@@ -185,6 +191,8 @@ operator generate_genmo alias GENERATE_GENMO pattern op(_,_,_,_)
 
 operator generate_bench_1 alias GENERATE_BENCH_1 pattern op(_,_,_,_,_,_)
 operator generate_bench_2 alias GENERATE_BENCH_2 pattern op(_,_,_,_,_)
+operator generate_bench_3 alias GENERATE_BENCH_3 pattern op(_,_,_,_,_)
+operator generate_bench_4 alias GENERATE_BENCH_4 pattern op(_,_,_,_,_,_)
 
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
 

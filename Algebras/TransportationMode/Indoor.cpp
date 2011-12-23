@@ -2191,12 +2191,13 @@ void IndoorNav::CreateDoor1(R_Tree<3, TupleId>* rtree,
 //        cout<<"oid "<<oid<<"tid "<<tid<<" rect "<<*bbox3d<<endl; 
         /////////////create entrance door for the building//////////////
         CreateEntranceDoor(id, oid, tid, attr1, attr2, attr3);
-      }else if(AlmostEqual(bbox3d->MinD(2), 0.0)){
+      }else if(AlmostEqual(bbox3d->MinD(2), 0.0)){//height 0 = underground level
         /////////////////////////////////////////////////////////////////
         ////////////////////we define 0.0 for the first level////////////
         /////////////////where the building entrance is located//////////
         ////////////////this is for buildings have underground level/////
         //////////////////////trainstation, hospital/////////////////////
+        ///////////////////// mall /////////////////////////////////////
         /////////////////////////////////////////////////////////////////
 //        cout<<"underground here"<<endl;
 //        cout<<"oid "<<oid<<"tid "<<tid<<" rect "<<*bbox3d<<endl;
@@ -2487,7 +2488,8 @@ void IndoorNav::CreateEntranceDoor(int id, int oid, int tid,
     door_list.push_back(*door_obj1);
     line_list.push_back(*l3);
     groom_id_list1.push_back(oid1);//the room oid 
-    groom_id_list2.push_back(-1);//-1 for entrance door 
+//    groom_id_list2.push_back(-1);//-1 for entrance door
+    groom_id_list2.push_back((int)UNDEFVAL);//UNDEFVAL for entrance door 
     path_list.push_back(*l3d_1);
     door_heights.push_back(bbox3d_1->MinD(2));
 
@@ -5078,7 +5080,8 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2, int type)
     Tuple* door_tuple = r1->GetTuple(i, false);
     int groom_oid2 = 
         ((CcInt*)door_tuple->GetAttribute(I_GROOM_OID2))->GetIntval();
-    if(groom_oid2 == -1){
+//    if(groom_oid2 == -1){
+    if(groom_oid2 == (int)UNDEFVAL){
       Tuple* new_tuple = new Tuple(nl->Second(xNumType));
       new_tuple->PutAttribute(0, new CcInt(true, door_tuple->GetTupleId()));
       s_rel->AppendTuple(new_tuple);
@@ -6498,8 +6501,11 @@ void IndoorNav::AddUnitToMO_Elevator2(MPoint3D* mp3d,
         }else if(GetRoomEnum(type) == EL){
           //move in an elevator,we record the height
 
-          Loc loc_1(p.GetZ(), -1.0); 
-          Loc loc_2(p.GetZ(), -1.0); 
+//           Loc loc_1(p.GetZ(), -1.0); 
+//           Loc loc_2(p.GetZ(), -1.0); 
+
+           Loc loc_1(p.GetZ(), UNDEFVAL); 
+           Loc loc_2(p.GetZ(), UNDEFVAL); 
 
           gloc1.SetValue(new_groom_oid, loc_1);
           gloc2.SetValue(new_groom_oid, loc_2);
@@ -6536,7 +6542,9 @@ void IndoorNav::AddUnitToMO_Elevator2(MPoint3D* mp3d,
         /////////////////////////////////////////////
         /////////genric units////////////////////////
         /////////////////////////////////////////////
-        int groom_tid = GetRef_RoomTid(index + i, l_room);
+//        int groom_tid = GetRef_RoomTid(index + i, l_room);
+
+        int groom_tid = GetRef_RoomTid(index + i, l_room, true);
 
         Tuple* groom_tuple = rel1->GetTuple(groom_tid, false);
         GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
@@ -6567,8 +6575,11 @@ void IndoorNav::AddUnitToMO_Elevator2(MPoint3D* mp3d,
           gloc2.SetValue(new_groom_oid, loc_2);
         }else if(GetRoomEnum(type) == EL){
           //move in an elevator,we record the height
-          Loc loc_1(p1.GetZ(), -1.0); 
-          Loc loc_2(p2.GetZ(), -1.0); 
+//           Loc loc_1(p1.GetZ(), -1.0); 
+//           Loc loc_2(p2.GetZ(), -1.0); 
+
+          Loc loc_1(p1.GetZ(), UNDEFVAL); 
+          Loc loc_2(p2.GetZ(), UNDEFVAL); 
 
           gloc1.SetValue(new_groom_oid, loc_1);
           gloc2.SetValue(new_groom_oid, loc_2);
@@ -6611,8 +6622,12 @@ void IndoorNav::AddUnitToMO_Elevator2(MPoint3D* mp3d,
           }else if(GetRoomEnum(type) == EL){
               //move in an elevator,we record the height
 
-              Loc loc_1(p2.GetZ(), -1.0); 
-              Loc loc_2(p2.GetZ(), -1.0); 
+//               Loc loc_1(p2.GetZ(), -1.0); 
+//               Loc loc_2(p2.GetZ(), -1.0); 
+
+              Loc loc_1(p2.GetZ(), UNDEFVAL); 
+              Loc loc_2(p2.GetZ(), UNDEFVAL); 
+
 
               gloc1.SetValue(new_groom_oid, loc_1);
               gloc2.SetValue(new_groom_oid, loc_2);
@@ -6818,7 +6833,7 @@ void IndoorNav::GenerateMO1_New(IndoorGraph* ig, BTree* btree,
 
       if(loc1.GetOid() == loc2.GetOid()) continue;
 
-      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
 
       indoor_nav->ShortestPath_Length(&loc1, &loc2, rel1, btree);
 
@@ -7170,7 +7185,8 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
  
           int new_groom_oid;
           sscanf(buffer2, "%d", &new_groom_oid);//////building id + room id///
-//      cout<<"ref oid "<<new_groom_oid<<endl;
+//        cout<<"ref oid "<<new_groom_oid<<endl;
+
 
           GenLoc gloc1;
           GenLoc gloc2;
@@ -7184,8 +7200,11 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
           }else if(GetRoomEnum(type) == EL){
             //move in an elevator,we record the height
 
-            Loc loc_1(p.GetZ(), -1.0); 
-            Loc loc_2(p.GetZ(), -1.0); 
+//             Loc loc_1(p.GetZ(), -1.0); 
+//             Loc loc_2(p.GetZ(), -1.0); 
+
+            Loc loc_1(p.GetZ(), UNDEFVAL); 
+            Loc loc_2(p.GetZ(), UNDEFVAL); 
 
             gloc1.SetValue(new_groom_oid, loc_1);
             gloc2.SetValue(new_groom_oid, loc_2);
@@ -7200,6 +7219,7 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
       }
       start_time = end; 
     }
+
   ////////////////////////////////////////////////////////////////////////////
   for(int i = 0;i < (int) p3d_list.size();i++){
     if(i < (int)(p3d_list.size() - 1)){
@@ -7220,10 +7240,14 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
         start_time = end; 
 
         /////////////////////////////////////////////
-        /////////genric units///////////////////////
+        /////////generic units///////////////////////
         /////////////////////////////////////////////
-
-        int groom_tid = GetRef_RoomTid(index + i, l_room);
+       ////a point3d can be contained by maximum 3 grooms, so we use point3d//
+       ////////to record tuple id /////////////////
+//       int groom_tid = GetRef_RoomTid(index + i, l_room);
+//        cout<<"AddUnitToMO_Elevator_New2"<<endl; 
+//        cout<<"p1 "<<p1<<" p2 "<<p2<<endl; 
+        int groom_tid = GetRef_RoomTid(index + i, l_room, true);
 
         Tuple* groom_tuple = rel1->GetTuple(groom_tid, false);
         GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
@@ -7244,6 +7268,7 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
         sscanf(buffer2, "%d", &new_groom_oid);//////building id + room id///
 //        cout<<"ref oid "<<new_groom_oid<<endl;
 
+
         GenLoc gloc1;
         GenLoc gloc2;
         if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR ||
@@ -7255,8 +7280,11 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
           gloc2.SetValue(new_groom_oid, loc_2);
         }else if(GetRoomEnum(type) == EL){
           //move in an elevator,we record the height
-          Loc loc_1(p1.GetZ(), -1.0); 
-          Loc loc_2(p2.GetZ(), -1.0); 
+//           Loc loc_1(p1.GetZ(), -1.0); 
+//           Loc loc_2(p2.GetZ(), -1.0); 
+
+          Loc loc_1(p1.GetZ(), UNDEFVAL); 
+          Loc loc_2(p2.GetZ(), UNDEFVAL); 
 
           gloc1.SetValue(new_groom_oid, loc_1);
           gloc2.SetValue(new_groom_oid, loc_2);
@@ -7299,8 +7327,11 @@ void IndoorNav::AddUnitToMO_Elevator_New2(MPoint3D* mp3d,
           }else if(GetRoomEnum(type) == EL){
               //move in an elevator,we record the height
 
-              Loc loc_1(p2.GetZ(), -1.0); 
-              Loc loc_2(p2.GetZ(), -1.0); 
+//               Loc loc_1(p2.GetZ(), -1.0); 
+//               Loc loc_2(p2.GetZ(), -1.0); 
+
+              Loc loc_1(p2.GetZ(), UNDEFVAL); 
+              Loc loc_2(p2.GetZ(), UNDEFVAL); 
 
               gloc1.SetValue(new_groom_oid, loc_1);
               gloc2.SetValue(new_groom_oid, loc_2);
@@ -8013,12 +8044,14 @@ void IndoorNav::AddUnitToMO(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
 get the groom tid from the storing data 
 
 */
-int IndoorNav::GetRef_RoomTid(int index, Line3D* l)
+int IndoorNav::GetRef_RoomTid(int index, Line3D* l, bool E)
 {
   Point3D q1, q2;
   l->Get(index, q1);
   l->Get(index + 1, q2);
-  
+
+//  cout<<"E "<<E<<" "<<q1<<" "<<q2<<endl;
+
   vector<int> tid_list1;
   if(q1.GetX() > 0) tid_list1.push_back(q1.GetX());
   if(q1.GetY() > 0) tid_list1.push_back(q1.GetY());
@@ -8029,23 +8062,94 @@ int IndoorNav::GetRef_RoomTid(int index, Line3D* l)
   if(q2.GetY() > 0) tid_list2.push_back(q2.GetY());
   if(q2.GetZ() > 0) tid_list2.push_back(q2.GetZ());
   
+//   int tid = -1;
+//   bool found = false;
+//   for(unsigned int i = 0;i < tid_list1.size();i++){
+//     for(unsigned int j = 0;j < tid_list2.size();j++){
+//       if(tid_list1[i] == tid_list2[j]){
+//         tid = tid_list1[i];
+//         found = true;
+//       }
+//     }
+//   }
+//   
+//   ///////////vertical movement in elevator////////////
+//   if(found == false) tid = tid_list1[0];
+// 
+//   assert(tid > 0);
+// 
+//   return tid;
+
+  vector<int> tid_list;
   int tid = -1;
   bool found = false;
   for(unsigned int i = 0;i < tid_list1.size();i++){
     for(unsigned int j = 0;j < tid_list2.size();j++){
       if(tid_list1[i] == tid_list2[j]){
-        tid = tid_list1[i];
+        tid_list.push_back(tid_list1[i]);
         found = true;
       }
     }
   }
-  
+
   ///////////vertical movement in elevator////////////
-  if(found == false) tid = tid_list1[0];
+  if(found == false){
+//      tid = tid_list1[0];
+        for(unsigned int i = 0;i < tid_list1.size();i++){
+          Tuple* groom_tuple = rel1->GetTuple(tid_list1[i], false);
+          string type = 
+              ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
+          groom_tuple->DeleteIfAllowed();
+
+//           if(type.compare("EL") == 0){
+//               tid = tid_list1[i];
+//               break;
+//           }
+
+          if(E){
+            if(type.compare("EL") == 0){
+                tid = tid_list1[i];
+                break;
+            }
+          }else{
+            if(type.compare("EL") != 0){
+              tid = tid_list1[i];
+              break;
+            }
+          }
+
+        }
+
+  }else{
+    if(tid_list.size() == 1) tid = tid_list[0];
+    else{
+        for(unsigned int i = 0;i < tid_list.size();i++){
+          Tuple* groom_tuple = rel1->GetTuple(tid_list[i], false);
+          string type = 
+              ((CcString*)groom_tuple->GetAttribute(I_Type))->GetValue();
+          groom_tuple->DeleteIfAllowed();
+//          cout<<" type "<<type<<" E "<<E<<" i "<<i<<endl;
+          if(E){
+            if(type.compare("EL") == 0){
+              tid = tid_list[i];
+              break;
+            }
+          }else{///////no elevator 
+            //ignore elevator when OR,CO are included 
+            if(type.compare("EL") != 0){
+              tid = tid_list[i];
+              break;
+            }
+          }
+
+        }
+    }
+  }
 
   assert(tid > 0);
 
   return tid;
+
 
 }
 
@@ -8058,10 +8162,12 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
                     Instant& start_time, double speed, int index, 
                     Line3D* l_room, int build_id, GenMO* genmo)
 {
+//  cout<<"p1 "<<p1<<" "<<p2<<endl; 
    const double dist_delta = 0.01; 
    double d = p1.Distance(p2); 
 
-   int groom_tid = GetRef_RoomTid(index, l_room);
+//   int groom_tid = GetRef_RoomTid(index, l_room);
+   int groom_tid = GetRef_RoomTid(index, l_room, false);
    Tuple* groom_tuple = rel1->GetTuple(groom_tid, false);
    GRoom* groom = (GRoom*)groom_tuple->GetAttribute(I_Room);
    int groom_oid = ((CcInt*)groom_tuple->GetAttribute(I_OID))->GetIntval();
@@ -8077,6 +8183,7 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
 
    int new_groom_oid;
    sscanf(buffer2, "%d", &new_groom_oid);//building id + room id//
+   
 //   cout<<"ref oid "<<new_groom_oid<<endl;
 
   if(d < speed || AlmostEqual(d, speed)){//staircase movement 
@@ -8111,8 +8218,12 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
     }else if(GetRoomEnum(type) == EL){
       //move in an elevator,we record the height
 
-      Loc loc_1(p1.GetZ(), -1.0); 
-      Loc loc_2(p2.GetZ(), -1.0); 
+//       Loc loc_1(p1.GetZ(), -1.0); 
+//       Loc loc_2(p2.GetZ(), -1.0); 
+
+      Loc loc_1(p1.GetZ(), UNDEFVAL);
+      Loc loc_2(p2.GetZ(), UNDEFVAL);
+
 
       gloc1.SetValue(new_groom_oid, loc_1);
       gloc2.SetValue(new_groom_oid, loc_2);
@@ -8157,8 +8268,11 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
       gloc2.SetValue(new_groom_oid, loc_2);
     }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
 
-      Loc loc_1(p1.GetZ(), -1.0); 
-      Loc loc_2(p2.GetZ(), -1.0); 
+//       Loc loc_1(p1.GetZ(), -1.0); 
+//       Loc loc_2(p2.GetZ(), -1.0); 
+
+      Loc loc_1(p1.GetZ(), UNDEFVAL);
+      Loc loc_2(p2.GetZ(), UNDEFVAL);
 
       gloc1.SetValue(new_groom_oid, loc_1);
       gloc2.SetValue(new_groom_oid, loc_2);
@@ -8171,6 +8285,7 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
     delete ugenloc;
 
   }else{
+    
     int no = (int)floor(d/speed); 
 /*    double x = (p2.GetX() - p1.GetX())/no; 
     double y = (p2.GetY() - p1.GetY())/no;
@@ -8215,8 +8330,11 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
       }else if(GetRoomEnum(type) == EL){
         //move in an elevator,we record the height
 
-        Loc loc_1(q1.GetZ(), -1.0); 
-        Loc loc_2(q2.GetZ(), -1.0); 
+//         Loc loc_1(q1.GetZ(), -1.0); 
+//         Loc loc_2(q2.GetZ(), -1.0); 
+
+        Loc loc_1(q1.GetZ(), UNDEFVAL); 
+        Loc loc_2(q2.GetZ(), UNDEFVAL); 
 
         gloc1.SetValue(new_groom_oid, loc_1);
         gloc2.SetValue(new_groom_oid, loc_2);
@@ -8268,8 +8386,11 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
         }else if(GetRoomEnum(type) == EL){
           //move in an elevator,we record the height
 
-          Loc loc_1(q3.GetZ(), -1.0); 
-          Loc loc_2(q4.GetZ(), -1.0); 
+//           Loc loc_1(q3.GetZ(), -1.0); 
+//           Loc loc_2(q4.GetZ(), -1.0); 
+
+          Loc loc_1(q3.GetZ(), UNDEFVAL); 
+          Loc loc_2(q4.GetZ(), UNDEFVAL); 
 
           gloc1.SetValue(new_groom_oid, loc_1);
           gloc2.SetValue(new_groom_oid, loc_2);
@@ -8397,8 +8518,11 @@ void IndoorNav::Get_GenLoc(Point3D p1, Point3D p2,
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
     }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
-      Loc loc_1(p1.GetZ(), -1); 
-      Loc loc_2(p2.GetZ(), -1); 
+//       Loc loc_1(p1.GetZ(), -1); 
+//       Loc loc_2(p2.GetZ(), -1); 
+
+      Loc loc_1(p1.GetZ(), UNDEFVAL); 
+      Loc loc_2(p2.GetZ(), UNDEFVAL); 
 
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
@@ -8427,8 +8551,11 @@ void IndoorNav::Get_GenLoc(Point3D p1, Point3D p2,
 
     if(GetRoomEnum(type) == EL){
 //      cout<<"elevator2 "<<endl;
-      Loc loc_1(p1.GetZ(), -1.0);
-      Loc loc_2(p2.GetZ(), -1.0);
+//       Loc loc_1(p1.GetZ(), -1.0);
+//       Loc loc_2(p2.GetZ(), -1.0);
+
+      Loc loc_1(p1.GetZ(), UNDEFVAL);
+      Loc loc_2(p2.GetZ(), UNDEFVAL);
 
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
@@ -8526,8 +8653,11 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
       loc2.SetValue(oid, loc_2);
     }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
 //      cout<<"elevator1 "<<endl;
-      Loc loc_1(p1.GetZ(), -1.0); 
-      Loc loc_2(p2.GetZ(), -1.0); 
+//       Loc loc_1(p1.GetZ(), -1.0); 
+//       Loc loc_2(p2.GetZ(), -1.0); 
+
+      Loc loc_1(p1.GetZ(), UNDEFVAL); 
+      Loc loc_2(p2.GetZ(), UNDEFVAL); 
 
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
@@ -8575,8 +8705,11 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
   
     if(GetRoomEnum(type) == EL){
 //      cout<<"elevator2 "<<endl;
-      Loc loc_1(p1.GetZ(), -1.0); 
-      Loc loc_2(p2.GetZ(), -1.0); 
+//       Loc loc_1(p1.GetZ(), -1.0); 
+//       Loc loc_2(p2.GetZ(), -1.0); 
+
+      Loc loc_1(p1.GetZ(), UNDEFVAL); 
+      Loc loc_2(p2.GetZ(), UNDEFVAL); 
 
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
@@ -9264,7 +9397,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
   for(unsigned int i = 0;i < door_tid_list.size();i++){
     if(door_tid_list[i] > 0){
       int path_oid = GetIndooPathID2(entrance_id, groom_oid1, i, false);
-
+//      cout<<"path_oid "<<path_oid<<endl; 
       map<int, Line3D>::iterator iter = indoor_paths_list.find(path_oid);
       map<int, Line3D>::iterator iter_room = rooms_list.find(path_oid);
       if(iter != indoor_paths_list.end() && iter_room != rooms_list.end()){
@@ -9282,9 +9415,15 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
             start_door_path[count].Get(j, q);
             *l3d += q;
 
-            ////////////groom oid of the current point3d////////////
-            Point3D p(true, groom_oid1, groom_oid1, groom_oid1);
-            *l_room += p;
+            ////////groom oid of the current point3d---old method////////////
+//            Point3D p(true, groom_oid1, groom_oid1, groom_oid1);
+//            *l_room += p;
+
+            //////////////more groom oids---new method ///////////////////
+            if(j < start_door_path[count].Size() - 1){//use the data from file
+              Point3D p(true, groom_oid1, groom_oid1, groom_oid1);
+              *l_room += p;
+            }
          }
          /////////end point of path in the room should be equal to door loc////
          Point3D q1;
@@ -9300,6 +9439,12 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
             iter->second.Get(j, q);
             *l3d += q;
 
+            //////////////////add the data is missing in the above////////////
+            if(j == 1){/////////use the data from disk file, has more groom oids
+              Point3D tmp_p;
+              iter_room->second.Get(0, tmp_p);
+              *l_room += tmp_p;
+            }
             Point3D p;
             iter_room->second.Get(j, p);
             *l_room += p;

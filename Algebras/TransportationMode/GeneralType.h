@@ -637,6 +637,7 @@ class UGenLoc: public SpatialTemporalUnit<GenLoc,3>
     del.refs = 1;
     del.SetDelete(); 
     del.isDefined = source.del.isDefined; 
+    tm = source.tm;
   }
   UGenLoc& operator=(const UGenLoc& ugenloc)
   {
@@ -644,6 +645,7 @@ class UGenLoc: public SpatialTemporalUnit<GenLoc,3>
     gloc1 = ugenloc.gloc1;
     gloc2 = ugenloc.gloc2;
     del.isDefined = ugenloc.del.isDefined;
+    tm = ugenloc.tm;
     return *this; 
   }
 
@@ -736,7 +738,9 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     void LowRes(GenMO& mo);
     void Trajectory(GenRange* genrange, Space* sp);
     
-    void AtMode(string tm, GenMO* sub);
+    void GenMOAt(string tm, GenMO* sub);
+    void GenMOAt(GenLoc* genloc, GenMO* sub);
+    void GenMOAt(Point* p, GenMO* sub);
     void AtInstant(Instant& t, Intime<GenLoc>& result); 
     void AtPeriods(Periods* peri, GenMO& result); 
     Intime<GenLoc> GetUnitInstant(UGenLoc& unit, Instant& t);
@@ -744,6 +748,7 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     bool Contain(int refid);
 
     bool Passes(Region* reg, Space* sp);
+    void MapGenMO(MPoint* in, MPoint& res);
     
 };
 
@@ -784,6 +789,7 @@ struct MNNav;
 class RoadGraph;
 class BusNetwork; 
 class MetroNetwork;
+class Door3D;
 
 
 /*
@@ -808,13 +814,16 @@ struct GenMObject{
 
   static string BenchModeDISTR;
   enum BenchModeDISTRIInfo{BENCH_MODE = 0, BENCH_PARA};
+  
+  static string NNBuilding;
+  enum BenchModeNNBuildingInfo{BM_NNB_ID = 0, BM_NNB_GEODATA};
 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list; 
   vector<MGPoint> trip3_list; 
 
-  vector<MPoint3D> indoor_mo_list1;
-  vector<MPoint3D> indoor_mo_list2;
+  vector<MPoint3D> indoor_mo_list1;//from a room to an entrance 
+  vector<MPoint3D> indoor_mo_list2;//from entrance to a room
 
 
   vector<Point> loc_list1;
@@ -848,6 +857,7 @@ struct GenMObject{
   void GetTMStr(bool v);
   void GetIdList(GenMO*);
   void GetIdList(GenRange* gr); 
+  void GetIdList(Door3D* d);
   void GetRef(GenMO* mo);
   ///////////////////create generic moving objects///////////////////////
   void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type);
@@ -890,7 +900,8 @@ struct GenMObject{
   /////////////////////Mode:Walk/////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////
 
-  void GenerateLocPave(Pavement* pm, int mo_no, vector<GenLoc>& genloc_list);
+  void GenerateLocPave(Pavement* pm, int mo_no, 
+                       vector<GenLoc>& genloc_list, vector<Point>& p_loc_list);
   
   void GenerateWalkMovement(DualGraph* dg, Line* l, Point start_loc, 
                             GenMO* genmo, MPoint* mo, Instant& start_time);
@@ -904,10 +915,9 @@ struct GenMObject{
                       vector<Point>& p_list, bool& correct, Network* rn);
   void ConnectStartMove(GenLoc loc, Point start_loc, MPoint* mo, 
                         GenMO* genmo, Instant& start_time, 
-                        Pavement* pm, string);
+                        Pavement* pm);
   void ConnectEndMove(Point start_loc, GenLoc loc, MPoint* mo, 
-                        GenMO* genmo, Instant& start_time, 
-                      Pavement* pm, string);
+                        GenMO* genmo, Instant& start_time, Pavement* pm);
   void ConnectGP1GP2(Network*, Point start_loc, GLine* newgl, MPoint* mo,
                      GenMO* genmo, Instant& start_time,
                      Relation* speed_rel, string mode);
@@ -947,6 +957,7 @@ struct GenMObject{
                      Point* p1, Point* p2);
   void FindPosInMP(MPoint* mo_bus, Point* start_loc, Point* end_loc, 
                    int& pos1, int& pos2, int index);
+
   void SetMO_GenMO(MPoint* mo_bus, int pos1, int pos2, Instant& start_time, 
                    MPoint* mo, GenMO* genmo, int mobus_oid, string str_tm);
   /////////////////////////////////////////////////////////////////////////
@@ -973,6 +984,11 @@ struct GenMObject{
                                      MPoint* mo, Instant& start_time, Point loc,
                                     int entrance_index, int reg_id,
                                      MaxRect* maxrect, Periods* peri);
+  void GenerateIndoorMovementFromExit2(IndoorInfra* i_infra, GenMO* genmo,
+                                     MPoint* mo, Instant& start_time, Point loc,
+                                    int entrance_index, int reg_id,
+                                     MaxRect* maxrect, Periods* peri);
+
   /////////////////////////////////////////////////////////////////////////
   ////////////////////  Indoor Walk Car(Taxi) /////////////////////////////
   /////////////////////////////////////////////////////////////////////////
@@ -1073,6 +1089,33 @@ struct GenMObject{
    void GetSelectedBuilding3(IndoorInfra* i_infra,
                           vector<RefBuild>& build_tid1_list,
                           MaxRect* maxrect, Relation* rel);
+   //////////////////based on NN Searching////////////////////////////
+   void GenerateGenMOBench3(Space* sp, Periods* peri, int mo_no,
+                          Relation* rel, R_Tree<2,TupleId>* rtree);
+   void FindNNBuilding(vector<Point> p_loc_list, Relation* build_rel,
+                     R_Tree<2,TupleId>* rtree, Relation* rel,
+                       vector<RefBuild>& nn_build_list);
+   void NNBTraverse(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                    Relation* build_rel, Point q_loc, int& b_tid,
+                    double& min_dist, bool& dist_init);
+
+
+   void GenerateGenMOBench4(Space* sp, Periods* peri, int mo_no, 
+                            Relation* para_rel,
+                            Relation* build_rel, R_Tree<2,TupleId>* rtree);
+   void GenerateBench4_Taxi(Space* sp, IndoorInfra* i_infra, 
+                            MaxRect* maxrect, Pavement* pm, 
+                            int genmo_no, Periods* peri, 
+                            vector<GenLoc> genloc_list, 
+                            vector<Point> p_loc_list, 
+                            vector<RefBuild> nn_build_list);
+   void GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra, 
+                            MaxRect* maxrect, Pavement* pm, 
+                            int genmo_no, Periods* peri, 
+                            vector<GenLoc> genloc_list, 
+                            vector<Point> p_loc_list, 
+                            vector<RefBuild> nn_build_list);
+
 };
 
 
@@ -1323,6 +1366,11 @@ class Space:public Attribute{
 //   inline int Entry_List_Size() const {return entry_list.Size();}
 //   void GetRid(int, int&) const;
 //   void GetEntry(int, EntryItem&)const;
+  double Distance(GenLoc* gloc, Point* p);
+  double Distance(GenLoc* gloc, Line* l);
+  bool GetLocOnRoad(GenLoc* gloc, Point& loc);
+  bool GetLocInBN(GenLoc* gloc, Point& loc);
+
 
   private:
     bool def; 
@@ -1367,9 +1415,14 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 
 
 #define obj_scale 3
+#define obj_scale_min 1.2 
+#define UNDEFVAL -1.0 
+#define EPSDIST 0.01 //a small distance deviation 
+
 /////// the distance from pavements or buildings to bus and metro stops ////
 #define NEARBUSSTOP 500.0  //make it larger 800.0 
 #define NEARMETROSTOP 1200.0 // make it larger 1500.0 
+#define BENCH_NN_DIST 500.0 //NN distance threshold 
 
 //////////////////////////////////////////////////////////////////////
 /////////////////////////////random number generator//////////////////
@@ -1377,5 +1430,6 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 
 static GslRandomgen gsl_random(true); 
 unsigned long GetRandom(); 
+
 
 #endif

@@ -2575,7 +2575,7 @@ void BusRoute::CreateBusStop4(int attr_a,int attr_b,int attr1,int attr2,
       bool sm = bs_ext.start_small; 
       double pos1,pos2;
 
-      cout<<"br_id "<<bs_ext.br_id<<"bs_stop_id "<<bs_ext.br_stop_id<<endl;
+//      cout<<"br_id "<<bs_ext.br_id<<"bs_stop_id "<<bs_ext.br_stop_id<<endl;
 
       Line* l1 = &line_list2[(bs_ext.br_id * 2 - 1) - 1];
       Line* l2 = &line_list2[(bs_ext.br_id * 2) - 1];
@@ -2875,25 +2875,26 @@ void BusRoute::CreateRoute4(int attr1, int attr2, int attr3, int attr4,
   for(int i = 1;i <= rel1->GetNoTuples();i+=2){
     Tuple* tuple_bus_route1 = rel1->GetTuple(i, false);
     Tuple* tuple_bus_route2 = rel1->GetTuple(i + 1, false);
-    
+
     int br_id1 = ((CcInt*)tuple_bus_route1->GetAttribute(attr1))->GetIntval();
     int br_id2 = ((CcInt*)tuple_bus_route2->GetAttribute(attr1))->GetIntval();
     assert(br_id1 == br_id2);
-    
+
     Line* l1 = (Line*)tuple_bus_route1->GetAttribute(attr2);
     Line* l2 = (Line*)tuple_bus_route2->GetAttribute(attr2);
-    
+
     SimpleLine* sl1 = new SimpleLine(0);
     SimpleLine* sl2 = new SimpleLine(0);
     sl1->fromLine(*l1);
     sl2->fromLine(*l2);
-    
-    
+
+//    cout<<br_id1 - 1<<endl;
     CalculateUpandDown(sl1, sl2, start_small_list[br_id1 - 1]); 
-    
+
     delete sl1;
+
     delete sl2; 
-    
+
     int route_type1 = 
         ((CcInt*)tuple_bus_route1->GetAttribute(attr3))->GetIntval();
     int route_type2 = 

@@ -225,12 +225,6 @@ const string SpatialSpecTheDoor =
 "<text>create a door3d object.</text--->"
 "<text>query thedoor (1,l1,2,l3,doorstate, FALSE)</text---> ) )";
 
-const string SpatialSpecOidOfDoor =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>door3d x int -> line</text--->"
-"<text>oid_of_door (_, _) </text--->"
-"<text>get the room id </text--->"
-"<text>query oid_of_door (door1,1)</text---> ) )";
 
 const string SpatialSpecTypeOfDoor =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -405,7 +399,7 @@ const string SpatialSpecIndoorNavigation =
 
  const string SpatialSpecGetIndoorPath =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>string x int -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+"( <text>string x int ->line3d</text--->"
 "<text>getindorpath(string, int) </text--->"
 "<text>read indoor shortest path from disk files</text--->"
 "<text>query getindoorpath(UNIVERSITY, 10001001) count </text---> ))";
@@ -504,25 +498,6 @@ ListExpr TypeOfDoorTypeMap(ListExpr args)
 
   return nl->SymbolAtom("typeerror");
 }
-
-/*
-TypeMap function for operator oid of door
-
-*/
-ListExpr OidOfDoorTypeMap(ListExpr args)
-{
-  if(nl->ListLength(args) != 2){
-      string err = "door3d x int";
-      return listutils::typeError(err);
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if(nl->IsEqual(arg1, "door3d") && nl->IsEqual(arg2, "int"))
-      return nl->SymbolAtom("int");
-
-  return nl->SymbolAtom("typeerror");
-}
-
 
 /*
 TypeMap function for operator loc of door
@@ -1457,24 +1432,6 @@ int TypeOfDoorValueMap(Word* args, Word& result, int message,
     res->Set(true, d->GetDoorType());
   else
     res->Set(false,false);
-  return 0;
-}
-
-/*
-ValueMap function for operator oid of door 
-
-*/
-int OidOfDoorValueMap(Word* args, Word& result, int message,
-                    Word& local, Supplier s)
-{
-  Door3D* d = (Door3D*)args[0].addr; 
-  int index = ((CcInt*)args[1].addr)->GetIntval(); 
-  result = qp->ResultStorage(s);
-  CcInt* res = static_cast<CcInt*>(result.addr);
-  if(d->IsDefined() && (index == 1 || index == 2))
-    res->Set(true, d->GetOid(index));
-  if(index < 1 || index > 2)
-    cout<<"index should be 1 or 2"<<endl; 
   return 0;
 }
 
@@ -2720,12 +2677,6 @@ Operator type_of_door("type_of_door",
     TypeOfDoorTypeMap
 );
 
-Operator oid_of_door("oid_of_door",
-    SpatialSpecOidOfDoor,
-    OidOfDoorValueMap,
-    Operator::SimpleSelect,
-    OidOfDoorTypeMap
-);
 
 Operator loc_of_door("loc_of_door",
     SpatialSpecLocOfDoor,
@@ -3150,20 +3101,26 @@ const string SpatialSpecTMAT =
 "<text>get the moving object with one mode</text--->"
 "<text>query tm_at(genmo1, \"Indoor\")</text---> ) )";
 
-const string SpatialSpecTMVAL =
+const string SpatialSpecTMVal =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>igenloc -> genloc</text--->"
-"<text>tm_val (igenloc) </text--->"
+"<text>val(igenloc) </text--->"
 "<text>get the genloc for a igenloc</text--->"
-"<text>query tm_val(igloc)</text---> ) )";
+"<text>query val(igloc)</text---> ) )";
 
+const string SpatialSpecTMInst =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>igenloc -> instant</text--->"
+"<text>tm_inst (igenloc) </text--->"
+"<text>get the instant for a igenloc</text--->"
+"<text>query tm_inst(igloc)</text---> ) )";
 
 const string SpatialSpecTMContain =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x string -> bool</text--->"
-"<text>tm_contain (genmo, string) </text--->"
+"<text>contains (genmo, string) </text--->"
 "<text>check whether the moving object contains one mode</text--->"
-"<text>query tm_contain(genmo1, \"Indoor\")</text---> ) )";
+"<text>query contains(genmo1, \"Indoor\")</text---> ) )";
 
 
 const string SpatialSpecTMDuration =
@@ -3179,7 +3136,7 @@ const string SpatialSpecTMInitial =
 "( <text>genmo -> igenloc</text--->"
 "<text>tm_initia (genmo) </text--->"
 "<text>return the intime genloc of a genmo</text--->"
-"<text>query tm_initial(genmo1)</text---> ) )";
+"<text>query initial(genmo1)</text---> ) )";
 
 const string SpatialSpecTMBuildId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -3187,6 +3144,13 @@ const string SpatialSpecTMBuildId =
 "<text>tm_build_id (int, space) </text--->"
 "<text>return the building id of an reference</text--->"
 "<text>query tm_build_id(0, space1)</text---> ) )";
+
+const string SpatialSpecTMRoomId =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x space -> int</text--->"
+"<text>tm_room_id (int, space) </text--->"
+"<text>return the room id of an reference</text--->"
+"<text>query tm_room_id(0, space1)</text---> ) )";
 
 const string SpatialSpecTMPlusId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -3199,10 +3163,23 @@ const string SpatialSpecTMPlusId =
 const string SpatialSpecTMPass =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x region x space -> bool</text--->"
-"<text>tm_passes (genmo, region, space) </text--->"
+"<text>passes (genmo, region, space) </text--->"
 "<text>check whether a moving object passes an area</text--->"
-"<text>query tm_passes(genmo1, reg, space1)</text---> ) )";
+"<text>query passes(genmo1, reg, space1)</text---> ) )";
 
+const string SpatialSpecTMDistance =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genloc x point x space -> bool</text--->"
+"<text>tm_passes (genloc, point, space) </text--->"
+"<text>return the distance between a genloc and a point</text--->"
+"<text>query tm_distance(genloc1, p1, space1)</text---> ) )";
+
+const string SpatialSpecTMGenLoc =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x real x real -> genloc</text--->"
+"<text>tm_genloc (int, real, real) </text--->"
+"<text>create a genloc </text--->"
+"<text>query tm_genloc(2, 3.0, -1.0)</text---> ) )";
 
 const string SpatialSpecGenMODeftime =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -3264,16 +3241,23 @@ const string SpatialSpecGetRef =
 const string SpatialSpecAtInstant =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x instant -> igenloc</text--->"
-"<text>_ tm_atinstant _ </text--->"
+"<text>_ atinstant _ </text--->"
 "<text>return the instant value of a generic moving object</text--->"
-"<text>query genmo1 tm_atinstant instant 1</text---> ) )";
+"<text>query genmo1 atinstant instant 1</text---> ) )";
 
 const string SpatialSpecAtPeriods =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo x periods -> genmo</text--->"
-"<text>_ tm_atperiods _ </text--->"
+"<text>_ atperiods _ </text--->"
 "<text>return the movement in a given period </text--->"
-"<text>query genmo1 tm_atperiods periods1 </text---> ) )";
+"<text>query genmo1 atperiods periods1 </text---> ) )";
+
+const string SpatialSpecMapGenMO =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x mpoint -> mpoint</text--->"
+"<text>genmo mapgenmo mpoint </text--->"
+"<text>map a genmo to a mpoint </text--->"
+"<text>query mapgenmo(genmo1, mp1) </text---> ) )";
 
 
 const string SpatialSpecAddInfraGraph =
@@ -3347,7 +3331,27 @@ const string SpatialSpecGenerateGMOBench2TMList =
 " -> (stream(((x1 t1) ... (xn tn))) </text--->"
 "<text>generate_bench_2 (space, periods, real, rel, string) </text--->"
 "<text>generate generic moving objects </text--->"
-"<text>query generate_bench_2(space_1, tuesday, 5.0,\"REGION\") </text---> ) )";
+"<text>query generate_bench_2(space_1, tuesday, 5.0, Buildingrel, "
+"\"REGION\") </text---> ) )";
+
+const string SpatialSpecGenerateGMOBench3TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x periods x real x rel x rtree"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_bench_3 (space, periods, real, rel, rtree) </text--->"
+"<text>generate generic moving objects </text--->"
+"<text>query generate_bench_3(space_1, monday, 3.0, NN_Building, "
+"rtree_NNB) </text---> ) )";
+
+
+const string SpatialSpecGenerateGMOBench4TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x periods x real x rel x rel x rtree"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_bench_4 (space, periods, real, rel, rel, rtree) </text--->"
+"<text>generate generic moving objects </text--->"
+"<text>query generate_bench_4(space_1, monday, 3.0, dist_para, NN_Building, "
+"rtree_NNB) </text---> ) )";
 
 
 const string SpatialSpecGenerateCarList =
@@ -3621,15 +3625,53 @@ int GenRangeRefIdGenLocValueMap(Word* args, Word& result, int message,
       }
   }
   return 0;
-  return 0;
+
 }
 
-
 /*
-at: tm genloc genrange 
+get the reference id of a door 
 
 */
-int TMATValueMap(Word* args, Word& result, int message,
+int Door3DRefIdGenLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Door3D* d = (Door3D*)args[0].addr; 
+        mo = new GenMObject();
+        mo->GetIdList(d);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->id_list.size()) return CANCEL;
+          CcInt* id = new CcInt(true, mo->id_list[mo->count]);
+          mo->count++;
+          result = SetWord(id);
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+/*
+at: tm 
+
+*/
+int TMATTMValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   GenMO* genmo = (GenMO*)args[0].addr;
@@ -3637,7 +3679,41 @@ int TMATValueMap(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   GenMO* sub_genmo = (GenMO*)result.addr;
   if(genmo->IsDefined()){
-      genmo->AtMode(type, sub_genmo);
+      genmo->GenMOAt(type, sub_genmo);
+  }
+  return 0;
+}
+
+/*
+at: genloc 
+
+*/
+int TMATGenLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  GenLoc* genloc = (GenLoc*)args[1].addr;
+  result = qp->ResultStorage(s);
+  GenMO* sub_genmo = (GenMO*)result.addr;
+  if(genmo->IsDefined()){
+      genmo->GenMOAt(genloc, sub_genmo);
+  }
+  return 0;
+}
+
+/*
+at: genloc 
+
+*/
+int TMATPointValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  Point* p = (Point*)args[1].addr;
+  result = qp->ResultStorage(s);
+  GenMO* sub_genmo = (GenMO*)result.addr;
+  if(genmo->IsDefined()){
+      genmo->GenMOAt(p, sub_genmo);
   }
   return 0;
 }
@@ -3660,6 +3736,26 @@ int TMValValueMap(Word* args, Word& result, int message,
 
   return 0;
 }
+
+/*
+val: return instant for intimegenloc 
+
+*/
+int TMInstValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Intime<GenLoc>* igenloc = (Intime<GenLoc>*)args[0].addr;
+  result = qp->ResultStorage(s);
+
+  if(igenloc->IsDefined()){
+    ((Instant*)result.addr)->CopyFrom(&(igenloc->instant));
+  }else{
+    ((Instant*)result.addr)->SetDefined(false);
+  }
+
+  return 0;
+}
+
 
 
 /*
@@ -3705,6 +3801,41 @@ int TMPassRegionValueMap(Word* args, Word& result, int message,
   Space* sp = (Space*)args[2].addr; 
   result = qp->ResultStorage(s);
   ((CcBool*)result.addr)->Set(true, genmo->Passes(reg, sp));
+
+  return 0;
+}
+
+/*
+distance: a genloc and a point 
+
+*/
+int TMGenLocPointValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenLoc* gloc = (GenLoc*)args[0].addr;
+  Point* p = (Point*)args[1].addr;
+  Space* sp = (Space*)args[2].addr; 
+  result = qp->ResultStorage(s);
+  
+  
+  ((CcReal*)result.addr)->Set(true, sp->Distance(gloc, p));
+
+  return 0;
+}
+
+/*
+distance: a genloc and a line
+
+*/
+int TMGenLocLineValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenLoc* gloc = (GenLoc*)args[0].addr;
+  Line* l = (Line*)args[1].addr;
+  Space* sp = (Space*)args[2].addr; 
+  result = qp->ResultStorage(s);
+
+  ((CcReal*)result.addr)->Set(true, sp->Distance(gloc, l));
 
   return 0;
 }
@@ -3800,6 +3931,11 @@ int TMBuildIdValueMap(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*)result.addr; 
   
+  if(refid == 0){
+    res->Set(true, -1);
+    return 0;
+  }
+  
   if(sp->IsDefined()){
      InfraRef inf_ref;
      int i = 0;
@@ -3851,6 +3987,69 @@ int TMBuildIdValueMap(Word* args, Word& result, int message,
 
 
 /*
+extract the room id from a reference id 
+
+*/
+int TMRoomIdValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  int refid = ((CcInt*)args[0].addr)->GetIntval();
+  Space* sp = (Space*)args[1].addr;
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*)result.addr; 
+  if(refid == 0){
+    res->Set(true, -1);
+    return 0;
+  }
+
+  if(sp->IsDefined()){
+     InfraRef inf_ref;
+     int i = 0;
+     for(;i < sp->Size();i++){
+        sp->Get(i, inf_ref);
+        if(inf_ref.infra_type == IF_INDOOR || inf_ref.infra_type == IF_GROOM){
+          break;
+        }
+     }
+     if(i == sp->Size()){
+        cout<<"no indoor infrastructure "<<endl;
+        res->Set(true, -1);
+        return 0;
+     }
+     
+
+      char buffer1[64];
+      sprintf(buffer1, "%d", inf_ref.ref_id_low);
+      char buffer2[64];
+      sprintf(buffer2, "%d", inf_ref.ref_id_high);
+      string number1(buffer1);
+      string number2(buffer2);
+      if(number1.length() != number2.length()){
+        cout<<"all building ids should be reset so that having the same \
+              nubmer of digits"<<endl;
+        res->Set(true, -1);
+        return 0;
+      }
+
+      char buffer3[64];
+      sprintf(buffer3,"%d", refid);
+      string number3(buffer3);
+//      cout<<"before "<<number3<<endl;
+      string room_id = number3.substr(number1.length(),
+                                      number3.length() - number1.length());
+//      cout<<"after "<<b_id<<endl;
+      int val = 0;
+      sscanf(room_id.c_str(), "%d", &val);
+      assert(val >= 1);
+      res->Set(true, val);
+  }else
+     res->Set(true, -1);
+
+  return 0;
+}
+
+/*
 combine two integers to get a new integer 
 
 */
@@ -3876,6 +4075,26 @@ int TMPlusIdValueMap(Word* args, Word& result, int message,
   sscanf(buffer1, "%d", &new_id);
 
   res->Set(true, new_id);
+  return 0;
+}
+
+
+/*
+create a genloc by input 
+
+*/
+int TMGenLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  int oid = ((CcInt*)args[0].addr)->GetIntval();
+  float loc1 = ((CcReal*)args[1].addr)->GetRealval();
+  float loc2 = ((CcReal*)args[2].addr)->GetRealval();
+  Loc loc(loc1, loc2);
+
+  result = qp->ResultStorage(s);
+  GenLoc* gloc = (GenLoc*)result.addr; 
+  gloc->SetValue(oid, loc);
+
   return 0;
 }
 
@@ -4209,12 +4428,32 @@ get the referenced objects for a generic moving object
 int AtPeriodsValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier in_pSupplier)
 {
+
   result = qp->ResultStorage( in_pSupplier );
   GenMO* mo = ((GenMO*)args[0].addr);
   Periods* peri = (Periods*) args[1].addr;
   GenMO* pResult = (GenMO*)result.addr;
 
   mo->AtPeriods(peri, *pResult);
+
+  return 0;
+}
+
+
+/*
+map a genmo to a mpoint 
+
+*/
+int MapGenMOValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  result = qp->ResultStorage( in_pSupplier );
+  GenMO* genmo = ((GenMO*)args[0].addr);
+  MPoint* mp = (MPoint*) args[1].addr;
+  MPoint* pResult = (MPoint*)result.addr;
+
+  if(genmo->IsDefined() && genmo->GetNoComponents() > 0)
+     genmo->MapGenMO(mp, *pResult);
   return 0;
 }
 
@@ -4913,6 +5152,130 @@ int GenerateGMOBench2ListValueMap(Word* args, Word& result, int message,
       }
   }
   return 0;
+
+}
+
+
+/*
+create benchmark generic moving objects based NN searching
+
+*/
+int GenerateGMOBench3ListValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        Relation* rel = (Relation*)args[3].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[4].addr; 
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateGenMOBench3(sp, peri,  mo_no, rel, rtree);
+
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+
+          if(mo->count == mo->trip1_list.size()) return CANCEL;
+//          if(mo->count == mo->loc_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(mo->resulttype);
+           tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+           tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
+//          tuple->PutAttribute(2,new Point(mo->loc_list1[mo->count]));
+//          tuple->PutAttribute(3,new Rectangle<2>(mo->rect_list1[mo->count]));
+
+//           tuple->PutAttribute(0,new Point(mo->loc_list1[mo->count]));
+//           tuple->PutAttribute(1,new Rectangle<2>(mo->rect_list1[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+/*
+create benchmark generic moving objects based NN searching
+
+*/
+int GenerateGMOBench4ListValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        Relation* rel1 = (Relation*)args[3].addr;
+        Relation* rel2 = (Relation*)args[4].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[5].addr; 
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateGenMOBench4(sp, peri,  mo_no, rel1, rel2, rtree);
+
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+
+          if(mo->count == mo->trip1_list.size()) return CANCEL;
+//          if(mo->count == mo->loc_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(mo->resulttype);
+           tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+           tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
+//        tuple->PutAttribute(2,new MPoint3D(mo->indoor_mo_list2[mo->count]));
+
+//          tuple->PutAttribute(2,new Point(mo->loc_list1[mo->count]));
+//          tuple->PutAttribute(3,new Rectangle<2>(mo->rect_list1[mo->count]));
+
+//         tuple->PutAttribute(0, new Point(mo->loc_list1[mo->count]));
+//         tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));
+//         tuple->PutAttribute(2, new Rectangle<2>(mo->rect_list1[mo->count]));
+//         tuple->PutAttribute(3, new Point(mo->loc_list3[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
   
 }
 
@@ -5366,8 +5729,9 @@ int RefIdOpSelect(ListExpr args)
 }
 
 ValueMapping TMATValueMapVM[]={
-  TMATValueMap
-//  GenLocATValueMap,
+  TMATTMValueMap,
+  TMATGenLocValueMap,
+  TMATPointValueMap
 };
 
 ValueMapping TMContainValueMapVM[]={
@@ -5380,6 +5744,11 @@ ValueMapping TMPassValueMapVM[]={
   TMPassRegionValueMap,
 };
 
+ValueMapping TMDistanceValueMapVM[]={
+  TMGenLocPointValueMap,
+  TMGenLocLineValueMap,
+};
+
 int TMATOpSelect(ListExpr args)
 {
   ListExpr arg2 = nl->Second(args);
@@ -5388,8 +5757,11 @@ int TMATOpSelect(ListExpr args)
     return 0;
   if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genloc"))
     return 1;
-  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genrange"))
+/*  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genrange"))
+    return 2;*/
+  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "point"))
     return 2;
+
   return -1;
 }
 
@@ -5411,7 +5783,10 @@ int TMContainOpSelect(ListExpr args)
   return -1;
 }
 
+/*
+tm pass (genmo, point or region, space)
 
+*/
 int TMPassOpSelect(ListExpr args)
 {
   ListExpr arg1 = nl->First(args);
@@ -5426,10 +5801,32 @@ int TMPassOpSelect(ListExpr args)
   return -1;
 }
 
+/*
+tm distance (genmo, point, space)
+
+*/
+int TMDistanceOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  
+  if(nl->SymbolValue(arg1) == "genloc" && 
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "point" && nl->SymbolValue(arg3) == "space")
+    return 0;
+  if(nl->SymbolValue(arg1) == "genloc" && 
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "line" && nl->SymbolValue(arg3) == "space")
+    return 1;
+
+  return -1;
+}
 
 ValueMapping SetRefIdValueMapVM[]={
   GenMORefIdGenLocValueMap,
-  GenRangeRefIdGenLocValueMap
+  GenRangeRefIdGenLocValueMap,
+  Door3DRefIdGenLocValueMap,
 };
 
 
@@ -5444,6 +5841,9 @@ int GenMORefIdOpSelect(ListExpr args)
     return 0;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "genrange"))
     return 1;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "door3d"))
+    return 2;
+  
   return -1;
 }
 
@@ -5482,7 +5882,8 @@ ListExpr SetRefIdTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
-  if(nl->IsEqual(arg1, "genmo") ||nl->IsEqual(arg1, "genrange"))
+  if(nl->IsEqual(arg1, "genmo") || 
+    nl->IsEqual(arg1, "genrange") || nl->IsEqual(arg1, "door3d"))
     return nl->TwoElemList(nl->SymbolAtom("stream"),nl->SymbolAtom("int"));
 
   return nl->SymbolAtom("typeerror");
@@ -5503,7 +5904,7 @@ ListExpr TMATTypeMap(ListExpr args)
 
   if(nl->IsEqual(arg1, "genmo") && 
     (nl->SymbolValue(arg2) == "string" || nl->IsEqual(arg2, "genloc") ||
-     nl->IsEqual(arg2, "genrange")))
+     nl->IsEqual(arg2, "point")))
     return nl->SymbolAtom("genmo");
 
   return nl->SymbolAtom("typeerror");
@@ -5513,7 +5914,7 @@ ListExpr TMATTypeMap(ListExpr args)
 TypeMap function for operator val  
 
 */
-ListExpr TMVALTypeMap(ListExpr args)
+ListExpr TMValTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 1){
       string err = "one parameters expected";
@@ -5523,6 +5924,24 @@ ListExpr TMVALTypeMap(ListExpr args)
 
   if(nl->IsEqual(arg1, "igenloc"))
     return nl->SymbolAtom("genloc");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator inst
+
+*/
+ListExpr TMInstTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "igenloc"))
+    return nl->SymbolAtom("instant");
 
   return nl->SymbolAtom("typeerror");
 }
@@ -5608,6 +6027,26 @@ ListExpr TMBuildIdTypeMap(ListExpr args)
 }
 
 /*
+TypeMap function for operator tm room id 
+
+*/
+ListExpr TMRoomIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "space"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 TypeMap function for operator tm plus id 
 
 */
@@ -5634,7 +6073,7 @@ TypeMap function for operator tm pass
 ListExpr TMPassTypeMap(ListExpr args)
 {
   if(nl->ListLength(args) != 3){
-      string err = "two parameters expected";
+      string err = "three parameters expected";
       return listutils::typeError(err);
   }
   
@@ -5650,6 +6089,51 @@ ListExpr TMPassTypeMap(ListExpr args)
 }
 
 
+/*
+TypeMap function for operator tm distance
+
+*/
+ListExpr TMDistanceTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genloc") &&  nl->IsEqual(arg3, "space")){
+    if(nl->IsEqual(arg2, "point") || nl->IsEqual(arg2, "line"))
+    return nl->SymbolAtom("real");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm genloc
+
+*/
+ListExpr TMGenLocTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "int") &&  nl->IsEqual(arg2, "real") && 
+     nl->IsEqual(arg3, "real")){
+    return nl->SymbolAtom("genloc");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 TypeMap function for operator deftime 
@@ -5807,6 +6291,29 @@ ListExpr AtPeriodsTypeMap(ListExpr args)
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
+
+
+
+/*
+TypeMap function for operator mapgenmo
+
+*/
+ListExpr MapGenMOTypeMap(ListExpr args)
+{
+  if ( nl->ListLength( args ) == 2 ){
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, MPoint::BasicType() ) )
+    {
+
+      if( nl->IsEqual( arg1, GenMO::BasicType() ) )
+        return nl->SymbolAtom( MPoint::BasicType() );
+    }
+  }
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
 
 /*
 TypeMap function for operator the space
@@ -6096,6 +6603,217 @@ ListExpr GenerateGMOBench2ListTypeMap(ListExpr args)
 
     return result;
 }
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench3ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(GenMObject::NNBuilding, xType);
+  if(!CompareSchemas(arg4, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg5 = nl->Fifth(args);
+
+  if(!listutils::isRTreeDescription(arg5))
+    return listutils::typeError("para5 should be an rtree");
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->FourElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                     nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                     nl->SymbolAtom("mpoint")),
+//                         nl->TwoElemList(nl->SymbolAtom("QLoc"),
+//                                      nl->SymbolAtom("point")),
+//                          nl->TwoElemList(nl->SymbolAtom("NNB"),
+//                                      nl->SymbolAtom("rect"))
+//                   )
+//                 )
+//           );
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->TwoElemList(
+//                       nl->TwoElemList(nl->SymbolAtom("QLoc"),
+//                                     nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("NNB"),
+//                                     nl->SymbolAtom("rect"))
+//                   )
+//                 )
+//           );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench4ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "six input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+ 
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType1;
+  nl->ReadFromString(GenMObject::BenchModeDISTR, xType1);
+  if(!CompareSchemas(arg4, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  
+  ListExpr arg5 = nl->Fifth(args);
+
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para5 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(GenMObject::NNBuilding, xType2);
+  if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg6 = nl->Sixth(args);
+
+  if(!listutils::isRTreeDescription(arg6))
+    return listutils::typeError("para6 should be an rtree");
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->ThreeElemList(
+//                       nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                     nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                     nl->SymbolAtom("mpoint")),
+//                         nl->TwoElemList(nl->SymbolAtom("IndoorTrip"),
+//                                     nl->SymbolAtom("mpoint3d"))
+// 
+//                   )
+//                 )
+//           );
+
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->FourElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("QLoc"),
+//                                     nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("StartStop"),
+//                                     nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("NNB"),
+//                                     nl->SymbolAtom("rect")),
+//                         nl->TwoElemList(nl->SymbolAtom("EndStop"),
+//                                     nl->SymbolAtom("point"))
+// 
+//                   )
+//                 )
+//           );
+
+    return result;
+}
+
 
 /*
 TypeMap function for operator get rg ndoes
@@ -6418,7 +7136,7 @@ Operator ref_id("ref_id",
 
 Operator setref_id("ref_id",
     SpatialSpecSetMORefId,
-    2,
+    3,
     SetRefIdValueMapVM,
     GenMORefIdOpSelect,
     SetRefIdTypeMap
@@ -6427,21 +7145,28 @@ Operator setref_id("ref_id",
 
 Operator tm_at("tm_at",
     SpatialSpecTMAT,
-    1,
+    3,
     TMATValueMapVM,
     TMATOpSelect,
     TMATTypeMap
 );
 
-Operator tm_val("tm_val",
-    SpatialSpecTMVAL,
+Operator tm_val("val",
+    SpatialSpecTMVal,
     TMValValueMap,
     Operator::SimpleSelect,
-    TMVALTypeMap
+    TMValTypeMap
+);
+
+Operator tm_inst("inst",
+    SpatialSpecTMInst,
+    TMInstValueMap,
+    Operator::SimpleSelect,
+    TMInstTypeMap
 );
 
 
-Operator tm_contain("tm_contain",
+Operator tm_contain("contains",
     SpatialSpecTMContain,
     2,
     TMContainValueMapVM,
@@ -6457,14 +7182,14 @@ Operator tm_duration("tm_duration",
     TMDurationTypeMap
 );
 
-Operator tm_initial("tm_initial",
+Operator tm_initial("initial",
     SpatialSpecTMInitial,
     TMInitialValueMap,
     Operator::SimpleSelect,
     TMInitialTypeMap
 );
 
-Operator tm_final("tm_final",
+Operator tm_final("final",
     SpatialSpecTMInitial,
     TMFinalValueMap,
     Operator::SimpleSelect,
@@ -6477,6 +7202,14 @@ Operator tm_build_id("tm_build_id",
     Operator::SimpleSelect,
     TMBuildIdTypeMap
 );
+
+Operator tm_room_id("tm_room_id",
+    SpatialSpecTMRoomId,
+    TMRoomIdValueMap,
+    Operator::SimpleSelect,
+    TMRoomIdTypeMap
+);
+
 
 Operator tm_plus_id("tm_plus_id",
     SpatialSpecTMPlusId,
@@ -6493,6 +7226,21 @@ Operator tm_passes("tm_passes",
     TMPassTypeMap
 );
 
+Operator tm_distance("tm_distance",
+    SpatialSpecTMDistance,
+    2,
+    TMDistanceValueMapVM,
+    TMDistanceOpSelect,
+    TMDistanceTypeMap
+);
+
+
+Operator tm_genloc("tm_genloc",
+    SpatialSpecTMGenLoc,
+    TMGenLocValueMap,
+    Operator::SimpleSelect,
+    TMGenLocTypeMap
+);
 
 int TMDeftimeOpSelect(ListExpr args)
 {
@@ -6667,7 +7415,7 @@ Operator getref("getref",
     GetRefTypeMap
 );
 
-Operator tm_atinstant("tm_atinstant",
+Operator tm_atinstant("atinstant",
     SpatialSpecAtInstant,
     AtInstantValueMap,
     Operator::SimpleSelect,
@@ -6675,11 +7423,19 @@ Operator tm_atinstant("tm_atinstant",
 );
 
 
-Operator tm_atperiods("tm_atperiods",
+Operator tm_atperiods("atperiods",
     SpatialSpecAtPeriods,
     AtPeriodsValueMap,
     Operator::SimpleSelect,
     AtPeriodsTypeMap
+);
+
+
+Operator mapgenmo("mapgenmo",
+    SpatialSpecMapGenMO,
+    MapGenMOValueMap,
+    Operator::SimpleSelect,
+    MapGenMOTypeMap
 );
 
 
@@ -7300,6 +8056,21 @@ Operator generate_bench_2("generate_bench_2",
     GenerateGMOBench2ListValueMap,
     Operator::SimpleSelect,
     GenerateGMOBench2ListTypeMap
+);
+
+Operator generate_bench_3("generate_bench_3",
+    SpatialSpecGenerateGMOBench3TMList,
+    GenerateGMOBench3ListValueMap,
+    Operator::SimpleSelect,
+    GenerateGMOBench3ListTypeMap
+);
+
+
+Operator generate_bench_4("generate_bench_4",
+    SpatialSpecGenerateGMOBench4TMList,
+    GenerateGMOBench4ListValueMap,
+    Operator::SimpleSelect,
+    GenerateGMOBench4ListTypeMap
 );
 
 
@@ -22290,7 +23061,6 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getregion);//2D area for a room 
     AddOperator(&getheight);//height for a room 
     AddOperator(&thedoor);//create a doo3d object 
-    AddOperator(&oid_of_door);//lift or non-lift 
     AddOperator(&type_of_door);//lift or non-lift 
     AddOperator(&loc_of_door); //relative location in one room 
     AddOperator(&state_of_door); //time dependent state:open closed 
@@ -22319,9 +23089,6 @@ class TransportationModeAlgebra : public Algebra
     //////////////  indoor navigation ////////////////////////////////////////
     AddOperator(&indoornavigation);indoornavigation.SetUsesArgsInTypeMapping();
     ////////////////////////////////////////////////////////////////////
-    /////////////////  others  /////////////////////////////////////////
-    AddOperator(&instant2day); 
-    ////////////////////////////////////////////////////////////////////
     //////////////////2D areas for buildings///////////////////////////
     ///////////////////////////////////////////////////////////////////
     AddOperator(&maxrect); //get the maximum rect in a region
@@ -22333,13 +23100,17 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&ref_id); 
     AddOperator(&tm_at);//at mode, at genloc
     AddOperator(&tm_val);//get genloc for intimegenloc 
+    AddOperator(&tm_inst);//get instant for intimegenloc 
     AddOperator(&tm_contain);//genmo contain a transportation mode 
     AddOperator(&tm_duration);//return minutes of a periods 
     AddOperator(&tm_initial);//initial intime genloc for genmo 
     AddOperator(&tm_final);//initial intime genloc for genmo 
     AddOperator(&tm_build_id);//get the building id of an indoor reference
+    AddOperator(&tm_room_id);//get the room id of an indoor reference
     AddOperator(&tm_plus_id);//plus two integers 
     AddOperator(&tm_passes);// passes(genmo,...., space)
+    AddOperator(&tm_distance);//distance(gloc, point, space)
+    AddOperator(&tm_genloc);// int x real x real to a genloc 
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -22354,6 +23125,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getref);//get referenced infrastructure objects 
     AddOperator(&tm_atinstant);//get intimegenloc for genmo x instant 
     AddOperator(&tm_atperiods);//get for genmo x periods  
+    AddOperator(&mapgenmo);//map genmo (reference to a mpoint) to a mp
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -22377,9 +23149,10 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_genmo);//create generate moving objects 
    ////////////////////////////////////////////////////////////////////////
    ////////////////// benchmark operators /////////////////////////////////
-   AddOperator(&generate_bench_1);//regular movement 
+   AddOperator(&generate_bench_1);//regular movement and trip planning
    AddOperator(&generate_bench_2);// movement in one environment 
-
+   AddOperator(&generate_bench_3);// movement based on NN search car
+   AddOperator(&generate_bench_4);// movement based on NN search tax,bus,metro
 
    /////////////////////////////////////////////////////////////////////////
    //////////////// improve shortest path computing in road network////////
@@ -22419,6 +23192,8 @@ class TransportationModeAlgebra : public Algebra
    //    AddOperator(&getsections); //get road network sections 
    //    AddOperator(&getpaveedge1);//comment it out for debuging
    //    AddOperator(&getpaveedge2);  ///comment it out for debuging
+   /////////////////  others  /////////////////////////////////////////
+   //    AddOperator(&instant2day); 
 
   }
   ~TransportationModeAlgebra() {};

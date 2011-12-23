@@ -859,6 +859,7 @@ Word CloneBusNetwork( const ListExpr typeInfo, const Word& w );
 int SizeOfBusNetwork();
 bool CheckBusNetwork( ListExpr type, ListExpr& errorInfo ); 
 
+#define BUSWAITING 30.0 
 
 struct MyPoint_Tid:public MyPoint{
     int tid; 
