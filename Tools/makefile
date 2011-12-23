@@ -38,7 +38,6 @@ makedirsnormal:
 	$(MAKE) -C Parser
 	$(MAKE) -C Utilities
 	$(MAKE) -C pd 
-	$(MAKE) -C RStarTree
 	$(MAKE) -C SyntaxParser
 
 .PHONY: makedirsjni
