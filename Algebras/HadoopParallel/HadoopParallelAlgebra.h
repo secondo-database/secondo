@@ -64,6 +64,7 @@ And includes one method:
 
 const int MAX_COPYTIMES = 5;
 const size_t MAX_FILEHANDLENUM = 100;
+const string dbLoc = "<READ DB/>";
 
 string
 tranStr(const string& s, const string& from, const string& to);
@@ -335,11 +336,13 @@ class clusterInfo
 {
 public:
   clusterInfo();
+  clusterInfo(clusterInfo& rhg);
+//  clusterInfo(NList& instance);
 
-  string getRemotePath(size_t loc, string filePrefix,
+  string getRemotePath(size_t loc, string fileName,
       bool round = false,
-      bool createPath = true,
-      bool attachIP = true,
+/*      bool createPath = true,*/
+      bool attachTargetIP = true,
       bool attachProducerIP = false,
       string producerIP = "");
   string getIP(size_t loc, bool round = false);
@@ -376,8 +379,8 @@ then the ~searchLocalNode~ function cannot return a correct result.
     return result;
   }
 
-  inline bool isOK(){  return ok;  }
-  inline int getLines(){
+  inline bool isOK(){  return available;  }
+  inline size_t getClusterSize(){
     if (disks)
       return disks->size();
     else
@@ -386,13 +389,15 @@ then the ~searchLocalNode~ function cannot return a correct result.
 
   void print();
 
+  NList toNestedList();
+  bool covers(NList& clusterList);
+
 private:
   string ps_master;
   string ps_slaves;
-  string fileName;
   typedef pair<string, pair<string, int> > diskDesc;
   vector<diskDesc> *disks;
-  bool ok;
+  bool available;
   int localNode;
   int masterNode;
 
@@ -721,10 +726,17 @@ class fList
 {
 public:
   fList(string objectName, NList typeList,
-        NList nodeList, NList fileLocList,
-        size_t dupTime, bool isAvailable = false);
+      clusterInfo *ci,NList fileLocList,
+      size_t dupTime,
+      bool isInDB = false,
+      bool isDistributed = false,
+      bool isAvailable = false);
   fList(fList& rhg);
-  ~fList();
+  ~fList()
+  {
+    if (isAvailable)
+      delete currentCluster;
+  }
 
   static Word In(const ListExpr typeInfo,
                  const ListExpr instance,
@@ -764,30 +776,37 @@ public:
   int SizeOfObj();
   inline bool isOK() { return isAvailable; }
 
+  string getPartitionFileLoc(size_t row, size_t column);
+
   //Get the next possible location of a cell file
   size_t getNextLoc(size_t rowNum, size_t columnNum);
+
 private:
   fList() {}
 
   string objName;
   NList objectType;
-  NList nodesList;
-  NList fileLocList;
+  clusterInfo *currentCluster;
 
+  NList fileLocList;
   size_t dupTimes; // duplicate times
+  bool inDB; //distributed objects are kept in Secondo databases
   bool isAvailable;
-  int mrNum, // matrix row number,
-      mcNum; // matrix column number,
+  size_t  mrNum, // matrix row number
+          mcNum; // matrix column number
+  bool isDistributed;
 
   bool setLocList(NList fllist);
   void verifyLocList();
   inline string getObjName(){ return objName; }
-  inline int getNodesNum()  { return nodesList.length(); }
+  inline int getNodesNum()  { return currentCluster->getClusterSize(); }
   inline int getMtxRowNum() { return mrNum; }
   inline int getMtxColNum() { return mcNum; }
   inline int getDupTimes() { return dupTimes; }
   inline NList getTypeList() { return objectType; }
-  inline NList getNodeList() { return nodesList; }
+  inline NList getNodeList() {
+    return currentCluster->toNestedList();
+  }
   inline NList getLocList() { return fileLocList; }
 
   friend class ConstructorFunctions<fList>;

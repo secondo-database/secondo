@@ -3258,11 +3258,15 @@ struct DisplayFileList : DisplayFunction {
       cout << Symbol::UNDEFINED();
     }
     else {
+
       string objName = nl->StringValue(nl->First(value));
       ListExpr objType = nl->Second(value);
       ListExpr nodeList = nl->Third(value);
       ListExpr locList = nl->Fourth(value);
       size_t dupTimes = nl->IntValue(nl->Fifth(value));
+      bool inDB = nl->BoolValue(nl->Sixth(value));
+      bool isDistributed = nl->BoolValue(nl->Nth(7, value));
+
       cout << "Name : " << objName << endl;
       string typeStr;
       nl->WriteToString(typeStr, objType);
@@ -3270,45 +3274,54 @@ struct DisplayFileList : DisplayFunction {
 
       int nlLen = nl->ListLength(nodeList);
       cout << "Cluster with total " << nlLen << " nodes.\n";
-      cout << " - Master: \n  1.  "
-          << nl->StringValue(nl->First(nodeList)) << endl;
+      cout << " - Master: \n  0.  "
+          << nl->StringValue(nl->Second(nl->First(nodeList))) << ":"
+          << nl->IntValue(nl->Fourth(nl->First(nodeList)))
+          << endl;
       cout << " - Slaves: \n";
       ListExpr rest = nl->Rest(nodeList);
-      int idx = 2;
+      int idx = 1;
       while (!nl->IsEmpty(rest))
       {
         cout <<"  " << (idx++) << ".  "
-            << nl->StringValue(nl->First(rest)) << endl;
+            << nl->StringValue(nl->Second(nl->First(rest))) << ":"
+            << nl->IntValue(nl->Fourth(nl->First(rest)))
+            << endl;
         rest = nl->Rest(rest);
       }
 
-      cout << "nodeNo.\tsuffix\tdupNodes" << endl;
+      cout << "rowNo.\tcolumnNo.\tlocNode\tdupTimes" << endl;
+      size_t rowNum = 1;
       while (!nl->IsEmpty(locList))
       {
         ListExpr aRow = nl->First(locList);
-        size_t pnIdx = nl->IntValue(nl->First(aRow));
-        //primary node index
-        cout << pnIdx << ".";
-        ListExpr cfs = nl->Second(aRow);
 
-        stringstream cnList; //candidate nodes
-        for (size_t i = 0; i < dupTimes; i++)
-        {
-          int idx = ((pnIdx + 1 ) % nlLen) + 1;
-          cnList << nl->StringValue(nl->Nth(idx, nodeList)) << " / ";
-          pnIdx++;
+        size_t locNode = nl->IntValue(nl->First(aRow));
+
+        ListExpr cfs = nl->Second(aRow);
+        string dataLoc = nl->Text2String(nl->Third(aRow));
+        if (inDB){
+          dataLoc = "<READ DB/>";
         }
 
+        cout << rowNum << ".";
         while (!nl->IsEmpty(cfs))
         {
           ListExpr aCF = nl->First(cfs);
           cout << "\t_" << nl->IntValue(aCF)
-              << "\t" << cnList.str() << endl;
+              << "\t" << locNode << ":'" << dataLoc << "'"
+              << "\t" << dupTimes << endl;
           cfs = nl->Rest(cfs);
         }
+
         locList = nl->Rest(locList);
+        rowNum++;
       }
 
+      cout << "Data are '" <<
+          (inDB ? "SET" : "NOT" ) << "' in databases." << endl;
+      cout << "Data distribute status: " <<
+          (isDistributed ? "Done" :"Unknown" );
     }
   }
 };

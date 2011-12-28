@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 //[newpage] [\newpage]
+//[<] [$<$]
+//[>] [$>$]
+
 
 [1] Implementation of HadoopParallelAlgebra
 
@@ -1522,7 +1525,7 @@ clusterInfo::clusterInfo() :
     ps_slaves("PARALLEL_SECONDO_SLAVES"),
     localNode(-1), masterNode(0)
 {
-  ok = false;
+  available = false;
 
   //Scan both master and slave lists,
   //and build up a machine list, which insert the master first.
@@ -1530,7 +1533,7 @@ clusterInfo::clusterInfo() :
   {
     bool isMaster = ( (0 == i) ? true : false);
     if ( 0 == i )
-      disks = new vector<pair<string, pair<string, int> > >();
+      disks = new vector<diskDesc>();
 
     char *ev;
     ev = isMaster ?
@@ -1544,7 +1547,7 @@ clusterInfo::clusterInfo() :
       return;
     }
 
-    fileName = string(ev);
+    string fileName = string(ev);
     if (fileName.length() == 0){
         cerr << "Environment variable "
              << (isMaster ? ps_master : ps_slaves)
@@ -1606,7 +1609,7 @@ clusterInfo::clusterInfo() :
         }
       }
       if (noRepeat){
-        disks->push_back(pair<string, pair<string, int> >(
+        disks->push_back(diskDesc(
             ipAddr, pair<string, int>(cfPath, port)));
       }
       else{
@@ -1638,7 +1641,59 @@ clusterInfo::clusterInfo() :
   }
 
   // The node list is built up correctly.
-  ok = true;
+  available = true;
+}
+
+clusterInfo::clusterInfo(clusterInfo& rhg):
+    ps_master(rhg.ps_master),
+    ps_slaves(rhg.ps_slaves),
+    available(rhg.available),
+    localNode(rhg.localNode),
+    masterNode(rhg.masterNode)
+{
+  disks = new vector<diskDesc>(rhg.disks->size());
+  vector<diskDesc>::iterator iter = rhg.disks->begin();
+  while (iter != rhg.disks->end()){
+    disks->push_back(diskDesc(iter->first,
+      pair<string, int>(iter->second.first, iter->second.second)));
+    iter++;
+  }
+}
+
+/*
+Read a clusterInfo from a nested list,
+which must be a sub set of the current cluster.
+
+*/
+bool clusterInfo::covers(NList& clusterList)
+{
+
+  NList newCluster(clusterList);
+  while (!newCluster.isEmpty()){
+    NList slave = newCluster.first();
+
+    if (slave.length() != 4 )
+      return false;
+
+    int index       = slave.first().intval();
+    string IPAddr   = slave.second().str();
+    string filePath = slave.third().str();
+    int port        = slave.fourth().intval();
+
+    if ((disks->at(index).first.compare(IPAddr) != 0)
+     || (disks->at(index).second.first.compare(filePath) != 0)
+     || (disks->at(index).second.second != port))
+    {
+      cerr << "The import cluster is not "
+          "a sub set of the current cluster" << endl;
+      return false;
+    }
+
+    newCluster.rest();
+  }
+
+  return true;
+
 }
 
 /*
@@ -1735,13 +1790,16 @@ vector<string>* clusterInfo::getAvailableIPAddrs()
 
 /*
 Get the remote file path, make sure the remote is accessible.
+
+
 All files are divided into sub-folders according to their prefix names.
-If the sub-folder is not exit, then create it
+If the sub-folder is not exit, then create it.
+(This feature is disabled, as it's too expensive)
 
 */
 
-string clusterInfo::getRemotePath(size_t loc, string filePrefix,
-    bool round, bool createPath, bool attachIP,
+string clusterInfo::getRemotePath(size_t loc, string fileName,
+    bool round, /*bool createPath, */bool attachTargetIP,
     bool attachProducerIP, string producerIP)
 {
   string remotePath = "";
@@ -1750,15 +1808,17 @@ string clusterInfo::getRemotePath(size_t loc, string filePrefix,
 
   string IPAddr = (*disks)[loc].first;
   string rfPath = (*disks)[loc].second.first;
-  if (attachProducerIP)
-  {
-    if (producerIP.length() == 0)
-      producerIP = getLocalIP();
-    filePrefix += ("_" + producerIP);
+  if (fileName.length() > 0){
+    if (attachProducerIP)
+    {
+      if (producerIP.length() == 0)
+        producerIP = getLocalIP();
+      fileName += ("_" + producerIP);
+    }
+    FileSystem::AppendItem(rfPath, fileName);
   }
-  FileSystem::AppendItem(rfPath, filePrefix);
 
-  remotePath = (attachIP ? (IPAddr + ":") : "") + rfPath;
+  remotePath = (attachTargetIP ? (IPAddr + ":") : "") + rfPath;
   return remotePath;
 }
 
@@ -1819,7 +1879,7 @@ then it will be viewed as a normal slave node.
 
 void clusterInfo::print()
 {
-  if (ok)
+  if (available)
   {
     int counter = 0;
     cout << "\n---- PARALLEL_SECONDO_SLAVES list ----" << endl;
@@ -1834,6 +1894,34 @@ void clusterInfo::print()
     cout << "---- PARALLEL_SECONDO_SLAVES ends ----\n" << endl;
   }
 }
+
+NList clusterInfo::toNestedList()
+{
+  if (available)
+  {
+    NList output;
+    vector<diskDesc>::iterator iter = disks->begin();
+    int counter = 0;
+    while (iter != disks->end())
+    {
+      NList slave(
+          NList(counter),
+          NList(iter->first, true, false),
+          NList(iter->second.first, true, true),
+          NList(iter->second.second));
+      output.append(slave);
+
+      iter++;
+      counter++;
+    }
+    return output;
+  }
+  else
+  {
+    return NList();
+  }
+}
+
 /*
 5 Operator ~fconsume~
 
@@ -2052,7 +2140,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if ( len != 4)
     return l.typeError(lengthErr);
 
-  string filePrefix, filePath;
+  string filePreName, filePath;
   bool trMode, drMode;
   drMode = trMode = false;
   int tNode[2] = {-1, -1};
@@ -2090,8 +2178,8 @@ ListExpr FConsumeTypeMap(ListExpr args)
     NList fnList;
     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
       return l.typeError(err3 + "file prefix name");
-    filePrefix = fnList.str();
-    if (0 == filePrefix.length())
+    filePreName = fnList.str();
+    if (0 == filePreName.length())
       return l.typeError(err1);
     NList fpList;
     if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
@@ -2138,7 +2226,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
   }
 
   //Type Checking is done, create the type file.
-  filePath = getLocalFilePath(filePath, filePrefix, "_type");
+  filePath = getLocalFilePath(filePath, filePreName, "_type");
   if (filePath.length() == 0)
     return l.typeError(err2 +
         "Type file path is unavailable, check the SecondoConfig.ini.");
@@ -2159,9 +2247,10 @@ ListExpr FConsumeTypeMap(ListExpr args)
   if (trMode || drMode)
   {
     clusterInfo *ci = new clusterInfo();
+
     if (!ci->isOK())
       return l.typeError(err8);
-    int sLen = ci->getLines();
+    int sLen = ci->getClusterSize();
     //Copy type files to remote location
     for (int i = 0; i < 2; i++)
     {
@@ -2169,7 +2258,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
       {
         if ( tNode[i] < sLen )
         {
-          string rPath = ci->getRemotePath(tNode[i], (filePrefix + "_type"));
+          string rPath = ci->getRemotePath(tNode[i], (filePreName + "_type"));
           cerr << "Copy type file to -> \t" << rPath << endl;
           if ( 0 !=
               (system((scpCommand + filePath + " " + rPath).c_str())))
@@ -2238,7 +2327,7 @@ int FConsumeValueMap(Word* args, Word& result,
     if (drMode)
     {
       ci = new clusterInfo();
-      if ((ti > ci->getLines()))
+      if ((ti > (int)ci->getClusterSize()))
       {
         ci->print();
         cerr <<
@@ -2352,7 +2441,7 @@ int FConsumeValueMap(Word* args, Word& result,
       string pdrIP = ci->getIP(localNode);
 
       //Avoid copying file to a same node repeatedly
-      int cLen = ci->getLines();
+      int cLen = ci->getClusterSize();
       bool copyList[cLen];
       memset(copyList, false, cLen);
       for (int i = 0; i < dt; i++, ti++)
@@ -2376,7 +2465,7 @@ int FConsumeValueMap(Word* args, Word& result,
           else
           {
             string rPath = ci->getRemotePath(
-                i, relName, true, true, true, true);
+                i, relName, true, /*true,*/ true, true);
 //            FileSystem::AppendItem(rPath,
 //                (relName + fileSuffix + "_" + pdrIP ));
             cerr << "Copy " << filePath
@@ -2700,7 +2789,7 @@ ListExpr FFeedTypeMap(ListExpr args)
     if (!ci->isOK())
       return l.typeError(err10);
 
-    int sLen = ci->getLines();
+    int sLen = ci->getClusterSize();
     if (tnIndex > sLen)
     {
       ci->print();
@@ -2708,7 +2797,7 @@ ListExpr FFeedTypeMap(ListExpr args)
     }
 
     string rPath = ci->getRemotePath(tnIndex, (fileName + "_type"),
-        false, false);
+        false/*, false*/);
     //put the type file into a temporary file
     filePath = FileSystem::MakeTemp(filePath);
     cerr << "Copy the type file " << filePath
@@ -2944,7 +3033,8 @@ Or else, the fileFound is false.
           "correctly set up." << endl;
       return false;
     }
-    if ((tgi >= ci->getLines()) || (pdi >= ci->getLines()))
+    if ((tgi >= (int)ci->getClusterSize())
+     || (pdi >= (int)ci->getClusterSize()))
     {
       cerr << "ERROR!Producer or target serious number is out of"
           "the range of the slave list." << endl;
@@ -2972,7 +3062,7 @@ if the target machine is not the producer.
       bool attachProducerIP = !(targetIndex == pdi);
       rFilePath = ci->getRemotePath(targetIndex, fileName + fileSuffix,
           true,   // may traverse the whole array
-          false,  // not create sub-folder
+/*          false,  // not create sub-folder*/
           true,   // attach with target node IP
           attachProducerIP,
           pdrIP);
@@ -3313,7 +3403,6 @@ ListExpr hdpJoinTypeMap(ListExpr args)
   NList drList = l.elem(7).first();
   if (!drList.isEmpty())
   {
-    cerr << "I want get the relation " << drList.convertToString() << endl;
     // Check the dataLocRel
     dre = true;
     NList drType = drList.first();
@@ -3326,6 +3415,12 @@ ListExpr hdpJoinTypeMap(ListExpr args)
          && drAttrList.second().second().isSymbol(FText::BasicType()))){
       return l.typeError(typeErr);
     }
+  }
+  else
+  {
+    cerr << "I want get the relation " << drList.convertToString()
+         << " to denote the  input file locations."<< endl;
+    return l.typeError(typeErr);
   }
 
   string mapStr = l.elem(8).second().fourth().convertToString();
@@ -3453,8 +3548,8 @@ int hdpJoinValueMap(Word* args, Word& result,
               "-----------------" << endl;
           return 0;
         }
-        int sIndex = 1;
-        while (sIndex < ci->getLines()){
+        size_t sIndex = 1;
+        while (sIndex < ci->getClusterSize()){
           dlList.append(NList(NList(sIndex),
                               NList("<READ DB/>", true, true)));
           sIndex++;
@@ -3839,7 +3934,7 @@ ListExpr FDistributeTypeMap(ListExpr args)
     }
 
     //scp filePath .. IP:loc/typeFileName
-    int sLen = ci->getLines();
+    int sLen = ci->getClusterSize();
     for (int i = 0; i < 2; i++)
     {
       if (tNode[i] >= 0)
@@ -4117,14 +4212,14 @@ bool FDistributeLocalInfo::startCloseFiles()
       "Is $PARALLEL_SECONDO_SLAVES correctly set up ?" << endl;
       return false;
     }
-    if(ci->getLines() < firstDupTarget)
+    if((int)ci->getClusterSize() < firstDupTarget)
     {
       cerr << "The first target node index is "
           "out of the range of slave list" << endl;
       return false;
     }
 
-    int cLen = ci->getLines();
+    int cLen = ci->getClusterSize();
     copyList = new bool[cLen];
     memset(copyList, false, cLen);
     int ti = firstDupTarget;
@@ -4188,7 +4283,7 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
     if (fi->isFileOpen())
       fi->closeFile();
     string filePath = fi->getFilePath();
-    int cLen = ci->getLines();
+    int cLen = ci->getClusterSize();
     bool keepLocal = false;
     for (int i = 0; i < cLen; i++)
     {
@@ -4206,7 +4301,7 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
           string rPath =
               ci->getRemotePath(i,(fi->getFileName()),
               true, // round
-              true, // createPath
+/*              true, // createPath*/
               true, // attachIP
               true); // attachProducerIP
 //          FileSystem::AppendItem(rPath,
@@ -4258,75 +4353,88 @@ need to be considered:
 
   * Object's pieces are kept in a series of binary files, start with a same name.
 
-The fList is used to negotiate the second situation.
+The fList is used to process both situations.
 
-Assume a Secondo relation is divided to ~n~ * ~p~ files,
-here ~n~ is the number of slave nodes of the cluster,
-and ~p~ is the number of partitions that this object is divided to
-on each slave node.
-The complete set of these files are called as a matrix-file,
-each file is called as a cell file,
-and each slave node keeps a row of this matrix, i.e. ~p~ cell files.
+Assume a Secondo relation is divided to ~r~ * ~c~ a matrix relation,
+with ~r~ rows and ~c~ columns. All part(cell) inside this metrix
+are all either stored in slaves' Secondo databases,
+or exported as data and type files, kept in slaves' file systems.
+If they are kept in database system, it must be a  ~n~ * 1 matrix,
+~n~ is the number of the slaves,
+as each slave database only has one part of the object with a same name.
+If the data are kept in partition files, then each slave may contain
+several rows of partition files.
 
-During the MapReduce parallel processing involving fList,
-each map or reduce task process one column cell files of the matrix file,
-and produce one row cell files of a new matrix file to the local node.
+For each fList, during the procedures with Hadoop jobs,
+each map task process one row data in the matrix relation,
+and divide it into columns of partition files after the internal processing.
+Each reduce task process one column partition files,
+and transpose it into one row of the output fList.
 
-To describe the distribution of a Secondo object, following attributes
-are required in the fList:
+A fList contains following variables:
 
-  * objectName
+  * objectName. The name of the distributed Secondo object. If data is
+distributed as Secondo objects in slaves, then all objects
+are named as this value. If data is distributed as partition files,
+then all these partition file names start with this value.
 
-  * objectType
+  * objectType. The schema of this distributed Secondo Object.
+At present, it must be a relation.
 
-  * nodesList
+  * nodesList. Indicate the locations of slaves where the data are distributed on.
+It's used to be set by user manually, but now can be read from
+the PARALLEL\_SECONDO\_SLAVES list when the fList is built up at the first time,
+and then is kept independently in the fList.
 
-  * fileLocList
+While reading an exist fList, and its kept nodesList is different from the
+current PARALLEL\_SECONDO\_SLAVES, then it will be marked as unavailable.
+The master node doesn't take part in the distribution of data.
 
-  * duplicateTimes
+  * fileLocList. Indicate the location of the objects.
 
-  * Available
+    * [<] READ DB / [>] : Here indicate the object is distributed as Secondo Objects in every slave Secondo databases.
 
-The ~objectName~ is the name of the Secondo object,
-also the prefix name of all cell files.
-The ~objectType~ describes the schema of the Secondo object.
-At present, the type must be a tuple relation.
-The ~nodesList~ contains the IP addresses of all nodes in the cluster,
-and the first node is viewed as the master node.
-The ~fileLocList~ indicates the location of the cell files.
-It uses slaves' indices in above ~nodesList~ as the indicator.
-In some cases, a cell file may be duplicated into several nodes,
-and the parameter ~duplicateTimes~ denotes the times of the duplication,
-which must not be less than 1.
-The last attribute is ~Available~, which denotes whether the last
-operator which created this list is successfully performed.
+    * [<] file path [>] : Here indicate the file location of a partition file, and it must be a absolute file path.
+
+    * null value : Here indicate the partition file is kept in the default file path, which is defined in master or slave list.
+
+  * duplicateTimes. Indicate the duplication times for each partition file.
+If data are distributed as Secondo objects, then this value must be 1.
+
+  * Available. Denotes whether the last operator which created this list is successfully performed.
+
+  * Distributed. A boolean used to indicate whether data are distributed.
 
 */
-fList::fList(string _on, NList _tl, NList _nl,
-    NList _fll, size_t _dp, bool _ia):
+fList::fList(string _on, NList _tl, clusterInfo* _ci,
+    NList _fll, size_t _dp, bool _idb, bool _idd, bool _ia):
     objName(_on), objectType(_tl),
-    nodesList(_nl), fileLocList(_fll),
-    dupTimes(_dp), isAvailable(_ia),
-    mrNum(0), mcNum(-1)
+    currentCluster(_ci),
+    fileLocList(_fll),
+    dupTimes(_dp),
+    inDB(_idb),
+    isAvailable(_ia),
+    mrNum(0), mcNum(-1),
+    isDistributed(_idd)
 {
-  if (isAvailable)
+  if (isAvailable){
     verifyLocList();
+  }
 }
 
 fList::fList(fList& rhg):
     objName(rhg.getObjName()),
     objectType(rhg.getTypeList()),
-    nodesList(rhg.getNodeList()),
+    currentCluster( new clusterInfo(*rhg.currentCluster)),
     fileLocList(rhg.getLocList()),
     dupTimes(rhg.getDupTimes()),
+    inDB(rhg.inDB),
     isAvailable(rhg.isAvailable),
     mrNum(rhg.getMtxRowNum()),
-    mcNum(rhg.getMtxColNum())
+    mcNum(rhg.getMtxColNum()),
+    isDistributed(rhg.isDistributed)
+{}
 
-{ }
-
-fList::~fList()
-{ }
 
 /*
 9.1 fList::In Function
@@ -4336,9 +4444,10 @@ The ~In~ function accepts following parameters
   * A Secondo object name.
 This is a string value express the name of an exist Secondo object.
 We use it to get the ~objectName~ and its type expression.
-In some cases, the object may not exist, then there should be a text
-file that contains the type expression exists in the local *parallel* directory.
-If both the object and the type file don't exist,
+In some cases, the object may not exist in the current database,
+then it must has been exported into the file system,
+and its type file must be kept in the local *parallel* directory.
+If neither the object or the type file exists,
 then set the ~correct~ as FALSE.
 
   * A nodesList.
@@ -4346,7 +4455,7 @@ This is a list of string values, each specifies a IP address of
 a node in the cluster. And the first one is viewed as the master
 node by default.
 
-  * A fileLocLMatrix
+  * A fileLocMatrix
 This is a nested list that composed by integer numbers,
 which denotes the matrix of cell files
 E.g., it may looks like this:
@@ -4370,197 +4479,326 @@ Besides the primary node that is denoted in the fileLoc matrix,
 it will be copied to (~dupTimes~ - 1) nodes that are listed after
 the primary node within the nodesList.
 
+Update at 26/12/2011
+The ~nodesList~  is set up at the first time when the fList is built,
+by creating a clusterInfo object, and doesn't need to be manually indicated.
+After reading, the node list is kept inside the fList,
+in case it need to be reloaded into another database.
+Therefore it also can be manually indicated,
+but the given nodelist must be a subset of the current node list,
+so as to keep a fList object while the cluster scale increases.
+
+In clusters like ours, that each node contains two hard disks,
+and contains two independent miniSecondo databases,
+these databases will be viewed as different slaves inside the cluster.
+
+For the fileLocMatrix, it's possible that one slave may contains
+several rows of files, some partition files may don't exist.
+All partition files belong to one row must be stored at one slave,
+and also in one file path, which is indicated as the last text of each row.
+The row number of these partition files have nothing to do with the
+slave nodes that store these files.
+Hence it may looks like:
+
+----(  (2 (1 2 3 4 5) '')
+       (2 (1 2 3 4 5) '')
+       (1 (1 2 5)     '\/mnt\/diskb')
+       (4 (1 2 3 4 5) '') )
+----
+
+The above example also shows a 4x5 matrix relation,
+distributed on a cluster at least has 4 nodes.
+Each row data has been partitioned into at most 5 pieces.
+The 2th node has two rows partition files, while the 3th node doesn't have any one of it.
+And in the 1th node, the third and fourth column partition files don't exist.
+The first row partition files are kept in the 2th node,
+while the third row partition files are kept in the 1th node.
+All files are kept in slaves' default parallel location,
+except the third row, which are kept in a specific path of 1th node.
+
 
 */
 Word fList::In(const ListExpr typeInfo, const ListExpr instance,
             const int errorPos, ListExpr& errorInfo, bool& correct)
 {
   Word result = SetWord(Address(0));
-  string typeErr = "expect (objectName nodesList fileLocList).";
-  string flocErr = "improper file location list, "
+  string typeErr = "expect "
+      "(objectName [typeList] [nodesList] fileLocList "
+      "dupTimes isInDB [isDistributed]).";
+  string flocErr = "incorrect file location list, "
       "refer to source document.";
+  clusterInfo *ci = new clusterInfo();
 
   NList il(instance);
-  correct = false;
-  if (4 == il.length())
-  {
-    NList onl = il.first();  //object name
-    NList nll = il.second(); //node list
-    NList fml = il.third();  //fileloc list
-    NList dpl = il.fourth(); //duplicate times
+  correct = true;
+  NList onl, nll, fml, dpl,idl, dbl;
+  string objName = "";
+  ListExpr objType = nl->TheEmptyList();
+  bool idb = false;
+  bool dbd = false;
 
-    //Check Object Type
-    string objName = "";
-    ListExpr objType;
-    if (onl.isString())
+  if (7 == il.length())
+  {
+    //Read the complete nestedlist created by the OUT function
+    onl = il.first();   //object name
+    objType = il.second().listExpr() ; // object Type
+    nll = il.third();  //node list
+    fml = il.fourth(); //fileloc list
+    dpl = il.fifth();  //duplicate times
+    idl = il.sixth();  //data are kept in databases
+    dbl = il.seventh(); // data are distributed
+  }
+  else if (4 == il.length())
+  {
+    //Read the nestedlist set by users manually
+    onl = il.first();
+    fml = il.second();
+    dpl = il.third();
+    idl = il.fourth();
+  }
+  else{
+    cerr << "The current list length is: " << il.length() << endl;
+    cmsg.inFunError(typeErr);
+    correct = false;
+  }
+
+  //Check Object Type
+  if (correct && onl.isString())
+  {
+    objName = onl.str();
+    if (0 == objName.length())
     {
-      correct = true;
-      objName = onl.str();
-      if (0 == objName.length())
+      cmsg.inFunError("Object Name cannot be empty.");
+      correct = false;
+    }
+    else
+    {
+      //Read the object from current database
+      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+      if (ctlg->IsSystemObject(objName))
       {
-        cmsg.inFunError("Object Name cannot be empty.");
+        cmsg.inFunError("Cannot distribute a system object.");
+        correct = false;
       }
-      else
+      else if (ctlg->IsObjectName(objName))
       {
-        //Read the object from current database
-        SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-        if (ctlg->IsSystemObject(objName))
-        {
-          correct = false;
-          cmsg.inFunError("Cannot distribute system object.");
-        } else if (ctlg->IsObjectName(objName))
+        // Is a database object
+        if (nl->IsEmpty(objType))
         {
           objType = ctlg->GetObjectTypeExpr(objName);
-        } else
-        {
-/*
-If the object doesn't exist in the database,
-then its schema file must be kept in master node's parallel directory.
-The schema file is further explained in ~ffeed~ and ~fconsume~ operators.
-
-*/
-          string filePath = getLocalFilePath("", objName, "_type");
-          if (!FileSystem::FileOrFolderExists(filePath))
-          {
-            correct = false;
-            cmsg.inFunError(
-                "Object " + objName + " doesn't exist");
-          }
-          else if (!(nl->ReadFromFile(filePath, objType)))
-          {
-            correct = false;
-            cmsg.inFunError(
-                "Incorrect nested list in file " + filePath );
-          }
-        }
-        if (correct && !listutils::isRelDescription(objType))
-        {
-          correct = false;
-          cmsg.inFunError(
-              "Expect a relation object. ");
-        }
-      }
-    }
-
-    //Check nodes list
-    if (correct)
-    {
-      //Read the nodeList
-      NList nodes = nll;
-      while (!nodes.isEmpty())
-      {
-        NList addr = nodes.first();
-        if (!addr.isString())
-        {
-          correct = false;
-          cmsg.inFunError(
-              "Expect string list of IP addresses.");
-          break;
-        }
-        nodes.rest();
-      }
-    }
-
-    //Check the type of fileLocList
-    if (correct)
-    {
-      bool isOK = false;
-      NList rows = fml;
-      while (!rows.isEmpty())
-      {
-        NList aRow = rows.first();
-        if (2 == aRow.length())
-        {
-          if (aRow.first().isInt())
-          {
-            NList CFs = aRow.second();
-            while(!CFs.isEmpty())
-            {
-              NList aCF = CFs.first();
-              if (aCF.isInt())
-                isOK = true;
-              else
-                isOK = false;
-
-              if (!isOK)
-                break;
-              CFs.rest();
-            }
-          }
-          else
-            isOK = false;
         }
         else
-          isOK = false;
-
-        if (!isOK)
-          break;
-        rows.rest();
+        {
+          ListExpr curObjType = ctlg->GetObjectTypeExpr(objName);
+          if (!nl->Equal(objType, curObjType))
+          {
+            cmsg.inFunError(
+                "There exists a homonymous object in the current database.");
+            correct = false;
+          }
+        }
       }
-
-      if (!isOK)
+      else
       {
-        correct = false;
-        cmsg.inFunError(flocErr);
-      }
-    }
+/*
+If the object doesn't exist in the database,
+then its type file must be kept in master node's parallel directory,
+which is explained in ~ffeed~ and ~fconsume~ operators with more details.
 
-    //Check the duplicate times
-    size_t dpTime = 0;
-    if (correct)
-    {
-      if (dpl.isInt())
-      {
-        dpTime = dpl.intval();
-        if (dpTime < 1)
+*/
+        string filePath = getLocalFilePath("", objName, "_type");
+        if (FileSystem::FileOrFolderExists(filePath))
+        {
+          if (!(nl->ReadFromFile(filePath, objType)))
+          {
+            cmsg.inFunError("Incorrect nested list in file " + filePath);
+            correct = false;
+          }
+        }
+        else if (!nl->IsEmpty(objType))
+        {
+          if (!nl->WriteToFile(filePath, objType))
+          {
+            cmsg.inFunError("Write object Type to file " +
+                filePath + " failed! ");
+            correct = false;
+          }
+          else
+          {
+            cout << "The type file " << filePath << " is created. " << endl;
+          }
+        }
+        else
+        {
+          cmsg.inFunError("Object " + objName + " doesn't exist");
           correct = false;
+        }
       }
-      else
-        correct = false;
-
-      if (!correct)
-        cmsg.inFunError(
-            "Expect a positive integer duplicate times value.");
-    }
-
-    if (correct)
-    {
-      fList *FLL = new fList(objName, NList(objType),
-          nll, fml, dpTime, true);
-      if(FLL->isOK())
-        return SetWord(FLL);
-      else
-        correct = false;
     }
   }
-  else
-    cmsg.inFunError(typeErr);
 
-  assert(!correct);
+  if (correct && !listutils::isRelDescription(objType))
+  {
+    cmsg.inFunError("Expect a relation object. ");
+    correct = false;
+  }
+
+  //Check nodesList
+  if (correct && !nll.isEmpty())
+  {
+/*
+If a fList is imported from another cluster,
+then the old cluster must be a subset of the current one.
+
+*/
+    if (!ci->covers(nll))
+    {
+      cmsg.inFunError("Expect a subset of the current cluster.");
+      correct = false;
+    }
+  }
+
+  //Check the fileLocList
+  if (correct)
+  {
+    bool isOK = true;
+    NList rows = fml;
+
+    while (!rows.isEmpty())
+    {
+      NList aRow = rows.first();
+      if (3 == aRow.length())
+      {
+        if (!aRow.first().isInt()){
+          cerr << "Each row number expects integer" << endl;
+          isOK = false;
+          break;
+        }
+
+        NList CFs = aRow.second();
+        bool crow = true;  //Correctness of a row
+        while(!CFs.isEmpty())
+        {
+          NList aCF = CFs.first();
+          if (!aCF.isInt()){
+            crow = false;
+            break;
+          }
+          CFs.rest();
+        }
+        if (!crow){
+          cerr << "Each column number expects integer" << endl;
+          isOK = false;
+          break;
+        }
+
+        NList PFP = aRow.third();
+        if(!PFP.isText()){
+          cerr << "Each file path expects text" << endl;
+          isOK = false;
+          break;
+        }
+      }
+      else{
+        cerr << "Each row expects three elements" << endl;
+        isOK = false;
+        break;
+      }
+      rows.rest();
+    }
+
+    if (!isOK)
+    {
+      cmsg.inFunError(flocErr);
+      correct = false;
+    }
+  }
+
+  //Check the duplicate times
+  size_t dpTime = 0;
+  if (correct)
+  {
+    if (dpl.isInt())
+    {
+      dpTime = dpl.intval();
+      if (dpTime < 1)
+        correct = false;
+    }
+    else
+      correct = false;
+
+    if (!correct)
+      cmsg.inFunError(
+          "Expect a positive integer duplicate times value.");
+  }
+
+  //Check whether data are kept in databases
+  if (correct)
+  {
+    if (idl.isBool())
+    {
+      idb = idl.boolval();
+    }
+    else
+    {
+      correct = false;
+      cmsg.inFunError("Expect a bool value for inDB.");
+    }
+  }
+
+  //Check whether data have been distributed.
+  if (correct && !dbl.isEmpty())
+  {
+    if (dbl.isBool())
+    {
+      dbd = dbl.boolval();
+    }
+    else
+    {
+      correct = false;
+      cmsg.inFunError("Expect a bool value for Distributed.");
+    }
+  }
+
+
+  if (correct)
+  {
+    fList *FLL = new fList(objName, NList(objType),
+        ci, fml, dpTime, idb, dbd, true);
+    if(FLL->isOK())
+      return SetWord(FLL);
+    else
+      correct = false;
+  }
+
   return SetWord(Address(0));
 }
+
 
 ListExpr fList::Out(ListExpr typeInfo, Word value)
 {
   if (value.addr)
   {
     fList* fl = static_cast<fList*>(value.addr);
+    NList outList;
 
-    return nl->FiveElemList(
-        NList(fl->getObjName(), true, false).listExpr(),
-        fl->getTypeList().listExpr(),
-        fl->getNodeList().listExpr(),
-        fl->getLocList().listExpr(),
-        NList(fl->getDupTimes()).listExpr() );
+    outList.append(NList(fl->getObjName(), true, false));
+    outList.append(fl->getTypeList());
+    outList.append(fl->getNodeList());
+    outList.append(fl->getLocList());
+    outList.append(NList(fl->getDupTimes()));
+    outList.append(NList(fl->inDB, false));
+    outList.append(NList(fl->isDistributed, false));
+    return outList.listExpr();
   }
   else
-    return nl->SymbolAtom("undef");
+    return nl->SymbolAtom("undefined");
 }
 
 Word fList::Create(const ListExpr typeInfo)
 {
   cerr << "In Create" << endl;
-  return SetWord(new fList("", NList(), NList(), NList(), 1));
+  return SetWord(new fList("", NList(), new clusterInfo(), NList(), 1));
 }
 
 void fList::Delete(const ListExpr typeInfo, Word& w)
@@ -4572,7 +4810,6 @@ void fList::Delete(const ListExpr typeInfo, Word& w)
 
 void fList::Close(const ListExpr typeInfo, Word& w)
 {
-  cerr << "In Close" << endl;
   delete (fList*)w.addr;
   w.addr = 0;
 }
@@ -4591,7 +4828,7 @@ bool fList::Save(SmiRecord& valueRecord, size_t& offset,
 
   ListExpr valueList = Out(typeInfo, w);
   valueList = nl->OneElemList(valueList);
-  string valueStr;
+  string valueStr/* = NList(Out(typeInfo, w)).convertToString()*/;
   nl->WriteToString(valueStr, valueList);
   int valueLength = valueStr.length();
   ok = ok && valueRecord.Write(&valueLength, sizeof(int), offset);
@@ -4643,10 +4880,21 @@ Word fList::RestoreFromList(
   NList nodeList = il.third();
   NList locList = il.fourth();
   size_t dupTimes = il.fifth().intval();
+  bool inDB = il.sixth().boolval();
+  bool distributed = il.elem(7).boolval();
 
-  fList* fl = new fList(objName, typeList, nodeList,
-      locList, dupTimes, true);
-  correct = fl->isOK();
+  clusterInfo *ci = new clusterInfo();
+  fList* fl = 0;
+  if (ci->covers(nodeList))
+  {
+    fl = new fList(objName, typeList, ci, locList, dupTimes,
+        inDB, distributed, true);
+    correct = fl->isOK();
+  }
+  else{
+    correct = false;
+  }
+
   if (correct)
     return SetWord(fl);
   else
@@ -4655,19 +4903,20 @@ Word fList::RestoreFromList(
 }
 
 /*
-As in ~In~ function, the type of the fileLocList is already checked,
-it's not necessary to check the type here again.
-However, it's still necessary to check whether the value of the list
-is available.
-During the check period, following conditions are required:
+The ~In~ function only checks the type of the fileLocList,
+but doesn't check the availability of the matrix relation.
+This function checks whether the value of the flist is available,
+by checking following conditions:
 
-  * row number of the matrix is limited in [ 1 .. nodesNum ]
+  * each slave index must be less than nodesNum
 
-  * column number is larger than 1
+  * each column number must be a positive number
 
-  * duplicate number is limited in [ 1 .. nodesNum ]
+  * duplicate number is less than nodesNum
 
-  * a cell file can be duplicated on each slave at most once.
+  * data path is set as [<]READ DB\/[>] while the data are not in database,
+or the other way round.
+
 
 */
 void fList::verifyLocList()
@@ -4676,45 +4925,97 @@ void fList::verifyLocList()
     isAvailable = false;
   else
   {
-    mrNum = 0;
-    mcNum = -1;
+    mrNum = fileLocList.length();
+    mcNum = 0;
 
     NList fll = fileLocList;
     while (!fll.isEmpty())
     {
       NList aRow = fll.first();
-      mrNum++;
       int nodeNum = aRow.first().intval();
-      if (nodeNum > getNodesNum())
+      if (nodeNum >= (int)currentCluster->getClusterSize())
       {
-        cerr << "Improper matrix row number : "
-            << nodeNum << endl;
+        cerr << "Improper row number: " << nodeNum << endl;
         isAvailable = false;
-        break;
+        return;
       }
       NList cfList = aRow.second();
       while (!cfList.isEmpty())
       {
-        NList aCF = cfList.first();
-        int cellNum = aCF.intval();
-        if (cellNum < 1)
+        NList aPF = cfList.first();  //A partition file suffix
+        int partNum = aPF.intval();
+        if (partNum < 1)
         {
-          cerr << "Negative matrix column number : "
-              << cellNum << endl;
+          cerr << "Improper column number: " << partNum << endl;
           isAvailable = false;
-          break;
+          return;
         }
-        mcNum = (cellNum > mcNum) ? cellNum : mcNum;
-
-        if (!isAvailable)
-          break;
+        mcNum = (partNum > (int)mcNum) ? partNum : mcNum;
         cfList.rest();
       }
-      if (!isAvailable)
-        break;
+
+      string dataLoc = aRow.third().str();
+      if (inDB && dataLoc.length() > 0){
+        cerr << "Non-empty data location "
+            "while data are kept in databases. " << endl;
+        isAvailable = false;
+        return;
+      }
+      else if (!inDB && dataLoc.compare(dbLoc) == 0){
+        cerr << "It's not acceptable that only part data are "
+            "kept in databases. " << endl;
+        isAvailable = false;
+        return;
+      }
+
       fll.rest();
     }
+
+    if ((inDB && dupTimes > 1)
+        || (dupTimes >= currentCluster->getClusterSize()) )
+    {
+      cerr << "Improper duplication times: " << dupTimes
+          << (inDB ? " , while the data are kept in databases " : "")
+          << endl;
+      isAvailable = false;
+    }
   }
+}
+
+string fList::getPartitionFileLoc(size_t row, size_t column)
+{
+  if (!isAvailable){
+    return "";
+  }
+
+  if ( row > mrNum || column > mcNum ){
+    cerr << "The row (" << row << ") or column(" << column
+        << ") is illegal" << endl;
+    return "";
+  }
+
+  NList rowLoc = fileLocList.elem(row);
+  if (column > rowLoc.second().length()){
+    cerr << "The column(" << column << ") is illegal" << endl;
+    return "";
+  }
+
+  stringstream ss;
+  int ssIndex = rowLoc.first().intval();  // start slave index
+  for (size_t i = 0; i < dupTimes; i++){
+    string sIPAddr = currentCluster->getIP(ssIndex + i, true);
+    string dataLoc = rowLoc.third().str();
+    if (inDB){
+      dataLoc = dbLoc;
+    }
+    else if ((dataLoc.length() == 0) || (i > 0)){
+      // duplicated files are kept at remote node's default path
+      // Only output the remote folder, not complete file path.
+      dataLoc = currentCluster->getRemotePath(ssIndex + i, "", true);
+    }
+    ss << sIPAddr << ":" << dataLoc << "\t";
+  }
+  return ss.str();
 }
 
 struct fListInfo: ConstructorInfo
@@ -4724,10 +5025,9 @@ struct fListInfo: ConstructorInfo
     name = "flist";
     signature = "-> " + Kind::SIMPLE();
     typeExample = "flist";
-    listRep = "(<objName> <nodeList> <fileLocList><dupTimes>)";
+    listRep = "(<objName> <fileLocList> <dupTimes> <inDB>)";
     valueExample =
-        "(\"plz\" (\"10.10.10.10\" \"10.10.10.11\")"
-        " ( ( (1 (1 2)) (2 (1 2)) ) ) 2) ";
+        "(\"plz\" ( (1 (1 2) '') (2 (1 2) '') ) 2 FALSE) ";
     remarks = "";
   }
 };
