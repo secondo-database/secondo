@@ -301,29 +301,33 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   inFunList.append(NList("fun"));
   inFunList.append(NList(NList(ptName4[0]), NList("ANY")));
   inFunList.append(NList(NList(ptName4[1]), NList("ANY2")));
-  inFunList.append(NList(
-      NList("filter"),
-      interJoinList,
-      NList(NList("fun"),
-        NList(NList(ptName5), NList("STREAMELEM")),
-        NList(
-          NList("and"),
-          NList(
-            NList("="),
-              NList(NList("attr"), NList(ptName5), NList(eaName[0])),
-              NList(NList("attr"), NList(ptName5), NList(eaName[1]))),
-          gisCheckList ))));
+  inFunList.append(
+    NList(
+      NList("remove"),
+      NList(
+          NList("filter"),
+          interJoinList,
+          NList(NList("fun"),
+            NList(NList(ptName5), NList("STREAMELEM")),
+              NList(
+                NList("and"),
+                NList(
+                  NList("="),
+                  NList(NList("attr"), NList(ptName5), NList(eaName[0])),
+                  NList(NList("attr"), NList(ptName5), NList(eaName[1]))),
+                gisCheckList ))),
+      NList(
+        NList(eaName[0])
+        ,NList(eaName[1])
+        ,NList(eaName2[0])
+        ,NList(eaName2[1]) ))  );
 
-  pjList.append(NList(inFunList));
-  funList.append(NList(NList("remove"),
-                pjList,
-                NList(NList(eaName[0])
-                      ,NList(eaName[1])
-                      ,NList(eaName2[0])
-                      ,NList(eaName2[1])
-                      )));
+  pjList.append( NList(inFunList) );
+  funList.append( NList(pjList) );
+
   //remove the extended attributes,
   //to make sure the equality of the output tuple type
+
 
   // nl->WriteListExpr(funList.listExpr());
 
@@ -875,7 +879,9 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
         if ( li->ptr == 0)
         {
           // Cardinality
-          pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
+          if ( qp->GetSelectivity(s) == 0.1 )
+            pRes->Card = max(p1.Card, p2.Card);
+          else pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
 
           // Time
           pRes->Time = p1.Time + p2.Time + (p1.Card + p2.Card) * uSpatialJoin;
@@ -1463,7 +1469,9 @@ int paraJoin2ValueMap(Word* args, Word& result,
           pRes->Card = ((double) li->returned + 1) * p1.Card
             /  ((double) li->readFirst + 1);   
         else
-          pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
+          if ( qp->GetSelectivity(s) == 0.1 )
+            pRes->Card = max(p1.Card, p2.Card);
+          else pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
 
         // Time
         pRes->Time = p1.Time + p2.Time + 
