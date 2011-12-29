@@ -3416,12 +3416,6 @@ ListExpr hdpJoinTypeMap(ListExpr args)
       return l.typeError(typeErr);
     }
   }
-  else
-  {
-    cerr << "I want get the relation " << drList.convertToString()
-         << " to denote the  input file locations."<< endl;
-    return l.typeError(typeErr);
-  }
 
   string mapStr = l.elem(8).second().fourth().convertToString();
   NList mapList = l.elem(8).first();
@@ -3550,7 +3544,7 @@ int hdpJoinValueMap(Word* args, Word& result,
         }
         size_t sIndex = 1;
         while (sIndex < ci->getClusterSize()){
-          dlList.append(NList(NList(sIndex),
+          dlList.append(NList(NList((int)sIndex),
                               NList("<READ DB/>", true, true)));
           sIndex++;
         }
@@ -3568,10 +3562,9 @@ int hdpJoinValueMap(Word* args, Word& result,
         << "\"" << tranStr(mrQuery[2], "\"", "\\\"") << "\" \\\n"
         << rtNum << " " << rName << endl;
       int rtn;
-      cout << queryStr.str() << endl;   //Used for debug only
+      cout << queryStr.str() << endl;
       rtn = system("hadoop dfs -rmr OUTPUT");
       rtn = system(queryStr.str().c_str());
-
 
       if (rtn != 0)
       {
