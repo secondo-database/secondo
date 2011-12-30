@@ -1,11 +1,16 @@
 
 include ../../../makefile.env
 
-BDBINCLUDE=$(BERKELEY_DB_DIR)/include
-BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
+ifndef BDB_INCLUDE_DIR
+  BDB_INCLUDE_DIR=$(BERKELEY_DB_DIR)/include
+endif
+
+ifndef BDB_LIB_DIR
+  BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
+endif
 
 ifndef $(BERKELEY_DB_LIB)
-	  BERKELEY_DB_LIB=db_cxx # special patch for Simone
+  BERKELEY_DB_LIB=db_cxx # special patch for Simone
 endif
 
 
@@ -47,7 +52,7 @@ app$(EXEEXT): Example.o
 
 
 Example.o: Example.cpp
-	$(CPPC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDBINCLUDE) 
+	$(CPPC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDB_INCLUDE_DIR) 
 
 .PHONY:clean
 clean:
