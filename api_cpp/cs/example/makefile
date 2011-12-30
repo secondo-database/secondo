@@ -1,16 +1,24 @@
 
 include ../../../makefile.env
 
+ifndef BDB_INCLUDE_DIR
 BDBINCLUDE=$(BERKELEY_DB_DIR)/include
+else 
+  BDBINCLUDE=$(BDB_INCLUDE_DIR)
+endif  
+
+ifndef BDB_LIB_DIR
 BDB_LIB_DIR=$(BERKELEY_DB_DIR)/lib
+endif
+
+ifndef $(BERKELEY_DB_LIB)
+  BERKELEY_DB_LIB=db_cxx # special patch for Simone
+endif
 
 .PHONY: all
 all: Config.ini app$(EXEEXT)
 
 
-ifndef $(BERKELEY_DB_LIB)
-  BERKELEY_DB_LIB=db_cxx # special patch for Simone
-endif
 
 
 LDFLAGS:=-L../lib/ -lsecondo    -lfl -ly -lstdc++ -lpthread
