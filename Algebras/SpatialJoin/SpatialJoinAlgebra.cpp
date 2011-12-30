@@ -219,7 +219,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
     ListExpr streamList;
     stringstream listStr;
     listStr
-    << " (sortby (extendstream "
+    << " (sortby (extendstream (predinfo 1.0 0.01 "
     << "(filter "
     << "(extend "
     << ptName[i]
@@ -238,7 +238,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
       listStr
       << "(<= (minD (attr " << ptName3[i]
                      << " " << eaName2[i] << ") 2) yt)"
-      << ")))))";
+      << "))))))";
     else
       listStr
       << "(and (<= (minD (attr " << ptName3[i]
@@ -247,7 +247,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
                             << " " << eaName2[i] << ") 3) zb)"
              << "(<= (minD (attr " << ptName3[i]
                             << " " << eaName2[i] << ") 3) zt)"
-      << ")))))))";
+      << "))))))))";
 
     listStr << "( ( " << eaName[i]
             << "(fun ( " << ptName1[i] << " "
