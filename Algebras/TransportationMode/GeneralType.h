@@ -739,6 +739,7 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     void Trajectory(GenRange* genrange, Space* sp);
     
     void GenMOAt(string tm, GenMO* sub);
+    void GenMOAt(string tm, MReal*, GenMO* sub);
     void GenMOAt(GenLoc* genloc, GenMO* sub);
     void GenMOAt(Point* p, GenMO* sub);
     void AtInstant(Instant& t, Intime<GenLoc>& result); 
@@ -749,6 +750,8 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
 
     bool Passes(Region* reg, Space* sp);
     void MapGenMO(MPoint* in, MPoint& res);
+    int ModeVal();
+    void IndexOnUnits(MReal* res);
     
 };
 
@@ -824,6 +827,7 @@ struct GenMObject{
 
   vector<MPoint3D> indoor_mo_list1;//from a room to an entrance 
   vector<MPoint3D> indoor_mo_list2;//from entrance to a room
+  vector<MPoint3D> indoor_mo_list3;//from a room to an entrance
 
 
   vector<Point> loc_list1;
@@ -839,6 +843,7 @@ struct GenMObject{
   
   vector<Rectangle<2> > rect_list1;
   vector<Rectangle<2> > rect_list2;
+  vector<Rectangle<2> > rect_list3;
   vector<Line> path_list;
   
   vector<int> build_type_list1;
@@ -980,14 +985,16 @@ struct GenMObject{
                                     Instant& start_time, Point loc,
                                     int entrance_index, int reg_id,
                                      MaxRect* maxrect, Periods* peri);
+  void GenerateIndoorMovementToExitExt(IndoorInfra* i_infra, 
+                                    GenMO* genmo, MPoint* mo, 
+                                    Instant& start_time, Point loc,
+                                    int entrance_index, int reg_id,
+                                    MaxRect* maxrect, Periods* peri, GenLoc);
+
   void GenerateIndoorMovementFromExit(IndoorInfra* i_infra, GenMO* genmo,
                                      MPoint* mo, Instant& start_time, Point loc,
                                     int entrance_index, int reg_id,
-                                     MaxRect* maxrect, Periods* peri);
-  void GenerateIndoorMovementFromExit2(IndoorInfra* i_infra, GenMO* genmo,
-                                     MPoint* mo, Instant& start_time, Point loc,
-                                    int entrance_index, int reg_id,
-                                     MaxRect* maxrect, Periods* peri);
+                                     MaxRect* maxrect, Periods* peri, int);
 
   /////////////////////////////////////////////////////////////////////////
   ////////////////////  Indoor Walk Car(Taxi) /////////////////////////////
@@ -1115,8 +1122,45 @@ struct GenMObject{
                             vector<GenLoc> genloc_list, 
                             vector<Point> p_loc_list, 
                             vector<RefBuild> nn_build_list);
-
+   /////////////////////long distance trip/////////////////////////////
+   void GenerateGenMOBench5(Space* sp, Periods* peri, int mo_no, 
+                            Relation* build1, Relation* build2);
+   void GenerateGenMO_IWC(Space* sp, MaxRect* maxrect,
+                                     IndoorInfra* i_infra,
+                                     Pavement* pm, Network* rn,
+                                     RoadGraph* rg, Periods* peri, 
+                                     int mo_no, 
+                                     vector<RefBuild> build_id1_list,
+                                     vector<RefBuild> build_id2_list, 
+                                     vector<RefBuild> build_id3_list, 
+                                     int para);
+   void CreateBuildingPair6(vector<RefBuild> b_list1,
+                          vector<RefBuild> b_list2,
+                          vector<RefBuild>& build_tid1_list,
+                          vector<RefBuild>& build_tid2_list,  
+                          vector<RefBuild>& build_tid3_list,  int pair_no);
+   bool SubTrip_C1(Space*, IndoorInfra* i_infra, MaxRect* maxrect,
+                   Pavement* pm, Network* rn, RoadGraph* rg,Periods* peri,
+                   vector<RefBuild> build_id1_list, 
+                            vector<RefBuild> build_id2_list, int count,
+                            MPoint* mo, GenMO* genmo, Instant& start_time);
+   int GROOM_Oid(int id1, int id2);
+   bool SubTrip_C2(Space*, IndoorInfra* i_infra, MaxRect* maxrect,
+                   Pavement* pm, Network* rn, RoadGraph* rg,Periods* peri,
+                   vector<RefBuild> build_id1_list, 
+                   vector<RefBuild> build_id2_list, int count,
+                   MPoint* mo, GenMO* genmo, Instant& start_time, GenLoc gloc);
 };
+
+/*
+the time spent in a room depends on the building type 
+
+*/
+#define TIMESPAN_NO 0
+#define TIMESPAN_W1 5 //office building 
+#define TIMESPAN_W2 2
+#define TIMESPAN_H 1
+#define TIMESPAN_CI 3 //time in a cinema 
 
 
 /*
@@ -1415,6 +1459,7 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 
 
 #define obj_scale 3
+#define obj_scale_max 10
 #define obj_scale_min 1.2 
 #define UNDEFVAL -1.0 
 #define EPSDIST 0.01 //a small distance deviation 

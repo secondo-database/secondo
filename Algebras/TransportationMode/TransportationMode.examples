@@ -823,6 +823,13 @@ Signature: genmo x string -> genmo
 Example  : query no_components(tm_at([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], "Indoor"));
 Result   : 1
 
+Operator : tm_at2
+Number   : 1
+Signature: genmo x mreal x string -> genmo
+Example  : query no_components(tm_at2([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),"Indoor"));
+Result   : 1
+
+
 Operator : val
 Number   : 1
 Signature: igenloc -> genloc
@@ -899,6 +906,19 @@ Number   : 1
 Signature: int x real x real -> genloc
 Example  : query ref_id(tm_genloc(100, 2.0, 2.0));
 Result   : 100
+
+
+Operator : modeval
+Number   : 1
+Signature: genmo -> int
+Example  : query modeval([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 3.0)) (0 (3.0 3.0)) "Free"))]);
+Result   : 1
+
+Operator : genmoindex
+Number   : 1
+Signature: genmo -> mreal
+Example  : query no_components(genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 3.0)) (0 (3.0 3.0)) "Free"))]));
+Result   : 1
 
 
 Operator : setref_id
@@ -1052,6 +1072,12 @@ Number   : 1
 Signature: space x periods x real x rel x rel x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query generate_bench_4(space_1, ww_time_thursday, 20.0, distri_para2, NN_Building) count;
 Result   : 20
+
+Operator : generate_bench_5
+Number   : 1
+Signature: space x periods x real x rel x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query generate_bench_5(space_1, hw_time, 5.0, distri_para3, H_Building, W_Building) count;
+Result   : 5
 
 
 Operator : generate_car

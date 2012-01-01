@@ -434,7 +434,8 @@ ListExpr GetHeightTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
 
-  if(nl->IsEqual(nl->First(args), "floor3d"))
+  if(nl->IsEqual(nl->First(args), "floor3d") || 
+     nl->IsEqual(nl->First(args), "groom"))
       return nl->SymbolAtom("real");
 
   return nl->SymbolAtom("typeerror");
@@ -1356,7 +1357,7 @@ int TheFloorValueMap(Word* args, Word& result, int message,
 ValueMap function for operator getheight
 
 */
-int GetHeightValueMap(Word* args, Word& result, int message,
+int GetHeightValueMap1(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   Floor3D* fl = (Floor3D*)args[0].addr;
@@ -1367,6 +1368,23 @@ int GetHeightValueMap(Word* args, Word& result, int message,
       res->Set(true,fl->GetHeight());
   return 0;
 }
+
+/*
+ValueMap function for operator getheight
+
+*/
+int GetHeightValueMap2(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GRoom* gr = (GRoom*)args[0].addr;
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  if(!gr->IsDefined()) res->Set(false, 0.0);
+  else
+      res->Set(true, gr->GetLowHeight());
+  return 0;
+}
+
 
 /*
 ValueMap function for operator getregion
@@ -2631,10 +2649,27 @@ Operator thefloor("thefloor",
     TheFloorTypeMap
 );
 
+ValueMapping GetHeightValueMapVM[]={
+GetHeightValueMap1,
+GetHeightValueMap2,
+};
+
+int GetHeightSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "floor3d"))
+    return 0;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "groom"))
+    return 1;
+
+  return -1;
+}
+
 Operator getheight("getheight",
     SpatialSpecGetHeight,
-    GetHeightValueMap,
-    Operator::SimpleSelect,
+    2,
+    GetHeightValueMapVM,
+    GetHeightSelect,
     GetHeightTypeMap
 );
 
@@ -3101,6 +3136,14 @@ const string SpatialSpecTMAT =
 "<text>get the moving object with one mode</text--->"
 "<text>query tm_at(genmo1, \"Indoor\")</text---> ) )";
 
+const string SpatialSpecTMAT2 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x mreal x string -> genmo</text--->"
+"<text>tm_at2(genmo, mreal, string) </text--->"
+"<text>get the moving object with one mode</text--->"
+"<text>query tm_at(genmo1, mreal1, \"Indoor\")</text---> ) )";
+
+
 const string SpatialSpecTMVal =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>igenloc -> genloc</text--->"
@@ -3180,6 +3223,20 @@ const string SpatialSpecTMGenLoc =
 "<text>tm_genloc (int, real, real) </text--->"
 "<text>create a genloc </text--->"
 "<text>query tm_genloc(2, 3.0, -1.0)</text---> ) )";
+
+const string SpatialSpecModeVal =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> int</text--->"
+"<text>modeval(genmo) </text--->"
+"<text>create an integer for modes  </text--->"
+"<text>query modeval(genmo1)</text---> ) )";
+
+const string SpatialSpecGenMOIndex =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> mreal</text--->"
+"<text>genmoindex(genmo) </text--->"
+"<text>create an index on genmo units </text--->"
+"<text>query genmoindex(genmo1)</text---> ) )";
 
 const string SpatialSpecGenMODeftime =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -3353,6 +3410,15 @@ const string SpatialSpecGenerateGMOBench4TMList =
 "<text>query generate_bench_4(space_1, monday, 3.0, dist_para, NN_Building, "
 "rtree_NNB) </text---> ) )";
 
+
+const string SpatialSpecGenerateGMOBench5TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> space x periods x real x rel x rel x rel"
+" -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>generate_bench_5 (space, periods, real, rel, rel, rel) </text--->"
+"<text>generate generic moving objects </text--->"
+"<text>query generate_bench_5(space_1, hw_time, 5.0, distri_para3,"
+" H_Building, W_Building) </text---> ) )";
 
 const string SpatialSpecGenerateCarList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -3722,6 +3788,26 @@ int TMATPointValueMap(Word* args, Word& result, int message,
 val: return genloc for intimegenloc 
 
 */
+int TMAT2ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  MReal* index = (MReal*)args[1].addr;
+  
+  string type = ((CcString*)args[2].addr)->GetValue();
+  result = qp->ResultStorage(s);
+  GenMO* sub_genmo = (GenMO*)result.addr;
+  if(genmo->IsDefined()){
+      genmo->GenMOAt(type, index, sub_genmo);
+  }
+
+  return 0;
+}
+
+/*
+val: return genloc for intimegenloc 
+
+*/
 int TMValValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
@@ -3736,6 +3822,7 @@ int TMValValueMap(Word* args, Word& result, int message,
 
   return 0;
 }
+
 
 /*
 val: return instant for intimegenloc 
@@ -3784,6 +3871,28 @@ int TMContainIntValueMap(Word* args, Word& result, int message,
   int refid = ((CcInt*)args[1].addr)->GetIntval();
   result = qp->ResultStorage(s);
   ((CcBool*)result.addr)->Set(true, genmo->Contain(refid));
+
+  return 0;
+}
+
+/*
+an int denoting tm contains a string 
+
+*/
+int TMContainIntStrValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  int tm = ((CcInt*)args[0].addr)->GetIntval();
+  string type = ((CcString*)args[1].addr)->GetValue();
+  result = qp->ResultStorage(s);
+
+  bitset<ARR_SIZE(str_tm)> modebits(tm);
+
+  int pos = (int)ARR_SIZE(str_tm) - 1 - GetTM(type);
+  if(modebits.test(pos))
+    ((CcBool*)result.addr)->Set(true, true);
+  else
+    ((CcBool*)result.addr)->Set(true, false);
 
   return 0;
 }
@@ -4095,6 +4204,39 @@ int TMGenLocValueMap(Word* args, Word& result, int message,
   GenLoc* gloc = (GenLoc*)result.addr; 
   gloc->SetValue(oid, loc);
 
+  return 0;
+}
+
+/*
+create an integer by genmo representing transportation modes 
+
+*/
+int ModeValValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*)result.addr; 
+  if(genmo->IsDefined())
+    res->Set(true, genmo->ModeVal());
+  else
+    res->Set(false, 0);
+  return 0;
+}
+
+/*
+create an index on genmo units
+
+*/
+int GenMOIndexValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+
+  result = qp->ResultStorage(s);
+  MReal* res = (MReal*)result.addr; 
+  genmo->IndexOnUnits(res);
   return 0;
 }
 
@@ -5279,6 +5421,68 @@ int GenerateGMOBench4ListValueMap(Word* args, Word& result, int message,
   
 }
 
+
+/*
+create benchmark generic moving objects with long trip
+
+
+*/
+int GenerateGMOBench5ListValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Space* sp = (Space*)args[0].addr; 
+        Periods* peri = (Periods*)args[1].addr;
+        int mo_no = (int)((CcReal*)args[2].addr)->GetRealval();
+        Relation* rel2 = (Relation*)args[3].addr;
+        Relation* rel3 = (Relation*)args[4].addr;
+
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        mo->GenerateGenMOBench5(sp, peri,  mo_no, rel2, rel3);
+
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+
+          if(mo->count == mo->trip1_list.size())return CANCEL;
+
+//          if(mo->count == mo->rect_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(mo->resulttype);
+          tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
+          tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
+
+//         tuple->PutAttribute(0, new Rectangle<2>(mo->rect_list1[mo->count]));
+//         tuple->PutAttribute(1, new Rectangle<2>(mo->rect_list2[mo->count]));
+//         tuple->PutAttribute(2, new Rectangle<2>(mo->rect_list3[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+
 /*
 create moving cars (mpoint and mgpoint) to get traffic
 
@@ -5737,6 +5941,7 @@ ValueMapping TMATValueMapVM[]={
 ValueMapping TMContainValueMapVM[]={
   TMContainStringValueMap,
   TMContainIntValueMap,
+  TMContainIntStrValueMap,
 //  GenLocATValueMap,
 };
 
@@ -5779,6 +5984,11 @@ int TMContainOpSelect(ListExpr args)
      nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
      nl->SymbolValue(arg2) == "int")
     return 1;
+
+  if(nl->SymbolValue(arg1) == "int" && 
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "string")
+    return 2;
 
   return -1;
 }
@@ -5909,6 +6119,26 @@ ListExpr TMATTypeMap(ListExpr args)
 
   return nl->SymbolAtom("typeerror");
 }
+/*
+TypeMap function for operator tmat2  
+
+*/
+ListExpr TMAT2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "mreal") &&
+     nl->SymbolValue(arg3) == "string")
+    return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 TypeMap function for operator val  
@@ -5963,6 +6193,9 @@ ListExpr TMContainTypeMap(ListExpr args)
     return nl->SymbolAtom("bool");
 
   if(nl->IsEqual(arg1, "genmo") && nl->SymbolValue(arg2) == "int")
+    return nl->SymbolAtom("bool");
+
+  if(nl->IsEqual(arg1, "int") && nl->SymbolValue(arg2) == "string")
     return nl->SymbolAtom("bool");
 
   return nl->SymbolAtom("typeerror");
@@ -6130,6 +6363,47 @@ ListExpr TMGenLocTypeMap(ListExpr args)
   if(nl->IsEqual(arg1, "int") &&  nl->IsEqual(arg2, "real") && 
      nl->IsEqual(arg3, "real")){
     return nl->SymbolAtom("genloc");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator modeval
+
+*/
+ListExpr ModeValTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "genmo")){
+    return nl->SymbolAtom("int");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator genmoindex
+
+*/
+ListExpr GenMOIndexTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "genmo")){
+    return nl->SymbolAtom("mreal");
   }
 
   return nl->SymbolAtom("typeerror");
@@ -6683,21 +6957,6 @@ ListExpr GenerateGMOBench3ListTypeMap(ListExpr args)
 //                 )
 //           );
 
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->TwoElemList(
-//                       nl->TwoElemList(nl->SymbolAtom("QLoc"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("NNB"),
-//                                     nl->SymbolAtom("rect"))
-//                   )
-//                 )
-//           );
-
     return result;
 }
 
@@ -6790,30 +7049,67 @@ ListExpr GenerateGMOBench4ListTypeMap(ListExpr args)
 //                 )
 //           );
 
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->FourElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("QLoc"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("StartStop"),
-//                                     nl->SymbolAtom("point")),
-//                         nl->TwoElemList(nl->SymbolAtom("NNB"),
-//                                     nl->SymbolAtom("rect")),
-//                         nl->TwoElemList(nl->SymbolAtom("EndStop"),
-//                                     nl->SymbolAtom("point"))
-// 
-//                   )
-//                 )
-//           );
-
     return result;
 }
 
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench5ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg4 = nl->Fourth(args);
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para5 should be a relation");
+
+  ListExpr arg5 = nl->Fifth(args);
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para6 should be a relation");
+  
+  
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+
+    return result;
+}
 
 /*
 TypeMap function for operator get rg ndoes
@@ -7151,6 +7447,13 @@ Operator tm_at("tm_at",
     TMATTypeMap
 );
 
+Operator tm_at2("tm_at2",
+    SpatialSpecTMAT2,
+    TMAT2ValueMap,
+    Operator::SimpleSelect,
+    TMAT2TypeMap
+);
+
 Operator tm_val("val",
     SpatialSpecTMVal,
     TMValValueMap,
@@ -7168,7 +7471,7 @@ Operator tm_inst("inst",
 
 Operator tm_contain("contains",
     SpatialSpecTMContain,
-    2,
+    3,
     TMContainValueMapVM,
     TMContainOpSelect,
     TMContainTypeMap
@@ -7241,6 +7544,21 @@ Operator tm_genloc("tm_genloc",
     Operator::SimpleSelect,
     TMGenLocTypeMap
 );
+
+Operator modeval("modeval",
+    SpatialSpecModeVal,
+    ModeValValueMap,
+    Operator::SimpleSelect,
+    ModeValTypeMap
+);
+
+Operator genmoindex("genmoindex",
+    SpatialSpecGenMOIndex,
+    GenMOIndexValueMap,
+    Operator::SimpleSelect,
+    GenMOIndexTypeMap
+);
+
 
 int TMDeftimeOpSelect(ListExpr args)
 {
@@ -8073,6 +8391,12 @@ Operator generate_bench_4("generate_bench_4",
     GenerateGMOBench4ListTypeMap
 );
 
+Operator generate_bench_5("generate_bench_5",
+    SpatialSpecGenerateGMOBench5TMList,
+    GenerateGMOBench5ListValueMap,
+    Operator::SimpleSelect,
+    GenerateGMOBench5ListTypeMap
+);
 
 /*
 create road graph nodes and edges 
@@ -23099,6 +23423,7 @@ class TransportationModeAlgebra : public Algebra
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     AddOperator(&tm_at);//at mode, at genloc
+    AddOperator(&tm_at2);//at mode, at genloc
     AddOperator(&tm_val);//get genloc for intimegenloc 
     AddOperator(&tm_inst);//get instant for intimegenloc 
     AddOperator(&tm_contain);//genmo contain a transportation mode 
@@ -23111,6 +23436,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_passes);// passes(genmo,...., space)
     AddOperator(&tm_distance);//distance(gloc, point, space)
     AddOperator(&tm_genloc);// int x real x real to a genloc 
+    AddOperator(&modeval);//get an integer for a genmo denoting modes 
+    AddOperator(&genmoindex);// build an index on units 
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -23153,7 +23480,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_bench_2);// movement in one environment 
    AddOperator(&generate_bench_3);// movement based on NN search car
    AddOperator(&generate_bench_4);// movement based on NN search tax,bus,metro
-
+   AddOperator(&generate_bench_5);// long trip 
    /////////////////////////////////////////////////////////////////////////
    //////////////// improve shortest path computing in road network////////
    ///////////////////////////////////////////////////////////////////////

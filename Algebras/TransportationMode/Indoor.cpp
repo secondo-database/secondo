@@ -6014,6 +6014,12 @@ void IndoorNav::GenerateMO3_Start(IndoorGraph* ig, BTree* btree,
 
 //      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
 
+//       Loc l1(0,19);
+//       Loc l2(1,0);
+//       loc1.SetValue(8, l1);
+//       loc2.SetValue(14, l2);
+// 
+
       bool find_path = false;
 #ifdef INDOOR_PATH
       int path_oid = GetIndooPathID(entrance_index, loc2.GetOid(), true);
@@ -6281,7 +6287,161 @@ void IndoorNav::GenerateMO3_End(IndoorGraph* ig, BTree* btree,
 
 }
 
+/*
+almost the same as GenerateMO3End by but giving the start location 
 
+*/
+
+void IndoorNav::GenerateMO3_EndExt(IndoorGraph* ig, BTree* btree, 
+                            R_Tree<3,TupleId>* rtree, Instant& start_time, 
+                            int build_id, int entrance_index, MPoint3D* mp3d, 
+                            GenMO* genmo, Periods* peri, GenLoc loc_input)
+{
+
+  //////////////////get the building entrance position/////////////////
+  vector<GenLoc> doorloc_list;
+  vector<int> door_tid_list;
+  GetDoorLoc(ig, btree, doorloc_list, door_tid_list);
+
+  //////////////////////initialize elevator//////////////////////////////
+  if(peri->GetNoComponents() == 0){
+    cout<<"not correct time periods"<<endl; 
+    assert(false);
+  }
+  Interval<Instant> periods;
+  peri->Get(0, periods);
+  double speed = GetMinimumDoorWidth();
+  vector<Elevator> elev_list;
+  InitializeElevator(periods, elev_list, speed);
+  //////////////////////////////////////////////////////////////////////
+
+  int num = 1;
+  int count = 0;
+  genloc_list.push_back(loc_input);
+  for(unsigned int i = 0;i < genloc_list.size();i++){
+      GenLoc loc1 = genloc_list[i];
+      int door_index = entrance_index - 1;
+      GenLoc loc2 = doorloc_list[door_index];
+
+      /////////////////debuging//////////////////////
+/*      Loc temp_loc(4.36,11.13);
+      GenLoc temp_gloc(195, temp_loc);
+      loc1 = temp_gloc;*/
+      //////////////////////////////////////////////
+
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+
+      bool find_path = false;
+#ifdef INDOOR_PATH
+      int path_oid = GetIndooPathID(entrance_index, loc1.GetOid(), true);
+
+      map<int, Line3D>::iterator iter = indoor_paths_list.find(path_oid);
+      if(iter != indoor_paths_list.end()){
+        ShortestPath_Length_End2(&loc1, &loc2, rel1, btree,
+                                   door_tid_list[door_index], 
+                                   entrance_index);
+        find_path = true;
+      }else{
+        ShortestPath_Length_End(&loc1, &loc2, rel1, btree,
+                                            door_tid_list[door_index]);
+      }
+#else
+      ShortestPath_Length_End(&loc1, &loc2, rel1, btree,
+                                             door_tid_list[door_index]);
+#endif
+
+      Line3D* l3d = &path_list[count];
+
+      if(l3d->Length() > 0.0){
+        Line3D* l_room = NULL;
+#ifdef INDOOR_PATH
+        if(find_path){
+          l_room = &rooms_id_list[count];
+          assert(l3d->Size() == l_room->Size());
+        }
+#endif 
+
+        mp3d->StartBulkLoad();
+        for(int j = 0;j < l3d->Size();j++){
+          if(j < l3d->Size() - 1){
+            Point3D p1, p2;
+            l3d->Get(j, p1);
+            l3d->Get(j + 1, p2);
+            ///////////////process the movement in an elevator 
+            if(AlmostEqual(p1.GetX(), p2.GetX()) && 
+               AlmostEqual(p1.GetY(), p2.GetY()) && elev_list.size() > 1){
+
+                float delta_h = fabs(elev_list[1].h - elev_list[0].h); 
+                if(AlmostEqual(delta_h, p1.Distance(p2))){
+                    int start_pos = j;
+                    vector<Point3D> p3d_list; 
+                    p3d_list.push_back(p1);
+                    p3d_list.push_back(p2);
+                    int k = j + 1;
+                    for(;k < l3d->Size();k++){
+                      if(k < l3d->Size() - 1){
+                        Point3D q1, q2;
+                        l3d->Get(k, q1);
+                        l3d->Get(k + 1, q2);
+
+                        if(AlmostEqual(q1.GetX(), q2.GetX()) && 
+                          AlmostEqual(q1.GetY(), q2.GetY())){//elevator 
+                              p3d_list.push_back(q2);
+                        }else
+                          break; 
+                      }
+                    }
+                  k--;
+                  j = k;
+
+#ifdef INDOOR_PATH
+              if(find_path){
+                AddUnitToMO_Elevator2(mp3d, p3d_list, start_time,
+                periods.start, elev_list, start_pos, l_room, build_id, genmo);
+              }else{
+                  AddUnitToMO_Elevator(mp3d, p3d_list, start_time,
+                                   periods.start, elev_list);
+              }
+
+#else
+              AddUnitToMO_Elevator(mp3d, p3d_list, start_time,
+                                   periods.start, elev_list);
+#endif
+                }
+            }else 
+
+#ifdef INDOOR_PATH
+              if(find_path){
+                AddUnitToMO2(mp3d, p1, p2, start_time, speed,
+                               j, l_room, build_id, genmo);
+              }else{
+                AddUnitToMO(mp3d, p1, p2, start_time, speed);
+              }
+#else
+                AddUnitToMO(mp3d, p1, p2, start_time, speed);
+#endif
+
+          }
+        }
+        mp3d->EndBulkLoad(); 
+        count++; 
+        /////////////////////////////////////////////////////////////
+#ifdef INDOOR_PATH
+        if(find_path){
+
+        }else{
+          ToGenLoc2(mp3d, rtree, build_id, genmo);
+        }
+#else
+        ToGenLoc2(mp3d, rtree, build_id, genmo);
+#endif
+
+      }
+      if(count == num)break; 
+  }
+
+
+}
 
 /*
 add temporal units (for movement in an elevator)
@@ -7915,6 +8075,162 @@ void IndoorNav::GenerateMO3_New_End(IndoorGraph* ig, BTree* btree,
   
 }
 
+/*
+almost the same as GenerateMO3 New End but giving the start location
+
+*/
+void IndoorNav::GenerateMO3_New_EndExt(IndoorGraph* ig, BTree* btree, 
+                            R_Tree<3,TupleId>* rtree,
+                    Instant& start_time, int build_id, int entrance_index,
+                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                            unsigned int num_elev, GenLoc gloc_input)
+{
+
+  //////////////////get the building entrance position///////////////////////
+  vector<GenLoc> doorloc_list;
+  vector<int> door_tid_list;
+  GetDoorLoc(ig, btree, doorloc_list, door_tid_list);
+  //////////////////////////////////////////////////////////////////////////
+
+  Interval<Instant> periods;
+  if(peri->GetNoComponents() == 0){
+    cout<<"not correct time periods"<<endl; 
+    assert(false);
+  }
+  peri->Get(0, periods);
+
+  double speed = GetMinimumDoorWidth(); 
+
+  vector< vector<Elevator> > elev_list;
+
+  InitializeElevator_New(periods, elev_list, speed);
+
+  int num = 1;
+  int count = 0; 
+  genloc_list.push_back(gloc_input);
+  for(unsigned int i = 0;i < genloc_list.size();i++){
+      ///////////////////to building entrance///////////////////
+      GenLoc loc1 = genloc_list[i];
+      int door_index = i % doorloc_list.size();
+      GenLoc loc2 = doorloc_list[door_index];
+
+//      cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+
+      bool find_path = false;
+#ifdef INDOOR_PATH
+      int path_oid = GetIndooPathID(entrance_index, loc1.GetOid(), true);
+
+      map<int, Line3D>::iterator iter = indoor_paths_list.find(path_oid);
+      if(iter != indoor_paths_list.end()){
+        ShortestPath_Length_End2(&loc1, &loc2, rel1, btree,
+                                   door_tid_list[door_index], 
+                                   entrance_index);
+        find_path = true;
+      }else{
+        ShortestPath_Length_End(&loc1, &loc2, rel1, btree,
+                                            door_tid_list[door_index]);
+      }
+#else
+      ShortestPath_Length_End(&loc1, &loc2, rel1, btree,
+                                             door_tid_list[door_index]);
+#endif
+
+      Line3D* l3d = &path_list[count];
+
+      if(l3d->Length() > 0.0){
+        Line3D* l_room = NULL;
+#ifdef INDOOR_PATH
+        if(find_path){
+          l_room = &rooms_id_list[count];
+          assert(l3d->Size() == l_room->Size());
+        }
+#endif 
+
+        mp3d->StartBulkLoad();
+        for(int j = 0;j < l3d->Size();j++){
+          if(j < l3d->Size() - 1){
+            Point3D p1, p2;
+            l3d->Get(j, p1);
+            l3d->Get(j + 1, p2);
+            ///////////////process the movement in an elevator 
+            if(AlmostEqual(p1.GetX(), p2.GetX()) && 
+               AlmostEqual(p1.GetY(), p2.GetY()) && 
+               (elev_list.size() > 0 && elev_list[0].size() > 1)){
+
+                float delta_h = fabs(elev_list[0][1].h - elev_list[0][0].h); 
+                if(AlmostEqual(delta_h, p1.Distance(p2))){
+                    int start_pos = j;
+                    vector<Point3D> p3d_list; 
+                    p3d_list.push_back(p1);
+                    p3d_list.push_back(p2);
+                    int k = j + 1;
+                    for(;k < l3d->Size();k++){
+                      if(k < l3d->Size() - 1){
+                        Point3D q1, q2;
+                        l3d->Get(k, q1);
+                        l3d->Get(k + 1, q2);
+
+                        if(AlmostEqual(q1.GetX(), q2.GetX()) && 
+                          AlmostEqual(q1.GetY(), q2.GetY())){//elevator 
+                              p3d_list.push_back(q2);
+                        }else
+                          break; 
+                      }
+                    }
+                  k--;
+                  j = k;
+
+
+
+#ifdef INDOOR_PATH
+              if(find_path){
+                AddUnitToMO_Elevator_New2(mp3d, p3d_list, start_time,
+                periods.start, elev_list, start_pos, l_room, build_id, genmo);
+              }else{
+                  AddUnitToMO_Elevator_New(mp3d, p3d_list, start_time,
+                   periods.start, elev_list);
+              }
+
+#else
+              AddUnitToMO_Elevator_New(mp3d, p3d_list, start_time,
+                   periods.start, elev_list);
+#endif
+
+                }
+            }else 
+
+#ifdef INDOOR_PATH
+              if(find_path){
+                AddUnitToMO2(mp3d, p1, p2, start_time, speed,
+                               j, l_room, build_id, genmo);
+              }else{
+                AddUnitToMO(mp3d, p1, p2, start_time, speed);
+              }
+#else
+                AddUnitToMO(mp3d, p1, p2, start_time, speed);
+#endif
+
+          }
+        }
+        mp3d->EndBulkLoad(); 
+        count++; 
+        /////////////////////////////////////////////////////////////////
+#ifdef INDOOR_PATH
+        if(find_path){
+        
+        }else{
+          ToGenLoc2(mp3d, rtree, build_id, genmo);
+        }
+#else
+        ToGenLoc2(mp3d, rtree, build_id, genmo);
+#endif
+
+      }
+      if(count == num)break; 
+  } 
+  
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -9041,7 +9357,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
       delete l3d; 
       return;
    }
-  
+
 /*   for(unsigned int i = 0;i < end_door_path.size();i++){
       Point3D q;
       end_door_path[i].Get(0, q);
@@ -9051,6 +9367,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
    vector<Line3D> candidate_path; 
    vector<Line3D> rooms_oid; //store groom oid for point3d 
    int count = 0;
+
    for(unsigned int i = 0;i < door_tid_list.size();i++){
       if(door_tid_list[i] > 0){
         int path_oid = GetIndooPathID2(entrance_id, groom_oid2,i, true);
@@ -9077,6 +9394,7 @@ void IndoorNav::ShortestPath_Length_Start2(GenLoc* gloc1, GenLoc* gloc2,
           Point3D q1;
           iter->second.Get(iter->second.Size() - 1, q1);
           Point3D q2;
+
           end_door_path[count].Get(0, q2);
           const double delta_d = 0.001;
           assert(q1.Distance(q2) < delta_d);
@@ -9844,6 +10162,15 @@ bool IndoorNav::ConnectEndLoc(GenLoc* gloc,  vector<int> tid_list,
      }
 
      if(sp_path->Size() == 0){
+        if(p1.Distance(p2) < EPSDIST){//the position happens to be the door 
+              Line3D* l3d = new Line3D(0);
+              l3d->StartBulkLoad();
+              Point3D q(true, p1.GetX(), p1.GetY(), h);
+              *l3d += q;
+              l3d->EndBulkLoad();
+              candidate_path.push_back(*l3d); 
+              delete l3d; 
+        }
         delete sp_path;
         continue;
      }
@@ -10281,6 +10608,15 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
      }
 
      if(sp_path->Size() == 0){
+/*          if(p1.Distance(p2) < EPSDIST){//the position happens to be the door
+              Line3D* l3d = new Line3D(0);
+              l3d->StartBulkLoad();
+              Point3D q(true, p1.GetX(), p1.GetY(), h);
+              *l3d += q;
+              l3d->EndBulkLoad();
+              candidate_path.push_back(*l3d); 
+              delete l3d; 
+            }*/
         delete sp_path;
         continue;
      }

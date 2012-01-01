@@ -839,12 +839,19 @@ struct IndoorNav{
                    vector<GenLoc>& doorloc_list, vector<int>& door_tid_list);
 
    /////////create one indoor moving object/////////////////////////////////
-   void GenerateMO3_End(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
-                    Instant& start_time, int build_id, int entrance_index,
-                    MPoint3D* mp3d, GenMO* genmo, Periods* peri);
- void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, R_Tree<3,TupleId>* rtree,
-                    Instant& start_time, int build_id, int entrance_index,
-                    MPoint3D* mp3d, GenMO* genmo, Periods* peri);
+   void GenerateMO3_End(IndoorGraph* ig, BTree* btree, 
+                        R_Tree<3,TupleId>* rtree,
+                        Instant& start_time, int build_id, int entrance_index,
+                        MPoint3D* mp3d, GenMO* genmo, Periods* peri);
+   void GenerateMO3_EndExt(IndoorGraph* ig, BTree* btree, 
+                           R_Tree<3,TupleId>* rtree,
+                           Instant& start_time, int build_id, 
+                           int entrance_index, MPoint3D* mp3d, 
+                           GenMO* genmo, Periods* peri, GenLoc);
+ void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, 
+                        R_Tree<3,TupleId>* rtree,
+                        Instant& start_time, int build_id, int entrance_index,
+                        MPoint3D* mp3d, GenMO* genmo, Periods* peri);
    /////////////////////////////////////////////////////////////////////
    unsigned int NumerOfElevators();
    
@@ -875,6 +882,11 @@ struct IndoorNav{
                     Instant& start_time, int build_id, int entrance_index,
                     MPoint3D* mp3d, GenMO* genmo, Periods* peri,
                             unsigned int num_elev);
+   void GenerateMO3_New_EndExt(IndoorGraph* ig, BTree* btree, 
+                            R_Tree<3,TupleId>* rtree,
+                    Instant& start_time, int build_id, int entrance_index,
+                    MPoint3D* mp3d, GenMO* genmo, Periods* peri,
+                    unsigned int num_elev, GenLoc gloc);
   void GenerateMO3_New_Start(IndoorGraph* ig, BTree* btree, 
                             R_Tree<3,TupleId>* rtree,
                     Instant& start_time, int build_id, int entrance_index,
@@ -1199,10 +1211,27 @@ const string str_build_type[] = {"BUILDING_NONE", "HOUSE",
 inline bool WorkBuilding(int type)
 {
   if(type == BUILD_UNIVERSITY || type == BUILD_OFFICE24 ||
-     type == BUILD_OFFICE38 || type == BUILD_HOSPITAL)return true;
+     type == BUILD_OFFICE38 || type == BUILD_HOSPITAL || 
+     type == BUILD_SHOPPINGMALL) return true;
   else
   return false;
 }
+
+inline bool CIBuilding(int type)
+{
+  if(type == BUILD_CINEMA) return true;
+  else
+  return false;
+}
+
+inline bool HotelBuilding(int type)
+{
+  if(type == BUILD_HOTEL) return true;
+  else
+  return false;
+}
+
+
 inline int GetBuildingType(string s)
 {
   int build_size = ARR_SIZE(str_build_type);

@@ -2714,7 +2714,7 @@ void BusRoute::GetInterestingPoints(HalfSegment hs, Point ip,
         line1->EndBulkLoad();
       }
 
-        cout<<"ip "<<ip<<" created line "<<*line1<<endl;
+//        cout<<"ip "<<ip<<" created line "<<*line1<<endl;
 
         Points* ps1 = new Points(0);
         Points* ps2 = new Points(0);
@@ -2956,38 +2956,44 @@ void BusRoute::CalculateUpandDown( SimpleLine* sl1, SimpleLine* sl2, bool sm)
   
   vector<MyHalfSegment> seq_halfseg2; //reorder it from start to end
   sp->ReorderLine(sl2, seq_halfseg2);
- 
+
   
   assert(sl1->Size() >= 2);
   assert(sl2->Size() >= 2);
   vector<Point> point_list;
-  
+
   //assume we start from sl1 (up direction)
   if(sm){
     unsigned int index1 = 0;
     unsigned int index2 = 1;
-    
+
     point_list.push_back(seq_halfseg1[index1].from);
     point_list.push_back(seq_halfseg1[index2].from);
     point_list.push_back(seq_halfseg1[index2].to);
     point_list.push_back(seq_halfseg2[index2].to);
     point_list.push_back(seq_halfseg2[index2].from);
     point_list.push_back(seq_halfseg2[index1].from);
-    
 
   }else{
     unsigned int index1 = seq_halfseg1.size() - 1;
     unsigned int index2 = seq_halfseg1.size() - 2;
-  
+//    cout<<"index1 "<<index1<<" index2 "<<index2<<endl;
+    unsigned int index3 = seq_halfseg2.size() - 1;
+    unsigned int index4 = seq_halfseg2.size() - 2;
+
     point_list.push_back(seq_halfseg1[index1].to);
     point_list.push_back(seq_halfseg1[index1].from);
     point_list.push_back(seq_halfseg1[index2].from);
-    point_list.push_back(seq_halfseg2[index2].from);
-    point_list.push_back(seq_halfseg2[index1].from);
-    point_list.push_back(seq_halfseg2[index1].to);
-    
-  }  
-   
+    if(seq_halfseg1.size() == seq_halfseg2.size()){
+      point_list.push_back(seq_halfseg2[index2].from);
+      point_list.push_back(seq_halfseg2[index1].from);
+      point_list.push_back(seq_halfseg2[index1].to);
+    }else{
+      point_list.push_back(seq_halfseg2[index4].from);
+      point_list.push_back(seq_halfseg2[index3].from);
+      point_list.push_back(seq_halfseg2[index3].to);
+    }
+  }
     vector<Region> regs;
     sp->ComputeRegion(point_list,regs);
     assert(regs.size() == 1);

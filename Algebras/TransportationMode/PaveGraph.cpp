@@ -7117,8 +7117,14 @@ void RegVertex::DFTraverse(R_Tree<2,TupleId>* rtree,
               Tuple* dg_tuple2 = rel1->GetTuple(e.info,false);
               Region* candi_reg =
                      (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
-              if(oid != (int)e.info){
-                  ShareEdge(reg, candi_reg, oid,e.info, adj_node);
+//              cout<<"e.info "<<e.info<<endl;
+//              cout<<"Area "<<candi_reg->Area()<<endl;
+              int cand_oid = 
+                 ((CcInt*)dg_tuple2->GetAttribute(DualGraph::OID))->GetIntval();
+//              if(oid != (int)e.info){
+              if(oid != cand_oid){
+//                  ShareEdge(reg, candi_reg, oid, e.info, adj_node);
+                  ShareEdge(reg, candi_reg, oid, cand_oid, adj_node);
               }
               dg_tuple2->DeleteIfAllowed();
       }else{
@@ -7133,23 +7139,36 @@ void RegVertex::DFTraverse(R_Tree<2,TupleId>* rtree,
 }
 
 /*
-for each triangl, it searches all its neighbors by traversing the RTree
+for each triangle, it searches all its neighbors by traversing the RTree
 it creates the edge relation for dual graph.
 depth-first is a little faster than breadth-first
+in create berlin and houston data, we have an unique oid for each IFOB.
+so the value of oid may not start from 1. not the same as tuple id 
+!!!Be Careful!!!
 
 */
 void RegVertex::GetDGEdgeRTree(R_Tree<2,TupleId>* rtree)
 {
   SmiRecordId adr = rtree->RootRecordId();
-
-  vector<vector<int> > adj_node(rel1->GetNoTuples());
+  
+  int max_no = 0;
   for(int i = 1;i <= rel1->GetNoTuples();i++){
-//  for(int i = 1;i <= 1;i++){
+     Tuple* dg_tuple = rel1->GetTuple(i, false);
+     int oid = ((CcInt*)dg_tuple->GetAttribute(DualGraph::OID))->GetIntval();
+     if(oid > max_no) max_no = oid;
+     dg_tuple->DeleteIfAllowed();
+  }
+
+//  vector<vector<int> > adj_node(rel1->GetNoTuples());
+  vector<vector<int> > adj_node(max_no);//oid may not start from 1, e.g., 3000
+
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+//  for(int i = 1;i <= 500;i++){
       Tuple* dg_tuple1 = rel1->GetTuple(i, false);
       int oid = ((CcInt*)dg_tuple1->GetAttribute(DualGraph::OID))->GetIntval();
       Region* reg =
              (Region*)dg_tuple1->GetAttribute(DualGraph::PAVEMENT);
-      ///////////////////travers RTree//////////////////////////////////
+      ///////////////////traverse RTree//////////////////////////////////
 /*      queue<SmiRecordId> record_list;
       record_list.push(adr);
       while(record_list.empty() == false){ // width first method
