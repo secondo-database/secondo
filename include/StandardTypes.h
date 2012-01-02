@@ -188,6 +188,12 @@ class CcInt : public Attribute
                              IsDefined(), rhs->IsDefined() );
   }
 
+  inline int Compare(const CcInt arg) const
+  {
+    const Attribute* rhs = (Attribute*) &arg;
+    return Compare(rhs);
+  }
+
   inline virtual bool Equal(const CcInt* rhs) const
   {
     static long& ctr = Counter::getRef(Symbol::CTR_INT_EQUAL());
@@ -263,6 +269,11 @@ class CcInt : public Attribute
       return SetWord( Address(0) );
   }
 
+  static ListExpr Out(const ListExpr typeInfo, Word value);
+
+  static Word In(ListExpr typeInfo, ListExpr value,
+                 int errorPos, ListExpr& errorInfo, bool& correct);
+
   inline bool operator==(const CcInt& rhs) const
   {
     return intval == rhs.intval;
@@ -323,6 +334,9 @@ class CcInt : public Attribute
     return listutils::isSymbol(list, BasicType());
   }
 
+  static const string Example(){
+    return "5";
+  }
   virtual bool hasTextRepresentation() const{
     return true;
   }
@@ -568,7 +582,7 @@ class CcReal : public Attribute
   static const string BasicType(){
     return "real";
   }
-  
+
   static const bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
@@ -752,7 +766,7 @@ class CcBool : public Attribute
   static const string BasicType(){
      return "bool";
   }
-  
+
   static const bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
@@ -1233,7 +1247,7 @@ class CcString : public Attribute
   static const bool checkType(const ListExpr list){
     return listutils::isSymbol(list, BasicType());
   }
-  
+
 
   void trim(){
     if(!IsDefined()){

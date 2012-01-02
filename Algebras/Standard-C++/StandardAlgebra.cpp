@@ -396,6 +396,17 @@ InCcInt( ListExpr typeInfo, ListExpr value,
 
 */
 
+ListExpr CcInt::Out(const ListExpr typeInfo, Word value)
+{
+  return OutCcInt(typeInfo, value);
+}
+
+Word CcInt::In(ListExpr typeInfo, ListExpr value,
+           int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return InCcInt(typeInfo, value, errorPos, errorInfo, correct);
+}
+
 Word
 CreateCcInt( const ListExpr typeInfo )
 {
