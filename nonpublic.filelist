@@ -78,6 +78,9 @@ Data/Objects/Brasil
 Data/Objects/Distrikte
 Data/Objects/KreisLaender
 Algebras/RegionInterpolation/Tex
+Algebras/JNet/Scripts
+Algebras/Network/Scripts
+
 #Tools/RStarTree
 
 # chessalgebra
