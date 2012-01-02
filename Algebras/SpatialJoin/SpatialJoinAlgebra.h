@@ -44,7 +44,7 @@ using namespace extrel2;
 typedef enum {leftStream, rightStream} streamType;
 
 template <unsigned dim>
-class SpatialJoin2LocalInfo
+class SpatialJoin2LocalInfo: protected ProgressWrapper
 {
 private:
 
@@ -53,7 +53,6 @@ private:
   bool isSet;  //ensure setting the function's parameters
 
   struct{
-    bool isRel;
     Word streamWord;
     TupleBuffer2 *streamBuffer;
     TupleBuffer2Iterator *tb2Iter;
@@ -65,11 +64,12 @@ private:
   void scanStream(int attrIndex, streamType loc, Supplier s);
 
 public:
-  SpatialJoin2LocalInfo(Word leftStreamWord, bool isLRel,
+  SpatialJoin2LocalInfo(Word leftStreamWord, 
                        Word leftAttrIndexWord,
-                       Word rightStreamWord, bool isRRel,
+                       Word rightStreamWord, 
                        Word rightAttrIndexWord,
-                       Word funWord, Supplier s);
+                       Word funWord, Supplier s,
+                       ProgressLocalInfo* p);
 
   void openInputStream(streamType loc);
   Tuple* getNextInputTuple(streamType loc);

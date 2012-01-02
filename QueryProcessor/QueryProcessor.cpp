@@ -3888,7 +3888,7 @@ Then call the operator's value mapping function.
         {
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable )
             {
-              if ( !tree->u.op.isStream && (message <= CLOSE))
+              if ( !tree->u.op.isStream  && (message <= CLOSE) )   
               //no stream operator, normal evaluation
               {
                         if ( traceNodes )
@@ -4228,31 +4228,43 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
         (void*) s << "  ProgressInfo* = " << (void*) p << endl;
 
 
-  assert(tree!=0);
+  assert(tree != 0);
 
   // RequestProgress is available for operator node only
-  if(tree->nodetype != Operator){
-    return  false;
-  }
+  // if(tree->nodetype != Operator){
+  //   return  false;
+  // }
 
   // check if the operator supports progress
- if ( !tree->u.op.supportsProgress ){
-    return false;
-  }
+  // if ( !tree->u.op.supportsProgress ){
+  //   return false;
+  // }
+
+  // Operators are only asked if they support progress. But one can also ask
+  // Indirect Objects (stream arguments to parameter functions)
+  if ( tree->nodetype == Operator )
+    if ( !tree->u.op.supportsProgress )
+      return false;
 
   result = SetWord(p);
   Eval(tree, result, REQUESTPROGRESS);
   if(tree->u.received){
     if(traceProgress  || (debugProgress && !p->checkRanges())){
-        cout << "Result of REQUESTPROGRESS for " << (void*) s << "(";
-        cout  << tree->u.op.theOperator->GetName() << ")" << endl;
+        cout << "Result of REQUESTPROGRESS for " << (void*) s ;
+        if ( tree->nodetype == Operator ) {
+          cout  << "(" << tree->u.op.theOperator->GetName() << ")" << endl;
+        }
+        else cout << "(stream arg of param function)" << endl;
         cout << (*p) << endl;
         cout << "======================" << endl;
      }
    } else {
      if(traceProgress){
-        cout << "REQUESTPROGRESS for " << (void*) s << "(";
-        cout  << tree->u.op.theOperator->GetName() << ")" << endl;
+        cout << "REQUESTPROGRESS for " << (void*) s;
+        if ( tree->nodetype == Operator ) {
+          cout  << "(" << tree->u.op.theOperator->GetName() << ")" << endl;
+        }
+        else cout << "(stream arg of param function)" << endl;
         cout << "has no result" << endl;
         cout << "======================" << endl;
      }

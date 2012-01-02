@@ -967,7 +967,13 @@ defaultOptions :-
 loadOptions :-
   delAllOptions,
   retractall(optActiveDebugLevel(_)),
+  open('config_optimizer.pl',read,S), %force an exception if 
+  close(S),                           %file does not exist
   consult('config_optimizer.pl').
+
+loadOptions :-
+  defaultOptions,
+  write('Use default options\n').
 
 saveSingleOption(Stream) :-
   optimizerOption(X),
@@ -990,7 +996,7 @@ saveOptions :-
 
 initializeOptions :-
   catch(
-    ( loadOptions,
+    ( loadOptions,!,
       write('Loaded options\n')
     ),
     _, % catch all exceptions

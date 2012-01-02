@@ -91,8 +91,8 @@ stream from the parameter function directly.
 The signature of *spatialjoin2* is:
 
 ----
-( (stream || rel (tuple ((x1 t1)...(xn tn))))
-  (stream || rel (tuple ((y1 yt1)...(yn ytn))))
+( (stream(tuple ((x1 t1)...(xn tn))))
+  (stream(tuple ((y1 yt1)...(yn ytn))))
   rect||rect3||spatialtype
   rect||rect3||spatialtype )
   -> (stream (tuple ((x1 t1)...(xn tn)((y1 yt1)...(yn ytn)))))
@@ -103,11 +103,8 @@ The signature of *spatialjoin2* is:
 ListExpr spatialJoinTypeMap(ListExpr args)
 {
   string lenErr = "4 parameters expected";
-  string oldErr = "stream(tuple) x stream(tuple) "
+  string newErr = "stream(tuple) x stream(tuple) "
                   "x name1 x name2 expected";
-  string newErr = "{stream(tuple), rel(tuple)} "
-                "x {stream(tuple), rel(tuple)} "
-                "x name1 x name2 x isOld expected";
   string mapErr = "It's not a map ";
 
   if (nl->ListLength(args) != 4)
@@ -118,14 +115,10 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   ListExpr nameL1 = nl->Third(args);
   ListExpr nameL2 = nl->Fourth(args);
 
-  bool isRel[] = {false, false};
-  if (listutils::isRelDescription(stream1))
-    isRel[0] = true;
-  else if (!listutils::isTupleStream(stream1))
+  if (!listutils::isTupleStream(stream1))
     return listutils::typeError(newErr);
-  if (listutils::isRelDescription(stream2))
-    isRel[1] = true;
-  else if (!listutils::isTupleStream(stream2))
+
+  if (!listutils::isTupleStream(stream2))
     return listutils::typeError(newErr);
 
   if (!listutils::isSymbol(nameL1) ||
@@ -226,10 +219,10 @@ ListExpr spatialJoinTypeMap(ListExpr args)
     ListExpr streamList;
     stringstream listStr;
     listStr
-    << " (sortby (extendstream "
+    << " (sortby (extendstream (predinfo 1.0 0.01 "
     << "(filter "
     << "(extend "
-    << (isRel[i] ? "( feed " + ptName[i] + ")" : ptName[i])
+    << ptName[i]
     << "( ( " + eaName2[i]
     << "(fun (" << ptName2[i] << " TUPLE)"
     << "(bbox (attr " << ptName2[i] << " " << aName[i] << "))))))"
@@ -245,7 +238,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
       listStr
       << "(<= (minD (attr " << ptName3[i]
                      << " " << eaName2[i] << ") 2) yt)"
-      << ")))))";
+      << "))))))";
     else
       listStr
       << "(and (<= (minD (attr " << ptName3[i]
@@ -254,7 +247,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
                             << " " << eaName2[i] << ") 3) zb)"
              << "(<= (minD (attr " << ptName3[i]
                             << " " << eaName2[i] << ") 3) zt)"
-      << ")))))))";
+      << "))))))))";
 
     listStr << "( ( " << eaName[i]
             << "(fun ( " << ptName1[i] << " "
@@ -308,38 +301,41 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   inFunList.append(NList("fun"));
   inFunList.append(NList(NList(ptName4[0]), NList("ANY")));
   inFunList.append(NList(NList(ptName4[1]), NList("ANY2")));
-  inFunList.append(NList(
-      NList("filter"),
-      interJoinList,
-      NList(NList("fun"),
-        NList(NList(ptName5), NList("STREAMELEM")),
-        NList(
-          NList("and"),
-          NList(
-            NList("="),
-              NList(NList("attr"), NList(ptName5), NList(eaName[0])),
-              NList(NList("attr"), NList(ptName5), NList(eaName[1]))),
-          gisCheckList ))));
+  inFunList.append(
+    NList(
+      NList("remove"),
+      NList(
+          NList("filter"),
+          interJoinList,
+          NList(NList("fun"),
+            NList(NList(ptName5), NList("STREAMELEM")),
+              NList(
+                NList("and"),
+                NList(
+                  NList("="),
+                  NList(NList("attr"), NList(ptName5), NList(eaName[0])),
+                  NList(NList("attr"), NList(ptName5), NList(eaName[1]))),
+                gisCheckList ))),
+      NList(
+        NList(eaName[0])
+        ,NList(eaName[1])
+        ,NList(eaName2[0])
+        ,NList(eaName2[1]) ))  );
 
-  pjList.append(NList(inFunList));
-  funList.append(NList(NList("remove"),
-                pjList,
-                NList(NList(eaName[0])
-                      ,NList(eaName[1])
-                      ,NList(eaName2[0])
-                      ,NList(eaName2[1])
-                      )));
+  pjList.append( NList(inFunList) );
+  funList.append( NList(pjList) );
+
   //remove the extended attributes,
   //to make sure the equality of the output tuple type
 
+
+  // nl->WriteListExpr(funList.listExpr());
+
   return nl->ThreeElemList(
              nl->SymbolAtom(Symbol::APPEND()),
-             nl->SixElemList(
+             nl->ThreeElemList(
                  nl->IntAtom(index1),
                  nl->IntAtom(index2),
-                 nl->StringAtom(nl->SymbolValue(type1)),
-                 nl->BoolAtom(isRel[0]),
-                 nl->BoolAtom(isRel[1]),
                  funList.listExpr()
                  ),
              nl->TwoElemList(
@@ -350,7 +346,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
 }
 
 /*
-3.4 Selection function of operator ~spatjoin~
+3.4 Selection function of operator ~spatialjoin~
 
 */
 
@@ -383,6 +379,10 @@ spatialJoinSelection (ListExpr args)
             else return -1; /* should not happen */
 }
 
+
+
+// progress version only
+
 /*
 3.5 ~SpatialJoinLocalInfo~: Auxiliary Class for operator ~spatialjoin~
 
@@ -390,11 +390,12 @@ spatialJoinSelection (ListExpr args)
 
 template <unsigned dim>
 SpatialJoin2LocalInfo<dim>::SpatialJoin2LocalInfo(
-                       Word leftStreamWord, bool _isLR,
+                       Word leftStreamWord, 
                        Word leftAttrIndexWord,
-                       Word rightStreamWord, bool _isRR,
+                       Word rightStreamWord,
                        Word rightAttrIndexWord,
-                       Word funWord, Supplier s)
+                       Word funWord, Supplier s,
+                       ProgressLocalInfo* p) : ProgressWrapper(p)
 {
   isSet = false;
 
@@ -402,25 +403,19 @@ SpatialJoin2LocalInfo<dim>::SpatialJoin2LocalInfo(
   int aiRight = ((CcInt*)rightAttrIndexWord.addr)->GetValue() - 1;
   pf = funWord.addr;
 
-  r[0].isRel = _isLR;
   r[0].streamWord = leftStreamWord;
-  r[1].isRel = _isRR;
   r[1].streamWord = rightStreamWord;
 
-  scanStream(aiLeft, leftStream, s);
-  scanStream(aiRight, rightStream, s);
+  scanStream(aiLeft, leftStream, s); p->read = r[0].card;
+	// cout << "left stream: p->read = " << p->read << endl;
+  scanStream(aiRight, rightStream, s); p->total = r[1].card;
+	// cout << "right stream: p->total = " << p->total << endl;
   joinBox =
       new Rectangle<dim>(r[0].MBR->Intersection(*(r[1].MBR)));
 
   ArgVectorPointer funargs = qp->Argument(pf);
-  if (r[0].isRel)
-    (*funargs)[0].setAddr((GenericRelation*)r[0].streamWord.addr);
-  else
-    qp->SetupStreamArg(pf, 1, s);
-  if (r[1].isRel)
-    (*funargs)[1].setAddr((GenericRelation*)r[1].streamWord.addr);
-  else
-    qp->SetupStreamArg(pf, 2, s);
+  qp->SetupStreamArg(pf, 1, s);
+  qp->SetupStreamArg(pf, 2, s);
 
 /*
 Revision RHG 28.12.2010
@@ -574,42 +569,11 @@ SpatialJoin2LocalInfo<dim>::scanStream( int attrIndex,
   string undefErr = "One bounding box is not defined, "
       "check the data set please.";
 
-  if (r[loc].isRel)
-  {
-    //Scan the relation tuple by tuple
-    GenericRelation* rel =
-        (GenericRelation*)r[loc].streamWord.addr;
-    GenericRelationIterator *iter = rel->MakeScan();
-    Tuple* nextTup = iter->GetNextTuple();
-    while(!iter->EndOfScan())
-    {
-      Rectangle<dim>
-          tBox = ((StandardSpatialAttribute<dim>*) nextTup
-              ->GetAttribute(attrIndex))->BoundingBox();
-
-      if (!tBox.IsEmpty())
-      {
-        for(unsigned i = 0; i < dim; i++)
-          size[i] += tBox.MaxD(i) - tBox.MinD(i);
-        if (!MBR)
-          MBR = new Rectangle<dim> (tBox);
-        else
-          *MBR = tBox.Union(*MBR);
-      }
-      else
-        cerr << undefErr << endl;
-
-      nextTup->DeleteIfAllowed();
-      tupleNo++;
-      nextTup = iter->GetNextTuple();
-    }
-    delete iter;
-  }
-  else
   {
     //Scan the stream tuple by tuple
     Word streamTupleWord;
-    qp->Open(r[loc].streamWord.addr);
+    //  qp->Open(r[loc].streamWord.addr);  
+    // (has been moved into the OPEN branch of the value mapping of spatialjoin
     qp->Request(r[loc].streamWord.addr, streamTupleWord);
     r[loc].streamBuffer =
         new TupleBuffer2((qp->GetMemorySize(s) * 1024 * 1024));
@@ -649,7 +613,6 @@ template<unsigned dim>
 void
 SpatialJoin2LocalInfo<dim>::openInputStream(streamType loc)
 {
-  assert(!r[loc].isRel);
   r[loc].tb2Iter = r[loc].streamBuffer->MakeScan();
 }
 
@@ -657,7 +620,6 @@ template<unsigned dim>
 Tuple*
 SpatialJoin2LocalInfo<dim>::getNextInputTuple(streamType loc)
 {
-  assert(!r[loc].isRel);
   return r[loc].tb2Iter->GetNextTuple();
 }
 
@@ -665,7 +627,6 @@ template<unsigned dim>
 void
 SpatialJoin2LocalInfo<dim>::closeInputStream(streamType loc)
 {
-  assert(!r[loc].isRel);
   delete r[loc].tb2Iter;
   r[loc].tb2Iter = 0;
 }
@@ -687,7 +648,7 @@ SpatialJoin2LocalInfo<dim>::NextResultTuple()
 }
 
 /*
-3.5 Value mapping function of operator ~spatjoin~
+3.5 Value mapping function of operator ~spatialjoin~
 
 */
 template<int D>
@@ -695,103 +656,282 @@ int
 spatialJoinValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
+  typedef LocalInfo< SpatialJoin2LocalInfo<D> > LocalType;
+  LocalType* li = static_cast<LocalType*>( local.addr );
+
   SpatialJoin2LocalInfo<D> *localInfo = 0;
+
+	// cout << "message = " << message << endl;
 
   switch(message)
   {
     case OPEN:
     {
-      if (localInfo)
-        delete localInfo;
-      localInfo =
-          new SpatialJoin2LocalInfo<D>(
-            args[0], ((CcBool*)args[7].addr)->GetValue(), args[4],
-            args[1], ((CcBool*)args[8].addr)->GetValue(), args[5],
-            args[9], s);
+      if ( li ) {
+        delete li;
+      }
+      li = new LocalType();
+      li->ptr = 0;
+      local.setAddr(li);
 
-      local.setAddr(localInfo);
-      localInfo->OpenFunction();
+      qp-> Open(args[0].addr);
+      qp-> Open(args[1].addr);
+ 
       return 0;
     }
+
     case REQUEST:
     {
-      result.setAddr(Address(0));
-      if (0 != local.addr)
+      if ( li->ptr == 0 )      // first request
       {
-        localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
-        result.setAddr(localInfo->NextResultTuple());
-      }
-      return result.addr != 0 ? YIELD : CANCEL;
-    }
-    case (1*FUNMSG)+OPEN:{
-      if (0 != local.addr)
-      {
-        localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
-        localInfo->openInputStream(leftStream);
-      }
-      return 0;
-    }
-    case (2*FUNMSG)+OPEN:{
-      if (0 != local.addr)
-      {
-        localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
-        localInfo->openInputStream(rightStream);
-      }
-      return 0;
-    }
-    case (1*FUNMSG)+REQUEST:{
-      if (0 == local.addr)
-      {
-        return CANCEL;
+        li->ptr = new SpatialJoin2LocalInfo<D>(
+            args[0], args[4],
+            args[1], args[5],
+            args[6], s, li);
+        localInfo = li->ptr;
+        localInfo->OpenFunction();
       }
 
-      localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
+      localInfo = li->ptr;
+
+      result.setAddr(localInfo->NextResultTuple());  
+      return result.addr != 0 ? YIELD : CANCEL;
+    }
+
+    case (1*FUNMSG)+OPEN:{
+      localInfo = li->ptr;
+      localInfo->openInputStream(leftStream);
+      return 0;
+    }
+
+    case (2*FUNMSG)+OPEN:{
+      localInfo = li->ptr;
+      localInfo->openInputStream(rightStream);
+      return 0;
+    }
+
+    case (1*FUNMSG)+REQUEST:{
+      localInfo = li->ptr;
       result.setAddr(localInfo->getNextInputTuple(leftStream));
-      if (result.addr)
+      if (result.addr) {
+        li->readFirst++;
         return YIELD;
-      else
-        return CANCEL;
-    }
-    case (2*FUNMSG)+REQUEST:{
-      if (0 == local.addr)
-      {
-        return CANCEL;
       }
-      localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
-      result.setAddr(localInfo->getNextInputTuple(rightStream));
-      if (result.addr)
-        return YIELD;
       else
         return CANCEL;
     }
+
+    case (2*FUNMSG)+REQUEST:{
+      localInfo = li->ptr;
+      result.setAddr(localInfo->getNextInputTuple(rightStream));
+      if (result.addr) {
+        li->readSecond++;
+        return YIELD;
+      }
+      else
+        return CANCEL;
+    }
+
     case (1*FUNMSG)+CLOSE:{
-      if (0 != local.addr) {
-        localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
+      localInfo = li->ptr;
+      if ( localInfo != 0 )
+      {
         localInfo->closeInputStream(leftStream);
       }
       return 0;
     }
+
     case (2*FUNMSG)+CLOSE:{
-      if (0 != local.addr) {
-        localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
+      localInfo = li->ptr;
+      if ( localInfo != 0 )
+      {
         localInfo->closeInputStream(rightStream);
       }
       return 0;
     }
+
+    // We abuse the fields "read" and "total" in the ProgressLocalInfo to keep 
+    // the observed total number of tuples in the first and second input stream,
+    // respectively, of the spatialjoin operator. The fields "readFirst" and 
+    // "readSecond" are used to maintain the number of tuples already delivered
+    // to the parameter function for the first and second stream, respectively.
+
+    case (1*FUNMSG)+REQUESTPROGRESS:{
+
+		// cout << "first parameter stream called" << endl;
+
+      localInfo = li->ptr;
+      if ( localInfo != 0 )
+      {
+        ProgressInfo q1;
+        ProgressInfo *q1Res;
+
+        const double wSpatialJoin = 0.014; // msecs per tuple
+    
+        // This is based on the cost of the query "Roads feed count" which takes
+        // 3.15 seconds for 735683 tuples (using machine factor 3.35).
+        //
+        // (3150 / 735683) * 3.35 = 0.0143438138
+
+        q1Res = (ProgressInfo*) result.addr;
+
+        if ( qp->RequestProgress(args[0].addr, &q1) )
+        {
+          q1Res->CopySizes(q1);
+          q1Res->Card = li->read;
+          q1Res->Time = (li->read + 1) * wSpatialJoin;  // must be greater 0
+          q1Res->Progress = (li->readFirst + 1) * wSpatialJoin / q1Res->Time;
+
+		// cout << endl << "li->readFirst = " << li->readFirst << endl;
+
+          q1Res->BTime = 0.01;
+          q1Res->BProgress = 1.0;
+          return YIELD;         
+        }
+        else return CANCEL;
+      }
+      else return CANCEL;
+    }
+
+
+    case (2*FUNMSG)+REQUESTPROGRESS:{
+		// cout << "second parameter stream called" << endl;
+      localInfo = li->ptr;
+      if ( localInfo != 0 )
+      {
+        ProgressInfo q2;
+        ProgressInfo *q2Res;
+
+        const double wSpatialJoin = 0.014; // msecs per tuple (see above)
+
+        q2Res = (ProgressInfo*) result.addr;
+
+        if ( qp->RequestProgress(args[1].addr, &q2) )
+        {
+          q2Res->CopySizes(q2);
+          q2Res->Card = li->total;
+          q2Res->Time = (li->total + 1) * wSpatialJoin;  // must be greater 0
+          q2Res->Progress = (li->readSecond + 1) * wSpatialJoin / q2Res->Time;
+
+		// cout << "li->readSecond = " << li->readSecond << endl;
+
+          q2Res->BTime = 0.01;
+          q2Res->BProgress = 1.0;
+          return YIELD;          
+        }
+        else return CANCEL;
+      }
+      else return CANCEL;
+    }
+
+
     case CLOSE:
     {
-      if (local.addr)
+      localInfo = li->ptr;
+      if ( localInfo != 0 )
       {
-        localInfo = (SpatialJoin2LocalInfo<D>*)local.addr;
         delete localInfo;
         local.setAddr(0);
       }
       return 0;
     }
+
+    case CLOSEPROGRESS:
+      if ( li )
+      {
+         delete li;
+         local.setAddr(0);
+      }
+      return 0;
+
+
+    case REQUESTPROGRESS:
+    {
+      ProgressInfo p1, p2, pFun;
+      ProgressInfo *pRes;
+
+      const double uSpatialJoin = 0.27; // msecs per tuple
+
+      // based on a rough calculation 120000 / (2 * 735683) =  0.0815568662
+      // as the spatial join on the Roads relation with cardinality
+      // 735683 takes roughly two minutes (using machine factor 3.35)
+
+      const double vSpatialJoin = 0.09; // msecs per tuple
+
+      // based on a rough calculation 40000 / (2 * 735683) = 0.0271856221
+      // as the sorting phase before parajoin takes roughly 40 seconds
+      // on the Roads relation with 735683 tuples (using machine factor 3.35)
+
+       
+      pRes = (ProgressInfo*) result.addr;
+
+      if (!li) {
+         return CANCEL;
+      }
+
+      if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2))
+      {
+        // Sizes
+        li->SetJoinSizes(p1, p2);
+        pRes->CopySizes(li);
+
+        if ( li->ptr == 0)
+        {
+          // Cardinality
+          if ( qp->GetSelectivity(s) == 0.1 )
+            pRes->Card = max(p1.Card, p2.Card);
+          else pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
+
+          // Time
+          pRes->Time = p1.Time + p2.Time + (p1.Card + p2.Card) * uSpatialJoin;
+
+          // Progress
+          pRes->Progress = 
+            (p1.Time * p1.Progress +
+            p2.Time * p2.Progress)
+          / pRes->Time;
+
+          // Blocking Time
+          pRes->BTime = p1.Time + p2.Time + (p1.Card + p2.Card) * vSpatialJoin;
+
+          // Blocking Progress
+          pRes->BProgress = 
+            ( p1.BTime * p1.BProgress + p2.BTime * p2.BProgress)
+          / pRes->BTime;
+ 
+          return YIELD;
+        }
+        else
+        {
+          if ( qp->RequestProgress(args[6].addr, &pFun) )
+          {
+            pRes->Card = pFun.Card;
+            pRes->Time = p1.Time + p2.Time + pFun.Time;
+
+            pRes->Progress =
+              ( p1.Time + p2.Time + pFun.Time * pFun.Progress ) / pRes->Time;
+
+            pRes->BTime = p1.BTime + p2.BTime + pFun.BTime;
+
+            pRes->BProgress =
+              ( p1.BTime * p1.BProgress + 
+              p2.BTime * p2.BProgress + 
+              pFun.BTime * pFun.Progress)
+            / pRes->BTime;
+
+            return YIELD;
+          }
+          else return CANCEL;
+        }
+      }
+      else return CANCEL;
+    }
   }
   return 0;
-
 };
+
+
 
 /*
 3.7 Definition of value mapping vectors
@@ -802,7 +942,7 @@ ValueMapping spatialJoinMap [] = {spatialJoinValueMapping<2>,
     spatialJoinValueMapping<4> };
 
 /*
-3.8 Specification of operator ~spatjoin~
+3.8 Specification of operator ~spatialjoin~
 
 */
 const string spatialJoinSpec  =
@@ -1299,8 +1439,17 @@ int paraJoin2ValueMap(Word* args, Word& result,
     {
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
-      const double uParajoin = 0.001;  // to be determined
-      const double wParajoin = 0.001;  // to be determined
+      const double uParajoin = 0.1742;  // msecs per input tuple
+        // assuming that the parameter function is 
+        // parajoin2[Cell_r1, Cell_r2
+        // ; . .. realJoinMMRTreeVec[Box_r1, Box_r2, 10, 20]
+        //   filter[.osm_id_r1 < .osm_id_r2]
+        //   filter[gridintersects(5.5, 50.0, 0.2, 0.2, 50, 
+        //     .Box_r1, .Box_r2, .Cell_r1)] ] 
+        // taken from the nrw Roads relation.
+
+      // see determination of progress constants in file ProgressConstants.txt
+       
 
       pRes = (ProgressInfo*) result.addr;
 
@@ -1316,22 +1465,25 @@ int paraJoin2ValueMap(Word* args, Word& result,
         pRes->CopySizes(li);
 
 	// Cardinality
-        pRes->Card = ((double) li->returned + 1) * p1.Card
-            /  ((double) li->readFirst + 1);
+        if ( li->returned > enoughSuccessesJoin )
+          pRes->Card = ((double) li->returned + 1) * p1.Card
+            /  ((double) li->readFirst + 1);   
+        else
+          if ( qp->GetSelectivity(s) == 0.1 )
+            pRes->Card = max(p1.Card, p2.Card);
+          else pRes->Card = qp->GetSelectivity(s) * (p1.Card * p2.Card);
 
         // Time
         pRes->Time = p1.Time + p2.Time + 
           p1.Card * uParajoin +
-          p2.Card * uParajoin +
-          pRes->Card * wParajoin;
+          p2.Card * uParajoin;
 
         // Progress
         pRes->Progress = 
           ( p1.Time * p1.Progress +
           p2.Time * p2.Progress +
           li->readFirst * uParajoin +
-          li->readSecond * uParajoin +
-          li->returned * wParajoin )
+          li->readSecond * uParajoin )
           / pRes->Time;
           
         // Blocking Progress
@@ -1576,7 +1728,8 @@ class SpatialJoinAlgebra : public Algebra
 
 #ifdef USE_PROGRESS
 // support for progress queries
-   parajoin2.EnableProgress();
+    spatialjoin2.EnableProgress();
+    parajoin2.EnableProgress();
 #endif
 
   }

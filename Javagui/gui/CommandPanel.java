@@ -598,6 +598,7 @@ public class CommandPanel extends JScrollPane {
   */
   private String formatOptimizerError(String errmsg){
     errmsg = errmsg.replaceAll("\\\\n","\n");
+    errmsg = errmsg.replaceAll("\\\\t","\t");
     errmsg = errmsg.replaceAll("\\\\'","'");
     return errmsg;
   }

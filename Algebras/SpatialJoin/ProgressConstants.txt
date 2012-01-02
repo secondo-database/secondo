@@ -1,0 +1,82 @@
+Spatial Join Progress
+=====================
+
+query 
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}
+    sortby[Cell] {r1}
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}  
+    sortby[Cell] {r2}
+  parajoin2[Cell_r1, Cell_r2
+  ; . .. realJoinMMRTreeVec[Box_r1, Box_r2, 10, 20]
+    filter[.osm_id_r1 < .osm_id_r2]
+    filter[gridintersects(5.5, 50.0, 0.2, 0.2, 50, .Box_r1, .Box_r2, .Cell_r1)] ] {4.6182e-06, 0.01}
+  count
+
+
+Determining constants
+=====================
+
+query 
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}
+    sortby[Cell] {memory 256} {r1} count
+
+19.5 secs, 20.5, 19.5 => 19.83 secs
+
+Offset coast for parajoin2 is 39.6 secs.
+
+
+query 
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}
+    sortby[Cell] {r1}
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}  
+    sortby[Cell] {r2}
+  parajoin2[Cell_r1, Cell_r2
+  ; . .. realJoinMMRTreeVec[Box_r1, Box_r2, 10, 20]
+    filter[.osm_id_r1 < .osm_id_r2]
+    filter[gridintersects(5.5, 50.0, 0.2, 0.2, 50, .Box_r1, .Box_r2, .Cell_r1)] ] {4.6182e-06, 0.01}
+  count
+
+116.51 secs, 120.67, 117.6 secs => 118.26 secs
+
+
+The following query is meant to determine how much of this time should be charged per output tuple.
+
+query 
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}
+    sortby[Cell] {r1}
+  Roads feed extend[Box: bbox(.geoData)] 
+    extendstream[Cell: cellnumber(.Box, 5.5, 50.0, 0.2, 0.2, 50)] {1.0192542168, 0.01}  
+    sortby[Cell] {r2}
+  parajoin2[Cell_r1, Cell_r2
+  ; . .. realJoinMMRTreeVec[Box_r1, Box_r2, 10, 20]
+    filter[.osm_id_r1 < .osm_id_r2]
+    filter[gridintersects(5.5, 50.0, 0.2, 0.2, 50, .Box_r1, .Box_r2, .Cell_r1)]  filter[FALSE] ] {4.6182e-06, 0.01}
+  count
+
+115.76 secs, 116.61, 115.82 => 116.06
+
+We see that only about 2 seconds are spent on constructing the 2.5 million result tuples.
+
+We will simplify the cost function and not let it depend on the number of result tuples at all. The new cost function is
+
+        pRes->Time = p1.Time + p2.Time + 
+          p1.Card * uParajoin +
+          p2.Card * uParajoin;
+
+The input cardinality in this experiment is 749848.
+
+The constant uParajoin is 1000 * ((118 - 40) / (2 * 749848)) msecs = 0.052 msecs. We need to multiply by the machine factor which is 3.35 for this machine. Hence 
+
+uParajoin = 0.000052 * 3.35 = 0.1742 msecs
+
+
+
+
+
+

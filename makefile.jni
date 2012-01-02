@@ -24,11 +24,17 @@ JNILIBFILES = $(JVMINIT_O_FILE) $(JNITool_O_FILE)
 
 ifeq ($(platform),win32)
 
+space :=
+space +=
+
+
+J2SDK_ROOT:=$(subst $(space),\$(space),$(J2SDK_ROOT))
+
 # directory where i can find the jni.h
 JNI_H_DIR := $(J2SDK_ROOT)/include
 
 # directory where i can find the libjava.dll
-LIBJAVA_DIR := $(J2SDK_ROOT)/jre/bin
+LIBJAVA_DIR := "$(J2SDK_ROOT)/jre/bin"
 
 # directory of libjvm.dll
 LIBJVM_DIR := $(LIBJAVA_DIR)/client
