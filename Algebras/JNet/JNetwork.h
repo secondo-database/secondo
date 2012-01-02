@@ -352,6 +352,42 @@ Creates the RTree over the spatial attribute of the given relation.
                        const ListExpr& sectionsNumType);
 
 /*
+1.1 StartBulkload for lists in Tuples
+
+*/
+void StartJunctionTupleLists(ListPairTIDRLoc* listRLoc,
+                             JListTID* listinsect,
+                             JListTID* listoutsect,
+                             ListNetDistGrp* listdist);
+
+void StartRoutesTupleLists(ListPairTIDRLoc* listjunc,
+                           ListPairTIDRInt* listsect);
+
+void StartSectionTupleLists(ListPairTIDRInt* listRouteIntervals,
+                            JListTID* listAdjSectionsUp,
+                            JListTID* listAdjSectionsDown,
+                            JListTID* listRevAdjSectionsUp,
+                            JListTID* listRevAdjSectionsDown);
+
+/*
+1.1 EndBulkload for lists in Tuples
+
+*/
+void EndJunctionTupleLists(ListPairTIDRLoc* listRLoc,
+                             JListTID* listinsect,
+                             JListTID* listoutsect,
+                             ListNetDistGrp* listdist);
+
+void EndRoutesTupleLists(ListPairTIDRLoc* listjunc,
+                           ListPairTIDRInt* listsect);
+
+void EndSectionTupleLists(ListPairTIDRInt* listRouteIntervals,
+                            JListTID* listAdjSectionsUp,
+                            JListTID* listAdjSectionsDown,
+                            JListTID* listRevAdjSectionsUp,
+                            JListTID* listRevAdjSectionsDown);
+
+/*
 1 Access to internal relations
 
 Some helpful tools for access  to internal relations.

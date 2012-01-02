@@ -184,8 +184,6 @@ int JRouteInterval::Compare(const JRouteInterval& in) const
   if (!in.IsDefined() && IsDefined()) return 1;
   if (rid < in.GetRouteId()) return -1;
   if (rid > in.GetRouteId()) return 1;
-  if (endpos - startpos < in.GetEndPosition()- in.GetEndPosition()) return -1;
-  if (endpos - startpos > in.GetEndPosition()- in.GetEndPosition()) return 1;
   if (startpos < in.GetStartPosition()) return -1;
   if (startpos > in.GetStartPosition()) return 1;
   if (endpos < in.GetEndPosition()) return -1;

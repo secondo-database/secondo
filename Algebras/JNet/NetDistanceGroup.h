@@ -102,7 +102,13 @@ static const bool checkType(const ListExpr type);
 */
 
 NetDistanceGroup& operator= ( const NetDistanceGroup& other );
+
 bool operator== ( const NetDistanceGroup& other ) const;
+bool operator!= ( const NetDistanceGroup& other ) const;
+bool operator< ( const NetDistanceGroup& other ) const;
+bool operator<= ( const NetDistanceGroup& other ) const;
+bool operator>= ( const NetDistanceGroup& other ) const;
+bool operator> ( const NetDistanceGroup& other ) const;
 
 /*
 1.5 SecondoIntegration

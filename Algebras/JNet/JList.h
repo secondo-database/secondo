@@ -34,10 +34,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../TupleIdentifier/TupleIdentifier.h"
 #include "PairTID.h"
 #include "NetDistanceGroup.h"
+#include "StandardTypes.h"
 
 /*
 1. class ~List~
-Enables us to use a list of an Attributetype as attribute in relations.
+
+Enables us to use a sorted list of an Attributetype from kind DATA as attribute
+in relations.
 
 */
 
@@ -70,6 +73,10 @@ DbArray<ListElem> GetList() const;
 
 void SetList(const DbArray<ListElem> inList);
 
+
+void StartBulkload();
+void EndBulkload();
+
 /*
 1.3 Override Methods from Attribute
 
@@ -84,6 +91,7 @@ int Compare(const Attribute* rhs) const;
 int Compare(const JList<ListElem>& in) const;
 int NumOfFLOBs () const;
 Flob* GetFLOB(const int n);
+void Clear();
 void Destroy();
 size_t Sizeof() const;
 ostream& Print(ostream& os) const;
@@ -97,6 +105,18 @@ static const bool checkType(const ListExpr type);
 
 JList<ListElem>& operator=(const JList<ListElem>& other);
 bool operator==(const JList<ListElem>& other) const;
+bool operator!=(const JList<ListElem>& other) const;
+bool operator<(const JList<ListElem>& other) const;
+bool operator<=(const JList<ListElem>& other) const;
+bool operator>(const JList<ListElem>& other) const;
+bool operator>=(const JList<ListElem>& other) const;
+
+/*
+Add Elements to list. May only be used during Bulkload.
+
+*/
+JList<ListElem>& operator+=(const ListElem& e);
+JList<ListElem>& operator+=(const JList<ListElem>& other);
 
 /*
 1.5 Operators for Secondo Integration
@@ -123,25 +143,118 @@ static string Example();
 /*
 1.6 Helpful Operators
 
+1.1.1 ~GetNoOfComponents~
+
+Returns the number of list elements.
+
 */
 
-void Append (const ListElem& e);
 int GetNoOfComponents() const;
+
+/*
+1.1.1 ~Get~
+
+Returns the element at position ~i~ as ~res~.
+
+*/
+
 void Get(const int i, ListElem& res) const;
-void Put(const int i, const ListElem& p);
+
+/*
+1.1.1 ~isEmpty~
+
+Returns true if the ~elemlist~ is empty or not defined.
+
+*/
+
+bool IsEmpty() const;
+
+/*
+1.1.1 ~Contains~
+
+Checks if a ~e~ is in the list. If ~e~ is in the list then ~true~ is
+returned and the position in the list is given by ~pos~. Elsewhere ~false~
+is returned and ~pos~ is -1;
+
+*/
+
+bool Contains(const ListElem& e, int& pos);
+
+/*
+1.1.1 ~TrimToSize~
+
+Reduces the list size to the number of elements.
+
+*/
+
+void TrimToSize();
+
+/*
+2 Private members and methods
+
+*/
 
 private:
 
 DbArray<ListElem> elemlist;
+bool activBulkload;
+
+/*
+1.1.1 ~Put~
+
+Writes the data of ~p~ at position ~i~ of ~elemlist~. Private danger of
+conflict with sorted criteria.
+
+*/
+
+void Put(const int i, const ListElem& p);
+
+/*
+1.1.1 ~RemoveDuplicates~
+
+Duplicates will be removed from list.
+
+*/
+
+void RemoveDuplicates();
+
+/*
+1.1.1 ~Sort~
+
+Sorts the elementlist and removes duplicates.
+
+*/
+
+void Sort();
+
 };
+
+/*
+3 Definition of Listclasses.
+
+*/
 
 typedef JList<PairTIDRLoc> ListPairTIDRLoc;
 typedef JList<PairTIDRInt> ListPairTIDRInt;
 typedef JList<NetDistanceGroup> ListNetDistGrp;
 typedef JList<TupleIdentifier> JListTID;
+typedef JList<CcInt> JListInt;
 
 /*
-1 Implementation of class ~JPairTIDRLocList~
+Internal helper function
+
+*/
+
+template<class ListElem>
+int ListElemCompare (const void* a, const void* b)
+{
+  const ListElem* iA = (const ListElem*) a;
+  const ListElem* iB = (const ListElem*) b;
+  return iA->Compare(*iB);
+}
+
+/*
+1 Implementation of class ~JList~
 
 1.1. Constructors and deconstructors
 
@@ -152,19 +265,24 @@ JList<ListElem>::JList():Attribute()
 {}
 
 template<class ListElem>
-JList<ListElem>::JList(bool defined): Attribute(defined), elemlist(0)
+JList<ListElem>::JList(bool defined): Attribute(defined), elemlist(0),
+  activBulkload(false)
 {}
 
 template<class ListElem>
 JList<ListElem>::JList(const JList<ListElem>& other) :
-  Attribute(other.IsDefined()), elemlist(other.GetList().Size())
+  Attribute(other.IsDefined()), elemlist(other.GetList().Size()),
+  activBulkload(false)
 {
-  if (other.IsDefined()) elemlist.copyFrom(other.GetList());
+  if (other.IsDefined())
+  {
+    elemlist.copyFrom(other.GetList());
+  }
 }
 
 template<class ListElem>
 JList<ListElem>::JList(const ListElem& inId) :
-  Attribute(true), elemlist(0)
+  Attribute(true), elemlist(0), activBulkload(false)
 {
   elemlist.Append(inId);
 }
@@ -181,6 +299,7 @@ JList<ListElem>::~JList()
 template<class ListElem>
 DbArray<ListElem> JList<ListElem>::GetList() const
 {
+  assert(IsDefined());
   return elemlist;
 }
 
@@ -188,7 +307,31 @@ template<class ListElem>
 void JList<ListElem>::SetList(const DbArray<ListElem> inList)
 {
   elemlist.copyFrom(inList);
+  Sort();
 }
+
+template<class ListElem>
+void JList<ListElem>::StartBulkload()
+{
+  activBulkload = true;
+}
+
+template<class ListElem>
+void JList<ListElem>::EndBulkload()
+{
+  if (!IsDefined())
+  {
+    elemlist.clean();
+    activBulkload = false;
+  }
+  else
+  {
+    Sort();
+    RemoveDuplicates();
+    TrimToSize();
+  }
+}
+
 
 /*
 1.3 Override Methods from Attribute
@@ -203,6 +346,7 @@ void JList<ListElem>::CopyFrom(const Attribute* right)
   {
     JList<ListElem>* source = (JList<ListElem>*) right;
     elemlist.copyFrom(source->GetList());
+    activBulkload = source->activBulkload;
   }
 }
 
@@ -265,6 +409,7 @@ int JList<ListElem>::Compare(const JList<ListElem>& in) const
           if (elemlist.Size() > in.elemlist.Size()) return 1;
           else
           {
+            assert(!activBulkload && !in.activBulkload);
             ListElem p1,p2;
             for(int i = 0; i < elemlist.Size(); i++)
             {
@@ -295,6 +440,14 @@ Flob* JList<ListElem>::GetFLOB(const int n)
 }
 
 template<class ListElem>
+void JList<ListElem>::Clear()
+{
+  elemlist.clean();
+  activBulkload = false;
+  SetDefined(true);
+}
+
+template<class ListElem>
 void JList<ListElem>::Destroy()
 {
   elemlist.Destroy();
@@ -309,13 +462,13 @@ size_t JList<ListElem>::Sizeof() const
 template<class ListElem>
 ostream& JList<ListElem>::Print(ostream& os) const
 {
-  os << "List: ";
+  os << "List: " << endl;
   if (IsDefined())
   {
     ListElem p;
     for (int i = 0; i < elemlist.Size(); i++)
     {
-      os << i+1 << ". ";
+      os << i << ". ";
       elemlist.Get(i,p);
       p.Print(os);
     }
@@ -352,8 +505,9 @@ JList<ListElem>& JList<ListElem>::operator=(const JList<ListElem>& other)
   if (other.IsDefined())
   {
     elemlist.copyFrom(other.GetList());
+    activBulkload = other.activBulkload;
   }
-    return *this;
+  return *this;
 }
 
 template<class ListElem>
@@ -361,6 +515,82 @@ bool JList<ListElem>::operator==(const JList<ListElem>& other) const
 {
   if (Compare(other) == 0) return true;
   else return false;
+}
+
+template<class ListElem>
+bool JList<ListElem>::operator!=(const JList< ListElem >& other) const
+{
+  if (Compare(other) != 0) return true;
+  else return false;
+}
+
+template<class ListElem>
+bool JList<ListElem>::operator<(const JList< ListElem >& other) const
+{
+  if (Compare(other) < 0) return true;
+  else return false;
+}
+
+
+template<class ListElem>
+bool JList<ListElem>::operator<=(const JList<ListElem>& other) const
+{
+  if (Compare(other)<1) return true;
+  else return false;
+}
+
+template<class ListElem>
+bool JList<ListElem>::operator>(const JList<ListElem>& other) const
+{
+  if (Compare(other) > 0 ) return true;
+  else return false;
+}
+
+template<class ListElem>
+bool JList<ListElem>::operator>=(const JList<ListElem>& other) const
+{
+  if (Compare(other) > -1) return true;
+  else return false;
+}
+
+template<class ListElem>
+JList<ListElem>& JList<ListElem>::operator+=(const ListElem& e)
+{
+  assert (activBulkload); //May only be used while bulkload is activated!
+  if (IsDefined() && e.IsDefined())
+  {
+    elemlist.Append(e);
+  }
+  else
+  {
+    if (!IsDefined() && e.IsDefined())
+    {
+      SetDefined(true);
+      elemlist.clean();
+      elemlist.Append(e);
+    }
+  }
+  return *this;
+}
+
+template<class ListElem>
+JList<ListElem>& JList<ListElem>::operator+=(const JList<ListElem>& l)
+{
+  assert(activBulkload);//May only be used while bulkload is activated!
+  if(IsDefined() && l.IsDefined())
+  {
+    ListElem curElem;
+    for (int i = 0; i < l.GetNoOfComponents(); i++)
+    {
+      l.Get(i,curElem);
+      elemlist.Append(curElem);
+    }
+  }
+  else
+  {
+    if (!IsDefined() && l.IsDefined()) *this = l;
+  }
+  return *this;
 }
 
 /*
@@ -418,6 +648,9 @@ Word JList<ListElem>::In(const ListExpr typeInfo, const ListExpr instance,
   ListExpr first = nl->TheEmptyList();
   correct = true;
   JList<ListElem>* in = new JList<ListElem>(true);
+  bool firstElem = true;
+  ListElem lastElem;
+  in->StartBulkload();
   while( !nl->IsEmpty( rest ) )
   {
     first = nl->First( rest );
@@ -427,7 +660,8 @@ Word JList<ListElem>::In(const ListExpr typeInfo, const ListExpr instance,
     if (correct)
     {
       ListElem* e = (ListElem*) w.addr;
-      in->Append(*e);
+      if (firstElem) lastElem = *e;
+      in->operator+=(*e);
       e->DeleteIfAllowed();
       e = 0;
     }
@@ -438,6 +672,7 @@ Word JList<ListElem>::In(const ListExpr typeInfo, const ListExpr instance,
       return SetWord(Address(0));
     }
   }
+  in->EndBulkload();
   return SetWord(in);
 }
 
@@ -546,22 +781,21 @@ string JList<ListElem>::Example(){
 */
 
 template<class ListElem>
-void JList<ListElem>::Append (const ListElem& e)
-{
-  elemlist.Append(e);
-}
-
-template<class ListElem>
 int JList<ListElem>::GetNoOfComponents()const
 {
-  return elemlist.Size();
+  if (IsDefined()) return elemlist.Size();
+  else return -1;
 }
 
 template<class ListElem>
 void JList<ListElem>::Get(const int i, ListElem& res) const
 {
-  assert (0 <= i && i < elemlist.Size());
-  elemlist.Get(i, res);
+  if (!IsDefined() || IsEmpty()) res.SetDefined(false);
+  else
+  {
+    assert (0 <= i && i < elemlist.Size());
+    elemlist.Get(i, res);
+  }
 }
 
 template<class ListElem>
@@ -570,5 +804,58 @@ void JList<ListElem>::Put(const int i, const ListElem& p)
   assert (0 <= i && i < elemlist.Size());
   elemlist.Put(i,p);
 }
+
+template<class ListElem>
+bool JList<ListElem>::Contains(const ListElem& e, int& pos)
+{
+  if(!IsDefined()) return false;
+  else return elemlist.Find(e, Compare, pos);
+}
+
+template<class ListElem>
+bool JList<ListElem>::IsEmpty() const
+{
+  if (IsDefined()) return elemlist.Size() == 0;
+  else return true;
+}
+
+template<class ListElem>
+void JList<ListElem>::Sort()
+{
+  activBulkload = !elemlist.Sort( ListElemCompare<ListElem> );
+}
+
+template<class ListElem>
+void JList<ListElem>::RemoveDuplicates()
+{
+  if (IsDefined() && GetNoOfComponents()>1 && !activBulkload)
+  {
+    ListElem lastElem, curElem;
+    DbArray<ListElem> help(elemlist.Size());
+    help.copyFrom(elemlist);
+    elemlist.clean();
+    help.Get(0,lastElem);
+    if (lastElem.IsDefined()) elemlist.Append(lastElem);
+    for (int i = 1; i < help.Size(); i++)
+    {
+      help.Get(i,curElem);
+      if (curElem.IsDefined() && lastElem.Compare(curElem) != 0)
+      {
+        elemlist.Append(curElem);
+        lastElem = curElem;
+      }
+    }
+    elemlist.TrimToSize();
+    help.Destroy();
+  }
+}
+
+
+template<class ListElem>
+void JList<ListElem>::TrimToSize()
+{
+  elemlist.TrimToSize();
+}
+
 
 #endif // JLIST_H

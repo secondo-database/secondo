@@ -59,7 +59,9 @@ NetDistanceGroup::NetDistanceGroup(const TupleIdentifier target,
                                    const double netdist) :
   Attribute(true), targetTID(target), nextSectionTID(nextSect),
   nextJunctionTID(nextJunc), netdistance(netdist)
-{}
+{
+  if (netdist < 0.0) SetDefined(false);
+}
 
 NetDistanceGroup::~NetDistanceGroup()
 {}
@@ -224,6 +226,34 @@ bool NetDistanceGroup::operator== ( const NetDistanceGroup& other ) const
 {
   return (Compare(other) == 0);
 }
+
+bool NetDistanceGroup::operator!= ( const NetDistanceGroup& other ) const
+{
+  return (Compare(other) != 0);
+}
+
+
+bool NetDistanceGroup::operator< ( const NetDistanceGroup& other ) const
+{
+  return (Compare(other) < 0);
+}
+
+bool NetDistanceGroup::operator<= ( const NetDistanceGroup& other ) const
+{
+  return (Compare(other) < 1);
+}
+
+bool NetDistanceGroup::operator>= ( const NetDistanceGroup& other ) const
+{
+  return (Compare(other) > -1);
+}
+
+bool NetDistanceGroup::operator> ( const NetDistanceGroup& other ) const
+{
+  return (Compare(other) > 0);
+}
+
+
 
 /*
 1.5 SecondoIntegration

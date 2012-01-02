@@ -60,16 +60,16 @@ extern QueryProcessor* qp;
 */
 
 TypeConstructor directionTC(
-  Direction::BasicType(),                //name
-  Direction::Property,                   //describing signature
-  Direction::Out, Direction::In,         //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
-  Direction::Create, Direction::Delete,  //object creation and deletion
-  Direction::Open, Direction::Save,      // object open and save
-  Direction::Close, Direction::Clone,    //object close and clone
-  Direction::Cast,                       //cast function
-  Direction::SizeOf,                     //sizeof function
-  Direction::KindCheck );                //kind checking function
+  Direction::BasicType(),
+  Direction::Property,
+  Direction::Out, Direction::In,
+  0, 0,
+  Direction::Create, Direction::Delete,
+  Direction::Open, Direction::Save,
+  Direction::Close, Direction::Clone,
+  Direction::Cast,
+  Direction::SizeOf,
+  Direction::KindCheck );
 
 
 /*
@@ -78,16 +78,16 @@ TypeConstructor directionTC(
 */
 
 TypeConstructor routeLocationTC(
-  RouteLocation::BasicType(),                //name
-  RouteLocation::Property,                   //describing signature
-  RouteLocation::Out, RouteLocation::In,     //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
-  RouteLocation::Create, RouteLocation::Delete, //object creation and deletion
-  RouteLocation::Open, RouteLocation::Save,  // object open and save
-  RouteLocation::Close, RouteLocation::Clone,//object close and clone
-  RouteLocation::Cast,                       //cast function
-  RouteLocation::SizeOf,                     //sizeof function
-  RouteLocation::KindCheck );                //kind checking function
+  RouteLocation::BasicType(),
+  RouteLocation::Property,
+  RouteLocation::Out, RouteLocation::In,
+  0, 0,
+  RouteLocation::Create, RouteLocation::Delete,
+  RouteLocation::Open, RouteLocation::Save,
+  RouteLocation::Close, RouteLocation::Clone,
+  RouteLocation::Cast,
+  RouteLocation::SizeOf,
+  RouteLocation::KindCheck );
 
 /*
 1.3 ~JRouteInterval~
@@ -95,16 +95,16 @@ TypeConstructor routeLocationTC(
 */
 
 TypeConstructor routeIntervalTC(
-  JRouteInterval::BasicType(),                //name
-  JRouteInterval::Property,                   //describing signature
-  JRouteInterval::Out, JRouteInterval::In,     //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
-  JRouteInterval::Create, JRouteInterval::Delete, //object creation and deletion
-  JRouteInterval::Open, JRouteInterval::Save,  // object open and save
-  JRouteInterval::Close, JRouteInterval::Clone,//object close and clone
-  JRouteInterval::Cast,                       //cast function
-  JRouteInterval::SizeOf,                     //sizeof function
-  JRouteInterval::KindCheck );                //kind checking function
+  JRouteInterval::BasicType(),
+  JRouteInterval::Property,
+  JRouteInterval::Out, JRouteInterval::In,
+  0, 0,
+  JRouteInterval::Create, JRouteInterval::Delete,
+  JRouteInterval::Open, JRouteInterval::Save,
+  JRouteInterval::Close, JRouteInterval::Clone,
+  JRouteInterval::Cast,
+  JRouteInterval::SizeOf,
+  JRouteInterval::KindCheck );
 
 /*
 1.4 ~JListTID~
@@ -112,16 +112,16 @@ TypeConstructor routeIntervalTC(
 */
 
 TypeConstructor jListTIDTC(
-  JListTID::BasicType(),             //name
-  JListTID::Property,                //describing signature
-  JListTID::Out, JListTID::In,       //Out and In functions
-  0, 0,                               //SaveTo and RestoreFrom List functions
-  JListTID::Create, JListTID::Delete, //object creation and deletion
-  JListTID::Open, JListTID::Save,     // object open and save
-  JListTID::Close, JListTID::Clone,   //object close and clone
-  JListTID::Cast,                     //cast function
-  JListTID::SizeOf,                   //sizeof function
-  JListTID::KindCheck );              //kind checking function
+  JListTID::BasicType(),
+  JListTID::Property,
+  JListTID::Out, JListTID::In,
+  0, 0,
+  JListTID::Create, JListTID::Delete,
+  JListTID::Open, JListTID::Save,
+  JListTID::Close, JListTID::Clone,
+  JListTID::Cast,
+  JListTID::SizeOf,
+  JListTID::KindCheck );
 
 /*
 1.5 ~PairTIDRLoc~
@@ -129,16 +129,16 @@ TypeConstructor jListTIDTC(
 */
 
 TypeConstructor pTIDRLocTC(
-  PairTIDRLoc::BasicType(),                //name
-  PairTIDRLoc::Property,                   //describing signature
-  PairTIDRLoc::Out, PairTIDRLoc::In,     //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
-  PairTIDRLoc::Create, PairTIDRLoc::Delete, //object creation and deletion
-  PairTIDRLoc::Open, PairTIDRLoc::Save,  // object open and save
-  PairTIDRLoc::Close, PairTIDRLoc::Clone,//object close and clone
-  PairTIDRLoc::Cast,                       //cast function
-  PairTIDRLoc::SizeOf,                     //sizeof function
-  PairTIDRLoc::KindCheck );                //kind checking function
+  PairTIDRLoc::BasicType(),
+  PairTIDRLoc::Property,
+  PairTIDRLoc::Out, PairTIDRLoc::In,
+  0, 0,
+  PairTIDRLoc::Create, PairTIDRLoc::Delete,
+  PairTIDRLoc::Open, PairTIDRLoc::Save,
+  PairTIDRLoc::Close, PairTIDRLoc::Clone,
+  PairTIDRLoc::Cast,
+  PairTIDRLoc::SizeOf,
+  PairTIDRLoc::KindCheck );
 
 /*
 1.6 ~ListPairTIDRLoc~
@@ -146,16 +146,16 @@ TypeConstructor pTIDRLocTC(
 */
 
 TypeConstructor listPTIDRLocTC(
-  ListPairTIDRLoc::BasicType(),                //name
-  ListPairTIDRLoc::Property,                   //describing signature
-  ListPairTIDRLoc::Out, ListPairTIDRLoc::In,     //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
-  ListPairTIDRLoc::Create, ListPairTIDRLoc::Delete,//obj creation and deletion
-  ListPairTIDRLoc::Open, ListPairTIDRLoc::Save,  // object open and save
-  ListPairTIDRLoc::Close, ListPairTIDRLoc::Clone,//object close and clone
-  ListPairTIDRLoc::Cast,                       //cast function
-  ListPairTIDRLoc::SizeOf,                     //sizeof function
-  ListPairTIDRLoc::KindCheck );                //kind checking function
+  ListPairTIDRLoc::BasicType(),
+  ListPairTIDRLoc::Property,
+  ListPairTIDRLoc::Out, ListPairTIDRLoc::In,
+  0, 0,
+  ListPairTIDRLoc::Create, ListPairTIDRLoc::Delete,
+  ListPairTIDRLoc::Open, ListPairTIDRLoc::Save,
+  ListPairTIDRLoc::Close, ListPairTIDRLoc::Clone,
+  ListPairTIDRLoc::Cast,
+  ListPairTIDRLoc::SizeOf,
+  ListPairTIDRLoc::KindCheck );
 
 /*
 1.7 ~PairTIDRInt~
@@ -163,16 +163,16 @@ TypeConstructor listPTIDRLocTC(
 */
 
 TypeConstructor pTIDRIntTC(
-  PairTIDRInt::BasicType(),         //name
-  PairTIDRInt::Property,            //describing signature
-  PairTIDRInt::Out, PairTIDRInt::In, //Out and In functions
-  0, 0,                                //SaveTo and RestoreFrom List functions
-  PairTIDRInt::Create, PairTIDRInt::Delete,//obj creation and deletion
-  PairTIDRInt::Open, PairTIDRInt::Save, // object open and save
-  PairTIDRInt::Close, PairTIDRInt::Clone, //object close and clone
-  PairTIDRInt::Cast,                 //cast function
-  PairTIDRInt::SizeOf,               //sizeof function
-  PairTIDRInt::KindCheck );          //kind checking function
+  PairTIDRInt::BasicType(),
+  PairTIDRInt::Property,
+  PairTIDRInt::Out, PairTIDRInt::In,
+  0, 0,
+  PairTIDRInt::Create, PairTIDRInt::Delete,
+  PairTIDRInt::Open, PairTIDRInt::Save,
+  PairTIDRInt::Close, PairTIDRInt::Clone,
+  PairTIDRInt::Cast,
+  PairTIDRInt::SizeOf,
+  PairTIDRInt::KindCheck );
 
 /*
 1.8 ~ListPairTIDRInt~
@@ -180,18 +180,18 @@ TypeConstructor pTIDRIntTC(
 */
 
 TypeConstructor listPTIDRIntTC(
-  ListPairTIDRInt::BasicType(),      //name
-  ListPairTIDRInt::Property,         //describing signature
-  ListPairTIDRInt::Out, ListPairTIDRInt::In,   //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
+  ListPairTIDRInt::BasicType(),
+  ListPairTIDRInt::Property,
+  ListPairTIDRInt::Out, ListPairTIDRInt::In,
+  0, 0,
   ListPairTIDRInt::Create, ListPairTIDRInt::Delete,
-                                           //obj creation and deletion
-  ListPairTIDRInt::Open, ListPairTIDRInt::Save,// object open and save
+
+  ListPairTIDRInt::Open, ListPairTIDRInt::Save,
   ListPairTIDRInt::Close, ListPairTIDRInt::Clone,
-                                            //object close and clone
-  ListPairTIDRInt::Cast,               //cast function
-  ListPairTIDRInt::SizeOf,             //sizeof function
-  ListPairTIDRInt::KindCheck );        //kind checking function
+
+  ListPairTIDRInt::Cast,
+  ListPairTIDRInt::SizeOf,
+  ListPairTIDRInt::KindCheck );
 
 /*
 1.9 ~NetDistanceGroup~
@@ -199,16 +199,16 @@ TypeConstructor listPTIDRIntTC(
 */
 
 TypeConstructor netDistGroupTC(
-  NetDistanceGroup::BasicType(),         //name
-  NetDistanceGroup::Property,            //describing signature
-  NetDistanceGroup::Out, NetDistanceGroup::In, //Out and In functions
-  0, 0,                                //SaveTo and RestoreFrom List functions
-  NetDistanceGroup::Create, NetDistanceGroup::Delete,//obj creation and deletion
-  NetDistanceGroup::Open, NetDistanceGroup::Save, // object open and save
-  NetDistanceGroup::Close, NetDistanceGroup::Clone, //object close and clone
-  NetDistanceGroup::Cast,                 //cast function
-  NetDistanceGroup::SizeOf,               //sizeof function
-  NetDistanceGroup::KindCheck );          //kind checking function
+  NetDistanceGroup::BasicType(),
+  NetDistanceGroup::Property,
+  NetDistanceGroup::Out, NetDistanceGroup::In,
+  0, 0,
+  NetDistanceGroup::Create, NetDistanceGroup::Delete,
+  NetDistanceGroup::Open, NetDistanceGroup::Save,
+  NetDistanceGroup::Close, NetDistanceGroup::Clone,
+  NetDistanceGroup::Cast,
+  NetDistanceGroup::SizeOf,
+  NetDistanceGroup::KindCheck );
 
 /*
 1.10 ~ListNetDistGrp~
@@ -216,18 +216,16 @@ TypeConstructor netDistGroupTC(
 */
 
 TypeConstructor listNDGTC(
-  ListNetDistGrp::BasicType(),      //name
-  ListNetDistGrp::Property,         //describing signature
-  ListNetDistGrp::Out, ListNetDistGrp::In,   //Out and In functions
-  0, 0,                                  //SaveTo and RestoreFrom List functions
+  ListNetDistGrp::BasicType(),
+  ListNetDistGrp::Property,
+  ListNetDistGrp::Out, ListNetDistGrp::In,
+  0, 0,
   ListNetDistGrp::Create, ListNetDistGrp::Delete,
-  //obj creation and deletion
-  ListNetDistGrp::Open, ListNetDistGrp::Save,// object open and save
+  ListNetDistGrp::Open, ListNetDistGrp::Save,
   ListNetDistGrp::Close, ListNetDistGrp::Clone,
-  //object close and clone
-  ListNetDistGrp::Cast,               //cast function
-  ListNetDistGrp::SizeOf,             //sizeof function
-  ListNetDistGrp::KindCheck );        //kind checking function
+  ListNetDistGrp::Cast,
+  ListNetDistGrp::SizeOf,
+  ListNetDistGrp::KindCheck );
 
 /*
 1.11 ~JNetwork~
@@ -235,16 +233,16 @@ TypeConstructor listNDGTC(
 */
 
 TypeConstructor jNetTC(
-  JNetwork::BasicType(),      //name
-  JNetwork::Property,         //describing signature
-  JNetwork::Out, JNetwork::In,//Out and In functions
-  0, 0,                       //SaveTo and RestoreFrom List functions
-  JNetwork::Create, JNetwork::Delete, //obj creation and deletion
-  JNetwork::Open, JNetwork::Save,// object open and save
-  JNetwork::Close, JNetwork::Clone,  //object close and clone
-  JNetwork::Cast,               //cast function
-  JNetwork::SizeOf,             //sizeof function
-  JNetwork::KindCheck );        //kind checking function
+  JNetwork::BasicType(),
+  JNetwork::Property,
+  JNetwork::Out, JNetwork::In,
+  0, 0,
+  JNetwork::Create, JNetwork::Delete,
+  JNetwork::Open, JNetwork::Save,
+  JNetwork::Close, JNetwork::Clone,
+  JNetwork::Cast,
+  JNetwork::SizeOf,
+  JNetwork::KindCheck );
 
 /*
 1.1 ~JPoint~
@@ -252,16 +250,16 @@ TypeConstructor jNetTC(
 */
 
 TypeConstructor jPointTC(
-  JPoint::BasicType(),      //name
-  JPoint::Property,         //describing signature
-  JPoint::Out, JPoint::In,//Out and In functions
-  0, 0,                       //SaveTo and RestoreFrom List functions
-  JPoint::Create, JPoint::Delete, //obj creation and deletion
-  JPoint::Open, JPoint::Save,// object open and save
-  JPoint::Close, JPoint::Clone,  //object close and clone
-  JPoint::Cast,               //cast function
-  JPoint::SizeOf,             //sizeof function
-  JPoint::KindCheck );        //kind checking function
+  JPoint::BasicType(),
+  JPoint::Property,
+  JPoint::Out, JPoint::In,
+  0, 0,
+  JPoint::Create, JPoint::Delete,
+  JPoint::Open, JPoint::Save,
+  JPoint::Close, JPoint::Clone,
+  JPoint::Cast,
+  JPoint::SizeOf,
+  JPoint::KindCheck );
 
 /*
 1.1 ~JLine~
@@ -269,20 +267,247 @@ TypeConstructor jPointTC(
 */
 
 TypeConstructor jLineTC(
-  JLine::BasicType(),      //name
-  JLine::Property,         //describing signature
-  JLine::Out, JLine::In, //Out and In functions
-  0, 0,                       //SaveTo and RestoreFrom List functions
-  JLine::Create, JLine::Delete, //obj creation and deletion
-  OpenAttribute<JLine>, SaveAttribute<JLine>, //Open and Save
-  JLine::Close, JLine::Clone,  //object close and clone
-  JLine::Cast,               //cast function
-  JLine::SizeOf,             //sizeof function
-  JLine::KindCheck);        //kind checking function
+  JLine::BasicType(),
+  JLine::Property,
+  JLine::Out, JLine::In,
+  0, 0,
+  JLine::Create, JLine::Delete,
+  OpenAttribute<JLine>, SaveAttribute<JLine>,
+  JLine::Close, JLine::Clone,
+  JLine::Cast,
+  JLine::SizeOf,
+  JLine::KindCheck );
+
+/*
+1.1 ~Listint~
+
+*/
+
+TypeConstructor jListIntTC(
+  JListInt::BasicType(),
+  JListInt::Property,
+  JListInt::Out, JListInt::In,
+  0, 0,
+  JListInt::Create, JListInt::Delete,
+  JListInt::Open, JListInt::Save,
+  JListInt::Close, JListInt::Clone,
+  JListInt::Cast,
+  JListInt::SizeOf,
+  JListInt::KindCheck );
+
 
 /*
 2 Secondo Operators
 
+2.1 ~createnetdistgroup~
+
+Creates ~NetdistanceGroup~ from 3 ~TupleIds~ and an ~real~ value.
+The 3 ~TupleIds~ connect the target Junctions id, the next Junction on the way
+to the target and the next section on the way to the target with the distance
+to the target.
+
+*/
+
+const string maps_createNetDistGroup[1][5] =
+{
+  {TupleIdentifier::BasicType(), TupleIdentifier::BasicType(),
+     TupleIdentifier::BasicType(), CcReal::BasicType(),
+        NetDistanceGroup::BasicType()}
+};
+
+ListExpr CreateNetDistGroupTypeMap ( ListExpr args )
+{
+  return SimpleMaps<1,5>(maps_createNetDistGroup, args);
+}
+
+int CreateNetDistGroupSelect (ListExpr args)
+{
+  return SimpleSelect<1,5>(maps_createNetDistGroup, args);
+}
+
+int CreateNetDistGroupValueMap( Word* args, Word& result, int message,
+                                Word& local, Supplier s )
+{
+  TupleIdentifier* target = (TupleIdentifier*) args[0].addr;
+  TupleIdentifier* nextSect = (TupleIdentifier*) args[1].addr;
+  TupleIdentifier* nextJunct = (TupleIdentifier*) args[2].addr;
+  double netdist = ((CcReal*) args[3].addr)->GetRealval();
+  NetDistanceGroup* pResult = (NetDistanceGroup*) qp->ResultStorage ( s ).addr;
+  NetDistanceGroup* res = 0;
+  if (target->IsDefined() && nextSect->IsDefined() && nextJunct->IsDefined())
+    res = new NetDistanceGroup(*target,*nextSect, *nextJunct,netdist);
+  else
+    res = new NetDistanceGroup(false);
+  *pResult = *res;
+  res->DeleteIfAllowed();
+  result = SetWord(pResult);
+  return 1;
+}
+
+ValueMapping CreateNetDistGroupMap[] =
+{
+  CreateNetDistGroupValueMap,
+};
+
+const string CreateNetDistGroupSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text> " + TupleIdentifier::BasicType() + " x " +
+  TupleIdentifier::BasicType() + " x " + TupleIdentifier::BasicType() + " x " +
+  CcReal::BasicType() + " -> " + NetDistanceGroup::BasicType() + "</text--->"
+  "<text> createnedistancegroup( _ , _ , _ , _ ) </text--->"
+  "<text> Creates a netdistance group from the three " +
+  TupleIdentifier::BasicType() + " of target node, next junction and next "
+  "section on path, and the network distance value.</text--->"
+  "<text> query createnetdistancegroup(target, nextjunction, nextsection, "
+  "network distance)</text--->))";
+
+Operator jnetcreatendg(
+    "createnetdistgroup",
+    CreateNetDistGroupSpec,
+    1,
+    CreateNetDistGroupMap,
+    CreateNetDistGroupSelect,
+    CreateNetDistGroupTypeMap
+);
+
+/*
+2.1 ~createroutelocation~
+
+Creates ~RouteLocation~ from an 3 tuple of ~int~, ~real~ and ~jdirection~.
+With ~int~ = road id, ~real~ = dist from start of road, ~jdirection~ = side
+of road.
+
+*/
+
+const string maps_createRouteLocation[1][4] =
+{
+  {CcInt::BasicType(), CcReal::BasicType(), Direction::BasicType(),
+    RouteLocation::BasicType()}
+};
+
+ListExpr CreateRouteLocationTypeMap ( ListExpr args )
+{
+  return SimpleMaps<1,4>(maps_createRouteLocation, args);
+}
+
+int CreateRouteLocationSelect (ListExpr args)
+{
+  return SimpleSelect<1,4>(maps_createRouteLocation, args);
+}
+
+int CreateRouteLocationValueMap( Word* args, Word& result, int message,
+                                Word& local, Supplier s )
+{
+  CcInt* rid = (CcInt*) args[0].addr;
+  CcReal* pos = (CcReal*) args[1].addr;
+  Direction* side = (Direction*) args[2].addr;
+  RouteLocation* pResult = (RouteLocation*) qp->ResultStorage ( s ).addr;
+  RouteLocation* res = 0;
+  if (rid->IsDefined() && pos->IsDefined() && side->IsDefined())
+    res = new RouteLocation(rid->GetIntval(),pos->GetRealval(),
+                            side->GetDirection());
+  else
+    res = new RouteLocation(false);
+  *pResult = *res;
+  res->DeleteIfAllowed();
+  result = SetWord(pResult);
+  return 1;
+}
+
+ValueMapping CreateRouteLocationMap[] =
+{
+  CreateRouteLocationValueMap,
+};
+
+const string CreateRouteLocationSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text> " + CcInt::BasicType() + " x " + CcReal::BasicType() + " x " +
+  Direction::BasicType() + " -> " + RouteLocation::BasicType() + "</text--->"
+  "<text> createroutelocation( _ , _ , _ ) </text--->"
+  "<text> Creates a route location from the route id, the position on the "
+  "route and the side value.</text--->"
+  "<text> query createroutelocation(rid, pos, side)</text--->))";
+
+Operator jnetcreaterloc(
+    "createroutelocation",
+    CreateRouteLocationSpec,
+    1,
+    CreateRouteLocationMap,
+    CreateRouteLocationSelect,
+    CreateRouteLocationTypeMap
+);
+
+/*
+2.1 ~createrouteinterval~
+
+Creates ~JRouteInterval~ from an 4 tuple of ~int~, ~real~, ~real~ and
+~jdirection~. With ~int~ = road id, ~real~ = startpos, ~real~ = endpos
+(startpos <= endpos) and ~jdirection~ = side of road.
+
+*/
+
+const string maps_createRouteInterval[1][5] =
+{
+  {CcInt::BasicType(), CcReal::BasicType(), CcReal::BasicType(),
+   Direction::BasicType(), JRouteInterval::BasicType()}
+};
+
+ListExpr CreateRouteIntervalTypeMap ( ListExpr args )
+{
+  return SimpleMaps<1,5>(maps_createRouteInterval, args);
+}
+
+int CreateRouteIntervalSelect (ListExpr args)
+{
+  return SimpleSelect<1,5>(maps_createRouteInterval, args);
+}
+
+int CreateRouteIntervalValueMap( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
+{
+  CcInt* rid = (CcInt*) args[0].addr;
+  CcReal* spos = (CcReal*) args[1].addr;
+  CcReal* epos = (CcReal*) args[2].addr;
+  Direction* side = (Direction*) args[3].addr;
+  JRouteInterval* pResult = (JRouteInterval*) qp->ResultStorage ( s ).addr;
+  JRouteInterval* res = 0;
+  if (rid->IsDefined() && spos->IsDefined() && epos->IsDefined() &&
+      side->IsDefined())
+    res = new JRouteInterval(rid->GetIntval(), spos->GetRealval(),
+                             epos->GetRealval(), side->GetDirection());
+  else
+    res = new JRouteInterval(false);
+  *pResult = *res;
+  res->DeleteIfAllowed();
+  result = SetWord(pResult);
+  return 1;
+}
+
+ValueMapping CreateRouteIntervalMap[] =
+{
+  CreateRouteIntervalValueMap,
+};
+
+const string CreateRouteIntervalSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text> " + CcInt::BasicType() + " x " + CcReal::BasicType() + " x " +
+  CcReal::BasicType() + " x " + Direction::BasicType() + " -> " +
+  JRouteInterval::BasicType() + "</text--->"
+  "<text> createrouteinterval( _ , _ , _ , _ ) </text--->"
+  "<text> Creates a route interval from the route id, the start and end "
+  "position on the route and the side value.</text--->"
+  "<text> query createrouteinterval(rid, startpos, endpos, side)</text--->))";
+
+Operator jnetcreaterint(
+    "createrouteinterval",
+    CreateRouteIntervalSpec,
+    1,
+    CreateRouteIntervalMap,
+    CreateRouteIntervalSelect,
+    CreateRouteIntervalTypeMap
+);
+
+/*
 2.1 ~createpair~
 
 Creates Pairs of ~TupleId~s and ~RouteLocation~s and ~RouteInterval~s.
@@ -353,63 +578,6 @@ Operator jnetcreatepair(
   CreatePairTypeMap
 );
 
-/*
-2.1 ~createnetdistgroup~
-
-Creates ~NetdistanceGroup~ from 3 ~TupleIds~ and an ~real~ value.
-The 3 ~TupleIds~ connect the target Junctions id, the next Junction on the way
-to the target and the next section on the way to the target with the distance
-to the target.
-
-*/
-
-ListExpr CreateNetDistGroupTypeMap ( ListExpr args )
-{
-  const string createndgmapping [] = {TupleIdentifier::BasicType(),
-        TupleIdentifier::BasicType(),TupleIdentifier::BasicType(),
-         CcReal::BasicType(), NetDistanceGroup::BasicType()};
-  return SimpleMap(createndgmapping, 5, args);
-}
-
-int CreateNetDistGroupValueMap( Word* args, Word& result, int message,
-                               Word& local, Supplier s )
-{
-  TupleIdentifier* target = (TupleIdentifier*) args[0].addr;
-  TupleIdentifier* nextSect = (TupleIdentifier*) args[1].addr;
-  TupleIdentifier* nextJunct = (TupleIdentifier*) args[2].addr;
-  double netdist = ((CcReal*) args[3].addr)->GetRealval();
-  NetDistanceGroup* pResult = (NetDistanceGroup*) qp->ResultStorage ( s ).addr;
-  NetDistanceGroup* res = 0;
-  if (target->IsDefined() && nextSect->IsDefined() && nextJunct->IsDefined())
-    res = new NetDistanceGroup(*target,*nextSect, *nextJunct,netdist);
-  else
-    res = new NetDistanceGroup(false);
-  *pResult = *res;
-  res->DeleteIfAllowed();
-  result = SetWord(pResult);
-  return 1;
-}
-
-const string CreateNetDistGroupSpec =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text> " + TupleIdentifier::BasicType() + " x " +
-  TupleIdentifier::BasicType() + " x " + TupleIdentifier::BasicType() + " x " +
-  CcReal::BasicType() + " -> " + NetDistanceGroup::BasicType() + "</text--->"
-  "<text> createnedistancegroup( _ , _ , _ , _ ) </text--->"
-  "<text> Creates a netdistance group from the three " +
-  TupleIdentifier::BasicType() + " of target node, next junction and next "
-  "section on path, and the network distance value.</text--->"
-  "<text> query createnetdistancegroup(target, nextjunction, nextsection, "
-  "network distance)</text--->))";
-
-Operator jnetcreatendg(
-  "createnetdistgroup",
-  CreateNetDistGroupSpec,
-  CreateNetDistGroupValueMap,
-  Operator::SimpleSelect,
-  CreateNetDistGroupTypeMap
-);
-
 
 /*
 2.2 ~createlistj~
@@ -423,6 +591,7 @@ tid          | jlisttid
 ptidrloc     | listpairtidrloc
 ptidrint     | listpairtidrint
 netdistgroup | listndg
+int          | listint
 
 */
 
@@ -448,19 +617,25 @@ ListExpr CreateListTypeMap ( ListExpr args )
     NList ndg(NetDistanceGroup::BasicType());
     if (stream.checkStream(ndg))
       return nl->SymbolAtom(ListNetDistGrp::BasicType());
+
+    NList ccInt(CcInt::BasicType());
+    if (stream.checkStream(ccInt))
+        return nl->SymbolAtom(JListInt::BasicType());
   }
   return listutils::typeError("Expected " + Symbol::STREAM() + "(T) with T "
     + "in: "+ TupleIdentifier::BasicType() + ", " + PairTIDRLoc::BasicType() +
-    ", " + PairTIDRInt::BasicType() + ", or " +
-    NetDistanceGroup::BasicType());
+    ", " + PairTIDRInt::BasicType() + ", " + NetDistanceGroup::BasicType() +
+    ", or " + CcInt::BasicType());
 }
 
 template <class cList, class cElement>
 int CreateListValueMap( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
-  cList* pResult = (cList*) ((qp->ResultStorage(s)).addr);
-  pResult->SetDefined(true);
+  result = qp->ResultStorage(s);
+  cList* createRes = static_cast<cList*> (result.addr);
+  createRes->Clear();
+  createRes->StartBulkload();
   cElement* t = 0;
   Word curAddr;
   qp->Open(args[0].addr);
@@ -468,12 +643,12 @@ int CreateListValueMap( Word* args, Word& result, int message,
   while (qp->Received(args[0].addr))
   {
     t = (cElement*) curAddr.addr;
-    pResult->Append(*t);
+    createRes->operator+=(*t);
     t->DeleteIfAllowed();
     qp->Request(args[0].addr, curAddr);
   }
   qp->Close(args[0].addr);
-  result.setAddr(pResult);
+  createRes->EndBulkload();
   return 0;
 }
 
@@ -482,7 +657,8 @@ ValueMapping CreateListMap [] =
   CreateListValueMap<JListTID, TupleIdentifier>,
   CreateListValueMap<ListPairTIDRLoc, PairTIDRLoc>,
   CreateListValueMap<ListPairTIDRInt, PairTIDRInt>,
-  CreateListValueMap<ListNetDistGrp, NetDistanceGroup>
+  CreateListValueMap<ListNetDistGrp, NetDistanceGroup>,
+  CreateListValueMap<JListInt, CcInt>
 };
 
 int CreateListSelect ( ListExpr args )
@@ -492,6 +668,7 @@ int CreateListSelect ( ListExpr args )
   if (param.first().second() == PairTIDRLoc::BasicType()) return 1;
   if (param.first().second() == PairTIDRInt::BasicType()) return 2;
   if (param.first().second() == NetDistanceGroup::BasicType()) return 3;
+  if (param.first().second() == CcInt::BasicType()) return 4;
   return -1; // this point should never been reached.
 }
 
@@ -504,8 +681,10 @@ const string CreateListSpec =
   Symbol::STREAM() + "(" + PairTIDRInt::BasicType()  +
   ") -> " + ListPairTIDRInt::BasicType()+ ", "+
   Symbol::STREAM() + "(" + NetDistanceGroup::BasicType()  +
-  ") -> " + ListNetDistGrp::BasicType() + "</text--->"
-  "<text> createlistj(_) </text--->"
+  ") -> " + ListNetDistGrp::BasicType() + ", " +
+  Symbol::STREAM() + "(" + CcInt::BasicType()  +
+  ") -> " + JListInt::BasicType()+"</text--->"
+  "<text> _ createlistj </text--->"
   "<text> Collects a stream of the data type T of JNetAlgebra into a single "
   "ListT  of the data type.</text--->"
   "<text> query createsteramj(tupleidlist) createlistj</text--->))";
@@ -513,11 +692,131 @@ const string CreateListSpec =
 Operator jnetcreatelistj(
   "createlistj",
   CreateListSpec,
-  4,
+  5,
   CreateListMap,
   CreateListSelect,
   CreateListTypeMap
 );
+
+/*
+2.2 ~collectlistj~
+
+Gets a stream of argument objects from type ~ListX~ and collects them into
+a single ~ListX~ object.
+X
+================
+jlisttid
+listpairtidrloc
+listpairtidrint
+listndg
+listint
+
+*/
+
+ListExpr CollectListTypeMap ( ListExpr args )
+{
+  NList param(args);
+  if (param.length()==1)
+  {
+    NList stream(param.first());
+
+    NList ltupid(JListTID::BasicType());
+    if (stream.checkStream(ltupid))
+      return nl->SymbolAtom(JListTID::BasicType());
+
+    NList lptidrloc(ListPairTIDRLoc::BasicType());
+    if (stream.checkStream(lptidrloc))
+      return nl->SymbolAtom(ListPairTIDRLoc::BasicType());
+
+    NList lptidrint(ListPairTIDRInt::BasicType());
+    if (stream.checkStream(lptidrint))
+      return nl->SymbolAtom(ListPairTIDRInt::BasicType());
+
+    NList lndg(ListNetDistGrp::BasicType());
+    if (stream.checkStream(lndg))
+      return nl->SymbolAtom(ListNetDistGrp::BasicType());
+
+    NList lccInt(JListInt::BasicType());
+    if (stream.checkStream(lccInt))
+      return nl->SymbolAtom(JListInt::BasicType());
+  }
+    return listutils::typeError("Expected " + Symbol::STREAM() + "(T) with T "
+    + "in: "+ JListTID::BasicType() + ", " + ListPairTIDRLoc::BasicType() +
+    ", " + ListPairTIDRInt::BasicType() + ", " + ListNetDistGrp::BasicType() +
+    ", or " + JListInt::BasicType());
+}
+
+template <class cList>
+int CollectListValueMap( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  cList* colRes = static_cast<cList*> (result.addr);
+  cList* t = 0;
+  colRes->Clear();
+  colRes->StartBulkload();
+  Word curAddr;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, curAddr);
+  while (qp->Received(args[0].addr))
+  {
+    t = (cList*) curAddr.addr;
+    colRes->operator+=(*t);
+    t->DeleteIfAllowed();
+    t=0;
+    qp->Request(args[0].addr, curAddr);
+  }
+  qp->Close(args[0].addr);
+  colRes->EndBulkload();
+  return 0;
+}
+
+ValueMapping CollectListMap [] =
+{
+  CollectListValueMap<JListTID>,
+  CollectListValueMap<ListPairTIDRLoc>,
+  CollectListValueMap<ListPairTIDRInt>,
+  CollectListValueMap<ListNetDistGrp>,
+  CollectListValueMap<JListInt>
+};
+
+int CollectListSelect ( ListExpr args )
+{
+  NList param(args);
+  if (param.first().second() == JListTID::BasicType()) return 0;
+  if (param.first().second() == ListPairTIDRLoc::BasicType()) return 1;
+  if (param.first().second() == ListPairTIDRInt::BasicType()) return 2;
+  if (param.first().second() == ListNetDistGrp::BasicType()) return 3;
+  if (param.first().second() == JListInt::BasicType()) return 4;
+  return -1; // this point should never been reached.
+}
+
+const string CollectListSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text> " + Symbol::STREAM() + "(" + JListTID::BasicType()  +
+  ") -> " + JListTID::BasicType() +", "+
+  Symbol::STREAM() + "(" + ListPairTIDRLoc::BasicType()  +
+  ") -> " + ListPairTIDRLoc::BasicType() +", "+
+  Symbol::STREAM() + "(" + ListPairTIDRInt::BasicType()  +
+  ") -> " + ListPairTIDRInt::BasicType()+ ", "+
+  Symbol::STREAM() + "(" + ListNetDistGrp::BasicType()  +
+  ") -> " + ListNetDistGrp::BasicType() + ", " +
+  Symbol::STREAM() + "(" + JListInt::BasicType()  +
+  ") -> " + JListInt::BasicType()+"</text--->"
+  "<text> _ collectlistj </text--->"
+  "<text> Collects a stream of listT of JNetAlgebra into a single "
+  "ListT  of the data type.</text--->"
+  "<text> query createsteramj(tupleidlist) createlistj"+
+  " projecttransformstream collectlistj</text--->))";
+
+  Operator jnetcollectlistj(
+    "collectlistj",
+    CollectListSpec,
+    5,
+    CollectListMap,
+    CollectListSelect,
+    CollectListTypeMap
+  );
 
 /*
 2.3 createstreamj
@@ -530,6 +829,7 @@ tid          | jlisttid
 ptidrloc     | listpairtidrloc
 ptidrint     | listpairtidrint
 netdistgroup | listndg
+int          | listint
 
 Creation of Object Streams from Lists
 
@@ -555,10 +855,14 @@ ListExpr CreateStreamTypeMap ( ListExpr args )
     if (param.first().isEqual(ListNetDistGrp::BasicType()))
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(NetDistanceGroup::BasicType()));
+
+    if (param.first().isEqual(JListInt::BasicType()))
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(CcInt::BasicType()));
   }
   return listutils::typeError("Expected " + JListTID::BasicType() + ", " +
     ListPairTIDRLoc::BasicType() + ", " + ListPairTIDRInt::BasicType() + ", " +
-    ListNetDistGrp::BasicType());
+    ListNetDistGrp::BasicType() + ", or " + JListInt::BasicType());
 }
 
 template<class cElement>
@@ -635,7 +939,8 @@ ValueMapping CreateStreamMap [] =
   CreateStreamValueMap<TupleIdentifier, JListTID>,
   CreateStreamValueMap<PairTIDRLoc, ListPairTIDRLoc>,
   CreateStreamValueMap<PairTIDRInt, ListPairTIDRInt>,
-  CreateStreamValueMap<NetDistanceGroup, ListNetDistGrp>
+  CreateStreamValueMap<NetDistanceGroup, ListNetDistGrp>,
+  CreateStreamValueMap<CcInt, JListInt>
 };
 
 int CreateStreamSelect ( ListExpr args )
@@ -645,6 +950,7 @@ int CreateStreamSelect ( ListExpr args )
   if (param.first() == ListPairTIDRLoc::BasicType()) return 1;
   if (param.first() == ListPairTIDRInt::BasicType()) return 2;
   if (param.first() == ListNetDistGrp::BasicType()) return 3;
+  if (param.first() == JListInt::BasicType()) return 4;
   return -1; // this point should never been reached.
 }
 
@@ -657,7 +963,9 @@ const string CreateStreamJSpec =
     ListPairTIDRInt::BasicType() + " -> " + Symbol::STREAM() + "("+
     PairTIDRInt::BasicType() + "), " +
     ListNetDistGrp::BasicType() + " -> " + Symbol::STREAM() + "("+
-    NetDistanceGroup::BasicType() + ")</text--->"
+    NetDistanceGroup::BasicType() + "), " +
+    JListInt::BasicType() + " -> " + Symbol::STREAM() + "("+
+    CcInt::BasicType() + ")</text--->"
   "<text> createstreamj(_) </text--->"
   "<text> Expands a list of data type ListT of JNetAlgebra into a stream of "+
   " the corresponding data type T.</text--->"
@@ -666,7 +974,7 @@ const string CreateStreamJSpec =
 Operator jnetcreatestreamj(
   "createstreamj",
   CreateStreamJSpec,
-  4,
+  5,
   CreateStreamMap,
   CreateStreamSelect,
   CreateStreamTypeMap
@@ -957,6 +1265,128 @@ Operator jnetsections(
 );
 
 /*
+1. Access to parts of data type
+
+1.1 Get List Elements
+
+The operators return the specified elements of the listX
+ X
+==============
+ jlisttid
+ listpairtidrloc
+ listpairtidrint
+ listndg
+ listint
+
+1.1.1 Common operator methods for all getelem operators.
+
+*/
+
+const string maps_getElem[5][2] =
+{
+  {JListTID::BasicType(),  TupleIdentifier::BasicType()},
+  {ListPairTIDRLoc::BasicType(),  PairTIDRLoc::BasicType()},
+  {ListPairTIDRInt::BasicType(),  PairTIDRInt::BasicType()},
+  {ListNetDistGrp::BasicType(),  NetDistanceGroup::BasicType()},
+  {JListInt::BasicType(),  CcInt::BasicType()}
+};
+
+ListExpr GetElemTypeMap ( ListExpr args )
+{
+  return SimpleMaps<5,2>(maps_getElem, args);
+}
+
+int GetElemSelect (ListExpr args)
+{
+  return SimpleSelect<5,2>(maps_getElem, args);
+}
+
+template<class secParam, class resParam, bool selectfirst>
+int GetElemValueMap( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
+{
+  secParam* t = (secParam*) args[0].addr;
+  resParam* pResult = ( resParam* ) qp->ResultStorage ( s ).addr;
+  if (selectfirst) t->Get(0,*pResult);
+  else t->Get(t->GetNoOfComponents()-1, *pResult);
+  result = SetWord(pResult);
+  return 1;
+}
+
+
+/*
+1.1.1 Different operator methods for the getelem operators
+
+1.1.1.1 getfirstelem
+
+*/
+
+ValueMapping GetFirstElemValueMap[] =
+{
+  GetElemValueMap<JListTID, TupleIdentifier, true>,
+  GetElemValueMap<ListPairTIDRLoc, PairTIDRLoc, true>,
+  GetElemValueMap<ListPairTIDRInt, PairTIDRInt, true>,
+  GetElemValueMap<ListNetDistGrp, NetDistanceGroup, true>,
+  GetElemValueMap<JListInt, CcInt, true>
+};
+
+const string GetFirstElemSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JListTID::BasicType() + " -> " + TupleIdentifier::BasicType() +
+  ", " + ListPairTIDRLoc::BasicType() + " -> " + RouteLocation::BasicType() +
+  ", " + ListPairTIDRInt::BasicType() + " -> " + JRouteInterval::BasicType() +
+  ", " + ListNetDistGrp::BasicType() + " -> " + NetDistanceGroup::BasicType() +
+  ", " + JListInt::BasicType() + " -> " + CcInt::BasicType() +
+  "</text--->"
+  "<text> getfirstelem(_) </text--->"
+  "<text> Returns the first element of the input list.</text--->"
+  "<text> query getfirstelem(listndg)</text--->))";
+
+  Operator jnetgetfirstelem(
+    "getfirstelem",
+    GetFirstElemSpec,
+    5,
+    GetFirstElemValueMap,
+    GetElemSelect,
+    GetElemTypeMap
+);
+
+/*
+1.1.1.1 getlastelem
+
+*/
+
+ValueMapping GetLastElemValueMap[] =
+{
+  GetElemValueMap<JListTID, TupleIdentifier, false>,
+  GetElemValueMap<ListPairTIDRLoc, PairTIDRLoc, false>,
+  GetElemValueMap<ListPairTIDRInt, PairTIDRInt, false>,
+  GetElemValueMap<ListNetDistGrp, NetDistanceGroup, false>,
+  GetElemValueMap<JListInt, CcInt, false>
+};
+
+const string GetLastElemSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JListTID::BasicType() + " -> " + TupleIdentifier::BasicType() +
+  ", " + ListPairTIDRLoc::BasicType() + " -> " + RouteLocation::BasicType() +
+  ", " + ListPairTIDRInt::BasicType() + " -> " + JRouteInterval::BasicType() +
+  ", " + ListNetDistGrp::BasicType() + " -> " + NetDistanceGroup::BasicType() +
+  ", " + JListInt::BasicType() + " -> " + CcInt::BasicType() +
+  "</text--->"
+  "<text> getlastelem(_) </text--->"
+  "<text> Returns the last element of the input list.</text--->"
+  "<text> query getfirstelem(listndg)</text--->))";
+
+  Operator jnetgetlastelem(
+    "getlastelem",
+    GetLastElemSpec,
+    5,
+    GetLastElemValueMap,
+    GetElemSelect,
+    GetElemTypeMap
+  );
+
+/*
 3. ~class JNetAlgebra~
 
 3.1 Constructor
@@ -1009,6 +1439,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddTypeConstructor(&jLineTC);
   jLineTC.AssociateKind(Kind::DATA());
 
+  AddTypeConstructor(&jListIntTC);
+  jListIntTC.AssociateKind(Kind::DATA());
+
 /*
 3.1.2 Integration of Operators
 
@@ -1016,9 +1449,12 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 */
 
-  AddOperator(&jnetcreatepair);
   AddOperator(&jnetcreatendg);
+  AddOperator(&jnetcreaterloc);
+  AddOperator(&jnetcreaterint);
+  AddOperator(&jnetcreatepair);
   AddOperator(&jnetcreatelistj);
+  AddOperator(&jnetcollectlistj);
   AddOperator(&jnetcreatestreamj);
   AddOperator(&jnetcreatenetwork);
 
@@ -1029,6 +1465,14 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&jnetroutes);
   AddOperator(&jnetjunctions);
   AddOperator(&jnetsections);
+
+/*
+1.1.1.1 Access to parts of datatypes
+
+*/
+
+  AddOperator(&jnetgetfirstelem);
+  AddOperator(&jnetgetlastelem);
 }
 
 /*

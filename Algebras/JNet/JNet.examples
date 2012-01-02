@@ -1,6 +1,27 @@
 Database: jnettest
 Restore : yes
 
+Operator : createnetdistgroup
+Number   : 1
+Signature: tid x tid x tid x real -> netdistgrp
+Example  : query createnetdistgroup(int2tid(17), int2tid(1), int2tid(507), 235.1);
+Result   : (netdistgrp(17 1 507 235.1))
+Tolerance: 0.01%
+
+Operator : createroutelocation
+Number   : 1
+Signature: int x real x jdirection -> rloc
+Example  : query createroutelocation(5, 17.5, [const jdirection value(Down)]);
+Result   : (rloc(5 17.5 (Down)))
+Tolerance: 0.01%
+
+Operator : createrouteinterval
+Number   : 1
+Signature: int x real x real x jdirection -> jrint
+Example  : query createrouteinterval(5, 17.5, 65.3, [const jdirection value(Up)]);
+Result   : (jrint(5 17.5 65.3 (Up)))
+Tolerance: 0.01%
+
 Operator : createpair
 Number   : 1
 Signature: tid x rloc -> pairtidrloc
@@ -15,13 +36,6 @@ Example  : query createpair(int2tid(17),[const jrint value(4 234.5 4655.5 Down)]
 Result   : (pairtidjrint(17 (4 234.5 4655.5 (Down))))
 Tolerance: 0.01%
 
-Operator : createnetdistgroup
-Number   : 1
-Signature: tid x tid x tid x real -> netdistgrp
-Example  : query createnetdistgroup(int2tid(17), int2tid(1), int2tid(507), 235.1);
-Result   : (netdistgrp(17 1 507 235.1))
-Tolerance: 0.01%
-
 Operator : createlistj
 Number   : 1
 Signature: stream(tid) -> listtid
@@ -33,14 +47,14 @@ Operator : createlistj
 Number   : 2
 Signature: stream(pairtidrloc) -> listpairtidrloc
 Example  : query createstreamj(list1pairtidrloc) createlistj;
-Result   : (listpairtidrloc((1 (1 34.5 (Up)))(2 (4 423.2 (Down)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(5 (9 54.1 (Down)))))
+Result   : (listpairtidrloc((1 (1 34.5 (Up)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(2 (4 423.2 (Down)))(5 (9 54.1 (Down)))))
 Tolerance: 0.01%
 
 Operator : createlistj
 Number   : 3
 Signature: stream(pairtidjrint) -> listpairtidjrint
 Example  : query createstreamj(list1pairtidrint) createlistj;
-Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(2 (4 423.2 545.5 (Down)))(3 (2 23.8 132.5 (Both)))(4 (4  15.5 34.2 (Up)))(5 (9 54.1 546.6 (Down)))))
+Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(3 (2 23.8 132.5 (Both)))(4 (4  15.5 34.2 (Up)))(2 (4 423.2 545.5 (Down)))(5 (9 54.1 546.6 (Down)))))
 Tolerance: 0.01%
 
 Operator : createlistj
@@ -48,6 +62,13 @@ Number   : 4
 Signature: stream(netdistgrp) -> listnetdistgrp
 Example  : query createstreamj(list1ndg) createlistj;
 Result   : (listnetdistgrp((1 1 34 54.3)(2 4 423 545.5)(3 2 23 132.5)(4 4 34 15.5)(5 9 54 546.6)))
+Tolerance: 0.01%
+
+Operator : createlistj
+Number   : 5
+Signature: stream(int) -> listint
+Example  : query createstreamj(list1int) createlistj;
+Result   : (listint(5 6 15))
 Tolerance: 0.01%
 
 Operator : createstreamj
@@ -61,14 +82,14 @@ Operator : createstreamj
 Number   : 2
 Signature: listpairtidrloc -> stream(pairtidrloc)
 Example  : query createstreamj(list1pairtidrloc) createlistj;
-Result   : (listpairtidrloc((1 (1 34.5 (Up)))(2 (4 423.2 (Down)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(5 (9 54.1 (Down)))))
+Result   : (listpairtidrloc((1 (1 34.5 (Up)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(2 (4 423.2 (Down)))(5 (9 54.1 (Down)))))
 Tolerance: 0.01%
 
 Operator : createstreamj
 Number   : 3
 Signature: listpairtidjrint -> stream(pairtidjrint)
 Example  : query createstreamj(list1pairtidrint) createlistj;
-Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(2 (4 423.2 545.5 (Down)))(3 (2 23.8 132.5 (Both)))(4 (4 15.5 34.2 (Up)))(5 (9 54.1 546.6 (Down)))))
+Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(3 (2 23.8 132.5 (Both)))(4 (4 15.5 34.2 (Up)))(2 (4 423.2 545.5 (Down)))(5 (9 54.1 546.6 (Down)))))
 Tolerance: 0.01%
 
 Operator : createstreamj
@@ -76,6 +97,13 @@ Number   : 4
 Signature: listnetdistgrp -> stream(netdistgrp)
 Example  : query createstreamj(list1ndg) createlistj;
 Result   : (listnetdistgrp((1 1 34 54.3)(2 4 423 545.5)(3 2 23 132.5)(4 4 34 15.5)(5 9 54 546.6)))
+Tolerance: 0.01%
+
+Operator : createstreamj
+Number   : 5
+Signature: listint -> stream(int)
+Example  : query createstreamj(list1int) createlistj;
+Result   : (listint(5 6 15))
 Tolerance: 0.01%
 
 Operator : createjnetwork
@@ -102,3 +130,107 @@ Signature: jnetwork -> rel(tuple((id int)(listjunctions listpairtidrloc)(listsec
 Example  : query routes(testnet);
 Result   : file
 
+Operator : collectlistj
+Number   : 1
+Signature: stream(listtid) -> listtid
+Example  : query createstreamj(list1tid) createlistj feed collectlistj;
+Result   : (listtid(1 2 3 4 5))
+Tolerance: 0.01%
+
+Operator : collectlistj
+Number   : 2
+Signature: stream(listpairtidrloc) -> listpairtidrloc
+Example  : query createstreamj(list1pairtidrloc) createlistj feed collectlistj;
+Result   : (listpairtidrloc((1 (1 34.5 (Up)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(2 (4 423.2 (Down)))(5 (9 54.1 (Down)))))
+Tolerance: 0.01%
+
+Operator : collectlistj
+Number   : 3
+Signature: stream(listpairtidjrint) -> listpairtidjrint
+Example  : query createstreamj(list1pairtidrint) createlistj feed collectlistj;
+Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(3 (2 23.8 132.5 (Both)))(4 (4  15.5 34.2 (Up)))(2 (4 423.2 545.5 (Down)))(5 (9 54.1 546.6 (Down)))))
+Tolerance: 0.01%
+
+Operator : collectlistj
+Number   : 4
+Signature: stream(listnetdistgrp) -> listnetdistgrp
+Example  : query createstreamj(list1ndg) createlistj feed collectlistj;
+Result   : (listnetdistgrp((1 1 34 54.3)(2 4 423 545.5)(3 2 23 132.5)(4 4 34 15.5)(5 9 54 546.6)))
+Tolerance: 0.01%
+
+Operator : collectlistj
+Number   : 5
+Signature: stream(listint) -> listint
+Example  : query createstreamj(list1int) createlistj feed collectlistj;
+Result   : (listint(5 6 15))
+Tolerance: 0.01%
+
+Operator : getfirstelem
+Number   : 1
+Signature: listtid -> tid
+Example  : query getfirstelem(list1tid);
+Result   : (tid 1)
+Tolerance: 0.01%
+
+Operator : getfirstelem
+Number   : 2
+Signature: listpairtidrloc -> pairtidrloc
+Example  : query getfirstelem(list1pairtidrloc);
+Result   : (pairtidrloc (1 (1 34.5 (Up))))
+Tolerance: 0.01%
+
+Operator : getfirstelem
+Number   : 3
+Signature: listpairtidjrint -> pairtidjrint
+Example  : query getfirstelem(list1pairtidrint);
+Result   : (pairtidjrint (1 (1 34.5 54.3 (Up))))
+Tolerance: 0.01%
+
+Operator : getfirstelem
+Number   : 4
+Signature: listnetdistgrp -> netdistgrp
+Example  : query getfirstelem(list1ndg);
+Result   : (netdistgrp (1 1 34 54.3))
+Tolerance: 0.01%
+
+Operator : getfirstelem
+Number   : 5
+Signature: listint -> int
+Example  : query getfirstelem(list1int);
+Result   : (int 5)
+Tolerance: 0.01%
+
+Operator : getlastelem
+Number   : 1
+Signature: listtid -> tid
+Example  : query getlastelem(list1tid);
+Result   : (tid 5)
+Tolerance: 0.01%
+
+Operator : getlastelem
+Number   : 2
+Signature: listpairtidrloc -> pairtidrloc
+Example  : query getlastelem(list1pairtidrloc);
+Result   : (pairtidrloc (5 (9 54.1 (Down))))
+Tolerance: 0.01%
+
+Operator : getlastelem
+Number   : 3
+Signature: listpairtidjrint -> pairtidjrint
+Example  : query getlastelem(list1pairtidrint);
+Result   : (pairtidjrint (5 (9 54.1 546.6 (Down))))
+Tolerance: 0.01%
+
+Operator : getlastelem
+Number   : 4
+Signature: listnetdistgrp -> netdistgrp
+Example  : query getlastelem(list1ndg);
+Result   : (netdistgrp (5 9 54 546.6))
+Tolerance: 0.01%
+
+Operator : getlastelem
+Number   : 5
+Signature: listint -> int
+Example  : query getlastelem(list1int);
+Result   : (int 15)
+Tolerance: 0.01%

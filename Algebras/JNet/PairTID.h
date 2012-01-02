@@ -94,7 +94,13 @@ static const bool checkType(const ListExpr type);
 */
 
 PairTID<Elem>& operator=(const PairTID<Elem>& other);
+
 bool operator==(const PairTID<Elem>& other) const;
+bool operator!=(const PairTID<Elem>& other) const;
+bool operator<(const PairTID<Elem>& other) const;
+bool operator<=(const PairTID<Elem>& other) const;
+bool operator>(const PairTID<Elem>& other) const;
+bool operator>=(const PairTID<Elem>& other) const;
 
 /*
 1.5 Operators for Secondo Integration
@@ -270,9 +276,9 @@ int PairTID<Elem>::Compare(const PairTID<Elem>& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (!IsDefined() && rhs.IsDefined()) return -1;
   if (IsDefined() && !rhs.IsDefined()) return 1;
-  int res = tid.Compare(rhs.GetTID());
+  int res = elem.Compare(rhs.GetElement());
   if (res != 0) return res;
-  else return elem.Compare(rhs.GetElement());
+  else return tid.Compare(rhs.GetTID());
 }
 
 template<class Elem>
@@ -284,12 +290,12 @@ size_t PairTID<Elem>::Sizeof() const
 template<class Elem>
 ostream& PairTID<Elem>::Print(ostream& os) const
 {
-  os << "PairTID ";
+  os << BasicType() << ": ";
   if (IsDefined())
   {
-    os << "of TupleId: ";
+    os << "TupleId: ";
     tid.Print(os);
-    os << " and ";
+    os << Elem::BasicType() << ": ";
     elem.Print(os);
   }
   else
@@ -332,6 +338,36 @@ template<class Elem>
 bool PairTID<Elem>::operator==(const PairTID<Elem>& other) const
 {
   return (Compare(other)==0);
+}
+
+template<class Elem>
+bool PairTID<Elem>::operator!=(const PairTID<Elem>& other) const
+{
+  return (Compare(other)!=0);
+}
+
+template<class Elem>
+bool PairTID<Elem>::operator<(const PairTID<Elem>& other) const
+{
+  return (Compare(other) < 0);
+}
+
+template<class Elem>
+bool PairTID<Elem>::operator<=(const PairTID<Elem>& other) const
+{
+  return (Compare(other) < 1);
+}
+
+template<class Elem>
+bool PairTID<Elem>::operator>=(const PairTID<Elem>& other) const
+{
+  return (Compare(other) > -1);
+}
+
+template<class Elem>
+bool PairTID<Elem>::operator>(const PairTID<Elem>& other) const
+{
+  return (Compare(other) > 0);
 }
 
 /*

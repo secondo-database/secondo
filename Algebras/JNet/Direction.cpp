@@ -94,7 +94,8 @@ Attribute::StorageType Direction::GetStorageType() const
 
 size_t Direction::HashValue() const
 {
-  return (size_t) side;
+  if (IsDefined()) return (size_t) side;
+  else return (size_t) 0;
 }
 
 Attribute* Direction::Clone() const
@@ -125,7 +126,7 @@ int Direction::Compare(const JSide& a, const JSide& b) const
   if (a == b) return 0;
   if (a == Up) return -1;
   if (b == Up) return 1;
-  if (a == Down ) return -1;
+  if (b == Both) return -1;
   return 1;
 }
 
