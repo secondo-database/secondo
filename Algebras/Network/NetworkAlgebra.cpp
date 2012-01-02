@@ -6028,7 +6028,7 @@ bool Network::CheckNetwork ( ListExpr type, ListExpr& errorInfo )
 
 void* Network::CastNetwork ( void* addr )
 {
-  return ( 0 );
+  return new (addr)Network;
 }
 
 bool Network::SaveNetwork ( SmiRecord& valueRecord,
