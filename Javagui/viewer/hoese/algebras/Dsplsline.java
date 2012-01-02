@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -38,6 +38,7 @@ public class Dsplsline extends Dsplline {
 
 private static Area basicArrow;
 boolean isArrow = true;
+boolean startSmaller;
 Point2D.Double p1;
 Point2D.Double p2;
 
@@ -60,7 +61,7 @@ public Shape getRenderObject(int num, AffineTransform at){
    if(!isArrow){
       return null;
    }
-   if(!err && defined && p1!=null && p1!=null){
+   if(!err && defined && p1!=null && p2!=null){
      return getArrow(at,p1,p2);
    }
    return null;
@@ -85,7 +86,7 @@ public static boolean isLess(Point2D.Double p1, Point2D.Double p2){
     }
     return p1.x < p2.x;
 
-   
+
 }
 
 public static void reverse(Vector<Point2D.Double >  v){
@@ -110,7 +111,7 @@ private boolean insertSegment(Vector<Vector<Point2D.Double>> sequences, double x
      if( almostEqual(seq.get(0),p1) || almostEqual(seq.get(0),p2) ||
          almostEqual(seq.get(seq.size()-1), p1) || almostEqual(seq.get(seq.size()-1),p2)){
          connectedSequences.add(seq);
-     } 
+     }
    }
    if(connectedSequences.size()==0){ // new unconnected segment
      Vector<Point2D.Double> newSeq = new Vector<Point2D.Double>();
@@ -121,7 +122,7 @@ private boolean insertSegment(Vector<Vector<Point2D.Double>> sequences, double x
      // extend the first sequence by one point
      Vector<Point2D.Double> seq = connectedSequences.get(0);
      if(almostEqual(p1,seq.get(0))){
-        seq.add(0,p2); 
+        seq.add(0,p2);
      } else if(almostEqual(p2,seq.get(0))){
         seq.add(0,p1);
      } else if(almostEqual(p1,seq.get(seq.size()-1))){
@@ -152,7 +153,7 @@ private boolean insertSegment(Vector<Vector<Point2D.Double>> sequences, double x
 
 
    }
-   return true;   
+   return true;
 }
 
 
@@ -166,8 +167,8 @@ public void ScanValue(ListExpr value){
 
   defined = true;
 
-  boolean startSmaller = true;
-  if(value.listLength()==2 && value.second().atomType()==ListExpr.BOOL_ATOM){ // new style
+  startSmaller = true;
+  if(value.listLength()==2 && value.second().atomType()==ListExpr.BOOL_ATOM){// new style
      startSmaller = value.second().boolValue();
      value = value.first();
   }
@@ -176,7 +177,7 @@ public void ScanValue(ListExpr value){
     GP = null;
     return;
   }
-   
+
   Vector<Vector<Point2D.Double> > pointSequences = new Vector<Vector<Point2D.Double> >();
 
   while(!value.isEmpty()){
@@ -241,14 +242,16 @@ public void ScanValue(ListExpr value){
         err = true;
         return;
      }
-     boolean useEnd = startSmaller && isLess(sequence.get(0) , sequence.get(sequence.size()-1));
-     if(useEnd){ // arrow points to the end of the sequence
-        this.p1 = sequence.get(sequence.size()-2);
-        this.p2 = sequence.get(sequence.size()-1);
-     }  else { // arrow points to the start of the sequence
-        this.p1 = sequence.get(1);
-        this.p2 = sequence.get(0);
-     }   
+
+     boolean firstLess = isLess(sequence.get(0) ,
+                              sequence.get(sequence.size()-1));
+     if(startSmaller == firstLess){
+       this.p1 = sequence.get(sequence.size()-2);
+       this.p2 = sequence.get(sequence.size()-1);
+     } else {
+       this.p1 = sequence.get(1);
+       this.p2 = sequence.get(0);
+     }
   }
 
   GP = new GeneralPath();
@@ -260,10 +263,10 @@ public void ScanValue(ListExpr value){
       if(i==0){
          GP.moveTo((float)p.x, (float)p.y);
       } else {
-         GP.lineTo((float)p.x,(float)p.y); 
+         GP.lineTo((float)p.x,(float)p.y);
       }
     }
-  } 
+  }
   defined = true;
   err = false;
 }
@@ -295,12 +298,12 @@ public void ScanValue(ListExpr value){
 
    AffineTransform Rot = new AffineTransform(dx,dy,-dy,dx,0,0);
    aat.concatenate(Rot);
-   
+
 
    AffineTransform scale = AffineTransform.getScaleInstance(5/sx,5/sy);
 
    aat.concatenate(scale);
-   
+
    Shape S = aat.createTransformedShape(basicArrow);
    return S;
   }
@@ -324,14 +327,52 @@ public void ScanValue(ListExpr value){
            return;
         }
 
-          
+
      }
-     
+
      basicArrow = new Area(s);
   }
 
+public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth, indent);
+    ScanValue(value);
+    if (err) {
+      Reporter.writeError("Error in ListExpr :parsing aborted");
+      entry = AttrName + " : <error>";
+      qr.addEntry(entry);
+      bounds =null;
+      GP=null;
+      return;
+    }
+    else if(!defined){
+      entry = AttrName+" : undefined";
+      qr.addEntry(entry);
+      return;
+    }
+    // normal case-> defined line
+    entry = AttrName + " : sline";
+    defined=GP!=null;
+    err=false;
+    qr.addEntry(this);
+    if(GP==null)
+        bounds = null;
+    else{
+       bounds = new Rectangle2D.Double();
+       bounds.setRect(GP.getBounds2D());
+    }
+  }
 
+  /** returns the string for the textual representation of this **/
+  public String toString(){
+     if(err || !defined){
+        return entry;
 
+     }
+     else{
+        return entry + ", " + startSmaller + " ("+Cat.getName()+")";
+     }
+
+  }
 }
 
 
