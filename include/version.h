@@ -10,6 +10,6 @@ release-<MAJOR><MINOR>.
 
 #define SECONDO_VERSION_MAJOR      3
 #define SECONDO_VERSION_MINOR      2
-#define SECONDO_VERSION_REVISION   0
+#define SECONDO_VERSION_REVISION   1
 
 #endif
