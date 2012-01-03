@@ -204,13 +204,23 @@ public String optimize_execute(String query, String Database, IntObj ErrorCode, 
         ErrorCode.value = ErrorCodes.OPTIMIZATION_FAILED;
 	return "";
      }
-     return Opt;
+     return removeSpecialSymbols(Opt);
    }catch(IOException IOE){
       ErrorCode.value = ErrorCodes.IO_ERROR;
       disconnect();
       return "";
    }
 }
+
+private String removeSpecialSymbols(String p){
+    p = p.replaceAll("\\\\n","\n");
+    p = p.replaceAll("\\\\t","\t");
+    p = p.replaceAll("\\\\'","'");
+    return p;
+}
+
+
+
 
 
 private void sendLine(String Line) throws IOException{
