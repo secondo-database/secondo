@@ -6812,6 +6812,7 @@ int dspatialJoinVM1(Word* args, Word& result, int message,
                     R_Tree<dim,TupleId>* r2 = 
                                  (R_Tree<dim,TupleId>*) args[1].addr; 
                     local.addr = new DspatialJoinLocal<dim>(r1,r2,ttl);
+                    return 0;
                  }
       case REQUEST: {
                 if(!li){
@@ -6826,6 +6827,7 @@ int dspatialJoinVM1(Word* args, Word& result, int message,
                       delete li;
                       local.addr =0;
                     }
+                    return 0;
                  }
    }
    return -1;
@@ -7035,6 +7037,7 @@ int get2TuplesVM(Word* args, Word& result, int message,
                                    (GenericRelation*) args[1].addr,
                                    (GenericRelation*) args[2].addr,
                                    nl->Second(GetTupleResultType(s)));
+                return 0;
              }
 
      case REQUEST : {
@@ -7050,6 +7053,7 @@ int get2TuplesVM(Word* args, Word& result, int message,
                     delete li;
                     local.addr = 0;
                 }
+                return 0;
             }
      default: return -1;
    }  
