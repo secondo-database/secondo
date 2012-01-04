@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
+//[_] [\_]
 
 [1] Implementation of R-Tree Algebra
 
@@ -85,6 +86,7 @@ using namespace std;
 #include "ListUtils.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
+#include "Stream.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -6560,6 +6562,532 @@ struct CyclicBulkloadInfo : OperatorInfo {
 };
 
 
+/*
+5.16 Operator ~SpatialJoin~
+
+This operator gets two rtrees and returns such pairs of tuple id's with 
+intersecting bounding boxes.
+
+
+5.16.1 Type Mapping
+
+Signature is rtree [x] rtree -> stream(tuple([TID1 : tid, TID2 : tid]))
+
+*/
+
+ListExpr dspatialJoinTM(ListExpr args){
+
+  string err = "rtree x rtree expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isRTreeDescription(arg1) || 
+     !listutils::isRTreeDescription(arg2)){
+     return listutils::typeError(err);
+  }
+  if(!nl->Equal(nl->First(arg1) , nl->First(arg2))){
+    return listutils::typeError("Rtree with different dimensions found");
+  }
+  if(!nl->Equal(nl->Fourth(arg1) , nl->Fourth(arg2))){
+    return listutils::typeError("One of the rtrees supports double indexing");
+  }
+  if(nl->BoolValue(nl->Fourth(arg1))){
+    return listutils::typeError("double indexing is not allowed here");
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+             nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                 nl->TwoElemList(
+                   nl->TwoElemList(nl->SymbolAtom("TID1"),
+                       nl->SymbolAtom(TupleIdentifier::BasicType())),
+                   nl->TwoElemList(nl->SymbolAtom("TID2"),
+                       nl->SymbolAtom(TupleIdentifier::BasicType())))));
+}
+
+
+
+template<int dim>
+class QEntry{
+  public:
+
+    QEntry(const int p1, const int p2, 
+           const R_TreeNode<dim, TupleId>& n1, 
+           const R_TreeNode<dim, TupleId>& n2):
+           pos1(p1), pos2(p2), node1(n1), node2(n2) {}
+
+    QEntry(const QEntry& src): 
+       pos1(src.pos1), pos2(src.pos2),
+       node1(src.node1), node2(src.node2) {}
+
+    ~QEntry() {}
+
+    int pos1;
+    int pos2;
+    R_TreeNode<dim, TupleId> node1;
+    R_TreeNode<dim, TupleId> node2;
+};
+
+template<int dim>
+class DspatialJoinLocal{
+  public:
+     DspatialJoinLocal(R_Tree<dim, TupleId>* _r1,
+                       R_Tree<dim, TupleId>* _r2,
+                       ListExpr ttl): r1(_r1), r2(_r2), tt(0), 
+                       q(), results(){
+
+
+        tt = new TupleType(ttl);
+        Rectangle<dim> b1 = r1->BoundingBox();
+        Rectangle<dim> b2 = r2->BoundingBox();
+        if(b1.IsDefined() && b2.IsDefined()){
+           if(b1.Intersects(b2)){
+               R_TreeNode<dim, TupleId> n1 = r1->Root();
+               R_TreeNode<dim, TupleId> n2 = r2->Root();
+               QEntry<dim> e(0,0,n1,n2);
+               q.push(e);
+           }
+        }
+     }   
+
+     ~DspatialJoinLocal(){
+        tt->DeleteIfAllowed();
+        while(!results.empty()){
+           Tuple* r = results.front();
+           r->DeleteIfAllowed();
+           results.pop();
+        }
+     }
+
+     Tuple* nextTuple(){
+       Tuple* res =  getRes();
+       if(res != 0) {
+          return res;
+       }
+
+       while(!q.empty()){
+          QEntry<dim> e = q.front();
+          q.pop();
+          processEntries(e.pos1, e.pos2, e.node1, e.node2);
+          Tuple* res = getRes();
+          if(res != 0) {
+             return res;
+          }
+       }
+       return 0;
+     }
+
+
+  private:
+    R_Tree<dim,TupleId>* r1;
+    R_Tree<dim,TupleId>* r2;
+    TupleType* tt;
+    std::queue<QEntry<dim> > q;
+    std::queue<Tuple*> results;
+
+    Tuple* getRes(){
+
+       if(results.size()==0){
+          return 0;
+       }
+       Tuple* res = results.front();
+       results.pop();
+       return  res;
+    }
+
+    void  processEntries(const int pos1, const int pos2, 
+                   const R_TreeNode<dim, TupleId>& n1,
+                   const R_TreeNode<dim, TupleId>& n2){
+       if(pos1 >= n1.EntryCount()){ // node 1 finished
+          return;
+       } 
+       if(pos2 >= n2.EntryCount()){ // node 2 finished
+          return;
+       } 
+      
+       // check for intersecting bounding boxes 
+       Rectangle<dim> b1 = n1.BoundingBox();
+       Rectangle<dim> b2 = n2.BoundingBox();
+       if(!b1.Intersects(b2)){
+         return;
+       }  
+
+       bool leaf1 = n1.IsLeaf();
+       bool leaf2 = n2.IsLeaf();
+ 
+       if(!leaf1 && !leaf2){
+          processInnerInner(pos1,pos2,n1,n2);
+       } else if(!leaf1 && leaf2){
+          processInnerLeaf(pos1,pos2,n1,n2);
+       } else if(leaf1 && !leaf2){
+          processLeafInner(pos1,pos2,n1,n2);
+       } else {
+          processLeafLeaf(pos1,pos2,n1,n2);
+       }
+    }
+
+    void processInnerInner(const int& pos1, const int& pos2,
+                      const R_TreeNode<dim, TupleId>& n1,
+                      const R_TreeNode<dim, TupleId>& n2){
+         int np1 = pos1 + 1;
+         if(np1 < n1.EntryCount()){
+            QEntry<dim> e(np1,pos2,n1,n2);
+            q.push(e);
+         }
+         R_TreeInternalEntry<dim>* ie  = n1.GetInternalEntry(pos1);
+         if(ie->box.Intersects(n2.BoundingBox())){
+            R_TreeNode<dim,TupleId> nn(false,n1.MinEntries(), n1.MaxEntries());
+            r1->GetNode(ie->pointer,nn); // overwrite n1
+            QEntry<dim> e(0,0,nn,n2);
+            q.push(e);
+         }
+    }
+    
+    void processInnerLeaf(const int& pos1, const int& pos2,
+                     const R_TreeNode<dim, TupleId>& n1,
+                     const R_TreeNode<dim, TupleId>& n2){
+         processInnerInner(pos1,pos2,n1,n2);
+    }
+               
+    void processLeafInner(const int& pos1, const int& pos2,
+                     const R_TreeNode<dim, TupleId>& n1,
+                     const R_TreeNode<dim,TupleId>& n2){
+
+         int np2 = pos2 + 1;
+         if(np2 < n2.EntryCount()){
+            QEntry<dim> e (pos1,np2,n1,n2);
+            q.push(e);
+         }
+         R_TreeInternalEntry<dim>* ie = n2.GetInternalEntry(pos2);
+         if(ie->box.Intersects(n1.BoundingBox())){
+            // create an empty node
+            R_TreeNode<dim,TupleId> nn(false,n2.MinEntries(), n2.MaxEntries());
+            r2->GetNode(ie->pointer,nn); // overwrite nn
+            QEntry<dim> e(0,0,n1,nn);
+            q.push(e);
+         }
+    }
+    
+    
+    void processLeafLeaf(const int& pos1, const int& pos2,
+                    const R_TreeNode<dim, TupleId>& n1,
+                    const R_TreeNode<dim, TupleId>& n2){
+       // we assume to be able to hold all result tuples within a vector
+       for(int p1=pos1; p1<n1.EntryCount(); p1++){
+           R_TreeLeafEntry<dim, TupleId>* l1 = n1.GetLeafEntry(p1);
+           for(int p2=pos2; p2 < n2.EntryCount(); p2++){
+              R_TreeLeafEntry<dim, TupleId>* l2 = n2.GetLeafEntry(p2);
+              if(l1->box.Intersects(l2->box)){
+                 Tuple* t = new Tuple(tt);
+                 t->PutAttribute(0, new TupleIdentifier(true,l1->info));
+                 t->PutAttribute(1, new TupleIdentifier(true,l2->info));
+                 results.push(t);
+              }
+           }
+       } 
+    }
+                       
+ 
+
+
+};
+
+
+
+
+
+template<int dim>
+int dspatialJoinVM1(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+
+   DspatialJoinLocal<dim>* li = (DspatialJoinLocal<dim>*) local.addr;
+   switch(message){
+      case OPEN: {
+                    if(li){
+                      delete li;
+                    }
+                    ListExpr ttl = nl->Second(GetTupleResultType(s));
+                    R_Tree<dim,TupleId>* r1 = 
+                                 (R_Tree<dim,TupleId>*) args[0].addr; 
+                    R_Tree<dim,TupleId>* r2 = 
+                                 (R_Tree<dim,TupleId>*) args[1].addr; 
+                    local.addr = new DspatialJoinLocal<dim>(r1,r2,ttl);
+                 }
+      case REQUEST: {
+                if(!li){
+                   result.addr=0;
+                   return CANCEL;
+                }
+                result.addr = li->nextTuple();
+                return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE: {
+                    if(li){
+                      delete li;
+                      local.addr =0;
+                    }
+                 }
+   }
+   return -1;
+}
+
+
+/*
+5.16.3 ValueMapping array 
+
+*/
+
+ValueMapping dspatialJoinVM[] = {
+               dspatialJoinVM1<2>,
+               dspatialJoinVM1<3>,
+               dspatialJoinVM1<4>,
+               dspatialJoinVM1<8>
+             };
+
+/*
+5.16.4 Selection Function
+
+*/
+int dspatialJoinSelect(ListExpr args){
+   int d = listutils::getRTreeDim(nl->First(args));
+   switch(d){
+      case 2 : return 0;
+      case 3 : return 1;
+      case 4 : return 2;
+      case 8 : return 3;
+      default : return -1;
+   }  
+}
+
+/*
+5.16..5 Operator Spec
+
+*/
+
+const string dspatialJoinSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text> rtree x rtree -> stream(tuple([TID1 : tid, TID2 : tid]))" 
+    "</text--->"
+    "<text> _ _ dspatialJoin </text--->"
+    "<text>This operator returns such pairs of tuple id's "
+    "having overlapping bounding boxes within the rtrees"
+    ".</text--->"
+    "<text>query strassen_geoData_rtree "
+    "strassen_geoData_rtree dspatialJoin count</text--->"
+    "<text></text--->"
+    ") )";
+
+/*
+5.16.6 Operator instance
+
+*/
+
+Operator dspatialJoin(
+         "dspatialJoin",                    // name
+         dspatialJoinSpec,             // specification
+         4,
+         dspatialJoinVM,                 // value mapping
+         dspatialJoinSelect,              // selection function
+         dspatialJoinTM // type mapping
+        );
+
+
+/*
+5.17 Operator get2tuples
+
+5.17.1 Type Mapping
+
+Signature is stream(tuple(tid, tid)) x rel(tuple(X)) x rel(tuple(Y)) x id  -> stream(tuple(X@Y[_]id))
+
+*/
+ListExpr get2TuplesTM(ListExpr args){
+  string err = "tream(tuple(tid, tid)) x rel(tuple(X)) "
+               "x rel(tuple(Y)) x id expected";
+  int len = nl->ListLength(args);
+  if((len!=3) && (len!=4)){
+    return listutils::typeError(err);
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!Relation::checkType(nl->Second(args)) ||
+     !Relation::checkType(nl->Third(args)) ){
+    return listutils::typeError(err);
+  }
+  
+  if((len == 4) && !listutils::isSymbol(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  
+  ListExpr arg1list = nl->Second(nl->Second(nl->First(args)));
+  if(!nl->HasLength(arg1list,2)){
+    return listutils::typeError(err);
+  }
+  if(!TupleIdentifier::checkType(nl->Second(nl->First(arg1list))) ||
+     !TupleIdentifier::checkType(nl->Second(nl->Second(arg1list)))){
+     return listutils::typeError(err);
+  }
+  // stream is (tid,tid); 
+  ListExpr schema1 = nl->Second(nl->Second(nl->Second(args)));
+  ListExpr schema2 = nl->Second(nl->Second(nl->Third(args)));
+  // append extendsion @ schema2
+  ListExpr rschema2;
+  if(len==4){
+    ListExpr last;
+    bool first = true;
+    string ext = nl->SymbolValue(nl->Fourth(args));
+    while(!nl->IsEmpty(schema2)){
+      ListExpr f = nl->First(schema2);
+      schema2 = nl->Rest(schema2);
+      ListExpr nf = nl->TwoElemList( 
+                         nl->SymbolAtom( 
+                             nl->SymbolValue(nl->First(f)) +"_" + ext),
+                         nl->Second(f));
+      if(first){
+        rschema2 = nl->OneElemList(nf);
+        last = rschema2;
+        first = false;
+      } else { 
+         last = nl->Append(last,nf);
+      }
+    } 
+  } else {
+   rschema2 = schema2;
+  }
+  ListExpr schema = listutils::concat(schema1, rschema2);
+  if(!listutils::isAttrList(schema)){
+    return listutils::typeError("name conflict in resulting tuple");
+  }
+  return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
+             nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                              schema));
+}
+
+/*
+5.17.2 Value Mapping
+
+*/
+class Get2TuplesLocal{
+  public:
+   Get2TuplesLocal(Word& s,
+                   GenericRelation* rel1,
+                   GenericRelation* rel2,
+                   ListExpr ttl) : stream(s), r1(rel1), r2(rel2){
+        stream.open();
+        tt = new TupleType(ttl);
+        //cout << "ttl = " << nl->ToString(ttl);
+   }
+
+   ~Get2TuplesLocal(){
+       stream.close();
+       tt->DeleteIfAllowed();
+   }
+
+   Tuple* nextTuple(){
+      Tuple* src = stream.request();
+      while(src){
+        TupleIdentifier* Tid1 = (TupleIdentifier*) src->GetAttribute(0);
+        TupleIdentifier* Tid2 = (TupleIdentifier*) src->GetAttribute(1);
+        if(Tid1->IsDefined() && Tid2->IsDefined()){
+           Tuple* t1 = r1->GetTuple(Tid1->GetTid(), true);
+           Tuple* t2 = r2->GetTuple(Tid2->GetTid(), true);
+           if((t1!=0) && (t2!=0)){
+              Tuple* res = new Tuple(tt);
+              Concat(t1,t2,res);
+              t1->DeleteIfAllowed();
+              t2->DeleteIfAllowed();
+              src->DeleteIfAllowed();
+              return  res;
+           }
+           if(t1){
+             t1->DeleteIfAllowed();
+           }
+           if(t2){
+             t2->DeleteIfAllowed();
+           }
+        }
+        src->DeleteIfAllowed();
+        src = stream.request();
+      }
+      return 0;
+   }
+
+
+  private:
+    Stream<Tuple> stream;
+    GenericRelation* r1;
+    GenericRelation* r2;
+    TupleType* tt;
+};
+
+
+int get2TuplesVM(Word* args, Word& result, int message,
+               Word& local, Supplier s){
+
+   Get2TuplesLocal* li = (Get2TuplesLocal*) local.addr;
+   switch(message){
+      case OPEN : {
+                if(li){
+                   delete li;
+                }
+                local.addr = new Get2TuplesLocal(args[0], 
+                                   (GenericRelation*) args[1].addr,
+                                   (GenericRelation*) args[2].addr,
+                                   nl->Second(GetTupleResultType(s)));
+             }
+
+     case REQUEST : {
+                if(!li){
+                  result.addr = 0;
+                } else {
+                   result.addr = li->nextTuple();
+                }
+                return result.addr?YIELD:CANCEL;
+               }
+     case CLOSE: {
+                if(li){
+                    delete li;
+                    local.addr = 0;
+                }
+            }
+     default: return -1;
+   }  
+}
+
+/*
+5.17.3 Specification
+
+*/
+
+const string get2TuplesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text> stream((tuple(tid,tid)) x rel(tuple(X)) x rel(Tuple(Y)) x id " 
+    " ->  stream(Tuple(XY@id))</text--->"
+    "<text> _ _ _ _ get2Tuples </text--->"
+    "<text>Reads the  tuples referenced by the stream from two relations"
+    "in parallel and concatenates them. The attribute names of the second "
+    " relation are extended by _id"
+    ".</text--->"
+    "<text>query strassen_geoData_rtree "
+    "strassen_geoData_rtree dspatialJoin  strassen strassen a "
+    "get2tuples consume</text--->"
+    "<text></text--->"
+    ") )";
+
+/*
+5.17.4 Operator Instance
+
+*/
+Operator get2tuples(
+    "get2tuples",
+    get2TuplesSpec,
+    get2TuplesVM,
+    Operator::SimpleSelect,
+    get2TuplesTM
+);
+
 
 /*
 6 Definition and initialization of RTree Algebra
@@ -6595,6 +7123,9 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreegetnodesons );
     AddOperator( &rtreegetleafentries );
     AddOperator( CyclicBulkloadInfo(), CyclicBulkloadVM, CyclicBulkloadTM );
+
+    AddOperator(&dspatialJoin);
+    AddOperator(&get2tuples);
 
 #ifdef USE_PROGRESS
     windowintersects.EnableProgress();
