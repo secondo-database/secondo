@@ -213,6 +213,7 @@ Precondition isAttrList(l1) [&]  isAttrList(l2)
 
   ListExpr getRTreeType(ListExpr rtree);
 
+  int getRTreeDim(ListExpr rtree);
 
 /*
 Checks for a valid description of a relation
