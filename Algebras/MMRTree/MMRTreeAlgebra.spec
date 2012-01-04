@@ -7,4 +7,5 @@ operator realJoinMMRTreeVec    alias   REALJOINMMRTREEVEC  pattern _ _ op [ _, _
 operator statMMRTree    alias   STATMMRTREE  pattern _ op [ _, _, _]
 operator insertMMRTree    alias   INSERTMMRTREE  pattern _ op [ _, _ ]
 
+operator itSpatialJoin    alias   ITSPATIALJOIN  pattern _ _ op [ _, _ ,_,_]
 

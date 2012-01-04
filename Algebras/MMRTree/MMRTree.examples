@@ -156,3 +156,8 @@ Example  : query (units(train7) namedtransformstream[U1]   units(train7) namedtr
 Result   : TRUE 
 
 
+Operator : itSpatialJoin 
+Number   : 1 
+Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
+Example  : query (units(train7) namedtransformstream[U1]   units(train7) namedtransformstream[U2]  itSpatialJoin[U1,U2,4,8, 512] count) =  (units(train7) namedtransformstream[U1] extend[B1 : bbox(.U1)] units(train7) namedtransformstream[U2] extend[B2 : bbox(.U2)]  spatialjoin0[B1,B2] count)
+Result   : TRUE 

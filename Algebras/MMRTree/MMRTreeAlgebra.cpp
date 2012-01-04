@@ -100,7 +100,7 @@ where
   attrname2 : attribute name for an attribute of spatial type  in stream2
   min       : minimum number of entries within a node of the used rtree
   max       : maximum number of entries within a node of the used rtree
- [maxMem]    : maximum memory available for storing tuples
+ [maxMem]   : maximum memory available for storing tuples
 
 ----
 
@@ -153,13 +153,17 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
    // check for spatial attribute
    if(!listutils::isKind(type1,Kind::SPATIAL2D()) &&
       !listutils::isKind(type1,Kind::SPATIAL3D())  ){
+     string t = " (type is " + nl->ToString(type1)+ ")";  
      return listutils::typeError("Attribute " + name1 + 
-                                 " is not in Kind Spatial2D or Spatial3D");
+                                 " is not in Kind Spatial2D or Spatial3D"
+                                 + t);
    }
    if(!listutils::isKind(type2,Kind::SPATIAL2D()) &&
       !listutils::isKind(type2,Kind::SPATIAL3D())  ){
-     return listutils::typeError("Attribute " + name1 + 
-                                 " is not in Kind Spatial2D or Spatial3D");
+     string t = " (type is " + nl->ToString(type2)+ ")";  
+     return listutils::typeError("Attribute " + name2 + 
+                                 " is not in Kind Spatial2D or Spatial3D"
+                                 + t);
    }
  
   // check for same dimension
@@ -803,6 +807,334 @@ Operator joinMMRTreeItVec (
   );
 
 
+
+/*
+1.5 itSpatialJoin
+
+This version of the SpatialJoin operator uses only the memory 
+available for that operator. From the first stream, it collects
+all Tuples into a vector and creates an r-tree from the geometries
+until the stream or the memory  is exhausted. 
+Then, it starts to search on the r-tree using the tuples from the
+second stream. If the first stream was not exhausted, all tuples 
+of the second stream are collected within a tuple buffer.
+While there are elements within the first stream, a partition of
+is is used to create a new r-tree and the tuple buffer is scanned
+for searching on the r-tree.
+
+
+1.5.1 Type Mapping
+
+The Type mapping is the same as for other join operations within this
+algebra, so we can just use ~realJoinMMRTreeTM~ here.
+
+*/
+
+/*
+1.5.2 LocalInfo
+
+*/
+template<int dim>
+class ItSpatialJoinInfo{
+  public:
+    
+  ItSpatialJoinInfo(Word& _s1, Word& _s2, 
+                    const int _min, const int _max,
+                    size_t _maxMem, const int _a1,
+                    const int _a2, ListExpr ttl):
+                    s1(_s1), s2(_s2), min(_min), max(_max),
+                     a1(_a1), a2(_a2)
+  {
+      s1.open();
+      s2.open();
+      Tuple* t1 = s1.request();
+      tt = new TupleType(ttl);
+      tuples2 = 0;
+      treeIt = 0;
+      bufferIt = 0;
+      currentTuple2 =0;
+
+      // process the first Tuple
+      if(t1){
+         index = new mmrtree::RtreeT<dim, TupleId>(min,max);
+         int rootSize = t1->GetRootSize();
+         int sizePerTuple = rootSize + sizeof(void*) + 100;  
+         maxTuples = (_maxMem*1024) / sizePerTuple; 
+         if(maxTuples <= 10){
+            maxTuples = 10; // force a minimum of ten tuples
+         }
+        TupleId id = (TupleId) tuples1.size();
+        tuples1.push_back(t1);
+        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+                         t1->GetAttribute(a1))->BoundingBox(); 
+        index->insert(box,id);
+      } else {
+        index = 0;
+        return; 
+      }      
+      t1 = s1.request();
+      int noTuples = 1;
+      while( (t1!=0) && (noTuples < maxTuples -1)){
+        TupleId id = (TupleId) tuples1.size();
+        tuples1.push_back(t1);
+        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+                         t1->GetAttribute(a1))->BoundingBox(); 
+        index->insert(box,id);
+        t1 = s1.request();
+        noTuples++;
+      }
+      // process the last tuple if present
+      if(t1){
+        finished = false;
+        TupleId id = (TupleId) tuples1.size();
+        tuples1.push_back(t1);
+        Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+                         t1->GetAttribute(a1))->BoundingBox(); 
+        index->insert(box,id);
+        
+      } else {
+        finished = true; // stream 1 exhausted
+      }
+      scans = 1;
+
+   }
+    
+   ~ItSpatialJoinInfo(){
+      s1.close();
+      s2.close();
+      tt->DeleteIfAllowed();
+      for(unsigned int i=0;i< tuples1.size();i++){
+         if(tuples1[i]){
+           tuples1[i]->DeleteIfAllowed();
+           tuples1[i] = 0;
+         }
+      }
+      tuples1.clear();
+      if(bufferIt){
+         delete bufferIt;
+      }
+      if(tuples2){
+         delete tuples2;
+      } 
+      if(treeIt){
+        delete treeIt;
+      }
+      if(index){
+        delete index;
+      }
+    }
+
+
+
+    Tuple* next(){
+       if(!index){
+         return 0;
+       }
+       while(true){ // use return for finishing this loop 
+          if(!treeIt){ // try to create a new tree iterator
+             createNewTreeIt();
+             if(treeIt==0){
+               cout << "Join finished with " << scans 
+                    << " scans for stream 2" << endl;
+               cout << "there are " << maxTuples 
+                    << " maximum stored tuples within the index" << endl;
+               return 0;
+             }
+          }
+          TupleId const* id = treeIt->next();    
+          if(!id){ //treeIt exhausted
+             delete treeIt;
+             treeIt = 0;
+             currentTuple2->DeleteIfAllowed();
+             currentTuple2=0;
+          } else { // new result found
+            Tuple* res = new Tuple(tt);
+            Tuple* t1 = tuples1[*id];
+            Concat(t1,currentTuple2,res);
+            return res;
+          }        
+       } 
+    }
+
+
+    
+
+  private:
+      Stream<Tuple> s1;
+      Stream<Tuple> s2;
+      int min;
+      int max;
+      int a1;
+      int a2;
+      TupleType* tt;
+      int maxTuples;
+      vector<Tuple*> tuples1;
+      Relation* tuples2;
+      bool finished;  // all tuples from stream1 read 
+      typename mmrtree::RtreeT<dim, TupleId>::iterator* treeIt; 
+      Tuple* currentTuple2;  // tuple from stream 2
+      GenericRelationIterator* bufferIt;
+      mmrtree::RtreeT<dim, TupleId>* index;
+      int scans;
+
+
+      void createNewTreeIt(){
+         assert(!treeIt);
+         if(!currentTuple2){
+            getCurrentTuple(); 
+         } 
+         if(!currentTuple2){
+             return;
+         }
+         Rectangle<dim> r = ((StandardSpatialAttribute<dim>*)
+                    currentTuple2->GetAttribute(a2))->BoundingBox();
+         treeIt = index->find(r);
+      }
+
+      void getCurrentTuple(){
+         if(currentTuple2){
+           currentTuple2->DeleteIfAllowed();
+           currentTuple2=0;
+         }
+         if(bufferIt){ // read from Buffer
+            currentTuple2 = bufferIt->GetNextTuple();
+            if(!currentTuple2){
+               if(finished){
+                 return;
+               } else { 
+                 rebuildIndex();
+                 resetBuffer();
+               }
+            } else {
+              return; // next current tuple found
+            }
+         } else {
+           currentTuple2 = s2.request();
+           if(!currentTuple2){
+              if(finished){
+                return; 
+              } else {
+                rebuildIndex();
+                resetBuffer();
+              }
+           } else {
+             if(!finished){ //insert Tuple into buffer
+               if(!tuples2){
+                  tuples2 = new Relation(currentTuple2->GetTupleType(),true);
+               }
+               currentTuple2->PinAttributes();
+               tuples2->AppendTupleNoLOBs(currentTuple2);
+             }
+             return;
+           }
+         }
+      }
+
+      void rebuildIndex(){
+         if(treeIt){
+           delete treeIt;
+           treeIt=0;
+         }
+         if(index){
+           delete index;
+         }
+         for(unsigned int i=0;i<tuples1.size();i++){
+            tuples1[i]->DeleteIfAllowed();
+            tuples1[i]=0;
+         }
+         tuples1.clear();
+         index = new mmrtree::RtreeT<dim, TupleId>(min,max);
+         Tuple* t1 = s1.request();
+         int noTuples = 0;
+         while( (t1!=0) && (noTuples < maxTuples -1)){
+             TupleId id = (TupleId) tuples1.size();
+             tuples1.push_back(t1);
+             Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+                           t1->GetAttribute(a1))->BoundingBox(); 
+             index->insert(box,id);
+             t1 = s1.request();
+             noTuples++;
+         }
+         // process the last tuple if present
+        if(t1){
+           finished = false;
+           TupleId id = (TupleId) tuples1.size();
+           tuples1.push_back(t1);
+           Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
+                          t1->GetAttribute(a1))->BoundingBox(); 
+           index->insert(box,id);
+        } else {
+          finished = true; // stream 1 exhausted
+        }
+      }
+
+      void resetBuffer(){
+         assert(tuples2);
+         if(bufferIt){
+           delete bufferIt;
+         }
+         bufferIt = tuples2->MakeScan();
+         assert(currentTuple2==0);
+         currentTuple2 = bufferIt->GetNextTuple();
+         scans++;
+      }
+
+
+};
+
+
+
+/*
+1.5.3 Value Mapping
+
+There is no special value mapping required. 
+We use joinMMRTreeItVM with the specialized localInfo .
+
+*/
+
+
+/*
+1.5.4 Value Mapping Array
+
+*/
+ValueMapping ItSpatialJoinVM[] = {
+         joinMMRTreeItVM<2,ItSpatialJoinInfo<2> >,
+         joinMMRTreeItVM<3,ItSpatialJoinInfo<3> > 
+      };
+
+
+
+/*
+1.5.5 Selection function
+
+We use realJoinSelect here.
+
+*/
+
+/*
+1.5.6 Specification
+
+*/
+
+/*
+1.5.7 Operator instance
+
+*/
+Operator itSpatialJoin(
+      "itSpatialJoin",
+       realJoinMMRTreeSpec,
+       2, 
+       ItSpatialJoinVM,
+       realJoinSelect ,
+       realJoinMMRTreeTM
+     );
+
+
+
+
+
+
+
 /*
 2 Algebra Definition
 
@@ -825,6 +1157,8 @@ class MMRTreeAlgebra : public Algebra {
         joinMMRTreeIt.SetUsesMemory();
       AddOperator(&joinMMRTreeItVec);
         joinMMRTreeItVec.SetUsesMemory();
+      AddOperator(&itSpatialJoin);
+        itSpatialJoin.SetUsesMemory();
 
    }
 };
