@@ -63,14 +63,14 @@ And includes one method:
 #include <arpa/inet.h>
 
 const int MAX_COPYTIMES = 5;
-const size_t MAX_FILEHANDLENUM = 100;
+const size_t MAX_OPENFILE_NUM = 100;
 const string dbLoc = "<READ DB/>";
 
 string
 tranStr(const string& s, const string& from, const string& to);
 string
 getLocalFilePath(string path, const string fileName,
-            string fSfx, bool extendPath = true);
+            string suffix, bool appendFileName = true);
 string addFileIndex(string fileName, int index);
 
 /*
@@ -339,10 +339,12 @@ public:
   clusterInfo(clusterInfo& rhg);
 //  clusterInfo(NList& instance);
 
-  string getRemotePath(size_t loc, string fileName,
+  string getRemotePath(size_t loc,
+      bool includeMaster = true,
       bool round = false,
-/*      bool createPath = true,*/
-      bool attachTargetIP = true,
+      bool appendTargetIP = true,
+      bool appendFileName = false,
+      string fileName = "",
       bool attachProducerIP = false,
       string producerIP = "");
   string getIP(size_t loc, bool round = false);
@@ -355,6 +357,10 @@ public:
 
   inline int getMasterNode(){
     return masterNode;
+  }
+
+  inline bool isLocalTheMaster(){
+    return (getLocalNode() == masterNode);
   }
 
   string getLocalIP();
@@ -391,6 +397,7 @@ then the ~searchLocalNode~ function cannot return a correct result.
 
   NList toNestedList();
   bool covers(NList& clusterList);
+  size_t getInterIndex(size_t loc,bool includeMaster,bool round);
 
 private:
   string ps_master;
@@ -402,7 +409,6 @@ private:
   int masterNode;
 
   int searchLocalNode();
-  size_t getInterIndex(size_t loc, bool round);
   vector<string>* getAvailableIPAddrs();
 };
 
@@ -511,7 +517,8 @@ public:
 class fileInfo{
 public:
   fileInfo(size_t _cs, string _fp, string _fn,
-      size_t _an, string _rs = ""):
+      size_t _an, /*string _rs = ""*/
+      int _rs):
   cnt(0), totalExtSize(0),totalSize(0),
   lastTupleIndex(0), fileOpen(false)
   {
@@ -520,7 +527,10 @@ public:
     //\_hv: columnSuffix    (integer)
     //\_fn, \_fp: file name and path
     //\_an: attributes number
-    blockFileName = _fn + _rs + "_" + int2string(_cs);
+    if (_rs >= 0){
+      _fn += "_" + int2string(_rs);
+    }
+    blockFileName = _fn + "_" + int2string(_cs);
     blockFilePath = _fp;
     FileSystem::AppendItem(blockFilePath, blockFileName);
 
@@ -545,8 +555,8 @@ public:
     fileOpen = false;
   }
 
-  bool writeTuple(Tuple* tuple, size_t tupleIndex,
-       int attrIndex, TupleType* exTupleType, bool kpa)
+  bool writeTuple(Tuple* tuple, size_t tupleIndex, TupleType* exTupleType,
+       int ai, bool kai, int aj = -1, bool kaj = false)
   {
     if (!fileOpen)
       return false;
@@ -557,7 +567,7 @@ public:
 
     //The tuple written to the file need remove the key attribute
     Tuple* newTuple;
-    if (kpa)
+    if (kai && kaj)
       newTuple = tuple;
     else
     {
@@ -565,7 +575,7 @@ public:
       int j = 0;
       for (int i = 0; i < tuple->GetNoAttributes(); i++)
       {
-        if (i != attrIndex)
+        if ( (i != ai || kai) && ( i != aj || kaj) )
           newTuple->CopyAttribute(i, tuple, j++);
       }
     }
@@ -580,7 +590,7 @@ public:
                          extensionSize, flobSize);
     blockFile.write(tBlock, tupleBlockSize);
     free(tBlock);
-    if (!kpa)
+    if (!kai || !kaj)
       newTuple->DeleteIfAllowed();
     lastTupleIndex = tupleIndex + 1;
     cnt++;
@@ -676,7 +686,8 @@ private:
   size_t tupleCounter;
 
   string fileBaseName;
-  string rowNumSuffix;
+//  string rowNumSuffix;
+  int rowNumSuffix;
   string filePath;
   map<size_t, fileInfo*> fileList;
   map<size_t, fileInfo*>::iterator fit;
@@ -770,7 +781,13 @@ public:
   {
     return (nl->IsEqual(type, "flist"));
   }
+  static const string BasicType(){
+    return "flist";
+  }
 
+
+  void appendFileLocList(NList elem);
+  void inline setDuplicated() { isDistributed = true; }
 
   //Auxiliary methods
   int SizeOfObj();
@@ -811,6 +828,60 @@ private:
 
   friend class ConstructorFunctions<fList>;
 };
+
+class SpreadLocalInfo{
+public:
+  SpreadLocalInfo(string fileName, string filePath, int dupTimes,
+             int attrIndex1, int rowNum, bool keepAI,
+             int attrIndex2, int colNum, bool keepAJ);
+
+  bool insertTuple(Word wTuple);
+  bool closePartFiles();
+  inline bool isAvailable(){ return (!(resultList == 0)); }
+
+  ~SpreadLocalInfo(){
+    if (ci){
+      delete ci;
+      ci = 0;
+    }
+    if (resultList){
+      delete resultList;
+      resultList = 0;
+    }
+  }
+
+  fList* getResultList(){
+    if (done)
+      return resultList;
+    else
+      return 0;
+  }
+
+private:
+  typedef map<size_t, fileInfo*> rowFile;
+  map<size_t, rowFile*> matrixRel;
+  clusterInfo *ci;
+  fList* resultList;
+
+  string partFileName, partFilePath;
+  int attrIndex1,attrIndex2,rowAmount,colAmount;
+  bool keepA1, keepA2;
+  bool done;
+  size_t tupleCounter;
+  size_t dupTimes;
+
+  TupleType *exportTupleType;
+  //~openFileList~ keeps at most MAX_FILEHANDLENUM file handles.
+  vector<fileInfo*> openFileList;
+
+
+  bool duplicateOneRow(rowFile *row);
+  size_t hashValue(Tuple *t, int attrIndex, int scale);
+//  size_t rowHashValue(Tuple* t);
+//  size_t columnHashValue(Tuple* t);
+  bool openFile(fileInfo *fp);
+};
+
 
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

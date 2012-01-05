@@ -67,3 +67,13 @@ Number   : 1
 Signature: stream(tuple((a1 t1) ... (ai ti) ... (an tm))) x string x text x ai x int -> stream(tuple((sufix int) (ai ti))) 
 Example  : query plz feed fdistribute["plz_dis", '', PLZ; 50, TRUE; ; ] loopsel["plz_dis" ffeed['',.Suffix; ; ]] count
 Result   : 41267
+
+Operator : spread
+Number   : 1
+Signature:  
+Example  : query plz feed spread["",'',1;PLZ,5;Ort,10] 
+Result   : crashes
+Remark   : There is a lack of parallel processing configurations normally
+
+
+
