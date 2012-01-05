@@ -1,4 +1,5 @@
 
+include ../makefile.inc
 
 .PHONY: all
 
@@ -6,6 +7,16 @@ all:
 	make -C lib all
 	make -C tools all
 	make -C sj all
+
+
+.PHONY: doc # creates the documentation  via $(JAVADOC)
+doc: removedoc 
+	@make -s all
+	mkdir $(DOCPATH)
+	$(JAVADOC)  -d $(DOCPATH) -sourcepath .  -classpath .  $(shell find -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -path "lib*"  -not -ipath "*/[0-9]*"  -printf '%P\n' | sed "s#/#.#g" )   
+
+
+
 
 .PHONY:SecondoInterface.jar
 SecondoInterface.jar: all 
@@ -28,8 +39,13 @@ SecondoInterface.jar: all
 
 .PHONY: clean
 
-clean: 
+clean: removedoc
 	make -C sj clean
 	make -C tools clean
 	make -C lib clean
 	rm -f SecondoInterface.jar
+
+
+.PHONY: removedoc
+removedoc:
+	rm -rf $(DOCPATH)
