@@ -163,14 +163,9 @@ Result   : 8584
 
 Operator  : dspatialJoin
 Number:   : 1
-Signature : rtree x rtree -> stream(tuple([TID1 : tid, TID2 : tid]))
-Example   : query strassen_geoData_rtree strassen_geoData_rtree dspatialJoin count
+Signature : rtree1 x rel1(tuple(X)) x  rtree2 x rel2(tuple(Y)) [x rename] -> stream(tuple(X,Y@ren))
+Example   : query strassen_geoData_rtree strassen strassen_geoData_rtree strassen dspatialJoin[a] count
 Result    : 26492
 
 
-Operator  : get2tuples
-Number:   : 1
-Signature : stream(tuple(tid,tid)) x rel(tuple(X)) x rel(tuple(Y)) x id -> stream(tuple(X,Y@id))
-Example   : query strassen_geoData_rtree strassen_geoData_rtree dspatialJoin strassen strassen a get2tuples count
-Result    : 26492
 

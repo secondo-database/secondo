@@ -87,6 +87,7 @@ using namespace std;
 #include "AlmostEqual.h"
 #include "Symbols.h"
 #include "Stream.h"
+#include "LRU.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -6577,86 +6578,109 @@ Signature is rtree [x] rtree -> stream(tuple([TID1 : tid, TID2 : tid]))
 
 ListExpr dspatialJoinTM(ListExpr args){
 
-  string err = "rtree x rtree expected";
-  if(!nl->HasLength(args,2)){
+  string err = "rtree x rel x rtree x rel [ x renaming] expected";
+
+  int len = nl->ListLength(args);
+  if(len!=4 && len!=5){
     return listutils::typeError(err);
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if(!listutils::isRTreeDescription(arg1) || 
-     !listutils::isRTreeDescription(arg2)){
+  } 
+
+
+  // check r-trees
+  ListExpr tree1 = nl->First(args);
+  ListExpr tree2 = nl->Third(args);
+  if(!listutils::isRTreeDescription(tree1) || 
+     !listutils::isRTreeDescription(tree2)){
      return listutils::typeError(err);
   }
-  if(!nl->Equal(nl->First(arg1) , nl->First(arg2))){
+  if(!nl->Equal(nl->First(tree1) , nl->First(tree2))){
     return listutils::typeError("Rtree with different dimensions found");
   }
-  if(!nl->Equal(nl->Fourth(arg1) , nl->Fourth(arg2))){
+  if(!nl->Equal(nl->Fourth(tree1) , nl->Fourth(tree2))){
     return listutils::typeError("One of the rtrees supports double indexing");
   }
-  if(nl->BoolValue(nl->Fourth(arg1))){
+  if(nl->BoolValue(nl->Fourth(tree1))){
     return listutils::typeError("double indexing is not allowed here");
   }
-  return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+
+  // check relations
+  ListExpr rel1 = nl->Second(args);
+  ListExpr rel2 = nl->Fourth(args);
+
+  if(!Relation::checkType(rel1) || !Relation::checkType(rel2)){
+    return listutils::typeError("One of the rtrees supports double indexing");
+  }
+  ListExpr al1 = nl->Second(nl->Second(rel1));
+  ListExpr al2 = nl->Second(nl->Second(rel2));
+
+  ListExpr attrList;
+  if(len==4){
+     attrList = listutils::concat(al1,al2);
+  } else {
+    ListExpr ren = nl->Fifth(args);
+    if(!listutils::isSymbol(ren)){
+        return listutils::typeError(err);
+    }
+    string renaming = "_" + nl->SymbolValue(ren);
+    ListExpr ral2;
+    ListExpr last;
+    bool first = true;
+    while(!nl->IsEmpty(al2)){
+      ListExpr f = nl->First(al2);
+      al2 = nl->Rest(al2);
+      ListExpr nf = nl->TwoElemList( 
+                         nl->SymbolAtom( 
+                             nl->SymbolValue(nl->First(f)) +renaming),
+                         nl->Second(f));
+      if(first){
+        ral2 = nl->OneElemList(nf);
+        last = ral2;
+        first = false;
+      } else { 
+         last = nl->Append(last,nf);
+      }
+    }
+    attrList = listutils::concat(al1,ral2); 
+  }
+  if(!listutils::isAttrList(attrList)){
+    return listutils::typeError("Name conflicts in resulting tuple");
+  }
+  
+  return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
              nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
-                 nl->TwoElemList(
-                   nl->TwoElemList(nl->SymbolAtom("TID1"),
-                       nl->SymbolAtom(TupleIdentifier::BasicType())),
-                   nl->TwoElemList(nl->SymbolAtom("TID2"),
-                       nl->SymbolAtom(TupleIdentifier::BasicType())))));
+                              attrList));
 }
 
 
 
-template<int dim>
-class QEntry{
-  public:
 
-    QEntry(const int p1, const int p2, 
-           const R_TreeNode<dim, TupleId>& n1, 
-           const R_TreeNode<dim, TupleId>& n2):
-           pos1(p1), pos2(p2), node1(n1), node2(n2) {}
 
-    QEntry(const QEntry& src): 
-       pos1(src.pos1), pos2(src.pos2),
-       node1(src.node1), node2(src.node2) {}
+/*
 
-    ~QEntry() {}
+LocalInfo class for directSpatialJoin
 
-    int pos1;
-    int pos2;
-    R_TreeNode<dim, TupleId> node1;
-    R_TreeNode<dim, TupleId> node2;
-};
-
+*/
 template<int dim>
 class DspatialJoinLocal{
   public:
      DspatialJoinLocal(R_Tree<dim, TupleId>* _r1,
+                       GenericRelation* _rel1,
                        R_Tree<dim, TupleId>* _r2,
-                       ListExpr ttl): r1(_r1), r2(_r2), tt(0), 
-                       q(), results(){
-
-
+                       GenericRelation* _rel2,
+                       ListExpr ttl): r1(_r1), r2(_r2), 
+                       rel1(_rel1), rel2(_rel2),
+                       tt(0), 
+                       q_ii(), q_il(), q_li(),  q_ll(){
         tt = new TupleType(ttl);
-        Rectangle<dim> b1 = r1->BoundingBox();
-        Rectangle<dim> b2 = r2->BoundingBox();
-        if(b1.IsDefined() && b2.IsDefined()){
-           if(b1.Intersects(b2)){
-               R_TreeNode<dim, TupleId> n1 = r1->Root();
-               R_TreeNode<dim, TupleId> n2 = r2->Root();
-               QEntry<dim> e(0,0,n1,n2);
-               q.push(e);
-           }
-        }
+        R_TreeNode<dim, TupleId> n1 = r1->Root();
+        R_TreeNode<dim, TupleId> n2 = r2->Root();
+        processNodes(n1,n2);
+        max1 = max(r1->MaxLeafEntries(), r1->MaxInternalEntries());
+        max2 = max(r2->MaxLeafEntries(), r2->MaxInternalEntries());
      }   
 
      ~DspatialJoinLocal(){
         tt->DeleteIfAllowed();
-        while(!results.empty()){
-           Tuple* r = results.front();
-           r->DeleteIfAllowed();
-           results.pop();
-        }
      }
 
      Tuple* nextTuple(){
@@ -6665,14 +6689,16 @@ class DspatialJoinLocal{
           return res;
        }
 
-       while(!q.empty()){
-          QEntry<dim> e = q.front();
-          q.pop();
-          processEntries(e.pos1, e.pos2, e.node1, e.node2);
-          Tuple* res = getRes();
-          if(res != 0) {
-             return res;
-          }
+       while(!allempty()){ 
+         if(!processIL()){
+            if(!processLI()){
+               processII();
+            }
+         }
+         res = getRes();
+         if(res){
+           return res;
+         }
        }
        return 0;
      }
@@ -6681,117 +6707,217 @@ class DspatialJoinLocal{
   private:
     R_Tree<dim,TupleId>* r1;
     R_Tree<dim,TupleId>* r2;
+    GenericRelation* rel1;
+    GenericRelation* rel2;
     TupleType* tt;
-    std::queue<QEntry<dim> > q;
-    std::queue<Tuple*> results;
+    std::stack< pair<R_TreeInternalEntry<dim>, 
+                     R_TreeInternalEntry<dim> > > q_ii;
+    std::stack< pair<R_TreeInternalEntry<dim>, 
+                     R_TreeLeafEntry<dim, TupleId> > > q_il;
+    std::stack< pair<R_TreeLeafEntry<dim, TupleId>, 
+                     R_TreeInternalEntry<dim> > > q_li;
+    std::queue< pair<TupleId, TupleId > > q_ll;
+    int max1;
+    int max2;
 
-    Tuple* getRes(){
 
-       if(results.size()==0){
-          return 0;
-       }
-       Tuple* res = results.front();
-       results.pop();
-       return  res;
+    bool allempty() const{
+      return q_ll.empty() && q_li.empty() && q_il.empty() && q_ii.empty();
     }
 
-    void  processEntries(const int pos1, const int pos2, 
-                   const R_TreeNode<dim, TupleId>& n1,
-                   const R_TreeNode<dim, TupleId>& n2){
-       if(pos1 >= n1.EntryCount()){ // node 1 finished
-          return;
-       } 
-       if(pos2 >= n2.EntryCount()){ // node 2 finished
-          return;
-       } 
-      
-       // check for intersecting bounding boxes 
-       Rectangle<dim> b1 = n1.BoundingBox();
-       Rectangle<dim> b2 = n2.BoundingBox();
-       if(!b1.Intersects(b2)){
-         return;
-       }  
+    void processNodes(const R_TreeNode<dim, TupleId> & n1,
+                      const R_TreeNode<dim, TupleId> & n2){
 
-       bool leaf1 = n1.IsLeaf();
-       bool leaf2 = n2.IsLeaf();
+        bool l1 = n1.IsLeaf();
+        bool l2 = n2.IsLeaf();
  
-       if(!leaf1 && !leaf2){
-          processInnerInner(pos1,pos2,n1,n2);
-       } else if(!leaf1 && leaf2){
-          processInnerLeaf(pos1,pos2,n1,n2);
-       } else if(leaf1 && !leaf2){
-          processLeafInner(pos1,pos2,n1,n2);
-       } else {
-          processLeafLeaf(pos1,pos2,n1,n2);
+        if(l1 && l2){
+           processLeafLeaf(n1,n2);
+        } else if (l1 && !l1){
+           processLeafInner(n1,n2);
+        } else if (!l1 && l2){
+           processInnerLeaf(n1,n2);
+        } else {
+           processInnerInner(n1,n2);
+        }
+    }
+
+    void printStats(){
+       cout << " q_ii : "  << q_ii.size() << " elements" << endl;
+       cout << " q_il : "  << q_il.size() << " elements" << endl;
+       cout << " q_li : "  << q_li.size() << " elements" << endl;
+       cout << " q_ll : "  << q_ll.size() << " elements" << endl;
+    }
+
+  
+/*
+Converts an element in q[_]ll into a result tuple.
+
+*/    
+   Tuple* getRes(){
+      while(!q_ll.empty()){
+        pair<TupleId, TupleId> p = q_ll.front();
+        q_ll.pop();
+        Tuple* t1 = rel1->GetTuple(p.first, true);
+        if(t1){
+           Tuple* t2 = rel2->GetTuple(p.second, true);
+           if(t2){
+              Tuple* res = new Tuple(tt);
+              Concat(t1,t2,res);
+              t1->DeleteIfAllowed();
+              t2->DeleteIfAllowed();
+              return res;
+           } 
+           t1->DeleteIfAllowed();
+        }
+      } 
+      return 0;
+    }
+   
+/*
+Processes two leaf nodes
+
+*/    
+   void processLeafLeaf( const R_TreeNode<dim, TupleId> & n1,
+                         const  R_TreeNode<dim, TupleId> & n2){
+
+       for(int i1=0; i1 < n1.EntryCount(); i1++){
+          R_TreeLeafEntry<dim,TupleId>* e1 = n1.GetLeafEntry(i1);
+          for(int i2=0;i2 < n2.EntryCount(); i2++){
+             R_TreeLeafEntry<dim,TupleId>* e2 = n2.GetLeafEntry(i2);
+             if(e1->box.Intersects(e2->box)){
+                 pair<TupleId,TupleId> p(e1->info, e2->info);
+                 q_ll.push(p);
+             }
+          }
        }
-    }
+       
+   }
+   void processLeafInner( const R_TreeNode<dim, TupleId> & n1,
+                         const  R_TreeNode<dim, TupleId> & n2){
+       for(int i1=0; i1 < n1.EntryCount(); i1++){
+          R_TreeLeafEntry<dim,TupleId> e1 = *n1.GetLeafEntry(i1);
+          for(int i2=0;i2 < n2.EntryCount(); i2++){
+             R_TreeInternalEntry<dim> e2 = *n2.GetInternalEntry(i2);
+             if(e1.box.Intersects(e2.box)){
+                 pair< R_TreeLeafEntry<dim,TupleId>, 
+                       R_TreeInternalEntry<dim> > p(e1,e2);
+                 q_li.push(p);
+             }
+          }
+       }
+   }
+   void processInnerLeaf( const R_TreeNode<dim, TupleId> & n1,
+                          const  R_TreeNode<dim, TupleId> & n2){
+       for(int i1=0; i1 < n1.EntryCount(); i1++){
+          R_TreeInternalEntry<dim> e1 = *n1.GetInternalEntry(i1);
+          for(int i2=0;i2 < n2.EntryCount(); i2++){
+             R_TreeLeafEntry<dim, TupleId> e2 = *n2.GetLeafEntry(i2);
+             if(e1.box.Intersects(e2.box)){
+                 pair<R_TreeInternalEntry<dim>,
+                      R_TreeLeafEntry<dim, TupleId> > p(e1,e2);
+                 q_il.push(p);
+             }
+          }
+       }
+   }
+   void processInnerInner( const R_TreeNode<dim, TupleId> & n1,
+                         const  R_TreeNode<dim, TupleId> & n2){
+       for(int i1=0; i1 < n1.EntryCount(); i1++){
+          R_TreeInternalEntry<dim> e1 = *n1.GetInternalEntry(i1);
+          for(int i2=0;i2 < n2.EntryCount(); i2++){
+             R_TreeInternalEntry<dim> e2 = *n2.GetInternalEntry(i2);
+             if(e1.box.Intersects(e2.box)){
+                 pair<R_TreeInternalEntry<dim>,
+                      R_TreeInternalEntry<dim> > p(e1,e2);
+                 q_ii.push(p);
+             }
+          }
+       }
+   }
 
-    void processInnerInner(const int& pos1, const int& pos2,
-                      const R_TreeNode<dim, TupleId>& n1,
-                      const R_TreeNode<dim, TupleId>& n2){
-         int np1 = pos1 + 1;
-         if(np1 < n1.EntryCount()){
-            QEntry<dim> e(np1,pos2,n1,n2);
-            q.push(e);
+   bool processIL(){
+      if(q_il.empty()){
+         return false;
+      } 
+      pair<R_TreeInternalEntry<dim>,
+           R_TreeLeafEntry<dim, TupleId> > p = q_il.top();
+      q_il.pop();
+      R_TreeNode<dim,TupleId> n1(true,1,max1);
+      r1->GetNode(p.first.pointer,n1);
+      if(n1.IsLeaf()){
+         for(int i1=0;i1<n1.EntryCount();i1++){
+           R_TreeLeafEntry<dim,TupleId> e1 = *n1.GetLeafEntry(i1);
+           if(p.second.box.Intersects(e1.box)){
+               pair<TupleId,TupleId> pn(e1.info, p.second.info);
+               q_ll.push(pn);
+           }     
          }
-         R_TreeInternalEntry<dim>* ie  = n1.GetInternalEntry(pos1);
-         if(ie->box.Intersects(n2.BoundingBox())){
-            R_TreeNode<dim,TupleId> nn(false,n1.MinEntries(), n1.MaxEntries());
-            r1->GetNode(ie->pointer,nn); // overwrite n1
-            QEntry<dim> e(0,0,nn,n2);
-            q.push(e);
+      } else {
+         for(int i1=0;i1<n1.EntryCount();i1++){
+           R_TreeInternalEntry<dim> e1 = *n1.GetInternalEntry(i1);
+           if(p.second.box.Intersects(e1.box)){
+               pair<R_TreeInternalEntry<dim>, 
+                    R_TreeLeafEntry<dim,TupleId> > pn(e1, p.second);
+               q_il.push(pn);
+           }     
          }
-    }
-    
-    void processInnerLeaf(const int& pos1, const int& pos2,
-                     const R_TreeNode<dim, TupleId>& n1,
-                     const R_TreeNode<dim, TupleId>& n2){
-         processInnerInner(pos1,pos2,n1,n2);
-    }
-               
-    void processLeafInner(const int& pos1, const int& pos2,
-                     const R_TreeNode<dim, TupleId>& n1,
-                     const R_TreeNode<dim,TupleId>& n2){
+      }
+      return true;
+      
+   }
+   bool processLI(){
+      if(q_li.empty()){
+         return false;
+      } 
+      pair<R_TreeLeafEntry<dim, TupleId>, 
+           R_TreeInternalEntry<dim> > p = q_li.top();
+      q_li.pop();
+      R_TreeNode<dim,TupleId> n2(true,1,max2);
+      r2->GetNode(p.second.pointer,n2);
 
-         int np2 = pos2 + 1;
-         if(np2 < n2.EntryCount()){
-            QEntry<dim> e (pos1,np2,n1,n2);
-            q.push(e);
+      if(n2.IsLeaf()){
+         for(int i2=0;i2<n2.EntryCount();i2++){
+           R_TreeLeafEntry<dim,TupleId> e2 = *n2.GetLeafEntry(i2);
+           if(p.first.box.Intersects(e2.box)){
+               pair<TupleId,TupleId> pn(p.first.info, e2.info);
+               q_ll.push(pn);
+           }     
          }
-         R_TreeInternalEntry<dim>* ie = n2.GetInternalEntry(pos2);
-         if(ie->box.Intersects(n1.BoundingBox())){
-            // create an empty node
-            R_TreeNode<dim,TupleId> nn(false,n2.MinEntries(), n2.MaxEntries());
-            r2->GetNode(ie->pointer,nn); // overwrite nn
-            QEntry<dim> e(0,0,n1,nn);
-            q.push(e);
+      } else {
+         for(int i2=0;i2<n2.EntryCount();i2++){
+           R_TreeInternalEntry<dim> e2 = *n2.GetInternalEntry(i2);
+           if(p.first.box.Intersects(e2.box)){
+               pair<R_TreeLeafEntry<dim, TupleId>, 
+                    R_TreeInternalEntry<dim> > pn(p.first, e2);
+               q_li.push(pn);
+           }     
          }
-    }
-    
-    
-    void processLeafLeaf(const int& pos1, const int& pos2,
-                    const R_TreeNode<dim, TupleId>& n1,
-                    const R_TreeNode<dim, TupleId>& n2){
-       // we assume to be able to hold all result tuples within a vector
-       for(int p1=pos1; p1<n1.EntryCount(); p1++){
-           R_TreeLeafEntry<dim, TupleId>* l1 = n1.GetLeafEntry(p1);
-           for(int p2=pos2; p2 < n2.EntryCount(); p2++){
-              R_TreeLeafEntry<dim, TupleId>* l2 = n2.GetLeafEntry(p2);
-              if(l1->box.Intersects(l2->box)){
-                 Tuple* t = new Tuple(tt);
-                 t->PutAttribute(0, new TupleIdentifier(true,l1->info));
-                 t->PutAttribute(1, new TupleIdentifier(true,l2->info));
-                 results.push(t);
-              }
-           }
-       } 
-    }
-                       
+      }
+      return true;
+
+
+   }
+
+
+   bool processII(){
+      if(q_ii.empty()){
+        return false;
+      } 
+      pair<R_TreeInternalEntry<dim>, R_TreeInternalEntry<dim> > p = q_ii.top();
+      q_ii.pop();
+      R_TreeNode<dim,TupleId> n1(true,1,max1);
+      R_TreeNode<dim,TupleId> n2(true,1,max2);
+      r1->GetNode(p.first.pointer, n1);
+      r2->GetNode(p.second.pointer, n2);
+      processNodes(n1,n2);
+      return true;
+   }
+  
  
 
 
 };
-
 
 
 
@@ -6803,16 +6929,18 @@ int dspatialJoinVM1(Word* args, Word& result, int message,
    DspatialJoinLocal<dim>* li = (DspatialJoinLocal<dim>*) local.addr;
    switch(message){
       case OPEN: {
-                    if(li){
-                      delete li;
-                    }
-                    ListExpr ttl = nl->Second(GetTupleResultType(s));
-                    R_Tree<dim,TupleId>* r1 = 
-                                 (R_Tree<dim,TupleId>*) args[0].addr; 
-                    R_Tree<dim,TupleId>* r2 = 
-                                 (R_Tree<dim,TupleId>*) args[1].addr; 
-                    local.addr = new DspatialJoinLocal<dim>(r1,r2,ttl);
-                    return 0;
+                if(li){
+                  delete li;
+                }
+                ListExpr ttl = nl->Second(GetTupleResultType(s));
+                R_Tree<dim,TupleId>* r1 = 
+                             (R_Tree<dim,TupleId>*) args[0].addr; 
+                GenericRelation* rel1 = (GenericRelation*) args[1].addr;
+                R_Tree<dim,TupleId>* r2 = 
+                             (R_Tree<dim,TupleId>*) args[2].addr; 
+                GenericRelation* rel2 = (GenericRelation*) args[3].addr;
+                local.addr = new DspatialJoinLocal<dim>(r1,rel1,r2,rel2,ttl);
+                return 0;
                  }
       case REQUEST: {
                 if(!li){
@@ -6895,203 +7023,6 @@ Operator dspatialJoin(
         );
 
 
-/*
-5.17 Operator get2tuples
-
-5.17.1 Type Mapping
-
-Signature is stream(tuple(tid, tid)) x rel(tuple(X)) x rel(tuple(Y)) x id  -> stream(tuple(X@Y[_]id))
-
-*/
-ListExpr get2TuplesTM(ListExpr args){
-  string err = "tream(tuple(tid, tid)) x rel(tuple(X)) "
-               "x rel(tuple(Y)) x id expected";
-  int len = nl->ListLength(args);
-  if((len!=3) && (len!=4)){
-    return listutils::typeError(err);
-  }
-  if(!Stream<Tuple>::checkType(nl->First(args))){
-    return listutils::typeError(err);
-  }
-  if(!Relation::checkType(nl->Second(args)) ||
-     !Relation::checkType(nl->Third(args)) ){
-    return listutils::typeError(err);
-  }
-  
-  if((len == 4) && !listutils::isSymbol(nl->Fourth(args))){
-    return listutils::typeError(err);
-  }
-  
-  ListExpr arg1list = nl->Second(nl->Second(nl->First(args)));
-  if(!nl->HasLength(arg1list,2)){
-    return listutils::typeError(err);
-  }
-  if(!TupleIdentifier::checkType(nl->Second(nl->First(arg1list))) ||
-     !TupleIdentifier::checkType(nl->Second(nl->Second(arg1list)))){
-     return listutils::typeError(err);
-  }
-  // stream is (tid,tid); 
-  ListExpr schema1 = nl->Second(nl->Second(nl->Second(args)));
-  ListExpr schema2 = nl->Second(nl->Second(nl->Third(args)));
-  // append extendsion @ schema2
-  ListExpr rschema2;
-  if(len==4){
-    ListExpr last;
-    bool first = true;
-    string ext = nl->SymbolValue(nl->Fourth(args));
-    while(!nl->IsEmpty(schema2)){
-      ListExpr f = nl->First(schema2);
-      schema2 = nl->Rest(schema2);
-      ListExpr nf = nl->TwoElemList( 
-                         nl->SymbolAtom( 
-                             nl->SymbolValue(nl->First(f)) +"_" + ext),
-                         nl->Second(f));
-      if(first){
-        rschema2 = nl->OneElemList(nf);
-        last = rschema2;
-        first = false;
-      } else { 
-         last = nl->Append(last,nf);
-      }
-    } 
-  } else {
-   rschema2 = schema2;
-  }
-  ListExpr schema = listutils::concat(schema1, rschema2);
-  if(!listutils::isAttrList(schema)){
-    return listutils::typeError("name conflict in resulting tuple");
-  }
-  return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
-             nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
-                              schema));
-}
-
-/*
-5.17.2 Value Mapping
-
-*/
-class Get2TuplesLocal{
-  public:
-   Get2TuplesLocal(Word& s,
-                   GenericRelation* rel1,
-                   GenericRelation* rel2,
-                   ListExpr ttl) : stream(s), r1(rel1), r2(rel2){
-        stream.open();
-        tt = new TupleType(ttl);
-        //cout << "ttl = " << nl->ToString(ttl);
-   }
-
-   ~Get2TuplesLocal(){
-       stream.close();
-       tt->DeleteIfAllowed();
-   }
-
-   Tuple* nextTuple(){
-      Tuple* src = stream.request();
-      while(src){
-        TupleIdentifier* Tid1 = (TupleIdentifier*) src->GetAttribute(0);
-        TupleIdentifier* Tid2 = (TupleIdentifier*) src->GetAttribute(1);
-        if(Tid1->IsDefined() && Tid2->IsDefined()){
-           Tuple* t1 = r1->GetTuple(Tid1->GetTid(), true);
-           Tuple* t2 = r2->GetTuple(Tid2->GetTid(), true);
-           if((t1!=0) && (t2!=0)){
-              Tuple* res = new Tuple(tt);
-              Concat(t1,t2,res);
-              t1->DeleteIfAllowed();
-              t2->DeleteIfAllowed();
-              src->DeleteIfAllowed();
-              return  res;
-           }
-           if(t1){
-             t1->DeleteIfAllowed();
-           }
-           if(t2){
-             t2->DeleteIfAllowed();
-           }
-        }
-        src->DeleteIfAllowed();
-        src = stream.request();
-      }
-      return 0;
-   }
-
-
-  private:
-    Stream<Tuple> stream;
-    GenericRelation* r1;
-    GenericRelation* r2;
-    TupleType* tt;
-};
-
-
-int get2TuplesVM(Word* args, Word& result, int message,
-               Word& local, Supplier s){
-
-   Get2TuplesLocal* li = (Get2TuplesLocal*) local.addr;
-   switch(message){
-      case OPEN : {
-                if(li){
-                   delete li;
-                }
-                local.addr = new Get2TuplesLocal(args[0], 
-                                   (GenericRelation*) args[1].addr,
-                                   (GenericRelation*) args[2].addr,
-                                   nl->Second(GetTupleResultType(s)));
-                return 0;
-             }
-
-     case REQUEST : {
-                if(!li){
-                  result.addr = 0;
-                } else {
-                   result.addr = li->nextTuple();
-                }
-                return result.addr?YIELD:CANCEL;
-               }
-     case CLOSE: {
-                if(li){
-                    delete li;
-                    local.addr = 0;
-                }
-                return 0;
-            }
-     default: return -1;
-   }  
-}
-
-/*
-5.17.3 Specification
-
-*/
-
-const string get2TuplesSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" \"Comment\" ) "
-    "(<text> stream((tuple(tid,tid)) x rel(tuple(X)) x rel(Tuple(Y)) x id " 
-    " ->  stream(Tuple(XY@id))</text--->"
-    "<text> _ _ _ _ get2Tuples </text--->"
-    "<text>Reads the  tuples referenced by the stream from two relations"
-    "in parallel and concatenates them. The attribute names of the second "
-    " relation are extended by _id"
-    ".</text--->"
-    "<text>query strassen_geoData_rtree "
-    "strassen_geoData_rtree dspatialJoin  strassen strassen a "
-    "get2tuples consume</text--->"
-    "<text></text--->"
-    ") )";
-
-/*
-5.17.4 Operator Instance
-
-*/
-Operator get2tuples(
-    "get2tuples",
-    get2TuplesSpec,
-    get2TuplesVM,
-    Operator::SimpleSelect,
-    get2TuplesTM
-);
-
 
 /*
 6 Definition and initialization of RTree Algebra
@@ -7127,9 +7058,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreegetnodesons );
     AddOperator( &rtreegetleafentries );
     AddOperator( CyclicBulkloadInfo(), CyclicBulkloadVM, CyclicBulkloadTM );
-
     AddOperator(&dspatialJoin);
-    AddOperator(&get2tuples);
 
 #ifdef USE_PROGRESS
     windowintersects.EnableProgress();

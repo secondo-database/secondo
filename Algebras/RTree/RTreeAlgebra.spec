@@ -38,7 +38,6 @@ operator getNodeSons alias GETNODESONS pattern op ( _ , _ )
 operator getLeafEntries alias GETLEAFENTRIES pattern op ( _ , _ )
 operator cyclicbulkload alias CYCLICBULKLOAD pattern _  op [ _, _, _, _ ]
 
-operator dspatialJoin alias DSPATIALJOIN pattern _ _ op
+operator dspatialJoin alias DSPATIALJOIN pattern _ _ _ _ op[_]
 
-operator get2tuples alias GET2TUPLES pattern _ _ _ _ op 
 

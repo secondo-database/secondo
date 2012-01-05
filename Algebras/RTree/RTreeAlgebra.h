@@ -1747,6 +1747,14 @@ Returns the ~SmiRecordId~ of the header node.
       return level == Height() ? header.minLeafEntries
                                : header.minInternalEntries;
     }
+
+    inline int MinLeafEntries() const{
+        return header.minLeafEntries;
+    }
+    inline int MinInternalEntries() const{
+        return header.minInternalEntries;
+    }
+
 /*
 Returns the minimum number of entries per node.
 
@@ -1756,6 +1764,12 @@ Returns the minimum number of entries per node.
     {
       return level == Height() ? header.maxLeafEntries
                                : header.maxInternalEntries;
+    }
+    inline int MaxLeafEntries() const{
+        return header.maxLeafEntries;
+    }
+    inline int MaxInternalEntries() const{
+        return header.maxInternalEntries;
     }
 /*
 Returns the maximum number of entries per node.
