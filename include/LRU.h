@@ -63,8 +63,6 @@ class LRUEntry{
         prev = 0;
         next = 0;
      }
- 
-
 
 
     // public members    
@@ -90,7 +88,8 @@ Creates a new LRU chache with given capacity.
 
 */
     LRU(const size_t _maxEntries):
-    first(0), last(0), maxEntries(_maxEntries), entries(0), m()
+    first(0), last(0), maxEntries(_maxEntries), entries(0), m(),
+    hits(0), failures(0), insertions(0), removements(0)
     { }
 
 /*
@@ -113,19 +112,38 @@ It's the task of the caller to destroy this element.
 
 */
    LRUEntry<Key, Value>* use(Key key, Value value){
-       typename map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
+
        LRUEntry<Key,Value>* elem;
+       if(first==0){
+          elem = new LRUEntry<Key,Value>(key,value);
+          first = elem;
+          last = elem;
+          entries++;
+          insertions++;
+          return 0;
+       }
+
+
+       typename map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
        if(it == m.end()){
           elem = new LRUEntry<Key, Value>(key,value);
           m[key] = elem;
           entries++;
        } else {
           elem = it->second;
+          if(elem==first){
+             return 0;
+          }
+
+          if(elem==last){
+            last = elem->prev;
+          } 
           elem->disconnect();
        }
        elem->connect(first);
        first = elem;
        if(entries>maxEntries){
+          removements++;
           return deleteLast();
        } else {
           return 0;
@@ -140,9 +158,21 @@ Returns a pointer to a stored value or null if key is not present.
     Value* get(Key key){
       typename map<Key, LRUEntry<Key, Value>*>::iterator it = m.find(key);
       if(it==m.end()){
+        failures++;
         return 0; // not stored
       } else {
-        return &(it->second->value);
+        hits++;
+        LRUEntry<Key,Value>* hit = it->second;
+        if(hit==first){
+           return &(hit->value);
+        } 
+        if(hit==last){
+           last = last->prev;
+        }
+        hit->disconnect();
+        hit->connect(first);
+        first = hit;
+        return &(hit->value);
       }
     }
 
@@ -173,6 +203,10 @@ element is returned. The caller has to destroy the element.
 
     }
 
+    bool empty() const{
+      return first==0;
+    }
+
     void clear(){
        while(first){
           LRUEntry<Key,Value>* victim = first;
@@ -187,8 +221,11 @@ element is returned. The caller has to destroy the element.
        if(!last){
          return 0;
        }
+       entries--; 
+       m.erase(last->key);
        if(last->prev==0){
           LRUEntry<Key,Value>* res = last;
+          res->disconnect();
           last = 0;
           first = 0;
           return res;
@@ -198,9 +235,16 @@ element is returned. The caller has to destroy the element.
          victim->disconnect();
          return victim;
        }
-     
     }
     
+
+    void printStats(ostream& o){
+       o << "maxEntries = " << maxEntries << endl
+         << "entries    = " << entries << endl
+         << "hits       = " << hits << endl
+         << "failures   = " << failures << endl
+         << "removed    = " << removements << endl; 
+    }
 
   private:
 
@@ -209,6 +253,13 @@ element is returned. The caller has to destroy the element.
     size_t maxEntries;
     size_t entries;
     map<Key, LRUEntry<Key, Value>*> m;
+
+
+    // statistic values
+    size_t hits;
+    size_t failures;
+    size_t insertions;
+    size_t removements;
 
 
 };
