@@ -6667,20 +6667,95 @@ class DspatialJoinLocal{
                        GenericRelation* _rel1,
                        R_Tree<dim, TupleId>* _r2,
                        GenericRelation* _rel2,
-                       ListExpr ttl): r1(_r1), r2(_r2), 
+                       ListExpr ttl, size_t maxMem): r1(_r1), r2(_r2), 
                        rel1(_rel1), rel2(_rel2),
                        tt(0), 
                        q_ii(), q_il(), q_li(),  q_ll(){
+
+
         tt = new TupleType(ttl);
         R_TreeNode<dim, TupleId> n1 = r1->Root();
         R_TreeNode<dim, TupleId> n2 = r2->Root();
         processNodes(n1,n2);
         max1 = max(r1->MaxLeafEntries(), r1->MaxInternalEntries());
         max2 = max(r2->MaxLeafEntries(), r2->MaxInternalEntries());
+
+        // compute size for storing the stacks
+        size_t s_q_ii = max1*max2 * min(r1->Height(), r2->Height());
+        size_t s_q_li = max1*max2 * abs(r1->Height() - r2->Height()); 
+        // s_q_li covers also s_q_il 
+        size_t s_q_ll = max1*max2;
+        size_t sizes = (s_q_ii + s_q_li) * sizeof(R_TreeInternalEntry<dim>) +
+                       s_q_ll * sizeof(pair<TupleId,TupleId>);
+
+        maxMem = maxMem - sizes;
+        if(maxMem < 0){
+          maxMem = 0;
+        }
+
+        if((rel1->GetNoTuples()>0) && (rel2->GetNoTuples()>0)){
+
+          // compute amount of tuples to be stored within caches
+          // following the rules:
+          // 1. tupleNumber1 * tupleSize1 + tupleNumber2 * TupleSize2 = maxMem
+          // 2. tupleNumber1 / tupleNumber2 = tupleCount1 / tupleCount2
+          // cond. 1 ensures that the memory is sufficient to store the tuples
+          // cond. 2 distributes the available memory according to the number 
+          // of tuples within the relations
+       
+          int tupleSize1 = (int) floor(rel1->GetTotalExtSize() / 
+                                       rel1->GetNoTuples());
+          int tupleSize2 = (int) floor(rel2->GetTotalExtSize() / 
+                                       rel2->GetNoTuples());
+          int tupleCount1 = rel1->GetNoTuples();
+          int tupleCount2 = rel2->GetNoTuples();
+          size_t tmp = tupleSize1 + (tupleSize2*tupleCount2)/tupleCount1;
+          size_t noTuples1 = maxMem / tmp;
+          size_t noTuples2 = (tupleCount2*noTuples1)/tupleCount1;
+
+
+           // force caches of minimum size 5
+          if(noTuples1 < 5){
+             noTuples1 = 5;
+          }
+          if(noTuples2 < 5){
+             noTuples2 = 5;
+          }
+          lru1 = new LRU<TupleId, Tuple*>(noTuples1);
+          lru2 = new LRU<TupleId, Tuple*>(noTuples2);
+       } else { 
+          // at least one of the relations is empty
+          // avoid crash if using rtree not fit to the relations
+          // so, just create empty caches
+          lru1 = new LRU<TupleId,Tuple*>(3);
+          lru2 = new LRU<TupleId, Tuple*>(3);
+       }
      }   
 
      ~DspatialJoinLocal(){
         tt->DeleteIfAllowed();
+
+         // cache statistics 
+        // cout << "Cache1 : "  << endl;
+        // lru1->printStats(cout);
+        // cout << endl << "Cache 2 : " << endl;
+        // lru2->printStats(cout);
+        // cout << endl;
+
+
+        // remove elements from LRU
+        while(!lru1->empty()){
+          LRUEntry<TupleId,Tuple*>* victim = lru1->deleteLast();
+          victim->value->DeleteIfAllowed();
+          delete victim;
+        }
+        while(!lru2->empty()){
+          LRUEntry<TupleId,Tuple*>* victim = lru2->deleteLast();
+          victim->value->DeleteIfAllowed();
+          delete victim;
+        }
+        delete lru1;
+        delete lru2;
      }
 
      Tuple* nextTuple(){
@@ -6719,6 +6794,8 @@ class DspatialJoinLocal{
     std::queue< pair<TupleId, TupleId > > q_ll;
     int max1;
     int max2;
+    LRU<TupleId, Tuple*>* lru1;
+    LRU<TupleId, Tuple*>* lru2;
 
 
     bool allempty() const{
@@ -6758,14 +6835,12 @@ Converts an element in q[_]ll into a result tuple.
       while(!q_ll.empty()){
         pair<TupleId, TupleId> p = q_ll.front();
         q_ll.pop();
-        Tuple* t1 = rel1->GetTuple(p.first, true);
+        Tuple* t1 = getTuple1(p.first);
         if(t1){
-           Tuple* t2 = rel2->GetTuple(p.second, true);
+           Tuple* t2 = getTuple2(p.second);
            if(t2){
               Tuple* res = new Tuple(tt);
               Concat(t1,t2,res);
-              t1->DeleteIfAllowed();
-              t2->DeleteIfAllowed();
               return res;
            } 
            t1->DeleteIfAllowed();
@@ -6773,6 +6848,44 @@ Converts an element in q[_]ll into a result tuple.
       } 
       return 0;
     }
+
+
+    Tuple* getTuple1(const TupleId id){
+        Tuple** t = lru1->get(id);
+        if(t){
+          return *t;
+        } 
+        Tuple* t1 = rel1->GetTuple(id,true);
+        if(!t1){
+          return 0;
+        }
+        // insert into lru
+        LRUEntry<TupleId,Tuple*>* victim = lru1->use(id,t1);
+        if(victim){
+          victim->value->DeleteIfAllowed();
+          delete victim;
+        }
+        return t1;
+    }
+
+    Tuple* getTuple2(const TupleId id){
+        Tuple** t = lru2->get(id);
+        if(t){
+          return *t;
+        } 
+        Tuple* t1 = rel2->GetTuple(id,true);
+        if(!t1){
+          return 0;
+        }
+        // insert into lru
+        LRUEntry<TupleId,Tuple*>* victim = lru2->use(id,t1);
+        if(victim){
+          victim->value->DeleteIfAllowed();
+          delete victim;
+        }
+        return t1;
+    }
+
    
 /*
 Processes two leaf nodes
@@ -6939,7 +7052,10 @@ int dspatialJoinVM1(Word* args, Word& result, int message,
                 R_Tree<dim,TupleId>* r2 = 
                              (R_Tree<dim,TupleId>*) args[2].addr; 
                 GenericRelation* rel2 = (GenericRelation*) args[3].addr;
-                local.addr = new DspatialJoinLocal<dim>(r1,rel1,r2,rel2,ttl);
+                int maxMem = qp->GetMemorySize(s) * 1024 * 1024;
+                local.addr = new DspatialJoinLocal<dim>(r1,rel1,
+                                                        r2,rel2,
+                                                        ttl, maxMem);
                 return 0;
                  }
       case REQUEST: {
@@ -7059,6 +7175,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreegetleafentries );
     AddOperator( CyclicBulkloadInfo(), CyclicBulkloadVM, CyclicBulkloadTM );
     AddOperator(&dspatialJoin);
+     dspatialJoin.SetUsesMemory();
 
 #ifdef USE_PROGRESS
     windowintersects.EnableProgress();
