@@ -540,19 +540,26 @@ public:
 
   bool openFile()
   {
-    ios_base::openmode mode = ios::binary;
-    if (lastTupleIndex > 0)
-      mode |= ios::app;
-    blockFile.open(blockFilePath.c_str(), mode);
-    fileOpen = true;
-    return blockFile.good();
+    if (fileOpen){
+      return true;
+    }
+    else
+    {
+      ios_base::openmode mode = ios::binary;
+      if (lastTupleIndex > 0)
+        mode |= ios::app;
+      blockFile.open(blockFilePath.c_str(), mode);
+      fileOpen = true;
+      return blockFile.good();
+    }
   }
 
   void closeFile()
   {
-    if (fileOpen)
+    if (fileOpen){
       blockFile.close();
-    fileOpen = false;
+      fileOpen = false;
+    }
   }
 
   bool writeTuple(Tuple* tuple, size_t tupleIndex, TupleType* exTupleType,
@@ -626,8 +633,10 @@ public:
   }
   ~fileInfo()
   {
-    if (fileOpen)
+    if (fileOpen){
       blockFile.close();
+      fileOpen = false;
+    }
     attrExtSize->clear();
     delete attrExtSize;
     attrSize->clear();
@@ -787,16 +796,28 @@ public:
 
 
   void appendFileLocList(NList elem);
-  void inline setDuplicated() { isDistributed = true; }
+  void inline setDuplicated() {
+    isDistributed = true;
+  }
 
   //Auxiliary methods
   int SizeOfObj();
   inline bool isOK() { return isAvailable; }
 
-  string getPartitionFileLoc(size_t row, size_t column);
+  size_t getPartitionFileLoc(size_t row, vector<string>& locations);
+  NList getColumnList(size_t row);
 
-  //Get the next possible location of a cell file
-  size_t getNextLoc(size_t rowNum, size_t columnNum);
+  inline string getObjName(){ return objName; }
+  inline int getNodesNum()  { return currentCluster->getClusterSize(); }
+  inline int getMtxRowNum() { return mrNum; }
+  inline int getMtxColNum() { return mcNum; }
+  inline int getDupTimes() { return dupTimes; }
+  inline NList getTypeList() { return objectType; }
+  inline NList getNodeList() {
+    return currentCluster->toNestedList();
+  }
+  inline NList getLocList() { return fileLocList; }
+
 
 private:
   fList() {}
@@ -815,19 +836,14 @@ private:
 
   bool setLocList(NList fllist);
   void verifyLocList();
-  inline string getObjName(){ return objName; }
-  inline int getNodesNum()  { return currentCluster->getClusterSize(); }
-  inline int getMtxRowNum() { return mrNum; }
-  inline int getMtxColNum() { return mcNum; }
-  inline int getDupTimes() { return dupTimes; }
-  inline NList getTypeList() { return objectType; }
-  inline NList getNodeList() {
-    return currentCluster->toNestedList();
-  }
-  inline NList getLocList() { return fileLocList; }
 
   friend class ConstructorFunctions<fList>;
 };
+
+/*
+1.7 SpreadLocalInfo class
+
+*/
 
 class SpreadLocalInfo{
 public:
@@ -836,10 +852,24 @@ public:
              int attrIndex2, int colNum, bool keepAJ);
 
   bool insertTuple(Word wTuple);
-  bool closePartFiles();
+  bool closeAllPartFiles();
   inline bool isAvailable(){ return (!(resultList == 0)); }
 
   ~SpreadLocalInfo(){
+
+    // clean all file handles.
+    openFileList.clear();
+    map<size_t, rowFile*>::iterator mit = matrixRel.begin();
+    while (mit != matrixRel.end()){
+      rowFile::iterator rit = mit->second->begin();
+      while ( rit!= mit->second->end()){
+        fileInfo* fp = rit->second;
+        delete fp;
+        rit++;
+      }
+      mit++;
+    }
+
     if (ci){
       delete ci;
       ci = 0;
@@ -847,6 +877,9 @@ public:
     if (resultList){
       delete resultList;
       resultList = 0;
+    }
+    if (exportTupleType){
+      exportTupleType->DeleteIfAllowed();
     }
   }
 
@@ -883,5 +916,40 @@ private:
 };
 
 
+/*
+1.7 CollectLocalInfo class
+
+*/
+class CollectLocalInfo{
+public:
+  CollectLocalInfo(fList* valueList, size_t row, size_t column);
+
+  ~CollectLocalInfo(){
+    if (resultType){
+      resultType->DeleteIfAllowed();
+      resultType = 0;
+    }
+    if (inputFile){
+      delete inputFile;
+      inputFile = 0;
+    }
+  }
+
+  bool fetchAllPartFiles();
+
+  Tuple* getNextTuple();
+
+
+
+private:
+  fList* fileList;
+  size_t row, column;
+
+  TupleType* resultType;
+  vector<string> partFiles;
+  ifstream *inputFile;
+
+  bool partFileOpened();
+};
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

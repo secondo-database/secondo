@@ -71,9 +71,15 @@ Result   : 41267
 Operator : spread
 Number   : 1
 Signature:  
-Example  : query plz feed spread["",'',1;PLZ,5;Ort,10] 
+Example  : let dis_file_list = plz feed spread["plz",'',1;PLZ,5,TRUE;Ort,10,TRUE] 
 Result   : crashes
 Remark   : There is a lack of parallel processing configurations normally
 
+Operator : collect
+Number   : 1
+Signature:  
+Example  : query dis_file_list collect[0,0] count
+Result   : crashes
+Remark   : There is a lack of parallel processing configurations normally
 
 

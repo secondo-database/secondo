@@ -1653,7 +1653,7 @@ clusterInfo::clusterInfo(clusterInfo& rhg):
     localNode(rhg.localNode),
     masterNode(rhg.masterNode)
 {
-  disks = new vector<diskDesc>(rhg.disks->size());
+  disks = new vector<diskDesc>();
   vector<diskDesc>::iterator iter = rhg.disks->begin();
   while (iter != rhg.disks->end()){
     disks->push_back(diskDesc(iter->first,
@@ -4558,6 +4558,25 @@ while the third row partition files are kept in the 1th node.
 All files are kept in slaves' default parallel location,
 except the third row, which are kept in a specific path of 1th node.
 
+Update at 01/09/12
+
+As some relation may cannot produce partitions for all rows,
+we left an empty row inside the fileLocMatrix,
+to denote a row without any partition files.
+Hence now the fileLocMatrix should looks like:
+
+----(  (1 (1 2 3 4 5) '')
+       (2 (1 2 3 4 5) '')
+       (1 () '')
+       (2 (1 2 5)     '\/mnt\/diskb')
+       (1 (1 2 3 4 5) '') )
+----
+
+Here the example indicates a 5x5 matrix relation,
+distributed on a cluster with 2 slaves.
+The third row is an empty row, it's column list is empty,
+since there is no partition files produced for this row.
+
 
 */
 Word fList::In(const ListExpr typeInfo, const ListExpr instance,
@@ -4744,7 +4763,8 @@ then the old cluster must be a subset of the current one.
         }
       }
       else{
-        cerr << "Each row expects three elements" << endl;
+        cerr << "Each row expects three elements "
+            "(slaveIndex, columnList, filePath)" << endl;
         isOK = false;
         break;
       }
@@ -4860,7 +4880,6 @@ void fList::Close(const ListExpr typeInfo, Word& w)
 
 Word fList::Clone(const ListExpr typeInfo, const Word& w)
 {
-  cerr << "In Clone" << endl;
   return SetWord(new fList(*(fList*)w.addr));
 }
 
@@ -4871,7 +4890,7 @@ bool fList::Save(SmiRecord& valueRecord, size_t& offset,
 
   ListExpr valueList = Out(typeInfo, w);
   valueList = nl->OneElemList(valueList);
-  string valueStr/* = NList(Out(typeInfo, w)).convertToString()*/;
+  string valueStr;
   nl->WriteToString(valueStr, valueList);
   int valueLength = valueStr.length();
   ok = ok && valueRecord.Write(&valueLength, sizeof(int), offset);
@@ -5024,24 +5043,25 @@ void fList::verifyLocList()
   }
 }
 
-string fList::getPartitionFileLoc(size_t row, size_t column)
+size_t fList::getPartitionFileLoc(
+    size_t row, vector<string>& locations)
 {
   if (!isAvailable){
-    return "";
+    return 0;
   }
 
-  if ( row > mrNum || column > mcNum ){
-    cerr << "The row (" << row << ") or column(" << column
-        << ") is illegal" << endl;
-    return "";
+  if ( row > mrNum ){
+    cerr << "The row (" << row << ":" << mrNum << ") "
+        << " is illegal" << endl;
+    return 0;
   }
 
   NList rowLoc = fileLocList.elem(row);
-  if (column > rowLoc.second().length()){
-    cerr << "The column(" << column << ") is illegal" << endl;
-    return "";
+  if (rowLoc.second().length() == 0){
+    return 0; //The current row is empty.
   }
 
+  locations.resize(0);
   stringstream ss;
   int ssIndex = rowLoc.first().intval();  // start slave index
   for (size_t i = 0; i < dupTimes; i++){
@@ -5053,11 +5073,23 @@ string fList::getPartitionFileLoc(size_t row, size_t column)
     else if ((dataLoc.length() == 0) || (i > 0)){
       // duplicated files are kept at remote node's default path
       // Only output the remote folder, not complete file path.
-      dataLoc = currentCluster->getRemotePath(ssIndex + i, "", true);
+      dataLoc = currentCluster->getRemotePath(ssIndex + i,
+          false, true, false);
     }
-    ss << sIPAddr << ":" << dataLoc << "\t";
+    string remotePath = sIPAddr + ":" + dataLoc;
+    locations.push_back(remotePath);
   }
-  return ss.str();
+  return dupTimes;
+}
+
+NList fList::getColumnList(size_t row)
+{
+  if (!isAvailable || row > mrNum){
+    return NList();
+  }
+  else{
+    return fileLocList.elem(row).second();
+  }
 }
 
 void fList::appendFileLocList(NList elem)
@@ -5078,12 +5110,12 @@ struct fListInfo: ConstructorInfo
   fListInfo()
   {
     name = "flist";
-    signature = "-> " + Kind::SIMPLE();
+    signature = "-> flist ";
     typeExample = "flist";
     listRep = "(<objName> <fileLocList> <dupTimes> <inDB>)";
     valueExample =
-        "(\"plz\" ( (1 (1 2) '') (2 (1 2) '') ) 2 FALSE) ";
-    remarks = "";
+        "(\"plz\" ( (1 (1 2) '') (2 (1 2) '') (1 () '') ) 2 FALSE) ";
+    remarks = "Describe distributed data over computer clusters.";
   }
 };
 struct fListFunctions: ConstructorFunctions<fList>
@@ -5112,8 +5144,9 @@ TypeConstructor flTC(fli, flf);
 /*
 5 Operator ~spread~
 
-This operator accepts a tuple stream, and distribute them into a
-matrix relation based on values of a given attribute, and return a flist.
+This operator accepts a tuple stream,
+distributes tuples into a matrix relation based on their values of
+a given attribute and returns a flist.
 The map of the ~spread~ operator is:
 
 ----
@@ -5160,9 +5193,20 @@ struct SpreadInfo : OperatorInfo {
   SpreadInfo() : OperatorInfo()
   {
     name = "spread";
-    signature = "";
-    syntax = "";
-    meaning = "";
+    signature = "stream(tuple(a1 ... ai ... aj ... an)) "
+                " x string x text x [int] "
+                " x ai x [int] x [bool] "
+                " x [aj] x [int] x [bool] "
+                " -> flist";
+    syntax = "stream(tuple(a1 ... ai ... aj ... an)) "
+            " x fileName x filePath x [dupTime] "
+            " x ai x [scale] x [keepAI] "
+            " x [aj] x [scale2] x [keepAJ] "
+            "  -> flist";
+    meaning = "This operator accepts a tuple stream, "
+        "distributes its tuples into a matrix relation "
+        "based on their values of a given attribute "
+        "and returns a flist.";
   }
 
 };
@@ -5215,22 +5259,23 @@ ListExpr SpreadTypeMap(ListExpr args){
       "ERROR! Operator cannot find the dividing attribute: ",
 
       // 5
-      "Error! Two keyAttributes must be different from each other.",
+      "ERROR! Two keyAttributes must be different from each other.",
 
-      "Error! The result stream tuple type cannot be empty.",
+      "ERROR! The result stream tuple type cannot be empty.",
 
-      "Error! Cannot create homonymous flists. ",
+      "ERROR! Cannot create homonymous flists. ",
 
-      "Error! Cannot open file at ",
+      "ERROR! Cannot open file at ",
 
-      "Error! PARALLEL_SECONDO_SLAVES/MASTER is not set up. ",
+      "ERROR! PARALLEL_SECONDO_SLAVES/MASTER is not set up. ",
 
       // 10
-      "Error! Remote copy fails to path: "
+      "ERROR! Remote copy fails to path: ",
+
+      "ERROR! This Secondo database is not listed inside "
+      "PARALLEL_SECONDO_SLAVES/MASTER "
   };
   bool keepAI = false, keepAJ = false;
-
-  string debugErr = "Implementing ... ";
 
   if (l.length() != 4)
     return l.typeError(err[0]);
@@ -5384,20 +5429,22 @@ ListExpr SpreadTypeMap(ListExpr args){
   NList resultList =
       NList(NList(Relation::BasicType(),
             NList(NList(Tuple::BasicType()), newAttrList)));
-  filePath = getLocalFilePath(filePath, (fileName + "_type"), "");
-
+  filePath = getLocalFilePath(filePath, (fileName + "_type"), "", true);
   if (FileSystem::FileOrFolderExists(filePath)){
-    return l.typeError(err[7]);
+    return l.typeError(err[7] + filePath);
   }
   if (!nl->WriteToFile(filePath, resultList.listExpr())){
     return l.typeError(err[8] + filePath);
   }
-
   //Duplicate the type to master and all slave nodes
   clusterInfo* ci = new clusterInfo();
   if (!ci->isOK()){
     return l.typeError(err[9]);
   }
+  if (ci->getLocalNode() < 0){
+    return l.typeError(err[11]);
+  }
+
   string masterPath;
   if (!ci->isLocalTheMaster()){
     masterPath = ci->getRemotePath(0);
@@ -5471,7 +5518,6 @@ int SpreadValueMap(Word* args, Word& result,
       dupTimes = ((CcInt*)
         qp->Request(qp->GetSupplier(bspList,2)).addr)->GetValue();
     }
-
     int plLen1 = qp->GetNoSons(partList1);
     if (plLen1 == 2){
       ListExpr argType = qp->GetType(qp->GetSupplier(partList1,1));
@@ -5490,7 +5536,6 @@ int SpreadValueMap(Word* args, Word& result,
       keepAI = ((CcBool*)qp->Request(
           qp->GetSupplier(partList1, 2)).addr)->GetValue();
     }
-
     int plLen2 = qp->GetNoSons(partList2);
     if (plLen2 == 2){
       ListExpr argType = qp->GetType(qp->GetSupplier(partList2,1));
@@ -5509,7 +5554,6 @@ int SpreadValueMap(Word* args, Word& result,
       keepAJ = ((CcBool*)qp->Request(
           qp->GetSupplier(partList2, 2)).addr)->GetValue();
     }
-
       lif = (SpreadLocalInfo*)local.addr;
       if (lif) delete lif;
       lif = new SpreadLocalInfo(fileName, filePath, dupTimes,
@@ -5528,13 +5572,16 @@ int SpreadValueMap(Word* args, Word& result,
         }
         qp->Request(args[0].addr, wTuple);
       }
-      if (lif->closePartFiles()){
-        result.addr = lif->getResultList();
+
+      if (lif->closeAllPartFiles()){
+        result.addr = new fList(*(lif->getResultList()));
       }
       else{
-        cerr << "Inserting the last description list fails."
-            << endl;
+        cerr << "Closing partition files fails" << endl;
       }
+
+      delete lif;
+      local.setAddr(0);
   }
 //TODO add the progress estimation in the future
 //  else if ( message == REQUESTPROGRESS )
@@ -5560,6 +5607,7 @@ SpreadLocalInfo::SpreadLocalInfo(
   string typeFilePath = getLocalFilePath(
       filePath, fileName, "_type");
   ListExpr resultTypeList;
+
   if (!nl->ReadFromFile(typeFilePath, resultTypeList)){
     cerr << "Reading result schema from the type file fails. "
         << endl;
@@ -5650,13 +5698,10 @@ bool SpreadLocalInfo::openFile(fileInfo *fp){
     while(!poped && openFileList.size() > 0)
     {
       fileInfo* oldestFile = openFileList.back();
-      if (oldestFile)
+      if (oldestFile->isFileOpen())
       {
-        if (oldestFile->isFileOpen())
-        {
-          oldestFile->closeFile();
-          poped = true;
-        }
+        oldestFile->closeFile();
+        poped = true;
       }
       openFileList.pop_back();
     }
@@ -5670,15 +5715,29 @@ bool SpreadLocalInfo::openFile(fileInfo *fp){
   return ok;
 }
 
-bool SpreadLocalInfo::closePartFiles()
+bool SpreadLocalInfo::closeAllPartFiles()
 {
   //traverse the whole matrix,
   //to add the last description list on all part files.
   //Then close and duplicate them.
 
+  size_t lastRow = 0;
+
   map<size_t, rowFile*>::iterator mit = matrixRel.begin();
   while (mit != matrixRel.end()){
     size_t row = mit->first;
+    if (row > (lastRow + 1)){
+      //Insert empty rows
+      for (size_t erow = (lastRow + 1); erow < row; erow++)
+      {
+        NList emptyRowList = NList(
+            NList((int)ci->getInterIndex(erow, false, true)),
+            NList(),
+            NList("", true, true));
+        resultList->appendFileLocList(emptyRowList);
+      }
+    }
+    lastRow = row;
     rowFile::iterator rit = mit->second->begin();
     NList columnList;
     string filePaths = "";
@@ -5686,11 +5745,19 @@ bool SpreadLocalInfo::closePartFiles()
       size_t column = rit->first;
       columnList.append(NList((int)column));
       fileInfo* fp = rit->second;
-      fp->writeLastDscr();
-      fp->closeFile();
+      if (openFile(fp))
+      {
+        fp->writeLastDscr();
+        fp->closeFile();
+      }
+      else
+      {
+        cerr << "Part file " << fp->getFilePath()
+            << " Cannot be correctly opened, "
+                "when writing the last description list. " << endl;
+        return false;
+      }
       filePaths += (fp->getFilePath() + " ");
-      delete fp;
-
       rit++;
     }
 
@@ -5739,7 +5806,6 @@ bool SpreadLocalInfo::closePartFiles()
     mit++;
   }
 
-
   resultList->setDuplicated();
   done = true;
   return true;
@@ -5760,6 +5826,458 @@ size_t SpreadLocalInfo::hashValue(
 
 Operator spreadOp(SpreadInfo(), SpreadValueMap, SpreadTypeMap);
 
+/*
+5 Operator ~collect~
+
+This operator is used to collect the data from the partition files denoted by the given flist.
+
+----
+flist x [row] x [column] -> stream(tuple)
+----
+
+*/
+
+struct CollectInfo : OperatorInfo {
+
+  CollectInfo() : OperatorInfo()
+  {
+    name = "collect";
+    signature = "flist x [int] x [int] -> stream(tuple)";
+    syntax = "flist x [row] x [column] -> stream(tuple)";
+    meaning = "This operator is used to collect the data "
+        "from the partition files denoted by the given flist.";
+  }
+
+};
+
+/*
+
+5.1 Type Mapping
+
+First ensure the distributed data in flist is a rel(tuple) type.
+
+----
+flist x [int] x [int] -> stream(tuple)
+----
+
+If only one optional parameter is given, then it's viewed as a row number.
+The optional parameters only accept non-negative integer numbers.
+
+Any operators create new flist objects,
+cannot be used before the ~collect~ operator,
+or else the creation will be done twice since we use the
+GetNLArgValueInTM function in query processor,
+
+
+*/
+ListExpr CollectTypeMap(ListExpr args)
+{
+  NList l(args);
+  string err[] = {
+      //0
+      "ERROR! Operator expects flist x [int] x [int]. ",
+
+      "ERROR! Unavailable flist value. ",
+
+      "ERROR! Operator expects a distributed \"rel\" object. ",
+
+      "ERROR! Unavailable optional parameters.",
+
+      "ERROR! Operator expects row and column numbers are non-negative values.",
+
+      //5
+
+      "ERROR! Operator accepts saved flist only.",
+
+      "ERROR! This flist is not distributed on the present cluster.",
+
+      "ERROR! Cannot collect object inside databases yet. ",
+
+      "ERROR! The value of the flist is not available.",
+  };
+  NList pType, pValue;
+  string debugErr = "Implementing ... ";
+
+  if (l.length() != 2)
+    return l.typeError(err[0]);
+
+  //First flist
+  pType = l.first().first();
+  pValue = l.first().second();
+  if (!pType.isSymbol(fList::BasicType())){
+    return l.typeError(err[0]);
+  }
+  NList fListValue;
+  string relName;
+  //TODO It's not possible to accept new created flist yet.
+  if (!pValue.isAtom()){
+    return l.typeError(err[5]);
+  }
+  if (!qp->GetNLArgValueInTM(pValue,fListValue)){
+    return l.typeError(err[1]);
+  }
+
+  //Read the relation object type from the saved flist
+  NList objType = fListValue.second();
+  if (!listutils::isRelDescription(objType.listExpr())){
+    return l.typeError(err[2]);
+  }
+
+  //Check the legality of the cluster list kept inside the flist
+  NList interCluster = fListValue.third();
+  clusterInfo* ci = new clusterInfo();
+  if (!ci->covers(interCluster)){
+    return l.typeError(err[6]);
+  }
+
+  //Check the data are distributed as files, not inside databases.
+  bool inDB = fListValue.sixth().boolval();
+  if (inDB){
+    return l.typeError(err[7]);
+  }
+
+  bool available = fListValue.seventh().boolval();
+  if (!available){
+    return l.typeError(err[8]);
+  }
+
+  //Optional parameters
+  pType = l.second().first();
+  pValue = l.second().second();
+  if (pType.length() > 2){
+    return l.typeError(err[0]);
+  }
+  else if (pType.length() > 0){
+    if (!pType.first().isSymbol(CcInt::BasicType())){
+      return l.typeError(err[0]);
+    }
+
+    NList opVal;
+    if (!qp->GetNLArgValueInTM(pValue.first(), opVal)){
+      return l.typeError(err[3]);
+    }else{
+      int rowNum = opVal.intval();
+      if (rowNum < 0){
+        return l.typeError(err[4]);
+      }
+    }
+
+    if (pType.length() > 1){
+      if (!pType.first().isSymbol(CcInt::BasicType())){
+        return l.typeError(err[0]);
+      }
+      if (!qp->GetNLArgValueInTM(pValue.second(), opVal)){
+        return l.typeError(err[3]);
+      }else{
+        int columnNum = opVal.intval();
+        if (columnNum < 0){
+          return l.typeError(err[4]);
+        }
+      }
+    }
+  }
+
+  NList streamType =
+      NList(NList(Symbol::STREAM()),
+              NList(objType.second()));
+
+  return streamType.listExpr();
+}
+
+
+/*
+
+5.2 Value Mapping
+
+By default, it reads all partition files denoted in the given flist, and returns the tuples in a stream.
+If the optional parameters are given, then this operator only reads part partition files.
+For any partition files listed a flist, both it's row and column numbers are non-zero positive integer numbers.
+If the row number is 0, then it denotes a complete row partition files, while a complete column part files are denoted when the column number is 0. E.g,
+
+  * collect[1] or collect[1,0]  means to collect all partitions files in the first row,
+
+  * collect[0,2] means to collect all partition files in the second column,
+
+  * collect[1,2] means to collect one partition file in the 1th row and 2th column,
+
+  * collect[0,0] means to collect all files inside the matrix.
+
+
+*/
+int CollectValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+  CollectLocalInfo* cli = 0;
+
+  switch(message){
+    case OPEN: {
+      fList* value = (fList*)args[0].addr;
+
+      size_t row = 0, column = 0;
+      Supplier optList = args[1].addr;
+      int optLen = qp->GetNoSons(optList);
+      if (1 == optLen){
+        row = ((CcInt*)
+            qp->Request(qp->GetSupplier(optList,0)).addr)->GetValue();
+      }else if (2 == optLen){
+        row = ((CcInt*)
+            qp->Request(qp->GetSupplier(optList,0)).addr)->GetValue();
+        column = ((CcInt*)
+            qp->Request(qp->GetSupplier(optList,1)).addr)->GetValue();
+      }
+
+      cli = (CollectLocalInfo*)local.addr;
+      if (cli){
+        delete cli;
+        cli = 0;
+      }
+      cli = new CollectLocalInfo(value, row, column);
+
+      if (cli->fetchAllPartFiles()){
+        local.setAddr(cli);
+      }
+      else{
+        delete cli;
+        cli = 0;
+        local.setAddr(Address(0));
+      }
+
+      return 0;
+    }
+    case REQUEST: {
+      if (0 == local.addr)
+        return CANCEL;
+
+      cli = (CollectLocalInfo*)local.addr;
+      result.setAddr(cli->getNextTuple());
+      if ( 0 == result.addr)
+      {
+        return CANCEL;
+      }
+      else
+      {
+        return YIELD;
+      }
+    }
+    case CLOSE: {
+      cli = (CollectLocalInfo*)local.addr;
+      if (!cli)
+        return CANCEL;
+      else{
+        delete cli;
+        cli = 0;
+        local.setAddr(Address(0));
+      }
+      return 0;  //must return
+    }
+  }
+
+
+  return 0;
+}
+
+CollectLocalInfo::CollectLocalInfo(fList* _fl, size_t _r, size_t _c):
+    fileList(_fl), row(_r), column(_c), inputFile(0)
+{
+  NList typeList = fileList->getTypeList();
+
+  //Get the resultType
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTypeList = sc->NumericType(typeList.second().listExpr());
+  resultType = new TupleType(resultTypeList);
+}
+
+bool CollectLocalInfo::fetchAllPartFiles()
+{
+  //According to the accepted row and column number,
+  //fetch data files and fullfill their names to the partFiles vector
+
+  size_t rBegin = ( row == 0 ) ? 1 : row,
+         rEnd   = ( row == 0 ) ? fileList->getMtxRowNum() : row;
+
+  clusterInfo* cluster = new clusterInfo();
+  string localIP = cluster->getLocalIP();
+
+  for ( size_t ri = rBegin; ri <= rEnd; ri++)
+  {
+    //Files of a same row are always kept together
+    vector<string> remotePaths;
+    size_t cand =
+        fileList->getPartitionFileLoc(ri, remotePaths);
+    if (cand > 0)
+    {
+      NList newColList = fileList->getColumnList(ri);
+      if (column != 0)
+      {
+        //check the column number is exist in the column list
+        NList rest = newColList;
+        bool find = false;
+        while (!rest.isEmpty()){
+          int elem = rest.first().intval();
+          if ( (int)column == elem){
+            find = true;
+            break;
+          }
+          rest.rest();
+        }
+        if (find){
+          newColList = NList((int)column);
+        }
+        else{
+          cerr << "The partition (" << ri << "," << column <<
+              ") is unavailable. " << endl;
+          return false;
+        }
+      }
+
+      NList rest = newColList;
+      while (!rest.isEmpty()){
+        size_t ci = rest.first().intval();
+        string fileName = fileList->getObjName()
+            + "_" + int2string(ri) + "_" + int2string(ci);
+
+        string localPath = getLocalFilePath("", fileName, "", true);
+        vector<string>::iterator pit = remotePaths.begin();
+        while (pit != remotePaths.end()){
+          string rPath = *pit;
+          FileSystem::AppendItem(rPath, fileName);
+          string remoteIP, remoteLocalPath;
+          istringstream iss(rPath);
+          getline(iss, remoteIP, ':');
+          getline(iss, remoteLocalPath, ':');
+
+          bool found = false;
+          if (remoteIP.compare(localIP) == 0)
+          {
+            localPath = remoteLocalPath;
+            found = true;
+          }
+          else
+          {
+            int copyTime = MAX_COPYTIMES;
+            while (copyTime-- > 0){
+              if (0 != system(
+                  (scpCommand + rPath + " " + localPath).c_str()))
+              {
+                cerr << "Warning! Copy remote file from " << rPath
+                    << " doesn't work yet." << endl;
+              }else
+              {
+                break;
+              }
+            }
+
+            if (copyTime <= 0){
+              cerr << "ERROR! Copy remote file from " << rPath
+                  << " fails" << endl;
+              return false;
+            }
+            else{
+              found = true;
+            }
+          }
+
+          if (found)
+          {
+            partFiles.push_back(localPath);
+            break;
+          }
+          pit++;
+        }
+        rest.rest();
+      }
+    }
+  }
+
+  return true;
+}
+
+bool CollectLocalInfo::partFileOpened()
+{
+  if (0 == inputFile){
+    if (partFiles.size() != 0){
+      string partFileName = partFiles.back();
+      //open the file to inputFiles
+      inputFile = new ifstream(partFileName.c_str(), ios::binary);
+      if (!inputFile->good()){
+        cerr << "Open file " << partFileName << " fails" << endl;
+        inputFile = 0;
+        return false;
+      }
+
+      //Read the tail description list
+      u_int32_t descSize;
+      size_t fileLength;
+      inputFile->seekg(0, ios::end);
+      fileLength = inputFile->tellg();
+      inputFile->seekg(
+          (fileLength - sizeof(descSize)), ios::beg);
+      inputFile->read((char*)&descSize, sizeof(descSize));
+
+      char descStr[descSize];
+      inputFile->seekg(
+          (fileLength - (descSize + sizeof(descSize))), ios::beg);
+      inputFile->read(descStr, descSize);
+      inputFile->seekg(0, ios::beg);
+
+      NList descList = NList(binDecode(string(descStr)));
+      if (descList.isEmpty())
+      {
+        cerr << "\nERROR! Tail description list read in "
+            << partFileName << "fail." << endl;
+        return false;
+      }
+      return true;
+    }
+    else{
+      return false;  //No more file in the partFiles list
+    }
+  }
+  else{
+    return true;  //Exist an opened file
+  }
+
+}
+
+Tuple* CollectLocalInfo::getNextTuple()
+{
+  Tuple* t = 0;
+
+  //Read one tuple from the present opened file
+  //if there is no more data in the current file,
+  //then remove the file from the partFiles list,
+  //and open the new one.
+  while (partFileOpened()){
+    u_int32_t blockSize = 0;
+    inputFile->read( reinterpret_cast<char*>(&blockSize),
+        sizeof(blockSize));
+    if (blockSize > 0)
+    {
+      //read and return the tuple
+      blockSize -= sizeof(blockSize);
+      char *tupleBlock = new char[blockSize];
+      inputFile->read(tupleBlock, blockSize);
+
+      t = new Tuple(resultType);
+      t->ReadFromBin(tupleBlock, blockSize);
+      delete[] tupleBlock;
+      break;
+    }
+    else
+    {
+      //close the opened file,
+      //pop the file name from the file list.
+      inputFile->close();
+      delete inputFile;
+      inputFile = 0;
+      partFiles.pop_back();
+    }
+  }
+  return t;
+}
+
+
+
+Operator collectOp(CollectInfo(), CollectValueMap, CollectTypeMap);
 
 /*
 6 Auxiliary functions
@@ -5917,6 +6435,9 @@ public:
 
     AddOperator(&spreadOp);
     spreadOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&collectOp);
+    collectOp.SetUsesArgsInTypeMapping();
 
 
 

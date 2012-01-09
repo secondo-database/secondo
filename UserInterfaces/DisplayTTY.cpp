@@ -3305,18 +3305,24 @@ struct DisplayFileList : DisplayFunction {
         }
 
         cout << rowNum << ".";
-        while (!nl->IsEmpty(cfs))
-        {
-          ListExpr aCF = nl->First(cfs);
-          cout << "\t_" << nl->IntValue(aCF)
-              << "\t" << locNode << ":'" << dataLoc << "'"
-              << "\t" << dupTimes << endl;
-          cfs = nl->Rest(cfs);
+        if (nl->IsEmpty(cfs)){
+          cout << endl;
+        }
+        else{
+          while (!nl->IsEmpty(cfs))
+          {
+            ListExpr aCF = nl->First(cfs);
+            cout << "\t_" << nl->IntValue(aCF)
+                << "\t" << locNode << ":'" << dataLoc << "'"
+                << "\t" << dupTimes << endl;
+            cfs = nl->Rest(cfs);
+          }
         }
 
         locList = nl->Rest(locList);
         rowNum++;
       }
+
 
       cout << "Data are '" <<
           (inDB ? "SET" : "NOT" ) << "' in databases." << endl;
