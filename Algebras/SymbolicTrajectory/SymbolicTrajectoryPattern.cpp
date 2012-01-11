@@ -77,14 +77,15 @@ int PatParser::setPattern(string const &text, string &errMsg)
      errMsg = "Syntax Error! Use // only as seperator.";
      return 1;
   }
-  else if ( getPrePats(token[0], errMsg) ) 
-  {
+  
+  if ( getPrePats(token[0], errMsg) ) 
+  {    
      return 1;    
   }	 
-  
+
   if ( (token.size() == 2) && getConds(token[1], errMsg) ) 
   {
-     return 1;   	 
+    return 1;   	 
   } 	 
   
   if ( setPats( errMsg ) )
@@ -96,19 +97,20 @@ int PatParser::setPattern(string const &text, string &errMsg)
 }
 
 
-PatParser::PatParser(string const &text) : valid(true) 
+PatParser::PatParser(string const &text)  
 {
    if ( setPattern(text, errMsg) )
    {
      valid = false;     
    }  
-    
+   else 
+     valid = true;    
 }
 
 
 bool PatParser::checkForUniqueVariables()
 {
-
+// not used
 
 return true;
 }
@@ -573,6 +575,61 @@ int PatParser::getPrePats(string text, string &errMsg)
 }
 
 
+//**********************************************************************************************************
+//~RuleParser~
+
+int RuleParser::setRule(string const &text, string &errMsg)  
+{
+  vector<string> token; 
+  
+  token = split(text, "=>");
+  
+  errMsg = "";
+  
+  if ( (token.size() > 2) )
+  {
+     errMsg = "Syntax Error! Symbol => must be unique.";
+     return 1;
+  }
+
+  if ( (token.size() < 2) )
+  {
+     errMsg = "Mandatory Symbol => in a rule missing.";
+     return 1;
+  }
+
+  PatParser patParser(token[0]);
+  if ( !patParser.isValid() ) {
+    valid = false;
+    errMsg = patParser.getErrMsg();
+    return 1;
+  }
+
+  PatParser patParserResult(token[1]);
+  if ( !patParserResult.isValid() ) {
+    valid = false;    
+    errMsg = patParserResult.getErrMsg();
+    return 1;
+  }
+
+  pats_ = patParser.getPattern();
+  resPats_ = patParserResult.getPattern();
+  
+  return 0;
+}
+
+
+RuleParser::RuleParser(string const &text)  
+{
+   if ( setRule(text, errMsg) )
+   {
+     valid = false;     
+   }  
+   else 
+     valid = true;    
+}
+
+
 
 //**********************************************************************************************************
 //~Condition~
@@ -591,7 +648,7 @@ string Condition::toString()
 
 int Condition::setKey(string key)
 {
-   if ( key == "lbs" || key == "lb" ) 
+   if ( key == "labels" || key == "label" ) 
    {
       Condition::key = 1;
    }
@@ -742,7 +799,7 @@ int SinglePattern::set(PrePat const &prePat, string &errMsg)
 		   case 4:
 		   case 5:  semt.type = type;
 		            semt.value = str2Int( datetime );
-					sts.push_back( semt );
+			    sts.push_back( semt );
 		            break;					
 					
 					

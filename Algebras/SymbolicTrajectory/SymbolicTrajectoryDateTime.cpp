@@ -174,7 +174,8 @@ string getFullRange(string const &text)
    } 
    else if (dates.size() == 2)
    {
-      resultRange = getFullDateTime( dates[0], true ) + "-" + getFullDateTime( dates[1], true );      
+      resultRange = getFullDateTime( dates[0], true ) + "-";    
+      resultRange += ( dates[1].size() == 10) ? getFullDateTime( dates[1], false ) : getFullDateTime( dates[1], true );     
    }
    
    return resultRange;    
@@ -231,10 +232,10 @@ bool checkMaskOfTime(string const &mask)
 bool checkMaskOfDateTime(string const &mask) 
 {
    vector<string> elements = split(mask, '#');  
-			  
+   
    switch (elements.size())
    {
-	   case 2: if ( elements[0].length() != 10 || !checkMaskOfTime(elements[1]) ) return false;
+       case 2: if ( elements[0].length() != 10 || !checkMaskOfTime(elements[1]) ) return false;
 						
        case 1: if ( checkMaskOfDate(elements[0]) ) return true;												
    }	   
@@ -399,12 +400,148 @@ int getType(string text, string &datetime)
    return mask; 
 }
 
+
 bool isDate(string const &text) 
 {
-   return checkMaskOfDate( getMask(text) );
+   return checkMaskOfDateTime( getMask(text) );
 }
+
 
 bool isNumeric(string const &text) 
 {
    return ( getMask(text)  == "0X" );
 }
+
+
+// is true if reftime is before time
+bool isBeforeTime(string const &time, string const &reftime) { 
+  assert( (time.size() == 12) && (reftime.size() == 12) );
+  
+  if ( getHourFromTime(reftime) <  getHourFromTime(time) ) {
+    return true;
+  } 
+
+  if ( getMinuteFromTime(reftime) <  getMinuteFromTime(time) ) {
+    return true;
+  } 
+
+  if ( getSecondFromTime(reftime) <  getSecondFromTime(time) ) {
+    return true;
+  } 
+
+  if ( getMillisecondFromTime(reftime) <  getMillisecondFromTime(time) ) {
+    return true;
+  } 
+  
+  return false;
+}
+
+
+string getStartTimeFromRange(string const &time) { 
+  assert( time.size() == 25 );
+  
+  return time.substr(0,12);   
+} 
+
+
+string getEndTimeFromRange(string const &time) { 
+  assert( time.size() == 25 );
+  
+  return time.substr(13,12); 
+} 
+
+
+bool isPositivTimeRange(string const &range) {
+  assert( range.size() == 25 ); 
+  
+  return isBeforeTime( getEndTimeFromRange(range), getStartTimeFromRange(range) );  
+}
+
+
+int getHourFromTime(string const &time) { 
+  assert( time.size() == 12 );
+  
+  return str2Int( time.substr(0,2) ); 
+} 
+
+
+int getMinuteFromTime(string const &time) { 
+  assert( time.size() == 12 );
+  
+  return str2Int( time.substr(3,2) ); 
+} 
+
+
+int getSecondFromTime(string const &time) { 
+  assert( time.size() == 12 );
+  
+  return str2Int( time.substr(6,2) ); 
+} 
+
+
+int getMillisecondFromTime(string const &time) { 
+  assert( time.size() == 12 );
+  
+  return str2Int( time.substr(9,3) ); 
+}
+
+
+string getStartDateTimeFromRange(string const &date) { 
+  assert( date.size() == 47 );
+  
+  return date.substr(0,23);   
+} 
+
+
+string getEndDateTimeFromRange(string const &date) { 
+  assert( date.size() == 47 );
+  
+  return date.substr(24,23); 
+}
+
+
+string getSecDateTimeString(string const &date) { 
+  assert( date.size() == 23 );
+  
+  string result = "";
+  
+  result += date.substr(6,4) + "-"; // year
+  result += date.substr(3,2) + "-"; // month
+  result += date.substr(0,2) + "-"; // day  
+  result += date.substr(11,2) + ":"; // hour
+  result += date.substr(14,2) + ":"; // minute
+  result += date.substr(17,2) + "."; // second 
+  result += date.substr(20,4); // millisecond   
+    
+  return result; 
+} 
+
+
+string getDayTimeRangeString(int const &dayTimeNr) {
+  // morning: 0:00 - 12:00
+  // afternoon: 12:00 - 17:00
+  // evening: 17:00 - 21:00
+  // night: 21:00 - 24:00
+  string result = "";  
+    
+  switch (dayTimeNr) {
+    case 1:  result = "00:00:00.000-12:00:00.000";
+             break;
+
+    case 2:  result = "12:00:00.000-17:00:00.000";
+             break;
+	     
+    case 3:  result = "17:00:00.000-21:00:00.000";
+             break;	     
+
+    case 4:  result = "21:00:00.000-23:59:59.999";
+             break;        
+  }
+  
+  return result;
+}
+
+
+
+
+

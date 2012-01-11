@@ -108,4 +108,29 @@ private:
    bool checkForUniqueVariables();   
 };
 
+
+class RuleParser {
+
+public:
+   RuleParser(string const &text);
+   RuleParser() {};   
+     
+   string toString(); 	
+   inline vector<SinglePattern> getPattern() { return pats_; }
+   inline vector<SinglePattern> getResultPattern() { return resPats_; }
+
+   inline bool isValid() { return valid; }
+   inline string getErrMsg() { return errMsg; }
+   
+private:
+
+   vector<SinglePattern> pats_;   
+   vector<SinglePattern> resPats_;
+   
+   bool valid;   
+   string errMsg;
+   
+   int setRule(string const &text, string &errMsg);     
+};
+
 }
