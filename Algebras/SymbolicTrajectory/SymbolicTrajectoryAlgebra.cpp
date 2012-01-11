@@ -17,7 +17,7 @@
 #include "SymbolicTrajectoryPattern.h"
 #include "SymbolicTrajectoryTools.h"
 #include "SymbolicTrajectoryDateTime.h"
-
+#include "Stream.h"
 
 
 extern NestedList* nl;
@@ -374,7 +374,7 @@ ULabel::CheckULabel( ListExpr type, ListExpr& errorInfo )
 
 
 /*
-5.4 Creation of the type constructor ~uint~
+5.4 Creation of the type constructor ~ulabel~
 
 */
 TypeConstructor unitlabel(
@@ -1170,7 +1170,8 @@ class Pattern
   void SetText( string const &Text );
   inline void SetPatParser( PatParser const &patParser ) { Pattern::patParser = patParser ;}  
   bool Matches(MLabel const &mlabel);
-//  bool parserSet() { return parserSet;}
+  inline bool isValid() { return patParser.isValid() ;}
+  inline string getErrMsg() { return patParser.getErrMsg() ;}
   
   Pattern* Clone();
   
@@ -1211,13 +1212,12 @@ class Pattern
  private:
    
   Pattern() {};
-  vector<SinglePattern> getPattern(string const &text);
+  vector<SinglePattern> getPattern();
   
   string text;
   
 //  vector<SinglePattern> s_pattern;   
   PatParser patParser;
-//  bool parserSet;
 };  
 
 
@@ -1379,27 +1379,465 @@ TypeConstructor patternTC(
 
 
 
-vector<SinglePattern> Pattern::getPattern(string const &text)
+vector<SinglePattern> Pattern::getPattern()
 {
-  vector<SinglePattern> s_pattern;
-    
-//  PatParser patParser(text);  
-   
-  return s_pattern;
+  return patParser.getPattern(); 
 }
 
-bool Pattern::Matches(MLabel const &mlabel) 
+
+bool Pattern::Matches(MLabel const &ml) 
 {
-  bool result = false;
   vector<SinglePattern> s_pattern;  
+  SinglePattern pattern;
+  size_t curULabel = 0;
+  size_t maxULabel =  ml.GetNoComponents(); 
+  ULabel ul;
+  bool wildcard = false;
+  bool result;
+  Interval<Instant> interval;
+  DateTime startDate(instanttype), endDate(instanttype), duration(durationtype);
+  DateTime startTime(instanttype), endTime(instanttype);
+  DateTime startPatternDateTime(instanttype), endPatternDateTime(instanttype);  
+  string startTimeRange, endTimeRange, timeRange;
+  DateTime startDate2(instanttype);
+  PatEquation patEquation;
   
-  cout << mlabel.GetNoComponents() << endl;
-  
-  
-  
-  
-  return result; 
+  s_pattern = getPattern();
+    
+  for (size_t i = 0; i < s_pattern.size(); ++i) {
+    pattern = s_pattern[i];
+   
+    if (curULabel == maxULabel) {
+      return false;
+    }
+    
+    
+    ml.Get(curULabel, ul);
+    interval.CopyFrom( ul.timeInterval );    
+    startDate = interval.start;
+    if ( !interval.lc ) startDate.Add( &DateTime(0, 1, durationtype) );
+    endDate = interval.end;    
+    if ( !interval.rc ) endDate.Minus( &DateTime(0, 1, durationtype) );
+    
+    
+    if ( pattern.wildcard == '*' ) {
+      wildcard = true;
+      continue; 
+    }    
+    else {
+      curULabel++;
+    }
+    
+    result = true; 
+    
+    if ( !pattern.isSequence() ) {
+
+      // check labels
+      if ( !pattern.lbs.empty() ) {
+        vector<string> lbs = pattern.lbs;
+             
+        if ( !ul.Passes( lbs[0] ) ) result = false;
+      }  
+
+
+      // check time ranges
+      if ( !pattern.trs.empty() ) {
+	duration = endDate - startDate;
+	
+	if ( duration.GetDay() > 0 ) result = false; // duration > 24 h
+	
+        for (size_t j = 0; j < pattern.trs.size(); ++j) {
+	  
+           startTimeRange = getStartTimeFromRange( pattern.trs[j] );
+           endTimeRange = getEndTimeFromRange( pattern.trs[j] );	  
+	   
+   	   startTime.Set( startDate.GetYear(), startDate.GetMonth(), startDate.GetGregDay(),
+	  	       getHourFromTime(startTimeRange), getMinuteFromTime(startTimeRange), 
+		       getSecondFromTime(startTimeRange), getMillisecondFromTime(startTimeRange) );
+	
+           startDate2 = startDate;	   
+	   if ( !isPositivTimeRange( pattern.trs[j]) ) {	     
+	     startDate2.Add( &DateTime(1, 0, durationtype) );	     
+	   }
+	   
+	   endTime.Set( startDate2.GetYear(), startDate2.GetMonth(), startDate2.GetGregDay(),
+	  	       getHourFromTime(endTimeRange), getMinuteFromTime(endTimeRange), 
+		       getSecondFromTime(endTimeRange), getMillisecondFromTime(endTimeRange) );	
+	   
+	   if ( (startDate < startTime) || (endDate > endTime) ) result = false;
+	}	
+      } 
+
+
+      // check date ranges
+      if ( !pattern.dtrs.empty() ) {
+	
+        for (size_t j = 0; j < pattern.dtrs.size(); ++j) {	
+	  
+	   startPatternDateTime.ReadFrom( getSecDateTimeString( getStartDateTimeFromRange(pattern.dtrs[j]) ) ); 
+	   endPatternDateTime.ReadFrom( getSecDateTimeString( getEndDateTimeFromRange(pattern.dtrs[j]) ) );	  
+   
+	   if ( (startDate < startPatternDateTime) || (endDate > endPatternDateTime) ) result = false;	  
+	}  	
+      } 
+
+
+      // check daytime/month ranges
+      // 3 = weekday
+      // 4 = day-time  
+      // 5 = month       
+      if ( !pattern.sts.empty() ) {
+
+        for (size_t j = 0; j < pattern.sts.size(); ++j) {
+	  	  
+	  switch (pattern.sts[j].type) {
+	    case 3: if ( (startDate.ToString()).substr(0,10) != (endDate.ToString()).substr(0,10) ) { // not the same day
+	               result = false;
+	            }
+	            
+	            if ( startDate.GetWeekday() != pattern.sts[j].value - 1 ) result = false;
+	      
+	            break;
+	      
+		    
+	    case 4: if ( (startDate.ToString()).substr(0,10) != (endDate.ToString()).substr(0,10) ) { // not the same day
+	               result = false;
+	            }
+	            
+	            timeRange = getDayTimeRangeString( pattern.sts[j].value );
+                    startTimeRange = getStartTimeFromRange( timeRange );
+                    endTimeRange = getEndTimeFromRange( timeRange );	            
+
+    	            startTime.Set( startDate.GetYear(), startDate.GetMonth(), startDate.GetGregDay(),
+	  	       getHourFromTime(startTimeRange), getMinuteFromTime(startTimeRange), 
+		       getSecondFromTime(startTimeRange), getMillisecondFromTime(startTimeRange) );
+
+                    startDate2 = startDate;		    
+	            if ( !isPositivTimeRange( timeRange ) ) {	     
+	               startDate2.Add( &DateTime(1, 0, durationtype) );	     
+	            }
+	   
+	            endTime.Set( startDate2.GetYear(), startDate2.GetMonth(), startDate2.GetGregDay(),
+	  	       getHourFromTime(endTimeRange), getMinuteFromTime(endTimeRange), 
+		       getSecondFromTime(endTimeRange), getMillisecondFromTime(endTimeRange) );	
+	   
+	            if ( (startDate < startTime) || (endDate > endTime) ) result = false;		    
+	            
+	            break;
+	      
+		    
+	    case 5: if ( (startDate.ToString()).substr(0,7) != (endDate.ToString()).substr(0,7) ) { // not the same month/year
+	               result = false;
+	            }
+	            
+	            if ( startDate.GetMonth() != pattern.sts[j].value ) result = false;	            	                       
+	            
+	            break;    
+	  } // switch	  
+	  
+	} // for
+	
+      }  // if    
+   
+   
+      // check conditions
+      if ( !pattern.conditions.empty() ) {
+	
+        for (size_t j = 0; j < pattern.conditions.size(); ++j) {	
+          patEquation = pattern.conditions[j];
+          // key : 1="lb/lbs"; 3="start"; 4="end"; 6="card" 
+          // op : 1="="; 2="<"; 4=">" 	  
+	  
+	  switch ( patEquation.key ) {
+	    case 1: if ( patEquation.op & 1 ) {
+                       if ( !ul.Passes( patEquation.value ) ) result = false;	      
+	            }
+	      
+	            break;
+		    
+
+	    case 3: startPatternDateTime.ReadFrom( getSecDateTimeString( getFullDateTime( patEquation.value ) ) );
+	    
+	            if (!(( (patEquation.op & 1) && (startDate == startPatternDateTime) )
+		       || ( (patEquation.op & 2) && (startDate <  startPatternDateTime) )
+		       || ( (patEquation.op & 4) && (startDate >  startPatternDateTime) ) ) ) {		      
+			
+		      result = false;	   
+		    }	 
+	      
+	            break;
+		    
+		    
+	    case 4: endPatternDateTime.ReadFrom( getSecDateTimeString( getFullDateTime( patEquation.value ) ) );
+	    
+	            if (!(( (patEquation.op & 1) && (endDate == endPatternDateTime) )
+		       || ( (patEquation.op & 2) && (endDate <  endPatternDateTime) )
+		       || ( (patEquation.op & 4) && (endDate >  endPatternDateTime) ) ) ) {		      
+			
+		      result = false;	   
+		    }
+	      
+	            break;		      	    
+	  } // switch
+	  	  
+	  
+	} // for 	
+      } // if  
+      
+    } // if not sequence
+    else {  
+       // not used  
+    }  
+    
+  // mlabel does not match pattern
+  if (!result && !wildcard) return false;
+
+  // wildcard is set to the current value if wildcard exists (wildcard = !result)	  
+  // the current pattern will be used for the next ulabel if the ulabel does not match the pattern (--i)
+  if (wildcard)	if ( (wildcard = !result) ) --i;    
+
+  } // for  
+    
+  if ( !wildcard && (curULabel != maxULabel) ) {
+    return false;
+  }    
+    
+  return true; 
 }
+
+
+//**********************************************************************************************************
+//~rule~
+
+class Rule
+{
+ public:
+  Rule() : defined(false) {};   
+  Rule( string const &text );
+  inline Rule( string const &text , RuleParser const &ruleParser) : defined(true) { SetText(text); SetRuleParser(ruleParser) ;}
+  Rule( const Rule& rhs );
+  ~Rule();
+  
+  inline string GetText() const { return text;}
+  void SetText( string const &Text );
+  inline void SetRuleParser( RuleParser const &ruleParser ) { Rule::ruleParser = ruleParser ;}  
+//  bool Matches(MLabel const &mlabel);
+  inline bool isValid() { return ruleParser.isValid() ;}
+  inline string getErrMsg() { return ruleParser.getErrMsg() ;}
+  inline bool IsDefined() {return defined;}
+  
+  Rule* Clone();
+  
+  
+  // algebra support functions
+  
+  static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                        const int errorPos, ListExpr& errorInfo,
+                        bool& correct );
+
+  static ListExpr Out( ListExpr typeInfo, Word value );
+
+  static Word     Create( const ListExpr typeInfo );
+
+
+  static void     Delete( const ListExpr typeInfo, Word& w );
+
+  static void     Close( const ListExpr typeInfo, Word& w );
+
+  static Word     Clone( const ListExpr typeInfo, const Word& w );
+
+  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+
+  static int      SizeOfObj();
+
+  static ListExpr Property();  
+  
+  
+  // name of the type constructor
+  
+  static const string BasicType() { return "rule"; }
+
+  static const bool checkType(const ListExpr type){
+    return listutils::isSymbol(type, BasicType());
+  }
+  
+
+ private:
+   
+//  Rule() {};
+//  vector<SinglePattern> getRule();
+  
+  string text;
+  bool defined;
+ 
+  RuleParser ruleParser;
+};  
+
+
+Rule::Rule( string const &Text )  : defined(true)
+{
+ 
+  text = Text;
+  RuleParser ruleParser(text);
+  SetRuleParser(ruleParser); 
+}
+
+
+Rule::Rule( const Rule& rhs )  : defined(true) {
+  text = rhs.text;  
+  RuleParser ruleParser(text);
+  SetRuleParser(ruleParser);  
+}
+
+Rule::~Rule() {}
+
+
+void Rule::SetText( string const &Text ) 
+{ 
+  text = Text;
+ 
+  RuleParser ruleParser(text);
+  SetRuleParser(ruleParser);; 
+}
+
+
+Word
+Rule::In( const ListExpr typeInfo, const ListExpr instance,
+            const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  Word result = SetWord(Address(0));
+  correct = false;
+  
+  NList list(instance);  
+  
+  if ( list.isAtom() )
+  {
+    if ( list.isText() )
+    {
+      string text = list.str();
+      
+      RuleParser ruleParser( text );
+      
+      if ( ruleParser.isValid() ) 
+      {
+        correct = true;          
+        result.addr = new Rule( text, ruleParser );
+      }	
+      else
+      {
+        correct = false;
+        cmsg.inFunError( ruleParser.getErrMsg() );	
+      }
+
+    }
+    else
+    { 
+      correct = false;
+      cmsg.inFunError("Expecting a text!");
+    }      
+    
+    
+  }
+  else 
+  { 
+    correct = false;
+    cmsg.inFunError("Expecting one text atom!");
+  }
+  
+  return result;
+}
+
+
+ListExpr
+Rule::Out( ListExpr typeInfo, Word value )
+{
+  Rule* rule = static_cast<Rule*>( value.addr );
+  NList element ( rule->GetText(), true, true );
+
+  return element.listExpr();
+}
+
+
+
+Word
+Rule::Create( const ListExpr typeInfo )
+{
+  return (SetWord( new Rule( "" ) ));
+}
+ 
+ 
+void
+Rule::Delete( const ListExpr typeInfo, Word& w )
+{
+  delete static_cast<Rule*>( w.addr );
+  w.addr = 0;
+}
+
+void
+Rule::Close( const ListExpr typeInfo, Word& w )
+{
+  delete static_cast<Rule*>( w.addr );
+  w.addr = 0;
+}
+
+Word
+Rule::Clone( const ListExpr typeInfo, const Word& w )
+{
+  Rule* rule = static_cast<Rule*>( w.addr );
+  return SetWord( new Rule(*rule) );
+}
+
+int
+Rule::SizeOfObj()
+{
+  return sizeof(Rule);
+}
+
+bool
+Rule::KindCheck( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, Rule::BasicType() ));
+}
+
+
+
+ListExpr
+Rule::Property()
+{
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+               nl->StringAtom("Example Type List"),
+               nl->StringAtom("List Rep"),
+               nl->StringAtom("Example List"),
+               nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+               nl->StringAtom(Rule::BasicType()),
+               nl->StringAtom("<rule>"),
+               nl->TextAtom("\' X (_ a) // X.start = 01.01.2011 => X // X.label = b \'"),
+               nl->StringAtom("<rule> must be a text."))));
+}
+
+
+TypeConstructor ruleTC(
+  Rule::BasicType(),                          // name of the type in SECONDO
+  Rule::Property,                // property function describing signature
+  Rule::Out, Rule::In,         // Out and In functions
+  0, 0,                            // SaveToList, RestoreFromList functions
+  Rule::Create, Rule::Delete,  // object creation and deletion
+  0, 0,                            // object open, save
+  Rule::Close, Rule::Clone,    // close, and clone
+  0,                               // cast function
+  Rule::SizeOfObj,               // sizeof function
+  Rule::KindCheck );             // kind checking function
+
+
+/*
+vector<SinglePattern> Rule::getRule()
+{
+  return patParser.getRule(); 
+}
+*/
+
 
 
 //-----------------------------------------------------------------------
@@ -1442,9 +1880,318 @@ struct patternInfo : OperatorInfo {
     name      = "stjpattern";
     signature = " Text -> " + Pattern::BasicType();
     syntax    = "_ stjpattern";
-    meaning   = "Create Pattern from Text.";
+    meaning   = "Creates a Pattern from a Text.";
   }
 
+};
+
+
+//---------------------------------------------------------------------------------
+
+
+ListExpr
+consumeMLabelsTypeMap( ListExpr args )
+{
+  NList type(args);
+
+  if ( type.first() == NList( Stream<MLabel>::BasicType(), MLabel::BasicType() ) ) {
+     return NList(MLabel::BasicType()).listExpr();     
+  }  
+
+  return NList::typeError("Expecting a stream of mlabels");
+}
+
+
+int
+consumeMLabelsFun (Word* args, Word& result, int message,
+              Word& local, Supplier s)
+{
+  qp->Open(args[0].addr); // open the argument stream
+
+  MLabel* mlabel = new MLabel();  
+  Stream<MLabel> stream(args[0]);
+  stream.open();
+
+  MLabel* next = stream.request();
+  ULabel ul;
+  
+cout << "cons1" << endl;  
+
+    mlabel = new MLabel(*next);
+
+
+  while(next != 0){
+
+cout << "cons2" << endl;    
+    
+
+
+  
+    
+    for (int j = 0; j < next->GetNoComponents(); ++j) {
+      
+cout << "cons3" << endl;      
+      next->Get(j, ul);
+      
+//cout << ul.GetValue() << endl;      
+
+//      mlabel->Add(ul);
+    }  
+
+cout << "cons4" << endl;
+
+    next->DeleteIfAllowed();
+    next = stream.request();
+  }
+  stream.close();
+
+cout << "cons5" << endl;  
+  
+  // Assign a value to the operations result object which is provided
+  // by the query processor
+  result = qp->ResultStorage(s);
+//  static_cast<MLabel*>(result.addr)->Add( mlabel );
+  result.addr = mlabel;
+  
+  return 0;  
+}
+
+
+struct consumeMLabelsInfo : OperatorInfo {
+
+  consumeMLabelsInfo()
+  {
+    name      = "consumemlabelstream";
+    signature = " stream(mlabel) -> " + MLabel::BasicType();
+    syntax    = "_ consumemlabelstream";
+    meaning   = "Creates one MLabel from a stream of MLabel.";
+  }
+
+};
+
+//---------------------------------------------------------------------------------
+
+
+ListExpr
+applyTypeMap( ListExpr args )
+{
+  NList type(args);
+  const string errMsg = "Expecting a mlabel and a rule "
+	                "or a mlabel and a text";
+ 
+  // first alternative: mlabel x rule -> stream(mlabel)
+  if ( type == NList(MLabel::BasicType(), Rule::BasicType()) ) {
+    return NList(Stream<MLabel>::BasicType(), MLabel::BasicType()).listExpr();
+//    return NList(Stream<MLabel>::BasicType()).listExpr();    
+  }
+
+  // second alternative: mlabel x text -> stream(mlabel)
+  if ( type == NList(MLabel::BasicType(), FText::BasicType()) ) {  
+//    return NList(Stream<MLabel>::BasicType()).listExpr();
+    return NList(Stream<MLabel>::BasicType(), MLabel::BasicType()).listExpr();    
+  }
+
+  return NList::typeError(errMsg);
+}
+
+
+int
+applySelect( ListExpr args )
+{
+  NList type(args);
+cout << "select" << endl;  
+  
+  if ( type.second().isSymbol( Rule::BasicType() ) ) {
+cout << "select2" << endl;     
+    return 1;
+  }  
+  else {
+cout << "select3" << endl;     
+    return 0;
+  }  
+}
+
+
+int
+applyFun_MP (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  
+cout << "apply1" << endl;  
+  
+  struct Container {
+    int pos;
+    MLabel *mlabel;
+    Rule *rule;
+
+    Container(int position, MLabel *mlabel, Rule *rule) {
+
+      // Do a proper initialization even if one of the
+      // arguments has an undefined value
+      if (mlabel->IsDefined() && rule->IsDefined())
+      {
+        pos = 0;
+	Container::mlabel = mlabel;
+	Container::rule = rule;	
+      }
+      else
+      {
+	// this initialization will create an empty stream
+        pos = -1;
+      }
+    }
+  };
+
+cout << "apply1b" << endl;  
+  Container* container = static_cast<Container*>(local.addr);
+cout << "apply1c" << endl;
+  
+  switch( message )
+  {
+    case OPEN: { // initialize the local storage
+
+cout << "open1" << endl;
+  
+      MLabel* mlabel = static_cast<MLabel*>( args[0].addr );
+      Rule* rule = static_cast<Rule*>( args[1].addr );      
+      container = new Container(0, mlabel, rule);
+      local.addr = container;
+
+cout << "open2" << endl;       
+      
+      return 0;
+    }
+    case REQUEST: { // return the next stream element
+
+
+cout << "req1" << endl;
+
+      if ( container->pos != -1 )
+      {
+	container->pos = -1;
+        MLabel elem(*container->mlabel);
+        result.addr = &elem;
+//        result.addr = &container->mlabel;
+	
+cout << "req2" << endl;	
+        return YIELD;
+      }
+      else
+      {
+cout << "req3" << endl;	
+
+	result.addr = 0;
+        return CANCEL;
+      }
+      
+    }
+    case CLOSE: { // free the local storage
+
+cout << "clos1" << endl;
+
+      if (container != 0) {
+        delete container;
+        local.addr = 0;
+      }
+      
+cout << "clos2" << endl;
+
+      return 0;
+    }
+    default: {
+      /* should never happen */
+      return -1;
+    }
+  }   
+}
+
+
+int
+applyFun_MT (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  struct Container {
+    int pos;
+    MLabel mlabel;
+    Rule rule;
+
+    Container(int position, MLabel *mlabel, Rule *rule) {
+
+      // Do a proper initialization even if one of the
+      // arguments has an undefined value
+      if (mlabel->IsDefined() && rule->IsDefined())
+      {
+        pos = 0;
+	Container::mlabel = *mlabel;
+	Container::rule = *rule;	
+      }
+      else
+      {
+	// this initialization will create an empty stream
+        pos = -1;
+      }
+    }
+  };
+
+  Container* container = static_cast<Container*>(local.addr);
+
+  switch( message )
+  {
+    case OPEN: { // initialize the local storage
+  
+      MLabel* mlabel = static_cast<MLabel*>( args[0].addr );
+      FText* ruleText = static_cast<FText*>( args[1].addr );
+      Rule rule( ruleText->GetValue() );       
+      container = new Container(0, mlabel, &rule);
+      local.addr = container;
+
+      return 0;
+    }
+    case REQUEST: { // return the next stream element
+
+      if ( container->pos != -1 )
+      {
+	container->pos = -1;
+        MLabel* elem = &container->mlabel;
+//        MLabel* elem = new MLabel();	
+        result.addr = elem;
+        return YIELD;
+      }
+      else
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: { // free the local storage
+
+      if (container != 0) {
+        delete container;
+        local.addr = 0;
+      }
+
+      return 0;
+    }
+    default: {
+      /* should never happen */
+      return -1;
+    }
+  }   
+}
+
+
+struct applyInfo : OperatorInfo {
+
+  applyInfo()
+  {
+    name      = "apply";
+
+    signature = MLabel::BasicType() + " x " + Rule::BasicType() + " -> stream(mlabel)";
+
+    appendSignature( MLabel::BasicType() + " x Text -> stream(mlabel)" );
+    syntax    = " apply (_, _)";
+    meaning   = "Creates a stream of MLabels values applying the rule.";
+  }
 };
 
 
@@ -1522,6 +2269,12 @@ matchesFun_MT (Word* args, Word& result, int message,
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
                      //real boolean value)
+  
+  if ( !pattern.isValid() ) {
+    b->SetDefined( false );
+    cerr << pattern.getErrMsg() << endl;
+  }
+  
   return 0;
 }
 
@@ -1540,6 +2293,111 @@ struct matchesInfo : OperatorInfo {
     meaning   = "Match predicate.";
   }
 };
+
+//---------------------------------------------------------------------------------
+
+ListExpr
+sintstreamType( ListExpr args ) {
+  string err = "int x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!listutils::isSymbol(nl->First(args)) ||
+     !listutils::isSymbol(nl->Second(args))){
+    return listutils::typeError(err);
+  }  
+  return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
+                         nl->SymbolAtom(CcInt::BasicType()));
+}
+
+
+int
+sintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  // An auxiliary type which keeps the state of this
+  // operation during two requests
+  struct Range {
+    int current;
+    int last;
+
+    Range(CcInt* i1, CcInt* i2) {
+
+      // Do a proper initialization even if one of the
+      // arguments has an undefined value
+      if (i1->IsDefined() && i2->IsDefined())
+      {
+        current = i1->GetIntval();
+        last = i2->GetIntval();
+      }
+      else
+      {
+	// this initialization will create an empty stream
+        current = 1;
+        last = 0;
+      }
+    }
+  };
+
+  Range* range = static_cast<Range*>(local.addr);
+
+  switch( message )
+  {
+    case OPEN: { // initialize the local storage
+
+      CcInt* i1 = static_cast<CcInt*>( args[0].addr );
+      CcInt* i2 = static_cast<CcInt*>( args[1].addr );
+      range = new Range(i1, i2);
+      local.addr = range;
+
+      return 0;
+    }
+    case REQUEST: { // return the next stream element
+
+      if ( range->current <= range->last )
+      {
+        CcInt* elem = new CcInt(true, range->current++);
+        result.addr = elem;
+        return YIELD;
+      }
+      else
+      {
+	// you should always set the result to null
+	// before you return a CANCEL
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: { // free the local storage
+
+      if (range != 0) {
+        delete range;
+        local.addr = 0;
+      }
+
+      return 0;
+    }
+    default: {
+      /* should never happen */
+      return -1;
+    }
+  }
+}
+
+
+struct sintstreamInfo : OperatorInfo
+{
+  sintstreamInfo() : OperatorInfo()
+  {
+    name      = "sintstream";
+    signature = CcInt::BasicType() + " x " + CcInt::BasicType()
+                + " -> stream(int)";
+    syntax    = "_ sintstream _";
+    meaning   = "Creates a stream of integers containing the numbers "
+                "between the first and the second argument.";
+  }
+};
+
+
 
 
 
@@ -1567,15 +2425,23 @@ class SymbolicTrajectoryAlgebra : public Algebra
      AddTypeConstructor( &labelsTC );
 
      AddTypeConstructor( &patternTC );     
+     AddTypeConstructor( &ruleTC );
      
      // 5.3 Registration of Operators
     AddOperator( &temporalatinstantext );
      
     AddOperator( patternInfo(), patternFun, textToPatternMap );     
     
-    ValueMapping matchesFuns[] = { matchesFun_MT, matchesFun_MP, 0 };
-    AddOperator( matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap );    
-     
+    ValueMapping matchesFuns[] = { matchesFun_MT, matchesFun_MP, 0 };    
+    AddOperator( matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap );
+    
+    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun, consumeMLabelsTypeMap );     
+    
+    ValueMapping applyFuns[] = { applyFun_MT, applyFun_MP, 0 }; 
+    AddOperator( applyInfo(), applyFuns, applySelect, applyTypeMap );
+        
+    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );    
+    
     }
     ~SymbolicTrajectoryAlgebra() {}
 };
