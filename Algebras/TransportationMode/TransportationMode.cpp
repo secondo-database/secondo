@@ -58,6 +58,7 @@ queries moving objects with transportation modes.
 #include "RoadNetwork.h"
 #include <sys/timeb.h>
 
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -69,11 +70,9 @@ double TM_DiffTimeb(struct timeb* t1, struct timeb* t2)
 }
 
 namespace TransportationMode{
-/////////////////////////////////////////////////////////////////////////////
 ////////////////////////   Indoor data Type//////////////////////////////////
 ///////////// point3d line3d floor3d door3d groom ///////////////////
 //////////////////// functions are in Indoor.h  /////////////////////////////
-////////////////////////////////////////////////////////////////////////////
 
 TypeConstructor point3d(
     "point3d", Point3DProperty,
@@ -2237,16 +2236,6 @@ Value Mapping for  createigraph  operator
 int OpTMCreateIGValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-//   IndoorGraph* ig = (IndoorGraph*)qp->ResultStorage(in_pSupplier).addr;
-//   int ig_id = ((CcInt*)args[0].addr)->GetIntval();
-//   Relation* node_rel = (Relation*)args[1].addr;
-//   Relation* edge_rel = (Relation*)args[2].addr;
-//   string type = ((CcString*)args[3].addr)->GetValue();
-//   
-//   ig->Load(ig_id, node_rel, edge_rel, GetBuildingType(type));
-//   result = SetWord(ig);
-//   return 0;
-
 
   IndoorGraph* ig = (IndoorGraph*)qp->ResultStorage(in_pSupplier).addr;
   int ig_id = ((CcInt*)args[0].addr)->GetIntval();
@@ -3144,6 +3133,14 @@ const string SpatialSpecTMAT2 =
 "<text>query tm_at(genmo1, mreal1, \"Indoor\")</text---> ) )";
 
 
+const string SpatialSpecTMAT3 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x mreal x genloc x string -> genmo</text--->"
+"<text>tm_at2(genmo, mreal, genloc, string) </text--->"
+"<text>get the moving object with one mode</text--->"
+"<text>query tm_at(genmo1, mreal1, genloc1,\"Indoor\")</text---> ) )";
+
+
 const string SpatialSpecTMVal =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>igenloc -> genloc</text--->"
@@ -3165,6 +3162,12 @@ const string SpatialSpecTMContain =
 "<text>check whether the moving object contains one mode</text--->"
 "<text>query contains(genmo1, \"Indoor\")</text---> ) )";
 
+const string SpatialSpecTMContain2 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x mreal x int x space -> bool</text--->"
+"<text>tmcontains (genmo,mreal,int,space) </text--->"
+"<text>check whether the moving object contains a reference int</text--->"
+"<text>query tmcontains(genmo1, uindex,123,space_1)</text---> ) )";
 
 const string SpatialSpecTMDuration =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -3785,10 +3788,10 @@ int TMATPointValueMap(Word* args, Word& result, int message,
 }
 
 /*
-val: return genloc for intimegenloc 
+tm at with index on units 
 
 */
-int TMAT2ValueMap(Word* args, Word& result, int message,
+int TMAT2StringValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   GenMO* genmo = (GenMO*)args[0].addr;
@@ -3803,6 +3806,46 @@ int TMAT2ValueMap(Word* args, Word& result, int message,
 
   return 0;
 }
+
+/*
+tm at with index on units 
+
+*/
+int TMAT2PointValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  MReal* index = (MReal*)args[1].addr;
+  
+  Point* loc = (Point*)args[2].addr;
+  result = qp->ResultStorage(s);
+  GenMO* sub_genmo = (GenMO*)result.addr;
+  if(genmo->IsDefined()){
+      genmo->GenMOAt(loc, index, sub_genmo);
+  }
+
+  return 0;
+}
+
+
+int TMAT3ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  MReal* index = (MReal*)args[1].addr;
+  
+  GenLoc* gloc = (GenLoc*)args[2].addr;
+  string type = ((CcString*)args[3].addr)->GetValue();
+
+  result = qp->ResultStorage(s);
+  GenMO* sub_genmo = (GenMO*)result.addr;
+  if(genmo->IsDefined()){
+      genmo->GenMOAt(gloc,index, type, sub_genmo);
+  }
+
+  return 0;
+}
+
 
 /*
 val: return genloc for intimegenloc 
@@ -3893,6 +3936,30 @@ int TMContainIntStrValueMap(Word* args, Word& result, int message,
     ((CcBool*)result.addr)->Set(true, true);
   else
     ((CcBool*)result.addr)->Set(true, false);
+
+  return 0;
+}
+
+
+/*
+check a reference int is included by index 
+
+*/
+int TMContain2ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  MReal* unindex = (MReal*)args[1].addr;
+  int ref_id = ((CcInt*)args[2].addr)->GetIntval();
+//  Space* sp = (Space*)args[3].addr;
+  string type = ((CcString*)args[3].addr)->GetValue();
+
+  result = qp->ResultStorage(s);
+  if(genmo->IsDefined() && unindex->IsDefined())
+//    ((CcBool*)result.addr)->Set(true, genmo->Contain(unindex, ref_id, sp));
+    ((CcBool*)result.addr)->Set(true, genmo->Contain(unindex, ref_id, type));
+  else
+    ((CcBool*)result.addr)->Set(false, false);
 
   return 0;
 }
@@ -4184,6 +4251,7 @@ int TMPlusIdValueMap(Word* args, Word& result, int message,
   sscanf(buffer1, "%d", &new_id);
 
   res->Set(true, new_id);
+  
   return 0;
 }
 
@@ -4590,7 +4658,7 @@ int MapGenMOValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier in_pSupplier)
 {
   result = qp->ResultStorage( in_pSupplier );
-  GenMO* genmo = ((GenMO*)args[0].addr);
+  GenMO* genmo = (GenMO*)args[0].addr;
   MPoint* mp = (MPoint*) args[1].addr;
   MPoint* pResult = (MPoint*)result.addr;
 
@@ -5334,8 +5402,6 @@ int GenerateGMOBench3ListValueMap(Word* args, Word& result, int message,
           Tuple* tuple = new Tuple(mo->resulttype);
            tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
            tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
-//          tuple->PutAttribute(2,new Point(mo->loc_list1[mo->count]));
-//          tuple->PutAttribute(3,new Rectangle<2>(mo->rect_list1[mo->count]));
 
 //           tuple->PutAttribute(0,new Point(mo->loc_list1[mo->count]));
 //           tuple->PutAttribute(1,new Rectangle<2>(mo->rect_list1[mo->count]));
@@ -5396,14 +5462,6 @@ int GenerateGMOBench4ListValueMap(Word* args, Word& result, int message,
            tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
 //        tuple->PutAttribute(2,new MPoint3D(mo->indoor_mo_list2[mo->count]));
 
-//          tuple->PutAttribute(2,new Point(mo->loc_list1[mo->count]));
-//          tuple->PutAttribute(3,new Rectangle<2>(mo->rect_list1[mo->count]));
-
-//         tuple->PutAttribute(0, new Point(mo->loc_list1[mo->count]));
-//         tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));
-//         tuple->PutAttribute(2, new Rectangle<2>(mo->rect_list1[mo->count]));
-//         tuple->PutAttribute(3, new Point(mo->loc_list3[mo->count]));
-
           result.setAddr(tuple);
           mo->count++;
           return YIELD;
@@ -5461,10 +5519,6 @@ int GenerateGMOBench5ListValueMap(Word* args, Word& result, int message,
           tuple->PutAttribute(0,new GenMO(mo->trip1_list[mo->count]));
           tuple->PutAttribute(1,new MPoint(mo->trip2_list[mo->count]));
 
-//         tuple->PutAttribute(0, new Rectangle<2>(mo->rect_list1[mo->count]));
-//         tuple->PutAttribute(1, new Rectangle<2>(mo->rect_list2[mo->count]));
-//         tuple->PutAttribute(2, new Rectangle<2>(mo->rect_list3[mo->count]));
-
           result.setAddr(tuple);
           mo->count++;
           return YIELD;
@@ -5515,9 +5569,6 @@ int GenerateCarListValueMap(Word* args, Word& result, int message,
 
           Tuple* tuple = new Tuple(mo->resulttype);
  
-//           tuple->PutAttribute(0,new MPoint(mo->trip2_list[mo->count]));
-//           tuple->PutAttribute(1,new MGPoint(mo->trip3_list[mo->count]));
-
 /*          tuple->PutAttribute(0, new Point(mo->loc_list1[mo->count]));
           tuple->PutAttribute(1, new Point(mo->loc_list2[mo->count]));*/
           tuple->PutAttribute(0, new MPoint(mo->trip2_list[mo->count]));
@@ -5938,6 +5989,11 @@ ValueMapping TMATValueMapVM[]={
   TMATPointValueMap
 };
 
+ValueMapping TMAT2ValueMapVM[]={
+  TMAT2StringValueMap,
+  TMAT2PointValueMap
+};
+
 ValueMapping TMContainValueMapVM[]={
   TMContainStringValueMap,
   TMContainIntValueMap,
@@ -5970,6 +6026,25 @@ int TMATOpSelect(ListExpr args)
   return -1;
 }
 
+int TMAT2OpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "genmo" && nl->SymbolValue(arg2) == "mreal"){
+    if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
+      nl->SymbolValue(arg3) == "string")
+        return 0;
+//   if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genloc"))
+//     return 1;
+
+    if(nl->IsAtom(arg3) && nl->IsEqual(arg3, "point"))
+      return 1;
+  }
+
+  return -1;
+}
 
 int TMContainOpSelect(ListExpr args)
 {
@@ -6119,6 +6194,7 @@ ListExpr TMATTypeMap(ListExpr args)
 
   return nl->SymbolAtom("typeerror");
 }
+
 /*
 TypeMap function for operator tmat2  
 
@@ -6134,11 +6210,34 @@ ListExpr TMAT2TypeMap(ListExpr args)
   ListExpr arg3 = nl->Third(args);
 
   if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "mreal") &&
-     nl->SymbolValue(arg3) == "string")
+     (nl->SymbolValue(arg3) == "string" || nl->SymbolValue(arg3) == "point"))
     return nl->SymbolAtom("genmo");
 
   return nl->SymbolAtom("typeerror");
 }
+
+/*
+TypeMap function for operator tmat3  
+
+*/
+ListExpr TMAT3TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "mreal") &&
+     nl->SymbolValue(arg3) == "genloc" && nl->IsEqual(arg4,"string"))
+    return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
 
 /*
 TypeMap function for operator val  
@@ -6196,6 +6295,28 @@ ListExpr TMContainTypeMap(ListExpr args)
     return nl->SymbolAtom("bool");
 
   if(nl->IsEqual(arg1, "int") && nl->SymbolValue(arg2) == "string")
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator contain2 
+
+*/
+ListExpr TMContain2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->SymbolValue(arg2) == "mreal" && 
+     nl->IsEqual(arg3, "int") && nl->IsEqual(arg4,"string"))
     return nl->SymbolAtom("bool");
 
   return nl->SymbolAtom("typeerror");
@@ -6938,25 +7059,6 @@ ListExpr GenerateGMOBench3ListTypeMap(ListExpr args)
                 )
           );
 
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->FourElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
-//                                     nl->SymbolAtom("genmo")),
-//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
-//                                     nl->SymbolAtom("mpoint")),
-//                         nl->TwoElemList(nl->SymbolAtom("QLoc"),
-//                                      nl->SymbolAtom("point")),
-//                          nl->TwoElemList(nl->SymbolAtom("NNB"),
-//                                      nl->SymbolAtom("rect"))
-//                   )
-//                 )
-//           );
-
     return result;
 }
 
@@ -7309,23 +7411,6 @@ ListExpr OpTMShortestPathTMTypeMap ( ListExpr args )
   if(!nl->IsEqual(param2, "gpoint")) return nl->SymbolAtom ( "typeerror" );
   if(!nl->IsEqual(param3, "roadgraph")) return nl->SymbolAtom ( "typeerror" );
   if(!nl->IsEqual(param4, "network")) return nl->SymbolAtom ( "typeerror" );
-  
-
-//     ListExpr result =
-//           nl->TwoElemList(
-//               nl->SymbolAtom("stream"),
-//                 nl->TwoElemList(
-// 
-//                   nl->SymbolAtom("tuple"),
-//                       nl->TwoElemList(
-//                         nl->TwoElemList(nl->SymbolAtom("Path1"),
-//                                     nl->SymbolAtom("gline")),
-//                         nl->TwoElemList(nl->SymbolAtom("Path2"),
-//                                     nl->SymbolAtom("sline"))
-//                   )
-//                 )
-//           );
-
 
    return nl->SymbolAtom ( "gline" );;
 }
@@ -7449,10 +7534,19 @@ Operator tm_at("tm_at",
 
 Operator tm_at2("tm_at2",
     SpatialSpecTMAT2,
-    TMAT2ValueMap,
-    Operator::SimpleSelect,
+    2,
+    TMAT2ValueMapVM,
+    TMAT2OpSelect,
     TMAT2TypeMap
 );
+
+Operator tm_at3("tm_at3",
+    SpatialSpecTMAT3,
+    TMAT3ValueMap,
+    Operator::SimpleSelect,
+    TMAT3TypeMap
+);
+
 
 Operator tm_val("val",
     SpatialSpecTMVal,
@@ -7477,6 +7571,12 @@ Operator tm_contain("contains",
     TMContainTypeMap
 );
 
+Operator tm_contain2("tmcontains",
+    SpatialSpecTMContain2,
+    TMContain2ValueMap,
+    Operator::SimpleSelect,
+    TMContain2TypeMap
+);
 
 Operator tm_duration("tm_duration",
     SpatialSpecTMDuration,
@@ -8212,7 +8312,7 @@ ListExpr GetInfraTypeMap(ListExpr args)
       ListExpr xType;
       nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType);
       return xType; 
-    }else if(GetSymbol(type) == IF_MPPTN){ ///////////////bus trips 
+    }else if(GetSymbol(type) == IF_BUS){ ///////////////bus trips 
       ListExpr xType;
       nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xType);
       return xType; 
@@ -10351,8 +10451,6 @@ ListExpr OpTMCreateDGTypeMap ( ListExpr args )
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
   ListExpr xIdDesc = nl->First(args);
-//  ListExpr xEdgeDesc = nl->Second(args);
-//  ListExpr xNodeDesc = nl->Third(args);
 
   ListExpr xNodeDesc = nl->Second(args);
   ListExpr xEdgeDesc = nl->Third(args);
@@ -10482,8 +10580,6 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
 
   if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
      nl->SymbolValue(arg1) == "pavenetwork"){
-
-
     return nl->SymbolAtom("line");
   }
 
@@ -11741,17 +11837,6 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-
-/*                nl->TwoElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_route_id"),
-                        nl->SymbolAtom("int")
-                    ),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_route"),
-                        nl->SymbolAtom("line"))*/
-                        
-//                nl->FourElemList(
                 nl->FiveElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("start_cell_id"),
@@ -11881,9 +11966,7 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
                     nl->TwoElemList(
                         nl->SymbolAtom("route_type"),
                         nl->SymbolAtom("int"))
-/*                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_section2"),
-                        nl->SymbolAtom("line"))*/
+
                     )));
 
       return nl->ThreeElemList(
@@ -12104,8 +12187,7 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
   if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
       return listutils::typeError("attr name" + aname2 + "not found"
                       "or not of type line");
-  
-                      
+
   ListExpr attrName3 = nl->Fourth ( args );
   ListExpr attrType3;
   string aname3 = nl->SymbolValue(attrName3);
@@ -12114,8 +12196,7 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
       return listutils::typeError("attr name" + aname3 + "not found"
                       "or not of type int");
-  
-                      
+
   ListExpr param5 = nl->Fifth ( args );
   if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
      nl->SymbolValue(param5) == "real")){
@@ -12197,8 +12278,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
       return listutils::typeError("attr name " + aname2 + "not found"
                       "or not of type line");
-  
-                        
+
   ListExpr attrName3 = nl->Fourth ( args );
   ListExpr attrType3;
   string aname3 = nl->SymbolValue(attrName3);
@@ -12207,8 +12287,7 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
   if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
       return listutils::typeError("attr name " + aname3 + "not found"
                       "or not of type int");
-                      
-                      
+
   ListExpr attrName4 = nl->Fifth ( args );
   ListExpr attrType4;
   string aname4 = nl->SymbolValue(attrName4);
@@ -12692,36 +12771,6 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
   if(j4 == 0 || !listutils::isSymbol(attrType4,"bool"))
       return listutils::typeError("attr name " + aname4 + "not found"
                       "or not of type bool");
-                      
-/*     ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                                        
-                nl->SixElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("br_uid"),
-                        nl->SymbolAtom("int")), 
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
-                        nl->SymbolAtom("point")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
-                        nl->SymbolAtom("point")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_pos"),
-                        nl->SymbolAtom("real"))
-//                    nl->TwoElemList(
-//                        nl->SymbolAtom("test_line"),
-//                        nl->SymbolAtom("line"))
-                    )));*/
-
 
      ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -14385,33 +14434,6 @@ ListExpr OpTMCreateBusSegmentSpeedTypeMap ( ListExpr args )
   if(!listutils::isBTreeDescription(index2))
       return  nl->SymbolAtom ( "parameter 11 should be btree" );
 
-
-/*     ListExpr res = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-
-                nl->SixElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
-                        nl->SymbolAtom("int")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_direction"),
-                        nl->SymbolAtom("bool")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("bus_sub_route"),
-                        nl->SymbolAtom("line")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("speed_limit"),
-                        nl->SymbolAtom("real")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("startSmaller"),
-                        nl->SymbolAtom("bool")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("start_loc"),
-                        nl->SymbolAtom("point"))
-                    )));*/
-
       ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
@@ -14626,35 +14648,6 @@ ListExpr OpTMCreateTimeTable1NewTypeMap ( ListExpr args )
      nl->SymbolValue(param5) == "periods")){
       return nl->SymbolAtom ( "typeerror: param5 should be periods" );
   }  
-  
-//    ListExpr res = nl->TwoElemList(
-//             nl->SymbolAtom("stream"),
-//             nl->TwoElemList(
-//                 nl->SymbolAtom("tuple"),
-//                 nl->Cons(            
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("stop_loc"),
-//                         nl->SymbolAtom("point")),        
-//                 nl->SixElemList(
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("br_id"),
-//                         nl->SymbolAtom("int")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("stop_id"),
-//                         nl->SymbolAtom("int")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("bus_direction"),
-//                         nl->SymbolAtom("bool")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("whole_time"),
-//                         nl->SymbolAtom("periods")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("schedule_interval"),
-//                         nl->SymbolAtom("real")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("loc_id"),
-//                         nl->SymbolAtom("int")))
-//                     )));
 
    ListExpr res = nl->TwoElemList(
             nl->SymbolAtom("stream"),
@@ -18268,8 +18261,6 @@ int OpTMGetSectionsValueMap ( Word* args, Word& result, int message,
 
 }
 
-
-
 /*
 generate interesting points on pavement 
 
@@ -18638,9 +18629,7 @@ int OpTMCreateBusRouteValueMap2 ( Word* args, Word& result, int message,
           tuple->PutAttribute(3, new Point(br->start_gp[br->count]));
           tuple->PutAttribute(4, new Point(br->end_gp[br->count]));
           tuple->PutAttribute(5, new CcInt(true,br->bus_route_type[br->count]));
-//          tuple->PutAttribute(1, new Line(br->bus_sections1[br->count]));
-//          tuple->PutAttribute(2, new Line(br->bus_sections2[br->count]));
-          
+
           result.setAddr(tuple);
           br->count++;
           return YIELD;
@@ -18844,10 +18833,9 @@ int OpTMCreateBusRouteValueMap4 ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new Line(br->bus_sections1[br->count]));
           tuple->PutAttribute(2, new CcInt(true,br->bus_route_type[br->count]));
           tuple->PutAttribute(3, new CcInt(true,br->br_uid_list[br->count]));
-          tuple->PutAttribute(4, 
+          tuple->PutAttribute(4,
                               new CcBool(true,br->direction_flag[br->count]));
-                              
-          tuple->PutAttribute(5, 
+          tuple->PutAttribute(5,
                               new CcBool(true,br->startSmaller[br->count]));
           result.setAddr(tuple);
           br->count++;
@@ -18963,13 +18951,13 @@ int OpTMCreateBusStopValueMap2 ( Word* args, Word& result, int message,
           if(br->count == br->br_id_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(br->resulttype);          
-          
+
           tuple->PutAttribute(0, new CcInt(true, br->br_id_list[br->count]));
           tuple->PutAttribute(1, new CcInt(true,br->br_stop_id[br->count]));
           tuple->PutAttribute(2, new GPoint(br->bus_stop_loc_1[br->count]));
           tuple->PutAttribute(3, new Point(br->bus_stop_loc_2[br->count]));
           tuple->PutAttribute(4, new CcInt(true, br->sec_id_list[br->count]));
-          
+
           result.setAddr(tuple);
           br->count++;
           return YIELD;
@@ -19093,7 +19081,7 @@ int OpTMCreateBusStopValueMap4 ( Word* args, Word& result, int message,
           tuple->PutAttribute(4, new Point(br->end_gp[br->count]));
           tuple->PutAttribute(5, 
                               new CcReal(true,br->bus_stop_loc_3[br->count]));
-                              
+
 //          tuple->PutAttribute(5,new Line(br->bus_sections1[br->count])); 
           tuple->PutAttribute(6, 
                               new CcInt(true,br->stop_loc_id_list[br->count]));
@@ -23423,10 +23411,13 @@ class TransportationModeAlgebra : public Algebra
     /////////non-temporal operators for generic data types////////////////////
     AddOperator(&ref_id); 
     AddOperator(&tm_at);//at mode, at genloc
-    AddOperator(&tm_at2);//at mode, at genloc
+    AddOperator(&tm_at2);//at mode with index 
+    AddOperator(&tm_at3);//at genloc with index 
+    
     AddOperator(&tm_val);//get genloc for intimegenloc 
     AddOperator(&tm_inst);//get instant for intimegenloc 
     AddOperator(&tm_contain);//genmo contain a transportation mode 
+    AddOperator(&tm_contain2);//genmo contain a reference int 
     AddOperator(&tm_duration);//return minutes of a periods 
     AddOperator(&tm_initial);//initial intime genloc for genmo 
     AddOperator(&tm_final);//initial intime genloc for genmo 
@@ -23438,6 +23429,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_genloc);// int x real x real to a genloc 
     AddOperator(&modeval);//get an integer for a genmo denoting modes 
     AddOperator(&genmoindex);// build an index on units 
+
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -23453,6 +23445,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_atinstant);//get intimegenloc for genmo x instant 
     AddOperator(&tm_atperiods);//get for genmo x periods  
     AddOperator(&mapgenmo);//map genmo (reference to a mpoint) to a mp
+
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
