@@ -829,6 +829,12 @@ Signature: genmo x mreal x string -> genmo
 Example  : query no_components(tm_at2([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),"Indoor"));
 Result   : 1
 
+Operator : tm_at3
+Number   : 1
+Signature: genmo x mreal x genloc x string -> genmo
+Example  : query no_components(tm_at3([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),tm_genloc(2.0, -1.0, -1.0), "Indoor"));
+Result   : 0
+
 
 Operator : val
 Number   : 1
@@ -848,6 +854,13 @@ Number   : 1
 Signature: genmo x string -> bool
 Example  : query [const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))] contains "Indoor";
 Result   : TRUE
+
+Operator : tmcontains
+Number   : 1
+Signature: genmo x mreal x int x string -> bool
+Example  : query tmcontains([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]), 123, "Indoor")
+Result   : FALSE
+
 
 Operator : tm_duration
 Number   : 1

@@ -1401,7 +1401,7 @@ class IndoorInfra{
   Relation* BuildingType_Rel(){return building_type;}
   R_Tree<2,TupleId>* BuildingRTree() {return rtree_building;}
   void GetPathIDFromTypeID(int reg_id, vector<int>& path_id_list);
-  void GetTypeFromRegId(int reg_id, int& type, int& build_id);
+  void GetTypeFromRegId(int reg_id, int& type, int& build_id, Rectangle<2>&);
   int Get_Digit_Build_ID(){return digit_build_id;}
 
   private:

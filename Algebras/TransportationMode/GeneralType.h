@@ -110,12 +110,12 @@ inline string GetTMStr(int tm)
 symbols for data type. to make it more readable, I use string insteand of enum
 
 */ 
-enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_MPPTN, IF_BUSNETWORK,
+enum InfraSymbol{IF_BUSSTOP = 0, IF_BUSROUTE, IF_BUS, IF_BUSNETWORK,
 IF_GROOM, IF_REGION, IF_LINE, IF_FREESPACE, IF_METRONETWORK, IF_METROSTOP,
 IF_METROROUTE, IF_METRO, IF_INDOOR, IF_TRAINNETWORK, IF_INDOORPATH}; 
 
 const string symbol_type[] = 
-{"BUSSTOP", "BUSROUTE", "MPPTN", "BUSNETWORK", "GROOM", 
+{"BUSSTOP", "BUSROUTE", "BUS", "BUSNETWORK", "GROOM", 
 "REGION", "LINE", "FREESPACE", "METRONETWORK", "METROSTOP", "METROROUTE", 
 "METRO", "INDOOR", "TRAINNETWORK", "INDOORPATH"};
 
@@ -728,31 +728,36 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
       del.isDefined = true;
     }
     static const string BasicType(){return "genmo";}
-    
+
     GenMO(const GenMO& mo);
     void Clear();
     void CopyFrom(const Attribute* right); 
     Attribute* Clone() const; 
     void Add(const UGenLoc& unit); 
+    void Append(const UGenLoc& unit);
     void EndBulkLoad(const bool sort = true, const bool checkvalid = false); 
     void LowRes(GenMO& mo);
     void Trajectory(GenRange* genrange, Space* sp);
-    
+
     void GenMOAt(string tm, GenMO* sub);
     void GenMOAt(string tm, MReal*, GenMO* sub);
+    void GenMOAt(Point* loc, MReal*, GenMO* sub);
     void GenMOAt(GenLoc* genloc, GenMO* sub);
     void GenMOAt(Point* p, GenMO* sub);
-    void AtInstant(Instant& t, Intime<GenLoc>& result); 
+    void GenMOAt(GenLoc* genloc, MReal*, string type, GenMO* sub);
+
+    void AtInstant(Instant& t, Intime<GenLoc>& result);
     void AtPeriods(Periods* peri, GenMO& result); 
     Intime<GenLoc> GetUnitInstant(UGenLoc& unit, Instant& t);
     bool Contain(string tm);
     bool Contain(int refid);
+    bool Contain(MReal* UIndex, int ref_id, string tm);
 
     bool Passes(Region* reg, Space* sp);
     void MapGenMO(MPoint* in, MPoint& res);
     int ModeVal();
     void IndexOnUnits(MReal* res);
-    
+
 };
 
 void GetLine(Point& p1, Point& p2, Line* l);
@@ -1150,6 +1155,10 @@ struct GenMObject{
                    vector<RefBuild> build_id1_list, 
                    vector<RefBuild> build_id2_list, int count,
                    MPoint* mo, GenMO* genmo, Instant& start_time, GenLoc gloc);
+   ////////////map mpoint3d to mpoint /////////////////////////////////
+   void MapMP3DToMP(MPoint* mo, MPoint3D* mp3d, Rectangle<2> build_rect, 
+                    Rectangle<2> build_box2);
+   Point MapMP3D(Rectangle<2>, Rectangle<2>, Point);
 };
 
 /*
@@ -1475,6 +1484,5 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 
 static GslRandomgen gsl_random(true); 
 unsigned long GetRandom(); 
-
 
 #endif

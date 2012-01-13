@@ -155,9 +155,11 @@ operator set_building_type alias SET_BUILDING_TYPE pattern op(_,_,_)
 operator ref_id alias REF_ID pattern op(_)
 operator tm_at alias TM_AT pattern op(_,_)
 operator tm_at2 alias TM_AT2 pattern op(_,_,_)
+operator tm_at3 alias TM_AT3 pattern op(_,_,_,_)
 operator val alias VAL pattern op(_)
 operator inst alias INST pattern op(_)
 operator contains alias CONTAINS pattern _ infixop _ 
+operator tmcontains alias TMCONTAINS pattern op(_,_,_,_)
 operator tm_duration alias TM_DURATION pattern op(_,_)
 operator initial alias INITIAL pattern op(_)
 operator final alias FINAL pattern op(_)
@@ -182,6 +184,7 @@ operator getref alias GETREF pattern op(_,_)
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator mapgenmo alias MAPGENMO pattern op(_,_)
+
 
 operator thespace alias THESPACE pattern op(_)
 operator putinfra alias PUTINFRA pattern op(_,_)

@@ -9743,6 +9743,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
               *l_room += p;
             }
          }
+
          /////////end point of path in the room should be equal to door loc////
          Point3D q1;
          iter->second.Get(0, q1);
@@ -9758,7 +9759,7 @@ void IndoorNav::ShortestPath_Length_End2(GenLoc* gloc1, GenLoc* gloc2,
             *l3d += q;
 
             //////////////////add the data is missing in the above////////////
-            if(j == 1){/////////use the data from disk file, has more groom oids
+            if(j == 1){/////use the data from disk file, has more groom oids
               Point3D tmp_p;
               iter_room->second.Get(0, tmp_p);
               *l_room += tmp_p;
@@ -10608,15 +10609,15 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
      }
 
      if(sp_path->Size() == 0){
-/*          if(p1.Distance(p2) < EPSDIST){//the position happens to be the door
-              Line3D* l3d = new Line3D(0);
-              l3d->StartBulkLoad();
-              Point3D q(true, p1.GetX(), p1.GetY(), h);
-              *l3d += q;
-              l3d->EndBulkLoad();
-              candidate_path.push_back(*l3d); 
-              delete l3d; 
-            }*/
+        if(p1.Distance(p2) < EPSDIST){//the position happens to be the door
+            Line3D* l3d = new Line3D(0);
+            l3d->StartBulkLoad();
+            Point3D q(true, p1.GetX(), p1.GetY(), h);
+            *l3d += q;
+            l3d->EndBulkLoad();
+            candidate_path.push_back(*l3d); 
+            delete l3d; 
+        }
         delete sp_path;
         continue;
      }
@@ -10630,7 +10631,6 @@ bool IndoorNav::ConnectStartLoc(GenLoc* gloc,  vector<int> tid_list,
 
       delete sl;
       delete sp_path;
-
 
 
 //      cout<<mhs[0].from.Distance(p1)<<" "
@@ -14542,7 +14542,8 @@ given a rectangle id, it returns the building type
 
 */
 
-void IndoorInfra::GetTypeFromRegId(int reg_id, int& type, int& build_id)
+void IndoorInfra::GetTypeFromRegId(int reg_id, int& type, int& build_id, 
+                                   Rectangle<2>& build_rect)
 {
     CcInt* search_id = new CcInt(true, reg_id);
     BTreeIterator* btree_iter = btree_reg_id2->ExactMatch(search_id);
@@ -14551,6 +14552,7 @@ void IndoorInfra::GetTypeFromRegId(int reg_id, int& type, int& build_id)
       int regid = ((CcInt*)tuple->GetAttribute(INDOORIF_REG_ID_2))->GetIntval();
       type = ((CcInt*)tuple->GetAttribute(INDOORIF_BUILD_TYPE))->GetIntval();
       build_id = ((CcInt*)tuple->GetAttribute(INDOORIF_BUILD_ID))->GetIntval();
+      build_rect = *((Rectangle<2>*)tuple->GetAttribute(INDOORIF_GEODATA));
       assert(reg_id == regid);
       tuple->DeleteIfAllowed();
     }

@@ -1065,4 +1065,10 @@ Word ClonePavement( const ListExpr typeInfo, const Word& w );
 int SizeOfPavement(); 
 bool CheckPavement( ListExpr type, ListExpr& errorInfo ); 
 
+/*
+check whether the maximum distance between two lines is smaller than d
+if it is smaller than d, return true; otherwise false
+
+*/
+bool SmallerD(Line* l1, Line* l2, float d);
 #endif

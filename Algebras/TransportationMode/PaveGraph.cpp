@@ -9303,7 +9303,7 @@ void MaxRect::GetRectangle1(int attr1, int attr2, Relation* building_para)
 
           if(ValidRegion(&ct->triangles[j])){//coordinates should be positive 
 
-            Rectangle<2> rect_box;
+            Rectangle<2> rect_box(false);
             
 //             if(type == "Berlin"){
 //               rect_box = GetMaxRect(&ct->triangles[j]); 
@@ -9347,8 +9347,8 @@ void MaxRect::GetRectangle1(int attr1, int attr2, Relation* building_para)
             ct->triangles[j].Translate(tran_x, tran_y, *r); 
             assert(ValidRegion(r));
 
-            Rectangle<2> rect_box;
-            
+            Rectangle<2> rect_box(false);
+
 //             if(type == "Berlin"){
 //                 rect_box = GetMaxRect(r);
 //             }else if(type == "Houston"){
@@ -11614,6 +11614,38 @@ Relation* Pavement::GetPaveRel()
   else return NULL;
 }
 
+/*
+check the maximum distance between two lines, if the value is larger than d
+return false
 
+*/
 
+bool SmallerD(Line* l1, Line* l2, float d)
+{
+  if(l1->IsEmpty() || l2->IsEmpty()){
+    cout<<"line empty"<<endl;
+    return false;
+  }
 
+  assert( l1->IsOrdered() );
+  assert( l2->IsOrdered() );
+  HalfSegment hs1, hs2;
+  for( int i = 0; i < l1->Size(); ++i ){
+    l1->Get( i, hs1 );
+    Point lp1 = hs1.GetLeftPoint();
+    Point rp1 = hs1.GetRightPoint();
+    if(hs1.IsLeftDomPoint() == false) continue;
+      for( int j = 0; j < l2->Size(); ++j ) {
+        l2->Get( j, hs2 );
+        if(hs2.IsLeftDomPoint() == false) continue;
+        Point lp2 = hs2.GetLeftPoint();
+        Point rp2 = hs2.GetRightPoint();
+        if(lp1.Distance(lp2) > d) return false;
+        if(lp1.Distance(rp2) > d) return false;
+        if(rp1.Distance(lp2) > d) return false;
+        if(rp1.Distance(rp2) > d) return false;
+      }
+  }
+
+  return true;
+}

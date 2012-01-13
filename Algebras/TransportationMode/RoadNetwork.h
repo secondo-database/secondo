@@ -258,16 +258,16 @@ struct RoadNav{
   TupleType* resulttype;
   
   RoadNav(){count = 0; resulttype = NULL;}
-  
+
 
   ~RoadNav(){if(resulttype != NULL) delete resulttype;}
-  
+
   void GenerateRoadLoc(Network* rn, int no, vector<GPoint>& gp_list, 
                                  vector<Point>& gp_loc_list);
   void ShortestPath(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
-  
+
   void ShortestPathSub(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
-  
+
   void ShortestPath2(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
   void ShortestPathSub2(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
   void DFTraverse(Network* rn, R_Tree<2,TupleId>* rtree, 
@@ -276,9 +276,8 @@ struct RoadNav{
 
   void ShortestPathSub3(GPoint*, GPoint*, RoadGraph*, Network*, GLine* res);
   void GetAdjNodeRG(RoadGraph* rg, int nodeid);
-  
-  
-  
+
+
 };
 
 #define LOOP_PRINT1(s) for(unsigned int i = 0; i < s.size();i++){ \
