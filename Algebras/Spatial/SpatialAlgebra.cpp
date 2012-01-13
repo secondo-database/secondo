@@ -3972,6 +3972,37 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp,
     Xr = hs.GetRightPoint().GetX(),
     Yr = hs.GetRightPoint().GetY();
 
+    // Check for same endpoints
+    if (AlmostEqual(lp,hs.GetLeftPoint())){
+      if (!hs.Contains(rp) && !this->Contains(hs.GetRightPoint())){
+        resp = lp;
+        return true;
+      } else {
+        return false; //overlapping halfsegments
+      }
+    } else if (AlmostEqual(rp,hs.GetLeftPoint())){
+      if (!hs.Contains(lp) && !this->Contains(hs.GetRightPoint())){
+        resp = rp;
+        return true;
+      } else {
+        return false; //overlapping halfsegments
+      }
+    } else if (AlmostEqual(lp,hs.GetRightPoint())){
+      if (!hs.Contains(rp) && !this->Contains(hs.GetLeftPoint())){
+        resp = lp;
+        return true;
+      } else {
+        return false; //overlapping halfsegments
+      }
+    } else if (AlmostEqual(rp,hs.GetRightPoint())){
+        if (!hs.Contains(lp) && !this->Contains(hs.GetLeftPoint())){
+          resp = rp;
+          return true;
+        } else {
+          return false; //overlapping halfsegments
+        }
+    }
+
     if( AlmostEqual( xl, xr ) &&
       AlmostEqual( Xl, Xr ) ){
       // both segments are vertical
@@ -7239,16 +7270,14 @@ bool SimpleLine::AtPosition( double pos,
                              bool startsSmaller,
                              Point& p,
                              const Geoid* geoid /* = 0 */) const {
-  assert( ! geoid || geoid->IsDefined() );
-  if(IsEmpty() || (geoid && !geoid->IsDefined()) ){ // subsumes !IsDefined()
-    p.SetDefined( false );
+  if (IsDefined()){
+    if(startSmaller == startsSmaller)
+      return AtPosition(pos, p, geoid);
+    else
+      return AtPosition(length - pos,p,geoid);
+  }
+  else
     return false;
-  }
-  if(startSmaller == startsSmaller) return AtPosition(pos, p, geoid);
-  else {
-    pos = length - pos;
-    return AtPosition(pos,p,geoid);
-  }
 }
 
 /*
@@ -7258,109 +7287,15 @@ bool SimpleLine::AtPosition( double pos,
 
 bool SimpleLine::AtPoint(const Point& p, const bool startsSmaller,
                          double& result,
-                         const Geoid* geoid /*= 0*/) const
-{
-  assert( !IsEmpty() );
-  assert( p.IsDefined() );
-  if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
-    return false;
-  }
-    if(geoid){
-      cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-      <<endl;
-      assert(false); // TODO: Implement spherical geometry case.
-    }
-    bool found = false;
-    HalfSegment hs;
-    int pos;
-    if( Find( p, pos ) ) {
-      found = true;
-      segments.Get( pos, &hs );
-    } else {
-      if( pos < Size() ) {
-        for( ; pos >= 0; pos-- ) {
-          segments.Get( pos, hs );
-          if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
-            found = true;
-            break;
-          }
-        }
-      }
-    }
-    if( found ){
-      LRS lrs;
-      lrsArray.Get( hs.attr.edgeno, lrs );
-      segments.Get( lrs.hsPos, &hs );
-      result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
-      if(!startsSmaller )result = length - result;
-      if( AlmostEqual( result, 0.0 ) ){
-        result = 0;
-      } else if( AlmostEqual( result, length ) ){
-        result = length;
-      }
-      assert( result >= 0.0 && result <= length );
-      return true;
-    }
-  return false;
+                         const Geoid* geoid /*= 0*/) const{
+  return AtPoint(p, startsSmaller, 0.0, result, geoid);
 }
 
 bool SimpleLine::AtPoint( const Point& p,
                           double& result,
                           double tolerance /*=0.0*/,
                           const Geoid* geoid /*=0*/) const {
-  assert( !IsEmpty() );
-  assert( p.IsDefined() );
-  if( IsEmpty() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
-    return false;
-  }
-  if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-    <<endl;
-    assert(false); // TODO: Implement spherical geometry case.
-  }
-  bool found = false;
-  HalfSegment hs;
-  int pos;
-  if( Find( p, pos ) ) {
-    found = true;
-    segments.Get( pos, &hs );
-  } else {
-    if( pos < Size() ) {
-      for( ; pos >= 0; pos-- ) {
-        segments.Get( pos, hs );
-        if( hs.IsLeftDomPoint() && hs.Contains( p, geoid ) ) {
-          found = true;
-          break;
-        }
-      }
-    }
-  }
-  if( found ){
-    LRS lrs;
-    lrsArray.Get( hs.attr.edgeno, lrs );
-    segments.Get( lrs.hsPos, &hs );
-    result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
-
-    if(!this->startSmaller )result = length - result;
-
-    if (tolerance != 0.0)
-    {
-      if( AlmostEqualAbsolute( result, 0.0, tolerance ) ) result = 0;
-      else
-        if(AlmostEqualAbsolute( result, length, tolerance)) result = length;
-    }
-    else
-    {
-      if (AlmostEqual(result,0.0)) result = 0.0;
-      else
-        if (AlmostEqual(result, length)) result = length;
-    }
-
-    assert( result >= 0.0 && result <= length );
-
-    return true;
-  }
-  return false;
+  return AtPoint(p,this->startSmaller, tolerance, result, geoid);
 }
 
 bool SimpleLine::AtPoint( const Point& p,
@@ -7399,7 +7334,6 @@ bool SimpleLine::AtPoint( const Point& p,
     lrsArray.Get( hs.attr.edgeno, lrs );
     segments.Get( lrs.hsPos, &hs );
     result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
-
 
     if(!startsSmaller) result = length - result;
 
