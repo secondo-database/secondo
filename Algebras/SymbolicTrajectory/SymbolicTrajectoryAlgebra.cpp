@@ -2435,12 +2435,12 @@ class SymbolicTrajectoryAlgebra : public Algebra
     ValueMapping matchesFuns[] = { matchesFun_MT, matchesFun_MP, 0 };    
     AddOperator( matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap );
     
-    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun, consumeMLabelsTypeMap );     
+//    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun, consumeMLabelsTypeMap );     
     
-    ValueMapping applyFuns[] = { applyFun_MT, applyFun_MP, 0 }; 
-    AddOperator( applyInfo(), applyFuns, applySelect, applyTypeMap );
+//    ValueMapping applyFuns[] = { applyFun_MT, applyFun_MP, 0 }; 
+//    AddOperator( applyInfo(), applyFuns, applySelect, applyTypeMap );
         
-    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );    
+//    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );    
     
     }
     ~SymbolicTrajectoryAlgebra() {}
