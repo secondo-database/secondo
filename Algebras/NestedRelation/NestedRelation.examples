@@ -1,0 +1,54 @@
+Database : literature
+Restore  : NO
+
+Operator : feed
+Number   : 1
+Signature: nrel(tuple(x)) -> stream(tuple(x))
+Example  : query Papers feed filter[.no_authors > 1] count
+Result   : 150966
+
+Operator : consume 
+Number   : 1
+Signature: (stream(tuple(x)) -> nrel(tuple(x))
+Example  : query Authors feed filter[.name contains "A"] consume
+Result   : 
+
+
+Operator : afeed
+Number   : 1
+Signature: arel(tuple(x)) -> stream(tuple(x))
+Example  : query Authors feed filter [.publications afeed count > 3] count
+Result   : 31623
+
+
+Operator : aconsume
+Number   : 1
+Signature: stream(tuple(x))  -> arel(tuple(x))
+Example  : query Authors feed extend [publications_with_B: .publications afeed filter [.title contains "B"] aconsume] consume
+Result   : 
+
+
+Operator : nest
+Number   : 1
+Signature: stream(tuple(x)) x (attribute_name)* x attribute_name -> stream(tuple(y))
+Example  : query Publishers feed nest [no_publications; details] count 
+Result   : 54
+
+
+Operator : unnest
+Number   : 1
+Signature: stream(tuple(x)) x attribute-> stream(tuple(y))
+Example  : query Publishers feed unnest [publications] count
+Result   : 1319
+
+Operator : rename
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
+Example  : query publishers feed rename[t1] consume
+Result   : 
+         
+Operator : extract
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query publishers feed extract [publications]
+Result   :
