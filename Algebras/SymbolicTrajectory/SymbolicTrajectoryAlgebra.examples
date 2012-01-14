@@ -17,25 +17,7 @@ Operator : stjpattern
 Number   : 3
 Signature: text -> pattern
 Example  : query '(_ _)' stjpattern
-Result   : (pattern ( '(_ _)' ))
-
-Operator : apply
-Number   : 4
-Signature: mlabel x rule -> stream(mlabel)
-Example  : query [const mlabel value (( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ))] apply rule('(_ _)') consumeMLabels
-Result   : (mlabel ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ) ) )
-
-Operator : apply
-Number   : 5
-Signature: mlabel x text -> stream(mlabel)
-Example  : query [const mlabel value (( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ))] apply '(_ _)' consumeMLabels
-Result   : (mlabel ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ) ) )
-
-Operator : consumeMLabels
-Number   : 6
-Signature: stream(mlabel) -> mlabel
-Example  : query [const mlabel value (( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ))] apply '(_ _)' consumeMLabels
-Result   : (mlabel ( ( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ) ) )
+Result   : (pattern <text>(_ _)</text--->)
 
 
 
