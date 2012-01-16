@@ -210,6 +210,13 @@ Returns the bounding box that contains both this and the rectangle ~r~.
                                  const Geoid* geoid=0 ) const;
 
 /*
+Extends this rectangle to contain both, this rectangle and the argument 
+(sets this rectangle to be the union of this and r).
+
+*/
+   inline void Extend(const Rectangle<dim>&r, const Geoid* geoid=0);
+
+/*
 Returns the Euclidean distance (~geoid~ = NULL) resp. spherical distance between
 two rectangles.
 
@@ -708,6 +715,31 @@ inline Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r,
   }
   return Rectangle<dim>( true, auxmin, auxmax );
 }
+
+template<unsigned dim>
+inline void Rectangle<dim>::Extend(const Rectangle<dim>& r,
+                                   const Geoid* geoid /*=0*/ ){
+
+   assert(geoid==0); // not implemented yet
+   if(!this->del.isDefined){
+       if(!r.IsDefined()){
+         return;
+       } else {
+         *this = r;
+         return;
+       }
+   }
+   if(!r.IsDefined()){
+     return;
+   }
+   // both rectangle are defined
+   for(int i=0;i<dim;i++){
+       min[i] = MIN(min[i],r.min[i]);
+       max[i] = MAX(max[i],r.max[i]);
+   }
+}
+
+
 
 /*
 Translates the rectangle given the translate vector ~t~.
