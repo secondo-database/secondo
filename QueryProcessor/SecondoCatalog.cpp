@@ -2209,7 +2209,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
 
     string fileName = "";
     // dummy initialization! will be overwritten later
-    ExampleReader examples(fileName, "");
+    ExampleWriter examples(fileName, "");
     string bdir = Environment::getInstance().getString("SECONDO_BUILD_DIR");
 ;
 
@@ -2229,7 +2229,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       }
 
       //static int ctr=0;
-      examples = ExampleReader(fileName, algName);
+      examples = ExampleWriter(fileName, algName);
       if (fileExists) {
         parseOk = examples.parse();
         if (!parseOk) {

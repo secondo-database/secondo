@@ -25,8 +25,24 @@ November 2006, M. Spiekermann. Start of implementation.
 Dec 2006, M. Spiekermann. Implementation Finished. The example reader can now
 handle multiple examples per operator and supports alias names.
 
-Jan 2007, M. Spiekermann. New result tokens file\_platform, bug and crashes added.
-Moreover the parser reports more kind of errors. 
+Jan 2007, M. Spiekermann. New result tokens file\_platform, bug and 
+crashes added.
+Moreover the parser reports more kind of errors.
+
+Jan 2012, T. Achmann. New result token Sequential added. This allows
+Testrunner to perform the test in the .exmples files to be processed
+sequentially( e.g if some tests need to be performed before others)
+
+Jan 2012, T.Achmann. Split ExampleReader class into two classes:
+ExampleReader - parses .example files for TestRunner
+ExampleWriter - creates .example files in secondo/bin/tmp dir
+
+1 Overview
+
+This file contains datastructures to store data from .example files
+of an algebra
+
+2 Includes and defines
 
 */
 
@@ -43,6 +59,15 @@ Moreover the parser reports more kind of errors.
 #include "LogMsg.h"
 
 using namespace std;
+
+/*
+3 struct ExampleInfo
+
+This datastructure stores
+information provided in an example
+of an Algebra
+
+*/  
 
 
 struct ExampleInfo {
@@ -103,10 +128,18 @@ struct ExampleInfo {
 }; 
 
 
+/*
+4 class ExampleReader
+
+This storage class is reading the Data
+from the .examples file of an Algebra.
+It is used in the TestRunner application
+
+*/  
 
 class ExampleReader {
 
-  typedef enum { Database, Restore, Operator, 
+  typedef enum { Error, Sequential, Database, Restore, Operator, 
                  Number, Signature, Example, Result, Remark,Tolerance} Token; 
 
   bool debug;
@@ -122,12 +155,25 @@ class ExampleReader {
   Token expected;
   map<Token, string> tokendef; 
 
-  public:
+  bool useSequentialOrder;
+
+public:
   typedef list<ExampleInfo*> ExampleList; 
 
-  private:
+protected:
+  typedef enum { EX_NONE, EX_READER, EX_WRITER } EType;
+  EType m_type;
   typedef map<string, ExampleList> ExampleMap; 
+
   ExampleMap examples;
+
+  // no default nor copy
+  // using auto-generated operator= !
+  ExampleReader() { assert(0); m_type = EX_NONE; }
+  ExampleReader(const ExampleReader&) {assert(0); m_type = EX_NONE; }
+
+
+private:
 
   typedef ExampleMap::const_iterator iterator;
 
@@ -231,8 +277,9 @@ a*bc* with single characters a,b and c.
   }
 
   public:
+
   ExampleReader(const string& file, const string& algebra="") 
-    : expected(Database) 
+    : expected(Sequential) 
   {
     
     lineCtr = 0;
@@ -244,6 +291,8 @@ a*bc* with single characters a,b and c.
     restore=false;
 
     debug = RTFlag::isActive("SI:ExampleParser:Debug");
+    tokendef[Error]  = "Error";
+    tokendef[Sequential]  = "Sequential";
     tokendef[Database]  = "Database";
     tokendef[Restore]   = "Restore";
     tokendef[Operator]  = "Operator";
@@ -256,9 +305,14 @@ a*bc* with single characters a,b and c.
 
     examples.clear();
     scan=begin();
+
+    m_type = EX_READER;
+    useSequentialOrder = false;
   }
+
   ~ExampleReader() {
 
+    assert(m_type != EX_NONE);
     ExampleMap::iterator it = examples.begin();
     while (it != examples.end() ) 
     {
@@ -274,11 +328,15 @@ a*bc* with single characters a,b and c.
     } 
   }
 
-  
+  // get-er
+  const string& getAlgName() const { return algName; }
+  const string& getFileName() const { return fileName; }
+  EType getType() const { return m_type; }
 
-
+  // methods
   bool parse() { 
 
+    assert(m_type != EX_NONE);
 
     CFile stream(fileName);
     if (!stream.open()) {;
@@ -289,6 +347,9 @@ a*bc* with single characters a,b and c.
     ExampleInfo* info = 0;
     string key="";
     
+    if (useSequentialOrder)
+      key = "seq";
+
     while (!stream.eof() && !stream.fail()) {
 
       // read next input string;
@@ -309,10 +370,30 @@ a*bc* with single characters a,b and c.
       while(switchAgain) {
         switchAgain=false;
       switch (expected) {
-  
+      case Sequential:
+        {
+          if (!match(Sequential, false))
+            {
+              // no 'Sequential' token 
+              switchAgain = true;
+            }
+          else if (getType() == EX_READER)
+            {
+
+              if (hasSuffix(lineRest, "Yes") ||
+                  hasSuffix(lineRest, "YES") ||
+                  hasSuffix(lineRest, "yes") )
+                {
+                  useSequentialOrder = true; 
+                }
+            }
+          
+          expected = Database;
+          break;
+        }
       case Database: { 
         
-          if (!match(Database))
+        if (!match(Database))
             return false;
           expected = Restore;
           database = lineRest;
@@ -347,9 +428,13 @@ a*bc* with single characters a,b and c.
             info->aliasName = trim( lineRest.substr(pos+6) );
           else 
             pos = lineRest.length();
+          
+          const string op_name = trim( lineRest.substr(0,pos) );
 
-          key = trim( lineRest.substr(0,pos) );
-          info->opName = key;
+          if (!useSequentialOrder)
+            key = op_name;
+
+          info->opName = op_name;
           examples[key].push_back(info);
           break;
        }
@@ -475,53 +560,6 @@ a*bc* with single characters a,b and c.
 Get first example of the example list
 
 */
-  bool find(const string& op, ExampleInfo& ex) const
-  {
-     ExampleMap::const_iterator it = examples.find(op);
-     if (it == examples.end())
-       return false;
-
-     ex = *it->second.front();
-     return true;
-  } 
-
-  const ExampleList& find(const string& op) const
-  {
-     ExampleMap::const_iterator it = examples.find(op);
-     assert( it != examples.end() );
-     return it->second;
-  } 
-
-  void add(const string& op, const int nr, ExampleInfo& ex)
-  {
-     stringstream key;
-     key << op << algName << nr;
-     ExampleInfo* info = new ExampleInfo(ex);
-     examples[key.str()].push_back(info);
-  } 
-
-  bool write() {
-
-    CFile out(fileName);
-    if ( !out.overwrite() ) {
-      cerr << "Opening " << out.fileName << " failed!" << endl;
-      return false;
-    } 
-    
-    out.ios() << "Database: berlintest" << endl
-              << "Restore : No" << endl << endl;
-
-    ExampleInfo ex; 
-    ostream& os = out.ios();
-    initScan();
-    while(next(ex)) {
-
-      ex.print(os);
-      os << endl << endl;  
-    } 
-
-    return out.close();
-  } 
 
   string getDB() { return database; } 
 
@@ -607,6 +645,82 @@ over all examples
 
 };
 
+/*
+5 class ExampleWriter
 
+This storage class is used to create an example 
+of an Algebra by reading the data from the y
+SecondoCatalog and then writing it into the 
+secondo/bin/tmp directory
+
+*/  
+class ExampleWriter : public ExampleReader
+{ 
+private:
+  // no default nor copy and paste
+  ExampleWriter(const ExampleWriter& ew):ExampleReader(ew) 
+        { assert(0); }
+
+public:
+  ExampleWriter(const string& file, const string& algebra="") 
+    : ExampleReader(file, algebra) 
+  {
+    m_type = EX_WRITER;
+  }
+ 
+  virtual ~ExampleWriter() {}
+
+  ExampleWriter &operator= (const ExampleWriter& ew) 
+  { ExampleReader::operator=(ew); return *this; }
+
+    bool find(const string& op, ExampleInfo& ex) const
+  {
+    ExampleReader::ExampleMap::const_iterator it = examples.find(op);
+     if (it == examples.end())
+       return false;
+
+     ex = *it->second.front();
+     return true;
+  } 
+
+  const ExampleList& find(const string& op) const
+  {
+     ExampleReader::ExampleMap::const_iterator it = examples.find(op);
+     assert( it != examples.end() );
+     return it->second;
+  } 
+
+  void add(const string& op, const int nr, ExampleInfo& ex)
+  {
+     stringstream key;
+     key << op << getAlgName() << nr;
+     ExampleInfo* info = new ExampleInfo(ex);
+     examples[key.str()].push_back(info);
+  } 
+
+  bool write() {
+
+    CFile out(getFileName());
+    if ( !out.overwrite() ) {
+      cerr << "Opening " << out.fileName << " failed!" << endl;
+      return false;
+    } 
+
+    out.ios() << "Database: berlintest" << endl
+              << "Restore : No" << endl << endl;
+
+    ExampleInfo ex; 
+    ostream& os = out.ios();
+    initScan();
+    while(next(ex)) {
+
+      ex.print(os);
+      os << endl << endl;  
+    } 
+
+    return out.close();
+  } 
+
+};
 
 #endif
