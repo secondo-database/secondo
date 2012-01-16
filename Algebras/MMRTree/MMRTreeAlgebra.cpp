@@ -30,6 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MMRTreeAlgebra.h"
 #include "MMRTree.h"
+
+//#include "MMRStarTree.h"
+
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "FTextAlgebra.h"
@@ -914,7 +917,8 @@ class ItSpatialJoinInfo{
          delete bufferIt;
       }
       if(tuples2){
-         delete tuples2;
+         tuples2->DeleteAndTruncate();
+         //delete tuples2;
       } 
       if(treeIt){
         delete treeIt;
