@@ -2614,7 +2614,6 @@ void Relation::Delete()
 
 void Relation::DeleteAndTruncate()
 {
-  Flob::dropFile(tupleFile.GetFileId(), tupleFile.IsTemp());
   tupleFile.Remove();
   tupleFile.Drop();
   if(relDesc.lobFileId){
@@ -2622,6 +2621,7 @@ void Relation::DeleteAndTruncate()
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
     rf.Close();
+    rf.Remove();
     rf.Drop();
   }
 //  else {
