@@ -66,12 +66,16 @@ const int MAX_COPYTIMES = 5;
 const size_t MAX_OPENFILE_NUM = 100;
 const string dbLoc = "<READ DB/>";
 
+//Uses Function from ArrayAlgebra
+void extractIds(const ListExpr,int&,int&);
 string
 tranStr(const string& s, const string& from, const string& to);
 string
 getLocalFilePath(string path, const string fileName,
             string suffix, bool appendFileName = true);
 string addFileIndex(string fileName, int index);
+ListExpr AntiNumericType(ListExpr numericType);
+bool isFListDescription(const NList& typeInfo);
 
 /*
 1.1 deLocalInfo Class
@@ -749,13 +753,12 @@ public:
       clusterInfo *ci,NList fileLocList,
       size_t dupTime,
       bool isInDB = false,
-      bool isDistributed = false,
-      bool isAvailable = false);
+      bool isDistributed = false);
   fList(fList& rhg);
   ~fList()
   {
-    if (isAvailable)
-      delete currentCluster;
+    if (interCluster)
+      delete interCluster;
   }
 
   static Word In(const ListExpr typeInfo,
@@ -786,56 +789,61 @@ public:
   static void Delete(const ListExpr typeInfo, Word& w);
   static Word Clone(const ListExpr typeInfo,
                     const Word& w);
-  static bool CheckFList(ListExpr type, ListExpr& errorInfo)
-  {
-    return (nl->IsEqual(type, "flist"));
-  }
   static const string BasicType(){
     return "flist";
   }
 
-
   void appendFileLocList(NList elem);
-  void inline setDuplicated() {
-    isDistributed = true;
+  void inline setDistributed() {
+    available = verifyLocList();
+    if (available){
+      isDistributed = true;
+    }
   }
 
   //Auxiliary methods
   int SizeOfObj();
-  inline bool isOK() { return isAvailable; }
+  inline bool isAvailable() { return available; }
+  inline bool isCollectable(NList currentCluster)
+  {
+    if (available && isDistributed && (!inDB)){
+      return interCluster->covers(currentCluster);
+    }
 
+    return false;
+  }
   size_t getPartitionFileLoc(size_t row, vector<string>& locations);
   NList getColumnList(size_t row);
 
   inline string getObjName(){ return objName; }
-  inline int getNodesNum()  { return currentCluster->getClusterSize(); }
+  inline int getNodesNum()  { return interCluster->getClusterSize(); }
   inline int getMtxRowNum() { return mrNum; }
   inline int getMtxColNum() { return mcNum; }
   inline int getDupTimes() { return dupTimes; }
   inline NList getTypeList() { return objectType; }
   inline NList getNodeList() {
-    return currentCluster->toNestedList();
+    return interCluster->toNestedList();
   }
   inline NList getLocList() { return fileLocList; }
-
+  inline bool describeDatabaseObjects() { return inDB; }
 
 private:
   fList() {}
 
   string objName;
   NList objectType;
-  clusterInfo *currentCluster;
+  clusterInfo *interCluster;
 
   NList fileLocList;
   size_t dupTimes; // duplicate times
   bool inDB; //distributed objects are kept in Secondo databases
-  bool isAvailable;
+  bool available;
   size_t  mrNum, // matrix row number
           mcNum; // matrix column number
   bool isDistributed;
 
   bool setLocList(NList fllist);
-  void verifyLocList();
+  bool verifyLocList();
 
   friend class ConstructorFunctions<fList>;
 };

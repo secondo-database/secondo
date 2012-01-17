@@ -3258,19 +3258,15 @@ struct DisplayFileList : DisplayFunction {
       cout << Symbol::UNDEFINED();
     }
     else {
-
       string objName = nl->StringValue(nl->First(value));
-      ListExpr objType = nl->Second(value);
-      ListExpr nodeList = nl->Third(value);
-      ListExpr locList = nl->Fourth(value);
-      size_t dupTimes = nl->IntValue(nl->Fifth(value));
-      bool inDB = nl->BoolValue(nl->Sixth(value));
-      bool isDistributed = nl->BoolValue(nl->Nth(7, value));
+      ListExpr nodeList = nl->Second(value);
+      ListExpr locList = nl->Third(value);
+      size_t dupTimes = nl->IntValue(nl->Fourth(value));
+      bool inDB = nl->BoolValue(nl->Fifth(value));
+      bool isDistributed = nl->BoolValue(nl->Sixth(value));
 
       cout << "Name : " << objName << endl;
-      string typeStr;
-      nl->WriteToString(typeStr, objType);
-      cout << "Type : " << typeStr << endl;
+      cout << "Type : " << nl->ToString(type) << endl;
 
       int nlLen = nl->ListLength(nodeList);
       cout << "Cluster with total " << nlLen << " nodes.\n";

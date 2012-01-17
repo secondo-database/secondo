@@ -69,6 +69,7 @@ but includes tuples of different schemes.
 #include "FileSystem.h"
 #include "StringUtils.h"
 #include "Symbols.h"
+#include "Application.h"
 
 using namespace std;
 
@@ -3337,7 +3338,6 @@ x (map stream(tuple(T1)) stream(tuple(T2) stream(tuple(T1 T2)))))
 -> stream(tuple((MIndex int)(PIndex int)))
 ----
 
-
 */
 
 struct HdpJoinInfo : OperatorInfo {
@@ -3387,7 +3387,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
       "ERROR! Infeasible evaluation in TM for attribute ";
 
   NList l(args);
-  bool dre = false;  // Dataloc Relation Exist
+  bool dre = true;  // Dataloc Relation Exist
   if (l.length() != 8)
     return l.typeError(lengErr);
 
@@ -3432,6 +3432,7 @@ ListExpr hdpJoinTypeMap(ListExpr args)
     return l.typeError(err1 + " resultName");
   string resultName = rnList.str();
 
+  // Check for the data location
   NList drList = l.elem(7).first();
   if (!drList.isEmpty())
   {
@@ -4447,31 +4448,35 @@ If data are distributed as Secondo objects, then this value must be 1.
 
   * Distributed. A boolean used to indicate whether data are distributed.
 
+The *Distributed* variable only can be set by operators like ~spread~
+which create a flist data, together with data files.
+When a flist is undistributed, then it cannot be read data from it,
+like what the operator ~collect~ does.
+
+
+
 */
 fList::fList(string _on, NList _tl, clusterInfo* _ci,
-    NList _fll, size_t _dp, bool _idb, bool _idd, bool _ia):
+    NList _fll, size_t _dp, bool _idb, bool _idd):
     objName(_on), objectType(_tl),
-    currentCluster(_ci),
+    interCluster(new clusterInfo(*_ci)),
     fileLocList(_fll),
     dupTimes(_dp),
     inDB(_idb),
-    isAvailable(_ia),
     mrNum(0), mcNum(-1),
     isDistributed(_idd)
 {
-  if (isAvailable){
-    verifyLocList();
-  }
+  available = verifyLocList();
 }
 
 fList::fList(fList& rhg):
     objName(rhg.getObjName()),
     objectType(rhg.getTypeList()),
-    currentCluster( new clusterInfo(*rhg.currentCluster)),
+    interCluster(new clusterInfo(*rhg.interCluster)),
     fileLocList(rhg.getLocList()),
     dupTimes(rhg.getDupTimes()),
     inDB(rhg.inDB),
-    isAvailable(rhg.isAvailable),
+    available(rhg.available),
     mrNum(rhg.getMtxRowNum()),
     mcNum(rhg.getMtxColNum()),
     isDistributed(rhg.isDistributed)
@@ -4577,6 +4582,19 @@ distributed on a cluster with 2 slaves.
 The third row is an empty row, it's column list is empty,
 since there is no partition files produced for this row.
 
+Update at 01/13/12
+
+Since ~flist~ describes the distribution of tuples,
+the type of a flist should be changed from simply flist
+to flist(tuple(....)).
+At the same time, there is no necessary to indicate an exist
+object or type file anymore, since the type is given by users.
+The anonymous of flist objects are checked by comparing the
+type files if they exist.
+The type file keeps the schema as tuple relation,
+since it may be required by file-relevant operators.
+
+
 
 */
 Word fList::In(const ListExpr typeInfo, const ListExpr instance,
@@ -4584,8 +4602,8 @@ Word fList::In(const ListExpr typeInfo, const ListExpr instance,
 {
   Word result = SetWord(Address(0));
   string typeErr = "expect "
-      "(objectName [typeList] [nodesList] fileLocList "
-      "dupTimes isInDB [isDistributed]).";
+      "(fileName [nodesList] fileLocList "
+      "dupTimes isInDB [isDistributed]) ";
   string flocErr = "incorrect file location list, "
       "refer to source document.";
   clusterInfo *ci = new clusterInfo();
@@ -4594,24 +4612,23 @@ Word fList::In(const ListExpr typeInfo, const ListExpr instance,
   correct = true;
   NList onl, nll, fml, dpl,idl, dbl;
   string objName = "";
-  ListExpr objType = nl->TheEmptyList();
+  ListExpr objType;
   bool idb = false;
   bool dbd = false;
 
-  if (7 == il.length())
+  if (6 == il.length())
   {
     //Read the complete nestedlist created by the OUT function
     onl = il.first();   //object name
-    objType = il.second().listExpr() ; // object Type
-    nll = il.third();  //node list
-    fml = il.fourth(); //fileloc list
-    dpl = il.fifth();  //duplicate times
-    idl = il.sixth();  //data are kept in databases
-    dbl = il.seventh(); // data are distributed
+    nll = il.second();  //node list
+    fml = il.third();   //fileloc list
+    dpl = il.fourth();  //duplicate times
+    idl = il.fifth();   //data are kept in databases
+    dbl = il.sixth();   // data are distributed
   }
   else if (4 == il.length())
   {
-    //Read the nestedlist set by users manually
+    //Set by users manually
     onl = il.first();
     fml = il.second();
     dpl = il.third();
@@ -4623,87 +4640,68 @@ Word fList::In(const ListExpr typeInfo, const ListExpr instance,
     correct = false;
   }
 
-  //Check Object Type
-  if (correct && onl.isString())
+/*
+It's not allowed to create reduplicated flist inside a cluster,
+hence each time when a new flist is created,
+then it checks whether there exists a homonymous type file
+containing different type list.
+If it does, then abort the creation.
+Or else, create the type file.
+
+*/
+  if (correct)
   {
-    objName = onl.str();
-    if (0 == objName.length())
+    if (!onl.isString())
     {
-      cmsg.inFunError("Object Name cannot be empty.");
+      cmsg.inFunError(typeErr);
       correct = false;
     }
     else
     {
-      //Read the object from current database
-      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-      if (ctlg->IsSystemObject(objName))
+      objType = AntiNumericType(typeInfo);
+      objName = onl.str();
+      if (0 == objName.length())
       {
-        cmsg.inFunError("Cannot distribute a system object.");
+        cmsg.inFunError("Object Name cannot be empty.");
         correct = false;
-      }
-      else if (ctlg->IsObjectName(objName))
-      {
-        // Is a database object
-        if (nl->IsEmpty(objType))
-        {
-          objType = ctlg->GetObjectTypeExpr(objName);
-        }
-        else
-        {
-          ListExpr curObjType = ctlg->GetObjectTypeExpr(objName);
-          if (!nl->Equal(objType, curObjType))
-          {
-            cmsg.inFunError(
-                "Homonymous object exists in the current database.");
-            correct = false;
-          }
-        }
       }
       else
       {
-/*
-If the object doesn't exist in the database,
-then its type file must be kept in master node's parallel directory,
-which is explained in ~ffeed~ and ~fconsume~ operators with more details.
-
-*/
-        string filePath = getLocalFilePath("", objName, "_type");
-        if (FileSystem::FileOrFolderExists(filePath))
+        string typeFilePath = getLocalFilePath("", objName, "_type");
+        if (FileSystem::FileOrFolderExists(typeFilePath))
         {
-          if (!(nl->ReadFromFile(filePath, objType)))
-          {
+          //type file exists, compare the tuple type
+          ListExpr exeType;
+          bool ok = false;
+          if (nl->ReadFromFile(typeFilePath, exeType)){
+            if (listutils::isRelDescription(exeType)){
+              if (nl->Equal(nl->Second(exeType),
+                  nl->Second(objType))){
+                ok = true;
+              }
+            }
+          }
+          if (!ok){
             cmsg.inFunError(
-                "Incorrect nested list in file " + filePath);
+                "Homonymous type file in " + typeFilePath);
             correct = false;
-          }
-        }
-        else if (!nl->IsEmpty(objType))
-        {
-          if (!nl->WriteToFile(filePath, objType))
-          {
-            cmsg.inFunError("Write object Type to file " +
-                filePath + " failed! ");
-            correct = false;
-          }
-          else
-          {
-            cout << "The type file " << filePath
-                << " is created. " << endl;
           }
         }
         else
         {
-          cmsg.inFunError("Object " + objName + " doesn't exist");
-          correct = false;
+          //type file not exists, write the tuple type
+          ListExpr expList = nl->TwoElemList(
+              nl->SymbolAtom(Relation::BasicType()),
+              nl->Second(objType));
+          if (!nl->WriteToFile(typeFilePath, expList))
+          {
+            cmsg.inFunError("Write object Type to file " +
+                typeFilePath + " failed! ");
+            correct = false;
+          }
         }
       }
     }
-  }
-
-  if (correct && !listutils::isRelDescription(objType))
-  {
-    cmsg.inFunError("Expect a relation object. ");
-    correct = false;
   }
 
   //Check nodesList
@@ -4828,8 +4826,8 @@ then the old cluster must be a subset of the current one.
   if (correct)
   {
     fList *FLL = new fList(objName, NList(objType),
-        ci, fml, dpTime, idb, dbd, true);
-    if(FLL->isOK())
+        ci, fml, dpTime, idb, dbd);
+    if(FLL->isAvailable())
       return SetWord(FLL);
     else
       correct = false;
@@ -4847,7 +4845,6 @@ ListExpr fList::Out(ListExpr typeInfo, Word value)
     NList outList;
 
     outList.append(NList(fl->getObjName(), true, false));
-    outList.append(fl->getTypeList());
     outList.append(fl->getNodeList());
     outList.append(fl->getLocList());
     outList.append(NList(fl->getDupTimes()));
@@ -4938,20 +4935,20 @@ Word fList::RestoreFromList(
 {
   NList il = NList(instance);
   string objName = il.first().str();
-  NList typeList = il.second();
-  NList nodeList = il.third();
-  NList locList = il.fourth();
-  size_t dupTimes = il.fifth().intval();
-  bool inDB = il.sixth().boolval();
-  bool distributed = il.elem(7).boolval();
+  NList typeList = NList(AntiNumericType(typeInfo));
+  NList nodeList = il.second();
+  NList locList = il.third();
+  size_t dupTimes = il.fourth().intval();
+  bool inDB = il.fifth().boolval();
+  bool distributed = il.sixth().boolval();
 
   clusterInfo *ci = new clusterInfo();
   fList* fl = 0;
   if (ci->covers(nodeList))
   {
     fl = new fList(objName, typeList, ci, locList, dupTimes,
-        inDB, distributed, true);
-    correct = fl->isOK();
+        inDB, distributed);
+    correct = fl->isAvailable();
   }
   else{
     correct = false;
@@ -4961,6 +4958,20 @@ Word fList::RestoreFromList(
     return SetWord(fl);
   else
     return SetWord(Address(0));
+}
+
+bool CheckFList(ListExpr type, ListExpr& errorInfo)
+{
+  if (  (nl->ListLength(type) == 2)
+      &&(nl->IsEqual(nl->First(type), fList::BasicType())))
+  {
+    return am->CheckKind(Kind::TUPLE(), nl->Second(type), errorInfo);
+  }
+  else
+  {
+    cmsg.otherError("FList Data Type Check Fails!");
+    return false;
+  }
 }
 
 /*
@@ -4980,10 +4991,10 @@ or the other way round.
 
 
 */
-void fList::verifyLocList()
+bool fList::verifyLocList()
 {
   if (fileLocList.isEmpty())
-    isAvailable = false;
+    return false;
   else
   {
     mrNum = fileLocList.length();
@@ -4994,11 +5005,10 @@ void fList::verifyLocList()
     {
       NList aRow = fll.first();
       int nodeNum = aRow.first().intval();
-      if (nodeNum >= (int)currentCluster->getClusterSize())
+      if (nodeNum >= (int)interCluster->getClusterSize())
       {
         cerr << "Improper row number: " << nodeNum << endl;
-        isAvailable = false;
-        return;
+        return false;
       }
       NList cfList = aRow.second();
       while (!cfList.isEmpty())
@@ -5008,8 +5018,7 @@ void fList::verifyLocList()
         if (partNum < 1)
         {
           cerr << "Improper column number: " << partNum << endl;
-          isAvailable = false;
-          return;
+          return false;
         }
         mcNum = (partNum > (int)mcNum) ? partNum : mcNum;
         cfList.rest();
@@ -5019,34 +5028,33 @@ void fList::verifyLocList()
       if (inDB && dataLoc.length() > 0){
         cerr << "Non-empty data location "
             "while data are kept in databases. " << endl;
-        isAvailable = false;
-        return;
+        return false;
       }
       else if (!inDB && dataLoc.compare(dbLoc) == 0){
         cerr << "It's not acceptable that only part data are "
             "kept in databases. " << endl;
-        isAvailable = false;
-        return;
+        return false;
       }
 
       fll.rest();
     }
 
     if ((inDB && dupTimes > 1)
-        || (dupTimes >= currentCluster->getClusterSize()) )
+        || (dupTimes >= interCluster->getClusterSize()) )
     {
       cerr << "Improper duplication times: " << dupTimes
           << (inDB ? " , when data are kept in databases " : "")
           << endl;
-      isAvailable = false;
+      return false;
     }
+    return true;
   }
 }
 
 size_t fList::getPartitionFileLoc(
     size_t row, vector<string>& locations)
 {
-  if (!isAvailable){
+  if (!available){
     return 0;
   }
 
@@ -5065,7 +5073,7 @@ size_t fList::getPartitionFileLoc(
   stringstream ss;
   int ssIndex = rowLoc.first().intval();  // start slave index
   for (size_t i = 0; i < dupTimes; i++){
-    string sIPAddr = currentCluster->getIP(ssIndex + i, true);
+    string sIPAddr = interCluster->getIP(ssIndex + i, true);
     string dataLoc = rowLoc.third().str();
     if (inDB){
       dataLoc = dbLoc;
@@ -5073,7 +5081,7 @@ size_t fList::getPartitionFileLoc(
     else if ((dataLoc.length() == 0) || (i > 0)){
       // duplicated files are kept at remote node's default path
       // Only output the remote folder, not complete file path.
-      dataLoc = currentCluster->getRemotePath(ssIndex + i,
+      dataLoc = interCluster->getRemotePath(ssIndex + i,
           false, true, false);
     }
     string remotePath = sIPAddr + ":" + dataLoc;
@@ -5084,7 +5092,7 @@ size_t fList::getPartitionFileLoc(
 
 NList fList::getColumnList(size_t row)
 {
-  if (!isAvailable || row > mrNum){
+  if (!available || row > mrNum){
     return NList();
   }
   else{
@@ -5110,11 +5118,11 @@ struct fListInfo: ConstructorInfo
   fListInfo()
   {
     name = "flist";
-    signature = "-> flist ";
-    typeExample = "flist";
-    listRep = "(<objName> <fileLocList> <dupTimes> <inDB>)";
+    signature = " TUPLE -> FLIST ";
+    typeExample = "(flist(tuple((PLZ int)(Ort string))))";
+    listRep = "( objName fileLocList dupTimes inDB )";
     valueExample =
-        "(\"plz\" ( (1 (1 2) '') (2 (1 2) '') (1 () '') ) 2 FALSE) ";
+      "( \"plz\" ( (1 (1 2) '') (2 (1 2) '') (1 () '') ) 2 FALSE) ";
     remarks = "Describe distributed data over computer clusters.";
   }
 };
@@ -5129,7 +5137,7 @@ struct fListFunctions: ConstructorFunctions<fList>
     deletion = fList::Delete;
     close = fList::Close;
     clone = fList::Clone;
-    kindCheck = fList::CheckFList;
+    kindCheck = /*fList::*/CheckFList;
 
     restoreFromList = fList::RestoreFromList;
     save = fList::Save;
@@ -5197,12 +5205,12 @@ struct SpreadInfo : OperatorInfo {
                 " x string x text x [int] "
                 " x ai x [int] x [bool] "
                 " x [aj] x [int] x [bool] "
-                " -> flist";
+                " -> flist(tuple(a1 ... ai ... aj ... an))";
     syntax = "stream(tuple(a1 ... ai ... aj ... an)) "
             " x fileName x filePath x [dupTime] "
             " x ai x [scale] x [keepAI] "
             " x [aj] x [scale2] x [keepAJ] "
-            "  -> flist";
+            "  -> flist(tuple(a1 ... ai ... aj ... an))";
     meaning = "This operator accepts a tuple stream, "
         "distributes its tuples into a matrix relation "
         "based on their values of a given attribute "
@@ -5220,7 +5228,7 @@ stream(tuple(a1 ... ai ... aj ... an))
 x string x text x [int]
 x ai x [int] x [bool]
 x [aj] x [int] x [bool]
-  -> flist
+  -> flist(tuple(a1 ... ai ... aj ... an))
 ----
 
 During the type mapping function, as we use several optional parameters,
@@ -5424,17 +5432,32 @@ ListExpr SpreadTypeMap(ListExpr args){
   if (newAttrList.length() == 0){
     return l.typeError(err[6]);
   }
-
   //Create the type file
   NList resultList =
-      NList(NList(Relation::BasicType(),
+      NList(NList(fList::BasicType(),
             NList(NList(Tuple::BasicType()), newAttrList)));
   filePath = getLocalFilePath(filePath, (fileName + "_type"), "", true);
   if (FileSystem::FileOrFolderExists(filePath)){
-    return l.typeError(err[7] + filePath);
+    ListExpr exeType;
+    bool ok = false;
+    if (nl->ReadFromFile(filePath, exeType)){
+      if (listutils::isRelDescription(exeType)){
+        if (nl->Equal(nl->Second(exeType),
+            nl->Second(resultList.listExpr()))){
+          ok = true;
+        }
+      }
+    }
+    if (!ok)
+      return l.typeError(err[7] + filePath);
   }
-  if (!nl->WriteToFile(filePath, resultList.listExpr())){
-    return l.typeError(err[8] + filePath);
+  else{
+    ListExpr expList = nl->TwoElemList(
+        nl->SymbolAtom(Relation::BasicType()),
+        nl->Second(resultList.listExpr()));
+    if (!nl->WriteToFile(filePath, expList)){
+      return l.typeError(err[8] + filePath);
+    }
   }
   //Duplicate the type to master and all slave nodes
   clusterInfo* ci = new clusterInfo();
@@ -5464,7 +5487,7 @@ ListExpr SpreadTypeMap(ListExpr args){
   return NList(NList(Symbol::APPEND()),
                NList(NList(attrIndex1),
                      NList(attrIndex2)),
-               NList(fList::BasicType())).listExpr();
+               resultList).listExpr();
 }
 
 /*
@@ -5491,6 +5514,7 @@ and then is copied to target after the production is finished.
 */
 int SpreadValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s){
+
 
   SpreadLocalInfo *lif = 0;
 
@@ -5617,7 +5641,7 @@ SpreadLocalInfo::SpreadLocalInfo(
   ci = new clusterInfo();
   resultList = new fList(fileName,
       NList(resultTypeList), ci, NList(),
-      dupTimes, false, false, false);
+      dupTimes, false, false);
 
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   resultTypeList = sc->NumericType(nl->Second(resultTypeList));
@@ -5806,7 +5830,7 @@ bool SpreadLocalInfo::closeAllPartFiles()
     mit++;
   }
 
-  resultList->setDuplicated();
+  resultList->setDistributed();
   done = true;
   return true;
 }
@@ -5832,7 +5856,7 @@ Operator spreadOp(SpreadInfo(), SpreadValueMap, SpreadTypeMap);
 This operator is used to collect the data from the partition files denoted by the given flist.
 
 ----
-flist x [row] x [column] -> stream(tuple)
+flist(tuple) x [row] x [column] -> stream(tuple)
 ----
 
 */
@@ -5842,8 +5866,8 @@ struct CollectInfo : OperatorInfo {
   CollectInfo() : OperatorInfo()
   {
     name = "collect";
-    signature = "flist x [int] x [int] -> stream(tuple)";
-    syntax = "flist x [row] x [column] -> stream(tuple)";
+    signature = "flist(tuple) x [int] x [int] -> stream(tuple)";
+    syntax = "flist(tuple) x [row] x [column] -> stream(tuple)";
     meaning = "This operator is used to collect the data "
         "from the partition files denoted by the given flist.";
   }
@@ -5857,7 +5881,7 @@ struct CollectInfo : OperatorInfo {
 First ensure the distributed data in flist is a rel(tuple) type.
 
 ----
-flist x [int] x [int] -> stream(tuple)
+flist(tuple) x [int] x [int] -> stream(tuple)
 ----
 
 If only one optional parameter is given, then it's viewed as a row number.
@@ -5872,28 +5896,15 @@ GetNLArgValueInTM function in query processor,
 */
 ListExpr CollectTypeMap(ListExpr args)
 {
+
   NList l(args);
   string err[] = {
       //0
       "ERROR! Operator expects flist x [int] x [int]. ",
 
-      "ERROR! Unavailable flist value. ",
-
-      "ERROR! Operator expects a distributed \"rel\" object. ",
-
       "ERROR! Unavailable optional parameters.",
 
       "ERROR! Operator expects row and column numbers are non-negative values.",
-
-      //5
-
-      "ERROR! Operator accepts saved flist only.",
-
-      "ERROR! This flist is not distributed on the present cluster.",
-
-      "ERROR! Cannot collect object inside databases yet. ",
-
-      "ERROR! The value of the flist is not available.",
   };
   NList pType, pValue;
   string debugErr = "Implementing ... ";
@@ -5904,42 +5915,10 @@ ListExpr CollectTypeMap(ListExpr args)
   //First flist
   pType = l.first().first();
   pValue = l.first().second();
-  if (!pType.isSymbol(fList::BasicType())){
+  if (!isFListDescription(pType)){
     return l.typeError(err[0]);
   }
-  NList fListValue;
-  string relName;
-  //TODO It's not possible to accept new created flist yet.
-  if (!pValue.isAtom()){
-    return l.typeError(err[5]);
-  }
-  if (!qp->GetNLArgValueInTM(pValue,fListValue)){
-    return l.typeError(err[1]);
-  }
-
-  //Read the relation object type from the saved flist
-  NList objType = fListValue.second();
-  if (!listutils::isRelDescription(objType.listExpr())){
-    return l.typeError(err[2]);
-  }
-
-  //Check the legality of the cluster list kept inside the flist
-  NList interCluster = fListValue.third();
-  clusterInfo* ci = new clusterInfo();
-  if (!ci->covers(interCluster)){
-    return l.typeError(err[6]);
-  }
-
-  //Check the data are distributed as files, not inside databases.
-  bool inDB = fListValue.sixth().boolval();
-  if (inDB){
-    return l.typeError(err[7]);
-  }
-
-  bool available = fListValue.seventh().boolval();
-  if (!available){
-    return l.typeError(err[8]);
-  }
+  NList objType = pType.second();
 
   //Optional parameters
   pType = l.second().first();
@@ -5954,11 +5933,11 @@ ListExpr CollectTypeMap(ListExpr args)
 
     NList opVal;
     if (!qp->GetNLArgValueInTM(pValue.first(), opVal)){
-      return l.typeError(err[3]);
+      return l.typeError(err[1]);
     }else{
       int rowNum = opVal.intval();
       if (rowNum < 0){
-        return l.typeError(err[4]);
+        return l.typeError(err[2]);
       }
     }
 
@@ -5967,11 +5946,11 @@ ListExpr CollectTypeMap(ListExpr args)
         return l.typeError(err[0]);
       }
       if (!qp->GetNLArgValueInTM(pValue.second(), opVal)){
-        return l.typeError(err[3]);
+        return l.typeError(err[1]);
       }else{
         int columnNum = opVal.intval();
         if (columnNum < 0){
-          return l.typeError(err[4]);
+          return l.typeError(err[2]);
         }
       }
     }
@@ -5979,7 +5958,7 @@ ListExpr CollectTypeMap(ListExpr args)
 
   NList streamType =
       NList(NList(Symbol::STREAM()),
-              NList(objType.second()));
+              NList(objType));
 
   return streamType.listExpr();
 }
@@ -6010,7 +5989,13 @@ int CollectValueMap(Word* args, Word& result,
 
   switch(message){
     case OPEN: {
-      fList* value = (fList*)args[0].addr;
+      fList* partitionFileList = (fList*)args[0].addr;
+
+      NList currentCluster = clusterInfo().toNestedList();
+      if (!partitionFileList->isCollectable(currentCluster)){
+        cerr << "This flist is not collectable" << endl;
+        return CANCEL;
+      }
 
       size_t row = 0, column = 0;
       Supplier optList = args[1].addr;
@@ -6030,7 +6015,7 @@ int CollectValueMap(Word* args, Word& result,
         delete cli;
         cli = 0;
       }
-      cli = new CollectLocalInfo(value, row, column);
+      cli = new CollectLocalInfo(partitionFileList, row, column);
 
       if (cli->fetchAllPartFiles()){
         local.setAddr(cli);
@@ -6108,6 +6093,7 @@ bool CollectLocalInfo::fetchAllPartFiles()
       NList newColList = fileList->getColumnList(ri);
       if (column != 0)
       {
+        //find one file of each row
         //check the column number is exist in the column list
         NList rest = newColList;
         bool find = false;
@@ -6120,7 +6106,8 @@ bool CollectLocalInfo::fetchAllPartFiles()
           rest.rest();
         }
         if (find){
-          newColList = NList((int)column);
+          newColList = NList();
+          newColList.append(NList((int)column));
         }
         else{
           cerr << "The partition (" << ri << "," << column <<
@@ -6134,7 +6121,6 @@ bool CollectLocalInfo::fetchAllPartFiles()
         size_t ci = rest.first().intval();
         string fileName = fileList->getObjName()
             + "_" + int2string(ri) + "_" + int2string(ci);
-
         string localPath = getLocalFilePath("", fileName, "", true);
         vector<string>::iterator pit = remotePaths.begin();
         while (pit != remotePaths.end()){
@@ -6199,7 +6185,6 @@ bool CollectLocalInfo::partFileOpened()
       //open the file to inputFiles
       inputFile = new ifstream(partFileName.c_str(), ios::binary);
       if (!inputFile->good()){
-        cerr << "Open file " << partFileName << " fails" << endl;
         inputFile = 0;
         return false;
       }
@@ -6377,6 +6362,57 @@ string getLocalFilePath(string filePath, const string fileName,
   }
 
   return (pathOK ? path : "");
+}
+
+/*
+Convert a numeric type list back to the normal type list.
+
+*/
+ListExpr AntiNumericType(ListExpr type)
+{
+  if (nl->IsEmpty(type)){
+    return type;
+  } else if (nl->ListLength(type) == 2 ) {
+      if (  nl->IsAtom(nl->First(type)) &&
+            nl->IsAtom(nl->Second(type)) &&
+            nl->AtomType(nl->First(type)) == IntType &&
+            nl->AtomType(nl->Second(type)) == IntType){
+
+        int algID, typID;
+        extractIds(type, algID, typID);
+        SecondoCatalog* sc = SecondoSystem::GetCatalog();
+        if(algID < 0 || typID < 0)
+          return nl->SymbolAtom("ERROR");
+        return nl->SymbolAtom(sc->GetTypeName(algID,typID));
+      }
+      else
+        return (nl->Cons(AntiNumericType(nl->First(type)),
+            AntiNumericType(nl->Rest(type))));
+  }
+  else if (nl->IsAtom(type)){
+    return type;
+  }
+  else{
+    return (nl->Cons(AntiNumericType(nl->First(type)),
+                     AntiNumericType(nl->Rest(type))));
+  }
+}
+
+/*
+Checks for valid description of a flist
+
+*/
+bool isFListDescription(const NList& typeInfo)
+{
+  if (typeInfo.length() != 2){
+    return false;
+  }
+  if (!( typeInfo.first().isSymbol(fList::BasicType()) &&
+      listutils::isTupleDescription(typeInfo.second().listExpr()))){
+    return false;
+  }
+
+  return true;
 }
 
 
