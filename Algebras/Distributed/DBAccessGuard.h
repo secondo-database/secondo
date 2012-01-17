@@ -52,6 +52,7 @@ typedef ZThread:Mutex MyMutex;
 #endif
 
 #include "RelationAlgebra.h"
+#include "Stream.h"
 #include "NestedList.h"
 #include "zthread/Guard.h"
 
@@ -117,6 +118,16 @@ restores a Tuple from binary representation
   {
     ZThread::Guard<MyMutex> g(lock);
     t -> WriteToBin(buffer,cS,eS,fS);
+  } 
+  
+  void T_WriteToBinAndDel(Tuple* t, char* buffer,
+                          size_t cS,
+                          size_t eS,
+                          size_t fS)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    t -> WriteToBin(buffer,cS,eS,fS);
+    t -> DeleteIfAllowed();
   }
 /*
 
@@ -186,6 +197,12 @@ Retruns the next tuple of an iterator
   {
     ZThread::Guard<MyMutex> g(lock);
     rel -> AppendTuple(t);
+  }
+  
+  Tuple* TS_Request(Stream<Tuple> &is)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    return is.request();
   }
 /*
 
