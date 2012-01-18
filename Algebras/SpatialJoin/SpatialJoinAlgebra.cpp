@@ -192,6 +192,7 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   const string ptName3[] = {"streamelemLx", "streamelemRx"};
   const string ptName4[] = {"stream2Lx", "stream2Rx"};
   const string ptName5 =  "streamelemMG";   //merged stream element
+  const string ibName = "xxx_interBox";
 
   funList.append(NList("fun"));
   funList.append(NList(NList(ptName[0]), NList(sType[0])));
@@ -204,63 +205,105 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   funList.append(NList(NList("nx"), NList(Symbols::INT())));
   funList.append(NList(NList("xr"), NList(Symbols::REAL())));
   funList.append(NList(NList("yt"), NList(Symbols::REAL())));
-  if (is3D)
+  if (!is3D)
+  {
+    funList.append(NList(NList(ibName),
+        NList(Rectangle<2>::BasicType())));
+  }
+  else
   {
     funList.append(NList(NList("zb"), NList(Symbols::REAL())));
     funList.append(NList(NList("wz"), NList(Symbols::REAL())));
     funList.append(NList(NList("ny"), NList(Symbols::INT())));
     funList.append(NList(NList("zt"), NList(Symbols::REAL())));
+    funList.append(NList(NList(ibName),
+        NList(Rectangle<3>::BasicType())));
   }
 
   NList pjList(nl);
   pjList.append(NList("parajoin2"));
   for(int i = 0; i < 2; i++)
   {
-    ListExpr streamList;
-    stringstream listStr;
-    listStr
-    << " (sortby (extendstream (predinfo 1.0 0.01 "
-    << "(filter "
-    << "(extend "
-    << ptName[i]
-    << "( ( " + eaName2[i]
-    << "(fun (" << ptName2[i] << " TUPLE)"
-    << "(bbox (attr " << ptName2[i] << " " << aName[i] << "))))))"
-    << "(fun (" << ptName3[i] << " STREAMELEM)"
-    << "(and (>= (maxD (attr " << ptName3[i]
-                        << " " << eaName2[i] << ") 1) xl)"
-      << "(and (>= (maxD (attr " << ptName3[i]
-                          << " " << eaName2[i] << ") 2) yb)"
-        << "(and (<= (minD (attr " << ptName3[i]
-                            << " " << eaName2[i] << ") 1) xr)";
+    NList streamList(nl);
+    streamList.append(NList("sortby"));
 
-    if (!is3D)
-      listStr
-      << "(<= (minD (attr " << ptName3[i]
-                     << " " << eaName2[i] << ") 2) yt)"
-      << "))))))";
-    else
-      listStr
-      << "(and (<= (minD (attr " << ptName3[i]
-                          << " " << eaName2[i] << ") 2) yt)"
-        << "(and (>= (maxD (attr " << ptName3[i]
-                            << " " << eaName2[i] << ") 3) zb)"
-             << "(<= (minD (attr " << ptName3[i]
-                            << " " << eaName2[i] << ") 3) zt)"
-      << "))))))))";
+    NList extendCellList(nl);
+    extendCellList.append(NList("extendstream"));
 
-    listStr << "( ( " << eaName[i]
-            << "(fun ( " << ptName1[i] << " "
-                << "TUPLE" << " ) "
-            << "(cellnumber "
-              << "(bbox (attr " << ptName1[i]
-                         << " " << aName[i] << " ))"
-                << " xl yb " << (is3D ? "zb" : "")
-                << " wx wy " << (is3D ? "wz" : "")
-                << " nx " << (is3D ? "ny" : "")
-            << " ))))) (( " << eaName[i] << " asc))) ";
-    nl->ReadFromString(listStr.str(), streamList);
-    pjList.append(NList(streamList));
+    NList predInfoList=NList(nl);
+    predInfoList.append(NList("predinfo"));
+    predInfoList.append(NList(1.0));
+    predInfoList.append(NList(0.01));
+
+    //Only tuples inside two input's intersected region are processed
+    NList interFilterList = NList(nl);
+    interFilterList.append(NList("filter"));
+    interFilterList.append(
+        NList(
+            NList("extend"),
+            NList(ptName[i]),
+            NList(NList(
+                NList(eaName2[i]),
+                NList(
+                    NList("fun"),
+                    NList(NList(ptName2[i]),
+                          NList("TUPLE")),
+                    NList(
+                        NList("bbox"),
+                        NList(NList("attr"),
+                              NList(ptName2[i]),
+                              NList(aName[i]))))
+            ).enclose())));
+    interFilterList.append(
+        NList(
+            NList("fun"),
+            NList(NList(ptName3[i]), NList("STREAMELEM")),
+            NList(
+                NList("intersects"),
+                NList(NList("attr"),
+                      NList(ptName3[i]),
+                      NList(eaName2[i])),
+                NList(ibName))));
+
+
+    predInfoList.append(interFilterList);
+    extendCellList.append(predInfoList);
+
+    NList extendFunList(nl);
+    extendFunList.append(NList(eaName[i]));
+    NList cellFunList(nl);
+    cellFunList.append(NList("cellnumber"));
+    cellFunList.append(
+            NList(NList("bbox"),
+            NList(NList("attr"),
+                  NList(ptName1[i]),
+                  NList(aName[i]))));
+    cellFunList.append(NList("xl"));
+    cellFunList.append(NList("yb"));
+    if (is3D){
+      cellFunList.append(NList("zb"));
+    }
+    cellFunList.append(NList("wx"));
+    cellFunList.append(NList("wy"));
+    if (is3D){
+      cellFunList.append(NList("wz"));
+    }
+    cellFunList.append(NList("nx"));
+    if (is3D){
+      cellFunList.append(NList("ny"));
+    }
+    extendFunList.append(NList(NList("fun"),
+              NList(NList(ptName1[i]),NList("TUPLE")),
+              cellFunList));
+    extendCellList.append(extendFunList.enclose());
+
+    streamList.append(extendCellList);
+    NList sortArguments(nl);
+    sortArguments.append(NList(eaName[i]));
+    sortArguments.append(NList("asc"));
+    streamList.append(NList(sortArguments).enclose());
+
+    pjList.append(streamList);
   }
   pjList.append(NList(eaName[0]));
   pjList.append(NList(eaName[1]));
@@ -514,6 +557,7 @@ we enlarge the cell size for 2D space with 10 times.
     (*funargs)[6].setAddr(new CcInt(int(nx)));
     (*funargs)[7].setAddr(new CcReal(xr));
     (*funargs)[8].setAddr(new CcReal(yt));
+    (*funargs)[9].setAddr(joinBox);
 
   }
   else
@@ -555,7 +599,7 @@ we enlarge the cell size for 2D space with 10 times.
     (*funargs)[10].setAddr(new CcReal(wz));
     (*funargs)[11].setAddr(new CcInt(int(ny)));
     (*funargs)[12].setAddr(new CcReal(zt));
-
+    (*funargs)[13].setAddr(joinBox);
   }
 
   isSet = true;
