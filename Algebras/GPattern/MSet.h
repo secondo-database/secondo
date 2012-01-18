@@ -79,7 +79,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-#define ENABLE_ASSERTS true
+#define ENABLE_ASSERTS false
 #define assertIf(pred) if(ENABLE_ASSERTS) assert(pred) 
 
 namespace mset{

@@ -283,7 +283,7 @@ bool MSetIndex::NodeLog::RemoveUnit(int index)
 {
 //needs tests
   bool debugme=false;
-  if(this->log.empty())
+  if(this->log.empty() && 0)
   {
     cerr<<"Trying to remove from an empty NodeLog. "
       "Something is going wrong here!";
@@ -916,7 +916,7 @@ void GPatternHelper::FindDynamicComponents(CompressedInMemMSet& Accumlator,
     vector<pair<int, int> >& edge2nodesMap, int64_t dMS, int n, string& qts,
     list<CompressedMSet*>*& FinalResultStream)
 {
-  bool debugme= false;
+  bool debugme= true;
   set<int> constValue;
   map<int, int> _map;
   vector<int> mergeIndex;
