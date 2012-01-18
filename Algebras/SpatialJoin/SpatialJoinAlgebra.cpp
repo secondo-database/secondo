@@ -410,6 +410,11 @@ SpatialJoin2LocalInfo<dim>::SpatialJoin2LocalInfo(
 	// cout << "left stream: p->read = " << p->read << endl;
   scanStream(aiRight, rightStream, s); p->total = r[1].card;
 	// cout << "right stream: p->total = " << p->total << endl;
+	 if (r[0].card == 0 || r[1].card == 0)
+	 {
+	   //One tuple stream is empty
+	   return;
+	 }
   joinBox =
       new Rectangle<dim>(r[0].MBR->Intersection(*(r[1].MBR)));
 
