@@ -146,11 +146,11 @@ much more efficient.
   {
     if (accumulate(vacc, collisionAvoidance(sampleIntervalSeconds)) >= 1.0)
       goto MAXACCEL_ATTAINED;
-    if (accumulate(vacc, flockCentering()) >= 1.0)
+    if (accumulate(vacc, velocityMatching()) >= 1.0)
       goto MAXACCEL_ATTAINED;
     if (accumulate(vacc, maintainingCruisingDistance()) >= 1.0)
       goto MAXACCEL_ATTAINED;
-    if (accumulate(vacc, velocityMatching()) >= 1.0)
+    if (accumulate(vacc, flockCentering()) >= 1.0)
       goto MAXACCEL_ATTAINED;
     if (accumulate(vacc, wander()) >= 1.0)
       goto MAXACCEL_ATTAINED;
@@ -290,7 +290,17 @@ towards the boid.
   // Ignore objects that are farther away than our probe.
   if (mag < 0) mag = 0;
 
-  return Direction(normalToObject) * mag;
+/*
+Mahmoud Sakr has changed this. Instead of yielding a vector directed in the
+direction of the normal, now it returns a vector in the direction of
+(-velocity + normal). This should make the Boids perform a sharper turn when they
+reach an obstacle, in an effect which is similar to a ball hitting an obstacle.
+
+return Direction(normalToObject ) * mag;
+
+*/
+
+  return Direction(  normalToObject - velocity ) * mag;
 }
 
 MathVector
