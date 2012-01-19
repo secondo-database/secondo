@@ -250,3 +250,10 @@ Number   : 1
 Signature: mset -> periods, uset->periods
 Example  : query deftime((speed(train7) > 15.0)  mbool2mset[7] ) 
 Result   : (7)
+
+Operator : smooth
+Number   : 1
+Signature: mbool x duration -> mbool
+Example  : query units(smooth(speed(train7) > 22.0, create_duration(0, 300000))) count
+Result   : (6)
+

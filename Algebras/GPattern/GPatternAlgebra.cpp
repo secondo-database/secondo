@@ -48,7 +48,8 @@ GPatternHelper
 
 */
 
-ChangeRecord::ChangeRecord():status(NotChanged){}
+ChangeRecord::ChangeRecord():
+    status(NotChanged),removedNodes(0), removedNodesInRemoved(0){}
 
 bool ChangeRecord::UpdateStatus(StatusCode newCode)
 {
@@ -190,7 +191,7 @@ void MSetIndex::AppendInsertionsIntoNodeLog(set<int>& deltaNodes,
     else
     {
       set<int> s; s.insert(_edge);
-      assertIf(
+      assert(
           nodeNeighbors.insert(make_pair<int, set<int> >(_node, s)).second);
     }
 
@@ -201,7 +202,7 @@ void MSetIndex::AppendInsertionsIntoNodeLog(set<int>& deltaNodes,
     else
     {
       set<int> s; s.insert(_edge);
-      assertIf(
+      assert(
           nodeNeighbors.insert(make_pair<int, set<int> >(_node, s)).second);
     }
   }
@@ -230,11 +231,11 @@ void MSetIndex::AppendRemovalsIntoNodeLog(set<int>& deltaNodes,
     this->Print(cerr);
   for(set<int>::iterator it= deltaNodes.begin(); it!= deltaNodes.end(); ++it)
   {
-    //assertIf(this->nodes.find(*it) != this->nodes.end());
+    assertIf(this->nodes.find(*it) != this->nodes.end());
     if(debugme)
       this->nodes[*it].Print(cerr);
-    //assertIf(!this->nodes[*it].log.empty());
-    //assertIf(this->nodes[*it].log.back().endtime == -1);
+    assertIf(!this->nodes[*it].log.empty());
+    assertIf(this->nodes[*it].log.back().endtime == -1);
     if(debugme)
       cerr<<"\t"<<this->nodes[*it].log.back().endtime<<"\t";
     this->nodes[*it].log.back().endtime= (*lastUSet).endtime;
@@ -822,7 +823,13 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
       tmp2.Print(cerr);
       delete tmp;
     }
-    Changes.resize(curMSet->GetNoComponents());
+    if(curMSet->GetNoComponents() < Changes.max_size())
+    {
+      Changes.reserve(curMSet->GetNoComponents());
+      Changes.resize(curMSet->GetNoComponents());
+    }
+    else
+      assert(false);
     curMSet->WriteToCompressedInMemMSet(inMemMSet);
     MSetIndex index(inMemMSet, edge2nodesMap);
     changed=
@@ -3056,7 +3063,27 @@ ListExpr ComponentsTM(ListExpr args)
       !nl->IsAtom(nl->First(args)) ||
       !nl->IsEqual(nl->First(args), mset::IntSet::BasicType()))
   {
-    ErrorReporter::ReportError("Operator units expects (intset), but got "+
+    ErrorReporter::ReportError("Operator components expects (intset), but got "
+        + argstr+ ".");
+    return nl->SymbolAtom( Symbol::TYPEERROR() );
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+   nl->SymbolAtom(CcInt::BasicType()));
+
+}
+
+ListExpr SmoothTM(ListExpr args)
+{
+  string argstr;
+  nl->WriteToString(argstr, args);
+  if (nl->ListLength(args) != 2 ||
+      !nl->IsAtom(nl->First(args)) ||
+      !nl->IsEqual(nl->First(args), MBool::BasicType()) ||
+      !nl->IsAtom(nl->Second(args)) ||
+      !nl->IsEqual(nl->Second(args), Duration::BasicType()))
+  {
+    ErrorReporter::ReportError("Operator smooth expects (" +
+        MBool::BasicType() + " x " + Duration::BasicType()+ " ), but got "+
         argstr+ ".");
     return nl->SymbolAtom( Symbol::TYPEERROR() );
   }
@@ -5436,6 +5463,31 @@ int NoComponentsVM(
   return 0;
 }
 
+int SmoothVM(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MBool* m = static_cast<MBool*>(args[0].addr);
+  Instant* d= static_cast<Instant*>(args[0].addr);
+  MBool* res = static_cast<MBool*>(result.addr);
+  UBool ubool(0);
+  res->Clear();
+  if( !m->IsDefined() || !d->IsDefined() )
+    res->SetDefined(false);
+  else
+  {
+    for(int i=0; i < m->GetNoComponents(); ++i)
+    {
+      m->Get(i, ubool);
+      if(! ubool.constValue.GetValue() &&
+          (ubool.timeInterval.end - ubool.timeInterval.start) < (*d))
+        ubool.constValue.Set(true, true);
+      res->MergeAdd(ubool);
+    }
+  }
+  return 0;
+}
+
 struct GBoidLocalInfo
 {
   GBoidLocalInfo(BoidGenerator* bg, TupleType* tt):
@@ -5887,6 +5939,16 @@ const string NoComponentsSpec =
   "<text>no_components ( mset1 )</text--->"
   ") )";
 
+const string SmoothSpec =
+  "( ( \"Signature\" \"Syntax\"\"Meaning\" \"Example\" ) "
+  "( <text>mbool x duration -> mbool</text--->"
+  "<text>smooth ( _ , _ )</text--->"
+  "<text>Convert all false units that are shorter than the givien duration "
+  "into true. This function is helpful to smooth short non-fulfillments of "
+  "time-dependent predicates.</text--->"
+  "<text>smooth ( speed(train7) > 22.0, duration(0, 300000) )</text--->"
+  ") )";
+
 const string GBoidsSpec =
   "( ( \"Signature\" \"Syntax\"\"Meaning\" \"Example\" ) "
   "( <text>(vector int) x (vector real) x instant x duration"
@@ -6168,6 +6230,13 @@ Operator components( "components",
     Operator::SimpleSelect,
     ComponentsTM );
 
+Operator smooth( "smooth",
+    SmoothSpec,
+    SmoothVM,
+    Operator::SimpleSelect,
+    SmoothTM );
+
+
 TypeConstructor intSetTC(
         IntSet::BasicType(),       //name
         IntSet::Property, //property function describing signature
@@ -6295,6 +6364,7 @@ The spattern and reportpattern operators are registered as lazy variables.
     AddOperator(&nequals);
     AddOperator(&deftime);
     AddOperator(&components);
+    AddOperator(&smooth);
 
   }
   ~GPatternAlgebra() {};

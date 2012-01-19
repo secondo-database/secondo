@@ -35,3 +35,4 @@ operator convexhull2 alias CONVEXHULL2 pattern op(_,_)
 operator collectintset alias COLLETINTSET pattern _ op
 operator generateboids alias GENERATEBOIDS pattern op(_,_,_,_)
 operator issubset alias ISSUBSET pattern _ infixop _
+operator smooth alias SMOOTH pattern op(_, _)
