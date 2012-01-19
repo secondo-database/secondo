@@ -8325,7 +8325,7 @@ int OpMapMatchingValueMapping(Word* args,
     if (!first) pMPoint->Get(i++,pUPoint);
     first = false;
     while ((startGP == 0 || !startGP->IsDefined()) &&
-            i < pMPoint->GetNoComponents())
+            i < pMPoint->GetNoComponents()-1)
     {
       if (startGP != 0)
       {
@@ -8370,7 +8370,7 @@ int OpMapMatchingValueMapping(Word* args,
         endGP = pNetwork->GetNetworkPosOfPoint(pUPoint.p1);
 
     while ((endGP == 0 || !endGP->IsDefined()) &&
-      i < pMPoint->GetNoComponents())
+      i < pMPoint->GetNoComponents()-1)
     {
       if (endGP != 0)
       {
@@ -8504,53 +8504,41 @@ int OpMapMatchingValueMapping(Word* args,
       {
         RouteInterval gri;
         Side s = None;
-        if (gl->NoOfComponents() == 0)
+        //success simulate trip over shortest path route intervals.
+        for (int k = 0; k < gl->NoOfComponents(); k++)
         {
-          aktUGPoint = new UGPoint(Interval<Instant> (startTime, endTime,
-                                                      scl, ecl),
-                                   *endGP, *endGP);
-          *startGP = *endGP;
-          startTime = endTime;
-          scl = !ecl;
-        }
-        else
-        {
-          //success simulate trip over shortest path route intervals.
-          for (int k = 0; k < gl->NoOfComponents(); k++)
+          if (aktUGPoint != 0)
           {
-            if (aktUGPoint != 0)
-            {
-              res->Add(*aktUGPoint);
-              riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
-                                 aktUGPoint->GetStartPoint().GetPosition(),
-                                 aktUGPoint->GetEndPoint().GetPosition());
-              aktUGPoint->DeleteIfAllowed();
-              aktUGPoint = 0;
-            }
-            gl->Get(k,gri);
-            Instant tpos =(endTime - startTime) *
-                          (fabs(gri.GetEndPos()-gri.GetStartPos())/
-                            gl->GetLength()) + startTime;
-            if (gri.GetRouteId() == endGP->GetRouteId() &&
-              AlmostEqual(gri.GetEndPos(),endGP->GetPosition()))
-              tpos = endTime;
-            if (gri.GetStartPos() > gri.GetEndPos()) s = Down;
-            else if (gri.GetStartPos() < gri.GetEndPos()) s = Up;
-            else s = None;
-            aktUGPoint = new UGPoint(Interval<Instant> (startTime, tpos,
-                                                        true, false),
-                                     iNetworkId,
-                                     gri.GetRouteId(),
-                                     s,
-                                     gri.GetStartPos(),
-                                     gri.GetEndPos());
-            startTime = tpos;
+            res->Add(*aktUGPoint);
+            riTree->InsertUnit(aktUGPoint->GetStartPoint().GetRouteId(),
+                               aktUGPoint->GetStartPoint().GetPosition(),
+                               aktUGPoint->GetEndPoint().GetPosition());
+            aktUGPoint->DeleteIfAllowed();
+            aktUGPoint = 0;
           }
-          startGP->DeleteIfAllowed();
-          startGP = new GPoint(true, iNetworkId, gri.GetRouteId(),
-                               gri.GetEndPos(), s);
-          startTime = endTime;
+          gl->Get(k,gri);
+          Instant tpos =(endTime - startTime) *
+                        (fabs(gri.GetEndPos()-gri.GetStartPos())/
+                          gl->GetLength()) + startTime;
+          if (gri.GetRouteId() == endGP->GetRouteId() &&
+            AlmostEqual(gri.GetEndPos(),endGP->GetPosition()))
+            tpos = endTime;
+          if (gri.GetStartPos() > gri.GetEndPos()) s = Down;
+          else if (gri.GetStartPos() < gri.GetEndPos()) s = Up;
+          else s = None;
+          aktUGPoint = new UGPoint(Interval<Instant> (startTime, tpos,
+                                                      true, false),
+                                   iNetworkId,
+                                   gri.GetRouteId(),
+                                   s,
+                                   gri.GetStartPos(),
+                                   gri.GetEndPos());
+          startTime = tpos;
         }
+        startGP->DeleteIfAllowed();
+        startGP = new GPoint(true, iNetworkId, gri.GetRouteId(),
+                             gri.GetEndPos(), s);
+        startTime = endTime;
       }
       gl->DeleteIfAllowed();
     }
