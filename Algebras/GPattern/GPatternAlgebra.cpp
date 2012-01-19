@@ -3087,8 +3087,7 @@ ListExpr SmoothTM(ListExpr args)
         argstr+ ".");
     return nl->SymbolAtom( Symbol::TYPEERROR() );
   }
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-   nl->SymbolAtom(CcInt::BasicType()));
+  return nl->SymbolAtom(MBool::BasicType());
 
 }
 
