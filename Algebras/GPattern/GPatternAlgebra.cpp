@@ -5467,7 +5467,7 @@ int SmoothVM(
 {
   result = qp->ResultStorage( s );
   MBool* m = static_cast<MBool*>(args[0].addr);
-  Instant* d= static_cast<Instant*>(args[0].addr);
+  Instant* d= static_cast<Instant*>(args[1].addr);
   MBool* res = static_cast<MBool*>(result.addr);
   UBool ubool(0);
   res->Clear();
