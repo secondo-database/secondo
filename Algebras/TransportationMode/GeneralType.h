@@ -756,7 +756,10 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     bool Passes(Region* reg, Space* sp);
     void MapGenMO(MPoint* in, MPoint& res);
     int ModeVal();
+    static int ModeVal(MReal* mr);
     void IndexOnUnits(MReal* res);
+    bool BContains(int);
+    bool BContains(MReal* UIndex, int);
 
 };
 

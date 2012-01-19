@@ -8478,8 +8478,8 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
                     Instant& start_time, double speed, int index, 
                     Line3D* l_room, int build_id, GenMO* genmo)
 {
+
 //  cout<<"p1 "<<p1<<" "<<p2<<endl; 
-   const double dist_delta = 0.01; 
    double d = p1.Distance(p2); 
 
 //   int groom_tid = GetRef_RoomTid(index, l_room);
@@ -8601,7 +8601,32 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
     delete ugenloc;
 
   }else{
-    
+
+      if(GetRoomEnum(type) == BR || GetRoomEnum(type) == ST || 
+         GetRoomEnum(type) == EL)
+          CreateIUnits1(p1, p2, type, bbox, speed, start_time, mp3d, genmo, 
+                        new_groom_oid);
+      else
+          CreateIUnits2(p1, p2, type, bbox, speed, start_time, mp3d, genmo,
+                        new_groom_oid);//merge movements
+
+//      CreateIUnits1(p1, p2, type, bbox, speed, start_time, mp3d, genmo,
+//                    new_groom_oid);//no merging for general units
+
+  }//end for else
+}
+
+/*
+no merge units
+
+*/
+void IndoorNav::CreateIUnits1(Point3D& p1, Point3D& p2, string type,
+                              Rectangle<2> bbox, double speed,
+                              Instant& start_time, MPoint3D* mp3d, 
+                              GenMO* genmo, int new_groom_oid)
+{
+    double d = p1.Distance(p2); 
+    const double dist_delta = 0.01; 
     int no = (int)floor(d/speed); 
 /*    double x = (p2.GetX() - p1.GetX())/no; 
     double y = (p2.GetY() - p1.GetY())/no;
@@ -8636,8 +8661,8 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
       ///////////////////////////////////////////
       GenLoc gloc1;
       GenLoc gloc2;
-      if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR ||
-         GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
+      if(GetRoomEnum(type) == BR || GetRoomEnum(type) == ST || 
+         GetRoomEnum(type) == OR || GetRoomEnum(type) == CO){//for debug,keep
         Loc loc_1(q1.GetX() - bbox.MinD(0), q1.GetY() - bbox.MinD(1)); 
         Loc loc_2(q2.GetX() - bbox.MinD(0), q2.GetY() - bbox.MinD(1)); 
 
@@ -8669,7 +8694,7 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
         Point3D q3 = q2;
         Point3D q4 = p2;
         double dist = q3.Distance(q4); 
-        if(dist < dist_delta)continue; 
+        if(dist < dist_delta) continue;
 
         up_interval.start = start_time;
         Instant end = start_time;
@@ -8692,8 +8717,8 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
         ///////////////////////////////////////////
         GenLoc gloc1;
         GenLoc gloc2;
-        if(GetRoomEnum(type) == OR || GetRoomEnum(type) == BR ||
-           GetRoomEnum(type) == CO || GetRoomEnum(type) == ST){
+        if(GetRoomEnum(type) == BR ||GetRoomEnum(type) == ST || 
+           GetRoomEnum(type) == OR || GetRoomEnum(type) == CO){//keep for debug
           Loc loc_1(q3.GetX() - bbox.MinD(0), q3.GetY() - bbox.MinD(1)); 
           Loc loc_2(q4.GetX() - bbox.MinD(0), q4.GetY() - bbox.MinD(1)); 
 
@@ -8721,9 +8746,95 @@ void IndoorNav::AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
 
       }
     }
-  }
-  
-  
+}
+
+/*
+merge general units for OR and CO
+
+*/
+void IndoorNav::CreateIUnits2(Point3D& p1, Point3D& p2, string type,
+                              Rectangle<2> bbox, double speed,
+                    Instant& start_time, MPoint3D* mp3d, 
+                              GenMO* genmo, int new_groom_oid)
+{
+   const double dist_delta = 0.01;
+   double d = p1.Distance(p2);
+
+   int no = (int)floor(d/speed); 
+
+   double x = (p2.GetX() - p1.GetX())/(no + 1);
+   double y = (p2.GetY() - p1.GetY())/(no + 1);
+   double z = (p2.GetZ() - p1.GetZ())/(no + 1);
+
+   Instant old_time = start_time;
+
+   assert(GetRoomEnum(type) == OR ||  GetRoomEnum(type) == CO);
+    for(int i = 0;i < no ;i++){
+      Point3D q1(true, p1.GetX() + i*x, p1.GetY() + i*y, p1.GetZ() + i*z);
+      Point3D q2(true, p1.GetX() + (i+1)*x, 
+                       p1.GetY() + (i+1)*y, p1.GetZ() + (i+1)*z);
+      double dist = q1.Distance(q2); 
+
+      Interval<Instant> up_interval; 
+      up_interval.start = start_time;
+      Instant end = start_time;
+      end.ReadFrom(start_time.ToDouble() + dist/(24.0*60.0*60.0*speed));
+      up_interval.end = end; 
+
+      up_interval.lc = true;
+      up_interval.rc = false; 
+
+      UPoint3D* unit = new UPoint3D(up_interval, q1,q2); 
+      mp3d->Add(*unit);
+      delete unit;
+      start_time = end;
+     ///////////////////////////////////////////////////////////////////
+      if(i == no - 1){
+        Point3D q3 = q2;
+        Point3D q4 = p2;
+        double dist = q3.Distance(q4); 
+        if(dist < dist_delta) continue;
+
+        up_interval.start = start_time;
+        Instant end = start_time;
+        end.ReadFrom(start_time.ToDouble() + dist/(24.0*60.0*60.0*speed));
+        up_interval.end = end;
+        up_interval.lc = true;
+        up_interval.rc = false; 
+        start_time = up_interval.end; 
+//        cout<<"start "<<up_interval.start<<" end "<<up_interval.end<<endl; 
+//        cout<<"t: "<<up_interval<<"p0: "<<q3<<"p1: "<<q4<<endl;
+
+        UPoint3D* unit = new UPoint3D(up_interval, q3, q4); 
+
+        mp3d->Add(*unit); 
+        delete unit;
+        start_time = end; 
+      }
+    }
+
+    ////////////////////////////////////////////
+    ////////////generic units //////////////////
+    ///////////////////////////////////////////
+    GenLoc gloc1;
+    GenLoc gloc2;
+    Loc loc_1(p1.GetX() - bbox.MinD(0), p1.GetY() - bbox.MinD(1)); 
+    Loc loc_2(p2.GetX() - bbox.MinD(0), p2.GetY() - bbox.MinD(1)); 
+
+    gloc1.SetValue(new_groom_oid, loc_1);
+    gloc2.SetValue(new_groom_oid, loc_2);
+
+    Interval<Instant> up_interval; 
+    up_interval.start = old_time;
+    up_interval.end = start_time; 
+
+    up_interval.lc = true;
+    up_interval.rc = false; 
+
+    UGenLoc* ugenloc = 
+          new UGenLoc(up_interval, gloc1, gloc2, GetTM("Indoor"));
+    genmo->Add(*ugenloc);
+    delete ugenloc;
 }
 
 /*
@@ -8894,8 +9005,7 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
                            GenLoc& loc1, GenLoc& loc2, 
                             R_Tree<3,TupleId>* rtree, int build_id)
 {
-//  cout<<"Get_GenLoc2 "<<endl; 
-  
+
   SmiRecordId adr = rtree->RootRecordId();
 
   vector<int> tid_list1;
@@ -8967,6 +9077,7 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
 
       loc1.SetValue(oid, loc_1);
       loc2.SetValue(oid, loc_2);
+
     }else if(GetRoomEnum(type) == EL){//move in an elevator,we record the height
 //      cout<<"elevator1 "<<endl;
 //       Loc loc_1(p1.GetZ(), -1.0); 
@@ -9034,8 +9145,12 @@ void IndoorNav::Get_GenLoc2(Point3D p1, Point3D p2,
       assert(false); 
     }
   }
-
 }
+
+
+
+
+
 
 /*
 check whether a 3d box contains a 3d point 

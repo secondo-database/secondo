@@ -848,7 +848,7 @@ struct IndoorNav{
                            Instant& start_time, int build_id, 
                            int entrance_index, MPoint3D* mp3d, 
                            GenMO* genmo, Periods* peri, GenLoc);
- void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, 
+   void GenerateMO3_Start(IndoorGraph* ig, BTree* btree, 
                         R_Tree<3,TupleId>* rtree,
                         Instant& start_time, int build_id, int entrance_index,
                         MPoint3D* mp3d, GenMO* genmo, Periods* peri);
@@ -901,9 +901,16 @@ struct IndoorNav{
    void AddUnitToMO_Elevator(MPoint3D* mp3d, vector<Point3D>& , 
                     Instant& start_time, Instant& st, vector<Elevator>&);
 
-   void AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
+    void AddUnitToMO2(MPoint3D* mp3d, Point3D& p1, Point3D& p2,
                     Instant& start_time, double speed, int index,
                     Line3D* l_room, int build_id, GenMO* genmo);
+    void CreateIUnits1(Point3D& p1, Point3D& p2, string type,Rectangle<2> bbox,
+                       double speed, Instant& start_time, 
+                       MPoint3D* mp3d, GenMO* genmo, int new_groom_oid);
+    void CreateIUnits2(Point3D& p1, Point3D& p2, string type,Rectangle<2> bbox,
+                       double speed, Instant& start_time, 
+                       MPoint3D* mp3d, GenMO* genmo, int new_groom_oid);
+
     void AddUnitToMO_Elevator2(MPoint3D* mp3d, vector<Point3D>& , 
                      Instant& start_time, Instant& st, vector<Elevator>&,
                      int index, Line3D* l_room, int build_id, GenMO* genmo);

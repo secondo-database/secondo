@@ -164,6 +164,9 @@ operator tm_duration alias TM_DURATION pattern op(_,_)
 operator initial alias INITIAL pattern op(_)
 operator final alias FINAL pattern op(_)
 operator tm_build_id alias TM_BUILD_ID pattern op(_,_)
+operator bcontains alias BCONTAINS pattern _ infixop _
+operator bcontains2 alias BCONTAINS2 pattern op(_,_,_)
+
 operator tm_room_id alias TM_ROOM_ID pattern op(_,_)
 operator tm_plus_id alias TM_PLUS_ID pattern op(_,_)
 operator tm_passes alias TM_PASSES pattern op(_,_,_)
@@ -171,6 +174,7 @@ operator tm_distance alias TM_DISTANCE pattern op(_,_,_)
 operator tm_genloc alias TM_GENLOC pattern op(_,_,_)
 operator modeval alias MODEVAL pattern op(_)
 operator genmoindex alias GENMOINDEX pattern op(_)
+
 
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)
@@ -208,7 +212,7 @@ operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)
 operator get_rg_edges2 alias GET_RG_EDGES2 pattern op(_,_)
 operator creatergraph alias CREATERGRAPH pattern op(_,_,_,_)
 operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
-operator shortestpath_tm2 alias SHORTESTPATH_TM2 pattern op(_,_,_,_)
+
 
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 

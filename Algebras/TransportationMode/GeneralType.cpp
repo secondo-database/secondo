@@ -2039,6 +2039,8 @@ bool GenMO::Passes(Region* reg, Space* sp)
 
 }
 
+
+
 /*
 map a genmo to a mpoint 
 now it only supports bus 
@@ -2149,6 +2151,22 @@ int GenMO::ModeVal()
     return modebits.to_ulong();
 }
 
+int GenMO::ModeVal(MReal* mr)
+{
+  bitset<ARR_SIZE(str_tm)> modebits;
+  modebits.reset();
+
+   for(int i = 0 ;i < mr->GetNoComponents();++i){
+       UReal unit;
+       mr->Get( i, unit );
+       assert(0 <= unit.a && unit.a < (int)(ARR_SIZE(str_tm)));
+       modebits.set((int)ARR_SIZE(str_tm) - 1 - unit.a, 1);
+   }
+
+  return modebits.to_ulong();
+
+}
+
 /*
 ureal has a b c
 a -- tm
@@ -2209,6 +2227,67 @@ void GenMO::IndexOnUnits(MReal* res)
   }else
     res->SetDefined(false);
 
+}
+
+/*
+check whether a building is visited 
+
+*/
+bool GenMO::BContains(int bid)
+{
+
+   char buffer1[64];
+   sprintf(buffer1,"%d", bid);
+   string number1(buffer1);
+//   cout<<"length "<<number1.length()<<endl;
+   for(int i = 0;i < GetNoComponents();i++){
+      UGenLoc unit;
+      Get( i, unit);
+      if(unit.tm == TM_INDOOR){
+           char buffer2[64];
+           sprintf(buffer2,"%d", unit.GetOid());
+           string number2(buffer2);
+           string build_id = number2.substr(0, number1.length());
+           int val = 0;
+           sscanf(build_id.c_str(), "%d", &val);
+           if(val == bid)return true;
+      }
+   }
+
+   return false;
+}
+
+/*
+check whether a building is visited, with an index 
+in fact, we only need to check the first unit of an indoor movement because the
+building id is the same for one building
+
+*/
+bool GenMO::BContains(MReal* index, int bid)
+{
+
+   char buffer1[64];
+   sprintf(buffer1,"%d", bid);
+   string number1(buffer1);
+
+  for(int i = 0;i < index->GetNoComponents();i++){
+      UReal ur;
+      index->Get(i, ur);
+      if((int)(ur.a) == TM_INDOOR){///mode -- indoor 
+        int start = (int)ur.b;
+        UGenLoc unit;
+        Get(start, unit);
+        char buffer2[64];
+        sprintf(buffer2,"%d", unit.GetOid());
+        string number2(buffer2);
+        string build_id = number2.substr(0, number1.length());
+        int val = 0;
+        sscanf(build_id.c_str(), "%d", &val);
+        if(val == bid)return true;
+      }
+  }
+
+   return false;
 }
 
 void GetLine(Point& p1, Point& p2, Line* l)
@@ -6067,7 +6146,7 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
       Instant t1 = start_time;
 
       indoor_nav->GenerateMO3_Start(ig, btree_room, rtree_room, start_time,
-                                build_id, entrance_index,mp3d,genmo, peri);
+                                build_id, entrance_index, mp3d, genmo, peri);
       Instant t2 = start_time;
 
 

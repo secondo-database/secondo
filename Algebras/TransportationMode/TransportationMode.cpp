@@ -3191,6 +3191,20 @@ const string SpatialSpecTMBuildId =
 "<text>return the building id of an reference</text--->"
 "<text>query tm_build_id(0, space1)</text---> ) )";
 
+const string SpatialSpecTMBContains =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x int -> bool</text--->"
+"<text>genmo bcontains int </text--->"
+"<text>check whether a building id is contained</text--->"
+"<text>query genmo1 bcontains 123456</text---> ) )";
+
+const string SpatialSpecTMBContains2 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x mreal x int -> bool</text--->"
+"<text>genmo bcontains int </text--->"
+"<text>check whether a building id is contained, with index on units</text--->"
+"<text>query bcontains(genmo1, uindex, 123456)</text---> ) )";
+
 const string SpatialSpecTMRoomId =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>int x space -> int</text--->"
@@ -4126,7 +4140,6 @@ int TMBuildIdValueMap(Word* args, Word& result, int message,
         res->Set(true, -1);
         return 0;
      }
-     
 
       char buffer1[64];
       sprintf(buffer1, "%d", inf_ref.ref_id_low);
@@ -4161,6 +4174,49 @@ int TMBuildIdValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+check whether a building is visited
+
+*/
+int TMBContainsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  int bid = ((CcInt*)args[1].addr)->GetIntval();
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr; 
+
+  if(genmo->IsDefined() && genmo->GetNoComponents() > 0){
+     res->Set(true, genmo->BContains(bid));
+  }else
+     res->Set(false, false);
+
+  return 0;
+}
+
+/*
+check whether a building is visited, with index 
+
+*/
+int TMBContains2ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  MReal* uindex = (MReal*)args[1].addr;
+  int bid = ((CcInt*)args[2].addr)->GetIntval();
+
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr; 
+
+  if(genmo->IsDefined() && genmo->GetNoComponents() > 0 &&
+     uindex->IsDefined()){
+     res->Set(true, genmo->BContains(uindex,bid));
+  }else
+     res->Set(false, false);
+
+  return 0;
+}
 
 /*
 extract the room id from a reference id 
@@ -4279,7 +4335,7 @@ int TMGenLocValueMap(Word* args, Word& result, int message,
 create an integer by genmo representing transportation modes 
 
 */
-int ModeValValueMap(Word* args, Word& result, int message,
+int ModeGenMOValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   GenMO* genmo = (GenMO*)args[0].addr;
@@ -4288,6 +4344,20 @@ int ModeValValueMap(Word* args, Word& result, int message,
   CcInt* res = (CcInt*)result.addr; 
   if(genmo->IsDefined())
     res->Set(true, genmo->ModeVal());
+  else
+    res->Set(false, 0);
+  return 0;
+}
+
+int ModeMRealValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  MReal* mr = (MReal*)args[0].addr;
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*)result.addr; 
+  if(mr->IsDefined())
+    res->Set(true, GenMO::ModeVal(mr));
   else
     res->Set(false, 0);
   return 0;
@@ -5867,27 +5937,6 @@ int OpTMShortestPathTMValueMap ( Word* args, Word& result, int message,
 }
 
 
-int OpTMShortestPath2TMValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  GPoint* gp1 = (GPoint*)args[0].addr;
-  GPoint* gp2 = (GPoint*)args[1].addr; 
-  RoadGraph* rg = (RoadGraph*)args[2].addr;
-  Network* rn = (Network*)args[3].addr;
-  
-  GLine* pGLine = (GLine*)qp->ResultStorage(in_pSupplier).addr;
-  result = SetWord(pGLine);
-
-  RoadNav* nav = new RoadNav();
-
-  nav->ShortestPath2(gp1, gp2, rg, rn, pGLine);
-
-  delete nav;
-
-  return 0;
-
-}
-
 /*
 navigation with modes Walk and Bus
 
@@ -6010,6 +6059,11 @@ ValueMapping TMDistanceValueMapVM[]={
   TMGenLocLineValueMap,
 };
 
+ValueMapping TMModeValueMapVM[]={
+  ModeGenMOValueMap,
+  ModeMRealValueMap,
+};
+
 int TMATOpSelect(ListExpr args)
 {
   ListExpr arg2 = nl->Second(args);
@@ -6105,6 +6159,22 @@ int TMDistanceOpSelect(ListExpr args)
      nl->SymbolValue(arg2) == "line" && nl->SymbolValue(arg3) == "space")
     return 1;
 
+  return -1;
+}
+
+/*
+modeval (genmo, mreal)
+
+*/
+int TMModeValOpSelect(ListExpr args)
+{
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->SymbolValue(arg1) == "genmo")
+    return 0;
+  if(nl->SymbolValue(arg1) == "mreal" )
+    return 1;
+  
   return -1;
 }
 
@@ -6381,6 +6451,44 @@ ListExpr TMBuildIdTypeMap(ListExpr args)
 }
 
 /*
+TypeMap function for operator bcontains
+
+*/
+ListExpr TMBContainsTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2,"int"))
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr TMBContains2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2,"mreal") && 
+     nl->IsEqual(arg3,"int"))
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 TypeMap function for operator tm room id 
 
 */
@@ -6502,7 +6610,7 @@ ListExpr ModeValTypeMap(ListExpr args)
 
   ListExpr arg1 = nl->First(args);
 
-  if(nl->IsEqual(arg1, "genmo")){
+  if(nl->IsEqual(arg1, "genmo") || nl->IsEqual(arg1, "mreal")){
     return nl->SymbolAtom("int");
   }
 
@@ -7606,6 +7714,21 @@ Operator tm_build_id("tm_build_id",
     TMBuildIdTypeMap
 );
 
+Operator bcontains("bcontains",
+    SpatialSpecTMBContains,
+    TMBContainsValueMap,
+    Operator::SimpleSelect,
+    TMBContainsTypeMap
+);
+
+Operator bcontains2("bcontains2",
+    SpatialSpecTMBContains2,
+    TMBContains2ValueMap,
+    Operator::SimpleSelect,
+    TMBContains2TypeMap
+);
+
+
 Operator tm_room_id("tm_room_id",
     SpatialSpecTMRoomId,
     TMRoomIdValueMap,
@@ -7647,8 +7770,9 @@ Operator tm_genloc("tm_genloc",
 
 Operator modeval("modeval",
     SpatialSpecModeVal,
-    ModeValValueMap,
-    Operator::SimpleSelect,
+    2,
+    TMModeValueMapVM,
+    TMModeValOpSelect,
     ModeValTypeMap
 );
 
@@ -8540,13 +8664,6 @@ Operator shortestpath_tm(
   OpTMShortestPathTMTypeMap
 );
 
-Operator shortestpath_tm2(
-  "shortestpath_tm2", 
-  OpTMShortestPathTMSpec,
-  OpTMShortestPath2TMValueMap,
-  Operator::SimpleSelect,
-  OpTMShortestPathTMTypeMap
-);
 
 Operator navigation1("navigation1",
     SpatialSpecNavigation1List,
@@ -23422,6 +23539,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_initial);//initial intime genloc for genmo 
     AddOperator(&tm_final);//initial intime genloc for genmo 
     AddOperator(&tm_build_id);//get the building id of an indoor reference
+    AddOperator(&bcontains);//contains a building id 
+    AddOperator(&bcontains2);//contains a building id with index on units 
     AddOperator(&tm_room_id);//get the room id of an indoor reference
     AddOperator(&tm_plus_id);//plus two integers 
     AddOperator(&tm_passes);// passes(genmo,...., space)
@@ -23483,7 +23602,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&get_rg_edges2);//get road graph edges, glines
    AddOperator(&creatergraph);//create road network graph
    AddOperator(&shortestpath_tm);//shortest path on road graph
-   AddOperator(&shortestpath_tm2);//path on road graph avoid center area
+//   AddOperator(&shortestpath_tm2);//path on road graph avoid center area
    ///////////////////////////////////////////////////////////////////////
    ///////////////overall navigation system///////////////////////////////
    /////////////////////////////////////////////////////////////////////
