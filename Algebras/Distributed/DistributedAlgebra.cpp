@@ -63,6 +63,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "StringUtils.h"
 #include "Symbols.h"
 #include "Stream.h"
+#include "ThreadedMemoryCntr.h"
 
 //#define RECEIVE_REL_MAP_DEBUG 1
 //#define RECEIVE_REL_FUN_DEBUG 1
@@ -267,22 +268,23 @@ int DArray::no = 0;
 
 //Creates an undefined DArray
 DArray::DArray()
+  : m_name()
 {
    defined = false;
    isRelation = false;
    size=0;
    alg_id=0;
    typ_id=0;
-   name="";
    no++;
 }
 
 //Creates a defined DArray
 //A DArray is defined by its name, type, size and serverlist
 //It can be defined while all its elements are undefined
-DArray::DArray(ListExpr inType, string n, int s, ListExpr n_serverlist)
+DArray::DArray(ListExpr inType, 
+               const string& inName, int s, ListExpr n_serverlist)
+  : m_name(inName)
 {
-
    m_type = inType;
 
    extractIds( m_type, alg_id, typ_id);
@@ -294,15 +296,13 @@ DArray::DArray(ListExpr inType, string n, int s, ListExpr n_serverlist)
       isRelation = false;
 
 
-   name = n;
-
    size = s;
 
    m_elements = vector<Word>(size);
    m_present = vector<int>(size, 0);
 
    serverlist = n_serverlist;
-   manager = new DServerManager(serverlist, name,m_type,size);
+   manager = new DServerManager(serverlist, m_name,m_type,size);
 
    no++;
 
@@ -348,6 +348,12 @@ void DArray::remove()
 #ifndef SINGLE_THREAD1
       ZThread::ThreadedExecutor exec;
 #endif
+      if (!(manager -> checkServers(true)))
+        {
+          defined = false;
+          return;
+        }
+
       for(int i = 0;i<manager->getNoOfServers();i++)
       {
         //cout << "Deleting server: " << i << endl;
@@ -460,8 +466,14 @@ void DArray::refresh()
     //cout << "DArray::refresh ...done" << endl;
 }
 
-void DArray::refresh(TBQueue *tbIn, TBQueue *tbOut)
+void DArray::refresh(TBQueue *tbIn, 
+                     TBQueue *tbOut)
 {
+  if (!(manager -> checkServers(true)))
+    {
+      return;
+    }
+
 #ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
 #endif
@@ -498,10 +510,14 @@ void DArray::refresh(TBQueue *tbIn, TBQueue *tbOut)
 #endif
 
    tbRefreshDone();
+   // send a dummy TB to avoid deadlock;
+   // cout << "SEND DUMMY DB" << endl;
+   TupleBuffer *tb = (*tbIn) -> get();
+   (*tbOut) -> put(tb);
 }
 
 bool DArray::initialize(ListExpr inType,
-                        string n, int s,
+                        const string& inName, int s,
                         ListExpr n_serverlist,
                         const vector<Word> &n_elem)
 {
@@ -521,17 +537,21 @@ bool DArray::initialize(ListExpr inType,
    else
       isRelation = false;
 
-   name = n;
+   m_name = inName;
    size = s;
    serverlist = n_serverlist;
 
    //create DServerManager, and
    //thereby also the DServer (worker connections)
-   manager = new DServerManager(serverlist, name,m_type,size);
+   manager = new DServerManager(serverlist, m_name, m_type,size);
 
    //Set the elements-array
    m_elements = n_elem;
    m_present = vector<int>(size, 1); // all true
+
+   int max_servers = manager->getNoOfServers();
+   if (size < max_servers)
+     max_servers = size;
 
    //sends the elements to the respective workers
 #ifndef SINGLE_THREAD1
@@ -541,7 +561,7 @@ bool DArray::initialize(ListExpr inType,
    if(!isRelation)
      {
 
-       for(int i = 0; i<manager->getNoOfServers();i++)
+       for(int i = 0; i<max_servers;i++)
          {
            DServer* server = manager->getServerbyID(i);
            server->setCmd(DServer::DS_CMD_WRITE,
@@ -558,7 +578,7 @@ bool DArray::initialize(ListExpr inType,
      }
    else
      {
-       for(int i= 0;i<manager->getNoOfServers();i++)
+       for(int i= 0;i<max_servers;i++)
          {
 #ifndef SINGLE_THREAD1
            exec.execute(
@@ -579,7 +599,7 @@ bool DArray::initialize(ListExpr inType,
    exec.wait();
 #endif
 
-   for(int i= 0;i<manager->getNoOfServers();i++)
+   for(int i= 0;i<max_servers;i++)
      {
        if (manager->getServerbyID(i) -> getErrorText() != "OK")
          {
@@ -593,7 +613,8 @@ bool DArray::initialize(ListExpr inType,
    return true;
 }
 
-bool DArray::initialize(ListExpr inType, string n,
+bool DArray::initialize(ListExpr inType, 
+                        const string& inName,
                         int s,
                         ListExpr n_serverlist)
 {
@@ -614,7 +635,7 @@ bool DArray::initialize(ListExpr inType, string n,
    else
       isRelation = false;
 
-   name = n;
+   m_name = inName;
    size = s;
 
    //elements-array is empty, no elements are present on the master
@@ -624,7 +645,7 @@ bool DArray::initialize(ListExpr inType, string n,
    //creates DServerManager, which creates the
    //DServer-objects for all workers
    serverlist = n_serverlist;
-   manager = new DServerManager(serverlist, name,m_type,size);
+   manager = new DServerManager(serverlist, m_name,m_type,size);
    return true;
 }
 
@@ -1370,13 +1391,13 @@ static ListExpr sendTypeMap( ListExpr args )
 {
    //Always return int
    //Hostname and Port are appended for the value-mapping
-   return
+   ListExpr ret = 
      nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND()),
       nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
                   nl->StringAtom(nl->ToString(nl->Second(args)))),
       nl->SymbolAtom(CcInt::BasicType()));
-
+  return ret;
 }
 
 static int sendFun( Word* args,
@@ -1385,7 +1406,6 @@ static int sendFun( Word* args,
                 Word& local,
                 Supplier s)
 {
-
    //retrieve Hostname and Port
    string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
    string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
@@ -1394,7 +1414,7 @@ static int sendFun( Word* args,
    host = stringutils::replaceAll(host,"_",".");
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
-
+   
    //Connect to master
    Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
 
@@ -1402,7 +1422,6 @@ static int sendFun( Word* args,
 
    if(master!=0 && master->IsOk())
    {
-
       iostream& iosock = master->GetSocketStream();
       getline(iosock,line);
 
@@ -1490,13 +1509,11 @@ static int sendFun( Word* args,
          }
 
          master->Close();delete master;master=0;
-
-         return 0;
       }
-
-      result = qp->ResultStorage(s);
-      ((CcInt*)result.addr)->Set(1);
    }
+
+   result = qp->ResultStorage(s);
+   ((CcInt*)result.addr)->Set(1);
 
    return 0;
 
@@ -2169,6 +2186,29 @@ static ListExpr distributeTypeMap( ListExpr inargs )
    {
       NList stream_desc = args.first();
       ListExpr attr_desc = args.second().listExpr();
+
+      NList workers = args.fourth();
+
+      // check worker rel
+      if (!workers.isList() || 
+          !listutils::isRelDescription(workers.listExpr()) ||
+          !workers.
+            second().
+              second().
+                first().
+                  second().isSymbol(CcString::BasicType()) ||
+          !workers.
+            second().
+              second().
+                second().
+                  second().isSymbol(CcInt::BasicType()))
+        {
+          return 
+            args.typeError
+            ("workers must be of type\
+(rel(tuple([Server:string, Port:int]))) )");
+        }
+
       if( stream_desc.isList() && stream_desc.first().isSymbol(Symbol::STREAM())
             && (stream_desc.length() == 2)
             && (nl->AtomType(attr_desc) == SymbolType))
@@ -2245,8 +2285,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    ListExpr serverlist = Relation::Out(reltype,rit);
 
    int attrIndex = ((CcInt*)(args[4].addr))->GetIntval() - 1;
-
-   //Tuple* sendTuple = (Tuple*)args[5].addr;
    
    string sendTType = ((FText*)args[5].addr)->GetValue();
 
@@ -2259,12 +2297,12 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
    ListExpr restype = nl->Second(qp->GetType(s));
    restype = sc->NumericType(restype);
-
    DArray* array = (DArray*)(qp->ResultStorage(s)).addr;
 
    array->initialize(restype,getArrayName(DArray::no),
                      size, serverlist);
 
+   
    DServerManager* man = array->getServerManager();
    DServer* server = 0;
 
@@ -2287,8 +2325,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        //<< rel_server * server_no << endl;
        rel_server ++;
      }
-
-  
    try
      {
 #ifndef SINGLE_THREAD1
@@ -2347,6 +2383,9 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
                server = (server->getChilds())[child];
              }
 
+           if (!(server -> checkServer(true)))
+             return 1;
+
            serverList[i] = server;
 
            list<int> l;
@@ -2371,11 +2410,17 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        return 1;
      }
 
+   MemCntr memCntr ((long)(qp->GetMemorySize(s) * 1024 * 1024));
+
+   //cout << "START MEM S:" << memCntr.size()
+   //   << " C:" << memCntr.count()
+   //   << " M:" << memCntr.max() << endl;
+
    Word current = SetWord( Address (0) );
 
    Stream<Tuple> inTupleStream(args[0]);
    inTupleStream.open();
-
+   
    Tuple* tuple1;
 #ifndef SINGLE_THREAD1
    // setup CommandQuue for each server;
@@ -2387,19 +2432,25 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 #ifndef SINGLE_THREAD1
        //ZThread::PoolExecutor poolEx(2);
        ZThread::ThreadedExecutor poolEx;
-       
+
        for(int i = 0; i < size; i++)
          {
-           serverCommand[i] = new DServerMultiCommand(i, serverList[i]);
+           serverCommand[i] = 
+             new DServerMultiCommand(i, serverList[i], &memCntr);
+
            poolEx.execute(serverCommand[i]);
          }
 #endif
 
        cout << "Reading Data ..." << endl;
-       while( (tuple1 = inTupleStream.request()) != 0)
+
+       int oldIndex = -1;
+       while( (tuple1 = 
+               DBAccess::getInstance() -> TS_Request(inTupleStream)) != 0)
          {
            // this is a memory leak!
            // vector<Word> *w = new vector<Word> (1);
+
            // ArrayIndex
            int arrIndex = 
              ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
@@ -2408,20 +2459,35 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
            arrIndex = arrIndex % size;
            
+           if (oldIndex == -1)
+             oldIndex = arrIndex;
+
+           if (arrIndex != oldIndex)
+             {
+               //cout << "Switch from " 
+               // << oldIndex << " to " << arrIndex << endl;
+               serverCommand[oldIndex] -> forceSend();
+               oldIndex = arrIndex;
+             }
+
+           //cout << "RUN MEM S:" << memCntr.size()
+           //   << " C:" << memCntr.count()
+           //   << " M:" << memCntr.max() << endl;
+           
+           if (memCntr.size() - tuple1 -> GetSize() < 0)
+             {
+               for (unsigned long j = 0; j < size; j ++)
+                 serverCommand[j] -> forceSend();
+             }
+
+           memCntr.request(tuple1 -> GetSize());
+           
+
            //(*w)[0] = SetWord(tuple1);
            //tuple1->IncReference();
 #ifndef SINGLE_THREAD1
 
            serverCommand[arrIndex] -> AppendTuple(tuple1);
-
-           /*
-             DServer::RemoteCommand* rc = 
-             new DServer::RemoteCommand(DServer::DS_CMD_WRITE_REL, 
-             0, w, 0);
-             serverCommand[arrIndex] -> put(rc);
-           */
-           //cout << "Send tuple " << number 
-           //           << " to server " << arrIndex << ":" << endl;
 #else
            vector<Word> *w = new vector<Word> (1);
            (*w)[0] = SetWord(tuple1);
@@ -2667,7 +2733,7 @@ static int loopValueMap
        return 1;
      }
 
-   if (!man -> checkServers())
+   if (!man -> checkServers(false))
      {
        cerr << "Check workers failed!" << endl;
        cerr << man -> getErrorText() << endl;
@@ -3014,15 +3080,20 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     int m_algID, m_typID;
     TBQueue m_tbIn, m_tbOut;
     ZThread::ThreadedExecutor m_exe;
+    bool m_error;
 
     // create an Tuple iterater for the next array element
     bool makeNextRelIter()
     {
+      if (m_error)
+        return false;
+
       if (rit)
         {
           delete rit;
           rit = 0;
           DBAccess::getInstance() -> TB_Clear(cur_rel);
+          //cout << "IN TB PUT" << endl;
           m_tbIn -> put(cur_rel);
         }
 
@@ -3056,21 +3127,33 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
   , m_tbIn(new TupleBufferQueue())
   , m_tbOut(new TupleBufferQueue())
     {
-      for (int i = 0; i < MAX_DSUMMARIZE_TB_QUEUE_SIZE; ++i)
-        m_tbIn -> put(new TupleBuffer());
+      m_error = false;
 
-      DArrayIteratorRefreshThread *darrRefresh = 
-        new DArrayIteratorRefreshThread();
+      if ( d == 0 ||
+           !(d -> isDefined()) ||
+           !(d -> getServerManager() -> checkServers(false)))
+
+        {
+          m_error = true;
+        }
+      else
+        {      
+          for (int i = 0; i < MAX_DSUMMARIZE_TB_QUEUE_SIZE; ++i)
+            m_tbIn -> put(new TupleBuffer());
+
+          DArrayIteratorRefreshThread *darrRefresh = 
+            new DArrayIteratorRefreshThread();
       
-      d -> initTBRefresh();
+          d -> initTBRefresh();
 
-      darrRefresh -> d = d;
-      darrRefresh -> tbIn = &m_tbIn;
-      darrRefresh -> tbOut = &m_tbOut;
+          darrRefresh -> d = d;
+          darrRefresh -> tbIn = &m_tbIn;
+          darrRefresh -> tbOut = &m_tbOut;
       
-      m_exe.execute(darrRefresh);
+          m_exe.execute(darrRefresh);
 
-      makeNextRelIter();
+          makeNextRelIter();
+        }
     }
 
     ~DArrayIterator()
@@ -3090,6 +3173,7 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
           TupleBuffer *tb = m_tbIn -> get();
           delete tb;
         }
+
       rit = 0;
       delete m_tbIn;
       delete m_tbOut;
@@ -3097,6 +3181,9 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
 
     Tuple* getNextTuple() // try to get next tuple
     {
+      if (m_error)
+        return 0;
+
       if (!rit)
         return 0;
       Tuple* t = DBAccess::getInstance() -> TBI_GetNextTuple(rit);
@@ -3109,8 +3196,11 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
              t = DBAccess::getInstance() -> TBI_GetNextTuple(rit);
            }
       }
+
       return t;
     }
+    
+    bool hasError() const { return m_error; }
   };
 
   DArrayIterator* dait = 0;
@@ -3128,12 +3218,23 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
     }
     case REQUEST : {
       //cout << "REQUEST" << endl;
+
+      if (dait -> hasError())
+        {
+           cout << " -> send Cancel" << endl;
+          result.setAddr(0);
+          return CANCEL;
+        }
+
       Tuple* t = dait->getNextTuple();
+      
       if (t != 0) {
         result = SetWord(t);
         //t -> DeleteIfAllowed();
         return YIELD;
       }
+      //cout << " -> send Cancel" << endl;
+      result.setAddr(0);
       return CANCEL;
     }
     case CLOSE : {
@@ -3142,7 +3243,7 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
         dait = (DArrayIterator*)local.addr;
         delete dait;
         local = SetWord(Address(0));
-      }
+      }      
       qp->Close(args[0].addr);
       return 0;
     }
@@ -3177,57 +3278,136 @@ the specified host, listening at the specified port
 It also checks, if the database distributed is available.
 
 */
-static bool
-checkWorkerRunning(const string &host, int port,  
-                   const string &cmd, string &msg)
+static bool 
+sendCommandToWorker(Socket *inServer,
+                    const string inCmd,
+                    const string inExpectedResponse,
+                    string &outMsg)
 {
-  cout << "checking worker on " << host << ":" << port << endl;
-  // check worker running
-  string line;
-  Socket* server = Socket::Connect( host, toString_d(port), 
-                                    Socket::SockGlobalDomain,
-                                    5,
-                                    1);
-  
-      
-  if(server == 0 || !server->IsOk())
+  if(inServer == 0 || !inServer->IsOk())
     {      
-      msg = "Cannot connect to worker";
-      if (server != 0)
+      outMsg = "Cannot connect to worker";
+      if (inServer != 0)
         {
-          msg += ":" + server -> GetErrorText(); 
-          server->Close();
-          delete server;
+          outMsg += ":" + inServer -> GetErrorText();
         }
 
       return false;
     }
 
-  iostream& iosock = server->GetSocketStream();
-      
-  if (!server -> IsOk())
+  iostream &iosock = inServer -> GetSocketStream();
+
+  // check db distributed available
+  if (!iosock.good())
     {
-      msg = "Cannot access worker socket"; 
+      outMsg = "(5) Communication is blocked! Restart Worker";
+      return false;
+    }
+
+  // cout << "OUT:" << "<Secondo>" << endl << "1" << endl 
+  //       << inCmd << endl 
+  //      << "</Secondo>" << endl;
+
+  iosock << "<Secondo>" << endl << "1" << endl 
+         << inCmd << endl 
+         << "</Secondo>" << endl;
+
+   if (!iosock.good())
+    {
+      outMsg = "(6) Communication is blocked! Restart Worker";
+      return false;
+    }
+
+   string line;
+  getline( iosock, line );
+  //cout << "GOT:" << line << endl;
+
+  bool foundResult = inExpectedResponse.empty()? true : false;
+  bool gotError = false;
+  stringstream allLines;
+  if(line=="<SecondoResponse>")
+    {
+      do
+        {
+          if (!iosock.good())
+            {
+              outMsg = "(7) Communication is blocked! Restart Worker";
+              return false;
+            }
+
+          getline( iosock, line );
+          if (line.find("</SecondoResponse>") == string::npos)
+            allLines << line << endl;
+
+          //cout << "GOT(" << inExpectedResponse << "): "<< line << endl;
+
+          if(line.find("ERROR") != string::npos ||
+             line.find("Error") != string::npos ||
+             line.find("error") != string::npos)
+            { 
+              //cout << "  -> GOT ERROR!";
+              gotError = true;
+            }
+          else if (line.find(inExpectedResponse) != string::npos)
+            {
+              //cout << "  -> GOT IT!";
+              foundResult = true;
+            }
+                        
+        }
+      while(line.find("</SecondoResponse>") == string::npos);
+    }
+  else 
+    outMsg = "Unexpected response from worker";
+  
+  if (gotError)
+    {
+      outMsg = allLines.str();
+      //cerr << "GOT ERROR:" << outMsg;
+      foundResult = false;
+    }
+  return foundResult;
+}
+
+static bool 
+openConnection(Socket *inServer,
+               string &outMsg)
+{ 
+  string line;
+  if(inServer == 0 || !inServer->IsOk())
+    {      
+      outMsg = "Cannot connect to worker";
+      if (inServer != 0)
+        {
+          outMsg += ":" + inServer -> GetErrorText();
+        }
+
+      return false;
+    }
+
+  iostream &ioSock = inServer->GetSocketStream();
       
-      server->Close();
-      delete server;
+  if (!inServer -> IsOk())
+    {
+      outMsg = "Cannot access worker socket"; 
       return false;
     }
   do
     {
-      if (!iosock.good())
+      if (!ioSock.good())
         {
-          msg = "(1):";
-          switch (iosock.rdstate())
+          outMsg = "(1):";
+          switch (ioSock.rdstate())
            {
              default:
-             msg += " nospecified";
+             outMsg += " nospecified";
              break;
            }
-          msg += " Communication is blocked! Restart Worker:";
+          outMsg += " Communication is blocked! Restart Worker:";
           return false;
         }
-      getline( iosock, line );
+      
+      getline( ioSock, line );
       
     } while (line.empty());
       
@@ -3235,30 +3415,30 @@ checkWorkerRunning(const string &host, int port,
 
   if(line=="<SecondoOk/>")
     {
-      if (!iosock.good())
+      if (!ioSock.good())
         {
-          msg = "(2) Communication is blocked! Restart Worker";
+          outMsg = "(2) Communication is blocked! Restart Worker";
           return false;
         }
-      iosock << "<Connect>" << endl << endl 
+      ioSock << "<Connect>" << endl << endl 
              << endl << "</Connect>" << endl;
-      if (!iosock.good())
+      if (!ioSock.good())
         {
-          msg = "(3) Communication is blocked! Restart Worker";
+          outMsg = "(3) Communication is blocked! Restart Worker";
           return false;
         }
-      getline( iosock, line );
+      getline( ioSock, line );
           
       if( line == "<SecondoIntro>")
         {
           do
             {
-              if (!iosock.good())
+              if (!ioSock.good())
                 {
-                  msg = "(4) Communication is blocked! Restart Worker";
+                  outMsg = "(4) Communication is blocked! Restart Worker";
                   return false;
                 }
-              getline( iosock, line);
+              getline( ioSock, line);
               
             }  while(line != "</SecondoIntro>");
             
@@ -3273,121 +3453,86 @@ checkWorkerRunning(const string &host, int port,
    
   if (!startupOK)
     {
-      msg = "Unexpected response from worker";
-      server->Close();
-      delete server;
+      outMsg = "Unexpected response from worker";
       return false;
     }
 
-  if (!(server -> IsOk()))
+  if (!(inServer -> IsOk()))
     { 
-      msg = "Cannot Connect to Worker";
-      server->Close();
-      delete server;
+      outMsg = "Cannot Connect to Worker";
       return false;
-    } // if (!(server -> IsOk()))
+    } // if (!(inServer -> IsOk()))
 
+  return startupOK;
+}
 
-  // check db distributed available
-  if (!iosock.good())
-    {
-      msg = "(5) Communication is blocked! Restart Worker";
-      return false;
-    }
-
-  iosock << "<Secondo>" << endl << "1" << endl 
-         << "open database distributed" << endl 
-         << "</Secondo>" << endl;
-
-   if (!iosock.good())
-    {
-      msg = "(6) Communication is blocked! Restart Worker";
-      return false;
-    }
-
-  getline( iosock, line );
-
-  if(line=="<SecondoResponse>")
-    {
-      do
-        {
-          if (!iosock.good())
-            {
-              msg = "(7) Communication is blocked! Restart Worker";
-              return false;
-            }
-          getline( iosock, line );
-   
-          if(line.find("ERROR") != string::npos)
-            {
-              msg = 
-                "No database \"distributed\"";
-              server->Close();
-              delete server;
-              return false;
-            }
-                        
-        }
-      while(line.find("</SecondoResponse>") == string::npos);
-    }
-  else 
-    msg = "Unexpected response from worker";
-        
-  // check if db distributed is unique
-  if (!iosock.good())
-    {
-      msg = "(8) Communication is blocked! Restart Worker";
-      return false;
-    }
-  iosock << "<Secondo>" << endl << "1" << endl 
-         << cmd << endl 
-         << "</Secondo>" << endl;
-   
-  if (!iosock.good())
-    {
-      msg = "(9) Communication is blocked! Restart Worker";
-      return false;
-    }
-
-  getline( iosock, line );
-
-  if(line=="<SecondoResponse>")
-    {
-      do
-        {
-          if (!iosock.good())
-            {
-              msg = "(10) Communication is blocked! Restart Worker";
-              return false;
-            }
-          getline( iosock, line );
-   
-          if(line.find("ERROR") != string::npos)
-            {
-              msg = 
-                "Database \"distributed\" in use";
-              server->Close();
-              delete server;
-              return false;
-            }
-                        
-        }
-      while(line.find("</SecondoResponse>") == string::npos);
-    }
-  else 
-    msg = "Unexpected response from worker";
-
-  if (!iosock.good())
-    {
-      msg = "(11) Communication is blocked! Restart Worker";
-      return false;
-    }
-  iosock << "<Disconnect/>" << endl;
-  server->Close();
+static void closeConnection(Socket *ioServer)
+{
+  iostream &ioSock = ioServer -> GetSocketStream();
+  ioSock << "<Disconnect/>" << endl;
+  ioServer->Close();
   
+}
+
+static bool
+checkWorkerRunning(const string &host, int port,  
+                   const string &cmd, string &msg)
+{
+  cout << "checking worker on " << host << ":" << port << endl;
+  // check worker running
+  string line;
+
+  Socket* server = Socket::Connect( host, toString_d(port), 
+                                    Socket::SockGlobalDomain,
+                                    5,
+                                    1);
+
+  if (server == 0)
+    {
+      msg = "Unable to open connection to Worker!";
+      return false;
+    }
+  if (!openConnection(server, msg))
+    {
+      if (server != 0)
+        {
+          server->Close();
+          delete server;
+        }
+      return false;
+    }
+
+  if (!sendCommandToWorker(server, 
+                           "open database distributed",
+                           "", 
+                           msg)) 
+    {
+      if (server != 0)
+        {
+          server->Close();
+          delete server;
+        }
+      return false;
+    }
+
+  if (!sendCommandToWorker(server, 
+                           cmd,
+                           "", 
+                           msg)) 
+    {
+      if (server != 0)
+        {
+          server->Close();
+          delete server;
+        } 
+      msg = 
+        "Database \"distributed\" in use";
+      return false;
+    }
+
+  closeConnection(server);
   delete server;
   server=0;
-
   return true;
 }
 
@@ -3549,17 +3694,80 @@ Operator checkWorkers (
 /*
 5.15 Operator ~startup~
 
-The operator ~startup~ takes  host, port, configfile, user, password,
-bindir, and starts a SecondoServer at the
-specified location.
+The operator ~startup~ takes  host, port, configfile, createDistrDBFlag,
+user, password, bindir, and starts a SecondoServer at the specified location.
 It returns true, if server start was successful 
 
 */
+
+static bool createRemoteDistrDB(string host, int port)
+{
+
+  string msg;
+
+  cout << " -> Creating Remote DB 'distributed' "
+       << "on host " << host << " port:" << port << endl;
+
+  Socket* server = Socket::Connect( host, toString_d(port), 
+                                    Socket::SockGlobalDomain,
+                                    5,
+                                    1);
+
+  if (server == 0)
+    {
+      msg = "Unable to open connection to Worker!";
+      return false;
+    }
+
+  if (!openConnection(server, msg))
+    {
+      if (server != 0)
+        {
+          server->Close();
+          delete server;
+        }
+      return false;
+    }
+  
+  if (!sendCommandToWorker(server, 
+                           "delete database distributed",
+                           "", 
+                           msg)) 
+    {
+      if (server != 0)
+        {
+          server->Close();
+          delete server;
+        }
+      return false;
+    }
+  
+  if (!sendCommandToWorker(server, 
+                           "create database distributed",
+                           "", 
+                           msg)) 
+    {
+      if (server != 0)
+        {
+          server->Close();
+          delete server;
+        }
+      return false;
+    }
+
+  closeConnection(server);
+
+  delete server;
+  server=0;
+
+  return true;
+}
+
 static ListExpr
 startupTypeMap( ListExpr args )
 {
   NList myargs (args);
-  if (myargs.length() >= 2  && myargs.length() <= 6)
+  if (myargs.length() >= 2  && myargs.length() <= 7)
     {
       if (!myargs.first().isSymbol(CcString::BasicType()))
         {
@@ -3588,12 +3796,24 @@ startupTypeMap( ListExpr args )
 static int
 startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
 { 
-  result = qp->ResultStorage(s);
+  result = qp->ResultStorage(s); 
+  int args_cnt = qp->GetNoSons(s);
   bool ret_val = true;
 
   string host = ((CcString*)args[0].addr)->GetValue();
   int port = ((CcInt*)args[1].addr)->GetValue();
   string secConf = ((CcString*)args[2].addr)->GetValue();
+  bool createDB = false;
+  
+  // checking optional parameters
+  // don't enter breaks here!
+  switch (args_cnt)
+    {
+    case 5:
+      // something to do ...
+    case 4:
+      createDB = ((CcBool*)args[3].addr)->GetValue();
+    }
 
   if (host.empty())
     {
@@ -3636,23 +3856,33 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
           cerr << "ERROR: Lock file '" + lckfile + "' exists!" << endl;
           ret_val = false;
         }
+      else
+        {
+          if (createDB)
+            {
+              createRemoteDistrDB(host, port);
+            }
+        }
     }
   cout << endl;
   ((CcBool*) (result.addr))->Set(true, ret_val);
 
   return 0;
-}
+} 
  
 const string startupSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "(<text>startup (Server:string , Port:int, SecondoConf:string) "
+    "(<text>startup (Server:string , Port:int,"
+    "SecondoConf:string, CreateDistrDB: bool) "
     "->  bool</text--->"
       "<text>startup (_, _, _)</text--->"
       "<text>Starts a worker on a given host. On that host there "
       "must be a directory ${HOME}/secondo/bin. In this directory "
       "there must exists the StartMonitor.remote script. The given "
       "SecondoConfig.ini file must exist there, too, with "
-      "a matching SecondoPort number.</text--->"
+      "a matching SecondoPort number."
+      "If the optional parameter CreateDistrDB is set to true, the"
+      "database 'distributed' will be restored</text--->"
       "<text>startup (\"localhost\", 1234, "
       "\"SecondoConfig.ini\" )</text---> ))";
 
@@ -3786,6 +4016,7 @@ class DistributedAlgebra : public Algebra
          AddOperator( &receiverelA);
          AddOperator( &sendrelA);
          AddOperator( &distributeA);
+         distributeA.SetUsesMemory();
          AddOperator( &loopA); loopA.SetUsesArgsInTypeMapping();
          AddOperator( &dloopA); dloopA.SetUsesArgsInTypeMapping();
          AddOperator( &dElementA);

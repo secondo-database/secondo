@@ -88,11 +88,13 @@ class DArray
 {
 public:
   DArray();
-  DArray(ListExpr, string,int,ListExpr);
+  DArray(ListExpr, const string& inName,int,ListExpr);
   ~DArray();
 
-  bool initialize(ListExpr, string, int,ListExpr,const vector<Word>& );
-  bool initialize(ListExpr, string,int,ListExpr);
+  bool initialize(ListExpr, const string& inName,
+                  int,ListExpr,const vector<Word>& );
+  bool initialize(ListExpr, const string& inName,
+                  int,ListExpr);
 
   //Returns the content of m_elements[int]
   const Word& get(int);
@@ -105,7 +107,7 @@ public:
 
   ListExpr getServerList() const { return serverlist; }
 
-  string getName() const { return name; }
+  const string& getName() const { return m_name; }
 
   bool isDefined() const { return defined; }
 
@@ -122,13 +124,14 @@ public:
   void refresh(int);
   void refresh();
   void refresh(TBQueue *tbIn, TBQueue* tbOut);
+  
   bool refreshTBRunning() 
   { ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); return m_tbRunning; };
   void initTBRefresh() 
   {  ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); m_tbRunning = true; }
   void tbRefreshDone() 
   {  ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); m_tbRunning = false; }
-
+  
   //Deletes all the remote elements on the workers
   void remove();
 
@@ -179,7 +182,7 @@ private:
   int size;
   int alg_id;
   int typ_id;
-  string name;
+  string m_name;
   ListExpr m_type;
 
   ListExpr serverlist;

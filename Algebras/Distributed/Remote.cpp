@@ -451,7 +451,7 @@ void DServer::run()
                worker->Write(buf+j*1024,1024);
             cbsock << "</FLOB>" << endl;
             
-            delete buf;
+            delete [] buf;
          }
          cbsock << "<CLOSE>" << endl;
          
@@ -602,7 +602,7 @@ void DServer::run()
                   f->write(buf,si,0);
                   
                   
-                  delete buf;
+                  delete []  buf;
                   
                   getline(cbsock,line);
                   DServer::Debug("DSR-READ8", line);
@@ -937,14 +937,7 @@ void DServer::run()
       int2Str(size, str_size);
 
       int num_blocks = (size / 1024) + 1;
-               
-      char* buffer = new char[num_blocks*1024];
-      memset(buffer,0,1024*num_blocks);
-                
-      //Get the binary data of the tuple
-      DBAccess::getInstance() -> T_WriteToBin(tpl, buffer, cS, eS, fS);
-      DBAccess::getInstance() -> T_DeleteIfAllowed(tpl );
-
+    
       iostream& cbsock = cbworker->GetSocketStream();
                
       //Send the size of the tuple to the worker
@@ -986,9 +979,9 @@ void DServer::run()
         }
       getline(cbsock,line);
 #ifdef DS_CMD_WRITE_REL_DEBUG
-        cout << (unsigned long)(this) << " WR Got CB:" << line << endl;
+      cout << (unsigned long)(this) << " WR Got CB:" << line << endl;
 #endif
-        if(line!= "</OK>") 
+      if(line!= "</OK>") 
         {
           errorText = "Worker unable to receive tuple!";
 #ifdef DS_CMD_WRITE_REL_DEBUG1
@@ -996,13 +989,18 @@ void DServer::run()
                << " WR Got CB (EXPETING </OK>!):" << line << endl;
 #endif
         }
-
+      char* buffer = new char[num_blocks*1024];
+      memset(buffer,0,1024*num_blocks);
+                
+      //Get the binary data of the tuple
+      DBAccess::getInstance() -> T_WriteToBin(tpl, buffer, cS, eS, fS);
+        
       //Send the tuple data to the worker
       for(int i = 0; i<num_blocks;i++)
-         cbworker -> Write(buffer+i*1024,1024);
+        cbworker -> Write(buffer+i*1024,1024);
 
-      delete buffer;
-               
+      delete [] buffer;
+      
    }
           
    if(m_cmd -> getCmdType() == DS_CMD_CLOSE_WRITE_REL)
@@ -1114,7 +1112,7 @@ void DServer::run()
                DBAccess::getInstance() -> REL_AppendTuple(rel, t);
                DBAccess::getInstance() -> T_DeleteIfAllowed(t);
             
-               delete buffer;
+               delete [] buffer;
                      
                getline(cbsock,line);
              }
@@ -1213,9 +1211,10 @@ void DServer::run()
                DBAccess::getInstance() -> T_ReadFromBin(t, buffer);
                DBAccess::getInstance() -> REL_AppendTuple(tb, t);
                DBAccess::getInstance() -> T_DeleteIfAllowed(t);
+               delete [] buffer;
 
-               delete buffer;
-                     
+              
+
                getline(cbsock,line);
              }
                 
@@ -1226,6 +1225,7 @@ void DServer::run()
            gate->Close(); delete gate; gate=0;
            worker->Close(); delete worker; worker=0;
 
+           cout << "READING TUPLES DONE!" << endl;
            do
              {
                getline(iosock,line);
@@ -1328,16 +1328,31 @@ DServer::~DServer()
 }
 
 bool
-DServer::checkServer() const
+DServer::checkServer(bool writeError) const
 {
   if (server == 0)
-    return false;
+    {
+      if (writeError)
+        cerr << "ERROR: Not connected to worker on " 
+             << host << ":" << port << endl;
+      return false;
+    }
 
   if(!(server->IsOk()))
-    return false;
+    {
+      if (writeError)
+        cerr << "ERROR: Could not establish connection to worker on " 
+             << host << ":" << port << endl;
+      return false;
+    }
 
   if (getNumChilds() != m_childs.size())
-    return false;
+    {
+      if (writeError)
+        cerr << "ERROR: Workers are not setup correctly, restart cluster" 
+             << endl;
+      return false;
+    }
 
   return true;
 }
@@ -1452,14 +1467,14 @@ returns false, if server were not created correctly
 
 */ 
 bool 
-DServerManager::checkServers() const
+DServerManager::checkServers(bool writeError) const
 { 
   if (m_serverlist.size() != size)
     return false;
 
   for(int i = 0; i<size; i++)
     {
-      if (!m_serverlist[i]->checkServer())
+      if (!m_serverlist[i]->checkServer(writeError))
         {
           return false;
         }
@@ -1545,15 +1560,16 @@ void DServerExecutor::run()
 
 void  DServerMultiCommand::run()
 {
-  cout << "Starting DMC:" << m_index << " " << m_runit << endl;
+  //cout << "Starting DMC:" << m_index << " " << m_runit << endl;
   TupleBuffer *tb;
   Tuple *t;
   vector<Word> w(1);
   while(m_runit || !m_tbQueue.empty())
     {
       tb = m_tbQueue.get();
-      cout << m_index << ": got " << tb -> GetNoTuples() << endl;
-      cout << "Sending:" << m_index << endl;
+      //cout << m_index << ": got " << tb -> GetNoTuples()  << endl;
+
+      //cout << "Sending:" << m_index << endl;
       TupleBufferIterator *rit = new TupleBufferIterator(*tb);
       while ((t = DBAccess::getInstance() -> TBI_GetNextTuple(rit)) != 0)
         {
@@ -1561,12 +1577,14 @@ void  DServerMultiCommand::run()
           m_server->setCmd(DServer::DS_CMD_WRITE_REL, 
                            0, &w, 0);
           m_server -> run();
-          //DBAccess::T_DeleteIfAllowed(t);
+          m_memCntr -> put_back(t -> GetSize());
+          DBAccess::getInstance() -> T_DeleteIfAllowed(t);
         }
+      delete rit;
       delete tb;
-      cout << "Sending:" << m_index << " ... done" << endl;
+      //cout << "Sending:" << m_index << " ... done" << endl;
     }
-  cout << "DMC:" << m_index << " ... done" << endl;
+  //cout << "DMC:" << m_index << " ... done" << endl;
 }
 
 /*

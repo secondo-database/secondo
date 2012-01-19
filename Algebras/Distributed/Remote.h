@@ -48,6 +48,7 @@ RelationWriter and DServerCreator
 #include "RelationAlgebra.h"
 #include "TupleBufferQueue.h"
 #include "DBAccessGuard.h"
+#include "ThreadedMemoryCntr.h"
 
 #define SINGLE_THREAD 1
 
@@ -103,7 +104,7 @@ public:
             
   int getNumChilds() const { return m_numChilds;}
       
-  bool checkServer() const;
+  bool checkServer(bool writeError) const;
   string getErrorText() { return errorText; }
   void int2Str(int i, string& ret)
   {
@@ -257,7 +258,7 @@ returns the number of DServer-Objects controlled by the DServerManager
 returns false, if server were not created correctly
 
 */   
-  bool checkServers() const;
+  bool checkServers(bool writeError) const;
 
   const string& getErrorText() const { return errorText; }
   void  setErrorText( const string& txt) { errorText = txt; }
@@ -294,46 +295,65 @@ private:
   TupleBufferQueue m_tbQueue;
    int m_index;
   DServer* m_server;
-  //ZThread::Mutex lock;
-  //ZThread::Condition cond;
-  //std::deque<DServer::RemoteCommand *> data;
-  unsigned int MAX_TB_SIZE;
+  ZThread::FastMutex lock;
+  ZThread::Condition cond;
   bool m_runit;
+  MemCntr *m_memCntr;
   
+
+  void newTB() 
+  {
+    m_curTB = new TupleBuffer();
+  }
+      
 public:
-  DServerMultiCommand(int i, DServer* s) : 
+  DServerMultiCommand(int i, DServer* s, MemCntr* inMemCntr) : 
     m_curTB(NULL),
     m_index(i),
     m_server(s),
-    MAX_TB_SIZE(16*1024*1024),
-    m_runit(true)
+    cond(lock),
+    m_runit(true),
+    m_memCntr(inMemCntr)
   {
   }
 
   void AppendTuple(Tuple* t)
   {
     if (m_curTB == NULL)
-      m_curTB = new TupleBuffer(MAX_TB_SIZE);
+      newTB();
 
-    if (m_curTB -> GetTotalSize() + t -> GetSize() > MAX_TB_SIZE)
-      {
-        cout << "  -> add to queue (S:" <<  m_curTB -> GetTotalSize() 
-             << "/" << MAX_TB_SIZE << ")" << endl;
-        m_tbQueue.put(m_curTB);
-        m_curTB = new TupleBuffer(MAX_TB_SIZE);
-      }
     DBAccess::getInstance() -> REL_AppendTuple(m_curTB, t);
    }
 
   void done()
   {
     if (m_curTB == NULL)
-      m_curTB = new TupleBuffer(MAX_TB_SIZE);
-        cout << "  -> add to queue (S:" <<  m_curTB -> GetTotalSize() 
-             << "/" << MAX_TB_SIZE << ")" << endl;
+      {
+        newTB();
+      }
+    //cout << m_index << " DONE add to queue (S:"  
+    //   <<   m_curTB -> GetNoTuples()
+    //   << " " <<  m_curTB -> GetTotalSize()<< ")" << endl;
+     m_runit = false;
+
+     // release pending waits:
      m_tbQueue.put(m_curTB);
      m_curTB = NULL;
-     m_runit = false;
+  }
+
+  void forceSend()
+  {
+    if (m_curTB != NULL)
+      {
+        //cout << m_index << "  FORCE add to queue (S:"  
+        // <<   m_curTB -> GetNoTuples()
+        // << " " <<  m_curTB -> GetTotalSize() << endl;
+        m_tbQueue.put(m_curTB);
+   
+        m_curTB = NULL;
+      }
+    //else 
+    // cout << m_index << "  FORCE denied (nothing to send)" << endl;
   }
 
   void run();
