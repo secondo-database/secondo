@@ -698,7 +698,7 @@ bool lastchkPoint03 ( SimpleLine *&route, const Point point,
       route->Get ( hs.attr.edgeno, lrs );
       route->Get ( lrs.hsPos, hs );
       pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
-      if ( startSmaller != route->GetStartSmaller() )
+      if ( !startSmaller)
         pos = route->Length() - pos;
       if ( pos < 0.0 || AlmostEqualAbsolute ( pos, 0.0, tolerance ) )
         pos = 0.0;
@@ -6089,7 +6089,7 @@ GPoint* Network::GetNetworkPosOfPoint(const Point p) const
     ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
   int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
   /*if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )*/
-  if (pRouteCurve->AtPoint(p, startSmaller,m_scalefactor*0.01, dpos))
+  if (pRouteCurve->AtPoint(p ,startSmaller,m_scalefactor*0.01, dpos))
   {
     GPoint *result = new GPoint ( true, GetId(), rid, dpos, None );
     pCurrRoute->DeleteIfAllowed();
@@ -6109,7 +6109,7 @@ GPoint* Network::GetNetworkPosOfPoint(const Point p) const
         ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
       rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
       //if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
-      if (pRouteCurve->AtPoint(p, startSmaller,m_scalefactor*0.01, dpos))
+      if (pRouteCurve->AtPoint(p,startSmaller,m_scalefactor*0.01, dpos))
       {
         GPoint *result = new GPoint ( true, GetId(),
                                       rid,
@@ -6135,7 +6135,7 @@ At the place nearest to the point.
     pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
     startSmaller =
         ((CcBool*)pCurrRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
-        if (lastchkPoint03(pRouteCurve, p, startSmaller, m_scalefactor*0.01,
+    if (lastchkPoint03(pRouteCurve, p ,startSmaller, m_scalefactor*0.01,
                            dpos, difference))
     {
       GPoint *result = new GPoint ( true, GetId(),
@@ -11484,14 +11484,28 @@ int OpNetworkTheNetworkValueMapping ( Word* args, Word& result,
   return 0;
 }
 
-struct theNetworkInfo:OperatorInfo{
-  theNetworkInfo():OperatorInfo(){
-    name = "thenetwork";
-    signature = "int X real X rel X rel -> network";
-    syntax = "thenetwork(_,_,_,_)";
-    meaning = "Creates the network with the given data.";
-  }
-};
+const string TheNetworkSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + CcInt::BasicType() + " X " + CcReal::BasicType() + "X " +
+  Relation::BasicType() + " X " + Relation::BasicType() + " -> " +
+  Network::BasicType() + "</text--->"
+  "<text> thenetwork( <id> , <scaleinformation> , <roadsrel> , "+
+  "<crossings> ) </text--->"
+  "<text> Creates the network with identifier id, from the informations in "+
+  "the roads relation and crossings relation. The scaleinformation is used"+
+  "within map matching operations. It tells the system where how much it must"+
+  "scale the given coordinates to get meter values for distances. Because we" +
+  "the tolerance value of map matching computations must be given relativ to" +
+  "the data format.</text--->"
+  "<text> query getfirstelem(1, 1.0, roads, crossings)</text--->))";
+
+  Operator theNetwork(
+    "thenetwork",
+    TheNetworkSpec,
+    OpNetworkTheNetworkValueMapping,
+    Operator::SimpleSelect,
+    OpNetworkTheNetworkTypeMap
+  );
 
 
 /*
@@ -13322,8 +13336,7 @@ class NetworkAlgebra : public Algebra
       AddOperator ( noComponentsInfo(), OpNoComponentsValueMapping,
                     OpNoComponentsTypeMap);
       AddOperator ( isEmptyInfo(), OpNetIsEmptyValueMap, OpNetIsEmptyTypeMap);
-      AddOperator ( theNetworkInfo(), OpNetworkTheNetworkValueMapping,
-                    OpNetworkTheNetworkTypeMap);
+      AddOperator ( &theNetwork);
       AddOperator ( routesInfo(), OpNetworkRoutesValueMapping,
                     OpNetworkRoutesTypeMap);
       AddOperator ( junctionsInfo(), OpNetworkJunctionsValueMapping,
