@@ -155,9 +155,9 @@ let two =
    projectextend [; 
       Node: .Node_a,
       Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node_a,TRUE),
+      Pos1: atpoint(.streetData_a,.Node_a),
       Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node_a,TRUE),
+      Pos2: atpoint(.streetData_b,.Node_a),
       JunctionType: getconnectivitycode(
          ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
          ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
@@ -207,9 +207,9 @@ let three =
        (.Road2 = .Road3) and not(.Road1 = .Road2))]
    projectextend [Node; 
       Road1: .Road1,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
+      Pos1: atpoint(.streetData_a,.Node),
       Road2: .Road2,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
+      Pos2: atpoint(.streetData_b,.Node),
       JunctionType: getconnectivitycode(
          ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
          ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
@@ -254,9 +254,9 @@ let four =
    filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
    projectextend [Node; 
       Road1: .Road1,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
+      Pos1: atpoint(.streetData_a,.Node),
       Road2: .Road2,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
+      Pos2: atpoint(.streetData_b,.Node),
       JunctionType: getconnectivitycode(
          ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
          ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
