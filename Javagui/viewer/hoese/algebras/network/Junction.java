@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -30,48 +30,50 @@ import viewer.hoese.ProjectionManager;
 
 /**
  * A junction of a network
- * 
+ *
  * @author Martin Scheppokat
  *
  */
-public class Junction 
+public class Junction
 {
 
   /**
    * The point this junction lies at.
    */
   private Point2D.Double m_xPoint;
-  
+
   /**
    * Constructor
-   * 
+   *
    * @param in_xList Representation in secondo list-format
    * @throws Exception
    */
-  public Junction(ListExpr in_xList) 
-  throws Exception 
+  public Junction(ListExpr in_xList)
+  throws Exception
   {
-    // We are only interested in the exakt location that has already 
+    // We are only interested in the exakt location that has already
     // been calculated by the server.
     ListExpr xPointList = in_xList.sixth();
-  
+
     double koord[] = new double[2];
-    if (xPointList.listLength() != 2) 
+    if (xPointList.listLength() != 2)
     {
       // TODO: Handle undefined point in networks
       m_xPoint = new Point2D.Double();
       boolean bSuccess = ProjectionManager.project(1, 1, m_xPoint);
       return;
-    }  
-    
+    }
+
     // Create Point
     double dX = LEUtils.readNumeric(xPointList.first()).doubleValue();
-    double dY = LEUtils.readNumeric(xPointList.second()).doubleValue();    
-    m_xPoint = new Point2D.Double();
-    boolean bSuccess = ProjectionManager.project(dX, dY, m_xPoint);
+    double dY = LEUtils.readNumeric(xPointList.second()).doubleValue();
+    m_xPoint = new Point2D.Double(dX,dY);
+    /*boolean bSuccess = ProjectionManager.project(dX, dY, m_xPoint);
     if (!bSuccess) {
+      System.err.println("Error in projection of a junction");
       throw new Exception("Error: No success in projection.");
     }
+    */
   }
 
   /**
@@ -79,8 +81,12 @@ public class Junction
    * @param af
    * @return
    */
-  public Point2D.Double getRenderObject() 
+  private Point2D.Double rendRes = new Point2D.Double(0,0);
+  public Point2D.Double getRenderObject()
   {
+    if(ProjectionManager.project(m_xPoint.x,m_xPoint.y,rendRes)){
+      return rendRes;
+    }
     return m_xPoint;
   }
 

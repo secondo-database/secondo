@@ -122,13 +122,12 @@ public class Route
       double x2 = LEUtils.readNumeric(xSegmentList.third()).doubleValue();
       double y2 = LEUtils.readNumeric(xSegmentList.fourth()).doubleValue();
 
-      System.out.println("(" + x1 + ", " + y1 + ") -> (" + x2 + ", " + y2 + ")");
+      Point2D.Double xPoint1 = new Point2D.Double(x1,y1);
+      //boolean bSuccess = ProjectionManager.project(x1 ,y1 ,xPoint1);
+      boolean bSuccess = true;
 
-      Point2D.Double xPoint1 = new Point2D.Double();
-      boolean bSuccess = ProjectionManager.project(x1 ,y1 ,xPoint1);
-
-      Point2D.Double xPoint2 = new Point2D.Double();
-      bSuccess &= ProjectionManager.project(x2 ,y2 ,xPoint2);
+      Point2D.Double xPoint2 = new Point2D.Double(x2,y2);
+      //bSuccess &= ProjectionManager.project(x2 ,y2 ,xPoint2);
 
       if(!bSuccess){
         throw new Exception("error in projection of segment (" +
@@ -287,6 +286,7 @@ public class Route
    */
   public Point2D.Double getPointOnRoute(double in_dDistance)
   {
+
     // Look for segment
     Segment xSegment = m_xFirstSegment;
     if (!m_bStartSmaller) xSegment = m_xLastSegment;
@@ -308,11 +308,15 @@ public class Route
     double dDistanceOnSegment = in_dDistance -
                                 dDistanceOnRoute +
                                 xSegment.getLength();
+
+
+    Point2D.Double result;
     if (m_bStartSmaller)
-      return xSegment.getPointOnSegment(dDistanceOnSegment);
+      result = xSegment.getPointOnSegment(dDistanceOnSegment);
     else
-      return xSegment.getPointOnSegment(xSegment.getLength() -
+      result = xSegment.getPointOnSegment(xSegment.getLength() -
                                         dDistanceOnSegment);
+    return result;
   }
 
 /**
@@ -495,17 +499,28 @@ public class Route
   {
     GeneralPath xPath = new GeneralPath();
 
+    Point2D.Double p1 = new Point2D.Double(0,0);
+    Point2D.Double p2 = new Point2D.Double(0,0);
+
     for (int i = 0; i < in_xSegments.length; i++)
     {
       Segment xCurrentSegment = in_xSegments[i];
 
       // Draw segment
-      xPath.moveTo((float)xCurrentSegment.getPoint1().x,
-                   (float)xCurrentSegment.getPoint1().y);
-      xPath.lineTo((float)xCurrentSegment.getPoint2().x,
-                   (float)xCurrentSegment.getPoint2().y);
-    }
+      if(ProjectionManager.project(xCurrentSegment.getPoint1().x,
+                                   xCurrentSegment.getPoint1().y, p1)){
 
+        if(ProjectionManager.project(xCurrentSegment.getPoint2().x,
+                                   xCurrentSegment.getPoint2().y, p2)){
+          xPath.moveTo((float) p1.x, (float)p1.y);
+          xPath.lineTo((float) p2.x, (float)p2.y);
+        } else {
+          System.err.println("problem in projection of p2");
+        }
+      } else {
+         System.err.print("Problem in projection of p1");
+      }
+    }
     return xPath;
   }
 

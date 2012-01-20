@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -28,8 +28,7 @@ import javax.swing.JOptionPane;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
-import viewer.hoese.CurrentState;
-import viewer.hoese.QueryResult;
+import viewer.hoese.*;
 import viewer.hoese.algebras.network.GPoint;
 import viewer.hoese.algebras.network.NetworkNotAvailableException;
 
@@ -39,30 +38,34 @@ import viewer.hoese.algebras.network.NetworkNotAvailableException;
  * Views GPoints in the Hoese-Viewer
  *
  */
-public class Dsplgpoint extends DisplayGraph 
+public class Dsplgpoint extends DisplayGraph
 {
   GPoint m_xGPoint;
-  
+
   /**
-   * 
+   *
    */
-  public Dsplgpoint() 
+  public Dsplgpoint()
   {
     super();
   }
 
   /**
    * Returns the shape to be displayed in the HoeseViewer.
-   * 
+   *
    * @return A shape
    */
-  public Shape getRenderObject(int in_iIndex, 
+  public Shape getRenderObject(int in_iIndex,
                                AffineTransform in_xAf)
   {
     try
     {
-      Point2D.Double xPoint = m_xGPoint.getRenderObject();
-      
+      Point2D.Double p = m_xGPoint.getRenderObject();
+      Point2D.Double xPoint = new Point2D.Double(0,0);
+      if (!ProjectionManager.project(p.x,p.y,xPoint)){
+        return null;
+      }
+
       double dPointSize = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
       double dPointSizeX = Math.abs(dPointSize/in_xAf.getScaleY());
       double dPointSizeY = Math.abs(dPointSize/in_xAf.getScaleX());
@@ -70,14 +73,14 @@ public class Dsplgpoint extends DisplayGraph
       if (Cat.getPointasRect())
       {
         xShape = new Rectangle2D.Double(xPoint.getX()- dPointSizeX/2, xPoint.getY() - dPointSizeY/2, dPointSizeX, dPointSizeY);
-      } 
-      else 
+      }
+      else
       {
         xShape = new Ellipse2D.Double(xPoint.getX()- dPointSizeX/2, xPoint.getY() - dPointSizeY/2, dPointSizeX, dPointSizeY);
       }
       return  xShape;
     }
-    catch (NetworkNotAvailableException xEx) 
+    catch (NetworkNotAvailableException xEx)
     {
       // If the network is availabe is checked in init. Their is no possibility
       // to output an error message here. But it will propably never happen.
@@ -85,19 +88,19 @@ public class Dsplgpoint extends DisplayGraph
     }
   }
 
-  /** 
+  /**
    * Returns the number of shapes to be displayed.
-   * 
+   *
    * @return A number
    */
   public int numberOfShapes()
   {
     return 1;
   }
- 
+
   /**
    * Returns wether a shape displays a point or not.
-   * 
+   *
    * @param in_iIndex Index of shape
    * @return true if the shape represents a point
    */
@@ -108,7 +111,7 @@ public class Dsplgpoint extends DisplayGraph
 
   /**
    * Returns wether a shape displays a line or not.
-   * 
+   *
    * @param in_iIndex Index of shape
    * @return true if the shape represents a line
    */
@@ -119,10 +122,10 @@ public class Dsplgpoint extends DisplayGraph
 
   /**
    * Returns the bounds of all objects displayed
-   * 
+   *
    * @return The boundingbox of the drawn Shape
    */
- public Rectangle2D.Double getBounds () 
+ public Rectangle2D.Double getBounds ()
  {
    try
    {
@@ -131,19 +134,19 @@ public class Dsplgpoint extends DisplayGraph
                                    0,
                                    0);
    }
-   catch (NetworkNotAvailableException xEx) 
+   catch (NetworkNotAvailableException xEx)
    {
      // If the network is availabe is checked in init. Their is no possibility
      // to output an error message here. But it will propably never happen.
      return null;
    }
-     
+
  }
 
-  
+
  /**
-  * Initializes this class. 
-  * 
+  * Initializes this class.
+  *
   * @param in_xType The type of the object
   * @param in_xValue Nestedlist representation of the object
   * @param inout_xQueryResult Result object. If everything is fine the object
@@ -151,11 +154,11 @@ public class Dsplgpoint extends DisplayGraph
   */
   public void init(String name,
                    int nameWidth, int indent,
-                   ListExpr in_xType, 
-                   ListExpr in_xValue, 
+                   ListExpr in_xType,
+                   ListExpr in_xValue,
                    QueryResult inout_xQueryResult)
   {
-    try 
+    try
     {
       if(isUndefined(in_xValue))
       {
@@ -163,7 +166,7 @@ public class Dsplgpoint extends DisplayGraph
         return;
       }
 
-      
+
       AttrName = extendString(name, nameWidth, indent);
       m_xGPoint= new GPoint(in_xValue);
       inout_xQueryResult.addEntry(this);
@@ -172,9 +175,9 @@ public class Dsplgpoint extends DisplayGraph
     {
       err = true;
       Reporter.writeError(xNEx.getMessage());
-      inout_xQueryResult.addEntry(new String("(" + 
-                                             AttrName + ": " + 
-                                             xNEx.getMessage() + 
+      inout_xQueryResult.addEntry(new String("(" +
+                                             AttrName + ": " +
+                                             xNEx.getMessage() +
                                              ")"));
       return;
     }

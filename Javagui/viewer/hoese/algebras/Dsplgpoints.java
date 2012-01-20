@@ -66,7 +66,12 @@ public class Dsplgpoints extends DisplayGraph
   {
     try
     {
-      Point2D.Double xPoint = m_GPoints.getGPointAt(in_iIndex).getRenderObject();
+      Point2D.Double p = m_GPoints.getGPointAt(in_iIndex).getRenderObject();
+      Point2D.Double xPoint = new Point2D.Double(0,0);
+      if (!ProjectionManager.project(p.x,p.y,xPoint)){
+        return null;
+      }
+
       double dPointSize = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
       double dPointSizeX = Math.abs(dPointSize/in_xAf.getScaleY());
       double dPointSizeY = Math.abs(dPointSize/in_xAf.getScaleX());

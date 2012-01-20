@@ -1,6 +1,6 @@
 //This file is part of SECONDO.
 
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science,
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -27,9 +27,7 @@ import java.awt.geom.Rectangle2D;
 
 import sj.lang.ListExpr;
 import tools.Reporter;
-import viewer.hoese.CurrentState;
-import viewer.hoese.Interval;
-import viewer.hoese.QueryResult;
+import viewer.hoese.*;
 import viewer.hoese.algebras.network.MGPoint;
 import viewer.hoese.algebras.network.NetworkNotAvailableException;
 
@@ -45,23 +43,23 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
   Rectangle2D.Double m_xBounds;
 
   private MGPoint m_xMovingPoint;
-  
-  
+
+
   public int numberOfShapes()
   {
      return 1;
   }
 
-  
+
 
   /**
    * Gets the shape of this instance at the ActualTime.
-   * 
+   *
    * @param in_xAt The actual transformation, used to calculate the correct size.
    * @return Rectangle or Circle Shape if ActualTime is defined otherwise null.
    */
   public Shape getRenderObject (int num,
-                                AffineTransform in_xAt) 
+                                AffineTransform in_xAt)
   {
     try
     {
@@ -75,34 +73,38 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
       }
       if(RefLayer == null)
       {
-        return null;    
+        return null;
       }
 
       double dTime = RefLayer.getActualTime();
- 
+
       Point2D.Double xPoint = m_xMovingPoint.getPointAtTime(dTime);
-    
+
       if(xPoint == null)
       {
         return null;
       }
-    
+      if(!ProjectionManager.project(xPoint.x,xPoint.y,xPoint)){
+        return null;
+      }
+
+
       double dPointSize = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
       double dPointSizeX = Math.abs(dPointSize/in_xAt.getScaleY());
       double dPointSizeY = Math.abs(dPointSize/in_xAt.getScaleX());
       Shape xShape;
       if (Cat.getPointasRect())
       {
-        xShape = new Rectangle2D.Double(xPoint.getX()- dPointSizeX/2, 
-                                        xPoint.getY() - dPointSizeY/2, 
-                                        dPointSizeX, 
+        xShape = new Rectangle2D.Double(xPoint.getX()- dPointSizeX/2,
+                                        xPoint.getY() - dPointSizeY/2,
+                                        dPointSizeX,
                                         dPointSizeY);
       }
-      else 
+      else
       {
         xShape = new Ellipse2D.Double(xPoint.getX()- dPointSizeX/2,
-                                      xPoint.getY() - dPointSizeY/2, 
-                                      dPointSizeX, 
+                                      xPoint.getY() - dPointSizeY/2,
+                                      dPointSizeX,
                                       dPointSizeY);
       }
       return  xShape;
@@ -120,7 +122,7 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
 
   /**
    * Returns wether a shape displays a point or not.
-   * 
+   *
    * @param in_iIndex Index of shape
    * @return true if the shape represents a point
    */
@@ -130,19 +132,19 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
   }
 
   /**
-   * Initializes this class. 
-   * 
+   * Initializes this class.
+   *
    * @param in_xType The type of the object
    * @param in_xValue Nestedlist representation of the object
    * @param inout_xQueryResult Result object. If everything is fine the object
    * will be added.
    */
   public void init (String name,
-                    int nameWidth, 
+                    int nameWidth,
                     int indent,
-                    ListExpr in_xType, 
-                    ListExpr in_xValue, 
-                    QueryResult inout_xQueryResult) 
+                    ListExpr in_xType,
+                    ListExpr in_xValue,
+                    QueryResult inout_xQueryResult)
   {
     try
     {
@@ -157,14 +159,14 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
         // empty moving point
         return;
       }
-      for (int j = 0; j < Intervals.size(); j++) 
+      for (int j = 0; j < Intervals.size(); j++)
       {
         Interval xInterval = (Interval)Intervals.elementAt(j);
-        if (TimeBounds == null) 
+        if (TimeBounds == null)
         {
           TimeBounds = xInterval;
         }
-        else 
+        else
         {
           TimeBounds = TimeBounds.union(xInterval);
         }
@@ -174,9 +176,9 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
     {
       err = true;
       Reporter.writeError(xNEx.getMessage());
-      inout_xQueryResult.addEntry(new String("(" + 
-                                             AttrName + ": " + 
-                                             xNEx.getMessage() + 
+      inout_xQueryResult.addEntry(new String("(" +
+                                             AttrName + ": " +
+                                             xNEx.getMessage() +
                                              ")"));
       return;
     }
@@ -192,10 +194,10 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
 
   /**
    * Returns the bounds of all objects displayed
-   * 
+   *
    * @return The boundingbox of the drawn Shape
    */
-  public Rectangle2D.Double getBounds () 
+  public Rectangle2D.Double getBounds ()
   {
     return m_xBounds;
   }
