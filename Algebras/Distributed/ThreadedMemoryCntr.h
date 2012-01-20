@@ -76,7 +76,7 @@ public:
   , m_memMax(inMemMax) 
   , m_cntAlloc(0) 
   { 
-    //m_memMax = m_memAvailable = 0;
+    //m_memMax = m_memAvailable = 2000;
     assert(m_memAvailable >= 0);
   }
 
