@@ -34,18 +34,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Dieter Capek: Module Groupby Algebra
 
 from Sept. 2011    Implementation of Module Groupby Algebra
-15.12.2011	   changed data type for hash buckets to STL vectors 	
+15.12.2011         Changed data type for hash buckets to STL vectors
+13.01.2012         Introduced phases to handle memory constraints
+19.01.2012         Enhanced type mapping for symmetric merging syntax
 
 
 */
 
 
 #include <vector>
-#include <deque>
-#include <sstream>
 #include <stack>
 #include <limits.h>
-#include <set>
 
 #undef TRACE_ON
 #include "LogMsg.h"
@@ -75,45 +74,55 @@ using namespace listutils;
 
 
 
-// Type Mapping Funktion für groupby2
+#define CAPBUCKETS 99997
+#define Normal_Merge 0
+#define Symmetric_Merge 1
+
+
+// Type Mapping Funktion für groupby2 =========================================
 ListExpr GroupByTypeMapCap(ListExpr args)
 {
   ListExpr first, second, third;     // list used for analysing input
-  ListExpr listn, lastlistn, listp;  // list used for constructing output
-  ListExpr first2, t, result, attrtype;
-  ListExpr rest, lastlistp, firstr, newAttr, mapDef, firstInit, mapOut;
+
+  // listp will contain the positions of the groupint attributes
+  // listn will contain the names and data types
+  ListExpr listn, lastlistn, listp, lastlistp;  // for constructing output
+  ListExpr first2, t, result, attrtype, t1, t2, t3, t4;
+  ListExpr rest, firstr, newAttr, mapDef, firstInit, mapOut;
+  ListExpr merge, lastmerge;     // indicates merge type for aggregate functions
 
 
   string err = 
     "stream(tuple(X)) x (g1..gn) x (tuple(X)xtxt -> t), t in DATA expected";
   string resstring;
 
-/* Diagnose
-  nl->WriteToString(resstring, args);
-  cout << "GroupbyTypeMapCap Input = " << resstring << endl;
-*/
+// Diagnose
+//  nl->WriteToString(resstring, args);
+//  cout << "GroupbyTypeMapCap Input = " << resstring << endl;
+ 
   first = second = third = nl->TheEmptyList();
   listn = lastlistn = listp = nl->TheEmptyList();
+  merge = lastmerge = nl->TheEmptyList();
 
   string relSymbolStr = Relation::BasicType();
   string tupleSymbolStr = Tuple::BasicType();
 
  
-  // Die Anzahl der Eingabewerte muss gleich drei sein
-  if(! nl->HasLength(args,3))	
+  // Number of input parameters must be three
+  if(! nl->HasLength(args,3))
     return listutils::typeError("Need to specify three parameters.");
 
-  // get the three arguments
+  // Get the three arguments
   first  = nl->First(args);         // input stream
-  second = nl->Second(args);        // Liste der Gruppierungsattribute
-  third  = nl->Third(args);         // Funktionen für die Aggregation
+  second = nl->Second(args);        // list of grouping attributes
+  third  = nl->Third(args);         // aggregation functions
 
-  // Fehlende Werte sind nur für die Gruppierungsattribute erlaubt
+  // Missing values are only allowed for grouping attributes
   if ( nl->IsEmpty(first) || nl->IsEmpty(third))
     return listutils::typeError("Mandatory argument is missing.");
 
-  // first argument must be of type stream
-  if(!Stream<Tuple>::checkType(first))	
+  // First argument must be of type stream
+  if(!Stream<Tuple>::checkType(first))
     return listutils::typeError("First argument must be of type stream.");
 
   // Each grouping attribute must be part of the input stream
@@ -125,19 +134,16 @@ ListExpr GroupByTypeMapCap(ListExpr args)
   {
     attrtype = nl->TheEmptyList();
     first2 = nl->First(rest);
-    if(nl->AtomType(first2)!=SymbolType){
-      ErrorReporter::ReportError("Wrong format for an attribute name");
-      return nl->TypeError();
-    }
+    if(nl->AtomType(first2)!=SymbolType)
+      return listutils::typeError("Wrong format for an attribute name");
 
     string attrname = nl->SymbolValue(first2);
 
-    // calculate index of attribute in tuple
+    // Get position of attribute within tuple
     int j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
 
     if (j) {
-      if (!firstcall)
-      {
+      if (!firstcall) {
         lastlistn = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
         lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
       } else {
@@ -148,122 +154,190 @@ ListExpr GroupByTypeMapCap(ListExpr args)
         lastlistp = listp;
       }
     } else {
-      // grouping attribute not in input stream
+      // Grouping attribute not in input stream
       string errMsg = "groupby2: Attribute " + attrname + 
         " not present in input stream";
-      ErrorReporter::ReportError(errMsg);
-      return nl->SymbolAtom(Symbol::TYPEERROR());
+      return listutils::typeError(errMsg);
     }
     rest = nl->Rest(rest);
-  } // end while; Prüfung der grouping Attribute
+  } // end while; checking grouping attributes
 
-  // Es muss mindestens eine Funktion angegeben sein
+  // Must specify at least one aggregation function
   if(nl->ListLength(third) < 1)
     return listutils::typeError("Must specify one aggregation function.");
 
   rest = third;         // List of functions
-  // Prüfung der Aggregatfunktionen
+  // Checking of aggregate functions
   while (!(nl->IsEmpty(rest))) 
   {
-    // iterate over function list and initial values
+    // Iterate over function list and initial values
     firstr = nl->First(rest);  // functions
     rest = nl->Rest(rest);
 
-    // Format muss Name:Funktion::Startwert sein
+    // Format must be Name:Funktion::Initial Value 
     if(nl->ListLength(firstr) != 3)
       return listutils::typeError("Each function must have three elements.");
 
-    newAttr  = nl->First(firstr);
-    mapDef   = nl->Second(firstr);
-    firstInit = nl->Third(firstr);
+    newAttr  = nl->First(firstr);       // function name
+    mapDef   = nl->Second(firstr);      // aggregate function 
+    firstInit = nl->Third(firstr);      // function definition or inital value
 
-    // Prüfung des Attributnames
+    // Checking attribute name
     if ( !(nl->IsAtom(newAttr)) || !(nl->AtomType(newAttr) == SymbolType) )
       return listutils::typeError("Attribut name for function is not valid.");
 
-    // Prüfung Initialwert
-    if(!listutils::isDATA(firstInit))   
-      return listutils::typeError("Initial values must all be of kind DATA.");
-
-    // Prüfung der Funktion
+    // Checking aggregate function
     if(!listutils::isMap<2>(mapDef))  
       return listutils::typeError("Aggregation function is not valid.");
+    mapOut = nl->Third(mapDef);         // type of second argument
 
-    // zuvor muss die Gültigkeit der Funktion auf typeerror geprüft sein
-    mapOut = nl->Third(mapDef);
-
-    // Das Tupel muss das erste Funktionsargument sein
-    t = nl->Second(first);
-    if(!nl->Equal(t, nl->Second(mapDef)))
+    // assume normal or symmetric merging based on the firstInit parameter
+    if(listutils::isDATA(firstInit)) {  
+      // check the syntax for normal merging:  name:function:initial value
+      // Tuple must be first function argument 
+      t = nl->Second(first);
+      if(!nl->Equal(t, nl->Second(mapDef)))
       return listutils::typeError("Map argument 1 must be tuple from stream.");
    
-    // Zweites Funktionsargument und Initialwert müssen gleichen Typ haben
-    if(! nl->Equal(firstInit, nl->Third(mapDef)))
-      return listutils::typeError(
-      "Map argument 2 and start value must have same type.");
+      // Second function argument and initial value must be from same type
+      if(! nl->Equal(firstInit, nl->Third(mapDef)))
+        return listutils::typeError(
+        "Map argument 2 and start value must have same type.");
 
-    // Ergebnis der Funktion und Initalwert müssen gleichen Typ haben
-    if(! nl->Equal(firstInit, nl->Fourth(mapDef)))
+      // Function result and initial value must be from same type
+      if(! nl->Equal(firstInit, nl->Fourth(mapDef)))
       return listutils::typeError(
-      "Map result and start value must have same type.");
+        "Map result and start value must have same type.");
 
+      // indicate normal merging 
+      if (nl->IsEmpty(merge)) {
+        merge = nl->OneElemList(nl->IntAtom(Normal_Merge));
+        lastmerge = merge;
+      } else
+        lastmerge = nl->Append(lastmerge, nl->IntAtom(Normal_Merge));
+
+    } else {
+      // check the syntax for symmetric merging:  name:function1:function2
+
+      // Checking function2
+      if(!listutils::isMap<1>(firstInit))  
+        return listutils::typeError("Function2 must have one argument.");
+
+      // Tuple must be first function2 argument 
+      t = nl->Second(first);
+      if(!nl->Equal(t, nl->Second(firstInit)))
+      return listutils::typeError("Function2 argument must be stream tuple.");
+
+      t1 = nl->Second(mapDef);    // Function1 first argument
+      t2 = nl->Third(mapDef);     // Function1 second argument
+      t3 = nl->Fourth(mapDef);    // Function1 result
+      t4 = nl->Third(firstInit);  // Function2 result      
+
+      if ( !listutils::isDATA(t1) || !listutils::isDATA(t2) ||
+           !listutils::isDATA(t3) || !listutils::isDATA(t4) )
+      return listutils::typeError(
+      "Function1 arguments and both functions results must be of kind DATA.");
+
+      if ( !nl->Equal(t1,t2) || !nl->Equal(t1,t3) || !nl->Equal(t1,t4) )
+      return listutils::typeError(
+      "Function1 arguments and both functions results must be of same type.");
+
+      // indicate symmetric merging 
+      if (nl->IsEmpty(merge)) {
+        merge = nl->OneElemList(nl->IntAtom(Symmetric_Merge));
+        lastmerge = merge;
+      } else
+        lastmerge = nl->Append(lastmerge, nl->IntAtom(Symmetric_Merge));
+    } // end-if: check a single aggregate function
+
+
+    // add function name and result type to list
     if (    (nl->EndOfList( lastlistn ) == true)
          && (nl->IsEmpty( lastlistn ) == false)
          && (nl->IsAtom( lastlistn ) == false)
        )
-    { // list already contains group-attributes (not empty)
+    { // List already contains group-attributes (not empty)
       lastlistn = nl->Append(lastlistn,(nl->TwoElemList(newAttr,mapOut)));
     } else { 
-      // no group attribute (list is still empty)
+      // No group attribute (list is still empty)
       listn = nl->OneElemList(nl->TwoElemList(newAttr,mapOut));
       lastlistn = listn;
     }
   } // end while for aggregate functions
 
-  // Prüfe, ob der Name für das Aggregat bereits vorkommt
+
+  // sample: (2 1 2 4 0 1 0 0)
+  // # of gourp attributes, followed by their positions
+  // # of aggregation functions, followed by merging type
+  t1 = nl->OneElemList( nl->IntAtom(nl->ListLength(listp)) );
+  t2 = nl->OneElemList( nl->IntAtom(nl->ListLength(merge)) );
+  t3 = concat( t1, listp );
+  t4 = concat( t2, merge );
+  t1 = concat( t3, t4 );
+
+  // Check if the name for the aggregate is used already
   if ( !CompareNames(listn) )
     return listutils::typeError("Attribute names are not unique.");
 
   // Type mapping is correct, return result type.
   result =
     nl->ThreeElemList(
-      nl->SymbolAtom(Symbol::APPEND()),
-      nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
+      nl->SymbolAtom(Symbol::APPEND()),     // text APPEND  
+      t1,                                   // List of gouping and merging info
       nl->TwoElemList(
-        nl->SymbolAtom(Symbol::STREAM()),
+        nl->SymbolAtom(Symbol::STREAM()),   // text STREAM
         nl->TwoElemList( nl->SymbolAtom(tupleSymbolStr), listn))
     );
  
-/* Testausgabe
-  nl->WriteToString(resstring, result);
-  cout << "groupbyTypeMapCap Result = " << resstring << endl;
-*/
-  // Hilfe für den Test der Type Mapping Funktion
-  // return listutils::typeError("Ende des groupby2 Type Mapping.");
+// Testausgabe 
+//  nl->WriteToString(resstring, result);
+//  cout << "groupbyTypeMapCap Result = " << resstring << endl;
+
+// Abbruch
+//  return listutils::typeError("Type Mapping End. Abbruch.");
 
   return result;
-}  // Ende Type Mapping groupby2
+}  // end of type mapping for groupby2 operator
 
 
 
-#define CAPBUCKETS 99997
+// GroupByLocalInfo2 class ====================================================
 
-struct GroupByLocalInfo2
+class GroupByLocalInfo2
 {
+public:
   Tuple *t;
   TupleType *resultTupleType;
-  long MAX_MEMORY;
-  bool FirstREQUEST;
-  unsigned int ReturnBucket, ReturnElem;
+
+  // Actual buffers are created during OPEN
+  TupleBuffer *TB_In, *TB_Out, *TB_Temp;
+  GenericRelationIterator* In_Rit;
+
+  long MAX_MEMORY, Used_Memory;   // max. memory and actually used memory
+  bool FirstREQUEST;   // indicates the start of a phase
+  unsigned int ReturnBucket, ReturnElem, 
+    No_RetTuples,      // number of result tuples returned
+    No_GTuples,        // number of group tuples in memory 
+    Phase;             // phase the operator currently runs in
 
   vector<Tuple*> hBucket[CAPBUCKETS];   // data structure for hash buckets
 
-  GroupByLocalInfo2() : t(0), resultTupleType(0), MAX_MEMORY(0), 
-  FirstREQUEST(true), ReturnBucket(0) {}
+  GroupByLocalInfo2() : t(NULL), resultTupleType(NULL), 
+  TB_In(NULL), TB_Out(NULL), TB_Temp(NULL), 
+  MAX_MEMORY(0), Used_Memory(0), FirstREQUEST(true), ReturnBucket(0),
+  No_RetTuples(0), No_GTuples(0), Phase(0)
+  {}
+};
+
+struct AggrStackEntry {
+  int level;
+  Attribute* value;
 };
 
 
-// Value Mapping für groupby2
+
+
+// Value Mapping für groupby2 =================================================
 int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local, 
                           Supplier supplier)
 {
@@ -272,24 +346,30 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
   // args[1] = list of grouping attributes
   // args[2] = list of functions (with elements name, function, initial value)
   // args[3] = number of grouping attributes (added by APPEND)
-  // args[4..] =  position of grouping attributes (added by APPEND);    
+  // args[4..m] =  position of grouping attributes (added by APPEND);
+  // args[m] = number of aggregate functions (added by APPEND)
+  // args[m+1 ..] = type of merging for each aggregate function, 
+  //                values Normal_Merge, Symmetric_Merge
 
-  /* Beispiel für drei Gruppierungsattribute: 
-     es wird APPEND (3 1 2 3) im Type Mapping erzeugt
-     Dies ergibt arg[3] = 3    Anzahl der Guppierungsattribute
-                 arg[4] = 1    Index des ersten Gruppierungsattributs im Tupel
-                 arg[5] = 2    Index des zweiten Gruppierungsattributs im Tupel
-                 arg[6] = 3    Index des dritten Gruppierungsattributs im Tupel
+  /* Sample with three grouping attributes and two aggregate functions 
+     APPEND (3 1 2 3 2 1 0) is created during type mapping. The result is:
+     arg[3] = 3    Number of grouping attributes
+     arg[4] = 1    Index of first grouping attribute within tuple
+     arg[5] = 2    Index of second grouping attribute within tuple
+     arg[6] = 3    Index of third grouping attribute within tuple
+     arg[7] = 2    Number of aggregate functions
+     arg[8] = 1    Symmetric merging required for function 1
+     arg[9] = 0    Normal merging required for function 0   
   */
 
   Word sWord(Address(0));
   GroupByLocalInfo2 *gbli = 0;
   ListExpr resultType;
   Tuple *current, *s, *tres;
-  int numberatt = 0;		// Anzahl Gruppenattriute
+  int numberatt = 0;            // number of grouping attributes
   int attribIdx = 0;
-  int indexOfCountArgument = 3;	// Anzahl Gruppierungs Attribute
-  // Beginn der Indizes der Gruppierungsattribute
+  int indexOfCountArgument = 3;	// position of numberatt info
+  // start if positions for grouping attributes
   int startIndexOfExtraArguments = indexOfCountArgument + 1; 
   int i, j, k; 
   Attribute *sattr, *tattr;
@@ -299,155 +379,271 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
   ArgVectorPointer funargs;
   Word funres;
   Supplier supp1, supp2, supp3, supp4;
-  int noOffun;
+  int noOffun;                  // number of aggregate functions to build
   Supplier value2;
+  int funstart, funagg;      // position of aggr. function info and value
+  // declarations for symmetic merging (aggregateB algorithm)
+  AggrStackEntry FirstEntry;   // first stack element
+  stack<AggrStackEntry> *newstack = 0;
+  int StackLevel = 0;
+
 
 
   switch(message)
   {
     case OPEN:
-      // open the stream and get the first tuple
+      // open the stream and get the first tuple ==============================
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, sWord);
      
-      // allokiere lokale Info und speichere das erste Tupel
+      // Allocate localinfo class and store first tuple
       if (qp->Received(args[0].addr)) {
         gbli = new GroupByLocalInfo2();
-        gbli->t = (Tuple*)sWord.addr;
-        (gbli->t)->IncReference();
+        local.setAddr(gbli);
 
+        gbli->t = (Tuple*)sWord.addr;
         resultType = GetTupleResultType(supplier);
         gbli->resultTupleType = new TupleType(nl->Second(resultType));
 
-        local.setAddr(gbli);
+        // TupleBuffers without memory, all tuples go to disk
+        gbli->Phase = 1;
+        gbli->TB_In = new TupleBuffer(0);
+        gbli->TB_Out = new TupleBuffer(0);
 
         gbli->MAX_MEMORY = (qp->GetMemorySize(supplier) * 1024 * 1024);
+
+        // Test
+        cout << "groupby2 Memory allowance: " << gbli->MAX_MEMORY << endl;
+
         cmsg.info("ERA:ShowMemInfo") << "groupby2.MAX_MEMORY ("
-                   << (gbli->MAX_MEMORY)/1024 << " MB): " << endl;
+                   << (gbli->MAX_MEMORY)/1024 << " KiloByte): " << endl;
         cmsg.send();
+
+        // Adjust memory avaliable for LocalInfo (around 1.2 MB)
+        gbli->MAX_MEMORY -= sizeof(*gbli);
+
+        // need at least 1 MB memory to run
+        assert(gbli->MAX_MEMORY > 1048576); 
+
       } else {
-        local.setAddr(0);	// kein Tupel erhalten
+        local.setAddr(0);         // no tuple received
       }
       return 0;
 
     case REQUEST:
-      // Adresse zur lokalen Information
+      // pointer to localinfo class ===========================================
       gbli = (GroupByLocalInfo2 *)local.addr;
       if (!gbli) return CANCEL;                 // empty input stream
-      if (gbli->t == 0) return CANCEL;		// stream has ended
+      if (gbli->t == 0) return CANCEL;          // stream has ended
       numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
 
-      if (gbli->FirstREQUEST) {	
-        // erster REQUEST Aufruf der Value Mapping Funktion:
-        // Führe die Aggregation durch und gib das erste Ergebnis Tupel zurück
-        s = gbli->t;	// das erste Tupel kommt aus dem OPEN
+      // get the APPEND info on merge type for aggregate funcions 
+      funstart = indexOfCountArgument + numberatt + 1;
+      funagg = ((CcInt*)args[funstart].addr)->GetIntval();
+
+      int MergeType [funagg];
+      for (i=0; i < funagg; i++)
+        MergeType[i] = ((CcInt*)args[funstart+i+1].addr)->GetIntval();
+
+      if (gbli->FirstREQUEST) {
+        // Test
+        cout << "Start (FirstREQUEST) of Phase: " << gbli->Phase << endl;
+
+        // first REQUEST call: aggregate and return first result tuple 
+        s = gbli->t;        // first tuple is available from OPEN
         gbli->FirstREQUEST = false;
 
         // get the number of functions
         value2 = (Supplier) args[2].addr;
         noOffun = qp->GetNoSons(value2);
+        assert(noOffun == funagg);  // be sure on the # of functions
 
-
-        // Keine Gruppierung angegeben, berechne eine Gesamtsumme
+        // no grouping, aggretate totals only ===============================
         if (numberatt == 0) {
-          // Bilde das Gruppentupel: nur Funktionswerte
+          // there is a single result tuple with function aggregates only
           tres = new Tuple(gbli->resultTupleType);
 
-          // Berechne die ersten Funktionswerte aus Tupel und Initialwerten
+          // Process first input tuple: process initial value or create stack
           for (i=0; i < noOffun; i++) {
-            // qp für die Funktionsauswertung aurufen
-            supp1 = (Supplier) args[2].addr;  // funlist: Liste der Funktionen
-            supp2 = qp->GetSupplier( supp1, i);
-            supp3 = qp->GetSupplier( supp2, 1);
-            funargs = qp->Argument(supp3);    // get argument vector of function
+            if (MergeType[i] == Normal_Merge) {
+              // normal merge, process initial value
+              supp1 = (Supplier) args[2].addr;  // funlist: list of functions
+              supp2 = qp->GetSupplier( supp1, i);
+              supp3 = qp->GetSupplier( supp2, 1);
+              funargs = qp->Argument(supp3);    // get function argument vector
+              supp4 = qp->GetSupplier( supp2, 2); // supp4 is the initial value
+              qp->Request( supp4, funres);        // function evaluation
+              tattr = ((Attribute*)funres.addr)->Clone();
 
-            supp4 = qp->GetSupplier( supp2, 2); // supp4 ist der Initialwert
-            qp->Request( supp4, funres);        // Funktionsauswertung
-            tattr = ((Attribute*)funres.addr)->Clone();
+              (*funargs)[0].setAddr(s);           // tuple is first argument
+              (*funargs)[1].setAddr(tattr);
+              qp->Request( supp3, funres);        // function evaluation
+              sattr = ((Attribute*)funres.addr)->Clone();
+              tres->PutAttribute( i, sattr);      // link attribute into tuple
+            } else {
+              // symmetric merge
+              // evaluate the tuple->data function
+              supp1 = (Supplier) args[2].addr;  // funlist: list of functions
+              supp2 = qp->GetSupplier( supp1, i);
+              supp3 = qp->GetSupplier( supp2, 2);  // second function
+              funargs = qp->Argument(supp3);
+              (*funargs)[0].setAddr(s);           // tuple is first argument
+              qp->Request( supp3, funres);        // function evaluation
+              sattr = ((Attribute*)funres.addr)->Clone();
 
-            (*funargs)[0].setAddr(s);     // erstes Argument muss das Tupel sein
-            (*funargs)[1].setAddr(tattr);
-            qp->Request( supp3, funres);        // Funktionsauswertung
-
-            sattr = ((Attribute*)funres.addr)->Clone();
-            tres->PutAttribute( i, sattr);
+              // build a stack element from the attribute, push this
+              FirstEntry.level = 0;
+              FirstEntry.value = sattr;
+              newstack = new stack<AggrStackEntry> ();
+              newstack->push(FirstEntry);
+              // Link the stack into the tuple 
+              tres->PutAttribute(i, (Attribute*) newstack);
+            } // end-if per attribute
           } // end-for    
 
           s->DeleteIfAllowed();
 
-          qp->Request(args[0].addr, sWord);	// lies das nächste Tupel
+          qp->Request(args[0].addr, sWord);      // get next tuple
           s = (Tuple*) sWord.addr;
 
+          // main loop to process input tuples
           while (qp->Received(args[0].addr)) {
-            // Berechne die Funktionswerte aus Tupel und bisherigem Wert
+            // Get function value from tuple and current value            
             for (i=0; i < noOffun; i++) {
-              // qp für die Funktionsauswertung aurufen
-              supp1 = (Supplier) args[2].addr;	// Liste der Funktionen
+              // get function arguments from qp
+              supp1 = (Supplier) args[2].addr;    // list of functions
               supp2 = qp->GetSupplier( supp1, i);
               supp3 = qp->GetSupplier( supp2, 1);
               funargs = qp->Argument(supp3);      // get argument vector 
 
-              sattr = tres->GetAttribute(i);     
+              if (MergeType[i] == Normal_Merge) {
+                // normal merge, aggregate tuple and intermedite result
+                sattr = tres->GetAttribute(i);      // result so far     
+                (*funargs)[0].setAddr(s);           // tuple is first argument
+                (*funargs)[1].setAddr(sattr);
+                qp->Request( supp3, funres);        // call parameter function
+                sattr = ((Attribute*)funres.addr)->Clone();
+                tres->PutAttribute( i, sattr);
+              } else {
+                // symmetric merge, evaluate tuple->data, merge stack
+                StackLevel = 0;
+                // pointer to the stack
+                newstack = (stack<AggrStackEntry> *) tres->GetAttribute(i); 
+                
+                // evaluate tuple->data
+                supp4 = qp->GetSupplier( supp2, 2); // second function
+                funargs = qp->Argument(supp4);
+                (*funargs)[0].setAddr(s);           // tuple is first argument
+                qp->Request( supp4, funres);        // function evaluation
+                sattr = ((Attribute*)funres.addr)->Clone();
 
-              (*funargs)[0].setAddr(s);   // erstes Argument muss das Tupel sein
-              (*funargs)[1].setAddr(sattr);
-              qp->Request( supp3, funres);        // call the parameter function
+                // merge stack if possible, else push element
+                while (!newstack->empty() && 
+                       (StackLevel==newstack->top().level)) {
+                  // merging is possible
+                  funargs = qp->Argument(supp3);
+                  (*funargs)[0].setAddr(sattr);   
+                  tattr = newstack->top().value;
+                  (*funargs)[1].setAddr(tattr);  // attr from top stack entry
+                  qp->Request( supp3, funres);   // call parameter function
+                  sattr = ((Attribute*)funres.addr)->Clone();
 
-              sattr = ((Attribute*)funres.addr)->Clone();
-              tres->PutAttribute( i, sattr);
+                  // delete top element
+                  tattr->DeleteIfAllowed();
+                  newstack->pop();
+                  
+                  StackLevel++;
+                } //end-while  
+
+                // write a stack element
+                FirstEntry.level = StackLevel;
+                FirstEntry.value = sattr;
+                newstack->push(FirstEntry);
+              }  // end-if process an attribute
             } // end-for 
  
             s->DeleteIfAllowed();
-
-            qp->Request(args[0].addr, sWord);	
+            // get next tuple
+            qp->Request(args[0].addr, sWord);
             s = (Tuple*) sWord.addr;
-          }  // end-while Tupel lesen
-           
+          }  // end-while: get tuples 
+
+          // end processing for symmetric merging only
+          for (i=0; i < noOffun; i++) {
+            if (MergeType[i] == Symmetric_Merge) {
+              // get function arguments from qp
+              supp1 = (Supplier) args[2].addr;    // list of functions
+              supp2 = qp->GetSupplier( supp1, i);
+              supp3 = qp->GetSupplier( supp2, 1);
+              funargs = qp->Argument(supp3);      // get argument vector 
+
+              // collapse the stack to an attribute value, delete the stack
+              newstack = (stack<AggrStackEntry> *) tres->GetAttribute(i); 
+              // Test
+              assert(!newstack->empty());   // at least one element required
+
+              tattr = newstack->top().value;
+              newstack->pop();
+
+              while (!newstack->empty()) {
+                  (*funargs)[0].setAddr(tattr);  
+                  sattr = newstack->top().value;
+                  (*funargs)[1].setAddr(sattr);  
+                  qp->Request( supp3, funres);   // call parameter function
+
+                  sattr->DeleteIfAllowed();
+                  tattr->DeleteIfAllowed();
+                  tattr = ((Attribute*)funres.addr)->Clone();
+                  newstack->pop();
+              } // end-while
+
+              // write the end result to the tuple
+              tres->PutAttribute(i, tattr);
+              delete newstack;
+            } // end-if
+          } // end-for
+
+          // tres is the completed result tuple            
           result.addr = tres;
           return YIELD;
-        } // end-if keine Gruppierung
+        } // end-if: aggregation without grouping
 
-
+        // aggregation with grouping starts here ============================
+        // process individual tuple s
         while (s) {
-/*        // Test: Ausgabe des Input Tuple
-          cout << "Input tuple: ";
-          s->Print(cout);
-*/
-
-          // Berechne den Hash Wert des Tupel aus den Gruppenattributen
+        // get the hash value from the grouping attributes
           myhash1 = 0;
           for (k = 0; k < numberatt; k++) {
             attribIdx = 
               ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
-            j = attribIdx-1;		// 0 basiert
+            j = attribIdx-1;                // 0 based
             myhash1 += s->HashValue(j);
           }
           myhash2 = myhash1 % CAPBUCKETS;
-          // myhash2 kann überlaufen und ist dann negativ
-          if (myhash2 < 0) myhash2 = -1 * myhash2;	
+          // myhash2 can overflow and would be negative then
+          if (myhash2 < 0) myhash2 = -1 * myhash2;
 
-          // Durchsuche das zugehörige Hash Bucket, ob es die Gruppe schon gibt
+          // check the hast bucket if the group is created already
           GruppeDoppelt = false;
- 
           AnzahlTupelimBucket = gbli->hBucket[myhash2].size();
 
-          // Vergleich des neuen Tupels (s) mit denen im Bucket (current)
-          // s: Gruppenattribute Gi o Nichtgruppenattribute Ai
-          // Tuple im Tuple Buffer: Gruppenattribute Gi o Funktionswert
+          // Compare new tuple s to the tuples available in the bucket          
+          // s: group attributes Gi o non grouping attributes Ai
+          // tuples from bucket: group attributes Gi o function values
           for (i=0; (i<AnzahlTupelimBucket) && !GruppeDoppelt; i++) {
             current = gbli->hBucket[myhash2][i];
             if (!current) break;
 
-            // Vergleich des neuen Tupel mit einem aus dem Bucket 
+            // Compare new tuple to a single one from the hash bucket
             GruppeGleich = true;
 
-            // Vergleich über die Gruppierungsattribute
+            // Compare the grouping attributes
             for (j=0; (j < numberatt) && GruppeGleich && current; j++) {
               attribIdx = 
                 ((CcInt*)args[startIndexOfExtraArguments+j].addr)->GetIntval();
-              k = attribIdx - 1;		// 0 basiert
-              // Vergleich je Attribut. Die Strukturen sind unterschiedlich
-              // k stimmt für das Input Tupel. j für das Aggregat
+              k = attribIdx - 1;        // 0 based
+              // Compare each attribute
+              // k is index for input tuple. j is index for aggregate tuple
               if (s->GetAttribute(k)->Compare(current->GetAttribute(j)) != 0){
                 GruppeGleich = false;
                 break;
@@ -457,29 +653,52 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
           } // end for
 
 
-          if (GruppeDoppelt == false) {  // Gruppe ist neu
-            // Bilde das Gruppentupel: Gruppierungsattribute o Funktionswerte
+          if ((GruppeDoppelt == false) && 
+              (gbli->Used_Memory >= gbli->MAX_MEMORY)) {
+            // no more heap space, write original input tuple to tuple buffer
+            gbli->TB_Out->AppendTuple(s);
+          
+          } else if (GruppeDoppelt == false) {  // new group ==================
+            // Build group aggregate: grouping attributes o function values
             tres = new Tuple(gbli->resultTupleType);
+            gbli->No_GTuples++;
 
-            // Berechne die ersten Funktionswerte aus Tupel und Initialwert 
+            // get first function values from tuple and initial values
             for (i=0; i < noOffun; i++) {
-              // qp für die Funktionsauswertung aurufen
-              supp1 = (Supplier) args[2].addr;	// Liste der Funktionen
-              supp2 = qp->GetSupplier( supp1, i);
-              supp3 = qp->GetSupplier( supp2, 1);
-              funargs = qp->Argument(supp3);      // get argument vector 
+              if (MergeType[i] == Normal_Merge) {
+                supp1 = (Supplier) args[2].addr;    // list of functions
+                supp2 = qp->GetSupplier( supp1, i);
+                supp3 = qp->GetSupplier( supp2, 1);
+                funargs = qp->Argument(supp3);      // get argument vector   
+                supp4 = qp->GetSupplier( supp2, 2); // supp4 is initial value
+                qp->Request( supp4, funres);        // function evaluation
+                tattr = ((Attribute*)funres.addr)->Clone();
 
-              supp4 = qp->GetSupplier( supp2, 2); // supp4 ist der Initialwert
-              qp->Request( supp4, funres);        // Funktionsauswertung
-              tattr = ((Attribute*)funres.addr)->Clone();
+                (*funargs)[0].setAddr(s);          
+                (*funargs)[1].setAddr(tattr);
+                qp->Request( supp3, funres);        // function evaluation  
+                sattr = ((Attribute*)funres.addr)->Clone();
+                // after the group attributes
+                tres->PutAttribute( numberatt+i, sattr);     
+              } else {
+                // symmetric merge
+                // evaluate the tuple->data function
+                supp1 = (Supplier) args[2].addr;  // funlist: list of functions
+                supp2 = qp->GetSupplier( supp1, i);
+                supp3 = qp->GetSupplier( supp2, 2);  // second function
+                funargs = qp->Argument(supp3);
+                (*funargs)[0].setAddr(s);           // tuple is only argument
+                qp->Request( supp3, funres);        // function evaluation
+                sattr = ((Attribute*)funres.addr)->Clone();
 
-              (*funargs)[0].setAddr(s);          
-              (*funargs)[1].setAddr(tattr);
-              qp->Request( supp3, funres);        // Funktionsauswertung
-
-              sattr = ((Attribute*)funres.addr)->Clone();
-              // hinter den Gruppenattributen
-              tres->PutAttribute( numberatt+i, sattr);     
+                // build a stack element from the attribute, push this
+                FirstEntry.level = 0;
+                FirstEntry.value = sattr;
+                newstack = new stack<AggrStackEntry> ();
+                newstack->push(FirstEntry);
+                // Link the stack into the tuple after the group attributes 
+                tres->PutAttribute(numberatt+i, (Attribute*) newstack);
+              } // end-if per attribute
             } // end-for 
 
             // copy grouping attributes 
@@ -489,75 +708,160 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
               tres->CopyAttribute(attribIdx-1, s, i);
             }
 
-            // Speichere das Gruppentupel im Hash Bucket
+
+// ?? wie mache ich das mit den Stacks ? 
+            // add the memory used by this tuple
+//            gbli->Used_Memory += tres->GetExtSize();
+
+            // store aggregate tuple in hash bucket
             gbli->hBucket[myhash2].push_back(tres);
 
-          } else {  // Gruppe kommt schon vor
-            // Berechne Funktionswerte n+1 aus neuen Tupel und Funktionswert n 
+            // delete the tuple from the input stream
+            s->DeleteIfAllowed();
+
+          } else {  // group exists already ===================================
+
+            // get function values n+1 from new tuple and function value n
             for (i=0; i < noOffun; i++) {
-              // qp für die Funktionsauswertung aurufen
-              supp1 = (Supplier) args[2].addr;	// Liste der Funktionen
+              supp1 = (Supplier) args[2].addr;    // list of functions
               supp2 = qp->GetSupplier( supp1, i);
               supp3 = qp->GetSupplier( supp2, 1);
               funargs = qp->Argument(supp3);      // get argument vector
+              
+              if (MergeType[i] == Normal_Merge) {
 
-              sattr = current->GetAttribute( numberatt+i);     
+                sattr = current->GetAttribute( numberatt+i);     
+                (*funargs)[0].setAddr(s);          
+                (*funargs)[1].setAddr(sattr);
+                qp->Request( supp3, funres);  
 
-              (*funargs)[0].setAddr(s);          
-              (*funargs)[1].setAddr(sattr);
-              qp->Request( supp3, funres);        // call the parameter function
+                sattr = ((Attribute*)funres.addr)->Clone();
+                current->PutAttribute( numberatt+i, sattr);
+              } else {
+                // symmetric merge, evaluate tuple->data, merge stack
+                StackLevel = 0;
+                // pointer to the stack
+                newstack = 
+                  (stack<AggrStackEntry> *) current->GetAttribute(numberatt+i); 
+                
+                // evaluate tuple->data
+                supp4 = qp->GetSupplier( supp2, 2); // second function
+                funargs = qp->Argument(supp4);
+                (*funargs)[0].setAddr(s);           // tuple is first argument
+                qp->Request( supp4, funres);        // function evaluation
+                sattr = ((Attribute*)funres.addr)->Clone();
 
-              sattr = ((Attribute*)funres.addr)->Clone();
-              current->PutAttribute( numberatt+i, sattr);
+                // merge stack if possible, else push element
+                while (!newstack->empty() && 
+                       (StackLevel==newstack->top().level)) {
+                  // merging is possible
+                  funargs = qp->Argument(supp3);
+                  (*funargs)[0].setAddr(sattr);   
+                  tattr = newstack->top().value;
+                  (*funargs)[1].setAddr(tattr);  // attr from top stack entry
+                  qp->Request( supp3, funres);   // call parameter function
+                  sattr = ((Attribute*)funres.addr)->Clone();
+
+                  // delete top element
+                  tattr->DeleteIfAllowed();
+                  newstack->pop();
+                  
+                  StackLevel++;
+                } //end-while  
+
+                // write a stack element
+                FirstEntry.level = StackLevel;
+                FirstEntry.value = sattr;
+                newstack->push(FirstEntry);
+              }  // end-if process an attribute
             } // end-for 
+
+            // delete tuple from input stream
+            s->DeleteIfAllowed();
           }  // end-if
 
-          // Lösche das Tupel des Input Stream
-          s->DeleteIfAllowed();
-
-          // lies das nächste Tupel
-          qp->Request(args[0].addr, sWord);
-          s = (Tuple*)sWord.addr;
-          if (qp->Received(args[0].addr)) s->IncReference();
+          // get next tuple
+          if (gbli->Phase == 1) {
+            // read from input stream           
+            qp->Request(args[0].addr, sWord);
+            s = (Tuple*)sWord.addr;
+          } else {
+            // read from tuple buffer
+            s = gbli->In_Rit->GetNextTuple();
+          }
         } // end-while 
 
-        // Die Aggregate sind jetzt vollständig berechnet
-        // Finde das erste Ergebnis Tupel und gib es zurück
-	result.addr = 0;
-	// Suche das erste Hash Bucket, das ein Ergebnis Tupel enthält
+        // all input processd; delete the tuple buffer scan        
+        if (gbli->In_Rit) delete gbli->In_Rit;
+
+        // Aggregates are built completely. Find and return first result tuple.
+        result.addr = 0;
+        // Find the first hash bucket containing a result tuple
         for(i = 0; i<CAPBUCKETS; i++) {
           AnzahlTupelimBucket = gbli->hBucket[i].size();
 
           if (AnzahlTupelimBucket > 0) {
-            gbli->ReturnElem = 1;        // das nächste Element (0 basiert)
-            gbli->ReturnBucket = i+1;    // dieses Bucket als nächstes 
+            gbli->ReturnElem = 1;        // next element (0 based)
+            gbli->ReturnBucket = i+1;    // next hash bucket
             current = gbli->hBucket[i][0];
+
+            // end processing for symmetric merging attributes
+            for (i=0; i < noOffun; i++) {
+              if (MergeType[i] == Symmetric_Merge) {
+                // get function arguments from qp
+                supp1 = (Supplier) args[2].addr;    // list of functions
+                supp2 = qp->GetSupplier( supp1, i);
+                supp3 = qp->GetSupplier( supp2, 1);
+                funargs = qp->Argument(supp3);      // get argument vector 
+
+                // collapse the stack to an attribute value, delete the stack
+                newstack = 
+                  (stack<AggrStackEntry> *) current->GetAttribute(numberatt+i); 
+                // Test
+                assert(!newstack->empty());   // at least one element required
+
+                tattr = newstack->top().value;
+                newstack->pop();
+
+                while (!newstack->empty()) {
+                    (*funargs)[0].setAddr(tattr);  
+                    sattr = newstack->top().value;
+                    (*funargs)[1].setAddr(sattr);  
+                    qp->Request( supp3, funres);   // call parameter function
+
+                    sattr->DeleteIfAllowed();
+                    tattr->DeleteIfAllowed();
+                    tattr = ((Attribute*)funres.addr)->Clone();
+                    newstack->pop();
+                } // end-while
+
+                // write the end result to the tuple
+                current->PutAttribute(numberatt+i, tattr);
+                delete newstack;
+              } // end-if
+            } // end-for
+
             result.setAddr(current);
-
-            // Test: Ausgabe des Ergebnis Tuple
-            // if (current) current->Print(cout);
-
+            gbli->No_RetTuples = 1;
             return YIELD;
           }
         } // end-for
-        // Das Ergebnis des Operators ist leer
+        // empty result
         return CANCEL;
 
-      // folgende REQUEST Aufrufe: Ausgabe der Ergebnis Tupel 
+      // following REQUEST calls: return result tuples ========================
       } else {	
-        result.addr = 0;	// noch kein Ergebnis Tupel gefunden 
+        result.addr = 0;	// did not yet find a tuple
 
-        // Keine Gruppierung. Es gibt ein einziges Ergebnis Tupel, 
-        // das wurde bereits ausgegeben
+        // no grouping: there is a single result tuple, 
+        // this was returned already
         if (numberatt == 0) return CANCEL;
 
-        // Falls noch ein Bucket Scan aktiv ist oder 
-        // noch Buckets zu verarbeiten sind
+        // If a scan is active or there are still buckets to process
         if (gbli->ReturnElem || gbli->ReturnBucket < CAPBUCKETS) {
-          // Finde das nächste Ergebnis Tupel
-          // Verarbeite einen aktiven Scan
+          // Find the next result tuple. Process an active scan
           if (gbli->ReturnElem) { 
-            // es gibt noch Tupel in diesem Bucket
+            // There are still tuples available in this bucket
             if (gbli->ReturnElem 
                 < gbli->hBucket[(gbli->ReturnBucket)-1].size() ) {
               current = gbli->hBucket[(gbli->ReturnBucket)-1][gbli->ReturnElem];
@@ -567,16 +871,16 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
               gbli->ReturnElem = 0;
           } // end-if
 
-          // Noch kein Tupel gefunden, suche in den nächsten Buckets
+          // No tuples found so far, check next bucket
           if (result.addr == 0 && (gbli->ReturnBucket) < CAPBUCKETS) {
             for(i = gbli->ReturnBucket; i<CAPBUCKETS; i++) {
               AnzahlTupelimBucket = gbli->hBucket[i].size();
 
               if (AnzahlTupelimBucket > 0) {
-                current = gbli->hBucket[i][0];      // erstes Tupel im Bucket
+                current = gbli->hBucket[i][0];      // first tuple in bucket
                 result.setAddr(current);
-                gbli->ReturnElem = 1;        // nächstes Tupel
-                gbli->ReturnBucket = i+1;    // nächstes Bucket
+                gbli->ReturnElem = 1;        // next tuple
+                gbli->ReturnBucket = i+1;    // next bucket
                 break;
               } else {
                 gbli->ReturnElem = 0;
@@ -585,35 +889,106 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
           }  // end-if
         } // end-if
 
-/*      // Test: Ausgabe des Ergebnis Tuple
-        if (current) current->Print(cout);
-*/
-        if (result.addr)
+
+        // end processing for symmetric merging only
+        if (current) {
+          for (i=0; i < funagg; i++) {
+            if (MergeType[i] == Symmetric_Merge) {
+              // get function arguments from qp
+              supp1 = (Supplier) args[2].addr;    // list of functions
+              supp2 = qp->GetSupplier( supp1, i);
+              supp3 = qp->GetSupplier( supp2, 1);
+              funargs = qp->Argument(supp3);      // get argument vector 
+
+              // collapse the stack to an attribute value, delete the stack
+              newstack = 
+                (stack<AggrStackEntry> *) current->GetAttribute(numberatt+i); 
+              // Test
+              assert(!newstack->empty());   // at least one element required
+
+              tattr = newstack->top().value;
+              newstack->pop();
+
+              while (!newstack->empty()) {
+                  (*funargs)[0].setAddr(tattr);  
+                  sattr = newstack->top().value;
+                  (*funargs)[1].setAddr(sattr);  
+                  qp->Request( supp3, funres);   // call parameter function
+
+                  sattr->DeleteIfAllowed();
+                  tattr->DeleteIfAllowed();
+                  tattr = ((Attribute*)funres.addr)->Clone();
+                  newstack->pop();
+              } // end-while
+
+              // write the end result to the tuple
+              current->PutAttribute(numberatt+i, tattr);
+              delete newstack;
+            } // end-if
+          } // end-for
+        } // end-if end processing for symmetric merging
+
+        if (result.addr) {
+          (gbli->No_RetTuples)++;
+
+          // Phase change: last group tuple is returned =======================
+          // Output buffer contains unprocessed tuples
+          if ((gbli->No_RetTuples == gbli->No_GTuples)
+              && (gbli->TB_Out->GetNoTuples() > 0)) 
+          {
+            // Test
+            cout << "End of Phase: " << gbli->Phase << endl;
+            cout << "# of group tuples: " << gbli->No_GTuples << endl;
+
+
+            gbli->FirstREQUEST = true;   // need to aggregate on next REQUEST
+            gbli->No_RetTuples = 0;      // init for next phase
+            gbli->No_GTuples = 0;
+            (gbli->Phase)++;
+
+            // clear all vectors, the tuples are not touched
+            for (i=0; i<CAPBUCKETS; i++) gbli->hBucket[i].clear();
+            // the result tuples are now owned by the following operator
+            gbli->Used_Memory = 0;
+                       
+            delete gbli->TB_In;   // input was processed completely
+            // the output buffer of the current phase becomes the input for
+            // the next phase
+            gbli->TB_In = gbli->TB_Out;
+            gbli->TB_Out = new TupleBuffer(0);
+    
+            // get the first input tuple
+            gbli->In_Rit = gbli->TB_In->MakeScan();
+            gbli->t = gbli->In_Rit->GetNextTuple();
+          } // end of phase change
+
           return YIELD;
-        else
+        } else
           return CANCEL;
-     } // end-if REQUEST Verarbeitung
+     } // end-if REQUEST processing
 
     case CLOSE: 
-      // Löschen der lokalen Informationen
+      // delete LocalInfo =====================================================
       if(local.addr != 0) {
         gbli = (GroupByLocalInfo2 *) local.addr;
         if(gbli->resultTupleType != 0) gbli->resultTupleType->DeleteIfAllowed();
-        if(gbli->t != 0) gbli->t->DeleteIfAllowed();
+        
+        delete gbli->TB_In;
+        delete gbli->TB_Out;
 
         delete gbli;
         local.setAddr(0);
       }
-      qp->Close(args[0].addr);		// close des Stream
+      qp->Close(args[0].addr);		// close input stream
       return 0;
   } // end message switch
 
 
   return(0);
-} // Ende GroupByValueMapping2
+} // Ende GroupByValueMapping2 ================================================
 
 
-const string GroupBySpec2  = 
+const string GroupBySpec2 = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\"  ) "
   "( <text>stream(Tuple) x AttrList x "
   "(NewAttr-1 x (Tuple x Data -> Data) x Data) .. "
