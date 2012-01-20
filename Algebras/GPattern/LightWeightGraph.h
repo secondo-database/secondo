@@ -61,7 +61,7 @@ public:
 class Component
 {
 public:
-  enum ComponentMessage{NotChanged, AddedEdges, RemovedEdges, AddRemoveMix,
+  enum ComponentMessage{NotChanged=0, AddedEdges, RemovedEdges, AddRemoveMix,
     NewlyAdded, RemoveNow, SplitFromExtistingComponent,
     MergedFromExistingComponents, ReDistribute};
   ComponentMessage message;

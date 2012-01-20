@@ -290,7 +290,9 @@ bool MSetIndex::NodeLog::RemoveUnit(int index)
       "Something is going wrong here!";
     return false;
   }
-  if(index < this->log.front().startUnitIndex ||
+  if( this->log.empty() || //Should not really happen,
+                           //but it happens. Needs more investigation.
+      index < this->log.front().startUnitIndex ||
       index > this->log.back().endUnitIndex) return false;
 
   if(debugme)
@@ -772,13 +774,24 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
   list<CompressedMSet*>* resStream= 0;
   finalResStream= new list<CompressedMSet*>(0);
   GPatternHelper GPHelper;
+  StopWatch timer;
   if(debugme)
   {
     cerr<<"\nFindSubGraphs started at depth " << depth;
     cerr<<"\nAccumlator has " << Accumlator.GetNoComponents()<< " units";
   }
+
+  timer.start();
   FindDynamicComponents(Accumlator, begin, end, edge2nodesMap, dMS, n, qts,
       resStream);
+
+  double FindCCSecondsCPU = timer.diffSecondsCPU();
+  double FindCCSecondsReal = timer.diffSecondsReal();
+  cerr<< "\n ########### TIMER ############ \n";
+  cerr<<"Finding Connected Components took (CPU/Real) (" <<
+      FindCCSecondsCPU << "/" << FindCCSecondsReal << ") seconds.\n";
+  timer.start();
+
   if(debugme && 0)
   {
     list<CompressedMSet*>::iterator it= resStream->begin();
@@ -863,6 +876,11 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
       }
     }
   }
+  double FindLCCSecondsCPU = timer.diffSecondsCPU();
+  double FindLCCSecondsReal = timer.diffSecondsReal();
+  cerr<< "\n ########### TIMER ############ \n";
+  cerr<<"Finding Large Connected Components took (CPU/Real) (" <<
+      FindLCCSecondsCPU << "/" << FindLCCSecondsReal << ") seconds.\n";
   delete resStream;
 }
 
@@ -940,13 +958,14 @@ void GPatternHelper::FindDynamicComponents(CompressedInMemMSet& Accumlator,
 
   while(cur != end)
   {
-    if(debugme )
+    if(debugme && (cnt%100 == 0))
     {
-      cerr<<"\n\nProcessing unit number: " <<++cnt <<"/" << totalNodesNum;
+      cerr<<"\n\nProcessing unit number: " << cnt <<"/" << totalNodesNum;
       cerr<<". Unit has: " <<(*cur).count<<" elems";
       cerr<<"\nresStream has: " <<ResultStream->size();
       cerr<<" results, finalResStream has: " <<FinalResultStream->size();
     }
+    ++cnt;
 
     DynamicGraphAppend(graph, components, compLabelsMap, cur,
         edge2nodesMap, dMS, n, qts, NextComponentLabel, ResultParts,
@@ -1264,6 +1283,10 @@ void GPatternHelper::Finalize(LWGraph* graph, list<Component*>* components,
 {
   bool debugme= false;
 
+  string CounterName[]={"NotChanged", "AddedEdges", "RemovedEdges",
+      "AddRemoveMix", "NewlyAdded", "RemoveNow", "SplitFromExtistingComponent",
+      "MergedFromExistingComponents", "ReDistribute"};
+
   vector<list<Component*>::iterator> compsToErase;
   vector<list< vector<int> >::iterator> resToErase;
   set<int> processedParents;
@@ -1271,6 +1294,7 @@ void GPatternHelper::Finalize(LWGraph* graph, list<Component*>* components,
     components->end(); ++compIt)
   {
     Component* comp= *compIt;
+    Counter::getRef("ComponentStatus" + CounterName[comp->message])++ ;
     if(debugme)
       comp->Print(cerr);
     switch(comp->message)
@@ -1516,6 +1540,10 @@ void GPatternHelper::DynamicGraphAppend(LWGraph* graph,
 
   if(debugme)
     graph->print(cerr);
+
+  bool SingleUpdate= (((*cur).added.size() + (*cur).removed.size()) <= 1);
+  Counter::getRef("SingleGraphUpdate")+= SingleUpdate? 1: 0;
+  Counter::getRef("MultipleGraphUpdate")+= SingleUpdate? 0: 1;
 
   if(!(*cur).added.empty())
   {
@@ -3943,7 +3971,7 @@ Defining local variables
       new list<CompressedMSet*>(), *resStreamFinal=0,
       *localResStream=0;
     GPatternHelper GPHelper;
-
+    StopWatch timer;
 /*
 Reading the operator arguments
 
@@ -3965,6 +3993,7 @@ Reading the operator arguments
 Evaluating the gpattern results
 
 */    
+    timer.start();
     qp->Open(TheStream);
     qp->Request(TheStream, t);
     while (qp->Received(TheStream))
@@ -4006,8 +4035,22 @@ performed in this step.
       tup->DeleteIfAllowed();
       qp->Request(TheStream, t);
     }
+    double ReadInputSecondsCPU = timer.diffSecondsCPU();
+    double ReadInputSecondsReal = timer.diffSecondsReal();
+    cerr<< "\n ########### TIMER ############ \n";
+    cerr<<"Reading the input took (CPU/Real) (" << ReadInputSecondsCPU << "/"
+        <<ReadInputSecondsReal << ") seconds.\n";
+    timer.start();
 
     accumlator.ConstructFromBuffer();
+
+    double ConstructPGSecondsCPU = timer.diffSecondsCPU();
+    double ConstructPGSecondsReal = timer.diffSecondsReal();
+    cerr<< "\n ########### TIMER ############ \n";
+    cerr<<"Constructing the Pattern Graph took (CPU/Real) (" <<
+        ConstructPGSecondsCPU << "/" << ConstructPGSecondsReal <<
+        ") seconds.\n";
+
 
     qp->Close(TheStream);
 

@@ -927,7 +927,9 @@ int GetNumComponents(
     if((*comps)[i]->nodes_count() >= n) ++numComps;
     delete (*comps)[i];
   }
+  comps->clear();
   delete comps;
+  delete graph;
   return numComps;
 }
 
