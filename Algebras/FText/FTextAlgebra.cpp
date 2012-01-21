@@ -1084,6 +1084,8 @@ ListExpr FTextTypeMapExpression2Text( ListExpr args )
   NList type(args);
   if(type.hasLength(1))
   {
+    if (!type.first().isEqual(Symbols::TYPEERROR()))
+    {
     string firsttype = type.first().convertToString();
     NList firstType = NList(firsttype, true, true).enclose();
     NList append(Symbol::APPEND());
@@ -1093,6 +1095,7 @@ ListExpr FTextTypeMapExpression2Text( ListExpr args )
                   text
                  );
     return restype.listExpr();
+    }
   }
   return NList::typeError("Expected any Expression as single argument.");
 }
