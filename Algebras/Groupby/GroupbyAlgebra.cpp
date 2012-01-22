@@ -323,7 +323,7 @@ public:
   vector<Tuple*> hBucket[CAPBUCKETS];   // data structure for hash buckets
 
   GroupByLocalInfo2() : t(NULL), resultTupleType(NULL), 
-  TB_In(NULL), TB_Out(NULL), TB_Temp(NULL), 
+  TB_In(NULL), TB_Out(NULL), TB_Temp(NULL), In_Rit (NULL),
   MAX_MEMORY(0), Used_Memory(0), FirstREQUEST(true), ReturnBucket(0),
   No_RetTuples(0), No_GTuples(0), Phase(0)
   {}
@@ -365,10 +365,10 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
   Word sWord(Address(0));
   GroupByLocalInfo2 *gbli = 0;
   ListExpr resultType;
-  Tuple *current, *s, *tres;
+  Tuple *current = NULL, *s = NULL, *tres = NULL;
   int numberatt = 0;            // number of grouping attributes
   int attribIdx = 0;
-  int indexOfCountArgument = 3;	// position of numberatt info
+  int indexOfCountArgument = 3; // position of numberatt info
   // start if positions for grouping attributes
   int startIndexOfExtraArguments = indexOfCountArgument + 1; 
   int i, j, k; 
@@ -850,8 +850,8 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
         return CANCEL;
 
       // following REQUEST calls: return result tuples ========================
-      } else {	
-        result.addr = 0;	// did not yet find a tuple
+      } else {
+        result.addr = 0;          // did not yet find a tuple
 
         // no grouping: there is a single result tuple, 
         // this was returned already
@@ -979,7 +979,7 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
         delete gbli;
         local.setAddr(0);
       }
-      qp->Close(args[0].addr);		// close input stream
+      qp->Close(args[0].addr);      // close input stream
       return 0;
   } // end message switch
 
