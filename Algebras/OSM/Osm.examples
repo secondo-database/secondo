@@ -16,20 +16,20 @@ Result   : 0
 Operator : binor
 Number   : 3
 Signature: d1 x d2 -> c, d1, d2, c int
-Example  : query getconnectivitycode(0, 1)
+Example  : query binor(0, 1)
 Result   : 1
 
 Operator : getscalefactorx
 Number   : 4
 Signature: -> int
 Example  : query getscalefactorx()
-Result   : 1000
+Result   : 1
 
 Operator : getscalefactory
 Number   : 5
 Signature: -> int
 Example  : query getscalefactory()
-Result   : 1000
+Result   : 1
 
 Operator : setscalefactorx
 Number   : 6

@@ -119,6 +119,11 @@ void ConnCodeFinder::assignSections (int sec1, int sec2, bool ow1, bool ow2,
       higherDir = 1;
       lowerOw = false;
       higherOw = ow2;
+   } else if(sec1 == UNDEFINED && sec2 == UNDEFINED){
+      lowerDir = 0;
+      higherDir = 0;
+      lowerOw = false;
+      higherOw = false;
    } else {
       assert (false);
    } 
