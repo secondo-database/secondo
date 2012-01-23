@@ -33,11 +33,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Dieter Capek: Module Groupby Algebra
 
-from Sept. 2011    Implementation of Module Groupby Algebra
+from Sept 2011    Implementation of Module Groupby Algebra
 15.12.2011         Changed data type for hash buckets to STL vectors
 13.01.2012         Introduced phases to handle memory constraints
-19.01.2012         Enhanced type mapping for symmetric merging syntax
-
+19.01.2012         Introduced symmetric merging
+23.01.2012         Refined UsedMemory calculation 
 
 */
 
@@ -661,7 +661,21 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
           } else if (GruppeDoppelt == false) {  // new group ==================
             // Build group aggregate: grouping attributes o function values
             tres = new Tuple(gbli->resultTupleType);
+            // add the memory used by this raw tuple (without attributes)
+            gbli->Used_Memory += sizeof(*tres);
             gbli->No_GTuples++;
+
+            // copy grouping attributes 
+            for(i = 0; i < numberatt; i++) {
+              attribIdx = 
+                ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
+              tres->CopyAttribute(attribIdx-1, s, i);
+
+              // add memory sizes
+              sattr = s->GetAttribute(attribIdx-1);
+              gbli->Used_Memory += 
+                sattr->Sizeof() + sattr->getUncontrolledFlobSize();
+            }
 
             // get first function values from tuple and initial values
             for (i=0; i < noOffun; i++) {
@@ -679,7 +693,10 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
                 qp->Request( supp3, funres);        // function evaluation  
                 sattr = ((Attribute*)funres.addr)->Clone();
                 // after the group attributes
-                tres->PutAttribute( numberatt+i, sattr);     
+                tres->PutAttribute( numberatt+i, sattr); 
+                gbli->Used_Memory += 
+                  sattr->Sizeof() + sattr->getUncontrolledFlobSize();
+    
               } else {
                 // symmetric merge
                 // evaluate the tuple->data function
@@ -698,20 +715,12 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
                 newstack->push(FirstEntry);
                 // Link the stack into the tuple after the group attributes 
                 tres->PutAttribute(numberatt+i, (Attribute*) newstack);
+
+                gbli->Used_Memory += sizeof( *newstack) 
+                  + sizeof(AggrStackEntry)
+                  + sattr->Sizeof() + sattr->getUncontrolledFlobSize();
               } // end-if per attribute
             } // end-for 
-
-            // copy grouping attributes 
-            for(i = 0; i < numberatt; i++) {
-              attribIdx = 
-                ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
-              tres->CopyAttribute(attribIdx-1, s, i);
-            }
-
-
-// ?? wie mache ich das mit den Stacks ? 
-            // add the memory used by this tuple
-//            gbli->Used_Memory += tres->GetExtSize();
 
             // store aggregate tuple in hash bucket
             gbli->hBucket[myhash2].push_back(tres);
@@ -729,14 +738,22 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
               funargs = qp->Argument(supp3);      // get argument vector
               
               if (MergeType[i] == Normal_Merge) {
-
-                sattr = current->GetAttribute( numberatt+i);     
+                // normal merge 
+                sattr = current->GetAttribute( numberatt+i);  
                 (*funargs)[0].setAddr(s);          
                 (*funargs)[1].setAddr(sattr);
                 qp->Request( supp3, funres);  
+                tattr = ((Attribute*)funres.addr)->Clone();
 
-                sattr = ((Attribute*)funres.addr)->Clone();
-                current->PutAttribute( numberatt+i, sattr);
+                // subtract old attribute size
+                gbli->Used_Memory -= 
+                  sattr->Sizeof() + sattr->getUncontrolledFlobSize();
+                // add new attribute size, it can change during merge
+                gbli->Used_Memory += 
+                  tattr->Sizeof() + tattr->getUncontrolledFlobSize(); 
+                // PutAttribute does an implice DeleteIfAllowed on the old attr
+                current->PutAttribute( numberatt+i, tattr);
+
               } else {
                 // symmetric merge, evaluate tuple->data, merge stack
                 StackLevel = 0;
@@ -763,9 +780,11 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
                   sattr = ((Attribute*)funres.addr)->Clone();
 
                   // delete top element
+                  gbli->Used_Memory -= sizeof(AggrStackEntry)
+                    + tattr->Sizeof() + tattr->getUncontrolledFlobSize();
                   tattr->DeleteIfAllowed();
                   newstack->pop();
-                  
+
                   StackLevel++;
                 } //end-while  
 
@@ -773,6 +792,9 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
                 FirstEntry.level = StackLevel;
                 FirstEntry.value = sattr;
                 newstack->push(FirstEntry);
+
+                gbli->Used_Memory += sizeof(AggrStackEntry)
+                  + sattr->Sizeof() + sattr->getUncontrolledFlobSize();
               }  // end-if process an attribute
             } // end-for 
 
@@ -975,7 +997,6 @@ int GroupByValueMapping2 (Word* args, Word& result, int message, Word& local,
         
         delete gbli->TB_In;
         delete gbli->TB_Out;
-
         delete gbli;
         local.setAddr(0);
       }
