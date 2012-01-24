@@ -241,9 +241,21 @@ static bool RunCmdSSH(const string& inHost,
                       const string& inCmd,
                       string &outResult)
 {
-  string cmd = "ssh " + inHost + " 'bash -c \"" + inCmd + "\"'";
-  //cout << cmd << endl;
-  return RunCmdPopen(cmd, outResult);
+  string cmd;
+  bool retval = false;
+  if (inHost != "localhost" &&
+      inHost != "127.0.0.")
+    {
+      cmd = "ssh " + inHost + " 'bash -c \"" + inCmd + "\"'";  
+    }
+  else
+    {
+      cmd = "bash -c \"cd ${HOME}; " + inCmd + "\"";
+    }
+     
+  retval = RunCmdPopen(cmd, outResult);
+  
+  return retval;
 }
 
 /*
@@ -815,7 +827,10 @@ ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
        //cout << " -> ERROR!" << endl;
        return nl->SymbolAtom(Symbol::UNDEFINED());
      }
-
+   if( !(a -> getServerManager() -> checkServers(true)))
+     {
+       return nl->SymbolAtom(Symbol::UNDEFINED());
+     }
    ListExpr list;
    ListExpr last;
    ListExpr element;
@@ -1244,9 +1259,26 @@ static int getFun( Word* args,
                               Supplier s)
 {
    DArray* array = ((DArray*)args[0].addr);
+   bool hasErrors = false;
+   if ( array == 0 ||
+        !(array -> isDefined()) ||
+        !(array -> getServerManager() -> checkServers(false)))
+     {
+       cerr << "ERROR: DArray is not defined correctly!" << endl;
+       hasErrors = true;
+     }
+
    CcInt* index = ((CcInt*)args[1].addr);
 
    int i = index->GetIntval();
+
+   int n = array -> getSize();
+
+   if (i < 0 || i >= n)
+     {
+       cerr << "ERROR: invalid array index!" << endl;
+       hasErrors = true;
+     }
 
    //Determine type
    ListExpr resultType = array->getType();
@@ -1254,13 +1286,31 @@ static int getFun( Word* args,
    int algID,typID;
    extractIds(resultType,algID,typID);
 
+   if (hasErrors)
+     {
+       result =  qp->ResultStorage(s);
+       return 1;
+     }
+   
    //retrieve element from worker
    array->refresh(i);
    //copy the element
-   Word cloned = (am->CloneObj(algID,typID))(resultType,(Word)array->get(i));
 
-  //result = qp->ResultStorage(s);
-   result.addr = cloned.addr;
+   if (array -> isRelType())
+     {
+       result.addr = ((Word)array->get(i)).addr;
+     }
+   else
+     {
+       Word cloned = 
+         (am->CloneObj(algID,typID))
+             (resultType,(Word)array->get(i));
+
+       //result = qp->ResultStorage(s);
+       result.addr = cloned.addr;
+     }
+
+
    return 0;
 }
 
@@ -2947,7 +2997,7 @@ dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
   extractIds(typeOfElement, algebraId, typeId);
   int n = array->getSize();
 
-   array->refresh();
+  array->refresh();
 
  //copy the element
   Word partResult =
@@ -3158,6 +3208,9 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
 
     ~DArrayIterator()
     {
+      if (m_error)
+        return;
+
       if (rit)
         {
           assert(rit -> EndOfScan());
