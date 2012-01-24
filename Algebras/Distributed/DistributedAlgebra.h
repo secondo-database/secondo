@@ -110,6 +110,7 @@ public:
   const string& getName() const { return m_name; }
 
   bool isDefined() const { return defined; }
+  void setUndefined() { defined = false; }
 
   int getSize() const { return size; }
 
