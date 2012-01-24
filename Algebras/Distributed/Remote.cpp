@@ -1037,12 +1037,12 @@ void DServer::run()
       int cnt = 0;
 #endif
       if(line != "<FINISH>")
-	{
-	  errorText = "Unexpected Response from worker! (<FINISH> expected)";
-	  delete m_cmd;
-	  m_cmd = NULL;
-	  return;
-	}
+        {
+          errorText = "Unexpected Response from worker! (<FINISH> expected)";
+          delete m_cmd;
+          m_cmd = NULL;
+          return;
+        }
       cbworker->Close(); delete cbworker; cbworker = 0;
       do
       {
@@ -1052,12 +1052,12 @@ void DServer::run()
          assert(cnt++ < 10);
 #endif
          if(line.find("errror") != string::npos)
-	   {
-	     errorText = "Worker reports error on closing relation!";
-	     delete m_cmd;
-	     m_cmd = NULL;
-	     return;
-	   }
+           {
+             errorText = "Worker reports error on closing relation!";
+             delete m_cmd;
+             m_cmd = NULL;
+             return;
+           }
       }
 
       while(line.find("</SecondoResponse") == string::npos);
@@ -1103,13 +1103,13 @@ void DServer::run()
                 
            //receive tuples
            getline(cbsock,line);
-	   if (line.empty())
-	     {
-	       errorText = (string)"ERROR: Unknown response from worker!";
-	       delete m_cmd;
-	       m_cmd = NULL;
-	       return;
-	     }
+           if (line.empty())
+             {
+               errorText = (string)"ERROR: Unknown response from worker!";
+               delete m_cmd;
+               m_cmd = NULL;
+               return;
+             }
            while(line=="<TUPLE>")
              {
                //receive size of tuple
@@ -1142,28 +1142,28 @@ void DServer::run()
              }
                 
            if(line != "<CLOSE>") 
-	     {
-	       errorText = (string)"Unexpected Response from worker! " 
-		 + "(<CLOSE> or <TUPLE> expected)";
-	       
-	       delete m_cmd;
-	       m_cmd = NULL;
-	       return;
-	     }
+             {
+               errorText = (string)"Unexpected Response from worker! " 
+                 + "(<CLOSE> or <TUPLE> expected)";
+               
+               delete m_cmd;
+               m_cmd = NULL;
+               return;
+             }
            gate->Close(); delete gate; gate=0;
            worker->Close(); delete worker; worker=0;
 
            do
              {
                getline(iosock,line);
-	       assert(!line.empty());
+               assert(!line.empty());
                if(line.find("error") != string::npos)
-		 {
-		   errorText = "worker reports error on sending relation!";
-		   delete m_cmd;
-		   m_cmd = NULL;
-		   return;
-		 }
+                 {
+                   errorText = "worker reports error on sending relation!";
+                   delete m_cmd;
+                   m_cmd = NULL;
+                   return;
+                 }
              }
            while(line.find("</SecondoResponse>") == string::npos);
 
@@ -1290,7 +1290,7 @@ void DServer::run()
 
    //cout << (unsigned long)(this) << " DS - done" << endl;       
    return;
-   }	
+   }    
 
 /*
 
