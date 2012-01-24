@@ -32,7 +32,7 @@
 # specified below AND it exists!
 # Note: On windows you need absolute path names, e.g.
 # C:\msys\1.0\home\user\secondo-dbtest
-SecondoHome=/tmp/
+SecondoHome=/tmp/db_distr_selftest
 
 # Algebralevel after startup (Executable|Descriptive|Hybrid).
 AlgebraLevel=Executable
