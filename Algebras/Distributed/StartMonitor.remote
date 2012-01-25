@@ -5,17 +5,25 @@
 
   if [ "${secConfig}x" == "x" ]; then 
     if [ -e SecondoConfig.ini ]; then
-      port=`grep SecondoPort SecondoConfig.ini | sed -e 's@SecondoPort=@@g'`
+      port=`grep ^SecondoPort SecondoConfig.ini | sed -e 's@SecondoPort=@@g'`
+      sechome=`grep ^SecondoHome SecondoConfig.ini | sed -e 's@SecondoHome=@@g'`
     else
-      port = 1234
+      echo "Error: Cannot determin SecondoConfig file!"
+      exit 1;
     fi
   else
-    port=`grep SecondoPort ${secConfig} | sed -e 's@SecondoPort=@@g'`
+    port=`grep ^SecondoPort ${secConfig} | sed -e 's@SecondoPort=@@g'`
+    sechome=`grep ^SecondoHome ${secConfig} | sed -e 's@SecondoHome=@@g'`
   fi
 
   if [ -e /tmp/SM_${port}.lck ]; then
     echo "SecondoMonitor already running on port ${port}"
     exit 1;
+  fi
+
+  if [ ! -e ${sechome} ]; then
+      echo "creating database directory ${sechome}";
+      mkdir -p ${sechome}
   fi
 
   export SECONDO_MONITOR_PORT=${port}
