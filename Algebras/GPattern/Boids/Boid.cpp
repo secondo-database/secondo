@@ -146,11 +146,11 @@ much more efficient.
   {
     if (accumulate(vacc, collisionAvoidance(sampleIntervalSeconds)) >= 1.0)
       goto MAXACCEL_ATTAINED;
-    if (accumulate(vacc, velocityMatching()) >= 1.0)
+    if (accumulate(vacc, flockCentering()) >= 1.0)
       goto MAXACCEL_ATTAINED;
     if (accumulate(vacc, maintainingCruisingDistance()) >= 1.0)
       goto MAXACCEL_ATTAINED;
-    if (accumulate(vacc, flockCentering()) >= 1.0)
+    if (accumulate(vacc, velocityMatching()) >= 1.0)
       goto MAXACCEL_ATTAINED;
     if (accumulate(vacc, wander()) >= 1.0)
       goto MAXACCEL_ATTAINED;
@@ -300,7 +300,8 @@ return Direction(normalToObject ) * mag;
 
 */
 
-  return Direction(  normalToObject - velocity ) * mag;
+//  return Direction(  normalToObject - velocity ) * mag;
+  return Direction(  normalToObject  ) * mag;
 }
 
 MathVector
@@ -567,7 +568,7 @@ BoidGenerator::BoidGenerator(vector<int>& BoidSizes,
     boidSizes(BoidSizes),
     freeBoidCount(BoidSizes[0]),
     simulationStart(*SimulationStartTime),
-    sampleInterval(0, 2000, datetime::durationtype),
+    sampleInterval(0, 7000, datetime::durationtype),
     remainingSamples(*SimulationDuration / sampleInterval),
     iterator(0),
     elapsedTime(0)
@@ -647,7 +648,7 @@ bool BoidGenerator::makeBoids()
 {
   bool debugme= false;
   MathVector d(1, .2, .75); // dimensions of boid (RAD, height, length)
-  double mv = 20;// maximum magnitude of velocity m/s. This value means 72 km/h
+  double mv = 10;// maximum magnitude of velocity m/s. This value means 36 km/h
   Boid* myBoid=0;
   int groupSize=0;
   double X, Y;
