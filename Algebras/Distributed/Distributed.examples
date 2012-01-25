@@ -1,6 +1,6 @@
 Sequential: Yes
 Database: berlintest
-Restore : Yes
+Restore : No
 
 Operator : DELEMENT2
 Number   : 1
@@ -27,33 +27,32 @@ Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple([Server:str
 Example  : let plz_dd = plz feed head [10] extend [N:1] ddistribute [N,1, workers ]
 Result   : ()
 
-Operator : dsummarize
+Operator : ddistribute
 Number   : 5
-Signature: ((darray (rel t))) -> (stream t)
-Example  : query plz_dd dsummarize count
-Result   : 10
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple([Server:string, Port: int]))) ) -> (darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)(xi+1 ti+1) ... (xn tn)))))
+Example  : let plz_dd2 = plz feed head [10] extend [N: .PLZ mod 2 ] ddistribute [N,2, workers ]
+Result   : ()
 
-Operator : DELEMENT
+Operator : dsummarize
 Number   : 6
-Signature: ((array t) ... ) -> t
-Example  : query plz_dd dloop [. count]
-Result   : ((darray int) ((("localhost" 3333)) 10))
-Remark   : Internal operator only.
+Signature: ((darray (rel t))) -> (stream t)
+Example  : query plz_dd dsummarize count;
+Result   : (int 10)
 
 Operator : d_send_rel
 Number   : 7
 Signature: ( hostname port t) -> int
-Example  : query plz_dd dloop [. count]
-Result   : ((darray int) ((("localhost" 3333)) 10))
-Remark   : Internal operator only.
+Example  : query get(plz_dd2, 0) feed count;
+Result   : (int 5)
+Remark   : Internal operator only. Used in the operator get
 
 
 Operator : d_receive_rel
 Number   : 8
 Signature: ( hostname port) -> t
-Example  : query plz_dd dloop [. count]
-Result   : ((darray int) ((("localhost" 3333)) 10))
-Remark   : Internal operator only.
+Example  : query plz feed head [10] extend [N:1] ddistribute [N,1, workers ] dsummarize count;
+Result   : (int 10)
+Remark   : Internal operator only. Used in the operator ddistribute
 
 Operator : dloop
 Number   : 9
@@ -95,19 +94,40 @@ Result   : ((darray int) ((("localhost" 3333)) 1 2 2))
 Operator : receiveD
 Number   : 15
 Signature: ( hostname port) -> t
-Example  : query plz_dd dloop [. count]
-Result   : ((darray int) ((("localhost" 3333)) 10))
-Remark   : Internal operator only.
+Example  : query put(makeDarray(workers,1,2,3),2,2)
+Result   : ((darray int) ((("localhost" 3333)) 1 2 2))
+Remark   : Internal operator only. Used in the operator put
 
 Operator : sendD
 Number   : 16
 Signature: ( hostname port t ) -> int
-Example  : query plz_dd dloop [. count]
-Result   : ((darray int) ((("localhost" 3333)) 10))
-Remark   : Internal operator only.
+Example  : query get(makeDarray(workers,1,2,3),1)
+Result   : (int 2)
+Remark   : Internal operator only. Used in the operator get
+
+Operator : DELEMENT
+Number   : 17
+Signature: ((array t) ... ) -> t
+Example  : delete plz_dd
+Result   : ()
+Remark   : Internal operator only. Used for teardown
+
+Operator : DELEMENT
+Number   : 18
+Signature: ((array t) ... ) -> t
+Example  : delete plz_dd2
+Result   : ()
+Remark   : Internal operator only. Used for teardown
+
+Operator : DELEMENT2
+Number   : 19
+Signature: ((array t) ... ) -> t
+Example  : delete workers
+Result   : ()
+Remark   : Internal operator only. Used for teardown
 
 Operator : shutdown
-Number   : 17
+Number   : 20
 Signature: shutdown (Server:string, Port:int) ->  bool
 Example  : query shutdown("localhost", 3333)
 Result   : TRUE
