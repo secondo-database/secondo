@@ -417,18 +417,19 @@ void DArray::refresh(int i)
 
 void DArray::refresh()
 {
-
   //cout << "DArray::refresh S:" << size 
   //<< " (Rel:" << isRelation << ")" << endl;
-
+  manager -> checkServers(true);
+  setUndefined();
+  return;
+  
 #ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
 #endif
 
    //Elements are deleted if they were present
    //If the darray has a relation-type new relations must be created
-   assert(m_elements.size() == size);
-
+   assert(m_elements.size() == (unsigned int)size);
   
    for (int i = 0; i <  size; ++i)
      { 
@@ -483,6 +484,7 @@ void DArray::refresh(TBQueue *tbIn,
 {
   if (!(manager -> checkServers(true)))
     {
+      setUndefined();
       return;
     }
 
@@ -492,7 +494,7 @@ void DArray::refresh(TBQueue *tbIn,
 
    //Elements are deleted if they were present
    //If the darray has a relation-type new relations must be created
-   assert(m_elements.size() == size);
+   assert(m_elements.size() == (unsigned int)size);
    assert(isRelation);
          
    vector<Word> word (2);
@@ -2354,6 +2356,14 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
    
    DServerManager* man = array->getServerManager();
+
+   if (!(man -> isOk()))
+     {
+       array -> setUndefined();
+       result.addr = array;
+       return 1;
+     }
+
    DServer* server = 0;
 
    int server_no = man->getNoOfServers();
@@ -2407,6 +2417,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      {
        cerr << "Could not multiply  DServers!" << endl;
        cerr << e.what() << endl;
+       array -> setUndefined();
+       result.addr = array;
        return 1;
      }
 
@@ -2434,7 +2446,11 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
              }
 
            if (!(server -> checkServer(true)))
-             return 1;
+             {
+               array -> setUndefined();
+               result.addr = array;
+               return 1;
+             }
 
            serverList[i] = server;
 
@@ -2457,6 +2473,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      {
        cerr << "Could not initiate ddistribute command!" << endl;
        cerr << e.what() << endl;
+       array -> setUndefined();
+       result.addr = array;
        return 1;
      }
 
@@ -2526,7 +2544,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            
            if (memCntr.size() - tuple1 -> GetSize() < 0)
              {
-               for (unsigned long j = 0; j < size; j ++)
+               for (unsigned long j = 0; j < (unsigned int)size; j ++)
                  serverCommand[j] -> forceSend();
              }
 
@@ -2571,6 +2589,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      {
        cerr << "Could not distribute data!" << endl;
        cerr << e.what() << endl;
+       array -> setUndefined();
+       result.addr = array;
        return 1;
      }
 
@@ -2588,6 +2608,8 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      {
        cerr << "Could not finalize ddistribute!" << endl;
        cerr << e.what() << endl;
+       array -> setUndefined();
+       result.addr = array;
        return 1;
      }
 
@@ -2995,9 +3017,22 @@ dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int algebraId;
   int typeId;
   extractIds(typeOfElement, algebraId, typeId);
+
+  if (!array || !(array -> isDefined()))
+    {
+      result = qp->ResultStorage(s);
+      return 1;
+    }
+
   int n = array->getSize();
 
   array->refresh();
+
+  if ( !(array -> isDefined()))
+    {
+      result = qp->ResultStorage(s);
+      return 1;
+    }
 
  //copy the element
   Word partResult =
