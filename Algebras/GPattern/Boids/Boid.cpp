@@ -567,7 +567,7 @@ BoidGenerator::BoidGenerator(vector<int>& BoidSizes,
     boidSizes(BoidSizes),
     freeBoidCount(BoidSizes[0]),
     simulationStart(*SimulationStartTime),
-    sampleInterval(0, 5000, datetime::durationtype),
+    sampleInterval(0, 2000, datetime::durationtype),
     remainingSamples(*SimulationDuration / sampleInterval),
     iterator(0),
     elapsedTime(0)
