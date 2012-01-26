@@ -211,22 +211,22 @@ int OpMapMatchingMHTValueMapping(Word* args,
 MapMatchingAlgebra::MapMatchingAlgebra()
 :Algebra()
 {
-	/*
-	5.1 Registration of Types
-	*/
+    /*
+    5.1 Registration of Types
+    */
 
 
-	/*
-	5.2 Registration of Operators
-	*/
+    /*
+    5.2 Registration of Operators
+    */
 
-	AddOperator(MapMatchSimpleInfo(),
-	            OpMapMatchingSimpleValueMapping,
-	            OpMapMatchingTypeMap);
+    AddOperator(MapMatchSimpleInfo(),
+                OpMapMatchingSimpleValueMapping,
+                OpMapMatchingTypeMap);
 
-	AddOperator(MapMatchMHTInfo(),
-	            OpMapMatchingMHTValueMapping,
-	            OpMapMatchingTypeMap);
+    AddOperator(MapMatchMHTInfo(),
+                OpMapMatchingMHTValueMapping,
+                OpMapMatchingTypeMap);
 }
 
 MapMatchingAlgebra::~MapMatchingAlgebra()
