@@ -419,9 +419,12 @@ void DArray::refresh()
 {
   //cout << "DArray::refresh S:" << size 
   //<< " (Rel:" << isRelation << ")" << endl;
-  manager -> checkServers(true);
-  setUndefined();
-  return;
+  
+  if (!(manager -> checkServers(true)))
+    {
+      setUndefined();
+      return;
+    }
   
 #ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
@@ -852,8 +855,6 @@ ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
          last=nl->Append(last,element);
        }
      }
-
-   //cout << " -> OK" << endl;
    return list;
 }
 
@@ -1547,10 +1548,10 @@ static int sendFun( Word* args,
 
             getline(iosock,line);
 
-            if(line!="<FINISH>")
+            if( line!="<FINISH>" )
             {
-            cout << "Error: Missing 'Finish' tag from Worker!" << endl;
-            cout << " Got:'" << line << "'" << endl;
+              cout << "Error: Missing 'Finish' tag from Worker!" << endl;
+              cout << " Got:'" << line << "'" << endl;
             }
 
             result = qp->ResultStorage(s);
@@ -2762,7 +2763,10 @@ static int loopValueMap
        rpl += "!";
      }
 
+   //cout << "CMD:" << command << endl;
+
    string name = getArrayName(DArray::no);
+   //cout << "NAM:" << name << endl;
    vector<Word> w (2);
    w[0].addr = &command;
    w[1].addr = &name;

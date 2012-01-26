@@ -516,8 +516,8 @@ void DServer::run()
           
           //Callback-connection is received
           Socket* gate = Socket::CreateGlobal( HostIP, port);
-          
           Socket* worker = gate->Accept();
+
           gate->Close();delete gate;gate=0;
           
           iostream& cbsock = worker->GetSocketStream();
@@ -631,8 +631,8 @@ void DServer::run()
               
               iosock << "<FINISH>" << endl;
               
-              worker->Close();delete worker;worker=0;
-              
+              worker->Close(); delete worker; worker=0;
+                 
             }
           else
             errorText = "Unexpected response from worker (<SIZE> expected)!";
@@ -646,7 +646,7 @@ void DServer::run()
             }
           while(line.find("</SecondoResponse>") == string::npos);
           
-        }
+        } // while(!m_cmd -> getDArrayIndex() -> empty())
    
     }
   if(m_cmd -> getCmdType() == DS_CMD_DELETE)
@@ -759,10 +759,15 @@ void DServer::run()
 
          iosock << "<Secondo>" << endl << "0" << endl 
                      << cmd<< endl << "</Secondo>" << endl;
+
+         //cout << "CMDEXE:" << "<Secondo>" << endl << "0" << endl 
+         //    << cmd<< endl << "</Secondo>" << endl;
          
          do
          {
             getline(iosock,line);
+            //cout << "GOT:" << line << endl;
+
             if(line.find("error") != string::npos)
                errorText = "Worker reports error on executing operation!";
          }
@@ -1381,7 +1386,7 @@ DServer::checkServer(bool writeError) const
       return false;
     }
 
-  if (getNumChilds() != m_childs.size())
+  if ((unsigned int)getNumChilds() != m_childs.size())
     {
       if (writeError)
         cerr << "ERROR: Workers are not setup correctly, restart cluster" 
@@ -1504,7 +1509,7 @@ returns false, if server were not created correctly
 bool 
 DServerManager::checkServers(bool writeError) const
 { 
-  if (m_serverlist.size() != size)
+  if (m_serverlist.size() != (unsigned int)size)
     return false;
 
   for(int i = 0; i<size; i++)
