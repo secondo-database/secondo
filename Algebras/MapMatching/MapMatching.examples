@@ -1,0 +1,18 @@
+Database : mapmatchtest
+Restore  : YES
+
+Operator : mapmatchsimple
+Number   : 1
+Signature: network x mpoint -> mgpoint
+Example  : query mapmatchsimple(B_NETWORK, [const mpoint value((("2007-01-01-10:02:01.000" "2007-01-01-10:02:03.000" TRUE FALSE)(8209.0 8769.0 8293.0 8768.0)))]);
+Result   : (mgpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(1 1 1 0.0 84.00595217006948))))
+Tolerance: 0.01%
+
+Operator : mapmatchmht
+Number   : 1
+Signature: network x mpoint -> mgpoint
+Example  : query mapmatchmht(B_NETWORK, [const mpoint value((("2007-01-01-10:02:01.000" "2007-01-01-10:02:03.000" TRUE FALSE)(8209.0 8769.0 8293.0 8768.0)))]);
+Result   : (mgpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(1 1 1 0.0 84.00595217006948))))
+Tolerance: 0.01%
+
+
