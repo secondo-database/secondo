@@ -1,0 +1,36 @@
+#!/bin/bash
+# Startup script for the Secondo monitor application
+
+  secConfig=$SECONDO_CONFIG
+
+  if [ "${secConfig}x" == "x" ]; then 
+    if [ -e SecondoConfig.ini ]; then
+      port=`grep ^SecondoPort SecondoConfig.ini | sed -e 's@SecondoPort=@@g'`
+      sechome=`grep ^SecondoHome SecondoConfig.ini | sed -e 's@SecondoHome=@@g'`
+    else
+      echo "Error: Cannot determin SecondoConfig file!"
+      exit 1;
+    fi
+  else
+    port=`grep ^SecondoPort ${secConfig} | sed -e 's@SecondoPort=@@g'`
+    sechome=`grep ^SecondoHome ${secConfig} | sed -e 's@SecondoHome=@@g'`
+  fi
+
+  if [ -e /tmp/SM_${port}.lck ]; then
+    echo "SecondoMonitor already running on port ${port}"
+    exit 1;
+  fi
+
+  if [ ! -e ${sechome} ]; then
+      echo "creating database directory ${sechome}";
+      mkdir -p ${sechome}
+  fi
+
+  export SECONDO_MONITOR_PORT=${port}
+  nohup sh -c 'cd secondo/bin; SecondoMonitor -s &  \
+                pid=$!; \
+		tmpfile="/tmp/SM_${SECONDO_MONITOR_PORT}.lck"; \
+		echo "${pid}" > $tmpfile; '
+  exit $?
+
+
