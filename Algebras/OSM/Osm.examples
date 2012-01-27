@@ -49,3 +49,8 @@ Signature: text x ('node','way','restriction') -> stream (tuple (...))
 Example  : query osmimport('city.osm','node') count
 Result   : 0
 
+Operator : fullosmimport
+Number   : 9
+Signature: text x string x string x string x string x string x string -> bool
+Example  : query fullosmimport('dortmund.osm', "N", "NT", "W", "WT", "R", "RT")
+Result   : 0

@@ -28,6 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 June-November, 2011. Thomas Uchdorf
 
+[2] operator fullosmimport added
+
+Jan-Feb 2012, Fabio Valdes
+
 [TOC]
 
 1 Overview
@@ -43,7 +47,11 @@ For more detailed information see OsmAlgebra.h.
 //#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
 #define __TRACE__
 
-// --- Including header-files
+/*
+Including header-files
+
+*/
+
 using namespace std;
 #include "OsmAlgebra.h"
 #include "AlgebraManager.h"
@@ -58,6 +66,14 @@ using namespace std;
 #include "ConnCodeFinder.h"
 #include "ScalingEngine.h"
 #include "OsmImportOperator.h"
+#include "SecondoCatalog.h"
+#include "XmlFileReader.h"
+#include "XmlParserInterface.h"
+#include "Element.h"
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+#include <iostream>
+
 
 // --- Enabling global pointer variables
 extern NestedList* nl;
@@ -81,7 +97,10 @@ const string shpimport3Spec  =
     "automatically by inspecting the import file.</text--->"
     "<text> query shpimport3('kinos.shp') count</text--->) )";
 
-// Value-mapping-function of operator shpimport3
+/*
+Value-mapping-function of operator shpimport3
+
+*/
 template<int filePos>
 int shpimport3ValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s){
@@ -130,7 +149,10 @@ int shpimport3ValueMap(Word* args, Word& result, int message,
     return ret;
 }
 
-// Type-mapping-function of operator shpimport3
+/*
+Type-mapping-function of operator shpimport3
+
+*/
 ListExpr shpimport3TypeMap(ListExpr args){
    if(nl->ListLength(args)!=1){
       return listutils::typeError("one argument expected");
@@ -177,7 +199,10 @@ ListExpr shpimport3TypeMap(ListExpr args){
                           nl->SymbolAtom(shpType));
 }
 
-// Instance of operator shpimport3
+/*
+Instance of operator shpimport3
+
+*/
 Operator shpimport3( "shpimport3",
                     shpimport3Spec,
                     shpimport3ValueMap<0>,
@@ -340,7 +365,10 @@ const string getconnectivitycodeSpec  =
     "<text> query getconnectivitycode(sec1, sec2, sec3, sec4, ow1, ow2,"
     " ow3, ow4)</text--->))";
 
-// Value-mapping-function of operator getconnectivitycode
+/*
+Value-mapping-function of operator getconnectivitycode
+
+*/
 int getconnectivitycodeValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s){
    assert (args != NULL);
@@ -427,7 +455,10 @@ const string binorSpec  =
     "<text>Represents the binary-or-operation of two interger values</text--->"
     "<text> query binor(0,1)</text--->))";
 
-// Value-mapping-function of operator binor
+/*
+Value-mapping-function of operator binor
+
+*/
 int binorValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s){
    assert (args != NULL);
@@ -496,7 +527,10 @@ const string getscalefactorxSpec  =
     "<text>Returns the currently set scale factor for x coordinates.</text--->"
     "<text> query getscalefactorx()</text--->))";
 
-// Value-mapping-function of operator getscalefactorx
+/*
+Value-mapping-function of operator getscalefactorx
+
+*/
 int getscalefactorxValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s){
    assert (args != NULL);
@@ -642,12 +676,442 @@ ListExpr setscalefactoryTypeMap(ListExpr args){
    return nl->SymbolAtom(CcInt::BasicType());
 }
 
-// Instance of operator setscalefactory
+/*
+Instance of operator setscalefactory
+
+*/
 Operator setscalefactory( "setscalefactory",
                 setscalefactorySpec,
                 setscalefactoryValueMap,
                 Operator::SimpleSelect,
                 setscalefactoryTypeMap);
+
+// --- operator fullosmimport
+
+// Specification of operator fullosmimport
+const string fullosmimportSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text x string x string x string x string x string x string -> "
+        "bool</text--->"
+    "<text>fullosmimport(_)</text--->"
+    "<text>imports an osm file into six new relations</text--->"
+    "<text>query fullosmimport('dortmund.osm', \"N\", \"NT\", \"W\", \"WT\", "
+        "\"R\", \"RT\") count</text--->))";
+
+// Type mapping function for operator fullosmimport
+    
+ListExpr fullosmimportTypeMap(ListExpr args) {
+  if (!nl->HasLength(args, 7)) {
+    return listutils::typeError("seven arguments expected");
+  } 
+  ListExpr argList = nl->Rest(args);
+  for (int i = 1; i <= 6; i++) {
+    if (!listutils::isSymbol(nl->First(argList), CcString::BasicType())) {
+      return listutils::typeError
+          ("type string is required for the last six arguments");
+    }
+    argList = nl->Rest(argList);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+value mapping function for operator fullosmimport
+
+*/
+
+int fullosmimportValueMap(Word* args, Word& result, int message, Word& local,
+                           Supplier s) {
+  char *fileName = (char *)((CcString *)args[0].addr)->GetStringval();
+  bool isTemp = false;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;  
+  
+  // check whether the six relation names are valid
+  for (int i = 1; i <= 6; i++) {
+    string relationCandidateName = ((CcString *)args[i].addr)->GetValue();
+    if (sc->IsObjectName(relationCandidateName)) {
+      cout << relationCandidateName << " is already defined" << endl;
+      res->Set(true, false);
+      return 0;
+    }
+    string errMsg;
+    if (!sc->IsValidIdentifier(relationCandidateName, errMsg, true)) {
+      cout << errMsg << endl;
+      res->Set(true, false);
+      return 0;
+    }
+    if (sc->IsSystemObject(relationCandidateName)) {
+      cout << relationCandidateName << " is a reserved name" << endl;
+      res->Set(true, false);
+      return 0;
+    }
+  }
+  // check whether the file can be opened and is an osm file
+  xmlDocPtr doc;
+  xmlNodePtr cur, curChild;
+  doc = xmlParseFile(fileName);
+  if (doc == NULL) {
+    cout << "file " << fileName << " cannot be opened" << endl;
+    res->Set(true, false);
+    return 0;
+  }
+  cur = xmlDocGetRootElement(doc);
+  if (cur == NULL) {
+    cout << "file " << fileName << " is empty" << endl;
+    xmlFreeDoc(doc);
+    res->Set(true, false);
+    return 0;
+  }  // xmlStrcmp(x1, x2) == 0  <==> x1 == x2
+  if (xmlStrcmp(cur->name, (const xmlChar *)"osm")) {
+    cout << "root node of " << fileName << " is not \"osm\"" << endl;
+    xmlFreeDoc(doc);
+    res->Set(true, false);
+    return 0;
+  }
+  // define node relation
+  ListExpr nodeTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("id"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("lat"),
+                                        nl->SymbolAtom(CcReal::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("lon"),
+                                        nl->SymbolAtom(CcReal::BasicType()))));
+  ListExpr numNodeTypeInfo = sc->NumericType(nodeTypeInfo);
+  TupleType* nodeType = new TupleType(numNodeTypeInfo);
+  Tuple* node = new Tuple(nodeType);
+  Relation* nodeRel = new Relation(nodeType, isTemp);
+  
+  // definde nodeTag relation
+  ListExpr nodeTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("nodeId"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("key"),
+                                        nl->SymbolAtom(FText::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("value"),
+                                        nl->SymbolAtom(FText::BasicType()))));
+  ListExpr numNodeTagTypeInfo = sc->NumericType(nodeTagTypeInfo);
+  TupleType* nodeTagType = new TupleType(numNodeTagTypeInfo);
+  Tuple* nodeTag = new Tuple(nodeTagType);
+  Relation* nodeTagRel = new Relation(nodeTagType, isTemp);
+  
+  // define way relation
+  ListExpr wayTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("id"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("refId"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("nodeRef"),
+                                        nl->SymbolAtom(CcInt::BasicType()))));
+  ListExpr numWayTypeInfo = sc->NumericType(wayTypeInfo);
+  TupleType* wayType = new TupleType(numWayTypeInfo);
+  Tuple* way = new Tuple(wayType);
+  Relation* wayRel = new Relation(wayType, isTemp);
+  
+  //define wayTag relation
+  ListExpr wayTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("wayId"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("key"),
+                                        nl->SymbolAtom(FText::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("value"),
+                                        nl->SymbolAtom(FText::BasicType()))));
+  ListExpr numWayTagTypeInfo = sc->NumericType(wayTagTypeInfo);
+  TupleType* wayTagType = new TupleType(numWayTagTypeInfo);
+  Tuple* wayTag = new Tuple(wayTagType);
+  Relation* wayTagRel = new Relation(wayTagType, isTemp);
+  
+  // define restriction relation
+  ListExpr restTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("id"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("refId"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("memberRef"),
+                                        nl->SymbolAtom(CcInt::BasicType()))));
+  ListExpr numRestTypeInfo = sc->NumericType(restTypeInfo);
+  TupleType* restType = new TupleType(numRestTypeInfo);
+  Tuple* rest = new Tuple(restType);
+  Relation* restRel = new Relation(restType, isTemp);
+  
+  // define restrictionTag relation
+  ListExpr restTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("restId"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("key"),
+                                        nl->SymbolAtom(FText::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("value"),
+                                        nl->SymbolAtom(FText::BasicType()))));
+  ListExpr numRestTagTypeInfo = sc->NumericType(restTagTypeInfo);
+  TupleType* restTagType = new TupleType(numRestTagTypeInfo);
+  Tuple* restTag = new Tuple(restTagType);
+  Relation* restTagRel = new Relation(restTagType, isTemp);
+  
+  int attrCount = 0;
+  int tagAttrCount = 0;
+  int refCount = 0;
+  xmlChar *id, *lat, *lon, *key, *value, *nodeRef, *memberRef;
+  int currentNodeId, currentWayId, currentRestId;
+  cur = cur->xmlChildrenNode;
+  
+  // process the file
+  while (cur != NULL) {
+    // collect the nodes
+    if (!xmlStrcmp(cur->name, (const xmlChar *)"node")) {
+      id = xmlGetProp(cur, (xmlChar *)"id");
+      if (id != NULL) {
+        currentNodeId = OsmImportOperator::convStrToInt((const char*)id);
+        node->PutAttribute(0, new CcInt(true, currentNodeId));
+        attrCount++;
+        xmlFree(id);
+      
+        lat = xmlGetProp(cur, (xmlChar *)"lat");
+        if (lat != NULL) {
+          node->PutAttribute(1, new CcReal(true, OsmImportOperator::
+              convStrToDbl((const char *)lat)));
+          attrCount++;
+          xmlFree(lat);
+        }
+        lon = xmlGetProp(cur, (xmlChar *)"lon");
+        if (lon != NULL) {
+          node->PutAttribute(2, new CcReal(true, OsmImportOperator::
+              convStrToDbl((const char *)lon)));
+          attrCount++;
+          xmlFree(lon);
+        }
+        if (attrCount == 3) {
+          nodeRel->AppendTuple(node);
+        }
+        else {
+          cout << "incomplete node ignored" << endl;
+        }
+        attrCount = 0;
+      }
+      // collect existing nodetags
+      curChild = cur->xmlChildrenNode;
+      while (curChild != NULL) {
+        if ((!xmlStrcmp(curChild->name, (const xmlChar *)"tag"))
+            && (!xmlStrcmp(cur->name, (const xmlChar *)"node"))) {
+          tagAttrCount++;
+          nodeTag->PutAttribute(0, new CcInt(true, currentNodeId));
+          key = xmlGetProp(curChild, (xmlChar *)"k");
+          if (key != NULL) {
+            nodeTag->PutAttribute(1, new FText(true, (const char *)key));
+            tagAttrCount++;
+            xmlFree(key);
+          }
+          value = xmlGetProp(curChild, (xmlChar *)"v");
+          if (value != NULL) {
+            nodeTag->PutAttribute(2, new FText(true, (const char *)value));
+            tagAttrCount++;
+            xmlFree(value);
+          }
+          if (tagAttrCount == 3) {
+            nodeTagRel->AppendTuple(nodeTag);
+          }
+          else {
+            cout << "incomplete nodeTag ignored" << endl;
+          }
+          tagAttrCount = 0;
+        }
+        curChild = curChild->next;
+      }  
+    }
+    // collect the ways
+    if (!xmlStrcmp(cur->name, (const xmlChar *)"way")) {
+      id = xmlGetProp(cur, (xmlChar *)"id");
+      if (id != NULL) {
+        refCount = 0;
+        currentWayId = OsmImportOperator::convStrToInt((const char *)id);
+        way->PutAttribute(0, new CcInt(true, currentWayId));
+        xmlFree(id);
+        curChild = cur->xmlChildrenNode;
+        while (curChild != NULL) {
+          if ((!xmlStrcmp(curChild->name, (const xmlChar *)"nd"))
+              && (!xmlStrcmp(cur->name, (const xmlChar *)"way"))) {
+            way->PutAttribute(1, new CcInt(true, refCount));
+            nodeRef = xmlGetProp(curChild, (xmlChar *)"ref");
+            if (nodeRef != NULL) {
+              way->PutAttribute(2, new CcInt(true,
+                  OsmImportOperator::convStrToInt((const char *)nodeRef)));
+              attrCount++;
+              xmlFree(nodeRef);
+            }
+            if (attrCount == 1) {
+              wayRel->AppendTuple(way);
+            }
+            attrCount = 0;
+            refCount++;        
+          }
+          // collect existing waytags
+          if ((!xmlStrcmp(curChild->name, (const xmlChar *)"tag"))
+              && (!xmlStrcmp(cur->name, (const xmlChar *)"way"))) {
+            tagAttrCount++;
+            wayTag->PutAttribute(0, new CcInt(true, currentWayId));
+            key = xmlGetProp(curChild, (xmlChar *)"k");
+            if (key != NULL) {
+              wayTag->PutAttribute(1, new FText(true, (const char *)key));
+              tagAttrCount++;
+              xmlFree(key);
+            }
+            value = xmlGetProp(curChild, (xmlChar *)"v");
+            if (value != NULL) {
+              wayTag->PutAttribute(2, new FText(true, (const char *)value));
+              tagAttrCount++;
+              xmlFree(value);
+            }
+            if (tagAttrCount == 3) {
+              wayTagRel->AppendTuple(wayTag);
+            }
+            else {
+              cout << attrCount << " incomplete wayTag ignored" << endl;
+            }
+            tagAttrCount = 0;
+          }       
+          curChild = curChild->next;  
+        }
+      }
+    }
+    // collect the restrictions
+    if (!xmlStrcmp(cur->name, (const xmlChar *)"relation")) {
+      id = xmlGetProp(cur, (xmlChar *)"id");
+      if (id != NULL) {
+        refCount = 0;
+        currentRestId = OsmImportOperator::convStrToInt((const char *)id);
+        rest->PutAttribute(0, new CcInt(true, currentRestId));
+        xmlFree(id);
+        curChild = cur->xmlChildrenNode;
+        while (curChild != NULL) {
+          if ((!xmlStrcmp(curChild->name, (const xmlChar *)"member"))
+              && (!xmlStrcmp(cur->name, (const xmlChar *)"relation"))) {
+            rest->PutAttribute(1, new CcInt(true, refCount));
+            memberRef = xmlGetProp(curChild, (xmlChar *)"ref");
+            if (memberRef != NULL) {
+              rest->PutAttribute(2, new CcInt(true,
+                  OsmImportOperator::convStrToInt((const char *)memberRef)));
+              attrCount++;
+              xmlFree(memberRef);
+            }
+            if (attrCount == 1) {
+              restRel->AppendTuple(rest);
+            }
+            attrCount = 0;
+            refCount++;        
+          }
+          // collect existing restrictiontags
+          if ((!xmlStrcmp(curChild->name, (const xmlChar *)"tag"))
+              && (!xmlStrcmp(cur->name, (const xmlChar *)"relation"))) {
+            tagAttrCount++;
+            restTag->PutAttribute(0, new CcInt(true, currentRestId));
+            key = xmlGetProp(curChild, (xmlChar *)"k");
+            if (key != NULL) {
+              restTag->PutAttribute(1, new FText(true, (const char *)key));
+              tagAttrCount++;
+              xmlFree(key);
+            }
+            value = xmlGetProp(curChild, (xmlChar *)"v");
+            if (value != NULL) {
+              restTag->PutAttribute(2, new FText(true, (const char *)value));
+              tagAttrCount++;
+              xmlFree(value);
+            }
+            if (tagAttrCount == 3) {
+              restTagRel->AppendTuple(restTag);
+            }
+            else {
+              cout << attrCount << " incomplete restTag ignored" << endl;
+            }
+            tagAttrCount = 0;
+          }                  
+          curChild = curChild->next;  
+        }
+      }
+    }
+    cur = cur->next;
+  }
+
+      
+  // success
+  xmlFreeDoc(doc);
+  node->DeleteIfAllowed();
+  nodeTag->DeleteIfAllowed();
+  way->DeleteIfAllowed();
+  wayTag->DeleteIfAllowed();
+  rest->DeleteIfAllowed();
+  restTag->DeleteIfAllowed();
+  nodeType->DeleteIfAllowed();
+  nodeTagType->DeleteIfAllowed();
+  wayType->DeleteIfAllowed();
+  wayTagType->DeleteIfAllowed();
+  restType->DeleteIfAllowed();
+  restTagType->DeleteIfAllowed();
+  res->Set(true,true);
+  // store node relation in catalog
+  ListExpr nodeRelType = nl->TwoElemList(
+                             nl->SymbolAtom(Relation::BasicType()),
+                             nodeTypeInfo);
+  Word nodeRelWord;
+  nodeRelWord.setAddr(nodeRel);
+  sc->InsertObject(((CcString*) args[1].addr)->GetValue(), "", nodeRelType,
+                   nodeRelWord, true);
+  
+  // store nodeTag relation in catalog
+  ListExpr nodeTagRelType = nl->TwoElemList(
+                                nl->SymbolAtom(Relation::BasicType()),
+                                nodeTagTypeInfo);
+  Word nodeTagRelWord;
+  nodeTagRelWord.setAddr(nodeTagRel);
+  sc->InsertObject(((CcString*) args[2].addr)->GetValue(), "", nodeTagRelType,
+                   nodeTagRelWord, true);
+  
+  // store way relation in catalog
+  ListExpr wayRelType = nl->TwoElemList(
+                            nl->SymbolAtom(Relation::BasicType()),
+                            wayTypeInfo);
+  Word wayRelWord;
+  wayRelWord.setAddr(wayRel);
+  sc->InsertObject(((CcString*) args[3].addr)->GetValue(), "", wayRelType,
+                   wayRelWord, true);
+  
+  // store wayTag relation in catalog
+  ListExpr wayTagRelType = nl->TwoElemList(
+                               nl->SymbolAtom(Relation::BasicType()),
+                               wayTagTypeInfo);
+  Word wayTagRelWord;
+  wayTagRelWord.setAddr(wayTagRel);
+  sc->InsertObject(((CcString*) args[4].addr)->GetValue(), "", wayTagRelType,
+                   wayTagRelWord, true);
+  
+    // store restriction relation in catalog
+  ListExpr restRelType = nl->TwoElemList(
+                            nl->SymbolAtom(Relation::BasicType()),
+                            restTypeInfo);
+  Word restRelWord;
+  restRelWord.setAddr(restRel);
+  sc->InsertObject(((CcString*) args[5].addr)->GetValue(), "", restRelType,
+                   restRelWord, true);
+  
+  // store restrictionTag relation in catalog
+  ListExpr restTagRelType = nl->TwoElemList(
+                                nl->SymbolAtom(Relation::BasicType()),
+                                restTagTypeInfo);
+  Word restTagRelWord;
+  restTagRelWord.setAddr(restTagRel);
+  sc->InsertObject(((CcString*) args[6].addr)->GetValue(), "", restTagRelType,
+                   restTagRelWord, true);
+  return 0;                           
+}
+
+/*
+Operator instance
+
+*/
+Operator fullosmimport( "fullosmimport",
+                fullosmimportSpec,
+                fullosmimportValueMap,
+                Operator::SimpleSelect,
+                fullosmimportTypeMap);
 
 // --- Constructors
 // Constructor
@@ -669,6 +1133,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     setscalefactory.SetUsesArgsInTypeMapping();;
     AddOperator(&osmimport);
     osmimport.SetUsesArgsInTypeMapping();;
+    AddOperator(&fullosmimport);
 }
 
 // Destructor
