@@ -41,6 +41,7 @@ Simple Map matching algorithm - !! only for testing purpose !!
 #include "MapMatchingSimple.h"
 #include "NetworkRoute.h"
 #include "NetworkSection.h"
+#include "MapMatchingUtil.h"
 
 #include <stdio.h>
 
@@ -63,121 +64,7 @@ MapMatchingSimple::~MapMatchingSimple()
 #define MYTRACE(a) MyStream << a << '\n'
 #define MYVARTRACE(a) MyStream << #a << a << '\n'
 
-bool Intersects(const Region& rRegion, const SimpleLine& rSLine)
-{
-#if 0
-    Line LineFromSLine(0);
-    rSLine.toLine(LineFromSLine);
-#if 1
-    Line Result(0);
-    rRegion.Intersection(LineFromSLine, Result);
-    return Result.IsDefined() && !Result.IsEmpty();
-#else
-    return AlmostEqual(rRegion.Distance(LineFromSLine), 0.0);
-#endif
-#else
-
-    int nSize = rSLine.Size();
-    for (int i = 0; i< nSize; ++i)
-    {
-        HalfSegment hs; // TODO falscher Konstruktor
-        rSLine.Get(i, hs);
-        if(hs.IsLeftDomPoint() && rRegion.Intersects(hs))
-            return true;
-    }
-    return false;
-
-#endif
-}
-
 static ofstream MyStream;
-
-double CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
-                                const Point& rPt, Point& rPtRes)
-{
-    // Modified copy of HalfSegment::Distance(Point)
-    // We need distance and projected point
-
-    Coord xl = rHalfSegment.GetLeftPoint().GetX();
-    Coord yl = rHalfSegment.GetLeftPoint().GetY();
-    Coord xr = rHalfSegment.GetRightPoint().GetX();
-    Coord yr = rHalfSegment.GetRightPoint().GetY();
-    Coord X = rPt.GetX();
-    Coord Y = rPt.GetY();
-
-    if (xl == xr) // vertical
-    {
-        if ((yl <= Y && Y <= yr) || (yr <= Y && Y <= yl))
-        {
-            rPtRes.Set(xl, Y);
-            return fabs(X - xl);
-        }
-        else
-        {
-            rPtRes.SetDefined(false);
-            return 0.0;
-        }
-    }
-    else if (yl == yr) // horizontal
-    {
-        if ((xl <= X && X <= xr) || (xr <= X && X <= xl))
-            // if (xl <= X && X <= xr)
-        {
-            rPtRes.Set(X, yl);
-            return fabs(Y - yl);
-        }
-        else
-        {
-            rPtRes.SetDefined(false);
-            return 0.0;
-        }
-    }
-    else
-    {
-        Coord k = (yr - yl) / (xr - xl);
-        Coord a = yl - k * xl;
-        Coord xx = (k * (Y - a) + X) / (k * k + 1);
-        Coord yy = k * xx + a;
-
-        if (xl <= xx && xx <= xr)
-        {
-            rPtRes.Set(xx, yy);
-            return rPt.Distance(rPtRes);
-        }
-        else
-        {
-            rPtRes.SetDefined(false);
-            return 0.0;
-        }
-    }
-}
-
-Point CalcOrthogonalProjection(const SimpleLine& rLine,
-                               const Point& rPt,
-                               double& rdDistanceRes)
-{
-    Point ResPoint(false /*not defined*/);
-    double dShortestDistance = std::numeric_limits<double>::max();
-
-    for (int i = 0; i < rLine.Size(); ++i)
-    {
-        HalfSegment hs;
-        rLine.Get(i, hs);
-        if (hs.IsLeftDomPoint())
-        {
-            Point ResPointSeg(false /*not defined*/);
-            double dDistance = CalcOrthogonalProjection(hs, rPt, ResPointSeg);
-            if (ResPointSeg.IsDefined() && dDistance < dShortestDistance)
-            {
-                dShortestDistance = dDistance;
-                ResPoint = ResPointSeg;
-            }
-        }
-    }
-
-    rdDistanceRes = dShortestDistance;
-    return ResPoint;
-}
 
 Point MapMatchingSimple::ProcessRoute(const NetworkRoute& rNetworkRoute,
                                       const Region& rRegion, const Point& rPt,
@@ -189,7 +76,7 @@ Point MapMatchingSimple::ProcessRoute(const NetworkRoute& rNetworkRoute,
         const SimpleLine* pRouteCurve = rNetworkRoute.GetCurve();
 
         if (pRouteCurve != NULL && pRouteCurve->IsDefined() &&
-            Intersects(rRegion, *pRouteCurve))
+            MMUtil::Intersects(rRegion, *pRouteCurve))
         {
             MYTRACE(nRouteID);
 
@@ -221,7 +108,8 @@ Point MapMatchingSimple::ProcessRouteSections(const int nRouteID,
         if (Section.IsDefined())
         {
             const SimpleLine* pSectionCurve = Section.GetCurve();
-            if (pSectionCurve != NULL && Intersects(rRegion, *pSectionCurve))
+            if (pSectionCurve != NULL &&
+                MMUtil::Intersects(rRegion, *pSectionCurve))
             {
                 int sid = Section.GetSectionID();
                 MYVARTRACE(sid);
@@ -229,8 +117,8 @@ Point MapMatchingSimple::ProcessRouteSections(const int nRouteID,
                 //pSectionCurve->Print(MyStream);
 
                 double dDistance = 0.0;
-                Point PointProjection = CalcOrthogonalProjection(*pSectionCurve,
-                                                                rPt, dDistance);
+                Point PointProjection = MMUtil::CalcOrthogonalProjection(
+                                                *pSectionCurve, rPt, dDistance);
                 if (PointProjection.IsDefined())
                 {
                     MYVARTRACE(PointProjection);
@@ -269,6 +157,8 @@ GPoint MapMatchingSimple::ProcessPoint(const Point& rPoint)
     MYVARTRACE(dScaleFactor);
 
     //const Rectangle<2> bbox( true, 7894.28, 7897.28, 49483.7, 49484.4);
+
+    Geoid GeodeticSystem(Geoid::WGS1984);
 
     //const double dDist = 0.1; // Testnetz
     const double dDist = 0.001;
@@ -385,6 +275,8 @@ bool MapMatchingSimple::DoMatch(MGPoint* pResMGPoint)
     m_pTracePoints = new Points(1);
     m_pTracePoints->StartBulkLoad();
 
+    //m_pMPoint->Simplify();
+
     // Processing Units
     for (int i = 0; i < m_pMPoint->GetNoComponents(); ++i)
     {
@@ -480,29 +372,37 @@ bool MapMatchingSimple::DoMatch(MGPoint* pResMGPoint)
                         Point2.SetSide(Route2.GetStartsSmaller() ? Down : Up);
                     }
 
-                    // TODO Bessere zeitliche Aufteilung
+                    double dDistance1 = fabs(Point1.GetPosition() -
+                                             Point1_2.GetPosition());
+                    double dDistance2 = fabs(Point2.GetPosition() -
+                                             Point2_1.GetPosition());
+
+                    double dDistance = dDistance1 + dDistance2;
+
                     UGPoint UGPoint1(
                             Interval<Instant>(
                                     ActUPoint.timeInterval.start,
-                                    ActUPoint.timeInterval.start
-                                            + (ActUPoint.timeInterval.end
-                                               - ActUPoint.timeInterval.start)
-                                                  / 2,
+                                    ActUPoint.timeInterval.start +
+                                     (ActUPoint.timeInterval.end -
+                                      ActUPoint.timeInterval.start) /
+                                      /* es gibt leider kein operator* */
+                                       (dDistance / dDistance1),
                                     ActUPoint.timeInterval.lc, false), Point1,
                             Point1_2);
                     this->AddUGPoint(UGPoint1);
 
                     UGPoint UGPoint2(
                             Interval<Instant>(
-                                    ActUPoint.timeInterval.start
-                                            + (ActUPoint.timeInterval.end
-                                               - ActUPoint.timeInterval.start)
-                                                  / 2,
+                                    ActUPoint.timeInterval.start +
+                                     (ActUPoint.timeInterval.end -
+                                      ActUPoint.timeInterval.start) /
+                                      /* es gibt leider kein operator* */
+                                       (dDistance / dDistance1),
                                     ActUPoint.timeInterval.end, true,
                                     ActUPoint.timeInterval.rc), Point2_1,
                             Point2);
-                    this->AddUGPoint(UGPoint2);
 
+                    this->AddUGPoint(UGPoint2);
                 }
                 else
                 {

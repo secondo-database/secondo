@@ -32,7 +32,7 @@ January-April, 2012. Matthias Roth
 
 1 Overview
 
-This header file contains utilities for Map Matching
+This header file contains utilities for map matching
 
 2 Defines and includes
 
@@ -40,9 +40,26 @@ This header file contains utilities for Map Matching
 #ifndef __MAP_MATCHING_UTILITY_H__
 #define __MAP_MATCHING_UTILITY_H__
 
+class Region;
+class SimpleLine;
+class HalfSegment;
+class Point;
+
 namespace mapmatch {
 
+class MMUtil
+{
+public:
+    static bool Intersects(const Region& rRegion, const SimpleLine& rSLine);
 
+    static double CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
+                                           const Point& rPt, Point& rPtRes);
+
+    static Point CalcOrthogonalProjection(const SimpleLine& rLine,
+                                          const Point& rPt,
+                                          double& rdDistanceRes);
+
+};
 
 } // end of namespace mapmatch
 

@@ -41,6 +41,8 @@ This header file essentially contains the definition of the class ~MapMatchingMH
 #define __MAP_MATCHING_MHT_H__
 
 #include "MapMatchingBase.h"
+#include "NetworkSection.h"
+#include <vector>
 
 class Region;
 class Point;
@@ -73,18 +75,14 @@ public:
 
 private:
 
-    GPoint ProcessPoint(const Point& rPoint);
+    void TripSegmentation(std::vector<MPoint*>& rvecTripParts);
 
-    Point ProcessRoute(const class NetworkRoute& rNetworkRoute,
-                       const Region& rRegion, const Point& rPt,
-                       double& rdDistance);
+    void GetInitialSectionCandidates(const Point& rPoint,
+                                     std::vector<NetworkSection>& rVecSectRes);
 
-    Point ProcessRouteSections(const int nRouteID, const Region& rRegion,
-                               const Point& rPt, double& rdDistanceRes);
-
-    // Debug
-    void TracePoint(const Point& rPoint);
-    Points* m_pTracePoints;
+    void GetSectionsOfRoute(const class NetworkRoute& rNetworkRoute,
+                            const Region& rRegion,
+                            std::vector<NetworkSection>& rVecSectRes);
 };
 
 } // end of namespace mapmatch

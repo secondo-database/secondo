@@ -87,7 +87,7 @@ struct MapMatchSimpleInfo : OperatorInfo {
     syntax    = "mapmatchsimple ( _ , _ )";
     meaning   = "The operation tries to map the mpoint to "
                 "the given network as well as possible.";
-    example   =   "mapmatchsimple (TODO, TODO)";
+    example   = "mapmatchsimple (TODO, TODO)";
   }
 };
 
@@ -160,7 +160,7 @@ struct MapMatchMHTInfo : OperatorInfo {
     syntax    = "mapmatchmht ( _ , _ )";
     meaning   = "The operation tries to map the mpoint to "
                 "the given network as well as possible.";
-    example =   "mapmatchmht (TODO, TODO)";
+    example   = "mapmatchmht (TODO, TODO)";
   }
 };
 
@@ -211,14 +211,17 @@ int OpMapMatchingMHTValueMapping(Word* args,
 MapMatchingAlgebra::MapMatchingAlgebra()
 :Algebra()
 {
-    /*
-    5.1 Registration of Types
-    */
+
+/*
+5.1 Registration of Types
+
+*/
 
 
-    /*
-    5.2 Registration of Operators
-    */
+/*
+5.2 Registration of Operators
+
+*/
 
     AddOperator(MapMatchSimpleInfo(),
                 OpMapMatchingSimpleValueMapping,
@@ -241,8 +244,8 @@ MapMatchingAlgebra::~MapMatchingAlgebra()
 
 */
 
-extern "C" Algebra* InitializeMapMatchingAlgebra(NestedList* nlRef,
-        QueryProcessor* qpRef)
+extern "C" Algebra* InitializeMapMatchingAlgebra(NestedList* /*nlRef*/,
+                                                 QueryProcessor* /*qpRef*/)
 {
   return new mapmatch::MapMatchingAlgebra;
 }

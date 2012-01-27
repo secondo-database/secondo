@@ -41,6 +41,7 @@ It is an map matching algorithm based on the Multiple Hypothesis Technique (MHT)
 #include "MapMatchingMHT.h"
 #include "NetworkRoute.h"
 #include "NetworkSection.h"
+#include "MapMatchingUtil.h"
 
 #include <stdio.h>
 
@@ -51,7 +52,7 @@ namespace mapmatch {
 
 // Constructor
 MapMatchingMHT::MapMatchingMHT(Network* pNetwork, MPoint* pMPoint)
-:MapMatchingBase(pNetwork, pMPoint), m_pTracePoints(NULL)
+:MapMatchingBase(pNetwork, pMPoint)
 {
 }
 
@@ -63,211 +64,82 @@ MapMatchingMHT::~MapMatchingMHT()
 #define MYTRACE(a) MyStream << a << '\n'
 #define MYVARTRACE(a) MyStream << #a << a << '\n'
 
-extern bool Intersects(const Region& rRegion, const SimpleLine& rSLine);
-
 static ofstream MyStream;
 
-extern Point CalcOrthogonalProjection(const SimpleLine& rLine, const Point& rPt,
-                                      double& rdDistanceRes);
 
-Point MapMatchingMHT::ProcessRoute(const NetworkRoute& rNetworkRoute,
-                                   const Region& rRegion, const Point& rPt,
-                                   double& rdDistance)
+void MapMatchingMHT::GetSectionsOfRoute(const NetworkRoute& rNetworkRoute,
+        const Region& rRegion, std::vector<NetworkSection>& rVecSectRes)
 {
-    if (rNetworkRoute.IsDefined())
+    if (!rNetworkRoute.IsDefined() || !rRegion.IsDefined())
+        return;
+
+    const int nRouteID = rNetworkRoute.GetRouteID();
+    const SimpleLine* pRouteCurve = rNetworkRoute.GetCurve();
+
+    if (pRouteCurve != NULL &&
+        pRouteCurve->IsDefined() &&
+        MMUtil::Intersects(rRegion, *pRouteCurve))
     {
-        int nRouteID = rNetworkRoute.GetRouteID();
-        const SimpleLine* pRouteCurve = rNetworkRoute.GetCurve();
+        MYVARTRACE(nRouteID);
 
-        if (pRouteCurve != NULL && pRouteCurve->IsDefined() &&
-            Intersects(rRegion, *pRouteCurve))
+        RouteInterval Interval(nRouteID, 0.0,
+                std::numeric_limits<double>::max());
+
+        std::vector<TupleId> vecSections;
+        m_pNetwork->GetSectionsOfRoutInterval(&Interval, vecSections);
+
+        for (std::vector<TupleId>::const_iterator it = vecSections.begin();
+                it != vecSections.end(); ++it)
         {
-            MYTRACE(nRouteID);
-
-            return ProcessRouteSections(nRouteID, rRegion, rPt, rdDistance);
-        }
-    }
-
-    return Point(false);
-}
-
-Point MapMatchingMHT::ProcessRouteSections(const int nRouteID,
-                                           const Region& rRegion,
-                                           const Point& rPt,
-                                           double& rdDistanceRes)
-{
-    RouteInterval Interval(nRouteID, 0.0, std::numeric_limits<double>::max());
-    std::vector<TupleId> vecSections;
-    m_pNetwork->GetSectionsOfRoutInterval(&Interval, vecSections);
-
-    MYTRACE("xxxx Sections of Route xxx");
-
-    Point ResPoint(false /*not defined*/);
-    double dShortestDistance = std::numeric_limits<double>::max();
-
-    for (std::vector<TupleId>::const_iterator it = vecSections.begin();
-         it != vecSections.end(); ++it)
-    {
-        NetworkSection Section(m_pNetwork->GetSection(*it), false);
-        if (Section.IsDefined())
-        {
-            const SimpleLine* pSectionCurve = Section.GetCurve();
-            if (pSectionCurve != NULL && Intersects(rRegion, *pSectionCurve))
+            NetworkSection Section(m_pNetwork->GetSection(*it), false);
+            if (Section.IsDefined())
             {
-                int sid = Section.GetSectionID();
-                MYVARTRACE(sid);
-
-                //pSectionCurve->Print(MyStream);
-
-                double dDistance = 0.0;
-                Point PointProjection =
-                      CalcOrthogonalProjection(*pSectionCurve, rPt, dDistance);
-                if (PointProjection.IsDefined())
+                const SimpleLine* pSectionCurve = Section.GetCurve();
+                if (pSectionCurve != NULL &&
+                        MMUtil::Intersects(rRegion, *pSectionCurve))
                 {
-                    MYVARTRACE(PointProjection);
-                    /*double dPosition = 0.0;
-                    if (pSectionCurve->AtPoint(PointProjection,
-                                               Section.GetCurveStartsSmaller(),
-                                               dPosition))
-                    {
-                        MYVARTRACE(dPosition);
-                    }*/
-                    if (dDistance < dShortestDistance)
-                    {
-                        ResPoint = PointProjection;
-                        dShortestDistance = dDistance;
-                    }
+                    MYVARTRACE(Section.GetSectionID());
+                    rVecSectRes.push_back(Section);
                 }
             }
         }
     }
-
-    rdDistanceRes = dShortestDistance;
-    return ResPoint;
 }
 
-GPoint MapMatchingMHT::ProcessPoint(const Point& rPoint)
+void MapMatchingMHT::GetInitialSectionCandidates(const Point& rPoint,
+                                      std::vector<NetworkSection>& rVecSectRes)
 {
-    if (m_pNetwork == NULL)
-    {
-        return GPoint(false);
-    }
+    if (m_pNetwork == NULL || !m_pNetwork->IsDefined() || !rPoint.IsDefined())
+        return;
 
-    MYTRACE("++++++++++++++++++++++++++++");
-    MYTRACE("ProcessPoint");
-    MYVARTRACE(rPoint);
+    const double dScaleFactor = m_pNetwork->GetScalefactor();
 
-    const double dScaleFactor = 1000;// TODO m_pNetwork->GetScalefactor();
-    MYVARTRACE(dScaleFactor);
-
-    //const Rectangle<2> bbox( true, 7894.28, 7897.28, 49483.7, 49484.4);
-
-    //const double dDist = 0.1; // Testnetz
-    const double dDist = 0.001;
+    const double dDist = 0.001; // TODO Radius 750 Meter
     const Rectangle<2> BBox(true, rPoint.GetX() - dDist * dScaleFactor,
                                   rPoint.GetX() + dDist * dScaleFactor,
                                   rPoint.GetY() - dDist * dScaleFactor,
                                   rPoint.GetY() + dDist * dScaleFactor);
-
-    BBox.Print(MyStream);
     Region RegionBBox(BBox);
-
-    RegionBBox.Print(MyStream);
-
-    Point PointRes(false);
-    NetworkRoute NetworkRouteRes(NULL);
-    double dShortestDistance = std::numeric_limits<double>::max();
 
     R_TreeLeafEntry<2, TupleId> res;
     if (m_pNetwork->GetRTree()->First(BBox, res))
     {
-        NetworkRoute Route(m_pNetwork->GetRoutes()->
-                GetTuple(res.info, false), false);
-        PointRes = ProcessRoute(Route, RegionBBox, rPoint, dShortestDistance);
-        NetworkRouteRes = Route;
-
-        MYVARTRACE(Route.GetRouteID());
+        NetworkRoute Route(m_pNetwork->GetRoutes()->GetTuple(res.info, false),
+                false);
+        GetSectionsOfRoute(Route, RegionBBox, rVecSectRes);
     }
 
     while (m_pNetwork->GetRTree()->Next(res))
     {
         NetworkRoute Route(m_pNetwork->GetRoutes()->GetTuple(res.info, false),
-                           false);
-
-        MYVARTRACE(Route.GetRouteID());
-
-        double dDistance = 0.0;
-        Point ptRes = ProcessRoute(Route, RegionBBox, rPoint, dDistance);
-        if (ptRes.IsDefined() && dDistance < dShortestDistance)
-        {
-            PointRes = ptRes;
-            dShortestDistance = dDistance;
-            NetworkRouteRes = Route;
-        }
+                false);
+        GetSectionsOfRoute(Route, RegionBBox, rVecSectRes);
     }
-
-    if (PointRes.IsDefined())
-    {
-        TracePoint(PointRes);
-
-        bool startSmaller = NetworkRouteRes.GetStartsSmaller();
-        const SimpleLine* pRouteCurve = NetworkRouteRes.GetCurve();
-
-        double dPos = 0.0;
-        if (pRouteCurve->AtPoint(PointRes, startSmaller, dPos))
-        {
-            return GPoint(true, m_pNetwork->GetId(),
-                          NetworkRouteRes.GetRouteID(), dPos, None);
-        }
-    }
-
-    return GPoint(false);
 }
 
 bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
 {
-    // cout << "MapMatchingMHT::DoMatch called" << endl;
-
     MyStream.open("/home/secondo/MyTrace.txt", ios_base::out | ios_base::app);
-
-    /*vector<int> vecIDs;
-    vecIDs.push_back(1);
-    vecIDs.push_back(2);
-    vecIDs.push_back(3);
-    vecIDs.push_back(4);
-    vecIDs.push_back(5);
-    vecIDs.push_back(6);
-    vecIDs.push_back(7);
-    vecIDs.push_back(8);
-    vecIDs.push_back(9);
-    vecIDs.push_back(10);
-
-    for (size_t j = 0; j < vecIDs.size(); j++)
-    {
-        MYTRACE("*************************");
-        MYVARTRACE(vecIDs[j]);
-        MYTRACE("*************************");
-
-        bool bUpDown = false;
-        for (int k = 0; k < 2; k++)
-        {
-            MYVARTRACE(bUpDown);
-            vector<DirectedSection> adjSectionList;
-            m_pNetwork->GetAdjacentSections(vecIDs[j], bUpDown,
-                                            adjSectionList);
-            for (size_t i = 0; i < adjSectionList.size(); i++)
-            {
-                DirectedSection actNextSect = adjSectionList[i];
-
-                TupleId tid = actNextSect.GetSectionTid();
-                MYVARTRACE(tid);
-                bool bUpDownFlag = actNextSect.GetUpDownFlag();
-                MYVARTRACE(bUpDownFlag);
-            }
-            bUpDown = true;
-            MYTRACE("--------------------------");
-        }
-    }*/
 
     // Initialization
     if (!InitMapMatching(pResMGPoint))
@@ -275,139 +147,56 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
         return false;
     }
 
-    m_pTracePoints = new Points(1);
-    m_pTracePoints->StartBulkLoad();
+    // Step 1 - Subdividing trip
+    vector<MPoint*> vecTripParts;
+    TripSegmentation(vecTripParts);
 
-    // Processing Units
-    for (int i = 0; i < m_pMPoint->GetNoComponents(); ++i)
+    // Steps 2 + 3
+    for (vector<MPoint*>::iterator it = vecTripParts.begin();
+         it != vecTripParts.end();
+         ++it)
     {
-        UPoint ActUPoint(false);
-        m_pMPoint->Get(i, ActUPoint);
-
-        if (!ActUPoint.IsDefined())
-            continue;
-
-        GPoint Point1 = ProcessPoint(ActUPoint.p0);
-        GPoint Point2 = ProcessPoint(ActUPoint.p1);
-
-        MYTRACE("+++++++++++++ 2 Punkte +++++++++++++++");
-        Point1.Print(MyStream);
-        Point2.Print(MyStream);
-
-        if (Point1.IsDefined() && Point2.IsDefined())
+        MPoint* pMPoint = *it;
+        if (pMPoint != NULL)
         {
-            if (Point1.GetRouteId() == Point2.GetRouteId())
+            // Step 2 - Determination of initial route/segment candidates
+
+            UPoint FirstUPoint(false);
+            int i = 0;
+            for (i = 0;
+                 i < pMPoint->GetNoComponents() && !FirstUPoint.IsDefined();
+                 ++i)
             {
-                NetworkRoute Route(m_pNetwork->GetRoute(Point1.GetRouteId()));
-
-                /*bool bDual = pNetwork->GetDual(ri->GetRouteId());
-                bool bMovingUp = true;
-                if (ri->GetStartPos() > ri->GetEndPos())
-                    bMovingUp = false;
-                Side side = None;
-                if (bDual && bMovingUp)
-                    side = Up;
-                else if (bDual && !bMovingUp)
-                    side = Down;
-                else
-                    side = None;*/
-
-                if (Point1.GetPosition() < Point2.GetPosition())
-                {
-                    Point1.SetSide(Route.GetStartsSmaller() ? Up : Down);
-                    Point2.SetSide(Route.GetStartsSmaller() ? Up : Down);
-                }
-                else
-                {
-                    Point1.SetSide(Route.GetStartsSmaller() ? Down : Up);
-                    Point2.SetSide(Route.GetStartsSmaller() ? Down : Up);
-                }
-
-                UGPoint ActUGPoint(ActUPoint.timeInterval, Point1, Point2);
-                this->AddUGPoint(ActUGPoint);
+                pMPoint->Get(i, FirstUPoint);
             }
-            else
+
+            std::vector<NetworkSection> vecInitialSections;
+            if (FirstUPoint.IsDefined())
+                GetInitialSectionCandidates(FirstUPoint.p0, vecInitialSections);
+
+            for (std::vector<NetworkSection>::iterator it =
+                 vecInitialSections.begin(); it != vecInitialSections.end();
+                 ++it)
             {
-                // Different routes
-                CcInt Route1Id(Point1.GetRouteId());
-                CcInt Route2Id(Point2.GetRouteId());
-                double dRoute1Measure = numeric_limits<double>::max();
-                double dRoute2Measure = numeric_limits<double>::max();
+                const NetworkSection& rActInitalNetworkSection = *it;
+                if (!rActInitalNetworkSection.IsDefined())
+                    continue;
 
-                m_pNetwork->GetJunctionMeasForRoutes(&Route1Id,
-                        &Route2Id, dRoute1Measure, dRoute2Measure);
-                if (dRoute1Measure < numeric_limits<double>::max() &&
-                    dRoute2Measure < numeric_limits<double>::max())
-                {
-                    NetworkRoute Route1(m_pNetwork->GetRoute(
-                                                        Point1.GetRouteId()));
-                    NetworkRoute Route2(m_pNetwork->GetRoute(
-                                                        Point1.GetRouteId()));
 
-                    GPoint Point1_2(true, m_pNetwork->GetId(),
-                                    Point1.GetRouteId(), dRoute1Measure,
-                                    Point1.GetSide());
-                    GPoint Point2_1(true, m_pNetwork->GetId(),
-                                    Point2.GetRouteId(), dRoute2Measure,
-                                    Point2.GetSide());
-
-                    if (Point1.GetPosition() < Point1_2.GetPosition())
-                    {
-                        Point1.SetSide(Route1.GetStartsSmaller() ? Up : Down);
-                        Point1_2.SetSide(Route1.GetStartsSmaller() ? Up : Down);
-                    }
-                    else
-                    {
-                        Point1.SetSide(Route1.GetStartsSmaller() ? Down : Up);
-                        Point1_2.SetSide(Route1.GetStartsSmaller() ? Down : Up);
-                    }
-
-                    if (Point2_1.GetPosition() < Point2.GetPosition())
-                    {
-                        Point2_1.SetSide(Route2.GetStartsSmaller() ? Up : Down);
-                        Point2.SetSide(Route2.GetStartsSmaller() ? Up : Down);
-                    }
-                    else
-                    {
-                        Point2_1.SetSide(Route2.GetStartsSmaller() ? Down : Up);
-                        Point2.SetSide(Route2.GetStartsSmaller() ? Down : Up);
-                    }
-
-                    // TODO Bessere zeitliche Aufteilung
-                    UGPoint UGPoint1(Interval<Instant>(
-                                          ActUPoint.timeInterval.start,
-                                          ActUPoint.timeInterval.start +
-                                          (ActUPoint.timeInterval.end -
-                                            ActUPoint.timeInterval.start) / 2,
-                                          ActUPoint.timeInterval.lc, false),
-                                                       Point1, Point1_2);
-                    this->AddUGPoint(UGPoint1);
-
-                    UGPoint UGPoint2(Interval<Instant>(
-                                          ActUPoint.timeInterval.start +
-                                          (ActUPoint.timeInterval.end -
-                                            ActUPoint.timeInterval.start) / 2,
-                                          ActUPoint.timeInterval.end,
-                                          true, ActUPoint.timeInterval.rc),
-                                          Point2_1, Point2);
-                    this->AddUGPoint(UGPoint2);
-
-                }
-                else
-                {
-                    // No direct connection between Routes -> Shortest Path
-                    MYTRACE("Shortest Path needed");
-
-                }
             }
+
+            // Step 3 - Route developement
+            for (i = i + 1; i < pMPoint->GetNoComponents(); ++i)
+            {
+
+            }
+
+            // cleanup
+            *it = NULL;
+            pMPoint->DeleteIfAllowed();
+            pMPoint = NULL;
         }
     }
-
-    m_pTracePoints->EndBulkLoad(false, false, false);
-
-    ofstream TracePointStream("/home/secondo/Points.txt", ios_base::out);
-    m_pTracePoints->Print(TracePointStream);
-    TracePointStream.close();
 
     // Finalize
     FinalizeMapMatching();
@@ -418,10 +207,141 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
 }
 
 
-void MapMatchingMHT::TracePoint(const Point& rPoint)
+void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 {
-    (*m_pTracePoints) += rPoint;
+    if (m_pMPoint == NULL || m_pNetwork == NULL)
+        return;
+
+    // Detect spatial and temporal gaps in the MPoint (m_pMPoint)
+    // Divide the MPoint if the time gap is longer than 120 seconds or
+    // the distance is larger than 500 meters
+
+    const double dMaxDistance = 500.0; // 500 meter
+    const DateTime MaxTimeDiff(instanttype, 120000); // 2 minutes
+    const double dScale = m_pNetwork->GetScalefactor();
+    const Geoid  GeodeticSystem(Geoid::WGS1984);
+
+    MPoint*  pActMPoint = NULL;
+    UPoint   ActUPoint(false);
+    DateTime prevEndTime(instanttype);
+    Point    prevEndPoint(false);
+    bool     bProcessNext = true;
+
+    for (int i = 0; i < m_pMPoint->GetNoComponents(); bProcessNext ? i++ : i)
+    {
+        if (bProcessNext)
+            m_pMPoint->Get(i, ActUPoint);
+
+        bProcessNext = true;
+
+        if (!ActUPoint.IsDefined())
+        {
+          ++i; // process next unit
+          continue;
+        }
+
+        if (pActMPoint == NULL)
+        {
+            // create new MPoint
+            pActMPoint = new MPoint((m_pMPoint->GetNoComponents() - i) / 4);
+            pActMPoint->StartBulkLoad();
+
+            // Check current UPoint
+            CcReal Distance(0.0);
+            ActUPoint.Length(GeodeticSystem, Distance);
+            if (ActUPoint.timeInterval.end - ActUPoint.timeInterval.start
+                    > MaxTimeDiff || Distance.GetRealval() > dMaxDistance )
+            {
+                // gap within UPoint
+                // only use p1
+                ActUPoint.p0 = ActUPoint.p1;
+                ActUPoint.timeInterval.start = ActUPoint.timeInterval.end;
+            }
+
+            // Add unit
+            pActMPoint->Add(ActUPoint);
+            prevEndTime = ActUPoint.timeInterval.end;
+            prevEndPoint = (ActUPoint.p1 * (1 / dScale) /* ->lat/lon */);
+        }
+        else
+        {
+            bool bValid = true;
+            if (ActUPoint.timeInterval.start - prevEndTime > MaxTimeDiff ||
+                prevEndPoint.DistanceOrthodrome(ActUPoint.p0 * (1 / dScale),
+                                                GeodeticSystem,
+                                                bValid) > dMaxDistance)
+            {
+                // gap detected -> finalize current MPoint
+                pActMPoint->EndBulkLoad(false, false);
+                if (pActMPoint->GetNoComponents() >= 10)
+                {
+                    rvecTripParts.push_back(pActMPoint);
+                    pActMPoint = NULL;
+                }
+                else
+                {
+                    // less than 10 components -> drop
+                    pActMPoint->DeleteIfAllowed();
+                    pActMPoint = NULL;
+                }
+
+                bProcessNext = false; // Process ActUPoint once again
+            }
+            else
+            {
+                // no gap between current and previous UPoint
+
+                // Check current UPoint
+                CcReal Distance(0.0);
+                ActUPoint.Length(GeodeticSystem, Distance);
+                if (ActUPoint.timeInterval.end - ActUPoint.timeInterval.start
+                        > MaxTimeDiff || Distance.GetRealval() > dMaxDistance)
+                {
+                    // gap within UPoint
+                    // Assign p0 to current MPoint and p1 to new MPoint
+
+                    Interval<Instant> I(ActUPoint.timeInterval);
+                    I.end = I.start;
+                    pActMPoint->Add(UPoint(I, ActUPoint.p0, ActUPoint.p1));
+
+                    // finalize current MPoint
+                    pActMPoint->EndBulkLoad(false, false);
+                    if (pActMPoint->GetNoComponents() >= 10)
+                    {
+                        rvecTripParts.push_back(pActMPoint);
+                        pActMPoint = NULL;
+                    }
+                    else
+                    {
+                        // less than 10 components -> drop
+                        pActMPoint->DeleteIfAllowed();
+                        pActMPoint = NULL;
+                    }
+
+                    ActUPoint.p0 = ActUPoint.p1;
+                    ActUPoint.timeInterval.start = ActUPoint.timeInterval.end;
+
+                    bProcessNext = false; // Process ActUPoint once again
+                }
+                else
+                {
+                    pActMPoint->Add(ActUPoint);
+                    prevEndTime = ActUPoint.timeInterval.end;
+                    prevEndPoint =
+                            (ActUPoint.p1 * (1 / dScale) /* ->lat/lon */);
+                }
+            }
+        }
+    }
+
+    // finalize last MPoint
+    if (pActMPoint != NULL)
+    {
+        pActMPoint->EndBulkLoad(false, false);
+        rvecTripParts.push_back(pActMPoint);
+    }
 }
+
 
 } // end of namespace mapmatch
 
