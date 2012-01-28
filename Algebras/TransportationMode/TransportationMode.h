@@ -1944,6 +1944,23 @@ const string SpatialSpecMapGenMO =
 "<text>map a genmo to a mpoint </text--->"
 "<text>query mapgenmo(genmo1, mp1) </text---> ) )";
 
+const string SpatialSpecMapTMUnits =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo -> (stream(((x1 t1) ... (xn tn)))) </text--->"
+"<text>units(genmo) </text--->"
+"<text>get units of a moving object </text--->"
+"<text>query units(genmo1) </text---> ) )";
+
+
+const string SpatialSpecMapGetLoc =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>ugenloc x bool -> point </text--->"
+"<text>getloc(ugenloc, bool) </text--->"
+"<text>get locatation of a ugenloc </text--->"
+"<text>query getloc(ugenloc1,TRUE) </text---> ) )";
+
+
+
 /*
 add graphs into infrastructures
 

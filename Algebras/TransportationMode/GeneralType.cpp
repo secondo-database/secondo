@@ -1579,30 +1579,39 @@ void GenMO::GenMOAt(string tm, MReal* index, GenMO* sub)
 with index built on units, efficiently to access certain units according to mode
 
 */
-void GenMO::GenMOAt(Point* loc, MReal* index, GenMO* sub)
+void GenMO::GenMOAt(GenLoc* gloc, MReal* index, GenMO* sub)
 {
 
   sub->Clear();
   sub->StartBulkLoad();
 
-  for(int i = 0;i < index->GetNoComponents();i++){
-    UReal ur;
-    index->Get(i, ur);
-    if((int)(ur.a) == TM_FREE){//mode free
-      int start = (int)ur.b;
-      int end = (int)ur.c;
-      for(;start <= end;start++){
-        UGenLoc unit;
-        Get(start, unit);
-        assert(unit.GetOid() == 0);
 
-        Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
-        Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
-        if(loc->Distance(p1) < EPSDIST && loc->Distance(p2) < EPSDIST){
-          sub->Append(unit);
+  if(gloc->GetOid() > 0 ){
+    sub->SetDefined(false);
+  }else if(gloc->GetOid() == 0){
+    Point loc(true, gloc->GetLoc().loc1, gloc->GetLoc().loc2);
+    for(int i = 0;i < index->GetNoComponents();i++){
+      UReal ur;
+      index->Get(i, ur);
+      if((int)(ur.a) == TM_FREE){//mode free
+        int start = (int)ur.b;
+        int end = (int)ur.c;
+        for(;start <= end;start++){
+          UGenLoc unit;
+          Get(start, unit);
+          assert(unit.GetOid() == 0);
+
+          Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
+          Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
+          if(loc.Distance(p1) < EPSDIST && loc.Distance(p2) < EPSDIST){
+            sub->Append(unit);
+          }
         }
       }
     }
+  }else{
+    sub->SetDefined(false);
+    cout<<"invalid genloc oid "<<endl;
   }
 
   sub->EndBulkLoad(false, false);
@@ -1621,11 +1630,28 @@ void GenMO::GenMOAt(GenLoc* genloc, GenMO* sub)
 
   sub->Clear();
   sub->StartBulkLoad();
-  for(int i = 0 ;i < GetNoComponents();i++){
-    UGenLoc unit;
-    Get( i, unit );
-    if(unit.GetOid() == (int)genloc->GetOid())
-      sub->Add(unit);
+  if(genloc->GetOid() > 0){
+    for(int i = 0 ;i < GetNoComponents();i++){
+      UGenLoc unit;
+      Get( i, unit );
+      if(unit.GetOid() == (int)genloc->GetOid())
+        sub->Add(unit);
+    }
+  }else if(genloc->GetOid() == 0){ //free space
+
+    Point p(true, genloc->GetLoc().loc1, genloc->GetLoc().loc2);
+    for(int i = 0 ;i < GetNoComponents();i++){
+      UGenLoc unit;
+      Get( i, unit );
+      if(unit.tm == TM_FREE){
+        assert(unit.GetOid() == 0);
+        Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
+        Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
+        if(p1.Distance(p2) < EPSDIST && p.Distance(p1) < EPSDIST){
+            sub->Add(unit);
+        }
+      }
+    }
   }
 
   sub->EndBulkLoad(false, false);
@@ -1665,35 +1691,6 @@ void GenMO::GenMOAt(GenLoc* genloc, MReal* index, string tm, GenMO* sub)
   sub->EndBulkLoad(false, false);
 }
 
-
-/*
-get the sub movement of a generic moving object according to a point
-
-*/
-void GenMO::GenMOAt(Point* p, GenMO* sub)
-{
-  if(!p->IsDefined()){
-    return;
-  }
-
-  sub->Clear();
-  sub->StartBulkLoad();
-  for(int i = 0 ;i < GetNoComponents();i++){
-    UGenLoc unit;
-    Get( i, unit );
-    if(unit.tm == TM_FREE){
-      assert(unit.GetOid() == 0);
-      Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
-      Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
-      if(p1.Distance(p2) < EPSDIST && p->Distance(p1) < EPSDIST){
-          sub->Add(unit);
-      }
-    }
-
-  }
-
-  sub->EndBulkLoad(false, false);
-}
 
 /*
 return the intime value of a generic moving object 
@@ -2323,6 +2320,7 @@ string GenMObject::BenchModeDISTR =
 string GenMObject::NNBuilding = 
 "(rel (tuple ((b_id int) (geoData rect))))";
 
+
 void GenMObject::GetMode(GenMO* mo)
 {
   tm_list.clear(); 
@@ -2369,6 +2367,22 @@ void GenMObject::GetRef(GenMO* mo)
       label_list.push_back(infra_label);
     }
   }
+
+}
+
+/*
+get all units of a moving object
+
+*/
+void GenMObject::GetUnits(GenMO* genmo)
+{
+
+    for( int i = 0; i < genmo->GetNoComponents(); i++ ){
+      UGenLoc unit;
+      genmo->Get( i, unit );
+      assert(unit.gloc1.GetOid() == unit.gloc2.GetOid()); 
+      units_list.push_back(unit); 
+    }
 
 }
 
@@ -4025,7 +4039,7 @@ void GenMObject::ConnectGP1GP2(Network* rn, Point start_loc, GLine* newgl,
 
       unit_interval.end = start_time;
       unit_interval.rc = false;
-      
+
     //////////////////////////////////////////////////////////////
     ////////////////generic units/////////////////////////////////
     //////////////////////////////////////////////////////////////
@@ -7064,7 +7078,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
    Interval<Instant> periods;
    peri_input->Get(0, periods);
    Instant start_time = periods.start;
-   int time_range = para*60;//12 hours in range 
+   int time_range = para*60;
   ////////////////////////////////////////////////////////////
    unsigned int count = 0;
    int real_count = 1;
@@ -7145,7 +7159,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
     peri->EndBulkLoad();
 
-//    cout<<"start time "<<start_time<<endl;
+    int DAY1 = start_time.GetDay();
 
     /////////////////////load all paths from this building////////////////
     if(obj_no_rep == 0){
@@ -7278,7 +7292,6 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
     
     GenerateFreeMovement2(*ep1_1, *ep1_2, genmo, mo, start_time);
 
-
     ///////////////////////////////////////////////////////////////////
     ////////////////2. path (walk + bus)///////////////////////////////
     ///////////////////////////////////////////////////////////////////
@@ -7298,7 +7311,7 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
          bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
      else bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
 
-    if(bn_nav->path_list.size() == 0){
+    if(bn_nav->path_list.size() == 0 || (DAY1 != start_time.GetDay())){
 //        cout<<"two unreachable bus stops"<<endl;
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
@@ -7326,29 +7339,9 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 //         <<" building 2 "<<GetBuildingStr(build_id2_list[index2].type)<<endl;
     ///////////////////////////////////////////////////////////////////////
 
-//         int temp_index  = 0;
-//         double temp_t_cost = 0.0;
-//         for(; temp_index < (int)bn_nav->peri_list.size();temp_index++){
-//           temp_t_cost += bn_nav->time_cost_list[temp_index];
-//         }
-//        cout<<"1: "<<temp_t_cost<<" 2: "<<bn_nav->t_cost<<endl;
-        Interval<Instant> temp_periods;
-        if(time_transform)
-            temp_periods.start = old_st;
-        else
-          temp_periods.start = start_time;
-
-        temp_periods.lc = true;
         Instant temp_end(instanttype);
-
-//        temp_end.ReadFrom(start_time.ToDouble() + bn_nav->t_cost/86400.0);
-        temp_end.ReadFrom(temp_periods.start.ToDouble() + 
-                          bn_nav->t_cost/86400.0);
-
-        temp_periods.end = temp_end;
-        temp_periods.lc = false;
-
-        if(periods.Contains(temp_periods) == false ){
+        temp_end.ReadFrom(start_time.ToDouble() + bn_nav->t_cost/86400.0);
+        if(temp_end > bs_end){//not in the bus schedule 
             mo->EndBulkLoad();
             genmo->EndBulkLoad();
 
@@ -9877,7 +9870,7 @@ void GenMObject::GenerateGenMOBench3(Space* sp, Periods* peri, int mo_no,
 
     path_tuple->DeleteIfAllowed();   
    //////////////////////////////////////////////////////////////////////
-    cout<<"building  "<<GetBuildingStr(nn_build_list[count_tmp].type)<<endl;
+//    cout<<"building  "<<GetBuildingStr(nn_build_list[count_tmp].type)<<endl;
 
     count_tmp++;
     cout<<real_count<<" generic moving object"<<endl;
@@ -10499,6 +10492,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
     peri->EndBulkLoad();
 
 //    cout<<"start time "<<start_time<<endl;
+    int DAY1 = start_time.GetDay();
     /////////////////////load all paths from this building////////////////
    vector<int> path_id_list;
    i_infra->GetPathIDFromTypeID(nn_build_list[count_tmp].reg_id, path_id_list);
@@ -10626,7 +10620,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
          bn_nav->ShortestPath_Time2(&bs1, &bs2, &start_time);
      else bn_nav->ShortestPath_Transfer2(&bs1, &bs2, &start_time);
 
-    if(bn_nav->path_list.size() == 0){
+    if(bn_nav->path_list.size() == 0 || (DAY1 != start_time.GetDay())){
 //        cout<<"two unreachable bus stops"<<endl;
         mo->EndBulkLoad();
         genmo->EndBulkLoad();
@@ -10641,36 +10635,21 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
         continue;
     }
 
-     Interval<Instant> temp_periods;
-     if(time_transform)
-          temp_periods.start = old_st;
-     else
-          temp_periods.start = start_time;
+      Instant temp_end(instanttype);
+      temp_end.ReadFrom(start_time.ToDouble() + bn_nav->t_cost/86400.0);
+      if(temp_end > bs_end){//not in the bus time schedule 
+            mo->EndBulkLoad();
+            genmo->EndBulkLoad();
 
-     temp_periods.lc = true;
-     Instant temp_end(instanttype);
-
-
-     temp_end.ReadFrom(temp_periods.start.ToDouble() + 
-                          bn_nav->t_cost/86400.0);
-
-     temp_periods.end = temp_end;
-     temp_periods.lc = false;
-
-     if(periods.Contains(temp_periods) == false ){
-          mo->EndBulkLoad();
-          genmo->EndBulkLoad();
-
-          delete mo;
-          delete genmo;
-          delete bn_nav;
-          delete res_path;
-          delete peri;
-          path_tuple->DeleteIfAllowed();
-
-          count_tmp++;
-          continue;
-      }
+            delete mo;
+            delete genmo;
+            delete bn_nav;
+            delete res_path;
+            delete peri;
+            path_tuple->DeleteIfAllowed();
+            count++;
+            continue;
+        }
 
      /////////////////////////////////////////////////////////////////////
      int last_walk_id = ConnectTwoBusStops(bn_nav, ps_list1[1], ps_list2[1],
@@ -11550,6 +11529,46 @@ bool GenMObject::SubTrip_C2(Space* sp, IndoorInfra* i_infra, MaxRect* maxrect,
     return true;
 }
 
+/*
+compute the traffic for all road segments, consider: car, taxi, bicycle
+for all workdays
+
+*/
+struct Road_Seg{
+  int rid;
+  int sid;
+  double meas1;
+  double meas2;
+  int count;
+  Road_Seg(){}
+  Road_Seg(int r, int s, double l1, double l2, int c):
+  rid(r), sid(s), meas1(l1), meas2(l2), count(c){}
+  Road_Seg(const Road_Seg& rs):rid(rs.rid), sid(rs.sid), meas1(rs.meas1),
+  meas2(rs.meas2), count(rs.count){}
+  Road_Seg& operator=(const Road_Seg& rs)
+  {
+    rid = rs.rid;
+    sid = rs.sid;
+    meas1 = rs.meas1;
+    meas2 = rs.meas2;
+    count = rs.count;
+    return *this;
+  }
+  bool operator<(const Road_Seg& rs) const
+  {
+    if(rid < rs.rid) return true;
+    else if(rid > rs.rid) return false;
+    else
+      return meas1 < rs.meas1;
+  }
+
+  void Print()
+  {
+    cout<<"rid "<<rid<<" sid "<<sid<<" m1 "<<meas1<<" m2 "
+        <<meas2<<" c "<<count<<endl;
+  }
+
+};
 
 /////////////////////////////////////////////////////////////////////////
 ////////////////navigation system///////////////////////////////////////

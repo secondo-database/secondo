@@ -741,9 +741,8 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
 
     void GenMOAt(string tm, GenMO* sub);
     void GenMOAt(string tm, MReal*, GenMO* sub);
-    void GenMOAt(Point* loc, MReal*, GenMO* sub);
+    void GenMOAt(GenLoc* loc, MReal*, GenMO* sub);
     void GenMOAt(GenLoc* genloc, GenMO* sub);
-    void GenMOAt(Point* p, GenMO* sub);
     void GenMOAt(GenLoc* genloc, MReal*, string type, GenMO* sub);
 
     void AtInstant(Instant& t, Intime<GenLoc>& result);
@@ -829,9 +828,10 @@ struct GenMObject{
   static string NNBuilding;
   enum BenchModeNNBuildingInfo{BM_NNB_ID = 0, BM_NNB_GEODATA};
 
+
   vector<GenMO> trip1_list;
-  vector<MPoint> trip2_list; 
-  vector<MGPoint> trip3_list; 
+  vector<MPoint> trip2_list;
+  vector<MGPoint> trip3_list;
 
   vector<MPoint3D> indoor_mo_list1;//from a room to an entrance 
   vector<MPoint3D> indoor_mo_list2;//from entrance to a room
@@ -848,6 +848,7 @@ struct GenMObject{
 
   vector<int> oid_list;
   vector<int> label_list; 
+  vector<int> count_list;
   
   vector<Rectangle<2> > rect_list1;
   vector<Rectangle<2> > rect_list2;
@@ -864,6 +865,8 @@ struct GenMObject{
   vector< map<int, Line3D> > indoor_paths_list;//read indoor paths from disk
   vector< map<int, Line3D> > rooms_id_list; //groom oid for each point3D
 
+  vector<UGenLoc> units_list;
+  
   GenMObject(){ count = 0; resulttype = NULL;} 
   ~GenMObject(){if(resulttype != NULL) delete resulttype;}
   void GetMode(GenMO* mo); 
@@ -872,6 +875,7 @@ struct GenMObject{
   void GetIdList(GenRange* gr); 
   void GetIdList(Door3D* d);
   void GetRef(GenMO* mo);
+  void GetUnits(GenMO*);
   ///////////////////create generic moving objects///////////////////////
   void GenerateGenMO(Space* sp, Periods* peri, int mo_no, int type);
 
@@ -1162,6 +1166,7 @@ struct GenMObject{
    void MapMP3DToMP(MPoint* mo, MPoint3D* mp3d, Rectangle<2> build_rect, 
                     Rectangle<2> build_box2);
    Point MapMP3D(Rectangle<2>, Rectangle<2>, Point);
+
 };
 
 /*

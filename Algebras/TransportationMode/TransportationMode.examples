@@ -1026,6 +1026,20 @@ Example  : query no_components(mapgenmo([const genmo value ((("2010-12-7-8:03:25
 Result   : 1
 
 
+
+Operator : units 
+Number   : 1
+Signature: genmo -> (stream(((x1 t1) ... (xn tn))))
+Example  : query units([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))]) count
+Result   : 1
+
+Operator : getloc 
+Number   : 1
+Signature: ugenloc x bool -> point
+Example  : query getloc([const ugenloc value (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car")], TRUE)
+Result   : (2.0, -1.0)
+
+
 Operator : thespace 
 Number   : 1
 Signature: int -> space

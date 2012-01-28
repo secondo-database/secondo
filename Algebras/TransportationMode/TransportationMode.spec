@@ -188,6 +188,8 @@ operator getref alias GETREF pattern op(_,_)
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator mapgenmo alias MAPGENMO pattern op(_,_)
+operator tm_units alias TM_UNITS pattern op(_)
+operator getloc alias GETLOC pattern op(_,_)
 
 
 operator thespace alias THESPACE pattern op(_)

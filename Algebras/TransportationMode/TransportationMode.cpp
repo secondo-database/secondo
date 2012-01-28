@@ -2745,6 +2745,18 @@ int RefIdGenLocValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+int RefIdUGenLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  UGenLoc* genl = (UGenLoc*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(genl->IsDefined() && genl->GetOid() >= 0){
+      ((CcInt*)result.addr)->Set(true, genl->GetOid());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
 int RefIdIORefValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
@@ -3016,22 +3028,7 @@ int TMATGenLocValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-at: genloc 
 
-*/
-int TMATPointValueMap(Word* args, Word& result, int message,
-                    Word& local, Supplier s)
-{
-  GenMO* genmo = (GenMO*)args[0].addr;
-  Point* p = (Point*)args[1].addr;
-  result = qp->ResultStorage(s);
-  GenMO* sub_genmo = (GenMO*)result.addr;
-  if(genmo->IsDefined()){
-      genmo->GenMOAt(p, sub_genmo);
-  }
-  return 0;
-}
 
 /*
 tm at with index on units 
@@ -3057,17 +3054,17 @@ int TMAT2StringValueMap(Word* args, Word& result, int message,
 tm at with index on units 
 
 */
-int TMAT2PointValueMap(Word* args, Word& result, int message,
+int TMAT2GenLocValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   GenMO* genmo = (GenMO*)args[0].addr;
   MReal* index = (MReal*)args[1].addr;
   
-  Point* loc = (Point*)args[2].addr;
+  GenLoc* gloc = (GenLoc*)args[2].addr;
   result = qp->ResultStorage(s);
   GenMO* sub_genmo = (GenMO*)result.addr;
   if(genmo->IsDefined()){
-      genmo->GenMOAt(loc, index, sub_genmo);
+      genmo->GenMOAt(gloc, index, sub_genmo);
   }
 
   return 0;
@@ -3969,6 +3966,66 @@ int MapGenMOValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+get the units of a moving object
+
+*/
+int GenMOUnitsValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        GenMO* genmo = (GenMO*)args[0].addr;
+        mo = new GenMObject();
+        mo->GetUnits(genmo);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->units_list.size()) return CANCEL;
+          UGenLoc* u = new UGenLoc(mo->units_list[mo->count]);
+          mo->count++;
+          result = SetWord(u);
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
+int GetLocValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  result = qp->ResultStorage( in_pSupplier );
+  UGenLoc* ugenloc = (UGenLoc*)args[0].addr;
+  bool b = ((CcBool*) args[1].addr)->GetBoolval();
+  Point* pResult = (Point*)result.addr;
+
+  if(ugenloc->IsDefined()){
+     if(b){
+      double x = ugenloc->gloc1.GetLoc().loc1;
+      double y = ugenloc->gloc1.GetLoc().loc2;
+      pResult->Set(x, y);
+     }else{
+      double x = ugenloc->gloc2.GetLoc().loc1;
+      double y = ugenloc->gloc2.GetLoc().loc2;
+      pResult->Set(x,y);
+     }
+  }
+
+  return 0;
+}
 
 /*
 add bus graph to bus network infrastructure 
@@ -5238,7 +5295,8 @@ ValueMapping RefIdValueMapVM[]={
   RefIdPavementValueMap,
   RefIdRoadNetworkValueMap,
   RefIdBuildingValueMap,
-  RefIdIndoorInfraValueMap
+  RefIdIndoorInfraValueMap,
+  RefIdUGenLocValueMap
 };
 
 int RefIdOpSelect(ListExpr args)
@@ -5262,18 +5320,19 @@ int RefIdOpSelect(ListExpr args)
     return 7;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "indoorinfra"))
     return 8;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "ugenloc"))
+    return 9;
   return -1;
 }
 
 ValueMapping TMATValueMapVM[]={
   TMATTMValueMap,
   TMATGenLocValueMap,
-  TMATPointValueMap
 };
 
 ValueMapping TMAT2ValueMapVM[]={
   TMAT2StringValueMap,
-  TMAT2PointValueMap
+  TMAT2GenLocValueMap
 };
 
 ValueMapping TMContainValueMapVM[]={
@@ -5307,9 +5366,6 @@ int TMATOpSelect(ListExpr args)
     return 1;
 /*  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genrange"))
     return 2;*/
-  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "point"))
-    return 2;
-
   return -1;
 }
 
@@ -5323,10 +5379,8 @@ int TMAT2OpSelect(ListExpr args)
     if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
       nl->SymbolValue(arg3) == "string")
         return 0;
-//   if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genloc"))
-//     return 1;
 
-    if(nl->IsAtom(arg3) && nl->IsEqual(arg3, "point"))
+    if(nl->IsAtom(arg3) && nl->IsEqual(arg3, "genloc"))
       return 1;
   }
 
@@ -5453,7 +5507,8 @@ ListExpr RefIdTypeMap(ListExpr args)
      nl->IsEqual(arg1, "busnetwork") || 
      nl->IsEqual(arg1, "pavenetwork") || 
      nl->IsEqual(arg1, "network") || 
-     nl->IsEqual(arg1, "building") || nl->IsEqual(arg1, "indoorinfra"))
+     nl->IsEqual(arg1, "building") || 
+     nl->IsEqual(arg1, "indoorinfra") || nl->IsEqual(arg1, "ugenloc"))
     return nl->SymbolAtom("int");
 
   return nl->SymbolAtom("typeerror");
@@ -5491,8 +5546,7 @@ ListExpr TMATTypeMap(ListExpr args)
   ListExpr arg2 = nl->Second(args);
 
   if(nl->IsEqual(arg1, "genmo") && 
-    (nl->SymbolValue(arg2) == "string" || nl->IsEqual(arg2, "genloc") ||
-     nl->IsEqual(arg2, "point")))
+    (nl->SymbolValue(arg2) == "string" || nl->IsEqual(arg2, "genloc")))
     return nl->SymbolAtom("genmo");
 
   return nl->SymbolAtom("typeerror");
@@ -5513,7 +5567,7 @@ ListExpr TMAT2TypeMap(ListExpr args)
   ListExpr arg3 = nl->Third(args);
 
   if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "mreal") &&
-     (nl->SymbolValue(arg3) == "string" || nl->SymbolValue(arg3) == "point"))
+     (nl->SymbolValue(arg3) == "string" || nl->SymbolValue(arg3) == "genloc"))
     return nl->SymbolAtom("genmo");
 
   return nl->SymbolAtom("typeerror");
@@ -6050,6 +6104,37 @@ ListExpr MapGenMOTypeMap(ListExpr args)
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
 
+
+/*
+TypeMap function for operator tmunits  
+
+*/
+ListExpr TMUnitsTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo  expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->TwoElemList(nl->SymbolAtom("stream"),nl->SymbolAtom("ugenloc"));
+
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr GetLocTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "genmo  x bool expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "ugenloc") && nl->IsEqual(arg2, "bool"))
+    return nl->SymbolAtom( Point::BasicType() );
+
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 TypeMap function for operator the space
@@ -6849,7 +6934,7 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
 
 Operator ref_id("ref_id",
     SpatialSpecRefId,
-    9,
+    10,
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
@@ -6867,7 +6952,7 @@ Operator setref_id("ref_id",
 
 Operator tm_at("tm_at",
     SpatialSpecTMAT,
-    3,
+    2,
     TMATValueMapVM,
     TMATOpSelect,
     TMATTypeMap
@@ -7211,6 +7296,20 @@ Operator mapgenmo("mapgenmo",
     MapGenMOValueMap,
     Operator::SimpleSelect,
     MapGenMOTypeMap
+);
+
+Operator tm_units("units",
+    SpatialSpecMapTMUnits,
+    GenMOUnitsValueMap,
+    Operator::SimpleSelect,
+    TMUnitsTypeMap
+);
+
+Operator getloc("getloc",
+    SpatialSpecMapGetLoc,
+    GetLocValueMap,
+    Operator::SimpleSelect,
+    GetLocTypeMap
 );
 
 
@@ -21701,6 +21800,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_atinstant);//get intimegenloc for genmo x instant 
     AddOperator(&tm_atperiods);//get for genmo x periods  
     AddOperator(&mapgenmo);//map genmo (reference to a mpoint) to a mp
+    AddOperator(&tm_units);//get units of a genmo
+    AddOperator(&getloc);//start and end loc of ugenloc 
 
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
