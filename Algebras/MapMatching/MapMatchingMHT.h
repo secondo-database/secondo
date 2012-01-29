@@ -48,6 +48,12 @@ class Region;
 class Point;
 class Points;
 class GPoint;
+class MPoint;
+
+namespace datetime
+{
+  class DateTime;
+}
 
 namespace mapmatch {
 
@@ -76,6 +82,29 @@ public:
 private:
 
     void TripSegmentation(std::vector<MPoint*>& rvecTripParts);
+
+    void GetInitialRouteCandidates(MPoint* pMPoint,
+                      std::vector<class RouteCandidate*>& rvecRouteCandidates);
+
+    void DevelopRoutes(MPoint* pMPoint,
+                       std::vector<RouteCandidate*>& rvecRouteCandidates);
+
+    void DevelopRoutes(const Point& rPoint,
+                       const datetime::DateTime& rTime,
+                       bool bClosed,
+                       std::vector<RouteCandidate*>& rvecRouteCandidates);
+
+    void ReduceRouteCandidates(std::vector<RouteCandidate*>&
+                                                           rvecRouteCandidates);
+
+    RouteCandidate* DetermineBestRouteCandidate(
+                       std::vector<RouteCandidate*>& rvecRouteCandidates);
+
+    void CreateCompleteRoute(
+                       const std::vector<RouteCandidate*>& rvecRouteSegments);
+
+    void AddAdjacentSections(RouteCandidate* pCandidate,
+                          std::vector<RouteCandidate*>& rvecNewRouteCandidates);
 
     void GetInitialSectionCandidates(const Point& rPoint,
                                      std::vector<NetworkSection>& rVecSectRes);
