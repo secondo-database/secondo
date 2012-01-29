@@ -42,9 +42,16 @@ This header file essentially contains the definition of the class ~MapMatchingBa
 
 class Network;
 class MPoint;
+class GPoint;
+class UGPoint;
 class MGPoint;
 struct RITreeP;
-class UGPoint;
+
+namespace datetime
+{
+  class DateTime;
+}
+
 
 namespace mapmatch {
 
@@ -82,6 +89,19 @@ protected:
     void AddUGPoint(const UGPoint& rAktUGPoint);
     void AddUnit(const int nRouteID, const double dPos1, const double dPos2);
 
+/*
+   3.4 ShortestPath calculation
+   creates and adds ~UGPoints~ to result
+
+*/
+    bool CalcShortestPath(const GPoint* pGPStart, const GPoint* pGPEnd,
+                          const datetime::DateTime& rtimeStart,
+                          const datetime::DateTime& rtimeEnd);
+
+/*
+   3.5 protected member
+
+*/
     Network* m_pNetwork;
     MPoint* m_pMPoint;
 

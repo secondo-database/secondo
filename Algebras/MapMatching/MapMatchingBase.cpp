@@ -39,6 +39,7 @@ Is is the base class of all Map Matching algorithms
 
 */
 #include "MapMatchingBase.h"
+#include "MapMatchingUtil.h"
 
 #include <stdio.h>
 
@@ -142,6 +143,82 @@ void MapMatchingBase::AddUnit(const int nRouteID,
         m_pRITree->InsertUnit(nRouteID, dPos1, dPos2);
     }
 }
+
+bool MapMatchingBase::CalcShortestPath(const GPoint* pGPStart,
+                                       const GPoint* pGPEnd,
+                                       const datetime::DateTime& rtimeStart,
+                                       const datetime::DateTime& rtimeEnd)
+{
+    if (pGPStart == NULL || !pGPStart->IsDefined() ||
+        pGPEnd == NULL || !pGPEnd->IsDefined() ||
+        !rtimeStart.IsDefined() || !rtimeEnd.IsDefined() ||
+        m_pNetwork == NULL || !m_pNetwork->IsDefined())
+    {
+        return false;
+    }
+
+    const int nNetworkId = m_pNetwork->GetId();
+
+    AttributePtr<GLine> pGlShortestPath(new GLine(false));
+    if (!pGPStart->ShortestPathAStar(pGPEnd, pGlShortestPath.get(), m_pNetwork))
+    {
+        // ShortestPath calculation failed
+        return false;
+    }
+    else
+    {
+        // ShortestPath calculation successfull
+        // Create UGPoints
+
+        RouteInterval actRouteInterval;
+        Side side = None;
+
+        DateTime timeCurrentStart(rtimeStart);
+        DateTime timeCurrentEnd(rtimeStart);
+
+        for (int i = 0; i < pGlShortestPath->NoOfComponents(); ++i)
+        {
+            pGlShortestPath->Get(i, actRouteInterval);
+
+            Instant timeCurrentEnd = (rtimeEnd - rtimeStart) *
+                    (fabs(actRouteInterval.GetEndPos() -
+                                           actRouteInterval.GetStartPos())
+                            / pGlShortestPath->GetLength()) + timeCurrentStart;
+
+            if (actRouteInterval.GetRouteId() == pGPEnd->GetRouteId() &&
+               AlmostEqual(actRouteInterval.GetEndPos(), pGPEnd->GetPosition()))
+            {
+                timeCurrentEnd = rtimeEnd; // End reached
+            }
+
+            if (actRouteInterval.GetStartPos() > actRouteInterval.GetEndPos())
+            {
+                side = Down; // Moving down
+            }
+            else if (actRouteInterval.GetStartPos() <
+                                                   actRouteInterval.GetEndPos())
+            {
+                side = Up; //  Moving Up
+            }
+            else
+            {
+                side = None;
+            }
+
+            AttributePtr<UGPoint> pUGPoint(new UGPoint(
+                    Interval<Instant>(timeCurrentStart, timeCurrentEnd,
+                                      true, false),
+                    nNetworkId, actRouteInterval.GetRouteId(),
+                    side, actRouteInterval.GetStartPos(),
+                    actRouteInterval.GetEndPos()));
+
+            this->AddUGPoint(*pUGPoint);
+
+            timeCurrentStart = timeCurrentEnd;
+        }
+    }
+}
+
 
 } // end of namespace mapmatch
 
