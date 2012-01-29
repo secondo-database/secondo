@@ -40,6 +40,7 @@ This header file contains utilities for map matching
 #ifndef __MAP_MATCHING_UTILITY_H__
 #define __MAP_MATCHING_UTILITY_H__
 
+#include <stdio.h>
 class Region;
 class SimpleLine;
 class HalfSegment;
@@ -47,6 +48,10 @@ class Point;
 
 namespace mapmatch {
 
+/*
+3 ~MMUtil~
+
+*/
 class MMUtil
 {
 public:
@@ -60,6 +65,100 @@ public:
                                           double& rdDistanceRes);
 
 };
+
+
+/*
+4 ~AttributePtr~
+  Helper class for managing Attribute pointers
+
+*/
+template<class Type>
+class AttributePtr
+{
+public:
+    typedef AttributePtr<Type> _Myt;
+
+    AttributePtr(Type* pA, bool bIncReference = false)
+    :m_pA(pA)
+    {
+        if (bIncReference && m_pA != NULL)
+            m_pA = dynamic_cast<Type*>(m_pA->Copy());
+    }
+
+    AttributePtr(const _Myt& rAttributePtr)
+    :m_pA(rAttributePtr.m_pA)
+    {
+        if (m_pA != NULL)
+            m_pA = dynamic_cast<Type*>(m_pA->Copy());
+    }
+
+    ~AttributePtr()
+    {
+        if (m_pA != NULL)
+        {
+            m_pA->DeleteIfAllowed();
+            m_pA = NULL;
+        }
+    }
+
+    const AttributePtr& operator=(const _Myt& rAttributePtr)
+    {
+        if (&rAttributePtr != this)
+        {
+            if (m_pA != NULL)
+            {
+                m_pA->DeleteIfAllowed();
+                m_pA = NULL;
+            }
+
+            m_pA = rAttributePtr.m_pA;
+            if (m_pA != NULL)
+                m_pA = dynamic_cast<Type*>(m_pA->Copy());
+        }
+        return *this;
+    }
+
+    void reset(Type* pA)
+    {
+        if (pA != m_pA)
+        {
+            if (m_pA != NULL)
+            {
+                m_pA->DeleteIfAllowed();
+                m_pA = NULL;
+            }
+
+            m_pA = pA;
+            if (m_pA != NULL)
+                m_pA = dynamic_cast<Type*>(m_pA->Copy());
+        }
+    }
+
+    Type& operator*() const
+    {
+        return *m_pA;
+    }
+
+    Type* operator->() const
+    {
+        return m_pA;
+    }
+
+    operator bool() const
+    {
+        return (m_pA != NULL);
+    }
+
+    Type* get(void) const
+    {
+        return m_pA;
+    }
+
+private:
+    Type* m_pA;
+};
+
+
 
 } // end of namespace mapmatch
 
