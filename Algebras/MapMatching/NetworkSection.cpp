@@ -40,22 +40,30 @@ This implementation file contains the implementation of the class ~NetworkSectio
 */
 
 #include "NetworkSection.h"
+#include "NetworkRoute.h"
 #include "../Network/NetworkAlgebra.h"
 
 namespace mapmatch {
 
-NetworkSection::NetworkSection(Tuple* pTupleSection, bool bIncReference)
-:m_pTupleSection(pTupleSection)
+NetworkSection::NetworkSection(Tuple* pTupleSection,
+                               Network* pNetwork,
+                               bool bIncReference)
+:m_pTupleSection(pTupleSection), m_pNetwork(pNetwork), m_pNetworkRoute(NULL)
 {
     if (bIncReference && m_pTupleSection != NULL)
         m_pTupleSection->IncReference();
 }
 
 NetworkSection::NetworkSection(const NetworkSection& rNetworkSection)
-:m_pTupleSection(rNetworkSection.m_pTupleSection)
+:m_pTupleSection(rNetworkSection.m_pTupleSection),
+ m_pNetwork(rNetworkSection.m_pNetwork),
+ m_pNetworkRoute(NULL)
 {
     if (m_pTupleSection != NULL)
         m_pTupleSection->IncReference();
+
+    if (rNetworkSection.m_pNetworkRoute != NULL)
+        m_pNetworkRoute = new NetworkRoute(*rNetworkSection.m_pNetworkRoute);
 }
 
 NetworkSection::~NetworkSection()
@@ -63,6 +71,9 @@ NetworkSection::~NetworkSection()
     if (m_pTupleSection != NULL)
         m_pTupleSection->DeleteIfAllowed();
     m_pTupleSection = NULL;
+    m_pNetwork = NULL;
+    delete m_pNetworkRoute;
+    m_pNetworkRoute = NULL;
 }
 
 const NetworkSection& NetworkSection::operator=(
@@ -79,6 +90,12 @@ const NetworkSection& NetworkSection::operator=(
         m_pTupleSection = rNetworkSection.m_pTupleSection;
         if (m_pTupleSection != NULL)
             m_pTupleSection->IncReference();
+
+        m_pNetwork = rNetworkSection.m_pNetwork;
+
+        delete m_pNetworkRoute; m_pNetworkRoute = NULL;
+        if (rNetworkSection.m_pNetworkRoute != NULL)
+           m_pNetworkRoute = new NetworkRoute(*rNetworkSection.m_pNetworkRoute);
     }
     return *this;
 }
@@ -93,6 +110,28 @@ int NetworkSection::GetRouteID(void) const
     else
     {
         return -1;
+    }
+}
+
+const NetworkRoute& NetworkSection::GetRoute(void) const
+{
+    if (m_pNetworkRoute == NULL)
+    {
+        if (m_pNetwork != NULL)
+        {
+            Tuple* pRouteTuple = m_pNetwork->GetRoute(GetRouteID());
+            m_pNetworkRoute = new NetworkRoute(pRouteTuple, false);
+            return *m_pNetworkRoute;
+        }
+        else
+        {
+            static NetworkRoute Dummy(NULL);
+            return Dummy;
+        }
+    }
+    else
+    {
+        return *m_pNetworkRoute;
     }
 }
 

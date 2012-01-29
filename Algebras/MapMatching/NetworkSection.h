@@ -41,6 +41,7 @@ This header file contains the convenience-class ~NetworkSection~
 #define __NETWORK_SECTION_H__
 
 class Tuple;
+class Network;
 class SimpleLine;
 class TupleIdentifier;
 
@@ -57,7 +58,8 @@ namespace mapmatch {
 class NetworkSection
 {
 public:
-    NetworkSection(Tuple* pTupleSection, bool bIncReference = true);
+    NetworkSection(Tuple* pTupleSection, Network* pNetwork,
+                   bool bIncReference = true);
     NetworkSection(const NetworkSection& rNetworkSection);
     ~NetworkSection();
 
@@ -66,6 +68,8 @@ public:
     bool IsDefined(void) const {return m_pTupleSection != NULL;}
 
     int GetRouteID(void) const;
+
+    const class NetworkRoute& GetRoute(void) const;
 
     double GetMeas1(void) const;
 
@@ -84,6 +88,8 @@ public:
 private:
 
     Tuple* m_pTupleSection;
+    Network* m_pNetwork;
+    mutable class NetworkRoute* m_pNetworkRoute;
 };
 
 
