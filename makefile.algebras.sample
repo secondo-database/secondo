@@ -303,6 +303,8 @@ ALGEBRAS     += SpatialJoinAlgebra
 ALGEBRA_DIRS  += MMRTree 
 ALGEBRAS     += MMRTreeAlgebra
 
+#ALGEBRA_DIRS += RobustGeometry
+#ALGEBRAS   += RobustGeometryAlgebra
 
 #ALGEBRA_DIRS  += HadoopParallel
 #ALGEBRAS     += HadoopParallelAlgebra
