@@ -206,6 +206,7 @@ static {
           if(trace){
             cout.println("analyse command: "+command);
           }
+          command = encode(command);
           Query pl_query = new Query(command);
           if(pl_query==null){
              if(trace)
@@ -240,8 +241,8 @@ static {
           if(trace){
                cout.println("\n optimization-input : "+query+"\n");
           }
-
-          Query pl_query = new Query("sqlToPlan('"+query+"', X )");
+          String query2 = encode(query);
+          Query pl_query = new Query("sqlToPlan('"+query2+"', X )");
 
           String ret ="";
           int number =0;
@@ -286,7 +287,7 @@ static {
                  }
              }
 
-             return ret;
+             return decode(ret);
           }
          } catch(Exception e){
              if(trace)
@@ -570,10 +571,15 @@ static {
              disconnect();
          }
 
+
       private BufferedReader in;
       private BufferedWriter out;
       private boolean running;
       private Socket S;
+
+      
+
+
     }
 
 
@@ -796,6 +802,39 @@ static {
        cout.println(" There is NO warranty; not even for MERCHANTABILITY or FITNESS ");
        cout.println(" FOR A PARTICULAR PURPOSE.");
    }
+
+  /** Converts a string into OS_pl_encoding **/
+   private static String encode(String src){
+     if(OS_pl_encoding==null){
+       return src;
+     }
+     try{
+       byte[] encodedBytes = src.getBytes(OS_pl_encoding);
+       return new String(encodedBytes, "UTF-8");
+     } catch(Exception e){
+        System.err.println("Used encoding not supported\n" + e);
+        return src;
+     }
+   }
+
+   /** Converts a string from OS_pl_encoding **/
+   private static String decode(String src){
+     if(OS_pl_encoding==null){
+       return src;
+     }
+     try{
+       byte[] encodedBytes = src.getBytes("UTF-8");
+       return new String(encodedBytes, OS_pl_encoding);
+     } catch(Exception e){
+        System.err.println("Used encoding not supported\n" + e);
+        return src;
+     }
+   }
+
+
+
+
+   private static String OS_pl_encoding = null;
 
 
    private boolean optimizer_loaded = false;
