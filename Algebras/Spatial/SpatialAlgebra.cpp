@@ -9175,7 +9175,7 @@ double Region::Distance( const Line &l, const Geoid* geoid /*=0*/ ) const
          << endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
-  if( !IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()) ) {
+  if( IsEmpty() || l.IsEmpty() || (geoid && !geoid->IsDefined()) ) {
      return -1;
   }
   double result = numeric_limits<double>::max();
