@@ -269,6 +269,11 @@ Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(t
 Example  : query plz feed sortby_old[Ort] krdup[Ort] count
 Result   : 16788
 
+Operator : krduph
+Number   : 1
+Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn)))
+Example  : query plz feed  krduph[Ort] count
+Result   : 16788
 
 Operator : addcounter
 Number   : 1

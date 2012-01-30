@@ -31,6 +31,7 @@ operator concat alias CONCAT pattern _ _ op
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator rdup alias RDUP pattern _ op
 operator krdup alias KRDUP pattern _ op [ list ]
+operator krduph alias KRDUPH pattern _ op [ _,_ ]
 operator sort_old alias SORTOLD pattern _ op
 operator extend alias EXTEND pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 operator projectextend alias PROJECTEXTEND pattern _ op [ list ; funlist ] implicit parameter tuple type TUPLE

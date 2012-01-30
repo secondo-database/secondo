@@ -2237,6 +2237,425 @@ Operator krdup (
          krdupTM         // type mapping
 );
 
+
+/*
+2.10 Operator ~krduph~
+
+This operator removes duplicates from a stream by comparing given key attributes.
+In constrast to ~krdup~, this operator does not require a sorted input stream.
+
+2.10.1 Type Mapping
+
+  stream(tuple) x attrname[_]1 x attrname[_]2 ... [x int] -> stream(tuple)
+
+
+*/
+ListExpr krduphTM(ListExpr args){
+
+   string err = "stream(tuple) x attrname_1 x attrname_2 ... [x int] expected";
+   if(nl->ListLength(args) < 0){ 
+     return listutils::typeError(err);
+   }
+
+   ListExpr stream = nl->First(args);
+   if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError(err + "(first attr is not a tuple stream)");
+   }
+
+   args = nl->Rest(args);
+   bool done = nl->IsEmpty(args);
+
+   vector<int> positions;
+   bool numGiven = false;
+   ListExpr attrList = nl->Second(nl->Second(stream));
+   ListExpr attrType;
+
+   while(!done){
+      ListExpr first = nl->First(args);
+      if(CcInt::checkType(first)){
+         done = true;
+         numGiven = true;
+         args = nl->Rest(args);
+         if(!nl->IsEmpty(args)){
+           return listutils::typeError(err + 
+                " (int is allowed as the last argument only");
+         }
+     } else {
+       if(!listutils::isSymbol(first)){
+           return listutils::typeError(err + " (invalid attribute name)");
+       }
+       string attrName = nl->SymbolValue(first);
+       int index = listutils::findAttribute(attrList, attrName, attrType);
+       if(index == 0){
+          return listutils::typeError("attribute " + attrName + 
+                                      "not present");
+       }
+       positions.push_back(index -1); 
+       args = nl->Rest(args);
+       done = nl->IsEmpty(args);
+     }
+   }
+  
+
+   ListExpr appendList; 
+   ListExpr last;
+   bool appendInit = false;
+   if(positions.empty()){ // use all attributes
+      for(int i=0;i<nl->ListLength(attrList);i++){
+         cout << "add Position "  << "to vector" << endl;
+         positions.push_back(i);
+      }
+      // append dummy parameters 
+      appendList = nl->OneElemList(nl->IntAtom(0));
+      last = appendList;
+      for(unsigned int i=1;i<positions.size();i++) {
+         last = nl->Append(last,nl->IntAtom(0));
+      } 
+      appendInit = true;
+   }
+   unsigned int start = 0;
+   if(!numGiven){
+      if(!appendInit){ 
+        appendList = nl->OneElemList(nl->IntAtom(-1));
+        last = appendList;
+      } else {
+        last = nl->Append(last,nl->IntAtom(-1));
+      }
+   } else {
+      if(!appendInit){
+        appendList = nl->OneElemList(nl->IntAtom(positions[0]));
+        last = appendList;
+        start = 1;
+      }
+   }
+
+   for(unsigned int i=start;i<positions.size();i++){
+      last = nl->Append(last, nl->IntAtom(positions[i]));
+   }
+
+
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             appendList,
+                             stream);
+
+}
+
+/*
+2.10.2 LocalInfo
+
+*/
+
+class KrdupHInfo{
+
+   public:
+      KrdupHInfo(Word& _s, const int _buckNum, 
+                 vector<int>& _positions, 
+                 const size_t _maxMem,
+                 const ListExpr tt) : 
+                 stream(_s), buckNum(_buckNum), 
+                 positions(_positions), maxMem(_maxMem), usedMem(0) {
+
+          stream.open();
+          if(buckNum<97){
+             buckNum = 97;
+          }
+          if(buckNum > 9999997){
+             buckNum = 9999997;
+          }
+          buckets = new vector<Tuple*>*[buckNum];
+          memset(buckets,0, buckNum*sizeof(void*));
+          usedMem = buckNum * sizeof(void*);
+          if(usedMem>maxMem){
+            maxMem = usedMem +128;
+          }
+          buffer1  = 0;
+          buffer2 = 0;
+          it = 0;
+          tupleType = new TupleType(tt);
+          stored=0;
+          scans = 1; // at least the stream must be scanned
+
+
+      }
+
+      ~KrdupHInfo(){
+         stream.close();
+         tupleType->DeleteIfAllowed(); 
+         eraseBuckets();
+         delete[] buckets;
+         if(it){
+            delete it;
+         } 
+         if(buffer1){
+           buffer1->DeleteAndTruncate();
+         }
+         if(buffer2){
+           buffer2->DeleteAndTruncate();
+         }
+         cout << "Krduph finished with " << scans << "scans" << endl;
+       }
+
+
+
+       Tuple* nextTuple(){
+          Tuple* res = 0;
+          while(true){ 
+             res = nextInput();
+             if(res==0){
+               return 0;
+             }
+             bool ok = insert(res);
+             if(ok){
+                return res;
+             } else {
+               res->DeleteIfAllowed();
+             }
+          }
+       }
+
+
+
+
+   private:
+      Stream<Tuple> stream;
+      int buckNum;
+      vector<int> positions;
+      size_t maxMem; 
+      vector<Tuple*>** buckets;
+      Relation* buffer1; // buffer for reading tuples
+      Relation* buffer2; // buffer fro writing tuples
+      GenericRelationIterator* it;  
+      size_t usedMem;
+      TupleType* tupleType;
+      int stored;
+      int scans;
+
+      void eraseBuckets(){
+         for(int i=0;i<buckNum;i++){
+            if(buckets[i]){
+                vector<Tuple*>* bucket = buckets[i];
+                for(unsigned int j=0;j<bucket->size();j++){
+                   (*bucket)[j]->DeleteIfAllowed();
+                } 
+                delete bucket;
+                buckets[i] = 0;
+            }
+         }
+         stored = 0; 
+         usedMem = sizeof(void*) * buckNum;
+      }
+
+      Tuple* nextInput(){
+          if(!it){ // try to get data from stream
+            Tuple* res = stream.request();
+            if(res){ // tuple found
+               return res;
+            } 
+            // no tuple found in original stream
+            if(!buffer2){ // no tuples written out
+               return 0;
+            }
+            eraseBuckets();
+            buffer1 = buffer2; // change read buffer
+            buffer2 = 0;
+            it = buffer1->MakeScan();
+          }
+
+          Tuple* res = it->GetNextTuple();
+          if(res!=0){
+            return res;
+          }
+          // iterator finished
+          delete it;
+          it = 0;
+          buffer1->DeleteAndTruncate();
+          buffer1 = 0;
+          if(!buffer2){ 
+              return 0;
+          }
+          buffer1 = buffer2;
+          buffer2 = 0;
+          eraseBuckets();
+          it = buffer1->MakeScan();
+          return it->GetNextTuple();
+      }
+
+/*
+Inserts a tuple into this structure.
+
+*/
+      bool insert(Tuple* tuple){
+         if(usedMem>maxMem){
+            if(!contains(tuple)){
+               if(!buffer2){
+                  buffer2 = new Relation(tupleType, true);
+                  scans++;
+               } 
+               tuple->PinAttributes();
+               buffer2->AppendTupleNoLOBs(tuple);
+            }
+            return false;
+         }
+         return insertMM(tuple);
+      }
+
+
+/*
+Inserts a tuple into the memory part of this structure.
+
+*/
+      bool insertMM(Tuple* tuple){
+         size_t hash = computeHash(tuple);
+         vector<Tuple*>* bucket = buckets[hash];
+         if(!bucket){
+            bucket = new vector<Tuple*>();
+            buckets[hash] = bucket;
+            bucket->push_back(tuple);
+            stored ++;
+            tuple->IncReference();
+            usedMem += tuple->GetExtSize() + sizeof(void*) + sizeof(*bucket);
+            return true; 
+         }
+         for(size_t i=0;i<bucket->size();i++){
+            if(equals((*bucket)[i],tuple)){ // tuple found
+              return false;
+            }
+         }
+         bucket->push_back(tuple);
+         tuple->IncReference();
+         usedMem += tuple->GetExtSize() + sizeof(void*);
+         return true;
+      }
+
+/*
+Checks whether the memory part of this structur contains a tuple;
+
+*/
+     bool contains(Tuple* tuple) const{
+       size_t hash = computeHash(tuple);
+       vector<Tuple*>* bucket = buckets[hash];
+       if(!bucket){
+         return false;
+       }
+       for(size_t i =0;i<bucket->size();i++){
+         if(equals((*bucket)[i],tuple)){
+            return true;
+         }
+       }
+       return false;
+     }
+       
+
+/*
+Computes the hash value of a tuple based on the key attributes.
+
+*/
+
+   size_t computeHash(const Tuple* tuple) const{
+     size_t hash = 0;
+     for(size_t i=0;i<positions.size();i++){
+        hash += tuple->GetAttribute(positions[i])->HashValue();
+     }
+     if(hash < 0){
+        hash = -hash;
+     }
+     return hash % buckNum;
+   }
+
+/*
+Returns true if the key attributes of the given tuples are euqal.
+
+*/
+    bool equals(const Tuple* t1, const Tuple* t2) const{
+       for(size_t i=0;i<positions.size(); i++){
+          int k = positions[i];
+          if(t1->GetAttribute(k)->Compare(t2->GetAttribute(k)) != 0){
+             return false;
+          }
+       }
+       return true;
+    }
+
+};
+
+/*
+2.10.3
+
+*/
+int krduphVM(Word* args, Word& result, int message,
+                     Word& local, Supplier s)
+{
+  KrdupHInfo* li = (KrdupHInfo*) local.addr;
+  switch(message){
+     case OPEN :{  if(li){
+                     delete li;
+                   }
+                   int sc = qp->GetNoSons(s) / 2;
+                   CcInt* b = (CcInt*) args[sc].addr;
+                   int bm = 999997;
+                   if(b->IsDefined() && b->GetValue()>0){
+                       bm = b->GetValue();
+                   }
+
+                   vector<int> positions;
+
+                       
+                   for(int i=sc+1;i<qp->GetNoSons(s);i++){
+                      positions.push_back(((CcInt*)args[i].addr)->GetValue());
+                   }
+                   
+                   size_t mem = qp->GetMemorySize(s)*1024*1024; // in bytes
+                   local.addr = new KrdupHInfo(args[0],bm, positions, mem,
+                                     nl->Second(GetTupleResultType(s)));
+                }
+    case REQUEST: { if(!li){
+                      return CANCEL;
+                    }
+                    result.addr = li->nextTuple();
+                    return result.addr?YIELD:CANCEL;
+                  }
+    case CLOSE : {
+                     if(li){
+                       delete li;
+                       local.addr = 0;
+                     }
+                 }
+               
+  };
+  return 0;
+}
+
+/*
+2.13.2 Specification of operator ~krdup~
+
+*/
+const string krduphSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+                            " x ai1 .. ain [x int]))))"
+                         " -> (stream (tuple([a1:d1, ... ,an:dn])))"
+                         "</text--->"
+                         "<text>_ krduph[ _ , _ , ... [, buckets]]</text--->"
+                         "<text>Removes duplicates from a "
+                         "stream with respect to the attributes "
+                         "given as arguments.</text--->"
+                         "<text>query plz feed  "
+                         "krdup[Ort]  consume</text--->"
+                              ") )";
+
+/*
+2.13.3 Definition of operator ~krdup~
+
+*/
+Operator krduph (
+         "krduph",             // name
+         krduphSpec,           // specification
+         krduphVM,               // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         krduphTM         // type mapping
+);
+
+
 /*
 
 2.10 Operator k-smallest
@@ -8573,7 +8992,6 @@ DATA for aggregation.
 ListExpr aggregateCTM(ListExpr args){
 
 
-   cout << "TypeMap aggregateC with " << nl->ToString(args) << endl;
 
    string err = "stream(tuple(X)) x  (tuple(X) x t ->t ) x t"
                 "t in DATA expected";
@@ -8610,7 +9028,6 @@ ListExpr aggregateCTM(ListExpr args){
                                   "start value");
    }
 
-   cout << "Type mapping finished, return " << nl->ToString(start) << endl;
 
    return start;
 }
@@ -12003,6 +12420,8 @@ class ExtRelationAlgebra : public Algebra
       extrelsymmproduct.SetUsesMemory();
     AddOperator(&extrelprojectextend);
     AddOperator(&krdup);
+    AddOperator(&krduph);
+    krduph.SetUsesMemory();
     AddOperator(&extreladdcounter);
     AddOperator(&ksmallest);
     AddOperator(&kbiggest);
