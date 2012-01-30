@@ -8384,7 +8384,7 @@ int OpMapMatchingValueMapping(Word* args,
     if (endGP == 0 || !endGP->IsDefined())
     {
       startGP->DeleteIfAllowed();
-      endGP->DeleteIfAllowed();
+      if (endGP != 0) endGP->DeleteIfAllowed();
       if (aktUGPoint != 0)
       {
         res->Add(*aktUGPoint);
