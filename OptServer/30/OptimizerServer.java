@@ -174,8 +174,8 @@ static {
                   openedDatabase=name;
                 }
 
-             } else{ // don't close the database
-
+             } else{ // no database open 
+                openedDatabase = ""; 
              }
              
              return true;
