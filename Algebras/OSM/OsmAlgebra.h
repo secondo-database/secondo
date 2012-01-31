@@ -43,6 +43,39 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 
 // --- Including header-files
 #include "Algebra.h"
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+#include "RelationAlgebra.h"
+
+class FullOsmImport {
+  public:
+     FullOsmImport(const string& fileName, const string& prefix);
+    ~FullOsmImport();
+    
+    bool initRelations(const string& prefix);
+    bool openFile(const string&fileName);
+    void defineRelations();
+    void fillRelations();
+    void storeRelations();
+    
+    SecondoCatalog* sc;
+    bool isTemp;
+    bool relationsInitialized;
+    bool fileOk;
+    xmlDocPtr doc;    
+    xmlNodePtr cur, curChild;
+    Relation *nodeRel, *nodeTagRel, *wayRel, *wayTagRel, *restRel,
+        *restTagRel;
+    TupleType *nodeType, *nodeTagType, *wayType, *wayTagType,
+        *restType, *restTagType;
+    ListExpr nodeTypeInfo, nodeTagTypeInfo, wayTypeInfo, wayTagTypeInfo,
+        restTypeInfo, restTagTypeInfo, numNodeTypeInfo, numNodeTagTypeInfo, 
+        numWayTypeInfo, numWayTagTypeInfo, numRestTypeInfo, numRestTagTypeInfo;
+    string relNames[6];
+    int tupleCount[6];
+    string relKinds[6];
+};
+
 
 namespace osm {
 
