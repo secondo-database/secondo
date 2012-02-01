@@ -45,4 +45,5 @@ operator ! alias BUFFER pattern _ op
 operator getFileInfo alias GETFILEINFO pattern op ( _ )
 
 operator renameattr alias RENAMEATTR pattern _ op [funlist  ]
+operator validateAttr alias VALIDATEATTR pattern _ op 
 
