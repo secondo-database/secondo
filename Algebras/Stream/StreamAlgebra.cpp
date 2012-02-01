@@ -52,8 +52,8 @@ OK          (stream X) (stream Y) (map X Y (stream Z)) --> (stream Z)
 
 OK   feed:                           T --> (stream T)
 
-OK   transformstream: stream(tuple((id T))) --> (stream T)
-OK                               (stream T) --> stream(tuple((element T)))
+OK   transformstream: stream(tuple((Id T))) --> (stream T)
+OK                               (stream T) --> stream(tuple((Elem T)))
 OK   aggregateS:        (stream T) x (T x T --> T) x T  --> T
 OK   count:                      (stream T) --> int
 OK   filter:      ((stream T) (map T bool)) --> int
@@ -2109,8 +2109,8 @@ Operator streamaggregateS( "aggregateS",
 5.27 Operator ~transformstream~
 
 ----
-  transformstream: (stream T) -> stream(tuple((element T)))
-                   stream(tuple((id T))) -> (stream T)
+  transformstream: (stream T) -> stream(tuple((Elem T)))
+                   stream(tuple((Id T))) -> (stream T)
 
   for T in kind DATA, id some arbitrary identifier
 
@@ -2152,7 +2152,7 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
                                  nl->SymbolAtom(Tuple::BasicType()) ,
                                  nl->OneElemList(
                                    nl->TwoElemList(
-                                     nl->SymbolAtom("elem"),
+                                     nl->SymbolAtom("Elem"),
                                      nl->Second(arg)))));
      return res;
   }
