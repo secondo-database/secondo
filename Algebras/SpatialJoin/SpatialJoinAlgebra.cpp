@@ -182,17 +182,17 @@ ListExpr spatialJoinTypeMap(ListExpr args)
   const string aName[] = {name1, name2};  // join attribute name
 
   //extended attribute names
-  const string eaName2[] = {"xxx_box_l", "xxx_box_r"};
-  const string eaName[] = {"xxx_cell_l", "xxx_cell_r"};
+  const string eaName2[] = {"Xxx_box_l", "Xxx_box_r"};
+  const string eaName[] = {"Xxx_cell_l", "Xxx_cell_r"};
 
   //parameter names
-  const string ptName[] =  {"streamLx", "streamRx"};// stream name
-  const string ptName1[] = {"tupleLx", "tupleRx"};
-  const string ptName2[] = {"tupleL2x", "tupleR2x"};
-  const string ptName3[] = {"streamelemLx", "streamelemRx"};
-  const string ptName4[] = {"stream2Lx", "stream2Rx"};
-  const string ptName5 =  "streamelemMG";   //merged stream element
-  const string ibName = "xxx_interBox";
+  const string ptName[] =  {"StreamLx", "StreamRx"};// stream name
+  const string ptName1[] = {"TupleLx", "TupleRx"};
+  const string ptName2[] = {"TupleL2x", "TupleR2x"};
+  const string ptName3[] = {"StreamelemLx", "StreamelemRx"};
+  const string ptName4[] = {"Stream2Lx", "Stream2Rx"};
+  const string ptName5 =  "StreamelemMG";   //merged stream element
+  const string ibName = "Xxx_interBox";
 
   funList.append(NList("fun"));
   funList.append(NList(NList(ptName[0]), NList(sType[0])));
