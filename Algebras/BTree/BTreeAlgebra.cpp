@@ -1724,7 +1724,7 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
             nl->SymbolAtom(Tuple::BasicType()),
             nl->OneElemList(
               nl->TwoElemList(
-                nl->SymbolAtom("id"),
+                nl->SymbolAtom("Id"),
                 nl->SymbolAtom(TupleIdentifier::BasicType())))));
 
 }
