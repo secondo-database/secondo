@@ -1445,13 +1445,13 @@ ListExpr WindowIntersectsSTypeMap(ListExpr args)
           nl->SymbolAtom(Tuple::BasicType()),
           nl->ThreeElemList(
             nl->TwoElemList(
-              nl->SymbolAtom("id"),
+              nl->SymbolAtom("Id"),
               nl->SymbolAtom(TupleIdentifier::BasicType())),
             nl->TwoElemList(
-              nl->SymbolAtom("low"),
+              nl->SymbolAtom("Low"),
               nl->SymbolAtom(CcInt::BasicType())),
             nl->TwoElemList(
-              nl->SymbolAtom("high"),
+              nl->SymbolAtom("High"),
               nl->SymbolAtom(CcInt::BasicType())))));
   else
     return
@@ -1461,7 +1461,7 @@ ListExpr WindowIntersectsSTypeMap(ListExpr args)
           nl->SymbolAtom(Tuple::BasicType()),
           nl->OneElemList(
             nl->TwoElemList(
-              nl->SymbolAtom("id"),
+              nl->SymbolAtom("Id"),
               nl->SymbolAtom(TupleIdentifier::BasicType())))));
 }
 
@@ -2599,6 +2599,10 @@ ListExpr GetTuples2TypeMap(ListExpr args)
 
   // check whether result attrlist is valid
   if (!listutils::isAttrList(newAttrList)){
+
+    cout << "ResultTupleType is " << nl->ToString(newAttrList) << endl;
+
+
     return listutils::typeError("Result after merging tuples is not a "
                                "valid attribute list (Possible reasons: "
                                "duplicate attribute names or an attribute "
@@ -3957,22 +3961,22 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
     nl->TwoElemList(
      nl->SymbolAtom(Tuple::BasicType()),
      nl->Cons(
-      nl->TwoElemList(nl->SymbolAtom("level"),
+      nl->TwoElemList(nl->SymbolAtom("Level"),
                       nl->SymbolAtom(CcInt::BasicType())),
       nl->Cons(
-       nl->TwoElemList(nl->SymbolAtom("nodeId"),
+       nl->TwoElemList(nl->SymbolAtom("NodeId"),
                        nl->SymbolAtom(CcInt::BasicType())),
        nl->SixElemList(
         nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
-        nl->TwoElemList(nl->SymbolAtom("fatherID"),
+        nl->TwoElemList(nl->SymbolAtom("FatherID"),
                         nl->SymbolAtom(CcInt::BasicType())),
-        nl->TwoElemList(nl->SymbolAtom("isLeaf"),
+        nl->TwoElemList(nl->SymbolAtom("IsLeaf"),
                         nl->SymbolAtom(CcBool::BasicType())),
-        nl->TwoElemList(nl->SymbolAtom("minEntries"),
+        nl->TwoElemList(nl->SymbolAtom("MinEntries"),
                         nl->SymbolAtom(CcInt::BasicType())),
-        nl->TwoElemList(nl->SymbolAtom("maxEntries"),
+        nl->TwoElemList(nl->SymbolAtom("MaxEntries"),
                         nl->SymbolAtom(CcInt::BasicType())),
-        nl->TwoElemList(nl->SymbolAtom("countEntries"),
+        nl->TwoElemList(nl->SymbolAtom("CountEntries"),
                         nl->SymbolAtom(CcInt::BasicType()))
        )
       )
