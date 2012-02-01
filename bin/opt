@@ -17,7 +17,7 @@
                     (
                         (PLZ int) 
                         (Ort string) 
-                        (pkg int))))) 
+                        (Pkg int))))) 
         (TYPE plzrel 
             (tuple 
                 (
@@ -41940,7 +41940,7 @@
             (rel 
                 (tuple 
                     (
-                        (no int)))) 
+                        (No int)))) 
             (
                 (1) 
                 (2) 
@@ -41957,7 +41957,7 @@
             (rel 
                 (tuple 
                     (
-                        (no int)))) 
+                        (No int)))) 
             (
                 (1) 
                 (2) 

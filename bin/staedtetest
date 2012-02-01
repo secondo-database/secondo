@@ -628,7 +628,7 @@
             (rel 
                 (tuple 
                     (
-                        (no int)))) 
+                        (No int)))) 
             (
                 (1) 
                 (2) 
@@ -645,7 +645,7 @@
             (rel 
                 (tuple 
                     (
-                        (no int) 
-                        (no_old int) 
+                        (No int) 
+                        (No_old int) 
                         (TID tid)))) 
             ())))
