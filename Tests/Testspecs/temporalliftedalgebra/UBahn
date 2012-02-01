@@ -6,7 +6,7 @@
             (
                 (Name string) 
                 (Typ string) 
-                (geoData line)))) 
+                (GeoData line)))) 
     (
         ("U1,U12,U15" "Zone A" 
             (

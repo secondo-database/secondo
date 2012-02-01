@@ -68,8 +68,8 @@ let ur4 = [const ureal value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)
 
 let r = [const real value 0.0];
 
-(create ten : (rel(tuple((no int)))));
-(update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
+(create ten : (rel(tuple((No int)))));
+(update ten := ((rel(tuple((No int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
 restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 

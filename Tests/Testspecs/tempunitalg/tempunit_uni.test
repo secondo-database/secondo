@@ -98,10 +98,10 @@ let ureg = [const uregion value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FAL
 
 let spiral = [const region value ((( (1200.0 1300.0) (1300.0 1300.0) (1300.0 1400.0) (1100.0 1400.0)  (1100.0 1100.0) (1500.0 1100.0) (1500.0 1500.0) (1600.0 1500.0) (1600.0 1000.0) (1000.0 1000.0) (1000.0 1500.0) (1400.0 1500.0) (1400.0 1200.0) (1200.0 1200.0) )((1025.0 1025.0)(1075.0 1025.0)(1075.0 1075.0)(1025.0 1075.0)))(((1600.0 1600.0)(1700.0 1600.0)(1700.0 1700.0)(1600.0 1700.0))) (((1035.0  1035.0)(1065.0 1035.0)(1065.0 1065.0)(1035.0 1065.0))) )]
 
-let uspiral = units(move(up1 feed the_mvalue, spiral)) transformstream extract[elem]
+let uspiral = units(move(up1 feed the_mvalue, spiral)) transformstream extract[Elem]
 
-(create ten : (rel(tuple((no int)))));
-(update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
+(create ten : (rel(tuple((No int)))));
+(update ten := ((rel(tuple((No int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
 restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 
@@ -117,19 +117,19 @@ let inst3 = [const instant value undefined];
 
 #testcase makemvalue EMPTY INPUT
 #yields (mpoint ())
-query units([const mpoint value ()]) transformstream makemvalue[elem]
+query units([const mpoint value ()]) transformstream makemvalue[Elem]
 
 #testcase makemvalue UNDEF in INPUT
 #yields (mpoint ())
-query [const upoint value undefined] feed transformstream makemvalue[elem]
+query [const upoint value undefined] feed transformstream makemvalue[Elem]
 
 #testcase makemvalue SORTED INPUT
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
-query units(zug5) transformstream makemvalue[elem]
+query units(zug5) transformstream makemvalue[Elem]
 
 #testcase makemvalue SHUFFLED INPUT
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
-query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] makemvalue[elem]
+query units(zug5) transformstream extend[No: randint(1000)] sortby[No asc] makemvalue[Elem]
 
 ##################
 #   the_mvalue   #
@@ -149,7 +149,7 @@ query units(zug5) the_mvalue
 
 #testcase the_mvalue SHUFFLED INPUT
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5AsResult
-query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] project[elem] transformstream the_mvalue
+query units(zug5) transformstream extend[No: randint(1000)] sortby[No asc] project[Elem] transformstream the_mvalue
 
 
 ##################
@@ -180,18 +180,18 @@ query up3 atinstant [const instant value "2003-11-20-06:30"]
 query up1 atinstant [const instant value undef]
 
 #testcase atperiods upoint
-#yields ((rel (tuple ( (elem upoint)))) ( (   (   ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1916.666666666667 1916.666666666667 1833.333333333333 1833.333333333333))) (   (   ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) (1166.666666666667 1166.666666666667 1083.333333333334 1083.333333333334)))))
+#yields ((rel (tuple ( (Elem upoint)))) ( (   (   ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1916.666666666667 1916.666666666667 1833.333333333333 1833.333333333333))) (   (   ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) (1166.666666666667 1166.666666666667 1083.333333333334 1083.333333333334)))))
 query (up1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE)
 ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
 
 #testcase atperiods undef_upoint
-#yields ((rel (tuple ( (elem upoint)))) ( ))
+#yields ((rel (tuple ( (Elem upoint)))) ( ))
 query (up3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ] ) transformstream consume
 
 
 # as there are no undef-periods values, we use empt-periods here:
 #testcase atperiods upoint undef_periods
-#yields ((rel (tuple ( (elem upoint)))) ( ))
+#yields ((rel (tuple ( (Elem upoint)))) ( ))
 query (up1 atperiods [const periods value ( ) ] ) transformstream consume
 
 #testcase initial_up
@@ -251,7 +251,7 @@ query (up3 at p) the_mvalue
 query (up2 at p3) the_mvalue
 
 #testcase at_up_rg
-#yields ((rel (tuple ((elem upoint))))(((("2003-11-20-06:18" "2003-11-20-06:24" TRUE TRUE)(1700.0 1700.0 1600.0 1600.0)))((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))((("2003-11-20-06:36" "2003-11-20-06:48" TRUE TRUE)(1400.0 1400.0 1200.0 1200.0)))((("2003-11-20-06:54" "2003-11-20-06:55:30" TRUE TRUE)(1100.0 1100.0 1075.0 1075.0)))((("2003-11-20-06:56:06" "2003-11-20-06:57:54" TRUE TRUE)(1065.0 1065.0 1035.0 1035.0)))(( ("2003-11-20-06:58:30" "2003-11-20-07:00" TRUE FALSE) (1025.0 1025.0 1000.0 1000.0)))))
+#yields ((rel (tuple ((Elem upoint))))(((("2003-11-20-06:18" "2003-11-20-06:24" TRUE TRUE)(1700.0 1700.0 1600.0 1600.0)))((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))((("2003-11-20-06:36" "2003-11-20-06:48" TRUE TRUE)(1400.0 1400.0 1200.0 1200.0)))((("2003-11-20-06:54" "2003-11-20-06:55:30" TRUE TRUE)(1100.0 1100.0 1075.0 1075.0)))((("2003-11-20-06:56:06" "2003-11-20-06:57:54" TRUE TRUE)(1065.0 1065.0 1035.0 1035.0)))(( ("2003-11-20-06:58:30" "2003-11-20-07:00" TRUE FALSE) (1025.0 1025.0 1000.0 1000.0)))))
 query (up1 at spiral) transformstream consume
 
 #testcase passes TRUE
@@ -367,11 +367,11 @@ query distance( ur1, -1.0 ) the_mvalue
 
 
 #testcase atmax_ureal ur1
-#yields ((rel (tuple ((elem ureal))))(((("2000-01-05" "2000-01-05" TRUE TRUE)(0.0 0.0 15.0 FALSE)))))
+#yields ((rel (tuple ((Elem ureal))))(((("2000-01-05" "2000-01-05" TRUE TRUE)(0.0 0.0 15.0 FALSE)))))
 query atmax(ur1) transformstream consume
 
 #testcase atmax_ureal ur2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02-23:59:59.900" "2000-01-02-23:59:59.900" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-02-23:59:59.900" "2000-01-02-23:59:59.900" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
 query atmax(ur2) transformstream consume
 
 #testcase atmax_ureal ur3
@@ -379,11 +379,11 @@ query atmax(ur2) transformstream consume
 query atmax(ur3) count
 
 #testcase atmin_ureal ur1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
 query atmin(ur1) transformstream consume
 
 #testcase atmin_ureal ur2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (0.0 0.0 -1.000002314820173 FALSE)))))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-03-00:00:00.100" "2000-01-03-00:00:00.100" TRUE TRUE) (0.0 0.0 -1.000002314820173 FALSE)))))
 query atmin(ur2) transformstream consume
 
 #testcase atmin_ureal ur3
@@ -391,11 +391,11 @@ query atmin(ur2) transformstream consume
 query atmin(ur3) count
 
 #testcase at_ureal ur1 def 1
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-01" "2000-01-01" TRUE TRUE) (0.0 0.0 -1.0 FALSE)))))
 query (ur1 at [const real value -1.0]) transformstream consume
 
 #testcase at_ureal ur1 def 2
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (0.0 0.0 3.0 FALSE))) ))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-03" "2000-01-03" TRUE TRUE) (0.0 0.0 3.0 FALSE))) ))
 query (ur1 at [const real value 3.0]) transformstream consume
 
 #testcase at_ureal ureal-undef def
@@ -510,56 +510,56 @@ query ur1 atinstant [const instant value undef]
 
 
 #testcase atperiods_uconst BOTHINSIDE
-#yields ((rel (tuple ( (elem uint))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 1500)) ((("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) 1500) ) ) )
+#yields ((rel (tuple ( (Elem uint))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 1500)) ((("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE) 1500) ) ) )
 query (ui1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ]) transformstream consume
 
 #testcase atperiods_uconst ONEAHALFINSIDE
-#yields ((rel (tuple ( (elem uint))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 1500)) ((("2003-11-20-06:50" "2003-11-20-07:00" TRUE FALSE) 1500) ) ) )
+#yields ((rel (tuple ( (Elem uint))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 1500)) ((("2003-11-20-06:50" "2003-11-20-07:00" TRUE FALSE) 1500) ) ) )
 query (ui1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-08:55" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_uconst ONEINSIDE
-#yields ((rel (tuple ( (elem uint)))) (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 1500)) ) )
+#yields ((rel (tuple ( (Elem uint)))) (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) 1500)) ) )
 query (ui1 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-08:50" "2003-11-20-09:55" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_uconst OUTSIDE
-#yields ((rel (tuple ( (elem uint)))) () )
+#yields ((rel (tuple ( (Elem uint)))) () )
 query (ui1 atperiods [const periods value ( ("2001-11-20-06:05" "2002-11-20-06:10" TRUE FALSE) ("2004-11-20-06:50" "2005-11-20-07:00" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_uconst uconst-undef
-#yields ((rel (tuple ( (elem uint)))) ( ) )
+#yields ((rel (tuple ( (Elem uint)))) ( ) )
 query (ui3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ]) transformstream consume
 
 #testcase atperiods_uconst periods-empty
-#yields ((rel (tuple ( (elem uint)))) ( ) )
+#yields ((rel (tuple ( (Elem uint)))) ( ) )
 query (ui1 atperiods [const periods value ( ) ]) transformstream consume
 
 
 #testcase atperiods_ureal BOTHINSIDE
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-06:55" FALSE TRUE) (1.0 1.069444444444444 1.035927854938272 TRUE)) ) ) )
+#yields ((rel (tuple ( (Elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-06:55" FALSE TRUE) (1.0 1.069444444444444 1.035927854938272 TRUE)) ) ) )
 query (ur4 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" FALSE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal ONEAHALFINSIDE
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" TRUE FALSE) (1.0 1.069444444444444 1.035927854938272 TRUE)) ) ) )
+#yields ((rel (tuple ( (Elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" TRUE FALSE) (1.0 1.069444444444444 1.035927854938272 TRUE)) ) ) )
 query (ur4 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-08:55" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal ONEINSIDE
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ) )
+#yields ((rel (tuple ( (Elem ureal))))  (((("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) (1.0 1.006944444444444 1.003484278549383 TRUE))) ) )
 query (ur4 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-08:50" "2003-11-20-09:55" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal OUTSIDE
-#yields ((rel (tuple ( (elem ureal)))) () )
+#yields ((rel (tuple ( (Elem ureal)))) () )
 query (ur4 atperiods [const periods value ( ("2001-11-20-06:05" "2002-11-20-06:10" TRUE FALSE) ("2004-11-20-06:50" "2005-11-20-07:00" TRUE TRUE)) ]) transformstream consume
 
 #testcase atperiods_ureal ureal-undef
-#yields ((rel (tuple ( (elem ureal)))) ( ) )
+#yields ((rel (tuple ( (Elem ureal)))) ( ) )
 query  (ur3 atperiods [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ]) transformstream consume
 
 #testcase atperiods_ureal periods-empty
-#yields ((rel (tuple ( (elem ureal)))) ( ) )
+#yields ((rel (tuple ( (Elem ureal)))) ( ) )
 query (ur4 atperiods [const periods value ( ) ]) transformstream consume
 
 #testcase atperiods_ureal MANYCASES
-#yields ((rel (tuple ( (elem ureal))))  (((("2003-11-20-06:00" "2003-11-20-06:05" TRUE FALSE) (1.0 1.0 1.0 TRUE))) ((("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) (1.0 1.006944444444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" FALSE FALSE) (1.0 1.06944444444444445 1.035927854938272 TRUE))) ) )
+#yields ((rel (tuple ( (Elem ureal))))  (((("2003-11-20-06:00" "2003-11-20-06:05" TRUE FALSE) (1.0 1.0 1.0 TRUE))) ((("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) (1.0 1.006944444444444444 1.003484278549383 TRUE))) ((("2003-11-20-06:50" "2003-11-20-07:00" FALSE FALSE) (1.0 1.06944444444444445 1.035927854938272 TRUE))) ) )
 query (ur4 atperiods [const periods value ( ("2003-11-20-05:05" "2003-11-20-05:10" TRUE TRUE) ("2003-11-20-05:55" "2003-11-20-06:05" TRUE FALSE) ("2003-11-20-06:05" "2003-11-20-06:10" FALSE FALSE) ("2003-11-20-06:50" "2003-11-20-07:55" FALSE TRUE) ("2003-11-20-07:59" "2003-11-20-08:55" FALSE TRUE) ) ]) transformstream consume
 
 
@@ -772,7 +772,7 @@ query intersection(ui3, ui2) count
 query intersection(ui1, ui2) count
 
 #testcase intersection_uconst_uconst NONEMPTY
-#yields ((rel (tuple ( (elem uint)))) (((("2003-11-20-06:30" "2003-11-20-07:00" TRUE FALSE) 1000))))
+#yields ((rel (tuple ( (Elem uint)))) (((("2003-11-20-06:30" "2003-11-20-07:00" TRUE FALSE) 1000))))
 query intersection(ui2, ui4) transformstream consume
 
 
@@ -791,7 +791,7 @@ query intersection(ur3, r) count
 query intersection(ur1, [const real value -500000.0]) count
 
 #testcase intersection_ureal_real NONEMPTY
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE)))))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE)))))
 query intersection(ur1, r) transformstream consume
 
 
@@ -809,7 +809,7 @@ query intersection(r, ur3) count
 query intersection([const real value -500000.0], ur1) count
 
 #testcase intersection_real_ureal NONEMPTY
-#yields ((rel (tuple ( (elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE)))))
+#yields ((rel (tuple ( (Elem ureal)))) (((("2000-01-02" "2000-01-02" TRUE TRUE) (0.0 0.0 0.0 FALSE)))))
 query intersection(r, ur1) transformstream consume
 
 
@@ -861,7 +861,7 @@ query intersection(up1,p3) count
 query intersection(up4,p) count
 
 #testcase intersection_upoint_point NONEMPTY
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
 query intersection(up1,p) transformstream consume
 
 
@@ -879,7 +879,7 @@ query intersection(p,up3) count
 query intersection(p,up5) count
 
 #testcase intersection_point_upoint NONEMPTY
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(1500.0 1500.0 1500.0 1500.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(1500.0 1500.0 1500.0 1500.0)))))
 query intersection(p,up6) transformstream consume
 
 
@@ -897,7 +897,7 @@ query intersection(up2,up3) count
 query intersection(up2,up5) count
 
 #testcase intersection_upoint_upoint NONEMPTY
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE)(1500.0 1500.0 1500.0 1500.0)))))
 query intersection(up1,up2) transformstream consume
 
 
@@ -916,23 +916,23 @@ query intersection(up3, line2) count
 query intersection(up9, line1) count
 
 #testcase intersection_upoint_line SINGLE POINT
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))))
 query intersection(up2, line1) transformstream consume
 
 #testcase intersection_upoint_line SINGLE LINE
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0)))))
 query intersection(up1, line4) transformstream consume
 
 #testcase intersection_upoint_line MIXED
 #yields (mpoint ((("2003-11-20-06:00:36" "2003-11-20-06:06" TRUE TRUE) (1010.0 1010.0 1100.0 1100.0)) (("2003-11-20-06:36" "2003-11-20-06:36" TRUE TRUE) (1600.0 1600.0 1600.0 1600.0)) (("2003-11-20-06:38:26.139" "2003-11-20-06:38:26.139" TRUE TRUE) (1640.594166666667 1640.594166666667 1640.594166666667 1640.594166666667)) (("2003-11-20-06:48" "2003-11-20-07:00" TRUE FALSE) (1800.0 1800.0 2000.0 2000.0))))
-query intersection(up2, line2) transformstream makemvalue[elem]
+query intersection(up2, line2) transformstream makemvalue[Elem]
 
 #testcase intersection_upoint_line collinearCoherentSegments
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-06:48" TRUE TRUE) (1000.0 1000.0 1800.0 1800.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-06:48" TRUE TRUE) (1000.0 1000.0 1800.0 1800.0)))))
 query intersection(up2, line5) transformstream consume
 
 #testcase intersection_upoint_line overlappingSegments
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0)))))
 query intersection(up2, line6) transformstream consume
 
 
@@ -950,23 +950,23 @@ query intersection(line2, up3) count
 query intersection(line1, up9) count
 
 #testcase intersection_line_upoint SINGLE POINT
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:30" "2003-11-20-06:30" TRUE TRUE) (1500.0 1500.0 1500.0 1500.0)))))
 query intersection(line1, up2) transformstream consume
 
 #testcase intersection_line_upoint SINGLE LINE
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (2000.0 2000.0 1000.0 1000.0)))))
 query intersection(line4, up1) transformstream consume
 
 #testcase intersection_line_upoint MIXED
 #yields (mpoint ((("2003-11-20-06:00:36" "2003-11-20-06:06" TRUE TRUE) (1010.0 1010.0 1100.0 1100.0)) (("2003-11-20-06:36" "2003-11-20-06:36" TRUE TRUE) (1600.0 1600.0 1600.0 1600.0)) (("2003-11-20-06:38:26.139" "2003-11-20-06:38:26.139" TRUE TRUE) (1640.594166666667 1640.594166666667 1640.594166666667 1640.594166666667)) (("2003-11-20-06:48" "2003-11-20-07:00" TRUE FALSE) (1800.0 1800.0 2000.0 2000.0))))
-query intersection(line2, up2) transformstream makemvalue[elem]
+query intersection(line2, up2) transformstream makemvalue[Elem]
 
 #testcase intersection_line_upoint collinearCoherentSegments
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-06:48" TRUE TRUE) (1000.0 1000.0 1800.0 1800.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-06:48" TRUE TRUE) (1000.0 1000.0 1800.0 1800.0)))))
 query intersection(line5, up2) transformstream consume
 
 #testcase intersection_line_upoint overlappingSegments
-#yields ((rel (tuple ( (elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0)))))
+#yields ((rel (tuple ( (Elem upoint)))) (((("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) (1000.0 1000.0 2000.0 2000.0)))))
 query intersection(line6, up2) transformstream consume
 
 
@@ -1447,11 +1447,11 @@ query abs(ur3) the_mvalue
 
 ##testcase COMPLEX1 aggregateB
 ##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
-#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregateB[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregateB[Elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
 
 ##testcase COMPLEX2 aggregate
 ##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory
-#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregate[elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
+#query units(zug5) use[fun(ZZ:STREAMELEM) trajectory(ZZ)] transformstream aggregate[Elem; fun(XX:line, YY:line) union_new(XX, YY); [const line value ()]];
 
 ##testcase COMPLEX3 aggregateS
 ##yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5Trajectory

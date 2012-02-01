@@ -45,8 +45,8 @@ let p = [const point value (1500.0 1500.0)];
 let ci = [const int value 1000];
 let ui1 = [const uint value (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE) 1500)];
 
-(create ten : (rel(tuple((no int)))));
-(update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
+(create ten : (rel(tuple((No int)))));
+(update ten := ((rel(tuple((No int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
 restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 
@@ -60,7 +60,7 @@ restore zug5 from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5';
 query ui1 feed count;
 
 #testcase transformstream_S_TS
-#yields ((rel (tuple ((elem int)))) ((1) (2) (3) (4) (5) (6) (7) (8) (9) (10)))
+#yields ((rel (tuple ((Elem int)))) ((1) (2) (3) (4) (5) (6) (7) (8) (9) (10)))
 query intstream(1,10) transformstream consume;
 
 #testcase transformstream_TS_S
@@ -68,11 +68,11 @@ query intstream(1,10) transformstream consume;
 query ten feed transformstream filter[. >7] count;
 
 #testcase transformstream_TS_S_TS
-#yields ((rel (tuple ((elem int)))) ((8) (9) (10)))
+#yields ((rel (tuple ((Elem int)))) ((8) (9) (10)))
 query ten feed transformstream filter[. >7] transformstream consume;
 
 #testcase feed transformstream consume
-#yields ((rel (tuple ((elem int)))) ((1000)))
+#yields ((rel (tuple ((Elem int)))) ((1000)))
 query ci feed transformstream consume;
 
 #testcase use_SN 1
@@ -80,7 +80,7 @@ query ci feed transformstream consume;
 query intstream(1,100000) use[ fun(i:STREAMELEM) i*i ] count;
 
 #testcase use_SN 2
-#yields ((rel (tuple ((elem int)))) ((1) (4) (9) (16) (25) (36)))
+#yields ((rel (tuple ((Elem int)))) ((1) (4) (9) (16) (25) (36)))
 query intstream(1,6) use[ fun(i:STREAMELEM) i*i ] transformstream consume;
 
 #testcase use_SS 1
@@ -88,7 +88,7 @@ query intstream(1,6) use[ fun(i:STREAMELEM) i*i ] transformstream consume;
 query intstream(1,6) use[ fun(i:int) intstream(i,5) ] count;
 
 #testcase use_SS 2
-#yields ((rel (tuple ((elem int)))) ((1) (2) (3) (4) (5) (2) (3) (4) (5) (3) (4) (5) (4) (5) (5)))
+#yields ((rel (tuple ((Elem int)))) ((1) (2) (3) (4) (5) (2) (3) (4) (5) (3) (4) (5) (4) (5) (5)))
 query intstream(1,6) use[ fun(i:STREAMELEM) intstream(i,5) ] transformstream consume;
 
 #testcase use2_SNN
@@ -96,7 +96,7 @@ query intstream(1,6) use[ fun(i:STREAMELEM) intstream(i,5) ] transformstream con
 query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
 
 #testcase use2_SNN_2
-#yields ((rel (tuple ((elem int)))) ((4) (5) (6) (7)  (8)))
+#yields ((rel (tuple ((Elem int)))) ((4) (5) (6) (7)  (8)))
 query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
 
 #testcase use2_SNS 1
@@ -104,7 +104,7 @@ query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) 
 query intstream(1,5) [const int value 5] use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
 
 #testcase use2_SNS 2
-#yields ((rel (tuple ((elem int)))) ((1) (2) (3) (4) (5) (2) (3) (4) (5) (3) (4) (5) (4) (5) (5) ))
+#yields ((rel (tuple ((Elem int)))) ((1) (2) (3) (4) (5) (2) (3) (4) (5) (3) (4) (5) (4) (5) (5) ))
 query intstream(1,5) [const int value 5] use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
 
 #testcase use2_NSN 1
@@ -112,7 +112,7 @@ query intstream(1,5) [const int value 5] use2[ fun(i:STREAMELEM, j:STREAMELEM2) 
 query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
 
 #testcase use2_NSN 2
-#yields ((rel (tuple ((elem int)))) ((4) (5) (6) (7) (8) ))
+#yields ((rel (tuple ((Elem int)))) ((4) (5) (6) (7) (8) ))
 query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
 
 #testcase use2_NSS 1
@@ -120,7 +120,7 @@ query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) 
 query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
 
 #testcase use2_NSS 2
-#yields ((rel (tuple ((elem int)))) ( (3) (3) (4) (3) (4) (5) ) )
+#yields ((rel (tuple ((Elem int)))) ( (3) (3) (4) (3) (4) (5) ) )
 query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
 
 #testcase use2_SSN 1
@@ -128,7 +128,7 @@ query [const int value 3] intstream(1,5) use2[ fun(i:STREAMELEM, j:STREAMELEM2) 
 query intstream(6,15) intstream(3,12) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] count;
 
 #testcase use2_SSN 2
-#yields ((rel (tuple ((elem int)))) ( (2) (3) (4) (3) (4) (5) (4) (5) (6) ) )
+#yields ((rel (tuple ((Elem int)))) ( (2) (3) (4) (3) (4) (5) (4) (5) (6) ) )
 query intstream(1,3) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ] transformstream consume;
 
 #testcase use2_SSS 1
@@ -136,7 +136,7 @@ query intstream(1,3) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) i+j ]
 query intstream(1,2) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] count;
 
 #testcase use2_SSS 2
-#yields ((rel (tuple ((elem int)))) ((1) (1) (2) (1) (2) (3) (2) (2) (3)))
+#yields ((rel (tuple ((Elem int)))) ((1) (1) (2) (1) (2) (3) (2) (2) (3)))
 query intstream(1,2) intstream(1,3) use2[ fun(i:STREAMELEM, j:STREAMELEM2) intstream(i,j) ] transformstream consume;
 
 #testcase aggregateS 1
@@ -170,7 +170,7 @@ query intstream(1,5) aggregateS[ fun(i:STREAMELEM, j:STREAMELEM) i+j ; 15];
 #testcase makemvalue
 #tolerance_real 0.001
 #yields @$(SECONDO_BUILD_DIR)/Tests/Testspecs/tempunitalg/zug5_res
-query units(zug5) transformstream makemvalue[elem];
+query units(zug5) transformstream makemvalue[Elem];
 
 
 #######################

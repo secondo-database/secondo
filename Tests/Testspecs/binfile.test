@@ -36,9 +36,9 @@ open database binfiletest;
   (rel
     (tuple
       (
-        (no int)
-        (file binfile)
-        (name string)
+        (No int)
+        (File binfile)
+        (Name string)
       )
     )
   )
@@ -50,9 +50,9 @@ open database binfiletest;
   (rel
     (tuple
       (
-        (no int)
-        (file binfile)
-        (name string)
+        (No int)
+        (File binfile)
+        (Name string)
       )
     )
   )
@@ -73,7 +73,7 @@ query b saveto "tmp/b.tmp";
 
 #testcase binfile2
 #yields (int 2)
-query relFile feed filter[.file saveto ("tmp/" + .name)] count;
+query relFile feed filter[.File saveto ("tmp/" + .Name)] count;
 
 #teardown
 close database;

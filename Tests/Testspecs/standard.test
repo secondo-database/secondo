@@ -390,7 +390,7 @@ query "myrel" relcount2
 query "this is a test" keywords count;
 
 #testcase keywords2
-#yields ((rel(tuple((elem string))))(("this")("is")("a")("test")))
+#yields ((rel(tuple((Elem string))))(("this")("is")("a")("test")))
 query "this is a test" keywords transformstream consume;
 
 #tolerance_real 0.000001

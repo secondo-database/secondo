@@ -77,7 +77,7 @@
                 (tuple 
                     (
                         (Num real) 
-                        (positiv bool)))) 
+                        (Positiv bool)))) 
             (
                 ( 9899.09 TRUE )
                 ( -6758.98 FALSE ) 

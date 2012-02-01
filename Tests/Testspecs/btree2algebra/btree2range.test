@@ -3,7 +3,7 @@ delete database btree2test;
 #setup btree2rangetest BTree2Algebra
 
 create database btree2test;
-restore database btree2test from btree2testDB;
+restore database btree2test from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/btree2algebra/btree2testDB';
 
 let b1 = Staedte createbtree[Bev];
 let x1 = Staedte createbtree2[Bev];
@@ -15,12 +15,12 @@ let x6 = Staedte feed createbtree2[0.77, 60, Bev, SName, uniqueKey];
 let x7 = Staedte feed createbtree2[0.77, 60, Bev, SName, uniqueKeyMultiData];
 let x8 = Staedte feed createbtree2[0.77, 60, SName, none, uniqueKey];
 let x9 = RealNumbers feed addid createbtree2[Num, 0.80, 20];
-let x10 = RealNumbers feed addid createbtree2[positiv, 0.80, 20];
+let x10 = RealNumbers feed addid createbtree2[Positiv, 0.80, 20];
 let x11 = RealNumbers feed createbtree2[0.67, 80, Num, none, uniqueKey];
-let x12 = RealNumbers feed createbtree2[0.75, 20, positiv, none, uniqueKey];
-let x13 = RealNumbers feed createbtree2[0.75, 20, positiv, Num, uniqueKeyMultiData];
-let x14 = RealNumbers feed createbtree2[0.67, 80, positiv, none, multiple];
-let x15 = RealNumbers feed createbtree2[0.50, 40, positiv, Num, multiple];
+let x12 = RealNumbers feed createbtree2[0.75, 20, Positiv, none, uniqueKey];
+let x13 = RealNumbers feed createbtree2[0.75, 20, Positiv, Num, uniqueKeyMultiData];
+let x14 = RealNumbers feed createbtree2[0.67, 80, Positiv, none, multiple];
+let x15 = RealNumbers feed createbtree2[0.50, 40, Positiv, Num, multiple];
 
 
 #testcase exactmatch2TypeMapError1
@@ -72,7 +72,7 @@ query x3 exactmatchS[Staedte] consume;
 query x3 exactmatchS[239000] Staedte gettuples consume;
 
 #testcase exactmatchSExample2
-#yields ((rel (tuple ((Num real)(positiv bool))))((-7894.14 FALSE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((-7894.14 FALSE)))
 query x9 exactmatchS[-7894.14] RealNumbers gettuples consume;
 
 #testcase exactmatchSExample3
@@ -100,7 +100,7 @@ query x3 Num exactmatch[111000] consume;
 query x3 Staedte exactmatch[111000] consume;
 
 #testcase exactmatchExample2
-#yields ((rel (tuple ((Num real)(positiv bool))))((6435.26 TRUE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((6435.26 TRUE)))
 query x9 RealNumbers exactmatch[6435.26] consume;
 
 #testcase exactmatchExample3
@@ -196,7 +196,7 @@ query x3 rangeS[150000, 160000] Staedte gettuples project[Bev] consume;
 query x3 rangeS[150000, 152000] Staedte gettuples project[Bev] consume;
 
 #testcase rangeSExample6
-#yields ((rel (tuple ((Num real)(positiv bool))))((2.05 TRUE)(2.33 TRUE)(2.43 TRUE)(2.45 TRUE)(3.48 TRUE)(4.38 TRUE)(4.95 TRUE)(5.15 TRUE)(6.75 TRUE)(7.29 TRUE)(7.4 TRUE)(7.52 TRUE)(7.52 TRUE)(8.16 TRUE)(9.95 TRUE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((2.05 TRUE)(2.33 TRUE)(2.43 TRUE)(2.45 TRUE)(3.48 TRUE)(4.38 TRUE)(4.95 TRUE)(5.15 TRUE)(6.75 TRUE)(7.29 TRUE)(7.4 TRUE)(7.52 TRUE)(7.52 TRUE)(8.16 TRUE)(9.95 TRUE)))
 query x9 rangeS[0., 10.] RealNumbers gettuples consume;
 
 #testcase rangeTypeMapError1
@@ -220,7 +220,7 @@ query x3 Num range[111000, 150000] consume;
 query x3 Staedte range[110001, 112000] consume;
 
 #testcase rangeExample2
-#yields ((rel (tuple ((Num real)(positiv bool))))((6435.26 TRUE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((6435.26 TRUE)))
 query x9 RealNumbers range[6400., 6500.] consume;
 
 #testcase rangeExample3
@@ -228,7 +228,7 @@ query x9 RealNumbers range[6400., 6500.] consume;
 query x10 RealNumbers range[TRUE, TRUE] count;
 
 #testcase rangeExample4
-#yields ((rel (tuple ((Num real)(positiv bool))))((2.05 TRUE)(2.33 TRUE)(2.43 TRUE)(2.45 TRUE)(3.48 TRUE)(4.38 TRUE)(4.95 TRUE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((2.05 TRUE)(2.33 TRUE)(2.43 TRUE)(2.45 TRUE)(3.48 TRUE)(4.38 TRUE)(4.95 TRUE)))
 query x9 RealNumbers range[0., 5.] consume;
 
 #testcase leftrange2TypeMapError1
@@ -320,7 +320,7 @@ query x3 leftrangeS[120000] Staedte gettuples project[Bev] consume;
 query x3 leftrangeS[75000] Staedte gettuples project[Bev] consume;
 
 #testcase leftrangeSExample6
-#yields ((rel (tuple ((Num real)(positiv bool))))((-9920.1 FALSE)(-9707.42 FALSE)(-7894.14 FALSE)(-7849.87 FALSE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((-9920.1 FALSE)(-9707.42 FALSE)(-7894.14 FALSE)(-7849.87 FALSE)))
 query x9 leftrangeS[-7500.] RealNumbers gettuples consume;
 
 #testcase leftrangeTypeMapError1
@@ -344,7 +344,7 @@ query x3 Num leftrange[100] consume;
 query x3 Staedte leftrange[100000] consume;
 
 #testcase leftrangeExample2
-#yields ((rel (tuple ((Num real)(positiv bool))))((-9920.1 FALSE)(-9707.42 FALSE)(-7894.14 FALSE)(-7849.87 FALSE)(-7032.53 FALSE)(-6758.98 FALSE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((-9920.1 FALSE)(-9707.42 FALSE)(-7894.14 FALSE)(-7849.87 FALSE)(-7032.53 FALSE)(-6758.98 FALSE)))
 query x9 RealNumbers leftrange[-6500.] consume;
 
 #testcase leftrangeExample3
@@ -352,7 +352,7 @@ query x9 RealNumbers leftrange[-6500.] consume;
 query x10 RealNumbers leftrange[FALSE] count;
 
 #testcase leftrangeExample4
-#yields ((rel (tuple ((Num real)(positiv bool))))())
+#yields ((rel (tuple ((Num real)(Positiv bool))))())
 query x9 RealNumbers leftrange[-10000.] consume;
 
 #testcase rightrange2TypeMapError1
@@ -444,7 +444,7 @@ query x3 rightrangeS[850000] Staedte gettuples project[Bev] consume;
 query x3 rightrangeS[3500000] Staedte gettuples project[Bev] consume;
 
 #testcase rightrangeSExample6
-#yields ((rel (tuple ((Num real)(positiv bool))))((8283.02 TRUE)(8680.31 TRUE)(9013.67 TRUE)(9236.93 TRUE)(9899.09 TRUE)))
+#yields ((rel (tuple ((Num real)(Positiv bool))))((8283.02 TRUE)(8680.31 TRUE)(9013.67 TRUE)(9236.93 TRUE)(9899.09 TRUE)))
 query x9 rightrangeS[7500.] RealNumbers gettuples consume;
 
 #testcase rightrangeTypeMapError1
@@ -476,7 +476,7 @@ query x9 RealNumbers rightrange[0.] count;
 query x10 RealNumbers rightrange[FALSE] count;
 
 #testcase rightrangeExample4
-#yields ((rel (tuple ((Num real)(positiv bool))))())
+#yields ((rel (tuple ((Num real)(Positiv bool))))())
 query x9 RealNumbers rightrange[9999.99] consume;
 
 

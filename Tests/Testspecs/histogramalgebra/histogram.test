@@ -18,8 +18,8 @@ delete database testhistdb;
 create database testhistdb;
 open database testhistdb;
 
-restore test1drel from histdata1d;
-restore test2drel from histdata2d;
+restore test1drel from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/histogramalgebra/histdata1d';
+restore test2drel from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/histogramalgebra/histdata2d';
 
 # *
 # * Create data in the test database
@@ -73,15 +73,15 @@ let h2d10 = [const histogram2d value((-2.3 5.9)(0.0 3.9)(0.0))];
 let h2d11 = [const histogram2d value((-8.4 -3.2 0.0 0.85 34.9 710.3 712.0)(-42.0 8.12 14.0 16.5 24.0 52.1)(0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0 13.0 14.0 15.0 16.0 17.0 18.0 19.0 20.0 21.0 22.0 23.0 24.0 25.0 26.0 27.0 28.0 29.0))];
 #let h2d12 = realstream(0.0, 10000.0, 1.0) realstream(0.0, 10000.0, 1.0) set_histogram2d;
 
-let h2covar = intstream(1, 100000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram2d_equiwidth[elem, elem, 10, 10]
+let h2covar = intstream(1, 100000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram2d_equiwidth[Elem, Elem, 10, 10]
 
-let h2covar2 = realstream(-10.0, 10.0, 0.0600) transformstream {a} realstream(-20.0, 0.0, 0.0600) transformstream {b} product create_histogram2d_equicount[elem_a, elem_b, 10, 10]
+let h2covar2 = realstream(-10.0, 10.0, 0.0600) transformstream {a} realstream(-20.0, 0.0, 0.0600) transformstream {b} product create_histogram2d_equicount[Elem_a, Elem_b, 10, 10]
 
-let h2covar3 = realstream(-10.0, 10.0, 0.0600) transformstream {a} realstream(-20.0, 0.0, 0.0600) transformstream {b} product create_histogram2d_equicount[elem_b, elem_a, 10, 10]
+let h2covar3 = realstream(-10.0, 10.0, 0.0600) transformstream {a} realstream(-20.0, 0.0, 0.0600) transformstream {b} product create_histogram2d_equicount[Elem_b, Elem_a, 10, 10]
 
-let h2covar4 = realstream(-3500.0, 3500.0, 0.031425926) transformstream {a} realstream(-1112.5, 1400.0, 423.43) transformstream {b} product create_histogram2d_equiwidth[elem_a, elem_b, 120, 30]
+let h2covar4 = realstream(-3500.0, 3500.0, 0.031425926) transformstream {a} realstream(-1112.5, 1400.0, 423.43) transformstream {b} product create_histogram2d_equiwidth[Elem_a, Elem_b, 120, 30]
 
-let h2covar5 = realstream(-3500.0, 3500.0, 0.031425926) transformstream {a} realstream(-1112.5, 1400.0, 423.43) transformstream {b} product create_histogram2d_equiwidth[elem_b, elem_a, 30, 120]
+let h2covar5 = realstream(-3500.0, 3500.0, 0.031425926) transformstream {a} realstream(-1112.5, 1400.0, 423.43) transformstream {b} product create_histogram2d_equiwidth[Elem_b, Elem_a, 30, 120]
 
 # *
 # * Test cases written in this pattern:
@@ -446,19 +446,19 @@ query h200 = h100;
 
 #testcase h1dCreateTypeError
 #yields error
-query intstream(0, 4) transformstream create_histogram1d[elem, h102];
+query intstream(0, 4) transformstream create_histogram1d[Elem, h102];
 
 #testcase h1dCreateOkTestcase
 #yields (histogram1d ((0.0 2.0 4.0 6.0 8.0 10.0)(2.0 2.0 1.0 0.0 0.0)))
-query realstream(0.0, 4.0, 1.0) transformstream create_histogram1d[elem, h102];
+query realstream(0.0, 4.0, 1.0) transformstream create_histogram1d[Elem, h102];
 
 #testcase h1dCreateEmptyStreamDontMatterTestcase
 #yields (histogram1d ((0.0 2.0 4.0 6.0 8.0 10.0)(0.0 0.0 0.0 0.0 0.0)))
-query realstream(1.0, 0.0, 1.0) transformstream create_histogram1d[elem, h102];
+query realstream(1.0, 0.0, 1.0) transformstream create_histogram1d[Elem, h102];
 
 #testcase h1dCreateNegativeValuesTestcase
 #yields (histogram1d ((0.0 2.0 4.0 6.0 8.0 10.0)(0.0 0.0 0.0 0.0 0.0)))
-query realstream(-10.0, -5.0, 1.0) transformstream create_histogram1d[elem, h102];
+query realstream(-10.0, -5.0, 1.0) transformstream create_histogram1d[Elem, h102];
 
 #testcase h1dCreateEqualValuesTestcase
 #yields (histogram1d ((0.0 2.0 4.0 6.0 8.0 10.0)(5.0 0.0 0.0 0.0 0.0)))
@@ -466,11 +466,11 @@ query testrelCH feed head[5] create_histogram1d[Attr2, h102];
 
 #testcase h1dCreateOneNegativeValueTestcase
 #yields (histogram1d ((0.0 2.0 4.0 6.0 8.0 10.0)(0.0 0.0 0.0 0.0 0.0)))
-query realstream(-1.0, -1.0, 1.0) transformstream create_histogram1d[elem, h102];
+query realstream(-1.0, -1.0, 1.0) transformstream create_histogram1d[Elem, h102];
 
 #testcase h1dCreateLoadTest
 #yields success
-query realstream(0.0, 1000.0, 0.001) transformstream create_histogram1d[elem, h101];
+query realstream(0.0, 1000.0, 0.001) transformstream create_histogram1d[Elem, h101];
 
 # *
 # * create_histogram2d
@@ -478,19 +478,19 @@ query realstream(0.0, 1000.0, 0.001) transformstream create_histogram1d[elem, h1
 
 #testcase h2dCreateIntValuesTestcase
 #yields error
-query intstream(0, 10) transformstream {a} intstream(100, 110) transformstream {b} symmproduct create_histogram2d[elem_a, elem_b, h202];
+query intstream(0, 10) transformstream {a} intstream(100, 110) transformstream {b} symmproduct create_histogram2d[Elem_a, Elem_b, h202];
 
 #testcase h2dCreateOkTestcase
 #yields (histogram2d((0.0 0.1 0.2)(100.0 200.0 300.0)(20.0 20.0 20.0 20.0)))
-query realstream(0.0, 0.2, 0.05) transformstream {a} realstream(100.0, 300.0, 10.0) transformstream {b} symmproduct create_histogram2d[elem_a, elem_b, h201];
+query realstream(0.0, 0.2, 0.05) transformstream {a} realstream(100.0, 300.0, 10.0) transformstream {b} symmproduct create_histogram2d[Elem_a, Elem_b, h201];
 
 #testcase h2dCreateEmptyStreamDontMatterTestcase
 #yields (histogram2d((0.0 0.1 0.2)(100.0 200.0 300.0)(0.0 0.0 0.0 0.0)))
-query realstream(1.0, 0.0, 1.0) transformstream {a} realstream(1.0, 0.0, 1.0) transformstream {b} symmproduct create_histogram2d[elem_a, elem_b, h201];
+query realstream(1.0, 0.0, 1.0) transformstream {a} realstream(1.0, 0.0, 1.0) transformstream {b} symmproduct create_histogram2d[Elem_a, Elem_b, h201];
 
 #testcase h2dCreateNegativeValuesTestcase
 #yields (histogram2d((-0.2 -0.1 0.0)(-300.0 -200.0 -100.0)(20.0 20.0 20.0 20.0)))
-query realstream(-2.0, 0.0, 0.05) transformstream {a} realstream(-300.0, -100.0, 10.0) transformstream {b} symmproduct create_histogram2d[elem_a, elem_b, h202];
+query realstream(-2.0, 0.0, 0.05) transformstream {a} realstream(-300.0, -100.0, 10.0) transformstream {b} symmproduct create_histogram2d[Elem_a, Elem_b, h202];
 
 #testcase h2dCreateEqualValuesTestcase
 #yields (histogram2d((0.0 0.1 0.2)(100.0 200.0 300.0)(0.0 0.0 5.0 0.0)))
@@ -498,7 +498,7 @@ query testrelCH feed head[5] create_histogram2d[Attr2, Attr3, h201];
 
 #testcase h2dCreateLoadTest
 #yields success
-query realstream(-1000.0, 1000.0, 1.0) transformstream {a} realstream(-1000.0, 1000.0, 1.0) transformstream {b} symmproduct create_histogram2d[elem_a, elem_b, h2d9];
+query realstream(-1000.0, 1000.0, 1.0) transformstream {a} realstream(-1000.0, 1000.0, 1.0) transformstream {b} symmproduct create_histogram2d[Elem_a, Elem_b, h2d9];
 
 # *
 # * create_histogram1d_equiwidth and create_histogram2d_equiwidth
@@ -506,91 +506,91 @@ query realstream(-1000.0, 1000.0, 1.0) transformstream {a} realstream(-1000.0, 1
 
 #testcase h1dEquiWidthTestcase
 #yields (histogram1d ((0.0 1.0 2.0 3.0 4.0 5.0000001)(1.0 1.0 1.0 1.0 2.0)))
-query realstream(0.0, 5.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 5]
+query realstream(0.0, 5.0, 1.0) transformstream create_histogram1d_equiwidth[Elem, 5]
 
 #testcase h1dEquiWidth2Testcase
 #yields (histogram1d ((0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0000001)(1.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0 1.0 1.0)))
-query realstream(0.0, 5.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 10]
+query realstream(0.0, 5.0, 1.0) transformstream create_histogram1d_equiwidth[Elem, 10]
 
 #testcase h1dEquiWidthUndefTestcase
 #yields (histogram1d undefined)
-query realstream(5.0, 0.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 10]
+query realstream(5.0, 0.0, 1.0) transformstream create_histogram1d_equiwidth[Elem, 10]
 
 #testcase h1dEquiWidth3Testcase
 #yields (histogram1d ((1.0 1.0000001) (1.0)))
-query realstream(1.0, 1.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 5]
+query realstream(1.0, 1.0, 1.0) transformstream create_histogram1d_equiwidth[Elem, 5]
 
 #testcase h1dEquiWidthTestcase
 #yields (histogram1d ((-5.0 -4.0 -3.0 -2.0 -1.0 0.0000001)(1.0 1.0 1.0 1.0 2.0)))
-query realstream(0.0, -5.0, -1.0) transformstream create_histogram1d_equiwidth[elem, 5]
+query realstream(0.0, -5.0, -1.0) transformstream create_histogram1d_equiwidth[Elem, 5]
 
 #testcase h1dEquiWidth2Testcase
 #yields (histogram1d ((-5.0 -4.0 -3.0 -2.0 -1.0 0.0000001)(1.0 1.0 1.0 1.0 2.0)))
-query realstream(0.0, -5.0, -1.0) transformstream real(undefined) feed transformstream concat create_histogram1d_equiwidth[elem, 5]
+query realstream(0.0, -5.0, -1.0) transformstream real(undefined) feed transformstream concat create_histogram1d_equiwidth[Elem, 5]
 
 #testcase h1dEquiWidthErrorTestcase
 #yields error
-query intstream(0, 5, 1) transformstream create_histogram1d_equiwidth[elem, 10]
+query intstream(0, 5, 1) transformstream create_histogram1d_equiwidth[Elem, 10]
 
 #testcase h1dEquiWidthError2Testcase
 #yields error
-query intstream(0, 5, 1) create_histogram1d_equiwidth[elem, 10]
+query intstream(0, 5, 1) create_histogram1d_equiwidth[Elem, 10]
 
 #testcase h1dEquiWidthError3Testcase
 #yields error
-query realstream(5.0, 10.0, 1.0) create_histogram1d_equiwidth[elem, 10]
+query realstream(5.0, 10.0, 1.0) create_histogram1d_equiwidth[Elem, 10]
 
 #testcase h2dEquiWidthTestcase
 #yields (histogram2d ((-2.0 -1.2 -0.4 0.4 1.2 2.0000001)(-2.0 -1.2 -0.4 0.4 1.2 2.0000001)(1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0)))
-query realstream(-2.0, 2.0, 1.0) transformstream {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(-2.0, 2.0, 1.0) transformstream {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5]
 
 #testcase h2dEquiWidth2Testcase
 #yields (histogram2d ((-2.0 -1.2 -0.4 0.4 1.2 2.0000001)(-2.0 -1.2 -0.4 0.4 1.2 2.0000001)(1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0)))
-query realstream(-2.0, 2.0, 1.0) transformstream real(undefined) feed transformstream concat {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(-2.0, 2.0, 1.0) transformstream real(undefined) feed transformstream concat {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5]
 
 #testcase h2dEquiWidth3Testcase
 #yields (histogram2d ((-1.0 -0.99999899)(-1.0 -0.99999899)(1.0)))
-query realstream(-1.0, -1.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  5, 5]
+query realstream(-1.0, -1.0, -1.0) transformstream create_histogram2d_equiwidth[Elem, Elem,  5, 5]
 
 #testcase h2dEquiWidthUndefTestcase
 #yields (histogram2d undefined)
-query realstream(2.0, -2.0, 1.0) transformstream {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(2.0, -2.0, 1.0) transformstream {a} realstream(-2.0, 2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5]
 
 #testcase h2dEquiWidthUndef2Testcase
 #yields (histogram2d undefined)
-query realstream(-2.0, 2.0, 1.0) transformstream {a} realstream(2.0, -2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(-2.0, 2.0, 1.0) transformstream {a} realstream(2.0, -2.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5]
 
 #testcase h2dEquiWidthErrorTestcase
 #yields error
-query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, Val,  5, 5]
+query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[Elem, Val,  5, 5]
 
 #testcase h2dEquiWidthError2Testcase
 #yields error
-query instream(0, 5, 1) transformstream create_histogram2d_equiwidth[elem, elem, 50, 50]
+query instream(0, 5, 1) transformstream create_histogram2d_equiwidth[Elem, Elem, 50, 50]
 
 #testcase h2dEquiWidthError3Testcase
 #yields error
-query instream(0, 5, 1) transformstream {a} realstream(1.0, 32.3, 1.2) transformstream symmproduct create_histogram2d_equiwidth[elem_a, elem, 50, 50]
+query instream(0, 5, 1) transformstream {a} realstream(1.0, 32.3, 1.2) transformstream symmproduct create_histogram2d_equiwidth[Elem_a, Elem, 50, 50]
 
 #testcase h2dEquiWidthError4Testcase
 #yields error
-query instream(0, 5, 1) transformstream {a} realstream(1.0, 32.3, 1.2) transformstream symmproduct create_histogram2d_equiwidth[elem, elem_a, 50, 50]
+query instream(0, 5, 1) transformstream {a} realstream(1.0, 32.3, 1.2) transformstream symmproduct create_histogram2d_equiwidth[Elem, Elem_a, 50, 50]
 
 #testcase h2dEquiWidthUndef3Testcase
 #yields (histogram2d undefined)
-query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  -5, 5]
+query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[Elem, Elem,  -5, 5]
 
 #testcase h2dEquiWidthUndef4Testcase
 #yields (histogram2d undefined)
-query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  0, 5]
+query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[Elem, Elem,  0, 5]
 
 #testcase h2dEquiWidthUndef5Testcase
 #yields (histogram2d undefined)
-query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  5, -5]
+query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[Elem, Elem,  5, -5]
 
 #testcase h2dEquiWidthUndef6Testcase
 #yields (histogram2d undefined)
-query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[elem, elem,  5, 0]
+query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[Elem, Elem,  5, 0]
 
 # *
 # * <
@@ -598,15 +598,15 @@ query realstream(0.0, -5.0, -1.0) transformstream create_histogram2d_equiwidth[e
 
 #testcase h1dLessThanTestcase
 #yields (bool TRUE)
-query realstream(-10.0, 10.0, 2.0) transformstream create_histogram1d_equiwidth[elem, 4] < realstream(-10.0, 10.0, 2.0) transformstream realstream(-10.0, 10.0, 2.0) transformstream concat create_histogram1d_equiwidth[elem, 4]
+query realstream(-10.0, 10.0, 2.0) transformstream create_histogram1d_equiwidth[Elem, 4] < realstream(-10.0, 10.0, 2.0) transformstream realstream(-10.0, 10.0, 2.0) transformstream concat create_histogram1d_equiwidth[Elem, 4]
 
 #testcase h1dLessThan2Testcase
 #yields (bool FALSE)
-query realstream(-10.0, 10.0, 2.0) transformstream create_histogram1d_equiwidth[elem, 8] < realstream(-10.0, 10.0, 2.0) transformstream realstream(-10.0, 10.0, 2.0) transformstream concat create_histogram1d_equiwidth[elem, 4]
+query realstream(-10.0, 10.0, 2.0) transformstream create_histogram1d_equiwidth[Elem, 8] < realstream(-10.0, 10.0, 2.0) transformstream realstream(-10.0, 10.0, 2.0) transformstream concat create_histogram1d_equiwidth[Elem, 4]
 
 #testcase h1dLessThan3Testcase
 #yields (bool FALSE)
-query realstream(-10.0, 10.0, 2.0) transformstream create_histogram1d_equiwidth[elem, 4] < realstream(-10.0, 10.0, 2.0) transformstream realstream(-10.0, 10.0, 2.0) transformstream concat create_histogram1d_equiwidth[elem, 8]
+query realstream(-10.0, 10.0, 2.0) transformstream create_histogram1d_equiwidth[Elem, 4] < realstream(-10.0, 10.0, 2.0) transformstream realstream(-10.0, 10.0, 2.0) transformstream concat create_histogram1d_equiwidth[Elem, 8]
 
 #testcase h1dLessThan4Testcase
 #yields (bool FALSE)
@@ -614,7 +614,7 @@ query h100 < h100;
 
 #testcase h1dLessThanUndefinedTestcase
 #yields (bool FALSE)
-query realstream(120.0, 10.0, 2.0) transformstream create_histogram1d_equicount[elem, 10] < realstream(1.0, 0.0, 1.0) transformstream create_histogram1d_equiwidth[elem, 10]
+query realstream(120.0, 10.0, 2.0) transformstream create_histogram1d_equicount[Elem, 10] < realstream(1.0, 0.0, 1.0) transformstream create_histogram1d_equiwidth[Elem, 10]
 
 #testcase h1dLessThanErrorTestcase
 #yields error
@@ -622,11 +622,11 @@ query h100 < h200
 
 #testcase h2dLessThanTestcase
 #yields (bool TRUE)
-query realstream(-124.0, 125.3, 2.43) transformstream {a} realstream(-124.0, 125.3, 2.43) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5] < realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {a} realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(-124.0, 125.3, 2.43) transformstream {a} realstream(-124.0, 125.3, 2.43) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5] < realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {a} realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5]
 
 #testcase h2dLessThanTestcase
 #yields (bool FALSE)
-query realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {a} realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5] < realstream(-124.0, 125.3, 2.43) transformstream {a} realstream(-124.0, 125.3, 2.43) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 5, 5]
+query realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {a} realstream(-124.0, 125.3, 2.43) transformstream realstream(-124.0, 125.3, 2.43) transformstream concat {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5] < realstream(-124.0, 125.3, 2.43) transformstream {a} realstream(-124.0, 125.3, 2.43) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 5, 5]
 
 #testcase h2dLessThan3Testcase
 #yields (bool FALSE)
@@ -711,11 +711,11 @@ query h1use h1use usehistogram2[;fun(r1: real, r2: real) r1 + r2]
 
 #testcase h1dUse22Testcase
 #yields (histogram1d ((-143.23 -80.4 -17.57 45.26 108.09 170.92 233.75 296.58)(962.0 1198.5 1147.5 1198.5 1147.5 1147.5 1198.5)))
-query realstream(-143.23, 320.0, 1.23) transformstream create_histogram1d[elem, histfine1d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram1d[elem, histcoarse1d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
+query realstream(-143.23, 320.0, 1.23) transformstream create_histogram1d[Elem, histfine1d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram1d[Elem, histcoarse1d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
 
 #testcase h1dUse23Testcase
 #yields (histogram1d ((-143.23 -80.4 -17.57 45.26 108.09 170.92 233.75 296.58)(962.0 1198.5 1147.5 1198.5 1147.5 1147.5 1198.5)))
-query realstream(-143.23, 320.0, 1.23) transformstream create_histogram1d[elem, histcoarse1d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram1d[elem, histfine1d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
+query realstream(-143.23, 320.0, 1.23) transformstream create_histogram1d[Elem, histcoarse1d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram1d[Elem, histfine1d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
 
 #testcase h1dUse2UndefTestcase
 #yields (histogram1d undefined)
@@ -747,11 +747,11 @@ query h2use h2use usehistogram2[;fun(r1: real, r2: real) r1 + r2]
 
 #testcase h2dUse22Testcase
 #yields (histogram2d ((-143.23 -80.4 -17.57 45.26 108.09 170.92 233.75 296.58)(-250.0 -187.17 -124.34 -61.51 1.32 64.15 126.98)(0.0 56.0 558.0 0.0 0.0 0.0 0.0 0.0 112.5 594.0 0.0 0.0 0.0 0.0 0.0 97.5 594.0 0.0 0.0 0.0 0.0 0.0 112.5 594.0 0.0 0.0 0.0 0.0 0.0 97.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)))
-query realstream(-143.23, 320.0, 1.23) transformstream create_histogram2d[elem, elem, histfine2d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram2d[elem, elem, histcoarse2d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
+query realstream(-143.23, 320.0, 1.23) transformstream create_histogram2d[Elem, Elem, histfine2d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram2d[Elem, Elem, histcoarse2d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
 
 #testcase h2dUse23Testcase
 #yields (histogram2d ((-143.23 -80.4 -17.57 45.26 108.09 170.92 233.75 296.58)(-250.0 -187.17 -124.34 -61.51 1.32 64.15 126.98)(0.0 56.0 558.0 0.0 0.0 0.0 0.0 0.0 112.5 594.0 0.0 0.0 0.0 0.0 0.0 97.5 594.0 0.0 0.0 0.0 0.0 0.0 112.5 594.0 0.0 0.0 0.0 0.0 0.0 97.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)))
-query realstream(-143.23, 320.0, 1.23) transformstream create_histogram2d[elem, elem, histcoarse2d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram2d[elem, elem, histfine2d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
+query realstream(-143.23, 320.0, 1.23) transformstream create_histogram2d[Elem, Elem, histcoarse2d] realstream(-130.2, 300.0, 2.8) transformstream create_histogram2d[Elem, Elem, histfine2d] usehistogram2[0.5; fun(r1: real, r2: real, r3: real) r1 * r2 + r3]
 
 #testcase h2dUse2UndefTestcase
 #yields (histogram2d undefined)
@@ -2333,11 +2333,11 @@ query h2undef find_maxbin ensure[0]
 
 #testcase MeanTestcase
 #yields (bool TRUE)
-query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(0.75) + 10.0] transformstream create_histogram1d_equiwidth[elem, 100] mean - 10.0)< 0.75
+query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(0.75) + 10.0] transformstream create_histogram1d_equiwidth[Elem, 100] mean - 10.0)< 0.75
 
 #testcase Mean2Testcase
 #yields (bool TRUE)
-query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(1.75) + 5.0] transformstream create_histogram1d_equiwidth[elem, 100] mean - 5.0)< 1.75
+query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(1.75) + 5.0] transformstream create_histogram1d_equiwidth[Elem, 100] mean - 5.0)< 1.75
 
 #testcase Mean3Testcase
 #yields (real 0.0)
@@ -2361,11 +2361,11 @@ query h2d1 mean
 
 #testcase MeanXTestcase
 #yields (bool TRUE)
-query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(0.75) + 10.0] transformstream create_histogram2d_equiwidth[elem, elem, 100, 100] meanX - 10.0)< 0.75
+query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(0.75) + 10.0] transformstream create_histogram2d_equiwidth[Elem, Elem, 100, 100] meanX - 10.0)< 0.75
 
 #testcase MeanX2Testcase
 #yields (bool TRUE)
-query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(1.75) + 5.0] transformstream create_histogram2d_equiwidth[elem, elem, 100, 100] meanX - 5.0)< 1.75
+query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(1.75) + 5.0] transformstream create_histogram2d_equiwidth[Elem, Elem, 100, 100] meanX - 5.0)< 1.75
 
 #testcase MeanX3Testcase
 #yields (real -1.3166667)
@@ -2389,11 +2389,11 @@ query h1d1 meanX
 
 #testcase MeanYTestcase
 #yields (bool TRUE)
-query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(0.75) + 10.0] transformstream create_histogram2d_equiwidth[elem, elem, 100, 100] meanY - 10.0)< 0.75
+query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(0.75) + 10.0] transformstream create_histogram2d_equiwidth[Elem, Elem, 100, 100] meanY - 10.0)< 0.75
 
 #testcase MeanY2Testcase
 #yields (bool TRUE)
-query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(1.75) + 5.0] transformstream create_histogram2d_equiwidth[elem, elem, 100, 100] meanY - 5.0)< 1.75
+query (intstream(1, 100000) use[fun(i1:int) rng_gaussian(1.75) + 5.0] transformstream create_histogram2d_equiwidth[Elem, Elem, 100, 100] meanY - 5.0)< 1.75
 
 #testcase MeanY3Testcase
 #yields (real 1.3166667)
@@ -2508,7 +2508,7 @@ query sqrt(binvariance1d4) < 0.05;
 
 #testcase create_histogram1d_equicount_binvariance_10000->10
 #yields success
-let equihist1d11 = intstream(1, 10000) use[ fun(i1:int) rng_gaussian(100.0) ] transformstream create_histogram1d_equicount[elem, 10];
+let equihist1d11 = intstream(1, 10000) use[ fun(i1:int) rng_gaussian(100.0) ] transformstream create_histogram1d_equicount[Elem, 10];
 let binmean1d11 = (equihist1d11 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (no_components( equihist1d11 ));
 let binvariance1d11 = (equihist1d11 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean1d11 ) * ( p2 - binmean1d11 )); 0.0 ]) / (no_components( equihist1d11 ) - 1);
 
@@ -2517,7 +2517,7 @@ query sqrt(binvariance1d11) < 0.05;
 
 #testcase create_histogram1d_equicount_binvariance_10000->100
 #yields success
-let equihist1d12 = intstream(1, 10000) use[ fun(i1:int) rng_gaussian(100.0) ] transformstream create_histogram1d_equicount[elem, 100];
+let equihist1d12 = intstream(1, 10000) use[ fun(i1:int) rng_gaussian(100.0) ] transformstream create_histogram1d_equicount[Elem, 100];
 let binmean1d12 = (equihist1d12 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (no_components( equihist1d12 ));
 let binvariance1d12 = (equihist1d12 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean1d12 ) * ( p2 - binmean1d12 )); 0.0 ]) / (no_components( equihist1d12 ) - 1);
 
@@ -2526,7 +2526,7 @@ query sqrt(binvariance1d12) < 0.05;
 
 #testcase create_histogram1d_equicount_binvariance_10000->1000
 #yields success
-let equihist1d13 = intstream(1, 10000) use[ fun(i1:int) rng_gaussian(100.0) ] transformstream create_histogram1d_equicount[elem, 1000];
+let equihist1d13 = intstream(1, 10000) use[ fun(i1:int) rng_gaussian(100.0) ] transformstream create_histogram1d_equicount[Elem, 1000];
 let binmean1d13 = (equihist1d13 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (no_components( equihist1d13 ));
 let binvariance1d13 = (equihist1d13 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean1d13 ) * ( p2 - binmean1d13 )); 0.0 ]) / (no_components( equihist1d13 ) - 1);
 
@@ -2641,7 +2641,7 @@ query sqrt(binvariance2d4) < 10.0;
 
 #testcase create_histogram2d_equicount_binvariance_1000000->10x10
 #yields success
-let equihist2d11 = intstream(1, 1000) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 1000) use[ fun(i2:int) rng_gaussian(1.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ elem_a, elem_b, 10, 10 ];
+let equihist2d11 = intstream(1, 1000) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 1000) use[ fun(i2:int) rng_gaussian(1.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ Elem_a, Elem_b, 10, 10 ];
 let binmean2d11 = (equihist2d11 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (binsX( equihist2d11 ) * (binsY( equihist2d11 )));
 let binvariance2d11 = (equihist2d11 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean2d11 ) * ( p2 - binmean2d11 )); 0.0 ]) / ((binsX( equihist2d11 ) * binsY( equihist2d11 )) - 1);
 
@@ -2650,7 +2650,7 @@ query sqrt(binvariance2d11) < 0.05;
 
 #testcase create_histogram2d_equicount_binvariance_10000->100x100
 #yields success
-let equihist2d12 = intstream(1, 100) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 100) use[ fun(i2:int) rng_gaussian(100.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ elem_a, elem_b, 100, 100 ];
+let equihist2d12 = intstream(1, 100) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 100) use[ fun(i2:int) rng_gaussian(100.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ Elem_a, Elem_b, 100, 100 ];
 let binmean2d12 = (equihist2d12 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (binsX( equihist2d12 ) * (binsY( equihist2d12 )));
 let binvariance2d12 = (equihist2d12 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean2d12 ) * ( p2 - binmean2d12 )); 0.0 ]) / ((binsX( equihist2d12 ) * binsY( equihist2d12 )) - 1);
 
@@ -2659,7 +2659,7 @@ query sqrt(binvariance2d12) < 0.05;
 
 #testcase create_histogram2d_equicount_binvariance_10000->1000x10
 #yields success
-let equihist2d13 = intstream(1, 100) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 100) use[ fun(i2:int) rng_gaussian(100.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ elem_a, elem_b, 1000, 10 ];
+let equihist2d13 = intstream(1, 100) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 100) use[ fun(i2:int) rng_gaussian(100.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ Elem_a, Elem_b, 1000, 10 ];
 let binmean2d13 = (equihist2d13 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (binsX( equihist2d13 ) * (binsY( equihist2d13 )));
 let binvariance2d13 = (equihist2d13 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean2d13 ) * ( p2 - binmean2d13 )); 0.0 ]) / ((binsX( equihist2d13 ) * binsY( equihist2d13 )) - 1);
 
@@ -2668,7 +2668,7 @@ query sqrt(binvariance2d13) < 0.05;
 
 #testcase create_histogram2d_equicount_binvariance_10000->50x10
 #yields success
-let equihist2d14 = intstream(1, 100) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 100) use[ fun(i2:int) rng_gaussian(100.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ elem_a, elem_b, 1000, 10 ];
+let equihist2d14 = intstream(1, 100) use[ fun(i1:int) rng_gaussian(10.0) ] transformstream {a} intstream(1, 100) use[ fun(i2:int) rng_gaussian(100.0) ] transformstream {b} symmproduct create_histogram2d_equicount[ Elem_a, Elem_b, 1000, 10 ];
 let binmean2d14 = (equihist2d14 fold[ fun(p1: real, p2: real) p1 + p2; 0.0 ]) / (binsX( equihist2d14 ) * (binsY( equihist2d14 )));
 let binvariance2d14 = (equihist2d14 fold[ fun(p1: real, p2: real) p1 + (( p2 - binmean2d14 ) * ( p2 - binmean2d14 )); 0.0 ]) / ((binsX( equihist2d14 ) * binsY( equihist2d14 )) - 1);
 
@@ -2681,19 +2681,19 @@ query sqrt(binvariance2d14) < 0.05;
 
 #testcase VarianceTestcase
 #yields (bool TRUE)
-query intstream(1, 100000) use[ fun(i1:int) 5.0 ] transformstream create_histogram1d_equiwidth[elem, 10] variance = 0.0
+query intstream(1, 100000) use[ fun(i1:int) 5.0 ] transformstream create_histogram1d_equiwidth[Elem, 10] variance = 0.0
 
 #testcase Variance2Testcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram1d_equicount[elem, 1000000] variance - (0.75 * 0.75)) < 0.0001
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram1d_equicount[Elem, 1000000] variance - (0.75 * 0.75)) < 0.0001
 
 #testcase VarianceTestcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstream create_histogram1d_equicount[elem, 1000000] variance - (12.3 * 12.3)) < 1
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstream create_histogram1d_equicount[Elem, 1000000] variance - (12.3 * 12.3)) < 1
 
 #testcase VarianceTestcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram1d_equicount[elem, 1000] variance - (-7.5 * -7.5)) < 1
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram1d_equicount[Elem, 1000] variance - (-7.5 * -7.5)) < 1
 
 #testcase VarianceUndefTestcase
 #yields (real undefined)
@@ -2709,19 +2709,19 @@ query h2d1 variance
 
 #testcase VarianceXTestcase
 #yields (bool TRUE)
-query intstream(1, 100000) use[ fun(i1:int) 5.0 ] transformstream create_histogram2d_equiwidth[elem, elem, 10, 10] varianceX < 0.0000001
+query intstream(1, 100000) use[ fun(i1:int) 5.0 ] transformstream create_histogram2d_equiwidth[Elem, Elem, 10, 10] varianceX < 0.0000001
 
 #testcase VarianceX2Testcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram2d_equicount[elem, elem, 1000, 1000] varianceX - (0.75 * 0.75)) < 0.1
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram2d_equicount[Elem, Elem, 1000, 1000] varianceX - (0.75 * 0.75)) < 0.1
 
 #testcase VarianceXTestcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstream create_histogram2d_equicount[elem, elem, 1000, 1000] varianceX - (12.3 * 12.3)) < 2
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstream create_histogram2d_equicount[Elem, Elem, 1000, 1000] varianceX - (12.3 * 12.3)) < 2
 
 #testcase VarianceXTestcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[elem, elem, 333, 333] varianceX - (-7.5 * -7.5)) < 2
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[Elem, Elem, 333, 333] varianceX - (-7.5 * -7.5)) < 2
 
 #testcase VarianceXUndefTestcase
 #yields (real undefined)
@@ -2737,19 +2737,19 @@ query h1d1 varianceX
 
 #testcase VarianceYTestcase
 #yields (bool TRUE)
-query intstream(1, 100000) use[ fun(i1:int) 5.0 ] transformstream create_histogram2d_equiwidth[elem, elem, 10, 10] varianceY < 0.0000001
+query intstream(1, 100000) use[ fun(i1:int) 5.0 ] transformstream create_histogram2d_equiwidth[Elem, Elem, 10, 10] varianceY < 0.0000001
 
 #testcase VarianceY2Testcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram2d_equicount[elem, elem, 1000, 1000] varianceY - (0.75 * 0.75)) < 0.1
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(0.75) ] transformstream create_histogram2d_equicount[Elem, Elem, 1000, 1000] varianceY - (0.75 * 0.75)) < 0.1
 
 #testcase VarianceYTestcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstream create_histogram2d_equicount[elem, elem, 1000, 1000] varianceY - (12.3 * 12.3)) < 10
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(12.3) ] transformstream create_histogram2d_equicount[Elem, Elem, 1000, 1000] varianceY - (12.3 * 12.3)) < 10
 
 #testcase VarianceYTestcase
 #yields (bool TRUE)
-query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[elem, elem, 333, 333] varianceY - (-7.5 * -7.5)) < 10
+query (intstream(1, 1000000) use[ fun(i1:int) rng_gaussian(-7.5) ] transformstream create_histogram2d_equicount[Elem, Elem, 333, 333] varianceY - (-7.5 * -7.5)) < 10
 
 #testcase VarianceYUndefTestcase
 #yields (real undefined)

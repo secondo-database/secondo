@@ -100,7 +100,7 @@ query plz feed puse [. head[5] ] pdelete count
 
 #testcase puse-6
 #yields (int 8) 
-query ten pfeed[10] puse[. filter[.no > 2]] pdelete count;
+query ten pfeed[10] puse[. filter[.No > 2]] pdelete count;
 
 #testcase puse-7
 #yields (int 100) 

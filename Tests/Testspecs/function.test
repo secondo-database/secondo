@@ -103,17 +103,17 @@ query f10 ;
 
 
 #testcase out11; 
-#yields ((map int (stream (tuple ( (elem int))))) (fun (x int) (transformstream (intstream 1 x)))) 
+#yields ((map int (stream (tuple ( (Elem int))))) (fun (x int) (transformstream (intstream 1 x)))) 
 query f11 ; 
 
 
 #testcase out12; 
-#yields ((map int (trel (tuple ( (elem int))))) (fun (x int) (tconsume (f11 x)))) 
+#yields ((map int (trel (tuple ( (Elem int))))) (fun (x int) (tconsume (f11 x)))) 
 query f12 ; 
 
 
 #testcase out13; 
-#yields ((map int (rel (tuple ( (elem int))))) (fun (x int) (consume (f11 x)))) 
+#yields ((map int (rel (tuple ( (Elem int))))) (fun (x int) (consume (f11 x)))) 
 query f13 ; 
 
 # evaluation of functions
@@ -205,7 +205,7 @@ query f11(999) count;
 
 
 #testcase eval11_2
-#yields ((trel (tuple ((elem int))))  ((1) (2) (3)))
+#yields ((trel (tuple ((Elem int))))  ((1) (2) (3)))
 query f11(3) tconsume;
 
 
@@ -215,12 +215,12 @@ query f12(999) count;
 
 
 #testcase eval12_2
-#yields ((trel (tuple ((elem int))))  ((1) (2) (3)))
+#yields ((trel (tuple ((Elem int))))  ((1) (2) (3)))
 query f12(3);
 
 
 #testcase eval13
-#yields ((rel (tuple ((elem int))))  ((1) (2) (3)))
+#yields ((rel (tuple ((Elem int))))  ((1) (2) (3)))
 query f13(3);
 
 
@@ -396,26 +396,26 @@ query 1 whiledo[ . < 2 ; . ; [const bool value undef]] head[1000] count;
 
 #testcase eval_obj_stream
 #yields (int 65)
-query intstream(1,10) transformstream extend[No: f1(.elem)] sum[No];
+query intstream(1,10) transformstream extend[No: f1(.Elem)] sum[No];
 
 
 #testcase eval_stream_stream
 #yields (int 55)
-query intstream(1,10) transformstream extend[No: f3(.elem) count] sum[No];
+query intstream(1,10) transformstream extend[No: f3(.Elem) count] sum[No];
 
 
 #testcase within_stream_stream
 #yields (int 65)
-query intstream(1,10) transformstream extend[ No : .elem  within[ f1(.)]] sum[No];
+query intstream(1,10) transformstream extend[ No : .Elem  within[ f1(.)]] sum[No];
 
 #testcase fun_within_extendstream
 #yields (int 30)
-query intstream(1,10) transformstream extendstream[ No : f7(.elem)] count;
+query intstream(1,10) transformstream extendstream[ No : f7(.Elem)] count;
 
 
 #testcase within_within_extendstream
 #yields (int 55)
-query intstream(1,10) transformstream extendstream[ No : .elem within[ f3(.)] ] count;
+query intstream(1,10) transformstream extendstream[ No : .Elem within[ f3(.)] ] count;
 
 
 #testcase within_within_within

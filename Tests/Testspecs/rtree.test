@@ -26,113 +26,113 @@ restore database rtreetestb from '$(SECONDO_BUILD_DIR)/bin/berlintest';
 
 #open database rtreetestb;
 
-let strassen_geoData_1 = strassen creatertree[geoData];
-let strassen_geoData_2 = strassen feed extend[id: tupleid(.)] creatertree[geoData];
+let strassen_GeoData_1 = strassen creatertree[GeoData];
+let strassen_GeoData_2 = strassen feed extend[Id: tupleid(.)] creatertree[GeoData];
 
-let fluss_FVerlauf_1 = WStrassen creatertree[geoData];
-let fluss_FVerlauf_2 = WStrassen feed extend[id: tupleid(.)] creatertree[geoData];
+let fluss_FVerlauf_1 = WStrassen creatertree[GeoData];
+let fluss_FVerlauf_2 = WStrassen feed extend[Id: tupleid(.)] creatertree[GeoData];
 
-let kreis_Gebiet_1 = Flaechen creatertree[geoData];
-let kreis_Gebiet_2 = Flaechen feed extend[id: tupleid(.)] creatertree[geoData];
+let kreis_Gebiet_1 = Flaechen creatertree[GeoData];
+let kreis_Gebiet_2 = Flaechen feed extend[Id: tupleid(.)] creatertree[GeoData];
 
 
 #testcase test1
 #yields (int 42)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) WStrassen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_a))]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) WStrassen feed filter[bbox(.GeoData) intersects bbox(attr(t, GeoData_a))]] count;
 
 #testcase test2
 #yields (int 42)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 WStrassen windowintersects[attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 WStrassen windowintersects[attr(t, GeoData_a)]] count;
 
 #testcase test3
 #yields (int 42)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 WStrassen windowintersects[attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 WStrassen windowintersects[attr(t, GeoData_a)]] count;
 
 #testcase test4
 #yields (int 42)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 windowintersectsS[attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 windowintersectsS[attr(t, GeoData_a)]] count;
 
 #testcase test5
 #yields (int 42)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 windowintersectsS[attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 windowintersectsS[attr(t, GeoData_a)]] count;
 
 #testcase test6
 #yields (int 17)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) WStrassen feed filter[.geoData intersects attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) WStrassen feed filter[.GeoData intersects attr(t, GeoData_a)]] count;
 
 #testcase test7
 #yields (int 17)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 WStrassen windowintersects[attr(t, geoData_a)]
-  filter[.geoData intersects attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 WStrassen windowintersects[attr(t, GeoData_a)]
+  filter[.GeoData intersects attr(t, GeoData_a)]] count;
 
 #testcase test8
 #yields (int 17)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 WStrassen windowintersects[attr(t, geoData_a)]
-  filter[.geoData intersects attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 WStrassen windowintersects[attr(t, GeoData_a)]
+  filter[.GeoData intersects attr(t, GeoData_a)]] count;
 
 #testcase test9
 #yields (int 17)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 windowintersectsS[attr(t, geoData_a)]
-  WStrassen gettuples filter[.geoData intersects attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_1 windowintersectsS[attr(t, GeoData_a)]
+  WStrassen gettuples filter[.GeoData intersects attr(t, GeoData_a)]] count;
 
 #testcase test10
 #yields (int 17)
-query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 windowintersectsS[attr(t, geoData_a)]
-  WStrassen gettuples filter[.geoData intersects attr(t, geoData_a)]] count;
+query RBahn feed {a} loopjoin[fun(t:TUPLE) fluss_FVerlauf_2 windowintersectsS[attr(t, GeoData_a)]
+  WStrassen gettuples filter[.GeoData intersects attr(t, GeoData_a)]] count;
 
 #testcase test11
 #yields (int 244)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.GeoData) intersects bbox(attr(t, GeoData_X))]] count;
 
 #testcase test12
 #yields (int 244)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Flaechen windowintersects[attr(t, geoData_X)]] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Flaechen windowintersects[attr(t, GeoData_X)]] count;
 
 #testcase test13
 #yields (int 244)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Flaechen windowintersects[attr(t, geoData_X)]] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Flaechen windowintersects[attr(t, GeoData_X)]] count;
 
 #testcase test14
 #yields (int 244)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, geoData_X)]] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, GeoData_X)]] count;
 
 #testcase test15
 #yields (int 244)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, geoData_X)]] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, GeoData_X)]] count;
 
 #testcase test16
 #yields (int 10)
-query Flaechen feed {X} filter[.geoData_X intersects koepenick]
-  loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]
-  filter[.geoData intersects attr(t, geoData_X)]] count;
+query Flaechen feed {X} filter[.GeoData_X intersects koepenick]
+  loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.GeoData) intersects bbox(attr(t, GeoData_X))]
+  filter[.GeoData intersects attr(t, GeoData_X)]] count;
 
 #testcase test17
 #yields (int 10)
-query Flaechen feed {X} filter[.geoData_X intersects koepenick]
-  loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Flaechen windowintersects[attr(t, geoData_X)]
-  filter[.geoData intersects attr(t, geoData_X)]] count;
+query Flaechen feed {X} filter[.GeoData_X intersects koepenick]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_1 Flaechen windowintersects[attr(t, GeoData_X)]
+  filter[.GeoData intersects attr(t, GeoData_X)]] count;
 
 #testcase test18
 #yields (int 10)
-query Flaechen feed {X} filter[.geoData_X intersects koepenick]
-  loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Flaechen windowintersects[attr(t, geoData_X)]
-  filter[.geoData intersects attr(t, geoData_X)]] count;
+query Flaechen feed {X} filter[.GeoData_X intersects koepenick]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_2 Flaechen windowintersects[attr(t, GeoData_X)]
+  filter[.GeoData intersects attr(t, GeoData_X)]] count;
 
 #testcase test19
 #yields (int 10)
-query Flaechen feed {X} filter[.geoData_X intersects koepenick]
-  loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, geoData_X)]
-  Flaechen gettuples filter[.geoData intersects attr(t, geoData_X)]] count;
+query Flaechen feed {X} filter[.GeoData_X intersects koepenick]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_1 windowintersectsS[attr(t, GeoData_X)]
+  Flaechen gettuples filter[.GeoData intersects attr(t, GeoData_X)]] count;
 
 #testcase test20
 #yields (int 10)
-query Flaechen feed {X} filter[.geoData_X intersects koepenick]
-  loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, geoData_X)]
-  Flaechen gettuples filter[.geoData intersects attr(t, geoData_X)]] count;
+query Flaechen feed {X} filter[.GeoData_X intersects koepenick]
+  loopjoin[fun(t: TUPLE) kreis_Gebiet_2 windowintersectsS[attr(t, GeoData_X)]
+  Flaechen gettuples filter[.GeoData intersects attr(t, GeoData_X)]] count;
 
 #teardown
-delete strassen_geoData_1;
-delete strassen_geoData_2;
+delete strassen_GeoData_1;
+delete strassen_GeoData_2;
 delete fluss_FVerlauf_1;
 delete fluss_FVerlauf_2;
 delete kreis_Gebiet_1;

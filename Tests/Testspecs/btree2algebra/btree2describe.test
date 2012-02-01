@@ -3,7 +3,7 @@ delete database btree2test;
 #setup btree2rangetest BTree2Algebra
 
 create database btree2test;
-restore database btree2test from btree2testDB;
+restore database btree2test from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/btree2algebra/btree2testDB';
 
 let b1 = Staedte createbtree[Bev];
 let x1 = Staedte createbtree2[Bev];

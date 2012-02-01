@@ -15,7 +15,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect)))) 
+                        (R rect)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0)) 
@@ -30,7 +30,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect)))) 
+                        (R rect)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0)) 
@@ -47,7 +47,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect)))) 
+                        (R rect)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0)) 
@@ -66,7 +66,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect)))) 
+                        (R rect)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0)) 
@@ -85,7 +85,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect3)))) 
+                        (R rect3)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0 0.0 10.0)) 
@@ -108,7 +108,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect3)))) 
+                        (R rect3)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0 0.0 10.0)) 
@@ -125,7 +125,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect3)))) 
+                        (R rect3)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0 0.0 10.0)) 
@@ -148,7 +148,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect3)))) 
+                        (R rect3)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0 0.0 10.0)) 
@@ -173,7 +173,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect4)))) 
+                        (R rect4)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0 0.0 10.0 0.0 1.0)) 
@@ -196,7 +196,7 @@
             (rel 
                 (tuple 
                     (
-                        (r rect8)))) 
+                        (R rect8)))) 
             (
                 (
                     (0.0 10.0 0.0 10.0 0.0 10.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0 1.0)) 
@@ -223,34 +223,34 @@
                         (Value text) 
                         (UsedObjs text)))) 
             (
-                ("recrel_r_rtree" 
-                    <text>(creatertree recrel r)</text---> 
+                ("recrel_R_rtree" 
+                    <text>(creatertree recrel R)</text---> 
                     <text>( recrel )</text--->) 
-                ("recrel1_r_rtree" 
-                    <text>(creatertree recrel1 r)</text---> 
+                ("recrel1_R_rtree" 
+                    <text>(creatertree recrel1 R)</text---> 
                     <text>( recrel1 )</text--->) 
-                ("recrel2_r_rtree" 
-                    <text>(creatertree recrel2 r)</text---> 
+                ("recrel2_R_rtree" 
+                    <text>(creatertree recrel2 R)</text---> 
                     <text>( recrel2 )</text--->) 
-                ("recrel3_r_rtree" 
-                    <text>(creatertree recrel3 r)</text---> 
+                ("recrel3_R_rtree" 
+                    <text>(creatertree recrel3 R)</text---> 
                     <text>( recrel3 )</text--->) 
-                ("rec3rel_r_rtree" 
-                    <text>(creatertree rec3rel r)</text---> 
+                ("rec3rel_R_rtree" 
+                    <text>(creatertree rec3rel R)</text---> 
                     <text>( rec3rel )</text--->) 
-                ("rec3rel1_r_rtree" 
-                    <text>(creatertree rec3rel1 r)</text---> 
+                ("rec3rel1_R_rtree" 
+                    <text>(creatertree rec3rel1 R)</text---> 
                     <text>( rec3rel1 )</text--->) 
-                ("rec3rel2_r_rtree" 
-                    <text>(creatertree rec3rel2 r)</text---> 
+                ("rec3rel2_R_rtree" 
+                    <text>(creatertree rec3rel2 R)</text---> 
                     <text>( rec3rel2 )</text--->) 
-                ("rec3rel3_r_rtree" 
-                    <text>(creatertree rec3rel3 r)</text---> 
+                ("rec3rel3_R_rtree" 
+                    <text>(creatertree rec3rel3 R)</text---> 
                     <text>( rec3rel3 )</text--->) 
-                ("rec4rel_r_rtree" 
-                    <text>(creatertree rec4rel r)</text---> 
+                ("rec4rel_R_rtree" 
+                    <text>(creatertree rec4rel R)</text---> 
                     <text>( rec4rel )</text--->) 
-                ("rec8rel_r_rtree" 
-                    <text>(creatertree rec8rel r)</text---> 
+                ("rec8rel_R_rtree" 
+                    <text>(creatertree rec8rel R)</text---> 
                     <text>( rec8rel )</text--->) ))
 ))

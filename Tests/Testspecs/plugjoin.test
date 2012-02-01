@@ -26,38 +26,38 @@ open database berlintest;
 
 #testcase test1
 #yields (int 2366)
-query strassen feed {a} WStrassen feed {w} spatialjoin0[geoData_a, geoData_w] count;
+query strassen feed {a} WStrassen feed {w} spatialjoin0[GeoData_a, GeoData_w] count;
 
 #testcase test2
 #yields (bool TRUE)
-query strassen feed {a}  loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[bbox(.geoData_w) intersects bbox(attr(t, geoData_a))]] count =
-      strassen feed {a}  WStrassen feed {w} spatialjoin0[geoData_a, geoData_w] count;
+query strassen feed {a}  loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[bbox(.GeoData_w) intersects bbox(attr(t, GeoData_a))]] count =
+      strassen feed {a}  WStrassen feed {w} spatialjoin0[GeoData_a, GeoData_w] count;
 
 #testcase test3
 #yields (int 198)
-query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.geoData_w intersects attr(t, geoData_a)]] count;
+query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.GeoData_w intersects attr(t, GeoData_a)]] count;
 
 #testcase test4
 #yields (bool TRUE)
-query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.geoData_w intersects attr(t, geoData_a)]] count =
-      strassen feed {a} WStrassen feed {w} spatialjoin0[geoData_a, geoData_w] filter[.geoData_a intersects .geoData_w] count;
+query strassen feed {a} loopjoin[fun(t:TUPLE) WStrassen feed {w} filter[.GeoData_w intersects attr(t, GeoData_a)]] count =
+      strassen feed {a} WStrassen feed {w} spatialjoin0[GeoData_a, GeoData_w] filter[.GeoData_a intersects .GeoData_w] count;
 
 #testcase test7
 #yields (int 244)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.GeoData) intersects bbox(attr(t, GeoData_X))]] count;
 
 #testcase test7
 #yields (bool TRUE)
-query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]] count =
-      Flaechen feed {X} Flaechen feed spatialjoin0[geoData_X, geoData] count;
+query Flaechen feed {X} loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.GeoData) intersects bbox(attr(t, GeoData_X))]] count =
+      Flaechen feed {X} Flaechen feed spatialjoin0[GeoData_X, GeoData] count;
 
 #testcase test17
 #yields (bool TRUE)
-query (Flaechen feed {X} filter[.geoData_X intersects zoogarten]
-       Flaechen feed spatialjoin0[geoData_X, geoData] filter[.geoData_X intersects .geoData] count) =
-      (Flaechen feed {X} filter[.geoData_X intersects zoogarten]
-       loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.geoData) intersects bbox(attr(t, geoData_X))]
-         filter[.geoData intersects attr(t, geoData_X)]] count);
+query (Flaechen feed {X} filter[.GeoData_X intersects zoogarten]
+       Flaechen feed spatialjoin0[GeoData_X, GeoData] filter[.GeoData_X intersects .GeoData] count) =
+      (Flaechen feed {X} filter[.GeoData_X intersects zoogarten]
+       loopjoin[fun(t: TUPLE) Flaechen feed filter[bbox(.GeoData) intersects bbox(attr(t, GeoData_X))]
+         filter[.GeoData intersects attr(t, GeoData_X)]] count);
 
 #teardown
 close database;

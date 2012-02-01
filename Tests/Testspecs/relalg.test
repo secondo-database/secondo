@@ -28,32 +28,32 @@ delete database relalgtest;
 create database relalgtest;
 open database relalgtest;
 
-(create empty : (rel(tuple((no int)))));
-(update empty := ((rel(tuple((no int))))()));
+(create empty : (rel(tuple((No int)))));
+(update empty := ((rel(tuple((No int))))()));
 
-(create two : (rel(tuple((no int)))));
-(update two := ((rel(tuple((no int))))((1)(2))));
+(create two : (rel(tuple((No int)))));
+(update two := ((rel(tuple((No int))))((1)(2))));
 
-(create three : (rel(tuple((no int)))));
-(update three := ((rel(tuple((no int))))((1)(1)(1))));
+(create three : (rel(tuple((No int)))));
+(update three := ((rel(tuple((No int))))((1)(1)(1))));
 
-(create ten : (rel(tuple((no int)))));
-(update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
+(create ten : (rel(tuple((No int)))));
+(update ten := ((rel(tuple((No int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
-(create twenty : (rel(tuple((no int)))));
-(update twenty := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)(14)(15)(16)(17)(18)(19)(20))));
+(create twenty : (rel(tuple((No int)))));
+(update twenty := ((rel(tuple((No int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)(14)(15)(16)(17)(18)(19)(20))));
 
-(create even : (rel(tuple((no int)))));
-(update even := ((rel(tuple((no int))))((2)(4)(6)(8)(10)(12)(14)(16)(18)(20))));
+(create even : (rel(tuple((No int)))));
+(update even := ((rel(tuple((No int))))((2)(4)(6)(8)(10)(12)(14)(16)(18)(20))));
 
-(create odd : (rel(tuple((no int)))));
-(update odd := ((rel(tuple((no int))))((1)(3)(5)(7)(9)(11)(13)(15)(17)(19))));
+(create odd : (rel(tuple((No int)))));
+(update odd := ((rel(tuple((No int))))((1)(3)(5)(7)(9)(11)(13)(15)(17)(19))));
 
-(create duplicates : (rel(tuple((no int)))));
-(update duplicates := ((rel(tuple((no int))))((1)(1)(1)(6)(6)(7)(9)(9)(9)(9))));
+(create duplicates : (rel(tuple((No int)))));
+(update duplicates := ((rel(tuple((No int))))((1)(1)(1)(6)(6)(7)(9)(9)(9)(9))));
 
-(create real : (rel(tuple((no real)))));
-(update real := ((rel(tuple((no real))))((1.0)(3.0)(-6.0)(7.0)(9.0)(0.875)(-9.875)(-23.625))));
+(create real : (rel(tuple((No real)))));
+(update real := ((rel(tuple((No real))))((1.0)(3.0)(-6.0)(7.0)(9.0)(0.875)(-9.875)(-23.625))));
 
 (create Employee :
 	(rel
@@ -187,11 +187,11 @@ query ten feed count2;
 
 #testcase Filter1
 #yields (int 5)
-query ten feed filter[.no > 5] consume count;
+query ten feed filter[.No > 5] consume count;
 
 #testcase Filter2
 #yields (int 0)
-query ten feed head[0] filter[.no > 5] consume count;
+query ten feed head[0] filter[.No > 5] consume count;
 
 #testcase Filter3
 #yields error
@@ -203,7 +203,7 @@ query Staedte feed avg[Bev];
 
 #testcase Average2
 #yields (real -2.328125)
-query real feed avg[no];
+query real feed avg[No];
 
 #testcase Average3
 #yields error
@@ -211,31 +211,31 @@ query Staedte feed avg[SName];
 
 #testcase Average4
 #yields (real undefined)
-query real feed head[0] avg[no];
+query real feed head[0] avg[No];
 
 #testcase Head1
-#yields ((rel(tuple((no int))))((1)(2)(3)(4)(5)))
+#yields ((rel(tuple((No int))))((1)(2)(3)(4)(5)))
 query ten feed head[5] consume;
 
 #testcase Head2
-#yields ((rel(tuple((no int))))())
+#yields ((rel(tuple((No int))))())
 query ten feed head[0] consume;
 
 #testcase Concat1
-#yields ((rel(tuple((no int))))((1)(2)(3)(1)(2)(3)))
+#yields ((rel(tuple((No int))))((1)(2)(3)(1)(2)(3)))
 query ten feed head[3] twenty feed head[3] concat consume;
 
 #testcase Concat2
-#yields ((rel(tuple((no int))))((1)(2)(3)))
+#yields ((rel(tuple((No int))))((1)(2)(3)))
 query ten feed head[0] twenty feed head[3] concat consume;
 
 #testcase Extend1
-#yields ((rel(tuple((no int)(mod2 int))))((1 1)(2 0)(3 1)))
-query ten feed extend[mod2 : .no mod 2] head[3] consume;
+#yields ((rel(tuple((No int)(Mod2 int))))((1 1)(2 0)(3 1)))
+query ten feed extend[Mod2 : .No mod 2] head[3] consume;
 
 #testcase Extend2
-#yields ((rel(tuple((no int)(mod2 int))))())
-query ten feed head[0] extend[mod2 : .no mod 2] head[3] consume;
+#yields ((rel(tuple((No int)(Mod2 int))))())
+query ten feed head[0] extend[Mod2 : .No mod 2] head[3] consume;
 
 #testcase Extract1
 #yields (int 239000)
@@ -251,16 +251,16 @@ query Staedte feed head[1] groupby[SName; SName2: group feed extract[SName]] pro
 
 
 #testcase GroupBy1
-#yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
-query Employee feed sortby_old[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
+#yields ((rel (tuple ((DeptNr int) (Anz int))))((1 2) (2 4) (3 4)))
+query Employee feed sortby_old[DeptNr asc] groupby[DeptNr; Anz : group feed count] consume;
 
 #testcase GroupBy2
-#yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
-query Employee feed sortby_old[DeptNr asc] groupby[DeptNr; anz : group count] consume;
+#yields ((rel (tuple ((DeptNr int) (Anz int))))((1 2) (2 4) (3 4)))
+query Employee feed sortby_old[DeptNr asc] groupby[DeptNr; Anz : group count] consume;
 
 #testcase GroupBy3
-#yields ((rel (tuple ((DeptNr int) (anz int))))())
-query Employee feed head[0] sortby_old[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
+#yields ((rel (tuple ((DeptNr int) (Anz int))))())
+query Employee feed head[0] sortby_old[DeptNr asc] groupby[DeptNr; Anz : group feed count] consume;
 
 #testcase HashJoin1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
@@ -269,8 +269,8 @@ query Employee feed head[0] sortby_old[DeptNr asc] groupby[DeptNr; anz : group f
 query Employee feed Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort_old head[3] consume;
 
 #testcase HashJoin2
-#yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
-query duplicates feed ten feed rename[A] hashjoin[no, no_A, 23] sort_old rdup consume
+#yields ((rel(tuple((No int)(No_A int))))((1 1)(6 6)(7 7)(9 9)))
+query duplicates feed ten feed rename[A] hashjoin[No, No_A, 23] sort_old rdup consume
 
 #testcase HashJoin3
 #yields (int 0)
@@ -292,20 +292,20 @@ query Employee feed head[0] Dept feed head[0] rename[A] hashjoin[DeptNr, DeptNr_
 query Employee feed Dept feed rename[A] sortmergejoin_old[DeptNr, DeptNr_A] sort_old head[3] consume;
 
 #testcase MergeJoin2
-#yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
-query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort_old rdup consume
+#yields ((rel(tuple((No int)(No_A int))))((1 1)(6 6)(7 7)(9 9)))
+query duplicates feed ten feed rename[A] mergejoin[No, No_A] sort_old rdup consume
 
 #testcase MergeJoin3
 #yields (int 0)
-query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[no, no_A] count
+query duplicates feed head[0] ten feed head[0] rename[A] mergejoin[No, No_A] count
 
 #testcase MergeJoin4
 #yields (int 0)
-query duplicates feed ten feed head[0] rename[A] mergejoin[no, no_A] sort_old rdup count
+query duplicates feed ten feed head[0] rename[A] mergejoin[No, No_A] sort_old rdup count
 
 #testcase MergeJoin5
 #yields (int 0)
-query duplicates feed head[0] ten feed rename[A] mergejoin[no, no_A] sort_old rdup count
+query duplicates feed head[0] ten feed rename[A] mergejoin[No, No_A] sort_old rdup count
 
 #testcase SortMergeJoin1
 #yields (int 0)
@@ -334,7 +334,7 @@ query Staedte feed head[0] max[SName];
 
 #testcase Max3
 #yields (real 9.0)
-query real feed max[no];
+query real feed max[No];
 
 #testcase Min1
 #yields (string "Aachen")
@@ -342,7 +342,7 @@ query Staedte feed min[SName];
 
 #testcase Min2
 #yields (real -23.625)
-query real feed min[no];
+query real feed min[No];
 
 #testcase Sum1
 #yields (int 18851000)
@@ -350,7 +350,7 @@ query Staedte feed sum[Bev];
 
 #testcase Sum2
 #yields (real -18.625)
-query real feed sum[no];
+query real feed sum[No];
 
 #testcase Sum3
 #yields (int 0)
@@ -386,11 +386,11 @@ query twenty feed ten feed concat sort_old head[0] rdup count
 
 #testcase Project1
 #yields (int 20)
-query ten feed twenty feed rename[A] product project[no_A] sort_old rdup count
+query ten feed twenty feed rename[A] product project[No_A] sort_old rdup count
 
 #testcase Project2
 #yields (int 0)
-query ten feed head[0] twenty feed rename[A] product project[no_A] sort_old rdup count
+query ten feed head[0] twenty feed rename[A] product project[No_A] sort_old rdup count
 
 #testcase Diff1
 #yields (int 10)

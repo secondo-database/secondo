@@ -3,7 +3,7 @@ delete database rtreetestdb;
 #setup rtreeNodeInfotest RTreeAlgebra
 
 create database rtreetestdb;
-restore database rtreetestdb from rtreetestDB;
+restore database rtreetestdb from '$(SECONDO_BUILD_DIR)//Tests/Testspecs/rtreealgebra/rtreetestDB';
 
 #testcase getRootNodeTypeMapError1
 #yields error
@@ -15,7 +15,7 @@ query getNodeInfo(rec, 2) consume;
 
 # testcase getNodeInfoTypeMapError2
 # yields error
-query getNodeInfo(rec3rel2_r_rtree, root) consume;
+query getNodeInfo(rec3rel2_R_rtree, root) consume;
 
 # testcase getNodeSonsTypeMapError1
 # yields error
@@ -23,7 +23,7 @@ query getNodeSons(rec, 2) consume;
 
 # testcase getNodeSonsTypeMapError2
 # yields error
-query getNodeSons(rec3rel2_r_rtree, root) consume;
+query getNodeSons(rec3rel2_R_rtree, root) consume;
 
 # testcase getLeafEntriesTypeMapError1
 # yields error
@@ -31,69 +31,69 @@ query getLeafEntries(rec, 2) consume;
 
 # testcase getLeafEntriesTypeMapError2
 # yields error
-query getLeafEntries(rec3rel2_r_rtree, root) consume;
+query getLeafEntries(rec3rel2_R_rtree, root) consume;
 
 #testcase getRootNodeExample
 #yields (int 2)
-query getRootNode(recrel_r_rtree);
+query getRootNode(recrel_R_rtree);
 
 #testcase getNodeInfo1
 #yields ((rel (tuple ((NoOfSons int)(MBRoverlapsNo int))))((0 4)))
-query getNodeInfo(recrel_r_rtree, 2) project[NoOfSons, MBRoverlapsNo] consume;
+query getNodeInfo(recrel_R_rtree, 2) project[NoOfSons, MBRoverlapsNo] consume;
 
 #testcase getNodeSons1
 #yields ((rel (tuple ((NodeId int)(SonId int)(SonMBR rect))))((2 undefined undefined)))
-query getNodeSons(recrel_r_rtree, 2) consume;
+query getNodeSons(recrel_R_rtree, 2) consume;
 
 #testcase getLeafEntries1
 #yields ( (rel (tuple ( (NodeId int) (TupleID tid) (EntryMBR rect3)))) ( (2 1 (0.0 10.0 0.0 10.0 0.0 10.0)) (2 2 (10.0 20.0 0.0 10.0 0.0 10.0)) (2 3 (20.0 30.0 0.0 10.0 0.0 10.0)) (2 4 (0.0 10.0 10.0 20.0 0.0 10.0)) (2 5 (0.0 10.0 20.0 30.0 0.0 10.0)) (2 6 (0.0 10.0 0.0 10.0 10.0 20.0)) (2 7 (20.0 30.0 10.0 20.0 0.0 10.0)) (2 8 (20.0 30.0 0.0 10.0 10.0 20.0))))
-query getLeafEntries(rec3rel_r_rtree, 2) consume;
+query getLeafEntries(rec3rel_R_rtree, 2) consume;
 
 #testcase getLeafEntries1
 #yields (int 8)
-query getLeafEntries(rec8rel_r_rtree, 2) count;
+query getLeafEntries(rec8rel_R_rtree, 2) count;
 
 #tolerance_real 0.0009
 
 #testcase getNodeInfo2
 #yields ((rel (tuple ((NodeId int)(MBR rect)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 20.0) 0 TRUE TRUE 600.0 200.0 0.0 4 0.00667)))
-query getNodeInfo(recrel_r_rtree, 2) consume;
+query getNodeInfo(recrel_R_rtree, 2) consume;
 
 #testcase getNodeInfo3
 #yields ((rel (tuple ((NodeId int)(MBR rect)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0) 0 TRUE TRUE 900.0 400.0 0.0 6 0.00555)))
-query getNodeInfo(recrel1_r_rtree, 2) consume;
+query getNodeInfo(recrel1_R_rtree, 2) consume;
 
 #testcase getNodeInfo4
 #yields ((rel (tuple ((NodeId int)(MBR rect)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0) 0 TRUE TRUE 900.0 300.0 0.0 8 0.00667)))
-query getNodeInfo(recrel2_r_rtree, 2) consume;
+query getNodeInfo(recrel2_R_rtree, 2) consume;
 
 #testcase getNodeInfo5
 #yields ((rel (tuple ((NodeId int)(MBR rect)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0) 0 TRUE TRUE 900.0 308.0 0.0 0 0.00667)))
-query getNodeInfo(recrel3_r_rtree, 2) consume;
+query getNodeInfo(recrel3_R_rtree, 2) consume;
 
 #testcase getNodeInfo6
 #yields ((rel (tuple ((NodeId int)(MBR rect3)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0 0.0 20.0) 0 TRUE TRUE 18000.0 10000.0 0.0 13 0.00045)))
-query getNodeInfo(rec3rel_r_rtree, 2) consume;
+query getNodeInfo(rec3rel_R_rtree, 2) consume;
 
 #testcase getNodeInfo7
 #yields ((rel (tuple ((NodeId int)(MBR rect3)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 10.0 0.0 20.0 ) 0 TRUE TRUE 6000.0 1000.0 0.0 6 0.000834)))
-query getNodeInfo(rec3rel1_r_rtree, 2) consume;
+query getNodeInfo(rec3rel1_R_rtree, 2) consume;
 
 #testcase getNodeInfo8
 #yields ((rel (tuple ((NodeId int)(MBR rect3)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0 0.0 20.0) 0 TRUE TRUE 18000.0 10089.8 0.0 0 0.000445)))
-query getNodeInfo(rec3rel2_r_rtree, 2) consume;
+query getNodeInfo(rec3rel2_R_rtree, 2) consume;
 
 #testcase getNodeInfo9
 #yields ((rel (tuple ((NodeId int)(MBR rect3)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (-5.0 35.0 -5.0 35.0 -5.0 25.0) 0 TRUE TRUE 48000.0 0.0 7910.2 8 0.0001875)))
-query getNodeInfo(rec3rel3_r_rtree, 2) consume;
+query getNodeInfo(rec3rel3_R_rtree, 2) consume;
 
 #testcase getNodeInfo10
 #yields ((rel (tuple ((NodeId int)(MBR rect4)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0 0.0 20.0 0.0 1.0) 0 TRUE TRUE 18000.0 10000.0 0.0 13 0.000445)))
-query getNodeInfo(rec4rel_r_rtree, 2) consume;
+query getNodeInfo(rec4rel_R_rtree, 2) consume;
 
 #testcase getNodeInfo11
 #yields ((rel (tuple ((NodeId int)(MBR rect8)(NoOfSons int)(IsLeafNode bool)(IsRootNode bool)(MBRsize real)(MBRdead real)(MBRoverlapSize real)(MBRoverlapsNo int)(MBRdensity real))))((2 (0.0 30.0 0.0 30.0 0.0 20.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0 1.0 0.0 1.0) 0 TRUE TRUE 18000.0 10000.0 0.0 13 0.000445)))
-query getNodeInfo(rec8rel_r_rtree, 2) consume;
+query getNodeInfo(rec8rel_R_rtree, 2) consume;
 
 #teardown
 

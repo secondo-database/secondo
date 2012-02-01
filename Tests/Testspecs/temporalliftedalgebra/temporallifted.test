@@ -130,7 +130,7 @@ query Trains feed head[5] extend[Eq: msnow = snow8] project [Id, Eq] count;
 
 #testcase inside for mregion/points and mregion/line 1
 #yields (int 25)
-query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: mrain inside .geoData_u2] project [Id_t1, Name_u2, Ins] count;
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: mrain inside .GeoData_u2] project [Id_t1, Name_u2, Ins] count;
 
 #testcase inside for mregion/points and mregion/line 2
 #yields (int 25)
@@ -146,7 +146,7 @@ query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Na
 
 #testcase inside for mpoint/line
 #yields (int 25)
-query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: .Trip_t1 inside .geoData_u2] project[Id_t1, Name_u2, Ins] count;
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Ins: .Trip_t1 inside .GeoData_u2] project[Id_t1, Name_u2, Ins] count;
 
 #testcase intersection for mbool/mbool, mint/mint and mstring/mstring 1
 #yields (int 25)
@@ -182,7 +182,7 @@ query Trains feed {t1} head[5] UBahn feed {u2} head[5] product project[Id_t1, Na
 
 #testcase inersection for mpoint/line
 #yields (int 25)
-query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Inter: intersection(.Trip_t1, .geoData_u2)] project[Id_t1, Name_u2, Inter] count;
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Inter: intersection(.Trip_t1, .GeoData_u2)] project[Id_t1, Name_u2, Inter] count;
 
 #testcase minus for mbool/mbool, mint/mint and mstring/mstring 1
 #yields (int 25)

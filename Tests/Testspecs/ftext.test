@@ -132,7 +132,7 @@ query toObject('((9 8 7 6 5 4 3 2 1)()(-1 -2 -3 -4 5 6)(6956356 -64841))',[const
 
 #testcase evaluate1
 #yields (int 500500)
-query intstream(1,1000) transformstream extend[myQuery: 'intstream(1, ' + num2string(.elem) + ') count'] projecttransformstream[myQuery] use[fun(MQ: text) evaluate(MQ) projecttransformstream[Result] ] use[fun(MR: text) toObject(MR,0)] transformstream sum[elem]
+query intstream(1,1000) transformstream extend[myQuery: 'intstream(1, ' + num2string(.Elem) + ') count'] projecttransformstream[myQuery] use[fun(MQ: text) evaluate(MQ) projecttransformstream[Result] ] use[fun(MR: text) toObject(MR,0)] transformstream sum[Elem]
 
 #testcase combinedTest_getVlaueNL_getTypeNL
 #yields (int 10000)
