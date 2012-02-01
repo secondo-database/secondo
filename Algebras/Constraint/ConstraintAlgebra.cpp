@@ -4976,7 +4976,7 @@ int constraint2lineValueMap( Word* args, Word& result, int message,
            Word& local, Supplier s )
 {
   int i;
-  //result = qp->ResultStorage( s );
+  result = qp->ResultStorage( s );
   SymbolicRelation* symRel = (SymbolicRelation*)args[0].addr;
   Line* lineResult = new Line(0);
   LinearConstraint linC1, linC2, linC3;
