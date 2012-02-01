@@ -3028,6 +3028,22 @@ int TMATGenLocValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+at certain road segments 
+
+*/
+int TMATRoadValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMO* genmo = (GenMO*)args[0].addr;
+  Relation* rel = (Relation*)args[1].addr;
+  result = qp->ResultStorage(s);
+  GenMO* sub_genmo = (GenMO*)result.addr;
+  if(genmo->IsDefined()){
+      genmo->GenMOAt(rel, sub_genmo);
+  }
+  return 0;
+}
 
 
 /*
@@ -4027,6 +4043,53 @@ int GetLocValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+compute the traffic value by car, taxi, bicycle
+
+*/
+
+int TMTrafficValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  GenMObject* mo;
+
+  switch(message){
+      case OPEN:{
+        Relation* alltrips = (Relation*)args[0].addr;
+        Periods* peri = (Periods*)args[1].addr;
+        Relation* roads = (Relation*)args[2].addr;
+        bool b = ((CcBool*)args[3].addr)->GetBoolval();
+        mo = new GenMObject();
+        mo->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(s)));
+
+        mo->GetTraffic(alltrips, peri, roads, b);
+        local.setAddr(mo);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mo = (GenMObject*)local.addr;
+          if(mo->count == mo->oid_list.size()) return CANCEL;
+          Tuple* tuple = new Tuple(mo->resulttype);
+          tuple->PutAttribute(0,new CcInt(true, mo->oid_list[mo->count]));
+          tuple->PutAttribute(1,new CcInt(true, mo->count_list[mo->count]));
+
+          result.setAddr(tuple);
+          mo->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mo = (GenMObject*)local.addr;
+            delete mo;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
 /*
 add bus graph to bus network infrastructure 
 
@@ -5328,6 +5391,7 @@ int RefIdOpSelect(ListExpr args)
 ValueMapping TMATValueMapVM[]={
   TMATTMValueMap,
   TMATGenLocValueMap,
+  TMATRoadValueMap
 };
 
 ValueMapping TMAT2ValueMapVM[]={
@@ -5366,6 +5430,8 @@ int TMATOpSelect(ListExpr args)
     return 1;
 /*  if(nl->IsAtom(arg2) && nl->IsEqual(arg2, "genrange"))
     return 2;*/
+  if(IsRelDescription(arg2)) return 2;
+  
   return -1;
 }
 
@@ -5546,8 +5612,10 @@ ListExpr TMATTypeMap(ListExpr args)
   ListExpr arg2 = nl->Second(args);
 
   if(nl->IsEqual(arg1, "genmo") && 
-    (nl->SymbolValue(arg2) == "string" || nl->IsEqual(arg2, "genloc")))
+    (IsRelDescription(arg2) || nl->SymbolValue(arg2) == "string" ||
+     nl->IsEqual(arg2, "genloc"))){
     return nl->SymbolAtom("genmo");
+  }
 
   return nl->SymbolAtom("typeerror");
 }
@@ -6134,6 +6202,67 @@ ListExpr GetLocTypeMap(ListExpr args)
     return nl->SymbolAtom( Point::BasicType() );
 
   return nl->SymbolAtom("typeerror");
+}
+
+/*
+get the traffic value from generic moving objects
+
+*/
+ListExpr TMTrafficTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "rel x periods x rel  x bool expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(GenMObject::GenMOTrip, xType1);
+
+  if(!(CompareSchemas(arg1, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+  
+  if (!(listutils::isRelDescription(arg3)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(GenMObject::RoadSegment, xType2);
+
+  if(!(CompareSchemas(arg3, xType2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  if(!nl->IsEqual(arg4, "bool")){
+      string err = "the fourth parameter should be bool";
+      return listutils::typeError(err);
+  }
+  
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("SID"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Res"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return result;
 }
 
 /*
@@ -6952,7 +7081,7 @@ Operator setref_id("ref_id",
 
 Operator tm_at("tm_at",
     SpatialSpecTMAT,
-    2,
+    3,
     TMATValueMapVM,
     TMATOpSelect,
     TMATTypeMap
@@ -7310,6 +7439,13 @@ Operator getloc("getloc",
     GetLocValueMap,
     Operator::SimpleSelect,
     GetLocTypeMap
+);
+
+Operator tm_traffic("tm_traffic",
+    SpatialSpecMapTMTraffic,
+    TMTrafficValueMap,
+    Operator::SimpleSelect,
+    TMTrafficTypeMap
 );
 
 
@@ -14087,8 +14223,6 @@ ListExpr OpTMTMJoin1TypeMap ( ListExpr args )
   return result; 
 
 }
-
-
 
 /*
 TypeMap fun for operator nearest stop pave
@@ -21784,7 +21918,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_genloc);// int x real x real to a genloc 
     AddOperator(&modeval);//get an integer for a genmo denoting modes 
     AddOperator(&genmoindex);// build an index on units 
-
+  
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -21802,7 +21936,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&mapgenmo);//map genmo (reference to a mpoint) to a mp
     AddOperator(&tm_units);//get units of a genmo
     AddOperator(&getloc);//start and end loc of ugenloc 
-
+    AddOperator(&tm_traffic);//get traffic by car, taxi, bicycle
     /////////////////////////////////////////////////////////////////////
     //////////////////space operators/////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
@@ -21852,6 +21986,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&checksline);
    AddOperator(&modifyline);
    AddOperator(&checkroads);
+   ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
    ////////////////////////////////////////////////////////////////////
    /////find pavement areas and buildings clost to bus,metro stops/////

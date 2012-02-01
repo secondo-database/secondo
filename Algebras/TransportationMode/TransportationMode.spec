@@ -190,7 +190,7 @@ operator atperiods alias ATPERIODS pattern _ infixop _
 operator mapgenmo alias MAPGENMO pattern op(_,_)
 operator tm_units alias TM_UNITS pattern op(_)
 operator getloc alias GETLOC pattern op(_,_)
-
+operator tm_traffic alias TM_TRAFFIC pattern op(_,_,_,_)
 
 operator thespace alias THESPACE pattern op(_)
 operator putinfra alias PUTINFRA pattern op(_,_)
@@ -221,6 +221,7 @@ operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 operator modifyline alias MODIFYLINE pattern op(_)
 operator checkroads alias CHECKROADS pattern op(_,_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
+
 
 operator nearstops_pave alias NEARSTOPS_PAVE pattern op(_,_)
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)

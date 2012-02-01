@@ -1799,6 +1799,8 @@ struct TM_Join{
   vector<int> sec_list;
   vector<int> type_list;
   vector<Rectangle<2> > rect_list; 
+  vector<Line> curve_list; 
+  vector<Line> seg_list; 
   
   unsigned int count;
   TupleType* resulttype;
@@ -1833,6 +1835,7 @@ struct TM_Join{
   void DFTraverseBMS2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                            Relation* rel, Point query_loc, 
                      vector<int>& tid_list, double);
+
 };
 
 void MyToPoint(Network* rn, GPoint* gp, Point& res);

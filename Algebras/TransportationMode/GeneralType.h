@@ -743,7 +743,10 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     void GenMOAt(string tm, MReal*, GenMO* sub);
     void GenMOAt(GenLoc* loc, MReal*, GenMO* sub);
     void GenMOAt(GenLoc* genloc, GenMO* sub);
+    void GenMOAt(Relation* rel, GenMO* sub);
     void GenMOAt(GenLoc* genloc, MReal*, string type, GenMO* sub);
+    void SetRoads(vector< vector<Interval<CcReal> > >& roads, 
+                  Relation* rel, int&, int&);
 
     void AtInstant(Instant& t, Intime<GenLoc>& result);
     void AtPeriods(Periods* peri, GenMO& result); 
@@ -801,6 +804,37 @@ class BusNetwork;
 class MetroNetwork;
 class Door3D;
 
+/*
+compute the traffic for all road segments, consider: car, taxi, bicycle
+for all workdays
+
+*/
+struct Road_Seg{
+  int sid;
+  Interval<CcReal> r_loc;
+  int count;
+  Road_Seg(){}
+  Road_Seg(int s, Interval<CcReal> i, int c):sid(s), r_loc(i), count(c){}
+  Road_Seg(const Road_Seg& rs):sid(rs.sid), r_loc(rs.r_loc), count(rs.count){}
+  Road_Seg& operator=(const Road_Seg& rs)
+  {
+    sid = rs.sid;
+    r_loc = rs.r_loc;
+    count = rs.count;
+    return *this;
+  }
+  bool operator<(const Road_Seg& rs) const
+  {
+    return sid < rs.sid;
+  }
+  
+  void Print()
+  {
+    cout<<" sid "<<sid<<" range: "<<r_loc.start<<" "<<r_loc.end
+        <<" "<<count<<endl;
+  }
+
+};
 
 /*
 used to generate generic moving objects 
@@ -829,6 +863,16 @@ struct GenMObject{
   enum BenchModeNNBuildingInfo{BM_NNB_ID = 0, BM_NNB_GEODATA};
 
 
+  
+  enum ROADSEGMENT{RS_RID = 0, RS_MEAS1, RS_MEAS2, RS_CURVE, RS_SID};
+  
+  static string GenMOTrip;
+  enum GENMOTRIP{GENMO_OID= 0, GENMO_TRIP1, GENMO_TRIP2, GENMO_DEF, 
+                 GENMO_TM, GENMO_INDEX};
+  
+  static string RoadSegment;
+  
+                 
   vector<GenMO> trip1_list;
   vector<MPoint> trip2_list;
   vector<MGPoint> trip3_list;
@@ -1166,7 +1210,11 @@ struct GenMObject{
    void MapMP3DToMP(MPoint* mo, MPoint3D* mp3d, Rectangle<2> build_rect, 
                     Rectangle<2> build_box2);
    Point MapMP3D(Rectangle<2>, Rectangle<2>, Point);
-
+   ///////////////compute the traffic value /////////////////////////////
+   void GetTraffic(Relation*, Periods*, Relation*, bool);
+   void GetTrafficValue(Relation*,Periods*, 
+                     vector< vector<Road_Seg> >& roads_list, bool b);
+   
 };
 
 /*

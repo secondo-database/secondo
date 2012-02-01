@@ -17498,7 +17498,6 @@ string TM_Join::RoadSectionTypeInfo = "(rel (tuple ((rid int) (meas1 real)\
 (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool)\
 (rrc tid) (sid int))))";
 
-
 /*
 for each cell, it collects the number of route section intersecting it
 
@@ -17969,3 +17968,4 @@ void TM_Join::DFTraverseBMS2(R_Tree<2,TupleId>* rtree, SmiRecordId adr,
   }
   delete node;
 }
+

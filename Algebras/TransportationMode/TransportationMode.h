@@ -1960,6 +1960,14 @@ const string SpatialSpecMapGetLoc =
 "<text>query getloc(ugenloc1,TRUE) </text---> ) )";
 
 
+const string SpatialSpecMapTMTraffic =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>rel x periods x rel x bool -> "
+" (stream(((x1 t1) ... (xn tn)))) </text--->"
+"<text>tm_traffic(rel, periods, rel, bool) </text--->"
+"<text>get the traffic value </text--->"
+"<text>query tm_traffic(all_genmo,Qt, roadsegs,true) </text---> ) )";
+
 
 /*
 add graphs into infrastructures

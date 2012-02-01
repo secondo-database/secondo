@@ -1648,7 +1648,7 @@ void GenMO::GenMOAt(GenLoc* genloc, GenMO* sub)
         Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
         Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
         if(p1.Distance(p2) < EPSDIST && p.Distance(p1) < EPSDIST){
-            sub->Add(unit);
+            sub->Append(unit);
         }
       }
     }
@@ -1656,6 +1656,135 @@ void GenMO::GenMOAt(GenLoc* genloc, GenMO* sub)
 
   sub->EndBulkLoad(false, false);
 }
+
+/*
+restrict the movement to some roads
+
+*/
+void GenMO::GenMOAt(Relation* rel, GenMO* sub)
+{
+//  cout<<rel->GetNoTuples()<<endl;
+    static vector< vector< Interval<CcReal> > > roads;
+    static unsigned road_init;
+    static unsigned long cmd_no;
+    static int min_rid, max_rid;
+    if(road_init == 0){
+      road_init++;
+      SetRoads(roads, rel, min_rid, max_rid);
+      /////////get the command number ///////////////////////
+      SystemTables& st = SystemTables::getInstance();
+      const SystemInfoRel* sysinfo = st.getInfoRel("SEC2COMMANDS");
+      cmd_no = sysinfo->tuples.size();
+    }else{
+        SystemTables& st = SystemTables::getInstance();
+        const SystemInfoRel* sysinfo = st.getInfoRel("SEC2COMMANDS");
+        if(cmd_no != sysinfo->tuples.size()){
+          cmd_no = sysinfo->tuples.size();
+          roads.clear();
+          SetRoads(roads, rel, min_rid, max_rid);
+        }
+    }
+
+    sub->Clear();
+    sub->StartBulkLoad();
+
+//    cout<<"min_rid "<<min_rid<<"max_rid "<<max_rid<<endl;
+
+//     cout<<"roads size "<<roads.size()<<endl;
+// 
+//     for(unsigned int i = 0;i < roads.size();i++){
+//      if(roads[i].size() > 0){
+//        cout<<"rid "<<i+1<<endl;
+//        for(unsigned int j = 0;j < roads[i].size();j++)
+//          cout<<roads[i][j].start<<" "<<roads[i][j].end<<endl;
+//      }
+//    }
+
+    for(int i = 0 ;i < GetNoComponents();i++){
+      UGenLoc unit;
+      Get( i, unit );
+      int oid = unit.GetOid();
+      if(oid < min_rid || oid > max_rid) continue;
+      if(roads[oid - 1].size() > 0){
+//          cout<<"current size "<<roads[oid - 1].size()<<endl;
+          double loc1 = unit.gloc1.GetLoc().loc1;
+          double loc2 = unit.gloc2.GetLoc().loc1;
+//          cout<<"rid "<<oid<<" loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+          Interval<CcReal> locs;
+          if(loc1 < loc2){
+            locs.start = loc1;
+            locs.end = loc2;
+          }else{
+            locs.start = loc2;
+            locs.end = loc2;
+          }
+          locs.lc = true;
+          locs.rc = true;
+          for(unsigned int j = 0;j < roads[oid - 1].size();j++){
+//            cout<<locs<<endl;
+//            cout<<loc1<<" "<<loc2<<endl;
+//            cout<<roads[oid - 1][j].start<<" "<<roads[oid - 1][j].end<<endl;
+//            locs.Print(cout);
+//            roads[oid - 1][j].Print(cout);
+            if(locs.Intersects(roads[oid - 1][j])){
+                sub->Add(unit);
+                break;
+            }
+          }
+      }
+
+    }
+
+    sub->EndBulkLoad(false, false);
+}
+
+void GenMO::SetRoads(vector< vector<Interval<CcReal> > >& roads, 
+                     Relation* rel, int& minrid, int& maxrid)
+{
+  int max_rid = 0;
+  int min_rid = numeric_limits<unsigned int>::max();
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+      Tuple* tuple = rel->GetTuple(i, false);
+      int rid = ((CcInt*)tuple->GetAttribute(GenMObject::RS_RID))->GetIntval();
+      tuple->DeleteIfAllowed();
+      if(rid > max_rid) max_rid = rid;
+      if(rid < min_rid) min_rid = rid;
+  }
+
+  maxrid = max_rid;
+  minrid = min_rid;
+
+  for(int i = 0;i < max_rid;i++){
+    vector< Interval<CcReal> > temp;
+    roads.push_back(temp);
+  }
+//  cout<<"roads size "<<roads.size()<<" max rid "<<max_rid<<endl;
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+      Tuple* tuple = rel->GetTuple(i, false);
+      int rid = ((CcInt*)tuple->GetAttribute(GenMObject::RS_RID))->GetIntval();
+      double meas1 = 
+        ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS1))->GetRealval();
+      double meas2 = 
+        ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS2))->GetRealval();
+      Interval<CcReal> pos;
+      pos.start = meas1;
+      pos.lc = true;
+      pos.end = meas2;
+      pos.rc = true;
+      roads[rid - 1].push_back(pos);
+      tuple->DeleteIfAllowed();
+  }
+
+//   for(unsigned int i = 0;i < roads.size();i++){
+//     if(roads[i].size() > 0){
+//       cout<<"rid "<<i+1<<endl;
+//       for(unsigned int j = 0;j < roads[i].size();j++)
+//         cout<<roads[i][j].start<<" "<<roads[i][j].end<<endl;
+//     }
+//   }
+
+}
+
 
 /*
 get the sub movement of a generic moving object according to a genloc
@@ -2047,7 +2176,13 @@ now it only supports bus
 
 void GenMO::MapGenMO(MPoint* in, MPoint& res)
 {
+
   res.Clear();
+
+  if(GetNoComponents() == 0){
+    cout<<"empty genmo "<<endl;
+    return;
+  }
 
   Periods* peri1 = new Periods(0);
   Periods* peri2 = new Periods(0);
@@ -2060,54 +2195,58 @@ void GenMO::MapGenMO(MPoint* in, MPoint& res)
   Interval<Instant> time_span2;
   peri1->Get(0, time_span1);
   peri2->Get(0, time_span2);
-  int day1 = time_span1.start.GetDay();
-  int day2 = time_span2.start.GetDay();
+  in->AtPeriods(*peri1, res);
+
+//  int day1 = time_span1.start.GetDay();
+//  int day2 = time_span2.start.GetDay();
+
 //  cout<<day1<<" "<<day2<<endl;
-  if(day1 == day2){
-    in->AtPeriods(*peri1, res);
-
-  }else{
-
-    Periods* peri_new = new Periods(0);
-    peri_new->StartBulkLoad();
-
-    Instant st1 = time_span1.start;
-    Instant et1 = time_span1.end;
-
-    Instant st2 = time_span2.start;
-    Instant et2 = time_span2.end;
-
-    if(st1.GetDay() != et1.GetDay() || st2.GetDay() != et2.GetDay()){
-      cout<<"time should be in one day"<<endl;
-      return;
-    }
-
-    Instant st = st1;
-    Instant et = st2;
-
-    st.Set(st2.GetYear(), st2.GetMonth(), st2.GetGregDay(), 
-           st1.GetHour(), st1.GetMinute(), 
-           st1.GetSecond(), st1.GetMillisecond());
-
-    et.Set(et2.GetYear(), et2.GetMonth(), et2.GetGregDay(), 
-           et1.GetHour(), et1.GetMinute(), 
-           et1.GetSecond(), et1.GetMillisecond());
-
-    Interval<Instant> time_span_new;
-
-    time_span_new.start = st;
-    time_span_new.lc = time_span1.lc;
-    time_span_new.end = et; 
-    time_span_new.rc = time_span1.rc;
-
-    peri_new->MergeAdd(time_span_new);
-    peri_new->EndBulkLoad();
-
-//    cout<<"new periods "<<*peri_new<<endl;
-    in->AtPeriods(*peri_new, res);
-
-    delete peri_new;
-  }
+//   if(day1 == day2){
+//     in->AtPeriods(*peri1, res);
+// 
+//   }else{
+// 
+//     Periods* peri_new = new Periods(0);
+//     peri_new->StartBulkLoad();
+// 
+//     Instant st1 = time_span1.start;
+//     Instant et1 = time_span1.end;
+// 
+//     Instant st2 = time_span2.start;
+//     Instant et2 = time_span2.end;
+// 
+// //     if(st1.GetDay() != et1.GetDay() || st2.GetDay() != et2.GetDay()){
+// //       cout<<" time "<<*peri1<<endl;
+// //       cout<<"time should be in one day"<<endl;
+// //       return;
+// //     }
+// 
+//     Instant st = st1;
+//     Instant et = st2;
+// 
+//     st.Set(st2.GetYear(), st2.GetMonth(), st2.GetGregDay(), 
+//            st1.GetHour(), st1.GetMinute(), 
+//            st1.GetSecond(), st1.GetMillisecond());
+// 
+//     et.Set(et2.GetYear(), et2.GetMonth(), et2.GetGregDay(), 
+//            et1.GetHour(), et1.GetMinute(), 
+//            et1.GetSecond(), et1.GetMillisecond());
+// 
+//     Interval<Instant> time_span_new;
+// 
+//     time_span_new.start = st;
+//     time_span_new.lc = time_span1.lc;
+//     time_span_new.end = et; 
+//     time_span_new.rc = time_span1.rc;
+// 
+//     peri_new->MergeAdd(time_span_new);
+//     peri_new->EndBulkLoad();
+// 
+// //    cout<<"new periods "<<*peri_new<<endl;
+//     in->AtPeriods(*peri_new, res);
+// 
+//     delete peri_new;
+//   }
 
   delete peri2; 
   delete peri1; 
@@ -2320,6 +2459,12 @@ string GenMObject::BenchModeDISTR =
 string GenMObject::NNBuilding = 
 "(rel (tuple ((b_id int) (geoData rect))))";
 
+string GenMObject::RoadSegment = 
+"(rel (tuple ((rid int) (meas1 real) (meas2 real) (ncurve line) (SID int))))";
+
+string GenMObject::GenMOTrip = 
+"(rel (tuple ((oid int) (Trip1 genmo) (Trip2 mpoint) (def periods) (M int) \
+(UIndex mreal))))";
 
 void GenMObject::GetMode(GenMO* mo)
 {
@@ -7161,6 +7306,8 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
     int DAY1 = start_time.GetDay();
 
+    cout<<"start time "<<start_time<<endl;
+
     /////////////////////load all paths from this building////////////////
     if(obj_no_rep == 0){
       index1 = GetRandom() % build_id1_list.size();
@@ -7341,8 +7488,10 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
 
         Instant temp_end(instanttype);
         temp_end.ReadFrom(start_time.ToDouble() + bn_nav->t_cost/86400.0);
-        if(temp_end > bs_end){//not in the bus schedule 
-            mo->EndBulkLoad();
+
+        //not in the bus schedule 
+        if(temp_end > bs_end || temp_end.GetDay() != DAY1){
+            mo->EndBulkLoad(); 
             genmo->EndBulkLoad();
 
             delete mo;
@@ -7355,7 +7504,6 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
             count++;
             continue;
         }
-
       /////////////////////////////////////////////////////////////////////
     int last_walk_id = ConnectTwoBusStops(bn_nav, ps_list1[1], ps_list2[1],
                            genmo, mo, start_time, dg, res_path);
@@ -11529,46 +11677,198 @@ bool GenMObject::SubTrip_C2(Space* sp, IndoorInfra* i_infra, MaxRect* maxrect,
     return true;
 }
 
+
 /*
-compute the traffic for all road segments, consider: car, taxi, bicycle
-for all workdays
+compute the traffic value
 
 */
-struct Road_Seg{
-  int rid;
-  int sid;
-  double meas1;
-  double meas2;
-  int count;
-  Road_Seg(){}
-  Road_Seg(int r, int s, double l1, double l2, int c):
-  rid(r), sid(s), meas1(l1), meas2(l2), count(c){}
-  Road_Seg(const Road_Seg& rs):rid(rs.rid), sid(rs.sid), meas1(rs.meas1),
-  meas2(rs.meas2), count(rs.count){}
-  Road_Seg& operator=(const Road_Seg& rs)
-  {
-    rid = rs.rid;
-    sid = rs.sid;
-    meas1 = rs.meas1;
-    meas2 = rs.meas2;
-    count = rs.count;
-    return *this;
-  }
-  bool operator<(const Road_Seg& rs) const
-  {
-    if(rid < rs.rid) return true;
-    else if(rid > rs.rid) return false;
-    else
-      return meas1 < rs.meas1;
+void GenMObject::GetTraffic(Relation* alltrips, Periods* peri, 
+                            Relation* roadsegs, bool b)
+{
+   ////////////////initialize the road segments structure/////////////////
+    vector< vector<Road_Seg> > roads_list;
+    int max_rid = 0;
+    for(int i = 1;i <= roadsegs->GetNoTuples();i++){
+      Tuple* tuple = roadsegs->GetTuple(i, false);
+      int rid = ((CcInt*)tuple->GetAttribute(RS_RID))->GetIntval();
+      tuple->DeleteIfAllowed();
+      if(rid > max_rid) max_rid = rid;
+    }
+//    cout<<"max rid "<<max_rid;
+    for(int i = 0;i < max_rid;i++){
+      vector<Road_Seg> temp;
+      roads_list.push_back(temp);
+    }
+    for(int i = 1;i <= roadsegs->GetNoTuples();i++){
+      Tuple* tuple = roadsegs->GetTuple(i, false);
+      int rid = ((CcInt*)tuple->GetAttribute(RS_RID))->GetIntval();
+      int sid = ((CcInt*)tuple->GetAttribute(RS_SID))->GetIntval();
+      double loc1 = ((CcReal*)tuple->GetAttribute(RS_MEAS1))->GetRealval();
+      double loc2 = ((CcReal*)tuple->GetAttribute(RS_MEAS2))->GetRealval();
+
+      Interval<CcReal> range_loc;
+      range_loc.start = loc1;
+      range_loc.lc = true;
+      range_loc.end = loc2;
+      range_loc.rc = true;
+
+      Road_Seg rs(sid, range_loc, 0);
+      roads_list[rid - 1].push_back(rs);
+      tuple->DeleteIfAllowed();
+//      cout<<"rid "<<rid<<"sid "<<sid<<endl;
+    }
+
+//      for(unsigned int i = 0;i < roads_list.size();i++){
+//  
+//        for(unsigned int j = 0;j < roads_list[i].size();j++)
+//          roads_list[i][j].Print();
+//      }
+
+    GetTrafficValue(alltrips, peri, roads_list, b);
+    
+//    vector<Road_Seg> res_list;
+    for(unsigned int i = 0;i < roads_list.size();++i){
+      for(unsigned int j = 0;j < roads_list[i].size();j++){
+//        res_list.push_back(roads_list[i][j]);
+        oid_list.push_back(roads_list[i][j].sid);
+        count_list.push_back(roads_list[i][j].count);
+      }
+    }
+//    sort(res_list.begin(), res_list.end());
+
+/*    for(unsigned int i = 0;i < res_list.size();i++)
+      res_list[i].Print();*/
+//    for(unsigned int i = 0;i < res_list.size();i++){
+//        oid_list.push_back(res_list[i].sid);
+//        count_list.push_back(res_list[i].count);
+//    }
+
+}
+
+/*
+with and without optimization techniques to get the traffic 
+
+*/
+void GenMObject::GetTrafficValue(Relation* alltrips, Periods* peri, 
+                              vector< vector<Road_Seg> >& roads_list, bool b)
+{
+//  cout<<"optimization techniques"<<endl;
+
+  for(int i = 1;i <= alltrips->GetNoTuples();i++){
+//  for(int i = 1;i <= 50000.0;i++){
+    Tuple* tuple = alltrips->GetTuple(i, false);
+    Periods* def = (Periods*)tuple->GetAttribute(GENMO_DEF);
+    if(def->Intersects(*peri) == false){
+      tuple->DeleteIfAllowed();
+      continue;
+    }
+    GenMO* trip = (GenMO*)tuple->GetAttribute(GENMO_TRIP1);
+    int mode_car = GetTM("Car");
+    int mode_taxi = GetTM("Taxi");
+    int mode_bike = GetTM("Bike");
+    int pos1 = (int)ARR_SIZE(str_tm) - 1 - mode_car;
+    int pos2 = (int)ARR_SIZE(str_tm) - 1 - mode_taxi;
+    int pos3 = (int)ARR_SIZE(str_tm) - 1 - mode_bike;
+    if(b){
+      int tm = ((CcInt*)tuple->GetAttribute(GENMO_TM))->GetIntval();
+      bitset<ARR_SIZE(str_tm)> modebits(tm);
+
+      if(!(modebits.test(pos1) || modebits.test(pos2) || modebits.test(pos3))){
+        tuple->DeleteIfAllowed();
+        continue;
+      }
+    }else{
+      //traverse units in genmo to check tm 
+      bool found = false;
+      for(int j = 0;j < trip->GetNoComponents();j++){
+          UGenLoc unit;
+          trip->Get(j, unit);
+          if(unit.tm == mode_car || unit.tm == mode_taxi ||
+             unit.tm == mode_bike){
+            found = true;
+            break;
+          }
+      }
+      if(found == false){
+          tuple->DeleteIfAllowed();
+          continue;
+      } 
+    }
+
+    if(b){//with  optimization techniques
+        MReal* uindex = (MReal*)tuple->GetAttribute(GENMO_INDEX);
+        for(int j = 0;j < uindex->GetNoComponents();j++){
+            UReal ur;
+            uindex->Get(j, ur);
+            if((int)ur.a == mode_car || (int)ur.a == mode_taxi || 
+               (int)ur.a == mode_bike){
+                int start = (int)ur.b;
+                int end = (int)ur.c;
+                for(;start <= end;start++){//
+                    UGenLoc unit;
+                    trip->Get(start, unit);
+                    int oid = unit.GetOid();
+                    assert(1 <= oid && oid <= (int)roads_list.size());
+
+                    double loc1 = unit.gloc1.GetLoc().loc1;
+                    double loc2 = unit.gloc2.GetLoc().loc1;
+
+                    Interval<CcReal> locs;
+                    if(loc1 < loc2){
+                        locs.start = loc1;
+                        locs.end = loc2;
+                    }else{
+                      locs.start = loc2;
+                      locs.end = loc2;
+                    }
+                    locs.lc = true;
+                    locs.rc = true;
+                    for(unsigned int k = 0;k < roads_list[oid - 1].size();++k){
+                      if(roads_list[oid - 1][k].r_loc.Intersects(locs)){
+                          roads_list[oid - 1][k].count++;
+                          break;
+                      }
+                    }
+                }
+            }
+        }
+
+    }else{//simple method 
+
+      for(int j = 0;j < trip->GetNoComponents();j++){
+          UGenLoc unit;
+          trip->Get(j, unit);
+          if(unit.tm == mode_car || unit.tm == mode_taxi || 
+             unit.tm == mode_bike){
+              int oid = unit.GetOid();
+              assert(1 <= oid && oid <= (int)roads_list.size());
+              double loc1 = unit.gloc1.GetLoc().loc1;
+              double loc2 = unit.gloc2.GetLoc().loc1;
+
+              Interval<CcReal> locs;
+              if(loc1 < loc2){
+                  locs.start = loc1;
+                  locs.end = loc2;
+              }else{
+                  locs.start = loc2;
+                  locs.end = loc2;
+              }
+              locs.lc = true;
+              locs.rc = true;
+              for(unsigned int k = 0;k < roads_list[oid - 1].size();++k){
+                if(roads_list[oid - 1][k].r_loc.Intersects(locs)){
+                    roads_list[oid - 1][k].count++;
+                    break;
+                }
+              }
+          }
+      }
+    }
+
+    tuple->DeleteIfAllowed();
   }
 
-  void Print()
-  {
-    cout<<"rid "<<rid<<" sid "<<sid<<" m1 "<<meas1<<" m2 "
-        <<meas2<<" c "<<count<<endl;
-  }
-
-};
+}
 
 /////////////////////////////////////////////////////////////////////////
 ////////////////navigation system///////////////////////////////////////
