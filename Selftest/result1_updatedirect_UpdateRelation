@@ -3,8 +3,8 @@
    ( rel 
       ( tuple 
          (
-            ( no  int )
-            ( no_old  int )
+            ( No  int )
+            ( No_old  int )
             ( TID  tid ))))
    (
       ( 5  1  1 )

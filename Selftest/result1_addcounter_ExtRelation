@@ -3,7 +3,7 @@
     (rel 
         (tuple 
             (
-                (no int) 
+                (No int) 
                 (Cnt int)))) 
     (
         (1 1) 

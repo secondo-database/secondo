@@ -5,7 +5,7 @@
          (
             ( Name  string )
             ( Typ  string )
-            ( geoData  line ))) line  FALSE )
+            ( GeoData  line ))) line  FALSE )
    ( "R-Tree statistics" 
       ( "Height"  1 )
       ( "# of (leaf) entries"  3212 )

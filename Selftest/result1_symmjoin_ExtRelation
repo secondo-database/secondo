@@ -4,9 +4,9 @@
         (tuple 
             (
                 (Name_f string) 
-                (geoData_f region) 
+                (GeoData_f region) 
                 (Name_w string) 
-                (geoData_w region)))) 
+                (GeoData_w region)))) 
     (
         ("Grunewald" 
             (

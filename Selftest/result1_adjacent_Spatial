@@ -4,7 +4,7 @@
         (tuple 
             (
                 (Name string) 
-                (geoData region)))) 
+                (GeoData region)))) 
     (
         ("Schlachtensee" 
             (

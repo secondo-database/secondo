@@ -3,8 +3,8 @@
     (rel 
         (tuple 
             (
-                (no_a int) 
-                (no_b int)))) 
+                (No_a int) 
+                (No_b int)))) 
     (
         (1 1) 
         (1 2) 

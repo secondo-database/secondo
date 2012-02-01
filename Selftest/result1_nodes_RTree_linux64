@@ -3,14 +3,14 @@
     (rel 
         (tuple 
             (
-                (level int) 
-                (nodeId int) 
+                (Level int) 
+                (NodeId int) 
                 (MBR rect) 
-                (fatherID int) 
-                (isLeaf bool) 
-                (minEntries int) 
-                (maxEntries int) 
-                (countEntries int)))) 
+                (FatherID int) 
+                (IsLeaf bool) 
+                (MinEntries int) 
+                (MaxEntries int) 
+                (CountEntries int)))) 
     (
         (1 1 
             (-10836.00000001 12165.00000001 -2645.00000001 28095.00000001) 

@@ -3,9 +3,9 @@
     (rel 
         (tuple 
             (
-                (no_a int) 
-                (no_b int) 
-                (prod int)))) 
+                (No_a int) 
+                (No_b int) 
+                (Prod int)))) 
     (
         (1 1 1) 
         (1 2 2) 
