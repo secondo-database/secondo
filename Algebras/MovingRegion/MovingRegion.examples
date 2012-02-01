@@ -20,7 +20,7 @@ Result   : file
 Operator : bbox
 Number   : 1
 Signature: uregion -> rect3
-Example  : query bbox(units(mrain) transformstream extract[elem])
+Example  : query bbox(units(mrain) transformstream extract[Elem])
 Result   : file
 
 Operator : bbox
@@ -39,7 +39,7 @@ Result   : file
 Operator : bbox2d
 Number   : 1
 Signature: uregion -> rect
-Example  : query bbox2d(units(mrain) transformstream extract[elem])
+Example  : query bbox2d(units(mrain) transformstream extract[Elem])
 Result   : file
 
 Operator : bbox2d
@@ -106,7 +106,7 @@ Result   : (instant "2003-11-20-06:06")
 Operator : move
 Number   : 2
 Signature: mpoint x region -> mregion
-Example  : query Flaechen feed  extend[ I : inst(initial(move(train7, .geoData  )))] count 
+Example  : query Flaechen feed  extend[ I : inst(initial(move(train7, .GeoData  )))] count 
 Result   : crashes
 Remark   : DBArray can only be sorted in state InMemory. This problem must be fixed in the DBArray implementation!
 
@@ -121,7 +121,7 @@ Result   : TRUE
 Operator : units
 Number   : 1
 Signature: movingregion -> (stream uregion)
-Example  : query units(mrain) transformstream extract[elem]
+Example  : query units(mrain) transformstream extract[Elem]
 Result   : file
 
 

@@ -11,7 +11,7 @@ Operator : transformT2Rstream
 Number   : 1
 Signature: stream(tuple(y)) -> stream(record(y))
 Example  : query [const record (Name: string) value ("test")] feed transformR2Tstream transformT2Rstream transformstream consume
-Result   : ((rel (tuple ((elem (record (Name string)))))) ((("test"))))
+Result   : ((rel (tuple ((Elem (record (Name string)))))) ((("test"))))
 
 Operator : transformR2Tstream
 Number   : 1

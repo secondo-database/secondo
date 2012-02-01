@@ -300,7 +300,7 @@ Result   : 4
 Operator : evaluate
 Number   : 1
 Signature: text -> stream(tuple((CmdStr text) (Success bool) (Evaluable bool) (Defined bool) (IsFunction bool) (ResultType text) (Result text) (ErrorMessage text) (ElapsedTimeReal real) (ElapsedTimeCPU real)))
-Example  : query evaluate('ten feed filter[.no > 5] count') filter[.Result = '5'] count = 1
+Example  : query evaluate('ten feed filter[.No > 5] count') filter[.Result = '5'] count = 1
 Result   : TRUE
 
 Operator : evaluate
@@ -386,7 +386,7 @@ Operator : getTypeNL
 Number   : 1
 Signature: Expr -> text
 Example  : query (4 * 6) feed transformstream getTypeNL
-Result   : '(stream (tuple ((elem int))))'
+Result   : '(stream (tuple ((Elem int))))'
 
 Operator : getValueNL
 Number   : 1
@@ -397,13 +397,13 @@ Result   : '24'
 Operator : getValueNL
 Number   : 2
 Signature: stream(DATA) -> stream(text)
-Example  : query intstream(1,10) getValueNL transformstream aggregateB[elem; fun(T1: text, T2: text) (T1 + ' ' + T2); '']
+Example  : query intstream(1,10) getValueNL transformstream aggregateB[Elem; fun(T1: text, T2: text) (T1 + ' ' + T2); '']
 Result   : '1 2 3 4 5 6 7 8 9 10'
 
 Operator : getValueNL
 Number   : 3
 Signature: stream(tuple(X)) -> stream(text)
-Example  : query ten feed getValueNL transformstream aggregateB[elem; fun(T1: text, T2: text) (T1 + T2); '']
+Example  : query ten feed getValueNL transformstream aggregateB[Elem; fun(T1: text, T2: text) (T1 + T2); '']
 Result   : '(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)'
 
 Operator : toupper
@@ -683,13 +683,13 @@ Operator : getObjectTypeNL
 Number   : 1
 Signature: {string|text}  -> text
 Example  : query getObjectTypeNL("ten")
-Result   : (text '(rel (tuple ((no int))))')
+Result   : (text '(rel (tuple ((No int))))')
 
 Operator : getObjectTypeNL
 Number   : 2
 Signature: {string|text}  -> text
 Example  : query getObjectTypeNL('ten')
-Result   : (text '(rel (tuple ((no int))))')
+Result   : (text '(rel (tuple ((No int))))')
 
 Operator : getObjectValueNL
 Number   : 1

@@ -75,7 +75,7 @@ Operator : rangeS
 Number   : 1
 Signature: ((btree (tuple (X)) ti) ti ti) -> (stream (tuple ((ti tid))))
 Example  : query staedte_Bev rangeS[500000, 600000] head[5] consume
-Result   : ((rel (tuple ((id tid)))) ( (22)(12)(7) (11) (54)))
+Result   : ((rel (tuple ((Id tid)))) ( (22)(12)(7) (11) (54)))
 
 
 Operator : rightrange

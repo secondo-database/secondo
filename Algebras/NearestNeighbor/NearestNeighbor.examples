@@ -4,32 +4,32 @@ Restore  : No
 Operator : distancescan
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan [[const point value (10539.0 14412.0)], 5] count;
+Example  : query Kinos creatertree[GeoData] Kinos distancescan [[const point value (10539.0 14412.0)], 5] count;
 Result   : 5
 
 Operator : distancescan
 Number   : 2
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] count;
+Example  : query Kinos creatertree[GeoData] Kinos distancescan [tiergarten, 5] count;
 Result   : 5
 
 
 Operator : distancescan2
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan2 [tiergarten, 5] count;
+Example  : query Kinos creatertree[GeoData] Kinos distancescan2 [tiergarten, 5] count;
 Result   : 5
 
 Operator : distancescan3
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan3 [tiergarten, 5] count
+Example  : query Kinos creatertree[GeoData] Kinos distancescan3 [tiergarten, 5] count
 Result   : 5
 
 Operator : distancescan3
 Number   : 2
 Signature: rtree x rel x T x int [x attrName] [ x double] > (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan3 [tiergarten,-1 , 600.0] count
+Example  : query Kinos creatertree[GeoData] Kinos distancescan3 [tiergarten,-1 , 600.0] count
 Result   : 3
 
 Operator : distancescan4

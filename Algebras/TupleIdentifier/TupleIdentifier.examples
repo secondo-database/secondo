@@ -18,38 +18,38 @@ Result   : 41267
 Operator : =
 Number   : 1
 Signature: (tid tid) -> bool
-Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.id_A = ..id_B] count
+Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.Id_A = ..Id_B] count
 Result   : 2336
 
 
 Operator : #
 Number   : 1
 Signature: (tid tid) -> bool
-Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.id_A # ..id_B] count
+Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.Id_A # ..Id_B] count
 Result   : 338720
 
 Operator : <
 Number   : 1
 Signature: (tid tid) -> bool
-Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.id_A < ..id_B] count
+Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.Id_A < ..Id_B] count
 Result   : 169360
 
 Operator : >
 Number   : 1
 Signature: (tid tid) -> bool
-Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.id_A > ..id_B] count
+Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.Id_A > ..Id_B] count
 Result   : 169360
 
 Operator : <=
 Number   : 1
 Signature: (tid tid) -> bool
-Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.id_A <= ..id_B] count
+Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.Id_A <= ..Id_B] count
 Result   : 171696
 
 Operator : >=
 Number   : 1
 Signature: (tid tid) -> bool
-Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.id_A >= ..id_B] count
+Example  : query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A} plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B} symmjoin[.Id_A >= ..Id_B] count
 Result   : 171696
 
 Operator : tid2int
@@ -61,7 +61,7 @@ Result   : 1
 Operator : int2tid
 Number   : 1
 Signature: int -> tid
-Example  : query int2tid(5) feed transformstream ten gettuples extract[no]
+Example  : query int2tid(5) feed transformstream ten gettuples extract[No]
 Result   : 5
 Remark   : Caution: Possible problems due to different value spaces. NEVER use this operator!
 

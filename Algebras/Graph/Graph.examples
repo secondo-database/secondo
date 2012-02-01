@@ -47,14 +47,14 @@ Result   : file
 Operator : constgraph
 Number   : 1
 Signature: stream(tuple) x a1 x a2 x fun -> graph 
-Example  : query sightsgraphrel feed constgraph[id_s1,id_s2,distance(.geoData_s1,.geoData_s2)]
+Example  : query sightsgraphrel feed constgraph[Id_s1,Id_s2,distance(.GeoData_s1,.GeoData_s2)]
 Result   : file
 
 
 Operator : constgraphpoints
 Number   : 1
 Signature: stream(tuple) x a1 x a2 x fun 2684.771972656252684.77197265625x p1 x p2 -> graph 
-Example  : query sightsgraphrel feed constgraphpoints[id_s1,id_s2,distance(.geoData_s1,.geoData_s2),geoData_s1,geoData_s2]
+Example  : query sightsgraphrel feed constgraphpoints[Id_s1,Id_s2,distance(.GeoData_s1,.GeoData_s2),GeoData_s1,GeoData_s2]
 Result   : file
 
 
@@ -124,7 +124,7 @@ Result   : TRUE
 Operator : placenodes
 Number   : 1
 Signature: graph -> graph
-Example  : query placenodes(sightsgraphrel feed constgraph[id_s1,id_s2,distance(.geoData_s1,.geoData_s2)])
+Example  : query placenodes(sightsgraphrel feed constgraph[Id_s1,Id_s2,distance(.GeoData_s1,.GeoData_s2)])
 Result   : file 
 Tolerance : %0.001
 

@@ -10,26 +10,26 @@ Result   : file
 Operator : slidingwindow
 Number   : 1
 Signature: (stream x) -> (stream y)
-Example  : query no_components(units(speed(train7)) transformstream slidingwindow[5, 1; I: inst(initial(group feed tail[1] extract[elem])),  V: group feed extend[V0: val(initial(.elem))] avg[V0]  ]  approximate[I,V] )
+Example  : query no_components(units(speed(train7)) transformstream slidingwindow[5, 1; I: inst(initial(group feed tail[1] extract[Elem])),  V: group feed extend[V0: val(initial(.Elem))] avg[V0]  ]  approximate[I,V] )
 Result   : 90
 
 Operator : aggregate
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
-Example  : query ten feed aggregate[no; fun(i1: int, i2: int) i1+i2; 0]
+Example  : query ten feed aggregate[No; fun(i1: int, i2: int) i1+i2; 0]
 Result   : 55
 
 
 Operator : aggregateB
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) ai((ti ti) -> ti) ti -> ti
-Example  : query no_components(Flaechen feed aggregateB[geoData; fun(r1:region, r2:region) r1 union r2; [const region value ()]])
+Example  : query no_components(Flaechen feed aggregateB[GeoData; fun(r1:region, r2:region) r1 union r2; [const region value ()]])
 Result   : 139
 
 Operator : aggregateC
 Number   : 1
 Signature: stream(tuple(X)) x (tuple(X) x t -> t) x t , t in DATA 
-Example  : query ten feed aggregateC[ fun( t : TUPLE, i : int) attr(t,no) + i ; 5]
+Example  : query ten feed aggregateC[ fun( t : TUPLE, i : int) attr(t,No) + i ; 5]
 Result   : 60
 
 Operator : avg
@@ -61,7 +61,7 @@ Result   : file
 Operator : extend
 Number   : 1
 Signature: (stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))
-Example  : query ten feed extend [Mult5: .no * 5, mod2 : .no mod 2] sum[Mult5]
+Example  : query ten feed extend [Mult5: .No * 5, Mod2 : .No mod 2] sum[Mult5]
 Result   : 275
 
 
@@ -75,7 +75,7 @@ Result   : 113
 Operator : extract
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
-Example  : query no_segments(Flaechen feed filter[.Name = "Hasenheide"] extract[geoData])
+Example  : query no_segments(Flaechen feed filter[.Name = "Hasenheide"] extract[GeoData])
 Result   : 26
 
 
@@ -238,14 +238,14 @@ Result   : 18851000.0
 Operator : symmjoin
 Number   : 1
 Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
-Example  : query Flaechen feed {f} WFlaechen feed {w} symmjoin[.geoData_f adjacent ..geoData_w] consume
+Example  : query Flaechen feed {f} WFlaechen feed {w} symmjoin[.GeoData_f adjacent ..GeoData_w] consume
 Result   : file
 
 
 Operator : symmouterjoin
 Number   : 1
 Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
-Example  : query Flaechen feed {f} WFlaechen feed {w} symmouterjoin[.geoData_f adjacent ..geoData_w] consume
+Example  : query Flaechen feed {f} WFlaechen feed {w} symmouterjoin[.GeoData_f adjacent ..GeoData_w] consume
 Result   : file
 
 
@@ -259,7 +259,7 @@ Result   : file
 Operator : symmproductextend
 Number   : 1
 Signature: (stream (tuple(X))) (stream (tuple(Y)))  [(z1, (tuple(X) tuple(Y) -> t1)) ... (zj, (tuple(X) tuple(Y) -> tj))]  -> (stream (tuple(X*Y*Z))) ))
-Example  : query ten feed {a} ten feed {b} symmproductextend[prod: .no_a * ..no_b] consume
+Example  : query ten feed {a} ten feed {b} symmproductextend[Prod: .No_a * ..No_b] consume
 Result   : file
 
 
@@ -299,28 +299,28 @@ Result   : 118775771627.3442
 Operator : stats
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: int, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
-Example  : query ten feed stats[no,no] consume
+Example  : query ten feed stats[No,No] consume
 Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 1.0 10.0 55.0 5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 9.166666666666666 1.0)))
 
 
 Operator : stats
 Number   : 2
 Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., aj: int, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
-Example  : query ten feed extend[r: -1.0 * .no] stats[no,r] consume
+Example  : query ten feed extend[R: -1.0 * .No] stats[No,R] consume
 Result   : ((rel(tuple((CountX int)(MinX real)(MaxX real)(SumX real)(AvgX real)(VarX real)(CountY int)(MinY real)(MaxY real)(SumY real)(AvgY real)(VarY real)(Count int)(CountXY int)(CovXY real)(CorrXY real))))((10 1.0 10.0 55.0 5.5 9.166666666666666 10 -10.0 -1.0 -55.0 -5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))
 
 
 Operator : stats
 Number   : 3
 Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
-Example  : query ten feed extend[r1: (1.0 * .no), r2: (10.0/(.no*1.0))] stats[r1,r2] consume
+Example  : query ten feed extend[R1: (1.0 * .No), R2: (10.0/(.No*1.0))] stats[R1,R2] consume
 Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 1.0  10.0 55.0 5.5 9.166666666666666 10 1.0 10.0 29.28968253968254 2.928968253968254 7.687580309901738 10 10 -6.788139329805995 -0.8086306440033478)))
 
 
 Operator : stats
 Number   : 4
 Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
-Example  : query ten feed extend[r: -1.0 * .no] stats[r,no] consume
+Example  : query ten feed extend[R: -1.0 * .No] stats[R,No] consume
 Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 -10.0  -1.0 -55.0 -5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))
 
 
@@ -347,14 +347,14 @@ Result   : (int 10)
 Operator : extend_aggr 
 Number   : 1
 Signature: stream(tuple(X) x attrName x newAttrName x fun -> stream(tuple(X@(newAttrName))
-Example  : query ten feed extend_aggr[no; Ano : fun(i1: int, i2: int) i1 + i2 ] max[Ano]
+Example  : query ten feed extend_aggr[No; Ano : fun(i1: int, i2: int) i1 + i2 ] max[Ano]
 Result   : 55
 
 
 Operator : extend_last 
 Number   : 1
 Signature: stream(tuple(X) x funlist with defaults 
-Example  : query ten feed extend_last[ A : .no + ..no :: 0 , B : .no - ..no :: 0  ] max[B]
+Example  : query ten feed extend_last[ A : .No + ..No :: 0 , B : .No - ..No :: 0  ] max[B]
 Result   : 1
 
 
@@ -376,6 +376,6 @@ Result   : file
 Operator : applyToAll 
 Number   : 1
 Signature: stream(tuple(X)) x fun -> stream(tuple(Y)) 
-Example  : query ten feed applyToAll[ fun(i : int) i + 1] sum[no]
+Example  : query ten feed applyToAll[ fun(i : int) i + 1] sum[No]
 Result   : 65
 

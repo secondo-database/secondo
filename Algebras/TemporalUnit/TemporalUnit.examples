@@ -234,7 +234,7 @@ Result   : (periods (("2003-11-20-06:30" "2003-11-20-09:00" FALSE FALSE)))
 Operator : deftime
 Number   : 6
 Signature: uregion -> periods
-Example  : query deftime( units(mrain) transformstream extract[elem] )
+Example  : query deftime( units(mrain) transformstream extract[Elem] )
 Result   : (periods (("2003-11-20-06:06" "2003-11-20-08:10" TRUE TRUE)))
 
 
@@ -325,14 +325,14 @@ Result   : (ipoint ("2003-11-20-06:03" (13506.0 11159.0)))
 Operator : inside
 Number   : 1
 Signature: (upoint  uregion) -> (stream ubool)
-Example  : query (the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE) inside ( units(mrain) head[1] transformstream extract[elem])) the_mvalue
+Example  : query (the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE) inside ( units(mrain) head[1] transformstream extract[Elem])) the_mvalue
 Result   : (mbool ((("2003-11-20-06:30" "2003-11-20-09:00" FALSE TRUE)FALSE)))
 
 
 Operator : intersection
 Number   : 1
 Signature: (uT uT) -> (stream uT)
-Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE)) transformstream extract[elem]
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), the_unit(alexanderplatz, mehringdamm, six30, nine, FALSE, TRUE)) transformstream extract[Elem]
 Result   : (upoint (("2003-11-20-07:45" "2003-11-20-07:45" TRUE TRUE)(10232.0 11383.0 10232.0 11383.0)))
 
 
@@ -353,28 +353,28 @@ Result   : 1
 Operator : intersection
 Number   : 4
 Signature: (line upoint) -> (stream upoint)
-Example  : query intersection(strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) (l1 union l2); [const line value ()] ], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
+Example  : query intersection(strassen feed head[105] aggregateB[GeoData; fun(l1:line, l2:line) (l1 union l2); [const line value ()] ], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) the_mvalue
 Result   : (mpoint ( (   ("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE) (9470.521411555555 10005.780352 9470.521411555555 10005.780352)) (   ("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE) (9565.452927111111 10177.474672 9565.452927111111 10177.474672)) (   ("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE) (9592.82784 10226.98528 9592.82784 10226.98528))))
 
 
 Operator : intersection
 Number   : 5
 Signature: (upoint line) -> (stream upoint)
-Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), strassen feed head[105] aggregateB[geoData; fun(l1:line, l2:line) (l1 union l2); [const line value ()] ]) the_mvalue
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), strassen feed head[105] aggregateB[GeoData; fun(l1:line, l2:line) (l1 union l2); [const line value ()] ]) the_mvalue
 Result   : (mpoint ( ( ("2003-11-20-06:36:41.132" "2003-11-20-06:36:41.132" TRUE TRUE) (9470.521411555555 10005.780352 9470.521411555555 10005.780352)) ( ("2003-11-20-06:45:12.127" "2003-11-20-06:45:12.127" TRUE TRUE) (9565.452927111111 10177.474672 9565.452927111111 10177.474672)) ( ("2003-11-20-06:47:39.480" "2003-11-20-06:47:39.480" TRUE TRUE) (9592.82784 10226.98528 9592.82784 10226.98528))))
 
 
 Operator : intersection
 Number   : 6
 Signature: (upoint uregion) -> (stream upoint)
-Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), units(msnow) transformstream extract[elem]) count
+Example  : query intersection(the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE), units(msnow) transformstream extract[Elem]) count
 Result   : 0
 
 
 Operator : intersection
 Number   : 7
 Signature: (uregion upoint) -> (stream upoint)
-Example  : query intersection(units(msnow) transformstream extract[elem], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) count
+Example  : query intersection(units(msnow) transformstream extract[Elem], the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE)) count
 Result   : 0
 
 
@@ -402,35 +402,35 @@ Result   : TRUE
 Operator : makemvalue
 Number   : 1
 Signature: stream (tuple ((x1 t1)...(xi uint)...(xn tn))) xi -> mint
-Example  : query the_unit(123, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, TRUE) feed transformstream makemvalue[elem]
+Example  : query the_unit(123, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, TRUE) feed transformstream makemvalue[Elem]
 Result   : (mint ((("2000-01-03" "2000-01-04" FALSE TRUE)123)))
 
 
 Operator : makemvalue
 Number   : 2
 Signature: stream (tuple ((x1 t1)...(xi ubool)...(xn tn))) xi -> mbool
-Example  : query the_unit(TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[elem]
+Example  : query the_unit(TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, FALSE) feed transformstream makemvalue[Elem]
 Result   : (mbool ((("2000-01-03" "2000-01-04" TRUE FALSE)TRUE)))
 
 
 Operator : makemvalue
 Number   : 3
 Signature: stream (tuple ((x1 t1)...(xi ustring)...(xn tn))) xi -> mstring
-Example  : query the_unit("Test!", [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, TRUE) feed transformstream makemvalue[elem]
+Example  : query the_unit("Test!", [const instant value "2000-01-03"], [const instant value "2000-01-04"], TRUE, TRUE) feed transformstream makemvalue[Elem]
 Result   : (mstring ((("2000-01-03" "2000-01-04" TRUE TRUE)"Test!")))
 
 
 Operator : makemvalue
 Number   : 4
 Signature: stream (tuple ((x1 t1)...(xi ureal)...(xn tn))) xi -> mreal
-Example  : query the_unit(-1.0, 2.3, 4.5, TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[elem]
+Example  : query the_unit(-1.0, 2.3, 4.5, TRUE, [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[Elem]
 Result   : (mreal ((("2000-01-03" "2000-01-04" FALSE FALSE)(-1.0 2.3 4.5 TRUE))))
 
 
 Operator : makemvalue
 Number   : 5
 Signature: stream (tuple ((x1 t1)...(xi upoint)...(xn tn))) xi -> mpoint
-Example  : query the_unit(makepoint(1000.0, -1000.0), makepoint(-2000.0, 2000.0), [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[elem]
+Example  : query the_unit(makepoint(1000.0, -1000.0), makepoint(-2000.0, 2000.0), [const instant value "2000-01-03"], [const instant value "2000-01-04"], FALSE, FALSE) feed transformstream makemvalue[Elem]
 Result   : (mpoint ((("2000-01-03" "2000-01-04" FALSE FALSE)(1000.0 -1000.0 -2000.0 2000.0))))
 
 
@@ -661,7 +661,7 @@ Result   : 23
 Operator : length
 Number   : 1
 Signature: upoint [x geoid] -> real
-Example  : query (units(Trains feed extract[Trip]) use[fun(U:upoint) length(U)] transformstream sum[elem]) = length(Trains feed extract[Trip])
+Example  : query (units(Trains feed extract[Trip]) use[fun(U:upoint) length(U)] transformstream sum[Elem]) = length(Trains feed extract[Trip])
 Result   : TRUE
 
 Operator : length
@@ -675,14 +675,14 @@ Tolerance: 0.0000001
 Operator : canmeet
 Number   : 1
 Signature: (upoint upoint real duration) -> bool
-Example  : query units(train7) transformstream {a} units(train7down) transformstream {b} symmjoin[deftime(.elem_a) intersects deftime(..elem_b)] filter[canmeet(.elem_a, .elem_b, 100.0, create_duration(0, 60000))] count
+Example  : query units(train7) transformstream {a} units(train7down) transformstream {b} symmjoin[deftime(.Elem_a) intersects deftime(..Elem_b)] filter[canmeet(.Elem_a, .Elem_b, 100.0, create_duration(0, 60000))] count
 Result   : 6
 
 
 Operator : when
 Number   : 1
 Signature: (uT mbool) -> stream uT
-Example  : query units(train7) namedtransformstream[utrain] filter[sometimes(distance(.utrain, mehringdamm) < 50.0)] head[1] extendstream[utrainClose: .utrain when[distance(train7, mehringdamm) < 50.0]] extract[utrainClose]
+Example  : query units(train7) namedtransformstream[Utrain] filter[sometimes(distance(.Utrain, mehringdamm) < 50.0)] head[1] extendstream[UtrainClose: .Utrain when[distance(train7, mehringdamm) < 50.0]] extract[UtrainClose]
 Result   : (upoint(    ("2003-11-20-06:27:46.760" "2003-11-20-06:27:50" FALSE FALSE)    (9380.360189573459 9823.511848341232 9396.0 9871.0)))
 
 Operator : when

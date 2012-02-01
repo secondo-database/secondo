@@ -16,38 +16,38 @@ Result   : (histogram2d((-1.0 0.0 1.0 2.0)(8.0 8.5 9.0)(0.0 0.0 0.0 0.0 0.0 0.0)
 Operator : create_histogram1d
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x histogram1d -> histogram1d
-Example  : query realstream(0.0, 4.0, 1.0) transformstream create_histogram1d[elem, realstream(0.0, 10.0, 2.0) set_histogram1d];
+Example  : query realstream(0.0, 4.0, 1.0) transformstream create_histogram1d[Elem, realstream(0.0, 10.0, 2.0) set_histogram1d];
 Result   : (histogram1d ((0.0 2.0 4.0 6.0 8.0 10.0)(2.0 2.0 1.0 0.0 0.0)))
 
 Operator : create_histogram2d
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x (aj real) x histogram2d -> histogram2d
-Example  : query realstream(0.0, 2.0, 1.0) transformstream {a} realstream(6.0, 8.0, 1.0) transformstream {b} symmproduct create_histogram2d[elem_a, elem_b, [const histogram2d value ((0.0 0.5 2.5)(6.0 7.8 10.0)(0.0 0.0 0.0 0.0))]];
+Example  : query realstream(0.0, 2.0, 1.0) transformstream {a} realstream(6.0, 8.0, 1.0) transformstream {b} symmproduct create_histogram2d[Elem_a, Elem_b, [const histogram2d value ((0.0 0.5 2.5)(6.0 7.8 10.0)(0.0 0.0 0.0 0.0))]];
 Result   : (histogram2d((0.0 0.5 2.5)(6.0 7.8 10.0)(2.0 1.0 4.0 2.0)))
 
 Operator : create_histogram1d_equiwidth
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x int -> histogram1d
-Example  : query realstream(0.0, 10.0, 0.1) transformstream create_histogram1d_equiwidth[elem, 4];
+Example  : query realstream(0.0, 10.0, 0.1) transformstream create_histogram1d_equiwidth[Elem, 4];
 Result   : (histogram1d((0.0 2.5 5.0 7.5 10.0000001)(25.0 25.0 25.0 26.0)))
 
 Operator : create_histogram2d_equiwidth
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x (aj real) x int x int -> histogram2d
-Example  : query realstream(0.0, 15.0, 0.1) transformstream {a} realstream(6.0, 18.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[elem_a, elem_b, 3, 4];
+Example  : query realstream(0.0, 15.0, 0.1) transformstream {a} realstream(6.0, 18.0, 1.0) transformstream {b} symmproduct create_histogram2d_equiwidth[Elem_a, Elem_b, 3, 4];
 Result   : (histogram2d((0.0 5.0 10.0 15.0000001)(6.0 9.0 12.0 15.0 18.0000001)(150.0 150.0 150.0 200.0 150.0 150.0 150.0 200.0 153.0 153.0 153.0 204.0)))
 
 Operator : create_histogram1d_equicount
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x int -> histogram1d
-Example  : query realstream(0.0, 10.0, 0.1) transformstream create_histogram1d_equicount[elem, 4];
+Example  : query realstream(0.0, 10.0, 0.1) transformstream create_histogram1d_equicount[Elem, 4];
 Result   : (histogram1d((0.0 2.6 5.1 7.6 10.00000001)(26.0 25.0 25.0 25.0)))
 
 
 Operator : create_histogram2d_equicount
 Number   : 1
 Signature: (stream(tuple((a1 t1) ... (an tn))) x (ai real) x (aj real) x int x int -> histogram2d
-Example  : query realstream(0.0, 15.0, 0.1) transformstream {a} realstream(6.0, 18.0, 1.0) transformstream {b} symmproduct create_histogram2d_equicount[elem_a, elem_b, 3, 4];
+Example  : query realstream(0.0, 15.0, 0.1) transformstream {a} realstream(6.0, 18.0, 1.0) transformstream {b} symmproduct create_histogram2d_equicount[Elem_a, Elem_b, 3, 4];
 Result   : (histogram2d((0.0 5.1 10.2 15.00000001)(6.0 10.0 14.0 18.0 18.00000001)(204.0 204.0 204.0 51.0 204.0 204.0 204.0 51.0 196.0 196.0 196.0 49.0)))
 
 Operator : no_components

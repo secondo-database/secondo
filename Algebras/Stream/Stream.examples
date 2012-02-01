@@ -74,7 +74,7 @@ Result   : 10
 
 Operator : transformstream
 Number   : 1
-Signature: (stream T) -> stream(tuple((elem T)))
+Signature: (stream T) -> stream(tuple((Elem T)))
 Example  : query intstream(1,5) transformstream transformstream count
 Result   : 5
 
@@ -142,13 +142,13 @@ Result   : 15
 Operator : use
 Number   : 3
 Signature: ((stream tuple(X)) (map tuple(X) Y)) -> (stream Y)
-Example  : query intstream(1,5) transformstream use[ fun(i:TUPLE) (attr(i,elem) + 5) ] count;
+Example  : query intstream(1,5) transformstream use[ fun(i:TUPLE) (attr(i,Elem) + 5) ] count;
 Result   : 5
 
 Operator : use
 Number   : 4
 Signature: ((stream tuple(X)) (map tuple(X) (stream Y))) -> (stream Y)
-Example  : query intstream(1,5) transformstream use[ fun(i:TUPLE) intstream(attr(i,elem),5) ] count;
+Example  : query intstream(1,5) transformstream use[ fun(i:TUPLE) intstream(attr(i,Elem),5) ] count;
 Result   : 15
 
 
@@ -207,13 +207,13 @@ Result   : 100
 Operator : tail
 Number   : 4
 Signature: stream(T) [x bool] -> stream(T), T in DATA
-Example  : query intstream(1,100) tail[10, FALSE] transformstream extract[elem]
+Example  : query intstream(1,100) tail[10, FALSE] transformstream extract[Elem]
 Result   : 100
 
 Operator : tail
 Number   : 5
 Signature: stream(T) [x bool] -> stream(T), T in DATA
-Example  : query intstream(1,100) tail[10, TRUE] transformstream extract[elem]
+Example  : query intstream(1,100) tail[10, TRUE] transformstream extract[Elem]
 Result   : 91
 
 Operator : tail

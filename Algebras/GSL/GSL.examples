@@ -39,35 +39,35 @@ Result   : TRUE
 Operator : rng_binomial
 Number   : 1
 Signature:  int x real -> int
-Example  : query intstream(1, 100000) use[fun(i:int) rng_binomial( 10, 0.5 )] transformstream filter[(.elem >= 0) and (.elem<=10) ] count
+Example  : query intstream(1, 100000) use[fun(i:int) rng_binomial( 10, 0.5 )] transformstream filter[(.Elem >= 0) and (.Elem<=10) ] count
 Result   : 100000
 
 
 Operator : rng_exponential
 Number   : 1
 Signature:  real -> real
-Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_exponential( 0.75 ), 0)] transformstream sortby[elem] groupby[elem; Cnt: group count] filter[.elem = 0] intstream(1, 100000) use[fun(i2:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[elem; Cnt: group count] filter[.elem = 1] {g} symmjoin[.elem < ..elem_g] count
+Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_exponential( 0.75 ), 0)] transformstream sortby[Elem] groupby[Elem; Cnt: group count] filter[.Elem = 0] intstream(1, 100000) use[fun(i2:int) round(rng_exponential( 0.75 ), 0)] transformstream sort groupby[Elem; Cnt: group count] filter[.Elem = 1] {g} symmjoin[.Elem < ..Elem_g] count
 Result   : 1
 
 
 Operator : rng_flat
 Number   : 1
 Signature:  real x real -> real
-Example  : query intstream(1, 100000) use[fun(i:int) rng_flat( -10.0, 10.0 )] transformstream filter[(.elem < -10.0) or (.elem > 10.0) ] count
+Example  : query intstream(1, 100000) use[fun(i:int) rng_flat( -10.0, 10.0 )] transformstream filter[(.Elem < -10.0) or (.Elem > 10.0) ] count
 Result   : 0
 
 
 Operator : rng_gaussian
 Number   : 1
 Signature:  real -> real
-Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_gaussian( 0.75 ), 0)] transformstream filter[(.elem > 4) or (.elem < -4) ] count <= 2
+Example  : query intstream(1, 100000) use[fun(i1:int) round(rng_gaussian( 0.75 ), 0)] transformstream filter[(.Elem > 4) or (.Elem < -4) ] count <= 2
 Result   : TRUE
 
 
 Operator : rng_geometric
 Number   : 1
 Signature:  real x real -> int
-Example  : query intstream(1, 900000) use[fun(i1:int) rng_geometric( 0.75 )] transformstream filter[(.elem > 13) or (.elem < 1) ] count <= 2
+Example  : query intstream(1, 900000) use[fun(i1:int) rng_geometric( 0.75 )] transformstream filter[(.Elem > 13) or (.Elem < 1) ] count <= 2
 Result   : TRUE
 
 
@@ -116,7 +116,7 @@ Result   : TRUE
 Operator : rng_poisson
 Number   : 1
 Signature:  real -> int
-Example  : query intstream(1, 900000) use[fun(i1:int) rng_poisson( 0.75 )] transformstream filter[(.elem > 8) or (.elem < 0) ] count <= 2
+Example  : query intstream(1, 900000) use[fun(i1:int) rng_poisson( 0.75 )] transformstream filter[(.Elem > 8) or (.Elem < 0) ] count <= 2
 Result   : TRUE
 
 

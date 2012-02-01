@@ -45,13 +45,13 @@ Operator : dbtype
 Number   : 1
 Signature: text -> text
 Example  : query dbtype('ten.dbf')
-Result   : '[const rel(tuple([elem : int])) value ()]'
+Result   : '[const rel(tuple([Elem : int])) value ()]'
 
 
 Operator : dbimport
 Number   : 1
 Signature: rel(tuple(...)) x text  -> stream(tuple(...))
-Example  : query  [const rel(tuple([elem : int ] )) value ()] dbimport['ten.dbf'] count
+Example  : query  [const rel(tuple([Elem : int ] )) value ()] dbimport['ten.dbf'] count
 Result   : 10
 
 Operator : dbimport2
@@ -63,28 +63,28 @@ Result   : 10
 Operator : shpexport
 Number   : 1
 Signature: stream(s) x text  -> stream(s) , s in {Point, Points, Line }
-Example  : query  Kinos feed projecttransformstream[geoData] shpexport['kinos.shp'] count
+Example  : query  Kinos feed projecttransformstream[GeoData] shpexport['kinos.shp'] count
 Result   : 83
 
 
 Operator : shpexport
 Number   : 2
 Signature: stream(tuple(...) x text x id  -> stream(tuple(...))
-Example  : query  Kinos feed shpexport['kinos.shp',geoData] count
+Example  : query  Kinos feed shpexport['kinos.shp',GeoData] count
 Result   : 83
 
 
 Operator : shpexport
 Number   : 3
 Signature: stream(s) x text x text -> stream(s) , s in {Point, Points, Line }
-Example  : query  Kinos feed projecttransformstream[geoData] shpexport['kinos.shp','kinos.idx'] count
+Example  : query  Kinos feed projecttransformstream[GeoData] shpexport['kinos.shp','kinos.idx'] count
 Result   : 83
 
 
 Operator : shpexport
 Number   : 4
 Signature: stream(tuple(...) x text x id  x text -> stream(tuple(...))
-Example  : query  Kinos feed shpexport['kinos.shp',geoData,'kinos.idx'] count
+Example  : query  Kinos feed shpexport['kinos.shp',GeoData,'kinos.idx'] count
 Result   : 83
 
 
@@ -278,13 +278,13 @@ Result   : (bool TRUE)
 Operator : getSecondoVersion
 Number   : 1
 Signature: -> string
-Example  : query fromCSVtext( 1, tostring(replace((totext( getSecondoVersion() ) sentences transformstream extract[elem]),".","") ) ) >= 3
+Example  : query fromCSVtext( 1, tostring(replace((totext( getSecondoVersion() ) sentences transformstream extract[Elem]),".","") ) ) >= 3
 Result   : (bool TRUE)
 
 Operator : getBDBVersion
 Number   : 1
 Signature: -> string
-Example  : query fromCSVtext( 1, tostring(replace((totext( getBDBVersion() ) sentences transformstream extract[elem]),".","") ) ) >= 4
+Example  : query fromCSVtext( 1, tostring(replace((totext( getBDBVersion() ) sentences transformstream extract[Elem]),".","") ) ) >= 4
 Result   : (bool TRUE)
 
 Operator : getSecondoPlatform

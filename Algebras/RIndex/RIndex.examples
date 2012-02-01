@@ -4,14 +4,14 @@ Restore : No
 Operator : insertRindex
 Number   : 1
 Signature:  stream(rectangle) -> stream(rectangle) 
-Example  : query strassen feed extend[B : bbox(.geoData)] projecttransformstream[B] insertRindex count  
+Example  : query strassen feed extend[B : bbox(.GeoData)] projecttransformstream[B] insertRindex count  
 Result   : 3212 
 
 
 Operator : findRindex
 Number   : 1
 Signature: stream(tuple) x attrname x rectangle  -> stream(tupleid) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] findRindex [ B, [const rect value (-10836 33575 -6686 0)  ] ] count)  = (strassen feed filter[bbox(.geoData) intersects [const rect value (-10836 33575 -6686 0)  ]] count )
+Example  : query (strassen feed extend[B : bbox(.GeoData)] findRindex [ B, [const rect value (-10836 33575 -6686 0)  ] ] count)  = (strassen feed filter[bbox(.GeoData) intersects [const rect value (-10836 33575 -6686 0)  ]] count )
 Result   : TRUE 
 
 
@@ -19,7 +19,7 @@ Result   : TRUE
 Operator : statRindex
 Number   : 1
 Signature: stream(tuple(A)) x a_i  -> text  
-Example  : query (strassen feed extend[B : bbox(.geoData)] statRindex[B]) contains 'height'
+Example  : query (strassen feed extend[B : bbox(.GeoData)] statRindex[B]) contains 'height'
 Result   : TRUE
 
 Operator : statRindex
@@ -31,33 +31,33 @@ Result   : TRUE
 Operator : joinRindex
 Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(A)) x a_i x b_j  -> stream(tuple(TID1 tid)(TID2 tid)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] joinRindex[B,B] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.GeoData)] strassen feed extend[B : bbox(.GeoData)] joinRindex[B,B] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
 Operator : symmJoinRindex
 Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j -> stream(tuple(TID1 tid)(TID2 tid)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] symmJoinRindex[B,B] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.GeoData)] strassen feed extend[B : bbox(.GeoData)] symmJoinRindex[B,B] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
 Operator : symmJoinRindex
 Number   : 2
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j -> stream(tuple(TID1 tid)(TID2 tid)) 
-Example  : query (strassen feed strassen feed {a} symmJoinRindex[geoData,geoData_a] count) = (strassen feed  strassen feed {b}  spatialjoin0[geoData,geoData_b] count)
+Example  : query (strassen feed strassen feed {a} symmJoinRindex[GeoData,GeoData_a] count) = (strassen feed  strassen feed {b}  spatialjoin0[GeoData,GeoData_b] count)
 Result   : TRUE 
 
 Operator : realJoinRindex
 Number   : 1
 Signature: stream(tuple(A)) x stream(tuple(B)) a_i x b_j  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRindex[B,B_a] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.GeoData)] strassen feed extend[B : bbox(.GeoData)] {a} realJoinRindex[B,B_a] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 Operator : realJoinRindex
 Number   : 2
 Signature: stream(tuple(A)) x stream(tuple(B)) a_i x b_j  x int -> stream(tuple(A o B))  (int parameter is size of tuplestore in kB)
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRindex[B,B_a, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.GeoData)] strassen feed extend[B : bbox(.GeoData)] {a} realJoinRindex[B,B_a, 512] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
@@ -71,7 +71,7 @@ Result   : TRUE
 Operator : realJoinRindex
 Number   : 4
 Signature: stream(tuple(A)) x stream(tuple(B)) a_i x b_j  x int -> stream(tuple(A o B))  (int parameter is size of tuplestore in kB)
-Example  : query (strassen feed  strassen feed {a} realJoinRindex[geoData,geoData_a, 512] count) = (strassen feed strassen feed {b}  spatialjoin0[geoData,geoData_b] count)
+Example  : query (strassen feed  strassen feed {a} realJoinRindex[GeoData,GeoData_a, 512] count) = (strassen feed strassen feed {b}  spatialjoin0[GeoData,GeoData_b] count)
 Result   : TRUE 
 
 
@@ -86,13 +86,13 @@ Result   : TRUE
 Operator : realJoinRindexVec
 Number   : 1
 Signature: stream(tuple(A)) x stream(tuple(B)) a_i x b_j  -> stream(tuple(A o B)) 
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRindexVec[B,B_a] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.GeoData)] strassen feed extend[B : bbox(.GeoData)] {a} realJoinRindexVec[B,B_a] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 Operator : realJoinRindexVec
 Number   : 2
 Signature: stream(tuple(A)) x stream(tuple(B)) a_i x b_j  x int -> stream(tuple(A o B))  (int parameter is size of tuplestore in kB)
-Example  : query (strassen feed extend[B : bbox(.geoData)] strassen feed extend[B : bbox(.geoData)] {a} realJoinRindexVec[B,B_a, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed extend[B : bbox(.GeoData)] strassen feed extend[B : bbox(.GeoData)] {a} realJoinRindexVec[B,B_a, 512] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 
@@ -105,7 +105,7 @@ Result   : TRUE
 Operator : realJoinRindexVec
 Number   : 4
 Signature: stream(tuple(A)) x stream(tuple(B)) a_i x b_j  x int -> stream(tuple(A o B))  (int parameter is size of tuplestore in kB)
-Example  : query (strassen feed  strassen feed {a} realJoinRindexVec[geoData,geoData_a, 512] count) = ((strassen feed extend[B : bbox(.geoData)]) (strassen feed extend[B : bbox(.geoData)] {b})  spatialjoin0[B,B_b] count)
+Example  : query (strassen feed  strassen feed {a} realJoinRindexVec[GeoData,GeoData_a, 512] count) = ((strassen feed extend[B : bbox(.GeoData)]) (strassen feed extend[B : bbox(.GeoData)] {b})  spatialjoin0[B,B_b] count)
 Result   : TRUE 
 
 

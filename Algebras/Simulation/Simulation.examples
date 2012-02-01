@@ -25,7 +25,7 @@ Result   : TRUE
 Operator : sim_create_trip
 Number   : 1
 Signature: stream(tuple(a1: t1) ... (an,tn) x ai x aj x instant x point [x real [x geoid] ]-> mpoint, for ti = line, tj = real, tk = point
-Example  : query ifthenelse(sim_set_rng(intstream(0, rng_NoGenerators() - 1) transformstream extend[GenName: rng_GeneratorName(.elem)] filter[.GenName = "mt19937_1999"] extract[elem], 5489), ( [const rel(tuple([Vmax_s1: real, Part: line])) value ( (30.0 ( (8217.0 12743.0 8307.0 12748.0))) (30.0 ( (8307.0 12748.0 8398.0 12833.0))))] feed sim_create_trip[Part,Vmax_s1,[const instant value "2006-04-30-12:15:32"],[const point value (8217.0 12743.0)], 100.0, 100.0 ] ), [const mpoint value undef])
+Example  : query ifthenelse(sim_set_rng(intstream(0, rng_NoGenerators() - 1) transformstream extend[GenName: rng_GeneratorName(.Elem)] filter[.GenName = "mt19937_1999"] extract[Elem], 5489), ( [const rel(tuple([Vmax_s1: real, Part: line])) value ( (30.0 ( (8217.0 12743.0 8307.0 12748.0))) (30.0 ( (8307.0 12748.0 8398.0 12833.0))))] feed sim_create_trip[Part,Vmax_s1,[const instant value "2006-04-30-12:15:32"],[const point value (8217.0 12743.0)], 100.0, 100.0 ] ), [const mpoint value undef])
 Result   : file
 Tolerance: 0.001
 

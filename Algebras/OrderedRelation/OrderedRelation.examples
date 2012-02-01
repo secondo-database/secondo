@@ -22,12 +22,12 @@ Result   : TRUE
 Operator : oshortestpathd
 Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1)) x int x int x int x (tuple->real) -> stream(tuple(a1:t1,...an+1:tn+1))
-Example  : query otestrel oshortestpathd [1,3,0; distance(.geoData_s1,.geoData_s2)] consume;
+Example  : query otestrel oshortestpathd [1,3,0; distance(.GeoData_s1,.GeoData_s2)] consume;
 Result   : file
 
 Operator : oshortestpatha
 Number   : 1
 Signature: (orel (tuple (a1:t1,a2:t2,...,an:tn)) (ai1)) x int x int x int x (tuple->real) x (tuple->real)-> stream(tuple(a1:t1,...an+1:tn+1))
-Example  : query otestrel oshortestpatha [1,3, 0; distance(.geoData_s1,.geoData_s2),distance(.geoData_s1,.geoData_s2) * 0.0] consume;
+Example  : query otestrel oshortestpatha [1,3, 0; distance(.GeoData_s1,.GeoData_s2),distance(.GeoData_s1,.GeoData_s2) * 0.0] consume;
 Result   : file
 

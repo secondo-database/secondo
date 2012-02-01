@@ -36,7 +36,7 @@ Result   : FALSE
 Operator : adjacent
 Number   : 1
 Signature: (points||line||region x points||line||region) -> bool
-Example  : query WFlaechen feed filter[.geoData adjacent grunewald] consume
+Example  : query WFlaechen feed filter[.GeoData adjacent grunewald] consume
 Result   : file
 
 
@@ -75,7 +75,7 @@ Result   : FALSE
 Operator : atposition
 Number   : 3
 Signature: sline x real x bool -> point
-Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.geoData intersects_new ..geoData_u] extend[Schnitt: intersection(.geoData, .geoData_u)] project[Schnitt] extend[Start: atposition(fromline(.Schnitt), 0.0, TRUE)] consume
+Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.GeoData intersects_new ..GeoData_u] extend[Schnitt: intersection(.GeoData, .GeoData_u)] project[Schnitt] extend[Start: atposition(fromline(.Schnitt), 0.0, TRUE)] consume
 Result   : file
 
 Operator : atposition
@@ -124,7 +124,7 @@ Result   : (int 7)
 Operator : commonborder
 Number   : 1
 Signature: (region x region) -> line
-Example  : query WFlaechen feed filter[.geoData adjacent grunewald] extend[Common: commonborder(.geoData, grunewald)] project[Common] consume
+Example  : query WFlaechen feed filter[.GeoData adjacent grunewald] extend[Common: commonborder(.GeoData, grunewald)] project[Common] consume
 Result   : file
 
 Operator : commonborder
@@ -570,7 +570,7 @@ Result   : 70
 Operator : onborder
 Number   : 1
 Signature: (point x line||region) -> bool
-Example  : query WFlaechen feed UBahn feed {u} symmjoin[.geoData intersects ..geoData_u] extend[Stretch: intersection(.geoData, .geoData_u)] project[geoData, Stretch] extend[Start: atposition(fromline(.Stretch), 0.0, TRUE), Middle: atposition(fromline(.Stretch), size(.Stretch)/2, TRUE)] extend[Onborder: .Start onborder .geoData, NotOnBorder: .Middle onborder .geoData] consume
+Example  : query WFlaechen feed UBahn feed {u} symmjoin[.GeoData intersects ..GeoData_u] extend[Stretch: intersection(.GeoData, .GeoData_u)] project[GeoData, Stretch] extend[Start: atposition(fromline(.Stretch), 0.0, TRUE), Middle: atposition(fromline(.Stretch), size(.Stretch)/2, TRUE)] extend[Onborder: .Start onborder .GeoData, NotOnBorder: .Middle onborder .GeoData] consume
 Result   : file
 
 
@@ -626,7 +626,7 @@ Result   : file
 Operator : touchpoints
 Number   : 2
 Signature: (line||region x region) -> points
-Example  : query WFlaechen feed {w} Flaechen feed {f} symmjoin[.geoData_w adjacent ..geoData_f] extend[Touch: touchpoints(.geoData_w, .geoData_f)] consume
+Example  : query WFlaechen feed {w} Flaechen feed {f} symmjoin[.GeoData_w adjacent ..GeoData_f] extend[Touch: touchpoints(.GeoData_w, .GeoData_f)] consume
 Result   : (platform (linux file) (win32 file) (linux64 bug) (mac_osx file))
 Remark   : On linux 64 bit this query produces an object with a different list structure
 
@@ -799,14 +799,14 @@ Tolerance : 50.0
 Operator  : collect_line
 Number    : 1
 Signature : (stream point) x bool -> line
-Example   : query no_segments(Kinos feed projecttransformstream[geoData] collect_line[TRUE])
+Example   : query no_segments(Kinos feed projecttransformstream[GeoData] collect_line[TRUE])
 Result    : (int 1119)
 
 
 Operator  : collect_line
 Number    : 2
 Signature : (stream line) x bool -> line
-Example   : query size(strassen feed projecttransformstream[geoData] collect_line[TRUE])
+Example   : query size(strassen feed projecttransformstream[GeoData] collect_line[TRUE])
 Result    : (real 2686760.928958891)
 Tolerance : 0.5
 
@@ -814,7 +814,7 @@ Tolerance : 0.5
 Operator  : collect_line
 Number    : 3
 Signature : (stream sline) x bool -> line
-Example   : query size(strassen feed projectextend[;g: fromline(.geoData)] filter[isdefined(.g)] transformstream collect_line[TRUE])
+Example   : query size(strassen feed projectextend[;G: fromline(.GeoData)] filter[isdefined(.G)] transformstream collect_line[TRUE])
 Result    : (real 2678603.846277799)
 Tolerance : 0.5
 
@@ -830,21 +830,21 @@ Tolerance : %0.001
 Operator  : collect_sline
 Number    : 1
 Signature : (stream point) x bool -> line
-Example   : query no_segments(Kinos feed sortby[geoData] projecttransformstream[geoData] collect_sline[TRUE])
+Example   : query no_segments(Kinos feed sortby[GeoData] projecttransformstream[GeoData] collect_sline[TRUE])
 Result    : (int 81)
 
 
 Operator  : collect_sline
 Number    : 2
 Signature : (stream line) x bool -> line
-Example   : query size(strassen feed sortby[geoData] projecttransformstream[geoData] collect_sline[TRUE])
+Example   : query size(strassen feed sortby[GeoData] projecttransformstream[GeoData] collect_sline[TRUE])
 Result    : (real undefined)
 
 
 Operator  : collect_sline
 Number    : 3
 Signature : (stream sline) x bool -> line
-Example   : query size(strassen feed sortby[geoData] projectextend[;g: fromline(.geoData)] filter[isdefined(.g)] transformstream collect_sline[TRUE])
+Example   : query size(strassen feed sortby[GeoData] projectextend[;G: fromline(.GeoData)] filter[isdefined(.G)] transformstream collect_sline[TRUE])
 Result    : (real undefined)
 
 Operator : makepoint
@@ -874,7 +874,7 @@ Result   : (point (5.0 5.0))
 Operator : collect_points
 Number   : 1
 Signature: stream(point) x bool -> points
-Example  : query components(Kneipen feed projecttransformstream[geoData] collect_points[TRUE]) count <= Kneipen count
+Example  : query components(Kneipen feed projecttransformstream[GeoData] collect_points[TRUE]) count <= Kneipen count
 Result   : TRUE
 
 Operator : halfSegments

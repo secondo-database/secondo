@@ -1017,7 +1017,7 @@ Result   : file
 Operator : perimeter
 Number   : 1
 Signature: mregion -> mreal
-Example  : query perimeter (move(train1, Sehenswuerdreg feed extract[geoData]))
+Example  : query perimeter (move(train1, Sehenswuerdreg feed extract[GeoData]))
 Result   : file
 
 
