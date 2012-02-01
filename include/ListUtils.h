@@ -202,6 +202,19 @@ bool isNumericType(const ListExpr n);
 
 
 /*
+Checks an attribute list for naming conventions
+
+*/
+  bool checkAttrListForNamingConventions(ListExpr attrList);
+
+/*
+Checks an attribute name for naming conventions.
+
+*/
+  bool checkAttrForNamingConventions(ListExpr attr);
+
+
+/*
 Checks for disjoint attribute lists.
 
 Precondition isAttrList(l1) [&]  isAttrList(l2)

@@ -293,6 +293,39 @@ Checks for a valid atribute list
   }
 
 /*
+Checks an attribute list for naming conventions
+
+*/
+  bool checkAttrListForNamingConventions(ListExpr attrList){
+     // assert(isAttrList(attrList));
+     while(!nl->IsEmpty(attrList)){
+        if(!checkAttrForNamingConventions(nl->First(nl->First(attrList)))){
+          return false;
+        }
+        attrList = nl->Rest(attrList);
+     }
+     return true;
+ 
+  }
+
+/*
+Checks an attribute name for naming conventions.
+
+*/
+  bool checkAttrForNamingConventions(ListExpr attr){
+     // assert(isSymbol(attr))
+     string name = nl->SymbolValue(attr);
+     if(name.length()<1){
+       return false;
+     }
+     char f = name[0];
+     if(f<'A' || f>'Z'){
+        return false;
+     } else {
+        return true;
+     }
+  }
+/*
 Checks for disjoint attribute lists.
 
 Precondition isAttrList(l1) [&]  isAttrList(l2)
