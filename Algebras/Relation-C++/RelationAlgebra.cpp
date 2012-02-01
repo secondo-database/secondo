@@ -280,108 +280,14 @@ the following error codes:
 bool
 CheckTuple(ListExpr type, ListExpr& errorInfo)
 {
-  vector<string> attrnamelist;
-  ListExpr attrlist, pair;
-  string attrname;
-  bool correct, ckd;
-  int unique;
-
-  if( nl->ListLength(type) == 2 &&
-      nl->IsEqual(nl->First(type), Tuple::BasicType(), true))
-  {
-    attrlist = nl->Second(type);
-    if (nl->IsEmpty(attrlist))
-    {
-      errorInfo = nl->Append(errorInfo,
-        nl->ThreeElemList(
-          nl->IntAtom(61),
-          nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(1)));
+   if(!Tuple::checkType(type)){
       return false;
-    }
-    if (nl->IsAtom(attrlist))
-    {
-      errorInfo = nl->Append(errorInfo,
-        nl->FourElemList(
-          nl->IntAtom(61),
-          nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(2),
-          attrlist));
-      return false;
-    }
+   }
 
-    unique = 0;
-    correct = true;
-    while (!nl->IsEmpty(attrlist))
-    {
-      pair = nl->First(attrlist);
-      attrlist = nl->Rest(attrlist);
-      if (nl->ListLength(pair) == 2)
-      {
-        if ((nl->IsAtom(nl->First(pair))) &&
-          (nl->AtomType(nl->First(pair)) == SymbolType))
-        {
-          attrname = nl->SymbolValue(nl->First(pair));
-          unique = std::count(attrnamelist.begin(),
-                              attrnamelist.end(),
-                              attrname);
-          if (unique > 0)
-          {
-            errorInfo = nl->Append(errorInfo,
-             nl->FourElemList(
-               nl->IntAtom(61),
-               nl->SymbolAtom("TUPLE"),
-               nl->IntAtom(3),
-               nl->First(pair)));
-            correct = false;
-          }
-          attrnamelist.push_back(attrname);
-          ckd = am->CheckKind(Kind::DATA(), nl->Second(pair),
-                              errorInfo);
-          if (!ckd)
-          {
-            errorInfo = nl->Append(errorInfo,
-              nl->FourElemList(
-                nl->IntAtom(61),
-                nl->SymbolAtom("TUPLE"),
-                nl->IntAtom(6),
-                nl->Second(pair)));
-          }
-          correct = correct && ckd;
-        }
-        else
-        {
-          errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(
-            nl->IntAtom(61),
-            nl->SymbolAtom("TUPLE"),
-            nl->IntAtom(4),
-            nl->First(pair)));
-          correct = false;
-        }
-      }
-      else
-      {
-        errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(
-            nl->IntAtom(61),
-            nl->SymbolAtom("TUPLE"),
-            nl->IntAtom(5),
-            pair));
-        correct = false;
-      }
-    }
-    return correct;
-  }
-  else
-  {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(
-        nl->IntAtom(60),
-        nl->SymbolAtom("TUPLE"),
-        type));
-    return false;
-  }
+   if(!listutils::checkAttrListForNamingConventions(nl->Second(type))){
+     return false;
+   }
+   return true;
 }
 
 /*
@@ -1578,7 +1484,8 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
 
 */
 
-template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
+template<bool isOrel> 
+ListExpr ConsumeTypeMap(ListExpr args)
 {
   string expected = isOrel?"(stream(tuple(...)) (sortby_Ids)) expected":
                             "stream(tuple(...)) expected";
@@ -1595,17 +1502,24 @@ template<bool isOrel> ListExpr ConsumeTypeMap(ListExpr args)
 
   ListExpr attrlist = nl->Second(nl->Second(first));
 
-  // do not allow an arel  attribute for standard consume
-  while(!nl->IsEmpty(attrlist)){
-    ListExpr attr = nl->First(attrlist);
-    attrlist = nl->Rest(attrlist);
-    ListExpr type = nl->Second(attr);
-    if( (nl->ListLength(type)==2) &&
-        (nl->IsAtom(nl->First(type))) &&
-        ( (nl->SymbolValue(nl->First(type))) == "arel")){
-      ErrorReporter::ReportError("arel attributes cannot be processed"
-                                  " with standard consume");
-      return nl->TypeError();
+  if(!listutils::checkAttrListForNamingConventions(attrlist)){
+    return listutils::typeError("Some of the attributes does "
+                      "not fit to Secondo's naming conventions");
+  }
+
+  if(!isOrel){
+    // do not allow an arel  attribute for standard consume
+    while(!nl->IsEmpty(attrlist)){
+      ListExpr attr = nl->First(attrlist);
+      attrlist = nl->Rest(attrlist);
+      ListExpr type = nl->Second(attr);
+      if( (nl->ListLength(type)==2) &&
+          (nl->IsAtom(nl->First(type))) &&
+          ( (nl->SymbolValue(nl->First(type))) == "arel")){
+        ErrorReporter::ReportError("arel attributes cannot be processed"
+                                    " with standard consume");
+        return nl->TypeError();
+      }
     }
   }
 
@@ -5294,6 +5208,77 @@ ListExpr RenameAttrTypeMap(ListExpr args){
 }
 
 /*
+5.12.1 validateAttrNames
+
+Changes the names attribute names of a tuple stream to start with an upper case.
+If there are name conflicts resulting of this renaming, the names are extended by
+a sequential number. It returns false, if the names does not start with an character
+in a,...,z,A,...,Z. 
+
+*/
+bool validateName(string& name){
+  char f = name[0];
+  if(f<'A' ||  f>'Z'){
+     f = (f - 'a') + 'A';
+  }
+  if(f<'A' || f>'Z'){
+     return false;
+  }
+  name[0] = f;
+  return true; 
+}
+
+ListExpr validateAttrTM(ListExpr args){
+  string err = "tuple stream expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError(err);
+  }
+  // start building the result
+  ListExpr res;
+  ListExpr last;
+  bool firstElem = true;
+  ListExpr attrList = nl->Second(nl->Second(stream));
+
+  set<string> usedNames;
+
+
+  while(!nl->IsEmpty(attrList)){
+     ListExpr first = nl->First(attrList);
+     attrList = nl->Rest(attrList);
+     string name = nl->SymbolValue(nl->First(first));
+     if(!validateName(name)){
+        return listutils::typeError("Attribute name found "
+                       "which not starts with a character");
+     } 
+     if(usedNames.find(name)!=usedNames.end()){
+        string basic = name + "_";
+        int num = 0;
+        do{
+          name = basic + stringutils::int2str(num);
+          num++;
+        } while(usedNames.find(name)!=usedNames.end());
+     }
+     // now, we have a unique name 
+     ListExpr at = nl->TwoElemList(nl->SymbolAtom(name), nl->Second(first));
+     if(firstElem){
+        res = nl->OneElemList(at);
+        last = res;
+        firstElem=false;
+     } else {
+        last = nl->Append(last,at); 
+     }
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                  nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),res));
+}
+
+
+
+/*
 
 5.12.2 Value mapping function of operator ~rename~
 
@@ -5389,6 +5374,20 @@ const string RenameAttrSpec  =
   "<text>query ten feed renameattr [ No : no ] consume "
   "</text--->"
   ") )";
+
+
+const string validateAttrSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> stream(tuple) -> stream(tuple), "
+  "</text--->"
+  "<text>_ validateAttr "
+  "</text--->"
+  "<text>Changes the attribute names to start with an upper case"
+  "</text--->"
+  "<text>query ten feed validateAttr consume "
+  "</text--->"
+  ") )";
 /*
 
 5.12.4 Definition of operator ~rename~
@@ -5413,13 +5412,13 @@ Operator relalgrenameattr (
 
 
 
-
-
-
-
-
-
-
+Operator relalgvalidateAttr (
+         "validateAttr",               // name
+         validateAttrSpec,             // specification
+         Rename,                 // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         validateAttrTM           // type mapping
+);
 
 
 
@@ -5897,6 +5896,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);
+    AddOperator(&relalgvalidateAttr);
     AddOperator(&relalgrenameattr);
     relalgrenameattr.SetUsesArgsInTypeMapping();
     AddOperator(&relalgbuffer);
@@ -5933,6 +5933,7 @@ Register operators which are able to handle progress messages
     relalgcount.EnableProgress();
     relalgrename.EnableProgress();
     relalgrenameattr.EnableProgress();
+    relalgvalidateAttr.EnableProgress();
     relalgbuffer.EnableProgress();
 #endif
 
