@@ -32,6 +32,7 @@ The implentations can be found at StringUtils.cpp in directory Tools/Utilities.
 #define STRINGUTILS_H
 
 #include <string>
+#include <sstream>
 
 
 namespace stringutils {
@@ -104,8 +105,27 @@ std::string replaceAll(const std::string& textStr,
                   const std::string& patternOldStr,
                   const std::string& patternNewStr);
 
-} // end of namespace stringutils
 
+/*
+Function converting a type supporting the shift (output) operator
+to a string.
+
+*/
+template<typename t>
+std::string any2str(const t& a){
+   std::stringstream s;
+   s << a;
+   return s.str();
+}
+
+
+/*
+Converts an int into a string
+
+*/
+std::string int2str(int a);
+
+} // end of namespace stringutils
 #endif
 
 

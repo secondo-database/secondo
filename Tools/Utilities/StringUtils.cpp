@@ -154,4 +154,10 @@ std::string replaceAll(const std::string& textStr,
 }
 
 
+
+std::string int2str(int a){
+   return any2str<int>(a);
+}
+
+
 } // end of namespace stringutils
