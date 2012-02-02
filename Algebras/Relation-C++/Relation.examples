@@ -209,7 +209,7 @@ Result   : TRUE
 Operator  : validateAttr
 Number    : 1
 Signature : stream(tuple) -> stream(tuple)
-Example   : query ten feed renameattr[ klein : No ] validateAttr consume count
+Example   : query ten feed renameattr[ Klein : No ] validateAttr consume count
 Result    : 10
 
 

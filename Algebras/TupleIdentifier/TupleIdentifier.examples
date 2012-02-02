@@ -55,7 +55,7 @@ Result   : 171696
 Operator : tid2int
 Number   : 1
 Signature: tid -> int
-Example  : query ten feed addid extend[tidint: tid2int(.TID)] extract[tidint]
+Example  : query ten feed addid extend[Tidint: tid2int(.TID)] extract[Tidint]
 Result   : 1
 
 Operator : int2tid
