@@ -5189,6 +5189,11 @@ ListExpr RenameAttrTypeMap(ListExpr args){
                                 ->IsValidIdentifier(newname,idcheckmsg,true) ) {
       return listutils::typeError("New attribute name "+idcheckmsg+".");
     }
+    char f = newname[0];
+    if(f<'A' || f>'Z'){
+      return listutils::typeError("Attribute name '" + newname + 
+                                  "' starts with a lower case");
+    }
     if(renameMap.find(oldname)!=renameMap.end()){
       return listutils::typeError(  "Attribute name '"
                                    +oldname+"' renamed twice.");
