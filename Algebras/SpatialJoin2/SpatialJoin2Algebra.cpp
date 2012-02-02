@@ -574,7 +574,7 @@ int getNextCellNum()
     else if (!finished)
     {
       if ((cx <= RTX) && (cy <= RTY)){
-	if (is3D){        
+        if (is3D){        
         cellNum = cellnumberG3D(cx,cy,cz,maxebene);
         }
         else {
@@ -1097,7 +1097,7 @@ struct cellnumberG_Info : OperatorInfo {
         "G-curve form"
         "starting in a seed cell in the positiv sector relative" 
         "to the starting point at (x0,y0 [,z0])."
-	;
+        ;
   }
 
 };
@@ -1124,7 +1124,7 @@ struct cellnumberLine_Info : OperatorInfo {
         "one for each relevant Sector of the coordinate system." 
         "Starting point is (x0,y0 [,z0]) as the center point of the"
         "coordinate system."
-	;
+        ;
   }
 
 };
