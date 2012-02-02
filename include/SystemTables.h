@@ -110,10 +110,10 @@ class CmdTimesRel : public SystemInfoRel
      addAttribute("ElapsedTime", sym.REAL() );
      addAttribute("CpuTime",     sym.REAL() );
      addAttribute("CommitTime",  sym.REAL() );
-     addAttribute("queryReal",   sym.REAL() );
-     addAttribute("queryCPU",    sym.REAL() );
-     addAttribute("outObjReal",  sym.REAL() );
-     addAttribute("copyReal",    sym.REAL() );
+     addAttribute("QueryReal",   sym.REAL() );
+     addAttribute("QueryCPU",    sym.REAL() );
+     addAttribute("OutObjReal",  sym.REAL() );
+     addAttribute("CopyReal",    sym.REAL() );
    }
 
 };
