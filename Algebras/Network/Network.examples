@@ -27,67 +27,67 @@ Result   : file_platform
 
 Operator : spsearchvisited
 Number   : 1
-Signature: gpoint x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoint x gpoint x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)], [const gpoint value(1 2 1.0 2)], TRUE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 2
-Signature: gpoint x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoint x gpoint x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)], [const gpoint value(1 2 1.0 2)], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 3
-Signature: gline x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gline x gline x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gline value(1((2 0.7 1.5)))], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 4
-Signature: gpoints x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoints x gpoints x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 5
-Signature: gline x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gline x gline x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gline value(1((2 0.7 1.5)))], TRUE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 6
-Signature: gpoint x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoint x gline x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)],[const gline value(1((2 0.7 1.5)))], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 7
-Signature: gpoint x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoint x gpoints x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoint value(1 1 1.0 2)],[const gpoints value((1 2 0.7 2)(1 2 1.5 2))], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 8
-Signature: gline x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gline x gpoint x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(curveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gpoint value(1 2 1.5 2)], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 9
-Signature: gline x gpoints x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gline x gpoints x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gline value(1((1 0.0 0.5)))],[const gpoints value((1 2 1.5 2))], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 10
-Signature: gpoints x gpoint x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoints x gpoint x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gpoint value(1 2 0.7 2)], FALSE) consume;
 Result   : file
 
 Operator : spsearchvisited
 Number   : 11
-Signature: gpoints x gline x bool -> stream(tuple((rid int) (meas1 real) (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool) (rrc tid) (sid int)))
+Signature: gpoints x gline x bool -> stream(tuple((Rid int) (Meas1 real) (Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int)))
 Example  : query spsearchvisited([const gpoints value((1 1 0.5 2))],[const gline value(1 ((2 0.7 1.5)))], FALSE) consume;
 Result   : file
 

@@ -3,14 +3,14 @@
     (rel 
         (tuple 
             (
-                (rid int) 
-                (meas1 real) 
-                (meas2 real) 
-                (dual bool) 
-                (curve sline) 
-                (curveStartsSmaller bool) 
-                (rrc tid) 
-                (sid int)))) 
+                (Rid int) 
+                (Meas1 real) 
+                (Meas2 real) 
+                (Dual bool) 
+                (Curve sline) 
+                (CurveStartsSmaller bool) 
+                (Rrc tid) 
+                (Sid int)))) 
     (
         (1 0.0 385.0474775448921 TRUE 
             (

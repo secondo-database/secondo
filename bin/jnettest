@@ -2,7 +2,7 @@
 (DATABASE JNETTEST
     (TYPES)
     (OBJECTS
-        (OBJECT list1ndg
+        (OBJECT List1ndg
             ()
             listnetdistgrp
             (
@@ -30,7 +30,7 @@
                 (5
                     (9 54.1 546.6
                         (Down)))))
-        (OBJECT list1pairtidrloc
+        (OBJECT List1pairtidrloc
             ()
             listpairtidrloc
             (
@@ -49,23 +49,23 @@
                 (5
                     (9 54.1
                         (Down)))))
-        (OBJECT list1tid
+        (OBJECT List1tid
             ()
             listtid
             (1 2 3 4 5))
-        (OBJECT list1int
+        (OBJECT List1int
             ()
             listint
             (5 6 15))
-        (OBJECT reljunctions
+        (OBJECT Reljunctions
             ()
             (rel
                 (tuple
                     (
-                        (jid int)
-                        (pos point)
-                        (rid int)
-                        (r_pos real))))
+                        (Jid int)
+                        (Pos point)
+                        (Rid int)
+                        (R_pos real))))
             (
                 (2
                     (824757.8925393504 540439.7585997347)
@@ -2387,17 +2387,17 @@
                     (826559.8560338261 540997.2285513321)
                     238
                     21.52890300310447)))
-        (OBJECT relroutes
+        (OBJECT Relroutes
             ()
             (rel
                 (tuple
                     (
-                        (rid int)
-                        (jid int)
-                        (r_pos real)
-                        (vmax real)
-                        (curve sline)
-                        (side jdirection))))
+                        (Rid int)
+                        (Jid int)
+                        (R_pos real)
+                        (Vmax real)
+                        (Curve sline)
+                        (Side jdirection))))
             (
                 (38 2 0.0 100.0
                     (
@@ -7647,10 +7647,10 @@
                             (826542.8312192142 541010.4061593073 826559.8560338261 540997.2285513321))
                         TRUE)
                     (Both))))
-        (OBJECT testnet
+        (OBJECT Testnet
             ()
             jnetwork
-            ("testnet"
+            ("Testnet"
                 (
                     (2
                         (824757.8925393504 540439.7585997347)

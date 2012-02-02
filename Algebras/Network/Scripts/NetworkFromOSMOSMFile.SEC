@@ -1,5 +1,8 @@
 ################################################################################
-# JNet Import from Openstreetmap data in osm data file format.                 #
+# Network Import from Openstreetmap data in osm data file format.              #
+#                                                                              #
+# Uses Gauss-Krüger-Dataformat instead of geographical coordinates to make     #
+# live easier for distance and speed computing                                 #
 ################################################################################
 # Create and open database                                                     #
 ################################################################################
@@ -9,6 +12,8 @@ create database ruegen;
 open database ruegen;
 
 ################################################################################
+# (1) Set parameters to control import                                         #
+################################################################################
 # Set path to osm source files.                                                #
 ################################################################################
 
@@ -16,784 +21,384 @@ let SRC_DIR_PATH = '/home/jandt/Downloads/OSM-Dateien/';
 let SOURCEFILE = 'mecklenburg-vorpommern.osm'
 
 ################################################################################
-# Define rectangle selecting part of map which we are interested in.           #
+# Select part of data by defining bounding box rectangle and selecting the     #
+# correct Gauss-Krüger-Region for the imported data set.                       #
 ################################################################################
 
-let PARTRECT = rectangle2 (11.573, 14.397, 53.358, 54.749);
+let GK_VALUE_FOR_REGION = 4;
+let SELECT_RECT = rectangle2(13.244, 13.446, 53.946, 54.002);
+
+let PARTREGION = gk( (SELECT_RECT) rect2region, GK_VALUE_FOR_REGION);
 
 ################################################################################
-# Import the raw data from osm-file                                            #
+# (2) Import the raw data from osm-file                                        #
 ################################################################################
 
-let osmNodesRel =
+let OsmNodesRel =
    osmimport(SRC_DIR_PATH + SOURCEFILE ,'node')
-   extend [geoData: makepoint(.lon,.lat)]
-   remove [lon,lat]
-   filter[bbox(.geoData) intersects PARTRECT]
-   consume;
+     extend [GeoData: gk(makepoint(.Lon,.Lat),GK_VALUE_FOR_REGION)]
+     remove [Lon,Lat]
+   reNameattr[PointType: "Type"]
+consume;
 
-let osmWaysTmp =
+let OsmWaysTmp =
    osmimport(SRC_DIR_PATH + SOURCEFILE,'way')
-   filter [isdefined(.type)]
-   consume;
+   reNameattr[RoadType: "type"]
+   filter [isdefined(.RoadType)]
+   project[Ref, Name, RoadType, Osm_id, Oneway, Layer, Maxspeed, NodeRefs]
+consume;
 
-let osmRestrictionsRel =
+let OsmRestrictionsRel =
    osmimport(SRC_DIR_PATH + SOURCEFILE,'restriction')
-   filter[.osmType = "restriction"]
-   remove [osmType]
-   consume;
+   reNameattr[FromWay: "From", ViaNode: "Via", ToWay: "To"]
+consume;
 
 ################################################################################
-# Extend the references to osm nodes                                           #
+# (4) Use way and node data sets to define spatial curves for the imported ways#
+#                                                                              #
+# Build curve as sline from NodeRefs.                                          #
+# Set Direction of curve like defined by node sequence and Oneway value        #
+# Set Vmax by Maxspeed or if Maxspeed not defined by RoadType.                 #
 ################################################################################
 
-let osmWayNodeRefsTmp =
-   osmWaysTmp feed
-   sortby [osm_id]
-   projectextendstream [osm_id; abc: tokenize(.nodeRefs,",")]
-   addcounter[orderId, 1]
-   extend [nodeRef: toObject(.abc,0)]
-   remove [abc]
-   consume;
+let SecWaysTmp =
+  OsmWaysTmp feed
+  projectextend[Ref, Name, RoadType, Osm_id, Oneway, Layer,
+    NodeRefs; Vmax: ifthenelse(.Maxspeed > 0, int2real(.Maxspeed),
+                    ifthenelse(.RoadType contains "motorway", 130.0,
+                    ifthenelse(.RoadType contains "trunk", 130.0,
+                    ifthenelse(.RoadType contains "primary",100.0,
+                    ifthenelse(.RoadType contains "secondary",70.0,
+                    ifthenelse(.RoadType contains "tertiary",50.0,
+                    ifthenelse(.RoadType contains "residential",30.0,
+                    ifthenelse(.RoadType contains "living_street",30.0,
+                    ifthenelse(.RoadType contains "road",50.0,
+                    ifthenelse(.RoadType contains "unclassified",50.0,
+                    ifthenelse(.RoadType contains "service",50.0,
+                    ifthenelse(.RoadType contains "track", 5.0, 4.0))))))))))))]
+  projectextendstream[Ref, Name, RoadType, Osm_id, Oneway, Layer,
+     Vmax; NodeIdString: tokenize(.NodeRefs,",")]
+  extend[NodeId: toObject(.NodeIdString,0)]
+  remove[NodeIdString]
+  addcounter[OrderId,1]
+  OsmNodesRel feed {n}
+  hashjoin[NodeId, Osm_id_n, 9997]
+  projectextend[Ref, Name, RoadType, Osm_id, Oneway, Layer, Vmax, OrderId,
+    NodeId; NodEPoint: .GeoData_n]
+  sortby[Osm_id, OrderId]
+  groupby[Osm_id, Ref, Name, RoadType, Oneway, Layer,
+     Vmax; Geometry: group feed projecttransformstream [NodEPoint] collect_sline[TRUE],
+           StartNodeOSMId: group feed sortby [OrderId] head[1] extract[NodeId],
+           EndNodeOSMId: group feed sortby [OrderId] tail[1] extract[NodeId]]
+  OsmNodesRel feed {s}
+  hashjoin[StartNodeOSMId, Osm_id_s,9997]
+  projectextend[Osm_id, Ref, Name, RoadType, Oneway, Layer, Vmax, Geometry,
+    EndNodeOSMId; SPoint: .GeoData_s]
+  OsmNodesRel feed {e}
+  hashjoin[EndNodeOSMId, Osm_id_e,9997]
+  projectextend[Osm_id, Ref, Name, RoadType, Oneway, Layer, Vmax, Geometry,
+     SPoint; EPoint: .GeoData_e]
+  filter[toline(.Geometry) intersects PARTREGION]
+  projectextend[Osm_id, Ref, Name, RoadType, Oneway, Layer,
+    Vmax; GeoData: set_startsmaller(.Geometry, ifthenelse(.Oneway = -1,
+      ifthenelse(.EPoint < .SPoint, TRUE, FALSE),
+      ifthenelse(.EPoint < .SPoint, FALSE, TRUE)))]
+consume;
 
 ################################################################################
-# Extend the references to osm nodes by the actual points (Undefined points    # 
-# have to be treated specially. They exist when points exceed the boundaries   #
-# of the bounding box.)                                                        #
+# (5) Build roads as long as possible from way data and create corresponding   #
+#     roads relation                                                           #
 ################################################################################
 
-let osmWayPointsTmp =
-   osmNodesRel feed
-   project [osm_id,geoData] {p}
-   osmWayNodeRefsTmp feed
-   smouterjoin [osm_id_p,nodeRef]
-   filter [isdefined(.nodeRef)]
-   sortby [osm_id,orderId]
-   filter [isdefined(.osm_id_p)]
-   addcounter[substreetId, 1]
-   extend [pointGeoData: .geoData_p]
-   remove [geoData_p]
-   consume;
+let LongRoadsTmp =
+  SecWaysTmp feed
+  projectextend[Ref, Name, RoadType, Osm_id; SectCurve: toline(.GeoData)]
+  filter [isdefined(.Ref)]
+  filter[not(.RoadType contains "link")]
+  projectextendstream[Name, RoadType, Osm_id, SectCurve; RefToken: tokenize(' '+.Ref,";")]
+  projectextend[Name, RoadType, Osm_id,
+    SectCurve; Ref: trim(toObject('"'+.RefToken +'"',"a"))
+      Dual: ifthenelse(.RoadType contains "motorway", TRUE, FALSE)]
+  sortby[Ref,Osm_id, Dual]
+  groupby[Ref, Dual; RoadCurve: group feed projecttransformstream[SectCurve] collect_line[TRUE],
+               OsmIdSet: group feed projecttransformstream[Osm_id] createlistj]
+  sortby[Ref, RoadCurve, OsmIdSet]
+  rdup
+consume;
 
-################################################################################
-# Combine sequences of way points with sequential order ids (no gaps) to       #
-# substreets                                                                   #
-################################################################################
+let RoadsTmp =
+  SecWaysTmp feed
+  projectextend[Ref, Name, RoadType, Osm_id; SectCurve: toline(.GeoData), Dual: FALSE]
+  filter[not(isdefined(.Ref))]
+  filter[isdefined(.Name)]
+  filter[not(.RoadType contains "link")]
+  sortby[Name,Osm_id, Dual]
+  groupby[Name, Dual; RoadCurve: group feed projecttransformstream[SectCurve] collect_line[TRUE],
+                OsmIdSet: group feed projecttransformstream[Osm_id] createlistj]
+  sortby[Name, RoadCurve, OsmIdSet]
+  rdup
+consume;
 
-let osmUncheckedWaysTmp =
-   osmWayPointsTmp feed
-   project [osm_id,substreetId,orderId]
-   sortby [osm_id,substreetId,orderId]
-   osmWayPointsTmp feed
-   project [osm_id,substreetId,orderId]
-   sortby [osm_id,substreetId,orderId] {t}
-   hashjoin [osm_id,osm_id_t,99997]
-   filter [(.orderId_t >= .orderId) and
-      (.substreetId_t = (.substreetId + (.orderId_t - .orderId)))]
-   sortby [osm_id,substreetId]
-   groupby [osm_id,substreetId; toSubstreetId: group feed max [substreetId_t]]
-   sortby [osm_id,toSubstreetId]
-   groupby [osm_id,toSubstreetId; fromSubstreetId: group feed min [substreetId]]
-   project [osm_id,fromSubstreetId,toSubstreetId]
-   sortby [osm_id,fromSubstreetId,toSubstreetId]
-   addcounter [newSubstreetId,1]
-   osmWayPointsTmp feed
-   extend [osm_ref: .osm_id]
-   remove [osm_id]
-   sortby [osm_ref,substreetId,orderId]
-   hashjoin [osm_id,osm_ref,99997]
-   remove [osm_ref]
-   sortby [osm_id,newSubstreetId,orderId]
-   groupby [osm_id,newSubstreetId; numPoints: group count,
-      geoData: group feed projecttransformstream [pointGeoData]
-         collect_sline[TRUE]]
-   consume;
+let RoadsPartsTmp1 =
+  SecWaysTmp feed
+  projectextend[Ref, Name, RoadType, Osm_id; SectCurve: toline(.GeoData), Dual: FALSE]
+  filter[(.RoadType contains "link")]
+  filter[isdefined(.Ref) or isdefined(.Name)]
+  sortby[Osm_id, Dual]
+  groupby[Osm_id, Dual; RoadCurve: group feed projecttransformstream[SectCurve] collect_line[TRUE],
+                  OsmIdSet: group feed projecttransformstream[Osm_id] createlistj]
+  sortby[Osm_id, RoadCurve, OsmIdSet]
+  rdup
+consume;
 
-let osmWaysRel =
-   osmWaysTmp feed
-   osmUncheckedWaysTmp feed
-   extend [helpId: .osm_id]
-   remove [osm_id]
-   hashjoin [osm_id,helpId,99997]
-   remove [nodeRefs,helpId]
-   filter[isdefined(.geoData)]
-   consume;
 
-################################################################################
-# Storing the street, POI and restriction data                                 #
-################################################################################
+let RoadsPartsTmp =
+  SecWaysTmp feed
+  projectextend[Ref, Name, RoadType, Osm_id; SectCurve: toline(.GeoData), Dual: FALSE]
+  filter[not(isdefined(.Ref))]
+  filter[(not(isdefined(.Name)))]
+  sortby[Osm_id, Dual]
+  groupby[Osm_id, Dual; RoadCurve: group feed projecttransformstream[SectCurve] collect_line[TRUE],
+                  OsmIdSet: group feed projecttransformstream[Osm_id] createlistj]
+  sortby[Osm_id, RoadCurve, OsmIdSet]
+  rdup
+consume;
 
-let streetsTmp =
-   osmWaysRel feed
-   filter[bbox(.geoData) intersects PARTRECT]
-   consume;
-
-let pointsTmp =
-   osmNodesRel feed
-   extend [timestamp: "DUMMY"]
-   consume;
-
-let restrictionsTmp =
-   osmRestrictionsRel feed
-   consume;
-
-################################################################################
-# Creating a relation that maps road classes to numbers                        #
-################################################################################
-
-let roadClassesRel =
-   [const rel(tuple([RoadClassId: int, RoadClass: string,
-      Description: string])) value (
-   (0 "other" "alle sonstigen Strassenarten (insb. Fusswege)")
-   (1 "motorway" "Autobahn")
-   (2 "motorway_link" "Autobahnauf-/abfahrt")
-   (3 "trunk" "autobahnaehnliche Strasse")
-   (4 "trunk_link" "Auf-/Abfahrt einer autobahnaehnlichen Strasse")
-   (5 "primary" "Bundesstrasse")
-   (6 "primary_link" "Bundesstrassenauf-/abfahrt")
-   (7 "secondary" "Landstrasse")
-   (8 "secondary_link" "Landstrassenauf-/abfahrt")
-   (9 "tertiary" "Kreisstrasse")
-   (10 "tertiary_link" "Kreisstrassenabfahrt")
-   (11 "residential" "Wohngebietsstrasse")
-   (12 "unclassified" "verbindende Gemeindestrasse")
-   (13 "road" "unzugeordnete Strasse")
-   (14 "living_street" "Strasse in verkehrsberuhigtem Bereich")
-   (15 "service" "Erschliessungsweg")
-   (16 "track" "Feld-/Waldweg")
-   )];
-
-################################################################################
-# Rename attribute 'type', because it is a secondo keyword. Also trim the      #
-# street names as well as the abbreviations and altering undefined names       #
-# (since motorway names are often undefined generic names are introduced for   #
-# them)                                                                        #
-################################################################################
-
-let streetsModified =
-   streetsTmp feed
-   renameattr [roadClass: "type",osmId: "osm_id",
-               oneWay: "oneway",maxSpeed: "maxspeed",
-               originalName: "name", originalRef: "ref"]
-   extend [name: ifthenelse(isdefined(.originalName),
-                    tostring(trim(totext(.originalName))),
-                    ifthenelse((isdefined(.originalRef)) and
-                       (.roadClass = 'motorway'),
-                       "Autobahn " + .originalRef,
-                       "UNKNOWN")),
-           ref: ifthenelse(isdefined(.originalRef),
-              tostring(trim(totext(.originalRef))),
-              "UNKNOWN"),
-           roadClassTrimmed: trim(.roadClass)]
-   remove [originalName,originalRef,roadClass]
-   extend [roadClass: .roadClassTrimmed]
-   remove [roadClassTrimmed]
-   sortby [name]
-   addcounter[streetId,1]
-   consume;
-
-let pointsRel =
-   pointsTmp feed
-   renameattr [pointType: "type",osmId: "osm_id"]
-   projectextend [osmId, timestamp, name,
-      geoData; pointType: tostring(replace(.pointType, " ", ""))]
-   filter [isdefined(.pointType)]
-   addcounter[pointId,1]
-   consume;
-
-################################################################################
-# Change the representation of the road class from string to a corresponding   #
-# number and remove all unwanted roads                                         #
-################################################################################
-
-let streetsRel =
-   streetsModified feed
-   roadClassesRel feed
-   smouterjoin [roadClass,RoadClass]
-   filter [isdefined(.streetId)]
-   extend [roadClassRef: ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
-   remove [roadClass,RoadClassId,RoadClass,Description]
-   filter [.roadClassRef > 0]
-   consume;
-
-################################################################################
-# Group streets by name and add Id                                             #
-################################################################################
-
-let groupedStreetsTmp =
-   streetsRel feed
-   project [streetId,name,geoData]
-   filter [isdefined(.name)]
-   extend [lineData: toline(.geoData)]
-   sortby [name]
-   groupby [name; numParts: group count,
-            geo: group feed
-               aggregateB [lineData; fun(l1:line,l2:line)
-                     l1 union l2; [const line value ()]]]
-   sortby [name]
-   addcounter [groupedStreetsId,1]
-   consume;
-
-################################################################################
-# Extend the streets-relation with a foreign key attribute to the grouped-     #
-# relation                                                                     #
-################################################################################
-
-let extStreetsRel =
-   (groupedStreetsTmp feed {a}
-    streetsRel feed
-    hashjoin [name_a,name,99997]
-    projectextend [; groupedStreetsId : .groupedStreetsId_a,
-       tmpStreetId: .streetId])
-   streetsRel feed
-   hashjoin [tmpStreetId,streetId,99997]
-   extend [groupId: .groupedStreetsId]
-   remove [tmpStreetId, groupedStreetsId]
-   consume;
-
-################################################################################
-# Update the references in the restrictions-relation such that the new         #
-# artificial IDs are used instead of the original ones from osm (for the       #
-# crossing the geo data of the corresponding point is used instead of an ID as #
-# all none POI-related data was removed from the persistent points-relation)   #
-################################################################################
-
-let restrictionsHelp =
-   restrictionsTmp feed
-   renameattr [osmFrom: "from", osmTo: "to", osmVia: "via", osmId: "osm_id"]
-   consume;
-
-let restrictionsRel =
-   ((restrictionsHelp feed
-     streetsRel feed
-     project [osmId,streetId] {f}
-     hashjoin [osmFrom,osmId_f,99997]
-     extend [fromStreet: .streetId_f]
-     remove [osmId_f,streetId_f])
-    streetsRel feed
-    project [osmId,streetId] {t}
-    hashjoin [osmTo,osmId_t,99997]
-    extend [toStreet: .streetId_t]
-    remove [osmId_t,streetId_t])
-   pointsTmp feed
-   project [osm_id,geoData] {v}
-   hashjoin [osmVia,osm_id_v,99997]
-   extend [viaPoint: .geoData_v]
-   remove [osm_id_v,geoData_v,osmFrom,osmTo,osmVia]
-   sortby [fromStreet,toStreet]
-   addcounter[restrictionId,1]
-   consume;
+let RoadsRelation =
+  ((LongRoadsTmp feed project[RoadCurve, OsmIdSet, Dual])
+   (RoadsTmp feed project[RoadCurve, OsmIdSet, Dual])
+   concat)
+  ((RoadsPartsTmp feed project[RoadCurve, OsmIdSet, Dual])
+    (RoadsPartsTmp1 feed project[RoadCurve, OsmIdSet, Dual])
+  concat)
+  concat
+  projectextendstream[OsmIdSet, Dual; Geometry: .RoadCurve polylines[TRUE]]
+  projectextend[OsmIdSet, Dual; GeoData: fromline(.Geometry),
+    Lenth: size(.Geometry)]
+  extend [StartSmaller: get_startsmaller(.GeoData)]
+  sortby[GeoData]
+  addcounter[RoadId,1]
+consume;
 
 ################################################################################
 # Compute all junctions and terminating points by finding the existing         #
-# crossings between streets and adding terminating points                      #
+# crossings between ways and add terminating points                            #
 ################################################################################
 
-let sectionPtsTmp =
-   (extStreetsRel feed
-    project [streetId,geoData,layer] {s1}
-    extStreetsRel feed
-    project [streetId,geoData,layer] {s2}
-    spatialjoin [geoData_s1, geoData_s2]
-    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
-    filter[.geoData_s1 intersects .geoData_s2]
-    projectextend[; Road1: .streetId_s1,
-       Road2: .streetId_s2,
-       Crossroads: crossings(.geoData_s1, .geoData_s2)]
-    filter[(isdefined(.Crossroads)) and (not(isempty(.Crossroads)))]
-    projectextendstream [Road1,Road2; Pt: components(.Crossroads)])
-   (extStreetsRel feed
-    projectextend [; Road1: .streetId,
-       Road2: .streetId,
-       B: boundary(toline(.geoData))]
-    projectextendstream [Road1,Road2; Pt: components(.B)]
-   )
-   concat
-   consume;
+let CrossingPtsTmp =
+   SecWaysTmp feed project [Osm_id,GeoData,Layer] {s1}
+   SecWaysTmp feed project [Osm_id,GeoData,Layer] {s2}
+   itSpatialJoin [GeoData_s1, GeoData_s2, 4 ,8]
+   filter[(.Layer_s1 = .Layer_s2)]
+   filter[.Osm_id_s1 < .Osm_id_s2]
+   filter[.GeoData_s1 intersects .GeoData_s2]
+   projectextendstream[; Osm_id1: .Osm_id_s1,
+       Osm_id2: .Osm_id_s2,
+       Pt: components(crossings(.GeoData_s1, .GeoData_s2))]
+   filter[isdefined(.Pt)]
+consume;
 
-let stSecPts =
-   (sectionPtsTmp feed
-    projectextend [Pt; Street: .Road1]
-    sectionPtsTmp feed
-    projectextend [Pt; Street: .Road2]
-    concat
-    sortby [Street,Pt]
-    rdup
-    sortby [Street]
-    groupby [Street; SecPts: group feed projecttransformstream [Pt]
-          collect_points [TRUE]]
-    consume);
+let RoadEndsHelp =
+  RoadsRelation feed
+  projectextendstream[GeoData; Osm_id: createstreamj(.OsmIdSet)]
+consume;
 
-################################################################################
-# Split up streets into sections                                               #
-################################################################################
-
-let stsPlusSecsTmp =
-   stSecPts feed {a}
-   extStreetsRel feed
-   projectextend [; GroupId: .groupId,
-      StreetId: .streetId,
-      Street: .geoData,
-      UndirStreet: toline(.geoData)]
-   hashjoin [Street_a,StreetId,99997]
-   projectextendstream [GroupId,StreetId,Street; Section: (.UndirStreet polylines [FALSE,.SecPts_a])]
-   consume;
-
-################################################################################
-# Create a relation for the sections wthout duplicates                         #
-################################################################################
-
-let sectionsTmp =
-   stsPlusSecsTmp feed
-   project [Section]
-   sortby [Section]
-   rdup
-   addcounter[SectionId, 1]
-   extend [Pts: boundary(.Section)]
-   projectextend [SectionId, Section; Help: fromline(.Section),
-      Node1: get(.Pts,0),
-      Node2: get(.Pts,1)]
-   consume;
-
-################################################################################
-# Collecting all nodes (junctions and end points) in one point array and       #
-# adding IDs to the nodes to form a relation                                   #
-################################################################################
-
-let nodesRel =
-   components(
-      sectionsTmp feed
-      projectextend[; EndPoints: boundary(.Section)]
-      aggregateB[EndPoints; fun(P1: points, P2: points) P1 union P2 ; [const points value ()]])
-   namedtransformstream [Node]
-   addcounter [NodeId,1]
-   consume;
-
-################################################################################
-# Combine source and destination points with sections between them             #
-# (add references to nodes)                                                    #
-################################################################################
-
-let sectionsRel =
-   (sectionsTmp feed
-    nodesRel feed {a}
-    hashjoin[Node1, Node_a, 99997])
-   nodesRel feed {b}
-   hashjoin[Node2, Node_b, 99997]
-   projectextend [SectionId, Section, Help, Node1, Node2;       Node1Id: .NodeId_a, Node2Id: .NodeId_b]
-   consume;
-
-################################################################################
-# Create a relation that enables us to link sections to additional street data #
-# like speed limits or names and combine the order by group ID, street ID and  #
-# distance on street with the section ID                                       #
-################################################################################
-
-let extSectionsRel =
-   (stsPlusSecsTmp feed
-    projectextend [GroupId,StreetId,Street; Part: .Section]
-    sectionsRel feed
-    hashjoin [Part,Section,99997]
-    remove [Part,Section]
-    extend [
-       Node1Dist: atpoint(.Street,.Node1,TRUE),
-       Node2Dist: atpoint(.Street,.Node2,TRUE)]
-    extend [startNode:
-               ifthenelse(.Node1Dist < .Node2Dist, .Node1, .Node2),
-            endNode:
-               ifthenelse(.Node1Dist < .Node2Dist, .Node2, .Node1),
-            StartNodeId:
-               ifthenelse(.Node1Dist < .Node2Dist, .Node1Id, .Node2Id),
-            EndNodeId:
-               ifthenelse(.Node1Dist < .Node2Dist, .Node2Id, .Node1Id)]
-    extend [
-       LowerStreetDist: ifthenelse(.Node1Dist < .Node2Dist,
-          .Node1Dist, .Node2Dist),
-       HigherStreetDist: ifthenelse(.Node1Dist < .Node2Dist,
-          .Node2Dist, .Node1Dist),
-       SectionDist: size(.Help)]
-    extend [Section:
-       ifthenelse(
-          .SectionDist = .HigherStreetDist,
-          set_startsmaller(.Help,
-             get_startsmaller(.Street)),
-          set_startsmaller(.Help,
-             get_startsmaller(create_sline(.startNode,.endNode))))]
-    project[
-       GroupId, StreetId, SectionId, Section, StartNodeId, EndNodeId,
-       LowerStreetDist,HigherStreetDist,SectionDist])
-   remove [SectionId]
-   sortby [GroupId,StreetId,HigherStreetDist,LowerStreetDist]
-   addcounter[SectionId, 1]
-   consume;
-
-################################################################################
-# Postprocess streets that start and end in the same point (their sections are #
-# computed in a wrong way, since their start and end point as well as their    #
-# positions on the street can not be distinguished separately)                 #
-################################################################################
-
-update extSectionsRel :=
-   (((((extStreetsRel feed
-        extend [
-           streetStartNode: atposition(.geoData,0.0,TRUE),
-           streetEndNode: atposition(.geoData,size(.geoData),TRUE)]
-        filter [.streetStartNode = .streetEndNode]
-        extSectionsRel feed
-        hashjoin [streetId,StreetId,99997])
-        extSectionsRel feed {a}
-        hashjoin [StreetId,StreetId_a,99997]
-        filter [(.HigherStreetDist = .HigherStreetDist_a) and
-           (.SectionId < .SectionId_a)])
-        nodesRel feed {e}
-        hashjoin [streetStartNode,Node_e,99997]
-        remove [Node_e])
-        nodesRel feed {f}
-        hashjoin [streetEndNode,Node_f,99997]
-        remove [Node_f]
-        extend [StreetStartNodeId: .NodeId_e,StreetEndNodeId: .NodeId_f]
-        projectextend [GroupId,StreetId,SectionId; NewSection: set_startsmaller(.Section,not(get_startsmaller(.Section))),
-           NewStartNodeId: .StreetStartNodeId,
-           NewEndNodeId: .StartNodeId,
-           NewHigherStreetDist: .LowerStreetDist,
-           NewLowerStreetDist: .HigherStreetDist,
-           NewSectionDist: .SectionDist] {n})
-    extSectionsRel feed
-    smouterjoin [SectionId_n,SectionId]
-    projectextend [GroupId,StreetId; Section:
-          ifthenelse(isdefined(.SectionId_n),.NewSection_n,.Section),
-       StartNodeId:
-          ifthenelse(isdefined(.SectionId_n),.NewStartNodeId_n,.StartNodeId),
-       EndNodeId:
-          ifthenelse(isdefined(.SectionId_n),.NewEndNodeId_n,.EndNodeId),
-       LowerStreetDist:
-          ifthenelse(isdefined(.SectionId_n),
-             .NewLowerStreetDist_n,.LowerStreetDist),
-       HigherStreetDist:
-          ifthenelse(isdefined(.SectionId_n),
-             .NewHigherStreetDist_n,.HigherStreetDist),
-       SectionDist:
-          ifthenelse(isdefined(.SectionId_n),
-             .NewSectionDist_n,.SectionDist)]
-    sortby [GroupId,StreetId,HigherStreetDist,LowerStreetDist]
-    addcounter[SectionId, 1]
-    consume);
-
-################################################################################
-# Extend the restrictions-relation by references to the junction points        #
-################################################################################
-
-let extRestrictionsRel =
-   restrictionsRel feed
-   nodesRel feed
-   hashjoin [viaPoint,Node,99997]
-   extend [fromStreetRef: .fromStreet, toStreetRef: .toStreet,
-   viaNodeRef: .NodeId, viaNode: .viaPoint]
-   remove [fromStreet, toStreet, viaPoint, NodeId, Node]
-   consume;
-
-################################################################################
-# Split up the restrictions relation and distribut the restrictions to         #
-# different relations                                                          #
-################################################################################
-
-let onlyRestrictions =
-   extRestrictionsRel feed
-   extend [only: .restriction starts "only"]
-   filter [.only]
-   remove [osmId,restrictionId]
-   consume;
-
-let noUturnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_u_turn"]
-   extend [noUturn: TRUE]
-   remove [osmId,restriction,restrictionId]
-   consume;
-
-let noLeftTurnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_left_turn"]
-   extend [noLeftTurn: TRUE]
-   remove [osmId,restriction,restrictionId]
-   consume;
-
-let noStraightOnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_straight_on"]
-   extend [noStraightOn: TRUE]
-   remove [osmId,restriction,restrictionId]
-   consume;
-
-let noRightTurnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_right_turn"]
-   extend [noRightTurn: TRUE]
-   remove [osmId,restriction,restrictionId]
-   consume;
-
-################################################################################
-# Gather data that will be used for network creation                           #
-################################################################################
-
-let fullSectionsView =
-   ((((extStreetsRel feed {a}
-       extSectionsRel feed {b}
-       hashjoin [streetId_a,StreetId_b,99997]
-       projectextend [; groupId: .groupId_a,
-          streetId: .streetId_a,
-          sectionId: .SectionId_b,
-          startNodeId: .StartNodeId_b,
-          endNodeId: .EndNodeId_b,
-          streetData: .geoData_a,
-          sectionData: .Section_b,
-          sectionDist: .SectionDist_b,
-          name: .name_a,
-          ref: .ref_a,
-          oneWay: .oneWay_a,
-          maxSpeed: .maxSpeed_a,
-          bridge: .bridge_a,
-          roadClassRef: .roadClassRef_a,
-          streetStartNode: atposition(.geoData_a,0.0,TRUE),
-          streetEndNode: atposition(.geoData_a,size(.geoData_a),TRUE)])
-      nodesRel feed {c}
-      hashjoin [startNodeId,NodeId_c,99997]
-      remove [NodeId_c])
-     nodesRel feed {d}
-     hashjoin [endNodeId,NodeId_d,99997]
-     remove [NodeId_d])
-    nodesRel feed {e}
-    hashjoin [streetStartNode,Node_e,99997]
-    remove [Node_e])
-   nodesRel feed {f}
-   hashjoin [streetEndNode,Node_f,99997]
-   remove [Node_f]
-   renameattr [startNode: "Node_c",endNode: "Node_d",
-      streetStartNodeId: "NodeId_e",streetEndNodeId: "NodeId_f"]
-   consume;
-
-################################################################################
-# Determine all possible pairs of crossing streets                             #
-################################################################################
-
-let startSections =
-   nodesRel feed
-   fullSectionsView feed
-   sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,
-      oneWay,streetStartNodeId,streetEndNodeId]
-   hashjoin [NodeId,startNodeId,99997]
-   consume;
-
-let endSections =
-   nodesRel feed
-   fullSectionsView feed
-   sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,
-      oneWay,streetStartNodeId,streetEndNodeId]
-   hashjoin [NodeId,endNodeId,99997]
-   consume;
-
-let startFromScratchSections =
-   startSections feed
-   filter [(.streetStartNodeId = .startNodeId) and
-      not(.streetStartNodeId = .streetEndNodeId)]
-   consume;
-
-let endFromScratchSections =
-   endSections feed
-   filter [(.streetEndNodeId = .endNodeId) and
-      not(.streetStartNodeId = .streetEndNodeId)]
-   consume;
-
-let two =
-   (startFromScratchSections feed
-    endFromScratchSections feed
-    concat
-    sortby [sectionId]) {a}
-   (startFromScratchSections feed
-    endFromScratchSections feed
-    concat
-    sortby [sectionId]) {b}
-   hashjoin [NodeId_a,NodeId_b]
-   filter [.sectionId_a < .sectionId_b]
-   filter [not(.streetId_a = .streetId_b)]
-   projectextend [; Node: .Node_a,
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node_a,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node_a,TRUE),
-      JunctionType: getconnectivitycode(
-         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
-         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
-         0,
-         0,
-         .oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE)]
-   consume;
-
-let three =
-   ((startSections feed
-    endSections feed
-    concat
-    sortby [sectionId]) {a}
-   (startSections feed
-    endSections feed
-    concat
-    sortby [sectionId]) {b}
-    hashjoin [NodeId_a,NodeId_b]
-    filter [.sectionId_a < .sectionId_b])
-   (startSections feed
-    endSections feed
-    concat
-    sortby [sectionId]) {c}
-    hashjoin [NodeId_a,NodeId_c]
-   extend [
-      Road1: .streetId_a,
-      Road2: .streetId_b,
-      Road3: .streetId_c,
-      NodeId: .NodeId_a,
-      Node: .Node_a]
-   filter [
-      ((((.NodeId = .startNodeId_b) and
-         ((.streetStartNodeId_b = .startNodeId_b) and
-          not(.streetStartNodeId_b = .streetEndNodeId_b)))
-        or ((.NodeId = .endNodeId_b) and
-         ((.streetEndNodeId_b = .endNodeId_b) and
-          not(.streetStartNodeId_b = .streetEndNodeId_b))))
-       and (.sectionId_a < .sectionId_c) and
-       (.Road1 = .Road3) and not(.Road1 = .Road2))
-      or
-      ((((.NodeId = .startNodeId_a) and
-         ((.streetStartNodeId_a = .startNodeId_a) and
-         not(.streetStartNodeId_a = .streetEndNodeId_a)))
-        or ((.NodeId = .endNodeId_a) and
-         ((.streetEndNodeId_a = .endNodeId_a) and
-         not(.streetStartNodeId_a = .streetEndNodeId_a))))
-       and (.sectionId_c < .sectionId_b) and
-       (.Road2 = .Road3) and not(.Road1 = .Road2))]
-   projectextend [Node; Road1: .Road1,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .Road2,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      JunctionType: getconnectivitycode(
-         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
-         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
-         ifthenelse(.Road1 = .Road3,
-            ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),0),
-         ifthenelse(.Road2 = .Road3,
-            ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),0),
-         .oneWay_a = 1,.oneWay_b = 1,
-         ifthenelse(.Road1 = .Road3, .oneWay_c = 1, FALSE),
-         ifthenelse(.Road2 = .Road3, .oneWay_c = 1, FALSE))]
-   consume;
-
-let four =
-   (((startSections feed
-     endSections feed
-     concat
-     sortby [sectionId]) {a}
-    (startSections feed
-     endSections feed
-     concat
-     sortby [sectionId]) {b}
-     hashjoin [NodeId_a,NodeId_b]
-     filter [.sectionId_a < .sectionId_b])
-    (startSections feed
-     endSections feed
-     concat
-     sortby [sectionId]) {c}
-     hashjoin [NodeId_a,NodeId_c]
-     filter [.sectionId_a < .sectionId_c])
-   (startSections feed
-   endSections feed
-   concat
-   sortby [sectionId]) {d}
-   hashjoin [NodeId_a,NodeId_d]
-   filter [.sectionId_b < .sectionId_d]
-   extend [
-      Road1: .streetId_a,
-      Road2: .streetId_b,
-      Road3: .streetId_c,
-      Road4: .streetId_d,
-      NodeId: .NodeId_a,
-      Node: .Node_a]
-   filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
-   projectextend [Node; Road1: .Road1,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .Road2,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      JunctionType: getconnectivitycode(
-         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
-         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
-         ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),
-         ifthenelse(.NodeId_d = .endNodeId_d, 1, 2),
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1)]
-   consume;
-
-let twoSecJuncBtwTwoSts =
-   two feed consume;
-
-let threeSecJuncBtwTwoSts =
-   three feed consume;
-
-let fourSecJuncBtwTwoSts =
-   four feed consume;
-
-################################################################################
-# Make a relation with road data to enable network creation see also PaperMon- #
-# paper page 11                                                                #
-################################################################################
-
-let cityRoads =
-   extStreetsRel feed
-   projectextend [; Name : .name, Road: .streetId,
-     Length: size(.geoData),
-     Geometry: .geoData, Dual: .oneWay=0,
-     StartsSmaller: get_startsmaller(.geoData),
-     RoadLevel : .roadClassRef]
-   consume;
-
-################################################################################
-# Calculate and insert road measures into a new relation containing junction   #
-# data see also PaperMon-paper page 11                                         #
-################################################################################
-
-let cityJunctionsTmp =
-   ((twoSecJuncBtwTwoSts feed
-     extend [numSecs: 2]
-     project [Road1,Pos1,Road2,Pos2,JunctionType,numSecs]
-     threeSecJuncBtwTwoSts feed
-     extend [numSecs: 3]
-     project [Road1,Pos1,Road2,Pos2,JunctionType,numSecs]
-     concat)
-    fourSecJuncBtwTwoSts feed
-    extend [numSecs: 4]
-    project [Road1,Pos1,Road2,Pos2,JunctionType,numSecs]
+let JunctionsTmp =
+   (((CrossingPtsTmp feed projectextend[Pt; WayId: .Road1])
+     (CrossingPtsTmp feed projectextend[Pt; WayId: .Road2])
     concat)
-   consume;
+    ((SecWaysTmp feed projectextend [; Pt: getstartpoint(.GeoData), WayId: .Osm_id])
+     (SecWaysTmp feed  projectextend [; Pt: getendpoint(.GeoData), WayId: .Osm_id])
+    concat)
+   concat)
+   ((RoadEndsHelp feed projectextend[;Pt: getstartpoint(.GeoData), WayId: .Osm_id])
+    (RoadEndsHelp feed projectextend[;Pt: getendpoint(.GeoData), WayId: .Osm_id])
+   concat)
+  concat
+  filter[isdefined(.Pt)]
+consume;
+
+let JunctionNumbers =
+  JunctionsTmp feed
+  project[Pt]
+  filter[isdefined(.Pt)]
+  sortby[Pt]
+  rdup
+  addcounter[JuncId,1]
+consume;
+
+let JunctionsRelHelp=
+  JunctionsTmp feed {j}
+  JunctionNumbers feed {n}
+  itSpatialJoin[Pt_j, Pt_n,4,8]
+  projectextend[;WayId: .WayId_j, Pt: .Pt_j, JuncId: .JuncId_n]
+  sortby[JuncId, WayId]
+  rdup
+consume;
+
+let JunctionsRel =
+  OsmNodesRel feed {o}
+  JunctionsRelHelp feed
+  itSpatialJoin[GeoData_o,Pt,4,8]
+  projectextend[JuncId, WayId;Osm_id: .Osm_id_o,
+    GeoData: .GeoData_o]
+consume;
+
+let TerminatingPts =
+  JunctionsRel feed
+  sortby [WayId]
+  groupby [WayId; WayPts: group feed projecttransformstream [GeoData] collect_points [TRUE],
+                  Juncs: group feed projecttransformstream[JuncId] createlistj]
+consume;
 
 ################################################################################
-# should not make a difference since the combined junctions are composed in a  #
-# disjunct way                                                                 #
+# Split  ways into sections                                                    #
 ################################################################################
 
-let cityJunctions =
-   cityJunctionsTmp feed
-   sortby[Road1,Pos1,Road2,Pos2]
-   groupby [Road1,Pos1,Road2,Pos2; NewJunctionType: group feed
-         aggregateB [JunctionType; fun(a:int,b:int) binor(a,b); 0]]
-   consume;
+let SectionsHelp1 =
+   SecWaysTmp feed
+   TerminatingPts feed {a}
+   hashjoin[Osm_id, WayId_a,9997]
+   project[Osm_id, Ref, Name, RoadType, Oneway, Vmax, GeoData, WayPts_a]
+   sortby [Osm_id]
+   projectextendstream [Osm_id, Ref, Name, RoadType, Oneway, GeoData,
+     Vmax; SectionCurve: toline(.GeoData) polylines [FALSE,.WayPts_a]]
+   addcounter[SecId,1]
+   projectextend[Osm_id, Ref, Name, SecId, RoadType, Oneway, Vmax,
+    GeoData; SectGeoData: fromline(.SectionCurve)]
+   extend[SectStartSmaller: get_startsmaller(.SectGeoData),
+          StartNodEPoint: getstartpoint(.SectGeoData),
+          EndNodEPoint: getendpoint(.SectGeoData),
+          Lenth: size(.SectGeoData)]
+   extend[StartOnCurve: atpoint(.GeoData, .StartNodEPoint),
+          EndOnCurve: atpoint(.GeoData, .EndNodEPoint)]
+   projectextend[Osm_id, Ref, Name, SecId, RoadType, Oneway, Vmax,
+    Lenth, StartOnCurve, EndOnCurve; GeoDataSection: set_startsmaller(.SectGeoData,
+                        ifthenelse(.StartOnCurve < .EndOnCurve,
+                           .SectStartSmaller,
+                           not(.SectStartSmaller)))]
+   extend[Direc: ifthenelse((.Oneway = 0) and (not(.RoadType  contains "motorway")),
+                      [const jdirection value(Both)],
+                 ifthenelse((.Oneway = 0) and (.RoadType contains "link"),
+                      [const jdirection value(Both)],
+                 ifthenelse(get_startsmaller(.GeoDataSection) = (.StartOnCurve < .EndOnCurve),
+                      [const jdirection value(Up)],
+                      [const jdirection value(Down)]))),
+          StartNodEPoint: getstartpoint(.GeoDataSection),
+          EndNodEPoint: getendpoint(.GeoDataSection)]
+   JunctionsRel feed {j}
+   itSpatialJoin[StartNodEPoint,GeoData_j,4,8]
+   filter[.StartNodEPoint = .GeoData_j]
+   projectextend[Osm_id, Ref, Name, SecId, RoadType, Oneway, Vmax, Lenth,
+     Direc, EndNodEPoint; StartNodeOSMId: .Osm_id_j,
+                          StartNodeJuncId: .JuncId_j,
+                          GeoData: .GeoDataSection]
+consume;
+
+let SectionsTmp=
+   SectionsHelp1 feed
+   JunctionsRel feed {n}
+   itSpatialJoin[EndNodEPoint,GeoData_n,4,8]
+   projectextend[Osm_id, Ref, Name, SecId, RoadType, Oneway, Vmax, GeoData,
+     Lenth, Direc, StartNodeOSMId, StartNodeJuncId; EndNodeOSMId: .Osm_id_n,
+     EndNodeJuncId: .JuncId_n]
+   sortby[SecId]
+   rdup
+consume;
 
 ################################################################################
-# Create the network                                                           #
+# Connect roads with junctions and sections to compute roadintervals for each  #
+# section and junctions for each road                                          #
 ################################################################################
 
-let cityNetwork = thenetwork(
-   1,
-   1.0,
-   (cityRoads feed
-   project [Road, Length, Geometry, Dual, StartsSmaller]
-   consume),
-   cityJunctions);
+let RoadSectionsHelp =
+  RoadsRelation feed
+    projectextendstream[RoadId, GeoData, Lenth; SectOSMId: createstreamj(.OsmIdSet)]
+  SectionsTmp feed sortby[Osm_id] {s}
+  hashjoin[SectOSMId,Osm_id_s,9997]
+  projectextend[RoadId, GeoData, SectOSMId, Lenth, SecId_s, StartNodeJuncId_s,
+    EndNodeJuncId_s, Direc_s, GeoData_s,
+    Lenth_s, Vmax_s; StartPoint: getstartpoint(.GeoData_s),
+       EndPoint: getendpoint(.GeoData_s),
+       StartPos: atpoint(.GeoData, getstartpoint(.GeoData_s)),
+       EndPos: atpoint(.GeoData,  getendpoint(.GeoData_s))]
+  filter[isdefined(.StartPos)]
+  filter[isdefined(.EndPos)]
+  sortby[RoadId, SecId_s]
+  rdup
+consume;
+
+let RoadSections =
+  RoadSectionsHelp feed
+  projectextend [RoadId, StartNodeJuncId_s, EndNodeJuncId_s,
+    SecId_s, Vmax_s, Direc_s, Lenth_s; GeoData: .GeoData_s,
+      RouteInt: createrouteinterval(.RoadId, .StartPos, .EndPos, .Direc_s)]
+  sortby[RoadId, RouteInt]
+  rdup
+consume;
+
+let RoadJunctions =
+  (RoadSectionsHelp feed
+    projectextend[RoadId; Pos: .StartPoint,
+      JuncId: .StartNodeJuncId_s,
+      JuncPosOnRoad: createroutelocation(.RoadId, .StartPos, .Direc_s)])
+  (RoadSectionsHelp feed
+    projectextend[RoadId; Pos: .EndPoint,
+      JuncId: .EndNodeJuncId_s,
+      JuncPosOnRoad: createroutelocation(.RoadId, .EndPos, .Direc_s)])
+  concat
+  sortby[RoadId, JuncId]
+  rdup
+consume;
+
+################################################################################
+# Connect Restrictions with junctions and positions                            #
+################################################################################
+
+let SecRestrictionsNodes =
+  JunctionsRel feed {j}
+  OsmRestrictionsRel feed
+  hashjoin[Osm_id_j,ViaNode,9997]
+  projectextend [Osm_id, FromWay, ViaNode, ToWay,
+    Restriction; ViaPoint: .GeoData_j, ViaJuncId: .JuncId_j]
+  SectionsTmp feed {s1}
+  hashjoin[Osm_id_s1,FromWay,9997]
+  projectextend[Osm_id, FromWay, ViaNode, ToWay, Restriction, ViaPoint,
+    ViaJuncId; FromWaySecId: .SecId_s1,
+      FromWayJuncId1: .StartNodeJuncId_s1,
+      FromWayJuncId2: .EndNodeJuncId_s1]
+  SectionsTmp feed {s2}
+  hashjoin[Osm_id, ToWay, 9997]
+  projectextend[Osm_id, FromWay, ViaNode, ToWay, Restriction, ViaPoint,
+    ViaJuncId, FromWaySecId, FromWayJuncId1,
+    FromWayJuncId2; ToWaySecId: .SecId_s2,
+      ToWayJuncId1: .StartNodeJuncId_s1,
+      ToWayJuncId2: .EndNodeJuncId_s2]
+  sortby[ViaJuncId]
+consume;
+
+let SecRestrictionsSects =
+  SectionsTmp feed {s}
+  OsmRestrictionsRel feed
+  hashjoin[Osm_id_s, ViaNode,9997]
+  projectextend[Osm_id, FromWay, ViaNode, ToWay, Restriction; ViaSectionId: .SecId_s,
+    ViaSectionJuncId1: .StartNodeJuncId_s,
+    ViaSectionJuncId2: .EndNodeJuncId_s]
+  SectionsTmp feed {s1}
+  hashjoin[Osm_id_s1,FromWay,9997]
+  projectextend[Osm_id, FromWay, ViaNode, ToWay, Restriction, ViaSectionId,
+    ViaSectionJuncId1,  ViaSectionJundId2; FromWaySecId: .SecId_s1,
+      FromWayJuncId1: .StartNodeJuncId_s1,
+      FromWayJuncId2: .EndNodeJuncId_s1]
+  SectionsTmp feed {s2}
+  hashjoin[Osm_id_s1,ToWay,9997]
+  projectextend[Osm_id, FromWay, ViaNode, ToWay, Restriction, ViaSectionId,
+    ViaSectionJuncId1,  ViaSectionJundId2, FromWaySecId, FromWayJuncId1,
+    FromWayJuncId2;  ToWaySecId: .SecId_s2,
+      ToWayJuncId1: .StartNodeJuncId_s2,
+      ToWayJuncId2: .EndNodeJuncId_s2]
+  sortby [ViaSectionId]
+consume;
 
 close database;
+quit;

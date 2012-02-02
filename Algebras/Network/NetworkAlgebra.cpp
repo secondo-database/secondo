@@ -2517,42 +2517,42 @@ void InsertAdjacentSections(const TupleId tid, const Side direction,
 
 */
 string Network::routesTypeInfo =
-    "(rel (tuple ((id int) (length real) (curve sline) "
-    "(dual bool) (startsSmaller bool))))";
+    "(rel (tuple ((Id int) (Length real) (Curve sline) "
+    "(Dual bool) (StartsSmaller bool))))";
 string Network::routesBTreeTypeInfo =
-    "(btree (tuple ((id int) (length real) (curve sline) "
-    "(dual bool) (startsSmaller bool))) int)";
+    "(btree (tuple ((Id int) (Length real) (Curve sline) "
+    "(Dual bool) (StartsSmaller bool))) int)";
 
 string Network::routesRTreeTypeInfo =
-    "(rtree (tuple((id int)(length real)(curve sline)(dual bool)"
-    "(startsSmaller bool))) sline FALSE)";
+    "(rtree (tuple((Id int)(Length real)(Curve sline)(Dual bool)"
+    "(StartsSmaller bool))) sline FALSE)";
 
 string Network::junctionsTypeInfo =
-    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int))))";
+    "(rel (tuple ((R1id int) (Meas1 real) (R2id int) "
+    "(Meas2 real) (Cc int))))";
 
 /*string Network::junctionsInternalTypeInfo =
     "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
     "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
     "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";*/
 string Network::junctionsInternalTypeInfo =
-    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
-    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";
+    "(rel (tuple ((R1id int) (Meas1 real) (R2id int) "
+    "(Meas2 real) (Cc int) (Loc point) (R1rc tid) (R2rc tid) "
+    "(Sauprc tid) (Sadownrc tid)(Sbuprc tid) (Sbdownrc tid))))";
 
 
 string Network::junctionsBTreeTypeInfo =
-    "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
-    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
+    "(btree (tuple ((R1id int) (Meas1 real) (R2id int) "
+    "(Meas2 real) (Cc int) (Loc point) (R1rc tid) (R2rc tid) "
+    "(Sauprc tid) (Sadownrc tid)(Sbuprc tid) (Sbdownrc tid))) int)";
 string Network::sectionsInternalTypeInfo =
-    "(rel (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))))";
+    "(rel (tuple ((Rid int) (Meas1 real) (Meas2 real) (Dual bool)"
+    "(Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int))))";
 string Network::sectionsBTreeTypeInfo =
-    "(btree (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))) int)";
+    "(btree (tuple ((Rid int) (Meas1 real) (Meas2 real) (Dual bool)"
+    "(Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int))) int)";
 string Network::distancestorageTypeInfo =
-    "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
+    "(rel (tuple((J1 tid)(J2 tid)(Dist real)(Sp gline))))";
 
 /*
 2.1.3 Constructors and destructors class ~Network~
@@ -3083,15 +3083,14 @@ void Network::FillRoutes ( const Relation *routes )
   ptrList = listutils::getPtrList(m_pRoutes);
 
   strQuery = "(createbtree (" + routesTypeInfo +
-             " (ptr " + nl->ToString(ptrList) + "))" + " id)";
-
+             " (ptr " + nl->ToString(ptrList) + "))" + " Id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeRoutes = ( BTree* ) xResult.addr;
   //Create R-Tree for the routes
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesTypeInfo +
-         " (ptr " + nl->ToString(ptrList) + "))))((curve asc))) curve)";
+         " (ptr " + nl->ToString(ptrList) + "))))((Curve asc))) Curve)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;
@@ -3202,8 +3201,7 @@ JUNCTION_ROUTE2_ID );
 
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                     " (ptr " + nl->ToString(ptrList) +
-                    "))) ((r1id asc)(meas1 asc))))";
-
+                    "))) ((R1id asc)(Meas1 asc))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
@@ -3221,13 +3219,13 @@ JUNCTION_ROUTE2_ID );
   ptrList = listutils::getPtrList(m_pJunctions);
 
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-             " (ptr " + nl->ToString(ptrList) + "))" + " r1id)";
+             " (ptr " + nl->ToString(ptrList) + "))" + " R1id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pBTreeJunctionsByRoute1 = ( BTree* ) xResult.addr;
 
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-             " (ptr " + nl->ToString(ptrList) + "))" + " r2id)";
+             " (ptr " + nl->ToString(ptrList) + "))" + " R2id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pBTreeJunctionsByRoute2 = ( BTree* ) xResult.addr;
@@ -3644,15 +3642,12 @@ void Network::FillSections()
   } // End while Routes
   delete pRoutesIt;
 
-
-
-
   // Create B-Tree for the sections
-  Word xResult;
 
   ListExpr ptrList = listutils::getPtrList(m_pSections);
   string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
-                    " (ptr " + nl->ToString(ptrList) + "))" + " rid)";
+                    " (ptr " + nl->ToString(ptrList) + "))" + " Rid)";
+  Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pBTreeSectionsByRoute = ( BTree* ) xResult.addr;

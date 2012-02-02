@@ -1,19 +1,19 @@
 
-(OBJECT x 
-    () 
-    (rel 
-        (tuple 
+(OBJECT x
+    ()
+    (rel
+        (tuple
             (
-                (secid int) 
-                (part int) 
-                (dir int) 
-                (speed real) 
-                (starttime instant) 
-                (endtime instant) 
-                (leftclosed bool) 
-                (rightclosed bool)))) 
+                (Secid int)
+                (Part int)
+                (Dir int)
+                (Speed real)
+                (Starttime instant)
+                (Endtime instant)
+                (Leftclosed bool)
+                (Rightclosed bool))))
     (
-        (1 1 1 0.0006039539999999999 "2007-01-01" "2007-01-02" TRUE FALSE) 
-        (4 1 1 0.00013884 "2007-01-01" "2007-01-02" TRUE FALSE) 
-        (5 1 1 2.314e-05 "2007-01-01" "2007-01-02" TRUE FALSE) 
+        (1 1 1 0.0006039539999999999 "2007-01-01" "2007-01-02" TRUE FALSE)
+        (4 1 1 0.00013884 "2007-01-01" "2007-01-02" TRUE FALSE)
+        (5 1 1 2.314e-05 "2007-01-01" "2007-01-02" TRUE FALSE)
         (5 1 1 5.785e-05 "2007-01-01" "2007-01-02" TRUE FALSE)))

@@ -8322,7 +8322,9 @@ int OpMapMatchingValueMapping(Word* args,
   bool first = true;
   do
   {
-    if (!first) pMPoint->Get(i++,pUPoint);
+    if (!first) {
+      pMPoint->Get(i++,pUPoint);
+    }
     first = false;
     while ((startGP == 0 || !startGP->IsDefined()) &&
             i < pMPoint->GetNoComponents()-1)
@@ -10307,9 +10309,9 @@ TypeMapping:
 
 */
 static string mgpSecTypeInfo =
-    "(stream (tuple ((secid int) (part int) (dir int) (speed real)"
-                    "(starttime instant)(endtime instant)"
-                    "(leftclosed bool)(rightclosed bool))))";
+    "(stream (tuple ((Secid int) (Part int) (Dir int) (Speed real)"
+                    "(Starttime instant)(Endtime instant)"
+                    "(Leftclosed bool)(Rightclosed bool))))";
 
 
 ListExpr OpMgpsu2tupleTypeMap(ListExpr in_xArgs)
