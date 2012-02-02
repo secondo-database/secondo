@@ -485,7 +485,7 @@ TestRunner::ProcessCommand()
   string query="";
   if ( cmdWord[0] == '@' ) {
     string queryFile = parse<string>( cmdWord.substr(1) );
-    cout << "Reding file " << queryFile << endl;
+    cout << "Reading file " << queryFile << endl;
     CFile f(queryFile);
     f.open();
     while (!f.eof()) {
