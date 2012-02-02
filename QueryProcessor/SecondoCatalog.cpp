@@ -2209,9 +2209,9 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
 
     string fileName = "";
     // dummy initialization! will be overwritten later
-    ExampleWriter examples(fileName, "");
+    ExampleWriter* examples = new ExampleWriter(fileName, "");
     string bdir = Environment::getInstance().getString("SECONDO_BUILD_DIR");
-;
+
 
     if (!skipExamples)
     {
@@ -2229,9 +2229,10 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       }
 
       //static int ctr=0;
-      examples = ExampleWriter(fileName, algName);
+      delete examples;
+      examples = new ExampleWriter(fileName, algName);
       if (fileExists) {
-        parseOk = examples.parse();
+        parseOk = examples->parse();
         if (!parseOk) {
            cerr << "  File is not correct! Please repair." << endl << endl;
         }
@@ -2261,7 +2262,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
         ex.signature = oi.signature;
         ex.example = oi.example;
 
-        examples.add(oi.name, 1, ex);
+        examples->add(oi.name, 1, ex);
       }
       else
       {
@@ -2272,7 +2273,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
 
         bool specFound = false;
         if (parseOk) {
-          specFound = examples.find(oi.name, ex2);
+          specFound = examples->find(oi.name, ex2);
 
         if ( !specFound ) {
           cerr << "  * excluding operator " << oi.name
@@ -2299,7 +2300,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
 
         // examples for the current operator are available
 
-        list = examples.find(oi.name);
+        list = examples->find(oi.name);
 
         int i = 0;
         for (it = list.begin(); it != list.end(); it++)
@@ -2359,9 +2360,9 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     } // end of operator iteration
     if (!skipExamples && !fileExists) {
       cerr << "  Generating example file " << fileName << endl;
-      examples.write();
+      examples->write();
     }
-
+    delete examples;
   } // end of algbra iteration
 }
 
