@@ -269,50 +269,50 @@ an determines how far the grid starting point hass to be moved.
 */
 
 int maxebeneG3D (double x, double y, double z){
-	int maxeb=0;
-	int i=0;
-	int power;
+int maxeb=0;
+int i=0;
+int power;
 
 
-	if(x<0 || y<0 || z<0)
-	{maxeb=maxeb+2;
-     	 x=-x-3;
-	 y=-y-3;
-	 z=-z-3;
-	}
-	while(i==0){
-	    if(x>0 || y>0 || z>0)
-		{maxeb++;
-		 power=pow(3,maxeb);
-		 x=x-power;
-		 y=y-power;
-		 z=z-power;
-		}
-	    else {i=1;}
-	}
-	return (int) maxeb;
+if(x<0 || y<0 || z<0)
+    {maxeb=maxeb+2;
+    x=-x-3;
+    y=-y-3;
+    z=-z-3;
+    }
+    while(i==0){
+    if(x>0 || y>0 || z>0)
+    {maxeb++;
+     power=pow(3,maxeb);
+     x=x-power;
+     y=y-power;
+     z=z-power;
+    }
+    else {i=1;}
+    }
+return (int) maxeb;
 }
 
 int maxebeneG2D (double x, double y){
-	int maxeb=0;
-	int i=0;
-	int power;
+int maxeb=0;
+int i=0;
+int power;
 
-	if(x<0 || y<0)
-	{maxeb=maxeb+2;
-     	 x=-x-3;
-	 y=-y-3;
-	}
-	while(i==0){
-	    if(x>0 || y>0)
-		{maxeb++;
-		 power=pow(3,maxeb);
-		 x=x-power;
-		 y=y-power;
-		}
-	    else {i=1;}
-	}
-	return (int) maxeb;
+if(x<0 || y<0)
+    {maxeb=maxeb+2;
+     x=-x-3;
+     y=-y-3;
+    }
+while(i==0){
+    if(x>0 || y>0)
+    {maxeb++;
+     power=pow(3,maxeb);
+     x=x-power;
+     y=y-power;
+    }
+    else {i=1;}
+    }
+return (int) maxeb;
 }
 
 /*
@@ -324,46 +324,48 @@ lb supports the logarithmic computation
 double logzwei = log10( 2.0 );
 
 double lb( double x ){
-  return log10( x ) / logzwei;
+return log10( x ) / logzwei;
 }
 
 int maxebeneLine2D (int x, int y){
-    int maxeb=-1;
-    int ebenex=0;
-    int ebeney=0;
+int maxeb=-1;
+int ebenex=0;
+int ebeney=0;
 
-    if (x == 0){ebenex=0;}
-    else if (x<0) {ebenex = (int) lb(abs(x));}
-    else {ebenex = (int) lb(x)+1;}
-    if (y == 0){ebeney=0;}
-    else if (y<0) {ebeney = (int) lb(abs(y));}
-    else {ebeney = (int) lb(y)+1;}
+if (x == 0){ebenex=0;}
+else if (x<0) {ebenex = (int) lb(abs(x));}
+else {ebenex = (int) lb(x)+1;}
 
-    maxeb = max(ebenex,ebeney);
+if (y == 0){ebeney=0;}
+else if (y<0) {ebeney = (int) lb(abs(y));}
+else {ebeney = (int) lb(y)+1;}
 
-    return maxeb;
+maxeb = max(ebenex,ebeney);
+
+return maxeb;
 }
 
 int maxebeneLine3D (int x, int y, int z){
-    int maxeb=-1;
-    int ebenex=0;
-    int ebeney=0;
-    int ebenez=0;
+int maxeb=-1;
+int ebenex=0;
+int ebeney=0;
+int ebenez=0;
 
-    if (x == 0){ebenex=0;}
-    else if (x<0){ebenex = (int) lb(abs(x));}
-    else {ebenex = (int) lb(x)+1;}
-    if (y == 0){ebeney=0;}
-    else if (y<0){ebeney = (int) lb(abs(y));}    
-    else {ebeney = (int) lb(y)+1;}
-    if (z == 0){ebenez=0;}
-    else if (z<0){ebenez = (int) lb(abs(z));}
-    else {ebenez = (int) lb(z)+1;}
+if (x == 0){ebenex=0;}
+else if (x<0){ebenex = (int) lb(abs(x));}
+else {ebenex = (int) lb(x)+1;}
 
-    maxeb = max(ebenex,max(ebeney,ebenez));
+if (y == 0){ebeney=0;}
+else if (y<0){ebeney = (int) lb(abs(y));}    
+else {ebeney = (int) lb(y)+1;}
 
-    return maxeb;
+if (z == 0){ebenez=0;}
+else if (z<0){ebenez = (int) lb(abs(z));}
+else {ebenez = (int) lb(z)+1;}
 
+maxeb = max(ebenex,max(ebeney,ebenez));
+
+return maxeb;
 }
 
 
@@ -410,150 +412,152 @@ the cell grid grows infinitely...for a detailed explanaintion of the
 numbering System see the dokumentation
 
 */
-
-    //computation of the grid coordinates	
+//computation of the grid coordinates	
    
-    power=0;
+power=0;
     
-    double simLBX=((lbx-x0)/xWidth);
-    double simLBY=((lby-y0)/yWidth);
-    double simRTX=((rtx-x0)/xWidth);
-    double simRTY=((rty-y0)/yWidth);
-    double simLBZ=((lbz-z0)/zWidth);
-    double simRTZ=((rtz-z0)/zWidth);	
+double simLBX=((lbx-x0)/xWidth);
+double simLBY=((lby-y0)/yWidth);
+double simRTX=((rtx-x0)/xWidth);
+double simRTY=((rty-y0)/yWidth);
+double simLBZ=((lbz-z0)/zWidth);
+double simRTZ=((rtz-z0)/zWidth);	
 
  
-    if (is3D) {
-	maxebene=max(maxebeneG3D(simLBX,simLBY,simLBZ),
-		maxebeneG3D(simRTX,simRTY,simRTZ));
-    }
-    else {
-	maxebene=max(maxebeneG2D(simLBX,simLBY),
-		maxebeneG2D(simRTX,simRTY));
-    }
+if (is3D) {
+maxebene=max(maxebeneG3D(simLBX,simLBY,simLBZ),
+              maxebeneG3D(simRTX,simRTY,simRTZ));
+}
+else {
+maxebene=max(maxebeneG2D(simLBX,simLBY),
+              maxebeneG2D(simRTX,simRTY));
+}
     
-    //should noch happen!!
-    if (maxebene==0){cerr <<"WARNING!! Calculation Error!\n";} 
+//should noch happen!!
+if (maxebene==0){cerr <<"WARNING!! Calculation Error!\n";} 
 
-    //Make sure all possible cell numbers don't exceed the range
-    //of the integer type.
-    if (is3D){
-    	long maxN = 30*pow(27,maxebene-1);
-    	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
-        	"part cell number may exceed the range of Integer type.\n";} 
-	}
-    	else {
-    	long maxN = 10*pow(9,maxebene-1);
-    	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
-        	"part cell number may exceed the range of Integer type.\n";} 
-	}
+//Make sure all possible cell numbers don't exceed the range
+//of the integer type.
+if (is3D){
+long maxN = 30*pow(27,maxebene-1);
+if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
+ "part cell number may exceed the range of Integer type.\n";} 
+}
+else {
+long maxN = 10*pow(9,maxebene-1);
+if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
+ "part cell number may exceed the range of Integer type.\n";} 
+}
 
-    //grid is moved to cover current rectangle
-    for (int i=1;i<maxebene;i++){
-	power=power+pow(3,i);
-	}
+//grid is moved to cover current rectangle
+for (int i=1;i<maxebene;i++){
+    power=power+pow(3,i);
+}
 
-    //grid coortinates of left-bottom point and right-top point og the rectangle
-    //are computed
-	LBX= int (simLBX+power);
-	LBY= int (simLBY+power);
-	RTX= int (simRTX+power);
-	RTY= int (simRTY+power);
-	cx=LBX;
-	cy=LBY;
+//grid coortinates of left-bottom point and right-top point og the rectangle
+//are computed
+LBX= int (simLBX+power);
+LBY= int (simLBY+power);
+RTX= int (simRTX+power);
+RTY= int (simRTY+power);
+cx=LBX;
+cy=LBY;
 
-	if (is3D){
-	LBZ= int (simLBZ+power);
-	RTZ= int (simRTZ+power);
-	cz=LBZ;
-	}
+if (is3D){
+LBZ= int (simLBZ+power);
+RTZ= int (simRTZ+power);
+cz=LBZ;
+}
 
-  }
+}
 
 
 
 //numberG3D compute the cellnumber in a cube of cells
 int numberG3D (int bx, int by, int bz, int ebenen){
-    int cellziff = 0;
-    cellziff = bx+by;
+int cellziff = 0;
+cellziff = bx+by;
 
-    if (by==2){cellziff=cellziff+4;}
+if (by==2){cellziff=cellziff+4;}
+else {
+    if (bx==0){cellziff=cellziff+4;}
     else {
-        if (bx==0){cellziff=cellziff+4;}
+        if (by==1) {cellziff=cellziff-2;}
         else {
-            if (by==1) {cellziff=cellziff-2;}
-            else {
-                if (bx!=2) {cellziff=cellziff+2;}
+            if (bx!=2) {cellziff=cellziff+2;}
             }
-        }
+         }
     }
-    if (ebenen==1){
-        if (bz==2){cellziff=cellziff + 20;}
-        else if (bz==0){cellziff=cellziff+10;}
+
+if (ebenen==1){
+    if (bz==2){cellziff=cellziff + 20;}
+    else if (bz==0){cellziff=cellziff+10;}
     }
-    else if (ebenen==2){
-        cellziff = cellziff * 30;
-        if (bz==2){cellziff=cellziff + 20 * (int)(pow(27,(max(0,ebenen-1))));}
-        else if(bz==0){cellziff=cellziff+10*(int)(pow(27,(max(0,ebenen-1))));}
+else if (ebenen==2){
+    cellziff = cellziff * 30;
+    if (bz==2){cellziff=cellziff + 20 * (int)(pow(27,(max(0,ebenen-1))));}
+    else if(bz==0){cellziff=cellziff+10*(int)(pow(27,(max(0,ebenen-1))));}
     }
-    else if (ebenen>2){
-        cellziff = cellziff * 30 * (int)(pow(27,(max(0,ebenen-2))));
-        if (bz==2){cellziff=cellziff + 20 * (int)(pow(27,(max(0,ebenen-1))));}
-        else if(bz==0){cellziff=cellziff+10*(int)(pow(27,(max(0,ebenen-1))));}
+else if (ebenen>2){
+    cellziff = cellziff * 30 * (int)(pow(27,(max(0,ebenen-2))));
+    if (bz==2){cellziff=cellziff + 20 * (int)(pow(27,(max(0,ebenen-1))));}
+    else if(bz==0){cellziff=cellziff+10*(int)(pow(27,(max(0,ebenen-1))));}
     }
-    return cellziff;
-    }
+
+return cellziff;
+}
 
 //numberG2D compute the cellnumber in a area of cells
 int numberG2D (int bx, int by, int ebenen){
-    int cellziff = 0;
-    cellziff= bx+by;
+int cellziff = 0;
+cellziff= bx+by;
 
-    if (by==2){cellziff=cellziff+4;}
+if (by==2){cellziff=cellziff+4;}
+else {
+    if (bx==0){cellziff=cellziff+4;}
     else {
-        if (bx==0){cellziff=cellziff+4;}
+        if (by==1) {cellziff=cellziff-2;}
         else {
-            if (by==1) {cellziff=cellziff-2;}
-            else {
-                if (bx!=2) {cellziff=cellziff+2;}
-            }
+            if (bx!=2) {cellziff=cellziff+2;}
         }
     }
-    if (ebenen==2){
-        cellziff= cellziff*10;
-    }
-    else if (ebenen>2){
-        cellziff = cellziff*10*(int)(pow(9,(max(0,ebenen-2))));
-    }
+}
 
-    return cellziff;
+if (ebenen==2){
+cellziff= cellziff*10;
+}
+else if (ebenen>2){
+cellziff = cellziff*10*(int)(pow(9,(max(0,ebenen-2))));
+}
+return cellziff;
+
 }
 
 //cellnumbering is done stepwise or each step in numbering 
 //in the same manner.
 //cellnumberG3D controls the different steps.
 int cellnumberG3D (int ax, int ay, int az, int ebenen){
-    double cellnum=0;
-    for (int r=1;r<ebenen+1;r++){
-        cellnum = cellnum+numberG3D((abs(ax))%3,(abs(ay))%3,(abs(az))%3,r);
-        ax=ax/3;
-        ay=ay/3;
-        az=az/3;
-    }
-    return (int) cellnum;
-    }
+double cellnum=0;
+for (int r=1;r<ebenen+1;r++){
+    cellnum = cellnum+numberG3D((abs(ax))%3,(abs(ay))%3,(abs(az))%3,r);
+    ax=ax/3;
+    ay=ay/3;
+    az=az/3;
+}
+return (int) cellnum;
+}
 
 //cellnumbering is done stepwise or each step in numbering in the same manner.
 //cellnumberG2D controls the different steps.
 int cellnumberG2D (int ax, int ay, int ebenen){
-    double cellnum=0;
-    for (int r=1;r<ebenen+1;r++){
-        cellnum = cellnum + numberG2D(((int)abs(ax))%3,((int)abs(ay))%3,r);
-        ax=ax/3;
-        ay=ay/3;
-    }
-    return (int) cellnum;
-   }
+double cellnum=0;
+for (int r=1;r<ebenen+1;r++){
+    cellnum = cellnum + numberG2D(((int)abs(ax))%3,((int)abs(ay))%3,r);
+    ax=ax/3;
+    ay=ay/3;
+}
+return (int) cellnum;
+}
    
 
 //same use as in normal ~cellnumber~ operator. All grid cells 
@@ -774,27 +778,26 @@ struct CellGrid{
 
     //grid coortinates of left-bottom point and right-top point 
     //of the rectangle are computed
-	if (simLBX<0){LBX = int (simLBX)-1;}
-	else {LBX = int (simLBX);}
-	if (simLBY<0){LBY = int (simLBY)-1;}
-	else {LBY = int (simLBY);}
-	if (simRTX<0){RTX = int (simRTX)-1;}
-	else {RTX = int (simRTX);}
-	if (simRTY<0){RTY = int (simRTY)-1;}
-	else {RTY = int (simRTY);}
-	cx=LBX;
-	cy=LBY;
+    if (simLBX<0){LBX = int (simLBX)-1;}
+    else {LBX = int (simLBX);}
+    if (simLBY<0){LBY = int (simLBY)-1;}
+    else {LBY = int (simLBY);}
+    if (simRTX<0){RTX = int (simRTX)-1;}
+    else {RTX = int (simRTX);}
+    if (simRTY<0){RTY = int (simRTY)-1;}
+    else {RTY = int (simRTY);}
+    cx=LBX;
+    cy=LBY;
 
-	if (is3D){
-	if (simLBZ<0){LBZ = int (simLBZ)-1;}
-	else {LBZ = int (simLBZ);}
-	if (simRTZ<0){RTZ = int (simRTZ)-1;}
-	else {RTZ = int (simRTZ);}
-	cz=LBZ;
+    if (is3D){
+        if (simLBZ<0){LBZ = int (simLBZ)-1;}
+        else {LBZ = int (simLBZ);}
+        if (simRTZ<0){RTZ = int (simRTZ)-1;}
+        else {RTZ = int (simRTZ);} 
+        cz=LBZ;
+    }
 
-	}
-
-  }
+}
 /*
 For 2D space,
 the cell grid grows infinitely....for a detailed explanaintion of the 
@@ -803,12 +806,12 @@ numbering System see the dokumentation
 */
 
 int cellnumberLine2D (int ax, int ay){
-    int cellnumb = 0;
+int cellnumb = 0;
 
-    maxebene = maxebeneLine2D(ax,ay);
+maxebene = maxebeneLine2D(ax,ay);
 
-    //Make sure all possible cell numbers don't exceed the range
-    //of the integer type.
+//Make sure all possible cell numbers don't exceed the range
+//of the integer type.
     if (is3D){
     	long maxN = pow(8,maxebene-1);
     	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
@@ -821,7 +824,7 @@ int cellnumberLine2D (int ax, int ay){
 	}
 
 
-    if (maxebene==0){
+if (maxebene==0){
         cellnumb = (ax+1) + 2 * (ay+1);
     }
     else {
