@@ -182,9 +182,12 @@ private:
 1.1 Relation Descriptors
 
 */
-static string sectionsTypeInfo;
-static string junctionsTypeInfo;
-static string routesTypeInfo;
+static string sectionsTupleTypeInfo;
+static string junctionsTupleTypeInfo;
+static string routesTupleTypeInfo;
+static string sectionsRelationTypeInfo;
+static string junctionsRelationTypeInfo;
+static string routesRelationTypeInfo;
 static string sectionsBTreeTypeInfo;
 static string sectionsRTreeTypeInfo;
 static string junctionsBTreeTypeInfo;

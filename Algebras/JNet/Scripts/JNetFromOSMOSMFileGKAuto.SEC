@@ -19,8 +19,13 @@ let SOURCEFILE = 'mecklenburg-vorpommern.osm';
 # Define rectangle selecting part of map which we are interested in.           #
 ################################################################################
 
+let GK_VALUE_FOR_REGION = 4;
 
-let PARTREGION = gk((rectangle2(13.094, 13.596, 53.846, 54.102))rect2region,4);
+#let PARTREGION = gk((rectangle2(13.094, 13.596, 53.846, 54.102))rect2region,    GK_VALUE_FOR_REGION);
+
+let PARTREGION = gk((rectangle2(13.244, 13.446, 53.946, 54.002))rect2region,
+   GK_VALUE_FOR_REGION4);
+
 
 
 ################################################################################
@@ -29,7 +34,7 @@ let PARTREGION = gk((rectangle2(13.094, 13.596, 53.846, 54.102))rect2region,4);
 
 let osmNodesRel =
    osmimport(SRC_DIR_PATH + SOURCEFILE ,'node')
-     extend [geoData: gk(makepoint(.lon,.lat),4)]
+     extend [geoData: gk(makepoint(.lon,.lat),GK_VALUE_FOR_REGION)]
      remove [lon,lat]
    renameattr[pointType: "type"]
 consume;
@@ -38,6 +43,7 @@ let osmWaysTmp =
    osmimport(SRC_DIR_PATH + SOURCEFILE,'way')
    renameattr[roadType: "type"]
    filter [isdefined(.roadType)]
+   project[ref, name, roadType, osm_id, oneway, layer, maxspeed, nodeRefs]
 consume;
 
 let osmRestrictionsRel =
@@ -149,7 +155,7 @@ let roadsPartsTmp =
   rdup
 consume;
 
-let roadsRel =
+let roadsRelTmp =
   ((longRoadsTmp feed project[roadCurve, osmIdSet])
    (roadsTmp feed project[roadCurve, osmIdSet])
    concat)
@@ -172,19 +178,18 @@ consume;
 let crossingPtsTmp =
    secWaysTmp feed project [osm_id,geoData,layer] {s1}
    secWaysTmp feed project [osm_id,geoData,layer] {s2}
-   spatialjoin [geoData_s1, geoData_s2]
+   itSpatialJoin [geoData_s1, geoData_s2, 4 ,8]
    filter[(.osm_id_s1 < .osm_id_s2) and (.layer_s1 = .layer_s2)]
    filter[.geoData_s1 intersects .geoData_s2]
-   projectextend[; Road1: .osm_id_s1,
+   projectextendstream[; Road1: .osm_id_s1,
        Road2: .osm_id_s2,
-       Crossroads: crossings(.geoData_s1, .geoData_s2)]
-   filter[(isdefined(.Crossroads)) and (not(isempty(.Crossroads)))]
-   projectextendstream [Road1,Road2; Pt: components(.Crossroads)]
+       Pt: components(crossings(.geoData_s1, .geoData_s2))]
    filter[isdefined(.Pt)]
 consume;
 
 let roadEndPoints =
-  roadsRel feed projectextendstream[geoData; osm_id: createstreamj(.osmIdSet)]
+  roadsRelTmp feed
+  projectextendstream[geoData; osm_id: createstreamj(.osmIdSet)]
 consume;
 
 let junctionsTmp =
@@ -214,7 +219,7 @@ consume;
 let junctionsRelHelp=
   junctionsTmp feed {j}
   junctionNumbers feed {n}
-  spatialjoin[Pt_j, Pt_n]
+  itSpatialJoin[Pt_j, Pt_n,4,8]
   projectextend[;wayId: .WayId_j, Pt: .Pt_j, juncId: .JuncId_n]
   sortby[juncId, wayId]
   rdup
@@ -223,7 +228,7 @@ consume;
 let junctionsRel =
   osmNodesRel feed {o}
   junctionsRelHelp feed
-  spatialjoin[geoData_o,Pt]
+  itSpatialJoin[geoData_o,Pt,4,8]
   projectextend[juncId, wayId;osm_id: .osm_id_o,
     geoData: .geoData_o]
 consume;
@@ -250,28 +255,28 @@ let sectionsHelp1 =
    addcounter[SecId,1]
    projectextend[osm_id, ref, name, SecId, roadType, oneway, vmax,
     geoData; sectGeoData: fromline(.sectionCurve)]
-   projectextend[osm_id, ref, name, SecId, roadType, oneway, vmax,
-    geoData, sectGeoData; sectStartSmaller: get_startsmaller(.sectGeoData),
+   extend[sectStartSmaller: get_startsmaller(.sectGeoData),
           startNodePoint: getstartpoint(.sectGeoData),
           endNodePoint: getendpoint(.sectGeoData),
           lenth: size(.sectGeoData)]
-   projectextend[osm_id, ref, name, SecId, roadType, oneway, vmax,
-    geoData, sectGeoData, sectStartSmaller, startNodePoint, endNodePoint,
-    lenth;startOnCurve: atpoint(.geoData, .startNodePoint),
+   extend[startOnCurve: atpoint(.geoData, .startNodePoint),
           endOnCurve: atpoint(.geoData, .endNodePoint)]
    projectextend[osm_id, ref, name, SecId, roadType, oneway, vmax,
-    lenth; geoDataSection: set_startsmaller(.sectGeoData,
+    lenth, startOnCurve, endOnCurve; geoDataSection: set_startsmaller(.sectGeoData,
                         ifthenelse(.startOnCurve < .endOnCurve,
                            .sectStartSmaller,
                            not(.sectStartSmaller)))]
-   extend[direc: ifthenelse((.oneway = 0) and (not(.roadType contains("motorway"))) ,
-                                                    [const jdirection value(Both)],
-                 ifthenelse(get_startsmaller(.geoDataSection),[const jdirection value(Up)],
-                                                         [const jdirection value(Down)])),
+   extend[direc: ifthenelse((.oneway = 0) and (not(.roadType  contains "motorway")),
+                      [const jdirection value(Both)],
+                 ifthenelse((.oneway = 0) and (.roadType contains "link"),
+                      [const jdirection value(Both)],
+                 ifthenelse(get_startsmaller(.geoDataSection) = (.startOnCurve < .endOnCurve),
+                      [const jdirection value(Up)],
+                      [const jdirection value(Down)]))),
           startNodePoint: getstartpoint(.geoDataSection),
           endNodePoint: getendpoint(.geoDataSection)]
    junctionsRel feed {j}
-   spatialjoin[startNodePoint,geoData_j]
+   itSpatialJoin[startNodePoint,geoData_j,4,8]
    filter[.startNodePoint = .geoData_j]
    projectextend[osm_id, ref, name, SecId, roadType, oneway, vmax, lenth,
      direc, endNodePoint; startNodeOSMId: .osm_id_j,
@@ -282,11 +287,11 @@ consume;
 let sectionsTmp=
    sectionsHelp1 feed
    junctionsRel feed {n}
-   spatialjoin[endNodePoint,geoData_n]
+   itSpatialJoin[endNodePoint,geoData_n,4,8]
    projectextend[osm_id, ref, name, SecId, roadType, oneway, vmax, geoData,
      lenth, direc, startNodeOSMId, startNodeJuncId; endNodeOSMId: .osm_id_n,
      endNodeJuncId: .juncId_n]
-   sortby[osm_id, SecId, ref, name]
+   sortby[SecId]
    rdup
 consume;
 
@@ -296,37 +301,40 @@ consume;
 ################################################################################
 
 let roadSectionsHelp =
-  roadsRel feed 
+  roadsRelTmp feed 
     projectextendstream[roadId, geoData, lenth; sectOSMId: createstreamj(.osmIdSet)]
-  sectionsTmp feed {s}
+  sectionsTmp feed sortby[osm_id] {s}
   hashjoin[sectOSMId,osm_id_s,9997]
   projectextend[roadId, geoData, sectOSMId, lenth, SecId_s, startNodeJuncId_s,
     endNodeJuncId_s, direc_s, geoData_s,
-    lenth_s; startNodePos: getstartpoint(.geoData_s),
-             endNodePos: getendpoint(.geoData_s)]
-  extend[startPos: atpoint(.geoData, .startNodePos),
-         endPos: atpoint(.geoData,  .endNodePos)]
+    lenth_s, vmax_s; startPoint: getstartpoint(.geoData_s),
+       endPoint: getendpoint(.geoData_s),
+       startPos: atpoint(.geoData, getstartpoint(.geoData_s)),
+       endPos: atpoint(.geoData,  getendpoint(.geoData_s))]
   filter[isdefined(.startPos)]
   filter[isdefined(.endPos)]
-  sortby[roadId, startPos, endPos]
+  sortby[roadId, secId_s]
   rdup
 consume;
 
 let roadSections =
   roadSectionsHelp feed
-  projectextend [roadId,
-    SecId_s; routeInt: createrouteinterval(.roadId, .startPos, .endPos, .direc_s)]
+  projectextend [roadId, startNodeJuncId_s, endNodeJuncId_s,
+    SecId_s, vmax_s, direc_s, lenth_s; geoData: .geoData_s,
+      routeInt: createrouteinterval(.roadId, .startPos, .endPos, .direc_s)]
   sortby[roadId, routeInt]
   rdup
 consume;
 
 let roadJunctions =
   (roadSectionsHelp feed
-    projectextend[roadId; juncId: .startNodeJuncId_s,
-                  juncPosOnRoad: createroutelocation(.roadId, .startPos, .direc_s)])
+    projectextend[roadId; Pos: .startPoint,
+      juncId: .startNodeJuncId_s,
+      juncPosOnRoad: createroutelocation(.roadId, .startPos, .direc_s)])
   (roadSectionsHelp feed
-    projectextend[roadId; juncId: .endNodeJuncId_s,
-                  juncPosOnRoad: createroutelocation(.roadId, .endPos, .direc_s)])
+    projectextend[roadId; Pos: .endPoint,
+      juncId: .endNodeJuncId_s,
+      juncPosOnRoad: createroutelocation(.roadId, .endPos, .direc_s)])
   concat
   sortby[roadId, juncId]
   rdup
@@ -342,6 +350,19 @@ let secRestrictionsNodes =
   hashjoin[osm_id_j,viaNode,9997]
   projectextend [osm_id, fromWay, viaNode, toWay,
     restriction; viaPoint: .geoData_j, viaJuncId: .juncId_j]
+  sectionsTmp feed {s1}
+  hashjoin[osm_id_s1,fromWay,9997]
+  projectextend[osm_id, fromWay, viaNode, toWay, restriction, viaPoint,
+    viaJuncId; fromWaySecId: .SecId_s1,
+      fromWayJuncId1: .startNodeJuncId_s1,
+      fromWayJuncId2: .endNodeJuncId_s1]
+  sectionsTmp feed {s2}
+  hashjoin[osm_id, toWay, 9997]
+  projectextend[osm_id, fromWay, viaNode, toWay, restriction, viaPoint,
+    viaJuncId, fromWaySecId, fromWayJuncId1,
+    fromWayJuncId2; toWaySecId: .SecId_s2,
+      toWayJuncId1: .startNodeJuncId_s1,
+      toWayJuncId2: .endNodeJuncId_s2]
   sortby[viaJuncId]
 consume;
 
@@ -350,8 +371,21 @@ let secRestrictionsSects =
   osmRestrictionsRel feed
   hashjoin[osm_id_s, viaNode,9997]
   projectextend[osm_id, fromWay, viaNode, toWay, restriction; viaSectionId: .SecId_s,
-    juncId1: .startNodeJuncId_s,
-    juncId2: .endNodeJuncId_s]
+    viaSectionJuncId1: .startNodeJuncId_s,
+    viaSectionJuncId2: .endNodeJuncId_s]
+  sectionsTmp feed {s1}
+  hashjoin[osm_id_s1,fromWay,9997]
+  projectextend[osm_id, fromWay, viaNode, toWay, restriction, viaSectionId,
+    viaSectionJuncId1,  viaSectionJundId2; fromWaySecId: .SecId_s1,
+      fromWayJuncId1: .startNodeJuncId_s1,
+      fromWayJuncId2: .endNodeJuncId_s1]
+  sectionsTmp feed {s2}
+  hashjoin[osm_id_s1,toWay,9997]
+  projectextend[osm_id, fromWay, viaNode, toWay, restriction, viaSectionId,
+    viaSectionJuncId1,  viaSectionJundId2, fromWaySecId, fromWayJuncId1,
+    fromWayJuncId2;  toWaySecId: .SecId_s2,
+      toWayJuncId1: .startNodeJuncId_s2,
+      toWayJuncId2: .endNodeJuncId_s2]
   sortby [viaSectionId]
 consume;                                      
 
