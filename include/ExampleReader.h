@@ -310,6 +310,29 @@ a*bc* with single characters a,b and c.
     useSequentialOrder = false;
   }
 
+ /*
+  ExampleReader& operator=(const ExampleReader& src){
+    expected =  src.expected;
+    lineCtr = src.lineCtr;
+    line = src.line;
+    lineRest= src.lineRest;
+    fileName = src.fileName;;
+    algName= src.algName;
+    database= src.database;
+    restore= src.restore;
+
+    debug  = src.debug;;
+    tokendef = src.tokendef;
+    pos = src.pos;
+    useSequentialOrder = src.useSequentialOrder;
+    examples = src.examples;
+    scan = examples.begin();
+
+    m_type = src.m_type;
+    return *this;
+  }
+ */
+
   ~ExampleReader() {
 
     assert(m_type != EX_NONE);
