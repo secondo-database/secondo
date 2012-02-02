@@ -40,6 +40,8 @@ This header file essentially contains the definition of the class ~MapMatchingBa
 #ifndef __MAP_MATCHING_BASE_H__
 #define __MAP_MATCHING_BASE_H__
 
+#include "TemporalAlgebra.h"
+
 class Network;
 class MPoint;
 class GPoint;
@@ -98,6 +100,17 @@ protected:
                           const datetime::DateTime& rtimeStart,
                           const datetime::DateTime& rtimeEnd);
 
+/*
+   3.4 ConnectPoints
+   Connects two GPoints. Similar shortest path.
+   ShortestPath is only used if points lie on different
+   routes that are not directly connected.
+   creates and adds ~UGPoints~ to result
+
+*/
+    bool ConnectPoints(const GPoint& rGPStart,
+                       const GPoint& rGPEnd,
+                       const Interval<Instant>& rTimeInterval);
 /*
    3.5 protected member
 

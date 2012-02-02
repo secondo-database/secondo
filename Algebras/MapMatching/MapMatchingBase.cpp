@@ -40,11 +40,11 @@ Is is the base class of all Map Matching algorithms
 */
 #include "MapMatchingBase.h"
 #include "MapMatchingUtil.h"
+#include "NetworkRoute.h"
 
 #include <stdio.h>
 
-#include "../Network/NetworkAlgebra.h"
-#include "../TemporalNet/TemporalNetAlgebra.h"
+#include "TemporalNetAlgebra.h"
 
 
 namespace mapmatch {
@@ -216,6 +216,136 @@ bool MapMatchingBase::CalcShortestPath(const GPoint* pGPStart,
 
             timeCurrentStart = timeCurrentEnd;
         }
+
+        return true;
+    }
+}
+
+
+bool MapMatchingBase::ConnectPoints(const GPoint& rGPStart,
+                                    const GPoint& rGPEnd,
+                                    const Interval<Instant>& rTimeInterval)
+{
+    if (rGPStart.IsDefined() && rGPEnd.IsDefined() &&
+        m_pNetwork != NULL && m_pNetwork->IsDefined())
+    {
+        GPoint GPoint1(rGPStart);
+        GPoint GPoint2(rGPEnd);
+
+        if (GPoint1.GetRouteId() == GPoint2.GetRouteId())
+        {
+            NetworkRoute Route(m_pNetwork->GetRoute(GPoint1.GetRouteId()));
+
+            /*bool bDual = pNetwork->GetDual(ri->GetRouteId());
+             bool bMovingUp = true;
+             if (ri->GetStartPos() > ri->GetEndPos())
+             bMovingUp = false;
+             Side side = None;
+             if (bDual && bMovingUp)
+             side = Up;
+             else if (bDual && !bMovingUp)
+             side = Down;
+             else
+             side = None;*/
+
+            if (GPoint1.GetPosition() < GPoint2.GetPosition())
+            {
+                GPoint1.SetSide(Route.GetStartsSmaller() ? Up : Down);
+                GPoint2.SetSide(Route.GetStartsSmaller() ? Up : Down);
+            }
+            else
+            {
+                GPoint1.SetSide(Route.GetStartsSmaller() ? Down : Up);
+                GPoint2.SetSide(Route.GetStartsSmaller() ? Down : Up);
+            }
+
+            UGPoint ActUGPoint(rTimeInterval, GPoint1, GPoint2);
+            this->AddUGPoint(ActUGPoint);
+
+            return true;
+        }
+        else
+        {
+            // Different routes
+            CcInt Route1Id(GPoint1.GetRouteId());
+            CcInt Route2Id(GPoint2.GetRouteId());
+            double dRoute1Measure = numeric_limits<double>::max();
+            double dRoute2Measure = numeric_limits<double>::max();
+
+            m_pNetwork->GetJunctionMeasForRoutes(&Route1Id, &Route2Id,
+                    dRoute1Measure, dRoute2Measure);
+            if (dRoute1Measure < numeric_limits<double>::max()
+                    && dRoute2Measure < numeric_limits<double>::max())
+            {
+                NetworkRoute Route1(m_pNetwork->GetRoute(GPoint1.GetRouteId()));
+                NetworkRoute Route2(m_pNetwork->GetRoute(GPoint2.GetRouteId()));
+
+                GPoint GPoint1_2(true, m_pNetwork->GetId(), GPoint1.GetRouteId()
+                                 ,dRoute1Measure, GPoint1.GetSide());
+                GPoint GPoint2_1(true, m_pNetwork->GetId(), GPoint2.GetRouteId()
+                                 ,dRoute2Measure, GPoint2.GetSide());
+
+                if (GPoint1.GetPosition() < GPoint1_2.GetPosition())
+                {
+                    GPoint1.SetSide(Route1.GetStartsSmaller() ? Up : Down);
+                    GPoint1_2.SetSide(Route1.GetStartsSmaller() ? Up : Down);
+                }
+                else
+                {
+                    GPoint1.SetSide(Route1.GetStartsSmaller() ? Down : Up);
+                    GPoint1_2.SetSide(Route1.GetStartsSmaller() ? Down : Up);
+                }
+
+                if (GPoint2_1.GetPosition() < GPoint2.GetPosition())
+                {
+                    GPoint2_1.SetSide(Route2.GetStartsSmaller() ? Up : Down);
+                    GPoint2.SetSide(Route2.GetStartsSmaller() ? Up : Down);
+                }
+                else
+                {
+                    GPoint2_1.SetSide(Route2.GetStartsSmaller() ? Down : Up);
+                    GPoint2.SetSide(Route2.GetStartsSmaller() ? Down : Up);
+                }
+
+                double dDistance1 = fabs(
+                               GPoint1.GetPosition() - GPoint1_2.GetPosition());
+                double dDistance2 = fabs(
+                               GPoint2.GetPosition() - GPoint2_1.GetPosition());
+
+                double dDistance = dDistance1 + dDistance2;
+
+                Instant Mid = (rTimeInterval.end - rTimeInterval.start) *
+                                                       (dDistance1 / dDistance);
+
+                UGPoint UGPoint1(Interval<Instant>(rTimeInterval.start,
+                                                   rTimeInterval.start + Mid,
+                                                   rTimeInterval.lc, false),
+                                                   GPoint1, GPoint1_2);
+                this->AddUGPoint(UGPoint1);
+
+                UGPoint UGPoint2(Interval<Instant>(rTimeInterval.start + Mid,
+                                                   rTimeInterval.end,
+                                                   true, rTimeInterval.rc),
+                                                   GPoint2_1, GPoint2);
+
+                this->AddUGPoint(UGPoint2);
+
+                return true;
+            }
+            else
+            {
+                // No direct connection between Routes -> Shortest Path
+
+                return CalcShortestPath(&GPoint1,
+                                        &GPoint2,
+                                        rTimeInterval.start,
+                                        rTimeInterval.end);
+            }
+        }
+    }
+    else
+    {
+        return false;
     }
 }
 
