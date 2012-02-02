@@ -1587,20 +1587,20 @@ moved to separate functions. This kind of functions should be named Command\_<na
   FStatVec* fi = new FStatVec;
 
   // retrieve statistics
-  SmiEnvironment::GetCacheStatistics(*ci, *fi);
+  if (SmiEnvironment::GetCacheStatistics(*ci, *fi)){
+    ci->cstatNr = CmdNr;
+    cacheInfoRel->append(ci, true);
 
-  ci->cstatNr = CmdNr;
-  cacheInfoRel->append(ci, true);
-
-  FStatVec::iterator fit = fi->begin();
-  while (fit != fi->end())
-  {
-    (*fit)->fstatNr = CmdNr;
-    FileInfoTuple* pfi = new FileInfoTuple(*fit);
-    //SHOW(*pfi)
-    fileInfoRel->append(pfi, true);
-    delete *fit;
-    fit++;
+    FStatVec::iterator fit = fi->begin();
+    while (fit != fi->end())
+    {
+      (*fit)->fstatNr = CmdNr;
+      FileInfoTuple* pfi = new FileInfoTuple(*fit);
+      //SHOW(*pfi)
+      fileInfoRel->append(pfi, true);
+      delete *fit;
+      fit++;
+    }
   }
   delete fi;
 

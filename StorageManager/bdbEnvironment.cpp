@@ -1789,6 +1789,7 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
 
   if(rc!=0){
     cerr << "error during memstat operation" << endl;
+    return false;
   }
 
   ci.bytes = gsp->st_bytes;
