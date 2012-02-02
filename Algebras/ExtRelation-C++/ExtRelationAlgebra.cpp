@@ -10820,6 +10820,12 @@ if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
   return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
 }
 
+char f = name[0];
+if(f<'A' || f>'Z'){
+  return listutils::typeError("An attribute name has to "
+                              "start with an upper case");
+}
+
 
 // check streamlist
 if(nl->ListLength(stream)!=2 ||
