@@ -106,9 +106,9 @@ class SecondoTTY : public Application
 
  private:
   void Usage();
-  void ProcessFile( const string& fileName );
-  void ProcessCommand();
-  void ProcessCommands();
+  bool ProcessFile( const string& fileName, const bool stopOnError );
+  bool ProcessCommand();
+  bool ProcessCommands( const bool stopOnError);
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
   void TypeOutputListFormatted ( ListExpr list );
@@ -178,6 +178,8 @@ SecondoTTY::Usage()
   "\n" <<
   "  ?, HELP  - display this message\n" <<
   "  @FILE    - read commands from file 'FILE' (may be nested)\n" <<
+  "  @@FILE   - read commands from file 'FILE' until 'FILE' is " <<
+  "completly processed or an error is occurred\n" <<
   "  DEBUG n  - set debug level to n where n is an integer where each " <<
   "bit corresponds to one setting:\n" <<
   "           bit  0: debug mode (show annotated query and operator tree)\n" <<
@@ -209,14 +211,13 @@ SecondoTTY::Usage()
   cout << cmdList.str() << endl << endl;
 }
 
-void
-SecondoTTY::ProcessFile( const string& fileName )
+bool
+SecondoTTY::ProcessFile( const string& fileName , const bool stopOnError)
 {
   bool saveIsStdInput = isStdInput;
   streambuf* oldBuffer;
   ifstream fileInput( fileName.c_str() );
-  if ( fileInput )
-  {
+  if ( fileInput ) {
     oldBuffer = cin.rdbuf( fileInput.rdbuf() );
     cout << "*** Begin processing file '" << fileName << "'." << endl;
     isStdInput = false;
@@ -224,18 +225,22 @@ SecondoTTY::ProcessFile( const string& fileName )
     StopWatch scriptTime;
     scriptTime.start();
 
-    ProcessCommands();
+    bool res = ProcessCommands(stopOnError);
 
     cout << "Runtime for " << fileName << ": "
          << scriptTime.diffTimes() << endl;
 
     isStdInput = saveIsStdInput;
-    cout << "*** End processing file '" << fileName << "'." << endl;
+    if(!res){
+      cout << "Errors during processing the file "  << fileName << "."<< endl; 
+    } else {
+      cout << "File " << fileName << " successful processed." << endl;
+    }
     cin.rdbuf( oldBuffer );
-  }
-  else
-  {
+    return res; 
+  } else {
     cerr << "*** Error: Could not access file '" << fileName << "'." << endl;
+    return false;
   }
 }
 
@@ -275,12 +280,14 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
   return isQuery;
 }
 
-void
 
-SecondoTTY::ProcessCommand()
+
+bool SecondoTTY::ProcessCommand()
 {
   istringstream is(cmd);
   string cmdWord = ReadCommand(is);
+
+  bool success = true;
 
   // analyse command
   if ( cmdWord == "?" || cmdWord == "HELP" )
@@ -300,7 +307,14 @@ SecondoTTY::ProcessCommand()
   }
   else if ( cmdWord[0] == '@' )
   {
-    ProcessFile( cmd.substr( 1, ( cmd.length() - 1 ) ) );
+    bool stopOnError = false;
+    int start=1;
+    if(cmdWord.length()>1 && cmdWord[1] == '@'){
+      start = 2;
+      stopOnError = true;
+    }
+    success = ProcessFile( cmd.substr( start, ( cmd.length() - start ) ),
+                           stopOnError );
   }
   else if ( cmdWord == "REPEAT" )
   {
@@ -314,6 +328,7 @@ SecondoTTY::ProcessCommand()
     if (!isQuery)
     {
      cerr << err << endl;
+     success = false;
     }
     else
     {
@@ -327,14 +342,17 @@ SecondoTTY::ProcessCommand()
 
         while (repeatCtr > 0) {
           CallSecondo2();
-          if (errorCode > 0) // exit loop on failure
+          if (errorCode > 0){ // exit loop on failure
+            success = false;
             break;
+          }
           repeatCtr--;
         }
       }
       else
       {
         // should never happen !
+        success = false;
         cerr << err << endl;
       }
     }
@@ -343,8 +361,10 @@ SecondoTTY::ProcessCommand()
   {
     isQuery = MatchQuery(cmdWord,is);
     CallSecondo2();
+    success = errorCode == 0;
   }
   cmd="";
+  return success;
 }
 
 
@@ -456,21 +476,25 @@ SecondoTTY::GetCommand()
   return (complete);
 }
 
-void
-SecondoTTY::ProcessCommands()
+bool
+SecondoTTY::ProcessCommands(const bool stopOnError)
 {
-  while (!cin.eof() && !quit)
+  bool errorFound = false;;
+  while (!cin.eof() && !quit && ( !stopOnError || !errorFound ))
   {
     if ( GetCommand() )
     {
       try {
-        ProcessCommand();
+        if( ! ProcessCommand()){
+           errorFound = true;
+        }
       }
       catch (SecondoException e) {
         cerr << "Exception caught: " << e.msg() << endl;
       }
     }
   }
+  return !errorFound;
 }
 
 /*
@@ -714,11 +738,11 @@ SecondoTTY::Execute()
     {
       cout << endl << "Secondo TTY ready for operation." << endl
            << "Type 'HELP' to get a list of available commands." << endl;
-      ProcessCommands();
+      ProcessCommands( false);
     }
     else
     {
-      ProcessFile(iFileName);
+      ProcessFile(iFileName, false);
     }
 
     if ( useOutputFile ){
