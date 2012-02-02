@@ -1488,50 +1488,50 @@ struct PrioQueue
 
 */
 string Network::routesTypeInfo =
-    "(rel (tuple ((id int) (length real) (curve sline) "
-    "(dual bool) (startsSmaller bool))))";
+    "(rel (tuple ((Id int) (Length real) (Curve sline) "
+    "(Dual bool) (StartsSmaller bool))))";
 
 string Network::routesInternalTypeInfo =
-    "(rel (tuple ((id int) (length real) (curve sline) "
-    "(dual bool) (startsSmaller bool) (startposid int))))";
+    "(rel (tuple ((Id int) (Length real) (Curve sline) "
+    "(Dual bool) (StartsSmaller bool) (Startposid int))))";
 
 string Network::routesBTreeTypeInfo =
-    "(btree (tuple ((id int) (length real) (curve sline) "
-    "(dual bool) (startsSmaller bool) (startposid int) )) int)";
+    "(btree (tuple ((Id int) (Length real) (Curve sline) "
+    "(Dual bool) (StartsSmaller bool) (Startposid int) )) int)";
 
 string Network::routesRTreeTypeInfo =
-    "(rtree (tuple((id int)(length real)(curve sline)(dual bool)"
-    "(startsSmaller bool) (startposid int) )) sline FALSE)";
+    "(rtree (tuple((Id int)(Length real)(Curve sline)(Dual bool)"
+    "(StartsSmaller bool) (Startposid int) )) sline FALSE)";
 
 string Network::junctionsTypeInfo =
-    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int))))";
+    "(rel (tuple ((R1id int) (Meas1 real) (R2id int) "
+    "(Meas2 real) (Cc int))))";
 
 /*string Network::junctionsInternalTypeInfo =
     "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
     "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
     "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";*/
 string Network::junctionsInternalTypeInfo =
-    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
-    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";
+    "(rel (tuple ((R1id int) (Meas1 real) (R2id int) "
+    "(Meas2 real) (Cc int) (Loc point) (R1rc tid) (R2rc tid) "
+    "(Sauprc tid) (Sadownrc tid)(Sbuprc tid) (Sbdownrc tid))))";
 
 string Network::junctionsBTreeTypeInfo =
-    "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
-    "(meas2 real) (cc int) (loc point) (r1rc tid) (r2rc tid) "
-    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
+    "(btree (tuple ((R1id int) (Meas1 real) (R2id int) "
+    "(Meas2 real) (Cc int) (Loc point) (R1rc tid) (R2rc tid) "
+    "(Sauprc tid) (Sadownrc tid)(Sbuprc tid) (Sbdownrc tid))) int)";
 string Network::sectionsInternalTypeInfo =
-    "(rel (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int) "
-    "(pnoup int) (pnodown int) (slotup int) (slotdown int) "
-    "(cost real) (time real))))";
+    "(rel (tuple ((Rid int) (Meas1 real) (Meas2 real) (Dual bool)"
+    "(Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int) "
+    "(Pnoup int) (Pnodown int) (Slotup int) (Slotdown int) "
+    "(Cost real) (Time real))))";
 string Network::sectionsBTreeTypeInfo =
-    "(btree (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int) "
-    "(pnoup int) (pnodown int) (slotup int) (slotdown int) "
-    "(cost real) (time real) )) int)";
+    "(btree (tuple ((Rid int) (Meas1 real) (Meas2 real) (Dual bool)"
+    "(Curve sline)(CurveStartsSmaller bool) (Rrc tid) (Sid int) "
+    "(Pnoup int) (Pnodown int) (Slotup int) (Slotdown int) "
+    "(Cost real) (Time real) )) int)";
 string Network::distancestorageTypeInfo =
-    "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
+    "(rel (tuple((J1 tid)(J2 tid)(Dist real)(Sp gline))))";
 
 /*
 2.1.2 Constructors and destructors class ~Network~
@@ -2092,7 +2092,7 @@ bool Network::OptimizeNetwork(){
     ostringstream xThisRoutesPtrStream2;
     xThisRoutesPtrStream2 << ( long ) m_pRoutes;
     string strQuery = "(createbtree (" + routesInternalTypeInfo +
-             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " startposid)";
+             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " Startposid)";
     Word xResult;
     int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
     assert ( QueryExecuted ); // no query with side effects, please!
@@ -2330,7 +2330,7 @@ void Network::FillRoutes ( const Relation *routes )
   ostringstream xThisRoutesPtrStream;
   xThisRoutesPtrStream << ( long ) m_pRoutes;
   strQuery = "(createbtree (" + routesInternalTypeInfo +
-             " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
+             " (ptr " + xThisRoutesPtrStream.str() + "))" + " Id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
@@ -2340,7 +2340,7 @@ void Network::FillRoutes ( const Relation *routes )
   ostringstream xThisRoutesPtrStream2;
   xThisRoutesPtrStream2 << ( long ) m_pRoutes;
   strQuery = "(createbtree (" + routesInternalTypeInfo +
-             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " startposid)";
+             " (ptr " + xThisRoutesPtrStream2.str() + "))" + " Startposid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
@@ -2351,7 +2351,7 @@ void Network::FillRoutes ( const Relation *routes )
   xNetRoutes << ( long ) m_pRoutes;
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesInternalTypeInfo +
-         " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
+         " (ptr " + xThisRoutesPtrStream.str() + "))))((Curve asc))) Curve)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;
@@ -2461,7 +2461,7 @@ JUNCTION_ROUTE2_ID );
   xJunctionsStream << ( long ) pIntJunctions;
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                     " (ptr " + xJunctionsStream.str() +
-                    "))) ((r1id asc)(meas1 asc))))";
+                    "))) ((R1id asc)(Meas1 asc))))";
 
 
   Word xResult;
@@ -2479,7 +2479,7 @@ JUNCTION_ROUTE2_ID );
   ostringstream xThisJunctionsPtrStream;
   xThisJunctionsPtrStream << ( long ) m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-             " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
+             " (ptr " + xThisJunctionsPtrStream.str() + "))" + " R1id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeJunctionsByRoute1 = ( BTree* ) xResult.addr;
@@ -2487,7 +2487,7 @@ JUNCTION_ROUTE2_ID );
   ostringstream xThisJunctionsPtrStream2;
   xThisJunctionsPtrStream2 << ( long ) m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-             " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
+             " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " R2id)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeJunctionsByRoute2 = ( BTree* ) xResult.addr;
@@ -2930,7 +2930,7 @@ void Network::FillSections()
   ostringstream xThisSectionsPtrStream;
   xThisSectionsPtrStream << ( long ) m_pSections;
   string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
-                    " (ptr " + xThisSectionsPtrStream.str() + "))" + " rid)";
+                    " (ptr " + xThisSectionsPtrStream.str() + "))" + " Rid)";
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted ); // no query with side effects, please!
   m_pBTreeSectionsByRoute = ( BTree* ) xResult.addr;
@@ -2940,7 +2940,7 @@ void Network::FillSections()
   ostringstream xStream2;
   xStream2 << (long) m_pSections;
   string query = "(createbtree (" + sectionsInternalTypeInfo +
-                    " (ptr " + xStream2.str() + "))" + " sid)";
+                    " (ptr " + xStream2.str() + "))" + " Sid)";
   int QueryEx = QueryProcessor::ExecuteQuery ( query, xResultNewBtree );
   assert ( QueryEx ); // no query with side effects, please!
   m_pBTreeSections = ( BTree* ) xResultNewBtree.addr;

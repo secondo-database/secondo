@@ -14,26 +14,26 @@
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
-@../Algebras/OSM/Scripts/TuPreprocessImport.sec;
+@@../Algebras/OSM/Scripts/TuPreprocessImport.sec;
 
-@../Algebras/OSM/Scripts/TuImportOsmDataFromShpFiles.sec;
+@@../Algebras/OSM/Scripts/TuImportOsmDataFromShpFiles.sec;
 
 # Skipping modifications due to the use of a different shp-file-format
-#@../Algebras/OSM/Scripts/TuAdjustDataToGfFormat.sec;
+#@@../Algebras/OSM/Scripts/TuAdjustDataToGfFormat.sec;
 
-@../Algebras/OSM/Scripts/TuPostprocessImportedOsmData.sec;
+@@../Algebras/OSM/Scripts/TuPostprocessImportedOsmData.sec;
 
-@../Algebras/OSM/Scripts/TuDetermineSections.sec;
+@@../Algebras/OSM/Scripts/TuDetermineSections.sec;
 
-@../Algebras/OSM/Scripts/TuCreateGraph.sec;
+@@../Algebras/OSM/Scripts/TuCreateGraph.sec;
 
-@../Algebras/OSM/Scripts/TuPrepareNetworkCreation.sec;
+@@../Algebras/OSM/Scripts/TuPrepareNetworkCreation.sec;
 
-#@../Algebras/OSM/Scripts/TuCreateNetworkStep1.sec;
+#@@../Algebras/OSM/Scripts/TuCreateNetworkStep1.sec;
 
-#@../Algebras/OSM/Scripts/TuCreateNetworkStep2.sec;
+#@@../Algebras/OSM/Scripts/TuCreateNetworkStep2.sec;
 
-#@../Algebras/OSM/Scripts/TuCreateNetworkStep3.sec;
+#@@../Algebras/OSM/Scripts/TuCreateNetworkStep3.sec;
 
-@../Algebras/OSM/Scripts/TuCreateNetworkStep4.sec;
+@@../Algebras/OSM/Scripts/TuCreateNetworkStep4.sec;
 

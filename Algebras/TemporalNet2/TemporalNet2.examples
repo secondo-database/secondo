@@ -362,23 +362,23 @@ Tolerance: 0.01%
 Operator : mgp2mgpsecunits
 Number   : 1
 Signature: rel(tuple((ai xi))) x ai x network x real -> stream(mgpsecunit)
-Example  : query trains mgp2mgpsecunits [trip, B_NETWORK, 20000.0] transformstream consume;
+Example  : query trains mgp2mgpsecunits [Trip, B_NETWORK, 20000.0] transformstream consume;
 Result   : file
 
 Operator : mgp2mgpsecunits2
 Number   : 1
 Signature: mgpoint x real -> stream(mgpsecunit)
-Example  : query trains  feed addid projectextendstream[TID; MGPSec: mgp2mgpsecunits2(.trip, 20000.0)] consume;
+Example  : query trains  feed addid projectextendstream[TID; MGPSec: mgp2mgpsecunits2(.Trip, 20000.0)] consume;
 Result   : file
 
 Operator : mgp2mgpsecunits3
 Number   : 1
 Signature: stream(mgpoint) -> stream(mgpsecunit)
-Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3 [20000.0] transformstream consume;
+Example  : query trains feed projecttransformstream [Trip] mgp2mgpsecunits3 [20000.0] transformstream consume;
 Result   : file
 
 Operator : mgpsu2tuple
 Number   : 1
-Signature: stream(mgpsecunit) -> stream(tuple((secid int)(partNo int)(dir int)(speed real)(starttime instant)(endtime instant)(leftclosed bool)(rightclosed bool)))
-Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3[20000.0] mgpsu2tuple consume;
+Signature: stream(mgpsecunit) -> stream(tuple((Secid int)(PartNo int)(Dir int)(Speed real)(Starttime instant)(Endtime instant)(Leftclosed bool)(Rightclosed bool)))
+Example  : query trains feed projecttransformstream [Trip] mgp2mgpsecunits3[20000.0] mgpsu2tuple consume;
 Result   : file

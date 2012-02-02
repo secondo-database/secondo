@@ -12,7 +12,7 @@
 ### - none
 ###
 ### Postconditions:
-### - existing open database with some specifications on the corresponding city
+### - existing open database with some specifications on the corresponding City
 ###
 ### Author:
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
@@ -37,100 +37,100 @@ let SCALE_FACTOR_Y =
    getscalefactory();
 
 
-# Defining the clipping rectangle used to restrict the data to the city area
-let cityRect =
+# Defining the clipping rectangle used to restrict the data to the City area
+let CityRect =
    rectangle2 (
-      (<min_lon> * SCALE_FACTOR_X),
-      (<max_lon> * SCALE_FACTOR_X),
-      (<min_lat> * SCALE_FACTOR_Y),
-      (<max_lat> * SCALE_FACTOR_Y));
+      (<Min_lon> * SCALE_FACTOR_X),
+      (<Max_lon> * SCALE_FACTOR_X),
+      (<Min_lat> * SCALE_FACTOR_Y),
+      (<Max_lat> * SCALE_FACTOR_Y));
 
-# Dividing the main city rectangle into 9 parts for each orientation
-let districtWidth =
-   (maxD(cityRect,1) - minD(cityRect,1)) / 3;
-let districtHeight =
-   (maxD(cityRect,2) - minD(cityRect,2)) / 3;
+# Dividing the main City rectangle into 9 parts for each orientation
+let DistrictWidth =
+   (maxD(CityRect,1) - minD(CityRect,1)) / 3;
+let DistrictHeight =
+   (maxD(CityRect,2) - minD(CityRect,2)) / 3;
 # north-west
-let nwRect = 
+let NwRect =
    rectangle2(
-      minD(cityRect,1),
-      (minD(cityRect,1) + districtWidth), 
-      (minD(cityRect,2) + districtHeight + districtHeight),
-      maxD(cityRect,2));
+      minD(CityRect,1),
+      (minD(CityRect,1) + DistrictWidth),
+      (minD(CityRect,2) + DistrictHeight + DistrictHeight),
+      maxD(CityRect,2));
 # west
-let wRect = 
+let WRect =
    rectangle2(
-      minD(cityRect,1),
-      (minD(cityRect,1) + districtWidth), 
-      (minD(cityRect,2) + districtHeight),
-      (minD(cityRect,2) + districtHeight + districtHeight));
+      minD(CityRect,1),
+      (minD(CityRect,1) + DistrictWidth),
+      (minD(CityRect,2) + DistrictHeight),
+      (minD(CityRect,2) + DistrictHeight + DistrictHeight));
 # south-west
-let swRect = 
+let SwRect =
    rectangle2(
-      minD(cityRect,1),
-      (minD(cityRect,1) + districtWidth), 
-      (minD(cityRect,2)),
-      (minD(cityRect,2) + districtHeight));
+      minD(CityRect,1),
+      (minD(CityRect,1) + DistrictWidth),
+      (minD(CityRect,2)),
+      (minD(CityRect,2) + DistrictHeight));
 # north-east
-let neRect = 
+let NeRect =
    rectangle2(
-      (minD(cityRect,1) + districtWidth + districtWidth),
-      maxD(cityRect,1), 
-      (minD(cityRect,2) + districtHeight + districtHeight),
-      maxD(cityRect,2));
+      (minD(CityRect,1) + DistrictWidth + DistrictWidth),
+      maxD(CityRect,1),
+      (minD(CityRect,2) + DistrictHeight + DistrictHeight),
+      maxD(CityRect,2));
 # east
-let eRect = 
+let ERect =
    rectangle2(
-      (minD(cityRect,1) + districtWidth + districtWidth),
-      maxD(cityRect,1), 
-      (minD(cityRect,2) + districtHeight),
-      (minD(cityRect,2) + districtHeight + districtHeight));
+      (minD(CityRect,1) + DistrictWidth + DistrictWidth),
+      maxD(CityRect,1),
+      (minD(CityRect,2) + DistrictHeight),
+      (minD(CityRect,2) + DistrictHeight + DistrictHeight));
 # south-east
-let seRect = 
+let SeRect =
    rectangle2(
-      (minD(cityRect,1) + districtWidth + districtWidth),
-      maxD(cityRect,1), 
-      (minD(cityRect,2)),
-      (minD(cityRect,2) + districtHeight));
+      (minD(CityRect,1) + DistrictWidth + DistrictWidth),
+      maxD(CityRect,1),
+      (minD(CityRect,2)),
+      (minD(CityRect,2) + DistrictHeight));
 # north
-let nRect = 
+let NRect =
    rectangle2(
-      (minD(cityRect,1) + districtWidth),
-      (minD(cityRect,1) + districtWidth + districtWidth),
-      (minD(cityRect,2) + districtHeight + districtHeight),
-      maxD(cityRect,2));
+      (minD(CityRect,1) + DistrictWidth),
+      (minD(CityRect,1) + DistrictWidth + DistrictWidth),
+      (minD(CityRect,2) + DistrictHeight + DistrictHeight),
+      maxD(CityRect,2));
 # center
-let cRect = 
+let CRect =
    rectangle2(
-      (minD(cityRect,1) + districtWidth),
-      (minD(cityRect,1) + districtWidth + districtWidth),
-      (minD(cityRect,2) + districtHeight),
-      (minD(cityRect,2) + districtHeight + districtHeight));
+      (minD(CityRect,1) + DistrictWidth),
+      (minD(CityRect,1) + DistrictWidth + DistrictWidth),
+      (minD(CityRect,2) + DistrictHeight),
+      (minD(CityRect,2) + DistrictHeight + DistrictHeight));
 # south
-let sRect = 
+let SRect =
    rectangle2(
-      (minD(cityRect,1) + districtWidth),
-      (minD(cityRect,1) + districtWidth + districtWidth),
-      (minD(cityRect,2)),
-      (minD(cityRect,2) + districtHeight));
+      (minD(CityRect,1) + DistrictWidth),
+      (minD(CityRect,1) + DistrictWidth + DistrictWidth),
+      (minD(CityRect,2)),
+      (minD(CityRect,2) + DistrictHeight));
 
 # Limiting the region of interest if desired
-let partRect =
+let PartRect =
    ifthenelse(PART = 'NW',
-      nwRect,
+      NwRect,
       ifthenelse(PART = 'W',
-         wRect,
+         WRect,
          ifthenelse(PART = 'SW',
-            swRect,
+            SwRect,
             ifthenelse(PART = 'NE',
-               neRect,
+               NeRect,
                ifthenelse(PART = 'E',
-                  eRect,
+                  ERect,
                   ifthenelse(PART = 'SE',
-                     seRect,
+                     SeRect,
                      ifthenelse(PART = 'N',
-                        nRect,
+                        NRect,
                         ifthenelse(PART = 'C',
-                           cRect,
+                           CRect,
                            ifthenelse(PART = 'S',
-                              sRect,cityRect)))))))));
+                              SRect,CityRect)))))))));

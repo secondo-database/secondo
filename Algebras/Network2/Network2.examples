@@ -208,7 +208,7 @@ Result   : TRUE
 Operator : update_sectioncost
 Number   : 2
 Signature: network x rel -> bool
-Example  : query update_sectioncost(B_NETWORK,[const rel(tuple([sid: int, cost: real])) value ((1 5.0)(2 27.0))]);
+Example  : query update_sectioncost(B_NETWORK,[const rel(tuple([Sid: int, Cost: real])) value ((1 5.0)(2 27.0))]);
 Result   : TRUE
 
 Operator : update_sectionduration
@@ -220,7 +220,7 @@ Result   : TRUE
 Operator : update_sectionduration
 Number   : 2
 Signature: network x rel -> bool
-Example  : query update_sectioncost(B_NETWORK,[const rel(tuple([sid: int, duration: real])) value ((1 5.0)(2 27.0))]);
+Example  : query update_sectioncost(B_NETWORK,[const rel(tuple([Sid: int, Duration: real])) value ((1 5.0)(2 27.0))]);
 Result   : TRUE
 
 Operator : shortestpath_astarplus

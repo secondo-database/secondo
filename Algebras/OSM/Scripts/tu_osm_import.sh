@@ -145,7 +145,7 @@ max_lat=53.6061664164
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/geofabrik/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/shp-files/osm2shp/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/osm-api/${name}/"
-src_dir_path="/home/jandt/Downloads/OSM-Dateien/duesseldorf.osm/"
+src_dir_path="/home/jandt/Downloads/OSM-Dateien/bremen.osm/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/cloud-made/${name}/"
 #src_dir_path="/Users/fernuni-student/osm-data/osm-files/fiktiv/${name}/"
 

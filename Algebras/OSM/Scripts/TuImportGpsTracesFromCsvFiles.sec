@@ -49,7 +49,7 @@ let Trk101215 =
 
 # create Trip and Altitude for each day
 
-let onehour =
+let Onehour =
    [const duration value (0 3600000)];
 
 delete DayTrips;

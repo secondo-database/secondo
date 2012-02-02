@@ -8,28 +8,28 @@
 ### Precondition:
 ### - activated necessary algebras
 ### - existing open database with successfully imported osm data
-### - nodesRel-relation
-### nodesRel: rel{Node: point, NodeId: int}
-### - extSectionsRel-relation
-### extSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
+### - NodesRel-relation
+### NodesRel: rel{Node: point, NodeId: int}
+### - ExtSectionsRel-relation
+### ExtSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
 ###                     EndNodeId: int, StreetId: int, GroupId: int,
 ###                     SectionDist: real}
 ###
 ### Postconditions:
-### - cityGraphRel-relation
-### cityGraphRel: rel{StreetId: int, Costs: real, NodeId1: int, NodeId2: int,
+### - CityGraphRel-relation
+### CityGraphRel: rel{StreetId: int, Costs: real, NodeId1: int, NodeId2: int,
 ###                   Node1: point, Node2: point}
-### - cityGraph-graph
+### - CityGraph-graph
 ###
 ### Author:
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # Computing data on the city graph
-let cityGraphRel =
-   nodesRel feed {n2}
-   ( nodesRel feed {n1}
-     extSectionsRel feed
+let CityGraphRel =
+   NodesRel feed {n2}
+   ( NodesRel feed {n1}
+     ExtSectionsRel feed
      projectextend [StartNodeId, EndNodeId, StreetId; 
         Costs : size(.Section)]
 #        Costs : size(.Section,create_geoid("WGS1984"))]
@@ -47,6 +47,6 @@ let cityGraphRel =
    consume;
 
 # Creating the graph of the city
-let cityGraph =
-   cityGraphRel feed
+let CityGraph =
+   CityGraphRel feed
    constgraphpoints[NodeId1, NodeId2, .Costs, Node1, Node2];

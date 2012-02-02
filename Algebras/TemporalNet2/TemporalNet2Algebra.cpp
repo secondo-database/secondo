@@ -9267,9 +9267,9 @@ TypeMapping:
 
 */
 static string mgpSecTypeInfo =
-    "(stream (tuple ((secid int) (part int) (dir int) (speed real)"
-                    "(starttime instant)(endtime instant)"
-                    "(leftclosed bool)(rightclosed bool))))";
+    "(stream (tuple ((Secid int) (Part int) (Dir int) (Speed real)"
+                    "(Starttime instant)(Endtime instant)"
+                    "(Leftclosed bool)(Rightclosed bool))))";
 
 
 ListExpr OpMgpsu2tupleTypeMap(ListExpr in_xArgs)

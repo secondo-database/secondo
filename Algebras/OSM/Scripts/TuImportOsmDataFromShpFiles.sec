@@ -2,9 +2,9 @@
 ### Importing OSM data from shape files (2 / 11)
 ################################################################################
 ### Description:
-### - Reads data on streets and points of interest from shape files.
+### - Reads data on Streets and points of interest from shape files.
 ### In shape-files matching the free standard Geofabrik-format some data e.g.
-### on tunnels and layers are missing. Self-made shape-files, however, provide
+### on Tunnels and Layers are missing. Self-made shape-files, however, provide
 ### this data. To retrieve this data these files have to be treated specially
 ### which is done in a follow-up Secondo-script.
 ### Please, see tu_osm_import.sh for further details.
@@ -13,15 +13,15 @@
 ### - existing open database
 ###
 ### Postconditions:
-### - streetsTmp-relation
+### - StreetsTmp-relation
 ### either self-made shape-files in a custom format:
-### streetsTmp: rel{geoData: sline, ID: int, part: int, attrib: string}
+### StreetsTmp: rel{GeoData: sline, ID: int, part: int, attrib: string}
 ### or shape-files in the free standard geofabrik-format:
-### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
+### StreetsTmp: rel{GeoData: sline, osm_id: int, name: string, ref: string,
 ###                 type: string, oneway: int, bridge: int, maxspeed: int,
-###                 tunnel: bool, layer: int}
-### - pointsTmp-relation
-### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
+###                 Tunnel: bool, Layer: int}
+### - PointsTmp-relation
+### PointsTmp: rel{osm_id: int, timestamp: int, name: string, GeoData: point,
 ###                type: string}
 ### - restrictionsTmp-relation
 ### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
@@ -31,38 +31,38 @@
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
-# Importing the street data (Here attributes tunnel and layer are added with
+# Importing the street data (Here attributes Tunnel and Layer are added with
 # dummy data. Their real data is derived from the attrib-attribute later. Be 
 # aware that this is NOT an option if the standard geofabrik format is used!
 # In this case the values in the additional attributes are worthless and just 
 # serve to save one more script-file.)
-let streetsTmp =
-   shpimport3(SRC_DIR_PATH + 'roads.shp') namedtransformstream[geoData]
+let StreetsTmp =
+   shpimport3(SRC_DIR_PATH + 'roads.shp') namedtransformstream[GeoData]
    addcounter[JoinId_shp,1]
    dbimport2(SRC_DIR_PATH + 'roads.dbf')
    addcounter[JoinId_dbf,1]
    mergejoin[JoinId_shp,JoinId_dbf]
    remove[JoinId_shp,JoinId_dbf]
-   filter[isdefined(.geoData)]
-   filter[bbox(.geoData) intersects partRect]
-   extend [tunnel: FALSE, layer: 0]
+   filter[isdefined(.GeoData)]
+   filter[bbox(.GeoData) intersects PartRect]
+   extend [Tunnel: FALSE, Layer: 0]
    consume;
 
 # Importing the POI data
-let pointsTmp =
-   shpimport3(SRC_DIR_PATH + 'points.shp') namedtransformstream[geoData]
+let PointsTmp =
+   shpimport3(SRC_DIR_PATH + 'points.shp') namedtransformstream[GeoData]
    addcounter[JoinId_shp,1]
    dbimport2(SRC_DIR_PATH + 'points.dbf')
    addcounter[JoinId_dbf,1]
    mergejoin[JoinId_shp,JoinId_dbf]
    remove[JoinId_shp,JoinId_dbf]
-   filter[isdefined(.geoData)]
-   filter[bbox(.geoData) intersects partRect]
+   filter[isdefined(.GeoData)]
+   filter[bbox(.GeoData) intersects PartRect]
    consume;
 
 # Creating a dummy-relation for restrictions (data on restrictions is
 # unavailable in shape-files)
-let restrictionsTmp =  [const rel(tuple ([osm_id: int, from: int, via: int,
-   to: int, restriction: text]))
+let RestrictionsTmp =  [const rel(tuple ([Osm_id: int, From: int, Via: int,
+   To: int, Restriction: text]))
    value ()];
 

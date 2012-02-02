@@ -16,32 +16,32 @@
 
 open database beispielCity;
 
-delete cityNetwork;
-delete testRoads;
-delete testJunctions;
+delete CityNetwork;
+delete TestRoads;
+delete TestJunctions;
 
-let testRoads =
-   cityRoads feed
+let TestRoads =
+   CityRoads feed
    filter [(.Road = 1) or (.Road = 22)]
    projectextend [Road, Length, Geometry; 
       Dual: ifthenelse(.Road = 1,TRUE,TRUE),
       StartsSmaller: .StartsSmaller]
    consume;
 
-let testJunctions =
-   cityJunctions feed
+let TestJunctions =
+   CityJunctions feed
    filter [(.Road1 = 1) and (.Road2 = 22)]
    remove [NewJunctionType]
    extend [NewJunctionType: 10920]
    consume;
  
-let cityNetwork = thenetwork(
+let CityNetwork = thenetwork(
    1,
    1.0,
-   testRoads,
-   testJunctions);
+   TestRoads,
+   TestJunctions);
 
-# Testing transitions at junctions
+# Testing Transitions at junctions
 #        |
 #        o 8
 #        |
@@ -53,51 +53,51 @@ let cityNetwork = thenetwork(
 #        |
 #        o 6
 #        |
-delete spot1;
-delete spot2;
-delete spot3;
-delete spot4;
-delete spot5;
-delete spot6;
-delete spot7;
-delete spot8;
-let spot1 =
-   point2gpoint(cityNetwork,[const point value(6800.0787 51236.7884)]);
-let spot2 =
-   point2gpoint(cityNetwork,[const point value(6800.7417 51236.2057)]);
-let spot3 =
-   point2gpoint(cityNetwork,[const point value(6801.3243 51236.0249)]);
-let spot4 =
-   point2gpoint(cityNetwork,[const point value(6801.1836 51236.6276)]);
-let spot5 =
-   point2gpoint(cityNetwork,[const point value(6799.7426 51236.9659)]);
-let spot6 =
-   point2gpoint(cityNetwork,[const point value(6800.6419 51236.1895)]);
-let spot7 =
-   point2gpoint(cityNetwork,[const point value(6801.5182 51235.9436)]);
-let spot8 =
-   point2gpoint(cityNetwork,[const point value(6801.2491 51236.7506)]);
-delete transitions;
-let transitions =
+delete Spot1;
+delete Spot2;
+delete Spot3;
+delete Spot4;
+delete Spot5;
+delete Spot6;
+delete Spot7;
+delete Spot8;
+let Spot1 =
+   point2gpoint(CityNetwork,[const point value(6800.0787 51236.7884)]);
+let Spot2 =
+   point2gpoint(CityNetwork,[const point value(6800.7417 51236.2057)]);
+let Spot3 =
+   point2gpoint(CityNetwork,[const point value(6801.3243 51236.0249)]);
+let Spot4 =
+   point2gpoint(CityNetwork,[const point value(6801.1836 51236.6276)]);
+let Spot5 =
+   point2gpoint(CityNetwork,[const point value(6799.7426 51236.9659)]);
+let Spot6 =
+   point2gpoint(CityNetwork,[const point value(6800.6419 51236.1895)]);
+let Spot7 =
+   point2gpoint(CityNetwork,[const point value(6801.5182 51235.9436)]);
+let Spot8 =
+   point2gpoint(CityNetwork,[const point value(6801.2491 51236.7506)]);
+delete Transitions;
+let Transitions =
    makearray(
-      ifthenelse(isdefined(shortest_path(spot1,spot3)),1,0),
-      ifthenelse(isdefined(shortest_path(spot1,spot5)),1,0),
-      ifthenelse(isdefined(shortest_path(spot1,spot4)),1,0),
-      ifthenelse(isdefined(shortest_path(spot1,spot2)),1,0),
-      ifthenelse(isdefined(shortest_path(spot3,spot7)),1,0),
-      ifthenelse(isdefined(shortest_path(spot3,spot1)),1,0),
-      ifthenelse(isdefined(shortest_path(spot3,spot4)),1,0),
-      ifthenelse(isdefined(shortest_path(spot3,spot2)),1,0),
-      ifthenelse(isdefined(shortest_path(spot2,spot3)),1,0),
-      ifthenelse(isdefined(shortest_path(spot2,spot1)),1,0),
-      ifthenelse(isdefined(shortest_path(spot2,spot4)),1,0),
-      ifthenelse(isdefined(shortest_path(spot2,spot6)),1,0),
-      ifthenelse(isdefined(shortest_path(spot4,spot3)),1,0),
-      ifthenelse(isdefined(shortest_path(spot4,spot1)),1,0),
-      ifthenelse(isdefined(shortest_path(spot4,spot8)),1,0),
-      ifthenelse(isdefined(shortest_path(spot4,spot2)),1,0));
-save transitions to '/Users/fernuni-student/secondo/Algebras/OSM/Scripts/Exported/10920.txt';
-#let transitions =
+      ifthenelse(isdefined(shortest_path(Spot1,Spot3)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot1,Spot5)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot1,Spot4)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot1,Spot2)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot3,Spot7)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot3,Spot1)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot3,Spot4)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot3,Spot2)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot2,Spot3)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot2,Spot1)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot2,Spot4)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot2,Spot6)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot4,Spot3)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot4,Spot1)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot4,Spot8)),1,0),
+      ifthenelse(isdefined(shortest_path(Spot4,Spot2)),1,0));
+save Transitions to '/Users/fernuni-student/secondo/Algebras/OSM/Scripts/Exported/10920.txt';
+#let Transitions =
 #   [const rel(tuple([
 #      AupAup: int, 
 #      AupAdown: int, 
@@ -118,22 +118,22 @@ save transitions to '/Users/fernuni-student/secondo/Algebras/OSM/Scripts/Exporte
 #      cc: int
 #   ])) 
 #   value ()];
-#update transitions :=
-#      (ifthenelse(isdefined(shortest_path(spot1,spot3)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot1,spot5)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot1,spot4)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot1,spot2)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot3,spot7)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot3,spot1)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot3,spot4)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot3,spot2)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot2,spot3)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot2,spot1)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot2,spot4)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot2,spot6)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot4,spot3)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot4,spot1)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot4,spot8)),1,0) 
-#      ifthenelse(isdefined(shortest_path(spot4,spot2)),1,0) 
+#update Transitions :=
+#      (ifthenelse(isdefined(shortest_path(Spot1,Spot3)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot1,Spot5)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot1,Spot4)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot1,Spot2)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot3,Spot7)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot3,Spot1)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot3,Spot4)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot3,Spot2)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot2,Spot3)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot2,Spot1)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot2,Spot4)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot2,Spot6)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot4,Spot3)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot4,Spot1)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot4,Spot8)),1,0)
+#      ifthenelse(isdefined(shortest_path(Spot4,Spot2)),1,0)
 #      10920);
 close database;

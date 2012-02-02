@@ -2,8 +2,8 @@
 ### Creating networks from imported OSM data (9 / 11)
 ################################################################################
 ### Description:
-### - This script creates a relation containing junctions between three sections
-### belonging to two streets.
+### - This script creates a relation containing junctions between three Sections
+### belonging to two Streets.
 ### (the number 1 in the relation name stands for incoming, the number 2 means
 ### outgoing)
 ### Please, see tu_shp_import.sh for further details. 
@@ -11,7 +11,7 @@
 ### Preconditions:
 ### - activated necessary algebras
 ### - existing open database with successfully imported osm data
-### - fullSectionsView-relation
+### - FullSectionsView-relation
 ###
 ### Postconditions:
 ### - cityJunctions-relation
@@ -31,41 +31,41 @@
 #      x
 #      x
 #      x
-let threeSecInZeroOut111AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetEndNodeId = .endNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let ThreeSecInZeroOut111AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetEndNodeId = .EndNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,2,2,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -78,41 +78,41 @@ let threeSecInZeroOut111AJuncTmp =
 #      |
 #      |
 #      |
-let threeSecInZeroOut111BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetEndNodeId = .endNodeId) and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let ThreeSecInZeroOut111BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetEndNodeId = .EndNodeId) and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,2,0,1,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -125,41 +125,41 @@ let threeSecInZeroOut111BJuncTmp =
 #      x
 #      x
 #      x
-let twoSecInOneOut112AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetEndNodeId = .endNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let TwoSecInOneOut112AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetEndNodeId = .EndNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,2,1,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -172,41 +172,41 @@ let twoSecInOneOut112AJuncTmp =
 #      |
 #      |
 #      v
-let twoSecInOneOut112BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetEndNodeId = .endNodeId) and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let TwoSecInOneOut112BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetEndNodeId = .EndNodeId) and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,2,0,2,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -219,42 +219,42 @@ let twoSecInOneOut112BJuncTmp =
 #      x
 #      x
 #      x
-let twoSecInOneOut121AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetStartNodeId = .startNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let TwoSecInOneOut121AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetStartNodeId = .StartNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,1,2,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -267,42 +267,42 @@ let twoSecInOneOut121AJuncTmp =
 #      |
 #      |
 #      |
-let twoSecInOneOut121BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetEndNodeId = .endNodeId) and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let TwoSecInOneOut121BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetEndNodeId = .EndNodeId) and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,1,0,1,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -315,41 +315,41 @@ let twoSecInOneOut121BJuncTmp =
 #      x
 #      x
 #      x
-let twoSecInOneOut211AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetEndNodeId = .endNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let TwoSecInOneOut211AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetEndNodeId = .EndNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,2,2,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -362,41 +362,41 @@ let twoSecInOneOut211AJuncTmp =
 #      |
 #      |
 #      |
-let twoSecInOneOut211BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetStartNodeId = .startNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let TwoSecInOneOut211BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetStartNodeId = .StartNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,2,0,1,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -409,42 +409,42 @@ let twoSecInOneOut211BJuncTmp =
 #      x
 #      x
 #      x
-let oneSecInTwoOut122AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetStartNodeId = .startNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let OneSecInTwoOut122AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetStartNodeId = .StartNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,1,1,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -457,42 +457,42 @@ let oneSecInTwoOut122AJuncTmp =
 #      |
 #      |
 #      v
-let oneSecInTwoOut122BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetEndNodeId = .endNodeId)  and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,endNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, endNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let OneSecInTwoOut122BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetEndNodeId = .EndNodeId)  and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,EndNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, EndNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(1,1,0,2,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -505,41 +505,41 @@ let oneSecInTwoOut122BJuncTmp =
 #      x
 #      x
 #      x
-let oneSecInTwoOut212AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetEndNodeId = .endNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let OneSecInTwoOut212AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetEndNodeId = .EndNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,2,1,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -552,41 +552,41 @@ let oneSecInTwoOut212AJuncTmp =
 #      |
 #      |
 #      v
-let oneSecInTwoOut212BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetStartNodeId = .startNodeId) and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {b} 
-     hashjoin [NodeId,endNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let OneSecInTwoOut212BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetStartNodeId = .StartNodeId) and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {b}
+     hashjoin [NodeId,EndNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,2,0,2,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -599,42 +599,42 @@ let oneSecInTwoOut212BJuncTmp =
 #      x
 #      x
 #      x
-let oneSecInTwoOut221AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetStartNodeId = .startNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let OneSecInTwoOut221AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetStartNodeId = .StartNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,1,2,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -647,42 +647,42 @@ let oneSecInTwoOut221AJuncTmp =
 #      |
 #      |
 #      |
-let oneSecInTwoOut221BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetStartNodeId = .startNodeId) and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,endNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,endNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE),
-      Road3: .streetId_c,
+let OneSecInTwoOut221BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetStartNodeId = .StartNodeId) and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,EndNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,EndNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,1,0,1,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -695,42 +695,42 @@ let oneSecInTwoOut221BJuncTmp =
 #      x
 #      x
 #      x
-let zeroSecInThreeOut222AJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     filter [(.streetStartNodeId = .startNodeId) and
-        not(.streetStartNodeId = .streetEndNodeId)]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_a < .sectionId_c])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE), 
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE), 
-      Road3: .streetId_c,
+let ZeroSecInThreeOut222AJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     filter [(.StreetStartNodeId = .StartNodeId) and
+        not(.StreetStartNodeId = .StreetEndNodeId)]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_a < .SectionId_c])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,1,1,0,
-            .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,FALSE),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,FALSE),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road1 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
@@ -743,77 +743,77 @@ let zeroSecInThreeOut222AJuncTmp =
 #      |
 #      |
 #      v
-let zeroSecInThreeOut222BJuncTmp =
-   (((nodesRel feed
-      fullSectionsView feed
-      sortby [sectionId]
-      filter [(.streetStartNodeId = .startNodeId) and
-         not(.streetStartNodeId = .streetEndNodeId)]
-      project [streetId,sectionId,startNodeId,streetData,sectionData,
-         oneWay] {a}     
-      hashjoin [NodeId, startNodeId_a,99997])
-     fullSectionsView feed
-     sortby [sectionId]
-     project [streetId,sectionId,startNodeId,streetData,sectionData,
-        oneWay] {b} 
-     hashjoin [NodeId,startNodeId_b,99997]
-     filter [.sectionId_a < .sectionId_b])
-    fullSectionsView feed
-    sortby [sectionId]
-    project [streetId,sectionId,startNodeId,streetData,sectionData,oneWay] {c}
-    hashjoin [NodeId,startNodeId_c,99997]
-    filter [.sectionId_c < .sectionId_b])
-   projectextend [; 
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node,TRUE), 
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node,TRUE), 
-      Road3: .streetId_c,
+let ZeroSecInThreeOut222BJuncTmp =
+   (((NodesRel feed
+      FullSectionsView feed
+      sortby [SectionId]
+      filter [(.StreetStartNodeId = .StartNodeId) and
+         not(.StreetStartNodeId = .StreetEndNodeId)]
+      project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+         OneWay] {a}
+      hashjoin [NodeId, StartNodeId_a,99997])
+     FullSectionsView feed
+     sortby [SectionId]
+     project [StreetId,SectionId,StartNodeId,StreetData,SectionData,
+        OneWay] {b}
+     hashjoin [NodeId,StartNodeId_b,99997]
+     filter [.SectionId_a < .SectionId_b])
+    FullSectionsView feed
+    sortby [SectionId]
+    project [StreetId,SectionId,StartNodeId,StreetData,SectionData,OneWay] {c}
+    hashjoin [NodeId,StartNodeId_c,99997]
+    filter [.SectionId_c < .SectionId_b])
+   projectextEnd [;
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node,TRUE),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node,TRUE),
+      Road3: .StreetId_c,
       JunctionType:
          getconnectivitycode(2,1,0,2,
-            .oneWay_a = 1,.oneWay_b = 1,FALSE,.oneWay_c = 1),
-      Sec1: .sectionId_a,
-      Sec2: .sectionId_b,
-      Sec3: .sectionId_c,
+            .OneWay_a = 1,.OneWay_b = 1,FALSE,.OneWay_c = 1),
+      Sec1: .SectionId_a,
+      Sec2: .SectionId_b,
+      Sec3: .SectionId_c,
       Node: .Node,
-      SecData1: .sectionData_a,
-      SecData2: .sectionData_b,
-      SecData3: .sectionData_c]
+      SecData1: .SectionData_a,
+      SecData2: .SectionData_b,
+      SecData3: .SectionData_c]
    filter [(.Road2 = .Road3) and not(.Road1 = .Road2)]
    consume;
 
 # Creating the union
-let threeSecJuncBtwTwoSts =
-   ((((((((((((((threeSecInZeroOut111AJuncTmp feed 
+let ThreeSecJuncBtwTwoSts =
+   ((((((((((((((ThreeSecInZeroOut111AJuncTmp feed
                  twoSecInOneOut112AJuncTmp feed
                  concat)
-                twoSecInOneOut121AJuncTmp feed
+                TwoSecInOneOut121AJuncTmp feed
                 concat)
-               twoSecInOneOut211AJuncTmp feed
+               TwoSecInOneOut211AJuncTmp feed
                concat)
-              oneSecInTwoOut122AJuncTmp feed
+              OneSecInTwoOut122AJuncTmp feed
               concat)
-             oneSecInTwoOut212AJuncTmp feed
+             OneSecInTwoOut212AJuncTmp feed
              concat)
-            oneSecInTwoOut221AJuncTmp feed
+            OneSecInTwoOut221AJuncTmp feed
             concat)
-           zeroSecInThreeOut222AJuncTmp feed
+           ZeroSecInThreeOut222AJuncTmp feed
            concat)
-           threeSecInZeroOut111BJuncTmp feed
+           ThreeSecInZeroOut111BJuncTmp feed
            concat)
-         twoSecInOneOut112BJuncTmp feed
+         TwoSecInOneOut112BJuncTmp feed
          concat)
-        twoSecInOneOut121BJuncTmp feed
+        TwoSecInOneOut121BJuncTmp feed
         concat)
-       twoSecInOneOut211BJuncTmp feed
+       TwoSecInOneOut211BJuncTmp feed
        concat)
-      oneSecInTwoOut122BJuncTmp feed
+      OneSecInTwoOut122BJuncTmp feed
       concat)
-     oneSecInTwoOut212BJuncTmp feed
+     OneSecInTwoOut212BJuncTmp feed
      concat)
-    oneSecInTwoOut221BJuncTmp feed
+    OneSecInTwoOut221BJuncTmp feed
     concat)
-   zeroSecInThreeOut222BJuncTmp feed
+   ZeroSecInThreeOut222BJuncTmp feed
    concat
    consume;
 

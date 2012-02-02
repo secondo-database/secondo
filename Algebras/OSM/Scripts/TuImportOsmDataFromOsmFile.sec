@@ -1,153 +1,153 @@
 ################################################################################
-### Importing OSM data from osm-files (2 / 7)
+### Importing OSM data From osm-files (2 / 7)
 ################################################################################
 ### Description:
-### - Reads data on streets and points of interest from osm-files.
-### Please, see tu_osm_import.sh for further details.
+### - Reads data on Streets and points of interest From osm-files.
+### Please, see tu_Osm_import.sh for further details.
 ###
 ### Preconditions:
 ### - existing open database
 ### - enabled libxml2 support
 ###
 ### Postconditions:
-### - streetsTmp-relation
-### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
-###                 type: string, oneway: int, bridge: int, maxspeed: int,
+### - StreetsTmp-reLation
+### StreetsTmp: rel{GeoData: sline, Osm_id: int, name: string, ref: string,
+###                 type: string, oNeway: int, bridge: int, maxspeed: int,
 ###                 tunnel: bool, layer: int}
-### - pointsTmp-relation
-### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
+### - pointsTmp-reLation
+### pointsTmp: rel{Osm_id: int, timestamp: int, name: string, GeoData: point,
 ###                type: string}
-### - restrictionsTmp-relation
-### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
+### - restrictionsTmp-reLation
+### restrictionsTmp: rel{Osm_id: int, From: int, via: int, To: int,
 ###                      restriction: text}
 ###
 ### Author:
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
-# Importing the raw data from an osm-file
-# on POIs and converting the (longitude,latitude)-coordinates into points
+# Importing the raw data From an osm-file
+# on POIs and converting the (Longitude,Latitude)-coordinates inTo points
 #
-# Convention is that the osm-file within the directory SRC_DIR_PATH must be 
+# Convention is that the osm-file within the direcTory SRC_DIR_PATH must be
 # named "city.osm"
 #
-let osmNodesRel =
-   osmimport(SRC_DIR_PATH + 'city.osm','node')
-   extend [geoData: makepoint(.lon,.lat)]
-   remove [lon,lat]
-   filter[bbox(.geoData) intersects partRect]
+let OsmNodesRel =
+   osmimport(SRC_DIR_PATH,'node')
+   extend [GeoData: makepoint(.Lon,.Lat)]
+   remove [Lon,Lat]
+  #filter[bbox(.GeoData) intersects PartRect]
    consume;
-# on streets
-let osmWaysTmp =
-   osmimport(SRC_DIR_PATH + 'city.osm','way')
-   filter [isdefined(.type)]
+# on Streets
+let OsmWaysTmp =
+   osmimport(SRC_DIR_PATH,'way')
+   filter [isdefined(.Type)]
    consume;
 # on restrictions
-let osmRestrictionsRel =
-   osmimport(SRC_DIR_PATH + 'city.osm','restriction')
-   filter[.osmType = "restriction"]
-   remove [osmType]
+let OsmRestrictionsRel =
+   osmimport(SRC_DIR_PATH,'restriction')
+   filter[.OsmType = "restriction"]
+   remove [OsmType]
    consume;
 
-# Extending the references to osm nodes
-let osmWayNodeRefsTmp =
-   osmWaysTmp feed
-   sortby [osm_id] 
-   projectextendstream [osm_id; abc: tokenize(.nodeRefs,",")]
-   addcounter[orderId, 1]
-   extend [nodeRef: toObject(.abc,0)]
-   remove [abc]
+# Extending the references To osm nodes
+let OsmWayNodeRefsTmp =
+   OsmWaysTmp feed
+   sortby [Osm_id]
+   projectextendstream [Osm_id; Abc: Tokenize(.NodeRefs,",")]
+   addcounter[OrderId, 1]
+   extend [NodeRef: ToObject(.Abc,0)]
+   remove [Abc]
    consume;
 
-# Replacing the references to osm nodes by the actual points (Undefined points
-# have to be treated specially. They exist when points exceed the boundaries of
+# Replacing the references To osm nodes by the actual points (Undefined points
+# have To be treated specially. They exist when points exceed the boundaries of
 # the bounding box.)
-#let osmWayPointsTmp =
-#   osmNodesRel feed {p}
-#   project [osm_id_p,geoData_p]
-#   osmWayNodeRefsTmp feed
-#   hashjoin [osm_id_p,nodeRef,99997]
-#   extend [pointGeoData: .geoData_p]
-#   remove [geoData_p]
+#let OsmWayPointsTmp =
+#   OsmNodesRel feed {p}
+#   project [Osm_id_p,GeoData_p]
+#   OsmWayNodeRefsTmp feed
+#   hashjoin [Osm_id_p,NodeRef,99997]
+#   extend [PointGeoData: .GeoData_p]
+#   remove [GeoData_p]
 #   consume;
-let osmWayPointsTmp =
-   osmNodesRel feed
-   project [osm_id,geoData] {p}
-   osmWayNodeRefsTmp feed
-   smouterjoin [osm_id_p,nodeRef]
-   filter [isdefined(.nodeRef)]
-   sortby [osm_id,orderId] 
-   filter [isdefined(.osm_id_p)]
-   addcounter[substreetId, 1]
-   extend [pointGeoData: .geoData_p]
-   remove [geoData_p]
+let OsmWayPointsTmp =
+   OsmNodesRel feed
+   project [Osm_id,GeoData] {p}
+   OsmWayNodeRefsTmp feed
+   smouterjoin [Osm_id_p,NodeRef]
+   filter [isdefined(.NodeRef)]
+   sortby [Osm_id,OrderId]
+   filter [isdefined(.Osm_id_p)]
+   addcounter[SubStreetId, 1]
+   extend [PointGeoData: .GeoData_p]
+   remove [GeoData_p]
    consume;
 # Combining sequences of way points with sequential order ids
-# (no gaps) to substreets 
+# (no gaps) To subStreets
 let osmUncheckedWaysTmp =
-   osmWayPointsTmp feed
-   project [osm_id,substreetId,orderId]
-   sortby [osm_id,substreetId,orderId]
-   osmWayPointsTmp feed
-   project [osm_id,substreetId,orderId]
-   sortby [osm_id,substreetId,orderId] {t}
-   hashjoin [osm_id,osm_id_t,99997]
-   filter [(.orderId_t >= .orderId) and
-      (.substreetId_t = (.substreetId + (.orderId_t - .orderId)))]
-   sortby [osm_id,substreetId]
-   groupby [osm_id,substreetId; 
-      toSubstreetId: group feed max [substreetId_t]]
-   sortby [osm_id,toSubstreetId]
-   groupby [osm_id,toSubstreetId; 
-      fromSubstreetId: group feed min [substreetId]]
-   project [osm_id,fromSubstreetId,toSubstreetId]
-   sortby [osm_id,fromSubstreetId,toSubstreetId]
-   addcounter [newSubstreetId,1]
-   osmWayPointsTmp feed
-   extend [osm_ref: .osm_id]
-   remove [osm_id]
-   sortby [osm_ref,substreetId,orderId]
-   hashjoin [osm_id,osm_ref,99997]
-   remove [osm_ref]
-# Combining the points to lines
-   sortby [osm_id,newSubstreetId,orderId] 
-   groupby [osm_id,newSubstreetId; 
+   OsmWayPointsTmp feed
+   project [Osm_id,SubStreetId,OrderId]
+   sortby [Osm_id,SubStreetId,OrderId]
+   OsmWayPointsTmp feed
+   project [Osm_id,SubStreetId,OrderId]
+   sortby [Osm_id,SubStreetId,OrderId] {t}
+   hashjoin [Osm_id,Osm_id_t,99997]
+   filter [(.OrderId_t >= .OrderId) and
+      (.SubStreetId_t = (.SubStreetId + (.OrderId_t - .OrderId)))]
+   sortby [Osm_id,SubStreetId]
+   groupby [Osm_id,SubStreetId;
+      ToSubStreetId: group feed max [SubStreetId_t]]
+   sortby [Osm_id,ToSubStreetId]
+   groupby [Osm_id,ToSubStreetId;
+      FromSubStreetId: group feed min [SubStreetId]]
+   project [Osm_id,FromSubStreetId,ToSubStreetId]
+   sortby [Osm_id,FromSubStreetId,ToSubStreetId]
+   addcounter [NewSubStreetId,1]
+   OsmWayPointsTmp feed
+   extend [Osm_ref: .Osm_id]
+   remove [Osm_id]
+   sortby [Osm_ref,SubStreetId,OrderId]
+   hashjoin [Osm_id,Osm_ref,99997]
+   remove [Osm_ref]
+# Combining the points To lines
+   sortby [Osm_id,NewSubStreetId,OrderId]
+   groupby [Osm_id,NewSubStreetId;
       numPoints: group count,  
-      geoData: group feed
-         projecttransformstream [pointGeoData]
+      GeoData: group feed
+         projecttransformstream [PointGeoData]
          collect_sline[TRUE]] 
    consume;
 
-let osmWaysRel = 
-   osmWaysTmp feed
+let OsmWaysRel =
+   OsmWaysTmp feed
    osmUncheckedWaysTmp feed
-   extend [helpId: .osm_id]
-   remove [osm_id]
-   hashjoin [osm_id,helpId,99997]
-   remove [nodeRefs,helpId]
+   extend [HelpId: .Osm_id]
+   remove [Osm_id]
+   hashjoin [Osm_id,HelpId,99997]
+   remove [NodeRefs,HelpId]
    consume;
 
-# Checking if streets with broken lines exist (missing or wrong references)
+# Checking if Streets with broken lines exist (missing or wrong references)
 query
-   osmWaysRel feed 
-   filter [not(isdefined(.geoData))]
+   OsmWaysRel feed
+   filter [not(isdefined(.GeoData))]
    consume;
 
-# Storing the street data
-let streetsTmp =
-   osmWaysRel feed 
-   filter[bbox(.geoData) intersects partRect]
+# SToring the Street data
+let StreetsTmp =
+   OsmWaysRel feed
+   filter[bbox(.GeoData) intersects PartRect]
    consume;
 
-# Storing the POI data
-let pointsTmp =
-   osmNodesRel feed
-   extend [timestamp: "DUMMY"]
+# SToring the POI data
+let PointsTmp =
+   OsmNodesRel feed
+   extend [Timestamp: "DUMMY"]
    consume;
 
-# Storing the restriction data
-let restrictionsTmp =
-   osmRestrictionsRel feed
-#   filter[bbox(.geoData) intersects partRect]
+# SToring the restriction data
+let RestrictionsTmp =
+   OsmRestrictionsRel feed
+#   filter[bbox(.GeoData) intersects PartRect]
    consume;
 

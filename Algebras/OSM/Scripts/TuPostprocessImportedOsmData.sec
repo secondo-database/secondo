@@ -1,60 +1,60 @@
 ################################################################################
 ### Postprocessing imported OSM data (4 / 11)
 ################################################################################
-### This script postprocesses OSM data imported from various files. Some values
+### This script postprocesses OSM data imported From various files. Some values
 ### are modified, indexes are introduced and new relations collecting data on
-### equally named streets are created.
-### Please, see tu_osm_import.sh for further details.
+### equally Named Streets are created.
+### Please, see tu_Osm_import.sh for further details.
 ###
 ### Preconditions:
 ### - activated necessary algebras
-### - existing open database with successfully imported osm data
-### - streetsTmp-relation
-### streetsTmp: rel{geoData: sline, osm_id: int, name: string, ref: string,
-###                 type: string, oneway: int, bridge: int, maxspeed: int,
-###                 tunnel: bool, layer: int}
-### - pointsTmp-relation
-### pointsTmp: rel{osm_id: int, timestamp: int, name: string, geoData: point,
-###                type: string}
+### - existing open database with successfully imported Osm data
+### - StreetsTmp-relation
+### StreetsTmp: rel{GeoData: sline, Osm_id: int, Name: string, Ref: string,
+###                 Type: string, oneway: int, Bridge: int, Maxspeed: int,
+###                 Tunnel: bool, Layer: int}
+### - PointsTmp-relation
+### PointsTmp: rel{Osm_id: int, Timestamp: int, Name: string, GeoData: point,
+###                Type: string}
 ### - restrictionsTmp-relation
-### restrictionsTmp: rel{osm_id: int, from: int, via: int, to: int,
+### restrictionsTmp: rel{Osm_id: int, From: int, Via: int, To: int,
 ###                      restriction: text}
 ###
 ### Postconditions:
-### - streetsRel-relation
-### streetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                 roadClassRef: int, oneWay: int, bridge: int, maxSpeed: int,
-###                 tunnel: bool, layer: int}
-### - pointsRel-relation
-### pointsRel: rel{pointId: int, timestamp: int, name: string, geoData: point,
-###                pointType: string}
-### - groupedStreetsRel-relation
-### groupedStreetsRel: rel{name: string, numParts: int, geo: line,
-###                        groupedStreetsId: int}
+### - StreetsRel-relation
+### StreetsRel: rel{GeoData: sline, StreetId: int, Name: string, Ref: string,
+###                 RoadClassRef: int, OneWay: int, Bridge: int, MaxSpeed: int,
+###                 Tunnel: bool, Layer: int}
+### - PointsRel-relation
+### PointsRel: rel{PointId: int, Timestamp: int, Name: string, GeoData: point,
+###                PointType: string}
+### - GroupedStreetsRel-relation
+### GroupedStreetsRel: rel{Name: string, numParts: int, Geo: line,
+###                        GroupedStreetsId: int}
 ### - extStreetsRel-relation
-### extStreetsRel: rel{geoData: sline, streetId: int, name: string, ref: string,
-###                    roadClassRef: int, oneWay: int, bridge: int,
-###                    maxSpeed: int, tunnel: bool, layer: int, groupId: int}
-### - roadClassesRel-relation
-### roadClassesRel: rel{RoadClassId: int, RoadClass: string,
+### extStreetsRel: rel{GeoData: sline, StreetId: int, Name: string, Ref: string,
+###                    RoadClassRef: int, OneWay: int, Bridge: int,
+###                    MaxSpeed: int, Tunnel: bool, Layer: int, groupId: int}
+### - RoadClassesRel-relation
+### RoadClassesRel: rel{RoadClassId: int, RoadClass: string,
 ###                     Description: string}
 ### - restrictionsRel-relation
-### restrictionsRel: rel{fromStreet: int, toStreet: int, viaPoint: point,
+### restrictionsRel: rel{FromStreet: int, ToStreet: int, ViaPoint: point,
 ###                      restriction: text}
 ###
 ### Author:
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
-# Creating a relation that maps road classes to numbers
-let roadClassesRel =
+# Creating a relation that maps Road classes To numbers
+let RoadClassesRel =
    [const rel(tuple([RoadClassId: int, RoadClass: string, 
       Description: string])) value (
    (0 "other" "alle sonstigen Strassenarten (insb. Fusswege)")
    (1 "motorway" "Autobahn")
    (2 "motorway_link" "Autobahnauf-/abfahrt")
-   (3 "trunk" "autobahnaehnliche Strasse")
-   (4 "trunk_link" "Auf-/Abfahrt einer autobahnaehnlichen Strasse")
+   (3 "trunk" "auTobahnaehnliche Strasse")
+   (4 "trunk_link" "Auf-/Abfahrt einer auTobahnaehnlichen Strasse")
    (5 "primary" "Bundesstrasse")
    (6 "primary_link" "Bundesstrassenauf-/abfahrt")
    (7 "secondary" "Landstrasse")
@@ -63,170 +63,170 @@ let roadClassesRel =
    (10 "tertiary_link" "Kreisstrassenabfahrt")
    (11 "residential" "Wohngebietsstrasse")
    (12 "unclassified" "verbindende Gemeindestrasse")
-   (13 "road" "unzugeordnete Strasse")
-   (14 "living_street" "Strasse in verkehrsberuhigtem Bereich")
+   (13 "Road" "unzugeordnete Strasse")
+   (14 "living_Street" "Strasse in verkehrsberuhigtem Bereich")
    (15 "service" "Erschliessungsweg")
    (16 "track" "Feld-/Waldweg")
    )];
 
-# Renaming the attribute 'type' which is a secondo keyword. Also
-# trimming the street names as well as the abbreviations and altering 
-# undefined names (since motorway names are often undefined generic names are 
+# Renaming the attribute 'Type' which is a secondo keyword. Also
+# trimming the Street Names as well as the abbreViations and altering
+# undefined Names (since motorway Names are often undefined generic Names are
 # introduced for them)
-let streetsModified =
-   streetsTmp feed
-   renameattr [roadClass: "type",osmId: "osm_id",
-               oneWay: "oneway",maxSpeed: "maxspeed",
-               originalName: "name", originalRef: "ref"]
-   extend [name: ifthenelse(isdefined(.originalName),
-                    tostring(trim(totext(.originalName))),
+let StreetsModified =
+   StreetsTmp feed
+   reNameattr [RoadClass: "Type",OsmId: "Osm_id",
+               OneWay: "oneway",MaxSpeed: "Maxspeed",
+               originalName: "Name", originalRef: "Ref"]
+   extend [Name: ifthenelse(isdefined(.originalName),
+                    Tostring(trim(Totext(.originalName))),
                     ifthenelse((isdefined(.originalRef)) and
-                       (.roadClass = 'motorway'),
+                       (.RoadClass = 'motorway'),
                        "Autobahn " + .originalRef,
                        "UNKNOWN")),
-           ref: ifthenelse(isdefined(.originalRef),
-              tostring(trim(totext(.originalRef))),
+           Ref: ifthenelse(isdefined(.originalRef),
+              Tostring(trim(Totext(.originalRef))),
               "UNKNOWN"),
-           roadClassTrimmed: trim(.roadClass)]
-   remove [originalName,originalRef,roadClass]
-   extend [roadClass: .roadClassTrimmed]
-   remove [roadClassTrimmed]
-   sortby [name]
-   addcounter[streetId,1]
+           RoadClassTrimmed: trim(.RoadClass)]
+   remove [originalName,originalRef,RoadClass]
+   extend [RoadClass: .RoadClassTrimmed]
+   remove [RoadClassTrimmed]
+   sortby [Name]
+   addcounter[StreetId,1]
    consume;
 
 # Removing the help relation
-delete streetsTmp;
+delete StreetsTmp;
 
-# Changing the representation of the road class from string to a 
-# corresponding number and removing all unwanted roads
-let streetsRel =
-   streetsModified feed
-   roadClassesRel feed
-   smouterjoin [roadClass,RoadClass]
-   filter [isdefined(.streetId)]
-   extend [roadClassRef: ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
-   remove [roadClass,RoadClassId,RoadClass,Description]
-   filter [.roadClassRef > 0]
+# Changing the representation of the Road class From string To a
+# corresponding number and removing all unwanted Roads
+let StreetsRel =
+   StreetsModified feed
+   RoadClassesRel feed
+   smouterjoin [RoadClass,RoadClass]
+   filter [isdefined(.StreetId)]
+   extend [RoadClassRef: ifthenelse(isdefined(.RoadClassId),.RoadClassId,0)]
+   remove [RoadClass,RoadClassId,RoadClass,Description]
+   filter [.RoadClassRef > 0]
    consume;
 
 # Removing the help relation
-delete streetsModified;
+delete StreetsModified;
 
 # Adding indexes for faster access
-derive streetsRel_streetId_btree =
-   streetsRel createbtree[streetId];
-derive streetsRel_geoData_rtree =
-   streetsRel creatertree[geoData];
-derive streetsRel_name_btree =
-   streetsRel createbtree[name];
+derive StreetsRel_StreetId_btree =
+   StreetsRel createbtree[StreetId];
+derive StreetsRel_GeoData_rtree =
+   StreetsRel creatertree[GeoData];
+derive StreetsRel_Name_btree =
+   StreetsRel createbtree[Name];
 
-# Again renaming the attribute 'type' which is a secondo keyword and
-# removing superfluous blanks from pointtype
-let pointsRel =
-   pointsTmp feed
-   renameattr [pointType: "type",osmId: "osm_id"]
-   projectextend [osmId,timestamp,name,geoData; 
-      pointType: tostring(replace(.pointType, " ", ""))]
-   filter [isdefined(.pointType)]
-   addcounter[pointId,1]
+# Again renaming the attribute 'Type' which is a secondo keyword and
+# removing superfluous blanks From PointType
+let PointsRel =
+   PointsTmp feed
+   reNameattr [PointType: "Type",OsmId: "Osm_id"]
+   projectextend [OsmId,Timestamp,Name,GeoData;
+      PointType: Tostring(replace(.PointType, " ", ""))]
+   filter [isdefined(.PointType)]
+   addcounter[PointId,1]
    consume;
 
 # Adding indexes for faster access
-derive pointsRel_pointId_btree =
-   pointsRel createbtree[pointId];
-derive pointsRel_geoData_rtree =
-   pointsRel creatertree[geoData];
+derive PointsRel_PointId_btree =
+   PointsRel createbtree[PointId];
+derive PointsRel_GeoData_rtree =
+   PointsRel creatertree[GeoData];
 
-# Grouping streets by name
-# groupedStreetsTmp: rel{name: string, numParts: int, geo: line}
-let groupedStreetsTmp =
-   streetsRel feed
-   project [streetId,name,geoData]
-   filter [isdefined(.name)]
-   extend [lineData: toline(.geoData)]
-   sortby [name]
-   groupby [name; 
+# Grouping Streets by Name
+# GroupedStreetsTmp: rel{Name: string, numParts: int, Geo: line}
+let GroupedStreetsTmp =
+   StreetsRel feed
+   project [StreetId,Name,GeoData]
+   filter [isdefined(.Name)]
+   extend [LineData: toline(.GeoData)]
+   sortby [Name]
+   groupby [Name;
             numParts: group count,
-            geo: group feed
-               aggregateB [lineData; 
-                  fun(l1:line,l2:line)
-                     l1 union l2; 
+            Geo: group feed
+               aggregateB [LineData;
+                  fun(L1:line,L2:line)
+                     L1 union L2;
                   [const line value ()]]]
    consume;
 
-# Adding an ID to the grouped streets
-let groupedStreetsRel =
-   groupedStreetsTmp feed
-   sortby [name]
-   addcounter [groupedStreetsId,1]
+# Adding an ID To the Grouped Streets
+let GroupedStreetsRel =
+   GroupedStreetsTmp feed
+   sortby [Name]
+   addcounter [GroupedStreetsId,1]
    consume;
 
 # Adding an index for faster access
-derive groupedStreetsRel_groupedStreetsId_btree =
-   groupedStreetsRel createbtree[groupedStreetsId];
+derive GroupedStreetsRel_GroupedStreetsId_btree =
+   GroupedStreetsRel createbtree[GroupedStreetsId];
 
 # Deleting help relation
-delete groupedStreetsTmp;
+delete GroupedStreetsTmp;
 
-# Extending the streets-relation with a foreign key attribute to the
+# Extending the Streets-relation with a foreign key attribute To the
 # grouping-relation
-let extStreetsRel =
-   (groupedStreetsRel feed {a}
-    streetsRel feed
-    hashjoin [name_a,name,99997]
+let ExtStreetsRel =
+   (GroupedStreetsRel feed {a}
+    StreetsRel feed
+    hashjoin [Name_a,Name,99997]
     projectextend [; 
-       groupedStreetsId : .groupedStreetsId_a,
-       tmpStreetId: .streetId])
-   streetsRel feed
-   hashjoin [tmpStreetId,streetId,99997]
-   extend [groupId: .groupedStreetsId]
-   remove [tmpStreetId, groupedStreetsId]
+       GroupedStreetsId : .GroupedStreetsId_a,
+       TmpStreetId: .StreetId])
+   StreetsRel feed
+   hashjoin [tmpStreetId,StreetId,99997]
+   extend [groupId: .GroupedStreetsId]
+   remove [TmpStreetId, GroupedStreetsId]
    consume;
 
 # Adding indexes for faster access
-derive extStreetsRel_streetId_btree =
-   extStreetsRel createbtree[streetId];
-derive extStreetsRel_groupId_btree =
-   extStreetsRel createbtree[groupId];
-derive extStreetsRel_name_btree =
-   extStreetsRel createbtree[name];
-derive extStreetsRel_geoData_rtree =
-   extStreetsRel creatertree[geoData];
+derive ExtStreetsRel_StreetId_btree =
+   ExtStreetsRel createbtree[StreetId];
+derive ExtStreetsRel_groupId_btree =
+   ExtStreetsRel createbtree[groupId];
+derive ExtStreetsRel_Name_btree =
+   ExtStreetsRel createbtree[Name];
+derive ExtStreetsRel_GeoData_rtree =
+   ExtStreetsRel creatertree[GeoData];
 
-let restrictionsHelp =
-   restrictionsTmp feed
-   renameattr [osmFrom: "from", osmTo: "to", osmVia: "via", osmId: "osm_id"]
+let RestrictionsHelp =
+   RestrictionsTmp feed
+   reNameattr [OsmFrom: "From", OsmTo: "To", OsmVia: "Via", OsmId: "Osm_id"]
    consume;
 
-# Updating the references in the restrictions-relation so that the new
-# artificial IDs are used instead of the original ones from osm
+# Updating the References in the restrictions-relation so that the new
+# artificial IDs are used instead of the original ones From Osm
 # (for the crossing the geo data of the corresponding point is used 
-# instead of an ID as all none POI-related data was removed from
-# the persistent points-relation)
-let restrictionsRel =
-   ((restrictionsHelp feed
-     streetsRel feed
-     project [osmId,streetId] {f}
-     hashjoin [osmFrom,osmId_f,99997]
-     extend [fromStreet: .streetId_f]
-     remove [osmId_f,streetId_f])
-    streetsRel feed
-    project [osmId,streetId] {t}
-    hashjoin [osmTo,osmId_t,99997]
-    extend [toStreet: .streetId_t]
-    remove [osmId_t,streetId_t])
-   pointsTmp feed
-   project [osm_id,geoData] {v}
-   hashjoin [osmVia,osm_id_v,99997]
-   extend [viaPoint: .geoData_v]
-   remove [osm_id_v,geoData_v,osmFrom,osmTo,osmVia]
-   sortby [fromStreet,toStreet]
-   addcounter[restrictionId,1]
+# instead of an ID as all none POI-related data was removed From
+# the persistent Points-relation)
+let RestrictionsRel =
+   ((RestrictionsHelp feed
+     StreetsRel feed
+     project [OsmId,StreetId] {f}
+     hashjoin [OsmFrom,OsmId_f,99997]
+     extend [FromStreet: .StreetId_f]
+     remove [OsmId_f,StreetId_f])
+    StreetsRel feed
+    project [OsmId,StreetId] {t}
+    hashjoin [OsmTo,OsmId_t,99997]
+    extend [ToStreet: .StreetId_t]
+    remove [OsmId_t,StreetId_t])
+   PointsTmp feed
+   project [Osm_id,GeoData] {v}
+   hashjoin [OsmVia,Osm_id_v,99997]
+   extend [ViaPoint: .GeoData_v]
+   remove [Osm_id_v,GeoData_v,OsmFrom,OsmTo,OsmVia]
+   sortby [FromStreet,ToStreet]
+   addcounter[RestrictionId,1]
    consume;
 
 # Removing the help relations
-delete pointsTmp;
-delete restrictionsHelp;
-delete restrictionsTmp;
+delete PointsTmp;
+delete RestrictionsHelp;
+delete RestrictionsTmp;
 

@@ -8,37 +8,37 @@
 ### Preconditions:
 ### - activated necessary algebras
 ### - existing open database with successfully imported osm data
-### - extStreetsRel-relation
-### extStreetsRel: rel{geoData: sline, streetId: int, name: string,
-###                    ref: string, roadClassRef: int, oneWay: int,
-###                    bridge: int, maxSpeed: int, tunnel: bool,
-###                    layer: int, groupId: int}
-### - nodesRel-relation
-### nodesRel: rel{Node: point, NodeId: int}
-### - extSectionsRel-relation
-### extSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
+### - ExtStreetsRel-relation
+### ExtStreetsRel: rel{GeoData: sline, StreetId: int, Name: string,
+###                    Ref: string, RoadClassRef: int, OneWay: int,
+###                    Bridge: int, MaxSpeed: int, tunnel: bool,
+###                    layer: int, GroupId: int}
+### - NodesRel-relation
+### NodesRel: rel{Node: point, NodeId: int}
+### - ExtSectionsRel-relation
+### ExtSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
 ###                     EndNodeId: int, StreetId: int, GroupId: int,
 ###                     SectionDist: real}
 ### - onlyRestrictions
-### onlyRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                       viaNodeRef: int, viaNode: point,
+### onlyRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                       ViaNodeRef: int, ViaNode: point,
 ###                       only: bool, restriction: text}
-### - noUturnRestrictions
-### noUturnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                          viaNodeRef: int, viaNode: point,
-###                          noUturn: bool}
-### - noLeftTurnRestrictions
-### noLeftTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                             viaNodeRef: int, viaNode: point,
-###                             noLeftTurn: bool}
-### - noRightTurnRestrictions
-### noRightTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                              viaNodeRef: int, viaNode: point,
-###                              noRightTurn: bool}
-### - noStraightOnRestrictions
-### noStraightOnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                               viaNodeRef: int, viaNode: point,
-###                               noStraightOn: bool}
+### - NoUturnRestrictions
+### NoUturnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                          ViaNodeRef: int, ViaNode: point,
+###                          NoUturn: bool}
+### - NoLeftTurnRestrictions
+### NoLeftTurnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                             ViaNodeRef: int, ViaNode: point,
+###                             NoLeftTurn: bool}
+### - NoRightTurnRestrictions
+### NoRightTurnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                              ViaNodeRef: int, ViaNode: point,
+###                              NoRightTurn: bool}
+### - NoStraightOnRestrictions
+### NoStraightOnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                               ViaNodeRef: int, ViaNode: point,
+###                               NoStraightOn: bool}
 ###
 ### Postconditions:
 ### - twoSecJuncBtwTwoSts-relation
@@ -56,359 +56,359 @@
 ################################################################################
 
 # Gathering data that will be used for network creation
-let fullSectionsView =
-   ((((extStreetsRel feed {a} 
-       extSectionsRel feed {b} 
-       hashjoin [streetId_a,StreetId_b,99997] 
-       projectextend [;  
-          groupId: .groupId_a, 
-          streetId: .streetId_a, 
-          sectionId: .SectionId_b, 
-          startNodeId: .StartNodeId_b, 
-          endNodeId: .EndNodeId_b, 
-          streetData: .geoData_a, 
-          sectionData: .Section_b, 
-          sectionDist: .SectionDist_b, 
-          name: .name_a, 
-          ref: .ref_a, 
-          oneWay: .oneWay_a, 
-          maxSpeed: .maxSpeed_a, 
-          bridge: .bridge_a, 
-          roadClassRef: .roadClassRef_a,
-          streetStartNode: atposition(.geoData_a,0.0,TRUE),
-          streetEndNode: atposition(.geoData_a,size(.geoData_a),TRUE)]) 
-      nodesRel feed {c} 
-      hashjoin [startNodeId,NodeId_c,99997] 
+let FullSectionsView =
+   ((((ExtStreetsRel feed {a}
+       ExtSectionsRel feed {b}
+       hashjoin [StreetId_a,StreetId_b,99997]
+       projectextend [;
+          GroupId: .GroupId_a,
+          StreetId: .StreetId_a,
+          SectionId: .SectionId_b,
+          StartNodeId: .StartNodeId_b,
+          EndNodeId: .EndNodeId_b,
+          StreetData: .GeoData_a,
+          SectionData: .Section_b,
+          SectionDist: .SectionDist_b,
+          Name: .Name_a,
+          Ref: .Ref_a,
+          OneWay: .OneWay_a,
+          MaxSpeed: .MaxSpeed_a,
+          Bridge: .Bridge_a,
+          RoadClassRef: .RoadClassRef_a,
+          StreetStartNode: atposition(.GeoData_a,0.0,TRUE),
+          StreetEndNode: atposition(.GeoData_a,size(.GeoData_a),TRUE)])
+      NodesRel feed {c}
+      hashjoin [StartNodeId,NodeId_c,99997]
       remove [NodeId_c]) 
-     nodesRel feed {d} 
-     hashjoin [endNodeId,NodeId_d,99997] 
+     NodesRel feed {d}
+     hashjoin [EndNodeId,NodeId_d,99997]
      remove [NodeId_d])
-    nodesRel feed {e} 
-    hashjoin [streetStartNode,Node_e,99997] 
+    NodesRel feed {e}
+    hashjoin [StreetStartNode,Node_e,99997]
     remove [Node_e])
-   nodesRel feed {f} 
-   hashjoin [streetEndNode,Node_f,99997] 
+   NodesRel feed {f}
+   hashjoin [StreetEndNode,Node_f,99997]
    remove [Node_f]
-   renameattr [startNode: "Node_c",endNode: "Node_d",
-      streetStartNodeId: "NodeId_e",streetEndNodeId: "NodeId_f"] 
+   reNameattr [StartNode: "Node_c",EndNode: "Node_d",
+      StreetStartNodeId: "NodeId_e",StreetEndNodeId: "NodeId_f"]
    consume;
 
 # Building indexes to speed up queries
-derive fullSectionsView_groupId_btree =
-   fullSectionsView createbtree[groupId];
-derive fullSectionsView_streetId_btree =
-   fullSectionsView createbtree[streetId];
-derive fullSectionsView_sectionId_btree =
-   fullSectionsView createbtree[sectionId];
-derive fullSectionsView_startNodeId_btree =
-   fullSectionsView createbtree[startNodeId];
-derive fullSectionsView_endNodeId_btree =
-   fullSectionsView createbtree[endNodeId];
-derive fullSectionsView_streetData_rtree =
-   fullSectionsView creatertree[streetData];
-derive fullSectionsView_sectionData_rtree =
-   fullSectionsView creatertree[sectionData];
-derive fullSectionsView_startNode_rtree =
-   fullSectionsView creatertree[startNode];
-derive fullSectionsView_endNode_rtree =
-   fullSectionsView creatertree[endNode];
+derive FullSectionsView_GroupId_btree =
+   FullSectionsView createbtree[GroupId];
+derive FullSectionsView_StreetId_btree =
+   FullSectionsView createbtree[StreetId];
+derive FullSectionsView_SectionId_btree =
+   FullSectionsView createbtree[SectionId];
+derive FullSectionsView_StartNodeId_btree =
+   FullSectionsView createbtree[StartNodeId];
+derive FullSectionsView_EndNodeId_btree =
+   FullSectionsView createbtree[EndNodeId];
+derive FullSectionsView_StreetData_rtree =
+   FullSectionsView creatertree[StreetData];
+derive FullSectionsView_SectionData_rtree =
+   FullSectionsView creatertree[SectionData];
+derive FullSectionsView_StartNode_rtree =
+   FullSectionsView creatertree[StartNode];
+derive FullSectionsView_EndNode_rtree =
+   FullSectionsView creatertree[EndNode];
 
-# Determining all possible pairs of crossing streets
-let startSections =
-   nodesRel feed
-   fullSectionsView feed
-   sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,
-      oneWay,streetStartNodeId,streetEndNodeId]
-   hashjoin [NodeId,startNodeId,99997]
+# Determining all possible pairs of crossing Streets
+let StartSections =
+   NodesRel feed
+   FullSectionsView feed
+   sortby [SectionId]
+   project [StreetId,SectionId,StartNodeId,EndNodeId,StreetData,SectionData,
+      OneWay,StreetStartNodeId,StreetEndNodeId]
+   hashjoin [NodeId,StartNodeId,99997]
    consume;
-let endSections =
-   nodesRel feed
-   fullSectionsView feed
-   sortby [sectionId]
-   project [streetId,sectionId,startNodeId,endNodeId,streetData,sectionData,
-      oneWay,streetStartNodeId,streetEndNodeId]
-   hashjoin [NodeId,endNodeId,99997]
+let EndSections =
+   NodesRel feed
+   FullSectionsView feed
+   sortby [SectionId]
+   project [StreetId,SectionId,StartNodeId,EndNodeId,StreetData,SectionData,
+      OneWay,StreetStartNodeId,StreetEndNodeId]
+   hashjoin [NodeId,EndNodeId,99997]
    consume;
-let startFromScratchSections =
-   startSections feed
-   filter [(.streetStartNodeId = .startNodeId) and
-      not(.streetStartNodeId = .streetEndNodeId)]
+let StartFromScratchSections =
+   StartSections feed
+   filter [(.StreetStartNodeId = .StartNodeId) and
+      not(.StreetStartNodeId = .StreetEndNodeId)]
    consume;
-let endFromScratchSections =
-   endSections feed
-   filter [(.streetEndNodeId = .endNodeId) and
-      not(.streetStartNodeId = .streetEndNodeId)]
+let EndFromScratchSections =
+   EndSections feed
+   filter [(.StreetEndNodeId = .EndNodeId) and
+      not(.StreetStartNodeId = .StreetEndNodeId)]
    consume;
-let two =
-   (startFromScratchSections feed
-    endFromScratchSections feed
+let Two =
+   (StartFromScratchSections feed
+    EndFromScratchSections feed
     concat
-    sortby [sectionId]) {a}
-   (startFromScratchSections feed
-    endFromScratchSections feed
+    sortby [SectionId]) {a}
+   (StartFromScratchSections feed
+    EndFromScratchSections feed
     concat
-    sortby [sectionId]) {b}
+    sortby [SectionId]) {b}
    hashjoin [NodeId_a,NodeId_b]
-   filter [.sectionId_a < .sectionId_b]
-   filter [not(.streetId_a = .streetId_b)]
-   projectextend [; 
+   filter [.SectionId_a < .SectionId_b]
+   filter [not(.StreetId_a = .StreetId_b)]
+   projectextend [;
       Node: .Node_a,
-      Road1: .streetId_a,
-      Pos1: atpoint(.streetData_a,.Node_a),
-      Road2: .streetId_b,
-      Pos2: atpoint(.streetData_b,.Node_a),
+      Road1: .StreetId_a,
+      Pos1: atpoint(.StreetData_a,.Node_a),
+      Road2: .StreetId_b,
+      Pos2: atpoint(.StreetData_b,.Node_a),
       JunctionType: getconnectivitycode(
-         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
-         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
+         ifthenelse(.NodeId_a = .EndNodeId_a, 1, 2),
+         ifthenelse(.NodeId_b = .EndNodeId_b, 1, 2),
          0,
          0,
-         .oneWay_a = 1,.oneWay_b = 1,FALSE,FALSE)]
+         .OneWay_a = 1,.OneWay_b = 1,FALSE,FALSE)]
    consume;
-let three =
-   ((startSections feed
-    endSections feed
+let Three =
+   ((StartSections feed
+    EndSections feed
     concat
-    sortby [sectionId]) {a}   
-   (startSections feed
-    endSections feed
+    sortby [SectionId]) {a}
+   (StartSections feed
+    EndSections feed
     concat
-    sortby [sectionId]) {b}
+    sortby [SectionId]) {b}
     hashjoin [NodeId_a,NodeId_b]
-    filter [.sectionId_a < .sectionId_b])
-   (startSections feed
-    endSections feed
+    filter [.SectionId_a < .SectionId_b])
+   (StartSections feed
+    EndSections feed
     concat
-    sortby [sectionId]) {c}
+    sortby [SectionId]) {c}
     hashjoin [NodeId_a,NodeId_c]
    extend [
-      Road1: .streetId_a,
-      Road2: .streetId_b,
-      Road3: .streetId_c,
+      Road1: .StreetId_a,
+      Road2: .StreetId_b,
+      Road3: .StreetId_c,
       NodeId: .NodeId_a,
       Node: .Node_a]
    filter [
-      ((((.NodeId = .startNodeId_b) and
-         ((.streetStartNodeId_b = .startNodeId_b) and
-          not(.streetStartNodeId_b = .streetEndNodeId_b)))
-        or ((.NodeId = .endNodeId_b) and
-         ((.streetEndNodeId_b = .endNodeId_b) and
-          not(.streetStartNodeId_b = .streetEndNodeId_b))))
-       and (.sectionId_a < .sectionId_c) and
+      ((((.NodeId = .StartNodeId_b) and
+         ((.StreetStartNodeId_b = .StartNodeId_b) and
+          not(.StreetStartNodeId_b = .StreetEndNodeId_b)))
+        or ((.NodeId = .EndNodeId_b) and
+         ((.StreetEndNodeId_b = .EndNodeId_b) and
+          not(.StreetStartNodeId_b = .StreetEndNodeId_b))))
+       and (.SectionId_a < .SectionId_c) and
        (.Road1 = .Road3) and not(.Road1 = .Road2))
       or
-      ((((.NodeId = .startNodeId_a) and
-         ((.streetStartNodeId_a = .startNodeId_a) and
-         not(.streetStartNodeId_a = .streetEndNodeId_a)))
-        or ((.NodeId = .endNodeId_a) and
-         ((.streetEndNodeId_a = .endNodeId_a) and
-         not(.streetStartNodeId_a = .streetEndNodeId_a))))
-       and (.sectionId_c < .sectionId_b) and
+      ((((.NodeId = .StartNodeId_a) and
+         ((.StreetStartNodeId_a = .StartNodeId_a) and
+         not(.StreetStartNodeId_a = .StreetEndNodeId_a)))
+        or ((.NodeId = .EndNodeId_a) and
+         ((.StreetEndNodeId_a = .EndNodeId_a) and
+         not(.StreetStartNodeId_a = .StreetEndNodeId_a))))
+       and (.SectionId_c < .SectionId_b) and
        (.Road2 = .Road3) and not(.Road1 = .Road2))]
-   projectextend [Node; 
+   projectextend [Node;
       Road1: .Road1,
-      Pos1: atpoint(.streetData_a,.Node),
+      Pos1: atpoint(.StreetData_a,.Node),
       Road2: .Road2,
-      Pos2: atpoint(.streetData_b,.Node),
+      Pos2: atpoint(.StreetData_b,.Node),
       JunctionType: getconnectivitycode(
-         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
-         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
+         ifthenelse(.NodeId_a = .EndNodeId_a, 1, 2),
+         ifthenelse(.NodeId_b = .EndNodeId_b, 1, 2),
          ifthenelse(.Road1 = .Road3,
-            ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),0),
+            ifthenelse(.NodeId_c = .EndNodeId_c, 1, 2),0),
          ifthenelse(.Road2 = .Road3,
-            ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),0),
-         .oneWay_a = 1,.oneWay_b = 1,
-         ifthenelse(.Road1 = .Road3, .oneWay_c = 1, FALSE),
-         ifthenelse(.Road2 = .Road3, .oneWay_c = 1, FALSE))]
+            ifthenelse(.NodeId_c = .EndNodeId_c, 1, 2),0),
+         .OneWay_a = 1,.OneWay_b = 1,
+         ifthenelse(.Road1 = .Road3, .OneWay_c = 1, FALSE),
+         ifthenelse(.Road2 = .Road3, .OneWay_c = 1, FALSE))]
    consume;
-let four =
-   (((startSections feed
-     endSections feed
+let Four =
+   (((StartSections feed
+     EndSections feed
      concat
-     sortby [sectionId]) {a}   
-    (startSections feed
-     endSections feed
+     sortby [SectionId]) {a}
+    (StartSections feed
+     EndSections feed
      concat
-     sortby [sectionId]) {b}
+     sortby [SectionId]) {b}
      hashjoin [NodeId_a,NodeId_b]
-     filter [.sectionId_a < .sectionId_b])
-    (startSections feed
-     endSections feed
+     filter [.SectionId_a < .SectionId_b])
+    (StartSections feed
+     EndSections feed
      concat
-     sortby [sectionId]) {c}
+     sortby [SectionId]) {c}
      hashjoin [NodeId_a,NodeId_c]
-     filter [.sectionId_a < .sectionId_c])
-   (startSections feed
-   endSections feed
+     filter [.SectionId_a < .SectionId_c])
+   (StartSections feed
+   EndSections feed
    concat
-   sortby [sectionId]) {d}
+   sortby [SectionId]) {d}
    hashjoin [NodeId_a,NodeId_d]
-   filter [.sectionId_b < .sectionId_d]
+   filter [.SectionId_b < .SectionId_d]
    extend [
-      Road1: .streetId_a,
-      Road2: .streetId_b,
-      Road3: .streetId_c,
-      Road4: .streetId_d,
+      Road1: .StreetId_a,
+      Road2: .StreetId_b,
+      Road3: .StreetId_c,
+      Road4: .StreetId_d,
       NodeId: .NodeId_a,
       Node: .Node_a]
    filter [(.Road1 = .Road3) and (.Road2 = .Road4) and not(.Road1 = .Road2)]
-   projectextend [Node; 
+   projectextend [Node;
       Road1: .Road1,
-      Pos1: atpoint(.streetData_a,.Node),
+      Pos1: atpoint(.StreetData_a,.Node),
       Road2: .Road2,
-      Pos2: atpoint(.streetData_b,.Node),
+      Pos2: atpoint(.StreetData_b,.Node),
       JunctionType: getconnectivitycode(
-         ifthenelse(.NodeId_a = .endNodeId_a, 1, 2),
-         ifthenelse(.NodeId_b = .endNodeId_b, 1, 2),
-         ifthenelse(.NodeId_c = .endNodeId_c, 1, 2),
-         ifthenelse(.NodeId_d = .endNodeId_d, 1, 2),
-         .oneWay_a = 1,.oneWay_b = 1,.oneWay_c = 1,.oneWay_d = 1)]
+         ifthenelse(.NodeId_a = .EndNodeId_a, 1, 2),
+         ifthenelse(.NodeId_b = .EndNodeId_b, 1, 2),
+         ifthenelse(.NodeId_c = .EndNodeId_c, 1, 2),
+         ifthenelse(.NodeId_d = .EndNodeId_d, 1, 2),
+         .OneWay_a = 1,.OneWay_b = 1,.OneWay_c = 1,.OneWay_d = 1)]
    consume;
-let targetRel =
-   (two feed
+let TargetRel =
+   (Two feed
     project [Road1,Road2,Node]
-    three feed 
+    Three feed
     project [Road1,Road2,Node]
     concat)
-   four feed
+   Four feed
    project [Road1,Road2,Node]
    concat
    consume;
 
 # Using left outer join to add the different restrictions to crossings
-# that share the same junction and the same incoming street
-let road1ToRoad2 = 
-   ((((targetRel feed
-       onlyRestrictions feed
-       symmouterjoin [(.Node = ..viaNode) and
-          (.Road1 = ..fromStreetRef)]
+# that share the same junction and the same incoming Street
+let Road1ToRoad2 =
+   ((((TargetRel feed
+       OnlyRestrictions feed
+       symmouterjoin [(.Node = ..ViaNode) and
+          (.Road1 = ..FromStreetRef)]
        filter [isdefined(.Node)])
-      noUturnRestrictions feed {u}
-      symmouterjoin [(.Node = ..viaNode_u) and
-         (.Road1 = ..fromStreetRef_u)]
+      NoUturnRestrictions feed {u}
+      symmouterjoin [(.Node = ..ViaNode_u) and
+         (.Road1 = ..FromStreetRef_u)]
       filter [isdefined(.Node)])
-     noLeftTurnRestrictions feed {l}
-     symmouterjoin [(.Node = ..viaNode_l) and
-        (.Road1 = ..fromStreetRef_l)]
+     NoLeftTurnRestrictions feed {l}
+     symmouterjoin [(.Node = ..ViaNode_l) and
+        (.Road1 = ..FromStreetRef_l)]
      filter [isdefined(.Node)])
-    noStraightOnRestrictions feed {s}
-    symmouterjoin [(.Node = ..viaNode_s) and
-       (.Road1 = ..fromStreetRef_s)]
+    NoStraightOnRestrictions feed {s}
+    symmouterjoin [(.Node = ..ViaNode_s) and
+       (.Road1 = ..FromStreetRef_s)]
     filter [isdefined(.Node)])
-   noRightTurnRestrictions feed {r}
-   symmouterjoin [(.Node = ..viaNode_r) and (.Road1 = ..fromStreetRef_r)]
+   NoRightTurnRestrictions feed {r}
+   symmouterjoin [(.Node = ..ViaNode_r) and (.Road1 = ..FromStreetRef_r)]
    filter [isdefined(.Node)]
    extend [
       Road1ToRoad2:
 # matching "only_..."
-      (isdefined(.viaNode) and
-      .only and
-      (.Road1 = .fromStreetRef) and
-      (.Road2 = .toStreetRef)) or
+      (isdefined(.ViaNode) and
+      .Only and
+      (.Road1 = .FromStreetRef) and
+      (.Road2 = .ToStreetRef)) or
 # no contradictory "only_..."
-      (not(isdefined(.viaNode)) and
+      (not(isdefined(.ViaNode)) and
 # as well as no restrictive restrictions
 # no "no_u_turn"
-       not(isdefined(.viaNode_u) and
-       (.Road2 = .toStreetRef_u) and
-       .noUturn_u) and
+       not(isdefined(.ViaNode_u) and
+       (.Road2 = .ToStreetRef_u) and
+       .NoUturn_u) and
 # no "no_left_turn"
-       not(isdefined(.viaNode_l) and
-       (.Road2 = .toStreetRef_l) and
-       .noLeftTurn_l) and
+       not(isdefined(.ViaNode_l) and
+       (.Road2 = .ToStreetRef_l) and
+       .NoLeftTurn_l) and
 # no "no_straight_on"
-       not(isdefined(.viaNode_s) and
-       (.Road2 = .toStreetRef_s) and
-       .noStraightOn_s) and
+       not(isdefined(.ViaNode_s) and
+       (.Road2 = .ToStreetRef_s) and
+       .NoStraightOn_s) and
 # no "no_right_turn"
-       not(isdefined(.viaNode_r) and
-       (.Road2 = .toStreetRef_r) and
-       .noRightTurn_r)),
+       not(isdefined(.ViaNode_r) and
+       (.Road2 = .ToStreetRef_r) and
+       .NoRightTurn_r)),
       Road1ToRoad1:
-# no "no_u_turn" on same street
-         not(isdefined(.viaNode_u) and
-         (.Road1 = .toStreetRef_u) and
-         .noUturn_u)]
-   remove [fromStreetRef,fromStreetRef_u,fromStreetRef_l,fromStreetRef_s,
-           fromStreetRef_r,toStreetRef,toStreetRef_u,toStreetRef_l,
-           toStreetRef_s,toStreetRef_r,viaNodeRef,viaNodeRef_u,
-           viaNodeRef_l,viaNodeRef_s,viaNodeRef_r,viaNode,viaNode_u,
-           viaNode_l,viaNode_s,viaNode_r,restriction,only,noUturn_u,
-           noLeftTurn_l,noStraightOn_s,noRightTurn_r]
+# no "no_u_turn" on same Street
+         not(isdefined(.ViaNode_u) and
+         (.Road1 = .ToStreetRef_u) and
+         .NoUturn_u)]
+   remove [FromStreetRef,FromStreetRef_u,FromStreetRef_l,FromStreetRef_s,
+           FromStreetRef_r,ToStreetRef,ToStreetRef_u,ToStreetRef_l,
+           ToStreetRef_s,ToStreetRef_r,ViaNodeRef,ViaNodeRef_u,
+           ViaNodeRef_l,ViaNodeRef_s,ViaNodeRef_r,ViaNode,ViaNode_u,
+           ViaNode_l,ViaNode_s,ViaNode_r,Restriction,Only,NoUturn_u,
+           NoLeftTurn_l,NoStraightOn_s,NoRightTurn_r]
    consume;
 
-let road2ToRoad1 = 
-   ((((targetRel feed
-       onlyRestrictions feed
-       symmouterjoin [(.Node = ..viaNode) and
-          (.Road2 = ..fromStreetRef)]
+let Road2ToRoad1 =
+   ((((TargetRel feed
+       OnlyRestrictions feed
+       symmouterjoin [(.Node = ..ViaNode) and
+          (.Road2 = ..FromStreetRef)]
        filter [isdefined(.Node)])
-      noUturnRestrictions feed {u}
-      symmouterjoin [(.Node = ..viaNode_u) and
-         (.Road2 = ..fromStreetRef_u)]
+      NoUturnRestrictions feed {u}
+      symmouterjoin [(.Node = ..ViaNode_u) and
+         (.Road2 = ..FromStreetRef_u)]
       filter [isdefined(.Node)])
-     noLeftTurnRestrictions feed {l}
-     symmouterjoin [(.Node = ..viaNode_l) and
-        (.Road2 = ..fromStreetRef_l)]
+     NoLeftTurnRestrictions feed {l}
+     symmouterjoin [(.Node = ..ViaNode_l) and
+        (.Road2 = ..FromStreetRef_l)]
      filter [isdefined(.Node)])
-    noStraightOnRestrictions feed {s}
-    symmouterjoin [(.Node = ..viaNode_s) and
-       (.Road2 = ..fromStreetRef_s)]
+    NoStraightOnRestrictions feed {s}
+    symmouterjoin [(.Node = ..ViaNode_s) and
+       (.Road2 = ..FromStreetRef_s)]
     filter [isdefined(.Node)])
-   noRightTurnRestrictions feed {r}
-   symmouterjoin [(.Node = ..viaNode_r) and (.Road2 = ..fromStreetRef_r)]
+   NoRightTurnRestrictions feed {r}
+   symmouterjoin [(.Node = ..ViaNode_r) and (.Road2 = ..FromStreetRef_r)]
    filter [isdefined(.Node)]
    extend [
       Road2ToRoad1:
 # matching "only_..."
-      (isdefined(.viaNode) and
-      .only and
-      (.Road2 = .fromStreetRef) and
-      (.Road1 = .toStreetRef)) or
+      (isdefined(.ViaNode) and
+      .Only and
+      (.Road2 = .FromStreetRef) and
+      (.Road1 = .ToStreetRef)) or
 # no contradictory "only_..."
-      (not(isdefined(.viaNode)) and
+      (not(isdefined(.ViaNode)) and
 # as well as no restrictive restrictions
 # no "no_u_turn"
-       not(isdefined(.viaNode_u) and
-       (.Road1 = .toStreetRef_u) and
-       .noUturn_u) and
+       not(isdefined(.ViaNode_u) and
+       (.Road1 = .ToStreetRef_u) and
+       .NoUturn_u) and
 # no "no_left_turn"
-       not(isdefined(.viaNode_l) and
-       (.Road1 = .toStreetRef_l) and
-       .noLeftTurn_l) and
+       not(isdefined(.ViaNode_l) and
+       (.Road1 = .ToStreetRef_l) and
+       .NoLeftTurn_l) and
 # no "no_straight_on"
-       not(isdefined(.viaNode_s) and
-       (.Road1 = .toStreetRef_s) and
-       .noStraightOn_s) and
+       not(isdefined(.ViaNode_s) and
+       (.Road1 = .ToStreetRef_s) and
+       .NoStraightOn_s) and
 # no "no_right_turn"
-       not(isdefined(.viaNode_r) and
-       (.Road1 = .toStreetRef_r) and
-       .noRightTurn_r)),
+       not(isdefined(.ViaNode_r) and
+       (.Road1 = .ToStreetRef_r) and
+       .NoRightTurn_r)),
       Road2ToRoad2:
-# no "no_u_turn" on same street
-         not(isdefined(.viaNode_u) and
-         (.Road2 = .toStreetRef_u) and
-         .noUturn_u)]
-   remove [fromStreetRef,fromStreetRef_u,fromStreetRef_l,fromStreetRef_s,
-           fromStreetRef_r,toStreetRef,toStreetRef_u,toStreetRef_l,
-           toStreetRef_s,toStreetRef_r,viaNodeRef,viaNodeRef_u,
-           viaNodeRef_l,viaNodeRef_s,viaNodeRef_r,viaNode,viaNode_u,
-           viaNode_l,viaNode_s,viaNode_r,restriction,only,noUturn_u,
-           noLeftTurn_l,noStraightOn_s,noRightTurn_r]
+# no "no_u_turn" on same Street
+         not(isdefined(.ViaNode_u) and
+         (.Road2 = .ToStreetRef_u) and
+         .NoUturn_u)]
+   remove [FromStreetRef,FromStreetRef_u,FromStreetRef_l,FromStreetRef_s,
+           FromStreetRef_r,ToStreetRef,ToStreetRef_u,ToStreetRef_l,
+           ToStreetRef_s,ToStreetRef_r,ViaNodeRef,ViaNodeRef_u,
+           ViaNodeRef_l,ViaNodeRef_s,ViaNodeRef_r,ViaNode,ViaNode_u,
+           ViaNode_l,ViaNode_s,ViaNode_r,Restriction,Only,NoUturn_u,
+           NoLeftTurn_l,NoStraightOn_s,NoRightTurn_r]
    consume;
 
-#TODO Add road1ToRoad1 and road2ToRoad2
+#TODO Add Road1ToRoad1 and Road2ToRoad2
 
 # Updating the connectivity code according to the restrictions
 # (only_right_turn, only_left_turn, only_straight_on,
 # no_left_turn, no_right_turn, no_straight_on,
 # no_u_turn)
-# since streets have to be separated at restriction nodes according to osm
-# policy, it is sufficient to take a look at junctions between two sections
-# belonging to two streets
-let twoSecJuncBtwTwoSts =
-   two feed consume;
-let threeSecJuncBtwTwoSts =
-   three feed consume;
-let fourSecJuncBtwTwoSts =
-   four feed consume;
+# since Streets have to be separated at restriction Nodes according to osm
+# policy, it is sufficient to take a look at junctions between two Sections
+# belonging to two Streets
+let TwoSecJuncBtwTwoSts =
+   Two feed consume;
+let ThreeSecJuncBtwTwoSts =
+   Three feed consume;
+let FourSecJuncBtwTwoSts =
+   Four feed consume;

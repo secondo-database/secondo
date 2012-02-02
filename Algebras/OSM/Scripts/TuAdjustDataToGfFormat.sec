@@ -27,305 +27,305 @@
 
 # --- Working on streets
 # Concatenating split up attrib-strings
-let streetsWholeAttrib =
-   streetsTmp feed 
-   sortby [ID,part]
-   extend [tags: trim(.attrib)]
-   remove [attrib] 
+let StreetsWholeAttrib =
+   StreetsTmp feed 
+   sortby [ID,Part]
+   extend [Tags: trim(.Attrib)]
+   remove [Attrib] 
    groupby [ID;  
       AllTags: group feed  
-      aggregateB [tags;  
-         fun(a: text,b: text) 
-         (a + b); a 
+      aggregateB [Tags;  
+         fun(A: text,B: text) 
+         (A + B); A 
       ]]
    extend [HelpId: .ID]
    remove [ID]
    streetsTmp feed
-   filter [.part = 0]
-   remove [part, attrib]
+   filter [.Part = 0]
+   remove [Part, Attrib]
    hashjoin [HelpId,ID,99997]
-   extend [attrib: .AllTags]
+   extend [Attrib: .AllTags]
    remove [AllTags]
    consume;
 
 # Deleting temporary relation
-delete streetsTmp;
+delete StreetsTmp;
 
 # Ignoring unwanted data on railways, barriers and so on
-let interestingStreets =
-   streetsWholeAttrib feed
-   filter [.attrib contains "highway"]
+let InterestingStreets =
+   StreetsWholeAttrib feed
+   filter [.Attrib contains "highway"]
    consume;
 
 # Extending tags that are kept in one attribute
-let streetTags =
-   interestingStreets feed
-   extendstream [abc: tokenize(.attrib,"|")]
+let StreetTags =
+   InterestingStreets feed
+   extendstream [Abc: tokenize(.attrib,"|")]
    consume;
 
 # Creating temporary relations with data on the relevant tags
-let roadClassTags =
-   streetTags feed
+let RoadClassTags =
+   StreetTags feed
    sortby [ID]
    groupby [ID; 
-      cnt: group count, 
-      roadClassTmp: group feed
-         aggregateB [abc; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "highway = ",
-                  trim(a),
-                  ifthenelse(b contains "highway = ",
-                     trim(b),
+      Cnt: group count, 
+      RoadClassTmp: group feed
+         aggregateB [Abc; 
+            fun(A: text,B: text)
+               ifthenelse(A contains "highway = ",
+                  trim(A),
+                  ifthenelse(B contains "highway = ",
+                     trim(B),
                      'UNKNOWN')); 
                'EMPTY']]
    projectextend [; 
-      osmId: .ID,
-      roadClass: replace(.roadClassTmp,'highway = ',"")]
+      OsmId: .ID,
+      RroadClass: replace(.RoadClassTmp,'highway = ',"")]
    consume;
 
 # TODO add special treatment for one-ways in the opposite direction of the road
 #      (oneway = -1 or oneway = reverse) 
-let oneWayTags =
-   interestingStreets feed
+let OneWayTags =
+   InterestingStreets feed
    projectextend [; 
-      osmId: .ID,
-      oneWay:
-         ifthenelse((.attrib contains "oneway = yes") or
-            (.attrib contains "oneway = 1") or
-            (.attrib contains "oneway = true"),
+      OsmId: .ID,
+      OneWay:
+         ifthenelse((.Attrib contains "oneway = yes") or
+            (.Attrib contains "oneway = 1") or
+            (.Attrib contains "oneway = true"),
             1,
-            ifthenelse((.attrib contains "oneway = -1") or
-               (.attrib contains "oneway = reverse"),-1,0))]   
+            ifthenelse((.Attrib contains "oneway = -1") or
+               (.Attrib contains "oneway = reverse"),-1,0))]   
    consume;
 
-let nameTags =
-   streetTags feed
+let NameTags =
+   StreetTags feed
    sortby [ID]
    groupby [ID; 
-      cnt: group count, 
-      nameTmp: group feed
-         aggregateB [abc; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "name = ",
-                  trim(a),
-                  ifthenelse(b contains "name = ",
-                     trim(b),
+      Cnt: group count, 
+      NameTmp: group feed
+         aggregateB [Abc; 
+            fun(A: text,B: text)
+               ifthenelse(A contains "name = ",
+                  trim(A),
+                  ifthenelse(B contains "name = ",
+                     trim(B),
                      'UNKNOWN')); 
                'UNKNOWN']]
    projectextend [; 
-      osmId: .ID,
-      name: replace(.nameTmp,'name = ',"")]
+      OsmId: .ID,
+      Name: replace(.NameTmp,'name = ',"")]
    consume;
 
-let layerTags =
-   streetTags feed
+let LayerTags =
+   StreetTags feed
    sortby [ID]
    groupby [ID; 
-      cnt: group count, 
-      layerTmp: group feed
-         aggregateB [abc; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "layer = ",
-                  trim(a),
-                  ifthenelse(b contains "layer = ",
-                     trim(b),
+      Cnt: group count, 
+      LayerTmp: group feed
+         aggregateB [Abc; 
+            fun(A: text,B: text)
+               ifthenelse(A contains "layer = ",
+                  trim(A),
+                  ifthenelse(B contains "layer = ",
+                     trim(B),
                      'UNKNOWN')); 
                'UNKNOWN']]
    projectextend [; 
-      osmId: .ID,
-      layer: replace(.layerTmp,'layer = ',"")]
+      OsmId: .ID,
+      Layer: replace(.LayerTmp,'layer = ',"")]
    consume;
 
-let tunnelTags =
-   interestingStreets feed
-   projectextend [; osmId: .ID, tunnel: (.attrib contains "tunnel = yes")]   
+let TunnelTags =
+   InterestingStreets feed
+   projectextend [; OsmId: .ID, Tunnel: (.Attrib contains "tunnel = yes")]   
    consume;
 
-let bridgeTags =
-   interestingStreets feed
+let BridgeTags =
+   InterestingStreets feed
    projectextend [; 
-      osmId: .ID,
-      bridge: ifthenelse(.attrib contains "bridge = yes", 1, 0)]   
+      OsmId: .ID,
+      Bridge: ifthenelse(.Attrib contains "bridge = yes", 1, 0)]   
    consume;
 
-let refTags =
-   streetTags feed
+let RefTags =
+   StreetTags feed
    sortby [ID]
    groupby [ID; 
-      cnt: group count, 
-      refTmp: group feed
-         aggregateB [abc; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "ref = ",
-                  trim(a),
-                  ifthenelse(b contains "ref = ",
-                     trim(b),
+      Cnt: group count, 
+      RefTmp: group feed
+         aggregateB [Abc; 
+            fun(A: text,B: text)
+               ifthenelse(A contains "ref = ",
+                  trim(A),
+                  ifthenelse(A contains "ref = ",
+                     trim(B),
                      'UNKNOWN')); 
                'UNKNOWN']]
    projectextend [; 
-      osmId: .ID,
-      ref: replace(.refTmp,'ref = ',"")]
+      OsmId: .ID,
+      Ref: replace(.RefTmp,'ref = ',"")]
    consume;
 
-let maxSpeedTags =
-   streetTags feed
+let MaxSpeedTags =
+   StreetTags feed
    sortby [ID]
    groupby [ID; 
-      cnt: group count, 
-      maxspeedTmp: group feed
-         aggregateB [abc; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "maxspeed = ",
-                  trim(a),
-                  ifthenelse(b contains "maxspeed = ",
-                     trim(b),
+      Cnt: group count,
+      MaxspeedTmp: group feed
+         aggregateB [Abc; 
+            fun(A: text,B: text)
+               ifthenelse(A contains "maxspeed = ",
+                  trim(A),
+                  ifthenelse(B contains "maxspeed = ",
+                     trim(B),
                      'UNKNOWN')); 
                'UNKNOWN']]
    projectextend [; 
-      osmId: .ID,
-      maxspeed: replace(.maxspeedTmp,'maxspeed = ',"")]
+      OsmId: .ID,
+      Maxspeed: replace(.MaxspeedTmp,'maxspeed = ',"")]
    consume;
 
 # Assembling the street data
-let streetsTmp =
-   (((((((roadClassTags feed
-          oneWayTags feed {a}
-          hashjoin [osmId, osmId_a, 999997])
-         nameTags feed {b}
-         hashjoin [osmId, osmId_b, 999997])
-        layerTags feed {c}
-        hashjoin [osmId, osmId_c, 999997])
-       tunnelTags feed {d}
-       hashjoin [osmId, osmId_d, 999997])
-      bridgeTags feed {e}
-      hashjoin [osmId, osmId_e, 999997])
-     refTags feed {f}
-     hashjoin [osmId, osmId_f, 999997])
-    maxSpeedTags feed {g}
-    hashjoin [osmId, osmId_g, 999997])
-   interestingStreets feed
-   hashjoin [osmId, ID, 999997]
-   projectextend [geoData; 
-      osm_id: .osmId,
-      type: tostring(.roadClass),
-      oneway: .oneWay_a,
-      name: tostring(.name_b),
-      layer: ifthenelse(.layer_c contains "UNKNOWN",
+let StreetsTmp =
+   (((((((RoadClassTags feed
+          OneWayTags feed {a}
+          hashjoin [OsmId, OsmId_a, 999997])
+         NameTags feed {b}
+         hashjoin [OsmId, OsmId_b, 999997])
+        LayerTags feed {c}
+        hashjoin [OsmId, OsmId_c, 999997])
+       TunnelTags feed {d}
+       hashjoin [OsmId, OsmId_d, 999997])
+      BridgeTags feed {e}
+      hashjoin [OsmId, OsmId_e, 999997])
+     RefTags feed {f}
+     hashjoin [OsmId, OsmId_f, 999997])
+    MaxSpeedTags feed {g}
+    hashjoin [OsmId, OsmId_g, 999997])
+   InterestingStreets feed
+   hashjoin [OsmId, ID, 999997]
+   projectextend [GeoData;
+      Osm_id: .OsmId,
+      type: tostring(.RoadClass),
+      Oneway: .OneWay_a,
+      Name: tostring(.Name_b),
+      Layer: ifthenelse(.Layer_c contains "UNKNOWN",
                 0,
-                toObject(.layer_c,1)),
-      tunnel: .tunnel_d,
-      bridge: .bridge_e,
-      ref: tostring(.ref_f),
-      maxspeed: ifthenelse(.maxspeed_g contains "UNKNOWN",
+                toObject(.Layer_c,1)),
+      Tunnel: .Tunnel_d,
+      Bridge: .Bridge_e,
+      Ref: tostring(.Ref_f),
+      Maxspeed: ifthenelse(.Maxspeed_g contains "UNKNOWN",
                    0,
-                   toObject(.maxspeed_g,1))]
+                   toObject(.Maxspeed_g,1))]
    consume;
 
 # Deleting temporary relation
-delete interestingStreets;
+delete InterestingStreets;
 
 # Deleting tag-relations
-delete roadClassTags;
-delete oneWayTags;
-delete nameTags;
-delete layerTags;
-delete tunnelTags;
-delete bridgeTags;
-delete refTags;
-delete maxSpeedTags;
-delete streetTags;
+delete RoadClassTags;
+delete OneWayTags;
+delete NameTags;
+delete LayerTags;
+delete TunnelTags;
+delete BridgeTags;
+delete RefTags;
+delete MaxSpeedTags;
+delete StreetTags;
 
 # --- Processing POIs
 # Concatenating split up attrib-strings
-let pointsWholeAttrib =
-   pointsTmp feed 
-   sortby [ID,part]
-   extend [tags: trim(.attrib)]
-   remove [attrib] 
+let PointsWholeAttrib =
+   PointsTmp feed
+   sortby [ID,Part]
+   extend [Tags: trim(.Attrib)]
+   remove [Attrib]
    groupby [ID;  
       AllTags: group feed  
-      aggregateB [tags;  
-         fun(a: text,b: text) 
-         (a + b); a 
+      aggregateB [Tags;
+         fun(A: text,B: text)
+         (A + B); A
       ]] 
    consume;
 
 # Extending tags that are kept in one attribute
-let pointTags =
-   pointsWholeAttrib feed
-   extendstream [tags: tokenize(.AllTags,"|")]
+let PointTags =
+   PointsWholeAttrib feed
+   extendstream [Tags: tokenize(.AllTags,"|")]
    consume;
 
 # Creating temporary relations with data on the relevant tags
-let nameTags =
-   pointTags feed
+let NameTags =
+   PointTags feed
    sortby [ID]
    groupby [ID; 
-      cnt: group count, 
-      nameTmp: group feed
-         aggregateB [tags; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "name = ",
-                  trim(a),
-                  ifthenelse(b contains "name = ",
-                     trim(b),
+      Cnt: group count,
+      NameTmp: group feed
+         aggregateB [Tags;
+            fun(A: text,B: text)
+               ifthenelse(A contains "name = ",
+                  trim(A),
+                  ifthenelse(B contains "name = ",
+                     trim(B),
                      'UNKNOWN')); 
                'UNKNOWN']]
    projectextend [; 
-      osmId: .ID,
-      name: replace(.nameTmp,'name = ',"")]
+      OsmId: .ID,
+      Name: replace(.NameTmp,'name = ',"")]
    consume;
 
-let amenityTags =
-   pointTags feed
+let AmenityTags =
+   PointTags feed
    sortby [ID]
-   groupby [ID; 
-      cnt: group count, 
-      amenityTmp: group feed
-         aggregateB [tags; 
-            fun(a: text,b: text)
-               ifthenelse(a contains "amenity = ",
-                  trim(a),
-                  ifthenelse(b contains "amenity = ",
-                     trim(b),
+   groupby [ID;
+      Cnt: group feed count,
+      AmenityTmp: group feed
+         aggregateB [Tags;
+            fun(A: text,B: text)
+               ifthenelse(A contains "amenity = ",
+                  trim(A),
+                  ifthenelse(B contains "amenity = ",
+                     trim(B),
                      'UNKNOWN')); 
                'UNKNOWN']]
    projectextend [; 
-      osmId: .ID,
-      type: replace(.amenityTmp,'amenity = ',"")]
+      OsmId: .ID,
+      Type: replace(.AmenityTmp,'amenity = ',"")]
    consume;
 
 # Renaming pointsTmp
-let pointsHelp =
-   pointsTmp feed
+let PointsHelp =
+   PointsTmp feed
    consume;
-delete pointsTmp;
+delete PointsTmp;
 
 # Restoring pointsTmp and inserting missing attributes from the temporary
 # tag-relations
-let pointsTmp = 
-   (pointsHelp feed
-    filter [.part = 0]
-    remove [part, attrib]
-    nameTags feed
-    smouterjoin [ID, osmId]
+let PointsTmp =
+   (PointsHelp feed
+    filter [.Part = 0]
+    remove [Part, Attrib]
+    NameTags feed
+    smouterjoin [ID, OsmId]
     filter [isdefined(.ID)])
-   remove [osmId]
-   amenityTags feed
-   smouterjoin [ID, osmId]
+   remove [OsmId]
+   AmenityTags feed
+   smouterjoin [ID, OsmId]
    filter [isdefined(.ID)]
    remove [ID]
-   extend [osm_id: .osmId, timestamp: 0]
-   remove [osmId]
-   filter [not((isdefined(.name) and (.name = 'UNKNOWN'))
-      and (isdefined(.type) and (.type = 'UNKNOWN')))]
+   extend [Osm_id: .OsmId, Timestamp: 0]
+   remove [OsmId]
+   filter [not((isdefined(.Name) and (.Name = 'UNKNOWN'))
+      and (isdefined(.Type) and (.Type = 'UNKNOWN')))]
    consume;
 
 # Deleting temporary relations
-delete pointsHelp;
-delete pointsWholeAttrib;
+delete PointsHelp;
+delete PointsWholeAttrib;
 
 # Deleting tag-relations
-delete pointTags;
-delete nameTags;
-delete amenityTags;
+delete PointTags;
+delete NameTags;
+delete AmenityTags;

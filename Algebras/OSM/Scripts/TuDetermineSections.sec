@@ -1,103 +1,103 @@
 ################################################################################
-### Determing sections from imported OSM data (5 / 11)
+### Determing Sections From imported OSM data (5 / 11)
 ################################################################################
 ### Description:
-### - This script determines sections within streets.
-### Please, see tu_osm_import.sh for further details.
+### - This script determines Sections within Streets.
+### Please, see tu_Osm_import.sh for further details.
 ###
 ### Preconditions:
 ### - activated necessary algebras
-### - existing open database with successfully imported osm data
-### - extStreetsRel-relation
-### extStreetsRel: rel{geoData: sline, streetId: int, name: string,
-###                    ref: string, roadClassRef: int, oneWay: int,
-###                    bridge: int, maxSpeed: int, tunnel: bool,
-###                    layer: int, groupId: int}
-### - restrictionsRel-relation
-### restrictionsRel: rel{fromStreet: int, toStreet: int, viaPoint: point,
-###                      restriction: text}
+### - existing open database with successfully imported Osm data
+### - ExtStreetsRel-relation
+### ExtStreetsRel: rel{GeoData: sline, StreetId: int, Name: string,
+###                    Ref: string, RoadClassRef: int, OneWay: int,
+###                    Bridge: int, MaxSpeed: int, Tunnel: bool,
+###                    Layer: int, GroupId: int}
+### - RestrictionsRel-relation
+### RestrictionsRel: rel{FromStreet: int, ToStreet: int, ViaPoint: point,
+###                      Restriction: text}
 ###
 ### Postconditions:
 ### - already existing relations
-### - extSectionsRel-relation
-### extSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
+### - ExtSectionsRel-relation
+### ExtSectionsRel: rel{SectionId: int, Section: sline, StartNodeId: int,
 ###                     EndNodeId: int, StreetId: int, GroupId: int,
 ###                     SectionDist: real}
-### - nodesRel-relation
-### nodesRel: rel{Node: point, NodeId: int}
-### - onlyRestrictions
-### onlyRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                       viaNodeRef: int, viaNode: point,
-###                       only: bool, restriction: text}
-### - noUturnRestrictions
-### noUturnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                          viaNodeRef: int, viaNode: point,
-###                          noUturn: bool}
-### - noLeftTurnRestrictions
-### noLeftTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                             viaNodeRef: int, viaNode: point,
-###                             noLeftTurn: bool}
-### - noRightTurnRestrictions
-### noRightTurnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                              viaNodeRef: int, viaNode: point,
-###                              noRightTurn: bool}
-### - noStraightOnRestrictions
-### noStraightOnRestrictions: rel{fromStreeRef: int, toStreetRef: int,
-###                               viaNodeRef: int, viaNode: point,
-###                               noStraightOn: bool}
+### - NodesRel-relation
+### NodesRel: rel{Node: point, NodeId: int}
+### - OnlyRestrictions
+### OnlyRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                       ViaNodeRef: int, ViaNode: point,
+###                       Only: bool, Restriction: text}
+### - NoUturnRestrictions
+### NoUturnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                          ViaNodeRef: int, ViaNode: point,
+###                          NoUturn: bool}
+### - NoLeftTurnRestrictions
+### NoLeftTurnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                             ViaNodeRef: int, ViaNode: point,
+###                             NoLeftTurn: bool}
+### - NoRightTurnRestrictions
+### NoRightTurnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                              ViaNodeRef: int, ViaNode: point,
+###                              NoRightTurn: bool}
+### - NoStraightOnRestrictions
+### NoStraightOnRestrictions: rel{FromStreeRef: int, ToStreetRef: int,
+###                               ViaNodeRef: int, ViaNode: point,
+###                               NoStraightOn: bool}
 ###
 ### Author:
 ### - Thomas Uchdorf, thomas.uchdorf(at)fernuni-hagen.de
 ################################################################################
 
 # Computing all junctions and terminating points by finding the existing
-# crossings between streets and adding terminating points
+# crossings between Streets and adding terminating points
 #let juncTermPts =
-#   (extStreetsRel feed
-#    project [streetId,geoData,layer] {s1}
-#    extStreetsRel feed
-#    project [streetId,geoData,layer] {s2}
-#    spatialjoin [geoData_s1, geoData_s2]
-#    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
-#    projectextend[; Crossroads: crossings(.geoData_s1, .geoData_s2)]
-#    filter[not(isempty(.Crossroads))]
-#    aggregateB[Crossroads; 
+#   (ExtStreetsRel feed
+#    project [StreetId,GeoData,Layer] {s1}
+#    ExtStreetsRel feed
+#    project [StreetId,GeoData,Layer] {s2}
+#    spatialjoin [GeoData_s1, GeoData_s2]
+#    filter[(.StreetId_s1 < .StreetId_s2) and (.Layer_s1 = .Layer_s2)]
+#    projectextend[; CrossRoads: crossings(.GeoData_s1, .GeoData_s2)]
+#    filter[not(isempty(.CrossRoads))]
+#    aggregateB[CrossRoads;
 #       fun(P1: points, P2: points) P1 union P2; 
 #          [const points value ()]])
 #    union
-#   (extStreetsRel feed
-#    projectextend[; B : boundary(toline(.geoData))]
+#   (ExtStreetsRel feed
+#    projectextend[; B : boundary(toline(.GeoData))]
 #    aggregateB[B; 
 #       fun(P3 : points, P4 : points) P3 union P4; 
 #          [const points value ()]]
 #   );
-let sectionPtsTmp =
-   (extStreetsRel feed
-    project [streetId,geoData,layer] {s1}
-    extStreetsRel feed
-    project [streetId,geoData,layer] {s2}
-    spatialjoin [geoData_s1, geoData_s2]
-    filter[(.streetId_s1 < .streetId_s2) and (.layer_s1 = .layer_s2)]
-    filter[.geoData_s1 intersects .geoData_s2]
+let SectionPtsTmp =
+   (ExtStreetsRel feed
+    project [StreetId,GeoData,Layer] {s1}
+    ExtStreetsRel feed
+    project [StreetId,GeoData,Layer] {s2}
+    spatialjoin [GeoData_s1, GeoData_s2]
+    filter[(.StreetId_s1 < .StreetId_s2) and (.Layer_s1 = .Layer_s2)]
+    filter[.GeoData_s1 intersects .GeoData_s2]
     projectextend[; 
-       Road1: .streetId_s1,
-       Road2: .streetId_s2,
-       Crossroads: crossings(.geoData_s1, .geoData_s2)]
-    filter[(isdefined(.Crossroads)) and (not(isempty(.Crossroads)))]
-    projectextendstream [Road1,Road2; Pt: components(.Crossroads)])
-   (extStreetsRel feed
+       Road1: .StreetId_s1,
+       Road2: .StreetId_s2,
+       CrossRoads: crossings(.GeoData_s1, .GeoData_s2)]
+    filter[(isdefined(.CrossRoads)) and (not(isempty(.CrossRoads)))]
+    projectextendstream [Road1,Road2; Pt: components(.CrossRoads)])
+   (ExtStreetsRel feed
     projectextend [; 
-       Road1: .streetId,
-       Road2: .streetId,
-       B: boundary(toline(.geoData))]
+       Road1: .StreetId,
+       Road2: .StreetId,
+       B: boundary(toline(.GeoData))]
     projectextendstream [Road1,Road2; Pt: components(.B)]
    )
    concat
    consume;
-let stSecPts =
-   (sectionPtsTmp feed
+let StSecPts =
+   (SectionPtsTmp feed
     projectextend [Pt; Street: .Road1]
-    sectionPtsTmp feed
+    SectionPtsTmp feed
     projectextend [Pt; Street: .Road2]
     concat
     sortby [Street,Pt]
@@ -108,57 +108,57 @@ let stSecPts =
           projecttransformstream [Pt]
           collect_points [TRUE]]
     consume);
-#let sectionPtsRel =
-#   (sectionPtsTmp feed
-#    extStreetsRel feed
-#    project [streetId,geoData] {s1}
-#    hashjoin [Road1,streetId_s1,99997])
-#   extStreetsRel feed
-#   project [streetId,geoData] {s2}
-#   hashjoin[Road2,streetId_s2,99997]
+#let SectionPtsRel =
+#   (SectionPtsTmp feed
+#    ExtStreetsRel feed
+#    project [StreetId,GeoData] {s1}
+#    hashjoin [Road1,StreetId_s1,99997])
+#   ExtStreetsRel feed
+#   project [StreetId,GeoData] {s2}
+#   hashjoin[Road2,StreetId_s2,99997]
 #   filter [((.Road1=.Road2) and
-#            (.Pt inside toline(.geoData_s1)) and
-#            (distance(.Pt,.geoData_s1) = 0)) or
+#            (.Pt inside toline(.GeoData_s1)) and
+#            (distance(.Pt,.GeoData_s1) = 0)) or
 #           (not(.Road1=.Road2) and
-#            (.Pt inside toline(.geoData_s1)) and
-#            (.Pt inside toline(.geoData_s2)) and
-#            (distance(.Pt,.geoData_s1) = 0) and
-#            (distance(.Pt,.geoData_s2) = 0))]
+#            (.Pt inside toline(.GeoData_s1)) and
+#            (.Pt inside toline(.GeoData_s2)) and
+#            (distance(.Pt,.GeoData_s1) = 0) and
+#            (distance(.Pt,.GeoData_s2) = 0))]
 #   extend [
 #      dist1:
 #         ifthenelse(.Road1=.Road2,
-#            0.,atpoint(.geoData_s1,.Pt,TRUE)),
+#            0.,atpoint(.GeoData_s1,.Pt,TRUE)),
 #      dist2:
 #         ifthenelse(.Road1=.Road2,
-#            size(.geoData_s1),atpoint(.geoData_s2,.Pt,TRUE))]
+#            size(.GeoData_s1),atpoint(.GeoData_s2,.Pt,TRUE))]
 #   sortby [Road1,dist1,dist2]
-#   addcounter[sectionId,1]
+#   addcounter[SectionId,1]
 #   consume;
 
-# Splitting up all streets into sections
-let stsPlusSecsTmp =
-   stSecPts feed {a}
-   extStreetsRel feed
+# Splitting up all Streets inTo Sections
+let StsPlusSecsTmp =
+   StSecPts feed {a}
+   ExtStreetsRel feed
    projectextend [; 
-      GroupId: .groupId, 
-      StreetId: .streetId,
-      Street: .geoData,
-      UndirStreet: toline(.geoData)]
+      GroupId: .GroupId,
+      StreetId: .StreetId,
+      Street: .GeoData,
+      UndirStreet: toline(.GeoData)]
    hashjoin [Street_a,StreetId,99997]
    projectextendstream [GroupId,StreetId,Street; 
       Section: (.UndirStreet polylines [FALSE,.SecPts_a])]
    consume;
 
-# Creating a relation for the sections by removing duplicates
-let sectionsTmp =
-   stsPlusSecsTmp feed
+# Creating a relation for the Sections by removing duplicates
+let SectionsTmp =
+   StsPlusSecsTmp feed
    project [Section]
    sortby [Section]
    rdup
    addcounter[SectionId, 1] 
    extend [Pts: boundary(.Section)] 
    projectextend [SectionId, Section;  
-      Help: fromline(.Section),
+      Help: Fromline(.Section),
       Node1: get(.Pts,0), 
       Node2: get(.Pts,1)]
    consume;
@@ -167,62 +167,62 @@ let sectionsTmp =
 #delete juncTermPts;
 
 # Removing the help relations
-delete sectionPtsTmp;
-delete stSecPts;
+delete SectionPtsTmp;
+delete StSecPts;
 
-# Collecting all nodes (junctions and end points) in one point array and
-# adding IDs to the nodes to form a relation
-let nodesRel =
+# Collecting all Nodes (junctions and end points) in one point array and
+# adding IDs To the Nodes To form a relation
+let NodesRel =
    components(
-      sectionsTmp feed
+      SectionsTmp feed
       projectextend[; EndPoints: boundary(.Section)]
       aggregateB[EndPoints; 
          fun(P1: points, P2: points) P1 union P2 ; 
             [const points value ()]])
-   namedtransformstream [Node]
+   Namedtransformstream [Node]
    addcounter [NodeId,1]
    consume;
 
 # Adding indexes for faster access
-derive nodesRel_NodeId_btree =
-   nodesRel createbtree[NodeId];
-derive nodesRel_Node_rtree =
-   nodesRel creatertree[Node];
+derive NodesRel_NodeId_btree =
+   NodesRel createbtree[NodeId];
+derive NodesRel_Node_rtree =
+   NodesRel creatertree[Node];
 
-# Combining source and destination points with sections between them
-# (adding references to nodes)
-# sectionsRel: rel{SectionId: int, Section: line, Node1: point,
+# Combining source and destination points with Sections between them
+# (adding References To Nodes)
+# SectionsRel: rel{SectionId: int, Section: line, Node1: point,
 #                  Node2: point, Node1Id: int, Node2Id: int}
-let sectionsRel =
-   (sectionsTmp feed
-    nodesRel feed {a}
+let SectionsRel =
+   (SectionsTmp feed
+    NodesRel feed {a}
     hashjoin[Node1, Node_a, 99997])
-   nodesRel feed {b}
+   NodesRel feed {b}
    hashjoin[Node2, Node_b, 99997]
    projectextend [SectionId, Section, Help, Node1, Node2; 
       Node1Id: .NodeId_a, Node2Id: .NodeId_b]
    consume;
 
 # Removing the help relation
-delete sectionsTmp;
+delete SectionsTmp;
 
 # Adding indexes for faster access
-derive sectionsRel_SectionId_btree =
-   sectionsRel createbtree[SectionId];
-derive sectionsRel_Node1Id_btree =
-   sectionsRel createbtree[Node1Id];
-derive sectionsRel_Node2Id_btree =
-   sectionsRel createbtree[Node2Id];
-derive sectionsRel_Section_rtree =
-   sectionsRel creatertree[Section];
+derive SectionsRel_SectionId_btree =
+   SectionsRel createbtree[SectionId];
+derive SectionsRel_Node1Id_btree =
+   SectionsRel createbtree[Node1Id];
+derive SectionsRel_Node2Id_btree =
+   SectionsRel createbtree[Node2Id];
+derive SectionsRel_Section_rtree =
+   SectionsRel creatertree[Section];
 
-# Creating a relation that enables linking sections to additional street
-# data like speed limits or names and combining the order by group ID, 
-# street ID and distance on street with the section ID
-let extSectionsRel =
-   (stsPlusSecsTmp feed
+# Creating a relation that enables linking Sections To additional Street
+# data like speed limits or Names and combining the order by group ID,
+# Street ID and distance on Street with the Section ID
+let ExtSectionsRel =
+   (StsPlusSecsTmp feed
     projectextend [GroupId,StreetId,Street; Part: .Section]
-    sectionsRel feed
+    SectionsRel feed
     hashjoin [Part,Section,99997]
     remove [Part,Section]
     extend [
@@ -248,7 +248,7 @@ let extSectionsRel =
           set_startsmaller(.Help,
              get_startsmaller(.Street)),
           set_startsmaller(.Help,
-             get_startsmaller(create_sline(.startNode,.endNode))))]
+             get_startsmaller(create_sline(.StartNode,.EndNode))))]
     project[
        GroupId, StreetId, SectionId, Section, StartNodeId, EndNodeId,
        LowerStreetDist,HigherStreetDist,SectionDist])
@@ -258,28 +258,28 @@ let extSectionsRel =
 #   remove [StreetDist]
    consume;
 
-# Postprocessing streets that start and end in the same point
-# (their sections are computed in a wrong way, since their start and end
-# point as well as their positions on the street can not be distinguished
+# Postprocessing Streets that start and end in the same point
+# (their Sections are computed in a wrong way, since their start and end
+# point as well as their positions on the Street can not be distinguished
 # separately)
 #...
-update extSectionsRel :=
-   (((((extStreetsRel feed
+update ExtSectionsRel :=
+   (((((ExtStreetsRel feed
         extend [
-           streetStartNode: atposition(.geoData,0.0,TRUE),
-           streetEndNode: atposition(.geoData,size(.geoData),TRUE)]
-        filter [.streetStartNode = .streetEndNode]
-        extSectionsRel feed
-        hashjoin [streetId,StreetId,99997])
-        extSectionsRel feed {a}
+           StreetStartNode: atposition(.GeoData,0.0,TRUE),
+           StreetEndNode: atposition(.GeoData,size(.GeoData),TRUE)]
+        filter [.StreetStartNode = .StreetEndNode]
+        ExtSectionsRel feed
+        hashjoin [StreetId,StreetId,99997])
+        ExtSectionsRel feed {a}
         hashjoin [StreetId,StreetId_a,99997]
         filter [(.HigherStreetDist = .HigherStreetDist_a) and
            (.SectionId < .SectionId_a)])
-        nodesRel feed {e} 
-        hashjoin [streetStartNode,Node_e,99997] 
+        NodesRel feed {e}
+        hashjoin [StreetStartNode,Node_e,99997]
         remove [Node_e])
-        nodesRel feed {f} 
-        hashjoin [streetEndNode,Node_f,99997] 
+        NodesRel feed {f}
+        hashjoin [StreetEndNode,Node_f,99997]
         remove [Node_f]
         extend [StreetStartNodeId: .NodeId_e,StreetEndNodeId: .NodeId_f]
         projectextend [GroupId,StreetId,SectionId; 
@@ -289,7 +289,7 @@ update extSectionsRel :=
            NewHigherStreetDist: .LowerStreetDist,
            NewLowerStreetDist: .HigherStreetDist,
            NewSectionDist: .SectionDist] {n})
-    extSectionsRel feed
+    ExtSectionsRel feed
     smouterjoin [SectionId_n,SectionId]
     projectextend [GroupId,StreetId; 
        Section:
@@ -312,74 +312,74 @@ update extSectionsRel :=
     consume);
 
 # Removing the help relations
-delete sectionsRel;
-delete stsPlusSecsTmp;
+delete SectionsRel;
+delete StsPlusSecsTmp;
 
 # Adding indexes for faster access
-derive extSectionsRel_SectionId_btree =
-   extSectionsRel createbtree[SectionId];
-derive extSectionsRel_StartNodeId_btree =
-   extSectionsRel createbtree[StartNodeId];
-derive extSectionsRel_EndNodeId_btree =
-   extSectionsRel createbtree[EndNodeId];
-derive extSectionsRel_StreetId_btree =
-   extSectionsRel createbtree[StreetId];
-derive extSectionsRel_GroupId_btree =
-   extSectionsRel createbtree[GroupId];
-derive extSectionsRel_Section_rtree =
-   extSectionsRel creatertree[Section];
+derive ExtSectionsRel_SectionId_btree =
+   ExtSectionsRel createbtree[SectionId];
+derive ExtSectionsRel_StartNodeId_btree =
+   ExtSectionsRel createbtree[StartNodeId];
+derive ExtSectionsRel_EndNodeId_btree =
+   ExtSectionsRel createbtree[EndNodeId];
+derive ExtSectionsRel_StreetId_btree =
+   ExtSectionsRel createbtree[StreetId];
+derive ExtSectionsRel_GroupId_btree =
+   ExtSectionsRel createbtree[GroupId];
+derive ExtSectionsRel_Section_rtree =
+   ExtSectionsRel creatertree[Section];
 
-#let streetToNumSections =
-#   extSectionsRel feed
+#let StreetToNumSections =
+#   ExtSectionsRel feed
 #   sortby [StreetId]
 #   groupby [StreetId; NumSections: group count]
 #   consume;
 
-# Extending the restrictions-relation by references to the junction points
-let extRestrictionsRel = 
-   restrictionsRel feed
-   nodesRel feed
-   hashjoin [viaPoint,Node,99997]
-   extend [fromStreetRef: .fromStreet, toStreetRef: .toStreet,
-   viaNodeRef: .NodeId, viaNode: .viaPoint]
-   remove [fromStreet, toStreet, viaPoint, NodeId, Node]
+# Extending the Restrictions-relation by References To the junction points
+let ExtRestrictionsRel =
+   RestrictionsRel feed
+   NodesRel feed
+   hashjoin [ViaPoint,Node,99997]
+   extend [FromStreetRef: .FromStreet, ToStreetRef: .ToStreet,
+   ViaNodeRef: .NodeId, ViaNode: .ViaPoint]
+   remove [FromStreet, ToStreet, ViaPoint, NodeId, Node]
    consume;
 
 # Removing the help relation
-delete restrictionsRel;
+delete RestrictionsRel;
 
-# Splitting up the restrictions relation and distributing the restrictions to
+# Splitting up the Restrictions relation and distributing the Restrictions To
 # different relations
-let onlyRestrictions =
-   extRestrictionsRel feed
-   extend [only: .restriction starts "only"]
-   filter [.only]
-   remove [osmId,restrictionId]
+let OnlyRestrictions =
+   ExtRestrictionsRel feed
+   extend [Only: .Restriction starts "Only"]
+   filter [.Only]
+   remove [OsmId,RestrictionId]
    consume;
-# restrictive restrictions have to be viewed separately since they otherwise
+# restrictive Restrictions have To be viewed separately since they otherwise
 # multiply tuples in conjunction with crossings
-let noUturnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_u_turn"]
-   extend [noUturn: TRUE]
-   remove [osmId,restriction,restrictionId]
+let NoUturnRestrictions =
+   ExtRestrictionsRel feed
+   filter [.Restriction = "no_u_turn"]
+   extend [NoUturn: TRUE]
+   remove [OsmId,Restriction,RestrictionId]
    consume;
-let noLeftTurnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_left_turn"]
-   extend [noLeftTurn: TRUE]
-   remove [osmId,restriction,restrictionId]
+let NoLeftTurnRestrictions =
+   ExtRestrictionsRel feed
+   filter [.Restriction = "no_left_turn"]
+   extend [NoLeftTurn: TRUE]
+   remove [OsmId,Restriction,RestrictionId]
    consume;
-let noStraightOnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_straight_on"]
-   extend [noStraightOn: TRUE]
-   remove [osmId,restriction,restrictionId]
+let NoStraightOnRestrictions =
+   ExtRestrictionsRel feed
+   filter [.Restriction = "no_straight_on"]
+   extend [NoStraightOn: TRUE]
+   remove [OsmId,Restriction,RestrictionId]
    consume;
-let noRightTurnRestrictions =
-   extRestrictionsRel feed
-   filter [.restriction = "no_right_turn"]
-   extend [noRightTurn: TRUE]
-   remove [osmId,restriction,restrictionId]
+let NoRightTurnRestrictions =
+   ExtRestrictionsRel feed
+   filter [.Restriction = "no_right_turn"]
+   extend [NoRightTurn: TRUE]
+   remove [OsmId,Restriction,RestrictionId]
    consume;
 
