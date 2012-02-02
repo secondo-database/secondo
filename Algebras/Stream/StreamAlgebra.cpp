@@ -2205,16 +2205,16 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
      return listutils::typeError("Second argument muts be an attribute name");
   }
   string name = nl->SymbolValue(nameList);
+  string symcheckmsg = "";
+  if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
+     return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
+  }
 
- if(SecondoSystem::GetCatalog()->IsTypeName(name)){
-      return listutils::typeError(""+name+" is a type and can't be "
-                                 "used as an attribute name ");
-  }
-  if(SecondoSystem::GetCatalog()->IsOperatorName(name)){
-      return listutils::typeError(""+name+" is an operator and can't be "
-                                 "used as an attribute name ");
-      return nl->TypeError();
-  }
+  char f = name[0];
+  if(f<'A' || f>'Z'){
+    return listutils::typeError("An attribute name has to "
+                                "start with an upper case");
+  }  
 
   return nl->TwoElemList(nl->SymbolAtom(Stream<Tuple>::BasicType()),
                          nl->TwoElemList(
