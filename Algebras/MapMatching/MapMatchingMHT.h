@@ -94,6 +94,9 @@ private:
                        bool bClosed,
                        std::vector<RouteCandidate*>& rvecRouteCandidates);
 
+    bool AssignPoint(RouteCandidate* pCandidate, const Point& rPoint,
+                     const datetime::DateTime& rTime, bool bClosed);
+
     void ReduceRouteCandidates(std::vector<RouteCandidate*>&
                                                            rvecRouteCandidates);
 
@@ -104,6 +107,7 @@ private:
                        const std::vector<RouteCandidate*>& rvecRouteSegments);
 
     void AddAdjacentSections(RouteCandidate* pCandidate,
+                          bool bUpDown,
                           std::vector<RouteCandidate*>& rvecNewRouteCandidates);
 
     void GetInitialSectionCandidates(const Point& rPoint,
