@@ -14,7 +14,7 @@
             (rel 
                 (tuple 
                     (
-                        (no int)))) 
+                        (No int)))) 
             (
                 (1) 
                 (2) 
