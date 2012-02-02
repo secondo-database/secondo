@@ -1,5 +1,5 @@
-Database: berlintest
-Restore : No
+Database: osmtest
+Restore : Yes
 
 Operator : shpimport3
 Number   : 1
@@ -52,5 +52,5 @@ Result   : 0
 Operator : fullosmimport
 Number   : 1
 Signature: text x string -> bool
-Example  : query fullosmimport('dortmund.osm', "dortmund")
-Result   : 0
+Example  : query fullosmimport('kirchditmold.osm', "kirch")
+Result   : TRUE

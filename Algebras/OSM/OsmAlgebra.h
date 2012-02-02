@@ -45,7 +45,11 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 #include "Algebra.h"
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
+#include <libxml/xmlreader.h>
 #include "RelationAlgebra.h"
+#include <string>
+
+enum entityKind {NODE, WAY, RELATION};
 
 class FullOsmImport {
   public:
@@ -57,23 +61,32 @@ class FullOsmImport {
     void defineRelations();
     void fillRelations();
     void storeRelations();
+    void processNode(xmlTextReaderPtr reader);
+    void processWay(xmlTextReaderPtr reader);
+    void processWayNodeRef(xmlTextReaderPtr reader);
+    void processRel(xmlTextReaderPtr reader);
+    void processRelMemberRef(xmlTextReaderPtr reader);
+    void processTag(xmlTextReaderPtr reader, entityKind kind);
     
     SecondoCatalog* sc;
     bool isTemp;
     bool relationsInitialized;
     bool fileOk;
-    xmlDocPtr doc;    
-    xmlNodePtr cur, curChild;
-    Relation *nodeRel, *nodeTagRel, *wayRel, *wayTagRel, *restRel,
-        *restTagRel;
-    TupleType *nodeType, *nodeTagType, *wayType, *wayTagType,
-        *restType, *restTagType;
+    xmlTextReaderPtr reader;
+    Relation *nodeRel, *nodeTagRel, *wayRel, *wayTagRel, *relRel,
+        *relTagRel;
+    TupleType *nodeType, *nodeTagType, *wayType, *wayTagType, *relType,
+        *relTagType;
     ListExpr nodeTypeInfo, nodeTagTypeInfo, wayTypeInfo, wayTagTypeInfo,
-        restTypeInfo, restTagTypeInfo, numNodeTypeInfo, numNodeTagTypeInfo, 
-        numWayTypeInfo, numWayTagTypeInfo, numRestTypeInfo, numRestTagTypeInfo;
+        relTypeInfo, relTagTypeInfo, numNodeTypeInfo, numNodeTagTypeInfo,
+        numWayTypeInfo, numWayTagTypeInfo, numRelTypeInfo, numRelTagTypeInfo;
     string relNames[6];
-    int tupleCount[6];
-    string relKinds[6];
+    unsigned int tupleCount[6];
+    Tuple *node;
+    Tuple *tag;
+    Tuple *way;
+    Tuple *rel;
+    int read, next, currentId, refCount;
 };
 
 
