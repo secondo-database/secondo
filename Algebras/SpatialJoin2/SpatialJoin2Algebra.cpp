@@ -412,7 +412,7 @@ the cell grid grows infinitely...for a detailed explanaintion of the
 numbering System see the dokumentation
 
 */
-//computation of the grid coordinates	
+//computation of the grid coordinates
    
 power=0;
     
@@ -421,8 +421,7 @@ double simLBY=((lby-y0)/yWidth);
 double simRTX=((rtx-x0)/xWidth);
 double simRTY=((rty-y0)/yWidth);
 double simLBZ=((lbz-z0)/zWidth);
-double simRTZ=((rtz-z0)/zWidth);	
-
+double simRTZ=((rtz-z0)/zWidth);
  
 if (is3D) {
 maxebene=max(maxebeneG3D(simLBX,simLBY,simLBZ),
@@ -576,11 +575,11 @@ int getNextCellNum()
     {
       if ((cx <= RTX) && (cy <= RTY)){
 	if (is3D){        
-	cellNum = cellnumberG3D(cx,cy,cz,maxebene);
-	}
-	else {
-	cellNum = cellnumberG2D(cx,cy,maxebene);
-	}
+        cellNum = cellnumberG3D(cx,cy,cz,maxebene);
+        }
+        else {
+        cellNum = cellnumberG2D(cx,cy,maxebene);
+       }
       }
  
       if (cx < RTX)
@@ -616,11 +615,10 @@ bool outGrid;   //Whether the rectangle is outside the given grid
 bool finished;
 
 };
-	
- 
+
+
   CellGrid* grid = static_cast<CellGrid*>(local.addr);
 
-  
   switch (message) {
   //START OPEN
   case OPEN: {
@@ -813,16 +811,15 @@ maxebene = maxebeneLine2D(ax,ay);
 //Make sure all possible cell numbers don't exceed the range
 //of the integer type.
     if (is3D){
-    	long maxN = pow(8,maxebene-1);
-    	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
-        	"part cell number may exceed the range of Integer type.\n";} 
-	}
-    	else {
-    	long maxN = pow(4,maxebene-1);
-    	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
-        	"part cell number may exceed the range of Integer type.\n";} 
-	}
-
+        long maxN = pow(8,maxebene-1);
+        if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
+              "part cell number may exceed the range of Integer type.\n";} 
+        }
+        else {
+        long maxN = pow(4,maxebene-1);
+        if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
+             "part cell number may exceed the range of Integer type.\n";} 
+    }
 
 if (maxebene==0){
         cellnumb = (ax+1) + 2 * (ay+1);
@@ -845,26 +842,26 @@ numbering System see the dokumentation
 
 */
 int cellnumberLine3D (int ax, int ay, int az){
-    int cellnumb = 0;
+int cellnumb = 0;
 
-    maxebene = maxebeneLine3D(ax,ay,az);
+maxebene = maxebeneLine3D(ax,ay,az);
 
-    //Make sure all possible cell numbers don't exceed the range
-    //of the integer type.
-    if (is3D){
-    	long maxN = pow(8,maxebene-1);
-    	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
-        	"part cell number may exceed the range of Integer type.\n";} 
-	}
-    	else {
-    	long maxN = pow(4,maxebene-1);
-    	if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
-        	"part cell number may exceed the range of Integer type.\n";} 
-	}
+//Make sure all possible cell numbers don't exceed the range
+//of the integer type.
+if (is3D){
+    long maxN = pow(8,maxebene-1);
+    if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
+          "part cell number may exceed the range of Integer type.\n";} 
+    }
+    else {
+    long maxN = pow(4,maxebene-1);
+    if (maxN>INT_MAX){cerr << "WARNING!! The grid is too dense, "
+         "part cell number may exceed the range of Integer type.\n";} 
+}
 
     if (maxebene==0){
         cellnumb = (ax+1) + 2 *(ay+1) + (az+1)*4;
-        }
+    }
 
     else if (maxebene==1) {
         int power1 = 4; //pow(2,max_ebene+1);
@@ -918,12 +915,12 @@ int getNextCellNum()
     else if (!finished)
     {
       if ((cx <= RTX) && (cy <= RTY)){
-	if (is3D){       
-	cellNum = cellnumberLine3D(cx,cy,cz);
-	}
-	else {
-	cellNum = cellnumberLine2D(cx,cy);
-	}
+       if (is3D){       
+        cellNum = cellnumberLine3D(cx,cy,cz);
+        }
+       else {
+       cellNum = cellnumberLine2D(cx,cy);
+       }
       }
  
       if (cx < RTX)
@@ -959,11 +956,9 @@ bool outGrid;   //Whether the rectangle is outside the given grid
 bool finished;
 
 };
-	
- 
+
   CellGrid* grid = static_cast<CellGrid*>(local.addr);
 
-  
   switch (message) {
   //START OPEN
   case OPEN: {
@@ -1093,15 +1088,15 @@ struct cellnumberG_Info : OperatorInfo {
     syntax = "cellnumber( box, x0, y0, [z0,] wx, wy, [wz,] nx, [ny] )";
     meaning = "Returns a stream of numbers of all cells intersected by box "
         "with respect to a special 2D-[3D-] G-grid" 
-	"starting at (x0,y0 [,z0]) and--- for positive widths ---"
-	"extending to to all quadrants (octants). "
+        "starting at (x0,y0 [,z0]) and--- for positive widths ---"
+        "extending to to all quadrants (octants). "
         "Each cell has widths wx, wy [and wz]."
-	"nx and ny are not used, as to the fact the Grid ist unbounded in"
-	"any direction." 
-	"The grid is unbounded and cell numbering follows a special"
-	"G-curve form"
+        "nx and ny are not used, as to the fact the Grid ist unbounded in"
+        "any direction." 
+        "The grid is unbounded and cell numbering follows a special"
+        "G-curve form"
         "starting in a seed cell in the positiv sector relative" 
-	"to the starting point at (x0,y0 [,z0])."
+        "to the starting point at (x0,y0 [,z0])."
 	;
   }
 
@@ -1119,16 +1114,16 @@ struct cellnumberLine_Info : OperatorInfo {
     syntax = "cellnumberLine( box, x0, y0, [z0,] wx, wy, [wz,] [nx], [ny] )";
     meaning = "Returns a stream of numbers of all cells intersected by box "
         "with respect to a special 2D-[3D-] G-grid" 
-	"starting at (x0,y0 [,z0]) and --- for positive widths ---"
-	"extending to to all quadrants (octants). "
+        "starting at (x0,y0 [,z0]) and --- for positive widths ---"
+        "extending to to all quadrants (octants). "
         "Each cell has widths wx, wy [and wz]." 
-	"nx and ny are not used, as to the fact the Grid ist unbounded in"
-	"any direction."
-	"The grid is unbounded and cell numbering follows a special"
-	"cube extending manner starting with a minimum of 4 (8) cells, "
+        "nx and ny are not used, as to the fact the Grid ist unbounded in"
+        "any direction."
+        "The grid is unbounded and cell numbering follows a special"
+        "cube extending manner starting with a minimum of 4 (8) cells, "
         "one for each relevant Sector of the coordinate system." 
-	"Starting point is (x0,y0 [,z0]) as the center point of the"
-	"coordinate system."
+        "Starting point is (x0,y0 [,z0]) as the center point of the"
+        "coordinate system."
 	;
   }
 
