@@ -4515,6 +4515,12 @@ ListExpr ExtendTypeMap( ListExpr args )
       return listutils::typeError("attribute name "+ symcheckmsg +".");
     }
 
+    char f = namestr[0];
+    if(f<'A' || f>'Z'){
+      return listutils::typeError("attribute name '" + namestr + 
+                                  "' start with an lower case");
+    }
+
     if(nl->ListLength(map)!=3){
       ErrorReporter::ReportError("invalid function");
       return nl->TypeError();
@@ -5827,6 +5833,17 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
     return NList::typeError("attrname already used in the original stream");
   }
 
+  string symcheckmsg = "";
+  if(!SecondoSystem::GetCatalog()->IsValidIdentifier(attrname,symcheckmsg)){
+     return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
+  }
+
+  char f = attrname[0];
+  if(f<'A' || f>'Z'){
+    return listutils::typeError("Attribute name '" + attrname + 
+                                "' must not start with a lower case");
+  }
+
   ListExpr attrlist = ConcatLists(Stream.second().second().listExpr(),
                                   nl->OneElemList(
                                     nl->TwoElemList(
@@ -6447,6 +6464,16 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
      return listutils::typeError(err +
                               "( conflicting names found " + name+")");
    }
+   string symcheckmsg = "";
+   if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
+       return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
+   }
+
+   char f = name[0];
+   if(f<'A' || f>'Z'){
+     return listutils::typeError("Attribute name '" + name + 
+                                "' must not start with a lower case");
+   }
    names.insert(name);
    if(!nl->Equal(tupletype,nl->Second(map))){
     return listutils::typeError(err + "( invalid argument type for map)");
@@ -6958,6 +6985,16 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
    return listutils::typeError(err +
           "(third argument must be a pair of name and map)");
  }
+ string name = nl->SymbolValue(mapname);
+ string symcheckmsg = "";
+ if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
+    return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
+ }
+ char f = name[0];
+ if(f<'A' || f>'Z'){
+   return listutils::typeError("An attribute name has to "
+                               "start with an upper case");
+  }  
 
  if(!nl->Equal(tupletype,nl->Second(map))){
    return listutils::typeError(err + "(map argument differs from tuple type");
