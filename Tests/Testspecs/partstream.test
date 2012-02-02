@@ -80,7 +80,7 @@ query plz pfeed[100] puse [. filter[.Ort = "Dortmund"] ] pdelete count
 
 #testcase puse-3
 #yields (int 41267) 
-query plz pfeed[100] puse [. extend[pck: .PLZ mod 10] ] pdelete count
+query plz pfeed[100] puse [. extend[Pck: .PLZ mod 10] ] pdelete count
 
 #testcase puse-4a
 #yields error 

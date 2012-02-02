@@ -33,7 +33,7 @@ query x8 insertbtree2[SName, none] consume;
 
 #testcase insertbtree2Example1a
 #yields (int 1)
-query Staedte feed head [1] extend [testname: "Teststadt"] x8 insertbtree2 [testname, none] count;
+query Staedte feed head [1] extend [Testname: "Teststadt"] x8 insertbtree2 [Testname, none] count;
 
 #testcase insertbtree2Example1b 
 #yields ((rel (tuple ((Key string))))(("Teststadt")))
@@ -65,7 +65,7 @@ query Staedte feed b1 deletebtree2[Bev, SName] consume;
 
 #testcase deletebtree2Example1a
 #yields (int 1)
-query Staedte feed head [1] extend [testname: "Teststadt"] x8 deletebtree2 [testname, none] count;
+query Staedte feed head [1] extend [Testname: "Teststadt"] x8 deletebtree2 [Testname, none] count;
 
 #testcase deletebtree2Example1b 
 #yields (int 0)
@@ -97,7 +97,7 @@ query x5 range2 [239000, 239001] count;
 
 #testcase deletebtree2Example4
 #yields (int 1)
-query Staedte feed head [1] extend [testname: "T"] x7 deletebtree2 [Bev, testname] count
+query Staedte feed head [1] extend [Testname: "T"] x7 deletebtree2 [Bev, Testname] count
 
 #testcase insertbtreeTypeMapError1
 #yields error
@@ -113,7 +113,7 @@ query Staedte feed addid x4 insertbtree[SName, none] consume;
 
 #testcase insertbtreeExample1a
 #yields (int 0)
-query Staedte feed head [1] extend [testname: "Teststadt"] addid x9 insertbtree [testname] count;
+query Staedte feed head [1] extend [Testname: "Teststadt"] addid x9 insertbtree [Testname] count;
 
 #testcase insertbtree2Example1b 
 #yields (int 0)
@@ -169,7 +169,7 @@ query Staedte feed b1 updatebtree2[SName, none] consume;
 
 #testcase updatebtree2Example1a
 #yields (int 1)
-query Staedte feed head [1] extend [testname: "Teststadt"] x10 updatebtree2 [testname, Bev] count;
+query Staedte feed head [1] extend [Testname: "Teststadt"] x10 updatebtree2 [Testname, Bev] count;
 
 #testcase updatebtree2Example1b 
 #yields ((rel (tuple ((Key string)(Data int))))(("Teststadt" 239000)))

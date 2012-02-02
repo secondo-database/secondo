@@ -226,7 +226,7 @@ query Trains feed {t1} head[5] Trains feed {t2} head[5] product extend[Minus: me
 
 #testcase rough_center 1
 #yields (int 25)
-query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[rc: rough_center(msnow)] project[Id_t1, Name_u2, rc] count;
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Rc: rough_center(msnow)] project[Id_t1, Name_u2, Rc] count;
 
 #testcase rough_center 2
 #yields (int 25)
@@ -251,11 +251,11 @@ query rough_center(mrg2);
 
 #testcase no_components for mregion
 #yields (int 25)
-query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[nc: no_components(msnow)] project[Id_t1, Name_u2, nc] count;
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Nc: no_components(msnow)] project[Id_t1, Name_u2, Nc] count;
 
 #testcase perimeter for mregion
 #yields (int 25)
-query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[peri: perimeter(msnow)] project[Id_t1, Name_u2, peri] count;
+query Trains feed {t1} head[5] UBahn feed {u2} head[5] product extend[Peri: perimeter(msnow)] project[Id_t1, Name_u2, Peri] count;
 
 #testcase area for mregion
 #yields (int 25)
