@@ -849,12 +849,16 @@ void FullOsmImport::defineRelations() {
   
   // define relation relation
   relTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("RelId"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("RefCounter"),
-                                        nl->SymbolAtom(CcInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("MemberRef"),
-                                        nl->SymbolAtom(CcInt::BasicType()))));
+      nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("RelId"), 
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("RefCounter"),
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("MemberType"),
+                                       nl->SymbolAtom(FText::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("MemberRef"),
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("MemberRole"),
+                                       nl->SymbolAtom(FText::BasicType()))));
   numRelTypeInfo = sc->NumericType(relTypeInfo);
   relType = new TupleType(numRelTypeInfo);
   relRel = new Relation(relType, isTemp);
@@ -992,18 +996,30 @@ void FullOsmImport::processRel(xmlTextReaderPtr reader) {
 
 void FullOsmImport::processRelMemberRef(xmlTextReaderPtr reader) {
   int attrCount = 0;
-  xmlChar *memberRef;
+  xmlChar *memberRef, *type, *role;
   rel->PutAttribute(0, new CcInt(true, currentId));
   memberRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (memberRef != NULL) {
     rel->PutAttribute(1, new CcInt(true, refCount));
-    rel->PutAttribute(2, new CcInt(true, OsmImportOperator::convStrToInt
+    rel->PutAttribute(3, new CcInt(true, OsmImportOperator::convStrToInt
         (( char *)memberRef)));
     refCount++;
     attrCount++;
     xmlFree(memberRef);
   }
-  if (attrCount) {
+  type = xmlTextReaderGetAttribute(reader, (xmlChar *)"type");
+  if (type != NULL) {
+    rel->PutAttribute(2, new FText(true, (char *)type));
+    attrCount++;
+    xmlFree(type);
+  }
+  role = xmlTextReaderGetAttribute(reader, (xmlChar *)"role");
+  if (role != NULL) {
+    rel->PutAttribute(4, new FText(true, (char *)role));
+    attrCount++;
+    xmlFree(role);
+  }
+  if (attrCount == 3) {
     relRel->AppendTuple(rel);
     tupleCount[4]++;
   }
