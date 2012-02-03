@@ -154,6 +154,8 @@ public:
 
     RouteCandidate& operator=(const RouteCandidate& rCandidate);
 
+    bool operator==(const RouteCandidate& rCandidate);
+
     void AddSection(const NetworkSection& rSection);
     size_t GetSectionCount(void) const;
     const NetworkSection& GetSection(size_t nSection) const;
@@ -209,6 +211,21 @@ public:
             }
 
             return *this;
+        }
+
+        bool operator==(const PointData& rPointData)
+        {
+            if (this == &rPointData)
+                return true;
+
+            if (m_pGPoint != NULL && rPointData.m_pGPoint != NULL)
+            {
+                return (m_pGPoint->Compare(*rPointData.m_pGPoint) == 0);
+            }
+            else
+            {
+                return m_pGPoint == rPointData.m_pGPoint; // Both NULL ?
+            }
         }
 
         ~PointData()
@@ -319,6 +336,37 @@ RouteCandidate& RouteCandidate::operator=(const RouteCandidate& rCandidate)
     }
 
     return *this;
+}
+
+bool RouteCandidate::operator==(const RouteCandidate& rCandidate)
+{
+    if (this == &rCandidate)
+        return true;
+
+    if (AlmostEqual(GetScore(), rCandidate.GetScore()) &&
+        GetPoints().size() == rCandidate.GetPoints().size())
+    {
+        const size_t nPoints = GetPoints().size();
+        for (size_t i = 0; i < nPoints; ++i)
+        {
+            PointData* pData1 = GetPoints()[i];
+            PointData* pData2 = rCandidate.GetPoints()[i];
+
+            if (pData1 != NULL && pData2 != NULL)
+            {
+                if (!(*pData1 == *pData2))
+                    return false;
+            }
+            else if (pData1 != pData2)
+                return false;
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void RouteCandidate::AddSection(const NetworkSection& rSection)
@@ -469,7 +517,9 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
     Point    prevEndPoint(false);
     bool     bProcessNext = true;
 
-    for (int i = 0; i < m_pMPoint->GetNoComponents(); bProcessNext ? i++ : i)
+    const int nMPointComponents = m_pMPoint->GetNoComponents();
+
+    for (int i = 0; i < 100 /*nMPointComponents*/; bProcessNext ? i++ : i)
     {
         if (bProcessNext)
             m_pMPoint->Get(i, ActUPoint);
@@ -640,26 +690,32 @@ void MapMatchingMHT::DevelopRoutes(MPoint* pMPoint,
 
     const int nNoComponents = pMPoint->GetNoComponents();
 
-    for (int i = 0; i < 60 /*nNoComponents*/; ++i)
+    /*ofstream TracePoints("/home/secondo/RouteCandidate.txt",
+                           ios_base::out|ios_base::ate|ios_base::app);*/
+
+    for (int i = 0; i < nNoComponents; ++i)
     {
         UPoint ActUPoint(false);
         pMPoint->Get(i, ActUPoint);
         if (!ActUPoint.IsDefined())
             continue;
 
-        MYVARTRACE(i);
-
         DevelopRoutes(ActUPoint.p0, ActUPoint.timeInterval.start,
                       ActUPoint.timeInterval.lc, rvecRouteCandidates);
-
-        MYVARTRACE(rvecRouteCandidates.size());
 
         DevelopRoutes(ActUPoint.p1, ActUPoint.timeInterval.end,
                       ActUPoint.timeInterval.rc, rvecRouteCandidates);
 
         ReduceRouteCandidates(rvecRouteCandidates);
 
-        MYVARTRACE(rvecRouteCandidates.size());
+        /*for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
+        {
+            TracePoints << "nach reduce" << endl;
+
+            TraceRouteCandidate(*(rvecRouteCandidates[i]), TracePoints);
+
+            TracePoints << endl;
+        }*/
     }
 }
 
@@ -844,12 +900,38 @@ static bool RouteCandidateCompare(const RouteCandidate* pRC1,
     return pRC1->GetScore() < pRC2->GetScore();
 }
 
-
 void MapMatchingMHT::ReduceRouteCandidates(std::vector<RouteCandidate*>&
                                                             rvecRouteCandidates)
 {
     if (rvecRouteCandidates.size() <= 25) // minimum 25 candidates
         return;
+
+    std::sort(rvecRouteCandidates.begin(),
+              rvecRouteCandidates.end(),
+              RouteCandidateCompare);
+
+    // Remove duplicates
+    for (size_t i = 0; i < rvecRouteCandidates.size(); /*empty*/)
+    {
+        size_t j = i + 1;
+        for (j = i + 1; j < rvecRouteCandidates.size(); ++j)
+        {
+            RouteCandidate* pRouteCandidate1 = rvecRouteCandidates[i];
+            RouteCandidate* pRouteCandidate2 = rvecRouteCandidates[j];
+
+            if (*pRouteCandidate1 == *pRouteCandidate2)
+            {
+                rvecRouteCandidates[j]->MarkAsInvalid();
+            }
+            else
+            {
+                // The candidates are sorted by score -
+                // Candidates with different score are not equal
+                break;
+            }
+        }
+        i = j + 1;
+    }
 
     std::sort(rvecRouteCandidates.begin(),
               rvecRouteCandidates.end(),
@@ -911,6 +993,9 @@ void MapMatchingMHT::AddAdjacentSections(RouteCandidate* pCandidate,
                                              adjSectionList[i].GetSectionTid());
             NetworkSection adjSection(pSectionTuple, m_pNetwork, false);
 
+            if (adjSection.GetSectionID() == rSection.GetSectionID())
+                continue;
+
             /* erst mal nicht wiederverwenden
             if (i == adjSectionList.size() - 1)
             {
@@ -921,12 +1006,6 @@ void MapMatchingMHT::AddAdjacentSections(RouteCandidate* pCandidate,
             }
             else*/
             {
-                if (pCandidate->GetPoints().size() > 0)
-                {
-                    double d = 6;
-                    d = d*d;
-
-                }
                 // make copy of current candidate
                 RouteCandidate* pNewCandidate = new RouteCandidate(*pCandidate);
                 pNewCandidate->AddSection(adjSection);
@@ -1024,6 +1103,41 @@ void MapMatchingMHT::CreateCompleteRoute(
         }
     }
 }
+
+
+void MapMatchingMHT::TraceRouteCandidate(const RouteCandidate& rCandidate,
+                                         std::ostream& rStream) const
+{
+    Points* pts = new Points(1);
+    pts->StartBulkLoad();
+
+    const size_t n = rCandidate.GetPoints().size();
+    for (size_t j = 0; j < n; ++j)
+    {
+        Point* pt = new Point(false);
+        rCandidate.GetPoints()[j]->m_pGPoint->ToPoint(pt);
+        *pts += *pt;
+        pt->DeleteIfAllowed();
+    }
+
+    pts->EndBulkLoad(false, false, false);
+
+    rStream << "Candidate:" << endl;
+
+    rStream << "Points:" << endl;
+    pts->Print(rStream);
+
+    rStream << endl << "Sections:" << endl;
+
+    for (size_t j = 0; j < rCandidate.GetSectionCount(); ++j)
+    {
+        rStream << rCandidate.GetSection(j).GetSectionID() << endl;
+    }
+
+
+    pts->DeleteIfAllowed();
+}
+
 
 } // end of namespace mapmatch
 

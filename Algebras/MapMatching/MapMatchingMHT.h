@@ -116,6 +116,9 @@ private:
     void GetSectionsOfRoute(const class NetworkRoute& rNetworkRoute,
                             const Region& rRegion,
                             std::vector<NetworkSection>& rVecSectRes);
+
+    void TraceRouteCandidate(const RouteCandidate& rCandidate,
+                             std::ostream& rStream) const;
 };
 
 } // end of namespace mapmatch
