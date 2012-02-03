@@ -1253,7 +1253,7 @@ buildSmallRelation(ExtRel, ExtRelSmall, 0, X) :-
                  ExtRelSmall,',0,',X,').']),
   dcName2externalName(DCrel,ExtRel),
   dcName2externalName(DCrelSmall,ExtRelSmall),
-  atom_concat('xxxID', DCrel, IDAttr),
+  atom_concat('XxxID', DCrel, IDAttr),
   % just add tuple counter...
   concat_atom(['derive ', ExtRelSmall, ' = ', ExtRel,
     ' feed extend[', IDAttr, ': seqnext()] consume'], '', QueryAtom),
@@ -1268,7 +1268,7 @@ buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent) :-
                  ExtRelSmall,',',MinSize,',',Percent,').']),
   dcName2externalName(DCrel,ExtRel),
   dcName2externalName(DCrelSmall,ExtRelSmall),
-  atom_concat('xxxID', DCrel, IDAttr),
+  atom_concat('XxxID', DCrel, IDAttr),
   concat_atom(['derive ', ExtRelSmall, ' = ', ExtRel,
     ' sample[', MinSize, ', ', Percent, '] extend[', IDAttr,
     ': seqnext()] consume'], '',
@@ -1652,7 +1652,7 @@ sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
   secondoCatalogInfo(_,ExtRel,_,[[trel, [tuple, _]]]),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' feed head[', SampleSize, ']
-      extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
+      extend[XxxNo: randint(20000)] sortby[XxxNo asc] remove[XxxNo]
       consume'], '', QueryAtom).
 
 % standard case: rel
@@ -1662,7 +1662,7 @@ sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
   secOptConstant(sampleScalingFactor, SF),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' sample[', SampleSize, ',', SF, ']
-      extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
+      extend[XxxNo: randint(20000)] sortby[XxxNo asc] remove[XxxNo]
       consume'], '', QueryAtom).
 
 /*
@@ -2408,8 +2408,8 @@ logicalIndexType(keywdh, keyword(hash), hash,
 % index types on spatio-temporal data
 logicalIndexType(tmpobj, temporal(rtree, object), rtree,
     [upoint,uregion,mpoint,mregion],
-    [ '__REL__', ' feed addid extend[ p: point2d( deftime(.',
-      '__ATTR__', ') ) ] creatertree[ p ]' ],
+    [ '__REL__', ' feed addid extend[ P: point2d( deftime(.',
+      '__ATTR__', ') ) ] creatertree[ P ]' ],
     undefined,
     undefined,
     undefined).
@@ -2426,8 +2426,8 @@ logicalIndexType(tmpuni, temporal(rtree, unit), rtree,
 
 logicalIndexType(sptobj, spatial(rtree, object), rtree,
     [upoint,uregion,mpoint,mregion],
-    [ '__REL__', ' feed addid extend[ t: trajectory(.',
-      '__ATTR__', ') ] creatertree[ t ]' ],
+    [ '__REL__', ' feed addid extend[ T: trajectory(.',
+      '__ATTR__', ') ] creatertree[ T ]' ],
     undefined,
     undefined,
     undefined).
@@ -2443,9 +2443,9 @@ logicalIndexType(sptuni, spatial(rtree, unit), rtree,
 %%% XRIS: CREATERTREE  ?????
 logicalIndexType(sptmpobj, spatiotemporal(rtree3, object), rtree3,
     [upoint,uregion,mpoint,mregion],
-    [ '__REL__', ' feed addid extend[ b: box3d( bbox( trajectory(.',
+    [ '__REL__', ' feed addid extend[ B: box3d( bbox( trajectory(.',
       '__ATTR__', ') ), deftime( .',
-      '__ATTR__', ') ) ] sortby[b asc] bulkloadrtree[ b ]' ],
+      '__ATTR__', ') ) ] sortby[B asc] bulkloadrtree[ B ]' ],
     undefined,
     undefined,
     undefined).
@@ -3717,10 +3717,10 @@ getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
   getTupleInfoQuery2(ExtRel,ExtAttrList,DCAttrList,ExtensionList),
   concat_atom([
       'query 1 feed transformstream projectextend[; ',
-      'cardi_nality: (',ExtRel,' count), ',
-      'tuple_TotalSize: (',ExtRel,' tuplesize), ',
-      'tuple_CoreSize: (',ExtRel,' exttuplesize), ',
-      'tuple_LOBSize: ((',ExtRel,' tuplesize) - (',ExtRel,' exttuplesize)), ',
+      'Cardi_nality: (',ExtRel,' count), ',
+      'Tuple_TotalSize: (',ExtRel,' tuplesize), ',
+      'Tuple_CoreSize: (',ExtRel,' exttuplesize), ',
+      'Tuple_LOBSize: ((',ExtRel,' tuplesize) - (',ExtRel,' exttuplesize)), ',
       ExtensionList,' ] tconsume'], '', TupleInfoQuery),
   write_list(['\n\nRES: ',
       getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),'\n\n']),
@@ -3747,8 +3747,8 @@ getTupleInfoQuery3(R,AttrList,AttrDClist,AttrExtensionList):-
   getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
   dcName2externalName(AttrDC,A),
   concat_atom([
-     AttrDC,'_c: (',R,' extattrsize[',A,']), ',
-     AttrDC,'_l: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
+     A,'_c: (',R,' extattrsize[',A,']), ',
+     A,'_l: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
     ],'',AttrExtension),
   AttrDClist        = [AttrDC|MoreDCAttrs],
   AttrExtensionList = [AttrExtension|MoreAttrExtensions],
