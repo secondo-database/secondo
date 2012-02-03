@@ -46,7 +46,7 @@ public static void main(String[] args){
   try {
      String name = args[0];
      BufferedReader in = new BufferedReader(new FileReader(name));
-     System.out.println("( ( rel(tuple( ( id int) ( r rect)))) ");
+     System.out.println("( ( rel(tuple( ( Id int) ( R rect)))) ");
      System.out.println("  (");
      String line;
      while(in.ready()){

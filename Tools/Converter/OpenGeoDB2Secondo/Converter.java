@@ -158,8 +158,8 @@ private static int searchOrt(String Line){
      System.out.println("       (rel ");
      System.out.println("         (tuple");
      System.out.println("           (");
-     System.out.println("             (key int)");
-         System.out.println("             (Staat string)");
+     System.out.println("             (Key int)");
+     System.out.println("             (Staat string)");
      System.out.println("             (Bundesland string)");
      System.out.println("             (Regierungsbezirk string)");
      System.out.println("             (Landkreis text)");
@@ -265,8 +265,8 @@ private static void printPLZ(){
   System.out.println("       (rel ");
   System.out.println("         (tuple");
   System.out.println("           (");
-  System.out.println("             (key int)");
-  System.out.println("             (plz int))))");
+  System.out.println("             (Key int)");
+  System.out.println("             (Plz int))))");
   System.out.println("        (");
   Iterator i = PLZRel.iterator();
   while(i.hasNext()){
@@ -303,7 +303,7 @@ private static int processLine(String Line, int Mode){
      System.out.println("         (tuple");
      System.out.println("           (");
      System.out.println("             (Ident string)");
-         System.out.println("             (Name string))))");
+     System.out.println("             (Name string))))");
      System.out.println("        (");
       }
    } else
@@ -326,7 +326,7 @@ private static int processLine(String Line, int Mode){
      System.out.println("         (tuple");
      System.out.println("           (");
      System.out.println("             (Kzeichen string)");
-         System.out.println("             (Landkreis text))))");
+     System.out.println("             (Landkreis text))))");
      System.out.println("        (");
       }
    } else

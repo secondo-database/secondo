@@ -154,9 +154,9 @@ public static void main(String[] args){
    /* write the type */
    out.println(" ( OBJECT " + name + "  ()");
    out.println("    ( rel ( tuple ( ");
-   out.println("                    (objid int)");
-   out.println("                    (trjid int)");
-   out.println("                    (trip mpoint)");
+   out.println("                    (Objid int)");
+   out.println("                    (Trjid int)");
+   out.println("                    (Trip mpoint)");
    out.println("                  )))");
    out.println(" ("); // open value list
 

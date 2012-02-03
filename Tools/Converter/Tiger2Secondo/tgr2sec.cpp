@@ -475,31 +475,31 @@ public:
   static string Extension(){ return "RT3";}
   static void writeRelType(ostream& out){
      out << " ( rel (tuple (" << endl;
-     out << "      (tlid string ) " << endl;
-     out << "      (state90l int) " << endl;
-     out << "      (state90r int ) " << endl;
-     out << "      (county90l string ) " << endl;
-     out << "      (county90r string ) " << endl;
-     out << "      (cousub90l string ) " << endl;
-     out << "      (cousub90r string ) " << endl;
-     out << "      (place90l string ) " << endl;
-     out << "      (place90r string ) " << endl;
-     out << "      (tract90l string ) " << endl;
-     out << "      (tract90r string ) " << endl;
-     out << "      (aianhhce90l string ) " << endl;
-     out << "      (aianhhce90r string ) " << endl;
-     out << "      (aihhtli90l string ) " << endl;
-     out << "      (aihhtli90r string ) " << endl;
-     out << "      (block90l string ) " << endl;
-     out << "      (block90r string ) " << endl;
-     out << "      (aianhhcel string ) " << endl;
-     out << "      (aianhhcer string ) " << endl;
-     out << "      (anrcl string ) " << endl;
-     out << "      (anrcr string ) " << endl;
-     out << "      (aitscel string ) " << endl;
-     out << "      (aitscer string ) " << endl;
-     out << "      (aitsl string ) " << endl;
-     out << "      (aitsr string ) " << endl;
+     out << "      (Tlid string ) " << endl;
+     out << "      (State90l int) " << endl;
+     out << "      (State90r int ) " << endl;
+     out << "      (County90l string ) " << endl;
+     out << "      (County90r string ) " << endl;
+     out << "      (Cousub90l string ) " << endl;
+     out << "      (Cousub90r string ) " << endl;
+     out << "      (Place90l string ) " << endl;
+     out << "      (Place90r string ) " << endl;
+     out << "      (Tract90l string ) " << endl;
+     out << "      (Tract90r string ) " << endl;
+     out << "      (Aianhhce90l string ) " << endl;
+     out << "      (Aianhhce90r string ) " << endl;
+     out << "      (Aihhtli90l string ) " << endl;
+     out << "      (Aihhtli90r string ) " << endl;
+     out << "      (Block90l string ) " << endl;
+     out << "      (Block90r string ) " << endl;
+     out << "      (Aianhhcel string ) " << endl;
+     out << "      (Aianhhcer string ) " << endl;
+     out << "      (Anrcl string ) " << endl;
+     out << "      (Anrcr string ) " << endl;
+     out << "      (Aitscel string ) " << endl;
+     out << "      (Aitscer string ) " << endl;
+     out << "      (Aitsl string ) " << endl;
+     out << "      (Aitsr string ) " << endl;
      out << " )))" << endl; // close type information
   }
   void writeTuple(ostream& out){
@@ -579,13 +579,13 @@ public:
 
   static void writeRelType(ostream& out){ 
     out << " ( rel (tuple ( "  << endl;
-    out << "      (tlid  string) " << endl;
-    out << "      (rtsq  string) " << endl;
-    out << "      (feat1  string) " << endl;
-    out << "      (feat2  string) " << endl;
-    out << "      (feat3  string) " << endl;
-    out << "      (feat4  string) " << endl;
-    out << "      (feat5  string) " << endl;
+    out << "      (Tlid  string) " << endl;
+    out << "      (Rtsq  string) " << endl;
+    out << "      (Feat1  string) " << endl;
+    out << "      (Feat2  string) " << endl;
+    out << "      (Feat3  string) " << endl;
+    out << "      (Feat4  string) " << endl;
+    out << "      (Feat5  string) " << endl;
     out << " )))" << endl;
   }
 
@@ -630,12 +630,12 @@ public:
   static string Extension(){ return "RT5"; }
   static void writeRelType(ostream& out){
     out << " ( rel (tuple ( "  << endl;
-    out << "      (file  string) " << endl;
-    out << "      (feat  string) " << endl;
-    out << "      (fedirp  string) " << endl;
-    out << "      (fename  string) " << endl;
-    out << "      (fetype  string) " << endl;
-    out << "      (fedirs  string) " << endl;
+    out << "      (File  string) " << endl;
+    out << "      (Feat  string) " << endl;
+    out << "      (Fedirp  string) " << endl;
+    out << "      (Fename  string) " << endl;
+    out << "      (Fetype  string) " << endl;
+    out << "      (Fedirs  string) " << endl;
     out << " )))" << endl;
   }
   void writeTuple(ostream& out){
@@ -684,18 +684,18 @@ public:
   static string Extension(){ return "RT6"; }
   static void writeRelType(ostream& out){
     out << " ( rel (tuple ( "  << endl;
-    out << "      (tlid  string) " << endl;
-    out << "      (rtsq  string) " << endl;
-    out << "      (fraddl  string) " << endl;
-    out << "      (toaddl  string) " << endl;
-    out << "      (fraddr  string) " << endl;
-    out << "      (toaddr  string) " << endl;
-    out << "      (friaddl  string) " << endl;
-    out << "      (toiaddl  string) " << endl;
-    out << "      (friaddr  string) " << endl;
-    out << "      (toiaddr  string) " << endl;
-    out << "      (zipl  string) " << endl;
-    out << "      (zipr  string) " << endl;
+    out << "      (Tlid  string) " << endl;
+    out << "      (Rtsq  string) " << endl;
+    out << "      (Fraddl  string) " << endl;
+    out << "      (Toaddl  string) " << endl;
+    out << "      (Fraddr  string) " << endl;
+    out << "      (Toaddr  string) " << endl;
+    out << "      (Friaddl  string) " << endl;
+    out << "      (Toiaddl  string) " << endl;
+    out << "      (Friaddr  string) " << endl;
+    out << "      (Toiaddr  string) " << endl;
+    out << "      (Zipl  string) " << endl;
+    out << "      (Zipr  string) " << endl;
     out << " )))" << endl;
   }
   void writeTuple(ostream& out){
@@ -775,10 +775,10 @@ class RT8{
  static string Extension(){ return "RT8"; };
  static void writeRelType(ostream& out){
     out << "(rel (tuple (" << endl;
-    out << "    (file string) " << endl;
-    out << "    (cenid string) " << endl;
-    out << "    (polyid string) " << endl;
-    out << "    (land string) " << endl;
+    out << "    (File string) " << endl;
+    out << "    (Cenid string) " << endl;
+    out << "    (Polyid string) " << endl;
+    out << "    (Land string) " << endl;
     out << " ))) " << endl;
  }
  void writeTuple(ostream& out){
@@ -823,16 +823,16 @@ class RT9{
 
    static void writeRelType(ostream& out){
       out << "(rel (tuple ( " << endl;
-      out << "   (file     string )" << endl;
-      out << "   (cenid    string )" << endl;
-      out << "   (polyid   string )" << endl;
-      out << "   (source   string )" << endl;
-      out << "   (cfcc     string )" << endl;
-      out << "   (kglname  string )" << endl;
-      out << "   (kgladd   string )" << endl;
-      out << "   (kglzip   string )" << endl;
-      out << "   (kglzip4  string )" << endl;
-      out << "   (feat     string )" << endl;
+      out << "   (File     string )" << endl;
+      out << "   (Cenid    string )" << endl;
+      out << "   (Polyid   string )" << endl;
+      out << "   (Source   string )" << endl;
+      out << "   (Cfcc     string )" << endl;
+      out << "   (Kglname  string )" << endl;
+      out << "   (Kgladd   string )" << endl;
+      out << "   (Kglzip   string )" << endl;
+      out << "   (Kglzip4  string )" << endl;
+      out << "   (Feat     string )" << endl;
       out << ")))" << endl;
    }
 
@@ -897,26 +897,26 @@ class RTA{
 
     static void writeRelType(ostream& out){
        out << "(rel(tuple( " << endl;
-       out << "   (file string) " << endl;
-       out << "   (cenid string) " << endl;
-       out << "   (polyid string) " << endl;
-       out << "   (aianhh90 string) " << endl;
-       out << "   (cousub90 string) " << endl;
-       out << "   (place90 string) " << endl;
-       out << "   (tract90 string) " << endl;
-       out << "   (block90 string) " << endl;
-       out << "   (cd106 string) " << endl;
-       out << "   (cd108 string) " << endl;
-       out << "   (sdelm string) " << endl;
-       out << "   (puma1 string) " << endl;
-       out << "   (sdsec string) " << endl;
-       out << "   (sduni string) " << endl;
-       out << "   (taz string) " << endl;
-       out << "   (ua90 string) " << endl;
-       out << "   (ur90 string) " << endl;
-       out << "   (state90 string) " << endl;
-       out << "   (county90 string) " << endl;
-       out << "   (aianhhce90 string) " << endl;
+       out << "   (File string) " << endl;
+       out << "   (Cenid string) " << endl;
+       out << "   (Polyid string) " << endl;
+       out << "   (Aianhh90 string) " << endl;
+       out << "   (Cousub90 string) " << endl;
+       out << "   (Place90 string) " << endl;
+       out << "   (Tract90 string) " << endl;
+       out << "   (Block90 string) " << endl;
+       out << "   (Cd106 string) " << endl;
+       out << "   (Cd108 string) " << endl;
+       out << "   (Sdelm string) " << endl;
+       out << "   (Puma1 string) " << endl;
+       out << "   (Sdsec string) " << endl;
+       out << "   (Sduni string) " << endl;
+       out << "   (Taz string) " << endl;
+       out << "   (Ua90 string) " << endl;
+       out << "   (Ur90 string) " << endl;
+       out << "   (State90 string) " << endl;
+       out << "   (County90 string) " << endl;
+       out << "   (Aianhhce90 string) " << endl;
        out << " )))" << endl;
    }
 
@@ -987,21 +987,21 @@ public:
 
   static void writeRelType(ostream& out){
      out << "(rel (tuple (" << endl;
-     out << "     (state   string)" << endl;
-     out << "     (county   string)" << endl;
-     out << "     (datayr   string)" << endl;
-     out << "     (fips   string)" << endl;
-     out << "     (fipscc   string)" << endl;
-     out << "     (placedc   string)" << endl;
-     out << "     (lsadc   string)" << endl;
-     out << "     (entity   string)" << endl;
-     out << "     (ma   string)" << endl;
-     out << "     (sd   string)" << endl;
-     out << "     (aianhhce   string)" << endl;
-     out << "     (vtdtract   string)" << endl;
-     out << "     (uaga   string)" << endl;
-     out << "     (aitsce   string)" << endl;
-     out << "     (name   string)" << endl;
+     out << "     (State   string)" << endl;
+     out << "     (County   string)" << endl;
+     out << "     (Datayr   string)" << endl;
+     out << "     (Fips   string)" << endl;
+     out << "     (Fipscc   string)" << endl;
+     out << "     (Placedc   string)" << endl;
+     out << "     (Lsadc   string)" << endl;
+     out << "     (Entity   string)" << endl;
+     out << "     (Ma   string)" << endl;
+     out << "     (Sd   string)" << endl;
+     out << "     (Aianhhce   string)" << endl;
+     out << "     (Vtdtract   string)" << endl;
+     out << "     (Uaga   string)" << endl;
+     out << "     (Aitsce   string)" << endl;
+     out << "     (Name   string)" << endl;
      out << ")))" << endl;
   }
 
@@ -1058,14 +1058,14 @@ public:
 
   static void writeRelType(ostream& out){
     out << " (rel (tuple ( ";
-    out << "    (file  string )" << endl;
-    out << "    (tlid  string )" << endl;
-    out << "    (hist  string )" << endl;
-    out << "    (source  string )" << endl;
-    out << "    (tlidfr1  string )" << endl;
-    out << "    (tlidfr2  string )" << endl;
-    out << "    (tlidto1  string )" << endl;
-    out << "    (tlidto2  string )" << endl;
+    out << "    (File  string )" << endl;
+    out << "    (Tlid  string )" << endl;
+    out << "    (Hist  string )" << endl;
+    out << "    (Source  string )" << endl;
+    out << "    (Tlidfr1  string )" << endl;
+    out << "    (Tlidfr2  string )" << endl;
+    out << "    (Tlidto1  string )" << endl;
+    out << "    (Tlidto2  string )" << endl;
     out << " ))) " << endl;
   }
 
@@ -1114,13 +1114,13 @@ public:
 
    static void writeRelType(ostream& out){
       out << "( rel ( tuple (" << endl;
-      out << "   (tlid   string)" << endl;
-      out << "   (file   string)" << endl;
-      out << "   (rtlink   string)" << endl;
-      out << "   (cenidl   string)" << endl;
-      out << "   (polyidl   string)" << endl;
-      out << "   (cenidr   string)" << endl;
-      out << "   (polyidr   string)" << endl;
+      out << "   (Tlid   string)" << endl;
+      out << "   (File   string)" << endl;
+      out << "   (Rtlink   string)" << endl;
+      out << "   (Cenidl   string)" << endl;
+      out << "   (Polyidl   string)" << endl;
+      out << "   (Cenidr   string)" << endl;
+      out << "   (Polyidr   string)" << endl;
       out << " ))) " << endl;
    }
 
@@ -1167,10 +1167,10 @@ class RTP{
 
     static void writeRelType(ostream& out){
        out << "(rel (tuple ( " << endl;
-       out << "   (file string) " << endl;
-       out << "   (cenid string) " << endl;
-       out << "   (polyid string) " << endl;
-       out << "   (innerPoint point) " << endl;
+       out << "   (File string) " << endl;
+       out << "   (Cenid string) " << endl;
+       out << "   (Polyid string) " << endl;
+       out << "   (InnerPoint point) " << endl;
        out << " ))) " << endl;
     }
 
@@ -1211,11 +1211,11 @@ public:
 
   static void writeRelType(ostream& out){
      out << " (rel ( tuple ( ";
-     out << "    (file string) " << endl;
-     out << "    (cenid string) " << endl;
-     out << "    (maxid string) " << endl;
-     out << "    (minid string) " << endl;
-     out << "    (highid string) " << endl;
+     out << "    (File string) " << endl;
+     out << "    (Cenid string) " << endl;
+     out << "    (Maxid string) " << endl;
+     out << "    (Minid string) " << endl;
+     out << "    (Highid string) " << endl;
      out << " )))" << endl;
   }
 
@@ -1281,35 +1281,35 @@ public:
   static string Extension(){ return "RTS"; }
   static void writeRelType(ostream& out){
     out << "(rel (tuple (" << endl;
-    out << "   (file  string)" << endl;
-    out << "   (cenid  string)" << endl;
-    out << "   (polyid  string)" << endl;
-    out << "   (water  string)" << endl;
-    out << "   (msacmsa  string)" << endl;
-    out << "   (pmsa  string)" << endl;
-    out << "   (aianhh  string)" << endl;
-    out << "   (aianhhce  string)" << endl;
-    out << "   (aihhtli  string)" << endl;
-    out << "   (state  string)" << endl;
-    out << "   (county  string)" << endl;
-    out << "   (concit  string)" << endl;
-    out << "   (cousub  string)" << endl;
-    out << "   (submcd  string)" << endl;
-    out << "   (place  string)" << endl;
-    out << "   (tract  string)" << endl;
-    out << "   (block  string)" << endl;
-    out << "   (census6  string)" << endl;
-    out << "   (cdcu  string)" << endl;
-    out << "   (sldu  string)" << endl;
-    out << "   (sldl  string)" << endl;
-    out << "   (uga  string)" << endl;
-    out << "   (blkgrp  string)" << endl;
-    out << "   (vtd  string)" << endl;
-    out << "   (statecol  string)" << endl;
-    out << "   (countycol  string)" << endl;
-    out << "   (blockcol  string)" << endl;
-    out << "   (blksufcol  string)" << endl;
-    out << "   (zcta5  string)" << endl;
+    out << "   (File  string)" << endl;
+    out << "   (Cenid  string)" << endl;
+    out << "   (Polyid  string)" << endl;
+    out << "   (Water  string)" << endl;
+    out << "   (Msacmsa  string)" << endl;
+    out << "   (Pmsa  string)" << endl;
+    out << "   (Aianhh  string)" << endl;
+    out << "   (Aianhhce  string)" << endl;
+    out << "   (Aihhtli  string)" << endl;
+    out << "   (State  string)" << endl;
+    out << "   (County  string)" << endl;
+    out << "   (Concit  string)" << endl;
+    out << "   (Cousub  string)" << endl;
+    out << "   (Submcd  string)" << endl;
+    out << "   (Place  string)" << endl;
+    out << "   (Tract  string)" << endl;
+    out << "   (Block  string)" << endl;
+    out << "   (Census6  string)" << endl;
+    out << "   (Cdcu  string)" << endl;
+    out << "   (Sldu  string)" << endl;
+    out << "   (Sldl  string)" << endl;
+    out << "   (Uga  string)" << endl;
+    out << "   (Blkgrp  string)" << endl;
+    out << "   (Vtd  string)" << endl;
+    out << "   (Statecol  string)" << endl;
+    out << "   (Countycol  string)" << endl;
+    out << "   (Blockcol  string)" << endl;
+    out << "   (Blksufcol  string)" << endl;
+    out << "   (Zcta5  string)" << endl;
     out << " ))) " << endl;
   }
 
@@ -1373,10 +1373,10 @@ public:
   static string Extension(){return "RTZ";}
   static void writeRelType(ostream& out){
      out << "(rel (tuple ( " << endl;
-     out << "   (tlid string )" << endl;
-     out << "   (rtsq string )" << endl;
-     out << "   (zip4l string )" << endl;
-     out << "   (zip4r string )" << endl;
+     out << "   (Tlid string )" << endl;
+     out << "   (Rtsq string )" << endl;
+     out << "   (Zip4l string )" << endl;
+     out << "   (Zip4r string )" << endl;
      out << ")))" << endl;
   }
   void writeTuple(ostream& out){
@@ -1465,45 +1465,45 @@ bool writeRT1_2Relation(string filename, ostream& out){
    } 
    // write type information
    out << " ( rel (tuple ( ";
-   out << "    (tlid string)" ; 
-   out << "    (side1 string)" ;
-   out << "    (source string)";
-   out << "    (fedirp string)";
-   out << "    (name string)";
-   out << "    (type string)"; 
-   out << "    (fedirs string)";
-   out << "    (cfcc string)";
-   out << "    (fraddl string)";
-   out << "    (toaddl string)";
-   out << "    (fraddr string)";
-   out << "    (toaddr string)";
-   out << "    (friaddl string)";
-   out << "    (toiaddl string)";
-   out << "    (friaddr string)";
-   out << "    (toiaddr string)";
-   out << "    (zipl string)";
-   out << "    (zipr string)";
-   out << "    (aianhhl string)";
-   out << "    (aianhhr string)";
-   out << "    (aihhtlil string)";
-   out << "    (aihhtlir string)";
-   out << "    (census1 string)";
-   out << "    (census2 string)";
-   out << "    (statel string)";
-   out << "    (stater string)";
-   out << "    (countyl string)";
-   out << "    (countyr string)";
-   out << "    (cousubl string)";
-   out << "    (cousubr string)";
-   out << "    (submcdl string)";
-   out << "    (submcdr string)";
-   out << "    (placel string)";
-   out << "    (placer string)";
-   out << "    (tract90l string)";
-   out << "    (tract90r string)";
-   out << "    (block90l string)";
-   out << "    (block90r string)";
-   out << "    (shape line)";
+   out << "    (Tlid string)" ; 
+   out << "    (Side1 string)" ;
+   out << "    (Source string)";
+   out << "    (Fedirp string)";
+   out << "    (Name string)";
+   out << "    (Type string)"; 
+   out << "    (Fedirs string)";
+   out << "    (Cfcc string)";
+   out << "    (Fraddl string)";
+   out << "    (Toaddl string)";
+   out << "    (Fraddr string)";
+   out << "    (Toaddr string)";
+   out << "    (Friaddl string)";
+   out << "    (Toiaddl string)";
+   out << "    (Friaddr string)";
+   out << "    (Toiaddr string)";
+   out << "    (Zipl string)";
+   out << "    (Zipr string)";
+   out << "    (Aianhhl string)";
+   out << "    (Aianhhr string)";
+   out << "    (Aihhtlil string)";
+   out << "    (Aihhtlir string)";
+   out << "    (Census1 string)";
+   out << "    (Census2 string)";
+   out << "    (Statel string)";
+   out << "    (Stater string)";
+   out << "    (Countyl string)";
+   out << "    (Countyr string)";
+   out << "    (Cousubl string)";
+   out << "    (Cousubr string)";
+   out << "    (Submcdl string)";
+   out << "    (Submcdr string)";
+   out << "    (Placel string)";
+   out << "    (Placer string)";
+   out << "    (Tract90l string)";
+   out << "    (Tract90r string)";
+   out << "    (Block90l string)";
+   out << "    (Block90r string)";
+   out << "    (Shape line)";
    out << " )))" << endl;
 
    // write the value
@@ -1632,11 +1632,11 @@ void writeRT7Relation(string filename,ostream& out, const bool points){
      out << "_points";
   out << " () " << endl;
   out << " ( rel (tuple ( "  << endl;
-  out << "      (file  string) " << endl;
-  out << "      (land  string) " << endl;
-  out << "      (source  string) " << endl;
-  out << "      (cfcc  string) " << endl;
-  out << "      (laname  string) " << endl;
+  out << "      (File  string) " << endl;
+  out << "      (Land  string) " << endl;
+  out << "      (Source  string) " << endl;
+  out << "      (Cfcc  string) " << endl;
+  out << "      (Laname  string) " << endl;
   if(points)
      out << "      (location point) " << endl;
   out << " )))" << endl;
