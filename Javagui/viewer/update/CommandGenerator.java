@@ -155,7 +155,7 @@ well.
       
 //			updateCommand.append("(feed " + relName + " ) " + relName + " (tid " + nextTid + " ) ");
     // new version without the stream in update
-			updateCommand.append(relName + " (tid " + nextTid + " ) ");
+			updateCommand.append(relName + " (Tid " + nextTid + " ) ");
 
 			nextUpdateTuple = viewer.getUpdateTuple(updateTuples[j]);
 			nextOriginalTuple = viewer.getOriginalTuple(updateTuples[j]);

@@ -59,9 +59,9 @@ public class Dsplnmap extends DisplayGraph {
      return
        ListExpr.twoElemList( ListExpr.symbolAtom( "rel" ),
          ListExpr.twoElemList( ListExpr.symbolAtom( "tuple" ),
-           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "name" ),
+           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "Name" ),
                                                        ListExpr.symbolAtom( "string" ) ),
-                                 ListExpr.twoElemList( ListExpr.symbolAtom( "object" ),
+                                 ListExpr.twoElemList( ListExpr.symbolAtom( "Object" ),
                                                        ListExpr.symbolAtom( "point" ) ) ) ) );
    }
 
@@ -70,9 +70,9 @@ public class Dsplnmap extends DisplayGraph {
      return
        ListExpr.twoElemList( ListExpr.symbolAtom( "rel" ),
          ListExpr.twoElemList( ListExpr.symbolAtom( "tuple" ),
-           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "name" ),
+           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "Name" ),
                                                        ListExpr.symbolAtom( "string" ) ),
-                                 ListExpr.twoElemList( ListExpr.symbolAtom( "sline" ),
+                                 ListExpr.twoElemList( ListExpr.symbolAtom( "Line" ),
                                                        ListExpr.symbolAtom( "line" ) ) ) ) );
    }
 
@@ -81,9 +81,9 @@ public class Dsplnmap extends DisplayGraph {
      return
        ListExpr.twoElemList( ListExpr.symbolAtom( "rel" ),
          ListExpr.twoElemList( ListExpr.symbolAtom( "tuple" ),
-           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "name" ),
+           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "Name" ),
                                                        ListExpr.symbolAtom( "string" ) ),
-                                 ListExpr.twoElemList( ListExpr.symbolAtom( "area" ),
+                                 ListExpr.twoElemList( ListExpr.symbolAtom( "Area" ),
                                                        ListExpr.symbolAtom( "region" ) ) ) ) );
    }
 
