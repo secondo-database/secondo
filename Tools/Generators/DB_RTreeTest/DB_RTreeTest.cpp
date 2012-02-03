@@ -48,7 +48,7 @@ int main()
   output << "(DATABASE RTREETEST (TYPES)(OBJECTS" << endl;
 
   // integer relation
-  output << "(OBJECT intRel()(rel(tuple((i int))))(";
+  output << "(OBJECT intRel()(rel(tuple((I int))))(";
   for (int i = 1; i <= size_intRel; i++)
   {
    output << endl;
@@ -57,7 +57,7 @@ int main()
   output << "))" << endl;
 
   // floating point relation
-  output << "(OBJECT realRel()(rel(tuple((r real))))(";
+  output << "(OBJECT realRel()(rel(tuple((R real))))(";
   for (int i = 1; i <= size_realRel; i++)
   {
    output << endl;
@@ -66,7 +66,7 @@ int main()
   output << "))" << endl;
 
   // boolean relation
-  output << "(OBJECT boolRel()(rel(tuple((b bool))))(";
+  output << "(OBJECT boolRel()(rel(tuple((B bool))))(";
   string boolValue;
   for (int i = 1; i <= size_boolRel; i++)
   {
@@ -78,7 +78,7 @@ int main()
   output << "))" << endl;
 
   // string relation
-  output << "(OBJECT stringRel()(rel(tuple((s string))))(";
+  output << "(OBJECT stringRel()(rel(tuple((S string))))(";
   for (int i = 1; i <= size_stringRel; i++)
   {
    output << endl;
@@ -92,7 +92,7 @@ int main()
   output << "))" << endl;
 
   // point relation
-  output << "(OBJECT pointRel()(rel(tuple((p point))))(";
+  output << "(OBJECT pointRel()(rel(tuple((P point))))(";
   for (int i = 1; i <= size_pointRel; i++)
   {
    output << endl;
@@ -102,7 +102,7 @@ int main()
   output << "))" << endl;
 
   // points relation
-  output << "(OBJECT pointsRel()(rel(tuple((ps points))))(";
+  output << "(OBJECT pointsRel()(rel(tuple((Ps points))))(";
   for (int i = 1; i <= size_pointsRel; i++)
   {
    output << endl << "(( ";
@@ -117,7 +117,7 @@ int main()
   output << "))" << endl;
 
   // line relation
-  output << "(OBJECT lineRel()(rel(tuple((l line))))(";
+  output << "(OBJECT lineRel()(rel(tuple((L line))))(";
   for (int i = 1; i <= size_lineRel; i++)
   {
    output << endl;
@@ -129,7 +129,7 @@ int main()
   output << "))" << endl;
 
   // region relation
-  output << "(OBJECT regionRel()(rel(tuple((rg region))))(";
+  output << "(OBJECT regionRel()(rel(tuple((Rg region))))(";
   for (int i = 1; i <= size_regionRel; i++)
   {
    output << endl;
@@ -147,7 +147,7 @@ int main()
   output << "))" << endl;
 
   // sline relation
-  output << "(OBJECT slineRel()(rel(tuple((sl sline))))(";
+  output << "(OBJECT slineRel()(rel(tuple((Sl sline))))(";
   for (int i = 1; i <= size_slineRel; i++)
   {
    output << endl;
@@ -161,7 +161,7 @@ int main()
   output << "))" << endl;
 
   // ipoint relation
-  output << "(OBJECT ipointRel()(rel(tuple((ip ipoint))))(";
+  output << "(OBJECT ipointRel()(rel(tuple((Ip ipoint))))(";
   for (int i = 1; i <= size_ipointRel; i++)
   {
    output << endl;
@@ -174,7 +174,7 @@ int main()
   output << "))" << endl;
 
   // upoint relation
-  output << "(OBJECT upointRel()(rel(tuple((up upoint))))(";
+  output << "(OBJECT upointRel()(rel(tuple((Up upoint))))(";
   for (int i = 1; i <= size_upointRel; i++)
   {
    output << endl;
@@ -189,7 +189,7 @@ int main()
   output << "))" << endl;
 
   // mpoint relation
-  output << "(OBJECT mpointRel()(rel(tuple((mp mpoint))))(";
+  output << "(OBJECT mpointRel()(rel(tuple((Mp mpoint))))(";
   for (int i = 1; i <= size_mpointRel; i++)
   {
    output << endl;
@@ -204,7 +204,7 @@ int main()
   output << "))" << endl;
 
   // rectangle(2D) relation
-  output << "(OBJECT rect2Rel()(rel(tuple((r2 rect))))(";
+  output << "(OBJECT rect2Rel()(rel(tuple((R2 rect))))(";
   for (int i = 1; i <= size_rect2Rel; i++)
   {
    output << endl;
@@ -216,7 +216,7 @@ int main()
   output << "))" << endl;
 
   // rectangle(3D) relation
-  output << "(OBJECT rect3Rel()(rel(tuple((r3 rect3))))(";
+  output << "(OBJECT rect3Rel()(rel(tuple((R3 rect3))))(";
   for (int i = 1; i <= size_rect3Rel; i++)
   {
    output << endl;
@@ -230,7 +230,7 @@ int main()
   output << "))" << endl;
 
   // rectangle(4D) relation
-  output << "(OBJECT rect4Rel()(rel(tuple((r4 rect4))))(";
+  output << "(OBJECT rect4Rel()(rel(tuple((R4 rect4))))(";
   for (int i = 1; i <= size_rect4Rel; i++)
   {
    output << endl;
@@ -246,7 +246,7 @@ int main()
   output << "))" << endl;
 
   // rectangle(8D) relation
-  output << "(OBJECT rect8Rel()(rel(tuple((r8 rect8))))(";
+  output << "(OBJECT rect8Rel()(rel(tuple((R8 rect8))))(";
   for (int i = 1; i <= size_rect8Rel; i++)
   {
    output << endl;
@@ -274,43 +274,43 @@ int main()
   output << "(rel(tuple((Name string)(Value text)(UsedObjs text))))(";
 
   // RTree point
-  output << endl << "(\"rtreePoint\" <text>(creatertree pointRel p)";
+  output << endl << "(\"rtreePoint\" <text>(creatertree pointRel P)";
   output << "</text---> <text>( pointRel )</text--->)";
 
   // RTree points
-  output << endl << "(\"rtreePoints\" <text>(creatertree pointsRel ps)";
+  output << endl << "(\"rtreePoints\" <text>(creatertree pointsRel Ps)";
   output << "</text---> <text>( pointsRel )</text--->)";
 
   // RTree line
-  output << endl << "(\"rtreeLine\" <text>(creatertree lineRel l)";
+  output << endl << "(\"rtreeLine\" <text>(creatertree lineRel L)";
   output << "</text---> <text>( lineRel )</text--->)";
 
   // RTree region
-  output << endl << "(\"rtreeRegion\" <text>(creatertree regionRel rg)";
+  output << endl << "(\"rtreeRegion\" <text>(creatertree regionRel Rg)";
   output << "</text---> <text>( regionRel )</text--->)";
 
   // RTree sline
-  output << endl << "(\"rtreeSLine\" <text>(creatertree slineRel sl)";
+  output << endl << "(\"rtreeSLine\" <text>(creatertree slineRel Sl)";
   output << "</text---> <text>( slineRel )</text--->)";
 
   // RTree upoint
-  output << endl << "(\"rtreeUPoint\" <text>(creatertree upointRel up)";
+  output << endl << "(\"rtreeUPoint\" <text>(creatertree upointRel Up)";
   output << "</text---> <text>( upointRel )</text--->)";
 
   // RTree rect 2D
-  output << endl << "(\"rtreeRect2\" <text>(creatertree rect2Rel r2)";
+  output << endl << "(\"rtreeRect2\" <text>(creatertree rect2Rel R2)";
   output << "</text---> <text>( rect2Rel )</text--->)";
 
   // RTree rect 3D
-  output << endl << "(\"rtreeRect3\" <text>(creatertree rect3Rel r3)";
+  output << endl << "(\"rtreeRect3\" <text>(creatertree rect3Rel R3)";
   output << "</text---> <text>( rect3Rel )</text--->)";
 
   // RTree rect 4D
-  output << endl << "(\"rtreeRect4\" <text>(creatertree rect4Rel r4)";
+  output << endl << "(\"rtreeRect4\" <text>(creatertree rect4Rel R4)";
   output << "</text---> <text>( rect4Rel )</text--->)";
 
   // RTree rect 8D
-  output << endl << "(\"rtreeRect8\" <text>(creatertree rect8Rel r8)";
+  output << endl << "(\"rtreeRect8\" <text>(creatertree rect8Rel R8)";
   output << "</text---> <text>( rect8Rel )</text--->)";
 
   output << "))" << endl;

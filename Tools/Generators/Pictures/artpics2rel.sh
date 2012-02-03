@@ -40,10 +40,10 @@ objdeclaration="
     (rel
         (tuple
             (
-                (id int)
-                (artist string)
-                (title string)
-                (pic picture))))
+                (Id int)
+                (Artist string)
+                (Title string)
+                (Pic picture))))
     ("
 
 # declare object

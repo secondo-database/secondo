@@ -2,16 +2,16 @@
 
 let LINEITEM2 = LINEITEM feed consume;
 
-let LINEITEM_25 = LINEITEM feed extend[pkg: seqnext() mod 25] distribute[pkg];
-let LINEITEM_50 = LINEITEM feed extend[pkg: seqnext() mod 50] distribute[pkg];
-let LINEITEM_100 = LINEITEM feed extend[pkg: seqnext() mod 100] distribute[pkg];
-let LINEITEM_200 = LINEITEM feed extend[pkg: seqnext() mod 200] distribute[pkg];
+let LINEITEM_25 = LINEITEM feed extend[Pkg: seqnext() mod 25] distribute[Pkg];
+let LINEITEM_50 = LINEITEM feed extend[Pkg: seqnext() mod 50] distribute[Pkg];
+let LINEITEM_100 = LINEITEM feed extend[Pkg: seqnext() mod 100] distribute[Pkg];
+let LINEITEM_200 = LINEITEM feed extend[Pkg: seqnext() mod 200] distribute[Pkg];
 
-let ORDERS_25 = ORDERS feed extend[pkg: seqnext() mod 25] distribute[pkg];
-let ORDERS_50 = ORDERS feed extend[pkg: seqnext() mod 50] distribute[pkg];
+let ORDERS_25 = ORDERS feed extend[Pkg: seqnext() mod 25] distribute[Pkg];
+let ORDERS_50 = ORDERS feed extend[Pkg: seqnext() mod 50] distribute[Pkg];
 
-let CUSTOMER_25 = CUSTOMER feed extend[pkg: seqnext() mod 25] distribute[pkg];
-let CUSTOMER_50 = CUSTOMER feed extend[pkg: seqnext() mod 50] distribute[pkg];
+let CUSTOMER_25 = CUSTOMER feed extend[Pkg: seqnext() mod 25] distribute[Pkg];
+let CUSTOMER_50 = CUSTOMER feed extend[Pkg: seqnext() mod 50] distribute[Pkg];
 
 # create a btree for L_PARTKEY
 
@@ -29,7 +29,7 @@ let LINEITEM_J1 = LINEITEM_TMP feed extend[L_IsOne: 1, L_JoinKey: seqnext() mod 
 
 query seqinit(1);
 # create an array. Put every 50 tuples in a new slot
-let LINEITEM_J1_A = LINEITEM_J1 feed extend[pkg: (seqnext() div 100)] distribute[pkg];
+let LINEITEM_J1_A = LINEITEM_J1 feed extend[Pkg: (seqnext() div 100)] distribute[Pkg];
 
 # compute selectivity per slot
 query LINEITEM_J1_A loop[ . feed . feed {x} hashjoin[L_JoinKey, L_JoinKey_x, 101] count / (. count * . count)];

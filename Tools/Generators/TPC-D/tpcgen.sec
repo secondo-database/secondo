@@ -10,104 +10,104 @@
 # 1: relations
 
 let LINEITEM = [ const rel(tuple([
-			     lORDERKEY: int,
-			     lPARTKEY: int,
-			     lSUPPKEY: int,
-			     lLINENUMBER: int,
-			     lQUANTITY: real,
-			     lEXTENDEDPRICE: real,
-			     lDISCOUNT: real,
-			     lTAX: real,
-			     lRETURNFLAG: string,
-			     lLINESTATUS: string,
-			     lSHIPDATE: instant,
-			     lCOMMITDATE: instant,
-			     lRECEIPTDATE: instant,
-			     lSHIPINSTRUCT: string,
-			     lSHIPMODE: string,
-			     lCOMMENT: string] )) value () 
+			     LORDERKEY: int,
+			     LPARTKEY: int,
+			     LSUPPKEY: int,
+			     LLINENUMBER: int,
+			     LQUANTITY: real,
+			     LEXTENDEDPRICE: real,
+			     LDISCOUNT: real,
+			     LTAX: real,
+			     LRETURNFLAG: string,
+			     LLINESTATUS: string,
+			     LSHIPDATE: instant,
+			     LCOMMITDATE: instant,
+			     LRECEIPTDATE: instant,
+			     LSHIPINSTRUCT: string,
+			     LSHIPMODE: string,
+			     LCOMMENT: string] )) value () 
                  ] 
                  csvimport['lineitem.tbl', 0, "", "|"] consume;
 
 
 let SUPPLIER = [ const rel(tuple([
-			     sSUPPKEY: int,
-			     sNAME: string,
-			     sADDRESS: string,
-			     sNATIONKEY: int,
-			     sPHONE: string,
-			     sACCTBAL: real,
-			     sCOMMENT: text] )) value ()
+			     SSUPPKEY: int,
+			     SNAME: string,
+			     SADDRESS: string,
+			     SNATIONKEY: int,
+			     SPHONE: string,
+			     SACCTBAL: real,
+			     SCOMMENT: text] )) value ()
                ]
                csvimport['supplier.tbl', 0, "", "|"] consume;
 
 
 let ORDERS = [ const rel(tuple([
-			   oORDERKEY: int,
-			   oCUSTKEY: int,
-			   oORDERSTATUS: string,
-			   oTOTALPRICE: real,
-			   oORDERDATE: instant,
-			   oORDERPRIORITY: string,
-			   oCLERK: string,
-			   oSHIPPRIORITY: int,
-			   oCOMMENT: text] )) value ()
+			   OORDERKEY: int,
+			   OCUSTKEY: int,
+			   OORDERSTATUS: string,
+			   OTOTALPRICE: real,
+			   OORDERDATE: instant,
+			   OORDERPRIORITY: string,
+			   OCLERK: string,
+			   OSHIPPRIORITY: int,
+			   OCOMMENT: text] )) value ()
               ]
               csvimport['order.tbl', 0, "", "|"] consume;
 
 
 let CUSTOMER = [ const rel(tuple([
-			      cCUSTKEY: int,
-			      cNAME: string,
-			      cADDRESS: string,
-			      cNATIONKEY: int,
-			      cPHONE: string,
-			      cACCTBAL: real,
-			      cMKTSEGMENT: string,
-			      cCOMMENT: text] )) value ()
+			      CCUSTKEY: int,
+			      CNAME: string,
+			      CADDRESS: string,
+			      CNATIONKEY: int,
+			      CPHONE: string,
+			      CACCTBAL: real,
+			      CMKTSEGMENT: string,
+			      CCOMMENT: text] )) value ()
                 ]
                 csvimport['customer.tbl', 0, "", "|"] consume;
 
 
 
 let PART = [ const rel(tuple([
-			 pPARTKEY: int,
-			 pNAME: text,
-			 pMFGR: string,
-			 pBRAND: string,
-			 pTYPE: string,
-			 pSIZE: int,
-			 pCONTAINER: string,
-			 pRETAILPRICE: real,
-			 pCOMMENT: string] )) value ()
+			 PPARTKEY: int,
+			 PNAME: text,
+			 PMFGR: string,
+			 PBRAND: string,
+			 PTYPE: string,
+			 PSIZE: int,
+			 PCONTAINER: string,
+			 PRETAILPRICE: real,
+			 PCOMMENT: string] )) value ()
            ]
            csvimport['part.tbl', 0, "", "|"] consume;
 
 
 let PARTSUPP = [ const rel(tuple([
-			     psPARTKEY: int,
-			     psSUPPKEY: int,
-			     psAVAILQTY: int,
-			     psSUPPLYCOST: real,
-			     psCOMMENT: text] )) value ()
+			     PsPARTKEY: int,
+			     PsSUPPKEY: int,
+			     PsAVAILQTY: int,
+			     PsSUPPLYCOST: real,
+			     PsCOMMENT: text] )) value ()
                ]
                csvimport['partsupp.tbl', 0, "", "|"] consume;
 
 
 
 let NATION = [ const rel(tuple([
-			   nNATIONKEY: int,
-			   nNAME: string,
-			   nREGIONKEY: int,
-			   nCOMMENT: text] )) value ()
+			   NNATIONKEY: int,
+			   NNAME: string,
+			   NREGIONKEY: int,
+			   NCOMMENT: text] )) value ()
              ] 
              csvimport['nation.tbl', 0, "", "|"] consume;
 
 
 let REGION = [ const rel(tuple([
-                           rREGIONKEY: int,
-                           rNAME: string,
-                           rCOMMENT: text] )) value ()
+                           RREGIONKEY: int,
+                           RNAME: string,
+                           RCOMMENT: text] )) value ()
              ] 
              csvimport['region.tbl', 0, "", "|"] consume;
 

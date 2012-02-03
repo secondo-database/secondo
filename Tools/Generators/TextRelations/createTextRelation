@@ -56,7 +56,7 @@ CONTENTNAME="TheText"
 ###  end of configurable part ####
 
 
-if [ "$CONTENTNAME" = "filename" ]; then
+if [ "$CONTENTNAME" = "Filename" ]; then
    echo "Error in configuration " >&2
    echo "filename not allowed as name of content" >&2
    exit 1
