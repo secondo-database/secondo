@@ -424,10 +424,10 @@ AddTupleIdTypeMap(ListExpr args)
     rest = nl->Rest(rest);
   }
 
-  if(names.find("id")!=names.end()){
-   return listutils::typeError("Attr name 'id' already exists");
+  if(names.find("TID")!=names.end()){
+   return listutils::typeError("Attr name 'TID' already exists");
   }
-  last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("id"),
+  last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("TID"),
                                 nl->SymbolAtom(TupleIdentifier::BasicType())));
 
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
@@ -520,7 +520,7 @@ const string AddTupleIdSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) ->"
-  "(stream (tuple ((x1 t1) ... (xn tn) (id tid))))</text--->"
+  "(stream (tuple ((x1 t1) ... (xn tn) (TID tid))))</text--->"
   "<text>_ addtupleid</text--->"
   "<text>Appends the tuple identifier in the tuple type</text--->"
   "<text>query cities feed addtupleid consume</text--->"

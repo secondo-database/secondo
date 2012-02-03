@@ -3,7 +3,7 @@ Restore : No
 
 Operator : addtupleid
 Number   : 1
-Signature: (stream (tuple ((x1 t1) ... (xn tn)))) ->(stream (tuple ((x1 t1) ... (xn tn) (id tid))))
+Signature: (stream (tuple ((x1 t1) ... (xn tn)))) ->(stream (tuple ((x1 t1) ... (xn tn) (TID tid))))
 Example  : query plz feed addtupleid count
 Result   : 41267
 
