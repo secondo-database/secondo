@@ -42,9 +42,9 @@ public ListExpr getList(String FileName){
         ListExpr.twoElemList( ListExpr.symbolAtom("rel"),
 	ListExpr.twoElemList( ListExpr.symbolAtom("tuple"),
 	        ListExpr.twoElemList(
-		     ListExpr.twoElemList( ListExpr.symbolAtom("recordnumber"),
+		     ListExpr.twoElemList( ListExpr.symbolAtom("Recordnumber"),
 		                           ListExpr.symbolAtom("int")),
-		     ListExpr.twoElemList( ListExpr.symbolAtom("shape"),
+		     ListExpr.twoElemList( ListExpr.symbolAtom("Shape"),
 		                           ListExpr.symbolAtom(SecondoType)))));
 
    ListExpr ValueList=null;

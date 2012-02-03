@@ -192,6 +192,15 @@ public boolean readFrom(byte[] Buffer){
 
   Name = Name.trim();
   Name = Name.replace(' ','_').replace('/','_'); // add futher non allowed values for symbols
+
+  char f = Name.charAt(0);
+  if(f<'A' || f >'Z'){
+    f = (char) ( (f - 'a') + 'A');
+    StringBuffer tmp = new StringBuffer(Name);
+    tmp.setCharAt(0,f);
+    Name = tmp.toString();
+  }
+
   return true;
 }
 

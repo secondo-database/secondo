@@ -69,14 +69,14 @@ public ListExpr getList(String FileName){
      UsedNames.add(TupleList.first().first().symbolValue());
      TupleList = TupleList.rest();
   }
-  String NumberName = "no";
+  String NumberName = "No";
   int i = 0;
   if(UsedNames.contains(NumberName)){
      while(UsedNames.contains(NumberName+"_"+i))
          i++;
      NumberName = NumberName+"_"+i;
   }
-  String ShapeName = "shape";
+  String ShapeName = "Shape";
   i = 0;
   if(UsedNames.contains(ShapeName)){
      while(UsedNames.contains(ShapeName+"_"+i))
