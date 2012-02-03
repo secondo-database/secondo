@@ -702,7 +702,7 @@ const string fullosmimportSpec =
     "(<text> text x string -> bool</text--->"
     "<text>fullosmimport(_)</text--->"
     "<text>imports an osm file into six new relations</text--->"
-    "<text>query fullosmimport('dortmund.osm', \"dortmund\" count</text--->))";
+    "<text>query fullosmimport('dortmund.osm', \"dortmund\") count</text--->))";
 
 /*
 1.2 Type mapping function for operator fullosmimport
@@ -733,6 +733,7 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
   }
   fileOk = openFile(fileName);
   if (!fileOk) {
+    cout << "file could not be initialized" << endl;
     return;
   }
   defineRelations();
@@ -748,7 +749,6 @@ FullOsmImport::~FullOsmImport() {
 }
 
 bool FullOsmImport::initRelations(const string& prefix) {
-  // check whether the six relation names are valid
   relNames[0] = prefix + "Nodes";
   relNames[1] = prefix + "NodeTags";
   relNames[2] = prefix + "Ways";
@@ -1060,7 +1060,7 @@ void FullOsmImport::fillRelations() {
   tag = new Tuple(nodeTagType);
   way = new Tuple(wayType);
   rel = new Tuple(relType);
-  memset(tupleCount, 0 , 6*sizeof(int));
+  memset(tupleCount, 0 , 6 * sizeof(int));
   string currentName = "undefined string";
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
@@ -1100,53 +1100,25 @@ void FullOsmImport::fillRelations() {
 }
 
 void FullOsmImport::storeRelations() {
-   // store node relation in catalog
-  ListExpr nodeRelType = nl->TwoElemList(
-                            nl->SymbolAtom(Relation::BasicType()),
-                            nodeTypeInfo);
-  Word relWord;
-  relWord.setAddr(nodeRel);
-  sc->InsertObject(relNames[0], "", nodeRelType, relWord, true);
-  
-  // store nodeTag relation in catalog
-  ListExpr nodeTagRelType = nl->TwoElemList(
-                                nl->SymbolAtom(Relation::BasicType()),
-                                nodeTagTypeInfo);
-  relWord.setAddr(nodeTagRel);
-  sc->InsertObject(relNames[1], "", nodeTagRelType, relWord, true);
-  
-  // store way relation in catalog
-  ListExpr wayRelType = nl->TwoElemList(
-                            nl->SymbolAtom(Relation::BasicType()),
-                            wayTypeInfo);
-  relWord.setAddr(wayRel);
-  sc->InsertObject(relNames[2], "", wayRelType, relWord, true);
-  
-  // store wayTag relation in catalog
-  ListExpr wayTagRelType = nl->TwoElemList(
-                              nl->SymbolAtom(Relation::BasicType()),
-                              wayTagTypeInfo);
-  relWord.setAddr(wayTagRel);
-  sc->InsertObject(relNames[3], "", wayTagRelType, relWord, true);
-  
-    // store relation relation in catalog
-  ListExpr relRelType = nl->TwoElemList(
-                            nl->SymbolAtom(Relation::BasicType()),
-                            relTypeInfo);
-  relWord.setAddr(relRel);
-  sc->InsertObject(relNames[4], "", relRelType, relWord, true);
-  
-  // store relationTag relation in catalog
-  ListExpr relTagRelType = nl->TwoElemList(
-                               nl->SymbolAtom(Relation::BasicType()),
-                               relTagTypeInfo);
-  relWord.setAddr(relTagRel);
-  sc->InsertObject(relNames[5], "", relTagRelType, relWord, true);
+  storeRel(relNames[0], nodeTypeInfo, nodeRel);
+  storeRel(relNames[1], nodeTagTypeInfo, nodeTagRel);
+  storeRel(relNames[2], wayTypeInfo, wayRel);
+  storeRel(relNames[3], wayTagTypeInfo, wayTagRel);
+  storeRel(relNames[4], relTypeInfo, relRel);
+  storeRel(relNames[5], relTagTypeInfo, relTagRel);
   // user information
   for (int i = 0; i < 6; i++) {
     cout << "relation " << relNames[i] << " with " << tupleCount[i]
          << " tuples stored" << endl;
   }
+}
+
+void FullOsmImport::storeRel(string name, ListExpr typeInfo, Relation *rel) {
+  ListExpr type = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
+                                  typeInfo);
+  Word relWord;
+  relWord.setAddr(rel);
+  sc->InsertObject(name, "", type, relWord, true);
 }
 /*
 1.4 Value mapping function for operator fullosmimport

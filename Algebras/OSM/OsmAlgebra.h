@@ -60,13 +60,14 @@ class FullOsmImport {
     bool openFile(const string&fileName);
     void defineRelations();
     void fillRelations();
-    void storeRelations();
     void processNode(xmlTextReaderPtr reader);
     void processWay(xmlTextReaderPtr reader);
     void processWayNodeRef(xmlTextReaderPtr reader);
     void processRel(xmlTextReaderPtr reader);
     void processRelMemberRef(xmlTextReaderPtr reader);
     void processTag(xmlTextReaderPtr reader, entityKind kind);
+    void storeRelations();
+    void storeRel(string name, ListExpr type, Relation *rel);
     
     SecondoCatalog* sc;
     bool isTemp;
