@@ -1,0 +1,13 @@
+Database : berlintest
+Restore  : NO
+
+Operator : intersectionBO
+Number   : 1
+Signature: line x line
+Example  : query intersection(train7sections, train7sections) = train7sections
+Result   : TRUE
+
+
+
+
+
