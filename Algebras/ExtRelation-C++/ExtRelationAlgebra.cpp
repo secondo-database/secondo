@@ -11250,7 +11250,7 @@ public:
      ExtendAggrInfo(Word& _stream, Supplier _fun, int _attrPos, 
                   int _resetPos, ListExpr type):
      stream(_stream),first(true), fun(_fun), attrPos(_attrPos),
-   resetPos(_resetPos), value(0) {
+     resetPos(_resetPos), value(0) {
          tupleType = new TupleType(type);
          stream.open();
      }
@@ -11280,13 +11280,13 @@ public:
         CcBool* b = (CcBool*) srcTuple->GetAttribute(resetPos);
         reset = b->IsDefined() && b->GetValue();
       }
-            if(first){ 
-                value = srcTuple->GetAttribute(attrPos)->Clone();
-                first = false;
-            } else if(reset){
-        value->DeleteIfAllowed();
-        value = srcTuple->GetAttribute(attrPos)->Clone();
-      } else {
+        if(first){ 
+           value = srcTuple->GetAttribute(attrPos)->Clone();
+           first = false;
+        } else if(reset){
+          value->DeleteIfAllowed();
+          value = srcTuple->GetAttribute(attrPos)->Clone();
+        } else {
                 // compute value from current value and next attribute
                 Attribute* attr = srcTuple->GetAttribute(attrPos);
                 ArgVectorPointer funargs = qp->Argument(fun);
@@ -11294,8 +11294,9 @@ public:
                 (*funargs)[1] = attr;
                 Word funres;
                 qp->Request(fun,funres);
-                value->DeleteIfAllowed();
+                Attribute* victim = value; 
                 value = ((Attribute*)funres.addr)->Copy(); 
+                victim->DeleteIfAllowed();
             }
             resTuple->PutAttribute(srcTuple->GetNoAttributes(), value->Clone());
             srcTuple->DeleteIfAllowed();
@@ -11307,7 +11308,7 @@ private:
     bool first;
     Supplier fun;
     int attrPos;
-  int resetPos;
+    int resetPos;
     Attribute* value; 
     TupleType* tupleType;   
 };
