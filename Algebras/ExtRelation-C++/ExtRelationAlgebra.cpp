@@ -2513,7 +2513,7 @@ Inserts a tuple into the memory part of this structure.
             bucket->push_back(tuple);
             stored ++;
             tuple->IncReference();
-            usedMem += tuple->GetExtSize() + sizeof(void*) + sizeof(*bucket);
+            usedMem += tuple->GetMemSize() + sizeof(void*) + sizeof(*bucket);
             return true; 
          }
          for(size_t i=0;i<bucket->size();i++){
@@ -2523,7 +2523,7 @@ Inserts a tuple into the memory part of this structure.
          }
          bucket->push_back(tuple);
          tuple->IncReference();
-         usedMem += tuple->GetExtSize() + sizeof(void*);
+         usedMem += tuple->GetMemSize() + sizeof(void*);
          return true;
       }
 
