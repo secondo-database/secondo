@@ -79,27 +79,32 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
   specA.push_back( pair<int, bool>(attrIndexA, true) );
   specB.push_back( pair<int, bool>(attrIndexB, true) );
+  // set available main memory (MAX_MEMORY)
+  setMemory(maxMemSize, s);
 
   liA = new SortProgressLocalInfo();
   progress->firstLocalInfo = liA;
-  sliA = new SortAlgorithm(streamA, specA, liA, s);
+  sliA = new SortAlgorithm(streamA, specA, liA, s, UINT_MAX, MAX_MEMORY / 2 );
+
+  size_t remaining_memory = MAX_MEMORY - sliA->getUsedMemory();
 
   liB = new SortProgressLocalInfo();
   progress->secondLocalInfo = liB;
-  sliB = new SortAlgorithm(streamB, specB, liB, s);
+  sliB = new SortAlgorithm(streamB, specB, liB, s, UINT_MAX, remaining_memory);
 
   ListExpr resultType =
               SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
   resultTupleType = new TupleType( nl->Second( resultType ) );
 
+  remaining_memory =  remaining_memory > sliB->getUsedMemory()
+                           ?remaining_memory - sliB->getUsedMemory()
+                           :0;
   // read in the first tuple of both input streams
   ptA.setTuple( NextTupleA() );
   ptB.setTuple( NextTupleB() );
 
-  // set available main memory (MAX_MEMORY)
-  setMemory(maxMemSize, s);
 
-  grpB = new TupleBuffer2( MAX_MEMORY );
+  grpB = new TupleBuffer2( remaining_memory );
 
   if ( traceMode )
   {

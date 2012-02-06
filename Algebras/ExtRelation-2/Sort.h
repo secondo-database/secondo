@@ -927,6 +927,11 @@ have been processed the method returns 0.
 
 */
 
+  size_t getUsedMemory(){
+     return usedMemory;
+  }
+
+
   private:
 
     void setMemory(size_t maxMemory, Supplier s);
