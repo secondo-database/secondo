@@ -190,7 +190,7 @@ void TupleBuffer2::Clear()
 void TupleBuffer2::AppendTuple(Tuple* t)
 {
   totalSize += t->GetSize();
-  totalExtSize += t->GetExtSize();
+  totalExtSize += t->GetMemSize();
 
   if( inMemory )
   {

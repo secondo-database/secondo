@@ -188,7 +188,7 @@ int HashTable::ReadFromStream(Word stream, size_t maxSize, bool& finished)
     read++;
     Tuple *t = static_cast<Tuple*>( wTuple.addr );
 
-    bytes += t->GetExtSize();
+    bytes += t->GetMemSize();
 
     // insert tuple into hash table
     this->Insert(t);
@@ -802,7 +802,7 @@ bool PartitionManager::LoadPartition( int n,
     t->DeleteIfAllowed();
 
     // update used memory
-    usedMemory += t->GetExtSize();
+    usedMemory += t->GetMemSize();
 
     counter++;
 

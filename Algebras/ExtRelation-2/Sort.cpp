@@ -408,7 +408,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
 
     progress->read++;
 
-    size_t extSize = t->GetExtSize();
+    size_t memSize = t->GetMemSize();
 
     // Save number of attributes
     if ( attributes == -1 )
@@ -426,7 +426,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
     if( usedMemory <= MAX_MEMORY )
     {
       curRun->AppendToMemory(t);
-      usedMemory += extSize;
+      usedMemory += memSize;
     }
     else
     {
