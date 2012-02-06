@@ -312,7 +312,7 @@ Checks an attribute list for naming conventions
 Checks an attribute name for naming conventions.
 
 */
-  bool checkAttrForNamingConventions(ListExpr attr){
+  bool checkAttrForNamingConventions(const ListExpr attr){
      // assert(isSymbol(attr))
      string name = nl->SymbolValue(attr);
      if(name.length()<1){
@@ -325,6 +325,27 @@ Checks an attribute name for naming conventions.
         return true;
      }
   }
+
+
+ bool isValidAttributeName(const ListExpr attr, string& error){
+     if(!isSymbol(attr)){
+        error = "attribute name is not a symbol";
+        return false;
+     }
+     string attrstr = nl->SymbolValue(attr);
+     if(!SecondoSystem::GetCatalog()->IsValidIdentifier(attrstr,
+                                                        error)){
+         error = "attribute name "+ error + ".";
+         return false;
+     }  
+     if(!checkAttrForNamingConventions(attr)){
+        error = attrstr + " does not fit Secondo's names conventions";
+        return false;
+     }
+     return true;
+ } 
+
+
 /*
 Checks for disjoint attribute lists.
 

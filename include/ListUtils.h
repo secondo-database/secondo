@@ -211,7 +211,15 @@ Checks an attribute list for naming conventions
 Checks an attribute name for naming conventions.
 
 */
-  bool checkAttrForNamingConventions(ListExpr attr);
+ bool checkAttrForNamingConventions(const ListExpr attr);
+
+/*
+Checks whether a list represents a valid attribute name.
+
+*/
+
+ bool isValidAttributeName(const ListExpr attr, string& error);
+
 
 
 /*
