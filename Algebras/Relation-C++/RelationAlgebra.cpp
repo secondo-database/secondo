@@ -5184,16 +5184,11 @@ ListExpr RenameAttrTypeMap(ListExpr args){
     if( (oldname=="") || (newname=="") ){
       return listutils::typeError("Empty attribute name detected!");
     }
-    string idcheckmsg = "";
-    if( !SecondoSystem::GetCatalog()
-                                ->IsValidIdentifier(newname,idcheckmsg,true) ) {
-      return listutils::typeError("New attribute name "+idcheckmsg+".");
+    string errmsg;
+    if(!listutils::isValidAttributeName(nl->SymbolAtom(newname),errmsg)){
+       return listutils::typeError(errmsg);
     }
-    char f = newname[0];
-    if(f<'A' || f>'Z'){
-      return listutils::typeError("Attribute name '" + newname + 
-                                  "' starts with a lower case");
-    }
+
     if(renameMap.find(oldname)!=renameMap.end()){
       return listutils::typeError(  "Attribute name '"
                                    +oldname+"' renamed twice.");

@@ -4497,9 +4497,9 @@ ListExpr ExtendTypeMap( ListExpr args )
     ListExpr name = nl->First(function);
     ListExpr map  = nl->Second(function);
 
-    if(nl->AtomType(name)!=SymbolType){
-      ErrorReporter::ReportError("invalid attribute name");
-      return nl->TypeError();
+    string errormsg;
+    if(!listutils::isValidAttributeName(name, errormsg)){
+      return listutils::typeError(errormsg);
     }
 
     string namestr = nl->SymbolValue(name);
@@ -4510,16 +4510,6 @@ ListExpr ExtendTypeMap( ListExpr args )
        return nl->TypeError();
     }
 
-    string symcheckmsg = "";
-    if(!SecondoSystem::GetCatalog()->IsValidIdentifier(namestr,symcheckmsg)){
-      return listutils::typeError("attribute name "+ symcheckmsg +".");
-    }
-
-    char f = namestr[0];
-    if(f<'A' || f>'Z'){
-      return listutils::typeError("attribute name '" + namestr + 
-                                  "' start with an lower case");
-    }
 
     if(nl->ListLength(map)!=3){
       ErrorReporter::ReportError("invalid function");
@@ -5824,24 +5814,17 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
   }
 
   // check if argname is already used in the original tuple
-
+  ListExpr attrNameList = NameMap.first().listExpr();
+  string errormsg;
+  if(!listutils::isValidAttributeName(attrNameList,errormsg)){
+     return listutils::typeError(errormsg);
+  }
   string attrname = NameMap.first().str();
   ListExpr attrtype=nl->TheEmptyList();
   int index = FindAttribute(Stream.second().second().listExpr(),
                             attrname,attrtype);
   if(index){ // attrname already used
     return NList::typeError("attrname already used in the original stream");
-  }
-
-  string symcheckmsg = "";
-  if(!SecondoSystem::GetCatalog()->IsValidIdentifier(attrname,symcheckmsg)){
-     return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
-  }
-
-  char f = attrname[0];
-  if(f<'A' || f>'Z'){
-    return listutils::typeError("Attribute name '" + attrname + 
-                                "' must not start with a lower case");
   }
 
   ListExpr attrlist = ConcatLists(Stream.second().second().listExpr(),
@@ -6455,7 +6438,8 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
    }
    ListExpr nameL = nl->First(ext);
    ListExpr map = nl->Second(ext);
-   if(nl->AtomType(nameL)!=SymbolType ||
+   string err;
+   if(!listutils::isValidAttributeName(nameL,err) ||
       !listutils::isMap<1>(map)){
      return listutils::typeError(err + " (problem in extension list");
    }
@@ -6463,16 +6447,6 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
    if(names.find(name)!=names.end()){
      return listutils::typeError(err +
                               "( conflicting names found " + name+")");
-   }
-   string symcheckmsg = "";
-   if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
-       return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
-   }
-
-   char f = name[0];
-   if(f<'A' || f>'Z'){
-     return listutils::typeError("Attribute name '" + name + 
-                                "' must not start with a lower case");
    }
    names.insert(name);
    if(!nl->Equal(tupletype,nl->Second(map))){
@@ -6985,17 +6959,10 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
    return listutils::typeError(err +
           "(third argument must be a pair of name and map)");
  }
- string name = nl->SymbolValue(mapname);
- string symcheckmsg = "";
- if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
-    return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
+ string errmsg;
+ if(!listutils::isValidAttributeName(mapname, errmsg)){
+   return listutils::typeError(errmsg);
  }
- char f = name[0];
- if(f<'A' || f>'Z'){
-   return listutils::typeError("An attribute name has to "
-                               "start with an upper case");
-  }  
-
  if(!nl->Equal(tupletype,nl->Second(map))){
    return listutils::typeError(err + "(map argument differs from tuple type");
  }
@@ -10844,25 +10811,11 @@ if(!nl->IsEqual(init,CcInt::BasicType())){
   return nl->TypeError();
 }
 
-if(nl->AtomType(nameL)!=SymbolType){
-  ErrorReporter::ReportError("The second argument can't be used as an"
-                             "attribute name.");
-  return nl->TypeError();
+string errmsg;
+if(!listutils::isValidAttributeName(nameL,errmsg)){
+  return listutils::typeError(errmsg);
 }
 string name = nl->SymbolValue(nameL);
- // check for usualibity
-
-string symcheckmsg = "";
-if(!SecondoSystem::GetCatalog()->IsValidIdentifier(name,symcheckmsg)){
-  return listutils::typeError("Symbol unusable: "+symcheckmsg+".");
-}
-
-char f = name[0];
-if(f<'A' || f>'Z'){
-  return listutils::typeError("An attribute name has to "
-                              "start with an upper case");
-}
-
 
 // check streamlist
 if(nl->ListLength(stream)!=2 ||
@@ -11168,10 +11121,11 @@ ListExpr extend_aggrTM(ListExpr args){
     return listutils::typeError(err + 
                         " (second arg is not a valid attribute name ");
   }
-  if(!listutils::isSymbol(NewAttrName)){
-    return listutils::typeError(err + 
-                        " (third arg is not a valid attribute name ");
+  string errmsg;
+  if(!listutils::isValidAttributeName(NewAttrName,errmsg)){
+    return listutils::typeError(errmsg);
   }
+  
   if(!listutils::isMap<2>(Fun)){
     return listutils::typeError(err + 
                         " (third arg is not a function");
@@ -11426,9 +11380,12 @@ ListExpr extend_lastTM(ListExpr args){
     }
 
     ListExpr newName = nl->First(firstFun);
-    if(!listutils::isSymbol(newName)){
-       return listutils::typeError(err + " (invalid name for an attribute)");
+
+    string error;
+    if(!listutils::isValidAttributeName(newName, error)){
+       return listutils::typeError(error);
     }
+
     ListExpr mapList = nl->Second(firstFun);
     if(!listutils::isMap<2>(mapList)){
        return listutils::typeError(err + " (invalid map found)"); 
