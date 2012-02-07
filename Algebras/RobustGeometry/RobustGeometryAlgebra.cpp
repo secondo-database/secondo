@@ -35,6 +35,7 @@ using namespace std;
 #include "TypeMapUtils.h"
 #include "SpatialAlgebra.h"
 #include "RobustGeometryAlgebra.h"
+#include "AVLSegment.h"
 
 #include <vector>
 #include <queue>
@@ -77,7 +78,7 @@ symbol ~typeerror~.
 3 Type investigation auxiliaries
 
 Within this algebra module, we have to handle with values of different
-types:  ~line~ and ~region~.
+types:  ~line~ and ~Points~.
 
 Later on we will
 examine nested list type descriptions. In particular, we
@@ -88,15 +89,15 @@ declare an enumeration, ~RobustGeometryType~, containing the types, and a functi
 corresponding ~RobustGeometryType~ type name.
 
 */
-enum RobustGeometryType { srpoint, srline, srbox, srerror};
+enum RobustGeometryType { rgpoints, rgline, srbox, srerror};
 
 RobustGeometryType RobustGeometryOfSymbol( ListExpr symbol )
 {
   if ( nl->AtomType( symbol ) == SymbolType )
   {
     string s = nl->SymbolValue( symbol );
-    if ( s == Point::BasicType()  ) return (srpoint);
-    if ( s == Line::BasicType()   ) return (srline);
+    if ( s == Points::BasicType()  ) return (rgpoints);
+    if ( s == Line::BasicType()   ) return (rgline);
   }
   return (srerror);
 }
@@ -154,6 +155,30 @@ ListExpr RobustGeometryIntersectionBOTypeMap(ListExpr args)
 }
 
 /*
+	PriorityQueue
+
+
+*/
+
+
+/*
+	class MakeOp
+
+
+*/
+
+class MakeBo
+{
+public:
+   MakeBo() {};
+   ~MakeBo() {};
+
+   void IntersectionBO(const Line& reg1, const Line& reg2i,Points& result);
+   bool Intersects(const Line& line1, const Line& line2);
+   bool P_Intersects(const Line& line1, const Line& line2);
+};
+
+/*
 ~IsRobustGeometryType~
 
 This function checks whether the type given as a ListExpr is one of
@@ -203,14 +228,140 @@ ValueMapping fromLineVM[] = {
   fromLineVM1,
   fromLineVM2
 };
+
+
 /*
+intersection-operator for two line-objects
+
+*/
+void MakeBo::IntersectionBO(const Line& line1,
+		const Line& line2, Points& result)
+{
+    //Initialisation
+	result.Clear();
+
+	if(!line1.IsDefined() || !line2.IsDefined())
+	{
+		result.SetDefined(false);
+		return;
+	}
+
+	result.SetDefined(true);
+	if(line1.Size()==0 || line2.Size()==0)
+	{
+		return; // empty line
+	}
+	  priority_queue<avlseg::ExtendedHalfSegment,
+	                 vector<avlseg::ExtendedHalfSegment>,
+	                 greater<avlseg::ExtendedHalfSegment> > q1;
+
+	  priority_queue<avlseg::ExtendedHalfSegment,
+	                 vector<avlseg::ExtendedHalfSegment>,
+	                 greater<avlseg::ExtendedHalfSegment> > q2;
+
+	avltree::AVLTree<avlseg::AVLSegment> sss;
+	avlseg::ownertype owner;
+	int pos1 = 0;
+	int pos2 = 0;
+	int src = 0;
+	avlseg::ExtendedHalfSegment nextHs;
+
+  	const avlseg::AVLSegment* member=0;
+  	const avlseg::AVLSegment* leftN = 0;
+ 	const avlseg::AVLSegment* rightN = 0;
+
+  	avlseg::AVLSegment left1,right1,left2,right2;
+  	avlseg::AVLSegment tmpL,tmpR;
+
+  	result.StartBulkLoad();
+
+  	while( (owner=selectNext(line1,pos1,line2,pos2,
+  			q1,q2,nextHs,src))!=avlseg::none)
+
+  	{
+  	     avlseg::AVLSegment current(nextHs,owner);
+  	     member = sss.getMember(current,leftN,rightN);
+
+       if(nextHs.IsLeftDomPoint())
+       {
+
+       }
+
+ /*      else if (nextHs.IsRightDomPoint())
+       {
+
+
+       }
+       else
+       {
+
+       }
+
+       */
+    }
+
+
+  result.EndBulkLoad(true,false,false);
+}
+
+/*
+~Intersection~ operation.
+
+*/
+
+/*
+line- line
 
 */
 static int intersectionBO_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
-return 0;
+//args immer nur 2 Linien betrachtet, != BO???
+   result = qp->ResultStorage( s );
+   Line *line1 = ((Line*)args[0].addr);
+   Line *line2 = ((Line*)args[1].addr);
+
+
+   if (line1->IsDefined() && line2->IsDefined() )
+   {
+      if (line1->IsEmpty() || line2->IsEmpty() )
+      {
+          ((Line *)result.addr)->SetDefined( false );
+         return (0);
+      }
+      else if (line1->BoundingBox().IsDefined() &&
+    		  line2->BoundingBox().IsDefined() )
+      {
+         if (line1->BoundingBox().Intersects(line2->BoundingBox()))
+         {
+            MakeBo bo;
+            bo.IntersectionBO( *line1, *line2,
+            		*static_cast<Points*>(result.addr));
+            return(0);
+         }
+         else
+         {
+            ((Line *)result.addr)->Clear();
+            return (0);
+         }
+      }
+      else
+      {
+    	 MakeBo bo;
+         bo.IntersectionBO( *line1, *line2,*static_cast<Points*>(result.addr));
+         return(0);
+      }
+   }
+   else
+   {
+     ((Line *)result.addr)->Clear();
+     ((Line *)result.addr)->SetDefined( false );
+
+     return (0);
+   }
 }
+
+
 
 ValueMapping RobustGeometryintersectionBOVM [] =   {intersectionBO_ll};
 
@@ -238,8 +389,6 @@ const string RobustGeometryIntersectionBOSpec  =
   "<text>intersectionBO of two spatial objects</text--->"
   "<text>query intersectionBO(tiergarten, thecenter) </text--->"
   ") )";
-
-
 
 /*
 10.5.3 Definition of the operators
