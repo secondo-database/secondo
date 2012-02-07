@@ -32,7 +32,6 @@ DServerCreator, DServerExecutor and RelationWriter
 */
 
 #include "Remote.h"
-#include "TupleBufferQueue.h"
 #include "DBAccessGuard.h"
 #include "SocketIO.h"
 #include "Processes.h"
@@ -1079,7 +1078,7 @@ void DServer::run()
        //Reads an entire relation from the worker
 
        TupleType *tt = 
-         DBAccess::getInstance() -> TT_New_2(m_type);
+         DBAccess::getInstance() -> TT_New(m_type);
 
        while(!m_cmd -> getDArrayIndex() ->empty())
          {
@@ -1187,16 +1186,10 @@ void DServer::run()
        cout << (unsigned long)(this) << " DS_CMD_READ_TB_REL" << endl;
 #endif
        //Reads an entire relation from the worker
-       TBQueue* inQueue = (TBQueue*)(*(m_cmd -> getElements()))[0].addr;
-       TBQueue* outQueue = (TBQueue*)(*(m_cmd -> getElements()))[1].addr;
+       TFQ outQueue = (TFQ)(*(m_cmd -> getElements()))[0].addr;
 
        TupleType *tt = 
-         DBAccess::getInstance() -> TT_New_2(m_type);
-
-       // need to transfer even empty tubple buffers
-       // because we need to corretly count the size
-       // of the darray
-       TupleBuffer* tb = (*inQueue) -> get();
+         DBAccess::getInstance() -> TT_New(m_type);
 
 #ifdef DS_CMD_READ_TB_REL_DEBUG
        if (m_cmd -> getDArrayIndex() ->empty()) 
@@ -1249,8 +1242,8 @@ void DServer::run()
 
                //transform to tuple and append to relation
                DBAccess::getInstance() -> T_ReadFromBin(t, buffer);
-               DBAccess::getInstance() -> REL_AppendTuple(tb, t);
-               DBAccess::getInstance() -> T_DeleteIfAllowed(t);
+               outQueue -> put(t);
+               //DBAccess::getInstance() -> T_DeleteIfAllowed(t);
                delete [] buffer;
 
               
@@ -1265,7 +1258,6 @@ void DServer::run()
            gate->Close(); delete gate; gate=0;
            worker->Close(); delete worker; worker=0;
 
-           cout << "READING TUPLES DONE!" << endl;
            do
              {
                getline(iosock,line);
@@ -1276,11 +1268,6 @@ void DServer::run()
 
          } // while(!m_cmd -> getDArrayIndex() ->empty())
           
-       if (tb -> GetNoTuples() > 0)
-         (*outQueue) -> put(tb);
-       else
-         (*inQueue) -> put(tb);
-
        DBAccess::getInstance() -> TT_DeleteIfAllowed(tt);
 
 #ifdef DS_CMD_READ_TB_REL_DEBUG
@@ -1605,28 +1592,23 @@ void DServerExecutor::run()
 void  DServerMultiCommand::run()
 {
   //cout << "Starting DMC:" << m_index << " " << m_runit << endl;
-  TupleBuffer *tb;
   Tuple *t;
   vector<Word> w(1);
-  while(m_runit || !m_tbQueue.empty())
+  while(m_runit || !m_tfq.empty())
     {
-      tb = m_tbQueue.get();
-      //cout << m_index << ": got " << tb -> GetNoTuples()  << endl;
+      //cout << m_index << ": got " << tb -> GetNoAttributes()  << endl;
 
       //cout << "Sending:" << m_index << endl;
-      TupleBufferIterator *rit = new TupleBufferIterator(*tb);
-      while ((t = DBAccess::getInstance() -> TBI_GetNextTuple(rit)) != 0)
+      t = m_tfq.get();
+      if (t != NULL)
         {
           w[0] = SetWord(t);
           m_server->setCmd(DServer::DS_CMD_WRITE_REL, 
-                           0, &w, 0);
+                       0, &w, 0);
           m_server -> run();
           m_memCntr -> put_back(t -> GetSize());
           DBAccess::getInstance() -> T_DeleteIfAllowed(t);
         }
-      delete rit;
-      delete tb;
-      //cout << "Sending:" << m_index << " ... done" << endl;
     }
   //cout << "DMC:" << m_index << " ... done" << endl;
 }

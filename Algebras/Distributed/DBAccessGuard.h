@@ -84,7 +84,7 @@ Allocates a new object of TupleType
 
 */
 
-  TupleType* TT_New_2(const ListExpr& inTT_Rel)
+  TupleType* TT_New(const ListExpr& inTT_Rel)
   {
     ZThread::Guard<MyMutex> g(lock);
     return new TupleType(nl -> Second(inTT_Rel));

@@ -46,7 +46,7 @@ RelationWriter and DServerCreator
 #include "zthread/Condition.h"
 #include "zthread/Mutex.h"
 #include "RelationAlgebra.h"
-#include "TupleBufferQueue.h"
+#include "TupleFifoQueue.h"
 #include "DBAccessGuard.h"
 #include "ThreadedMemoryCntr.h"
 
@@ -291,69 +291,38 @@ public:
 class DServerMultiCommand : public ZThread::Runnable
 {
 private:
-  TupleBuffer *m_curTB;
-  TupleBufferQueue m_tbQueue;
+  TupleFifoQueue m_tfq;
    int m_index;
   DServer* m_server;
   ZThread::FastMutex lock;
   ZThread::Condition cond;
   bool m_runit;
-  MemCntr *m_memCntr;
-  
+  MemCntr* m_memCntr;
 
-  void newTB() 
-  {
-    m_curTB = new TupleBuffer();
-  }
-      
 public:
-  DServerMultiCommand(int i, DServer* s, MemCntr* inMemCntr) : 
-    m_curTB(NULL),
+  DServerMultiCommand(int i, DServer* s, MemCntr* inMemCntr) :
     m_index(i),
     m_server(s),
     cond(lock),
     m_runit(true),
     m_memCntr(inMemCntr)
-  {
+  { 
   }
 
   void AppendTuple(Tuple* t)
   {
-    if (m_curTB == NULL)
-      newTB();
-
-    DBAccess::getInstance() -> REL_AppendTuple(m_curTB, t);
-   }
+    m_tfq.put(t);
+  }
 
   void done()
   {
-    if (m_curTB == NULL)
-      {
-        newTB();
-      }
-    //cout << m_index << " DONE add to queue (S:"  
-    //   <<   m_curTB -> GetNoTuples()
-    //   << " " <<  m_curTB -> GetTotalSize()<< ")" << endl;
-     m_runit = false;
-
-     // release pending waits:
-     m_tbQueue.put(m_curTB);
-     m_curTB = NULL;
+    m_runit = false;
+    m_tfq.put(NULL); // dummy to wake up waiting threads
   }
 
   void forceSend()
   {
-    if (m_curTB != NULL)
-      {
-        //cout << m_index << "  FORCE add to queue (S:"  
-        // <<   m_curTB -> GetNoTuples()
-        // << " " <<  m_curTB -> GetTotalSize() << endl;
-        m_tbQueue.put(m_curTB);
-   
-        m_curTB = NULL;
-      }
-    //else 
-    // cout << m_index << "  FORCE denied (nothing to send)" << endl;
+    //cout << m_index << "  FORCE denied (nothing to send)" << endl;
   }
 
   void run();

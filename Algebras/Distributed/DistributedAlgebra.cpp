@@ -68,7 +68,6 @@ Operations on the darray-elements are carried out on the remote machines.
 //#define RECEIVE_REL_MAP_DEBUG 1
 //#define RECEIVE_REL_FUN_DEBUG 1
 
-#define MAX_DSUMMARIZE_TB_QUEUE_SIZE 3
 
 using namespace std;
 using namespace mappings;
@@ -79,44 +78,6 @@ extern QueryProcessor *qp;
 // mutex for boolean flag running
 ZThread::Mutex DArray::ms_rTBlock;
 
-/*
-2.0 Class LogOutput
-
-2.1 Implementation
-
-*/
-
-LogOutput*
-LogOutput::getInstance()
-{
-  static LogOutput myLogOutput;
-  return &myLogOutput;
-}
-
-
-LogOutput::LogOutput()
-{
-  m_out = new std::ofstream("/home/achmann/secondo/bin/log.txt",
-                      std::ios::out | std::ios::trunc);
-}
-
-LogOutput::~LogOutput()
-{
-  m_out -> close();
-  delete m_out;
-}
-
-void
-LogOutput::print(const std::string &msg)
-{
-  *m_out << msg << endl;
-}
-
-void
-LogOutput::print(int val)
-{
-  *m_out << val << endl;
-}
 /*
 
 3.0 Auxiliary Functions
@@ -288,6 +249,7 @@ DArray::DArray()
    alg_id=0;
    typ_id=0;
    no++;
+   //cout << "DArray::DArray():" << no << endl;
 }
 
 //Creates a defined DArray
@@ -322,13 +284,14 @@ DArray::DArray(ListExpr inType,
      defined = false;
    else
      defined = true;
+   //cout << "DArray::DArray(...):" << no << endl;
 }
 
 
 
 DArray::~DArray()
 {
-  //cout << "DArray::~DArray" << endl;
+  //cout << "DArray::~DArray:" << no << endl;
   assert(no > 0);
   no--;
    if(defined)
@@ -482,8 +445,7 @@ void DArray::refresh()
     //cout << "DArray::refresh ...done" << endl;
 }
 
-void DArray::refresh(TBQueue *tbIn, 
-                     TBQueue *tbOut)
+void DArray::refresh(TFQ tfqOut)
 {
   if (!(manager -> checkServers(true)))
     {
@@ -500,9 +462,8 @@ void DArray::refresh(TBQueue *tbIn,
    assert(m_elements.size() == (unsigned int)size);
    assert(isRelation);
          
-   vector<Word> word (2);
-   word[0] = SetWord(tbIn);
-   word[1] = SetWord(tbOut);
+   vector<Word> word (1);
+   word[0] = SetWord(tfqOut);
 
    //elements are read, the DServer run as threads
    for(int i = 0; i < manager->getNoOfServers(); i++)
@@ -527,10 +488,9 @@ void DArray::refresh(TBQueue *tbIn,
 #endif
 
    tbRefreshDone();
-   // send a dummy TB to avoid deadlock;
-   // cout << "SEND DUMMY DB" << endl;
-   TupleBuffer *tb = (*tbIn) -> get();
-   (*tbOut) -> put(tb);
+   //dummy element to release collector thread
+   
+   tfqOut -> put(NULL);
 }
 
 bool DArray::initialize(ListExpr inType,
@@ -880,8 +840,12 @@ Word DArray::Create( const ListExpr inTypeInfo )
 void DArray::Delete( const ListExpr inTypeInfo, Word& w )
 {
   //cout << "DArray::Delete" << endl;
-   ((DArray*)w.addr)->remove();
-    delete (DArray*)w.addr;
+  DArray *da = (DArray*)w.addr;
+  if (da != 0)
+    {
+      ((DArray*)w.addr)->remove();
+      delete (DArray*)w.addr;
+    }
    w.addr = 0;
    //cout << " -> OK" << endl;
 }
@@ -889,7 +853,11 @@ void DArray::Delete( const ListExpr inTypeInfo, Word& w )
 void DArray::Close( const ListExpr inTypeInfo, Word& w )
 {
   //cout << "DArray::Close" << endl;
-   delete (DArray*)w.addr;
+  DArray *da = (DArray*)w.addr;
+  if (da != 0)
+    {
+      delete (DArray*)w.addr;
+    }
    w.addr = 0;
    //cout << " -> OK" << endl;
 }
@@ -2528,21 +2496,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
            arrIndex = arrIndex % size;
            
-           if (oldIndex == -1)
-             oldIndex = arrIndex;
-
-           if (arrIndex != oldIndex)
-             {
-               //cout << "Switch from " 
-               // << oldIndex << " to " << arrIndex << endl;
-               serverCommand[oldIndex] -> forceSend();
-               oldIndex = arrIndex;
-             }
-
-           //cout << "RUN MEM S:" << memCntr.size()
-           //   << " C:" << memCntr.count()
-           //   << " M:" << memCntr.max() << endl;
-           
            if (memCntr.size() - tuple1 -> GetSize() < 0)
              {
                for (unsigned long j = 0; j < (unsigned int)size; j ++)
@@ -2552,8 +2505,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            memCntr.request(tuple1 -> GetSize());
            
 
-           //(*w)[0] = SetWord(tuple1);
-           //tuple1->IncReference();
 #ifndef SINGLE_THREAD1
 
            serverCommand[arrIndex] -> AppendTuple(tuple1);
@@ -2568,9 +2519,9 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            //cout << "Send tuple " << number 
            //<< " to server " << arrIndex << ":" << endl;
            //server -> print();
+           //tuple1 -> DeleteIfAllowed();
 #endif
 
-           tuple1 -> DeleteIfAllowed();
 
            //number ++;
          } // while (...)
@@ -3141,14 +3092,30 @@ dsummarizeTypeMap( ListExpr args )
 
 class DArrayIteratorRefreshThread : public ZThread::Runnable
 {
+ 
 public:
   DArray *d;
-  TBQueue *tbIn;
-  TBQueue *tbOut;
+  TupleBuffer *tbOut;
+  TFQ tfqIn;
+  
+  DArrayIteratorRefreshThread() 
+  : ZThread::Runnable()
+  , tbOut(NULL) {}
 
   void run()
   {
-    d->refresh(tbIn, tbOut);
+    assert(tbOut != NULL);
+
+    //cout << "START READING" << endl;
+    while (d->refreshTBRunning())
+      {
+        Tuple *t = tfqIn -> get();
+        if (t != NULL)
+          {
+            DBAccessGuard::getInstance() -> REL_AppendTuple(tbOut, t);
+          }
+      }
+    //cout << "DAIRT::run done"<< endl;
   }
   
   ~DArrayIteratorRefreshThread() { }
@@ -3164,57 +3131,18 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     DArray *da;
     int size;
     TupleBufferIterator* rit;
-    TupleBuffer *cur_rel;
-    ListExpr m_type;
-    int m_algID, m_typID;
-    TBQueue m_tbIn, m_tbOut;
+    TupleBuffer *m_tbOut;
+    TFQ m_tfqIn;
     ZThread::ThreadedExecutor m_exe;
     bool m_error;
 
-    // create an Tuple iterater for the next array element
-    bool makeNextRelIter()
-    {
-      if (m_error)
-        return false;
-
-      if (rit)
-        {
-          delete rit;
-          rit = 0;
-          DBAccess::getInstance() -> TB_Clear(cur_rel);
-          //cout << "IN TB PUT" << endl;
-          m_tbIn -> put(cur_rel);
-        }
-
-      while ( da -> refreshTBRunning() || !(m_tbOut -> empty()) )
-        {
-          cur_rel = m_tbOut -> get();
-          if (cur_rel -> GetNoTuples() > 0)
-            {
-              rit = new TupleBufferIterator (*cur_rel);
-              return true;
-            }
-          else
-            {
-              m_tbIn -> put(cur_rel);
-            }
-        }
-
-      rit=0;
-      return false;
-    }
-
     public:
-DArrayIterator(DArray* d, ListExpr t, int aI, int tI) 
+    DArrayIterator(DArray* d, size_t allowed_mem_size) 
   : da(d)
   , size(d->getSize())
   , rit(0)
-  , cur_rel(0)
-  , m_type(t)
-  , m_algID(aI)
-  , m_typID(tI)
-  , m_tbIn(new TupleBufferQueue())
-  , m_tbOut(new TupleBufferQueue())
+  , m_tbOut(new TupleBuffer(allowed_mem_size))
+  , m_tfqIn(new TupleFifoQueue())
     {
       m_error = false;
 
@@ -3223,71 +3151,50 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
            !(d -> getServerManager() -> checkServers(false)))
 
         {
+          //cout << "DSFI ERROR!" << endl;
           m_error = true;
         }
       else
-        {      
-          for (int i = 0; i < MAX_DSUMMARIZE_TB_QUEUE_SIZE; ++i)
-            m_tbIn -> put(new TupleBuffer());
-
+        {
           DArrayIteratorRefreshThread *darrRefresh = 
             new DArrayIteratorRefreshThread();
-      
-          d -> initTBRefresh();
+          //cout << "DSFI init!" << endl;
 
+          d -> initTBRefresh();
           darrRefresh -> d = d;
-          darrRefresh -> tbIn = &m_tbIn;
-          darrRefresh -> tbOut = &m_tbOut;
-      
+          darrRefresh -> tbOut = m_tbOut;
+          darrRefresh -> tfqIn = m_tfqIn;
+          
+          //start collector thread
           m_exe.execute(darrRefresh);
 
-          makeNextRelIter();
+          //start reading from workers
+          d -> refresh(m_tfqIn);
+
+          m_exe.wait();
+
+          rit = new TupleBufferIterator(*m_tbOut);
         }
     }
 
     ~DArrayIterator()
     {
-      if (m_error)
-        return;
-
-      if (rit)
+      if (!m_error)
         {
-          assert(rit -> EndOfScan());
-          delete rit;
-        }
-       
-      m_exe.wait();
-
-      assert(m_tbOut -> size() == 0);
-      assert(m_tbIn -> size() == MAX_DSUMMARIZE_TB_QUEUE_SIZE);
-      for (int i = 0; i < MAX_DSUMMARIZE_TB_QUEUE_SIZE; ++i)
-        {
-          TupleBuffer *tb = m_tbIn -> get();
-          delete tb;
+          assert(m_tfqIn -> size() == 0);
         }
 
-      rit = 0;
-      delete m_tbIn;
+      delete rit;
       delete m_tbOut;
+      delete m_tfqIn;
     }
 
-    Tuple* getNextTuple() // try to get next tuple
+    Tuple* getNextTuple()
     {
       if (m_error)
         return 0;
-
-      if (!rit)
-        return 0;
-      Tuple* t = DBAccess::getInstance() -> TBI_GetNextTuple(rit);
-      if ( !t )
-      {
-         if (!makeNextRelIter())
-           return 0;
-         else
-           {
-             t = DBAccess::getInstance() -> TBI_GetNextTuple(rit);
-           }
-      }
+      // no threads are running, no need for DBAccessGuard
+      Tuple* t = rit -> GetNextTuple();
 
       return t;
     }
@@ -3303,17 +3210,16 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
       //cout << "OPEN" << endl;
       DArray *da = (DArray*)args[0].addr;
       dait = 
-        new DArrayIterator( da, da -> getType(), 
-                            da -> getAlgID(), da -> getTypID() );
+        new DArrayIterator(da, qp->GetMemorySize(s) * 1024 * 1024);
       local.addr = dait;
       return 0;
     }
     case REQUEST : {
-      //cout << "REQUEST" << endl;
 
+      //cout << "RQUEST" << endl;
       if (dait -> hasError())
         {
-           cout << " -> send Cancel" << endl;
+          //cout << " -> send Cancel1" << endl;
           result.setAddr(0);
           return CANCEL;
         }
@@ -3325,7 +3231,7 @@ DArrayIterator(DArray* d, ListExpr t, int aI, int tI)
         //t -> DeleteIfAllowed();
         return YIELD;
       }
-      //cout << " -> send Cancel" << endl;
+      //cout << " -> send Cancel2" << endl;
       result.setAddr(0);
       return CANCEL;
     }
@@ -4115,6 +4021,7 @@ class DistributedAlgebra : public Algebra
          AddOperator( &dElementA2);
          AddOperator( &dtie);
          AddOperator( &dsummarize );
+         dsummarize.SetUsesMemory();
          AddOperator( &checkWorkers );
          AddOperator( &startUp );
          AddOperator( &shutDown );

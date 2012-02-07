@@ -35,9 +35,6 @@ The list of workers must be specified in terms of a relation in any
 operator that gives back a darray.
 Operations on the darray-elements are carried out on the remote machines.
 
-Additionally there exists a class LogOutput. This is used to print
-debug messages into a file.
-
 
 1. Preliminaries
 
@@ -50,30 +47,7 @@ debug messages into a file.
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include "TupleBufferQueue.h"
-
-/*
-2 Class ~LogOutput~
-
-This class is implemented as a singelton, since
-all debug messages should go into  one file
-
-*/
-class LogOutput
-{
-private:
-  LogOutput();
-
-public:
-  virtual ~LogOutput();
-  static LogOutput* getInstance();
-
-  void print(const std::string& msg);
-  void print(int val);
-
-private:
-  std::ofstream *m_out;
-};
+#include "TupleFifoQueue.h"
 
 
 /*
@@ -124,7 +98,7 @@ public:
   //refresh must be called before calling get()
   void refresh(int);
   void refresh();
-  void refresh(TBQueue *tbIn, TBQueue* tbOut);
+  void refresh(TFQ tbOut);
   
   bool refreshTBRunning() 
   { ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); return m_tbRunning; };
