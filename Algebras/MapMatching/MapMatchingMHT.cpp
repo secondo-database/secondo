@@ -42,6 +42,7 @@ It is an map matching algorithm based on the Multiple Hypothesis Technique (MHT)
 #include "NetworkRoute.h"
 #include "NetworkSection.h"
 #include "MapMatchingUtil.h"
+#include "MHTRouteCandidate.h"
 
 #include <stdio.h>
 
@@ -52,30 +53,29 @@ namespace mapmatch {
 
 // Constructor
 MapMatchingMHT::MapMatchingMHT(Network* pNetwork, MPoint* pMPoint)
-:MapMatchingBase(pNetwork, pMPoint)
+:MapMatchingBase(pNetwork, pMPoint), m_pGeoid(NULL /*new Geoid(Geoid::WGS1984*/)
 {
 }
 
 // Destructor
 MapMatchingMHT::~MapMatchingMHT()
 {
+    if (m_pGeoid != NULL)
+        m_pGeoid->DeleteIfAllowed();
+    m_pGeoid = NULL;
 }
 
 #define MYTRACE(a) //MyStream << a << '\n'
 #define MYVARTRACE(a) //MyStream << #a << a << '\n'
 
-static ofstream MyStream;
+//static ofstream MyStream;
 
 
 void MapMatchingMHT::GetSectionsOfRoute(const NetworkRoute& rNetworkRoute,
         const Region& rRegion, std::vector<NetworkSection>& rVecSectRes)
 {
-    MYTRACE("GetSectionsOfRoute1");
-
     if (!rNetworkRoute.IsDefined() || !rRegion.IsDefined())
         return;
-
-    MYTRACE("GetSectionsOfRoute2");
 
     const int nRouteID = rNetworkRoute.GetRouteID();
     const SimpleLine* pRouteCurve = rNetworkRoute.GetCurve();
@@ -84,8 +84,6 @@ void MapMatchingMHT::GetSectionsOfRoute(const NetworkRoute& rNetworkRoute,
         pRouteCurve->IsDefined() &&
         MMUtil::Intersects(rRegion, *pRouteCurve))
     {
-        MYVARTRACE(nRouteID);
-
         RouteInterval Interval(nRouteID, 0.0,
                 std::numeric_limits<double>::max());
 
@@ -103,7 +101,6 @@ void MapMatchingMHT::GetSectionsOfRoute(const NetworkRoute& rNetworkRoute,
                 if (pSectionCurve != NULL &&
                         MMUtil::Intersects(rRegion, *pSectionCurve))
                 {
-                    MYVARTRACE(Section.GetSectionID());
                     rVecSectRes.push_back(Section);
                 }
             }
@@ -132,7 +129,6 @@ void MapMatchingMHT::GetInitialSectionCandidates(const Point& rPoint,
     {
         NetworkRoute Route(m_pNetwork->GetRoutes()->GetTuple(res.info, false),
                 false);
-        MYVARTRACE(Route.GetRouteID());
         GetSectionsOfRoute(Route, *pRegionBBox, rVecSectRes);
     }
 
@@ -140,298 +136,12 @@ void MapMatchingMHT::GetInitialSectionCandidates(const Point& rPoint,
     {
         NetworkRoute Route(m_pNetwork->GetRoutes()->GetTuple(res.info, false),
                 false);
-        MYVARTRACE(Route.GetRouteID());
         GetSectionsOfRoute(Route, *pRegionBBox, rVecSectRes);
     }
 }
 
-class RouteCandidate
-{
-public:
-    RouteCandidate();
-    RouteCandidate(const RouteCandidate& rCandidate);
-    ~RouteCandidate();
-
-    RouteCandidate& operator=(const RouteCandidate& rCandidate);
-
-    bool operator==(const RouteCandidate& rCandidate);
-
-    void AddSection(const NetworkSection& rSection);
-    size_t GetSectionCount(void) const;
-    const NetworkSection& GetSection(size_t nSection) const;
-    const NetworkSection& GetLastSection(void) const;
-
-    void AddPoint(const GPoint& rPoint, const DateTime& rDateTime,
-                  bool bClosed, const double dDistance);
-
-    inline double GetScore(void) const
-    {
-        return m_dScore;
-    }
-
-    // A empty section is a section without assigned points
-    inline unsigned short GetCountLastEmptySections(void) const
-    {
-        return m_nCountLastEmptySections;
-    }
-
-    inline void MarkAsInvalid(void)
-    {
-        m_dScore = std::numeric_limits<double>::max();
-    }
-
-    struct PointData
-    {
-        PointData(const GPoint& rGPoint, const DateTime& rDateTime,
-                  bool bClosed)
-        :m_pGPoint(new GPoint(rGPoint)), m_Time(rDateTime), m_bClosed(bClosed)
-        {
-        }
-
-        PointData(const PointData& rPointData)
-        :m_pGPoint(new GPoint(rPointData.m_pGPoint != NULL ?
-                                              (*rPointData.m_pGPoint) : false)),
-         m_Time(rPointData.m_Time), m_bClosed(rPointData.m_bClosed)
-        {
-        }
-
-        PointData& operator=(const PointData& rPointData)
-        {
-            if (this != &rPointData)
-            {
-                if (m_pGPoint != NULL)
-                  m_pGPoint->DeleteIfAllowed();
-                m_pGPoint = NULL;
-
-                if (rPointData.m_pGPoint != NULL)
-                    m_pGPoint = new GPoint(*rPointData.m_pGPoint);
-
-                m_Time = rPointData.m_Time;
-                m_bClosed = rPointData.m_bClosed;
-            }
-
-            return *this;
-        }
-
-        bool operator==(const PointData& rPointData)
-        {
-            if (this == &rPointData)
-                return true;
-
-            if (m_pGPoint != NULL && rPointData.m_pGPoint != NULL)
-            {
-                return (m_pGPoint->Compare(*rPointData.m_pGPoint) == 0);
-            }
-            else
-            {
-                return m_pGPoint == rPointData.m_pGPoint; // Both NULL ?
-            }
-        }
-
-        ~PointData()
-        {
-            if (m_pGPoint != NULL)
-                m_pGPoint->DeleteIfAllowed();
-            m_pGPoint = NULL;
-        }
-
-        GPoint* m_pGPoint;
-        DateTime m_Time;
-        bool m_bClosed;
-    };
-
-    inline const std::vector<PointData*>& GetPoints(void) const
-    {
-        return m_Points;
-    }
-
-    void GetPointsOfLastSection(std::vector<PointData*>& rvecPoints) const;
-
-private:
-    vector<PointData*> m_Points;
-    vector<NetworkSection> m_Sections; // TODO ggf. DBArray
-    double m_dScore;
-    size_t m_nPointsOfLastSection;
-    unsigned short m_nCountLastEmptySections;
-};
-
-RouteCandidate::RouteCandidate()
-:m_dScore(0.0), m_nPointsOfLastSection(0), m_nCountLastEmptySections(0)
-{
-}
-
-RouteCandidate::RouteCandidate(const RouteCandidate& rCandidate)
-:m_dScore(rCandidate.m_dScore),
- m_nPointsOfLastSection(rCandidate.m_nPointsOfLastSection),
- m_nCountLastEmptySections(rCandidate.m_nCountLastEmptySections)
-{
-    for (size_t i = 0; i < rCandidate.m_Points.size(); ++i)
-    {
-        PointData* pData = rCandidate.m_Points[i];
-        if (pData != NULL)
-        {
-            m_Points.push_back(new PointData(*pData));
-        }
-    }
-
-    for (size_t i = 0; i < rCandidate.m_Sections.size(); ++i)
-    {
-        m_Sections.push_back(rCandidate.m_Sections[i]);
-    }
-}
-
-RouteCandidate::~RouteCandidate()
-{
-    for (size_t i = 0; i < m_Points.size(); ++i)
-    {
-        PointData* pPointData = m_Points[i];
-        if (pPointData != NULL)
-        {
-            delete pPointData;
-            pPointData = NULL;
-        }
-
-        m_Points[i] = NULL;
-    }
-
-    m_Points.clear();
-}
-
-RouteCandidate& RouteCandidate::operator=(const RouteCandidate& rCandidate)
-{
-    if (this != &rCandidate)
-    {
-        m_dScore = rCandidate.m_dScore;
-        m_nPointsOfLastSection = rCandidate.m_nPointsOfLastSection;
-        m_nCountLastEmptySections = rCandidate.m_nCountLastEmptySections;
-
-        for (size_t i = 0; i < m_Points.size(); ++i)
-        {
-            PointData* pPointData = m_Points[i];
-            if (pPointData != NULL)
-            {
-                delete pPointData;
-                pPointData = NULL;
-            }
-
-            m_Points[i] = NULL;
-        }
-
-        m_Points.clear();
-
-        for (size_t i = 0; i < rCandidate.m_Points.size(); ++i)
-        {
-            PointData* pData = rCandidate.m_Points[i];
-            if (pData != NULL)
-            {
-                m_Points.push_back(new PointData(*pData));
-            }
-        }
-
-        m_Sections.clear();
-        for (size_t i = 0; i < rCandidate.m_Sections.size(); ++i)
-        {
-            m_Sections.push_back(rCandidate.m_Sections[i]);
-        }
-    }
-
-    return *this;
-}
-
-bool RouteCandidate::operator==(const RouteCandidate& rCandidate)
-{
-    if (this == &rCandidate)
-        return true;
-
-    if (AlmostEqual(GetScore(), rCandidate.GetScore()) &&
-        GetPoints().size() == rCandidate.GetPoints().size())
-    {
-        const size_t nPoints = GetPoints().size();
-        for (size_t i = 0; i < nPoints; ++i)
-        {
-            PointData* pData1 = GetPoints()[i];
-            PointData* pData2 = rCandidate.GetPoints()[i];
-
-            if (pData1 != NULL && pData2 != NULL)
-            {
-                if (!(*pData1 == *pData2))
-                    return false;
-            }
-            else if (pData1 != pData2)
-                return false;
-        }
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-void RouteCandidate::AddSection(const NetworkSection& rSection)
-{
-    m_Sections.push_back(rSection);
-    m_nPointsOfLastSection = 0;
-    ++m_nCountLastEmptySections;
-}
-
-size_t RouteCandidate::GetSectionCount(void) const
-{
-    return m_Sections.size();
-}
-
-const NetworkSection& RouteCandidate::GetSection(size_t nSection) const
-{
-    if (nSection < m_Sections.size())
-        return m_Sections.at(nSection);
-    else
-    {
-        static NetworkSection SectionUndef(NULL, NULL);
-        return SectionUndef;
-    }
-}
-
-const NetworkSection& RouteCandidate::GetLastSection(void) const
-{
-    if (m_Sections.size() > 0)
-        return m_Sections.at(m_Sections.size() - 1);
-    else
-    {
-        static NetworkSection SectionUndef(NULL, NULL);
-        return SectionUndef;
-    }
-}
-
-void RouteCandidate::GetPointsOfLastSection(
-                                      std::vector<PointData*>& rvecPoints) const
-{
-    if (m_nPointsOfLastSection > m_Points.size())
-    {
-        assert(false);
-        return;
-    }
-
-    for (size_t i = m_nPointsOfLastSection; i > 0; --i)
-    {
-        rvecPoints.push_back(m_Points.at(m_Points.size() - i));
-    }
-}
-
-void RouteCandidate::AddPoint(const GPoint& rPoint, const DateTime& rDateTime,
-                              bool bClosed, const double dDistance)
-{
-    PointData* pData = new PointData(rPoint, rDateTime, bClosed);
-    m_Points.push_back(pData);
-    ++m_nPointsOfLastSection;
-    m_dScore += dDistance;
-    m_nCountLastEmptySections = 0;
-}
-
 bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
 {
-    //MyStream.open("/home/secondo/MyTrace.txt", ios_base::out | ios_base::app);
-
     // Initialization
     if (!InitMapMatching(pResMGPoint))
     {
@@ -443,7 +153,7 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
     TripSegmentation(vecTripSegments);
 
     // Steps 2-4
-    std::vector<RouteCandidate*> vecRouteSegments;
+    std::vector<MHTRouteCandidate*> vecRouteSegments;
 
     for (vector<MPoint*>::iterator it = vecTripSegments.begin();
          it != vecTripSegments.end();
@@ -455,21 +165,22 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
         *it = NULL;
 
         // Step 2 - Determination of initial route/segment candidates
-        std::vector<RouteCandidate*> vecRouteCandidates;
-        GetInitialRouteCandidates(pMPoint.get(), vecRouteCandidates);
+        std::vector<MHTRouteCandidate*> vecRouteCandidates;
+        int nIndexFirstUPoint = GetInitialRouteCandidates(pMPoint.get(),
+                                                          vecRouteCandidates);
 
         // Step 3 - Route developement
-        DevelopRoutes(pMPoint.get(), vecRouteCandidates);
+        DevelopRoutes(pMPoint.get(), nIndexFirstUPoint, vecRouteCandidates);
 
         // Step 4 - Selection of most likely candidate
-        RouteCandidate* pBestCandidate =
+        MHTRouteCandidate* pBestCandidate =
                                 DetermineBestRouteCandidate(vecRouteCandidates);
         vecRouteSegments.push_back(pBestCandidate);
 
         // cleanup
         while (vecRouteCandidates.size() > 0)
         {
-            RouteCandidate* pCandidate = vecRouteCandidates.back();
+            MHTRouteCandidate* pCandidate = vecRouteCandidates.back();
             if (pCandidate != pBestCandidate)
                 delete pCandidate;
             vecRouteCandidates.pop_back();
@@ -482,15 +193,13 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
     // cleanup
     while (vecRouteSegments.size() > 0)
     {
-        RouteCandidate* pCandidate = vecRouteSegments.back();
+        MHTRouteCandidate* pCandidate = vecRouteSegments.back();
         delete pCandidate;
         vecRouteSegments.pop_back();
     }
 
     // Finalize
     FinalizeMapMatching();
-
-    //MyStream.close();
 
     return true;
 }
@@ -519,7 +228,7 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 
     const int nMPointComponents = m_pMPoint->GetNoComponents();
 
-    for (int i = 0; i < 100 /*nMPointComponents*/; bProcessNext ? i++ : i)
+    for (int i = 0; i < 222 /*nMPointComponents*/; bProcessNext ? i++ : i)
     {
         if (bProcessNext)
             m_pMPoint->Get(i, ActUPoint);
@@ -634,110 +343,114 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
     }
 }
 
-void MapMatchingMHT::GetInitialRouteCandidates(MPoint* pMPoint,
-                              std::vector<RouteCandidate*>& rvecRouteCandidates)
+int MapMatchingMHT::GetInitialRouteCandidates(MPoint* pMPoint,
+                           std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
     if (pMPoint == NULL || !pMPoint->IsDefined())
-        return;
+        return -1;
 
-    // get first (defined) point
+    // Get first (defined) point and search for sections
+    // in the vicinity of the point.
+    // Process next (defined) point, if no section was found.
     UPoint FirstUPoint(false);
-    for (int i = 0; i < pMPoint->GetNoComponents() && !FirstUPoint.IsDefined();
-            ++i)
-    {
-        pMPoint->Get(i, FirstUPoint);
-    }
-
-    // get first section candidates
     std::vector<NetworkSection> vecInitialSections;
-    if (FirstUPoint.IsDefined())
-        GetInitialSectionCandidates(FirstUPoint.p0, vecInitialSections);
+    int nIndexFirstUPoint = 0;
 
-    // process first section candidates
-    // create route candidates
+    do
+    {
+        for (nIndexFirstUPoint = 0;
+             nIndexFirstUPoint < pMPoint->GetNoComponents() &&
+             !FirstUPoint.IsDefined();
+             ++nIndexFirstUPoint)
+        {
+            pMPoint->Get(nIndexFirstUPoint, FirstUPoint);
+        }
+
+        // get first section candidates
+        if (FirstUPoint.IsDefined())
+            GetInitialSectionCandidates(FirstUPoint.p0, vecInitialSections);
+
+    }while(vecInitialSections.size() == 0 &&
+           nIndexFirstUPoint < pMPoint->GetNoComponents());
+
+    // process initial section candidates
+    // -> create route candidates
     for (std::vector<NetworkSection>::iterator it = vecInitialSections.begin();
-            it != vecInitialSections.end(); ++it)
+         it != vecInitialSections.end(); ++it)
     {
         const NetworkSection& rActInitalNetworkSection = *it;
         if (!rActInitalNetworkSection.IsDefined())
             continue;
 
-        RouteCandidate* pCandidate = new RouteCandidate;
+        MHTRouteCandidate* pCandidate = new MHTRouteCandidate;
         pCandidate->AddSection(rActInitalNetworkSection);
 
         rvecRouteCandidates.push_back(pCandidate);
     }
 
-    for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
-    {
-        RouteCandidate* pCandidate = rvecRouteCandidates[i];
-
-        MYVARTRACE("****** RouteCandidate ******");
-
-        for (size_t j = 0; j < pCandidate->GetSectionCount(); ++j)
-        {
-            MYVARTRACE(pCandidate->GetSection(j).GetSectionID());
-        }
-    }
+    return rvecRouteCandidates.size() > 0 ? nIndexFirstUPoint : -1;
 }
 
-void MapMatchingMHT::DevelopRoutes(MPoint* pMPoint,
-                              std::vector<RouteCandidate*>& rvecRouteCandidates)
+void MapMatchingMHT::DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
+                           std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
     if (pMPoint == NULL || !pMPoint->IsDefined() ||
-        m_pNetwork == NULL || !m_pNetwork->IsDefined())
+        m_pNetwork == NULL || !m_pNetwork->IsDefined() ||
+        nIndexFirstComponent < 0)
         return;
 
     const int nNoComponents = pMPoint->GetNoComponents();
 
-    /*ofstream TracePoints("/home/secondo/RouteCandidate.txt",
-                           ios_base::out|ios_base::ate|ios_base::app);*/
-
-    for (int i = 0; i < nNoComponents; ++i)
+    for (int i = nIndexFirstComponent; i < nNoComponents; ++i)
     {
+        //TracePoints << i << endl;
+
         UPoint ActUPoint(false);
         pMPoint->Get(i, ActUPoint);
         if (!ActUPoint.IsDefined())
             continue;
 
+        // Develop routes with point p0
         DevelopRoutes(ActUPoint.p0, ActUPoint.timeInterval.start,
                       ActUPoint.timeInterval.lc, rvecRouteCandidates);
 
+        TraceRouteCandidates(rvecRouteCandidates, "Nach DevelopRoutes 1");
+
+        // Develop routes with point p1
         DevelopRoutes(ActUPoint.p1, ActUPoint.timeInterval.end,
                       ActUPoint.timeInterval.rc, rvecRouteCandidates);
 
+        TraceRouteCandidates(rvecRouteCandidates, "Nach DevelopRoutes 2");
+
+        // Reduce Routes
         ReduceRouteCandidates(rvecRouteCandidates);
 
-        /*for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
-        {
-            TracePoints << "nach reduce" << endl;
-
-            TraceRouteCandidate(*(rvecRouteCandidates[i]), TracePoints);
-
-            TracePoints << endl;
-        }*/
+        TraceRouteCandidates(rvecRouteCandidates, "Nach Reduce");
     }
 }
 
 void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
-                             const DateTime& rTime,
-                             bool bClosed,
-                             std::vector<RouteCandidate*>& rvecRouteCandidates)
+                          const DateTime& rTime,
+                          bool bClosed,
+                          std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
-    std::vector<RouteCandidate*> vecNewRouteCandidates;
+    std::vector<MHTRouteCandidate*> vecNewRouteCandidates;
 
-    std::vector<RouteCandidate*>::iterator it;
+    std::vector<MHTRouteCandidate*>::iterator it;
     for (it = rvecRouteCandidates.begin();
          it != rvecRouteCandidates.end();
          ++it)
     {
-        RouteCandidate* pCandidate = *it;
+        MHTRouteCandidate* pCandidate = *it;
         if (pCandidate == NULL)
         {
             continue;
         }
 
-        if (!AssignPoint(pCandidate, rPoint, rTime, bClosed))
+        const int nDebugSectionID = pCandidate->GetLastSection().GetSectionID();
+
+        EEndReached eEndReached = REACHED_NONE;
+        if (!AssignPoint(pCandidate, rPoint, rTime, bClosed, eEndReached))
         {
             // Point could not be assigned to last section of candidate
             // -> add adjacent sections
@@ -745,7 +458,7 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
             // max 5 sections look ahead
             if (pCandidate->GetCountLastEmptySections() < 5)
             {
-                std::vector<RouteCandidate*> vecNewRouteCandidatesLocal;
+                std::vector<MHTRouteCandidate*> vecNewRouteCandidatesLocal;
 
                 const NetworkSection& rSection = pCandidate->GetLastSection();
                 if (!rSection.IsDefined())
@@ -763,34 +476,21 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                     continue;
                 }
 
-                const Point ptStart = pCurve->StartPoint();
-                const Point ptEnd = pCurve->EndPoint();
+                const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
+                const Point ptStart = pCurve->StartPoint(bStartsSmaller);
+                const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
 
-                const double dDistanceStart = rPoint.Distance(ptStart);
-                const double dDistanceEnd = rPoint.Distance(ptEnd);
+                const double dDistanceStart = rPoint.Distance(ptStart,
+                                                              m_pGeoid);
+                const double dDistanceEnd = rPoint.Distance(ptEnd, m_pGeoid);
 
                 //if (AlmostEqual(dDistanceStart, dDistanceEnd)) TODO
 
-                /*MYTRACE("### pCandidate ###");
-                for (size_t j = 0; j < pCandidate->GetPoints().size(); ++j)
-                {
-                    pCandidate->GetPoints()[j]->m_pGPoint->Print(MyStream);
-                }*/
+                bool bUpDown = dDistanceStart > dDistanceEnd;
 
-                AddAdjacentSections(pCandidate,
-                                    dDistanceStart > dDistanceEnd,
+
+                AddAdjacentSections(pCandidate, bUpDown,
                                     vecNewRouteCandidatesLocal);
-
-                /*MYTRACE("### Nach AddAdjacentSections ###");
-                for (size_t i = 0; i < vecNewRouteCandidatesLocal.size(); ++i)
-                {
-                    RouteCandidate* pC = vecNewRouteCandidatesLocal[i];
-
-                    for (size_t j = 0; j < pC->GetPoints().size(); ++j)
-                    {
-                        pC->GetPoints()[j]->m_pGPoint->Print(MyStream);
-                    }
-                }*/
 
                 if (vecNewRouteCandidatesLocal.size() > 0)
                 {
@@ -802,6 +502,7 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                                              vecNewRouteCandidatesLocal.begin(),
                                              vecNewRouteCandidatesLocal.end());
                     *it = NULL;
+                    delete pCandidate; // TODO ggf. weiter verwenden
                 }
                 else
                 {
@@ -811,45 +512,177 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
             }
             else
             {
+                // too many empty sections
                 *it = NULL;
                 delete pCandidate;
             }
         }
         else
         {
+            // Point was assigned to candidate
             // add to new list
             vecNewRouteCandidates.push_back(pCandidate);
             // remove from current list
             *it = NULL;
-        }
-    }
 
-    // TODO nur zum Testen
-    for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
-    {
-        assert(rvecRouteCandidates[i] == NULL);
+            if (eEndReached != REACHED_NONE)
+            {
+                // Point was assigned, but check adjacent sections, too.
+
+                // Remove assigned point and assign to adjacent sections
+
+                MHTRouteCandidate CandidateCopy(*pCandidate);
+                //CandidateCopy.RemoveLastPoint();
+
+                std::vector<MHTRouteCandidate*> vecNewRouteCandidatesLocal;
+
+                if (eEndReached == REACHED_UP || eEndReached == REACHED_BOTH)
+                {
+                    AddAdjacentSections(&CandidateCopy, true,
+                                        vecNewRouteCandidatesLocal);
+                }
+
+                if (eEndReached == REACHED_DOWN || eEndReached == REACHED_BOTH)
+                {
+                    AddAdjacentSections(&CandidateCopy, false,
+                                        vecNewRouteCandidatesLocal);
+                }
+
+                if (vecNewRouteCandidatesLocal.size() > 0)
+                {
+                    // !! Rekursion !!
+                    DevelopRoutes(rPoint, rTime, bClosed,
+                                  vecNewRouteCandidatesLocal);
+
+                    vecNewRouteCandidates.insert(
+                                vecNewRouteCandidates.end(),
+                                vecNewRouteCandidatesLocal.begin(),
+                                vecNewRouteCandidatesLocal.end());
+                }
+            }
+        }
     }
 
     rvecRouteCandidates = vecNewRouteCandidates;
     vecNewRouteCandidates.clear();
-
-    /*MYTRACE("###DevelopRoutesEnde###");
-    for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
-    {
-        RouteCandidate* pC = rvecRouteCandidates[i];
-
-        for (size_t j = 0; j < pC->GetPoints().size(); ++j)
-        {
-            pC->GetPoints()[j]->m_pGPoint->Print(MyStream);
-        }
-    }*/
 }
 
-bool MapMatchingMHT::AssignPoint(RouteCandidate* pCandidate,
+// modified copy of SimpleLine::AtPoint
+static bool GetPosOnSimpleLine( const SimpleLine& rLine,
+                                const Point& p,
+                                bool startsSmaller,
+                                double tolerance,
+                                double& result)
+
+{
+    if (rLine.IsEmpty() || !p.IsDefined())
+    {
+        return false;
+    }
+
+    bool found = false;
+    HalfSegment hs;
+    const Rectangle<2> rectBounding(true,
+                                    p.GetX() - tolerance,
+                                    p.GetX() + tolerance,
+                                    p.GetY() - tolerance,
+                                    p.GetY() + tolerance);
+
+    for (int nPos = 0; nPos < rLine.Size(); ++nPos)
+    {
+        rLine.Get(nPos, hs);
+
+        double dDistance = hs.Distance(rectBounding);
+
+        if (hs.IsLeftDomPoint() && AlmostEqual(dDistance, 0.0))
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (found)
+    {
+        LRS lrs;
+        rLine.Get(hs.attr.edgeno, lrs);
+        rLine.Get(lrs.hsPos, hs);
+        result = lrs.lrsPos + p.Distance(hs.GetDomPoint());
+
+        if (!startsSmaller)
+            result = rLine.Length() - result;
+
+        /*if (tolerance != 0.0)
+        {
+            if (AlmostEqualAbsolute(result, 0.0, tolerance))
+                result = 0;
+            else if (AlmostEqualAbsolute(result, rLine.Length(), tolerance))
+                result = rLine.Length();
+        }
+        else*/
+        {
+            if (AlmostEqual(result, 0.0))
+                result = 0.0;
+            else if (AlmostEqual(result, rLine.Length()))
+                result = rLine.Length();
+        }
+
+        return true;
+    }
+    return false;
+}
+
+static double CalcDistance(const std::vector<const Point*>& rvecPoints,
+                           const Geoid* pGeoid = NULL)
+{
+    double dDistance = 0.0;
+
+    const size_t nSize = rvecPoints.size();
+    if (nSize > 0)
+    {
+        const Point* pPrevPoint = rvecPoints[0];
+
+        for (size_t i = 1; i < nSize; ++i)
+        {
+            const Point* pActPoint = rvecPoints[i];
+            if (pActPoint != NULL)
+            {
+                if (pActPoint != NULL)
+                    dDistance += pPrevPoint->Distance(*pActPoint, pGeoid);
+
+                pPrevPoint = pActPoint;
+            }
+        }
+    }
+
+    return dDistance;
+}
+
+static double CalcLengthCurve(const SimpleLine* pCurve,
+                              const Geoid* pGeoid = NULL)
+{
+    if (pGeoid != NULL)
+    {
+        bool bValid = true;
+        double dLengthCurve = pCurve->Length(*pGeoid, bValid);
+        if (bValid)
+            return dLengthCurve;
+        else
+            return pCurve->Length();
+    }
+    else
+    {
+        return pCurve->Length();
+    }
+}
+
+bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                                  const Point& rPoint,
                                  const datetime::DateTime& rTime,
-                                 bool bClosed)
+                                 bool bClosed,
+                                 MapMatchingMHT::EEndReached& eEndReached)
 {
+    eEndReached = REACHED_NONE;
+
     const NetworkSection& rSection = pCandidate->GetLastSection();
     if (!rSection.IsDefined() || m_pNetwork == NULL)
     {
@@ -864,35 +697,125 @@ bool MapMatchingMHT::AssignPoint(RouteCandidate* pCandidate,
 
     double dDistance = 0.0;
     Point PointProjection = MMUtil::CalcOrthogonalProjection(*pCurve, rPoint,
-                                                             dDistance);
-    if (PointProjection.IsDefined() /*&& dDistance < XXX TODO */)
+                                                           dDistance, m_pGeoid);
+    if (PointProjection.IsDefined())
     {
-        // TODO prüfen, ob Länge der Punkte länger als Section ist.
+        // Check "length" of GPS-Points
+        vector<MHTRouteCandidate::PointData*> vecPointsLastSection;
+        pCandidate->GetPointsOfLastSection(vecPointsLastSection);
 
+        vector<const Point*> vecPoints;
+
+        for (size_t i = 0; i < vecPointsLastSection.size(); ++i)
+        {
+            vecPoints.push_back(vecPointsLastSection[i]->m_pPointGPS);
+        }
+
+        vecPoints.push_back(&rPoint);
+
+        const double dDistanceTravelled = CalcDistance(vecPoints, m_pGeoid);
+        const double dLengthCurve = CalcLengthCurve(pCurve, m_pGeoid);
+
+        if (dDistanceTravelled > (dLengthCurve / 100. * 85.))
+        {
+            const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
+            const Point ptStart = pCurve->StartPoint(bStartsSmaller);
+            const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
+
+            const double dDistanceStart = rPoint.Distance(ptStart);
+            const double dDistanceEnd = rPoint.Distance(ptEnd);
+
+            eEndReached = REACHED_BOTH; // TODO
+            //(dDistanceStart > dDistanceEnd) ? REACHED_UP : REACHED_DOWN;
+        }
+
+        // Check Distance
+        // TODO
+
+        // Get Position of Projected point on route
         const NetworkRoute& rRoute = rSection.GetRoute();
         bool startSmaller = rRoute.GetStartsSmaller();
         const SimpleLine* pRouteCurve = rRoute.GetCurve();
 
         double dPos = 0.0;
         if (pRouteCurve != NULL &&
-            pRouteCurve->AtPoint(PointProjection, startSmaller, dPos))
+            GetPosOnSimpleLine(*pRouteCurve, PointProjection,
+                               startSmaller, 0.000001 * 1000, dPos))
+            //pRouteCurve->AtPoint(PointProjection, startSmaller, dPos))
         {
             GPoint ResGPoint(true, m_pNetwork->GetId(), rRoute.GetRouteID(),
                     dPos, None);
-            pCandidate->AddPoint(ResGPoint, rTime, bClosed, dDistance);
+            pCandidate->AddPoint(ResGPoint, rPoint, dDistance, rTime, bClosed);
+
+            //if (pCandidate->GetLastSectionCoverage() > 98)
+
             return true;
         }
         else
         {
+            assert(false);
             return false;
         }
     }
+    else
+    {
+        return false;
+
+        // Assign to start- or end-node
+        /*const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
+        const Point ptStart = pCurve->StartPoint(bStartsSmaller);
+        const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
+
+        const double dDistanceStart = rPoint.Distance(ptStart, m_pGeoid);
+        const double dDistanceEnd = rPoint.Distance(ptEnd, m_pGeoid);
+
+        const NetworkRoute& rRoute = rSection.GetRoute();
+        bool startSmaller = rRoute.GetStartsSmaller();
+
+        if (dDistanceStart < dDistanceEnd)
+        {
+            // To start-node
+            GPoint ResGPoint(true, m_pNetwork->GetId(), rRoute.GetRouteID(),
+                             startSmaller ? 0.0 : pCurve->Length(), None);
+                             // TODO geoid
+            pCandidate->AddPoint(ResGPoint, rPoint, dDistanceStart,
+                                 rTime, bClosed);
+
+            eEndReached = startSmaller ? REACHED_DOWN : REACHED_UP;
+        }
+        else
+        {
+            // To end-node
+            GPoint ResGPoint(true, m_pNetwork->GetId(), rRoute.GetRouteID(),
+                             startSmaller ? pCurve->Length() : 0.0, None);
+                             // TODO geoid
+            pCandidate->AddPoint(ResGPoint, rPoint, dDistanceEnd,
+                                 rTime, bClosed);
+
+            eEndReached = startSmaller ? REACHED_UP : REACHED_DOWN;
+        }
+
+        return true;*/
+    }
+
 
     return false;
 }
 
-static bool RouteCandidateCompare(const RouteCandidate* pRC1,
-                                  const RouteCandidate* pRC2)
+void MapMatchingMHT::ReassignLastPoints(MHTRouteCandidate& rCandidate)
+{
+    std::vector<MHTRouteCandidate::PointData*> vecPoints;
+    rCandidate.GetPointsOfLastSection(vecPoints);
+    if (vecPoints.size() == 0)
+    {
+        std::vector<MHTRouteCandidate::PointData*> vecPoints;
+        rCandidate.GetPointsOfLastSection(vecPoints);
+
+    }
+}
+
+static bool RouteCandidateCompare(const MHTRouteCandidate* pRC1,
+                                  const MHTRouteCandidate* pRC2)
 {
     // RC1 < RC2
     if (pRC1 == NULL || pRC1 == NULL)
@@ -900,7 +823,7 @@ static bool RouteCandidateCompare(const RouteCandidate* pRC1,
     return pRC1->GetScore() < pRC2->GetScore();
 }
 
-void MapMatchingMHT::ReduceRouteCandidates(std::vector<RouteCandidate*>&
+void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                             rvecRouteCandidates)
 {
     if (rvecRouteCandidates.size() <= 25) // minimum 25 candidates
@@ -916,8 +839,8 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<RouteCandidate*>&
         size_t j = i + 1;
         for (j = i + 1; j < rvecRouteCandidates.size(); ++j)
         {
-            RouteCandidate* pRouteCandidate1 = rvecRouteCandidates[i];
-            RouteCandidate* pRouteCandidate2 = rvecRouteCandidates[j];
+            MHTRouteCandidate* pRouteCandidate1 = rvecRouteCandidates[i];
+            MHTRouteCandidate* pRouteCandidate2 = rvecRouteCandidates[j];
 
             if (*pRouteCandidate1 == *pRouteCandidate2)
             {
@@ -937,27 +860,21 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<RouteCandidate*>&
               rvecRouteCandidates.end(),
               RouteCandidateCompare);
 
-    MYTRACE("ReduceRouteCandidates Start");
-    MYVARTRACE(rvecRouteCandidates.size());
-
     // maximum 30
     while (rvecRouteCandidates.size() > 30)
     {
-        RouteCandidate* pCandidate = rvecRouteCandidates.back();
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
         delete pCandidate;
         rvecRouteCandidates.pop_back();
     }
 
-    MYTRACE("ReduceRouteCandidates Mitte");
-    MYVARTRACE(rvecRouteCandidates.size());
-
     // remove candidates with very bad score
-    RouteCandidate* pBestCandidate = rvecRouteCandidates[0];
+    MHTRouteCandidate* pBestCandidate = rvecRouteCandidates[0];
     const double dBestScore = pBestCandidate->GetScore();
 
     while (rvecRouteCandidates.size() > 25)
     {
-        RouteCandidate* pCandidate = rvecRouteCandidates.back();
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
         if (pCandidate == NULL || pCandidate->GetScore() > (3 * dBestScore))
         {
             delete pCandidate;
@@ -966,20 +883,18 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<RouteCandidate*>&
         else
             break;
     }
-
-    MYTRACE("ReduceRouteCandidates Ende");
-    MYVARTRACE(rvecRouteCandidates.size());
-    MyStream.flush();
 }
 
-void MapMatchingMHT::AddAdjacentSections(RouteCandidate* pCandidate,
-                           bool bUpDown,
-                           std::vector<RouteCandidate*>& rvecNewRouteCandidates)
+void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
+                        bool bUpDown,
+                        std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates)
 {
     if (m_pNetwork == NULL)
         return;
 
     const NetworkSection& rSection = pCandidate->GetLastSection();
+
+    const int nDebugSectionID = rSection.GetSectionID();
 
     vector<DirectedSection> adjSectionList;
     m_pNetwork->GetAdjacentSections(rSection.GetSectionID(), bUpDown,
@@ -993,25 +908,17 @@ void MapMatchingMHT::AddAdjacentSections(RouteCandidate* pCandidate,
                                              adjSectionList[i].GetSectionTid());
             NetworkSection adjSection(pSectionTuple, m_pNetwork, false);
 
+            const int nDebugAdjSectionID = adjSection.GetSectionID();
+
             if (adjSection.GetSectionID() == rSection.GetSectionID())
                 continue;
 
-            /* erst mal nicht wiederverwenden
-            if (i == adjSectionList.size() - 1)
-            {
-                // last adjacent section
-                // -> reuse current candidate
-                pCandidate->AddSection(adjSection);
-                rvecNewRouteCandidates.push_back(pCandidate);
-            }
-            else*/
-            {
-                // make copy of current candidate
-                RouteCandidate* pNewCandidate = new RouteCandidate(*pCandidate);
-                pNewCandidate->AddSection(adjSection);
+            // make copy of current candidate
+            MHTRouteCandidate* pNewCandidate =
+                                             new MHTRouteCandidate(*pCandidate);
+            pNewCandidate->AddSection(adjSection, true);
 
-                rvecNewRouteCandidates.push_back(pNewCandidate);
-            }
+            rvecNewRouteCandidates.push_back(pNewCandidate);
         }
     }
     else
@@ -1022,12 +929,22 @@ void MapMatchingMHT::AddAdjacentSections(RouteCandidate* pCandidate,
     }
 }
 
-RouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
-                        std::vector<RouteCandidate*>& rvecRouteCandidates)
+MHTRouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
+                        std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
     std::sort(rvecRouteCandidates.begin(),
               rvecRouteCandidates.end(),
               RouteCandidateCompare);
+
+#ifdef TRACE_ROUTE_CANDIDATES
+    for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
+    {
+        std::stringstream strFileName;
+        strFileName << "/home/secondo/Traces/GPoints_" << i << ".txt";
+        ofstream Stream(strFileName.str().c_str());
+        rvecRouteCandidates[i]->PrintGPointsAsPoints(Stream);
+    }
+#endif
 
     if (rvecRouteCandidates.size() > 0)
         return rvecRouteCandidates.front();
@@ -1036,24 +953,23 @@ RouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
 }
 
 void MapMatchingMHT::CreateCompleteRoute(
-                          const std::vector<RouteCandidate*>& rvecRouteSegments)
+                       const std::vector<MHTRouteCandidate*>& rvecRouteSegments)
 {
-    RouteCandidate::PointData* pLastPointOfPrevSection = NULL;
+    MHTRouteCandidate::PointData* pLastPointOfPrevSection = NULL;
 
     for (size_t i = 0; i < rvecRouteSegments.size(); ++i)
     {
         bool bCalcShortestPath = (i > 0);
 
-        RouteCandidate* pCandidate = rvecRouteSegments[i];
+        MHTRouteCandidate* pCandidate = rvecRouteSegments[i];
         if (pCandidate != NULL)
         {
-            const std::vector<RouteCandidate::PointData*>& rPoints =
+            const std::vector<MHTRouteCandidate::PointData*>& rPoints =
                                                         pCandidate->GetPoints();
-
             const size_t nPoints = rPoints.size();
 
-            // Find first defines point
-            RouteCandidate::PointData* pData1 = NULL;
+            // Find first defined point
+            MHTRouteCandidate::PointData* pData1 = NULL;
             size_t j = 0;
             while(j < nPoints && (pData1 == NULL || pData1->m_pGPoint == NULL))
             {
@@ -1064,7 +980,7 @@ void MapMatchingMHT::CreateCompleteRoute(
             // Process next points
             while (j < nPoints && pData1 != NULL && pData1->m_pGPoint != NULL)
             {
-                RouteCandidate::PointData* pData2 = NULL;
+                MHTRouteCandidate::PointData* pData2 = NULL;
 
                 while (j < nPoints &&
                        (pData2 == NULL || pData2->m_pGPoint == NULL))
@@ -1104,38 +1020,24 @@ void MapMatchingMHT::CreateCompleteRoute(
     }
 }
 
-
-void MapMatchingMHT::TraceRouteCandidate(const RouteCandidate& rCandidate,
-                                         std::ostream& rStream) const
+void MapMatchingMHT::TraceRouteCandidates(
+                          const std::vector<MHTRouteCandidate*>& rvecCandidates,
+                          const char* pszText) const
 {
-    Points* pts = new Points(1);
-    pts->StartBulkLoad();
+#ifdef TRACE_ROUTE_CANDIDATES
+    ofstream Stream("/home/secondo/Traces/RouteCandidates.txt",
+                    ios_base::out|ios_base::ate|ios_base::app);
 
-    const size_t n = rCandidate.GetPoints().size();
-    for (size_t j = 0; j < n; ++j)
+    Stream << pszText << endl;
+
+    for (size_t i = 0; i < rvecCandidates.size(); ++i)
     {
-        Point* pt = new Point(false);
-        rCandidate.GetPoints()[j]->m_pGPoint->ToPoint(pt);
-        *pts += *pt;
-        pt->DeleteIfAllowed();
+        MHTRouteCandidate* pCandidate = rvecCandidates[i];
+        if (pCandidate != NULL)
+            pCandidate->Print(Stream);
+        Stream << endl;
     }
-
-    pts->EndBulkLoad(false, false, false);
-
-    rStream << "Candidate:" << endl;
-
-    rStream << "Points:" << endl;
-    pts->Print(rStream);
-
-    rStream << endl << "Sections:" << endl;
-
-    for (size_t j = 0; j < rCandidate.GetSectionCount(); ++j)
-    {
-        rStream << rCandidate.GetSection(j).GetSectionID() << endl;
-    }
-
-
-    pts->DeleteIfAllowed();
+#endif
 }
 
 

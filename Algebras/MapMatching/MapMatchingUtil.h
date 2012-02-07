@@ -45,6 +45,7 @@ class Region;
 class SimpleLine;
 class HalfSegment;
 class Point;
+class Geoid;
 
 namespace mapmatch {
 
@@ -58,11 +59,13 @@ public:
     static bool Intersects(const Region& rRegion, const SimpleLine& rSLine);
 
     static double CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
-                                           const Point& rPt, Point& rPtRes);
+                                           const Point& rPt, Point& rPtRes,
+                                           const Geoid* pGeoid = NULL);
 
     static Point CalcOrthogonalProjection(const SimpleLine& rLine,
                                           const Point& rPt,
-                                          double& rdDistanceRes);
+                                          double& rdDistanceRes,
+                                          const Geoid* pGeoid = NULL);
 
 };
 

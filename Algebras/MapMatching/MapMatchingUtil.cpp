@@ -76,7 +76,8 @@ bool MMUtil::Intersects(const Region& rRegion, const SimpleLine& rSLine)
 }
 
 double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
-                                        const Point& rPt, Point& rPtRes)
+                                        const Point& rPt, Point& rPtRes,
+                                        const Geoid* pGeoid)
 {
     // Modified copy of HalfSegment::Distance(Point)
     // We need distance and projected point
@@ -88,31 +89,37 @@ double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
     Coord X = rPt.GetX();
     Coord Y = rPt.GetY();
 
-    if (xl == xr) // vertical
+    if (AlmostEqual(xl, xr)) // vertical
     {
         if ((yl <= Y && Y <= yr) || (yr <= Y && Y <= yl))
         {
             rPtRes.Set(xl, Y);
-            return fabs(X - xl);
+            if (pGeoid != NULL)
+                return rPt.Distance(rPtRes, pGeoid);
+            else
+                return fabs(X - xl);
         }
         else
         {
             rPtRes.SetDefined(false);
-            return 0.0;
+            return std::numeric_limits<double>::max();
         }
     }
-    else if (yl == yr) // horizontal
+    else if (AlmostEqual(yl, yr)) // horizontal
     {
         if ((xl <= X && X <= xr) || (xr <= X && X <= xl))
             // if (xl <= X && X <= xr)
         {
             rPtRes.Set(X, yl);
-            return fabs(Y - yl);
+            if (pGeoid != NULL)
+                return rPt.Distance(rPtRes, pGeoid);
+            else
+                return fabs(Y - yl);
         }
         else
         {
             rPtRes.SetDefined(false);
-            return 0.0;
+            return std::numeric_limits<double>::max();
         }
     }
     else
@@ -125,19 +132,20 @@ double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
         if (xl <= xx && xx <= xr)
         {
             rPtRes.Set(xx, yy);
-            return rPt.Distance(rPtRes);
+            return rPt.Distance(rPtRes, pGeoid);
         }
         else
         {
             rPtRes.SetDefined(false);
-            return 0.0;
+            return std::numeric_limits<double>::max();
         }
     }
 }
 
 Point MMUtil::CalcOrthogonalProjection(const SimpleLine& rLine,
                                        const Point& rPt,
-                                       double& rdDistanceRes)
+                                       double& rdDistanceRes,
+                                       const Geoid* pGeoid)
 {
     Point ResPoint(false /*not defined*/);
     double dShortestDistance = std::numeric_limits<double>::max();
@@ -149,7 +157,8 @@ Point MMUtil::CalcOrthogonalProjection(const SimpleLine& rLine,
         if (hs.IsLeftDomPoint())
         {
             Point ResPointSeg(false /*not defined*/);
-            double dDistance = CalcOrthogonalProjection(hs, rPt, ResPointSeg);
+            double dDistance = CalcOrthogonalProjection(hs, rPt,
+                                                        ResPointSeg, pGeoid);
             if (ResPointSeg.IsDefined() && dDistance < dShortestDistance)
             {
                 dShortestDistance = dDistance;

@@ -49,6 +49,7 @@ class Point;
 class Points;
 class GPoint;
 class MPoint;
+class Geoid;
 
 namespace datetime
 {
@@ -56,6 +57,8 @@ namespace datetime
 }
 
 namespace mapmatch {
+
+class MHTRouteCandidate;
 
 /*
 3 class MapMatchingMHT
@@ -65,50 +68,65 @@ namespace mapmatch {
 class MapMatchingMHT : public MapMatchingBase
 {
 public:
-    /*
-    3.1 Constructors and Destructor
+ /*
+ 3.1 Constructors and Destructor
 
-    */
+ */
     MapMatchingMHT(Network* pNetwork, MPoint* pMPoint);
     ~MapMatchingMHT();
 
-    /*
-    3.2 Starts the map matching
-        return true if successfull
+ /*
+ 3.2 Starts the map matching
+     return true if successfull
 
-    */
+ */
     bool DoMatch(MGPoint* pResMGPoint);
 
 private:
 
+/*
+3.3 Private methods
+
+*/
+
     void TripSegmentation(std::vector<MPoint*>& rvecTripParts);
 
-    void GetInitialRouteCandidates(MPoint* pMPoint,
-                      std::vector<class RouteCandidate*>& rvecRouteCandidates);
+    int GetInitialRouteCandidates(MPoint* pMPoint,
+                    std::vector<class MHTRouteCandidate*>& rvecRouteCandidates);
 
-    void DevelopRoutes(MPoint* pMPoint,
-                       std::vector<RouteCandidate*>& rvecRouteCandidates);
+    void DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
+                    std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
     void DevelopRoutes(const Point& rPoint,
                        const datetime::DateTime& rTime,
                        bool bClosed,
-                       std::vector<RouteCandidate*>& rvecRouteCandidates);
+                       std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
-    bool AssignPoint(RouteCandidate* pCandidate, const Point& rPoint,
-                     const datetime::DateTime& rTime, bool bClosed);
+    enum EEndReached
+    {
+        REACHED_NONE,
+        REACHED_UP,
+        REACHED_DOWN,
+        REACHED_BOTH
+    };
+    bool AssignPoint(MHTRouteCandidate* pCandidate, const Point& rPoint,
+                     const datetime::DateTime& rTime, bool bClosed,
+                     /*OUT*/ EEndReached& eEndReached);
 
-    void ReduceRouteCandidates(std::vector<RouteCandidate*>&
+    void ReassignLastPoints(MHTRouteCandidate& rCandidate);
+
+    void ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                            rvecRouteCandidates);
 
-    RouteCandidate* DetermineBestRouteCandidate(
-                       std::vector<RouteCandidate*>& rvecRouteCandidates);
+    MHTRouteCandidate* DetermineBestRouteCandidate(
+                       std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
     void CreateCompleteRoute(
-                       const std::vector<RouteCandidate*>& rvecRouteSegments);
+                      const std::vector<MHTRouteCandidate*>& rvecRouteSegments);
 
-    void AddAdjacentSections(RouteCandidate* pCandidate,
-                          bool bUpDown,
-                          std::vector<RouteCandidate*>& rvecNewRouteCandidates);
+    void AddAdjacentSections(const MHTRouteCandidate* pCandidate,
+                       bool bUpDown,
+                       std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates);
 
     void GetInitialSectionCandidates(const Point& rPoint,
                                      std::vector<NetworkSection>& rVecSectRes);
@@ -117,8 +135,16 @@ private:
                             const Region& rRegion,
                             std::vector<NetworkSection>& rVecSectRes);
 
-    void TraceRouteCandidate(const RouteCandidate& rCandidate,
-                             std::ostream& rStream) const;
+    void TraceRouteCandidates(const std::vector<MHTRouteCandidate*>&
+                                                                 rvecCandidates,
+                              const char* pszText) const;
+
+/*
+3.4 Private member
+
+*/
+
+    Geoid* m_pGeoid;
 };
 
 } // end of namespace mapmatch
