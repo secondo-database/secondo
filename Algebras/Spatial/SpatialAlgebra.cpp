@@ -17583,7 +17583,7 @@ int geoid_create_geoid_SELECT(ListExpr args){
 }
 
 /*
-Collecting line and sline
+Collecting line
 
 */
 template<class ResLineType>
@@ -17710,7 +17710,8 @@ int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
       return 0;
     }
     append(*L, *line);
-    line->DeleteIfAllowed(); line = 0;
+    line->DeleteIfAllowed();
+    line = 0;
     qp->Request(args[0].addr, elem); // get next line
   }
   L->EndBulkLoad(); // sort and realminize
@@ -17759,6 +17760,124 @@ int SpatialCollect_PointsVM(Word* args, Word& result, int message,
 
 }
 
+/*
+collect sline
+
+*/
+template<class ResLineType>
+int SpatialCollect_slineVMPointstream(Word* args, Word& result, int message,
+                                     Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  ResLineType* L = static_cast<ResLineType*>(result.addr);
+  Point* P0 = 0;
+  Point* P1 = 0;
+  Word elem;
+  L->Clear();
+  L->SetDefined( true );
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+  if(!qp->Received(args[0].addr)){
+    qp->Close(args[0].addr);
+    return 0;
+  }
+  P0 = static_cast<Point*>(elem.addr);
+  assert( P0 != 0 );
+  if(!P0->IsDefined()){ // found undefined Elem
+    qp->Close(args[0].addr);
+    L->SetDefined(false);
+    P0->DeleteIfAllowed();
+    qp->Close(args[0].addr);
+    return 0;
+  }
+  Point FirstPoint = *P0;
+  Point LastPoint = FirstPoint;
+  L->StartBulkLoad();
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) ){
+    P1 = static_cast<Point*>(elem.addr);
+    assert( P1 != 0 );
+    if(!P1->IsDefined()){
+      qp->Close(args[0].addr);
+      L->Clear();
+      L->SetDefined(false);
+      if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
+      if(P1){ P1->DeleteIfAllowed(); P1 = 0; }
+      qp->Close(args[0].addr);
+      return 0;
+    }
+    LastPoint = *P1;
+    if(AlmostEqual(*P0,*P1)){
+      qp->Request(args[0].addr, elem);
+      P1->DeleteIfAllowed();
+      P1 = 0;
+    } else {
+      HalfSegment hs(true, *P0, *P1); // create halfsegment
+      (*L) += (hs);
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); //createcounter-halfsegment
+      (*L) += (hs);
+      P0->DeleteIfAllowed();
+      P0 = P1; P1 = 0;
+      qp->Request(args[0].addr, elem); // get next Point
+    }
+   }
+   L->EndBulkLoad(); // sort and realminize
+   if(FirstPoint > LastPoint) L->SetStartSmaller(false);
+   else L->SetStartSmaller(true);
+
+   qp->Close(args[0].addr);
+   if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
+     return 0;
+}
+
+template <class StreamLineType, class ResLineType>
+int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
+                                     Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   ResLineType* L = static_cast<ResLineType*>(result.addr);
+   StreamLineType* line = 0;
+   L->Clear();
+   CcBool* ignoreUndefined = static_cast<CcBool*>(args[1].addr);
+   if(!ignoreUndefined->IsDefined()){
+     L->SetDefined(false);
+     return 0;
+   }
+   bool ignore = ignoreUndefined->GetValue();
+   Word elem;
+   Point firstPoint(false, 0.0,0.0);
+   Point lastPoint(false, 0.0,0.0);
+   bool first = true;
+   L->StartBulkLoad();
+   while ( qp->Received(args[0].addr) ){
+    line = static_cast<StreamLineType*>(elem.addr);
+    assert( line != 0 );
+    if(!ignore && !line->IsDefined()){
+       qp->Close(args[0].addr);
+       L->Clear();
+       L->SetDefined(false);
+       if(line){ line->DeleteIfAllowed(); }
+       return 0;
+    }
+    if (first && line->IsDefined()) {
+       firstPoint = line->StartPoint();
+       first = false;
+    }
+    if (line->IsDefined()) {
+      lastPoint = line->EndPoint();
+    }
+    append(*L, *line);
+    line->DeleteIfAllowed(); line = 0;
+    qp->Request(args[0].addr, elem); // get next line
+  }
+  L->EndBulkLoad(); // sort and realminize
+  if (!first && L->IsDefined()) {
+    if (firstPoint > lastPoint) L->SetStartSmaller(false);
+    else L->SetStartSmaller(true);
+  } else {
+    L->SetDefined(false);
+  }
+  qp->Close(args[0].addr);
+  return 0;
+}
 
 int SpatialVMSetStartSmaller(Word* args, Word& result, int message,
                              Word& local, Supplier s){
@@ -18102,8 +18221,8 @@ ValueMapping spatialCollectLineMap[] = {
 };
 
 ValueMapping spatialCollectSLineMap[] = {
-  SpatialCollect_lineVMPointstream<SimpleLine>,
-  SpatialCollect_lineVMLinestream<SimpleLine,SimpleLine>,
+  SpatialCollect_slineVMPointstream<SimpleLine>,
+  SpatialCollect_slineVMLinestream<SimpleLine,SimpleLine>,
   SpatialCollect_lineVMLinestream<Line,SimpleLine>
 };
 
