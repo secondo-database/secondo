@@ -386,6 +386,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
   setMaxFanIn(maxFanIn);
 
   // Check specified main memory for this operation
+
   setMemory(maxMemSize, s);
 
   // Check I/O buffer size for this operation
@@ -546,21 +547,13 @@ SortAlgorithm::~SortAlgorithm()
 
 void SortAlgorithm::setMemory(size_t maxMemory, Supplier s)
 {
-  if ( maxMemory == UINT_MAX )
-  {
+  if ( maxMemory == UINT_MAX ) {
     MAX_MEMORY = qp->GetMemorySize(s) * 1024 * 1024; // in bytes
-  }
-  else if ( maxMemory < SORT_MINIMUM_MEMORY )
-  {
-    MAX_MEMORY = SORT_MINIMUM_MEMORY;
-  }
-  else if ( maxMemory > SORT_MAXIMUM_MEMORY )
-  {
-    MAX_MEMORY = SORT_MAXIMUM_MEMORY;
-  }
-  else
-  {
+  } else {
     MAX_MEMORY = maxMemory;
+  }
+  if(MAX_MEMORY < SORT_MINIMUM_MEMORY){
+    MAX_MEMORY = SORT_MINIMUM_MEMORY;
   }
 }
 

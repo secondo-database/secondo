@@ -689,20 +689,11 @@ void GraceHashJoinAlgorithm::setIoBuffer(size_t bytes)
 
 void GraceHashJoinAlgorithm::setMemory(size_t maxMemory, Supplier s)
 {
-  if ( maxMemory == UINT_MAX )
-  {
+  if ( maxMemory == UINT_MAX ) {
     MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
-  }
-  else if ( maxMemory < MIN_USER_DEF_MEMORY )
-  {
+  } else if ( maxMemory < MIN_USER_DEF_MEMORY ) {
     MAX_MEMORY = MIN_USER_DEF_MEMORY;
-  }
-  else if ( maxMemory > MAX_USER_DEF_MEMORY )
-  {
-    MAX_MEMORY = MAX_USER_DEF_MEMORY;
-  }
-  else
-  {
+  } else {
     MAX_MEMORY = maxMemory;
   }
 

@@ -348,11 +348,6 @@ Minimum amount of user defined memory for the operator.
 
 */
 
-    static const size_t MAX_USER_DEF_MEMORY = ( 64 * 1024 * 1024 );
-/*
-Maximum amount of user defined memory for the operator.
-
-*/
 
     Word streamA;
 /*

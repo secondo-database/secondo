@@ -77,8 +77,6 @@ limits are exceeded the main memory size is set to a default value.
 
 */
 #define SORT_MINIMUM_MEMORY       1024
-#define SORT_MAXIMUM_MEMORY       ( 64 * 1024 * 1024 )
-#define SORT_DEFAULT_MEMORY       ( 16 * 1024 * 1024 )
 
 /*
 4 Class ~SortedRunInfo~

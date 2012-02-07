@@ -84,27 +84,40 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
   liA = new SortProgressLocalInfo();
   progress->firstLocalInfo = liA;
-  sliA = new SortAlgorithm(streamA, specA, liA, s, UINT_MAX, MAX_MEMORY / 2 );
 
-  size_t remaining_memory = MAX_MEMORY - sliA->getUsedMemory();
+  
+  size_t reservedMemory = MAX_MEMORY / 5;  // 20 percent for merge 
+
+  if(reservedMemory < 1024){
+    reservedMemory = 1024;
+  }
+
+  size_t memForSort = MAX_MEMORY - reservedMemory;
+
+  sliA = new SortAlgorithm(streamA, specA, liA, s, UINT_MAX, memForSort / 2 );
+
+  memForSort -= sliA->getUsedMemory();
 
   liB = new SortProgressLocalInfo();
   progress->secondLocalInfo = liB;
-  sliB = new SortAlgorithm(streamB, specB, liB, s, UINT_MAX, remaining_memory);
+
+  sliB = new SortAlgorithm(streamB, specB, liB, s, UINT_MAX, memForSort);
 
   ListExpr resultType =
               SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
   resultTupleType = new TupleType( nl->Second( resultType ) );
 
-  remaining_memory =  remaining_memory > sliB->getUsedMemory()
-                           ?remaining_memory - sliB->getUsedMemory()
-                           :0;
-  // read in the first tuple of both input streams
+  memForSort -= sliB->getUsedMemory();
+  if(memForSort>0){
+      reservedMemory += memForSort;
+  }
+ 
+
   ptA.setTuple( NextTupleA() );
   ptB.setTuple( NextTupleB() );
 
 
-  grpB = new TupleBuffer2( remaining_memory );
+  grpB = new TupleBuffer2( reservedMemory );
 
   if ( traceMode )
   {
@@ -158,20 +171,11 @@ SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
 
 void SortMergeJoinLocalInfo::setMemory(size_t maxMemory, Supplier s)
 {
-  if ( maxMemory == UINT_MAX )
-  {
+  if ( maxMemory == UINT_MAX ) {
     MAX_MEMORY = qp->GetMemorySize(s) * 1024 * 1024; // in bytes
-  }
-  else if ( maxMemory < MIN_USER_DEF_MEMORY )
-  {
+  } else if ( maxMemory < MIN_USER_DEF_MEMORY ) {
     MAX_MEMORY = MIN_USER_DEF_MEMORY;
-  }
-  else if ( maxMemory > MAX_USER_DEF_MEMORY )
-  {
-    MAX_MEMORY = MAX_USER_DEF_MEMORY;
-  }
-  else
-  {
+  } else {
     MAX_MEMORY = maxMemory;
   }
 }
