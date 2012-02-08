@@ -79,3 +79,12 @@ Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
 Example  : query Staedte feed head[3] tuplebuffer2[1024,-1] count
 Result   : 3
+
+
+Operator : itHashJoin 
+Number   : 1
+Signature: ((stream (tuple(X)) x stream(tuple(Y)) x a1 x a2 -> stream(tuple(XY))
+Example  : query ten feed thousand feed {b} itHashJoin[No, No_b] count
+Result   : 10
+
+

@@ -66,6 +66,9 @@ for my master's thesis
 #include "Symbols.h"
 #include "Sort.h"
 
+#include "Stream.h"
+
+
 using namespace std;
 
 /*
@@ -1743,6 +1746,408 @@ Operator extrelsortmergejoinParam (
          JoinTypeMap<3>               // type mapping
 );
 
+
+
+/*
+4.13 Operator itHashJoin
+
+This operator performs an iterative hash join.
+It works as follows. From the left stream su much as possible
+tuples are inserted into a hash table. If all Tuples fit into
+main memory, the second stream is scanned once and the resulting
+tuples are returned. 
+
+If not the complete first stream could be
+stored, during the first scan of the second strean, al tuples are
+written to disk. Than, the hashtable is removed and rebuild using
+the next part from the first stream. After that, the file storing 
+the tuples from the first stream is scanned against the current 
+entries in the hashtable. This is repeated until the first stream
+is finished.
+
+4.13.1 TypeMapping
+
+The operator gets two tuple streams and two attribute names. The types of the
+selected attributes must be the same and all attribute names must differ.
+
+*/
+ListExpr itHashJoinTM(ListExpr args){
+  string err = "stream(tuple) x stream(tuple) x attr1 x attr2 [int] expected";
+  if(!nl->HasLength(args,4) && !nl->HasLength(args,5)){
+    return listutils::typeError(err);
+  }
+  ListExpr stream1 = nl->First(args);
+  ListExpr stream2 = nl->Second(args);
+  ListExpr attr1 = nl->Third(args);
+  ListExpr attr2 = nl->Fourth(args);
+
+  if(!Stream<Tuple>::checkType(stream1)){
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
+  } 
+  if(!Stream<Tuple>::checkType(stream2)){
+    return listutils::typeError(err + " (second arg is not a tuple stream)");
+  } 
+  if(!listutils::isSymbol(attr1)){
+    return listutils::typeError(err + "(first attrname is not valid)");
+  }
+  if(!listutils::isSymbol(attr2)){
+    return listutils::typeError(err + "(second attrname is not valid)");
+  }
+  
+  ListExpr attrList1 = nl->Second(nl->Second(stream1));
+  ListExpr attrList2 = nl->Second(nl->Second(stream2));
+  string attrname1 = nl->SymbolValue(attr1);
+  string attrname2 = nl->SymbolValue(attr2);
+  ListExpr attrType1;
+  ListExpr attrType2;
+
+  int index1 = listutils::findAttribute(attrList1,attrname1,attrType1);
+  if(index1==0){
+    return listutils::typeError(attrname1+
+                     " is not an attribute of the first stream");
+  } 
+
+  int index2 = listutils::findAttribute(attrList2,attrname2,attrType2);
+  if(index2==0){
+    return listutils::typeError(attrname1+
+                     " is not an attribute of the second stream");
+  } 
+
+  if(!nl->Equal(attrType1, attrType2)){
+    return listutils::typeError("types of the selected attributes differ");
+  }
+
+  ListExpr resAttrList = listutils::concat(attrList1, attrList2);
+
+  if(!listutils::isAttrList(resAttrList)){
+    return listutils::typeError("Name conflicts in attributes found");
+  }
+
+  ListExpr indexList;
+  if(nl->HasLength(args,5)){
+    ListExpr buckNum = nl->Fifth(args);
+    if(!CcInt::checkType(buckNum)){
+      return listutils::typeError("last arg is not an int");
+    }
+    indexList = nl->TwoElemList(
+                            nl->IntAtom(index1-1),
+                            nl->IntAtom(index2-1));
+  } else {
+    indexList = nl->ThreeElemList(
+                            nl->IntAtom(-1),
+                            nl->IntAtom(index1-1),
+                            nl->IntAtom(index2-1));
+  }
+
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            indexList,
+                            nl->TwoElemList(
+                                nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                                nl->TwoElemList(
+                                    nl->SymbolAtom(Tuple::BasicType()),
+                                    resAttrList)));
+}
+
+
+class ItHashJoinDInfo{
+
+  public:
+
+/*
+Constructor
+
+*/
+    ItHashJoinDInfo(Word& _stream1, Word& _stream2, 
+                const int _index1, const int _index2, 
+                const ListExpr _resType,
+                const size_t _maxMem,
+                const size_t _buckNum): 
+                stream1(_stream1), stream2(_stream2), 
+                index1(_index1), index2(_index2), 
+                hashTable(0), tt(0), maxMem(_maxMem), 
+                buffer(0),it(0), 
+                usedMem(0), currentTuple(0), bucket(0), bucketPos(0),
+                s1finished(false), scans(0), buckNum(_buckNum){
+         tt = new TupleType(_resType);
+         stream1.open();
+         stream2.open();
+         readNextPartition();
+         updateCurrentTuple();
+    }
+
+/*
+Destructor
+
+*/
+   ~ItHashJoinDInfo(){
+      stream1.close();
+      stream2.close();
+      tt->DeleteIfAllowed();
+      if(hashTable){
+         clearTable();
+         delete[] hashTable;
+      }
+      if(it){
+        delete it;
+      }
+      if(buffer){
+         delete buffer;
+      }
+      cout << "iterative hash join finished with " 
+           << scans << " partitions" << endl;
+   } 
+
+/*
+nextTuple
+
+This function returns the next tuple or 0 if no more tuples
+can be created.
+
+*/
+
+   Tuple* nextTuple(){
+      while(true){
+       if(!currentTuple){ //both streams are exhausted 
+         return 0;
+       }
+       if(bucketPos>=bucket->size()){ // current bucket exhausted
+         updateCurrentTuple();
+       }
+       if(!currentTuple){ // no new combination found
+          return 0;
+       }
+       while(bucketPos < bucket->size()){ // search in current bucket
+          Tuple* tuple1 = (*bucket)[bucketPos];
+          bucketPos++;
+          if(currentTuple->GetAttribute(index2)->Compare(
+                             tuple1->GetAttribute(index1))==0){
+            // hit
+            Tuple* res = new Tuple(tt);
+            Concat(tuple1,currentTuple,res);
+            return res;           
+          }
+       }       
+     }  
+   }
+   
+  private:
+     Stream<Tuple> stream1;
+     Stream<Tuple> stream2;
+     int index1;
+     int index2;
+     vector<Tuple*>** hashTable;
+     TupleType* tt;
+     size_t maxMem;
+     TupleFile* buffer; 
+     TupleFileIterator* it;
+     size_t usedMem;
+     Tuple* currentTuple; // current tuple from stream 2
+     const vector< Tuple* >* bucket; // current bucket from hashTable
+     unsigned int bucketPos; // current position in bucket
+     bool s1finished;
+     unsigned int scans;
+     unsigned int buckNum;
+
+/*
+clearTable
+
+removes all Tuple from the current table
+
+*/
+     void clearTable(){
+       for(unsigned int i=0;i<buckNum;i++){
+         vector<Tuple*>* v = hashTable[i];
+         if(v){
+           for(unsigned int j=0;j<v->size();j++){
+              (*v)[j]->DeleteIfAllowed();
+           }
+           delete hashTable[i];
+           hashTable[i] = 0;
+         }
+       }
+     }
+
+     void updateCurrentTuple( ){
+        if(currentTuple){
+          currentTuple->DeleteIfAllowed();
+          currentTuple = 0;
+        }
+        bucket = 0;
+        bucketPos = 0;
+        if(!it){ // read from stream
+           currentTuple = stream2.request();
+           while( (bucket==0) && (currentTuple!=0)){
+             if(!s1finished){
+               if(!buffer){
+                 //buffer = new Relation(currentTuple->GetTupleType(),true);
+                 buffer = new TupleFile(currentTuple->GetTupleType(),0);
+                 buffer->Open();
+               } 
+               currentTuple->PinAttributes();
+               buffer->Append(currentTuple);
+             }
+             unsigned int hash = currentTuple->GetAttribute(index2)->
+                                               HashValue();
+             hash = hash % buckNum;
+             bucket = hashTable[hash];
+             if(!bucket){
+                currentTuple->DeleteIfAllowed();
+                currentTuple=stream2.request();
+             }
+           }
+           if(bucket){ // found a bucket/tuple pair
+              return;
+           }
+           if(buffer){
+             buffer->Close(); // no write anymore
+             it = buffer->MakeScan();
+           } 
+        }
+        if(!it){
+          return;
+        }
+        while(true){
+           currentTuple=it->GetNextTuple();
+           while((bucket==0) && (currentTuple!=0)){
+             unsigned int hash = currentTuple->GetAttribute(index2)->
+                                              HashValue();
+             hash = hash % buckNum;
+             bucket = hashTable[hash];
+             if(!bucket){
+                currentTuple->DeleteIfAllowed();
+                currentTuple=it->GetNextTuple();
+             }
+           } 
+           if(bucket){
+             return;
+           }
+           delete it;
+           it = 0;
+           if(!s1finished){
+             readNextPartition();
+             it = buffer->MakeScan();
+           } else {
+             return;
+           }
+        } 
+     }
+
+
+
+     void readNextPartition(){
+       if(s1finished){
+         return;
+       }
+       scans++;
+       if(hashTable){
+         clearTable();
+       } else {
+          hashTable = new vector<Tuple*>*[buckNum];
+          memset(hashTable,0, buckNum * sizeof(vector<Tuple*>*));
+       }
+      
+       usedMem = sizeof(void*)*buckNum;
+       if(usedMem>=maxMem){
+          maxMem += 1024;
+       }
+
+       Tuple* inTuple = stream1.request();
+
+       size_t noTuples = 0; 
+       while((inTuple!=0) && (usedMem<maxMem)){
+         unsigned int hash = inTuple->GetAttribute(index1)->HashValue();
+         hash = hash % buckNum;
+         usedMem += inTuple->GetMemSize();
+         if(!hashTable[hash]){
+           hashTable[hash] = new vector<Tuple*>();
+           usedMem += sizeof(*hashTable[hash]);
+         }
+         hashTable[hash]->push_back(inTuple);
+         noTuples++;
+         if(usedMem < maxMem){
+            inTuple = stream1.request();
+         }
+       }
+       if(inTuple==0){
+         s1finished = true;
+       }
+	 }
+};
+
+/*
+2.14.3 Value Mapping
+
+*/
+int itHashJoinVM( Word* args, Word& result,
+                   int message, Word& local, Supplier s ){
+   
+   ItHashJoinDInfo* li = (ItHashJoinDInfo*) local.addr;
+   switch(message){
+     case OPEN: { if(li){
+                    delete li;
+                  }
+                  ListExpr ttype = nl->Second(GetTupleResultType(s));
+                  size_t mem = qp->GetMemorySize(s)*1024*1024;
+                  if(mem<1024){
+                     mem = 1024;
+                  }
+                  int buckets = 999997;
+                  CcInt* b = (CcInt*) args[4].addr;
+                  if(b->IsDefined() && b->GetValue()>3){
+                      buckets = b->GetValue();
+                  }
+                  local.addr = new ItHashJoinDInfo(args[0],args[1], 
+                                          ((CcInt*)args[5].addr)->GetValue(),
+                                          ((CcInt*)args[6].addr)->GetValue(),
+                                          ttype,mem, buckets);
+                  return 0;
+                }
+     case REQUEST: { if(!li){
+                       return CANCEL;
+                     }
+                     result.addr = li->nextTuple();
+                     return result.addr?YIELD:CANCEL;
+                   }
+     case CLOSE : {
+                    if(li){
+                      delete li;
+                      local.addr=0;
+                    }
+                    return 0;
+                  }
+   } 
+   return 0; 
+
+}
+
+/*
+2.14.4 Specification
+
+*/
+
+const string itHashJoinSpec  = 
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+      "  ( <text>stream(tuple(X)) x stream(tuple(Y)) "
+          "  x a1 x a2 -> stream(tuple(XY))"
+      "    </text--->"
+      "   <text> _ _ itHashJoinD [_ _] </text--->"
+      "   <text> Computes a hash join of two streams </text--->"
+      "   <text> query ten feed thousand feed {b} itHashJoinD[No, No_b] count"
+      "   </text--->))";
+
+
+Operator itHashJoin (
+         "itHashJoin",       // name
+         itHashJoinSpec,     // specification
+         itHashJoinVM, // value mapping
+         Operator::SimpleSelect,      // trivial selection function
+         itHashJoinTM               // type mapping
+);
+
+
+
+
 } // end of namespace extrel2
 
 /*
@@ -1793,6 +2198,11 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::tuplefiletest);
     AddOperator(&extrel2::tuplebuffer);
     AddOperator(&extrel2::tuplebuffer2);
+
+    AddOperator(&extrel2::itHashJoin);
+    extrel2::itHashJoin.SetUsesMemory();
+
+
 
 #ifdef USE_PROGRESS
 // support for progress queries

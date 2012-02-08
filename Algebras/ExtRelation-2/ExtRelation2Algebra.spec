@@ -39,3 +39,5 @@ operator tuplefile alias TUPLEFILE pattern _ op[_]
 operator tuplebuffer alias TUPLEBUFFER pattern _ op[_]
 operator tuplebuffer2 alias TUPLEBUFFER2 pattern _ op[_]
 
+operator itHashJoin alias ITHASHJOIN pattern _ _ op [_,_]
+
