@@ -2363,6 +2363,12 @@ plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
 
 
 % used within insert and update:
+% % process constants using nested list value
+list_to_atom([const, T, value, V], Atom) :- 
+  plan_to_atom(value_expr(T,V),Atom),
+  !.
+
+% used within insert and update:
 list_to_atom([X], AtomX) :-
   listelement_to_atom(X, AtomX),
   !.
@@ -2375,6 +2381,7 @@ list_to_atom([X | Xs], Result) :-
   !.
 
 % used within insert and update:
+% % process attr:value 
 listelement_to_atom(set(Attr, Term), Result) :-
   plan_to_atom(attrname(Attr), Attr2),
   listelement_to_atom(Term, Term2),
@@ -2382,12 +2389,20 @@ listelement_to_atom(set(Attr, Term), Result) :-
   !.
 
 % used within insert and update:
+% % process constants using nested list value
+listelement_to_atom([const, T, value, V], Result) :-
+  plan_to_atom(value_expr(T,V),Result),
+  !.
+
+% used within insert and update:
+% % process string atom
 listelement_to_atom(Term, Result) :-
     is_list(Term), Term = [First | _], atomic(First), !,
     atom_codes(TermRes, Term),
     concat_atom(['"', TermRes, '"'], '', Result).
 
 % used within insert and update:
+% % process other kinds of elements
 listelement_to_atom(Term, Result) :-
     plan_to_atom(Term, Result).
 
