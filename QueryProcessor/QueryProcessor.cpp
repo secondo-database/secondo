@@ -3273,7 +3273,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     }
     case QP_MEMORYDEF:
     {
-      node = Subtree( nl->Fourth( nl->First( expr )), first, node);
+      node = Subtree( nl->Fourth( nl->First( expr )), oldfirst, node);
 
       if ( node->nodetype == Operator ) {
         if ( node->u.op.usesMemory )
