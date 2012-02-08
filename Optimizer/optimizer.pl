@@ -417,7 +417,7 @@ where TEXT is a sequence of characters except the double quote,
 the text value.
 
 All other constants need to be noted similar to the way this is done in Secondo:
-as a nested list. Again, we use square brackets to delinit the list and commas to
+as a nested list. Again, we use square brackets to delimit the list and commas to
 separate its elements. Also a shorter alternative is available:
 
 ----
@@ -429,7 +429,7 @@ where ~TYPE~ is a type descriptor (a Prolog term, like 'mpoint', 'region',
 'vector(int)', or 'set(vector(real))'; and ~VALUE~ is a nested list using round
 parentheses and commas to separate its elements.
 
-This is also the unly way to create undefined value constants.
+This is also the only way to create undefined value constants.
 
 Internally, ALL constants (also int, real, etc.) are noted as terms
 
@@ -1472,6 +1472,7 @@ plan_to_atom(pr(P,_,_), Result) :-
 
 plan_to_atom([], '').
 
+% Handle atomic value expressions (constants)
 % string atom
 plan_to_atom(value_expr(string,undefined), X) :-
   nullValue(string,undefined,X), !.
@@ -1544,7 +1545,7 @@ plan_to_atom(value_expr(bool,X), Result) :-
 plan_to_atom(value_expr(Type,Value), Result) :-
   \+ member(Type,[int,real,text,string,bool]), % special rules for these
   term_to_atom(Type,TypeA),
-  term_to_atom(Value,ValueA),
+  nl_to_atom(Value,ValueA),
   ( nullValue(Type,Value,X)  % registered value (null, empty, error, default)
     -> Result = X
     ; concat_atom(['[const',TypeA,'value',ValueA,']'],' ',Result)
@@ -2390,6 +2391,28 @@ listelement_to_atom(Term, Result) :-
 listelement_to_atom(Term, Result) :-
     plan_to_atom(Term, Result).
 
+% used to translate into proper nested lists
+
+% a nested list
+nl_to_atom(L,A) :-
+  is_list(L),
+  findall(MemberA, ( member(Member,L), 
+                     ( is_list(Member) 
+                       -> nl_to_atom(Member,MemberA)
+                       ;  plan_to_atom(Member,MemberA)
+                     )
+                   ),
+          AList), !,
+  concat_atom(AList, ' ', A1),!,
+  concat_atom(['(',A1,')'],' ', A),
+  !.
+
+%  nested list atom
+nl_to_atom(T,A) :-
+ T \= [],
+ plan_to_atom(T,A), !.
+
+
 
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
@@ -2431,7 +2454,7 @@ type_to_atom(group, 'GROUP')   :- !.
 type_to_atom(X, Y) :-
   concat_atom([X], Y),
   !.
-
+  
 
 /*
 
