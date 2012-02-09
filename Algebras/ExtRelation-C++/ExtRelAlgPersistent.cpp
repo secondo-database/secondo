@@ -1429,7 +1429,7 @@ private:
     while(qp->Received(streamB.addr) )
     {
       Tuple* tupleB = (Tuple*)wTupleB.addr;
-      b += tupleB->GetExtSize();
+      b += tupleB->GetMemSize();
       i++;
       if( b > bucketsB_Mem )
       {
@@ -1560,7 +1560,7 @@ bucket that the tuple coming from A hashes is also initialized.
         {
           cmsg.info()
             << "TupleBuffer for relA can hold "
-            << relA_Mem / tupleA->GetExtSize() << " tuples" << endl;
+            << relA_Mem / tupleA->GetMemSize() << " tuples" << endl;
           cmsg.send();
           memInfoShown = true;
         }
@@ -1766,7 +1766,7 @@ private:
     {
       progress->readSecond++;
       Tuple* tupleB = (Tuple*)wTupleB.addr;
-      b += tupleB->GetExtSize();
+      b += tupleB->GetMemSize();
       i++;
       if( b > bucketsB_Mem )
       {
@@ -1906,7 +1906,7 @@ bucket that the tuple coming from A hashes is also initialized.
         {
           cmsg.info()
             << "TupleBuffer for relA can hold "
-            << relA_Mem / tupleA->GetExtSize() << " tuples" << endl;
+            << relA_Mem / tupleA->GetMemSize() << " tuples" << endl;
           cmsg.send();
           memInfoShown = true;
         }
