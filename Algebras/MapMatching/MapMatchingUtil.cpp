@@ -171,6 +171,116 @@ Point MMUtil::CalcOrthogonalProjection(const SimpleLine& rLine,
     return ResPoint;
 }
 
+double MMUtil::CalcProjection(const HalfSegment& rHalfSegment,
+                              const Point& rPt, Point& rPtRes,
+                              bool& bIsOrthogonal,
+                              const Geoid* pGeoid)
+{
+    // Modified copy of HalfSegment::Distance(Point)
+    // We need distance and projected point
+
+    Coord xl = rHalfSegment.GetLeftPoint().GetX();
+    Coord yl = rHalfSegment.GetLeftPoint().GetY();
+    Coord xr = rHalfSegment.GetRightPoint().GetX();
+    Coord yr = rHalfSegment.GetRightPoint().GetY();
+    Coord X = rPt.GetX();
+    Coord Y = rPt.GetY();
+
+    bIsOrthogonal = false;
+
+    if (AlmostEqual(xl, xr)) // vertical
+    {
+        if ((yl <= Y && Y <= yr) || (yr <= Y && Y <= yl))
+        {
+            bIsOrthogonal = true;
+
+            rPtRes.Set(xl, Y);
+            if (pGeoid != NULL)
+                return rPt.Distance(rPtRes, pGeoid);
+            else
+                return fabs(X - xl);
+        }
+    }
+    else if (AlmostEqual(yl, yr)) // horizontal
+    {
+        if ((xl <= X && X <= xr) || (xr <= X && X <= xl))
+            // if (xl <= X && X <= xr)
+        {
+            bIsOrthogonal = true;
+
+            rPtRes.Set(X, yl);
+            if (pGeoid != NULL)
+                return rPt.Distance(rPtRes, pGeoid);
+            else
+                return fabs(Y - yl);
+        }
+    }
+    else
+    {
+        Coord k = (yr - yl) / (xr - xl);
+        Coord a = yl - k * xl;
+        Coord xx = (k * (Y - a) + X) / (k * k + 1);
+        Coord yy = k * xx + a;
+
+        if (xl <= xx && xx <= xr)
+        {
+            bIsOrthogonal = true;
+
+            rPtRes.Set(xx, yy);
+            return rPt.Distance(rPtRes, pGeoid);
+        }
+    }
+
+    // No orthogonal projection possible
+    // -> Calc shortest distance to left or right point
+
+    bIsOrthogonal = false;
+    double dDistanceLeft = rPt.Distance(rHalfSegment.GetLeftPoint(), pGeoid);
+    double dDistanceRight = rPt.Distance(rHalfSegment.GetRightPoint(), pGeoid);
+    if (dDistanceLeft <= dDistanceRight)
+    {
+        rPtRes.Set(rHalfSegment.GetLeftPoint());
+        return dDistanceLeft;
+    }
+    else
+    {
+        rPtRes.Set(rHalfSegment.GetRightPoint());
+        return dDistanceRight;
+    }
+}
+
+Point MMUtil::CalcProjection(const SimpleLine& rLine,
+                             const Point& rPt,
+                             double& rdDistanceRes,
+                             bool& bIsOrthogonal,
+                             const Geoid* pGeoid)
+{
+    Point ResPoint(false /*not defined*/);
+    double dShortestDistance = std::numeric_limits<double>::max();
+
+    for (int i = 0; i < rLine.Size(); ++i)
+    {
+        HalfSegment hs;
+        rLine.Get(i, hs);
+        if (hs.IsLeftDomPoint())
+        {
+            Point ResPointSeg(false /*not defined*/);
+            bool bOrthogonal = false;
+            double dDistance = CalcProjection(hs, rPt, ResPointSeg,
+                                              bOrthogonal, pGeoid);
+            if (ResPointSeg.IsDefined() && dDistance < dShortestDistance)
+            {
+                dShortestDistance = dDistance;
+                ResPoint = ResPointSeg;
+                bIsOrthogonal = bOrthogonal;
+            }
+        }
+    }
+
+    rdDistanceRes = dShortestDistance;
+    return ResPoint;
+}
+
 
 
 } // end of namespace mapmatch

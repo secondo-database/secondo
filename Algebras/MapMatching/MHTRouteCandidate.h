@@ -128,6 +128,9 @@ public:
 
     void GetPointsOfLastSection(std::vector<PointData*>& rvecPoints) const;
 
+    inline size_t GetCountPointsOfLastSection(void) const
+                                                {return m_nPointsOfLastSection;}
+
     // Debugging
     void Print(std::ostream& os) const;
     void PrintGPointsAsPoints(std::ostream& os) const;

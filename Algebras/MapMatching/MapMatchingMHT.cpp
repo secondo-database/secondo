@@ -141,8 +141,6 @@ void MapMatchingMHT::GetInitialSectionCandidates(const Point& rPoint,
 
 bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
 {
-    MYTRACE("MapMatchingMHT - start");
-
     // Initialization
     if (!InitMapMatching(pResMGPoint))
     {
@@ -764,10 +762,54 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
     }
 
     double dDistance = 0.0;
-    Point PointProjection = MMUtil::CalcOrthogonalProjection(*pCurve, rPoint,
-                                                           dDistance, m_pGeoid);
+    bool bIsOrthogonal = false;
+    Point PointProjection = MMUtil::CalcProjection(*pCurve, rPoint,
+                                                   dDistance, bIsOrthogonal,
+                                                   m_pGeoid);
     if (PointProjection.IsDefined())
     {
+        // Check if the startnode or endpoint has been reached.
+        const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
+        const Point ptStart = pCurve->StartPoint(bStartsSmaller);
+        const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
+
+        const double dDistanceStart = rPoint.Distance(ptStart);
+        const double dDistanceEnd = rPoint.Distance(ptEnd);
+
+        // Never assign to endnode
+        if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
+        {
+            if (AlmostEqual(PointProjection, ptEnd))
+                return false;
+        }
+        else if (rSection.GetDirection() == DirectedNetworkSection::DIR_DOWN)
+        {
+            if (AlmostEqual(PointProjection, ptStart))
+                return false;
+        }
+        else
+        {
+            if (AlmostEqual(PointProjection, ptStart) ||
+                AlmostEqual(PointProjection, ptEnd))
+                return false;
+        }
+
+        // Do not assign to startnode if it is not orthogonal
+        if (!bIsOrthogonal)
+        {
+            if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
+            {
+                if (AlmostEqual(PointProjection, ptStart))
+                    return false;
+            }
+            else
+                if (rSection.GetDirection() == DirectedNetworkSection::DIR_DOWN)
+            {
+                if (AlmostEqual(PointProjection, ptEnd))
+                    return false;
+            }
+        }
+
         // Check "length" of GPS-Points
         vector<MHTRouteCandidate::PointData*> vecPointsLastSection;
         pCandidate->GetPointsOfLastSection(vecPointsLastSection);
@@ -807,8 +849,6 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
             {
                 eNext = CANDIDATES_UP_DOWN;
             }
-
-            //eNext = CANDIDATES_UP_DOWN;
         }
 
         // Check Distance
@@ -818,14 +858,14 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
         // Get Position of Projected point on route
         const NetworkRoute& rRoute = rSection.GetRoute();
-        bool startSmaller = rRoute.GetStartsSmaller();
+        const bool RouteStartsSmaller = rRoute.GetStartsSmaller();
         const SimpleLine* pRouteCurve = rRoute.GetCurve();
 
         double dPos = 0.0;
         if (pRouteCurve != NULL &&
             GetPosOnSimpleLine(*pRouteCurve, PointProjection,
-                               startSmaller, 0.000001 * 1000, dPos))
-            //pRouteCurve->AtPoint(PointProjection, startSmaller, dPos))
+                               RouteStartsSmaller, 0.000001 * 1000, dPos))
+            //pRouteCurve->AtPoint(PointProjection, RouteStartsSmaller, dPos))
         {
             GPoint ResGPoint(true, m_pNetwork->GetId(), rRoute.GetRouteID(),
                     dPos, None);
@@ -842,43 +882,8 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
     }
     else
     {
+        // Projection failed
         return false;
-
-        // Assign to start- or end-node
-        /*const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
-        const Point ptStart = pCurve->StartPoint(bStartsSmaller);
-        const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
-
-        const double dDistanceStart = rPoint.Distance(ptStart, m_pGeoid);
-        const double dDistanceEnd = rPoint.Distance(ptEnd, m_pGeoid);
-
-        const NetworkRoute& rRoute = rSection.GetRoute();
-        bool startSmaller = rRoute.GetStartsSmaller();
-
-        if (dDistanceStart < dDistanceEnd)
-        {
-            // To start-node
-            GPoint ResGPoint(true, m_pNetwork->GetId(), rRoute.GetRouteID(),
-                             startSmaller ? 0.0 : pCurve->Length(), None);
-                             // TODO geoid
-            pCandidate->AddPoint(ResGPoint, rPoint, dDistanceStart,
-                                 rTime, bClosed);
-
-            eEndReached = startSmaller ? REACHED_DOWN : REACHED_UP;
-        }
-        else
-        {
-            // To end-node
-            GPoint ResGPoint(true, m_pNetwork->GetId(), rRoute.GetRouteID(),
-                             startSmaller ? pCurve->Length() : 0.0, None);
-                             // TODO geoid
-            pCandidate->AddPoint(ResGPoint, rPoint, dDistanceEnd,
-                                 rTime, bClosed);
-
-            eEndReached = startSmaller ? REACHED_UP : REACHED_DOWN;
-        }
-
-        return true;*/
     }
 
 
