@@ -76,15 +76,11 @@ public:
   , m_memMax(inMemMax) 
   , m_cntAlloc(0) 
   { 
-    //m_memMax = m_memAvailable = 2000;
     assert(m_memAvailable >= 0);
   }
 
   virtual ~ThreadedMemoryCounter() 
   {  
-    //cout << " A:" << m_memAvailable 
-    //   << " M:" << m_memMax 
-    //   << " C:" << m_cntAlloc << endl;
     assert (m_memAvailable == m_memMax);
     assert (m_cntAlloc == 0);
   }
@@ -102,10 +98,6 @@ Gives back inAmnt of memory to the pool
      
     m_memAvailable += inAmnt;
     m_cntAlloc --;
-    //cout << " B:" << inAmnt
-    //   << " A:" << m_memAvailable 
-    //   << " M:" << m_memMax 
-    //   << " C:" << m_cntAlloc << endl;
     assert(m_memAvailable <= m_memMax);
     assert(m_cntAlloc >= 0);
     cond.signal();
@@ -128,10 +120,6 @@ Requests inAmnt of Memory from the pool
       }
     m_memAvailable -= inAmnt;
     m_cntAlloc ++;
-    //cout << " R:" << inAmnt
-    //   << " A:" << m_memAvailable 
-    //   << " M:" << m_memMax 
-    //   << " C:" << m_cntAlloc << endl;
     return;
   }
 
