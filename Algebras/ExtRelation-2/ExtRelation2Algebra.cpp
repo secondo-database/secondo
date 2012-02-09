@@ -1869,6 +1869,17 @@ Constructor
                 buffer(0),it(0), 
                 usedMem(0), currentTuple(0), bucket(0), bucketPos(0),
                 s1finished(false), scans(0), buckNum(_buckNum){
+
+         size_t tableSize = sizeof(void*) * buckNum;
+         if(tableSize > maxMem / 5){
+           // reduce size of table when table structure takes more than
+           // 20 percent of the available memory
+           buckNum = maxMem / (5 * sizeof(void*));
+         }
+         if(buckNum< 3){
+           buckNum = 3;
+         }
+
          tt = new TupleType(_resType);
          stream1.open();
          stream2.open();
@@ -1920,8 +1931,7 @@ can be created.
        while(bucketPos < bucket->size()){ // search in current bucket
           Tuple* tuple1 = (*bucket)[bucketPos];
           bucketPos++;
-          if(currentTuple->GetAttribute(index2)->Compare(
-                             tuple1->GetAttribute(index1))==0){
+          if(equal(tuple1, currentTuple)){
             // hit
             Tuple* res = new Tuple(tt);
             Concat(tuple1,currentTuple,res);
@@ -1948,6 +1958,20 @@ can be created.
      bool s1finished;
      unsigned int scans;
      unsigned int buckNum;
+
+
+
+
+     size_t getBucket(Tuple* tuple, bool first){
+        int index = first?index1:index2;
+        return tuple->GetAttribute(index)->HashValue() % buckNum;
+     }
+
+     bool equal(Tuple* t1, Tuple* t2){
+        return t1->GetAttribute(index1)->Compare(t2->GetAttribute(index2)) == 0;
+     }
+
+
 
 /*
 clearTable
@@ -1980,16 +2004,13 @@ removes all Tuple from the current table
            while( (bucket==0) && (currentTuple!=0)){
              if(!s1finished){
                if(!buffer){
-                 //buffer = new Relation(currentTuple->GetTupleType(),true);
                  buffer = new TupleFile(currentTuple->GetTupleType(),0);
-                 buffer->Open();
+                 buffer->Open(); // open for writing
                } 
                currentTuple->PinAttributes();
                buffer->Append(currentTuple);
              }
-             unsigned int hash = currentTuple->GetAttribute(index2)->
-                                               HashValue();
-             hash = hash % buckNum;
+             size_t hash = getBucket(currentTuple,false);
              bucket = hashTable[hash];
              if(!bucket){
                 currentTuple->DeleteIfAllowed();
@@ -2000,19 +2021,18 @@ removes all Tuple from the current table
               return;
            }
            if(buffer){
-             buffer->Close(); // no write anymore
+             buffer->Close();
              it = buffer->MakeScan();
+             readNextPartition();
            } 
-        }
+        } 
         if(!it){
           return;
         }
         while(true){
-           currentTuple=it->GetNextTuple();
+           currentTuple = it->GetNextTuple();
            while((bucket==0) && (currentTuple!=0)){
-             unsigned int hash = currentTuple->GetAttribute(index2)->
-                                              HashValue();
-             hash = hash % buckNum;
+             size_t hash = getBucket(currentTuple,false);
              bucket = hashTable[hash];
              if(!bucket){
                 currentTuple->DeleteIfAllowed();
@@ -2033,8 +2053,6 @@ removes all Tuple from the current table
         } 
      }
 
-
-
      void readNextPartition(){
        if(s1finished){
          return;
@@ -2044,20 +2062,21 @@ removes all Tuple from the current table
          clearTable();
        } else {
           hashTable = new vector<Tuple*>*[buckNum];
-          memset(hashTable,0, buckNum * sizeof(vector<Tuple*>*));
+          for(unsigned int i=0;i<buckNum;i++){
+             hashTable[i] = 0;
+          }
        }
       
        usedMem = sizeof(void*)*buckNum;
        if(usedMem>=maxMem){
-          maxMem += 1024;
+          maxMem = usedMem + 1024;
        }
 
        Tuple* inTuple = stream1.request();
 
        size_t noTuples = 0; 
        while((inTuple!=0) && (usedMem<maxMem)){
-         unsigned int hash = inTuple->GetAttribute(index1)->HashValue();
-         hash = hash % buckNum;
+         size_t hash = getBucket(inTuple,true);
          usedMem += inTuple->GetMemSize();
          if(!hashTable[hash]){
            hashTable[hash] = new vector<Tuple*>();
@@ -2094,7 +2113,7 @@ int itHashJoinVM( Word* args, Word& result,
                   }
                   int buckets = 999997;
                   CcInt* b = (CcInt*) args[4].addr;
-                  if(b->IsDefined() && b->GetValue()>3){
+                  if(b->IsDefined() && b->GetValue()>=3){
                       buckets = b->GetValue();
                   }
                   local.addr = new ItHashJoinDInfo(args[0],args[1], 
