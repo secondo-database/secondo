@@ -102,16 +102,16 @@ private:
                        bool bClosed,
                        std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
-    enum EEndReached
+    enum ENextCandidates
     {
-        REACHED_NONE,
-        REACHED_UP,
-        REACHED_DOWN,
-        REACHED_BOTH
+        CANDIDATES_NONE,
+        CANDIDATES_UP,
+        CANDIDATES_DOWN,
+        CANDIDATES_UP_DOWN
     };
     bool AssignPoint(MHTRouteCandidate* pCandidate, const Point& rPoint,
                      const datetime::DateTime& rTime, bool bClosed,
-                     /*OUT*/ EEndReached& eEndReached);
+                     /*OUT*/ ENextCandidates& eNextCandidates);
 
     void ReassignLastPoints(MHTRouteCandidate& rCandidate);
 

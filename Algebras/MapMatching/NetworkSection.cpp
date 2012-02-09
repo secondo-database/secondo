@@ -45,6 +45,12 @@ This implementation file contains the implementation of the class ~NetworkSectio
 
 namespace mapmatch {
 
+/*
+3 class NetworkSection
+  accessing the attributes of a Network-Section
+
+*/
+
 NetworkSection::NetworkSection(Tuple* pTupleSection,
                                Network* pNetwork,
                                bool bIncReference)
@@ -100,6 +106,19 @@ const NetworkSection& NetworkSection::operator=(
     return *this;
 }
 
+bool NetworkSection::operator==(const NetworkSection& rSection) const
+{
+    if (m_pTupleSection != NULL && rSection.m_pTupleSection != NULL)
+    {
+        return (m_pTupleSection->GetTupleId() ==
+                rSection.m_pTupleSection->GetTupleId());
+    }
+    else
+    {
+        return m_pTupleSection == rSection.m_pTupleSection;
+    }
+}
+
 int NetworkSection::GetRouteID(void) const
 {
     if (m_pTupleSection != NULL)
@@ -119,15 +138,21 @@ const NetworkRoute& NetworkSection::GetRoute(void) const
     {
         if (m_pNetwork != NULL)
         {
-            Tuple* pRouteTuple = m_pNetwork->GetRoute(GetRouteID());
+            TupleIdentifier* pId = this->GetRRC();
+            if (pId != NULL)
+            {
+                Tuple* pRouteTuple = m_pNetwork->GetRoute(pId->GetTid());
+                m_pNetworkRoute = new NetworkRoute(pRouteTuple, false);
+                return *m_pNetworkRoute;
+            }
+
+            /*Tuple* pRouteTuple = m_pNetwork->GetRoute(GetRouteID());
             m_pNetworkRoute = new NetworkRoute(pRouteTuple, false);
-            return *m_pNetworkRoute;
+            return *m_pNetworkRoute;*/
         }
-        else
-        {
-            static NetworkRoute Dummy(NULL);
-            return Dummy;
-        }
+
+        static NetworkRoute Dummy(NULL);
+        return Dummy;
     }
     else
     {
@@ -223,6 +248,66 @@ int NetworkSection::GetSectionID(void) const
     else
     {
         return NULL;
+    }
+}
+
+
+/*
+4 class DirectedNetworkSection
+  accessing the attributes of a directed Network-Section
+
+*/
+
+DirectedNetworkSection::DirectedNetworkSection(Tuple* pTupleSection,
+                                               Network* pNetwork,
+                                               bool bIncReference,
+                                               const EDirection eDirection)
+:NetworkSection(pTupleSection, pNetwork, bIncReference),
+ m_eDirection(eDirection)
+{
+}
+
+DirectedNetworkSection::DirectedNetworkSection(
+                                  const DirectedNetworkSection& rNetworkSection)
+:NetworkSection(rNetworkSection),
+ m_eDirection(rNetworkSection.m_eDirection)
+{
+}
+
+DirectedNetworkSection::DirectedNetworkSection(
+                                  const NetworkSection& rNetworkSection,
+                                  const EDirection eDirection)
+:NetworkSection(rNetworkSection),
+ m_eDirection(eDirection)
+{
+}
+
+DirectedNetworkSection::~DirectedNetworkSection()
+{
+}
+
+const DirectedNetworkSection& DirectedNetworkSection::operator=
+                                (const DirectedNetworkSection& rNetworkSection)
+{
+    if (&rNetworkSection != this)
+    {
+        NetworkSection::operator =(rNetworkSection);
+        m_eDirection = rNetworkSection.m_eDirection;
+    }
+
+    return *this;
+}
+
+bool DirectedNetworkSection::operator==
+                                  (const DirectedNetworkSection& rSection) const
+{
+    if (NetworkSection::operator==(rSection))
+    {
+        return m_eDirection == rSection.m_eDirection;
+    }
+    else
+    {
+        return false;
     }
 }
 

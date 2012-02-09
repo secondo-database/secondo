@@ -67,15 +67,21 @@ public:
 
     bool operator==(const MHTRouteCandidate& rCandidate);
 
-    void AddSection(const NetworkSection& rSection,
+    void AddSection(const DirectedNetworkSection& rSection,
                     bool bCheckLastPoint = false);
     size_t GetSectionCount(void) const;
-    const NetworkSection& GetSection(size_t nSection) const;
-    const NetworkSection& GetLastSection(void) const;
+    const DirectedNetworkSection& GetSection(size_t nSection) const;
+    const DirectedNetworkSection& GetLastSection(void) const;
 
     void AddPoint(const GPoint& rGPoint, const Point& rPoint,
                   const double dDistance, const datetime::DateTime& rDateTime,
                   bool bClosed);
+
+    void AddPoint(const Point& rPoint,
+                  const double dDistance, const datetime::DateTime& rDateTime,
+                  bool bClosed);
+
+    void RemoveLastPoint(void);
 
     inline double GetScore(void) const
     {
@@ -96,6 +102,10 @@ public:
                   const double dDistance,
                   const datetime::DateTime& rDateTime, bool bClosed);
 
+        // Constructor without GPoint - Offroad-case
+        PointData(const Point& rPoint, const double dDistance,
+                  const datetime::DateTime& rDateTime, bool bClosed);
+
         PointData(const PointData& rPointData);
 
         PointData& operator=(const PointData& rPointData);
@@ -106,7 +116,7 @@ public:
 
         GPoint* m_pGPoint;
         Point* m_pPointGPS;
-        double m_dDistance; // Distance Point <-> GPoint
+        double m_dScore;
         datetime::DateTime m_Time;
         bool m_bClosed;
     };
@@ -124,10 +134,11 @@ public:
 
 private:
     std::vector<PointData*> m_Points;
-    std::vector<NetworkSection> m_Sections; // TODO ggf. DBArray
+    std::vector<DirectedNetworkSection> m_Sections; // TODO ggf. DBArray
     double m_dScore;
     size_t m_nPointsOfLastSection;
     unsigned short m_nCountLastEmptySections;
+    unsigned long m_nCountLastOffRoadPoints;
 };
 
 

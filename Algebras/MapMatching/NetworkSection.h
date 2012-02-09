@@ -61,9 +61,11 @@ public:
     NetworkSection(Tuple* pTupleSection, Network* pNetwork,
                    bool bIncReference = true);
     NetworkSection(const NetworkSection& rNetworkSection);
-    ~NetworkSection();
+    virtual ~NetworkSection();
 
     const NetworkSection& operator=(const NetworkSection& rNetworkSection);
+
+    bool operator==(const NetworkSection& rSection) const;
 
     bool IsDefined(void) const {return m_pTupleSection != NULL;}
 
@@ -92,6 +94,45 @@ private:
     mutable class NetworkRoute* m_pNetworkRoute;
 };
 
+
+/*
+4 class DirectedNetworkSection
+  accessing the attributes of a directed Network-Section
+
+*/
+class DirectedNetworkSection : public NetworkSection
+{
+public:
+
+    enum EDirection
+    {
+        DIR_NONE,
+        DIR_UP,
+        DIR_DOWN
+    };
+
+    DirectedNetworkSection(Tuple* pTupleSection, Network* pNetwork,
+                           bool bIncReference = true,
+                           const EDirection eDirection = DIR_NONE);
+
+    DirectedNetworkSection(const DirectedNetworkSection& rNetworkSection);
+
+    DirectedNetworkSection(const NetworkSection& rNetworkSection,
+                           const EDirection eDirection);
+
+    virtual ~DirectedNetworkSection();
+
+    const DirectedNetworkSection& operator=
+                                (const DirectedNetworkSection& rNetworkSection);
+
+    bool operator==(const DirectedNetworkSection& rSection) const;
+
+    inline void SetDirection(const EDirection eDir) {m_eDirection = eDir;}
+    inline EDirection GetDirection(void) const {return m_eDirection;}
+
+private:
+    EDirection m_eDirection;
+};
 
 } // end of namespace mapmatch
 
