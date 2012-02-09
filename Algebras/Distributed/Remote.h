@@ -320,11 +320,6 @@ public:
     m_tfq.put(NULL); // dummy to wake up waiting threads
   }
 
-  void forceSend()
-  {
-    //cout << m_index << "  FORCE denied (nothing to send)" << endl;
-  }
-
   void run();
 };
 

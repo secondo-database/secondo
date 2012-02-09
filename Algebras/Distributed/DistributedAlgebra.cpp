@@ -2447,11 +2447,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        return 1;
      }
 
-   MemCntr memCntr ((long)(qp->GetMemorySize(s) * 1024 * 1024));
-
-   //cout << "START MEM S:" << memCntr.size()
-   //   << " C:" << memCntr.count()
-   //   << " M:" << memCntr.max() << endl;
+   MemCntr memCntr (qp->GetMemorySize(s) * 1024 * 1024);
 
    Word current = SetWord( Address (0) );
 
@@ -2485,9 +2481,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
        while( (tuple1 = 
                DBAccess::getInstance() -> TS_Request(inTupleStream)) != 0)
          {
-           // this is a memory leak!
-           // vector<Word> *w = new vector<Word> (1);
-
            // ArrayIndex
            int arrIndex = 
              ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
@@ -2495,13 +2488,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
            assert (arrIndex >= 0);
 
            arrIndex = arrIndex % size;
-           
-           if (memCntr.size() - tuple1 -> GetSize() < 0)
-             {
-               for (unsigned long j = 0; j < (unsigned int)size; j ++)
-                 serverCommand[j] -> forceSend();
-             }
-
+          
            memCntr.request(tuple1 -> GetSize());
            
 
