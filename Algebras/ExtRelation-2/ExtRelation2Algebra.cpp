@@ -2068,7 +2068,8 @@ removes all Tuple from the current table
        }
       
        usedMem = sizeof(void*)*buckNum;
-       if(usedMem>=maxMem){
+       if(usedMem>=maxMem){ 
+          // ensure to be able to store at least one tuple
           maxMem = usedMem + 1024;
        }
 
@@ -2081,8 +2082,14 @@ removes all Tuple from the current table
          if(!hashTable[hash]){
            hashTable[hash] = new vector<Tuple*>();
            usedMem += sizeof(*hashTable[hash]);
+           usedMem += sizeof(void*) * hashTable[hash]->capacity();
          }
+         size_t oldcap = hashTable[hash]->capacity();
          hashTable[hash]->push_back(inTuple);
+         size_t newcap = hashTable[hash]->capacity();
+         if(newcap > oldcap){
+           usedMem += sizeof(void*) * (newcap - oldcap);
+         }
          noTuples++;
          if(usedMem < maxMem){
             inTuple = stream1.request();
