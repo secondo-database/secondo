@@ -160,6 +160,7 @@ bool MapMatchingBase::CalcShortestPath(const GPoint* pGPStart,
     const int nNetworkId = m_pNetwork->GetId();
 
     AttributePtr<GLine> pGlShortestPath(new GLine(false));
+    //if (!pGPStart->ShortestPath(pGPEnd, pGlShortestPath.get(), m_pNetwork))
     if (!pGPStart->ShortestPathAStar(pGPEnd, pGlShortestPath.get(), m_pNetwork))
     {
         // ShortestPath calculation failed
@@ -267,6 +268,12 @@ bool MapMatchingBase::ConnectPoints(const GPoint& rGPStart,
         else
         {
             // Different routes
+
+#if 0
+            // funktioniert so nicht, da der kürzeste Weg
+            // nicht unbedingt über die direkte Verbindung
+            // der beiden Routen führen muss
+
             CcInt Route1Id(GPoint1.GetRouteId());
             CcInt Route2Id(GPoint2.GetRouteId());
             double dRoute1Measure = numeric_limits<double>::max();
@@ -341,6 +348,14 @@ bool MapMatchingBase::ConnectPoints(const GPoint& rGPStart,
                                         rTimeInterval.start,
                                         rTimeInterval.end);
             }
+#else
+
+            return CalcShortestPath(&GPoint1,
+                                    &GPoint2,
+                                    rTimeInterval.start,
+                                    rTimeInterval.end);
+#endif
+
         }
     }
     else
