@@ -1406,54 +1406,111 @@ DServerManager::DServerManager(ListExpr serverlist_n,
    errorText = "OK";
    size = nl->ListLength(serverlist_n);
    if(size==-1) 
-      size=1;
+     size=1;
                 
    ListExpr elem = nl->First(serverlist_n);
    serverlist_n = nl->Rest(serverlist_n);
-        
-   try
+
+   // starting two workers on the same
+   // host is terribly slow.
+   // This routine starts only
+   // one woker on the host and
+   // waits until started. Then 
+   // it continues startning the 
+   // next worker.
+
+   // creating a list of all hosts and ports
+   vector<string> nextRoundHosts (size);
+   vector<int> nextRoundPorts (size);
+   vector<int> nextRoundHostID (size); // needed for backward compatibility.
+
+   for(int i = 0; i<size; i++)
      {
-#ifndef SINGLE_THREAD1
-       ZThread::ThreadedExecutor exec;
-#endif
-       //create DServer-objects
-       for(int i = 0; i<size; i++)
+       nextRoundHosts[i] =  nl->StringValue(nl->First(elem));
+       nextRoundPorts[i] = nl->IntValue(nl->Second(elem));
+       nextRoundHostID[i] = i;
+       m_serverlist.push_back(NULL);
+
+       if(i < size-1)
          {
-           DServerCreator* c = 
-             new DServerCreator( nl->StringValue(nl->First(elem)),
-                                 nl->IntValue(nl->Second(elem)), 
-                                 name,
-                                 inType);
-
-           m_serverlist.push_back( c -> createServer() );
-
-#ifdef SINGLE_THREAD1
-           c -> run();
-#else
-           exec.execute(c);
-#endif 
-           if(i < size-1)
-             {
-               elem = nl->First(serverlist_n);
-               serverlist_n = nl->Rest(serverlist_n);
-             }
-   
+           elem = nl->First(serverlist_n);
+           serverlist_n = nl->Rest(serverlist_n);
          }
-#ifndef SINGLE_THREAD1
-       exec.wait();
-#endif
-     } 
-   catch(ZThread::Synchronization_Exception& e) 
-     {
-       errorText = string("Could not create DServers!\nError:") + 
-         string(e.what());
-       cerr << e.what() << endl;
-       m_status = false;
-       return;
      }
 
+   while(!nextRoundHosts.empty())
+     {
+       vector<string> thisRoundHosts;
+       vector<int> thisRoundPorts;
+       vector<int> thisRoundHostID;
+       //swap
+       thisRoundHosts.swap(nextRoundHosts);
+       thisRoundPorts.swap(nextRoundPorts);
+       thisRoundHostID.swap(nextRoundHostID);
+       try
+         {
+           ZThread::ThreadedExecutor exec;      
+                    
+           while (!thisRoundPorts.empty())
+             {
+               string host = thisRoundHosts.back();
+               thisRoundHosts.pop_back();
+               int port = thisRoundPorts.back();
+               thisRoundPorts.pop_back();
+               int hId = thisRoundHostID.back();
+               thisRoundHostID.pop_back();
+
+               set<string> connectedHosts;
+
+               if (connectedHosts.find(host) != connectedHosts.end())
+                 {
+                   cout << "Wait until next round: " 
+                        << host << ":" << port << endl;
+                   nextRoundHosts.push_back(host);
+                   nextRoundPorts.push_back(port);
+                   nextRoundHostID.push_back(hId);
+                 }
+               else
+                 {
+                   connectedHosts.insert(host);
+
+                   cout << "Connecting now:" 
+                        << host << ":" << port << endl;
+                
+                   DServerCreator* c = 
+                     new DServerCreator(host,
+                                        port, 
+                                        name,
+                                        inType);
+                   DServer* s = c -> createServer();
+                   
+                   m_serverlist[hId] = s;
+                                       
+                   exec.execute(c);
+                   
+                 }
+
+             } //while (!thisRoundPorts.empty)
+
+           exec.wait();
+         } // try
+ 
+       catch(ZThread::Synchronization_Exception& e) 
+         {
+           errorText = string("Could not create DServers!\nError:") + 
+             string(e.what());
+           cerr << e.what() << endl;
+           m_status = false;
+           return;
+         }
+
+     } //while(!nextRoundHosts.empty())
+   
    for(int i = 0; i< size; i++)
-      errorText = m_serverlist[i]->getErrorText();
+     if (m_serverlist[i] != NULL)
+       errorText = m_serverlist[i]->getErrorText();
+     else
+       errorText = "Worker not created!";
 
    
    for (int id = 0; id < size; ++id)
@@ -1619,25 +1676,10 @@ void  DServerMultiCommand::run()
 
 */
 
-DServerCreator::DServerCreator
-(string h, int p, string n, ListExpr t)
-{
-  /*
-    string s_type = nl->ToString(t);
-    nl->ReadFromString(s_type,m_type);
-  */
-  assert(!(nl -> ToString(t).empty()));
-  //cout << "Creating server: "<< p << "@" 
-  //<< h << " "  << nl -> ToString(t) << endl;
-  m_type = t;
-  
-  host = h; port = p; name = n;
-}
-
 DServer*
 DServerCreator::createServer()
 {
-  m_server = new DServer(host,port,name,m_type);
+  m_server = new DServer(m_host, m_port,m_name,m_type);
   //cout << "Server: "<< port << "@" << host << " created" << endl;
   return m_server;
 }

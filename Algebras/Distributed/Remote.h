@@ -327,15 +327,20 @@ public:
 class DServerCreator : public ZThread::Runnable
 {
 public:
-  DServerCreator(string h, int p, string n, ListExpr t);
+  DServerCreator(const string& h, int p, const string& n, ListExpr t)
+    : m_host(h)
+    , m_port(p)
+    , m_name(n)
+    , m_type(t) { assert(!(nl -> ToString(t).empty())); }
    
   DServer* createServer();
   void run();
    
 private:
   DServer* m_server;
-  string host,name;
-  int port;
+  string   m_host;
+  int      m_port;
+  string   m_name;
   ListExpr m_type;
 };
 
