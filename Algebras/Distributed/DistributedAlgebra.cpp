@@ -51,10 +51,8 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "TypeMapUtils.h"
 #include "Remote.h"
 
-#ifndef SINGLE_THREAD1
 #include "zthread/ThreadedExecutor.h"
 #include "zthread/PoolExecutor.h"
-#endif
 #include "zthread/Mutex.h"
 #include "../FText/FTextAlgebra.h"
 #include "../Array/ArrayAlgebra.h"
@@ -249,6 +247,7 @@ DArray::DArray()
    alg_id=0;
    typ_id=0;
    no++;
+   //   m_watch.start();
    //cout << "DArray::DArray():" << no << endl;
 }
 
@@ -292,6 +291,7 @@ DArray::DArray(ListExpr inType,
 DArray::~DArray()
 {
   //cout << "DArray::~DArray:" << no << endl;
+  //cout <<"Time:" << m_watch.diffTimes() << endl;
   assert(no > 0);
   no--;
    if(defined)
@@ -320,9 +320,7 @@ void DArray::remove()
   //cout << "DArray::remove()" << endl;
   if(defined)
    {
-#ifndef SINGLE_THREAD1
       ZThread::ThreadedExecutor exec;
-#endif
       if (!(manager -> checkServers(true)))
         {
           defined = false;
@@ -336,18 +334,9 @@ void DArray::remove()
          server->setCmd(DServer::DS_CMD_DELETE,
                         &(manager->getIndexList(i)),
                         &m_elements);
-#ifndef SINGLE_THREAD1        
          exec.execute(new DServerExecutor(server));
-#else
-          DServerExecutor*dsex = new DServerExecutor(server);
-          dsex -> run();
-          delete dsex;
-#endif
       }
-#ifndef SINGLE_THREAD1
       exec.wait(); 
-
-#endif
 
    }
    //cout << "DArray::remove() ... done" << endl;
@@ -388,10 +377,8 @@ void DArray::refresh()
       setUndefined();
       return;
     }
-  
-#ifndef SINGLE_THREAD1
+
    ZThread::ThreadedExecutor exec;
-#endif
 
    //Elements are deleted if they were present
    //If the darray has a relation-type new relations must be created
@@ -427,18 +414,10 @@ void DArray::refresh()
                           &(manager->getIndexList(i)),
                           &m_elements);
          }
-#ifndef SINGLE_THREAD1
        exec.execute(new DServerExecutor(server));
-#else
-       DServerExecutor *dsex = new DServerExecutor(server);
-       dsex -> run();
-       delete dsex;
-#endif
      }
    
-#ifndef SINGLE_THREAD1
    exec.wait();
-#endif
    
      //All elements are present now
     for(int i=0;i<size;i++) m_present[i] = 1; 
@@ -453,9 +432,7 @@ void DArray::refresh(TFQ tfqOut)
       return;
     }
 
-#ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
-#endif
 
    //Elements are deleted if they were present
    //If the darray has a relation-type new relations must be created
@@ -587,6 +564,8 @@ bool DArray::initialize(ListExpr inType,
            return false;
          }
      }
+   
+   //cout <<"Init1:" << m_watch.diffTimes() << endl;
    return true;
 }
 
@@ -607,7 +586,7 @@ bool DArray::initialize(ListExpr inType,
    //ceck whether array of relation?
    if(sc->GetTypeName(alg_id,typ_id) == Relation::BasicType())
      {
-       isRelation = true;  isRelation = true;
+       isRelation = true; 
      }
    else
       isRelation = false;
@@ -623,6 +602,7 @@ bool DArray::initialize(ListExpr inType,
    //DServer-objects for all workers
    serverlist = n_serverlist;
    manager = new DServerManager(serverlist, m_name,m_type,size);
+   //cout <<"Init2:" << m_watch.diffTimes() << endl;
    return true;
 }
 
@@ -2337,50 +2317,33 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
    int server_no = man->getNoOfServers();
    int rel_server = (size / server_no);
-   //cout << "Size : " << size 
-   //<< " Servers:" << server_no << " Relative:" 
-   //<< rel_server << endl;
+   int workerWithMoreChilds = size - (rel_server * server_no);
 
    if (server_no > size)
      {
-       //cout << "Size " << size << " smaller than # servers" << endl;
        rel_server = 1;
        server_no = size;
+       workerWithMoreChilds = 0;
+         
      }
-   else if (rel_server * server_no < size)
-     { 
-       //cout << "Size " << size 
-       //<< " does not fit needed # servers" 
-       //<< rel_server * server_no << endl;
-       rel_server ++;
-     }
+
    try
      {
-#ifndef SINGLE_THREAD1
-       //ZThread::PoolExecutor threadEx (1);
+
        ZThread::ThreadedExecutor threadEx;
-#endif
-       cout << "Multiplying worker connections... (Servers:"
-            << server_no << "/" << rel_server << ")" << endl;
+       cout << "Multiplying worker connections... " << endl;
+
+       
        for(int i = 0; i<server_no;i++)
          {
            int childCnt = rel_server;
-           if (rel_server * i > size)
-             childCnt --;
+           if (i < workerWithMoreChilds)
+             childCnt ++;
            server = man->getServerbyID(i);
-#ifndef SINGLE_THREAD1
            threadEx.execute(new DServerMultiplyer(server,
-                                          childCnt));
-#else
-           DServerMultiplyer* dm = new DServerMultiplyer(server,
-                                                         childCnt);
-           dm -> run();
-           delete dm;
-#endif
+                                                  childCnt));
          }
-#ifndef SINGLE_THREAD1
        threadEx.wait();
-#endif
      }
    catch(ZThread::Synchronization_Exception& e)
      {
@@ -2720,25 +2683,29 @@ static int loopValueMap
    //Multiply worker connections
    int server_no = man->getNoOfServers();
    int rel_server = (size / server_no);
+   int workerWithMoreChilds = size - (rel_server * server_no);
 
-   cout << "Multiplying worker connections...(Servers:"
-        << server_no << "/" << rel_server  << ")" << endl;
+   if (server_no > size)
+     {
+       rel_server = 1;
+       server_no = size;
+       workerWithMoreChilds = 0;
+         
+     }
+
+   cout << "Multiplying worker connections..." << endl;
    try
      {
        for(int i = 0; i<server_no;i++)
          {
+           int childCnt = rel_server;
+           if (i < workerWithMoreChilds)
+             childCnt ++;
+
            server = man->getServerbyID(i);
-#ifndef SINGLE_THREAD1
-           exec.execute(new DServerMultiplyer(server,rel_server));
-#else
-           DServerMultiplyer *dsm =  new DServerMultiplyer(server,rel_server);
-           dsm -> run();
-           delete dsm;
-#endif
+           exec.execute(new DServerMultiplyer(server,childCnt));
          }
-#ifndef SINGLE_THREAD1
        exec.wait();
-#endif
      }
    catch(ZThread::Synchronization_Exception& e)
      {

@@ -48,6 +48,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include <fstream>
 #include <vector>
 #include "TupleFifoQueue.h"
+//#include "StopWatch.h"
 
 
 /*
@@ -61,6 +62,7 @@ Operations on the darray-elements are carried out on the remote machines.
 class DArray
 {
 public:
+  //StopWatch m_watch;
   DArray();
   DArray(ListExpr, const string& inName,int,ListExpr);
   ~DArray();
