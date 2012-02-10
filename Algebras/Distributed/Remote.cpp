@@ -111,6 +111,8 @@ DServer::DServer(string n_host,int n_port,string n_name,
 bool
 DServer::connectToWorker()
 {        
+  //StopWatch watch;
+
   string line;
   server = Socket::Connect( host, toString_d(port), 
                       Socket::SockGlobalDomain,
@@ -144,14 +146,17 @@ DServer::connectToWorker()
       
       if(line=="<SecondoOk/>")
       {
-        iosock << "<Connect>" << endl << endl 
-             << endl << "</Connect>" << endl;
-        
+        iosock << "<Connect>" << endl
+               << endl // user
+               << endl // password 
+               << "</Connect>" << endl;
+
+
         getline( iosock, line );
-          
+
         DServer::Debug("DSConn-Rec2", line);
         if( line == "<SecondoIntro>")
-          {
+          { 
             do
             {
               getline( iosock, line);
@@ -159,7 +164,7 @@ DServer::connectToWorker()
               DServer::Debug("DSConn-Rec3", line);
               
             }  while(line != "</SecondoIntro>");
-            
+
             DServer::Debug("DSConn", "... done.");
               
           }
@@ -228,6 +233,7 @@ DServer::connectToWorker()
    HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
    //cout << "Connection to Worker on " << host << " established." << endl;
+   //cout << "ConnectTime:"  << host <<":" << port << watch.diffTimes() << endl;
    return true;
 }
 
@@ -1301,6 +1307,8 @@ bool DServer::Multiply(int count)
   if(count < 1) return true;
 
   m_numChilds = count - 1;
+
+  //  cerr << "DServer::Multiply:" << m_numChilds << endl;
    for(int i = 0;i<m_numChilds;i++)
    {
      DServer* ds =  new DServer(host,port,name,m_type);
@@ -1400,7 +1408,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                                int sizeofarray)
 {
   cout << "Connecting to Workers... " << endl;
-   
+  //m_watch.start();
    array_size = sizeofarray;
    name = name_n;
    errorText = "OK";
@@ -1451,7 +1459,9 @@ DServerManager::DServerManager(ListExpr serverlist_n,
          {
            ZThread::ThreadedExecutor exec;      
                     
-           while (!thisRoundPorts.empty())
+           set<string> connectedHosts;
+
+           while (!thisRoundHosts.empty())
              {
                string host = thisRoundHosts.back();
                thisRoundHosts.pop_back();
@@ -1460,12 +1470,8 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                int hId = thisRoundHostID.back();
                thisRoundHostID.pop_back();
 
-               set<string> connectedHosts;
-
                if (connectedHosts.find(host) != connectedHosts.end())
                  {
-                   cout << "Wait until next round: " 
-                        << host << ":" << port << endl;
                    nextRoundHosts.push_back(host);
                    nextRoundPorts.push_back(port);
                    nextRoundHostID.push_back(hId);
@@ -1473,9 +1479,6 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                else
                  {
                    connectedHosts.insert(host);
-
-                   cout << "Connecting now:" 
-                        << host << ":" << port << endl;
                 
                    DServerCreator* c = 
                      new DServerCreator(host,
@@ -1520,6 +1523,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
          insertList.push_front(i);
        m_idIndexMap[id] = insertList;
      }
+   //cout << "Done:" << m_watch.diffTimes() << endl;
    m_status = true;
 }
 
@@ -1687,7 +1691,7 @@ DServerCreator::createServer()
 
 void DServerCreator::run()
 { 
-  //cout << "Connecting Server: "<< port << "@" << host << endl;
+  //cout << "Connecting Server: "<< m_host << ":" << m_port << endl;
   m_server -> connectToWorker();
 }
 

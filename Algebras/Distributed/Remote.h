@@ -49,6 +49,7 @@ RelationWriter and DServerCreator
 #include "TupleFifoQueue.h"
 #include "DBAccessGuard.h"
 #include "ThreadedMemoryCntr.h"
+//#include "StopWatch.h"
 
 #define SINGLE_THREAD 1
 
@@ -265,7 +266,7 @@ returns false, if server were not created correctly
      
         
 private:
-                
+  //StopWatch m_watch;
   vector<DServer*> m_serverlist;
   
   int size;
