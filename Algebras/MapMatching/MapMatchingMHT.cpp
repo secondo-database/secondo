@@ -258,6 +258,7 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
                 // only use p1
                 ActUPoint.p0 = ActUPoint.p1;
                 ActUPoint.timeInterval.start = ActUPoint.timeInterval.end;
+                ActUPoint.timeInterval.lc = ActUPoint.timeInterval.rc = true;
             }
 
             // Add unit
@@ -304,6 +305,7 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 
                     Interval<Instant> I(ActUPoint.timeInterval);
                     I.end = I.start;
+                    I.lc = I.rc = true;
                     pActMPoint->Add(UPoint(I, ActUPoint.p0, ActUPoint.p1));
 
                     // finalize current MPoint
@@ -322,6 +324,8 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 
                     ActUPoint.p0 = ActUPoint.p1;
                     ActUPoint.timeInterval.start = ActUPoint.timeInterval.end;
+                    ActUPoint.timeInterval.lc =
+                            ActUPoint.timeInterval.rc = true;
 
                     bProcessNext = false; // Process ActUPoint once again
                 }
@@ -773,8 +777,8 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
         const Point ptStart = pCurve->StartPoint(bStartsSmaller);
         const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
 
-        const double dDistanceStart = rPoint.Distance(ptStart);
-        const double dDistanceEnd = rPoint.Distance(ptEnd);
+        const double dDistanceStart = rPoint.Distance(ptStart, m_pGeoid);
+        const double dDistanceEnd = rPoint.Distance(ptEnd, m_pGeoid);
 
         // Never assign to endnode
         if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
@@ -824,19 +828,13 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
         vecPoints.push_back(&rPoint);
 
         const double dDistanceTravelled = CalcDistance(vecPoints, m_pGeoid);
+
         const double dLengthCurve = CalcLengthCurve(pCurve, m_pGeoid);
 
         // If traveled (GPS-)distance ist larger than 85%,
         // then look at adjacent sections, too
         if (dDistanceTravelled > (dLengthCurve / 100. * 85.))
         {
-            const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
-            const Point ptStart = pCurve->StartPoint(bStartsSmaller);
-            const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
-
-            const double dDistanceStart = rPoint.Distance(ptStart);
-            const double dDistanceEnd = rPoint.Distance(ptEnd);
-
             if (dDistanceStart > dDistanceEnd)
                 eNext = CANDIDATES_UP;
             else
@@ -1081,11 +1079,21 @@ void MapMatchingMHT::CreateCompleteRoute(
 
                 if (bCalcShortestPath && pLastPointOfPrevSection != NULL)
                 {
-                    // Calculate ShortestPAth between last point of previous
+                    // Calculate ShortestPath between last point of previous
                     // segment and first point of this segment
-                    CalcShortestPath(pLastPointOfPrevSection->m_pGPoint,
-                            pData1->m_pGPoint, pLastPointOfPrevSection->m_Time,
-                            pData1->m_Time);
+
+                    // ShortestPath calculation only when time difference
+                    // is less than 4 minutes
+                    const DateTime MaxTimeDiff(durationtype, 240000);
+
+                    if (pData1->m_Time - pLastPointOfPrevSection->m_Time <
+                                                                    MaxTimeDiff)
+                    {
+                        CalcShortestPath(pLastPointOfPrevSection->m_pGPoint,
+                                         pData1->m_pGPoint,
+                                         pLastPointOfPrevSection->m_Time,
+                                         pData1->m_Time);
+                    }
 
                     bCalcShortestPath = false;
                 }
