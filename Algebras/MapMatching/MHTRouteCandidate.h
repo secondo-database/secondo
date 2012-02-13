@@ -41,6 +41,7 @@ This header file contains the definition of the class ~MHTRouteCandidate~.
 #define __MHT_ROUTE_CANDIDATE__
 
 #include <vector>
+#include <deque>
 #include "NetworkSection.h"
 #include "DateTime.h"
 
@@ -67,13 +68,12 @@ public:
 
     bool operator==(const MHTRouteCandidate& rCandidate);
 
-    void AddSection(const DirectedNetworkSection& rSection,
-                    bool bCheckLastPoint = false);
+    void AddSection(const DirectedNetworkSection& rSection);
     size_t GetSectionCount(void) const;
-    const DirectedNetworkSection& GetSection(size_t nSection) const;
     const DirectedNetworkSection& GetLastSection(void) const;
 
     void AddPoint(const GPoint& rGPoint, const Point& rPoint,
+                  const Point& rPointProjection,
                   const double dDistance, const datetime::DateTime& rDateTime,
                   bool bClosed);
 
@@ -96,9 +96,11 @@ public:
 
     void MarkAsInvalid(void);
 
-    struct PointData
+    class PointData
     {
-        PointData(const GPoint& rGPoint, const Point& rPoint,
+    public:
+        PointData(const GPoint& rGPoint, const Point& rPointGPS,
+                  const Point& rPointProjection,
                   const double dDistance,
                   const datetime::DateTime& rDateTime, bool bClosed);
 
@@ -108,14 +110,22 @@ public:
 
         PointData(const PointData& rPointData);
 
-        PointData& operator=(const PointData& rPointData);
-
         bool operator==(const PointData& rPointData);
 
         ~PointData();
 
+        inline GPoint* GetGPoint(void) const {return m_pGPoint;}
+        inline Point* GetPointGPS(void) const {return m_pPointGPS;}
+        inline double GetScore(void) const {return m_dScore;}
+        inline datetime::DateTime GetTime(void) const {return m_Time;}
+        inline bool GetClosed(void) const {return m_bClosed;}
+
+    private:
+        PointData& operator=(const PointData& rPointData);
+
         GPoint* m_pGPoint;
         Point* m_pPointGPS;
+        //Point* m_pPointProjection;
         double m_dScore;
         datetime::DateTime m_Time;
         bool m_bClosed;
@@ -133,13 +143,16 @@ public:
 
     // Debugging
     void Print(std::ostream& os) const;
+    void PrintGPoints(std::ostream& os) const;
     void PrintGPointsAsPoints(std::ostream& os) const;
 
 private:
-    std::vector<PointData*> m_Points;
-    std::vector<DirectedNetworkSection> m_Sections; // TODO ggf. DBArray
+
+    std::vector<PointData*> m_Points; // TODO ggf. DBArray
+    std::deque<DirectedNetworkSection> m_Sections;
     double m_dScore;
     size_t m_nPointsOfLastSection;
+    size_t m_nCountSections;
     unsigned short m_nCountLastEmptySections;
     unsigned long m_nCountLastOffRoadPoints;
 };

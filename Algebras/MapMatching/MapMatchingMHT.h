@@ -68,18 +68,18 @@ class MHTRouteCandidate;
 class MapMatchingMHT : public MapMatchingBase
 {
 public:
- /*
- 3.1 Constructors and Destructor
+/*
+3.1 Constructors and Destructor
 
- */
+*/
     MapMatchingMHT(Network* pNetwork, MPoint* pMPoint);
     ~MapMatchingMHT();
 
- /*
- 3.2 Starts the map matching
+/*
+3.2 Starts the map matching
      return true if successfull
 
- */
+*/
     bool DoMatch(MGPoint* pResMGPoint);
 
 private:
@@ -112,8 +112,6 @@ private:
     bool AssignPoint(MHTRouteCandidate* pCandidate, const Point& rPoint,
                      const datetime::DateTime& rTime, bool bClosed,
                      /*OUT*/ ENextCandidates& eNextCandidates);
-
-    void ReassignLastPoints(MHTRouteCandidate& rCandidate);
 
     void ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                            rvecRouteCandidates);

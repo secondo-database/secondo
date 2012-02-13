@@ -56,14 +56,15 @@ namespace mapmatch {
 */
 
 MHTRouteCandidate::MHTRouteCandidate()
-:m_dScore(0.0), m_nPointsOfLastSection(0), m_nCountLastEmptySections(0),
- m_nCountLastOffRoadPoints(0)
+:m_dScore(0.0), m_nPointsOfLastSection(0), m_nCountSections(0),
+ m_nCountLastEmptySections(0), m_nCountLastOffRoadPoints(0)
 {
 }
 
 MHTRouteCandidate::MHTRouteCandidate(const MHTRouteCandidate& rCandidate)
 :m_dScore(rCandidate.m_dScore),
  m_nPointsOfLastSection(rCandidate.m_nPointsOfLastSection),
+ m_nCountSections(rCandidate.m_nCountSections),
  m_nCountLastEmptySections(rCandidate.m_nCountLastEmptySections),
  m_nCountLastOffRoadPoints(rCandidate.m_nCountLastOffRoadPoints)
 {
@@ -106,6 +107,7 @@ MHTRouteCandidate& MHTRouteCandidate::operator=
     {
         m_dScore = rCandidate.m_dScore;
         m_nPointsOfLastSection = rCandidate.m_nPointsOfLastSection;
+        m_nCountSections = rCandidate.m_nCountSections;
         m_nCountLastEmptySections = rCandidate.m_nCountLastEmptySections;
         m_nCountLastOffRoadPoints = rCandidate.m_nCountLastOffRoadPoints;
 
@@ -181,35 +183,25 @@ bool MHTRouteCandidate::operator==(const MHTRouteCandidate& rCandidate)
     }
 }
 
-void MHTRouteCandidate::AddSection(const DirectedNetworkSection& rSection,
-                                   bool bCheckLastPoint)
+void MHTRouteCandidate::AddSection(const DirectedNetworkSection& rSection)
 {
-    vector<PointData*> vecPoints;
-    if (bCheckLastPoint)
-    {
-        GetPointsOfLastSection(vecPoints);
-    }
-
     m_Sections.push_back(rSection);
     m_nPointsOfLastSection = 0;
+    ++m_nCountSections;
     ++m_nCountLastEmptySections;
 
-    if (vecPoints.size() > 0)
+    while (m_Sections.size() > 5) // Don't save more than 5 sections
     {
-        PointData* pData = vecPoints.back();
-        if (pData != NULL)
-        {
-            // TODO
-        }
+        m_Sections.pop_front();
     }
 }
 
 size_t MHTRouteCandidate::GetSectionCount(void) const
 {
-    return m_Sections.size();
+    return m_nCountSections;
 }
 
-const DirectedNetworkSection& MHTRouteCandidate::GetSection(
+/*const DirectedNetworkSection& MHTRouteCandidate::GetSection(
                                                           size_t nSection) const
 {
     if (nSection < m_Sections.size())
@@ -219,7 +211,7 @@ const DirectedNetworkSection& MHTRouteCandidate::GetSection(
         static DirectedNetworkSection SectionUndef(NULL, NULL);
         return SectionUndef;
     }
-}
+}*/
 
 const DirectedNetworkSection& MHTRouteCandidate::GetLastSection(void) const
 {
@@ -248,6 +240,7 @@ void MHTRouteCandidate::GetPointsOfLastSection(
 }
 
 void MHTRouteCandidate::AddPoint(const GPoint& rGPoint, const Point& rPoint,
+                                 const Point& rPointProjection,
                                  const double dDistance,
                                  const DateTime& rDateTime, bool bClosed)
 {
@@ -271,7 +264,8 @@ void MHTRouteCandidate::AddPoint(const GPoint& rGPoint, const Point& rPoint,
         }
     }*/
 
-    PointData* pData = new PointData(rGPoint, rPoint, dScore,
+    PointData* pData = new PointData(rGPoint, rPoint,
+                                     rPointProjection, dScore,
                                      rDateTime, bClosed);
     m_Points.push_back(pData);
     ++m_nPointsOfLastSection;
@@ -301,7 +295,7 @@ void MHTRouteCandidate::RemoveLastPoint(void)
         m_Points.pop_back();
         if (pData != NULL)
         {
-            m_dScore -= pData->m_dScore;
+            m_dScore -= pData->GetScore();
             delete pData;
             --m_nPointsOfLastSection;
             // TODO m_nCountLastEmptySections
@@ -320,14 +314,38 @@ void MHTRouteCandidate::Print(std::ostream& os) const
 
     os << "Score: " << GetScore() << endl;
 
-    os << "Points:" << endl;
+    os << "GPoints:" << endl;
+    PrintGPoints(os);
+
+    os << "GPoints as Points:" << endl;
     PrintGPointsAsPoints(os);
 
     os << endl << "Sections:" << endl;
-    for (size_t j = 0; j < GetSectionCount(); ++j)
+    for (size_t j = 0; j < m_Sections.size(); ++j)
     {
-        os << GetSection(j).GetSectionID() << endl;
+        os << m_Sections[j].GetSectionID() << endl;
     }
+}
+
+void MHTRouteCandidate::PrintGPoints(std::ostream& os) const
+{
+    const vector<PointData*>& rvecPoints = GetPoints();
+
+    const size_t nPoints = rvecPoints.size();
+
+    AttributePtr<GPoints> pGPts(new GPoints((int)nPoints));
+
+    for (size_t i = 0; i < nPoints; ++i)
+    {
+        GPoint* pGPoint = rvecPoints[i]->GetGPoint();
+
+        if (pGPoint != NULL)
+        {
+            *pGPts += *pGPoint;
+        }
+    }
+
+    pGPts->Print(os);
 }
 
 void MHTRouteCandidate::PrintGPointsAsPoints(std::ostream& os) const
@@ -336,7 +354,7 @@ void MHTRouteCandidate::PrintGPointsAsPoints(std::ostream& os) const
 
     const size_t nPoints = rvecPoints.size();
 
-    AttributePtr<Points> pPts(new Points(1));
+    AttributePtr<Points> pPts(new Points((int)nPoints));
     pPts->StartBulkLoad();
 
     AttributePtr<Points> pPtsOffRoad(new Points(1));
@@ -344,7 +362,7 @@ void MHTRouteCandidate::PrintGPointsAsPoints(std::ostream& os) const
 
     for (size_t i = 0; i < nPoints; ++i)
     {
-        GPoint* pGPoint = rvecPoints[i]->m_pGPoint;
+        GPoint* pGPoint = rvecPoints[i]->GetGPoint();
 
         if (pGPoint != NULL)
         {
@@ -354,9 +372,9 @@ void MHTRouteCandidate::PrintGPointsAsPoints(std::ostream& os) const
                 *pPts += *pPt;
             }
         }
-        else if (rvecPoints[i]->m_pPointGPS != NULL)
+        else if (rvecPoints[i]->GetPointGPS() != NULL)
         {
-            Point* pPt = rvecPoints[i]->m_pPointGPS;
+            Point* pPt = rvecPoints[i]->GetPointGPS();
             *pPtsOffRoad += *pPt;
         }
     }
@@ -377,11 +395,13 @@ void MHTRouteCandidate::PrintGPointsAsPoints(std::ostream& os) const
 */
 
 MHTRouteCandidate::PointData::PointData(const GPoint& rGPoint,
-                                        const Point& rPoint,
+                                        const Point& rPointGPS,
+                                        const Point& rPointProjection,
                                         const double dScore,
                                         const datetime::DateTime& rDateTime,
                                         bool bClosed)
-:m_pGPoint(new GPoint(rGPoint)), m_pPointGPS(new Point(rPoint)),
+:m_pGPoint(new GPoint(rGPoint)), m_pPointGPS(new Point(rPointGPS)),
+ //m_pPointProjection(new Point(rPointProjection)),
  m_dScore(dScore), m_Time(rDateTime), m_bClosed(bClosed)
 {
 }
@@ -390,7 +410,7 @@ MHTRouteCandidate::PointData::PointData(const Point& rPoint,
                                         const double dScore,
                                         const datetime::DateTime& rDateTime,
                                         bool bClosed)
-:m_pGPoint(NULL), m_pPointGPS(new Point(rPoint)),
+:m_pGPoint(NULL), m_pPointGPS(new Point(rPoint)), //m_pPointProjection(NULL),
  m_dScore(dScore), m_Time(rDateTime), m_bClosed(bClosed)
 {
 }
@@ -400,6 +420,8 @@ MHTRouteCandidate::PointData::PointData(const PointData& rPointData)
            new GPoint(*rPointData.m_pGPoint) : NULL),
  m_pPointGPS(rPointData.m_pPointGPS != NULL ?
              new Point(*rPointData.m_pPointGPS) : NULL),
+ //m_pPointProjection(rPointData.m_pPointProjection != NULL ?
+             //new Point(*rPointData.m_pPointProjection) : NULL),
  m_dScore(rPointData.m_dScore),
  m_Time(rPointData.m_Time), m_bClosed(rPointData.m_bClosed)
 {
@@ -423,6 +445,13 @@ MHTRouteCandidate::PointData& MHTRouteCandidate::PointData::operator=(
 
         if (rPointData.m_pPointGPS != NULL)
             m_pPointGPS = new Point(*rPointData.m_pPointGPS);
+
+        /*if (m_pPointProjection != NULL)
+            m_pPointProjection->DeleteIfAllowed();
+        m_pPointProjection = NULL;
+
+        if (rPointData.m_pPointProjection != NULL)
+            m_pPointProjection = new Point(*rPointData.m_pPointProjection);*/
 
         m_dScore = rPointData.m_dScore;
 
@@ -460,6 +489,10 @@ MHTRouteCandidate::PointData::~PointData()
     if (m_pPointGPS != NULL)
         m_pPointGPS->DeleteIfAllowed();
     m_pPointGPS = NULL;
+
+    /*if (m_pPointProjection != NULL)
+        m_pPointProjection->DeleteIfAllowed();
+    m_pPointProjection = NULL;*/
 }
 
 
