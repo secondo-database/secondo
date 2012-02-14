@@ -454,9 +454,10 @@ class HashTable
 {
   public:
 
-    HashTable( size_t nBuckets,
-                HashFunction* f,
-                JoinTupleCompareFunction* cmp );
+    HashTable( const size_t nBuckets,
+               const HashFunction& f,
+               const HashFunction& probeHash,
+               const JoinTupleCompareFunction& cmp );
 /*
 The constructor. Creates a hash table with ~nBuckets~ buckets,
 hash function ~f~ and a tuple comparison function ~cmp~.
@@ -492,7 +493,7 @@ Insert tuple ~t~ into the hash table.
       if ( iter == 0 )
       {
         // calculate bucket number
-        size_t h = hashFunc->Value(t);
+        size_t h = probeFunc.Value(t);
 
         // start bucket scan
         iter = buckets[h]->MakeScan();
@@ -500,7 +501,7 @@ Insert tuple ~t~ into the hash table.
 
       while ( (nextTuple = iter->GetNextTuple() ) != 0 )
       {
-        if ( cmpFunc->Compare(t, nextTuple) == 0 )
+        if ( cmpFunc.Compare(t, nextTuple) == 0 )
         {
           return nextTuple;
         }
@@ -572,13 +573,15 @@ Array containing the buckets of the hash table.
 
 */
 
-    HashFunction* hashFunc;
+    HashFunction hashFunc;
 /*
 Hash function.
 
 */
+    HashFunction probeFunc;
 
-    JoinTupleCompareFunction* cmpFunc;
+
+    JoinTupleCompareFunction cmpFunc;
 /*
 Comparison function for tuples according to their join attributes.
 

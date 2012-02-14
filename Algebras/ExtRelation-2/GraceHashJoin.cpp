@@ -540,9 +540,8 @@ GraceHashJoinAlgorithm::GraceHashJoinAlgorithm( Word streamA,
     new HashFunction(this->nBuckets, this->attrIndexB);
 
   // create tuple comparison function instance
-  JoinTupleCompareFunction* cmp =
-    new JoinTupleCompareFunction( this->attrIndexA,
-                                  this->attrIndexB);
+  JoinTupleCompareFunction cmp( this->attrIndexA,
+                                this->attrIndexB);
 
   // create result type
   ListExpr resultType =
@@ -551,8 +550,9 @@ GraceHashJoinAlgorithm::GraceHashJoinAlgorithm( Word streamA,
 
   // create hash table
   hashTable = new HashTable( this->nBuckets,
-                              new HashFunction(*hashFuncB),
-                              cmp);
+                            *hashFuncB,
+                            *hashFuncA,
+                            cmp);
 
   // Read tuples from stream B until memory is full or stream B is finished
   progress->readSecond +=
@@ -724,6 +724,10 @@ void GraceHashJoinAlgorithm::setPartitions(size_t n)
   // calculate maximum number of partitions -> nBuckets/2
   size_t maxPartitions = nBuckets / 2;
 
+  if(maxPartitions > MAX_PARTITIONS){
+     maxPartitions = MAX_PARTITIONS;
+  }
+
   // check if we should use default number of partitions
   if ( n == UINT_MAX )
   {
@@ -733,11 +737,12 @@ void GraceHashJoinAlgorithm::setPartitions(size_t n)
     n = 1 << (int)( log2(nBuckets) / 2.0 );
   }
 
-  // check upper limit
-  n = n > maxPartitions ? maxPartitions : n;
 
   // check lower limit
   n = n < MIN_PARTITIONS ? MIN_PARTITIONS : n;
+  
+  // check upper limit
+  n = n > maxPartitions ? maxPartitions : n;
 
   nPartitions = n;
 }

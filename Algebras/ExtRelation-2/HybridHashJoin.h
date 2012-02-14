@@ -342,6 +342,11 @@ Minimum number of buckets.
 Minimum number of partitions.
 
 */
+    static const size_t MAX_PARTITIONS = 256;
+/*
+Maximum number of partitions.
+
+*/
 
     static const size_t MIN_USER_DEF_MEMORY = 1024;
 /*

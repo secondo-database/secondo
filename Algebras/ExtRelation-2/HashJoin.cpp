@@ -109,11 +109,13 @@ BucketIterator::BucketIterator(Bucket& b)
 7 Implementation of class ~HashTable~
 
 */
-HashTable::HashTable( size_t nBuckets,
-                      HashFunction* f,
-                      JoinTupleCompareFunction* cmp )
+HashTable::HashTable( const size_t nBuckets,
+                      const HashFunction& f,
+                      const HashFunction& probeHF,
+                      const JoinTupleCompareFunction& cmp )
 : iter(0)
 , hashFunc(f)
+, probeFunc(probeHF)
 , cmpFunc(cmp)
 {
   for(size_t i = 0; i < nBuckets; i++)
@@ -136,17 +138,6 @@ HashTable::~HashTable()
     iter = 0;
   }
 
-  if ( hashFunc )
-  {
-    delete hashFunc;
-    hashFunc = 0;
-  }
-
-  if ( cmpFunc )
-  {
-    delete cmpFunc;
-    cmpFunc = 0;
-  }
 }
 
 void HashTable::Clear()
@@ -168,7 +159,7 @@ void HashTable::Clear()
 void HashTable::Insert(Tuple* t)
 {
   // calculate bucket number
-  size_t h = hashFunc->Value(t);
+  size_t h = hashFunc.Value(t);
 
   // insert tuple into bucket
   buckets[h]->Insert(t);
