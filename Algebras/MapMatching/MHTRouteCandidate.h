@@ -141,6 +141,9 @@ public:
     inline size_t GetCountPointsOfLastSection(void) const
                                                 {return m_nPointsOfLastSection;}
 
+    inline size_t GetCountLastOffRoadPoints(void) const
+                                             {return m_nCountLastOffRoadPoints;}
+
     // Debugging
     void Print(std::ostream& os) const;
     void PrintGPoints(std::ostream& os) const;
@@ -154,7 +157,7 @@ private:
     size_t m_nPointsOfLastSection;
     size_t m_nCountSections;
     unsigned short m_nCountLastEmptySections;
-    unsigned long m_nCountLastOffRoadPoints;
+    size_t m_nCountLastOffRoadPoints;
 };
 
 

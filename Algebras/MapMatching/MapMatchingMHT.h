@@ -91,10 +91,10 @@ private:
 
     void TripSegmentation(std::vector<MPoint*>& rvecTripParts);
 
-    int GetInitialRouteCandidates(MPoint* pMPoint,
+    int GetInitialRouteCandidates(MPoint* pMPoint, int nIdxFirstComponent,
                     std::vector<class MHTRouteCandidate*>& rvecRouteCandidates);
 
-    void DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
+    int DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
                     std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
     void DevelopRoutes(const Point& rPoint,
@@ -116,8 +116,11 @@ private:
     void ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                            rvecRouteCandidates);
 
+    bool CheckRouteCandidates(const std::vector<MHTRouteCandidate*>&
+                                                           rvecRouteCandidates);
+
     MHTRouteCandidate* DetermineBestRouteCandidate(
-                       std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
+                          std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
     void CreateCompleteRoute(
                       const std::vector<MHTRouteCandidate*>& rvecRouteSegments);
