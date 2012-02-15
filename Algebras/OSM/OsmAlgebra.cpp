@@ -899,10 +899,13 @@ void FullOsmImport::processNode(xmlTextReaderPtr reader) {
       attrCount++;
       xmlFree(lon);
     }
-    if (attrCount == 2) {
+    // ~ŧagged~ solves the node duplication problem. Otherwise, every tagged
+    // node would be read twice
+    if (attrCount == 2 && !tagged) {
       nodeRel->AppendTuple(node);
       tupleCount[0]++;
     }
+    tagged = false;
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
     subNameXml = xmlTextReaderLocalName(reader);
@@ -1063,6 +1066,7 @@ void FullOsmImport::processTag(xmlTextReaderPtr reader, entityKind kind) {
     }
     if (attrCount == 2) {
       currentRel->AppendTuple(tag);
+      tagged = true;
       tupleCount[counterPos]++;
     }
   }
@@ -1098,7 +1102,6 @@ void FullOsmImport::fillRelations() {
       read = xmlTextReaderRead(reader);
       next = xmlTextReaderNext(reader);
     }
-    // add two cases
   }
   // clean up the memory
   xmlFreeTextReader(reader);

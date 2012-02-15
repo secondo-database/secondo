@@ -88,6 +88,7 @@ class FullOsmImport {
     Tuple *way;
     Tuple *rel;
     int read, next, currentId, refCount;
+    bool tagged;
 };
 
 
