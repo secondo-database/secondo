@@ -5,12 +5,12 @@
 Februar 2012 Katja Koch
 
 
-1 Overview
+ Overview
 
 
 
 
-2 Defines and Includes
+ Defines and Includes
 
 */
 
@@ -62,108 +62,104 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
-
-2 Algebra Implementation
-
-2.2 Type Mapping Functions
-
+Algebra Implementation
+Type Mapping Functions
 These functions check whether the correct argument types are supplied for an
 operator; if so, returns a list expression for the result type, otherwise the
 symbol ~typeerror~.
 
 */
 
+/*
+An algebra module must provide for each type functions which take a nested
+list and create an instance of the class representing the type and vice versa.
+These functions are called In- and Out-functions. ->see SpatialAlgebra In/Out
+
+*/
 
 /*
-3 Type investigation auxiliaries
+This means that for a type constructor the functions create, delete,
+close, and clone must be implemented. The remaining two functions open
+and save may be implemented. If they are not implemented,
+the default persistent storage mechanism is used. ->see SpatialAlgebra
+
+*/
+
+/*
+Type investigation auxiliaries
 
 Within this algebra module, we have to handle with values of different
 types:  ~line~ and ~Points~.
-
-Later on we will
-examine nested list type descriptions. In particular, we
-are going to check whether they describe one of types just introduced.
-In order to simplify dealing with list expressions describing these types, we
-declare an enumeration, ~RobustGeometryType~, containing the types, and a function,
-~SpatialTypeOfSymbol~, taking a nested list as argument and returning the
-corresponding ~RobustGeometryType~ type name.
+->see SpatialAlgebra
 
 */
-enum RobustGeometryType { rgpoints, rgline, srbox, srerror};
 
-RobustGeometryType RobustGeometryOfSymbol( ListExpr symbol )
+enum SpatialTypeRG {stpoint,stpoints,stline,stregion,stbox,sterror};
+
+SpatialTypeRG
+SpatialTypeOfSymbolRG( ListExpr symbol )
 {
   if ( nl->AtomType( symbol ) == SymbolType )
   {
     string s = nl->SymbolValue( symbol );
-    if ( s == Points::BasicType()  ) return (rgpoints);
-    if ( s == Line::BasicType()   ) return (rgline);
+    if ( s == Point::BasicType()  ) return (stpoint);
+    if ( s == Points::BasicType() ) return (stpoints);
+    if ( s == Line::BasicType()   ) return (stline);
+    if ( s == Region::BasicType() ) return (stregion);
+    if ( s == Rectangle<2>::BasicType()   ) return (stbox);
   }
-  return (srerror);
+  return (sterror);
 }
 
-
 /*
-10 Operators
-
-Definition of operators is similar to definition of type constructors. An
-operator is defined by creating an instance of class ~Operator~. Again we
-have to define some functions before we are able to create an ~Operator~
-instance.
-
-10.1 Type mapping functions
-
-A type mapping function takes a nested list as argument. Its contents are
-type descriptions of an operator's input parameters. A nested list describing
-the output type of the operator is returned.
-
-10.1.1 Type mapping function RobustGeometryTypeMapBool
-
-It is for the compare operators which have ~bool~ as resulttype, like =, !=, <,
-<=, >, >=.
+Type mapping
 
 */
 
-ListExpr RobustGeometryIntersectionBOTypeMap(ListExpr args)
+static ListExpr intersectionTM( ListExpr args )
 {
-  string err = "t1 x t2 expected, t_i in {line";
-  if(nl->ListLength(args)!=2)
-  {
-    return listutils::typeError(err + ": wrong number of arguments");
-  }
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if(!listutils::isSymbol(arg1))
-  {
-    return listutils::typeError(err+ ": first arg not a RobustGeometry type");
-  }
-  if(!listutils::isSymbol(arg2))
-  {
-    return listutils::typeError(err+ ": second arg not a RobustGeometry type");
-  }
-  string a1 = nl->SymbolValue(arg1);
-  string a2 = nl->SymbolValue(arg2);
+   ListExpr arg1, arg2;
+   if ( nl->ListLength( args ) == 2 )
+   {
+      arg1 = nl->First( args );
+      arg2 = nl->Second( args );
+      if ( SpatialTypeOfSymbolRG( arg1 ) == stline &&
+         SpatialTypeOfSymbolRG( arg2 ) == stline )
+         return (nl->SymbolAtom( Points::BasicType() ));
+    }
+    return (nl->SymbolAtom( Symbol::TYPEERROR() ));
+}
+
+int RobustGeometrySetOpSelect(ListExpr args)
+{
+  string a1 = nl->SymbolValue(nl->First(args));
+  string a2 = nl->SymbolValue(nl->Second(args));
 
   if(a1==Line::BasicType())
   {
-    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
-    return listutils::typeError(err+ ": second arg not a RobustGeometry type");
+    if(a2==Line::BasicType())   return 1;
+    return -1;
   }
 
-  return listutils::typeError(err+ ": first arg not a RobustGeometry type");
-
+  return -1;
 }
 
+const string intersectionSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>{line} x"
+  "   {line} -> T, "
+  " where T = points if any point or point type is one of the "
+  " arguments or the argument having the smaller dimension </text--->"
+  "<text>intersectionBO(arg1, arg2)</text--->"
+  "<text>intersectionBO of two spatial objects</text--->"
+  "<text>query intersectionBO(tiergarten, thecenter) </text--->"
+  ") )";
+
+
+ValueMapping intersectionVM [] =   {intersectionBO_ll};
+
 /*
-	PriorityQueue
-
-
-*/
-
-
-/*
-	class MakeOp
-
+class MakeBO
 
 */
 
@@ -173,10 +169,8 @@ public:
    MakeBo() {};
    ~MakeBo() {};
 
-   void IntersectionBO(const Line& reg1, const Line& reg2i,Points& result);
-   bool Intersects(const Line& line1, const Line& line2);
-   bool P_Intersects(const Line& line1, const Line& line2);
-};
+   void IntersectionBO(const Line& line1, const Line& line2,Points& result);
+ };
 
 /*
 ~IsRobustGeometryType~
@@ -185,50 +179,20 @@ This function checks whether the type given as a ListExpr is one of
 ~point~,  ~line~
 
 */
-
-bool IsRobustGeometryType(ListExpr type){
-   if(!nl->IsAtom(type)){
+bool IsRobustGeometryType(ListExpr type)
+{
+   if(!nl->IsAtom(type))
+   {
       return false;
    }
-   if(nl->AtomType(type)!=SymbolType){
+   if(nl->AtomType(type)!=SymbolType)
+   {
       return false;
    }
    string t = nl->SymbolValue(type);
    if(t==Line::BasicType()) return true;
    return false;
 }
-
-
-/*
-Value Mapping for ~fromLine~
-
-*/
-
-
-int fromLineVM1(Word* args, Word& result, int message,
-            Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   Line* line = static_cast<Line*>(args[0].addr);
-   SimpleLine* res = static_cast<SimpleLine*>(result.addr);
-   res->fromLine(*line);
-   return 0;
-}
-
-int fromLineVM2(Word* args, Word& result, int message,
-                Word& local, Supplier s){
-  result = qp->ResultStorage(s);
-  Line* line = static_cast<Line*>(args[0].addr);
-  CcBool* smaller = static_cast<CcBool*> (args[1].addr);
-  SimpleLine* res = static_cast<SimpleLine*>(result.addr);
-  res->fromLine(*line,smaller->GetBoolval());
-  return 0;
-}
-
-ValueMapping fromLineVM[] = {
-  fromLineVM1,
-  fromLineVM2
-};
-
 
 /*
 intersection-operator for two line-objects
@@ -237,7 +201,8 @@ intersection-operator for two line-objects
 void MakeBo::IntersectionBO(const Line& line1,
 		const Line& line2, Points& result)
 {
-    //Initialisation
+
+	// Initialisation
 	result.Clear();
 
 	if(!line1.IsDefined() || !line2.IsDefined())
@@ -251,6 +216,11 @@ void MakeBo::IntersectionBO(const Line& line1,
 	{
 		return; // empty line
 	}
+
+	// Initialize event queue: all segment endpoints
+	// Sort x by increasing x and y
+
+
 	  priority_queue<avlseg::ExtendedHalfSegment,
 	                 vector<avlseg::ExtendedHalfSegment>,
 	                 greater<avlseg::ExtendedHalfSegment> > q1;
@@ -260,6 +230,7 @@ void MakeBo::IntersectionBO(const Line& line1,
 	                 greater<avlseg::ExtendedHalfSegment> > q2;
 
 	avltree::AVLTree<avlseg::AVLSegment> sss;
+	// Initialize sweep line sss empty
 	avlseg::ownertype owner;
 	int pos1 = 0;
 	int pos2 = 0;
@@ -277,15 +248,23 @@ void MakeBo::IntersectionBO(const Line& line1,
 
   	while( (owner=selectNext(line1,pos1,line2,pos2,
   			q1,q2,nextHs,src))!=avlseg::none)
-
   	{
-  	     avlseg::AVLSegment current(nextHs,owner);
-  	     member = sss.getMember(current,leftN,rightN);
+  		avlseg::AVLSegment current(nextHs,owner);
+  	    member = sss.getMember(current,leftN,rightN);
+  	    if(leftN)
+  	    {
+  	    	tmpL = *leftN;
+  	    	leftN = &tmpL;
+  	    }
+  	    if(rightN)
+  	    {
+  	    	tmpR = *rightN;
+  	    	rightN = &tmpR;
+  	    }
+  	    if(nextHs.IsLeftDomPoint())
+  	    {
 
-       if(nextHs.IsLeftDomPoint())
-       {
-
-       }
+  	    }
 
  /*      else if (nextHs.IsRightDomPoint())
        {
@@ -298,6 +277,8 @@ void MakeBo::IntersectionBO(const Line& line1,
        }
 
        */
+
+  	  // remove nextHs from
     }
 
 
@@ -309,14 +290,10 @@ void MakeBo::IntersectionBO(const Line& line1,
 
 */
 
-/*
-line- line
-
-*/
 static int intersectionBO_ll( Word* args, Word& result, int message,
 Word& local, Supplier s )
 {
-//args immer nur 2 Linien betrachtet, != BO???
+
    result = qp->ResultStorage( s );
    Line *line1 = ((Line*)args[0].addr);
    Line *line2 = ((Line*)args[1].addr);
@@ -326,7 +303,7 @@ Word& local, Supplier s )
    {
       if (line1->IsEmpty() || line2->IsEmpty() )
       {
-          ((Line *)result.addr)->SetDefined( false );
+          ((Points *)result.addr)->SetDefined( false );
          return (0);
       }
       else if (line1->BoundingBox().IsDefined() &&
@@ -336,12 +313,13 @@ Word& local, Supplier s )
          {
             MakeBo bo;
             bo.IntersectionBO( *line1, *line2,
-            		*static_cast<Points*>(result.addr));
+            	*static_cast<Points*>(result.addr));
+
             return(0);
          }
          else
          {
-            ((Line *)result.addr)->Clear();
+            ((Points *)result.addr)->Clear();
             return (0);
          }
       }
@@ -354,88 +332,103 @@ Word& local, Supplier s )
    }
    else
    {
-     ((Line *)result.addr)->Clear();
-     ((Line *)result.addr)->SetDefined( false );
+     ((Points *)result.addr)->Clear();
+     ((Points *)result.addr)->SetDefined( false );
 
      return (0);
    }
 }
 
+/*
+Operator Description
 
+*/
 
-ValueMapping RobustGeometryintersectionBOVM [] =   {intersectionBO_ll};
+struct intersectionInfo : OperatorInfo
+{
+	intersectionInfo()
+	{
+		name = "intersectionBO";
+		signature = Line::BasicType() + " x " + Line::BasicType()
+		+ " -> " + Points::BasicType();
+		syntax = "_ intersectionBO _";
+		meaning = "Intersection predicate for two Lines.";
+	}
+};
 
-int RobustGeometrySetOpSelect(ListExpr args)
+/*
+Selection function ~RGSetOpSelect~
+This select function is used for the ~intersectionBO~ operator.
+
+*/
+int
+RGSetOpSelect(ListExpr args)
 {
   string a1 = nl->SymbolValue(nl->First(args));
   string a2 = nl->SymbolValue(nl->Second(args));
 
+  if(a1==Point::BasicType())
+  {
+    if(a2==Point::BasicType())  return 0;
+    if(a2==Points::BasicType()) return 1;
+    if(a2==Line::BasicType())   return 2;
+    if(a2==Region::BasicType()) return 3;
+    return -1;
+  }
+  if(a1==Points::BasicType())
+  {
+    if(a2==Point::BasicType())  return 4;
+    if(a2==Points::BasicType()) return 5;
+    if(a2==Line::BasicType())   return 6;
+    if(a2==Region::BasicType()) return 7;
+    return -1;
+  }
   if(a1==Line::BasicType())
   {
-    if(a2==Line::BasicType())   return 1;
+    if(a2==Point::BasicType())  return 8;
+    if(a2==Points::BasicType()) return 9;
+    if(a2==Line::BasicType())   return 10;
+    if(a2==Region::BasicType()) return 11;
     return -1;
   }
 
+  if(a1==Region::BasicType())
+  {
+    if(a2==Point::BasicType())  return 12;
+    if(a2==Points::BasicType()) return 13;
+    if(a2==Line::BasicType())   return 14;
+    if(a2==Region::BasicType()) return 15;
+    return -1;
+  }
   return -1;
 }
-
-const string RobustGeometryIntersectionBOSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{line} x"
-  "   {line} -> T, "
-  " where T = points if any point or point type is one of the "
-  " arguments or the argument having the smaller dimension </text--->"
-  "<text>intersectionBO(arg1, arg2)</text--->"
-  "<text>intersectionBO of two spatial objects</text--->"
-  "<text>query intersectionBO(tiergarten, thecenter) </text--->"
-  ") )";
 
 /*
 10.5.3 Definition of the operators
 
 */
-
-Operator RobustGeometryIntersectionBO (
-  "intersectionBO",
-  RobustGeometryIntersectionBOSpec,
-  1,
-  RobustGeometryintersectionBOVM,
-  RobustGeometrySetOpSelect,
-  RobustGeometryIntersectionBOTypeMap );
-
+Operator test
+( "intersectionBO", intersectionSpec,16,
+intersectionVM,RGSetOpSelect,intersectionTM );
 
 /*
-11 Creating the Algebra
-
+Creating the Algebra
 
 */
 
 class RobustGeometryAlgebra : public Algebra
 {
 
- public:
-
+	public:
 	RobustGeometryAlgebra() : Algebra()
-  {
-	 AddOperator(&RobustGeometryIntersectionBO);
-  }
-  ~RobustGeometryAlgebra() {};
+	{
+		AddOperator( &test );
+	}
+	~RobustGeometryAlgebra() {};
 };
 
 /*
-12 Initialization
-
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
-
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
-
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
+Algebra Initialization
 
 */
 
@@ -447,3 +440,4 @@ InitializeRobustGeometryAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (new RobustGeometryAlgebra());
 }
+
