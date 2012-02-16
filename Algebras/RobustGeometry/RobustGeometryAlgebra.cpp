@@ -365,7 +365,7 @@ RGSetOpSelect(ListExpr args)
 
   if(a1==Line::BasicType())
   {
-    if(a2==Line::BasicType())   return 1;
+    if(a2==Line::BasicType())   return 0;
     return -1;
   }
 
