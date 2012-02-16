@@ -3,14 +3,12 @@
 [1] RobustGeometryAlgebra
 
 Februar 2012 Katja Koch
-
-
- Overview
+Overview
 
 
 
 
- Defines and Includes
+Defines and Includes
 
 */
 
@@ -155,9 +153,6 @@ const string intersectionSpec  =
   "<text>query intersectionBO(tiergarten, thecenter) </text--->"
   ") )";
 
-
-ValueMapping intersectionVM [] =   {intersectionBO_ll};
-
 /*
 class MakeBO
 
@@ -178,7 +173,6 @@ public:
 This function checks whether the type given as a ListExpr is one of
 ~point~,  ~line~
 
-*/
 bool IsRobustGeometryType(ListExpr type)
 {
    if(!nl->IsAtom(type))
@@ -193,6 +187,8 @@ bool IsRobustGeometryType(ListExpr type)
    if(t==Line::BasicType()) return true;
    return false;
 }
+
+*/
 
 /*
 intersection-operator for two line-objects
@@ -367,48 +363,23 @@ RGSetOpSelect(ListExpr args)
   string a1 = nl->SymbolValue(nl->First(args));
   string a2 = nl->SymbolValue(nl->Second(args));
 
-  if(a1==Point::BasicType())
-  {
-    if(a2==Point::BasicType())  return 0;
-    if(a2==Points::BasicType()) return 1;
-    if(a2==Line::BasicType())   return 2;
-    if(a2==Region::BasicType()) return 3;
-    return -1;
-  }
-  if(a1==Points::BasicType())
-  {
-    if(a2==Point::BasicType())  return 4;
-    if(a2==Points::BasicType()) return 5;
-    if(a2==Line::BasicType())   return 6;
-    if(a2==Region::BasicType()) return 7;
-    return -1;
-  }
   if(a1==Line::BasicType())
   {
-    if(a2==Point::BasicType())  return 8;
-    if(a2==Points::BasicType()) return 9;
-    if(a2==Line::BasicType())   return 10;
-    if(a2==Region::BasicType()) return 11;
+    if(a2==Line::BasicType())   return 1;
     return -1;
   }
 
-  if(a1==Region::BasicType())
-  {
-    if(a2==Point::BasicType())  return 12;
-    if(a2==Points::BasicType()) return 13;
-    if(a2==Line::BasicType())   return 14;
-    if(a2==Region::BasicType()) return 15;
-    return -1;
-  }
   return -1;
 }
 
+
+ValueMapping intersectionVM [] =  {intersectionBO_ll};
 /*
-10.5.3 Definition of the operators
+Definition of the operators
 
 */
 Operator test
-( "intersectionBO", intersectionSpec,16,
+( "intersectionBO", intersectionSpec,1,
 intersectionVM,RGSetOpSelect,intersectionTM );
 
 /*
