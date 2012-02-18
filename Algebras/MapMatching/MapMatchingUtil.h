@@ -41,6 +41,8 @@ This header file contains utilities for map matching
 #define __MAP_MATCHING_UTILITY_H__
 
 #include <stdio.h>
+#include <vector>
+
 class Region;
 class SimpleLine;
 class HalfSegment;
@@ -79,6 +81,18 @@ public:
                                 /*OUT*/ double& rdDistanceRes,
                                 /*OUT*/ bool& bIsOrthogonal,
                                 const Geoid* pGeoid = NULL);
+
+    static double CalcDistance(const std::vector<const Point*>& rvecPoints,
+                               const Geoid* pGeoid = NULL);
+
+    static double CalcLengthCurve(const SimpleLine* pCurve,
+                                  const Geoid* pGeoid = NULL);
+
+    static bool GetPosOnSimpleLine( const SimpleLine& rLine,
+                                    const Point& p,
+                                    bool startsSmaller,
+                                    double tolerance,
+                                    double& result);
 
 };
 

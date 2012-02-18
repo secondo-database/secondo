@@ -43,6 +43,7 @@ This header file contains the definition of the class ~MHTRouteCandidate~.
 #include <vector>
 #include <deque>
 #include "NetworkSection.h"
+#include "NetworkRoute.h"
 #include "DateTime.h"
 
 class Point;
@@ -72,8 +73,8 @@ public:
     size_t GetSectionCount(void) const;
     const DirectedNetworkSection& GetLastSection(void) const;
 
-    void AddPoint(const GPoint& rGPoint, const Point& rPoint,
-                  const Point& rPointProjection,
+    void AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
+                  const Point& rPointProjection, const NetworkRoute& rRoute,
                   const double dDistance, const datetime::DateTime& rDateTime,
                   bool bClosed);
 
@@ -88,6 +89,8 @@ public:
         return m_dScore;
     }
 
+    void AddScore(double dScore);
+
     // A empty section is a section without assigned points
     inline unsigned short GetCountLastEmptySections(void) const
     {
@@ -99,8 +102,8 @@ public:
     class PointData
     {
     public:
-        PointData(const GPoint& rGPoint, const Point& rPointGPS,
-                  const Point& rPointProjection,
+        PointData(/*const GPoint& rGPoint,*/ const Point& rPointGPS,
+                  const Point& rPointProjection, const NetworkRoute& rRoute,
                   const double dDistance,
                   const datetime::DateTime& rDateTime, bool bClosed);
 
@@ -114,21 +117,25 @@ public:
 
         ~PointData();
 
-        inline GPoint* GetGPoint(void) const {return m_pGPoint;}
+        //inline GPoint* GetGPoint(void) const {return m_pGPoint;}
+        GPoint* GetGPoint(int nNetworkId) const;
         inline Point* GetPointGPS(void) const {return m_pPointGPS;}
+        inline Point* GetPointProjection(void) const
+                                              {return m_pPointProjection;}
         inline double GetScore(void) const {return m_dScore;}
         inline datetime::DateTime GetTime(void) const {return m_Time;}
-        inline bool GetClosed(void) const {return m_bClosed;}
+        //inline bool GetClosed(void) const {return m_bClosed;}
 
     private:
         PointData& operator=(const PointData& rPointData);
 
-        GPoint* m_pGPoint;
+        mutable GPoint* m_pGPoint; //
         Point* m_pPointGPS;
-        //Point* m_pPointProjection;
+        Point* m_pPointProjection;
+        NetworkRoute m_Route;
         double m_dScore;
         datetime::DateTime m_Time;
-        bool m_bClosed;
+        //bool m_bClosed;
     };
 
     inline const std::vector<PointData*>& GetPoints(void) const

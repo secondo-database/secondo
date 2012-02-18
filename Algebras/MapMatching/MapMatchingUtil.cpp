@@ -281,6 +281,113 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
     return ResPoint;
 }
 
+double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
+                            const Geoid* pGeoid)
+{
+    double dDistance = 0.0;
+
+    const size_t nSize = rvecPoints.size();
+    if (nSize > 0)
+    {
+        const Point* pPrevPoint = rvecPoints[0];
+
+        for (size_t i = 1; i < nSize; ++i)
+        {
+            const Point* pActPoint = rvecPoints[i];
+            if (pActPoint != NULL)
+            {
+                if (pActPoint != NULL)
+                    dDistance += pPrevPoint->Distance(*pActPoint, pGeoid);
+
+                pPrevPoint = pActPoint;
+            }
+        }
+    }
+
+    return dDistance;
+}
+
+double MMUtil::CalcLengthCurve(const SimpleLine* pCurve,
+                               const Geoid* pGeoid)
+{
+    if (pGeoid != NULL)
+    {
+        bool bValid = true;
+        double dLengthCurve = pCurve->Length(*pGeoid, bValid);
+        if (bValid)
+            return dLengthCurve;
+        else
+            return pCurve->Length();
+    }
+    else
+    {
+        return pCurve->Length();
+    }
+}
+
+// modified copy of SimpleLine::AtPoint
+bool MMUtil::GetPosOnSimpleLine(const SimpleLine& rLine,
+                                const Point& p,
+                                bool startsSmaller,
+                                double tolerance,
+                                double& result)
+{
+    if (rLine.IsEmpty() || !p.IsDefined())
+    {
+        return false;
+    }
+
+    bool found = false;
+    HalfSegment hs;
+    const Rectangle<2> rectBounding(true,
+                                    p.GetX() - tolerance,
+                                    p.GetX() + tolerance,
+                                    p.GetY() - tolerance,
+                                    p.GetY() + tolerance);
+
+    for (int nPos = 0; nPos < rLine.Size(); ++nPos)
+    {
+        rLine.Get(nPos, hs);
+
+        double dDistance = hs.Distance(rectBounding);
+
+        if (hs.IsLeftDomPoint() && AlmostEqual(dDistance, 0.0))
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (found)
+    {
+        LRS lrs;
+        rLine.Get(hs.attr.edgeno, lrs);
+        rLine.Get(lrs.hsPos, hs);
+        result = lrs.lrsPos + p.Distance(hs.GetDomPoint());
+
+        if (!startsSmaller)
+            result = rLine.Length() - result;
+
+        /*if (tolerance != 0.0)
+        {
+            if (AlmostEqualAbsolute(result, 0.0, tolerance))
+                result = 0;
+            else if (AlmostEqualAbsolute(result, rLine.Length(), tolerance))
+                result = rLine.Length();
+        }
+        else*/
+        {
+            if (AlmostEqual(result, 0.0))
+                result = 0.0;
+            else if (AlmostEqual(result, rLine.Length()))
+                result = rLine.Length();
+        }
+
+        return true;
+    }
+    return false;
+}
+
 
 
 } // end of namespace mapmatch
