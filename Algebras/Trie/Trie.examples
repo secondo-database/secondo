@@ -1,0 +1,44 @@
+Database: berlintest
+Restore : No
+
+
+
+
+Operator : createemptytrie
+Number   : 1
+Signature: ->trie
+Example  : query createemptytrie()
+Result   : unpredictable
+Remark   : a trie has no out function
+
+
+Operator : insert2trie
+Number   : 1
+Signature: trie x string x int -> bool
+Example  : query insert2trie(createemptytrie(),"hello",int2tid(1))
+Result   : TRUE
+
+Operator : searchtrie
+Number   : 1
+Signature: trie x string -> tid
+Example  : query searchtrie(createemptytrie(),"hello")
+Result   : (TID 0)
+
+
+Operator : contains
+Number   : 1
+Signature: trie x string -> bool
+Example  : query createemptytrie() contains "hello"
+Result   : FALSE
+
+Operator : containsPrefix
+Number   : 1
+Signature: trie x string -> bool
+Example  : query createemptytrie() containsPrefix "hello"
+Result   : FALSE
+
+Operator : trieEntries
+Number   : 1
+Signature: trie x string [x bool]-> stream(string)
+Example  : query createemptytrie() trieEntries["hallo"] count 
+Result   : 0
