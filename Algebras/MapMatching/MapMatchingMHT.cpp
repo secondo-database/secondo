@@ -254,6 +254,8 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 
     const int nMPointComponents = m_pMPoint->GetNoComponents();
 
+    const Rectangle<2> rectBoundingBoxNetwork = m_pNetwork->BoundingBox();
+
     for (int i = 0; i < nMPointComponents; bProcessNext ? i++ : i)
     {
         if (bProcessNext)
@@ -265,6 +267,15 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
         {
           ++i; // process next unit
           continue;
+        }
+
+        if (!ActUPoint.p0.Inside(rectBoundingBoxNetwork) &&
+            !ActUPoint.p1.Inside(rectBoundingBoxNetwork))
+        {
+            // Outside bounding box of network
+
+            ++i; // process next unit
+            continue;
         }
 
         if (pActMPoint == NULL)
