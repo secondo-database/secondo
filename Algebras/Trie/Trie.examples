@@ -40,5 +40,28 @@ Result   : FALSE
 Operator : trieEntries
 Number   : 1
 Signature: trie x string [x bool]-> stream(string)
-Example  : query createemptytrie() trieEntries["hallo"] count 
+Example  : query createemptytrie() trieEntries["hello"] count 
 Result   : 0
+
+
+Operator : createInvFile
+Number   : 1
+Signature: stream(tuple) x a_i x a_j -> invfile
+Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] 
+Result   : unpredictable
+Remark   : A InvFile has not out function
+
+
+Operator : searchWord 
+Number   : 1
+Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))
+Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] searchWord["bool"] count > 0
+Result   : TRUE
+
+
+Operator : searchPrefix
+Number   : 1
+Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))
+Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] searchPrefix["boo"] count > 0
+Result   : TRUE
+

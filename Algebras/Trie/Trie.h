@@ -30,9 +30,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include "NestedList.h"
 #include "ListUtils.h"
+#include "StringUtils.h"
 #include <stack>
 
 
+
+
+#ifndef TRIE_H
+#define TRIE_H
 
 static const unsigned int CHARS = 256;
 
@@ -94,6 +99,7 @@ The return value indicates changes at this node.
                 const I& cont,
                 SmiRecordFile* file,
                 bool newEntry){
+
 
         if(str.length()-1 == pos){ // end of string reached
            if(content==0){
@@ -170,20 +176,33 @@ The return value indicates changes at this node.
 
        
     ostream& print(ostream& o){
-      o << "[ " << content << ", << ( " <<  links[0] << endl;
+      o << "[ " << content << ", " << " ( " <<  links[0];
       for(unsigned int i=0;i<CHARS;i++){
-        o << ", " << links[i] << endl; 
+        o << ", " << links[i] ; 
       }
-      o << ") ]" << endl;
+      o << ") ]" ;
       return o;
     }          
 
-    SmiRecordId getNext(unsigned char pos){
+    SmiRecordId getNext(unsigned char pos) const {
        return links[pos];
+    }
+
+    void setNext( const unsigned char pos, const SmiRecordId id){
+       links[pos] = id;  
     }
 
     I getContent(){ 
       return content;
+    }
+
+    void setContent(const I& c){
+       content = c;
+    }
+
+    void clear(){
+       memset(links, 0, CHARS*sizeof(SmiRecordId));
+       content=0;
     }
  
 
@@ -216,6 +235,7 @@ The return value indicates changes at this node.
 
 
 
+
 template<class I>
 class StackEntry{
 
@@ -226,6 +246,11 @@ public:
   unsigned int pos;
   string  str;   
 };
+
+
+
+
+
 
 template<class I>
 class TrieIterator{
@@ -250,7 +275,7 @@ public:
       }
     }
 
-    bool next(string& str){
+    bool next(string& str, I& content){
       while(!st.empty()){
         StackEntry<I>* top = st.top();
         st.pop();
@@ -261,6 +286,7 @@ public:
         if(pos >= CHARS){
            if(top->node.getContent()!=0){
               str = top->str;
+              content = top->node.getContent(); 
               delete top;
               return true;
            } else {
@@ -352,7 +378,7 @@ class Trie{
          SmiRecordId id = rootId;
          
          TrieNode<TupleId> son;
-   			 while( (id!=0) && pos < str.length()){
+         while( (id!=0) && pos < str.length()){
             son.readFrom(&file,id);
             id = son.getNext(str[pos]);
             pos++;
@@ -373,6 +399,18 @@ class Trie{
         }
         return res;
      }
+
+     void copyFrom( Trie& src){
+        if(rootId!=0){
+          file.ReCreate();
+          rootId = 0;
+        }
+        if(src.rootId!=0){
+          TrieNode<TupleId> srcSon(&src.file , src.rootId);
+          rootId = srcSon.copyFromTo(&src.file, &file);
+        }
+     }
+
 
      static string BasicType(){ 
         return "trie";
@@ -403,15 +441,67 @@ class Trie{
      }
 
 
- private:
+ protected:
     SmiRecordFile file;
     SmiRecordId   rootId;
+
+
+
+
+    bool getInsertNode(const string& str, 
+                       TrieNode<TupleId>& node, 
+                       SmiRecordId& nodeId){
+
+
+         SmiRecordId lastId = 0;
+         SmiRecordId id = rootId;
+         size_t pos = 0;
+         TrieNode<TupleId> son;
+         while(id != 0 && pos < str.length()){
+            son.readFrom(&file,id);
+            lastId = id;
+            id = son.getNext(str[pos]);
+            if(id!=0){
+              pos++;
+            }
+         }
+
+         if(id!=0){
+            node.readFrom(&file,id);
+            nodeId = id;
+            return false;
+         }   
+
+         // the string is not member of the trie,
+         // we extend the trie
+         id = lastId; 
+
+         if(rootId == 0 ){
+             rootId = son.appendToFile(&file);
+             id = rootId;
+         }
+
+
+         TrieNode<TupleId> newNode;
+         SmiRecordId newId = 0;
+         while(pos<str.length()){
+            newNode.clear();
+            newId = newNode.appendToFile(&file);
+            son.setNext(str[pos],newId);
+            son.writeToFile(&file, id);
+            son = newNode;
+            id = newId; 
+            pos++;
+         }
+
+         node = son;
+         nodeId = id; 
+         return true;
+    }
+
 };
 
 
-
-
-
-
+#endif
 
 

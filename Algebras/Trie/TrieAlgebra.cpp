@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "Trie.h"
+#include "InvertedFile.h"
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
@@ -35,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
 
 
 namespace trie{
@@ -165,6 +167,133 @@ TypeConstructor trietc( Trie::BasicType(),
                         SizeOfTrie,
                         CheckTrie );
 
+
+/*
+
+1.2 Type Constructor InvFile
+
+*/
+
+
+ListExpr InvfileProperty(){
+  return nl->TwoElemList(
+             nl->FiveElemList(
+                 nl->StringAtom("Signature"),
+                 nl->StringAtom("Example Type List"),
+                 nl->StringAtom("List Rep"),
+                 nl->StringAtom("Example List"),
+                 nl->StringAtom("Remarks")),
+             nl->FiveElemList(
+                nl->TextAtom(" -> SIMPLE"),
+                nl->TextAtom("invfile"),
+                nl->TextAtom("invfile"),
+                nl->TextAtom("( (a 1))"),
+                nl->TextAtom("test type constructor"))
+         );   
+}
+
+
+bool CheckInvfile(ListExpr type, ListExpr& ErrorInfo){
+   return InvertedFile::checkType(type);
+}
+
+ListExpr OutInvfile(ListExpr typeInfo, Word value){
+   return nl->TextAtom("An invfile");
+}
+
+Word InInvfile(ListExpr typeInfo, ListExpr value,
+               int errorPos, ListExpr& errorInfo, bool& correct){
+   Word w;
+   w.addr = 0;
+   correct = false;
+   return w;
+}
+
+Word CreateInvfile(const ListExpr typeInfo){
+   Word  res;
+   res.addr = new InvertedFile();
+   return res;
+}
+
+void DeleteInvfile( const ListExpr typeInfo, Word& w ){
+  InvertedFile* t = (InvertedFile*) w.addr;
+  t->deleteFiles();
+  delete t;
+  w.addr = 0;
+}
+
+bool OpenInvfile( SmiRecord& valueRecord,
+                 size_t& offset,
+                 const ListExpr typeInfo,
+                 Word& value ){
+  SmiFileId triefileid;
+  valueRecord.Read( &triefileid, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
+  SmiRecordId trierid;
+  valueRecord.Read( &trierid, sizeof( SmiRecordId ), offset );
+  offset += sizeof( SmiRecordId );
+  SmiFileId listfileid;
+  valueRecord.Read( &listfileid, sizeof( SmiFileId ), offset );
+  offset += sizeof(SmiFileId);  
+  InvertedFile* invFile = new InvertedFile(triefileid, trierid, listfileid);
+  value.setAddr(invFile);
+  return true;
+}
+
+
+void CloseInvfile( const ListExpr typeInfo, Word& w ){
+  InvertedFile* t = (InvertedFile*) w.addr;
+  delete t;
+  w.addr = 0;
+}
+
+bool SaveInvfile( SmiRecord& valueRecord,
+               size_t& offset,
+               const ListExpr typeInfo,
+               Word& value ){
+   InvertedFile* t = static_cast<InvertedFile*>(value.addr);
+   SmiFileId triefileId = t->getFileId();
+   valueRecord.Write( &triefileId, sizeof( SmiFileId ), offset );
+   offset += sizeof( SmiFileId );
+   SmiRecordId rootId = t->getRootId();
+   valueRecord.Write(&rootId, sizeof(SmiRecordId), offset);
+   offset += sizeof( SmiRecordId );
+   SmiFileId listFileId = t->getListFileId();
+   valueRecord.Write(&listFileId, sizeof(SmiFileId), offset);
+   offset += sizeof(SmiFileId);
+   return true;
+}
+
+
+Word CloneInvfile(const ListExpr typeInfo, const Word& value){
+  InvertedFile* src = (InvertedFile*) value.addr;
+  return src->clone(); 
+}
+
+void* CastInvfile( void* addr) {
+   return (Trie*) addr;
+}
+
+int SizeOfInvfile(){
+  return sizeof(Trie);
+}
+
+
+TypeConstructor invfiletc( InvertedFile::BasicType(),
+                        InvfileProperty,
+                        OutInvfile,
+                        InInvfile,
+                        0,
+                        0,
+                        CreateInvfile,
+                        DeleteInvfile,
+                        OpenInvfile,
+                        SaveInvfile,
+                        CloseInvfile,
+                        CloneInvfile,
+                        CastInvfile,
+                        SizeOfInvfile,
+                        CheckInvfile );
 
 
 /*
@@ -452,7 +581,8 @@ int trieEntriesVM(Word* args, Word& result, int message,
                     return CANCEL;
                   }
                   string r;
-                  bool ok = li->next(r);
+                  TupleId id;
+                  bool ok = li->next(r, id);
                   if(ok){
                      result.addr = new CcString(true,r);
                   } else {
@@ -490,6 +620,411 @@ Operator trieEntries (
           Operator::SimpleSelect, // trivial selection function
           trieEntriesTM);
 
+
+
+
+/*
+2.5 Operator createInvFile
+
+2.5.1 Type Mapping
+
+Signature is stream(tuple) x a1 x a2 -> invfile
+
+a1 must be of type text
+a2 must be of type tid
+
+*/
+ListExpr createInvFileTM(ListExpr args){
+  string err = "stream(tuple) x a_i x a_j expected";
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!Stream<Tuple>::checkType(nl->First(args))){
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
+  }
+  if(!listutils::isSymbol(nl->Second(args)) ||
+     !listutils::isSymbol(nl->Third(args))){
+    return listutils::typeError(err + 
+                  " (one of the attribute names is not valid)");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string a1 = nl->SymbolValue(nl->Second(args));
+  string a2 = nl->SymbolValue(nl->Third(args));
+  ListExpr t1;
+  ListExpr t2;
+  int i1 = listutils::findAttribute(attrList,a1,t1);
+  if(i1==0){
+    return listutils::typeError("Attribute " + a1 + 
+                                " not known in the tuple");
+  }
+  int i2 = listutils::findAttribute(attrList,a2,t2);
+  if(i2==0){
+    return listutils::typeError("Attribute " + a2 + 
+                                " not known in the tuple");
+  }
+
+  if(!FText::checkType(t1)){
+    return listutils::typeError(a1 + " not of type text");
+  } 
+
+  if(!TupleIdentifier::checkType(t2)){
+    return listutils::typeError(a2 + " not of type " + 
+                             TupleIdentifier::BasicType());
+  }
+
+  ListExpr appendList = nl->TwoElemList( nl->IntAtom(i1-1),
+                                         nl->IntAtom(i2-1));
+
+ 
+  return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                            appendList,
+                            nl->SymbolAtom(InvertedFile::BasicType()));
+
+}
+
+
+/*
+2.5.2 Value Mapping
+
+*/
+
+int createInvFileVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+   Stream<Tuple> stream(args[0]);
+   int textIndex = ((CcInt*)args[3].addr)->GetValue();
+   int tidIndex  = ((CcInt*)args[4].addr)->GetValue();
+   result = qp->ResultStorage(s);
+   InvertedFile* invFile = (InvertedFile*) result.addr;
+
+   stream.open();
+   Tuple* tuple;
+
+   while( (tuple = stream.request())!=0){
+      FText* text = (FText*) tuple->GetAttribute(textIndex);
+      TupleIdentifier* tid = (TupleIdentifier*) tuple->GetAttribute(tidIndex);
+
+      if(text->IsDefined() && tid->IsDefined()){
+         invFile->insertText(tid->GetTid() , text->GetValue());
+      }
+      tuple->DeleteIfAllowed();
+   }   
+
+   stream.close();
+   return 0;
+}
+
+
+/*
+2.5.3 Specification
+
+*/
+
+const string createInvFileSpec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text> stream(tuple(...) x a_i x a_j -> invfile </text--->"
+    "<text> _ createInvFile[_,_]  </text--->"
+    "<text>creates an inverted file from a stream. "
+    " a_i must be of type text, a_j must be of type tid."
+    "</text--->"
+    "<text>query SEC2OPERATORINFO feed addid "
+    "createInvFile[Signature, TID] </text--->"
+    "<text></text--->"
+    ") )";
+
+
+Operator createInvFile (
+         "createInvFile" ,           // name
+          createInvFileSpec,          // specification
+          createInvFileVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          createInvFileTM);
+
+
+/*
+2.6 Operator searchWord
+
+2.6.1 Type Mapping
+
+Signature : invfile x string -> 
+            stream(tuple([Tid : tid, WordPos : int, CharPos : int]))
+
+*/
+ListExpr searchWordTM(ListExpr args){
+   string err = "invfile x string expected" ;
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!InvertedFile::checkType(nl->First(args)) ||
+      !CcString::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }   
+   ListExpr attrList = nl->ThreeElemList(
+                    nl->TwoElemList( nl->SymbolAtom("Tid"), 
+                    nl->SymbolAtom(TupleIdentifier::BasicType())),
+                    nl->TwoElemList( nl->SymbolAtom("WordPos"),  
+                                     nl->SymbolAtom(CcInt::BasicType())),
+                    nl->TwoElemList( nl->SymbolAtom("CharPos"),  
+                                     nl->SymbolAtom(CcInt::BasicType()))
+                   );
+   return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                 nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                     attrList));                                
+}
+
+
+/*
+2.6.1 LocalInfo
+
+*/
+
+class searchWordLocalInfo{
+   public:
+      searchWordLocalInfo( InvertedFile* inv, string word, ListExpr typeList){
+         tt = new TupleType(typeList);
+         it = inv->getExactIterator(word);
+      } 
+      ~searchWordLocalInfo(){
+         tt->DeleteIfAllowed();
+         delete it;
+      }
+
+      Tuple* next(){
+         TupleId id;
+         size_t wp;
+         size_t cp;
+         if(it->next(id,wp,cp)){
+            Tuple* res = new Tuple(tt);
+            res->PutAttribute(0, new TupleIdentifier(true,id));
+            res->PutAttribute(1, new CcInt(true,wp));
+            res->PutAttribute(2, new CcInt(true, cp));
+            return res;
+         }
+         return 0;
+      }
+
+
+   private:
+      TupleType* tt;
+      InvertedFile::exactIterator* it;  
+
+
+};
+
+/*
+2.6.2 Value Mapping
+
+*/
+
+int searchWordVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+   searchWordLocalInfo* li = (searchWordLocalInfo*) local.addr;
+   switch(message){
+      case OPEN : {
+                   if(li){
+                      delete li;
+                   }
+                   InvertedFile* iv = (InvertedFile*) args[0].addr;
+                   CcString* cstr = (CcString*) args[1].addr;
+                   ListExpr type = nl->Second(GetTupleResultType(s));
+                   if(cstr->IsDefined()){
+                       local.addr = new searchWordLocalInfo(iv, 
+                                              cstr->GetValue(), type);
+                   }
+                   return 0;
+                   }
+     case REQUEST : {
+                      if(!li){
+                        return CANCEL;
+                      }
+                      result.addr=li->next();
+                      return result.addr?YIELD:CANCEL;
+                    }  
+     case CLOSE  : {
+                     if(li){
+                       delete li;
+                       local.addr = 0;
+                     }
+                   }                 
+
+   }
+   return -1;
+}
+
+/*
+2.6.3 Specification
+
+*/
+
+const string searchWordSpec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text> invfile x string -> stream(tuple([TID : tid, "
+    "WordPos : int, CharPos : int)) </text--->"
+    "<text> _ searchWord [_]  </text--->"
+    "<text>Retrives the information stored in an inverted file "
+    " for the give string"
+    "</text--->"
+    "<text>query SEC2OPERATORINFO feed addid createInvFile[Signature, TID] "
+    " searchWord[\"string\"] count"
+     "</text--->"
+    "<text></text--->"
+    ") )";
+
+
+Operator searchWord (
+         "searchWord" ,           // name
+          searchWordSpec,          // specification
+          searchWordVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          searchWordTM);
+
+
+/*
+2.6 Operator searchPrefix
+
+2.6.1 Type Mapping
+
+Signature : invfile x string -> 
+          stream(tuple([Word : text, Tid : tid, WordPos : int, CharPos : int]))
+
+*/
+ListExpr searchPrefixTM(ListExpr args){
+   string err = "invfile x string expected" ;
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!InvertedFile::checkType(nl->First(args)) ||
+      !CcString::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }   
+   ListExpr attrList = nl->FourElemList(
+                     nl->TwoElemList( nl->SymbolAtom("Word"), 
+                                 nl->SymbolAtom(FText::BasicType())),
+                     nl->TwoElemList( nl->SymbolAtom("Tid"), 
+                                 nl->SymbolAtom(TupleIdentifier::BasicType())),
+                     nl->TwoElemList( nl->SymbolAtom("WordPos"),  
+                                 nl->SymbolAtom(CcInt::BasicType())),
+                     nl->TwoElemList( nl->SymbolAtom("CharPos"),  
+                                 nl->SymbolAtom(CcInt::BasicType()))
+                       );
+   return nl->TwoElemList( nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                 nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
+                     attrList));                                
+}
+
+
+/*
+2.6.1 LocalInfo
+
+*/
+
+class searchPrefixLocalInfo{
+   public:
+      searchPrefixLocalInfo( InvertedFile* inv, string word, ListExpr typeList){
+         tt = new TupleType(typeList);
+         it = inv->getPrefixIterator(word);
+      } 
+      ~searchPrefixLocalInfo(){
+         tt->DeleteIfAllowed();
+         delete it;
+      }
+
+      Tuple* next(){
+         string word;
+         TupleId id;
+         size_t wp;
+         size_t cp;
+         if(it->next(word,id,wp,cp)){
+            Tuple* res = new Tuple(tt);
+            res->PutAttribute(0, new FText(true,word));
+            res->PutAttribute(1, new TupleIdentifier(true,id));
+            res->PutAttribute(2, new CcInt(true,wp));
+            res->PutAttribute(3, new CcInt(true, cp));
+            return res;
+         }
+         return 0;
+      }
+
+
+   private:
+      TupleType* tt;
+      InvertedFile::prefixIterator* it;  
+};
+
+/*
+2.6.2 Value Mapping
+
+*/
+
+int searchPrefixVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+   searchPrefixLocalInfo* li = (searchPrefixLocalInfo*) local.addr;
+   switch(message){
+      case OPEN : {
+                   if(li){
+                      delete li;
+                   }
+                   InvertedFile* iv = (InvertedFile*) args[0].addr;
+                   CcString* cstr = (CcString*) args[1].addr;
+                   ListExpr type = nl->Second(GetTupleResultType(s));
+                   if(cstr->IsDefined()){
+                       local.addr = new searchPrefixLocalInfo(iv, 
+                                             cstr->GetValue(), type);
+                   }
+                   return 0;
+                   }
+     case REQUEST : {
+                      if(!li){
+                        return CANCEL;
+                      }
+                      result.addr=li->next();
+                      return result.addr?YIELD:CANCEL;
+                    }  
+     case CLOSE  : {
+                     if(li){
+                       delete li;
+                       local.addr = 0;
+                     }
+                   }                 
+
+   }
+   return -1;
+}
+
+/*
+2.6.3 Specification
+
+*/
+
+const string searchPrefixSpec = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text> invfile x string -> stream(tuple([ Word : string, TID : tid, "
+    "WordPos : int, CharPos : int)) </text--->"
+    "<text> _ searchPrefix [_]  </text--->"
+    "<text>Retrieves the information stored in an inverted file "
+    " for the given prefix"
+    "</text--->"
+    "<text>query SEC2OPERATORINFO feed addid createInvFile[Signature, TID] "
+    " searchPrefix[\"stri\"] count"
+     "</text--->"
+    "<text></text--->"
+    ") )";
+
+
+Operator searchPrefix (
+         "searchPrefix" ,           // name
+          searchPrefixSpec,          // specification
+          searchPrefixVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          searchPrefixTM);
+
+
+
 } // end of namespace trie
 
 
@@ -499,6 +1034,7 @@ class TrieAlgebra : public Algebra {
   public:
    TrieAlgebra() : Algebra() {
      AddTypeConstructor( &trie::trietc );
+     AddTypeConstructor( &trie::invfiletc );
 
      AddOperator(&trie::createemptytrie);
      AddOperator(&trie::insert2trie);
@@ -506,6 +1042,10 @@ class TrieAlgebra : public Algebra {
      AddOperator(&trie::contains);
      AddOperator(&trie::containsPrefix);
      AddOperator(&trie::trieEntries);
+     
+     AddOperator(&trie::createInvFile);
+     AddOperator(&trie::searchWord);
+     AddOperator(&trie::searchPrefix);
    }
 };
 

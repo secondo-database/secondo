@@ -6,7 +6,11 @@ operator insert2trie alias INSERT2TRIE pattern op(_,_,_)
 operator searchtrie alias SEARCHTRIE pattern op(_,_)
 operator contains alias CONTAINS pattern _ infixop _
 operator containsPrefix alias CONTAINSPREFIX pattern _ infixop _
-operator trieEntries alias trieEntries pattern _ op [_,_]
+operator trieEntries alias trieEntries pattern _ op [_]
+
+operator createInvFile alias CREATEINVFILE pattern _ op [_,_]
+operator searchWord alias SEARCHWORD pattern _ op [_]
+operator searchPrefix alias SEARCHPREFIX pattern _ op [_]
 
 
 
