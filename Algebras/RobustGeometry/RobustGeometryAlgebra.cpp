@@ -201,12 +201,6 @@ void MakeBo::IntersectionBO(const Line& line1,
 	// Initialisation
 	result.Clear();
 
-	if(!line1.IsDefined() || !line2.IsDefined())
-	{
-		result.SetDefined(false);
-		return;
-	}
-
 	result.SetDefined(true);
 	if(line1.Size()==0 || line2.Size()==0)
 	{
@@ -215,51 +209,71 @@ void MakeBo::IntersectionBO(const Line& line1,
 
 	// Initialize event queue: all segment endpoints
 	// Sort x by increasing x and y
-
-
-	  priority_queue<avlseg::ExtendedHalfSegment,
+	priority_queue<avlseg::ExtendedHalfSegment,
 	                 vector<avlseg::ExtendedHalfSegment>,
 	                 greater<avlseg::ExtendedHalfSegment> > q1;
-
-	  priority_queue<avlseg::ExtendedHalfSegment,
+	priority_queue<avlseg::ExtendedHalfSegment,
 	                 vector<avlseg::ExtendedHalfSegment>,
 	                 greater<avlseg::ExtendedHalfSegment> > q2;
-
 	avltree::AVLTree<avlseg::AVLSegment> sss;
-	// Initialize sweep line sss empty
 	avlseg::ownertype owner;
 	int pos1 = 0;
 	int pos2 = 0;
-	int src = 0;
 	avlseg::ExtendedHalfSegment nextHs;
+	int src = 0;
 
-  	const avlseg::AVLSegment* member=0;
-  	const avlseg::AVLSegment* leftN = 0;
- 	const avlseg::AVLSegment* rightN = 0;
+	const avlseg::AVLSegment* member=0;
+	const avlseg::AVLSegment* leftN = 0;
+	const avlseg::AVLSegment* rightN = 0;
 
-  	avlseg::AVLSegment left1,right1,left2,right2;
-  	avlseg::AVLSegment tmpL,tmpR;
+	avlseg::AVLSegment left1,right1,common1,left2,right2;
 
-  	result.StartBulkLoad();
+	avlseg::AVLSegment tmpL,tmpR;
 
-  	while( (owner=selectNext(line1,pos1,line2,pos2,
-  			q1,q2,nextHs,src))!=avlseg::none)
+ 	result.StartBulkLoad();
+  	while( (owner=selectNext(line1,pos1,
+  			                 line2,pos2,
+  			                 q1,q2,
+  			                 nextHs,
+  			                 src))!=avlseg::none)
   	{
+  		// cout << "line1:"; line1.Print(cout); cout << endl;
+  		cout << "Pos1:" << pos1 << endl;
+  		// cout << "line2:"; line2.Print(cout); cout << endl;
+  		cout << "Pos2:" << pos2 << endl;
+  		cout << "nextHs:"; nextHs.Print(cout); cout << endl;
+  		cout << "src:" << src << endl;
+
+
   		avlseg::AVLSegment current(nextHs,owner);
+  		cout << "owner:" << owner << endl;
+		// cout << "sss:"; sss.Print(cout); cout << endl;
   	    member = sss.getMember(current,leftN,rightN);
+  	    if (member) {  cout << "member:";
+  	    member->Print(cout); cout << endl; };
+
+  	    cout << "AVLSegment current"; current.Print(cout); cout << endl;
+
+
   	    if(leftN)
   	    {
   	    	tmpL = *leftN;
   	    	leftN = &tmpL;
+  	    	cout << "AVLSegment leftN";leftN->Print(cout);
+  	    	cout << endl;
   	    }
   	    if(rightN)
   	    {
   	    	tmpR = *rightN;
   	    	rightN = &tmpR;
+  	    	cout << "AVLSegment rightN";rightN->Print(cout);
+  	    	cout << endl;
   	    }
+
+
   	    if(nextHs.IsLeftDomPoint())
   	    {
-
+  	    	insertEvents(right1,true,true,q1,q2);
   	    }
 
  /*      else if (nextHs.IsRightDomPoint())
@@ -293,12 +307,19 @@ Word& local, Supplier s )
    result = qp->ResultStorage( s );
    Line *line1 = ((Line*)args[0].addr);
    Line *line2 = ((Line*)args[1].addr);
+ //ostream& Line::Print( ostream &os ) const
+ // cout << line1.Print(cout) << endl;
+ //  cout << line2.Print(cout) << endl;
 
+   cerr << "line1 = "; line1->Print(cerr); cerr << endl;
+   cerr << "line2 = "; line2->Print(cerr); cerr << endl;
 
    if (line1->IsDefined() && line2->IsDefined() )
    {
       if (line1->IsEmpty() || line2->IsEmpty() )
       {
+    	  cout << __PRETTY_FUNCTION__ << ": lines are empty!"
+    		           	                  << endl;
           ((Points *)result.addr)->SetDefined( false );
          return (0);
       }
@@ -308,6 +329,8 @@ Word& local, Supplier s )
          if (line1->BoundingBox().Intersects(line2->BoundingBox()))
          {
             MakeBo bo;
+            cout << __PRETTY_FUNCTION__ << ": BoundingBox Intersects!"
+                  << endl;
             bo.IntersectionBO( *line1, *line2,
             	*static_cast<Points*>(result.addr));
 
@@ -315,6 +338,9 @@ Word& local, Supplier s )
          }
          else
          {
+        	 cout << __PRETTY_FUNCTION__ << ": "
+        			 "BoundingBox don't intersects!"
+        	                  << endl;
             ((Points *)result.addr)->Clear();
             return (0);
          }
@@ -322,12 +348,16 @@ Word& local, Supplier s )
       else
       {
     	 MakeBo bo;
+    	 cout << __PRETTY_FUNCTION__ << ": BoundingBox isn't defined!"
+    	                   << endl;
          bo.IntersectionBO( *line1, *line2,*static_cast<Points*>(result.addr));
          return(0);
       }
    }
    else
    {
+	   cout << __PRETTY_FUNCTION__ << ": lines aren't defined!"
+	           	                  << endl;
      ((Points *)result.addr)->Clear();
      ((Points *)result.addr)->SetDefined( false );
 
@@ -371,7 +401,6 @@ RGSetOpSelect(ListExpr args)
 
   return -1;
 }
-
 
 ValueMapping intersectionVM [] =  {intersectionBO_ll};
 /*
