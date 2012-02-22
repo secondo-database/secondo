@@ -121,8 +121,9 @@ Creates a depth copy of this objects.
 
 
 
-   void insertText(TupleId tid, const string& text){
-       stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()");
+   void insertText(TupleId tid, const string& text ){
+
+       stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()<>\"'");
        size_t wc = 0;
        size_t pos = 0;
        while(st.hasNextToken()){
@@ -134,7 +135,6 @@ Creates a depth copy of this objects.
           }
        }
    }
-
 
 
 
@@ -316,15 +316,19 @@ Creates a depth copy of this objects.
 
   private:
      SmiRecordFile listFile;
-   
+  
+
+/*
+~insert~
+
+inserts a new element into this inverted file
+
+*/
+ 
    void insert(const string& word, const TupleId tid, 
                 const size_t wordCount, const size_t pos){
 
  
-       if(word.length()==0){ // do not allow empty strings here
-          return; 
-       }
-
        SmiRecordId listId;
        SmiRecord record;
        TrieNode<TupleId> insertNode;
@@ -354,6 +358,8 @@ Creates a depth copy of this objects.
        size_t recordOffset = record.Size();
        record.Write(buffer, buffersize, recordOffset);
   }
+
+
 
 
 
