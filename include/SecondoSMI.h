@@ -1303,6 +1303,15 @@ length.
 
 */
 
+  SmiRecordId GetId() const{
+    return recordKey.recnoKey;
+  }
+
+/*
+Returns the record id of this record.
+
+*/
+
 
 
   void Finish();
