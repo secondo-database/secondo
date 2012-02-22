@@ -179,11 +179,11 @@ ListExpr OsmImportOperator::getOsmNodeAttrList ()
 {
     const int NUM_ATTR = 5;
     std::string attributeNames[NUM_ATTR] = {
-        "osm_id",
-        "lon",
-        "lat",
-        "type",
-        "name"
+        "Osm_id",
+        "Lon",
+        "Lat",
+        "PType",
+        "Name"
     };
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
@@ -200,16 +200,16 @@ ListExpr OsmImportOperator::getOsmWayAttrList ()
 {
     const int NUM_ATTR = 10;
     std::string attributeNames[NUM_ATTR] = {
-        "osm_id",
-        "maxspeed",
-        "oneway",
-        "layer",
-        "type",
-        "name",
-        "bridge",
-        "tunnel",
-        "ref",
-        "nodeRefs"
+        "Osm_id",
+        "Maxspeed",
+        "Oneway",
+        "Layer",
+        "RType",
+        "Name",
+        "Bridge",
+        "Tunnel",
+        "Ref",
+        "NodeRefs"
     };
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
@@ -231,12 +231,12 @@ ListExpr OsmImportOperator::getOsmRestrictionAttrList ()
 {
     const int NUM_ATTR = 6;
     std::string attributeNames[NUM_ATTR] = {
-        "osm_id",
-        "from",
-        "via",
-        "to",
-        "restriction",
-        "osmType"
+        "Osm_id",
+        "From",
+        "Via",
+        "To",
+        "Restriction",
+        "OsmType"
     };
     std::string attributeTypes[NUM_ATTR] = {
         CcInt::BasicType(),
