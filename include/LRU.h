@@ -90,7 +90,11 @@ Creates a new LRU chache with given capacity.
     LRU(const size_t _maxEntries):
     first(0), last(0), maxEntries(_maxEntries), entries(0), m(),
     hits(0), failures(0), insertions(0), removements(0)
-    { }
+    { 
+       if(maxEntries < 1){
+          maxEntries = 1;
+       }
+    }
 
 /*
 ~Destructor~
@@ -120,6 +124,7 @@ It's the task of the caller to destroy this element.
           last = elem;
           entries++;
           insertions++;
+          m[key] = elem;
           return 0;
        }
 
