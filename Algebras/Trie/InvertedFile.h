@@ -128,47 +128,15 @@ Creates a depth copy of this objects.
        while(st.hasNextToken()){
           pos = st.getPos(); 
           string token = st.nextToken();
-          insert(token, tid, wc, pos);
-          wc++;
+          if(token.length()>0){
+            insert(token, tid, wc, pos);
+            wc++;
+          }
        }
    }
 
 
 
-/*
-~printEntries~
-
-Debug function
-
-*/   
-  void printEntries(const string& prefix){
-
-     TrieIterator<TupleId>* it = Trie::getEntries(prefix);
-
-     string word;
-     SmiRecordId id; 
-     while(it->next(word,id)){
-        SmiRecord record;
-        listFile.SelectRecord(id, record);
-
-        TupleId tid;
-        size_t wc;
-        size_t pos;
-        size_t offset=0;
-        while(offset <  record.Size()){
-          record.Read((char*) &tid, sizeof(TupleId), offset);
-          offset += sizeof(TupleId);
-          record.Read((char*) &wc, sizeof(size_t), offset);
-          offset += sizeof(size_t);
-          record.Read((char*) &pos, sizeof(size_t), offset);
-          offset += sizeof(size_t);
-          cout << "(" << tid << ", " << wc << ", " << pos << ")" << endl;
-        }
-        cout << " --- " << endl;
-     }
-     delete it;
-
-  }
 
   SmiFileId getListFileId()  {
      return listFile.GetFileId();
@@ -180,39 +148,106 @@ Debug function
      friend class InvertedFile;
      public:
        bool next(TupleId& id, size_t& wc, size_t& cc){
-         if(!record){
+         if(!record){ // no record available
            return false;
          }
-         if(pos<record->Size()){
-             record->Read(&id, sizeof(TupleId), pos);
-             pos+= sizeof(TupleId);
-             record->Read(&wc, sizeof(size_t), pos);
-             pos += sizeof(size_t);
-             record->Read(&cc , sizeof(size_t), pos);
-             pos += sizeof(size_t);
-             return true;
+         if(done){ // finished
+           return false;
          }
-         return false;
+
+         if(slotPos >= slotsInMem){ // buffer exhausted
+           done = readPartition();
+         }         
+
+         if(done){ // no further slots 
+            return false;
+         }
+
+         size_t offset = slotSize*slotPos;
+         memcpy(&id,buffer+offset, sizeof(TupleId));
+         offset += sizeof(TupleId);
+         memcpy(&wc,buffer+offset, sizeof(size_t));
+         offset += sizeof(size_t);
+         memcpy(&cc,buffer+offset, sizeof(TupleId));
+         slotPos++;
+         count++;
+         return true;
        }
+
        ~exactIterator(){
           record->Finish();
-          delete record;
+          if(record){
+             delete record;
+          } 
+          if(buffer){
+             delete[] buffer;
+          }
         }
 
      private:
-       size_t pos;
-       SmiRecord* record;
+       size_t part;           // partition within the record
+       size_t slotPos;        // position within the slot
+       SmiRecord* record;     // record containing the values
+       size_t slotsInMem;     // currently available slots in memory 
+       size_t maxSlotsInMem;  // maximum number of slots in memory
+       size_t slotsInRecord;  // slots available in record
+       char* buffer;          // memory buffer
+       bool done;             // true if record is exhausted
+       size_t slotSize;       // size of a single slot
+       size_t count;          // number of returned results
 
-       exactIterator(SmiRecordFile* f, SmiRecordId id): pos(0),record(0){
+       exactIterator(){
+         done = true;
+         buffer = 0;
+         record = 0;       
+       }
+
+       exactIterator(SmiRecordFile* f, SmiRecordId id, 
+                     const size_t _mem): part(0), slotPos(0), record(0){
+
+          count = 0;
+          slotSize = sizeof(TupleId) + sizeof(size_t) + sizeof(size_t); 
+          maxSlotsInMem = _mem / slotSize; 
+          if(maxSlotsInMem<1){
+             maxSlotsInMem = 1;
+          } 
           if(id!=0){
              record=new SmiRecord();
              f->SelectRecord(id, *record);
+          } else {
+             buffer = 0;
+             return;
           }
+
+          slotsInRecord = record->Size() / slotSize;
+
+          size_t buffersize = maxSlotsInMem * slotSize;
+          buffer = new char[buffersize];
+          slotsInMem = 0;
+          done = readPartition(); 
        }
+
+      // transfer data from record to memory
+      bool readPartition(){
+         int64_t processed = part * maxSlotsInMem;
+         int64_t  availableSlots = (int64_t)slotsInRecord - processed;
+         if(availableSlots <= 0){
+            return true; 
+         }
+         
+         size_t readSlots = min((size_t) availableSlots, maxSlotsInMem);
+
+         record->Read(buffer, readSlots*slotSize , part*maxSlotsInMem*slotSize);
+         part++;
+         slotsInMem = readSlots;
+         slotPos = 0; // nothing read from current mem
+         return false;
+      }
+
   };
 
  
-  exactIterator* getExactIterator(const string& str){
+  exactIterator* getExactIterator(const string& str, const size_t mem){
     // find the node for str
     SmiRecordId id = rootId;
     size_t pos = 0;
@@ -224,13 +259,13 @@ Debug function
     if(id!=0){
        TrieNode<TupleId> node(&file,id);
        TupleId tid = node.getContent();
-       return new exactIterator(&listFile, tid);
+       return new exactIterator(&listFile, tid, mem);
     }
-    return new exactIterator(0,0);
+    return new exactIterator();
   }
 
-  exactIterator* getExactIterator(const SmiRecordId& rid){
-    return new exactIterator(&listFile, rid);
+  exactIterator* getExactIterator(const SmiRecordId& rid, const size_t mem){
+    return new exactIterator(&listFile, rid, mem);
   } 
 
   
@@ -244,7 +279,7 @@ Debug function
                 if(!it->next(str,id)){
                    return false;
                 }
-                exactIt = inv->getExactIterator(id);
+                exactIt = inv->getExactIterator(id, 1024);
             } 
             if(exactIt){
                if(!exactIt->next(tid,wc,cc)){

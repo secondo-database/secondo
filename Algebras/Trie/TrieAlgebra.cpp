@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "FTextAlgebra.h"
 #include "Stream.h"
+#include "Progress.h"
 
 
 extern NestedList* nl;
@@ -691,27 +692,51 @@ ListExpr createInvFileTM(ListExpr args){
 int createInvFileVM(Word* args, Word& result, int message,
                   Word& local, Supplier s){
 
-   Stream<Tuple> stream(args[0]);
-   int textIndex = ((CcInt*)args[3].addr)->GetValue();
-   int tidIndex  = ((CcInt*)args[4].addr)->GetValue();
-   result = qp->ResultStorage(s);
-   InvertedFile* invFile = (InvertedFile*) result.addr;
+  switch(message){
 
-   stream.open();
-   Tuple* tuple;
+    case OPEN:
+    case CLOSE:
+    case REQUEST: {      
+       Stream<Tuple> stream(args[0]);
+       int textIndex = ((CcInt*)args[3].addr)->GetValue();
+       int tidIndex  = ((CcInt*)args[4].addr)->GetValue();
+       result = qp->ResultStorage(s);
+       InvertedFile* invFile = (InvertedFile*) result.addr;
 
-   while( (tuple = stream.request())!=0){
-      FText* text = (FText*) tuple->GetAttribute(textIndex);
-      TupleIdentifier* tid = (TupleIdentifier*) tuple->GetAttribute(tidIndex);
+       stream.open();
+       Tuple* tuple;
 
-      if(text->IsDefined() && tid->IsDefined()){
-         invFile->insertText(tid->GetTid() , text->GetValue());
-      }
-      tuple->DeleteIfAllowed();
-   }   
+       while( (tuple = stream.request())!=0){
+          FText* text = (FText*) tuple->GetAttribute(textIndex);
+          TupleIdentifier* tid = (TupleIdentifier*) 
+                                  tuple->GetAttribute(tidIndex);
 
-   stream.close();
-   return 0;
+          if(text->IsDefined() && tid->IsDefined()){
+             invFile->insertText(tid->GetTid() , text->GetValue());
+          }
+          tuple->DeleteIfAllowed();
+       }   
+       stream.close();
+       return 0;
+     }
+   case REQUESTPROGRESS: {
+     ProgressInfo p1;
+     ProgressInfo* pRes;
+
+     pRes = (ProgressInfo*) result.addr;
+
+     if ( qp->RequestProgress(args[0].addr, &p1) ) {    
+        pRes->Copy(p1);
+        return YIELD;
+     } else {
+        return CANCEL;
+      }    
+   }
+   case CLOSEPROGRESS: {
+      return 0;
+   }  
+  }
+  return 0;
 }
 
 
@@ -781,9 +806,10 @@ ListExpr searchWordTM(ListExpr args){
 
 class searchWordLocalInfo{
    public:
-      searchWordLocalInfo( InvertedFile* inv, string word, ListExpr typeList){
+      searchWordLocalInfo( InvertedFile* inv, string word, 
+                           ListExpr typeList, size_t mem){
          tt = new TupleType(typeList);
-         it = inv->getExactIterator(word);
+         it = inv->getExactIterator(word, mem);
       } 
       ~searchWordLocalInfo(){
          tt->DeleteIfAllowed();
@@ -807,9 +833,7 @@ class searchWordLocalInfo{
 
    private:
       TupleType* tt;
-      InvertedFile::exactIterator* it;  
-
-
+      InvertedFile::exactIterator* it; 
 };
 
 /*
@@ -829,9 +853,10 @@ int searchWordVM(Word* args, Word& result, int message,
                    InvertedFile* iv = (InvertedFile*) args[0].addr;
                    CcString* cstr = (CcString*) args[1].addr;
                    ListExpr type = nl->Second(GetTupleResultType(s));
+                   size_t memBuffer = 4096;
                    if(cstr->IsDefined()){
                        local.addr = new searchWordLocalInfo(iv, 
-                                              cstr->GetValue(), type);
+                                         cstr->GetValue(), type, memBuffer);
                    }
                    return 0;
                    }
@@ -1025,6 +1050,10 @@ Operator searchPrefix (
 
 
 
+
+
+
+
 } // end of namespace trie
 
 
@@ -1044,6 +1073,9 @@ class TrieAlgebra : public Algebra {
      AddOperator(&trie::trieEntries);
      
      AddOperator(&trie::createInvFile);
+#ifdef USE_PROGRESS
+     trie::createInvFile.EnableProgress();
+#endif
      AddOperator(&trie::searchWord);
      AddOperator(&trie::searchPrefix);
    }
