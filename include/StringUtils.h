@@ -72,6 +72,17 @@ Returns the non processed part of the string.
 */
       std::string getRest() const;
 
+/*
+1.4 getPos
+
+Returns the current position in the source string
+
+*/
+    size_t getPos() const{
+       return pos;
+    }
+
+
 
 /*
 ~nextToken~
