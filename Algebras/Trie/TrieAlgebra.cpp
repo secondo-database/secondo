@@ -705,18 +705,26 @@ int createInvFileVM(Word* args, Word& result, int message,
 
        stream.open();
        Tuple* tuple;
+     
+       size_t maxMem = qp->GetMemorySize(s) * 1024*1024;
+       if(maxMem < 1024){
+         maxMem = 4096;
+       }
 
+       appendcache::RecordAppendCache* cache = 
+                            invFile->createAppendCache(maxMem);
        while( (tuple = stream.request())!=0){
           FText* text = (FText*) tuple->GetAttribute(textIndex);
           TupleIdentifier* tid = (TupleIdentifier*) 
                                   tuple->GetAttribute(tidIndex);
 
           if(text->IsDefined() && tid->IsDefined()){
-             invFile->insertText(tid->GetTid() , text->GetValue());
+             invFile->insertText(tid->GetTid() , text->GetValue(),cache);
           }
           tuple->DeleteIfAllowed();
        }   
        stream.close();
+       delete cache;
        return 0;
      }
    case REQUESTPROGRESS: {
@@ -1073,6 +1081,9 @@ class TrieAlgebra : public Algebra {
      AddOperator(&trie::trieEntries);
      
      AddOperator(&trie::createInvFile);
+     trie::createInvFile.SetUsesMemory();
+
+
 #ifdef USE_PROGRESS
      trie::createInvFile.EnableProgress();
 #endif

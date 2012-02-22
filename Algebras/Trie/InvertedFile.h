@@ -34,6 +34,145 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StringUtils.h"
 #include "Trie.h"
 
+#include "LRU.h"
+
+
+namespace appendcache{
+
+  // debug function
+  /*
+void print(const char* buffer){
+  SmiRecordId id;
+  size_t wc;
+  size_t cc;
+  size_t offset = 0;
+  memcpy(&id, buffer, sizeof(SmiRecordId));
+  offset+=sizeof(SmiRecordId); 
+  memcpy(&wc, buffer + offset, sizeof(size_t));
+  offset+=sizeof(size_t); 
+  memcpy(&cc, buffer + offset, sizeof(size_t));
+  offset+=sizeof(size_t); 
+  cout << id << ", " << wc << ", " << cc;
+}
+  */
+
+
+class CacheEntry{
+
+  public:
+    CacheEntry(const SmiRecordId _id, 
+               const size_t currentRecordSize,
+               const size_t _slotSize): 
+                  id(_id), offset(currentRecordSize), 
+                  length(0), slotSize(_slotSize) {
+          buffer = new char[slotSize];
+    }
+
+    ~CacheEntry(){
+        delete[] buffer;
+    }
+
+    void bringToDisk(SmiRecordFile* file){
+
+       SmiRecord record;
+       file->SelectRecord(id, record, SmiFile::Update);
+       record.Write(buffer, length, offset);
+       offset += length;
+       length = 0;
+
+       record.Finish();
+    }
+
+
+    void append(SmiRecordFile* file, const char* buffer, const size_t length){
+       // the buffer cannot be appended in memory
+       size_t offset = 0; // offset in buffer
+       while(this->length + length - offset > slotSize){
+          size_t toWrite = slotSize-this->length;
+          memcpy(this->buffer + this->length, buffer + offset, toWrite);
+          this->length += toWrite; 
+          offset += toWrite;
+
+          bringToDisk(file);
+       }
+
+       size_t toWrite = length - offset;
+
+       memcpy(this->buffer+this->length, buffer, toWrite);
+       this->length += toWrite;
+
+    }
+
+  private:
+    SmiRecordId id;
+    size_t offset;
+    size_t length;
+    size_t slotSize;
+    char* buffer;
+
+};
+
+
+class RecordAppendCache{
+
+  public:
+     RecordAppendCache(SmiRecordFile* _file,  
+                       const size_t _maxMem, 
+                       const size_t _slotSize): 
+
+              file(_file), 
+              lru(_maxMem / (_slotSize + sizeof(appendcache::CacheEntry))),
+              slotSize(_slotSize){
+
+     }
+
+     ~RecordAppendCache(){
+         clear();
+     }
+
+     void append(SmiRecordId id, const char* buffer, const size_t length){
+        appendcache::CacheEntry** entry = lru.get(id);
+        appendcache::CacheEntry* ce=0;
+        if(entry==0){ // not cached
+          SmiRecord record;
+          file->SelectRecord(id, record);
+          ce = new appendcache::CacheEntry(id, record.Size(), slotSize);
+          record.Finish();
+          LRUEntry<SmiRecordId, appendcache::CacheEntry*>* e2 = lru.use(id, ce);
+          if(e2!=0){
+             e2->value->bringToDisk(file);
+              
+             delete e2->value;
+             delete e2;
+
+          }
+          entry = lru.get(id);
+          assert(entry!=0);
+        }
+ 
+        ce = *entry;
+        ce->append(file, buffer, length);
+     }
+
+    void clear(){
+         LRUEntry<SmiRecordId, appendcache::CacheEntry*>* victim;
+         while( (victim = lru.deleteLast())!=0){
+            victim->value->bringToDisk(file);
+            delete victim->value;
+            delete victim; 
+         }
+    }
+
+  private:
+      SmiRecordFile* file;
+      LRU<SmiRecordId, appendcache::CacheEntry*> lru;
+      size_t slotSize;
+};
+
+} // end of namespace appendcache
+
+
+
 
 /*
 1 Class InvertedFile
@@ -119,18 +258,23 @@ Creates a depth copy of this objects.
     return listutils::isSymbol(type,BasicType());
   }
 
+   appendcache::RecordAppendCache* createAppendCache(const size_t maxMem){
+     return new appendcache::RecordAppendCache(&listFile, maxMem, 1024);
+   }
 
 
-   void insertText(TupleId tid, const string& text ){
+   void insertText(TupleId tid, const string& text, 
+                   appendcache::RecordAppendCache* cache=0 ){
 
-       stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()<>\"'");
+       stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()");
+     //  stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()<>\"'");
        size_t wc = 0;
        size_t pos = 0;
        while(st.hasNextToken()){
           pos = st.getPos(); 
           string token = st.nextToken();
           if(token.length()>0){
-            insert(token, tid, wc, pos);
+            insert(token, tid, wc, pos, cache);
             wc++;
           }
        }
@@ -326,11 +470,13 @@ inserts a new element into this inverted file
 */
  
    void insert(const string& word, const TupleId tid, 
-                const size_t wordCount, const size_t pos){
+                const size_t wordCount, const size_t pos, 
+                appendcache::RecordAppendCache* cache){
 
- 
+
        SmiRecordId listId;
-       SmiRecord record;
+       SmiRecord record;     // record containing the list
+       SmiRecordId recordId; // id of the record
        TrieNode<TupleId> insertNode;
        SmiRecordId insertId;
 
@@ -339,11 +485,15 @@ inserts a new element into this inverted file
        if(insertNode.getContent()==0){
           listFile.AppendRecord(listId, record);
           insertNode.setContent(listId);
-          insertNode.writeToFile(&file, insertId);    
+          insertNode.writeToFile(&file, insertId);   
+          recordId = listId; 
        } else {
           assert(!isNew);
-          listFile.SelectRecord(insertNode.getContent(),
+          if(cache==0){
+            listFile.SelectRecord(insertNode.getContent(),
                                 record, SmiFile::Update); 
+          }
+          recordId = insertNode.getContent();
        }
 
        size_t buffersize = sizeof(TupleId) + sizeof(size_t) + sizeof(size_t);
@@ -354,9 +504,13 @@ inserts a new element into this inverted file
        memcpy(buffer + offset, &wordCount, sizeof(size_t));
        offset += sizeof(size_t);
        memcpy(buffer + offset, &pos, sizeof(size_t));
-
-       size_t recordOffset = record.Size();
-       record.Write(buffer, buffersize, recordOffset);
+       if(cache==0){
+          size_t recordOffset = record.Size();
+          record.Write(buffer, buffersize, recordOffset);
+       } else {
+          record.Finish();
+          cache->append(recordId, buffer, buffersize);
+       }
   }
 
 
