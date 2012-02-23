@@ -96,3 +96,6 @@ operator moveTo alias moveTo pattern _ op [_]
 operator fillGaps alias fillGaps pattern op(_,_)
 operator removeShort alias REMOVESHORT pattern op(_,_)
 
+operator getIntervals alias GETINTERVALS pattern op(_)
+
+

@@ -17896,6 +17896,109 @@ Operator removeShort(
 
 
 /*
+5.2.6 Operator getIntervals
+
+This operator splits a periods value into single interval periods values
+
+5.2.6.1 Type Mapping
+
+Signature : periods -> stream(periods)
+
+*/
+
+ListExpr getIntervalsTM(ListExpr args){
+  string err = "periods expected";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  } 
+  if(!Range<DateTime>::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return nl->TwoElemList(
+                  nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                  nl->SymbolAtom(Range<DateTime>::BasicType()));
+}
+
+/*
+5.2.6.2 Value Mapping
+
+*/
+
+int getIntervalsVM( Word* args, Word& result, int message, Word&
+                    local, Supplier s ){
+
+  size_t* li = (size_t*) local.addr;
+  Range<DateTime>* p = (Range<DateTime>*) args[0].addr;
+  
+  switch(message){
+       case OPEN: {
+                     if(li){
+                        delete li;
+                        local.addr = 0;
+                     }
+                     if(p->IsDefined()){
+                        local.addr = new size_t(0);
+                     }
+                     return 0;
+                  }
+       case REQUEST: {
+                        if(!li){
+                           return CANCEL;
+                        }
+                        size_t v = *li;
+                        if(v>=(size_t)p->GetNoComponents()){
+                           return CANCEL;
+                        } else {
+                           Interval<DateTime> iv;
+                           p->Get(*li,iv);
+                           (*li)++;
+                           Range<DateTime>* r = new Range<DateTime>(1);
+                           r->Add(iv);
+                           result.addr = r;
+                           return YIELD;
+                        }
+                        
+                     }
+        case CLOSE : {
+                        if(li){
+                          delete li;
+                          local.addr = 0;
+                        }   
+                        return 0;
+                     }
+  }
+  return -1;
+}
+
+
+/*
+5.2.6.4 Specification
+
+*/
+const string getIntervalsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> periods -> stream(periods)"
+    "</text---> "
+    "<text> getIntervals(_) </text--->"
+    "<text>Puts the intervals of a periods value into a stream "
+    "</text--->"
+    "<text>query getIntervals(deftime(train7)) count"
+    " </text--->"
+    ") )";
+
+/*
+5.2.6.4 Operator instance
+
+*/
+Operator getIntervals(
+           "getIntervals",
+           getIntervalsSpec,
+           getIntervalsVM,
+           Operator::SimpleSelect,
+           getIntervalsTM);
+
+
+/*
 6 Creating the Algebra
 
 */
@@ -18058,6 +18161,8 @@ class TemporalAlgebra : public Algebra
     AddOperator(&moveTo);
     AddOperator(&fillGaps);
     AddOperator(&removeShort);
+    
+    AddOperator(&getIntervals);
 
 
 #ifdef USE_PROGRESS
