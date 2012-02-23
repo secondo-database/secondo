@@ -159,5 +159,37 @@ std::string int2str(int a){
    return any2str<int>(a);
 }
 
+/*
+3 endsWith
+
+checks whether a2 is a suffix of a1
+
+*/
+bool endsWith(const std::string& a1, const std::string& a2){
+    size_t len1 = a1.length();
+    size_t len2 = a2.length();
+    if(len2 > len1){
+        return false;
+    }
+    return a1.substr(len1-len2)==a2;  
+}
+
+
+/*
+4 startsWith
+
+checks whether a2 is a prefix of a1
+
+*/
+bool startsWith(const std::string& a1, const std::string& a2){
+    size_t len1 = a1.length();
+    size_t len2 = a2.length();
+    if(len2 > len1){
+        return false;
+    }
+    return a1.substr(0,len2)==a2;  
+}
+
+
 
 } // end of namespace stringutils
