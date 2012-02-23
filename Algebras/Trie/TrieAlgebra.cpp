@@ -707,24 +707,39 @@ int createInvFileVM(Word* args, Word& result, int message,
        Tuple* tuple;
      
        size_t maxMem = qp->GetMemorySize(s) * 1024*1024;
-       if(maxMem < 1024){
-         maxMem = 4096;
+
+       size_t trieCacheSize = maxMem / 20;
+       if(trieCacheSize < 4096){
+          trieCacheSize = 4096;
+       }
+       size_t invFileCacheSize;
+       if(trieCacheSize + 4096 > maxMem){
+            invFileCacheSize = 4096;
+       } else {
+            invFileCacheSize = maxMem - trieCacheSize;
        }
 
+
        appendcache::RecordAppendCache* cache = 
-                            invFile->createAppendCache(maxMem);
+                            invFile->createAppendCache(invFileCacheSize);
+
+       TrieNodeCache<TupleId>* trieCache = 
+                            invFile->createTrieCache(trieCacheSize);
+
        while( (tuple = stream.request())!=0){
           FText* text = (FText*) tuple->GetAttribute(textIndex);
           TupleIdentifier* tid = (TupleIdentifier*) 
                                   tuple->GetAttribute(tidIndex);
 
           if(text->IsDefined() && tid->IsDefined()){
-             invFile->insertText(tid->GetTid() , text->GetValue(),cache);
+             invFile->insertText(tid->GetTid() , text->GetValue(),
+                                 cache, trieCache);
           }
           tuple->DeleteIfAllowed();
        }   
        stream.close();
        delete cache;
+       delete trieCache;
        return 0;
      }
    case REQUESTPROGRESS: {

@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SecondoSMI.h"
 #include "TupleIdentifier.h"
+#include "LRU.h"
 #include <string>
 #include <stdlib.h>
 #include "NestedList.h"
@@ -234,6 +235,69 @@ The return value indicates changes at this node.
 };
 
 
+/*
+2. Cache for TrieNodes
+
+*/
+template<class T>
+class TrieNodeCache{
+  public:
+      TrieNodeCache(size_t _maxMem, SmiRecordFile* _file): 
+                   file(_file), lru(_maxMem / sizeof(TrieNode<T>)){
+
+      }
+
+      ~TrieNodeCache(){
+         clear();
+       }
+
+      TrieNode<T>* getNode(const SmiRecordId id ){
+         TrieNode<T>** n = lru.get(id);
+         if(n!=0){
+           return *n;
+         }
+
+         TrieNode<T>* node = new TrieNode<T>(file,id);
+         LRUEntry<SmiRecordId, TrieNode<T>*>* victim = lru.use(id, node);
+         if(victim!=0){
+             victim->value->writeToFile(file, victim->key);
+             delete victim->value;
+             delete victim;
+         }
+         return node;
+      }
+
+      void clear(){
+         LRUEntry<SmiRecordId, TrieNode<T>*>* victim;
+         while( (victim  = lru.deleteLast())!=0){
+             victim->value->writeToFile(file, victim->key);
+             delete victim->value;
+             delete victim;
+         }
+      }
+
+      TrieNode<T>*  appendBlankNode( SmiRecordId& id){
+          TrieNode<T>*  node = new TrieNode<T>();
+          id = node->appendToFile(file);
+          LRUEntry<SmiRecordId, TrieNode<T>*>* victim = lru.use(id, node);
+          if(victim!=0){
+             victim->value->writeToFile(file, victim->key);
+             delete victim->value;
+             delete victim;
+         }
+         return node;          
+      }
+
+  private:
+     SmiRecordFile* file;
+     LRU<SmiRecordId, TrieNode<T>*> lru;
+     
+
+};
+
+
+
+
 
 
 template<class I>
@@ -423,7 +487,8 @@ class Trie{
 
      SmiFileId getFileId() {
        return file.GetFileId();
-     }     
+     }    
+ 
      SmiRecordId getRootId()const {
          return rootId;
      }
@@ -495,6 +560,56 @@ class Trie{
          }
 
          node = son;
+         nodeId = id; 
+         return true;
+    }
+    
+
+    bool getInsertNode(const string& str, 
+                       TrieNode<TupleId>& node, 
+                       SmiRecordId& nodeId,
+                       TrieNodeCache<TupleId>* cache){
+
+
+         SmiRecordId lastId = 0;
+         SmiRecordId id = rootId;
+         size_t pos = 0;
+         TrieNode<TupleId>* son=0;
+         while(id != 0 && pos < str.length()){
+            son = cache->getNode(id);
+            lastId = id;
+            id = son->getNext(str[pos]);
+            if(id!=0){
+              pos++;
+            }
+         }
+
+         if(id!=0){
+            node = *(cache->getNode(id));
+            nodeId = id;
+            return false;
+         }   
+
+         // the string is not member of the trie,
+         // we extend the trie
+         id = lastId; 
+
+         if(rootId == 0 ){
+             son = cache->appendBlankNode(rootId);
+             id = rootId;
+         }
+
+
+         SmiRecordId newId = 0;
+         while(pos<str.length()){
+            TrieNode<TupleId>* newNode = cache->appendBlankNode(newId);
+            son->setNext(str[pos],newId);
+            son = newNode;
+            id = newId; 
+            pos++;
+         }
+
+         node = *son;
          nodeId = id; 
          return true;
     }

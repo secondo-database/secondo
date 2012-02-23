@@ -259,22 +259,26 @@ Creates a depth copy of this objects.
   }
 
    appendcache::RecordAppendCache* createAppendCache(const size_t maxMem){
-     return new appendcache::RecordAppendCache(&listFile, maxMem, 1024);
+     return new appendcache::RecordAppendCache(&listFile, maxMem, 2048);
    }
 
+   TrieNodeCache<TupleId>* createTrieCache(const size_t maxMem){
+     return new TrieNodeCache<TupleId>(maxMem,&file);
+   }
 
    void insertText(TupleId tid, const string& text, 
-                   appendcache::RecordAppendCache* cache=0 ){
+                   appendcache::RecordAppendCache* cache=0,
+                   TrieNodeCache<TupleId>* triecache = 0 ){
 
-       stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()");
-     //  stringutils::StringTokenizer st(text," \t\n\r.,;:-+*!?()<>\"'");
+       stringutils::StringTokenizer 
+                 st(text," \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|");
        size_t wc = 0;
        size_t pos = 0;
        while(st.hasNextToken()){
           pos = st.getPos(); 
           string token = st.nextToken();
           if(token.length()>0){
-            insert(token, tid, wc, pos, cache);
+            insert(token, tid, wc, pos, cache, triecache);
             wc++;
           }
        }
@@ -319,8 +323,8 @@ Creates a depth copy of this objects.
        }
 
        ~exactIterator(){
-          record->Finish();
           if(record){
+             record->Finish();
              delete record;
           } 
           if(buffer){
@@ -471,7 +475,8 @@ inserts a new element into this inverted file
  
    void insert(const string& word, const TupleId tid, 
                 const size_t wordCount, const size_t pos, 
-                appendcache::RecordAppendCache* cache){
+                appendcache::RecordAppendCache* cache,
+                TrieNodeCache<TupleId>* triecache){
 
 
        SmiRecordId listId;
@@ -480,12 +485,22 @@ inserts a new element into this inverted file
        TrieNode<TupleId> insertNode;
        SmiRecordId insertId;
 
-       bool isNew = Trie::getInsertNode(word, insertNode, insertId);
+      
+       bool isNew;
+       if(triecache){
+            isNew  = Trie::getInsertNode(word, insertNode, insertId, triecache);
+       } else {
+            isNew  = Trie::getInsertNode(word, insertNode, insertId);
+       }
 
        if(insertNode.getContent()==0){
           listFile.AppendRecord(listId, record);
-          insertNode.setContent(listId);
-          insertNode.writeToFile(&file, insertId);   
+          if(!triecache){
+              insertNode.setContent(listId);
+              insertNode.writeToFile(&file, insertId);   
+          } else {
+              triecache->getNode(insertId)->setContent(listId);
+          }
           recordId = listId; 
        } else {
           assert(!isNew);
