@@ -466,9 +466,7 @@ struct RoadDenstiy{
   static string bus_route_typeinfo;
   static string bus_route_old_typeinfo;
   
-  
-  static string rg_nodes_typeinfo;
-  
+
   //for bus route speed relation  
   enum BR_SPEED{BR_ID = 0, BR_POS, BR_SPEED, BR_SPEED_SEG}; 
   //for bus route segment speed relation
@@ -496,12 +494,6 @@ struct RoadDenstiy{
   ///////////////with gline information///////////////////////////////
   enum BR_ROUTE_OLD{BR_ID_OLD = 0, BR_GEODATA1, BR_GEODATA2, BR_START_LOC, 
                 BR_END_LOC, BR_ROUTE_TYPE_OLD}; 
-
-
-  /////////////////////////////////////////////////////////////////////
-  ///////////////road graph information//////////////////////////////
-  ////////////////////////////////////////////////////////////////////
-  enum RG_NODES{RG_N_JUN_ID,RG_N_GP,RG_N_P, RG_RID};
 
 
   RoadDenstiy(){count=0;resulttype = NULL;}
@@ -915,7 +907,9 @@ struct BN{
   vector<MPoint> bus_trip_list; 
   vector<double> time_cost_list; 
   
-  
+  vector<Line> line_list1;
+  vector<Line> line_list2;
+
   BN(BusNetwork* n);
   ~BN();
   void GetStops();
@@ -948,6 +942,8 @@ struct BN{
   void BsNeighbors3(Relation*, Relation*, BTree*);
   void ConnectionOneRoute(Relation* table_rel, vector<int> tid_list, 
                             Relation* mo_rel, BTree* btree_mo); 
+  ///////////////////decompuse a bus route///////////////////////////////
+  void DecomposeBR(Line* l1, Line* l2);
  
 }; 
 

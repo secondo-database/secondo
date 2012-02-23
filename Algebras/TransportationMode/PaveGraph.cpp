@@ -2588,7 +2588,7 @@ On Shortest Paths in Polyhedral Spaces, SIAM, Journal of Computing,15(1),1986
 
 */
 string CompTriangle::AllPointsInfo =
-"(rel(tuple((v point)(neighbor1 point)(neighbor2 point)(regid int))))";
+"(rel(tuple((V point)(Neighbor1 point)(Neighbor2 point)(Regid int))))";
 
 
 ostream& operator<<(ostream& o, const RPoint& rp)
@@ -2695,12 +2695,13 @@ void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
     HalfSegment hs;
     hs.Set(true, rp.p, neighbor);
 //    outfile<<"rp.p "<<rp.p<<"neighbor "<<neighbor<<endl;
+    if(rp.p.Distance(neighbor) < EPSDIST) return;
 
     /////////////////do not insert such segment//////////////////////////////
-    ///////as it needs more work to determin counter-clockwise or clockwise//
+    ///////as it needs more work to determine counter-clockwise or clockwise//
     ///////we collect the two endpoints as visible and determine the region
     ///face locates on which side of the segment
-    if(hs.Contains(query_p))return;
+    if(hs.Contains(query_p)) return;
 
     double angle = sp->GetAngle(query_p, hp, neighbor);
     if(sp->GetClockwise(query_p, hp, neighbor))
@@ -2723,13 +2724,16 @@ void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
 //            outfile<<"remove1 "<<myseg<<endl;
             //erase the element
             multiset<MySegDist>::iterator iter = sss.find(myseg);
-            assert(iter != sss.end());
-            while(iter != sss.end()){
-               if(*iter == myseg){
-                  sss.erase(iter);
-                  break;
-                }else
-                iter++;
+
+//            assert(iter != sss.end());
+            if(iter != sss.end()){
+              while(iter != sss.end()){
+                if(*iter == myseg){
+                    sss.erase(iter);
+                    break;
+                  }else
+                  iter++;
+              }
             }
         }
       return;
@@ -2748,13 +2752,15 @@ void CompTriangle::ProcessNeighbor(multiset<MySegDist>& sss,
 //        outfile<<"remove2 "<<myseg<<endl;
         //erase the element
         multiset<MySegDist>::iterator iter = sss.find(myseg);
-        assert(iter != sss.end());
-        while(iter != sss.end()){
+//        assert(iter != sss.end());
+        if(iter != sss.end()){
+          while(iter != sss.end()){
             if(*iter == myseg){
                 sss.erase(iter);
                 break;
             }else
             iter++;
+          }
         }
     }
 
@@ -3083,8 +3089,8 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
       }
 //      ProcessNeighbor(sss, top, *query_p,top.n1, hp, sp, outfile);
 //      ProcessNeighbor(sss, top, *query_p,top.n2, hp, sp, outfile);
-      ProcessNeighbor(sss, top, *query_p,top.n1, hp, sp);
-      ProcessNeighbor(sss, top, *query_p,top.n2, hp, sp);
+      ProcessNeighbor(sss, top, *query_p, top.n1, hp, sp);
+      ProcessNeighbor(sss, top, *query_p, top.n2, hp, sp);
       //////////////////////////////////////////////////////////////////
       last_angle = top.angle;
       //////////////////////////////////////////////////////////////
@@ -3233,19 +3239,19 @@ it can be found efficiently*/
 /*build a visibility graph, connect the start and end point to the graph*/
 
 string DualGraph::NodeTypeInfo =
-  "(rel(tuple((oid int)(rid int)(pavement region))))";
+  "(rel(tuple((Oid int)(Rid int)(Pavement region))))";
 string DualGraph::BTreeNodeTypeInfo = 
-  "(btree(tuple((oid int)(rid int)(pavement region))) int)";
+  "(btree(tuple((Oid int)(Rid int)(Pavement region))) int)";
 string DualGraph::EdgeTypeInfo =
-  "(rel(tuple((oid1 int)(oid2 int)(commarea line))))";
+  "(rel(tuple((Oid1 int)(Oid2 int)(Commarea line))))";
 string DualGraph::NodeRTreeTypeInfo =  "(rtree (tuple ((oid int)(rid int)\
 (pavement region))) region FALSE)";
 string DualGraph::TriangleTypeInfo1 =
-  "(rel(tuple((v1 int)(v2 int)(v3 int)(centroid point)(oid int))))";
+  "(rel(tuple((V1 int)(V2 int)(V3 int)(Centroid point)(Oid int))))";
 string DualGraph::TriangleTypeInfo2 =
-  "(rel(tuple((cycleno int)(vertex point))))";
+  "(rel(tuple((Cycleno int)(Vertex point))))";
 string DualGraph::TriangleTypeInfo3 =
-  "(rel(tuple((v1 int)(v2 int)(v3 int)(centroid point))))";
+  "(rel(tuple((V1 int)(V2 int)(V3 int)(Centroid point))))";
 string DualGraph::TriangleTypeInfo4 =
   "(rel(tuple((vid int)(triid int))))";
 
@@ -3559,7 +3565,7 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   ListExpr ptrList3 = listutils::getPtrList(edge_rel);
 
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "oid1)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid1)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -3569,7 +3575,7 @@ void DualGraph::Load(int id, Relation* r1, Relation* r2)
   ListExpr ptrList4 = listutils::getPtrList(edge_rel);
 
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + nl->ToString(ptrList4) + "))" + "oid2)";
+             "(ptr " + nl->ToString(ptrList4) + "))" + "Oid2)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -3656,7 +3662,7 @@ void DualGraph::LoadSortNode(Relation* r1)
  
   ListExpr ptrList1 = listutils::getPtrList(r1);
   string strQuery = "(consume(sortby(feed(" + NodeTypeInfo +
-                "(ptr " + nl->ToString(ptrList1) + ")))((pavement asc))))";
+                "(ptr " + nl->ToString(ptrList1) + ")))((Pavement asc))))";
 
 //  cout<<strQuery<<endl;
   Word xResult;
@@ -3675,7 +3681,7 @@ void DualGraph::LoadSortNode(Relation* r1)
   ListExpr ptrList2 = listutils::getPtrList(node_rel_sort);
 
   strQuery = "(bulkloadrtree(addid(feed (" + NodeTypeInfo +
-         " (ptr " + nl->ToString(ptrList2) + ")))) pavement)";
+         " (ptr " + nl->ToString(ptrList2) + ")))) Pavement)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
@@ -6760,6 +6766,67 @@ void RegVertex::TriangulationNew()
       delete ct;
 }
 
+/*
+for each triangle, it returns the number of each point and the triangle
+
+*/
+void RegVertex::TriangulationExt()
+{
+      CompTriangle* ct = new CompTriangle(reg);
+      unsigned int no_cyc = ct->NoOfCycles();
+      assert(no_cyc > 0);
+
+      const int ncontours = no_cyc;
+      int no_p_contour[ncontours];
+
+      vector<double> ps_contour_x;//start from 1
+      vector<double> ps_contour_y;//start from 1
+
+      ct->PolygonContourPoint(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
+      int result_trig[SEGSIZE][3];
+      int (*res_triangles)[3] = &result_trig[0];
+
+      int no_triangle;
+      no_triangle = triangulate_polygon(no_cyc, no_p_contour,
+                ps_contour_x, ps_contour_y, res_triangles);
+
+//      cout<<"no_triangle "<<no_triangle<<endl;
+
+      assert(0 < no_triangle && no_triangle < SEGSIZE);
+      for (int i = 0; i < no_triangle; i++){
+          Coord x1, y1;
+          Coord x2, y2;
+          Coord x3, y3;
+
+          x1 = ps_contour_x[res_triangles[i][0]];
+          y1 = ps_contour_y[res_triangles[i][0]];
+
+          x2 = ps_contour_x[res_triangles[i][1]];
+          y2 = ps_contour_y[res_triangles[i][1]];
+
+          x3 = ps_contour_x[res_triangles[i][2]];
+          y3 = ps_contour_y[res_triangles[i][2]];
+
+          v1_list.push_back(res_triangles[i][0]);
+          v2_list.push_back(res_triangles[i][1]);
+          v3_list.push_back(res_triangles[i][2]);
+
+          Point p1(true, x1, y1);
+          Point p2(true, x2, y2);
+          Point p3(true, x3, y3);
+
+          vector<Point> ps_list; 
+          ps_list.push_back(p1);
+          ps_list.push_back(p2);
+          ps_list.push_back(p3);
+          SpacePartition* sp = new SpacePartition();
+          vector<Region> reg_list;
+          sp->ComputeRegion(ps_list, reg_list);
+          tri_list.push_back(reg_list[0]);
+          delete sp;
+      }
+      delete ct;
+}
 
 /*
 for each triangle, it returns the number of each point and the centroid
@@ -6813,6 +6880,70 @@ void RegVertex::TriangulationNew2()
           Point p;
           p.Set(x/3.0, y/3.0);
           regnodes.push_back(p);
+      }
+
+      delete ct;
+}
+
+void RegVertex::TriangulationExt2()
+{
+    CompTriangle* ct = new CompTriangle(reg);
+    unsigned int no_cyc = ct->NoOfCycles();
+    assert(no_cyc > 0);
+
+    const int ncontours = no_cyc;
+    int no_p_contour[ncontours];
+
+    vector<double> ps_contour_x;//start from 0
+    vector<double> ps_contour_y;//start from 0
+
+   ct->PolygonContourPoint2(no_cyc, no_p_contour, ps_contour_x, ps_contour_y);
+
+   HPolygon poly;
+   int no_triangle = poly.Triangulation2(no_cyc, no_p_contour,
+                ps_contour_x, ps_contour_y);
+
+//   cout<<"no_triangle "<<no_triangle<<endl;
+
+      for (int i = 0; i < no_triangle; i++){
+          Coord x1, y1;
+          Coord x2, y2;
+          Coord x3, y3;
+          int index1 = poly.mtabCell[i].Index(0);
+          int index2 = poly.mtabCell[i].Index(1);
+          int index3 = poly.mtabCell[i].Index(2);
+
+          x1 = poly.mtabPnt[index1].X();
+          y1 = poly.mtabPnt[index1].Y();
+
+          x2 = poly.mtabPnt[index2].X();
+          y2 = poly.mtabPnt[index2].Y();;
+
+          x3 = poly.mtabPnt[index3].X();
+          y3 = poly.mtabPnt[index3].Y();;
+
+//          v1_list.push_back(index1 + 1);
+//          v2_list.push_back(index2 + 1);
+//          v3_list.push_back(index3 + 1);
+
+          v1_list.push_back(poly.p_id_list[index1]);
+          v2_list.push_back(poly.p_id_list[index2]);
+          v3_list.push_back(poly.p_id_list[index3]);
+
+
+          Point p1(true, x1, y1);
+          Point p2(true, x2, y2);
+          Point p3(true, x3, y3);
+
+          vector<Point> ps_list; 
+          ps_list.push_back(p1);
+          ps_list.push_back(p2);
+          ps_list.push_back(p3);
+          SpacePartition* sp = new SpacePartition();
+          vector<Region> reg_list;
+          sp->ComputeRegion(ps_list, reg_list);
+          tri_list.push_back(reg_list[0]);
+          delete sp;
       }
 
       delete ct;
@@ -8850,16 +8981,16 @@ void MaxRect::computeLargestRectangle(){
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 string MaxRect::BuildingRectTypeInfo = 
-"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int))))"; 
+"(rel (tuple ((Reg_id int) (GeoData rect) (Poly_id int) (Reg_type int))))"; 
 
 string MaxRect::RegionElemTypeInfo = 
 "(rel (tuple ((id int) (covarea region))))";
 
 string MaxRect::BuildingRectExtTypeInfo =
-"(rel (tuple ((reg_id int) (geoData rect) (poly_id int) (reg_type int) \
-(building_type int) (building_type2 string) (building_id int))))";
+"(rel (tuple ((Reg_id int) (GeoData rect) (Poly_id int) (Reg_type int) \
+(Building_type int) (Building_type2 string) (Building_id int))))";
 
-string MaxRect::BuildingParaInfo = "(rel (tuple ((para real))))";
+string MaxRect::BuildingParaInfo = "(rel (tuple ((Para real))))";
 
 /*
 remove some dirty data for regions. two subregions intersect at a point 
@@ -11334,10 +11465,6 @@ bool CheckPavement( ListExpr type, ListExpr& errorInfo )
 }
 
 
-string Pavement::PaveTypeInfo =
-"(rel(tuple((oid int)(rid int)(pavement region))))";
-
-
 Pavement::Pavement():def(false), pave_id(0), dg_init(false), dg_id(0), 
 vg_init(false), vg_id(0), pave_rel(NULL)
 {
@@ -11381,7 +11508,8 @@ dg_init(false), dg_id(0), vg_init(false), vg_id(0), pave_rel(NULL)
   ListExpr xType;
   ListExpr xNumericType;
   /***********************Open relation for triangles*********************/
-  nl->ReadFromString(PaveTypeInfo,xType);
+//  nl->ReadFromString(PaveTypeInfo,xType);
+  nl->ReadFromString(DualGraph::NodeTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   pave_rel = Relation::Open(valueRecord, offset, xNumericType);
   if(!pave_rel) {
@@ -11414,8 +11542,9 @@ void Pavement::Load(unsigned int i, Relation* r)
 
 
   ListExpr ptrList = listutils::getPtrList(r);
-  
-  string strQuery = "(consume(feed(" + PaveTypeInfo +
+
+//  string strQuery = "(consume(feed(" + PaveTypeInfo +
+  string strQuery = "(consume(feed(" + DualGraph::NodeTypeInfo +
                 "(ptr " + nl->ToString(ptrList) + "))))";
 
 //  cout<<strQuery<<endl; 
@@ -11458,7 +11587,8 @@ bool Pavement::Save(SmiRecord& valueRecord, size_t& offset,
   ListExpr xNumericType;
 
   ////////////////////triangles relation/////////////////////////////
-  nl->ReadFromString(PaveTypeInfo, xType);
+//  nl->ReadFromString(PaveTypeInfo, xType);
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!pave_rel->Save(valueRecord,offset,xNumericType))
       return false;

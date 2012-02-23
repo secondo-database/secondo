@@ -543,6 +543,7 @@ struct RegVertex{
   Relation* rel1;
   Relation* rel2;
   vector<Line> line;
+  vector<Region> tri_list;
 
   RegVertex(){}
   RegVertex(Region* r):reg(r), count(0), resulttype(NULL){}
@@ -554,7 +555,9 @@ struct RegVertex{
   }
   void CreateVertex();
   void TriangulationNew();
+  void TriangulationExt();
   void TriangulationNew2();
+  void TriangulationExt2();
   void GetDGEdge();
   void GetDGEdgeRTree(R_Tree<2,TupleId>*);
   void ShareEdge(Region* reg1, Region* reg2, int, int,vector<vector<int> >&);
@@ -1010,8 +1013,6 @@ public:
   Pavement();
   Pavement(bool d, unsigned int i);
   Pavement(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
-  
-  static string PaveTypeInfo; 
   
   enum PavementTypeInfo{P_OID = 0, P_RID, P_PAVEMENT};
 

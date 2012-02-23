@@ -85,11 +85,6 @@ Signature: int x rel x rel -> dualgraph
 Example  : query getadjnode(createdualgraph(1, dg_node, dg_edge), 631) count;
 Result   : 1
 
-Operator : nodedualgraph
-Number   : 2
-Signature: dualgraph -> rel
-Example  : query nodedualgraph(dg) count;
-Result   : 29472
 
 Operator : walk_sp_old
 Number   : 2
@@ -166,6 +161,12 @@ Signature: region -> (stream(((x1 t1) ... (xn tn)))
 Example  : query triangulation_new([const region value ((((0 0)(0 5)(2 5))))]) count;
 Result   : 1
 
+Operator : triangulation_ext
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn)))
+Example  : query triangulation_ext([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 1
+
 
 Operator : triangulation_new2
 Number   : 2
@@ -173,6 +174,12 @@ Signature: region -> (stream(((x1 t1) ... (xn tn)))
 Example  : query triangulation_new2([const region value ((((0 0)(0 5)(2 5))))]) count;
 Result   : 1
 
+
+Operator : triangulation_ext2
+Number   : 2
+Signature: region -> (stream(((x1 t1) ... (xn tn)))
+Example  : query triangulation_ext2([const region value ((((0 0)(0 5)(2 5))))]) count;
+Result   : 1
 
 Operator : get_dg_edge
 Number   : 2
@@ -409,6 +416,13 @@ Number   : 2
 Signature: busnetwork -> rel
 Example  : query bn_busroutes(bn1) count;
 Result   : 20
+
+
+Operator : brsegments
+Number   : 2
+Signature: line x line -> (stream(((x1 t1) ... (xn tn))))
+Example  : query brsegments([const line value ((2 2 3 3))], [const line value ((3 3 4 4))]) count;
+Result   : 2
 
 
 Operator : mapbstopave
@@ -757,8 +771,8 @@ Result   : 10
 Operator : getindoorpath
 Number   : 2
 Signature: string x int -> line3d
-Example  : query lenth(getindoorpath("UNIVERSITY", 10001001));
-Result   : 76.476
+Example  : query size(getindoorpath("UNIVERSITY", 10001001)) > 10.0;
+Result   : TRUE
 
 
 Operator : indoornavigation
@@ -1164,7 +1178,7 @@ Result   : file_platform
 Operator : shortestpath_tm
 Number   : 2
 Signature: gpoint x gpoint x roadgraph x network -> (stream(((x1 t1) ... (xn tn))))
-Example  : query shortestpath_tm(gp1, gp2, rg1, rn) count;
+Example  : query no_components(shortestpath_tm(gp1, gp2, rg, rn));
 Result   : 1
 
 

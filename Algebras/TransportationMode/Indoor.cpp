@@ -1886,7 +1886,7 @@ bool CheckGRoom( ListExpr type, ListExpr& errorInfo )
 /////////////////////////////Indoor Navigation///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 string IndoorNav::Indoor_GRoom_Door = 
-"(rel(tuple((oid int)(Name string)(Type string)(Room groom)(Door line))))";
+"(rel(tuple((Oid int)(Name string)(Type string)(Room groom)(Door line))))";
 
 /*
 create a 3d line for the door. We use RTree to find doors that their 
@@ -4391,8 +4391,8 @@ void GetSecondoObj(Region* reg, vector<string>& obj_name)
   
   string ObjName_DG_Node = "xu_dg_node";
   string command1 = "triangulation(" + ObjName_Reg + ") transformstream \
-  addcounter[oid, 1] extend[rid:.oid] extend[pavement:.elem] \
-  project[oid,rid,pavement] consume"; 
+  addcounter[Oid, 1] extend[Rid:.Oid] extend[Pavement:.elem] \
+  project[Oid,Rid,Pavement] consume"; 
   string querystringParsed = "";
   ListExpr parsedCommand1;
   if(CheckCommand(command1, querystringParsed, parsedCommand1) == false)return;
@@ -4422,8 +4422,8 @@ void GetSecondoObj(Region* reg, vector<string>& obj_name)
   
   
   string ObjName_TRIREGSORT = "xu_tri_reg_sort";
-  string command4 = ObjName_TRIREG + " feed addcounter[oid, 1]\
-  extend[zvalue:zval(.centroid)] sortby[zvalue asc] remove[zvalue] consume";
+  string command4 = ObjName_TRIREG + " feed addcounter[Oid, 1]\
+  extend[Zvalue:zval(.Centroid)] sortby[Zvalue asc] remove[Zvalue] consume";
   querystringParsed = "";
   ListExpr parsedCommand4;
   if(CheckCommand(command4, querystringParsed, parsedCommand4) == false)return;
@@ -4649,15 +4649,15 @@ void DeleteSecondoObj(vector<string> obj_name)
 
 
 string IndoorGraph::NodeTypeInfo =
-"(rel (tuple ((Door door3d) (door_loc line) (groom_oid1 int) (groom_oid2 int)\
-  (door_loc3d line3d) (doorheight real))))";
+"(rel (tuple ((Door door3d) (Door_loc line) (Groom_oid1 int) (Groom_oid2 int)\
+  (Door_loc3d line3d) (Doorheight real))))";
   
 string IndoorGraph::EdgeTypeInfo =
-"(rel (tuple ((groom_oid int) (door_tid1 int) (door_tid2 int) (Path line3d))))";
+"(rel (tuple ((Groom_oid int) (Door_tid1 int) (Door_tid2 int) (Path line3d))))";
 
 string IndoorGraph::NodeBTreeTypeInfo =
-"(btree (tuple ((Door door3d) (door_loc line) (groom_oid1 int) (groom_oid2 int)\
-  (door_loc3d line3d) (doorheight real))) int)";
+"(btree (tuple ((Door door3d) (Door_loc line) (Groom_oid1 int) (Groom_oid2 int)\
+  (Door_loc3d line3d) (Doorheight real))) int)";
 
 string IndoorGraph::EntranceTidTypeInfo =
 "(rel (tuple ((entrance int))))";
@@ -4996,7 +4996,7 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2, int type)
   ListExpr ptrList3 = listutils::getPtrList(edge_rel);
 
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "door_tid1)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Door_tid1)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -5041,7 +5041,7 @@ void IndoorGraph::Load(int id, Relation* r1, Relation* r2, int type)
   ListExpr ptrList4 = listutils::getPtrList(node_rel);
   
   strQuery = "(createbtree (" + NodeTypeInfo +
-             "(ptr " + nl->ToString(ptrList4) + "))" + "groom_oid1)";
+             "(ptr " + nl->ToString(ptrList4) + "))" + "Groom_oid1)";
 
 //  cout<<strQuery<<endl; 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
@@ -11273,7 +11273,6 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
 
 //    top.Print();
 
-
     if(top.tri_index == id2){
 //       cout<<"find the shortest path"<<endl;
        find = true;
@@ -11297,8 +11296,12 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
     //////////////////////////////////////////////////////////////////
     ////////////////out of the height range///////////////////////////
     ///////////////////////////////////////////////////////////////////
-    if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
-      continue; 
+    // for the train station, the same height on different platform 
+    // can not be pruned 
+    if(fabs(min_h - max_h) > EPSDIST){ //not equal to each other
+      if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
+        continue; 
+      }
     }
     ///////////////////////////////////////////////////////////////////
 
@@ -11340,9 +11343,11 @@ void IndoorNav::IndoorShortestPath(int id1, int id2,
       assert(MiddlePoint(l, p));//get the point of next door 
       door_tuple1->DeleteIfAllowed(); 
 
-      if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
-          edge_tuple->DeleteIfAllowed();
-          continue; 
+      if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms
+          if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
+            edge_tuple->DeleteIfAllowed();
+            continue; 
+        }
       }
 
       int cur_size = expand_queue.size();
@@ -11896,9 +11901,10 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
 
     door_tuple->DeleteIfAllowed(); 
 
-   
-    if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
-      continue; 
+    if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms 
+        if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
+          continue; 
+      }
     }
 
    ////////find its adjacecy element, and push them into queue and path//////
@@ -11935,8 +11941,10 @@ void IndoorNav::IndoorShortestPath_Room(int id1, int id2,
      assert(MiddlePoint(l, p));//get the point of next door 
      door_tuple1->DeleteIfAllowed(); 
 
-     if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
-        continue; 
+     if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms 
+        if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
+          continue; 
+      }
      }
 
       int cur_size = expand_queue.size();
@@ -12337,9 +12345,10 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
 
     door_tuple->DeleteIfAllowed(); 
 
-    
-    if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
-      continue; 
+    if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms 
+        if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
+        continue; 
+      }
     }
 
 
@@ -12386,8 +12395,10 @@ void IndoorNav::IndoorShortestPath_Time1(int id1, int id2,
      ///////////////////////////////////////////
      /////////////height limitation/////////////
      ///////////////////////////////////////////
-     if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
-      continue; 
+     if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms 
+        if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
+          continue; 
+        }
      }
 
      int cur_size = expand_queue.size();
@@ -12675,8 +12686,10 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
      ///////////////////////////////////////////
      /////////////height limitation/////////////
      ///////////////////////////////////////////
-     if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
-      continue; 
+     if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms 
+        if(q.GetZ() - max_h > dist_delta || min_h - q.GetZ() > dist_delta){
+          continue; 
+        }
      }
 
    ////////find its adjacecy element, and push them into queue and path//////
@@ -12715,8 +12728,10 @@ void IndoorNav::IndoorShortestPath_Time2(int id1, int id2,
      ///////////////////////////////////////////
      /////////////height limitation/////////////
      ///////////////////////////////////////////
-     if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
-      continue; 
+     if(fabs(min_h - max_h) > EPSDIST){//train station, different platforms 
+        if(p.GetZ() - max_h > dist_delta || min_h - p.GetZ() > dist_delta){
+          continue; 
+        }
      }
 
      int cur_size = expand_queue.size();
@@ -13297,7 +13312,7 @@ void MPoint3D::Trajectory(Line3D& l)
 string Building::RoomBTreeTypeInfo = "(rel (tuple ((oid int) (Name string) \
 (Type string) (Room groom) (Door line))) int)";
 
-string Building::Indoor_GRoom_Door_Extend = "(rel (tuple ((oid int) \
+string Building::Indoor_GRoom_Door_Extend = "(rel (tuple ((Oid int) \
 (Name string) (Type string) (Room groom) (Door line) (TID tid) (BBox rect3))))";
 
 string Building::RoomRTreeTypeInfo = "(rel (tuple ((oid int) (Name string)\
@@ -14137,7 +14152,7 @@ void Building::Load(int id, int type, Relation* rel1, Relation* rel2)
   ListExpr ptrList2 = listutils::getPtrList(rel1);
   
   strQuery = "(createbtree (" + IndoorNav::Indoor_GRoom_Door +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Oid)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   btree_room = (BTree*)xResult.addr;
@@ -14208,25 +14223,25 @@ void Building::CloseIndoorGraph(IndoorGraph* ig)
 ///////////////////////////////////////////////////////////////////////
 /////////// Indoor Building Infrastructure/////////////////////////////
 ///////////////////////////////////////////////////////////////////////
-string IndoorInfra::BuildingPath_Info = "(rel (tuple ((reg_id int) (sp point)\
-(sp_index int) (ep point) (ep2 point) (ep2_gloc genloc) (Path line))))";
+string IndoorInfra::BuildingPath_Info = "(rel (tuple ((Reg_id int) (Sp point)\
+(Sp_index int) (Ep point) (Ep2 point) (Ep2_gloc genloc) (Path line))))";
 
-string IndoorInfra::RegId1BTreeTypeInfo = "(rel (tuple ((reg_id int)(sp point)\
-(sp_index int) (ep point) (ep2 point) (ep2_gloc genloc) (Path line))) int)";
-
-
-string IndoorInfra::BuildingType_Info = "(rel (tuple ((reg_id int)\
-(geoData rect) (poly_id int) (reg_type int) (building_type int)\
-(building_type2 string) (building_id int))))";
-
-string IndoorInfra::RegId2BTreeTypeInfo = "(rel (tuple ((reg_id int) \
-(geoData rect) (poly_id int) (reg_type int) (building_type int) \
-(building_type2 string) (building_id int))) int)";
+string IndoorInfra::RegId1BTreeTypeInfo = "(rel (tuple ((Reg_id int)(Sp point)\
+(Sp_index int) (Ep point) (Ep2 point) (Ep2_gloc genloc) (Path line))) int)";
 
 
-string IndoorInfra::BuildingTypeRtreeInfo = "(rtree (tuple ((reg_id int)\
-(geoData rect) (poly_id int) (reg_type int) (building_type int)\
-(building_type2 string) (building_id int))) rect FALSE)";
+string IndoorInfra::BuildingType_Info = "(rel (tuple ((Reg_id int)\
+(GeoData rect) (Poly_id int) (Reg_type int) (Building_type int)\
+(Building_type2 string) (Building_id int))))";
+
+string IndoorInfra::RegId2BTreeTypeInfo = "(rel (tuple ((Reg_id int) \
+(GeoData rect) (Poly_id int) (Reg_type int) (Building_type int) \
+(Building_type2 string) (Building_id int))) int)";
+
+
+string IndoorInfra::BuildingTypeRtreeInfo = "(rtree (tuple ((Reg_id int)\
+(GeoData rect) (Poly_id int) (Reg_type int) (Building_type int)\
+(Building_type2 string) (Building_id int))) rect FALSE)";
 
 
 
@@ -14564,7 +14579,7 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
   
   ListExpr ptrList2 = listutils::getPtrList(rel1);
   strQuery = "(createbtree (" + BuildingPath_Info +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "reg_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Reg_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -14588,7 +14603,7 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
   ListExpr ptrList4 = listutils::getPtrList(rel2);
   
   strQuery = "(createbtree (" + BuildingType_Info +
-             "(ptr " + nl->ToString(ptrList4) + "))" + "reg_id)";
+             "(ptr " + nl->ToString(ptrList4) + "))" + "Reg_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -14622,7 +14637,7 @@ void IndoorInfra::Load(int id, Relation* rel1, Relation* rel2)
   ListExpr ptrList5 = listutils::getPtrList(building_type);
 
   strQuery = "(bulkloadrtree(addid(feed (" + BuildingType_Info +
-         " (ptr " + nl->ToString(ptrList5) + ")))) geoData)";
+         " (ptr " + nl->ToString(ptrList5) + ")))) GeoData)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );

@@ -2454,10 +2454,10 @@ string GenMObject::BuildingInfoM = "(rel (tuple ((Tid int) (Type string)\
 (Area_M rect)(M bool))))";
 
 string GenMObject::BenchModeDISTR = 
-"(rel (tuple ((mode string) (para real))))";
+"(rel (tuple ((Mode string) (Para real))))";
 
 string GenMObject::NNBuilding = 
-"(rel (tuple ((b_id int) (geoData rect))))";
+"(rel (tuple ((B_id int) (GeoData rect))))";
 
 string GenMObject::RoadSegment = 
 "(rel (tuple ((rid int) (meas1 real) (meas2 real) (ncurve line) (SID int))))";
@@ -7305,8 +7305,6 @@ void GenMObject::GenerateGenIBW(Space* sp, MaxRect* maxrect,
     peri->EndBulkLoad();
 
     int DAY1 = start_time.GetDay();
-
-    cout<<"start time "<<start_time<<endl;
 
     /////////////////////load all paths from this building////////////////
     if(obj_no_rep == 0){
@@ -12979,7 +12977,7 @@ void Space::AddRelation(Relation* rel, int type)
       ListExpr ptrList2 = listutils::getPtrList(dg_node_rid);
 
       strQuery = "(createbtree (" + DualGraph::NodeTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Oid)";
       QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
       assert(QueryExecuted);
       btree_dg_node = (BTree*)xResult.addr;
@@ -13215,7 +13213,8 @@ Relation* Space::GetInfra(string type)
       }else{
           cout<<"pavement does exist "<<endl; 
           ListExpr xTypeInfo;
-          nl->ReadFromString(Pavement::PaveTypeInfo, xTypeInfo);
+//          nl->ReadFromString(Pavement::PaveTypeInfo, xTypeInfo);
+          nl->ReadFromString(DualGraph::NodeTypeInfo, xTypeInfo);
           ListExpr xNumType = 
                 SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
           result = new Relation(xNumType, true);

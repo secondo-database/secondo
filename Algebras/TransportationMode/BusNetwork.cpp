@@ -3526,9 +3526,6 @@ string RoadDenstiy::bus_route_old_typeinfo =
 "(rel (tuple ((br_id int) (bus_route1 gline) (bus_route2 line)\
 (start_loc point) (end_loc point) (route_type int))))"; 
 
-string RoadDenstiy::rg_nodes_typeinfo = 
-"(rel (tuple ((jun_id int) (jun_gp gpoint) (jun_p point) (rid int))))";
-
 
 /*
 get night buses. use the network flow value.
@@ -5457,8 +5454,12 @@ void RoadDenstiy::GetRGEdges1(Relation* rel, R_Tree<2,TupleId>* rtree)
 
     for(int i = 1;i <= rel->GetNoTuples();i++){
       Tuple* jun_tuple = rel->GetTuple(i, false);
-      int id = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
-      Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
+//      int id = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+//      Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
+
+      int id = 
+        ((CcInt*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_ID))->GetIntval();
+      Point* loc = (Point*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_P);
 
       vector<int> neighbor_list;
 
@@ -5489,11 +5490,12 @@ void RoadDenstiy::DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree,
               R_TreeLeafEntry<2,TupleId> e =
                  (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
               Tuple* dg_tuple = rel->GetTuple(e.info, false);
-              Point* q = (Point*)dg_tuple->GetAttribute(RG_N_P);
-
+//              Point* q = (Point*)dg_tuple->GetAttribute(RG_N_P);
+              Point* q = (Point*)dg_tuple->GetAttribute(RoadGraph::RG_JUN_P);
               if(q->Distance(loc) < delta_dist){
                   int id = 
-                    ((CcInt*)dg_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+//                  ((CcInt*)dg_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+           ((CcInt*)dg_tuple->GetAttribute(RoadGraph::RG_JUN_ID))->GetIntval();
                   oid_list.push_back(id);
               }
               dg_tuple->DeleteIfAllowed();
@@ -5524,9 +5526,16 @@ void RoadDenstiy::GetRGEdges2(Relation* rel)
   int NetId;
   for(int i = 1;i <= rel->GetNoTuples();i++){
     Tuple* jun_tuple = rel->GetTuple(i, false);
-    int oid = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
-    GPoint* gp = (GPoint*)jun_tuple->GetAttribute(RG_N_GP);
-    Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
+//    int oid = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
+//    GPoint* gp = (GPoint*)jun_tuple->GetAttribute(RG_N_GP);
+//    Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
+
+    int oid = 
+      ((CcInt*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_ID))->GetIntval();
+    GPoint* gp = (GPoint*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_GP);
+    Point* loc = (Point*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_P);
+
+
     NetId = gp->GetNetworkId();
     GP_Point gp_p(gp->GetRouteId(), gp->GetPosition(), oid, *loc, *loc);
     gp_p_list.push_back(gp_p);
@@ -5534,9 +5543,7 @@ void RoadDenstiy::GetRGEdges2(Relation* rel)
   }
   sort(gp_p_list.begin(), gp_p_list.end(), CompareGP_P);
 
-  
-  
-  
+
   for(unsigned int i = 0;i < gp_p_list.size();i++){
 
 //      gp_p_list[i].Print();
@@ -8961,7 +8968,216 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
 
   }
 }
+/*
+decompose a bus route into a set of segments. the result is a stream of values
+(1) a segment; (2) the union of two segments each of which is from its bus route
+a bus route has up and down routes 
 
+*/
+void BN::DecomposeBR(Line* l1, Line* l2)
+{
+//  cout<<"decompose a bus route"<<endl;
+
+  SimpleLine* sl1 = new SimpleLine(0);
+  sl1->fromLine(*l1);
+
+  SimpleLine* sl2 = new SimpleLine(0);
+  sl2->fromLine(*l2);
+  
+  SpacePartition* sp = new SpacePartition();
+  vector<MyHalfSegment> seq_halfseg1; //reorder it from start to end
+  vector<MyHalfSegment> seq_halfseg2;
+  sp->ReorderLine(sl1, seq_halfseg1);
+  sp->ReorderLine(sl2, seq_halfseg2);
+
+  delete sl1;
+  delete sl2;
+  delete sp;
+
+//  cout<<seq_halfseg1.size()<<" "<<seq_halfseg2.size()<<endl;
+  Point p = seq_halfseg1[0].from;
+  Point p1 = seq_halfseg2[0].from;
+  Point p2 = seq_halfseg2[seq_halfseg2.size() - 1].to;
+  if(p.Distance(p1) > p.Distance(p2)){
+
+    //reorder seq halfseg2
+    vector<MyHalfSegment> temp_list;
+    for(int i = seq_halfseg2.size() - 1;i >= 0;i--){
+      MyHalfSegment mhs = seq_halfseg2[i];
+      MyHalfSegment new_mhs(true, mhs.to, mhs.from);
+    }
+    seq_halfseg2.clear();
+    for(unsigned int i = 0;i < temp_list.size();i++){
+      seq_halfseg2.push_back(temp_list[i]);
+    }
+
+  }
+
+
+//  cout<<seq_halfseg1.size()<<" "<<seq_halfseg2.size()<<endl;
+
+  for(unsigned int i = 0;i < seq_halfseg1.size();i++){
+        Line* l = new Line(0);
+        Line* ul = new Line(0);
+        l->StartBulkLoad();
+        ul->StartBulkLoad();
+
+        HalfSegment hs;
+        hs.Set(true, seq_halfseg1[i].from, seq_halfseg1[i].to);
+        int edgeno1 = 0;
+        int edgeno_u = 0;
+        hs.attr.edgeno = edgeno1++;
+        edgeno_u++;
+        *l += hs;
+        *ul += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *l += hs;
+        *ul += hs;
+
+        l->EndBulkLoad();
+        line_list1.push_back(*l);
+        delete l;
+
+        if( i >= 1){
+          HalfSegment hs0;
+          hs0.Set(true, seq_halfseg1[i - 1].from, seq_halfseg1[i - 1].to);
+          hs0.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs0;
+          hs0.SetLeftDomPoint(!hs0.IsLeftDomPoint());
+          *ul += hs0;
+        }
+
+        if( i + 1 < seq_halfseg1.size()){
+          HalfSegment hs1;
+          hs1.Set(true, seq_halfseg1[i + 1].from, seq_halfseg1[i + 1].to);
+          hs1.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs1;
+          hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+          *ul += hs1;
+        }
+
+        if(i < seq_halfseg2.size()){
+          HalfSegment hs2;
+          hs2.Set(true, seq_halfseg2[i].from, seq_halfseg2[i].to);
+          hs2.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *ul += hs2;
+        }
+
+        if((i + 1) < seq_halfseg2.size()){
+          HalfSegment hs3;
+          hs3.Set(true, seq_halfseg2[i + 1].from, seq_halfseg2[i + 1].to);
+          hs3.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs3;
+          hs3.SetLeftDomPoint(!hs3.IsLeftDomPoint());
+          *ul += hs3;
+        }
+
+        if( i >= 1 && (i - 1) < seq_halfseg2.size() ){
+          HalfSegment hs4;
+          hs4.Set(true, seq_halfseg2[i - 1].from, seq_halfseg2[i - 1].to);
+          hs4.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs4;
+          hs4.SetLeftDomPoint(!hs4.IsLeftDomPoint());
+          *ul += hs4;
+        }
+
+        ul->EndBulkLoad();
+        line_list2.push_back(*ul);
+
+        delete ul;
+
+  }
+
+  for(unsigned int i = 0;i < seq_halfseg2.size();i++){
+        Line* l = new Line(0);
+        Line* ul = new Line(0);
+        l->StartBulkLoad();
+        ul->StartBulkLoad();
+
+        HalfSegment hs;
+        hs.Set(true, seq_halfseg2[i].from, seq_halfseg2[i].to);
+        int edgeno1 = 0;
+        int edgeno_u = 0;
+        hs.attr.edgeno = edgeno1++;
+        edgeno_u++;
+        *l += hs;
+        *ul += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *l += hs;
+        *ul += hs;
+
+        l->EndBulkLoad();
+        line_list1.push_back(*l);
+        delete l;
+
+        if( i >= 1 ){
+          HalfSegment hs0;
+          hs0.Set(true, seq_halfseg2[i - 1].from, seq_halfseg2[i - 1].to);
+          hs0.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs0;
+          hs0.SetLeftDomPoint(!hs0.IsLeftDomPoint());
+          *ul += hs0;
+        }
+
+        if( (i + 1) < seq_halfseg2.size()){
+          HalfSegment hs1;
+          hs1.Set(true, seq_halfseg2[i + 1].from, seq_halfseg2[i + 1].to);
+          hs1.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs1;
+          hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+          *ul += hs1;
+        }
+
+        if(i < seq_halfseg1.size()){
+          HalfSegment hs2;
+          hs2.Set(true, seq_halfseg1[i].from, seq_halfseg1[i].to);
+          hs2.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs2;
+          hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+          *ul += hs2;
+        }
+
+        if((i + 1) < seq_halfseg1.size()){
+          HalfSegment hs3;
+          hs3.Set(true, seq_halfseg1[i + 1].from, seq_halfseg1[i + 1].to);
+          hs3.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs3;
+          hs3.SetLeftDomPoint(!hs3.IsLeftDomPoint());
+          *ul += hs3;
+        }
+
+        if( i >= 1 && (i - 1) < seq_halfseg1.size() ){
+          HalfSegment hs4;
+          hs4.Set(true, seq_halfseg1[i - 1].from, seq_halfseg1[i - 1].to);
+          hs4.attr.edgeno = edgeno_u;
+          edgeno_u++;
+          *ul += hs4;
+          hs4.SetLeftDomPoint(!hs4.IsLeftDomPoint());
+          *ul += hs4;
+        }
+
+        ul->EndBulkLoad();
+        line_list2.push_back(*ul);
+
+        delete ul;
+
+  }
+
+//  cout<<"list1 size "<<line_list1.size()
+//      <<" list2 size "<<line_list2.size()<<endl;
+
+}
 
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  Bus Network Graph  //////////////////////////////////

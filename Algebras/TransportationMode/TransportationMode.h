@@ -391,15 +391,6 @@ const string OpTMCreateDGSpec  =
     "<text>query createdualgraph(1, edge-rel, node-rel); </text--->"
     ") )";
 
-const string OpTMNodeDGSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>dualgraph -> rel</text--->"
-    "<text>nodedualgraph(dualgraph)</text--->"
-    "<text>get the node relation of the graph</text--->"
-    "<text>query nodedualgraph(dg1) count; </text--->"
-    ") )";
-
 const string OpTMWalkSPOldSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -501,7 +492,18 @@ const string OpTMTriangulationNewSpec  =
     "represented by the three points</text--->"
     "<text>query triangulation_new(r1) count; </text--->"
     ") )";
-    
+
+const string OpTMTriangulationExtSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>triangulation_ext(region)</text--->"
+    "<text>decompose the region into a set of triangles where each is"
+    "represented by the three points</text--->"
+    "<text>query triangulation_ext(r1) count; </text--->"
+    ") )";
+
 const string OpTMTriangulationNew2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -512,7 +514,18 @@ const string OpTMTriangulationNew2Spec  =
     "represented by the three points</text--->"
     "<text>query triangulation_new2(r1) count; </text--->"
     ") )";
-    
+
+const string OpTMTriangulationExt2Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>reg ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>triangulation_ext2(region)</text--->"
+    "<text>decompose the region into a set of triangles where each is"
+    "represented by the three points</text--->"
+    "<text>query triangulation_ext2(r1) count; </text--->"
+    ") )";
+
 const string OpTMGetDGEdgeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -911,7 +924,14 @@ const string OpTMBusRoutesSpec  =
     "<text>get bus routes relation</text--->"
     "<text>query bn_busroutes(bn1) ;</text--->) )";
 
-
+const string OpTMMapBRSegmentsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>line x line -> (stream(((x1 t1) ... (xn tn))))</text--->"
+    "<text>brsegments(line, line); </text--->"
+    "<text>decompose a bus route</text--->"
+    "<text>query brsegments(l1,l2) count ;</text--->) )";
+    
 const string OpTMMapBsToPaveSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

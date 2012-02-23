@@ -44,16 +44,16 @@ computing shortest path in road network
 /////////////////////////////////////////////////////////////////////////////
 //////////////// road network graph ///////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-string RoadGraph::RGNodeTypeInfo = "(rel (tuple ((jun_id int) (jun_gp gpoint)\
-(jun_p point) (rid int))))";
+string RoadGraph::RGNodeTypeInfo = "(rel (tuple ((Jun_id int) (Jun_gp gpoint)\
+(Jun_p point) (Rid int))))";
 
 string RoadGraph::RGBTreeNodeTypeInfo = "(btree (tuple ((jun_id int)\
 (jun_gp gpoint)(jun_p point) (rid int))) int)";
 
-string RoadGraph::RGEdgeTypeInfo1 = "(rel (tuple ((jun_id1 int)\
-(jun_id2 int))))";
+string RoadGraph::RGEdgeTypeInfo1 = "(rel (tuple ((Jun_id1 int)\
+(Jun_id2 int))))";
 
-string RoadGraph::RGEdgeTypeInfo2 = "(rel (tuple ((jun_id1 int) (jun_id2 int)\
+string RoadGraph::RGEdgeTypeInfo2 = "(rel (tuple ((Jun_id1 int) (Jun_id2 int)\
 (Path1 gline) (Path2 sline))))";
 
 
@@ -440,7 +440,7 @@ void RoadGraph::Load(int id, Relation* r1, Relation* edge_rel1,
   ///////////////////rtree on junction points//////////////////////
   ListExpr ptrList2 = listutils::getPtrList(r1);
   strQuery = "(createbtree (" + RGNodeTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "rid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Rid)";//capital 
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -477,7 +477,7 @@ void RoadGraph::LoadEdge1(Relation* edge1)
   ListExpr ptrList2 = listutils::getPtrList(edge1);
   
   strQuery = "(createbtree (" + RGEdgeTypeInfo1 +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "jun_id1)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Jun_id1)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree = (BTree*)xResult.addr;
@@ -539,7 +539,7 @@ void RoadGraph::LoadEdge2(Relation* edge2)
   ListExpr ptrList2 = listutils::getPtrList(edge2);
 
   strQuery = "(createbtree (" + RGEdgeTypeInfo2 +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "jun_id1)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Jun_id1)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);

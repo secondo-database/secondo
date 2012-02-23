@@ -470,7 +470,6 @@ ListExpr TheIndoorTypeMap(ListExpr args)
      return listutils::typeError(err);
   }
 
-
   ListExpr arg2 = nl->Second(args);
   ListExpr arg3 = nl->Third(args);
   ListExpr xType1;
@@ -507,7 +506,7 @@ ListExpr CreateDoor3DTypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Door"),
                                       nl->SymbolAtom("line3d"))
@@ -546,9 +545,9 @@ ListExpr CreateDoorBoxTypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("groom_tid"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_tid"),
                                     nl->SymbolAtom("int")), 
                         nl->TwoElemList(nl->SymbolAtom("Box3d"),
                                       nl->SymbolAtom("rect3"))
@@ -624,15 +623,15 @@ ListExpr CreateDoor1TypeMap(ListExpr args)
                       nl->SixElemList(
                         nl->TwoElemList(nl->SymbolAtom("Door"),
                                     nl->SymbolAtom("door3d")), 
-                        nl->TwoElemList(nl->SymbolAtom("door_loc"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc"),
                                       nl->SymbolAtom("line")),
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid1"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid1"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid2"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid2"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("door_loc3d"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc3d"),
                                       nl->SymbolAtom("line3d")), 
-                        nl->TwoElemList(nl->SymbolAtom("doorheight"),
+                        nl->TwoElemList(nl->SymbolAtom("Doorheight"),
                                       nl->SymbolAtom("real"))
                   )
                 )
@@ -669,15 +668,15 @@ ListExpr CreateDoor2TypeMap(ListExpr args)
                       nl->SixElemList(
                         nl->TwoElemList(nl->SymbolAtom("Door"),
                                     nl->SymbolAtom("door3d")), 
-                        nl->TwoElemList(nl->SymbolAtom("door_loc"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc"),
                                       nl->SymbolAtom("line")),
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid1"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid1"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid2"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid2"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("door_loc3d"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc3d"),
                                       nl->SymbolAtom("line3d")), 
-                        nl->TwoElemList(nl->SymbolAtom("doorheight"),
+                        nl->TwoElemList(nl->SymbolAtom("Doorheight"),
                                       nl->SymbolAtom("real"))
                   )
                 )
@@ -755,11 +754,11 @@ ListExpr CreateAdjDoor1TypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->FourElemList(
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
                                     nl->SymbolAtom("int")), 
-                        nl->TwoElemList(nl->SymbolAtom("door_tid1"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid1"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("door_tid2"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid2"),
                                       nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Path"),
                                       nl->SymbolAtom("line3d"))
@@ -808,11 +807,11 @@ ListExpr CreateAdjDoor2TypeMap(ListExpr args)
                   nl->SymbolAtom("tuple"),
 //                      nl->FiveElemList(
                       nl->FourElemList(
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
                                     nl->SymbolAtom("int")), 
-                        nl->TwoElemList(nl->SymbolAtom("door_tid1"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid1"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("door_tid2"),
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid2"),
                                       nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Path"),
                                       nl->SymbolAtom("line3d"))
@@ -909,9 +908,9 @@ ListExpr GenerateIP1TypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
                                     nl->SymbolAtom("genloc")), 
-                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
                                       nl->SymbolAtom("point3d"))
                   )
                 )
@@ -1004,7 +1003,7 @@ ListExpr IndoorNavigationTypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("groom_oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
                                     nl->SymbolAtom("int")), 
                         nl->TwoElemList(nl->SymbolAtom("Path"),
                                     nl->SymbolAtom("groom"))
@@ -1113,7 +1112,7 @@ ListExpr GetIndoorPathTypeMap(ListExpr args)
   ListExpr arg2 = nl->Second(args);
 
   if(nl->SymbolValue(arg1) == "string" && nl->SymbolValue(arg2) == "int")
-    return nl->SymbolAtom("line3d");    
+    return nl->SymbolAtom("line3d");
   else
     return nl->SymbolAtom("typeerror");
 }
@@ -6073,7 +6072,7 @@ ListExpr GetModeTypeMap(ListExpr args)
                 )
           );
     return result;
-  }  
+  }
 
   return nl->SymbolAtom("typeerror");
 }
@@ -6791,13 +6790,13 @@ ListExpr GetRGNodesTypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->FourElemList(
-                        nl->TwoElemList(nl->SymbolAtom("jun_id"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("jun_gp"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_gp"),
                                       nl->SymbolAtom("gpoint")),
-                        nl->TwoElemList(nl->SymbolAtom("jun_p"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_p"),
                                       nl->SymbolAtom("point")),
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
                                       nl->SymbolAtom("int"))
                   )
                 )
@@ -6824,7 +6823,7 @@ ListExpr GetRGEdges1TypeMap(ListExpr args)
     return listutils::typeError("para1 should be a relation");
 
   ListExpr xType;
-  nl->ReadFromString(RoadDenstiy::rg_nodes_typeinfo, xType);
+  nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType);
   if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
 
 
@@ -6839,9 +6838,9 @@ ListExpr GetRGEdges1TypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("jun_id1"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("jun_id2"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
                                       nl->SymbolAtom("int"))
                   )
                 )
@@ -6875,7 +6874,7 @@ ListExpr GetRGEdges2TypeMap(ListExpr args)
     return listutils::typeError("para2 should be a relation");
 
   ListExpr xType;
-  nl->ReadFromString(RoadDenstiy::rg_nodes_typeinfo, xType);
+  nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
 
@@ -6885,9 +6884,9 @@ ListExpr GetRGEdges2TypeMap(ListExpr args)
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->FourElemList(
-                        nl->TwoElemList(nl->SymbolAtom("jun_id1"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
                                       nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("jun_id2"),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
                                       nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Path1"),
                                       nl->SymbolAtom("gline")),
@@ -7601,9 +7600,9 @@ ListExpr PutInfraTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("space id"),
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("road network id"),
+            nl->TwoElemList(nl->SymbolAtom("RoadNetworkId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7617,9 +7616,9 @@ ListExpr PutInfraTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("space id"),
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("pavement id"),
+            nl->TwoElemList(nl->SymbolAtom("PavementId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7633,9 +7632,9 @@ ListExpr PutInfraTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("space id"),
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("busnetwork id"),
+            nl->TwoElemList(nl->SymbolAtom("BusNetworkId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7650,9 +7649,9 @@ ListExpr PutInfraTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("space id"),
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("metronetwork id"),
+            nl->TwoElemList(nl->SymbolAtom("MetroNetworkId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7667,9 +7666,9 @@ ListExpr PutInfraTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("space id"),
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("indoorinfra id"),
+            nl->TwoElemList(nl->SymbolAtom("IndoorInfraId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7684,9 +7683,9 @@ ListExpr PutInfraTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("space id"),
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("road graph id"),
+            nl->TwoElemList(nl->SymbolAtom("RoadGraphId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7725,9 +7724,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("speed rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("SpeedRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7748,9 +7747,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("triangle rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("TriangleRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7769,9 +7768,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("dg node rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("DGNodeRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7790,9 +7789,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("bspave rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("BSPaveRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7810,9 +7809,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("mspave rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("MSPaveRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7831,9 +7830,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("bs_build rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("BSBuildRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7851,9 +7850,9 @@ ListExpr PutRelTypeMap(ListExpr args)
             nl->TwoElemList(
               nl->SymbolAtom("tuple"),
             nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("space id"),
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
                             nl->SymbolAtom("int")),
-              nl->TwoElemList(nl->SymbolAtom("ms_build rel tuple no."),
+              nl->TwoElemList(nl->SymbolAtom("MSBuildRelNo"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7894,7 +7893,8 @@ ListExpr GetInfraTypeMap(ListExpr args)
       return xType; 
     }else if(GetSymbol(type) == IF_REGION){///////pavement infrastructure 
       ListExpr xType;
-      nl->ReadFromString(Pavement::PaveTypeInfo, xType);
+//      nl->ReadFromString(Pavement::PaveTypeInfo, xType);
+      nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
       return xType; 
     }else if(GetSymbol(type) == IF_BUSSTOP){//////////bus stops 
       ListExpr xType;
@@ -8598,11 +8598,11 @@ ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement"),
                                       nl->SymbolAtom("region"))
                   )
                 )
@@ -8747,11 +8747,11 @@ ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement"),
                                       nl->SymbolAtom("region"))
                   )
                 )
@@ -8915,9 +8915,9 @@ ListExpr OpTMGeospathTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("spath"),
+                        nl->TwoElemList(nl->SymbolAtom("Spath"),
                                     nl->SymbolAtom("line")),
-                        nl->TwoElemList(nl->SymbolAtom("channel"),
+                        nl->TwoElemList(nl->SymbolAtom("Channel"),
                                       nl->SymbolAtom("region"))
                   )
                 )
@@ -8958,28 +8958,6 @@ ListExpr OpTMCreateDGTypeMap ( ListExpr args )
   return nl->SymbolAtom ( "dualgraph" );
 }
 
-/*
-TypeMap fun for operator nodedualgraph
-
-*/
-
-ListExpr OpTMNodeDGTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 1 )
-  {
-    return ( nl->SymbolAtom ( "typeerror" ) );
-  }
-  ListExpr arg1 = nl->First(args);
-
-  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-     nl->SymbolValue(arg1) == "dualgraph"){
-      ListExpr xType;
-      nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
-      return xType;
-  }
-
-  return nl->SymbolAtom ( "typeerror" );
-}
 
 /*
 TypeMap fun for operator walkspold with dual graph and visual graph 
@@ -9187,9 +9165,9 @@ ListExpr OpTMPaveLocToGPTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("fs_loc"),
+                        nl->TwoElemList(nl->SymbolAtom("FS_loc"),
                                     nl->SymbolAtom("point")),
-                        nl->TwoElemList(nl->SymbolAtom("rn_loc"),
+                        nl->TwoElemList(nl->SymbolAtom("RN_loc"),
                                     nl->SymbolAtom("gpoint"))
 
                   )
@@ -9242,11 +9220,11 @@ ListExpr OpTMSetPaveRidTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("pavement"),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement"),
                                       nl->SymbolAtom("region"))
                   )
                 )
@@ -9385,7 +9363,7 @@ ListExpr OpTMRegVertexTypeMap ( ListExpr args )
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("cycleno"),
+                        nl->TwoElemList(nl->SymbolAtom("Cycleno"),
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Vertex"),
                                     nl->SymbolAtom("point"))
@@ -9418,14 +9396,51 @@ ListExpr OpTMTriangulationNewTypeMap ( ListExpr args )
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->FourElemList(
-                        nl->TwoElemList(nl->SymbolAtom("v1"),
+                        nl->TwoElemList(nl->SymbolAtom("V1"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("v2"),
+                        nl->TwoElemList(nl->SymbolAtom("V2"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("v3"),
+                        nl->TwoElemList(nl->SymbolAtom("V3"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("centroid"),
+                        nl->TwoElemList(nl->SymbolAtom("Centroid"),
                                     nl->SymbolAtom("point"))
+                  )
+                )
+          );
+      return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator triangulationext
+
+*/
+
+ListExpr OpTMTriangulationExtTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "region"){
+      ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("V1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("V2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("V3"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Triangle"),
+                                    nl->SymbolAtom("region"))
                   )
                 )
           );
@@ -9468,11 +9483,11 @@ ListExpr OpTMGetDgEdgeTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid1"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid1"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("oid2"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid2"),
                                     nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("commarea"),
+                       nl->TwoElemList(nl->SymbolAtom("Commarea"),
                                     nl->SymbolAtom("line"))
                   )
                 )
@@ -9835,13 +9850,13 @@ ListExpr OpTMGetAllPointsTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->FourElemList(
-                       nl->TwoElemList(nl->SymbolAtom("v"),
+                       nl->TwoElemList(nl->SymbolAtom("V"),
                                    nl->SymbolAtom("point")),
-                      nl->TwoElemList(nl->SymbolAtom("neighbor1"),
+                      nl->TwoElemList(nl->SymbolAtom("Neighbor1"),
                                     nl->SymbolAtom("point")),
-                      nl->TwoElemList(nl->SymbolAtom("neighbor2"),
+                      nl->TwoElemList(nl->SymbolAtom("Neighbor2"),
                                     nl->SymbolAtom("point")),
-                      nl->TwoElemList(nl->SymbolAtom("regid"),
+                      nl->TwoElemList(nl->SymbolAtom("Regid"),
                                     nl->SymbolAtom("int"))
                   )
                 )
@@ -9934,9 +9949,9 @@ ListExpr OpTMGetHoleTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->TwoElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                    nl->SymbolAtom("int")),
-                      nl->TwoElemList(nl->SymbolAtom("hole"),
+                      nl->TwoElemList(nl->SymbolAtom("Hole"),
                                     nl->SymbolAtom("region"))
                   )
                 )
@@ -11612,7 +11627,7 @@ ListExpr OpTMUpDownTypeMap ( ListExpr args )
   {
     return  nl->SymbolAtom ( "list length should be 1" );
   }
-  
+
   ListExpr param1 = nl->First ( args );
   if(!(nl->SymbolValue(param1) == "busstop" ||
        nl->SymbolValue(param1) == "busroute")){
@@ -11641,10 +11656,14 @@ ListExpr OpTMThePavementTypeMap ( ListExpr args )
   ListExpr param2 = nl->Second ( args );
   
   ListExpr xType1;
-  nl->ReadFromString(Pavement::PaveTypeInfo, xType1); 
+//  nl->ReadFromString(Pavement::PaveTypeInfo, xType1);
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType1); 
   if(!CompareSchemas(param2, xType1)){
+/*    return listutils::typeError("rel1 scheam should be" + 
+                                Pavement::PaveTypeInfo);*/
     return listutils::typeError("rel1 scheam should be" + 
-                                Pavement::PaveTypeInfo);
+                                DualGraph::NodeTypeInfo);
+
   }
   
   return nl->SymbolAtom ( "pavenetwork" );
@@ -11760,6 +11779,41 @@ ListExpr OpTMBusRoutesTypeMap ( ListExpr args )
 
 }
 
+/*
+TypeMap fun for operator brsegments
+
+*/
+ListExpr OpTMBRSegmentTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+
+  ListExpr param1 = nl->First(args);
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "line"))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr param2 = nl->Second(args); 
+  if(!(nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
+     nl->SymbolValue(param2) == "line"))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Segment"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("USegment"),
+                        nl->SymbolAtom("line"))
+                    )));
+  return res;
+}
 
 /*
 TypeMap fun for operator mapbstopave
@@ -11769,7 +11823,7 @@ ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 5 )
   {
-    return  nl->SymbolAtom ( "list length should be 4" );
+    return  nl->SymbolAtom ( "list length should be 5" );
   }
 
   ListExpr param1 = nl->First(args);
@@ -13861,13 +13915,13 @@ ListExpr OpTMGetRect1TypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->ThreeElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("reg_id"),
+                        nl->SymbolAtom("Reg_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("geoData"),
+                        nl->SymbolAtom("GeoData"),
                         nl->SymbolAtom("rect")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("poly_id"),
+                        nl->SymbolAtom("Poly_id"),
                         nl->SymbolAtom("int"))
                     )));
       return nl->ThreeElemList(
@@ -13927,23 +13981,23 @@ ListExpr OpTMPathToBuildingTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                    nl->Cons(
                       nl->TwoElemList(
-                              nl->SymbolAtom("reg_id"),
+                              nl->SymbolAtom("Reg_id"),
                               nl->SymbolAtom("int")),
                       nl->SixElemList(
                             nl->TwoElemList(
-                              nl->SymbolAtom("sp"),
+                              nl->SymbolAtom("Sp"),
                               nl->SymbolAtom("point")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("sp_index"),
+                              nl->SymbolAtom("Sp_index"),
                               nl->SymbolAtom("int")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("ep"),
+                              nl->SymbolAtom("Ep"),
                               nl->SymbolAtom("point")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("ep2"),
+                              nl->SymbolAtom("Ep2"),
                               nl->SymbolAtom("point")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("ep2_gloc"),
+                              nl->SymbolAtom("Ep2_gloc"),
                               nl->SymbolAtom("genloc")),
                             nl->TwoElemList(
                               nl->SymbolAtom("Path"),
@@ -13994,26 +14048,26 @@ ListExpr OpTMSetBuildingTypeTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                       nl->Cons(
                             nl->TwoElemList(
-                              nl->SymbolAtom("reg_id"),
+                              nl->SymbolAtom("Reg_id"),
                               nl->SymbolAtom("int")),
                       nl->SixElemList(
                             nl->TwoElemList(
-                              nl->SymbolAtom("geoData"),
+                              nl->SymbolAtom("GeoData"),
                               nl->SymbolAtom("rect")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("poly_id"),
+                              nl->SymbolAtom("Poly_id"),
                               nl->SymbolAtom("int")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("reg_type"),
+                              nl->SymbolAtom("Reg_type"),
                               nl->SymbolAtom("int")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("building_type"),
+                              nl->SymbolAtom("Building_type"),
                               nl->SymbolAtom("int")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("building_type2"),
+                              nl->SymbolAtom("Building_type2"),
                               nl->SymbolAtom("string")),
                             nl->TwoElemList(
-                              nl->SymbolAtom("building_id"),
+                              nl->SymbolAtom("Building_id"),
                               nl->SymbolAtom("int")))
                     )));
     return res;
@@ -15289,23 +15343,6 @@ int OpTMCreateDGValueMap ( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-Value Mapping for  nodedualgraph  operator
-
-*/
-
-int OpTMNodeDGValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-  DualGraph* dg = (DualGraph*)args[0].addr;
-  Relation* node_rel = dg->GetNodeRel();
-  result = SetWord(node_rel->Clone());
-  Relation* resultSt = (Relation*)qp->ResultStorage(in_pSupplier).addr;
-  resultSt->Close();
-  qp->ChangeResultStorage(in_pSupplier, result);
-  return 0;
-}
-
 
 /*
 Value Mapping for walkspold  operator
@@ -15896,6 +15933,48 @@ int OpTMTriangulationNewValueMap ( Word* args, Word& result, int message,
 
 }
 
+int OpTMTriangulationExtValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Region* r = (Region*)args[0].addr;
+        rv = new RegVertex(r);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->TriangulationExt();
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->v1_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
+          tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
+          tuple->PutAttribute(2, new CcInt(true, rv->v3_list[rv->count]));
+          tuple->PutAttribute(3, new Region(rv->tri_list[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 
 /*
 decompose a region into a set of triangles where each is represented by the
@@ -15931,6 +16010,50 @@ int OpTMTriangulationNew2ValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
           tuple->PutAttribute(2, new CcInt(true, rv->v3_list[rv->count]));
           tuple->PutAttribute(3, new Point(rv->regnodes[rv->count]));
+          result.setAddr(tuple);
+          rv->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            rv = (RegVertex*)local.addr;
+            delete rv;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
+
+
+int OpTMTriangulationExt2ValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  RegVertex* rv;
+  switch(message){
+      case OPEN:{
+
+        Region* r = (Region*)args[0].addr;
+        rv = new RegVertex(r);
+        rv->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        rv->TriangulationExt2();
+        local.setAddr(rv);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          rv = (RegVertex*)local.addr;
+          if(rv->count == rv->v1_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(rv->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
+          tuple->PutAttribute(1, new CcInt(true, rv->v2_list[rv->count]));
+          tuple->PutAttribute(2, new CcInt(true, rv->v3_list[rv->count]));
+          tuple->PutAttribute(3, new Region(rv->tri_list[rv->count]));
           result.setAddr(tuple);
           rv->count++;
           return YIELD;
@@ -18113,6 +18236,54 @@ int OpTMBusRoutesValueMap ( Word* args, Word& result, int message,
 
 }
 
+/*
+decompose a bus route
+
+*/
+int OpTMBRSegmentValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  BN* b_n;
+  switch(message){
+      case OPEN:{
+        Line* l1 = (Line*)args[0].addr;
+        Line* l2 = (Line*)args[1].addr;
+
+        b_n = new BN(NULL);
+        b_n->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        b_n->DecomposeBR(l1,l2);
+        local.setAddr(b_n);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          b_n = (BN*)local.addr;
+          if(b_n->count == b_n->line_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(b_n->resulttype);
+
+          tuple->PutAttribute(0, new Line(b_n->line_list1[b_n->count]));
+          tuple->PutAttribute(1, new Line(b_n->line_list2[b_n->count]));
+
+          result.setAddr(tuple);
+          b_n->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            b_n = (BN*)local.addr;
+            delete b_n;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 
 /*
 map the bus stops to the pavements 
@@ -20775,15 +20946,6 @@ Operator createdualgraph(
     OpTMCreateDGTypeMap
 );
 
-
-Operator nodedualgraph(
-    "nodedualgraph",
-    OpTMNodeDGSpec,
-    OpTMNodeDGValueMap,
-    Operator::SimpleSelect,
-    OpTMNodeDGTypeMap
-);
-
 Operator walk_sp_old(
     "walk_sp_old",
     OpTMWalkSPOldSpec,
@@ -20886,6 +21048,14 @@ Operator triangulation_new(
     OpTMTriangulationNewTypeMap
 );
 
+Operator triangulation_ext(
+    "triangulation_ext",
+    OpTMTriangulationExtSpec,
+    OpTMTriangulationExtValueMap,
+    Operator::SimpleSelect,
+    OpTMTriangulationExtTypeMap
+);
+
 Operator triangulation_new2(
     "triangulation_new2",
     OpTMTriangulationNew2Spec,
@@ -20893,6 +21063,15 @@ Operator triangulation_new2(
     Operator::SimpleSelect,
     OpTMTriangulationNewTypeMap
 );
+
+Operator triangulation_ext2(
+    "triangulation_ext2",
+    OpTMTriangulationExt2Spec,
+    OpTMTriangulationExt2ValueMap,
+    Operator::SimpleSelect,
+    OpTMTriangulationExtTypeMap
+);
+
 
 Operator get_dg_edge(
     "get_dg_edge",
@@ -21260,6 +21439,15 @@ Operator bn_busroutes(
   Operator::SimpleSelect,
   OpTMBusRoutesTypeMap
 );
+
+Operator brsegments(
+  "brsegments", 
+  OpTMMapBRSegmentsSpec,
+  OpTMBRSegmentValueMap,
+  Operator::SimpleSelect,
+  OpTMBRSegmentTypeMap
+);
+
 
 Operator mapbstopave(
   "mapbstopave", 
@@ -21739,12 +21927,12 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getpavenode1);
  
     AddOperator(&getpavenode2); 
-    AddOperator(&triangulation);
-    AddOperator(&triangulation2);
+    AddOperator(&triangulation);//return a stream of regions
+    AddOperator(&triangulation2);//return a stream of regions
     AddOperator(&convex);
     AddOperator(&geospath);
     AddOperator(&createdualgraph);///////create a dual graph 
-    AddOperator(&nodedualgraph);
+
     //////////////////////////////////////////////////////////////////
     ///////////////////visibility graph///////////////////////////////
     //////////////////////////////////////////////////////////////////
@@ -21766,10 +21954,15 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&zval);//z-order value of a point
     AddOperator(&zcurve);//create a curve for the points sorted by z-order
     AddOperator(&regvertex);
-    AddOperator(&triangulation_new);
-    AddOperator(&triangulation_new2);
-    AddOperator(&get_dg_edge);//create dual graph edge relation 
+    AddOperator(&triangulation_new);//v1; v2; v3; centroid point;
+    AddOperator(&triangulation_ext);//v1; v2; v3; centroid point; region
+    AddOperator(&triangulation_new2);//v1; v2; v3; centroid point; 
+    AddOperator(&triangulation_ext2);//v1; v2; v3; centroid point; region
+
+    AddOperator(&get_dg_edge);//create dual graph edge relation
+    ////// simple method to create dual graph, traverse RTree///////////////
     AddOperator(&smcdgte);//find adjacent dual graph nodes,used for build metro
+
     ////////////////////data process///////////////////////////////////
     AddOperator(&generate_wp1);
     AddOperator(&generate_wp2);
@@ -21802,7 +21995,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_bus_stop4); //change bus stop position 
     AddOperator(&create_bus_stop5); //set up and down for bus stops 
     AddOperator(&getbusstops);//use data type busstop representing bus stops
-    AddOperator(&getstopid); 
+    AddOperator(&getstopid); //the relative order on a route 
     AddOperator(&getbusroutes);//use data type busroute representing bus routes
     AddOperator(&brgeodata);//get geometrical line of a bus route
     AddOperator(&bsgeodata);//get the point of a bus stop 
@@ -21810,6 +22003,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&thebusnetwork);//create bus network 
     AddOperator(&bn_busstops);//get bus stops relation
     AddOperator(&bn_busroutes);//get bus routes relation
+    AddOperator(&brsegments);//decompose bus routes 
     ////////////////////////////////////////////////////////////////////////
     /*grpah for the bus network*/
     ///////////////////////////////////////////////////////////////////////
@@ -21918,6 +22112,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_genloc);// int x real x real to a genloc 
     AddOperator(&modeval);//get an integer for a genmo denoting modes 
     AddOperator(&genmoindex);// build an index on units 
+    
   
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
@@ -21974,7 +22169,6 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&get_rg_edges2);//get road graph edges, glines
    AddOperator(&creatergraph);//create road network graph
    AddOperator(&shortestpath_tm);//shortest path on road graph
-//   AddOperator(&shortestpath_tm2);//path on road graph avoid center area
    ///////////////////////////////////////////////////////////////////////
    ///////////////overall navigation system///////////////////////////////
    /////////////////////////////////////////////////////////////////////
@@ -21989,7 +22183,7 @@ class TransportationModeAlgebra : public Algebra
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
    ////////////////////////////////////////////////////////////////////
-   /////find pavement areas and buildings clost to bus,metro stops/////
+   /////find pavement areas and buildings closest to bus,metro stops/////
    ////////////////////////////////////////////////////////////////////
    AddOperator(&nearstops_pave);
    AddOperator(&nearstops_building);
@@ -21999,8 +22193,7 @@ class TransportationModeAlgebra : public Algebra
    ////////////// comment them out when for testing  ////////////////
    //////////////////////////////////////////////////////////////////
    //    AddOperator(&fillpavement); //////comment it out for debuging
-   ////// simple method to create dual graph, traverse RTree///////////////
-   
+
    //    AddOperator(&getsections); //get road network sections 
    //    AddOperator(&getpaveedge1);//comment it out for debuging
    //    AddOperator(&getpaveedge2);  ///comment it out for debuging
