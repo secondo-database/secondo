@@ -7892,8 +7892,107 @@ Specification
 
 #endif
 
+/*
+4.13 Operator ~endsWith~
+
+4.13.1 Type Mapping 
+
+Signature is {text, string} x {text, string} -> bool
+
+*/
+
+ListExpr endsWithTM(ListExpr args){
+  string err = " {text, string} x {text, string} expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if(!CcString::checkType(first) &&
+     !FText::checkType(first)){
+     return listutils::typeError(err);
+  }
+  if(!CcString::checkType(second) &&
+     !FText::checkType(second)){
+     return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
 
 
+/*
+4.13.2 Value Mapping of ~endsWith~
+
+*/
+
+  template<class A1, class A2>
+  int endsWithVM1( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+     A1* a1 = (A1*) args[0].addr;
+     A2* a2 = (A2*) args[1].addr;
+     result = qp->ResultStorage(s);
+     CcBool* res = (CcBool*) result.addr;
+     if(!a1->IsDefined() || !a2->IsDefined()){
+        res->SetDefined(false);
+     } else {
+        res->Set(true, stringutils::endsWith(a1->GetValue(), a2->GetValue()));
+     }
+     return 0; 
+  }
+
+/*
+4.13.3 Value Mapping Array and Selection function
+
+*/   
+   ValueMapping endsWithVM[] = {
+                endsWithVM1<CcString, CcString>,
+                endsWithVM1<CcString, FText>,
+                endsWithVM1<FText, CcString>,
+                endsWithVM1<FText, FText>
+            };
+
+   int endsWithSelect(ListExpr args){
+      ListExpr first = nl->First(args);
+      ListExpr second = nl->Second(args);
+      if(CcString::checkType(first)){
+         if(CcString::checkType(second)){
+           return 0;
+         } else {
+           return 1;
+         }
+      } else {
+         if(CcString::checkType(second)){
+           return 2;
+         } else {
+           return 3;
+         }
+      }
+   }
+
+/*
+4.13.4 Specification
+
+*/
+  const string endsWithSpec =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+      "( <text>  {text,string} x {text,string} -> bool </text--->"
+      "<text> _ endsWith _  </text--->"
+      "<text>Checks whether the first argument's value ends with the  "
+      " second's argument value</text--->"
+      "<text>query \"Hello\" endsWith 'llo'  </text--->"
+      ") )";
+
+
+  Operator endsWith
+  (
+  "endsWith",             //name
+   endsWithSpec,         //specification
+   4,                           // no of VM functions
+   endsWithVM,        //value mapping
+   endsWithSelect,   //trivial selection function
+   endsWithTM        //type mapping
+  );
 
 
 
@@ -7981,6 +8080,7 @@ Specification
       AddOperator( &trimAll);
       AddOperator(&str2real);
       AddOperator(&str2int);
+      AddOperator(&endsWith);
 
 #ifdef RECODE
       AddOperator(&recode);
