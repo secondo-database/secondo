@@ -117,6 +117,24 @@ std::string replaceAll(const std::string& textStr,
                   const std::string& patternNewStr);
 
 
+
+
+/*
+3 endsWith
+
+Checks whether the second argument is a suffix of the first one
+
+*/
+bool endsWith(const std::string& a1, const std::string& a2);
+
+/*
+4 startsWith
+
+Checks whether the second argument is a prefix of the first one
+
+*/
+bool startsWith(const std::string& a1, const std::string& a2);
+
 /*
 Function converting a type supporting the shift (output) operator
 to a string.
