@@ -22,7 +22,7 @@ Operator : searchtrie
 Number   : 1
 Signature: trie x string -> tid
 Example  : query searchtrie(createemptytrie(),"hello")
-Result   : (TID 0)
+Result   : (tid 0)
 
 
 Operator : contains
@@ -47,7 +47,7 @@ Result   : 0
 Operator : createInvFile
 Number   : 1
 Signature: stream(tuple) x a_i x a_j -> invfile
-Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] 
+Example  : query SEC2OPERATORINFO feed addid createInvFile[Signature, TID] 
 Result   : unpredictable
 Remark   : A InvFile has not out function
 
@@ -55,20 +55,20 @@ Remark   : A InvFile has not out function
 Operator : searchWord 
 Number   : 1
 Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))
-Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] searchWord["bool"] count > 0
+Example  : query (SEC2OPERATORINFO feed addcounter[C,1] extend[TID : int2tid(.C)]  createInvFile[Signature, TID] ) searchWord["bool"] count > 0
 Result   : TRUE
 
 
 Operator : searchPrefix
 Number   : 1
 Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))
-Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] searchPrefix["boo"] count > 0
+Example  : query (SEC2OPERATORINFO feed addcounter[C,1] extend[TID : int2tid(.C)]  createInvFile[Signature, TID]) searchPrefix["boo"] count > 0
 Result   : TRUE
 
 Operator  : getFileInfo 
 Number    : 1
 Signature : invfile -> text
-Example   : query length(getFileInfo(SEC2OPERATORIFO feed addid createInvFile[Signature, TID] )) > 0
+Example   : query length(getFileInfo(SEC2OPERATORINFO feed addid createInvFile[Signature, TID] )) > 0
 Result   : TRUE
 
 
@@ -81,14 +81,14 @@ Result   : TRUE
 Operator  : wordCount
 Number    : 1
 Signature : invfile -> int
-Example   : tokenize('hello hello hello') namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] wordCount["hello"]
+Example   : query tokenize('hello hello hello'," ") namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] wordCount["hello"]
 Result    : 3 
 
 
-Operator  : wordCount
+Operator  : prefixCount
 Number    : 1
 Signature : invfile -> int
-Example   : tokenize('hello hello hello') namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] prefixCount["hel"] tconsume
+Example   : query tokenize('hello hello hello', " ") namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] prefixCount["hel"] tconsume
 Result    : ( (trel(tuple((Word text)(Count int)))) ( ('hello' 3))) 
 
 
