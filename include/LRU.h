@@ -24,6 +24,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+
+#ifndef LRU_H
+#define LRU_H
+
+
 #include <map>
 
 
@@ -268,5 +273,7 @@ element is returned. The caller has to destroy the element.
 
 
 };
+
+#endif
 
 
