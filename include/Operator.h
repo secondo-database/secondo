@@ -152,6 +152,66 @@ struct OperatorInfo {
 
 ostream& operator<<(ostream& o, const OperatorInfo& oi);
 
+
+class OperatorSpec{
+
+  public:
+     OperatorSpec ( const string& _signature,
+                    const string& _syntax,
+                    const string& _meaning,
+                    const string _example,
+                    const string& _remark = ""):
+                    signature(_signature),
+                    syntax(_syntax),
+                    meaning(_meaning),
+                    example(_example),
+                    remark(_remark) {}
+
+
+
+      static string getListString(
+          const string& _signature,
+          const string& _syntax,
+          const string& _meaning,
+          const string _example,
+          const string& _remark = "") {
+         
+          stringstream ss;
+          ss << "( ( "
+             << "\"Signature\""
+             << "\"Syntax\""
+             << "\"Meaning\""
+             << "\"Example\"";
+          if(_remark.length()==0){
+             ss << "\"Comment\"";
+          }
+          ss << ")" << endl; 
+          ss << "(";
+          ss << "<text>" << _signature << "</text--->" << endl;
+          ss << "<text>" << _syntax  << "</text--->" << endl;
+          ss << "<text>" << _meaning << "</text--->" << endl;
+          ss << "<text>" << _example << "</text--->" << endl;
+          if(_remark.length() == 0){
+             ss << "<text>" << _remark << "</text--->" << endl;
+          }
+          ss << "))";
+          return ss.str();
+      }
+
+      string getStr(){
+        return getListString(signature,syntax,meaning,example,remark);
+      } 
+
+  private:
+     string signature;
+     string syntax;
+     string meaning;
+     string example;
+     string remark;
+};
+
+
+
 class Operator
 {
 
