@@ -341,6 +341,18 @@ alway use const string Symbol::UNDEFINED()!
   bool isSymbolUndefined( const string s );
   bool isSymbolUndefined( ListExpr le );
 
+
+/*
+~basicSymbol~
+
+Returns the basictype of a class as a symbol
+
+*/
+template<class C>
+ListExpr basicSymbol(){
+   return nl->SymbolAtom(C::BasicType());
+}
+
 } // end of namespace
 #endif
 
