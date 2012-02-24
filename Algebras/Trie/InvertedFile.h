@@ -332,6 +332,9 @@ Creates a depth copy of this objects.
           }
         }
 
+
+
+
      private:
        size_t part;           // partition within the record
        size_t slotPos;        // position within the slot
@@ -416,6 +419,29 @@ Creates a depth copy of this objects.
     return new exactIterator(&listFile, rid, mem);
   } 
 
+   
+
+
+     size_t wordCount(const string& word){
+       return wordCount( Trie::search(word));
+
+     }
+
+     size_t wordCount(const TupleId id){
+       if(id==0){
+         return 0;
+       }
+       SmiRecord record;
+       listFile.SelectRecord(id,record);
+       size_t s = record.Size();
+       record.Finish();
+       return s / entrySize();
+     }
+
+
+   size_t entrySize()const{
+         return  sizeof(TupleId) + sizeof(size_t) + sizeof(size_t); 
+   }
   
   class prefixIterator{
      friend class InvertedFile;
@@ -456,9 +482,83 @@ Creates a depth copy of this objects.
       }
    };
 
+
+/*
+~getPrefixIterator~
+
+Returns a prefixIterator for str. The caller of this functions is responsible to
+destroy the iterator after using.
+
+*/
    prefixIterator* getPrefixIterator(const string& str){
      return new prefixIterator(this, str);
    }
+
+
+/*
+Class countPrefixIterator
+
+This iterator returns all words starting with a certain prefix stored in this
+structure together with the count of this word.
+
+*/
+  class countPrefixIterator{
+    friend class InvertedFile;
+    public:
+       bool next(string& word, size_t& count){
+          TupleId id;
+          if(!it->next(word, id)){
+             return false;
+          }
+          count = inv->wordCount(id);
+          return true;
+       }
+      
+       ~countPrefixIterator(){
+          delete it;
+        }
+
+    private:
+       InvertedFile* inv;
+       TrieIterator<TupleId>* it;
+
+
+       countPrefixIterator(InvertedFile* _inv, const string& prefix):  
+         inv(_inv) {
+         it = inv->getEntries(prefix);
+       }
+
+  };
+
+
+  countPrefixIterator* getCountPrefixIterator(const string& str){
+    return new countPrefixIterator(this, str);
+  }
+
+
+
+/*
+~getFileInfo~
+
+Returns data about the underlying files.
+
+*/
+
+   void  getFileInfo( SmiStatResultType& result){
+         Trie::getFileInfo(result); 
+         SmiStatResultType listresult = 
+                           listFile.GetFileStatistics(SMI_STATS_LAZY);
+         listresult.push_back( pair<string,string>("FilePurpose", 
+                                                   "Inverted List File"));
+         result.push_back(pair<string,string>("---","---"));
+         for(unsigned int i=0;i<listresult.size();i++){
+           result.push_back(listresult[i]);
+         }
+    }
+
+
+   
+
 
 
 

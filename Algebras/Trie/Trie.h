@@ -430,11 +430,18 @@ class Trie{
      }
 
      TupleId search(const string& str){
-         if(rootId==0){
+          SmiRecordId id = rootId;
+          size_t pos = 0;
+          while((id!=0) && (pos <str.length())) {
+              TrieNode<TupleId> node(&file,id);
+              id = node.getNext(str[pos]);
+              pos++; 
+          }
+          if(id==0){
             return 0;
-         }
-         TrieNode<TupleId> root(&file, rootId);
-         return root.search(str,0,&file);    
+          }
+          return TrieNode<TupleId>(&file,id).getContent();
+          
      }
 
      bool contains(const string& str, const bool acceptPrefix){
@@ -504,6 +511,14 @@ class Trie{
         } 
         return new TrieIterator<TupleId>(&file,id,prefix);
      }
+
+
+    void  getFileInfo( SmiStatResultType& result){
+          result = file.GetFileStatistics(SMI_STATS_LAZY);
+          result.push_back( pair<string,string>("FilePurpose", 
+                                                "Secondary Trie Index"));
+     }
+
 
 
  protected:

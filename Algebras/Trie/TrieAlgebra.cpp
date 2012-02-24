@@ -1071,11 +1071,299 @@ Operator searchPrefix (
           Operator::SimpleSelect, // trivial selection function
           searchPrefixTM);
 
+/*
+2.7 Operator getFileInfo
+
+2.7.1 Type Mapping
+
+The Signature is {trie, invfile} -> text 
+
+*/
+ListExpr getFileInfoTM(ListExpr args){
+  string err = " trie or invfile expected " ;
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  ListExpr arg = nl->First(args);
+  if(!Trie::checkType(arg) &&
+     !InvertedFile::checkType(arg)){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<FText>();
+
+}
+
+/*
+2.7.2 ValueMapping
+
+*/
+template<class T>
+int getFileInfoVM1(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+   T* t = (T*) args[0].addr;
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   SmiStatResultType r;
+   t->getFileInfo(r);
+   stringstream ss;
+   for(unsigned int i=0; i< r.size() ; i++){
+      ss << r[i].first << " : " << r[i].second << endl;
+   }
+   res->Set(true,ss.str());
+   return 0;
+}
+
+/*
+2.7.3 Value Mapping Array and Selection Function
+
+*/
+
+ValueMapping getFileInfoVM[] = {
+  getFileInfoVM1<Trie>,
+  getFileInfoVM1<InvertedFile>
+};
+
+int getFileInfoSelect(ListExpr args){
+  return Trie::checkType(nl->First(args))?0:1;
+}
+
+/*
+2.7.4 Specification
+
+*/
+OperatorSpec getFileInfoSpec(
+           "{trie|invfile} -> text",
+           "getFileInfo(_)",
+           "Returns information about the underlying files of"
+           " an index structure",
+           " query getFileInfo(iv1) " );
+
+/*
+2.7.5 Operator Instance
+
+*/  
+
+
+Operator getFileInfo
+  (
+  "getFileInfo",             //name
+   getFileInfoSpec.getStr(),         //specification
+   2,                           // no of VM functions
+   getFileInfoVM,        //value mapping
+   getFileInfoSelect,   //trivial selection function
+   getFileInfoTM        //type mapping
+  );
 
 
 
+/*
+2.8 wordCount
+
+This operator returns the amount of a certain word within the
+whole indexed relation.
+
+2.8.1 typeMapping
+
+Signature : invfile x string -> int
+
+*/
+
+ListExpr wordCountTM(ListExpr args){
+  string err ="invfile x string expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!InvertedFile::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();  
+}
 
 
+/*
+2.8.2 Value Mapping
+
+*/
+
+int wordCountVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+   InvertedFile* iv = (InvertedFile*) args[0].addr;
+   CcString* str = (CcString*) args[1].addr;   
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   if(!str->IsDefined()){
+      res->SetDefined(false);
+   } else {
+     res->Set(true, iv->wordCount(str->GetValue()));
+  }
+  return 0;
+}
+
+
+/*
+2.8.3 Specification
+
+*/
+
+OperatorSpec wordCountSpec(
+           "  invfile x string -> int",
+           " _ wordCount[_]",
+           " Returns how ofter a word is indexed.",
+           " query iv wordCount[\"secondo\" " );
+
+/*
+2.8.4 Operator Instance
+
+*/
+
+Operator wordCount (
+         "wordCount" ,           // name
+          wordCountSpec.getStr(),          // specification
+          wordCountVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          wordCountTM);
+
+
+/*
+2.9 prefixCount
+
+2.9.1 Type Mapping
+
+Signature :  invfile x string -> stream(tuple([Word : text, Count : int]))
+
+*/
+ListExpr prefixCountTM(ListExpr args){
+  string err ="invfile x string expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err);
+  }
+  if(!InvertedFile::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+
+  ListExpr attrList = nl->TwoElemList(
+                             nl->TwoElemList(
+                                    nl->SymbolAtom("Word"),
+                                    listutils::basicSymbol<FText>()),
+                             nl->TwoElemList(
+                                    nl->SymbolAtom("Count"),
+                                    listutils::basicSymbol<CcInt>()));
+
+  return  nl->TwoElemList(  
+                 listutils::basicSymbol<Stream<Tuple> >(),
+                 nl->TwoElemList(
+                      listutils::basicSymbol<Tuple>(),
+                      attrList)); 
+                           
+} 
+
+/*
+2.9.2 Value Mapping
+
+*/
+
+class prefixCountLI{
+  public:
+     prefixCountLI(InvertedFile* iv, CcString* str, ListExpr type): tt(0),it(0){
+        if(str->IsDefined()){
+           it = iv->getCountPrefixIterator(str->GetValue());
+           tt = new TupleType(type);
+        }
+     }
+
+    ~prefixCountLI(){
+         if(it){
+           delete it;
+         } 
+         if(tt){
+           tt->DeleteIfAllowed();;
+         }
+     }
+
+     Tuple* next(){
+        string s;
+        size_t c = 0;
+        if(!it->next(s,c)){
+           return 0;
+        }
+        Tuple* res = new Tuple(tt);
+        res->PutAttribute(0, new FText(true,s));
+        res->PutAttribute(1, new CcInt(true,c));
+        return res; 
+     }
+
+  private:
+     TupleType* tt;
+     InvertedFile::countPrefixIterator* it;    
+
+};
+
+int prefixCountVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+
+
+   prefixCountLI* li = (prefixCountLI*) local.addr;
+   switch(message){
+      case OPEN : {
+                      if(li){
+                         delete li;
+                      }
+                      InvertedFile* iv = (InvertedFile*) args[0].addr;
+                      CcString* str = (CcString*) args[1].addr;
+                      local.addr = new prefixCountLI(iv,str, 
+                                   nl->Second(GetTupleResultType(s)));
+                      return 0;
+                  } 
+     case REQUEST : {
+                      if(!li){
+                        return CANCEL;
+                      }
+                      result.addr = li->next();
+                      return result.addr?YIELD:CANCEL;
+                   }
+
+     case CLOSE : {
+                      if(li){
+                         delete li;
+                         local.addr = 0;
+                      }
+                      return 0;
+                  }
+   }
+   return -1;
+}
+
+/*
+9.2.3 Specification
+
+*/
+
+OperatorSpec prefixCountSpec(
+           "  invfile x string -> stream(tuple([Word : text, Count : int]))",
+           " _ prefixCount[_]",
+           " Returns how often word starting with a prefix are indexed.",
+           " query iv prefixCountCount[\"secondo\" ] tconsume " );
+
+
+/*
+9.2.4 Operator instance
+
+*/
+
+Operator prefixCount (
+         "prefixCount" ,           // name
+          prefixCountSpec.getStr(),          // specification
+          prefixCountVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          prefixCountTM);
 
 } // end of namespace trie
 
@@ -1097,6 +1385,10 @@ class TrieAlgebra : public Algebra {
      
      AddOperator(&trie::createInvFile);
      trie::createInvFile.SetUsesMemory();
+
+     AddOperator(&trie::getFileInfo);
+     AddOperator(&trie::wordCount);
+     AddOperator(&trie::prefixCount);
 
 
 #ifdef USE_PROGRESS

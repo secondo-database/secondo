@@ -65,3 +65,32 @@ Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos))
 Example  : query SEC2OPERATORIFO feed addid createInvFile[Signature, TID] searchPrefix["boo"] count > 0
 Result   : TRUE
 
+Operator  : getFileInfo 
+Number    : 1
+Signature : invfile -> text
+Example   : query length(getFileInfo(SEC2OPERATORIFO feed addid createInvFile[Signature, TID] )) > 0
+Result   : TRUE
+
+
+Operator : getFileInfo
+Number   : 2
+Signature: trie  -> text
+Example  : query length(getFileInfo(createemptytrie())) > 0
+Result   : TRUE
+
+Operator  : wordCount
+Number    : 1
+Signature : invfile -> int
+Example   : tokenize('hello hello hello') namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] wordCount["hello"]
+Result    : 3 
+
+
+Operator  : wordCount
+Number    : 1
+Signature : invfile -> int
+Example   : tokenize('hello hello hello') namedtransformstream[T] extend[I : int2tid(1)] createInvFile[T,I] prefixCount["hel"] tconsume
+Result    : ( (trel(tuple((Word text)(Count int)))) ( ('hello' 3))) 
+
+
+
+

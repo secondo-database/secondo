@@ -12,5 +12,10 @@ operator createInvFile alias CREATEINVFILE pattern _ op [_,_]
 operator searchWord alias SEARCHWORD pattern _ op [_]
 operator searchPrefix alias SEARCHPREFIX pattern _ op [_]
 
+operator getFileInfo alias GETFILEINFO pattern op(_)
+
+operator wordCount alias WORDCOUNT pattern _ op [_] 
+operator prefixCount alias PREFIXCOUNT pattern _ op [_] 
+
 
 
