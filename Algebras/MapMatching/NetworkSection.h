@@ -46,6 +46,7 @@ class SimpleLine;
 class TupleIdentifier;
 
 #include <stdio.h>
+#include <Point.h>
 
 
 namespace mapmatch {
@@ -83,15 +84,22 @@ public:
 
     bool GetCurveStartsSmaller(void) const;
 
+    double GetCurveLength(const double dScale) const;
+
     TupleIdentifier* GetRRC(void) const;
 
     int GetSectionID(void) const;
+
+    Point GetStartPoint(void) const;
+
+    Point GetEndPoint(void) const;
 
 private:
 
     Tuple* m_pTupleSection;
     Network* m_pNetwork;
     mutable class NetworkRoute* m_pNetworkRoute;
+    mutable double m_dCurveLength;
 };
 
 

@@ -51,7 +51,9 @@ namespace mapmatch {
 
 // Constructor
 MapMatchingBase::MapMatchingBase(Network* pNetwork, MPoint* pMPoint)
-:m_pNetwork(pNetwork), m_pMPoint(pMPoint), m_pResMGPoint(NULL), m_pRITree(NULL)
+:m_pNetwork(pNetwork),  // TODO
+ m_dNetworkScale(1000.0/*pNetwork != NULL ? pNetwork->GetScalefactor() : 1.0*/),
+ m_pMPoint(pMPoint), m_pResMGPoint(NULL), m_pRITree(NULL)
 {
 }
 

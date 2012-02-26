@@ -116,6 +116,7 @@ protected:
 
 */
     Network* m_pNetwork;
+    double m_dNetworkScale;
     MPoint* m_pMPoint;
 
 private:

@@ -63,30 +63,34 @@ public:
     static double CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
                                            const Point& rPt,
                                            /*OUT*/ Point& rPtRes,
-                                           const Geoid* pGeoid = NULL);
+                                           const double dScale);
 
     static Point CalcOrthogonalProjection(const SimpleLine& rLine,
                                           const Point& rPt,
                                           /*OUT*/ double& rdDistanceRes,
-                                          const Geoid* pGeoid = NULL);
+                                          /*IN*/  const double dScale);
 
     static double CalcProjection(const HalfSegment& rHalfSegment,
                                  const Point& rPt,
                                  /*OUT*/ Point& rPtRes,
                                  /*OUT*/ bool& bIsOrthogonal,
-                                 const Geoid* pGeoid);
+                                 /*IN*/  const double dScale);
 
     static Point CalcProjection(const SimpleLine& rLine,
                                 const Point& rPt,
                                 /*OUT*/ double& rdDistanceRes,
                                 /*OUT*/ bool& bIsOrthogonal,
-                                const Geoid* pGeoid = NULL);
+                                /*IN*/  const double dScale);
+
+    static double CalcDistance(const Point& rPt1,
+                               const Point& rPt2,
+                               const double dScale);
 
     static double CalcDistance(const std::vector<const Point*>& rvecPoints,
-                               const Geoid* pGeoid = NULL);
+                               const double dScale);
 
     static double CalcLengthCurve(const SimpleLine* pCurve,
-                                  const Geoid* pGeoid = NULL);
+                                  const double dScale);
 
     static bool GetPosOnSimpleLine( const SimpleLine& rLine,
                                     const Point& p,
@@ -94,6 +98,9 @@ public:
                                     double tolerance,
                                     double& result);
 
+    static Point CalcDestinationPoint(const Point& rPoint,
+                                      double dBearing,
+                                      double dDistanceKM);
 };
 
 

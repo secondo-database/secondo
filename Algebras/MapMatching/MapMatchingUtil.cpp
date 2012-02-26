@@ -77,7 +77,7 @@ bool MMUtil::Intersects(const Region& rRegion, const SimpleLine& rSLine)
 
 double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
                                         const Point& rPt, Point& rPtRes,
-                                        const Geoid* pGeoid)
+                                        const double dScale)
 {
     // Modified copy of HalfSegment::Distance(Point)
     // We need distance and projected point
@@ -94,10 +94,7 @@ double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
         if ((yl <= Y && Y <= yr) || (yr <= Y && Y <= yl))
         {
             rPtRes.Set(xl, Y);
-            if (pGeoid != NULL)
-                return rPt.Distance(rPtRes, pGeoid);
-            else
-                return fabs(X - xl);
+            return MMUtil::CalcDistance(rPt, rPtRes, dScale);
         }
         else
         {
@@ -111,10 +108,7 @@ double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
             // if (xl <= X && X <= xr)
         {
             rPtRes.Set(X, yl);
-            if (pGeoid != NULL)
-                return rPt.Distance(rPtRes, pGeoid);
-            else
-                return fabs(Y - yl);
+            return MMUtil::CalcDistance(rPt, rPtRes, dScale);
         }
         else
         {
@@ -132,7 +126,7 @@ double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
         if (xl <= xx && xx <= xr)
         {
             rPtRes.Set(xx, yy);
-            return rPt.Distance(rPtRes, pGeoid);
+            return MMUtil::CalcDistance(rPt, rPtRes, dScale);
         }
         else
         {
@@ -145,7 +139,7 @@ double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
 Point MMUtil::CalcOrthogonalProjection(const SimpleLine& rLine,
                                        const Point& rPt,
                                        double& rdDistanceRes,
-                                       const Geoid* pGeoid)
+                                       const double dScale)
 {
     Point ResPoint(false /*not defined*/);
     double dShortestDistance = std::numeric_limits<double>::max();
@@ -158,7 +152,7 @@ Point MMUtil::CalcOrthogonalProjection(const SimpleLine& rLine,
         {
             Point ResPointSeg(false /*not defined*/);
             double dDistance = CalcOrthogonalProjection(hs, rPt,
-                                                        ResPointSeg, pGeoid);
+                                                        ResPointSeg, dScale);
             if (ResPointSeg.IsDefined() && dDistance < dShortestDistance)
             {
                 dShortestDistance = dDistance;
@@ -174,7 +168,7 @@ Point MMUtil::CalcOrthogonalProjection(const SimpleLine& rLine,
 double MMUtil::CalcProjection(const HalfSegment& rHalfSegment,
                               const Point& rPt, Point& rPtRes,
                               bool& bIsOrthogonal,
-                              const Geoid* pGeoid)
+                              const double dScale)
 {
     // Modified copy of HalfSegment::Distance(Point)
     // We need distance and projected point
@@ -195,10 +189,7 @@ double MMUtil::CalcProjection(const HalfSegment& rHalfSegment,
             bIsOrthogonal = true;
 
             rPtRes.Set(xl, Y);
-            if (pGeoid != NULL)
-                return rPt.Distance(rPtRes, pGeoid);
-            else
-                return fabs(X - xl);
+            return MMUtil::CalcDistance(rPt, rPtRes, dScale);
         }
     }
     else if (AlmostEqual(yl, yr)) // horizontal
@@ -209,10 +200,7 @@ double MMUtil::CalcProjection(const HalfSegment& rHalfSegment,
             bIsOrthogonal = true;
 
             rPtRes.Set(X, yl);
-            if (pGeoid != NULL)
-                return rPt.Distance(rPtRes, pGeoid);
-            else
-                return fabs(Y - yl);
+            return MMUtil::CalcDistance(rPt, rPtRes, dScale);
         }
     }
     else
@@ -227,7 +215,7 @@ double MMUtil::CalcProjection(const HalfSegment& rHalfSegment,
             bIsOrthogonal = true;
 
             rPtRes.Set(xx, yy);
-            return rPt.Distance(rPtRes, pGeoid);
+            return MMUtil::CalcDistance(rPt, rPtRes, dScale);
         }
     }
 
@@ -235,8 +223,12 @@ double MMUtil::CalcProjection(const HalfSegment& rHalfSegment,
     // -> Calc shortest distance to left or right point
 
     bIsOrthogonal = false;
-    double dDistanceLeft = rPt.Distance(rHalfSegment.GetLeftPoint(), pGeoid);
-    double dDistanceRight = rPt.Distance(rHalfSegment.GetRightPoint(), pGeoid);
+    double dDistanceLeft = MMUtil::CalcDistance(rPt,
+                                                rHalfSegment.GetLeftPoint(),
+                                                dScale);
+    double dDistanceRight = MMUtil::CalcDistance(rPt,
+                                                 rHalfSegment.GetRightPoint(),
+                                                 dScale);
     if (dDistanceLeft <= dDistanceRight)
     {
         rPtRes.Set(rHalfSegment.GetLeftPoint());
@@ -253,7 +245,7 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
                              const Point& rPt,
                              double& rdDistanceRes,
                              bool& bIsOrthogonal,
-                             const Geoid* pGeoid)
+                             const double dScale)
 {
     Point ResPoint(false /*not defined*/);
     double dShortestDistance = std::numeric_limits<double>::max();
@@ -267,7 +259,7 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
             Point ResPointSeg(false /*not defined*/);
             bool bOrthogonal = false;
             double dDistance = CalcProjection(hs, rPt, ResPointSeg,
-                                              bOrthogonal, pGeoid);
+                                              bOrthogonal, dScale);
             if (ResPointSeg.IsDefined() && dDistance < dShortestDistance)
             {
                 dShortestDistance = dDistance;
@@ -281,8 +273,114 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
     return ResPoint;
 }
 
+static double CalcDistanceSimple(const Point& rPoint1, const Point& rPoint2)
+{
+    const double dRadiusEarth = 6378.137;
+
+    Point Point1Rad(true, degToRad(rPoint1.GetX()), degToRad(rPoint1.GetY()));
+    Point Point2Rad(true, degToRad(rPoint2.GetX()), degToRad(rPoint2.GetY()));
+
+    // Distance in meters
+    return 1000 * acos(sin(Point1Rad.GetY()) * sin(Point2Rad.GetY()) +
+                       cos(Point1Rad.GetY()) * cos(Point2Rad.GetY()) *
+                       cos(Point1Rad.GetX() - Point2Rad.GetX())) * dRadiusEarth;
+}
+
+double MMUtil::CalcDistance(const Point& rPt1,
+                            const Point& rPt2,
+                            const double dScale)
+{
+//#define USE_GEOID
+//#define USE_GEOID_PRECISE
+#define USE_SIMPLE_DISTANCE
+
+#ifdef USE_GEOID
+
+    static Geoid s_Geoid(Geoid::WGS1984);
+
+    if (AlmostEqual(dScale, 1.0))
+    {
+        bool bValid = true;
+        double dDistance = rPt1.DistanceOrthodrome(rPt2,
+                                                   s_Geoid,
+                                                   bValid);
+        assert(bValid);
+        return dDistance;
+    }
+    else
+    {
+        Point Point1(rPt1);
+        Point1.Scale(1.0 / dScale);
+        Point Point2(rPt2);
+        Point2.Scale(1.0 / dScale);
+        bool bValid = true;
+        double dDistance = Point1.DistanceOrthodrome(Point2,
+                                                     s_Geoid,
+                                                     bValid);
+        assert(bValid);
+        return dDistance;
+    }
+
+#elif defined USE_GEOID_PRECISE
+
+    static Geoid s_Geoid(Geoid::WGS1984);
+
+    if (AlmostEqual(dScale, 1.0))
+    {
+        bool bValid = true;
+        double dInitBearing = 0.;
+        double dFinalBearing = 0.;
+        double dDistance = rPt1.DistanceOrthodromePrecise(rPt2,
+                                                          s_Geoid,
+                                                          bValid,
+                                                          dInitBearing,
+                                                          dFinalBearing);
+        assert(bValid);
+        return dDistance;
+    }
+    else
+    {
+        Point Point1(rPt1);
+        Point1.Scale(1.0 / dScale);
+        Point Point2(rPt2);
+        Point2.Scale(1.0 / dScale);
+        bool bValid = true;
+        double dInitBearing = 0.;
+        double dFinalBearing = 0.;
+        double dDistance = Point1.DistanceOrthodromePrecise(Point2,
+                                                            s_Geoid,
+                                                            bValid,
+                                                            dInitBearing,
+                                                            dFinalBearing);
+        assert(bValid);
+        return dDistance;
+    }
+
+#elif defined USE_SIMPLE_DISTANCE
+
+    if (AlmostEqual(dScale, 1.0))
+    {
+        return CalcDistanceSimple(rPt1, rPt2);
+    }
+    else
+    {
+        Point Point1(rPt1);
+        Point1.Scale(1.0 / dScale);
+        Point Point2(rPt2);
+        Point2.Scale(1.0 / dScale);
+
+        return CalcDistanceSimple(Point1, Point2);
+    }
+
+#else
+
+    return rPt1.Distance(rPt2);
+
+#endif
+}
+
 double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
-                            const Geoid* pGeoid)
+                            const double dScale)
 {
     double dDistance = 0.0;
 
@@ -297,8 +395,9 @@ double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
             if (pActPoint != NULL)
             {
                 if (pActPoint != NULL)
-                    dDistance += pPrevPoint->Distance(*pActPoint, pGeoid);
-
+                    dDistance += MMUtil::CalcDistance(*pPrevPoint,
+                                                      *pActPoint,
+                                                      dScale);
                 pPrevPoint = pActPoint;
             }
         }
@@ -308,8 +407,13 @@ double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
 }
 
 double MMUtil::CalcLengthCurve(const SimpleLine* pCurve,
-                               const Geoid* pGeoid)
+                               const double dScale)
 {
+    if (pCurve == NULL || !pCurve->IsDefined())
+        return 0.0;
+
+#if 0
+
     if (pGeoid != NULL)
     {
         bool bValid = true;
@@ -323,6 +427,26 @@ double MMUtil::CalcLengthCurve(const SimpleLine* pCurve,
     {
         return pCurve->Length();
     }
+
+#else
+
+    double dLength = 0.0;
+    const int nHalfSegments = pCurve->Size();
+    bool bValid = true;
+    for (int i=0; bValid && i < nHalfSegments; ++i)
+    {
+        HalfSegment hs;
+        pCurve->Get(i, hs);
+        if( hs.IsLeftDomPoint())
+        {
+            dLength += MMUtil::CalcDistance(hs.GetLeftPoint(),
+                                            hs.GetRightPoint(),
+                                            dScale);
+        }
+    }
+    return dLength;
+
+#endif
 }
 
 // modified copy of SimpleLine::AtPoint
@@ -387,6 +511,28 @@ bool MMUtil::GetPosOnSimpleLine(const SimpleLine& rLine,
     }
     return false;
 }
+
+Point MMUtil::CalcDestinationPoint(const Point& rPoint,
+                                   double dBearing,
+                                   double dDistanceKM)
+{
+    const double dRadiusEarth = 6378.137;
+
+    double dDistance = dDistanceKM / dRadiusEarth;  // angular distance
+    dBearing = degToRad(dBearing);
+
+    double dLat1 = degToRad(rPoint.GetY());
+    double dLon1 = degToRad(rPoint.GetX());
+
+    double dLat2 = asin(sin(dLat1) * cos(dDistance) +
+                        cos(dLat1) * sin(dDistance) * cos(dBearing));
+
+    double dLon2 = dLon1 + atan2(sin(dBearing) * sin(dDistance) * cos(dLat1),
+                                 cos(dDistance) - sin(dLat1) * sin(dLat2));
+
+    return Point(true, radToDeg(dLon2), radToDeg(dLat2));
+}
+
 
 
 

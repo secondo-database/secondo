@@ -42,6 +42,7 @@ This implementation file contains the implementation of the class ~NetworkSectio
 #include "NetworkSection.h"
 #include "NetworkRoute.h"
 #include "../Network/NetworkAlgebra.h"
+#include "MapMatchingUtil.h"
 
 namespace mapmatch {
 
@@ -54,7 +55,8 @@ namespace mapmatch {
 NetworkSection::NetworkSection(Tuple* pTupleSection,
                                Network* pNetwork,
                                bool bIncReference)
-:m_pTupleSection(pTupleSection), m_pNetwork(pNetwork), m_pNetworkRoute(NULL)
+:m_pTupleSection(pTupleSection), m_pNetwork(pNetwork),
+ m_pNetworkRoute(NULL), m_dCurveLength(-1.0)
 {
     if (bIncReference && m_pTupleSection != NULL)
         m_pTupleSection->IncReference();
@@ -63,7 +65,7 @@ NetworkSection::NetworkSection(Tuple* pTupleSection,
 NetworkSection::NetworkSection(const NetworkSection& rNetworkSection)
 :m_pTupleSection(rNetworkSection.m_pTupleSection),
  m_pNetwork(rNetworkSection.m_pNetwork),
- m_pNetworkRoute(NULL)
+ m_pNetworkRoute(NULL), m_dCurveLength(rNetworkSection.m_dCurveLength)
 {
     if (m_pTupleSection != NULL)
         m_pTupleSection->IncReference();
@@ -102,6 +104,8 @@ const NetworkSection& NetworkSection::operator=(
         delete m_pNetworkRoute; m_pNetworkRoute = NULL;
         if (rNetworkSection.m_pNetworkRoute != NULL)
            m_pNetworkRoute = new NetworkRoute(*rNetworkSection.m_pNetworkRoute);
+
+        m_dCurveLength = rNetworkSection.m_dCurveLength;
     }
     return *this;
 }
@@ -225,6 +229,16 @@ bool NetworkSection::GetCurveStartsSmaller(void) const
     }
 }
 
+double NetworkSection::GetCurveLength(const double dScale) const
+{
+    if (m_dCurveLength < 0.)
+    {
+        m_dCurveLength = MMUtil::CalcLengthCurve(GetCurve(), dScale);
+    }
+
+    return m_dCurveLength;
+}
+
 TupleIdentifier* NetworkSection::GetRRC(void) const
 {
     if (m_pTupleSection != NULL)
@@ -248,6 +262,34 @@ int NetworkSection::GetSectionID(void) const
     else
     {
         return NULL;
+    }
+}
+
+Point NetworkSection::GetStartPoint(void) const
+{
+    const SimpleLine* pCurve = GetCurve();
+    if (pCurve == NULL || !pCurve->IsDefined())
+    {
+        return Point(false);
+    }
+    else
+    {
+        const bool bStartsSmaller = GetCurveStartsSmaller();
+        return pCurve->StartPoint(bStartsSmaller);
+    }
+}
+
+Point NetworkSection::GetEndPoint(void) const
+{
+    const SimpleLine* pCurve = GetCurve();
+    if (pCurve == NULL || !pCurve->IsDefined())
+    {
+        return Point(false);
+    }
+    else
+    {
+        const bool bStartsSmaller = GetCurveStartsSmaller();
+        return pCurve->EndPoint(bStartsSmaller);
     }
 }
 

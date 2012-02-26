@@ -118,7 +118,8 @@ Point MapMatchingSimple::ProcessRouteSections(const int nRouteID,
 
                 double dDistance = 0.0;
                 Point PointProjection = MMUtil::CalcOrthogonalProjection(
-                                                *pSectionCurve, rPt, dDistance);
+                                                *pSectionCurve, rPt, dDistance,
+                                                m_dNetworkScale);
                 if (PointProjection.IsDefined())
                 {
                     MYVARTRACE(PointProjection);

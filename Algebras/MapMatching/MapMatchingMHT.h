@@ -145,7 +145,6 @@ private:
 
 */
 
-    Geoid* m_pGeoid;
 };
 
 } // end of namespace mapmatch
