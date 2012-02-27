@@ -1,0 +1,17 @@
+# Create database for secondo selftest
+#
+# Usage:
+# 1) Start secondo
+# 2) Import this file (@filename)
+# 3) Run selftest for this algeba
+
+delete database suffixtreetest;
+create database suffixtreetest;
+open database suffixtreetest;
+
+let s1=createsuffixtree ('babac');
+let s2=createsuffixtree ('Hallo');
+
+save database to suffixtreetest;
+
+
