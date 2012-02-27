@@ -43,3 +43,7 @@ pattern op ( _ )
 operator kmismatch alias KMISMATCH pattern op ( _, _, _ )
 
 operator = alias GLEICH pattern _ infixop _
+
+
+operator patternFilter alias PATTERNFILTER pattern _ op [_,_]
+

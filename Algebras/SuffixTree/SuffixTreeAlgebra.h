@@ -120,7 +120,7 @@ resp. the name Secondo uses for this type.
       return "suffixtree";
     }
 
-    static const bool CheckType(const ListExpr list)
+    static const bool checkType(const ListExpr list)
     {
       return listutils::isSymbol(list, BasicType());
     }

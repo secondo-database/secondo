@@ -2470,6 +2470,359 @@ struct equalSuffixTreeInfo: OperatorInfo
   }
 };
 
+
+/*
+6.5 Operator patternFilter.
+
+This operator processes a stream of texts and selects
+such texts contained in a SuffixTree
+
+6.5.1 Type Mapping
+
+Signature stream(string) x suffixtree -> stream(string)
+          stream(text) x suffixtree -> stream(text)
+          stream(tuple) x attrName x suffixTree -> stream(tuple)
+
+*/
+
+ListExpr patternFilterTM(ListExpr args){
+
+  string err = " stream( {text, string}) x {suffixtree, text, string} or "
+           "stream(tuple) x attrName x {suffixtree, text, string}  expected";
+  int len = nl->ListLength(args);
+  if((len!=2) && len!=3){
+    return listutils::typeError(err);
+  }
+  if(len==2){
+    ListExpr first = nl->First(args);
+    if( !Stream<CcString>::checkType(first) &&
+        !Stream<FText>::checkType(first)){
+       return listutils::typeError(err);
+    }
+    if(!SuffixTree::checkType(nl->Second(args))&&
+       !CcString::checkType(nl->Second(args)) &&
+       !FText::checkType(nl->Second(args))){
+       return listutils::typeError(err);
+    }
+    return first;
+  }
+  // len = 3
+  ListExpr tstream = nl->First(args);
+  ListExpr attrName = nl->Second(args);
+  ListExpr sufftree = nl->Third(args);
+  if(!Stream<Tuple>::checkType(tstream) ||
+     !listutils::isSymbol(attrName) ){
+    return listutils::typeError(err);
+  }
+
+  if(!SuffixTree::checkType(sufftree) &&
+     !FText::checkType(sufftree) &&
+     !CcString::checkType(sufftree)){
+    return listutils::typeError(err);
+  }
+
+
+  string name = nl->SymbolValue(attrName);
+  ListExpr attrList = nl->Second(nl->Second(tstream));
+  ListExpr type;
+  int index = listutils::findAttribute(attrList,name,type);
+  if(index == 0){
+    return listutils::typeError(" attribute " + name + " unknown");
+  }
+  if(!CcString::checkType(type) &&
+     !FText::checkType(type)){
+     return listutils::typeError("Attribute " + name +
+                                 " not of type string or text");
+  }
+  return nl->ThreeElemList(
+              nl->SymbolAtom(Symbols::APPEND()),
+              nl->OneElemList(nl->IntAtom(index-1)),
+              tstream);
+}
+
+/*
+6.5.2 LocalInfo
+
+*/
+template<class T>
+class patternFilterInfoAttr{
+
+   public:
+     patternFilterInfoAttr(Word& _stream, SuffixTree* t) : 
+          stream(_stream), sufftree(0){
+       stream.open();
+       sufftree = t->LoadFromPersistent();
+     }
+     
+     patternFilterInfoAttr(Word& _stream, string  t) : 
+          stream(_stream), sufftree(0){
+       stream.open();
+
+       DeleteTerminalSymbolFromText(t);
+       t = t + terminationCharacter;
+
+       sufftree = UkkonenTreeBuilder::CreateSuffixTree(new string(t));
+     }
+
+     ~patternFilterInfoAttr(){
+       stream.close();
+       delete sufftree;
+     }
+ 
+     T* next(){
+        T* res;
+        while( (res=stream.request()) !=0){
+          if(!res->IsDefined()){
+            res->DeleteIfAllowed();
+          } else {
+               const SuffixTreeEdge* edge=0;
+               int offset = -1;
+               if(sufftree->FindEdgeForSearchPattern(
+                                res->GetValue(),&edge,&offset)){
+                   return res;
+               } 
+               res->DeleteIfAllowed();
+         }
+        }
+        return 0;
+     }
+
+   private:
+      Stream<T> stream;
+      SuffixTreeVertex* sufftree;
+};
+
+template<class T>
+class patternFilterInfoTuple{
+
+   public:
+      patternFilterInfoTuple(Word& _stream, SuffixTree* st, 
+                            int _attrPos): 
+           stream(_stream),sufftree(0), attrPos(_attrPos){
+           stream.open();
+           sufftree =  st->LoadFromPersistent();
+      }
+
+      patternFilterInfoTuple(Word& _stream, string st, 
+                            int _attrPos): 
+           stream(_stream),sufftree(0), attrPos(_attrPos){
+           stream.open();
+           DeleteTerminalSymbolFromText(st);
+           st =  st + terminationCharacter;
+           sufftree = UkkonenTreeBuilder::CreateSuffixTree(new string(st));
+      }
+
+      ~patternFilterInfoTuple(){
+          stream.close();
+          delete sufftree;
+       }
+
+       Tuple* next(){
+         Tuple* res;
+         while( (res=stream.request())!=0){
+           T* attr = (T*) res->GetAttribute(attrPos);
+           if(!attr->IsDefined()){
+              res->DeleteIfAllowed();
+           } else {
+               const SuffixTreeEdge* edge=0;
+               int offset = -1;
+               if(sufftree->FindEdgeForSearchPattern(attr->GetValue(),
+                            &edge,&offset)){
+                   return res;
+               } 
+               res->DeleteIfAllowed();
+           }
+         }
+         return 0;
+       }
+
+     private:
+       Stream<Tuple> stream;
+       SuffixTreeVertex* sufftree;
+       int attrPos;
+
+};
+
+/*
+6.5.3 Value Mapping
+
+*/
+string getValue(CcString* st){
+   return st->GetValue();
+}
+
+string getValue(FText* st){
+   return st->GetValue();
+}
+
+SuffixTree* getValue(SuffixTree* st){
+   return st;
+}
+
+template<class T, class TreeRep>
+int patternFilterVM1(Word* args, Word& result, int message, Word& local,
+    Supplier s){
+
+   
+    patternFilterInfoAttr<T>* li = (patternFilterInfoAttr<T>*) local.addr;
+    
+    switch(message){
+      case OPEN: {
+                    if(li){
+                      delete li;
+                      local.addr = 0;
+                    }
+                    TreeRep* st = (TreeRep*) args[1].addr;
+                    if(st->IsDefined()){
+                       local.addr = 
+                           new patternFilterInfoAttr<T>(args[0],getValue(st));
+                    } 
+                    return 0;
+                 }
+      case REQUEST: {
+                      if(!li){
+                         return CANCEL;
+                      }
+                      result.addr = li->next();
+                      return result.addr?YIELD:CANCEL;
+                    }
+
+     case CLOSE: {
+                   if(li){
+                     delete li;
+                     local.addr = 0;
+                   }
+                 }
+    }
+   return -1;
+}
+
+
+template<class T, class TreeRep>
+int patternFilterVM2(Word* args, Word& result, int message, Word& local,
+    Supplier s){
+
+   
+    patternFilterInfoTuple<T>* li = (patternFilterInfoTuple<T>*) local.addr;
+    
+    switch(message){
+      case OPEN: {
+                    if(li){
+                      delete li;
+                      local.addr = 0;
+                    }
+                    TreeRep* st = (TreeRep*) args[2].addr;
+                    if(st->IsDefined()){
+                       local.addr = 
+                           new patternFilterInfoTuple<T>(args[0],getValue(st),
+                                ( (CcInt*)args[3].addr)->GetValue());
+                    } 
+                    return 0;
+                 }
+      case REQUEST: {
+                      if(!li){
+                         return CANCEL;
+                      }
+                      result.addr = li->next();
+                      return result.addr?YIELD:CANCEL;
+                    }
+
+     case CLOSE: {
+                   if(li){
+                     delete li;
+                     local.addr = 0;
+                   }
+                 }
+    }
+   return -1;
+}
+
+/*
+ValueMapping Array and Selection Function
+
+*/
+
+ValueMapping patternFilterVM[] = {
+          patternFilterVM1<CcString, SuffixTree>,
+          patternFilterVM1<FText, SuffixTree>,
+          patternFilterVM2<CcString, SuffixTree>,
+          patternFilterVM2<FText, SuffixTree>,
+
+          patternFilterVM1<CcString, CcString>,
+          patternFilterVM1<FText, CcString>,
+          patternFilterVM2<CcString, CcString>,
+          patternFilterVM2<FText, CcString>,
+
+          patternFilterVM1<CcString, FText>,
+          patternFilterVM1<FText, FText>,
+          patternFilterVM2<CcString, FText>,
+          patternFilterVM2<FText, FText>
+       };
+
+int patternFilterSelect(ListExpr args){
+
+   int len = nl->ListLength(args);
+   ListExpr sufftree;
+   if(len==2){
+     sufftree = nl->Second(args);
+   } else {
+     sufftree = nl->Third(args);
+   }
+   int offset = 0;
+   if(CcString::checkType(sufftree)){
+      offset = 4;
+   }  else if(FText::checkType(sufftree)){
+      offset = 8;
+   }
+
+
+
+   if(Stream<CcString>::checkType(nl->First(args))){
+      return offset;
+   }
+   if(Stream<FText>::checkType(nl->First(args))){
+      return offset + 1;
+   }
+   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+   string name = nl->SymbolValue(nl->Second(args));
+   ListExpr type;
+   listutils::findAttribute(attrList,name,type);
+   if(CcString::checkType(type)){
+       return offset + 2;
+   }
+   return  offset + 3;
+}
+
+/*
+Specification
+
+*/
+
+
+OperatorSpec patternFilterSpec(
+           "stream(T) x suffixtree -> stream(T) , t in {string,text}",
+           " or stream(tuple) x attrName x suffixtree -> stream(tuple) "
+            " _ patternFilter [_ ]",
+           "selects all stream elements whose text is inside the suffixtree",
+           " query tokenize('aa bb') patternFilter[st] count " );
+
+/*
+Operator instance
+
+*/
+
+Operator patternFilter
+  (
+  "patternFilter",             //name
+  patternFilterSpec.getStr(),         //specification
+  12,                           // no of VM functions
+  patternFilterVM,        //value mapping
+  patternFilterSelect,   //trivial selection function
+  patternFilterTM        //type mapping
+);
+
+
+
 /*
  7 Creating the Algebra
 
@@ -2529,6 +2882,9 @@ public:
 
     AddOperator(equalSuffixTreeInfo(), equalSuffixTreeFun,
         equalSuffixTreeTypeMap);
+
+    AddOperator(&patternFilter);
+
   }
   ~SuffixTreeAlgebra()
   {

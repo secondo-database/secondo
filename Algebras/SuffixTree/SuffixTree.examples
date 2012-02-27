@@ -72,3 +72,47 @@ Number   : 1
 Signature: suffixtree x suffixtree -> bool
 Example  : query s1 = s1
 Result   : TRUE
+
+
+Operator : patternFilter 
+Number   : 1
+Signature: stream(text) x suffixtree -> stream(text)
+Example  : query tokenize('aa bb'," ") patternFilter[ createsuffixtree('abcdbbabb')] count
+Result   : 1
+
+
+Operator : patternFilter 
+Number   : 2 
+Signature: stream(text) x text -> stream(text)
+Example  : query tokenize('aa bb'," ") patternFilter[ 'abcdbbabb'] count
+Result   : 1
+
+
+Operator : patternFilter 
+Number   : 3 
+Signature: stream(text) x string -> stream(text)
+Example  : query tokenize('aa bb'," ") patternFilter[ "abcdbbabb"] count
+Result   : 1
+
+
+Operator : patternFilter 
+Number   : 4
+Signature: stream(tuple) x attrname x suffixtree -> stream(tuple)
+Example  : query tokenize('aa bb'," ") namedtransformstream[T] patternFilter[T, createsuffixtree('abcdbbabb')] count
+Result   : 1
+
+
+Operator : patternFilter 
+Number   : 5 
+Signature: stream(tuple) x attrname x text -> stream(tuple)
+Example  : query tokenize('aa bb'," ") namedtransformstream[T] patternFilter[T, 'abcdbbabb'] count
+Result   : 1
+
+
+Operator : patternFilter 
+Number   : 6 
+Signature: stream(tuple) x attrname x string -> stream(tuple)
+Example  : query tokenize('aa bb'," ") namedtransformstream[T] patternFilter[T, "abcdbbabb"] count
+Result   : 1
+
+
