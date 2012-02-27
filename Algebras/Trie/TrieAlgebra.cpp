@@ -73,7 +73,7 @@ ListExpr TrieProperty(){
 
 
 bool CheckTrie(ListExpr type, ListExpr& ErrorInfo){
-   return listutils::isSymbol(type, Trie::BasicType());
+   return listutils::isSymbol(type, Trie<TupleId>::BasicType());
 }
 
 ListExpr OutTrie(ListExpr typeInfo, Word value){
@@ -90,12 +90,12 @@ Word InTrie(ListExpr typeInfo, ListExpr value,
 
 Word CreateTrie(const ListExpr typeInfo){
    Word  res;
-   res.addr = new Trie();
+   res.addr = new Trie<TupleId>();
    return res;
 }
 
 void DeleteTrie( const ListExpr typeInfo, Word& w ){
-  Trie* t = (Trie*) w.addr;
+  Trie<TupleId>* t = (Trie<TupleId>*) w.addr;
   t->deleteFile();
   delete t;
   w.addr = 0;
@@ -111,14 +111,14 @@ bool OpenTrie( SmiRecord& valueRecord,
   SmiRecordId rid;
   valueRecord.Read( &rid, sizeof( SmiRecordId ), offset );
   offset += sizeof( SmiRecordId );
-  Trie* tree = new Trie(fileid, rid);
+  Trie<TupleId>* tree = new Trie<TupleId>(fileid, rid);
   value.setAddr(tree);
   return true;
 }
 
 
 void CloseTrie( const ListExpr typeInfo, Word& w ){
-  Trie* t = (Trie*) w.addr;
+  Trie<TupleId>* t = (Trie<TupleId>*) w.addr;
   delete t;
   w.addr = 0;
 }
@@ -127,7 +127,7 @@ bool SaveTrie( SmiRecord& valueRecord,
                size_t& offset,
                const ListExpr typeInfo,
                Word& value ){
-   Trie* t = static_cast<Trie*>(value.addr);
+   Trie<TupleId>* t = static_cast<Trie<TupleId>*>(value.addr);
    SmiFileId fileId = t->getFileId();
    valueRecord.Write( &fileId, sizeof( SmiFileId ), offset );
    offset += sizeof( SmiFileId );
@@ -139,20 +139,20 @@ bool SaveTrie( SmiRecord& valueRecord,
 
 
 Word CloneTrie(const ListExpr typeInfo, const Word& value){
-  Trie* src = (Trie*) value.addr;
+  Trie<TupleId>* src = (Trie<TupleId>*) value.addr;
   return src->clone(); 
 }
 
 void* CastTrie( void* addr) {
-   return (Trie*) addr;
+   return (Trie<TupleId>*) addr;
 }
 
 int SizeOfTrie(){
-  return sizeof(Trie);
+  return sizeof(Trie<TupleId>);
 }
 
 
-TypeConstructor trietc( Trie::BasicType(),
+TypeConstructor trietc( Trie<TupleId>::BasicType(),
                         TrieProperty,
                         OutTrie,
                         InTrie,
@@ -272,11 +272,11 @@ Word CloneInvfile(const ListExpr typeInfo, const Word& value){
 }
 
 void* CastInvfile( void* addr) {
-   return (Trie*) addr;
+   return (InvertedFile*) addr;
 }
 
 int SizeOfInvfile(){
-  return sizeof(Trie);
+  return sizeof(InvertedFile);
 }
 
 
@@ -317,7 +317,7 @@ ListExpr createemptytrieTM(ListExpr args){
   if(!nl->IsEmpty(args)){
     return listutils::typeError("no arguments expected");
   }
-  return nl->SymbolAtom(Trie::BasicType());
+  return nl->SymbolAtom(Trie<TupleId>::BasicType());
 }
 
 
@@ -359,7 +359,7 @@ ListExpr insert2trieTM(ListExpr args){
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
-  if(!Trie::checkType(nl->First(args)) ||
+  if(!Trie<TupleId>::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args)) ||
      !TupleIdentifier::checkType(nl->Third(args))){
      return listutils::typeError(err);
@@ -371,7 +371,7 @@ ListExpr insert2trieTM(ListExpr args){
 int insert2trieVM(Word* args, Word& result, int message,
                    Word& local, Supplier s){
 
-   Trie* trie = (Trie*) args[0].addr;
+   Trie<TupleId>* trie = (Trie<TupleId>*) args[0].addr;
    CcString* str = (CcString*) args[1].addr;
    TupleIdentifier* tid = (TupleIdentifier*) args[2].addr;
    result = qp->ResultStorage(s);
@@ -423,7 +423,7 @@ ListExpr searchtrieTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!Trie::checkType(nl->First(args)) ||
+  if(!Trie<TupleId>::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -433,7 +433,7 @@ ListExpr searchtrieTM(ListExpr args){
 int searchtrieVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
-    Trie* trie = (Trie*) args[0].addr;
+    Trie<TupleId>* trie = (Trie<TupleId>*) args[0].addr;
     CcString* pattern = (CcString*) args[1].addr;
     result = qp->ResultStorage(s);
     TupleIdentifier* tid = (TupleIdentifier*) result.addr;
@@ -475,7 +475,7 @@ ListExpr containsTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!Trie::checkType(nl->First(args)) ||
+  if(!Trie<TupleId>::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -487,7 +487,7 @@ template<bool acceptPrefix>
 int containsVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
-    Trie* trie = (Trie*) args[0].addr;
+    Trie<TupleId>* trie = (Trie<TupleId>*) args[0].addr;
     CcString* pattern = (CcString*) args[1].addr;
     result = qp->ResultStorage(s);
     CcBool* res = (CcBool*) result.addr;
@@ -546,7 +546,7 @@ ListExpr trieEntriesTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!Trie::checkType(nl->First(args)) ||
+  if(!Trie<TupleId>::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -570,7 +570,7 @@ int trieEntriesVM(Word* args, Word& result, int message,
                      delete li;
                      local.addr=0;
                    }
-                   Trie* trie = (Trie*)args[0].addr;
+                   Trie<TupleId>* trie = (Trie<TupleId>*)args[0].addr;
                    CcString* str = (CcString*) args[1].addr;
                    if(str->IsDefined() ){
                         local.addr = trie->getEntries(str->GetValue());
@@ -841,8 +841,8 @@ class searchWordLocalInfo{
 
       Tuple* next(){
          TupleId id;
-         size_t wp;
-         size_t cp;
+         wordPosType wp;
+         charPosType cp;
          if(it->next(id,wp,cp)){
             Tuple* res = new Tuple(tt);
             res->PutAttribute(0, new TupleIdentifier(true,id));
@@ -983,8 +983,8 @@ class searchPrefixLocalInfo{
       Tuple* next(){
          string word;
          TupleId id;
-         size_t wp;
-         size_t cp;
+         wordPosType wp;
+         charPosType cp;
          if(it->next(word,id,wp,cp)){
             Tuple* res = new Tuple(tt);
             res->PutAttribute(0, new FText(true,word));
@@ -1085,7 +1085,7 @@ ListExpr getFileInfoTM(ListExpr args){
     return listutils::typeError(err);
   }
   ListExpr arg = nl->First(args);
-  if(!Trie::checkType(arg) &&
+  if(!Trie<TupleId>::checkType(arg) &&
      !InvertedFile::checkType(arg)){
     return listutils::typeError(err);
   }
@@ -1120,12 +1120,12 @@ int getFileInfoVM1(Word* args, Word& result, int message,
 */
 
 ValueMapping getFileInfoVM[] = {
-  getFileInfoVM1<Trie>,
+  getFileInfoVM1<Trie<TupleId> >,
   getFileInfoVM1<InvertedFile>
 };
 
 int getFileInfoSelect(ListExpr args){
-  return Trie::checkType(nl->First(args))?0:1;
+  return Trie<TupleId>::checkType(nl->First(args))?0:1;
 }
 
 /*
