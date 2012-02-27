@@ -7789,10 +7789,10 @@ int createmintVM( Word* args, Word& result, int message,
   res->StartBulkLoad();
   int size = p->GetNoComponents();
   Interval<Instant> iv;
-  int value = v->GetValue();
+  //int value = v->GetValue();
   for(int i=0;i<size;i++){
      p->Get(i,iv);
-     UInt ui(iv,value);
+     UInt ui(iv,*v);
      res->Add(ui);
   }
   res->EndBulkLoad(false);
