@@ -2332,7 +2332,7 @@ void UPoint::Direction( vector<UReal> &result,
 
   bool valid = false;
   double head0, head1;
-  p0.DistanceOrthodromePrecise( p1, geoid, valid, head0, head1);
+  p0.DistanceOrthodromePrecise( p1, *geoid, valid, head0, head1);
   if( !valid || (head0<0) || (head1<0) ){ // ERROR!
     cerr << __PRETTY_FUNCTION__ << ": Error computing directions." << endl;
     assert(false);
@@ -7476,7 +7476,7 @@ otherwise, the result is undefined
       if(last != uPoint.p0)
         throw(1); // The trajectory is not continuous
       dist1= dist2;
-      dist2= dist1 + (geoid?uPoint.p0.DistanceOrthodrome(uPoint.p1,geoid,ok)
+      dist2= dist1 + (geoid?uPoint.p0.DistanceOrthodrome(uPoint.p1,*geoid,ok)
                            :uPoint.p0.Distance(uPoint.p1));
       if(!ok){ // found invalid geographic coordinates
         cout << "\nFound invalid geographic coordinates: uPoint.p0="

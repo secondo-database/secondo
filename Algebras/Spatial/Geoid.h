@@ -73,7 +73,7 @@ Standard constructor does nothing. DO NOT USE!
 Constructor creates a WGS1984 geoid with given definedness:
 
 */
-    Geoid(bool _defined);
+    explicit Geoid(bool _defined);
 
 /*
 Constructor for arbitrary geoids. ~radius~ (must be positive) and ~flattening~
@@ -90,7 +90,7 @@ Constructor for special predefined Geoids.
 Unknown ~GeoidName~ results in an UNDEFINED Geoid!
 
 */
-    Geoid(const GeoidName n);
+    explicit Geoid(const GeoidName n);
 
 /*
 Copy constructor

@@ -1055,7 +1055,7 @@ double Point::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
   if(geoid){
     bool ok = false;
     double bearInitial = 0, bearFinal = 0;
-    double d = DistanceOrthodromePrecise(p,geoid,ok,bearInitial,bearFinal);
+    double d = DistanceOrthodromePrecise(p,*geoid,ok,bearInitial,bearFinal);
     if(ok){
       return d;
     } else{
@@ -4113,12 +4113,12 @@ bool HalfSegment::Intersection( const HalfSegment& hs,
     if( Intersection( hs, intersectpoint, geoid) && intersectpoint.IsDefined()){
       return false; // intersection is a point;
     };
-    if( (p1s >0) && (p1e <0) ) { // crosses the +/-180° meridean!
+    if( (p1s.GetX() > 0) && (p1e.GetX() <0) ) { //crosses the +/-180° meridean!
       Point tmp(p1s);
       p1s=p1e;
       p1e=tmp; // swap start/endpoint for *this
     }
-    if( (p2s >0) && (p2e <0) ) { // crosses the +/-180° meridean!
+    if( (p2s.GetX() >0) && (p2e.GetX() <0) ) { // crosses the +/-180° meridean!
       Point tmp(p2s);
       p2s=p2e;
       p2e=tmp; // swap start/endpoint for hs
@@ -15747,7 +15747,7 @@ int SpatialSize( Word* args, Word& result, int message,
       return 0;
     }
     bool valid = false;
-    res->Set(true,a->SpatialSize(g, valid));
+    res->Set(true,a->SpatialSize(*g, valid));
     res->SetDefined(valid);
     return 0;
   } // else: variant using (X,Y)-coordinates

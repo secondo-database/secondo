@@ -237,7 +237,7 @@ bool GetInt9M(Point* p1 , Point*  p2,Int9M& res,
   res.SetValue(0);
   // in each case, the exteriors intersect
   res.SetEE(true);
-  if(AlmostEqual(p1,p2)){
+  if(AlmostEqual(*p1,*p2)){
     res.SetII(true);
   }else{
     res.SetIE(true);
@@ -638,7 +638,7 @@ bool GetInt9M(Line const* const line,
       // line is not empty
       int cb = cluster.checkBoxes(line->BoundingBox(),line->Size()==0,
                                   point->BoundingBox(),
-                                  isEmpty(point));
+                                  isEmpty(*point));
       if(cb==1) {
          return true;
       }

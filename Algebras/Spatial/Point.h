@@ -80,7 +80,7 @@ The first one receives a boolean value ~d~ indicating if the point is defined
 and two coordinate ~x~ and ~y~ values.
 
 */
-    inline Point( const bool d,
+    explicit inline Point( const bool d,
                   const Coord& x = Coord(),
                   const Coord& y = Coord() );
 /*
@@ -247,7 +247,7 @@ euclidean geometry is used, otherwise spherical geometry.
 *Complexity:* $O(n)$, where ~n~ is the size of ~V~
 
 */
-    double Distance( const Points& ps, const Geoid geoid = 0 ) const;
+    double Distance( const Points& ps, const Geoid* geoid = 0 ) const;
 /*
 4.3.13 Operation ~distance~ (with ~rect2~)
 
