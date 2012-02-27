@@ -1,0 +1,46 @@
+
+(DATABASE SUFFIXTREETEST 
+    (TYPES) 
+    (OBJECTS 
+        (OBJECT s1 
+            () 
+            suffixtree 
+            (
+                (
+                    (5 5 
+                        ()) 
+                    (1 1 
+                        (
+                            (2 5 
+                                ()) 
+                            (4 5 
+                                ()))) 
+                    (0 1 
+                        (
+                            (2 5 
+                                ()) 
+                            (4 5 
+                                ()))) 
+                    (4 5 
+                        ())) 
+                'babac')) 
+        (OBJECT s2 
+            () 
+            suffixtree 
+            (
+                (
+                    (5 5 
+                        ()) 
+                    (0 5 
+                        ()) 
+                    (1 5 
+                        ()) 
+                    (2 2 
+                        (
+                            (3 5 
+                                ()) 
+                            (4 5 
+                                ()))) 
+                    (4 5 
+                        ())) 
+                'Hallo'))))
