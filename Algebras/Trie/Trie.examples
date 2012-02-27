@@ -55,14 +55,14 @@ Remark   : A InvFile has not out function
 Operator : searchWord 
 Number   : 1
 Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))
-Example  : query (SEC2OPERATORINFO feed addcounter[C,1] extend[TID : int2tid(.C)]  createInvFile[Signature, TID] ) searchWord["bool"] count > 0
+Example  : query strassen feed addid extend[Te : totext(.Name)]  createInvFile[Te, TID]  searchWord["Theaterufer"] count > 0
 Result   : TRUE
 
 
 Operator : searchPrefix
 Number   : 1
 Signature: invfile x string -> stream(tuple((TID tid)(WordPos int)(CharPos pos)))
-Example  : query (SEC2OPERATORINFO feed addcounter[C,1] extend[TID : int2tid(.C)]  createInvFile[Signature, TID]) searchPrefix["boo"] count > 0
+Example  : query strassen feed addid extend[Te : totext(.Name)]  createInvFile[Te, TID]  searchPrefix["The"] count > 0
 Result   : TRUE
 
 Operator  : getFileInfo 
