@@ -39,7 +39,7 @@ struct AttrType
 {
   inline AttrType() { }
 
-  inline AttrType( int dummy ) :
+  explicit inline AttrType( int dummy ) :
     faceno(-999999),
     cycleno(-999999),
     edgeno(-999999),

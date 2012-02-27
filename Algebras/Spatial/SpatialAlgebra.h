@@ -161,7 +161,7 @@ There are three ways of constructing a point set:
 This constructor should not be used.
 
 */
-    inline Points( const int initsize );
+    explicit inline Points( const int initsize );
 /*
 The first one constructs an empty point set but open space for ~initsize~ points.
 
@@ -734,7 +734,7 @@ class Line: public StandardSpatialAttribute<2>
 6.1 Constructors and Destructor
 
 */
-    inline Line( const int n );
+    explicit inline Line( const int n );
 /*
 Constructs an empty line allocating space for ~n~ half segments.
 
@@ -1528,7 +1528,7 @@ This constructor creates an undefined SimpleLine object and initializes the
 contained arrays to have ~size~ number od slots.
 
 */
-  SimpleLine(int size):
+  explicit SimpleLine(int size):
             StandardSpatialAttribute<2>(false),
             segments(size),lrsArray(size/2),
             startSmaller(true),
@@ -1542,7 +1542,7 @@ contained arrays to have ~size~ number od slots.
 Constructs a ~SimpleLine~ from a complex one.
 
 */
-  SimpleLine(const Line& src);
+  explicit SimpleLine(const Line& src);
 
 /*
 ~CopyConstructor~
@@ -2066,7 +2066,7 @@ class Region : public StandardSpatialAttribute<2>
 7.1 Constructors and Destructor
 
 */
-    inline Region( const int n );
+    explicit inline Region( const int n );
 /*
 Constructs an empty region allocating space for ~n~ half segments.
 
@@ -2078,7 +2078,7 @@ dominating point are copied.
 
 */
 
-    Region( const Rectangle<2>& r );
+    explicit Region( const Rectangle<2>& r );
 /*
 Creates a rectangular region from a rect2 objects.
 
@@ -3824,12 +3824,12 @@ ostream& operator<<(ostream& o,const SimplePoint& p);
 
 class SimplePoint{
   public:
-     SimplePoint(const Point* p){
+     explicit SimplePoint(const Point* p){
        this->x = p->GetX();
        this->y = p->GetY();
      }
 
-     SimplePoint(Point& p){
+     explicit SimplePoint(Point& p){
        this->x = p.GetX();
        this->y = p.GetY();
      }

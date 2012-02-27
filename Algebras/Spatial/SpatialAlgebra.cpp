@@ -17680,6 +17680,17 @@ void append(Line& l1, const SimpleLine& l2){
   }
 }
 
+// helper function for SpatialCollect_line
+void append(SimpleLine& l1, const Line& l2){
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs;
+  }
+}
+
+
 template <class StreamLineType, class ResLineType>
 int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
                                     Word& local, Supplier s){
