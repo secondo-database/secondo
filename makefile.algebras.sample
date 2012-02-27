@@ -291,6 +291,10 @@ ALGEBRAS     += SpatialJoinAlgebra
 #ALGEBRAS     += TrieAlgebra
 
 
+ALGEBRA_DIRS +=  SuffixTree
+ALGEBRAS     += SuffixTreeAlgebra
+
+
 #ALGEBRA_DIRS += OSM
 #ALGEBRAS     += OsmAlgebra
 #ALGEBRA_DEPS += xml2
