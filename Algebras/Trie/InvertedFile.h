@@ -692,6 +692,15 @@ unchanged and the return value if false.
           }
        }
 
+       ~prefixIterator(){
+          if(it){
+            delete it;
+          } 
+          if(exactIt){
+            delete exactIt;
+          }
+       }
+
      private:
        InvertedFile* inv;
        TrieIterator<TrieContentType>* it;
