@@ -41,6 +41,7 @@ This header file essentially contains the definition of the class ~MapMatchingBa
 #define __MAP_MATCHING_BASE_H__
 
 #include "TemporalAlgebra.h"
+#include "MapMatchingUtil.h"
 
 class Network;
 class MPoint;
@@ -71,7 +72,7 @@ public:
 3.1 Constructors and Destructor
 
 */
-    MapMatchingBase(Network* pNetwork, MPoint* pMPoint);
+    MapMatchingBase(Network* pNetwork, AttributePtr<MPoint> pMPoint);
 
     ~MapMatchingBase();
 
@@ -98,7 +99,8 @@ protected:
 */
     bool CalcShortestPath(const GPoint* pGPStart, const GPoint* pGPEnd,
                           const datetime::DateTime& rtimeStart,
-                          const datetime::DateTime& rtimeEnd);
+                          const datetime::DateTime& rtimeEnd,
+                          const bool bCheckSpeed);
 
 /*
    3.4 ConnectPoints
@@ -115,9 +117,20 @@ protected:
    3.5 protected member
 
 */
+
     Network* m_pNetwork;
     double m_dNetworkScale;
-    MPoint* m_pMPoint;
+    AttributePtr<MPoint> m_pMPoint;
+    AttributePtr<MInt> m_pMSat;
+    AttributePtr<MInt> m_pMFix;
+    AttributePtr<MReal> m_pMHDOP;
+    AttributePtr<MReal> m_pMPDOP;
+
+    void SetMPoint(AttributePtr<MPoint> pMPoint) {m_pMPoint = pMPoint;}
+    void SetSat(AttributePtr<MInt> pSat) {m_pMSat = pSat;}
+    void SetFix(AttributePtr<MInt> pFix) {m_pMFix = pFix;}
+    void SetHDOP(AttributePtr<MReal> pHDOP) {m_pMHDOP = pHDOP;}
+    void SetPDOP(AttributePtr<MReal> pPDOP) {m_pMPDOP = pPDOP;}
 
 private:
     MGPoint* m_pResMGPoint;

@@ -52,6 +52,12 @@ namespace mapmatch {
 
 */
 
+NetworkSection::NetworkSection()
+:m_pTupleSection(NULL), m_pNetwork(NULL),
+ m_pNetworkRoute(NULL), m_dCurveLength(-1.0)
+{
+}
+
 NetworkSection::NetworkSection(Tuple* pTupleSection,
                                Network* pNetwork,
                                bool bIncReference)
@@ -299,6 +305,12 @@ Point NetworkSection::GetEndPoint(void) const
   accessing the attributes of a directed Network-Section
 
 */
+
+DirectedNetworkSection::DirectedNetworkSection()
+:NetworkSection(),
+ m_eDirection(DirectedNetworkSection::DIR_NONE)
+{
+}
 
 DirectedNetworkSection::DirectedNetworkSection(Tuple* pTupleSection,
                                                Network* pNetwork,

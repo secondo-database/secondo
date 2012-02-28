@@ -45,9 +45,11 @@ This header file contains utilities for map matching
 
 class Region;
 class SimpleLine;
+class GLine;
 class HalfSegment;
 class Point;
 class Geoid;
+class Network;
 
 namespace mapmatch {
 
@@ -88,6 +90,10 @@ public:
 
     static double CalcDistance(const std::vector<const Point*>& rvecPoints,
                                const double dScale);
+
+    static double CalcLengthCurve(const GLine* pCurve,
+                                  const Network* pNetwork,
+                                  const double dScale);
 
     static double CalcLengthCurve(const SimpleLine* pCurve,
                                   const double dScale);

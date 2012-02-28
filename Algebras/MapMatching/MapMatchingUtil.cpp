@@ -39,7 +39,8 @@ utilities for map matching
 
 */
 #include "MapMatchingUtil.h"
-#include "../Spatial/SpatialAlgebra.h"
+#include <SpatialAlgebra.h>
+#include <NetworkAlgebra.h>
 
 #include <stdio.h>
 #include <limits>
@@ -404,6 +405,31 @@ double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
     }
 
     return dDistance;
+}
+
+double MMUtil::CalcLengthCurve(const GLine* pCurve,
+                               const Network* pNetwork,
+                               const double dScale)
+{
+    if (pCurve == NULL || !pCurve->IsDefined() ||
+        pNetwork == NULL || !pNetwork->IsDefined())
+        return 0.0;
+
+    double dLen = 0.0;
+    RouteInterval rI;
+    for (int i = 0; i < pCurve->NoOfComponents(); ++i)
+    {
+        AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
+
+        pCurve->Get(i,rI);
+        pNetwork->GetLineValueOfRouteInterval(&rI, pSubline.get());
+        if (pSubline->IsDefined())
+        {
+            dLen += MMUtil::CalcLengthCurve(pSubline.get(), dScale);
+        }
+    }
+
+    return dLen;
 }
 
 double MMUtil::CalcLengthCurve(const SimpleLine* pCurve,

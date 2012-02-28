@@ -56,6 +56,7 @@ namespace mapmatch {
 class NetworkRoute
 {
 public:
+    NetworkRoute();
     NetworkRoute(Tuple* pTupleRoute, bool bIncReference = true);
     NetworkRoute(const NetworkRoute& rNetworkRoute);
     ~NetworkRoute();

@@ -44,6 +44,11 @@ This implementation file contains the implementation of the class ~NetworkRoute~
 
 namespace mapmatch {
 
+NetworkRoute::NetworkRoute()
+:m_pTupleRoute(NULL)
+{
+}
+
 NetworkRoute::NetworkRoute(Tuple* pTupleRoute, bool bIncReference)
 :m_pTupleRoute(pTupleRoute)
 {

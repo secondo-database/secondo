@@ -43,6 +43,7 @@ It is an map matching algorithm based on the Multiple Hypothesis Technique (MHT)
 #include "NetworkSection.h"
 #include "MapMatchingUtil.h"
 #include "MHTRouteCandidate.h"
+#include "GPXFileReader.h"
 
 #include <stdio.h>
 
@@ -65,8 +66,33 @@ namespace mapmatch {
 */
 
 MapMatchingMHT::MapMatchingMHT(Network* pNetwork, MPoint* pMPoint)
-:MapMatchingBase(pNetwork, pMPoint)
+:MapMatchingBase(pNetwork, AttributePtr<MPoint>(pMPoint, true))
 {
+}
+
+MapMatchingMHT::MapMatchingMHT(Network* pNetwork, std::string strFileName)
+:MapMatchingBase(pNetwork, NULL)
+{
+    try
+    {
+        GPXFileReader Reader;
+        if (Reader.DoRead(strFileName, m_dNetworkScale))
+        {
+            SetMPoint(Reader.GetMPoint());
+            SetSat(Reader.GetSat());
+            SetFix(Reader.GetFix());
+            SetHDOP(Reader.GetHDOP());
+            //SetVDOP(Reader.GetVDOP());
+            SetPDOP(Reader.GetPDOP());
+        }
+        else
+        {
+            // Failed read file
+        }
+    }
+    catch(...)
+    {
+    }
 }
 
 // Destructor
@@ -122,6 +148,16 @@ void MapMatchingMHT::GetInitialSectionCandidates(const Point& rPoint,
     assert(pt.checkGeographicCoord());
 
     const double dLength = 0.250; // edge length 250 meters
+
+    //               0
+    //      315 +---------+
+    //          |\        |
+    //          |  \  125 |
+    //      270 -----*----- 90
+    //          | 125  \  |
+    //          |        \|
+    //          +---------+  135
+    //              180
 
     Point pt1 = MMUtil::CalcDestinationPoint(pt, 135.0,
                                              sqrt(pow(dLength/2., 2) +
@@ -236,6 +272,135 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
     return true;
 }
 
+bool MapMatchingMHT::CheckQualityOfGPSFix(int nIdx,
+                                          const UPoint& rUPoint)
+{
+    // Number of satellites
+    if (m_pMSat != NULL)
+    {
+        int nSat = -1; // undefined
+
+        UInt ActUInt(false);
+        m_pMSat->Get(nIdx, ActUInt);
+
+        if (ActUInt.IsDefined() &&
+            ActUInt.timeInterval.Contains(rUPoint.timeInterval, true))
+        {
+            nSat = ActUInt.constValue.GetValue();
+        }
+        else
+        {
+            Intime<CcInt> SatInTime;
+            m_pMSat->AtInstant(rUPoint.timeInterval.start, SatInTime);
+            if (SatInTime.IsDefined())
+            {
+                nSat = SatInTime.value.GetValue();
+            }
+        }
+
+        if (!(nSat < 0) && nSat < 2) // minimum 2 satellites
+        {                            // nSat < 0 => undefined
+            return false;
+        }
+    }
+
+    // Fix -> possible values:
+    // -1 - undefined
+    // 0  - none
+    // 2  - 2d
+    // 3  - 3d
+    // 4  - DGPS
+    // 5  - pps (military)
+    if (m_pMFix != NULL)
+    {
+        int nFix = -1; // undefined
+
+        UInt ActUInt(false);
+        m_pMFix->Get(nIdx, ActUInt);
+
+        if (ActUInt.IsDefined() &&
+            ActUInt.timeInterval.Contains(rUPoint.timeInterval, true))
+        {
+            nFix = ActUInt.constValue.GetValue();
+        }
+        else
+        {
+            Intime<CcInt> FixInTime;
+            m_pMFix->AtInstant(rUPoint.timeInterval.start, FixInTime);
+            if (FixInTime.IsDefined())
+            {
+                nFix = FixInTime.value.GetValue();
+            }
+        }
+
+        if (!(nFix < 0) && nFix < 2) // minimum 2d
+        {                            // nFix < 0 => undefined
+            return false;
+        }
+    }
+
+    // HDOP (Horizontal Dilution Of Precision)
+    if (m_pMHDOP != NULL)
+    {
+        double dHDOP = -1.0; // undefined
+
+        UReal ActUReal(false);
+        m_pMHDOP->Get(nIdx, ActUReal);
+
+        if (ActUReal.IsDefined() &&
+            ActUReal.timeInterval.Contains(rUPoint.timeInterval, true))
+        {
+            dHDOP = ActUReal.c;
+        }
+        else
+        {
+            Intime<CcReal> HDOPInTime;
+            m_pMHDOP->AtInstant(rUPoint.timeInterval.start, HDOPInTime);
+            if (HDOPInTime.IsDefined())
+            {
+                dHDOP = HDOPInTime.value.GetValue();
+            }
+        }
+
+        if (dHDOP > 7.)
+        {
+            return false;
+        }
+    }
+
+    // PDOP (Positional Dilution Of Precision)
+    if (m_pMPDOP != NULL)
+    {
+        double dPDOP = -1.0; // undefined
+
+        UReal ActUReal(false);
+        m_pMPDOP->Get(nIdx, ActUReal);
+
+        if (ActUReal.IsDefined() &&
+            ActUReal.timeInterval.Contains(rUPoint.timeInterval, true))
+        {
+            dPDOP = ActUReal.c;
+        }
+        else
+        {
+            Intime<CcReal> HDOPInTime;
+            m_pMPDOP->AtInstant(rUPoint.timeInterval.start, HDOPInTime);
+            if (HDOPInTime.IsDefined())
+            {
+                dPDOP = HDOPInTime.value.GetValue();
+            }
+        }
+
+        if (dPDOP > 7.)
+        {
+            return false;
+        }
+    }
+
+    return true; // Quality Ok or no data found
+}
+
+
 /*
 3.3 MapMatchingMHT::TripSegmentation
     Detect spatial and temporal gaps in the MPoint
@@ -247,6 +412,11 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
     if (m_pMPoint == NULL || !m_pMPoint->IsDefined() ||
         m_pNetwork == NULL || !m_pNetwork->IsDefined())
         return;
+
+// TRACE_BAD_DATA
+#ifdef TRACE_BAD_DATA
+    ofstream streamBadData("/home/secondo/Traces/BadData.txt");
+#endif
 
     // Detect spatial and temporal gaps in the MPoint (m_pMPoint)
     // Divide the MPoint if the time gap is longer than 120 seconds or
@@ -275,17 +445,24 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 
         if (!ActUPoint.IsDefined())
         {
-          ++i; // process next unit
-          continue;
+          continue; // process next unit
         }
 
         if (!ActUPoint.p0.Inside(rectBoundingBoxNetwork) &&
             !ActUPoint.p1.Inside(rectBoundingBoxNetwork))
         {
             // Outside bounding box of network
+            continue; // process next unit
+        }
 
-            ++i; // process next unit
-            continue;
+        if (!CheckQualityOfGPSFix(i, ActUPoint))
+        {
+            // bad quality of GPS fix
+#ifdef TRACE_BAD_DATA
+            ActUPoint.Print(streamBadData);
+            streamBadData << endl;
+#endif
+            continue; // process next unit
         }
 
         if (pActMPoint == NULL)
@@ -692,7 +869,7 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                     }*/
 
                     //pCandidate->AddPoint(rPoint, dDistance, rTime, bClosed);
-                    pCandidate->AddPoint(rPoint, 30, rTime, bClosed); // TODO
+                    pCandidate->AddPoint(rPoint, 30, rTime); // TODO
 
                     vecNewRouteCandidates.push_back(pCandidate);
                 }
@@ -907,7 +1084,7 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
         pCandidate->AddPoint(rPoint, PointProjection,
                              rSection.GetRoute(),
-                             dDistance, rTime, bClosed);
+                             dDistance, rTime);
         return true;
     }
     else
@@ -973,8 +1150,8 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
               rvecRouteCandidates.end(),
               RouteCandidateCompare);
 
-    // maximum 20
-    while (rvecRouteCandidates.size() > 20)
+    // maximum 25
+    while (rvecRouteCandidates.size() > 25)
     {
         MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
         delete pCandidate;
@@ -1035,6 +1212,8 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
     if (m_pNetwork == NULL || pCandidate == NULL)
         return;
 
+    bool bMoveLastPoint = false;
+
     const DirectedNetworkSection& rSection = pCandidate->GetLastSection();
 
     double dAdditionalUTurnScore = 0.0;
@@ -1044,13 +1223,23 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         (rSection.GetDirection() ==
             DirectedNetworkSection::DIR_DOWN && bUpDown))
     {
+        // U-Turn
+
+        if (pCandidate->GetCountPointsOfLastSection() == 1)
+        {
+            // U-Turn and only one assigned point to last section
+            // -> Remove last point and assign this point to
+            // start point of adjacent section
+
+            bMoveLastPoint = true;
+        }
+
         // Calculate Score for U-Turn
         const SimpleLine* pCurve = rSection.GetCurve();
         if (pCurve != NULL && pCurve->IsDefined())
         {
-            const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
-            const Point ptRef = bUpDown ? pCurve->EndPoint(bStartsSmaller) :
-                                          pCurve->StartPoint(bStartsSmaller);
+            const Point ptRef = bUpDown ? rSection.GetEndPoint() :
+                                          rSection.GetStartPoint();
 
             vector<MHTRouteCandidate::PointData*> vecPointsLastSection;
             pCandidate->GetPointsOfLastSection(vecPointsLastSection);
@@ -1099,8 +1288,35 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
             MHTRouteCandidate* pNewCandidate =
                                              new MHTRouteCandidate(*pCandidate);
 
-            // add Score for U-Turn
-            pNewCandidate->AddScore(dAdditionalUTurnScore);
+            if (bMoveLastPoint)
+            {
+                MHTRouteCandidate::PointData PointDataLast(
+                        pNewCandidate->GetLastPoint() != NULL ?
+                                *(pNewCandidate->GetLastPoint()):
+                                MHTRouteCandidate::PointData());
+                pNewCandidate->RemoveLastPoint();
+
+                // Assign to start node of new section
+                Point PointNewProjection(adjSection.GetDirection() ==
+                                            DirectedNetworkSection::DIR_UP ?
+                                                    adjSection.GetStartPoint() :
+                                                    adjSection.GetEndPoint());
+
+                double dDistance = MMUtil::CalcDistance(PointNewProjection,
+                                                   *PointDataLast.GetPointGPS(),
+                                                   m_dNetworkScale);
+
+                pNewCandidate->AddPoint(*PointDataLast.GetPointGPS(),
+                                        PointNewProjection,
+                                        PointDataLast.GetNetworkRoute(),
+                                        dDistance,
+                                        PointDataLast.GetTime());
+            }
+            else
+            {
+                // add Score for U-Turn
+                pNewCandidate->AddScore(dAdditionalUTurnScore);
+            }
 
             // add adjacent section
             pNewCandidate->AddSection(adjSection);
@@ -1136,7 +1352,7 @@ MHTRouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
         strFileName << "/home/secondo/Traces/GPoints_" << nCall;
         strFileName << "_" << i << ".txt";
         ofstream Stream(strFileName.str().c_str());
-        rvecRouteCandidates[i]->PrintGPointsAsPoints(Stream);
+        rvecRouteCandidates[i]->Print(Stream);
     }
     ++nCall;
 #endif
@@ -1295,7 +1511,7 @@ void MapMatchingMHT::CreateCompleteRoute(
                                 pLastPointOfPrevSection->GetGPoint(nNetworkkId),
                                 pData1->GetGPoint(nNetworkkId),
                                 pLastPointOfPrevSection->GetTime(),
-                                pData1->GetTime());
+                                pData1->GetTime(), true);
                     }
 
                     bCalcShortestPath = false;

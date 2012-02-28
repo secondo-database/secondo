@@ -50,6 +50,7 @@ class Points;
 class GPoint;
 class MPoint;
 class Geoid;
+class UPoint;
 
 namespace datetime
 {
@@ -73,6 +74,7 @@ public:
 
 */
     MapMatchingMHT(Network* pNetwork, MPoint* pMPoint);
+    MapMatchingMHT(Network* pNetwork, std::string strFileName);
     ~MapMatchingMHT();
 
 /*
@@ -88,7 +90,6 @@ private:
 3.3 Private methods
 
 */
-
     void TripSegmentation(std::vector<MPoint*>& rvecTripParts);
 
     int GetInitialRouteCandidates(MPoint* pMPoint, int nIdxFirstComponent,
@@ -101,6 +102,8 @@ private:
                        const datetime::DateTime& rTime,
                        bool bClosed,
                        std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
+
+    bool CheckQualityOfGPSFix(int nIdx, const UPoint& rUPoint);
 
     enum ENextCandidates
     {

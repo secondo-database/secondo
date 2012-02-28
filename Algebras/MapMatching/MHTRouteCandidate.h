@@ -75,12 +75,12 @@ public:
 
     void AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
                   const Point& rPointProjection, const NetworkRoute& rRoute,
-                  const double dDistance, const datetime::DateTime& rDateTime,
-                  bool bClosed);
+                  const double dDistance, const datetime::DateTime& rDateTime/*,
+                  bool bClosed*/);
 
     void AddPoint(const Point& rPoint,
-                  const double dDistance, const datetime::DateTime& rDateTime,
-                  bool bClosed);
+                  const double dDistance, const datetime::DateTime& rDateTime/*,
+                  bool bClosed*/);
 
     void RemoveLastPoint(void);
 
@@ -102,14 +102,16 @@ public:
     class PointData
     {
     public:
+        PointData();
+
         PointData(/*const GPoint& rGPoint,*/ const Point& rPointGPS,
                   const Point& rPointProjection, const NetworkRoute& rRoute,
                   const double dDistance,
-                  const datetime::DateTime& rDateTime, bool bClosed);
+                  const datetime::DateTime& rDateTime/*, bool bClosed*/);
 
         // Constructor without GPoint - Offroad-case
         PointData(const Point& rPoint, const double dDistance,
-                  const datetime::DateTime& rDateTime, bool bClosed);
+                  const datetime::DateTime& rDateTime/*, bool bClosed*/);
 
         PointData(const PointData& rPointData);
 
@@ -122,6 +124,7 @@ public:
         inline Point* GetPointGPS(void) const {return m_pPointGPS;}
         inline Point* GetPointProjection(void) const
                                               {return m_pPointProjection;}
+        inline const NetworkRoute& GetNetworkRoute(void) {return m_Route;}
         inline double GetScore(void) const {return m_dScore;}
         inline datetime::DateTime GetTime(void) const {return m_Time;}
         //inline bool GetClosed(void) const {return m_bClosed;}
@@ -137,6 +140,8 @@ public:
         datetime::DateTime m_Time;
         //bool m_bClosed;
     };
+
+    const PointData* GetLastPoint(void) const;
 
     inline const std::vector<PointData*>& GetPoints(void) const
     {

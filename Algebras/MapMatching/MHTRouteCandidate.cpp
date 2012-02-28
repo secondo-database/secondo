@@ -156,7 +156,9 @@ bool MHTRouteCandidate::operator==(const MHTRouteCandidate& rCandidate)
 
     if (AlmostEqual(GetScore(), rCandidate.GetScore()) &&
         GetPoints().size() == rCandidate.GetPoints().size() &&
-        GetLastSection() == rCandidate.GetLastSection())
+        GetLastSection() == rCandidate.GetLastSection() &&
+        GetLastSection().GetDirection() ==
+                     rCandidate.GetLastSection().GetDirection())
     {
         const size_t nPoints = GetPoints().size();
         for (size_t i = 0; i < nPoints; ++i)
@@ -230,6 +232,14 @@ const DirectedNetworkSection& MHTRouteCandidate::GetLastSection(void) const
     }
 }
 
+const MHTRouteCandidate::PointData* MHTRouteCandidate::GetLastPoint(void) const
+{
+    if (m_Points.size() > 0)
+        return m_Points.back();
+    else
+        return NULL;
+}
+
 void MHTRouteCandidate::GetPointsOfLastSection(
                                       std::vector<PointData*>& rvecPoints) const
 {
@@ -249,7 +259,7 @@ void MHTRouteCandidate::AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
                                  const Point& rPointProjection,
                                  const NetworkRoute& rRoute,
                                  const double dDistance,
-                                 const DateTime& rDateTime, bool bClosed)
+                                 const DateTime& rDateTime/*, bool bClosed*/)
 {
     double dScore = dDistance;
 
@@ -273,7 +283,7 @@ void MHTRouteCandidate::AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
 
     PointData* pData = new PointData(/*rGPoint,*/ rPoint,
                                      rPointProjection, rRoute,
-                                     dScore, rDateTime, bClosed);
+                                     dScore, rDateTime/*, bClosed*/);
     m_Points.push_back(pData);
     ++m_nPointsOfLastSection;
     m_dScore += dScore;
@@ -283,10 +293,10 @@ void MHTRouteCandidate::AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
 
 void MHTRouteCandidate::AddPoint(const Point& rPoint,
                                  const double dDistance,
-                                 const DateTime& rDateTime, bool bClosed)
+                                 const DateTime& rDateTime/*, bool bClosed*/)
 {
     PointData* pData = new PointData(rPoint, dDistance,
-                                     rDateTime, bClosed);
+                                     rDateTime/*, bClosed*/);
     m_Points.push_back(pData);
     ++m_nPointsOfLastSection;
     m_dScore += dDistance;
@@ -406,13 +416,22 @@ void MHTRouteCandidate::PrintGPointsAsPoints(std::ostream& os) const
 
 */
 
+MHTRouteCandidate::PointData::PointData()
+:m_pGPoint(NULL),
+ m_pPointGPS(NULL),
+ m_pPointProjection(NULL),
+ m_dScore(0.0)
+//, m_bClosed(false)
+{
+}
+
 MHTRouteCandidate::PointData::PointData(//const GPoint& rGPoint,
                                         const Point& rPointGPS,
                                         const Point& rPointProjection,
                                         const NetworkRoute& rRoute,
                                         const double dScore,
-                                        const datetime::DateTime& rDateTime,
-                                        bool /*bClosed*/)
+                                        const datetime::DateTime& rDateTime/*,
+                                        bool bClosed*/)
 :/*m_pGPoint(new GPoint(rGPoint)),*/m_pGPoint(NULL),
  m_pPointGPS(new Point(rPointGPS)),
  m_pPointProjection(new Point(rPointProjection)),
@@ -425,8 +444,8 @@ MHTRouteCandidate::PointData::PointData(//const GPoint& rGPoint,
 
 MHTRouteCandidate::PointData::PointData(const Point& rPoint,
                                         const double dScore,
-                                        const datetime::DateTime& rDateTime,
-                                        bool /*bClosed*/)
+                                        const datetime::DateTime& rDateTime/*,
+                                        bool bClosed*/)
 :m_pGPoint(NULL),
  m_pPointGPS(new Point(rPoint)),
  m_pPointProjection(NULL),

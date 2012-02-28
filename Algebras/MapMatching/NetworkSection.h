@@ -59,6 +59,7 @@ namespace mapmatch {
 class NetworkSection
 {
 public:
+    NetworkSection();
     NetworkSection(Tuple* pTupleSection, Network* pNetwork,
                    bool bIncReference = true);
     NetworkSection(const NetworkSection& rNetworkSection);
@@ -118,6 +119,8 @@ public:
         DIR_UP,
         DIR_DOWN
     };
+
+    DirectedNetworkSection();
 
     DirectedNetworkSection(Tuple* pTupleSection, Network* pNetwork,
                            bool bIncReference = true,

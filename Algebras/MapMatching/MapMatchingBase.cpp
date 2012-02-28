@@ -50,10 +50,13 @@ Is is the base class of all Map Matching algorithms
 namespace mapmatch {
 
 // Constructor
-MapMatchingBase::MapMatchingBase(Network* pNetwork, MPoint* pMPoint)
+MapMatchingBase::MapMatchingBase(Network* pNetwork,
+                                 AttributePtr<MPoint> pMPoint)
 :m_pNetwork(pNetwork),  // TODO
  m_dNetworkScale(1000.0/*pNetwork != NULL ? pNetwork->GetScalefactor() : 1.0*/),
- m_pMPoint(pMPoint), m_pResMGPoint(NULL), m_pRITree(NULL)
+ m_pMPoint(pMPoint), m_pMSat(NULL), m_pMFix(NULL),
+ m_pMHDOP(NULL), m_pMPDOP(NULL),
+ m_pResMGPoint(NULL), m_pRITree(NULL)
 {
 }
 
@@ -149,7 +152,8 @@ void MapMatchingBase::AddUnit(const int nRouteID,
 bool MapMatchingBase::CalcShortestPath(const GPoint* pGPStart,
                                        const GPoint* pGPEnd,
                                        const datetime::DateTime& rtimeStart,
-                                       const datetime::DateTime& rtimeEnd)
+                                       const datetime::DateTime& rtimeEnd,
+                                       const bool bCheckSpeed)
 {
     if (pGPStart == NULL || !pGPStart->IsDefined() ||
         pGPEnd == NULL || !pGPEnd->IsDefined() ||
@@ -171,6 +175,32 @@ bool MapMatchingBase::CalcShortestPath(const GPoint* pGPStart,
     else
     {
         // ShortestPath calculation successfull
+
+        // Check Speed
+        if (bCheckSpeed)
+        {
+            double dLen = MMUtil::CalcLengthCurve(pGlShortestPath.get(),
+                                                  m_pNetwork, m_dNetworkScale);
+            dLen /= 1000.; // KM
+            datetime::DateTime DiffTime = rtimeEnd - rtimeStart;
+            double dDuration = DiffTime.millisecondsToNull() /
+                                                    (1000. * 60. *60.); // hours
+            if (!AlmostEqual(dDuration, 0.0))
+            {
+                double dSpeed = dLen / dDuration; // km/h
+                if (dSpeed > 250.) // TODO use additional data -
+                                   // speed-limits, previous speed, ...
+                {
+                    /*cout << "Too fast : " << endl;
+                    pGPStart->Print(cout);
+                    cout << endl;
+                    pGPEnd->Print(cout);
+                    cout << endl;*/
+                    return false;
+                }
+            }
+        }
+
         // Create UGPoints
 
         RouteInterval actRouteInterval;
@@ -355,7 +385,8 @@ bool MapMatchingBase::ConnectPoints(const GPoint& rGPStart,
             return CalcShortestPath(&GPoint1,
                                     &GPoint2,
                                     rTimeInterval.start,
-                                    rTimeInterval.end);
+                                    rTimeInterval.end,
+                                    true);
 #endif
 
         }

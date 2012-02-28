@@ -19,7 +19,7 @@
 
 ########################################################################
 #
-# generic makefile for an algebra module 
+# SECONDO makefile for MapMatching algebra
 #
 ########################################################################
 
@@ -39,7 +39,8 @@ ALGEBRA_DEPENDENCIES += TemporalAlgebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS)
+CCFLAGS += -DWITH_LIBXML2_SUPPORT -I/usr/include/libxml2 -l/usr/lib/libxml2
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

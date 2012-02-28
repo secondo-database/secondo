@@ -52,8 +52,9 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 
-#include "../Network/NetworkAlgebra.h"
-#include "../TemporalNet/TemporalNetAlgebra.h"
+#include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
+#include "FTextAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -157,8 +158,14 @@ struct MapMatchMHTInfo : OperatorInfo {
     signature = Network::BasicType() + " x " +
                 MPoint::BasicType() + " -> " +
                 MGPoint::BasicType();
+
+    appendSignature(Network::BasicType() + " x " +
+                    FText::BasicType()  + " -> " +
+                    MGPoint::BasicType());
+
     syntax    = "mapmatchmht ( _ , _ )";
-    meaning   = "The operation tries to map the mpoint to "
+    meaning   = "The operation tries to map the MPoint or "
+                "the data from a gpx-file to "
                 "the given network as well as possible.";
     example   = "mapmatchmht (TODO, TODO)";
   }
@@ -166,21 +173,41 @@ struct MapMatchMHTInfo : OperatorInfo {
 
 /*
 4.2 Type-Mapping
-    s. OpMapMatchingTypeMap
 
 */
+
+ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
+{
+  NList param(in_xArgs);
+
+  if( param.length() != 2)
+    return listutils::typeError("two arguments expected");
+
+  if (!param.first().isSymbol(Network::BasicType()))
+    return listutils::typeError("1. argument must be " + Network::BasicType());
+
+  if (!param.second().isSymbol(MPoint::BasicType()) &&
+      !param.second().isSymbol(FText::BasicType()))
+  {
+    return listutils::typeError("2. argument must be " +
+                                MPoint::BasicType() + " or " +
+                                FText::BasicType());
+  }
+
+  return nl->SymbolAtom( MGPoint::BasicType() );
+}
 
 /*
 4.3 Value-Mapping
 
 */
-int OpMapMatchingMHTValueMapping(Word* args,
-                                 Word& result,
-                                 int message,
-                                 Word& local,
-                                 Supplier in_xSupplier)
+int OpMapMatchingMHTMPointValueMapping(Word* args,
+                                       Word& result,
+                                       int message,
+                                       Word& local,
+                                       Supplier in_xSupplier)
 {
-  // cout << "OpMapMatching called" << endl;
+  // cout << "OpMapMatchingMHTMPointValueMapping called" << endl;
 
   // Initialize Result
   result = qp->ResultStorage(in_xSupplier);
@@ -200,6 +227,62 @@ int OpMapMatchingMHTValueMapping(Word* args,
   }
 
   return 0;
+}
+
+int OpMapMatchingMHTGPXValueMapping(Word* args,
+                                       Word& result,
+                                       int message,
+                                       Word& local,
+                                       Supplier in_xSupplier)
+{
+  // cout << "OpMapMatchingMHTGPXValueMapping called" << endl;
+
+  // Initialize Result
+  result = qp->ResultStorage(in_xSupplier);
+  MGPoint* res = static_cast<MGPoint*>(result.addr);
+
+  // get Arguments
+  Network* pNetwork = static_cast<Network*>(args[0].addr);
+  FText* pFileName = static_cast<FText*>(args[1].addr);
+
+  std::string strFileName = pFileName->Get();
+
+  // Do Map Matching
+
+  MapMatchingMHT MapMatching(pNetwork, strFileName);
+
+  if (!MapMatching.DoMatch(res))
+  {
+      // Error
+  }
+
+  return 0;
+}
+
+/*
+ 4.4 Selection Function
+
+*/
+
+int MapMatchMHTSelect(ListExpr args)
+{
+    NList type(args);
+    if (type.length() == 2 &&
+        type.first().isSymbol(Network::BasicType()) &&
+        type.second().isSymbol(MPoint::BasicType()))
+    {
+        return 0;
+    }
+    else if (type.length() == 2 &&
+             type.first().isSymbol(Network::BasicType()) &&
+             type.second().isSymbol(FText::BasicType()))
+    {
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 
@@ -223,13 +306,20 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 
 */
 
+    // MapMatchSimple
     AddOperator(MapMatchSimpleInfo(),
                 OpMapMatchingSimpleValueMapping,
                 OpMapMatchingTypeMap);
 
+    // MapMatchMHT - overloaded
+    ValueMapping MapMatchMHTFuns[] = { OpMapMatchingMHTMPointValueMapping,
+                                       OpMapMatchingMHTGPXValueMapping,
+                                       0 };
+
     AddOperator(MapMatchMHTInfo(),
-                OpMapMatchingMHTValueMapping,
-                OpMapMatchingTypeMap);
+                MapMatchMHTFuns,
+                MapMatchMHTSelect,
+                OpMapMatchingMHTTypeMap);
 }
 
 MapMatchingAlgebra::~MapMatchingAlgebra()
