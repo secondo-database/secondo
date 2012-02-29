@@ -621,6 +621,10 @@ Different SmiFile types may return different sets of keys as results.
 
   bool IsTemp();
 
+  string GetFileName() const {
+    return fileName;
+  }
+
 
  protected:
   SmiFile( const bool isTemporary = false);
