@@ -344,8 +344,45 @@ Not implemented yet.
 */
 
    InvertedFile* clone(){
-      assert(false);
-      return 0;
+      InvertedFile* res = new InvertedFile();
+      TrieIteratorType* it = getEntries("");
+      TrieNodeCacheType* cache = createTrieCache(1048576);
+      string word;
+      SmiRecordId id;
+      TrieNodeType resnode;
+      SmiRecordId resTrieId;
+      SmiRecordId resListId;
+      
+      size_t bufferSize = 512*1024;
+      char* buffer = new char[bufferSize];
+      while(it->next(word,id)){
+        res->getInsertNode( word, resnode, resTrieId);
+
+        SmiRecord resRecord;
+        res->listFile.AppendRecord(resListId, resRecord);
+
+        resnode.setContent(resListId);
+        resnode.writeToFile(&(res->file), resTrieId);
+
+        // copy record content
+        SmiRecord srcRecord;
+        listFile.SelectRecord(id,srcRecord);
+        size_t offset = 0;
+        size_t size = srcRecord.Size();
+        resRecord.Resize(size);
+        while(offset<size){
+          size_t bytesToCopy = min(bufferSize, size-offset);
+          srcRecord.Read(buffer, bytesToCopy, offset);
+          resRecord.Write(buffer, bytesToCopy, offset);
+          offset += bytesToCopy; 
+        }
+        srcRecord.Finish();
+        resRecord.Finish();
+      }
+      delete it;
+      delete cache; 
+      delete[] buffer;
+      return res;
    }
 
 
@@ -409,7 +446,7 @@ Inserts the words contained within ~text~ into this inverted file.
                    TrieNodeCacheType* triecache = 0 ){
 
        stringutils::StringTokenizer 
-                 st(text," \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|");
+                 st(text,getSeparatorsString());
        wordPosType wc = 0;
        charPosType pos = 0;
        while(st.hasNextToken()){
@@ -811,7 +848,9 @@ Returns data about the underlying files.
     }
 
 
-   
+   inline  static string getSeparatorsString() {
+      return " \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|";
+   }
 
 
 
@@ -819,6 +858,9 @@ Returns data about the underlying files.
   private:
      SmiRecordFile listFile;
   
+
+
+    
 
 /*
 ~insert~
