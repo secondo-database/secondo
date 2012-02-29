@@ -3,47 +3,6 @@ Restore : No
 
 
 
-
-Operator : createemptytrie
-Number   : 1
-Signature: ->trie
-Example  : query createemptytrie()
-Result   : unpredictable
-Remark   : a trie has no out function
-
-
-Operator : insert2trie
-Number   : 1
-Signature: trie x string x int -> bool
-Example  : query insert2trie(createemptytrie(),"hello",int2tid(1))
-Result   : TRUE
-
-Operator : searchtrie
-Number   : 1
-Signature: trie x string -> tid
-Example  : query searchtrie(createemptytrie(),"hello")
-Result   : (tid 0)
-
-
-Operator : contains
-Number   : 1
-Signature: trie x string -> bool
-Example  : query createemptytrie() contains "hello"
-Result   : FALSE
-
-Operator : containsPrefix
-Number   : 1
-Signature: trie x string -> bool
-Example  : query createemptytrie() containsPrefix "hello"
-Result   : FALSE
-
-Operator : trieEntries
-Number   : 1
-Signature: trie x string [x bool]-> stream(string)
-Example  : query createemptytrie() trieEntries["hello"] count 
-Result   : 0
-
-
 Operator : createInvFile
 Number   : 1
 Signature: stream(tuple) x a_i x a_j -> invfile
@@ -71,12 +30,6 @@ Signature : invfile -> text
 Example   : query length(getFileInfo(SEC2OPERATORINFO feed addid createInvFile[Signature, TID] )) > 0
 Result   : TRUE
 
-
-Operator : getFileInfo
-Number   : 2
-Signature: trie  -> text
-Example  : query length(getFileInfo(createemptytrie())) > 0
-Result   : TRUE
 
 Operator  : wordCount
 Number    : 1
