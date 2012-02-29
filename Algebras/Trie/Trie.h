@@ -39,6 +39,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TRIE_H
 #define TRIE_H
 
+namespace trie{
+
+
 static const unsigned int CHARS = 256;
 
 /*
@@ -913,6 +916,8 @@ cannot be used within a transactional environment.
 
 };
 
+
+} // end of namespace trie
 
 #endif
 

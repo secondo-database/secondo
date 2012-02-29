@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "StringUtils.h"
 #include "Trie.h"
+#include "VTrie.h"
 
 #include "LRU.h"
 
@@ -49,6 +50,18 @@ defined.
 typedef SmiRecordId TrieContentType; // content of trie entries
 typedef uint32_t wordPosType;        // type representing word positions
 typedef uint32_t charPosType;        // type representing character positions
+
+typedef vtrie::VTrieIterator<TrieContentType> TrieIteratorType;
+typedef vtrie::VTrieNode<TrieContentType> TrieNodeType;
+typedef vtrie::VTrieNodeCache<TrieContentType> TrieNodeCacheType;
+typedef vtrie::VTrie<TrieContentType> TrieType;
+
+
+//typedef trie::TrieIterator<TrieContentType> TrieIteratorType;
+//typedef trie::TrieNode<TrieContentType> TrieNodeType;
+//typedef trie::TrieNodeCache<TrieContentType> TrieNodeCacheType;
+//typedef trie::Trie<TrieContentType> TrieType;
+
 
 
 
@@ -112,7 +125,6 @@ buffer for further append calls.
 
 */
     void bringToDisk(SmiRecordFile* file){
-
        SmiRecord record;
        file->SelectRecord(id, record, SmiFile::Update);
        record.Write(buffer, length, offset);
@@ -266,14 +278,14 @@ Removes all entries from the cache writing the buffers to disk.
 */
 
 
-class InvertedFile: public Trie<TrieContentType> {
+class InvertedFile: public TrieType {
 
   public:
 /*
 ~Standard Constructor~
 
 */
-     InvertedFile(): Trie<TrieContentType>(), listFile(false,0,false){
+     InvertedFile(): TrieType(), listFile(false,0,false){
         listFile.Create();
      }
 
@@ -281,7 +293,7 @@ class InvertedFile: public Trie<TrieContentType> {
 ~Copy Constructor~
 
 */
-     InvertedFile(const InvertedFile& src): Trie<TrieContentType>(src), 
+     InvertedFile(const InvertedFile& src): TrieType(src), 
                                             listFile(src.listFile) 
                                             {
       }
@@ -292,7 +304,7 @@ class InvertedFile: public Trie<TrieContentType> {
 */
     InvertedFile(SmiFileId& _trieFileId, SmiRecordId& _trieRootId,
                  SmiFileId& _listFileId): 
-        Trie<TrieContentType>(_trieFileId, _trieRootId), 
+        TrieType(_trieFileId, _trieRootId), 
         listFile(false){
         listFile.Open(_listFileId);
 
@@ -315,7 +327,7 @@ Destroys all underlying files.
 
 */
     void deleteFiles(){
-       Trie<TrieContentType>::deleteFile();
+       TrieType::deleteFile();
        if(listFile.IsOpen()){
          listFile.Close();          
        }
@@ -381,8 +393,8 @@ The caller is responsible for deleting the created object. This
 cache can be used within the insert function.
 
 */
-   TrieNodeCache<TrieContentType>* createTrieCache(const size_t maxMem){
-     return new TrieNodeCache<TrieContentType>(maxMem,&file);
+   TrieNodeCacheType* createTrieCache(const size_t maxMem){
+     return new TrieNodeCacheType(maxMem,&file);
    }
 
 
@@ -394,7 +406,7 @@ Inserts the words contained within ~text~ into this inverted file.
 */
    void insertText(TupleId tid, const string& text, 
                    appendcache::RecordAppendCache* cache=0,
-                   TrieNodeCache<TrieContentType>* triecache = 0 ){
+                   TrieNodeCacheType* triecache = 0 ){
 
        stringutils::StringTokenizer 
                  st(text," \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|");
@@ -585,12 +597,12 @@ This function returns an iterator for a specified word.
     SmiRecordId id = rootId;
     size_t pos = 0;
     while((id!=0) && (pos <str.length())) {
-       TrieNode<TrieContentType> node(&file,id);
+       TrieNodeType node(&file,id);
        id = node.getNext(str[pos]);
        pos++; 
     }
     if(id!=0){
-       TrieNode<TrieContentType> node(&file,id);
+       TrieNodeType node(&file,id);
        TrieContentType tid = node.getContent();
        return new exactIterator(&listFile, tid, mem);
     }
@@ -615,7 +627,7 @@ This functions returns how ofter ~word~ is stored within this inverted file.
 
 */   
      size_t wordCount(const string& word){
-       return wordCount( Trie<TrieContentType>::search(word));
+       return wordCount( TrieType::search(word));
 
      }
 
@@ -703,7 +715,7 @@ unchanged and the return value if false.
 
      private:
        InvertedFile* inv;
-       TrieIterator<TrieContentType>* it;
+       TrieIteratorType* it;
        exactIterator* exactIt;
        SmiRecordId id; 
        string str;
@@ -757,7 +769,7 @@ structure together with the count of this word.
 
     private:
        InvertedFile* inv;
-       TrieIterator<TrieContentType>* it;
+       TrieIteratorType* it;
 
 
        countPrefixIterator(InvertedFile* _inv, const string& prefix):  
@@ -787,7 +799,7 @@ Returns data about the underlying files.
 */
 
    void  getFileInfo( SmiStatResultType& result){
-         Trie<TrieContentType>::getFileInfo(result); 
+         TrieType::getFileInfo(result); 
          SmiStatResultType listresult = 
                            listFile.GetFileStatistics(SMI_STATS_LAZY);
          listresult.push_back( pair<string,string>("FilePurpose", 
@@ -819,22 +831,22 @@ inserts a new element into this inverted file
                const TupleId tid, 
                const wordPosType wordPos, const charPosType pos, 
                appendcache::RecordAppendCache* cache,
-               TrieNodeCache<TrieContentType>* triecache){
+               TrieNodeCacheType* triecache){
 
 
        SmiRecordId listId;
        SmiRecord record;     // record containing the list
        SmiRecordId recordId; // id of the record
-       TrieNode<TrieContentType> insertNode;
+       TrieNodeType insertNode;
        SmiRecordId insertId;
 
       
        bool isNew;
        if(triecache){
-            isNew  = Trie<TrieContentType>::getInsertNode(word, insertNode, 
+            isNew  = TrieType::getInsertNode(word, insertNode, 
                                                        insertId, triecache);
        } else {
-            isNew  = Trie<TrieContentType>::getInsertNode(word, insertNode,
+            isNew  = TrieType::getInsertNode(word, insertNode,
                                                            insertId);
        }
 

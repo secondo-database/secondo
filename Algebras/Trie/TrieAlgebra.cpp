@@ -723,7 +723,7 @@ int createInvFileVM(Word* args, Word& result, int message,
        appendcache::RecordAppendCache* cache = 
                             invFile->createAppendCache(invFileCacheSize);
 
-       TrieNodeCache<TupleId>* trieCache = 
+       TrieNodeCacheType* trieCache = 
                             invFile->createTrieCache(trieCacheSize);
 
        while( (tuple = stream.request())!=0){
