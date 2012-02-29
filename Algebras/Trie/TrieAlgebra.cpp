@@ -1369,6 +1369,49 @@ Operator prefixCount (
           Operator::SimpleSelect, // trivial selection function
           prefixCountTM);
 
+
+/*
+9.3 Operator ~getInvFileSeparators~
+
+Returns all characters used for tokenize the string within the 
+InvFile data type.
+
+*/
+ListExpr getInvFileSeparatorsTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no arguments expected");
+  }
+  return listutils::basicSymbol<CcString>();
+}
+
+int getInvFileSeparatorsVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   CcString* res = (CcString*) result.addr;
+   res->Set(true, InvertedFile::getSeparatorsString());
+   return 0;
+}
+
+OperatorSpec getInvFileSeparatorsSpec(
+           "  -> string",
+           " getInvFileSeparators()",
+           " Returns all characters used by Invered Files to "
+          "tokenize texts as a single string",
+           " query getInvFileSeparators()" );
+
+
+
+
+Operator getInvFileSeparators (
+         "getInvFileSeparators" ,           // name
+          getInvFileSeparatorsSpec.getStr(),          // specification
+          getInvFileSeparatorsVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          getInvFileSeparatorsTM);
+
+
+
+
 } // end of namespace triealg
 
 
@@ -1395,6 +1438,7 @@ class TrieAlgebra : public Algebra {
      AddOperator(&triealg::prefixCount);
      AddOperator(&triealg::searchWord);
      AddOperator(&triealg::searchPrefix);
+     AddOperator(&triealg::getInvFileSeparators);
 
 
 #ifdef USE_PROGRESS
