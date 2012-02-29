@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "Trie.h"
+#include "VTrie2.h"
 #include "InvertedFile.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -40,7 +40,7 @@ extern QueryProcessor* qp;
 
 
 
-namespace trie{
+namespace triealg{
 
 
 
@@ -52,6 +52,10 @@ namespace trie{
 1.1 Type Constructor Trie
 
 */
+
+typedef vtrie::VTrie<TupleId> TrieTypeAlg;
+typedef vtrie::VTrieIterator<TupleId> TrieIteratorTypeAlg;
+
 
 
 ListExpr TrieProperty(){
@@ -65,7 +69,7 @@ ListExpr TrieProperty(){
              nl->FiveElemList(
                 nl->TextAtom(" -> SIMPLE"),
                 nl->TextAtom("trie"),
-                nl->TextAtom("trie"),
+                nl->TextAtom("()"),
                 nl->TextAtom("( (a 1))"),
                 nl->TextAtom("test type constructor"))
          );   
@@ -73,7 +77,7 @@ ListExpr TrieProperty(){
 
 
 bool CheckTrie(ListExpr type, ListExpr& ErrorInfo){
-   return listutils::isSymbol(type, Trie<TupleId>::BasicType());
+   return listutils::isSymbol(type, TrieTypeAlg::BasicType());
 }
 
 ListExpr OutTrie(ListExpr typeInfo, Word value){
@@ -90,12 +94,12 @@ Word InTrie(ListExpr typeInfo, ListExpr value,
 
 Word CreateTrie(const ListExpr typeInfo){
    Word  res;
-   res.addr = new Trie<TupleId>();
+   res.addr = new TrieTypeAlg();
    return res;
 }
 
 void DeleteTrie( const ListExpr typeInfo, Word& w ){
-  Trie<TupleId>* t = (Trie<TupleId>*) w.addr;
+  TrieTypeAlg* t = (TrieTypeAlg*) w.addr;
   t->deleteFile();
   delete t;
   w.addr = 0;
@@ -111,14 +115,14 @@ bool OpenTrie( SmiRecord& valueRecord,
   SmiRecordId rid;
   valueRecord.Read( &rid, sizeof( SmiRecordId ), offset );
   offset += sizeof( SmiRecordId );
-  Trie<TupleId>* tree = new Trie<TupleId>(fileid, rid);
+  TrieTypeAlg* tree = new TrieTypeAlg(fileid, rid);
   value.setAddr(tree);
   return true;
 }
 
 
 void CloseTrie( const ListExpr typeInfo, Word& w ){
-  Trie<TupleId>* t = (Trie<TupleId>*) w.addr;
+  TrieTypeAlg* t = (TrieTypeAlg*) w.addr;
   delete t;
   w.addr = 0;
 }
@@ -127,7 +131,7 @@ bool SaveTrie( SmiRecord& valueRecord,
                size_t& offset,
                const ListExpr typeInfo,
                Word& value ){
-   Trie<TupleId>* t = static_cast<Trie<TupleId>*>(value.addr);
+   TrieTypeAlg* t = static_cast<TrieTypeAlg*>(value.addr);
    SmiFileId fileId = t->getFileId();
    valueRecord.Write( &fileId, sizeof( SmiFileId ), offset );
    offset += sizeof( SmiFileId );
@@ -139,20 +143,20 @@ bool SaveTrie( SmiRecord& valueRecord,
 
 
 Word CloneTrie(const ListExpr typeInfo, const Word& value){
-  Trie<TupleId>* src = (Trie<TupleId>*) value.addr;
+  TrieTypeAlg* src = (TrieTypeAlg*) value.addr;
   return src->clone(); 
 }
 
 void* CastTrie( void* addr) {
-   return (Trie<TupleId>*) addr;
+   return (TrieTypeAlg*) addr;
 }
 
 int SizeOfTrie(){
-  return sizeof(Trie<TupleId>);
+  return sizeof(TrieTypeAlg);
 }
 
 
-TypeConstructor trietc( Trie<TupleId>::BasicType(),
+TypeConstructor trietc( TrieTypeAlg::BasicType(),
                         TrieProperty,
                         OutTrie,
                         InTrie,
@@ -317,7 +321,7 @@ ListExpr createemptytrieTM(ListExpr args){
   if(!nl->IsEmpty(args)){
     return listutils::typeError("no arguments expected");
   }
-  return nl->SymbolAtom(Trie<TupleId>::BasicType());
+  return nl->SymbolAtom(TrieTypeAlg::BasicType());
 }
 
 
@@ -359,7 +363,7 @@ ListExpr insert2trieTM(ListExpr args){
   if(!nl->HasLength(args,3)){
     return listutils::typeError(err);
   }
-  if(!Trie<TupleId>::checkType(nl->First(args)) ||
+  if(!TrieTypeAlg::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args)) ||
      !TupleIdentifier::checkType(nl->Third(args))){
      return listutils::typeError(err);
@@ -371,7 +375,7 @@ ListExpr insert2trieTM(ListExpr args){
 int insert2trieVM(Word* args, Word& result, int message,
                    Word& local, Supplier s){
 
-   Trie<TupleId>* trie = (Trie<TupleId>*) args[0].addr;
+   TrieTypeAlg* trie = (TrieTypeAlg*) args[0].addr;
    CcString* str = (CcString*) args[1].addr;
    TupleIdentifier* tid = (TupleIdentifier*) args[2].addr;
    result = qp->ResultStorage(s);
@@ -423,7 +427,7 @@ ListExpr searchtrieTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!Trie<TupleId>::checkType(nl->First(args)) ||
+  if(!TrieTypeAlg::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -433,7 +437,7 @@ ListExpr searchtrieTM(ListExpr args){
 int searchtrieVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
-    Trie<TupleId>* trie = (Trie<TupleId>*) args[0].addr;
+    TrieTypeAlg* trie = (TrieTypeAlg*) args[0].addr;
     CcString* pattern = (CcString*) args[1].addr;
     result = qp->ResultStorage(s);
     TupleIdentifier* tid = (TupleIdentifier*) result.addr;
@@ -475,7 +479,7 @@ ListExpr containsTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!Trie<TupleId>::checkType(nl->First(args)) ||
+  if(!TrieTypeAlg::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -487,7 +491,7 @@ template<bool acceptPrefix>
 int containsVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
-    Trie<TupleId>* trie = (Trie<TupleId>*) args[0].addr;
+    TrieTypeAlg* trie = (TrieTypeAlg*) args[0].addr;
     CcString* pattern = (CcString*) args[1].addr;
     result = qp->ResultStorage(s);
     CcBool* res = (CcBool*) result.addr;
@@ -546,7 +550,7 @@ ListExpr trieEntriesTM(ListExpr args){
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!Trie<TupleId>::checkType(nl->First(args)) ||
+  if(!TrieTypeAlg::checkType(nl->First(args)) ||
      !CcString::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }
@@ -563,14 +567,14 @@ ListExpr trieEntriesTM(ListExpr args){
 int trieEntriesVM(Word* args, Word& result, int message,
                   Word& local, Supplier s){
 
-  TrieIterator<TupleId>* li = (TrieIterator<TupleId>*) local.addr;
+  TrieIteratorTypeAlg* li = (TrieIteratorTypeAlg*) local.addr;
   switch(message){
      case OPEN : {
                    if(li){
                      delete li;
                      local.addr=0;
                    }
-                   Trie<TupleId>* trie = (Trie<TupleId>*)args[0].addr;
+                   TrieTypeAlg* trie = (TrieTypeAlg*)args[0].addr;
                    CcString* str = (CcString*) args[1].addr;
                    if(str->IsDefined() ){
                         local.addr = trie->getEntries(str->GetValue());
@@ -1085,7 +1089,7 @@ ListExpr getFileInfoTM(ListExpr args){
     return listutils::typeError(err);
   }
   ListExpr arg = nl->First(args);
-  if(!Trie<TupleId>::checkType(arg) &&
+  if(!TrieTypeAlg::checkType(arg) &&
      !InvertedFile::checkType(arg)){
     return listutils::typeError(err);
   }
@@ -1120,12 +1124,12 @@ int getFileInfoVM1(Word* args, Word& result, int message,
 */
 
 ValueMapping getFileInfoVM[] = {
-  getFileInfoVM1<Trie<TupleId> >,
+  getFileInfoVM1<TrieTypeAlg >,
   getFileInfoVM1<InvertedFile>
 };
 
 int getFileInfoSelect(ListExpr args){
-  return Trie<TupleId>::checkType(nl->First(args))?0:1;
+  return TrieTypeAlg::checkType(nl->First(args))?0:1;
 }
 
 /*
@@ -1365,37 +1369,37 @@ Operator prefixCount (
           Operator::SimpleSelect, // trivial selection function
           prefixCountTM);
 
-} // end of namespace trie
+} // end of namespace triealg
 
 
 
 
 class TrieAlgebra : public Algebra {
   public:
-   TrieAlgebra() : Algebra() {
-     AddTypeConstructor( &trie::trietc );
-     AddTypeConstructor( &trie::invfiletc );
+     TrieAlgebra() : Algebra() {
+     AddTypeConstructor( &triealg::trietc );
+     AddTypeConstructor( &triealg::invfiletc );
 
-     AddOperator(&trie::createemptytrie);
-     AddOperator(&trie::insert2trie);
-     AddOperator(&trie::searchtrie);
-     AddOperator(&trie::contains);
-     AddOperator(&trie::containsPrefix);
-     AddOperator(&trie::trieEntries);
+     AddOperator(&triealg::createemptytrie);
+     AddOperator(&triealg::insert2trie);
+     AddOperator(&triealg::searchtrie);
+     AddOperator(&triealg::contains);
+     AddOperator(&triealg::containsPrefix);
+     AddOperator(&triealg::trieEntries);
      
-     AddOperator(&trie::createInvFile);
-     trie::createInvFile.SetUsesMemory();
+     AddOperator(&triealg::createInvFile);
+     triealg::createInvFile.SetUsesMemory();
 
-     AddOperator(&trie::getFileInfo);
-     AddOperator(&trie::wordCount);
-     AddOperator(&trie::prefixCount);
+     AddOperator(&triealg::getFileInfo);
+     AddOperator(&triealg::wordCount);
+     AddOperator(&triealg::prefixCount);
+     AddOperator(&triealg::searchWord);
+     AddOperator(&triealg::searchPrefix);
 
 
 #ifdef USE_PROGRESS
-     trie::createInvFile.EnableProgress();
+     triealg::createInvFile.EnableProgress();
 #endif
-     AddOperator(&trie::searchWord);
-     AddOperator(&trie::searchPrefix);
    }
 };
 

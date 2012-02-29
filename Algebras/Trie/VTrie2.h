@@ -590,19 +590,11 @@ entry will be overwritten by id.
         if(id==0){
             return;
         }
-        if(rootId==0){
-           VTrieNode<T> son;
-           bool newEntry = false;
-           son.insert(s,0,id,&file, newEntry);
-           rootId = son.appendToFile(&file);
-        } else {
-           VTrieNode<T> son(&file,rootId);
-           bool newEntry = false;
-           bool changed = son.insert(s,0,id,&file, newEntry);
-           if(changed){
-             son.writeToFile(&file, rootId);
-           }
-        }
+        VTrieNode<T> node;
+        SmiRecordId id2;
+        getInsertNode(s,node,id2);
+        node.setContent(id);
+        node.writeToFile(&file, id2);
      }
 
 /*

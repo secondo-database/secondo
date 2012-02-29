@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "StringUtils.h"
-#include "Trie.h"
+//#include "Trie.h"
 #include "VTrie2.h"
 
 #include "LRU.h"
