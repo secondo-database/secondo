@@ -43,9 +43,9 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 
 // --- Including header-files
 #include "Algebra.h"
-#include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlreader.h>
+#include <libxml/xmlmemory.h>
 #include "RelationAlgebra.h"
 #include <string>
 

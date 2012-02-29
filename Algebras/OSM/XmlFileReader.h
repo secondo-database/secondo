@@ -49,7 +49,7 @@ This header file essentially contains the definition of the class
 
 //#define WITH_LIBXML2_SUPPORT
 #ifdef WITH_LIBXML2_SUPPORT
-#include "libxml/xmlreader.h"
+#include <libxml/xmlreader.h>
 #else
 class xmlTextReaderPtr;
 #endif
@@ -75,6 +75,12 @@ class XmlFileReader {
         const std::string & getFileName () const;
         void readXmlFile ();
         void getNext ();
+        
+        // --- formerly protected
+        void popElementFromStack (const Element &element);
+#ifdef WITH_LIBXML2_SUPPORT
+        void processXmlNode (xmlTextReaderPtr reader);
+#endif
 
     protected:
 
@@ -82,12 +88,10 @@ class XmlFileReader {
         void setXmlParser (XmlParserInterface *parser);
         void open ();
         void close ();
-#ifdef WITH_LIBXML2_SUPPORT
-        void processXmlNode (xmlTextReaderPtr reader);
-#endif
+
         void pushEmptyElementToStack (const Element &element);
         void pushElementToStack (const Element &element);
-        void popElementFromStack (const Element &element);
+
         bool isElementInteresting (const Element &element) const;
 
         bool foundInterestingElement () const;

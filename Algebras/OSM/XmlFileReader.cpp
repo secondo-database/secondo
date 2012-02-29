@@ -50,6 +50,8 @@ For more detailed information see XmlFileReader.h.
 #include "XmlParserInterface.h"
 #include <iostream>
 #include <cassert>
+#include <libxml/xmlreader.h>
+#include <libxml/parser.h>
 
 // --- Constructors
 // Default-Constructor
