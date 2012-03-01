@@ -89,6 +89,6 @@ operator str2int alias STRTOINT pattern  op(_)
 operator recode alias RECODE pattern _ op [_, _]
 operator endsWith alias ENDSWITH pattern _ infixop _
 
-
+operator markText alias markText pattern _ op[_,_,_,_,_] 
 
 

@@ -966,6 +966,12 @@ Signature : text x text -> bool
 Example   : query 'Hello' endsWith 'llo'
 Result    : TRUE
 
+Operator  : markText
+Number    : 1
+Signature : stream(tuple) x ai x aj x text x string x string -> text
+Example   : query 6 feed namedtransformstream[A] extend[ B : 5 + .A] markText[A,B,'Hello World',"<start>","<end>"]
+Result    : (text 'Hello <start>World<end>')
+
 
 
 

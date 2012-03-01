@@ -64,6 +64,8 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <functional>
 #include <sstream>
 
+#include <queue>
+
 #ifdef RECODE
 #include <recode.h>
 #endif
@@ -7996,6 +7998,167 @@ ListExpr endsWithTM(ListExpr args){
 
 
 
+/*
+4.14 Operator markText
+
+
+This operator sets markers at specified positions within a text.
+
+4.14.1 Type mapping
+
+Signature stream(tuple()) x text x ai x aj x string x string -> text
+with ai,aj : int
+
+*/
+
+ListExpr markTextTM(ListExpr args) {
+    string err = "stream(tuple) x aname x aname x string x string expected";
+    if(!nl->HasLength(args,6)){
+      return listutils::typeError(err);
+    }
+    ListExpr stream = nl->First(args);
+    ListExpr aName1 = nl->Second(args);
+    ListExpr aName2 = nl->Third(args);
+    ListExpr text = nl->Fourth(args);
+    ListExpr smark = nl->Fifth(args);
+    ListExpr emark = nl->Sixth(args);
+    if(!Stream<Tuple>::checkType(stream) ||
+       !listutils::isSymbol(aName1) ||
+       !listutils::isSymbol(aName2) ||
+       !FText::checkType(text) ||
+       !CcString::checkType(smark) ||
+       !CcString::checkType(emark)){
+     return listutils::typeError(err);
+   }
+   ListExpr attrList = nl->Second(nl->Second(stream));
+   ListExpr type;
+   string name1 = nl->SymbolValue(aName1);
+   int index1 = listutils::findAttribute( attrList, name1,type);
+   if(index1==0){
+     return listutils::typeError("Attribute " + name1 + " unknown");
+   }
+   if(!CcInt::checkType(type)){
+     return listutils::typeError("Attribute " + name1 + " not od type int");
+   }
+   string name2 = nl->SymbolValue(aName2);
+   int index2 = listutils::findAttribute( attrList, name2,type);
+   if(index2==0){
+     return listutils::typeError("Attribute " + name2 + " unknown");
+   }
+   if(!CcInt::checkType(type)){
+     return listutils::typeError("Attribute " + name2 + " not od type int");
+   }
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             nl->TwoElemList(
+                                  nl->IntAtom(index1-1),
+                                  nl->IntAtom(index2-1)),
+                            listutils::basicSymbol<FText>());
+}
+
+
+/*
+4.14.2 Value Mapping
+
+*/
+
+int markTextVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+     result = qp->ResultStorage(s);
+     FText* res = (FText*) result.addr;
+     int attrPos1 = ((CcInt*) args[6].addr)->GetValue();
+     int attrPos2 = ((CcInt*) args[7].addr)->GetValue();
+     FText* theText = (FText*) args[3].addr;
+     CcString* sMark = (CcString*) args[4].addr;
+     CcString* eMark = (CcString*) args[5].addr;
+
+     if(!theText->IsDefined() || ! sMark->IsDefined() || !eMark->IsDefined()){
+         res->SetDefined(false);
+         return 0;
+     }
+     Stream<Tuple> stream(args[0]);
+     stream.open();
+     Tuple* tuple;
+     string marks = sMark->GetValue();
+     string marke = eMark->GetValue();
+     priority_queue<int> smarks;
+     priority_queue<int> emarks;
+
+     string text = theText->GetValue();
+     int length = text.length();
+
+     
+
+     while( (tuple=stream.request())!=0){
+        CcInt* s = (CcInt*) tuple->GetAttribute(attrPos1);
+        CcInt* e = (CcInt*) tuple->GetAttribute(attrPos2);
+        if(s->IsDefined() && e->IsDefined()){
+           int si = s->GetValue();
+           int ei = e->GetValue();
+           if((si>=0) && (ei>=0) && (si<=ei) && (ei <= length)){
+              smarks.push(si);
+              emarks.push(ei);
+           }
+        }
+        tuple->DeleteIfAllowed();
+     }
+
+
+     while(!smarks.empty() && !emarks.empty()){
+         int stop = smarks.top();
+         int etop = emarks.top();
+         int top;
+         string in;
+
+         if(stop>etop){
+           top = stop;
+           in = marks;
+           smarks.pop();
+         } else {
+           top = etop;
+           in = marke;
+           emarks.pop(); 
+         }
+         text = text.insert(top,in);
+     }
+     while(!smarks.empty()){
+         int top = smarks.top();
+         smarks.pop();
+         text = text.insert(top,marks); 
+     }
+     while(!emarks.empty()){
+         int top = emarks.top();
+         emarks.pop();
+         text = text.insert(top,marke); 
+     }
+
+
+
+     res->Set(true,text);
+     return 0;
+ }
+
+  const string markTextSpec =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+      "( <text>  stream(tuple) x ai x aj x text x string x string"
+      " with ai, aj : int "
+      "</text--->"
+      "<text> _  marktext[_,_,_,_,_]  </text--->"
+      "<text>Inserts markers (string arguments) at a text at all"
+      " positions decsribed in the stream."
+      "<text>query 5 feed namedtransformstream[S] extend[E : s + 4] "
+      "markText['Hello World',A,E,\"<b>\",\"<\\b>\" </text--->"
+      ") )";
+
+  Operator markText 
+  (
+  "markText",             //name
+   markTextSpec,         //specification
+   markTextVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   markTextTM        //type mapping
+  );
+
   /*
   5 Creating the algebra
 
@@ -8081,6 +8244,7 @@ ListExpr endsWithTM(ListExpr args){
       AddOperator(&str2real);
       AddOperator(&str2int);
       AddOperator(&endsWith);
+      AddOperator(&markText);
 
 #ifdef RECODE
       AddOperator(&recode);
