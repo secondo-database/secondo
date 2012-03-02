@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 #include "StringUtils.h"
 
 namespace stringutils {
@@ -152,6 +154,19 @@ std::string replaceAll(const std::string& textStr,
   } while ( (pos != std::string::npos) && (pos < textStr.length()) );
   return sstextReplaced.str();
 }
+
+/*
+toUpper and toLower
+
+*/
+
+  void toLower(std::string& str){
+      std::transform(str.begin(),str.end(), str.begin(), (int(*)(int)) tolower);
+  }
+
+  void toUpper(std::string& str){
+      std::transform(str.begin(),str.end(), str.begin(), (int(*)(int)) toupper);
+  }
 
 
 

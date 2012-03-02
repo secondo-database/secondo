@@ -135,6 +135,19 @@ Checks whether the second argument is a prefix of the first one
 */
 bool startsWith(const std::string& a1, const std::string& a2);
 
+
+/*
+5 toLower
+
+*/
+  void toLower(std::string& s);
+
+/*
+6 toUpper
+
+*/
+  void toUpper(std::string& s);
+
 /*
 Function converting a type supporting the shift (output) operator
 to a string.
