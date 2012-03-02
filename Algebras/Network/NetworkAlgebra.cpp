@@ -385,6 +385,7 @@ Returns a pointer to the node with the given id or 0 if not found.
         {
           DirectedSection actSection = sectList[j];
           test = Find ( actSection.GetSectionTid());
+          j++;
         }
         if ( test != 0 )
           result += GPoint ( true, pNetwork->GetId(), n.rid, n.start, None );
@@ -399,6 +400,7 @@ Returns a pointer to the node with the given id or 0 if not found.
         {
           DirectedSection actSection = sectList[j];
           test = Find ( actSection.GetSectionTid());
+          j++;
         }
         if ( test != 0 )
           result+= GPoint ( true, pNetwork->GetId(), n.rid, n.end, None );
