@@ -973,6 +973,16 @@ Example   : query 6 feed namedtransformstream[A] extend[ B : 5 + .A] markText[A,
 Result    : (text 'Hello <start>World<end>')
 
 
+Operator  : bashModifier
+Number    : 1
+Signature : string -> string
+Example   : query bashModifier("UnKnown")
+Result    : ""
 
 
+Operator  : getBashModifiers
+Number    : 1
+Signature : -> text
+Example   : query getBashModifiers() contains "NORMAL"
+Result    : TRUE
 

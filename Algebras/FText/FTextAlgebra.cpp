@@ -63,6 +63,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <iterator>
 #include <functional>
 #include <sstream>
+#include <cctype>
 
 #include <queue>
 
@@ -8159,6 +8160,193 @@ int markTextVM( Word* args, Word& result, int message,
    markTextTM        //type mapping
   );
 
+/*
+4.15 Operator bashModifier
+
+This Operator takes a description of an bash modifier and returns a string
+representing this modifier. For example 
+the query 
+   query "Normal" +  bashModifier("RED") Red + bashModifier("Normal") + Normal.
+
+will write the word "red" with foreground color red and the remainder in the
+standard colors used by the shell. Note that this operator only works 
+in bash compatible shells.
+
+*/
+ListExpr bashModifierTM(ListExpr args){
+  string err = "string expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcString>();
+}
+
+
+enum bashModifier  { NORMAL, BOLD, UNDERLINE, BLACK, RED, GREEN, 
+                     YELLOW, BLUE, VIOLET, CYAN, BG_BLACK, BG_RED, 
+                     BG_GREEN, BG_YELLOW, BG_VIOLET,BG_CYAN, UNKNOWN};
+
+string getModifierName(bashModifier m){
+   switch(m){
+      case  NORMAL : return "NORMAL"  ;
+      case  BOLD : return  "BOLD" ;
+      case  UNDERLINE : return  "UNDERLINE" ;
+      case  BLACK : return "BLACK"  ;
+      case  RED : return  "RED" ;
+      case  GREEN : return  "GREEN" ;
+      case  YELLOW : return  "YELLOW"  ;
+      case  BLUE : return   "BLUE" ;
+      case  VIOLET : return  "VIOLET" ;
+      case  CYAN : return  "CYAN" ;
+      case  BG_BLACK : return  "BG_BLACK" ;
+      case  BG_RED : return   "BG_RED" ;
+      case  BG_GREEN : return  "BG_GREEN" ;
+      case  BG_YELLOW : return  "BG_YELLOW" ;
+      case  BG_VIOLET : return  "BG_VIOLET" ;
+      case  BG_CYAN : return   "BG_CYAN";
+      default:   return  "UNKNOWN" ;
+   }
+};
+
+string getModifier(bashModifier m){
+  switch(m){
+    case NORMAL     : return "\033[0m";
+    case BOLD       : return "\033[1m";
+    case UNDERLINE  : return "\033[4m";
+    case BLACK      : return "\033[30m";
+    case RED        : return "\033[31m";
+    case GREEN      : return "\033[32m";
+    case YELLOW     : return "\033[33m";
+    case BLUE       : return "\033[34m";
+    case VIOLET     : return "\033[35m";
+    case CYAN       : return "\033[36m";
+    case BG_BLACK   : return "\033[40m";
+    case BG_RED     : return "\033[41m";
+    case BG_GREEN   : return "\033[42m";
+    case BG_YELLOW  : return "\033[43m";
+    case BG_VIOLET  : return "\033[44m";
+    case BG_CYAN    : return "\033[45m";
+    default: return "";
+  }
+};
+
+bashModifier str2mod(string s){
+  stringutils::toLower(s);
+  if(s=="normal") return NORMAL;
+  if(s=="bold") return  BOLD ;
+  if(s=="underline") return UNDERLINE ;
+  if(s=="black") return BLACK ;
+  if(s=="red") return RED ;
+  if(s=="green") return GREEN ;
+  if(s=="yellow") return YELLOW ;
+  if(s=="blue") return BLUE ;
+  if(s=="violet") return VIOLET ;
+  if(s=="cyan") return CYAN ;
+  if(s=="bg_black") return BG_BLACK ;
+  if(s=="bg_red") return BG_RED ;
+  if(s=="bg_green") return BG_GREEN ;
+  if(s=="bg_yellow") return BG_YELLOW ;
+  if(s=="bg_violet") return BG_VIOLET ;
+  if(s=="bg_cyan") return BG_CYAN ;
+  return UNKNOWN;
+}
+
+string allBashModifiers(){
+  stringstream ss;
+  for(int i=NORMAL; i< UNKNOWN; i++){
+    ss << getModifierName(static_cast<bashModifier>(i)) << " ";
+  }
+  ss << getModifierName(UNKNOWN);
+  return ss.str();
+}
+
+
+
+int bashModifierVM( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+  CcString* a = (CcString*) args[0].addr;
+  result = qp->ResultStorage(s);
+  CcString* res = (CcString*) result.addr;
+  if(!a->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    string s = getModifier(str2mod(a->GetValue()));
+    res->Set(true,s);
+  }
+  return 0;
+}
+
+OperatorSpec bashModifierSpec(
+           "string -> string",
+           "bashModifier(_)",
+           "Returns a string modifying bash settings "
+           "(see also getBashModifiers).",
+           " query 'normal' + bashModifier(\"RED\") + ' red ' + "
+           "bashModifier(\"NORMAL\") + 'normal'" );
+
+Operator bashModifierOp
+  (
+  "bashModifier",             //name
+   bashModifierSpec.getStr(),         //specification
+   bashModifierVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   bashModifierTM        //type mapping
+  );
+
+/*
+4.17 getBashModifiers
+
+4.17.1 Type Mapping
+
+Signature is -> string
+
+*/
+ListExpr getBashModifiersTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no argument expected");
+  } 
+  return listutils::basicSymbol<FText>();
+}
+
+
+int getBashModifiersVM( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   res->Set(true,allBashModifiers());
+   return 0;
+}
+
+
+OperatorSpec getBashModifiersSpec(
+           "-> string",
+           "igetBashModifiers()",
+           "Returns all meaningful arguments to the bashModifier Operator ",
+           " query getBashModifiers()a ");
+
+
+Operator getBashModifiersOp
+  (
+  "getBashModifiers",             //name
+   getBashModifiersSpec.getStr(),         //specification
+   getBashModifiersVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   getBashModifiersTM        //type mapping
+  );
+
+
+
+
+
+
+
+
+
   /*
   5 Creating the algebra
 
@@ -8245,6 +8433,8 @@ int markTextVM( Word* args, Word& result, int message,
       AddOperator(&str2int);
       AddOperator(&endsWith);
       AddOperator(&markText);
+      AddOperator(&bashModifierOp);
+      AddOperator(&getBashModifiersOp);
 
 #ifdef RECODE
       AddOperator(&recode);

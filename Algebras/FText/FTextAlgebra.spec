@@ -90,5 +90,8 @@ operator recode alias RECODE pattern _ op [_, _]
 operator endsWith alias ENDSWITH pattern _ infixop _
 
 operator markText alias markText pattern _ op[_,_,_,_,_] 
+operator bashModifier alias BASHMODIFIER pattern op(_)
+operator getBashModifiers alias GETBASHMODIFIERS pattern op()
+
 
 
