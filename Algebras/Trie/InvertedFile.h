@@ -32,8 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "StringUtils.h"
-//#include "Trie.h"
 #include "VTrie2.h"
+#include "MMTrie.h"
 
 #include "LRU.h"
 
@@ -285,7 +285,8 @@ class InvertedFile: public TrieType {
 ~Standard Constructor~
 
 */
-     InvertedFile(): TrieType(), listFile(false,0,false){
+     InvertedFile(): TrieType(), listFile(false,0,false),ignoreCase(false),
+                           minWordLength(1),stopWordsId(0), memStopWords(0) {
         listFile.Create();
      }
 
@@ -294,8 +295,13 @@ class InvertedFile: public TrieType {
 
 */
      InvertedFile(const InvertedFile& src): TrieType(src), 
-                                            listFile(src.listFile) 
+                                            listFile(src.listFile),
+                                            ignoreCase(src.ignoreCase),
+                                            minWordLength(src.minWordLength),
+                                            stopWordsId(src.stopWordsId),
+                                            memStopWords(0) 
                                             {
+         readStopWordsFromDisk();
       }
 
 /*
@@ -303,11 +309,18 @@ class InvertedFile: public TrieType {
 
 */
     InvertedFile(SmiFileId& _trieFileId, SmiRecordId& _trieRootId,
-                 SmiFileId& _listFileId): 
+                 SmiFileId& _listFileId, const bool _ignoreCase, 
+                 uint32_t _minWordLength,
+                 SmiRecordId& _stopWordsId): 
         TrieType(_trieFileId, _trieRootId), 
-        listFile(false){
-        listFile.Open(_listFileId);
+        listFile(false), 
+        ignoreCase(_ignoreCase),
+        minWordLength(_minWordLength),
+        stopWordsId(_stopWordsId),
+        memStopWords(0) {
 
+        listFile.Open(_listFileId);
+        readStopWordsFromDisk();  
     }
 
 /*
@@ -317,6 +330,9 @@ class InvertedFile: public TrieType {
     ~InvertedFile(){
        if(listFile.IsOpen()){
            listFile.Close();
+       }
+       if(memStopWords){
+         delete memStopWords;
        }
      }
 
@@ -452,10 +468,16 @@ Inserts the words contained within ~text~ into this inverted file.
        while(st.hasNextToken()){
           pos = st.getPos(); 
           string token = st.nextToken();
-          if(token.length()>0){
-            insert(token, tid, wc, pos, cache, triecache);
-            wc++;
-          }
+          if(token.length()>=minWordLength){
+            if(ignoreCase){
+              stringutils::toLower(token);
+            } 
+            if(memStopWords==0 ||  
+               memStopWords->find(token)==memStopWords->end()){
+               insert(token, tid, wc, pos, cache, triecache);
+               wc++;
+            } 
+          } 
        }
    }
 
@@ -629,7 +651,11 @@ This function returns an iterator for a specified word.
 
 */
  
-  exactIterator* getExactIterator(const string& str, const size_t mem){
+  exactIterator* getExactIterator(string str, const size_t mem){
+
+     if(ignoreCase){
+        stringutils::toLower(str);
+     }
     // find the node for str
     SmiRecordId id = rootId;
     size_t pos = 0;
@@ -663,9 +689,11 @@ This function returns an iterator for a specified record.
 This functions returns how ofter ~word~ is stored within this inverted file.
 
 */   
-     size_t wordCount(const string& word){
+     size_t wordCount(string word){
+       if(ignoreCase){
+         stringutils::toLower(word);
+       }
        return wordCount( TrieType::search(word));
-
      }
 
 
@@ -776,7 +804,10 @@ Returns a prefixIterator for str. The caller of this functions is responsible to
 destroy the iterator after using.
 
 */
-   prefixIterator* getPrefixIterator(const string& str){
+   prefixIterator* getPrefixIterator(string str){
+     if(ignoreCase){
+         stringutils::toLower(str);
+     }
      return new prefixIterator(this, str);
    }
 
@@ -822,7 +853,10 @@ structure together with the count of this word.
 Returns a countPrefixIterator of this for a specified prefix.
 
 */
-  countPrefixIterator* getCountPrefixIterator(const string& str){
+  countPrefixIterator* getCountPrefixIterator( string str){
+    if(ignoreCase){
+       stringutils::toLower(str); 
+    }
     return new countPrefixIterator(this, str);
   }
 
@@ -852,13 +886,57 @@ Returns data about the underlying files.
       return " \t\n\r.,;:-+*!?()<>\"$§&/[]{}=´`@€~'#|";
    }
 
+   bool isEmpty() const{
+     return rootId == 0;
+   }
 
+   void setParams(const bool ignoreCase,
+                  const uint32_t minWordLength,
+                  const string& stopWords){
+
+      assert(rootId==0); // allow to change parameter only for an empty index
+      this->ignoreCase = ignoreCase;
+      this->minWordLength = max(0u, minWordLength);
+      // create the set of stopWords
+      if(memStopWords){
+          memStopWords->clear();
+      } else {
+          memStopWords = new set<string>();
+      }
+      stringutils::StringTokenizer st(stopWords, getSeparatorsString());
+      while(st.hasNextToken()){
+        string token = st.nextToken();
+        if(ignoreCase){
+           stringutils::toLower(token);
+        }
+        if(token.length()>=minWordLength){
+          memStopWords->insert(token);
+        }
+      }
+      writeStopWordsToDisk();      
+   }
+
+
+   bool getIgnoreCase() const{
+      return ignoreCase;
+   }
+  
+   uint32_t getMinWordLength() const{
+     return minWordLength;
+   }
+
+   SmiRecordId getStopWordsId() const{
+     return stopWordsId;
+   }
 
 
   private:
      SmiRecordFile listFile;
-  
 
+     bool ignoreCase;
+     uint32_t minWordLength;
+     SmiRecordId stopWordsId;
+     set<string>* memStopWords; 
 
     
 
@@ -928,18 +1006,55 @@ inserts a new element into this inverted file
        }
   }
 
+  void writeStopWordsToDisk(){
+     stringstream all;
+     set<string>::const_iterator it;
+     for(it = memStopWords->begin(); it!=memStopWords->end(); it++){
+        all << (*it) << " ";
+     }
+     string str = all.str();
+     const char* buffer = str.c_str();
+     SmiRecord record;
+     if(stopWordsId==0){
+        listFile.AppendRecord(stopWordsId, record);
+     } else {
+        listFile.SelectRecord(stopWordsId,record);
+     }
+     record.Resize(str.length());
+     record.Write(buffer, str.length(), 0);
+       
+  }
+
+  void readStopWordsFromDisk(){
+      SmiSize length;
+      if(stopWordsId==0){
+         if(memStopWords){
+           delete memStopWords;
+         }
+         memStopWords=0;
+         return;
+      }
+
+      char* buffer = listFile.GetData(stopWordsId,length, true);
+      string str(buffer,length);
+      if(memStopWords==0){
+         memStopWords = new set<string>();
+      } else {
+         memStopWords->clear();
+      }
+      stringutils::StringTokenizer st(str," ");
+      while(st.hasNextToken()){
+          memStopWords->insert(st.nextToken()); 
+      }
+      free(buffer);
+  }
+
+
+
 
 
 
 
 };
-
-
-
-
-
-
-
-
 
 

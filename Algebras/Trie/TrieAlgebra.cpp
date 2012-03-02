@@ -107,8 +107,18 @@ bool OpenInvfile( SmiRecord& valueRecord,
   offset += sizeof( SmiRecordId );
   SmiFileId listfileid;
   valueRecord.Read( &listfileid, sizeof( SmiFileId ), offset );
-  offset += sizeof(SmiFileId);  
-  InvertedFile* invFile = new InvertedFile(triefileid, trierid, listfileid);
+  offset += sizeof(SmiFileId); 
+  bool ignoreCase;
+  valueRecord.Read(&ignoreCase, sizeof(bool), offset);
+  offset += sizeof(bool);
+  uint32_t minWordLength;
+  valueRecord.Read(&minWordLength, sizeof(uint32_t), offset);
+  offset += sizeof(uint32_t);
+  SmiRecordId stopWordsId;
+  valueRecord.Read(&stopWordsId, sizeof(SmiRecordId), offset);
+  offset += sizeof(SmiRecordId);
+  InvertedFile* invFile = new InvertedFile(triefileid, trierid, listfileid, 
+                                      ignoreCase, minWordLength, stopWordsId);
   value.setAddr(invFile);
   return true;
 }
@@ -134,6 +144,15 @@ bool SaveInvfile( SmiRecord& valueRecord,
    SmiFileId listFileId = t->getListFileId();
    valueRecord.Write(&listFileId, sizeof(SmiFileId), offset);
    offset += sizeof(SmiFileId);
+   bool ignoreCase = t->getIgnoreCase(); 
+   valueRecord.Write(&ignoreCase, sizeof(bool),offset);
+   offset += sizeof(bool);
+   uint32_t minWordLength = t->getMinWordLength();
+   valueRecord.Write(&minWordLength, sizeof(uint32_t), offset);
+   offset += sizeof(uint32_t);
+   SmiRecordId stopWordsId = t->getStopWordsId();
+   valueRecord.Write(&stopWordsId, sizeof(SmiRecordId), offset);
+   offset += sizeof(SmiRecordId); 
    return true;
 }
 
@@ -181,8 +200,8 @@ a2 must be of type tid
 
 */
 ListExpr createInvFileTM(ListExpr args){
-  string err = "stream(tuple) x a_i x a_j expected";
-  if(!nl->HasLength(args,3)){
+  string err = "stream(tuple) x a_i x a_j [ x bool x int x text ]expected";
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,6)){
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if(!Stream<Tuple>::checkType(nl->First(args))){
@@ -219,8 +238,25 @@ ListExpr createInvFileTM(ListExpr args){
   }
 
   ListExpr appendList = nl->TwoElemList( nl->IntAtom(i1-1),
-                                         nl->IntAtom(i2-1));
+                                          nl->IntAtom(i2-1));
 
+  
+  if(nl->HasLength(args,3)){
+     ListExpr defaultParamList = nl->ThreeElemList(
+                                nl->BoolAtom(false),
+                                nl->IntAtom(1),
+                                nl->TextAtom(""));
+      appendList = listutils::concat(defaultParamList, appendList);
+  } else {
+       ListExpr ignoreCase = nl->Fourth(args);
+       ListExpr minLength = nl->Fifth(args);
+       ListExpr stopWords = nl->Sixth(args);
+       if(!CcBool::checkType(ignoreCase) ||
+          !CcInt::checkType(minLength) ||
+          !FText::checkType(stopWords)){
+          return listutils::typeError(err);
+       }
+  }
  
   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
                             appendList,
@@ -243,10 +279,28 @@ int createInvFileVM(Word* args, Word& result, int message,
     case CLOSE:
     case REQUEST: {      
        Stream<Tuple> stream(args[0]);
-       int textIndex = ((CcInt*)args[3].addr)->GetValue();
-       int tidIndex  = ((CcInt*)args[4].addr)->GetValue();
+       int textIndex = ((CcInt*)args[6].addr)->GetValue();
+       int tidIndex  = ((CcInt*)args[7].addr)->GetValue();
        result = qp->ResultStorage(s);
        InvertedFile* invFile = (InvertedFile*) result.addr;
+
+       bool ignoreCase = false;
+       CcBool* ic = (CcBool*) args[3].addr;
+       if(ic->IsDefined()){
+          ignoreCase = ic->GetValue();
+       }
+       int minWL = 1;
+       CcInt* wl = (CcInt*) args[4].addr;
+       if(wl->IsDefined() && wl->GetValue()>0){
+           minWL = wl->GetValue();
+       }
+       string stopWords = "";
+       FText* sw = (FText*) args[5].addr;
+       if(sw->IsDefined()){
+         stopWords = sw->GetValue();
+       }
+
+       invFile->setParams(ignoreCase, minWL, stopWords);
 
        stream.open();
        Tuple* tuple;
@@ -316,10 +370,16 @@ int createInvFileVM(Word* args, Word& result, int message,
 const string createInvFileSpec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" \"Comment\" ) "
-    "(<text> stream(tuple(...) x a_i x a_j -> invfile </text--->"
-    "<text> _ createInvFile[_,_]  </text--->"
+    "(<text> stream(tuple(...) x a_i x a_j "
+    "[ignoreCase, minWordLength, stopWords]-> invfile </text--->"
+    "<text> _ createInvFile[_, _, _, _ , _] </text--->"
     "<text>creates an inverted file from a stream. "
     " a_i must be of type text, a_j must be of type tid."
+    " The last three arguments are optionally."
+    " If ignoreCase is set to true, upper and lower case is ignored."
+    " minWordLength is of type int and descibes the minimum word length"
+    " for indexing (default 1)."
+    "Stopwords is a text containing words which not should be indexed."
     "</text--->"
     "<text>query SEC2OPERATORINFO feed addid "
     "createInvFile[Signature, TID] </text--->"
