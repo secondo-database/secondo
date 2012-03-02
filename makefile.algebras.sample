@@ -246,6 +246,10 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
 
+ALGEBRA_DIRS  += NestedRelation
+ALGEBRAS      += NestedRelationAlgebra
+
+
 
 #ALGEBRA_DIRS += Distributed
 #ALGEBRAS     += DistributedAlgebra
@@ -301,7 +305,7 @@ ALGEBRAS     += SuffixTreeAlgebra
 # in some linux distributions, the xml2 library is outside
 # of standard paths, iff so, add the missing parts here
 #ALGEBRA_DEP_DIRS += /usr/lib/libxml2
-#ALGEBRA_INCLUDE_DIRS += /usr/lib/libxml2 
+#ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2 
 # on max os X the framework CoreServices must be added
 # uncomment the next line if you use mac os
 #ALGEBRA_LINK_FLAGS += -framework CoreServices
