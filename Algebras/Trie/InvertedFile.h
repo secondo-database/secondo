@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "StringUtils.h"
 #include "VTrie2.h"
-#include "MMTrie.h"
+//#include "MMTrie.h"
 
 #include "LRU.h"
 
