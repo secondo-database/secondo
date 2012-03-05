@@ -208,16 +208,16 @@ ListExpr
 Label::Property()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
-               nl->StringAtom("Example Type List"),
-               nl->StringAtom("List Rep"),
-               nl->StringAtom("Example List"),
-               nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"),
-               nl->StringAtom(Label::BasicType()),
-               nl->StringAtom("<x>"),
-               nl->StringAtom("\"at home\""),
-               nl->StringAtom("x must be of type string (max. 48 characters)."))));
+      nl->FiveElemList(nl->StringAtom("Signature"),
+         nl->StringAtom("Example Type List"),
+         nl->StringAtom("List Rep"),
+         nl->StringAtom("Example List"),
+         nl->StringAtom("Remarks")),
+      nl->FiveElemList(nl->StringAtom("-> DATA"),
+         nl->StringAtom(Label::BasicType()),
+         nl->StringAtom("<x>"),
+         nl->StringAtom("\"at home\""),
+         nl->StringAtom("x must be of type string (max. 48 characters)."))));
 }
 
 
@@ -236,7 +236,7 @@ TypeConstructor labelTC(
 
 
 
-//**********************************************************************************************************
+//**********************************************************************
 
 
 
@@ -335,6 +335,7 @@ For example:
 
 ----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   ["]My Label["] )
 ----
+
 */
 
 class ULabel : public UString {
@@ -550,15 +551,15 @@ Operator temporalatinstantext(
     MovingExtSimpleSelect,
     MovingInstantExtTypeMapIntime );  
 
-//*********************************************************************************************************
+//**********************************************************************
 
 
 
-//*********************************************************************************************************
+//**********************************************************************
 
 
 
-//**************************************************************************************************//
+//**********************************************************************
 
 enum LabelsState { partial, complete };
 
@@ -1149,12 +1150,12 @@ TypeConstructor labelsTC(
         Labels::KindCheck );               //kind checking function
 
 
-//****************************************************************************************************//
+//**********************************************************************
 
 
 
 
-//**********************************************************************************************************
+//**********************************************************************
 //~pattern~
 
 class Pattern
@@ -1162,13 +1163,17 @@ class Pattern
  public:
 //  Pattern() {};   
   Pattern( string const &text );
-  inline Pattern( string const &text , PatParser const &patParser) { SetText(text); SetPatParser(patParser) ;}
+  inline Pattern( string const &text , PatParser const &patParser) {
+    SetText(text); SetPatParser(patParser);
+  }
   Pattern( const Pattern& rhs );
   ~Pattern();
   
   inline string GetText() const { return text;}
   void SetText( string const &Text );
-  inline void SetPatParser( PatParser const &patParser ) { Pattern::patParser = patParser ;}  
+  inline void SetPatParser( PatParser const &patParser ) {
+    Pattern::patParser = patParser;
+  }  
   bool Matches(MLabel const &mlabel);
   inline bool isValid() { return patParser.isValid() ;}
   inline string getErrMsg() { return patParser.getErrMsg() ;}
@@ -1352,16 +1357,16 @@ ListExpr
 Pattern::Property()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
-               nl->StringAtom("Example Type List"),
-               nl->StringAtom("List Rep"),
-               nl->StringAtom("Example List"),
-               nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"),
-               nl->StringAtom(Pattern::BasicType()),
-               nl->StringAtom("<pattern>"),
-               nl->TextAtom("\' (monday at_home) X (_ _) // X.start = 01.01.2011 \'"),
-               nl->StringAtom("<pattern> must be a text."))));
+    nl->FiveElemList(nl->StringAtom("Signature"),
+       nl->StringAtom("Example Type List"),
+       nl->StringAtom("List Rep"),
+       nl->StringAtom("Example List"),
+       nl->StringAtom("Remarks")),
+    nl->FiveElemList(nl->StringAtom("-> DATA"),
+       nl->StringAtom(Pattern::BasicType()),
+       nl->StringAtom("<pattern>"),
+       nl->TextAtom("\' (monday at_home) X (_ _) // X.start = 01.01.2011 \'"),
+       nl->StringAtom("<pattern> must be a text."))));
 }
 
 
@@ -1435,51 +1440,51 @@ bool Pattern::Matches(MLabel const &ml)
       // check labels
       if ( !pattern.lbs.empty() ) {
         vector<string> lbs = pattern.lbs;
-             
-        if ( !ul.Passes( lbs[0] ) ) result = false;
+    
+        if ( !ul.Passes(*(new CcString(true, lbs[0])) ) ) result = false;
       }  
 
 
       // check time ranges
-      if ( !pattern.trs.empty() ) {
-	duration = endDate - startDate;
-	
-	if ( duration.GetDay() > 0 ) result = false; // duration > 24 h
-	
-        for (size_t j = 0; j < pattern.trs.size(); ++j) {
-	  
-           startTimeRange = getStartTimeFromRange( pattern.trs[j] );
-           endTimeRange = getEndTimeFromRange( pattern.trs[j] );	  
-	   
-   	   startTime.Set( startDate.GetYear(), startDate.GetMonth(), startDate.GetGregDay(),
-	  	       getHourFromTime(startTimeRange), getMinuteFromTime(startTimeRange), 
-		       getSecondFromTime(startTimeRange), getMillisecondFromTime(startTimeRange) );
-	
-           startDate2 = startDate;	   
-	   if ( !isPositivTimeRange( pattern.trs[j]) ) {	     
-	     startDate2.Add( &DateTime(1, 0, durationtype) );	     
-	   }
-	   
-	   endTime.Set( startDate2.GetYear(), startDate2.GetMonth(), startDate2.GetGregDay(),
-	  	       getHourFromTime(endTimeRange), getMinuteFromTime(endTimeRange), 
-		       getSecondFromTime(endTimeRange), getMillisecondFromTime(endTimeRange) );	
-	   
-	   if ( (startDate < startTime) || (endDate > endTime) ) result = false;
-	}	
-      } 
+  if ( !pattern.trs.empty() ) {
+    duration = endDate - startDate;
+    if ( duration.GetDay() > 0 )
+      result = false; // duration > 24 h
+    for (size_t j = 0; j < pattern.trs.size(); ++j) {
+      startTimeRange = getStartTimeFromRange( pattern.trs[j] );
+      endTimeRange = getEndTimeFromRange( pattern.trs[j] );	  
+      startTime.Set(startDate.GetYear(), startDate.GetMonth(),
+                    startDate.GetGregDay(), getHourFromTime(startTimeRange),
+                    getMinuteFromTime(startTimeRange),
+                    getSecondFromTime(startTimeRange),
+                    getMillisecondFromTime(startTimeRange));
+      startDate2 = startDate;	   
+      if ( !isPositivTimeRange( pattern.trs[j]) ) {
+        startDate2.Add( &DateTime(1, 0, durationtype) );
+      }
+      endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
+                  startDate2.GetGregDay(), getHourFromTime(endTimeRange), 
+                  getMinuteFromTime(endTimeRange), 
+                  getSecondFromTime(endTimeRange), 
+                  getMillisecondFromTime(endTimeRange) );
+      if ( (startDate < startTime) || (endDate > endTime) ) 
+        result = false;
+      }
+  } 
 
 
       // check date ranges
-      if ( !pattern.dtrs.empty() ) {
-	
-        for (size_t j = 0; j < pattern.dtrs.size(); ++j) {	
-	  
-	   startPatternDateTime.ReadFrom( getSecDateTimeString( getStartDateTimeFromRange(pattern.dtrs[j]) ) ); 
-	   endPatternDateTime.ReadFrom( getSecDateTimeString( getEndDateTimeFromRange(pattern.dtrs[j]) ) );	  
-   
-	   if ( (startDate < startPatternDateTime) || (endDate > endPatternDateTime) ) result = false;	  
-	}  	
-      } 
+  if ( !pattern.dtrs.empty() ) {
+
+    for (size_t j = 0; j < pattern.dtrs.size(); ++j) {
+      startPatternDateTime.ReadFrom(getSecDateTimeString(
+                           getStartDateTimeFromRange(pattern.dtrs[j]))); 
+      endPatternDateTime.ReadFrom(getSecDateTimeString(getEndDateTimeFromRange(
+                                  pattern.dtrs[j])));   
+      if ((startDate < startPatternDateTime) || (endDate > endPatternDateTime)) 
+        result = false;
+    }
+  } 
 
 
       // check daytime/month ranges
@@ -1491,48 +1496,45 @@ bool Pattern::Matches(MLabel const &ml)
         for (size_t j = 0; j < pattern.sts.size(); ++j) {
 	  	  
 	  switch (pattern.sts[j].type) {
-	    case 3: if ( (startDate.ToString()).substr(0,10) != (endDate.ToString()).substr(0,10) ) { // not the same day
-	               result = false;
-	            }
-	            
-	            if ( startDate.GetWeekday() != pattern.sts[j].value - 1 ) result = false;
+	    case 3:
+       if ((startDate.ToString()).substr(0,10) !=
+           (endDate.ToString()).substr(0,10) )  // not the same day
+         result = false;
+       if ( startDate.GetWeekday() != pattern.sts[j].value - 1 )
+         result = false;
+	      break;
 	      
-	            break;
-	      
-		    
-	    case 4: if ( (startDate.ToString()).substr(0,10) != (endDate.ToString()).substr(0,10) ) { // not the same day
-	               result = false;
-	            }
-	            
-	            timeRange = getDayTimeRangeString( pattern.sts[j].value );
-                    startTimeRange = getStartTimeFromRange( timeRange );
-                    endTimeRange = getEndTimeFromRange( timeRange );	            
-
-    	            startTime.Set( startDate.GetYear(), startDate.GetMonth(), startDate.GetGregDay(),
-	  	       getHourFromTime(startTimeRange), getMinuteFromTime(startTimeRange), 
-		       getSecondFromTime(startTimeRange), getMillisecondFromTime(startTimeRange) );
-
-                    startDate2 = startDate;		    
-	            if ( !isPositivTimeRange( timeRange ) ) {	     
-	               startDate2.Add( &DateTime(1, 0, durationtype) );	     
-	            }
-	   
-	            endTime.Set( startDate2.GetYear(), startDate2.GetMonth(), startDate2.GetGregDay(),
-	  	       getHourFromTime(endTimeRange), getMinuteFromTime(endTimeRange), 
-		       getSecondFromTime(endTimeRange), getMillisecondFromTime(endTimeRange) );	
-	   
-	            if ( (startDate < startTime) || (endDate > endTime) ) result = false;		    
-	            
-	            break;
-	      
-		    
-	    case 5: if ( (startDate.ToString()).substr(0,7) != (endDate.ToString()).substr(0,7) ) { // not the same month/year
-	               result = false;
-	            }
-	            
-	            if ( startDate.GetMonth() != pattern.sts[j].value ) result = false;	            	                       
-	            
-	            break;    
+	    case 4:
+       if ((startDate.ToString()).substr(0,10) !=
+           (endDate.ToString()).substr(0,10) )  // not the same day
+         result = false;
+       timeRange = getDayTimeRangeString( pattern.sts[j].value );
+       startTimeRange = getStartTimeFromRange( timeRange );
+       endTimeRange = getEndTimeFromRange( timeRange );	            
+       startTime.Set(startDate.GetYear(), startDate.GetMonth(),
+                     startDate.GetGregDay(), getHourFromTime(startTimeRange),
+                     getMinuteFromTime(startTimeRange),
+                     getSecondFromTime(startTimeRange),
+                     getMillisecondFromTime(startTimeRange));
+       startDate2 = startDate;
+       if (!isPositivTimeRange(timeRange))
+         startDate2.Add( &DateTime(1, 0, durationtype) );
+       endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
+                   startDate2.GetGregDay(), getHourFromTime(endTimeRange),
+                   getMinuteFromTime(endTimeRange), 
+                   getSecondFromTime(endTimeRange), 
+                   getMillisecondFromTime(endTimeRange));
+       if ((startDate < startTime) || (endDate > endTime))
+         result = false;		    
+       break;
+     
+     case 5:
+       if ((startDate.ToString()).substr(0,7) !=
+           (endDate.ToString()).substr(0,7) ) // not the same month/year
+         result = false;
+       if (startDate.GetMonth() != pattern.sts[j].value)
+         result = false;	            	                       
+       break;    
 	  } // switch	  
 	  
 	} // for
@@ -1549,35 +1551,32 @@ bool Pattern::Matches(MLabel const &ml)
           // op : 1="="; 2="<"; 4=">" 	  
 	  
 	  switch ( patEquation.key ) {
-	    case 1: if ( patEquation.op & 1 ) {
-                       if ( !ul.Passes( patEquation.value ) ) result = false;	      
-	            }
-	      
-	            break;
-		    
+	    case 1:
+       if ( patEquation.op & 1 ) {
+         if ( !ul.Passes( *(new CcString(true, patEquation.value)) ) )
+           result = false;	      
+	      }
+	      break;
 
-	    case 3: startPatternDateTime.ReadFrom( getSecDateTimeString( getFullDateTime( patEquation.value ) ) );
-	    
-	            if (!(( (patEquation.op & 1) && (startDate == startPatternDateTime) )
-		       || ( (patEquation.op & 2) && (startDate <  startPatternDateTime) )
-		       || ( (patEquation.op & 4) && (startDate >  startPatternDateTime) ) ) ) {		      
-			
-		      result = false;	   
-		    }	 
-	      
-	            break;
+	    case 3:
+       startPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
+           patEquation.value)));   
+       if (!(((patEquation.op & 1) && (startDate == startPatternDateTime))
+         || ((patEquation.op & 2) && (startDate < startPatternDateTime))
+         || ((patEquation.op & 4) && (startDate > startPatternDateTime)))) {
+ 		      result = false;	   
+	 	    }	 	      
+       break;
 		    
-		    
-	    case 4: endPatternDateTime.ReadFrom( getSecDateTimeString( getFullDateTime( patEquation.value ) ) );
-	    
-	            if (!(( (patEquation.op & 1) && (endDate == endPatternDateTime) )
-		       || ( (patEquation.op & 2) && (endDate <  endPatternDateTime) )
-		       || ( (patEquation.op & 4) && (endDate >  endPatternDateTime) ) ) ) {		      
-			
-		      result = false;	   
-		    }
-	      
-	            break;		      	    
+	    case 4:
+       endPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
+           patEquation.value)));
+       if (!(( (patEquation.op & 1) && (endDate == endPatternDateTime) )
+         || ( (patEquation.op & 2) && (endDate <  endPatternDateTime) )
+         || ( (patEquation.op & 4) && (endDate >  endPatternDateTime) ) ) ) {
+         result = false;	   
+       }
+	      break;
 	  } // switch
 	  	  
 	  
@@ -1592,8 +1591,9 @@ bool Pattern::Matches(MLabel const &ml)
   // mlabel does not match pattern
   if (!result && !wildcard) return false;
 
-  // wildcard is set to the current value if wildcard exists (wildcard = !result)	  
-  // the current pattern will be used for the next ulabel if the ulabel does not match the pattern (--i)
+  // if existing, wildcard is set to the current value (wildcard = !result)
+  // the current pattern will be used for the next ulabel if the ulabel does
+  // not match the pattern (--i)
   if (wildcard)	if ( (wildcard = !result) ) --i;    
 
   } // for  
@@ -1606,7 +1606,7 @@ bool Pattern::Matches(MLabel const &ml)
 }
 
 
-//**********************************************************************************************************
+//***********************************************************************
 //~rule~
 
 class Rule
@@ -1614,13 +1614,19 @@ class Rule
  public:
   Rule() : defined(false) {};   
   Rule( string const &text );
-  inline Rule( string const &text , RuleParser const &ruleParser) : defined(true) { SetText(text); SetRuleParser(ruleParser) ;}
+  inline Rule(string const &text, RuleParser const &ruleParser) :
+    defined(true) {
+      SetText(text);
+      SetRuleParser(ruleParser);
+      
+  }
   Rule( const Rule& rhs );
   ~Rule();
   
   inline string GetText() const { return text;}
   void SetText( string const &Text );
-  inline void SetRuleParser( RuleParser const &ruleParser ) { Rule::ruleParser = ruleParser ;}  
+  inline void SetRuleParser( RuleParser const &ruleParser ) {
+    Rule::ruleParser = ruleParser ;}  
 //  bool Matches(MLabel const &mlabel);
   inline bool isValid() { return ruleParser.isValid() ;}
   inline string getErrMsg() { return ruleParser.getErrMsg() ;}
@@ -1805,16 +1811,16 @@ ListExpr
 Rule::Property()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
-               nl->StringAtom("Example Type List"),
-               nl->StringAtom("List Rep"),
-               nl->StringAtom("Example List"),
-               nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"),
-               nl->StringAtom(Rule::BasicType()),
-               nl->StringAtom("<rule>"),
-               nl->TextAtom("\' X (_ a) // X.start = 01.01.2011 => X // X.label = b \'"),
-               nl->StringAtom("<rule> must be a text."))));
+    nl->FiveElemList(nl->StringAtom("Signature"),
+      nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List"),
+      nl->StringAtom("Remarks")),
+    nl->FiveElemList(nl->StringAtom("-> DATA"),
+      nl->StringAtom(Rule::BasicType()),
+      nl->StringAtom("<rule>"),
+      nl->TextAtom("\' X (_ a) // X.start = 01.01.2011 => X // X.label = b \'"),
+      nl->StringAtom("<rule> must be a text."))));
 }
 
 
@@ -1836,6 +1842,7 @@ vector<SinglePattern> Rule::getRule()
 {
   return patParser.getRule(); 
 }
+
 */
 
 
@@ -1886,7 +1893,7 @@ struct patternInfo : OperatorInfo {
 };
 
 
-//---------------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 
 ListExpr
@@ -1894,7 +1901,7 @@ consumeMLabelsTypeMap( ListExpr args )
 {
   NList type(args);
 
-  if ( type.first() == NList( Stream<MLabel>::BasicType(), MLabel::BasicType() ) ) {
+  if (type.first() == NList(Stream<MLabel>::BasicType(), MLabel::BasicType())){
      return NList(MLabel::BasicType()).listExpr();     
   }  
 
@@ -1969,7 +1976,7 @@ struct consumeMLabelsInfo : OperatorInfo {
 
 };
 
-//---------------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 
 ListExpr
@@ -1988,7 +1995,7 @@ applyTypeMap( ListExpr args )
   // second alternative: mlabel x text -> stream(mlabel)
   if ( type == NList(MLabel::BasicType(), FText::BasicType()) ) {  
 //    return NList(Stream<MLabel>::BasicType()).listExpr();
-    return NList(Stream<MLabel>::BasicType(), MLabel::BasicType()).listExpr();    
+    return NList(Stream<MLabel>::BasicType(), MLabel::BasicType()).listExpr();
   }
 
   return NList::typeError(errMsg);
@@ -2186,7 +2193,8 @@ struct applyInfo : OperatorInfo {
   {
     name      = "apply";
 
-    signature = MLabel::BasicType() + " x " + Rule::BasicType() + " -> stream(mlabel)";
+    signature = MLabel::BasicType() + " x " + Rule::BasicType()
+                + " -> stream(mlabel)";
 
     appendSignature( MLabel::BasicType() + " x Text -> stream(mlabel)" );
     syntax    = " apply (_, _)";
@@ -2195,7 +2203,7 @@ struct applyInfo : OperatorInfo {
 };
 
 
-//---------------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 ListExpr
 matchesTypeMap( ListExpr args )
@@ -2288,13 +2296,13 @@ struct matchesInfo : OperatorInfo {
     + CcBool::BasicType();
     // since this is an overloaded operator we append
     // an alternative signature here
-    appendSignature( MLabel::BasicType() + " x Text -> " + CcBool::BasicType() );
+    appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
     syntax    = "_ matches _";
     meaning   = "Match predicate.";
   }
 };
 
-//---------------------------------------------------------------------------------
+//--------------------------------------------------------------------------
 
 ListExpr
 sintstreamType( ListExpr args ) {
@@ -2401,7 +2409,7 @@ struct sintstreamInfo : OperatorInfo
 
 
 
-//****************************************************************************************************//
+//***********************************************************************//
 
 
 
@@ -2435,7 +2443,8 @@ class SymbolicTrajectoryAlgebra : public Algebra
     ValueMapping matchesFuns[] = { matchesFun_MT, matchesFun_MP, 0 };    
     AddOperator( matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap );
     
-//    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun, consumeMLabelsTypeMap );     
+//    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun,
+//      consumeMLabelsTypeMap );     
     
 //    ValueMapping applyFuns[] = { applyFun_MT, applyFun_MP, 0 }; 
 //    AddOperator( applyInfo(), applyFuns, applySelect, applyTypeMap );
