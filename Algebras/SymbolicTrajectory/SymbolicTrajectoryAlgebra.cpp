@@ -1274,11 +1274,11 @@ Pattern::In( const ListExpr typeInfo, const ListExpr instance,
       {
         correct = true;          
         result.addr = new Pattern( text, patParser );
-      }	
+      }
       else
       {
         correct = false;
-        cmsg.inFunError( patParser.getErrMsg() );	
+        cmsg.inFunError( patParser.getErrMsg() );
       }
 
     }
@@ -1452,13 +1452,13 @@ bool Pattern::Matches(MLabel const &ml)
       result = false; // duration > 24 h
     for (size_t j = 0; j < pattern.trs.size(); ++j) {
       startTimeRange = getStartTimeFromRange( pattern.trs[j] );
-      endTimeRange = getEndTimeFromRange( pattern.trs[j] );	  
+      endTimeRange = getEndTimeFromRange( pattern.trs[j] );
       startTime.Set(startDate.GetYear(), startDate.GetMonth(),
                     startDate.GetGregDay(), getHourFromTime(startTimeRange),
                     getMinuteFromTime(startTimeRange),
                     getSecondFromTime(startTimeRange),
                     getMillisecondFromTime(startTimeRange));
-      startDate2 = startDate;	   
+      startDate2 = startDate;
       if ( !isPositivTimeRange( pattern.trs[j]) ) {
         startDate2.Add( &DateTime(1, 0, durationtype) );
       }
@@ -1494,17 +1494,17 @@ bool Pattern::Matches(MLabel const &ml)
       if ( !pattern.sts.empty() ) {
 
         for (size_t j = 0; j < pattern.sts.size(); ++j) {
-	  	  
-	  switch (pattern.sts[j].type) {
-	    case 3:
+ 
+   switch (pattern.sts[j].type) {
+     case 3:
        if ((startDate.ToString()).substr(0,10) !=
            (endDate.ToString()).substr(0,10) )  // not the same day
          result = false;
        if ( startDate.GetWeekday() != pattern.sts[j].value - 1 )
          result = false;
-	      break;
-	      
-	    case 4:
+       break;
+      
+     case 4:
        if ((startDate.ToString()).substr(0,10) !=
            (endDate.ToString()).substr(0,10) )  // not the same day
          result = false;
@@ -1535,40 +1535,39 @@ bool Pattern::Matches(MLabel const &ml)
        if (startDate.GetMonth() != pattern.sts[j].value)
          result = false;	            	                       
        break;    
-	  } // switch	  
-	  
-	} // for
-	
+  } // switch
+
+  } // for
+
       }  // if    
    
    
       // check conditions
       if ( !pattern.conditions.empty() ) {
-	
-        for (size_t j = 0; j < pattern.conditions.size(); ++j) {	
+        for (size_t j = 0; j < pattern.conditions.size(); ++j) {
           patEquation = pattern.conditions[j];
           // key : 1="lb/lbs"; 3="start"; 4="end"; 6="card" 
           // op : 1="="; 2="<"; 4=">" 	  
-	  
-	  switch ( patEquation.key ) {
-	    case 1:
+
+  switch ( patEquation.key ) {
+     case 1:
        if ( patEquation.op & 1 ) {
          if ( !ul.Passes( *(new CcString(true, patEquation.value)) ) )
            result = false;	      
-	      }
-	      break;
+      }
+       break;
 
-	    case 3:
+     case 3:
        startPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
            patEquation.value)));   
        if (!(((patEquation.op & 1) && (startDate == startPatternDateTime))
          || ((patEquation.op & 2) && (startDate < startPatternDateTime))
          || ((patEquation.op & 4) && (startDate > startPatternDateTime)))) {
- 		      result = false;	   
-	 	    }	 	      
+       result = false;	   
+       }
        break;
-		    
-	    case 4:
+    
+    case 4:
        endPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
            patEquation.value)));
        if (!(( (patEquation.op & 1) && (endDate == endPatternDateTime) )
@@ -1576,11 +1575,11 @@ bool Pattern::Matches(MLabel const &ml)
          || ( (patEquation.op & 4) && (endDate >  endPatternDateTime) ) ) ) {
          result = false;	   
        }
-	      break;
-	  } // switch
-	  	  
-	  
-	} // for 	
+      break;
+  } // switch
+
+  
+} // for 	
       } // if  
       
     } // if not sequence
@@ -1594,7 +1593,8 @@ bool Pattern::Matches(MLabel const &ml)
   // if existing, wildcard is set to the current value (wildcard = !result)
   // the current pattern will be used for the next ulabel if the ulabel does
   // not match the pattern (--i)
-  if (wildcard)	if ( (wildcard = !result) ) --i;    
+  if (wildcard)
+    if ( (wildcard = !result) ) --i;
 
   } // for  
     
@@ -1728,11 +1728,11 @@ Rule::In( const ListExpr typeInfo, const ListExpr instance,
       {
         correct = true;          
         result.addr = new Rule( text, ruleParser );
-      }	
+      }
       else
       {
         correct = false;
-        cmsg.inFunError( ruleParser.getErrMsg() );	
+        cmsg.inFunError( ruleParser.getErrMsg() );
       }
 
     }
@@ -1984,7 +1984,7 @@ applyTypeMap( ListExpr args )
 {
   NList type(args);
   const string errMsg = "Expecting a mlabel and a rule "
-	                "or a mlabel and a text";
+                "or a mlabel and a text";
  
   // first alternative: mlabel x rule -> stream(mlabel)
   if ( type == NList(MLabel::BasicType(), Rule::BasicType()) ) {
@@ -2038,12 +2038,12 @@ cout << "apply1" << endl;
       if (mlabel->IsDefined() && rule->IsDefined())
       {
         pos = 0;
-	Container::mlabel = mlabel;
-	Container::rule = rule;	
+Container::mlabel = mlabel;
+Container::rule = rule;
       }
       else
       {
-	// this initialization will create an empty stream
+// this initialization will create an empty stream
         pos = -1;
       }
     }
@@ -2075,19 +2075,19 @@ cout << "req1" << endl;
 
       if ( container->pos != -1 )
       {
-	container->pos = -1;
+container->pos = -1;
         MLabel elem(*container->mlabel);
         result.addr = &elem;
 //        result.addr = &container->mlabel;
 	
-cout << "req2" << endl;	
+cout << "req2" << endl;
         return YIELD;
       }
       else
       {
-cout << "req3" << endl;	
+cout << "req3" << endl;
 
-	result.addr = 0;
+result.addr = 0;
         return CANCEL;
       }
       
@@ -2129,12 +2129,12 @@ applyFun_MT (Word* args, Word& result, int message,
       if (mlabel->IsDefined() && rule->IsDefined())
       {
         pos = 0;
-	Container::mlabel = *mlabel;
-	Container::rule = *rule;	
+Container::mlabel = *mlabel;
+Container::rule = *rule;
       }
       else
       {
-	// this initialization will create an empty stream
+// this initialization will create an empty stream
         pos = -1;
       }
     }
@@ -2158,9 +2158,9 @@ applyFun_MT (Word* args, Word& result, int message,
 
       if ( container->pos != -1 )
       {
-	container->pos = -1;
+container->pos = -1;
         MLabel* elem = &container->mlabel;
-//        MLabel* elem = new MLabel();	
+//        MLabel* elem = new MLabel();
         result.addr = elem;
         return YIELD;
       }
@@ -2210,7 +2210,7 @@ matchesTypeMap( ListExpr args )
 {
   NList type(args);
   const string errMsg = "Expecting a mlabel and a pattern "
-	                "or a mlabel and a text";
+                "or a mlabel and a text";
 
   // first alternative: mlabel x pattern -> bool
   if ( type == NList(MLabel::BasicType(), Pattern::BasicType()) ) {
@@ -2339,7 +2339,7 @@ sintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-	// this initialization will create an empty stream
+// this initialization will create an empty stream
         current = 1;
         last = 0;
       }
@@ -2369,8 +2369,8 @@ sintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-	// you should always set the result to null
-	// before you return a CANCEL
+// you should always set the result to null
+// before you return a CANCEL
         result.addr = 0;
         return CANCEL;
       }
