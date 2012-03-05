@@ -600,12 +600,12 @@ int MapMatchingMHT::DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
             timePrev = ActData.m_Time;
 
             TraceRouteCandidates(rvecRouteCandidates,
-                                 "##### Nach DevelopRoutes 1 #####");
+                                 "##### Nach DevelopRoutes #####");
 
             // Reduce Routes
             ReduceRouteCandidates(rvecRouteCandidates);
             TraceRouteCandidates(rvecRouteCandidates,
-                                 "##### Nach Reduce 1 #####");
+                                 "##### Nach Reduce #####");
         }
 
         if (!CheckRouteCandidates(rvecRouteCandidates))
@@ -987,14 +987,44 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
     return false;
 }
 
-static bool RouteCandidateCompare(const MHTRouteCandidate* pRC1,
-                                  const MHTRouteCandidate* pRC2)
+static bool RouteCandidateScoreCompare(const MHTRouteCandidate* pRC1,
+                                       const MHTRouteCandidate* pRC2)
 {
     // RC1 < RC2
     if (pRC1 == NULL || pRC1 == NULL)
         return pRC1 < pRC2;
     return pRC1->GetScore() < pRC2->GetScore();
 }
+
+
+static bool LastPointsEqual(const MHTRouteCandidate* pRouteCandidate1,
+                            const MHTRouteCandidate* pRouteCandidate2,
+                            int nCnt)
+{
+    std::vector<MHTRouteCandidate::PointData*>::const_reverse_iterator it1 =
+                                         pRouteCandidate1->GetPoints().rbegin();
+    std::vector<MHTRouteCandidate::PointData*>::const_reverse_iterator it2 =
+                                         pRouteCandidate2->GetPoints().rbegin();
+
+    while (nCnt > 0 &&
+           it1 != pRouteCandidate1->GetPoints().rend() &&
+           it2 != pRouteCandidate2->GetPoints().rend())
+    {
+        MHTRouteCandidate::PointData* pData1 = *it1;
+        MHTRouteCandidate::PointData* pData2 = *it2;
+
+        if (!(*pData1 == *pData2))
+            return false;
+
+        --nCnt;
+
+        ++it1;
+        ++it2;
+    }
+
+    return true;
+}
+
 
 /*
 3.7 MapMatchingMHT::ReduceRouteCandidates
@@ -1005,66 +1035,102 @@ Route reduction - removes unlikely routes
 void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                             rvecRouteCandidates)
 {
-    if (rvecRouteCandidates.size() <= 20) // minimum 20 candidates
-        return;
+    /*if (rvecRouteCandidates.size() <= 20) // minimum 20 candidates
+        return;*/
 
     std::sort(rvecRouteCandidates.begin(),
               rvecRouteCandidates.end(),
-              RouteCandidateCompare);
+              RouteCandidateScoreCompare);
 
-    // Remove duplicates
-    const size_t nCandidates = rvecRouteCandidates.size();
-    for (size_t i = 0; i < nCandidates; /*empty*/)
-    {
-        size_t j = i + 1;
-        for (/*empty*/; j < nCandidates; ++j)
-        {
-            MHTRouteCandidate* pRouteCandidate1 = rvecRouteCandidates[i];
-            MHTRouteCandidate* pRouteCandidate2 = rvecRouteCandidates[j];
-
-            if (*pRouteCandidate1 == *pRouteCandidate2)
-            {
-                rvecRouteCandidates[j]->MarkAsInvalid();
-            }
-            else
-            {
-                // The candidates are sorted by score -
-                // Candidates with different score are not equal
-                break;
-            }
-        }
-        i = j;
-    }
-
-    std::sort(rvecRouteCandidates.begin(),
-              rvecRouteCandidates.end(),
-              RouteCandidateCompare);
-
-    // maximum 25
-    while (rvecRouteCandidates.size() > 25)
-    {
-        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
-        delete pCandidate;
-        rvecRouteCandidates.pop_back();
-    }
+    MHTRouteCandidate* pBestCandidate = rvecRouteCandidates[0];
+    const size_t nPoints = pBestCandidate->GetPoints().size();
+    const double dBestAvgScorePerPoint = pBestCandidate->GetScore() / nPoints;
 
     // remove candidates with very bad score
-    //MHTRouteCandidate* pBestCandidate = rvecRouteCandidates[0];
-    //const double dBestScore = pBestCandidate->GetScore();
+    size_t nCandidates = rvecRouteCandidates.size();
+    for (size_t i = 0; i < nCandidates; ++i)
+    {
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates[i];
 
+        if (pCandidate == NULL || pCandidate->IsInvalid() ||
+            pCandidate->GetCountLastOffRoadPoints() > 0 ||
+            ((pCandidate->GetScore() / nPoints) > (3 * dBestAvgScorePerPoint)))
+        {
+            pCandidate->MarkAsInvalid();
+        }
+    }
+
+    std::sort(rvecRouteCandidates.begin(),
+                  rvecRouteCandidates.end(),
+                  RouteCandidateScoreCompare);
+
+    // remove invalid candidates
     while (rvecRouteCandidates.size() > 1)
     {
         MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
-        if (pCandidate == NULL ||
-            //pCandidate->GetScore() > (3 * dBestScore) ||
-            AlmostEqual(pCandidate->GetScore(),
-                        std::numeric_limits<double>::max()))
+        if (pCandidate == NULL || pCandidate->IsInvalid())
         {
             delete pCandidate;
             rvecRouteCandidates.pop_back();
         }
         else
+        {
             break;
+        }
+    }
+
+    // Find duplicates
+    nCandidates = rvecRouteCandidates.size();
+    for (size_t i = 0; i < nCandidates; ++i)
+    {
+        MHTRouteCandidate* pRouteCandidate1 = rvecRouteCandidates[i];
+        if (pRouteCandidate1->IsInvalid())
+            continue;
+
+        for (size_t j = i + 1; j < nCandidates; ++j)
+        {
+            MHTRouteCandidate* pRouteCandidate2 = rvecRouteCandidates[j];
+            if (pRouteCandidate2->IsInvalid())
+                continue;
+
+            if (*pRouteCandidate1 == *pRouteCandidate2)
+            {
+                rvecRouteCandidates[j]->MarkAsInvalid();
+            }
+            else if (pRouteCandidate1->GetLastSection() ==
+                                       pRouteCandidate2->GetLastSection() &&
+                     LastPointsEqual(pRouteCandidate1, pRouteCandidate2, 5))
+            {
+                rvecRouteCandidates[j]->MarkAsInvalid();
+            }
+        }
+    }
+
+    std::sort(rvecRouteCandidates.begin(),
+              rvecRouteCandidates.end(),
+              RouteCandidateScoreCompare);
+
+    // maximum 25
+    while (rvecRouteCandidates.size() > 25)
+    {
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
+        rvecRouteCandidates.pop_back();
+        delete pCandidate;
+    }
+
+    // remove invalid candidates
+    while (rvecRouteCandidates.size() > 1)
+    {
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
+        if (pCandidate == NULL || pCandidate->IsInvalid())
+        {
+            delete pCandidate;
+            rvecRouteCandidates.pop_back();
+        }
+        else
+        {
+            break;
+        }
     }
 }
 
@@ -1231,10 +1297,10 @@ MHTRouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
 {
     std::sort(rvecRouteCandidates.begin(),
               rvecRouteCandidates.end(),
-              RouteCandidateCompare);
+              RouteCandidateScoreCompare);
 
-//#define TRACE_GPOINTS_OF_CANDIDATES
-#ifdef TRACE_GPOINTS_OF_CANDIDATES
+//#define TRACE_BEST_CANDIDATES
+#ifdef TRACE_BEST_CANDIDATES
     static int nCall = 0;
     for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
     {

@@ -337,6 +337,11 @@ void MHTRouteCandidate::MarkAsInvalid(void)
     m_dScore = std::numeric_limits<double>::max();
 }
 
+bool MHTRouteCandidate::IsInvalid(void) const
+{
+    return AlmostEqual(m_dScore, std::numeric_limits<double>::max());
+}
+
 void MHTRouteCandidate::Print(std::ostream& os) const
 {
     os << "*******RouteCandidate********" << endl;
@@ -515,7 +520,7 @@ MHTRouteCandidate::PointData& MHTRouteCandidate::PointData::operator=(
 }
 
 bool MHTRouteCandidate::PointData::operator==(
-                                 const MHTRouteCandidate::PointData& rPointData)
+                           const MHTRouteCandidate::PointData& rPointData) const
 {
     if (this == &rPointData)
         return true;

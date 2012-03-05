@@ -99,6 +99,8 @@ public:
 
     void MarkAsInvalid(void);
 
+    bool IsInvalid(void) const;
+
     class PointData
     {
     public:
@@ -115,7 +117,7 @@ public:
 
         PointData(const PointData& rPointData);
 
-        bool operator==(const PointData& rPointData);
+        bool operator==(const PointData& rPointData) const;
 
         ~PointData();
 
