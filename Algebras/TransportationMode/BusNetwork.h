@@ -315,7 +315,7 @@ struct BusRoute{
   /////////////////////refine bus routes////////////////////////////////
   void RefineBusRoute(int, int, int, int, int, int);
   int FilterBusRoute(GLine* gl1, GLine* gl2, int id1, int id2);
-  float BusRouteInRoad(int);
+
   /////////////////////////////create bus stops/////////////////////
   void CreateBusStop1(int attr1,int attr2,int attr3, int attr4,
                       Relation*, BTree*, Relation* stop_para); 
@@ -1445,7 +1445,6 @@ struct MetroStruct{
   unsigned int count;
   TupleType* resulttype;
 
-  static string MetroRouteInfo; 
   static string MetroTripTypeInfo_Com;
   static string MetroParaInfo;
 

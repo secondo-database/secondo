@@ -742,16 +742,6 @@ const string OpTMRefineBusRouteSpec  =
     "bus_route2,start_loc,end_loc,route_type) count;</text--->"
     ") )";
 
-const string OpTMBusRouteRoadSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>network x rel x attr1 "
-    "-> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>bus_route_road(n,rel,attr1);</text--->"
-    "<text>calculate the total length of bus routes in road network</text--->"
-    "<text>query bus_route_road(n,busroutes,bus_route1) count;</text--->"
-    ") )";
-    
 const string OpTMCreateBusRouteSpec3  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1106,25 +1096,25 @@ const string OpTMCreateDayTimeBusSpec  =
     "bus_segment_speed,btree_seg_speed) count;</text--->"
     ") )";
 
-const string OpTMCreateTimeTable1NewSpec  =
+const string OpTMCreateTimeTable1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree x periods x periods"
     "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_time_table1_new(rel,rel,btree,periods,periods);</text--->"
+    "<text>create_time_table1(rel,rel,btree,periods,periods);</text--->"
     "<text>create time table at each spatial location </text--->"
-    "<text>query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,"
+    "<text>query create_time_table1(final_busstops,all_bus_rel,btree_mo,"
     "night1, night2) count;</text--->"
     ") )";
 
-const string OpTMCreateTimeTable2NewSpec  =
+const string OpTMCreateTimeTable2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>rel1 x rel2 x btree "
     "->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>create_time_table2_new(rel,rel,btree);</text--->"
+    "<text>create_time_table2(rel,rel,btree);</text--->"
     "<text>compact storage of time tables </text--->"
-    "<text>query create_time_table2_new(train_stops,ubtrains,btree_train)"
+    "<text>query create_time_table2(train_stops,ubtrains,btree_train)"
     "count;</text--->"
     ") )";
 
@@ -1228,16 +1218,6 @@ const string OpTMMNNavigationSpec  =
     "<text>navigation in metro network system</text--->"
     "<text>query mnnavigation(ms1, ms2, mn1, "
     "theInstant(2010,12,5,16,0,0,0)) count; </text--->"
-    ") )";
-
-const string OpTMNearStopPaveSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>space x string "
-    " ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>nearstops_pave(space, string)</text--->"
-    "<text>find pavement areas near to bus stops</text--->"
-    "<text>query nearstops_pave(space, Bus)</text--->"
     ") )";
 
 const string OpTMNearStopBuildingSpec  =

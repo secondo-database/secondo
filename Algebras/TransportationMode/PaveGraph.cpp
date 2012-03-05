@@ -3253,7 +3253,7 @@ string DualGraph::TriangleTypeInfo2 =
 string DualGraph::TriangleTypeInfo3 =
   "(rel(tuple((V1 int)(V2 int)(V3 int)(Centroid point))))";
 string DualGraph::TriangleTypeInfo4 =
-  "(rel(tuple((vid int)(triid int))))";
+  "(rel(tuple((Vid int)(Triid int))))";
 
 ListExpr DualGraph::OutDualGraph(ListExpr typeInfo, Word value)
 {
@@ -7336,11 +7336,11 @@ void RegVertex::GetDGEdgeRTree(R_Tree<2,TupleId>* rtree)
 }
 
 string VisualGraph::NodeTypeInfo =
-  "(rel(tuple((oid int)(loc point))))";
+  "(rel(tuple((Oid int)(Loc point))))";
 string VisualGraph::EdgeTypeInfo =
-  "(rel(tuple((oid1 int)(oid2 int)(connection line))))";
+  "(rel(tuple((Oid1 int)(Oid2 int)(Connection line))))";
 string VisualGraph::QueryTypeInfo =
-  "(rel(tuple((oid int)(loc1 point)(loc2 point))))";
+  "(rel(tuple((Oid int)(Loc1 point)(Loc2 point))))";
 
 VisualGraph::~VisualGraph()
 {
@@ -7432,7 +7432,7 @@ void VisualGraph::Load(int id, Relation* r1, Relation* r2)
   ListExpr ptrList3 = listutils::getPtrList(edge_rel);
 
   strQuery = "(createbtree (" + EdgeTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "oid1)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid1)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
   BTree* btree_node_oid1 = (BTree*)xResult.addr;
@@ -8984,7 +8984,7 @@ string MaxRect::BuildingRectTypeInfo =
 "(rel (tuple ((Reg_id int) (GeoData rect) (Poly_id int) (Reg_type int))))"; 
 
 string MaxRect::RegionElemTypeInfo = 
-"(rel (tuple ((id int) (covarea region))))";
+"(rel (tuple ((Id int) (Covarea region))))";
 
 string MaxRect::BuildingRectExtTypeInfo =
 "(rel (tuple ((Reg_id int) (GeoData rect) (Poly_id int) (Reg_type int) \

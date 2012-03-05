@@ -72,7 +72,7 @@ operator cellbox alias CELLBOX pattern op(_,_)
 operator create_bus_route1 alias CREATE_BUS_ROUTE1 pattern op(_,_,_,_,_,_,_)
 operator create_bus_route2 alias CREATE_BUS_ROUTE2 pattern op(_,_,_,_,_,_,_,_)
 operator refine_bus_route alias REFINE_BUS_ROUTE pattern op(_,_,_,_,_,_,_,_)
-operator bus_route_road alias BUS_ROUTE_ROAD pattern op(_,_,_)
+
 operator create_bus_route3 alias CREATE_BUS_ROUTE3 pattern op(_,_,_,_,_)
 operator create_bus_route4 alias CREATE_BUS_ROUTE3 pattern op(_,_,_,_,_,_,_,_)
 operator create_bus_stop1 alias CREATE_BUS_STOP1 pattern op(_,_,_,_,_,_,_,_,_)
@@ -106,10 +106,10 @@ operator create_bus_segment_speed alias CREATE_BUS_SEGMENT_SPEED pattern op(_,_,
 operator create_night_bus_mo alias CREATE_NIGHT_BUS_MO pattern op(_,_,_)
 operator create_daytime_bus_mo alias CREATE_DAYTIME_BUS_MO pattern op(_,_,_)
 
-operator create_time_table1_new alias CREATE_TIME_TABLE1_NEW pattern op(_,_,_,_,_)
+operator create_time_table1 alias CREATE_TIME_TABLE1 pattern op(_,_,_,_,_)
 
 
-operator create_time_table2_new alias CREATE_TIME_TABLE2_NEW pattern op(_,_,_)
+operator create_time_table2 alias CREATE_TIME_TABLE2 pattern op(_,_,_)
 operator refmo2genmo alias REFMO2GENMO pattern op(_,_,_)
 operator themetronetwork alias THEMETRONETWORK pattern op(_,_,_,_)
 operator ms_neighbors1 alias MS_NEIGHBORS1 pattern op(_)
@@ -227,5 +227,4 @@ operator checkroads alias CHECKROADS pattern op(_,_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
 
-operator nearstops_pave alias NEARSTOPS_PAVE pattern op(_,_)
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)

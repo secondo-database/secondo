@@ -4460,8 +4460,8 @@ void GetSecondoObj(Region* reg, vector<string>& obj_name)
   ////////////////// 1) nodes  /////////////////////////////////////////
   
   string ObjName_VG_Node = "xu_vg_node";
-  string command7 = "regvertex(" + ObjName_Reg + ") addcounter[oid,1] \
-  extend[loc:.Vertex] project[oid,loc] consume"; 
+  string command7 = "regvertex(" + ObjName_Reg + ") addcounter[Oid,1] \
+  extend[Loc:.Vertex] project[Oid,Loc] consume"; 
   querystringParsed = "";
   ListExpr parsedCommand7;
   if(CheckCommand(command7, querystringParsed, parsedCommand7) == false)return;
@@ -4491,7 +4491,7 @@ void GetSecondoObj(Region* reg, vector<string>& obj_name)
   
   
   string ObjName_VG_TRI_BTREE = "xu_btr_vid";
-  string command9 = ObjName_VG_TRI + " createbtree[vid]";
+  string command9 = ObjName_VG_TRI + " createbtree[Vid]";
   querystringParsed = "";
   ListExpr parsedCommand9;
   

@@ -146,7 +146,7 @@ Result   : 0
 Operator : zcurve
 Number   : 2
 Signature: rel x attr  -> (stream(tuple ((x1 t1) ... (xn tn))))
-Example  : query zcurve(vgnodes feed head[1] consume, loc) count;
+Example  : query zcurve(vgnodes feed head[1] consume, Loc) count;
 Result   : 0
 
 Operator : regvertex
@@ -302,12 +302,6 @@ Operator : refine_bus_route
 Number   : 2
 Signature: network x rel x attr1 x attr2 x attr3 x attr4 x attr5 x attr6 -> (stream(((x1 t1) ... (xn tn))))
 Example  : query refine_bus_route(n,busroutes_tmp,br_id,bus_route1,bus_route2,start_loc,end_loc,route_type) count; 
-Result   : 10
-
-Operator : bus_route_road
-Number   : 2
-Signature: network x rel x attr1 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query bus_route_road(n,busroutes,bus_route1) count; 
 Result   : 10
 
 
@@ -529,17 +523,17 @@ Example  : query create_daytime_bus_mo(ts_daybus,bus_segment_speed,btree_seg_spe
 Result   : 10.0
 
 
-Operator : create_time_table1_new
+Operator : create_time_table1
 Number   : 2
 Signature: rel1 x rel2 x btree x periods1 x periods2 -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table1_new(final_busstops,all_bus_rel,btree_mo,night1,night2) count;
+Example  : query create_time_table1(final_busstops,all_bus_rel,btree_mo,night1,night2) count;
 Result   : 10.0
 
 
-Operator : create_time_table2_new
+Operator : create_time_table2
 Number   : 2
 Signature: rel1 x rel2 x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query create_time_table2_new(train_stops,ubtrains,btree_train) count;
+Example  : query create_time_table2(train_stops,ubtrains,btree_train) count;
 Result   : 10.0
 
 
@@ -1202,12 +1196,6 @@ Signature: relation x relation x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query tm_join1(r, cell_box, rtree_cell) count;
 Result   : 10
 
-
-Operator : nearstops_pave
-Number   : 1
-Signature: space x string -> (stream(((x1 t1) ... (xn tn))))
-Example  : query nearstops_pave(space, "Bus") count;
-Result   : 10
 
 Operator : nearstops_building
 Number   : 1

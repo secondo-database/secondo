@@ -13038,7 +13038,7 @@ void Space::AddRelation(Relation* rel, int type)
         strQuery = "(bulkloadrtree(sortby(addid(feed (" + 
                     MetroNetwork::MetroPaveTypeInfo +
                    " (ptr " + nl->ToString(ptrList2) + 
-                   "))))((loc2 asc))) loc2)";
+                   "))))((Loc2 asc))) Loc2)";
 
         QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
         assert ( QueryExecuted );

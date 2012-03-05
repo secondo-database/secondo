@@ -43,21 +43,21 @@ string BusRoute::StreetSectionCellTypeInfo =
 "(rel (tuple ((Secid int)(Cellid int) (Cnt int) (Cover_area region))))";
 
 string BusRoute::BusRoutesTmpTypeInfo = 
-"(rel (tuple ((br_id int) (bus_route1 gline) (bus_route2 line)\
-(start_loc point)(end_loc point) (route_type int))))";
+"(rel (tuple ((Br_id int) (Bus_route1 gline) (Bus_route2 line)\
+(Start_loc point)(End_loc point) (Route_type int))))";
 
 string BusRoute::NewBusRoutesTmpTypeInfo =
-"(rel (tuple ((br_id int) (bus_route1 line) (bus_route2 line) (route_type int)\
-(br_uid int))))";
+"(rel (tuple ((Br_id int) (Bus_route1 line) (Bus_route2 line) (Route_type int)\
+(Br_uid int))))";
 
 string BusRoute::FinalBusRoutesTypeInfo =
-"(rel (tuple ((br_id int) (bus_route line) (route_type int) (br_uid int)\
-(bus_direction bool) (startSmaller bool))))";
+"(rel (tuple ((Br_id int) (Bus_route line) (Route_type int) (Br_uid int)\
+(Bus_direction bool) (StartSmaller bool))))";
 
 
 string BusRoute::BusStopTemp1TypeInfo =
-"(rel (tuple ((br_id int) (bus_stop_id int) (bus_stop1 gpoint)\
-(bus_stop2 point))))";
+"(rel (tuple ((Br_id int) (Bus_stop_id int) (Bus_stop1 gpoint)\
+(Bus_stop2 point))))";
 
 string BusRoute::BusNetworkParaInfo = "(rel (tuple ((para real))))";
 
@@ -830,98 +830,6 @@ int BusRoute::FilterBusRoute(GLine* gl1, GLine* gl2, int br_id1, int br_id2)
   }
   return 0; 
 }
-
-/*
-calculate the total length of bus routes. of course it does not include 
-redundant one. and get the percentage of bus routes in road network 
-
-*/
-float BusRoute::BusRouteInRoad(int attr1)
-{
-  vector<RouteInterval> ri_list;
-
-  for(int i = 1;i <= rel1->GetNoTuples();i++){
-    Tuple* tuple_bus_route = rel1->GetTuple(i, false);
-    GLine* gl = (GLine*)tuple_bus_route->GetAttribute(attr1); 
-
-    for(int j = 0; j < gl->Size();j++){
-      RouteInterval* ri = new RouteInterval();
-      gl->Get(j, *ri); 
-      if(ri->GetStartPos() > ri->GetEndPos()){
-          double temp = ri->GetStartPos();
-          ri->SetStartPos(ri->GetEndPos());
-          ri->SetEndPos(temp); 
-      }
-      ri_list.push_back(*ri);
-    }
-    tuple_bus_route->DeleteIfAllowed();
-  }
-  sort(ri_list.begin(), ri_list.end(), CompareRouteInterval);
-  //////////////// merge intervals from the same route ////////////////////
-  int last_rid = -1; 
-  vector<RouteInterval> ri_list1; 
-  vector<RouteInterval> ri_list2; 
-
-  const double dist_delta = 0.01; 
-  for(unsigned int i = 0;i < ri_list.size();i++){
-//      ri_list[i].Print(cout); 
-
-      if(ri_list[i].GetRouteId() != last_rid){
-  
-        last_rid = ri_list[i].GetRouteId();   
-        for(unsigned int j = 0;j < ri_list1.size();j++){
-          ri_list2.push_back(ri_list1[j]);
-        }
-        ri_list1.clear();
-        ri_list1.push_back(ri_list[i]);
-      }else{
-
-           unsigned int index = ri_list1.size() - 1; 
-            if(ri_list[i].GetStartPos() > ri_list1[index].GetEndPos()){
-              ri_list1.push_back(ri_list[i]);
-           }else if(ri_list1[index].GetStartPos() < ri_list[i].GetStartPos() &&
-                   ri_list[i].GetStartPos() < ri_list1[index].GetEndPos() &&
-                   ri_list[i].GetEndPos() > ri_list1[index].GetEndPos()){
-              ri_list1[index].SetEndPos(ri_list[i].GetEndPos());
-           }else if((fabs(ri_list[i].GetStartPos() - 
-                         ri_list1[index].GetStartPos()) < dist_delta ||
-                    fabs(ri_list[i].GetStartPos() - 
-                         ri_list1[index].GetEndPos()) < dist_delta)  &&
-                  ri_list[i].GetEndPos() > ri_list1[index].GetEndPos()){
-              ri_list1[index].SetEndPos(ri_list[i].GetEndPos());
-           }
-      }
-  }
-  //////////////////////////////////////////////////////////////////////////
-  double length1 = 0.0;
-  for(unsigned int i = 0;i < ri_list2.size();i++){
-//    ri_list2[i].Print(cout); 
-    length1 += fabs(ri_list2[i].GetEndPos() - ri_list2[i].GetStartPos());
-  }
-
-  for(unsigned int i = 0;i < ri_list1.size();i++){
-//    ri_list1[i].Print(cout); 
-    length1 += fabs(ri_list1[i].GetEndPos() - ri_list1[i].GetStartPos());
-  }
-
-  double length2 = 0.0; 
-  Relation* roads_rel = n->GetRoutes();
-  for(int i = 1;i <= roads_rel->GetNoTuples();i++){
-    Tuple* road_tuple = roads_rel->GetTuple(i, false);
-    SimpleLine* curve = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
-    length2 += curve->Length();
-    road_tuple->DeleteIfAllowed();
-  }
-  length1 = length1/1000.0;
-  length2 = length2/1000.0;
-  
-  
-  cout.setf(ios::fixed);
-  cout<<setprecision(4)
-  <<"bus route length "<<length1<<"km road length "<<length2<<"km"<<endl; 
-  return length1/length2; 
-}
-
 
 /*
 translate a bus route into two routes, down and up
@@ -3501,8 +3409,8 @@ string RoadDenstiy::bus_route_speed_typeinfo =
 (route_segment line))))";
 
 string RoadDenstiy::bus_stop_typeinfo = 
-"(rel (tuple ((br_id int) (br_uid int) (bus_stop_id int) (bus_stop point)\
-(bus_pos real) (stop_direction bool))))"; 
+"(rel (tuple ((Br_id int) (Br_uid int) (Bus_stop_id int) (Bus_stop point)\
+(Bus_pos real) (Stop_direction bool))))";
 
 
 string RoadDenstiy::night_sched_typeinfo = 
@@ -3518,8 +3426,8 @@ string RoadDenstiy::mo_bus_typeinfo =
 string) (bus_day string) (schedule_id int))))";
 
 string RoadDenstiy::bus_route_typeinfo = 
-"(rel (tuple ((br_id int) (bus_route line) (route_type int) (br_uid int)\
-(bus_direction bool) (startSmaller bool))))"; 
+"(rel (tuple ((Br_id int) (Bus_route line) (Route_type int) (Br_uid int)\
+(Bus_direction bool) (StartSmaller bool))))"; 
 
 
 string RoadDenstiy::bus_route_old_typeinfo = 
@@ -6509,9 +6417,9 @@ void Bus_Route::EndBulkLoad()
 ////////////////  Bus Network   //////////////////////////////////
 //////////////////////////////////////////////////////////////////
 string BusNetwork::BusStopsTypeInfo =
-"(rel (tuple ((bus_stop busstop) (stop_geodata point))))";
+"(rel (tuple ((Bus_stop busstop) (Stop_geodata point))))";
 string BusNetwork::BusRoutesTypeInfo =
-"(rel (tuple ((br_id int)(bus_route busroute)(oid int))))";
+"(rel (tuple ((Br_id int)(Bus_route busroute)(Oid int))))";
 string BusNetwork::BusStopsInternalTypeInfo =
 "(rel (tuple ((br_id int)(bus_stop busstop)(u_oid int)(geodata point))))";
 string BusNetwork::BusStopsBTreeTypeInfo =
@@ -7155,7 +7063,7 @@ void BusNetwork:: LoadRoutes(Relation* r2)
   ListExpr ptrList2 = listutils::getPtrList(routes_rel);
 
   strQuery = "(createbtree (" + BusRoutesTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "br_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Br_id)";
 //  cout<<strQuery<<endl; 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7169,7 +7077,7 @@ void BusNetwork:: LoadRoutes(Relation* r2)
   ListExpr ptrList3 = listutils::getPtrList(routes_rel);
 
   strQuery = "(createbtree (" + BusRoutesTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -14076,18 +13984,18 @@ string UBTrain::UBahnLineInfo =
 "(rel (tuple ((lineid int) (oid int) (geoData sline))))";
 
 string UBTrain:: UBahnTrainsTypeInfo =
-"(rel (tuple ((Id int) (Line int) (Up bool) (Trip mpoint) (schedule_id int))))";
+"(rel (tuple ((Id int) (Line int) (Up bool) (Trip mpoint) (Schedule_id int))))";
 
 string UBTrain::TrainsStopTypeInfo = 
-"(rel (tuple ((LineId int) (loc point) (stop_id int))))"; 
+"(rel (tuple ((LineId int) (Loc point) (Stop_id int))))"; 
 
 string UBTrain::TrainsStopExtTypeInfo = 
 "(rel (tuple ((LineId int) (loc point) (stop_id int) (Up bool))))";
 
 string UBTrain::UBahnTrainsTimeTable =
-"(rel (tuple ((station_loc point) (line_id int) (stop_id int)\
-(train_direction bool) (whole_time periods) (schedule_interval real)\
-(loc_id int))))";
+"(rel (tuple ((Station_loc point) (Line_id int) (Stop_id int)\
+(Train_direction bool) (Whole_time periods) (Schedule_interval real)\
+(Loc_id int))))";
 
 
 /*
@@ -14183,13 +14091,11 @@ void UBTrain::MPToGenMO(MPoint* mp, GenMO* mo, int l_id)
 /////////////////////////////////////////////////////////////////////////
 ////////////////////create metro from road network///////////////////////
 /////////////////////////////////////////////////////////////////////////
-string MetroStruct::MetroRouteInfo = 
-"(rel (tuple ((mr_id int) (mroute busroute) (oid int))))";
 
 string MetroStruct::MetroTripTypeInfo_Com = "(rel (tuple ((mtrip1 genmo)\
 (mtrip2 mpoint) (mr_id int) (Up bool) (mr_oid int) (oid int))))";
 
-string MetroStruct::MetroParaInfo = "(rel (tuple ((para real))))";
+string MetroStruct::MetroParaInfo = "(rel (tuple ((Para real))))";
 
 /*
 create metro routes 
@@ -15340,8 +15246,8 @@ string MetroNetwork::MetroStopsRTreeTypeInfo =
 "(rtree (tuple ((ms_stop busstop)(stop_geodata point)\
 (mr_id int))) point FALSE)";
 
-string MetroNetwork::MetroRoutesTypeInfo = "(rel (tuple ((mr_id int) \
-(mroute busroute) (oid int))))";
+string MetroNetwork::MetroRoutesTypeInfo = "(rel (tuple ((Mr_id int) \
+(Mroute busroute) (Oid int))))";
 
 string MetroNetwork::MetroRoutesBTreTypeInfo = "(rel (tuple ((mr_id int)\
 (mroute busroute) (oid int))) int)";
@@ -15353,12 +15259,12 @@ string MetroNetwork::MetroTypeBTreeTypeInfo = "(btree (tuple ((mtrip1 genmo)\
 (mtrip2 mpoint) (mr_id int) (oid int))) int)";
 
 string MetroNetwork::MetroPaveTypeInfo =
-"(rel (tuple ((loc1 genloc) (loc2 point) (ms_stop busstop)\
-(ms_stop_loc point))))";
+"(rel (tuple ((Loc1 genloc) (Loc2 point) (Ms_stop busstop)\
+(Ms_stop_loc point))))";
 
 string MetroNetwork::RTreeMetroPaveTypeInfo = 
-"(rtree (tuple ((loc1 genloc) (loc2 point) (ms_stop busstop)\
-(ms_stop_loc point))) point FALSE)";
+"(rtree (tuple ((Loc1 genloc) (Loc2 point) (Ms_stop busstop)\
+(Ms_stop_loc point))) point FALSE)";
 
 
 ListExpr MetroNetworkProperty()
@@ -15973,7 +15879,7 @@ void MetroNetwork::LoadRoutes(Relation* r2)
   ListExpr ptrList2 = listutils::getPtrList(routes_rel);
   
   strQuery = "(createbtree (" + MetroRoutesTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Mr_id)";
 //  cout<<strQuery<<endl; 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15986,7 +15892,7 @@ void MetroNetwork::LoadRoutes(Relation* r2)
   ListExpr ptrList3 = listutils::getPtrList(routes_rel);
   
   strQuery = "(createbtree (" + MetroRoutesTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -16429,10 +16335,10 @@ string MetroGraph::MGNodeTypeInfo =
 "(rel (tuple ((ms_stop busstop) (stop_geodata point) (mr_id int))))";
 
 string MetroGraph::MGEdge1TypeInfo =
-"(rel (tuple ((ms_stop1_tid int) (ms_stop2_tid int))))";
+"(rel (tuple ((Ms_stop1_tid int) (Ms_stop2_tid int))))";
 
-string MetroGraph::MGEdge2TypeInfo = "(rel (tuple ((ms_stop1_tid int)\
-(ms_stop2_tid int) (whole_time periods)(schedule_interval real)\
+string MetroGraph::MGEdge2TypeInfo = "(rel (tuple ((Ms_stop1_tid int)\
+(Ms_stop2_tid int) (Whole_time periods)(Schedule_interval real)\
 (Path sline) (TimeCost real))))";
 
 string MetroGraph::MGNodeBTreeTypeInfo = 
@@ -16865,7 +16771,7 @@ void MetroGraph::LoadEdge1(Relation* edge1)
   ListExpr ptrList2 = listutils::getPtrList(edge_rel1);
   
   strQuery = "(createbtree (" + MGEdge1TypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "ms_stop1_tid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Ms_stop1_tid)";
              
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -16952,7 +16858,7 @@ void MetroGraph::LoadEdge2(Relation* edge2)
   ListExpr ptrList2 = listutils::getPtrList(edge_rel2);
 
   strQuery = "(createbtree (" + MGEdge2TypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "ms_stop1_tid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Ms_stop1_tid)";
 
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
@@ -17707,8 +17613,8 @@ void MyToPoint(Network* rn, GPoint* gp, Point& res)
 ///////////////////////////////////////////////////////////////////////
 ////////// improve join algorithm, not use symmjoin////////////////////
 ///////////////////////////////////////////////////////////////////////
-string TM_Join::CellBoxTypeInfo = "(rel (tuple ((cellid int)\
-(cover_area region) (x_id int) (y_id int))))";
+string TM_Join::CellBoxTypeInfo = "(rel (tuple ((Cellid int)\
+(Cover_area region) (X_id int) (Y_id int))))";
 
 string TM_Join::RoadSectionTypeInfo = "(rel (tuple ((rid int) (meas1 real)\
 (meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool)\

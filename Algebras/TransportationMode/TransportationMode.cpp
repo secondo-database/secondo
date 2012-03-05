@@ -7502,9 +7502,9 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("bus network id"),
+            nl->TwoElemList(nl->SymbolAtom("BusNetworkId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("bus graph id"),
+            nl->TwoElemList(nl->SymbolAtom("BusGraphId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7518,9 +7518,9 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("pavement id"),
+            nl->TwoElemList(nl->SymbolAtom("PavementId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("dual graph id"),
+            nl->TwoElemList(nl->SymbolAtom("DualGraphId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7534,9 +7534,9 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("pavement id"),
+            nl->TwoElemList(nl->SymbolAtom("PavementId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("visibility graph id"),
+            nl->TwoElemList(nl->SymbolAtom("VisibilityGraphId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7551,9 +7551,9 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("building id"),
+            nl->TwoElemList(nl->SymbolAtom("BuildingId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("indoor graph id"),
+            nl->TwoElemList(nl->SymbolAtom("IndoorGraphId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -7568,9 +7568,9 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("tuple"),
           nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("MetroNetwork id"),
+            nl->TwoElemList(nl->SymbolAtom("MetroNetworkId"),
                             nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("Metro graph id"),
+            nl->TwoElemList(nl->SymbolAtom("MetroGraphId"),
                             nl->SymbolAtom("int"))
           )
         )
@@ -8445,9 +8445,9 @@ ListExpr OpTMDecomposeRegionTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("id"),
+                        nl->TwoElemList(nl->SymbolAtom("Id"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("covarea"),
+                        nl->TwoElemList(nl->SymbolAtom("Covarea"),
                                       nl->SymbolAtom("region"))
                   )
                 )
@@ -9264,11 +9264,11 @@ ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
                                     nl->SymbolAtom("point")),
-                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
                                     nl->SymbolAtom("point"))
                   )
                 )
@@ -9333,7 +9333,7 @@ ListExpr OpTMZcurveTypeMap ( ListExpr args )
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->OneElemList(
-                        nl->TwoElemList(nl->SymbolAtom("curve"),
+                        nl->TwoElemList(nl->SymbolAtom("Curve"),
                                     nl->SymbolAtom("line"))
                   )
                 )
@@ -9524,11 +9524,11 @@ ListExpr OpTMSMCDGTETypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid1"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid1"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("oid2"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid2"),
                                     nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("commarea"),
+                       nl->TwoElemList(nl->SymbolAtom("Commarea"),
                                     nl->SymbolAtom("line"))
                   )
                 )
@@ -9638,11 +9638,11 @@ ListExpr OpTMGetVGEdgeTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid1"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid1"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("oid2"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid2"),
                                     nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
                                     nl->SymbolAtom("line"))
                   )
                 )
@@ -9726,9 +9726,9 @@ ListExpr OpTMDecomposeTriTypeMap ( ListExpr args )
               nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
                     nl->TwoElemList(
-                      nl->TwoElemList(nl->SymbolAtom("vid"),
+                      nl->TwoElemList(nl->SymbolAtom("Vid"),
                                   nl->SymbolAtom("int")),
-                      nl->TwoElemList(nl->SymbolAtom("triid"),
+                      nl->TwoElemList(nl->SymbolAtom("Triid"),
                                   nl->SymbolAtom("int"))
                   )
                 )
@@ -9786,9 +9786,9 @@ ListExpr OpTMGetContourTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->TwoElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                    nl->SymbolAtom("int")),
-                      nl->TwoElemList(nl->SymbolAtom("hole"),
+                      nl->TwoElemList(nl->SymbolAtom("Hole"),
                                     nl->SymbolAtom("region"))
                   )
                 )
@@ -10239,22 +10239,22 @@ ListExpr OpTMCellBoxTypeMap ( ListExpr args )
                     ))));*/
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("cellid"),
+                        nl->SymbolAtom("Cellid"),
                         nl->SymbolAtom("int")
                     ),
                     nl->TwoElemList(
-                        nl->SymbolAtom("cover_area"),
+                        nl->SymbolAtom("Cover_area"),
                         nl->SymbolAtom("region")
                     ),    
                     nl->TwoElemList(
-                        nl->SymbolAtom("x_id"),
+                        nl->SymbolAtom("X_id"),
                         nl->SymbolAtom("int")
                     ),    
                     nl->TwoElemList(
-                        nl->SymbolAtom("y_id"),
+                        nl->SymbolAtom("Y_id"),
                         nl->SymbolAtom("int")
                     ))));
-                    
+
   } 
 
     return  nl->SymbolAtom ( "typeerror" );
@@ -10343,19 +10343,19 @@ ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->FiveElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("start_cell_id"),
+                        nl->SymbolAtom("Start_cell_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("start_cell"),
+                        nl->SymbolAtom("Start_cell"),
                         nl->SymbolAtom("rect")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("end_cell_id"),
+                        nl->SymbolAtom("End_cell_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("end_cell"),
+                        nl->SymbolAtom("End_cell"),
                         nl->SymbolAtom("rect")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("Route_type"),
                         nl->SymbolAtom("int"))
                     )));
 
@@ -10452,23 +10452,23 @@ ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
 
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route1"),
+                        nl->SymbolAtom("Bus_route1"),
                         nl->SymbolAtom("gline")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route2"),
+                        nl->SymbolAtom("Bus_route2"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("start_loc"),
+                        nl->SymbolAtom("Start_loc"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("end_loc"),
+                        nl->SymbolAtom("End_loc"),
                         nl->SymbolAtom("point")),
 
                     nl->TwoElemList(
-                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("Route_type"),
                         nl->SymbolAtom("int"))
 
                     )));
@@ -10577,22 +10577,22 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
                                         
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route1"),
+                        nl->SymbolAtom("Bus_route1"),
                         nl->SymbolAtom("gline")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route2"),
+                        nl->SymbolAtom("Bus_route2"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("start_loc"),
+                        nl->SymbolAtom("Start_loc"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("end_loc"),
+                        nl->SymbolAtom("End_loc"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("Route_type"),
                         nl->SymbolAtom("int"))
 
                     )));
@@ -10604,48 +10604,6 @@ ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
                         nl->IntAtom(j5),nl->IntAtom(j6)),res);
 }
 
-
-/*
-TypeMap fun for operator bus route road.
-calculate the total length of bus routes in road network 
-
-*/
-
-ListExpr OpTMBusRouteRoadTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 3 )
-  {
-    return  nl->SymbolAtom ( "list length should be 3" );
-  }
-  
-  ListExpr param1 = nl->First ( args );
-  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
-     nl->SymbolValue(param1) == "network")){
-      return nl->SymbolAtom ( "typeerror: param1 should be network" );
-  }
-  
-  ListExpr param2 = nl->Second ( args );
-  if(!IsRelDescription(param2))
-    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
-  
-
-  ListExpr attrName2 = nl->Third ( args );
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(attrName2);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
-                      aname2,attrType2);
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"gline")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type gline");
-  }
-
-  ListExpr res = nl->SymbolAtom("real");
-  
-  return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->OneElemList(nl->IntAtom(j2)),res);
-                        
-}
 
 /*
 TypeMap fun for operator createbusroute3
@@ -10716,19 +10674,19 @@ ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
                 nl->FiveElemList(
 //                nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route1"),
+                        nl->SymbolAtom("Bus_route1"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route2"),
+                        nl->SymbolAtom("Bus_route2"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("Route_type"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("Br_uid"),
                         nl->SymbolAtom("int"))
                     )));
 
@@ -10834,22 +10792,22 @@ ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
 
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route"),
+                        nl->SymbolAtom("Bus_route"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("route_type"),
+                        nl->SymbolAtom("Route_type"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("Br_uid"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("Bus_direction"),
                         nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("startSmaller"),
+                        nl->SymbolAtom("StartSmaller"),
                         nl->SymbolAtom("bool"))
                     )));
 
@@ -10962,16 +10920,16 @@ ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
                                         
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("Bus_stop_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("gpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("point"))
                     )));
 
@@ -11047,19 +11005,19 @@ ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
 
                 nl->FiveElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("Bus_stop_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("gpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("sec_id"),
+                        nl->SymbolAtom("Sec_id"),
                         nl->SymbolAtom("int"))
                     )));
 
@@ -11160,19 +11118,19 @@ ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
 //                nl->FourElemList(
                 nl->FiveElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("Bus_stop_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("gpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("startSmaller"),
+                        nl->SymbolAtom("StartSmaller"),
                         nl->SymbolAtom("bool"))
                     )));
 
@@ -11282,26 +11240,26 @@ ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                   nl->Cons(
                    nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                    nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("Br_uid"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("Bus_stop_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_pos"),
+                        nl->SymbolAtom("Bus_pos"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("stop_loc_id"),
+                        nl->SymbolAtom("Stop_loc_id"),
                         nl->SymbolAtom("int"))
                     ))));
 
@@ -11411,22 +11369,22 @@ ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
 
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_uid"),
+                        nl->SymbolAtom("Br_uid"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop_id"),
+                        nl->SymbolAtom("Bus_stop_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop"),
+                        nl->SymbolAtom("Bus_stop"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_pos"),
+                        nl->SymbolAtom("Bus_pos"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("stop_direction"),
+                        nl->SymbolAtom("Stop_direction"),
                         nl->SymbolAtom("bool"))
                     )));
 
@@ -11486,10 +11444,10 @@ ListExpr OpTMGetBusStopsTypeMap ( ListExpr args )
 //                nl->OneElemList(
                 nl->TwoElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop"),
+                        nl->SymbolAtom("Bus_stop"),
                         nl->SymbolAtom("busstop")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("stop_geodata"),
+                        nl->SymbolAtom("Stop_geodata"),
                         nl->SymbolAtom("point"))
                     )));
       return res;
@@ -11540,10 +11498,10 @@ ListExpr OpTMGetBusRoutesTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->TwoElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route"),
+                        nl->SymbolAtom("Bus_route"),
                         nl->SymbolAtom("busroute"))
                     )));
       return res;
@@ -11739,7 +11697,7 @@ ListExpr OpTMBusStopsTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->OneElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop"),
+                        nl->SymbolAtom("Bus_stop"),
                         nl->SymbolAtom("busstop"))
                     )));
       return res;
@@ -11770,7 +11728,7 @@ ListExpr OpTMBusRoutesTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->OneElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_route"),
+                        nl->SymbolAtom("Bus_route"),
                         nl->SymbolAtom("busroute"))
                     )));
       return res;
@@ -12578,16 +12536,16 @@ ListExpr OpTMGetRouteDensity1TypeMap ( ListExpr args )
 
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("traffic_flow"),
+                        nl->SymbolAtom("Traffic_flow"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("duration1"),
+                        nl->SymbolAtom("Duration1"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("duration2"),
+                        nl->SymbolAtom("Duration2"),
                         nl->SymbolAtom("periods"))
                     )));
 
@@ -12665,16 +12623,16 @@ ListExpr OpTMSetTSNighbBusTypeMap ( ListExpr args )
 
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("duration1"),
+                        nl->SymbolAtom("Duration1"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("duration2"),
+                        nl->SymbolAtom("Duration2"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_interval"),
+                        nl->SymbolAtom("Br_interval"),
                         nl->SymbolAtom("real"))
                     )));
 
@@ -12750,19 +12708,19 @@ ListExpr OpTMSetTSDayBusTypeMap ( ListExpr args )
 
                 nl->FiveElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("duration1"),
+                        nl->SymbolAtom("Duration1"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("duration2"),
+                        nl->SymbolAtom("Duration2"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_interval1"),
+                        nl->SymbolAtom("Br_interval1"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_interval2"),
+                        nl->SymbolAtom("Br_interval2"),
                         nl->SymbolAtom("real"))
                     )));
 
@@ -12853,16 +12811,16 @@ ListExpr OpTMSetBRSpeedTypeMap ( ListExpr args )
 
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_pos"),
+                        nl->SymbolAtom("Br_pos"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("speed_limit"),
+                        nl->SymbolAtom("Speed_limit"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("route_segment"),
+                        nl->SymbolAtom("Route_segment"),
                         nl->SymbolAtom("line"))
                     )));
 
@@ -12983,26 +12941,26 @@ ListExpr OpTMCreateBusSegmentSpeedTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->Cons(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("Bus_direction"),
                         nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_sub_route"),
+                        nl->SymbolAtom("Bus_sub_route"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("speed_limit"),
+                        nl->SymbolAtom("Speed_limit"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("startSmaller"),
+                        nl->SymbolAtom("StartSmaller"),
                         nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("start_loc"),
+                        nl->SymbolAtom("Start_loc"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("segment_id"),
+                        nl->SymbolAtom("Segment_id"),
                         nl->SymbolAtom("int")))
                     )));
                     
@@ -13057,22 +13015,22 @@ ListExpr OpTMCreateMovingBusNightTypeMap ( ListExpr args )
 
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("Bus_direction"),
                         nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_trip"),
+                        nl->SymbolAtom("Bus_trip"),
                         nl->SymbolAtom("mpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_type"),
+                        nl->SymbolAtom("Bus_type"),
                         nl->SymbolAtom("string")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_day"),
+                        nl->SymbolAtom("Bus_day"),
                         nl->SymbolAtom("string")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("schedule_id"),
+                        nl->SymbolAtom("Schedule_id"),
                         nl->SymbolAtom("int"))
                     )));
       return res; 
@@ -13117,22 +13075,22 @@ ListExpr OpTMCreateMovingBusDayTypeMap ( ListExpr args )
 
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_direction"),
+                        nl->SymbolAtom("Bus_direction"),
                         nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_trip"),
+                        nl->SymbolAtom("Bus_trip"),
                         nl->SymbolAtom("mpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_type"),
+                        nl->SymbolAtom("Bus_type"),
                         nl->SymbolAtom("string")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_day"),
+                        nl->SymbolAtom("Bus_day"),
                         nl->SymbolAtom("string")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("schedule_id"),
+                        nl->SymbolAtom("Schedule_id"),
                         nl->SymbolAtom("int"))
                     )));
       return res; 
@@ -13145,7 +13103,7 @@ Compact storage structure
 
 */
 
-ListExpr OpTMCreateTimeTable1NewTypeMap ( ListExpr args )
+ListExpr OpTMCreateTimeTable1TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 5 )
   {
@@ -13198,22 +13156,22 @@ ListExpr OpTMCreateTimeTable1NewTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("stop_loc"),
+                        nl->SymbolAtom("Stop_loc"),
                         nl->SymbolAtom("point")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop"),
+                        nl->SymbolAtom("Bus_stop"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("whole_time"),
+                        nl->SymbolAtom("Whole_time"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("schedule_interval"),
+                        nl->SymbolAtom("Schedule_interval"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("loc_id"),
+                        nl->SymbolAtom("Loc_id"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_uoid"),
+                        nl->SymbolAtom("Bus_uoid"),
                         nl->SymbolAtom("int")))
                     ));
 
@@ -13227,7 +13185,7 @@ Compact Storage
 
 */
 
-ListExpr OpTMCreateTimeTable2NewTypeMap ( ListExpr args )
+ListExpr OpTMCreateTimeTable2TypeMap ( ListExpr args )
 {
   if ( nl->ListLength ( args ) != 3 )
   {
@@ -13267,26 +13225,26 @@ ListExpr OpTMCreateTimeTable2NewTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->Cons(            
                     nl->TwoElemList(
-                        nl->SymbolAtom("station_loc"),
-                        nl->SymbolAtom("point")),        
+                        nl->SymbolAtom("Station_loc"),
+                        nl->SymbolAtom("point")),
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("line_id"),
+                        nl->SymbolAtom("Line_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("stop_id"),
+                        nl->SymbolAtom("Stop_id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("train_direction"),
+                        nl->SymbolAtom("Train_direction"),
                         nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("whole_time"),
+                        nl->SymbolAtom("Whole_time"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("schedule_interval"),
+                        nl->SymbolAtom("Schedule_interval"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("loc_id"),
+                        nl->SymbolAtom("Loc_id"),
                         nl->SymbolAtom("int")))
                     )));
       return res; 
@@ -13431,10 +13389,10 @@ ListExpr OpTMMSNeighbor1TypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->TwoElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("ms_stop1_tid"),
+                        nl->SymbolAtom("Ms_stop1_tid"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("ms_stop2_tid"),
+                        nl->SymbolAtom("Ms_stop2_tid"),
                         nl->SymbolAtom("int"))
                     )));
   return res; 
@@ -13492,16 +13450,16 @@ ListExpr OpTMMSNeighbor2TypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("ms_stop1_tid"),
+                        nl->SymbolAtom("Ms_stop1_tid"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("ms_stop2_tid"),
+                        nl->SymbolAtom("Ms_stop2_tid"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("whole_time"),
+                        nl->SymbolAtom("Whole_time"),
                         nl->SymbolAtom("periods")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("schedule_interval"),
+                        nl->SymbolAtom("Schedule_interval"),
                         nl->SymbolAtom("real")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Path"),
@@ -13587,10 +13545,10 @@ ListExpr OpTMCreateMetroRouteTypeMap ( ListExpr args )
                  nl->SymbolAtom("tuple"),
                  nl->TwoElemList(
                      nl->TwoElemList(
-                         nl->SymbolAtom("mr_id"),
+                         nl->SymbolAtom("Mr_id"),
                          nl->SymbolAtom("int")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("mroute"),
+                         nl->SymbolAtom("Mroute"),
                          nl->SymbolAtom("busroute"))
                      )));
 
@@ -13614,7 +13572,8 @@ ListExpr OpTMCreateMetroStopTypeMap ( ListExpr args )
       return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType;
-  nl->ReadFromString(MetroStruct::MetroRouteInfo, xType);
+//  nl->ReadFromString(MetroStruct::MetroRouteInfo, xType);
+  nl->ReadFromString(MetroNetwork::MetroRoutesTypeInfo, xType);
   if(!CompareSchemas(param1, xType))
       return nl->SymbolAtom ( "typeerror" );
 
@@ -13655,7 +13614,8 @@ ListExpr OpTMCreateMetroMOTypeMap ( ListExpr args )
       return nl->SymbolAtom ( "typeerror" );
 
   ListExpr xType;
-  nl->ReadFromString(MetroStruct::MetroRouteInfo, xType);
+//  nl->ReadFromString(MetroStruct::MetroRouteInfo, xType);
+  nl->ReadFromString(MetroNetwork::MetroRoutesTypeInfo, xType);
   if(!CompareSchemas(param1, xType))
       return nl->SymbolAtom ( "typeerror" );
 
@@ -13727,16 +13687,16 @@ ListExpr OpTMMapMsToPaveTypeMap ( ListExpr args )
                  nl->SymbolAtom("tuple"),
                  nl->FourElemList(
                      nl->TwoElemList(
-                         nl->SymbolAtom("loc1"),
+                         nl->SymbolAtom("Loc1"),
                          nl->SymbolAtom("genloc")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("loc2"),
+                         nl->SymbolAtom("Loc2"),
                          nl->SymbolAtom("point")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("ms_stop"),
+                         nl->SymbolAtom("Ms_stop"),
                          nl->SymbolAtom("busstop")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("ms_stop_loc"),
+                         nl->SymbolAtom("Ms_stop_loc"),
                          nl->SymbolAtom("point"))
                      )));
 
@@ -14118,10 +14078,10 @@ ListExpr OpTMRemoveDirtyTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->TwoElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("id"),
+                        nl->SymbolAtom("Id"),
                         nl->SymbolAtom("int")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("covarea"),
+                        nl->SymbolAtom("Covarea"),
 //                        nl->SymbolAtom("sline"))
                         nl->SymbolAtom("region"))
                     )));
@@ -14277,51 +14237,6 @@ ListExpr OpTMTMJoin1TypeMap ( ListExpr args )
   return result; 
 
 }
-
-/*
-TypeMap fun for operator nearest stop pave
-
-*/
-ListExpr OpNearStopPaveTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 2 )
-  {
-    return ( nl->SymbolAtom ( "typeerror" ) );
-  }
-
-  ListExpr arg1 = nl->First(args);
-
-  if(!nl->IsEqual(arg1, "space")){
-      string err = "the first parameter should be space";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2, "string")){
-      string err = "the second parameter should be string";
-      return listutils::typeError(err);
-  }
-
-  ListExpr result =
-
-        nl->TwoElemList(
-              nl->SymbolAtom("stream"),
-                nl->TwoElemList(
-                  nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("pavement"),
-                                    nl->SymbolAtom("region"))                  )
-                )
-          );
-
-  return result; 
-
-}
-
 
 /*
 TypeMap fun for operator nearest stop pave
@@ -17318,30 +17233,6 @@ int OpTMRefineBusRouteValueMap ( Word* args, Word& result, int message,
 
 }
 
-
-/*
-calculate the total length of bus routes in road network.
-It returns the percentage value 
-
-*/
-int OpTMBusRouteRoadValueMap ( Word* args, Word& result, int message,
-                         Word& local, Supplier in_pSupplier )
-{
-
-  Network* n = (Network*)args[0].addr;
-  Relation* r = (Relation*)args[1].addr; 
-        
-  int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
-  
-  BusRoute* br = new BusRoute(n,r, NULL, NULL);
-  float route_road = br->BusRouteInRoad(attr1);
-  result = qp->ResultStorage(in_pSupplier);
-  CcReal* pResult = (CcReal*)result.addr; 
-  pResult->Set(true, route_road); 
-  return 1;
-
-}
-
 /*
 create bus routes3
 translate the bus route into two where one is for up and the other is for down
@@ -19475,7 +19366,7 @@ loc:point lineid:int stopid:int direction:bool deftime:periods
 locid:int scheduleinterval:double 
 
 */
-int OpTMCreateTimeTable1NewValueMap ( Word* args, Word& result, int message,
+int OpTMCreateTimeTable1ValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
@@ -19539,7 +19430,7 @@ loc:point lineid:int stopid:int direction:bool deftime:periods
 locid:int scheduleinterval:double 
 
 */
-int OpTMCreateTimeTable2NewValueMap ( Word* args, Word& result, int message,
+int OpTMCreateTimeTable2ValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
@@ -21218,7 +21109,7 @@ Operator geninterestp2(
 
 Operator cellbox(
   "cellbox",
-  OpTMCellBoxSpec,               
+  OpTMCellBoxSpec,
   OpTMCellBoxValueMap,
   Operator::SimpleSelect,
   OpTMCellBoxTypeMap
@@ -21246,14 +21137,6 @@ Operator refine_bus_route(
   OpTMRefineBusRouteValueMap,
   Operator::SimpleSelect,
   OpTMRefineBusRouteTypeMap
-);
-
-Operator bus_route_road(
-  "bus_route_road",
-  OpTMBusRouteRoadSpec,
-  OpTMBusRouteRoadValueMap,
-  Operator::SimpleSelect,
-  OpTMBusRouteRoadTypeMap
 );
 
 
@@ -21634,21 +21517,21 @@ Operator create_daytime_bus_mo(
 );
 
 
-Operator create_time_table1_new(
-  "create_time_table1_new",
-  OpTMCreateTimeTable1NewSpec,
-  OpTMCreateTimeTable1NewValueMap,
+Operator create_time_table1(
+  "create_time_table1",
+  OpTMCreateTimeTable1Spec,
+  OpTMCreateTimeTable1ValueMap,
   Operator::SimpleSelect,
-  OpTMCreateTimeTable1NewTypeMap
+  OpTMCreateTimeTable1TypeMap
 );
 
 
-Operator create_time_table2_new(
-  "create_time_table2_new",
-  OpTMCreateTimeTable2NewSpec,
-  OpTMCreateTimeTable2NewValueMap,
+Operator create_time_table2(
+  "create_time_table2",
+  OpTMCreateTimeTable2Spec,
+  OpTMCreateTimeTable2ValueMap,
   Operator::SimpleSelect,
-  OpTMCreateTimeTable2NewTypeMap
+  OpTMCreateTimeTable2TypeMap
 );
 
 Operator refmo2genmo(
@@ -21823,14 +21706,6 @@ Operator tm_join1(
     OpTMTMJoin1TypeMap
 );
 
-Operator nearstops_pave(
-  "nearstops_pave",
-  OpTMNearStopPaveSpec,
-  OpNearStopPaveMap,
-  Operator::SimpleSelect,
-  OpNearStopPaveTypeMap
-);
-
 Operator nearstops_building(
   "nearstops_building",
   OpTMNearStopBuildingSpec,
@@ -21962,7 +21837,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&get_dg_edge);//create dual graph edge relation
     ////// simple method to create dual graph, traverse RTree///////////////
     AddOperator(&smcdgte);//find adjacent dual graph nodes,used for build metro
-
+                          //create dual graph
     ////////////////////data process///////////////////////////////////
     AddOperator(&generate_wp1);
     AddOperator(&generate_wp2);
@@ -21986,7 +21861,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_bus_route1); //rough representation
     AddOperator(&create_bus_route2); //create bus route 
     AddOperator(&refine_bus_route); //filter some bus routes which are similar 
-    AddOperator(&bus_route_road); //calculate the total length of bus routes 
+
     AddOperator(&create_bus_route3);//copy bus route, split 
     AddOperator(&create_bus_route4);//set up and down for bus routes 
     AddOperator(&create_bus_stop1); //create bus stops on bus routes
@@ -22025,12 +21900,12 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&create_night_bus_mo);//create night moving bus 
     AddOperator(&create_daytime_bus_mo);//create daytime moving bus 
     ///////////create time table for each spatial stop ////////////////
-    AddOperator(&create_time_table1_new);//compact storage of bus time tables 
+    AddOperator(&create_time_table1);//compact storage of bus time tables 
     ///////////////////////////////////////////////////////////////////
     //////////    process UBahn Trains    /////////////////////////////
     ///////////////////////////////////////////////////////////////////
     ///////////// create time table for train stop /////////////////
-    AddOperator(&create_time_table2_new);//compact storage of train time tables 
+    AddOperator(&create_time_table2);//compact storage of train time tables 
     ///////////////////////////////////////////////////////////////////
     ///////////convert berlin trains to genmo///////////////
     AddOperator(&refmo2genmo);
@@ -22185,7 +22060,6 @@ class TransportationModeAlgebra : public Algebra
    ////////////////////////////////////////////////////////////////////
    /////find pavement areas and buildings closest to bus,metro stops/////
    ////////////////////////////////////////////////////////////////////
-   AddOperator(&nearstops_pave);
    AddOperator(&nearstops_building);
    nearstops_building.SetUsesArgsInTypeMapping();
    ///////////////////////////////////////////////////////////////////
