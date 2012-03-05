@@ -61,10 +61,7 @@ namespace mapmatch {
 
 // Constructor
 GPXFileReader::GPXFileReader()
-:m_pXMLDoc(NULL),
- m_dScale(1.0),
- m_pMPoint(NULL), m_pMFix(NULL), m_pMSat(NULL),
- m_pMHDOP(NULL), m_pMVDOP(NULL), m_pMPDOP(NULL)
+:m_pXMLDoc(NULL)
 {
 }
 
@@ -76,13 +73,6 @@ GPXFileReader::~GPXFileReader()
 
 void GPXFileReader::Free(void)
 {
-    m_pMPoint.reset(NULL);
-    m_pMFix.reset(NULL);
-    m_pMSat.reset(NULL);
-    m_pMHDOP.reset(NULL);
-    m_pMVDOP.reset(NULL);
-    m_pMPDOP.reset(NULL);
-
     if (m_pXMLDoc != NULL)
         xmlFreeDoc(m_pXMLDoc);
 
@@ -92,48 +82,6 @@ void GPXFileReader::Free(void)
 void GPXFileReader::Init(void)
 {
     Free();
-
-    m_pMPoint = AttributePtr<MPoint>(new MPoint(100));
-    m_pMFix = AttributePtr<MInt>(new MInt(100));
-    m_pMSat = AttributePtr<MInt>(new MInt(100));
-    m_pMHDOP = AttributePtr<MReal>(new MReal(100));
-    m_pMVDOP = AttributePtr<MReal>(new MReal(100));
-    m_pMPDOP = AttributePtr<MReal>(new MReal(100));
-
-    m_pMPoint->StartBulkLoad();
-    m_pMFix->StartBulkLoad();
-    m_pMSat->StartBulkLoad();
-    m_pMHDOP->StartBulkLoad();
-    m_pMVDOP->StartBulkLoad();
-    m_pMPDOP->StartBulkLoad();
-}
-
-void GPXFileReader::Finalize(void)
-{
-    m_pMPoint->EndBulkLoad(false, false);
-    m_pMFix->EndBulkLoad(false, false);
-    m_pMSat->EndBulkLoad(false, false);
-    m_pMHDOP->EndBulkLoad(false, false);
-    m_pMVDOP->EndBulkLoad(false, false);
-    m_pMPDOP->EndBulkLoad(false, false);
-
-//#define TRACE_GPX_DATA
-#ifdef TRACE_GPX_DATA
-    std::ofstream stream("/home/secondo/Traces/GPX.txt");
-
-    m_pMPoint->Print(stream);
-    stream << endl;
-    m_pMFix->Print(stream);
-    stream << endl;
-    m_pMSat->Print(stream);
-    stream << endl;
-    m_pMHDOP->Print(stream);
-    stream << endl;
-    m_pMVDOP->Print(stream);
-    stream << endl;
-    m_pMPDOP->Print(stream);
-    stream << endl;
-#endif
 }
 
 /*
@@ -145,8 +93,6 @@ void GPXFileReader::Finalize(void)
 bool GPXFileReader::Open(std::string strFileName)
 {
     Init();
-
-    m_dScale = 1.0;
 
     assert(m_pXMLDoc == NULL);
 
@@ -387,7 +333,7 @@ bool GPXFileReader::ParseTrkPt(xmlNodePtr pNode,
     if (pLat != NULL)
     {
         dLat = convStrToDouble((const char*)pLat);
-        dLat *= m_dScale;
+        //dLat *= m_dScale;
         xmlFree(pLat);
     }
     else
@@ -399,7 +345,7 @@ bool GPXFileReader::ParseTrkPt(xmlNodePtr pNode,
     if (pLon != NULL)
     {
         dLon = convStrToDouble((const char*)pLon);
-        dLon *= m_dScale;
+        //dLon *= m_dScale;
         xmlFree(pLon);
     }
     else
@@ -532,8 +478,9 @@ bool GPXFileReader::ParseTrkPt(xmlNodePtr pNode,
     return true;
 }
 
-void GPXFileReader::NewData(const SGPXTrkPointData& rData)
+void GPXFileReader::NewData(const SGPXTrkPointData& /*rData*/)
 {
+#if 0
     if (m_pMPoint != NULL)
     {
         // Point
@@ -585,6 +532,7 @@ void GPXFileReader::NewData(const SGPXTrkPointData& rData)
                        rData.m_dPDOP, rData.m_dPDOP);
         m_pMPDOP->Add(ActUPDOP);
     }
+#endif
 }
 
 CTrkPointIterator* GPXFileReader::GetTrkPointIterator(void)

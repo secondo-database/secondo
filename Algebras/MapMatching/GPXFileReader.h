@@ -76,7 +76,7 @@ public:
     ~GPXFileReader();
 
 /*
-3.2 Reads the file
+3.2 Opens the file and checks the format
 
 */
     bool Open(std::string strFileName);
@@ -105,23 +105,13 @@ public:
 
 
 /*
-3.4 Iterator
+3.4 Iterator for Trackpoints
+    The file must be opened before - GPXFileReader::Open(std::string)
 
 */
     class CTrkPointIterator* GetTrkPointIterator(void);
 
     void FreeTrkPointIterator(class CTrkPointIterator*& rpIterator);
-
-/*
-3.5 Returns data
-
-*/
-    AttributePtr<MPoint> GetMPoint(void) const {return m_pMPoint;}
-    AttributePtr<MInt> GetFix(void) const {return m_pMFix;}
-    AttributePtr<MInt> GetSat(void) const {return m_pMSat;}
-    AttributePtr<MReal> GetHDOP(void) const {return m_pMHDOP;}
-    AttributePtr<MReal> GetVDOP(void) const {return m_pMVDOP;}
-    AttributePtr<MReal> GetPDOP(void) const {return m_pMPDOP;}
 
 private:
 
@@ -141,17 +131,8 @@ private:
 
     void Free(void);
     void Init(void);
-    void Finalize(void);
 
     xmlDocPtr m_pXMLDoc;
-
-    double m_dScale;
-    AttributePtr<MPoint> m_pMPoint;
-    AttributePtr<MInt> m_pMFix;
-    AttributePtr<MInt> m_pMSat;
-    AttributePtr<MReal> m_pMHDOP;
-    AttributePtr<MReal> m_pMVDOP;
-    AttributePtr<MReal> m_pMPDOP;
 
     friend class CTrkPointIterator;
 };
