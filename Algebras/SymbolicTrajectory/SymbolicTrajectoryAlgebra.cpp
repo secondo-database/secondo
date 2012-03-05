@@ -1553,7 +1553,7 @@ bool Pattern::Matches(MLabel const &ml)
      case 1:
        if ( patEquation.op & 1 ) {
          if ( !ul.Passes( *(new CcString(true, patEquation.value)) ) )
-           result = false;	      
+           result = false;
       }
        break;
 
