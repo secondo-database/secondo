@@ -105,11 +105,15 @@ ListExpr groupby2TypeMap(ListExpr args)
   ListExpr first2, t, result, attrtype, t1, t2, t3, t4;
   ListExpr rest, firstr, newAttr, mapDef, firstInit, mapOut;
   ListExpr merge, lastmerge;     // indicates merge type for aggregate functions
+  string resstring;
+
+  // Test
+  // nl->WriteToString(resstring, args);
+  // cout << "groupby2 Type Mapping Input = " << resstring << endl;
 
 
   string err = 
     "stream(tuple(X)) x (g1..gn) x (tuple(X)xtxt -> t), t in DATA expected";
-  string resstring;
  
   first = second = third = nl->TheEmptyList();
   listn = lastlistn = listp = nl->TheEmptyList();
@@ -300,8 +304,13 @@ ListExpr groupby2TypeMap(ListExpr args)
         nl->TwoElemList( nl->SymbolAtom(tupleSymbolStr), listn))
     );
 
-// Abbruch
-//  return listutils::typeError("Type Mapping End. Abbruch.");
+
+  // Test
+  // nl->WriteToString(resstring, result);
+  // cout << "groupby2 Type Mapping Ergebnis: " << resstring << endl;
+
+  // Abbruch
+  // return listutils::typeError("Type Mapping End. Abbruch.");
 
   return result;
 }  // end of type mapping for groupby2 operator
@@ -337,7 +346,13 @@ public:
   unsigned int ReturnBucket, ReturnElem, 
     No_RetTuples,      // number of result tuples returned
     No_GTuples,        // number of group tuples in memory 
-    Phase;             // phase the operator currently runs in
+    Phase,             // phase the operator currently runs in
+    SumGTuples,        // sum of group tuples returned
+    SumITuples,        // sum of input tuples processed
+    SumDiskData,       // data volume written to secondary storage
+    tup_aggr,          // number of input tuples aggregated into groups
+    tup_n,             // number of input tuples (avalailable from phase 2)
+    read_this_phase;   // tuples read from TB_In this phase (from phase 2)
 
   // progress information
   int stableValue;
@@ -352,7 +367,9 @@ public:
     TB_In(NULL), TB_Out(NULL), TB_Temp(NULL), TB_Group(NULL), 
     In_Rit (NULL), newGroupsAllowed(true),
     MAX_MEMORY(0), Used_Memory(0), FirstREQUEST(true), ReturnBucket(0),
-    No_RetTuples(0), No_GTuples(0), Phase(0),
+    No_RetTuples(0), No_GTuples(0), Phase(0), 
+    SumGTuples(0), SumITuples(0), SumDiskData(0), tup_aggr(0), tup_n(0),
+    read_this_phase(0),
     stableValue(50),sizesFinal(false),
     attrSizeTmp(0), attrSizeExtTmp(0)
   {}
@@ -619,8 +636,80 @@ public:
     cout << "#groups created. No_GTuples    = " << No_GTuples << endl;    
     cout << "#groups in TB_Group:    " << TB_Group->GetNoTuples() << endl;  
     cout << "#raw tuples in TB_Out:  " << TB_Out->GetNoTuples()  << endl;  
+    cout << "GetTotalSize() of TB_Out:  " << TB_Out->GetTotalSize()  << endl; 
+    cout << "Sum GTuples returned:  " << SumGTuples  << endl; 
+    cout << "Sum ITuples processed: " << read  << endl;
+    cout << "Sum Data sec.storage:  " << SumDiskData  << endl; 
   } // end of ReportStatus
-}; 
+ 
+
+  // Calculate cost model M3 in milliseconds
+  // n=#input tuples, g=#groups, tpct=fraction of input tupes merged already
+  // tpct=0: cost of complete model; tpct in [0;1]: cost of remaining problem
+  float M3Cost (float n, float g, float tpct)
+  { 
+    const double model_ct2 = 8.35E-08;
+    const double model_cg  = 3.35E-07;
+    const double model_cf  = 1.46E-06;
+    const double model_cio = 6.45E-07;
+    double model_n;
+    double model_g;
+    double model_np;
+    double model_gp;
+    double model_P;
+    double groupby2_cost;
+    float tuple_size;
+    float completed;
+
+    model_n = n;
+    model_g = g;
+
+    model_gp = (Phase == 1) ? 
+      (float)MAX_MEMORY / (float)Used_Memory * No_GTuples 
+      : (float)SumGTuples/(float)(Phase-1);
+    model_P = ceil(model_g / model_gp);
+    model_np = model_n / model_g * model_gp;
+
+    // this is the model M3 cost formula; cost in milliseconds
+    // tuple processing cost
+    groupby2_cost = (1.0-tpct) * max(0.0, (model_P*(model_n-
+      (model_P-1)/2*model_np)-model_g)*ceil(model_gp/(2*NUMBUCKETS))*model_ct2);
+    
+    // group building cost
+    groupby2_cost += (1.0-tpct) * 
+                     model_g * ceil(model_gp/(2*NUMBUCKETS)) * model_cg;
+    // function evaluation cost
+    groupby2_cost += (1.0-tpct) * model_n * noOffun * model_cf;
+
+    // disk storage cost
+    if (Phase > 1 && TB_In->GetNoTuples() > 0)
+      tuple_size = TB_In->GetTotalSize() / TB_In->GetNoTuples();
+    else if (Phase == 1 && TB_Out->GetNoTuples() > 0)
+      tuple_size = TB_Out->GetTotalSize() / TB_Out->GetNoTuples();
+    else
+      tuple_size = 100; // just to assume something
+
+    // calculate the fraction of spooled input tuples
+    if (tpct < 0.05)
+      completed = 0;    
+    else if (Phase ==1)
+      completed = TB_Out->GetNoTuples()/
+                  (2.0*(model_P-1)*(model_n-model_P/2.0*model_np));
+    else
+      completed = 
+        (SumITuples - (TB_In->GetNoTuples()-read_this_phase)/2 
+         + TB_Out->GetNoTuples()/2)
+        / ((model_P-1)*(model_n-model_P/2.0*model_np));
+
+    groupby2_cost += max(0.0, (1.0-completed) * tuple_size * model_cio * 
+      (model_P-1)*(model_n-model_P/2.0*model_np));
+
+    groupby2_cost *= 1000;          
+    return (groupby2_cost);
+  } // end of M3Cost
+
+}; // end of class groupby2LocalInfo
+
 
 
 // Value Mapping für groupby2 =================================================
@@ -664,8 +753,15 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
   int funstart;      // position of aggr. function info 
   // for progress estimation
   ProgressInfo p1;
-  ProgressInfo *pRes;
-  const double ugroupby2 = 0.008;  
+  ProgressInfo *pRes; 
+
+  // constants for cost estimation
+  const double model_cf  = 1.46E-06;
+  double mod_cost, mod_cost_rest;
+  double mod_progress;
+  double mod_n;
+  double mod_g;
+  double tuple_consumed;
 
 
   switch(message)
@@ -708,20 +804,14 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
         gbli->TB_Out = new TupleBuffer(0);
         gbli->MAX_MEMORY = (qp->GetMemorySize(supplier) * 1024 * 1024);
 
-        // Test
-        cout << "groupby2 Memory allowance: " << gbli->MAX_MEMORY << endl;
-
         cmsg.info("ERA:ShowMemInfo") << "groupby2.MAX_MEMORY ("
                    << (gbli->MAX_MEMORY)/1024 << " KiloByte): " << endl;
         cmsg.send();
 
         // Adjust memory avaliable for LocalInfo (around 1.2 MB)
         gbli->MAX_MEMORY -= sizeof(*gbli);
-
         // need at least 1 MB memory to run
-        // ?? für Tests: heruntergesetzt
-        // assert(gbli->MAX_MEMORY > 1048576); 
-        assert(gbli->MAX_MEMORY > 50000); 
+        assert(gbli->MAX_MEMORY > 1048576); 
       } else {
         local.setAddr(0);         // no tuple received
       }
@@ -828,6 +918,7 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
             // add the memory used by this raw tuple (without attributes)
             gbli->Used_Memory += sizeof(*tres);
             gbli->No_GTuples++;
+            gbli->tup_aggr++;
 
             // copy grouping attributes 
             for(i = 0; i < gbli->numberatt; i++) {
@@ -838,12 +929,14 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
 
             // process first input tuple for this group
             gbli->InitTuple( tres, s, (Supplier) args[2].addr); 
+
             // store aggregate tuple in hash bucket
             gbli->hBucket[myhash2].push_back(tres);
             s->DeleteIfAllowed();
 
           } else {  // group exists already ===================================
             gbli->AggregateTuple( current, s, args[2].addr);
+            gbli->tup_aggr++;
 
             // memory exceeded: group tuple needs to be transferred to disk
             if (gbli->Used_Memory >= gbli->MAX_MEMORY) {
@@ -866,6 +959,8 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
           } else {
             // read from tuple buffer
             s = gbli->In_Rit->GetNextTuple();
+            gbli->read++;
+            gbli->read_this_phase++;
           }
         } // end-while 
 
@@ -957,12 +1052,20 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
                == gbli->No_GTuples)
               && (gbli->TB_Out->GetNoTuples() > 0)) 
           {
+            // update progress data 
+            gbli->SumITuples += gbli->TB_Out->GetNoTuples();
+            gbli->SumDiskData += gbli->TB_Out->GetTotalSize();
+            gbli->SumGTuples += gbli->No_RetTuples;
+            if (gbli->Phase==1) gbli->tup_n = gbli->read;
+
             // Test
             // gbli->ReportStatus( "End of a Phase." );
 
+            // initialize counters for next phase
             gbli->FirstREQUEST = true;   // need to aggregate on next REQUEST
             gbli->No_RetTuples = 0;      // init for next phase
             gbli->No_GTuples = 0;
+            gbli->read_this_phase=0;
             (gbli->Phase)++;
 
             // clear all vectors, the tuples are not touched
@@ -1009,6 +1112,11 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
 
           return YIELD;
         } else {
+            // update progress data 
+          gbli->SumITuples += gbli->TB_Out->GetNoTuples();
+          gbli->SumDiskData += gbli->TB_Out->GetTotalSize();
+          gbli->SumGTuples += gbli->No_RetTuples;
+
           // Test
           // gbli->ReportStatus( "End of a Phase." );        
           return CANCEL;
@@ -1031,15 +1139,9 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
       if (!gbli) return CANCEL;
 
       if (qp->RequestProgress(args[0].addr, &p1) ) {
-        // first start: copy predecessor info
-        // pRes->Copy(p1);
-
-        // according Programmes Guide p 118
-        // update size fields for output tuples
         gbli->sizesChanged = false;
 
         if (!gbli->sizesInitialized) {
-          // gbli->noAttrs is set during OPEN
           gbli->attrSize = new double[gbli->noAttrs];
           gbli->attrSizeExt = new double[gbli->noAttrs];
         }
@@ -1058,8 +1160,7 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
             gbli->Size += gbli->attrSize[i];
             gbli->SizeExt += gbli->attrSizeExt[i];
           }
-          // ?? das als "kalte" Schätzung
-          // ?? for aggregation results: assume integer
+          // for aggregation results: assume integer
           for (i=0; i < gbli->noOffun; i++) {
             gbli->attrSize[i+gbli->numberatt] = 12;
             gbli->attrSizeExt[i+gbli->numberatt] = 12;   
@@ -1070,31 +1171,49 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
           gbli->sizesInitialized = true;
           gbli->sizesChanged = true;
         }
+        pRes->CopySizes(gbli);
+        pRes->noAttrs = gbli->noAttrs;
 
         // write progress information
-        if (gbli->numberatt == 0)
-          pRes->Card = 1;
-        else
-          pRes->Card = min( p1.Card/10, 
-                            gbli->No_GTuples * min( 4.0, p1.Card/gbli->read)); 
+        if (gbli->numberatt == 0 ||
+             (gbli->Phase == 1 && gbli->newGroupsAllowed && 
+              gbli->No_GTuples < NUMBUCKETS)) {
+          // aggregate without grouping, use model M1   OR
+          // Phase 1, small number of groups only; cost in milliseconds
+          mod_cost = p1.Card * gbli->noOffun * model_cf * 1000;
+        
+          pRes->Card = (gbli->numberatt == 0) ? 1 : gbli->No_GTuples;
+          pRes->Time = p1.Time + mod_cost;
+          pRes->Progress = 
+            (p1.Progress*p1.Time + gbli->read/p1.Card*mod_cost)/ pRes->Time;
+          pRes->BTime = pRes->Time;      
+          pRes->BProgress = pRes->Progress;
 
-        pRes->CopySizes(gbli);              // ?? enhält das die #Attribute
+        } else {
+          mod_n = (gbli->Phase == 1) ? p1.Card : gbli->tup_n;
+          // fraction of input tuples already aggregated
+          tuple_consumed = (gbli->Phase == 1) ?
+            (float)(gbli->read - gbli->TB_Out->GetNoTuples()) / mod_n 
+            : (float) gbli->tup_aggr / mod_n;
+          mod_g = (gbli->No_GTuples + gbli->SumGTuples)/tuple_consumed;
 
-        // erste einfache Schätzung
-        pRes->Time = p1.Time + (p1.Card * ugroupby2);
-        // eigener Fortschritt proportional zum gelesenen Input
-        pRes->Progress = (p1.Progress*p1.Time + gbli->read * ugroupby2)
-                         / pRes->Time;
+          // cost for complete problem
+          mod_cost = gbli->M3Cost( mod_n, mod_g, 0.0);
+          // cost for remaining piece of problem
+          mod_cost_rest = gbli->M3Cost( mod_n, mod_g, tuple_consumed);
 
-        // Annahme: groupby2 blockt zu 100%, Ausgabe ist unwesentlich
-        pRes->BTime = p1.BTime + (p1.Card * ugroupby2);
-        pRes->BProgress = (p1.BProgress*p1.BTime + gbli->read * ugroupby2)
-                          / pRes->BTime;
+          pRes->Card = mod_g;
+          pRes->Time = p1.Time + mod_cost;
+          mod_progress = (mod_cost - mod_cost_rest) / mod_cost;
+          pRes->Progress = 
+            (p1.Progress*p1.Time + mod_progress*mod_cost) / pRes->Time;
+          pRes->BTime = (gbli->Phase == 1) ? pRes->Time : 0;      
+          pRes->BProgress = (gbli->Phase == 1) ? pRes->Progress : 1;
+        }
         return YIELD;
       } else {
         return CANCEL;
       }
-
   } // end message switch
 
   return(0);
