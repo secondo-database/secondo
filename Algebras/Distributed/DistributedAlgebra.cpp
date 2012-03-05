@@ -62,6 +62,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "Symbols.h"
 #include "Stream.h"
 #include "ThreadedMemoryCntr.h"
+#include <sys/timeb.h>
 
 //#define RECEIVE_REL_MAP_DEBUG 1
 //#define RECEIVE_REL_FUN_DEBUG 1
@@ -96,13 +97,25 @@ string toString_d(int i)
    s = out.str();
    return s;
 }
+//Converts int to string
+string toString_ul(unsigned long i)
+{
+   std::string s;
+   std::stringstream out;
+   out << i;
+   s = out.str();
+   return s;
+}
 
 
 //Creates an unique identifier for a new distributed array
 string getArrayName(int number)
 {
-   string t = toString_d(time(0)) + toString_d(number);
-   return t;
+  struct timeb t1;
+  ftime(&t1);
+  unsigned long tm = (t1.time * 1000) + t1.millitm;
+  string t = toString_ul(tm) + toString_d(number);
+  return t;
 }
 
 //Converts a pair (algID typID) to the corresponding
@@ -218,7 +231,6 @@ static bool RunCmdSSH(const string& inHost,
 }
 
 /*
-
 
 4. Type Constructor ~DArray~
 
@@ -1498,7 +1510,7 @@ static int sendFun( Word* args,
 
             if( line!="<FINISH>" )
             {
-              cout << "Error: Missing 'Finish' tag from Worker!" << endl;
+              cout << "Error: Missing 'Finish' tag from Master!" << endl;
               cout << " Got:'" << line << "'" << endl;
             }
 

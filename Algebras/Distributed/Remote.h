@@ -113,6 +113,8 @@ public:
     out << i;
     ret = out.str();
   }
+
+  const string& GetHostName() const { return m_host; }
 public:
   class RemoteCommand
   {
@@ -169,7 +171,8 @@ public:
 
 private:
 
-  string host,name;
+  string m_host;
+  string name;
 
   RemoteCommand* m_cmd;
 

@@ -94,7 +94,7 @@ void DServer::Debug(const string& tag, const string& out)
 DServer::DServer(string n_host,int n_port,string n_name,
                  ListExpr inType)
 {
-   host = n_host;
+   m_host = n_host;
    port = n_port;
    name = n_name;
    m_type = inType;
@@ -114,7 +114,7 @@ DServer::connectToWorker()
   //StopWatch watch;
 
   string line;
-  server = Socket::Connect( host, toString_d(port), 
+  server = Socket::Connect( m_host, toString_d(port), 
                       Socket::SockGlobalDomain,
                       5,
                       1);
@@ -128,7 +128,7 @@ DServer::connectToWorker()
       if (!server -> IsOk())
       {
         cout << "Error: Faild to establish socket for host " 
-             << host << ":" << port << "!" << endl;
+             << m_host << ":" << port << "!" << endl;
       }
       
       do
@@ -141,7 +141,7 @@ DServer::connectToWorker()
       if (!server -> IsOk())
       {
         cout << "Error: Faild to establish socket for connection"
-             << " to host " << host << ":" << port << "!" << endl;
+             << " to host " << m_host << ":" << port << "!" << endl;
       }
       
       if(line=="<SecondoOk/>")
@@ -189,7 +189,7 @@ DServer::connectToWorker()
   if (!(server -> IsOk()))
     { 
       cout << "Cannot Connect to Server:" 
-         << host << ":" << toString_d(port) << endl;
+         << m_host << ":" << toString_d(port) << endl;
       cout << server -> GetErrorText() << endl;
 
       delete server;
@@ -233,7 +233,8 @@ DServer::connectToWorker()
    HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
    //cout << "Connection to Worker on " << host << " established." << endl;
-   //cout << "ConnectTime:"  << host <<":" << port << watch.diffTimes() << endl;
+   //cout << "ConnectTime:"  
+   // << m_host <<":" << port << watch.diffTimes() << endl;
    return true;
 }
 
@@ -251,7 +252,7 @@ void DServer::Terminate()
    {
      if (!(server->IsOk()))
        {
-         cout << "Error: Cannot close connection to " << host << "!" << endl;
+         cout << "Error: Cannot close connection to " << m_host << "!" << endl;
          cout << server -> GetErrorText() << endl;
        }
      else
@@ -348,14 +349,14 @@ void DServer::run()
         
          iostream& iosock = server->GetSocketStream();
          string port =toString_d((1800+arg2)); 
+         string line;
 
+#if 0 // this takes too long and is not necessary
          //Element is deleted on the worker, if it exists already
          iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
                   << name << toString_d(arg2)  << endl << "</Secondo>" 
                   << endl;
          
-         string line;
-
          do
          {
             getline(iosock,line);
@@ -363,7 +364,7 @@ void DServer::run()
                errorText = "Error while deleting element on the worker";
          }
          while(line.find("</SecondoResponse") == string::npos);  
-
+#endif
          //The receiveD-Operator on the worker is called
          string com = "let r" + name + toString_d(arg2) + 
                         " = " + "receiveD(" + HostIP_ + ",p" + port + ")";
@@ -504,23 +505,23 @@ void DServer::run()
         {
           arg2 = m_cmd -> getDArrayIndex() -> front();
           m_cmd -> getDArrayIndex() -> pop_front();
-          string port =toString_d((1500+arg2));
+          string master_port =toString_d((1500+arg2));
           
           //The sendD-operator on the worker is started       
           iostream& iosock = server->GetSocketStream();
           
           DServer::Debug("DSR-READ send iosock",  "<Secondo> 1 query sendD (" + 
-                         HostIP_ + ",p" + port + ",r" + name +
+                         HostIP_ + ",p" + master_port + ",r" + name +
                          toString_d(arg2) + ") </Secondo>");
 
           iosock << "<Secondo>" << endl << "1" << endl 
-                 << "query sendD (" << HostIP_ << ",p" << port << ",r" 
+                 << "query sendD (" << HostIP_ << ",p" << master_port << ",r" 
                  << name << toString_d(arg2) << ")" <<  endl 
                  << "</Secondo>" << endl;
       
           
           //Callback-connection is received
-          Socket* gate = Socket::CreateGlobal( HostIP, port);
+          Socket* gate = Socket::CreateGlobal( HostIP, master_port);
           Socket* worker = gate->Accept();
 
           gate->Close();delete gate;gate=0;
@@ -633,8 +634,8 @@ void DServer::run()
               if(line!="<CLOSE>")
                 errorText = (string)"Unexpected Response from " 
                   + "worker (<CLOSE> expected)!";
-              
-              iosock << "<FINISH>" << endl;
+             
+              cbsock << "<FINISH>" << endl;
               
               worker->Close(); delete worker; worker=0;
                  
@@ -800,7 +801,7 @@ void DServer::run()
              
       string line;
       iostream& iosock = server->GetSocketStream();
-              
+      
       int arg2 = m_cmd -> getDArrayIndex() ->front();
 
       string index_str=((string*)((*(m_cmd -> getElements()))[0].addr))->data();
@@ -810,6 +811,9 @@ void DServer::run()
       string com = "let r" + name + toString_d(arg2) + 
                      " = " + "d_receive_rel(" + HostIP_ + ",p" + port + ")";
           
+#if 0 // this is maybe not really needed
+      // deleting a previous relation object ...
+
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
       cout << (unsigned long)(this) << " OR Send IO:" << "<Secondo>" << endl 
            << "1" << endl << "delete r" 
@@ -830,7 +834,9 @@ void DServer::run()
 #endif
       }
       while(line.find("</SecondoResponse") == string::npos);
-            
+
+#endif // if 0 
+      
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
         cout << (unsigned long)(this) 
              << " OR Send IO:" 
@@ -926,8 +932,7 @@ void DServer::run()
 
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
       cout << (unsigned long)(this) << " DS_CMD_OPEN_WRITE_REL - done" << endl;
-#endif
-               
+#endif   
    }
           
    if(m_cmd -> getCmdType() == DS_CMD_WRITE_REL)
@@ -1311,7 +1316,7 @@ bool DServer::Multiply(int count)
   //  cerr << "DServer::Multiply:" << m_numChilds << endl;
    for(int i = 0;i<m_numChilds;i++)
    {
-     DServer* ds =  new DServer(host,port,name,m_type);
+     DServer* ds =  new DServer(m_host,port,name,m_type);
      m_childs.push_back( ds );
      try
         {
@@ -1322,7 +1327,7 @@ bool DServer::Multiply(int count)
       catch(const exception &e)
         {
           cout << "Error starting DServer on " 
-               << host << ":" << port << endl;
+               << m_host << ":" << port << endl;
           return false;
         }
    }
@@ -1369,7 +1374,7 @@ DServer::checkServer(bool writeError) const
     {
       if (writeError)
         cerr << "ERROR: Not connected to worker on " 
-             << host << ":" << port << endl;
+             << m_host << ":" << port << endl;
       return false;
     }
 
@@ -1377,7 +1382,7 @@ DServer::checkServer(bool writeError) const
     {
       if (writeError)
         cerr << "ERROR: Could not establish connection to worker on " 
-             << host << ":" << port << endl;
+             << m_host << ":" << port << endl;
       return false;
     }
 
@@ -1768,5 +1773,6 @@ ostream& operator << (ostream &out, DServer::RemoteCommand& rc)
 
 void DServer::print() const
 {
-  cout << (unsigned long)(this) << " : " << " " << host << " " << port << endl;
+  cout << (unsigned long)(this) << " : " << " " 
+       << m_host << " " << port << endl;
 }
