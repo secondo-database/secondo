@@ -61,7 +61,9 @@ namespace mapmatch {
 
 // Constructor
 GPXFileReader::GPXFileReader()
-:m_dScale(1.0), m_pMPoint(NULL), m_pMFix(NULL), m_pMSat(NULL),
+:m_pXMLDoc(NULL),
+ m_dScale(1.0),
+ m_pMPoint(NULL), m_pMFix(NULL), m_pMSat(NULL),
  m_pMHDOP(NULL), m_pMVDOP(NULL), m_pMPDOP(NULL)
 {
 }
@@ -80,12 +82,15 @@ void GPXFileReader::Free(void)
     m_pMHDOP.reset(NULL);
     m_pMVDOP.reset(NULL);
     m_pMPDOP.reset(NULL);
+
+    if (m_pXMLDoc != NULL)
+        xmlFreeDoc(m_pXMLDoc);
+
+    m_pXMLDoc = NULL;
 }
 
-void GPXFileReader::Init(double dScale)
+void GPXFileReader::Init(void)
 {
-    m_dScale = dScale;
-
     Free();
 
     m_pMPoint = AttributePtr<MPoint>(new MPoint(100));
@@ -112,6 +117,8 @@ void GPXFileReader::Finalize(void)
     m_pMVDOP->EndBulkLoad(false, false);
     m_pMPDOP->EndBulkLoad(false, false);
 
+//#define TRACE_GPX_DATA
+#ifdef TRACE_GPX_DATA
     std::ofstream stream("/home/secondo/Traces/GPX.txt");
 
     m_pMPoint->Print(stream);
@@ -126,87 +133,227 @@ void GPXFileReader::Finalize(void)
     stream << endl;
     m_pMPDOP->Print(stream);
     stream << endl;
+#endif
 }
 
 /*
-3.2 GPXFileReader::DoRead
-    Reading of GPX file
+3.2 GPXFileReader::Open
+    Opens the file and checks, if it it a valid GPX file
 
 */
 
-bool GPXFileReader::DoRead(std::string strFileName, double dScale)
+bool GPXFileReader::Open(std::string strFileName)
 {
-    Init(dScale);
+    Init();
 
-    xmlDocPtr pDoc = xmlParseFile(strFileName.c_str());
-    if (pDoc == NULL)
+    m_dScale = 1.0;
+
+    assert(m_pXMLDoc == NULL);
+
+    m_pXMLDoc = xmlParseFile(strFileName.c_str());
+    if (m_pXMLDoc == NULL)
     {
         cout << "Failed to read " << strFileName << endl;
         return false;
     }
 
-    xmlNodePtr pCurNode = xmlDocGetRootElement(pDoc);
+    xmlNodePtr pCurNode = xmlDocGetRootElement(m_pXMLDoc);
     if (pCurNode == NULL)
     {
         cout << "Failed to read " << strFileName << endl;
-        xmlFreeDoc(pDoc);
+        xmlFreeDoc(m_pXMLDoc);
+        m_pXMLDoc = NULL;
         return false;
     }
 
     if (xmlStrcmp(pCurNode->name, (const xmlChar *) "gpx") != 0)
     {
         cout << "Not a gpx document " << strFileName << endl;
-        xmlFreeDoc(pDoc);
+        xmlFreeDoc(m_pXMLDoc);
+        m_pXMLDoc = NULL;
         return false;
     }
-
-    pCurNode = pCurNode->xmlChildrenNode;
-    while (pCurNode != NULL)
-    {
-        if (xmlStrcmp(pCurNode->name, (const xmlChar *) "trk") == 0)
-        {
-            ParseTRK(pDoc, pCurNode);
-        }
-        pCurNode = pCurNode->next;
-    }
-
-    xmlFreeDoc(pDoc);
-
-    Finalize();
 
     return true;
 }
 
-void GPXFileReader::ParseTRK(xmlDocPtr pDoc, xmlNodePtr pNode)
+/*
+3.3 GPXFileReader::DoRead
+    Reading of GPX file
+
+*/
+
+/*bool GPXFileReader::DoRead(std::string strFileName, double dScale)
 {
-    if (pDoc == NULL || pNode == NULL)
+    if (!Open(strFileName))
+        return false;
+
+    m_dScale = dScale;
+
+    xmlNodePtr pCurNode = GetFirstTrkNode();
+    while (pCurNode != NULL)
+    {
+        ParseTrk(pCurNode);
+
+        pCurNode = GetNextTrkNode(pCurNode);
+    }
+
+    Finalize();
+
+    return true;
+}*/
+
+void GPXFileReader::ParseTrk(xmlNodePtr pNode)
+{
+    if (pNode == NULL)
         return;
 
-    xmlNodePtr pCurChild = pNode->xmlChildrenNode;
+    xmlNodePtr pCurChild = GetFirstTrkSegNode(pNode);
     while (pCurChild != NULL)
     {
-        if (xmlStrcmp(pCurChild->name, (const xmlChar *) "trkseg") == 0)
-        {
-            ParseTRKSEG(pDoc, pCurChild);
-        }
-        pCurChild = pCurChild->next;
+        ParseTrkSeg(pCurChild);
+
+        pCurChild = GetNextTrkSegNode(pCurChild);
     }
 }
 
-void GPXFileReader::ParseTRKSEG(xmlDocPtr pDoc, xmlNodePtr pNode)
+void GPXFileReader::ParseTrkSeg(xmlNodePtr pNode)
 {
-    if (pDoc == NULL || pNode == NULL)
+    if (pNode == NULL)
         return;
 
-    xmlNodePtr pCurChild = pNode->xmlChildrenNode;
+    xmlNodePtr pCurChild = GetFirstTrkPtNode(pNode);
     while (pCurChild != NULL)
     {
-        if (xmlStrcmp(pCurChild->name, (const xmlChar *) "trkpt") == 0)
-        {
-            ParseTRKPT(pDoc, pCurChild);
-        }
-        pCurChild = pCurChild->next;
+        SGPXTrkPointData Data;
+        if (ParseTrkPt(pCurChild, Data))
+            NewData(Data);
+
+        pCurChild = GetNextTrkPtNode(pCurChild);
     }
+}
+
+xmlNodePtr GPXFileReader::GetFirstTrkNode(void)
+{
+    if (m_pXMLDoc == NULL)
+        return NULL;
+
+    xmlNodePtr pCurNode = xmlDocGetRootElement(m_pXMLDoc);
+
+    if (pCurNode != NULL)
+    {
+        pCurNode = pCurNode->xmlChildrenNode;
+        while (pCurNode != NULL)
+        {
+            if (xmlStrcmp(pCurNode->name, (const xmlChar *) "trk") == 0)
+            {
+                return pCurNode;
+            }
+            pCurNode = pCurNode->next;
+        }
+    }
+
+    return NULL;
+}
+
+xmlNodePtr GPXFileReader::GetNextTrkNode(const xmlNodePtr pTrkNode)
+{
+    xmlNodePtr pNext = NULL;
+
+    if (pTrkNode != NULL)
+    {
+        pNext = pTrkNode->next;
+
+        while (pNext != NULL)
+        {
+            if (xmlStrcmp(pNext->name, (const xmlChar *) "trk") == 0)
+                return pNext;
+
+            pNext = pNext->next;
+        }
+    }
+
+    return pNext;
+}
+
+xmlNodePtr GPXFileReader::GetFirstTrkSegNode(const xmlNodePtr pTrkNode)
+{
+    if (pTrkNode == NULL)
+        return NULL;
+    else
+    {
+        xmlNodePtr pCurChild = pTrkNode->xmlChildrenNode;
+        while (pCurChild != NULL)
+        {
+            if (xmlStrcmp(pCurChild->name, (const xmlChar *) "trkseg") == 0)
+            {
+                return pCurChild;
+            }
+            pCurChild = pCurChild->next;
+        }
+
+        return NULL;
+    }
+}
+
+xmlNodePtr GPXFileReader::GetNextTrkSegNode(const xmlNodePtr pTrkSegNode)
+{
+    xmlNodePtr pNext = NULL;
+
+    if (pTrkSegNode != NULL)
+    {
+        pNext = pTrkSegNode->next;
+
+        while (pNext != NULL)
+        {
+            if (xmlStrcmp(pNext->name, (const xmlChar *) "trkseg") == 0)
+                return pNext;
+
+            pNext = pNext->next;
+        }
+    }
+
+    return pNext;
+}
+
+xmlNodePtr GPXFileReader::GetFirstTrkPtNode(const xmlNodePtr pTrkSegNode)
+{
+    if (pTrkSegNode == NULL)
+        return NULL;
+    else
+    {
+        xmlNodePtr pCurChild = pTrkSegNode->xmlChildrenNode;
+        while (pCurChild != NULL)
+        {
+            if (xmlStrcmp(pCurChild->name, (const xmlChar *) "trkpt") == 0)
+            {
+                return pCurChild;
+            }
+            pCurChild = pCurChild->next;
+        }
+
+        return NULL;
+    }
+}
+
+xmlNodePtr GPXFileReader::GetNextTrkPtNode(const xmlNodePtr pTrkPtNode)
+{
+    xmlNodePtr pNext = NULL;
+
+    if (pTrkPtNode != NULL)
+    {
+        pNext = pTrkPtNode->next;
+
+        while(pNext != NULL)
+        {
+            if (xmlStrcmp(pNext->name, (const xmlChar *) "trkpt") == 0)
+                return pNext;
+
+            pNext = pNext->next;
+        }
+    }
+
+    return pNext;
 }
 
 static int convStrToInt (const char* pszStr)
@@ -225,12 +372,13 @@ static double convStrToDouble (const char* pszStr)
     return atof(pszStr);
 }
 
-void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
+bool GPXFileReader::ParseTrkPt(xmlNodePtr pNode,
+                               SGPXTrkPointData& rTrkPointData)
 {
-    if (pDoc == NULL || pNode == NULL)
-        return;
+    if (pNode == NULL)
+        return false;
 
-    SGPXData Data;
+    SGPXTrkPointData TrkPointData;
 
     double dLat = 0.0;
     double dLon = 0.0;
@@ -239,17 +387,27 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
     if (pLat != NULL)
     {
         dLat = convStrToDouble((const char*)pLat);
+        dLat *= m_dScale;
         xmlFree(pLat);
+    }
+    else
+    {
+        return false;
     }
 
     xmlChar* pLon = xmlGetProp(pNode, (const xmlChar *) "lon");
     if (pLon != NULL)
     {
         dLon = convStrToDouble((const char*)pLon);
-        xmlFree(pLat);
+        dLon *= m_dScale;
+        xmlFree(pLon);
+    }
+    else
+    {
+        return false;
     }
 
-    Data.m_Point.Set(dLon, dLat);
+    TrkPointData.m_Point.Set(dLon, dLat);
 
     xmlNodePtr pCurChild = pNode->xmlChildrenNode;
     while (pCurChild != NULL)
@@ -276,7 +434,7 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
                     strTime.erase(strTime.length() - 1, 1);
                 }
 
-                Data.m_Time.ReadFrom(strTime.c_str());
+                TrkPointData.m_Time.ReadFrom(strTime.c_str());
                 xmlFree(pTime);
             }
         }
@@ -286,24 +444,24 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
 
             if (xmlStrcmp(pFix, (const xmlChar *) "none") == 0)
             {
-                Data.m_nFix = 0;
+                TrkPointData.m_nFix.Set(0);
             }
             else if (xmlStrcmp(pFix, (const xmlChar *) "2d") == 0)
             {
-                Data.m_nFix = 2;
+                TrkPointData.m_nFix.Set(2);
             }
             else if (xmlStrcmp(pFix, (const xmlChar *) "3d") == 0)
             {
-                Data.m_nFix = 3;
+                TrkPointData.m_nFix.Set(3);
             }
             else if (xmlStrcmp(pFix, (const xmlChar *) "dgps") == 0)
             {
-                Data.m_nFix = 4;
+                TrkPointData.m_nFix.Set(4);
             }
             else if (xmlStrcmp(pFix, (const xmlChar *) "pps") == 0)
             {
                 // military signal
-                Data.m_nFix = 5;
+                TrkPointData.m_nFix.Set(5);
             }
 
             xmlFree(pFix);
@@ -312,7 +470,7 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
         {
             xmlChar* pSat = xmlNodeGetContent(pCurChild);
 
-            Data.m_nSat = convStrToInt((const char*)pSat);
+            TrkPointData.m_nSat.Set(convStrToInt((const char*)pSat));
 
             xmlFree(pSat);
         }
@@ -320,7 +478,7 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
         {
             xmlChar* pHDOP = xmlNodeGetContent(pCurChild);
 
-            Data.m_dHDOP = convStrToDouble((const char*)pHDOP);
+            TrkPointData.m_dHDOP.Set(convStrToDouble((const char*)pHDOP));
 
             xmlFree(pHDOP);
         }
@@ -328,7 +486,7 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
         {
             xmlChar* pVDOP = xmlNodeGetContent(pCurChild);
 
-            Data.m_dVDOP = convStrToDouble((const char*)pVDOP);
+            TrkPointData.m_dVDOP.Set(convStrToDouble((const char*)pVDOP));
 
             xmlFree(pVDOP);
         }
@@ -336,15 +494,15 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
         {
             xmlChar* pPDOP = xmlNodeGetContent(pCurChild);
 
-            Data.m_dPDOP = convStrToDouble((const char*)pPDOP);
+            TrkPointData.m_dPDOP.Set(convStrToDouble((const char*)pPDOP));
 
             xmlFree(pPDOP);
         }
-        /*else if (xmlStrcmp(pCurChild->name, (const xmlChar *) "course") == 0)
+        else if (xmlStrcmp(pCurChild->name, (const xmlChar *) "course") == 0)
         {
             xmlChar* pCourse = xmlNodeGetContent(pCurChild);
 
-            Data.m_dCourse = convStrToDouble((const char*)pCourse);
+            TrkPointData.m_dCourse.Set(convStrToDouble((const char*)pCourse));
 
             xmlFree(pCourse);
         }
@@ -352,28 +510,36 @@ void GPXFileReader::ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode)
         {
             xmlChar* pSpeed = xmlNodeGetContent(pCurChild);
 
-            Data.m_dSpeed = convStrToDouble((const char*)pSpeed);
+            TrkPointData.m_dSpeed.Set(convStrToDouble((const char*)pSpeed));
 
             xmlFree(pSpeed);
-        }*/
+        }
+        else if (xmlStrcmp(pCurChild->name, (const xmlChar *) "ele") == 0)
+        {
+            xmlChar* pElevation = xmlNodeGetContent(pCurChild);
+
+            TrkPointData.m_dElevation.Set(
+                                      convStrToDouble((const char*)pElevation));
+
+            xmlFree(pElevation);
+        }
 
         pCurChild = pCurChild->next;
     }
 
-    NewData(Data);
+    rTrkPointData = TrkPointData;
+
+    return true;
 }
 
-void GPXFileReader::NewData(const SGPXData& rData)
+void GPXFileReader::NewData(const SGPXTrkPointData& rData)
 {
     if (m_pMPoint != NULL)
     {
         // Point
-        Point pt(rData.m_Point);
-        pt.Scale(m_dScale);
-
         UPoint ActUPoint(Interval<Instant>(rData.m_Time, rData.m_Time,
                                            true, true),
-                         pt, pt);
+                         rData.m_Point, rData.m_Point);
         m_pMPoint->Add(ActUPoint);
     }
 
@@ -381,7 +547,7 @@ void GPXFileReader::NewData(const SGPXData& rData)
     {
         // Fix
         UInt ActUFix(Interval<Instant>(rData.m_Time, rData.m_Time, true, true),
-                     CcInt(true, rData.m_nFix), CcInt(true, rData.m_nFix));
+                     rData.m_nFix, rData.m_nFix);
         m_pMFix->Add(ActUFix);
     }
 
@@ -389,7 +555,7 @@ void GPXFileReader::NewData(const SGPXData& rData)
     {
         // Sat
         UInt ActUSat(Interval<Instant>(rData.m_Time, rData.m_Time, true, true),
-                     CcInt(true, rData.m_nSat), CcInt(true, rData.m_nSat));
+                     rData.m_nSat, rData.m_nSat);
         m_pMSat->Add(ActUSat);
     }
 
@@ -398,8 +564,7 @@ void GPXFileReader::NewData(const SGPXData& rData)
         // HDOP
         UReal ActUHDop(Interval<Instant>(rData.m_Time, rData.m_Time,
                                          true, true),
-                       CcReal(true, rData.m_dHDOP),
-                       CcReal(true, rData.m_dHDOP));
+                       rData.m_dHDOP, rData.m_dHDOP);
         m_pMHDOP->Add(ActUHDop);
     }
 
@@ -408,8 +573,7 @@ void GPXFileReader::NewData(const SGPXData& rData)
     {
         UReal ActUVDop(Interval<Instant>(rData.m_Time, rData.m_Time,
                                          true, true),
-                        CcReal(true, rData.m_dVDOP),
-                        CcReal(true, rData.m_dVDOP));
+                        rData.m_dVDOP, rData.m_dVDOP);
         m_pMVDOP->Add(ActUVDop);
     }
 
@@ -418,34 +582,51 @@ void GPXFileReader::NewData(const SGPXData& rData)
     {
         UReal ActUPDOP(Interval<Instant>(rData.m_Time, rData.m_Time,
                                          true, true),
-                       CcReal(true, rData.m_dPDOP),
-                       CcReal(true, rData.m_dPDOP));
+                       rData.m_dPDOP, rData.m_dPDOP);
         m_pMPDOP->Add(ActUPDOP);
     }
 }
 
+CTrkPointIterator* GPXFileReader::GetTrkPointIterator(void)
+{
+    if (m_pXMLDoc == NULL)
+        return NULL;
+
+    return new CTrkPointIterator(this);
+}
+
+void GPXFileReader::FreeTrkPointIterator(CTrkPointIterator*& rpIterator)
+{
+    if (rpIterator != NULL)
+        delete rpIterator;
+
+    rpIterator = NULL;
+}
+
 
 /*
-4 struct GPXFileReader::SGPXData
+3.4 struct GPXFileReader::SGPXTrkPointData
 
 */
 
-GPXFileReader::SGPXData::SGPXData()
-:m_Time(0.0), m_Point(false), m_nFix(-1), m_nSat(-1),
- m_dHDOP(-1.0), m_dVDOP(-1.0), m_dPDOP(-1.0)
+GPXFileReader::SGPXTrkPointData::SGPXTrkPointData()
+:m_Time(0.0), m_Point(false), m_nFix(false), m_nSat(false),
+ m_dHDOP(false), m_dVDOP(false), m_dPDOP(false),
+ m_dCourse(false), m_dSpeed(false), m_dElevation(false)
 {
     m_Time.SetDefined(false);
 }
 
-GPXFileReader::SGPXData::SGPXData(const SGPXData& rData)
+GPXFileReader::SGPXTrkPointData::SGPXTrkPointData(const SGPXTrkPointData& rData)
 :m_Time(rData.m_Time), m_Point(rData.m_Point), m_nFix(rData.m_nFix),
  m_nSat(rData.m_nSat), m_dHDOP(rData.m_dHDOP), m_dVDOP(rData.m_dVDOP),
- m_dPDOP(rData.m_dPDOP)
+ m_dPDOP(rData.m_dPDOP), m_dCourse(rData.m_dCourse), m_dSpeed(rData.m_dSpeed),
+ m_dElevation(rData.m_dElevation)
 {
 }
 
-GPXFileReader::SGPXData& GPXFileReader::SGPXData::operator=(
-                                                          const SGPXData& rData)
+GPXFileReader::SGPXTrkPointData& GPXFileReader::SGPXTrkPointData::operator=(
+                                                  const SGPXTrkPointData& rData)
 {
     if (&rData != this)
     {
@@ -456,9 +637,92 @@ GPXFileReader::SGPXData& GPXFileReader::SGPXData::operator=(
         m_dHDOP = rData.m_dHDOP;
         m_dVDOP = rData.m_dVDOP;
         m_dPDOP = rData.m_dPDOP;
+        m_dElevation = rData.m_dElevation;
     }
 
     return *this;
+}
+
+
+
+/*
+4 class CTrkPointIterator
+Iterator for Trk-points
+
+*/
+
+CTrkPointIterator::CTrkPointIterator(GPXFileReader* pReader)
+:m_pReader(pReader),
+ m_pCurrentTrk(NULL),
+ m_pCurrentTrkSeg(NULL),
+ m_pCurrentTrkPt(NULL)
+{
+    if (m_pReader != NULL)
+    {
+        m_pCurrentTrk = m_pReader->GetFirstTrkNode();
+        while (m_pCurrentTrk != NULL)
+        {
+            m_pCurrentTrkSeg = m_pReader->GetFirstTrkSegNode(m_pCurrentTrk);
+            while (m_pCurrentTrkSeg != NULL)
+            {
+                m_pCurrentTrkPt =
+                                 m_pReader->GetFirstTrkPtNode(m_pCurrentTrkSeg);
+                if (m_pCurrentTrkPt != NULL)
+                    return;
+
+                m_pCurrentTrkSeg =
+                                 m_pReader->GetNextTrkSegNode(m_pCurrentTrkSeg);
+            }
+
+            m_pCurrentTrk = m_pReader->GetNextTrkNode(m_pCurrentTrk);
+        }
+    }
+}
+
+CTrkPointIterator::~CTrkPointIterator()
+{
+    m_pReader = NULL;
+    m_pCurrentTrk = NULL;
+    m_pCurrentTrkSeg = NULL;
+    m_pCurrentTrkPt = NULL;
+}
+
+bool CTrkPointIterator::GetCurrent(GPXFileReader::SGPXTrkPointData& rData)
+{
+    if (m_pReader != NULL && m_pCurrentTrkPt != NULL)
+    {
+        return m_pReader->ParseTrkPt(m_pCurrentTrkPt, rData);
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void CTrkPointIterator::Next(void)
+{
+    if (m_pReader != NULL)
+    {
+        m_pCurrentTrkPt = m_pReader->GetNextTrkPtNode(m_pCurrentTrkPt);
+
+        while (m_pCurrentTrkPt == NULL && m_pCurrentTrk != NULL)
+        {
+            m_pCurrentTrkSeg = m_pReader->GetNextTrkSegNode(m_pCurrentTrkSeg);
+
+            if (m_pCurrentTrkSeg != NULL)
+            {
+                m_pCurrentTrkPt =
+                                 m_pReader->GetFirstTrkPtNode(m_pCurrentTrkSeg);
+            }
+            else
+            {
+                m_pCurrentTrk = m_pReader->GetNextTrkNode(m_pCurrentTrk);
+                m_pCurrentTrkSeg = m_pReader->GetFirstTrkSegNode(m_pCurrentTrk);
+                m_pCurrentTrkPt =
+                                 m_pReader->GetFirstTrkPtNode(m_pCurrentTrkSeg);
+            }
+        }
+    }
 }
 
 

@@ -68,11 +68,68 @@ class MapMatchingBase
 {
 public:
 
+    struct MapMatchData
+    {
+        MapMatchData()
+        // Do not initialize data !!
+        // because this struct is used in DbArray -> Get-method
+        //:m_dLat(0.0), m_dLon(0.0), m_Time(0), m_nFix(-1), m_nSat(-1),
+        //m_dHdop(-1.0), m_dVdop(-1.0), m_dPdop(-1.0)
+        {
+
+        }
+
+        MapMatchData(MapMatchData& rData)
+        :m_dLat(rData.m_dLat), m_dLon(rData.m_dLon), m_Time(rData.m_Time),
+         m_nFix(rData.m_nFix), m_nSat(rData.m_nSat), m_dHdop(rData.m_dHdop),
+         m_dVdop(rData.m_dVdop), m_dPdop(rData.m_dPdop)
+        {
+        }
+
+        MapMatchData(double dLat, double dLon, int64_t Time,
+                     int nFix = -1, int nSat = -1, double dHdop = -1.0,
+                     double dVdop = -1.0, double dPdop = -1.0)
+        :m_dLat(dLat), m_dLon(dLon), m_Time(Time),
+         m_nFix(nFix), m_nSat(nSat), m_dHdop(dHdop),
+         m_dVdop(dVdop), m_dPdop(dPdop)
+        {
+        }
+
+        ~MapMatchData()
+        {
+        }
+
+        inline Point GetPoint(void) const
+        {
+            return Point(true, m_dLon, m_dLat);
+        }
+
+        void Print(ostream& os)
+        {
+            os << m_dLat << ";" << m_dLon << "; " << m_Time << ";";
+            os << m_nFix << ";" << m_nSat << ";" << m_dHdop << ";";
+            os << m_dVdop << ";" <<  m_dPdop;
+        }
+
+        double m_dLat;
+        double m_dLon;
+        int64_t m_Time;
+        int m_nFix;
+        int m_nSat;
+        double m_dHdop;
+        double m_dVdop;
+        double m_dPdop;
+    };
+
 /*
 3.1 Constructors and Destructor
 
 */
-    MapMatchingBase(Network* pNetwork, AttributePtr<MPoint> pMPoint);
+    MapMatchingBase(Network* pNetwork,
+                    const MPoint* pMPoint);
+
+    MapMatchingBase(Network* pNetwork,
+                    DbArrayPtr<DbArray<MapMatchData> > pDbaMMData);
 
     ~MapMatchingBase();
 
@@ -120,17 +177,11 @@ protected:
 
     Network* m_pNetwork;
     double m_dNetworkScale;
-    AttributePtr<MPoint> m_pMPoint;
-    AttributePtr<MInt> m_pMSat;
-    AttributePtr<MInt> m_pMFix;
-    AttributePtr<MReal> m_pMHDOP;
-    AttributePtr<MReal> m_pMPDOP;
 
-    void SetMPoint(AttributePtr<MPoint> pMPoint) {m_pMPoint = pMPoint;}
-    void SetSat(AttributePtr<MInt> pSat) {m_pMSat = pSat;}
-    void SetFix(AttributePtr<MInt> pFix) {m_pMFix = pFix;}
-    void SetHDOP(AttributePtr<MReal> pHDOP) {m_pMHDOP = pHDOP;}
-    void SetPDOP(AttributePtr<MReal> pPDOP) {m_pMPDOP = pPDOP;}
+    DbArrayPtr<DbArray<MapMatchData> > m_pDbaMMData;
+    void SetMMData(DbArrayPtr<DbArray<MapMatchData> > pDbaMMData)
+                                                    {m_pDbaMMData = pDbaMMData;}
+
 
 private:
     MGPoint* m_pResMGPoint;

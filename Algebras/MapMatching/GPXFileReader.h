@@ -47,6 +47,8 @@ class MInt;
 class MReal;
 #include <Point.h>
 #include <DateTime.h>
+#include <StandardTypes.h>
+#include <TemporalAlgebra.h>
 
 typedef struct _xmlDoc xmlDoc;
 typedef xmlDoc *xmlDocPtr;
@@ -77,11 +79,41 @@ public:
 3.2 Reads the file
 
 */
-    bool DoRead(std::string strFileName,
-                double dScale = 1.0 /* Scale for Lat/Lon */);
+    bool Open(std::string strFileName);
 
 /*
-3.3 Returns data
+3.3 SGPXTrkPointData
+
+*/
+    struct SGPXTrkPointData
+    {
+        SGPXTrkPointData();
+        SGPXTrkPointData(const SGPXTrkPointData& rData);
+        SGPXTrkPointData& operator=(const SGPXTrkPointData& rData);
+
+        datetime::DateTime m_Time;
+        Point m_Point;
+        CcInt m_nFix;
+        CcInt m_nSat;
+        CcReal m_dHDOP;
+        CcReal m_dVDOP;
+        CcReal m_dPDOP;
+        CcReal m_dCourse;
+        CcReal m_dSpeed;
+        CcReal m_dElevation;
+    };
+
+
+/*
+3.4 Iterator
+
+*/
+    class CTrkPointIterator* GetTrkPointIterator(void);
+
+    void FreeTrkPointIterator(class CTrkPointIterator*& rpIterator);
+
+/*
+3.5 Returns data
 
 */
     AttributePtr<MPoint> GetMPoint(void) const {return m_pMPoint;}
@@ -93,39 +125,65 @@ public:
 
 private:
 
-    struct SGPXData
-    {
-        SGPXData();
-        SGPXData(const SGPXData& rData);
-        SGPXData& operator=(const SGPXData& rData);
+    void ParseTrk(xmlNodePtr pNode);
+    void ParseTrkSeg(xmlNodePtr pNode);
+    bool ParseTrkPt(xmlNodePtr pNode, SGPXTrkPointData& rData);
+    void NewData(const SGPXTrkPointData& rData);
 
-        datetime::DateTime m_Time;
-        Point m_Point;
-        int m_nFix;
-        int m_nSat;
-        double m_dHDOP;
-        double m_dVDOP;
-        double m_dPDOP;
-    };
+    xmlNodePtr GetFirstTrkNode(void);
+    xmlNodePtr GetNextTrkNode(const xmlNodePtr pTrkNode);
 
-    void ParseTRK(xmlDocPtr pDoc, xmlNodePtr pNode);
-    void ParseTRKSEG(xmlDocPtr pDoc, xmlNodePtr pNode);
-    void ParseTRKPT(xmlDocPtr pDoc, xmlNodePtr pNode);
-    void NewData(const SGPXData& rData);
+    xmlNodePtr GetFirstTrkSegNode(const xmlNodePtr pTrkNode);
+    xmlNodePtr GetNextTrkSegNode(const xmlNodePtr pTrkSegNode);
+
+    xmlNodePtr GetFirstTrkPtNode(const xmlNodePtr pTrkSegNode);
+    xmlNodePtr GetNextTrkPtNode(const xmlNodePtr pTrkPtNode);
 
     void Free(void);
-    void Init(double dScale);
+    void Init(void);
     void Finalize(void);
 
+    xmlDocPtr m_pXMLDoc;
 
-    double m_dScale; // Scale for Lat/Lon
+    double m_dScale;
     AttributePtr<MPoint> m_pMPoint;
     AttributePtr<MInt> m_pMFix;
     AttributePtr<MInt> m_pMSat;
     AttributePtr<MReal> m_pMHDOP;
     AttributePtr<MReal> m_pMVDOP;
     AttributePtr<MReal> m_pMPDOP;
+
+    friend class CTrkPointIterator;
 };
+
+
+
+/*
+4 class CTrkPointIterator
+Iterator for Trk-points
+
+*/
+
+class CTrkPointIterator
+{
+public:
+    bool GetCurrent(GPXFileReader::SGPXTrkPointData& rData);
+    void Next(void);
+
+private:
+    CTrkPointIterator(GPXFileReader* pReader);
+
+    ~CTrkPointIterator();
+
+    GPXFileReader* m_pReader;
+    xmlNodePtr m_pCurrentTrk;
+    xmlNodePtr m_pCurrentTrkSeg;
+    xmlNodePtr m_pCurrentTrkPt;
+
+    friend class GPXFileReader;
+};
+
+
 
 } // end of namespace mapmatch
 

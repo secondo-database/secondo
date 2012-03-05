@@ -42,6 +42,7 @@ This header file essentially contains the definition of the class ~MapMatchingMH
 
 #include "MapMatchingBase.h"
 #include "NetworkSection.h"
+#include "../Tools/Flob/DbArray.h"
 #include <vector>
 
 class Region;
@@ -51,6 +52,7 @@ class GPoint;
 class MPoint;
 class Geoid;
 class UPoint;
+class Network;
 
 namespace datetime
 {
@@ -74,7 +76,11 @@ public:
 
 */
     MapMatchingMHT(Network* pNetwork, MPoint* pMPoint);
-    MapMatchingMHT(Network* pNetwork, std::string strFileName);
+    MapMatchingMHT(Network* pNetwork,
+                   std::string strFileName);
+    MapMatchingMHT(Network* pNetwork,
+                   DbArrayPtr<DbArray<MapMatchData> > pDbaMMData);
+
     ~MapMatchingMHT();
 
 /*
@@ -90,20 +96,22 @@ private:
 3.3 Private methods
 
 */
-    void TripSegmentation(std::vector<MPoint*>& rvecTripParts);
+    void TripSegmentation(std::vector<DbArrayPtr<DbArray<MapMatchData> > >&
+                                                                 rvecTripParts);
 
-    int GetInitialRouteCandidates(MPoint* pMPoint, int nIdxFirstComponent,
+    int GetInitialRouteCandidates(const DbArray<MapMatchData>* pDbaMMData,
+                    int nIdxFirstComponent,
                     std::vector<class MHTRouteCandidate*>& rvecRouteCandidates);
 
-    int DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
+    int DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
+                    int nIndexFirstComponent,
                     std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
     void DevelopRoutes(const Point& rPoint,
                        const datetime::DateTime& rTime,
-                       bool bClosed,
                        std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
-    bool CheckQualityOfGPSFix(int nIdx, const UPoint& rUPoint);
+    bool CheckQualityOfGPSFix(const MapMatchData& rMMData);
 
     enum ENextCandidates
     {
@@ -113,7 +121,7 @@ private:
         CANDIDATES_UP_DOWN
     };
     bool AssignPoint(MHTRouteCandidate* pCandidate, const Point& rPoint,
-                     const datetime::DateTime& rTime, bool bClosed,
+                     const datetime::DateTime& rTime,
                      /*OUT*/ ENextCandidates& eNextCandidates);
 
     void ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&

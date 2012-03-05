@@ -279,22 +279,26 @@ bool MapMatchingSimple::DoMatch(MGPoint* pResMGPoint)
     //m_pMPoint->Simplify();
 
     // Processing Units
-    for (int i = 0; i < m_pMPoint->GetNoComponents(); ++i)
+    for (int i = 0; i < m_pDbaMMData->Size(); i += 2)
     {
-        UPoint ActUPoint(false);
-        m_pMPoint->Get(i, ActUPoint);
+        MapMatchData ActData1;
+        m_pDbaMMData->Get(i, ActData1);
 
-        if (!ActUPoint.IsDefined())
-            continue;
+        MapMatchData ActData2;
+        m_pDbaMMData->Get(i, ActData2);
 
-        GPoint Point1 = ProcessPoint(ActUPoint.p0);
-        GPoint Point2 = ProcessPoint(ActUPoint.p1);
+
+        GPoint Point1 = ProcessPoint(ActData1.GetPoint());
+        GPoint Point2 = ProcessPoint(ActData2.GetPoint());
 
         MYTRACE("+++++++++++++ 2 Punkte +++++++++++++++");
         Point1.Print(MyStream);
         Point2.Print(MyStream);
 
-        ConnectPoints(Point1, Point2, ActUPoint.timeInterval);
+        const Interval<Instant> timeInterval(ActData1.m_Time, ActData2.m_Time,
+                                             true, true);
+
+        ConnectPoints(Point1, Point2, timeInterval);
     }
 
     m_pTracePoints->EndBulkLoad(false, false, false);

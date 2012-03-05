@@ -66,24 +66,61 @@ namespace mapmatch {
 */
 
 MapMatchingMHT::MapMatchingMHT(Network* pNetwork, MPoint* pMPoint)
-:MapMatchingBase(pNetwork, AttributePtr<MPoint>(pMPoint, true))
+:MapMatchingBase(pNetwork, pMPoint)
 {
 }
 
 MapMatchingMHT::MapMatchingMHT(Network* pNetwork, std::string strFileName)
-:MapMatchingBase(pNetwork, NULL)
+:MapMatchingBase(pNetwork, (DbArray<MapMatchData>*) NULL)
 {
     try
     {
         GPXFileReader Reader;
-        if (Reader.DoRead(strFileName, m_dNetworkScale))
+        if (Reader.Open(strFileName))
         {
-            SetMPoint(Reader.GetMPoint());
-            SetSat(Reader.GetSat());
-            SetFix(Reader.GetFix());
-            SetHDOP(Reader.GetHDOP());
-            //SetVDOP(Reader.GetVDOP());
-            SetPDOP(Reader.GetPDOP());
+            CTrkPointIterator* pIt = Reader.GetTrkPointIterator();
+            if (pIt != NULL)
+            {
+                DbArrayPtr<DbArray<MapMatchData> >
+                                       pDbaMMData(new DbArray<MapMatchData>(0));
+
+                GPXFileReader::SGPXTrkPointData TrkPtData;
+                while(pIt->GetCurrent(TrkPtData))
+                {
+                    if (TrkPtData.m_Point.IsDefined() &&
+                        TrkPtData.m_Time.IsDefined())
+                    {
+                        MapMatchData MMData(
+                                TrkPtData.m_Point.GetY() * m_dNetworkScale,
+                                TrkPtData.m_Point.GetX() * m_dNetworkScale,
+                                TrkPtData.m_Time.millisecondsToNull());
+
+                        if (TrkPtData.m_nFix.IsDefined())
+                            MMData.m_nFix = TrkPtData.m_nFix.GetValue();
+
+                        if (TrkPtData.m_nSat.IsDefined())
+                            MMData.m_nSat = TrkPtData.m_nSat.GetValue();
+
+                        if (TrkPtData.m_dHDOP.IsDefined())
+                            MMData.m_dHdop = TrkPtData.m_dHDOP.GetValue();
+
+                        if (TrkPtData.m_dVDOP.IsDefined())
+                            MMData.m_dVdop = TrkPtData.m_dVDOP.GetValue();
+
+                        if (TrkPtData.m_dPDOP.IsDefined())
+                            MMData.m_dPdop = TrkPtData.m_dPDOP.GetValue();
+
+
+                        pDbaMMData->Append(MMData);
+                    }
+
+                    pIt->Next();
+                }
+
+                Reader.FreeTrkPointIterator(pIt);
+
+                SetMMData(pDbaMMData);
+            }
         }
         else
         {
@@ -92,7 +129,15 @@ MapMatchingMHT::MapMatchingMHT(Network* pNetwork, std::string strFileName)
     }
     catch(...)
     {
+        cout << "Error reading file " << strFileName;
     }
+}
+
+MapMatchingMHT::MapMatchingMHT(Network* pNetwork,
+                               DbArrayPtr<DbArray<MapMatchData> > pDbaMMData)
+:MapMatchingBase(pNetwork, pDbaMMData)
+{
+
 }
 
 // Destructor
@@ -101,7 +146,8 @@ MapMatchingMHT::~MapMatchingMHT()
 }
 
 void MapMatchingMHT::GetSectionsOfRoute(const NetworkRoute& rNetworkRoute,
-        const Region& rRegion, std::vector<NetworkSection>& rVecSectRes)
+                                       const Region& rRegion,
+                                       std::vector<NetworkSection>& rVecSectRes)
 {
     if (!rNetworkRoute.IsDefined() || !rRegion.IsDefined())
         return;
@@ -208,34 +254,35 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
     }
 
     // Step 1 - Subdividing trip
-    vector<MPoint*> vecTripSegments;
+    vector<DbArrayPtr<DbArray<MapMatchData> > > vecTripSegments;
     TripSegmentation(vecTripSegments);
 
     // Steps 2-4
     std::vector<MHTRouteCandidate*> vecRouteSegments;
 
-    for (vector<MPoint*>::iterator it = vecTripSegments.begin();
+    for (vector<DbArrayPtr<DbArray<MapMatchData> > >::iterator
+                                                   it = vecTripSegments.begin();
          it != vecTripSegments.end();
          ++it)
     {
-        AttributePtr<MPoint> pMPoint(*it);
-        if (pMPoint == NULL)
+        DbArrayPtr<DbArray<MapMatchData> > pDbaMMData(*it);
+        if (pDbaMMData == NULL)
             continue;
         *it = NULL;
 
         int nIdxFirstComponent = 0;
 
         while(nIdxFirstComponent >= 0 &&
-              nIdxFirstComponent < pMPoint->GetNoComponents())
+              nIdxFirstComponent < pDbaMMData->Size())
         {
             // Step 2 - Determination of initial route/segment candidates
             std::vector<MHTRouteCandidate*> vecRouteCandidates;
-            nIdxFirstComponent = GetInitialRouteCandidates(pMPoint.get(),
+            nIdxFirstComponent = GetInitialRouteCandidates(pDbaMMData.get(),
                                                            nIdxFirstComponent,
                                                            vecRouteCandidates);
 
             // Step 3 - Route developement
-            nIdxFirstComponent = DevelopRoutes(pMPoint.get(),
+            nIdxFirstComponent = DevelopRoutes(pDbaMMData.get(),
                                                nIdxFirstComponent,
                                                vecRouteCandidates);
 
@@ -272,37 +319,17 @@ bool MapMatchingMHT::DoMatch(MGPoint* pResMGPoint)
     return true;
 }
 
-bool MapMatchingMHT::CheckQualityOfGPSFix(int nIdx,
-                                          const UPoint& rUPoint)
+bool MapMatchingMHT::CheckQualityOfGPSFix(const MapMatchData& rMMData)
 {
     // Number of satellites
-    if (m_pMSat != NULL)
-    {
-        int nSat = -1; // undefined
 
-        UInt ActUInt(false);
-        m_pMSat->Get(nIdx, ActUInt);
+    int nSat = rMMData.m_nSat;
 
-        if (ActUInt.IsDefined() &&
-            ActUInt.timeInterval.Contains(rUPoint.timeInterval, true))
-        {
-            nSat = ActUInt.constValue.GetValue();
-        }
-        else
-        {
-            Intime<CcInt> SatInTime;
-            m_pMSat->AtInstant(rUPoint.timeInterval.start, SatInTime);
-            if (SatInTime.IsDefined())
-            {
-                nSat = SatInTime.value.GetValue();
-            }
-        }
-
-        if (!(nSat < 0) && nSat < 2) // minimum 2 satellites
-        {                            // nSat < 0 => undefined
-            return false;
-        }
+    if (!(nSat < 0) && nSat < 2) // minimum 2 satellites
+    {                            // nSat < 0 => undefined
+        return false;
     }
+
 
     // Fix -> possible values:
     // -1 - undefined
@@ -311,90 +338,30 @@ bool MapMatchingMHT::CheckQualityOfGPSFix(int nIdx,
     // 3  - 3d
     // 4  - DGPS
     // 5  - pps (military)
-    if (m_pMFix != NULL)
-    {
-        int nFix = -1; // undefined
 
-        UInt ActUInt(false);
-        m_pMFix->Get(nIdx, ActUInt);
+    int nFix = rMMData.m_nFix;
 
-        if (ActUInt.IsDefined() &&
-            ActUInt.timeInterval.Contains(rUPoint.timeInterval, true))
-        {
-            nFix = ActUInt.constValue.GetValue();
-        }
-        else
-        {
-            Intime<CcInt> FixInTime;
-            m_pMFix->AtInstant(rUPoint.timeInterval.start, FixInTime);
-            if (FixInTime.IsDefined())
-            {
-                nFix = FixInTime.value.GetValue();
-            }
-        }
-
-        if (!(nFix < 0) && nFix < 2) // minimum 2d
-        {                            // nFix < 0 => undefined
-            return false;
-        }
+    if (!(nFix < 0) && nFix < 2) // minimum 2d
+    {                            // nFix < 0 => undefined
+        return false;
     }
 
     // HDOP (Horizontal Dilution Of Precision)
-    if (m_pMHDOP != NULL)
+
+    double dHDOP = rMMData.m_dHdop;
+
+    if (dHDOP > 7.)
     {
-        double dHDOP = -1.0; // undefined
-
-        UReal ActUReal(false);
-        m_pMHDOP->Get(nIdx, ActUReal);
-
-        if (ActUReal.IsDefined() &&
-            ActUReal.timeInterval.Contains(rUPoint.timeInterval, true))
-        {
-            dHDOP = ActUReal.c;
-        }
-        else
-        {
-            Intime<CcReal> HDOPInTime;
-            m_pMHDOP->AtInstant(rUPoint.timeInterval.start, HDOPInTime);
-            if (HDOPInTime.IsDefined())
-            {
-                dHDOP = HDOPInTime.value.GetValue();
-            }
-        }
-
-        if (dHDOP > 7.)
-        {
-            return false;
-        }
+        return false;
     }
 
     // PDOP (Positional Dilution Of Precision)
-    if (m_pMPDOP != NULL)
+
+    double dPDOP = rMMData.m_dPdop;
+
+    if (dPDOP > 7.)
     {
-        double dPDOP = -1.0; // undefined
-
-        UReal ActUReal(false);
-        m_pMPDOP->Get(nIdx, ActUReal);
-
-        if (ActUReal.IsDefined() &&
-            ActUReal.timeInterval.Contains(rUPoint.timeInterval, true))
-        {
-            dPDOP = ActUReal.c;
-        }
-        else
-        {
-            Intime<CcReal> HDOPInTime;
-            m_pMPDOP->AtInstant(rUPoint.timeInterval.start, HDOPInTime);
-            if (HDOPInTime.IsDefined())
-            {
-                dPDOP = HDOPInTime.value.GetValue();
-            }
-        }
-
-        if (dPDOP > 7.)
-        {
-            return false;
-        }
+        return false;
     }
 
     return true; // Quality Ok or no data found
@@ -403,172 +370,117 @@ bool MapMatchingMHT::CheckQualityOfGPSFix(int nIdx,
 
 /*
 3.3 MapMatchingMHT::TripSegmentation
-    Detect spatial and temporal gaps in the MPoint
+    Detect spatial and temporal gaps in input-data
 
 */
 
-void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
+void MapMatchingMHT::TripSegmentation(
+                std::vector<DbArrayPtr<DbArray<MapMatchData> > >& rvecTripParts)
 {
-    if (m_pMPoint == NULL || !m_pMPoint->IsDefined() ||
-        m_pNetwork == NULL || !m_pNetwork->IsDefined())
+    if (m_pNetwork == NULL || !m_pNetwork->IsDefined() || m_pDbaMMData == NULL)
         return;
 
-// TRACE_BAD_DATA
+//#define TRACE_BAD_DATA
 #ifdef TRACE_BAD_DATA
     ofstream streamBadData("/home/secondo/Traces/BadData.txt");
 #endif
 
-    // Detect spatial and temporal gaps in the MPoint (m_pMPoint)
-    // Divide the MPoint if the time gap is longer than 120 seconds or
+    // Detect spatial and temporal gaps in input-data
+    // Divide the data if the time gap is longer than 120 seconds or
     // the distance is larger than 500 meters
 
     const double dMaxDistance = 500.0; // 500 meter
-    const DateTime MaxTimeDiff(durationtype, 120000); // 2 minutes
+    //const DateTime MaxTimeDiff(durationtype, 120000); // 2 minutes
+    int64_t MaxTimeDiff = 120000; // 2 minutes
     const Geoid  GeodeticSystem(Geoid::WGS1984);
 
-    MPoint*  pActMPoint = NULL;
-    UPoint   ActUPoint(false);
-    DateTime prevEndTime(instanttype);
+    DbArrayPtr<DbArray<MapMatchData> > pActArray(NULL);
+    MapMatchData  ActData(0.0, 0.0, 0);
+    //DateTime prevEndTime(instanttype);
+    int64_t  prevEndTime = 0;
     Point    prevEndPoint(false);
     bool     bProcessNext = true;
 
-    const int nMPointComponents = m_pMPoint->GetNoComponents();
+    const int nMMComponents = m_pDbaMMData->Size();
 
     const Rectangle<2> rectBoundingBoxNetwork = m_pNetwork->BoundingBox();
 
-    for (int i = 0; i < nMPointComponents; bProcessNext ? i++ : i)
+    for (int i = 0; i < nMMComponents; bProcessNext ? i++ : i)
     {
         if (bProcessNext)
-            m_pMPoint->Get(i, ActUPoint);
+        {
+            if (!m_pDbaMMData->Get(i, ActData))
+                continue; // process next
+        }
 
         bProcessNext = true;
 
-        if (!ActUPoint.IsDefined())
-        {
-          continue; // process next unit
-        }
-
-        if (!ActUPoint.p0.Inside(rectBoundingBoxNetwork) &&
-            !ActUPoint.p1.Inside(rectBoundingBoxNetwork))
+        if (!ActData.GetPoint().Inside(rectBoundingBoxNetwork))
         {
             // Outside bounding box of network
             continue; // process next unit
         }
 
-        if (!CheckQualityOfGPSFix(i, ActUPoint))
+        if (!CheckQualityOfGPSFix(ActData))
         {
             // bad quality of GPS fix
 #ifdef TRACE_BAD_DATA
-            ActUPoint.Print(streamBadData);
+            ActData.Print(streamBadData);
             streamBadData << endl;
 #endif
             continue; // process next unit
         }
 
-        if (pActMPoint == NULL)
+        if (pActArray == NULL)
         {
-            // create new MPoint
-            pActMPoint = new MPoint((m_pMPoint->GetNoComponents() - i) / 4);
-            pActMPoint->StartBulkLoad();
+            // create new Data
+            pActArray = DbArrayPtr<DbArray<MapMatchData> >
+                                                (new DbArray<MapMatchData>(10));
 
-            // Check current UPoint
-            CcReal Distance(0.0);
-            ActUPoint.Length(GeodeticSystem, Distance);
-            if (ActUPoint.timeInterval.end - ActUPoint.timeInterval.start
-                    > MaxTimeDiff || Distance.GetRealval() > dMaxDistance )
-            {
-                // gap within UPoint
-                // only use p1
-                ActUPoint.p0 = ActUPoint.p1;
-                ActUPoint.timeInterval.start = ActUPoint.timeInterval.end;
-                ActUPoint.timeInterval.lc = ActUPoint.timeInterval.rc = true;
-            }
+            // Add data
+            pActArray->Append(ActData);
 
-            // Add unit
-            pActMPoint->Add(ActUPoint);
-            prevEndTime = ActUPoint.timeInterval.end;
-            prevEndPoint = (ActUPoint.p1 * (1 / m_dNetworkScale));
+            prevEndTime = ActData.m_Time;
+            prevEndPoint = (ActData.GetPoint() * (1 / m_dNetworkScale));
         }
         else
         {
             bool bValid = true;
-            if (ActUPoint.timeInterval.start - prevEndTime > MaxTimeDiff ||
-                prevEndPoint.DistanceOrthodrome(ActUPoint.p0 *
+            if (ActData.m_Time - prevEndTime > MaxTimeDiff ||
+                prevEndPoint.DistanceOrthodrome(ActData.GetPoint()  *
                                                         (1.0 / m_dNetworkScale),
                                                 GeodeticSystem,
                                                 bValid) > dMaxDistance)
             {
-                // gap detected -> finalize current MPoint
-                pActMPoint->EndBulkLoad(false, false);
-                if (pActMPoint->GetNoComponents() >= 10)
+                // gap detected -> finalize current array
+                if (pActArray->Size() >= 10)
                 {
-                    rvecTripParts.push_back(pActMPoint);
-                    pActMPoint = NULL;
+                    rvecTripParts.push_back(pActArray);
+                    pActArray = NULL;
                 }
                 else
                 {
                     // less than 10 components -> drop
-                    pActMPoint->DeleteIfAllowed();
-                    pActMPoint = NULL;
+                    pActArray = NULL;
                 }
 
-                bProcessNext = false; // Process ActUPoint once again
+                bProcessNext = false; // Process ActData once again
             }
             else
             {
-                // no gap between current and previous UPoint
+                // no gap between current and previous Data
 
-                // Check current UPoint
-                CcReal Distance(0.0);
-                ActUPoint.Length(GeodeticSystem, Distance);
-                if (ActUPoint.timeInterval.end - ActUPoint.timeInterval.start
-                        > MaxTimeDiff || Distance.GetRealval() > dMaxDistance)
-                {
-                    // gap within UPoint
-                    // Assign p0 to current MPoint and p1 to new MPoint
-
-                    Interval<Instant> I(ActUPoint.timeInterval);
-                    I.end = I.start;
-                    I.lc = I.rc = true;
-                    pActMPoint->Add(UPoint(I, ActUPoint.p0, ActUPoint.p1));
-
-                    // finalize current MPoint
-                    pActMPoint->EndBulkLoad(false, false);
-                    if (pActMPoint->GetNoComponents() >= 10)
-                    {
-                        rvecTripParts.push_back(pActMPoint);
-                        pActMPoint = NULL;
-                    }
-                    else
-                    {
-                        // less than 10 components -> drop
-                        pActMPoint->DeleteIfAllowed();
-                        pActMPoint = NULL;
-                    }
-
-                    ActUPoint.p0 = ActUPoint.p1;
-                    ActUPoint.timeInterval.start = ActUPoint.timeInterval.end;
-                    ActUPoint.timeInterval.lc =
-                            ActUPoint.timeInterval.rc = true;
-
-                    bProcessNext = false; // Process ActUPoint once again
-                }
-                else
-                {
-                    pActMPoint->Add(ActUPoint);
-                    prevEndTime = ActUPoint.timeInterval.end;
-                    prevEndPoint =
-                            (ActUPoint.p1 * (1.0 / m_dNetworkScale));
-                }
+                pActArray->Append(ActData);
+                prevEndTime = ActData.m_Time;
+                prevEndPoint = (ActData.GetPoint() * (1.0 / m_dNetworkScale));
             }
         }
     }
 
-    // finalize last MPoint
-    if (pActMPoint != NULL)
+    // finalize last Array
+    if (pActArray != NULL)
     {
-        pActMPoint->EndBulkLoad(false, false);
-        rvecTripParts.push_back(pActMPoint);
+        rvecTripParts.push_back(pActArray);
     }
 }
 
@@ -578,33 +490,32 @@ void MapMatchingMHT::TripSegmentation(std::vector<MPoint*>& rvecTripParts)
 
 */
 
-int MapMatchingMHT::GetInitialRouteCandidates(MPoint* pMPoint,
+int MapMatchingMHT::GetInitialRouteCandidates(
+                           const DbArray<MapMatchData>* pDbaMMData,
                            int nIdxFirstComponent,
                            std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
-    if (pMPoint == NULL || !pMPoint->IsDefined())
+    if (pDbaMMData == NULL || pDbaMMData->Size() == 0)
         return -1;
 
     // Get first (defined) point and search for sections
     // in the vicinity of the point.
     // Process next (defined) point, if no section was found.
-    UPoint FirstUPoint(false);
     std::vector<NetworkSection> vecInitialSections;
-    int nIndexFirstUPoint = nIdxFirstComponent;
+    int nIndexFirst = nIdxFirstComponent;
 
     while (vecInitialSections.size() == 0 &&
-           nIndexFirstUPoint < pMPoint->GetNoComponents())
+           nIndexFirst < pDbaMMData->Size())
     {
-        MYVARTRACE(nIndexFirstUPoint);
-
-        pMPoint->Get(nIndexFirstUPoint, FirstUPoint);
-
-        // get first section candidates
-        if (FirstUPoint.IsDefined())
-            GetInitialSectionCandidates(FirstUPoint.p0, vecInitialSections);
+        MapMatchData Data(0.0, 0.0, 0);
+        if (pDbaMMData->Get(nIndexFirst, Data))
+        {
+            // get first section candidates
+            GetInitialSectionCandidates(Data.GetPoint(), vecInitialSections);
+        }
 
         if (vecInitialSections.size() == 0)
-            ++nIndexFirstUPoint;
+            ++nIndexFirst;
     }
 
     bool bCheckGeographicCoord = true;
@@ -646,7 +557,7 @@ int MapMatchingMHT::GetInitialRouteCandidates(MPoint* pMPoint,
         rvecRouteCandidates.push_back(pCandidateDown);
     }
 
-    return rvecRouteCandidates.size() > 0 ? nIndexFirstUPoint : -1;
+    return rvecRouteCandidates.size() > 0 ? nIndexFirst: -1;
 }
 
 /*
@@ -654,38 +565,39 @@ int MapMatchingMHT::GetInitialRouteCandidates(MPoint* pMPoint,
 
 */
 
-int MapMatchingMHT::DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
+int MapMatchingMHT::DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
+                           int nIndexFirstComponent,
                            std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
-    if (pMPoint == NULL || !pMPoint->IsDefined() ||
+    if (pDbaMMData == NULL ||
         m_pNetwork == NULL || !m_pNetwork->IsDefined() ||
         nIndexFirstComponent < 0)
         return -1;
 
-    const int nNoComponents = pMPoint->GetNoComponents();
+    const int nNoComponents = pDbaMMData->Size();
 
     Point ptPrev(false);
-    DateTime timePrev(0.0);
+    //DateTime timePrev(0.0);
+    int64_t timePrev = 0;
 
     for (int i = nIndexFirstComponent; i < nNoComponents; ++i)
     {
         //TracePoints << i << endl;
 
-        UPoint ActUPoint(false);
-        pMPoint->Get(i, ActUPoint);
-        if (!ActUPoint.IsDefined())
+        MapMatchData ActData(0.0, 0.0, 0);
+        if (!pDbaMMData->Get(i, ActData))
             continue;
 
-        if (ptPrev != ActUPoint.p0 &&
-            timePrev.millisecondsToNull() !=
-                              ActUPoint.timeInterval.start.millisecondsToNull())
+        if (ptPrev != ActData.GetPoint() &&
+            timePrev != ActData.m_Time)
         {
             // Develop routes with point p0
-            DevelopRoutes(ActUPoint.p0, ActUPoint.timeInterval.start,
-                          ActUPoint.timeInterval.lc, rvecRouteCandidates);
+            DevelopRoutes(ActData.GetPoint(),
+                          DateTime(ActData.m_Time),
+                          rvecRouteCandidates);
 
-            ptPrev = ActUPoint.p0;
-            timePrev = ActUPoint.timeInterval.start;
+            ptPrev = ActData.GetPoint();
+            timePrev = ActData.m_Time;
 
             TraceRouteCandidates(rvecRouteCandidates,
                                  "##### Nach DevelopRoutes 1 #####");
@@ -694,26 +606,6 @@ int MapMatchingMHT::DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
             ReduceRouteCandidates(rvecRouteCandidates);
             TraceRouteCandidates(rvecRouteCandidates,
                                  "##### Nach Reduce 1 #####");
-        }
-
-        // Develop routes with point p1
-        if (ptPrev != ActUPoint.p1 &&
-            timePrev.millisecondsToNull() !=
-                                ActUPoint.timeInterval.end.millisecondsToNull())
-        {
-            DevelopRoutes(ActUPoint.p1, ActUPoint.timeInterval.end,
-                          ActUPoint.timeInterval.rc, rvecRouteCandidates);
-
-            ptPrev = ActUPoint.p0;
-            timePrev = ActUPoint.timeInterval.end;
-
-            TraceRouteCandidates(rvecRouteCandidates,
-                                 "##### Nach DevelopRoutes 2 #####");
-
-            // Reduce Routes
-            ReduceRouteCandidates(rvecRouteCandidates);
-            TraceRouteCandidates(rvecRouteCandidates,
-                                 "##### Nach Reduce 2 #####");
         }
 
         if (!CheckRouteCandidates(rvecRouteCandidates))
@@ -729,7 +621,6 @@ int MapMatchingMHT::DevelopRoutes(MPoint* pMPoint, int nIndexFirstComponent,
 
 void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                           const DateTime& rTime,
-                          bool bClosed,
                           std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
     std::vector<MHTRouteCandidate*> vecNewRouteCandidates;
@@ -746,7 +637,7 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
         }
 
         ENextCandidates eNextCandidates = CANDIDATES_NONE;
-        if (!AssignPoint(pCandidate, rPoint, rTime, bClosed, eNextCandidates))
+        if (!AssignPoint(pCandidate, rPoint, rTime, eNextCandidates))
         {
             // Point could not be assigned to last section of candidate
             // -> add adjacent sections
@@ -829,7 +720,7 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                 if (vecNewRouteCandidatesLocal.size() > 0)
                 {
                     // !! Rekursion !!
-                    DevelopRoutes(rPoint, rTime, bClosed,
+                    DevelopRoutes(rPoint, rTime,
                                   vecNewRouteCandidatesLocal);
 
                     vecNewRouteCandidates.insert(vecNewRouteCandidates.end(),
@@ -921,7 +812,7 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                 if (vecNewRouteCandidatesLocal.size() > 0)
                 {
                     // !! Rekursion !!
-                    DevelopRoutes(rPoint, rTime, bClosed,
+                    DevelopRoutes(rPoint, rTime,
                                   vecNewRouteCandidatesLocal);
 
                     vecNewRouteCandidates.insert(
@@ -946,7 +837,6 @@ Assign point to route candidate, if possible
 bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                                  const Point& rPoint,
                                  const datetime::DateTime& rTime,
-                                 bool bClosed,
                                  MapMatchingMHT::ENextCandidates& eNext)
 {
     eNext = CANDIDATES_NONE;

@@ -51,20 +51,69 @@ namespace mapmatch {
 
 // Constructor
 MapMatchingBase::MapMatchingBase(Network* pNetwork,
-                                 AttributePtr<MPoint> pMPoint)
+                                 const MPoint* pMPoint)
 :m_pNetwork(pNetwork),  // TODO
  m_dNetworkScale(1000.0/*pNetwork != NULL ? pNetwork->GetScalefactor() : 1.0*/),
- m_pMPoint(pMPoint), m_pMSat(NULL), m_pMFix(NULL),
- m_pMHDOP(NULL), m_pMPDOP(NULL),
+ m_pDbaMMData(new DbArray<MapMatchData>(0)),
  m_pResMGPoint(NULL), m_pRITree(NULL)
 {
+    if (pMPoint != NULL)
+    {
+        Point ptPrev(false);
+        int64_t timePrev(0);
+
+        for (int i = 0; i < pMPoint->GetNoComponents(); ++i)
+        {
+            UPoint ActUPoint(false);
+            pMPoint->Get(i, ActUPoint);
+            if (!ActUPoint.IsDefined())
+                continue;
+
+            if (ActUPoint.p0 != ptPrev ||
+                ActUPoint.timeInterval.start.millisecondsToNull() != timePrev)
+            {
+                MapMatchData MMData(ActUPoint.p0.GetY(),
+                                    ActUPoint.p0.GetX(),
+                                    ActUPoint.timeInterval.
+                                              start.millisecondsToNull());
+
+                m_pDbaMMData->Append(MMData);
+
+                ptPrev = ActUPoint.p0;
+                timePrev = ActUPoint.timeInterval.start.millisecondsToNull();
+            }
+
+            if (ActUPoint.p1 != ptPrev ||
+                ActUPoint.timeInterval.end.millisecondsToNull() != timePrev)
+            {
+                MapMatchData MMData(ActUPoint.p1.GetY(),
+                                    ActUPoint.p1.GetX(),
+                                    ActUPoint.timeInterval.
+                                              end.millisecondsToNull());
+
+                m_pDbaMMData->Append(MMData);
+
+                ptPrev = ActUPoint.p1;
+                timePrev = ActUPoint.timeInterval.end.millisecondsToNull();
+            }
+        }
+    }
+}
+
+MapMatchingBase::MapMatchingBase(Network* pNetwork,
+                                 DbArrayPtr<DbArray<MapMatchData> > pDbaMMData)
+:m_pNetwork(pNetwork),  // TODO
+ m_dNetworkScale(1000.0/*pNetwork != NULL ? pNetwork->GetScalefactor() : 1.0*/),
+ m_pDbaMMData(pDbaMMData),
+ m_pResMGPoint(NULL), m_pRITree(NULL)
+{
+
 }
 
 // Destructor
 MapMatchingBase::~MapMatchingBase()
 {
     m_pNetwork = NULL;
-    m_pMPoint = NULL;
     m_pResMGPoint = NULL;
     if (m_pRITree != NULL)
     {
@@ -84,8 +133,7 @@ bool MapMatchingBase::InitMapMatching(MGPoint* pResMGPoint)
         m_pResMGPoint->Clear();
 
         if (m_pNetwork == NULL || !m_pNetwork->IsDefined() ||
-            m_pMPoint == NULL || !m_pMPoint->IsDefined() ||
-            m_pMPoint->IsEmpty() || m_pMPoint->GetNoComponents() == 0)
+            m_pDbaMMData == NULL || m_pDbaMMData->Size() == 0)
         {
             pResMGPoint->SetDefined(false);
             return false;

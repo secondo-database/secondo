@@ -124,15 +124,15 @@ public:
     AttributePtr(Type* pA, bool bIncReference = false)
     :m_pA(pA)
     {
-        if (bIncReference && m_pA != NULL)
-            m_pA = dynamic_cast<Type*>(m_pA->Copy());
+        if (bIncReference && pA != NULL)
+            m_pA = dynamic_cast<Type*>(pA->Copy());
     }
 
     AttributePtr(const _Myt& rAttributePtr)
-    :m_pA(rAttributePtr.m_pA)
+    :m_pA(NULL)
     {
-        if (m_pA != NULL)
-            m_pA = dynamic_cast<Type*>(m_pA->Copy());
+        if (rAttributePtr.m_pA != NULL)
+            m_pA = dynamic_cast<Type*>(rAttributePtr.m_pA->Copy());
     }
 
     ~AttributePtr()
@@ -171,9 +171,8 @@ public:
                 m_pA = NULL;
             }
 
-            m_pA = pA;
-            if (m_pA != NULL)
-                m_pA = dynamic_cast<Type*>(m_pA->Copy());
+            if (pA != NULL)
+                m_pA = dynamic_cast<Type*>(pA->Copy());
         }
     }
 
@@ -199,6 +198,96 @@ public:
 
 private:
     Type* m_pA;
+};
+
+
+/*
+4 ~DbArrayPtr~
+  Helper class for managing DbArrayPtr pointers (ref count)
+  calls DbArray::Destroy() when ref count == 0
+
+*/
+
+template <typename DbaType>
+class DbArrayPtr
+{
+public:
+    typedef DbArrayPtr<DbaType> _Myt;
+
+    DbArrayPtr()
+    :ptr_(NULL), ref_count_(NULL)
+    {
+    }
+
+    DbArrayPtr(DbaType* p)
+    : ptr_(p), ref_count_(p ? new int(0) : NULL)
+    {
+        inc_ref();
+    }
+
+    DbArrayPtr(const _Myt& rhs)
+    :ptr_(rhs.ptr_), ref_count_(rhs.ref_count_)
+    {
+        inc_ref();
+    }
+
+    ~DbArrayPtr()
+    {
+        if(ref_count_ && 0 == dec_ref())
+        {
+            ptr_->Destroy();
+            delete ptr_; ptr_ = NULL;
+            delete ref_count_; ref_count_ = NULL;
+        }
+    }
+
+    DbaType* get() { return ptr_; }
+    const DbaType* get() const { return ptr_; }
+
+    void swap(_Myt& rhs) // throw()
+    {
+      std::swap(ptr_, rhs.ptr_);
+      std::swap(ref_count_, rhs.ref_count_);
+    }
+
+    DbArrayPtr& operator=(const _Myt& rhs)
+    {
+        _Myt tmp(rhs);
+        this->swap(tmp);
+        return *this;
+    }
+
+    DbaType& operator*() const
+    {
+        return *ptr_;
+    }
+
+    DbaType* operator->() const
+    {
+        return ptr_;
+    }
+
+    operator bool() const
+    {
+        return (ptr_ != NULL);
+    }
+
+private:
+    void inc_ref()
+    {
+       if(ref_count_)
+       {
+           ++(*ref_count_);
+       }
+    }
+
+    int  dec_ref()
+    {
+       return --(*ref_count_);
+    }
+
+    DbaType* ptr_;
+    int * ref_count_;
 };
 
 

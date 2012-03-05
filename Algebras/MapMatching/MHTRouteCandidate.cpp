@@ -192,6 +192,13 @@ bool MHTRouteCandidate::operator==(const MHTRouteCandidate& rCandidate)
 
 void MHTRouteCandidate::AddSection(const DirectedNetworkSection& rSection)
 {
+    /* TODO
+    if (m_nPointsOfLastSection == 0 && m_Sections.size() > 0)
+    {
+        const DirectedNetworkSection& rPrevSection = m_Sections.back();
+        m_dScore += rPrevSection.GetCurveLength(1000.0); // TODO Scale
+    }*/
+
     m_Sections.push_back(rSection);
     m_nPointsOfLastSection = 0;
     ++m_nCountSections;
