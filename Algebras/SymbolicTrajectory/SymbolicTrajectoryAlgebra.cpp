@@ -1510,7 +1510,7 @@ bool Pattern::Matches(MLabel const &ml)
          result = false;
        timeRange = getDayTimeRangeString( pattern.sts[j].value );
        startTimeRange = getStartTimeFromRange( timeRange );
-       endTimeRange = getEndTimeFromRange( timeRange );	            
+       endTimeRange = getEndTimeFromRange( timeRange );
        startTime.Set(startDate.GetYear(), startDate.GetMonth(),
                      startDate.GetGregDay(), getHourFromTime(startTimeRange),
                      getMinuteFromTime(startTimeRange),
@@ -1525,7 +1525,7 @@ bool Pattern::Matches(MLabel const &ml)
                    getSecondFromTime(endTimeRange), 
                    getMillisecondFromTime(endTimeRange));
        if ((startDate < startTime) || (endDate > endTime))
-         result = false;		    
+         result = false;
        break;
      
      case 5:
@@ -1533,7 +1533,7 @@ bool Pattern::Matches(MLabel const &ml)
            (endDate.ToString()).substr(0,7) ) // not the same month/year
          result = false;
        if (startDate.GetMonth() != pattern.sts[j].value)
-         result = false;	            	                       
+         result = false;
        break;    
   } // switch
 
@@ -1547,7 +1547,7 @@ bool Pattern::Matches(MLabel const &ml)
         for (size_t j = 0; j < pattern.conditions.size(); ++j) {
           patEquation = pattern.conditions[j];
           // key : 1="lb/lbs"; 3="start"; 4="end"; 6="card" 
-          // op : 1="="; 2="<"; 4=">" 	  
+          // op : 1="="; 2="<"; 4=">"
 
   switch ( patEquation.key ) {
      case 1:
@@ -1563,7 +1563,7 @@ bool Pattern::Matches(MLabel const &ml)
        if (!(((patEquation.op & 1) && (startDate == startPatternDateTime))
          || ((patEquation.op & 2) && (startDate < startPatternDateTime))
          || ((patEquation.op & 4) && (startDate > startPatternDateTime)))) {
-       result = false;	   
+       result = false;
        }
        break;
     
@@ -1573,13 +1573,13 @@ bool Pattern::Matches(MLabel const &ml)
        if (!(( (patEquation.op & 1) && (endDate == endPatternDateTime) )
          || ( (patEquation.op & 2) && (endDate <  endPatternDateTime) )
          || ( (patEquation.op & 4) && (endDate >  endPatternDateTime) ) ) ) {
-         result = false;	   
+         result = false;
        }
       break;
   } // switch
 
   
-} // for 	
+} // for
       } // if  
       
     } // if not sequence
@@ -2079,7 +2079,7 @@ container->pos = -1;
         MLabel elem(*container->mlabel);
         result.addr = &elem;
 //        result.addr = &container->mlabel;
-	
+
 cout << "req2" << endl;
         return YIELD;
       }
