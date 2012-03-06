@@ -263,7 +263,7 @@ ProgMesHandler::handleMsg(NList msgList)
 
   if(ActValue>0){
     cout << "\r" << bar1 << bar2 
-         << " ( " << setw(3) << setfill(' ') <<  p << "\% )  "
+    //     << " ( " << setw(3) << setfill(' ') <<  p << "\% )  "
          << " remaining: " << showMin << ":" 
 	       << setw(2) << setfill('0') << showSec << " min  "
   	     << flush;
