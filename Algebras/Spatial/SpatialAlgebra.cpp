@@ -19591,7 +19591,7 @@ ListExpr halfSegmentsTM(ListExpr args){
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("PartnerNo"),
                                            nl->SymbolAtom(CcInt::BasicType())));
 
-   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("ldp"),
+   last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Ldp"),
                                           nl->SymbolAtom(CcBool::BasicType())));
 
    last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("Segment"),
