@@ -1174,7 +1174,7 @@ class Pattern
   inline void SetPatParser( PatParser const &patParser ) {
     Pattern::patParser = patParser;
   }  
-  bool Matches(MLabel const &mlabel, size_t startULabel);
+  bool Matches(MLabel const &mlabel, size_t startULabel, bool backtrack);
   inline bool isValid() { return patParser.isValid() ;}
   inline string getErrMsg() { return patParser.getErrMsg() ;}
   
@@ -1390,7 +1390,7 @@ vector<SinglePattern> Pattern::getPattern()
 }
 
 
-bool Pattern::Matches(MLabel const &ml, size_t startULabel) {
+bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
   vector<SinglePattern> s_pattern;  
   SinglePattern pattern;
   size_t curULabel = startULabel;
@@ -1409,23 +1409,27 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel) {
   string startTimeRange, endTimeRange, timeRange;
   DateTime startDate2(instanttype);
   PatEquation patEquation;
-  bool backtrack = false;
+  DateTime* dt = new DateTime(0, 1, durationtype);
   
   s_pattern = getPattern();
   for (size_t i = 0; i < s_pattern.size(); ++i) {
     pattern = s_pattern[i];
     
-    if (curULabel == maxULabel)
+    if (curULabel == maxULabel) {
+      if (dt)
+        delete dt;
       return result ? true : false;
-    
+    }
     ml.Get(curULabel, ul); // TODO: ???
     interval.CopyFrom( ul.timeInterval );
     startDate = interval.start;
-    if (!interval.lc)
-      startDate.Add( &DateTime(0, 1, durationtype) );
+    if (!interval.lc) {
+      startDate.Add(dt);
+    }
     endDate = interval.end;    
-    if (!interval.rc)
-      endDate.Minus( &DateTime(0, 1, durationtype) );
+    if (!interval.rc) {
+      endDate.Minus(dt);
+    }
     if (pattern.wildcard == '*') {
       backtrack = true;
       wildcard = true;
@@ -1457,7 +1461,7 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel) {
                         getMillisecondFromTime(startTimeRange));
           startDate2 = startDate;
           if (!isPositivTimeRange( pattern.trs[j]))
-            startDate2.Add( &DateTime(1, 0, durationtype) );
+            startDate2.Add(dt);
           endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
                       startDate2.GetGregDay(), getHourFromTime(endTimeRange),
                       getMinuteFromTime(endTimeRange),
@@ -1508,7 +1512,7 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel) {
                             getMillisecondFromTime(startTimeRange));
               startDate2 = startDate;
               if (!isPositivTimeRange(timeRange))
-                startDate2.Add(&DateTime(1, 0, durationtype));
+                startDate2.Add(dt);
               endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
                           startDate2.GetGregDay(),
                           getHourFromTime(endTimeRange),
@@ -1572,10 +1576,13 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel) {
     if (wildcard)
       if ((wildcard = !result))
         --i;
-
   } // for
+  if (dt)
+    delete dt;
+  if (!wildcard && result && backtrack)
+    return true;
   if (!wildcard && (curULabel != maxULabel)) // no backtracking without any *
-    return backtrack ? Matches(ml, curULabel) : false;
+    return backtrack ? Matches(ml, curULabel, true) : false;
   return true; 
 }
 
@@ -2224,7 +2231,7 @@ matchesFun_MP (Word* args, Word& result, int message,
 
   CcBool* b = static_cast<CcBool*>( result.addr );
 
-  bool res = (pattern->Matches(*mlabel, 0));
+  bool res = (pattern->Matches(*mlabel, 0, false));
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
@@ -2246,7 +2253,7 @@ matchesFun_MT (Word* args, Word& result, int message,
 
   CcBool* b = static_cast<CcBool*>( result.addr );
 
-  bool res = (pattern.Matches(*mlabel, 0));
+  bool res = (pattern.Matches(*mlabel, 0, false));
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
