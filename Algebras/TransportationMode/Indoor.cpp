@@ -4391,7 +4391,7 @@ void GetSecondoObj(Region* reg, vector<string>& obj_name)
   
   string ObjName_DG_Node = "xu_dg_node";
   string command1 = "triangulation(" + ObjName_Reg + ") transformstream \
-  addcounter[Oid, 1] extend[Rid:.Oid] extend[Pavement:.elem] \
+  addcounter[Oid, 1] extend[Rid:.Oid] extend[Pavement:.Elem] \
   project[Oid,Rid,Pavement] consume"; 
   string querystringParsed = "";
   ListExpr parsedCommand1;
@@ -4660,7 +4660,7 @@ string IndoorGraph::NodeBTreeTypeInfo =
   (Door_loc3d line3d) (Doorheight real))) int)";
 
 string IndoorGraph::EntranceTidTypeInfo =
-"(rel (tuple ((entrance int))))";
+"(rel (tuple ((Entrance int))))";
 
 
 IndoorGraph::~IndoorGraph()

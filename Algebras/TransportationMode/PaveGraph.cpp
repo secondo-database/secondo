@@ -7261,7 +7261,8 @@ void RegVertex::DFTraverse(R_Tree<2,TupleId>* rtree,
       }else{
             R_TreeInternalEntry<2> e =
                 (R_TreeInternalEntry<2>&)(*node)[j];
-            if(reg->Intersects(e.box)){
+//            if(reg->Intersects(e.box)){
+            if(reg->Intersects(Region(e.box))){
               DFTraverse(rtree, e.pointer, oid, reg, adj_node);
             }
       }

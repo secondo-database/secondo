@@ -1707,8 +1707,12 @@ void GenMO::GenMOAt(Relation* rel, GenMO* sub)
       if(oid < min_rid || oid > max_rid) continue;
       if(roads[oid - 1].size() > 0){
 //          cout<<"current size "<<roads[oid - 1].size()<<endl;
-          double loc1 = unit.gloc1.GetLoc().loc1;
-          double loc2 = unit.gloc2.GetLoc().loc1;
+//          double loc1 = unit.gloc1.GetLoc().loc1;
+//          double loc2 = unit.gloc2.GetLoc().loc1;
+
+          CcReal loc1(true, unit.gloc1.GetLoc().loc1);
+          CcReal loc2(true, unit.gloc2.GetLoc().loc1);
+
 //          cout<<"rid "<<oid<<" loc1 "<<loc1<<" loc2 "<<loc2<<endl;
           Interval<CcReal> locs;
           if(loc1 < loc2){
@@ -1762,10 +1766,16 @@ void GenMO::SetRoads(vector< vector<Interval<CcReal> > >& roads,
   for(int i = 1;i <= rel->GetNoTuples();i++){
       Tuple* tuple = rel->GetTuple(i, false);
       int rid = ((CcInt*)tuple->GetAttribute(GenMObject::RS_RID))->GetIntval();
-      double meas1 = 
+/*      double meas1 = 
         ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS1))->GetRealval();
       double meas2 = 
-        ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS2))->GetRealval();
+        ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS2))->GetRealval();*/
+
+      CcReal meas1(true,
+        ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS1))->GetRealval());
+      CcReal meas2(true,
+        ((CcReal*)tuple->GetAttribute(GenMObject::RS_MEAS2))->GetRealval());
+
       Interval<CcReal> pos;
       pos.start = meas1;
       pos.lc = true;
@@ -2442,7 +2452,7 @@ void GetLine(Point& p1, Point& p2, Line* l)
 /////////////////////////////////////////////////////////////////////////
 /////////////// get information from generic moving objects///////////////
 /////////////////////////////////////////////////////////////////////////
-string GenMObject::StreetSpeedInfo = "(rel (tuple ((id_b int) (Vmax real))))";
+string GenMObject::StreetSpeedInfo = "(rel (tuple ((Id_b int) (Vmax real))))";
 string GenMObject::CommPathInfo = "(rel (tuple ((cell_id1 int) \
 (cell_area1 rect) (cell_id2 int) (cell_area2 rect) (path1 gline))))";
 string GenMObject::RTreeCellInfo = "(rtree (tuple ((cell_id1 int) \
@@ -5525,7 +5535,8 @@ void GenMObject::NearestBusStop2(Point loc, Relation* rel,
   for(unsigned int i = 0;i < tid_list.size();i++){
     Tuple* tuple = rel->GetTuple(tid_list[i], false);
     Point* q = (Point*)tuple->GetAttribute(BN::BN_PAVE_LOC2);
-    MyPoint_Tid mp_tid(q, q->Distance(loc), tid_list[i]);
+//    MyPoint_Tid mp_tid(q, q->Distance(loc), tid_list[i]);
+    MyPoint_Tid mp_tid(*q, q->Distance(loc), tid_list[i]);
     mp_tid_list.push_back(mp_tid);
     tuple->DeleteIfAllowed();
   }
@@ -11701,8 +11712,11 @@ void GenMObject::GetTraffic(Relation* alltrips, Periods* peri,
       Tuple* tuple = roadsegs->GetTuple(i, false);
       int rid = ((CcInt*)tuple->GetAttribute(RS_RID))->GetIntval();
       int sid = ((CcInt*)tuple->GetAttribute(RS_SID))->GetIntval();
-      double loc1 = ((CcReal*)tuple->GetAttribute(RS_MEAS1))->GetRealval();
-      double loc2 = ((CcReal*)tuple->GetAttribute(RS_MEAS2))->GetRealval();
+//       double loc1 = ((CcReal*)tuple->GetAttribute(RS_MEAS1))->GetRealval();
+//       double loc2 = ((CcReal*)tuple->GetAttribute(RS_MEAS2))->GetRealval();
+
+      CcReal loc1(true, ((CcReal*)tuple->GetAttribute(RS_MEAS1))->GetRealval());
+      CcReal loc2(true, ((CcReal*)tuple->GetAttribute(RS_MEAS2))->GetRealval());
 
       Interval<CcReal> range_loc;
       range_loc.start = loc1;
@@ -11808,8 +11822,11 @@ void GenMObject::GetTrafficValue(Relation* alltrips, Periods* peri,
                     int oid = unit.GetOid();
                     assert(1 <= oid && oid <= (int)roads_list.size());
 
-                    double loc1 = unit.gloc1.GetLoc().loc1;
-                    double loc2 = unit.gloc2.GetLoc().loc1;
+//                     double loc1 = unit.gloc1.GetLoc().loc1;
+//                     double loc2 = unit.gloc2.GetLoc().loc1;
+
+                    CcReal loc1(true, unit.gloc1.GetLoc().loc1);
+                    CcReal loc2(true, unit.gloc2.GetLoc().loc1);
 
                     Interval<CcReal> locs;
                     if(loc1 < loc2){
@@ -11840,8 +11857,11 @@ void GenMObject::GetTrafficValue(Relation* alltrips, Periods* peri,
              unit.tm == mode_bike){
               int oid = unit.GetOid();
               assert(1 <= oid && oid <= (int)roads_list.size());
-              double loc1 = unit.gloc1.GetLoc().loc1;
-              double loc2 = unit.gloc2.GetLoc().loc1;
+//               double loc1 = unit.gloc1.GetLoc().loc1;
+//               double loc2 = unit.gloc2.GetLoc().loc1;
+
+              CcReal loc1(true, unit.gloc1.GetLoc().loc1);
+              CcReal loc2(true, unit.gloc2.GetLoc().loc1);
 
               Interval<CcReal> locs;
               if(loc1 < loc2){
@@ -13014,7 +13034,7 @@ void Space::AddRelation(Relation* rel, int type)
         strQuery = "(bulkloadrtree(sortby(addid(feed (" + 
                     BN::BusStopsPaveTypeInfo +
                    " (ptr " + nl->ToString(ptrList2) + 
-                   "))))((pave_loc2 asc))) pave_loc2)";
+                   "))))((Pave_loc2 asc))) Pave_loc2)";
 
         QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
         assert ( QueryExecuted );

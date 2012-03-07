@@ -8227,20 +8227,20 @@ ListExpr OpTMSegment2RegionTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                     nl->Cons(
-                      nl->TwoElemList(nl->SymbolAtom("oid"),
+                      nl->TwoElemList(nl->SymbolAtom("Oid"),
                                     nl->SymbolAtom("int")),
                       nl->SixElemList(
-                        nl->TwoElemList(nl->SymbolAtom("road1"),
+                        nl->TwoElemList(nl->SymbolAtom("Road1"),
                                     nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("road2"),
+                        nl->TwoElemList(nl->SymbolAtom("Road2"),
                                       nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("inborder"),
+                        nl->TwoElemList(nl->SymbolAtom("Inborder"),
                                     nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("paveroad1"),
+                        nl->TwoElemList(nl->SymbolAtom("Paveroad1"),
                                     nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("paveroad2"),
+                        nl->TwoElemList(nl->SymbolAtom("Paveroad2"),
                                     nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("outborder"),
+                        nl->TwoElemList(nl->SymbolAtom("Outborder"),
                                     nl->SymbolAtom("region"))
 
                   )
@@ -8320,11 +8320,11 @@ ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("pavement1"),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement1"),
                                       nl->SymbolAtom("region")),
-                        nl->TwoElemList(nl->SymbolAtom("pavement2"),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement2"),
                                       nl->SymbolAtom("region"))
                   )
                 )
@@ -8404,9 +8404,9 @@ ListExpr OpTMJunRegionTypeMap ( ListExpr args )
                   nl->SymbolAtom("tuple"),
 
                       nl->TwoElemList(
-                        nl->TwoElemList(nl->SymbolAtom("rid"),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("crossreg"),
+                        nl->TwoElemList(nl->SymbolAtom("Crossreg"),
                                       nl->SymbolAtom("region"))
 
                   )
@@ -11816,13 +11816,13 @@ ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->ThreeElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop"),
+                        nl->SymbolAtom("Bus_stop"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("pave_loc1"),
+                        nl->SymbolAtom("Pave_loc1"),
                         nl->SymbolAtom("genloc")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("pave_loc2"),
+                        nl->SymbolAtom("Pave_loc2"),
                         nl->SymbolAtom("point"))
                     )));
   return res;
@@ -11884,14 +11884,14 @@ ListExpr OpTMBsNeighbors1TypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->Cons(
                   nl->TwoElemList(
-                        nl->SymbolAtom("bus_uoid"),
+                        nl->SymbolAtom("Bus_uoid"),
                         nl->SymbolAtom("int")), 
                   nl->SixElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Path"),
@@ -11933,13 +11933,13 @@ ListExpr OpTMBsNeighbors2TypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->ThreeElemList(
                 nl->TwoElemList(
-                        nl->SymbolAtom("bus_uoid"),
+                        nl->SymbolAtom("Bus_uoid"),
                         nl->SymbolAtom("int")), 
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("busstop"))
                     )));
   return res;
@@ -11986,20 +11986,20 @@ ListExpr OpTMBsNeighbors3TypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->Cons(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_uoid"),
+                        nl->SymbolAtom("Bus_uoid"),
                         nl->SymbolAtom("int")),
                     nl->SixElemList(
                       nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("busstop")),
                       nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("busstop")),
                       nl->TwoElemList(
-                        nl->SymbolAtom("whole_time"),
+                        nl->SymbolAtom("Whole_time"),
                         nl->SymbolAtom("periods")),
                       nl->TwoElemList(
-                        nl->SymbolAtom("schedule_interval"),
+                        nl->SymbolAtom("Schedule_interval"),
                         nl->SymbolAtom("real")),
                       nl->TwoElemList(
                         nl->SymbolAtom("Path"),
@@ -13295,13 +13295,13 @@ ListExpr OpTMRefMO2GenMOTypeMap ( ListExpr args )
                 nl->SymbolAtom("tuple"),
                 nl->ThreeElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bustrip1"),
+                        nl->SymbolAtom("Bustrip1"),
                         nl->SymbolAtom("genmo")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bustrip2"),
+                        nl->SymbolAtom("Bustrip2"),
                         nl->SymbolAtom("mpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("br_id"),
+                        nl->SymbolAtom("Br_id"),
                         nl->SymbolAtom("int"))
                     )));
     return  res;
@@ -13584,13 +13584,13 @@ ListExpr OpTMCreateMetroStopTypeMap ( ListExpr args )
                  nl->SymbolAtom("tuple"),
                  nl->ThreeElemList(
                      nl->TwoElemList(
-                         nl->SymbolAtom("ms_stop"),
+                         nl->SymbolAtom("Ms_stop"),
                          nl->SymbolAtom("busstop")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("stop_geodata"),
+                         nl->SymbolAtom("Stop_geodata"),
                          nl->SymbolAtom("point")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("mr_id"),
+                         nl->SymbolAtom("Mr_id"),
                          nl->SymbolAtom("int"))
                      )));
 
@@ -13630,19 +13630,19 @@ ListExpr OpTMCreateMetroMOTypeMap ( ListExpr args )
                  nl->SymbolAtom("tuple"),
                  nl->FiveElemList(
                      nl->TwoElemList(
-                         nl->SymbolAtom("mtrip1"),
+                         nl->SymbolAtom("Mtrip1"),
                          nl->SymbolAtom("genmo")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("mtrip2"),
+                         nl->SymbolAtom("Mtrip2"),
                          nl->SymbolAtom("mpoint")),
                      nl->TwoElemList(
-                         nl->SymbolAtom("mr_id"),
+                         nl->SymbolAtom("Mr_id"),
                          nl->SymbolAtom("int")),
                      nl->TwoElemList(
                          nl->SymbolAtom("Up"),
                          nl->SymbolAtom("bool")),
                     nl->TwoElemList(
-                         nl->SymbolAtom("mr_oid"),
+                         nl->SymbolAtom("Mr_oid"),
                          nl->SymbolAtom("int"))
                      )));
 

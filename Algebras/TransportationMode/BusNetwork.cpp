@@ -6421,23 +6421,23 @@ string BusNetwork::BusStopsTypeInfo =
 string BusNetwork::BusRoutesTypeInfo =
 "(rel (tuple ((Br_id int)(Bus_route busroute)(Oid int))))";
 string BusNetwork::BusStopsInternalTypeInfo =
-"(rel (tuple ((br_id int)(bus_stop busstop)(u_oid int)(geodata point))))";
+"(rel (tuple ((Br_id int)(Bus_stop busstop)(U_oid int)(Geodata point))))";
 string BusNetwork::BusStopsBTreeTypeInfo =
-"(btree (tuple ((br_id int)(bus_stop busstop)(u_oid int)(geodata point))) int)";
-string BusNetwork::BusStopsRTreeTypeInfo =  "(rtree (tuple ((br_id int)\
-(bus_stop busstop)(u_oid int)(geodata point))) point FALSE)";
+"(btree (tuple ((Br_id int)(Bus_stop busstop)(U_oid int)(Geodata point))) int)";
+string BusNetwork::BusStopsRTreeTypeInfo =  "(rtree (tuple ((Br_id int)\
+(Bus_stop busstop)(U_oid int)(Geodata point))) point FALSE)";
 
 string BusNetwork::BusRoutesBTreeTypeInfo =
-"(btree (tuple ((br_id int)(bus_route busroute)(oid int))) int)";
+"(btree (tuple ((Br_id int)(Bus_route busroute)(Oid int))) int)";
 
 string BusNetwork::BusRoutesBTreeUOidTypeInfo =
-"(btree (tuple ((br_id int)(bus_route busroute)(oid int))) int)";
+"(btree (tuple ((Br_id int)(Bus_route busroute)(Oid int))) int)";
 
 string BusNetwork::BusTripsTypeInfo = 
-"(rel (tuple ((bustrip1 genmo) (bustrip2 mpoint) (br_id int)(oid int))))";
+"(rel (tuple ((Bustrip1 genmo) (Bustrip2 mpoint) (Br_id int)(Oid int))))";
 
 string BusNetwork::BusTripBTreeTypeInfo =
-"(btree (tuple ((bustrip1 genmo) (bustrip2 mpoint) (br_id int)(oid int))) int)";
+"(btree (tuple ((Bustrip1 genmo) (Bustrip2 mpoint) (Br_id int)(Oid int))) int)";
 
 
 ListExpr BusNetworkProperty()
@@ -6998,7 +6998,7 @@ void BusNetwork::LoadStops(Relation* r1)
   ListExpr ptrList2 = listutils::getPtrList(stops_rel);
   
   strQuery = "(createbtree (" + BusStopsInternalTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "br_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Br_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7009,7 +7009,7 @@ void BusNetwork::LoadStops(Relation* r1)
   ListExpr ptrList3 = listutils::getPtrList(stops_rel);
 
   strQuery = "(createbtree (" + BusStopsInternalTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "u_oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "U_oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7019,7 +7019,7 @@ void BusNetwork::LoadStops(Relation* r1)
   ListExpr ptrList4 = listutils::getPtrList(stops_rel);
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + BusStopsInternalTypeInfo +
-         " (ptr " + nl->ToString(ptrList4) + "))))((geodata asc))) geodata)";
+         " (ptr " + nl->ToString(ptrList4) + "))))((Geodata asc))) Geodata)";
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   rtree_bs = ( R_Tree<2,TupleId>* ) xResult.addr;
@@ -7166,7 +7166,7 @@ void BusNetwork:: LoadBuses(Relation* r3)
   ListExpr ptrList2 = listutils::getPtrList(bustrips_rel);
 
   strQuery = "(createbtree (" + BusTripsTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7178,7 +7178,7 @@ void BusNetwork:: LoadBuses(Relation* r3)
   ListExpr ptrList3 = listutils::getPtrList(bustrips_rel);
 
   strQuery = "(createbtree (" + BusTripsTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "br_id)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Br_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -7545,16 +7545,16 @@ void BusNetwork::GetBusRouteGeoData(int br_uoid, SimpleLine& sl)
 
 
 string BN::BusStopsPaveTypeInfo =
-"(rel (tuple ((bus_stop busstop) (pave_loc1 genloc)\
-(pave_loc2 point)(bus_stop_loc point))))";
+"(rel (tuple ((Bus_stop busstop) (Pave_loc1 genloc)\
+(Pave_loc2 point)(Bus_stop_loc point))))";
 
 string BN::BusTimeTableTypeInfo = 
 "(rel (tuple ((stop_loc point) (bus_stop busstop) (whole_time periods) \
 (schedule_interval real) (loc_id int) (bus_uoid int))))";
 
 string BN::RTreeBusStopsPaveTypeInfo = 
-"(rtree (tuple ((bus_stop busstop) (pave_loc1 genloc)\
-(pave_loc2 point)(bus_stop_loc point))) point FALSE)";
+"(rtree (tuple ((Bus_stop busstop) (Pave_loc1 genloc)\
+(Pave_loc2 point)(Bus_stop_loc point))) point FALSE)";
 
 BN::BN(BusNetwork* n):bn(n), count(0), resulttype(NULL)
 {
@@ -7901,7 +7901,8 @@ void BN::DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
               Tuple* dg_tuple2 = rel->GetTuple(e.info,false);
               Region* candi_reg =
                      (Region*)dg_tuple2->GetAttribute(DualGraph::PAVEMENT);
-              if(l->Intersects(candi_reg->BoundingBox())){
+//              if(l->Intersects(candi_reg->BoundingBox())){
+              if(l->Intersects(Region(candi_reg->BoundingBox()))){
 /*                  Line* l1 = new Line(0);
                   candi_reg->Boundary(l1);
                   Points* ps = new Points(0);
@@ -7940,7 +7941,8 @@ void BN::DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
       }else{
             R_TreeInternalEntry<2> e =
                 (R_TreeInternalEntry<2>&)(*node)[j];
-            if(l->Intersects(e.box)){
+//            if(l->Intersects(e.box)){
+            if(l->Intersects(Region(e.box))){
               DFTraverse(rtree, rel, e.pointer, l, it_p_list);
             }
       }
@@ -9091,28 +9093,28 @@ void BN::DecomposeBR(Line* l1, Line* l2)
 ////////////////////  Bus Network Graph  //////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 string BusGraph::NodeTypeInfo =
-"(rel (tuple ((bus_stop busstop)(stop_geodata point))))";
+"(rel (tuple ((Bus_stop busstop)(Stop_geodata point))))";
 string BusGraph::NodeInternalTypeInfo =
-"(rel (tuple ((bus_stop busstop)(stop_geodata point)(bus_uoid int))))";
+"(rel (tuple ((Bus_stop busstop)(Stop_geodata point)(Bus_uoid int))))";
 string BusGraph::NodeBTreeTypeInfo = 
-"(btree (tuple ((bus_stop busstop)(stop_geodata point)(bus_uoid int))) int)";
+"(btree (tuple ((Bus_stop busstop)(Stop_geodata point)(Bus_uoid int))) int)";
 
 string BusGraph::EdgeTypeInfo1 = 
-"(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)(Path sline)\
-(SubPath1 sline)(SubPath2 sline)(Path2 sline)(bus_stop2_tid int))))"; 
+"(rel (tuple ((Bus_uoid int)(Bus_stop1 busstop)(Bus_stop2 busstop)(Path sline)\
+(SubPath1 sline)(SubPath2 sline)(Path2 sline)(Bus_stop2_tid int))))"; 
 
 string BusGraph::EdgeTypeInfo2 = 
-"(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)\
-(bus_stop2_tid int))))"; 
+"(rel (tuple ((Bus_uoid int)(Bus_stop1 busstop)(Bus_stop2 busstop)\
+(Bus_stop2_tid int))))";
 
 /*
 whole time:  time --- bus arrival time (30 seconds waiting)
 
 */
-string BusGraph::EdgeTypeInfo3 = 
-"(rel (tuple ((bus_uoid int)(bus_stop1 busstop)(bus_stop2 busstop)\
-(whole_time periods)(schedule_interval real)(Path sline)(TimeCost real)\
-(bus_stop2_tid int))))";
+string BusGraph::EdgeTypeInfo3 =
+"(rel (tuple ((Bus_uoid int)(Bus_stop1 busstop)(Bus_stop2 busstop)\
+(Whole_time periods)(Schedule_interval real)(Path sline)(TimeCost real)\
+(Bus_stop2_tid int))))";
 
 
 
@@ -9583,7 +9585,7 @@ void BusGraph::Load(int id, Relation* r1, Relation* edge1,
   ListExpr ptrList2 = listutils::getPtrList(node_rel);
 
   strQuery = "(createbtree (" + NodeInternalTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Bus_uoid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
@@ -9651,7 +9653,7 @@ void BusGraph::LoadEdge1(Relation* r)
   ListExpr ptrList2 = listutils::getPtrList(edge_rel1);
   
   strQuery = "(createbtree (" + EdgeTypeInfo1 +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Bus_uoid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -9754,7 +9756,7 @@ void BusGraph::LoadEdge2(Relation* r)
   ListExpr ptrList2 = listutils::getPtrList(edge_rel2);
 
   strQuery = "(createbtree (" + EdgeTypeInfo2 +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Bus_uoid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -9868,7 +9870,7 @@ void BusGraph::LoadEdge3(Relation* e_rel)
   ListExpr ptrList2 = listutils::getPtrList(edge_rel3);
 
   strQuery = "(createbtree (" + EdgeTypeInfo3 +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "bus_uoid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Bus_uoid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15237,26 +15239,26 @@ string MetroNetwork::UBAHNRotuesBTreeTypeInfo = "(rel (tuple ((lineid int)\
 
 
 string MetroNetwork::MetroStopsTypeInfo =
-"(rel (tuple ((ms_stop busstop) (stop_geodata point) (mr_id int))))";
+"(rel (tuple ((Ms_stop busstop) (Stop_geodata point) (Mr_id int))))";
 
 string MetroNetwork::MetroStopsBTreeTypeInfo =
-"(btree (tuple ((ms_stop busstop) (stop_geodata point) (mr_id int))) int)";
+"(btree (tuple ((Ms_stop busstop) (Stop_geodata point) (Mr_id int))) int)";
 
 string MetroNetwork::MetroStopsRTreeTypeInfo = 
-"(rtree (tuple ((ms_stop busstop)(stop_geodata point)\
-(mr_id int))) point FALSE)";
+"(rtree (tuple ((Ms_stop busstop)(Stop_geodata point)\
+(Mr_id int))) point FALSE)";
 
 string MetroNetwork::MetroRoutesTypeInfo = "(rel (tuple ((Mr_id int) \
 (Mroute busroute) (Oid int))))";
 
-string MetroNetwork::MetroRoutesBTreTypeInfo = "(rel (tuple ((mr_id int)\
-(mroute busroute) (oid int))) int)";
+string MetroNetwork::MetroRoutesBTreTypeInfo = "(rel (tuple ((Mr_id int)\
+(Mroute busroute) (Oid int))) int)";
 
-string MetroNetwork::MetroTripTypeInfo = "(rel (tuple ((mtrip1 genmo)\
-(mtrip2 mpoint) (mr_oid int) (oid int))))";
+string MetroNetwork::MetroTripTypeInfo = "(rel (tuple ((Mtrip1 genmo)\
+(Mtrip2 mpoint) (Mr_oid int) (Oid int))))";
 
-string MetroNetwork::MetroTypeBTreeTypeInfo = "(btree (tuple ((mtrip1 genmo)\
-(mtrip2 mpoint) (mr_id int) (oid int))) int)";
+string MetroNetwork::MetroTypeBTreeTypeInfo = "(btree (tuple ((Mtrip1 genmo)\
+(Mtrip2 mpoint) (Mr_id int) (Oid int))) int)";
 
 string MetroNetwork::MetroPaveTypeInfo =
 "(rel (tuple ((Loc1 genloc) (Loc2 point) (Ms_stop busstop)\
@@ -15819,7 +15821,7 @@ void MetroNetwork::LoadStops(Relation* r)
   ListExpr ptrList2 = listutils::getPtrList(stops_rel);
 
   strQuery = "(createbtree (" + MetroStopsTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Mr_id)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15832,7 +15834,7 @@ void MetroNetwork::LoadStops(Relation* r)
   
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + MetroStopsTypeInfo +
          " (ptr " + nl->ToString(ptrList3) + 
-         "))))((stop_geodata asc))) stop_geodata)";
+         "))))((Stop_geodata asc))) Stop_geodata)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
@@ -15983,7 +15985,7 @@ void MetroNetwork::LoadMetros(Relation* r3)
   ListExpr ptrList2 = listutils::getPtrList(metrotrips_rel);
   
   strQuery = "(createbtree (" + MetroTripTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_oid)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Mr_oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -15994,7 +15996,7 @@ void MetroNetwork::LoadMetros(Relation* r3)
   ListExpr ptrList3 = listutils::getPtrList(metrotrips_rel);
 
   strQuery = "(createbtree (" + MetroTripTypeInfo +
-             "(ptr " + nl->ToString(ptrList3) + "))" + "oid)";
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid)";
 
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
   assert(QueryExecuted);
@@ -16332,7 +16334,7 @@ int MetroNetwork::GetMOMetro_MP(Bus_Stop* ms, Point* ms_loc,
 ////////////////////metro graph/////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 string MetroGraph::MGNodeTypeInfo =
-"(rel (tuple ((ms_stop busstop) (stop_geodata point) (mr_id int))))";
+"(rel (tuple ((Ms_stop busstop) (Stop_geodata point) (Mr_id int))))";
 
 string MetroGraph::MGEdge1TypeInfo =
 "(rel (tuple ((Ms_stop1_tid int) (Ms_stop2_tid int))))";
@@ -16342,7 +16344,7 @@ string MetroGraph::MGEdge2TypeInfo = "(rel (tuple ((Ms_stop1_tid int)\
 (Path sline) (TimeCost real))))";
 
 string MetroGraph::MGNodeBTreeTypeInfo = 
-"(btree (tuple ((ms_stop busstop) (stop_geodata point) (mr_id int))) int)";
+"(btree (tuple ((Ms_stop busstop) (Stop_geodata point) (Mr_id int))) int)";
 
 
 ListExpr MetroGraph::MetroGraphProp()
@@ -16737,7 +16739,7 @@ void MetroGraph::Load(int g_id, Relation* r1, Relation* edge1, Relation* edge2)
   ListExpr ptrList2 = listutils::getPtrList(node_rel);
 
   strQuery = "(createbtree (" + MGNodeTypeInfo +
-             "(ptr " + nl->ToString(ptrList2) + "))" + "mr_id)";
+             "(ptr " + nl->ToString(ptrList2) + "))" + "Mr_id)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   btree_node = (BTree*)xResult.addr;
@@ -17616,9 +17618,9 @@ void MyToPoint(Network* rn, GPoint* gp, Point& res)
 string TM_Join::CellBoxTypeInfo = "(rel (tuple ((Cellid int)\
 (Cover_area region) (X_id int) (Y_id int))))";
 
-string TM_Join::RoadSectionTypeInfo = "(rel (tuple ((rid int) (meas1 real)\
-(meas2 real) (dual bool) (curve sline)(curveStartsSmaller bool)\
-(rrc tid) (sid int))))";
+string TM_Join::RoadSectionTypeInfo = "(rel (tuple ((Rid int) (Meas1 real)\
+(Meas2 real) (Dual bool) (Curve sline)(CurveStartsSmaller bool)\
+(Rrc tid) (Sid int))))";
 
 /*
 for each cell, it collects the number of route section intersecting it
@@ -17717,7 +17719,8 @@ void TM_Join::DFTraverse(Relation* rel, R_Tree<2,TupleId>* rtree,
       }else{
             R_TreeInternalEntry<2> e =
                 (R_TreeInternalEntry<2>&)(*node)[j];
-            if(l->Intersects(e.box)){
+//            if(l->Intersects(e.box)){
+            if(l->Intersects(Region(e.box))){
               DFTraverse(rel, rtree, e.pointer, l, id_list);
             }
       }
