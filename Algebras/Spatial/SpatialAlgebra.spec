@@ -75,7 +75,6 @@ operator direction2heading alias DIRECTION2HEADING pattern op( _ )
 operator heading2direction alias HEADING2DIRECTION pattern op( _ )
 operator fromline alias FROMLINE pattern op( _ )
 operator gk alias GK pattern op( _, _ )
-
 operator halfSegments alias HALFSEGMENTS pattern op( _ )
 operator heading alias HEADING pattern op( _, _, _ )
 operator iscycle alias ISCYCLE pattern op( _ )
@@ -86,5 +85,4 @@ operator scale alias SCALE pattern _ op [ _, _ ]
 operator create_triangle alias CREATE_TRIANGLE pattern op(_, _, _)
 operator bufferLine alias BUFFERLINE pattern op(_,_)
 operator circle alias CIRCLE pattern op ( _ , _ , _ )
-
-
+operator longlines alias LONGLINES pattern _ op

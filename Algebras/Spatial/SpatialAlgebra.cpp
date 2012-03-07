@@ -85,6 +85,8 @@ using namespace std;
 #include <limits>
 #include <errno.h>
 #include <cerrno>
+#include "../TopRel/Tree.h"
+#include "../GeneralTree/BBoxReg.h"
 
 
 #ifndef M_PI
@@ -6725,15 +6727,13 @@ ostream& Line::Print( ostream &os ) const
   os.precision(8);
   os << *this;
   os.flags(oldOptions);
-  for (int i = 0; i < Size(); i++)
-  {
-    HalfSegment hs;
-    Get(i, hs);
-    if (hs.IsLeftDomPoint()) hs.Print(os);
-  }
+//   for (int i = 0; i < Size(); i++)
+//   {
+//     HalfSegment hs;
+//     Get(i, hs);
+//     if (hs.IsLeftDomPoint()) hs.Print(os);
+//   }
   return os;
-  return os;
-
 }
 
 /*
@@ -7356,6 +7356,7 @@ bool SimpleLine::AtPoint( const Point& p,
   }
   return false;
 }
+
 
 void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
   l.Clear();
@@ -14402,7 +14403,6 @@ ListExpr SpatialCollectSLineTypeMap(ListExpr args){
   return nl->SymbolAtom(SimpleLine::BasicType());
 }
 
-
 ListExpr SpatialCollectPointsTM(ListExpr args){
   string err = " {stream(point), stream(points)} x bool expected";
   if(nl->ListLength(args) != 2){
@@ -17858,6 +17858,8 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
    Point lastPoint(false, 0.0,0.0);
    bool first = true;
    L->StartBulkLoad();
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr, elem);
    while ( qp->Received(args[0].addr) ){
     line = static_cast<StreamLineType*>(elem.addr);
     assert( line != 0 );
@@ -17869,7 +17871,10 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
        return 0;
     }
     if (first && line->IsDefined()) {
+       firstPoint.SetDefined(true);
        firstPoint = line->StartPoint();
+       lastPoint.SetDefined(true);
+       lastPoint = firstPoint;
        first = false;
     }
     if (line->IsDefined()) {
@@ -17880,12 +17885,8 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
     qp->Request(args[0].addr, elem); // get next line
   }
   L->EndBulkLoad(); // sort and realminize
-  if (!first && L->IsDefined()) {
-    if (firstPoint > lastPoint) L->SetStartSmaller(false);
-    else L->SetStartSmaller(true);
-  } else {
-    L->SetDefined(false);
-  }
+  if (firstPoint > lastPoint) L->SetStartSmaller(false);
+  else L->SetStartSmaller(true);
   qp->Close(args[0].addr);
   return 0;
 }
@@ -20448,7 +20449,463 @@ Operator spatialcircle( "circle",
                   Operator::SimpleSelect,
                   circleTM);
 
+/*
+1.1 Operator ~longlines~
 
+The operator gets a stream of ~sline~ values and returns a stream of ~sline~
+values, where the input values are connected to as long as possible line parts.
+
+1.1.1 TypeMapping
+
+*/
+
+ListExpr SpatialLongLinesTM(ListExpr args){
+  if(!nl->IsEqual(nl->First(args),Line::BasicType())) {
+    return listutils::typeError("Argument of type " + Line::BasicType() +
+                                " expected.");
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(SimpleLine::BasicType()));
+}
+
+/*
+1.1.1 Value Mapping
+
+1.1.1.1 class LongLinesLocalInfo
+
+Stores informations of current situation between request calls. And delivers
+result of request using ~GetNextResult~ function.
+
+*/
+
+
+class LongLinesLocalInfo{
+
+public:
+
+/*
+Constructor initializes values
+
+*/
+  LongLinesLocalInfo(Line* li){
+    assert(li->IsDefined() && !li->IsEmpty());
+    this->theLine = li;
+    size = li->Size();
+    used = new vector<bool>(size, false);
+    pointset = new set<Point>();
+    pointset->clear();
+    intermediate = new vector<SimpleLine> ();
+    intermediate->clear();
+  };
+
+/*
+Deconstructor deletes internal array
+
+*/
+  ~LongLinesLocalInfo(){
+    pointset->clear();
+    delete pointset;
+    used->clear();
+    delete used;
+    intermediate->clear();
+    delete intermediate;
+  };
+
+/*
+Splits the ~Line~ into ~SimpleLine~s which are each long as possible.
+
+*/
+  SimpleLine* GetNextResult(){
+    // Find valid start Segment of a line (part)
+    if (!intermediate->empty()){
+      SimpleLine* res = new SimpleLine(intermediate->back());
+      intermediate->pop_back();
+      return res;
+    }
+    int curPos = 0;
+    while (used->at(curPos) && curPos < size-1){
+      curPos++;
+    }
+    if (used->at(curPos)) {
+      return 0;
+    }
+    HalfSegment curHS, test;
+    theLine->Get(curPos, curHS);
+    Point curStartPoint = curHS.GetDomPoint();
+    if (curPos + 1 < size && !used->at(curPos+1)) {
+      theLine->Get(curPos+1,test);
+      if (test.GetDomPoint() != curStartPoint) {
+        return GetLongestFrom(curPos);
+      }
+    }
+    Point curEndPoint = curHS.GetSecPoint();
+    int partnerpos = curHS.GetAttr().partnerno;
+    int testPos = partnerpos;
+    bool done = false;
+    vector<bool>* visited = new vector<bool>(*used);
+    visited->at(curPos) = true;
+    visited->at(partnerpos) = true;
+    while (!done){
+      if (partnerpos > 0) testPos = partnerpos -1;
+      theLine->Get(testPos,test);
+      if (!visited->at(testPos) &&
+          AlmostEqual(test.GetDomPoint(),curEndPoint)){
+        curPos = testPos;
+        curEndPoint = test.GetSecPoint();
+        partnerpos = test.GetAttr().partnerno;
+        visited->at(curPos) = true;
+        visited->at(partnerpos) = true;
+      } else {
+        if (partnerpos < size - 1) testPos = partnerpos + 1;
+        theLine->Get(testPos,test);
+        if (!visited->at(testPos) &&
+            AlmostEqual(test.GetDomPoint(),curEndPoint)){
+          curPos = testPos;
+          curEndPoint = test.GetSecPoint();
+          partnerpos = test.GetAttr().partnerno;
+          visited->at(curPos) = true;
+          visited->at(partnerpos) = true;
+        } else {
+          done = true;
+        }
+      }
+    }
+    visited->clear();
+    delete visited;
+    return GetLongestFrom(partnerpos);
+  };
+
+private:
+
+  SimpleLine* SearchPartner(vector<double>* lengths,
+                            vector<SimpleLine>* foLines){
+    SimpleLine* res = 0;
+    int pos1 = -1;
+    int pos2 = -1;
+    double maxLength = 0.0;
+    do{
+      maxLength = 0.0;
+      for (unsigned int i = 0 ; i < lengths->size()-1; i++){
+        for (unsigned int j = i+1; j < lengths->size(); j++){
+          double curLength = lengths->at(i)+lengths->at(j);
+          if (curLength > maxLength){
+            maxLength = curLength;
+            pos1 = i;
+            pos2 = j;
+          }
+        }
+      }
+      if (maxLength > 0.0){
+        if (pos1 == 0) {
+          if (res == 0 && lengths->at(pos2) > 0.0){
+            res = new SimpleLine(foLines->at(pos2));
+            lengths->at(pos1) = 0.0;
+            lengths->at(pos2) = 0.0;
+          } else {
+            if (res != 0 && lengths->at(pos2) > 0.0){
+              intermediate->push_back(foLines->at(pos2));
+              lengths->at(pos1) = 0.0;
+              lengths->at(pos2) = 0.0;
+            } else {
+              lengths->at(pos1) = 0.0;
+            }
+          }
+        } else {
+          SimpleLine l1 = foLines->at(pos1);
+          SimpleLine l2 = foLines->at(pos2);
+          int edgeno = 0;
+          SimpleLine* inres = new SimpleLine(true);
+          inres->Clear();
+          inres->StartBulkLoad();
+          HalfSegment hs;
+          if (lengths->at(pos1) > 0.0){
+            for (int i = 0 ; i < l1.Size(); i++) {
+              l1.Get(i,hs);
+              hs.attr.edgeno = edgeno;
+              inres->operator+=(hs);
+              if (hs.IsLeftDomPoint()) hs.SetLeftDomPoint(false);
+              else hs.SetLeftDomPoint(true);
+              inres->operator+=(hs);
+              edgeno++;
+            }
+          }
+          if (lengths->at(pos2) > 0.0){
+            for (int i = 0 ; i < l2.Size(); i++) {
+              l2.Get(i,hs);
+              hs.attr.edgeno = edgeno;
+              inres->operator+=(hs);
+              if (hs.IsLeftDomPoint()) hs.SetLeftDomPoint(false);
+              else hs.SetLeftDomPoint(true);
+              inres->operator+=(hs);
+              edgeno++;
+            }
+          }
+          inres->EndBulkLoad();
+          intermediate->push_back(*inres);
+          inres->Clear();
+          delete inres;
+          lengths->at(pos1) = 0.0;
+          lengths->at(pos2) = 0.0;
+        }
+        pos1 = -1;
+        pos2 = -1;
+      }
+    } while (maxLength > 0.0);
+    return res;
+  };
+
+  void AddHalfSegmentToResult(SimpleLine* result, int index,
+                              Point& curEndPoint,
+                              double& length, int& partnerpos,
+                              bool& done, int& edgeno, bool first){
+    HalfSegment curHs;
+    theLine->Get(index, curHs);
+    curEndPoint = curHs.GetSecPoint();
+    if (pointset->find(curEndPoint) != pointset->end() && !first) {
+      done = true;
+    } else {
+      used->at(index) = true;
+      curHs.attr.edgeno = edgeno;
+      result->operator+=(curHs);
+      pointset->insert(curEndPoint);
+      if (curHs.IsLeftDomPoint()) curHs.SetLeftDomPoint(false);
+      else curHs.SetLeftDomPoint(true);
+      result->operator+=(curHs);
+      partnerpos = curHs.GetAttr().partnerno;
+      used->at(partnerpos) = true;
+      length += curHs.Length();
+      edgeno++;
+    }
+  };
+
+  SimpleLine* GetLongestFrom(int indStart){
+    // Initalize result computation
+    SimpleLine* result = new SimpleLine(true);
+    result->Clear();
+    result->StartBulkLoad();
+    double length = 0.0;
+    HalfSegment curHs;
+    theLine->Get(indStart, curHs);
+    Point curStartPoint = curHs.GetDomPoint();
+    Point curEndPoint = curHs.GetSecPoint();
+    pointset->insert(curStartPoint);
+    int partnerpos = curHs.GetAttr().partnerno;
+    bool done = false;
+    int edgeno = 0;
+    AddHalfSegmentToResult(result, indStart, curEndPoint,
+                           length, partnerpos, done, edgeno, true);
+    // The dominating point of the next segment in the line is equal to the
+    // endpoint of the currentSegment. The next halfsegment therefore is stored
+    // near partnerpos in ~line~.
+    // Start search for HalfSegments starting in curEndPoint at left of
+    // partnerpos
+    while (!done){
+      int firstPos = partnerpos;
+      int lastPos = partnerpos;
+      int countLeft = 0;
+      int countRight = 0;
+      int countPos = 0;
+      int curPos = partnerpos -1;
+      HalfSegment test;
+      if (curPos >= 0 && curPos < size)
+      {
+        theLine->Get(curPos,test);
+        while (AlmostEqual(test.GetDomPoint(),curEndPoint) && curPos > 0){
+          if (!used->at(curPos)) countLeft++;
+          countPos++;
+          curPos--;
+          theLine->Get(curPos, test);
+        }
+      }
+      if (countLeft > 0) firstPos = firstPos - countPos;
+      if (firstPos < 0) firstPos = 0;
+      // Continue search at right of partnerpos
+      curPos = partnerpos + 1;
+      countPos = 0;
+      if (curPos >= 0 && curPos < size) {
+        theLine->Get(curPos,test);
+        while (AlmostEqual(test.GetDomPoint(), curEndPoint) && curPos < size-1){
+          if (!used->at(curPos)) countRight++;
+          curPos++;
+          countPos++;
+          theLine->Get(curPos,test);
+        }
+      }
+
+      if (countRight > 0) lastPos = lastPos + countPos;
+      if (lastPos > size-1) lastPos = size-1;
+      int count = countLeft + countRight;
+      if (count == 1) {
+      //only one possible followup segment found insert into line
+        for (int i = firstPos; i <= lastPos; i++){
+          if(i != partnerpos && !used->at(i)){
+            AddHalfSegmentToResult(result, i, curEndPoint,
+                                   length, partnerpos, done, edgeno, false);
+            break;
+          }
+        }
+      } else {
+        if (count > 1) {
+          //different possible followup Segments
+          vector<double>* followLength = new vector<double>();
+          vector<int>* followPos = new vector<int>();
+          vector<SimpleLine>* followLine = new vector<SimpleLine>();
+          followLength->push_back(length);
+          followPos->push_back(-1);
+          followLine->push_back(SimpleLine(false));
+          int helpCount = 1;
+          for (int i = firstPos; i <= lastPos; i++){
+            if (i != partnerpos && !used->at(i)){
+              followPos->push_back(i);
+              helpCount++;
+              used->at(i) = true;
+              theLine->Get(i,test);
+              int partnerpos = test.GetAttr().partnerno;
+              if (partnerpos >= 0 && partnerpos < size)
+                used->at(partnerpos) = true;
+            }
+          }
+          for (int i = 1; i < helpCount; i++){
+            SimpleLine* helpLine = GetLongestFrom(followPos->at(i));
+            followLine->push_back(*helpLine);
+            followLength->push_back(helpLine->Length());
+            delete helpLine;
+          }
+          SimpleLine* ind = SearchPartner(followLength,followLine);
+          if (ind == 0) {
+            done = true;
+          } else {
+            for (int i = 0; i < ind->Size(); i++){
+              ind->Get(i,test);
+              test.attr.edgeno = edgeno;
+              result->operator+=(test);
+              if (test.IsLeftDomPoint()) test.SetLeftDomPoint(false);
+              else test.SetLeftDomPoint(true);
+              result->operator+=(test);
+              edgeno++;
+            }
+            delete ind;
+            ind = 0;
+            done = true;
+          }
+        } else { // count < 1 ,
+          //no more segments stop computation
+          done = true;
+        }
+      }
+    }
+    //cleanup and return result
+    result->EndBulkLoad();
+    return result;
+  };
+
+
+/*
+Pointer to a boolean array telling if a HalfSegement has been used or not.
+
+*/
+  vector<bool>* used;
+
+/*
+Source line
+
+*/
+  Line* theLine;
+
+/*
+Number of HalfSegments of source line.
+
+*/
+  int size;
+
+/*
+Indexpositions of Halfsegments with possible start, way and splitpoints of line.
+
+*/
+
+  set<Point>* pointset;
+
+/*
+Intermediate results
+
+*/
+
+ vector<SimpleLine>* intermediate;
+};
+
+int SpatialLongLinesVM(Word* args, Word& result, int message, Word& local,
+                       Supplier s ){
+
+  switch(message){
+
+    case OPEN:{
+
+      Line* li = static_cast<Line*> (args[0].addr);
+      if (!li->IsDefined() || li->IsEmpty()) {
+        local.setAddr(0);
+      } else {
+        LongLinesLocalInfo* localinfo = new LongLinesLocalInfo(li);
+        local.setAddr(localinfo);
+      }
+      return 0;
+    }
+
+    case REQUEST: {
+      result = qp->ResultStorage(s);
+      if(!local.addr) return CANCEL;
+      LongLinesLocalInfo* localinfo = (LongLinesLocalInfo*) local.addr;
+      SimpleLine* res = localinfo->GetNextResult();
+
+      if(res == 0 || !res->IsDefined()){
+        result.setAddr(0);
+        return CANCEL;
+      } else {
+        result.setAddr(res);
+        return YIELD;
+      }
+    }
+
+    case CLOSE: {
+
+      if(local.addr != 0){
+        LongLinesLocalInfo* localinfo = (LongLinesLocalInfo*) local.addr;
+        delete localinfo;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+
+  }
+
+  return 0;
+}
+
+
+/*
+1.1.1 Specification
+
+*/
+
+const string SpatialLongLinesSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>line -> (stream sline)</text--->"
+"<text> _ longlines </text--->"
+"<text>Converts a line into an stream of longest possible sline "
+"values.</text--->"
+"<text> _ longlines </text---> ) )";
+
+/*
+1.1.1 Operatordefiniton
+
+*/
+
+Operator spatiallonglines(
+  "longlines",
+  SpatialLongLinesSpec,
+  SpatialLongLinesVM,
+  Operator::SimpleSelect,
+  SpatialLongLinesTM
+);
 
 /*
 11 Creating the Algebra
@@ -20570,6 +21027,7 @@ class SpatialAlgebra : public Algebra
 
     AddOperator(&bufferLine);
     AddOperator(&spatialcircle);
+    AddOperator(&spatiallonglines);
   }
   ~SpatialAlgebra() {};
 };

@@ -1091,9 +1091,9 @@ points where more than 2 segments have a common endpoint.
 */
     double Distance( const Line& l, const Geoid* Geoid=0 ) const;
 
-    void DistanceSmallerThan(const Line& l, 
-                            const double  maxDist, 
-                            const bool allowEqual, 
+    void DistanceSmallerThan(const Line& l,
+                            const double  maxDist,
+                            const bool allowEqual,
                             CcBool& result,
                             const Geoid* geoid=0) const;
 
@@ -1815,16 +1815,18 @@ geometry.
 ~SubLine~
 
 */
-  void SubLine(const double pos1, const double pos2,
-               bool startsSmaller, SimpleLine& l) const;
-  void SubLine(const double pos1, const double pos2, SimpleLine& l) const;
+
+void SubLine(const double pos1, const double pos2,
+             bool startsSmaller, SimpleLine& l) const;
+void SubLine(const double pos1, const double pos2, SimpleLine& l) const;
 
 /*
 ~Crossings~
 
 */
-  void Crossings(const SimpleLine& l, Points& result,
-                 const Geoid* geoid=0) const;
+  
+void Crossings(const SimpleLine& l, Points& result,
+               const Geoid* geoid=0) const;
 
 /*
 ~Union~
@@ -1866,6 +1868,10 @@ The following functions are needed to act as an attribute type.
   }
 
   int Compare(const Attribute* arg) const;
+
+  bool operator<(SimpleLine *sl) const{
+    return (Compare((Attribute*) sl) < 0);
+  }
 
   virtual SimpleLine* Clone() const{
      SimpleLine* res =  new SimpleLine(*this);
