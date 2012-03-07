@@ -70,7 +70,7 @@ CUP:=java_cup_v10k.jar
 CUPRUNTIME:=java_cup_v10k_runtime.jar
 
 # switch for enabling persistent nested lists
-NL_PERSISTENT=false
+NL_PERSISTENT=true
 
 
 JLEXCLASSESPATH := $(LIBPATH)/$(JLEX)
