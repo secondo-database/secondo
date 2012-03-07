@@ -385,17 +385,28 @@ public class JRoute
   {
     GeneralPath xPath = new GeneralPath();
 
+    Point2D.Double p1 = new Point2D.Double(0,0);
+    Point2D.Double p2 = new Point2D.Double(0,0);
+
     for (int i = 0; i < insegments.length; i++)
     {
       JSegment actSegment = insegments[i];
 
       // Draw segment
-      xPath.moveTo((float)actSegment.getPoint1().x,
-                   (float)actSegment.getPoint1().y);
-      xPath.lineTo((float)actSegment.getPoint2().x,
-                   (float)actSegment.getPoint2().y);
-    }
+      if(ProjectionManager.project(actSegment.getPoint1().x,
+                                   actSegment.getPoint1().y, p1)){
 
+        if(ProjectionManager.project(actSegment.getPoint2().x,
+                                     actSegment.getPoint2().y, p2)){
+          xPath.moveTo((float) p1.x, (float)p1.y);
+          xPath.lineTo((float) p2.x, (float)p2.y);
+        } else {
+          System.err.println("problem in projection of p2");
+        }
+      } else {
+         System.err.print("Problem in projection of p1");
+      }
+    }
     return xPath;
   }
 }
