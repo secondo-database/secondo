@@ -93,7 +93,7 @@ public:
    PatParser(string const &text);
    PatParser() {};   
      
-   string toString(); 	
+   string toString();
    inline vector<SinglePattern> getPattern() { return pats_; }
    
    inline bool isValid() { return valid; }
@@ -123,7 +123,7 @@ public:
    RuleParser(string const &text);
    RuleParser() {};   
      
-   string toString(); 	
+   string toString();
    inline vector<SinglePattern> getPattern() { return pats_; }
    inline vector<SinglePattern> getResultPattern() { return resPats_; }
 
