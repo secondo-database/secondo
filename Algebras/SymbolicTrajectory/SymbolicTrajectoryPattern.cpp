@@ -697,7 +697,6 @@ int SinglePattern::set(PrePat const &prePat, string &errMsg)
          default: errMsg = "Cannot resolve time element!";
                   return 1; 
       } // end switch
-      cout << datetime << endl;
     } // end for
   } // end if
   return 0;   

@@ -1,5 +1,5 @@
 /*
-Blubb
+Secondo
 
 */
 
@@ -197,31 +197,23 @@ string getFullTimeRange(string const &text) {
 }
 
 
-bool checkMaskOfDate(string const &mask) 
-{
-   string acceptedDateMask = "00.00.0000";
-
-   if ( (mask.length() != 4) 
-     && (mask.length() != 7)
-     && (mask.length() != 10) ) return false;
-	 
-   if (mask == acceptedDateMask.substr(10 - mask.length())) return true;
-   
-   return false;
+bool checkMaskOfDate(string const &mask) {
+  string acceptedDateMask = "00.00.0000";
+  if ((mask.length() != 4) && (mask.length() != 7) && (mask.length() != 10))
+    return false;
+  if (mask == acceptedDateMask.substr(10 - mask.length()))
+    return true;
+  return false;
 }
 
 
-bool checkMaskOfTime(string const &mask) 
-{
-   string acceptedTimeMask = "00:00:00"; 
-
-   if ( (mask.length() != 2) 
-     && (mask.length() != 5)
-     && (mask.length() != 8) ) return false;
-	 
-   if (mask == acceptedTimeMask.substr(0, mask.length())) return true;
-   
-   return false;
+bool checkMaskOfTime(string const &mask) {
+  string acceptedTimeMask = "00:00:00";
+  if ((mask.length() != 2) && (mask.length() != 5) && (mask.length() != 8))
+    return false;
+  if (mask == acceptedTimeMask.substr(0, mask.length()))
+    return true;
+  return false;
 }
 
 
@@ -240,48 +232,40 @@ bool checkMaskOfDateTime(string const &mask)
 }
 
 
-bool checkRangeMask(string const &mask) 
-{
-   // acceptedDefaultMask = "00.00.0000#00:00:00-00.00.0000#00:00:00";
-   vector<string> masks = split(mask, '-');
-    
-   switch (masks.size()) 
-   {
-      case 2: // end element
-	          if ( ( !masks[1].empty() or !masks[0].empty() ) 
-          && ( masks[1].empty() || checkMaskOfDateTime(masks[1]) )
-          && ( masks[0].empty() || checkMaskOfDateTime(masks[0]) ) )
-			       return true;				   
-			  break;
-  
-	  case 1: // start/standalone element
-	          if (checkMaskOfDateTime(masks[0])) return true;	  
-			  break;
-   }
-  
-   return false;
+bool checkRangeMask(string const &mask) {
+  // acceptedDefaultMask = "00.00.0000#00:00:00-00.00.0000#00:00:00";
+  vector<string> masks = split(mask, '-');
+  switch (masks.size()) {
+    case 2: // end element
+      if ((!masks[1].empty() or !masks[0].empty())
+          && (masks[1].empty() || checkMaskOfDateTime(masks[1]))
+          && (masks[0].empty() || checkMaskOfDateTime(masks[0])))
+        return true;
+      break;
+    case 1: // start/standalone element
+      if (checkMaskOfDateTime(masks[0]))
+        return true;
+      break;
+  }
+  return false;
 }
  
 
-bool checkTimeRangeMask(string const &mask) 
-{
-   // acceptedDefaultMask = "00:00:00-00:00:00";
-   vector<string> masks = split(mask, '-');
-    
-   switch (masks.size()) 
-   {
-      case 2: // end element
-	          if ( ( !masks[1].empty() or !masks[0].empty() ) 
-          && ( masks[1].empty() || checkMaskOfTime(masks[1]) )
-          && ( masks[0].empty() || checkMaskOfTime(masks[0]) ) )
-          return true;				   
-     break;
-  
-	  case 1: // start/standalone element
-	          if (checkMaskOfTime(masks[0])) return true;	  
-     break;
+bool checkTimeRangeMask(string const &mask) {
+  // acceptedDefaultMask = "00:00:00-00:00:00";
+  vector<string> masks = split(mask, '-');
+  switch (masks.size()) {
+    case 2: // end element
+      if ((!masks[1].empty() or !masks[0].empty())
+          && (masks[1].empty() || checkMaskOfTime(masks[1]))
+          && (masks[0].empty() || checkMaskOfTime(masks[0])))
+        return true;
+        break;
+    case 1: // start/standalone element
+      if (checkMaskOfTime(masks[0]))
+        return true;
+      break;
    }
-  
    return false;
 } 
 
@@ -332,66 +316,52 @@ int getType(string text, string &datetime)
 }
 
 
- string getMask(string const &text)
-{
-   string mask = "";
-   char char_cur;
-   bool onlyAlphaChars = true;
-   bool onlyNumericChars = true;   
-   
-   for (size_t i = 0; i < text.length(); ++i)
-   {
-       char_cur = text[i];
-	   
-       if  ( (char_cur >= 65 && char_cur <= 90) ||
-             (char_cur >= 97 && char_cur <= 122) )
-	   {
-	      mask += 'A'; 
-		  onlyNumericChars = false;		  
-	   }
-       else if  ( (char_cur >= 48 && char_cur <= 57) ) 
-	   {
-	      mask += '0';
-		  onlyAlphaChars = false;
-	   }	   
-       else if  ( (char_cur == '.' || char_cur == '#' || char_cur == ':' ||
-                   char_cur == '/')  ) 
-	   {
-	      mask += char_cur;
-		  onlyAlphaChars = false;
-		  onlyNumericChars = false;
-	   }
-       else if  ( (char_cur == '-')  ) 
-	   {	  
-		  while ( !mask.empty() && ( mask[mask.length() - 1] == ' ' ) )
-		  {
-		     mask.erase(mask.length() - 1);
-		  }
-		  
-	      mask += char_cur;
-		  onlyAlphaChars = false;		  
-		  onlyNumericChars = false;	  		  
-	   }	   
-       else if  ( (char_cur == ' ') ) 
-	   {
-	      if ( mask.empty() || ( mask[mask.length() - 1] != '-' ) )
-		  {
-	         mask += char_cur;
-		  }	 
-	   } 
-       else 
-	   {
-	      // mask += '?';
-		  // onlyAlphaChars = false;
-		  // onlyNumericChars = false;
-		  return "?";
-	   }	   
-	   
-   }
-
-   if ( onlyAlphaChars && !mask.empty() ) mask = "AX";
-   if ( onlyNumericChars && !mask.empty() ) mask = "0X";
-   return mask; 
+string getMask(string const &text) {
+  string mask = "";
+  char char_cur;
+  bool onlyAlphaChars = true;
+  bool onlyNumericChars = true;
+  for (size_t i = 0; i < text.length(); ++i) {
+    char_cur = text[i];
+    if  ((char_cur >= 65 && char_cur <= 90) ||
+         (char_cur >= 97 && char_cur <= 122)) {
+      mask += 'A';
+      onlyNumericChars = false;
+    }
+    else if  ((char_cur >= 48 && char_cur <= 57)) {
+      mask += '0';
+      onlyAlphaChars = false;
+    } 
+    else if  ((char_cur == '.' || char_cur == '#' || char_cur == ':' ||
+               char_cur == '/')) {
+      mask += char_cur;
+      onlyAlphaChars = false;
+      onlyNumericChars = false;
+    }
+    else if  (char_cur == '-') {
+      while (!mask.empty() && (mask[mask.length() - 1] == ' ' ))
+        mask.erase(mask.length() - 1);
+      mask += char_cur;
+      onlyAlphaChars = false;
+      onlyNumericChars = false; 
+    }
+    else if ((char_cur == ' ')) {
+      if ( mask.empty() || ( mask[mask.length() - 1] != '-' ) )
+        mask += char_cur;
+      else
+      {
+        // mask += '?';
+        // onlyAlphaChars = false;
+        // onlyNumericChars = false;
+        return "?";
+      }
+    }
+  }
+  if ( onlyAlphaChars && !mask.empty() )
+    mask = "AX";
+  if ( onlyNumericChars && !mask.empty() )
+    mask = "0X";
+  return mask;
 }
 
 
@@ -526,10 +496,10 @@ string getDayTimeRangeString(int const &dayTimeNr) {
              break;
 
     case 3:  result = "17:00:00.000-21:00:00.000";
-             break;	     
+             break;
 
     case 4:  result = "21:00:00.000-23:59:59.999";
-             break;        
+             break;
   }
 
   return result;

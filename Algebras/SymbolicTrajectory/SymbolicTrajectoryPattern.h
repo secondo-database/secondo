@@ -1,3 +1,7 @@
+/*
+
+
+*/
 #include <vector>
 
 using namespace std;
@@ -5,7 +9,7 @@ using namespace std;
 namespace stj {
 
 struct PrePat {
-  PrePat() : left(""), right(""), variable(""), cp_variable(""), wildcard(0) {}; 
+  PrePat() : left(""), right(""), variable(""), cp_variable(""), wildcard(0) {};
 
   string left, right, variable;
   string cp_variable;
@@ -22,6 +26,10 @@ struct bracket_range {
 
 };
 
+/*
+comment
+
+*/
 
 struct SemTime {
   int type;
