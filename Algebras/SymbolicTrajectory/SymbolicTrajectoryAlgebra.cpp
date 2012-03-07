@@ -1394,14 +1394,17 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
   vector<SinglePattern> s_pattern;  
   SinglePattern pattern;
   size_t curULabel = startULabel;
+  int64_t firstMatchPosULabel = -1;
+  int64_t lastMatchPosULabel = -1;
   size_t maxULabel =  ml.GetNoComponents();
-  if (curULabel < 0 || curULabel > maxULabel) {
+  if ((curULabel < 0) || (curULabel == maxULabel)) {
     cout << "ULabel " << curULabel << " does not exist" << endl;
     return false;  
   }
   ULabel ul;
   bool wildcard = false;
   bool result;
+  bool possibleMatch = true;
   Interval<Instant> interval;
   DateTime startDate(instanttype), endDate(instanttype), duration(durationtype);
   DateTime startTime(instanttype), endTime(instanttype);
@@ -1412,7 +1415,8 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
   DateTime* dt = new DateTime(0, 1, durationtype);
   
   s_pattern = getPattern();
-  for (size_t i = 0; i < s_pattern.size(); ++i) {
+  size_t i = 0;
+  while ((i < s_pattern.size()) && (curULabel < maxULabel) && possibleMatch) {
     pattern = s_pattern[i];
     
     if (curULabel == maxULabel) {
@@ -1420,7 +1424,7 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
         delete dt;
       return result ? true : false;
     }
-    ml.Get(curULabel, ul); // TODO: ???
+    ml.Get(curULabel, ul);
     interval.CopyFrom( ul.timeInterval );
     startDate = interval.start;
     if (!interval.lc) {
@@ -1433,17 +1437,18 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
     if (pattern.wildcard == '*') {
       backtrack = true;
       wildcard = true;
+      i++;
       continue;
     } 
     else {
-      curULabel++; // TODO: ???
+      curULabel++;
     }
     result = true; 
     if ( !pattern.isSequence() ) {
       // check labels
       if ( !pattern.lbs.empty() ) {
         vector<string> lbs = pattern.lbs;
-        if (!ul.Passes(*(new CcString(true, lbs[0])))) // TODO: ???
+        if (!ul.Passes(*(new CcString(true, lbs[0]))))
           result = false;
       }
       // check time ranges
@@ -1525,7 +1530,7 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
 
             case 5:
               if ((startDate.ToString()).substr(0,7) !=
-                  (endDate.ToString()).substr(0,7) ) // not the same month/year
+                  (endDate.ToString()).substr(0,7)) // not the same month/year
                 result = false;
               if (startDate.GetMonth() != pattern.sts[j].value)
                 result = false;
@@ -1563,27 +1568,42 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
               break;
           }
         }
-      } // if  
+      } // if      
+      if ((firstMatchPosULabel == -1) && result) // save position where first
+        firstMatchPosULabel = curULabel;         // single pattern matches
     } // if not sequence
-    else {  
-       // not used  
+    if (!result && !wildcard) {
+      if (backtrack)
+        possibleMatch = false;
+      else  // mlabel does not match pattern
+        return false;
     }
-    if (!result && !wildcard) // mlabel does not match pattern
-      return false;
     // if existing, wildcard is set to the current value (wildcard = !result)
     // the current pattern will be used for the next ulabel if the ulabel does
     // not match the pattern (--i)
     if (wildcard)
       if ((wildcard = !result))
         --i;
-  } // for
+    i++;
+  } // while
+  if (result && (i == s_pattern.size()))
+    lastMatchPosULabel = curULabel; 
   if (dt)
     delete dt;
-  if (!wildcard && result && backtrack)
-    return true;
+  if (wildcard && !result && backtrack)
+    return Matches(ml, firstMatchPosULabel + 1, true);
+  if (!wildcard && result && backtrack) {
+    if ((size_t)lastMatchPosULabel == maxULabel) {
+      return true;
+    }
+    else if (curULabel == maxULabel)
+      return false;
+    else
+      return Matches(ml, firstMatchPosULabel, true);
+  }
   if (!wildcard && (curULabel != maxULabel)) // no backtracking without any *
-    return backtrack ? Matches(ml, curULabel, true) : false;
-  return true; 
+    return backtrack ? Matches(ml, firstMatchPosULabel, true) : false;
+  return (!wildcard && !result) ? false : true;
 }
 
 
