@@ -21737,7 +21737,6 @@ make the region larger or smaller
 int TMScaleRegion( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
-  cout<<" TMScaleRegion "<<endl;
   result    = qp->ResultStorage(s);
   Region *R      = (Region*) args[0].addr;
   CcReal *factor = (CcReal*) args[1].addr;
@@ -21756,7 +21755,7 @@ int TMScaleRegion( Word* args, Word& result, int message,
        int size = R->Size();
        HalfSegment hs;
        for(int i = 0;i < size;i++){
-         cout<<"i "<<i<<endl;
+//         cout<<"i "<<i<<endl;
          R->Get(i, hs);
 //         hs.Scale(f);
          HalfSegment newhs = hs;
