@@ -8679,11 +8679,11 @@ ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid1"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid1"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("oid2"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid2"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("commarea"),
+                        nl->TwoElemList(nl->SymbolAtom("Commarea"),
                                     nl->SymbolAtom("line"))
                   )
                 )
@@ -8830,11 +8830,11 @@ ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
 
                   nl->SymbolAtom("tuple"),
                       nl->ThreeElemList(
-                        nl->TwoElemList(nl->SymbolAtom("oid1"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid1"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("oid2"),
+                        nl->TwoElemList(nl->SymbolAtom("Oid2"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("commarea"),
+                        nl->TwoElemList(nl->SymbolAtom("Commarea"),
                                     nl->SymbolAtom("line"))
                   )
                 )

@@ -58,6 +58,7 @@ Jan, 2011 Jianqiu xu
 #include "Indoor.h"
 #include "RoadNetwork.h"
 #include <sys/timeb.h>
+#include "GSLAlgebra.h"
 
 ///////////////////////////random number generator//////////////////////////
 unsigned long GetRandom()
