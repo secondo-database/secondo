@@ -8222,9 +8222,11 @@ bool BN::FindNeighbor(int tid1, int tid2, DualGraph* dg, VisualGraph* vg,
   Point loc1 = *loc_1;
   Point loc2 = *loc_2;
 
-  GenLoc gloc1 = *genloc1;
-  GenLoc gloc2 = *genloc2;
-
+//  GenLoc gloc1 = *genloc1;
+//  GenLoc gloc2 = *genloc2;
+  GenLoc gloc1(genloc1->GetOid(), genloc1->GetLoc());
+  GenLoc gloc2(genloc2->GetOid(), genloc2->GetLoc());
+  
   tuple1->DeleteIfAllowed();
   tuple2->DeleteIfAllowed();
 
