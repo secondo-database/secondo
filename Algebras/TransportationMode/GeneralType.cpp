@@ -1216,8 +1216,9 @@ void UGenLoc::CopyFrom(const Attribute* right)
 ostream& operator<<(ostream& o, const UGenLoc& gloc)
 {
   if(gloc.IsDefined()){
-    o<<gloc.timeInterval<<" "<<gloc.gloc1<<" "
-     <<gloc.gloc2<<" "<<GetTMStr(gloc.tm); 
+//    o<<gloc.timeInterval<<" "<<gloc.gloc1<<" "
+    gloc.timeInterval.Print(cout);
+    o<<" "<<gloc.gloc1<<" "<<gloc.gloc2<<" "<<GetTMStr(gloc.tm); 
   }else
     o<<" undef";
   return o;
