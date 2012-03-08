@@ -1824,7 +1824,7 @@ void SubLine(const double pos1, const double pos2, SimpleLine& l) const;
 ~Crossings~
 
 */
-  
+
 void Crossings(const SimpleLine& l, Points& result,
                const Geoid* geoid=0) const;
 
@@ -1833,7 +1833,7 @@ void Crossings(const SimpleLine& l, Points& result,
 
 */
   bool Intersects(const SimpleLine& l, const Geoid* geoid=0) const;
-
+  bool Contains (const Point& p, const Geoid* geoid = 0) const;
 
 /*
 ~Attribute Functions~

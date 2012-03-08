@@ -213,6 +213,7 @@ Operators redefinition.
 
 */
   bool Inside( const Line& l, const Geoid* geoid=0 ) const;
+  bool Inside( const SimpleLine& l, const Geoid* geoid = 0) const;
 /*
 6.4.4 Operation ~inside~ (with ~region~)
 
@@ -666,7 +667,7 @@ as an attribute.
 
     static const string BasicType(){
        return "point";
-    }  
+    }
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }

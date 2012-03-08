@@ -915,6 +915,11 @@ bool Point::Inside( const Line& l,
   return l.Contains(*this,geoid);
 }
 
+bool Point::Inside(const SimpleLine& l, const Geoid* geoid /*=0*/) const
+{
+  return l.Contains(*this,geoid);
+}
+
 bool Point::Inside( const Points& ps,
                     const Geoid* geoid /*=0*/ ) const
 {
@@ -7573,6 +7578,31 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result,
   result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
+bool SimpleLine::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const
+{
+  assert( IsDefined() );
+  assert( p.IsDefined() );
+  if( IsEmpty() || (geoid&& !geoid->IsDefined()))
+    return false;
+
+  int pos;
+  if( Find( p, pos ) )
+    return true;
+
+  if( pos >= Size() )
+    return false;
+
+  HalfSegment hs;
+  for( ; pos >= 0; pos-- ){
+    Get( pos, hs );
+    if( hs.IsLeftDomPoint() ){
+      if( hs.Contains( p ) )
+        return true;
+    }
+  }
+  return false;
+}
+
 bool SimpleLine::Intersects(const SimpleLine& l,
                             const Geoid* geoid /*=0*/ ) const{
   assert( IsDefined() );
@@ -13003,7 +13033,10 @@ InsideTypeMap( ListExpr args )
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
 
       ((SpatialTypeOfSymbol(arg1)==stregion) &&
-       (SpatialTypeOfSymbol(arg2)==stregion)) ){
+       (SpatialTypeOfSymbol(arg2)==stregion)) ||
+
+      ((SpatialTypeOfSymbol(arg1)== point) &&
+       (SpatialTypeOfSymbol(arg2)==stsline)) ){
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
@@ -14668,6 +14701,10 @@ SpatialSelectInside( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
        SpatialTypeOfSymbol( arg2 ) == stregion )
     return 8;
+
+  if (SpatialTypeOfSymbol(arg1) == stpoint &&
+      SpatialTypeOfSymbol(arg2) == stsline)
+    return 9;
 
   return -1; // This point should never be reached
 }
@@ -18004,7 +18041,9 @@ ValueMapping spatialinsidemap[] = {
   SpatialInsideGeneric<Points,Region>,
   SpatialInsideGeneric<Line,Line>,
   SpatialInsideGeneric<Line,Region>,
-  SpatialInsideGeneric<Region,Region> };
+  SpatialInsideGeneric<Region,Region>,
+  SpatialInsideGeneric<Point,SimpleLine>
+};
 
 ValueMapping spatialadjacentmap[] = {
   SpatialAdjacent_psr,
@@ -18297,7 +18336,7 @@ const string SpatialSpecIntersects  =
 
 const string SpatialSpecInside  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>(points||line||region x points||line||region) "
+  "( <text>(points||line||region x points||line||sline||region) "
   "-> bool</text--->"
   "<text>_ inside _</text--->"
   "<text>TRUE iff the first argument is inside the second.</text--->"
@@ -18969,7 +19008,7 @@ Operator spatialintersects (
 Operator spatialinside (
   "inside",
   SpatialSpecInside,
-  9,
+  10,
   spatialinsidemap,
   SpatialSelectInside,
   InsideTypeMap );

@@ -4254,6 +4254,7 @@ int CCBinAndSVM (Word* args, Word& result, int message, Word& local,
   qp->Request(args[0].addr, wint);
   if (!qp->Received(args[0].addr)){
     res->SetDefined(false);
+    qp->Close(args[0].addr);
     return 0;
   }
   CcInt* curInt = static_cast<CcInt*> (wint.addr);

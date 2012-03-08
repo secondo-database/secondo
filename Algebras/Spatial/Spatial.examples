@@ -216,7 +216,7 @@ Result   : TRUE
 
 Operator : inside
 Number   : 1
-Signature: (point||points||line||region x points||line||region) -> bool
+Signature: (point||points||line||region x points||line||simpleline||region) -> bool
 Example  : query mehringdamm inside thecenter
 Result   : TRUE
 
