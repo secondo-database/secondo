@@ -4190,6 +4190,89 @@ int CCdms2degVM (Word* args, Word& result, int message, Word& local,
 }
 
 /*
+TypeMapping for binand and binands operator
+
+*/
+
+ListExpr CCBinAndTM (ListExpr args)
+{
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Expected two int values.");
+  }
+
+  if(listutils::isSymbol(nl->First(args), CcInt::BasicType()) &&
+     listutils::isSymbol(nl->Second(args), CcInt::BasicType())){
+    return nl->SymbolAtom(CcInt::BasicType());
+  }
+
+  return listutils::typeError("Expected two int values");
+}
+
+ListExpr CCBinAndSTM  (ListExpr args)
+{
+  if (!listutils::isStream(nl->First(args)))
+    return listutils::typeError("Expects stream of int");
+
+  if (listutils::isSymbol(nl->Second(nl->First(args)), CcInt::BasicType()))
+    return nl->SymbolAtom(CcInt::BasicType());
+
+  return listutils::typeError("Expected a stream of int values");
+}
+
+/*
+ValueMapping for binand and binands operators
+
+*/
+
+
+int CCBinAndVM (Word* args, Word& result, int message, Word& local,
+                Supplier s )
+{
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*> (result.addr);
+
+  CcInt* int1 = static_cast<CcInt*>(args[0].addr);
+  CcInt* int2 = static_cast<CcInt*>(args[1].addr);
+
+  if (!int1->IsDefined() || !int2->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+
+  res->Set(true, int1->GetIntval() & int2->GetIntval());
+  return 0;
+}
+
+int CCBinAndSVM (Word* args, Word& result, int message, Word& local,
+                 Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*> (result.addr);
+
+  Word wint;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wint);
+  if (!qp->Received(args[0].addr)){
+    res->SetDefined(false);
+    return 0;
+  }
+  CcInt* curInt = static_cast<CcInt*> (wint.addr);
+  int inter = curInt->GetIntval();
+  curInt->DeleteIfAllowed();
+  qp->Request(args[0].addr, wint);
+  while (qp->Received(args[0].addr)){
+    curInt = static_cast<CcInt*> (wint.addr);
+    if (curInt->IsDefined()){
+      inter = inter & curInt->GetIntval();
+    }
+    curInt->DeleteIfAllowed();
+    qp->Request(args[0].addr, wint);
+  }
+  res->Set(true, inter);
+  return 0;
+}
+
+/*
 5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -5020,6 +5103,29 @@ const string CCdms2degSpec =
     ") )";
 
 /*
+binary and of integer values and streams of integer values
+
+*/
+
+const string CCBinAndSpec =
+  "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text> int X int -> int </text--->"
+  "<text> _ binand _ </text--->"
+  "<text>Computes the binary and conjunction of the two given int as int value."
+  "</text--->"
+  "<text>query 15 binand 4 </text--->"
+  ") )";
+
+const string CCBinAndSSpec =
+  "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+  "( <text> stream(int) -> int </text--->"
+  "<text> _ binands </text--->"
+  "<text>Computes the binary conjunction of the stream of int values."
+  "</text--->"
+  "<text>query intstream(1,5) binands </text--->"
+  ") )";
+
+/*
 Operator instance definitions
 
 */
@@ -5230,6 +5336,19 @@ Operator ccdms2deg("dms2deg", CCdms2degSpec, 8, CCdms2degmap,
                    CcNumNumNumRealSelect, CcTypeMapNumNumOptNumOptBoolReal);
 
 /*
+1.1 binary and of two integers and binary and for a stream of integers
+
+*/
+
+Operator ccbinand("binand", CCBinAndSpec, CCBinAndVM, Operator::SimpleSelect,
+                  CCBinAndTM);
+
+Operator ccbinands("binands", CCBinAndSSpec, CCBinAndSVM,
+                    Operator::SimpleSelect, CCBinAndSTM);
+
+
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -5354,6 +5473,9 @@ class CcAlgebra1 : public Algebra
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );
+
+    AddOperator (&ccbinand);
+    AddOperator( &ccbinands);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();

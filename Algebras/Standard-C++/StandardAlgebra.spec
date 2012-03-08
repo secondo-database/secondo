@@ -105,3 +105,6 @@ operator length alias LENGTH pattern op( _ )
 operator randmax alias RANDMAX pattern op( _ )
 operator seqinit alias SEQINIT pattern op( _ )
 operator seqnext alias SEQNEXT pattern op( _ )
+
+operator binand alias BINAND pattern _ infixop _
+operator binands alias BINANDS pattern _ op

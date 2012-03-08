@@ -653,3 +653,27 @@ Number   : 1
 Signature: {int|real} x {int|real} [x {int|real}] [x bool] -> real
 Example  : query dms2deg(2.0, 10.1, 5, TRUE)
 Result   : (real undefined)
+
+Operator : binand
+Number   : 1
+Signature: int x int -> int
+Example  : query 8 binand 7
+Result   : 0
+
+Operator : binand
+Number   : 2
+Signature: int x int -> int
+Example  : query 9 binand 3
+Result   : 1
+
+Operator : binands
+Number   : 1
+Signature: stream(int) -> int
+Example  : query intstream(1,5) binands
+Result   : 0
+
+Operator : binands
+Number   : 2
+Signature: stream(int) -> int
+Example  : query intstream(1,5) filter[(. mod 2) = 1] binands
+Result   : 1
