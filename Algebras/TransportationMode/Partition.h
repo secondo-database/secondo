@@ -593,6 +593,25 @@ inline void Modify_Point2(Point& p)
 
 }
 
+inline void Modify_Point3(Point& p, double f)
+{
+    double x, y;
+
+    x = p.GetX();
+    y = p.GetY();
+//    printf("%.10f %.10f\n",x, y);
+
+//    x = ((int)(x*1000.0 + 0.5))/1000.0;
+//    y = ((int)(y*1000.0 + 0.5))/1000.0;
+     double xx = (double)(int(x*f));
+     double yy = (double)(int(y*f));
+
+//    printf("%.10f %.10f\n",xx, yy);
+
+      p.Set(xx, yy);
+
+}
+
 void MySetOp(const Region& reg1, const Region& reg2,Region& result,
            myavlseg::SetOperation op);
 void MySetOp(const Line& line, const Region& region, Line& result,
