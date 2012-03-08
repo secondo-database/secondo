@@ -106,7 +106,8 @@ class GslRandomgen //: public Attribute
     inline int GetType();
     inline size_t Sizeof() const;
     double NextReal();
-    inline unsigned long int NextInt();
+//    inline unsigned long int NextInt();
+    unsigned long int NextInt();
     inline unsigned long int MinRand() const;
     inline unsigned long int MaxRand() const;
     inline double NextRealPos();

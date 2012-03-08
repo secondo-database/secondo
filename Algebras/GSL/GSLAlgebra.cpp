@@ -222,7 +222,8 @@ inline int GslRandomgen::GetType()
   return myType;
 }
 
-inline unsigned long int GslRandomgen::NextInt()
+// inline unsigned long int GslRandomgen::NextInt()
+unsigned long int GslRandomgen::NextInt()
 { // return next random int number from generator
   // uniformly distributed [MinRand, MaxRand]
   assert( defined && me != NULL );
