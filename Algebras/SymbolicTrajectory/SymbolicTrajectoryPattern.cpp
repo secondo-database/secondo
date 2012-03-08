@@ -165,9 +165,8 @@ string PatParser::toString() {
 }
 
 
-
 int PatParser::getConds(string const &text, string &errMsg) {
-  vector<string> conds = msplit(text, ',');
+  vector<string> conds = split(text, ',');
   vector<string> lhs;
   int op = 0;
   Condition cond;

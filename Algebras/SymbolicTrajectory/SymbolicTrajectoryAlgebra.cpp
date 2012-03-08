@@ -14,9 +14,10 @@
 #include "FTextAlgebra.h"
 #include "DateTime.h"
 #include "CharTransform.h"
-#include "SymbolicTrajectoryPattern.h"
+//#include "SymbolicTrajectoryPattern.h"
 #include "SymbolicTrajectoryTools.h"
-#include "SymbolicTrajectoryDateTime.h"
+//#include "SymbolicTrajectoryDateTime.h"
+#include "SymbolicTrajectoryAlgebra.h"
 #include "Stream.h"
 
 
@@ -338,12 +339,7 @@ For example:
 
 */
 
-class ULabel : public UString {
-public:  
-  static const string BasicType() { return "ulabel"; }
-  static ListExpr ULabelProperty();  
-  static bool CheckULabel( ListExpr type, ListExpr& errorInfo );  
-};
+
 
 /*
 5.2 function Describing the Signature of the Type Constructor
@@ -396,12 +392,7 @@ TypeConstructor unitlabel(
         ULabel::CheckULabel    //kind checking function
 );
 
-class MLabel : public MString {
-public:  
-  static const string BasicType() { return "mlabel"; }
-  static ListExpr MLabelProperty();  
-  static bool CheckMLabel( ListExpr type, ListExpr& errorInfo );  
-};
+
 
 
 /*
@@ -1158,96 +1149,211 @@ TypeConstructor labelsTC(
 //**********************************************************************
 //~pattern~
 
-class Pattern
-{
- public:
-//  Pattern() {};   
-  Pattern( string const &text );
-  inline Pattern( string const &text , PatParser const &patParser) {
-    SetText(text); SetPatParser(patParser);
-  }
-  Pattern( const Pattern& rhs );
-  ~Pattern();
-  
-  inline string GetText() const { return text;}
-  void SetText( string const &Text );
-  inline void SetPatParser( PatParser const &patParser ) {
-    Pattern::patParser = patParser;
-  }  
-  bool Matches(MLabel const &mlabel, size_t startULabel, bool backtrack);
-  inline bool isValid() { return patParser.isValid() ;}
-  inline string getErrMsg() { return patParser.getErrMsg() ;}
-  
-  Pattern* Clone();
-  
-  
-  // algebra support functions
-  
-  static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-  static ListExpr Out( ListExpr typeInfo, Word value );
-
-  static Word     Create( const ListExpr typeInfo );
-
-
-  static void     Delete( const ListExpr typeInfo, Word& w );
-
-  static void     Close( const ListExpr typeInfo, Word& w );
-
-  static Word     Clone( const ListExpr typeInfo, const Word& w );
-
-  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-
-  static int      SizeOfObj();
-
-  static ListExpr Property();  
-  
-  
-  // name of the type constructor
-  
-  static const string BasicType() { return "pattern"; }
-
-  static const bool checkType(const ListExpr type){
-    return listutils::isSymbol(type, BasicType());
-  }
-  
-
- private:
-   
-  Pattern() {};
-  vector<SinglePattern> getPattern();
-  
-  string text;
-  
-//  vector<SinglePattern> s_pattern;   
-  PatParser patParser;
-};  
-
-
-Pattern::Pattern( string const &Text ) 
-{
- 
-  text = Text;
-  PatParser patParser(text);
-  SetPatParser(patParser); 
+inline Pattern::Pattern( string const &text , PatParser const &patParser) {
+  SetText(text); SetPatParser(patParser);
+}
+inline string Pattern::GetText() const {
+  return text;
+}
+inline void Pattern::SetPatParser( PatParser const &patParser ) {
+  Pattern::patParser = patParser;
+}
+inline bool Pattern::isValid() {
+  return patParser.isValid();
+}
+inline string Pattern::getErrMsg() {
+  return patParser.getErrMsg();
 }
 
 
-Pattern::Pattern( const Pattern& rhs ) {
+// name of the type constructor
+
+const string Pattern::BasicType() {
+  return "pattern";
+}
+
+const bool Pattern::checkType(const ListExpr type){
+  return listutils::isSymbol(type, BasicType());
+}
+
+bool Pattern::checkCurULabel() {
+  if ((curULabel < 0) || (curULabel == maxULabel)) {
+    cout << "ULabel " << curULabel << " does not exist" << endl;
+    return false;
+  }
+  else
+    return true;
+}
+
+void Pattern::setStartEnd() {
+  startDate = interval.start;
+  if (!interval.lc)
+    startDate.Add(dt);
+  endDate = interval.end;
+  if (!interval.rc)
+    endDate.Minus(dt);
+}
+
+bool Pattern::checkLabels() {
+  return ul.Passes(*(new CcString(true, pattern.lbs[0]))) ? true : false;
+}
+
+bool Pattern::checkTimeRanges() {
+  duration = endDate - startDate;
+  if (duration.GetDay() > 0)
+    return false; // duration > 24 h
+  for (size_t j = 0; j < pattern.trs.size(); ++j) {
+    startTimeRange = getStartTimeFromRange(pattern.trs[j]);
+    endTimeRange = getEndTimeFromRange(pattern.trs[j]);
+    startTime.Set(startDate.GetYear(), startDate.GetMonth(),
+                  startDate.GetGregDay(), getHourFromTime(startTimeRange),
+                  getMinuteFromTime(startTimeRange),
+                  getSecondFromTime(startTimeRange),
+                  getMillisecondFromTime(startTimeRange));
+    startDate2 = startDate;
+    if (!isPositivTimeRange(pattern.trs[j]))
+      startDate2.Add(new DateTime(0, 1, durationtype));
+    endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
+                startDate2.GetGregDay(), getHourFromTime(endTimeRange),
+                getMinuteFromTime(endTimeRange),
+                getSecondFromTime(endTimeRange),
+                getMillisecondFromTime(endTimeRange) );
+    if ((startDate < startTime) || (endDate > endTime))
+      return false;
+  }
+  return true;
+}
+
+bool Pattern::checkDateRanges() {
+  for (size_t j = 0; j < pattern.dtrs.size(); ++j) {
+    startPatternDateTime.ReadFrom(getSecDateTimeString(
+                         getStartDateTimeFromRange(pattern.dtrs[j])));
+    endPatternDateTime.ReadFrom(getSecDateTimeString(
+                       getEndDateTimeFromRange(pattern.dtrs[j])));
+    if ((startDate < startPatternDateTime) || (endDate > endPatternDateTime))
+      return false;
+  }
+  return true;
+}
+
+      // 3 = weekday
+      // 4 = day-time
+      // 5 = month
+bool Pattern::checkSemanticRanges() {
+  for (size_t j = 0; j < pattern.sts.size(); ++j) {
+    switch (pattern.sts[j].type) {
+      case 3:
+        if ((startDate.ToString()).substr(0,10) !=
+           (endDate.ToString()).substr(0,10))  // not the same day
+          return false;
+        if (startDate.GetWeekday() != pattern.sts[j].value - 1)
+          return false;
+        break;
+      case 4:
+        if ((startDate.ToString()).substr(0,10) !=
+            (endDate.ToString()).substr(0,10))  // not the same day
+          return false;
+        timeRange = getDayTimeRangeString(pattern.sts[j].value);
+        startTimeRange = getStartTimeFromRange(timeRange);
+        endTimeRange = getEndTimeFromRange(timeRange);
+        startTime.Set(startDate.GetYear(), startDate.GetMonth(),
+                      startDate.GetGregDay(),
+                      getHourFromTime(startTimeRange),
+                      getMinuteFromTime(startTimeRange),
+                      getSecondFromTime(startTimeRange),
+                      getMillisecondFromTime(startTimeRange));
+        startDate2 = startDate;
+        if (!isPositivTimeRange(timeRange))
+          startDate2.Add(dt);
+        endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
+                    startDate2.GetGregDay(),
+                    getHourFromTime(endTimeRange),
+                    getMinuteFromTime(endTimeRange),
+                    getSecondFromTime(endTimeRange),
+                    getMillisecondFromTime(endTimeRange));
+        if ((startDate < startTime) || (endDate > endTime))
+          return false;
+        break;
+      case 5:
+        if ((startDate.ToString()).substr(0,7) !=
+            (endDate.ToString()).substr(0,7)) // not the same month/year
+          return false;
+        if (startDate.GetMonth() != pattern.sts[j].value)
+          return false;
+        break;
+    }
+  }
+  return true;
+}
+
+bool Pattern::checkConditions() {
+  for (size_t j = 0; j < pattern.conditions.size(); ++j) {
+    patEquation = pattern.conditions[j];
+    // key : 1="lb/lbs"; 3="start"; 4="end"; 6="card"
+    // op : 1="="; 2="<"; 4=">"
+    switch (patEquation.key) {
+      case 1:
+        if (patEquation.op & 1)
+          if (!ul.Passes(*(new CcString(true, patEquation.value))))
+            return false;
+        break;
+      case 3:
+        startPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
+                                      patEquation.value)));
+        if (!(((patEquation.op & 1) && (startDate == startPatternDateTime))
+         || ((patEquation.op & 2) && (startDate < startPatternDateTime))
+         || ((patEquation.op & 4) && (startDate > startPatternDateTime))))
+          return false;
+        break;
+      case 4:
+        endPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
+                                    patEquation.value)));
+        if (!(((patEquation.op & 1) && (endDate == endPatternDateTime))
+         || ((patEquation.op & 2) && (endDate < endPatternDateTime))
+         || ((patEquation.op & 4) && (endDate > endPatternDateTime))))
+          return false;
+        break;
+    }
+  }
+  return true;
+}
+
+void Pattern::initializeMatching(size_t startULabel, MLabel const &ml) {
+  endDate.SetType(datetime::instanttype);
+  duration.SetType(datetime::durationtype);
+  startTime.SetType(datetime::instanttype);
+  endTime.SetType(datetime::instanttype);
+  startDate2.SetType(datetime::instanttype);
+  startPatternDateTime.SetType(datetime::instanttype);
+  endPatternDateTime.SetType(datetime::instanttype);
+  startDate.SetType(datetime::instanttype);
+  curULabel = startULabel;
+  firstMatchULabel = -1;
+  lastMatchULabel = -1;
+  maxULabel = ml.GetNoComponents();
+  wildcard = false;
+  possibleMatch = true;
+}
+
+
+Pattern::Pattern(string const &Text) {
+  text = Text;
+  PatParser patParser(text);
+  SetPatParser(patParser);
+}
+
+
+Pattern::Pattern(const Pattern& rhs) {
   text = rhs.text;  
   PatParser patParser(text);
-  SetPatParser(patParser);   
+  SetPatParser(patParser);
 }
 
 Pattern::~Pattern() {}
 
 
-void Pattern::SetText( string const &Text ) 
-{ 
+void Pattern::SetText(string const &Text) { 
   text = Text;
- 
   PatParser patParser(text);
   SetPatParser(patParser); 
 }
@@ -1255,47 +1361,32 @@ void Pattern::SetText( string const &Text )
 
 Word
 Pattern::In( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct )
-{
+            const int errorPos, ListExpr& errorInfo, bool& correct ) {
   Word result = SetWord(Address(0));
   correct = false;
-  
   NList list(instance);  
-  
-  if ( list.isAtom() )
-  {
-    if ( list.isText() )
-    {
+  if (list.isAtom()) {
+    if (list.isText()) {
       string text = list.str();
-      
-      PatParser patParser( text );
-      
-      if ( patParser.isValid() ) 
-      {
+      PatParser patParser(text);
+      if (patParser.isValid()) {
         correct = true;          
         result.addr = new Pattern( text, patParser );
       }
-      else
-      {
+      else {
         correct = false;
         cmsg.inFunError( patParser.getErrMsg() );
       }
-
     }
-    else
-    { 
+    else {
       correct = false;
       cmsg.inFunError("Expecting a text!");
     }      
-    
-    
   }
-  else 
-  { 
+  else {
     correct = false;
     cmsg.inFunError("Expecting one text atom!");
   }
-  
   return result;
 }
 
@@ -1305,7 +1396,6 @@ Pattern::Out( ListExpr typeInfo, Word value )
 {
   Pattern* pattern = static_cast<Pattern*>( value.addr );
   NList element ( pattern->GetText(), true, true );
-
   return element.listExpr();
 }
 
@@ -1319,38 +1409,32 @@ Pattern::Create( const ListExpr typeInfo )
  
  
 void
-Pattern::Delete( const ListExpr typeInfo, Word& w )
-{
+Pattern::Delete( const ListExpr typeInfo, Word& w ) {
   delete static_cast<Pattern*>( w.addr );
   w.addr = 0;
 }
 
 void
-Pattern::Close( const ListExpr typeInfo, Word& w )
-{
+Pattern::Close( const ListExpr typeInfo, Word& w ) {
   delete static_cast<Pattern*>( w.addr );
   w.addr = 0;
 }
 
 Word
-Pattern::Clone( const ListExpr typeInfo, const Word& w )
-{
+Pattern::Clone( const ListExpr typeInfo, const Word& w ) {
   Pattern* pattern = static_cast<Pattern*>( w.addr );
   return SetWord( new Pattern(*pattern) );
 }
 
 int
-Pattern::SizeOfObj()
-{
+Pattern::SizeOfObj() {
   return sizeof(Pattern);
 }
 
 bool
-Pattern::KindCheck( ListExpr type, ListExpr& errorInfo )
-{
+Pattern::KindCheck( ListExpr type, ListExpr& errorInfo ) {
   return (nl->IsEqual( type, Pattern::BasicType() ));
 }
-
 
 
 ListExpr
@@ -1383,7 +1467,6 @@ TypeConstructor patternTC(
   Pattern::KindCheck );             // kind checking function
 
 
-
 vector<SinglePattern> Pattern::getPattern()
 {
   return patParser.getPattern(); 
@@ -1391,186 +1474,54 @@ vector<SinglePattern> Pattern::getPattern()
 
 
 bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
-  vector<SinglePattern> s_pattern;  
-  SinglePattern pattern;
-  size_t curULabel = startULabel;
-  int64_t firstMatchPosULabel = -1;
-  int64_t lastMatchPosULabel = -1;
-  size_t maxULabel =  ml.GetNoComponents();
-  if ((curULabel < 0) || (curULabel == maxULabel)) {
-    cout << "ULabel " << curULabel << " does not exist" << endl;
-    return false;  
-  }
-  ULabel ul;
-  bool wildcard = false;
-  bool result;
-  bool possibleMatch = true;
-  Interval<Instant> interval;
-  DateTime startDate(instanttype), endDate(instanttype), duration(durationtype);
-  DateTime startTime(instanttype), endTime(instanttype);
-  DateTime startPatternDateTime(instanttype), endPatternDateTime(instanttype);  
-  string startTimeRange, endTimeRange, timeRange;
-  DateTime startDate2(instanttype);
-  PatEquation patEquation;
-  DateTime* dt = new DateTime(0, 1, durationtype);
-  
+  initializeMatching(startULabel, ml);
+  if (!checkCurULabel())
+    return false;
+  dt = new DateTime(0, 1, durationtype);
   s_pattern = getPattern();
   size_t i = 0;
   while ((i < s_pattern.size()) && (curULabel < maxULabel) && possibleMatch) {
     pattern = s_pattern[i];
-    
     if (curULabel == maxULabel) {
       if (dt)
         delete dt;
       return result ? true : false;
     }
     ml.Get(curULabel, ul);
-    interval.CopyFrom( ul.timeInterval );
-    startDate = interval.start;
-    if (!interval.lc) {
-      startDate.Add(dt);
-    }
-    endDate = interval.end;    
-    if (!interval.rc) {
-      endDate.Minus(dt);
-    }
+    interval.CopyFrom(ul.timeInterval);
+    setStartEnd();
     if (pattern.wildcard == '*') {
       backtrack = true;
       wildcard = true;
       i++;
       continue;
     } 
-    else {
+    else
       curULabel++;
-    }
     result = true; 
-    if ( !pattern.isSequence() ) {
-      // check labels
-      if ( !pattern.lbs.empty() ) {
-        vector<string> lbs = pattern.lbs;
-        if (!ul.Passes(*(new CcString(true, lbs[0]))))
+    if (!pattern.isSequence()) {
+      if (!pattern.lbs.empty())
+        if (!checkLabels())
           result = false;
-      }
-      // check time ranges
-      if ( !pattern.trs.empty() ) {
-        duration = endDate - startDate;
-        if ( duration.GetDay() > 0 )
-          result = false; // duration > 24 h
-        for (size_t j = 0; j < pattern.trs.size(); ++j) {
-          startTimeRange = getStartTimeFromRange( pattern.trs[j] );
-          endTimeRange = getEndTimeFromRange( pattern.trs[j] );
-          startTime.Set(startDate.GetYear(), startDate.GetMonth(),
-                        startDate.GetGregDay(), getHourFromTime(startTimeRange),
-                        getMinuteFromTime(startTimeRange),
-                        getSecondFromTime(startTimeRange),
-                        getMillisecondFromTime(startTimeRange));
-          startDate2 = startDate;
-          if (!isPositivTimeRange( pattern.trs[j]))
-            startDate2.Add(dt);
-          endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
-                      startDate2.GetGregDay(), getHourFromTime(endTimeRange),
-                      getMinuteFromTime(endTimeRange),
-                      getSecondFromTime(endTimeRange),
-                      getMillisecondFromTime(endTimeRange) );
-          if ( (startDate < startTime) || (endDate > endTime) )
-            result = false;
-        }
-      }
-      // check date ranges
+
+      if (!pattern.trs.empty())
+        if (!checkTimeRanges())
+          result = false;
+
       if (!pattern.dtrs.empty())
-        for (size_t j = 0; j < pattern.dtrs.size(); ++j) {
-          startPatternDateTime.ReadFrom(getSecDateTimeString(
-                               getStartDateTimeFromRange(pattern.dtrs[j])));
-          endPatternDateTime.ReadFrom(getSecDateTimeString(
-                             getEndDateTimeFromRange(pattern.dtrs[j])));
-          if ((startDate < startPatternDateTime)
-             || (endDate > endPatternDateTime))
-            result = false;
-        }
-      // check daytime/month ranges
-      // 3 = weekday
-      // 4 = day-time
-      // 5 = month
+        if (!checkDateRanges())
+          result = false;
+
       if (!pattern.sts.empty())
-        for (size_t j = 0; j < pattern.sts.size(); ++j)
-          switch (pattern.sts[j].type) {
-            case 3:
-              if ((startDate.ToString()).substr(0,10) !=
-                 (endDate.ToString()).substr(0,10))  // not the same day
-                result = false;
-              if (startDate.GetWeekday() != pattern.sts[j].value - 1)
-                result = false;
-              break;
+        if (!checkSemanticRanges())
+          result = false;
 
-            case 4:
-              if ((startDate.ToString()).substr(0,10) !=
-                  (endDate.ToString()).substr(0,10))  // not the same day
-                result = false;
-              timeRange = getDayTimeRangeString(pattern.sts[j].value);
-              startTimeRange = getStartTimeFromRange(timeRange);
-              endTimeRange = getEndTimeFromRange(timeRange);
-              startTime.Set(startDate.GetYear(), startDate.GetMonth(),
-                            startDate.GetGregDay(),
-                            getHourFromTime(startTimeRange),
-                            getMinuteFromTime(startTimeRange),
-                            getSecondFromTime(startTimeRange),
-                            getMillisecondFromTime(startTimeRange));
-              startDate2 = startDate;
-              if (!isPositivTimeRange(timeRange))
-                startDate2.Add(dt);
-              endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
-                          startDate2.GetGregDay(),
-                          getHourFromTime(endTimeRange),
-                          getMinuteFromTime(endTimeRange),
-                          getSecondFromTime(endTimeRange),
-                          getMillisecondFromTime(endTimeRange));
-              if ((startDate < startTime) || (endDate > endTime))
-                result = false;
-              break;
+      if (!pattern.conditions.empty())
+        if (!checkConditions())
+          result = false;
 
-            case 5:
-              if ((startDate.ToString()).substr(0,7) !=
-                  (endDate.ToString()).substr(0,7)) // not the same month/year
-                result = false;
-              if (startDate.GetMonth() != pattern.sts[j].value)
-                result = false;
-              break;
-          }
-      // check conditions
-      if (!pattern.conditions.empty()) {
-        for (size_t j = 0; j < pattern.conditions.size(); ++j) {
-          patEquation = pattern.conditions[j];
-          // key : 1="lb/lbs"; 3="start"; 4="end"; 6="card" 
-          // op : 1="="; 2="<"; 4=">"
-          switch (patEquation.key) {
-            case 1:
-              if (patEquation.op & 1)
-                if (!ul.Passes(*(new CcString(true, patEquation.value))))
-                  result = false;
-              break;
-
-            case 3:
-              startPatternDateTime.ReadFrom(getSecDateTimeString(
-                                   getFullDateTime(patEquation.value)));
-              if (!(((patEquation.op&1) && (startDate == startPatternDateTime))
-               || ((patEquation.op&2) && (startDate < startPatternDateTime))
-               || ((patEquation.op&4) && (startDate > startPatternDateTime))))
-                result = false;
-              break;
-
-            case 4:
-              endPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
-                                          patEquation.value)));
-              if (!(((patEquation.op & 1) && (endDate == endPatternDateTime))
-               || ((patEquation.op & 2) && (endDate < endPatternDateTime))
-               || ((patEquation.op & 4) && (endDate > endPatternDateTime))))
-                result = false;
-              break;
-          }
-        }
-      } // if      
-      if ((firstMatchPosULabel == -1) && result) // save position where first
-        firstMatchPosULabel = curULabel;         // single pattern matches
+      if ((firstMatchULabel == -1) && result) // save position where first
+        firstMatchULabel = curULabel;         // single pattern matches
     } // if not sequence
     if (!result && !wildcard) {
       if (backtrack)
@@ -1587,22 +1538,23 @@ bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
     i++;
   } // while
   if (result && (i == s_pattern.size()))
-    lastMatchPosULabel = curULabel; 
+    lastMatchULabel = curULabel;
   if (dt)
     delete dt;
   if (wildcard && !result && backtrack)
-    return Matches(ml, firstMatchPosULabel + 1, true);
+    return (firstMatchULabel != -1) ? Matches(ml, firstMatchULabel + 1, true)
+                                    : false;
   if (!wildcard && result && backtrack) {
-    if ((size_t)lastMatchPosULabel == maxULabel) {
+    if ((size_t)lastMatchULabel == maxULabel) {
       return true;
     }
     else if (curULabel == maxULabel)
       return false;
     else
-      return Matches(ml, firstMatchPosULabel, true);
+      return Matches(ml, firstMatchULabel, true);
   }
   if (!wildcard && (curULabel != maxULabel)) // no backtracking without any *
-    return backtrack ? Matches(ml, firstMatchPosULabel, true) : false;
+    return backtrack ? Matches(ml, firstMatchULabel, true) : false;
   return (!wildcard && !result) ? false : true;
 }
 

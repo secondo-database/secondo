@@ -113,7 +113,8 @@ private:
    void pushAndClearPrePat(PrePat &prePat);
    int getConds(string const &text, string &errMsg);
    int setPats( string &errMsg );      
-   bool checkForUniqueVariables();   
+   bool checkForUniqueVariables();
+   vector<string> handleCommas(vector<string>);
 };
 
 
