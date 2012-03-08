@@ -21734,6 +21734,7 @@ int OpTMScaleSelect(ListExpr args)
 make the region larger or smaller
 
 */
+
 int TMScaleRegion( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
@@ -21745,37 +21746,38 @@ int TMScaleRegion( Word* args, Word& result, int message,
   {
     res->SetDefined(false);
   }
-  else
-  {
-    res->Clear();
-    res->SetDefined(true);
-    double f = factor->GetRealval();
-    if(!R->IsEmpty()){
-       res->StartBulkLoad();
-       int size = R->Size();
-       HalfSegment hs;
-       for(int i = 0;i < size;i++){
-//         cout<<"i "<<i<<endl;
-         R->Get(i, hs);
-//         hs.Scale(f);
-         HalfSegment newhs = hs;
-         if(f > 1.0){/////to become an integer
-            Point lp = newhs.GetLeftPoint();
-            Point rp = newhs.GetRightPoint();
-            Modify_Point3(lp, f);
-            Modify_Point3(rp, f);
-            if(hs.IsLeftDomPoint())
-              newhs.Set(true, lp, rp);
-            else
-              newhs.Set(false, rp, lp);
-         }
-         (*res) += newhs;
-       }
-      res->EndBulkLoad();
-    }
+  else{
+//     res->Clear();
+//     res->SetDefined(true);
+//     double f = factor->GetRealval();
+//     if(!R->IsEmpty()){
+//        res->StartBulkLoad();
+//        int size = R->Size();
+//        HalfSegment hs;
+//        for(int i = 0;i < size;i++){
+// //         cout<<"i "<<i<<endl;
+//          R->Get(i, hs);
+// //         hs.Scale(f);
+//          HalfSegment newhs = hs;
+//          if(f > 1.0){/////to become an integer
+//             Point lp = newhs.GetLeftPoint();
+//             Point rp = newhs.GetRightPoint();
+//             Modify_Point3(lp, f);
+//             Modify_Point3(rp, f);
+//             if(hs.IsLeftDomPoint())
+//               newhs.Set(true, lp, rp);
+//             else
+//               newhs.Set(false, rp, lp);
+//          }
+//          (*res) += newhs;
+//        }
+//       res->EndBulkLoad();
+//     }
+    ScaleRegion(res, R, factor->GetRealval());
   }
   return 0;
 }
+
 
 ValueMapping OpTMScaleMap[] = {
 TMScaleRegion

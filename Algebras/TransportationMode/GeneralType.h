@@ -1541,4 +1541,6 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 static GslRandomgen gsl_random(true); 
 unsigned long int GetRandom(); 
 
+void ScaleRegion(Region* res, Region* R, double f);
+
 #endif

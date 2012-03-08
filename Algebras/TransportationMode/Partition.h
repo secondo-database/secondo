@@ -955,8 +955,8 @@ struct SpacePartition{
                       int roadwidth, Region* crossregion, Region* last_zc);
   //create the pavement at each junction position
   void CreatePavement(SimpleLine* curve, Region* reg_pave1,
-                      Region* reg_pave2, double len, Line* pave1,
-                      Line* pave2, int roadwidth, Region* crossregion1,
+                      Region* reg_pave2, double len, 
+                      int roadwidth, Region* crossregion1,
                       Region* crossregion2, Region* last_zc);
 
   //cut the common pavements of two roads at the junction position
@@ -971,6 +971,7 @@ struct SpacePartition{
   void GetPavementEdge1(Network*, Relation*, BTree*, int, int, int);
   void GetPavementEdge2(Relation*, Relation*, BTree*, int, int, int);
 
+  bool RidPosExist(int rid, float pos, vector<vector<float> >& rid_pos_list);
   ///////////cut the commone area between pavements and road regions///
   void Junpavement(Network* n, Relation* rel, int attr_pos1,
                   int attr_pos2, int width, Relation* rel_road,int attr_pos3);

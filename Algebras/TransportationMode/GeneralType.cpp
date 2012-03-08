@@ -82,6 +82,36 @@ double Gen_DiffTimeb(struct timeb* t1, struct timeb* t2)
   double dt2 = t2->time + (double)t2->millitm/1000.0;
   return dt1 - dt2; 
 }
+
+void ScaleRegion(Region* res, Region* R, double f)
+{
+    res->Clear();
+    res->SetDefined(true);
+    if(!R->IsEmpty()){
+       res->StartBulkLoad();
+       int size = R->Size();
+       HalfSegment hs;
+       for(int i = 0;i < size;i++){
+//         cout<<"i "<<i<<endl;
+         R->Get(i, hs);
+//         hs.Scale(f);
+         HalfSegment newhs = hs;
+         if(f > 1.0){/////to become an integer
+            Point lp = newhs.GetLeftPoint();
+            Point rp = newhs.GetRightPoint();
+            Modify_Point3(lp, f);
+            Modify_Point3(rp, f);
+            if(hs.IsLeftDomPoint())
+              newhs.Set(true, lp, rp);
+            else
+              newhs.Set(false, rp, lp);
+         }
+         (*res) += newhs;
+       }
+      res->EndBulkLoad();
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////
 //////////////////// Data Type: IORef ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
