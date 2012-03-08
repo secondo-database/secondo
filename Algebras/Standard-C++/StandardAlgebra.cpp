@@ -4269,6 +4269,7 @@ int CCBinAndSVM (Word* args, Word& result, int message, Word& local,
     qp->Request(args[0].addr, wint);
   }
   res->Set(true, inter);
+  qp->Close(args[0].addr);
   return 0;
 }
 
