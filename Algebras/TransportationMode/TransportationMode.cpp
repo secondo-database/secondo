@@ -1062,9 +1062,9 @@ ListExpr GenerateMO1TypeMap(ListExpr args)
       if(CompareSchemas(arg2, xType) && 
         nl->IsAtom(arg5) && nl->AtomType(arg5) == SymbolType &&
         nl->SymbolValue(arg6) == "periods"){
-        ListExpr result; 
+//        ListExpr result; 
         if(nl->SymbolValue(arg5) == "int"){
-            result =
+            ListExpr result =
               nl->TwoElemList(
                 nl->SymbolAtom("stream"),
                   nl->TwoElemList(
@@ -1075,8 +1075,9 @@ ListExpr GenerateMO1TypeMap(ListExpr args)
                   )
                 )
               );
+          return result;
         }else if(nl->SymbolValue(arg5) == "real"){
-            result =
+            ListExpr result =
               nl->TwoElemList(
                 nl->SymbolAtom("stream"),
                   nl->TwoElemList(
@@ -1089,8 +1090,9 @@ ListExpr GenerateMO1TypeMap(ListExpr args)
                   )
                 )
               );
+            return result;
         }
-        return result;
+
       }else
         return nl->SymbolAtom("schema error"); 
   }

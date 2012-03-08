@@ -1238,7 +1238,8 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
 
   if(start_from[last_sec_index]){ //from small to big 
 
-    int rid; 
+//    int rid;
+    int rid = -1;
     //still in the same section, very long road section 
     if(fabs(last_sec_gp_pos - last_sec_end) > (next_stop_dist + dist_to_jun)){
       last_sec_gp_pos += next_stop_dist;
@@ -1320,8 +1321,9 @@ bool BusRoute::FindNextStop(vector<SectTreeEntry> sec_list,
   }else{///from big to small 
   
 //    cout<<"from big to small"<<endl;
-    
-    int rid; 
+
+//    int rid;
+    int rid = -1;
     //still in the same section, very long road section 
     if(fabs(last_sec_gp_pos - last_sec_start) > (next_stop_dist + dist_to_jun)){
       last_sec_gp_pos -= next_stop_dist;
@@ -2269,7 +2271,8 @@ void BusRoute::CalculateStartSmaller(vector<BusStop>& bus_stop_list,
   double dist = 0.0;
   unsigned int bus_stop_index = start;
 
-  bool startsmaller; 
+//  bool startsmaller;
+  bool startsmaller = true;
   bool initialize = false; 
   ///////////use the section list of the bus route/////////////////
   //////////bus stops are ordered from id small to id big///////////
@@ -5431,7 +5434,8 @@ use gline2line method 27 seconds
 void RoadDenstiy::GetRGEdges2(Relation* rel)
 {
   vector<GP_Point> gp_p_list;
-  int NetId;
+//  int NetId;
+  int NetId = -1;
   for(int i = 1;i <= rel->GetNoTuples();i++){
     Tuple* jun_tuple = rel->GetTuple(i, false);
 //    int oid = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
