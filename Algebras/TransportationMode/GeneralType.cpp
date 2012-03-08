@@ -5294,7 +5294,8 @@ void GenMObject::StringToBusStop(string str, Bus_Stop& bs)
   
   int br_id = 0;
   int stop_id = 0;
-  bool direction;
+//  bool direction;
+  bool direction = true;
   bool init = false;
   while (p!=NULL)
   {
