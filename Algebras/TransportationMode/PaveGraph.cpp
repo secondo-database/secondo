@@ -41,8 +41,6 @@ creating the graph model for walk planning.
 #include "PaveGraph.h"
 #include "GeneralType.h"
 #include "Indoor.h"
-#include "Partition.h"
-
 
 /*
 Decompose the pavement on one side of the road into a set of subregions

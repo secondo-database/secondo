@@ -61,7 +61,7 @@ Jan, 2011 Jianqiu xu
 #include "GSLAlgebra.h"
 
 ///////////////////////////random number generator//////////////////////////
-unsigned long GetRandom()
+unsigned long int GetRandom()
 {
     /////// only works in linux /////////////////////////////////////
   //  struct timeval tval;

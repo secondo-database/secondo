@@ -957,7 +957,7 @@ struct SpacePartition{
                   int attr_pos2, int width, Relation* rel_road,int attr_pos3);
 
   //Detect whether three points collineation
-  inline bool Collineation(Point& p1, Point& p2, Point& p3);
+  bool Collineation(Point& p1, Point& p2, Point& p3);
   //Check that the pavement gap should not intersect the two roads
   bool SameSide1(Region* reg1, Region* reg2, Line* r1r2,Point* junp);
   //build a small region around the three halfsegments

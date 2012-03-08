@@ -1539,6 +1539,6 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 //////////////////////////////////////////////////////////////////////
 
 static GslRandomgen gsl_random(true); 
-unsigned long GetRandom(); 
+unsigned long int GetRandom(); 
 
 #endif
