@@ -2082,8 +2082,12 @@ void HPolygon::Init2(int ncontours, int cntr[], vector<double>& vertices_x,
         int ni = cntr[i];
         mtabSize[i] = ni;
 //        cout<<"ni "<<ni<<endl;
-        double first_x, first_y;
-        int first_p_id;
+/*        double first_x, first_y;
+        int first_p_id;*/
+        double first_x = 0.0;
+        double first_y = 0.0;
+        int first_p_id = 0;
+
         for ( int j = 0; j < ni; j++){
            double x = vertices_x[j + count];
            double y = vertices_y[j + count];
@@ -2542,10 +2546,11 @@ bool HGrdTri::SetCircCenter()
     {
         DumpTri();
 //        TM_TRACE1( "d = %lg", d);
-        cout<<d<<endl;
+/*        cout<<d<<endl;
         cout<<x1<<" "<<y1<<endl;
         cout<<x2<<" "<<y2<<endl;
-        cout<<x3<<" "<<y3<<endl;
+        cout<<x3<<" "<<y3<<endl;*/
+        cout<<"SetCircCenter() "<<"error "<<endl;
         return true;
         // THROW_INTERNAL( "Problem inside SetCircCenter() !!!");
     }

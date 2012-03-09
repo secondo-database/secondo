@@ -3974,8 +3974,6 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
                   delete pave;
                   return true;
               }
-
-
             }
           }
 
