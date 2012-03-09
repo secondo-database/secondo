@@ -239,11 +239,28 @@ bool MapMatchingBase::CalcShortestPath(const GPoint* pGPStart,
                 if (dSpeed > 250.) // TODO use additional data -
                                    // speed-limits, previous speed, ...
                 {
-                    /*cout << "Too fast : " << endl;
-                    pGPStart->Print(cout);
-                    cout << endl;
-                    pGPEnd->Print(cout);
-                    cout << endl;*/
+                    ofstream StreamBadNetwork(
+                                     "/home/secondo/Traces/BadNetwork.txt",
+                                     ios_base::out|ios_base::ate|ios_base::app);
+                    StreamBadNetwork << "Too fast : " << endl;
+                    StreamBadNetwork << "Speed: " << dSpeed << endl;
+                    StreamBadNetwork << "Distance: " << dLen << endl;
+                    StreamBadNetwork << "Time: ";
+                    rtimeStart.Print(StreamBadNetwork);
+                    StreamBadNetwork << endl;
+                    rtimeEnd.Print(StreamBadNetwork);
+                    StreamBadNetwork << endl;
+                    StreamBadNetwork << "GP1: ";
+                    pGPStart->Print(StreamBadNetwork);
+                    Point pt(false);
+                    AttributePtr<Point> pPtStart(pGPStart->ToPoint());
+                    pPtStart->Print(StreamBadNetwork);
+                    StreamBadNetwork << endl;
+                    StreamBadNetwork << "GP2: ";
+                    pGPEnd->Print(StreamBadNetwork);
+                    AttributePtr<Point> pPtEnd(pGPEnd->ToPoint());
+                    pPtEnd->Print(StreamBadNetwork);
+                    StreamBadNetwork << endl;
                     return false;
                 }
             }

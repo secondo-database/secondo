@@ -389,7 +389,7 @@ void MapMatchingMHT::TripSegmentation(
     // Divide the data if the time gap is longer than 120 seconds or
     // the distance is larger than 500 meters
 
-    const double dMaxDistance = 500.0; // 500 meter
+    const double dMaxDistance = 750.0; // 750 meter
     //const DateTime MaxTimeDiff(durationtype, 120000); // 2 minutes
     int64_t MaxTimeDiff = 120000; // 2 minutes
     const Geoid  GeodeticSystem(Geoid::WGS1984);
@@ -446,7 +446,7 @@ void MapMatchingMHT::TripSegmentation(
         else
         {
             bool bValid = true;
-            if (ActData.m_Time - prevEndTime > MaxTimeDiff ||
+            if ((ActData.m_Time - prevEndTime) > MaxTimeDiff ||
                 prevEndPoint.DistanceOrthodrome(ActData.GetPoint()  *
                                                         (1.0 / m_dNetworkScale),
                                                 GeodeticSystem,
@@ -456,12 +456,12 @@ void MapMatchingMHT::TripSegmentation(
                 if (pActArray->Size() >= 10)
                 {
                     rvecTripParts.push_back(pActArray);
-                    pActArray = NULL;
+                    pActArray = DbArrayPtr<DbArray<MapMatchData> >(NULL);
                 }
                 else
                 {
                     // less than 10 components -> drop
-                    pActArray = NULL;
+                    pActArray = DbArrayPtr<DbArray<MapMatchData> >(NULL);
                 }
 
                 bProcessNext = false; // Process ActData once again
@@ -583,7 +583,6 @@ int MapMatchingMHT::DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
     for (int i = nIndexFirstComponent; i < nNoComponents; ++i)
     {
         //TracePoints << i << endl;
-
         MapMatchData ActData(0.0, 0.0, 0);
         if (!pDbaMMData->Get(i, ActData))
             continue;
@@ -610,7 +609,12 @@ int MapMatchingMHT::DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
 
         if (!CheckRouteCandidates(rvecRouteCandidates))
         {
-            cout << "failed!" << i << endl;
+            ofstream StreamBadNetwork("/home/secondo/Traces/BadNetwork.txt",
+            ios_base::out|ios_base::ate|ios_base::app);
+            StreamBadNetwork << "Match point failed: " << endl;
+            ActData.Print(StreamBadNetwork);
+            StreamBadNetwork << endl;
+
             // Matching failed - Restart with next component
             return i+1;
         }
@@ -670,6 +674,20 @@ void MapMatchingMHT::DevelopRoutes(const Point& rPoint,
                 const Point ptStart = pCurve->StartPoint(bStartsSmaller);
                 const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
 
+                if (!ptStart.IsDefined() || !ptEnd.IsDefined())
+                {
+                    ofstream StreamBadNetwork(
+                                     "/home/secondo/Traces/BadNetwork.txt",
+                                     ios_base::out|ios_base::ate|ios_base::app);
+
+                    StreamBadNetwork << "Undefined start- or endpoint: ";
+                    StreamBadNetwork << "Section: " << rSection.GetSectionID();
+                    StreamBadNetwork << endl;
+
+                    *it = NULL;
+                    delete pCandidate; pCandidate = NULL;
+                    continue;
+                }
 
                 const double dDistanceStart = MMUtil::CalcDistance(
                                                                rPoint,
@@ -1035,12 +1053,18 @@ Route reduction - removes unlikely routes
 void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                             rvecRouteCandidates)
 {
-    /*if (rvecRouteCandidates.size() <= 20) // minimum 20 candidates
-        return;*/
+    if (rvecRouteCandidates.size() == 0)
+        return;
 
     std::sort(rvecRouteCandidates.begin(),
               rvecRouteCandidates.end(),
               RouteCandidateScoreCompare);
+
+    const bool bInInitPhase = (rvecRouteCandidates[0]->GetPoints().size() < 5);
+
+    if (bInInitPhase &&
+        rvecRouteCandidates.size() < 20)
+        return;
 
     MHTRouteCandidate* pBestCandidate = rvecRouteCandidates[0];
     const size_t nPoints = pBestCandidate->GetPoints().size();
@@ -1048,13 +1072,13 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
 
     // remove candidates with very bad score
     size_t nCandidates = rvecRouteCandidates.size();
-    for (size_t i = 0; i < nCandidates; ++i)
+    for (size_t i = 0; !bInInitPhase && i < nCandidates; ++i)
     {
         MHTRouteCandidate* pCandidate = rvecRouteCandidates[i];
 
-        if (pCandidate == NULL || pCandidate->IsInvalid() ||
-            pCandidate->GetCountLastOffRoadPoints() > 0 ||
-            ((pCandidate->GetScore() / nPoints) > (3 * dBestAvgScorePerPoint)))
+        if (pCandidate == NULL ||
+            pCandidate->GetCountLastOffRoadPoints() > 2 ||
+            ((pCandidate->GetScore() / nPoints) > (6 * dBestAvgScorePerPoint)))
         {
             pCandidate->MarkAsInvalid();
         }
@@ -1097,8 +1121,9 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
             {
                 rvecRouteCandidates[j]->MarkAsInvalid();
             }
-            else if (pRouteCandidate1->GetLastSection() ==
-                                       pRouteCandidate2->GetLastSection() &&
+            else if (!bInInitPhase &&
+                     (pRouteCandidate1->GetLastSection() ==
+                                       pRouteCandidate2->GetLastSection()) &&
                      LastPointsEqual(pRouteCandidate1, pRouteCandidate2, 5))
             {
                 rvecRouteCandidates[j]->MarkAsInvalid();
@@ -1143,8 +1168,21 @@ bool MapMatchingMHT::CheckRouteCandidates(const std::vector<MHTRouteCandidate*>&
                                                             rvecRouteCandidates)
 {
     size_t nFailedCandidates = 0;
-
     const size_t nCandidates = rvecRouteCandidates.size();
+
+    if (nCandidates == 0)
+    {
+        assert(false);
+        return false;
+    }
+
+    if (rvecRouteCandidates[0]->IsInvalid()) // Candidates should be sorted by
+        return false;                        // score -> ReduceRouteCandidates
+                                             // Best candidate is invalid
+
+    if (rvecRouteCandidates[0]->GetLastPoint()->GetScore() > 350.)
+        return false; // Too bad scale for last point of best candidate
+
     for (size_t i = 0; i < nCandidates; ++i)
     {
         MHTRouteCandidate* pCandidate = rvecRouteCandidates[i];
@@ -1257,6 +1295,21 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
                                             DirectedNetworkSection::DIR_UP ?
                                                     adjSection.GetStartPoint() :
                                                     adjSection.GetEndPoint());
+
+                if (!PointNewProjection.IsDefined())
+                {
+                    ofstream StreamBadNetwork(
+                                     "/home/secondo/Traces/BadNetwork.txt",
+                                     ios_base::out|ios_base::ate|ios_base::app);
+
+                    StreamBadNetwork << "Undefined start- or endpoint: ";
+                    StreamBadNetwork << "Section: ";
+                    StreamBadNetwork << adjSection.GetSectionID();
+                    StreamBadNetwork << endl;
+
+                    delete pNewCandidate; pNewCandidate = NULL;
+                    continue;
+                }
 
                 double dDistance = MMUtil::CalcDistance(PointNewProjection,
                                                    *PointDataLast.GetPointGPS(),

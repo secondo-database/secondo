@@ -106,9 +106,10 @@ public:
 
         void Print(ostream& os)
         {
-            os << m_dLat << ";" << m_dLon << "; " << m_Time << ";";
-            os << m_nFix << ";" << m_nSat << ";" << m_dHdop << ";";
-            os << m_dVdop << ";" <<  m_dPdop;
+            os << "Lat: " << m_dLat << ";" << "Lon: " << m_dLon << "; ";
+            os << "Time: " << m_Time << ";" << "Fix: " << m_nFix << ";";
+            os << "Sat: " << m_nSat << ";" << "Hdop: " << m_dHdop << ";";
+            os << "Vdop: " << m_dVdop << ";" << "PDop: " << m_dPdop;
         }
 
         double m_dLat;
