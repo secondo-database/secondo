@@ -3952,9 +3952,19 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
                   Point p = outer_ps[index];
                   outer_ps1.push_back(p);
                   index = (index + 1) % outer_ps.size();
+                  ////////////////////2012.3.9////////////////////
+                  if(outer_ps1.size() >= 2){
+                     if(p.Distance(outer_ps1[outer_ps1.size() - 2]) < 0.001){
+                       outer_ps1.clear();
+                       break;
+                     }
+                  }
+                  ///////////////////////////////////////////////////
               }
               vector<Region> result1;
-              ComputeRegion(outer_ps1, result1);
+//              ComputeRegion(outer_ps1, result1);
+              if(outer_ps1.size() >= 3)/////////2012.3.9
+                  ComputeRegion(outer_ps1, result1);
 
 //              if(result1[0].GetCycleDirection() &&
               if(result1.size() > 0 && result1[0].GetCycleDirection() &&
