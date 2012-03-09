@@ -20,6 +20,7 @@ of a point data type.
 class Point;
 class Points;
 class Line;
+class SimpleLine;
 class Region;
 
 /*

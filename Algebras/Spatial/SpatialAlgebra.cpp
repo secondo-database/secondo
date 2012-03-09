@@ -7578,30 +7578,6 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result,
   result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
-bool SimpleLine::Contains( const Point& p, const Geoid* geoid/*=0*/ ) const
-{
-  assert( IsDefined() );
-  assert( p.IsDefined() );
-  if( IsEmpty() || (geoid&& !geoid->IsDefined()))
-    return false;
-
-  int pos;
-  if( Find( p, pos ) )
-    return true;
-
-  if( pos >= Size() )
-    return false;
-
-  HalfSegment hs;
-  for( ; pos >= 0; pos-- ){
-    Get( pos, hs );
-    if( hs.IsLeftDomPoint() ){
-      if( hs.Contains( p ) )
-        return true;
-    }
-  }
-  return false;
-}
 
 bool SimpleLine::Intersects(const SimpleLine& l,
                             const Geoid* geoid /*=0*/ ) const{
@@ -13035,7 +13011,7 @@ InsideTypeMap( ListExpr args )
       ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
 
-      ((SpatialTypeOfSymbol(arg1)== point) &&
+      ((SpatialTypeOfSymbol(arg1)== stpoint) &&
        (SpatialTypeOfSymbol(arg2)==stsline)) ){
       return nl->SymbolAtom(CcBool::BasicType());
     }
