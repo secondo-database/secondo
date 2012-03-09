@@ -3187,16 +3187,15 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
       //Starting to compute a new cycle
 
       Points *cyclepoints= new Points( 8 ); // in memory
-      Point currvertex, p1, p2, firstP;
+
       Region *rDir = new Region(32);
       rDir->StartBulkLoad();
-      currvertex = firstPoint;
-
+      Point currvertex = firstPoint;
 
       cyclepoints->StartBulkLoad();
       *cyclepoints += currvertex;
-      p1 = currvertex;
-      firstP = p1;
+      Point p1 = currvertex;
+      Point firstP = p1;
       cyclepoints->EndBulkLoad();
 
       for(unsigned int i = 1;i < outer_region.size();i++){
@@ -3206,7 +3205,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
         if(cyclepoints->Contains(currvertex))continue;
 
         ////////////////step -- 1/////////////////////////////
-        p2 = currvertex;
+        Point p2 = currvertex;
         cyclepoints->StartBulkLoad();
         *cyclepoints += currvertex;
         cyclepoints->EndBulkLoad(true,false,false);
@@ -3243,9 +3242,12 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
       }//end for
 
       delete cyclepoints;
+      printf("(%.6f %.6f) (%.6f %.6f)\n", firstPoint.GetX(), firstPoint.GetY(),
+             currvertex.GetX(), currvertex.GetY());
+
       ////////////////////last segment//////////////////////////
       edno++;
-      HalfSegment* hs = new HalfSegment(true, firstPoint,currvertex);
+      HalfSegment* hs = new HalfSegment(true, firstPoint, currvertex);
       hs->attr.faceno=fcno;
       hs->attr.cycleno=ccno;
       hs->attr.edgeno=edno;
@@ -3304,6 +3306,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
           }
           delete rDir;
         }else assert(false);
+
 
       cr->SetNoComponents( fcno+1 );
       cr->EndBulkLoad( true, true, true, false );
