@@ -3016,7 +3016,7 @@ void SpacePartition::ReorderLine(SimpleLine* sline,
 for the given set of ordered points, it creates a region
 
 */
-void SpacePartition::CheckRegionPS(vector<Point>& outer_region)
+bool SpacePartition::CheckRegionPS(vector<Point>& outer_region)
 {
   ////////////whether two points are equal or segments overlapping ////
   assert(outer_region.size() >= 3);
@@ -3157,7 +3157,9 @@ void SpacePartition::CheckRegionPS(vector<Point>& outer_region)
       }
     }
 
-    assert(outer_region.size() >= 3);
+//    assert(outer_region.size() >= 3);
+    if(outer_region.size() >= 3) return true;
+    else return false;
 
 }
 void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
@@ -3170,7 +3172,9 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
       ///////////////////////////////////////////////////////////////
       //////////// check for overlapping segments///////////////////
       //////////////////////////////////////////////////////////////
-        CheckRegionPS(outer_region);
+//      CheckRegionPS(outer_region);
+      bool check = CheckRegionPS(outer_region);
+      if(check == false) return;
 
       ////////////////////////////////////////////////////////////
       Region* cr = new Region( 0 );
@@ -3399,11 +3403,17 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
       /////////////get the boundary//////////////////
 
       ComputeRegion(outer_s, outer_regions_s);
+      assert(outer_regions_s.size() > 0);
       ComputeRegion(outer1, outer_regions1);
+      assert(outer_regions1.size() > 0);
       ComputeRegion(outer2, outer_regions2);
+      assert(outer_regions2.size() > 0);
       ComputeRegion(outer_l, outer_regions_l);
+      assert(outer_regions_l.size() > 0);
       ComputeRegion(outer4, outer_regions4);
+      assert(outer_regions4.size() > 0);
       ComputeRegion(outer5, outer_regions5);
+      assert(outer_regions5.size() > 0);
 
       ////////////////////////////////////////////////////////////////
       ///////////////////////debuging////////////////////////////////
@@ -3945,14 +3955,17 @@ bool SpacePartition::BuildZebraCrossing(vector<MyPoint>& endpoints1,
               }
               vector<Region> result1;
               ComputeRegion(outer_ps1, result1);
-//              if(result1[0].GetCycleDirection()){
-              if(result1[0].GetCycleDirection() &&
+
+//              if(result1[0].GetCycleDirection() &&
+              if(result1.size() > 0 && result1[0].GetCycleDirection() &&
                  result1[0].Intersects(*last_zc) == false){
                   *crossregion = result1[0];
                   *pave1 = *pave;
                   delete pave;
                   return true;
               }
+
+
             }
           }
 
@@ -4624,6 +4637,7 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
         //should be counter clock wise
             vector<Region> gap;
             ComputeRegion(ps, gap);
+            assert(gap.size() > 0);
             outer_fillgap.push_back(gap[0]);
             return true;
             ////////////////////////////////////////////
@@ -4695,6 +4709,7 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
             if(i < ps.size()){
               vector<Region> gap;
               ComputeRegion(ps, gap);
+              assert(gap.size() > 0);
               outer_fillgap.push_back(gap[0]);
               return true;
             }else{
@@ -4836,6 +4851,7 @@ bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
         //should be counter clock wise
             vector<Region> gap;
             ComputeRegion(ps, gap);
+            assert(gap.size() > 0);
             outer_fillgap.push_back(gap[0]);
             return true;
 
@@ -4899,6 +4915,7 @@ bool SpacePartition::SameSide2(Region* reg1, Region* reg2, Line* r1r2,
 
             vector<Region> gap;
             ComputeRegion(ps, gap);
+            assert(gap.size() > 0);
             outer_fillgap.push_back(gap[0]);
             return true;
           }
@@ -5324,6 +5341,7 @@ void SpacePartition:: NewFillPavement2(Relation* rel, Relation* routes,
     ps.push_back(thirdseg.to);
     ps.push_back(secondseg.to);
     ComputeRegion(ps, smallreg);
+    assert(smallreg.size() > 0);
     //////////////////////////////
 
 
@@ -5666,6 +5684,7 @@ void SpacePartition::NewFillPavement4(Relation* routes, int id1, int id2,
     ps.push_back(thirdseg.to);
     ps.push_back(secondseg.to);
     ComputeRegion(ps, smallreg);
+    assert(smallreg.size() > 0);
     //////////////////////////////
 
 

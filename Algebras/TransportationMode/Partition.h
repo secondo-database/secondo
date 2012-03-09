@@ -907,7 +907,7 @@ struct SpacePartition{
   void ReorderLine(SimpleLine*, vector<MyHalfSegment>&);
   //create a region from the given set of ordered points
   void ComputeRegion(vector<Point>& outer_region, vector<Region>& regs);
-  void CheckRegionPS(vector<Point>& outer_region);
+  bool CheckRegionPS(vector<Point>& outer_region);
   //extend each road to a region
   void ExtendRoad(int attr_pos, int w);
   //remove triangle area after cutting
