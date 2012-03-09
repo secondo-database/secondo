@@ -2550,7 +2550,7 @@ bool HGrdTri::SetCircCenter()
         cout<<x1<<" "<<y1<<endl;
         cout<<x2<<" "<<y2<<endl;
         cout<<x3<<" "<<y3<<endl;*/
-        cout<<"SetCircCenter() "<<"error "<<endl;
+//        cout<<"SetCircCenter() "<<"error "<<endl;
         return true;
         // THROW_INTERNAL( "Problem inside SetCircCenter() !!!");
     }
