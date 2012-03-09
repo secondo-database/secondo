@@ -246,8 +246,8 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS  += Cluster
 ALGEBRAS      += ClusterAlgebra
 
-#ALGEBRA_DIRS  += NestedRelation
-#ALGEBRAS      += NestedRelationAlgebra
+ALGEBRA_DIRS  += NestedRelation
+ALGEBRAS      += NestedRelationAlgebra
 
 
 
