@@ -2495,8 +2495,8 @@ void CompTriangle::NewTriangulation2()
     vector<Region> reg;
 //    cout<<p1<<" "<<p2<<" "<<p3<<endl;
     spacepart->ComputeRegion(ps_reg, reg);
-
-    triangles.push_back(reg[0]);
+    if(reg.size() > 0) //2012.3.9 rounding problem
+      triangles.push_back(reg[0]);
 
   }
   delete spacepart;
@@ -6849,6 +6849,7 @@ void RegVertex::TriangulationNew2()
                 ps_contour_x, ps_contour_y);
 
 //   cout<<"no_triangle "<<no_triangle<<endl;
+    SpacePartition* spacepart = new SpacePartition();
 
       for (int i = 0; i < no_triangle; i++){
           Coord x, y;
@@ -6873,14 +6874,32 @@ void RegVertex::TriangulationNew2()
           v2_list.push_back(poly.p_id_list[index2]);
           v3_list.push_back(poly.p_id_list[index3]);
 
+//           //calculate the centroid point
+//           Point p;
+//           p.Set(x/3.0, y/3.0);
+//           regnodes.push_back(p);
 
-          //calculate the centroid point
-          Point p;
-          p.Set(x/3.0, y/3.0);
-          regnodes.push_back(p);
+          ///////////////////2012.3.9 rounding problem //////////
+          Point p1(true, poly.mtabPnt[index1].X(), poly.mtabPnt[index1].Y());
+          Point p2(true, poly.mtabPnt[index2].X(), poly.mtabPnt[index2].Y());
+          Point p3(true, poly.mtabPnt[index3].X(), poly.mtabPnt[index3].Y());
+          vector<Point> ps_list;
+          ps_list.push_back(p1);
+          ps_list.push_back(p2);
+          ps_list.push_back(p3);
+          vector<Region> reg;
+          spacepart->ComputeRegion(ps_list, reg);
+          ///////////////////////////////////////////////
+          if(reg.size() > 0){
+            //calculate the centroid point
+            Point p;
+            p.Set(x/3.0, y/3.0);
+            regnodes.push_back(p);
+          }
       }
 
       delete ct;
+      delete spacepart;
 }
 
 void RegVertex::TriangulationExt2()
@@ -6940,7 +6959,9 @@ void RegVertex::TriangulationExt2()
           SpacePartition* sp = new SpacePartition();
           vector<Region> reg_list;
           sp->ComputeRegion(ps_list, reg_list);
-          tri_list.push_back(reg_list[0]);
+//          tri_list.push_back(reg_list[0]);
+          if(reg_list.size() > 0) /////////2012.3.9 rounding problem 
+            tri_list.push_back(reg_list[0]);
           delete sp;
       }
 
