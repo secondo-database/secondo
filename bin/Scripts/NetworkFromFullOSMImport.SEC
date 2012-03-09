@@ -1,0 +1,797 @@
+###############################################################################
+# Creates a network from data imported by fullosmimport from open street map   #
+# osm-File.                                                                    #
+################################################################################
+
+###############################################################################
+# Create and open database                                                   #
+###############################################################################
+
+create database OsmDB;
+
+open database OsmDB;
+
+###############################################################################
+# Set import parameter                                                        #
+###############################################################################
+
+let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/mecklenburg-vorpommern.osm';
+
+let TABLEPREFIX = "Osm";
+
+###############################################################################
+# import osm data from file                                                   #
+###############################################################################
+
+query fullosmimport(SOURCEFILE, TABLEPREFIX);
+
+###############################################################################
+# Connect Spatial Information for nodes and ways                              #
+###############################################################################
+
+let SpatialPosOfNodes =
+   OsmNodes feed
+   projectextend [NodeId; NodePos: makepoint(.Lon,.Lat)]
+consume;
+
+let SpatialWayCurveSimple =
+  OsmWays feed
+  SpatialPosOfNodes feed
+  hashjoin[NodeRef, NodeId, 99997]
+  project[WayId, NodeCounter, NodePos]
+  sortby [WayId, NodeCounter]
+  groupby[WayId; WayCurve: group feed projecttransformstream[NodePos] collect_sline[TRUE]]
+consume;
+
+let SpatialWayCurveComplex =
+  OsmWays feed
+  SpatialWayCurveSimple feed 
+    filter[not(isdefined(.WayCurve))] {s}
+  hashjoin[WayId, WayId_s]
+  project[WayId, NodeCounter, NodeRef]
+  SpatialPosOfNodes feed
+  hashjoin[NodeRef, NodeId, 99997]
+  project[WayId, NodeCounter, NodePos]
+  sortby [WayId, NodeCounter]
+  groupby[WayId; WayCurve: group feed projecttransformstream[NodePos] collect_line[TRUE],
+                 StartPointCurve: group feed head[1] extract[NodePos]]
+  projectextendstream[WayId, StartPointCurve; WayC: .WayCurve polylines[TRUE]]
+  addcounter[PartNo,1]
+  projectextend[WayId, PartNo, StartPointCurve; WayCur: fromline(.WayC)]
+  extend[StartPoint: getstartpoint(.WayCur),
+    EndPoint: getendpoint(.WayCur)]
+  sortby[WayId, PartNo]
+  extend_last[PrevEndPoint: ..EndPoint :: [const point value(0.0 0.0)]]
+  sortby[WayId, PartNo]
+  projectextend[WayId; WayCurve: ifthenelse(.StartPointCurve = .StartPoint, .WayCur,
+                                 ifthenelse(.StartPoint = .PrevEndPoint, .WayCur,
+                                     set_startsmaller(.WayCur, not(get_startsmaller(.WayCur)))))]
+consume;
+
+let SpatialWayCurve =
+  (SpatialWayCurveSimple feed filter [isdefined(.WayCurve)])
+  (SpatialWayCurveComplex feed)
+  concat
+consume;
+
+################################################################################
+# Collect tag information by identfier                                         #
+################################################################################
+
+let NestedNodeRel =
+  SpatialPosOfNodes feed
+  OsmNodeTags feed
+  hashjoin[NodeId,NodeIdInTag]
+  project[NodeId, NodePos, NodeTagKey, NodeTagValue]
+  sortby[NodeId, NodePos, NodeTagKey, NodeTagValue]
+  rdup
+  nest [NodeId, NodePos; NodeInfo]
+consume;
+
+
+let NestedWayRel =
+  SpatialWayCurve feed
+  OsmWayTags feed
+  hashjoin [WayId, WayIdInTag]
+  project[WayId, WayCurve, WayTagKey, WayTagValue]
+  sortby[WayId, WayCurve, WayTagKey, WayTagValue]
+  rdup
+  nest[WayId, WayCurve; WayInfo]
+consume;
+
+let NestedRelationRel =
+  OsmRelations feed
+  OsmRelationTags feed
+  hashjoin[RelId, RelIdInTag]
+  project[RelId, RefCounter, MemberRef, MemberType, MemberRole, RelTagKey, RelTagValue]
+  sortby[RelId, RefCounter,  MemberRef, MemberType, MemberRole, RelTagKey, RelTagValue]
+  rdup
+  nest [RelId, RefCounter, MemberRef, MemberType, MemberRole; RefInfo]
+  nest [RelId; RelInfo]
+consume;
+
+################################################################################
+# Build roads defined by relations defined by osm                              #
+################################################################################
+
+let RoadParts = 
+  NestedWayRel feed
+  filter [.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[(.WayTagValue contains "living") or
+           (.WayTagValue contains "motorway") or
+           (.WayTagValue contains "path") or
+           (.WayTagValue contains "primary") or
+           (.WayTagValue contains "residential") or
+           (.WayTagValue contains "road") or
+           (.WayTagValue contains "secondary") or
+           (.WayTagValue contains "service") or
+           (.WayTagValue contains "tertiary") or
+           (.WayTagValue contains "trunk") or
+           (.WayTagValue contains "unclassified")]
+    count > 0]
+consume;
+
+let RoadsByRef =
+  RoadParts feed
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "ref"]
+    count > 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[not(.WayTagValue contains "link")]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "ref"]
+  projectextendstream[WayId, WayCurve; RefToken: tokenize(' '+.WayTagValue,";/")]
+  projectextend[WayId, WayCurve; Ref: trim(toObject('"'+.RefToken +'"',"a"))]
+  sortby[Ref, WayCurve]
+  groupby[Ref; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE]]
+  projectextendstream[Ref; RoadCurve: .RoadC longlines]
+consume;
+
+let RoadsByName =
+  RoadParts feed
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "name"]
+    count > 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[not(.WayTagValue contains "link")]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "name"]
+  projectextend[WayId, WayCurve; Name: trim(toObject('"'+.WayTagValue +'"',"a"))]
+  sortby[Name, WayCurve]
+  groupby[Name; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE]]
+  projectextendstream[Name; RoadCurve: .RoadC longlines]
+consume;
+
+let RoadLinks =
+  RoadParts feed
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[.WayTagValue contains "link"]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "highway"]
+  filter[.WayTagValue contains "link"]
+  project[WayId, WayCurve]
+  sortby[WayId, WayCurve]
+  groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE]]
+  projectextendstream[WayId; RoadCurve: .RoadC longlines]
+consume;
+
+let RoadRest =
+  RoadParts feed
+  filter[.WayInfo afeed
+    filter[not(.WayTagKey contains "ref")]
+    count > 0]
+  filter [.WayInfo afeed
+    filter[not(.WayTagKey contains "name")]
+    count > 0]
+  filter [.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[not(.WayTagValue contains "link")]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "highway"]
+  project[WayId, WayCurve]
+  sortby[WayId, WayCurve]
+  groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE]]
+  projectextendstream[WayId; RoadCurve: .RoadC longlines]
+consume;
+
+let Roads =
+  ((RoadsByRef feed projectextend[;Name: .Ref, Curve: .RoadCurve])
+   (RoadsByName feed projectextend[;Name: .Name, Curve: .RoadCurve])
+   concat)
+  ((RoadLinks feed projectextend[;Name: num2string(.WayId), Curve: .RoadCurve])
+   (RoadRest feed projectextend[;Name: num2string(.WayId), Curve: .RoadCurve])
+   concat)
+  concat
+  extend[CurvLength: size(.Curve)]
+  sortby [CurvLength desc]
+  addcounter[Rid,1]
+consume;
+
+###############################################################################
+# Build Junctions                                                             #
+###############################################################################
+
+let ExtendedRoadParts =
+  RoadParts feed
+  projectextend[WayId, WayCurve; StartPoint: getstartpoint(.WayCurve),
+     EndPoint: getendpoint(.WayCurve)]
+consume;
+
+let CrossingPtsTmp =
+   RoadParts feed
+   unnest[WayInfo]
+   filter[.WayTagKey = "layer"]
+   projectextend[WayId, WayCurve; Layer: .WayTagValue] {s1}
+   RoadParts feed
+   unnest[WayInfo]
+   filter[.WayTagKey = "layer"]
+   projectextend[WayId, WayCurve; Layer: .WayTagValue] {s2}
+   itSpatialJoin [WayCurve_s1, WayCurve_s2, 4 ,8]
+   filter[(.Layer_s1 = .Layer_s2)]
+   filter[.WayId_s1 < .WayId_s2]
+   filter[.WayCurve_s1 intersects .WayCurve_s2]
+   projectextendstream[WayId_s1,
+      WayId_s2; Pt: components(crossings(.WayCurve_s1, .WayCurve_s2))]
+   filter[isdefined(.Pt)]
+   projectextend[Pt; WayId1: .WayId_s1, WayId2: .WayId_s2]
+consume;
+
+let CrossingsAndRoadPartEndPoints =
+  ((ExtendedRoadParts feed projectextend[WayId; Point: .StartPoint])
+  (ExtendedRoadParts feed projectextend[WayId; Point: .EndPoint])
+  concat)
+  ((CrossingPtsTmp feed projectextend[; WayId: .WayId1, Point: .Pt])
+  (CrossingPtsTmp feed projectextend[; WayId: .WayId2, Point: .Pt])
+  concat)
+  concat
+  sortby[WayId, Point]
+  rdup
+consume;
+
+let RoadPosOfCrossingPts =
+  CrossingsAndRoadPartEndPoints feed{p1}
+  Roads feed {r1}
+  itSpatialJoin[Point_p1,Curve_r1,4,8]
+  projectextend[; Rid: .Rid_r1,
+    Pos: atpoint(.Curve_r1,.Point_p1),
+    WayId: .WayId_p1,
+    Point: .Point_p1]
+  filter [isdefined(.Pos)]
+consume;
+
+let JunctionIds =
+  RoadPosOfCrossingPts feed
+  project[Point]
+  sortby [Point]
+  rdup
+  addcounter[Jid,1]
+consume;
+
+let JunctionPositionsOnRoads =
+  RoadPosOfCrossingPts feed {c}
+  JunctionIds feed {i}
+  itSpatialJoin[Point_c,Point_i,4,8]
+  projectextend[;Jid: .Jid_i,
+    Point: .Point_c,
+    Rid: .Rid_c,
+    Pos: .Pos_c,
+    WayId: .WayId_c]
+consume;
+
+let JunctionRoadPairs =
+  JunctionPositionsOnRoads feed {j1}
+  JunctionPositionsOnRoads feed {j2}
+  hashjoin[Jid_j1, Jid_j2]
+  filter[.Rid_j1 < .Rid_j2]
+  projectextend[;Jid: .Jid_j1,
+    Pos: .Point_j1,
+    R1id: .Rid_j1,
+    R1Meas: .Pos_j1,
+    R2id: .Rid_j2,
+    R2Meas: .Pos_j2,
+    CC: 65535,
+    WayId1: .WayId_j1,
+    WayId2: .WayId_j2]
+  sortby [R1id, R1Meas, R2id, R2Meas]
+consume;
+
+
+
+###############################################################################
+# Compute correct Connectivity Code                                           #
+###############################################################################
+# Select Onewaycurves                                                         #
+###############################################################################
+
+let OnewayCurves =
+  NestedWayRel feed
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count > 0]
+  unnest [WayInfo]
+  filter[.WayTagKey = "oneway"]
+  projectextend[WayId; OneWayCurve: ifthenelse(.WayTagValue = "-1",
+                                          set_startsmaller(.WayCurve, not(get_startsmaller(.WayCurve))),
+                                          .WayCurve)]
+  projectextend[WayId; WayCurve: .OneWayCurve]
+  extend[StartPoint: getstartpoint(.WayCurve),
+         EndPoint: getendpoint(.WayCurve)]
+consume;
+
+let OneWayJunctionsInsertedA =
+  JunctionRoadPairs feed {j}
+  OnewayCurves feed {o}
+  hashjoin[WayId1_j, WayId_o]
+  projectextend[;Jid: .Jid_j,
+    R1id: .R1id_j,
+    R1Meas: .R1Meas_j,
+    R2id: .R2id_j,
+    R2Meas: .R2Meas_j,
+    WayId1: .WayId1_j,
+    WayId2: .WayId2_j,
+    CC: .CC_j,
+    Pos: .Pos_j,
+    StartPoint: .StartPoint_o,
+    EndPoint: .EndPoint_o]
+  Roads feed {r}
+  hashjoin[R1id, Rid_r]
+  projectextend[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, CC, Pos,
+    StartPoint, EndPoint; StartPosition: atpoint(.Curve_r, .StartPoint),
+      EndPosition: atpoint(.Curve_r, .EndPoint)]
+  extend[NewCC: ifthenelse(.StartPosition < .EndPosition,
+                  ifthenelse(.StartPoint = .Pos, .CC - 240,
+                    ifthenelse(.EndPoint = .Pos,.CC - 8738, .CC - 8946)),
+                  ifthenelse(.StartPoint = .Pos, .CC - 4369,
+                    ifthenelse(.EndPoint = .Pos, .CC - 15, .CC - 4383)))]
+  project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
+consume;
+
+let OneWayJunctionsInsertedB =
+  JunctionRoadPairs feed {j}
+  OnewayCurves feed {o}
+  hashjoin[WayId2_j, WayId_o]
+  projectextend[;Jid: .Jid_j,
+    R1id: .R1id_j,
+    R1Meas: .R1Meas_j,
+    R2id: .R2id_j,
+    R2Meas: .R2Meas_j,
+    WayId1: .WayId1_j,
+    WayId2: .WayId2_j,
+    CC: .CC_j,
+    Pos: .Pos_j,
+    StartPoint: .StartPoint_o,
+    EndPoint: .EndPoint_o]
+  Roads feed {r}
+  hashjoin[R2id, Rid_r]
+  projectextend[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, CC, Pos,
+    StartPoint, EndPoint; StartPosition: atpoint(.Curve_r, .StartPoint),
+      EndPosition: atpoint(.Curve_r, .EndPoint)]
+  extend[NewCC: ifthenelse(.StartPosition < .EndPosition,
+                  ifthenelse(.StartPoint = .Pos, .CC - 3840,
+                    ifthenelse(.EndPoint = .Pos, .CC - 34952, .CC - 36744)),
+                  ifthenelse(.StartPoint = .Pos, .CC - 61440,
+                    ifthenelse(.EndPoint = .Pos, .CC - 17476, .CC - 62532)))]
+  project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
+consume;
+
+################################################################################
+# Build Relation of Restrictions for way connections                           #
+################################################################################
+
+let ViaNodesRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter[.MemberRole = "via"]
+  filter [.MemberType = "node"]
+  SpatialPosOfNodes feed
+  hashjoin[MemberRef,NodeId]
+  projectextend[RelId, NodeId,
+    NodePos; RelTagVal: .RefInfo afeed extract [RelTagValue]]
+consume;
+
+let ViaWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "via"]
+  filter [.MemberType = "way"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  projectextend[RelId, WayId,
+    WayCurve; RelTagVal: .RefInfo afeed extract [RelTagValue]]
+consume;
+
+let FromWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "from"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  project[RelId, WayId, WayCurve]
+consume;
+
+let ToWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "to"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  project[RelId, WayId, WayCurve]
+consume;
+
+let NodeRestrictions =
+  ViaNodesRel feed {v}
+  FromWaysRel feed {f}
+  hashjoin[RelId_v, RelId_f]
+  project [RelId_v, NodeId_v, NodePos_v, RelTagVal_v, WayId_f, WayCurve_f]
+  ToWaysRel feed {t}
+  hashjoin[RelId_v, RelId_t]
+  project[NodeId_v, NodePos_v, RelTagVal_v, WayId_f, WayCurve_f, WayId_t, WayCurve_t]
+  sortby [NodeId_v, NodePos_v, WayId_f, WayId_t, RelTagVal_v, WayCurve_f, WayCurve_t]
+  rdup
+consume;
+
+let RestrictedJunctionsAA =
+  JunctionRoadPairs feed
+  NodeRestrictions feed
+  itSpatialJoin[Pos, NodePos_v,4,8]
+  filter[.Pos = .NodePos_v]
+  filter[.WayId1 = .WayId_f]
+  filter[.WayId2 = .WayId_t]
+  filter [.R1id = .R2id]
+  projectextend [Jid, R1id, R1Meas, R2id, R2Meas, Pos, WayId1, WayId2, CC,
+    RelTagVal_v; StartPoint1: getstartpoint(.WayCurve_f),
+        EndPoint1: getendpoint(.WayCurve_f),
+        StartPoint2: getstartpoint(.WayCurve_t),
+        EndPoint2: getendpoint(.WayCurve_t)]
+  Roads feed {rf}
+  hashjoin[R1id, Rid_rf]
+  projectextend[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, CC,
+    RelTagVal_v, StartPoint1, EndPoint1, StartPoint2,
+    EndPoint2; StartPos1: atpoint(.Curve_rf, .StartPoint1),
+     EndPos1: atpoint(.Curve_rf, .EndPoint1),
+     StartPos2: atpoint(.Curve_rf, .StartPoint2),
+     EndPos2: atpoint(.Curve_rf, .EndPoint2)]
+  extend[NewCC: ifthenelse(.StartPos1 < .EndPos1,
+                   ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 32,
+                                                                  .CC - 208),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 16,
+                                                                   .CC - 224)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 16,
+                                                                  .CC - 224),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 32,
+                                                                   .CC - 208))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 2,
+                                                                  .CC - 13),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 1,
+                                                                   .CC - 14)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 1,
+                                                                  .CC - 13),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 2,
+                                                                   .CC - 14)))),
+                  ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 2,
+                                                                  .CC - 13),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 1,
+                                                                   .CC - 14)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 1,
+                                                                  .CC - 14),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 2,
+                                                                   .CC - 13))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 32,
+                                                                  .CC - 208),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 16,
+                                                                   .CC - 224)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 16,
+                                                                  .CC - 224),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 32,
+                                                                   .CC - 208)))))]
+  project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
+consume;
+
+let RestrictedJunctionsBB =
+ JunctionRoadPairs feed
+  NodeRestrictions feed
+  itSpatialJoin[Pos, NodePos_v,4,8]
+  filter[.Pos = .NodePos_v]
+  filter[.WayId2 = .WayId_f]
+  filter[.WayId1 = .WayId_t]
+  filter [.R1id = .R2id]
+  projectextend [Jid, R1id, R1Meas, R2id, R2Meas, Pos, WayId1, WayId2, CC,
+    RelTagVal_v; StartPoint1: getstartpoint(.WayCurve_f),
+        EndPoint1: getendpoint(.WayCurve_f),
+        StartPoint2: getstartpoint(.WayCurve_t),
+        EndPoint2: getendpoint(.WayCurve_t)]
+  Roads feed {rf}
+  hashjoin[R1id, Rid_rf]
+  projectextend[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, CC,
+    RelTagVal_v, StartPoint1, EndPoint1, StartPoint2,
+    EndPoint2; StartPos1: atpoint(.Curve_rf, .StartPoint1),
+     EndPos1: atpoint(.Curve_rf, .EndPoint1),
+     StartPos2: atpoint(.Curve_rf, .StartPoint2),
+     EndPos2: atpoint(.Curve_rf, .EndPoint2)]
+  extend[NewCC: ifthenelse(.StartPos1 < .EndPos1,
+                   ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 16384,
+                                                                  .CC - 45056),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 1024,
+                                                                   .CC - 2816)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 1024,
+                                                                  .CC - 2816),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 16384,
+                                                                   .CC - 45056))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 32768,
+                                                                  .CC - 28672),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 2048,
+                                                                   .CC - 1792)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 2048,
+                                                                  .CC - 1792),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 32768,
+                                                                   .CC - 28672)))),
+                  ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 32768,
+                                                                  .CC - 28672),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 2048,
+                                                                   .CC - 1792)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 2048,
+                                                                  .CC - 1792),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 32768,
+                                                                   .CC - 28672))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 16384,
+                                                                  .CC - 45056),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 1024,
+                                                                   .CC - 2816)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 1024,
+                                                                  .CC - 2816),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 16384,
+                                                                   .CC - 45056)))))]
+  project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
+consume;
+
+let RestrictedJunctionsAB =
+  JunctionRoadPairs feed
+  NodeRestrictions feed
+  itSpatialJoin[Pos, NodePos_v,4,8]
+  filter[.Pos = .NodePos_v]
+  filter[.WayId1 = .WayId_f]
+  filter[.WayId2 = .WayId_t]
+  filter[.R1id < .R2id]
+  projectextend [Jid, R1id, R1Meas, R2id, R2Meas, Pos, WayId1, WayId2, CC,
+    RelTagVal_v; StartPoint1: getstartpoint(.WayCurve_f),
+        EndPoint1: getendpoint(.WayCurve_f),
+        StartPoint2: getstartpoint(.WayCurve_t),
+        EndPoint2: getendpoint(.WayCurve_t)]
+  Roads feed {rf}
+  hashjoin[R1id, Rid_rf]
+  projectextend[Jid, R1id, R1Meas, R2id, R2Meas, Pos, WayId1, WayId2, CC,
+    RelTagVal_v, StartPoint1, EndPoint1, StartPoint2,
+    EndPoint2; StartPos1: atpoint(.Curve_rf, .StartPoint1),
+     EndPos1: atpoint(.Curve_rf, .EndPoint1),
+     StartPos2: atpoint(.Curve_rf, .StartPoint2),
+     EndPos2: atpoint(.Curve_rf, .EndPoint2)]
+  extend[NewCC: ifthenelse(.StartPos1 < .EndPos1,
+                   ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 64,
+                                                                  .CC - 176),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 128,
+                                                                   .CC - 112)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 128,
+                                                                  .CC - 112),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 64,
+                                                                   .CC - 176))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 4,
+                                                                  .CC - 11),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 8,
+                                                                   .CC - 7)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 8,
+                                                                  .CC - 7),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 4,
+                                                                   .CC - 11)))),
+                  ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 4,
+                                                                  .CC - 11),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 8,
+                                                                   .CC - 7)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 8,
+                                                                  .CC - 7),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 4,
+                                                                   .CC - 11))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 64,
+                                                                  .CC - 176),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 128,
+                                                                   .CC - 112)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 128,
+                                                                  .CC - 112),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 64,
+                                                                   .CC - 176)))))]
+  project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
+consume;
+
+let RestrictedJunctionsBA =
+  JunctionRoadPairs feed
+  NodeRestrictions feed
+  itSpatialJoin[Pos, NodePos_v,4,8]
+  filter[.Pos = .NodePos_v]
+  filter[.WayId2 = .WayId_f]
+  filter[.WayId1 = .WayId_t]
+  filter[.R1id < .R2id]
+  projectextend [Jid, R1id, R1Meas, R2id, R2Meas, Pos, WayId1, WayId2, CC,
+    RelTagVal_v; StartPoint1: getstartpoint(.WayCurve_f),
+        EndPoint1: getendpoint(.WayCurve_f),
+        StartPoint2: getstartpoint(.WayCurve_t),
+        EndPoint2: getendpoint(.WayCurve_t)]
+  Roads feed {rf}
+  hashjoin[R1id, Rid_rf]
+  projectextend[Jid, R1id, R1Meas, R2id, R2Meas, Pos, WayId1, WayId2, CC,
+    RelTagVal_v, StartPoint1, EndPoint1, StartPoint2,
+    EndPoint2; StartPos1: atpoint(.Curve_rf, .StartPoint1),
+     EndPos1: atpoint(.Curve_rf, .EndPoint1),
+     StartPos2: atpoint(.Curve_rf, .StartPoint2),
+     EndPos2: atpoint(.Curve_rf, .EndPoint2)]
+  extend[NewCC: ifthenelse(.StartPos1 < .EndPos1,
+                   ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 4096,
+                                                                  .CC - 57344),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 256,
+                                                                   .CC - 3584)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 256,
+                                                                  .CC - 3584),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 4096,
+                                                                   .CC - 57344))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 8192,
+                                                                  .CC - 53248),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 512,
+                                                                   .CC - 4328)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 512,
+                                                                  .CC - 4328),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 8192,
+                                                                   .CC - 53248)))),
+                  ifthenelse(.StartPoint1 = .Pos,
+                     ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 8192,
+                                                                  .CC - 53248),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 512,
+                                                                   .CC - 4328)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 512,
+                                                                  .CC - 4328),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 8192,
+                                                                   .CC - 53248))),
+                    ifthenelse(.StartPos2 < .EndPos2,
+                        ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 4096,
+                                                                  .CC - 57344),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 256,
+                                                                   .CC - 3584)),
+                         ifthenelse(.StartPoint2 = .Pos,
+                          ifthenelse(.RelTagVal_v contains "no",.CC - 256,
+                                                                  .CC - 3584),
+                          ifthenelse(.RelTagVal_v contains "no", .CC - 4096,
+                                                                   .CC - 57344)))))]
+  project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
+consume;
+
+let Junctions =
+  (((OneWayJunctionsInsertedA feed)
+    (OneWayJunctionsInsertedB feed)
+    concat)
+   ((RestrictedJunctionsAA feed)
+    (RestrictedJunctionsBB feed)
+   concat)
+  concat)
+   (((RestrictedJunctionsAB feed)
+    (RestrictedJunctionsBA feed)
+   concat)
+   (JunctionRoadPairs feed projectextend[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos; NewCC: .CC])
+   concat)
+  concat
+  project[Jid, R1id, R1Meas, R2id, R2Meas, Pos, NewCC]
+  sortby[Jid, R1id, R1Meas, R2id, R2Meas, Pos]
+  groupby[Jid, R1id, R1Meas, R2id, R2Meas,
+    Pos; CC: group feed projecttransformstream[NewCC] binands]
+consume;
+
+###############################################################################
+# Way Restrictions can not be encoded now in the network data format now      #
+# Because we have no information from where the car comes before in the       #
+# network data model                                                          #
+###############################################################################
+
+let WayRestrictions =
+  ViaWaysRel feed {v}
+  FromWaysRel feed {f}
+  hashjoin[RelId_v, RelId_f]
+  project [RelId_v, WayId_v, WayCurve_v, RelTagVal_v, WayId_f, WayCurve_f]
+  ToWaysRel feed {t}
+  hashjoin[RelId_v, RelId_t]
+  project[WayId_v, WayCurve_v, RelTagVal_v, WayId_f, WayCurve_f, WayId_t, WayCurve_t]
+  sortby[WayId_v, WayId_f, WayId_t, RelTagVal_v, WayCurve_v, WayCurve_f, WayCurve_t]
+  rdup
+consume;
+
+##############################################################################
+# Build network with all possible restrictions                               #
+##############################################################################
+
+let OsmNetwork = thenetwork(1, 0.0001,
+    Roads feed projectextend[Rid, CurvLength, Curve; Dual: TRUE, StartS: get_startsmaller(.Curve)] consume,
+    Junctions feed project [R1id, R1Meas, R2id, R2Meas, CC] consume);
+
+
+
+
+close database;
+quit;
+
+
