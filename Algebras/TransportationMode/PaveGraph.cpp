@@ -7138,7 +7138,8 @@ void RegVertex::GetDGEdge()
               default:
                     assert(false);
             }
-            hs.Set(true, p1, p2);
+
+/*            hs.Set(true, p1, p2);
             Line* l = new Line(0);
             l->StartBulkLoad();
             hs.attr.edgeno = 0;
@@ -7147,7 +7148,23 @@ void RegVertex::GetDGEdge()
             *l += hs;
             l->EndBulkLoad();
             line.push_back(*l);
+            delete l;*/
+
+
+            Line* l = new Line(0);
+            l->StartBulkLoad();
+            if(!AlmostEqual(p1, p2)){////////////2012.3.9
+              hs.Set(true, p1, p2);
+              hs.attr.edgeno = 0;
+              *l += hs;
+              hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+              *l += hs;
+            }
+            l->EndBulkLoad();
+            line.push_back(*l);
             delete l;
+
+
             //////////////////////////////////////////////////////
             //trinode
             trinode->tri.neighbor_no++;
