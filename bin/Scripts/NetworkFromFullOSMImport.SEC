@@ -7,9 +7,9 @@
 # Create and open database                                                   #
 ###############################################################################
 
-create database OsmDB;
+create database mpDB;
 
-open database OsmDB;
+open database mpDB;
 
 ###############################################################################
 # Set import parameter                                                        #
@@ -349,8 +349,8 @@ let OneWayJunctionsInsertedA =
   extend[NewCC: ifthenelse(.StartPosition < .EndPosition,
                   ifthenelse(.StartPoint = .Pos, .CC - 240,
                     ifthenelse(.EndPoint = .Pos,.CC - 8738, .CC - 8946)),
-                  ifthenelse(.StartPoint = .Pos, .CC - 4369,
-                    ifthenelse(.EndPoint = .Pos, .CC - 15, .CC - 4383)))]
+                  ifthenelse(.StartPoint = .Pos, .CC - 15,
+                    ifthenelse(.EndPoint = .Pos, .CC - 4369, .CC - 4383)))]
   project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
 consume;
 
@@ -375,10 +375,10 @@ let OneWayJunctionsInsertedB =
     StartPoint, EndPoint; StartPosition: atpoint(.Curve_r, .StartPoint),
       EndPosition: atpoint(.Curve_r, .EndPoint)]
   extend[NewCC: ifthenelse(.StartPosition < .EndPosition,
-                  ifthenelse(.StartPoint = .Pos, .CC - 3840,
-                    ifthenelse(.EndPoint = .Pos, .CC - 34952, .CC - 36744)),
                   ifthenelse(.StartPoint = .Pos, .CC - 61440,
-                    ifthenelse(.EndPoint = .Pos, .CC - 17476, .CC - 62532)))]
+                    ifthenelse(.EndPoint = .Pos, .CC - 34952, .CC - 63624)),
+                  ifthenelse(.StartPoint = .Pos, .CC - 3840,
+                    ifthenelse(.EndPoint = .Pos, .CC - 17476, .CC - 20292)))]
   project[Jid, R1id, R1Meas, R2id, R2Meas, WayId1, WayId2, Pos, NewCC]
 consume;
 
