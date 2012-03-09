@@ -3794,28 +3794,42 @@ for the given sline, get its left or right line after transfer
 Similar as Gettheboundary()
 
 */
+// void SpacePartition::GetSubCurve(SimpleLine* curve, Line* newcurve,
+//                     int roadwidth, bool clock)
+// {
+//       newcurve->StartBulkLoad();
+//       for(int i = 0; i < curve->Size();i++){
+//           HalfSegment hs;
+//           curve->Get(i,hs);
+// //          cout<<"old "<<hs<<endl;
+//           TransferHalfSegment(hs, roadwidth, clock);
+// //          cout<<"new "<<hs<<endl;
+//           *newcurve += hs;
+//       }
+//       newcurve->EndBulkLoad();
+// }
+
+
 void SpacePartition::GetSubCurve(SimpleLine* curve, Line* newcurve,
                     int roadwidth, bool clock)
 {
       newcurve->StartBulkLoad();
+      int edgeno = 0;
       for(int i = 0; i < curve->Size();i++){
           HalfSegment hs;
-          curve->Get(i,hs);
+          curve->Get(i, hs);
+          if(hs.IsLeftDomPoint() == false) continue;
 //          cout<<"old "<<hs<<endl;
           TransferHalfSegment(hs, roadwidth, clock);
 //          cout<<"new "<<hs<<endl;
-//          *newcurve += hs;
-          if(hs.IsLeftDomPoint()){
-            HalfSegment newhs(true, hs.GetLeftPoint(), hs.GetRightPoint());
-            *newcurve += newhs;
-          }else{
-            HalfSegment newhs(false, hs.GetRightPoint(), hs.GetLeftPoint());
-            *newcurve += newhs;
-          }
+          HalfSegment newhs(true, hs.GetLeftPoint(), hs.GetRightPoint());
+          newhs.attr.edgeno = edgeno++;
+          *newcurve += newhs;
+          newhs.SetLeftDomPoint(!newhs.IsLeftDomPoint());
+          *newcurve += newhs;
       }
       newcurve->EndBulkLoad();
 }
-
 
 
 /*
