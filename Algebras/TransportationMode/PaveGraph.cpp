@@ -6870,9 +6870,9 @@ void RegVertex::TriangulationNew2()
 //          v2_list.push_back(index2 + 1);
 //          v3_list.push_back(index3 + 1);
 
-          v1_list.push_back(poly.p_id_list[index1]);
-          v2_list.push_back(poly.p_id_list[index2]);
-          v3_list.push_back(poly.p_id_list[index3]);
+//           v1_list.push_back(poly.p_id_list[index1]);
+//           v2_list.push_back(poly.p_id_list[index2]);
+//           v3_list.push_back(poly.p_id_list[index3]);
 
 //           //calculate the centroid point
 //           Point p;
@@ -6895,6 +6895,9 @@ void RegVertex::TriangulationNew2()
             Point p;
             p.Set(x/3.0, y/3.0);
             regnodes.push_back(p);
+            v1_list.push_back(poly.p_id_list[index1]);
+            v2_list.push_back(poly.p_id_list[index2]);
+            v3_list.push_back(poly.p_id_list[index3]);
           }
       }
 
@@ -6943,9 +6946,9 @@ void RegVertex::TriangulationExt2()
 //          v2_list.push_back(index2 + 1);
 //          v3_list.push_back(index3 + 1);
 
-          v1_list.push_back(poly.p_id_list[index1]);
-          v2_list.push_back(poly.p_id_list[index2]);
-          v3_list.push_back(poly.p_id_list[index3]);
+//           v1_list.push_back(poly.p_id_list[index1]);
+//           v2_list.push_back(poly.p_id_list[index2]);
+//           v3_list.push_back(poly.p_id_list[index3]);
 
 
           Point p1(true, x1, y1);
@@ -6960,8 +6963,12 @@ void RegVertex::TriangulationExt2()
           vector<Region> reg_list;
           sp->ComputeRegion(ps_list, reg_list);
 //          tri_list.push_back(reg_list[0]);
-          if(reg_list.size() > 0) /////////2012.3.9 rounding problem 
+          if(reg_list.size() > 0){ /////////2012.3.9 rounding problem 
             tri_list.push_back(reg_list[0]);
+            v1_list.push_back(poly.p_id_list[index1]);
+            v2_list.push_back(poly.p_id_list[index2]);
+            v3_list.push_back(poly.p_id_list[index3]);
+          }
           delete sp;
       }
 
