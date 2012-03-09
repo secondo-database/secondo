@@ -4,47 +4,47 @@ Restore  : NO
 Operator : feed
 Number   : 1
 Signature: nrel(tuple(x)) -> stream(tuple(x))
-Example  : query papers feed count
-Result   : 93321
+Example  : query Papers feed count
+Result   : 1238
 
 Operator : consume 
 Number   : 1
 Signature: (stream(tuple(x)) -> nrel(tuple(x))
-Example  : query papers feed head [1] project [Authors] consume
-Result   : ((nrel(tuple((Authors (arel(tuple((Name string))))))))(((0 ("Gunter Saake") ("Kai-Uwe Sattler") ("Andreas Heuer")))))
+Example  : query Papers feed head [1] project [Authors] consume
+Result   : ((nrel(tuple((Authors (arel(tuple((Name string))))))))(((0 ("Zhong Li") ("Jianping Fan")))))
 
 Operator : afeed
 Number   : 1
 Signature: arel(tuple(x)) -> stream(tuple(x))
-Example  : query authors_by_name feed head [1000] filter [.Details afeed count > 1] count
-Result   : 91
+Example  : query authordoc feed head [1000] filter [.Details afeed count > 1] count
+Result   : 363
 
 Operator : aconsume
 Number   : 1
 Signature: stream(tuple(x))  -> arel(tuple(x))
-Example  : query publishers feed extend [pub_with_B: .Publications afeed filter [.Title contains "B"] aconsume] count
-Result   : 6
+Example  : query Papers feed extend [Pub_with_B: .Authors afeed filter [.Name contains "B"] aconsume] count
+Result   : 1238
 
 Operator : nest
 Number   : 1
 Signature: stream(tuple(x)) x (attribute_name)* x attribute_name -> stream(tuple(y))
-Example  : query authordoc feed head [10000] nest [Docid; Details] count 
-Result   : 4786
+Example  : query document feed head [10000] nest [Docid; Details] count
+Result   : 5662
 
 Operator : unnest
 Number   : 1
 Signature: stream(tuple(x)) x attribute-> stream(tuple(y))
-Example  : query publishers feed unnest [Publications] count
-Result   : 18
+Example  : query Papers feed unnest [Authors] count
+Result   : 3745
 
 Operator : rename
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
-Example  : query publishers feed rename[t1] count
-Result   : 6
+Example  : query Papers feed rename[t1] count
+Result   : 1238
          
 Operator : extract
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> rel(x) or nrel(x)
-Example  : query publishers feed extract [Publications] feed count
+Example  : query Papers feed extract [Title] feed count
 Result   : 1
