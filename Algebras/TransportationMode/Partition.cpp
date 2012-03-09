@@ -3143,13 +3143,17 @@ void SpacePartition::CheckRegionPS(vector<Point>& outer_region)
       else{
         Point last_p = outer_region[outer_region.size() - 1];
         Point cur_p = mhs[i].from;
-        if(!AlmostEqual(last_p,cur_p)) outer_region.push_back(cur_p);
+        if(!AlmostEqual(last_p, cur_p)) outer_region.push_back(cur_p);
 
         if(i == mhs.size() - 1){
            last_p = outer_region[outer_region.size() - 1];
            cur_p = mhs[i].to;
-          if(!AlmostEqual(last_p,cur_p)) outer_region.push_back(cur_p);
+//          if(!AlmostEqual(last_p,cur_p)) outer_region.push_back(cur_p);
+          if(!AlmostEqual(last_p, cur_p) && 
+             !AlmostEqual(outer_region[0], cur_p))//the first, the last 
+            outer_region.push_back(cur_p);
         }
+
       }
     }
 
@@ -3242,8 +3246,8 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
       }//end for
 
       delete cyclepoints;
-      printf("(%.6f %.6f) (%.6f %.6f)\n", firstPoint.GetX(), firstPoint.GetY(),
-             currvertex.GetX(), currvertex.GetY());
+//     printf("(%.6f %.6f) (%.6f %.6f)\n", firstPoint.GetX(), firstPoint.GetY(),
+//             currvertex.GetX(), currvertex.GetY());
 
       ////////////////////last segment//////////////////////////
       edno++;
