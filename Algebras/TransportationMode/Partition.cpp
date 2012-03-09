@@ -3804,10 +3804,18 @@ void SpacePartition::GetSubCurve(SimpleLine* curve, Line* newcurve,
 //          cout<<"old "<<hs<<endl;
           TransferHalfSegment(hs, roadwidth, clock);
 //          cout<<"new "<<hs<<endl;
-          *newcurve += hs;
+//          *newcurve += hs;
+          if(hs.IsLeftDomPoint()){
+            HalfSegment newhs(true, hs.GetLeftPoint(), hs.GetRightPoint());
+            *newcurve += newhs;
+          }else{
+            HalfSegment newhs(false, hs.GetRightPoint(), hs.GetLeftPoint());
+            *newcurve += newhs;
+          }
       }
       newcurve->EndBulkLoad();
 }
+
 
 
 /*
@@ -4022,8 +4030,8 @@ void SpacePartition::GetZebraCrossing(SimpleLine* subcurve,
 
         Points* ps1 = new Points(0);
         Points* ps2 = new Points(0);
-        subline1->Crossings(*line1,*ps1);
-        subline2->Crossings(*line1,*ps2);
+        subline1->Crossings(*line1, *ps1);
+        subline2->Crossings(*line1, *ps2);
 
         if(ps1->Size() > 0 && ps2->Size() > 0 &&
              ((ps1->Inside(*reg_pave1) && ps2->Inside(*reg_pave2)) ||
@@ -4425,7 +4433,7 @@ void SpacePartition::Junpavement(Network* n, Relation* rel, int attr_pos1,
         *cross12 = *crossregion3;
       }
 
-      if(RidPosExist(id2, len2, rid_pos_list) == false){ //not expand yet
+      if(RidPosExist(id2, len2, rid_pos_list) == false){//not expand yet.
               CreatePavement(curve2, reg2_in, reg2_out, len2, 
                      width, crossregion3, crossregion4, cross12);
 
