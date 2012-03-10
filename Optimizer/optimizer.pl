@@ -3406,29 +3406,29 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
   join00(Arg1S, Arg2S, pr(X=Y, R1, R2)) => JoinPlan.
 
 join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
-        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
+        remove(JoinPlan, [attrname(attr(r_expr, 2, u))]) :-
   X = attr(_, _, _),
   not(Y = attr(_, _, _)),
   not(isSubquery(Y)),
   !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
-  join00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
+  join00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, u), R1, R2)) => JoinPlan.
 
 join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
+        remove(JoinPlan, [attrname(attr(l_expr, 2, u))]) :-
   not(X = attr(_, _, _)),
   not(isSubquery(X)),
   Y = attr(_, _, _), !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
-  join00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2)) => JoinPlan.
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
+  join00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, u)=Y, R1, R2)) => JoinPlan.
 
 join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
-        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
-                attrname(attr(r_expr, 2, l))]) :-
+        remove(JoinPlan, [attrname(attr(l_expr, 1, u)),
+                attrname(attr(r_expr, 2, u))]) :-
   not(X = attr(_, _, _)),
   not(Y = attr(_, _, _)),
   not(isSubquery(Y)),
@@ -3436,10 +3436,10 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, u)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, u)), Y)]),
   join00(Arg1Extend, Arg2Extend,
-        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
+        pr(attr(l_expr, 1, u)=attr(r_expr, 2, u), R1, R2)) => JoinPlan.
 
 
 /*
