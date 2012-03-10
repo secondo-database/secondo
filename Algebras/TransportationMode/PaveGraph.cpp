@@ -6890,7 +6890,7 @@ void RegVertex::TriangulationNew2()
           vector<Region> reg;
           spacepart->ComputeRegion(ps_list, reg);
           ///////////////////////////////////////////////
-//          if(reg.size() > 0){
+          if(reg.size() > 0){
             //calculate the centroid point
             Point p;
             p.Set(x/3.0, y/3.0);
@@ -6898,7 +6898,7 @@ void RegVertex::TriangulationNew2()
             v1_list.push_back(poly.p_id_list[index1]);
             v2_list.push_back(poly.p_id_list[index2]);
             v3_list.push_back(poly.p_id_list[index3]);
-//          }
+          }
       }
 
       delete ct;
@@ -6963,12 +6963,12 @@ void RegVertex::TriangulationExt2()
           vector<Region> reg_list;
           sp->ComputeRegion(ps_list, reg_list);
 //          tri_list.push_back(reg_list[0]);
-//          if(reg_list.size() > 0){ /////////2012.3.9 rounding problem 
+          if(reg_list.size() > 0){ /////////2012.3.9 rounding problem 
             tri_list.push_back(reg_list[0]);
             v1_list.push_back(poly.p_id_list[index1]);
             v2_list.push_back(poly.p_id_list[index2]);
             v3_list.push_back(poly.p_id_list[index3]);
-//          }
+          }
           delete sp;
       }
 
@@ -7120,7 +7120,7 @@ void RegVertex::GetDGEdge()
             ////////////adjacent list///////////////////////////////
             v1_list.push_back(trinode->tri.oid);
             v2_list.push_back(cur->tri.oid);
-            HalfSegment hs;
+
             Point p1, p2;
             switch(sharetype){
               case 1:
@@ -7153,13 +7153,14 @@ void RegVertex::GetDGEdge()
 
             Line* l = new Line(0);
             l->StartBulkLoad();
-            if(!AlmostEqual(p1, p2)){////////////2012.3.9
-              hs.Set(true, p1, p2);
+//            if(!AlmostEqual(p1, p2)){
+              HalfSegment hs;
+              hs.Set(true, p1, p2);   
               hs.attr.edgeno = 0;
               *l += hs;
               hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
               *l += hs;
-            }
+//            }
             l->EndBulkLoad();
             line.push_back(*l);
             delete l;
