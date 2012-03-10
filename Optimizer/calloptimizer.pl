@@ -429,6 +429,33 @@ optimizerOptionInfo(intOrders(test), immediatePlan, yes,
                     turnOffIntOrders
                    ).
 
+
+%LargeQueries start
+optimizerOptionInfo(largeQueries(qgd), none, yes,
+                    'Large predicate set optimization (query graph decomposition)',
+                    (delOption(largeQueries(aco)), 
+                     delOption(largeQueries(qgdm)), 
+                     loadFiles(largequeries),
+                     initLargeQueries), true).
+
+optimizerOptionInfo(largeQueries(qgdm), none, yes,
+                    'Large predicate set optimization (query graph decomposition and materialization)',
+                    ( delOption(largeQueries(aco)), 
+                      delOption(largeQueries(qgd)), 
+                      loadFiles(largequeries),
+                      initLargeQueries), true).
+
+optimizerOptionInfo(largeQueries(aco), none, yes,
+                    'Large predicate set optimization (ascending cost order)',
+                    (delOption(largeQueries(qgd)), 
+                     delOption(largeQueries(qgdm)),
+                     loadFiles(largequeries),
+                     initLargeQueries), true).
+
+
+%LargeQueries end
+
+
 optimizerOptionInfo(pathTiming, none, no,
                     'Prompt time used to find a best path.',
                     true, true).
@@ -825,6 +852,17 @@ loadFiles(adaptiveJoin) :-
     assert(loadedModule(adaptiveJoin))
   )
   ; true.
+
+%LargeQueries start:
+% Optional files for the largeQueries options
+loadFiles(largequeries) :-
+  ( not(loadedModule(largequeries)),
+    ['./LargeQueries/largequeries'],
+    assert(loadedModule(largequeries))
+  )
+  ; true.
+%LargeQueries end
+
 
 % Optional files for usage of Xris' cost functions
 loadFiles(improvedcosts) :-

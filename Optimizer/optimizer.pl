@@ -1670,22 +1670,22 @@ plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
 
 
 plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
+  optimizerOption(useRandomSMJ), % maps sortmergejoin to sortmergejoin_r2
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  optimizerOption(useRandomSMJ), % maps sortmergejoin to sortmergejoin_r2
   concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r2[',
                AAtom, ', ', BAtom, ']'], '', Result),
   !.
 
 
 plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
+  optimizerOption(useRandomSMJ3),
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
-  optimizerOption(useRandomSMJ3),
   concat_atom([XAtom, ' ', YAtom, ' sortmergejoin_r3[',
                AAtom, ', ', BAtom, ']'], '', Result),
   !.
@@ -2972,12 +2972,11 @@ Here ~ArgS~ is meant to indicate ``argument stream''.
 
 A join can always be translated to a ~symmjoin~.
 
+Moved to a later position.
+
 */
 
-join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
-  not(optimizerOption(noSymmjoin)),
-  Arg1 => Arg1S,
-  Arg2 => Arg2S.
+
 
 
 
@@ -3441,6 +3440,18 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
   join00(Arg1Extend, Arg2Extend,
         pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
+
+
+/*
+Finally, a join can always be translated to a ~symmjoin~.
+
+*/
+
+join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
+  not(optimizerOption(noSymmjoin)),
+  Arg1 => Arg1S,
+  Arg2 => Arg2S.
+
 
 /*
 As join00 could be an orderkeeping sort, we also need a transformation
@@ -5940,6 +5951,35 @@ attribute names have the form as required in [Section Translation].
 % Section:Start:lookup_2_b
 % Section:End:lookup_2_b
 
+/*
+Version of lookup for large queries.
+
+*/
+
+%LargeQueries start:
+lookup(select Attrs from Rels where Preds,
+        select Attrs2 from Rels2List where Preds2List) :-  
+  %largeQueries start:
+  optimizerOption(largeQueries(qgdm)),  
+  %largeQueries end
+  lookupRels(Rels, Rels2),
+  lookupAttrs(Attrs, Attrs2),
+  lookupPreds(Preds, Preds2),
+  makeList(Rels2, Rels2List),
+  makeList(Preds2, Preds2List),
+  %largeQueries start:
+  createPredicateMap(Preds, Preds2List),
+  %largeQueries end
+  (optimizerOption(entropy)
+    -> registerSelfJoins(Preds2List, 1); true). % needed for entropy optimizer
+%LargeQueries end
+
+/*
+Standard version of lookup.
+
+*/
+
+
 lookup(select Attrs from Rels where Preds,
         select Attrs2 from Rels2List where Preds2List) :-
   lookupRels(Rels, Rels2),
@@ -6919,6 +6959,25 @@ translate1(Query, Stream3, Select2, Update, Cost2) :-
   rewritePlanforCSE(Stream2, Stream3, Select, Select2),
   !.
 
+
+%LargeQueries start:
+translate1(Select from Rels where Preds, Stream2, Select2, Update, Cost) :-
+  optimizerOption(largeQueries(qgd)),
+  length(Preds,NumberOfPreds),
+  NumberOfPreds > 10,
+  qgd(Select from Rels where Preds, Stream2, Select2, Update, Cost).
+
+translate1(Select from Rels where Preds, Stream2, Select2, Update, Cost) :-
+  optimizerOption(largeQueries(qgdm)),
+  length(Preds,NumberOfPreds),
+  NumberOfPreds > 10,
+  qgdm(Select from Rels where Preds, Stream2, Select2, Update, Cost).
+
+%LargeQueries end
+
+
+
+
 % default handling
 translate1(Query, Stream2, Select2, Update, Cost) :-
   translate(Query, Stream, Select, Update, Cost),
@@ -6995,6 +7054,16 @@ translate(update Rel set Transformations,
   translate(select * from Rel, Stream, Select, _, Cost),
   translateTransformations(Transformations, Transformations2),
   !.
+
+%LargeQueries start:
+
+translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
+  optimizerOption(largeQueries(aco)),
+  length(Preds, NumberOfPreds),
+  NumberOfPreds > 10,
+  aco(Select from Rels where Preds, Stream, Select2, Update, Cost).
+
+%LargeQueries end
 
 
 translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
@@ -8239,6 +8308,21 @@ optimize(Query) :-
   write('The plan is: '), nl, nl,
   write(SecondoQuery), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl.
+
+
+%LargeQueries start:
+optimize(Query, QueryOut, CostOut) :-  
+  %largeQueries start
+  optimizerOption(largeQueries(qgdm)),
+  setQuery(Query),  
+  %largeQueries end
+  retractall(removefilter(_)),
+  rewriteQuery(Query, RQuery),
+  callLookup(RQuery, Query2), !,
+  queryToPlan(Query2, Plan, CostOut), !,
+  plan_to_atom(Plan, QueryOut).
+%LargeQueries end
+
 
 
 optimize(Query, QueryOut, CostOut) :-
