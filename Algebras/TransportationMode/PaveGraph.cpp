@@ -2249,6 +2249,7 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
   }
 //  cout<<"get all boundary line"<<endl;
   SpacePartition* sp = new SpacePartition();
+  bool found = false;
   for(unsigned int i = 0;i < no_cyc;i++){
       sl_contour[i]->EndBulkLoad();
       vector<MyHalfSegment> mhs;
@@ -2264,15 +2265,15 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
             printf("%.6f %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());
             printf("%.6f %.6f\n", ps[ps.size() - 1].GetX(),
                                   ps[ps.size() - 1].GetY());
-          }
-          Point testp(true, 124845.7, 51751.29);
-          if(mhs[j].from.Distance(testp) < 0.001){
-            cout<<"dist2 "<<mhs[j].from.Distance(testp)<<endl;
-            printf("%.6f  %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());
           }*/
-          if(ps[ps.size() - 1].Distance(mhs[j].from) > 0.01){
-              ps.push_back(mhs[j].from);
+          Point testp(true, 124845.7, 51751.29);
+          if(mhs[j].from.Distance(testp) < 0.001 && found == false){
+/*            cout<<"dist2 "<<mhs[j].from.Distance(testp)<<endl;
+            printf("%.6f  %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());*/
+            ps.push_back(mhs[j].from);
+            found = true;
           }
+
         }else
           ps.push_back(mhs[j].from);
       }
