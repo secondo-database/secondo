@@ -239,6 +239,7 @@ Signature: rel x attr -> region
 Example  : query no_components(getpolygon(allcontours, hole));
 Result   : 1
 
+
 Operator : getallpoints
 Number   : 2
 Signature: region -> (stream(((x1 t1) ... (xn tn))))
@@ -1189,11 +1190,7 @@ Signature: relation x rtree -> (stream(((x1 t1) ... (xn tn))))
 Example  : query checkroads(r, rtree_road) count;
 Result   : 3250
 
-Operator : tm_scale
-Number   : 1
-Signature: region x real -> region
-Example  : query no_components([const region value ((((1 1)(5 1)(5 5)(1 5))))] tm_scale [10.0])
-Result   : 1
+
 
 
 Operator : tm_join1

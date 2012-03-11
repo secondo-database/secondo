@@ -14171,24 +14171,6 @@ ListExpr OpTMCheckRoadsTypeMap ( ListExpr args )
 
 }
 
-ListExpr OpTMScaleTypeMap ( ListExpr args )
-{
-  if ( nl->ListLength ( args ) != 2 )
-  {
-    return ( nl->SymbolAtom ( "typeerror" ) );
-  }
-  ListExpr param1 = nl->First ( args );
-
-  ListExpr param2 = nl->Second ( args );
-
-  if (nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
-      nl->SymbolValue(param2) == "real" )
-  {
-    if(nl->SymbolValue(param1) == "region" )
-        return nl->SymbolAtom ( "region" );
-  }
-  return nl->SymbolAtom ( "typeerror" );
-}
 
 /*
 TypeMap fun for operator tmjoin
@@ -15937,8 +15919,7 @@ int OpTMTriangulationNew2ValueMap ( Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           rv = (RegVertex*)local.addr;
-          if(rv->count == rv->v1_list.size())
-                          return CANCEL;
+          if(rv->count == rv->v1_list.size()) return CANCEL;
 
           Tuple* tuple = new Tuple(rv->resulttype);
           tuple->PutAttribute(0, new CcInt(true, rv->v1_list[rv->count]));
@@ -16604,6 +16585,7 @@ int OpTMGetPolygonValueMap(Word* args, Word& result, int message,
   reg->EndBulkLoad(true, true, true, false);
   return 0;
 }
+
 
 /*
 get all vertices of a polygon together with its two neighbors
@@ -21076,6 +21058,7 @@ Operator getpolygon(
     OpTMGetPolygonTypeMap
 );
 
+
 Operator getallpoints(
     "getallpoints",
     OpTMGetAllPointsSpec,
@@ -21718,80 +21701,6 @@ Operator checkroads(
     OpTMCheckRoadsTypeMap
 );
 
-
-
-int OpTMScaleSelect(ListExpr args)
-{
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if(nl->IsEqual(arg1, "region") && nl->IsEqual(arg2, "real"))
-    return 0;
-
-  return -1;
-}
-
-/*
-make the region larger or smaller
-
-*/
-
-int TMScaleRegion( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result    = qp->ResultStorage(s);
-  Region *R      = (Region*) args[0].addr;
-  CcReal *factor = (CcReal*) args[1].addr;
-  Region *res    = (Region*) result.addr;
-  if( !R->IsDefined() || !factor->IsDefined() )
-  {
-    res->SetDefined(false);
-  }
-  else{
-//     res->Clear();
-//     res->SetDefined(true);
-//     double f = factor->GetRealval();
-//     if(!R->IsEmpty()){
-//        res->StartBulkLoad();
-//        int size = R->Size();
-//        HalfSegment hs;
-//        for(int i = 0;i < size;i++){
-// //         cout<<"i "<<i<<endl;
-//          R->Get(i, hs);
-// //         hs.Scale(f);
-//          HalfSegment newhs = hs;
-//          if(f > 1.0){/////to become an integer
-//             Point lp = newhs.GetLeftPoint();
-//             Point rp = newhs.GetRightPoint();
-//             Modify_Point3(lp, f);
-//             Modify_Point3(rp, f);
-//             if(hs.IsLeftDomPoint())
-//               newhs.Set(true, lp, rp);
-//             else
-//               newhs.Set(false, rp, lp);
-//          }
-//          (*res) += newhs;
-//        }
-//       res->EndBulkLoad();
-//     }
-    ScaleRegion(res, R, factor->GetRealval());
-  }
-  return 0;
-}
-
-
-ValueMapping OpTMScaleMap[] = {
-TMScaleRegion
-};
-
-Operator tm_scale(
-    "tm_scale",
-    OpTMScaleSpec,
-    1,
-    OpTMScaleMap,
-    OpTMScaleSelect,        // selection function
-    OpTMScaleTypeMap
-);
-
 Operator tm_join1(
     "tm_join1",
     OpTMTMJoin1Spec,
@@ -21938,7 +21847,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&generate_wp3);
     AddOperator(&getcontour);
     AddOperator(&getpolygon);
-  
+
     AddOperator(&geninterestp1);
     AddOperator(&geninterestp2);
     AddOperator(&thepavement); //create region based outdoor infrastructure 
@@ -22149,7 +22058,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&checksline);
    AddOperator(&modifyline);
    AddOperator(&checkroads);
-   AddOperator(&tm_scale);//make the data larger or smaller
+   
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
    ////////////////////////////////////////////////////////////////////

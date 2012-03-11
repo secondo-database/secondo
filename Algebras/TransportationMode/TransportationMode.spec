@@ -61,6 +61,7 @@ operator decomposetri alias DECOMPOSETRI pattern op(_)
 operator createvgraph alias CREATEVGRAPH pattern op(_,_,_)
 operator getcontour alias GETCONTOUR pattern op(_)
 operator getpolygon alias GETPOLYGON pattern op(_,_)
+
 operator getallpoints alias GETALLPOINTS pattern op(_)
 operator rotationsweep alias ROTATIONSWEEP pattern op(_,_,_,_,_)
 operator gethole alias GETHOLE pattern op(_)
@@ -225,7 +226,7 @@ operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 operator modifyline alias MODIFYLINE pattern op(_)
 operator checkroads alias CHECKROADS pattern op(_,_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
-operator tm_scale alias TM_SCALE pattern _ op [_]
+
 
 
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)

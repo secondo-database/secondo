@@ -3219,7 +3219,7 @@ void SpacePartition:: ComputeRegion(vector<Point>& outer_region,
         cyclepoints->EndBulkLoad(true,false,false);
         /////////////step --- 2 create halfsegment/////////////////////////
 
-        HalfSegment* hs = new HalfSegment(true,prevPoint, currvertex);
+        HalfSegment* hs = new HalfSegment(true, prevPoint, currvertex);
         hs->attr.faceno=fcno;
         hs->attr.cycleno=ccno;
         hs->attr.edgeno=edno;

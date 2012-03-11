@@ -1300,14 +1300,7 @@ const string OpTMCheckRoadsSpec  =
     "<text>query checkroads(r,rtree_road)</text--->"
     ") )";
 
-const string OpTMScaleSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-    "\"Example\" ) "
-    "( <text>region x real  ->region </text--->"
-    "<text>region tm_scale[real]</text--->"
-    "<text>enlarge or shrink the region</text--->"
-    "<text>query reg1 tm_scale[10.0]</text--->"
-    ") )";
+
     
 const string OpTMTMJoin1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "

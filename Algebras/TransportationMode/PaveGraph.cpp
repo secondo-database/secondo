@@ -2254,8 +2254,28 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
       vector<MyHalfSegment> mhs;
       sp->ReorderLine(sl_contour[i], mhs);
       vector<Point> ps;
-      for(unsigned int j = 0;j < mhs.size();j++)
-        ps.push_back(mhs[j].from);
+//       for(unsigned int j = 0;j < mhs.size();j++)
+//         ps.push_back(mhs[j].from);
+
+      for(unsigned int j = 0;j < mhs.size();j++){//2012.3.10 rounding error
+        if(j > 0 && ps.size() > 0){
+/*          if(ps[ps.size() - 1].Distance(mhs[j].from) < 0.001){
+            cout<<"dist 1 "<<ps[ps.size() - 1].Distance(mhs[j].from)<<endl;
+            printf("%.6f %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());
+            printf("%.6f %.6f\n", ps[ps.size() - 1].GetX(),
+                                  ps[ps.size() - 1].GetY());
+          }
+          Point testp(true, 124845.7, 51751.29);
+          if(mhs[j].from.Distance(testp) < 0.001){
+            cout<<"dist2 "<<mhs[j].from.Distance(testp)<<endl;
+            printf("%.6f  %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());
+          }*/
+          if(ps[ps.size() - 1].Distance(mhs[j].from) > 0.01){
+              ps.push_back(mhs[j].from);
+          }
+        }else
+          ps.push_back(mhs[j].from);
+      }
 
       bool clock;
       if(0.0f < Area(ps)){//points counter-clockwise order
