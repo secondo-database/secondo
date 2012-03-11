@@ -2249,34 +2249,14 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
   }
 //  cout<<"get all boundary line"<<endl;
   SpacePartition* sp = new SpacePartition();
-  bool found = false;
+
   for(unsigned int i = 0;i < no_cyc;i++){
       sl_contour[i]->EndBulkLoad();
       vector<MyHalfSegment> mhs;
       sp->ReorderLine(sl_contour[i], mhs);
       vector<Point> ps;
-//       for(unsigned int j = 0;j < mhs.size();j++)
-//         ps.push_back(mhs[j].from);
-
-      for(unsigned int j = 0;j < mhs.size();j++){//2012.3.10 rounding error
-
-/*          if(ps[ps.size() - 1].Distance(mhs[j].from) < 0.001){
-            cout<<"dist 1 "<<ps[ps.size() - 1].Distance(mhs[j].from)<<endl;
-            printf("%.6f %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());
-            printf("%.6f %.6f\n", ps[ps.size() - 1].GetX(),
-                                  ps[ps.size() - 1].GetY());
-          }*/
-          Point testp(true, 124845.7, 51751.29);
-          if(mhs[j].from.Distance(testp) < 0.001){
-/*            cout<<"dist2 "<<mhs[j].from.Distance(testp)<<endl;
-            printf("%.6f  %.6f\n", mhs[j].from.GetX(), mhs[j].from.GetY());*/
-            if(found == false){
-              ps.push_back(mhs[j].from);
-              found = true;
-            }
-          }else
-            ps.push_back(mhs[j].from);
-      }
+      for(unsigned int j = 0;j < mhs.size();j++)
+         ps.push_back(mhs[j].from);
 
       bool clock;
       if(0.0f < Area(ps)){//points counter-clockwise order
@@ -2309,8 +2289,8 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
       }else{//hole points, should be clockwise
         if(clock == false){
             for(unsigned int index = 0;index < ps.size();index++){
-                ps_contour_x.push_back(ps[ps.size() -1 - index].GetX());
-                ps_contour_y.push_back(ps[ps.size() -1 - index].GetY());
+                ps_contour_x.push_back(ps[ps.size() - 1 - index].GetX());
+                ps_contour_y.push_back(ps[ps.size() - 1 - index].GetY());
             }
             //////////insert the start point again to close the region///////
 //             unsigned int index = 0;
@@ -2893,7 +2873,9 @@ void CompTriangle::GetVPoints(Relation* rel1, Relation* rel2,
 
   double angle1 = -1.0;
   double angle2 = -1.0;
-  bool face_direction; //false counter-clockwise, true clockwise
+//  bool face_direction; //false counter-clockwise, true clockwise
+
+  bool face_direction = true; //false counter-clockwise, true clockwise
 
   //determine the region face on which side of the segment
   if(hole_id != 0){
