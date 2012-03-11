@@ -2546,10 +2546,11 @@ bool HGrdTri::SetCircCenter()
     {
         DumpTri();
 //        TM_TRACE1( "d = %lg", d);
-/*        cout<<d<<endl;
-        cout<<x1<<" "<<y1<<endl;
-        cout<<x2<<" "<<y2<<endl;
-        cout<<x3<<" "<<y3<<endl;*/
+        printf("%.6f\n", d);
+        printf("(%.7f %.7f)\n", x1, y1);
+        printf("(%.7f %.7f)\n", x2, y2);
+        printf("(%.7f %.7f)\n", x3, y3);
+
 //        cout<<"SetCircCenter() "<<"error "<<endl;
         return true;
         // THROW_INTERNAL( "Problem inside SetCircCenter() !!!");
