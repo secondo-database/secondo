@@ -2976,7 +2976,7 @@ bool HGrid::CheckNeighb( IterGCell icl, CollFSeg& lstsg,
                          const Vect2D& vct, const IterGCell& ipvcl)
 {
     HGrdTri *pthis;
-    
+
     pthis = (HGrdTri*)( (*icl) );
 
     if ( pthis->IsInsideCirc( vct ) == true )
