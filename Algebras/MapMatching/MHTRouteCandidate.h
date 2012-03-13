@@ -70,7 +70,6 @@ public:
     bool operator==(const MHTRouteCandidate& rCandidate);
 
     void AddSection(const DirectedNetworkSection& rSection);
-    size_t GetSectionCount(void) const;
     const DirectedNetworkSection& GetLastSection(void) const;
 
     void AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
@@ -106,10 +105,10 @@ public:
     public:
         PointData();
 
-        PointData(/*const GPoint& rGPoint,*/ const Point& rPointGPS,
+        PointData(const Point& rPointGPS,
                   const Point& rPointProjection, const NetworkRoute& rRoute,
                   const double dDistance,
-                  const datetime::DateTime& rDateTime/*, bool bClosed*/);
+                  const datetime::DateTime& rDateTime);
 
         // Constructor without GPoint - Offroad-case
         PointData(const Point& rPoint, const double dDistance,
@@ -121,7 +120,6 @@ public:
 
         ~PointData();
 
-        //inline GPoint* GetGPoint(void) const {return m_pGPoint;}
         GPoint* GetGPoint(int nNetworkId) const;
         inline Point* GetPointGPS(void) const {return m_pPointGPS;}
         inline Point* GetPointProjection(void) const
@@ -129,18 +127,16 @@ public:
         inline const NetworkRoute& GetNetworkRoute(void) {return m_Route;}
         inline double GetScore(void) const {return m_dScore;}
         inline datetime::DateTime GetTime(void) const {return m_Time;}
-        //inline bool GetClosed(void) const {return m_bClosed;}
 
     private:
         PointData& operator=(const PointData& rPointData);
 
-        mutable GPoint* m_pGPoint; //
+        mutable GPoint* m_pGPoint;
         Point* m_pPointGPS;
         Point* m_pPointProjection;
         NetworkRoute m_Route;
         double m_dScore;
         datetime::DateTime m_Time;
-        //bool m_bClosed;
     };
 
     const PointData* GetLastPoint(void) const;
@@ -150,26 +146,36 @@ public:
         return m_Points;
     }
 
-    void GetPointsOfLastSection(std::vector<PointData*>& rvecPoints) const;
+    const std::vector<PointData*>& GetPointsOfLastSection(void) const;
 
     inline size_t GetCountPointsOfLastSection(void) const
-                                                {return m_nPointsOfLastSection;}
+                                     {return m_Sections.back().m_Points.size();}
 
     inline size_t GetCountLastOffRoadPoints(void) const
                                              {return m_nCountLastOffRoadPoints;}
 
     // Debugging
-    void Print(std::ostream& os) const;
-    void PrintGPoints(std::ostream& os) const;
-    void PrintGPointsAsPoints(std::ostream& os) const;
+    void Print(std::ostream& os, int nNetworkId) const;
+    void PrintGPoints(std::ostream& os, int nNetworkId) const;
+    void PrintGPointsAsPoints(std::ostream& os, int nNetworkId) const;
 
 private:
 
     std::vector<PointData*> m_Points; // TODO ggf. DBArray
-    std::deque<DirectedNetworkSection> m_Sections;
+
+    struct SectionCandidate
+    {
+        SectionCandidate(const DirectedNetworkSection& rSection)
+        :m_Section(rSection)
+        {
+        }
+
+        DirectedNetworkSection m_Section;
+        std::vector<PointData*> m_Points;
+    };
+
+    std::deque<SectionCandidate> m_Sections;
     double m_dScore;
-    size_t m_nPointsOfLastSection;
-    size_t m_nCountSections;
     unsigned short m_nCountLastEmptySections;
     size_t m_nCountLastOffRoadPoints;
 };

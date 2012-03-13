@@ -138,7 +138,8 @@ private:
 
     void AddAdjacentSections(const MHTRouteCandidate* pCandidate,
                        bool bUpDown,
-                       std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates);
+                       std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates,
+                       class SectionFilter* pFilter = NULL);
 
     void GetInitialSectionCandidates(const Point& rPoint,
                                      std::vector<NetworkSection>& rVecSectRes);
@@ -156,6 +157,15 @@ private:
 
 */
 
+};
+
+
+class SectionFilter
+{
+public:
+    SectionFilter(){}
+    virtual ~SectionFilter(){}
+    virtual bool IsValid(const DirectedNetworkSection& rSection) = 0;
 };
 
 } // end of namespace mapmatch
