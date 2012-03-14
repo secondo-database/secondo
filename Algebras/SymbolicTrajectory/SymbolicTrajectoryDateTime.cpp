@@ -133,15 +133,15 @@ string SymbolicTimeRange::getDaysOfMonth(string month, string year) {
 
 
 string getFullDate(string const &text, bool const startDate) {
-  string dateDefault = (startDate) ? "01.01.0001" : "31.12.9999";
+  string dateDefault = (startDate) ? "0001-01-01" : "9999-12-31";
   string fullDate = "";
   SymbolicTimeRange setira;
   if (!startDate && text.length() == 7)
-    fullDate = setira.getDaysOfMonth(text.substr(0,2), text.substr(3)) + "."
-             + text;
+    fullDate = text + "-"
+             + setira.getDaysOfMonth(text.substr(5,2), text.substr(0, 4));
   else
-    fullDate = dateDefault.substr(0, dateDefault.length() - text.length())
-             + text;
+    fullDate = text
+             + dateDefault.substr(0, dateDefault.length() - text.length());
   return fullDate;
 }
 
@@ -172,14 +172,14 @@ string getFullDateTime(string const &text, bool const startDateTime) {
 
 string getFullRange(string const &text) {
   string resultRange = "";
-  vector<string> dates = split(text, '-');
+  vector<string> dates = split(text, '/');
   if (dates.size() == 1)
-    resultRange = getFullDateTime(dates[0], true) + "-"
+    resultRange = getFullDateTime(dates[0], true) + "/"
                   + getFullDateTime(dates[0], false);
   else if (dates.size() == 2) {
-    resultRange = getFullDateTime( dates[0], true ) + "-";
+    resultRange = getFullDateTime(dates[0], true) + "/";
     resultRange += (dates[1].size() == 10) ? getFullDateTime(dates[1], false)
-                                           : getFullDateTime( dates[1], true );
+                                           : getFullDateTime(dates[1], true);
   }
   return resultRange;
 }
@@ -187,21 +187,21 @@ string getFullRange(string const &text) {
 
 string getFullTimeRange(string const &text) {
   string resultRange = "";
-  vector<string> times = split(text, '-');
+  vector<string> times = split(text, '/');
   if (times.size() == 1)
-    resultRange = getFullTime(times[0], true) + "-" + getFullTime( "", false );
+    resultRange = getFullTime(times[0], true) + "/" + getFullTime("", false);
   else if (times.size() == 2)
-    resultRange = getFullTime(times[0], true) + "-"
+    resultRange = getFullTime(times[0], true) + "/"
                 + getFullTime(times[1], true);
   return resultRange;    
 }
 
 
 bool checkMaskOfDate(string const &mask) {
-  string acceptedDateMask = "00.00.0000";
+  string acceptedDateMask = "0000-00-00";
   if ((mask.length() != 4) && (mask.length() != 7) && (mask.length() != 10))
     return false;
-  if (mask == acceptedDateMask.substr(10 - mask.length()))
+  if (mask == acceptedDateMask.substr(0, mask.length()))
     return true;
   return false;
 }
@@ -233,8 +233,8 @@ bool checkMaskOfDateTime(string const &mask)
 
 
 bool checkRangeMask(string const &mask) {
-  // acceptedDefaultMask = "00.00.0000#00:00:00-00.00.0000#00:00:00";
-  vector<string> masks = split(mask, '-');
+  // acceptedDefaultMask = "0000-00-00#00:00:00_0000-00-00#00:00:00";
+  vector<string> masks = split(mask, '/');
   switch (masks.size()) {
     case 2: // end element
       if ((!masks[1].empty() or !masks[0].empty())
@@ -252,8 +252,8 @@ bool checkRangeMask(string const &mask) {
  
 
 bool checkTimeRangeMask(string const &mask) {
-  // acceptedDefaultMask = "00:00:00-00:00:00";
-  vector<string> masks = split(mask, '-');
+  // acceptedDefaultMask = "00:00:00_00:00:00";
+  vector<string> masks = split(mask, '/');
   switch (masks.size()) {
     case 2: // end element
       if ((!masks[1].empty() or !masks[0].empty())
@@ -287,28 +287,28 @@ int getType(string text, string &datetime)
     return type; // = 0, cannot resolve element
   if (mask == "AX") {
     int nr; 
-    if ( (nr = setira.getWeekdayNr(text)) != 0 ) {
+    if ( (nr = setira.getWeekdayNr(text)) != 0) {
       type = 3;
-      datetime = int2Str( nr );
+      datetime = int2Str(nr);
     }
-    else if ( (nr = setira.getDaytimeNr(text)) != 0 ) {
+    else if ((nr = setira.getDaytimeNr(text)) != 0) {
       type = 4;
-      datetime = int2Str( nr );
+      datetime = int2Str(nr);
     }
-    else if ( (nr = setira.getMonthNr(text)) != 0 ) {
+    else if ((nr = setira.getMonthNr(text)) != 0) {
       type = 5;
-      datetime = int2Str( nr );
+      datetime = int2Str(nr);
     }
   }
   else if (isNumeric(text)) {
     type = 6;
     datetime = getFullRange(text);
   }
-  else if ( checkRangeMask(mask) ) {
+  else if (checkRangeMask(mask)) {
     type = 1;
     datetime = getFullRange(text);
   }
-  else if ( checkTimeRangeMask(mask) ) {
+  else if (checkTimeRangeMask(mask)) {
     type = 2;
     datetime = getFullTimeRange(text);
   }
@@ -328,38 +328,36 @@ string getMask(string const &text) {
       mask += 'A';
       onlyNumericChars = false;
     }
-    else if  ((char_cur >= 48 && char_cur <= 57)) {
+    else if ((char_cur >= 48 && char_cur <= 57)) {
       mask += '0';
       onlyAlphaChars = false;
     } 
-    else if  ((char_cur == '.' || char_cur == '#' || char_cur == ':' ||
+    else if ((char_cur == '.' || char_cur == '#' || char_cur == ':' ||
                char_cur == '/')) {
       mask += char_cur;
       onlyAlphaChars = false;
       onlyNumericChars = false;
     }
     else if  (char_cur == '-') {
-      while (!mask.empty() && (mask[mask.length() - 1] == ' ' ))
+      while (!mask.empty() && (mask[mask.length() - 1] == ' '))
         mask.erase(mask.length() - 1);
       mask += char_cur;
       onlyAlphaChars = false;
       onlyNumericChars = false; 
     }
     else if ((char_cur == ' ')) {
-      if ( mask.empty() || ( mask[mask.length() - 1] != '-' ) )
+      if (mask.empty() || (mask[mask.length() - 1] != '-'))
         mask += char_cur;
       else
-      {
         // mask += '?';
         // onlyAlphaChars = false;
         // onlyNumericChars = false;
         return "?";
-      }
     }
   }
-  if ( onlyAlphaChars && !mask.empty() )
+  if (onlyAlphaChars && !mask.empty())
     mask = "AX";
-  if ( onlyNumericChars && !mask.empty() )
+  if (onlyNumericChars && !mask.empty())
     mask = "0X";
   return mask;
 }
@@ -367,13 +365,13 @@ string getMask(string const &text) {
 
 bool isDate(string const &text) 
 {
-   return checkMaskOfDateTime( getMask(text) );
+  return checkMaskOfDateTime(getMask(text));
 }
 
 
 bool isNumeric(string const &text) 
 {
-   return ( getMask(text)  == "0X" );
+  return (getMask(text)  == "0X");
 }
 
 
@@ -382,130 +380,115 @@ is true if reftime is before time
 
 */
 bool isBeforeTime(string const &time, string const &reftime) { 
-  assert( (time.size() == 12) && (reftime.size() == 12) );
-  
-  if ( getHourFromTime(reftime) <  getHourFromTime(time) ) {
+  assert((time.size() == 12) && (reftime.size() == 12));
+  if (getHourFromTime(reftime) < getHourFromTime(time))
     return true;
-  } 
-
-  if ( getMinuteFromTime(reftime) <  getMinuteFromTime(time) ) {
-    return true;
-  } 
-
-  if ( getSecondFromTime(reftime) <  getSecondFromTime(time) ) {
-    return true;
-  } 
-
-  if ( getMillisecondFromTime(reftime) <  getMillisecondFromTime(time) ) {
-    return true;
-  } 
-  
-  return false;
+  else if (getHourFromTime(reftime) > getHourFromTime(time))
+    return false;
+  else { // equal hours
+    if (getMinuteFromTime(reftime) < getMinuteFromTime(time))
+      return true;
+    else if (getMinuteFromTime(reftime) > getMinuteFromTime(time))
+      return false;
+    else { // equal minutes
+      if (getSecondFromTime(reftime) < getSecondFromTime(time))
+        return true;
+      else if (getSecondFromTime(reftime) > getSecondFromTime(time))
+        return false;
+      else { // equal seconds
+        if (getMillisecondFromTime(reftime) < getMillisecondFromTime(time))
+          return true;
+        else // equal or later
+          return false;
+      }
+    }
+  }
 }
 
 
 string getStartTimeFromRange(string const &time) { 
-  assert( time.size() == 25 );
-  
-  return time.substr(0,12);   
-} 
+  assert(time.size() == 25);
+  return time.substr(0, 12);
+}
 
 
 string getEndTimeFromRange(string const &time) { 
-  assert( time.size() == 25 );
-  
-  return time.substr(13,12); 
-} 
+  assert(time.size() == 25);
+  return time.substr(13, 12);
+}
 
 
 bool isPositivTimeRange(string const &range) {
-  assert( range.size() == 25 ); 
-  
-  return isBeforeTime( getEndTimeFromRange(range),
-                       getStartTimeFromRange(range) );  
+  assert(range.size() == 25);
+  return isBeforeTime(getEndTimeFromRange(range), getStartTimeFromRange(range));
 }
 
 
 int getHourFromTime(string const &time) { 
-  assert( time.size() == 12 );
-  
-  return str2Int( time.substr(0,2) ); 
+  assert(time.size() == 12);
+  return str2Int(time.substr(0, 2));
 } 
 
 
 int getMinuteFromTime(string const &time) { 
-  assert( time.size() == 12 );
-  
-  return str2Int( time.substr(3,2) ); 
+  assert(time.size() == 12);
+  return str2Int(time.substr(3, 2));
 } 
 
 
 int getSecondFromTime(string const &time) { 
-  assert( time.size() == 12 );
-  
-  return str2Int( time.substr(6,2) ); 
+  assert(time.size() == 12);
+  return str2Int(time.substr(6, 2));
 } 
 
 
 int getMillisecondFromTime(string const &time) { 
-  assert( time.size() == 12 );
-  
-  return str2Int( time.substr(9,3) ); 
+  assert(time.size() == 12);
+  return str2Int(time.substr(9, 3));
 }
 
 
-string getStartDateTimeFromRange(string const &date) { 
-  assert( date.size() == 47 );
-  
-  return date.substr(0,23);   
+string getStartDateTimeFromRange(string const &date) {
+  assert(date.size() == 47);
+  return date.substr(0, 23);
 } 
 
 
 string getEndDateTimeFromRange(string const &date) { 
-  assert( date.size() == 47 );
-  return date.substr(24,23); 
+  assert(date.size() == 47);
+  return date.substr(24, 23); 
 }
 
 
 string getSecDateTimeString(string const &date) {
-  assert( date.size() == 23 );
+  assert(date.size() == 23);
   string result = "";
-  result += date.substr(6,4) + "-"; // year
-  result += date.substr(3,2) + "-"; // month
-  result += date.substr(0,2) + "-"; // day  
+  result += date.substr(0,4) + "-"; // year
+  result += date.substr(5,2) + "-"; // month
+  result += date.substr(8,2) + "-"; // day
   result += date.substr(11,2) + ":"; // hour
   result += date.substr(14,2) + ":"; // minute
-  result += date.substr(17,2) + "."; // second 
-  result += date.substr(20,4); // millisecond   
+  result += date.substr(17,2) + "."; // second
+  result += date.substr(20,3); // millisecond
   return result; 
 }
 
 
 string getDayTimeRangeString(int const &dayTimeNr) {
-  // morning: 0:00 - 12:00
-  // afternoon: 12:00 - 17:00
-  // evening: 17:00 - 21:00
-  // night: 21:00 - 24:00
   string result = "";  
-
   switch (dayTimeNr) {
-    case 1:  result = "00:00:00.000-12:00:00.000";
-             break;
-
-    case 2:  result = "12:00:00.000-17:00:00.000";
-             break;
-
-    case 3:  result = "17:00:00.000-21:00:00.000";
-             break;
-
-    case 4:  result = "21:00:00.000-23:59:59.999";
-             break;
+    case 1:
+      result = "00:00:00.000-12:00:00.000"; // morning
+      break;
+    case 2:
+      result = "12:00:00.000-17:00:00.000"; // afternoon
+      break;
+    case 3:
+      result = "17:00:00.000-21:00:00.000"; // evening
+      break;
+    case 4:
+      result = "21:00:00.000-23:59:59.999"; // night
+      break;
   }
-
   return result;
 }
-
-
-
-
-

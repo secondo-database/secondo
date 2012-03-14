@@ -2361,14 +2361,20 @@ matchesFun_MT (Word* args, Word& result, int message,
 
   CcBool* b = static_cast<CcBool*>( result.addr );
 
+  if (!pattern.isValid()) {
+    b->SetDefined(false);
+    cerr << pattern.getErrMsg() << endl;
+    return 0;
+  }
+
   bool res = (pattern.TotalMatch(*mlabel));
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
                      //real boolean value)
   
-  if ( !pattern.isValid() ) {
-    b->SetDefined( false );
+  if (!pattern.isValid()) {
+    b->SetDefined(false);
     cerr << pattern.getErrMsg() << endl;
   }
   
