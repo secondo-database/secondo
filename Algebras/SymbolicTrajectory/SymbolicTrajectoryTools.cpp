@@ -24,12 +24,12 @@ int str2Int(string const &text) {
 
 
 vector<string> split(string const& text, const char delemiter) {
-    vector<string> result(0);
-    string token;
-    istringstream iss(text);
-    while (getline(iss, token, delemiter))
-      result.push_back(token);
-	return result;
+  vector<string> result(0);
+  string token;
+  istringstream iss(text);
+  while (getline(iss, token, delemiter))
+    result.push_back(token);
+  return result;
 }
 
    // ignores zero tokens
@@ -58,7 +58,7 @@ vector<string> split(string const& text, const string delemiter) {
     position = text.find(delemiter, last_position);
   }
   result.push_back(text.substr(last_position));
- 	return result;
+  return result;
 }
 
 
